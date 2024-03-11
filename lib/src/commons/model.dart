@@ -7,3 +7,12 @@ class IconModel {
 
   IconModel(this.name, this.icon);
 }
+
+/// 通用的导航页面模型，由导航标题、跳转的页面、可选图标组成
+class NavPageModel {
+  final String title;
+  final Widget page;
+  final IconData? icon;
+
+  const NavPageModel(this.title, this.page, [this.icon]);
+}
