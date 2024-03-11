@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,6 +51,8 @@ part 'src/widgets/badge.dart';
 part 'src/widgets/flex_wrap.dart';
 
 part 'src/widgets/restart_app.dart';
+
+part 'src/widgets/simple_widgets.dart';
 
 part 'src/widgets/sliver.dart';
 
