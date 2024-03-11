@@ -1,6 +1,6 @@
 name: flutter_base
 description: "Flutter基础库"
-version: 0.0.3
+version: 0.0.4
 publish_to: none
 
 environment:
@@ -16,6 +16,7 @@ dependencies:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
       tag: v0.0.1
+  cupertino_icons: ^1.0.6
   get: ^5.0.0-release-candidate-5
   collection: ^1.18.0
   hive_flutter: ^2.0.0-dev
