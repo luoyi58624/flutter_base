@@ -27,6 +27,3 @@ dev_dependencies:
 
 dependency_overrides:
   hive: ^3.0.0-dev
-
-flutter:
-  uses-material-design: true
