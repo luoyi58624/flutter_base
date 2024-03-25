@@ -20,9 +20,7 @@ class BadgeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (CommonUtil.isEmpty(bagde)) {
-      return child;
-    }
+    if (DartUtil.isEmpty(bagde)) return child;
     if (bagde is num) {
       return Badge(
         label: Container(

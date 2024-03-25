@@ -69,7 +69,7 @@ Rx<T> useLocalObs<T>(
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
-  bool isBaseType = CommonUtil.isBaseTypeString(valueType) || value is Map;
+  bool isBaseType = DartUtil.isBaseTypeString(valueType) || value is Map;
   expireDateTimeFun ??= () => -1;
 
   /// 序列化Color对象
@@ -88,7 +88,8 @@ Rx<T> useLocalObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 && localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expireDateTime != -1 &&
+        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -130,7 +131,7 @@ RxList<T> useLocalListObs<T>(
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
-  bool isBaseType = CommonUtil.isBaseTypeString(valueType) || value is List<Map>;
+  bool isBaseType = DartUtil.isBaseTypeString(valueType) || value is List<Map>;
   expireDateTimeFun ??= () => -1;
   assert(isBaseType || (serializeFun != null && deserializeFun != null), '请为响应式持久化变量[$key]提供序列化和反序列化函数');
   late RxList<T> $value;
@@ -143,7 +144,8 @@ RxList<T> useLocalListObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 && localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expireDateTime != -1 &&
+        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -164,7 +166,9 @@ RxList<T> useLocalListObs<T>(
       _obsLocalStorage.setItem(
         key,
         jsonEncode(
-          _LocalDataModel(valueType, expireDateTimeFun!(), serializeFun == null ? v : v.map((value) => serializeFun(value))).toJson(),
+          _LocalDataModel(
+                  valueType, expireDateTimeFun!(), serializeFun == null ? v : v.map((value) => serializeFun(value)))
+              .toJson(),
         ),
       );
     },
@@ -211,7 +215,7 @@ RxMap<String, T> useLocalMapObs<T>(
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
-  bool isBaseType = CommonUtil.isBaseTypeString(valueType) || valueType.contains('Map');
+  bool isBaseType = DartUtil.isBaseTypeString(valueType) || valueType.contains('Map');
   expireDateTimeFun ??= () => -1;
   assert(isBaseType || (serializeFun != null && deserializeFun != null), '请为响应式持久化变量[$key]提供序列化和反序列化函数');
   late RxMap<String, T> $value;
@@ -224,7 +228,8 @@ RxMap<String, T> useLocalMapObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 && localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expireDateTime != -1 &&
+        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -242,8 +247,8 @@ RxMap<String, T> useLocalMapObs<T>(
     _obsLocalStorage.setItem(
       key,
       jsonEncode(
-        _LocalDataModel(
-                valueType, expireDateTimeFun!(), serializeFun == null ? v : v.map((key, value) => MapEntry(key, serializeFun(value))))
+        _LocalDataModel(valueType, expireDateTimeFun!(),
+                serializeFun == null ? v : v.map((key, value) => MapEntry(key, serializeFun(value))))
             .toJson(),
       ),
     );

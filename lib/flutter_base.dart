@@ -34,6 +34,8 @@ part 'src/commons/model.dart';
 
 part 'src/utils/animation.dart';
 
+part 'src/utils/async.dart';
+
 part 'src/utils/color.dart';
 
 part 'src/utils/flutter.dart';
