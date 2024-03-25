@@ -4,8 +4,7 @@ version: 0.0.5
 publish_to: none
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
-  flutter: ">=1.17.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -15,12 +14,11 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
-      tag: v1.0.0
+      tag: v0.0.2
   cupertino_icons: ^1.0.6
   get: ^5.0.0-release-candidate-5
   collection: ^1.18.0
   hive_flutter: ^2.0.0-dev
-  common_utils: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +27,3 @@ dev_dependencies:
 
 dependency_overrides:
   hive: ^3.0.0-dev
-
-flutter:
-  uses-material-design: true
