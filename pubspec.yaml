@@ -1,6 +1,6 @@
 name: flutter_base
-description: "Flutter基础库"
-version: 0.0.7
+description: "flutter base library"
+version: 0.0.8
 publish_to: none
 
 environment:
