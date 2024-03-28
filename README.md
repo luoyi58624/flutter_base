@@ -1,39 +1,59 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# flutter基础库
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
+- 生成app图标
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
+> flutter pub run flutter_launcher_icons:main
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+- 打包apk（android，不要使用，安卓需要区分环境，执行最下面的命令）
 
-## Features
+> flutter build apk
+> flutter build apk --target-platform android-arm64
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- 打包ipa（ios -> app-store包，上架应用商店）
 
-## Getting started
+> flutter build ipa --release
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+- 打包ipa（ios -> ad-hoc包，给测试机型使用）
 
-## Usage
+> flutter build ipa --release --export-method=ad-hoc
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+- 安装打包好的app
 
-```dart
-const like = 'sample';
+> flutter install
+
+- 在谷歌浏览器上运行
+
+> flutter run -d chrome --web-renderer html --flavor prod -t lib/main_prod.dart
+
+- 打包和安装指定环境的app（仅限android）
+
+> flutter build apk --flavor dev -t lib/main_dev.dart --target-platform android-arm64
+> flutter install --use-application-binary build/app/outputs/flutter-apk/app-dev-release.apk
+
+> flutter build apk --flavor prod -t lib/main_prod.dart --target-platform android-arm64
+> flutter install --use-application-binary build/app/outputs/flutter-apk/app-prod-release.apk
+
+- 打包web
+
+> flutter build web
+> flutter build web --web-renderer=html
+> dhttpd --path build/web/
+
+- 运行代码生成器
+
+> flutter pub run build_runner build
+
+- 添加指定平台
+
+> flutter create --platforms=windows,macos,linux,web
+
+- android minsdk>23需要手动在android下设置以下属性才能压缩安装包
+
 ```
+packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+```.
 
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
