@@ -9,10 +9,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:page_transition/page_transition.dart';
 
 import 'flutter_base.dart';
 
 export 'package:dart_base/dart_base.dart';
+
+// flutter官方路由库
+export 'package:go_router/go_router.dart';
 
 // flutter官方国际化库
 export 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,6 +34,12 @@ export 'package:get/get_utils/src/get_utils/get_utils.dart';
 export 'package:get/get_utils/src/platform/platform.dart';
 export 'package:get/get_utils/src/queue/get_queue.dart';
 
+part 'src/app.dart';
+
+part 'src/router.dart';
+
+part 'src/theme.dart';
+
 part 'src/commons/model.dart';
 
 part 'src/utils/animation.dart';
@@ -41,6 +51,8 @@ part 'src/utils/color.dart';
 part 'src/utils/flutter.dart';
 
 part 'src/utils/local_storage.dart';
+
+part 'src/utils/no_ripper.dart';
 
 part 'src/utils/platform.dart';
 
@@ -64,11 +76,18 @@ late LocalStorage localStorage;
 /// 初始化Flutter通用配置，例如主题、本地存储
 /// * themeModel 自定义主题
 /// * enableGetxLog 控制台是否显示getx日志
-Future<void> initFlutter({
+Future<void> initFlutterApp({
+  AppThemeModel? appThemeModel,
   bool enableGetxLog = false,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!enableGetxLog) Get.isLogEnable = false;
+  appTheme = AppTheme(appThemeModel);
+  if (appTheme.translucenceStatusBar) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));
+  } else {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
+  }
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
