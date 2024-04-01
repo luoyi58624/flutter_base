@@ -1,6 +1,6 @@
 name: flutter_base
 description: "flutter base library"
-version: 2.0.0
+version: 2.0.1
 publish_to: none
 
 environment:
@@ -14,7 +14,7 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
-      ref: v2.0.0
+      ref: v2.0.1
   cupertino_icons: ^1.0.6
   get: ^5.0.0-release-candidate-5
   collection: ^1.18.0
