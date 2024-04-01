@@ -58,12 +58,6 @@ part 'src/widgets/simple_widgets.dart';
 
 part 'src/widgets/sliver.dart';
 
-/// 是否为release版
-const bool isRelease = bool.fromEnvironment("dart.vm.product");
-
-/// 获取当前时间的毫秒
-int get currentMilliseconds => DateTime.now().millisecondsSinceEpoch;
-
 /// key-value本地存储对象
 late LocalStorage localStorage;
 

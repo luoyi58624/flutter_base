@@ -36,7 +36,7 @@ class LocalStorage<T> {
       List<String> keys = box.keys.toList().cast<String>();
       for (int i = 0; i < box.length; i++) {
         var expireTime = _expireDataBox!.get(_getExpireKey(tag!, keys[i]));
-        if (expireTime != null && expireTime < currentMilliseconds) {
+        if (expireTime != null && expireTime < DartUtil.currentMilliseconds) {
           box.delete(keys[i]);
           _expireDataBox!.delete(_getExpireKey(tag, keys[i]));
         }
@@ -60,8 +60,8 @@ class LocalStorage<T> {
   }) {
     box.put(key, value);
     if (duration > 0) {
-      _expireDataBox!.put(_getExpireKey(tag, key), currentMilliseconds + duration);
-    } else if (expireTime != null && expireTime.millisecondsSinceEpoch > currentMilliseconds) {
+      _expireDataBox!.put(_getExpireKey(tag, key), DartUtil.currentMilliseconds + duration);
+    } else if (expireTime != null && expireTime.millisecondsSinceEpoch > DartUtil.currentMilliseconds) {
       _expireDataBox!.put(_getExpireKey(tag, key), expireTime.millisecondsSinceEpoch);
     }
   }
@@ -69,7 +69,7 @@ class LocalStorage<T> {
   /// 读取指定key数据
   T? getItem(String key, [T? defaultValue]) {
     var expireTime = _expireDataBox!.get(_getExpireKey(tag, key));
-    if (expireTime == null || expireTime > currentMilliseconds) {
+    if (expireTime == null || expireTime > DartUtil.currentMilliseconds) {
       return box.get(key, defaultValue: defaultValue);
     } else {
       box.delete(key);
@@ -111,7 +111,7 @@ class LazyLocalStorage<T> {
       List<String> keys = box.keys.toList().cast<String>();
       for (int i = 0; i < box.length; i++) {
         var expireTime = _expireDataBox!.get(_getExpireKey(tag!, keys[i]));
-        if (expireTime != null && expireTime < currentMilliseconds) {
+        if (expireTime != null && expireTime < DartUtil.currentMilliseconds) {
           box.delete(keys[i]);
           _expireDataBox!.delete(_getExpireKey(tag, keys[i]));
         }
@@ -135,8 +135,8 @@ class LazyLocalStorage<T> {
   }) async {
     await lazyBox.put(key, value);
     if (duration > 0) {
-      _expireDataBox!.put(_getExpireKey(tag, key), currentMilliseconds + duration);
-    } else if (expireTime != null && expireTime.millisecondsSinceEpoch > currentMilliseconds) {
+      _expireDataBox!.put(_getExpireKey(tag, key), DartUtil.currentMilliseconds + duration);
+    } else if (expireTime != null && expireTime.millisecondsSinceEpoch > DartUtil.currentMilliseconds) {
       _expireDataBox!.put(_getExpireKey(tag, key), expireTime.millisecondsSinceEpoch);
     }
   }
@@ -144,7 +144,7 @@ class LazyLocalStorage<T> {
   /// 读取指定key数据
   Future<T?> getItem(String key, [T? defaultValue]) async {
     var expireTime = _expireDataBox!.get(_getExpireKey(tag, key));
-    if (expireTime == null || expireTime > currentMilliseconds) {
+    if (expireTime == null || expireTime > DartUtil.currentMilliseconds) {
       return await lazyBox.get(key, defaultValue: defaultValue);
     } else {
       await lazyBox.delete(key);
