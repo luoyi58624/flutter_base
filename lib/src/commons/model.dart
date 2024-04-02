@@ -16,3 +16,11 @@ class NavPageModel {
 
   const NavPageModel(this.title, this.page, [this.icon]);
 }
+
+/// 根页面模型
+class RootPageModel extends NavPageModel {
+  /// 跳转地址
+  final String path;
+
+  const RootPageModel(super.title, this.path, super.page, [super.icon]);
+}

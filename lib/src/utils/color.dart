@@ -18,7 +18,7 @@ class ColorUtil {
   /// 返回一个颜色的hsp (颜色的感知亮度)
   static int getColorHsp(Color color) {
     final int r = color.red, g = color.green, b = color.blue;
-    double hsp = sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+    double hsp = math.sqrt(0.299 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
     return hsp.ceilToDouble().toInt();
   }
 
