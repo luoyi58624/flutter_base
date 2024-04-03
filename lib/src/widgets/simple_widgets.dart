@@ -74,7 +74,7 @@ Widget buildCenterColumn(List<Widget> children) {
   );
 }
 
-Widget buildListSection(BuildContext context, String title, List<NavPageModel> cellItems) {
+Widget buildListSection(BuildContext context, String title, List<NavModel> navModel) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -85,31 +85,29 @@ Widget buildListSection(BuildContext context, String title, List<NavPageModel> c
           style: Theme.of(context).textTheme.titleMedium,
         ),
       ),
-      _buildCell(context, cellItems)
-    ],
-  );
-}
-
-Widget _buildCell(BuildContext context, List<NavPageModel> cellItems) {
-  return Column(
-    children: cellItems
-        .map(
-          (e) => Column(
-            children: [
-              ListTile(
-                title: Text(e.title),
-                trailing: const Icon(Icons.keyboard_arrow_right_outlined),
-                onTap: () {
-                  Navigator.of(context).push(CupertinoPageRoute(
-                    builder: (context) => e.page,
-                  ));
-                },
+      Column(
+        children: navModel
+            .map(
+              (e) => Column(
+                children: [
+                  ListTile(
+                    title: Text(e.title),
+                    trailing: const Icon(Icons.keyboard_arrow_right_outlined),
+                    onTap: () {
+                      if (e is PageNavModel) {
+                        router.push(e.page);
+                      } else if (e is UrlNavModel) {
+                        context.go(e.path);
+                      }
+                    },
+                  ),
+                  buildDividerWidget(),
+                ],
               ),
-              buildDividerWidget(),
-            ],
-          ),
-        )
-        .toList(),
+            )
+            .toList(),
+      )
+    ],
   );
 }
 

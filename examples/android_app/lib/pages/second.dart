@@ -41,7 +41,7 @@ class SecondPage2 extends StatelessWidget {
       body: Center(
         child: ElevatedButton(
           onPressed: () {},
-          child: Text('count'),
+          child: const Text('count'),
         ),
       ),
     );

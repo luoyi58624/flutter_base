@@ -43,8 +43,8 @@ class LoadingUtil {
     // 那么loading会在50毫秒后关闭，页面会突然闪出一个弹窗然后瞬间关闭，此时用户体验非常不好；
 
     // 注意：如果你执行完异步逻辑后需要返回上一页，执行LoadingUtil.close时需要添加await，
-    // 因为延迟关闭loading是不会阻塞后面代码的执行，关闭弹窗实际上只是执行弹出路由：RouterUtil.back()，
-    // 所以，如果你执行完异步逻辑后需要返回上一页，你必须等待loading关闭后再执行 RouterUtil.back() 进行返回操作，
+    // 因为延迟关闭loading是不会阻塞后面代码的执行，关闭弹窗实际上只是执行弹出路由：router.back()，
+    // 所以，如果你执行完异步逻辑后需要返回上一页，你必须等待loading关闭后再执行 router.back() 进行返回操作，
     // 否则你只是直接关闭了loading。
     int delayClose = 0,
     // 取消token，如果你需要当用户手动关闭loading时取消请求，那么请传递该token
@@ -55,7 +55,7 @@ class LoadingUtil {
     _loadingDuration = delayClose;
     _createLoadingStartTime = DateTime.now().millisecondsSinceEpoch;
     showDialog(
-      context: _router.globalContext,
+      context: router.globalContext,
       barrierColor: Colors.black26,
       // 允许IOS直接点击遮罩关闭弹窗，安卓上则是侧滑返回关闭遮罩
       barrierDismissible: GetPlatform.isIOS ? true : false,
@@ -75,16 +75,16 @@ class LoadingUtil {
     if (_isShowLoading) {
       _isShowLoading = false;
       if (immedClose == true) {
-        _router.pop();
+        router.pop();
       } else {
         var endTime = DateTime.now().millisecondsSinceEpoch;
         var delayCloseLoadingTime =
             math.max<int>((_loadingDuration - math.min(endTime - _createLoadingStartTime, 1000)), 0);
         if (delayCloseLoadingTime <= 0) {
-          _router.pop();
+          router.pop();
         } else {
           await (delayCloseLoadingTime / 1000).delay();
-          _router.pop();
+          router.pop();
         }
       }
     }

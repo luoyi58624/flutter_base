@@ -1,6 +1,6 @@
 part of flutter_base;
 
-/// 响应式变量持久化存储库
+/// 响应式变量持久化存储库，无需对外公开
 late LocalStorage _obsLocalStorage;
 
 class _LocalDataModel {
@@ -11,23 +11,23 @@ class _LocalDataModel {
   /// 示例：
   /// * 30分钟后过期：DateTime.now().millisecondsSinceEpoch + 1000 * 60 * 30
   /// * 2024年1月1日过期：DateTime(2024, 1, 1).millisecondsSinceEpoch
-  late int expireDateTime;
+  late int expire;
 
   /// 存储的数据
   dynamic data;
 
-  _LocalDataModel(this.type, this.expireDateTime, this.data);
+  _LocalDataModel(this.type, this.expire, this.data);
 
   _LocalDataModel.fromJson(Map<String, dynamic> json) {
     type = json['type'] ?? '';
-    expireDateTime = json['expireDateTime'] ?? -1;
+    expire = json['expire'] ?? -1;
     data = json['data'];
   }
 
   Map<String, dynamic> toJson() {
     final mapData = <String, dynamic>{};
     mapData['type'] = type;
-    mapData['expireDateTime'] = expireDateTime;
+    mapData['expire'] = expire;
     mapData['data'] = data;
     return mapData;
   }
@@ -47,30 +47,28 @@ typedef SerializeFun<T> = String Function(T newValue);
 typedef DeserializeFun<T> = T Function(String newValue);
 
 /// 返回一个过期时间函数
-typedef ExpireDateTimeFun = int Function();
+typedef ExpireFun = int Function();
 
 /// 创建基于[Getx]响应式变量(Observable State)，更新时会同步至本地，重新加载时会取本地数据作为初始值
 /// * value - 初始值
 /// * key - 本地缓存key，请确保它们唯一
 ///
 /// * clear - 清除本地缓存，此属性一般用于重置本地数据
-/// * expireDateTimeFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数，注意：只有卸载控制器再重新加载时才会生效
+/// * expireFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数，注意：只有卸载控制器再重新加载时才会生效
 /// * serializeFun - 序列化函数，如果你传入的是对象，你必须将其转换为字符串才能缓存在本地
 /// * deserializeFun - 反序列化函数，将本地存储的字符串转回目标对象
-///
-/// 提示：LocalStorage的实现做了增强(基于Hive的对象序列化、过期时间)，但响应式变量的实现没有适配，后续应该也不会对其更改了。
 Rx<T> useLocalObs<T>(
   T value,
   String key, {
   bool clear = false,
-  ExpireDateTimeFun? expireDateTimeFun,
+  ExpireFun? expireFun,
   SerializeFun<T>? serializeFun,
   DeserializeFun<T>? deserializeFun,
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
   bool isBaseType = DartUtil.isBaseTypeString(valueType) || value is Map;
-  expireDateTimeFun ??= () => -1;
+  expireFun ??= () => -1;
 
   /// 序列化Color对象
   if (value is Color) {
@@ -88,8 +86,7 @@ Rx<T> useLocalObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 &&
-        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expire != -1 && localDataModel.expire < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -106,7 +103,7 @@ Rx<T> useLocalObs<T>(
     _obsLocalStorage.setItem(
       key,
       jsonEncode(
-        _LocalDataModel(valueType, expireDateTimeFun!(), serializeFun == null ? v : serializeFun(v)).toJson(),
+        _LocalDataModel(valueType, expireFun!(), serializeFun == null ? v : serializeFun(v)).toJson(),
       ),
     );
   });
@@ -118,21 +115,21 @@ Rx<T> useLocalObs<T>(
 /// * key - 本地缓存key，请确保它们唯一
 ///
 /// * clear - 清除本地缓存，此属性一般用于重置本地数据
-/// * expireDateTimeFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数
+/// * expireFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数
 /// * serializeFun - 序列化函数，如果你传入的是对象，你必须将其转换为字符串才能缓存在本地
 /// * deserializeFun - 反序列化函数，将本地存储的字符串转回目标对象
 RxList<T> useLocalListObs<T>(
   List<T> value,
   String key, {
   bool clear = false,
-  ExpireDateTimeFun? expireDateTimeFun,
+  ExpireFun? expireFun,
   SerializeFun<T>? serializeFun,
   DeserializeFun<T>? deserializeFun,
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
   bool isBaseType = DartUtil.isBaseTypeString(valueType) || value is List<Map>;
-  expireDateTimeFun ??= () => -1;
+  expireFun ??= () => -1;
   assert(isBaseType || (serializeFun != null && deserializeFun != null), '请为响应式持久化变量[$key]提供序列化和反序列化函数');
   late RxList<T> $value;
   dynamic localData = _obsLocalStorage.getItem(key);
@@ -144,8 +141,7 @@ RxList<T> useLocalListObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 &&
-        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expire != -1 && localDataModel.expire < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -166,8 +162,7 @@ RxList<T> useLocalListObs<T>(
       _obsLocalStorage.setItem(
         key,
         jsonEncode(
-          _LocalDataModel(
-                  valueType, expireDateTimeFun!(), serializeFun == null ? v : v.map((value) => serializeFun(value)))
+          _LocalDataModel(valueType, expireFun!(), serializeFun == null ? v : v.map((value) => serializeFun(value)))
               .toJson(),
         ),
       );
@@ -182,7 +177,7 @@ RxList<T> useLocalListObs<T>(
 /// * key - 本地缓存key，请确保它们唯一
 ///
 /// * clear - 清除本地缓存，此属性一般用于重置本地数据
-/// * expireDateTimeFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数
+/// * expireFun - 过期时间函数，默认返回-1，表示永不过期，每次更新变量时都会调用此函数
 /// * serializeFun - 序列化函数，如果你传入的是对象，你必须将其转换为字符串才能缓存在本地
 /// * deserializeFun - 反序列化函数，将本地存储的字符串转回目标对象
 ///
@@ -209,14 +204,14 @@ RxMap<String, T> useLocalMapObs<T>(
   Map<String, T> value,
   String key, {
   bool clear = false,
-  ExpireDateTimeFun? expireDateTimeFun,
+  ExpireFun? expireFun,
   SerializeFun<T>? serializeFun,
   DeserializeFun<T>? deserializeFun,
 }) {
   if (clear) _obsLocalStorage.removeItem(key);
   String valueType = T.toString();
   bool isBaseType = DartUtil.isBaseTypeString(valueType) || valueType.contains('Map');
-  expireDateTimeFun ??= () => -1;
+  expireFun ??= () => -1;
   assert(isBaseType || (serializeFun != null && deserializeFun != null), '请为响应式持久化变量[$key]提供序列化和反序列化函数');
   late RxMap<String, T> $value;
   dynamic localData = _obsLocalStorage.getItem(key);
@@ -228,8 +223,7 @@ RxMap<String, T> useLocalMapObs<T>(
       // 如果更改了响应式变量类型，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
-    } else if (localDataModel.expireDateTime != -1 &&
-        localDataModel.expireDateTime < DateTime.now().millisecondsSinceEpoch) {
+    } else if (localDataModel.expire != -1 && localDataModel.expire < DateTime.now().millisecondsSinceEpoch) {
       // 如果用户设置了过期时间，同时过期时间小于当前时间，则清除旧数据
       _obsLocalStorage.removeItem(key);
       $value = value.obs;
@@ -247,7 +241,7 @@ RxMap<String, T> useLocalMapObs<T>(
     _obsLocalStorage.setItem(
       key,
       jsonEncode(
-        _LocalDataModel(valueType, expireDateTimeFun!(),
+        _LocalDataModel(valueType, expireFun!(),
                 serializeFun == null ? v : v.map((key, value) => MapEntry(key, serializeFun(value))))
             .toJson(),
       ),

@@ -11,10 +11,14 @@ dependencies:
     sdk: flutter
   flutter_base:
     path: ../..
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+
+dependency_overrides:
+
 
 flutter:
   uses-material-design: true

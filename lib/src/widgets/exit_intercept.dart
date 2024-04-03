@@ -2,7 +2,11 @@ part of flutter_base;
 
 class ExitInterceptWidget extends StatefulWidget {
   /// 拦截用户退出应用
-  const ExitInterceptWidget({super.key, required this.child, this.message = '请再按一次退出应用'});
+  const ExitInterceptWidget({
+    super.key,
+    required this.child,
+    this.message = '请再按一次退出应用',
+  });
 
   final Widget child;
 
@@ -17,23 +21,37 @@ class _ExitInterceptWidgetState extends State<ExitInterceptWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_router.globalNavigatorKey.currentState?.canPop() == true) {
-          _router.globalNavigatorKey.currentState?.pop();
-          return false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (didPop) return;
+        if (allowQuit) {
+          // context.pop();
+          router.pop(context);
         } else {
-          if (!allowQuit) {
-            allowQuit = true;
-            ToastUtil.showToast(widget.message);
-            Timer(const Duration(seconds: 2), () {
+          allowQuit = true;
+          ToastUtil.showToast(widget.message);
+          Timer(const Duration(seconds: 2), () {
+            if (mounted) {
               allowQuit = false;
-            });
-            return false;
-          } else {
-            return true;
-          }
+            }
+          });
         }
+        // if (widget.navigatorKey.currentState?.canPop() == true) {
+        //   widget.navigatorKey.currentState?.pop();
+        //   return false;
+        // } else {
+        //   if (!allowQuit) {
+        //     allowQuit = true;
+        //     ToastUtil.showToast(widget.message);
+        //     Timer(const Duration(seconds: 2), () {
+        //       allowQuit = false;
+        //     });
+        //     return false;
+        //   } else {
+        //     return true;
+        //   }
+        // }
       },
       child: widget.child,
     );

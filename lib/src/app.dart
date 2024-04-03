@@ -34,10 +34,6 @@ class FlutterApp extends StatelessWidget {
   /// App标题
   final String title;
 
-  // final Widget? home;
-
-  // final FlutterRouter router;
-
   /// Material亮色主题
   final ThemeData? theme;
 
@@ -94,7 +90,7 @@ class FlutterApp extends StatelessWidget {
         $theme = _buildThemeData(brightness: Brightness.dark);
     }
     return MaterialApp.router(
-      routerConfig: _router.instance,
+      routerConfig: router.instance,
       theme: $theme,
       darkTheme: $darkTheme,
       themeMode: themeMode,

@@ -19,13 +19,13 @@ class ChildPage extends StatelessWidget {
           child: buildCenterColumn([
             CupertinoButton.filled(
               onPressed: () {
-                _router.push(ChildPage(title: title));
+                router.push(ChildPage(title: title));
               },
               child: const Text('进入下一个子页面'),
             ),
             CupertinoButton.filled(
               onPressed: () {
-                _router.pop();
+                router.pop();
               },
               child: const Text('返回'),
             ),
@@ -40,13 +40,13 @@ class ChildPage extends StatelessWidget {
         body: buildCenterColumn([
           ElevatedButton(
             onPressed: () {
-              _router.push(ChildPage(title: title));
+              router.push(ChildPage(title: title));
             },
             child: const Text('进入下一个子页面'),
           ),
           ElevatedButton(
             onPressed: () {
-              _router.pop();
+              router.pop();
             },
             child: const Text('返回'),
           ),

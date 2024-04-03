@@ -1,45 +1,43 @@
 part of flutter_base;
 
-/// Flutter路由对象，底层基于Flutter官方维护的[go_router]，同时支持命令式、声明式导航。
+/// Flutter路由对象，底层基于Flutter官方维护的[go_router]，它同时支持命令式、声明式导航。
 ///
-/// * 如果你开发移动端应用，推荐以命令式路由为主，因为它非常简单。
+/// * 如果你开发移动端应用，推荐以命令式路由为主，因为它非常简洁，除了嵌套导航，你无需[context]即可跳转。
 ///
 /// 示例：
 /// ``` dart
 /// router.push(A());
 /// router.pop();
 /// ```
-/// 优点：api简单，绝大多数页面无需[context]即可跳转(嵌套导航除外)
-///
-/// 缺点：不支持web_url，复杂页面实现困难(桌面端布局)
 ///
 /// * 如果你开发桌面端、web应用，则推荐以声明式路由为主，它可以很好地支持嵌套导航、web_url导航。
 ///
 /// 示例：
 /// ``` dart
-/// FlutterApp(
-///   routes: [
-///     GoRoute(path: '/', builder: (context, state) => const HomePage()),
-///     GoRoute(path: '/child', builder: (context, state) => const ChildPage()),
-///   ],
-/// );
+/// GoRoute(path: '/', builder: (context, state) => const HomePage()),
+/// GoRoute(path: '/child', builder: (context, state) => const ChildPage()),
 ///
 /// context.go('/');
 /// context.go('/child');
 /// ```
-/// 优点：支持各种场景的导航，同时向下兼容命令式导航，反之，命令式导航的页面不可以进行声明式跳转
-///
-/// 缺点：api复杂，相比命令式使用起来稍微麻烦，虽然是官方推荐的路由器，但文档很简陋
 class FlutterRouter {
+  /// 创建全局路由构造函数
+  /// * routes 声明式路由集合，基于[go_router]
+  /// * redirect 重定向，返回null表示放行，或者返回一个path重定向到指定页面
+  /// * navigatorObservers 导航监听
   FlutterRouter({
-    required this.routes,
+    List<RouteBase> routes = const [],
+    GoRouterRedirect? redirect,
     List<NavigatorObserver> navigatorObservers = const [],
   }) {
-    instance = GoRouter(
+    _redirect = redirect ?? (context, state) => null;
+    this.routes = routes;
+    instance = GoRouter.routingConfig(
+      routingConfig: _routingConfig,
       navigatorKey: globalNavigatorKey,
-      routes: routes,
       observers: [
-        _GetXRouterObserver(),
+        // getx控制器自动释放监听
+        GetXRouterObserver(),
         ...navigatorObservers,
       ],
     );
@@ -48,11 +46,21 @@ class FlutterRouter {
   /// go_router实例对象
   late GoRouter instance;
 
+  final ValueNotifier<RoutingConfig> _routingConfig = ValueNotifier<RoutingConfig>(const RoutingConfig(routes: []));
+
+  late GoRouterRedirect _redirect;
+
   /// 声明的路由集合
-  final List<RouteBase> routes;
+  late List<RouteBase> _routes;
+
+  /// 设置[_routes]，并动态更新[GoRouter]路由配置
+  set routes(List<RouteBase> routes) {
+    _routes = routes;
+    _routingConfig.value = RoutingConfig(routes: _routes, redirect: _redirect);
+  }
 
   /// 根节点导航key
-  GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+  static GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
   /// 根节点全局context
   BuildContext get globalContext => globalNavigatorKey.currentContext!;
@@ -67,73 +75,44 @@ class FlutterRouter {
   ) {
     return CustomTransitionPage<T>(
       child: page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-          FadeTransition(opacity: animation, child: child),
-      // transitionsBuilder: (context, animation, secondaryAnimation, child) => MaterialPageRoute(
-      //   builder: (context) => page,
-      // ).buildTransitions(context, animation, secondaryAnimation, page),
+      // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+      //     FadeTransition(opacity: animation, child: child),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
+        builder: (context) => page,
+      ).buildTransitions(context, animation, secondaryAnimation, page),
     );
   }
 
-  /// 以声明式的方式跳转路由，相比[push]方法，最大的不同点是它会改变url地址。
-  ///
-  /// 注意：不要在执行了[push]方法的页面内执行[go]跳转，否则路由会发生错乱：
-  /// ``` dart
-  /// router.push(A());
-  /// // 不要在A页面执行go跳转，
-  /// router.go(context, '/b');
-  /// ```
-  ///
-  /// 示例：
-  /// * /a -> /b : 如果a、b页面同级，那么a页面的状态会丢失，路由跳转相当于replace
-  /// ``` dart
-  /// GoRoute(path: '/a', builder: (context, state) => const A()),
-  /// GoRoute(path: '/b', builder: (context, state) => const B()),
-  /// context.go('/b');
-  /// ```
-  /// * /a -> /b : 如果b页面为a页面子级，那么a页面的状态则不会丢失，路由跳转相当于push
-  /// ``` dart
-  /// GoRoute(path: '/a', builder: (context, state) => const A(), routes: [
-  ///   GoRoute(path: 'b', builder: (context, state) => const B()),
-  /// ]),
-  /// context.go('/b');
-  /// ```
-  void go(BuildContext context, String url) {
-    context.go(url);
+  /// 根据[RouterModel]集合生成[GoRoute]集合
+  static List<GoRoute> buildChildrenRoute(List<RouterModel> pages) {
+    return pages
+        .map((e) => GoRoute(
+            path: e.path,
+            builder: (context, state) => e.page,
+            // pageBuilder: pageBuilder(e.page),
+            routes: DartUtil.safeList(e.children).isNotEmpty ? buildChildrenRoute(e.children!) : []))
+        .toList();
   }
 
   /// 跳转到新页面
-  Future<T?> push<T>(
-    Widget page, {
-    // 如果你使用了嵌套导航，那么必须传递当前context
-    BuildContext? context,
-    RouteSettings? settings,
-    bool fullscreenDialog = false,
-  }) async {
+  /// * page 页面组件
+  /// * context 如果你使用了嵌套导航，并且想使之生效，那么你需要传递当前context才能正确跳转，否则默认使用全局context
+  Future<T?> push<T>(Widget page, [BuildContext? context, RouteSettings? settings]) async {
     return await Navigator.of(context ?? globalContext).push<T>(CupertinoPageRoute(
       builder: (context) => page,
       settings: settings,
-      fullscreenDialog: fullscreenDialog,
     ));
   }
 
   /// 返回上一页
-  void pop<T>({
-    BuildContext? context,
-    T? data,
-    int backNum = 1,
-  }) async {
-    for (int i = 0; i < backNum; i++) {
-      Navigator.of(context ?? globalContext).pop(data);
-    }
+  /// * context 注意：如果[push]的页面携带了[context]，那么你返回上一页也必须传递当前[context]
+  /// * data 返回的数据
+  void pop<T>([BuildContext? context, T? data]) async {
+    Navigator.of(context ?? globalContext).pop(data);
   }
 
   /// 重定向页面，先跳转新页面，再删除之前的页面
-  Future<T?> redirect<T>(
-    Widget page, {
-    BuildContext? context,
-    RouteSettings? settings,
-  }) async {
+  Future<T?> pushReplacement<T>(Widget page, [BuildContext? context, RouteSettings? settings]) async {
     return await Navigator.of(
       context ?? globalContext,
     ).pushReplacement(CupertinoPageRoute(
@@ -148,12 +127,7 @@ class FlutterRouter {
   ///
   /// 当然，一般app有多个tabbar页面，它们都属于根页面，你若要指定tabbar页面还需要自己做处理，
   /// 你可以使用 "事件总线" 或者 "全局状态"。
-  void pushUntil(
-    Widget page,
-    String routePath, {
-    BuildContext? context,
-    RouteSettings? settings,
-  }) async {
+  void pushAndRemoveUntil(Widget page, String routePath, [BuildContext? context, RouteSettings? settings]) async {
     Navigator.of(context ?? globalContext).pushAndRemoveUntil(
       CupertinoPageRoute(
         builder: (context) => page,
@@ -164,20 +138,14 @@ class FlutterRouter {
   }
 
   /// 原理和pushUntil一样，只不过这是退出到指定位置
-  void popUntil(
-    String routePath, {
-    BuildContext? context,
-  }) async {
+  void popUntil(String routePath, [BuildContext? context]) async {
     Navigator.of(context ?? globalContext).popUntil(
       ModalRoute.withName(routePath),
     );
   }
 
-  /// 进入新的页面并删除之前所有路
-  void pushAndPopAll(
-    Widget page, {
-    BuildContext? context,
-  }) async {
+  /// 进入新的页面并删除之前所有路由
+  void pushAndRemoveAllUntil(Widget page, [BuildContext? context]) async {
     Navigator.of(context ?? globalContext).pushAndRemoveUntil(
       CupertinoPageRoute(
         builder: (context) => page,
@@ -236,7 +204,7 @@ class CustomSlideTransition extends CustomTransitionPage<void> {
 ///   }
 /// }
 /// ```
-class _GetXRouterObserver extends NavigatorObserver {
+class GetXRouterObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     RouterReportManager.instance.reportCurrentRoute(route);
