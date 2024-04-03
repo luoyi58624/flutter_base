@@ -1,3 +1,4 @@
+import 'package:android_app/controllers/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -9,6 +10,22 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('首页'),
+        actions: [
+          // Obx(
+          //   () => IconButton(
+          //     onPressed: () {},
+          //     icon: Icon(GlobalController.of.useMaterial3.value ? Icons.material2 : Icons.material2),
+          //   ),
+          // ),
+          Obx(
+            () => Switch(
+              value: GlobalController.of.useMaterial3.value,
+              onChanged: (v) {
+                GlobalController.of.useMaterial3.value = v;
+              },
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: ElevatedButton(

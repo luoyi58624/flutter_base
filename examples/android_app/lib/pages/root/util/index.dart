@@ -1,3 +1,4 @@
+import 'package:android_app/pages/root/util/common.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -24,6 +25,7 @@ class UtilPage extends StatelessWidget {
       const PageNavModel('动画测试', AnimationTestPage()),
       const PageNavModel('网络状态', NetworkStatusTestPage()),
       const PageNavModel('自定义绘制', CustomPainterTestPage()),
+      const PageNavModel('Toast测试', ToastTestPage()),
     ];
     return Scaffold(
       appBar: AppBar(

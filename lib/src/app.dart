@@ -22,7 +22,8 @@ class FlutterApp extends StatelessWidget {
     this.title = 'Flutter App',
     this.theme,
     this.darkTheme,
-    this.themeMode = ThemeMode.system,
+    this.useDark,
+    this.config,
     this.onGenerateRoute,
     this.localizationsDelegates,
     this.supportedLocales,
@@ -34,14 +35,17 @@ class FlutterApp extends StatelessWidget {
   /// App标题
   final String title;
 
-  /// Material亮色主题
-  final ThemeData? theme;
+  /// 自定义亮色主题
+  final FlutterThemeData? theme;
 
-  /// 当设备设置为黑暗模式时App使用的主题
-  final ThemeData? darkTheme;
+  /// 自定义暗色主题
+  final FlutterThemeData? darkTheme;
 
-  /// 主题模式
-  final ThemeMode themeMode;
+  /// 强制应用进入黑暗模式或亮色模式，如果为null，则默认跟随系统
+  final bool? useDark;
+
+  /// 自定义全局配置
+  final FlutterConfigData? config;
 
   /// 自定义生成首屏页，此选项一般用于拦截用户是否登录
   final RouteFactory? onGenerateRoute;
@@ -78,89 +82,102 @@ class FlutterApp extends StatelessWidget {
     $localizationsDelegates.addAll(_localizationsDelegates);
     var $supportedLocales = (supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
-    ThemeData? $theme;
-    ThemeData? $darkTheme;
-    switch (themeMode) {
-      case ThemeMode.system:
-        $theme = _buildThemeData();
-        $darkTheme = _buildThemeData(brightness: Brightness.dark);
-      case ThemeMode.light:
-        $theme = _buildThemeData();
-      case ThemeMode.dark:
-        $theme = _buildThemeData(brightness: Brightness.dark);
+    final $theme = theme ?? FlutterThemeData();
+    final $darkTheme = darkTheme ?? FlutterThemeData.dark();
+    final $currentTheme = useDark == null
+        ? (MediaQuery.of(context).platformBrightness == Brightness.light ? $theme : $darkTheme)
+        : useDark!
+            ? $darkTheme
+            : $theme;
+    ThemeMode themeMode = useDark == null
+        ? ThemeMode.system
+        : useDark!
+            ? ThemeMode.dark
+            : ThemeMode.light;
+    final $config = config ?? FlutterConfigData();
+    if ($config.translucenceStatusBar) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));
+    } else {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
     }
-    return MaterialApp.router(
-      routerConfig: router.instance,
+    return FlutterAppData(
+      themeMode: themeMode,
       theme: $theme,
       darkTheme: $darkTheme,
-      themeMode: themeMode,
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: $localizationsDelegates,
-      supportedLocales: $supportedLocales,
-      locale: locale,
-      showPerformanceOverlay: showPerformanceOverlay,
-      builder: (context, child) {
-        _initContext ??= context;
-        if (_initContext != context) {
-          return child!;
-        } else {
-          var textTheme = const CupertinoThemeData().textTheme;
-          return Overlay(
-            initialEntries: [
-              OverlayEntry(builder: (context) {
-                toast.init(context);
-                return MediaQuery(
-                  // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
-                  data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
-                  // 解决使用cupertino组件时文字渲染异常
-                  child: Material(
-                    // 注入默认的cupertino主题
-                    child: CupertinoTheme(
-                      data: CupertinoThemeData(
-                        primaryColor: appTheme.primaryColor,
-                        textTheme: CupertinoTextThemeData(
-                          textStyle: textTheme.textStyle.copyWith(
-                            fontWeight: appTheme.defaultFontWeight,
-                            fontFamily: appTheme.fontFamily,
-                          ),
-                          tabLabelTextStyle: textTheme.tabLabelTextStyle.copyWith(
-                            fontSize: 12,
-                            fontFamily: appTheme.fontFamily,
-                          ),
-                          navActionTextStyle: textTheme.navActionTextStyle.copyWith(
-                            fontWeight: appTheme.defaultFontWeight,
-                            color: appTheme.primaryColor,
-                            fontFamily: appTheme.fontFamily,
+      currentTheme: $currentTheme,
+      config: $config,
+      child: MaterialApp.router(
+        routerConfig: router.instance,
+        theme: _buildThemeData($theme, $config),
+        darkTheme: _buildThemeData($darkTheme, $config),
+        themeMode: themeMode,
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: $localizationsDelegates,
+        supportedLocales: $supportedLocales,
+        locale: locale,
+        showPerformanceOverlay: showPerformanceOverlay,
+        builder: (context, child) {
+          _initContext ??= context;
+          if (_initContext != context) {
+            return child!;
+          } else {
+            var textTheme = CupertinoThemeData(brightness: $currentTheme.brightness).textTheme;
+            return Overlay(
+              initialEntries: [
+                OverlayEntry(builder: (context) {
+                  toast.init(context);
+                  return MediaQuery(
+                    // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
+                    data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
+                    // 解决使用cupertino组件时文字渲染异常
+                    child: Material(
+                      // 注入默认的cupertino主题
+                      child: CupertinoTheme(
+                        data: CupertinoThemeData(
+                          brightness: $currentTheme.brightness,
+                          primaryColor: $currentTheme.primary,
+                          textTheme: CupertinoTextThemeData(
+                            textStyle: textTheme.textStyle.copyWith(
+                              fontWeight: $config.defaultFontWeight,
+                              fontFamily: $config.fontFamily,
+                            ),
+                            tabLabelTextStyle: textTheme.tabLabelTextStyle.copyWith(
+                              fontSize: 12,
+                              fontFamily: $config.fontFamily,
+                            ),
+                            navActionTextStyle: textTheme.navActionTextStyle.copyWith(
+                              fontWeight: $config.defaultFontWeight,
+                              color: $currentTheme.primary,
+                              fontFamily: $config.fontFamily,
+                            ),
                           ),
                         ),
+                        child: builder == null ? child! : builder!(context, child),
                       ),
-                      child: builder == null ? child! : builder!(context, child),
                     ),
-                  ),
-                );
-              }),
-            ],
-          );
-        }
-      },
+                  );
+                }),
+              ],
+            );
+          }
+        },
+      ),
     );
   }
 
   /// 构建MaterialApp主题数据
-  ThemeData _buildThemeData({
-    Brightness brightness = Brightness.light, // 指定亮色主题或黑色主题
-  }) {
-    Color appbarBackground = brightness == Brightness.light ? Colors.white : const Color(0xff0f0f0f);
-    Color bodyBackground = brightness == Brightness.light ? const Color(0xfffafafa) : const Color(0xff2b2b2b);
+  ThemeData _buildThemeData(FlutterThemeData theme, FlutterConfigData config) {
+    Color appbarBackground = theme.brightness == Brightness.light ? Colors.white : const Color(0xff0f0f0f);
+    Color bodyBackground = theme.brightness == Brightness.light ? const Color(0xfffafafa) : const Color(0xff2b2b2b);
     // 默认的图标、文字颜色
-    Color defaultIconTextColor = brightness == Brightness.light ? Colors.grey.shade900 : Colors.grey.shade100;
+    Color defaultIconTextColor = theme.brightness == Brightness.light ? Colors.grey.shade900 : Colors.grey.shade100;
     ColorScheme colorScheme = ColorScheme.fromSeed(
-      brightness: brightness,
-      seedColor: appTheme.primaryColor,
+      brightness: theme.brightness,
+      seedColor: theme.primary,
     );
     var $theme = ThemeData(useMaterial3: true, colorScheme: colorScheme);
     return ThemeData(
-      useMaterial3: true,
+      useMaterial3: config.useMaterial3,
       // 解决web上material按钮外边距为0问题，与移动端的效果保持一致
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.standard,
@@ -172,9 +189,9 @@ class FlutterApp extends StatelessWidget {
       }),
       // 根据主题色创建material3的主题系统
       colorScheme: colorScheme,
-      fontFamily: appTheme.fontFamily,
-      textTheme: _textTheme,
-      splashFactory: appTheme.enableRipple ? InkRipple.splashFactory : noRipperFactory,
+      fontFamily: config.fontFamily,
+      textTheme: _buildTextTheme(config),
+      splashFactory: config.enableRipple ? InkRipple.splashFactory : noRipperFactory,
       scaffoldBackgroundColor: bodyBackground,
       cardTheme: const CardTheme(
         surfaceTintColor: Colors.transparent,
@@ -190,7 +207,7 @@ class FlutterApp extends StatelessWidget {
         collapsedShape: Border.all(width: 0, style: BorderStyle.none),
       ),
       appBarTheme: $theme.appBarTheme.copyWith(
-        centerTitle: appTheme.centerTitle,
+        centerTitle: config.centerTitle,
         scrolledUnderElevation: 0,
         backgroundColor: appbarBackground,
         titleTextStyle: TextStyle(
@@ -209,42 +226,84 @@ class FlutterApp extends StatelessWidget {
   }
 
   /// material文字主题
-  get _textTheme => TextTheme(
-        displaySmall: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        displayMedium: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        displayLarge: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        titleSmall: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
-        titleMedium: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
-        titleLarge: const TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
-        bodySmall: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        bodyMedium: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        bodyLarge: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        labelSmall: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        labelMedium: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-        labelLarge: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
-        ),
-      );
+  TextTheme _buildTextTheme(FlutterConfigData config) {
+    return TextTheme(
+      displaySmall: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      displayMedium: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      displayLarge: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      titleSmall: const TextStyle(
+        fontWeight: FontWeight.bold,
+      ),
+      titleMedium: const TextStyle(
+        fontWeight: FontWeight.bold,
+      ),
+      titleLarge: const TextStyle(
+        fontWeight: FontWeight.bold,
+      ),
+      bodySmall: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      bodyMedium: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      bodyLarge: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      labelSmall: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      labelMedium: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+      labelLarge: TextStyle(
+        fontWeight: config.defaultFontWeight,
+      ),
+    );
+  }
+}
+
+/// Element UI全局配置信息
+class FlutterAppData extends InheritedWidget {
+  const FlutterAppData({
+    super.key,
+    required super.child,
+    required this.themeMode,
+    required this.theme,
+    required this.darkTheme,
+    required this.currentTheme,
+    required this.config,
+  });
+
+  /// 当前主题模式
+  final ThemeMode themeMode;
+
+  /// 亮色主题配置
+  final FlutterThemeData theme;
+
+  /// 暗色主题配置
+  final FlutterThemeData darkTheme;
+
+  /// 当前主题
+  final FlutterThemeData currentTheme;
+
+  /// 自定义组件全局配置
+  final FlutterConfigData config;
+
+  /// 通过[ElApp.of]获取全局配置信息
+  static FlutterAppData of(BuildContext context) {
+    final FlutterAppData? result = context.dependOnInheritedWidgetOfExactType<FlutterAppData>();
+    assert(result != null, 'No FlutterAppData found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(FlutterAppData oldWidget) {
+    return currentTheme != oldWidget.currentTheme || config != oldWidget.config;
+  }
 }

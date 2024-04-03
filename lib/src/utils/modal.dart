@@ -81,7 +81,7 @@ class ModalUtils {
                       }
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: confirmColor ?? appTheme.primaryColor,
+                      foregroundColor: confirmColor ?? FlutterAppData.of(router.globalContext).currentTheme.primary,
                     ),
                     child: Text(confirmText),
                   ),

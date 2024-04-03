@@ -1,109 +1,105 @@
 part of flutter_base;
 
-const Color _primaryColor = Color.fromARGB(255, 0, 120, 212);
-const Color _successColor = Color.fromARGB(255, 16, 185, 129);
-const Color _warningColor = Color.fromARGB(255, 245, 158, 11);
-const Color _errorColor = Color.fromARGB(255, 239, 68, 68);
-const Color _infoColor = Color.fromARGB(255, 127, 137, 154);
+class FlutterThemeData {
+  final Color white = const Color(0xffffffff);
+  final Color black = const Color(0xff000000);
+  final Color transparent = const Color(0x00000000);
 
-late AppTheme appTheme;
+  /// 当前主题模式
+  Brightness brightness;
 
-/// 初始化主题配置，它会在你执行[initMyFlutter]函数时立即注入到[MyTheme]对象，随后你可以在任意地方使用[appTheme]实例调用全局主题
-class AppThemeModel {
-  /// 全局主题色，将统一应用于[MaterialApp]和[CupertinoApp]
-  Color? primaryColor;
+  /// 主要颜色
+  Color primary;
 
   /// 成功颜色
-  Color? successColor;
+  Color success;
+
+  /// 普通颜色
+  Color info;
 
   /// 警告颜色
-  Color? warningColor;
+  Color warning;
 
-  /// 错误、危险颜色
-  Color? errorColor;
+  /// 错误颜色
+  Color error;
 
-  /// 普通信息颜色
-  Color? infoColor;
+  /// 全局背景白色
+  Color bgColor;
 
-  /// 自定义全局字体
-  String? fontFamily;
+  /// 头部导航栏背景颜色
+  Color headerColor;
 
-  /// 设置全局普通文字字重，默认w500，flutter原始默认为w400
-  FontWeight? defaultFontWeight;
+  /// 主要区域背景颜色
+  Color mainColor;
 
-  /// appbar高度
-  double? appbarHeight;
+  /// 全局文字颜色
+  Color textColor;
 
-  /// 导航栏标题是否居中，默认情况下，移动端标题将居中、桌面端则左对齐
-  bool? centerTitle;
+  /// 默认的icon亮色颜色
+  Color iconColor;
 
-  /// 是否全局启动波纹，默认true
-  bool? enableRipple;
+  /// 默认的边框颜色
+  Color defaultBorderColor;
 
-  /// 启用半透明状态栏，默认false
-  bool? translucenceStatusBar;
+  /// 菜单栏背景色
+  Color menuBackground;
 
-  AppThemeModel({
-    this.primaryColor,
-    this.successColor,
-    this.warningColor,
-    this.errorColor,
-    this.infoColor,
-    this.fontFamily,
-    this.defaultFontWeight,
-    this.appbarHeight,
-    this.centerTitle,
-    this.enableRipple,
-    this.translucenceStatusBar,
+  /// 菜单栏激活文字颜色
+  Color menuActiveColor;
+
+  /// 默认的亮色主题构造函数
+  FlutterThemeData({
+    this.brightness = Brightness.light,
+    this.primary = const Color.fromARGB(255, 0, 120, 212),
+    this.success = const Color.fromARGB(255, 16, 185, 129),
+    this.info = const Color.fromARGB(255, 127, 137, 154),
+    this.warning = const Color.fromARGB(255, 245, 158, 11),
+    this.error = const Color.fromARGB(255, 239, 68, 68),
+    this.bgColor = const Color(0xffffffff),
+    this.headerColor = const Color(0xfff3f4f6),
+    this.mainColor = const Color(0xffffffff),
+    this.textColor = const Color(0xff1f1f1f),
+    this.iconColor = const Color(0xff1f1f1f),
+    this.defaultBorderColor = const Color(0xffdcdfe6),
+    this.menuBackground = const Color(0xff565c64),
+    this.menuActiveColor = const Color(0xffffd04b),
   });
-}
 
-class AppTheme {
-  /// 全局主题色，将统一应用于[MaterialApp]和[CupertinoApp]
-  late Color primaryColor;
+  /// 默认的暗色主题构造函数
+  FlutterThemeData.dark({
+    this.brightness = Brightness.dark,
+    this.primary = const Color(0xff0ea5e9),
+    this.success = const Color(0xff14b8a6),
+    this.info = const Color(0xff64748B),
+    this.warning = const Color(0xfffbbf24),
+    this.error = const Color(0xfffb7185),
+    this.bgColor = const Color(0xff000000),
+    this.headerColor = const Color(0xff404040),
+    this.mainColor = const Color(0xff2b2b2b),
+    this.textColor = const Color(0xfff6f6f6),
+    this.iconColor = const Color(0xfff6f6f6),
+    this.defaultBorderColor = const Color(0xffa3a3a3),
+    this.menuBackground = const Color(0xff374151),
+    this.menuActiveColor = const Color(0xff6ee7b7),
+  });
 
-  /// 成功颜色
-  late Color successColor;
+  /// 合并主题颜色，并返回新的主题对象
+  FlutterThemeData copyWith(FlutterThemeData? theme) {
+    brightness = theme?.brightness ?? brightness;
+    primary = theme?.primary ?? primary;
+    success = theme?.success ?? success;
+    info = theme?.info ?? info;
+    warning = theme?.warning ?? warning;
+    error = theme?.error ?? error;
+    bgColor = theme?.bgColor ?? bgColor;
+    headerColor = theme?.headerColor ?? headerColor;
+    mainColor = theme?.mainColor ?? mainColor;
+    textColor = theme?.textColor ?? textColor;
+    iconColor = theme?.iconColor ?? iconColor;
+    defaultBorderColor = theme?.defaultBorderColor ?? defaultBorderColor;
+    menuBackground = theme?.menuBackground ?? menuBackground;
+    menuActiveColor = theme?.menuActiveColor ?? menuActiveColor;
 
-  /// 警告颜色
-  late Color warningColor;
-
-  /// 错误、危险颜色
-  late Color errorColor;
-
-  /// 普通信息颜色
-  late Color infoColor;
-
-  /// 自定义全局字体，当你遇到flutter字体渲染问题时将会使用它
-  String? fontFamily;
-
-  /// 设置全局普通文字字重，默认w500，flutter原始默认为w400
-  late FontWeight defaultFontWeight;
-
-  /// appbar高度
-  late double appbarHeight;
-
-  /// 导航栏标题是否居中，默认情况下，移动端标题将居中、桌面端则左对齐
-  late bool centerTitle;
-
-  /// 是否全局启动波纹，默认true
-  late bool enableRipple;
-
-  /// 启用半透明状态栏，默认false
-  late bool translucenceStatusBar;
-
-  AppTheme([AppThemeModel? _]) {
-    primaryColor = _?.primaryColor ?? _primaryColor;
-    successColor = _?.successColor ?? _successColor;
-    warningColor = _?.warningColor ?? _warningColor;
-    errorColor = _?.errorColor ?? _errorColor;
-    infoColor = _?.infoColor ?? _infoColor;
-
-    fontFamily = _?.fontFamily;
-    defaultFontWeight = _?.defaultFontWeight ?? FontWeight.w500;
-    appbarHeight = _?.appbarHeight ?? 56;
-    centerTitle = _?.centerTitle ?? (GetPlatform.isMobile ? true : false);
-    enableRipple = _?.enableRipple ?? true;
-    translucenceStatusBar = _?.translucenceStatusBar ?? false;
+    return this;
   }
 }

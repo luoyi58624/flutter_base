@@ -85,9 +85,13 @@ part 'src/router.dart';
 
 part 'src/theme.dart';
 
+part 'src/config.dart';
+
 part 'src/commons/model.dart';
 
 part 'src/controllers/network_controller.dart';
+
+part 'src/mixins/theme.dart';
 
 part 'src/pages/root/material.dart';
 
@@ -179,20 +183,10 @@ late FlutterRouter router;
 /// * router 全局路由对象
 /// * themeModel 自定义主题
 /// * enableGetxLog 控制台是否显示getx日志，默认false
-Future<void> initFlutterApp(
-  FlutterRouter flutterRouter, {
-  AppThemeModel? appThemeModel,
-  bool enableGetxLog = false,
-}) async {
+Future<void> initFlutterApp(FlutterRouter flutterRouter) async {
   WidgetsFlutterBinding.ensureInitialized();
   router = flutterRouter;
-  if (!enableGetxLog) Get.isLogEnable = false;
-  appTheme = AppTheme(appThemeModel);
-  if (appTheme.translucenceStatusBar) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));
-  } else {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
-  }
+  Get.isLogEnable = false;
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');

@@ -42,7 +42,7 @@ class MaterialRootPage extends StatefulWidget {
   State<MaterialRootPage> createState() => _MaterialRootPageState();
 }
 
-class _MaterialRootPageState extends State<MaterialRootPage> {
+class _MaterialRootPageState extends State<MaterialRootPage> with FlutterThemeMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,9 +56,9 @@ class _MaterialRootPageState extends State<MaterialRootPage> {
         selectedFontSize: 12,
         iconSize: 26,
         unselectedLabelStyle: TextStyle(
-          fontWeight: appTheme.defaultFontWeight,
+          fontWeight: $defaultFontWeight,
         ),
-        selectedItemColor: appTheme.primaryColor,
+        selectedItemColor: $primaryColor,
         selectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
         ),
