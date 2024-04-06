@@ -116,7 +116,7 @@ mixin CupertinoPageMixin {
               if (onTap != null) {
                 onTap();
               } else {
-                router.push(page!);
+                RouterUtil.push(context, page!);
               }
             },
       leading: leading,

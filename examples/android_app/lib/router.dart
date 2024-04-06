@@ -12,16 +12,16 @@ import 'pages/root/template/index.dart';
 import 'pages/root/user/index.dart';
 import 'pages/root/util/index.dart';
 
-FlutterRouter initRouter() {
-  return FlutterRouter(
-    redirect: (context, state) => GlobalController.of.isLogin.value ? null : '/login',
-    routes: [
-      buildMaterialRootPage(rootRouterList),
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    ],
-  );
-}
-
+var router = GoRouter(
+  navigatorKey: rootNavigatorKey,
+  redirect: (context, state) => GlobalController.of.isLogin.value ? null : '/login',
+  routes: [
+    BottomTabbarWidget.buildStatefulShellRoute(rootRouterList, BottomTabbarType.material3),
+    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+    GoRoute(path: '/root_child', builder: (context, state) => const ChildPage(title: '根页面child')),
+    GoRoute(path: '/cuperitno_root_child', builder: (context, state) => const CupertinoChildPage()),
+  ],
+);
 var rootRouterList = [
   RouterModel('首页', '/', const HomePage(), icon: Icons.home),
   RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined, children: [

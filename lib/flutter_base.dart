@@ -8,7 +8,6 @@ import 'dart:math' as math;
 import 'package:archive/archive.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dart_base/dart_base.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
@@ -81,8 +80,6 @@ export 'package:connectivity_plus/connectivity_plus.dart' show ConnectivityResul
 
 part 'src/app.dart';
 
-part 'src/router.dart';
-
 part 'src/theme.dart';
 
 part 'src/config.dart';
@@ -93,7 +90,7 @@ part 'src/controllers/network_controller.dart';
 
 part 'src/mixins/theme.dart';
 
-part 'src/pages/root/material.dart';
+part 'src/pages/bottom_tabbar.dart';
 
 part 'src/pages/root_page.dart';
 
@@ -126,6 +123,8 @@ part 'src/utils/modal.dart';
 part 'src/utils/no_ripper.dart';
 
 part 'src/utils/platform.dart';
+
+part 'src/utils/router.dart';
 
 part 'src/utils/toast.dart';
 
@@ -176,16 +175,21 @@ part 'src/widgets/cupertino/list_tile.dart';
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
-/// flutter路由对象
-late FlutterRouter router;
+/// 根节点导航key
+GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// 根节点context
+BuildContext get rootContext {
+  assert(rootNavigatorKey.currentContext != null, '请配置rootNavigatorKey');
+  return rootNavigatorKey.currentContext!;
+}
 
 /// 初始化Flutter通用配置，例如主题、本地存储
 /// * router 全局路由对象
 /// * themeModel 自定义主题
 /// * enableGetxLog 控制台是否显示getx日志，默认false
-Future<void> initFlutterApp(FlutterRouter flutterRouter) async {
+Future<void> initFlutterApp() async {
   WidgetsFlutterBinding.ensureInitialized();
-  router = flutterRouter;
   Get.isLogEnable = false;
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();

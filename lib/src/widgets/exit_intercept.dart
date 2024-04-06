@@ -27,7 +27,7 @@ class _ExitInterceptWidgetState extends State<ExitInterceptWidget> {
         if (didPop) return;
         if (allowQuit) {
           // context.pop();
-          router.pop(context);
+          RouterUtil.pop(context);
         } else {
           allowQuit = true;
           ToastUtil.showToast(widget.message);

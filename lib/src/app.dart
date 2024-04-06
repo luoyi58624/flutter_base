@@ -1,8 +1,5 @@
 part of flutter_base;
 
-/// 第一次使用MyApp时创建的context，防止用户嵌套多个MyApp或其他顶级App时重复初始化某些内容，例如[globalNavigatorKey],[initBuilder]
-BuildContext? _initContext;
-
 /// 默认的国际化配置
 const List<LocalizationsDelegate<dynamic>> _localizationsDelegates = [
   GlobalWidgetsLocalizations.delegate,
@@ -20,6 +17,7 @@ class FlutterApp extends StatelessWidget {
   const FlutterApp({
     super.key,
     this.title = 'Flutter App',
+    required this.router,
     this.theme,
     this.darkTheme,
     this.useDark,
@@ -34,6 +32,9 @@ class FlutterApp extends StatelessWidget {
 
   /// App标题
   final String title;
+
+  /// 声明式路由配置
+  final GoRouter router;
 
   /// 自定义亮色主题
   final FlutterThemeData? theme;
@@ -107,9 +108,9 @@ class FlutterApp extends StatelessWidget {
       currentTheme: $currentTheme,
       config: $config,
       child: MaterialApp.router(
-        routerConfig: router.instance,
-        theme: _buildThemeData($theme, $config),
-        darkTheme: _buildThemeData($darkTheme, $config),
+        routerConfig: router,
+        theme: AppThemeUtil.buildMaterialhemeData($theme, $config),
+        darkTheme: AppThemeUtil.buildMaterialhemeData($darkTheme, $config),
         themeMode: themeMode,
         debugShowCheckedModeBanner: false,
         localizationsDelegates: $localizationsDelegates,
@@ -117,56 +118,76 @@ class FlutterApp extends StatelessWidget {
         locale: locale,
         showPerformanceOverlay: showPerformanceOverlay,
         builder: (context, child) {
-          _initContext ??= context;
-          if (_initContext != context) {
-            return child!;
-          } else {
-            var textTheme = CupertinoThemeData(brightness: $currentTheme.brightness).textTheme;
-            return Overlay(
-              initialEntries: [
-                OverlayEntry(builder: (context) {
-                  toast.init(context);
-                  return MediaQuery(
-                    // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
-                    data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
-                    // 解决使用cupertino组件时文字渲染异常
-                    child: Material(
-                      // 注入默认的cupertino主题
-                      child: CupertinoTheme(
-                        data: CupertinoThemeData(
-                          brightness: $currentTheme.brightness,
-                          primaryColor: $currentTheme.primary,
-                          textTheme: CupertinoTextThemeData(
-                            textStyle: textTheme.textStyle.copyWith(
-                              fontWeight: $config.defaultFontWeight,
-                              fontFamily: $config.fontFamily,
-                            ),
-                            tabLabelTextStyle: textTheme.tabLabelTextStyle.copyWith(
-                              fontSize: 12,
-                              fontFamily: $config.fontFamily,
-                            ),
-                            navActionTextStyle: textTheme.navActionTextStyle.copyWith(
-                              fontWeight: $config.defaultFontWeight,
-                              color: $currentTheme.primary,
-                              fontFamily: $config.fontFamily,
-                            ),
-                          ),
-                        ),
-                        child: builder == null ? child! : builder!(context, child),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            );
-          }
+          return MediaQuery(
+            // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
+            data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
+            // 解决使用cupertino组件时文字渲染异常
+            child: Material(
+              // 注入默认的cupertino主题
+              child: CupertinoTheme(
+                data: AppThemeUtil.buildCupertinoThemeData($currentTheme, $config),
+                child: Overlay(
+                  initialEntries: [
+                    OverlayEntry(builder: (context) {
+                      toast.init(context);
+                      return builder == null ? child! : builder!(context, child);
+                    })
+                  ],
+                ),
+              ),
+            ),
+          );
         },
       ),
     );
   }
+}
+
+/// Element UI全局配置信息
+class FlutterAppData extends InheritedWidget {
+  const FlutterAppData({
+    super.key,
+    required super.child,
+    required this.themeMode,
+    required this.theme,
+    required this.darkTheme,
+    required this.currentTheme,
+    required this.config,
+  });
+
+  /// 当前主题模式
+  final ThemeMode themeMode;
+
+  /// 亮色主题配置
+  final FlutterThemeData theme;
+
+  /// 暗色主题配置
+  final FlutterThemeData darkTheme;
+
+  /// 当前主题
+  final FlutterThemeData currentTheme;
+
+  /// 自定义组件全局配置
+  final FlutterConfigData config;
+
+  /// 通过[ElApp.of]获取全局配置信息
+  static FlutterAppData of(BuildContext context) {
+    final FlutterAppData? result = context.dependOnInheritedWidgetOfExactType<FlutterAppData>();
+    assert(result != null, 'No FlutterAppData found in context');
+    return result!;
+  }
+
+  @override
+  bool updateShouldNotify(FlutterAppData oldWidget) {
+    return currentTheme != oldWidget.currentTheme || config != oldWidget.config;
+  }
+}
+
+class AppThemeUtil {
+  AppThemeUtil._();
 
   /// 构建MaterialApp主题数据
-  ThemeData _buildThemeData(FlutterThemeData theme, FlutterConfigData config) {
+  static ThemeData buildMaterialhemeData(FlutterThemeData theme, FlutterConfigData config) {
     Color appbarBackground = theme.brightness == Brightness.light ? Colors.white : const Color(0xff0f0f0f);
     Color bodyBackground = theme.brightness == Brightness.light ? const Color(0xfffafafa) : const Color(0xff2b2b2b);
     // 默认的图标、文字颜色
@@ -225,8 +246,31 @@ class FlutterApp extends StatelessWidget {
     );
   }
 
+  static CupertinoThemeData buildCupertinoThemeData(FlutterThemeData theme, FlutterConfigData config) {
+    var textTheme = CupertinoThemeData(brightness: theme.brightness).textTheme;
+    return CupertinoThemeData(
+      brightness: theme.brightness,
+      primaryColor: theme.primary,
+      textTheme: CupertinoTextThemeData(
+        textStyle: textTheme.textStyle.copyWith(
+          fontWeight: config.defaultFontWeight,
+          fontFamily: config.fontFamily,
+        ),
+        tabLabelTextStyle: textTheme.tabLabelTextStyle.copyWith(
+          fontSize: 12,
+          fontFamily: config.fontFamily,
+        ),
+        navActionTextStyle: textTheme.navActionTextStyle.copyWith(
+          fontWeight: config.defaultFontWeight,
+          color: theme.primary,
+          fontFamily: config.fontFamily,
+        ),
+      ),
+    );
+  }
+
   /// material文字主题
-  TextTheme _buildTextTheme(FlutterConfigData config) {
+  static TextTheme _buildTextTheme(FlutterConfigData config) {
     return TextTheme(
       displaySmall: TextStyle(
         fontWeight: config.defaultFontWeight,
@@ -265,45 +309,5 @@ class FlutterApp extends StatelessWidget {
         fontWeight: config.defaultFontWeight,
       ),
     );
-  }
-}
-
-/// Element UI全局配置信息
-class FlutterAppData extends InheritedWidget {
-  const FlutterAppData({
-    super.key,
-    required super.child,
-    required this.themeMode,
-    required this.theme,
-    required this.darkTheme,
-    required this.currentTheme,
-    required this.config,
-  });
-
-  /// 当前主题模式
-  final ThemeMode themeMode;
-
-  /// 亮色主题配置
-  final FlutterThemeData theme;
-
-  /// 暗色主题配置
-  final FlutterThemeData darkTheme;
-
-  /// 当前主题
-  final FlutterThemeData currentTheme;
-
-  /// 自定义组件全局配置
-  final FlutterConfigData config;
-
-  /// 通过[ElApp.of]获取全局配置信息
-  static FlutterAppData of(BuildContext context) {
-    final FlutterAppData? result = context.dependOnInheritedWidgetOfExactType<FlutterAppData>();
-    assert(result != null, 'No FlutterAppData found in context');
-    return result!;
-  }
-
-  @override
-  bool updateShouldNotify(FlutterAppData oldWidget) {
-    return currentTheme != oldWidget.currentTheme || config != oldWidget.config;
   }
 }

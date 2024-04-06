@@ -1,3 +1,4 @@
+import 'package:android_app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'child.dart';
@@ -41,27 +42,9 @@ class TemplatePageState extends State<TemplatePage> {
         IconButton(onPressed: () {}, icon: const Icon(Icons.ac_unit)),
         ElevatedButton(
           onPressed: () {
-            router.push(const SliverTestPage());
+            RouterUtil.push(context, const SliverTestPage());
           },
           child: const Text('Sliver'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            router.push(const TemaplteChildPage(), context);
-          },
-          child: const Text('下一页'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            router.push(const TemaplteChildPage2(), context);
-          },
-          child: const Text('下一页2'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            router.push(const TemplateChildPage3(), context);
-          },
-          child: const Text('下一页3'),
         ),
         const Text(
           '西那卡塞吸机你显卡xanjsxnkjasnxkjansxk行啊就开心阿珂',

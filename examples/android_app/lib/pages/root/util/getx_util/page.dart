@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:android_app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'controller.dart';
@@ -36,13 +37,13 @@ class GetxUtilPage extends StatelessWidget {
         ),
         ElevatedButton(
           onPressed: () {
-            router.push(const _ListPage());
+            RouterUtil.push(context, const _ListPage());
           },
           child: const Text('响应式缓存列表页面'),
         ),
         ElevatedButton(
           onPressed: () {
-            router.push(const _ListPage2());
+            RouterUtil.push(context, const _ListPage2());
           },
           child: const Text('普通列表页面'),
         ),

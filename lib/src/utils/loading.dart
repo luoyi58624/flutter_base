@@ -55,7 +55,7 @@ class LoadingUtil {
     _loadingDuration = delayClose;
     _createLoadingStartTime = DateTime.now().millisecondsSinceEpoch;
     showDialog(
-      context: router.globalContext,
+      context: rootContext,
       barrierColor: Colors.black26,
       // 允许IOS直接点击遮罩关闭弹窗，安卓上则是侧滑返回关闭遮罩
       barrierDismissible: GetPlatform.isIOS ? true : false,
@@ -75,16 +75,16 @@ class LoadingUtil {
     if (_isShowLoading) {
       _isShowLoading = false;
       if (immedClose == true) {
-        router.pop();
+        RouterUtil.pop(rootContext);
       } else {
         var endTime = DateTime.now().millisecondsSinceEpoch;
         var delayCloseLoadingTime =
             math.max<int>((_loadingDuration - math.min(endTime - _createLoadingStartTime, 1000)), 0);
         if (delayCloseLoadingTime <= 0) {
-          router.pop();
+          RouterUtil.pop(rootContext);
         } else {
           await (delayCloseLoadingTime / 1000).delay();
-          router.pop();
+          RouterUtil.pop(rootContext);
         }
       }
     }

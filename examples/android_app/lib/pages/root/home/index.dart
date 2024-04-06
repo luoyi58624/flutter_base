@@ -1,4 +1,5 @@
 import 'package:android_app/controllers/global.dart';
+import 'package:android_app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -27,14 +28,20 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: ElevatedButton(
+      body: buildCenterColumn([
+        ElevatedButton(
           onPressed: () {
-            router.push(const ChildPage(title: '子页面'));
+            RouterUtil.push(context,const ChildPage(title: '子页面'));
           },
           child: const Text('hello'),
         ),
-      ),
+        ElevatedButton(
+          onPressed: () {
+            context.push('/root_child');
+          },
+          child: const Text('根子页面'),
+        ),
+      ]),
     );
   }
 }

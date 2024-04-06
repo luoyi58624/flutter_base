@@ -1,12 +1,10 @@
 import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
-import 'package:android_app/router.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 import 'controllers/index.dart';
 
 void main() async {
-  await initFlutterApp(initRouter());
+  await initFlutterApp();
   initController();
   runApp(const _App());
 }
@@ -18,6 +16,8 @@ class _App extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(
       () => FlutterApp(
+        router: router,
+        // useDark: false,
         config: FlutterConfigData(
           useMaterial3: GlobalController.of.useMaterial3.value,
         ),

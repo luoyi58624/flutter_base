@@ -14,12 +14,12 @@ class GoRouterTestPage extends StatelessWidget {
       body: buildCenterColumn([
         ElevatedButton(
           onPressed: () {
-            var newList = List.from(rootRouterList).toList().cast<RouterModel>();
-            logger.i(newList[1].children![2].title);
-            newList[1].children![2].children!.add(
-                  RouterModel('动态路由页面', 'dynamic', const _DynamicPage()),
-                );
-            router.routes = [buildMaterialRootPage(newList)];
+            // var newList = List.from(rootRouterList).toList().cast<RouterModel>();
+            // logger.i(newList[1].children![2].title);
+            // newList[1].children![2].children!.add(
+            //       RouterModel('动态路由页面', 'dynamic', const _DynamicPage()),
+            //     );
+            // router.routes = [buildMaterialRootPage(newList)];
           },
           child: const Text('创建动态路由'),
         ),

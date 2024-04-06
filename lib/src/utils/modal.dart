@@ -39,7 +39,7 @@ class ModalUtils {
     Function? onConfirm,
   }) async {
     bool? result = await showDialog<bool>(
-      context: router.globalContext,
+      context: rootContext,
       barrierDismissible: barrierDismissible,
       builder: (context) => WillPopScope(
         onWillPop: preventBack ? () async => false : null,
@@ -81,7 +81,7 @@ class ModalUtils {
                       }
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: confirmColor ?? FlutterAppData.of(router.globalContext).currentTheme.primary,
+                      foregroundColor: confirmColor ?? FlutterAppData.of(rootContext).currentTheme.primary,
                     ),
                     child: Text(confirmText),
                   ),
@@ -101,7 +101,7 @@ class ModalUtils {
     Function(String value)? onConfirm,
   }) async {
     await showDialog(
-        context: router.globalContext,
+        context: rootContext,
         builder: (context) => InputDialogWidget(
               title: title,
               cancelText: cancelText,

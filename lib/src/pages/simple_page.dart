@@ -1,31 +1,31 @@
 part of flutter_base;
 
 class ChildPage extends StatelessWidget {
-  const ChildPage({super.key, required this.title, this.previousPageTitle = '返回'});
+  const ChildPage({super.key, this.title, this.previousPageTitle = '返回'});
 
-  final String title;
+  final String? title;
   final String? previousPageTitle;
 
   @override
   Widget build(BuildContext context) {
-    var flag = FlutterUtil.hasAncestorElements<CupertinoApp>(context);
-    if (flag) {
+    var isCupertinoApp = FlutterUtil.hasAncestorElements<CupertinoApp>(context);
+    if (isCupertinoApp) {
       return CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
-          middle: Text(title),
+          middle: Text(title ?? '子页面'),
           previousPageTitle: previousPageTitle,
         ),
         child: SafeArea(
           child: buildCenterColumn([
             CupertinoButton.filled(
               onPressed: () {
-                router.push(ChildPage(title: title));
+                RouterUtil.push(context, ChildPage(title: title ?? '子页面'));
               },
               child: const Text('进入下一个子页面'),
             ),
             CupertinoButton.filled(
               onPressed: () {
-                router.pop();
+                RouterUtil.pop(context);
               },
               child: const Text('返回'),
             ),
@@ -35,18 +35,18 @@ class ChildPage extends StatelessWidget {
     } else {
       return Scaffold(
         appBar: AppBar(
-          title: Text(title),
+          title: Text(title ?? '子页面'),
         ),
         body: buildCenterColumn([
           ElevatedButton(
             onPressed: () {
-              router.push(ChildPage(title: title));
+              RouterUtil.push(context, ChildPage(title: title ?? '子页面'));
             },
             child: const Text('进入下一个子页面'),
           ),
           ElevatedButton(
             onPressed: () {
-              router.pop();
+              RouterUtil.pop(context);
             },
             child: const Text('返回'),
           ),

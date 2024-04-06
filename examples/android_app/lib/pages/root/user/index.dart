@@ -1,4 +1,5 @@
 import 'package:android_app/controllers/global.dart';
+import 'package:android_app/router.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 class UserPage extends StatelessWidget {
@@ -37,7 +38,8 @@ class UserPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 CupertinoButton.filled(
                   onPressed: () {
-                    router.push(const _ChildPage(), context);
+                    // RouterUtil.push(const _ChildPage());
+                    context.push('/cuperitno_root_child');
                   },
                   child: const Text('下一页'),
                 ),
@@ -50,8 +52,8 @@ class UserPage extends StatelessWidget {
   }
 }
 
-class _ChildPage extends StatelessWidget {
-  const _ChildPage();
+class CupertinoChildPage extends StatelessWidget {
+  const CupertinoChildPage({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -21,7 +21,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterAppData.of(router.globalContext).currentTheme.primary,
+        backgroundColor: FlutterAppData.of(rootContext).currentTheme.primary,
       ),
       duration,
     );
@@ -32,7 +32,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterAppData.of(router.globalContext).currentTheme.success,
+        backgroundColor: FlutterAppData.of(rootContext).currentTheme.success,
       ),
       duration,
     );
@@ -43,7 +43,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterAppData.of(router.globalContext).currentTheme.warning,
+        backgroundColor: FlutterAppData.of(rootContext).currentTheme.warning,
       ),
       duration,
     );
@@ -54,7 +54,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterAppData.of(router.globalContext).currentTheme.error,
+        backgroundColor: FlutterAppData.of(rootContext).currentTheme.error,
       ),
       duration,
     );
@@ -65,7 +65,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterAppData.of(router.globalContext).currentTheme.info,
+        backgroundColor: FlutterAppData.of(rootContext).currentTheme.info,
       ),
       duration,
     );
