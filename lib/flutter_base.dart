@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:archive/archive.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:chinese_font_library/chinese_font_library.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';

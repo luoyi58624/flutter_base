@@ -7,10 +7,14 @@ environment:
   sdk: '>=3.3.1 <4.0.0'
 
 dependencies:
+  chinese_font_library: ^1.1.0
   flutter:
     sdk: flutter
   flutter_base:
     path: ../..
+  my_flutter_fonts:
+    git:
+      url: https://gitee.com/luoyi666/my_flutter_fonts.git
 
 dev_dependencies:
   flutter_test:
@@ -19,3 +23,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+

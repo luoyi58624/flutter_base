@@ -48,6 +48,7 @@ dependencies:
   file_picker: ^6.2.0
   wechat_assets_picker: ^9.0.2
   wechat_camera_picker: ^4.2.1
+  chinese_font_library: ^1.1.0
 
 dev_dependencies:
   flutter_test:

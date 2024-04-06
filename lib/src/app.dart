@@ -143,7 +143,6 @@ class FlutterApp extends StatelessWidget {
   }
 }
 
-/// Element UI全局配置信息
 class FlutterAppData extends InheritedWidget {
   const FlutterAppData({
     super.key,
@@ -211,7 +210,7 @@ class AppThemeUtil {
       // 根据主题色创建material3的主题系统
       colorScheme: colorScheme,
       fontFamily: config.fontFamily,
-      textTheme: _buildTextTheme(config),
+      textTheme: _buildTextTheme(config).useSystemChineseFont(theme.brightness),
       splashFactory: config.enableRipple ? InkRipple.splashFactory : noRipperFactory,
       scaffoldBackgroundColor: bodyBackground,
       cardTheme: const CardTheme(
