@@ -8,12 +8,12 @@ class BottomTabbarWidget extends StatelessWidget {
     super.key,
     required this.navigationShell,
     required this.pages,
-    this.tabbarType = BottomTabbarType.material2,
+    this.bottomTabbarType = BottomTabbarType.material2,
   });
 
   final StatefulNavigationShell navigationShell;
   final List<RouterModel> pages;
-  final BottomTabbarType tabbarType;
+  final BottomTabbarType bottomTabbarType;
 
   /// 快速构建有状态嵌套导航
   ///
@@ -26,7 +26,7 @@ class BottomTabbarWidget extends StatelessWidget {
   ///   ],
   /// );
   /// ```
-  static RouteBase buildStatefulShellRoute(List<RouterModel> pages, [BottomTabbarType tabbarType = BottomTabbarType.material2]) {
+  static RouteBase buildStatefulShellRoute(List<RouterModel> pages, [BottomTabbarType bottomTabbarType = BottomTabbarType.material2]) {
     List<StatefulShellBranch> branches = [];
     for (int i = 0; i < pages.length; i++) {
       branches.add(StatefulShellBranch(
@@ -43,7 +43,7 @@ class BottomTabbarWidget extends StatelessWidget {
       builder: (context, state, navigationShell) => BottomTabbarWidget(
         navigationShell: navigationShell,
         pages: pages,
-        tabbarType: tabbarType,
+        bottomTabbarType: bottomTabbarType,
       ),
       branches: branches,
     );
@@ -52,7 +52,7 @@ class BottomTabbarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     late Widget tabbarWidget;
-    switch (tabbarType) {
+    switch (bottomTabbarType) {
       case BottomTabbarType.material2:
         tabbarWidget = buildMaterial2(context);
         break;

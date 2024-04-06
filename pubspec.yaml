@@ -31,7 +31,6 @@ dependencies:
   shimmer: ^3.0.0
   open_file_plus: ^3.4.1
   flutter_html: ^3.0.0-beta.2
-  file_picker: ^6.1.1
   super_sliver_list: ^0.4.0
   connectivity_plus: ^5.0.2
   device_info_plus: ^9.1.1
@@ -41,6 +40,14 @@ dependencies:
   dio_smart_retry: ^5.0.0
   html: ^0.15.4
   path_provider: ^2.1.2
+  modal_bottom_sheet: ^3.0.0-pre
+  extended_tabs: ^4.1.0
+  azlistview: ^2.0.0
+  lpinyin: ^2.0.3
+  scrollable_positioned_list: ^0.2.3
+  file_picker: ^6.2.0
+  wechat_assets_picker: ^9.0.2
+  wechat_camera_picker: ^4.2.1
 
 dev_dependencies:
   flutter_test:

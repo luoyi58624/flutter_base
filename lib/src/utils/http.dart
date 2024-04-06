@@ -12,7 +12,7 @@ LazyLocalStorage? httpLocalStorage;
 /// 基础Http请求类，包含重试请求、错误拦截、请求缓存、数据mock拦截等功能。
 /// 扩展示例：
 /// ```dart
-/// class Http extends BaseHttp {
+/// class Http extends HttpBase {
 ///   Http() {
 ///     // 设置服务接口地址
 ///     instance.options.baseUrl = 'https://jsonplaceholder.typicode.com';
@@ -51,11 +51,11 @@ LazyLocalStorage? httpLocalStorage;
 ///     return ResponseModel.fromJson(resData);
 ///   }
 /// ```
-class BaseHttp {
+class HttpBase {
   /// http请求实例，基于[Dio]
   late Dio instance;
 
-  BaseHttp({
+  HttpBase({
     int timeout = DartUtil.isRelease ? 10000 : 5000,
     bool addRetryInterceptor = true,
     bool addErrorInterceptor = true,

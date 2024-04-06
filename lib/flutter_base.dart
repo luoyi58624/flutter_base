@@ -17,11 +17,18 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get_navigation/src/router_report.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:highlight_text/highlight_text.dart';
 import 'package:html/parser.dart' as htmlparser;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart' as modal_bottom_sheet;
+import 'package:file_picker/file_picker.dart';
+import 'package:azlistview/azlistview.dart';
+import 'package:lpinyin/lpinyin.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
 import 'flutter_base.dart';
 
@@ -78,6 +85,12 @@ export 'package:super_sliver_list/super_sliver_list.dart';
 // 网络连接状态
 export 'package:connectivity_plus/connectivity_plus.dart' show ConnectivityResult;
 
+/// 底部弹窗库
+export 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+
+/// 扩展官方tabs，优化手感
+export 'package:extended_tabs/extended_tabs.dart';
+
 part 'src/app.dart';
 
 part 'src/theme.dart';
@@ -100,11 +113,15 @@ part 'src/utils/animation.dart';
 
 part 'src/utils/async.dart';
 
+part 'src/utils/cascader.dart';
+
 part 'src/utils/color.dart';
 
 part 'src/utils/crypto.dart';
 
 part 'src/utils/device.dart';
+
+part 'src/utils/file_picker.dart';
 
 part 'src/utils/flutter.dart';
 
@@ -119,6 +136,8 @@ part 'src/utils/local_storage.dart';
 part 'src/utils/uuid.dart';
 
 part 'src/utils/modal.dart';
+
+part 'src/utils/modal_router.dart';
 
 part 'src/utils/no_ripper.dart';
 
@@ -142,6 +161,8 @@ part 'src/widgets/flexible_title.dart';
 
 part 'src/widgets/hide_keybord.dart';
 
+part 'src/widgets/index_list.dart';
+
 part 'src/widgets/restart_app.dart';
 
 part 'src/widgets/scroll_ripper.dart';
@@ -164,6 +185,8 @@ part 'src/widgets/form/form_item.dart';
 
 part 'src/widgets/form/form_text_field.dart';
 
+part 'src/widgets/form/form_file_upload.dart';
+
 part 'src/widgets/image/image_widget.dart';
 
 part 'src/widgets/image/file_type_image_widget.dart';
@@ -175,22 +198,8 @@ part 'src/widgets/cupertino/list_tile.dart';
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
-/// 根节点导航key
-GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
-
-/// 根节点context
-BuildContext get rootContext {
-  assert(rootNavigatorKey.currentContext != null, '请配置rootNavigatorKey');
-  return rootNavigatorKey.currentContext!;
-}
-
-/// 初始化Flutter通用配置，例如主题、本地存储
-/// * router 全局路由对象
-/// * themeModel 自定义主题
-/// * enableGetxLog 控制台是否显示getx日志，默认false
 Future<void> initFlutterApp() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Get.isLogEnable = false;
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');

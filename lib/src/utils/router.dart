@@ -16,6 +16,15 @@ part of flutter_base;
 class RouterUtil {
   RouterUtil._();
 
+  /// 根节点导航key
+  static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  /// 根节点context
+  static BuildContext get rootContext {
+    assert(rootNavigatorKey.currentContext != null, '请配置rootNavigatorKey');
+    return rootNavigatorKey.currentContext!;
+  }
+
   /// 跳转到新页面
   static Future<T?> push<T>(BuildContext context, Widget page) async {
     return await Navigator.of(context).push<T>(CupertinoPageRoute(builder: (context) => page));
@@ -141,7 +150,7 @@ CupertinoPage<void> _pageBuilderForCupertinoApp({
       child: child,
     );
 
-/// 监听路由变化，将路由添加到getx管理，实现离开页面自动销毁绑定的控制器。
+/// Getx控制器自动销毁监听器，将此实例添加到路由监听器中，实现离开页面自动销毁绑定的控制器。
 /// 只有一点需要注意：Get.put在StatelessWidget中必须将放置build方法中，否则无法正确回收控制器。
 ///
 /// 反例：

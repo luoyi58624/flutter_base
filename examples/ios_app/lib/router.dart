@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import 'pages/root/index.dart';
 import 'pages/root/component.dart';
 import 'pages/root/home.dart';
 import 'pages/root/util.dart';
 
 final router = GoRouter(
-  navigatorKey: rootNavigatorKey,
   initialLocation: '/',
+  navigatorKey: RouterUtil.rootNavigatorKey,
+  observers: [GetXRouterObserver()],
   routes: [
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => RootPage(
+      builder: (context, state, navigationShell) => BottomTabbarWidget(
         navigationShell: navigationShell,
+        bottomTabbarType: BottomTabbarType.cupertino,
         pages: [
           RouterModel('首页', '/', const HomePage(), icon: Icons.home),
           RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined),

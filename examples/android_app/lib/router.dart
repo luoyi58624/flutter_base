@@ -13,7 +13,9 @@ import 'pages/root/user/index.dart';
 import 'pages/root/util/index.dart';
 
 var router = GoRouter(
-  navigatorKey: rootNavigatorKey,
+  initialLocation: '/',
+  navigatorKey: RouterUtil.rootNavigatorKey,
+  observers: [GetXRouterObserver()],
   redirect: (context, state) => GlobalController.of.isLogin.value ? null : '/login',
   routes: [
     BottomTabbarWidget.buildStatefulShellRoute(rootRouterList, BottomTabbarType.material3),
