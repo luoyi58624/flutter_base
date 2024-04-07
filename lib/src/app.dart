@@ -209,8 +209,8 @@ class AppThemeUtil {
       }),
       // 根据主题色创建material3的主题系统
       colorScheme: colorScheme,
-      fontFamily: config.fontFamily,
-      textTheme: _buildTextTheme(config).useSystemChineseFont(theme.brightness),
+      fontFamily: config.fontFamily ?? (GetPlatform.isWindows ? "微软雅黑" : null),
+      textTheme: _buildTextTheme(config),
       splashFactory: config.enableRipple ? InkRipple.splashFactory : noRipperFactory,
       scaffoldBackgroundColor: bodyBackground,
       cardTheme: const CardTheme(
