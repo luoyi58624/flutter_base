@@ -17,7 +17,6 @@ class _App extends StatelessWidget {
     return Obx(
       () => FlutterApp(
         router: router,
-        // useDark: false,
         config: FlutterConfigData(
           useMaterial3: GlobalController.of.useMaterial3.value,
         ),
