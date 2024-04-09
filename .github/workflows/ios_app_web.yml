@@ -1,4 +1,4 @@
-name: build web page
+name: build ios app web
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
             export PATH="$PATH:~/.pub-cache/bin"
             cd /www/wwwroot/flutter_base
             git fetch --all
-            git reset --hard origin/master
+            git reset --hard origin/main
             git pull
             flutter --version
             flutter pub upgrade

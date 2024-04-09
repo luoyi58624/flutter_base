@@ -9,9 +9,9 @@ if [ -n "$CONTAINER_ID" ]; then
 fi
 
 IMAGE_ID=$(docker images -q ${NAME})
-if [ -n "$NAME" ]; then
+if [ -n "$IMAGE_ID" ]; then
  echo "delete old image, ID $IMAGE_ID"
- docker rmi "$NAME"
+ docker rmi "$IMAGE_ID"
 fi
 
 echo "build docker image"
