@@ -22,7 +22,7 @@ class NetworkController extends GetxController {
   bool get isOnline => !isOffline;
 
   /// 网络变化监听器
-  late StreamSubscription<ConnectivityResult> _networkListen;
+  late StreamSubscription<List<ConnectivityResult>> _networkListen;
 
   /// app活动状态监听器
   late AppLifecycleListener _appLifecycleListener;
@@ -38,15 +38,15 @@ class NetworkController extends GetxController {
 
   void setNetworkStatus() {
     connectivity.checkConnectivity().then((value) {
-      networkStatus.value = value;
+      networkStatus.value = value[0];
     });
   }
 
   @override
   void onReady() {
     super.onReady();
-    _networkListen = Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-      networkStatus.value = result;
+    _networkListen = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+      networkStatus.value = result[0];
     });
     _appLifecycleListener = AppLifecycleListener(
       // 当应用从后台进入前台时，检查一次网络状态

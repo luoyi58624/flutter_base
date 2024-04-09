@@ -62,9 +62,7 @@ class ModalUtils {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop(false);
-                      if (onCancel != null) {
-                        onCancel();
-                      }
+                      if (onCancel != null) onCancel();
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: cancelColor ?? Colors.grey,
@@ -76,9 +74,7 @@ class ModalUtils {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop(true);
-                      if (onConfirm != null) {
-                        onConfirm();
-                      }
+                      if (onConfirm != null) onConfirm();
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: confirmColor ?? FlutterAppData.of(RouterUtil.rootContext).currentTheme.primary,
