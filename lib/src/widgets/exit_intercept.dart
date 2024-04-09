@@ -1,8 +1,8 @@
 part of flutter_base;
 
-class ExitInterceptWidget extends StatefulWidget {
-  /// 拦截用户退出应用
-  const ExitInterceptWidget({
+class DoubleExitWidget extends StatefulWidget {
+  /// 双击退出应用
+  const DoubleExitWidget({
     super.key,
     required this.child,
     this.message = '请再按一次退出应用',
@@ -13,10 +13,10 @@ class ExitInterceptWidget extends StatefulWidget {
   final String message;
 
   @override
-  State<ExitInterceptWidget> createState() => _ExitInterceptWidgetState();
+  State<DoubleExitWidget> createState() => _DoubleExitWidgetState();
 }
 
-class _ExitInterceptWidgetState extends State<ExitInterceptWidget> {
+class _DoubleExitWidgetState extends State<DoubleExitWidget> {
   bool allowQuit = false;
 
   @override

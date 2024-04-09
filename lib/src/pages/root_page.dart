@@ -58,7 +58,7 @@ part of flutter_base;
 //
 //   @override
 //   Widget build(BuildContext context) {
-//     return ExitInterceptWidget(
+//     return DoubleExitWidget(
 //       child: Obx(() {
 //         return Scaffold(
 //           body: IndexedStack(
@@ -124,7 +124,7 @@ part of flutter_base;
 // class _CupertinoRootPageState extends State<CupertinoRootPage> {
 //   @override
 //   Widget build(BuildContext context) {
-//     return ExitInterceptWidget(
+//     return DoubleExitWidget(
 //       child: CupertinoTabScaffold(
 //         tabBuilder: (BuildContext context, int index) {
 //           return CupertinoTabView(builder: (BuildContext context) {
