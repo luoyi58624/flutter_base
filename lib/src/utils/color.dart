@@ -61,7 +61,7 @@ class ColorUtil {
 
   /// 是否为黑暗模式，要想保持响应式必须以函数形式使用
   static bool isDarkMode(BuildContext context) {
-    return Theme.of(context).colorScheme.brightness == Brightness.dark;
+    return FlutterAppData.of(context).currentTheme.brightness == Brightness.dark;
   }
 
   /// 返回一个动态颜色

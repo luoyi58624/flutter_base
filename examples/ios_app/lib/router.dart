@@ -8,7 +8,6 @@ import 'pages/root/util.dart';
 final router = GoRouter(
   initialLocation: '/',
   navigatorKey: RouterUtil.rootNavigatorKey,
-  observers: [GetXRouterObserver()],
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => BottomTabbarWidget(
@@ -29,7 +28,7 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'child',
-                  pageBuilder: RouterUtil.pageBuilder(const ChildPage()),
+                  pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ChildPage()),
                 ),
               ],
             ),
@@ -45,7 +44,7 @@ final router = GoRouter(
                   path: 'child',
                   pageBuilder: (context, state) {
                     logger.i(state.uri.queryParameters);
-                    return RouterUtil.builder(context, state, ChildPage(title: state.uri.queryParameters['title']));
+                    return RouterUtil.pageBuilder(context, state, ChildPage(title: state.uri.queryParameters['title']));
                   },
                 ),
               ],
@@ -64,7 +63,8 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'child',
-                  pageBuilder: (context, state) => RouterUtil.builder(context, state, ChildPage(title: state.uri.queryParameters['title'])),
+                  pageBuilder: (context, state) =>
+                      RouterUtil.pageBuilder(context, state, ChildPage(title: state.uri.queryParameters['title'])),
                 ),
               ],
             ),
@@ -74,17 +74,15 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/root_child',
-      pageBuilder: RouterUtil.pageBuilder(
-        const ChildPage(
-          title: '根 - 子页面',
-        ),
+      pageBuilder: (context, state) => RouterUtil.pageBuilder(
+        context,
+        state,
+        const ChildPage(title: '根 - 子页面'),
       ),
     ),
     GoRoute(
       path: '/home_child',
-      pageBuilder: RouterUtil.pageBuilder(
-        const HomeChildPage(),
-      ),
+      pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const HomeChildPage()),
     ),
   ],
 );

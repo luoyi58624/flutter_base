@@ -228,6 +228,7 @@ class AppThemeUtil {
       ),
       appBarTheme: $theme.appBarTheme.copyWith(
         centerTitle: config.centerTitle,
+        toolbarHeight: config.headerHeight,
         scrolledUnderElevation: 0,
         backgroundColor: appbarBackground,
         titleTextStyle: TextStyle(

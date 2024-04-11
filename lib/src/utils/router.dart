@@ -64,37 +64,15 @@ class RouterUtil {
     );
   }
 
-  static Page<dynamic> Function(BuildContext, GoRouterState) pageBuilder<T>(Widget page) =>
-      (BuildContext context, GoRouterState state) => _pageBuilderForCupertinoApp(
-            key: state.pageKey,
-            name: state.name ?? state.path,
-            arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
-            restorationId: state.pageKey.value,
-            child: page,
-          );
-
-  static Page<dynamic> builder<T>(BuildContext context, GoRouterState state, Widget page) => _pageBuilderForCupertinoApp(
+  /// 构建[CupertinoPage]动画页面的[GoRoute]
+  static Page<dynamic> pageBuilder<T>(BuildContext context, GoRouterState state, Widget page) =>
+      _pageBuilderForCupertinoApp(
         key: state.pageKey,
         name: state.name ?? state.path,
         arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
         restorationId: state.pageKey.value,
         child: page,
       );
-
-  static CustomTransitionPage _pageBuilder<T>(
-    BuildContext context,
-    GoRouterState state,
-    Widget page,
-  ) {
-    return CustomTransitionPage<T>(
-      child: page,
-      // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-      //     FadeTransition(opacity: animation, child: child),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
-        builder: (context) => page,
-      ).buildTransitions(context, animation, secondaryAnimation, page),
-    );
-  }
 
   /// 根据[RouterModel]集合生成[GoRoute]集合
   static List<GoRoute> routerModelToGoRouter(List<RouterModel> pages) {
@@ -179,7 +157,8 @@ CupertinoPage<void> _pageBuilderForCupertinoApp({
 ///   }
 /// }
 /// ```
-class GetXRouterObserver extends NavigatorObserver {
+@Deprecated('请手动销毁getx控制器')
+class _GetXRouterObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     RouterReportManager.instance.reportCurrentRoute(route);
@@ -190,3 +169,27 @@ class GetXRouterObserver extends NavigatorObserver {
     RouterReportManager.instance.reportRouteDispose(route);
   }
 }
+
+// static Page<dynamic> Function(BuildContext, GoRouterState) pageBuilder<T>(Widget page) =>
+//     (BuildContext context, GoRouterState state) => _pageBuilderForCupertinoApp(
+//           key: state.pageKey,
+//           name: state.name ?? state.path,
+//           arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
+//           restorationId: state.pageKey.value,
+//           child: page,
+//         );
+
+// static CustomTransitionPage _pageBuilder<T>(
+// BuildContext context,
+// GoRouterState state,
+// Widget page,
+// ) {
+// return CustomTransitionPage<T>(
+// child: page,
+// // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+// //     FadeTransition(opacity: animation, child: child),
+// transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
+// builder: (context) => page,
+// ).buildTransitions(context, animation, secondaryAnimation, page),
+// );
+// }

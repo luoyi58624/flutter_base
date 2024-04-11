@@ -7,7 +7,7 @@ class FlutterConfigData {
   /// 设置全局普通文字字重，默认w500，flutter原始默认为w400
   FontWeight defaultFontWeight;
 
-  /// 头部高度 (appbar)
+  /// 头部高度 (appbar、navbar)
   double headerHeight;
 
   /// 是否启用material3，默认true
@@ -28,9 +28,9 @@ class FlutterConfigData {
   FlutterConfigData({
     this.fontFamily,
     this.defaultFontWeight = FontWeight.w500,
-    this.headerHeight = 56,
+    this.headerHeight = 50,
     this.useMaterial3 = true,
-    this.radius = 4,
+    this.radius = 6,
     this.centerTitle,
     this.enableRipple = true,
     this.translucenceStatusBar = false,

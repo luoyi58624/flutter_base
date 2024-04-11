@@ -1,7 +1,6 @@
+import 'package:android_app/controllers/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'animation_widget_test.dart';
-import 'image_test.dart';
 
 class ComponentPage extends StatelessWidget {
   const ComponentPage({super.key});
@@ -16,6 +15,16 @@ class ComponentPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('组件列表'),
+        actions: [
+          Obx(
+            () => Switch(
+              value: GlobalController.of.useMaterial3.value,
+              onChanged: (v) {
+                GlobalController.of.useMaterial3.value = v;
+              },
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

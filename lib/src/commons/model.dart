@@ -9,7 +9,7 @@ class IconModel {
 }
 
 /// 导航模型抽象类
-abstract class NavModel {
+class NavModel {
   /// 导航的标题名字
   final String title;
 

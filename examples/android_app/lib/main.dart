@@ -16,7 +16,7 @@ class _App extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(
       () => FlutterApp(
-        router: router,
+        router: initRouter(),
         config: FlutterConfigData(
           useMaterial3: GlobalController.of.useMaterial3.value,
         ),

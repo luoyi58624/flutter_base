@@ -1,28 +1,35 @@
 part of flutter_base;
 
 /// 构建通用分割线Widget
-Widget buildDividerWidget({
+Widget buildDividerWidget(
+  BuildContext context, {
   double height = 0,
   double thickness = 0.5,
   double indent = 0,
+  Color? color,
 }) {
   return Divider(
     height: height,
     thickness: thickness,
     indent: indent,
+    color: color ?? (ColorUtil.isDarkMode(context) ? Colors.grey.shade700 : Colors.grey.shade300),
   );
 }
 
 /// 构建通用的列表分割线widget
-IndexedWidgetBuilder buildSeparatorWidget({
+IndexedWidgetBuilder buildSeparatorWidget(
+  BuildContext context, {
   double height = 0,
   double thickness = 0.5,
   double indent = 0,
+  Color? color,
 }) {
-  return (context, index) => buildDividerWidget(
+  return (ctx, index) => buildDividerWidget(
+        context,
         height: height,
         thickness: thickness,
         indent: indent,
+        color: color,
       );
 }
 
@@ -101,7 +108,7 @@ Widget buildListSection(BuildContext context, String title, List<NavModel> navMo
                       }
                     },
                   ),
-                  buildDividerWidget(),
+                  buildDividerWidget(context),
                 ],
               ),
             )

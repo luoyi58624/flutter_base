@@ -2,8 +2,13 @@ part of flutter_base;
 
 enum BottomTabbarType { material2, material3, cupertino }
 
+class BottomTabbarController extends GetxController {
+  static BottomTabbarController of = Get.find();
+  final showBottomBar = true.obs;
+}
+
 /// 移动端底部导航栏组件
-class BottomTabbarWidget extends StatelessWidget {
+class BottomTabbarWidget extends StatefulWidget {
   const BottomTabbarWidget({
     super.key,
     required this.navigationShell,
@@ -12,69 +17,58 @@ class BottomTabbarWidget extends StatelessWidget {
   });
 
   final StatefulNavigationShell navigationShell;
-  final List<RouterModel> pages;
+  final List<NavModel> pages;
   final BottomTabbarType bottomTabbarType;
 
-  /// 快速构建有状态嵌套导航
-  ///
-  /// 使用示例：
-  /// ```dart
-  /// final rootPage = BottomTabbarWidget.buildStatefulShellRoute();
-  /// final router = FlutterRouter(
-  ///   routes: [
-  ///     rootPage,
-  ///   ],
-  /// );
-  /// ```
-  static RouteBase buildStatefulShellRoute(List<RouterModel> pages, [BottomTabbarType bottomTabbarType = BottomTabbarType.material2]) {
-    List<StatefulShellBranch> branches = [];
-    for (int i = 0; i < pages.length; i++) {
-      branches.add(StatefulShellBranch(
-        routes: [
-          GoRoute(
-            path: pages[i].path,
-            builder: (context, state) => pages[i].page,
-            routes: DartUtil.safeList(pages[i].children).isNotEmpty ? RouterUtil.routerModelToGoRouter(pages[i].children!) : [],
-          ),
-        ],
-      ));
-    }
-    return StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => BottomTabbarWidget(
-        navigationShell: navigationShell,
-        pages: pages,
-        bottomTabbarType: bottomTabbarType,
-      ),
-      branches: branches,
-    );
+  @override
+  State<BottomTabbarWidget> createState() => _BottomTabbarWidgetState();
+}
+
+class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
+  final controller = Get.put(BottomTabbarController());
+
+  @override
+  void dispose() {
+    super.dispose();
+    Get.delete<BottomTabbarController>();
   }
 
   @override
   Widget build(BuildContext context) {
     late Widget tabbarWidget;
-    switch (bottomTabbarType) {
+    late double tabbarHeight;
+    switch (widget.bottomTabbarType) {
       case BottomTabbarType.material2:
         tabbarWidget = buildMaterial2(context);
+        tabbarHeight = 56;
         break;
       case BottomTabbarType.material3:
         tabbarWidget = buildMaterial3(context);
+        tabbarHeight = 80;
         break;
       case BottomTabbarType.cupertino:
         tabbarWidget = buildCupertino(context);
+        tabbarHeight = 50;
         break;
     }
     return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: tabbarWidget,
+      body: widget.navigationShell,
+      bottomNavigationBar: Obx(() => AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: controller.showBottomBar.value ? tabbarHeight : 0,
+            child: Wrap(
+              children: [tabbarWidget],
+            ),
+          )),
     );
   }
 
   Widget buildMaterial2(BuildContext context) {
     return BottomNavigationBar(
       onTap: (int index) {
-        navigationShell.goBranch(index);
+        widget.navigationShell.goBranch(index);
       },
-      currentIndex: navigationShell.currentIndex,
+      currentIndex: widget.navigationShell.currentIndex,
       unselectedFontSize: 12,
       selectedFontSize: 12,
       iconSize: 26,
@@ -86,7 +80,7 @@ class BottomTabbarWidget extends StatelessWidget {
         fontWeight: FontWeight.bold,
       ),
       type: BottomNavigationBarType.fixed,
-      items: pages
+      items: widget.pages
           .map((e) => BottomNavigationBarItem(
                 icon: Icon(e.icon),
                 label: e.title,
@@ -98,10 +92,10 @@ class BottomTabbarWidget extends StatelessWidget {
   Widget buildMaterial3(BuildContext context) {
     return NavigationBar(
       onDestinationSelected: (int index) {
-        navigationShell.goBranch(index);
+        widget.navigationShell.goBranch(index);
       },
-      selectedIndex: navigationShell.currentIndex,
-      destinations: pages
+      selectedIndex: widget.navigationShell.currentIndex,
+      destinations: widget.pages
           .map((e) => NavigationDestination(
                 icon: Icon(e.icon),
                 label: e.title,
@@ -113,10 +107,10 @@ class BottomTabbarWidget extends StatelessWidget {
   Widget buildCupertino(BuildContext context) {
     return CupertinoTabBar(
       onTap: (int index) {
-        navigationShell.goBranch(index);
+        widget.navigationShell.goBranch(index);
       },
-      currentIndex: navigationShell.currentIndex,
-      items: pages
+      currentIndex: widget.navigationShell.currentIndex,
+      items: widget.pages
           .map((e) => BottomNavigationBarItem(
                 icon: Icon(e.icon),
                 label: e.title,

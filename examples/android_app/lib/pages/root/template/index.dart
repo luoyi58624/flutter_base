@@ -22,14 +22,12 @@ class TemplatePageState extends State<TemplatePage> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: CustomScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('模板列表'),
+      ),
+      body: CustomScrollView(
         slivers: [
-          const CupertinoSliverNavigationBar(
-            largeTitle: Text(
-              '模板列表',
-            ),
-          ),
           SliverToBoxAdapter(
             child: fontDemo,
           )

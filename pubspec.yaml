@@ -38,7 +38,7 @@ dependencies:
   hive_flutter: ^2.0.0-dev
   highlight_text: ^1.7.0
   lpinyin: ^2.0.3
-  modal_bottom_sheet: ^3.0.0-pre
+  modal_bottom_sheet: ^3.0.0
   open_file_plus: ^3.4.1
   shimmer: ^3.0.0
   super_sliver_list: ^0.4.0
