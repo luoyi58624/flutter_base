@@ -5,6 +5,9 @@ enum BottomTabbarType { material2, material3, cupertino }
 class BottomTabbarController extends GetxController {
   static BottomTabbarController of = Get.find();
   final showBottomBar = true.obs;
+
+  /// 路由过渡中tabbar的高度
+  final tabbarAnimationHeight = 0.0.obs;
 }
 
 /// 移动端底部导航栏组件
@@ -53,13 +56,22 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
     }
     return Scaffold(
       body: widget.navigationShell,
-      bottomNavigationBar: Obx(() => AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: controller.showBottomBar.value ? tabbarHeight : 0,
-            child: Wrap(
-              children: [tabbarWidget],
-            ),
-          )),
+      bottomNavigationBar: Obx(
+        () => controller.showBottomBar.value
+            ? AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: tabbarHeight,
+                child: Wrap(
+                  children: [tabbarWidget],
+                ),
+              )
+            : SizedBox(
+                height: controller.tabbarAnimationHeight.value,
+                child: Wrap(
+                  children: [tabbarWidget],
+                ),
+              ),
+      ),
     );
   }
 

@@ -84,6 +84,7 @@ Widget buildCenterColumn(List<Widget> children) {
 Widget buildListSection(BuildContext context, String title, List<NavModel> navModel) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
     children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),

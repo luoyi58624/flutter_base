@@ -1,14 +1,15 @@
+import 'package:android_app/pages/common/chat/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-class ChatListPage extends StatefulWidget {
-  const ChatListPage({super.key});
+class ChatRootPage extends StatefulWidget {
+  const ChatRootPage({super.key});
 
   @override
-  State<ChatListPage> createState() => _ChatListPageState();
+  State<ChatRootPage> createState() => _ChatRootPageState();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatRootPageState extends State<ChatRootPage> {
   int count = 0;
 
   @override
@@ -66,7 +67,8 @@ class _ChatItemState extends State<_ChatItem> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        context.go('/chat/${widget.index}');
+        // context.go('/chat/${widget.index}');
+        RouterUtil.push(context, ChatPage(id: widget.key.toString()), rootNavigator: true);
       },
       child: Container(
         height: 72,

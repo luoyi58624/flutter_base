@@ -15,9 +15,13 @@ class DrawerUtil {
   }
 
   /// 在当前屏幕上显示一个抽屉，如果之前打开过一个抽屉，那么会先关闭它再重新打开一个新的抽屉
+  /// * child 抽屉子元素
+  /// * width 抽屉宽度
+  /// * position 抽屉位置: left、top、bottom、right
   static Future<void> show({
     required Widget child,
     double width = 300,
+    String position = 'left',
   }) async {
     if (hasDrawer()) await close();
     _overlayEntry = OverlayEntry(
@@ -63,22 +67,12 @@ class _DrawerWidgetState extends State<_DrawerWidget> with SingleTickerProviderS
   @override
   void initState() {
     super.initState();
-    DrawerUtil._controller = AnimationController(
-      duration: const Duration(milliseconds: 225),
-      vsync: this,
-    );
-    DrawerUtil._positionAnimation = Tween<double>(begin: position, end: 0).animate(
-      CurvedAnimation(parent: DrawerUtil._controller!, curve: const Cubic(0, 0, 0.2, 1)),
-    );
+    DrawerUtil._controller = AnimationController(duration: const Duration(milliseconds: 225), vsync: this);
+    DrawerUtil._positionAnimation = Tween<double>(begin: position, end: 0)
+        .animate(CurvedAnimation(parent: DrawerUtil._controller!, curve: const Cubic(0, 0, 0.2, 1)));
     DrawerUtil._opacityAnimation = Tween<double>(begin: opacity, end: 0.54)
         .animate(CurvedAnimation(parent: DrawerUtil._controller!, curve: const Cubic(0.4, 0, 0.2, 1)));
     DrawerUtil._controller!.forward();
-  }
-
-  @override
-  void dispose() {
-    DrawerUtil.close();
-    super.dispose();
   }
 
   @override
@@ -106,14 +100,7 @@ class _DrawerWidgetState extends State<_DrawerWidget> with SingleTickerProviderS
               bottom: 0.0,
               left: DrawerUtil._positionAnimation!.value,
               child: Material(
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    width: widget.width,
-                    color: Colors.white,
-                    child: widget.child,
-                  ),
-                ),
+                child: Container(width: widget.width, color: Colors.white, child: widget.child),
               ),
             ),
           ],

@@ -1,6 +1,9 @@
 import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
 import 'package:android_app/pages/login.dart';
+import 'package:android_app/pages/root/test/animation/darg.dart';
+import 'package:android_app/pages/root/test/animation/index.dart';
+import 'package:android_app/pages/root/test/animation/slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -12,7 +15,7 @@ import 'pages/root/component/go_router.dart';
 import 'pages/root/component/image_test.dart';
 import 'pages/root/component/index.dart';
 import 'pages/root/template/index.dart';
-import 'pages/root/user/index.dart';
+import 'pages/root/test/index.dart';
 import 'pages/root/util/index.dart';
 
 /// 常用的路由地址
@@ -24,7 +27,8 @@ class RoutePath {
   static const util = '/util';
   static const template = '/template';
   static const chat = '/chat';
-  static const user = '/user';
+  static const test = '/test';
+  static const animationTest = '/test/animation';
 }
 
 GoRouter initRouter() {
@@ -33,6 +37,7 @@ GoRouter initRouter() {
     navigatorKey: RouterUtil.rootNavigatorKey,
     redirect: (context, state) => GlobalController.of.isLogin.value ? null : RoutePath.login,
     routes: [
+      GoRoute(path: '/', redirect: (context, state) => RoutePath.root),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => BottomTabbarWidget(
           navigationShell: navigationShell,
@@ -69,7 +74,7 @@ GoRouter initRouter() {
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
-              builder: (context, state) => const ChatListPage(),
+              builder: (context, state) => const ChatRootPage(),
               routes: [
                 GoRoute(
                   path: ':id',
@@ -80,9 +85,32 @@ GoRouter initRouter() {
                   ],
                 ),
               ],
-            )
+            ),
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: RoutePath.user, builder: (context, state) => const UserPage())]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: RoutePath.test,
+              builder: (context, state) => const TestRootPage(),
+              routes: [
+                GoRoute(
+                  path: 'animation',
+                  pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const AnimationTestPage()),
+                  routes: [
+                    GoRoute(
+                      path: 'slider',
+                      pageBuilder: (context, state) =>
+                          RouterUtil.pageBuilder(context, state, const SliderAnimationTestPage()),
+                    ),
+                    GoRoute(
+                      path: 'drag',
+                      pageBuilder: (context, state) =>
+                          RouterUtil.pageBuilder(context, state, const DragAnimationTestPage()),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ]),
         ],
       ),
       GoRoute(path: RoutePath.login, builder: (context, state) => const LoginPage()),

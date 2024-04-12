@@ -6,6 +6,24 @@ class AnimationUtil {
   static AnimationController? _numAnimationController;
   static Animation<double>? _numAnimation;
 
+  /// 根据当前动画状态切换动画执行方向，如果是dismissed、reverse，动画将以正方向执行，如果是forward、completed，动画将以反方向执行
+  static void switchAnimationStatus(AnimationController controller) {
+    switch (controller.status) {
+      case AnimationStatus.dismissed:
+        controller.forward();
+        break;
+      case AnimationStatus.forward:
+        controller.reverse();
+        break;
+      case AnimationStatus.reverse:
+        controller.forward();
+        break;
+      case AnimationStatus.completed:
+        controller.reverse();
+        break;
+    }
+  }
+
   /// 创建两个数字区间动画
   static void createNumTween({
     required TickerProvider vsync,

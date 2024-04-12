@@ -26,8 +26,22 @@ class RouterUtil {
   }
 
   /// 跳转到新页面
-  static Future<T?> push<T>(BuildContext context, Widget page) async {
-    return await Navigator.of(context).push<T>(CupertinoPageRoute(builder: (context) => page));
+  /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
+  /// * page 新页面组件
+  /// * rootNavigator 如果为true，将隐藏底部tabbar，弥补[GoRouter]无法在选项卡式导航中实现推送到顶部页面
+  static Future<T?> push<T>(
+    BuildContext context,
+    Widget page, {
+    bool rootNavigator = false,
+  }) async {
+    if (rootNavigator) BottomTabbarController.of.showBottomBar.value = false;
+    var result = await Navigator.of(context).push<T>(_PageRouter(builder: (context) => page));
+    if (rootNavigator) {
+      AsyncUtil.delayed(() {
+        BottomTabbarController.of.showBottomBar.value = true;
+      }, 400);
+    }
+    return result;
   }
 
   /// 返回上一页
@@ -127,6 +141,49 @@ CupertinoPage<void> _pageBuilderForCupertinoApp({
       restorationId: restorationId,
       child: child,
     );
+
+class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin {
+  _PageRouter({
+    required this.builder,
+  });
+
+  final WidgetBuilder builder;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Widget buildContent(BuildContext context) => builder(context);
+
+  @override
+  String? get title => null;
+
+  @override
+  Widget buildTransitions(
+      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+    if (BottomTabbarController.of.showBottomBar.value == false) {
+      final tween = Tween(begin: 56.0, end: 0.0);
+      final bool linearTransition = CupertinoRouteTransitionMixin.isPopGestureInProgress(this);
+      var heightAnimation = linearTransition
+          ? animation.drive(tween)
+          : CurvedAnimation(
+              parent: animation,
+              curve: Curves.fastEaseInToSlowEaseOut,
+              reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
+            ).drive(tween);
+      BottomTabbarController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+    }
+    return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
+    // const begin = Offset(1.0, 0.0);
+    // const end = Offset.zero;
+    // final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.fastLinearToSlowEaseIn));
+    // final offsetAnimation = animation.drive(tween);
+    // return SlideTransition(
+    //   position: offsetAnimation,
+    //   child: child,
+    // );
+  }
+}
 
 /// Getx控制器自动销毁监听器，将此实例添加到路由监听器中，实现离开页面自动销毁绑定的控制器。
 /// 只有一点需要注意：Get.put在StatelessWidget中必须将放置build方法中，否则无法正确回收控制器。
