@@ -23,7 +23,7 @@ class UserPage extends StatelessWidget {
                 CupertinoButton.filled(
                   onPressed: () {
                     GlobalController.of.isLogin.value = false;
-                    context.go('/login');
+                    context.go(RoutePath.login);
                   },
                   child: const Text('退出登录'),
                 ),

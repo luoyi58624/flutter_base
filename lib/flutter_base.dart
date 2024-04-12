@@ -121,6 +121,8 @@ part 'src/utils/crypto.dart';
 
 part 'src/utils/device.dart';
 
+part 'src/utils/drawer.dart';
+
 part 'src/utils/file_picker.dart';
 
 part 'src/utils/flutter.dart';

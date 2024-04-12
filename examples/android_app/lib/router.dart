@@ -15,11 +15,23 @@ import 'pages/root/template/index.dart';
 import 'pages/root/user/index.dart';
 import 'pages/root/util/index.dart';
 
+/// 常用的路由地址
+class RoutePath {
+  RoutePath._();
+
+  static const root = '/component';
+  static const login = '/login';
+  static const util = '/util';
+  static const template = '/template';
+  static const chat = '/chat';
+  static const user = '/user';
+}
+
 GoRouter initRouter() {
   return GoRouter(
-    initialLocation: '/component',
+    initialLocation: RoutePath.root,
     navigatorKey: RouterUtil.rootNavigatorKey,
-    redirect: (context, state) => GlobalController.of.isLogin.value ? null : '/login',
+    redirect: (context, state) => GlobalController.of.isLogin.value ? null : RoutePath.login,
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => BottomTabbarWidget(
@@ -35,7 +47,7 @@ GoRouter initRouter() {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: '/component', builder: (context, state) => const ComponentPage(), routes: [
+            GoRoute(path: RoutePath.root, builder: (context, state) => const ComponentPage(), routes: [
               GoRoute(
                 path: 'image',
                 pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ImageTestPage()),
@@ -51,11 +63,12 @@ GoRouter initRouter() {
               ),
             ]),
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: '/util', builder: (context, state) => const UtilPage())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/template', builder: (context, state) => const TemplatePage())]),
+          StatefulShellBranch(routes: [GoRoute(path: RoutePath.util, builder: (context, state) => const UtilPage())]),
+          StatefulShellBranch(
+              routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: '/chat',
+              path: RoutePath.chat,
               builder: (context, state) => const ChatListPage(),
               routes: [
                 GoRoute(
@@ -69,10 +82,10 @@ GoRouter initRouter() {
               ],
             )
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: '/user', builder: (context, state) => const UserPage())]),
+          StatefulShellBranch(routes: [GoRoute(path: RoutePath.user, builder: (context, state) => const UserPage())]),
         ],
       ),
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(path: RoutePath.login, builder: (context, state) => const LoginPage()),
       GoRoute(path: '/root_child', builder: (context, state) => const ChildPage(title: '根页面child')),
     ],
   );

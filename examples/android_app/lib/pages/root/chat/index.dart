@@ -16,6 +16,30 @@ class _ChatListPageState extends State<ChatListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('聊天列表'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              DrawerUtil.show(
+                width: 200,
+                child: buildListViewDemo(),
+              );
+              // AsyncUtil.delayed(() {
+              //   DrawerUtil.show(
+              //     width: 200,
+              //     child: Center(
+              //       child: ElevatedButton(
+              //         onPressed: () {
+              //           DrawerUtil.close();
+              //         },
+              //         child: const Text('关闭抽屉'),
+              //       ),
+              //     ),
+              //   );
+              // }, 2000);
+            },
+            icon: const Icon(Icons.menu),
+          ),
+        ],
       ),
       body: Scrollbar(
         child: SuperListView.separated(

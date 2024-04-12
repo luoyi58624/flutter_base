@@ -1,6 +1,7 @@
 import 'package:android_app/controllers/global.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
+
+import '../global.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
                     await 2.delay();
                     LoadingUtil.close();
                     GlobalController.of.isLogin.value = true;
-                    if (context.mounted) context.go('/');
+                    if (context.mounted) context.go(RoutePath.root);
                   },
                   child: const Text('登陆'),
                 ),
