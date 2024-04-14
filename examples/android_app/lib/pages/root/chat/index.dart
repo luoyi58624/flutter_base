@@ -24,19 +24,6 @@ class _ChatRootPageState extends State<ChatRootPage> {
                 width: 200,
                 child: buildListViewDemo(),
               );
-              // AsyncUtil.delayed(() {
-              //   DrawerUtil.show(
-              //     width: 200,
-              //     child: Center(
-              //       child: ElevatedButton(
-              //         onPressed: () {
-              //           DrawerUtil.close();
-              //         },
-              //         child: const Text('关闭抽屉'),
-              //       ),
-              //     ),
-              //   );
-              // }, 2000);
             },
             icon: const Icon(Icons.menu),
           ),
@@ -68,7 +55,7 @@ class _ChatItemState extends State<_ChatItem> {
     return InkWell(
       onTap: () {
         // context.go('/chat/${widget.index}');
-        RouterUtil.push(context, ChatPage(id: widget.key.toString()), rootNavigator: true);
+        RouterUtil.push(context, ChatPage(id: widget.index.toString()), rootNavigator: true);
       },
       child: Container(
         height: 72,

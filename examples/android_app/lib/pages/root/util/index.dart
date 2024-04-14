@@ -8,7 +8,6 @@ import 'custom_painter_test.dart';
 import 'getx_util/page.dart';
 import 'inherited_widget_test.dart';
 import 'local_storage_test.dart';
-import 'network_status.dart';
 
 class UtilPage extends StatelessWidget {
   const UtilPage({super.key});
@@ -23,7 +22,6 @@ class UtilPage extends StatelessWidget {
       const PageNavModel('本地存储测试', LocalStorageTestPage()),
       const PageNavModel('异步函数测试', AsyncTestPage()),
       const PageNavModel('动画测试', AnimationTestPage()),
-      const PageNavModel('网络状态', NetworkStatusTestPage()),
       const PageNavModel('自定义绘制', CustomPainterTestPage()),
       const PageNavModel('Toast测试', ToastTestPage()),
     ];

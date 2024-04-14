@@ -10,9 +10,9 @@ final router = GoRouter(
   navigatorKey: RouterUtil.rootNavigatorKey,
   routes: [
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => BottomTabbarWidget(
+      builder: (context, state, navigationShell) => FlutterTabScaffold(
         navigationShell: navigationShell,
-        bottomTabbarType: BottomTabbarType.cupertino,
+        bottomTabbarType: TabType.cupertino,
         pages: [
           RouterModel('首页', '/', const HomePage(), icon: Icons.home),
           RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined),

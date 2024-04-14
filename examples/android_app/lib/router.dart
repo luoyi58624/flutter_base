@@ -39,7 +39,7 @@ GoRouter initRouter() {
     routes: [
       GoRoute(path: '/', redirect: (context, state) => RoutePath.root),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => BottomTabbarWidget(
+        builder: (context, state, navigationShell) => FlutterTabScaffold(
           navigationShell: navigationShell,
           pages: const [
             NavModel('组件', icon: Icons.token_outlined),
@@ -48,7 +48,6 @@ GoRouter initRouter() {
             NavModel('聊天', icon: Icons.chat_bubble),
             NavModel('我的', icon: Icons.person_pin),
           ],
-          bottomTabbarType: BottomTabbarType.material2,
         ),
         branches: [
           StatefulShellBranch(routes: [
@@ -59,8 +58,7 @@ GoRouter initRouter() {
               ),
               GoRoute(
                 path: 'animation',
-                pageBuilder: (context, state) =>
-                    RouterUtil.pageBuilder(context, state, const AnimationWidgetTestPage()),
+                pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const AnimationWidgetTestPage()),
               ),
               GoRoute(
                 path: 'go_router',
@@ -69,8 +67,7 @@ GoRouter initRouter() {
             ]),
           ]),
           StatefulShellBranch(routes: [GoRoute(path: RoutePath.util, builder: (context, state) => const UtilPage())]),
-          StatefulShellBranch(
-              routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
+          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
@@ -78,8 +75,7 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: ':id',
-                  pageBuilder: (context, state) =>
-                      RouterUtil.pageBuilder(context, state, ChatPage(id: state.pathParameters['id']!)),
+                  pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, ChatPage(id: state.pathParameters['id']!)),
                   routes: [
                     GoRoute(path: 'info', builder: (context, state) => const ChatInfoPage()),
                   ],
@@ -98,13 +94,11 @@ GoRouter initRouter() {
                   routes: [
                     GoRoute(
                       path: 'slider',
-                      pageBuilder: (context, state) =>
-                          RouterUtil.pageBuilder(context, state, const SliderAnimationTestPage()),
+                      pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const SliderAnimationTestPage()),
                     ),
                     GoRoute(
                       path: 'drag',
-                      pageBuilder: (context, state) =>
-                          RouterUtil.pageBuilder(context, state, const DragAnimationTestPage()),
+                      pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const DragAnimationTestPage()),
                     ),
                   ],
                 ),

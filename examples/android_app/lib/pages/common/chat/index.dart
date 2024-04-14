@@ -11,17 +11,6 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  @override
-  void initState() {
-    super.initState();
-    BottomTabbarController.of.showBottomBar.value = false;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    BottomTabbarController.of.showBottomBar.value = true;
-  }
 
   @override
   Widget build(BuildContext context) {

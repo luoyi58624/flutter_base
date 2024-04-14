@@ -7,28 +7,21 @@ import 'dart:math' as math;
 
 import 'package:archive/archive.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:get/get_navigation/src/router_report.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:highlight_text/highlight_text.dart';
 import 'package:html/parser.dart' as htmlparser;
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart' as modal_bottom_sheet;
-import 'package:file_picker/file_picker.dart';
 import 'package:azlistview/azlistview.dart';
 import 'package:lpinyin/lpinyin.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
 import 'flutter_base.dart';
 
@@ -51,15 +44,8 @@ export 'package:flutter_localizations/flutter_localizations.dart';
 // flutter官方collection库，扩展集合函数
 export 'package:collection/collection.dart';
 
-// 仅导出GetX的状态管理以及部分实用工具函数，但排除路由功能、http网络请求等与状态管理无关的代码，
-export 'package:get/get_core/get_core.dart';
-export 'package:get/get_instance/get_instance.dart';
-export 'package:get/get_state_manager/get_state_manager.dart' hide VoidCallback;
-export 'package:get/get_rx/get_rx.dart';
-export 'package:get/get_utils/src/extensions/export.dart';
-export 'package:get/get_utils/src/get_utils/get_utils.dart';
-export 'package:get/get_utils/src/platform/platform.dart';
-export 'package:get/get_utils/src/queue/get_queue.dart';
+// GetX的状态管理
+export 'package:get/get.dart';
 
 // flutter常用的一组loading动画
 export 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -70,9 +56,6 @@ export 'package:faker/faker.dart';
 // flutter展示html组件
 export 'package:flutter_html/flutter_html.dart';
 
-// 打开文件
-export 'package:open_file_plus/open_file_plus.dart';
-
 // 多平台查找文件系统上的常用位置
 export 'package:path_provider/path_provider.dart';
 
@@ -81,9 +64,6 @@ export 'package:shimmer/shimmer.dart';
 
 // ListView增强插件，解决不定高子项滚动条错位bug、拖动滚动条滚动性能低bug
 export 'package:super_sliver_list/super_sliver_list.dart';
-
-// 网络连接状态
-export 'package:connectivity_plus/connectivity_plus.dart' show ConnectivityResult;
 
 /// 底部弹窗库
 export 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -99,11 +79,7 @@ part 'src/config.dart';
 
 part 'src/commons/model.dart';
 
-part 'src/controllers/network_controller.dart';
-
 part 'src/mixins/theme.dart';
-
-part 'src/pages/bottom_tabbar.dart';
 
 part 'src/pages/root_page.dart';
 
@@ -119,11 +95,7 @@ part 'src/utils/color.dart';
 
 part 'src/utils/crypto.dart';
 
-part 'src/utils/device.dart';
-
 part 'src/utils/drawer.dart';
-
-part 'src/utils/file_picker.dart';
 
 part 'src/utils/flutter.dart';
 
@@ -175,6 +147,8 @@ part 'src/widgets/skeleton.dart';
 
 part 'src/widgets/sliver.dart';
 
+part 'src/widgets/tab_scaffold.dart';
+
 part 'src/widgets/tag.dart';
 
 part 'src/widgets/tap_animate.dart';
@@ -186,8 +160,6 @@ part 'src/widgets/form/form.dart';
 part 'src/widgets/form/form_item.dart';
 
 part 'src/widgets/form/form_text_field.dart';
-
-part 'src/widgets/form/form_file_upload.dart';
 
 part 'src/widgets/image/image_widget.dart';
 

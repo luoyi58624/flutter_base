@@ -34,11 +34,11 @@ class RouterUtil {
     Widget page, {
     bool rootNavigator = false,
   }) async {
-    if (rootNavigator) BottomTabbarController.of.showBottomBar.value = false;
+    if (rootNavigator) _TabController.of.showBottomBar.value = false;
     var result = await Navigator.of(context).push<T>(_PageRouter(builder: (context) => page));
     if (rootNavigator) {
       AsyncUtil.delayed(() {
-        BottomTabbarController.of.showBottomBar.value = true;
+        _TabController.of.showBottomBar.value = true;
       }, 400);
     }
     return result;
@@ -161,17 +161,16 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin {
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (BottomTabbarController.of.showBottomBar.value == false) {
+    if (_TabController.of.showBottomBar.value == false) {
       final tween = Tween(begin: 56.0, end: 0.0);
-      final bool linearTransition = CupertinoRouteTransitionMixin.isPopGestureInProgress(this);
-      var heightAnimation = linearTransition
+      var heightAnimation = popGestureInProgress
           ? animation.drive(tween)
           : CurvedAnimation(
               parent: animation,
               curve: Curves.fastEaseInToSlowEaseOut,
               reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
             ).drive(tween);
-      BottomTabbarController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+      _TabController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
     // const begin = Offset(1.0, 0.0);
@@ -182,48 +181,6 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin {
     //   position: offsetAnimation,
     //   child: child,
     // );
-  }
-}
-
-/// Getx控制器自动销毁监听器，将此实例添加到路由监听器中，实现离开页面自动销毁绑定的控制器。
-/// 只有一点需要注意：Get.put在StatelessWidget中必须将放置build方法中，否则无法正确回收控制器。
-///
-/// 反例：
-/// ```dart
-/// class GetxDemoPage extends StatelessWidget {
-///   GetxDemoPage({super.key});
-///   final controller = Get.put(GetxDemoController());
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     return Container();
-///   }
-/// }
-/// ```
-///
-/// 正确做法：
-/// ```dart
-/// class GetxDemoPage extends StatelessWidget {
-///   const GetxDemoPage({super.key});
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     // Getx不会重复注入相同的控制器，所以不必担心此代码会影响程序的正常运行
-///     final controller = Get.put(GetxDemoController());
-///     return Container();
-///   }
-/// }
-/// ```
-@Deprecated('请手动销毁getx控制器')
-class _GetXRouterObserver extends NavigatorObserver {
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    RouterReportManager.instance.reportCurrentRoute(route);
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) async {
-    RouterReportManager.instance.reportRouteDispose(route);
   }
 }
 

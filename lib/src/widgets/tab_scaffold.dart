@@ -1,39 +1,39 @@
 part of flutter_base;
 
-enum BottomTabbarType { material2, material3, cupertino }
+enum TabType { material2, material3, cupertino }
 
-class BottomTabbarController extends GetxController {
-  static BottomTabbarController of = Get.find();
+class _TabController extends GetxController {
+  static _TabController of = Get.find();
   final showBottomBar = true.obs;
 
   /// 路由过渡中tabbar的高度
   final tabbarAnimationHeight = 0.0.obs;
 }
 
-/// 移动端底部导航栏组件
-class BottomTabbarWidget extends StatefulWidget {
-  const BottomTabbarWidget({
+/// 导航栏脚手架
+class FlutterTabScaffold extends StatefulWidget {
+  const FlutterTabScaffold({
     super.key,
     required this.navigationShell,
     required this.pages,
-    this.bottomTabbarType = BottomTabbarType.material2,
+    this.bottomTabbarType = TabType.material2,
   });
 
   final StatefulNavigationShell navigationShell;
   final List<NavModel> pages;
-  final BottomTabbarType bottomTabbarType;
+  final TabType bottomTabbarType;
 
   @override
-  State<BottomTabbarWidget> createState() => _BottomTabbarWidgetState();
+  State<FlutterTabScaffold> createState() => _FlutterTabScaffoldState();
 }
 
-class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
-  final controller = Get.put(BottomTabbarController());
+class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
+  final controller = Get.put(_TabController());
 
   @override
   void dispose() {
     super.dispose();
-    Get.delete<BottomTabbarController>();
+    Get.delete<_TabController>();
   }
 
   @override
@@ -41,15 +41,15 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
     late Widget tabbarWidget;
     late double tabbarHeight;
     switch (widget.bottomTabbarType) {
-      case BottomTabbarType.material2:
+      case TabType.material2:
         tabbarWidget = buildMaterial2(context);
         tabbarHeight = 56;
         break;
-      case BottomTabbarType.material3:
+      case TabType.material3:
         tabbarWidget = buildMaterial3(context);
         tabbarHeight = 80;
         break;
-      case BottomTabbarType.cupertino:
+      case TabType.cupertino:
         tabbarWidget = buildCupertino(context);
         tabbarHeight = 50;
         break;
@@ -57,20 +57,20 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
     return Scaffold(
       body: widget.navigationShell,
       bottomNavigationBar: Obx(
-        () => controller.showBottomBar.value
+            () => controller.showBottomBar.value
             ? AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: tabbarHeight,
-                child: Wrap(
-                  children: [tabbarWidget],
-                ),
-              )
+          duration: const Duration(milliseconds: 200),
+          height: tabbarHeight,
+          child: Wrap(
+            children: [tabbarWidget],
+          ),
+        )
             : SizedBox(
-                height: controller.tabbarAnimationHeight.value,
-                child: Wrap(
-                  children: [tabbarWidget],
-                ),
-              ),
+          height: controller.tabbarAnimationHeight.value,
+          child: Wrap(
+            children: [tabbarWidget],
+          ),
+        ),
       ),
     );
   }
@@ -94,9 +94,9 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
       type: BottomNavigationBarType.fixed,
       items: widget.pages
           .map((e) => BottomNavigationBarItem(
-                icon: Icon(e.icon),
-                label: e.title,
-              ))
+        icon: Icon(e.icon),
+        label: e.title,
+      ))
           .toList(),
     );
   }
@@ -109,9 +109,9 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
       selectedIndex: widget.navigationShell.currentIndex,
       destinations: widget.pages
           .map((e) => NavigationDestination(
-                icon: Icon(e.icon),
-                label: e.title,
-              ))
+        icon: Icon(e.icon),
+        label: e.title,
+      ))
           .toList(),
     );
   }
@@ -124,9 +124,9 @@ class _BottomTabbarWidgetState extends State<BottomTabbarWidget> {
       currentIndex: widget.navigationShell.currentIndex,
       items: widget.pages
           .map((e) => BottomNavigationBarItem(
-                icon: Icon(e.icon),
-                label: e.title,
-              ))
+        icon: Icon(e.icon),
+        label: e.title,
+      ))
           .toList(),
     );
   }
