@@ -3,32 +3,58 @@ part of flutter_base;
 enum TabType { material2, material3, cupertino }
 
 class _TabController extends GetxController {
+  _TabController({required this.tabType});
+
   static _TabController of = Get.find();
-  final showBottomBar = true.obs;
+
+  final TabType tabType;
+
+  /// 当前页面是否显示底部导航栏
+  final _showTabbar = true.obs;
+
+  bool get showTabbar => _showTabbar.value;
+
+  set showTabbar(bool value) {
+    if (_showTabbarTimer != null) _showTabbarTimer!.cancel();
+    _showTabbar.value = value;
+  }
 
   /// 路由过渡中tabbar的高度
   final tabbarAnimationHeight = 0.0.obs;
+
+  static Timer? _showTabbarTimer;
 }
 
-/// 导航栏脚手架
+/// 选项卡式导航栏脚手架
 class FlutterTabScaffold extends StatefulWidget {
   const FlutterTabScaffold({
     super.key,
     required this.navigationShell,
     required this.pages,
-    this.bottomTabbarType = TabType.material2,
+    this.tabType = TabType.material2,
   });
 
+  /// [GoRouter]有状态导航对象: [StatefulShellRoute.indexedStack]
   final StatefulNavigationShell navigationShell;
+
+  /// 导航页面模型，渲染底部导航 tabbar
   final List<NavModel> pages;
-  final TabType bottomTabbarType;
+
+  /// 底部导航类型，默认[TabType.material2]
+  final TabType tabType;
 
   @override
   State<FlutterTabScaffold> createState() => _FlutterTabScaffoldState();
 }
 
 class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
-  final controller = Get.put(_TabController());
+  late _TabController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(_TabController(tabType: widget.tabType));
+  }
 
   @override
   void dispose() {
@@ -40,7 +66,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
   Widget build(BuildContext context) {
     late Widget tabbarWidget;
     late double tabbarHeight;
-    switch (widget.bottomTabbarType) {
+    switch (widget.tabType) {
       case TabType.material2:
         tabbarWidget = buildMaterial2(context);
         tabbarHeight = 56;
@@ -57,20 +83,20 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
     return Scaffold(
       body: widget.navigationShell,
       bottomNavigationBar: Obx(
-            () => controller.showBottomBar.value
+        () => controller.showTabbar
             ? AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: tabbarHeight,
-          child: Wrap(
-            children: [tabbarWidget],
-          ),
-        )
+                duration: const Duration(milliseconds: 200),
+                height: tabbarHeight,
+                child: Wrap(
+                  children: [tabbarWidget],
+                ),
+              )
             : SizedBox(
-          height: controller.tabbarAnimationHeight.value,
-          child: Wrap(
-            children: [tabbarWidget],
-          ),
-        ),
+                height: controller.tabbarAnimationHeight.value,
+                child: Wrap(
+                  children: [tabbarWidget],
+                ),
+              ),
       ),
     );
   }
@@ -94,9 +120,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       type: BottomNavigationBarType.fixed,
       items: widget.pages
           .map((e) => BottomNavigationBarItem(
-        icon: Icon(e.icon),
-        label: e.title,
-      ))
+                icon: Icon(e.icon),
+                label: e.title,
+              ))
           .toList(),
     );
   }
@@ -109,9 +135,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       selectedIndex: widget.navigationShell.currentIndex,
       destinations: widget.pages
           .map((e) => NavigationDestination(
-        icon: Icon(e.icon),
-        label: e.title,
-      ))
+                icon: Icon(e.icon),
+                label: e.title,
+              ))
           .toList(),
     );
   }
@@ -124,9 +150,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       currentIndex: widget.navigationShell.currentIndex,
       items: widget.pages
           .map((e) => BottomNavigationBarItem(
-        icon: Icon(e.icon),
-        label: e.title,
-      ))
+                icon: Icon(e.icon),
+                label: e.title,
+              ))
           .toList(),
     );
   }

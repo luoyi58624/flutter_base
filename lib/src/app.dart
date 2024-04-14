@@ -34,6 +34,16 @@ class FlutterApp extends StatelessWidget {
   final String title;
 
   /// 声明式路由配置
+  ///
+  /// 示例：
+  /// ``` dart
+  /// final router = GoRouter(
+  ///   navigatorKey: RouterUtil.rootNavigatorKey,
+  ///   routes: [
+  ///     GoRoute(path: '/', builder: (context, state) => HomePage()),
+  ///   ],
+  /// );
+  /// ```
   final GoRouter router;
 
   /// 自定义亮色主题

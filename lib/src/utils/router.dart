@@ -34,11 +34,13 @@ class RouterUtil {
     Widget page, {
     bool rootNavigator = false,
   }) async {
-    if (rootNavigator) _TabController.of.showBottomBar.value = false;
+    if (rootNavigator) _TabController.of.showTabbar = false;
     var result = await Navigator.of(context).push<T>(_PageRouter(builder: (context) => page));
     if (rootNavigator) {
-      AsyncUtil.delayed(() {
-        _TabController.of.showBottomBar.value = true;
+      _TabController._showTabbarTimer = AsyncUtil.delayed(() {
+        if (_TabController.of.showTabbar == false) {
+          _TabController.of._showTabbar.value = true;
+        }
       }, 400);
     }
     return result;
@@ -79,8 +81,7 @@ class RouterUtil {
   }
 
   /// 构建[CupertinoPage]动画页面的[GoRoute]
-  static Page<dynamic> pageBuilder<T>(BuildContext context, GoRouterState state, Widget page) =>
-      _pageBuilderForCupertinoApp(
+  static Page<dynamic> pageBuilder<T>(BuildContext context, GoRouterState state, Widget page) => _pageBuilderForCupertinoApp(
         key: state.pageKey,
         name: state.name ?? state.path,
         arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
@@ -159,12 +160,14 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin {
   String? get title => null;
 
   @override
-  Widget buildTransitions(
-      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_TabController.of.showBottomBar.value == false) {
+  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+    if (_TabController.of.showTabbar == false) {
       final tween = Tween(begin: 56.0, end: 0.0);
       var heightAnimation = popGestureInProgress
-          ? animation.drive(tween)
+          ? CurvedAnimation(
+              parent: animation,
+              curve: Curves.fastEaseInToSlowEaseOut.flipped,
+            ).drive(tween)
           : CurvedAnimation(
               parent: animation,
               curve: Curves.fastEaseInToSlowEaseOut,

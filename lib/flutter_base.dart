@@ -147,7 +147,7 @@ part 'src/widgets/skeleton.dart';
 
 part 'src/widgets/sliver.dart';
 
-part 'src/widgets/tab_scaffold.dart';
+part 'src/tab_scaffold.dart';
 
 part 'src/widgets/tag.dart';
 
