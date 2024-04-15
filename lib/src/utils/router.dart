@@ -296,9 +296,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   bool didPop(result) {
-    if (allowAnimation) {
-      TabScaffoldController.of._showBottomNav.value = false;
-    }
+    if (_allowAnimation) TabScaffoldController.of._showBottomNav.value = false;
     return super.didPop(result);
   }
 
@@ -313,7 +311,8 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.didChangePrevious(previousRoute);
   }
 
-  bool get allowAnimation {
+  /// 是否允许加载显示、隐藏底部导航栏动画：当传递了 rootNavigator: true 属性时，同时检查 _rootHideTabbarRouteName 属性防止多级子组件又设置 rootNavigator 而造成再次触发动画。
+  bool get _allowAnimation {
     if (hideTabbar && _previousHideTabbar == false) {
       if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
         return true;
@@ -328,9 +327,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    // 设置显示、隐藏底部导航栏动画，当传递了 rootNavigator: true 属性时，同时检查 _rootHideTabbarRouteName 属性
-    // 防止多级子组件又设置 rootNavigator 而造成再次触发动画。
-    if (allowAnimation) {
+    if (_allowAnimation) {
       final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
       var heightAnimation = popGestureInProgress
           ? CurvedAnimation(
