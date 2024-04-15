@@ -15,10 +15,11 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
   @override
   Widget build(BuildContext context) {
     // logger.i('build');
-    return ExtendedCupertinoPageScaffold(
-      navigationBar: const ExtendedCupertinoNavigationBar(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
         middle: Text('自定义路由动画'),
         previousPageTitle: '测试页面',
+        // transitionBetweenRoutes: false,
       ),
       child: SafeArea(
         child: Center(
@@ -62,9 +63,10 @@ class _ChildPage extends StatefulWidget {
 class _ChildPageState extends State<_ChildPage> {
   @override
   Widget build(BuildContext context) {
-    return ExtendedCupertinoPageScaffold(
-      navigationBar: ExtendedCupertinoNavigationBar(
-        middle: const Text('子页面'),
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('子页面'),
+        previousPageTitle: '自定义路由动画',
       ),
       child: Column(
         children: [

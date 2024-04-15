@@ -14,11 +14,11 @@ class TestRootPage extends StatelessWidget {
     List<UrlNavModel> items = [
       const UrlNavModel('Animation 动画测试', RoutePath.animationTest),
     ];
-    return ExtendedCupertinoPageScaffold(
-      navigationBar: const ExtendedCupertinoNavigationBar(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
         middle: Text('测试页面'),
       ),
-      resizeToAvoidBottomInset: false,
+      // resizeToAvoidBottomInset: false,
       child: SafeArea(
         child: CustomScrollView(
           slivers: [

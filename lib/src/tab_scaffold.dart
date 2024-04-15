@@ -26,7 +26,7 @@ class TabScaffoldController extends GetxController {
   /// 路由过渡中tabbar的高度
   late Rx<double> tabbarAnimationHeight;
 
-  bool get tabbarIsHide => tabbarAnimationHeight.value == 0.0;
+  final _showBottomNav = true.obs;
 
   /// 底部导航栏高度
   double get bottomNavHeight => _getBottomNavHeight();
@@ -113,13 +113,13 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
   Widget buildCustomScaffold(Widget tabbarWidget) {
     return Stack(
       children: [
-        // Obx(
-        //   () => Padding(
-        //     padding: EdgeInsets.only(bottom: controller.tabbarAnimationHeight.value),
-        //     child: widget.navigationShell,
-        //   ),
-        // ),
-        widget.navigationShell,
+        Obx(
+          () => Padding(
+            padding:
+                controller._showBottomNav.value ? EdgeInsets.zero : EdgeInsets.only(bottom: controller.bottomNavHeight),
+            child: widget.navigationShell,
+          ),
+        ),
         Obx(
           () => Positioned(
             bottom: 0,
@@ -132,36 +132,6 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget buildCustomScaffold2(Widget tabbarWidget) {
-    return Column(
-      children: [
-        Expanded(child: widget.navigationShell),
-        Obx(
-          () => SizedBox(
-            height: controller.tabbarAnimationHeight.value,
-            child: Wrap(
-              children: [tabbarWidget],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildScaffold(Widget tabbarWidget) {
-    return Scaffold(
-      body: widget.navigationShell,
-      bottomNavigationBar: Obx(
-        () => SizedBox(
-          height: controller.tabbarAnimationHeight.value,
-          child: Wrap(
-            children: [tabbarWidget],
-          ),
-        ),
-      ),
     );
   }
 

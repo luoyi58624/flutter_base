@@ -73,23 +73,26 @@ class HomeChildPage extends StatelessWidget {
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(
         middle: Text('首页 - 子页面'),
+        previousPageTitle: '首页',
       ),
-      child: Center(
-        child: Column(
-          children: [
-            CupertinoButton.filled(
-              onPressed: () {
-                context.pop();
-              },
-              child: const Text('返回'),
-            ),
-            CupertinoButton.filled(
-              onPressed: () {
-                context.go('/util');
-              },
-              child: const Text('工具页面'),
-            ),
-          ],
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            children: [
+              CupertinoButton.filled(
+                onPressed: () {
+                  context.pop();
+                },
+                child: const Text('返回'),
+              ),
+              CupertinoButton.filled(
+                onPressed: () {
+                  context.go('/util');
+                },
+                child: const Text('工具页面'),
+              ),
+            ],
+          ),
         ),
       ),
     );

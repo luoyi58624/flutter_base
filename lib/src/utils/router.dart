@@ -289,6 +289,20 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   }
 
   @override
+  TickerFuture didPush() {
+    TabScaffoldController.of._showBottomNav.value = hideTabbar;
+    return super.didPush();
+  }
+
+  @override
+  bool didPop(result) {
+    if (allowAnimation) {
+      TabScaffoldController.of._showBottomNav.value = false;
+    }
+    return super.didPop(result);
+  }
+
+  @override
   void didChangePrevious(Route? previousRoute) {
     if (previousRoute is _CupertinoRouteTransitionMixin) {
       if (previousRoute.hideTabbar) {
@@ -299,26 +313,36 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.didChangePrevious(previousRoute);
   }
 
+  bool get allowAnimation {
+    if (hideTabbar && _previousHideTabbar == false) {
+      if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
     // 设置显示、隐藏底部导航栏动画，当传递了 rootNavigator: true 属性时，同时检查 _rootHideTabbarRouteName 属性
     // 防止多级子组件又设置 rootNavigator 而造成再次触发动画。
-    if (hideTabbar && _previousHideTabbar == false) {
-      if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
-        final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
-        var heightAnimation = popGestureInProgress
-            ? CurvedAnimation(
-                parent: animation,
-                curve: Curves.fastEaseInToSlowEaseOut.flipped,
-              ).drive(tween)
-            : CurvedAnimation(
-                parent: animation,
-                curve: Curves.fastEaseInToSlowEaseOut,
-                reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
-              ).drive(tween);
-        TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
-      }
+    if (allowAnimation) {
+      final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
+      var heightAnimation = popGestureInProgress
+          ? CurvedAnimation(
+              parent: animation,
+              curve: Curves.fastEaseInToSlowEaseOut.flipped,
+            ).drive(tween)
+          : CurvedAnimation(
+              parent: animation,
+              curve: Curves.fastEaseInToSlowEaseOut,
+              reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
+            ).drive(tween);
+      TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
     // const begin = Offset(1.0, 0.0);

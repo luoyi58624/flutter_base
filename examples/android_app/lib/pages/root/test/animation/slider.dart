@@ -17,11 +17,6 @@ class _SliderAnimationTestPageState extends State<SliderAnimationTestPage> with 
     super.initState();
     controller = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
     animation = Tween(begin: Offset.zero, end: const Offset(3, 0)).animate(controller);
-    // CurvedAnimation(
-    //   parent: animation,
-    //   curve: Curves.fastEaseInToSlowEaseOut,
-    //   reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
-    // );
   }
 
   @override
