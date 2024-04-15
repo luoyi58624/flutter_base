@@ -12,7 +12,7 @@ final router = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => FlutterTabScaffold(
         navigationShell: navigationShell,
-        tabType: TabType.cupertino,
+        bottomNavType: BottomNavType.cupertino,
         pages: [
           RouterModel('首页', '/', const HomePage(), icon: Icons.home),
           RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined),

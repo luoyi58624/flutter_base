@@ -1,4 +1,3 @@
-import 'package:android_app/pages/common/chat/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -10,6 +9,7 @@ class ChatRootPage extends StatefulWidget {
 }
 
 class _ChatRootPageState extends State<ChatRootPage> {
+  final ScrollController scrollController = ScrollController();
   int count = 0;
 
   @override
@@ -30,7 +30,9 @@ class _ChatRootPageState extends State<ChatRootPage> {
         ],
       ),
       body: Scrollbar(
+        controller: scrollController,
         child: SuperListView.separated(
+          controller: scrollController,
           itemCount: 50,
           itemBuilder: (context, index) => _ChatItem(index),
           separatorBuilder: buildSeparatorWidget(context, indent: 80),
@@ -54,8 +56,8 @@ class _ChatItemState extends State<_ChatItem> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // context.go('/chat/${widget.index}');
-        RouterUtil.push(context, ChatPage(id: widget.index.toString()), rootNavigator: true);
+        context.go('/chat/${widget.index}');
+        // RouterUtil.push(context, ChatPage(id: widget.index.toString()), rootNavigator: true);
       },
       child: Container(
         height: 72,

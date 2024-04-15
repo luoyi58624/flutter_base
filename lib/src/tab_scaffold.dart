@@ -1,16 +1,30 @@
 part of flutter_base;
 
-enum TabType { material2, material3, cupertino }
+/// 底部导航栏类型
+enum BottomNavType { material2, material3, cupertino }
 
-class _TabController extends GetxController {
-  _TabController({required this.tabType});
+/// 选项卡式导航栏脚手架控制器
+class TabScaffoldController extends GetxController {
+  TabScaffoldController({required BottomNavType bottomNavType, double? bottomNavHeight}) {
+    this.bottomNavType = bottomNavType.obs;
+    _bottomNavHeight = bottomNavHeight;
+  }
 
-  static _TabController of = Get.find();
+  /// 通过静态变量直接获取控制器实例
+  static TabScaffoldController get of => Get.find();
 
-  final TabType tabType;
+  /// 应用的底部导航栏类型
+  late Rx<BottomNavType> bottomNavType;
+  double? _bottomNavHeight;
 
   /// 当前页面是否显示底部导航栏
   final _showTabbar = true.obs;
+
+  /// 由于路由切换存在过渡动画，所以需要声明一个延迟定时器更新tabbar显示状态
+  static Timer? _showTabbarTimer;
+
+  /// 路由过渡中tabbar的高度
+  final tabbarAnimationHeight = 0.0.obs;
 
   bool get showTabbar => _showTabbar.value;
 
@@ -19,10 +33,18 @@ class _TabController extends GetxController {
     _showTabbar.value = value;
   }
 
-  /// 路由过渡中tabbar的高度
-  final tabbarAnimationHeight = 0.0.obs;
-
-  static Timer? _showTabbarTimer;
+  /// 底部导航栏高度
+  double get bottomNavHeight {
+    if (_bottomNavHeight != null) return _bottomNavHeight!;
+    switch (bottomNavType.value) {
+      case BottomNavType.material2:
+        return 56;
+      case BottomNavType.material3:
+        return 80;
+      case BottomNavType.cupertino:
+        return 50;
+    }
+  }
 }
 
 /// 选项卡式导航栏脚手架
@@ -31,7 +53,8 @@ class FlutterTabScaffold extends StatefulWidget {
     super.key,
     required this.navigationShell,
     required this.pages,
-    this.tabType = TabType.material2,
+    this.bottomNavType = BottomNavType.material2,
+    this.bottomNavHeight,
   });
 
   /// [GoRouter]有状态导航对象: [StatefulShellRoute.indexedStack]
@@ -40,44 +63,46 @@ class FlutterTabScaffold extends StatefulWidget {
   /// 导航页面模型，渲染底部导航 tabbar
   final List<NavModel> pages;
 
-  /// 底部导航类型，默认[TabType.material2]
-  final TabType tabType;
+  /// 底部导航类型，默认[BottomNavType.material2]
+  final BottomNavType bottomNavType;
+
+  /// 底部导航栏高度
+  final double? bottomNavHeight;
 
   @override
   State<FlutterTabScaffold> createState() => _FlutterTabScaffoldState();
 }
 
 class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
-  late _TabController controller;
+  late TabScaffoldController controller;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(_TabController(tabType: widget.tabType));
+    controller = Get.put(TabScaffoldController(
+      bottomNavType: widget.bottomNavType,
+      bottomNavHeight: widget.bottomNavHeight,
+    ));
   }
 
   @override
   void dispose() {
     super.dispose();
-    Get.delete<_TabController>();
+    Get.delete<TabScaffoldController>();
   }
 
   @override
   Widget build(BuildContext context) {
     late Widget tabbarWidget;
-    late double tabbarHeight;
-    switch (widget.tabType) {
-      case TabType.material2:
+    switch (widget.bottomNavType) {
+      case BottomNavType.material2:
         tabbarWidget = buildMaterial2(context);
-        tabbarHeight = 56;
         break;
-      case TabType.material3:
+      case BottomNavType.material3:
         tabbarWidget = buildMaterial3(context);
-        tabbarHeight = 80;
         break;
-      case TabType.cupertino:
+      case BottomNavType.cupertino:
         tabbarWidget = buildCupertino(context);
-        tabbarHeight = 50;
         break;
     }
     return Scaffold(
@@ -86,7 +111,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
         () => controller.showTabbar
             ? AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                height: tabbarHeight,
+                height: controller.bottomNavHeight,
                 child: Wrap(
                   children: [tabbarWidget],
                 ),
@@ -132,6 +157,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       onDestinationSelected: (int index) {
         widget.navigationShell.goBranch(index);
       },
+      height: controller.bottomNavHeight,
       selectedIndex: widget.navigationShell.currentIndex,
       destinations: widget.pages
           .map((e) => NavigationDestination(
@@ -147,7 +173,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       onTap: (int index) {
         widget.navigationShell.goBranch(index);
       },
+      height: controller.bottomNavHeight,
       currentIndex: widget.navigationShell.currentIndex,
+      border: null,
       items: widget.pages
           .map((e) => BottomNavigationBarItem(
                 icon: Icon(e.icon),
