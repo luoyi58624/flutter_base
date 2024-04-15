@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -10,21 +11,21 @@ class ComponentPage extends StatelessWidget {
       navigationBar: const CupertinoNavigationBar(
         middle: Text('组件'),
       ),
-      child:  SafeArea(
+      child: SafeArea(
         child: Center(
           child: Column(
             children: [
               ElevatedButton(
                 onPressed: () {
-                  context.go('/component2');
+                  context.go(Uri(path: '/component/child', queryParameters: {'title': '组件 - 子页面'}).toString());
                 },
-                child: const Text('Component2'),
+                child: const Text('子页面-声明式'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.go(Uri(path: '/component/child', queryParameters: {'title': '组件 - 子页面'}).toString());
+                  RouterUtil.push(context, const ComponentChildPage(), rootNavigator: true);
                 },
-                child: const Text('子页面'),
+                child: const Text('子页面-命令式'),
               ),
             ],
           ),
@@ -34,25 +35,29 @@ class ComponentPage extends StatelessWidget {
   }
 }
 
-class ComponentPage2 extends StatelessWidget {
-  const ComponentPage2({super.key});
+class ComponentChildPage extends StatelessWidget {
+  const ComponentChildPage({super.key, this.title});
+
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('组件2'),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(title ?? '子页面'),
       ),
-      body: Center(
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                context.go(Uri(path: '/component/child', queryParameters: {'title': '组件 - 子页面'}).toString());
-              },
-              child: const Text('子页面'),
-            )
-          ],
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            children: [
+              CupertinoButton.filled(
+                onPressed: () {
+                  context.pop();
+                },
+                child: const Text('返回'),
+              ),
+            ],
+          ),
         ),
       ),
     );

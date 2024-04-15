@@ -1,4 +1,5 @@
 import 'package:android_app/global.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class CustomPageRouterPage extends StatefulWidget {
@@ -13,34 +14,38 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('自定义路由动画'),
+    // logger.i('build');
+    return ExtendedCupertinoPageScaffold(
+      navigationBar: const ExtendedCupertinoNavigationBar(
+        middle: Text('自定义路由动画'),
+        previousPageTitle: '测试页面',
       ),
-      body: Center(
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  count++;
-                });
-              },
-              child: Text('count: $count'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                RouterUtil.push(context, const _ChildPage(), rootNavigator: true);
-              },
-              child: const Text('子页面'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                RouterUtil.pop(context);
-              },
-              child: const Text('返回'),
-            ),
-          ],
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    count++;
+                  });
+                },
+                child: Text('count: $count'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  RouterUtil.push(context, const _ChildPage(), rootNavigator: true);
+                },
+                child: const Text('子页面'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  RouterUtil.pop(context);
+                },
+                child: const Text('返回'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -57,11 +62,22 @@ class _ChildPage extends StatefulWidget {
 class _ChildPageState extends State<_ChildPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('子页面'),
+    return ExtendedCupertinoPageScaffold(
+      navigationBar: ExtendedCupertinoNavigationBar(
+        middle: const Text('子页面'),
       ),
-      body: Container(),
+      child: Column(
+        children: [
+          Expanded(
+              child: Container(
+            color: Colors.green,
+          )),
+          Container(
+            height: 50,
+            color: Colors.grey,
+          ),
+        ],
+      ),
     );
   }
 }

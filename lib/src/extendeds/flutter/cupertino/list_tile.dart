@@ -26,15 +26,15 @@ const double _kNotchedTitleWithSubtitleFontSize = 16.0;
 const double _kSubtitleFontSize = 12.0;
 const double _kNotchedSubtitleFontSize = 14.0;
 
-enum _CupertinoListTileType { base, notched }
+enum _ExtendedCupertinoListTileType { base, notched }
 
 /// An iOS-style list tile.
 ///
-/// The [CupertinoListTile] is a Cupertino equivalent of Material [ListTile].
+/// The [ExtendedCupertinoListTile] is a Cupertino equivalent of Material [ListTile].
 /// It comes in two forms, an old-fashioned edge-to-edge variant known from iOS
 /// Settings app and in a new, "Inset Grouped" form, known from either iOS Notes
 /// or Reminders app. The first is constructed using default constructor, and
-/// the latter using named constructor [CupertinoListTile.notched].
+/// the latter using named constructor [ExtendedCupertinoListTile.notched].
 ///
 /// The [title], [subtitle], and [additionalInfo] are usually [Text] widgets.
 /// They are all limited to one line so it is a responsibility of the caller to
@@ -62,9 +62,9 @@ enum _CupertinoListTileType { base, notched }
 /// See also:
 ///
 ///  * [CupertinoListSection], an iOS-style list that is a typical container for
-///    [CupertinoListTile].
+///    [ExtendedCupertinoListTile].
 ///  * [ListTile], a Material Design list tile.
-class CupertinoListTile extends StatefulWidget {
+class ExtendedCupertinoListTile extends StatefulWidget {
   /// Creates an edge-to-edge iOS-style list tile like the tiles in iOS Settings
   /// app.
   ///
@@ -82,7 +82,7 @@ class CupertinoListTile extends StatefulWidget {
   /// enclosing [CupertinoListSection] should be set to `false` to ensure
   /// correct margin of divider between tiles.
   ///
-  /// The [trailing] parameter is typically a [CupertinoListTileChevron], an
+  /// The [trailing] parameter is typically a [ExtendedCupertinoListTileChevron], an
   /// [Icon], or a [CupertinoButton]. It is placed at the very end of the tile.
   ///
   /// The [onTap] parameter is used to provide an action that is called when the
@@ -101,17 +101,17 @@ class CupertinoListTile extends StatefulWidget {
   ///
   /// The [padding] parameter sets the padding of the content inside the tile.
   /// It defaults to a value that matches the iOS look, depending on a type of
-  /// [CupertinoListTile]. For native look, it should not be provided.
+  /// [ExtendedCupertinoListTile]. For native look, it should not be provided.
   ///
   /// The [leadingSize] constrains the width and height of the leading widget.
   /// By default, it is set to a value that matches the iOS look, depending on a
-  /// type of [CupertinoListTile]. For native look, it should not be provided.
+  /// type of [ExtendedCupertinoListTile]. For native look, it should not be provided.
   ///
   /// The [leadingToTitle] specifies the horizontal space between [leading] and
   /// [title] widgets. By default, it is set to a value that matched the iOS
-  /// look, depending on a type of [CupertinoListTile]. For native look, it
+  /// look, depending on a type of [ExtendedCupertinoListTile]. For native look, it
   /// should not be provided.
-  const CupertinoListTile({
+  const ExtendedCupertinoListTile({
     super.key,
     required this.title,
     this.subtitle,
@@ -124,7 +124,7 @@ class CupertinoListTile extends StatefulWidget {
     this.padding,
     this.leadingSize = _kLeadingSize,
     this.leadingToTitle = _kLeadingToTitle,
-  }) : _type = _CupertinoListTileType.base;
+  }) : _type = _ExtendedCupertinoListTileType.base;
 
   /// Creates a notched iOS-style list tile like the tiles in iOS Notes app or
   /// Reminders app.
@@ -144,7 +144,7 @@ class CupertinoListTile extends StatefulWidget {
   /// correct margin of divider between tiles. For Notes-like tile appearance,
   /// the [leading] can be left `null`.
   ///
-  /// The [trailing] parameter is typically a [CupertinoListTileChevron], an
+  /// The [trailing] parameter is typically a [ExtendedCupertinoListTileChevron], an
   /// [Icon], or a [CupertinoButton]. It is placed at the very end of the tile.
   /// For Notes-like tile appearance, the [trailing] can be left `null`.
   ///
@@ -164,17 +164,17 @@ class CupertinoListTile extends StatefulWidget {
   ///
   /// The [padding] parameter sets the padding of the content inside the tile.
   /// It defaults to a value that matches the iOS look, depending on a type of
-  /// [CupertinoListTile]. For native look, it should not be provided.
+  /// [ExtendedCupertinoListTile]. For native look, it should not be provided.
   ///
   /// The [leadingSize] constrains the width and height of the leading widget.
   /// By default, it is set to a value that matches the iOS look, depending on a
-  /// type of [CupertinoListTile]. For native look, it should not be provided.
+  /// type of [ExtendedCupertinoListTile]. For native look, it should not be provided.
   ///
   /// The [leadingToTitle] specifies the horizontal space between [leading] and
   /// [title] widgets. By default, it is set to a value that matched the iOS
-  /// look, depending on a type of [CupertinoListTile]. For native look, it
+  /// look, depending on a type of [ExtendedCupertinoListTile]. For native look, it
   /// should not be provided.
-  const CupertinoListTile.notched({
+  const ExtendedCupertinoListTile.notched({
     super.key,
     required this.title,
     this.subtitle,
@@ -187,9 +187,9 @@ class CupertinoListTile extends StatefulWidget {
     this.padding,
     this.leadingSize = _kNotchedLeadingSize,
     this.leadingToTitle = _kNotchedLeadingToTitle,
-  }) : _type = _CupertinoListTileType.notched;
+  }) : _type = _ExtendedCupertinoListTileType.notched;
 
-  final _CupertinoListTileType _type;
+  final _ExtendedCupertinoListTileType _type;
 
   /// A [title] is used to convey the central information. Usually a [Text].
   final Widget title;
@@ -203,17 +203,17 @@ class CupertinoListTile extends StatefulWidget {
   /// displayed on the right, before [trailing]. Usually a [Text] widget.
   final Widget? additionalInfo;
 
-  /// A widget displayed at the start of the [CupertinoListTile]. This is
+  /// A widget displayed at the start of the [ExtendedCupertinoListTile]. This is
   /// typically an `Icon` or an `Image`.
   final Widget? leading;
 
-  /// A widget displayed at the end of the [CupertinoListTile]. This is usually
-  /// a right chevron icon (e.g. `CupertinoListTileChevron`), or an `Icon`.
+  /// A widget displayed at the end of the [ExtendedCupertinoListTile]. This is usually
+  /// a right chevron icon (e.g. `ExtendedCupertinoListTileChevron`), or an `Icon`.
   final Widget? trailing;
 
-  /// The [onTap] function is called when a user taps on [CupertinoListTile]. If
-  /// left `null`, the [CupertinoListTile] will not react on taps. If this is a
-  /// `Future<void> Function()`, then the [CupertinoListTile] remains activated
+  /// The [onTap] function is called when a user taps on [ExtendedCupertinoListTile]. If
+  /// left `null`, the [ExtendedCupertinoListTile] will not react on taps. If this is a
+  /// `Future<void> Function()`, then the [ExtendedCupertinoListTile] remains activated
   /// until the returned future is awaited. This is according to iOS behavior.
   /// However, if this function is a `void Function()`, then the tile is active
   /// only for the duration of invocation.
@@ -228,7 +228,7 @@ class CupertinoListTile extends StatefulWidget {
   /// the tile was tapped. It is set to match the iOS look by default.
   final Color? backgroundColorActivated;
 
-  /// Padding of the content inside [CupertinoListTile].
+  /// Padding of the content inside [ExtendedCupertinoListTile].
   final EdgeInsetsGeometry? padding;
 
   /// The [leadingSize] is used to constrain the width and height of [leading]
@@ -239,15 +239,15 @@ class CupertinoListTile extends StatefulWidget {
   final double leadingToTitle;
 
   @override
-  State<CupertinoListTile> createState() => _CupertinoListTileState();
+  State<ExtendedCupertinoListTile> createState() => _ExtendedCupertinoListTileState();
 }
 
-class _CupertinoListTileState extends State<CupertinoListTile> {
+class _ExtendedCupertinoListTileState extends State<ExtendedCupertinoListTile> {
   bool _tapped = false;
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle titleTextStyle = widget._type == _CupertinoListTileType.base || widget.subtitle == null
+    final TextStyle titleTextStyle = widget._type == _ExtendedCupertinoListTileType.base || widget.subtitle == null
         ? CupertinoTheme.of(context).textTheme.textStyle
         : CupertinoTheme.of(context).textTheme.textStyle.merge(
               TextStyle(
@@ -256,7 +256,7 @@ class _CupertinoListTileState extends State<CupertinoListTile> {
               ),
             );
 
-    final TextStyle subtitleTextStyle = widget._type == _CupertinoListTileType.base
+    final TextStyle subtitleTextStyle = widget._type == _ExtendedCupertinoListTileType.base
         ? CupertinoTheme.of(context).textTheme.textStyle.merge(
               TextStyle(
                 fontSize: _kSubtitleFontSize,
@@ -271,7 +271,10 @@ class _CupertinoListTileState extends State<CupertinoListTile> {
             );
 
     final TextStyle? additionalInfoTextStyle = widget.additionalInfo != null
-        ? CupertinoTheme.of(context).textTheme.textStyle.merge(TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)))
+        ? CupertinoTheme.of(context)
+            .textTheme
+            .textStyle
+            .merge(TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)))
         : null;
 
     final Widget title = DefaultTextStyle(
@@ -284,10 +287,10 @@ class _CupertinoListTileState extends State<CupertinoListTile> {
     EdgeInsetsGeometry? padding = widget.padding;
     if (padding == null) {
       switch (widget._type) {
-        case _CupertinoListTileType.base:
+        case _ExtendedCupertinoListTileType.base:
           padding = widget.subtitle == null ? _kPadding : _kPaddingWithSubtitle;
           break;
-        case _CupertinoListTileType.notched:
+        case _ExtendedCupertinoListTileType.notched:
           padding = widget.leading == null ? _kNotchedPaddingWithoutLeading : _kNotchedPadding;
           break;
       }
@@ -323,10 +326,10 @@ class _CupertinoListTileState extends State<CupertinoListTile> {
 
     double minHeight;
     switch (widget._type) {
-      case _CupertinoListTileType.base:
+      case _ExtendedCupertinoListTileType.base:
         minHeight = subtitle == null ? _kMinHeight : _kMinHeightWithSubtitle;
         break;
-      case _CupertinoListTileType.notched:
+      case _ExtendedCupertinoListTileType.notched:
         minHeight = widget.leading == null ? _kNotchedMinHeightWithoutLeading : _kNotchedMinHeight;
         break;
     }

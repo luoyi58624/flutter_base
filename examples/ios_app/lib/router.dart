@@ -12,7 +12,7 @@ final router = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => FlutterTabScaffold(
         navigationShell: navigationShell,
-        bottomNavType: BottomNavType.cupertino,
+        bottomNavType: BottomNavType.custom,
         pages: [
           RouterModel('首页', '/', const HomePage(), icon: Icons.home),
           RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined),
@@ -44,14 +44,15 @@ final router = GoRouter(
                   path: 'child',
                   pageBuilder: (context, state) {
                     logger.i(state.uri.queryParameters);
-                    return RouterUtil.pageBuilder(context, state, ChildPage(title: state.uri.queryParameters['title']));
+                    return RouterUtil.pageBuilder(
+                      context,
+                      state,
+                      ComponentChildPage(title: state.uri.queryParameters['title']),
+                      rootNavigator: true,
+                    );
                   },
                 ),
               ],
-            ),
-            GoRoute(
-              path: '/component2',
-              builder: (context, state) => const ComponentPage2(),
             ),
           ],
         ),

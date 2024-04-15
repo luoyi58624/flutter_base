@@ -11,12 +11,19 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('聊天室 - ${widget.id}'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.go('/chat/${widget.id}/info');
+            },
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
       ),
       body: buildListViewDemo(),
     );

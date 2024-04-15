@@ -98,7 +98,7 @@ class RouterUtil {
   }
 
   /// 构建[CupertinoPage]动画页面的[GoRoute]
-  /// * rootNavigator 如果为true，将隐藏底部tabbar
+  /// * rootNavigator 如果为true，进入到此页面以及此页面下的所有子级路由都将隐藏底部tabbar
   static Page<dynamic> pageBuilder<T>(
     BuildContext context,
     GoRouterState state,
@@ -205,7 +205,7 @@ class _PageBasedPageRoute<T> extends PageRoute<T> with CupertinoRouteTransitionM
   final bool rootNavigator;
 
   @override
-  bool get showTabbar => rootNavigator;
+  bool get hideTabbar => rootNavigator;
 
   CupertinoPage<T> get _page => settings as CupertinoPage<T>;
 
@@ -235,7 +235,7 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   final bool rootNavigator;
 
   @override
-  bool get showTabbar => rootNavigator;
+  bool get hideTabbar => rootNavigator;
 
   @override
   bool get maintainState => true;
@@ -271,53 +271,54 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
 // );
 // }
 
+/// 保存最上层隐藏底部tabbar的路由名字，如果不为null，则只匹配最顶层的路由名字，防止爷孙路由再次设置[rootNavigator]为true所触发的动画
+String? _rootHideTabbarRouteName;
+
 /// 定制Cupertino路由切换动画，如果进入新页面设置了隐藏底部导航栏，将在路由转换时应用显示、隐藏底部导航栏动画
 mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
-  bool get showTabbar => false;
+  /// 当前路由是否隐藏tabbar
+  bool get hideTabbar => false;
 
-  /// 当路由首次被安装时执行的生命周期函数
+  /// 上一个页面是否隐藏tabbar，如果为false，当用户返回上一页时将显示tabbar
+  bool _previousHideTabbar = false;
+
   @override
   void install() {
-    if (showTabbar) TabScaffoldController.of.showTabbar = false;
+    if (hideTabbar) TabScaffoldController.of.tabbarAnimationHeight.value = 0.0;
     super.install();
   }
 
-  /// 当进入新路由时执行的生命周期函数
   @override
-  TickerFuture didPush() {
-    if (showTabbar) TabScaffoldController.of.showTabbar = false;
-    return super.didPush();
-  }
-
-  /// 当退出路由时执行的生命周期函数
-  @override
-  bool didPop(result) {
-    if (showTabbar) {
-      TabScaffoldController._showTabbarTimer = AsyncUtil.delayed(() {
-        if (TabScaffoldController.of.showTabbar == false) {
-          TabScaffoldController.of._showTabbar.value = true;
-        }
-      }, 400);
+  void didChangePrevious(Route? previousRoute) {
+    if (previousRoute is _CupertinoRouteTransitionMixin) {
+      if (previousRoute.hideTabbar) {
+        _previousHideTabbar = true;
+        _rootHideTabbarRouteName = previousRoute.settings.name;
+      }
     }
-    return super.didPop(result);
+    super.didChangePrevious(previousRoute);
   }
 
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (TabScaffoldController.of.showTabbar == false) {
-      final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
-      var heightAnimation = popGestureInProgress
-          ? CurvedAnimation(
-              parent: animation,
-              curve: Curves.fastEaseInToSlowEaseOut.flipped,
-            ).drive(tween)
-          : CurvedAnimation(
-              parent: animation,
-              curve: Curves.fastEaseInToSlowEaseOut,
-              reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
-            ).drive(tween);
-      TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+    // 设置显示、隐藏底部导航栏动画，当传递了 rootNavigator: true 属性时，同时检查 _rootHideTabbarRouteName 属性
+    // 防止多级子组件又设置 rootNavigator 而造成再次触发动画。
+    if (hideTabbar && _previousHideTabbar == false) {
+      if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
+        final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
+        var heightAnimation = popGestureInProgress
+            ? CurvedAnimation(
+                parent: animation,
+                curve: Curves.fastEaseInToSlowEaseOut.flipped,
+              ).drive(tween)
+            : CurvedAnimation(
+                parent: animation,
+                curve: Curves.fastEaseInToSlowEaseOut,
+                reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
+              ).drive(tween);
+        TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+      }
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
     // const begin = Offset(1.0, 0.0);

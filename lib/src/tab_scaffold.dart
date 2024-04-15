@@ -1,13 +1,19 @@
 part of flutter_base;
 
 /// 底部导航栏类型
-enum BottomNavType { material2, material3, cupertino }
+enum BottomNavType {
+  material2,
+  material3,
+  cupertino,
+  custom,
+}
 
 /// 选项卡式导航栏脚手架控制器
 class TabScaffoldController extends GetxController {
   TabScaffoldController({required BottomNavType bottomNavType, double? bottomNavHeight}) {
     this.bottomNavType = bottomNavType.obs;
     _bottomNavHeight = bottomNavHeight;
+    tabbarAnimationHeight = _getBottomNavHeight().obs;
   }
 
   /// 通过静态变量直接获取控制器实例
@@ -17,24 +23,15 @@ class TabScaffoldController extends GetxController {
   late Rx<BottomNavType> bottomNavType;
   double? _bottomNavHeight;
 
-  /// 当前页面是否显示底部导航栏
-  final _showTabbar = true.obs;
-
-  /// 由于路由切换存在过渡动画，所以需要声明一个延迟定时器更新tabbar显示状态
-  static Timer? _showTabbarTimer;
-
   /// 路由过渡中tabbar的高度
-  final tabbarAnimationHeight = 0.0.obs;
+  late Rx<double> tabbarAnimationHeight;
 
-  bool get showTabbar => _showTabbar.value;
-
-  set showTabbar(bool value) {
-    if (_showTabbarTimer != null) _showTabbarTimer!.cancel();
-    _showTabbar.value = value;
-  }
+  bool get tabbarIsHide => tabbarAnimationHeight.value == 0.0;
 
   /// 底部导航栏高度
-  double get bottomNavHeight {
+  double get bottomNavHeight => _getBottomNavHeight();
+
+  double _getBottomNavHeight() {
     if (_bottomNavHeight != null) return _bottomNavHeight!;
     switch (bottomNavType.value) {
       case BottomNavType.material2:
@@ -42,6 +39,8 @@ class TabScaffoldController extends GetxController {
       case BottomNavType.material3:
         return 80;
       case BottomNavType.cupertino:
+        return 50;
+      case BottomNavType.custom:
         return 50;
     }
   }
@@ -104,24 +103,64 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
       case BottomNavType.cupertino:
         tabbarWidget = buildCupertino(context);
         break;
+      case BottomNavType.custom:
+        tabbarWidget = buildCustom(context);
+        break;
     }
+    return buildCustomScaffold(tabbarWidget);
+  }
+
+  Widget buildCustomScaffold(Widget tabbarWidget) {
+    return Stack(
+      children: [
+        // Obx(
+        //   () => Padding(
+        //     padding: EdgeInsets.only(bottom: controller.tabbarAnimationHeight.value),
+        //     child: widget.navigationShell,
+        //   ),
+        // ),
+        widget.navigationShell,
+        Obx(
+          () => Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: controller.tabbarAnimationHeight.value,
+            child: Wrap(
+              children: [tabbarWidget],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildCustomScaffold2(Widget tabbarWidget) {
+    return Column(
+      children: [
+        Expanded(child: widget.navigationShell),
+        Obx(
+          () => SizedBox(
+            height: controller.tabbarAnimationHeight.value,
+            child: Wrap(
+              children: [tabbarWidget],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildScaffold(Widget tabbarWidget) {
     return Scaffold(
       body: widget.navigationShell,
       bottomNavigationBar: Obx(
-        () => controller.showTabbar
-            ? AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: controller.bottomNavHeight,
-                child: Wrap(
-                  children: [tabbarWidget],
-                ),
-              )
-            : SizedBox(
-                height: controller.tabbarAnimationHeight.value,
-                child: Wrap(
-                  children: [tabbarWidget],
-                ),
-              ),
+        () => SizedBox(
+          height: controller.tabbarAnimationHeight.value,
+          child: Wrap(
+            children: [tabbarWidget],
+          ),
+        ),
       ),
     );
   }
@@ -182,6 +221,33 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
                 label: e.title,
               ))
           .toList(),
+    );
+  }
+
+  Widget buildCustom(BuildContext context) {
+    return Container(
+      height: controller.bottomNavHeight,
+      color: Colors.grey.shade200,
+      child: Row(
+        children: widget.pages
+            .mapIndexed(
+              (i, e) => Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    widget.navigationShell.goBranch(i);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(e.icon),
+                      Text(e.title),
+                    ],
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }

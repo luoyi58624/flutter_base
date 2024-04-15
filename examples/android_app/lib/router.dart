@@ -48,7 +48,6 @@ GoRouter initRouter() {
             NavModel('聊天', icon: Icons.chat_bubble),
             NavModel('我的', icon: Icons.person_pin),
           ],
-          bottomNavType: BottomNavType.cupertino,
         ),
         branches: [
           StatefulShellBranch(routes: [
@@ -79,13 +78,20 @@ GoRouter initRouter() {
                 GoRoute(
                   path: ':id',
                   pageBuilder: (context, state) => RouterUtil.pageBuilder(
-                    context,
-                    state,
-                    ChatPage(id: state.pathParameters['id']!),
-                    rootNavigator: true,
-                  ),
+                      context, state, ChatPage(id: state.pathParameters['id']!),
+                      rootNavigator: true),
                   routes: [
-                    GoRoute(path: 'info', builder: (context, state) => const ChatInfoPage()),
+                    GoRoute(
+                        path: 'info',
+                        pageBuilder: (context, state) =>
+                            RouterUtil.pageBuilder(context, state, ChatInfoPage(id: state.pathParameters['id']!)),
+                        routes: [
+                          GoRoute(
+                            path: 'user',
+                            pageBuilder: (context, state) =>
+                                RouterUtil.pageBuilder(context, state, const ChatUserInfoPage(), rootNavigator: true),
+                          )
+                        ]),
                   ],
                 ),
               ],
