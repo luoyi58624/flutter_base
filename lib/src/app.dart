@@ -111,45 +111,45 @@ class FlutterApp extends StatelessWidget {
     } else {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
     }
-    return FlutterAppData(
-      themeMode: themeMode,
-      theme: $theme,
-      darkTheme: $darkTheme,
-      currentTheme: $currentTheme,
-      config: $config,
-      child: MaterialApp.router(
-        routerConfig: router,
-        theme: AppThemeUtil.buildMaterialhemeData($theme, $config),
-        darkTheme: AppThemeUtil.buildMaterialhemeData($darkTheme, $config),
-        themeMode: themeMode,
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: $localizationsDelegates,
-        supportedLocales: $supportedLocales,
-        locale: locale,
-        showPerformanceOverlay: showPerformanceOverlay,
-        builder: (context, child) {
-          return MediaQuery(
-            // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
-            data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
-            // 解决使用cupertino组件时文字渲染异常
-            child: Material(
-              // 注入默认的cupertino主题
-              child: CupertinoTheme(
-                data: AppThemeUtil.buildCupertinoThemeData($currentTheme, $config),
-                child: Overlay(
-                  initialEntries: [
-                    OverlayEntry(builder: (context) {
-                      toast.init(context);
-                      return builder == null ? child! : builder!(context, child);
-                    })
-                  ],
+    return Obx(() => FlutterAppData(
+          themeMode: themeMode,
+          theme: $theme,
+          darkTheme: $darkTheme,
+          currentTheme: $currentTheme,
+          config: $config,
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: AppThemeUtil.buildMaterialhemeData($theme, $config),
+            darkTheme: AppThemeUtil.buildMaterialhemeData($darkTheme, $config),
+            themeMode: themeMode,
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: $localizationsDelegates,
+            supportedLocales: $supportedLocales,
+            locale: locale,
+            showPerformanceOverlay: showPerformanceOverlay,
+            builder: (context, child) {
+              return MediaQuery(
+                // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
+                data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
+                // 解决使用cupertino组件时文字渲染异常
+                child: Material(
+                  // 注入默认的cupertino主题
+                  child: CupertinoTheme(
+                    data: AppThemeUtil.buildCupertinoThemeData($currentTheme, $config),
+                    child: Overlay(
+                      initialEntries: [
+                        OverlayEntry(builder: (context) {
+                          toast.init(context);
+                          return builder == null ? child! : builder!(context, child);
+                        })
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        ));
   }
 }
 
@@ -207,7 +207,7 @@ class AppThemeUtil {
     );
     var $theme = ThemeData(useMaterial3: true, colorScheme: colorScheme);
     return ThemeData(
-      useMaterial3: config.useMaterial3,
+      useMaterial3: FlutterController.of.useMaterial3.value,
       // 解决web上material按钮外边距为0问题，与移动端的效果保持一致
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.standard,

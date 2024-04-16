@@ -1,4 +1,3 @@
-import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
 import 'package:flutter/material.dart';
 
@@ -15,13 +14,6 @@ class _App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => FlutterApp(
-        router: initRouter(),
-        config: FlutterConfigData(
-          useMaterial3: GlobalController.of.useMaterial3.value,
-        ),
-      ),
-    );
+    return FlutterApp(router: initRouter());
   }
 }

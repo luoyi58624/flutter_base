@@ -28,7 +28,7 @@ class RouterUtil {
   /// 跳转到新页面
   /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
   /// * page 新页面组件
-  /// * rootNavigator 如果为true，将隐藏底部tabbar
+  /// * rootNavigator 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
   static Future<T?> push<T>(
     BuildContext context,
     Widget page, {
@@ -247,30 +247,6 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   Widget buildContent(BuildContext context) => builder(context);
 }
 
-// static Page<dynamic> Function(BuildContext, GoRouterState) pageBuilder<T>(Widget page) =>
-//     (BuildContext context, GoRouterState state) => _pageBuilderForCupertinoApp(
-//           key: state.pageKey,
-//           name: state.name ?? state.path,
-//           arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
-//           restorationId: state.pageKey.value,
-//           child: page,
-//         );
-
-// static CustomTransitionPage _pageBuilder<T>(
-// BuildContext context,
-// GoRouterState state,
-// Widget page,
-// ) {
-// return CustomTransitionPage<T>(
-// child: page,
-// // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-// //     FadeTransition(opacity: animation, child: child),
-// transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
-// builder: (context) => page,
-// ).buildTransitions(context, animation, secondaryAnimation, page),
-// );
-// }
-
 /// 保存最上层隐藏底部tabbar的路由名字，如果不为null，则只匹配最顶层的路由名字，防止爷孙路由再次设置[rootNavigator]为true所触发的动画
 String? _rootHideTabbarRouteName;
 
@@ -290,14 +266,18 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   TickerFuture didPush() {
-    TabScaffoldController.of._showBottomNav.value = hideTabbar;
+    if (_didHideBottomNav) TabScaffoldController.of._showBottomNav.value = false;
     return super.didPush();
   }
 
+  /// 在路由完全销毁时判断是否取消隐藏底部tabbar，在此处执行可以等待路由动画完全结束
   @override
-  bool didPop(result) {
-    if (_allowAnimation) TabScaffoldController.of._showBottomNav.value = false;
-    return super.didPop(result);
+  void dispose() {
+    super.dispose();
+    if (_didHideBottomNav) {
+      _rootHideTabbarRouteName = null;
+      TabScaffoldController.of._showBottomNav.value = true;
+    }
   }
 
   @override
@@ -311,9 +291,10 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.didChangePrevious(previousRoute);
   }
 
-  /// 是否允许加载显示、隐藏底部导航栏动画：当传递了 rootNavigator: true 属性时，同时检查 _rootHideTabbarRouteName 属性防止多级子组件又设置 rootNavigator 而造成再次触发动画。
-  bool get _allowAnimation {
+  /// 当传递了 rootNavigator: true 时，进入该路由页面将会隐藏底部导航栏
+  bool get _didHideBottomNav {
     if (hideTabbar && _previousHideTabbar == false) {
+      // 如果父级已经设置过rootNavigator属性，那么子级再设置将不生效，仅匹配父级设置了路由名字
       if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
         return true;
       } else {
@@ -327,7 +308,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_allowAnimation) {
+    if (_didHideBottomNav) {
       final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
       var heightAnimation = popGestureInProgress
           ? CurvedAnimation(
@@ -352,3 +333,27 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     // );
   }
 }
+
+// static Page<dynamic> Function(BuildContext, GoRouterState) pageBuilder<T>(Widget page) =>
+//     (BuildContext context, GoRouterState state) => _pageBuilderForCupertinoApp(
+//           key: state.pageKey,
+//           name: state.name ?? state.path,
+//           arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
+//           restorationId: state.pageKey.value,
+//           child: page,
+//         );
+
+// static CustomTransitionPage _pageBuilder<T>(
+// BuildContext context,
+// GoRouterState state,
+// Widget page,
+// ) {
+// return CustomTransitionPage<T>(
+// child: page,
+// // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+// //     FadeTransition(opacity: animation, child: child),
+// transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
+// builder: (context) => page,
+// ).buildTransitions(context, animation, secondaryAnimation, page),
+// );
+// }

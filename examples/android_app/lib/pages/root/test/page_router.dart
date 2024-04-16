@@ -14,8 +14,8 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
 
   @override
   Widget build(BuildContext context) {
-    // logger.i('build');
     return CupertinoPageScaffold(
+      backgroundColor: Colors.grey,
       navigationBar: const CupertinoNavigationBar(
         middle: Text('自定义路由动画'),
         previousPageTitle: '测试页面',

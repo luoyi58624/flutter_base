@@ -1,4 +1,3 @@
-import 'package:android_app/controllers/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -19,9 +18,9 @@ class ComponentPage extends StatelessWidget {
         actions: [
           Obx(
             () => Switch(
-              value: GlobalController.of.useMaterial3.value,
+              value: FlutterController.of.useMaterial3.value,
               onChanged: (v) {
-                GlobalController.of.useMaterial3.value = v;
+                FlutterController.of.useMaterial3.value = v;
               },
             ),
           ),

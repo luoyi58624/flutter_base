@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/scheduler.dart' as scheduler;
 
 import 'package:archive/archive.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -79,6 +80,10 @@ part 'src/theme.dart';
 part 'src/config.dart';
 
 part 'src/commons/model.dart';
+
+part 'src/controllers/flutter.dart';
+
+part 'src/controllers/tab_scaffold.dart';
 
 part 'src/mixins/theme.dart';
 
@@ -178,4 +183,5 @@ Future<void> initFlutterApp() async {
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
+  Get.put(FlutterController());
 }

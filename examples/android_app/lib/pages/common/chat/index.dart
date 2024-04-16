@@ -25,7 +25,19 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       ),
-      body: buildListViewDemo(),
+      body: Column(
+        children: [
+          Expanded(
+            child: buildListViewDemo(),
+          ),
+          Container(
+            height: 50,
+            decoration: const BoxDecoration(
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
