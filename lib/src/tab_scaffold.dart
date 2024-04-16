@@ -14,7 +14,7 @@ class FlutterTabScaffold extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   /// 导航页面模型，渲染底部导航 tabbar
-  final List<NavModel> pages;
+  final List<UrlNavModel> pages;
 
   /// 底部导航类型，默认[BottomNavType.material2]
   final BottomNavType bottomNavType;
@@ -33,6 +33,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
   void initState() {
     super.initState();
     controller = Get.put(TabScaffoldController(
+      pages: widget.pages,
       bottomNavType: widget.bottomNavType,
       bottomNavHeight: widget.bottomNavHeight,
     ));
@@ -78,7 +79,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
             bottom: 0,
             left: 0,
             right: 0,
-            height: controller.tabbarAnimationHeight.value,
+            height: controller._tabbarAnimationHeight.value,
             child: Wrap(
               children: [tabbarWidget],
             ),
@@ -89,29 +90,32 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
   }
 
   Widget buildMaterial2(BuildContext context) {
-    return BottomNavigationBar(
-      onTap: (int index) {
-        widget.navigationShell.goBranch(index);
-      },
-      currentIndex: widget.navigationShell.currentIndex,
-      unselectedFontSize: 12,
-      selectedFontSize: 12,
-      iconSize: 26,
-      unselectedLabelStyle: TextStyle(
-        fontWeight: FlutterAppData.of(context).config.defaultFontWeight,
-      ),
-      selectedItemColor: FlutterAppData.of(context).theme.primary,
-      selectedLabelStyle: const TextStyle(
-        fontWeight: FontWeight.bold,
-      ),
-      type: BottomNavigationBarType.fixed,
-      items: widget.pages
-          .map((e) => BottomNavigationBarItem(
-                icon: Icon(e.icon),
-                label: e.title,
-              ))
-          .toList(),
-    );
+    return Obx(() => BottomNavigationBar(
+          onTap: (int index) {
+            widget.navigationShell.goBranch(index);
+          },
+          currentIndex: widget.navigationShell.currentIndex,
+          unselectedFontSize: 12,
+          selectedFontSize: 12,
+          iconSize: 26,
+          unselectedLabelStyle: TextStyle(
+            fontWeight: FlutterAppData.of(context).config.defaultFontWeight,
+          ),
+          selectedItemColor: FlutterAppData.of(context).theme.primary,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+          type: BottomNavigationBarType.fixed,
+          items: controller.pages
+              .map((e) => BottomNavigationBarItem(
+                    icon: BadgeWidget(
+                      bagde: controller.tabBadge.value[e.path],
+                      child: Icon(e.icon),
+                    ),
+                    label: e.title,
+                  ))
+              .toList(),
+        ));
   }
 
   Widget buildMaterial3(BuildContext context) {

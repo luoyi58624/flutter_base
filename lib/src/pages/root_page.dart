@@ -2,43 +2,43 @@ part of flutter_base;
 
 /// 底部导航栏控制器，当你使用[createRootPage]函数创建包含多个一级页面的app时，将会注入构造器，
 /// 你可以在任何地方通过[BottomNavigationController.of]直接获取它的实例。
-// class RootPageController extends GetxController {
-//   static RootPageController get of => Get.find();
-//
-//   final tabIndex = 0.obs;
-//   final List<RouterModel> _rootPages;
-//
-//   /// 底部导航徽标，key-路由path，value-徽标数值
-//   final badge = useLocalMapObs<int>({}, 'bottom_navigation_badge');
-//
-//   RootPageController._(this._rootPages) {
-//     for (var page in _rootPages) {
-//       if (badge[page.path] == null) {
-//         badge[page.path] = 0;
-//       }
-//     }
-//   }
-//
-//   /// 设置徽标数字
-//   void setBadge(String path, int badgeNum) {
-//     badge.update(path, (value) => badgeNum);
-//   }
-//
-//   /// 徽标数字增加指定数值
-//   void addBadge(String path, int badgeNum) {
-//     badge.update(path, (value) => value + badgeNum);
-//   }
-//
-//   /// 徽标数字减少指定数值
-//   void subtractBadge(String path, int badgeNum) {
-//     badge.update(path, (value) => value - badgeNum);
-//   }
-//
-//   /// 清除徽标
-//   void clearBadge(String path) {
-//     badge.update(path, (value) => 0);
-//   }
-// }
+class RootPageController extends GetxController {
+  static RootPageController get of => Get.find();
+
+  final tabIndex = 0.obs;
+  final List<RouterModel> _rootPages;
+
+  /// 底部导航徽标，key-路由path，value-徽标数值
+  final badge = useLocalMapObs<int>({}, 'bottom_navigation_badge');
+
+  RootPageController._(this._rootPages) {
+    for (var page in _rootPages) {
+      if (badge[page.path] == null) {
+        badge[page.path] = 0;
+      }
+    }
+  }
+
+  /// 设置徽标数字
+  void setBadge(String path, int badgeNum) {
+    badge.update(path, (value) => badgeNum);
+  }
+
+  /// 徽标数字增加指定数值
+  void addBadge(String path, int badgeNum) {
+    badge.update(path, (value) => value + badgeNum);
+  }
+
+  /// 徽标数字减少指定数值
+  void subtractBadge(String path, int badgeNum) {
+    badge.update(path, (value) => value - badgeNum);
+  }
+
+  /// 清除徽标
+  void clearBadge(String path) {
+    badge.update(path, (value) => 0);
+  }
+}
 //
 // class RootPage extends StatefulWidget {
 //   const RootPage({

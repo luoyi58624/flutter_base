@@ -1,3 +1,4 @@
+import 'package:android_app/pages/root/component/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -7,9 +8,9 @@ class ComponentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<UrlNavModel> componentItems = [
-      const UrlNavModel('Image图片组件', '/component/image'),
-      const UrlNavModel('动画组件测试', '/component/animation'),
-      const UrlNavModel('GoRouter动态路由', '/component/go_router'),
+      UrlNavModel('Image图片组件', '/component/image'),
+      UrlNavModel('动画组件测试', '/component/animation'),
+      UrlNavModel('GoRouter动态路由', '/component/go_router'),
     ];
 
     return Scaffold(
@@ -59,6 +60,12 @@ class ComponentPage extends StatelessWidget {
             buildListSection(context, '自定义组件', componentItems),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          RouterUtil.push(context, const ThemePage());
+        },
+        child: const Icon(Icons.color_lens),
       ),
     );
   }

@@ -10,6 +10,9 @@ class FlutterConfigData {
   /// 头部高度 (appbar、navbar)
   double headerHeight;
 
+  /// 是否启用material3，默认true
+  bool useMaterial3;
+
   /// 导航栏标题是否居中，默认情况下，移动端标题将居中、桌面端则左对齐
   bool? centerTitle;
 
@@ -26,6 +29,7 @@ class FlutterConfigData {
     this.fontFamily,
     this.defaultFontWeight = FontWeight.w500,
     this.headerHeight = 50,
+    this.useMaterial3 = true,
     this.radius = 6,
     this.centerTitle,
     this.enableRipple = true,
@@ -37,6 +41,7 @@ class FlutterConfigData {
   FlutterConfigData copyWith(FlutterConfigData? config) {
     fontFamily = config?.fontFamily ?? fontFamily;
     defaultFontWeight = config?.defaultFontWeight ?? defaultFontWeight;
+    useMaterial3 = config?.useMaterial3 ?? useMaterial3;
     headerHeight = config?.headerHeight ?? headerHeight;
     radius = config?.radius ?? radius;
     centerTitle = config?.centerTitle ?? centerTitle;

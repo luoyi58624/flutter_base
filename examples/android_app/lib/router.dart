@@ -28,7 +28,7 @@ class RoutePath {
   static const template = '/template';
   static const chat = '/chat';
   static const test = '/test';
-  static const animationTest = '/test/animation';
+  static const animationTest = '$test/animation';
 }
 
 GoRouter initRouter() {
@@ -41,17 +41,21 @@ GoRouter initRouter() {
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => FlutterTabScaffold(
           navigationShell: navigationShell,
-          pages: const [
-            NavModel('组件', icon: Icons.token_outlined),
-            NavModel('工具', icon: Icons.grid_view),
-            NavModel('模版', icon: Icons.temple_hindu),
-            NavModel('聊天', icon: Icons.chat_bubble),
-            NavModel('我的', icon: Icons.person_pin),
+          pages: [
+            UrlNavModel('组件', RoutePath.root, icon: Icons.token_outlined),
+            UrlNavModel('工具', RoutePath.util, icon: Icons.grid_view),
+            UrlNavModel('模版', RoutePath.template, icon: Icons.temple_hindu),
+            UrlNavModel('聊天', RoutePath.chat, icon: Icons.chat_bubble),
+            UrlNavModel('我的', RoutePath.test, icon: Icons.person_pin),
           ],
         ),
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(path: RoutePath.root, builder: (context, state) => const ComponentPage(), routes: [
+              GoRoute(
+                path: 'theme',
+                pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ImageTestPage()),
+              ),
               GoRoute(
                 path: 'image',
                 pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ImageTestPage()),

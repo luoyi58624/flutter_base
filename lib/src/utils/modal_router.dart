@@ -39,11 +39,11 @@ class ModalRouterUtil {
 /// 继承cupertino路由页面过渡动画，再此基础上加入页面缩放动画
 class CupertinoWithModalsPageRoute<T> extends CupertinoPageRoute<T> {
   CupertinoWithModalsPageRoute({
-    required WidgetBuilder builder,
-    RouteSettings? settings,
-    bool maintainState = true,
-    bool fullscreenDialog = false,
-  }) : super(settings: settings, fullscreenDialog: fullscreenDialog, builder: builder, maintainState: maintainState);
+    required super.builder,
+    super.settings,
+    super.maintainState,
+    super.fullscreenDialog,
+  });
 
   modal_bottom_sheet.ModalSheetRoute? _nextModalRoute;
 
@@ -71,7 +71,8 @@ class CupertinoWithModalsPageRoute<T> extends CupertinoPageRoute<T> {
   }
 
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions(
+      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
     PageTransitionsTheme theme = Theme.of(context).pageTransitionsTheme;
     final nextRoute = _nextModalRoute;
     if (nextRoute != null) {

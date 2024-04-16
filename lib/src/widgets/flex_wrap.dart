@@ -3,14 +3,14 @@ part of flutter_base;
 class FlexWrapWidget extends StatelessWidget {
   /// 多行flex布局，效果类似于GridView，但GridView只能通过宽高比指定每个元素的高度
   const FlexWrapWidget({
-    Key? key,
+    super.key,
     required this.children,
     required this.span,
     this.rowSpacing,
     this.columnSpacing,
     this.padding,
     this.rowCrossAxisAlignment = CrossAxisAlignment.center,
-  }) : super(key: key);
+  });
 
   final List<Widget> children;
 

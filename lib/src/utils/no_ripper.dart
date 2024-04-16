@@ -37,9 +37,9 @@ class _NoInteractiveInkFeature extends InteractiveInkFeature {
   void paintFeature(Canvas canvas, Matrix4 transform) {}
 
   _NoInteractiveInkFeature({
-    required MaterialInkController controller,
-    required RenderBox referenceBox,
-    required Color color,
-    VoidCallback? onRemoved,
-  }) : super(controller: controller, referenceBox: referenceBox, color: color, onRemoved: onRemoved);
+    required super.controller,
+    required super.referenceBox,
+    required super.color,
+    super.onRemoved,
+  });
 }

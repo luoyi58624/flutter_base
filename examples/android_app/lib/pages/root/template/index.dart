@@ -97,14 +97,12 @@ class _HeroChildPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Hero动画子页面'),
       ),
-      body: Container(
-        child: Hero(
-          tag: 'button',
-          child: Container(
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.green,
-            ),
+      body: Hero(
+        tag: 'button',
+        child: Container(
+          height: 100,
+          decoration: const BoxDecoration(
+            color: Colors.green,
           ),
         ),
       ),

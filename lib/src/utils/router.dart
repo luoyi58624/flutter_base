@@ -250,6 +250,9 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
 /// 保存最上层隐藏底部tabbar的路由名字，如果不为null，则只匹配最顶层的路由名字，防止爷孙路由再次设置[rootNavigator]为true所触发的动画
 String? _rootHideTabbarRouteName;
 
+/// 每次隐藏底部状态栏时都有400毫秒的时间禁止更新，防止快速退出、又再次进入时引起状态覆盖问题，因为dispose生命周期函数需要等待路由过渡动画完全结束才执行
+bool _disableUpdateShowBottomNav = false;
+
 /// 定制Cupertino路由切换动画，如果进入新页面设置了隐藏底部导航栏，将在路由转换时应用显示、隐藏底部导航栏动画
 mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 当前路由是否隐藏tabbar
@@ -260,13 +263,19 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   void install() {
-    if (hideTabbar) TabScaffoldController.of.tabbarAnimationHeight.value = 0.0;
+    if (hideTabbar) TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
     super.install();
   }
 
   @override
   TickerFuture didPush() {
-    if (_didHideBottomNav) TabScaffoldController.of._showBottomNav.value = false;
+    if (_didHideBottomNav) {
+      _disableUpdateShowBottomNav = true;
+      TabScaffoldController.of._showBottomNav.value = false;
+      AsyncUtil.delayed(() {
+        _disableUpdateShowBottomNav = false;
+      }, 400);
+    }
     return super.didPush();
   }
 
@@ -276,7 +285,9 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.dispose();
     if (_didHideBottomNav) {
       _rootHideTabbarRouteName = null;
-      TabScaffoldController.of._showBottomNav.value = true;
+      if (_disableUpdateShowBottomNav == false) {
+        TabScaffoldController.of._showBottomNav.value = true;
+      }
     }
   }
 
@@ -320,7 +331,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
               curve: Curves.fastEaseInToSlowEaseOut,
               reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
             ).drive(tween);
-      TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+      TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value.toDouble();
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }

@@ -37,14 +37,14 @@ class _LocalDataModel {
 /// 示例：
 /// ```dart
 /// // 创建的模型对象提供 toJson、fromJson 两种序列化方法即可，它们均可以自动生成
-/// serializeFun: (value) => jsonEncode(value.toJson()),
-/// deserializeFun: (value) => UserModel.fromJson(jsonDecode(value))
+/// serializeFun: (model) => jsonEncode(model.toJson()),
+/// deserializeFun: (json) => UserModel.fromJson(jsonDecode(json))
 /// ```
 /// 注意：List、Map如果存放的是模型对象，你也必须进行手动转换
-typedef SerializeFun<T> = String Function(T newValue);
+typedef SerializeFun<T> = String Function(T model);
 
 /// 反序列化函数类型声明
-typedef DeserializeFun<T> = T Function(String newValue);
+typedef DeserializeFun<T> = T Function(String json);
 
 /// 返回一个过期时间函数
 typedef ExpireFun = int Function();
@@ -162,8 +162,15 @@ RxList<T> useLocalListObs<T>(
       _obsLocalStorage.setItem(
         key,
         jsonEncode(
-          _LocalDataModel(valueType, expireFun!(), serializeFun == null ? v : v.map((value) => serializeFun(value)))
-              .toJson(),
+          _LocalDataModel(
+            valueType,
+            expireFun!(),
+            serializeFun == null
+                ? v
+                : v.map((value) {
+                    return serializeFun(value);
+                  }).toList(),
+          ).toJson(),
         ),
       );
     },
@@ -241,9 +248,11 @@ RxMap<String, T> useLocalMapObs<T>(
     _obsLocalStorage.setItem(
       key,
       jsonEncode(
-        _LocalDataModel(valueType, expireFun!(),
-                serializeFun == null ? v : v.map((key, value) => MapEntry(key, serializeFun(value))))
-            .toJson(),
+        _LocalDataModel(
+          valueType,
+          expireFun!(),
+          serializeFun == null ? v : v.map((key, value) => MapEntry(key, serializeFun(value))),
+        ).toJson(),
       ),
     );
   });

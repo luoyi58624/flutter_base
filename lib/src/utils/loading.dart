@@ -84,7 +84,7 @@ class LoadingUtil {
           RouterUtil.pop(RouterUtil.rootContext);
         } else {
           await (delayCloseLoadingTime / 1000).delay();
-          RouterUtil.pop(RouterUtil.rootContext);
+          if (RouterUtil.rootContext.mounted) RouterUtil.pop(RouterUtil.rootContext);
         }
       }
     }

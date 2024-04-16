@@ -16,14 +16,14 @@ class UtilPage extends StatelessWidget {
   Widget build(BuildContext context) {
     ScrollController controller = ScrollController();
     List<PageNavModel> utilCellItems = [
-      const PageNavModel('Getx工具类测试', GetxUtilPage()),
+      PageNavModel('Getx工具类测试', const GetxUtilPage()),
       // PageNavModel('GetxDemo', GetxDemoPage()),
-      const PageNavModel('InheritedWidget测试', InheritedWidgetTestPage()),
-      const PageNavModel('本地存储测试', LocalStorageTestPage()),
-      const PageNavModel('异步函数测试', AsyncTestPage()),
-      const PageNavModel('动画测试', AnimationTestPage()),
-      const PageNavModel('自定义绘制', CustomPainterTestPage()),
-      const PageNavModel('Toast测试', ToastTestPage()),
+      PageNavModel('InheritedWidget测试', const InheritedWidgetTestPage()),
+      PageNavModel('本地存储测试', const LocalStorageTestPage()),
+      PageNavModel('异步函数测试', const AsyncTestPage()),
+      PageNavModel('动画测试', const AnimationTestPage()),
+      PageNavModel('自定义绘制', const CustomPainterTestPage()),
+      PageNavModel('Toast测试', const ToastTestPage()),
     ];
     return Scaffold(
       appBar: AppBar(

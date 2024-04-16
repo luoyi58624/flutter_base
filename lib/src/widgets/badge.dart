@@ -2,14 +2,14 @@ part of flutter_base;
 
 class BadgeWidget extends StatelessWidget {
   const BadgeWidget({
-    Key? key,
+    super.key,
     required this.child,
     required this.bagde,
     this.color,
     this.max = 99,
     this.hideZero = true,
     this.offset,
-  }) : super(key: key);
+  });
 
   final Widget child;
   final dynamic bagde; // 徽章内容，支持字符串和数字

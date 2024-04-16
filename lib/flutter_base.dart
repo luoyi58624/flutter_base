@@ -125,6 +125,8 @@ part 'src/utils/platform.dart';
 
 part 'src/utils/router.dart';
 
+part 'src/utils/serializable.dart';
+
 part 'src/utils/toast.dart';
 
 part 'src/utils/use_local_obs.dart';
@@ -183,5 +185,4 @@ Future<void> initFlutterApp() async {
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
-  Get.put(FlutterController());
 }

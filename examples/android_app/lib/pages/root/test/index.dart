@@ -12,7 +12,7 @@ class TestRootPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<UrlNavModel> items = [
-      const UrlNavModel('Animation 动画测试', RoutePath.animationTest),
+      UrlNavModel('Animation 动画测试', RoutePath.animationTest),
     ];
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(

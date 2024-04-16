@@ -37,7 +37,7 @@ class GetxUtilController extends GetxController {
   final userModel = useLocalObs(
     UserModel(),
     'getx_test_userModel',
-    serializeFun: (value) => jsonEncode(value.toJson()),
-    deserializeFun: (value) => UserModel.fromJson(jsonDecode(value)),
+    serializeFun: (model) => jsonEncode(model.toJson()),
+    deserializeFun: (json) => UserModel.fromJson(jsonDecode(json)),
   );
 }

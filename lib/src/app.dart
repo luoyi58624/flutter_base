@@ -111,6 +111,7 @@ class FlutterApp extends StatelessWidget {
     } else {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
     }
+    Get.put(FlutterController(config: $config));
     return Obx(() => FlutterAppData(
           themeMode: themeMode,
           theme: $theme,

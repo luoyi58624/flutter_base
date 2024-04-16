@@ -100,7 +100,7 @@ class FormInheritedWidget extends InheritedWidget {
 /// 对Flutter的Form组件进行包装，方便用户传递一些属性控制整个表单的默认样式
 class FormWidget extends StatefulWidget {
   const FormWidget({
-    Key? key,
+    super.key,
     required this.child,
     this.labelWidth,
     this.labelPosition = LabelPosition.left,
@@ -108,7 +108,7 @@ class FormWidget extends StatefulWidget {
     this.size = FormSize.medium,
     this.labelStyle,
     this.labelBold = false,
-  }) : super(key: key);
+  });
 
   final Widget child;
 

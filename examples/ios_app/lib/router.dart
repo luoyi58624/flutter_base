@@ -14,9 +14,9 @@ final router = GoRouter(
         navigationShell: navigationShell,
         bottomNavType: BottomNavType.custom,
         pages: [
-          RouterModel('首页', '/', const HomePage(), icon: Icons.home),
-          RouterModel('组件', '/component', const ComponentPage(), icon: Icons.token_outlined),
-          RouterModel('工具', '/util', const UtilPage(), icon: Icons.grid_view),
+          UrlNavModel('首页', '/', icon: Icons.home),
+          UrlNavModel('组件', '/component', icon: Icons.token_outlined),
+          UrlNavModel('工具', '/util', icon: Icons.grid_view),
         ],
       ),
       branches: [

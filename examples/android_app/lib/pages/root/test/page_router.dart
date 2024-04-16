@@ -54,7 +54,7 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
 }
 
 class _ChildPage extends StatefulWidget {
-  const _ChildPage({super.key});
+  const _ChildPage();
 
   @override
   State<_ChildPage> createState() => _ChildPageState();

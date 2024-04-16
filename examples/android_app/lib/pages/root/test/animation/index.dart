@@ -7,8 +7,8 @@ class AnimationTestPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<UrlNavModel> items = [
-      const UrlNavModel('Slider 滑块测试', '${RoutePath.animationTest}/slider'),
-      const UrlNavModel('Darg 拖拽容器测试', '${RoutePath.animationTest}/drag'),
+      UrlNavModel('Slider 滑块测试', '${RoutePath.animationTest}/slider'),
+      UrlNavModel('Darg 拖拽容器测试', '${RoutePath.animationTest}/drag'),
     ];
     return Scaffold(
       appBar: AppBar(
