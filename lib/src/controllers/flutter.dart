@@ -31,7 +31,7 @@ class FlutterController extends GetxController {
   late final Rx<FlutterConfigData> _config;
 
   /// 应用全局过渡动画时长缩放，默认1倍速
-  final timeDilation = useLocalObs(1.0, 'timeDilation');
+  final timeDilation = 1.0.obs;
 
   ThemeMode get themeMode => _themeMode.value;
 
@@ -76,6 +76,7 @@ class FlutterController extends GetxController {
     _configUpdate(config);
     ever(_config, (v) => _configUpdate(v));
     ever(timeDilation, (v) {
+      logger.i('xx');
       scheduler.timeDilation = v;
     });
   }

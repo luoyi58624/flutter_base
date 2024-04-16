@@ -28,6 +28,7 @@ class TabScaffoldController extends GetxController {
     }
     this.bottomNavType = bottomNavType.obs;
     _bottomNavHeight = bottomNavHeight;
+    this.bottomNavHeight = _getBottomNavHeight();
     _tabbarAnimationHeight = _getBottomNavHeight().obs;
   }
 
@@ -53,21 +54,7 @@ class TabScaffoldController extends GetxController {
   final _showBottomNav = true.obs;
 
   /// 底部导航栏高度
-  double get bottomNavHeight => _getBottomNavHeight();
-
-  double _getBottomNavHeight() {
-    if (_bottomNavHeight != null) return _bottomNavHeight!;
-    switch (bottomNavType.value) {
-      case BottomNavType.material2:
-        return 56;
-      case BottomNavType.material3:
-        return 80;
-      case BottomNavType.cupertino:
-        return 50;
-      case BottomNavType.custom:
-        return 50;
-    }
-  }
+  late double bottomNavHeight;
 
   final tabBadge = useLocalMapObs<String>({}, 'bottom_nav_badge');
 
@@ -102,5 +89,30 @@ class TabScaffoldController extends GetxController {
     } else {
       tabBadge.update(pages[index].path, (v) => '');
     }
+  }
+
+  double _getBottomNavHeight() {
+    if (_bottomNavHeight == null) {
+      switch (bottomNavType.value) {
+        case BottomNavType.material2:
+          return 56;
+        case BottomNavType.material3:
+          return 80;
+        case BottomNavType.cupertino:
+          return 50;
+        case BottomNavType.custom:
+          return 50;
+      }
+    } else {
+      return _bottomNavHeight!;
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    ever(bottomNavType, (v) {
+      bottomNavHeight = _getBottomNavHeight();
+    });
   }
 }

@@ -57,6 +57,23 @@ class ComponentPage extends StatelessWidget {
         child: Column(
           children: [
             buildListSection(context, '自定义组件', componentItems),
+            Row(
+              children: [
+                const Text('开启慢动画:'),
+                Obx(
+                  () => Switch(
+                    onChanged: (v) {
+                      if (v) {
+                        FlutterController.of.timeDilation.value = 4.0;
+                      } else {
+                        FlutterController.of.timeDilation.value = 1.0;
+                      }
+                    },
+                    value: FlutterController.of.timeDilation.value > 1.0 ? true : false,
+                  ),
+                ),
+              ],
+            ),
             Obx(
               () => Container(
                 width: 100,

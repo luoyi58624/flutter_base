@@ -74,6 +74,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
                   : EdgeInsets.zero,
               child: widget.navigationShell,
             )),
+        // widget.navigationShell,
         Obx(
           () => Positioned(
             bottom: 0,

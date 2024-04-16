@@ -261,13 +261,16 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 当前路由是否隐藏tabbar
   bool get hideTabbar => false;
 
+  /// 禁用第一帧动画，buildTransitions第一帧的animation值是目标动画的最终值，这会导致底部导航栏隐藏过程中出现轻微抖动
+  bool disabledFirstFrame = true;
+
   /// 安装路由，如果你已经进入深层链接路由页面，那么它会从最底层开始依次安装父级路由
   @override
   void install() {
     if (hideTabbar && _resetHashCode) {
       _resetHashCode = false;
       _rootHideTabHashCode = hashCode;
-      TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
+      // TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
     }
     super.install();
   }
@@ -306,22 +309,26 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   }
 
   @override
-  Widget buildTransitions(
-      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_allowHideBottomNav) {
-      final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
-      var heightAnimation = popGestureInProgress
-          ? CurvedAnimation(
-              parent: animation,
-              curve: Curves.fastEaseInToSlowEaseOut.flipped,
-            ).drive(tween)
-          : CurvedAnimation(
-              parent: animation,
-              curve: Curves.fastEaseInToSlowEaseOut,
-              reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
-            ).drive(tween);
-      TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value.toDouble();
+  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+    if (disabledFirstFrame) {
+      disabledFirstFrame = false;
+    } else {
+      if (_allowHideBottomNav) {
+        final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
+        var heightAnimation = popGestureInProgress
+            ? CurvedAnimation(
+                parent: animation,
+                curve: Curves.linear,
+              ).drive(tween)
+            : CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+                reverseCurve: Curves.easeOut.flipped,
+              ).drive(tween);
+        TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value;
+      }
     }
+
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }
 }
