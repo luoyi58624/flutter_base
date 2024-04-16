@@ -323,37 +323,5 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
       TabScaffoldController.of.tabbarAnimationHeight.value = heightAnimation.value.toDouble();
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
-    // const begin = Offset(1.0, 0.0);
-    // const end = Offset.zero;
-    // final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.fastLinearToSlowEaseIn));
-    // final offsetAnimation = animation.drive(tween);
-    // return SlideTransition(
-    //   position: offsetAnimation,
-    //   child: child,
-    // );
   }
 }
-
-// static Page<dynamic> Function(BuildContext, GoRouterState) pageBuilder<T>(Widget page) =>
-//     (BuildContext context, GoRouterState state) => _pageBuilderForCupertinoApp(
-//           key: state.pageKey,
-//           name: state.name ?? state.path,
-//           arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
-//           restorationId: state.pageKey.value,
-//           child: page,
-//         );
-
-// static CustomTransitionPage _pageBuilder<T>(
-// BuildContext context,
-// GoRouterState state,
-// Widget page,
-// ) {
-// return CustomTransitionPage<T>(
-// child: page,
-// // transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-// //     FadeTransition(opacity: animation, child: child),
-// transitionsBuilder: (context, animation, secondaryAnimation, child) => CupertinoPageRoute(
-// builder: (context) => page,
-// ).buildTransitions(context, animation, secondaryAnimation, page),
-// );
-// }
