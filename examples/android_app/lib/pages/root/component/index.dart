@@ -56,7 +56,7 @@ class ComponentPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // buildListSection(context, '自定义组件', componentItems),
+            buildListSection(context, '自定义组件', componentItems),
             Obx(
               () => Container(
                 width: 100,

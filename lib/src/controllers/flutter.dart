@@ -42,13 +42,13 @@ class FlutterController extends GetxController {
   FlutterThemeData get theme => _theme.value;
 
   set theme(FlutterThemeData value) {
-    _theme.value = value;
+    _theme.update((val) => value);
   }
 
   FlutterThemeData get darkTheme => _darkTheme.value;
 
   set darkTheme(FlutterThemeData value) {
-    _darkTheme.value = value;
+    _darkTheme.update((val) => value);
   }
 
   FlutterConfigData get config => _config.value;
