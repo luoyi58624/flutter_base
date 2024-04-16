@@ -14,6 +14,8 @@ class _App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FlutterApp(router: initRouter());
+    return FlutterApp(
+      router: initRouter(),
+    );
   }
 }

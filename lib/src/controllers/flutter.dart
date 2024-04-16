@@ -3,31 +3,80 @@ part of flutter_base;
 /// Flutter应用全局控制器
 class FlutterController extends GetxController {
   FlutterController({
+    required ThemeMode themeMode,
+    required FlutterThemeData theme,
+    required FlutterThemeData darkTheme,
     required FlutterConfigData config,
   }) {
-    useMaterial3 = useLocalObs(config.useMaterial3, 'useMaterial3');
+    _themeMode = themeMode.obs;
+    _theme = theme.obs;
+    _darkTheme = darkTheme.obs;
+    _config = config.obs;
     // primaryColor = useLocalObs(_?.primaryColor ?? _primaryColor, 'primaryColor');
   }
 
   /// 通过静态变量直接获取控制器实例
   static FlutterController get of => Get.find();
 
+  /// 当前主题模式
+  late final Rx<ThemeMode> _themeMode;
+
+  /// 亮色主题
+  late final Rx<FlutterThemeData> _theme;
+
+  /// 暗色主题
+  late final Rx<FlutterThemeData> _darkTheme;
+
+  /// 配置信息
+  late final Rx<FlutterConfigData> _config;
+
   /// 应用全局过渡动画时长缩放，默认1倍速
   final timeDilation = useLocalObs(1.0, 'timeDilation');
 
-  /// 是否启用material3
-  late final Rx<bool> useMaterial3;
+  ThemeMode get themeMode => _themeMode.value;
 
-  /// 当前主题模式
-  // final themeMode = useLocalObs(ThemeMode.system, 'themeMode');
+  set themeMode(ThemeMode value) {
+    _themeMode.value = value;
+  }
 
-  // late final Rx<Color> primaryColor;
+  FlutterThemeData get theme => _theme.value;
+
+  set theme(FlutterThemeData value) {
+    _theme.value = value;
+  }
+
+  FlutterThemeData get darkTheme => _darkTheme.value;
+
+  set darkTheme(FlutterThemeData value) {
+    _darkTheme.value = value;
+  }
+
+  FlutterConfigData get config => _config.value;
+
+  set config(FlutterConfigData value) {
+    _config.update((val) => value);
+  }
+
+  /// 返回自适应主题色，必须传递当前页面的[context]
+  FlutterThemeData getTheme(BuildContext context) {
+    return FlutterUtil.isDarkMode(context) ? darkTheme : theme;
+  }
+
+  void _configUpdate(FlutterConfigData config) {
+    if (config.translucenceStatusBar) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));
+    } else {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 0)));
+    }
+  }
 
   @override
   void onInit() {
     super.onInit();
-    ever(timeDilation, (value) {
-      scheduler.timeDilation = value;
+    _configUpdate(config);
+    ever(_config, (v) => _configUpdate(v));
+    ever(timeDilation, (v) {
+      scheduler.timeDilation = v;
     });
   }
 }

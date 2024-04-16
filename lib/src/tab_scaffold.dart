@@ -26,7 +26,7 @@ class FlutterTabScaffold extends StatefulWidget {
   State<FlutterTabScaffold> createState() => _FlutterTabScaffoldState();
 }
 
-class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
+class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThemeMixin {
   late TabScaffoldController controller;
 
   @override
@@ -99,9 +99,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> {
           selectedFontSize: 12,
           iconSize: 26,
           unselectedLabelStyle: TextStyle(
-            fontWeight: FlutterAppData.of(context).config.defaultFontWeight,
+            fontWeight: FlutterController.of.config.defaultFontWeight,
           ),
-          selectedItemColor: FlutterAppData.of(context).theme.primary,
+          selectedItemColor: $primaryColor,
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
           ),

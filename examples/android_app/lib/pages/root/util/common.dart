@@ -8,7 +8,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
 
   @override
   Widget build(BuildContext context) {
-    var appTheme = FlutterAppData.of(context).currentTheme;
+    var appTheme = FlutterController.of.getTheme(context);
     return Material(
       child: buildScaffold(
         context,
@@ -17,10 +17,9 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CupertinoButton(
-                color: Colors.grey,
+              CupertinoButton.filled(
                 onPressed: () async {
-                  ToastUtil.showToast('hello');
+                  ToastUtil.showPrimaryToast('你好');
                 },
                 child: const Text('Toast'),
               ),
@@ -161,7 +160,7 @@ class ColorTestPage extends StatefulWidget {
 class _ColorTestPageState extends State<ColorTestPage> {
   @override
   Widget build(BuildContext context) {
-    var appTheme = FlutterAppData.of(context).currentTheme;
+    var appTheme = FlutterController.of.getTheme(context);
     List colorSwatch = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
     List<Color> colorList = [
       ...colorSwatch.map((e) => Colors.cyan[e]!),

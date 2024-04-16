@@ -77,7 +77,7 @@ class ModalUtils {
                       if (onConfirm != null) onConfirm();
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: confirmColor ?? FlutterAppData.of(RouterUtil.rootContext).currentTheme.primary,
+                      foregroundColor: confirmColor ?? Theme.of(context).primaryColor,
                     ),
                     child: Text(confirmText),
                   ),

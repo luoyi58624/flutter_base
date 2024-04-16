@@ -12,6 +12,12 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   @override
+  void dispose() {
+    super.dispose();
+    logger.i('销毁聊天室 - ${widget.id}');
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(

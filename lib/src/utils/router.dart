@@ -247,8 +247,11 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   Widget buildContent(BuildContext context) => builder(context);
 }
 
-/// 保存最上层隐藏底部tabbar的路由名字，如果不为null，则只匹配最顶层的路由名字，防止爷孙路由再次设置[rootNavigator]为true所触发的动画
-String? _rootHideTabbarRouteName;
+/// 是否需要重置hashCode
+bool _resetHashCode = true;
+
+/// 保存最上层隐藏底部tabbar的路由页面HashCode
+int? _rootHideTabHashCode;
 
 /// 每次隐藏底部状态栏时都有400毫秒的时间禁止更新，防止快速退出、又再次进入时引起状态覆盖问题，因为dispose生命周期函数需要等待路由过渡动画完全结束才执行
 bool _disableUpdateShowBottomNav = false;
@@ -258,18 +261,20 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 当前路由是否隐藏tabbar
   bool get hideTabbar => false;
 
-  /// 上一个页面是否隐藏tabbar，如果为false，当用户返回上一页时将显示tabbar
-  bool _previousHideTabbar = false;
-
+  /// 安装路由，如果你已经进入深层链接路由页面，那么它会从最底层开始依次安装父级路由
   @override
   void install() {
-    if (hideTabbar) TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
+    if (hideTabbar && _resetHashCode) {
+      _resetHashCode = false;
+      _rootHideTabHashCode = hashCode;
+      TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
+    }
     super.install();
   }
 
   @override
   TickerFuture didPush() {
-    if (_didHideBottomNav) {
+    if (_allowHideBottomNav) {
       _disableUpdateShowBottomNav = true;
       TabScaffoldController.of._showBottomNav.value = false;
       AsyncUtil.delayed(() {
@@ -279,47 +284,31 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     return super.didPush();
   }
 
+  @override
+  bool didPop(result) {
+    _resetHashCode = true;
+    return super.didPop(result);
+  }
+
   /// 在路由完全销毁时判断是否取消隐藏底部tabbar，在此处执行可以等待路由动画完全结束
   @override
   void dispose() {
     super.dispose();
-    if (_didHideBottomNav) {
-      _rootHideTabbarRouteName = null;
-      if (_disableUpdateShowBottomNav == false) {
-        TabScaffoldController.of._showBottomNav.value = true;
-      }
+    if (_allowHideBottomNav) {
+      _rootHideTabHashCode = null;
+      if (_disableUpdateShowBottomNav == false) TabScaffoldController.of._showBottomNav.value = true;
     }
-  }
-
-  @override
-  void didChangePrevious(Route? previousRoute) {
-    if (previousRoute is _CupertinoRouteTransitionMixin) {
-      if (previousRoute.hideTabbar) {
-        _previousHideTabbar = true;
-        _rootHideTabbarRouteName = previousRoute.settings.name;
-      }
-    }
-    super.didChangePrevious(previousRoute);
   }
 
   /// 当传递了 rootNavigator: true 时，进入该路由页面将会隐藏底部导航栏
-  bool get _didHideBottomNav {
-    if (hideTabbar && _previousHideTabbar == false) {
-      // 如果父级已经设置过rootNavigator属性，那么子级再设置将不生效，仅匹配父级设置了路由名字
-      if (_rootHideTabbarRouteName == null || _rootHideTabbarRouteName == settings.name) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
+  bool get _allowHideBottomNav {
+    return hideTabbar && _rootHideTabHashCode == hashCode;
   }
 
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_didHideBottomNav) {
+    if (_allowHideBottomNav) {
       final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
       var heightAnimation = popGestureInProgress
           ? CurvedAnimation(

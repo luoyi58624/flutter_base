@@ -83,23 +83,37 @@ class FlutterThemeData {
     this.menuActiveColor = const Color(0xff6ee7b7),
   });
 
-  /// 合并主题颜色，并返回新的主题对象
-  FlutterThemeData copyWith(FlutterThemeData? theme) {
-    brightness = theme?.brightness ?? brightness;
-    primary = theme?.primary ?? primary;
-    success = theme?.success ?? success;
-    info = theme?.info ?? info;
-    warning = theme?.warning ?? warning;
-    error = theme?.error ?? error;
-    bgColor = theme?.bgColor ?? bgColor;
-    headerColor = theme?.headerColor ?? headerColor;
-    mainColor = theme?.mainColor ?? mainColor;
-    textColor = theme?.textColor ?? textColor;
-    iconColor = theme?.iconColor ?? iconColor;
-    defaultBorderColor = theme?.defaultBorderColor ?? defaultBorderColor;
-    menuBackground = theme?.menuBackground ?? menuBackground;
-    menuActiveColor = theme?.menuActiveColor ?? menuActiveColor;
-
-    return this;
+  FlutterThemeData copyWith({
+    Brightness? brightness,
+    Color? primary,
+    Color? success,
+    Color? info,
+    Color? warning,
+    Color? error,
+    Color? bgColor,
+    Color? headerColor,
+    Color? mainColor,
+    Color? textColor,
+    Color? iconColor,
+    Color? defaultBorderColor,
+    Color? menuBackground,
+    Color? menuActiveColor,
+  }) {
+    return FlutterThemeData(
+      brightness: brightness ?? this.brightness,
+      primary: primary ?? this.primary,
+      success: success ?? this.success,
+      info: info ?? this.info,
+      warning: warning ?? this.warning,
+      error: error ?? this.error,
+      bgColor: bgColor ?? this.bgColor,
+      headerColor: headerColor ?? this.headerColor,
+      mainColor: mainColor ?? this.mainColor,
+      textColor: textColor ?? this.textColor,
+      iconColor: iconColor ?? this.iconColor,
+      defaultBorderColor: defaultBorderColor ?? this.defaultBorderColor,
+      menuBackground: menuBackground ?? this.menuBackground,
+      menuActiveColor: menuActiveColor ?? this.menuActiveColor,
+    );
   }
 }

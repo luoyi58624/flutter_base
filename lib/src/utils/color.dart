@@ -59,11 +59,6 @@ class ColorUtil {
     return Color(int.parse(buffer.toString(), radix: 16));
   }
 
-  /// 是否为黑暗模式，要想保持响应式必须以函数形式使用
-  static bool isDarkMode(BuildContext context) {
-    return FlutterAppData.of(context).currentTheme.brightness == Brightness.dark;
-  }
-
   /// 返回一个动态颜色
   static Color dynamicColor(
     lightColor,
@@ -74,7 +69,7 @@ class ColorUtil {
     ColorMode colorMode = mode ?? ColorMode.auto;
     switch (colorMode) {
       case ColorMode.auto:
-        return isDarkMode(context) ? darkColor : lightColor;
+        return FlutterUtil.isDarkMode(context) ? darkColor : lightColor;
       case ColorMode.light:
         return lightColor;
       case ColorMode.dark:

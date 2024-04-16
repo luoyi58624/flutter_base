@@ -3,32 +3,41 @@ part of flutter_base;
 /// 主题混入
 mixin FlutterThemeMixin<T extends StatefulWidget, D> on State<T> {
   /// 暗色主题文字颜色
-  Color get $textWhiteColor => FlutterAppData.of(context).darkTheme.textColor;
+  Color get $textWhiteColor => FlutterController.of.darkTheme.textColor;
 
   /// 亮色主题文字颜色
-  Color get $textBlackColor => FlutterAppData.of(context).theme.textColor;
+  Color get $textBlackColor => FlutterController.of.theme.textColor;
 
-  Color get $textColor => FlutterAppData.of(context).currentTheme.textColor;
+  Color get $textColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.textColor : FlutterController.of.theme.textColor;
 
-  Color get $bgColor => FlutterAppData.of(context).currentTheme.bgColor;
+  Color get $bgColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.bgColor : FlutterController.of.theme.bgColor;
 
-  Color get $headerColor => FlutterAppData.of(context).currentTheme.headerColor;
+  Color get $headerColor => FlutterUtil.isDarkMode(context)
+      ? FlutterController.of.darkTheme.headerColor
+      : FlutterController.of.theme.headerColor;
 
-  Color get $primaryColor => FlutterAppData.of(context).currentTheme.primary;
+  Color get $primaryColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.primary : FlutterController.of.theme.primary;
 
-  Color get $successColor => FlutterAppData.of(context).currentTheme.success;
+  Color get $successColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.success : FlutterController.of.theme.success;
 
-  Color get $infoColor => FlutterAppData.of(context).currentTheme.info;
+  Color get $infoColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.info : FlutterController.of.theme.info;
 
-  Color get $warningColor => FlutterAppData.of(context).currentTheme.warning;
+  Color get $warningColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.warning : FlutterController.of.theme.warning;
 
-  Color get $errorColor => FlutterAppData.of(context).currentTheme.error;
+  Color get $errorColor =>
+      FlutterUtil.isDarkMode(context) ? FlutterController.of.darkTheme.error : FlutterController.of.theme.error;
 
-  Color get $defaultBorderColor => FlutterAppData.of(context).currentTheme.defaultBorderColor;
+  Color get $defaultBorderColor => FlutterUtil.isDarkMode(context)
+      ? FlutterController.of.darkTheme.defaultBorderColor
+      : FlutterController.of.theme.defaultBorderColor;
 
-  double get $radius => FlutterAppData.of(context).config.radius;
+  double get $radius => FlutterController.of.config.radius;
 
-  FontWeight get $defaultFontWeight => FlutterAppData.of(context).config.defaultFontWeight;
-
-  Color get $menuActiveColor => FlutterAppData.of(context).currentTheme.menuActiveColor;
+  FontWeight get $defaultFontWeight => FlutterController.of.config.defaultFontWeight;
 }

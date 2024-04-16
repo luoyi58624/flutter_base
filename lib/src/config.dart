@@ -13,6 +13,9 @@ class FlutterConfigData {
   /// 是否启用material3，默认true
   bool useMaterial3;
 
+  /// 组件默认圆角值
+  double radius;
+
   /// 导航栏标题是否居中，默认情况下，移动端标题将居中、桌面端则左对齐
   bool? centerTitle;
 
@@ -22,8 +25,8 @@ class FlutterConfigData {
   /// 启用半透明状态栏，默认false
   bool translucenceStatusBar;
 
-  /// 组件默认圆角值
-  double radius;
+  /// 是否开启性能视图
+  bool showPerformanceOverlay;
 
   FlutterConfigData({
     this.fontFamily,
@@ -34,19 +37,32 @@ class FlutterConfigData {
     this.centerTitle,
     this.enableRipple = true,
     this.translucenceStatusBar = false,
+    this.showPerformanceOverlay = false,
   }) {
     centerTitle = centerTitle ?? (GetPlatform.isMobile ? true : false);
   }
 
-  FlutterConfigData copyWith(FlutterConfigData? config) {
-    fontFamily = config?.fontFamily ?? fontFamily;
-    defaultFontWeight = config?.defaultFontWeight ?? defaultFontWeight;
-    useMaterial3 = config?.useMaterial3 ?? useMaterial3;
-    headerHeight = config?.headerHeight ?? headerHeight;
-    radius = config?.radius ?? radius;
-    centerTitle = config?.centerTitle ?? centerTitle;
-    enableRipple = config?.enableRipple ?? enableRipple;
-    translucenceStatusBar = config?.translucenceStatusBar ?? translucenceStatusBar;
-    return this;
+  FlutterConfigData copyWith({
+    String? fontFamily,
+    FontWeight? defaultFontWeight,
+    double? headerHeight,
+    bool? useMaterial3,
+    double? radius,
+    bool? centerTitle,
+    bool? enableRipple,
+    bool? translucenceStatusBar,
+    bool? showPerformanceOverlay,
+  }) {
+    return FlutterConfigData(
+      fontFamily: fontFamily ?? this.fontFamily,
+      defaultFontWeight: defaultFontWeight ?? this.defaultFontWeight,
+      headerHeight: headerHeight ?? this.headerHeight,
+      useMaterial3: useMaterial3 ?? this.useMaterial3,
+      radius: radius ?? this.radius,
+      centerTitle: centerTitle ?? this.centerTitle,
+      enableRipple: enableRipple ?? this.enableRipple,
+      translucenceStatusBar: translucenceStatusBar ?? this.translucenceStatusBar,
+      showPerformanceOverlay: showPerformanceOverlay ?? this.showPerformanceOverlay,
+    );
   }
 }

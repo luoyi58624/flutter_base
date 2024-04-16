@@ -12,16 +12,15 @@ class ComponentPage extends StatelessWidget {
       UrlNavModel('动画组件测试', '/component/animation'),
       UrlNavModel('GoRouter动态路由', '/component/go_router'),
     ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('组件列表'),
         actions: [
           Obx(
             () => Switch(
-              value: FlutterController.of.useMaterial3.value,
+              value: FlutterController.of.config.useMaterial3,
               onChanged: (v) {
-                FlutterController.of.useMaterial3.value = v;
+                FlutterController.of.config = FlutterController.of.config.copyWith(useMaterial3: v);
               },
             ),
           ),
@@ -57,7 +56,14 @@ class ComponentPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            buildListSection(context, '自定义组件', componentItems),
+            // buildListSection(context, '自定义组件', componentItems),
+            Obx(
+              () => Container(
+                width: 100,
+                height: 100,
+                color: FlutterController.of.getTheme(context).primary,
+              ),
+            )
           ],
         ),
       ),
