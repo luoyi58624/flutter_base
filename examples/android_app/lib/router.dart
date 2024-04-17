@@ -51,7 +51,7 @@ GoRouter initRouter() {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: RoutePath.root, builder: (context, state) => const ComponentPage(), routes: [
+            GoRoute(path: RoutePath.root, pageBuilder: (context, state) => context.pageBuilder(state, const ComponentPage()), routes: [
               GoRoute(
                 path: 'theme',
                 pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
@@ -70,7 +70,12 @@ GoRouter initRouter() {
               ),
             ]),
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: RoutePath.util, builder: (context, state) => const UtilPage())]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: RoutePath.util,
+              pageBuilder: (context, state) => context.pageBuilder(state, const UtilPage()),
+            )
+          ]),
           StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
           StatefulShellBranch(routes: [
             GoRoute(

@@ -13,7 +13,7 @@ const _supportedLocales = [
   Locale('en', 'US'),
 ];
 
-class FlutterApp extends StatelessWidget {
+class FlutterApp extends StatefulWidget {
   const FlutterApp({
     super.key,
     this.title = 'Flutter App',
@@ -68,17 +68,39 @@ class FlutterApp extends StatelessWidget {
   final TransitionBuilder? builder;
 
   @override
+  State<FlutterApp> createState() => _FlutterAppState();
+}
+
+class _FlutterAppState extends State<FlutterApp> {
+  @override
+  void initState() {
+    super.initState();
+    _router = widget.router ??
+        GoRouter(
+          routes: [GoRoute(path: '/', builder: (context, state) => widget.home!)],
+        );
+    _router.routerDelegate.addListener(listenRouteChange);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _router.routerDelegate.removeListener(listenRouteChange);
+  }
+
+  void listenRouteChange() {
+    logger.i(_router.routerDelegate.currentConfiguration.uri);
+  }
+
+  @override
   Widget build(BuildContext context) {
     FlutterController c = Get.find();
-    if (router == null) assert(home != null, '你没有设置routes，请传递home页面！');
-    var $localizationsDelegates = (localizationsDelegates ?? []).toList();
+    if (widget.router == null) assert(widget.home != null, '你没有设置routes，请传递home页面！');
+    var $localizationsDelegates = (widget.localizationsDelegates ?? []).toList();
     $localizationsDelegates.addAll(_localizationsDelegates);
-    var $supportedLocales = (supportedLocales ?? []).toList();
+    var $supportedLocales = (widget.supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
-    _router = router ??
-        GoRouter(
-          routes: [GoRoute(path: '/', builder: (context, state) => home!)],
-        );
+
     return Obx(() => MaterialApp.router(
           routerConfig: _router,
           theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
@@ -87,7 +109,7 @@ class FlutterApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           localizationsDelegates: $localizationsDelegates,
           supportedLocales: $supportedLocales,
-          locale: locale,
+          locale: widget.locale,
           showPerformanceOverlay: c.config.showPerformanceOverlay,
           builder: (context, child) {
             return MediaQuery(
@@ -102,7 +124,7 @@ class FlutterApp extends StatelessWidget {
                     initialEntries: [
                       OverlayEntry(builder: (context) {
                         toast.init(context);
-                        return builder == null ? child! : builder!(context, child);
+                        return widget.builder == null ? child! : widget.builder!(context, child);
                       })
                     ],
                   ),

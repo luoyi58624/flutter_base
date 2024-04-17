@@ -300,7 +300,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 我们将最后一个页面的[hashCode]作为[_RoutePageState.rootHashCode]
   @override
   void didAdd() {
-    // logger.i('didAdd');
+    logger.i('didAdd', settings.name);
     _RoutePageState.currentHashCode ??= hashCode;
     if (hideTabbar) {
       // 隐藏底部导航栏，提示：getx的响应式变量多次设置相同值并不会重复渲染
@@ -312,22 +312,24 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.didAdd();
   }
 
-  // @override
-  // scheduler.TickerFuture didPush() {
-  //   _RoutePageState.history[hashCode] = _RoutePageHistoryModel(hideTabbar, false);
-  //   if (hideTabbar) {
-  //     // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处禁止dispose逻辑执行
-  //     if (isPop) {
-  //       _RoutePageState.isPop = false;
-  //       if (_RoutePageState.popNextHashCode == null) _RoutePageState.rootHashCode = hashCode;
-  //       _RoutePageState.popNextHashCode = null;
-  //     } else {
-  //       _RoutePageState.rootHashCode ??= hashCode;
-  //     }
-  //   }
-  //   if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
-  //   return super.didPush();
-  // }
+  @override
+  scheduler.TickerFuture didPush() {
+    logger.i('didPush', settings.name);
+    // _RoutePageState.history[hashCode] = _RoutePageHistoryModel(hideTabbar, false);
+    // if (hideTabbar) {
+    //   // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处禁止dispose逻辑执行
+    //   if (isPop) {
+    //     _RoutePageState.isPop = false;
+    //     if (_RoutePageState.popNextHashCode == null) _RoutePageState.rootHashCode = hashCode;
+    //     _RoutePageState.popNextHashCode = null;
+    //   } else {
+    //     _RoutePageState.rootHashCode ??= hashCode;
+    //   }
+    // }
+    // if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
+    return super.didPush();
+  }
+
   //
   // @override
   // bool didPop(result) {
