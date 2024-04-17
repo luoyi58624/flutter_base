@@ -64,7 +64,7 @@ class ComponentPage extends StatelessWidget {
                   () => Switch(
                     onChanged: (v) {
                       if (v) {
-                        FlutterController.of.timeDilation.value = 4.0;
+                        FlutterController.of.timeDilation.value = 3.0;
                       } else {
                         FlutterController.of.timeDilation.value = 1.0;
                       }

@@ -247,14 +247,22 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   Widget buildContent(BuildContext context) => builder(context);
 }
 
-/// 是否需要重置hashCode
-bool _resetHashCode = true;
+class _RoutePageState {
+  _RoutePageState._();
 
-/// 保存最上层隐藏底部tabbar的路由页面HashCode
-int? _rootHideTabHashCode;
+  /// 此变量用于解决用户退出隐藏底部导航栏后又快速重新进入所引发的一些问题，因为我们需要在页面完全退出的情况下重新设置状态(dispose生命周期)，
+  /// 但是退出有一个几百毫秒的过渡动画，在此期间用户再次进入我们必须抛弃dispose 当前设置了隐藏底部导航栏的路由是否已经弹出，但退出动画还未结束
+  static bool isPop = false;
 
-/// 每次隐藏底部状态栏时都有400毫秒的时间禁止更新，防止快速退出、又再次进入时引起状态覆盖问题，因为dispose生命周期函数需要等待路由过渡动画完全结束才执行
-bool _disableUpdateShowBottomNav = false;
+  /// 保存最上层隐藏底部tabbar的路由页面HashCode
+  static int? rootHashCode;
+
+  /// 当前激活的路由页面HashCode
+  static int? currentHashCode;
+
+  /// 弹出的路由上一个页面的hashCode
+  static int? popNextHashCode;
+}
 
 /// 定制Cupertino路由切换动画，如果进入新页面设置了隐藏底部导航栏，将在路由转换时应用显示、隐藏底部导航栏动画
 mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
@@ -264,56 +272,72 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 禁用第一帧动画，buildTransitions第一帧的animation值是目标动画的最终值，这会导致底部导航栏隐藏过程中出现轻微抖动
   bool disabledFirstFrame = true;
 
+  /// 是否允许更新底部导航栏，只有当第一个设置了[rootNavigator]页面允许进入、退出页面时更新底部导航栏
+  bool get _allowUpdateBottomNav {
+    return hideTabbar && _RoutePageState.rootHashCode == _RoutePageState.currentHashCode;
+  }
+
   /// 安装路由，如果你已经进入深层链接路由页面，那么它会从最底层开始依次安装父级路由
   @override
   void install() {
-    if (hideTabbar && _resetHashCode) {
-      _resetHashCode = false;
-      _rootHideTabHashCode = hashCode;
-      // TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
+    // 设置当前页面的hashCode
+    _RoutePageState.currentHashCode = hashCode;
+    // 如果用户进入的路由页面需要隐藏底部tabbar
+    if (hideTabbar) {
+      // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处重置dispose的状态
+      if (_RoutePageState.isPop) {
+        _RoutePageState.isPop = false;
+        _RoutePageState.popNextHashCode = null;
+        _RoutePageState.rootHashCode = hashCode;
+      } else {
+        _RoutePageState.rootHashCode ??= hashCode;
+      }
     }
+    if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
     super.install();
   }
 
   @override
-  TickerFuture didPush() {
-    if (_allowHideBottomNav) {
-      _disableUpdateShowBottomNav = true;
-      TabScaffoldController.of._showBottomNav.value = false;
-      AsyncUtil.delayed(() {
-        _disableUpdateShowBottomNav = false;
-      }, 400);
-    }
-    return super.didPush();
-  }
-
-  @override
   bool didPop(result) {
-    _resetHashCode = true;
+    _RoutePageState.isPop = true;
     return super.didPop(result);
   }
 
-  /// 在路由完全销毁时判断是否取消隐藏底部tabbar，在此处执行可以等待路由动画完全结束
+  @override
+  void didPopNext(Route nextRoute) {
+    super.didPopNext(nextRoute);
+    // 当上一个页面退出后将拿到当前页面的 hashCode，在上一个页面执行 dispose 后再设置 currentHashCode，这段逻辑非常绕，
+    // 因为 buildTransitions 会在两个页面间同步执行，如果在 didPopNext 方法中直接设置 currentHashCode，同时上一个页面刚好是 rootHashCode,
+    // 那么 rootHashCode 页面和子页面之间的转换将导致 buildTransitions 触发显示、隐藏底部导航栏，所以我们必须创建 popNextHashCode 中间变量，
+    // 当子页面完全销毁后（dispose），再设置 currentHashCode。
+    _RoutePageState.popNextHashCode = hashCode;
+  }
+
   @override
   void dispose() {
     super.dispose();
-    if (_allowHideBottomNav) {
-      _rootHideTabHashCode = null;
-      if (_disableUpdateShowBottomNav == false) TabScaffoldController.of._showBottomNav.value = true;
+    // 在路由销毁时并过渡动画结束后取消隐藏底部tabbar，并重置_RoutePageState中的状态
+    if (_allowUpdateBottomNav) {
+      if (_RoutePageState.isPop) {
+        _RoutePageState.isPop = false;
+        _RoutePageState.rootHashCode = null;
+        _RoutePageState.currentHashCode = null;
+        _RoutePageState.popNextHashCode = null;
+        TabScaffoldController.of._showBottomNav.value = true;
+      }
+    } else {
+      // 若弹出的是子级页面，等待路由动画结束再设置 currentHashCode
+      _RoutePageState.currentHashCode = _RoutePageState.popNextHashCode;
     }
   }
 
-  /// 当传递了 rootNavigator: true 时，进入该路由页面将会隐藏底部导航栏
-  bool get _allowHideBottomNav {
-    return hideTabbar && _rootHideTabHashCode == hashCode;
-  }
-
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions(
+      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
     if (disabledFirstFrame) {
       disabledFirstFrame = false;
     } else {
-      if (_allowHideBottomNav) {
+      if (_allowUpdateBottomNav) {
         final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
         var heightAnimation = popGestureInProgress
             ? CurvedAnimation(
@@ -322,13 +346,12 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
               ).drive(tween)
             : CurvedAnimation(
                 parent: animation,
-                curve: Curves.easeOut,
-                reverseCurve: Curves.easeOut.flipped,
+                curve: Curves.fastEaseInToSlowEaseOut,
+                reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
               ).drive(tween);
         TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value;
       }
     }
-
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }
 }
