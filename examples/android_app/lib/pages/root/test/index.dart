@@ -53,7 +53,7 @@ class TestRootPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () {
-                      RouterUtil.push(context, const CustomPageRouterPage(), rootNavigator: true);
+                      RouterUtil.push(context, const CustomPageRouterPage(), rootNavigator: false);
                     },
                     child: const Text('自定义路由动画'),
                   ),

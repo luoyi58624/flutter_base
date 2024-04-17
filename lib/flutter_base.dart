@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:dart_base/dart_base.dart';
 import 'package:flutter/scheduler.dart' as scheduler;
 
 import 'package:archive/archive.dart';

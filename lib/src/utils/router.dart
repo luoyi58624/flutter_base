@@ -273,33 +273,47 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   bool disabledFirstFrame = true;
 
   /// 是否允许更新底部导航栏，只有当第一个设置了[rootNavigator]页面允许进入、退出页面时更新底部导航栏
-  bool get _allowUpdateBottomNav {
-    return hideTabbar && _RoutePageState.rootHashCode == _RoutePageState.currentHashCode;
+  bool get _allowUpdateBottomNav => hideTabbar && _RoutePageState.rootHashCode == _RoutePageState.currentHashCode;
+
+  /// 处理深链接，当你打开一个深层嵌套的路由地址，flutter会从最底层路由页面开始，依次添加到导航器，
+  /// 我们将最后一个页面的[hashCode]作为[_RoutePageState.rootHashCode]
+  @override
+  void didAdd() {
+    _RoutePageState.currentHashCode ??= hashCode;
+    if (hideTabbar) {
+      // 隐藏底部导航栏，提示：getx的响应式变量多次设置相同值并不会重复渲染
+      TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
+      TabScaffoldController.of._showBottomNav.value = false;
+      // 每次调用 didAdd 方法都覆盖 rootHashCode，因为此方法的执行顺序是从最底层路由开始
+      _RoutePageState.rootHashCode = hashCode;
+    }
+    super.didAdd();
   }
 
-  /// 安装路由，如果你已经进入深层链接路由页面，那么它会从最底层开始依次安装父级路由
   @override
-  void install() {
+  scheduler.TickerFuture didPush() {
     // 设置当前页面的hashCode
     _RoutePageState.currentHashCode = hashCode;
-    // 如果用户进入的路由页面需要隐藏底部tabbar
     if (hideTabbar) {
-      // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处重置dispose的状态
+      // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处禁止dispose逻辑执行
       if (_RoutePageState.isPop) {
         _RoutePageState.isPop = false;
+        if (_RoutePageState.popNextHashCode == null) _RoutePageState.rootHashCode = hashCode;
         _RoutePageState.popNextHashCode = null;
-        _RoutePageState.rootHashCode = hashCode;
       } else {
         _RoutePageState.rootHashCode ??= hashCode;
       }
     }
     if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
-    super.install();
+    return super.didPush();
   }
 
   @override
   bool didPop(result) {
     _RoutePageState.isPop = true;
+    if (_RoutePageState.rootHashCode == hashCode) {
+      _RoutePageState.popNextHashCode = null;
+    }
     return super.didPop(result);
   }
 
@@ -310,7 +324,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     // 因为 buildTransitions 会在两个页面间同步执行，如果在 didPopNext 方法中直接设置 currentHashCode，同时上一个页面刚好是 rootHashCode,
     // 那么 rootHashCode 页面和子页面之间的转换将导致 buildTransitions 触发显示、隐藏底部导航栏，所以我们必须创建 popNextHashCode 中间变量，
     // 当子页面完全销毁后（dispose），再设置 currentHashCode。
-    _RoutePageState.popNextHashCode = hashCode;
+    if (nextRoute.hashCode != _RoutePageState.rootHashCode) _RoutePageState.popNextHashCode = hashCode;
   }
 
   @override
@@ -326,8 +340,12 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
         TabScaffoldController.of._showBottomNav.value = true;
       }
     } else {
-      // 若弹出的是子级页面，等待路由动画结束再设置 currentHashCode
-      _RoutePageState.currentHashCode = _RoutePageState.popNextHashCode;
+      if (_RoutePageState.isPop) {
+        // 若弹出的是子级页面，等待路由动画结束再设置 currentHashCode
+        _RoutePageState.isPop = false;
+        _RoutePageState.currentHashCode = _RoutePageState.popNextHashCode;
+        _RoutePageState.popNextHashCode = null;
+      }
     }
   }
 

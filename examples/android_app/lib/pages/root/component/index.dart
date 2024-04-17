@@ -1,3 +1,4 @@
+import 'package:android_app/controllers/global.dart';
 import 'package:android_app/pages/root/component/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
@@ -80,7 +81,15 @@ class ComponentPage extends StatelessWidget {
                 height: 100,
                 color: FlutterController.of.getTheme(context).primary,
               ),
-            )
+            ),
+            Obx(() {
+              return ElevatedButton(
+                onPressed: () {
+                  GlobalController.of.count.value = 1;
+                },
+                child: Text('修改getx：${GlobalController.of.count.value}'),
+              );
+            }),
           ],
         ),
       ),

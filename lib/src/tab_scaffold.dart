@@ -68,12 +68,13 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
   Widget buildCustomScaffold(Widget tabbarWidget) {
     return Stack(
       children: [
-        Obx(() => Padding(
-              padding: controller._showBottomNav.value
-                  ? EdgeInsets.only(bottom: controller.bottomNavHeight)
-                  : EdgeInsets.zero,
-              child: widget.navigationShell,
-            )),
+        Obx(() {
+          return Padding(
+            padding:
+                controller._showBottomNav.value ? EdgeInsets.only(bottom: controller.bottomNavHeight) : EdgeInsets.zero,
+            child: widget.navigationShell,
+          );
+        }),
         // widget.navigationShell,
         Obx(
           () => Positioned(
