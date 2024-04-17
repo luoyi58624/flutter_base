@@ -21,7 +21,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(RouterUtil.rootContext)
+        backgroundColor: FlutterUtil.isDarkMode(rootContext)
             ? FlutterController.of.darkTheme.primary
             : FlutterController.of.theme.primary,
       ),
@@ -34,7 +34,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(RouterUtil.rootContext)
+        backgroundColor: FlutterUtil.isDarkMode(rootContext)
             ? FlutterController.of.darkTheme.success
             : FlutterController.of.theme.success,
       ),
@@ -47,7 +47,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(RouterUtil.rootContext)
+        backgroundColor: FlutterUtil.isDarkMode(rootContext)
             ? FlutterController.of.darkTheme.warning
             : FlutterController.of.theme.warning,
       ),
@@ -60,7 +60,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(RouterUtil.rootContext)
+        backgroundColor: FlutterUtil.isDarkMode(rootContext)
             ? FlutterController.of.darkTheme.error
             : FlutterController.of.theme.error,
       ),
@@ -73,7 +73,7 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(RouterUtil.rootContext)
+        backgroundColor: FlutterUtil.isDarkMode(rootContext)
             ? FlutterController.of.darkTheme.info
             : FlutterController.of.theme.info,
       ),

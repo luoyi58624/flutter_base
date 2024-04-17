@@ -37,13 +37,13 @@ class GetxUtilPage extends StatelessWidget {
         ),
         ElevatedButton(
           onPressed: () {
-            RouterUtil.push(context, const _ListPage());
+            context.push(const _ListPage());
           },
           child: const Text('响应式缓存列表页面'),
         ),
         ElevatedButton(
           onPressed: () {
-            RouterUtil.push(context, const _ListPage2());
+            context.push(const _ListPage2());
           },
           child: const Text('普通列表页面'),
         ),

@@ -17,7 +17,8 @@ class FlutterApp extends StatelessWidget {
   const FlutterApp({
     super.key,
     this.title = 'Flutter App',
-    required this.router,
+    this.home,
+    this.router,
     this.localizationsDelegates,
     this.supportedLocales,
     this.locale = const Locale('zh', 'CN'),
@@ -27,18 +28,21 @@ class FlutterApp extends StatelessWidget {
   /// App标题
   final String title;
 
+  /// 首屏页面，仅适用于简单App
+  final Widget? home;
+
   /// 声明式路由配置
   ///
   /// 示例：
   /// ``` dart
   /// final router = GoRouter(
-  ///   navigatorKey: RouterUtil.rootNavigatorKey,
+  ///   navigatorKey: context.rootNavigatorKey,
   ///   routes: [
   ///     GoRoute(path: '/', builder: (context, state) => HomePage()),
   ///   ],
   /// );
   /// ```
-  final GoRouter router;
+  final GoRouter? router;
 
   /// 国际化配置，你传入的新配置将合并至默认配置，默认配置为：
   /// ```dart
@@ -66,12 +70,17 @@ class FlutterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     FlutterController c = Get.find();
+    if (router == null) assert(home != null, '你没有设置routes，请传递home页面！');
     var $localizationsDelegates = (localizationsDelegates ?? []).toList();
     $localizationsDelegates.addAll(_localizationsDelegates);
     var $supportedLocales = (supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
+    _router = router ??
+        GoRouter(
+          routes: [GoRoute(path: '/', builder: (context, state) => home!)],
+        );
     return Obx(() => MaterialApp.router(
-          routerConfig: router,
+          routerConfig: _router,
           theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
           darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
           themeMode: c.themeMode,

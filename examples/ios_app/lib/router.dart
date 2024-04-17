@@ -7,7 +7,6 @@ import 'pages/root/util.dart';
 
 final router = GoRouter(
   initialLocation: '/',
-  navigatorKey: RouterUtil.rootNavigatorKey,
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => FlutterTabScaffold(
@@ -28,7 +27,7 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'child',
-                  pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ChildPage()),
+                  pageBuilder: (context, state) => context.pageBuilder(state, const ChildPage()),
                 ),
               ],
             ),
@@ -44,8 +43,7 @@ final router = GoRouter(
                   path: 'child',
                   pageBuilder: (context, state) {
                     logger.i(state.uri.queryParameters);
-                    return RouterUtil.pageBuilder(
-                      context,
+                    return context.pageBuilder(
                       state,
                       ComponentChildPage(title: state.uri.queryParameters['title']),
                       rootNavigator: true,
@@ -64,8 +62,7 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'child',
-                  pageBuilder: (context, state) =>
-                      RouterUtil.pageBuilder(context, state, ChildPage(title: state.uri.queryParameters['title'])),
+                  pageBuilder: (context, state) => context.pageBuilder(state, ChildPage(title: state.uri.queryParameters['title'])),
                 ),
               ],
             ),
@@ -75,15 +72,14 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/root_child',
-      pageBuilder: (context, state) => RouterUtil.pageBuilder(
-        context,
+      pageBuilder: (context, state) => context.pageBuilder(
         state,
         const ChildPage(title: '根 - 子页面'),
       ),
     ),
     GoRoute(
       path: '/home_child',
-      pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const HomeChildPage()),
+      pageBuilder: (context, state) => context.pageBuilder(state, const HomeChildPage()),
     ),
   ],
 );

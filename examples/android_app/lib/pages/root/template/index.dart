@@ -67,7 +67,7 @@ class TemplatePageState extends State<TemplatePage> with SingleTickerProviderSta
         const SizedBox(height: 8),
         ElevatedButton(
           onPressed: () {
-            RouterUtil.push(context, const SliverTestPage());
+            context.push(const SliverTestPage());
           },
           child: const Text('Sliver'),
         ),
@@ -76,7 +76,7 @@ class TemplatePageState extends State<TemplatePage> with SingleTickerProviderSta
           tag: 'button',
           child: GestureDetector(
             onTap: () {
-              RouterUtil.push(context, const _HeroChildPage(), rootNavigator: true);
+              context.push(const _HeroChildPage(), rootNavigator: true);
             },
             child: Container(
               width: 100,

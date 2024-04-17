@@ -35,9 +35,7 @@ class RoutePath {
 GoRouter initRouter() {
   return GoRouter(
     initialLocation: RoutePath.root,
-    navigatorKey: RouterUtil.rootNavigatorKey,
     redirect: (context, state) => GlobalController.of.isLogin.value ? null : RoutePath.login,
-    observers: [RouteListen()],
     routes: [
       GoRoute(path: '/', redirect: (context, state) => RoutePath.root),
       StatefulShellRoute.indexedStack(
@@ -56,26 +54,24 @@ GoRouter initRouter() {
             GoRoute(path: RoutePath.root, builder: (context, state) => const ComponentPage(), routes: [
               GoRoute(
                 path: 'theme',
-                pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ImageTestPage()),
+                pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
               ),
               GoRoute(
                 path: 'image',
-                pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const ImageTestPage()),
+                pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
               ),
               GoRoute(
                 path: 'animation',
-                pageBuilder: (context, state) =>
-                    RouterUtil.pageBuilder(context, state, const AnimationWidgetTestPage()),
+                pageBuilder: (context, state) => context.pageBuilder(state, const AnimationWidgetTestPage()),
               ),
               GoRoute(
                 path: 'go_router',
-                pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const GoRouterTestPage()),
+                pageBuilder: (context, state) => context.pageBuilder(state, const GoRouterTestPage()),
               ),
             ]),
           ]),
           StatefulShellBranch(routes: [GoRoute(path: RoutePath.util, builder: (context, state) => const UtilPage())]),
-          StatefulShellBranch(
-              routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
+          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
@@ -83,19 +79,16 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: ':id',
-                  pageBuilder: (context, state) => RouterUtil.pageBuilder(
-                      context, state, ChatPage(id: state.pathParameters['id']!),
-                      rootNavigator: true),
+                  pageBuilder: (context, state) =>
+                      context.pageBuilder(state, ChatPage(id: state.pathParameters['id']!), rootNavigator: true),
                   routes: [
                     GoRoute(
                         path: 'info',
-                        pageBuilder: (context, state) =>
-                            RouterUtil.pageBuilder(context, state, ChatInfoPage(id: state.pathParameters['id']!)),
+                        pageBuilder: (context, state) => context.pageBuilder(state, ChatInfoPage(id: state.pathParameters['id']!)),
                         routes: [
                           GoRoute(
                             path: 'user',
-                            pageBuilder: (context, state) =>
-                                RouterUtil.pageBuilder(context, state, const ChatUserInfoPage(), rootNavigator: true),
+                            pageBuilder: (context, state) => context.pageBuilder(state, const ChatUserInfoPage(), rootNavigator: true),
                           )
                         ]),
                   ],
@@ -110,17 +103,15 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: 'animation',
-                  pageBuilder: (context, state) => RouterUtil.pageBuilder(context, state, const AnimationTestPage()),
+                  pageBuilder: (context, state) => context.pageBuilder(state, const AnimationTestPage()),
                   routes: [
                     GoRoute(
                       path: 'slider',
-                      pageBuilder: (context, state) =>
-                          RouterUtil.pageBuilder(context, state, const SliderAnimationTestPage()),
+                      pageBuilder: (context, state) => context.pageBuilder(state, const SliderAnimationTestPage()),
                     ),
                     GoRoute(
                       path: 'drag',
-                      pageBuilder: (context, state) =>
-                          RouterUtil.pageBuilder(context, state, const DragAnimationTestPage()),
+                      pageBuilder: (context, state) => context.pageBuilder(state, const DragAnimationTestPage()),
                     ),
                   ],
                 ),

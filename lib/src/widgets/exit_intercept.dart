@@ -27,7 +27,7 @@ class _DoubleExitWidgetState extends State<DoubleExitWidget> {
         if (didPop) return;
         if (allowQuit) {
           // context.pop();
-          RouterUtil.pop(context);
+          context.pop();
         } else {
           allowQuit = true;
           ToastUtil.showToast(widget.message);

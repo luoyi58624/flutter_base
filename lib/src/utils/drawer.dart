@@ -32,7 +32,7 @@ class DrawerUtil {
         );
       },
     );
-    if (RouterUtil.rootContext.mounted) Overlay.of(RouterUtil.rootContext).insert(_overlayEntry!);
+    if (rootContext.mounted) Overlay.of(rootContext).insert(_overlayEntry!);
   }
 
   /// 关闭当前屏幕上的抽屉

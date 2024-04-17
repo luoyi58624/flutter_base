@@ -1,10 +1,18 @@
 part of flutter_base;
 
-/// 路由工具类，封装命令式、声明式路由工具方法
+late GoRouter _router;
+
+/// 根节点导航key
+GlobalKey<NavigatorState> get rootNavigatorKey => _router.configuration.navigatorKey;
+
+/// 根节点context
+BuildContext get rootContext => rootNavigatorKey.currentContext!;
+
+/// flutter路由对象，支持命令式、声明式导航
 /// * 命令式路由
 /// ``` dart
-/// RouterUtil.push(context, A());
-/// RouterUtil.pop(context);
+/// context.push(A());
+/// context.pop();
 /// ```
 ///
 /// * 声明式路由
@@ -13,37 +21,29 @@ part of flutter_base;
 /// GoRoute(path: '/child', builder: (context, state) => const ChildPage()),
 /// context.go('/child');
 /// ```
-class RouterUtil {
-  RouterUtil._();
-
-  /// 根节点导航key
-  static GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
-
-  /// 根节点context
-  static BuildContext get rootContext {
-    assert(rootNavigatorKey.currentContext != null, '请配置rootNavigatorKey');
-    return rootNavigatorKey.currentContext!;
-  }
-
-  static void go(BuildContext context, String path) {
+extension FlutterRouterHelper on BuildContext {
+  void go(String path) {
     if (_RoutePageState.rootHashCode != null) {
       _RoutePageState.resetState();
       TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
       TabScaffoldController.of._showBottomNav.value = true;
     }
-    context.go(path);
+    GoRouter.of(this).go(path);
+  }
+
+  void pushPath(String path) {
+    GoRouter.of(this).push(path);
   }
 
   /// 跳转到新页面
   /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
   /// * page 新页面组件
   /// * rootNavigator 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
-  static Future<T?> push<T>(
-    BuildContext context,
+  Future<T?> push<T>(
     Widget page, {
     bool rootNavigator = false,
   }) async {
-    var result = await Navigator.of(context).push<T>(_PageRouter(
+    var result = await Navigator.of(this).push<T>(_PageRouter(
       builder: (context) => page,
       rootNavigator: rootNavigator,
     ));
@@ -51,17 +51,16 @@ class RouterUtil {
   }
 
   /// 返回上一页
-  static void pop<T>(BuildContext context, [T? data]) async {
-    Navigator.of(context).pop(data);
+  void pop([dynamic data]) async {
+    Navigator.of(this).pop(data);
   }
 
   /// 重定向页面，先跳转新页面，再删除之前的页面
-  static Future<T?> pushReplacement<T>(
-    BuildContext context,
+  Future<T?> pushReplacement<T>(
     Widget page, {
     bool rootNavigator = false,
   }) async {
-    return await Navigator.of(context).pushReplacement(_PageRouter(
+    return await Navigator.of(this).pushReplacement(_PageRouter(
       builder: (context) => page,
       rootNavigator: rootNavigator,
     ));
@@ -71,13 +70,12 @@ class RouterUtil {
   ///
   /// 例如：如果你想跳转一个新页面，同时希望这个新页面的上一级是首页，那么就设置routePath = '/'，
   /// 它会先跳转到新的页面，再删除从首页开始后的全部路由。
-  static void pushAndRemoveUntil(
-    BuildContext context,
+  void pushAndRemoveUntil(
     Widget page,
     String routePath, {
     bool rootNavigator = false,
   }) async {
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
         builder: (context) => page,
         rootNavigator: rootNavigator,
@@ -87,17 +85,16 @@ class RouterUtil {
   }
 
   /// 退出到指定位置
-  static void popUntil(BuildContext context, String routePath) async {
-    Navigator.of(context).popUntil(ModalRoute.withName(routePath));
+  void popUntil(String routePath) async {
+    Navigator.of(this).popUntil(ModalRoute.withName(routePath));
   }
 
   /// 进入新的页面并删除之前所有路由
-  static void pushAndRemoveAllUntil(
-    BuildContext context,
+  void pushAndRemoveAllUntil(
     Widget page, {
     bool rootNavigator = false,
   }) async {
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
         builder: (context) => page,
         rootNavigator: rootNavigator,
@@ -108,8 +105,7 @@ class RouterUtil {
 
   /// 构建[CupertinoPage]动画页面的[GoRoute]
   /// * rootNavigator 如果为true，进入到此页面以及此页面下的所有子级路由都将隐藏底部tabbar
-  static Page<dynamic> pageBuilder<T>(
-    BuildContext context,
+  Page<dynamic> pageBuilder<T>(
     GoRouterState state,
     Widget page, {
     bool rootNavigator = false,
@@ -124,7 +120,7 @@ class RouterUtil {
       );
 
   /// 根据[RouterModel]集合生成[GoRoute]集合
-  static List<GoRoute> routerModelToGoRouter(List<RouterModel> pages) {
+  List<GoRoute> routerModelToGoRouter(List<RouterModel> pages) {
     return pages
         .map((e) => GoRoute(
             path: e.path,
@@ -256,12 +252,20 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   Widget buildContent(BuildContext context) => builder(context);
 }
 
+class _RoutePageHistoryModel {
+  _RoutePageHistoryModel(
+    this.rootNavigator,
+    this.isPop,
+  );
+
+  final bool rootNavigator;
+  bool isPop;
+}
+
 class _RoutePageState {
   _RoutePageState._();
 
-  /// 此变量用于解决用户退出隐藏底部导航栏后又快速重新进入所引发的一些问题，因为我们需要在页面完全退出的情况下重新设置状态(dispose生命周期)，
-  /// 但是退出有一个几百毫秒的过渡动画，在此期间用户再次进入我们必须抛弃dispose 当前设置了隐藏底部导航栏的路由是否已经弹出，但退出动画还未结束
-  static bool isPop = false;
+  static Map<int, _RoutePageHistoryModel> history = {};
 
   /// 保存最上层隐藏底部tabbar的路由页面HashCode
   static int? rootHashCode;
@@ -273,7 +277,6 @@ class _RoutePageState {
   static int? popNextHashCode;
 
   static void resetState() {
-    _RoutePageState.isPop = false;
     _RoutePageState.rootHashCode = null;
     _RoutePageState.currentHashCode = null;
     _RoutePageState.popNextHashCode = null;
@@ -284,6 +287,8 @@ class _RoutePageState {
 mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 当前路由是否隐藏tabbar
   bool get hideTabbar => false;
+
+  bool isPop = false;
 
   /// 禁用第一帧动画，buildTransitions第一帧的animation值是目标动画的最终值，这会导致底部导航栏隐藏过程中出现轻微抖动
   bool disabledFirstFrame = true;
@@ -307,71 +312,66 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     super.didAdd();
   }
 
-  @override
-  scheduler.TickerFuture didPush() {
-    logger.i('didPush');
-    // logger.i(settings.name);
-    // logger.i(_RoutePageState.currentHashCode, _RoutePageState.rootHashCode);
-    // 设置当前页面的hashCode
-    _RoutePageState.currentHashCode = hashCode;
-    if (hideTabbar) {
-      // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处禁止dispose逻辑执行
-      if (_RoutePageState.isPop) {
-        _RoutePageState.isPop = false;
-        if (_RoutePageState.popNextHashCode == null) _RoutePageState.rootHashCode = hashCode;
-        _RoutePageState.popNextHashCode = null;
-      } else {
-        _RoutePageState.rootHashCode ??= hashCode;
-      }
-    }
-    if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
-    return super.didPush();
-  }
+  // @override
+  // scheduler.TickerFuture didPush() {
+  //   _RoutePageState.history[hashCode] = _RoutePageHistoryModel(hideTabbar, false);
+  //   if (hideTabbar) {
+  //     // 当用户退出隐藏底部导航栏页面又快速重新进入，那么此时上次退出的页面dispose还未执行，那么我们在此处禁止dispose逻辑执行
+  //     if (isPop) {
+  //       _RoutePageState.isPop = false;
+  //       if (_RoutePageState.popNextHashCode == null) _RoutePageState.rootHashCode = hashCode;
+  //       _RoutePageState.popNextHashCode = null;
+  //     } else {
+  //       _RoutePageState.rootHashCode ??= hashCode;
+  //     }
+  //   }
+  //   if (_allowUpdateBottomNav) TabScaffoldController.of._showBottomNav.value = false;
+  //   return super.didPush();
+  // }
+  //
+  // @override
+  // bool didPop(result) {
+  //   // logger.i('didPop');
+  //   _RoutePageState.isPop = true;
+  //   if (_RoutePageState.rootHashCode == null) {
+  //   } else {
+  //     // 如果是 rootHashCode 页面退出，那么无需 popNextHashCode
+  //     if (_RoutePageState.rootHashCode == hashCode) _RoutePageState.popNextHashCode = null;
+  //   }
+  //   return super.didPop(result);
+  // }
+  //
+  // @override
+  // void didPopNext(Route nextRoute) {
+  //   super.didPopNext(nextRoute);
+  //   // 当上一个页面退出后将拿到当前页面的 hashCode，在上一个页面执行 dispose 后再设置 currentHashCode，这段逻辑非常绕，
+  //   // 因为 buildTransitions 会在两个页面间同步执行，如果在 didPopNext 方法中直接设置 currentHashCode，同时上一个页面刚好是 rootHashCode,
+  //   // 那么 rootHashCode 页面和子页面之间的转换将导致 buildTransitions 触发显示、隐藏底部导航栏，所以我们必须创建 popNextHashCode 中间变量，
+  //   // 当子页面完全销毁后（dispose），再设置 currentHashCode。
+  //   if (nextRoute.hashCode != _RoutePageState.rootHashCode) _RoutePageState.popNextHashCode = hashCode;
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   super.dispose();
+  //   // 在路由销毁时并过渡动画结束后取消隐藏底部tabbar，并重置_RoutePageState中的状态
+  //   if (_allowUpdateBottomNav) {
+  //     if (_RoutePageState.isPop) {
+  //       _RoutePageState.resetState();
+  //       TabScaffoldController.of._showBottomNav.value = true;
+  //     }
+  //   } else {
+  //     if (_RoutePageState.isPop) {
+  //       // 若弹出的是子级页面，等待路由动画结束再设置 currentHashCode
+  //       _RoutePageState.isPop = false;
+  //       _RoutePageState.currentHashCode = _RoutePageState.popNextHashCode;
+  //       _RoutePageState.popNextHashCode = null;
+  //     }
+  //   }
+  // }
 
   @override
-  bool didPop(result) {
-    // logger.i('didPop');
-    _RoutePageState.isPop = true;
-    if (_RoutePageState.rootHashCode == null) {
-    } else {
-      // 如果是 rootHashCode 页面退出，那么无需 popNextHashCode
-      if (_RoutePageState.rootHashCode == hashCode) _RoutePageState.popNextHashCode = null;
-    }
-    return super.didPop(result);
-  }
-
-  @override
-  void didPopNext(Route nextRoute) {
-    super.didPopNext(nextRoute);
-    // 当上一个页面退出后将拿到当前页面的 hashCode，在上一个页面执行 dispose 后再设置 currentHashCode，这段逻辑非常绕，
-    // 因为 buildTransitions 会在两个页面间同步执行，如果在 didPopNext 方法中直接设置 currentHashCode，同时上一个页面刚好是 rootHashCode,
-    // 那么 rootHashCode 页面和子页面之间的转换将导致 buildTransitions 触发显示、隐藏底部导航栏，所以我们必须创建 popNextHashCode 中间变量，
-    // 当子页面完全销毁后（dispose），再设置 currentHashCode。
-    if (nextRoute.hashCode != _RoutePageState.rootHashCode) _RoutePageState.popNextHashCode = hashCode;
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    // 在路由销毁时并过渡动画结束后取消隐藏底部tabbar，并重置_RoutePageState中的状态
-    if (_allowUpdateBottomNav) {
-      if (_RoutePageState.isPop) {
-        _RoutePageState.resetState();
-        TabScaffoldController.of._showBottomNav.value = true;
-      }
-    } else {
-      if (_RoutePageState.isPop) {
-        // 若弹出的是子级页面，等待路由动画结束再设置 currentHashCode
-        _RoutePageState.isPop = false;
-        _RoutePageState.currentHashCode = _RoutePageState.popNextHashCode;
-        _RoutePageState.popNextHashCode = null;
-      }
-    }
-  }
-
-  @override
-  Widget buildTransitions(
-      BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
     if (disabledFirstFrame) {
       disabledFirstFrame = false;
     } else {
@@ -392,14 +392,4 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }
-}
-
-class RouteListen extends NavigatorObserver {
-  @override
-  void didPush(Route route, Route? previousRoute) {
-    logger.i(route.settings.name, 'RouteListen');
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) async {}
 }

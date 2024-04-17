@@ -23,7 +23,7 @@ class ComponentPage extends StatelessWidget {
               ),
               ElevatedButton(
                 onPressed: () {
-                  RouterUtil.push(context, const ComponentChildPage(), rootNavigator: true);
+                  context.push(const ComponentChildPage(), rootNavigator: true);
                 },
                 child: const Text('子页面-命令式'),
               ),

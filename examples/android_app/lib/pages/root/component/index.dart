@@ -113,7 +113,13 @@ class _ComponentPageState extends State<ComponentPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                context.push('/root_child');
+                context.go('/chat/2/info');
+              },
+              child: const Text('go /chat/2/info'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.pushPath('/root_child');
               },
               child: const Text('push root_go_route'),
             ),
@@ -122,7 +128,7 @@ class _ComponentPageState extends State<ComponentPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          RouterUtil.push(context, const ThemePage());
+          context.push( const ThemePage());
         },
         child: const Icon(Icons.color_lens),
       ),

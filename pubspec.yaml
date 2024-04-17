@@ -44,6 +44,7 @@ dependencies:
   scrollable_positioned_list: ^0.2.3
   path_provider: ^2.1.2
   uuid: ^4.3.3
+  gap: ^3.0.1
 
 dev_dependencies:
   flutter_test:

@@ -35,13 +35,13 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  RouterUtil.push(context, const _ChildPage(), rootNavigator: true);
+                  context.push(const _ChildPage(), rootNavigator: true);
                 },
                 child: const Text('子页面'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  RouterUtil.pop(context);
+                  context.pop(context);
                 },
                 child: const Text('返回'),
               ),

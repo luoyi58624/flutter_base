@@ -19,13 +19,13 @@ class HomePage extends StatelessWidget {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    context.push('/root_child');
+                    context.pushPath('/root_child');
                   },
                   child: const Text('根 - 子页面'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    context.push('/home_child');
+                    context.pushPath('/home_child');
                   },
                   child: const Text('根 - 首页 - 子页面'),
                 ),
@@ -37,7 +37,7 @@ class HomePage extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    RouterUtil.push(context, const HomeChildPage(), rootNavigator: true);
+                    context.push(const HomeChildPage(), rootNavigator: true);
                   },
                   child: const Text('命令式 - 子页面'),
                 ),

@@ -39,7 +39,7 @@ export 'package:dio/dio.dart';
 export 'package:flutter_animate/flutter_animate.dart';
 
 // flutter官方路由库
-export 'package:go_router/go_router.dart';
+export 'package:go_router/go_router.dart' hide GoRouterHelper;
 
 // flutter官方国际化库
 export 'package:flutter_localizations/flutter_localizations.dart';
@@ -73,6 +73,9 @@ export 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 /// 扩展官方tabs，优化手感
 export 'package:extended_tabs/extended_tabs.dart';
+
+/// 轻松地在 Flex 小部件内添加间隙
+export 'package:gap/gap.dart';
 
 part 'src/app.dart';
 
@@ -178,10 +181,13 @@ part 'src/widgets/cupertino/list_group.dart';
 
 part 'src/widgets/cupertino/list_tile.dart';
 
+
+
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
 /// 初始化App
+/// * themeMode 主题模式
 /// * theme 自定义亮色主题
 /// * darkTheme 自定义暗色主题
 /// * config 自定义全局配置
@@ -195,7 +201,6 @@ Future<void> initFlutterApp({
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
-
   Get.put(FlutterController(
     themeMode: themeMode ??= ThemeMode.system,
     theme: theme ??= FlutterThemeData(),

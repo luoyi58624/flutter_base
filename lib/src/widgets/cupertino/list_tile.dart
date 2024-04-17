@@ -58,7 +58,7 @@ class MyCupertinoListTile extends StatelessWidget {
               if (onTap != null) {
                 onTap!();
               } else {
-                RouterUtil.push(context, page!);
+                context.push(page!);
               }
             },
       leading: leading,

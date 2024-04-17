@@ -39,7 +39,7 @@ class ModalUtils {
     Function? onConfirm,
   }) async {
     bool? result = await showDialog<bool>(
-      context: RouterUtil.rootContext,
+      context: rootContext,
       barrierDismissible: barrierDismissible,
       builder: (context) => WillPopScope(
         onWillPop: preventBack ? () async => false : null,
@@ -97,7 +97,7 @@ class ModalUtils {
     Function(String value)? onConfirm,
   }) async {
     await showDialog(
-        context: RouterUtil.rootContext,
+        context: rootContext,
         builder: (context) => InputDialogWidget(
               title: title,
               cancelText: cancelText,

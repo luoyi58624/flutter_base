@@ -57,7 +57,7 @@ class _ChatItemState extends State<_ChatItem> {
     return InkWell(
       onTap: () {
         context.go('/chat/${widget.index}');
-        // RouterUtil.push(context, ChatPage(id: widget.index.toString()), rootNavigator: true);
+        // context.push(context, ChatPage(id: widget.index.toString()), rootNavigator: true);
       },
       child: Container(
         height: 72,

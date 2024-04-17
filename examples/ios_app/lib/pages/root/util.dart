@@ -24,7 +24,7 @@ class UtilPage extends StatelessWidget {
               const SizedBox(height: 8),
               CupertinoButton.filled(
                 onPressed: () {
-                  RouterUtil.push(context, const _FirstPage());
+                  context.push(const _FirstPage());
                 },
                 child: const Text('一级子页面'),
               )
@@ -51,7 +51,7 @@ class _FirstPage extends StatelessWidget {
             children: [
               CupertinoButton.filled(
                 onPressed: () {
-                  RouterUtil.push(context, const _SecondPage());
+                  context.push(const _SecondPage());
                 },
                 child: const Text('二级子页面'),
               )
@@ -78,7 +78,7 @@ class _SecondPage extends StatelessWidget {
             children: [
               CupertinoButton.filled(
                 onPressed: () {
-                  RouterUtil.push(context, const _ThreePage());
+                  context.push(const _ThreePage());
                 },
                 child: const Text('三级子页面'),
               )
@@ -105,7 +105,7 @@ class _ThreePage extends StatelessWidget {
             children: [
               CupertinoButton.filled(
                 onPressed: () {
-                  RouterUtil.popUntil(context, '/util');
+                  context.popUntil('/util');
                   // context.go('/');
                 },
                 child: const Text('返回工具页面'),

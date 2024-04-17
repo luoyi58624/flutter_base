@@ -103,7 +103,7 @@ Widget buildListSection(BuildContext context, String title, List<NavModel> navMo
                     trailing: const Icon(Icons.keyboard_arrow_right_outlined),
                     onTap: () {
                       if (e is PageNavModel) {
-                        RouterUtil.push(context, e.page);
+                        context.push(e.page);
                       } else if (e is UrlNavModel) {
                         context.go(e.path);
                       }

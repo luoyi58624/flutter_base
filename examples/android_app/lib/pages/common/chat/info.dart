@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:android_app/global.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 class ChatInfoPage extends StatefulWidget {
   const ChatInfoPage({super.key, required this.id});
@@ -34,9 +33,15 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
         [
           ElevatedButton(
             onPressed: () {
-              context.push('/chat/$newId');
+              context.go('/chat/$newId');
             },
-            child: Text('跳转到新的聊天室 - $newId'),
+            child: Text('go - $newId'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.pushPath('/chat/$newId');
+            },
+            child: Text('push - $newId'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -46,13 +51,13 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              RouterUtil.go(context, RoutePath.root);
+              context.go(RoutePath.root);
             },
             child: const Text('跳转到首页'),
           ),
           ElevatedButton(
             onPressed: () {
-              RouterUtil.go(context, '${RoutePath.root}/image');
+              context.go('${RoutePath.root}/image');
             },
             child: const Text('跳转到首页图片测试'),
           ),
