@@ -1,6 +1,7 @@
 import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
 import 'package:android_app/pages/login.dart';
+import 'package:android_app/pages/root/component/root_go_route.dart';
 import 'package:android_app/pages/root/test/animation/darg.dart';
 import 'package:android_app/pages/root/test/animation/index.dart';
 import 'package:android_app/pages/root/test/animation/slider.dart';
@@ -36,6 +37,7 @@ GoRouter initRouter() {
     initialLocation: RoutePath.root,
     navigatorKey: RouterUtil.rootNavigatorKey,
     redirect: (context, state) => GlobalController.of.isLogin.value ? null : RoutePath.login,
+    observers: [RouteListen()],
     routes: [
       GoRoute(path: '/', redirect: (context, state) => RoutePath.root),
       StatefulShellRoute.indexedStack(
@@ -128,7 +130,7 @@ GoRouter initRouter() {
         ],
       ),
       GoRoute(path: RoutePath.login, builder: (context, state) => const LoginPage()),
-      GoRoute(path: '/root_child', builder: (context, state) => const ChildPage(title: '根页面child')),
+      GoRoute(path: '/root_child', builder: (context, state) => const RootGoRoutePage()),
     ],
   );
 }

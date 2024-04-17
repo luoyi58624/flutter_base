@@ -25,6 +25,15 @@ class RouterUtil {
     return rootNavigatorKey.currentContext!;
   }
 
+  static void go(BuildContext context, String path) {
+    if (_RoutePageState.rootHashCode != null) {
+      _RoutePageState.resetState();
+      TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
+      TabScaffoldController.of._showBottomNav.value = true;
+    }
+    context.go(path);
+  }
+
   /// 跳转到新页面
   /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
   /// * page 新页面组件
@@ -262,6 +271,13 @@ class _RoutePageState {
 
   /// 弹出的路由上一个页面的hashCode
   static int? popNextHashCode;
+
+  static void resetState() {
+    _RoutePageState.isPop = false;
+    _RoutePageState.rootHashCode = null;
+    _RoutePageState.currentHashCode = null;
+    _RoutePageState.popNextHashCode = null;
+  }
 }
 
 /// 定制Cupertino路由切换动画，如果进入新页面设置了隐藏底部导航栏，将在路由转换时应用显示、隐藏底部导航栏动画
@@ -279,6 +295,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   /// 我们将最后一个页面的[hashCode]作为[_RoutePageState.rootHashCode]
   @override
   void didAdd() {
+    // logger.i('didAdd');
     _RoutePageState.currentHashCode ??= hashCode;
     if (hideTabbar) {
       // 隐藏底部导航栏，提示：getx的响应式变量多次设置相同值并不会重复渲染
@@ -292,6 +309,9 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   scheduler.TickerFuture didPush() {
+    logger.i('didPush');
+    // logger.i(settings.name);
+    // logger.i(_RoutePageState.currentHashCode, _RoutePageState.rootHashCode);
     // 设置当前页面的hashCode
     _RoutePageState.currentHashCode = hashCode;
     if (hideTabbar) {
@@ -310,9 +330,12 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   bool didPop(result) {
+    // logger.i('didPop');
     _RoutePageState.isPop = true;
-    if (_RoutePageState.rootHashCode == hashCode) {
-      _RoutePageState.popNextHashCode = null;
+    if (_RoutePageState.rootHashCode == null) {
+    } else {
+      // 如果是 rootHashCode 页面退出，那么无需 popNextHashCode
+      if (_RoutePageState.rootHashCode == hashCode) _RoutePageState.popNextHashCode = null;
     }
     return super.didPop(result);
   }
@@ -333,10 +356,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     // 在路由销毁时并过渡动画结束后取消隐藏底部tabbar，并重置_RoutePageState中的状态
     if (_allowUpdateBottomNav) {
       if (_RoutePageState.isPop) {
-        _RoutePageState.isPop = false;
-        _RoutePageState.rootHashCode = null;
-        _RoutePageState.currentHashCode = null;
-        _RoutePageState.popNextHashCode = null;
+        _RoutePageState.resetState();
         TabScaffoldController.of._showBottomNav.value = true;
       }
     } else {
@@ -372,4 +392,14 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
     }
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }
+}
+
+class RouteListen extends NavigatorObserver {
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    logger.i(route.settings.name, 'RouteListen');
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) async {}
 }

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:android_app/global.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -14,6 +15,7 @@ class ChatInfoPage extends StatefulWidget {
 
 class _ChatInfoPageState extends State<ChatInfoPage> {
   int newId = Random().nextInt(50);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,13 +30,33 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
           ),
         ],
       ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            context.push('/chat/$newId');
-          },
-          child: Text('跳转到新的聊天室 - $newId'),
-        ),
+      body: buildCenterColumn(
+        [
+          ElevatedButton(
+            onPressed: () {
+              context.push('/chat/$newId');
+            },
+            child: Text('跳转到新的聊天室 - $newId'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.go('/chat');
+            },
+            child: const Text('回到聊天列表'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              RouterUtil.go(context, RoutePath.root);
+            },
+            child: const Text('跳转到首页'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              RouterUtil.go(context, '${RoutePath.root}/image');
+            },
+            child: const Text('跳转到首页图片测试'),
+          ),
+        ],
       ),
     );
   }

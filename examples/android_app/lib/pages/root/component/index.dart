@@ -3,8 +3,15 @@ import 'package:android_app/pages/root/component/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-class ComponentPage extends StatelessWidget {
+class ComponentPage extends StatefulWidget {
   const ComponentPage({super.key});
+
+  @override
+  State<ComponentPage> createState() => _ComponentPageState();
+}
+
+class _ComponentPageState extends State<ComponentPage> {
+  int count = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +97,26 @@ class ComponentPage extends StatelessWidget {
                 child: Text('修改getx：${GlobalController.of.count.value}'),
               );
             }),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  count++;
+                });
+              },
+              child: Text('count: $count'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.go('/root_child');
+              },
+              child: const Text('go root_go_route'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.push('/root_child');
+              },
+              child: const Text('push root_go_route'),
+            ),
           ],
         ),
       ),
