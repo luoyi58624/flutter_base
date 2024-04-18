@@ -246,11 +246,11 @@ mixin GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
 
   void listenRouteChange() {
     String url = _router.routerDelegate.currentConfiguration.uri.path;
-    _RoutePageState.currentUrl = url;
-    final targetUrl = _RoutePageState.matchUrl(url);
+    _RoutePageState.currentPath = url;
+    _RoutePageState.setCurrentIndex();
+    final targetUrl = _RoutePageState.matchUrl();
     if (targetUrl != null) {
-      int hashCode = _RoutePageState.urlHistory[targetUrl]!;
-      if (_RoutePageState.pageHistory[hashCode]!.hideTabbar) {
+      if (_RoutePageState.getHideTabbar(targetUrl)) {
         if (TabScaffoldController.of._showBottomNav.value) {
           TabScaffoldController.of._tabbarAnimationHeight.value = 0;
           TabScaffoldController.of._showBottomNav.value = false;
@@ -267,10 +267,14 @@ mixin GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
 
 class _RoutePageHistoryModel {
   _RoutePageHistoryModel(
+    this.id,
+    this.path,
     this.hideTabbar,
     this.isPop,
   );
 
+  int id;
+  String? path;
   final bool hideTabbar;
   bool isPop;
 }
@@ -278,55 +282,123 @@ class _RoutePageHistoryModel {
 class _RoutePageState {
   _RoutePageState._();
 
-  /// 当前路由
-  static String? currentUrl;
+  /// 当前路由路径
+  static late String currentPath;
 
-  /// 保存url - hasCode历史记录
-  static final Map<String, int> urlHistory = {};
+  /// 当前顶级路由位置
+  static int currentIndex = 0;
 
-  /// 保存当前用户跳转的RoutePage
-  static final Map<int, _RoutePageHistoryModel> pageHistory = {};
+  /// 二维历史记录数组，它对应的是[GoRouter]的并行导航
+  static final List<List<_RoutePageHistoryModel>> history = [];
 
   /// 当用户直接通过[go]跳转到某个分支的深层页面，或者用户在某个分支的深层页面刷新浏览器，[GoRouter]会从当前分支开始，依次
   /// 构建父级页面，直到最顶层，而此数组则是保存当前路由结构，到达最顶层后从最顶层开始依次添加到[urlHistory]
-  static final List<Map<String, int>> tempUrlHistory = [];
+  static final List<_RoutePageHistoryModel> tempHistory = [];
 
-  /// 逻辑与[tempUrlHistory]同理
-  static final List<Map<int, _RoutePageHistoryModel>> tempPageHistory = [];
+  /// 设置当前顶级路由位置
+  static void setCurrentIndex() {
+    String rootPath = currentPath.split('/')[1];
+    for (int i = 0; i < history.length; i++) {
+      if (history[i][0].path == '/$rootPath') {
+        currentIndex = i;
+        break;
+      }
+    }
+  }
 
   /// 注册的路由path集合
-  static List<String> get urls => urlHistory.keys.toList();
+  static List<String> get pathList {
+    List<String> list = [];
+    history.forEach((childList) {
+      childList.forEach((e) {
+        if (e.path != null) list.add(e.path!);
+      });
+    });
+    return list;
+  }
 
   /// 页面hashCode集合
-  static List<int> get hashCodes => pageHistory.keys.toList();
+  static List<int> get hashCodeList {
+    List<int> list = [];
+    history.forEach((childList) {
+      childList.forEach((e) {
+        list.add(e.id);
+      });
+    });
+    return list;
+  }
 
-  /// 当前页面的hashCode
-  static int get lastHashCode => pageHistory.keys.last;
-
-  /// 判断[pageHistory]最后一级页面是否需要隐藏底部导航栏
-  static bool get hideTabbar => pageHistory[lastHashCode]!.hideTabbar == true;
+  /// 最后一级页面是否需要隐藏底部导航栏
+  static bool get hideTabbar => history[currentIndex].last.hideTabbar;
 
   /// 当前页面上一级是否需要隐藏底部导航栏
   static bool get previousHideTabbar {
-    if (pageHistory.length <= 1) {
+    final currentHistory = history[currentIndex];
+    if (currentHistory.length <= 1) {
       return false;
     } else {
-      return pageHistory[hashCodes[pageHistory.length - 2]]!.hideTabbar == true;
+      return currentHistory[currentHistory.length - 2].hideTabbar == true;
     }
   }
 
   /// 只有当上一级不需要隐藏底部导航栏、以及当前页面需要隐藏底部导航栏时才允许执行更新动画
   static bool get allowUpdateTabbar => (!previousHideTabbar && hideTabbar) || (previousHideTabbar && !hideTabbar);
 
+  static bool lockCurrentPage(int hashCode) {
+    return history[currentIndex].last.id == hashCode;
+  }
+
+  static int? getHashCode(String url) {
+    for (int i = 0; i < history.length; i++) {
+      for (int j = 0; j < history[i].length; j++) {
+        if (history[i][j].path == url) {
+          return history[i][j].id;
+        }
+      }
+    }
+    return null;
+  }
+
+  static bool getHideTabbar(String url) {
+    for (int i = 0; i < history.length; i++) {
+      for (int j = 0; j < history[i].length; j++) {
+        if (history[i][j].path == url) {
+          return history[i][j].hideTabbar;
+        }
+      }
+    }
+    return false;
+  }
+
+  static void pushPage(_RoutePageHistoryModel model) {
+    if (model.path == null) {
+      history[currentIndex].add(model);
+    } else {
+      // 处理动态路由
+      if (model.path!.startsWith(':')) {
+        final urlList = currentPath.split('/');
+        urlList[urlList.length - 1] = model.path!;
+        model.path = urlList.join('/');
+        history[currentIndex].add(model);
+      } else {
+        // 处理其他路由，我们先拿到符合条件的前缀路由集合，再根据/分割成数组进行长度匹配
+        final targetUrl = matchUrl(true);
+        assert(targetUrl != null, 'didPush匹配的路由不可能为空');
+        model.path = '$targetUrl/${model.path}';
+        history[currentIndex].add(model);
+      }
+    }
+  }
+
   /// 标记退出的历史页面
   static void markPopPage() {
-    pageHistory[lastHashCode]!.isPop = true;
+    history[currentIndex].last.isPop = true;
   }
 
   /// 移除退出的历史页面
   static void removePopPage(int hashCode) {
     // 当用户完全退出后根据条件是否显示、隐藏底部导航栏，如果用户在路由过渡期间又立即进行新的页面，那么就无需执行此逻辑
-    if (pageHistory[lastHashCode]!.isPop) {
+    if (history[currentIndex].last.isPop) {
       if (hideTabbar) {
         if (!previousHideTabbar) {
           // 如果当前页面需要隐藏，但上一页不需要隐藏，则显示底部导航栏
@@ -339,15 +411,20 @@ class _RoutePageState {
         }
       }
     }
-    urlHistory.removeWhere((key, value) => value == hashCode);
-    pageHistory.remove(hashCode);
-    // logger.i(_RoutePageState.pageHistory, 'dispose');
+    for (int i = 0; i < history.length; i++) {
+      for (int j = 0; j < history[i].length; j++) {
+        if (history[i][j].id == hashCode) {
+          history[i].removeAt(j);
+          break;
+        }
+      }
+    }
   }
 
   /// 根据当前路由地址，匹配[urlHistory]中的地址
-  static String? matchUrl(String url, [bool? matchParent]) {
-    final urlList = url.split('/');
-    final targetUrls = urls.where((e) => e.startsWith('/${urlList[1]}'));
+  static String? matchUrl([bool? matchParent]) {
+    final urlList = currentPath.split('/');
+    final targetUrls = pathList.where((e) => e.startsWith('/${urlList[1]}'));
     final matchUrlList =
         targetUrls.where((e) => e.split('/').length + (matchParent == true ? 1 : 0) == urlList.length).toList();
     if (matchUrlList.isNotEmpty) {
@@ -371,62 +448,42 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   void didAdd() {
+    logger.i('didAdd', settings.name);
     assert(nameIsNotNull, '只有GoRouter创建的声明式路由才能触发didAdd方法，所以它必定存在路由名字，但却获得空，请检查相关代码逻辑！');
     if (isFirst) {
-      _RoutePageState.urlHistory[settings.name!] = hashCode;
-      _RoutePageState.pageHistory[hashCode] = _RoutePageHistoryModel(_hideTabbar, false);
-      if (_RoutePageState.tempUrlHistory.isNotEmpty) {
-        _RoutePageState.tempUrlHistory.forEach((e) {
-          String $path = e.keys.toList().first;
-          _RoutePageState.urlHistory['${settings.name!}/${$path}'] = e[$path]!;
-        });
-        _RoutePageState.tempUrlHistory.clear();
+      // 创建新的历史记录
+      List<_RoutePageHistoryModel> newHistory = [];
+      newHistory.add(_RoutePageHistoryModel(hashCode, settings.name!, _hideTabbar, false));
+      if (_RoutePageState.tempHistory.isNotEmpty) {
+        for (int i = 0; i < _RoutePageState.tempHistory.length; i++) {
+          _RoutePageState.tempHistory[i].path = '${settings.name!}/${_RoutePageState.tempHistory[i].path}';
+        }
+        newHistory.addAll(_RoutePageState.tempHistory);
+        _RoutePageState.tempHistory.clear();
       }
-      if (_RoutePageState.tempPageHistory.isNotEmpty) {
-        _RoutePageState.tempPageHistory.forEach((e) {
-          int $hashCode = e.keys.toList().first;
-          _RoutePageState.pageHistory[$hashCode] = e[$hashCode]!;
-        });
-        _RoutePageState.tempPageHistory.clear();
-      }
+      _RoutePageState.history.add(newHistory);
       if (_RoutePageState.hideTabbar) {
         TabScaffoldController.of._tabbarAnimationHeight.value = 0.0;
         TabScaffoldController.of._showBottomNav.value = false;
       }
     } else {
-      if (_RoutePageState.tempUrlHistory.isEmpty) {
-        _RoutePageState.tempUrlHistory.add({settings.name!: hashCode});
+      if (_RoutePageState.tempHistory.isEmpty) {
+        _RoutePageState.tempHistory.add(_RoutePageHistoryModel(hashCode, settings.name!, _hideTabbar, false));
       } else {
-        _RoutePageState.tempUrlHistory.insert(0, {
-          '${settings.name!}/${_RoutePageState.tempUrlHistory[0].keys.first}': hashCode,
-        });
+        for (int i = 0; i < _RoutePageState.tempHistory.length; i++) {
+          _RoutePageState.tempHistory[i].path = '${settings.name!}/${_RoutePageState.tempHistory[i].path}';
+        }
+        _RoutePageState.tempHistory.insert(0, _RoutePageHistoryModel(hashCode, settings.name!, _hideTabbar, false));
       }
-      _RoutePageState.tempPageHistory.insert(0, {hashCode: _RoutePageHistoryModel(_hideTabbar, false)});
     }
     super.didAdd();
   }
 
   @override
   scheduler.TickerFuture didPush() {
-    if (nameIsNotNull) {
-      if (settings.name!.startsWith('/')) {
-        _RoutePageState.urlHistory[settings.name!] = hashCode;
-      } else if (settings.name!.startsWith(':')) {
-        // 处理动态路由
-        final urlList = _RoutePageState.currentUrl!.split('/');
-        urlList[urlList.length - 1] = settings.name!;
-        _RoutePageState.urlHistory[urlList.join('/')] = hashCode;
-        // _RoutePageState.pageHistory.
-      } else {
-        // 处理其他路由，我们先拿到符合条件的前缀路由集合，再根据/分割成数组进行长度匹配
-        final targetUrl = _RoutePageState.matchUrl(_RoutePageState.currentUrl!, true);
-        assert(targetUrl != null, 'didPush匹配的路由不可能为空');
-        _RoutePageState.urlHistory['$targetUrl/${settings.name}'] = hashCode;
-      }
-      _RoutePageState.pageHistory[hashCode] = _RoutePageHistoryModel(_hideTabbar, false);
-    } else {
-      _RoutePageState.pageHistory[hashCode] = _RoutePageHistoryModel(_hideTabbar, false);
-    }
+    logger.i('didPush', settings.name);
+    _RoutePageState.pushPage(_RoutePageHistoryModel(hashCode, settings.name, _hideTabbar, false));
+
     if (_RoutePageState.hideTabbar) {
       if (!_RoutePageState.previousHideTabbar) {
         TabScaffoldController.of._showBottomNav.value = false;
@@ -464,7 +521,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
       if (animation.value == 0.0 || animation.value == 1.0) disabledFirstFrame = true;
 
       // 锁定当前页面的过渡
-      if (_RoutePageState.lastHashCode == hashCode) {
+      if (_RoutePageState.lockCurrentPage(hashCode)) {
         final tween = _RoutePageState.hideTabbar
             ? Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0)
             : Tween(begin: 0.0, end: TabScaffoldController.of.bottomNavHeight);
