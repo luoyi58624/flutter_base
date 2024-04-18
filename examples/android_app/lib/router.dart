@@ -124,8 +124,8 @@ GoRouter initRouter() {
           ]),
         ],
       ),
-      GoRoute(path: RoutePath.login, pageBuilder: (c, s) => c.pageBuilder(s, const LoginPage())),
-      GoRoute(path: '/root_child', pageBuilder: (c, s) => c.pageBuilder(s, const RootGoRoutePage())),
+      GoRoute(path: RoutePath.login, builder: (c, s) => const LoginPage()),
+      GoRoute(path: '/root_child', builder: (c, s) => const RootGoRoutePage()),
     ],
   );
 }
