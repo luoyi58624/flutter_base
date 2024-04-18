@@ -76,7 +76,7 @@ class TemplatePageState extends State<TemplatePage> with SingleTickerProviderSta
           tag: 'button',
           child: GestureDetector(
             onTap: () {
-              context.push(const _HeroChildPage(), rootNavigator: true);
+              context.push(const _HeroChildPage(), hideTabbar: true);
             },
             child: Container(
               width: 100,

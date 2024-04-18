@@ -51,24 +51,27 @@ GoRouter initRouter() {
         ),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: RoutePath.root, pageBuilder: (context, state) => context.pageBuilder(state, const ComponentPage()), routes: [
-              GoRoute(
-                path: 'theme',
-                pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
-              ),
-              GoRoute(
-                path: 'image',
-                pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
-              ),
-              GoRoute(
-                path: 'animation',
-                pageBuilder: (context, state) => context.pageBuilder(state, const AnimationWidgetTestPage()),
-              ),
-              GoRoute(
-                path: 'go_router',
-                pageBuilder: (context, state) => context.pageBuilder(state, const GoRouterTestPage()),
-              ),
-            ]),
+            GoRoute(
+                path: RoutePath.root,
+                pageBuilder: (context, state) => context.pageBuilder(state, const ComponentPage()),
+                routes: [
+                  GoRoute(
+                    path: 'theme',
+                    pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
+                  ),
+                  GoRoute(
+                    path: 'image',
+                    pageBuilder: (context, state) => context.pageBuilder(state, const ImageTestPage()),
+                  ),
+                  GoRoute(
+                    path: 'animation',
+                    pageBuilder: (context, state) => context.pageBuilder(state, const AnimationWidgetTestPage()),
+                  ),
+                  GoRoute(
+                    path: 'go_router',
+                    pageBuilder: (context, state) => context.pageBuilder(state, const GoRouterTestPage()),
+                  ),
+                ]),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
@@ -76,24 +79,27 @@ GoRouter initRouter() {
               pageBuilder: (context, state) => context.pageBuilder(state, const UtilPage()),
             )
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
+          StatefulShellBranch(
+              routes: [GoRoute(path: RoutePath.template, builder: (context, state) => const TemplatePage())]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
-              builder: (context, state) => const ChatRootPage(),
+              pageBuilder: (context, state) => context.pageBuilder(state, const ChatRootPage()),
               routes: [
                 GoRoute(
                   path: ':id',
                   pageBuilder: (context, state) =>
-                      context.pageBuilder(state, ChatPage(id: state.pathParameters['id']!), rootNavigator: true),
+                      context.pageBuilder(state, ChatPage(id: state.pathParameters['id']!), hideTabbar: true),
                   routes: [
                     GoRoute(
                         path: 'info',
-                        pageBuilder: (context, state) => context.pageBuilder(state, ChatInfoPage(id: state.pathParameters['id']!)),
+                        pageBuilder: (context, state) =>
+                            context.pageBuilder(state, ChatInfoPage(id: state.pathParameters['id']!)),
                         routes: [
                           GoRoute(
                             path: 'user',
-                            pageBuilder: (context, state) => context.pageBuilder(state, const ChatUserInfoPage(), rootNavigator: true),
+                            pageBuilder: (context, state) =>
+                                context.pageBuilder(state, const ChatUserInfoPage(), hideTabbar: true),
                           )
                         ]),
                   ],

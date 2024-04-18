@@ -119,6 +119,18 @@ class _ComponentPageState extends State<ComponentPage> {
             ),
             ElevatedButton(
               onPressed: () {
+                context.go('/chat/2/info/user');
+              },
+              child: const Text('go /chat/2/info/user'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.pushPath('/chat/2/info');
+              },
+              child: const Text('push /chat/2/info'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 context.pushPath('/root_child');
               },
               child: const Text('push root_go_route'),
@@ -128,7 +140,7 @@ class _ComponentPageState extends State<ComponentPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          context.push( const ThemePage());
+          context.push(const ThemePage());
         },
         child: const Icon(Icons.color_lens),
       ),

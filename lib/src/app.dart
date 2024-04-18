@@ -71,25 +71,14 @@ class FlutterApp extends StatefulWidget {
   State<FlutterApp> createState() => _FlutterAppState();
 }
 
-class _FlutterAppState extends State<FlutterApp> {
+class _FlutterAppState extends State<FlutterApp> with GoRouterUrlListenMixin {
   @override
   void initState() {
-    super.initState();
     _router = widget.router ??
         GoRouter(
           routes: [GoRoute(path: '/', builder: (context, state) => widget.home!)],
         );
-    _router.routerDelegate.addListener(listenRouteChange);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _router.routerDelegate.removeListener(listenRouteChange);
-  }
-
-  void listenRouteChange() {
-    logger.i(_router.routerDelegate.currentConfiguration.uri);
+    super.initState();
   }
 
   @override

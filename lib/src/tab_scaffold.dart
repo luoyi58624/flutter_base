@@ -32,7 +32,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
   @override
   void initState() {
     super.initState();
-    controller = Get.put(TabScaffoldController(
+    controller = Get.put(TabScaffoldController._(
       pages: widget.pages,
       bottomNavType: widget.bottomNavType,
       bottomNavHeight: widget.bottomNavHeight,

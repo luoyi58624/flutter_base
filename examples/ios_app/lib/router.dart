@@ -46,7 +46,7 @@ final router = GoRouter(
                     return context.pageBuilder(
                       state,
                       ComponentChildPage(title: state.uri.queryParameters['title']),
-                      rootNavigator: true,
+                      hideTabbar: true,
                     );
                   },
                 ),
@@ -62,7 +62,8 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'child',
-                  pageBuilder: (context, state) => context.pageBuilder(state, ChildPage(title: state.uri.queryParameters['title'])),
+                  pageBuilder: (context, state) =>
+                      context.pageBuilder(state, ChildPage(title: state.uri.queryParameters['title'])),
                 ),
               ],
             ),

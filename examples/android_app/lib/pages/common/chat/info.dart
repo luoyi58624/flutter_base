@@ -76,7 +76,26 @@ class ChatUserInfoPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('聊天用户信息'),
       ),
-      body: Container(),
+      body: buildCenterColumn([
+        ElevatedButton(
+          onPressed: () {
+            context.go('/chat');
+          },
+          child: const Text('回到聊天列表'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            context.go(RoutePath.root);
+          },
+          child: const Text('跳转到首页'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            context.go('${RoutePath.root}/image');
+          },
+          child: const Text('跳转到首页图片测试'),
+        ),
+      ]),
     );
   }
 }

@@ -10,7 +10,7 @@ enum BottomNavType {
 
 /// 选项卡式导航栏脚手架控制器
 class TabScaffoldController extends GetxController {
-  TabScaffoldController({
+  TabScaffoldController._({
     required List<UrlNavModel> pages,
     required BottomNavType bottomNavType,
     double? bottomNavHeight,
