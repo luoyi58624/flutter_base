@@ -14,7 +14,7 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
-      ref: v2.0.1
+      ref: v2.1.0
   get:
     git:
       url: https://gitee.com/luoyi666/getx.git

@@ -16,7 +16,7 @@ class _AnimationWidgetTestPageState extends State<AnimationWidgetTestPage> {
   @override
   void dispose() {
     super.dispose();
-    logger.i('animation test page销毁');
+    i('animation test page销毁');
   }
 
   @override

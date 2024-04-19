@@ -104,13 +104,13 @@ class HttpBase {
         }
         return handler.resolve(response);
       },
-      onError: (DioException e, ErrorInterceptorHandler handler) async {
-        logger.e(e, '全局Http请求异常：${e.requestOptions.uri}');
-        if (e.requestOptions.extra['closeLoading'] == true) {
+      onError: (DioException error, ErrorInterceptorHandler handler) async {
+        e(error, '全局Http请求异常：${error.requestOptions.uri}');
+        if (error.requestOptions.extra['closeLoading'] == true) {
           await LoadingUtil.close();
         }
         String errorMsg = '';
-        switch (e.type) {
+        switch (error.type) {
           case DioExceptionType.sendTimeout:
           case DioExceptionType.connectionTimeout:
             errorMsg = '服务器连接超时，请稍后重试！';
@@ -119,7 +119,7 @@ class HttpBase {
             errorMsg = '服务器响应超时，请稍后重试！';
             break;
           case DioExceptionType.badResponse:
-            if (e.message != null && e.message!.contains('404')) {
+            if (error.message != null && error.message!.contains('404')) {
               errorMsg = '请求接口404';
             } else {
               errorMsg = '无效请求';
@@ -134,17 +134,17 @@ class HttpBase {
           case DioExceptionType.cancel:
             break;
           case DioExceptionType.unknown:
-            if (e.error is SocketException) {
+            if (error.error is SocketException) {
               errorMsg = '网络连接错误，请检查网络连接！';
             } else {
               errorMsg = '网络连接出现未知错误！';
             }
             break;
         }
-        if (e.requestOptions.extra['showGlobalException'] == true) {
+        if (error.requestOptions.extra['showGlobalException'] == true) {
           if (errorMsg != '') ToastUtil.showErrorToast(errorMsg);
         }
-        return handler.reject(e);
+        return handler.reject(error);
       },
     );
   }
@@ -167,7 +167,7 @@ class HttpBase {
           if (data == null) {
             return handler.next(options);
           } else {
-            if (showLog) logger.i(url, '请求接口缓存数据');
+            if (showLog) i(url, '请求接口缓存数据');
             // 直接关闭loading，handler.resolve将直接结束拦截器链，不再执行后续的请求拦截和响应拦截。
             if (options.extra['closeLoading'] == true) {
               await LoadingUtil.close();

@@ -29,7 +29,7 @@ class _HttpTestPageState extends State<HttpTestPage> {
               // var resData = http.test();
               LoadingUtil.show('加载中');
               var resData = await httpBase.get('https://jsonplaceholder.typicode.com/todos/1');
-              logger.i(resData);
+              i(resData);
               setState(() {
                 text = resData.toString();
               });
@@ -41,7 +41,7 @@ class _HttpTestPageState extends State<HttpTestPage> {
             onPressed: () async {
               LoadingUtil.show('加载中');
               var resData = await http.test('/todos/1');
-              logger.i(resData);
+              i(resData);
               setState(() {
                 text = resData.toString();
               });
@@ -54,9 +54,9 @@ class _HttpTestPageState extends State<HttpTestPage> {
               setState(() {
                 text = '';
               });
-              logger.i(http.instance == httpBase.instance);
-              logger.i(http.instance.options.baseUrl);
-              logger.i(httpBase.instance.options.baseUrl);
+              i(http.instance == httpBase.instance);
+              i(http.instance.options.baseUrl);
+              i(httpBase.instance.options.baseUrl);
             },
             child: const Text('清空数据'),
           ),

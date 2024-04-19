@@ -12,7 +12,7 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
   late LocalStorage<int> intStorage;
   late LocalStorage<Map<String, dynamic>?> mapStorage;
 
-  int i = 0;
+  int count = 0;
 
   @override
   void initState() {
@@ -41,7 +41,7 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
           ElevatedButton(
             onPressed: () async {
               String name = localStorage.getItem('name');
-              logger.i(name);
+              i(name);
               ToastUtil.showToast(name.toString());
             },
             child: const Text('读取String数据'),
@@ -55,7 +55,7 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
           ElevatedButton(
             onPressed: () async {
               int count = localStorage.getItem('count');
-              logger.i(count);
+              i(count);
               ToastUtil.showToast(count.toString());
             },
             child: const Text('读取int数据'),
@@ -69,7 +69,7 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
           ElevatedButton(
             onPressed: () async {
               Map? map = localStorage.getItem('map');
-              logger.i(map);
+              i(map);
               ToastUtil.showToast(map.toString());
             },
             child: const Text('读取Map'),
@@ -77,15 +77,15 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
           const Text('=========int类型的lcoalStorage=========='),
           ElevatedButton(
             onPressed: () async {
-              i++;
-              intStorage.setItem('count', i);
+              count++;
+              intStorage.setItem('count', count);
             },
             child: const Text('插入int'),
           ),
           ElevatedButton(
             onPressed: () async {
               int? count = intStorage.getItem('count');
-              logger.i(count);
+              i(count);
               ToastUtil.showToast(count.toString());
             },
             child: const Text('读取int'),
@@ -100,7 +100,7 @@ class _LocalStorageTestPageState extends State<LocalStorageTestPage> {
           ElevatedButton(
             onPressed: () async {
               Map<String, dynamic>? map = mapStorage.getItem('map')?.cast<String, dynamic>();
-              logger.i(map);
+              i(map);
               ToastUtil.showToast(map.toString());
             },
             child: const Text('获取Map数据'),

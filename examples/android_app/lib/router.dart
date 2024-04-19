@@ -76,7 +76,9 @@ GoRouter initRouter() {
               pageBuilder: (c, s) => c.pageBuilder(s, const UtilPage()),
             )
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, builder: (c, s) => const TemplatePage())]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: RoutePath.template, pageBuilder: (c, s) => c.pageBuilder(s, const TemplatePage()))
+          ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,

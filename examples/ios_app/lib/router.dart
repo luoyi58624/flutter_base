@@ -42,7 +42,7 @@ final router = GoRouter(
                 GoRoute(
                   path: 'child',
                   pageBuilder: (context, state) {
-                    logger.i(state.uri.queryParameters);
+                    i(state.uri.queryParameters);
                     return context.pageBuilder(
                       state,
                       ComponentChildPage(title: state.uri.queryParameters['title']),

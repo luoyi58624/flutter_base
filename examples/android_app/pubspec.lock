@@ -133,11 +133,11 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "v2.0.1"
-      resolved-ref: "289601e9147c80ffcec81c3c2ae6d82238782a3b"
+      ref: "v2.1.0"
+      resolved-ref: "144a0069b484a71411ff04ca944f80ff995095d3"
       url: "https://gitee.com/luoyi666/dart_base.git"
     source: git
-    version: "2.0.1"
+    version: "2.1.0"
   dio:
     dependency: transitive
     description:

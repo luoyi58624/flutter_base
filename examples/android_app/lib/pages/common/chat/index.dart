@@ -14,13 +14,13 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    // logger.i('进入聊天室 - ${widget.id}');
+    // i('进入聊天室 - ${widget.id}');
   }
 
   @override
   void dispose() {
     super.dispose();
-    // logger.i('退出聊天室 - ${widget.id}');
+    // i('退出聊天室 - ${widget.id}');
   }
 
   @override

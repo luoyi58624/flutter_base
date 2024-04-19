@@ -117,19 +117,19 @@ packages:
     dependency: transitive
     description:
       name: cupertino_icons
-      sha256: d57953e10f9f8327ce64a508a355f0b1ec902193f66288e8cb5070e7c47eeb2d
+      sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.6"
+    version: "1.0.8"
   dart_base:
     dependency: transitive
     description:
       path: "."
-      ref: "v2.0.1"
-      resolved-ref: "289601e9147c80ffcec81c3c2ae6d82238782a3b"
+      ref: "v2.1.0"
+      resolved-ref: "144a0069b484a71411ff04ca944f80ff995095d3"
       url: "https://gitee.com/luoyi666/dart_base.git"
     source: git
-    version: "2.0.1"
+    version: "2.1.0"
   dio:
     dependency: transitive
     description:
@@ -213,7 +213,7 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "2.1.0"
+    version: "2.1.2"
   flutter_cache_manager:
     dependency: transitive
     description:
@@ -277,12 +277,20 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.2.5"
+  gap:
+    dependency: transitive
+    description:
+      name: gap
+      sha256: f19387d4e32f849394758b91377f9153a1b41d79513ef7668c088c77dbc6955d
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   get:
     dependency: transitive
     description:
       path: "."
       ref: beta
-      resolved-ref: "5ae70709d168669a01c9088fd33cc6254af1fd0e"
+      resolved-ref: "0a78268b75b58fc9f94034b1381444113cc95974"
       url: "https://gitee.com/luoyi666/getx.git"
     source: git
     version: "5.0.0"

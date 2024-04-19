@@ -15,7 +15,7 @@ class GoRouterTestPage extends StatelessWidget {
         ElevatedButton(
           onPressed: () {
             // var newList = List.from(rootRouterList).toList().cast<RouterModel>();
-            // logger.i(newList[1].children![2].title);
+            // i(newList[1].children![2].title);
             // newList[1].children![2].children!.add(
             //       RouterModel('动态路由页面', 'dynamic', const _DynamicPage()),
             //     );

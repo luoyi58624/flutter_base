@@ -76,7 +76,7 @@ class FlutterController extends GetxController {
     _configUpdate(config);
     ever(_config, (v) => _configUpdate(v));
     ever(timeDilation, (v) {
-      logger.i('xx');
+      i('xx');
       scheduler.timeDilation = v;
     });
   }
