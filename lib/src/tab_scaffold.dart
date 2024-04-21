@@ -31,12 +31,12 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
 
   @override
   void initState() {
-    super.initState();
     controller = Get.put(TabScaffoldController._(
       pages: widget.pages,
       bottomNavType: widget.bottomNavType,
       bottomNavHeight: widget.bottomNavHeight,
     ));
+    super.initState();
   }
 
   @override
@@ -70,8 +70,9 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
       children: [
         Obx(() {
           return Padding(
-            padding:
-                controller._showBottomNav.value ? EdgeInsets.only(bottom: controller.bottomNavHeight) : EdgeInsets.zero,
+            // padding:
+            //     controller._showBottomNav.value ? EdgeInsets.only(bottom: controller.bottomNavHeight) : EdgeInsets.zero,
+            padding: EdgeInsets.only(bottom: controller._tabbarAnimationHeight.value),
             child: widget.navigationShell,
           );
         }),

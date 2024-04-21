@@ -71,7 +71,7 @@ class FlutterApp extends StatefulWidget {
   State<FlutterApp> createState() => _FlutterAppState();
 }
 
-class _FlutterAppState extends State<FlutterApp> with GoRouterUrlListenMixin {
+class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
   @override
   void initState() {
     _router = widget.router ??

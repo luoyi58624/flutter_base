@@ -2,6 +2,7 @@ import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
 import 'package:android_app/pages/login.dart';
 import 'package:android_app/pages/root/component/root_go_route.dart';
+import 'package:android_app/pages/root/component/theme.dart';
 import 'package:android_app/pages/root/test/animation/darg.dart';
 import 'package:android_app/pages/root/test/animation/index.dart';
 import 'package:android_app/pages/root/test/animation/slider.dart';
@@ -54,14 +55,17 @@ GoRouter initRouter() {
             GoRoute(path: RoutePath.root, pageBuilder: (c, s) => c.pageBuilder(s, const ComponentPage()), routes: [
               GoRoute(
                 path: 'theme',
-                pageBuilder: (c, s) => c.pageBuilder(s, const ImageTestPage()),
+                hideTabbar: true,
+                pageBuilder: (c, s) => c.pageBuilder(s, const ThemePage()),
               ),
               GoRoute(
                 path: 'image',
+                hideTabbar: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const ImageTestPage()),
               ),
               GoRoute(
                 path: 'animation',
+                hideTabbar: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const AnimationWidgetTestPage()),
               ),
               GoRoute(
@@ -76,9 +80,7 @@ GoRouter initRouter() {
               pageBuilder: (c, s) => c.pageBuilder(s, const UtilPage()),
             )
           ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: RoutePath.template, pageBuilder: (c, s) => c.pageBuilder(s, const TemplatePage()))
-          ]),
+          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, pageBuilder: (c, s) => c.pageBuilder(s, const TemplatePage()))]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
@@ -86,17 +88,15 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: ':id',
-                  pageBuilder: (c, s) => c.pageBuilder(s, ChatPage(id: s.pathParameters['id']!), hideTabbar: true),
+                  hideTabbar: true,
+                  pageBuilder: (c, s) => c.pageBuilder(s, ChatPage(id: s.pathParameters['id']!)),
                   routes: [
-                    GoRoute(
-                        path: 'info',
-                        pageBuilder: (c, s) => c.pageBuilder(s, ChatInfoPage(id: s.pathParameters['id']!)),
-                        routes: [
-                          GoRoute(
-                            path: 'user',
-                            pageBuilder: (c, s) => c.pageBuilder(s, const ChatUserInfoPage(), hideTabbar: true),
-                          )
-                        ]),
+                    GoRoute(path: 'info', pageBuilder: (c, s) => c.pageBuilder(s, ChatInfoPage(id: s.pathParameters['id']!)), routes: [
+                      GoRoute(
+                        path: 'user',
+                        pageBuilder: (c, s) => c.pageBuilder(s, const ChatUserInfoPage()),
+                      )
+                    ]),
                   ],
                 ),
               ],

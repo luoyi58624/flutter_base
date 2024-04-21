@@ -1,5 +1,7 @@
 import 'package:android_app/controllers/global.dart';
+import 'package:android_app/global.dart';
 import 'package:android_app/pages/root/component/theme.dart';
+import 'package:android_app/pages/root/test/animation/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -107,6 +109,12 @@ class _ComponentPageState extends State<ComponentPage> {
             ),
             ElevatedButton(
               onPressed: () {
+                context.push(const AnimationTestPage());
+              },
+              child: const Text('go 动画测试'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 context.go('/root_child');
               },
               child: const Text('go root_go_route'),
@@ -140,7 +148,7 @@ class _ComponentPageState extends State<ComponentPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          context.push(const ThemePage());
+          context.go('${RoutePath.root}/theme');
         },
         child: const Icon(Icons.color_lens),
       ),

@@ -7,7 +7,7 @@
 - 打包apk（android，不要使用，安卓需要区分环境，执行最下面的命令）
 
 > flutter build apk
-> flutter build apk --target-platform android-arm64
+> flutter build apk --target-platform android-arm64 --no-tree-shake-icons
 
 - 打包ipa（ios -> app-store包，上架应用商店）
 

@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'package:dart_base/dart_base.dart';
 import 'package:flutter/scheduler.dart' as scheduler;
 
 import 'package:archive/archive.dart';
@@ -25,6 +24,7 @@ import 'package:html/parser.dart' as htmlparser;
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart' as modal_bottom_sheet;
 import 'package:azlistview/azlistview.dart';
 import 'package:lpinyin/lpinyin.dart';
+import 'package:go_router/go_router.dart' as go_router hide GoRouterHelper;
 
 import 'flutter_base.dart';
 
@@ -39,7 +39,7 @@ export 'package:dio/dio.dart';
 export 'package:flutter_animate/flutter_animate.dart';
 
 // flutter官方路由库
-export 'package:go_router/go_router.dart' hide GoRouterHelper;
+export 'package:go_router/go_router.dart' hide GoRouterHelper, GoRoute;
 
 // flutter官方国际化库
 export 'package:flutter_localizations/flutter_localizations.dart';
@@ -108,6 +108,8 @@ part 'src/utils/crypto.dart';
 part 'src/utils/drawer.dart';
 
 part 'src/utils/flutter.dart';
+
+part 'src/utils/go_router.dart';
 
 part 'src/utils/html.dart';
 
@@ -180,8 +182,6 @@ part 'src/widgets/image/file_type_image_widget.dart';
 part 'src/widgets/cupertino/list_group.dart';
 
 part 'src/widgets/cupertino/list_tile.dart';
-
-
 
 /// key-value本地存储对象
 late LocalStorage localStorage;
