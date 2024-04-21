@@ -36,13 +36,15 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
       bottomNavType: widget.bottomNavType,
       bottomNavHeight: widget.bottomNavHeight,
     ));
+    _State.injectTabScaffoldController = true;
     super.initState();
   }
 
   @override
   void dispose() {
-    super.dispose();
     Get.delete<TabScaffoldController>();
+    _State.injectTabScaffoldController = false;
+    super.dispose();
   }
 
   @override

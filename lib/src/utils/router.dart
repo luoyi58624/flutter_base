@@ -68,11 +68,9 @@ class _PageBasedPageRoute<T> extends PageRoute<T> with CupertinoRouteTransitionM
 
 /// 适用于命令式页面路由过渡动画，支持[hideTabbar]属性，类似于：[MaterialPageRoute]、[CupertinoPageRoute]
 class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _CupertinoRouteTransitionMixin {
-  _PageRouter({required this.builder, required this.hideTabbar});
+  _PageRouter({required this.builder});
 
   final WidgetBuilder builder;
-
-  final bool hideTabbar;
 
   @override
   bool get maintainState => true;
@@ -86,6 +84,9 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
 
 class _State {
   _State._();
+
+  /// 当前是否已经注入了底部导航栏脚手架，如果没有注入，那么切换路由将不会应用过渡
+  static bool injectTabScaffoldController = false;
 
   /// 根路由列表
   static late final List<GoRouteModel> routeModels;
@@ -143,12 +144,14 @@ class _State {
   }
 
   static void setShowBottomNav([bool? setHeight]) {
-    if (currentRoute?.hideTabbar == true) {
-      TabScaffoldController.of._showBottomNav.value = false;
-      if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = 0;
-    } else {
-      TabScaffoldController.of._showBottomNav.value = true;
-      if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
+    if (injectTabScaffoldController) {
+      if (currentRoute?.hideTabbar == true) {
+        TabScaffoldController.of._showBottomNav.value = false;
+        if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = 0;
+      } else {
+        TabScaffoldController.of._showBottomNav.value = true;
+        if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
+      }
     }
   }
 }
@@ -161,7 +164,7 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   bool _disabledFirstFrame = true;
 
   void _pushPage() {
-    if (_State.currentRoute != null) {
+    if (_State.injectTabScaffoldController && _State.currentRoute != null) {
       _State.setHideTabbarPath();
       _currentPath = _State.routeModelKeys
           .where((e) => _State.currentRoute!.path.startsWith(e))
@@ -187,14 +190,14 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   bool didPop(result) {
-    _State.didPop = true;
+    if (_State.injectTabScaffoldController) _State.didPop = true;
     return super.didPop(result);
   }
 
   @override
   void dispose() {
     super.dispose();
-    if (_State.didPop) {
+    if (_State.injectTabScaffoldController && _State.didPop) {
       _State.didPop = false;
       _State.setShowBottomNav();
     }
@@ -202,30 +205,31 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
 
   @override
   Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_State.previousRoute?.hideTabbar != true &&
-        _currentPath != null &&
-        (_State.hideTabbarRootPath == _currentPath || _State.isPopToHideTabbarRootPath)) {
-      // 禁用第一帧 animation.value 防止抖动，因为它第一帧直接是1.0，然后从0-1转变
-      if (_disabledFirstFrame) {
-        _disabledFirstFrame = false;
-      } else {
-        final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
-        var heightAnimation = popGestureInProgress
-            ? CurvedAnimation(
-                parent: animation,
-                curve: Curves.linear,
-              ).drive(tween)
-            : CurvedAnimation(
-                parent: animation,
-                curve: Curves.fastEaseInToSlowEaseOut,
-                reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
-              ).drive(tween);
-        TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value;
+    if (_State.injectTabScaffoldController) {
+      if (_State.previousRoute?.hideTabbar != true &&
+          _currentPath != null &&
+          (_State.hideTabbarRootPath == _currentPath || _State.isPopToHideTabbarRootPath)) {
+        // 禁用第一帧 animation.value 防止抖动，因为它第一帧直接是1.0，然后从0-1转变
+        if (_disabledFirstFrame) {
+          _disabledFirstFrame = false;
+        } else {
+          final tween = Tween(begin: TabScaffoldController.of.bottomNavHeight, end: 0.0);
+          var heightAnimation = popGestureInProgress
+              ? CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.linear,
+                ).drive(tween)
+              : CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.fastEaseInToSlowEaseOut,
+                  reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
+                ).drive(tween);
+          TabScaffoldController.of._tabbarAnimationHeight.value = heightAnimation.value;
+        }
+        // 动画结束后重置 disabledFirstFrame 状态
+        if (animation.value == 0.0 || animation.value == 1.0) _disabledFirstFrame = true;
       }
-      // 动画结束后重置 disabledFirstFrame 状态
-      if (animation.value == 0.0 || animation.value == 1.0) _disabledFirstFrame = true;
     }
-
     return CupertinoRouteTransitionMixin.buildPageTransitions(this, context, animation, secondaryAnimation, child);
   }
 }
@@ -256,18 +260,17 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
   ///
   /// routeListen -> didAdd、disPush -> didPop -> routeListen -> dispose
   void routeListen() {
-    final currentRoute = getRouteModel(_router.routerDelegate.currentConfiguration.uri.path);
-    if(currentRoute!=null){
-      i(currentRoute);
-      _State.currentRoute = currentRoute;
-      setIsPopToHideTabbarRootPath();
-      _State.previousRoute = getPreviousRouteModel();
-      // i(_State.currentRoute?.path, 'routeListen');
-      // i(_State.previousRoute?.path, 'previousRoute');
-      final newIndex = getCurrentIndex();
-      if (newIndex != null && newIndex != _State.currentIndex) {
-        _State.currentIndex = newIndex;
-        if(FlutterUtil.hasController<TabScaffoldController>()){
+    if (_State.injectTabScaffoldController) {
+      final currentRoute = getRouteModel(_router.routerDelegate.currentConfiguration.uri.path);
+      if (currentRoute != null) {
+        _State.currentRoute = currentRoute;
+        setIsPopToHideTabbarRootPath();
+        _State.previousRoute = getPreviousRouteModel();
+        // i(_State.currentRoute?.path, 'routeListen');
+        // i(_State.previousRoute?.path, 'previousRoute');
+        final newIndex = getCurrentIndex();
+        if (newIndex != null && newIndex != _State.currentIndex) {
+          _State.currentIndex = newIndex;
           _State.setShowBottomNav(true);
         }
       }

@@ -24,7 +24,6 @@ extension BuildContextExtension on BuildContext {
   }) async {
     var result = await Navigator.of(this).push<T>(_PageRouter(
       builder: (context) => page,
-      hideTabbar: hideTabbar,
     ));
     return result;
   }
@@ -41,7 +40,6 @@ extension BuildContextExtension on BuildContext {
   }) async {
     return await Navigator.of(this).pushReplacement(_PageRouter(
       builder: (context) => page,
-      hideTabbar: hideTabbar,
     ));
   }
 
@@ -57,7 +55,6 @@ extension BuildContextExtension on BuildContext {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
         builder: (context) => page,
-        hideTabbar: hideTabbar,
       ),
       ModalRoute.withName(routePath),
     );
@@ -76,7 +73,6 @@ extension BuildContextExtension on BuildContext {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
         builder: (context) => page,
-        hideTabbar: hideTabbar,
       ),
       (route) => false,
     );
