@@ -1,4 +1,3 @@
-import 'package:android_app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -52,16 +51,16 @@ class GoRouterTestPage extends StatelessWidget {
   }
 }
 
-class _DynamicPage extends StatelessWidget {
-  const _DynamicPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('动态路由页面'),
-      ),
-      body: Container(),
-    );
-  }
-}
+// class _DynamicPage extends StatelessWidget {
+//   const _DynamicPage({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('动态路由页面'),
+//       ),
+//       body: Container(),
+//     );
+//   }
+// }

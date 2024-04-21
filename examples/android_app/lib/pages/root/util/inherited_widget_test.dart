@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 class MyData {
   static InheritedWidgetTestPageState? of(BuildContext context) {

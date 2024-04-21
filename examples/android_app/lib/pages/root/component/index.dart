@@ -1,9 +1,7 @@
 import 'package:android_app/controllers/global.dart';
 import 'package:android_app/global.dart';
-import 'package:android_app/pages/root/component/theme.dart';
 import 'package:android_app/pages/root/test/animation/index.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 class ComponentPage extends StatefulWidget {
   const ComponentPage({super.key});
@@ -88,7 +86,7 @@ class _ComponentPageState extends State<ComponentPage> {
               () => Container(
                 width: 100,
                 height: 100,
-                color: FlutterController.of.getTheme(context).primary,
+                color: context.currentTheme.primary,
               ),
             ),
             Obx(() {

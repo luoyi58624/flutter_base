@@ -89,6 +89,8 @@ part 'src/controllers/flutter.dart';
 
 part 'src/controllers/tab_scaffold.dart';
 
+part 'src/extensions/context.dart';
+
 part 'src/mixins/theme.dart';
 
 part 'src/pages/root_page.dart';
@@ -186,25 +188,22 @@ part 'src/widgets/cupertino/list_tile.dart';
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
+late GoRouter _router;
+
+/// 根节点导航key
+GlobalKey<NavigatorState> get rootNavigatorKey => _router.configuration.navigatorKey;
+
+/// 根节点context
+BuildContext get rootContext => rootNavigatorKey.currentContext!;
+
 /// 初始化App
 /// * themeMode 主题模式
 /// * theme 自定义亮色主题
 /// * darkTheme 自定义暗色主题
 /// * config 自定义全局配置
-Future<void> initFlutterApp({
-  ThemeMode? themeMode,
-  FlutterThemeData? theme,
-  FlutterThemeData? darkTheme,
-  FlutterConfigData? config,
-}) async {
+Future<void> initFlutterApp() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
-  Get.put(FlutterController(
-    themeMode: themeMode ??= ThemeMode.system,
-    theme: theme ??= FlutterThemeData(),
-    darkTheme: darkTheme ??= FlutterThemeData.dark(),
-    config: config ??= FlutterConfigData(),
-  ));
 }

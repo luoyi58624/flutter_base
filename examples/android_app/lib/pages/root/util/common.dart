@@ -8,7 +8,6 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
 
   @override
   Widget build(BuildContext context) {
-    var appTheme = FlutterController.of.getTheme(context);
     return Material(
       child: buildScaffold(
         context,
@@ -25,7 +24,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.primary,
+                color: context.currentTheme.primary,
                 onPressed: () async {
                   ToastUtil.showPrimaryToast('你好');
                 },
@@ -33,7 +32,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.success,
+                color: context.currentTheme.success,
                 onPressed: () async {
                   ToastUtil.showSuccessToast('hello');
                 },
@@ -41,7 +40,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.warning,
+                color: context.currentTheme.warning,
                 onPressed: () async {
                   ToastUtil.showWarningToast('hello');
                 },
@@ -49,7 +48,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.error,
+                color: context.currentTheme.error,
                 onPressed: () async {
                   ToastUtil.showErrorToast('hello');
                 },
@@ -57,7 +56,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.info,
+                color: context.currentTheme.info,
                 onPressed: () async {
                   ToastUtil.showInfoToast('hello');
                 },
@@ -65,7 +64,7 @@ class ToastTestPage extends StatelessWidget with CupertinoPageMixin {
               ),
               const SizedBox(height: 8),
               CupertinoButton(
-                color: appTheme.info,
+                color: context.currentTheme.info,
                 onPressed: () async {
                   ToastUtil.showInfoToast('xasnxkasnxkajsnxjkasnxkjasnxk谢娜看下杰卡斯你显卡是那些卡死你显卡是想那就可实现那是可能性卡死你');
                 },
@@ -160,7 +159,6 @@ class ColorTestPage extends StatefulWidget {
 class _ColorTestPageState extends State<ColorTestPage> {
   @override
   Widget build(BuildContext context) {
-    var appTheme = FlutterController.of.getTheme(context);
     List colorSwatch = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
     List<Color> colorList = [
       ...colorSwatch.map((e) => Colors.cyan[e]!),
@@ -186,11 +184,11 @@ class _ColorTestPageState extends State<ColorTestPage> {
       Colors.redAccent,
       Colors.white,
       Colors.black,
-      appTheme.primary,
-      appTheme.success,
-      appTheme.warning,
-      appTheme.error,
-      appTheme.info,
+      context.currentTheme.primary,
+      context.currentTheme.success,
+      context.currentTheme.warning,
+      context.currentTheme.error,
+      context.currentTheme.info,
     ];
     var bottom = MediaQuery.of(context).viewInsets.bottom;
     return Scaffold(

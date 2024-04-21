@@ -1,7 +1,6 @@
-import 'package:android_app/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'child.dart';
+
 import 'sliver.dart';
 
 class TemplatePage extends StatefulWidget {
@@ -89,7 +88,7 @@ class TemplatePageState extends State<TemplatePage> with SingleTickerProviderSta
 }
 
 class _HeroChildPage extends StatelessWidget {
-  const _HeroChildPage({super.key});
+  const _HeroChildPage();
 
   @override
   Widget build(BuildContext context) {

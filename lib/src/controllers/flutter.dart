@@ -57,11 +57,6 @@ class FlutterController extends GetxController {
     _config.update((val) => value);
   }
 
-  /// 返回自适应主题色，必须传递当前页面的[context]
-  FlutterThemeData getTheme(BuildContext context) {
-    return FlutterUtil.isDarkMode(context) ? darkTheme : theme;
-  }
-
   void _configUpdate(FlutterConfigData config) {
     if (config.translucenceStatusBar) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));

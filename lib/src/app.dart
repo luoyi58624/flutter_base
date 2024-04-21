@@ -19,6 +19,10 @@ class FlutterApp extends StatefulWidget {
     this.title = 'Flutter App',
     this.home,
     this.router,
+    this.themeMode,
+    this.theme,
+    this.darkTheme,
+    this.config,
     this.localizationsDelegates,
     this.supportedLocales,
     this.locale = const Locale('zh', 'CN'),
@@ -43,6 +47,18 @@ class FlutterApp extends StatefulWidget {
   /// );
   /// ```
   final GoRouter? router;
+
+  /// 主题模式
+  final ThemeMode? themeMode;
+
+  /// 自定义亮色主题
+  final FlutterThemeData? theme;
+
+  /// 自定义暗色主题
+  final FlutterThemeData? darkTheme;
+
+  /// 自定义全局配置
+  final FlutterConfigData? config;
 
   /// 国际化配置，你传入的新配置将合并至默认配置，默认配置为：
   /// ```dart
@@ -72,24 +88,30 @@ class FlutterApp extends StatefulWidget {
 }
 
 class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
+  late FlutterController c = Get.put(FlutterController(
+    themeMode: widget.themeMode ?? ThemeMode.system,
+    theme: widget.theme ?? FlutterThemeData(),
+    darkTheme: widget.darkTheme ?? FlutterThemeData.dark(),
+    config: widget.config ?? FlutterConfigData(),
+  ));
+
   @override
   void initState() {
+    if (widget.router == null) assert(widget.home != null, '你没有设置routes，请传递home页面！');
     _router = widget.router ??
         GoRouter(
           routes: [GoRoute(path: '/', builder: (context, state) => widget.home!)],
         );
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    FlutterController c = Get.find();
-    if (widget.router == null) assert(widget.home != null, '你没有设置routes，请传递home页面！');
     var $localizationsDelegates = (widget.localizationsDelegates ?? []).toList();
     $localizationsDelegates.addAll(_localizationsDelegates);
     var $supportedLocales = (widget.supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
-
     return Obx(() => MaterialApp.router(
           routerConfig: _router,
           theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
@@ -108,7 +130,7 @@ class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
               child: Material(
                 // 注入默认的cupertino主题
                 child: CupertinoTheme(
-                  data: AppThemeUtil.buildCupertinoThemeData(c.getTheme(context), c.config),
+                  data: AppThemeUtil.buildCupertinoThemeData(context.currentTheme, c.config),
                   child: Overlay(
                     initialEntries: [
                       OverlayEntry(builder: (context) {

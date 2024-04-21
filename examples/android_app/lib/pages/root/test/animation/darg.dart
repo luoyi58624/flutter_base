@@ -1,4 +1,3 @@
-import 'package:android_app/global.dart';
 import 'package:flutter/material.dart';
 
 class DragAnimationTestPage extends StatefulWidget {

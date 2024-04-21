@@ -14,7 +14,6 @@ class UtilPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ScrollController controller = ScrollController();
     List<PageNavModel> utilCellItems = [
       PageNavModel('Getx工具类测试', const GetxUtilPage()),
       // PageNavModel('GetxDemo', GetxDemoPage()),
