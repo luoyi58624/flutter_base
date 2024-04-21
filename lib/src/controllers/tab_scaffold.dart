@@ -8,6 +8,11 @@ enum BottomNavType {
   custom,
 }
 
+/// 私有的脚手架控制器
+class _TabScaffoldController extends GetxController{
+
+}
+
 /// 选项卡式导航栏脚手架控制器
 class TabScaffoldController extends GetxController {
   TabScaffoldController._({

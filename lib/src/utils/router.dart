@@ -392,8 +392,9 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
   ///
   /// routeListen -> didAdd、disPush -> didPop -> routeListen -> dispose
   void routeListen() {
-    if (FlutterUtil.hasController<TabScaffoldController>()) {
-      final currentRoute = getRouteModel(_router.routerDelegate.currentConfiguration.uri.path);
+    final currentRoute = getRouteModel(_router.routerDelegate.currentConfiguration.uri.path);
+    if(currentRoute!=null){
+      i(currentRoute);
       _State.currentRoute = currentRoute;
       setIsPopToHideTabbarRootPath();
       _State.previousRoute = getPreviousRouteModel();
@@ -402,7 +403,9 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
       final newIndex = getCurrentIndex();
       if (newIndex != null && newIndex != _State.currentIndex) {
         _State.currentIndex = newIndex;
-        _State.setShowBottomNav(true);
+        if(FlutterUtil.hasController<TabScaffoldController>()){
+          _State.setShowBottomNav(true);
+        }
       }
     }
   }
