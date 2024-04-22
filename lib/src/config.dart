@@ -31,6 +31,12 @@ class FlutterConfigData {
   /// 是否开启性能视图
   bool showPerformanceOverlay;
 
+  /// 鼠标悬停背景颜色变化级别：1-100
+  int hoverScale;
+
+  /// 手指点击、鼠标点击背景颜色变化级别：1-100
+  int tapScale;
+
   FlutterConfigData({
     this.title = 'Flutter App',
     this.fontFamily,
@@ -42,6 +48,8 @@ class FlutterConfigData {
     this.enableRipple = true,
     this.translucenceStatusBar = false,
     this.showPerformanceOverlay = false,
+    this.hoverScale = 15,
+    this.tapScale = 30,
   }) {
     centerTitle = centerTitle ?? (GetPlatform.isMobile ? true : false);
   }

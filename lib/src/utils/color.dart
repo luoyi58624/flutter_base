@@ -6,6 +6,7 @@ enum ColorMode {
   dark,
 }
 
+
 /// 颜色工具类
 class ColorUtil {
   ColorUtil._();
@@ -76,15 +77,6 @@ class ColorUtil {
         return darkColor;
     }
   }
-}
-
-extension HexColor on Color {
-  /// Color对象转16进制字符串格式颜色
-  String toHex({bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
-      '${alpha.toRadixString(16).padLeft(2, '0')}'
-      '${red.toRadixString(16).padLeft(2, '0')}'
-      '${green.toRadixString(16).padLeft(2, '0')}'
-      '${blue.toRadixString(16).padLeft(2, '0')}';
 }
 
 class FlutterColorData {

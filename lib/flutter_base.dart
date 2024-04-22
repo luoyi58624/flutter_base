@@ -86,6 +86,8 @@ part 'src/controllers/flutter.dart';
 
 part 'src/controllers/tab_scaffold.dart';
 
+part 'src/extensions/color.dart';
+
 part 'src/extensions/router.dart';
 
 part 'src/extensions/theme.dart';
