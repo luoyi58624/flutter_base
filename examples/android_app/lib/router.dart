@@ -13,6 +13,7 @@ import 'pages/common/chat/index.dart';
 import 'pages/common/chat/info.dart';
 import 'pages/root/chat/index.dart';
 import 'pages/root/component/animation_widget_test.dart';
+import 'pages/root/component/command_route.dart';
 import 'pages/root/component/go_router.dart';
 import 'pages/root/component/image_test.dart';
 import 'pages/root/component/index.dart';
@@ -39,6 +40,7 @@ GoRouter initRouter() {
     redirect: (c, s) => GlobalController.of.isLogin.value ? null : RoutePath.login,
     routes: [
       GoRoute(path: '/', redirect: (c, s) => RoutePath.root),
+      GoRoute(path: '/command_route_child', pageBuilder: (c, s) => c.pageBuilder(s, CommandChildPage())),
       StatefulShellRoute.indexedStack(
         builder: (c, s, navigationShell) => TabScaffold(
           navigationShell: navigationShell,

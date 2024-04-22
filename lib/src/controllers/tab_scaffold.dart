@@ -30,6 +30,7 @@ class TabScaffoldController extends GetxController {
     _bottomNavHeight = bottomNavHeight;
     this.bottomNavHeight = _getTabHeight();
     _tabbarAnimationHeight = _getTabHeight().obs;
+    _RouteState.injectTabScaffoldController = true;
   }
 
   /// 通过静态变量直接获取控制器实例
@@ -114,5 +115,11 @@ class TabScaffoldController extends GetxController {
     ever(tabbarType, (v) {
       bottomNavHeight = _getTabHeight();
     });
+  }
+
+  @override
+  void onClose() {
+    _RouteState.injectTabScaffoldController = false;
+    super.onClose();
   }
 }

@@ -13,51 +13,14 @@ const _supportedLocales = [
   Locale('en', 'US'),
 ];
 
-class App extends StatefulWidget {
+class App extends StatelessWidget {
   const App({
     super.key,
-    this.title = 'Flutter App',
-    this.home,
-    this.router,
-    this.themeMode,
-    this.theme,
-    this.darkTheme,
-    this.config,
     this.localizationsDelegates,
     this.supportedLocales,
     this.locale = const Locale('zh', 'CN'),
     this.builder,
   });
-
-  /// App标题
-  final String title;
-
-  /// 首屏页面，仅适用于简单App
-  final Widget? home;
-
-  /// 声明式路由配置
-  ///
-  /// 示例：
-  /// ``` dart
-  /// final router = GoRouter(
-  ///   routes: [
-  ///     GoRoute(path: '/', builder: (context, state) => HomePage()),
-  ///   ],
-  /// );
-  /// ```
-  final GoRouter? router;
-
-  /// 主题模式
-  final ThemeMode? themeMode;
-
-  /// 自定义亮色主题
-  final FlutterThemeData? theme;
-
-  /// 自定义暗色主题
-  final FlutterThemeData? darkTheme;
-
-  /// 自定义全局配置
-  final FlutterConfigData? config;
 
   /// 国际化配置，你传入的新配置将合并至默认配置，默认配置为：
   /// ```dart
@@ -83,35 +46,14 @@ class App extends StatefulWidget {
   final TransitionBuilder? builder;
 
   @override
-  State<App> createState() => _AppState();
-}
-
-class _AppState extends State<App> with _GoRouterUrlListenMixin {
-  late AppController c = Get.put(AppController(
-    themeMode: widget.themeMode ?? ThemeMode.system,
-    theme: widget.theme ?? FlutterThemeData(),
-    darkTheme: widget.darkTheme ?? FlutterThemeData.dark(),
-    config: widget.config ?? FlutterConfigData(),
-  ));
-
-  @override
-  void initState() {
-    if (widget.router == null) assert(widget.home != null, '你没有设置routes，请传递home页面！');
-    router = widget.router ??
-        GoRouter(
-          routes: [GoRoute(path: '/', builder: (context, state) => widget.home!)],
-        );
-
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    var $localizationsDelegates = (widget.localizationsDelegates ?? []).toList();
+    final c = AppController.of;
+    var $localizationsDelegates = (localizationsDelegates ?? []).toList();
     $localizationsDelegates.addAll(_localizationsDelegates);
-    var $supportedLocales = (widget.supportedLocales ?? []).toList();
+    var $supportedLocales = (supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
     return Obx(() => MaterialApp.router(
+          title: c.config.title,
           routerConfig: router,
           theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
           darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
@@ -119,7 +61,7 @@ class _AppState extends State<App> with _GoRouterUrlListenMixin {
           debugShowCheckedModeBanner: false,
           localizationsDelegates: $localizationsDelegates,
           supportedLocales: $supportedLocales,
-          locale: widget.locale,
+          locale: locale,
           showPerformanceOverlay: c.config.showPerformanceOverlay,
           builder: (context, child) {
             return MediaQuery(
@@ -134,7 +76,7 @@ class _AppState extends State<App> with _GoRouterUrlListenMixin {
                     initialEntries: [
                       OverlayEntry(builder: (context) {
                         toast.init(context);
-                        return widget.builder == null ? child! : widget.builder!(context, child);
+                        return builder == null ? child! : builder!(context, child);
                       })
                     ],
                   ),

@@ -86,7 +86,9 @@ part 'src/controllers/flutter.dart';
 
 part 'src/controllers/tab_scaffold.dart';
 
-part 'src/extensions/context.dart';
+part 'src/extensions/router.dart';
+
+part 'src/extensions/theme.dart';
 
 part 'src/mixins/theme.dart';
 
@@ -103,8 +105,6 @@ part 'src/utils/color.dart';
 part 'src/utils/drawer.dart';
 
 part 'src/utils/flutter.dart';
-
-part 'src/utils/go_router.dart';
 
 part 'src/utils/html.dart';
 
@@ -179,7 +179,7 @@ part 'src/widgets/cupertino/list_tile.dart';
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
-/// [GoRouter]路由实例，对对象由
+/// [GoRouter]路由对象
 late final GoRouter router;
 
 /// 根节点导航key
@@ -189,11 +189,13 @@ GlobalKey<NavigatorState> get rootNavigatorKey => router.configuration.navigator
 BuildContext get rootContext => rootNavigatorKey.currentContext!;
 
 /// 初始化App
+/// * router 路由对象
 /// * themeMode 主题模式
 /// * theme 自定义亮色主题
 /// * darkTheme 自定义暗色主题
 /// * config 自定义全局配置
-Future<void> initFlutterApp({
+Future<void> initApp({
+  required GoRouter router,
   ThemeMode? themeMode,
   FlutterThemeData? theme,
   FlutterThemeData? darkTheme,
@@ -203,10 +205,16 @@ Future<void> initFlutterApp({
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
+  _setRouter(router);
   Get.put(AppController(
     themeMode: themeMode ?? ThemeMode.system,
     theme: theme ?? FlutterThemeData(),
     darkTheme: darkTheme ?? FlutterThemeData.dark(),
     config: config ?? FlutterConfigData(),
   ));
+}
+
+void _setRouter(GoRouter _router) {
+  router = _router;
+  _RouteState.init();
 }

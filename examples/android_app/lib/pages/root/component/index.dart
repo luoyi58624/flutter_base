@@ -3,6 +3,8 @@ import 'package:android_app/global.dart';
 import 'package:android_app/pages/root/test/animation/index.dart';
 import 'package:flutter/material.dart';
 
+import 'command_route.dart';
+
 class ComponentPage extends StatefulWidget {
   const ComponentPage({super.key});
 
@@ -20,19 +22,14 @@ class _ComponentPageState extends State<ComponentPage> {
       UrlNavModel('动画组件测试', '/component/animation'),
       UrlNavModel('GoRouter动态路由', '/component/go_router'),
     ];
+
+    List<PageNavModel> otherItems = [
+      PageNavModel('命令式导航', const CommandRoutePage()),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('组件列表'),
-        actions: [
-          Obx(
-            () => Switch(
-              value: AppController.of.config.useMaterial3,
-              onChanged: (v) {
-                AppController.of.config = AppController.of.config.copyWith(useMaterial3: v);
-              },
-            ),
-          ),
-        ],
       ),
       drawer: Drawer(
         shape: const BeveledRectangleBorder(borderRadius: BorderRadius.zero),
@@ -65,6 +62,7 @@ class _ComponentPageState extends State<ComponentPage> {
         child: Column(
           children: [
             buildListSection(context, '自定义组件', componentItems),
+            buildListSection(context, '其他组件', otherItems),
             Row(
               children: [
                 const Text('开启慢动画:'),
@@ -107,7 +105,7 @@ class _ComponentPageState extends State<ComponentPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                context.push(const AnimationTestPage());
+                rootContext.push(const AnimationTestPage());
               },
               child: const Text('go 动画测试'),
             ),
@@ -131,13 +129,13 @@ class _ComponentPageState extends State<ComponentPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                context.pushPath('/chat/2/info');
+                context.pushUrl('/chat/2/info');
               },
               child: const Text('push /chat/2/info'),
             ),
             ElevatedButton(
               onPressed: () {
-                context.pushPath('/root_child');
+                context.pushUrl('/root_child');
               },
               child: const Text('push root_go_route'),
             ),

@@ -1,6 +1,9 @@
 part of flutter_base;
 
 class FlutterConfigData {
+  /// 应用标题
+  String title;
+
   /// 自定义全局字体
   String? fontFamily;
 
@@ -29,6 +32,7 @@ class FlutterConfigData {
   bool showPerformanceOverlay;
 
   FlutterConfigData({
+    this.title = 'Flutter App',
     this.fontFamily,
     this.defaultFontWeight = FontWeight.w500,
     this.headerHeight = 50,
@@ -43,6 +47,7 @@ class FlutterConfigData {
   }
 
   FlutterConfigData copyWith({
+    String? title,
     String? fontFamily,
     FontWeight? defaultFontWeight,
     double? headerHeight,
@@ -54,6 +59,7 @@ class FlutterConfigData {
     bool? showPerformanceOverlay,
   }) {
     return FlutterConfigData(
+      title: title ?? this.title,
       fontFamily: fontFamily ?? this.fontFamily,
       defaultFontWeight: defaultFontWeight ?? this.defaultFontWeight,
       headerHeight: headerHeight ?? this.headerHeight,

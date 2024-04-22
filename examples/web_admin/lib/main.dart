@@ -4,6 +4,6 @@ import 'package:flutter_base/flutter_base.dart';
 import 'router.dart';
 
 void main() async {
-  await initFlutterApp();
-  runApp(App(router: initRouter()));
+  await initApp(router: initRouter());
+  runApp(const App());
 }

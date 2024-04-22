@@ -1,23 +1,106 @@
 part of flutter_base;
 
-class CustomSlideTransition extends CustomTransitionPage<void> {
-  CustomSlideTransition({super.key, required super.child})
-      : super(
-          transitionDuration: const Duration(milliseconds: 400),
-          transitionsBuilder: (_, animation, __, child) {
-            return SlideTransition(
-              position: animation.drive(
-                Tween(
-                  begin: const Offset(1.0, 0),
-                  end: Offset.zero,
-                ).chain(
-                  CurveTween(curve: Curves.easeOut),
-                ),
-              ),
-              child: child,
-            );
-          },
-        );
+/// 扩展 go_router 的[GoRoute]对象，新增两个属性，用于支持隐藏底部导航栏。实现类似于跳转到根页面需求。
+///
+/// 提示：如果你声明的路由没有[hideTabbar]，那么将不会监听路由
+class GoRoute extends go_router.GoRoute {
+  /// 声明式路由配置
+  GoRoute({
+    required super.path,
+    super.name,
+    super.builder,
+    super.pageBuilder,
+    super.parentNavigatorKey,
+    super.redirect,
+    super.onExit,
+    super.routes = const <RouteBase>[],
+    this.hideTabbar = false,
+    this.bodyPaddingAnimation = true,
+  });
+
+  /// 是否隐藏底部导航栏，如果父级路由设置为true，那么子级将强制为true。
+  final bool hideTabbar;
+
+  /// body底部padding是否应用动画，默认true，跳转隐藏底部导航栏的页面时，内容页面的底部padding值会同步跟随导航栏的高度，
+  /// 导致body高度会不断发生变化，这会破坏[Hero]动画，如果你的页面应用了[Hero]动画，例如[CupertinoNavigationBar]，
+  /// 请将该值设置为false，当页面跳转时会立即设置底部间距，而不是跟随底部导航栏高度的变化。
+  final bool bodyPaddingAnimation;
+}
+
+/// [GoRoute]的配置模型，精简内部属性
+class _GoRouteModel {
+  final String path;
+  final bool hideTabbar;
+  final bool bodyPaddingAnimation;
+  List<_GoRouteModel>? children;
+
+  _GoRouteModel({
+    required this.path,
+    required this.hideTabbar,
+    required this.bodyPaddingAnimation,
+    this.children,
+  });
+
+  _GoRouteModel clone() {
+    return _GoRouteModel(
+      path: path,
+      hideTabbar: hideTabbar,
+      bodyPaddingAnimation: bodyPaddingAnimation,
+      children: children,
+    );
+  }
+
+  /// 将[StatefulShellRoute]转换成[_GoRouteModel]数组
+  static List<_GoRouteModel> statefulShellRoute(GoRouter router) {
+    List<_GoRouteModel> routePathList = [];
+    router.configuration.routes.forEach((e) {
+      if (e is StatefulShellRoute) {
+        routePathList.addAll(_routeToModel(e.routes)!);
+      }
+    });
+    return routePathList;
+  }
+
+  /// 将嵌套数组展开平铺
+  static Map<String, _GoRouteModel> flatRoute(List<_GoRouteModel> routes, [Map<String, _GoRouteModel>? map]) {
+    map ??= {};
+    routes.forEach((e) {
+      map![e.path] = e.clone();
+      if (e.children != null) {
+        flatRoute(e.children!, map);
+        map[e.path]!.children = null;
+      }
+    });
+    return map;
+  }
+
+  static List<_GoRouteModel>? _routeToModel(List<RouteBase> routes, [_GoRouteModel? parent]) {
+    if (routes.isEmpty) return null;
+    List<_GoRouteModel> list = [];
+    routes.forEach((e) {
+      if (e is GoRoute) {
+        String path = e.path;
+        bool hideTabbar = e.hideTabbar;
+        if (parent != null) {
+          path = '${parent.path}/$path';
+          if (parent.hideTabbar) hideTabbar = true;
+        }
+        final model = _GoRouteModel(path: path, hideTabbar: hideTabbar, bodyPaddingAnimation: e.bodyPaddingAnimation);
+        if (e.routes.isNotEmpty) model.children = _routeToModel(e.routes, model);
+        list.add(model);
+      }
+    });
+    return list;
+  }
+
+  @override
+  String toString() {
+    if (children != null) {
+      return '_GoRouteModel{path: $path, hideTabbar: $hideTabbar, bodyPaddingAnimation: $bodyPaddingAnimation, children: $children}';
+    } else {
+      return '_GoRouteModel{path: $path, hideTabbar: $hideTabbar, bodyPaddingAnimation: $bodyPaddingAnimation}';
+    }
+  }
 }
 
 /// 定义路由[CupertinoPage]
@@ -32,7 +115,7 @@ class _Page<T> extends CupertinoPage<T> {
 
   @override
   Route<T> createRoute(BuildContext context) {
-    return _PageBasedPageRoute<T>(
+    return _GoRoutePage<T>(
       page: this,
       allowSnapshotting: allowSnapshotting,
     );
@@ -40,8 +123,8 @@ class _Page<T> extends CupertinoPage<T> {
 }
 
 /// 适用于[GoRouter]定义的声明式页面路由过渡动画，
-class _PageBasedPageRoute<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _CupertinoRouteTransitionMixin {
-  _PageBasedPageRoute({
+class _GoRoutePage<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _CupertinoRouteTransitionMixin {
+  _GoRoutePage({
     required CupertinoPage<T> page,
     super.allowSnapshotting = true,
   }) : super(settings: page) {
@@ -66,9 +149,9 @@ class _PageBasedPageRoute<T> extends PageRoute<T> with CupertinoRouteTransitionM
   Widget buildContent(BuildContext context) => _page.child;
 }
 
-/// 适用于命令式页面路由过渡动画，支持[hideTabbar]属性，类似于：[MaterialPageRoute]、[CupertinoPageRoute]
+/// 适用于命令式页面路由过渡动画，支持[hideTabbar]属性
 class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _CupertinoRouteTransitionMixin {
-  _PageRouter({required this.builder});
+  _PageRouter({required this.builder, super.settings});
 
   final WidgetBuilder builder;
 
@@ -80,82 +163,6 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
 
   @override
   Widget buildContent(BuildContext context) => builder(context);
-}
-
-class _RouteState {
-  _RouteState._();
-
-  /// 当前是否已经注入了底部导航栏脚手架，如果没有注入，那么监听逻辑将不会触发
-  static bool injectTabScaffoldController = false;
-
-  /// 根路由列表
-  static late final List<_GoRouteModel> routeModels;
-
-  /// 路由模型 Map 集合
-  static late final Map<String, _GoRouteModel> routeModelMap;
-
-  /// [routeModelMap]keys集合
-  static late final List<String> routeModelKeys;
-
-  /// [currentRoute]所在的路由链
-  static List<_GoRouteModel> currentChainList = [];
-
-  /// 当前路由历史对象
-  static _GoRouteModel? currentRoute;
-
-  /// 上一次路由历史对象
-  static _GoRouteModel? previousRoute;
-
-  static bool didPop = false;
-
-  /// 当前顶级路由位置
-  static int currentIndex = 0;
-
-  /// 当前路由链中最顶层的隐藏底部导航栏路由
-  static String? hideTabbarRootPath;
-
-  /// 是否已经退出路由链中最顶层的隐藏底部导航栏路由
-  static bool isPopToHideTabbarRootPath = false;
-
-  static void setHideTabbarPath() {
-    currentChainList.clear();
-    setRouteChain(currentChainList);
-    hideTabbarRootPath = currentChainList.firstWhereOrNull((e) => routeModelMap[e.path]?.hideTabbar == true)?.path;
-    if (hideTabbarRootPath != null) isPopToHideTabbarRootPath = false;
-    // i(currentChainList);
-    // i(hideTabbarRootPath);
-  }
-
-  static void setRouteChain(List<_GoRouteModel> chainList, [List<_GoRouteModel>? $routeModels]) {
-    $routeModels ??= routeModels;
-    for (int i = 0; i < $routeModels.length; i++) {
-      if (currentRoute!.path.startsWith($routeModels[i].path)) {
-        if (currentRoute!.path == $routeModels[i].path) {
-          chainList.add($routeModels[i]);
-          break;
-        } else {
-          chainList.add($routeModels[i]);
-          if ($routeModels[i].children != null) {
-            setRouteChain(chainList, $routeModels[i].children!);
-          }
-        }
-      }
-    }
-  }
-
-  static void setShowBottomNav([bool? setHeight]) {
-    if (injectTabScaffoldController) {
-      if (currentRoute?.hideTabbar == true) {
-        TabScaffoldController.of._showBottomNav.value = false;
-        if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = 0;
-      } else {
-        TabScaffoldController.of._showBottomNav.value = true;
-        if (setHeight == true) {
-          TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
-        }
-      }
-    }
-  }
 }
 
 /// 定制Cupertino路由切换动画，如果进入新页面设置了隐藏底部导航栏，将在路由转换时应用显示、隐藏底部导航栏动画
@@ -237,26 +244,88 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   }
 }
 
-mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
-  late bool _hasListen;
+/// 保存用户声明的路由状态
+class _RouteState {
+  _RouteState._();
 
-  @override
-  void initState() {
-    super.initState();
-    _RouteState.routeModels = _GoRouteModel.statefulShellRoute(router);
-    _RouteState.routeModelMap = _GoRouteModel.flatRoute(_RouteState.routeModels);
-    _RouteState.routeModelKeys = _RouteState.routeModelMap.keys.toList();
-    _RouteState.injectTabScaffoldController = FlutterUtil.hasController<TabScaffoldController>();
-    _hasListen = DartUtil.listContains(_RouteState.routeModelMap.values.toList(), (e) => e.hideTabbar);
-    if (_hasListen) {
-      router.routerDelegate.addListener(routeListen);
+  static bool allowListen = false;
+
+  /// 当前是否已经注入了底部导航栏脚手架，如果没有注入，那么监听逻辑将不会触发
+  static bool injectTabScaffoldController = false;
+
+  /// 根路由列表
+  static late final List<_GoRouteModel> routeModels;
+
+  /// 路由模型 Map 集合
+  static late final Map<String, _GoRouteModel> routeModelMap;
+
+  /// [routeModelMap]keys集合
+  static late final List<String> routeModelKeys;
+
+  /// [currentRoute]所在的路由链
+  static List<_GoRouteModel> currentChainList = [];
+
+  /// 当前路由历史对象
+  static _GoRouteModel? currentRoute;
+
+  /// 上一次路由历史对象
+  static _GoRouteModel? previousRoute;
+
+  static bool didPop = false;
+
+  /// 当前顶级路由位置
+  static int currentIndex = 0;
+
+  /// 当前路由链中最顶层的隐藏底部导航栏路由
+  static String? hideTabbarRootPath;
+
+  /// 是否已经退出路由链中最顶层的隐藏底部导航栏路由
+  static bool isPopToHideTabbarRootPath = false;
+
+  static void init() {
+    routeModels = _GoRouteModel.statefulShellRoute(router);
+    routeModelMap = _GoRouteModel.flatRoute(routeModels);
+    routeModelKeys = routeModelMap.keys.toList();
+    allowListen = DartUtil.listContains(routeModelMap.values.toList(), (e) => e.hideTabbar);
+    if (allowListen) router.routerDelegate.addListener(_routeListen);
+  }
+
+  static void setHideTabbarPath() {
+    currentChainList.clear();
+    setRouteChain(currentChainList);
+    hideTabbarRootPath = currentChainList.firstWhereOrNull((e) => routeModelMap[e.path]?.hideTabbar == true)?.path;
+    if (hideTabbarRootPath != null) isPopToHideTabbarRootPath = false;
+  }
+
+  static void setRouteChain(List<_GoRouteModel> chainList, [List<_GoRouteModel>? $routeModels]) {
+    $routeModels ??= routeModels;
+    for (int i = 0; i < $routeModels.length; i++) {
+      if (currentRoute!.path.startsWith($routeModels[i].path)) {
+        if (currentRoute!.path == $routeModels[i].path) {
+          chainList.add($routeModels[i]);
+          break;
+        } else {
+          chainList.add($routeModels[i]);
+          if ($routeModels[i].children != null) {
+            setRouteChain(chainList, $routeModels[i].children!);
+          }
+        }
+      }
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    if (_hasListen) router.routerDelegate.removeListener(routeListen);
+  static void setShowBottomNav([bool? setHeight]) {
+    if (injectTabScaffoldController) {
+      if (currentRoute?.hideTabbar == true) {
+        TabScaffoldController.of._showBottomNav.value = false;
+        if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = 0;
+      } else {
+        TabScaffoldController.of._showBottomNav.value = true;
+        if (setHeight == true) {
+          TabScaffoldController.of._tabbarAnimationHeight.value = TabScaffoldController.of.bottomNavHeight;
+        }
+      }
+    }
   }
 
   /// 监听[GoRouter]声明式跳转，即通过[go]函数路由跳转，如果是选项卡式导航直接的切换跳转，[PageRoute]是监听不到的，
@@ -265,42 +334,40 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
   /// 另外，[GoRouter]的路由地址变化监听与[PageRoute]的生命周期执行顺序为：
   ///
   /// routeListen -> didAdd、disPush -> didPop -> routeListen -> dispose
-  void routeListen() {
-    if (_RouteState.injectTabScaffoldController) {
+  static void _routeListen() {
+    if (injectTabScaffoldController) {
       final currentRoute = getRouteModel(router.routerDelegate.currentConfiguration.uri.path);
       if (currentRoute != null) {
         _RouteState.currentRoute = currentRoute;
         setIsPopToHideTabbarRootPath();
-        _RouteState.previousRoute = getPreviousRouteModel();
-        // i(_RouteState.currentRoute?.path, 'routeListen');
-        // i(_RouteState.previousRoute?.path, 'previousRoute');
+        previousRoute = getPreviousRouteModel();
         final newIndex = getCurrentIndex();
-        if (newIndex != null && newIndex != _RouteState.currentIndex) {
-          _RouteState.currentIndex = newIndex;
-          _RouteState.setShowBottomNav(true);
+        if (newIndex != null && newIndex != currentIndex) {
+          currentIndex = newIndex;
+          setShowBottomNav(true);
         }
       }
     }
   }
 
   /// 解决从多级路由返回时显示、隐藏底部导航栏
-  void setIsPopToHideTabbarRootPath() {
-    if (_RouteState.hideTabbarRootPath == null || _RouteState.previousRoute == null) {
-      _RouteState.isPopToHideTabbarRootPath = false;
+  static void setIsPopToHideTabbarRootPath() {
+    if (hideTabbarRootPath == null || previousRoute == null) {
+      isPopToHideTabbarRootPath = false;
     } else {
-      final urlList1 = _RouteState.hideTabbarRootPath!.split('/');
-      final urlList2 = _RouteState.currentRoute!.path.split('/');
-      final urlList3 = _RouteState.previousRoute!.path.split('/');
+      final urlList1 = hideTabbarRootPath!.split('/');
+      final urlList2 = currentRoute!.path.split('/');
+      final urlList3 = previousRoute!.path.split('/');
       // 1.上一页和当前页长度一致，表示只返回一级，此函数是处理返回多级，所以不符合条件
       // 2.当前页的url长度要小于hideTabbarRootPath长度，这才表示返回到隐藏前的页面
-      _RouteState.isPopToHideTabbarRootPath = urlList2.length != urlList3.length && urlList2.length < urlList1.length;
+      isPopToHideTabbarRootPath = urlList2.length != urlList3.length && urlList2.length < urlList1.length;
     }
   }
 
   /// 解析路由地址，将其转换为[GoRouter]声明的地址
-  _GoRouteModel? getRouteModel(String url) {
+  static _GoRouteModel? getRouteModel(String url) {
     final urlList = url.split('/');
-    final targetUrls = _RouteState.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
+    final targetUrls = routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
     final matchUrlList = targetUrls.firstWhereOrNull((e) {
       final urlList2 = e.split('/');
       if (urlList2.length == urlList.length) {
@@ -314,38 +381,49 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
       }
     });
     if (matchUrlList == null) return null;
-    return _RouteState.routeModelMap[matchUrlList];
+    return routeModelMap[matchUrlList];
   }
 
   /// 获取当前路由地址的上一页路由
-  _GoRouteModel? getPreviousRouteModel() {
-    final urlList = _RouteState.currentRoute!.path.split('/');
+  static _GoRouteModel? getPreviousRouteModel() {
+    final urlList = currentRoute!.path.split('/');
     // 长度为2，表示此路由为根路由，根路由没有上一页
     if (urlList.length == 2) return null;
-    final targetUrls = _RouteState.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
+    final targetUrls = routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
     final matchUrlList = targetUrls.firstWhereOrNull((e) => e.split('/').length + 1 == urlList.length);
     if (matchUrlList == null) return null;
-    return _RouteState.routeModelMap[matchUrlList];
+    return routeModelMap[matchUrlList];
   }
 
   /// 根据[currentRouteUrl]获取当前所处的选项卡位置，但是，如果你是进入新的页面，拿到的却是空
-  int? getCurrentIndex() {
-    if (_RouteState.currentRoute == null) return null;
-    String rootPath = _RouteState.currentRoute!.path.split('/')[1];
-    for (int i = 0; i < _RouteState.routeModels.length; i++) {
-      if (_RouteState.routeModels[i].path == '/$rootPath') {
+  static int? getCurrentIndex() {
+    if (currentRoute == null) return null;
+    String rootPath = currentRoute!.path.split('/')[1];
+    for (int i = 0; i < routeModels.length; i++) {
+      if (routeModels[i].path == '/$rootPath') {
         return i;
       }
     }
     return null;
   }
+}
 
-  /// 判断进入的新页面是否是返回到之前的页面
-  bool isPop(String url) {
-    if (_RouteState.currentRoute == null) return false;
-    i(_RouteState.currentRoute!);
-    final currentPathList = _RouteState.currentRoute!.path.split('/');
-    final newPathList = url.split('/');
-    return currentPathList[1] == newPathList[1] && newPathList.length < currentPathList.length;
-  }
+class CustomSlideTransition extends CustomTransitionPage<void> {
+  CustomSlideTransition({super.key, required super.child})
+      : super(
+          transitionDuration: const Duration(milliseconds: 400),
+          transitionsBuilder: (_, animation, __, child) {
+            return SlideTransition(
+              position: animation.drive(
+                Tween(
+                  begin: const Offset(1.0, 0),
+                  end: Offset.zero,
+                ).chain(
+                  CurveTween(curve: Curves.easeOut),
+                ),
+              ),
+              child: child,
+            );
+          },
+        );
 }

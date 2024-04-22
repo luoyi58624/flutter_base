@@ -39,7 +39,7 @@ class _ChatInfoPageState extends State<ChatInfoPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              context.pushPath('/chat/$newId');
+              context.pushUrl('/chat/$newId');
             },
             child: Text('push - $newId'),
           ),

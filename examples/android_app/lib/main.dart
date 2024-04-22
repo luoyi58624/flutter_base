@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'controllers/index.dart';
 
 void main() async {
-  await initFlutterApp();
+  await initApp(router: initRouter());
   initController();
-  runApp(App(
-    router: initRouter(),
-  ));
+  runApp(const App());
 }

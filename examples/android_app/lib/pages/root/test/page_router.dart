@@ -35,7 +35,7 @@ class _CustomPageRouterPageState extends State<CustomPageRouterPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.push(const _ChildPage(), hideTabbar: true);
+                  context.push(const _ChildPage());
                 },
                 child: const Text('子页面'),
               ),

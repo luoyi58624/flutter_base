@@ -109,7 +109,6 @@ class _TabScaffoldState extends State<TabScaffold> with FlutterThemeMixin {
       children: [
         Obx(() {
           late EdgeInsets edgeInsets;
-          i(_RouteState.currentRoute);
           if (_RouteState.currentRoute == null || _RouteState.currentRoute!.bodyPaddingAnimation) {
             edgeInsets = EdgeInsets.only(bottom: controller._tabbarAnimationHeight.value);
           } else {
