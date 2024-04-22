@@ -48,8 +48,8 @@ class FlutterConfigData {
     this.enableRipple = true,
     this.translucenceStatusBar = false,
     this.showPerformanceOverlay = false,
-    this.hoverScale = 15,
-    this.tapScale = 30,
+    this.hoverScale = 8,
+    this.tapScale = 14,
   }) {
     centerTitle = centerTitle ?? (GetPlatform.isMobile ? true : false);
   }
@@ -65,6 +65,8 @@ class FlutterConfigData {
     bool? enableRipple,
     bool? translucenceStatusBar,
     bool? showPerformanceOverlay,
+    int? hoverScale,
+    int? tapScale,
   }) {
     return FlutterConfigData(
       title: title ?? this.title,
@@ -77,6 +79,8 @@ class FlutterConfigData {
       enableRipple: enableRipple ?? this.enableRipple,
       translucenceStatusBar: translucenceStatusBar ?? this.translucenceStatusBar,
       showPerformanceOverlay: showPerformanceOverlay ?? this.showPerformanceOverlay,
+      hoverScale: hoverScale ?? this.hoverScale,
+      tapScale: tapScale ?? this.tapScale,
     );
   }
 }
