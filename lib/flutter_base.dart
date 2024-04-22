@@ -92,6 +92,8 @@ part 'src/extensions/router.dart';
 
 part 'src/extensions/theme.dart';
 
+part 'src/mixins/delay.dart';
+
 part 'src/mixins/theme.dart';
 
 part 'src/pages/simple_page.dart';
