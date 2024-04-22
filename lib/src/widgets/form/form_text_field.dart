@@ -310,7 +310,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> with FlutterTh
         fontSize: widget.size != null
             ? labelFontSize[widget.size]
             : labelFontSize[FormInheritedWidget.of(context)?.size] ?? labelFontSize[FormSize.medium]!,
-        fontWeight: FlutterController.of.config.defaultFontWeight,
+        fontWeight: AppController.of.config.defaultFontWeight,
       );
 
   @override

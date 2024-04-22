@@ -6,7 +6,6 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/scheduler.dart' as scheduler;
 
-import 'package:archive/archive.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/cupertino.dart';
@@ -17,8 +16,6 @@ import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:uuid/uuid.dart';
-import 'package:crypto/crypto.dart' as crypto;
 import 'package:highlight_text/highlight_text.dart';
 import 'package:html/parser.dart' as htmlparser;
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart' as modal_bottom_sheet;
@@ -93,8 +90,6 @@ part 'src/extensions/context.dart';
 
 part 'src/mixins/theme.dart';
 
-part 'src/pages/root_page.dart';
-
 part 'src/pages/simple_page.dart';
 
 part 'src/utils/animation.dart';
@@ -104,8 +99,6 @@ part 'src/utils/async.dart';
 part 'src/utils/cascader.dart';
 
 part 'src/utils/color.dart';
-
-part 'src/utils/crypto.dart';
 
 part 'src/utils/drawer.dart';
 
@@ -120,8 +113,6 @@ part 'src/utils/http.dart';
 part 'src/utils/loading.dart';
 
 part 'src/utils/local_storage.dart';
-
-part 'src/utils/uuid.dart';
 
 part 'src/utils/modal.dart';
 
@@ -188,10 +179,11 @@ part 'src/widgets/cupertino/list_tile.dart';
 /// key-value本地存储对象
 late LocalStorage localStorage;
 
-late GoRouter _router;
+/// [GoRouter]路由实例，对对象由
+late final GoRouter router;
 
 /// 根节点导航key
-GlobalKey<NavigatorState> get rootNavigatorKey => _router.configuration.navigatorKey;
+GlobalKey<NavigatorState> get rootNavigatorKey => router.configuration.navigatorKey;
 
 /// 根节点context
 BuildContext get rootContext => rootNavigatorKey.currentContext!;
@@ -201,9 +193,20 @@ BuildContext get rootContext => rootNavigatorKey.currentContext!;
 /// * theme 自定义亮色主题
 /// * darkTheme 自定义暗色主题
 /// * config 自定义全局配置
-Future<void> initFlutterApp() async {
+Future<void> initFlutterApp({
+  ThemeMode? themeMode,
+  FlutterThemeData? theme,
+  FlutterThemeData? darkTheme,
+  FlutterConfigData? config,
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
+  Get.put(AppController(
+    themeMode: themeMode ?? ThemeMode.system,
+    theme: theme ?? FlutterThemeData(),
+    darkTheme: darkTheme ?? FlutterThemeData.dark(),
+    config: config ?? FlutterConfigData(),
+  ));
 }

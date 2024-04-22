@@ -23,7 +23,7 @@ class ComponentPage extends StatelessWidget {
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.push(const ComponentChildPage(), hideTabbar: true);
+                  context.push(const ComponentChildPage(), hideTab: true);
                 },
                 child: const Text('子页面-命令式'),
               ),

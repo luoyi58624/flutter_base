@@ -17,16 +17,6 @@ class _ThemePageState extends State<ThemePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('App主题设置'),
-        actions: [
-          Obx(
-            () => Switch(
-              value: FlutterController.of.config.useMaterial3,
-              onChanged: (v) {
-                FlutterController.of.config = FlutterController.of.config.copyWith(useMaterial3: v);
-              },
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -92,14 +82,42 @@ class _ThemePageState extends State<ThemePage> {
         children: [
           ListTile(
             onTap: () {
-              FlutterController.of.themeMode = ThemeMode.system;
+              AppController.of.themeMode = ThemeMode.dark;
+            },
+            title: const Text('启用Material3'),
+            trailing: Obx(
+              () => Switch(
+                value: AppController.of.config.useMaterial3,
+                onChanged: (v) {
+                  AppController.of.config = AppController.of.config.copyWith(useMaterial3: v);
+                },
+              ),
+            ),
+          ),
+          ListTile(
+            onTap: () {
+              AppController.of.themeMode = ThemeMode.dark;
+            },
+            title: const Text('开启性能监控'),
+            trailing: Obx(
+              () => Switch(
+                value: AppController.of.config.showPerformanceOverlay,
+                onChanged: (v) {
+                  AppController.of.config = AppController.of.config.copyWith(showPerformanceOverlay: v);
+                },
+              ),
+            ),
+          ),
+          ListTile(
+            onTap: () {
+              AppController.of.themeMode = ThemeMode.system;
             },
             title: const Text('跟随系统'),
             trailing: Obx(
               () => Radio<ThemeMode>(
-                value: FlutterController.of.themeMode,
+                value: AppController.of.themeMode,
                 onChanged: (ThemeMode? mode) {
-                  FlutterController.of.themeMode = ThemeMode.system;
+                  AppController.of.themeMode = ThemeMode.system;
                 },
                 groupValue: ThemeMode.system,
               ),
@@ -107,14 +125,14 @@ class _ThemePageState extends State<ThemePage> {
           ),
           ListTile(
             onTap: () {
-              FlutterController.of.themeMode = ThemeMode.light;
+              AppController.of.themeMode = ThemeMode.light;
             },
             title: const Text('亮色模式'),
             trailing: Obx(
               () => Radio<ThemeMode>(
-                value: FlutterController.of.themeMode,
+                value: AppController.of.themeMode,
                 onChanged: (ThemeMode? mode) {
-                  FlutterController.of.themeMode = ThemeMode.light;
+                  AppController.of.themeMode = ThemeMode.light;
                 },
                 groupValue: ThemeMode.light,
               ),
@@ -122,14 +140,14 @@ class _ThemePageState extends State<ThemePage> {
           ),
           ListTile(
             onTap: () {
-              FlutterController.of.themeMode = ThemeMode.dark;
+              AppController.of.themeMode = ThemeMode.dark;
             },
             title: const Text('黑暗模式'),
             trailing: Obx(
               () => Radio<ThemeMode>(
-                value: FlutterController.of.themeMode,
+                value: AppController.of.themeMode,
                 onChanged: (ThemeMode? mode) {
-                  FlutterController.of.themeMode = ThemeMode.dark;
+                  AppController.of.themeMode = ThemeMode.dark;
                 },
                 groupValue: ThemeMode.dark,
               ),
@@ -156,14 +174,14 @@ class _ThemePageState extends State<ThemePage> {
               children: FlutterColorData.materialColors.map((color) {
                 return InkWell(
                   onTap: () {
-                    FlutterController.of.theme = FlutterController.of.theme.copyWith(primary: color);
+                    AppController.of.theme = AppController.of.theme.copyWith(primary: color);
                   },
                   child: Obx(
                     () => Container(
                       width: 40,
                       height: 40,
                       color: color,
-                      child: FlutterController.of.theme.primary == color
+                      child: AppController.of.theme.primary == color
                           ? const Icon(
                               Icons.done,
                               color: Colors.white,
@@ -196,14 +214,14 @@ class _ThemePageState extends State<ThemePage> {
               children: FlutterColorData.materialColors.map((color) {
                 return InkWell(
                   onTap: () {
-                    FlutterController.of.darkTheme = FlutterController.of.darkTheme.copyWith(primary: color);
+                    AppController.of.darkTheme = AppController.of.darkTheme.copyWith(primary: color);
                   },
                   child: Obx(
                     () => Container(
                       width: 40,
                       height: 40,
                       color: color,
-                      child: FlutterController.of.darkTheme.primary == color
+                      child: AppController.of.darkTheme.primary == color
                           ? const Icon(
                               Icons.done,
                               color: Colors.white,

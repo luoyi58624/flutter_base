@@ -1,7 +1,7 @@
 part of flutter_base;
 
 /// 底部导航栏类型
-enum BottomNavType {
+enum TabType {
   material2,
   material3,
   cupertino,
@@ -12,7 +12,7 @@ enum BottomNavType {
 class TabScaffoldController extends GetxController {
   TabScaffoldController._({
     required List<UrlNavModel> pages,
-    required BottomNavType bottomNavType,
+    required TabType tabType,
     double? bottomNavHeight,
   }) {
     this.pages = useLocalListObs(
@@ -26,10 +26,10 @@ class TabScaffoldController extends GetxController {
         tabBadge[page.path] = '';
       }
     }
-    this.bottomNavType = bottomNavType.obs;
+    this.tabType = tabType.obs;
     _bottomNavHeight = bottomNavHeight;
-    this.bottomNavHeight = _getBottomNavHeight();
-    _tabbarAnimationHeight = _getBottomNavHeight().obs;
+    this.bottomNavHeight = _getTabHeight();
+    _tabbarAnimationHeight = _getTabHeight().obs;
   }
 
   /// 通过静态变量直接获取控制器实例
@@ -38,7 +38,7 @@ class TabScaffoldController extends GetxController {
   late RxList<UrlNavModel> pages;
 
   /// 应用的底部导航栏类型
-  late Rx<BottomNavType> bottomNavType;
+  late Rx<TabType> tabType;
 
   /// 用户自定义的底部导航栏高度
   double? _bottomNavHeight;
@@ -91,16 +91,16 @@ class TabScaffoldController extends GetxController {
     }
   }
 
-  double _getBottomNavHeight() {
+  double _getTabHeight() {
     if (_bottomNavHeight == null) {
-      switch (bottomNavType.value) {
-        case BottomNavType.material2:
+      switch (tabType.value) {
+        case TabType.material2:
           return 56;
-        case BottomNavType.material3:
+        case TabType.material3:
           return 80;
-        case BottomNavType.cupertino:
+        case TabType.cupertino:
           return 50;
-        case BottomNavType.custom:
+        case TabType.custom:
           return 50;
       }
     } else {
@@ -111,8 +111,8 @@ class TabScaffoldController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    ever(bottomNavType, (v) {
-      bottomNavHeight = _getBottomNavHeight();
+    ever(tabType, (v) {
+      bottomNavHeight = _getTabHeight();
     });
   }
 }

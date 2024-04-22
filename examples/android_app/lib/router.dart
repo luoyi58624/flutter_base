@@ -40,7 +40,7 @@ GoRouter initRouter() {
     routes: [
       GoRoute(path: '/', redirect: (c, s) => RoutePath.root),
       StatefulShellRoute.indexedStack(
-        builder: (c, s, navigationShell) => FlutterTabScaffold(
+        builder: (c, s, navigationShell) => AppTabScaffold(
           navigationShell: navigationShell,
           pages: [
             UrlNavModel('组件', RoutePath.root, icon: Icons.token_outlined),
@@ -55,17 +55,17 @@ GoRouter initRouter() {
             GoRoute(path: RoutePath.root, pageBuilder: (c, s) => c.pageBuilder(s, const ComponentPage()), routes: [
               GoRoute(
                 path: 'theme',
-                hideTabbar: true,
+                hideTab: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const ThemePage()),
               ),
               GoRoute(
                 path: 'image',
-                hideTabbar: true,
+                hideTab: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const ImageTestPage()),
               ),
               GoRoute(
                 path: 'animation',
-                hideTabbar: true,
+                hideTab: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const AnimationWidgetTestPage()),
               ),
               GoRoute(
@@ -74,13 +74,14 @@ GoRouter initRouter() {
               ),
             ]),
           ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: RoutePath.util, pageBuilder: (c, s) => c.pageBuilder(s, const UtilPage())),
+            ],
+          ),
           StatefulShellBranch(routes: [
-            GoRoute(
-              path: RoutePath.util,
-              pageBuilder: (c, s) => c.pageBuilder(s, const UtilPage()),
-            )
+            GoRoute(path: RoutePath.template, pageBuilder: (c, s) => c.pageBuilder(s, const TemplatePage()))
           ]),
-          StatefulShellBranch(routes: [GoRoute(path: RoutePath.template, pageBuilder: (c, s) => c.pageBuilder(s, const TemplatePage()))]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: RoutePath.chat,
@@ -88,15 +89,19 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: ':id',
-                  hideTabbar: true,
+                  hideTab: true,
+                  bodyPaddingAnimation: false,
                   pageBuilder: (c, s) => c.pageBuilder(s, ChatPage(id: s.pathParameters['id']!)),
                   routes: [
-                    GoRoute(path: 'info', pageBuilder: (c, s) => c.pageBuilder(s, ChatInfoPage(id: s.pathParameters['id']!)), routes: [
-                      GoRoute(
-                        path: 'user',
-                        pageBuilder: (c, s) => c.pageBuilder(s, const ChatUserInfoPage()),
-                      )
-                    ]),
+                    GoRoute(
+                        path: 'info',
+                        pageBuilder: (c, s) => c.pageBuilder(s, ChatInfoPage(id: s.pathParameters['id']!)),
+                        routes: [
+                          GoRoute(
+                            path: 'user',
+                            pageBuilder: (c, s) => c.pageBuilder(s, const ChatUserInfoPage()),
+                          )
+                        ]),
                   ],
                 ),
               ],

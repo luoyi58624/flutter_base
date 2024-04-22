@@ -13,8 +13,8 @@ const _supportedLocales = [
   Locale('en', 'US'),
 ];
 
-class FlutterApp extends StatefulWidget {
-  const FlutterApp({
+class App extends StatefulWidget {
+  const App({
     super.key,
     this.title = 'Flutter App',
     this.home,
@@ -40,7 +40,6 @@ class FlutterApp extends StatefulWidget {
   /// 示例：
   /// ``` dart
   /// final router = GoRouter(
-  ///   navigatorKey: context.rootNavigatorKey,
   ///   routes: [
   ///     GoRoute(path: '/', builder: (context, state) => HomePage()),
   ///   ],
@@ -84,11 +83,11 @@ class FlutterApp extends StatefulWidget {
   final TransitionBuilder? builder;
 
   @override
-  State<FlutterApp> createState() => _FlutterAppState();
+  State<App> createState() => _AppState();
 }
 
-class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
-  late FlutterController c = Get.put(FlutterController(
+class _AppState extends State<App> with _GoRouterUrlListenMixin {
+  late AppController c = Get.put(AppController(
     themeMode: widget.themeMode ?? ThemeMode.system,
     theme: widget.theme ?? FlutterThemeData(),
     darkTheme: widget.darkTheme ?? FlutterThemeData.dark(),
@@ -98,7 +97,7 @@ class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
   @override
   void initState() {
     if (widget.router == null) assert(widget.home != null, '你没有设置routes，请传递home页面！');
-    _router = widget.router ??
+    router = widget.router ??
         GoRouter(
           routes: [GoRoute(path: '/', builder: (context, state) => widget.home!)],
         );
@@ -113,7 +112,7 @@ class _FlutterAppState extends State<FlutterApp> with _GoRouterUrlListenMixin {
     var $supportedLocales = (widget.supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
     return Obx(() => MaterialApp.router(
-          routerConfig: _router,
+          routerConfig: router,
           theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
           darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
           themeMode: c.themeMode,
@@ -162,7 +161,7 @@ class AppThemeUtil {
     );
     var $theme = ThemeData(useMaterial3: true, colorScheme: colorScheme);
     return ThemeData(
-      useMaterial3: FlutterController.of.config.useMaterial3,
+      useMaterial3: AppController.of.config.useMaterial3,
       // 解决web上material按钮外边距为0问题，与移动端的效果保持一致
       materialTapTargetSize: MaterialTapTargetSize.padded,
       visualDensity: VisualDensity.standard,

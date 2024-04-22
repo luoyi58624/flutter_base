@@ -57,25 +57,3 @@ class UrlNavModel extends NavModel {
     return data;
   }
 }
-
-/// 路由模型
-class RouterModel extends NavModel {
-  /// 路由跳转地址
-  final String path;
-
-  /// 路由对应的页面组件
-  final Widget page;
-
-  /// 子路由
-  List<RouterModel>? children;
-
-  RouterModel(
-    super.title,
-    this.path,
-    this.page, {
-    super.icon,
-    this.children,
-  }) {
-    children = children ?? [];
-  }
-}

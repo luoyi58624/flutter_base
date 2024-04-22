@@ -2,7 +2,8 @@ part of flutter_base;
 
 extension BuildContextExtension on BuildContext {
   /// 根据当前[ThemeMode]获取相应的主题配置
-  FlutterThemeData get currentTheme => FlutterUtil.isDarkMode(this) ? FlutterController.of.darkTheme : FlutterController.of.theme;
+  FlutterThemeData get currentTheme =>
+      FlutterUtil.isDarkMode(this) ? AppController.of.darkTheme : AppController.of.theme;
 
   /// 声明式跳转，通过此方法进行路由跳转会更改浏览器上面的url
   void go(String path) {
@@ -17,10 +18,10 @@ extension BuildContextExtension on BuildContext {
   /// 跳转到新页面
   /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
   /// * page 新页面组件
-  /// * hideTabbar 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
+  /// * hideTab 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
   Future<T?> push<T>(
     Widget page, {
-    bool hideTabbar = false,
+    bool hideTab = false,
   }) async {
     var result = await Navigator.of(this).push<T>(_PageRouter(
       builder: (context) => page,
@@ -36,7 +37,7 @@ extension BuildContextExtension on BuildContext {
   /// 重定向页面，先跳转新页面，再删除之前的页面
   Future<T?> pushReplacement<T>(
     Widget page, {
-    bool hideTabbar = false,
+    bool hideTab = false,
   }) async {
     return await Navigator.of(this).pushReplacement(_PageRouter(
       builder: (context) => page,
@@ -50,7 +51,7 @@ extension BuildContextExtension on BuildContext {
   void pushAndRemoveUntil(
     Widget page,
     String routePath, {
-    bool hideTabbar = false,
+    bool hideTab = false,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
@@ -68,7 +69,7 @@ extension BuildContextExtension on BuildContext {
   /// 进入新的页面并删除之前所有路由
   void pushAndRemoveAllUntil(
     Widget page, {
-    bool hideTabbar = false,
+    bool hideTab = false,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
@@ -78,7 +79,7 @@ extension BuildContextExtension on BuildContext {
     );
   }
 
-  /// [GoRoute]页面构建，如果你需要实现[hideTabbar]，请一律使用此方法构建路由
+  /// [GoRoute]页面构建，如果你需要实现[hideTab]，请一律使用此方法构建路由
   Page<dynamic> pageBuilder<T>(GoRouterState state, Widget page) => _Page<void>(
         key: state.pageKey,
         name: state.name ?? state.path,
@@ -86,20 +87,4 @@ extension BuildContextExtension on BuildContext {
         restorationId: state.pageKey.value,
         child: page,
       );
-
-  /// 根据[RouterModel]集合生成[GoRoute]集合
-  List<GoRoute> routerModelToGoRouter(List<RouterModel> pages) {
-    return pages
-        .map((e) => GoRoute(
-            path: e.path,
-            pageBuilder: (context, state) => _Page<void>(
-                  key: state.pageKey,
-                  name: state.name ?? state.path,
-                  arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
-                  restorationId: state.pageKey.value,
-                  child: e.page,
-                ),
-            routes: DartUtil.safeList(e.children).isNotEmpty ? routerModelToGoRouter(e.children!) : []))
-        .toList();
-  }
 }

@@ -21,9 +21,8 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(rootContext)
-            ? FlutterController.of.darkTheme.primary
-            : FlutterController.of.theme.primary,
+        backgroundColor:
+            FlutterUtil.isDarkMode(rootContext) ? AppController.of.darkTheme.primary : AppController.of.theme.primary,
       ),
       duration,
     );
@@ -34,9 +33,8 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(rootContext)
-            ? FlutterController.of.darkTheme.success
-            : FlutterController.of.theme.success,
+        backgroundColor:
+            FlutterUtil.isDarkMode(rootContext) ? AppController.of.darkTheme.success : AppController.of.theme.success,
       ),
       duration,
     );
@@ -47,9 +45,8 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(rootContext)
-            ? FlutterController.of.darkTheme.warning
-            : FlutterController.of.theme.warning,
+        backgroundColor:
+            FlutterUtil.isDarkMode(rootContext) ? AppController.of.darkTheme.warning : AppController.of.theme.warning,
       ),
       duration,
     );
@@ -60,9 +57,8 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(rootContext)
-            ? FlutterController.of.darkTheme.error
-            : FlutterController.of.theme.error,
+        backgroundColor:
+            FlutterUtil.isDarkMode(rootContext) ? AppController.of.darkTheme.error : AppController.of.theme.error,
       ),
       duration,
     );
@@ -73,9 +69,8 @@ class ToastUtil {
     _buildToast(
       _OtherToastWidget(
         title: title,
-        backgroundColor: FlutterUtil.isDarkMode(rootContext)
-            ? FlutterController.of.darkTheme.info
-            : FlutterController.of.theme.info,
+        backgroundColor:
+            FlutterUtil.isDarkMode(rootContext) ? AppController.of.darkTheme.info : AppController.of.theme.info,
       ),
       duration,
     );

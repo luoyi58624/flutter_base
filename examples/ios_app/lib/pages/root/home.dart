@@ -37,7 +37,7 @@ class HomePage extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    context.push(const HomeChildPage(), hideTabbar: true);
+                    context.push(const HomeChildPage(), hideTab: true);
                   },
                   child: const Text('命令式 - 子页面'),
                 ),

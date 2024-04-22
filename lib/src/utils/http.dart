@@ -163,7 +163,7 @@ class HttpBase {
         // 判断请求选项中是否配置了useCache，如果为true则根据url地址尝试获取本地数据，
         // 本地有数据就直接返回，否则继续请求接口。
         if (options.extra['useCache'] == true) {
-          var data = await httpLocalStorage!.getItem(CryptoUtil.md5(url));
+          var data = await httpLocalStorage!.getItem(DartUtil.md5(url));
           if (data == null) {
             return handler.next(options);
           } else {
@@ -182,7 +182,7 @@ class HttpBase {
         // 判断请求选项是否配置了enableCache，如果为true则将结果保存到本地
         if (res.requestOptions.extra['enableCache'] == true) {
           httpLocalStorage!.setItem(
-            CryptoUtil.md5(res.requestOptions.uri.toString()),
+            DartUtil.md5(res.requestOptions.uri.toString()),
             res.data,
             duration: DartUtil.safeInt(res.requestOptions.extra['cacheTime'], defaultValue: cacheTime),
           );

@@ -26,9 +26,9 @@ class _ComponentPageState extends State<ComponentPage> {
         actions: [
           Obx(
             () => Switch(
-              value: FlutterController.of.config.useMaterial3,
+              value: AppController.of.config.useMaterial3,
               onChanged: (v) {
-                FlutterController.of.config = FlutterController.of.config.copyWith(useMaterial3: v);
+                AppController.of.config = AppController.of.config.copyWith(useMaterial3: v);
               },
             ),
           ),
@@ -72,12 +72,12 @@ class _ComponentPageState extends State<ComponentPage> {
                   () => Switch(
                     onChanged: (v) {
                       if (v) {
-                        FlutterController.of.timeDilation.value = 3.0;
+                        AppController.of.timeDilation.value = 3.0;
                       } else {
-                        FlutterController.of.timeDilation.value = 1.0;
+                        AppController.of.timeDilation.value = 1.0;
                       }
                     },
-                    value: FlutterController.of.timeDilation.value > 1.0 ? true : false,
+                    value: AppController.of.timeDilation.value > 1.0 ? true : false,
                   ),
                 ),
               ],

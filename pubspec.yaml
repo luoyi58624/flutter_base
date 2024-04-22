@@ -14,21 +14,16 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
-      ref: v2.1.0
   get:
     git:
       url: https://gitee.com/luoyi666/getx.git
       ref: beta
   azlistview: ^2.0.0
-  archive: ^3.4.10
-  crypto: ^3.0.3
-  collection: ^1.18.0
   cupertino_icons: ^1.0.6
   cached_network_image: ^3.3.0
   dio: ^5.4.2
   dio_smart_retry: ^6.0.0
   extended_tabs: ^4.1.0
-  faker: ^2.1.0
   fluttertoast: ^8.2.4
   flutter_spinkit: ^5.2.0
   flutter_animate: ^4.4.1
@@ -43,7 +38,6 @@ dependencies:
   super_sliver_list: ^0.4.0
   scrollable_positioned_list: ^0.2.3
   path_provider: ^2.1.2
-  uuid: ^4.3.3
   gap: ^3.0.1
 
 dev_dependencies:

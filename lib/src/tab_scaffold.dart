@@ -1,12 +1,50 @@
 part of flutter_base;
 
-/// 选项卡式导航栏脚手架
-class FlutterTabScaffold extends StatefulWidget {
-  const FlutterTabScaffold({
+/// App选项卡式底部导航栏脚手架，如果使用，将注入[TabScaffoldController]控制器，你可以通过控制器动态更新导航栏名字、图标、badge，
+/// 同时，你可以在声明式路由设置[hideTab]属性，用于隐藏底部导航栏
+///
+/// ```dart
+/// StatefulShellRoute.indexedStack(
+///   builder: (c, s, navigationShell) => AppTabScaffold(
+///     navigationShell: navigationShell,
+///     pages: [
+///       UrlNavModel('One', '/', icon: Icons.home),
+///       UrlNavModel('Two', '/two', icon: Icons.home),
+///       UrlNavModel('Three', '/three', icon: Icons.home),
+///     ],
+///   ),
+///   branches: [
+///     StatefulShellBranch(
+///       routes: [
+///         GoRoute(
+///           path: '/',
+///           pageBuilder: (c, s) => c.pageBuilder(s, const OnePage()),
+///           routes: [
+///             // 通过context.go('/child')进入的页面将隐藏底部导航栏
+///             GoRoute(path: 'child', hideTab: true, pageBuilder: (c, s) => c.pageBuilder(s, const ChildPage())),
+///           ],
+///         ),
+///       ],
+///     ),
+///     StatefulShellBranch(
+///       routes: [
+///         GoRoute(path: '/two', pageBuilder: (c, s) => c.pageBuilder(s, const TwoPage())),
+///       ],
+///     ),
+///     StatefulShellBranch(
+///       routes: [
+///         GoRoute(path: '/three', pageBuilder: (c, s) => c.pageBuilder(s, const ThreePage())),
+///       ],
+///     ),
+///   ],
+/// ),
+/// ```
+class AppTabScaffold extends StatefulWidget {
+  const AppTabScaffold({
     super.key,
     required this.navigationShell,
     required this.pages,
-    this.bottomNavType = BottomNavType.material2,
+    this.tabType = TabType.material2,
     this.bottomNavHeight,
   });
 
@@ -17,23 +55,23 @@ class FlutterTabScaffold extends StatefulWidget {
   final List<UrlNavModel> pages;
 
   /// 底部导航类型，默认[BottomNavType.material2]
-  final BottomNavType bottomNavType;
+  final TabType tabType;
 
   /// 底部导航栏高度
   final double? bottomNavHeight;
 
   @override
-  State<FlutterTabScaffold> createState() => _FlutterTabScaffoldState();
+  State<AppTabScaffold> createState() => _AppTabScaffoldState();
 }
 
-class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThemeMixin {
+class _AppTabScaffoldState extends State<AppTabScaffold> with FlutterThemeMixin {
   late TabScaffoldController controller;
 
   @override
   void initState() {
     controller = Get.put(TabScaffoldController._(
       pages: widget.pages,
-      bottomNavType: widget.bottomNavType,
+      tabType: widget.tabType,
       bottomNavHeight: widget.bottomNavHeight,
     ));
     _State.injectTabScaffoldController = true;
@@ -50,17 +88,17 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
   @override
   Widget build(BuildContext context) {
     late Widget tabbarWidget;
-    switch (widget.bottomNavType) {
-      case BottomNavType.material2:
+    switch (widget.tabType) {
+      case TabType.material2:
         tabbarWidget = buildMaterial2(context);
         break;
-      case BottomNavType.material3:
+      case TabType.material3:
         tabbarWidget = buildMaterial3(context);
         break;
-      case BottomNavType.cupertino:
+      case TabType.cupertino:
         tabbarWidget = buildCupertino(context);
         break;
-      case BottomNavType.custom:
+      case TabType.custom:
         tabbarWidget = buildCustom(context);
         break;
     }
@@ -71,10 +109,16 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
     return Stack(
       children: [
         Obx(() {
+          late EdgeInsets edgeInsets;
+          i(_State.currentRoute);
+          if (_State.currentRoute == null || _State.currentRoute!.bodyPaddingAnimation) {
+            edgeInsets = EdgeInsets.only(bottom: controller._tabbarAnimationHeight.value);
+          } else {
+            edgeInsets =
+                controller._showBottomNav.value ? EdgeInsets.only(bottom: controller.bottomNavHeight) : EdgeInsets.zero;
+          }
           return Padding(
-            // padding:
-            //     controller._showBottomNav.value ? EdgeInsets.only(bottom: controller.bottomNavHeight) : EdgeInsets.zero,
-            padding: EdgeInsets.only(bottom: controller._tabbarAnimationHeight.value),
+            padding: edgeInsets,
             child: widget.navigationShell,
           );
         }),
@@ -104,7 +148,7 @@ class _FlutterTabScaffoldState extends State<FlutterTabScaffold> with FlutterThe
           selectedFontSize: 12,
           iconSize: 26,
           unselectedLabelStyle: TextStyle(
-            fontWeight: FlutterController.of.config.defaultFontWeight,
+            fontWeight: AppController.of.config.defaultFontWeight,
           ),
           selectedItemColor: $primaryColor,
           selectedLabelStyle: const TextStyle(

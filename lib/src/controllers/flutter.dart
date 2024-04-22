@@ -1,8 +1,8 @@
 part of flutter_base;
 
 /// Flutter应用全局控制器
-class FlutterController extends GetxController {
-  FlutterController({
+class AppController extends GetxController {
+  AppController({
     required ThemeMode themeMode,
     required FlutterThemeData theme,
     required FlutterThemeData darkTheme,
@@ -16,7 +16,7 @@ class FlutterController extends GetxController {
   }
 
   /// 通过静态变量直接获取控制器实例
-  static FlutterController get of => Get.find();
+  static AppController get of => Get.find();
 
   /// 当前主题模式
   late final Rx<ThemeMode> _themeMode;
