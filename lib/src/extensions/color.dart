@@ -41,4 +41,10 @@ extension ColorExtension on Color {
   Color deepen(int scale) {
     return isDark ? brighten(scale) : darken(scale);
   }
+
+  /// 当用户鼠标悬停时的颜色
+  Color onHover() => deepen(AppController.of.config.hoverScale);
+
+  /// 当用户鼠标、手指按下时的颜色
+  Color onTap() => deepen(AppController.of.config.tapScale);
 }
