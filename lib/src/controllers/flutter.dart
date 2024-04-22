@@ -4,8 +4,8 @@ part of flutter_base;
 class AppController extends GetxController {
   AppController({
     required ThemeMode themeMode,
-    required FlutterThemeData theme,
-    required FlutterThemeData darkTheme,
+    required AppThemeData theme,
+    required AppThemeData darkTheme,
     required FlutterConfigData config,
   }) {
     _themeMode = themeMode.obs;
@@ -22,10 +22,10 @@ class AppController extends GetxController {
   late final Rx<ThemeMode> _themeMode;
 
   /// 亮色主题
-  late final Rx<FlutterThemeData> _theme;
+  late final Rx<AppThemeData> _theme;
 
   /// 暗色主题
-  late final Rx<FlutterThemeData> _darkTheme;
+  late final Rx<AppThemeData> _darkTheme;
 
   /// 配置信息
   late final Rx<FlutterConfigData> _config;
@@ -39,15 +39,15 @@ class AppController extends GetxController {
     _themeMode.value = value;
   }
 
-  FlutterThemeData get theme => _theme.value;
+  AppThemeData get theme => _theme.value;
 
-  set theme(FlutterThemeData value) {
+  set theme(AppThemeData value) {
     _theme.update((val) => value);
   }
 
-  FlutterThemeData get darkTheme => _darkTheme.value;
+  AppThemeData get darkTheme => _darkTheme.value;
 
-  set darkTheme(FlutterThemeData value) {
+  set darkTheme(AppThemeData value) {
     _darkTheme.update((val) => value);
   }
 

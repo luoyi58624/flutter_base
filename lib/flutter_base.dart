@@ -197,8 +197,8 @@ BuildContext get rootContext => rootNavigatorKey.currentContext!;
 Future<void> initApp({
   required GoRouter router,
   ThemeMode? themeMode,
-  FlutterThemeData? theme,
-  FlutterThemeData? darkTheme,
+  AppThemeData? theme,
+  AppThemeData? darkTheme,
   FlutterConfigData? config,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -208,8 +208,8 @@ Future<void> initApp({
   _setRouter(router);
   Get.put(AppController(
     themeMode: themeMode ?? ThemeMode.system,
-    theme: theme ?? FlutterThemeData(),
-    darkTheme: darkTheme ?? FlutterThemeData.dark(),
+    theme: theme ?? AppThemeData(),
+    darkTheme: darkTheme ?? AppThemeData.dark(),
     config: config ?? FlutterConfigData(),
   ));
 }

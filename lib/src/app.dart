@@ -92,7 +92,7 @@ class AppThemeUtil {
   AppThemeUtil._();
 
   /// 构建MaterialApp主题数据
-  static ThemeData buildMaterialhemeData(FlutterThemeData theme, FlutterConfigData config) {
+  static ThemeData buildMaterialhemeData(AppThemeData theme, FlutterConfigData config) {
     Color appbarBackground = theme.brightness == Brightness.light ? Colors.white : const Color(0xff0f0f0f);
     Color bodyBackground = theme.brightness == Brightness.light ? const Color(0xfffafafa) : const Color(0xff2b2b2b);
     // 默认的图标、文字颜色
@@ -152,7 +152,7 @@ class AppThemeUtil {
     );
   }
 
-  static CupertinoThemeData buildCupertinoThemeData(FlutterThemeData theme, FlutterConfigData config) {
+  static CupertinoThemeData buildCupertinoThemeData(AppThemeData theme, FlutterConfigData config) {
     var textTheme = CupertinoThemeData(brightness: theme.brightness).textTheme;
     return CupertinoThemeData(
       // brightness: theme.brightness,

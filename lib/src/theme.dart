@@ -1,9 +1,9 @@
 part of flutter_base;
 
-class FlutterThemeData {
-  final Color white = const Color(0xffffffff);
-  final Color black = const Color(0xff000000);
-  final Color transparent = const Color(0x00000000);
+class AppThemeData {
+  static Color white = const Color(0xffffffff);
+  static Color black = const Color(0xff000000);
+  static Color transparent = const Color(0x00000000);
 
   /// 当前主题模式
   Brightness brightness;
@@ -23,14 +23,14 @@ class FlutterThemeData {
   /// 错误颜色
   Color error;
 
-  /// 全局背景白色
+  /// 背景色
   Color bgColor;
+
+  /// 二级背景色，用于与背景色做一个轻微的区分
+  Color bgColor2;
 
   /// 头部导航栏背景颜色
   Color headerColor;
-
-  /// 主要区域背景颜色
-  Color mainColor;
 
   /// 全局文字颜色
   Color textColor;
@@ -48,7 +48,7 @@ class FlutterThemeData {
   Color menuActiveColor;
 
   /// 默认的亮色主题构造函数
-  FlutterThemeData({
+  AppThemeData({
     this.brightness = Brightness.light,
     this.primary = const Color.fromARGB(255, 0, 120, 212),
     this.success = const Color.fromARGB(255, 16, 185, 129),
@@ -56,8 +56,8 @@ class FlutterThemeData {
     this.warning = const Color.fromARGB(255, 245, 158, 11),
     this.error = const Color.fromARGB(255, 239, 68, 68),
     this.bgColor = const Color(0xffffffff),
+    this.bgColor2 = const Color(0xfff6f6f6),
     this.headerColor = const Color(0xfff3f4f6),
-    this.mainColor = const Color(0xffffffff),
     this.textColor = const Color(0xff1f1f1f),
     this.iconColor = const Color(0xff1f1f1f),
     this.defaultBorderColor = const Color(0xffdcdfe6),
@@ -66,16 +66,16 @@ class FlutterThemeData {
   });
 
   /// 默认的暗色主题构造函数
-  FlutterThemeData.dark({
+  AppThemeData.dark({
     this.brightness = Brightness.dark,
     this.primary = const Color(0xff0ea5e9),
     this.success = const Color(0xff14b8a6),
     this.info = const Color(0xff64748B),
     this.warning = const Color(0xfffbbf24),
     this.error = const Color(0xfffb7185),
-    this.bgColor = const Color(0xff000000),
+    this.bgColor = const Color(0xff0f0f0f),
+    this.bgColor2 = const Color(0xff222222),
     this.headerColor = const Color(0xff404040),
-    this.mainColor = const Color(0xff2b2b2b),
     this.textColor = const Color(0xfff6f6f6),
     this.iconColor = const Color(0xfff6f6f6),
     this.defaultBorderColor = const Color(0xffa3a3a3),
@@ -83,7 +83,7 @@ class FlutterThemeData {
     this.menuActiveColor = const Color(0xff6ee7b7),
   });
 
-  FlutterThemeData copyWith({
+  AppThemeData copyWith({
     Brightness? brightness,
     Color? primary,
     Color? success,
@@ -91,15 +91,15 @@ class FlutterThemeData {
     Color? warning,
     Color? error,
     Color? bgColor,
+    Color? bgColor2,
     Color? headerColor,
-    Color? mainColor,
     Color? textColor,
     Color? iconColor,
     Color? defaultBorderColor,
     Color? menuBackground,
     Color? menuActiveColor,
   }) {
-    return FlutterThemeData(
+    return AppThemeData(
       brightness: brightness ?? this.brightness,
       primary: primary ?? this.primary,
       success: success ?? this.success,
@@ -107,8 +107,8 @@ class FlutterThemeData {
       warning: warning ?? this.warning,
       error: error ?? this.error,
       bgColor: bgColor ?? this.bgColor,
+      bgColor2: bgColor2 ?? this.bgColor2,
       headerColor: headerColor ?? this.headerColor,
-      mainColor: mainColor ?? this.mainColor,
       textColor: textColor ?? this.textColor,
       iconColor: iconColor ?? this.iconColor,
       defaultBorderColor: defaultBorderColor ?? this.defaultBorderColor,
