@@ -9,9 +9,9 @@ GoRouter initRouter() {
   return GoRouter(
     routes: [
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AppTabScaffold(
+        builder: (context, state, navigationShell) => TabScaffold(
           navigationShell: navigationShell,
-          tabType: TabType.custom,
+          tabbarType: TabbarType.custom,
           pages: [
             UrlNavModel('首页', '/', icon: Icons.home),
             UrlNavModel('组件', '/component', icon: Icons.token_outlined),

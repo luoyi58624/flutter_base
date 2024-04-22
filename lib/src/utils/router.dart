@@ -66,7 +66,7 @@ class _PageBasedPageRoute<T> extends PageRoute<T> with CupertinoRouteTransitionM
   Widget buildContent(BuildContext context) => _page.child;
 }
 
-/// 适用于命令式页面路由过渡动画，支持[hideTab]属性，类似于：[MaterialPageRoute]、[CupertinoPageRoute]
+/// 适用于命令式页面路由过渡动画，支持[hideTabbar]属性，类似于：[MaterialPageRoute]、[CupertinoPageRoute]
 class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _CupertinoRouteTransitionMixin {
   _PageRouter({required this.builder});
 
@@ -82,10 +82,10 @@ class _PageRouter<T> extends PageRoute<T> with CupertinoRouteTransitionMixin, _C
   Widget buildContent(BuildContext context) => builder(context);
 }
 
-class _State {
-  _State._();
+class _RouteState {
+  _RouteState._();
 
-  /// 当前是否已经注入了底部导航栏脚手架，如果没有注入，那么切换路由将不会应用过渡
+  /// 当前是否已经注入了底部导航栏脚手架，如果没有注入，那么监听逻辑将不会触发
   static bool injectTabScaffoldController = false;
 
   /// 根路由列表
@@ -120,7 +120,7 @@ class _State {
   static void setHideTabbarPath() {
     currentChainList.clear();
     setRouteChain(currentChainList);
-    hideTabbarRootPath = currentChainList.firstWhereOrNull((e) => routeModelMap[e.path]?.hideTab == true)?.path;
+    hideTabbarRootPath = currentChainList.firstWhereOrNull((e) => routeModelMap[e.path]?.hideTabbar == true)?.path;
     if (hideTabbarRootPath != null) isPopToHideTabbarRootPath = false;
     // i(currentChainList);
     // i(hideTabbarRootPath);
@@ -145,7 +145,7 @@ class _State {
 
   static void setShowBottomNav([bool? setHeight]) {
     if (injectTabScaffoldController) {
-      if (currentRoute?.hideTab == true) {
+      if (currentRoute?.hideTabbar == true) {
         TabScaffoldController.of._showBottomNav.value = false;
         if (setHeight == true) TabScaffoldController.of._tabbarAnimationHeight.value = 0;
       } else {
@@ -166,19 +166,19 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   bool _disabledFirstFrame = true;
 
   void _pushPage() {
-    if (_State.injectTabScaffoldController && _State.currentRoute != null) {
-      _State.setHideTabbarPath();
-      _currentPath = _State.routeModelKeys
-          .where((e) => _State.currentRoute!.path.startsWith(e))
+    if (_RouteState.injectTabScaffoldController && _RouteState.currentRoute != null) {
+      _RouteState.setHideTabbarPath();
+      _currentPath = _RouteState.routeModelKeys
+          .where((e) => _RouteState.currentRoute!.path.startsWith(e))
           .firstWhereOrNull((e) => e.endsWith(settings.name ?? ''));
-      if (_State.didPop) _State.didPop = false;
+      if (_RouteState.didPop) _RouteState.didPop = false;
     }
   }
 
   @override
   void didAdd() {
     _pushPage();
-    _State.setShowBottomNav(true);
+    _RouteState.setShowBottomNav(true);
     super.didAdd();
   }
 
@@ -186,32 +186,32 @@ mixin _CupertinoRouteTransitionMixin<T> on CupertinoRouteTransitionMixin<T> {
   @override
   scheduler.TickerFuture didPush() {
     _pushPage();
-    _State.setShowBottomNav();
+    _RouteState.setShowBottomNav();
     return super.didPush();
   }
 
   @override
   bool didPop(result) {
-    if (_State.injectTabScaffoldController) _State.didPop = true;
+    if (_RouteState.injectTabScaffoldController) _RouteState.didPop = true;
     return super.didPop(result);
   }
 
   @override
   void dispose() {
     super.dispose();
-    if (_State.injectTabScaffoldController && _State.didPop) {
-      _State.didPop = false;
-      _State.setShowBottomNav();
+    if (_RouteState.injectTabScaffoldController && _RouteState.didPop) {
+      _RouteState.didPop = false;
+      _RouteState.setShowBottomNav();
     }
   }
 
   @override
   Widget buildTransitions(
       BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
-    if (_State.injectTabScaffoldController) {
-      if (_State.previousRoute?.hideTab != true &&
+    if (_RouteState.injectTabScaffoldController) {
+      if (_RouteState.previousRoute?.hideTabbar != true &&
           _currentPath != null &&
-          (_State.hideTabbarRootPath == _currentPath || _State.isPopToHideTabbarRootPath)) {
+          (_RouteState.hideTabbarRootPath == _currentPath || _RouteState.isPopToHideTabbarRootPath)) {
         // 禁用第一帧 animation.value 防止抖动，因为它第一帧直接是1.0，然后从0-1转变
         if (_disabledFirstFrame) {
           _disabledFirstFrame = false;
@@ -243,11 +243,14 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
   @override
   void initState() {
     super.initState();
-    _State.routeModels = _GoRouteModel.statefulShellRoute(router);
-    _State.routeModelMap = _GoRouteModel.flatRoute(_State.routeModels);
-    _State.routeModelKeys = _State.routeModelMap.keys.toList();
-    _hasListen = DartUtil.listContains(_State.routeModelMap.values.toList(), (e) => e.hideTab);
-    if (_hasListen) router.routerDelegate.addListener(routeListen);
+    _RouteState.routeModels = _GoRouteModel.statefulShellRoute(router);
+    _RouteState.routeModelMap = _GoRouteModel.flatRoute(_RouteState.routeModels);
+    _RouteState.routeModelKeys = _RouteState.routeModelMap.keys.toList();
+    _RouteState.injectTabScaffoldController = FlutterUtil.hasController<TabScaffoldController>();
+    _hasListen = DartUtil.listContains(_RouteState.routeModelMap.values.toList(), (e) => e.hideTabbar);
+    if (_hasListen) {
+      router.routerDelegate.addListener(routeListen);
+    }
   }
 
   @override
@@ -263,18 +266,18 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
   ///
   /// routeListen -> didAdd、disPush -> didPop -> routeListen -> dispose
   void routeListen() {
-    if (_State.injectTabScaffoldController) {
+    if (_RouteState.injectTabScaffoldController) {
       final currentRoute = getRouteModel(router.routerDelegate.currentConfiguration.uri.path);
       if (currentRoute != null) {
-        _State.currentRoute = currentRoute;
+        _RouteState.currentRoute = currentRoute;
         setIsPopToHideTabbarRootPath();
-        _State.previousRoute = getPreviousRouteModel();
-        // i(_State.currentRoute?.path, 'routeListen');
-        // i(_State.previousRoute?.path, 'previousRoute');
+        _RouteState.previousRoute = getPreviousRouteModel();
+        // i(_RouteState.currentRoute?.path, 'routeListen');
+        // i(_RouteState.previousRoute?.path, 'previousRoute');
         final newIndex = getCurrentIndex();
-        if (newIndex != null && newIndex != _State.currentIndex) {
-          _State.currentIndex = newIndex;
-          _State.setShowBottomNav(true);
+        if (newIndex != null && newIndex != _RouteState.currentIndex) {
+          _RouteState.currentIndex = newIndex;
+          _RouteState.setShowBottomNav(true);
         }
       }
     }
@@ -282,22 +285,22 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
 
   /// 解决从多级路由返回时显示、隐藏底部导航栏
   void setIsPopToHideTabbarRootPath() {
-    if (_State.hideTabbarRootPath == null || _State.previousRoute == null) {
-      _State.isPopToHideTabbarRootPath = false;
+    if (_RouteState.hideTabbarRootPath == null || _RouteState.previousRoute == null) {
+      _RouteState.isPopToHideTabbarRootPath = false;
     } else {
-      final urlList1 = _State.hideTabbarRootPath!.split('/');
-      final urlList2 = _State.currentRoute!.path.split('/');
-      final urlList3 = _State.previousRoute!.path.split('/');
+      final urlList1 = _RouteState.hideTabbarRootPath!.split('/');
+      final urlList2 = _RouteState.currentRoute!.path.split('/');
+      final urlList3 = _RouteState.previousRoute!.path.split('/');
       // 1.上一页和当前页长度一致，表示只返回一级，此函数是处理返回多级，所以不符合条件
       // 2.当前页的url长度要小于hideTabbarRootPath长度，这才表示返回到隐藏前的页面
-      _State.isPopToHideTabbarRootPath = urlList2.length != urlList3.length && urlList2.length < urlList1.length;
+      _RouteState.isPopToHideTabbarRootPath = urlList2.length != urlList3.length && urlList2.length < urlList1.length;
     }
   }
 
   /// 解析路由地址，将其转换为[GoRouter]声明的地址
   _GoRouteModel? getRouteModel(String url) {
     final urlList = url.split('/');
-    final targetUrls = _State.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
+    final targetUrls = _RouteState.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
     final matchUrlList = targetUrls.firstWhereOrNull((e) {
       final urlList2 = e.split('/');
       if (urlList2.length == urlList.length) {
@@ -311,26 +314,26 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
       }
     });
     if (matchUrlList == null) return null;
-    return _State.routeModelMap[matchUrlList];
+    return _RouteState.routeModelMap[matchUrlList];
   }
 
   /// 获取当前路由地址的上一页路由
   _GoRouteModel? getPreviousRouteModel() {
-    final urlList = _State.currentRoute!.path.split('/');
+    final urlList = _RouteState.currentRoute!.path.split('/');
     // 长度为2，表示此路由为根路由，根路由没有上一页
     if (urlList.length == 2) return null;
-    final targetUrls = _State.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
+    final targetUrls = _RouteState.routeModelKeys.where((e) => e.startsWith('/${urlList[1]}'));
     final matchUrlList = targetUrls.firstWhereOrNull((e) => e.split('/').length + 1 == urlList.length);
     if (matchUrlList == null) return null;
-    return _State.routeModelMap[matchUrlList];
+    return _RouteState.routeModelMap[matchUrlList];
   }
 
   /// 根据[currentRouteUrl]获取当前所处的选项卡位置，但是，如果你是进入新的页面，拿到的却是空
   int? getCurrentIndex() {
-    if (_State.currentRoute == null) return null;
-    String rootPath = _State.currentRoute!.path.split('/')[1];
-    for (int i = 0; i < _State.routeModels.length; i++) {
-      if (_State.routeModels[i].path == '/$rootPath') {
+    if (_RouteState.currentRoute == null) return null;
+    String rootPath = _RouteState.currentRoute!.path.split('/')[1];
+    for (int i = 0; i < _RouteState.routeModels.length; i++) {
+      if (_RouteState.routeModels[i].path == '/$rootPath') {
         return i;
       }
     }
@@ -339,9 +342,9 @@ mixin _GoRouterUrlListenMixin<T extends StatefulWidget, D> on State<T> {
 
   /// 判断进入的新页面是否是返回到之前的页面
   bool isPop(String url) {
-    if (_State.currentRoute == null) return false;
-    i(_State.currentRoute!);
-    final currentPathList = _State.currentRoute!.path.split('/');
+    if (_RouteState.currentRoute == null) return false;
+    i(_RouteState.currentRoute!);
+    final currentPathList = _RouteState.currentRoute!.path.split('/');
     final newPathList = url.split('/');
     return currentPathList[1] == newPathList[1] && newPathList.length < currentPathList.length;
   }

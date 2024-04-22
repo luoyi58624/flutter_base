@@ -18,10 +18,10 @@ extension BuildContextExtension on BuildContext {
   /// 跳转到新页面
   /// * context 由于需要支持[GoRouter]，你必须手动传递当前[context]用于支持嵌套路由、选项卡式导航
   /// * page 新页面组件
-  /// * hideTab 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
+  /// * hideTabbar 如果为true，进入到此页面以及后续所有子级路由都将隐藏底部tabbar
   Future<T?> push<T>(
     Widget page, {
-    bool hideTab = false,
+    bool hideTabbar = false,
   }) async {
     var result = await Navigator.of(this).push<T>(_PageRouter(
       builder: (context) => page,
@@ -37,7 +37,7 @@ extension BuildContextExtension on BuildContext {
   /// 重定向页面，先跳转新页面，再删除之前的页面
   Future<T?> pushReplacement<T>(
     Widget page, {
-    bool hideTab = false,
+    bool hideTabbar = false,
   }) async {
     return await Navigator.of(this).pushReplacement(_PageRouter(
       builder: (context) => page,
@@ -51,7 +51,7 @@ extension BuildContextExtension on BuildContext {
   void pushAndRemoveUntil(
     Widget page,
     String routePath, {
-    bool hideTab = false,
+    bool hideTabbar = false,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
@@ -69,7 +69,7 @@ extension BuildContextExtension on BuildContext {
   /// 进入新的页面并删除之前所有路由
   void pushAndRemoveAllUntil(
     Widget page, {
-    bool hideTab = false,
+    bool hideTabbar = false,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
       _PageRouter(
@@ -79,7 +79,7 @@ extension BuildContextExtension on BuildContext {
     );
   }
 
-  /// [GoRoute]页面构建，如果你需要实现[hideTab]，请一律使用此方法构建路由
+  /// [GoRoute]页面构建，如果你需要实现[hideTabbar]，请一律使用此方法构建路由
   Page<dynamic> pageBuilder<T>(GoRouterState state, Widget page) => _Page<void>(
         key: state.pageKey,
         name: state.name ?? state.path,

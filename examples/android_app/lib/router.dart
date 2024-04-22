@@ -40,7 +40,7 @@ GoRouter initRouter() {
     routes: [
       GoRoute(path: '/', redirect: (c, s) => RoutePath.root),
       StatefulShellRoute.indexedStack(
-        builder: (c, s, navigationShell) => AppTabScaffold(
+        builder: (c, s, navigationShell) => TabScaffold(
           navigationShell: navigationShell,
           pages: [
             UrlNavModel('组件', RoutePath.root, icon: Icons.token_outlined),
@@ -55,17 +55,16 @@ GoRouter initRouter() {
             GoRoute(path: RoutePath.root, pageBuilder: (c, s) => c.pageBuilder(s, const ComponentPage()), routes: [
               GoRoute(
                 path: 'theme',
-                hideTab: true,
+                hideTabbar: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const ThemePage()),
               ),
               GoRoute(
                 path: 'image',
-                hideTab: true,
+                hideTabbar: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const ImageTestPage()),
               ),
               GoRoute(
                 path: 'animation',
-                hideTab: true,
                 pageBuilder: (c, s) => c.pageBuilder(s, const AnimationWidgetTestPage()),
               ),
               GoRoute(
@@ -89,7 +88,7 @@ GoRouter initRouter() {
               routes: [
                 GoRoute(
                   path: ':id',
-                  hideTab: true,
+                  hideTabbar: true,
                   bodyPaddingAnimation: false,
                   pageBuilder: (c, s) => c.pageBuilder(s, ChatPage(id: s.pathParameters['id']!)),
                   routes: [

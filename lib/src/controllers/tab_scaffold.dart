@@ -1,7 +1,7 @@
 part of flutter_base;
 
 /// 底部导航栏类型
-enum TabType {
+enum TabbarType {
   material2,
   material3,
   cupertino,
@@ -10,9 +10,9 @@ enum TabType {
 
 /// 选项卡式导航栏脚手架控制器
 class TabScaffoldController extends GetxController {
-  TabScaffoldController._({
+  TabScaffoldController({
     required List<UrlNavModel> pages,
-    required TabType tabType,
+    TabbarType? tabbarType,
     double? bottomNavHeight,
   }) {
     this.pages = useLocalListObs(
@@ -26,7 +26,7 @@ class TabScaffoldController extends GetxController {
         tabBadge[page.path] = '';
       }
     }
-    this.tabType = tabType.obs;
+    this.tabbarType = (tabbarType ?? TabbarType.material2).obs;
     _bottomNavHeight = bottomNavHeight;
     this.bottomNavHeight = _getTabHeight();
     _tabbarAnimationHeight = _getTabHeight().obs;
@@ -38,7 +38,7 @@ class TabScaffoldController extends GetxController {
   late RxList<UrlNavModel> pages;
 
   /// 应用的底部导航栏类型
-  late Rx<TabType> tabType;
+  late Rx<TabbarType> tabbarType;
 
   /// 用户自定义的底部导航栏高度
   double? _bottomNavHeight;
@@ -93,14 +93,14 @@ class TabScaffoldController extends GetxController {
 
   double _getTabHeight() {
     if (_bottomNavHeight == null) {
-      switch (tabType.value) {
-        case TabType.material2:
+      switch (tabbarType.value) {
+        case TabbarType.material2:
           return 56;
-        case TabType.material3:
+        case TabbarType.material3:
           return 80;
-        case TabType.cupertino:
+        case TabbarType.cupertino:
           return 50;
-        case TabType.custom:
+        case TabbarType.custom:
           return 50;
       }
     } else {
@@ -111,7 +111,7 @@ class TabScaffoldController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    ever(tabType, (v) {
+    ever(tabbarType, (v) {
       bottomNavHeight = _getTabHeight();
     });
   }
