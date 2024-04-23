@@ -80,6 +80,10 @@ part 'src/theme.dart';
 
 part 'src/config.dart';
 
+part 'src/builders/hover.dart';
+
+part 'src/builders/tap.dart';
+
 part 'src/commons/model.dart';
 
 part 'src/controllers/flutter.dart';
@@ -91,8 +95,6 @@ part 'src/extensions/color.dart';
 part 'src/extensions/router.dart';
 
 part 'src/extensions/theme.dart';
-
-part 'src/mixins/delay.dart';
 
 part 'src/mixins/theme.dart';
 
