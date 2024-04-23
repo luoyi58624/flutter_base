@@ -29,6 +29,8 @@ export 'src/extendeds/index.dart';
 
 export 'package:dart_base/dart_base.dart';
 
+export 'package:flutter_local_storage/flutter_local_storage.dart';
+
 // dio网络请求库
 export 'package:dio/dio.dart';
 
@@ -182,9 +184,6 @@ part 'src/widgets/cupertino/list_group.dart';
 
 part 'src/widgets/cupertino/list_tile.dart';
 
-/// key-value本地存储对象
-late LocalStorage localStorage;
-
 /// [GoRouter]路由对象
 late final GoRouter _router;
 
@@ -197,7 +196,6 @@ BuildContext get rootContext => rootNavigatorKey.currentContext!;
 /// 初始化App
 Future<void> initApp() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  localStorage = await LocalStorage.init();
+  await initLocalStorage();
   _obsLocalStorage = await LocalStorage.init('local_obs');
 }

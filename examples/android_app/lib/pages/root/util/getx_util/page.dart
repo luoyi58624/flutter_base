@@ -8,7 +8,6 @@ class GetxUtilPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Get.isLogEnable = false;
     final controller = Get.put(GetxUtilController());
     return Scaffold(
       appBar: AppBar(

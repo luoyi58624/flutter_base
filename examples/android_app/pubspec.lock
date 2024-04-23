@@ -246,6 +246,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.2"
+  flutter_local_storage:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "28857f54060f280427448741a792d592ad9190b1"
+      url: "https://gitee.com/luoyi666/flutter_local_storage.git"
+    source: git
+    version: "0.0.1"
   flutter_localizations:
     dependency: transitive
     description: flutter
@@ -298,7 +307,7 @@ packages:
     description:
       path: "."
       ref: beta
-      resolved-ref: "0a78268b75b58fc9f94034b1381444113cc95974"
+      resolved-ref: be61aaa51d84d7d5fd60e4fe85ca3938ba015420
       url: "https://gitee.com/luoyi666/getx.git"
     source: git
     version: "5.0.0"

@@ -14,6 +14,11 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
+  flutter_local_storage:
+    git:
+      url: https://gitee.com/luoyi666/flutter_local_storage.git
+  # 自定义精简getx，仅包含响应式状态管理、以及一些很方便工具扩展函数，
+  # 移除路由、依赖绑定、http请求、GetBuilder、Getx等api
   get:
     git:
       url: https://gitee.com/luoyi666/getx.git
@@ -30,7 +35,7 @@ dependencies:
   flutter_html: ^3.0.0-beta.2
   go_router: ^13.2.3
   html: ^0.15.4
-  hive_flutter: ^2.0.0-dev
+
   highlight_text: ^1.7.0
   lpinyin: ^2.0.3
   modal_bottom_sheet: ^3.0.0
@@ -45,8 +50,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.2
 
-dependency_overrides:
-  hive: ^3.0.0-dev
+
 
 flutter:
   assets:
