@@ -155,7 +155,7 @@ class _AppState extends State<App> {
     }
   }
 
-  Widget builder(context, child) => MediaQuery(
+  Widget builder(BuildContext context, Widget? child) => MediaQuery(
         // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
         data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
         // 解决使用cupertino组件时文字渲染异常
