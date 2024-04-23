@@ -283,11 +283,11 @@ class _RouteState {
   static bool isPopToHideTabbarRootPath = false;
 
   static void init() {
-    routeModels = _GoRouteModel.statefulShellRoute(router);
+    routeModels = _GoRouteModel.statefulShellRoute(_router);
     routeModelMap = _GoRouteModel.flatRoute(routeModels);
     routeModelKeys = routeModelMap.keys.toList();
     allowListen = DartUtil.listContains(routeModelMap.values.toList(), (e) => e.hideTabbar);
-    if (allowListen) router.routerDelegate.addListener(_routeListen);
+    if (allowListen) _router.routerDelegate.addListener(_routeListen);
   }
 
   static void setHideTabbarPath() {
@@ -336,7 +336,7 @@ class _RouteState {
   /// routeListen -> didAdd、disPush -> didPop -> routeListen -> dispose
   static void _routeListen() {
     if (injectTabScaffoldController) {
-      final currentRoute = getRouteModel(router.routerDelegate.currentConfiguration.uri.path);
+      final currentRoute = getRouteModel(_router.routerDelegate.currentConfiguration.uri.path);
       if (currentRoute != null) {
         _RouteState.currentRoute = currentRoute;
         setIsPopToHideTabbarRootPath();

@@ -13,14 +13,42 @@ const _supportedLocales = [
   Locale('en', 'US'),
 ];
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
   const App({
     super.key,
+    required this.home,
+    this.onGenerateRoute,
+    this.themeMode,
+    this.theme,
+    this.darkTheme,
+    this.config,
     this.localizationsDelegates,
     this.supportedLocales,
     this.locale = const Locale('zh', 'CN'),
     this.builder,
-  });
+  }) : router = null;
+
+  const App.router({
+    super.key,
+    required this.router,
+    this.themeMode,
+    this.theme,
+    this.darkTheme,
+    this.config,
+    this.localizationsDelegates,
+    this.supportedLocales,
+    this.locale = const Locale('zh', 'CN'),
+    this.builder,
+  })  : home = null,
+        onGenerateRoute = null;
+
+  final Widget? home;
+  final RouteFactory? onGenerateRoute;
+  final GoRouter? router;
+  final ThemeMode? themeMode;
+  final AppThemeData? theme;
+  final AppThemeData? darkTheme;
+  final FlutterConfigData? config;
 
   /// 国际化配置，你传入的新配置将合并至默认配置，默认配置为：
   /// ```dart
@@ -46,46 +74,85 @@ class App extends StatelessWidget {
   final TransitionBuilder? builder;
 
   @override
-  Widget build(BuildContext context) {
-    final c = AppController.of;
-    var $localizationsDelegates = (localizationsDelegates ?? []).toList();
-    $localizationsDelegates.addAll(_localizationsDelegates);
-    var $supportedLocales = (supportedLocales ?? []).toList();
-    $supportedLocales.addAll(_supportedLocales);
-    return Obx(() => MaterialApp.router(
-          title: c.config.title,
-          routerConfig: router,
-          theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
-          darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
-          themeMode: c.themeMode,
-          debugShowCheckedModeBanner: false,
-          localizationsDelegates: $localizationsDelegates,
-          supportedLocales: $supportedLocales,
-          locale: locale,
-          showPerformanceOverlay: c.config.showPerformanceOverlay,
-          builder: (context, child) {
-            return MediaQuery(
-              // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
-              data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
-              // 解决使用cupertino组件时文字渲染异常
-              child: Material(
-                // 注入默认的cupertino主题
-                child: CupertinoTheme(
-                  data: AppThemeUtil.buildCupertinoThemeData(context.currentTheme, c.config),
-                  child: Overlay(
-                    initialEntries: [
-                      OverlayEntry(builder: (context) {
-                        toast.init(context);
-                        return builder == null ? child! : builder!(context, child);
-                      })
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ));
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  late final c = Get.put(AppController(
+    themeMode: widget.themeMode ?? ThemeMode.system,
+    theme: widget.theme ?? AppThemeData(),
+    darkTheme: widget.darkTheme ?? AppThemeData.dark(),
+    config: widget.config ?? FlutterConfigData(),
+  ));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.router != null) {
+      _router = widget.router!;
+      rootNavigatorKey = _router.configuration.navigatorKey;
+      _RouteState.init();
+    }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    var $localizationsDelegates = (widget.localizationsDelegates ?? []).toList();
+    $localizationsDelegates.addAll(_localizationsDelegates);
+    var $supportedLocales = (widget.supportedLocales ?? []).toList();
+    $supportedLocales.addAll(_supportedLocales);
+    if (widget.home != null) {
+      return Obx(() => MaterialApp(
+            navigatorKey: rootNavigatorKey,
+            title: c.config.title,
+            home: widget.home,
+            onGenerateRoute: widget.onGenerateRoute,
+            theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
+            darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
+            themeMode: c.themeMode,
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: $localizationsDelegates,
+            supportedLocales: $supportedLocales,
+            locale: widget.locale,
+            showPerformanceOverlay: c.config.showPerformanceOverlay,
+            builder: builder,
+          ));
+    } else {
+      return Obx(() => MaterialApp.router(
+            title: c.config.title,
+            routerConfig: _router,
+            theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
+            darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
+            themeMode: c.themeMode,
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: $localizationsDelegates,
+            supportedLocales: $supportedLocales,
+            locale: widget.locale,
+            showPerformanceOverlay: c.config.showPerformanceOverlay,
+            builder: builder,
+          ));
+    }
+  }
+
+  Widget builder(context, child) => MediaQuery(
+        // 解决modal_bottom_sheet在高版本安卓系统上动画丢失
+        data: MediaQuery.of(context).copyWith(accessibleNavigation: false),
+        // 解决使用cupertino组件时文字渲染异常
+        child: Material(
+          // 注入默认的cupertino主题
+          child: CupertinoTheme(
+            data: AppThemeUtil.buildCupertinoThemeData(context.currentTheme, c.config),
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(builder: (context) {
+                  toast.init(context);
+                  return widget.builder == null ? child! : widget.builder!(context, child);
+                })
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class AppThemeUtil {

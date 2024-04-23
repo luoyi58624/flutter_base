@@ -184,41 +184,18 @@ part 'src/widgets/cupertino/list_tile.dart';
 late LocalStorage localStorage;
 
 /// [GoRouter]路由对象
-late final GoRouter router;
+late final GoRouter _router;
 
 /// 根节点导航key
-GlobalKey<NavigatorState> get rootNavigatorKey => router.configuration.navigatorKey;
+late final GlobalKey<NavigatorState> rootNavigatorKey;
 
 /// 根节点context
 BuildContext get rootContext => rootNavigatorKey.currentContext!;
 
 /// 初始化App
-/// * router 路由对象
-/// * themeMode 主题模式
-/// * theme 自定义亮色主题
-/// * darkTheme 自定义暗色主题
-/// * config 自定义全局配置
-Future<void> initApp({
-  required GoRouter router,
-  ThemeMode? themeMode,
-  AppThemeData? theme,
-  AppThemeData? darkTheme,
-  FlutterConfigData? config,
-}) async {
+Future<void> initApp() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   localStorage = await LocalStorage.init();
   _obsLocalStorage = await LocalStorage.init('local_obs');
-  _setRouter(router);
-  Get.put(AppController(
-    themeMode: themeMode ?? ThemeMode.system,
-    theme: theme ?? AppThemeData(),
-    darkTheme: darkTheme ?? AppThemeData.dark(),
-    config: config ?? FlutterConfigData(),
-  ));
-}
-
-void _setRouter(GoRouter _router) {
-  router = _router;
-  _RouteState.init();
 }
