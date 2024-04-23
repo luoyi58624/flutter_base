@@ -16,12 +16,13 @@ const _supportedLocales = [
 class App extends StatefulWidget {
   const App({
     super.key,
-    required this.home,
-    this.onGenerateRoute,
+    this.home,
     this.themeMode,
     this.theme,
     this.darkTheme,
     this.config,
+    this.navigatorObservers = const <NavigatorObserver>[],
+    this.onGenerateRoute,
     this.localizationsDelegates,
     this.supportedLocales,
     this.locale = const Locale('zh', 'CN'),
@@ -40,15 +41,32 @@ class App extends StatefulWidget {
     this.locale = const Locale('zh', 'CN'),
     this.builder,
   })  : home = null,
-        onGenerateRoute = null;
+        onGenerateRoute = null,
+        navigatorObservers = const [];
 
+  /// 命令式导航首屏页面
   final Widget? home;
-  final RouteFactory? onGenerateRoute;
+
+  /// 声明式路由配置
   final GoRouter? router;
+
+  /// 主题模式，默认跟随系统
   final ThemeMode? themeMode;
+
+  /// 亮色主题
   final AppThemeData? theme;
+
+  /// 暗色主题
   final AppThemeData? darkTheme;
+
+  /// App全局配置
   final FlutterConfigData? config;
+
+  /// 自定义首屏页面生成（命令式导航）
+  final RouteFactory? onGenerateRoute;
+
+  /// 导航监听（命令式导航）
+  final List<NavigatorObserver> navigatorObservers;
 
   /// 国际化配置，你传入的新配置将合并至默认配置，默认配置为：
   /// ```dart
@@ -101,12 +119,10 @@ class _AppState extends State<App> {
     $localizationsDelegates.addAll(_localizationsDelegates);
     var $supportedLocales = (widget.supportedLocales ?? []).toList();
     $supportedLocales.addAll(_supportedLocales);
-    if (widget.home != null) {
-      return Obx(() => MaterialApp(
-            navigatorKey: rootNavigatorKey,
+    if (widget.router != null) {
+      return Obx(() => MaterialApp.router(
             title: c.config.title,
-            home: widget.home,
-            onGenerateRoute: widget.onGenerateRoute,
+            routerConfig: _router,
             theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
             darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
             themeMode: c.themeMode,
@@ -118,12 +134,15 @@ class _AppState extends State<App> {
             builder: builder,
           ));
     } else {
-      return Obx(() => MaterialApp.router(
+      return Obx(() => MaterialApp(
+            navigatorKey: rootNavigatorKey,
             title: c.config.title,
-            routerConfig: _router,
+            home: widget.home,
             theme: AppThemeUtil.buildMaterialhemeData(c.theme, c.config),
             darkTheme: AppThemeUtil.buildMaterialhemeData(c.darkTheme, c.config),
             themeMode: c.themeMode,
+            onGenerateRoute: widget.onGenerateRoute,
+            navigatorObservers: widget.navigatorObservers,
             debugShowCheckedModeBanner: false,
             localizationsDelegates: $localizationsDelegates,
             supportedLocales: $supportedLocales,
