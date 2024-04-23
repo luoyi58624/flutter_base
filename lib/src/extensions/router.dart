@@ -1,6 +1,6 @@
 part of flutter_base;
 
-extension RouterExtension on BuildContext {
+extension AppRouterExtension on BuildContext {
   /// 声明式跳转，通过此方法进行路由跳转会更改浏览器上面的url
   void go(String path) {
     GoRouter.of(this).go(path);

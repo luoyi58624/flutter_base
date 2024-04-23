@@ -13,7 +13,7 @@ class CommandRoutePage extends StatelessWidget {
       body: buildCenterColumn([
         ElevatedButton(
           onPressed: () {
-            context.push(const CommandChildPage());
+            rootContext.push(const CommandChildPage());
           },
           child: const Text('子页面'),
         ),
@@ -40,21 +40,24 @@ class CommandChildPage extends StatelessWidget {
       body: buildCenterColumn([
         ElevatedButton(
           onPressed: () {
-            context.push(const CommandChildPage());
+            rootContext.push(const CommandChildPage());
           },
           child: const Text('下一个子页面'),
         ),
         ElevatedButton(
           onPressed: () {
             // rootContext.pushAndRemoveUntil(const CommandRoutePage(), RoutePath.root);
-            context.popUntil(RoutePath.root);
+            // rootContext.popUntil(RoutePath.root);
+            while (Navigator.of(rootContext).canPop()) {
+              Navigator.of(context).pop();
+            }
             // context.go(RoutePath.root);
           },
           child: const Text('返回首页'),
         ),
         ElevatedButton(
           onPressed: () {
-            context.pop();
+            rootContext.pop();
           },
           child: const Text('返回'),
         ),
