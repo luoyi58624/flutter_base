@@ -5,31 +5,56 @@ class ModalRouterUtil {
   ModalRouterUtil._();
 
   /// 进入包含Cupertino弹窗页面
-  static Future<T?> toMaterialWithModalsPage<T>(BuildContext context, Widget page) async {
+  static Future<T?> toMaterialWithModalsPage<T>(
+    BuildContext context,
+    Widget page, {
+    RouteSettings? settings,
+  }) async {
     return await Navigator.of(context).push<T>(
       modal_bottom_sheet.MaterialWithModalsPageRoute(
         builder: (context) => page,
+        settings: settings,
       ),
     );
   }
 
   /// 进入包含cupertino弹窗页面(modal_bottom_sheet)，如果你希望进入的页面弹出cupertino风格的弹窗(弹出弹窗页面会进行缩小)，则必须使用此函数进入新页面
-  static Future<T?> pushModalsPage<T>(BuildContext context, Widget page) async {
+  static Future<T?> pushModalsPage<T>(
+    BuildContext context,
+    Widget page, {
+    RouteSettings? settings,
+  }) async {
     return await Navigator.of(context).push<T>(
-      CupertinoWithModalsPageRoute(builder: (context) => page),
+      CupertinoWithModalsPageRoute(
+        builder: (context) => page,
+        settings: settings,
+      ),
     );
   }
 
-  static Future<T?> redirectModalsPage<T>(BuildContext context, Widget page) async {
+  static Future<T?> redirectModalsPage<T>(
+    BuildContext context,
+    Widget page, {
+    RouteSettings? settings,
+  }) async {
     return await Navigator.of(context).pushReplacement(
-      CupertinoWithModalsPageRoute(builder: (context) => page),
+      CupertinoWithModalsPageRoute(
+        builder: (context) => page,
+        settings: settings,
+      ),
     );
   }
 
-  static void pushUntilModalsPage(BuildContext context, Widget page, String routePath) async {
+  static void pushUntilModalsPage(
+    BuildContext context,
+    Widget page,
+    String routePath, {
+    RouteSettings? settings,
+  }) async {
     Navigator.of(context).pushAndRemoveUntil(
       CupertinoWithModalsPageRoute(
         builder: (context) => page,
+        settings: settings,
       ),
       ModalRoute.withName(routePath),
     );
