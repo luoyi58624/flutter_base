@@ -110,6 +110,8 @@ class _AppState extends State<App> {
       _router = widget.router!;
       rootNavigatorKey = _router.configuration.navigatorKey;
       _RouteState.init();
+    } else {
+      rootNavigatorKey = GlobalKey<NavigatorState>();
     }
   }
 
