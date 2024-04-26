@@ -12,7 +12,8 @@ dependencies:
   dart_base:
     git:
       url: https://gitee.com/luoyi666/dart_base.git
-  # 精简getx，仅包含响应式状态管理、以及一些很方便工具扩展函数，移除路由、依赖绑定、http请求、GetBuilder、Getx等api
+  # 精简后的getx，仅包含响应式状态管理、以及一些很方便的扩展函数，移除路由、依赖绑定、http请求、GetBuilder、Getx等api，
+  # 它编译后的源码体积只有8kb（生成的apk包的差异），你如果不喜欢getx完全可以随便混用其他状态管理库
   get:
     git:
       url: https://gitee.com/luoyi666/getx.git

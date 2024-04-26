@@ -206,7 +206,7 @@ class FormTextFieldWidget extends StatefulWidget {
   State<FormTextFieldWidget> createState() => FormTextFieldWidgetState();
 }
 
-class FormTextFieldWidgetState extends State<FormTextFieldWidget> with FlutterThemeMixin {
+class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
   late TextEditingController controller;
   late bool showClearIcon = !DartUtil.isEmpty(widget.initValue); // 控制清除图标显示隐藏
   late TextInputType textInputType;
@@ -310,7 +310,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> with FlutterTh
         fontSize: widget.size != null
             ? labelFontSize[widget.size]
             : labelFontSize[FormInheritedWidget.of(context)?.size] ?? labelFontSize[FormSize.medium]!,
-        fontWeight: GetxUtil.find<AppController>()?.config.defaultFontWeight,
+        fontWeight: AppController.of?.config.defaultFontWeight,
       );
 
   @override
@@ -375,17 +375,17 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> with FlutterTh
           fontSize: widget.size != null
               ? hintFontSize[widget.size]
               : hintFontSize[FormInheritedWidget.of(context)?.size] ?? hintFontSize[FormSize.medium]!,
-          fontWeight: $defaultFontWeight,
+          fontWeight: AppController.of?.config.defaultFontWeight,
           color: Colors.grey,
         ),
         errorMaxLines: 3,
         errorStyle: TextStyle(
-          color: $errorColor,
+          color: context.currentTheme.error,
           fontSize: (widget.size != null
                   ? hintFontSize[widget.size]
                   : hintFontSize[FormInheritedWidget.of(context)?.size] ?? hintFontSize[FormSize.medium]!)! -
               2,
-          fontWeight: $defaultFontWeight,
+          fontWeight: AppController.of?.config.defaultFontWeight,
         ),
         prefixIcon: widget.prefixIcon != null
             ? Icon(

@@ -12,7 +12,7 @@ Widget buildDividerWidget(
     height: height,
     thickness: thickness,
     indent: indent,
-    color: color ?? (FlutterUtil.isDarkMode(context) ? Colors.grey.shade700 : Colors.grey.shade300),
+    color: color ?? (context.isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
   );
 }
 

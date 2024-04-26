@@ -15,7 +15,11 @@ class AppController extends GetxController {
   }
 
   /// 通过静态变量直接获取控制器实例
-  static AppController get of => Get.find();
+  static AppController? get of => Get.findOrNull();
+
+  static final AppThemeData _defaultTheme = AppThemeData();
+  static final AppThemeData _defaultDarkTheme = AppThemeData.dark();
+  static final AppConfigData _defaultConfig = AppConfigData();
 
   /// 当前主题模式
   late final Rx<ThemeMode> _themeMode;

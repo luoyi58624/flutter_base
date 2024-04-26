@@ -113,7 +113,7 @@ class FormItemWidget extends StatefulWidget {
   State<FormItemWidget> createState() => _FormItemWidgetState();
 }
 
-class _FormItemWidgetState extends State<FormItemWidget> with FlutterThemeMixin {
+class _FormItemWidgetState extends State<FormItemWidget> {
   /// 获取上下文的表单排版，左右布局或上下布局
   LabelPosition get _labelPosition =>
       widget.labelPosition ?? FormInheritedWidget.of(context)?.labelPosition ?? LabelPosition.left;
@@ -171,7 +171,9 @@ class _FormItemWidgetState extends State<FormItemWidget> with FlutterThemeMixin 
         FormInheritedWidget.of(context)?.labelStyle ??
         TextStyle(
             fontSize: labelFontSize[FormInheritedWidget.of(context)?.size],
-            fontWeight: FormInheritedWidget.of(context)?.labelBold ?? false ? FontWeight.bold : $defaultFontWeight);
+            fontWeight: FormInheritedWidget.of(context)?.labelBold ?? false
+                ? FontWeight.bold
+                : AppController.of?.config.defaultFontWeight);
     AlignmentGeometry labelAlignment = Alignment.centerLeft;
     if (!isColumn) {
       LabelAlign $labelAlign = widget.labelAlign ?? FormInheritedWidget.of(context)?.labelAlign ?? LabelAlign.start;

@@ -17,7 +17,7 @@ export 'package:dart_base/dart_base.dart';
 // flutter官方collection库，扩展集合函数
 export 'package:collection/collection.dart';
 
-// GetX的状态管理
+// GetX的状态管理，但这是Fork官方库的简化版本，只保留响应式状态管理、工具类，移除掉了路由、网络请求、依赖绑定等Api
 export 'package:get/get.dart';
 
 part 'src/theme.dart';
@@ -39,8 +39,6 @@ part 'src/extensions/drawer.dart';
 part 'src/extensions/router.dart';
 
 part 'src/extensions/theme.dart';
-
-part 'src/mixins/theme.dart';
 
 part 'src/pages/simple_page.dart';
 

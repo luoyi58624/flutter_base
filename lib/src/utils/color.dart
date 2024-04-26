@@ -6,7 +6,6 @@ enum ColorMode {
   dark,
 }
 
-
 /// 颜色工具类
 class ColorUtil {
   ColorUtil._();
@@ -70,7 +69,7 @@ class ColorUtil {
     ColorMode colorMode = mode ?? ColorMode.auto;
     switch (colorMode) {
       case ColorMode.auto:
-        return FlutterUtil.isDarkMode(context) ? darkColor : lightColor;
+        return context.isDarkMode ? darkColor : lightColor;
       case ColorMode.light:
         return lightColor;
       case ColorMode.dark:
