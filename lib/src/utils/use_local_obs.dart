@@ -51,7 +51,7 @@ typedef ExpireFun = int Function();
 
 /// 初始化响应式变量的本地存储
 Future<void> initLocalObs() async {
-  _obsLocalStorage = await LocalStorage.init('local_obs');
+  _obsLocalStorage = await LocalStorage.create('local_obs');
 }
 
 void _assertLocalStorage() {
