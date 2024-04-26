@@ -6,7 +6,7 @@ class AppController extends GetxController {
     required ThemeMode themeMode,
     required AppThemeData theme,
     required AppThemeData darkTheme,
-    required FlutterConfigData config,
+    required AppConfigData config,
   }) {
     _themeMode = themeMode.obs;
     _theme = theme.obs;
@@ -28,7 +28,7 @@ class AppController extends GetxController {
   late final Rx<AppThemeData> _darkTheme;
 
   /// 配置信息
-  late final Rx<FlutterConfigData> _config;
+  late final Rx<AppConfigData> _config;
 
   /// 应用全局过渡动画时长缩放，默认1倍速
   final timeDilation = 1.0.obs;
@@ -51,13 +51,13 @@ class AppController extends GetxController {
     _darkTheme.update((val) => value);
   }
 
-  FlutterConfigData get config => _config.value;
+  AppConfigData get config => _config.value;
 
-  set config(FlutterConfigData value) {
+  set config(AppConfigData value) {
     _config.update((val) => value);
   }
 
-  void _configUpdate(FlutterConfigData config) {
+  void _configUpdate(AppConfigData config) {
     if (config.translucenceStatusBar) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color.fromRGBO(0, 0, 0, 200)));
     } else {
@@ -71,7 +71,6 @@ class AppController extends GetxController {
     _configUpdate(config);
     ever(_config, (v) => _configUpdate(v));
     ever(timeDilation, (v) {
-      i('xx');
       scheduler.timeDilation = v;
     });
   }

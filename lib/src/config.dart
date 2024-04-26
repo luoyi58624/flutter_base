@@ -1,6 +1,6 @@
 part of flutter_base;
 
-class FlutterConfigData {
+class AppConfigData {
   /// 应用标题
   String title;
 
@@ -37,7 +37,7 @@ class FlutterConfigData {
   /// 手指点击、鼠标点击背景颜色变化级别：1-100
   int tapScale;
 
-  FlutterConfigData({
+  AppConfigData({
     this.title = 'Flutter App',
     this.fontFamily,
     this.defaultFontWeight = FontWeight.w500,
@@ -54,7 +54,7 @@ class FlutterConfigData {
     centerTitle = centerTitle ?? (GetPlatform.isMobile ? true : false);
   }
 
-  FlutterConfigData copyWith({
+  AppConfigData copyWith({
     String? title,
     String? fontFamily,
     FontWeight? defaultFontWeight,
@@ -68,7 +68,7 @@ class FlutterConfigData {
     int? hoverScale,
     int? tapScale,
   }) {
-    return FlutterConfigData(
+    return AppConfigData(
       title: title ?? this.title,
       fontFamily: fontFamily ?? this.fontFamily,
       defaultFontWeight: defaultFontWeight ?? this.defaultFontWeight,

@@ -81,44 +81,6 @@ Widget buildCenterColumn(List<Widget> children) {
   );
 }
 
-Widget buildListSection(BuildContext context, String title, List<NavModel> navModel) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      ),
-      Column(
-        children: navModel
-            .map(
-              (e) => Column(
-                children: [
-                  ListTile(
-                    title: Text(e.title),
-                    trailing: const Icon(Icons.keyboard_arrow_right_outlined),
-                    onTap: () {
-                      if (e is PageNavModel) {
-                        context.push(e.page);
-                      } else if (e is UrlNavModel) {
-                        context.go(e.path);
-                      }
-                    },
-                  ),
-                  buildDividerWidget(context),
-                ],
-              ),
-            )
-            .toList(),
-      )
-    ],
-  );
-}
-
 /// 构建ios滚动条，如果是桌面端(包括桌面端web)，则不使用ios滚动条，因为会冲突
 Widget buildCupertinoScrollbar({
   required Widget child,

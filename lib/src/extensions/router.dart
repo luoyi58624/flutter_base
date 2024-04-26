@@ -1,16 +1,6 @@
 part of flutter_base;
 
-extension AppRouterExtension on BuildContext {
-  /// 声明式跳转，通过此方法进行路由跳转会更改浏览器上面的url
-  void go(String path) {
-    GoRouter.of(this).go(path);
-  }
-
-  /// 命令式url跳转新页面，与[go]方法的区别在于，它不会更改浏览器上的url
-  void pushUrl(String path) {
-    GoRouter.of(this).push(path);
-  }
-
+extension FlutterBaseRouterExtension on BuildContext {
   /// 跳转到新页面
   ///
   /// 提示：使用命令式导航如果需要隐藏底部tabbar，你可以使用[rootContext]进行跳转
@@ -18,7 +8,7 @@ extension AppRouterExtension on BuildContext {
     Widget page, {
     RouteSettings? settings,
   }) async {
-    var result = await Navigator.of(this).push<T>(_PageRouter(
+    var result = await Navigator.of(this).push<T>(CupertinoPageRoute(
       builder: (context) => page,
       settings: settings,
     ));
@@ -35,7 +25,7 @@ extension AppRouterExtension on BuildContext {
     Widget page, {
     RouteSettings? settings,
   }) async {
-    return await Navigator.of(this).pushReplacement(_PageRouter(
+    return await Navigator.of(this).pushReplacement(CupertinoPageRoute(
       builder: (context) => page,
       settings: settings,
     ));
@@ -51,7 +41,7 @@ extension AppRouterExtension on BuildContext {
     RouteSettings? settings,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
-      _PageRouter(
+      CupertinoPageRoute(
         builder: (context) => page,
         settings: settings,
       ),
@@ -72,20 +62,11 @@ extension AppRouterExtension on BuildContext {
     RouteSettings? settings,
   }) async {
     Navigator.of(this).pushAndRemoveUntil(
-      _PageRouter(
+      CupertinoPageRoute(
         builder: (context) => page,
         settings: settings,
       ),
       (route) => false,
     );
   }
-
-  /// [GoRoute]页面构建，如果你需要实现[hideTabbar]，请一律使用此方法构建路由
-  Page<dynamic> pageBuilder<T>(GoRouterState state, Widget page) => _Page<void>(
-        key: state.pageKey,
-        name: state.name ?? state.path,
-        arguments: <String, String>{...state.pathParameters, ...state.uri.queryParameters},
-        restorationId: state.pageKey.value,
-        child: page,
-      );
 }
