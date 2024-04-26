@@ -52,6 +52,8 @@ part 'src/utils/color.dart';
 
 part 'src/utils/flutter.dart';
 
+part 'src/utils/getx.dart';
+
 part 'src/extensions/modal.dart';
 
 part 'src/utils/no_ripper.dart';

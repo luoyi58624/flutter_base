@@ -42,13 +42,4 @@ class FlutterUtil {
     });
     return flag;
   }
-
-  static bool hasController<T>({String? tag}) {
-    try {
-      Get.find<T>(tag: tag);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 }
