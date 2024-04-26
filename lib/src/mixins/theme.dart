@@ -14,9 +14,8 @@ mixin FlutterThemeMixin<T extends StatefulWidget, D> on State<T> {
   Color get $bgColor =>
       FlutterUtil.isDarkMode(context) ? AppController.of.darkTheme.bgColor : AppController.of.theme.bgColor;
 
-  Color get $headerColor => FlutterUtil.isDarkMode(context)
-      ? AppController.of.darkTheme.headerColor
-      : AppController.of.theme.headerColor;
+  Color get $headerColor =>
+      FlutterUtil.isDarkMode(context) ? AppController.of.darkTheme.headerColor : AppController.of.theme.headerColor;
 
   Color get $primaryColor =>
       FlutterUtil.isDarkMode(context) ? AppController.of.darkTheme.primary : AppController.of.theme.primary;
@@ -32,10 +31,6 @@ mixin FlutterThemeMixin<T extends StatefulWidget, D> on State<T> {
 
   Color get $errorColor =>
       FlutterUtil.isDarkMode(context) ? AppController.of.darkTheme.error : AppController.of.theme.error;
-
-  Color get $defaultBorderColor => FlutterUtil.isDarkMode(context)
-      ? AppController.of.darkTheme.defaultBorderColor
-      : AppController.of.theme.defaultBorderColor;
 
   double get $radius => AppController.of.config.radius;
 

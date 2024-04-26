@@ -41,15 +41,6 @@ class AppThemeData {
   /// 默认的icon亮色颜色
   Color iconColor;
 
-  /// 默认的边框颜色
-  Color defaultBorderColor;
-
-  /// 菜单栏背景色
-  Color menuBackground;
-
-  /// 菜单栏激活文字颜色
-  Color menuActiveColor;
-
   /// 默认的亮色主题构造函数
   AppThemeData({
     this.brightness = Brightness.light,
@@ -64,9 +55,6 @@ class AppThemeData {
     this.headerColor = const Color(0xfff3f4f6),
     this.textColor = const Color(0xff1f1f1f),
     this.iconColor = const Color(0xff1f1f1f),
-    this.defaultBorderColor = const Color(0xffdcdfe6),
-    this.menuBackground = const Color(0xff565c64),
-    this.menuActiveColor = const Color(0xffffd04b),
   });
 
   /// 默认的暗色主题构造函数
@@ -83,9 +71,6 @@ class AppThemeData {
     this.headerColor = const Color(0xff404040),
     this.textColor = const Color(0xfff6f6f6),
     this.iconColor = const Color(0xfff6f6f6),
-    this.defaultBorderColor = const Color(0xffa3a3a3),
-    this.menuBackground = const Color(0xff374151),
-    this.menuActiveColor = const Color(0xff6ee7b7),
   });
 
   AppThemeData copyWith({
@@ -101,9 +86,6 @@ class AppThemeData {
     Color? headerColor,
     Color? textColor,
     Color? iconColor,
-    Color? defaultBorderColor,
-    Color? menuBackground,
-    Color? menuActiveColor,
   }) {
     return AppThemeData(
       brightness: brightness ?? this.brightness,
@@ -118,9 +100,6 @@ class AppThemeData {
       headerColor: headerColor ?? this.headerColor,
       textColor: textColor ?? this.textColor,
       iconColor: iconColor ?? this.iconColor,
-      defaultBorderColor: defaultBorderColor ?? this.defaultBorderColor,
-      menuBackground: menuBackground ?? this.menuBackground,
-      menuActiveColor: menuActiveColor ?? this.menuActiveColor,
     );
   }
 }

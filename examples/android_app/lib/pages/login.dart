@@ -35,9 +35,9 @@ class _LoginPageState extends State<LoginPage> {
                 height: 48,
                 child: FilledButton(
                   onPressed: () async {
-                    LoadingUtil.show('登录中...');
-                    await 2.delay();
-                    LoadingUtil.close();
+                    // LoadingUtil.show('登录中...');
+                    // await 2.delay();
+                    // LoadingUtil.close();
                     GlobalController.of.isLogin.value = true;
                     if (context.mounted) context.go(RoutePath.root);
                   },

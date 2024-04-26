@@ -41,20 +41,6 @@ class HomePage extends StatelessWidget {
                   },
                   child: const Text('命令式 - 子页面'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    ToastUtil.showToast('hello');
-                  },
-                  child: const Text('toast'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    LoadingUtil.show('加载中');
-                    await 2.delay();
-                    LoadingUtil.close();
-                  },
-                  child: const Text('loading'),
-                ),
                 ...List.generate(50, (index) => const Text('xxx')),
               ],
             ),

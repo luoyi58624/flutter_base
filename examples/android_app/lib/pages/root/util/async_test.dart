@@ -30,19 +30,6 @@ class _AsyncTestPageState extends State<AsyncTestPage> {
   }, 1000, true);
 
   @override
-  void initState() {
-    super.initState();
-    FlutterUtil.nextTick(() async {
-      // 在initState中显示loading必须等待页面build完成后才能调用
-      LoadingUtil.show('加载中');
-      // 延迟300毫米关闭loading
-      AsyncUtil.delayed(() {
-        LoadingUtil.close();
-      }, 300);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(

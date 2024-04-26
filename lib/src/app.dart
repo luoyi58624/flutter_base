@@ -163,17 +163,14 @@ class _AppState extends State<App> {
           // 注入默认的cupertino主题
           child: CupertinoTheme(
             data: AppThemeUtil.buildCupertinoThemeData(context.currentTheme, c.config),
-            child: Overlay(
-              initialEntries: [
-                OverlayEntry(builder: (context) {
-                  toast.init(context);
-                  return widget.builder == null ? child! : widget.builder!(context, child);
-                })
-              ],
-            ),
+            child: widget.builder == null ? child! : widget.builder!(context, child),
           ),
         ),
       );
+}
+
+extension ToastBuilder on TransitionBuilder {
+  toastBuilder(Widget? child) {}
 }
 
 class AppThemeUtil {
