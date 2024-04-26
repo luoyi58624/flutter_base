@@ -1,11 +1,9 @@
 part of flutter_base;
 
-class ModalUtils {
-  ModalUtils._();
-
-  static Future<LabelModel?> showActionModal(BuildContext context, List<LabelModel> models) async {
+extension FlutterBaseModalExtension on BuildContext {
+  Future<LabelModel?> showActionModal(List<LabelModel> models) async {
     var result = await showCupertinoModalPopup<LabelModel>(
-      context: context,
+      context: this,
       builder: (BuildContext context) => CupertinoActionSheet(
           actions: models
               .map((e) => CupertinoActionSheetAction(
@@ -20,7 +18,7 @@ class ModalUtils {
   }
 
   /// 显示取消、确认提示框
-  static Future<bool> showConfitmModal({
+  Future<bool> showConfitmModal({
     String title = '提示',
     String? content,
     bool preventBack = false, // 是否阻止用户返回，若为true，barrierDismissible属性将无效
@@ -39,7 +37,7 @@ class ModalUtils {
     Function? onConfirm,
   }) async {
     bool? result = await showDialog<bool>(
-      context: rootContext,
+      context: this,
       barrierDismissible: barrierDismissible,
       builder: (context) => WillPopScope(
         onWillPop: preventBack ? () async => false : null,
@@ -90,20 +88,21 @@ class ModalUtils {
   }
 
   /// 显示输入框提示框
-  static Future<void> showInputModal({
+  Future<void> showInputModal({
     String title = '提示',
     String cancelText = '取消',
     String confirmText = '确认',
     Function(String value)? onConfirm,
   }) async {
     await showDialog(
-        context: rootContext,
-        builder: (context) => InputDialogWidget(
-              title: title,
-              cancelText: cancelText,
-              confirmText: confirmText,
-              onConfirm: onConfirm,
-            ));
+      context: this,
+      builder: (context) => InputDialogWidget(
+        title: title,
+        cancelText: cancelText,
+        confirmText: confirmText,
+        onConfirm: onConfirm,
+      ),
+    );
   }
 }
 

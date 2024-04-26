@@ -1,7 +1,7 @@
 part of flutter_base;
 
 /// Color工具函数扩展
-extension AppColorExtension on Color {
+extension FlutterBaseColorExtension on Color {
   /// Color对象转16进制字符串格式颜色
   String toHex({bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
       '${alpha.toRadixString(16).padLeft(2, '0')}'

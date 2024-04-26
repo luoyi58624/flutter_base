@@ -12,8 +12,6 @@ import 'package:flutter/services.dart';
 
 import 'flutter_base.dart';
 
-export 'src/extendeds/index.dart';
-
 export 'package:dart_base/dart_base.dart';
 
 // flutter官方collection库，扩展集合函数
@@ -36,6 +34,8 @@ part 'src/controllers/app.dart';
 
 part 'src/extensions/color.dart';
 
+part 'src/extensions/drawer.dart';
+
 part 'src/extensions/router.dart';
 
 part 'src/extensions/theme.dart';
@@ -50,11 +50,9 @@ part 'src/utils/async.dart';
 
 part 'src/utils/color.dart';
 
-part 'src/utils/drawer.dart';
-
 part 'src/utils/flutter.dart';
 
-part 'src/utils/modal.dart';
+part 'src/extensions/modal.dart';
 
 part 'src/utils/no_ripper.dart';
 
@@ -93,9 +91,3 @@ part 'src/widgets/form/form_text_field.dart';
 part 'src/widgets/cupertino/list_group.dart';
 
 part 'src/widgets/cupertino/list_tile.dart';
-
-/// 根节点导航key
-late final GlobalKey<NavigatorState> rootNavigatorKey;
-
-/// 根节点context
-BuildContext get rootContext => rootNavigatorKey.currentContext!;

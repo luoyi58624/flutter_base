@@ -2,8 +2,6 @@ part of flutter_base;
 
 extension FlutterBaseRouterExtension on BuildContext {
   /// 跳转到新页面
-  ///
-  /// 提示：使用命令式导航如果需要隐藏底部tabbar，你可以使用[rootContext]进行跳转
   Future<T?> push<T>(
     Widget page, {
     RouteSettings? settings,

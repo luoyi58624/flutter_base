@@ -12,7 +12,6 @@ class AppController extends GetxController {
     _theme = theme.obs;
     _darkTheme = darkTheme.obs;
     _config = config.obs;
-    // primaryColor = useLocalObs(_?.primaryColor ?? _primaryColor, 'primaryColor');
   }
 
   /// 通过静态变量直接获取控制器实例
