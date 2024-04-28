@@ -8,7 +8,7 @@ class ChildPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var isCupertinoApp = FlutterUtil.hasAncestorElements<CupertinoApp>(context);
+    var isCupertinoApp = FlutterUtil.hasAncestorElement<CupertinoApp>(context);
     if (isCupertinoApp) {
       return CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(

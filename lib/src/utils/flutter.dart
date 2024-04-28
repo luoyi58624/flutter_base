@@ -25,16 +25,21 @@ class FlutterUtil {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  /// 检查当前所处的组件是否包含某个祖先widget
-  static bool hasAncestorElements<T>(BuildContext context) {
-    bool flag = false;
-    context.visitAncestorElements((element) {
-      if (element.widget is T) {
-        flag = true;
+  /// 通过当前context，获取目标祖先元素
+  static Element? getAncestorElement<T>(BuildContext context) {
+    Element? element;
+    context.visitAncestorElements((e) {
+      if (e.widget is T) {
+        element = e;
         return false;
       }
       return true;
     });
-    return flag;
+    return element;
+  }
+
+  /// 通过当前context，检查是否包含某个祖先widget
+  static bool hasAncestorElement<T>(BuildContext context) {
+    return getAncestorElement<T>(context) != null;
   }
 }
