@@ -1,7 +1,7 @@
 part of flutter_base;
 
 /// Color工具函数扩展
-extension FlutterBaseColorExtension on Color {
+extension FlutterColorExtension on Color {
   /// 判断一个颜色是否是暗色
   bool get isDark => hsp <= 150;
 
@@ -61,10 +61,10 @@ extension FlutterBaseColorExtension on Color {
   }
 
   /// 当用户鼠标悬停时的颜色
-  Color onHover(bool flag, [int? scale]) =>
-      flag ? deepen(scale ?? AppController.of?.config.hoverScale ?? AppController._defaultConfig.hoverScale) : this;
+  Color onHover(BuildContext context, bool flag, [int? scale]) =>
+      flag ? deepen(scale ?? context.globalConfig.hoverScale) : this;
 
   /// 当用户鼠标、手指按下时的颜色
-  Color onTap(bool flag, [int? scale]) =>
-      flag ? deepen(scale ?? AppController.of?.config.tapScale ?? AppController._defaultConfig.tapScale) : this;
+  Color onTap(BuildContext context, bool flag, [int? scale]) =>
+      flag ? deepen(scale ?? context.globalConfig.tapScale) : this;
 }

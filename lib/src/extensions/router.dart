@@ -1,6 +1,6 @@
 part of flutter_base;
 
-extension FlutterBaseRouterExtension on BuildContext {
+extension FlutterRouterExtension on BuildContext {
   /// 跳转到新页面
   Future<T?> push<T>(
     Widget page, {

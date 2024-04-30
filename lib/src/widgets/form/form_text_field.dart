@@ -310,7 +310,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
         fontSize: widget.size != null
             ? labelFontSize[widget.size]
             : labelFontSize[FormInheritedWidget.of(context)?.size] ?? labelFontSize[FormSize.medium]!,
-        fontWeight: AppController.of?.config.defaultFontWeight,
+        fontWeight: context.globalConfig.defaultFontWeight,
       );
 
   @override
@@ -375,7 +375,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
           fontSize: widget.size != null
               ? hintFontSize[widget.size]
               : hintFontSize[FormInheritedWidget.of(context)?.size] ?? hintFontSize[FormSize.medium]!,
-          fontWeight: AppController.of?.config.defaultFontWeight,
+          fontWeight: context.globalConfig.defaultFontWeight,
           color: Colors.grey,
         ),
         errorMaxLines: 3,
@@ -385,7 +385,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
                   ? hintFontSize[widget.size]
                   : hintFontSize[FormInheritedWidget.of(context)?.size] ?? hintFontSize[FormSize.medium]!)! -
               2,
-          fontWeight: AppController.of?.config.defaultFontWeight,
+          fontWeight: context.globalConfig.defaultFontWeight,
         ),
         prefixIcon: widget.prefixIcon != null
             ? Icon(

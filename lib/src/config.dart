@@ -1,6 +1,35 @@
 part of flutter_base;
 
-class AppConfigData {
+extension FlutterConfigExtension on BuildContext {
+  /// 根据当前[ThemeMode]获取相应的主题配置
+  FlutterConfigData get globalConfig => FlutterConfig.of(this) ?? FlutterConfigData.globalConfig;
+}
+
+/// 注入全局配置
+class FlutterConfig extends InheritedWidget {
+  const FlutterConfig({
+    super.key,
+    required super.child,
+    required this.configData,
+  });
+
+  final FlutterConfigData configData;
+
+  /// 拿到全局配置数据
+  static FlutterConfigData? of(BuildContext context) {
+    final FlutterConfig? result = context.dependOnInheritedWidgetOfExactType<FlutterConfig>();
+    return result?.configData;
+  }
+
+  @override
+  bool updateShouldNotify(FlutterConfig oldWidget) {
+    return true;
+  }
+}
+
+class FlutterConfigData {
+  static FlutterConfigData globalConfig = FlutterConfigData();
+
   /// 应用标题
   String title;
 
@@ -37,10 +66,10 @@ class AppConfigData {
   /// 手指点击、鼠标点击背景颜色变化级别：1-100
   int tapScale;
 
-  AppConfigData({
+  FlutterConfigData({
     this.title = 'Flutter App',
     this.fontFamily,
-    this.defaultFontWeight = FontWeight.w500,
+    this.defaultFontWeight = FontWeight.w400,
     this.headerHeight = 50,
     this.useMaterial3 = true,
     this.radius = 6,
@@ -54,7 +83,7 @@ class AppConfigData {
     centerTitle = centerTitle ?? (GetPlatform.isMobile ? true : false);
   }
 
-  AppConfigData copyWith({
+  FlutterConfigData copyWith({
     String? title,
     String? fontFamily,
     FontWeight? defaultFontWeight,
@@ -68,7 +97,7 @@ class AppConfigData {
     int? hoverScale,
     int? tapScale,
   }) {
-    return AppConfigData(
+    return FlutterConfigData(
       title: title ?? this.title,
       fontFamily: fontFamily ?? this.fontFamily,
       defaultFontWeight: defaultFontWeight ?? this.defaultFontWeight,

@@ -1,6 +1,7 @@
 library flutter_base;
 
 import 'dart:async';
+import 'dart:js_util';
 import 'dart:math' as math;
 import 'package:flutter/scheduler.dart' as scheduler;
 
@@ -24,8 +25,6 @@ part 'src/builders/tap.dart';
 
 part 'src/commons/model.dart';
 
-part 'src/controllers/app.dart';
-
 part 'src/extensions/color.dart';
 
 part 'src/extensions/drawer.dart';
@@ -34,15 +33,11 @@ part 'src/extensions/router.dart';
 
 part 'src/extensions/string.dart';
 
-part 'src/extensions/theme.dart';
-
 part 'src/pages/simple_page.dart';
 
 part 'src/utils/animation.dart';
 
 part 'src/utils/async.dart';
-
-part 'src/utils/color.dart';
 
 part 'src/utils/flutter.dart';
 

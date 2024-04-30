@@ -10,7 +10,7 @@ bool _hasDrawer() {
   return _controller != null;
 }
 
-extension FlutterBaseDrawerExtension on BuildContext {
+extension FlutterDrawerExtension on BuildContext {
   /// 在当前屏幕上显示一个抽屉，如果之前打开过一个抽屉，那么会先关闭它再重新打开一个新的抽屉
   /// * child 抽屉子元素
   /// * width 抽屉宽度

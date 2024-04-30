@@ -1,6 +1,6 @@
 part of flutter_base;
 
-extension FlutterBaseStringExtension on String {
+extension FlutterStringExtension on String {
   /// 将16进制字符串颜色转成Color对象
   Color toColor() {
     final buffer = StringBuffer();

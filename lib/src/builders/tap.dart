@@ -8,7 +8,7 @@ class TapBuilder extends StatefulWidget {
     this.onTap,
     this.delay = 100,
     this.disabled = false,
-  }) : assert(delay >= 0, 'delay延迟时间不能小于0');
+  }) : assert(delay >= 0);
 
   final Widget Function(bool isTap) builder;
 
@@ -26,6 +26,7 @@ class TapBuilder extends StatefulWidget {
 
 class _TapBuilderState extends State<TapBuilder> {
   bool isTap = false;
+  Timer? _timer;
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +35,26 @@ class _TapBuilderState extends State<TapBuilder> {
       onTapDown: (widget.delay == 0 || widget.disabled)
           ? null
           : (e) {
-              setState(() {
-                isTap = true;
-              });
+              if (_timer != null) {
+                _timer!.cancel();
+                setState(() {
+                  isTap = false;
+                });
+                AsyncUtil.delayed(() {
+                  setState(() {
+                    isTap = true;
+                  });
+                }, 16);
+              } else {
+                setState(() {
+                  isTap = true;
+                });
+              }
             },
       onTapUp: (widget.delay == 0 || widget.disabled)
           ? null
           : (e) {
-              AsyncUtil.delayed(() {
+              _timer = AsyncUtil.delayed(() {
                 setState(() {
                   isTap = false;
                 });
@@ -50,7 +63,7 @@ class _TapBuilderState extends State<TapBuilder> {
       onTapCancel: (widget.delay == 0 || widget.disabled)
           ? null
           : () {
-              AsyncUtil.delayed(() {
+              _timer = AsyncUtil.delayed(() {
                 setState(() {
                   isTap = false;
                 });

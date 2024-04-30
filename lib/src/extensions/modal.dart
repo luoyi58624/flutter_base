@@ -1,6 +1,6 @@
 part of flutter_base;
 
-extension FlutterBaseModalExtension on BuildContext {
+extension FlutterModalExtension on BuildContext {
   Future<LabelModel?> showActionModal(List<LabelModel> models) async {
     var result = await showCupertinoModalPopup<LabelModel>(
       context: this,

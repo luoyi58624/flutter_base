@@ -173,7 +173,7 @@ class _FormItemWidgetState extends State<FormItemWidget> {
             fontSize: labelFontSize[FormInheritedWidget.of(context)?.size],
             fontWeight: FormInheritedWidget.of(context)?.labelBold ?? false
                 ? FontWeight.bold
-                : AppController.of?.config.defaultFontWeight);
+                : context.globalConfig.defaultFontWeight);
     AlignmentGeometry labelAlignment = Alignment.centerLeft;
     if (!isColumn) {
       LabelAlign $labelAlign = widget.labelAlign ?? FormInheritedWidget.of(context)?.labelAlign ?? LabelAlign.start;
