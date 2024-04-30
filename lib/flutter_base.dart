@@ -8,13 +8,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mini_getx/mini_getx.dart';
 
 import 'flutter_base.dart';
 
 export 'package:luoyi_dart_base/luoyi_dart_base.dart';
-
-// GetX的状态管理，但这是Fork官方库的简化版本，只保留响应式状态管理、工具类，移除掉了路由、网络请求、依赖绑定等Api
-export 'package:mini_getx/mini_getx.dart';
 
 part 'src/theme.dart';
 
@@ -34,6 +32,8 @@ part 'src/extensions/drawer.dart';
 
 part 'src/extensions/router.dart';
 
+part 'src/extensions/string.dart';
+
 part 'src/extensions/theme.dart';
 
 part 'src/pages/simple_page.dart';
@@ -45,8 +45,6 @@ part 'src/utils/async.dart';
 part 'src/utils/color.dart';
 
 part 'src/utils/flutter.dart';
-
-part 'src/utils/getx.dart';
 
 part 'src/extensions/modal.dart';
 
