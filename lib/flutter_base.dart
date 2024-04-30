@@ -12,13 +12,13 @@ import 'package:flutter/services.dart';
 
 import 'flutter_base.dart';
 
-export 'package:dart_base/dart_base.dart';
+export 'package:luoyi_dart_base/luoyi_dart_base.dart';
 
 // flutter官方collection库，扩展集合函数
 export 'package:collection/collection.dart';
 
 // GetX的状态管理，但这是Fork官方库的简化版本，只保留响应式状态管理、工具类，移除掉了路由、网络请求、依赖绑定等Api
-export 'package:get/get.dart';
+export 'package:mini_getx/mini_getx.dart';
 
 part 'src/theme.dart';
 
@@ -66,21 +66,9 @@ part 'src/widgets/badge.dart';
 
 part 'src/widgets/flex_wrap.dart';
 
-part 'src/widgets/flexible_title.dart';
-
-part 'src/widgets/hide_keybord.dart';
-
-part 'src/widgets/restart_app.dart';
-
 part 'src/widgets/scroll_ripper.dart';
 
 part 'src/widgets/simple_widgets.dart';
-
-part 'src/widgets/sliver.dart';
-
-part 'src/widgets/tag.dart';
-
-part 'src/widgets/tap_animate.dart';
 
 part 'src/widgets/form/form.dart';
 

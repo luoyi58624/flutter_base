@@ -407,7 +407,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
 
   Widget? buildSuffixIcon() {
     if (widget.showClearIcon && showClearIcon && widget.textInputType != FormTextInputType.password) {
-      return TapScaleWidget(
+      return GestureDetector(
         onTap: () {
           controller.clear();
           setState(() {});
@@ -420,7 +420,7 @@ class FormTextFieldWidgetState extends State<FormTextFieldWidget> {
         ),
       );
     } else if (widget.showPasswordIcon) {
-      return TapScaleWidget(
+      return GestureDetector(
         onTap: () {
           setState(() {
             hideText = !hideText;

@@ -9,14 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dart_base:
-    git:
-      url: https://gitee.com/luoyi666/dart_base.git
-  # 精简后的getx，仅包含响应式状态管理、以及一些很方便的扩展函数，移除路由、依赖绑定、http请求、GetBuilder、Getx等api
-  get:
-    git:
-      url: https://gitee.com/luoyi666/getx.git
-      ref: beta
+  luoyi_dart_base: ^1.0.0
+  mini_getx: ^5.0.0
 
 dev_dependencies:
   flutter_lints: ^3.0.0
