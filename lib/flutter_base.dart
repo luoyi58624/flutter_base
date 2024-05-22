@@ -11,6 +11,7 @@ import 'package:mini_getx/mini_getx.dart';
 
 export 'package:flutter_base/flutter_base.dart';
 export 'package:super_sliver_list/super_sliver_list.dart';
+export 'package:collection/collection.dart';
 
 part 'src/commons/color.dart';
 

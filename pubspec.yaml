@@ -13,6 +13,7 @@ dependencies:
   luoyi_flutter_font: ^1.0.8
   mini_getx: ^5.0.0
   super_sliver_list: ^0.4.1
+  collection: ^1.18.0
 
 dev_dependencies:
   flutter_lints: ^3.0.0
