@@ -14,6 +14,7 @@ import 'package:mini_getx/mini_getx.dart';
 export 'package:luoyi_flutter_base/luoyi_flutter_base.dart';
 export 'package:luoyi_flutter_font/luoyi_flutter_font.dart';
 export 'package:collection/collection.dart';
+export 'package:super_sliver_list/super_sliver_list.dart';
 
 part 'src/app/app.dart';
 
