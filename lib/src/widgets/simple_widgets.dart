@@ -1,4 +1,25 @@
-part of flutter_base;
+part of '../../flutter_base.dart';
+
+const Widget arrowRightWidget = Icon(Icons.keyboard_arrow_right);
+
+/// 构建滚动组件
+Widget buildScrollWidget({
+  required Widget child,
+  ScrollController? controller,
+  bool showScrollbar = true,
+}) {
+  Widget widget = SingleChildScrollView(
+    controller: controller,
+    child: child,
+  );
+  if (showScrollbar) {
+    return widget = buildScrollbar(
+      controller: controller,
+      child: widget,
+    );
+  }
+  return widget;
+}
 
 /// 构建通用分割线Widget
 Widget buildDividerWidget(
@@ -12,7 +33,7 @@ Widget buildDividerWidget(
     height: height,
     thickness: thickness,
     indent: indent,
-    color: color ?? (context.isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
+    color: color ?? (BrightnessWidget.isDark(context) ? Colors.grey.shade700 : Colors.grey.shade300),
   );
 }
 
@@ -31,21 +52,6 @@ IndexedWidgetBuilder buildSeparatorWidget(
         indent: indent,
         color: color,
       );
-}
-
-Widget buildListViewDemo({
-  int? count,
-  ScrollPhysics? physics,
-}) {
-  return ListView.builder(
-    // itemExtentBuilder: ,
-    itemCount: count,
-    physics: physics,
-    itemBuilder: (context, index) => ListTile(
-      onTap: () {},
-      title: Text('列表-${index + 1}'),
-    ),
-  );
 }
 
 Widget buildPopupMenuButton({
@@ -81,21 +87,48 @@ Widget buildCenterColumn(List<Widget> children) {
   );
 }
 
+Widget buildBoxWidget({
+  double width = 36,
+  double height = 36,
+  double radius = 4,
+  Color color = Colors.grey,
+}) {
+  return Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      color: color,
+    ),
+  );
+}
+
+/// 构建滚动条，如果是桌面端(包括桌面端web)，直接返回子元素
+Widget buildScrollbar({
+  required Widget child,
+  ScrollController? controller,
+  bool thumbVisibility = false, // 是否一直显示滚动条
+}) {
+  if (GetPlatform.isDesktop) return child;
+  return Scrollbar(
+    controller: controller,
+    thumbVisibility: thumbVisibility,
+    child: child,
+  );
+}
+
 /// 构建ios滚动条，如果是桌面端(包括桌面端web)，则不使用ios滚动条，因为会冲突
 Widget buildCupertinoScrollbar({
   required Widget child,
   ScrollController? controller,
   bool thumbVisibility = false, // 是否一直显示滚动条
 }) {
-  if (GetPlatform.isDesktop) {
-    return child;
-  } else {
-    return CupertinoScrollbar(
-      controller: controller,
-      thumbVisibility: thumbVisibility,
-      child: child,
-    );
-  }
+  if (GetPlatform.isDesktop) return child;
+  return CupertinoScrollbar(
+    controller: controller,
+    thumbVisibility: thumbVisibility,
+    child: child,
+  );
 }
 
 /// 构建ios loading

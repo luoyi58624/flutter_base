@@ -1,4 +1,4 @@
-part of flutter_base;
+part of '../../flutter_base.dart';
 
 class FlexWrapWidget extends StatelessWidget {
   /// 多行flex布局，效果类似于GridView，但GridView只能通过宽高比指定每个元素的高度

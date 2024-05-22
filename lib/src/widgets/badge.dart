@@ -1,10 +1,10 @@
-part of flutter_base;
+part of '../../flutter_base.dart';
 
 class BadgeWidget extends StatelessWidget {
   const BadgeWidget({
     super.key,
     required this.child,
-    required this.bagde,
+    required this.badge,
     this.color,
     this.max = 99,
     this.hideZero = true,
@@ -12,7 +12,7 @@ class BadgeWidget extends StatelessWidget {
   });
 
   final Widget child;
-  final dynamic bagde; // 徽章内容，支持字符串和数字
+  final dynamic badge; // 徽章内容，支持字符串和数字
   final Color? color; // 徽章颜色，默认为红色
   final int max; // 限制显示的最大值，超出此数后面追加+
   final bool hideZero; // 当值小于等于0时，是否将其隐藏
@@ -20,16 +20,16 @@ class BadgeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (DartUtil.isEmpty(bagde)) return child;
-    if (bagde is num) {
+    if (DartUtil.isEmpty(badge)) return child;
+    if (badge is num) {
       return Badge(
         label: Container(
           constraints: const BoxConstraints(minWidth: 16),
           child: Center(
-            child: Text(bagde > max ? '$max+' : bagde.toString()),
+            child: Text(badge > max ? '$max+' : badge.toString()),
           ),
         ),
-        isLabelVisible: hideZero ? bagde > 0 : true,
+        isLabelVisible: hideZero ? badge > 0 : true,
         padding: badgePadding,
         backgroundColor: color ?? Colors.red,
         textColor: Colors.white,
@@ -39,7 +39,7 @@ class BadgeWidget extends StatelessWidget {
       );
     } else {
       return Badge(
-        label: Text(bagde),
+        label: Text(badge),
         padding: const EdgeInsets.symmetric(horizontal: 4),
         backgroundColor: color ?? Colors.red,
         textColor: Colors.white,
@@ -54,7 +54,7 @@ class BadgeWidget extends StatelessWidget {
 
   /// 让徽章填充样式更加好看，默认情况下徽章给人的感官没有对齐
   EdgeInsetsGeometry get badgePadding {
-    if (bagde < 10) {
+    if (badge < 10) {
       return const EdgeInsets.symmetric(horizontal: 1);
     } else {
       return const EdgeInsets.symmetric(horizontal: 4);

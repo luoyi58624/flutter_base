@@ -1,4 +1,4 @@
-part of flutter_base;
+part of '../../flutter_base.dart';
 
 /// 滚动触顶波纹（安卓平台）
 class ScrollerRipperWidget extends StatelessWidget {

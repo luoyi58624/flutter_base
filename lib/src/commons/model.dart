@@ -1,4 +1,4 @@
-part of flutter_base;
+part of '../../flutter_base.dart';
 
 /// 包含name-icon结构的简单数据模型
 class IconModel {
@@ -17,18 +17,6 @@ class NavModel {
 
   /// 导航图标，可选
   IconData? icon;
-
-  NavModel.fromJson(Map<String, dynamic> json) {
-    title = json['title']!;
-    icon = IconSerializable.fromJson(json['icon']);
-  }
-
-  Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{};
-    data['title'] = title;
-    data['icon'] = IconSerializable.toJson(icon);
-    return data;
-  }
 }
 
 /// 命令式导航页面模型
@@ -43,17 +31,4 @@ class UrlNavModel extends NavModel {
   UrlNavModel(super.title, this.path, {super.icon});
 
   late String path;
-
-  UrlNavModel.fromJson(Map<String, dynamic> json) : super.fromJson(json) {
-    path = json['path'] ?? '';
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{};
-    data['title'] = title;
-    data['path'] = path;
-    data['icon'] = IconSerializable.toJson(icon);
-    return data;
-  }
 }
