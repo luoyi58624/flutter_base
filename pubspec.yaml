@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   luoyi_flutter_base:
     git:
       url: https://gitee.com/luoyi666/luoyi_flutter_base.git
