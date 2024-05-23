@@ -2,6 +2,26 @@ part of '../../flutter_base.dart';
 
 const Widget arrowRightWidget = Icon(Icons.keyboard_arrow_right);
 
+class LoadingWidget extends StatelessWidget {
+  const LoadingWidget({super.key, this.size = 16, this.color});
+
+  final double size;
+
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: color,
+      ),
+    );
+  }
+}
+
 /// 构建滚动组件
 Widget buildScrollWidget({
   required Widget child,
@@ -21,37 +41,74 @@ Widget buildScrollWidget({
   return widget;
 }
 
-/// 构建通用分割线Widget
-Widget buildDividerWidget(
+/// 构建通用的[ListTile]组件
+Widget buildCellWidget(
   BuildContext context, {
-  double height = 0,
-  double thickness = 0.5,
-  double indent = 0,
-  Color? color,
+  required String title,
+  bool dense = true,
+  Widget trailing = arrowRightWidget,
+  GestureTapCallback? onTap,
+  Widget? page,
+  Widget? leading,
+  Color? tileColor,
 }) {
-  return Divider(
-    height: height,
-    thickness: thickness,
-    indent: indent,
-    color: color ?? (BrightnessWidget.isDark(context) ? Colors.grey.shade700 : Colors.grey.shade300),
+  return ListTile(
+    onTap: onTap == null && page == null
+        ? null
+        : () {
+            if (onTap != null) {
+              onTap();
+            } else {
+              Navigator.of(context).push(CupertinoPageRoute(builder: (context) => page!));
+            }
+          },
+    dense: dense,
+    leading: leading,
+    trailing: arrowRightWidget,
+    tileColor: tileColor,
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: Theme.of(context).listTileTheme.titleTextStyle?.fontSize,
+      ),
+    ),
   );
 }
 
-/// 构建通用的列表分割线widget
-IndexedWidgetBuilder buildSeparatorWidget(
-  BuildContext context, {
-  double height = 0,
-  double thickness = 0.5,
-  double indent = 0,
-  Color? color,
+Widget buildListViewDemo({
+  int? itemCount,
+  ScrollPhysics? physics,
 }) {
-  return (ctx, index) => buildDividerWidget(
-        context,
-        height: height,
-        thickness: thickness,
-        indent: indent,
-        color: color,
-      );
+  return SuperListView.builder(
+    itemCount: itemCount,
+    physics: physics,
+    itemBuilder: (context, index) => buildCellWidget(
+      context,
+      onTap: () {},
+      title: '列表-${index + 1}',
+    ),
+  );
+}
+
+Widget buildCardWidget(
+  BuildContext context, {
+  String? title,
+  List<Widget> children = const [],
+}) {
+  return Card(
+    clipBehavior: Clip.hardEdge,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(title, style: context.h4),
+          ),
+        Column(children: children),
+      ],
+    ),
+  );
 }
 
 Widget buildPopupMenuButton({
@@ -78,13 +135,26 @@ Widget buildPopupMenuButton({
   );
 }
 
-Widget buildCenterColumn(List<Widget> children) {
-  return Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: children,
-    ),
-  );
+class ColumnWidget extends StatelessWidget {
+  const ColumnWidget({super.key, required this.children, this.center = true});
+
+  final List<Widget> children;
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    return center
+        ? Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: children,
+            ),
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: children,
+          );
+  }
 }
 
 Widget buildBoxWidget({
