@@ -75,19 +75,30 @@ Widget buildCellWidget(
   );
 }
 
-Widget buildListViewDemo({
-  int? itemCount,
-  ScrollPhysics? physics,
-}) {
-  return SuperListView.builder(
-    itemCount: itemCount,
-    physics: physics,
-    itemBuilder: (context, index) => buildCellWidget(
-      context,
-      onTap: () {},
-      title: '列表-${index + 1}',
-    ),
-  );
+class ListViewDemoWidget extends HookWidget {
+  const ListViewDemoWidget({
+    super.key,
+    this.itemCount = 1000,
+    this.physics,
+  });
+
+  final int? itemCount;
+  final ScrollPhysics? physics;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useScrollController();
+    return SuperListView.builder(
+      controller: controller,
+      itemCount: itemCount,
+      physics: physics,
+      itemBuilder: (context, index) => buildCellWidget(
+        context,
+        onTap: () {},
+        title: '列表-${index + 1}',
+      ),
+    );
+  }
 }
 
 Widget buildCardWidget(
@@ -179,7 +190,7 @@ Widget buildScrollbar({
   ScrollController? controller,
   bool thumbVisibility = false, // 是否一直显示滚动条
 }) {
-  if (GetPlatform.isDesktop) return child;
+  if (ElPlatform.isDesktop) return child;
   return Scrollbar(
     controller: controller,
     thumbVisibility: thumbVisibility,
@@ -193,7 +204,7 @@ Widget buildCupertinoScrollbar({
   ScrollController? controller,
   bool thumbVisibility = false, // 是否一直显示滚动条
 }) {
-  if (GetPlatform.isDesktop) return child;
+  if (ElPlatform.isDesktop) return child;
   return CupertinoScrollbar(
     controller: controller,
     thumbVisibility: thumbVisibility,

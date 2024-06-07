@@ -71,7 +71,7 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
       titleTextStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
         fontSize: 18,
-        fontWeight: FlutterFont.bold,
+        fontWeight: ElFont.bold,
         color: appTheme.headerColor.isDark ? darkTheme.textColor : lightTheme.textColor,
       ),
       iconTheme: IconThemeData(
@@ -81,12 +81,12 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
     tabBarTheme: TabBarTheme(
       unselectedLabelStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
-        fontWeight: FlutterFont.bold,
+        fontWeight: ElFont.bold,
         fontSize: 15,
       ),
       labelStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
-        fontWeight: FlutterFont.bold,
+        fontWeight: ElFont.bold,
         fontSize: 15,
         color: appTheme.primary,
       ),
@@ -96,8 +96,8 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
       elevation: 2,
       type: BottomNavigationBarType.fixed,
       backgroundColor: appTheme.headerColor,
-      unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FlutterFont.medium),
-      selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FlutterFont.bold, color: appTheme.primary),
+      unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: ElFont.medium),
+      selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: ElFont.bold, color: appTheme.primary),
       unselectedIconTheme: const IconThemeData(size: 26),
       selectedIconTheme: IconThemeData(color: appTheme.primary, size: 26),
     ),
@@ -120,13 +120,13 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
     listTileTheme: ListTileThemeData(
       titleTextStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
-        fontWeight: FlutterFont.medium,
+        fontWeight: ElFont.medium,
         color: appTheme.textColor,
         fontSize: 15,
       ),
       subtitleTextStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
         color: appTheme.textColors[1],
         fontSize: 13,
       ),
@@ -136,8 +136,8 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
       // border: const OutlineInputBorder(
       //   borderSide: BorderSide(color: Colors.grey),
       // ),
-      labelStyle: TextStyle(fontFamily: appConfig.fontFamily, fontSize: 16, fontWeight: FlutterFont.medium),
-      hintStyle: TextStyle(fontFamily: appConfig.fontFamily, fontSize: 14, fontWeight: FlutterFont.medium),
+      labelStyle: TextStyle(fontFamily: appConfig.fontFamily, fontSize: 16, fontWeight: ElFont.medium),
+      hintStyle: TextStyle(fontFamily: appConfig.fontFamily, fontSize: 14, fontWeight: ElFont.medium),
     ),
     expansionTileTheme: ExpansionTileThemeData(
       textColor: appTheme.primary,
@@ -151,7 +151,7 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
       enableFeedback: true,
       textStyle: TextStyle(
         fontFamily: appConfig.fontFamily,
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
         color: appTheme.textColor,
         fontSize: 14,
       ),
@@ -161,12 +161,12 @@ ThemeData _buildThemeData(AppData appData, Brightness brightness) {
       titleTextStyle: TextStyle(
         color: appTheme.textColor,
         fontSize: 18,
-        fontWeight: FlutterFont.bold,
+        fontWeight: ElFont.bold,
       ),
       contentTextStyle: TextStyle(
         color: appTheme.textColors[2],
         fontSize: 15,
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
       ),
       elevation: appTheme.modalElevation,
       backgroundColor: appTheme.modalColor,
@@ -199,27 +199,27 @@ CupertinoThemeData _buildCupertinoThemeData(AppData appData, Brightness brightne
     primaryColor: theme.primary,
     textTheme: CupertinoTextThemeData(
       textStyle: themeData.textTheme.textStyle.copyWith(
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
         fontFamily: fontFamily,
       ),
       tabLabelTextStyle: themeData.textTheme.tabLabelTextStyle.copyWith(
         fontSize: 12,
         fontFamily: fontFamily,
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
       ),
       navActionTextStyle: themeData.textTheme.navActionTextStyle.copyWith(
         color: theme.primary,
         fontFamily: fontFamily,
-        fontWeight: FlutterFont.medium,
+        fontWeight: ElFont.medium,
         fontSize: 16,
       ),
       navTitleTextStyle: themeData.textTheme.navTitleTextStyle.copyWith(
         fontFamily: fontFamily,
-        fontWeight: FlutterFont.medium,
+        fontWeight: ElFont.medium,
       ),
       navLargeTitleTextStyle: themeData.textTheme.navLargeTitleTextStyle.copyWith(
         fontFamily: fontFamily,
-        fontWeight: FlutterFont.normal,
+        fontWeight: ElFont.normal,
       ),
     ),
   );
@@ -228,91 +228,91 @@ CupertinoThemeData _buildCupertinoThemeData(AppData appData, Brightness brightne
 TextTheme _textTheme(AppThemeData theme, AppConfigData config) {
   return TextTheme(
     displayLarge: TextStyle(
-      fontWeight: FlutterFont.bold,
+      fontWeight: ElFont.bold,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     displayMedium: TextStyle(
-      fontWeight: FlutterFont.medium,
+      fontWeight: ElFont.medium,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     displaySmall: TextStyle(
-      fontWeight: FlutterFont.medium,
+      fontWeight: ElFont.medium,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     headlineLarge: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     headlineMedium: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     headlineSmall: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     titleLarge: TextStyle(
-      fontWeight: FlutterFont.bold,
+      fontWeight: ElFont.bold,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     titleMedium: TextStyle(
-      fontWeight: FlutterFont.bold,
+      fontWeight: ElFont.bold,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     titleSmall: TextStyle(
-      fontWeight: FlutterFont.bold,
+      fontWeight: ElFont.bold,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     bodyLarge: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     bodyMedium: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     bodySmall: TextStyle(
-      fontWeight: FlutterFont.normal,
+      fontWeight: ElFont.normal,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     labelLarge: TextStyle(
-      fontWeight: FlutterFont.medium,
+      fontWeight: ElFont.medium,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     labelMedium: TextStyle(
-      fontWeight: FlutterFont.medium,
+      fontWeight: ElFont.medium,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,
     ),
     labelSmall: TextStyle(
-      fontWeight: FlutterFont.medium,
+      fontWeight: ElFont.medium,
       color: theme.textColor,
       fontFamily: config.fontFamily,
       fontFamilyFallback: config.fontFamilyFallback,

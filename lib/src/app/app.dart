@@ -15,10 +15,16 @@ class AppWidget extends InheritedWidget {
   late final AppData data;
 
   /// 获取全局配置数据
-  static AppData of(BuildContext context) {
+  static AppData? maybeOf(BuildContext context) {
     final AppWidget? result = context.dependOnInheritedWidgetOfExactType<AppWidget>();
-    assert(result != null, 'No App found in context');
-    return result!.data;
+    return result?.data;
+  }
+
+  /// 获取全局配置数据
+  static AppData of(BuildContext context) {
+    final AppData? data = maybeOf(context);
+    assert(data != null, 'No AppWidget found in context');
+    return data!;
   }
 
   /// 根据注入的[AppData]，构建 Material 主题数据
@@ -49,20 +55,8 @@ class AppData {
   /// 全局配置数据
   final AppConfigData config;
 
-  /// 亮色主题
-  final AppThemeData theme;
-
-  /// 暗色主题
-  final AppThemeData darkTheme;
-
-  /// 响应式配置
-  final AppResponsiveData responsive;
-
   AppData({
     required this.config,
-    required this.theme,
-    required this.darkTheme,
-    required this.responsive,
   });
 
   static AppData defaultData = AppData(
@@ -70,9 +64,6 @@ class AppData {
       appbarHeight: 50,
       radius: 8,
     ),
-    theme: AppThemeData(headerColor: Colors.white, cardElevation: 1, modalElevation: 2),
-    darkTheme: AppThemeData.darkTheme,
-    responsive: AppResponsiveData.responsive,
   );
 
   /// Material2 默认配置，和原生样式基本一致
@@ -88,7 +79,6 @@ class AppData {
     ),
     theme: AppThemeData(primary: Colors.blue, cardElevation: 2, modalElevation: 4),
     darkTheme: AppThemeData.dark(primary: Colors.blue),
-    responsive: AppResponsiveData.responsive,
   );
 
   /// Material2 扁平化配置
@@ -102,7 +92,6 @@ class AppData {
     ),
     theme: AppThemeData(headerColor: Colors.white, cardElevation: 1, modalElevation: 2),
     darkTheme: AppThemeData.dark(primary: Colors.blue),
-    responsive: AppResponsiveData.responsive,
   );
 
   /// Material3 默认配置，和原生样式基本一致
@@ -117,7 +106,6 @@ class AppData {
     ),
     theme: AppThemeData(headerColor: Colors.white, cardElevation: 1, modalElevation: 2),
     darkTheme: AppThemeData.darkTheme,
-    responsive: AppResponsiveData.responsive,
   );
 
   /// Material3 扁平化配置
@@ -129,6 +117,5 @@ class AppData {
     ),
     theme: AppThemeData(headerColor: Colors.white),
     darkTheme: AppThemeData.darkTheme,
-    responsive: AppResponsiveData.responsive,
   );
 }

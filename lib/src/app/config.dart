@@ -50,9 +50,9 @@ class AppConfigData {
     this.enableRipple = true,
     this.translucenceStatusBar = false,
   }) {
-    this.fontFamily = fontFamily ?? FlutterFont.fontFamily;
-    this.centerTitle = centerTitle ?? GetPlatform.isMobile ? true : false;
-    this.fontFamilyFallback = fontFamilyFallback ?? FlutterFont.fontFamilyFallback;
+    this.fontFamily = fontFamily ?? ElFont.fontFamily;
+    this.centerTitle = centerTitle ?? ElPlatform.isMobile ? true : false;
+    this.fontFamilyFallback = fontFamilyFallback ?? ElFont.fontFamilyFallback;
   }
 
   AppConfigData copyWith({

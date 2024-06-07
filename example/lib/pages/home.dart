@@ -21,8 +21,8 @@ class HomePage extends HookWidget {
         centerTitle: false,
         actions: _buildActions(context),
       ),
-      drawer: Drawer(
-        child: buildListViewDemo(itemCount: 10000),
+      drawer: const Drawer(
+        child: ListViewDemoWidget(),
       ),
       body: buildScrollWidget(
         child: ColumnWidget(children: [

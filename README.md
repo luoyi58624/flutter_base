@@ -36,7 +36,8 @@
 - 打包web
 
 > flutter build web
-> flutter build web --web-renderer=html
+> flutter build web --web-renderer=html --pwa-strategy none
+> flutter build web --web-renderer canvaskit --pwa-strategy none
 > dhttpd --path build/web/
 
 - 运行代码生成器
