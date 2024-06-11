@@ -1,4 +1,6 @@
-part of '../../flutter_base.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_element_ui/flutter_element_ui.dart';
+import 'package:gap/gap.dart';
 
 /// 弹窗组件
 class DialogWidget extends StatefulWidget {
@@ -73,7 +75,7 @@ class DialogWidget extends StatefulWidget {
     Future<bool> Function()? onCancel,
   }) async {
     return await showDialog(
-      context: rootContext,
+      context: elRootContext,
       barrierColor: modalColor,
       barrierDismissible: clickOutsideClose,
       builder: (context) => DialogWidget(
@@ -124,27 +126,27 @@ class _DialogWidgetState extends State<DialogWidget> {
 
   /// 弹窗的边框圆角
   double get radius => context.sm
-      ? (widget.roundButton ? 16 : (widget.radius ?? context.appConfig.radius))
-      : (widget.radius ?? context.appConfig.radius);
+      ? (widget.roundButton ? 16 : (widget.radius ?? context.elConfig.cardRadius))
+      : (widget.radius ?? context.elConfig.cardRadius);
 
   /// 弹窗的垂直内边距
   double get horizontalPadding => context.sm ? 16 : 20;
 
-  Color get confirmColor => widget.confirmColor ?? context.appTheme.primary;
+  Color get confirmColor => widget.confirmColor ?? context.elTheme.primary;
 
   Color getTextColor(Color color) {
-    return color.isDark ? context.appData.darkTheme.textColor : context.appData.theme.textColor;
+    return color.isDark ? ElTheme.darkTheme(context).textColor : ElTheme.theme(context).textColor;
   }
 
   Future<void> onCancel() async {
     if (widget.onCancel != null) {
-      var timer = DartUtil.delay(() {
+      var timer = () {
         if (mounted) {
           setState(() {
             cancelLoading = true;
           });
         }
-      }, 16);
+      }.delay(16);
       bool? result;
       try {
         result = await widget.onCancel!();
@@ -168,13 +170,13 @@ class _DialogWidgetState extends State<DialogWidget> {
 
   Future<void> onConfirm() async {
     if (widget.onConfirm != null) {
-      var timer = DartUtil.delay(() {
+      var timer = () {
         if (mounted) {
           setState(() {
-            confirmLoading = true;
+            cancelLoading = true;
           });
         }
-      }, 16);
+      }.delay(16);
       bool? result;
       try {
         result = await widget.onConfirm!();
@@ -200,7 +202,8 @@ class _DialogWidgetState extends State<DialogWidget> {
     required bool loading,
     required Widget child,
   }) {
-    return loading ? const LoadingWidget() : child;
+    // return loading ? const LoadingWidget() : child;
+    return child;
   }
 
   Widget buildMobileWidget() {
@@ -221,25 +224,25 @@ class _DialogWidgetState extends State<DialogWidget> {
                     padding: EdgeInsets.only(top: hasTitle ? 0 : 20, left: 16, right: 16, bottom: 20),
                     child: contentWidget,
                   ),
-                const DividerWidget(),
+                const ElDivider(),
                 SizedBox(
                   height: 44,
                   child: Row(
                     children: [
                       Expanded(
-                        child: TapBuilder(
+                        child: ElTapBuilder(
                           onTap: onCancel,
                           disabled: disableButton,
                           builder: (isTap) {
                             return Container(
-                              color: context.appTheme.modalColor.onTap(context, isTap),
+                              color: context.elTheme.modalColor.onTap(isTap),
                               alignment: Alignment.center,
                               child: buildButtonContent(
                                 loading: cancelLoading,
                                 child: Text(
                                   widget.cancelText,
                                   style: context.p.copyWith(
-                                    color: widget.cancelColor ?? context.appTheme.textColors[5],
+                                    color: widget.cancelColor ?? context.elTheme.textColor.deepen(50),
                                   ),
                                 ),
                               ),
@@ -247,20 +250,20 @@ class _DialogWidgetState extends State<DialogWidget> {
                           },
                         ),
                       ),
-                      const DividerWidget(vertical: true),
+                      const ElDivider(vertical: true),
                       Expanded(
-                        child: TapBuilder(
+                        child: ElTapBuilder(
                           onTap: onConfirm,
                           disabled: disableButton,
                           builder: (isTap) {
                             return Container(
-                              color: context.appTheme.modalColor.onTap(context, isTap),
+                              color: context.elTheme.modalColor.onTap(isTap),
                               alignment: Alignment.center,
                               child: buildButtonContent(
                                 loading: confirmLoading,
                                 child: Text(
                                   widget.confirmText,
-                                  style: context.p.copyWith(color: widget.confirmColor ?? context.appTheme.primary),
+                                  style: context.p.copyWith(color: widget.confirmColor ?? context.elTheme.primary),
                                 ),
                               ),
                             );
@@ -296,7 +299,7 @@ class _DialogWidgetState extends State<DialogWidget> {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: TapBuilder(
+                child: ElTapBuilder(
                   onTap: onConfirm,
                   disabled: disableButton,
                   builder: (isTap) {
@@ -306,8 +309,8 @@ class _DialogWidgetState extends State<DialogWidget> {
                       decoration: ShapeDecoration(
                         shape: const StadiumBorder(),
                         gradient: LinearGradient(colors: [
-                          confirmColor.deepen(20).onTap(context, isTap),
-                          confirmColor.onTap(context, isTap),
+                          confirmColor.deepen(20).onTap(isTap),
+                          confirmColor.onTap(isTap),
                         ]),
                       ),
                       child: buildButtonContent(
@@ -325,7 +328,7 @@ class _DialogWidgetState extends State<DialogWidget> {
               if (widget.showCancel)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: TapBuilder(
+                  child: ElTapBuilder(
                     onTap: onCancel,
                     disabled: disableButton,
                     builder: (isTap) {
@@ -335,15 +338,15 @@ class _DialogWidgetState extends State<DialogWidget> {
                         decoration: ShapeDecoration(
                           shape: const StadiumBorder(),
                           gradient: LinearGradient(colors: [
-                            (widget.cancelColor ?? context.appTheme.info).deepen(30).onTap(context, isTap),
-                            (widget.cancelColor ?? context.appTheme.info).onTap(context, isTap),
+                            (widget.cancelColor ?? context.elTheme.info).deepen(30).onTap(isTap),
+                            (widget.cancelColor ?? context.elTheme.info).onTap(isTap),
                           ]),
                         ),
                         child: buildButtonContent(
                           loading: cancelLoading,
                           child: Text(
                             widget.cancelText,
-                            style: context.p.copyWith(color: getTextColor(widget.cancelColor ?? context.appTheme.info)),
+                            style: context.p.copyWith(color: getTextColor(widget.cancelColor ?? context.elTheme.info)),
                           ),
                         ),
                       );
@@ -388,9 +391,9 @@ class _DialogWidgetState extends State<DialogWidget> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              HoverBuilder(
+              ElHoverBuilder(
                 disabled: disableButton,
-                builder: (isHover) => TapBuilder(
+                builder: (isHover) => ElTapBuilder(
                   onTap: onCancel,
                   disabled: disableButton,
                   builder: (isTap) => Container(
@@ -398,28 +401,26 @@ class _DialogWidgetState extends State<DialogWidget> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: (widget.cancelColor ?? context.appTheme.modalColor)
-                          .onHover(context, isHover)
-                          .onTap(context, isTap),
-                      borderRadius: BorderRadius.circular(context.appConfig.buttonRadius ?? 6),
+                      color: (widget.cancelColor ?? context.elTheme.modalColor).onHover(isHover).onTap(isTap),
+                      borderRadius: context.elConfig.buttonStyle.borderRadius,
                     ),
                     child: buildButtonContent(
                       loading: cancelLoading,
                       child: Text(
                         widget.cancelText,
                         style: context.p.copyWith(
-                            color: (widget.cancelColor ?? context.appTheme.modalColor).isDark
-                                ? context.appData.darkTheme.textColors[1]
-                                : context.appData.theme.textColors[1]),
+                            color: (widget.cancelColor ?? context.elTheme.modalColor).isDark
+                                ? ElTheme.darkTheme(context).textColor.darken(20)
+                                : ElTheme.theme(context).textColor.brighten(20)),
                       ),
                     ),
                   ),
                 ),
               ),
               const Gap(8),
-              HoverBuilder(
+              ElHoverBuilder(
                 disabled: disableButton,
-                builder: (isHover) => TapBuilder(
+                builder: (isHover) => ElTapBuilder(
                   onTap: onConfirm,
                   disabled: disableButton,
                   builder: (isTap) => Container(
@@ -427,8 +428,8 @@ class _DialogWidgetState extends State<DialogWidget> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: confirmColor.onHover(context, isHover).onTap(context, isTap),
-                      borderRadius: BorderRadius.circular(context.appConfig.buttonRadius ?? 6),
+                      color: confirmColor.onHover(isHover).onTap(isTap),
+                      borderRadius: context.elConfig.buttonStyle.borderRadius,
                     ),
                     child: buildButtonContent(
                       loading: confirmLoading,
@@ -458,8 +459,8 @@ class _DialogWidgetState extends State<DialogWidget> {
       child: Center(
         child: Material(
           type: MaterialType.canvas,
-          elevation: context.appTheme.modalElevation,
-          color: context.appTheme.modalColor,
+          elevation: context.elTheme.modalElevation,
+          color: context.elTheme.modalColor,
           surfaceTintColor: Colors.transparent,
           borderRadius: BorderRadius.circular(radius),
           clipBehavior: Clip.hardEdge,

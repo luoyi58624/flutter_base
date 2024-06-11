@@ -1,4 +1,7 @@
-part of '../../flutter_base.dart';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_base/flutter_base.dart';
 
 /// loading加载框
 class LoadingUtil {
@@ -50,11 +53,11 @@ class LoadingUtil {
   }) async {
     close(true);
     _isShowLoading = true;
-    _delayCloseTime = math.max(delayClose, 0);
-    _createLoadingStartTime = DartUtil.currentMilliseconds;
-    if (rootContext.mounted) {
+    _delayCloseTime = max(delayClose, 0);
+    _createLoadingStartTime = currentMilliseconds;
+    if (elRootContext.mounted) {
       showDialog(
-        context: rootContext,
+        context: elRootContext,
         barrierColor: Colors.black26,
         builder: (context) {
           return _LoadingWidget(
@@ -75,8 +78,8 @@ class LoadingUtil {
       if (immedClose == true) {
         _pop();
       } else {
-        var delayCloseLoadingTime = math.max<int>(
-            (_delayCloseTime - math.min(DartUtil.currentMilliseconds - _createLoadingStartTime, 1000)), 0);
+        var delayCloseLoadingTime =
+            max<int>((_delayCloseTime - min(currentMilliseconds - _createLoadingStartTime, 1000)), 0);
         if (delayCloseLoadingTime <= 0) {
           _pop();
         } else {
@@ -89,11 +92,11 @@ class LoadingUtil {
 
   static void _pop() {
     // 如果有提示窗，则先关闭提示窗
-    if (_isShowConfirm) Navigator.of(rootContext).pop();
+    if (_isShowConfirm) Navigator.of(elRootContext).pop();
     _isShowConfirm = false;
     _delayCloseTime = 0;
     _isShowLoading = false;
-    if (rootContext.mounted) Navigator.of(rootContext).pop();
+    if (elRootContext.mounted) Navigator.of(elRootContext).pop();
   }
 }
 
@@ -124,7 +127,7 @@ class _LoadingWidget extends StatelessWidget {
       },
       child: Material(
         type: MaterialType.transparency,
-        elevation: context.appTheme.modalElevation,
+        elevation: context.elTheme.modalElevation,
         child: Center(
           child: Container(
             padding: const EdgeInsets.fromLTRB(24, 36, 24, 24),
