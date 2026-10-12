@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 /// 通过临时布局探测子组件尺寸，再构建实际内容。
 class ElChildSizeBuilder extends RenderObjectWidget {
-  /// 在 build 过程中直接访问 child 尺寸的小部件，无需帧后回调，
+  /// 在布局阶段取得子组件尺寸并构建内容，无需帧后回调，
   /// 其核心原理便是在进行实际布局前探测 [tempChild] 的尺寸，
   /// 然后将 size 传递给 [builder] 方法。
   ///
@@ -60,9 +60,12 @@ class _ChildSizeElement extends RenderObjectElement {
 
   /// 探测尺寸的临时小部件需要排除焦点、语义，尤其是焦点，如果不排除将会破坏正常布局的聚焦，
   /// 你还可以通过 [ElChildSizeBuilder.isTempLayout] 方法判断组件是否处于临时布局中
-  Widget get tempChildWidget => ExcludeSemantics(
-    child: ExcludeFocus(
-      child: _ChildSizeInheritedWidget(child: widget.tempChild),
+  Widget get tempChildWidget => TickerMode(
+    enabled: false,
+    child: ExcludeSemantics(
+      child: ExcludeFocus(
+        child: _ChildSizeInheritedWidget(child: widget.tempChild),
+      ),
     ),
   );
 
@@ -70,6 +73,13 @@ class _ChildSizeElement extends RenderObjectElement {
   void visitChildren(ElementVisitor visitor) {
     if (_child != null) visitor(_child!);
     if (_tempChild != null) visitor(_tempChild!);
+  }
+
+  @override
+  void forgetChild(Element child) {
+    if (child == _child) _child = null;
+    if (child == _tempChild) _tempChild = null;
+    super.forgetChild(child);
   }
 
   @override
@@ -98,6 +108,14 @@ class _ChildSizeElement extends RenderObjectElement {
     renderObject.markNeedsLayout();
     _needsBuild = true;
     super.performRebuild();
+  }
+
+  @override
+  void unmount() {
+    renderObject._rebuild = null;
+    _child = null;
+    _tempChild = null;
+    super.unmount();
   }
 
   @override
@@ -138,10 +156,25 @@ class _ChildSizeElement extends RenderObjectElement {
 
   void _rebuild(Constraints constraints) {
     void updateChildCallback() {
-      Widget result = widget.builder(renderObject.tempChildSize);
-      _child = updateChild(_child, result, #child);
-      _needsBuild = false;
-      _oldTempChildSize = renderObject.tempChildSize;
+      Widget result;
+      try {
+        result = widget.builder(renderObject.tempChildSize);
+      } catch (error, stack) {
+        final details = FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'flutter_base',
+          context: ErrorDescription('构建 ElChildSizeBuilder 内容时'),
+        );
+        FlutterError.reportError(details);
+        result = ErrorWidget.builder(details);
+      }
+      try {
+        _child = updateChild(_child, result, #child);
+      } finally {
+        _needsBuild = false;
+        _oldTempChildSize = renderObject.tempChildSize;
+      }
     }
 
     owner!.buildScope(
@@ -193,6 +226,12 @@ class _RenderChildSizeBox extends RenderShiftedBox {
   void detach() {
     super.detach();
     _tempChild?.detach();
+  }
+
+  @override
+  void redepthChildren() {
+    super.redepthChildren();
+    if (_tempChild != null) redepthChild(_tempChild!);
   }
 
   @override
