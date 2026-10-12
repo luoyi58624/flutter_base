@@ -1,0 +1,124 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'test_support.dart';
+
+void main() {
+  testWidgets('进出场单调停靠且没有振荡或越界', (tester) async {
+    Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
+    double position() =>
+        tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    var previous = position();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position(), inInclusiveRange(previous, 1));
+      previous = position();
+    }
+    expect(position(), 1);
+    await tester.pumpWidget(scene(false));
+    await tester.pump();
+    previous = position();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position(), inInclusiveRange(0, previous));
+      previous = position();
+    }
+    expect(position(), 0);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('反转保持位置和速度连续并在下一帧回正', (tester) async {
+    Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
+    double position() =>
+        tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    final beforeSample = position();
+    await tester.pump(Duration(microseconds: 10));
+    final beforeTurn = position();
+    final beforeVelocity = (beforeTurn - beforeSample) / 0.00001;
+    expect(beforeVelocity, greaterThan(1));
+    await tester.pumpWidget(scene(false));
+    await tester.pump();
+    expect(position(), closeTo(beforeTurn, 0.000001));
+    await tester.pump(Duration(microseconds: 10));
+    final afterVelocity = (position() - beforeTurn) / 0.00001;
+    expect(afterVelocity, closeTo(beforeVelocity, 0.08));
+    await tester.pump(Duration(milliseconds: 16));
+    expect(position(), lessThan(beforeTurn));
+    final secondTurn = position();
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    expect(position(), closeTo(secondTurn, 0.000001));
+    await tester.pump(Duration(milliseconds: 16));
+    expect(position(), greaterThan(secondTurn));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    expect(position(), 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('相同内容下折叠响应快于旧版 AnimatedAlign 基线', (tester) async {
+    // 保留用户旧实现的 250ms easeOut，比较同尺寸内容和同一时间点。
+    Widget scene(bool value) => animationScene(
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElCollapseAnimation(
+            value,
+            key: ValueKey('current'),
+            child: SizedBox(width: 80, height: 240),
+          ),
+          ClipRect(
+            key: ValueKey('baseline'),
+            child: AnimatedAlign(
+              duration: Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+              alignment: Alignment.topLeft,
+              heightFactor: value ? 1 : 0,
+              child: SizedBox(width: 80, height: 240),
+            ),
+          ),
+        ],
+      ),
+    );
+    double height(String key) =>
+        tester.getSize(find.byKey(ValueKey(key))).height;
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    expect(height('current'), greaterThan(height('baseline')));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    expect(height('current'), 240);
+    await tester.pumpWidget(scene(false));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    expect(height('current'), lessThan(height('baseline')));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    expect(height('current'), 0);
+  });
+}
+
+class _MotionProbe extends ElSwitcherAnimation {
+  const _MotionProbe(super.value, {required super.child});
+
+  @override
+  Widget builder(BuildContext context, Animation<double> animation) =>
+      _MotionValue(animation: animation, child: child);
+}
+
+class _MotionValue extends StatelessWidget {
+  const _MotionValue({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
