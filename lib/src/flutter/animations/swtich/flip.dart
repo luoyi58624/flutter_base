@@ -6,12 +6,6 @@ class ElFlipAnimation extends ElSwitcherAnimation {
   const ElFlipAnimation(super.value, {super.key, required super.child});
 
   @override
-  Duration get $duration => const Duration(milliseconds: 240);
-
-  @override
-  Duration get $reverseDuration => const Duration(milliseconds: 160);
-
-  @override
   Widget builder(BuildContext context, Animation<double> animation) {
     return AnimatedBuilder(
       animation: animation,

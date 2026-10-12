@@ -1,6 +1,6 @@
-import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
@@ -27,29 +27,21 @@ abstract class ElSwitcherAnimation extends HookWidget {
   /// 动画内容，默认保留其状态。
   final Widget child;
 
-  /// 完整入场时长，由具体效果决定。
+  /// 几何运动使用稳定的弹簧响应，反转时仅改变目标。
   @protected
-  Duration get $duration => const Duration(milliseconds: 200);
+  SpringDescription get $motion => _spatialMotion;
 
-  /// 完整退场时长，退场比入场更短。
+  /// 运动的停靠精度。
   @protected
-  Duration get $reverseDuration => const Duration(milliseconds: 140);
+  Tolerance get $motionTolerance => _spatialTolerance;
 
-  /// 入场节奏，默认先加速展开再减速停靠。
+  /// 退场是否仅淡出，几何继续完成当前的入场动作。
   @protected
-  Curve get $curve => const _MotionCurve();
+  bool get $fadeOutOnly => false;
 
-  /// 退场节奏，默认与入场使用同一形状。
+  /// 使用连续的运动进度构建效果。
   @protected
-  Curve get $reverseCurve => $curve;
-
-  /// 退场保持几何状态的时间，淡出完成后复位，零表示直接执行退场。
-  @protected
-  Duration get $exitHoldDuration => Duration.zero;
-
-  /// 使用连续的位置进度构建效果。
-  @protected
-  Widget builder(BuildContext context, Animation<double> animation);
+  Widget builder(BuildContext context, AnimationController animation);
 
   @override
   Widget build(BuildContext context) {
@@ -58,100 +50,34 @@ abstract class ElSwitcherAnimation extends HookWidget {
     useEffect(() {
       if (previous.value == value) return null;
       previous.value = value;
-      if (!value && $exitHoldDuration > Duration.zero) {
-        controller.stop();
-        // 淡出期间保持尺寸，完全不可见后复位，下一次入场仍有轻微放大。
-        final timer = Timer($exitHoldDuration, () => controller.value = 0);
-        return timer.cancel;
-      }
-      final target = value ? 1.0 : 0.0;
-      final distance = (target - controller.value).abs();
-      if (distance == 0) {
-        controller.stop();
-        return null;
-      }
-      final interrupted = controller.isAnimating || distance < 1;
-      // 反转承接当前速度，在一帧内完成制动，再按剩余距离收尾。
-      _driveMotion(
-        controller,
-        target,
-        duration: interrupted
-            ? const Duration(milliseconds: 80) * math.sqrt(distance)
-            : (value ? $duration : $reverseDuration),
-        curve: interrupted
-            ? const _MotionCurve()
-            : (value ? $curve : $reverseCurve),
-      );
+      if (!value && $fadeOutOnly) return null;
+      _driveMotion(controller, value, $motion, $motionTolerance);
       return null;
     }, [value]);
     return IgnorePointer(
       ignoring: !value,
       child: ExcludeSemantics(
         excluding: !value,
-        child: builder(context, controller.view),
+        child: builder(context, controller),
       ),
     );
   }
 }
 
-/// 透明度使用短过渡，让文字在几何变化结束前恢复清晰。
-Animation<double> _useOpacity(
-  bool value, {
-  Duration enterDuration = const Duration(milliseconds: 90),
-  Duration exitDuration = const Duration(milliseconds: 75),
-}) {
+/// 透明度响应比几何更快，且沿用同一套连续切换机制。
+AnimationController _useOpacity(bool value) {
   final controller = useAnimationController(initialValue: value ? 1 : 0);
+  final previous = useRef(value);
   useEffect(() {
-    _driveOpacity(
-      controller,
-      value,
-      enterDuration: enterDuration,
-      exitDuration: exitDuration,
-    );
+    if (previous.value == value) return null;
+    previous.value = value;
+    _driveMotion(controller, value, _effectsMotion, _effectsTolerance);
     return null;
   }, [value]);
-  return controller.view;
+  return controller;
 }
 
-void _driveOpacity(
-  AnimationController controller,
-  bool value, {
-  required Duration enterDuration,
-  Duration exitDuration = const Duration(milliseconds: 90),
-}) {
-  final target = value ? 1.0 : 0.0;
-  final distance = (target - controller.value).abs();
-  if (distance == 0) {
-    controller.stop();
-    return;
-  }
-  _driveMotion(
-    controller,
-    target,
-    duration: (value ? enterDuration : exitDuration) * distance,
-    curve: Curves.easeOut,
-  );
-}
-
-void _driveMotion(
-  AnimationController controller,
-  double target, {
-  required Duration duration,
-  required Curve curve,
-}) {
-  if (duration == Duration.zero) {
-    controller.value = target;
-    return;
-  }
-  final velocity = controller.isAnimating ? controller.velocity : 0.0;
-  controller.animateWith(
-    velocity == 0
-        ? _TimedMotion(controller.value, target, duration, curve)
-        : _RetargetMotion(controller.value, target, velocity, duration),
-  );
-}
-
-/// 透明度先稳定，几何变换随后收尾，避免文字全程处于半透明状态。
+/// 仅在停靠点外的极短区间隐藏内容，保留主体质感。
 class _OpacityProgress extends Animatable<double> {
   const _OpacityProgress(this.end);
   final double end;

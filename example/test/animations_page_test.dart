@@ -29,7 +29,9 @@ void main() {
     await tester.tap(find.byKey(ValueKey('toggle-fade')));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ElFadeAnimation>(find.byType(ElFadeAnimation)).value,
+      tester
+          .widget<ElFadeAnimation>(find.byKey(ValueKey('animation-fade')))
+          .value,
       false,
     );
     expect(
@@ -41,7 +43,9 @@ void main() {
     await tester.tap(find.byKey(ValueKey('toggle-fade')));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ElFadeAnimation>(find.byType(ElFadeAnimation)).value,
+      tester
+          .widget<ElFadeAnimation>(find.byKey(ValueKey('animation-fade')))
+          .value,
       true,
     );
   });
@@ -66,6 +70,37 @@ void main() {
         .widgetList<ElCollapseAnimation>(find.byType(ElCollapseAnimation))
         .singleWhere((widget) => widget.axis == Axis.horizontal);
     expect(horizontal.value, false);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('弹窗背景与内容在显隐和快速切换时保持同步', (tester) async {
+    await tester.binding.setSurfaceSize(Size(1200, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(ElAnimationExampleApp());
+    void verify() {
+      double opacity(Finder owner) => tester
+          .widget<FadeTransition>(
+            find.descendant(of: owner, matching: find.byType(FadeTransition)),
+          )
+          .opacity
+          .value;
+      expect(
+        opacity(find.byKey(ValueKey('dialog-scrim'))),
+        closeTo(opacity(find.byKey(ValueKey('animation-fadeScale'))), 0.000001),
+      );
+    }
+
+    verify();
+    await tester.tap(find.byKey(ValueKey('toggle-fadeScale')));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 50));
+    verify();
+    await tester.tap(find.byKey(ValueKey('toggle-fadeScale')));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 16));
+    verify();
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    verify();
     expect(tester.takeException(), isNull);
   });
 
@@ -118,14 +153,9 @@ List<ElSwitcherAnimation> _animations(WidgetTester tester) => tester
     .widgetList<ElSwitcherAnimation>(
       find.byWidgetPredicate(
         (widget) =>
-            widget is ElCollapseAnimation ||
-            widget is ElFadeAnimation ||
-            widget is ElSlideAnimation ||
-            widget is ElScaleAnimation ||
-            widget is ElFadeSlideAnimation ||
-            widget is ElFadeScaleAnimation ||
-            widget is ElRevealAnimation ||
-            widget is ElFlipAnimation,
+            widget is ElSwitcherAnimation &&
+            widget.key is ValueKey<String> &&
+            (widget.key as ValueKey<String>).value.startsWith('animation-'),
       ),
     )
     .toList();

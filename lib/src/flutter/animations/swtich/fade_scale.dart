@@ -6,22 +6,33 @@ class ElFadeScaleAnimation extends ElSwitcherAnimation {
   const ElFadeScaleAnimation(super.value, {super.key, required super.child});
 
   @override
-  Duration get $duration => const Duration(milliseconds: 180);
+  SpringDescription get $motion => _feedbackMotion;
 
   @override
-  Curve get $curve => Curves.easeOutCubic;
+  Tolerance get $motionTolerance => _feedbackTolerance;
 
   @override
-  Duration get $exitHoldDuration => const Duration(milliseconds: 70);
+  bool get $fadeOutOnly => true;
 
   @override
-  Widget builder(BuildContext context, Animation<double> animation) {
+  Widget builder(BuildContext context, AnimationController animation) {
+    final opacity = _useOpacity(value);
+    useEffect(() {
+      void reset(AnimationStatus status) {
+        // 完全淡出后复位；中途再打开会先移除此监听，继续当前几何运动。
+        if (!value && status == AnimationStatus.dismissed) animation.value = 0;
+      }
+
+      opacity.addStatusListener(reset);
+      if (!value &&
+          opacity.status == AnimationStatus.dismissed &&
+          (animation.value != 0 || animation.isAnimating)) {
+        animation.value = 0;
+      }
+      return () => opacity.removeStatusListener(reset);
+    }, [value, opacity, animation]);
     return FadeTransition(
-      opacity: _useOpacity(
-        value,
-        enterDuration: const Duration(milliseconds: 90),
-        exitDuration: $exitHoldDuration,
-      ),
+      opacity: opacity,
       child: ScaleTransition(
         scale: Tween<double>(begin: 0.92, end: 1).animate(animation),
         child: child,

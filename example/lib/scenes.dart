@@ -231,11 +231,10 @@ class _DemoScene extends StatelessWidget {
   Widget _dialog() => Stack(
     fit: StackFit.expand,
     children: [
-      AnimatedOpacity(
-        opacity: value ? 0.08 : 0,
-        duration: Duration(milliseconds: value ? 90 : 70),
-        curve: Curves.easeOut,
-        child: ColoredBox(color: Color(0xff111b32)),
+      ElFadeAnimation(
+        value,
+        key: ValueKey('dialog-scrim'),
+        child: ColoredBox(color: Color(0x14111b32)),
       ),
       Center(
         child: animate(
@@ -491,9 +490,6 @@ class _DemoScene extends StatelessWidget {
 /// 箭头复用面板的时序和反转机制，避免独立曲线造成错拍。
 class _AccordionArrow extends ElSwitcherAnimation {
   const _AccordionArrow(super.value, {super.key, required super.child});
-
-  @override
-  Duration get $reverseDuration => const Duration(milliseconds: 160);
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) =>

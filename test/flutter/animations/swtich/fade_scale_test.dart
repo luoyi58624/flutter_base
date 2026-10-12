@@ -20,10 +20,10 @@ void main() {
     await tester.pumpWidget(scene(true));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 90));
-    expect(opacity(tester), 1);
-    expect(scale(tester), inExclusiveRange(0.98, 1));
+    expect(opacity(tester), inExclusiveRange(0.95, 1));
+    expect(scale(tester), inExclusiveRange(0.95, 1));
     expect(tester.getSize(find.byType(ElFadeScaleAnimation)), Size(80, 40));
-    await tester.pump(Duration(milliseconds: 90));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
     expect(scale(tester), 1);
     await tester.pumpWidget(scene(false));
     await tester.pump();
@@ -31,6 +31,9 @@ void main() {
     expect(opacity(tester), inExclusiveRange(0, 1));
     expect(scale(tester), 1);
     await tester.pump(Duration(milliseconds: 35));
+    expect(opacity(tester), inExclusiveRange(0, 0.1));
+    expect(scale(tester), 1);
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
     expect(opacity(tester), 0);
     expect(scale(tester), 0.92);
     await tester.pumpWidget(scene(true));
@@ -64,7 +67,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('淡出保持尺寸期间卸载会取消复位，不访问已销毁的控制器', (tester) async {
+  testWidgets('淡出途中卸载移除收尾监听，不访问已销毁的控制器', (tester) async {
     await tester.pumpWidget(scene(true));
     await tester.pumpWidget(scene(false));
     await tester.pump();
@@ -73,5 +76,22 @@ void main() {
     await tester.pump(Duration(milliseconds: 100));
     expect(tester.takeException(), isNull);
     expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('入场首帧前关闭也会取消几何运动，重新打开仍有缩放', (tester) async {
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    await tester.pumpWidget(scene(false));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    expect(opacity(tester), 0);
+    expect(scale(tester), 0.92);
+    expect(tester.binding.transientCallbackCount, 0);
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 45));
+    expect(scale(tester), inExclusiveRange(0.92, 1));
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    expect(scale(tester), 1);
+    expect(opacity(tester), 1);
   });
 }

@@ -18,12 +18,6 @@ class ElCollapseAnimation extends ElSwitcherAnimation {
   final bool keepState;
 
   @override
-  Duration get $duration => const Duration(milliseconds: 200);
-
-  @override
-  Duration get $reverseDuration => const Duration(milliseconds: 160);
-
-  @override
   Widget builder(BuildContext context, Animation<double> animation) {
     return SizeTransition(
       axis: axis,

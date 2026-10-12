@@ -23,7 +23,7 @@ void main() {
           .widget<SizeTransition>(find.byType(SizeTransition))
           .sizeFactor
           .value;
-      expect(factor, inExclusiveRange(0, 0.2));
+      expect(factor, inExclusiveRange(0.1, 0.5));
       final size = tester.getSize(find.byType(ElCollapseAnimation));
       expect(
         size.width,

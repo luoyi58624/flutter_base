@@ -24,7 +24,7 @@ void main() {
       await tester.pumpWidget(scene(true));
       await tester.pump();
       await tester.pump(Duration(milliseconds: 90));
-      expect(opacity(), 1);
+      expect(opacity(), inExclusiveRange(0.95, 1));
       expect(dy(), inExclusiveRange(0, 4));
       expect(
         tester.getSize(find.byType(ElFadeSlideAnimation)),
@@ -35,8 +35,9 @@ void main() {
       await tester.pumpWidget(scene(false));
       await tester.pump();
       await tester.pump(Duration(milliseconds: 75));
-      expect(opacity(), 0);
+      expect(opacity(), inExclusiveRange(0, 0.1));
       await tester.pumpAndSettle(Duration(milliseconds: 16));
+      expect(opacity(), 0);
       expect(dy(), 16);
     });
   }

@@ -2,9 +2,11 @@
 
 首页展示九个实际界面场景：轻量提示、侧边面板、状态反馈、消息通知、确认弹窗、内容揭示、卡片翻转、纵向折叠面板和横向搜索工具栏。
 
-每种动画内置运动参数和动作幅度。透明度与几何变化分别驱动，让文字快速清晰；完整动作使用确定时长，反转承接当前位置与速度，最多用 4ms 制动，再按剩余距离在 80ms 内收尾。示例只保留各场景开关和全部播放，无需调整动效参数。
+每种动画内置运动响应和动作幅度。透明度与几何变化分别驱动，连续切换只改变目标，保留当前位置和速度，沿用相同的刚度与阻尼。结束时间由当前运动状态自然决定。示例只保留各场景开关和全部播放，无需调整动效参数。
 
-侧栏进入时减速停靠，离开时加速滑出；折叠提前达到速度峰值，末端速度与加速度归零，展开 200ms、收拢 160ms。侧栏的动作参考 [Material 的入场与退场原则](https://m1.material.io/motion/duration-easing.html)。弹窗从 92% 尺寸进入，退场保持尺寸并淡出；状态标记单调缩放；翻转沿 X 轴从下方抬起；Reveal 使用中心圆形遮罩。
+布局、侧栏、翻转和揭示使用 [Flutter Cupertino 对话框与 action sheet 的弹簧参数](https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/cupertino/route.dart)：质量 1、刚度 522.35、阻尼 45.7099552。小幅反馈取 [Material 标准运动](https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens/StandardMotionTokens.kt) 的 fast spatial 刚度 1400，并使用临界阻尼保持尺寸范围；透明度使用 fast effects 刚度 3800 和临界阻尼。
+
+弹窗从 92% 尺寸进入，退场仅淡出，内容完全不可见后才复位几何状态。背景显隐与弹窗透明度同步，折叠箭头与面板运动同步；中途反转也保持同步。翻转沿 X 轴从下方抬起，Reveal 使用中心圆形遮罩。
 
 ```dart
 import 'package:flutter_base/flutter_base.dart';

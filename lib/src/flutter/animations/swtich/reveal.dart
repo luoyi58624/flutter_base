@@ -6,12 +6,6 @@ class ElRevealAnimation extends ElSwitcherAnimation {
   const ElRevealAnimation(super.value, {super.key, required super.child});
 
   @override
-  Duration get $duration => const Duration(milliseconds: 220);
-
-  @override
-  Duration get $reverseDuration => const Duration(milliseconds: 160);
-
-  @override
   Widget builder(BuildContext context, Animation<double> animation) {
     return ClipPath(clipper: _RevealClipper(animation), child: child);
   }

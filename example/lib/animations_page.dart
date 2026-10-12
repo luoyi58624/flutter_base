@@ -178,20 +178,26 @@ class _AnimationExamplesPageState extends State<ElAnimationExamplesPage> {
     );
   }
 
-  Widget _animation(_Demo demo, bool value, Widget child) => switch (demo) {
-    _Demo.fade => ElFadeAnimation(value, child: child),
-    _Demo.slide => ElSlideAnimation(value, child: child),
-    _Demo.scale => ElScaleAnimation(value, child: child),
-    _Demo.fadeSlide => ElFadeSlideAnimation(value, child: child),
-    _Demo.fadeScale => ElFadeScaleAnimation(value, child: child),
-    _Demo.reveal => ElRevealAnimation(value, child: child),
-    _Demo.flip => ElFlipAnimation(value, child: child),
-    _Demo.collapseVertical || _Demo.collapseHorizontal => ElCollapseAnimation(
-      value,
-      axis: demo == _Demo.collapseHorizontal ? Axis.horizontal : Axis.vertical,
-      child: child,
-    ),
-  };
+  Widget _animation(_Demo demo, bool value, Widget child) {
+    final key = ValueKey('animation-${demo.name}');
+    return switch (demo) {
+      _Demo.fade => ElFadeAnimation(value, key: key, child: child),
+      _Demo.slide => ElSlideAnimation(value, key: key, child: child),
+      _Demo.scale => ElScaleAnimation(value, key: key, child: child),
+      _Demo.fadeSlide => ElFadeSlideAnimation(value, key: key, child: child),
+      _Demo.fadeScale => ElFadeScaleAnimation(value, key: key, child: child),
+      _Demo.reveal => ElRevealAnimation(value, key: key, child: child),
+      _Demo.flip => ElFlipAnimation(value, key: key, child: child),
+      _Demo.collapseVertical || _Demo.collapseHorizontal => ElCollapseAnimation(
+        value,
+        key: key,
+        axis: demo == _Demo.collapseHorizontal
+            ? Axis.horizontal
+            : Axis.vertical,
+        child: child,
+      ),
+    };
+  }
 }
 
 enum _Demo {
