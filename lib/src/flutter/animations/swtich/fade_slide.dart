@@ -6,6 +6,18 @@ class ElFadeSlideAnimation extends ElSwitcherAnimation {
   const ElFadeSlideAnimation(super.value, {super.key, required super.child});
 
   @override
+  Duration get $duration => const Duration(milliseconds: 180);
+
+  @override
+  Duration get $reverseDuration => const Duration(milliseconds: 100);
+
+  @override
+  Curve get $curve => Curves.easeOutCubic;
+
+  @override
+  Curve get $reverseCurve => Curves.easeInCubic;
+
+  @override
   Widget builder(BuildContext context, Animation<double> animation) {
     return AnimatedBuilder(
       animation: animation,

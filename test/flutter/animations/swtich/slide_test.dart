@@ -22,15 +22,19 @@ void main() {
     );
     await tester.pumpWidget(scene(true));
     await tester.pump();
-    await tester.pump(Duration(milliseconds: 140));
-    expect(offset().dx, inExclusiveRange(0, 0.06));
+    await tester.pump(Duration(milliseconds: 110));
+    expect(offset().dx, inExclusiveRange(0, 0.5));
     expect(offset().dy, 0);
     expect(tester.getSize(find.byType(ElSlideAnimation)), Size(80, 40));
-    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 110));
     expect(offset(), Offset.zero);
+    expect(tester.binding.transientCallbackCount, 0);
     await tester.pumpWidget(scene(false));
     await tester.pump();
-    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 80));
+    expect(offset().dx, inExclusiveRange(0, 1));
+    await tester.pump(Duration(milliseconds: 80));
     expect(offset(), Offset(1, 0));
+    expect(tester.binding.transientCallbackCount, 0);
   });
 }

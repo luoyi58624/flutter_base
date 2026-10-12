@@ -18,11 +18,14 @@ class ElCollapseAnimation extends ElSwitcherAnimation {
   final bool keepState;
 
   @override
-  Duration get $duration => const Duration(milliseconds: 180);
+  Duration get $duration => const Duration(milliseconds: 200);
+
+  @override
+  Duration get $reverseDuration => const Duration(milliseconds: 160);
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) {
-    final content = SizeTransition(
+    return SizeTransition(
       axis: axis,
       alignment: AlignmentDirectional.topStart,
       sizeFactor: animation,
@@ -35,36 +38,6 @@ class ElCollapseAnimation extends ElSwitcherAnimation {
                   ? ElEmptyWidget.instance
                   : child,
             ),
-    );
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      // 只柔化正在移动的裁剪边缘，避免字形和图标被生硬切成半截。
-      shaderCallback: (bounds) {
-        final length = axis == Axis.vertical ? bounds.height : bounds.width;
-        final progress = animation.value.clamp(0.0, 1.0);
-        final fade =
-            math.min(14.0, length * 0.35) *
-            (1 - ((progress - 0.82) / 0.18).clamp(0.0, 1.0));
-        final stop = length > 0 ? (1 - fade / length).clamp(0.0, 1.0) : 1.0;
-        return LinearGradient(
-          begin: axis == Axis.vertical
-              ? Alignment.topCenter
-              : AlignmentDirectional.centerStart,
-          end: axis == Axis.vertical
-              ? Alignment.bottomCenter
-              : AlignmentDirectional.centerEnd,
-          colors: const [
-            Color(0xffffffff),
-            Color(0xffffffff),
-            Color(0x00ffffff),
-          ],
-          stops: [0, stop, 1],
-        ).createShader(
-          bounds,
-          textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
-        );
-      },
-      child: content,
     );
   }
 }

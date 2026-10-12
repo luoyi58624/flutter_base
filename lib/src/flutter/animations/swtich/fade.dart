@@ -9,7 +9,10 @@ class ElFadeAnimation extends ElSwitcherAnimation {
   Duration get $duration => const Duration(milliseconds: 140);
 
   @override
-  bool get $opacityOnly => true;
+  Duration get $reverseDuration => const Duration(milliseconds: 90);
+
+  @override
+  Curve get $curve => Curves.easeOut;
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) {

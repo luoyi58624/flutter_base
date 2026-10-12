@@ -6,7 +6,16 @@ class ElSlideAnimation extends ElSwitcherAnimation {
   const ElSlideAnimation(super.value, {super.key, required super.child});
 
   @override
-  Duration get $duration => const Duration(milliseconds: 180);
+  Duration get $duration => const Duration(milliseconds: 220);
+
+  @override
+  Duration get $reverseDuration => const Duration(milliseconds: 160);
+
+  @override
+  Curve get $curve => const Cubic(0, 0, 0.2, 1);
+
+  @override
+  Curve get $reverseCurve => const Cubic(0.4, 0, 1, 1);
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) {

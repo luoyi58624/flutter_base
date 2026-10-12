@@ -233,7 +233,7 @@ class _DemoScene extends StatelessWidget {
     children: [
       AnimatedOpacity(
         opacity: value ? 0.08 : 0,
-        duration: Duration(milliseconds: value ? 90 : 75),
+        duration: Duration(milliseconds: value ? 90 : 70),
         curve: Curves.easeOut,
         child: ColoredBox(color: Color(0xff111b32)),
       ),
@@ -395,8 +395,8 @@ class _DemoScene extends StatelessWidget {
                 ),
                 AnimatedRotation(
                   turns: value ? 0.5 : 0,
-                  duration: Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
+                  duration: Duration(milliseconds: value ? 200 : 160),
+                  curve: Curves.fastOutSlowIn,
                   child: Icon(
                     Icons.expand_more_rounded,
                     size: 18,

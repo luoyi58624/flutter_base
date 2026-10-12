@@ -31,7 +31,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('反转保持位置和速度连续并在下一帧回正', (tester) async {
+  testWidgets('反转保持位置连续并在下一帧直接朝新目标运动', (tester) async {
     Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
     double position() =>
         tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
@@ -39,52 +39,32 @@ void main() {
     await tester.pumpWidget(scene(true));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 60));
-    final beforeSample = position();
-    await tester.pump(Duration(microseconds: 10));
     final beforeTurn = position();
-    final beforeVelocity = (beforeTurn - beforeSample) / 0.00001;
-    expect(beforeVelocity, greaterThan(1));
     await tester.pumpWidget(scene(false));
     await tester.pump();
     expect(position(), closeTo(beforeTurn, 0.000001));
-    await tester.pump(Duration(microseconds: 10));
-    final afterVelocity = (position() - beforeTurn) / 0.00001;
-    expect(afterVelocity, closeTo(beforeVelocity, 0.08));
+    await tester.pump(Duration(milliseconds: 1));
+    expect(position(), lessThan(beforeTurn));
     await tester.pump(Duration(milliseconds: 16));
     expect(position(), lessThan(beforeTurn));
     final secondTurn = position();
     await tester.pumpWidget(scene(true));
     await tester.pump();
     expect(position(), closeTo(secondTurn, 0.000001));
-    await tester.pump(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 1));
     expect(position(), greaterThan(secondTurn));
-    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 119));
     expect(position(), 1);
+    expect(tester.binding.transientCallbackCount, 0);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('相同内容下折叠响应快于旧版 AnimatedAlign 基线', (tester) async {
-    // 保留用户旧实现的 250ms easeOut，比较同尺寸内容和同一时间点。
+  testWidgets('折叠按 200ms 入场和 160ms 退场，内容保持尺寸与清晰度', (tester) async {
     Widget scene(bool value) => animationScene(
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElCollapseAnimation(
-            value,
-            key: ValueKey('current'),
-            child: SizedBox(width: 80, height: 240),
-          ),
-          ClipRect(
-            key: ValueKey('baseline'),
-            child: AnimatedAlign(
-              duration: Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-              alignment: Alignment.topLeft,
-              heightFactor: value ? 1 : 0,
-              child: SizedBox(width: 80, height: 240),
-            ),
-          ),
-        ],
+      ElCollapseAnimation(
+        value,
+        key: ValueKey('current'),
+        child: SizedBox(key: ValueKey('content'), width: 80, height: 240),
       ),
     );
     double height(String key) =>
@@ -92,16 +72,46 @@ void main() {
     await tester.pumpWidget(scene(false));
     await tester.pumpWidget(scene(true));
     await tester.pump();
-    await tester.pump(Duration(milliseconds: 60));
-    expect(height('current'), greaterThan(height('baseline')));
-    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 100));
+    expect(height('current'), inExclusiveRange(0, 240));
+    expect(tester.getSize(find.byKey(ValueKey('content'))), Size(80, 240));
+    expect(find.byType(ShaderMask), findsNothing);
+    expect(find.byType(FadeTransition), findsNothing);
+    await tester.pump(Duration(milliseconds: 100));
     expect(height('current'), 240);
+    expect(tester.binding.transientCallbackCount, 0);
     await tester.pumpWidget(scene(false));
     await tester.pump();
-    await tester.pump(Duration(milliseconds: 60));
-    expect(height('current'), lessThan(height('baseline')));
-    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 80));
+    expect(height('current'), inExclusiveRange(0, 240));
+    expect(tester.getSize(find.byKey(ValueKey('content'))), Size(80, 240));
+    await tester.pump(Duration(milliseconds: 80));
     expect(height('current'), 0);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('连续快速切换保持位置，最后一次反转 120ms 内结束', (tester) async {
+    double position() =>
+        tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
+    Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
+    await tester.pumpWidget(scene(false));
+    for (var i = 0; i < 15; i++) {
+      final value = i.isEven;
+      final before = position();
+      await tester.pumpWidget(scene(value));
+      expect(position(), closeTo(before, 0.000001));
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position(), inInclusiveRange(0, 1));
+      expect(position(), value ? greaterThan(before) : lessThan(before));
+    }
+    final before = position();
+    await tester.pumpWidget(scene(false));
+    expect(position(), closeTo(before, 0.000001));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 120));
+    expect(position(), 0);
+    expect(tester.binding.transientCallbackCount, 0);
   });
 }
 

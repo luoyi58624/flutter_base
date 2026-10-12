@@ -197,9 +197,9 @@ class _AnimationExamplesPageState extends State<ElAnimationExamplesPage> {
 enum _Demo {
   fade('轻量提示', 'ElFadeAnimation', '轻柔显隐，没有多余位移。'),
   slide('侧边面板', 'ElSlideAnimation', '从边缘进入，减速停靠。'),
-  scale('状态反馈', 'ElScaleAnimation', '轻弹出状态标记，短促回弹后停靠。'),
+  scale('状态反馈', 'ElScaleAnimation', '标记快速放大，缩小退出。'),
   fadeSlide('消息通知', 'ElFadeSlideAnimation', '文字先清晰，上移随后停靠。'),
-  fadeScale('确认弹窗', 'ElFadeScaleAnimation', '从 80% 尺寸进入，快速恢复清晰。'),
+  fadeScale('确认弹窗', 'ElFadeScaleAnimation', '轻微放大进入，退场直接淡出。'),
   reveal('内容揭示', 'ElRevealAnimation', '从中心展开，保留完整占位。'),
   flip('卡片翻转', 'ElFlipAnimation', '从下方翻起，保留卡片的实体质感。'),
   collapseVertical('折叠面板', 'ElCollapseAnimation', '向下展开，推动后续内容。'),
