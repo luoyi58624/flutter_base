@@ -31,7 +31,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('反转保持位置连续并在下一帧直接朝新目标运动', (tester) async {
+  testWidgets('反转衔接位置和速度，在下一帧回正并按时停靠', (tester) async {
     Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
     double position() =>
         tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
@@ -39,21 +39,25 @@ void main() {
     await tester.pumpWidget(scene(true));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 60));
+    final beforeSample = position();
+    await tester.pump(Duration(microseconds: 10));
     final beforeTurn = position();
+    final beforeVelocity = (beforeTurn - beforeSample) / 0.00001;
     await tester.pumpWidget(scene(false));
     await tester.pump();
     expect(position(), closeTo(beforeTurn, 0.000001));
-    await tester.pump(Duration(milliseconds: 1));
-    expect(position(), lessThan(beforeTurn));
+    await tester.pump(Duration(microseconds: 10));
+    final afterVelocity = (position() - beforeTurn) / 0.00001;
+    expect(afterVelocity, closeTo(beforeVelocity, 0.05));
     await tester.pump(Duration(milliseconds: 16));
     expect(position(), lessThan(beforeTurn));
     final secondTurn = position();
     await tester.pumpWidget(scene(true));
     await tester.pump();
     expect(position(), closeTo(secondTurn, 0.000001));
-    await tester.pump(Duration(milliseconds: 1));
+    await tester.pump(Duration(milliseconds: 16));
     expect(position(), greaterThan(secondTurn));
-    await tester.pump(Duration(milliseconds: 119));
+    await tester.pump(Duration(milliseconds: 64));
     expect(position(), 1);
     expect(tester.binding.transientCallbackCount, 0);
     expect(tester.takeException(), isNull);
@@ -90,7 +94,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('连续快速切换保持位置，最后一次反转 120ms 内结束', (tester) async {
+  testWidgets('连续快速切换保持位置，最后一次反转 80ms 内结束', (tester) async {
     double position() =>
         tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
     Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
@@ -109,14 +113,77 @@ void main() {
     await tester.pumpWidget(scene(false));
     expect(position(), closeTo(before, 0.000001));
     await tester.pump();
-    await tester.pump(Duration(milliseconds: 120));
+    await tester.pump(Duration(milliseconds: 80));
     expect(position(), 0);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  for (final curve in [Curves.easeOutCubic, Cubic(0, 0, 0.2, 1)]) {
+    testWidgets('$curve 的微小采样仍能准确衔接反转速度', (tester) async {
+      Widget scene(bool value) =>
+          _MotionProbe(value, curve: curve, child: SizedBox());
+      double position() => tester
+          .widget<_MotionValue>(find.byType(_MotionValue))
+          .animation
+          .value;
+      await tester.pumpWidget(scene(false));
+      await tester.pumpWidget(scene(true));
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 50));
+      final p0 = position();
+      await tester.pump(Duration(microseconds: 10));
+      final p1 = position();
+      final velocity = (p1 - p0) / 0.00001;
+      expect(velocity, greaterThan(0));
+      await tester.pumpWidget(scene(false));
+      expect(position(), closeTo(p1, 0.000001));
+      await tester.pump();
+      await tester.pump(Duration(microseconds: 10));
+      expect((position() - p1) / 0.00001, closeTo(velocity, 0.05));
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position(), lessThan(p1));
+      await tester.pump(Duration(milliseconds: 64));
+      expect(position(), 0);
+      expect(tester.binding.transientCallbackCount, 0);
+    });
+  }
+
+  testWidgets('制动中再次反转衔接已有速度，没有重复停顿或越界', (tester) async {
+    Widget scene(bool value) => _MotionProbe(value, child: SizedBox());
+    double position() =>
+        tester.widget<_MotionValue>(find.byType(_MotionValue)).animation.value;
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    await tester.pumpWidget(scene(false));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 2));
+    final p0 = position();
+    await tester.pump(Duration(microseconds: 10));
+    final p1 = position();
+    final velocity = (p1 - p0) / 0.00001;
+    expect(velocity, greaterThan(0));
+    await tester.pumpWidget(scene(true));
+    expect(position(), closeTo(p1, 0.000001));
+    await tester.pump();
+    await tester.pump(Duration(microseconds: 10));
+    expect((position() - p1) / 0.00001, closeTo(velocity, 0.05));
+    await tester.pump(Duration(milliseconds: 16));
+    expect(position(), inExclusiveRange(p1, 1));
+    await tester.pump(Duration(milliseconds: 64));
+    expect(position(), 1);
     expect(tester.binding.transientCallbackCount, 0);
   });
 }
 
 class _MotionProbe extends ElSwitcherAnimation {
-  const _MotionProbe(super.value, {required super.child});
+  const _MotionProbe(super.value, {required super.child, this.curve});
+
+  final Curve? curve;
+
+  @override
+  Curve get $curve => curve ?? super.$curve;
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) =>

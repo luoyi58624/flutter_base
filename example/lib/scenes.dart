@@ -393,10 +393,9 @@ class _DemoScene extends StatelessWidget {
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
-                AnimatedRotation(
-                  turns: value ? 0.5 : 0,
-                  duration: Duration(milliseconds: value ? 200 : 160),
-                  curve: Curves.fastOutSlowIn,
+                _AccordionArrow(
+                  value,
+                  key: ValueKey('collapse-arrow'),
                   child: Icon(
                     Icons.expand_more_rounded,
                     size: 18,
@@ -487,6 +486,21 @@ class _DemoScene extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// 箭头复用面板的时序和反转机制，避免独立曲线造成错拍。
+class _AccordionArrow extends ElSwitcherAnimation {
+  const _AccordionArrow(super.value, {super.key, required super.child});
+
+  @override
+  Duration get $reverseDuration => const Duration(milliseconds: 160);
+
+  @override
+  Widget builder(BuildContext context, Animation<double> animation) =>
+      RotationTransition(
+        turns: animation.drive(Tween<double>(begin: 0, end: 0.5)),
+        child: child,
+      );
 }
 
 Widget _surface({

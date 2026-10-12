@@ -68,10 +68,64 @@ void main() {
     expect(horizontal.value, false);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('折叠箭头与面板在进出场和反转时保持同步', (tester) async {
+    await tester.binding.setSurfaceSize(Size(1200, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(ElAnimationExampleApp());
+    void verify() {
+      final vertical = find.byWidgetPredicate(
+        (widget) =>
+            widget is ElCollapseAnimation && widget.axis == Axis.vertical,
+      );
+      final factor = tester
+          .widget<SizeTransition>(
+            find.descendant(
+              of: vertical,
+              matching: find.byType(SizeTransition),
+            ),
+          )
+          .sizeFactor
+          .value;
+      final turns = tester
+          .widget<RotationTransition>(
+            find.descendant(
+              of: find.byKey(ValueKey('collapse-arrow')),
+              matching: find.byType(RotationTransition),
+            ),
+          )
+          .turns
+          .value;
+      expect(turns * 2, closeTo(factor, 0.000001));
+    }
+
+    verify();
+    await tester.tap(find.byKey(ValueKey('toggle-collapseVertical')));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 50));
+    verify();
+    await tester.tap(find.byKey(ValueKey('toggle-collapseVertical')));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 16));
+    verify();
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
+    verify();
+    expect(tester.takeException(), isNull);
+  });
 }
 
 List<ElSwitcherAnimation> _animations(WidgetTester tester) => tester
     .widgetList<ElSwitcherAnimation>(
-      find.byWidgetPredicate((widget) => widget is ElSwitcherAnimation),
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is ElCollapseAnimation ||
+            widget is ElFadeAnimation ||
+            widget is ElSlideAnimation ||
+            widget is ElScaleAnimation ||
+            widget is ElFadeSlideAnimation ||
+            widget is ElFadeScaleAnimation ||
+            widget is ElRevealAnimation ||
+            widget is ElFlipAnimation,
+      ),
     )
     .toList();

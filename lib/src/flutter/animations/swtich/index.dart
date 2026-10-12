@@ -11,6 +11,7 @@ part 'fade.dart';
 part 'fade_scale.dart';
 part 'fade_slide.dart';
 part 'flip.dart';
+part 'motion.dart';
 part 'reveal.dart';
 part 'scale.dart';
 part 'slide.dart';
@@ -36,7 +37,7 @@ abstract class ElSwitcherAnimation extends HookWidget {
 
   /// 入场节奏，默认先加速展开再减速停靠。
   @protected
-  Curve get $curve => Curves.fastOutSlowIn;
+  Curve get $curve => const _MotionCurve();
 
   /// 退场节奏，默认与入场使用同一形状。
   @protected
@@ -70,15 +71,15 @@ abstract class ElSwitcherAnimation extends HookWidget {
         return null;
       }
       final interrupted = controller.isAnimating || distance < 1;
-      // 反转立即朝新目标运动；按剩余距离缩短收尾，避免旧方向惯性和慢速长尾。
+      // 反转承接当前速度，在一帧内完成制动，再按剩余距离收尾。
       _driveMotion(
         controller,
         target,
         duration: interrupted
-            ? const Duration(milliseconds: 120) * math.sqrt(distance)
+            ? const Duration(milliseconds: 80) * math.sqrt(distance)
             : (value ? $duration : $reverseDuration),
         curve: interrupted
-            ? Curves.easeOutCubic
+            ? const _MotionCurve()
             : (value ? $curve : $reverseCurve),
       );
       return null;
@@ -93,7 +94,7 @@ abstract class ElSwitcherAnimation extends HookWidget {
   }
 }
 
-/// 透明度使用短过渡，避免文字跟着几何弹簧长时间处于半透明状态。
+/// 透明度使用短过渡，让文字在几何变化结束前恢复清晰。
 Animation<double> _useOpacity(
   bool value, {
   Duration enterDuration = const Duration(milliseconds: 90),
@@ -142,34 +143,12 @@ void _driveMotion(
     controller.value = target;
     return;
   }
+  final velocity = controller.isAnimating ? controller.velocity : 0.0;
   controller.animateWith(
-    _TimedMotion(controller.value, target, duration, curve),
+    velocity == 0
+        ? _TimedMotion(controller.value, target, duration, curve)
+        : _RetargetMotion(controller.value, target, velocity, duration),
   );
-}
-
-/// 在截止帧精确停下，避免普通插值在到达终点后再保留一帧 ticker。
-class _TimedMotion extends Simulation {
-  _TimedMotion(this.begin, this.end, Duration duration, this.curve)
-    : seconds = duration.inMicroseconds / Duration.microsecondsPerSecond;
-
-  final double begin;
-  final double end;
-  final double seconds;
-  final Curve curve;
-
-  @override
-  double x(double time) {
-    if (time <= 0) return begin;
-    if (time >= seconds) return end;
-    return begin + (end - begin) * curve.transform(time / seconds);
-  }
-
-  @override
-  double dx(double time) =>
-      isDone(time) ? 0 : (x(time + 0.00001) - x(time - 0.00001)) / 0.00002;
-
-  @override
-  bool isDone(double time) => time >= seconds;
 }
 
 /// 透明度先稳定，几何变换随后收尾，避免文字全程处于半透明状态。
