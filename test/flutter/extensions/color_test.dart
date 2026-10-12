@@ -1,5 +1,5 @@
-import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -61,5 +61,38 @@ void main() {
     // expect(newColor.shade700, color.shade700);
     // expect(newColor.shade800, color.shade800);
     // expect(newColor.shade900, color.shade900);
+  });
+
+  test('颜色混合和明暗调整保留端点与透明度', () {
+    final first = Color(0x80123456);
+    final second = Color(0xffabcdef);
+    expect(first.mix(second, 0), first);
+    expect(first.mix(second, 100), second);
+    expect(first.toHex(hasAlpha: true), '#80123456');
+    expect(first.elOpacity(0.5).a, 0.5);
+    expect(Colors.black.brighten(100), Colors.white);
+    expect(Colors.white.darken(100), Colors.black);
+    expect(Colors.black.isDark, isTrue);
+    expect(Colors.white.isHighlight, isFalse);
+    expect(() => first.mix(second, 101), throwsAssertionError);
+  });
+
+  group('ElColorExt.invert', () {
+    test('inverts RGB channels and preserves alpha', () {
+      const color = Color.fromARGB(128, 0x12, 0x34, 0x56);
+
+      expect(color.reversal, const Color.fromARGB(128, 0xed, 0xcb, 0xa9));
+    });
+
+    test('swaps black and white', () {
+      expect(Colors.black.reversal, Colors.white);
+      expect(Colors.white.reversal, Colors.black);
+    });
+
+    test('inverting twice restores the original color', () {
+      const color = Color.fromARGB(77, 1, 128, 254);
+
+      expect(color.reversal.reversal, color);
+    });
   });
 }

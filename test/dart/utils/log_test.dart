@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late ElLogConfig savedConfig;
+
   late bool Function(int) savedFilter;
 
   setUp(() {

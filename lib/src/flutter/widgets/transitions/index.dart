@@ -1,5 +1,5 @@
 import '../../hooks/simple_hooks.dart';
-import '../../obs/index.dart';
+import '../../state/obs/index.dart';
 import '../base.dart';
 
 import 'package:flutter/material.dart';
