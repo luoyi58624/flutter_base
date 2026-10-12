@@ -2,7 +2,9 @@
 
 首页展示九个实际界面场景：轻量提示、侧边面板、状态反馈、消息通知、确认弹窗、内容揭示、卡片翻转、纵向折叠面板和横向搜索工具栏。
 
-每种动画内置运动参数和动作幅度。反转时保留当前位置和速度，使用临界阻尼弹簧平稳回正。示例只保留各场景开关和全部播放，无需调整动效参数。
+每种动画内置运动参数和动作幅度。透明度与几何变化分别驱动，让文字快速清晰；几何反转保留当前位置和速度。示例只保留各场景开关和全部播放，无需调整动效参数。
+
+弹窗从 80% 尺寸进入，参考 [Flutter 官方 Material 显隐动效](https://github.com/flutter/packages/blob/main/packages/animations/lib/src/fade_scale_transition.dart) 的动作设计。状态标记使用小幅入场回弹，退场和中途反转不回弹；翻转沿 X 轴从下方抬起；Reveal 使用中心圆形遮罩。
 
 ```dart
 import 'package:flutter_base/flutter_base.dart';

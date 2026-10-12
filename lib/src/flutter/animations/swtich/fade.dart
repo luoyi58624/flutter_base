@@ -9,6 +9,9 @@ class ElFadeAnimation extends ElSwitcherAnimation {
   Duration get $duration => const Duration(milliseconds: 140);
 
   @override
+  bool get $opacityOnly => true;
+
+  @override
   Widget builder(BuildContext context, Animation<double> animation) {
     return FadeTransition(opacity: animation, child: child);
   }

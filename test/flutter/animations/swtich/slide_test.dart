@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_support.dart';
 
 void main() {
-  testWidgets('侧栏从右侧减速滑入，越界裁剪且保留布局', (tester) async {
+  testWidgets('侧栏从右侧滑入，自身不裁断阴影并保留布局', (tester) async {
     Widget scene(bool value) => animationScene(
       ElSlideAnimation(value, child: SizedBox(width: 80, height: 40)),
     );
@@ -15,7 +15,11 @@ void main() {
         .value;
     await tester.pumpWidget(scene(false));
     expect(offset(), Offset(1, 0));
-    expect(find.byType(ClipRect), findsOneWidget);
+    expect(find.byType(ClipRect), findsNothing);
+    expect(
+      tester.widget<FadeTransition>(find.byType(FadeTransition)).opacity.value,
+      0,
+    );
     await tester.pumpWidget(scene(true));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 140));

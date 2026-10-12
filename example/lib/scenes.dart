@@ -233,7 +233,7 @@ class _DemoScene extends StatelessWidget {
     children: [
       AnimatedOpacity(
         opacity: value ? 0.08 : 0,
-        duration: Duration(milliseconds: 250),
+        duration: Duration(milliseconds: value ? 90 : 75),
         curve: Curves.easeOut,
         child: ColoredBox(color: Color(0xff111b32)),
       ),
@@ -272,41 +272,39 @@ class _DemoScene extends StatelessWidget {
   );
 
   Widget _landscape() => Center(
-    child: animate(
-      Container(
-        width: 216,
-        height: 140,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: CustomPaint(
-            painter: _LandscapePainter(),
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: EdgeInsets.all(13),
-                child: Text(
-                  'A QUIET AFTERNOON',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    letterSpacing: 1.2,
-                  ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        animate(
+          Container(
+            width: 216,
+            height: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
                 ),
-              ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: CustomPaint(painter: _LandscapePainter()),
             ),
           ),
         ),
-      ),
+        SizedBox(height: 10),
+        Text(
+          'A QUIET AFTERNOON',
+          style: TextStyle(
+            color: Color(0xff8c93a4),
+            fontSize: 9,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     ),
   );
 
@@ -397,8 +395,8 @@ class _DemoScene extends StatelessWidget {
                 ),
                 AnimatedRotation(
                   turns: value ? 0.5 : 0,
-                  duration: Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
+                  duration: Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
                   child: Icon(
                     Icons.expand_more_rounded,
                     size: 18,

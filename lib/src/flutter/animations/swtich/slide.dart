@@ -1,6 +1,6 @@
 part of 'index.dart';
 
-/// 从右侧滑入的面板过渡，滑出部分裁剪在原有布局内。
+/// 从右侧滑入的面板过渡，保留阴影并由外层场景决定裁剪边界。
 class ElSlideAnimation extends ElSwitcherAnimation {
   /// 使用内置的连续位移和停靠节奏。
   const ElSlideAnimation(super.value, {super.key, required super.child});
@@ -10,7 +10,9 @@ class ElSlideAnimation extends ElSwitcherAnimation {
 
   @override
   Widget builder(BuildContext context, Animation<double> animation) {
-    return ClipRect(
+    return FadeTransition(
+      // 只隐藏停靠点外的最后一小段，避免边界裁切破坏侧栏的完整外观。
+      opacity: animation.drive(const _OpacityProgress(0.015)),
       child: SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
