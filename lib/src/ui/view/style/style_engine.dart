@@ -22,6 +22,9 @@ class StyleEngine {
   /// 消费结果只需要重新绘制。
   static const paint = 2;
 
+  /// 消费结果改变后代的近似语义裁剪边界。
+  static const semantics = 4;
+
   /// 宿主执行已经裁决的框架失效，不参与字段解析。
   final void Function(int damage) invalidate;
 
@@ -43,6 +46,16 @@ class StyleEngine {
   /// 已完成颜色解析和本帧插值的背景色。
   Color? get backgroundColor =>
       _values[StyleField.backgroundColor.index] as Color?;
+
+  /// 已解析方向、规范零值并完成本帧插值的物理圆角。
+  BorderRadius? get borderRadius {
+    final value = _values[StyleField.borderRadius.index] as BorderRadius?;
+    return value == null || _isRectRadius(value) ? null : value;
+  }
+
+  /// 立即生效的裁剪模式，不占用动画轨道。
+  Clip get clipBehavior =>
+      _values[StyleField.clipBehavior.index] as Clip? ?? Clip.none;
 
   /// 测试观察实际进入字段解析的次数，空属性不计入。
   @visibleForTesting
@@ -83,10 +96,12 @@ class StyleEngine {
   }
 
   ElTransition? _transition(StyleField field, List<ElTransition>? transitions) {
+    final selection = field.transitionField;
+    if (selection == null) return null;
     if (transitions != null) {
       for (var i = transitions.length - 1; i >= 0; i--) {
         final item = transitions[i];
-        if (item.field == null || item.field == field.transitionField) {
+        if (item.field == null || item.field == selection) {
           return item;
         }
       }
@@ -109,7 +124,7 @@ class StyleEngine {
       final raw = field.declaration(style);
       final changed =
           field.declaration(before) != raw ||
-          (directionChanged && raw is EdgeInsetsGeometry && raw is! EdgeInsets);
+          (directionChanged && field.dependsOnDirection(raw));
       final old = _track(field);
       if (!changed && (!transitionsChanged || old == null)) continue;
       final to = changed

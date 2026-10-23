@@ -26,6 +26,8 @@ class ElStyle with Equatable {
     this.backgroundColor,
     this.padding,
     this.margin,
+    this.borderRadius,
+    this.clipBehavior,
     this.transitions,
   });
 
@@ -43,6 +45,12 @@ class ElStyle with Equatable {
 
   /// 非负有限外边距，背景不覆盖此区域；null 等同于零。
   final EdgeInsetsGeometry? margin;
+
+  /// 非负有限的背景圆角，支持方向性圆角；null 等同于零，裁剪由 clipBehavior 决定。
+  final BorderRadiusGeometry? borderRadius;
+
+  /// 背景与 child 的裁剪方式；null 等同于 Clip.none，模式切换不参与过渡。
+  final Clip? clipBehavior;
 
   /// 过渡声明，合并时整体替换；同一属性由最后一条匹配声明决定。
   final List<ElTransition>? transitions;

@@ -16,6 +16,9 @@ enum ElTransitionField {
 
   /// 外边距，null 按零插值。
   margin,
+
+  /// 背景圆角，null 按零插值，仅触发重绘。
+  borderRadius,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

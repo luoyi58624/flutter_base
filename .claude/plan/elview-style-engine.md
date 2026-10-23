@@ -398,3 +398,29 @@ ui/view/
 验证范围限定为 view_test.dart、view_architecture_test.dart、style_engine_test.dart 及对应生产目录；并行会话的事件目录不属于本阶段。
 
 最终验证：上述三个文件共 42 项测试全部通过；对应生产目录与三个测试文件的静态分析无问题。未运行全量测试或设备 Profile 测量。
+
+## 15. 圆角与裁剪实施结果
+
+- ElStyle 新增原生 BorderRadiusGeometry? borderRadius 与 Clip? clipBehavior；copyWith、merge 和相等字段通过生成器同步。
+- StyleEngine 解析方向性和混合圆角，保留椭圆两轴动画端点，负过冲按轴归零；输出端将等效方角归为矩形。圆角过渡只重绘，不重新布局或重建 child。
+- clipBehavior 的 null 等同于 Clip.none；切换模式立即生效，不匹配 ElTransition.all，也不创建动画轨道，只通知绘制和近似语义裁剪更新。
+- ShapeGeometry 缓存局部尺寸与圆角，使用统一 scaleRadii 适配超大圆角；颜色、margin 和整体绘制 offset 不使其重建。
+- DecorationPainter 与 EffectController 按需共用同一 ShapeGeometry。矩形背景与矩形裁剪不创建圆角形状；无背景且无裁剪消费者不创建形状。
+- Clip.none 保留 child 绘制与命中。启用裁剪后，背景和 child 共用当前盒形状，排除 margin，child 命中也遵循同一形状；没有背景仍能裁剪 child。
+- EffectController 根据已有 needsCompositing 使用画布或可复用裁剪层；不为 antiAliasWithSaveLayer 强制合成。矩形/圆角层切换、关闭及销毁时释放旧持有权。
+- 圆角裁剪内的背景直接绘制矩形，避免边缘重复抗锯齿；未裁剪时背景直接 drawRRect，不增加路径、包装 RenderObject 或额外合成层。
+- 示例页新增与官方 AnimatedContainer 对照的尺寸、颜色、独立椭圆角到胶囊角联动，并用覆盖整个盒子的半透明 child 展示裁剪。
+
+```mermaid
+flowchart LR
+    S[ElStyle] --> E[StyleEngine：解析、动画与精确失效]
+    E --> R[ElRenderView：协议中转]
+    R --> L[BoxLayout：正式尺寸和边距]
+    R --> P[DecorationPainter：背景]
+    R --> F[EffectController：按需裁剪]
+    L --> G[ShapeGeometry：共享局部圆角]
+    G --> P
+    G --> F
+```
+
+验证：原有 42 项与新增圆角 17 项、裁剪 14 项合计 73 项全部通过；生产目录、上述五个测试文件及示例页静态分析无问题。仅运行相关测试，未运行全量测试或设备 Profile 测量。

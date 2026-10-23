@@ -2,6 +2,8 @@ import 'package:flutter/rendering.dart';
 
 import '../layout/box_layout.dart';
 import '../paint/decoration.dart';
+import '../paint/effects.dart';
+import '../paint/shape.dart';
 import '../style/index.dart';
 
 /// 单子视图的框架宿主，样式、盒模型和绘制分别委托给独立协作者。
@@ -14,6 +16,15 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   late final StyleEngine _styleEngine;
   DecorationPainter? _decoration;
+  EffectController? _effects;
+  ShapeGeometry? _shape;
+
+  ShapeGeometry _ensureShape() => _shape ??= ShapeGeometry();
+
+  DecorationPainter get _painter =>
+      _decoration ??= DecorationPainter(shape: _ensureShape);
+
+  EffectController get _clip => _effects ??= EffectController(_ensureShape);
 
   /// 本节点唯一的盒模型执行器，也是祖先几何查询的入口。
   @override
@@ -29,6 +40,13 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   void _invalidate(int damage) {
     if (damage & StyleEngine.layout != 0) super.markNeedsLayout();
     if (damage & StyleEngine.paint != 0) markNeedsPaint();
+    if (damage & StyleEngine.semantics != 0) {
+      if (_styleEngine.clipBehavior == Clip.none) {
+        _effects?.dispose();
+        _effects = null;
+      }
+      markNeedsSemanticsUpdate();
+    }
   }
 
   void _mutateLayout(VoidCallback callback) =>
@@ -94,12 +112,34 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_styleEngine.clipBehavior != Clip.none &&
+        (child != null || _styleEngine.backgroundColor != null)) {
+      _clip.paint(
+        context,
+        offset,
+        rect: boxLayout.boxRect,
+        radius: _styleEngine.borderRadius,
+        clipBehavior: _styleEngine.clipBehavior,
+        needsCompositing: needsCompositing,
+        painter: _paintContents,
+      );
+    } else {
+      _effects?.dispose();
+      _paintContents(context, offset);
+    }
+  }
+
+  void _paintContents(PaintingContext context, Offset offset) {
     final color = _styleEngine.backgroundColor;
     if (color != null) {
-      (_decoration ??= DecorationPainter()).paintBackground(
+      _painter.paintBackground(
         context,
         boxLayout.boxRect.shift(offset),
         color,
+        // 已有外层裁剪时画矩形，避免圆角边缘重复抗锯齿。
+        borderRadius: _styleEngine.clipBehavior == Clip.none
+            ? _styleEngine.borderRadius
+            : null,
       );
     }
     super.paint(context, offset);
@@ -108,7 +148,26 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   @override
   bool hitTestSelf(Offset position) =>
       _styleEngine.backgroundColor != null &&
-      boxLayout.boxRect.contains(position);
+      _painter.contains(
+        boxLayout.boxRect,
+        position,
+        borderRadius: _styleEngine.borderRadius,
+      );
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      child != null &&
+      (_styleEngine.clipBehavior == Clip.none ||
+          _clip.contains(
+            boxLayout.boxRect,
+            position,
+            _styleEngine.borderRadius,
+          )) &&
+      super.hitTestChildren(result, position: position);
+
+  @override
+  Rect? describeApproximatePaintClip(RenderObject child) =>
+      _styleEngine.clipBehavior == Clip.none ? null : boxLayout.boxRect;
 
   @override
   void attach(PipelineOwner owner) {
@@ -125,6 +184,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   @override
   void dispose() {
     boxLayout.dispose();
+    _effects?.dispose();
     _styleEngine.dispose();
     super.dispose();
   }

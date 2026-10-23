@@ -66,6 +66,67 @@ Object? _insetsLerp(Object? from, Object? to, double t) {
         );
 }
 
+BorderRadius? _resolveRadius(
+  BorderRadiusGeometry value,
+  TextDirection direction,
+) {
+  final result = value.resolve(direction);
+  assert(
+    [
+      result.topLeft,
+      result.topRight,
+      result.bottomLeft,
+      result.bottomRight,
+    ].every((r) => r.x >= 0 && r.y >= 0 && r.x.isFinite && r.y.isFinite),
+    'borderRadius 必须非负且有限',
+  );
+  return _normalizeRadius(result);
+}
+
+// 轨道保留退化椭圆的另一轴，否则两个方角端点之间的圆角动画会丢失。
+Radius _clampCorner(Radius radius) => radius.x >= 0 && radius.y >= 0
+    ? radius
+    : Radius.elliptical(math.max(0, radius.x), math.max(0, radius.y));
+
+bool _isRectRadius(BorderRadius value) =>
+    (value.topLeft.x == 0 || value.topLeft.y == 0) &&
+    (value.topRight.x == 0 || value.topRight.y == 0) &&
+    (value.bottomLeft.x == 0 || value.bottomLeft.y == 0) &&
+    (value.bottomRight.x == 0 || value.bottomRight.y == 0);
+
+BorderRadius? _normalizeRadius(BorderRadius value) {
+  final topLeft = _clampCorner(value.topLeft);
+  final topRight = _clampCorner(value.topRight);
+  final bottomLeft = _clampCorner(value.bottomLeft);
+  final bottomRight = _clampCorner(value.bottomRight);
+  if (topLeft == Radius.zero &&
+      topRight == Radius.zero &&
+      bottomLeft == Radius.zero &&
+      bottomRight == Radius.zero) {
+    return null;
+  }
+  if (topLeft == value.topLeft &&
+      topRight == value.topRight &&
+      bottomLeft == value.bottomLeft &&
+      bottomRight == value.bottomRight) {
+    return value;
+  }
+  return BorderRadius.only(
+    topLeft: topLeft,
+    topRight: topRight,
+    bottomLeft: bottomLeft,
+    bottomRight: bottomRight,
+  );
+}
+
+Object? _radiusLerp(Object? from, Object? to, double t) => _normalizeRadius(
+  BorderRadius.lerp(
+    from as BorderRadius? ?? BorderRadius.zero,
+    to as BorderRadius? ?? BorderRadius.zero,
+    t,
+  )!,
+);
+
 /// 沿用旧版预乘 alpha，透明端点的隐藏 RGB 不污染中间帧。
 Object? _colorLerp(Object? from, Object? to, double t) {
   var a = from as Color?;
