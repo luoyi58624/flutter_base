@@ -1,92 +1,105 @@
 # 独立手势识别器
 
-通过 `package:flutter_base/ui.dart` 使用 `ElPressGestureRecognizer` 和
-`ElTransformGestureRecognizer`。这两个类独立参加 Flutter 手势竞技场，当前
-`ElEventView` 与 `ElEventDispatcher` 仍使用原有实现，尚未切换到这里。
+`ElPressGestureRecognizer` 与 `ElTransformGestureRecognizer` 直接参加 Flutter
+手势竞技场，只依赖 Dart 和 Flutter。它们保留同类手势冒泡，不依赖
+`ElEventConfig`、`ElEventCallback`、RenderBox 或元素命中函数。
+公共入口是 `package:flutter_base/ui.dart`，也可直接导入本目录的 `recognizers.dart`。
 
-## 所有权与冒泡
+当前 `ElEventView` 与 `ElEventDispatcher` 仍使用旧实现，本次仅整理识别器及调用处。
 
-- 宿主在命中的 PointerDown 时调用 `addPointer`；触控板开始时调用
-  `addPointerPanZoom`。后续事件由官方 PointerRouter 投递，不要再手动重复转发。
-- 同类识别器的 `parent` 是显式的 El 冒泡关系。宿主须保证它对应自己的真实祖先；
-  同一次按压的祖先列表会被冻结，途中修改 parent 从下一次序列生效。
-- 子识别器是该路线唯一的竞技场成员，El 父级仅订阅这条路线。官方父子识别器
-  仍独立参赛：El 获胜时官方候选取消，官方获胜时整条 El 路线取消。
-- Down 是可取消的候选通知；确认型点击、长按、拖拽和变换回调只在官方接受后发生。
-- `stopPropagation()` 截断对应 El 家族的业务传播，不阻止官方组件参赛。
-  已收到 Down／Start 的成员仍须收到释放或取消；终态中的 stop 不能吞掉清理。
-  DragStart 截断会立即取消祖先已公开的 Down，Up 截断仍结清祖先 Up，但不再向它发送 Tap。
-- 回调内 `eagerGesture()` 只请求官方接受；它不能强抢已经判给其他识别器的指针。
-  `allowScaleUpgrade` 不提供跨识别器转交，缩放升级由 Transform 内部完成。
-- 回调内 `preventDefault()` 保留业务标记，不能撤销竞技场已经作出的裁决。
-- 所有者须在卸载时调用 `dispose()`；识别器负责释放自己的指针路由与计时器。
+## 职责边界
 
-## Press
-
-支持主按钮单击、双击、三击、长按，以及右键、中键、前进和后退按钮。
-普通点击遵循官方入场顺序与 sweep，不在释放时强行抢走官方子 Tap。
-`deferTap` 只推迟已经获胜的单击业务通知，不额外占住竞技场。
-连击识别参数改变会重新分组，仅改变拖拽参数会保留原窗口；活动按压仍沿用自己的配置快照。
-
-提供 `hitTest(globalPosition)` 时，可以按边界退出并重新进入候选状态；没有提供时
-按设备容差取消。真正被官方竞技场拒绝后，本次候选不会恢复。
-获胜后的 `onTapUp` 保留 El 的释放语义，自身最终点击取消时仍可能通知；落败的
-识别器不会收到成功释放或点击。长按通知发生在官方接受后，不能再回退为其他赢家。
-
-## Transform
-
-支持自由或指定轴向的拖拽、方向锁定、速度，以及按回调启用的缩放与旋转。
-单指拖拽和多指变换共用一个竞技场成员；追加指针也须取得自己的官方归属。
-只有已接受的指针可参与输出，失权指针不能改变中心、比例或驱动者。
-释放速度只拟合真实输入：合成 Move 可更新位移，但不采入速度；Up 的位置跳变也不进入拟合。
-停顿按事件时间判定，处理延迟不能冒充停顿。样本不足时保留短促轻扫兜底，仍检查距离、速度和限幅。
-
-`ElEventConfig` 中的识别参数沿用到新识别器，当前序列使用按下时的配置快照。
-触摸反馈延时、样式状态、dragProxy 位移分配和帧输出重采样属于上层职责；这里
-接收 Flutter 已投递的采样输入，不在认领之前额外延迟或重采样竞技场事件。
-
-Press 与 Transform 独立使用时正常竞争，拖拽获胜会取消点击。跨类型的“长按后
-继续拖拽”或“拖拽后仍点击”需要后续复合所有者，此处不绕过竞技场保留两个赢家。
-
-## 两个测试文件与旧行为对照
-
-识别器测试只保留 `test/ui/event/recognizers/press_test.dart` 和
-`test/ui/event/recognizers/transform_test.dart`。原先分散在 interop、route、overlap_route
-中的独有场景归入对应识别器；重复的基础胜负用例由真实父子命中、透明分支场景覆盖。
-公共宿主夹具放在 `test/ui/event/support/recognizer_test_host.dart`，不再添加第三个测试入口。
-
-| 旧测试中的关键行为 | 现在的验证位置 |
+| 识别器负责 | 宿主／ElEventView 负责 |
 | --- | --- |
-| 点击阶段、双／三击分组、窗口超时及参数变化、deferTap、长按与侧键 | Press |
-| 越界回入、移动取消、按钮／设备过滤、计时器结束与下轮恢复 | Press |
-| 官方 Tap／DoubleTap／拖拽／ListView 胜负、El 冒泡和透明重叠分支 | Press 和 Transform，按家族归属 |
-| 轴向意图、锁轴、slop 不追补、本地坐标、剩余位移消费 | Transform |
-| 最小甩动距离、速度限幅、合成输入、真实停顿、处理延迟、稀疏样本 | Transform |
-| 多指 driver 切换、落败指针隔离、部分取消、缩放重基准与旋转 | Transform |
-| 候选／开始后的唯一终态、截断清理、dispose 重入、新序列不被旧清理删除 | Press 和 Transform |
+| 官方竞技场接受、拒绝和取消 | 元素命中范围、禁用及卸载时机 |
+| 点击、连击、按钮、长按的判断 | ElEventConfig 到独立识别参数的转换 |
+| 拖拽、缩放、旋转与释放速度 | hasTap／hasHover 等样式状态和反馈时间 |
+| parent 路线、回调顺序与 stopPropagation | ElGestureDetails 到 ElEventCallback 的适配 |
+| 根据各级官方事件变换换算坐标 | 实时元素几何和越界业务策略 |
+| 唯一终态、指针路由与计时器清理 | dragProxy、位移消费及帧输出策略 |
 
-旧 Dispatcher／ElEventView 测试仍验证正在运行的旧实现，尚不删除。
-样式反馈、禁用、原始指针、光标、dragProxy 和重采样也继续由原测试负责；
-识别器测试通过不代表这些宿主行为已经完成接入或实现等价。
+## 冒泡与官方规则
 
-## 接入 ElEventView 前必须处理的差异
+- 宿主在命中的 PointerDown 调用 `addPointer`，触控板开始调用 `addPointerPanZoom`。
+  后续事件由官方 PointerRouter 投递，不重复转发。
+- `parent` 表达同类识别结果的冒泡关系。路线由最深识别器参赛，El 祖先订阅结果；
+  官方识别器正常独立竞争，任一方获胜都会排除另一方。
+- 每个 Press 回调接收 `ElPressGestureDetails`，每个 Transform 回调接收
+  `ElTransformGestureDetails`，均包含 `stopPropagation()`。
+- 停止冒泡不等于主动接受竞技场。Update 只截断当前更新，Down／Start／业务点击
+  可以建立本轮后续阶段的传播边界。已公开的 Down／Start 必须结清，终态中的 stop
+  不吞掉祖先清理；Start 或连击 Down 后发截断会取消祖先已公开的候选。
+- 祖先列表在本轮开始时冻结，修改 parent 从下一轮生效。路线使用所有者的识别参数，
+  不把祖先配置当成继承值；宿主若需独立轴向或阈值，应协调报名关系。
+- 各成员登记自己的开始事件，识别器使用其官方 transform 换算本地坐标。
+  详情沿路线复用，跨回调保存记录时应保存所需数值。
 
-1. **祖先的独立识别条件尚未实现。** 当前 parent 是同一结果的订阅者，整条路线使用
-   最深所有者的轴、阈值和设备限制；不等价于旧版每个节点各自提案。例如水平子节点与
-   垂直父节点、子节点高阈值与父节点低阈值，不能直接按现在的 parent 连接期待各自识别。
-   不同后代触点合并到祖先缩放的场景，也缺少跨路线协调。
-2. **事件替换需要宿主事务。** 回调字段目前读取当前值，config／axis 则在序列开始冻结。
-   它们不提供旧 Dispatcher 的替换代次、向旧 handler 同步补终态、活动中增加识别能力等
-   语义；仅更新字段不能替代这些逻辑。禁用、detach 和设备移除也要由宿主明确结束交互。
-3. **eager 与跨家族转换不等价。** parent 回调里的 eager 请求由整条路线的所有者执行，
-   不会把子订阅者作为失败者逐个驱逐。官方已拒绝的识别器不能被重新恢复为赢家；
-   allowScaleUpgrade 也不转交官方所有权。长按后拖动、保留拖拽后的点击、跨节点原子接管，
-   需要复合所有者与明确的回调路由策略。当前 Transform 升级 Scale 后保留 Drag 生命周期，
-   也不同于旧版接管时取消 Drag 的策略。
-4. **多指和输出策略尚未全部覆盖。** 当前拖拽只支持 latestPointer，没有旧版其他多指
-   聚合策略。位移消费回调可用，但完整 dragProxy 分配与帧输出重采样仍需上层接入。
-5. **释放补偿口径需要决定。** 当前不在 Up 上补发未过阈值的 DragStart，不把 Up 独有
-   的位置跳变计入 dragOffset；旧版的释放救援和终点补账不能视为已经保留。
+## 按压 API
 
-因此，目前可以据此设计宿主适配，但不能直接宣称完整替换旧事件实现；
-上述差异应逐项确定语义并补上集成回归后，再切换 ElEventView。
+```dart
+final parent = ElPressGestureRecognizer()..onTap = (details) {};
+final child = ElPressGestureRecognizer(parent: parent)
+  ..onTap = (details) {
+    details.stopPropagation();
+  };
+```
+
+| 参数 | 用途 |
+| --- | --- |
+| doubleTapInterval／tripleTapInterval | 连击时间窗口 |
+| consecutiveTapDistance | 连击间允许的位置间距 |
+| longPressDelay | 长按等待时间 |
+| tapSlopTolerance／longPressSlopTolerance | 点击与长按的移动容差，缺省采用官方设备值 |
+| deferTap | 有双击订阅时等待窗口结束再通知单击，不持有竞技场 |
+| supportedDevices／allowedButtonsFilter | 官方设备和按钮过滤 |
+
+支持主键单／双／三击、长按、右键、中键、前进与后退按钮。
+识别参数在按下时冻结；相同参数保留连击窗口，参数变化后重新分组。
+普通释放等待官方 sweep，保持官方子 Tap 的竞争优先顺序。
+移动容差取消最终点击时，已获胜序列仍可通知 Up；显式取消则终止该指针，不再通知 Up／Tap。
+
+## 变换 API
+
+```dart
+final drag = ElTransformGestureRecognizer(
+  axis: Axis.horizontal,
+  startDistance: 6,
+  minFlingVelocity: 50,
+  maxFlingVelocity: 8000,
+)..onDragUpdate = (details) {
+  details.stopPropagation();
+};
+```
+
+参数为 `axis`、`lockAxis`、`startDistance`、`horizontalAngle`、`minFlingDistance`、
+`minFlingVelocity`、`maxFlingVelocity`，设备过滤使用官方 `supportedDevices` 和
+`allowedButtonsFilter`。识别参数在本轮开始时冻结。
+
+单指拖拽与多指变换共用所有权，每根新增指针仍须赢得自己的官方竞技场。
+拖拽采用 latestPointer，只有已接受的指针参与驱动、中心、比例和旋转计算。
+速度只拟合真实输入：合成 Move 更新位移但不进入拟合，Up 位置跳变不进入速度。
+真实停顿按输入时间判断；稀疏采样仍受距离、速度阈值及最大速度约束。
+
+## 宿主控制
+
+- `acceptPointer(pointer)`：主动请求指定指针的官方归属，不覆盖已经确认的其他赢家。
+- `cancelPointer(pointer, event: currentEvent)`：取消当前冒泡路线中的该指针，可传入
+  触发取消的输入；取消不会恢复。Transform 中其余已接受指针可以继续。
+- `cancel()`：取消自身拥有的全部活动手势、连击窗口及待发通知，之后可以复用。
+- `dispose()`：销毁识别器，释放自己的路线和计时器。
+
+元素范围由宿主判断。需要完全按元素范围决定点击时，可将 `tapSlopTolerance`
+设为 `double.infinity`，在原始 Move／Up 到来时检查范围，再调用
+`cancelPointer(event.pointer, event: event)`。识别器不读取尺寸，也不内置回入业务规则。
+
+`eagerGesture(cancelSelfTap, allowScaleUpgrade)`、`preventDefault` 和 `consumeDelta`
+属于上层事件接口，不放入纯手势详情。宿主结合接受／取消原语和回调结果实现对应策略；
+官方已判负的候选仍不能被强行复活。Press 与 Transform 独立使用时正常竞争，
+跨家族连续转换和跨路线多指合并需要宿主协调。
+
+## 测试组织
+
+只保留 `press_test.dart` 与 `transform_test.dart` 两个识别器测试入口，覆盖独立参数、
+官方竞争、各回调冒泡控制、主动取消、坐标、多指、速度和重入清理。
+元素范围在示例页宿主测试中验证；旧事件的样式反馈、配置替换、位移消费及重采样
+继续由旧实现的测试负责，后续接入 ElEventView 时迁移对应集成验证。

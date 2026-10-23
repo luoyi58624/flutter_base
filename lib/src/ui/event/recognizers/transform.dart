@@ -6,27 +6,53 @@ part of 'recognizers.dart';
 /// 撤销已经获胜的拖拽。多指拖拽采用 latestPointer：最新获胜指针驱动，
 /// 抬起后交回仍获胜的指针。缩放、旋转只使用已获胜的触点。
 ///
-/// [parent] 是 El 回调的冒泡订阅者，不会为同一指针重复参赛；官方识别器
-/// 仍然独立竞争。本类直接识别官方采样输入，不做第二次帧重采样。
+/// [parent] 负责同类手势冒泡；本类只接收指针数据，不处理元素范围或样式状态。
 class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   /// 创建独立变换识别器；[axis] 为空时自由拖拽，[lockAxis] 可按起手方向锁轴。
   ElTransformGestureRecognizer({
-    this.config = const ElEventConfig(),
+    this.startDistance,
+    this.horizontalAngle = math.pi / 4,
+    this.minFlingDistance,
+    this.minFlingVelocity = kMinFlingVelocity,
+    this.maxFlingVelocity = kMaxFlingVelocity,
     this.parent,
     this.axis,
     this.lockAxis = false,
     super.debugOwner,
     super.supportedDevices,
     AllowedButtonsFilter? allowedButtonsFilter,
-    super.globalToLocal,
-  }) : super(
+  }) : assert(startDistance == null || startDistance >= 0),
+       assert(horizontalAngle > 0 && horizontalAngle < math.pi / 2),
+       assert(minFlingDistance == null || minFlingDistance >= 0),
+       assert(minFlingVelocity >= 0 && maxFlingVelocity >= minFlingVelocity),
+       super(
          allowedButtonsFilter: allowedButtonsFilter ?? _primaryTransformButton,
        );
 
   static bool _primaryTransformButton(int buttons) => buttons == kPrimaryButton;
 
-  /// 下一轮手势使用的配置，进行中的指针序列保留开始时的快照。
-  ElEventConfig config;
+  /// 开始拖拽的全局移动阈值；为空时采用官方设备与轴向容差。
+  double? startDistance;
+
+  /// 水平起手方向的捕获半角，默认 45 度。
+  double horizontalAngle;
+
+  /// 产生释放速度的最小移动距离；为空时采用官方设备容差。
+  double? minFlingDistance;
+
+  /// 产生甩动的最小速度。
+  double minFlingVelocity;
+
+  /// 释放速度的最大值。
+  double maxFlingVelocity;
+
+  _TransformSettings get _settings => (
+    startDistance: startDistance,
+    horizontalAngle: horizontalAngle,
+    minFlingDistance: minFlingDistance,
+    minFlingVelocity: minFlingVelocity,
+    maxFlingVelocity: maxFlingVelocity,
+  );
 
   /// El 冒泡父级；在一次指针序列开始时冻结路线。
   ElTransformGestureRecognizer? parent;
@@ -38,34 +64,34 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   bool lockAxis;
 
   /// 拖拽候选按下；此阶段尚未取得官方手势所有权。
-  ElEventHandler? onDragDown;
+  ElTransformGestureCallback? onDragDown;
 
   /// 拖拽超过阈值并取得官方所有权后调用，不补发阈值内位移。
-  ElEventHandler? onDragStart;
+  ElTransformGestureCallback? onDragStart;
 
   /// 已获胜拖拽的位移更新。
-  ElEventHandler? onDragUpdate;
+  ElTransformGestureCallback? onDragUpdate;
 
   /// 已获胜拖拽正常释放，速度按当前配置过滤并限幅。
-  ElEventHandler? onDragEnd;
+  ElTransformGestureCallback? onDragEnd;
 
   /// 拖拽候选落败、平台取消或识别器销毁。
-  ElEventHandler? onDragCancel;
+  ElTransformGestureCallback? onDragCancel;
 
   /// 至少两个已获胜触点或触控板开始变换。
-  ElEventHandler? onScaleStart;
+  ElTransformGestureCallback? onScaleStart;
 
   /// 缩放更新；只有声明缩放或旋转回调时才识别多指变换。
-  ElEventHandler? onScaleUpdate;
+  ElTransformGestureCallback? onScaleUpdate;
 
   /// 变换正常结束，剩余单指可继续原有拖拽。
-  ElEventHandler? onScaleEnd;
+  ElTransformGestureCallback? onScaleEnd;
 
   /// 变换被平台、竞技场或销毁取消。
-  ElEventHandler? onScaleCancel;
+  ElTransformGestureCallback? onScaleCancel;
 
   /// 旋转更新，弧度从本轮变换开始累计。
-  ElEventHandler? onRotationUpdate;
+  ElTransformGestureCallback? onRotationUpdate;
 
   _TransformSession? _session;
   bool _disposing = false;
@@ -74,37 +100,39 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   ElTransformGestureRecognizer? get _bubbleParent => parent;
 
   @override
-  ElEventHandler? _handlerFor(ElEventPhase phase) => switch (phase) {
-    ElEventPhase.dragDown => onDragDown,
-    ElEventPhase.dragStart => onDragStart,
-    ElEventPhase.dragUpdate => onDragUpdate,
-    ElEventPhase.dragEnd => onDragEnd,
-    ElEventPhase.dragCancel => onDragCancel,
-    ElEventPhase.scaleStart => onScaleStart,
-    ElEventPhase.scaleUpdate => onScaleUpdate,
-    ElEventPhase.scaleEnd => onScaleEnd,
-    ElEventPhase.scaleCancel => onScaleCancel,
-    ElEventPhase.rotationUpdate => onRotationUpdate,
-    _ => null,
-  };
+  _ElGestureCallback? _handlerFor(ElGesturePhase phase) {
+    final handler = switch (phase) {
+      ElGesturePhase.dragDown => onDragDown,
+      ElGesturePhase.dragStart => onDragStart,
+      ElGesturePhase.dragUpdate => onDragUpdate,
+      ElGesturePhase.dragEnd => onDragEnd,
+      ElGesturePhase.dragCancel => onDragCancel,
+      ElGesturePhase.scaleStart => onScaleStart,
+      ElGesturePhase.scaleUpdate => onScaleUpdate,
+      ElGesturePhase.scaleEnd => onScaleEnd,
+      ElGesturePhase.scaleCancel => onScaleCancel,
+      ElGesturePhase.rotationUpdate => onRotationUpdate,
+      _ => null,
+    };
+    return handler == null
+        ? null
+        : (details) => handler(details as ElTransformGestureDetails);
+  }
 
-  static const _dragPhases = <ElEventPhase>[
-    ElEventPhase.dragDown,
-    ElEventPhase.dragStart,
-    ElEventPhase.dragUpdate,
-    ElEventPhase.dragEnd,
-    ElEventPhase.dragCancel,
+  static const _dragPhases = <ElGesturePhase>[
+    ElGesturePhase.dragDown,
+    ElGesturePhase.dragStart,
+    ElGesturePhase.dragUpdate,
+    ElGesturePhase.dragEnd,
+    ElGesturePhase.dragCancel,
   ];
-  static const _scalePhases = <ElEventPhase>[
-    ElEventPhase.scaleStart,
-    ElEventPhase.scaleUpdate,
-    ElEventPhase.scaleEnd,
-    ElEventPhase.scaleCancel,
-    ElEventPhase.rotationUpdate,
+  static const _scalePhases = <ElGesturePhase>[
+    ElGesturePhase.scaleStart,
+    ElGesturePhase.scaleUpdate,
+    ElGesturePhase.scaleEnd,
+    ElGesturePhase.scaleCancel,
+    ElGesturePhase.rotationUpdate,
   ];
-
-  bool _allowsKind(PointerDeviceKind kind) =>
-      (_session?.config ?? config).dragDevices?.contains(kind) ?? true;
 
   bool get _hasHandlers =>
       _dragPhases.any(_hasHandlerInChain) ||
@@ -112,20 +140,16 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
 
   @override
   bool isPointerAllowed(PointerDownEvent event) {
-    if (_disposed || _disposing) return false;
+    if (_disposed || _disposing || _canceling) return false;
     if (_isDelegated(event.pointer)) return true;
-    return _allowsKind(event.kind) &&
-        _hasHandlers &&
-        super.isPointerAllowed(event);
+    return _hasHandlers && super.isPointerAllowed(event);
   }
 
   @override
   bool isPointerPanZoomAllowed(PointerPanZoomStartEvent event) {
-    if (_disposed || _disposing) return false;
+    if (_disposed || _disposing || _canceling) return false;
     if (_isDelegated(event.pointer)) return true;
-    return _allowsKind(event.kind) &&
-        _hasHandlers &&
-        super.isPointerPanZoomAllowed(event);
+    return _hasHandlers && super.isPointerPanZoomAllowed(event);
   }
 
   @override
@@ -154,19 +178,15 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       final route = _beginRoute(event);
       session = _TransformSession(
         route,
-        config.copyWith(
-          dragDevices: config.dragDevices == null
-              ? null
-              : Set<PointerDeviceKind>.of(config.dragDevices!),
-        ),
+        _settings,
         axis,
         lockAxis,
         _dragPhases.any((phase) => _routeHasHandler(route, phase)),
         _scalePhases.any((phase) => _routeHasHandler(route, phase)),
         _scalePhases
-            .where((phase) => phase != ElEventPhase.rotationUpdate)
+            .where((phase) => phase != ElGesturePhase.rotationUpdate)
             .any((phase) => _routeHasHandler(route, phase)),
-        _routeHasHandler(route, ElEventPhase.rotationUpdate),
+        _routeHasHandler(route, ElGesturePhase.rotationUpdate),
       );
       _session = session;
     } else {
@@ -186,7 +206,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       pointer.delivered = true;
       if (!session.downDispatched && session.hasDrag) {
         session.downDispatched = true;
-        _emit(session, ElEventPhase.dragDown, event);
+        _emit(session, ElGesturePhase.dragDown, event);
         if (!_isCurrent(session)) return;
       }
       if (session.dragStarted || session.scaleStarted) {
@@ -237,7 +257,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       final projected = _project(localDelta, session.acceptedAxis);
       final delta = _toGlobalDelta(event, pointer.localPosition, projected);
       session.dragOffset += delta;
-      _emit(session, ElEventPhase.dragUpdate, event, delta: delta);
+      _emit(session, ElGesturePhase.dragUpdate, event, delta: delta);
       if (!_isCurrent(session)) return;
     }
     if (wasScaling && session.scaleStarted) {
@@ -257,8 +277,10 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       final moved = pointer.localPosition - pointer.initialLocal;
       final candidateAxis =
           session.axis ??
-          (session.lockAxis ? _axisFor(moved, session.config) : null);
-      final intendedAxis = _axisFor(moved, session.config);
+          (session.lockAxis
+              ? _axisFor(moved, session.settings.horizontalAngle)
+              : null);
+      final intendedAxis = _axisFor(moved, session.settings.horizontalAngle);
       if (candidateAxis == null || candidateAxis == intendedAxis) {
         final projected = _project(moved, candidateAxis);
         final globalMoved = _toGlobalDelta(
@@ -267,14 +289,17 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
           projected,
         );
         final threshold =
-            session.config.dragStartDistance ??
+            session.settings.startDistance ??
             (candidateAxis == Axis.vertical || session.axis != null
                 ? computeHitSlop(event.kind, gestureSettings)
                 : computePanSlop(event.kind, gestureSettings));
         if (globalMoved.distance > threshold) {
           pointer.dragThresholdMet = true;
           pointer.candidateAxis = candidateAxis;
-          pointer.direction = _directionFor(moved, session.config);
+          pointer.direction = _directionFor(
+            moved,
+            session.settings.horizontalAngle,
+          );
           if (pointer.accepted) _acceptDragThreshold(session, pointer);
           resolvePointer(event.pointer, GestureDisposition.accepted);
         }
@@ -356,7 +381,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       for (final pointer in owned) {
         pointer.lastOutputLocal = pointer.localPosition;
       }
-      _emit(session, ElEventPhase.dragStart, event);
+      _emit(session, ElGesturePhase.dragStart, event);
       if (!_isCurrent(session)) return;
     }
     if (session.dragStarted &&
@@ -373,7 +398,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       session.rotation = 0;
       session.scaleVelocity = VelocityTracker.withKind(event.kind);
       _rebaseScale(session);
-      _emit(session, ElEventPhase.scaleStart, event);
+      _emit(session, ElGesturePhase.scaleStart, event);
     }
   }
 
@@ -399,9 +424,9 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       event.timeStamp,
       Offset(math.log(session.scale), 0),
     );
-    _emit(session, ElEventPhase.scaleUpdate, event, delta: delta);
+    _emit(session, ElGesturePhase.scaleUpdate, event, delta: delta);
     if (!_isCurrent(session)) return;
-    _emit(session, ElEventPhase.rotationUpdate, event, delta: delta);
+    _emit(session, ElGesturePhase.rotationUpdate, event, delta: delta);
   }
 
   void _rebaseScale(_TransformSession session) {
@@ -462,7 +487,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       session.scaleStarted = false;
       _emit(
         session,
-        canceled ? ElEventPhase.scaleCancel : ElEventPhase.scaleEnd,
+        canceled ? ElGesturePhase.scaleCancel : ElGesturePhase.scaleEnd,
         event,
       );
       if (!_isCurrent(session)) return;
@@ -495,7 +520,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     if (session.scaleStarted) {
       _emit(
         session,
-        canceled ? ElEventPhase.scaleCancel : ElEventPhase.scaleEnd,
+        canceled ? ElGesturePhase.scaleCancel : ElGesturePhase.scaleEnd,
         event,
       );
     }
@@ -503,7 +528,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       final end = !canceled && session.dragStarted;
       _emit(
         session,
-        end ? ElEventPhase.dragEnd : ElEventPhase.dragCancel,
+        end ? ElGesturePhase.dragEnd : ElGesturePhase.dragCancel,
         event,
         velocity: end && lastPointer != null
             ? _flingVelocity(session, lastPointer, event)
@@ -544,13 +569,13 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     var speed = _project(measuredSpeed, session.acceptedAxis);
     final distance = _project(measuredOffset, session.acceptedAxis).distance;
     final minDistance =
-        session.config.dragMinFlingDistance ??
+        session.settings.minFlingDistance ??
         computeHitSlop(pointer.down.kind, gestureSettings);
     if (distance <= minDistance ||
-        speed.distance <= session.config.dragMinFlingVelocity) {
+        speed.distance <= session.settings.minFlingVelocity) {
       return Velocity.zero;
     }
-    final maximum = session.config.dragMaxFlingVelocity;
+    final maximum = session.settings.maxFlingVelocity;
     if (speed.distance > maximum) speed = speed / speed.distance * maximum;
     return Velocity(
       pixelsPerSecond: _toGlobalDelta(event, pointer.localPosition, speed),
@@ -559,7 +584,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
 
   void _emit(
     _TransformSession session,
-    ElEventPhase phase,
+    ElGesturePhase phase,
     PointerEvent event, {
     Offset delta = Offset.zero,
     Velocity velocity = Velocity.zero,
@@ -572,52 +597,65 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
               session.lastDriverPosition ??
               event.position;
     if (!scalePhase) session.lastDriverPosition = position;
-    final localVelocity = PointerEvent.transformDeltaViaPositions(
-      transform: event.transform,
-      untransformedDelta: velocity.pixelsPerSecond,
-      untransformedEndPosition: position,
-    );
-    final primaryVelocity = switch (session.acceptedAxis) {
-      Axis.horizontal => localVelocity.dx,
-      Axis.vertical => localVelocity.dy,
-      null => null,
-    };
     _dispatchGesture(
       session.route,
-      ElEventCallback(
+      ElTransformGestureDetails(
         phase: phase,
         globalPosition: position,
-        localPosition: position,
         delta: delta,
-        localDelta: delta,
         dragOffset: session.dragOffset,
         dragDirection: session.direction,
         dragAxis: session.acceptedAxis,
         velocity: velocity,
-        primaryVelocity: primaryVelocity,
         pointerCount: geometry.count,
-        buttons: event.buttons,
         scale: session.scale,
         rotation: session.rotation,
         logScaleVelocity:
             session.scaleVelocity?.getVelocity().pixelsPerSecond.dx ?? 0,
         originalEvent: event,
-        sampleTimeStamp: event.timeStamp,
       ),
     );
   }
 
   @override
-  void _requestAccept(
-    _GestureRoute route, {
-    bool cancelSelfTap = false,
-    bool allowScaleUpgrade = false,
-  }) {
+  void _requestAccept(_GestureRoute route, int pointer) {
     final session = _session;
-    if (session == null || !identical(session.route, route)) return;
-    for (final pointer in session.pointers.keys.toList()) {
-      if (!_isCurrent(session)) return;
+    if (!_canceling &&
+        session != null &&
+        identical(session.route, route) &&
+        session.pointers.containsKey(pointer)) {
       resolvePointer(pointer, GestureDisposition.accepted);
+    }
+  }
+
+  @override
+  void _cancelRoutePointer(
+    _GestureRoute route,
+    int pointer,
+    PointerEvent? event,
+  ) {
+    final session = _session;
+    final tracked = session?.pointers[pointer];
+    if (session != null && tracked != null && identical(session.route, route)) {
+      _removePointer(session, tracked, event ?? tracked.event, canceled: true);
+    }
+  }
+
+  @override
+  void cancel() {
+    if (_disposed || _canceling) return;
+    _canceling = true;
+    try {
+      final session = _session;
+      if (session != null) {
+        _finishSession(
+          session,
+          session.pointers.values.last.event,
+          canceled: true,
+        );
+      }
+    } finally {
+      _canceling = false;
     }
   }
 
@@ -629,26 +667,19 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
 
   @override
   void dispose() {
-    if (_disposed || _disposing) return;
+    if (_disposed || _disposing || _canceling) return;
     _disposing = true;
-    final session = _session;
-    if (session != null) {
-      _finishSession(
-        session,
-        session.pointers.values.last.event,
-        canceled: true,
-      );
-    }
+    cancel();
     super.dispose();
   }
 
-  static Axis _axisFor(Offset delta, ElEventConfig config) =>
-      delta.dy.abs() <= delta.dx.abs() * math.tan(config.dragHorizontalAngle)
+  static Axis _axisFor(Offset delta, double horizontalAngle) =>
+      delta.dy.abs() <= delta.dx.abs() * math.tan(horizontalAngle)
       ? Axis.horizontal
       : Axis.vertical;
 
-  static AxisDirection _directionFor(Offset delta, ElEventConfig config) =>
-      switch (_axisFor(delta, config)) {
+  static AxisDirection _directionFor(Offset delta, double horizontalAngle) =>
+      switch (_axisFor(delta, horizontalAngle)) {
         Axis.horizontal =>
           delta.dx < 0 ? AxisDirection.left : AxisDirection.right,
         Axis.vertical => delta.dy < 0 ? AxisDirection.up : AxisDirection.down,
@@ -723,7 +754,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
 class _TransformSession {
   _TransformSession(
     this.route,
-    this.config,
+    this.settings,
     this.axis,
     this.lockAxis,
     this.hasDrag,
@@ -733,7 +764,7 @@ class _TransformSession {
   );
 
   final _GestureRoute route;
-  final ElEventConfig config;
+  final _TransformSettings settings;
   final Axis? axis;
   final bool lockAxis;
   final bool hasDrag;
@@ -816,3 +847,11 @@ class _TransformGeometry {
   final int count;
   final bool canScale;
 }
+
+typedef _TransformSettings = ({
+  double? startDistance,
+  double horizontalAngle,
+  double? minFlingDistance,
+  double minFlingVelocity,
+  double maxFlingVelocity,
+});

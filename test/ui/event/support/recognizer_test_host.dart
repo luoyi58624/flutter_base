@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/recognizers/recognizers.dart';
 
 /// 等待旧序列的长按与连击窗口全部结束。
 const afterGesture = Duration(milliseconds: 700);
@@ -26,14 +26,8 @@ ElPressGestureRecognizer recordingPress(
   List<String> events,
   String name, {
   ElPressGestureRecognizer? parent,
-  ElEventConfig config = const ElEventConfig(),
-  Offset Function(Offset)? globalToLocal,
 }) {
-  final recognizer = ElPressGestureRecognizer(
-    config: config,
-    parent: parent,
-    globalToLocal: globalToLocal,
-  );
+  final recognizer = ElPressGestureRecognizer(parent: parent);
   recognizer.onTapDown = (_) => events.add('$name.down');
   recognizer.onTapUp = (_) => events.add('$name.up');
   recognizer.onTap = (_) => events.add('$name.tap');
@@ -50,7 +44,7 @@ ElTransformGestureRecognizer recordingDrag(
   double distance = 6,
 }) {
   final recognizer = ElTransformGestureRecognizer(
-    config: ElEventConfig(dragStartDistance: distance),
+    startDistance: distance,
     parent: parent,
     axis: Axis.horizontal,
   );
@@ -61,12 +55,6 @@ ElTransformGestureRecognizer recordingDrag(
   recognizer.onDragCancel = (_) => events.add('$name.cancel');
   return recognizer;
 }
-
-/// 使用实际宿主的变换计算预期本地坐标。
-Offset hostLocal(GlobalKey key, Offset global) =>
-    (key.currentContext!.findRenderObject()! as RenderBox).globalToLocal(
-      global,
-    );
 
 /// 构造同一指针同时命中两个透明分支的真实场景。
 Widget overlapHost({

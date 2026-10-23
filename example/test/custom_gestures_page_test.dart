@@ -58,6 +58,30 @@ Future<void> _tap(WidgetTester tester, String key) async {
 }
 
 void main() {
+  testWidgets('元素范围由页面判断，范围内移动可点击而移出后主动取消', (tester) async {
+    await _pumpPage(tester);
+    final target = await _reveal(tester, 'gesture.basic.target');
+    final bounds = tester.getRect(target);
+    final inside = await tester.startGesture(
+      Offset(bounds.left + 10, bounds.center.dy),
+    );
+    await inside.moveTo(Offset(bounds.right - 10, bounds.center.dy));
+    await inside.up();
+    await tester.pump(_settledGesture);
+    expect(_count(tester, 'tap'), 1);
+    final outside = await tester.startGesture(bounds.center);
+    await outside.moveTo(Offset(bounds.right + 10, bounds.center.dy));
+    await tester.pump(const Duration(milliseconds: 600));
+    await outside.moveTo(bounds.center);
+    await outside.up();
+    await tester.pump(_settledGesture);
+    expect(_count(tester, 'tap'), 1);
+    expect(_count(tester, 'longPress'), 0);
+    await tester.tap(target);
+    await tester.pump(_settledGesture);
+    expect(_count(tester, 'tap'), 2);
+  });
+
   testWidgets('基础操作区直接显示单击、双击、三击和长按结果', (tester) async {
     await _pumpPage(tester);
     final target = await _reveal(tester, 'gesture.basic.target');

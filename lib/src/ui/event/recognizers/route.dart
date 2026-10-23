@@ -6,26 +6,45 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     super.debugOwner,
     super.supportedDevices,
     super.allowedButtonsFilter,
-    this.globalToLocal,
   });
-
-  /// 将全局位置换算到当前订阅者本地，缺省使用按下时的官方事件变换。
-  ///
-  /// 独立宿主可提供实时坐标换算；本方法不参与命中测试或竞技场裁决。
-  Offset Function(Offset globalPosition)? globalToLocal;
 
   final Map<int, _GestureRoute> _routes = <int, _GestureRoute>{};
   bool _disposed = false;
+  bool _canceling = false;
 
   _ElGestureRecognizer? get _bubbleParent;
 
-  ElEventHandler? _handlerFor(ElEventPhase phase);
+  _ElGestureCallback? _handlerFor(ElGesturePhase phase);
 
-  void _requestAccept(
-    _GestureRoute route, {
-    bool cancelSelfTap = false,
-    bool allowScaleUpgrade = false,
-  });
+  void _requestAccept(_GestureRoute route, int pointer);
+
+  void _cancelRoutePointer(
+    _GestureRoute route,
+    int pointer,
+    PointerEvent? event,
+  );
+
+  /// 请求接受指定指针的官方竞技场归属；不会覆盖已经确认的其他赢家。
+  void acceptPointer(int pointer) {
+    if (_disposed || _canceling) return;
+    final route = _routes[pointer];
+    if (route != null && route.active && !route.owner._disposed) {
+      route.owner._requestAccept(route, pointer);
+    }
+  }
+
+  /// 取消指定指针；宿主判断越界时可传入当前输入，不需要向识别器提供元素尺寸。
+  void cancelPointer(int pointer, {PointerEvent? event}) {
+    assert(event == null || event.pointer == pointer);
+    if (_disposed || _canceling) return;
+    final route = _routes[pointer];
+    if (route != null && route.active && !route.owner._disposed) {
+      route.owner._cancelRoutePointer(route, pointer, event);
+    }
+  }
+
+  /// 取消自身拥有的全部活动手势和待发通知，取消后仍可识别新序列。
+  void cancel();
 
   bool _isDelegated(int pointer) {
     final route = _routes[pointer];
@@ -88,10 +107,10 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     return result;
   }
 
-  bool _hasHandlerInChain(ElEventPhase phase) =>
+  bool _hasHandlerInChain(ElGesturePhase phase) =>
       _snapshotChain().any((member) => member._handlerFor(phase) != null);
 
-  bool _routeHasHandler(_GestureRoute route, ElEventPhase phase) {
+  bool _routeHasHandler(_GestureRoute route, ElGesturePhase phase) {
     if (!route.active) return false;
     final end = route.cutoffs[_familyFor(phase)] ?? route.members.length - 1;
     for (var index = 0; index <= end; index++) {
@@ -127,7 +146,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
 
   void _dispatchGesture(
     _GestureRoute route,
-    ElEventCallback callback, {
+    ElGestureDetails callback, {
     int firstMember = 0,
     int? lastMember,
   }) {
@@ -144,15 +163,6 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
       if (!candidate && lastMember == null) {
         end = math.min(end, route.observedEnds[family] ?? end);
       }
-      callback.updateEagerGestureHandler((_, cancelSelfTap, allowScaleUpgrade) {
-        if (!route.active || route.owner._disposed) return;
-        route.owner._requestAccept(
-          route,
-          cancelSelfTap: cancelSelfTap,
-          allowScaleUpgrade: allowScaleUpgrade,
-        );
-      });
-
       for (var index = firstMember; index <= end; index++) {
         // 同家族重入可能已取消当前阶段，不能再把旧 Down/Start 送给后续祖先。
         if (!route.active ||
@@ -165,24 +175,8 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
         final handler = member._handlerFor(callback.phase);
         if (handler == null) continue;
         member.invokeCallback<void>(callback.phase.name, () {
-          final originalEvent = callback.originalEvent;
-          final pointer = originalEvent is PointerEvent
-              ? originalEvent.pointer
-              : route.pointer;
-          final down = route.downEvents[member]?[pointer];
-          final resolver = member.globalToLocal;
-          Offset toLocal(Offset global) =>
-              resolver?.call(global) ??
-              PointerEvent.transformPosition(down?.transform, global);
-          Offset deltaToLocal(Offset delta) =>
-              toLocal(callback.globalPosition) -
-              toLocal(callback.globalPosition - delta);
-
-          callback
-            ..localPosition = toLocal(callback.globalPosition)
-            ..localDelta = deltaToLocal(callback.delta)
-            ..updateLocalDeltaResolver(deltaToLocal)
-            ..markCallbackInvoked();
+          final down = route.downEvents[member]?[callback.pointer];
+          callback._updateTransform(down?.transform);
           handler(callback);
         });
         // 终态是已公开生命周期的清理义务，不能由子回调吞掉祖先的唯一结算。
@@ -199,7 +193,8 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
           }
           if (_establishesBoundary(callback.phase)) {
             route.cutoffs[family] = index;
-            if (callback.phase == ElEventPhase.dragStart &&
+            final cancellation = _boundaryCancellation(callback);
+            if (cancellation != null &&
                 route.active &&
                 route.revisions[family] == revision) {
               final observed = route.observedEnds[family] ?? index;
@@ -207,16 +202,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
               if (observed > index) {
                 _dispatchGesture(
                   route,
-                  ElEventCallback(
-                    phase: ElEventPhase.dragCancel,
-                    globalPosition: callback.globalPosition,
-                    localPosition: callback.localPosition,
-                    dragOffset: callback.dragOffset,
-                    dragAxis: callback.dragAxis,
-                    dragDirection: callback.dragDirection,
-                    pointerCount: callback.pointerCount,
-                    originalEvent: callback.originalEvent,
-                  ),
+                  cancellation,
                   firstMember: index + 1,
                   lastMember: observed,
                 );
@@ -226,12 +212,6 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
           break;
         }
       }
-      // 回调可被业务保存；它不应通过闭包长期持有整条宿主路线。
-      final remainingLocalDelta = callback.remainingLocalDelta;
-      callback
-        ..updateEagerGestureHandler(null)
-        ..updateLocalDeltaResolver(null)
-        ..remainingLocalDelta = remainingLocalDelta;
     } finally {
       if (terminal) {
         route.terminalDispatchDepth--;
@@ -242,54 +222,81 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     }
   }
 
-  static bool _isTerminalPhase(ElEventPhase phase) => switch (phase) {
-    ElEventPhase.tapUp ||
-    ElEventPhase.secondaryTapUp ||
-    ElEventPhase.tertiaryTapUp ||
-    ElEventPhase.forwardTapUp ||
-    ElEventPhase.backTapUp ||
-    ElEventPhase.tapCancel ||
-    ElEventPhase.dragCancel ||
-    ElEventPhase.dragEnd ||
-    ElEventPhase.scaleCancel ||
-    ElEventPhase.scaleEnd => true,
+  static ElGestureDetails? _boundaryCancellation(ElGestureDetails details) {
+    if (details is ElTransformGestureDetails &&
+        details.phase == ElGesturePhase.dragStart) {
+      return ElTransformGestureDetails(
+        phase: ElGesturePhase.dragCancel,
+        globalPosition: details.globalPosition,
+        dragOffset: details.dragOffset,
+        dragAxis: details.dragAxis,
+        dragDirection: details.dragDirection,
+        pointerCount: details.pointerCount,
+        originalEvent: details.originalEvent,
+      );
+    }
+    if (details is ElPressGestureDetails &&
+        (details.phase == ElGesturePhase.doubleTapDown ||
+            details.phase == ElGesturePhase.tripleTapDown)) {
+      return ElPressGestureDetails(
+        phase: ElGesturePhase.tapCancel,
+        globalPosition: details.globalPosition,
+        originalEvent: details.originalEvent,
+        buttons: details.buttons,
+        cancelReason: ElGestureCancelReason.canceled,
+      );
+    }
+    return null;
+  }
+
+  static bool _isTerminalPhase(ElGesturePhase phase) => switch (phase) {
+    ElGesturePhase.tapUp ||
+    ElGesturePhase.secondaryTapUp ||
+    ElGesturePhase.tertiaryTapUp ||
+    ElGesturePhase.forwardTapUp ||
+    ElGesturePhase.backTapUp ||
+    ElGesturePhase.tapCancel ||
+    ElGesturePhase.dragCancel ||
+    ElGesturePhase.dragEnd ||
+    ElGesturePhase.scaleCancel ||
+    ElGesturePhase.scaleEnd => true,
     _ => false,
   };
 
-  static bool _isCandidatePhase(ElEventPhase phase) => switch (phase) {
-    ElEventPhase.tapDown ||
-    ElEventPhase.secondaryTapDown ||
-    ElEventPhase.tertiaryTapDown ||
-    ElEventPhase.forwardTapDown ||
-    ElEventPhase.backTapDown ||
-    ElEventPhase.dragDown ||
-    ElEventPhase.scaleStart => true,
+  static bool _isCandidatePhase(ElGesturePhase phase) => switch (phase) {
+    ElGesturePhase.tapDown ||
+    ElGesturePhase.secondaryTapDown ||
+    ElGesturePhase.tertiaryTapDown ||
+    ElGesturePhase.forwardTapDown ||
+    ElGesturePhase.backTapDown ||
+    ElGesturePhase.dragDown ||
+    ElGesturePhase.scaleStart => true,
     _ => false,
   };
 
-  static bool _establishesBoundary(ElEventPhase phase) => switch (phase) {
-    ElEventPhase.tapCancel ||
-    ElEventPhase.dragCancel ||
-    ElEventPhase.dragEnd ||
-    ElEventPhase.dragUpdate ||
-    ElEventPhase.scaleCancel ||
-    ElEventPhase.scaleEnd ||
-    ElEventPhase.scaleUpdate ||
-    ElEventPhase.rotationUpdate => false,
+  static bool _establishesBoundary(ElGesturePhase phase) => switch (phase) {
+    ElGesturePhase.tapCancel ||
+    ElGesturePhase.dragCancel ||
+    ElGesturePhase.dragEnd ||
+    ElGesturePhase.dragUpdate ||
+    ElGesturePhase.scaleCancel ||
+    ElGesturePhase.scaleEnd ||
+    ElGesturePhase.scaleUpdate ||
+    ElGesturePhase.rotationUpdate => false,
     _ => true,
   };
 
-  static _GestureFamily _familyFor(ElEventPhase phase) => switch (phase) {
-    ElEventPhase.dragDown ||
-    ElEventPhase.dragStart ||
-    ElEventPhase.dragUpdate ||
-    ElEventPhase.dragEnd ||
-    ElEventPhase.dragCancel => _GestureFamily.drag,
-    ElEventPhase.scaleStart ||
-    ElEventPhase.scaleUpdate ||
-    ElEventPhase.scaleEnd ||
-    ElEventPhase.scaleCancel ||
-    ElEventPhase.rotationUpdate => _GestureFamily.scale,
+  static _GestureFamily _familyFor(ElGesturePhase phase) => switch (phase) {
+    ElGesturePhase.dragDown ||
+    ElGesturePhase.dragStart ||
+    ElGesturePhase.dragUpdate ||
+    ElGesturePhase.dragEnd ||
+    ElGesturePhase.dragCancel => _GestureFamily.drag,
+    ElGesturePhase.scaleStart ||
+    ElGesturePhase.scaleUpdate ||
+    ElGesturePhase.scaleEnd ||
+    ElGesturePhase.scaleCancel ||
+    ElGesturePhase.rotationUpdate => _GestureFamily.scale,
     _ => _GestureFamily.press,
   };
 

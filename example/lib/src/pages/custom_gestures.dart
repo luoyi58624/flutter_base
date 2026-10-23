@@ -55,22 +55,10 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     String? tapCounter,
     ElPressGestureRecognizer? parent,
   }) {
-    final key = _bounds.putIfAbsent(source, () => GlobalKey());
-    RenderBox? box() {
-      final render = key.currentContext?.findRenderObject();
-      return render is RenderBox && render.attached && render.hasSize
-          ? render
-          : null;
-    }
-
+    _bounds.putIfAbsent(source, () => GlobalKey());
     return ElPressGestureRecognizer(
         parent: parent,
-        hitTest: (global) {
-          final render = box();
-          return render != null &&
-              render.size.contains(render.globalToLocal(global));
-        },
-        globalToLocal: (global) => box()?.globalToLocal(global) ?? global,
+        tapSlopTolerance: double.infinity,
       )
       ..onTapDown = _handler(source, pressed: true)
       ..onTapUp = _handler(source, pressed: false)
@@ -82,13 +70,17 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       );
   }
 
-  ElEventHandler _handler(String source, {bool? pressed, String? counter}) =>
+  ElPressGestureCallback _handler(
+    String source, {
+    bool? pressed,
+    String? counter,
+  }) =>
       (event) =>
           _recordEvent(source, event, pressed: pressed, counter: counter);
 
   void _createRecognizers() {
     _basic = _press('basic', tapCounter: 'tap')
-      ..config = ElEventConfig(deferTap: _deferSingle)
+      ..deferTap = _deferSingle
       ..onDoubleTapDown = _handler('basic')
       ..onTripleTapDown = _handler('basic')
       ..onDoubleTap = _handler('basic', counter: 'doubleTap')
@@ -138,7 +130,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   void _recordEvent(
     String source,
-    ElEventCallback event, {
+    ElPressGestureDetails event, {
     bool? pressed,
     String? counter,
   }) => _record(
@@ -149,11 +141,11 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     position: event.localPosition,
     taps: event.tapCount,
     cancelReason: switch (event.cancelReason) {
-      ElEventCancelReason.selfGestureAccepted => '本节点其他手势已成立',
-      ElEventCancelReason.otherGestureAccepted => '其他手势取得所有权',
-      ElEventCancelReason.tapRejected => '超出点击范围或识别条件',
-      ElEventCancelReason.pointerCanceled => '平台取消指针',
-      ElEventCancelReason.external => '识别器生命周期结束',
+      ElGestureCancelReason.longPressAccepted => '长按已成立',
+      ElGestureCancelReason.arenaRejected => '其他手势取得所有权',
+      ElGestureCancelReason.rejected => '移动、按钮或指针条件不满足',
+      ElGestureCancelReason.pointerCanceled => '平台取消指针',
+      ElGestureCancelReason.canceled => '宿主取消或生命周期结束',
       null => null,
     },
   );
@@ -375,7 +367,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
         value: _deferSingle,
         onChanged: (value) => setState(() {
           _deferSingle = value;
-          _basic.config = ElEventConfig(deferTap: value);
+          _basic.deferTap = value;
         }),
       ),
     ],
@@ -518,6 +510,20 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     ],
   );
 
+  void _cancelOutside(
+    String source,
+    ElPressGestureRecognizer recognizer,
+    PointerEvent event,
+  ) {
+    final render = _bounds[source]?.currentContext?.findRenderObject();
+    if (render is! RenderBox ||
+        !render.attached ||
+        !render.hasSize ||
+        !render.size.contains(render.globalToLocal(event.position))) {
+      recognizer.cancelPointer(event.pointer, event: event);
+    }
+  }
+
   Widget _surface(
     String source,
     ElPressGestureRecognizer recognizer, {
@@ -528,8 +534,10 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     child: Listener(
       key: _bounds[source],
       behavior: HitTestBehavior.opaque,
-      // 仅登记按下，后续移动、抬起及取消由官方 PointerRouter 投递。
+      // 宿主负责元素范围，识别器负责后续输入和竞技场，不读取 RenderBox。
       onPointerDown: recognizer.addPointer,
+      onPointerMove: (event) => _cancelOutside(source, recognizer, event),
+      onPointerUp: (event) => _cancelOutside(source, recognizer, event),
       child: KeyedSubtree(
         key: targetKey == null ? null : ValueKey(targetKey),
         child: child,
