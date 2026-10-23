@@ -4,7 +4,12 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, internal, precisionErrorTolerance, visibleForTesting;
+    show
+        TargetPlatform,
+        ValueChanged,
+        internal,
+        precisionErrorTolerance,
+        visibleForTesting;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -57,6 +62,18 @@ class ElEventDispatcher {
       _configCascadeEpoch++;
     }
   }
+
+  /// 主键按压反馈变化通知，仅报告交互状态，不依赖样式模块。
+  @internal
+  ValueChanged<bool>? onTapChanged;
+
+  /// 已识别长按状态的变化通知，不会单独启用长按识别。
+  @internal
+  ValueChanged<bool>? onLongPressChanged;
+
+  /// 已识别拖拽状态的变化通知，不会单独启用拖拽识别。
+  @internal
+  ValueChanged<bool>? onDragChanged;
 
   /// 全局注册表：从任意 [RenderBox] 找到其 dispatcher（用于链收集）。
   static final Expando<ElEventDispatcher> _registry =
@@ -191,6 +208,7 @@ class ElEventDispatcher {
 
   final RenderBox _owner;
   final bool _registered;
+  bool _disposed = false;
 
   ElEvent? _event;
   bool _cachedHasAnyCallback = false;
@@ -249,6 +267,7 @@ class ElEventDispatcher {
   ElEvent? get event => _event;
 
   set event(ElEvent? value) {
+    if (_disposed) return;
     final current = _event;
     if (identical(current, value)) return;
     if (!disabled && value?.disabled == true) {
@@ -445,13 +464,13 @@ class ElEventDispatcher {
 
   /// 是否需要实例化主指针 tap 机（[_feedDown] 惰性创建的门槛）。
   ///
-  /// 仅当宿主声明 tap 家族回调（tap / 连击 / 长按 / tapCancel）时创建，
-  /// 只挂 drag / raw 回调的宿主不为每次按下分配 tap 机。
+  /// 宿主声明 tap 家族回调或订阅按压状态时创建，状态订阅不必声明 onTap。
   /// 代价（已接受，与官方"mid-press 新增 recognizer 不追溯"语义对齐）：down
   /// 时不满足条件的宿主在同一次按压中途经结构替换获得 tap / drag 回调时，
   /// 没有 tap 候选可判——tap 不触发；drag 的 seedForActivePrimaryIfNeeded
   /// 因无 _downEvent 快照而无法补种。下一次按下起恢复正常。
   bool get _needsTapMachine {
+    if (onTapChanged != null) return true;
     final event = _event;
     if (event == null) return false;
     return event.onTapDown != null ||
@@ -546,6 +565,132 @@ class ElEventDispatcher {
   // ---------------------------------------------------------------------------
 
   Offset _lastPointerPosition = Offset.zero;
+
+  bool _isTapPressed = false;
+  bool _isLongPressed = false;
+  bool _isDragged = false;
+  int _tapStateRevision = 0;
+  int _longPressStateRevision = 0;
+  int _dragStateRevision = 0;
+  int _tapFeedbackRevision = 0;
+  Timer? _tapStyleTimer;
+  Timer? _touchFeedbackTimer;
+
+  /// 当前按压反馈；触摸可延迟点亮或在抬手后短暂保留。
+  bool get isTapPressed => _isTapPressed;
+
+  /// 当前是否为已识别且尚未结束的长按。
+  bool get isLongPressed => _isLongPressed;
+
+  /// 当前是否为已公开开始且尚未结束或取消的拖拽。
+  bool get isDragged => _isDragged;
+
+  /// 最短反馈从物理按下起算，拖出后返回不重新延长截止时间。
+  void _beginTapPressed() {
+    _setTapPressedImmediate(false);
+    final tap = _tapMachine;
+    final seq = tap?._seq;
+    final feedbackRevision = ++_tapFeedbackRevision;
+    if (tap?._kind == PointerDeviceKind.touch) {
+      final minimum = config.delayTouchUp;
+      if (minimum > Duration.zero) {
+        _touchFeedbackTimer = Timer(minimum, () {
+          if (_tapFeedbackRevision != feedbackRevision) return;
+          _touchFeedbackTimer = null;
+          // 正常抬手已清除候选；仍在按压时只结束最短保留窗口。
+          if (_tapMachine?.tracking != true) _setTapPressedImmediate(false);
+        });
+      }
+    }
+    if (tap == null || seq == null || !identical(tap._seq, seq)) return;
+    _setTapPressed(true);
+  }
+
+  /// 延迟只作用于触摸反馈，手势业务回调沿用原时序。
+  void _setTapPressed(bool value) {
+    _tapStyleTimer?.cancel();
+    _tapStyleTimer = null;
+    if (!value) {
+      _setTapPressedImmediate(false, preserveTouchFeedback: true);
+      return;
+    }
+    if (_isTapPressed) return;
+    final tap = _tapMachine;
+    final seq = tap?._seq;
+    final feedbackRevision = _tapFeedbackRevision;
+    final delay = tap?._kind == PointerDeviceKind.touch
+        ? config.delayTouchDown
+        : Duration.zero;
+    if (delay > Duration.zero && tap != null && seq != null) {
+      _tapStyleTimer = Timer(delay, () {
+        if (_tapFeedbackRevision != feedbackRevision ||
+            !identical(_tapMachine, tap) ||
+            !identical(tap._seq, seq) ||
+            tap._canceled ||
+            tap._outsideBounds ||
+            disabled ||
+            !_memberActive(seq, this)) {
+          return;
+        }
+        _tapStyleTimer = null;
+        _setTapPressedImmediate(true);
+      });
+      return;
+    }
+    _setTapPressedImmediate(true);
+  }
+
+  /// 正常抬手只延续已经亮起的反馈，不补播短于进入延迟的轻触。
+  void _releaseTapPressed({required bool retainFeedback}) {
+    _tapStyleTimer?.cancel();
+    _tapStyleTimer = null;
+    if (retainFeedback &&
+        _isTapPressed &&
+        _touchFeedbackTimer?.isActive == true) {
+      return;
+    }
+    _setTapPressedImmediate(false);
+  }
+
+  void _setTapPressedImmediate(
+    bool value, {
+    bool preserveTouchFeedback = false,
+  }) {
+    _tapStyleTimer?.cancel();
+    _tapStyleTimer = null;
+    if (!value && !preserveTouchFeedback) {
+      _tapFeedbackRevision++;
+      _touchFeedbackTimer?.cancel();
+      _touchFeedbackTimer = null;
+    }
+    if (_isTapPressed == value) return;
+    _isTapPressed = value;
+    final revision = ++_tapStateRevision;
+    if (onTapChanged == null) return;
+    _DispatchCycle.afterCurrentCycle(() {
+      if (_tapStateRevision == revision) onTapChanged?.call(value);
+    });
+  }
+
+  void _setLongPressedImmediate(bool value) {
+    if (_isLongPressed == value) return;
+    _isLongPressed = value;
+    final revision = ++_longPressStateRevision;
+    if (onLongPressChanged == null) return;
+    _DispatchCycle.afterCurrentCycle(() {
+      if (_longPressStateRevision == revision) onLongPressChanged?.call(value);
+    });
+  }
+
+  void _setDraggedImmediate(bool value) {
+    if (_isDragged == value) return;
+    _isDragged = value;
+    final revision = ++_dragStateRevision;
+    if (onDragChanged == null) return;
+    _DispatchCycle.afterCurrentCycle(() {
+      if (_dragStateRevision == revision) onDragChanged?.call(value);
+    });
+  }
 
   /// 当前是否仍有指针、拖拽、缩放或触控板手势进行中。
   ///
@@ -655,8 +800,9 @@ class ElEventDispatcher {
   // Hit-test & 事件入口
   // ===========================================================================
 
-  /// 命中测试：节点声明任意事件回调时返回 `true`。
-  bool hitTestSelf(Offset position) => _cachedHasAnyCallback;
+  /// 声明事件回调或订阅按压反馈时参与命中测试。
+  bool hitTestSelf(Offset position) =>
+      _cachedHasAnyCallback || onTapChanged != null;
 
   /// 处理 pointer 事件。由宿主 [RenderBox.handleEvent] 转发。
   ///
@@ -1576,6 +1722,7 @@ class ElEventDispatcher {
     if (tap != null && tap._pointer == seq.pointer && !tap._canceled) {
       tap._canceled = true;
       tap._clearDeferredTap();
+      _setTapPressedImmediate(false);
     }
   }
 
@@ -1885,7 +2032,7 @@ class ElEventDispatcher {
     int? endIndexExclusive,
   }) {
     if (!_canFire) return;
-
+    _setDraggedImmediate(true);
     final localDelta = _localDeltaFor(_owner, event.position, delta);
     final remainingLocalDelta = _localDeltaFor(
       _owner,
@@ -1949,6 +2096,7 @@ class ElEventDispatcher {
     bool selfOnly = false,
   }) {
     if (!_canFire) return;
+    if (phase == ElEventPhase.dragCancel) _setDraggedImmediate(false);
     final coordinatesUnavailable = _terminalCoordinatesUnavailable(_owner);
     final localDelta = coordinatesUnavailable
         ? delta
@@ -1992,6 +2140,7 @@ class ElEventDispatcher {
     bool selfOnly = false,
   }) {
     if (!_canFire) return;
+    if (phase == ElEventPhase.dragEnd) _setDraggedImmediate(false);
     final coordinatesUnavailable = _terminalCoordinatesUnavailable(_owner);
     final primaryVelocity = phase == ElEventPhase.dragEnd
         ? _primaryDragVelocity(velocity, dragAxis)
@@ -2323,6 +2472,7 @@ class ElEventDispatcher {
           : member._handlerFor(phase, callback.dragAxis);
       if (isDragTerminal) {
         seq.takeOutstandingDragStartRoute(member, callback.dragAxis);
+        member._setDraggedImmediate(false);
       }
       if (handler != null) {
         if (phase == ElEventPhase.dragStart &&
@@ -2356,6 +2506,7 @@ class ElEventDispatcher {
         }
         callback.markCallbackInvoked();
         if (phase == ElEventPhase.dragStart) {
+          member._setDraggedImmediate(true);
           seq.markDragStartRouteObserved(
             member,
             callback.dragAxis,
@@ -3153,6 +3304,8 @@ class ElEventDispatcher {
         _cancelActivePanZoom(originalEvent: event);
         if (_configGeneration != cancelGeneration) return;
         _clearSideMachines();
+        _setTapPressedImmediate(false);
+        _setLongPressedImmediate(false);
       } finally {
         _terminalFiresImmediate = previousImmediate;
       }
@@ -3173,7 +3326,11 @@ class ElEventDispatcher {
       _passiveDragPipeline?.driver.cancelAllPendingAtLastPosition();
 
   /// 释放资源。宿主 RenderBox 在 dispose / event = null 时调用。
-  void dispose() {
+  void dispose() => _DispatchCycle.run(_dispose);
+
+  void _dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _terminateOwnedPointerSequences();
     _cancelPassiveDragPipeline();
     _DispatchCycle.run(() {
@@ -3201,6 +3358,10 @@ class ElEventDispatcher {
     _backMachine = null;
     _PointerSequenceRegistry.evict(this);
 
+    _setTapPressedImmediate(false);
+    _setLongPressedImmediate(false);
+    _setDraggedImmediate(false);
+
     _event = null;
     _cachedHasAnyCallback = false;
     if (_registered) {
@@ -3224,7 +3385,10 @@ class ElEventDispatcher {
   /// 解除注册与计时器；普通等待态静默清理，已接管复合资源的拖拽先派发取消。
   ///
   /// GlobalKey 重挂等暂时离树场景传入 preserveEvent，保留配置与在途指针状态。
-  void detach({bool preserveEvent = false}) {
+  void detach({bool preserveEvent = false}) =>
+      _DispatchCycle.run(() => _detach(preserveEvent: preserveEvent));
+
+  void _detach({required bool preserveEvent}) {
     // 重挂：宿主只是暂时离树，同帧会 attach 回来，元素与手势账都还在。
     // 在途拖拽 / 按压 / 长按一律原样保留，这里什么都不结算。
     // 真正销毁时的取消统一由 dispose 派发终态。
@@ -3250,6 +3414,10 @@ class ElEventDispatcher {
     _panZoomPointerId = null;
     _lastPanZoomPosition = null;
     _PointerSequenceRegistry.evict(this);
+
+    _setTapPressedImmediate(false);
+    _setLongPressedImmediate(false);
+    _setDraggedImmediate(false);
 
     if (!preserveEvent) {
       _event = null;

@@ -24,17 +24,20 @@ void main() {
         onTap: (event) => phases.add('old:${event.phase.name}'),
       );
     addTearDown(dispatcher.dispose);
+    try {
+      dispatcher.handleEvent(
+        const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
+      );
+      dispatcher.handleEvent(
+        const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
+      );
 
-    dispatcher.handleEvent(
-      const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-    dispatcher.handleEvent(
-      const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-
-    expect(phases, <String>['old:tapUp']);
+      expect(phases, <String>['old:tapUp']);
+    } finally {
+      dispatcher.dispose();
+    }
   });
 
   testWidgets('pointerUp replacing event does not fire tap into replacement', (
@@ -58,18 +61,21 @@ void main() {
         onTap: (event) => phases.add('old:${event.phase.name}'),
       );
     addTearDown(dispatcher.dispose);
+    try {
+      dispatcher.handleEvent(
+        const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
+      );
+      dispatcher.handleEvent(
+        const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
+      );
 
-    dispatcher.handleEvent(
-      const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-    dispatcher.handleEvent(
-      const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-
-    expect(phases, <String>['old:pointerUp']);
-    expect(dispatcher.activePointerCount, 0);
+      expect(phases, <String>['old:pointerUp']);
+      expect(dispatcher.activePointerCount, 0);
+    } finally {
+      dispatcher.dispose();
+    }
   });
 
   testWidgets(
@@ -95,27 +101,30 @@ void main() {
           onTap: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerMoveEvent(
+            pointer: 1,
+            position: Offset(4, 0),
+            delta: Offset(4, 0),
+            timeStamp: Duration(milliseconds: 16),
+          ),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerUpEvent(pointer: 1, position: Offset(4, 0)),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(4, 0),
-          delta: Offset(4, 0),
-          timeStamp: Duration(milliseconds: 16),
-        ),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerUpEvent(pointer: 1, position: Offset(4, 0)),
-        entry,
-      );
-
-      expect(phases, <String>['old:pointerMove']);
-      expect(dispatcher.activePointerCount, 0);
+        expect(phases, <String>['old:pointerMove']);
+        expect(dispatcher.activePointerCount, 0);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -138,18 +147,21 @@ void main() {
           onTapCancel: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerCancelEvent(pointer: 1, position: Offset(20, 20)),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerCancelEvent(pointer: 1, position: Offset(20, 20)),
-        entry,
-      );
-
-      expect(phases, <String>['old:pointerCancel']);
-      expect(dispatcher.activePointerCount, 0);
+        expect(phases, <String>['old:pointerCancel']);
+        expect(dispatcher.activePointerCount, 0);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -175,20 +187,23 @@ void main() {
           onPointerPanZoomEnd: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
-        entry,
-      );
+        dispatcher.event = null;
 
-      dispatcher.event = null;
-
-      expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
-      expect(dispatcher.event, isNotNull);
+        expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
+        expect(dispatcher.event, isNotNull);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -214,26 +229,29 @@ void main() {
           onPointerPanZoomEnd: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
-        entry,
-      );
+        dispatcher.cancelAllPending(
+          const PointerMoveEvent(
+            pointer: 1,
+            position: Offset(4, 0),
+            delta: Offset(4, 0),
+          ),
+        );
 
-      dispatcher.cancelAllPending(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(4, 0),
-          delta: Offset(4, 0),
-        ),
-      );
-
-      expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
-      expect(dispatcher.event, isNotNull);
+        expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
+        expect(dispatcher.event, isNotNull);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -258,26 +276,29 @@ void main() {
           onDragStart: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerMoveEvent(
+            pointer: 1,
+            position: Offset(4, 0),
+            delta: Offset(4, 0),
+            timeStamp: Duration(milliseconds: 16),
+          ),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(4, 0),
-          delta: Offset(4, 0),
-          timeStamp: Duration(milliseconds: 16),
-        ),
-        entry,
-      );
-
-      expect(phases, <String>['old:dragStart']);
-      dispatcher.handleEvent(
-        PointerUpEvent(pointer: 1, position: Offset(4, 0)),
-        entry,
-      );
+        expect(phases, <String>['old:dragStart']);
+        dispatcher.handleEvent(
+          PointerUpEvent(pointer: 1, position: Offset(4, 0)),
+          entry,
+        );
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -306,15 +327,18 @@ void main() {
           onLongPress: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        _dispatch(
+          dispatcher,
+          entry,
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+        );
+        await tester.pump(const Duration(milliseconds: 40));
 
-      _dispatch(
-        dispatcher,
-        entry,
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-      );
-      await tester.pump(const Duration(milliseconds: 40));
-
-      expect(phases, <String>['old:pointerDown']);
+        expect(phases, <String>['old:pointerDown']);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -339,24 +363,27 @@ void main() {
           onScaleStart: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(pointer: 1, position: Offset.zero),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerMoveEvent(
+            pointer: 1,
+            position: Offset(4, 0),
+            delta: Offset(4, 0),
+            timeStamp: Duration(milliseconds: 16),
+          ),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(pointer: 1, position: Offset.zero),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(4, 0),
-          delta: Offset(4, 0),
-          timeStamp: Duration(milliseconds: 16),
-        ),
-        entry,
-      );
+        dispatcher.debugHandleScaleStartForTest(const Offset(4, 0));
 
-      dispatcher.debugHandleScaleStartForTest(const Offset(4, 0));
-
-      expect(phases, <String>['old:dragStart', 'old:dragCancel']);
+        expect(phases, <String>['old:dragStart', 'old:dragCancel']);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -380,26 +407,29 @@ void main() {
           onForwardTap: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        dispatcher.handleEvent(
+          const PointerDownEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+            buttons: kForwardMouseButton,
+          ),
+          entry,
+        );
+        dispatcher.handleEvent(
+          const PointerUpEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+          ),
+          entry,
+        );
 
-      dispatcher.handleEvent(
-        const PointerDownEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-          buttons: kForwardMouseButton,
-        ),
-        entry,
-      );
-      dispatcher.handleEvent(
-        const PointerUpEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-        ),
-        entry,
-      );
-
-      expect(phases, <String>['old:forwardTapDown', 'old:forwardTapUp']);
+        expect(phases, <String>['old:forwardTapDown', 'old:forwardTapUp']);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -423,28 +453,31 @@ void main() {
           onSecondaryTap: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        _dispatch(
+          dispatcher,
+          entry,
+          const PointerDownEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+            buttons: kSecondaryButton,
+          ),
+        );
+        _dispatch(
+          dispatcher,
+          entry,
+          const PointerUpEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+          ),
+        );
 
-      _dispatch(
-        dispatcher,
-        entry,
-        const PointerDownEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-          buttons: kSecondaryButton,
-        ),
-      );
-      _dispatch(
-        dispatcher,
-        entry,
-        const PointerUpEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-        ),
-      );
-
-      expect(phases, <String>['old:secondaryTapDown', 'old:secondaryTapUp']);
+        expect(phases, <String>['old:secondaryTapDown', 'old:secondaryTapUp']);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -468,28 +501,31 @@ void main() {
           onTertiaryTap: (event) => phases.add('old:${event.phase.name}'),
         );
       addTearDown(dispatcher.dispose);
+      try {
+        _dispatch(
+          dispatcher,
+          entry,
+          const PointerDownEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+            buttons: kTertiaryButton,
+          ),
+        );
+        _dispatch(
+          dispatcher,
+          entry,
+          const PointerUpEvent(
+            pointer: 1,
+            position: Offset(10, 10),
+            kind: PointerDeviceKind.mouse,
+          ),
+        );
 
-      _dispatch(
-        dispatcher,
-        entry,
-        const PointerDownEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-          buttons: kTertiaryButton,
-        ),
-      );
-      _dispatch(
-        dispatcher,
-        entry,
-        const PointerUpEvent(
-          pointer: 1,
-          position: Offset(10, 10),
-          kind: PointerDeviceKind.mouse,
-        ),
-      );
-
-      expect(phases, <String>['old:tertiaryTapDown', 'old:tertiaryTapUp']);
+        expect(phases, <String>['old:tertiaryTapDown', 'old:tertiaryTapUp']);
+      } finally {
+        dispatcher.dispose();
+      }
     },
   );
 
@@ -545,28 +581,35 @@ void main() {
       );
     addTearDown(childDispatcher.dispose);
     addTearDown(parentDispatcher.dispose);
+    try {
+      const down = PointerDownEvent(pointer: 42, position: Offset(10, 20));
+      childDispatcher.handleEvent(
+        down,
+        BoxHitTestEntry(pair.child, Offset.zero),
+      );
+      parentDispatcher.handleEvent(
+        down,
+        BoxHitTestEntry(pair.parent, Offset.zero),
+      );
+      childDispatcher.handleEvent(
+        const PointerMoveEvent(
+          pointer: 42,
+          position: Offset(20, 20),
+          delta: Offset(10, 0),
+        ),
+        BoxHitTestEntry(pair.child, Offset.zero),
+      );
 
-    const down = PointerDownEvent(pointer: 42, position: Offset(10, 20));
-    childDispatcher.handleEvent(down, BoxHitTestEntry(pair.child, Offset.zero));
-    parentDispatcher.handleEvent(
-      down,
-      BoxHitTestEntry(pair.parent, Offset.zero),
-    );
-    childDispatcher.handleEvent(
-      const PointerMoveEvent(
-        pointer: 42,
-        position: Offset(20, 20),
-        delta: Offset(10, 0),
-      ),
-      BoxHitTestEntry(pair.child, Offset.zero),
-    );
-
-    expect(childMoves, 1);
-    expect(
-      parentMoves,
-      0,
-      reason: 'high-frequency pointerMove must not bubble back into the scroll hot path',
-    );
+      expect(childMoves, 1);
+      expect(
+        parentMoves,
+        0,
+        reason: 'high-frequency pointerMove must not bubble back into the scroll hot path',
+      );
+    } finally {
+      parentDispatcher.dispose();
+      childDispatcher.dispose();
+    }
   });
 
   test(

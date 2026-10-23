@@ -1355,6 +1355,7 @@ final class _DispatchCycle {
   static final _DispatchCycle _rootCycle = _DispatchCycle._();
 
   final List<_QueuedDelivery> _queue = <_QueuedDelivery>[];
+  List<void Function()> _afterCycle = <void Function()>[];
   bool _flushing = false;
 
   /// 入口包装：handleEvent / 定时器 / cancelAllPending / set event。
@@ -1365,14 +1366,34 @@ final class _DispatchCycle {
       return;
     }
     final cycle = _current = _rootCycle;
+    List<void Function()> notifications = const <void Function()>[];
     try {
       body();
       cycle._flush();
+      // 先转移通知并清空单例，再退出当前周期，通知中的重入可安全复用单例。
+      if (cycle._afterCycle.isNotEmpty) {
+        notifications = cycle._afterCycle;
+        cycle._afterCycle = <void Function()>[];
+      }
     } finally {
       _current = null;
       if (cycle._queue.isNotEmpty) cycle._queue.clear();
+      cycle._afterCycle.clear();
       cycle._flushing = false;
     }
+    for (final notify in notifications) {
+      notify();
+    }
+  }
+
+  /// 状态位同步更新，但副作用通知须等机器迁移及旧语义终态投递完毕。
+  static void afterCurrentCycle(void Function() action) {
+    final cycle = _current;
+    if (cycle == null) {
+      action();
+      return;
+    }
+    cycle._afterCycle.add(action);
   }
 
   static void enqueue(_QueuedDelivery delivery) {

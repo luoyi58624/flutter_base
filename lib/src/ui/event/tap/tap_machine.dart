@@ -79,6 +79,8 @@ final class _TapMachine {
     _longPressFired = false;
     _longPressSlopExceeded = false;
     _outsideBounds = false;
+    host._setLongPressedImmediate(false);
+    host._beginTapPressed();
     if (host._event?.onTapDown != null) {
       host._fire(
         seq,
@@ -108,6 +110,7 @@ final class _TapMachine {
       if (!_canceled) {
         _canceled = true;
         _clearDeferredTap();
+        host._setTapPressedImmediate(false);
         if (host._event?.onTapCancel != null) {
           host._fire(
             seq,
@@ -139,6 +142,7 @@ final class _TapMachine {
       _canceled = true;
       _cancelLongPressTimer();
       _clearDeferredTap();
+      host._setTapPressedImmediate(false);
       if (host._event?.onTapCancel != null) {
         host._fire(
           seq,
@@ -153,6 +157,8 @@ final class _TapMachine {
     if (_cancelOnMove) {
       if (moved > _cancelDistance) {
         _canceled = true;
+        // tap 被距离判定取消后按压态立即复位，对齐 CSS `:active` 拖出即失效。
+        host._setTapPressedImmediate(false);
         if (host._event?.onTapCancel != null) {
           host._fire(
             seq,
@@ -169,6 +175,7 @@ final class _TapMachine {
     final inside = host._withinHostBounds(event.position);
     if (inside == !_outsideBounds) return;
     _outsideBounds = !inside;
+    host._setTapPressed(inside);
     if (inside) {
       // 复燃：重新走一遍按下语义（对齐 iOS touchDragEnter 重新点亮控件）。
       if (host._event?.onTapDown != null) {
@@ -215,7 +222,12 @@ final class _TapMachine {
         (_cancelOnMove
             ? (event.position - down).distance > _cancelDistance
             : !host._withinHostBounds(event.position));
+    host._releaseTapPressed(
+      retainFeedback:
+          _kind == PointerDeviceKind.touch && !canceled && !outOfRange,
+    );
     _resetCandidate();
+    host._setLongPressedImmediate(false);
 
     if (down == null) return;
     if (event0 == null) return;
@@ -286,11 +298,15 @@ final class _TapMachine {
       }
     }
     _resetCandidate();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   void feedRemoved(int pointer) {
     if (_pointer != pointer) return;
     _resetCandidate();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   // ---------------------------------------------------------------------------
@@ -359,6 +375,7 @@ final class _TapMachine {
         return;
       }
       _longPressFired = true;
+      host._setLongPressedImmediate(true);
     });
   }
 
@@ -533,6 +550,7 @@ final class _TapMachine {
     if (_pointer != seq.pointer || _canceled) return;
     final shouldNotify = !_outsideBounds;
     _canceled = true;
+    host._setTapPressedImmediate(false);
     final event = originalEvent is PointerEvent ? originalEvent : null;
     if (shouldNotify && host._event?.onTapCancel != null) {
       host._fire(
@@ -572,6 +590,8 @@ final class _TapMachine {
       }
     }
     _longPressFired = false;
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   /// Scale 接受后直接终止匹配 [pointer] 的 Tap activation。
@@ -599,6 +619,8 @@ final class _TapMachine {
       );
     }
     _longPressFired = false;
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   /// 宿主主动取消（cancelAllPending / 外部接管）时触发 onTapCancel。
@@ -619,6 +641,8 @@ final class _TapMachine {
       }
     }
     _resetCandidate();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   /// 静默取消（eager 失权 / 链截断 / detach）。不 fire 任何回调。
@@ -626,6 +650,8 @@ final class _TapMachine {
     _clearDeferredTap();
     _cancelLongPressTimer();
     _resetCandidate();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   /// event 不兼容的结构替换：丢弃离散 pending（连击窗口 / 延迟 tap / 长按计时），
@@ -634,6 +660,8 @@ final class _TapMachine {
     _clearDeferredTap();
     resetConsecutiveWindow();
     _cancelLongPressTimer();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   /// move 处理中途配置被结构替换：按**旧配置阈值**静默判定候选是否取消
@@ -649,6 +677,8 @@ final class _TapMachine {
       _longPressFired = false;
       _clearDeferredTap();
       _cancelLongPressTimer();
+      host._setTapPressedImmediate(false);
+      host._setLongPressedImmediate(false);
       return;
     }
     final down = _downPosition;
@@ -657,11 +687,12 @@ final class _TapMachine {
     // 宿主漂移（祖先滚动搬走内容）在两种口径下都是终局取消，与 feedMove 同判。
     if (!_hostDrifted(event)) {
       if (!previous.tapCancelOnMove) {
-        // 边界口径：拖出不销毁候选，只静默同步边界状态；仅 drag 接受才是终局取消。
+        // 边界口径：拖出不销毁候选，只静默同步视觉态；仅 drag 接受才是终局取消。
         if (!dragAccepted) {
           final inside = host._withinHostBounds(event.position);
           if (inside != !_outsideBounds) {
             _outsideBounds = !inside;
+            host._setTapPressed(inside);
           }
           return;
         }
@@ -675,6 +706,8 @@ final class _TapMachine {
     _longPressFired = false;
     _clearDeferredTap();
     _cancelLongPressTimer();
+    host._setTapPressedImmediate(false);
+    host._setLongPressedImmediate(false);
   }
 
   void _resetCandidate() {

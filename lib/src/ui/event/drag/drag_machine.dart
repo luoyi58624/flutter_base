@@ -352,7 +352,9 @@ final class _DragMachine {
       return false;
     }
     _dragStartDispatched = true;
-    if (!alreadyObserved) {
+    if (alreadyObserved) {
+      host._setDraggedImmediate(true);
+    } else {
       host._fireDragStart(
         seq,
         event,
@@ -778,6 +780,7 @@ final class _DragMachine {
     _averageBoundaryFrameDeltas.clear();
     _averageBoundaryFrameTimeStamp = null;
     _averageBoundaryLastPanFrameDelta = Offset.zero;
+    host._setDraggedImmediate(false);
   }
 
   /// 解散当前作为 driver 挂载的管线：置 active=false、清 roster 成员反向引用、

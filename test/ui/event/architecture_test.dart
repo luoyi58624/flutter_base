@@ -36,6 +36,7 @@ void main() {
   test('公共事件入口仅导出使用者所需的 Widget 和事件配置', () {
     final entry = File('lib/src/ui/event/index.dart').readAsStringSync();
     expect(entry, contains('ElEventView'));
+    expect(entry, contains('ElEventState'));
     expect(entry, contains('ElEventCallback'));
     expect(entry, contains('ElDragProxy'));
     expect(entry, isNot(contains('dispatcher.dart')));
@@ -51,8 +52,7 @@ void main() {
       isNot(
         matches(
           r'ElStyle|ElView|LayerProjectionBoundary|PointerFocusArbiter|'
-          r'ElFocusReason|FocusNode|ElDragPointerLock|boundaryHandoff|'
-          r'delayTouchDown|delayTouchUp',
+          r'ElFocusReason|FocusNode|ElDragPointerLock|boundaryHandoff',
         ),
       ),
     );

@@ -18,6 +18,8 @@ final class ElEventConfig {
     this._longPressCancelDistance,
     this._tapCancelDistance,
     this._tapCancelOnMove,
+    this._delayTouchDown,
+    this._delayTouchUp,
     this._deferTap,
     this.dragStartDistance,
     this._dragDevices,
@@ -37,6 +39,7 @@ final class ElEventConfig {
        );
 
   /// Tap、连击与长按参数是否和 [other] 使用相同的局部覆盖，仅供事件状态迁移。
+  /// 不比较交互反馈参数 [delayTouchDown]、[delayTouchUp]，避免调节反馈时打断手势识别。
   @internal
   bool hasSameTapConfiguration(ElEventConfig? other) =>
       _doubleTapInterval == other?._doubleTapInterval &&
@@ -98,6 +101,28 @@ final class ElEventConfig {
   /// `onTapUp` 是按压释放通知，不表示 tap 激活成功；只有 PointerCancel、节点
   /// 失去该 pointer 归属或被移除时不触发。
   bool get tapCancelOnMove => _tapCancelOnMove ?? false;
+
+  final Duration? _delayTouchDown;
+
+  /// 触摸按下后等待多久激活 `hasTap`，默认立即激活；鼠标与笔不延迟。
+  /// 负值在读取时触发断言，以保留常量构造能力。
+  Duration get delayTouchDown {
+    final value = _delayTouchDown ?? Duration.zero;
+    assert(value >= Duration.zero, 'delayTouchDown 必须大于等于 0。');
+    return value;
+  }
+
+  final Duration? _delayTouchUp;
+
+  /// 从触摸按下起算的最短 `hasTap` 反馈时间，默认 100ms；正常抬手只补剩余时间，不延迟点击。
+  ///
+  /// 尚未激活的状态不补播，取消、拖拽接管、禁用与卸载立即清理；零值关闭保留。
+  /// 负值在读取时触发断言，以保留常量构造能力。
+  Duration get delayTouchUp {
+    final value = _delayTouchUp ?? const Duration(milliseconds: 100);
+    assert(value >= Duration.zero, 'delayTouchUp 必须大于等于 0。');
+    return value;
+  }
 
   final bool? _deferTap;
 
@@ -191,6 +216,8 @@ final class ElEventConfig {
       _longPressCancelDistance != null &&
       _tapCancelDistance != null &&
       _tapCancelOnMove != null &&
+      _delayTouchDown != null &&
+      _delayTouchUp != null &&
       _deferTap != null &&
       dragStartDistance != null &&
       _dragDevices != null &&
@@ -207,6 +234,8 @@ final class ElEventConfig {
       _longPressCancelDistance == null &&
       _tapCancelDistance == null &&
       _tapCancelOnMove == null &&
+      _delayTouchDown == null &&
+      _delayTouchUp == null &&
       _deferTap == null &&
       dragStartDistance == null &&
       _dragDevices == null &&
@@ -230,6 +259,8 @@ final class ElEventConfig {
           _longPressCancelDistance ?? base._longPressCancelDistance,
       tapCancelDistance: _tapCancelDistance ?? base._tapCancelDistance,
       tapCancelOnMove: _tapCancelOnMove ?? base._tapCancelOnMove,
+      delayTouchDown: _delayTouchDown ?? base._delayTouchDown,
+      delayTouchUp: _delayTouchUp ?? base._delayTouchUp,
       deferTap: _deferTap ?? base._deferTap,
       dragStartDistance: dragStartDistance ?? base.dragStartDistance,
       dragDevices: _dragDevices ?? base._dragDevices,
@@ -249,6 +280,8 @@ final class ElEventConfig {
     double? longPressCancelDistance,
     double? tapCancelDistance,
     bool? tapCancelOnMove,
+    Duration? delayTouchDown,
+    Duration? delayTouchUp,
     bool? deferTap,
     double? dragStartDistance,
     Set<PointerDeviceKind>? dragDevices,
@@ -266,6 +299,8 @@ final class ElEventConfig {
           longPressCancelDistance ?? _longPressCancelDistance,
       tapCancelDistance: tapCancelDistance ?? _tapCancelDistance,
       tapCancelOnMove: tapCancelOnMove ?? _tapCancelOnMove,
+      delayTouchDown: delayTouchDown ?? _delayTouchDown,
+      delayTouchUp: delayTouchUp ?? _delayTouchUp,
       deferTap: deferTap ?? _deferTap,
       dragStartDistance: dragStartDistance ?? this.dragStartDistance,
       dragDevices: dragDevices ?? _dragDevices,
@@ -287,6 +322,8 @@ final class ElEventConfig {
         other._longPressCancelDistance == _longPressCancelDistance &&
         other._tapCancelDistance == _tapCancelDistance &&
         other._tapCancelOnMove == _tapCancelOnMove &&
+        other._delayTouchDown == _delayTouchDown &&
+        other._delayTouchUp == _delayTouchUp &&
         other._deferTap == _deferTap &&
         other.dragStartDistance == dragStartDistance &&
         setEquals(other._dragDevices, _dragDevices) &&
@@ -307,6 +344,8 @@ final class ElEventConfig {
     _longPressCancelDistance,
     _tapCancelDistance,
     _tapCancelOnMove,
+    _delayTouchDown,
+    _delayTouchUp,
     _deferTap,
     dragStartDistance,
     _dragDevices == null ? null : Object.hashAllUnordered(_dragDevices),
