@@ -221,7 +221,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     }
 
     if (!event.synthesized) {
-      pointer.velocity.addPosition(event.timeStamp, pointer.localPosition);
+      pointer.addVelocitySample(event.timeStamp, pointer.localPosition);
     }
     final wasDragging = session.dragStarted;
     final wasScaling = session.scaleStarted;
@@ -480,6 +480,11 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   }) {
     if (!identical(_session, session)) return;
     _session = null;
+    // 最新 driver 可能尚未产生 Update，终态仍须使用它最后可信的位置。
+    session.lastDriverPosition =
+        session.pointers[session.driver]?.position ??
+        lastPointer?.position ??
+        session.lastDriverPosition;
     final pending = session.pointers.keys.toList();
     session.pointers.clear();
     for (final id in pending) {
@@ -513,10 +518,31 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     _TransformPointer pointer,
     PointerEvent event,
   ) {
-    final estimate = pointer.velocity.getVelocityEstimate();
+    final samples = pointer.velocitySamples;
+    // 停顿按输入时间判断；不能把 UI 线程排队时间误当成手指停顿。
+    if (samples.length < 2 ||
+        event.timeStamp - samples.last.$1 > const Duration(milliseconds: 80)) {
+      return Velocity.zero;
+    }
+    final tracker = VelocityTracker.withKind(pointer.down.kind);
+    for (final (time, position) in samples) {
+      tracker.addPosition(time, position);
+    }
+    final estimate = tracker.getVelocityEstimate();
     if (estimate == null) return Velocity.zero;
-    var speed = _project(estimate.pixelsPerSecond, session.acceptedAxis);
-    final distance = _project(estimate.offset, session.acceptedAxis).distance;
+    var measuredSpeed = estimate.pixelsPerSecond;
+    var measuredOffset = estimate.offset;
+    // 两个真实样本不足以拟合，沿用旧版短促轻扫的平均速度两倍兜底。
+    if (samples.length == 2) {
+      final elapsed = event.timeStamp - pointer.down.timeStamp;
+      if (elapsed <= Duration.zero) return Velocity.zero;
+      measuredOffset = samples.last.$2 - pointer.down.localPosition;
+      measuredSpeed =
+          measuredOffset *
+          (2 * Duration.microsecondsPerSecond / elapsed.inMicroseconds);
+    }
+    var speed = _project(measuredSpeed, session.acceptedAxis);
+    final distance = _project(measuredOffset, session.acceptedAxis).distance;
     final minDistance =
         session.config.dragMinFlingDistance ??
         computeHitSlop(pointer.down.kind, gestureSettings);
@@ -743,9 +769,8 @@ class _TransformPointer {
       position = down.position,
       initialLocal = down.localPosition,
       localPosition = down.localPosition,
-      lastOutputLocal = down.localPosition,
-      velocity = VelocityTracker.withKind(down.kind) {
-    velocity.addPosition(down.timeStamp, down.localPosition);
+      lastOutputLocal = down.localPosition {
+    addVelocitySample(down.timeStamp, down.localPosition);
   }
 
   final PointerEvent down;
@@ -754,7 +779,14 @@ class _TransformPointer {
   final Offset initialLocal;
   Offset localPosition;
   Offset lastOutputLocal;
-  final VelocityTracker velocity;
+  final List<(Duration, Offset)> velocitySamples = [];
+
+  // 只保存官方拟合器需要的有限真实样本，释放时再拟合，避免逐帧求解开销。
+  void addVelocitySample(Duration time, Offset position) {
+    velocitySamples.add((time, position));
+    if (velocitySamples.length > 20) velocitySamples.removeAt(0);
+  }
+
   bool accepted = false;
   bool delivered = false;
   bool dragThresholdMet = false;

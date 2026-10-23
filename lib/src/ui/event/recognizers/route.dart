@@ -103,6 +103,12 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
 
   void _endRoute(_GestureRoute route) {
     if (!route.active) return;
+    // Cancel 回调可重入销毁所有者，坐标快照须等已公开的终态全部投递后再释放。
+    if (route.terminalDispatchDepth > 0) {
+      route.closeRequested = true;
+      _releaseRoutePointers(route);
+      return;
+    }
     route.active = false;
     _releaseRoutePointers(route);
     route.downEvents.clear();
@@ -119,69 +125,136 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     }
   }
 
-  void _dispatchGesture(_GestureRoute route, ElEventCallback callback) {
-    if (!route.active || _disposed) return;
-    final family = _familyFor(callback.phase);
-    final revision = (route.revisions[family] ?? 0) + 1;
-    route.revisions[family] = revision;
-    final candidate = _isCandidatePhase(callback.phase);
-    if (candidate) route.observedEnds[family] = -1;
-    var end = route.cutoffs[family] ?? route.members.length - 1;
-    if (!candidate) {
-      end = math.min(end, route.observedEnds[family] ?? end);
-    }
-    callback.updateEagerGestureHandler((_, cancelSelfTap, allowScaleUpgrade) {
-      if (!route.active || route.owner._disposed) return;
-      route.owner._requestAccept(
-        route,
-        cancelSelfTap: cancelSelfTap,
-        allowScaleUpgrade: allowScaleUpgrade,
-      );
-    });
-
-    for (var index = 0; index <= end; index++) {
-      // 同家族重入可能已取消当前阶段，不能再把旧 Down/Start 送给后续祖先。
-      if (!route.active || _disposed || route.revisions[family] != revision) {
-        break;
+  void _dispatchGesture(
+    _GestureRoute route,
+    ElEventCallback callback, {
+    int firstMember = 0,
+    int? lastMember,
+  }) {
+    final terminal = _isTerminalPhase(callback.phase);
+    if (!route.active || _disposed && !terminal) return;
+    if (terminal) route.terminalDispatchDepth++;
+    try {
+      final family = _familyFor(callback.phase);
+      final revision = (route.revisions[family] ?? 0) + 1;
+      route.revisions[family] = revision;
+      final candidate = _isCandidatePhase(callback.phase);
+      if (candidate) route.observedEnds[family] = -1;
+      var end = lastMember ?? route.cutoffs[family] ?? route.members.length - 1;
+      if (!candidate && lastMember == null) {
+        end = math.min(end, route.observedEnds[family] ?? end);
       }
-      final member = route.members[index];
-      if (member._disposed) continue;
-      if (candidate) route.observedEnds[family] = index;
-      final handler = member._handlerFor(callback.phase);
-      if (handler == null) continue;
-      member.invokeCallback<void>(callback.phase.name, () {
-        final originalEvent = callback.originalEvent;
-        final pointer = originalEvent is PointerEvent
-            ? originalEvent.pointer
-            : route.pointer;
-        final down = route.downEvents[member]?[pointer];
-        final resolver = member.globalToLocal;
-        Offset toLocal(Offset global) =>
-            resolver?.call(global) ??
-            PointerEvent.transformPosition(down?.transform, global);
-        Offset deltaToLocal(Offset delta) =>
-            toLocal(callback.globalPosition) -
-            toLocal(callback.globalPosition - delta);
-
-        callback
-          ..localPosition = toLocal(callback.globalPosition)
-          ..localDelta = deltaToLocal(callback.delta)
-          ..updateLocalDeltaResolver(deltaToLocal)
-          ..markCallbackInvoked();
-        handler(callback);
+      callback.updateEagerGestureHandler((_, cancelSelfTap, allowScaleUpgrade) {
+        if (!route.active || route.owner._disposed) return;
+        route.owner._requestAccept(
+          route,
+          cancelSelfTap: cancelSelfTap,
+          allowScaleUpgrade: allowScaleUpgrade,
+        );
       });
-      if (callback.propagationStopped) {
-        if (_establishesBoundary(callback.phase)) route.cutoffs[family] = index;
-        break;
+
+      for (var index = firstMember; index <= end; index++) {
+        // 同家族重入可能已取消当前阶段，不能再把旧 Down/Start 送给后续祖先。
+        if (!route.active ||
+            !terminal && (_disposed || route.revisions[family] != revision)) {
+          break;
+        }
+        final member = route.members[index];
+        if (member._disposed) continue;
+        if (candidate) route.observedEnds[family] = index;
+        final handler = member._handlerFor(callback.phase);
+        if (handler == null) continue;
+        member.invokeCallback<void>(callback.phase.name, () {
+          final originalEvent = callback.originalEvent;
+          final pointer = originalEvent is PointerEvent
+              ? originalEvent.pointer
+              : route.pointer;
+          final down = route.downEvents[member]?[pointer];
+          final resolver = member.globalToLocal;
+          Offset toLocal(Offset global) =>
+              resolver?.call(global) ??
+              PointerEvent.transformPosition(down?.transform, global);
+          Offset deltaToLocal(Offset delta) =>
+              toLocal(callback.globalPosition) -
+              toLocal(callback.globalPosition - delta);
+
+          callback
+            ..localPosition = toLocal(callback.globalPosition)
+            ..localDelta = deltaToLocal(callback.delta)
+            ..updateLocalDeltaResolver(deltaToLocal)
+            ..markCallbackInvoked();
+          handler(callback);
+        });
+        // 终态是已公开生命周期的清理义务，不能由子回调吞掉祖先的唯一结算。
+        if (callback.propagationStopped) {
+          // Up 之后的业务点击仍遵守最早截断点，已经公开的释放通知继续结清。
+          if (terminal) {
+            if (_establishesBoundary(callback.phase)) {
+              route.cutoffs[family] = math.min(
+                route.cutoffs[family] ?? index,
+                index,
+              );
+            }
+            continue;
+          }
+          if (_establishesBoundary(callback.phase)) {
+            route.cutoffs[family] = index;
+            if (callback.phase == ElEventPhase.dragStart &&
+                route.active &&
+                route.revisions[family] == revision) {
+              final observed = route.observedEnds[family] ?? index;
+              route.observedEnds[family] = index;
+              if (observed > index) {
+                _dispatchGesture(
+                  route,
+                  ElEventCallback(
+                    phase: ElEventPhase.dragCancel,
+                    globalPosition: callback.globalPosition,
+                    localPosition: callback.localPosition,
+                    dragOffset: callback.dragOffset,
+                    dragAxis: callback.dragAxis,
+                    dragDirection: callback.dragDirection,
+                    pointerCount: callback.pointerCount,
+                    originalEvent: callback.originalEvent,
+                  ),
+                  firstMember: index + 1,
+                  lastMember: observed,
+                );
+              }
+            }
+          }
+          break;
+        }
+      }
+      // 回调可被业务保存；它不应通过闭包长期持有整条宿主路线。
+      final remainingLocalDelta = callback.remainingLocalDelta;
+      callback
+        ..updateEagerGestureHandler(null)
+        ..updateLocalDeltaResolver(null)
+        ..remainingLocalDelta = remainingLocalDelta;
+    } finally {
+      if (terminal) {
+        route.terminalDispatchDepth--;
+        if (route.closeRequested && route.terminalDispatchDepth == 0) {
+          _endRoute(route);
+        }
       }
     }
-    // 回调可被业务保存；它不应通过闭包长期持有整条宿主路线。
-    final remainingLocalDelta = callback.remainingLocalDelta;
-    callback
-      ..updateEagerGestureHandler(null)
-      ..updateLocalDeltaResolver(null)
-      ..remainingLocalDelta = remainingLocalDelta;
   }
+
+  static bool _isTerminalPhase(ElEventPhase phase) => switch (phase) {
+    ElEventPhase.tapUp ||
+    ElEventPhase.secondaryTapUp ||
+    ElEventPhase.tertiaryTapUp ||
+    ElEventPhase.forwardTapUp ||
+    ElEventPhase.backTapUp ||
+    ElEventPhase.tapCancel ||
+    ElEventPhase.dragCancel ||
+    ElEventPhase.dragEnd ||
+    ElEventPhase.scaleCancel ||
+    ElEventPhase.scaleEnd => true,
+    _ => false,
+  };
 
   static bool _isCandidatePhase(ElEventPhase phase) => switch (phase) {
     ElEventPhase.tapDown ||
@@ -246,5 +319,7 @@ class _GestureRoute {
   final Map<_GestureFamily, int> cutoffs = <_GestureFamily, int>{};
   final Map<_GestureFamily, int> revisions = <_GestureFamily, int>{};
   final Map<_GestureFamily, int> observedEnds = <_GestureFamily, int>{};
+  int terminalDispatchDepth = 0;
+  bool closeRequested = false;
   bool active = true;
 }

@@ -97,6 +97,7 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   Timer? _historyTimer;
   Offset? _lastTapPosition;
   Duration? _historyDeadline;
+  ElEventConfig? _historyConfig;
   int _historyCount = 0;
   int _historyGroup = 0;
   int _nextGroup = 0;
@@ -391,7 +392,10 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     stopTrackingPointer(sequence.down.pointer);
     final phases = _pressPhases(sequence.down.buttons)!;
     _emit(sequence, phases.$2, up);
-    if (_disposed || !sequence.route.active || sequence.finished) return;
+    if (_disposed || !sequence.route.active || sequence.finished) {
+      _releaseSequence(sequence);
+      return;
+    }
     var deferred = false;
     if (sequence.tapEligible && !sequence.outside) {
       if (sequence.down.buttons == kPrimaryButton) {
@@ -439,7 +443,14 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   }
 
   int _consecutiveCount(_PressSequence sequence, PointerEvent event) {
+    final previous = _historyConfig;
     if (sequence.down.buttons != kPrimaryButton ||
+        previous == null ||
+        previous.doubleTapInterval != sequence.config.doubleTapInterval ||
+        previous.tripleTapInterval != sequence.config.tripleTapInterval ||
+        previous.tapCancelDistance != sequence.config.tapCancelDistance ||
+        previous.tapCancelOnMove != sequence.config.tapCancelOnMove ||
+        previous.deferTap != sequence.config.deferTap ||
         !(_historyTimer?.isActive ?? false) ||
         _historyDeadline == null ||
         event.timeStamp > _historyDeadline! ||
@@ -464,6 +475,7 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
         ? sequence.config.tripleTapInterval
         : sequence.config.doubleTapInterval;
     _historyCount = count;
+    _historyConfig = sequence.config;
     _historyGroup = group;
     _lastTapPosition = up.position;
     _historyDeadline = up.timeStamp + interval;
@@ -474,6 +486,7 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     _historyTimer?.cancel();
     _historyTimer = null;
     _historyDeadline = null;
+    _historyConfig = null;
     _lastTapPosition = null;
     _historyCount = 0;
     _historyGroup = 0;
