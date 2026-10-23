@@ -3470,6 +3470,81 @@ void main() {
       );
     }
 
+    for (final horizontal in [false, true]) {
+      for (final minimum in [true, false]) {
+        testWidgets(
+          '${minimum ? "最小" : "最大"}固有${horizontal ? "宽度" : "高度"}按受限跨轴尺寸扣除内外边距',
+          (tester) async {
+            await tester.pumpWidget(
+              viewScene(
+                ElStyle(
+                  width: horizontal ? null : 200,
+                  height: horizontal ? 200 : null,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.all(5),
+                ),
+                width: horizontal ? 300 : 100,
+                height: horizontal ? 100 : 300,
+                child: AspectRatio(aspectRatio: horizontal ? 0.5 : 2),
+              ),
+            );
+            final view = viewBox(tester);
+            expect(
+              view.size,
+              horizontal ? const Size(65, 100) : const Size(100, 65),
+            );
+
+            final double intrinsic;
+            if (horizontal) {
+              intrinsic = minimum
+                  ? view.getMinIntrinsicWidth(100)
+                  : view.getMaxIntrinsicWidth(100);
+            } else {
+              intrinsic = minimum
+                  ? view.getMinIntrinsicHeight(100)
+                  : view.getMaxIntrinsicHeight(100);
+            }
+            // 跨轴内容尺寸为 100 - 10(margin) - 20(padding)，按比例换轴后加回边距。
+            expect(intrinsic, 65);
+          },
+        );
+      }
+
+      testWidgets(
+        '${horizontal ? "IntrinsicWidth" : "IntrinsicHeight"} 中超出父约束的声明尺寸不增加占位',
+        (tester) async {
+          final view = ElView(
+            key: viewKey,
+            style: ElStyle(
+              width: horizontal ? null : 200,
+              height: horizontal ? 200 : null,
+            ),
+            child: AspectRatio(aspectRatio: horizontal ? 0.5 : 2),
+          );
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: horizontal ? 300 : 100,
+                    maxHeight: horizontal ? 100 : 300,
+                  ),
+                  child: horizontal
+                      ? IntrinsicWidth(child: view)
+                      : IntrinsicHeight(child: view),
+                ),
+              ),
+            ),
+          );
+          expect(
+            viewSize(tester),
+            horizontal ? const Size(50, 100) : const Size(100, 50),
+          );
+        },
+      );
+    }
+
     testWidgets('真实 Row 在 factor 改变占位后仍按 child 和内外边距对齐基线', (tester) async {
       const textKey = ValueKey('baseline-child');
       const referenceKey = ValueKey('baseline-reference');
@@ -3551,6 +3626,82 @@ void main() {
   });
 
   group('祖先参照与重挂', () {
+    for (final (axis, crossExtent) in [
+      for (final axis in Axis.values)
+        for (final crossExtent in [300.0, 250.0]) (axis, crossExtent),
+    ]) {
+      final horizontal = axis == Axis.horizontal;
+      final direction = horizontal ? '横向' : '纵向';
+      final change = crossExtent == 300 ? '仅主轴约束变化' : '双轴约束变化';
+
+      testWidgets('$direction百分比嵌套在$change后预测尺寸与正式布局一致', (tester) async {
+        const outerKey = ValueKey('outer');
+        const innerKey = ValueKey('inner');
+        const childKey = ValueKey('child');
+        final style = ElStyle(
+          width: horizontal ? '50%' : null,
+          height: horizontal ? null : '50%',
+        );
+
+        Widget scene(double extent, double crossExtent) {
+          final inner = ElView(
+            key: innerKey,
+            style: style,
+            child: const AspectRatio(key: childKey, aspectRatio: 1),
+          );
+          return viewScene(
+            style,
+            key: outerKey,
+            width: horizontal ? extent : crossExtent,
+            height: horizontal ? crossExtent : extent,
+            child: horizontal
+                ? Row(children: [inner])
+                : Column(children: [inner]),
+          );
+        }
+
+        await tester.pumpWidget(scene(400, 300));
+        final outer = viewBox(tester, key: outerKey);
+        final inner = viewBox(tester, key: innerKey);
+        expect(
+          outer.size,
+          horizontal ? const Size(200, 100) : const Size(100, 200),
+        );
+        expect(inner.size, const Size(100, 100));
+        final geometry = [
+          for (final key in [outerKey, innerKey, childKey])
+            (
+              key,
+              tester.getSize(find.byKey(key)),
+              tester.getTopLeft(find.byKey(key)),
+            ),
+        ];
+
+        // 首次查询新约束，分别覆盖仅主轴变化和双轴变化。
+        final dry = outer.getDryLayout(
+          BoxConstraints(
+            maxWidth: horizontal ? 200 : crossExtent,
+            maxHeight: horizontal ? crossExtent : 200,
+          ),
+        );
+        for (final (key, size, origin) in geometry) {
+          expect(tester.getSize(find.byKey(key)), size);
+          expect(tester.getTopLeft(find.byKey(key)), origin);
+        }
+
+        // 先验证相同渲染对象的新正式尺寸，再比较预测值，完整保留复现证据。
+        await tester.pumpWidget(scene(200, crossExtent));
+        expect(viewBox(tester, key: outerKey), same(outer));
+        expect(viewBox(tester, key: innerKey), same(inner));
+        expect(
+          outer.size,
+          horizontal ? const Size(100, 50) : const Size(50, 100),
+        );
+        expect(inner.size, const Size(50, 50));
+        expect(dry, outer.size);
+      });
+    }
+
     testWidgets('无界 Column 中最近祖先在 auto 与确定尺寸间切换百分比参照', (tester) async {
       const middleKey = ValueKey('reference-middle');
       const percentKey = ValueKey('reference-percent');
