@@ -71,11 +71,18 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 
 入口为 `package:flutter_base/ui.dart`。`ElView` 只有 `style`、`child`（以及标准
 `key`），使用一个 RenderObject 完成盒模型与装饰绘制。当前样式字段为
-`width`、`height`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
+`width`、`height`、`minWidth`、`maxWidth`、`minHeight`、`maxHeight`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
 和过渡配置 `transitions`。
 
 - 宽高接受数值或百分比字符串，包含 padding、不包含 margin；null 为 auto。
   非法或非有限尺寸退回 auto，负尺寸夹到零；边距必须非负且有限。
+- minWidth / maxWidth / minHeight / maxHeight 接受相同的数值或百分比，限制包含 padding
+  的视觉盒；margin 外加，border / outline 不占尺寸。min 缺省为零，max 缺省无穷，
+  自身 min 大于 max 时 max 优先，父约束最终优先。自身 min 仅撑视觉盒、不强拉 child；
+  max 在 child 布局前收窄约束，确保 Wrap 等内容正确重排，auto 仍保留父最小约束。
+  显式宽高先限幅；factor 在自然盒上生效后限幅，factor 为零时仍受 min 限制。
+  四个独立过渡通道复用旧版合同：有限数值和百分比正常混合插值，null 在中点切换，
+  不把无穷参与 lerp；无参照百分比不增加限制，参照恢复后按原进度继续。
 - widthFactor/heightFactor 接受非负有限数值，null 等同于 1；仅调整对应 auto 轴的
   自然盒尺寸，先加入 padding 再乘因子，最后追加 margin，最终服从父约束。
   显式像素或可解析百分比尺寸优先；无参照百分比回退 auto 时使用因子。
@@ -118,7 +125,7 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 当前值、目标值、动画轨道与精确失效全部由引擎管理，Render 不读写字段数组或轨道。
 
 - `style/fields.dart` 集中定义字段读取、插值与消费域，样式字段不依赖公开过渡枚举的位序。
-- `style/resolved/layout.dart` 输出数值宽高和已解析的物理边距，不向执行器泄漏表达式。
+- `style/resolved/layout.dart` 输出数值宽高、上下限和已解析的物理边距，不向执行器泄漏表达式。
 - `layout/box_layout.dart` 的 BoxLayout 统一执行尺寸、内外边距、真实/dry/intrinsic/
   baseline、正式几何和按轴百分比参照依赖；未声明边距时直接复用约束。
 - `paint/decoration.dart` 的 DecorationPainter 按需创建并复用背景画笔，矩形背景不构造
@@ -163,7 +170,7 @@ child 在紧约束下可以独立更新，父 dirty 不能作为可靠的跨帧�
 无界百分比仅订阅实际查询经过的候选祖先，按轴使依赖节点失效，不扫描整个后代树；
 未使用相对尺寸就不创建引用登记；普通像素尺寸不计算百分比参照。文本和事件子系统暂不处理。
 
-测试仅保留 `test/ui/view/base_test.dart` 和 `animation_test.dart` 两个文件，均通过
+新增样式功能测试集中在 `test/ui/view/base_test.dart` 和 `animation_test.dart`，均通过
 真实 `ElView(style: ElStyle(...), child: ...)` 环境验证实际布局、绘制与命中。
 前者覆盖正常情况下的基础功能，后者覆盖插值中间值、auto/百分比转换、延迟、中断、
 方向变化、null/半透明颜色及裁剪联动等边界。测试不依赖内部状态、调用次数、缓存身份或

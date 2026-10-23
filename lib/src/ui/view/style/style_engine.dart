@@ -250,16 +250,6 @@ class StyleEngine {
     return bound;
   }
 
-  double? _length(
-    StyleLength? value,
-    Axis axis,
-    BoxConstraints constraints,
-    BoxLayout box, {
-    required bool dry,
-  }) => value?.resolve(
-    value.relative ? _lengthBasis(axis, constraints, box, dry: dry) : 0,
-  );
-
   LayoutStyle _resolve(
     BoxConstraints constraints,
     BoxLayout box, {
@@ -270,31 +260,46 @@ class StyleEngine {
     final padding = _padding, margin = _margin;
     final widthFactor = _values[StyleField.widthFactor.index] as double?;
     final heightFactor = _values[StyleField.heightFactor.index] as double?;
+    final minWidth = _values[StyleField.minWidth.index] as StyleLength?;
+    final maxWidth = _values[StyleField.maxWidth.index] as StyleLength?;
+    final minHeight = _values[StyleField.minHeight.index] as StyleLength?;
+    final maxHeight = _values[StyleField.maxHeight.index] as StyleLength?;
     if (width == null &&
         height == null &&
         padding == null &&
         margin == null &&
         widthFactor == null &&
-        heightFactor == null) {
+        heightFactor == null &&
+        minWidth == null &&
+        maxWidth == null &&
+        minHeight == null &&
+        maxHeight == null) {
       return LayoutStyle.empty;
     }
-    final usedWidth = _length(
-      width,
-      Axis.horizontal,
-      constraints,
-      box,
-      dry: dry,
-    );
-    final usedHeight = _length(
-      height,
-      Axis.vertical,
-      constraints,
-      box,
-      dry: dry,
-    );
+    // 同轴尺寸与上下限共用一次百分比参照；没有相对值就不查约束或祖先。
+    final widthBasis =
+        (width?.relative ?? false) ||
+            (minWidth?.relative ?? false) ||
+            (maxWidth?.relative ?? false)
+        ? _lengthBasis(Axis.horizontal, constraints, box, dry: dry)
+        : 0.0;
+    final heightBasis =
+        (height?.relative ?? false) ||
+            (minHeight?.relative ?? false) ||
+            (maxHeight?.relative ?? false)
+        ? _lengthBasis(Axis.vertical, constraints, box, dry: dry)
+        : 0.0;
+    final usedWidth = width?.resolve(widthBasis);
+    final usedHeight = height?.resolve(heightBasis);
+    final usedMinWidth = minWidth?.resolve(widthBasis);
+    final usedMinHeight = minHeight?.resolve(heightBasis);
     return LayoutStyle(
       width: usedWidth,
       height: usedHeight,
+      minWidth: usedMinWidth == 0 ? null : usedMinWidth,
+      maxWidth: maxWidth?.resolve(widthBasis),
+      minHeight: usedMinHeight == 0 ? null : usedMinHeight,
+      maxHeight: maxHeight?.resolve(heightBasis),
       padding: padding,
       margin: margin,
       widthFactor: usedWidth == null ? widthFactor : null,
@@ -394,6 +399,10 @@ class StyleEngine {
       request.margin,
       request.widthFactor,
       request.heightFactor,
+      request.minWidth,
+      request.maxWidth,
+      request.minHeight,
+      request.maxHeight,
       _externalVersion,
     );
     if (_measurementKey != key || lostReference) {

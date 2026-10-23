@@ -34,6 +34,8 @@ class BoxLayout {
 
   BoxConstraints? _referenceBox;
   EdgeInsets? _referencePadding;
+  BoxConstraints? _queryBox;
+  EdgeInsets? _queryPadding;
   Set<BoxLayout>? _widthReferences, _heightReferences;
   Set<BoxLayout>? _widthDependents, _heightDependents;
 
@@ -93,10 +95,12 @@ class BoxLayout {
   /// 按相同盒模型规则查询外占位，不改变引用、偏移或正式几何。
   Size dryLayout(BoxConstraints outer, LayoutStyle style) {
     final plan = _constraints(outer, style);
-    final content = _host.child?.getDryLayout(plan.inner) ?? Size.zero;
-    final box = _constrainBox(plan.box, content, style);
-    final margin = style.margin;
-    return margin == null ? box : outer.constrain(margin.inflateSize(box));
+    return _withQueryGeometry(plan.box, style.padding, () {
+      final content = _host.child?.getDryLayout(plan.inner) ?? Size.zero;
+      final box = _constrainBox(plan.box, content, style);
+      final margin = style.margin;
+      return margin == null ? box : outer.constrain(margin.inflateSize(box));
+    });
   }
 
   /// 查询加上内外边距后的基线，不执行真实布局。
@@ -107,9 +111,11 @@ class BoxLayout {
   ) {
     final child = _host.child;
     if (child == null) return null;
-    final value = child.getDryBaseline(
-      _constraints(outer, style).inner,
-      baseline,
+    final plan = _constraints(outer, style);
+    final value = _withQueryGeometry(
+      plan.box,
+      style.padding,
+      () => child.getDryBaseline(plan.inner, baseline),
     );
     if (value == null) return null;
     return value + (style.padding?.top ?? 0) + (style.margin?.top ?? 0);
@@ -127,16 +133,19 @@ class BoxLayout {
     final axisMargin = horizontal
         ? (margin?.horizontal ?? 0)
         : (margin?.vertical ?? 0);
+    final lower = horizontal ? style.minWidth : style.minHeight;
+    final upper = horizontal ? style.maxWidth : style.maxHeight;
     final fixed = horizontal ? style.width : style.height;
-    if (fixed != null) return fixed + axisMargin;
+    if (fixed != null) return _bound(fixed, lower, upper) + axisMargin;
     final factor = horizontal ? style.widthFactor : style.heightFactor;
-    if (factor == 0) return axisMargin;
+    if (factor == 0) return _bound(0, lower, upper) + axisMargin;
     final child = _host.child;
     final axisPadding = horizontal
         ? (padding?.horizontal ?? 0)
         : (padding?.vertical ?? 0);
     if (child == null) {
-      return (factor == null ? axisPadding : axisPadding * factor) + axisMargin;
+      final natural = factor == null ? axisPadding : axisPadding * factor;
+      return _bound(natural, lower, upper) + axisMargin;
     }
     final crossMargin = horizontal
         ? (margin?.vertical ?? 0)
@@ -144,9 +153,15 @@ class BoxLayout {
     final crossPadding = horizontal
         ? (padding?.vertical ?? 0)
         : (padding?.horizontal ?? 0);
-    final cross =
-        (horizontal ? style.height : style.width) ??
-        math.max(0.0, extent - crossMargin);
+    final availableCross = math.max(0.0, extent - crossMargin);
+    final cross = math.min(
+      availableCross,
+      _bound(
+        (horizontal ? style.height : style.width) ?? availableCross,
+        horizontal ? style.minHeight : style.minWidth,
+        horizontal ? style.maxHeight : style.maxWidth,
+      ),
+    );
     final childExtent = math.max(0.0, cross - crossPadding);
     final double value;
     if (horizontal) {
@@ -159,7 +174,8 @@ class BoxLayout {
           : child.getMaxIntrinsicHeight(childExtent);
     }
     final natural = value + axisPadding;
-    return (factor == null ? natural : natural * factor) + axisMargin;
+    return _bound(factor == null ? natural : natural * factor, lower, upper) +
+        axisMargin;
   }
 
   /// 按需沿祖先查找确定内容尺寸，真实查询只订阅经过的候选节点。
@@ -168,7 +184,7 @@ class BoxLayout {
       if (node is! BoxLayoutOwner) continue;
       final candidate = (node as BoxLayoutOwner).boxLayout;
       if (!dry && !isMeasuring) _dependOn(candidate, axis);
-      final value = candidate._reference(axis);
+      final value = candidate._reference(axis, query: dry);
       if (value != null) return value;
     }
     return null;
@@ -190,24 +206,59 @@ class BoxLayout {
   ) {
     final available = availableConstraints(outer, style.margin);
     final width = style.width, height = style.height;
-    final box = width == null && height == null
-        ? available
-        : BoxConstraints.tightFor(
-            width: width,
-            height: height,
-          ).enforce(available);
-    // 显式尺寸约束视觉盒，不强迫 child 填满；auto 保留父最小约束。
-    var inner = width == null && height == null
+    final bounded =
+        style.minWidth != null ||
+        style.maxWidth != null ||
+        style.minHeight != null ||
+        style.maxHeight != null;
+    final BoxConstraints box;
+    if (!bounded) {
+      box = width == null && height == null
+          ? available
+          : BoxConstraints.tightFor(
+              width: width,
+              height: height,
+            ).enforce(available);
+    } else {
+      final maxWidth = style.maxWidth ?? double.infinity;
+      final maxHeight = style.maxHeight ?? double.infinity;
+      final usedWidth = width == null
+          ? null
+          : _bound(width, style.minWidth, style.maxWidth);
+      final usedHeight = height == null
+          ? null
+          : _bound(height, style.minHeight, style.maxHeight);
+      // 自身冲突时 max 优先，父约束始终具有最终决定权。
+      box = BoxConstraints(
+        minWidth: usedWidth ?? math.min(style.minWidth ?? 0, maxWidth),
+        maxWidth: usedWidth ?? maxWidth,
+        minHeight: usedHeight ?? math.min(style.minHeight ?? 0, maxHeight),
+        maxHeight: usedHeight ?? maxHeight,
+      ).enforce(available);
+    }
+    // 自身 min 只撑大视觉盒；auto child 保留父下限，显式尺寸 child 保持 loose。
+    var inner =
+        width == null &&
+            height == null &&
+            (!bounded ||
+                (box.minWidth == available.minWidth &&
+                    box.minHeight == available.minHeight))
         ? box
         : BoxConstraints(
-            minWidth: width == null ? box.minWidth : 0,
+            minWidth: width == null ? available.minWidth : 0,
             maxWidth: box.maxWidth,
-            minHeight: height == null ? box.minHeight : 0,
+            minHeight: height == null ? available.minHeight : 0,
             maxHeight: box.maxHeight,
           );
     final padding = style.padding;
     if (padding != null) inner = inner.deflate(padding);
     return (box: box, inner: inner);
+  }
+
+  double _bound(double value, double? minimum, double? maximum) {
+    if (minimum != null) value = math.max(value, minimum);
+    if (maximum != null) value = math.min(value, maximum);
+    return value;
   }
 
   Size _layout(
@@ -259,10 +310,28 @@ class BoxLayout {
     return constraints.constrain(natural);
   }
 
-  double? _reference(Axis axis) {
-    final box = _referenceBox;
+  T _withQueryGeometry<T>(
+    BoxConstraints box,
+    EdgeInsets? padding,
+    T Function() query,
+  ) {
+    final previousBox = _queryBox, previousPadding = _queryPadding;
+    _queryBox = box;
+    _queryPadding = padding;
+    try {
+      return query();
+    } finally {
+      _queryBox = previousBox;
+      _queryPadding = previousPadding;
+    }
+  }
+
+  double? _reference(Axis axis, {bool query = false}) {
+    // 后代只读查询使用本次预测约束，不借用祖先上次正式布局的参照。
+    final querying = query && _queryBox != null;
+    final box = querying ? _queryBox : _referenceBox;
     if (box == null) return null;
-    final padding = _referencePadding;
+    final padding = querying ? _queryPadding : _referencePadding;
     if (axis == Axis.horizontal) {
       if (!box.hasTightWidth) return null;
       return padding == null

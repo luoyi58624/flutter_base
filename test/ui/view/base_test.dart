@@ -1050,6 +1050,448 @@ void main() {
     });
   });
 
+  group('最小与最大尺寸', () {
+    testWidgets('四轴像素与百分比限制使用扣除 margin 的父可用尺寸', (tester) async {
+      for (final (style, expected) in [
+        (const ElStyle(minWidth: 120, minHeight: 90), const Size(120, 90)),
+        (const ElStyle(maxWidth: 60, maxHeight: 30), const Size(60, 30)),
+        (
+          const ElStyle(
+            minWidth: '50%',
+            minHeight: '50%',
+            margin: EdgeInsets.all(10),
+          ),
+          const Size(210, 160),
+        ),
+        (
+          const ElStyle(
+            maxWidth: '10%',
+            maxHeight: '10%',
+            margin: EdgeInsets.all(10),
+          ),
+          const Size(58, 48),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(style, child: const SizedBox(width: 80, height: 40)),
+        );
+        expect(viewSize(tester), expected);
+      }
+    });
+
+    testWidgets('非法与非有限限制视为未声明，负值归零，数字字符串正常解析', (tester) async {
+      for (final value in <Object?>[
+        null,
+        'invalid',
+        'NaN%',
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              minWidth: value,
+              maxWidth: value,
+              minHeight: value,
+              maxHeight: value,
+            ),
+            child: const SizedBox(width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), const Size(80, 40));
+      }
+      for (final value in <Object>[-20, '-10%']) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(minWidth: value, minHeight: value),
+            child: const SizedBox(width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), const Size(80, 40));
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(maxWidth: value, maxHeight: value),
+            child: const SizedBox(width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), Size.zero);
+      }
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(minWidth: '120', minHeight: '90'),
+          child: const SizedBox(width: 80, height: 40),
+        ),
+      );
+      expect(viewSize(tester), const Size(120, 90));
+    });
+
+    testWidgets('复制、合并和显式清空四个限制立即更新实际尺寸', (tester) async {
+      const child = SizedBox(width: 80, height: 40);
+      const style = ElStyle(
+        minWidth: 120,
+        maxWidth: 160,
+        minHeight: 70,
+        maxHeight: 90,
+      );
+      for (final (value, expected) in [
+        (style, const Size(120, 70)),
+        (style.copyWith(width: 300, height: 300), const Size(160, 90)),
+        (
+          style.merge(const ElStyle(minWidth: 140, minHeight: 80)),
+          const Size(140, 80),
+        ),
+        (style.merge(const ElStyle()), const Size(120, 70)),
+        (
+          style.copyWith(
+            minWidth: null,
+            maxWidth: null,
+            minHeight: null,
+            maxHeight: null,
+          ),
+          const Size(80, 40),
+        ),
+      ]) {
+        await tester.pumpWidget(viewScene(value, child: child));
+        expect(viewSize(tester), expected);
+      }
+    });
+
+    testWidgets('min 大于 max 时 max 胜出，父最小、最大和紧约束仍最终生效', (tester) async {
+      const style = ElStyle(
+        minWidth: 180,
+        maxWidth: 100,
+        minHeight: 120,
+        maxHeight: 60,
+      );
+      Widget host(BoxConstraints constraints) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: constraints,
+            child: const ElView(
+              key: viewKey,
+              style: style,
+              child: SizedBox(width: 20, height: 10),
+            ),
+          ),
+        ),
+      );
+      for (final (constraints, expected) in [
+        (
+          const BoxConstraints(maxWidth: 400, maxHeight: 300),
+          const Size(100, 60),
+        ),
+        (
+          const BoxConstraints(
+            minWidth: 140,
+            maxWidth: 160,
+            minHeight: 90,
+            maxHeight: 100,
+          ),
+          const Size(140, 90),
+        ),
+        (const BoxConstraints(maxWidth: 80, maxHeight: 50), const Size(80, 50)),
+        (
+          const BoxConstraints.tightFor(width: 200, height: 100),
+          const Size(200, 100),
+        ),
+      ]) {
+        await tester.pumpWidget(host(constraints));
+        expect(viewSize(tester), expected);
+      }
+      await tester.pumpWidget(
+        viewScene(
+          style.copyWith(width: 40, height: 30),
+          child: const SizedBox(width: 20, height: 10),
+        ),
+      );
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('auto 最小值只撑视觉盒，显式尺寸先限幅再给 child 松约束', (tester) async {
+      const childKey = ValueKey('minmax-child');
+      for (final (style, expected, childSize) in [
+        (
+          const ElStyle(minWidth: 180, minHeight: 100),
+          const Size(180, 100),
+          const Size(80, 40),
+        ),
+        (
+          const ElStyle(width: 40, height: 30, minWidth: 120, minHeight: 80),
+          const Size(120, 80),
+          const Size(80, 40),
+        ),
+        (
+          const ElStyle(width: 300, height: 200, maxWidth: 60, maxHeight: 30),
+          const Size(60, 30),
+          const Size(60, 30),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style,
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), expected);
+        expect(tester.getSize(find.byKey(childKey)), childSize);
+      }
+    });
+
+    testWidgets('限制包含 padding 不含 margin，边框与轮廓不占布局空间', (tester) async {
+      const childKey = ValueKey('minmax-inset-child');
+      const base = ElStyle(
+        padding: EdgeInsets.fromLTRB(7, 5, 13, 9),
+        margin: EdgeInsets.all(4),
+        border: Border.fromBorderSide(BorderSide(width: 20, color: _red)),
+        outline: ElOutline(width: 12, offset: 6),
+      );
+      for (final (style, expected, childSize) in [
+        (
+          base.copyWith(minWidth: 130, minHeight: 90),
+          const Size(138, 98),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(maxWidth: 70, maxHeight: 50),
+          const Size(78, 58),
+          const Size(50, 36),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style,
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), expected);
+        expect(tester.getSize(find.byKey(childKey)), childSize);
+        expect(
+          tester.getTopLeft(find.byKey(childKey)) -
+              tester.getTopLeft(find.byKey(viewKey)),
+          const Offset(11, 9),
+        );
+      }
+    });
+
+    testWidgets('factor 乘自然盒后限幅，零倍数仍保留最小值且不会反向挤压 child', (tester) async {
+      const childKey = ValueKey('minmax-factor-child');
+      const base = ElStyle(
+        minWidth: 70,
+        maxWidth: 130,
+        minHeight: 50,
+        maxHeight: 90,
+        padding: EdgeInsets.all(10),
+      );
+      for (final (factor, expected) in [
+        (0.5, const Size(70, 50)),
+        (2.0, const Size(130, 90)),
+        (0.0, const Size(70, 50)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            base.copyWith(widthFactor: factor, heightFactor: factor),
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), expected);
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      }
+      await tester.pumpWidget(
+        viewScene(base.copyWith(widthFactor: 2, heightFactor: 2)),
+      );
+      expect(viewSize(tester), const Size(70, 50));
+      await tester.pumpWidget(
+        viewScene(
+          base.copyWith(
+            width: 200,
+            height: 200,
+            widthFactor: 0,
+            heightFactor: 0,
+          ),
+          child: const SizedBox(key: childKey, width: 80, height: 40),
+        ),
+      );
+      expect(viewSize(tester), const Size(130, 90));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+    });
+
+    testWidgets('max 先约束内容，Wrap 换行和 AspectRatio 跨轴尺寸随之变化', (tester) async {
+      const wrapKey = ValueKey('minmax-wrap');
+      const wrap = Wrap(
+        key: wrapKey,
+        children: [
+          SizedBox(width: 70, height: 20),
+          SizedBox(width: 70, height: 20),
+          SizedBox(width: 70, height: 20),
+        ],
+      );
+      for (final (maxWidth, expected) in <(double?, Size)>[
+        (null, const Size(230, 40)),
+        (160, const Size(160, 60)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(maxWidth: maxWidth, padding: const EdgeInsets.all(10)),
+            child: wrap,
+          ),
+        );
+        expect(viewSize(tester), expected);
+        expect(
+          tester.getSize(find.byKey(wrapKey)),
+          expected - const Offset(20, 20),
+        );
+      }
+      for (final (style, expected) in [
+        (
+          const ElStyle(maxWidth: 160, padding: EdgeInsets.all(10)),
+          const Size(160, 90),
+        ),
+        (
+          const ElStyle(maxHeight: 50, padding: EdgeInsets.all(10)),
+          const Size(80, 50),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(style, child: const AspectRatio(aspectRatio: 2)),
+        );
+        expect(viewSize(tester), expected);
+      }
+    });
+
+    testWidgets('无界百分比无参照时不限制，确定祖先变化时 min 与 max 重新求值', (tester) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: UnconstrainedBox(
+              child: ElView(
+                key: viewKey,
+                style: ElStyle(
+                  minWidth: '50%',
+                  maxWidth: '75%',
+                  minHeight: '50%',
+                  maxHeight: '75%',
+                ),
+                child: SizedBox(width: 80, height: 40),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(80, 40));
+      Widget host(double height, double childHeight) => viewScene(
+        ElStyle(width: 200, height: height, padding: const EdgeInsets.all(10)),
+        key: const ValueKey('minmax-percent-parent'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElView(
+              key: viewKey,
+              style: const ElStyle(minHeight: '50%', maxHeight: '75%'),
+              child: SizedBox(width: 40, height: childHeight),
+            ),
+          ],
+        ),
+      );
+      for (final (height, childHeight, expected) in [
+        (200.0, 20.0, 90.0),
+        (300.0, 20.0, 140.0),
+        (200.0, 1000.0, 135.0),
+        (300.0, 1000.0, 210.0),
+      ]) {
+        await tester.pumpWidget(host(height, childHeight));
+        expect(viewSize(tester), Size(40, expected));
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final vertical in [false, true]) {
+      testWidgets(
+        '${vertical ? "IntrinsicHeight" : "IntrinsicWidth"} 使用限制后的含边距尺寸',
+        (tester) async {
+          const child = ElView(
+            key: viewKey,
+            style: ElStyle(
+              minWidth: 120,
+              maxWidth: 140,
+              minHeight: 80,
+              maxHeight: 100,
+              padding: EdgeInsets.all(10),
+              margin: EdgeInsets.all(4),
+            ),
+            child: SizedBox(width: 80, height: 40),
+          );
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: vertical
+                    ? const IntrinsicHeight(child: child)
+                    : const IntrinsicWidth(child: child),
+              ),
+            ),
+          );
+          expect(viewSize(tester), const Size(128, 88));
+        },
+      );
+    }
+
+    testWidgets('限制不改变文字基线，公开 dry 查询遵守新约束且不污染正式几何', (tester) async {
+      const textKey = ValueKey('minmax-baseline-child');
+      const referenceKey = ValueKey('minmax-baseline-reference');
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  ElView(
+                    key: viewKey,
+                    style: ElStyle(
+                      minWidth: 120,
+                      maxWidth: 160,
+                      minHeight: 60,
+                      maxHeight: 80,
+                      padding: EdgeInsets.fromLTRB(8, 5, 12, 7),
+                      margin: EdgeInsets.fromLTRB(3, 2, 5, 4),
+                    ),
+                    child: Text('aa', key: textKey),
+                  ),
+                  Text('aa', key: referenceKey),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      final actualSize = viewSize(tester);
+      final childPosition = tester.getTopLeft(find.byKey(textKey));
+      expect(actualSize, const Size(128, 66));
+      expect(childPosition.dy, tester.getTopLeft(find.byKey(referenceKey)).dy);
+      final box = viewBox(tester);
+      const query = BoxConstraints(maxWidth: 100, maxHeight: 50);
+      expect(box.getDryLayout(query), const Size(100, 50));
+      final childBaseline = tester
+          .renderObject<RenderBox>(find.byKey(textKey))
+          .getDryBaseline(
+            const BoxConstraints(maxWidth: 72, maxHeight: 32),
+            TextBaseline.alphabetic,
+          )!;
+      expect(
+        box.getDryBaseline(query, TextBaseline.alphabetic),
+        childBaseline + 7,
+      );
+      expect(viewSize(tester), actualSize);
+      expect(tester.getTopLeft(find.byKey(textKey)), childPosition);
+    });
+  });
+
   group('基础盒模型与样式声明', () {
     testWidgets('空样式使用自然尺寸，复制、合并和显式清空后布局与背景正确', (tester) async {
       const child = SizedBox(width: 80, height: 40);

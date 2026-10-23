@@ -10,6 +10,10 @@ extension ElStyleExt on ElStyle {
   ElStyle copyWith({
     Object? width = $absent,
     Object? height = $absent,
+    Object? minWidth = $absent,
+    Object? maxWidth = $absent,
+    Object? minHeight = $absent,
+    Object? maxHeight = $absent,
     Object? widthFactor = $absent,
     Object? heightFactor = $absent,
     Object? backgroundColor = $absent,
@@ -24,6 +28,10 @@ extension ElStyleExt on ElStyle {
     return ElStyle(
       width: identical(width, $absent) ? this.width : width,
       height: identical(height, $absent) ? this.height : height,
+      minWidth: identical(minWidth, $absent) ? this.minWidth : minWidth,
+      maxWidth: identical(maxWidth, $absent) ? this.maxWidth : maxWidth,
+      minHeight: identical(minHeight, $absent) ? this.minHeight : minHeight,
+      maxHeight: identical(maxHeight, $absent) ? this.maxHeight : maxHeight,
       widthFactor: identical(widthFactor, $absent)
           ? this.widthFactor
           : widthFactor as num?,
@@ -60,6 +68,10 @@ extension ElStyleExt on ElStyle {
     return ElStyle(
       width: other.width ?? width,
       height: other.height ?? height,
+      minWidth: other.minWidth ?? minWidth,
+      maxWidth: other.maxWidth ?? maxWidth,
+      minHeight: other.minHeight ?? minHeight,
+      maxHeight: other.maxHeight ?? maxHeight,
       widthFactor: other.widthFactor ?? widthFactor,
       heightFactor: other.heightFactor ?? heightFactor,
       backgroundColor: other.backgroundColor ?? backgroundColor,
@@ -76,6 +88,10 @@ extension ElStyleExt on ElStyle {
   List<Object?> get _props => [
     width,
     height,
+    minWidth,
+    maxWidth,
+    minHeight,
+    maxHeight,
     widthFactor,
     heightFactor,
     backgroundColor,

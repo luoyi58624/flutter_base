@@ -12,8 +12,13 @@ enum StyleField {
   widthFactor,
   heightFactor,
   border,
-  outline;
+  outline,
+  minWidth,
+  maxWidth,
+  minHeight,
+  maxHeight;
 
+  /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
 
   int get damage => switch (this) {
@@ -22,7 +27,11 @@ enum StyleField {
     padding ||
     margin ||
     widthFactor ||
-    heightFactor => StyleEngine.layout,
+    heightFactor ||
+    minWidth ||
+    maxWidth ||
+    minHeight ||
+    maxHeight => StyleEngine.layout,
     backgroundColor || borderRadius || border || outline => StyleEngine.paint,
     clipBehavior => StyleEngine.paint | StyleEngine.semantics,
   };
@@ -39,6 +48,10 @@ enum StyleField {
     heightFactor => ElTransitionField.heightFactor,
     border => ElTransitionField.border,
     outline => ElTransitionField.outline,
+    minWidth => ElTransitionField.minWidth,
+    maxWidth => ElTransitionField.maxWidth,
+    minHeight => ElTransitionField.minHeight,
+    maxHeight => ElTransitionField.maxHeight,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -53,6 +66,10 @@ enum StyleField {
     heightFactor => style.heightFactor,
     border => style.border,
     outline => style.outline,
+    minWidth => style.minWidth,
+    maxWidth => style.maxWidth,
+    minHeight => style.minHeight,
+    maxHeight => style.maxHeight,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -66,11 +83,20 @@ enum StyleField {
     clipBehavior ||
     widthFactor ||
     heightFactor ||
-    outline => false,
+    outline ||
+    minWidth ||
+    maxWidth ||
+    minHeight ||
+    maxHeight => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
-    width || height => _parseLength(value),
+    width ||
+    height ||
+    minWidth ||
+    maxWidth ||
+    minHeight ||
+    maxHeight => _parseLength(value),
     backgroundColor => value as Color,
     padding || margin => _resolveInsets(value as EdgeInsetsGeometry, direction),
     borderRadius => _resolveRadius(value as BorderRadiusGeometry, direction),
@@ -81,7 +107,12 @@ enum StyleField {
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
-    width || height => _lengthLerp(from, to, t),
+    width ||
+    height ||
+    minWidth ||
+    maxWidth ||
+    minHeight ||
+    maxHeight => _lengthLerp(from, to, t),
     backgroundColor => _colorLerp(from, to, t),
     padding || margin => _insetsLerp(from, to, t),
     borderRadius => _radiusLerp(from, to, t),

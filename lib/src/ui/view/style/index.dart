@@ -25,6 +25,10 @@ class ElStyle with Equatable {
   const ElStyle({
     this.width,
     this.height,
+    this.minWidth,
+    this.maxWidth,
+    this.minHeight,
+    this.maxHeight,
     this.widthFactor,
     this.heightFactor,
     this.backgroundColor,
@@ -42,6 +46,18 @@ class ElStyle with Equatable {
 
   /// 逻辑像素数值或百分比字符串；null 表示自动高度。
   final Object? height;
+
+  /// 最小视觉盒宽度，数值或百分比，包含 padding；null 为零，maxWidth 冲突优先。
+  final Object? minWidth;
+
+  /// 最大视觉盒宽度，数值或百分比，包含 padding；null 表示不增加上限。
+  final Object? maxWidth;
+
+  /// 最小视觉盒高度，数值或百分比，包含 padding；null 为零，maxHeight 冲突优先。
+  final Object? minHeight;
+
+  /// 最大视觉盒高度，数值或百分比，包含 padding；null 表示不增加上限。
+  final Object? maxHeight;
 
   /// 非负有限的自然盒宽度倍数，包含 padding；null 等同于 1，显式宽度优先。
   final num? widthFactor;

@@ -8,6 +8,10 @@ class LayoutStyle {
   const LayoutStyle({
     this.width,
     this.height,
+    this.minWidth,
+    this.maxWidth,
+    this.minHeight,
+    this.maxHeight,
     this.padding,
     this.margin,
     this.widthFactor,
@@ -22,6 +26,18 @@ class LayoutStyle {
 
   /// 已求值的视觉盒高度，不包含外边距。
   final double? height;
+
+  /// 视觉盒最小宽度，不包含外边距，空值表示零。
+  final double? minWidth;
+
+  /// 视觉盒最大宽度，不包含外边距，空值表示无限制。
+  final double? maxWidth;
+
+  /// 视觉盒最小高度，不包含外边距，空值表示零。
+  final double? minHeight;
+
+  /// 视觉盒最大高度，不包含外边距，空值表示无限制。
+  final double? maxHeight;
 
   /// 已解析方向且非零的物理内边距。
   final EdgeInsets? padding;

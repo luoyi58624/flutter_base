@@ -31,6 +31,18 @@ enum ElTransitionField {
 
   /// 轮廓粗细、偏移、颜色与渐变，不影响布局。
   outline,
+
+  /// 最小宽度，数值与百分比插值；null 在中点切换。
+  minWidth,
+
+  /// 最大宽度，数值与百分比插值；null 在中点切换。
+  maxWidth,
+
+  /// 最小高度，数值与百分比插值；null 在中点切换。
+  minHeight,
+
+  /// 最大高度，数值与百分比插值；null 在中点切换。
+  maxHeight,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

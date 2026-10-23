@@ -1455,6 +1455,381 @@ void main() {
     }
   });
 
+  group('尺寸上下限的中间值', () {
+    testWidgets('双轴 min 按当前值撑盒，内容位置、圆角裁剪与轮廓跟随实际尺寸', (tester) async {
+      const childKey = ValueKey('min-animation-child');
+      const child = SizedBox(key: childKey, width: 40, height: 20);
+      ElStyle style(double width, double height) => ElStyle(
+        minWidth: width,
+        minHeight: height,
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+        backgroundColor: _red,
+        borderRadius: BorderRadius.circular(12),
+        outline: const ElOutline(width: 4, offset: 3, color: _blue),
+        clipBehavior: Clip.antiAlias,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(80, 50), child: child));
+      await tester.pumpWidget(viewScene(style(200, 130), child: child));
+      for (var step = 1; step <= 4; step++) {
+        await _advance(tester, 25);
+        final width = 80 + step * 30.0, height = 50 + step * 20.0;
+        final rect = Rect.fromLTWH(3, 5, width, height);
+        expect(viewSize(tester), Size(width + 6, height + 10));
+        expect(tester.getSize(find.byKey(childKey)), const Size(40, 20));
+        expect(_childOffset(tester, childKey), const Offset(13, 15));
+        _background(tester, null, rect: rect);
+        _clip(
+          tester,
+          Clip.antiAlias,
+          radius: BorderRadius.circular(12),
+          rect: rect,
+        );
+        final pixels = await _borderPixels(tester, [Offset(3 + width / 2, 0)]);
+        _pixel(pixels.single, _blue);
+      }
+    });
+
+    testWidgets('双轴 max 插值先限制 child，再将 padding 和 margin 计入实际占位', (
+      tester,
+    ) async {
+      const childKey = ValueKey('max-animation-child');
+      const child = SizedBox(key: childKey, width: 1000, height: 1000);
+      ElStyle style(double width, double height) => ElStyle(
+        maxWidth: width,
+        maxHeight: height,
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(300, 200), child: child));
+      await tester.pumpWidget(viewScene(style(100, 80), child: child));
+      for (var step = 1; step <= 4; step++) {
+        await _advance(tester, 25);
+        final width = 300 - step * 50.0, height = 200 - step * 30.0;
+        expect(viewSize(tester), Size(width + 6, height + 10));
+        expect(
+          tester.getSize(find.byKey(childKey)),
+          Size(width - 20, height - 20),
+        );
+        expect(_childOffset(tester, childKey), const Offset(13, 15));
+      }
+    });
+
+    testWidgets('min 和 max 的像素百分比混合表达式按当帧父参照求值', (tester) async {
+      for (final minimum in [true, false]) {
+        final key = ValueKey('limit-percent-$minimum');
+        final child = SizedBox(
+          width: minimum ? 0 : 1000,
+          height: minimum ? 0 : 1000,
+        );
+        ElStyle style(bool target) => ElStyle(
+          minWidth: minimum ? (target ? '50%' : 40) : null,
+          minHeight: minimum ? (target ? '50%' : 20) : null,
+          maxWidth: minimum ? null : (target ? '50%' : 40),
+          maxHeight: minimum ? null : (target ? '50%' : 20),
+          transitions: _linear,
+        );
+        await tester.pumpWidget(
+          viewScene(style(false), child: child, key: key),
+        );
+        await tester.pumpWidget(viewScene(style(true), child: child, key: key));
+        await _advance(tester, 50);
+        expect(viewSize(tester, key: key), const Size(120, 85));
+        await tester.pumpWidget(
+          viewScene(
+            style(true),
+            child: child,
+            width: 600,
+            height: 500,
+            key: key,
+          ),
+        );
+        expect(viewSize(tester, key: key), const Size(170, 135));
+        await _advance(tester, 50);
+        expect(viewSize(tester, key: key), const Size(300, 250));
+      }
+    });
+
+    testWidgets('null 上下限双向切换遵守中点离散，不插值无限尺寸或触发 auto 测量', (tester) async {
+      const child = SizedBox(width: 20, height: 120);
+      ElStyle style(bool limited) => ElStyle(
+        minWidth: limited ? 100 : null,
+        maxHeight: limited ? 40 : null,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(false), child: child));
+      for (final limited in [true, false]) {
+        await tester.pumpWidget(viewScene(style(limited), child: child));
+        await _advance(tester, 49);
+        expect(
+          viewSize(tester),
+          limited ? const Size(20, 120) : const Size(100, 40),
+        );
+        await _advance(tester, 1);
+        expect(
+          viewSize(tester),
+          limited ? const Size(100, 40) : const Size(20, 120),
+        );
+        await _advance(tester, 50);
+        expect(
+          viewSize(tester),
+          limited ? const Size(100, 40) : const Size(20, 120),
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('上下限支持延迟、中断接续、移除过渡与零时长等待', (tester) async {
+      const child = SizedBox(width: 20, height: 200);
+      const delayed = [
+        ElTransition.all(
+          Duration(milliseconds: 100),
+          Curves.linear,
+          Duration(milliseconds: 50),
+        ),
+      ];
+      ElStyle style(Object? minimum, Object? maximum, {bool animate = true}) =>
+          ElStyle(
+            minWidth: minimum,
+            maxHeight: maximum,
+            transitions: animate ? delayed : null,
+          );
+      await tester.pumpWidget(viewScene(style(40, 160), child: child));
+      await tester.pumpWidget(viewScene(style(200, 80), child: child));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(40, 160));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(80, 140));
+      await tester.pumpWidget(viewScene(style(120, 100), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(80, 140));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(100, 120));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(120, 100));
+      await tester.pumpWidget(
+        viewScene(style(null, null, animate: false), child: child),
+      );
+      expect(viewSize(tester), const Size(20, 200));
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            minWidth: 200,
+            maxHeight: 40,
+            transitions: [
+              ElTransition.all(
+                Duration.zero,
+                Curves.linear,
+                Duration(milliseconds: 20),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      );
+      await _advance(tester, 19);
+      expect(viewSize(tester), const Size(20, 200));
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(200, 40));
+    });
+
+    testWidgets('负过冲限制到零，min 与 max 相交后由当前 max 决定尺寸', (tester) async {
+      const child = SizedBox(width: 10, height: 100);
+      ElStyle overshoot(double value) => ElStyle(
+        minWidth: value,
+        maxHeight: value,
+        transitions: const [
+          ElTransition.all(Duration(milliseconds: 100), _NegativeCurve()),
+        ],
+      );
+      await tester.pumpWidget(viewScene(overshoot(20), child: child));
+      await tester.pumpWidget(viewScene(overshoot(100), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(10, 0));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(100, 100));
+      const crossingKey = ValueKey('crossing-limit-view');
+      ElStyle crossing(double minimum, double maximum) =>
+          ElStyle(minWidth: minimum, maxWidth: maximum, transitions: _linear);
+      await tester.pumpWidget(
+        viewScene(crossing(40, 200), child: child, key: crossingKey),
+      );
+      await tester.pumpWidget(
+        viewScene(crossing(200, 80), child: child, key: crossingKey),
+      );
+      await _advance(tester, 50);
+      expect(viewSize(tester, key: crossingKey), const Size(120, 100));
+      await _advance(tester, 25);
+      expect(viewSize(tester, key: crossingKey), const Size(110, 100));
+      await _advance(tester, 25);
+      expect(viewSize(tester, key: crossingKey), const Size(80, 100));
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final dense in [false, true]) {
+      testWidgets('auto 端点使用当前上限、padding 与因子，各通道不同截止仍连续：逐帧=$dense', (
+        tester,
+      ) async {
+        const child = SizedBox(width: 100, height: 40);
+        const transitions = [
+          ElTransition.field(
+            ElTransitionField.width,
+            Duration(milliseconds: 100),
+            Curves.linear,
+          ),
+          ElTransition.field(
+            ElTransitionField.maxWidth,
+            Duration(milliseconds: 200),
+            Curves.linear,
+          ),
+          ElTransition.field(
+            ElTransitionField.padding,
+            Duration(milliseconds: 200),
+            Curves.linear,
+          ),
+          ElTransition.field(
+            ElTransitionField.widthFactor,
+            Duration(milliseconds: 200),
+            Curves.linear,
+          ),
+        ];
+        await tester.pumpWidget(
+          viewScene(
+            const ElStyle(width: 240, maxWidth: 300, transitions: transitions),
+            child: child,
+          ),
+        );
+        await tester.pumpWidget(
+          viewScene(
+            const ElStyle(
+              maxWidth: 140,
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              widthFactor: 2,
+              transitions: transitions,
+            ),
+            child: child,
+          ),
+        );
+        await _advanceTo99(tester, dense: dense);
+        final before = viewSize(tester).width;
+        await _advance(tester, 1);
+        expect((viewSize(tester).width - before).abs(), lessThan(3));
+        expect(viewSize(tester), const Size(180, 40));
+        await _advance(tester, 50);
+        expect(viewSize(tester), const Size(180, 40));
+        await _advance(tester, 50);
+        expect(viewSize(tester), const Size(140, 40));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('max 逐帧收紧时真实 child 按新宽度重新计算高度', (tester) async {
+      const childKey = ValueKey('max-reflow-child');
+      final child = LayoutBuilder(
+        builder: (_, constraints) => SizedBox(
+          key: childKey,
+          width: constraints.maxWidth,
+          height: constraints.maxWidth / 2,
+        ),
+      );
+      ElStyle style(double maximum) =>
+          ElStyle(maxWidth: maximum, transitions: _linear);
+      await tester.pumpWidget(viewScene(style(300), child: child));
+      await tester.pumpWidget(viewScene(style(100), child: child));
+      for (var step = 1; step <= 4; step++) {
+        await _advance(tester, 25);
+        final width = 300 - step * 50.0;
+        expect(viewSize(tester), Size(width, width / 2));
+        expect(tester.getSize(find.byKey(childKey)), Size(width, width / 2));
+      }
+    });
+
+    testWidgets('动画中的上下限遵守父 tight 约束，嵌套百分比跟随正式内容参照', (tester) async {
+      const nestedKey = ValueKey('limit-nested-percent');
+      Widget scene(double maximum, {bool tight = false}) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: tight ? 240 : 0,
+              maxWidth: tight ? 240 : 400,
+              maxHeight: 300,
+            ),
+            child: ElView(
+              key: viewKey,
+              style: ElStyle(
+                width: 400,
+                height: 40,
+                maxWidth: maximum,
+                padding: const EdgeInsets.all(10),
+                transitions: _linear,
+              ),
+              child: const ElView(
+                key: nestedKey,
+                style: ElStyle(width: '50%', minWidth: '75%', height: 20),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(scene(300));
+      expect(viewSize(tester, key: nestedKey), const Size(210, 20));
+      await tester.pumpWidget(scene(100));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(200, 40));
+      expect(viewSize(tester, key: nestedKey), const Size(135, 20));
+      await tester.pumpWidget(scene(100, tight: true));
+      expect(viewSize(tester), const Size(240, 40));
+      expect(viewSize(tester, key: nestedKey), const Size(165, 20));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(240, 40));
+      await tester.pumpWidget(scene(100));
+      expect(viewSize(tester), const Size(150, 40));
+      expect(viewSize(tester, key: nestedKey), const Size(97.5, 20));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(100, 40));
+      expect(viewSize(tester, key: nestedKey), const Size(60, 20));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('混合百分比上限暂失参照时不限制，参照恢复后继续原进度', (tester) async {
+      Widget scene(Object maximum, {bool bounded = true}) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: UnconstrainedBox(
+            constrainedAxis: Axis.vertical,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: bounded ? 400 : double.infinity,
+                maxHeight: 300,
+              ),
+              child: ElView(
+                key: viewKey,
+                style: ElStyle(maxWidth: maximum, transitions: _linear),
+                child: const SizedBox(width: 300, height: 40),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(scene(100));
+      await tester.pumpWidget(scene('50%'));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(125, 40));
+      await tester.pumpWidget(scene('50%', bounded: false));
+      expect(viewSize(tester), const Size(300, 40));
+      await tester.pumpWidget(scene('50%'));
+      expect(viewSize(tester), const Size(125, 40));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(150, 40));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(200, 40));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('自然尺寸因子的中间值', () {
     testWidgets('双轴因子从 null 过渡到 2 再清空，padding 参与缩放但 child 不缩放', (tester) async {
       const childKey = ValueKey('factor-child');
