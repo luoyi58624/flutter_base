@@ -25,7 +25,8 @@ enum StyleField {
   transformAlignment,
   filter,
   backdropFilter,
-  clipper;
+  clipper,
+  alignment;
 
   /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
@@ -46,7 +47,8 @@ enum StyleField {
     maxWidth ||
     minHeight ||
     maxHeight ||
-    aspectRatio => StyleEngine.layout,
+    aspectRatio ||
+    alignment => StyleEngine.layout,
     backgroundColor ||
     borderRadius ||
     border ||
@@ -87,6 +89,7 @@ enum StyleField {
     filter => ElTransitionField.filter,
     backdropFilter => ElTransitionField.backdropFilter,
     clipper => null,
+    alignment => ElTransitionField.alignment,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -114,6 +117,7 @@ enum StyleField {
     filter => style.filter,
     backdropFilter => style.backdropFilter,
     clipper => style.clipper,
+    alignment => style.alignment,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -140,7 +144,8 @@ enum StyleField {
     transformAlignment ||
     filter ||
     backdropFilter ||
-    clipper => false,
+    clipper ||
+    alignment => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -165,6 +170,8 @@ enum StyleField {
     transformAlignment => (value: value as AlignmentGeometry, fallback: 0.0),
     filter || backdropFilter => _parseFilter(value as ElFilter),
     clipper => value as CustomClipper<Path>,
+    // 保留方向分量到布局求值，动画期间改向无需重启轨道。
+    alignment => value as AlignmentGeometry,
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -197,5 +204,13 @@ enum StyleField {
     ),
     filter ||
     backdropFilter => _filterLerp(from as FilterStyle?, to as FilterStyle?, t),
+    alignment =>
+      from == null || to == null
+          ? (t < 0.5 ? from : to)
+          : AlignmentGeometry.lerp(
+              from as AlignmentGeometry,
+              to as AlignmentGeometry,
+              t,
+            ),
   };
 }

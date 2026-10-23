@@ -307,6 +307,423 @@ void _rect(Rect actual, Rect expected) {
 }
 
 void main() {
+  group('内容对齐基本功能', () {
+    testWidgets('有界、tight 和无界 auto 的实际与只读布局和官方 Align 一致，child 保持 loose', (
+      tester,
+    ) async {
+      const childKey = ValueKey('alignment-reference-child');
+      const padding = EdgeInsets.fromLTRB(8, 4, 12, 6);
+      const margin = EdgeInsets.fromLTRB(3, 5, 7, 9);
+      for (final constraints in const [
+        BoxConstraints(maxWidth: 400, maxHeight: 300),
+        BoxConstraints.tightFor(width: 200, height: 120),
+        BoxConstraints(maxHeight: 120),
+        BoxConstraints(maxWidth: 200),
+        BoxConstraints(),
+      ]) {
+        Future<(Size, Offset, Size, Size, List<double>)> snapshot(
+          bool native,
+        ) async {
+          const child = SizedBox(key: childKey, width: 40, height: 20);
+          final widget = native
+              ? const Padding(
+                  key: viewKey,
+                  padding: margin,
+                  child: Padding(
+                    padding: padding,
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: child,
+                    ),
+                  ),
+                )
+              : const ElView(
+                  key: viewKey,
+                  style: ElStyle(
+                    alignment: Alignment.bottomRight,
+                    padding: padding,
+                    margin: margin,
+                  ),
+                  child: child,
+                );
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: UnconstrainedBox(
+                  child: ConstrainedBox(
+                    constraints: constraints,
+                    child: widget,
+                  ),
+                ),
+              ),
+            ),
+          );
+          final box = viewBox(tester);
+          final size = viewSize(tester);
+          final offset =
+              tester.getTopLeft(find.byKey(childKey)) -
+              tester.getTopLeft(find.byKey(viewKey));
+          return (
+            size,
+            offset,
+            tester.getSize(find.byKey(childKey)),
+            box.getDryLayout(constraints),
+            [
+              box.getMinIntrinsicWidth(300),
+              box.getMaxIntrinsicWidth(300),
+              box.getMinIntrinsicHeight(400),
+              box.getMaxIntrinsicHeight(400),
+            ],
+          );
+        }
+
+        final expected = await snapshot(true);
+        final actual = await snapshot(false);
+        expect(actual.$1, expected.$1);
+        expect(actual.$2, expected.$2);
+        expect(actual.$3, expected.$3);
+        expect(actual.$4, expected.$4);
+        expect(actual.$5, expected.$5);
+        expect(actual.$3, const Size(40, 20));
+      }
+    });
+
+    testWidgets('null 与复制合并控制对齐，空 child 的有界 auto 也填满可用空间', (tester) async {
+      const childKey = ValueKey('alignment-declaration-child');
+      const style = ElStyle(alignment: Alignment.center);
+      for (final (value, size, offset) in <(ElStyle, Size, Offset)>[
+        (style, const Size(400, 300), const Offset(190, 145)),
+        (
+          style.copyWith(alignment: Alignment.topRight),
+          const Size(400, 300),
+          const Offset(380, 0),
+        ),
+        (
+          style.merge(const ElStyle(alignment: Alignment.bottomLeft)),
+          const Size(400, 300),
+          const Offset(0, 290),
+        ),
+        (
+          style.merge(const ElStyle()),
+          const Size(400, 300),
+          const Offset(190, 145),
+        ),
+        (style.copyWith(alignment: null), const Size(20, 10), Offset.zero),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            value,
+            child: const SizedBox(key: childKey, width: 20, height: 10),
+          ),
+        );
+        expect(viewSize(tester), size);
+        _point(
+          tester.getTopLeft(find.byKey(childKey)) -
+              tester.getTopLeft(find.byKey(viewKey)),
+          offset,
+        );
+      }
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            alignment: Alignment.center,
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(400, 300));
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(20, 10));
+    });
+
+    testWidgets('child 在 padding 内容区对齐，margin 不参与空间分配且方向变化立即更新', (
+      tester,
+    ) async {
+      const childKey = ValueKey('alignment-direction-child');
+      for (final (alignment, direction, expected)
+          in <(AlignmentGeometry, TextDirection, Offset)>[
+            (
+              AlignmentDirectional.bottomEnd,
+              TextDirection.ltr,
+              const Offset(63, 49),
+            ),
+            (
+              AlignmentDirectional.bottomEnd,
+              TextDirection.rtl,
+              const Offset(13, 49),
+            ),
+            (
+              AlignmentDirectional.centerStart,
+              TextDirection.ltr,
+              const Offset(13, 29),
+            ),
+            (
+              AlignmentDirectional.centerStart,
+              TextDirection.rtl,
+              const Offset(63, 29),
+            ),
+            (Alignment.topLeft, TextDirection.rtl, const Offset(13, 9)),
+          ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              width: 100,
+              height: 60,
+              alignment: alignment,
+              padding: const EdgeInsets.fromLTRB(10, 4, 20, 6),
+              margin: const EdgeInsets.fromLTRB(3, 5, 7, 9),
+            ),
+            direction: direction,
+            child: const SizedBox(key: childKey, width: 20, height: 10),
+          ),
+        );
+        expect(viewSize(tester), const Size(110, 74));
+        _point(
+          tester.getTopLeft(find.byKey(childKey)) -
+              tester.getTopLeft(find.byKey(viewKey)),
+          expected,
+        );
+      }
+    });
+
+    testWidgets('有效 factor 优先自然倍数，factor 一保持填满，比例百分比与上下限按现有顺序求值', (
+      tester,
+    ) async {
+      const childKey = ValueKey('alignment-combination-child');
+      const base = ElStyle(
+        alignment: Alignment.center,
+        padding: EdgeInsets.all(10),
+        margin: EdgeInsets.all(5),
+      );
+      for (final (style, expected, childSize) in <(ElStyle, Size, Size)>[
+        (base, const Size(400, 300), const Size(80, 40)),
+        (
+          base.copyWith(widthFactor: 1, heightFactor: 1),
+          const Size(400, 300),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(widthFactor: 2, heightFactor: 0.5),
+          const Size(210, 40),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(widthFactor: 2),
+          const Size(210, 300),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(width: 100, heightFactor: 2),
+          const Size(110, 130),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(aspectRatio: 2),
+          const Size(400, 205),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(aspectRatio: 2, widthFactor: 2),
+          const Size(210, 300),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(width: '50%', aspectRatio: 2),
+          const Size(205, 107.5),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(
+            width: 100,
+            minWidth: 140,
+            maxHeight: 70,
+            aspectRatio: 2,
+          ),
+          const Size(150, 60),
+          const Size(80, 30),
+        ),
+        (
+          base.copyWith(
+            minWidth: 100,
+            maxWidth: 160,
+            minHeight: 80,
+            maxHeight: 100,
+          ),
+          const Size(170, 110),
+          const Size(80, 40),
+        ),
+        (
+          base.copyWith(alignment: null, widthFactor: 1, heightFactor: 1),
+          const Size(110, 70),
+          const Size(80, 40),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style,
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), expected, reason: '$style');
+        expect(tester.getSize(find.byKey(childKey)), childSize);
+        expect(
+          viewBox(
+            tester,
+          ).getDryLayout(const BoxConstraints(maxWidth: 400, maxHeight: 300)),
+          expected,
+        );
+      }
+      const nestedKey = ValueKey('aligned-unbounded-percentage-child');
+      const nested = UnconstrainedBox(
+        child: ElView(
+          key: nestedKey,
+          style: ElStyle(width: '50%', height: '50%'),
+        ),
+      );
+      const aligned = ElStyle(
+        alignment: Alignment.center,
+        padding: EdgeInsets.all(10),
+      );
+      await tester.pumpWidget(
+        viewScene(aligned, width: 240, height: 160, child: nested),
+      );
+      expect(tester.getSize(find.byKey(nestedKey)), const Size(110, 70));
+      final nestedPosition = tester.getTopLeft(find.byKey(nestedKey));
+      expect(
+        viewBox(tester)
+            .getDryLayout(const BoxConstraints(maxWidth: 320, maxHeight: 180)),
+        const Size(320, 180),
+      );
+      expect(tester.getSize(find.byKey(nestedKey)), const Size(110, 70));
+      _point(tester.getTopLeft(find.byKey(nestedKey)), nestedPosition);
+      await tester.pumpWidget(
+        viewScene(aligned, width: 320, height: 180, child: nested),
+      );
+      expect(tester.getSize(find.byKey(nestedKey)), const Size(150, 80));
+    });
+
+    testWidgets('对齐后的真实和 dry 基线包含 child 偏移，尺寸查询不改变正式位置', (tester) async {
+      const childKey = ValueKey('alignment-baseline-child');
+      const referenceKey = ValueKey('alignment-baseline-reference');
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  ElView(
+                    key: viewKey,
+                    style: ElStyle(
+                      width: 160,
+                      height: 100,
+                      alignment: Alignment.bottomRight,
+                      padding: EdgeInsets.fromLTRB(10, 4, 20, 6),
+                      margin: EdgeInsets.fromLTRB(3, 5, 7, 9),
+                    ),
+                    child: Text('aa', key: childKey),
+                  ),
+                  Text('aa', key: referenceKey),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      final box = viewBox(tester);
+      final child = tester.renderObject<RenderBox>(find.byKey(childKey));
+      final actualSize = viewSize(tester);
+      final position = tester.getTopLeft(find.byKey(childKey));
+      expect(
+        position.dy,
+        closeTo(tester.getTopLeft(find.byKey(referenceKey)).dy, 1e-6),
+      );
+      expect(box.getMinIntrinsicWidth(300), 170);
+      expect(box.getMaxIntrinsicHeight(300), 114);
+      const query = BoxConstraints(maxWidth: 120, maxHeight: 80);
+      expect(box.getDryLayout(query), const Size(120, 80));
+      const inner = BoxConstraints(maxWidth: 80, maxHeight: 56);
+      final dryChildSize = child.getDryLayout(inner);
+      final dryChildBaseline = child.getDryBaseline(
+        inner,
+        TextBaseline.alphabetic,
+      )!;
+      expect(
+        box.getDryBaseline(query, TextBaseline.alphabetic),
+        closeTo(5 + 4 + 56 - dryChildSize.height + dryChildBaseline, 1e-6),
+      );
+      expect(viewSize(tester), actualSize);
+      _point(tester.getTopLeft(find.byKey(childKey)), position);
+    });
+
+    testWidgets('实际指针的局部位置与语义矩形随方向性对齐一起移动', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const rootKey = ValueKey('alignment-semantics-root');
+      const childKey = ValueKey('alignment-pointer-child');
+      final positions = <Offset>[];
+      try {
+        for (final direction in [TextDirection.rtl, TextDirection.ltr]) {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: direction,
+              child: Center(
+                child: Semantics(
+                  key: rootKey,
+                  container: true,
+                  explicitChildNodes: true,
+                  child: ElView(
+                    key: viewKey,
+                    style: const ElStyle(
+                      width: 100,
+                      height: 60,
+                      alignment: AlignmentDirectional.bottomStart,
+                      padding: EdgeInsets.all(10),
+                      margin: EdgeInsets.all(5),
+                    ),
+                    child: Semantics(
+                      container: true,
+                      label: '对齐内容',
+                      child: Listener(
+                        key: childKey,
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (event) =>
+                            positions.add(event.localPosition),
+                        child: const SizedBox(width: 20, height: 10),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          final offset = Offset(direction == TextDirection.rtl ? 75 : 15, 45);
+          final origin = viewBox(tester).localToGlobal(Offset.zero);
+          final before = positions.length;
+          await tester.tapAt(origin + offset + const Offset(5, 5));
+          expect(positions, hasLength(before + 1));
+          _point(positions.last, const Offset(5, 5));
+          await tester.tapAt(origin + const Offset(5, 5));
+          expect(positions, hasLength(before + 1));
+          final root = tester.semantics.find(find.byKey(rootKey));
+          final node = find.semantics.byLabel('对齐内容').evaluate().single;
+          _rect(_semanticRect(node, root), offset & const Size(20, 10));
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('滤镜与自定义裁剪基本功能', () {
     testWidgets('CSS 颜色组件与组合顺序显示正确，恒等非法值和复制清空不残留效果', (tester) async {
       for (final (filter, expected) in <(ElFilter?, Color)>[

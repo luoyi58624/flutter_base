@@ -380,6 +380,290 @@ class _AnimatedClipper extends CustomClipper<Path> {
 }
 
 void main() {
+  group('内容对齐中间值', () {
+    testWidgets('对齐插值保留边距、越界值及尺寸倍数穿越 1 的自然尺寸', (tester) async {
+      const childKey = ValueKey('alignment-interpolation-child');
+      const child = SizedBox(key: childKey, width: 20, height: 10);
+      ElStyle style(AlignmentGeometry alignment) => ElStyle(
+        width: 100,
+        height: 80,
+        padding: const EdgeInsets.fromLTRB(10, 6, 20, 14),
+        margin: const EdgeInsets.all(4),
+        alignment: alignment,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.topLeft), child: child),
+      );
+      expect(_childOffset(tester, childKey), const Offset(14, 10));
+      await tester.pumpWidget(
+        viewScene(style(Alignment.bottomRight), child: child),
+      );
+      for (final (ms, expected) in [
+        (25, const Offset(26.5, 22.5)),
+        (25, const Offset(39, 35)),
+        (50, const Offset(64, 60)),
+      ]) {
+        await _advance(tester, ms);
+        expect(viewSize(tester), const Size(108, 88));
+        expect(tester.getSize(find.byKey(childKey)), const Size(20, 10));
+        expect(_childOffset(tester, childKey), expected);
+      }
+      await tester.pumpWidget(
+        viewScene(style(const Alignment(3, -3)), child: child),
+      );
+      await _advance(tester, 50);
+      expect(_childOffset(tester, childKey), const Offset(89, 10));
+      await _advance(tester, 50);
+      expect(_childOffset(tester, childKey), const Offset(114, -40));
+
+      const factorViewKey = ValueKey('alignment-factor-view');
+      const factorChildKey = ValueKey('alignment-factor-child');
+      const factorChild = SizedBox(key: factorChildKey, width: 100, height: 40);
+      Widget factorScene(double factor) => viewScene(
+        ElStyle(
+          alignment: Alignment.center,
+          widthFactor: factor,
+          heightFactor: factor,
+          transitions: _linear,
+        ),
+        key: factorViewKey,
+        child: factorChild,
+      );
+      await tester.pumpWidget(factorScene(0.5));
+      expect(viewSize(tester, key: factorViewKey), const Size(50, 20));
+      await tester.pumpWidget(factorScene(1.5));
+      for (final (ms, expected) in [
+        (25, const Size(75, 30)),
+        (25, const Size(100, 40)),
+        (50, const Size(150, 60)),
+      ]) {
+        await _advance(tester, ms);
+        // 经过 1 仍是自然盒倍数模式，不能在中间一帧突然扩张到父上限。
+        expect(viewSize(tester, key: factorViewKey), expected);
+        expect(tester.getSize(find.byKey(factorChildKey)), const Size(100, 40));
+      }
+    });
+
+    testWidgets('对齐等待与中断接续当前坐标，等值声明重建不推迟截止时间', (tester) async {
+      const childKey = ValueKey('alignment-delay-child');
+      const child = SizedBox(key: childKey, width: 20, height: 10);
+      const transitions = [
+        ElTransition(
+          field: ElTransitionField.alignment,
+          duration: Duration(milliseconds: 100),
+          delay: Duration(milliseconds: 20),
+          curve: Curves.linear,
+        ),
+      ];
+      ElStyle style(AlignmentGeometry alignment, {bool rebuild = false}) =>
+          ElStyle(
+            width: 100,
+            height: 60,
+            alignment: alignment,
+            transitions: rebuild ? List.of(transitions) : transitions,
+          );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.topLeft), child: child),
+      );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.bottomRight), child: child),
+      );
+      await _advance(tester, 19);
+      expect(_childOffset(tester, childKey), Offset.zero);
+      await _advance(tester, 1);
+      expect(_childOffset(tester, childKey), Offset.zero);
+      await _advance(tester, 25);
+      expect(_childOffset(tester, childKey), const Offset(20, 12.5));
+      await tester.pumpWidget(
+        viewScene(style(Alignment.bottomRight, rebuild: true), child: child),
+      );
+      await _advance(tester, 25);
+      expect(_childOffset(tester, childKey), const Offset(40, 25));
+      await tester.pumpWidget(
+        viewScene(style(Alignment.topRight), child: child),
+      );
+      expect(_childOffset(tester, childKey), const Offset(40, 25));
+      await _advance(tester, 20);
+      expect(_childOffset(tester, childKey), const Offset(40, 25));
+      await _advance(tester, 25);
+      expect(_childOffset(tester, childKey), const Offset(50, 18.75));
+      await _advance(tester, 75);
+      expect(_childOffset(tester, childKey), const Offset(80, 0));
+    });
+
+    testWidgets('空值双向在中点切换布局模式，auto 在自然尺寸与有界扩张之间恢复', (tester) async {
+      const childKey = ValueKey('alignment-null-child');
+      const child = SizedBox(key: childKey, width: 20, height: 10);
+      ElStyle style(AlignmentGeometry? alignment) => ElStyle(
+        alignment: alignment,
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.all(4),
+        transitions: _linear,
+      );
+      Widget scene(AlignmentGeometry? alignment) =>
+          viewScene(style(alignment), width: 200, height: 120, child: child);
+      await tester.pumpWidget(scene(null));
+      expect(viewSize(tester), const Size(48, 38));
+      expect(_childOffset(tester, childKey), const Offset(14, 14));
+      await tester.pumpWidget(scene(Alignment.bottomRight));
+      await _advance(tester, 49);
+      expect(viewSize(tester), const Size(48, 38));
+      expect(_childOffset(tester, childKey), const Offset(14, 14));
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(200, 120));
+      expect(_childOffset(tester, childKey), const Offset(166, 96));
+      await _advance(tester, 50);
+      await tester.pumpWidget(scene(null));
+      await _advance(tester, 49);
+      expect(viewSize(tester), const Size(200, 120));
+      expect(_childOffset(tester, childKey), const Offset(166, 96));
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(48, 38));
+      expect(_childOffset(tester, childKey), const Offset(14, 14));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(48, 38));
+    });
+
+    testWidgets('方向性起点与物理终点混合插值，改向立即更新坐标且不重启动画', (tester) async {
+      const childKey = ValueKey('alignment-direction-child');
+      const child = SizedBox(key: childKey, width: 20, height: 10);
+      ElStyle style(AlignmentGeometry alignment) => ElStyle(
+        width: 100,
+        height: 60,
+        alignment: alignment,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(
+        viewScene(style(AlignmentDirectional.topStart), child: child),
+      );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.bottomRight), child: child),
+      );
+      await _advance(tester, 25);
+      expect(_childOffset(tester, childKey), const Offset(20, 12.5));
+      await tester.pumpWidget(
+        viewScene(
+          style(Alignment.bottomRight),
+          direction: TextDirection.rtl,
+          child: child,
+        ),
+      );
+      expect(_childOffset(tester, childKey), const Offset(80, 12.5));
+      await _advance(tester, 25);
+      expect(_childOffset(tester, childKey), const Offset(80, 25));
+      await _advance(tester, 50);
+      expect(_childOffset(tester, childKey), const Offset(80, 50));
+    });
+
+    testWidgets('对齐与 auto 百分比宽度和 padding 联动，真实坐标基线与语义每帧同步', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const childKey = ValueKey('alignment-baseline-child');
+      const referenceKey = ValueKey('alignment-baseline-reference');
+      const rootKey = ValueKey('alignment-semantics-root');
+      const label = 'alignment-moving-child';
+      final child = Semantics(
+        container: true,
+        label: label,
+        child: const SizedBox(
+          key: childKey,
+          width: 20,
+          height: 10,
+          child: ExcludeSemantics(
+            child: Text('x', style: TextStyle(fontSize: 10, height: 1)),
+          ),
+        ),
+      );
+      ElStyle style(Object? width, double padding, Alignment alignment) =>
+          ElStyle(
+            width: width,
+            height: 80,
+            padding: EdgeInsets.all(padding),
+            alignment: alignment,
+            transitions: _linear,
+          );
+      Widget scene(ElStyle style, {double width = 200}) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Semantics(
+            key: rootKey,
+            container: true,
+            explicitChildNodes: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: width, maxHeight: 120),
+                  child: ElView(key: viewKey, style: style, child: child),
+                ),
+                const SizedBox(
+                  key: referenceKey,
+                  width: 20,
+                  height: 10,
+                  child: ExcludeSemantics(
+                    child: Text('x', style: TextStyle(fontSize: 10, height: 1)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      void expectGeometry(Size size, Offset offset) {
+        expect(viewSize(tester), size);
+        expect(_childOffset(tester, childKey), offset);
+        final box = viewBox(tester);
+        final childBox = tester.renderObject<RenderBox>(find.byKey(childKey));
+        final baseline =
+            childBox.getDryBaseline(
+              childBox.constraints,
+              TextBaseline.alphabetic,
+            )! +
+            offset.dy;
+        expect(
+          tester.getTopLeft(find.byKey(referenceKey)).dy -
+              tester.getTopLeft(find.byKey(viewKey)).dy,
+          closeTo(offset.dy, 1e-6),
+        );
+        expect(
+          box.getDryBaseline(box.constraints, TextBaseline.alphabetic),
+          closeTo(baseline, 1e-6),
+        );
+        final node = find.semantics.byLabel(label).evaluate().single;
+        final rect = _semanticRect(
+          node,
+          tester.semantics.find(find.byKey(rootKey)),
+        );
+        expect(rect, offset & const Size(20, 10));
+      }
+
+      try {
+        await tester.pumpWidget(scene(style(null, 10, Alignment.topLeft)));
+        expectGeometry(const Size(200, 80), const Offset(10, 10));
+        await tester.pumpWidget(scene(style('50%', 20, Alignment.bottomRight)));
+        await _advance(tester, 50);
+        expectGeometry(const Size(150, 80), const Offset(65, 35));
+        await tester.pumpWidget(
+          scene(style('50%', 20, Alignment.bottomRight), width: 300),
+        );
+        expectGeometry(const Size(175, 80), const Offset(77.5, 35));
+        await _advance(tester, 50);
+        expectGeometry(const Size(150, 80), const Offset(110, 50));
+        await tester.pumpWidget(
+          scene(style(null, 20, Alignment.centerLeft), width: 300),
+        );
+        await _advance(tester, 50);
+        expectGeometry(const Size(225, 80), const Offset(102.5, 42.5));
+        await _advance(tester, 50);
+        expectGeometry(const Size(300, 80), const Offset(20, 35));
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('滤镜与自定义裁剪中间值', () {
     testWidgets('颜色滤镜从 null 按各自恒等值插值，退场与中间像素连续', (tester) async {
       ElStyle style(ElFilter? filter, {bool animate = true}) => ElStyle(

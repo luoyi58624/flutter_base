@@ -48,6 +48,7 @@ class ElStyle with Equatable {
     this.backdropFilter,
     this.padding,
     this.margin,
+    this.alignment,
     this.border,
     this.outline,
     this.borderRadius,
@@ -112,6 +113,9 @@ class ElStyle with Equatable {
 
   /// 非负有限外边距，背景不覆盖此区域；null 等同于零。
   final EdgeInsetsGeometry? margin;
+
+  /// child 在内容区内的对齐；非空在无有效倍数的有界 auto 轴撑满，null 关闭对齐。
+  final AlignmentGeometry? alignment;
 
   /// 原生 Border 或 BorderDirectional，仅覆盖绘制、不占布局；null 表示无边框。
   /// 粗细必须非负且有限，strokeAlign 必须有限；零宽 solid 保留原生 hairline。

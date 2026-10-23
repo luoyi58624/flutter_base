@@ -17,6 +17,7 @@ class LayoutStyle {
     this.widthFactor,
     this.heightFactor,
     this.aspectRatio,
+    this.alignment,
   });
 
   /// 无尺寸和边距修饰的共享属性。
@@ -54,4 +55,7 @@ class LayoutStyle {
 
   /// 未被显式双轴或自然盒倍数覆盖的视觉盒宽高比。
   final double? aspectRatio;
+
+  /// 已按当前文字方向解析的内容区对齐，空值关闭对齐布局。
+  final Alignment? alignment;
 }

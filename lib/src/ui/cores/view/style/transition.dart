@@ -67,6 +67,9 @@ enum ElTransitionField {
 
   /// 背景滤镜，各分量从各自恒等值连续过渡。
   backdropFilter,
+
+  /// 内容对齐，两个非空值平滑插值，单侧 null 在中点切换布局模式。
+  alignment,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

@@ -41,13 +41,9 @@ double? _parseFactor(num value) {
   return value == 1 ? null : value.toDouble();
 }
 
-Object? _factorLerp(Object? from, Object? to, double t) {
-  final value = math.max(
-    0.0,
-    lerpDouble(from as double? ?? 1, to as double? ?? 1, t)!,
-  );
-  return value == 1 ? null : value;
-}
+Object? _factorLerp(Object? from, Object? to, double t) =>
+    // 中间值经过 1 仍属于倍数轨道，不能临时关闭倍数而触发对齐扩张。
+    math.max(0.0, lerpDouble(from as double? ?? 1, to as double? ?? 1, t)!);
 
 double? _parseAspectRatio(num value) =>
     value.isFinite && value > 0 ? value.toDouble() : null;

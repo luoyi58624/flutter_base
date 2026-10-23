@@ -27,6 +27,7 @@ extension ElStyleExt on ElStyle {
     Object? backdropFilter = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
+    Object? alignment = $absent,
     Object? border = $absent,
     Object? outline = $absent,
     Object? borderRadius = $absent,
@@ -76,6 +77,9 @@ extension ElStyleExt on ElStyle {
       margin: identical(margin, $absent)
           ? this.margin
           : margin as EdgeInsetsGeometry?,
+      alignment: identical(alignment, $absent)
+          ? this.alignment
+          : alignment as AlignmentGeometry?,
       border: identical(border, $absent) ? this.border : border as BoxBorder?,
       outline: identical(outline, $absent)
           ? this.outline
@@ -117,6 +121,7 @@ extension ElStyleExt on ElStyle {
       backdropFilter: other.backdropFilter ?? backdropFilter,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
+      alignment: other.alignment ?? alignment,
       border: other.border ?? border,
       outline: other.outline ?? outline,
       borderRadius: other.borderRadius ?? borderRadius,
@@ -146,6 +151,7 @@ extension ElStyleExt on ElStyle {
     backdropFilter,
     padding,
     margin,
+    alignment,
     border,
     outline,
     borderRadius,

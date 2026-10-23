@@ -187,6 +187,9 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - `style/resolved/layout.dart` 输出数值宽高、上下限和已解析的物理边距，不向执行器泄漏表达式。
 - `layout/box_layout.dart` 的 BoxLayout 统一执行尺寸、内外边距、真实/dry/intrinsic/
   baseline、正式几何和按轴百分比参照依赖；未声明边距时直接复用约束。
+  alignment 在扣除 padding 的内容区定位 child，支持方向性对齐与过渡；非空对齐放松 child
+  约束，并在没有有效自然盒倍数的有界 auto 轴填满。factor:1 继续等同缺省值。
+  null 关闭对齐布局，单侧 null 的过渡在中点切换模式，两个非空值连续插值。
 - `paint/decoration.dart` 的 DecorationPainter 按需创建并复用背景画笔，矩形背景不构造
   形状、路径或图层。装饰或裁剪实际消费圆角时才创建 `paint/shape.dart` 的 ShapeGeometry，
   绘制与自身命中共用规范圆角；仅尺寸或圆角变化重建，颜色、外边距和整体位置变化复用局部形状。
@@ -225,6 +228,7 @@ ElView(
   style: ElStyle(
     width: 160,
     height: 80,
+    alignment: Alignment.center,
     backgroundColor: const Color(0xff409eff),
     borderRadius: BorderRadius.circular(16),
     outline: const ElOutline(width: 2, color: Color(0xff409eff), offset: 3),
@@ -232,6 +236,7 @@ ElView(
     transitions: const [
       ElTransition.field(ElTransitionField.borderRadius),
       ElTransition.field(ElTransitionField.outline),
+      ElTransition.field(ElTransitionField.alignment),
     ],
   ),
 )

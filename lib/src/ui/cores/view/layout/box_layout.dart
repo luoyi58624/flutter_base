@@ -112,13 +112,16 @@ class BoxLayout {
     final child = _host.child;
     if (child == null) return null;
     final plan = _queryConstraints(outer, style);
-    final value = _withQueryGeometry(
-      plan.box,
-      style.padding,
-      () => child.getDryBaseline(plan.inner, baseline),
-    );
-    if (value == null) return null;
-    return value + (style.padding?.top ?? 0) + (style.margin?.top ?? 0);
+    return _withQueryGeometry(plan.box, style.padding, () {
+      final value = child.getDryBaseline(plan.inner, baseline);
+      if (value == null) return null;
+      if (style.alignment == null) {
+        return value + (style.padding?.top ?? 0) + (style.margin?.top ?? 0);
+      }
+      final content = child.getDryLayout(plan.inner);
+      final box = _constrainBox(plan.box, content, style);
+      return value + _childOffset(box, content, style).dy;
+    });
   }
 
   /// 查询指定轴的固有尺寸，固定尺寸直接返回，自动尺寸交给 child 求值。
@@ -243,7 +246,7 @@ class BoxLayout {
         style.maxWidth != null ||
         style.minHeight != null ||
         style.maxHeight != null;
-    final BoxConstraints box;
+    BoxConstraints box;
     if (!bounded) {
       box = width == null && height == null
           ? available
@@ -268,13 +271,38 @@ class BoxLayout {
         maxHeight: usedHeight ?? maxHeight,
       ).enforce(available);
     }
-    // 自身 min 只撑大视觉盒；auto child 保留父下限，显式尺寸 child 保持 loose。
-    var inner =
-        width == null &&
+    final alignment = style.alignment;
+    if (alignment != null) {
+      if (_usesNaturalRatio(style) &&
+          naturalWidth == null &&
+          box.hasBoundedWidth) {
+        // 对齐在有界宽上先填满，再派生比例高度，无需先测一遍自然内容。
+        return _constraints(outer, style, naturalWidth: box.maxWidth);
+      }
+      // 比例尚需自然宽时不能反用有界高度撑满，保留既有的宽优先约定。
+      if (ratio == null || width != null || height != null) {
+        final fillWidth =
+            width == null && style.widthFactor == null && box.hasBoundedWidth;
+        final fillHeight =
             height == null &&
-            (!bounded ||
-                (box.minWidth == available.minWidth &&
-                    box.minHeight == available.minHeight))
+            style.heightFactor == null &&
+            box.hasBoundedHeight;
+        if (fillWidth || fillHeight) {
+          box = box.tighten(
+            width: fillWidth ? box.maxWidth : null,
+            height: fillHeight ? box.maxHeight : null,
+          );
+        }
+      }
+    }
+    // 自身 min 只撑大视觉盒；auto child 保留父下限，显式尺寸 child 保持 loose。
+    var inner = alignment != null
+        ? box.loosen()
+        : width == null &&
+              height == null &&
+              (!bounded ||
+                  (box.minWidth == available.minWidth &&
+                      box.minHeight == available.minHeight))
         ? box
         : BoxConstraints(
             minWidth: width == null ? available.minWidth : 0,
@@ -292,7 +320,7 @@ class BoxLayout {
     LayoutStyle style,
   ) {
     final plan = _constraints(outer, style);
-    if (!_usesNaturalRatio(style)) return plan;
+    if (!_needsNaturalWidth(style, plan.box)) return plan;
     final content = _withQueryGeometry(
       plan.box,
       style.padding,
@@ -307,6 +335,10 @@ class BoxLayout {
 
   bool _usesNaturalRatio(LayoutStyle style) =>
       style.aspectRatio != null && style.width == null && style.height == null;
+
+  bool _needsNaturalWidth(LayoutStyle style, BoxConstraints box) =>
+      _usesNaturalRatio(style) &&
+      (style.alignment == null || !box.hasBoundedWidth);
 
   double _ratioExtent(double extent, double ratio, bool width) {
     final result = width ? extent * ratio : extent / ratio;
@@ -332,7 +364,7 @@ class BoxLayout {
     _setReferenceGeometry(plan.box, padding);
     try {
       final child = _host.child;
-      if (_usesNaturalRatio(style)) {
+      if (_needsNaturalWidth(style, plan.box)) {
         child?.layout(plan.inner, parentUsesSize: true);
         plan = _constraints(
           outer,
@@ -349,9 +381,11 @@ class BoxLayout {
         _boxSize = box;
         _boxOrigin = style.margin?.topLeft ?? Offset.zero;
         if (child != null) {
-          (child.parentData! as BoxParentData).offset = padding == null
-              ? _boxOrigin
-              : _boxOrigin + padding.topLeft;
+          (child.parentData! as BoxParentData).offset = _childOffset(
+            box,
+            content,
+            style,
+          );
         }
       }
       return box;
@@ -377,6 +411,21 @@ class BoxLayout {
       );
     }
     return constraints.constrain(natural);
+  }
+
+  Offset _childOffset(Size box, Size child, LayoutStyle style) {
+    final padding = style.padding;
+    var origin = style.margin?.topLeft ?? Offset.zero;
+    if (padding != null) origin += padding.topLeft;
+    final alignment = style.alignment;
+    if (alignment == null) return origin;
+    return origin +
+        alignment.alongOffset(
+          Offset(
+            math.max(0.0, box.width - (padding?.horizontal ?? 0)) - child.width,
+            math.max(0.0, box.height - (padding?.vertical ?? 0)) - child.height,
+          ),
+        );
   }
 
   T _withQueryGeometry<T>(

@@ -261,10 +261,12 @@ class StyleEngine {
     _style = style;
     _direction = direction;
     // 仅刷新可见渐变的 shader，不因方向变化重启宽度、颜色或偏移动画。
-    if (directionChanged && (outline?.gradient != null || gradient != null)) {
-      _damage |= paint;
+    if (directionChanged) {
+      if (outline?.gradient != null || gradient != null) _damage |= paint;
+      if (_directionalTransform) _damage |= paint | semantics;
+      final alignment = _values[StyleField.alignment.index];
+      if (alignment != null && alignment is! Alignment) _damage |= layout;
     }
-    if (directionChanged && _directionalTransform) _damage |= paint | semantics;
     for (final field in StyleField.values) {
       final raw = field.declaration(style);
       final changed =
@@ -408,6 +410,7 @@ class StyleEngine {
     final widthFactor = _values[StyleField.widthFactor.index] as double?;
     final heightFactor = _values[StyleField.heightFactor.index] as double?;
     final ratio = _values[StyleField.aspectRatio.index] as double?;
+    final alignment = _values[StyleField.alignment.index] as AlignmentGeometry?;
     final minWidth = _values[StyleField.minWidth.index] as StyleLength?;
     final maxWidth = _values[StyleField.maxWidth.index] as StyleLength?;
     final minHeight = _values[StyleField.minHeight.index] as StyleLength?;
@@ -422,7 +425,8 @@ class StyleEngine {
         minWidth == null &&
         maxWidth == null &&
         minHeight == null &&
-        maxHeight == null) {
+        maxHeight == null &&
+        alignment == null) {
       return LayoutStyle.empty;
     }
     // 同轴尺寸与上下限共用一次百分比参照；没有相对值就不查约束或祖先。
@@ -451,6 +455,7 @@ class StyleEngine {
       maxHeight: maxHeight?.resolve(heightBasis),
       padding: padding,
       margin: margin,
+      alignment: alignment?.resolve(_direction),
       widthFactor: usedWidth == null ? widthFactor : null,
       heightFactor: usedHeight == null ? heightFactor : null,
       aspectRatio:
@@ -559,6 +564,7 @@ class StyleEngine {
       request.minHeight,
       request.maxHeight,
       request.aspectRatio,
+      request.alignment != null,
       _externalVersion,
     );
     if (_measurementKey != key || lostReference) {
