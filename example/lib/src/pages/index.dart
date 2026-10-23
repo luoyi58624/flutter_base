@@ -1,4 +1,5 @@
 import 'package:example/src/pages/view.dart';
+import 'package:example/src/pages/custom_gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -7,15 +8,16 @@ import '../widgets/icons/settings_icons.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  MyListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) => MyListTile(
-    title: icon.label,
-    icon: ElSettingIcon(icon),
-    onPressed: () {
-      if (page != null) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
-      }
-    },
-  );
+  MyListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) =>
+      MyListTile(
+        title: icon.label,
+        onPressed: () {
+          if (page != null) {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => page));
+          }
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class HomePage extends StatelessWidget {
               MyListGroup(
                 children: [
                   _tile(context, .airplane, ElViewPage()),
-                  _tile(context, .wifi),
+                  _tile(context, .wifi, CustomGesturesPage()),
                   _tile(context, .bluetooth),
                   _tile(context, .mobile),
                   _tile(context, .connect),
@@ -45,7 +47,13 @@ class HomePage extends StatelessWidget {
                   _tile(context, .notifications),
                 ],
               ),
-              MyListGroup(children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)]),
+              MyListGroup(
+                children: [
+                  _tile(context, .password),
+                  _tile(context, .privacy),
+                  _tile(context, .location),
+                ],
+              ),
               MyListGroup(
                 children: [
                   _tile(context, .apps),
