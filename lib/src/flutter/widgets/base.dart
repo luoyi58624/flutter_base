@@ -57,6 +57,10 @@ class ElChildIndex extends InheritedWidget {
   /// 迭代元素总长度，非必需，使用前请确认是否注入
   final int? length;
 
+  bool get isStart => index == start;
+
+  bool get isEnd => index == end;
+
   static ElChildIndex? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ElChildIndex>();
 
   static ElChildIndex of(BuildContext context) {
