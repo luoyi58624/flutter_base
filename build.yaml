@@ -1,0 +1,35 @@
+builders:
+  model:
+    import: "package:flutter_base/builder.dart"
+    builder_factories: [ "elModelBuilder" ]
+    build_extensions: { ".dart": [ ".g.part" ] }
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: [ "source_gen:combining_builder" ]
+  sourceGenerator:
+    import: "package:flutter_base/builder.dart"
+    builder_factories: [ "elSourceGeneratorBuilder" ]
+    build_extensions: { ".dart": [ ".g.part" ] }
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: [ "source_gen:combining_builder" ]
+
+targets:
+  $default:
+    auto_apply_builders: true
+    sources:
+      - lib/**
+      - test/**
+      - $package$
+    builders:
+      source_gen:combining_builder:
+        options:
+          build_extensions:
+            '^test/generator/models/{{}}.dart': 'test/generator/generates/models/{{}}.g.dart'
+            '^test/generator/source_generator/{{}}.dart': 'test/generator/generates/source_generator/{{}}.g.dart'
+      flutter_base|model:
+        generate_for:
+          - test/generator/models/**
+      flutter_base|sourceGenerator:
+        generate_for:
+          - test/generator/source_generator/source.dart
