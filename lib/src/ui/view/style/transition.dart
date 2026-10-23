@@ -1,7 +1,5 @@
 part of 'index.dart';
 
-typedef _Lerp = Object? Function(Object? from, Object? to, double t);
-
 /// 可过渡的样式属性。
 enum ElTransitionField {
   /// 宽度，支持数值、百分比与自动尺寸过渡。

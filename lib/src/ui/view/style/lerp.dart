@@ -36,8 +36,8 @@ Object? _lengthLerp(Object? from, Object? to, double t) {
   );
 }
 
-EdgeInsets _resolveInsets(EdgeInsetsGeometry? value, TextDirection direction) {
-  final result = (value ?? EdgeInsets.zero).resolve(direction);
+EdgeInsets? _resolveInsets(EdgeInsetsGeometry value, TextDirection direction) {
+  final result = value.resolve(direction);
   assert(
     [
       result.left,
@@ -46,11 +46,16 @@ EdgeInsets _resolveInsets(EdgeInsetsGeometry? value, TextDirection direction) {
       result.bottom,
     ].every((v) => v >= 0 && v.isFinite),
   );
-  return result;
+  return result == EdgeInsets.zero ? null : result;
 }
 
-Object _insetsLerp(Object? from, Object? to, double t) {
-  final value = EdgeInsets.lerp(from as EdgeInsets, to as EdgeInsets, t)!;
+Object? _insetsLerp(Object? from, Object? to, double t) {
+  final value = EdgeInsets.lerp(
+    from as EdgeInsets? ?? EdgeInsets.zero,
+    to as EdgeInsets? ?? EdgeInsets.zero,
+    t,
+  )!;
+  if (value == EdgeInsets.zero) return null;
   return value.isNonNegative
       ? value
       : EdgeInsets.fromLTRB(

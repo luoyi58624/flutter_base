@@ -6,10 +6,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/dart.dart';
 
+import '../layout/box_layout.dart';
+import 'resolved/layout.dart';
+
 part 'index.g.dart';
 part 'transition.dart';
 part 'lerp.dart';
 part 'style_engine.dart';
+part 'fields.dart';
 
 /// 不可变的盒模型样式；宽高包含 padding，不包含 margin。
 @immutable

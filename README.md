@@ -86,21 +86,76 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - 盒模型属性不级联继承；边距方向通过官方 Directionality 读取。声明式过渡仅由
   transitions 控制，不订阅系统动画开关；此层没有 vars、styleBuilder 或事件系统。
 
-`render/index.dart` 仅导出 ElRenderView；`render/view.dart` 负责渲染对象与生命周期，
-`render/layout.dart` 负责盒模型计算。各目录独立，依赖方向为 view → render → style。
-样式引擎负责时间和字段插值，通过捕获起始尺寸、
-通知失效两个回调协作；渲染层负责布局参照及目标尺寸测量。内部类型不通过 UI 入口导出。
+`render/index.dart` 仅导出 ElRenderView；宿主只转交样式、调度协作者并落地 Flutter
+布局/绘制协议。每个宿主在构造时立即创建唯一 StyleEngine，声明解析、方向求值、
+当前值、目标值、动画轨道与精确失效全部由引擎管理，Render 不读写字段数组或轨道。
 
-动画引擎和 Ticker 按需创建，每帧只访问活动轨道，不重建 ElStyle 或 child；颜色变化
-只标记绘制，几何变化才标记布局。auto 目标测量可能额外执行一次真实布局；只有登记过
-无界百分比参照依赖的节点，才会在参照变化时扫描后代。当前验证为模块测试，未作设备
-Profile 性能结论。
+- `style/fields.dart` 集中定义字段读取、插值与消费域，样式字段不依赖公开过渡枚举的位序。
+- `style/resolved/layout.dart` 输出数值宽高和已解析的物理边距，不向执行器泄漏表达式。
+- `layout/box_layout.dart` 的 BoxLayout 统一执行尺寸、内外边距、真实/dry/intrinsic/
+  baseline、正式几何和按轴百分比参照依赖；未声明边距时直接复用约束。
+- `paint/decoration.dart` 的 DecorationPainter 按需创建并复用背景画笔，纯色背景不构造
+  路径或图层。圆角与效果按计划在实际属性接入时扩展，不创建空控制器。
+
+Ticker 和轨道集合只为实际过渡创建；首次挂载或仅声明 transitions 不启动时钟。
+动画只采样活动轨道，不重建 ElStyle 或 child；固定尺寸采样值未变时不请求布局，
+纯颜色变化只重绘，也不重新解析尺寸和边距。
+
+auto 等待 delay 时不测量端点；活动阶段可能逐帧额外执行真实 child 布局，因为任意
+child 在紧约束下可以独立更新，父 dirty 不能作为可靠的跨帧内容版本。相同帧、相同
+请求共享测量结果；不同截止时间的双 auto 按截止时间单向求值，避免循环重测。
+端点变化区分外部内容/约束更新与引擎自身的连续几何动画；相同端点不重置剩余曲线。
+临时测量使用临时内容参照，最后恢复正式布局，不污染后代已呈现几何和动画时间线。
+
+无界百分比仅订阅实际查询经过的候选祖先，按轴使依赖节点失效，不扫描整个后代树；
+未使用相对尺寸就不创建引用登记。文本和事件子系统暂不处理。当前验证为相关模块的
+行为与调用计数测试，未作设备 Profile 性能结论。
 
 `ElStyle` 的 copyWith、merge、比较字段列表通过 `ElModelGenerator` 生成：省略参数
 保留原值，copyWith 显式 null 清空，merge 忽略 null 且整体替换过渡列表。
-新增属性时补充样式声明、StyleField 的读取/插值/失效规则及渲染消费，并重新生成：
+新增属性时补充样式声明、StyleField 的解析/插值/失效规则及对应执行器消费，保持
+Render 调度骨架稳定，再重新生成模型代码。相关验证只运行本次文件：
 
 ```powershell
 dart run build_runner build --build-filter 'lib/src/ui/view/style/index.g.dart'
-flutter test test/ui/view_test.dart --concurrency=1
+flutter test test/ui/view_test.dart test/ui/view_architecture_test.dart test/ui/style_engine_test.dart --concurrency=1
+```
+
+## 独立事件 Widget
+
+通过 `package:flutter_base/ui.dart` 使用 `ElEventView`。它只有 `event`、
+`child` 和标准 `key`，以一个 RenderObject 承载事件，沿用子组件的尺寸，
+可包裹任意 Flutter Widget。
+
+```dart
+ElEventView(
+  event: ElEvent(
+    cursor: SystemMouseCursors.click,
+    onTap: (event) => print(event.localPosition),
+    onLongPress: (event) => print('长按'),
+  ),
+  child: const SizedBox(width: 120, height: 40, child: Text('点击我')),
+)
+```
+
+- 保留原始指针、进入/悬停/离开、滚轮、触控板 PanZoom，以及主键、右键、
+  中键和前进/后退键点击；支持单击、双击、三击、长按及取消原因。
+- 支持自由/水平/垂直拖拽、多指缩放与旋转、速度估计和接受拖拽后的帧重采样。
+  `ElEventConfig` 只配置当前节点；重采样默认仅在 Android 启用，可按平台覆写。
+- 命中行为由 `event.behavior` 控制，默认 opaque；`event.disabled` 禁用时吸收
+  盒内指针命中，并结清当前节点及后代事件宿主的活动手势和延迟点击。
+- 嵌套事件宿主按各自本地坐标传播；`stopPropagation()` 截断相应事件家族，
+  `eagerGesture()` 独占当前 pointer 的事件成员。原始 Move、DragUpdate 不作通用冒泡，
+  侧键点击由最近的订阅节点处理。独占只作用于这套事件系统，不参与官方 gesture arena。
+- `ElDragProxy` 提供祖先预消费、当前节点消费、祖先接收余量三段协作；使用
+  `consumeDelta` / `consumePrimaryDelta` / `consumeAllDelta` 分配拖动位移。
+- 重建时同结构的新闭包热替换并保留手势；`copyWith` 的 null 表示保留，
+  清除回调使用 `clear: {ElEventClearField.onTap}`。卸载、禁用和结构变化均结算已开始的手势。
+
+事件实现在 `lib/src/ui/event/`，只依赖 Dart、Flutter 和自身目录，不依赖 ElView、
+样式、滚动、投影或选区模块。本次不包含键盘和焦点，也不提供全局指针屏障或样式反馈。
+内部 dispatcher 与状态机不从公共入口导出。
+
+```powershell
+flutter test test/ui/event --concurrency=1
 ```
