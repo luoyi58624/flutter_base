@@ -149,7 +149,7 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - 盒模型属性不级联继承；边距方向通过官方 Directionality 读取。声明式过渡仅由
   transitions 控制，不订阅系统动画开关；此层没有 vars、styleBuilder 或事件系统。
 
-`render/index.dart` 仅导出 ElRenderView；宿主只转交样式、调度协作者并落地 Flutter
+`render/index.dart` 实现 ElRenderView；宿主只转交样式、调度协作者并落地 Flutter
 布局/绘制协议。每个宿主在构造时立即创建唯一 StyleEngine，声明解析、方向求值、
 当前值、目标值、动画轨道与精确失效全部由引擎管理，Render 不读写字段数组或轨道。
 
@@ -168,16 +168,27 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - `paint/shadow.dart` 缓存实际使用的内外阴影几何和画笔，颜色与整体位置不重建几何。
 - `style/transform.dart` 保留函数来源与参数，避免矩阵相同却丢失整圈动画；
   `paint/transform.dart` 只补实际视觉盒原点，缓存有效矩阵并检查有限投影。
+- `style/filter.dart` 将 ElFilter 的模糊、颜色分量解析为独立的数值输出；
+  `paint/filter.dart` 按实际使用创建颜色矩阵与原生滤镜，纯颜色不创建模糊，纯模糊不创建矩阵。
+  固定顺序为 grayscale、sepia、saturate、hueRotate、invert、brightness、contrast、opacity，
+  最后 blur；hueRotate 使用度数并保留动画圈数，null 端点使用各分量的恒等值。
 - `paint/effects.dart` 的 EffectController 仅在实际裁剪或组透明时创建，与装饰共用局部形状。
   由 Flutter 根据现有合成需求选择画布或图层，复用可用裁剪层，停用时释放持有权；
   不因 saveLayer 模式强制增加合成层。裁剪层与透明度层独立释放，组透明使用 OpacityLayer，
   支持 child 自身含合成层；外层已裁剪时，背景、渐变和内阴影不重复裁剪圆角。
   变换层独立持有，纯平移直接调整偏移，其余由 Flutter 按已有合成需求选择画布或图层。
+  自身 filter 作用于完整装饰和 child；backdropFilter 仅将盒形状内的背景过滤结果纳入组，
+  不将阴影、outline 或溢出 child 一并裁掉。两者同时使用时先形成玻璃与前景，再过滤整组；
+  opacity 按 CSS 的整组结果淡出，模糊 sigma 保持不变。背景采样服从 Flutter 实际的祖先隔离边界。
+  自定义 clipper 覆盖 borderRadius，裁剪最终滤镜输出并共享实际绘制与命中路径；
+  未指定 clipBehavior 时默认 antiAlias，显式 Clip.none 完全停用委托并恢复普通圆角。
+  ShapeGeometry 管理 shouldReclip、通知、尺寸变化与挂载监听，语义使用委托的近似裁剪矩形。
 
 Ticker 和轨道集合只为实际过渡创建；首次挂载或仅声明 transitions 不启动时钟。
 动画只采样活动轨道，不重建 ElStyle 或 child；固定尺寸采样值未变时不请求布局，
 纯颜色、渐变、阴影、透明度、圆角、边框或轮廓变化只重绘，也不重新解析尺寸和边距。
 变换与原点也不触发布局，同时更新语义；未声明 transform 时不创建矩阵、几何或变换层。
+滤镜和路径变化不重新布局，模糊只扩大绘制边界；路径更新同步重绘与语义，clipper 不参与插值。
 
 ```dart
 ElView(

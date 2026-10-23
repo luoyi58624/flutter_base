@@ -122,6 +122,25 @@ class StyleEngine {
     return value == null ? 255 : Color.getAlphaFromOpacity(value);
   }
 
+  /// 非恒等的自身滤镜，数值已完成规范和本帧插值。
+  FilterStyle? get filter {
+    final value = _values[StyleField.filter.index] as FilterStyle?;
+    return _isIdentityFilter(value) ? null : value;
+  }
+
+  /// 非恒等的背景滤镜，保留与自身滤镜独立的消费结果。
+  FilterStyle? get backdropFilter {
+    final value = _values[StyleField.backdropFilter.index] as FilterStyle?;
+    return _isIdentityFilter(value) ? null : value;
+  }
+
+  /// 完全透明时跳过整组，否则只有半透明或有效滤镜需要合成。
+  bool get needsCompositing {
+    final alpha = opacityAlpha;
+    return alpha != 0 &&
+        (alpha < 255 || filter != null || backdropFilter != null);
+  }
+
   /// 已解析方向和本帧过渡的物理边框；完全不可见时不启动绘制执行器。
   Border? get border {
     final value = _values[StyleField.border.index] as Border?;
@@ -158,17 +177,32 @@ class StyleEngine {
 
   /// 已解析方向、规范零值并完成本帧插值的物理圆角。
   BorderRadius? get borderRadius {
+    if (clipper != null) return null;
     final value = _values[StyleField.borderRadius.index] as BorderRadius?;
     return value == null || _isRectRadius(value) ? null : value;
   }
 
-  /// 立即生效的裁剪模式，不占用动画轨道。
+  /// 有效自定义路径，显式 Clip.none 会禁用声明但不删除原值。
+  CustomClipper<Path>? get clipper => pathClipBehavior == Clip.none
+      ? null
+      : _values[StyleField.clipper.index] as CustomClipper<Path>?;
+
+  /// 自定义路径未指定模式时默认抗锯齿，显式 none 保持禁用。
+  Clip get pathClipBehavior =>
+      _values[StyleField.clipBehavior.index] as Clip? ?? Clip.antiAlias;
+
+  /// 立即生效的有效裁剪模式，普通盒缺省不裁剪，自定义路径缺省抗锯齿。
   Clip get clipBehavior =>
-      _values[StyleField.clipBehavior.index] as Clip? ?? Clip.none;
+      _values[StyleField.clipBehavior.index] as Clip? ??
+      (clipper == null ? Clip.none : Clip.antiAlias);
 
   void _write(StyleField field, Object? value) {
     if (field.sameValue(_values[field.index], value)) return;
-    final composited = field == StyleField.opacity && _hasOpacityLayer;
+    final affectsCompositing =
+        field == StyleField.opacity ||
+        field == StyleField.filter ||
+        field == StyleField.backdropFilter;
+    final composited = affectsCompositing && needsCompositing;
     _values[field.index] = value;
     if (field == StyleField.transform && value == null) {
       _transformSource = null;
@@ -180,14 +214,9 @@ class StyleEngine {
       return;
     }
     _damage |= field.damage;
-    if (field == StyleField.opacity && composited != _hasOpacityLayer) {
+    if (affectsCompositing && composited != needsCompositing) {
       _damage |= compositing;
     }
-  }
-
-  bool get _hasOpacityLayer {
-    final alpha = opacityAlpha;
-    return alpha > 0 && alpha < 255;
   }
 
   void _flush() {

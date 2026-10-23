@@ -22,7 +22,10 @@ enum StyleField {
   boxShadow,
   opacity,
   transform,
-  transformAlignment;
+  transformAlignment,
+  filter,
+  backdropFilter,
+  clipper;
 
   /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
@@ -50,8 +53,11 @@ enum StyleField {
     outline ||
     gradient ||
     boxShadow ||
-    opacity => StyleEngine.paint,
+    opacity ||
+    filter ||
+    backdropFilter => StyleEngine.paint,
     clipBehavior ||
+    clipper ||
     transform ||
     transformAlignment => StyleEngine.paint | StyleEngine.semantics,
   };
@@ -78,6 +84,9 @@ enum StyleField {
     opacity => ElTransitionField.opacity,
     transform => ElTransitionField.transform,
     transformAlignment => ElTransitionField.transformAlignment,
+    filter => ElTransitionField.filter,
+    backdropFilter => ElTransitionField.backdropFilter,
+    clipper => null,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -102,6 +111,9 @@ enum StyleField {
     opacity => style.opacity,
     transform => style.transform,
     transformAlignment => style.transformAlignment,
+    filter => style.filter,
+    backdropFilter => style.backdropFilter,
+    clipper => style.clipper,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -125,7 +137,10 @@ enum StyleField {
     boxShadow ||
     opacity ||
     transform ||
-    transformAlignment => false,
+    transformAlignment ||
+    filter ||
+    backdropFilter ||
+    clipper => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -138,7 +153,7 @@ enum StyleField {
     backgroundColor => value as Color,
     padding || margin => _resolveInsets(value as EdgeInsetsGeometry, direction),
     borderRadius => _resolveRadius(value as BorderRadiusGeometry, direction),
-    clipBehavior => value == Clip.none ? null : value as Clip,
+    clipBehavior => value as Clip,
     widthFactor || heightFactor => _parseFactor(value as num),
     border => _resolveBorder(value as BoxBorder, direction),
     outline => _parseOutline(value as ElOutline, direction),
@@ -148,6 +163,8 @@ enum StyleField {
     opacity => _parseOpacity(value as num),
     transform => value as ElTransform,
     transformAlignment => (value: value as AlignmentGeometry, fallback: 0.0),
+    filter || backdropFilter => _parseFilter(value as ElFilter),
+    clipper => value as CustomClipper<Path>,
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -160,7 +177,7 @@ enum StyleField {
     backgroundColor => _colorLerp(from, to, t),
     padding || margin => _insetsLerp(from, to, t),
     borderRadius => _radiusLerp(from, to, t),
-    clipBehavior => to,
+    clipBehavior || clipper => to,
     widthFactor || heightFactor => _factorLerp(from, to, t),
     border => _borderLerp(from as Border?, to as Border?, t),
     outline => _outlineLerp(from as OutlineStyle?, to as OutlineStyle?, t),
@@ -178,5 +195,7 @@ enum StyleField {
       to as _TransformAlignment?,
       t,
     ),
+    filter ||
+    backdropFilter => _filterLerp(from as FilterStyle?, to as FilterStyle?, t),
   };
 }

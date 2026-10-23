@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/dart.dart';
 
 import '../layout/box_layout.dart';
+import 'resolved/filter.dart';
 import 'resolved/layout.dart';
 import 'resolved/outline.dart';
 import 'resolved/transform.dart';
@@ -20,6 +21,7 @@ part 'fields.dart';
 part 'outline.dart';
 part 'shadow.dart';
 part 'transform.dart';
+part 'filter.dart';
 
 /// 不可变的盒模型样式；宽高包含 padding，不包含 margin。
 @immutable
@@ -42,11 +44,14 @@ class ElStyle with Equatable {
     this.opacity,
     this.transform,
     this.transformAlignment,
+    this.filter,
+    this.backdropFilter,
     this.padding,
     this.margin,
     this.border,
     this.outline,
     this.borderRadius,
+    this.clipper,
     this.clipBehavior,
     this.transitions,
   });
@@ -87,7 +92,7 @@ class ElStyle with Equatable {
   /// 按声明顺序绘制的阴影，支持 ElBoxShadow.inset；不占布局或扩大命中范围。
   final List<BoxShadow>? boxShadow;
 
-  /// 整组装饰与 child 的透明度，限制在 0～1；null 为 1，零值不绘制或命中。
+  /// 背景滤镜、装饰与 child 的整组透明度，限制在 0～1；null 为 1，零值不绘制或命中。
   final num? opacity;
 
   /// 整组视觉变换，不占布局；null 表示不变换，平移单位为逻辑像素。
@@ -95,6 +100,12 @@ class ElStyle with Equatable {
 
   /// 变换原点，优先于 transform.origin；缺省回退内部原点或视觉盒中心。
   final AlignmentGeometry? transformAlignment;
+
+  /// 作用于全部装饰与 child 的自身滤镜，不占布局，模糊允许向盒外扩散。
+  final ElFilter? filter;
+
+  /// 仅处理盒后方画面的背景滤镜，采样范围按当前盒形状裁剪，不裁掉装饰。
+  final ElFilter? backdropFilter;
 
   /// 非负有限内边距，支持方向性边距；null 等同于零。
   final EdgeInsetsGeometry? padding;
@@ -109,10 +120,13 @@ class ElStyle with Equatable {
   /// 盒外轮廓，仅绘制、不占布局；偏移可将其移入盒内，null 表示不绘制。
   final ElOutline? outline;
 
-  /// 非负有限的背景与边框圆角，支持方向性圆角；裁剪由 clipBehavior 决定。
+  /// 非负有限的背景与边框圆角，支持方向性圆角；有效 clipper 存在时让位。
   final BorderRadiusGeometry? borderRadius;
 
-  /// 背景与 child 的裁剪方式；null 等同于 Clip.none，模式切换不参与过渡。
+  /// 裁剪全部视觉的自定义路径；默认抗锯齿，显式 Clip.none 禁用此路径。
+  final CustomClipper<Path>? clipper;
+
+  /// 裁剪方式；未指定时自定义路径用 antiAlias，普通盒不裁剪，切换不参与过渡。
   final Clip? clipBehavior;
 
   /// 过渡声明，合并时整体替换；同一属性由最后一条匹配声明决定。

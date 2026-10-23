@@ -23,11 +23,14 @@ extension ElStyleExt on ElStyle {
     Object? opacity = $absent,
     Object? transform = $absent,
     Object? transformAlignment = $absent,
+    Object? filter = $absent,
+    Object? backdropFilter = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
     Object? border = $absent,
     Object? outline = $absent,
     Object? borderRadius = $absent,
+    Object? clipper = $absent,
     Object? clipBehavior = $absent,
     Object? transitions = $absent,
   }) {
@@ -63,6 +66,10 @@ extension ElStyleExt on ElStyle {
       transformAlignment: identical(transformAlignment, $absent)
           ? this.transformAlignment
           : transformAlignment as AlignmentGeometry?,
+      filter: identical(filter, $absent) ? this.filter : filter as ElFilter?,
+      backdropFilter: identical(backdropFilter, $absent)
+          ? this.backdropFilter
+          : backdropFilter as ElFilter?,
       padding: identical(padding, $absent)
           ? this.padding
           : padding as EdgeInsetsGeometry?,
@@ -76,6 +83,9 @@ extension ElStyleExt on ElStyle {
       borderRadius: identical(borderRadius, $absent)
           ? this.borderRadius
           : borderRadius as BorderRadiusGeometry?,
+      clipper: identical(clipper, $absent)
+          ? this.clipper
+          : clipper as CustomClipper<Path>?,
       clipBehavior: identical(clipBehavior, $absent)
           ? this.clipBehavior
           : clipBehavior as Clip?,
@@ -103,11 +113,14 @@ extension ElStyleExt on ElStyle {
       opacity: other.opacity ?? opacity,
       transform: other.transform ?? transform,
       transformAlignment: other.transformAlignment ?? transformAlignment,
+      filter: other.filter ?? filter,
+      backdropFilter: other.backdropFilter ?? backdropFilter,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
       border: other.border ?? border,
       outline: other.outline ?? outline,
       borderRadius: other.borderRadius ?? borderRadius,
+      clipper: other.clipper ?? clipper,
       clipBehavior: other.clipBehavior ?? clipBehavior,
       transitions: other.transitions ?? transitions,
     );
@@ -129,11 +142,14 @@ extension ElStyleExt on ElStyle {
     opacity,
     transform,
     transformAlignment,
+    filter,
+    backdropFilter,
     padding,
     margin,
     border,
     outline,
     borderRadius,
+    clipper,
     clipBehavior,
     transitions,
   ];
@@ -161,4 +177,54 @@ extension ElOutlineExt on ElOutline {
   }
 
   List<Object?> get _props => [width, color, gradient, offset];
+}
+
+extension ElFilterExt on ElFilter {
+  ElFilter copyWith({
+    Object? blur = $absent,
+    Object? blurX = $absent,
+    Object? blurY = $absent,
+    Object? saturate = $absent,
+    Object? brightness = $absent,
+    Object? contrast = $absent,
+    Object? grayscale = $absent,
+    Object? sepia = $absent,
+    Object? invert = $absent,
+    Object? hueRotate = $absent,
+    Object? opacity = $absent,
+  }) {
+    return ElFilter(
+      blur: identical(blur, $absent) ? this.blur : blur as num?,
+      blurX: identical(blurX, $absent) ? this.blurX : blurX as num?,
+      blurY: identical(blurY, $absent) ? this.blurY : blurY as num?,
+      saturate: identical(saturate, $absent) ? this.saturate : saturate as num?,
+      brightness: identical(brightness, $absent)
+          ? this.brightness
+          : brightness as num?,
+      contrast: identical(contrast, $absent) ? this.contrast : contrast as num?,
+      grayscale: identical(grayscale, $absent)
+          ? this.grayscale
+          : grayscale as num?,
+      sepia: identical(sepia, $absent) ? this.sepia : sepia as num?,
+      invert: identical(invert, $absent) ? this.invert : invert as num?,
+      hueRotate: identical(hueRotate, $absent)
+          ? this.hueRotate
+          : hueRotate as num?,
+      opacity: identical(opacity, $absent) ? this.opacity : opacity as num?,
+    );
+  }
+
+  List<Object?> get _props => [
+    blur,
+    blurX,
+    blurY,
+    saturate,
+    brightness,
+    contrast,
+    grayscale,
+    sepia,
+    invert,
+    hueRotate,
+    opacity,
+  ];
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
@@ -180,6 +181,7 @@ Future<_Pixels> _borderPixels(
   Widget? child,
   TextDirection direction = TextDirection.ltr,
   Widget Function(Widget)? wrap,
+  Widget? behind,
 }) async {
   final view = ElView(key: viewKey, style: style, child: child);
   await tester.pumpWidget(
@@ -191,26 +193,91 @@ Future<_Pixels> _borderPixels(
           child: SizedBox(
             width: 160,
             height: 120,
-            child: Center(child: wrap?.call(view) ?? view),
+            child: behind == null
+                ? Center(child: wrap?.call(view) ?? view)
+                : Stack(
+                    children: [
+                      Positioned.fill(child: behind),
+                      Center(child: wrap?.call(view) ?? view),
+                    ],
+                  ),
           ),
         ),
       ),
     ),
   );
-  return (await tester.runAsync(() async {
-    final boundary = tester.renderObject<RenderRepaintBoundary>(
-      find.byKey(_borderCaptureKey),
-    );
-    final image = await boundary.toImage(pixelRatio: 1);
-    try {
-      final bytes = await image.toByteData(
-        format: ui.ImageByteFormat.rawStraightRgba,
+  return _capturePixels(tester);
+}
+
+Future<_Pixels> _capturePixels(WidgetTester tester) async =>
+    (await tester.runAsync(() async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(_borderCaptureKey),
       );
-      return _Pixels(bytes!, image.width);
-    } finally {
-      image.dispose();
+      final image = await boundary.toImage(pixelRatio: 1);
+      try {
+        final bytes = await image.toByteData(
+          format: ui.ImageByteFormat.rawStraightRgba,
+        );
+        return _Pixels(bytes!, image.width);
+      } finally {
+        image.dispose();
+      }
+    }))!;
+
+class _StripePattern extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var x = 0.0; x < size.width; x += 8) {
+      canvas.drawRect(
+        Rect.fromLTWH(x, 0, 8, size.height),
+        Paint()
+          ..color = (x / 8).floor().isEven
+              ? const Color(0xff000000)
+              : const Color(0xffffffff),
+      );
     }
-  }))!;
+  }
+
+  @override
+  bool shouldRepaint(_StripePattern oldDelegate) => false;
+}
+
+class _ViewClipper extends CustomClipper<Path> {
+  _ViewClipper(
+    this.fraction, {
+    this.progress,
+    this.triangle = false,
+    this.shouldUpdate = true,
+    this.semanticFraction,
+  }) : super(reclip: progress);
+
+  final double fraction;
+  final ValueListenable<double>? progress;
+  final bool triangle, shouldUpdate;
+  final double? semanticFraction;
+
+  @override
+  Path getClip(Size size) {
+    final width = size.width * (progress?.value ?? fraction);
+    return triangle
+        ? (Path()
+            ..lineTo(width, 0)
+            ..lineTo(0, size.height)
+            ..close())
+        : (Path()..addRect(Rect.fromLTWH(0, 0, width, size.height)));
+  }
+
+  @override
+  Rect getApproximateClipRect(Size size) => Rect.fromLTWH(
+    0,
+    0,
+    size.width * (semanticFraction ?? progress?.value ?? fraction),
+    size.height,
+  );
+
+  @override
+  bool shouldReclip(_ViewClipper oldClipper) => shouldUpdate;
 }
 
 void _pixel(Color actual, Color expected) {
@@ -240,6 +307,537 @@ void _rect(Rect actual, Rect expected) {
 }
 
 void main() {
+  group('滤镜与自定义裁剪基本功能', () {
+    testWidgets('CSS 颜色组件与组合顺序显示正确，恒等非法值和复制清空不残留效果', (tester) async {
+      for (final (filter, expected) in <(ElFilter?, Color)>[
+        (null, _red),
+        (ElFilter.identity, _red),
+        (const ElFilter(saturate: 0), const Color(0xff363636)),
+        (const ElFilter(brightness: 0.5), const Color(0xff800000)),
+        (const ElFilter(contrast: 0), const Color(0xff808080)),
+        (const ElFilter(grayscale: 1), const Color(0xff363636)),
+        (const ElFilter(sepia: 1), const Color(0xff645945)),
+        (const ElFilter(invert: 1), const Color(0xff00ffff)),
+        (const ElFilter(hueRotate: 90), const Color(0xff005b00)),
+        (const ElFilter(opacity: 0.5), const Color(0x80ff0000)),
+        (const ElFilter(invert: 1, brightness: 0.5), const Color(0xff008080)),
+        (const ElFilter(grayscale: 2), const Color(0xff363636)),
+        (const ElFilter(brightness: -2), const Color(0xff000000)),
+        (
+          const ElFilter(
+            blur: -2,
+            hueRotate: double.nan,
+            brightness: double.infinity,
+          ),
+          _red,
+        ),
+        (const ElFilter(opacity: -1), const Color(0x00000000)),
+      ]) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _red,
+            filter: filter,
+          ),
+        );
+        _pixel(pixels.at(80, 60), expected);
+        expect(_hits(tester, const Offset(50, 30)), isTrue);
+      }
+      const base = ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        filter: ElFilter(invert: 1),
+      );
+      for (final style in [
+        base.copyWith(filter: null),
+        base.merge(const ElStyle(filter: ElFilter.identity)),
+      ]) {
+        _pixel((await _borderPixels(tester, style)).at(80, 60), _red);
+      }
+    });
+
+    testWidgets('自身滤镜作用于全部装饰和合成 child，blur 外溢不扩大布局命中或语义', (tester) async {
+      var pixels = await _borderPixels(
+        tester,
+        ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _red,
+          filter: const ElFilter(invert: 1),
+          boxShadow: const [BoxShadow(color: _blue, offset: Offset(12, 0))],
+          border: Border.all(color: _green, width: 4),
+          outline: const ElOutline(width: 4, color: _red),
+        ),
+        child: const RepaintBoundary(
+          child: Align(
+            child: SizedBox(
+              width: 40,
+              height: 20,
+              child: ColoredBox(color: _blue),
+            ),
+          ),
+        ),
+      );
+      _pixel(pixels.at(80, 60), _yellow);
+      _pixel(pixels.at(80, 45), const Color(0xff00ffff));
+      _pixel(pixels.at(32, 60), const Color(0xffff00ff));
+      _pixel(pixels.at(28, 60), const Color(0xff00ffff));
+      _pixel(pixels.at(140, 60), _yellow);
+      final semantics = tester.ensureSemantics();
+      try {
+        for (final filter in const [
+          ElFilter(blurX: 6, blurY: 0),
+          ElFilter(blurX: 0, blurY: 6),
+        ]) {
+          pixels = await _borderPixels(
+            tester,
+            ElStyle(
+              width: 100,
+              height: 60,
+              backgroundColor: _red,
+              filter: filter,
+            ),
+            child: Semantics(
+              container: true,
+              label: '模糊内容',
+              child: const SizedBox.expand(),
+            ),
+          );
+          expect(pixels.at(26, 60).a, filter.blurX == 0 ? 0 : greaterThan(0));
+          expect(pixels.at(80, 26).a, filter.blurY == 0 ? 0 : greaterThan(0));
+          expect(viewSize(tester), const Size(100, 60));
+          expect(_hits(tester, const Offset(-4, 30)), isFalse);
+          expect(
+            find.semantics.byLabel('模糊内容').evaluate().single.rect.size,
+            const Size(100, 60),
+          );
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+
+    testWidgets('背景滤镜真正模糊背后 pattern，前景保持锐利且默认圆角外背景不变', (tester) async {
+      final style = ElStyle(
+        width: 100,
+        height: 60,
+        borderRadius: BorderRadius.circular(20),
+        backdropFilter: const ElFilter(blur: 4),
+      );
+      final first = await _borderPixels(
+        tester,
+        style,
+        behind: CustomPaint(painter: _StripePattern()),
+      );
+      expect(first.at(76, 45).r, inExclusiveRange(0.1, 0.9));
+      expect(first.at(80, 45).r, inExclusiveRange(0.1, 0.9));
+      for (final value in [
+        style.copyWith(backdropFilter: null),
+        style.copyWith(backdropFilter: ElFilter.identity),
+      ]) {
+        final cleared = await _borderPixels(
+          tester,
+          value,
+          behind: CustomPaint(painter: _StripePattern()),
+        );
+        _pixel(cleared.at(76, 45), const Color(0xffffffff));
+        _pixel(cleared.at(80, 45), const Color(0xff000000));
+      }
+      final pixels = await _borderPixels(
+        tester,
+        style,
+        behind: CustomPaint(painter: _StripePattern()),
+        child: const RepaintBoundary(
+          child: Align(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: ColoredBox(color: _red),
+            ),
+          ),
+        ),
+      );
+      expect(pixels.at(76, 45).r, inExclusiveRange(0.1, 0.9));
+      expect(pixels.at(80, 45).r, inExclusiveRange(0.1, 0.9));
+      _pixel(pixels.at(80, 60), _red);
+      _pixel(pixels.at(16, 45), const Color(0xff000000));
+      _pixel(pixels.at(31, 31), const Color(0xffffffff));
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('背景滤镜与变换透明度按整组结果合成，并保留外装饰和内容溢出', (tester) async {
+      Future<_Pixels> capture(double opacity, {ElFilter? filter}) =>
+          _borderPixels(
+            tester,
+            ElStyle(
+              width: 100,
+              height: 60,
+              transform: const ElTransform.translateX(8),
+              opacity: opacity,
+              filter: filter,
+              backgroundColor: const Color(0x4000ff00),
+              backdropFilter: const ElFilter(blur: 4),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [BoxShadow(color: _blue, offset: Offset(12, 0))],
+              outline: const ElOutline(width: 4, color: _red),
+            ),
+            behind: CustomPaint(painter: _StripePattern()),
+            wrap: (child) => RepaintBoundary(child: child),
+            child: const RepaintBoundary(
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: 130,
+                maxWidth: 130,
+                minHeight: 60,
+                maxHeight: 60,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 10,
+                    height: 20,
+                    child: ColoredBox(color: _red),
+                  ),
+                ),
+              ),
+            ),
+          );
+      final full = await capture(1);
+      final pixels = await capture(0.5);
+      final dim = await capture(1, filter: const ElFilter(brightness: 0.5));
+      final dimHalf = await capture(
+        0.5,
+        filter: const ElFilter(brightness: 0.5),
+      );
+      // CSS 组透明应把完整结果与原背景各混合一半，不能只改变前景透明度。
+      for (final point in const [
+        Offset(76, 45),
+        Offset(80, 45),
+        Offset(36, 60),
+        Offset(148, 60),
+        Offset(159, 60),
+      ]) {
+        final x = point.dx.toInt(), y = point.dy.toInt();
+        final source = full.at(x, y);
+        final background = (x ~/ 8).isEven ? 0.0 : 1.0;
+        _pixel(
+          pixels.at(x, y),
+          Color.from(
+            alpha: 1,
+            red: (source.r + background) / 2,
+            green: (source.g + background) / 2,
+            blue: (source.b + background) / 2,
+          ),
+        );
+        _pixel(
+          dim.at(x, y),
+          Color.from(
+            alpha: 1,
+            red: source.r / 2,
+            green: source.g / 2,
+            blue: source.b / 2,
+          ),
+        );
+        _pixel(
+          dimHalf.at(x, y),
+          Color.from(
+            alpha: 1,
+            red: source.r / 4 + background / 2,
+            green: source.g / 4 + background / 2,
+            blue: source.b / 4 + background / 2,
+          ),
+        );
+      }
+      _pixel(pixels.at(16, 45), const Color(0xff000000));
+      final isolated = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: Color(0x4000ff00),
+          backdropFilter: ElFilter(blur: 4),
+        ),
+        behind: CustomPaint(painter: _StripePattern()),
+        wrap: (child) => Opacity(
+          opacity: 0.5,
+          child: Stack(
+            children: [
+              child,
+              const Positioned(
+                left: 0,
+                top: 0,
+                width: 8,
+                height: 8,
+                child: ColoredBox(color: _blue),
+              ),
+            ],
+          ),
+        ),
+        child: const Align(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: ColoredBox(color: _red),
+          ),
+        ),
+      );
+      // 祖先 opacity 的重叠子层形成实际隔离，滤镜不能跨过该边界采样。
+      _pixel(isolated.at(76, 45), const Color(0xffdfffdf));
+      _pixel(isolated.at(80, 45), const Color(0xff002000));
+      _pixel(isolated.at(80, 60), const Color(0xff800000));
+    });
+
+    testWidgets('自定义路径默认 AA 并优先圆角，三种模式裁最终滤镜形状而 none 完全停用', (tester) async {
+      final clipper = _ViewClipper(1, triangle: true);
+      for (final clip in <Clip?>[
+        null,
+        Clip.hardEdge,
+        Clip.antiAlias,
+        Clip.antiAliasWithSaveLayer,
+        Clip.none,
+      ]) {
+        var down = 0;
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _red,
+            clipper: clipper,
+            clipBehavior: clip,
+            borderRadius: clip == Clip.none ? null : BorderRadius.circular(30),
+            filter: const ElFilter(blur: 2),
+            outline: const ElOutline(width: 8, color: _blue),
+          ),
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (_) => down++,
+            child: const SizedBox.expand(),
+          ),
+        );
+        if (clip == Clip.none) {
+          expect(pixels.at(110, 70).a, greaterThan(0.9));
+        } else {
+          _pixel(pixels.at(110, 70), const Color(0x00000000));
+          _pixel(pixels.at(26, 50), const Color(0x00000000));
+          expect(pixels.at(34, 34).a, greaterThan(0.5));
+        }
+        final origin = viewBox(tester).localToGlobal(Offset.zero);
+        await tester.tapAt(origin + const Offset(10, 10));
+        await tester.tapAt(origin + const Offset(80, 40));
+        expect(down, clip == Clip.none ? 2 : 1);
+        expect(viewSize(tester), const Size(100, 60));
+      }
+      final inset = await _borderPixels(
+        tester,
+        ElStyle(
+          width: 100,
+          height: 60,
+          clipper: _ViewClipper(1.5),
+          boxShadow: const [
+            ElBoxShadow(color: _red, spreadRadius: 8, inset: true),
+          ],
+        ),
+      );
+      _pixel(inset.at(35, 60), _red);
+      _pixel(inset.at(80, 60), const Color(0x00000000));
+      _pixel(inset.at(140, 60), const Color(0x00000000));
+    });
+
+    testWidgets('不同实例遵守 shouldReclip，size 改变后按新视觉盒计算路径', (tester) async {
+      ElStyle style(CustomClipper<Path> clipper, {double width = 100}) =>
+          ElStyle(
+            width: width,
+            height: 60,
+            backgroundColor: _red,
+            clipper: clipper,
+          );
+      var pixels = await _borderPixels(tester, style(_ViewClipper(0.5)));
+      _pixel(pixels.at(90, 60), const Color(0x00000000));
+      pixels = await _borderPixels(
+        tester,
+        style(_ViewClipper(0.8, shouldUpdate: false)),
+      );
+      _pixel(pixels.at(90, 60), const Color(0x00000000));
+      final updated = _ViewClipper(0.8);
+      pixels = await _borderPixels(tester, style(updated));
+      _pixel(pixels.at(90, 60), _red);
+      pixels = await _borderPixels(tester, style(updated, width: 120));
+      _pixel(pixels.at(110, 60), _red);
+      _pixel(pixels.at(120, 60), const Color(0x00000000));
+    });
+
+    testWidgets('同实例通知、停用重启、替换清空与跨父重挂后画面及时更新并安全释放', (tester) async {
+      final progress = ValueNotifier(0.25);
+      final clipper = _ViewClipper(0, progress: progress);
+      try {
+        ElStyle style({Clip? clip, CustomClipper<Path>? value}) => ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _red,
+          clipper: value ?? clipper,
+          clipBehavior: clip,
+        );
+        var pixels = await _borderPixels(tester, style());
+        _pixel(pixels.at(90, 60), const Color(0x00000000));
+        progress.value = 0.75;
+        await tester.pump();
+        pixels = await _capturePixels(tester);
+        _pixel(pixels.at(90, 60), _red);
+        await _borderPixels(tester, style(clip: Clip.none));
+        progress.value = 0.1;
+        await tester.pump();
+        _pixel((await _capturePixels(tester)).at(90, 60), _red);
+        pixels = await _borderPixels(tester, style());
+        _pixel(pixels.at(50, 60), const Color(0x00000000));
+        await _borderPixels(tester, style(value: _ViewClipper(0.8)));
+        progress.value = 0.95;
+        await tester.pump();
+        _pixel(
+          (await _capturePixels(tester)).at(120, 60),
+          const Color(0x00000000),
+        );
+        pixels = await _borderPixels(tester, style().copyWith(clipper: null));
+        _pixel(pixels.at(120, 60), _red);
+        final key = GlobalKey();
+        Widget scene(bool right) {
+          final view = ElView(
+            key: key,
+            style: ElStyle(
+              width: 60,
+              height: 60,
+              backgroundColor: _red,
+              clipper: clipper,
+            ),
+          );
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: Center(
+              child: RepaintBoundary(
+                key: _borderCaptureKey,
+                child: SizedBox(
+                  width: 160,
+                  height: 120,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: right ? const SizedBox() : Center(child: view),
+                      ),
+                      Expanded(
+                        child: right ? Center(child: view) : const SizedBox(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        progress.value = 0.5;
+        await tester.pumpWidget(scene(false));
+        await tester.pumpWidget(scene(true));
+        progress.value = 0.75;
+        await tester.pump();
+        pixels = await _capturePixels(tester);
+        _pixel(pixels.at(130, 60), _red);
+        _pixel(pixels.at(150, 60), const Color(0x00000000));
+        await tester.pumpWidget(const SizedBox());
+        progress.value = 0.2;
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      } finally {
+        progress.dispose();
+      }
+    });
+
+    testWidgets('自定义近似裁剪同步真实语义矩形，变换与替换停用后节点正确恢复', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const rootKey = ValueKey('custom-clip-semantics-root');
+      try {
+        Widget scene(CustomClipper<Path> clipper, Clip? clip) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: Semantics(
+              key: rootKey,
+              container: true,
+              explicitChildNodes: true,
+              child: ElView(
+                style: ElStyle(
+                  width: 100,
+                  height: 60,
+                  clipper: clipper,
+                  clipBehavior: clip,
+                  transform: const ElTransform.translateX(10),
+                ),
+                child: OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: 160,
+                  maxWidth: 160,
+                  minHeight: 100,
+                  maxHeight: 100,
+                  child: Stack(
+                    children: [
+                      for (final (label, left) in [
+                        ('path-partial', 60.0),
+                        ('path-outside', 90.0),
+                      ])
+                        Positioned(
+                          left: left,
+                          top: 10,
+                          child: Semantics(
+                            container: true,
+                            label: label,
+                            child: const SizedBox(width: 20, height: 20),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpWidget(
+          scene(_ViewClipper(0.5, semanticFraction: 0.75), null),
+        );
+        var root = tester.semantics.find(find.byKey(rootKey));
+        _rect(
+          _semanticRect(
+            find.semantics.byLabel('path-partial').evaluate().single,
+            root,
+          ),
+          const Rect.fromLTWH(70, 10, 15, 20),
+        );
+        expect(find.semantics.byLabel('path-outside'), findsNothing);
+        await tester.pumpWidget(
+          scene(_ViewClipper(0.8, semanticFraction: 1), Clip.antiAlias),
+        );
+        root = tester.semantics.find(find.byKey(rootKey));
+        _rect(
+          _semanticRect(
+            find.semantics.byLabel('path-outside').evaluate().single,
+            root,
+          ),
+          const Rect.fromLTWH(100, 10, 10, 20),
+        );
+        await tester.pumpWidget(scene(_ViewClipper(0.1), Clip.none));
+        root = tester.semantics.find(find.byKey(rootKey));
+        _rect(
+          _semanticRect(
+            find.semantics.byLabel('path-outside').evaluate().single,
+            root,
+          ),
+          const Rect.fromLTWH(100, 10, 20, 20),
+        );
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('视觉变换基本功能', () {
     testWidgets('复制合并与清空变换只移动画面，布局占位及只读尺寸查询保持不变', (tester) async {
       const childKey = ValueKey('transform-layout-child');

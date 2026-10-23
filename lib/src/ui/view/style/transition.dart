@@ -61,6 +61,12 @@ enum ElTransitionField {
 
   /// 变换原点，null 连续回退到当前变换的内部原点或盒中心。
   transformAlignment,
+
+  /// 自身滤镜，各分量从各自恒等值连续过渡。
+  filter,
+
+  /// 背景滤镜，各分量从各自恒等值连续过渡。
+  backdropFilter,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

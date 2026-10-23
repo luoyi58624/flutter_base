@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui' show ColorSpace, ImageByteFormat, PictureRecorder;
+import 'dart:ui' show ColorSpace, ImageByteFormat, ImageFilter, PictureRecorder;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -265,6 +265,7 @@ Widget _effectsScene(
   ElStyle style, {
   Widget? child,
   TextDirection direction = TextDirection.ltr,
+  Widget? behind,
 }) => Directionality(
   textDirection: direction,
   child: Center(
@@ -273,9 +274,18 @@ Widget _effectsScene(
       child: SizedBox(
         width: 160,
         height: 120,
-        child: Center(
-          child: ElView(key: viewKey, style: style, child: child),
-        ),
+        child: behind == null
+            ? Center(
+                child: ElView(key: viewKey, style: style, child: child),
+              )
+            : Stack(
+                children: [
+                  Positioned.fill(child: behind),
+                  Center(
+                    child: ElView(key: viewKey, style: style, child: child),
+                  ),
+                ],
+              ),
       ),
     ),
   ),
@@ -335,7 +345,316 @@ Rect _semanticRect(SemanticsNode node, SemanticsNode ancestor) {
   return MatrixUtils.transformRect(matrix, node.rect);
 }
 
+class _StripePattern extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var x = 0.0; x < size.width; x += 8) {
+      canvas.drawRect(
+        Rect.fromLTWH(x, 0, 8, size.height),
+        Paint()
+          ..color = (x / 8).floor().isEven
+              ? const Color(0xff000000)
+              : const Color(0xffffffff),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StripePattern oldDelegate) => false;
+}
+
+class _AnimatedClipper extends CustomClipper<Path> {
+  _AnimatedClipper(this.progress) : super(reclip: progress);
+
+  final ValueNotifier<double> progress;
+
+  @override
+  Path getClip(Size size) => Path()..addRect(getApproximateClipRect(size));
+
+  @override
+  Rect getApproximateClipRect(Size size) =>
+      Rect.fromLTWH(0, 0, size.width * progress.value, size.height);
+
+  @override
+  bool shouldReclip(_AnimatedClipper oldClipper) => true;
+}
+
 void main() {
+  group('滤镜与自定义裁剪中间值', () {
+    testWidgets('颜色滤镜从 null 按各自恒等值插值，退场与中间像素连续', (tester) async {
+      ElStyle style(ElFilter? filter, {bool animate = true}) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        filter: filter,
+        transitions: animate ? _linear : null,
+      );
+      for (final (filter, midpoint) in <(ElFilter, Color)>[
+        (
+          const ElFilter(saturate: 0),
+          const Color.from(alpha: 1, red: 0.6065, green: 0.1065, blue: 0.1065),
+        ),
+        (const ElFilter(brightness: 0), const Color(0xff800000)),
+        (const ElFilter(contrast: 0), const Color(0xffbf4040)),
+        (
+          const ElFilter(grayscale: 1),
+          const Color.from(alpha: 1, red: 0.6063, green: 0.1063, blue: 0.1063),
+        ),
+        (
+          const ElFilter(sepia: 1),
+          const Color.from(alpha: 1, red: 0.6965, green: 0.1745, blue: 0.136),
+        ),
+        (const ElFilter(invert: 1), const Color(0xff808080)),
+        (const ElFilter(hueRotate: 180), const Color(0xff005b00)),
+        (const ElFilter(hueRotate: 360), const Color(0xff006d6d)),
+        (const ElFilter(opacity: 0), const Color(0x80ff0000)),
+      ]) {
+        await tester.pumpWidget(_effectsScene(style(null, animate: false)));
+        await tester.pumpWidget(_effectsScene(style(filter)));
+        await _advance(tester, 50);
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+          midpoint,
+        );
+        await _advance(tester, 50);
+      }
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        _red,
+      );
+    });
+
+    testWidgets('blur 短手与双轴平滑转换使用 sigma，空值及负过冲不会泄漏残余模糊', (tester) async {
+      ElStyle style(
+        ElFilter? filter, {
+        List<ElTransition>? transitions = _linear,
+      }) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        filter: filter,
+        transitions: transitions,
+      );
+      const samples = [
+        Offset(-3, 30),
+        Offset(50, -3),
+        Offset(-2, -2),
+        Offset(50, 30),
+      ];
+      await tester.pumpWidget(_effectsScene(style(const ElFilter(blur: 4))));
+      await tester.pumpWidget(
+        _effectsScene(style(const ElFilter(blurX: 8, blurY: 0))),
+      );
+      await _advance(tester, 50);
+      final actual = await _effectsPixels(tester, samples);
+      await tester.pumpWidget(
+        _effectsScene(
+          const ElStyle(width: 100, height: 60),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 2),
+            child: const SizedBox.expand(child: ColoredBox(color: _red)),
+          ),
+        ),
+      );
+      final expected = await _effectsPixels(tester, samples);
+      for (var i = 0; i < actual.length; i++) {
+        _pixel(actual[i], expected[i]);
+      }
+      await tester.pumpWidget(_effectsScene(style(null, transitions: null)));
+      await tester.pumpWidget(
+        _effectsScene(
+          style(
+            const ElFilter(blur: 4),
+            transitions: const [
+              ElTransition.field(
+                ElTransitionField.filter,
+                Duration(milliseconds: 100),
+                _NegativeCurve(),
+              ),
+            ],
+          ),
+        ),
+      );
+      await _advance(tester, 50);
+      var pixels = await _effectsPixels(tester, samples);
+      _pixel(pixels[0], const Color(0x00000000));
+      _pixel(pixels[1], const Color(0x00000000));
+      _pixel(pixels[3], _red);
+      await _advance(tester, 50);
+      pixels = await _effectsPixels(tester, samples);
+      expect(pixels[0].a, greaterThan(0));
+      expect(pixels[1].a, greaterThan(0));
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 100);
+      pixels = await _effectsPixels(tester, samples);
+      _pixel(pixels[0], const Color(0x00000000));
+      _pixel(pixels[3], _red);
+    });
+
+    testWidgets('自身与背景滤镜各自延迟和中断，等值重建后仍在原截止帧完成', (tester) async {
+      ElStyle style(double brightness, double invert) => ElStyle(
+        width: 100,
+        height: 60,
+        filter: ElFilter(brightness: brightness),
+        backdropFilter: ElFilter(invert: invert),
+        transitions: const [
+          ElTransition.field(
+            ElTransitionField.filter,
+            Duration(milliseconds: 100),
+            Curves.linear,
+            Duration(milliseconds: 20),
+          ),
+          ElTransition.field(
+            ElTransitionField.backdropFilter,
+            Duration(milliseconds: 200),
+            Curves.linear,
+          ),
+        ],
+      );
+      const child = Align(
+        child: SizedBox(width: 20, height: 20, child: ColoredBox(color: _red)),
+      );
+      Widget scene(double brightness, double invert) => _effectsScene(
+        style(brightness, invert),
+        behind: CustomPaint(painter: _StripePattern()),
+        child: child,
+      );
+      await tester.pumpWidget(scene(1, 0));
+      await tester.pumpWidget(scene(0.5, 1));
+      await _advance(tester, 20);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        _red,
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xffbf0000),
+      );
+      await tester.pumpWidget(scene(1, 1));
+      await _advance(tester, 20);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xffbf0000),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xffdf0000),
+      );
+      final combined = await _effectsPixels(tester, const [
+        Offset(46, 15),
+        Offset(50, 15),
+      ]);
+      _pixel(
+        combined[0],
+        const Color.from(alpha: 1, red: 0.2625, green: 0.2625, blue: 0.2625),
+      );
+      _pixel(
+        combined[1],
+        const Color.from(alpha: 1, red: 0.6125, green: 0.6125, blue: 0.6125),
+      );
+      await tester.pumpWidget(scene(1, 1));
+      await _advance(tester, 60);
+      final pixels = await _effectsPixels(tester, const [
+        Offset(46, 15),
+        Offset(50, 15),
+        Offset(50, 30),
+      ]);
+      _pixel(pixels[0], const Color(0xff000000));
+      _pixel(pixels[1], const Color(0xffffffff));
+      _pixel(pixels[2], _red);
+    });
+
+    testWidgets('clipper 切换立即生效，监听通知在滤镜过渡中同步真实像素和语义', (tester) async {
+      final progress = ValueNotifier(0.5);
+      final semantics = tester.ensureSemantics();
+      final clipper = _AnimatedClipper(progress);
+      try {
+        ElStyle style(ElFilter? filter, {Clip? clip}) => ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _red,
+          clipper: clipper,
+          clipBehavior: clip,
+          filter: filter,
+          transitions: _linear,
+        );
+        Widget scene(ElStyle value) => _effectsScene(
+          value,
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            minWidth: 100,
+            maxWidth: 100,
+            minHeight: 60,
+            maxHeight: 60,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 60,
+                  top: 10,
+                  child: Semantics(
+                    container: true,
+                    label: '动画裁剪内容',
+                    child: const SizedBox(width: 20, height: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpWidget(scene(style(null)));
+        await tester.pumpWidget(scene(style(const ElFilter(invert: 1))));
+        await _advance(tester, 25);
+        expect(find.semantics.byLabel('动画裁剪内容'), findsNothing);
+        progress.value = 0.8;
+        await tester.pump();
+        var pixels = await _effectsPixels(tester, const [
+          Offset(70, 30),
+          Offset(90, 30),
+        ]);
+        _pixel(pixels[0], const Color(0xffbf4040));
+        _pixel(pixels[1], const Color(0x00000000));
+        expect(find.semantics.byLabel('动画裁剪内容'), findsOne);
+        await tester.pumpWidget(
+          scene(style(const ElFilter(invert: 1), clip: Clip.none)),
+        );
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(90, 30)])).single,
+          const Color(0xffbf4040),
+        );
+        await _advance(tester, 25);
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(90, 30)])).single,
+          const Color(0xff808080),
+        );
+        progress.value = 0.3;
+        await tester.pump();
+        await tester.pumpWidget(scene(style(const ElFilter(invert: 1))));
+        expect(find.semantics.byLabel('动画裁剪内容'), findsNothing);
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(70, 30)])).single,
+          const Color(0x00000000),
+        );
+        await _advance(tester, 50);
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(20, 30)])).single,
+          const Color(0xff00ffff),
+        );
+      } finally {
+        semantics.dispose();
+        progress.dispose();
+      }
+    });
+  });
+
   group('视觉变换中间值', () {
     testWidgets('null 以中性变换参与平移缩放，打断从当前值接续并最终清空', (tester) async {
       ElStyle style(ElTransform? transform) => ElStyle(

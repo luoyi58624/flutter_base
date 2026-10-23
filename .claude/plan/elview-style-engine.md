@@ -544,3 +544,20 @@ flowchart LR
 - base 新增 8 项、animation 新增 5 项；验证实际指针 localPosition、后代坐标往返、含 margin / padding 的方向性原点、合成 child 与透明度、整圈 / 中断 / 超调及每帧语义。嵌套旋转、祖先 ClipRect / ClipRRect 下的真实语义矩形与节点集合与同结构官方 Transform 对照。
 
 验证：base_test.dart 91 项、animation_test.dart 112 项，另现有 dry 2 项、intrinsic 6 项，相关 211 项全部通过；生产目录及这四个文件静态分析无问题，未跑全仓或性能测试。本轮生产净增 832 行（手写 820、生成 12），当前 view 生产共 4281 行（手写 4117、生成 164），包含注释与空行；测试净增 938 行，仅扩展原 base / animation 两文件，临时数学与像素核对已清除。
+
+## 23. filter、backdropFilter 与 clipper
+
+- 接入 ElFilter 的 blur / blurX / blurY、saturate、brightness、contrast、grayscale、sepia、invert、hueRotate、opacity；保留固定函数顺序、度数色相、copyWith、恒等声明和公开 lerp。bgImage 继续不实现。
+- StyleEngine 统一规范数值、展开双轴模糊、补齐 null 恒等端并管理两个独立过渡。整圈 hue 只在渲染入口视为恒等，内部轨道保留圈数；clipper 与 clipBehavior 立即生效。滤镜只通知绘制，路径通知绘制和语义，合成需求变化单独更新框架标记。
+- FilterResource 按有效值缓存原生滤镜，复用旧颜色算法；只有实际使用的分量才创建矩阵或模糊。EffectController 独立持有自身、背景及组合结束时的资源，停用后释放，不增加 RenderObject。
+- opacity 按用户最终选择使用 CSS 整组输出：玻璃与全部前景一起淡出，sigma 不变。背景滤镜组内以 dstIn 遮罩限制背景副本，再绘制阴影、内容、边框和 outline；自身滤镜同时启用时，在组内末尾通过 src 滤镜 pass 处理已组合结果，避免外层透明缓冲截断背景来源。
+- 遮罩使用实际设备裁剪，不能以节点 size 清除背景副本；自定义路径与视觉盒相交只约束背景输出，前景仍可溢出。当前节点透明度、两类滤镜叠加及变换经过真实像素验证；祖先背景采样沿用 Flutter 实际的合成隔离边界。
+- ShapeGeometry 集中管理实际路径、近似语义矩形、shouldReclip、尺寸变化和监听生命周期；同一实际路径用于绘制和命中，近似语义矩形复用现有变换协议。active clipper 覆盖圆角，缺省 antiAlias，显式 none 完全停用委托并恢复普通圆角。自定义最终裁剪覆盖自身滤镜外溢，内阴影始终保持盒内限制。
+- 沿用工作区已合并的 render/index.dart 宿主位置，Render 只调度执行器；自身滤镜外溢仅扩大绘制范围，不改变布局、命中或语义范围。没有启用滤镜或路径时，不创建其滤镜、遮罩、图层、路径或监听。
+
+### 实施结果
+
+- base 新增 8 项、animation 新增 4 项，只扩展原有两个文件，测试净增 917 行。覆盖各颜色分量、顺序、双轴模糊、null / identity 清空、非法值、0→360、独立 delay / 中断 / 等值重建，以及路径通知、切换、挂载、命中和真实语义。
+- 背景场景验证无 child 首挂、局部圆角与远处条纹、自身及 child 的 RepaintBoundary、外阴影 / outline / 溢出 child、实际祖先透明层隔离。整组透明使用完整输出与原背景的定量混合检查，自身亮度同时检查玻璃及前景，未以单纯“背景变化”代替功能验收。
+- base 99 项、animation 116 项，另现有 dry 2 项、intrinsic 6 项，相关 223 项全部通过；最后补充和资源整理后重跑对应 2 项背景场景通过，合并 Render 重复调度分支后再次重跑新增 12 项通过。生产目录和这四个文件静态分析无问题，没有全仓或性能测试，临时原生像素探针已删除。
+- 本轮生产净增 913 行（手写 847、生成 66），当前 view 生产共 5194 行（手写 4964、生成 230），均包含注释与空行。

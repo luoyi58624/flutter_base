@@ -11,6 +11,8 @@ export 'style/index.dart'
         ElOutlineExt,
         ElBoxShadow,
         ElTransform,
+        ElFilter,
+        ElFilterExt,
         ElTransition,
         ElTransitionField;
 
