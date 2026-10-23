@@ -19,6 +19,12 @@ enum ElTransitionField {
 
   /// 背景圆角，null 按零插值，仅触发重绘。
   borderRadius,
+
+  /// 自然盒宽度倍数，null 按 1 插值，负过冲夹到零。
+  widthFactor,
+
+  /// 自然盒高度倍数，null 按 1 插值，负过冲夹到零。
+  heightFactor,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

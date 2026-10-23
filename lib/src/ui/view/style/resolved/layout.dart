@@ -5,7 +5,14 @@ import 'package:flutter/rendering.dart';
 @immutable
 class LayoutStyle {
   /// 创建已求值的布局属性。
-  const LayoutStyle({this.width, this.height, this.padding, this.margin});
+  const LayoutStyle({
+    this.width,
+    this.height,
+    this.padding,
+    this.margin,
+    this.widthFactor,
+    this.heightFactor,
+  });
 
   /// 无尺寸和边距修饰的共享属性。
   static const empty = LayoutStyle();
@@ -21,4 +28,10 @@ class LayoutStyle {
 
   /// 已解析方向且非零的物理外边距。
   final EdgeInsets? margin;
+
+  /// 仅用于 auto 宽度的自然盒倍数，空值表示 1。
+  final double? widthFactor;
+
+  /// 仅用于 auto 高度的自然盒倍数，空值表示 1。
+  final double? heightFactor;
 }

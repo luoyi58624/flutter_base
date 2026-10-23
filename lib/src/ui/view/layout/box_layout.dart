@@ -94,10 +94,7 @@ class BoxLayout {
   Size dryLayout(BoxConstraints outer, LayoutStyle style) {
     final plan = _constraints(outer, style);
     final content = _host.child?.getDryLayout(plan.inner) ?? Size.zero;
-    final padding = style.padding;
-    final box = plan.box.constrain(
-      padding == null ? content : padding.inflateSize(content),
-    );
+    final box = _constrainBox(plan.box, content, style);
     final margin = style.margin;
     return margin == null ? box : outer.constrain(margin.inflateSize(box));
   }
@@ -132,11 +129,15 @@ class BoxLayout {
         : (margin?.vertical ?? 0);
     final fixed = horizontal ? style.width : style.height;
     if (fixed != null) return fixed + axisMargin;
+    final factor = horizontal ? style.widthFactor : style.heightFactor;
+    if (factor == 0) return axisMargin;
     final child = _host.child;
     final axisPadding = horizontal
         ? (padding?.horizontal ?? 0)
         : (padding?.vertical ?? 0);
-    if (child == null) return axisMargin + axisPadding;
+    if (child == null) {
+      return (factor == null ? axisPadding : axisPadding * factor) + axisMargin;
+    }
     final crossMargin = horizontal
         ? (margin?.vertical ?? 0)
         : (margin?.horizontal ?? 0);
@@ -157,7 +158,8 @@ class BoxLayout {
           ? child.getMinIntrinsicHeight(childExtent)
           : child.getMaxIntrinsicHeight(childExtent);
     }
-    return value + axisMargin + axisPadding;
+    final natural = value + axisPadding;
+    return (factor == null ? natural : natural * factor) + axisMargin;
   }
 
   /// 按需沿祖先查找确定内容尺寸，真实查询只订阅经过的候选节点。
@@ -222,9 +224,7 @@ class BoxLayout {
       final child = _host.child;
       child?.layout(plan.inner, parentUsesSize: true);
       final content = child?.size ?? Size.zero;
-      final box = plan.box.constrain(
-        padding == null ? content : padding.inflateSize(content),
-      );
+      final box = _constrainBox(plan.box, content, style);
       if (!temporary) {
         _boxSize = box;
         _boxOrigin = style.margin?.topLeft ?? Offset.zero;
@@ -240,6 +240,23 @@ class BoxLayout {
         _setReferenceGeometry(previousBox, previousPadding);
       }
     }
+  }
+
+  Size _constrainBox(
+    BoxConstraints constraints,
+    Size child,
+    LayoutStyle style,
+  ) {
+    final padding = style.padding;
+    var natural = padding == null ? child : padding.inflateSize(child);
+    final widthFactor = style.widthFactor, heightFactor = style.heightFactor;
+    if (widthFactor != null || heightFactor != null) {
+      natural = Size(
+        widthFactor == null ? natural.width : natural.width * widthFactor,
+        heightFactor == null ? natural.height : natural.height * heightFactor,
+      );
+    }
+    return constraints.constrain(natural);
   }
 
   double? _reference(Axis axis) {

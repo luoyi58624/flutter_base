@@ -23,6 +23,8 @@ class ElStyle with Equatable {
   const ElStyle({
     this.width,
     this.height,
+    this.widthFactor,
+    this.heightFactor,
     this.backgroundColor,
     this.padding,
     this.margin,
@@ -36,6 +38,12 @@ class ElStyle with Equatable {
 
   /// 逻辑像素数值或百分比字符串；null 表示自动高度。
   final Object? height;
+
+  /// 非负有限的自然盒宽度倍数，包含 padding；null 等同于 1，显式宽度优先。
+  final num? widthFactor;
+
+  /// 非负有限的自然盒高度倍数，包含 padding；null 等同于 1，显式高度优先。
+  final num? heightFactor;
 
   /// 背景色，覆盖内容和 padding；null 表示不绘制。
   final Color? backgroundColor;

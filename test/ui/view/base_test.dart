@@ -226,6 +226,231 @@ void main() {
       );
     });
 
+    testWidgets('双轴 factor 乘包含 padding 的自然盒，margin、背景与 child 位置保持正确', (
+      tester,
+    ) async {
+      const childKey = ValueKey('factored-child');
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            widthFactor: 1.5,
+            heightFactor: 2,
+            padding: EdgeInsets.fromLTRB(5, 7, 15, 13),
+            margin: EdgeInsets.fromLTRB(4, 3, 6, 9),
+            backgroundColor: _red,
+          ),
+          child: const SizedBox(key: childKey, width: 80, height: 40),
+        ),
+      );
+      expect(viewSize(tester), const Size(160, 132));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      expect(
+        tester.getTopLeft(find.byKey(childKey)) -
+            tester.getTopLeft(find.byKey(viewKey)),
+        const Offset(9, 10),
+      );
+      expect(
+        viewBox(tester),
+        paints..rect(rect: const Rect.fromLTWH(4, 3, 150, 120), color: _red),
+      );
+    });
+
+    testWidgets('单轴、零和大于一的 factor 只改变占位，不缩放或自动裁剪 child', (tester) async {
+      const childKey = ValueKey('factor-overflow-child');
+      for (final (widthFactor, heightFactor, size)
+          in <(double?, double?, Size)>[
+            (0.5, null, const Size(40, 40)),
+            (null, 2, const Size(80, 80)),
+            (0, 0, Size.zero),
+            (2, 1.5, const Size(160, 60)),
+          ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(widthFactor: widthFactor, heightFactor: heightFactor),
+            child: const ColoredBox(
+              key: childKey,
+              color: _blue,
+              child: SizedBox(width: 80, height: 40),
+            ),
+          ),
+        );
+        expect(viewSize(tester), size);
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+        expect(
+          viewBox(tester),
+          paints..rect(rect: const Rect.fromLTWH(0, 0, 80, 40), color: _blue),
+        );
+        final methods = recordView(tester).map((call) => call.memberName);
+        expect(methods, isNot(contains(#clipRect)));
+        expect(methods, isNot(contains(#clipRRect)));
+      }
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            widthFactor: 0.5,
+            heightFactor: 0.5,
+            clipBehavior: Clip.hardEdge,
+          ),
+          child: const ColoredBox(
+            key: childKey,
+            color: _blue,
+            child: SizedBox(width: 80, height: 40),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(40, 20));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      _clip(tester, Clip.hardEdge, rect: const Rect.fromLTWH(0, 0, 40, 20));
+    });
+
+    testWidgets('显式宽高优先于对应 factor，另一条 auto 轴仍使用 factor', (tester) async {
+      const childKey = ValueKey('factor-explicit-child');
+      for (final (style, size) in [
+        (
+          const ElStyle(width: 120, widthFactor: 0.5, heightFactor: 2),
+          const Size(120, 80),
+        ),
+        (
+          const ElStyle(height: 90, widthFactor: 0.5, heightFactor: 0),
+          const Size(40, 90),
+        ),
+        (
+          const ElStyle(
+            width: 120,
+            height: 90,
+            widthFactor: 0,
+            heightFactor: 0,
+          ),
+          const Size(120, 90),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style,
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), size);
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      }
+    });
+
+    testWidgets('百分比有参照时忽略 factor，无参照时按自然盒应用 factor', (tester) async {
+      const style = ElStyle(
+        width: '50%',
+        height: '25%',
+        widthFactor: 2,
+        heightFactor: 0.5,
+        margin: EdgeInsets.all(10),
+      );
+      const child = SizedBox(width: 80, height: 40);
+      await tester.pumpWidget(viewScene(style, child: child));
+      expect(viewSize(tester), const Size(210, 90));
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: UnconstrainedBox(
+              child: ElView(key: viewKey, style: style, child: child),
+            ),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(180, 40));
+    });
+
+    testWidgets('父最小、最大和紧约束最终限制 factor，child 沿用原约束', (tester) async {
+      const childKey = ValueKey('factor-parent-child');
+      Widget host(BoxConstraints constraints, double factor) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: constraints,
+            child: ElView(
+              key: viewKey,
+              style: ElStyle(widthFactor: factor, heightFactor: factor),
+              child: const SizedBox(key: childKey, width: 80, height: 40),
+            ),
+          ),
+        ),
+      );
+      const range = BoxConstraints(
+        minWidth: 100,
+        maxWidth: 160,
+        minHeight: 60,
+        maxHeight: 90,
+      );
+      for (final (factor, size) in [
+        (0.5, const Size(100, 60)),
+        (2.0, const Size(160, 90)),
+      ]) {
+        await tester.pumpWidget(host(range, factor));
+        expect(viewSize(tester), size);
+        expect(tester.getSize(find.byKey(childKey)), const Size(100, 60));
+      }
+      for (final factor in [0.5, 2.0]) {
+        await tester.pumpWidget(
+          host(const BoxConstraints.tightFor(width: 100, height: 80), factor),
+        );
+        expect(viewSize(tester), const Size(100, 80));
+        expect(tester.getSize(find.byKey(childKey)), const Size(100, 80));
+      }
+    });
+
+    testWidgets('无 child 时 factor 作用于 padding，自然尺寸为零时仍为零', (tester) async {
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            widthFactor: 2,
+            heightFactor: 0.5,
+            padding: EdgeInsets.fromLTRB(4, 5, 6, 7),
+            margin: EdgeInsets.all(3),
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(26, 12));
+      await tester.pumpWidget(
+        viewScene(const ElStyle(widthFactor: 2, heightFactor: 0.5)),
+      );
+      expect(viewSize(tester), Size.zero);
+    });
+
+    testWidgets('factor 复制、合并和显式清空后实际占位同步变化', (tester) async {
+      final int widthFactor = 2, heightFactor = 3;
+      final style = ElStyle(
+        widthFactor: widthFactor,
+        heightFactor: heightFactor,
+      );
+      const child = SizedBox(width: 40, height: 20);
+      await tester.pumpWidget(viewScene(style, child: child));
+      expect(viewSize(tester), const Size(80, 60));
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle().copyWith(widthFactor: 2, heightFactor: 3),
+          child: child,
+        ),
+      );
+      expect(viewSize(tester), const Size(80, 60));
+      await tester.pumpWidget(
+        viewScene(
+          style.merge(const ElStyle(widthFactor: 0.5, heightFactor: 2)),
+          child: child,
+        ),
+      );
+      expect(viewSize(tester), const Size(20, 40));
+      await tester.pumpWidget(
+        viewScene(style.merge(const ElStyle()), child: child),
+      );
+      expect(viewSize(tester), const Size(80, 60));
+      await tester.pumpWidget(
+        viewScene(
+          style.copyWith(widthFactor: null, heightFactor: null),
+          child: child,
+        ),
+      );
+      expect(viewSize(tester), const Size(40, 20));
+    });
+
     testWidgets('父约束限制显式尺寸，auto 保留紧约束', (tester) async {
       const childKey = ValueKey('constrained-child');
       await tester.pumpWidget(
@@ -311,11 +536,13 @@ void main() {
 
     for (final vertical in [false, true]) {
       testWidgets(
-        '${vertical ? "IntrinsicHeight" : "IntrinsicWidth"} 场景保留盒模型自然尺寸',
+        '${vertical ? "IntrinsicHeight" : "IntrinsicWidth"} 场景包含 factor 与内外边距',
         (tester) async {
           const child = ElView(
             key: viewKey,
             style: ElStyle(
+              widthFactor: 1.5,
+              heightFactor: 2,
               padding: EdgeInsets.all(4),
               margin: EdgeInsets.all(2),
             ),
@@ -331,12 +558,12 @@ void main() {
               ),
             ),
           );
-          expect(viewSize(tester), const Size(44, 30));
+          expect(viewSize(tester), const Size(64, 56));
         },
       );
     }
 
-    testWidgets('真实 Row 基线对齐包含视图内外边距', (tester) async {
+    testWidgets('真实 Row 在 factor 改变占位后仍按 child 和内外边距对齐基线', (tester) async {
       const textKey = ValueKey('baseline-child');
       const referenceKey = ValueKey('baseline-reference');
       await tester.pumpWidget(
@@ -352,6 +579,8 @@ void main() {
                   ElView(
                     key: viewKey,
                     style: ElStyle(
+                      widthFactor: 0.5,
+                      heightFactor: 2,
                       padding: EdgeInsets.all(8),
                       margin: EdgeInsets.all(3),
                     ),
@@ -368,9 +597,10 @@ void main() {
         tester.getTopLeft(find.byKey(textKey)).dy,
         tester.getTopLeft(find.byKey(referenceKey)).dy,
       );
+      final child = tester.getSize(find.byKey(textKey));
       expect(
         viewSize(tester),
-        tester.getSize(find.byKey(textKey)) + const Offset(22, 22),
+        Size((child.width + 16) * 0.5 + 6, (child.height + 16) * 2 + 6),
       );
     });
 

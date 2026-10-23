@@ -10,6 +10,8 @@ extension ElStyleExt on ElStyle {
   ElStyle copyWith({
     Object? width = $absent,
     Object? height = $absent,
+    Object? widthFactor = $absent,
+    Object? heightFactor = $absent,
     Object? backgroundColor = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
@@ -20,6 +22,12 @@ extension ElStyleExt on ElStyle {
     return ElStyle(
       width: identical(width, $absent) ? this.width : width,
       height: identical(height, $absent) ? this.height : height,
+      widthFactor: identical(widthFactor, $absent)
+          ? this.widthFactor
+          : widthFactor as num?,
+      heightFactor: identical(heightFactor, $absent)
+          ? this.heightFactor
+          : heightFactor as num?,
       backgroundColor: identical(backgroundColor, $absent)
           ? this.backgroundColor
           : backgroundColor as Color?,
@@ -46,6 +54,8 @@ extension ElStyleExt on ElStyle {
     return ElStyle(
       width: other.width ?? width,
       height: other.height ?? height,
+      widthFactor: other.widthFactor ?? widthFactor,
+      heightFactor: other.heightFactor ?? heightFactor,
       backgroundColor: other.backgroundColor ?? backgroundColor,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
@@ -58,6 +68,8 @@ extension ElStyleExt on ElStyle {
   List<Object?> get _props => [
     width,
     height,
+    widthFactor,
+    heightFactor,
     backgroundColor,
     padding,
     margin,

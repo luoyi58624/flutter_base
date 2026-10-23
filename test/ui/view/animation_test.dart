@@ -1398,6 +1398,290 @@ void main() {
     }
   });
 
+  group('自然尺寸因子的中间值', () {
+    testWidgets('双轴因子从 null 过渡到 2 再清空，padding 参与缩放但 child 不缩放', (tester) async {
+      const childKey = ValueKey('factor-child');
+      const child = SizedBox(key: childKey, width: 80, height: 40);
+      ElStyle style(double? factor) => ElStyle(
+        widthFactor: factor,
+        heightFactor: factor,
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+        backgroundColor: _red,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(null), child: child));
+      expect(viewSize(tester), const Size(106, 70));
+      await tester.pumpWidget(viewScene(style(2), child: child));
+      for (final size in [const Size(156, 100), const Size(206, 130)]) {
+        await _advance(tester, 50);
+        expect(viewSize(tester), size);
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+        expect(_childOffset(tester, childKey), const Offset(13, 15));
+        _background(
+          tester,
+          null,
+          rect: Rect.fromLTWH(3, 5, size.width - 6, size.height - 10),
+        );
+      }
+      await tester.pumpWidget(viewScene(style(null), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(156, 100));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(106, 70));
+    });
+
+    testWidgets('因子过渡到零时只收缩视图占位，负过冲保持零尺寸', (tester) async {
+      const childKey = ValueKey('zero-factor-child');
+      const child = SizedBox(key: childKey, width: 80, height: 40);
+      ElStyle style(double factor, {Curve curve = Curves.linear}) => ElStyle(
+        widthFactor: factor,
+        heightFactor: factor,
+        transitions: [
+          ElTransition.all(const Duration(milliseconds: 100), curve),
+        ],
+      );
+      await tester.pumpWidget(viewScene(style(2), child: child));
+      await tester.pumpWidget(viewScene(style(0), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(80, 40));
+      await _advance(tester, 50);
+      expect(viewSize(tester), Size.zero);
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      await tester.pumpWidget(
+        viewScene(style(1, curve: const _NegativeCurve()), child: child),
+      );
+      await _advance(tester, 50);
+      expect(viewSize(tester), Size.zero);
+      expect(tester.takeException(), isNull);
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(80, 40));
+    });
+
+    testWidgets('因子延迟与中断从当前尺寸接续，移除过渡后立即应用清空值', (tester) async {
+      const child = SizedBox(width: 80, height: 40);
+      const transitions = [
+        ElTransition.field(
+          ElTransitionField.widthFactor,
+          Duration(milliseconds: 100),
+          Curves.linear,
+          Duration(milliseconds: 50),
+        ),
+      ];
+      ElStyle style(double? factor, {bool animate = true}) => ElStyle(
+        widthFactor: factor,
+        transitions: animate ? transitions : null,
+      );
+      await tester.pumpWidget(viewScene(style(null), child: child));
+      await tester.pumpWidget(viewScene(style(3), child: child));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(80, 40));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(120, 40));
+      await tester.pumpWidget(viewScene(style(2), child: child));
+      expect(viewSize(tester), const Size(120, 40));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(120, 40));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(140, 40));
+      await tester.pumpWidget(
+        viewScene(style(null, animate: false), child: child),
+      );
+      expect(viewSize(tester), const Size(80, 40));
+      await _advance(tester, 100);
+      expect(viewSize(tester), const Size(80, 40));
+    });
+
+    testWidgets('因子先结束、padding 后结束时，每帧只缩放一次当前自然盒', (tester) async {
+      const childKey = ValueKey('factor-padding-child');
+      const child = SizedBox(key: childKey, width: 100, height: 40);
+      const transitions = [
+        ElTransition.field(
+          ElTransitionField.widthFactor,
+          Duration(milliseconds: 100),
+          Curves.linear,
+        ),
+        ElTransition.field(
+          ElTransitionField.padding,
+          Duration(milliseconds: 200),
+          Curves.linear,
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(const ElStyle(transitions: transitions), child: child),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            widthFactor: 2,
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            transitions: transitions,
+          ),
+          child: child,
+        ),
+      );
+      for (final (width, inset) in [
+        (165.0, 5.0),
+        (240.0, 10.0),
+        (260.0, 15.0),
+        (280.0, 20.0),
+      ]) {
+        await _advance(tester, 50);
+        expect(viewSize(tester), Size(width, 40));
+        expect(tester.getSize(find.byKey(childKey)), const Size(100, 40));
+        expect(_childOffset(tester, childKey), Offset(inset, 0));
+      }
+    });
+
+    for (final dense in [false, true]) {
+      testWidgets('显式宽度转 auto 时跟随较慢因子，截止帧不双乘或跳变：逐帧=$dense', (tester) async {
+        const child = SizedBox(width: 100, height: 40);
+        const transitions = [
+          ElTransition.field(
+            ElTransitionField.width,
+            Duration(milliseconds: 100),
+            Curves.linear,
+          ),
+          ElTransition.field(
+            ElTransitionField.widthFactor,
+            Duration(milliseconds: 200),
+            Curves.linear,
+          ),
+        ];
+        await tester.pumpWidget(
+          viewScene(
+            const ElStyle(width: 200, transitions: transitions),
+            child: child,
+          ),
+        );
+        await tester.pumpWidget(
+          viewScene(
+            const ElStyle(widthFactor: 2, transitions: transitions),
+            child: child,
+          ),
+        );
+        expect(viewSize(tester), const Size(200, 40));
+        await _advanceTo99(tester, dense: dense);
+        final before = viewSize(tester).width;
+        await _advance(tester, 1);
+        expect((viewSize(tester).width - before).abs(), lessThan(3));
+        expect(viewSize(tester), const Size(150, 40));
+        await _advance(tester, 50);
+        expect(viewSize(tester), const Size(175, 40));
+        await _advance(tester, 50);
+        expect(viewSize(tester), const Size(200, 40));
+      });
+    }
+
+    testWidgets('百分比与 auto 双向切换时只对自然端点应用因子', (tester) async {
+      const child = SizedBox(width: 80, height: 40);
+      ElStyle style(Object? width, Object? height) => ElStyle(
+        width: width,
+        height: height,
+        widthFactor: 1.5,
+        heightFactor: 1.5,
+        padding: const EdgeInsets.all(10),
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(null, null), child: child));
+      expect(viewSize(tester), const Size(150, 90));
+      await tester.pumpWidget(viewScene(style('50%', '50%'), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(175, 120));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(200, 150));
+      await tester.pumpWidget(viewScene(style(null, null), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(175, 120));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(150, 90));
+    });
+
+    testWidgets('因子运行期间 child 改变自然尺寸，继续缩放当前内容尺寸', (tester) async {
+      final natural = ValueNotifier<Size>(const Size(80, 40));
+      addTearDown(natural.dispose);
+      const childKey = ValueKey('changing-factor-child');
+      final child = ValueListenableBuilder<Size>(
+        valueListenable: natural,
+        builder: (_, size, _) => SizedBox.fromSize(key: childKey, size: size),
+      );
+      await tester.pumpWidget(
+        viewScene(const ElStyle(transitions: _linear), child: child),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(widthFactor: 2, heightFactor: 2, transitions: _linear),
+          child: child,
+        ),
+      );
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(120, 60));
+      natural.value = const Size(120, 60);
+      await tester.pump();
+      expect(viewSize(tester), const Size(180, 90));
+      expect(tester.getSize(find.byKey(childKey)), const Size(120, 60));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(210, 105));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(240, 120));
+    });
+
+    testWidgets('auto 端点在 child 更新后重新求自然盒，保留画面和原截止时间', (tester) async {
+      final naturalWidth = ValueNotifier<double>(80);
+      addTearDown(naturalWidth.dispose);
+      final child = ValueListenableBuilder<double>(
+        valueListenable: naturalWidth,
+        builder: (_, width, _) => SizedBox(width: width, height: 40),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(width: 200, widthFactor: 2, transitions: _linear),
+          child: child,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(widthFactor: 2, transitions: _linear),
+          child: child,
+        ),
+      );
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(180, 40));
+      naturalWidth.value = 120;
+      await tester.pump();
+      expect(viewSize(tester), const Size(180, 40));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(210, 40));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(240, 40));
+    });
+
+    testWidgets('父约束收紧再放宽时，保留因子当前进度且不缩放 child', (tester) async {
+      const childKey = ValueKey('bounded-factor-child');
+      const child = SizedBox(key: childKey, width: 80, height: 40);
+      const target = ElStyle(
+        widthFactor: 3,
+        heightFactor: 3,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(
+        viewScene(const ElStyle(transitions: _linear), child: child),
+      );
+      await tester.pumpWidget(viewScene(target, child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(160, 80));
+      await tester.pumpWidget(viewScene(target, child: child, width: 120));
+      expect(viewSize(tester), const Size(120, 80));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(120, 100));
+      await tester.pumpWidget(viewScene(target, child: child));
+      expect(viewSize(tester), const Size(200, 100));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(240, 120));
+    });
+  });
+
   group('圆角中间值', () {
     testWidgets('圆角从零过渡，中断和清空时画面保持连续', (tester) async {
       await tester.pumpWidget(viewScene(_radiusStyle(null)));

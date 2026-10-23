@@ -232,14 +232,37 @@ class StyleEngine {
     bool dry = false,
   }) {
     final padding = _padding, margin = _margin;
-    if (width == null && height == null && padding == null && margin == null) {
+    final widthFactor = _values[StyleField.widthFactor.index] as double?;
+    final heightFactor = _values[StyleField.heightFactor.index] as double?;
+    if (width == null &&
+        height == null &&
+        padding == null &&
+        margin == null &&
+        widthFactor == null &&
+        heightFactor == null) {
       return LayoutStyle.empty;
     }
+    final usedWidth = _length(
+      width,
+      Axis.horizontal,
+      constraints,
+      box,
+      dry: dry,
+    );
+    final usedHeight = _length(
+      height,
+      Axis.vertical,
+      constraints,
+      box,
+      dry: dry,
+    );
     return LayoutStyle(
-      width: _length(width, Axis.horizontal, constraints, box, dry: dry),
-      height: _length(height, Axis.vertical, constraints, box, dry: dry),
+      width: usedWidth,
+      height: usedHeight,
       padding: padding,
       margin: margin,
+      widthFactor: usedWidth == null ? widthFactor : null,
+      heightFactor: usedHeight == null ? heightFactor : null,
     );
   }
 
@@ -333,6 +356,8 @@ class StyleEngine {
       request.height,
       request.padding,
       request.margin,
+      request.widthFactor,
+      request.heightFactor,
       _externalVersion,
     );
     if (_measurementKey != key || lostReference) {

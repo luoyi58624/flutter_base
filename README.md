@@ -71,11 +71,16 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 
 入口为 `package:flutter_base/ui.dart`。`ElView` 只有 `style`、`child`（以及标准
 `key`），使用一个 RenderObject 完成盒模型与背景绘制。首版样式字段为
-`width`、`height`、`backgroundColor`、`padding`、`margin`、`borderRadius`、`clipBehavior`
+`width`、`height`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`borderRadius`、`clipBehavior`
 和过渡配置 `transitions`。
 
 - 宽高接受数值或百分比字符串，包含 padding、不包含 margin；null 为 auto。
   非法或非有限尺寸退回 auto，负尺寸夹到零；边距必须非负且有限。
+- widthFactor/heightFactor 接受非负有限数值，null 等同于 1；仅调整对应 auto 轴的
+  自然盒尺寸，先加入 padding 再乘因子，最后追加 margin，最终服从父约束。
+  显式像素或可解析百分比尺寸优先；无参照百分比回退 auto 时使用因子。
+  因子不缩放 child，也不改变 child 约束；小于 1 时 child 可溢出，裁剪仍由 clipBehavior 控制。
+  例如父宽 300、child 自然宽 80 且无边距时，width: '60%' 得到 180，widthFactor: .6 得到 48。
 - 百分比优先使用扣除 margin 后的父最大约束；无界轴查找最近具有确定内容尺寸的
   ElView 祖先，没有参照则按 auto 布局。像素与百分比过渡保留混合表达式，随参照求值。
 - 首次挂载直接应用目标值；重建样式后按属性分别过渡，同一属性采用最后一条匹配配置。

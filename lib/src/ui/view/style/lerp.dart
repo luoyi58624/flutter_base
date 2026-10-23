@@ -36,6 +36,19 @@ Object? _lengthLerp(Object? from, Object? to, double t) {
   );
 }
 
+double? _parseFactor(num value) {
+  assert(value >= 0 && value.isFinite, '尺寸倍数必须非负且有限');
+  return value == 1 ? null : value.toDouble();
+}
+
+Object? _factorLerp(Object? from, Object? to, double t) {
+  final value = math.max(
+    0.0,
+    lerpDouble(from as double? ?? 1, to as double? ?? 1, t)!,
+  );
+  return value == 1 ? null : value;
+}
+
 EdgeInsets? _resolveInsets(EdgeInsetsGeometry value, TextDirection direction) {
   final result = value.resolve(direction);
   assert(
