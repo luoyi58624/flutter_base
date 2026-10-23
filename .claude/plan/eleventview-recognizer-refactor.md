@@ -2,6 +2,17 @@
 
 状态：已完成代码切换、旧实现清退与自动化验收。真实设备输入尚待人工验收。
 
+## 全局重采样迁出后的收尾
+
+本次范围：删除 `drag/output.dart` 和 `_DragOutput`，普通 DragUpdate 直接复用识别器数据与宿主现有回调适配；保留公开的拖拽代理功能，不修改全局 SDK 绑定层。
+
+- [x] 用活动路线与冻结代理列表代替输出对象，保留终态配对和重入取消检查。
+- [x] 合并代理消费与回调适配，删除重复位移累计、坐标转换和空销毁。
+- [x] 覆盖普通更新数据、代理消费顺序和回调内取消，运行相关拖拽、缩放、重入与宿主回归。
+- [x] 同步文档，提交限定在本次文件。
+
+本次验收：拖拽代理、速度、替换、生命周期、分发重入、所有权、缩放升级与 View 八个测试文件共 112 项通过；改动源码和测试的静态检查无问题。
+
 ## 用户最终约束
 
 - 事件是独立 Widget，不引入焦点、键盘、选择、窗口等模块。
@@ -28,7 +39,7 @@ flowchart TB
   PRESS --> BUBBLE["识别器内部 parent 冒泡与停止传播"]
   TRANSFORM --> BUBBLE
   BUBBLE --> CALLBACK["业务回调与默认动作"]
-  TRANSFORM --> OUTPUT["获胜后的代理消费与重采样输出"]
+  ADAPTER --> PROXY["按需执行拖拽代理消费"]
   HOST --> FEEDBACK["元素范围、Down / Up 反馈与取消"]
   FEEDBACK --> SCOPE
 ```
@@ -36,9 +47,8 @@ flowchart TB
 | 文件 | 职责 | 不负责 |
 | --- | --- | --- |
 | `view.dart` | Widget、按字段订阅、单 Render 宿主、Hover 和命中 | 点击计数、阈值、速度、归属推断 |
-| `dispatcher.dart` | 原始输入、配置映射、回调适配、代际检查和成员协调 | 点击或拖拽识别算法、替代官方的竞技场 |
+| `dispatcher.dart` | 原始输入、配置映射、回调适配、代理消费、代际检查和成员协调 | 点击或拖拽识别算法、替代官方的竞技场 |
 | `interaction.dart` | 输入快照、元素资格、反馈计时、显式官方席位 | 识别计时与速度拟合 |
-| `drag/output.dart` | 已接受拖拽的重采样、pre / driver / overflow 消费 | 手势竞争、输入速度识别 |
 | `recognizers/press.dart` | 单双三击、侧键、长按、各成员独立历史与资格 | Widget 几何、样式、业务配置 |
 | `recognizers/transform.dart` | 拖拽、多指缩放旋转、真实输入速度 | 上层拖拽升级策略、代理消费 |
 | `recognizers/route.dart / team.dart` | 同类冒泡、终态配对、官方团队协作 | 强行复活官方落败者 |
@@ -51,7 +61,7 @@ flowchart TB
 - [x] 按点击意图区分团队，防止内层长按替外层点击抢占中间官方 Tap。
 - [x] 连接配置、回调、停止标记与默认动作，不在宿主重建普通手势冒泡。
 - [x] 保留范围移出取消／移回恢复、按压反馈时间和按字段订阅。
-- [x] 连接 Drag、Scale、Rotation、PanZoom、代理消费与输出重采样。
+- [x] 连接 Drag、Scale、Rotation、PanZoom 和代理消费；触摸重采样由全局 SDK 绑定层负责。
 - [x] 处理配置替换、回调重入、禁用子树、延迟点击、重挂载和卸载。
 - [x] 删除旧 sequence、tap、side-button、drag、scale 状态机和旧管线。
 - [x] 识别器测试仍只有 Press／Transform 两个入口，宿主契约由对应模块测试负责。
@@ -70,7 +80,6 @@ flowchart TB
 | dragStartDistance / dragHorizontalAngle | Transform 阈值与锁轴参数 |
 | dragMinFlingDistance / dragMinFlingVelocity / dragMaxFlingVelocity | Transform 真实输入速度计算与约束 |
 | dragDevices | 只约束 Transform，不影响 Hover、原始指针或点击 |
-| dragResampling | 只处理接受后的输出，End 前补齐尾部，不作为速度输入 |
 | behavior / cursor / disabled / dragProxy | Render 宿主或业务适配，均不进入识别器 |
 
 ## 已明确的兼容差异
@@ -100,10 +109,10 @@ flowchart TB
 | Press／Transform 两个识别器文件 | 各按钮、连击、长按、冒泡、各级坐标、成员取消、多指、速度、重入、官方双向竞争与协作团队 |
 | View 与状态 | hasTap 读写边界、官方 Tap 上下层、纯 Down 截断、长按夹层、Drag 双向互斥、边界恢复、反馈计时、Hover、GlobalKey 与卸载 |
 | 业务契约 | 默认动作、配置合并、动态替换、子树禁用、延迟点击、重入终态、独占与缩放升级 |
-| 拖拽输出 | 代理消费顺序、总 delta、重采样尾部与真实输入速度分离 |
+| 拖拽适配 | 代理消费顺序、总 delta、识别器载荷与回调内取消 |
 | 示例页 | 点击、连击、按钮、冒泡、边界、官方组件混合，以及窄屏和放大文字可访问性 |
 
-2026-10-23 自动化验收：
+2026-10-23 首次重构的自动化验收记录（后续文件迁移和全局重采样调整前）：
 
 - `flutter test test/ui/cores/event`：255 项通过。
 - 在 example 中运行 `flutter test test/custom_gestures_page_test.dart`：12 项通过、1 项预览用例按原条件跳过。
@@ -119,5 +128,4 @@ flowchart TB
 - [Widget 与状态订阅](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/view.dart)
 - [内部宿主控制器](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/dispatcher.dart)
 - [反馈与输入适配](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/interaction.dart)
-- [拖拽输出](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/drag/output.dart)
 - [独立识别器说明](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/recognizers/README.md)

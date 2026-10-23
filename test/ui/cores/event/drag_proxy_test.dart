@@ -8,6 +8,98 @@ import 'support/dispatcher_test_host.dart';
 void main() {
   setUp(ElEventDispatcher.debugResetEagerGestureOwners);
 
+  testWidgets('普通拖拽直接适配识别器位移，累计偏移与终态一致', (_) async {
+    final host = DispatcherTestHost.chain();
+    addTearDown(host.dispose);
+    final updates = <(Offset, Offset, Offset, Offset)>[];
+    Offset? endOffset;
+    host.leafDispatcher.event = ElEvent(
+      config: _config,
+      onVerticalDragUpdate: (event) {
+        expect(event.dragPipelineActive, isFalse);
+        updates.add((
+          event.delta,
+          event.localDelta,
+          event.dragOffset,
+          event.globalPosition,
+        ));
+      },
+      onVerticalDragEnd: (event) => endOffset = event.dragOffset,
+    );
+    await _start(host);
+    await _move(host, 20, 32);
+    await _move(host, 30, 48);
+    await _end(host, 30);
+    expect(updates, [
+      (
+        const Offset(0, 10),
+        const Offset(0, 10),
+        const Offset(0, 10),
+        const Offset(0, 20),
+      ),
+      (
+        const Offset(0, 10),
+        const Offset(0, 10),
+        const Offset(0, 20),
+        const Offset(0, 30),
+      ),
+    ]);
+    expect(endOffset, const Offset(0, 20));
+    expect(host.leafDispatcher.isDragged, isFalse);
+  });
+
+  for (final cancelInPre in [true, false]) {
+    testWidgets('代理回调内取消立即中止当前更新，下一轮仍可使用：pre=$cancelInPre', (_) async {
+      final host = DispatcherTestHost.chain(depth: 2);
+      addTearDown(host.dispose);
+      final trace = <String>[];
+      var shouldCancel = true;
+      void cancel(ElEventCallback event) {
+        if (shouldCancel) {
+          shouldCancel = false;
+          host.leafDispatcher.cancelAllPending(
+            event.originalEvent! as PointerEvent,
+          );
+        }
+      }
+
+      host.rootDispatcher.event = ElEvent(
+        dragProxy: ElDragProxy(
+          axis: Axis.vertical,
+          onDragPreUpdate: (event) {
+            trace.add('pre');
+            if (cancelInPre) cancel(event);
+          },
+          onDragOverflow: (_) => trace.add('overflow'),
+        ),
+      );
+      host.leafDispatcher.event = ElEvent(
+        config: _config,
+        onVerticalDragUpdate: (event) {
+          trace.add('main');
+          if (!cancelInPre) cancel(event);
+        },
+        onVerticalDragCancel: (_) => trace.add('cancel'),
+        onVerticalDragEnd: (_) => trace.add('end'),
+      );
+      await _start(host);
+      await _move(host, 20, 32);
+      expect(
+        trace,
+        cancelInPre ? ['pre', 'cancel'] : ['pre', 'main', 'cancel'],
+      );
+      expect(host.leafDispatcher.isDragged, isFalse);
+      await _end(host, 20);
+      expect(trace.where((phase) => phase == 'cancel'), hasLength(1));
+      expect(trace, isNot(contains('end')));
+      trace.clear();
+      await _start(host, pointer: 2, baseMillis: 100);
+      await _move(host, 20, 132, pointer: 2);
+      await _end(host, 20, pointer: 2, millis: 148);
+      expect(trace, ['pre', 'main', 'overflow', 'end']);
+    });
+  }
+
   testWidgets('代理按 pre、main、overflow 顺序消费同一份 delta', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);

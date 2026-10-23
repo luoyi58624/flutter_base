@@ -10,7 +10,6 @@ import 'event.dart';
 import 'recognizers/recognizers.dart';
 
 part 'interaction.dart';
-part 'drag/output.dart';
 
 /// 连接单个 RenderBox 与独立识别器，负责输入、业务适配和宿主生命周期。
 ///
@@ -39,7 +38,8 @@ class ElEventDispatcher {
   ElPressGestureRecognizer? _press;
   ElTransformGestureRecognizer? _transform;
   final ElGestureArenaTeam _team = ElGestureArenaTeam();
-  final Map<Object, _DragOutput> _dragOutputs = {};
+  // 空代理列表也代表已开始的路线，用于终态配对，不再创建额外的输出对象。
+  final Map<Object, List<ElEventDispatcher>> _dragProxies = {};
   bool _disposed = false;
   bool _disposing = false;
   bool _canceling = false;
@@ -49,7 +49,7 @@ class ElEventDispatcher {
   int _updateRevision = 0;
   ElEventPhase? _rawPhase;
   bool _mayClaimNewPointer = false;
-  bool get _dragging => _dragOutputs.isNotEmpty;
+  bool get _dragging => _dragProxies.isNotEmpty;
   Offset _lastPosition = Offset.zero;
 
   /// 获取渲染节点绑定的控制器，不创建新的控制器。
@@ -618,7 +618,7 @@ class ElEventDispatcher {
       return;
     }
     if (phase == ElEventPhase.dragCancel &&
-        !_dragOutputs.containsKey(details.sequenceIdentity) &&
+        !_dragProxies.containsKey(details.sequenceIdentity) &&
         _event?.onDragDown == null) {
       return;
     }
@@ -630,12 +630,10 @@ class ElEventDispatcher {
         return;
       }
       route.dragIdentity = details.sequenceIdentity;
-      _dragOutputs.remove(details.sequenceIdentity)?.dispose();
       snapshot.input.route.driver ??= this;
-      final output = _DragOutput(this, details);
-      _dragOutputs[details.sequenceIdentity] = output;
-      if (output.proxies.isNotEmpty &&
-          identical(snapshot.input.route.driver, this)) {
+      final proxies = _collectDragProxies(details.dragAxis);
+      _dragProxies[details.sequenceIdentity] = proxies;
+      if (proxies.isNotEmpty && identical(snapshot.input.route.driver, this)) {
         snapshot.input.tapEligible = false;
         _cancelTap(
           snapshot.input,
@@ -643,7 +641,7 @@ class ElEventDispatcher {
           ElEventCancelReason.selfGestureAccepted,
         );
         _press?.rejectTap(details.pointer);
-        for (final member in output.proxies) {
+        for (final member in proxies) {
           final input = member._inputs[details.pointer];
           if (input == null) continue;
           input.tapEligible = false;
@@ -658,12 +656,12 @@ class ElEventDispatcher {
     }
     if (phase == ElEventPhase.dragUpdate) {
       if (identical(snapshot.input.route.driver, this)) {
-        _dragOutputs[details.sequenceIdentity]?.update(details);
+        _dispatchDragUpdate(details, snapshot);
       }
       return;
     }
     if (phase == ElEventPhase.dragEnd || phase == ElEventPhase.dragCancel) {
-      _dragOutputs.remove(details.sequenceIdentity)?.dispose();
+      _dragProxies.remove(details.sequenceIdentity);
     }
     final callback = _gestureCallback(details, phase);
     _invoke(_handler(phase, details.dragAxis), callback);
@@ -678,6 +676,72 @@ class ElEventDispatcher {
         _claim(input.route, callback, true, false);
       }
     }
+  }
+
+  List<ElEventDispatcher> _collectDragProxies(Axis? axis) {
+    List<ElEventDispatcher>? proxies;
+    for (final member in _chain().skip(1)) {
+      final proxy = member.event?.dragProxy;
+      if (proxy != null && (proxy.axis == null || proxy.axis == axis)) {
+        (proxies ??= []).add(member);
+      } else if (member._hasDrag) {
+        break;
+      }
+    }
+    return proxies ?? const [];
+  }
+
+  void _dispatchDragUpdate(
+    ElTransformGestureDetails details,
+    _GestureSnapshot snapshot,
+  ) {
+    final proxies = _dragProxies[details.sequenceIdentity];
+    if (proxies == null) return;
+    bool isActive() =>
+        _valid(snapshot) && _dragProxies.containsKey(details.sequenceIdentity);
+    final callback = _gestureCallback(details, ElEventPhase.dragUpdate)
+      ..dragPipelineActive = proxies.isNotEmpty
+      ..hasAncestorDragConsumer = _transform?.parent != null;
+    for (final member in proxies.reversed) {
+      if (!isActive()) return;
+      _invokeDragProxy(
+        member,
+        member.event?.dragProxy?.onDragPreUpdate,
+        callback,
+      );
+    }
+    if (!isActive()) return;
+    // 代理共享消费余量，主处理器沿用同一回调并恢复自身坐标与独占入口。
+    if (proxies.isNotEmpty) _gestureCallback(details, ElEventPhase.dragUpdate);
+    _invoke(_handler(ElEventPhase.dragUpdate, details.dragAxis), callback);
+    if (callback.propagationStopped) details.stopPropagation();
+    for (final member in proxies) {
+      if (!isActive() || callback.remainingDelta == Offset.zero) break;
+      _invokeDragProxy(
+        member,
+        member.event?.dragProxy?.onDragOverflow,
+        callback,
+      );
+    }
+  }
+
+  void _invokeDragProxy(
+    ElEventDispatcher member,
+    ElEventHandler? handler,
+    ElEventCallback callback,
+  ) {
+    if (member._disposed || member.disabled || handler == null) return;
+    callback.localPosition = member._local(callback.globalPosition);
+    callback.localDelta = member._localDelta(
+      callback.globalPosition,
+      callback.delta,
+    );
+    callback.updateLocalDeltaResolver(
+      (delta) => member._localDelta(callback.globalPosition, delta),
+    );
+    callback.updateEagerGestureHandler(null);
+    member._invoke(handler, callback);
+    callback.resetPropagation();
   }
 
   bool _prepareScale(
@@ -1109,10 +1173,7 @@ class ElEventDispatcher {
       _transform?.cancelMember(pointer);
     }
     _transform?.cancel();
-    for (final output in _dragOutputs.values.toList()) {
-      output.dispose();
-    }
-    _dragOutputs.clear();
+    _dragProxies.clear();
   }
 
   /// 使用最后输入位置取消当前宿主。
