@@ -1,3 +1,3 @@
 library;
 
-export 'src/generator/index.dart' show elModelBuilder, elSourceGeneratorBuilder;
+export 'src/gen/index.dart' show elModelBuilder, elSourceGeneratorBuilder;

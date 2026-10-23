@@ -5,10 +5,10 @@ part 'settings_icon.dart';
 /// 从 my_ui 设置页提取的原版图标，条目名与原设置数据 id 一致。
 enum ElSettingIcons {
   /// 飞行模式。
-  airplane('飞行模式', Color(0xffffb600), ["m22 2-7 20-4-9-9-4Z", "M22 2 11 13"]),
+  airplane('ElView', Color(0xffffb600), ["m22 2-7 20-4-9-9-4Z", "M22 2 11 13"]),
 
   /// WLAN。
-  wifi('WLAN', Color(0xff13b82c), [
+  wifi('自定义手势', Color(0xff13b82c), [
     "M2 8.8a16 16 0 0 1 20 0",
     "M5 12a11 11 0 0 1 14 0",
     "M8.5 15.5a5.5 5.5 0 0 1 7 0",
