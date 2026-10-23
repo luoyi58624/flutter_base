@@ -26,15 +26,22 @@ enum StyleField {
   filter,
   backdropFilter,
   clipper,
-  alignment;
+  alignment,
+  backgroundImage;
 
   /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
 
-  /// 阴影列表按内容比较，重建等值声明不能重启动画或重复解析。
-  bool sameValue(Object? a, Object? b) => this == boxShadow
-      ? listEquals(a as List<BoxShadow>?, b as List<BoxShadow>?)
-      : a == b;
+  /// 按声明含义比较，等值重建不重启动画或重复解析。
+  bool sameValue(Object? a, Object? b) => switch (this) {
+    boxShadow => listEquals(a as List<BoxShadow>?, b as List<BoxShadow>?),
+    // 直接声明的相等比较不含回调；混合图片只做原生值比较，不能读取其可空目标属性。
+    backgroundImage =>
+      a == b &&
+          (a.runtimeType != DecorationImage ||
+              (a as DecorationImage).onError == (b as DecorationImage).onError),
+    _ => a == b,
+  };
 
   int get damage => switch (this) {
     width ||
@@ -57,7 +64,8 @@ enum StyleField {
     boxShadow ||
     opacity ||
     filter ||
-    backdropFilter => StyleEngine.paint,
+    backdropFilter ||
+    backgroundImage => StyleEngine.paint,
     clipBehavior ||
     clipper ||
     transform ||
@@ -90,6 +98,7 @@ enum StyleField {
     backdropFilter => ElTransitionField.backdropFilter,
     clipper => null,
     alignment => ElTransitionField.alignment,
+    backgroundImage => ElTransitionField.backgroundImage,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -118,6 +127,7 @@ enum StyleField {
     backdropFilter => style.backdropFilter,
     clipper => style.clipper,
     alignment => style.alignment,
+    backgroundImage => style.backgroundImage,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -145,7 +155,8 @@ enum StyleField {
     filter ||
     backdropFilter ||
     clipper ||
-    alignment => false,
+    alignment ||
+    backgroundImage => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -172,6 +183,7 @@ enum StyleField {
     clipper => value as CustomClipper<Path>,
     // 保留方向分量到布局求值，动画期间改向无需重启轨道。
     alignment => value as AlignmentGeometry,
+    backgroundImage => value as DecorationImage,
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -212,5 +224,10 @@ enum StyleField {
               to as AlignmentGeometry,
               t,
             ),
+    backgroundImage => DecorationImage.lerp(
+      from as DecorationImage?,
+      to as DecorationImage?,
+      t,
+    ),
   };
 }

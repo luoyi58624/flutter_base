@@ -39,6 +39,7 @@ class ElStyle with Equatable {
     this.heightFactor,
     this.aspectRatio,
     this.backgroundColor,
+    this.backgroundImage,
     this.gradient,
     this.boxShadow,
     this.opacity,
@@ -87,7 +88,10 @@ class ElStyle with Equatable {
   /// 背景色，覆盖内容和 padding；null 表示不绘制。
   final Color? backgroundColor;
 
-  /// 覆盖背景色的原生渐变；null 表示不绘制，使用当前文字方向解析几何。
+  /// 官方背景图片，位于背景色之上、渐变之下，不占布局；null 表示不绘制。
+  final DecorationImage? backgroundImage;
+
+  /// 覆盖背景色与背景图的原生渐变；null 表示不绘制，使用当前文字方向解析几何。
   final Gradient? gradient;
 
   /// 按声明顺序绘制的阴影，支持 ElBoxShadow.inset；不占布局或扩大命中范围。

@@ -579,3 +579,22 @@ flowchart LR
 - base 新增 6 项、animation 新增 5 项。覆盖官方 Align 对照、有界 / tight / 单双轴无界、null 与空 child、内外边距、RTL、factor / ratio / minmax、无界百分比查询祖先内容盒、基线、真实指针和语义，以及 delay / 中断 / 等值重建 / 改向 / null 中点切换。
 - base 115 项、animation 121 项，相关 236 项全部通过；生产目录与这两个文件静态分析无问题，未运行其他模块或性能测试。
 - 本轮生产净增 83 行（手写 77、生成 6），当前 view 共 5277 行（手写 5041、生成 236），含注释与空行；测试净增 701 行，只扩展两个既有文件。
+
+## 25. backgroundImage 接入计划
+
+- 按用户最新要求使用全名 backgroundImage，类型为官方 DecorationImage?；不接入旧版图片库。图片选择、解码、缓存、流监听、错误回调、动图帧和绘制均复用 Flutter 官方实现。
+- StyleEngine 管理声明与独立过渡，调用本 SDK 的 DecorationImage.lerp；Native 混合图片的 getter 不代表完整混合结果，不能据其 opacity 过滤整个输出。背景图只参与绘制，不影响布局或图片自然尺寸占位。
+- Widget 仅在当前或目标背景图需要时收集官方 ImageConfiguration；保留 bundle、DPR、locale、platform 与 direction，绘制时补实际视觉盒 size。退出过渡虽目标为 null，当前仍有图时继续更新环境。
+- DecorationPainter 按需委托 BackgroundImagePainter，跨相等帧复用官方 painter；图片或 onError 回调替换后解除旧订阅，清空、隐藏、detach 和 dispose 释放资源，重挂重新订阅。不创建额外 RenderObject。
+- 绘制位置固定为 backgroundColor 上、gradient 下，包含 padding、不含 margin；复用圆角、最终路径裁剪、整组 opacity、filter、backdropFilter 与 transform 管线。单图没有额外混合层，过渡交给原生图片 lerp / painter。
+- 测试仅扩展 base / animation 两个文件，验证内存图片像素、官方对照、图片配置、异步与多帧、切换清空、错误恢复、重挂和透明 / null 过渡及组合中间值；不测试网络速度、内部缓存身份或性能。完成后相对 5277 行生产基线统计并提交。
+
+### 实施结果
+
+- 已接入全名 backgroundImage 声明、copyWith / merge 和独立过渡通道；没有 bgImage 别名，不依赖旧版图片库。加载、流订阅和各绘制参数直接委托官方 DecorationImagePainter，动画调用官方 DecorationImage.lerp。
+- 图片环境仅在当前或目标需要时收集，包含 bundle、DPR、locale、platform 和 direction；绘制时补当前视觉盒 size，未提供 Directionality 时使用引擎默认 LTR。退出过渡期间目标虽然为 null，当前图片仍保留环境并响应方向更新。
+- 已有圆角与最终路径裁剪、透明度、滤镜及变换管线直接消费图片；空盒不创建图片资源，图片替换/清空、隐藏、无效变换、detach/dispose 及时解除订阅，重挂重新绘制以恢复多帧图片。图片本身不改变布局、基线或后代占位。
+- 修正适配层读取原生混合图片可空 getter 的问题：混合对象仅做原生值比较并交官方绘制，普通直接声明额外比较 onError，保证更换回调后更新资源。半透明混合和 null 双向退出按官方预乘相加结果验证。
+- base 新增 6 项，animation 新增 5 项。基础包含七组 DecorationImage 参数逐像素官方对照、绘制顺序、padding/margin、实际图片环境、异步/多帧旧图隔离、错误恢复和 GlobalKey 重挂；动画覆盖 null、半透明、delay、中断、独立截止、复合效果、RTL及百分比尺寸，另验证目标已清空时的方向更新不重启退出截止时间。
+- base 121 项、animation 126 项，相关 247 项全部通过；生产目录和两个测试文件静态分析无问题，没有执行其他模块或性能测试。仅扩展两个现有测试文件，测试净增 854 行。
+- 本轮生产净增 220 行（手写 214、生成 6），当前 view 共 5497 行（手写 5255、生成 242），含注释与空行；没有新增 RenderObject。

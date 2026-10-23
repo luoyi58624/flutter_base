@@ -18,6 +18,7 @@ extension ElStyleExt on ElStyle {
     Object? heightFactor = $absent,
     Object? aspectRatio = $absent,
     Object? backgroundColor = $absent,
+    Object? backgroundImage = $absent,
     Object? gradient = $absent,
     Object? boxShadow = $absent,
     Object? opacity = $absent,
@@ -54,6 +55,9 @@ extension ElStyleExt on ElStyle {
       backgroundColor: identical(backgroundColor, $absent)
           ? this.backgroundColor
           : backgroundColor as Color?,
+      backgroundImage: identical(backgroundImage, $absent)
+          ? this.backgroundImage
+          : backgroundImage as DecorationImage?,
       gradient: identical(gradient, $absent)
           ? this.gradient
           : gradient as Gradient?,
@@ -112,6 +116,7 @@ extension ElStyleExt on ElStyle {
       heightFactor: other.heightFactor ?? heightFactor,
       aspectRatio: other.aspectRatio ?? aspectRatio,
       backgroundColor: other.backgroundColor ?? backgroundColor,
+      backgroundImage: other.backgroundImage ?? backgroundImage,
       gradient: other.gradient ?? gradient,
       boxShadow: other.boxShadow ?? boxShadow,
       opacity: other.opacity ?? opacity,
@@ -142,6 +147,7 @@ extension ElStyleExt on ElStyle {
     heightFactor,
     aspectRatio,
     backgroundColor,
+    backgroundImage,
     gradient,
     boxShadow,
     opacity,

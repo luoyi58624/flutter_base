@@ -10,9 +10,14 @@ import '../style/index.dart';
 /// 单子视图的框架宿主，样式、盒模型和绘制分别委托给独立协作者。
 class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   /// 创建宿主时立即创建唯一引擎，动画与绘制资源仍按需创建。
-  ElRenderView(ElStyle style, TextDirection direction) : super(null) {
+  ElRenderView(
+    ElStyle style,
+    TextDirection direction, {
+    ImageConfiguration? imageConfiguration,
+  }) : super(null) {
     _engine = StyleEngine(style, direction, invalidate: _invalidate);
     boxLayout = BoxLayout(this, mutateLayout: _mutateLayout);
+    _imageConfiguration = imageConfiguration;
     if (alwaysNeedsCompositing) markNeedsCompositingBitsUpdate();
   }
 
@@ -21,6 +26,21 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   DecorationPainter? _decoration;
   EffectController? _effects;
   ShapeGeometry? _shape;
+  ImageConfiguration? _imageConfiguration;
+
+  /// 当前或目标仍有图片时由 Widget 收集环境，退出过渡结束前保留依赖。
+  bool get needsImageConfiguration => _styleEngine.needsImageConfiguration;
+
+  /// 替换整份官方图片环境，资源在下次绘制时按新的流键解析。
+  set imageConfiguration(ImageConfiguration? value) {
+    if (_imageConfiguration == value) return;
+    _imageConfiguration = value;
+    markNeedsPaint();
+  }
+
+  void _onImageChanged() {
+    if (attached) markNeedsPaint();
+  }
 
   ShapeGeometry _ensureShape() {
     if (_shape == null) {
@@ -46,8 +66,10 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
     markNeedsSemanticsUpdate();
   }
 
-  DecorationPainter get _painter =>
-      _decoration ??= DecorationPainter(_ensureShape);
+  DecorationPainter get _painter => _decoration ??= DecorationPainter(
+    _ensureShape,
+    onImageChanged: _onImageChanged,
+  );
 
   EffectController get _effect => _effects ??= EffectController(_ensureShape);
 
@@ -78,7 +100,11 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   void _invalidate(int damage) {
     if (damage & StyleEngine.layout != 0) super.markNeedsLayout();
-    if (damage & StyleEngine.paint != 0) markNeedsPaint();
+    if (damage & StyleEngine.paint != 0) {
+      _decoration?.updateBackgroundImage(_styleEngine.backgroundImage);
+      if (!needsImageConfiguration) _imageConfiguration = null;
+      markNeedsPaint();
+    }
     if (damage & StyleEngine.compositing != 0) markNeedsCompositingBitsUpdate();
     if (damage & StyleEngine.semantics != 0) {
       _syncClipper();
@@ -162,6 +188,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
       // 隐藏期间移除装饰也应解除资源持有，无需等待下一次可见帧。
       final decoration = _decoration;
       if (decoration != null) {
+        decoration.clearBackgroundImage();
         if (_styleEngine.gradient == null) decoration.clearGradient();
         if (_styleEngine.boxShadow == null) decoration.clearShadows();
         if (_styleEngine.outline == null) decoration.clearOutline();
@@ -169,6 +196,9 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
       return;
     }
     final transform = _readTransform();
+    if (transform != null && !transform.valid) {
+      _decoration?.clearBackgroundImage();
+    }
     if (transform == null) {
       _effects?.clearTransform();
       _paintPathClip(context, offset);
@@ -261,6 +291,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
         _styleEngine.clipBehavior != Clip.none &&
         (child != null ||
             _styleEngine.backgroundColor != null ||
+            _styleEngine.backgroundImage != null ||
             _styleEngine.gradient != null ||
             _styleEngine.hasInnerShadow)) {
       _effect.paint(
@@ -351,6 +382,21 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
             : null,
       );
     }
+    final backgroundImage = _styleEngine.backgroundImage;
+    if (backgroundImage != null) {
+      _painter.paintBackgroundImage(
+        context,
+        boxLayout.boxRect.shift(offset),
+        backgroundImage,
+        _imageConfiguration ?? ImageConfiguration.empty,
+        textDirection: _styleEngine.direction,
+        borderRadius: _styleEngine.clipBehavior == Clip.none
+            ? _styleEngine.borderRadius
+            : null,
+      );
+    } else {
+      _decoration?.clearBackgroundImage();
+    }
     final gradient = _styleEngine.gradient;
     if (gradient != null) {
       _painter.paintGradient(
@@ -425,6 +471,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   @override
   bool hitTestSelf(Offset position) =>
       (_styleEngine.backgroundColor != null ||
+          _styleEngine.backgroundImage != null ||
           _styleEngine.border != null ||
           _styleEngine.gradient != null) &&
       _painter.contains(
@@ -470,7 +517,10 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   void detach() {
     boxLayout.detach();
     _shape?.detach();
+    _decoration?.clearBackgroundImage();
     super.detach();
+    // 脱离后停止图片通知，重挂必须重新绘制以恢复动图订阅。
+    markNeedsPaint();
   }
 
   @override
@@ -479,6 +529,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
     _decoration?.clearOutline();
     _decoration?.clearGradient();
     _decoration?.clearShadows();
+    _decoration?.clearBackgroundImage();
     _effects?.dispose();
     _shape?.dispose();
     _styleEngine.dispose();

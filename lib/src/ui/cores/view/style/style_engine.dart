@@ -95,6 +95,15 @@ class StyleEngine {
   Color? get backgroundColor =>
       _values[StyleField.backgroundColor.index] as Color?;
 
+  /// 当前帧的官方图片声明，包含原生过渡产生的混合图片。
+  DecorationImage? get backgroundImage =>
+      _values[StyleField.backgroundImage.index] as DecorationImage?;
+
+  /// 当前或目标仍有背景图时需要保留图片环境，包含等待及退出过渡。
+  bool get needsImageConfiguration =>
+      backgroundImage != null ||
+      _targets[StyleField.backgroundImage.index] != null;
+
   /// 可见背景渐变；全透明时不创建 shader。
   Gradient? get gradient {
     final value = _values[StyleField.gradient.index] as Gradient?;
@@ -266,6 +275,7 @@ class StyleEngine {
       if (_directionalTransform) _damage |= paint | semantics;
       final alignment = _values[StyleField.alignment.index];
       if (alignment != null && alignment is! Alignment) _damage |= layout;
+      if (backgroundImage != null) _damage |= paint;
     }
     for (final field in StyleField.values) {
       final raw = field.declaration(style);

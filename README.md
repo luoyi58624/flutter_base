@@ -178,6 +178,11 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   边框和轮廓在该裁剪结束后绘制，外侧描边不会被自身裁剪截掉。
 - 盒模型属性不级联继承；边距方向通过官方 Directionality 读取。声明式过渡仅由
   transitions 控制，不订阅系统动画开关；此层没有 vars、styleBuilder 或事件系统。
+- `backgroundImage: DecorationImage(...)` 使用官方 ImageProvider、图片流与绘制逻辑，
+  支持 fit、alignment、repeat、scale、centerSlice、matchTextDirection、colorFilter、opacity、
+  filterQuality、invertColors、isAntiAlias 和 onError。图片位于背景色之上、渐变之下，
+  覆盖 padding、不覆盖 margin，不以图片尺寸撑大布局。过渡使用官方 DecorationImage.lerp，
+  支持透明图片与 null 淡入淡出，图片逐帧更新只触发重绘。
 
 `render/index.dart` 实现 ElRenderView；宿主只转交样式、调度协作者并落地 Flutter
 布局/绘制协议。每个宿主在构造时立即创建唯一 StyleEngine，声明解析、方向求值、
@@ -199,6 +204,10 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   纯色不创建 shader；静态值和 null 过渡保持单次绘制，纯色与渐变的两项贡献同时可见时
   才使用局部透明层预乘相加；颜色、整体位置和仅圆角变化不使无关几何或 shader 重建。
 - `paint/shadow.dart` 缓存实际使用的内外阴影几何和画笔，颜色与整体位置不重建几何。
+- `paint/image.dart` 按需持有官方 DecorationImagePainter，完整环境通过
+  createLocalImageConfiguration 收集，并按当前视觉盒补齐 size 和文字方向。
+  声明变化后解除旧订阅；清空、隐藏或 detach 时释放，重挂重新订阅动图。
+  不创建额外 RenderObject，不依赖旧版图片库；已有同形内容裁剪时不重复裁剪图片圆角。
 - `style/transform.dart` 保留函数来源与参数，避免矩阵相同却丢失整圈动画；
   `paint/transform.dart` 只补实际视觉盒原点，缓存有效矩阵并检查有限投影。
 - `style/filter.dart` 将 ElFilter 的模糊、颜色分量解析为独立的数值输出；

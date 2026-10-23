@@ -2,8 +2,15 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart'
+    show
+        ErrorDescription,
+        SynchronousFuture,
+        TargetPlatform,
+        ValueListenable,
+        debugDefaultTargetPlatformOverride;
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show CachingAssetBundle;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -280,6 +287,99 @@ class _ViewClipper extends CustomClipper<Path> {
   bool shouldReclip(_ViewClipper oldClipper) => shouldUpdate;
 }
 
+class _ImageFrames extends ImageStreamCompleter {
+  void emit(ui.Image image, {double scale = 1}) =>
+      setImage(ImageInfo(image: image.clone(), scale: scale));
+
+  void fail(Object error) => reportError(
+    exception: error,
+    context: ErrorDescription('背景图片测试加载失败'),
+    silent: true,
+  );
+}
+
+class _FramesImageProvider extends ImageProvider<_FramesImageProvider> {
+  final frames = _ImageFrames();
+  ImageConfiguration? configuration;
+
+  @override
+  Future<_FramesImageProvider> obtainKey(ImageConfiguration configuration) {
+    this.configuration = configuration;
+    return SynchronousFuture(this);
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    _FramesImageProvider key,
+    ImageDecoderCallback decode,
+  ) => frames;
+}
+
+class _ImageBundle extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) => SynchronousFuture(ByteData(0));
+}
+
+Future<ui.Image> _image(WidgetTester tester, {Color? color}) async {
+  final image = (await tester.runAsync(() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    if (color != null) {
+      canvas.drawPaint(Paint()..color = color);
+    } else {
+      for (final (rect, value) in <(Rect, Color)>[
+        (const Rect.fromLTWH(0, 0, 10, 6), _red),
+        (const Rect.fromLTWH(10, 0, 10, 6), _green),
+        (const Rect.fromLTWH(0, 6, 10, 6), _blue),
+        (const Rect.fromLTWH(10, 6, 10, 6), _yellow),
+      ]) {
+        canvas.drawRect(rect, Paint()..color = value);
+      }
+    }
+    final picture = recorder.endRecording();
+    try {
+      return await picture.toImage(20, 12);
+    } finally {
+      picture.dispose();
+    }
+  }))!;
+  addTearDown(image.dispose);
+  return image;
+}
+
+_FramesImageProvider _imageProvider([ui.Image? image]) {
+  final provider = _FramesImageProvider();
+  // 手动帧源跨卸载继续发帧，显式保活到场景结束。
+  final handle = provider.frames.keepAlive();
+  if (image != null) provider.frames.emit(image);
+  addTearDown(() async {
+    await provider.evict();
+    handle.dispose();
+  });
+  return provider;
+}
+
+void _samePixels(_Pixels actual, _Pixels expected) {
+  expect(actual.width, expected.width);
+  final a = actual.bytes.buffer.asUint8List(),
+      b = expected.bytes.buffer.asUint8List();
+  expect(a.length, b.length);
+  var difference = 0, index = 0;
+  for (var i = 0; i < a.length; i++) {
+    final delta = (a[i] - b[i]).abs();
+    if (delta > difference) {
+      difference = delta;
+      index = i;
+    }
+  }
+  expect(
+    difference,
+    lessThanOrEqualTo(2),
+    reason:
+        '像素(${index ~/ 4 % actual.width}, ${index ~/ 4 ~/ actual.width})通道${index % 4}应为${b[index]}，实际${a[index]}',
+  );
+}
+
 void _pixel(Color actual, Color expected) {
   expect(actual.a, closeTo(expected.a, 2 / 255));
   if (expected.a == 0) return;
@@ -307,6 +407,372 @@ void _rect(Rect actual, Rect expected) {
 }
 
 void main() {
+  group('背景图片基本功能', () {
+    testWidgets('图片位于背景色上渐变下并覆盖 padding，声明和清空不影响盒模型', (tester) async {
+      final provider = _imageProvider(await _image(tester, color: _blue));
+      final image = DecorationImage(image: provider, fit: BoxFit.fill);
+      final base = ElStyle(
+        width: 100,
+        height: 60,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.all(5),
+        backgroundColor: _red,
+        backgroundImage: image,
+        gradient: const LinearGradient(
+          colors: [Color(0x8000ff00), Color(0x8000ff00)],
+        ),
+      );
+      const child = SizedBox(
+        width: 20,
+        height: 10,
+        child: ColoredBox(color: _yellow),
+      );
+      var pixels = await _borderPixels(tester, base, child: child);
+      _pixel(pixels.at(32, 60), const Color(0xff00807f));
+      _pixel(pixels.at(27, 60), const Color(0x00000000));
+      _pixel(pixels.at(80, 60), _yellow);
+      expect(viewSize(tester), const Size(110, 70));
+      pixels = await _borderPixels(
+        tester,
+        base.copyWith(backgroundImage: null),
+        child: child,
+      );
+      _pixel(pixels.at(32, 60), const Color(0xff7f8000));
+      pixels = await _borderPixels(
+        tester,
+        base.merge(ElStyle(backgroundImage: image)).copyWith(gradient: null),
+        child: child,
+      );
+      _pixel(pixels.at(32, 60), _blue);
+      for (final (style, expected) in <(ElStyle, Size)>[
+        (ElStyle(backgroundImage: image), const Size(110, 70)),
+        (ElStyle(width: '50%', backgroundImage: image), const Size(205, 70)),
+        (ElStyle(aspectRatio: 2, backgroundImage: image), const Size(110, 60)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style.copyWith(
+              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.all(5),
+            ),
+            child: const SizedBox(width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), expected);
+      }
+    });
+
+    testWidgets('原生 DecorationImage 的适配方向重复九宫格和颜色参数与 DecoratedBox 逐像素一致', (
+      tester,
+    ) async {
+      final provider = _imageProvider(await _image(tester));
+      final images = [
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.contain,
+          alignment: Alignment.bottomRight,
+          opacity: 0.5,
+          filterQuality: FilterQuality.none,
+        ),
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.cover,
+          alignment: Alignment.topLeft,
+          colorFilter: const ColorFilter.mode(
+            Color(0xff80ffff),
+            BlendMode.modulate,
+          ),
+          invertColors: true,
+          filterQuality: FilterQuality.high,
+          isAntiAlias: true,
+        ),
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.none,
+          repeat: ImageRepeat.repeat,
+          scale: 2,
+        ),
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.none,
+          repeat: ImageRepeat.repeatX,
+          scale: 0.5,
+          alignment: const Alignment(0.25, -0.5),
+        ),
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.fill,
+          alignment: AlignmentDirectional.centerStart,
+          matchTextDirection: true,
+        ),
+        DecorationImage(
+          image: provider,
+          fit: BoxFit.fill,
+          centerSlice: const Rect.fromLTWH(4, 3, 12, 6),
+          filterQuality: FilterQuality.medium,
+        ),
+      ];
+      for (final image in images) {
+        for (final direction
+            in image.matchTextDirection
+                ? TextDirection.values
+                : [TextDirection.ltr]) {
+          final style = ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: const Color(0xff202020),
+            backgroundImage: image,
+            borderRadius: BorderRadius.circular(12),
+          );
+          final actual = await _borderPixels(
+            tester,
+            style,
+            direction: direction,
+          );
+          final expected = await _borderPixels(
+            tester,
+            style,
+            direction: direction,
+            wrap: (_) => DecoratedBox(
+              key: viewKey,
+              decoration: BoxDecoration(
+                color: const Color(0xff202020),
+                image: image,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const SizedBox(width: 100, height: 60),
+            ),
+          );
+          _samePixels(actual, expected);
+        }
+      }
+    });
+
+    testWidgets('图片始终服从自身圆角，none 仍允许 child 溢出，自定义路径优先圆角', (tester) async {
+      final image = DecorationImage(
+        image: _imageProvider(await _image(tester, color: _blue)),
+        fit: BoxFit.fill,
+      );
+      const child = OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 130,
+        maxWidth: 130,
+        minHeight: 60,
+        maxHeight: 60,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            width: 10,
+            height: 20,
+            child: ColoredBox(color: _green),
+          ),
+        ),
+      );
+      final style = ElStyle(
+        width: 100,
+        height: 60,
+        backgroundImage: image,
+        borderRadius: BorderRadius.circular(30),
+        clipBehavior: Clip.none,
+      );
+      var pixels = await _borderPixels(tester, style, child: child);
+      _pixel(pixels.at(31, 31), const Color(0x00000000));
+      _pixel(pixels.at(80, 60), _blue);
+      _pixel(pixels.at(155, 60), _green);
+      pixels = await _borderPixels(
+        tester,
+        style.copyWith(clipBehavior: Clip.hardEdge),
+        child: child,
+      );
+      _pixel(pixels.at(155, 60), const Color(0x00000000));
+      pixels = await _borderPixels(
+        tester,
+        style.copyWith(
+          clipBehavior: null,
+          clipper: _ViewClipper(1, triangle: true),
+        ),
+        child: child,
+      );
+      _pixel(pixels.at(31, 31), _blue);
+      _pixel(pixels.at(110, 70), const Color(0x00000000));
+      _pixel(pixels.at(155, 60), const Color(0x00000000));
+    });
+
+    testWidgets('异步和连续帧只更新画面，替换清空与卸载后旧帧不会复活', (tester) async {
+      final blue = await _image(tester, color: _blue),
+          green = await _image(tester, color: _green),
+          yellow = await _image(tester, color: _yellow);
+      final old = _imageProvider(), next = _imageProvider();
+      ElStyle style(_FramesImageProvider? provider) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        backgroundImage: provider == null
+            ? null
+            : DecorationImage(image: provider, fit: BoxFit.fill),
+      );
+      var pixels = await _borderPixels(
+        tester,
+        style(old),
+        child: const SizedBox(width: 40, height: 20),
+      );
+      final size = viewSize(tester);
+      _pixel(pixels.at(80, 60), _red);
+      for (final (frame, color) in [(blue, _blue), (green, _green)]) {
+        old.frames.emit(frame);
+        await tester.pump();
+        _pixel((await _capturePixels(tester)).at(80, 60), color);
+        expect(viewSize(tester), size);
+      }
+      pixels = await _borderPixels(tester, style(next));
+      _pixel(pixels.at(80, 60), _red);
+      old.frames.emit(blue);
+      await tester.pump();
+      _pixel((await _capturePixels(tester)).at(80, 60), _red);
+      next.frames.emit(yellow);
+      await tester.pump();
+      _pixel((await _capturePixels(tester)).at(80, 60), _yellow);
+      await _borderPixels(tester, style(null));
+      next.frames.emit(green);
+      await tester.pump();
+      _pixel((await _capturePixels(tester)).at(80, 60), _red);
+      pixels = await _borderPixels(tester, style(next));
+      _pixel(pixels.at(80, 60), _green);
+      await tester.pumpWidget(const SizedBox());
+      next.frames.emit(blue);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('公开 ImageProvider 接收当前环境与每次实际视觉盒尺寸', (tester) async {
+      final provider = _imageProvider(await _image(tester, color: _blue));
+      final firstBundle = _ImageBundle(), nextBundle = _ImageBundle();
+      final previousPlatform = debugDefaultTargetPlatformOverride;
+      try {
+        for (final (bundle, dpr, locale, direction, platform, size) in [
+          (
+            firstBundle,
+            2.0,
+            const Locale('ar'),
+            TextDirection.rtl,
+            TargetPlatform.linux,
+            const Size(100, 60),
+          ),
+          (
+            nextBundle,
+            3.0,
+            const Locale('en'),
+            TextDirection.ltr,
+            TargetPlatform.android,
+            const Size(120, 70),
+          ),
+        ]) {
+          debugDefaultTargetPlatformOverride = platform;
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(devicePixelRatio: dpr),
+              child: DefaultAssetBundle(
+                bundle: bundle,
+                child: Localizations(
+                  locale: locale,
+                  delegates: const [DefaultWidgetsLocalizations.delegate],
+                  child: viewScene(
+                    ElStyle(
+                      width: size.width,
+                      height: size.height,
+                      backgroundImage: DecorationImage(
+                        image: provider,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    direction: direction,
+                  ),
+                ),
+              ),
+            ),
+          );
+          final configuration = provider.configuration!;
+          expect(configuration.bundle, bundle);
+          expect(configuration.devicePixelRatio, dpr);
+          expect(configuration.locale, locale);
+          expect(configuration.textDirection, direction);
+          expect(configuration.platform, platform);
+          expect(configuration.size, size);
+        }
+      } finally {
+        debugDefaultTargetPlatformOverride = previousPlatform;
+      }
+    });
+
+    testWidgets('加载错误通过原生 onError 上报，恢复和 GlobalKey 重挂后使用当前帧', (tester) async {
+      final provider = _imageProvider();
+      final blue = await _image(tester, color: _blue),
+          green = await _image(tester, color: _green);
+      final errors = <Object>[];
+      final image = DecorationImage(
+        image: provider,
+        fit: BoxFit.fill,
+        onError: (error, stack) => errors.add(error),
+      );
+      var pixels = await _borderPixels(
+        tester,
+        ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _red,
+          backgroundImage: image,
+        ),
+      );
+      _pixel(pixels.at(80, 60), _red);
+      final error = StateError('image load failed');
+      provider.frames.fail(error);
+      await tester.pump();
+      expect(errors, [error]);
+      provider.frames.emit(blue);
+      await tester.pump();
+      _pixel((await _capturePixels(tester)).at(80, 60), _blue);
+      final key = GlobalKey();
+      Widget scene(bool right) {
+        final view = ElView(
+          key: key,
+          style: ElStyle(width: 60, height: 60, backgroundImage: image),
+        );
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: RepaintBoundary(
+              key: _borderCaptureKey,
+              child: SizedBox(
+                width: 160,
+                height: 120,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: right ? const SizedBox() : Center(child: view),
+                    ),
+                    Expanded(
+                      child: right ? Center(child: view) : const SizedBox(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(scene(false));
+      await tester.pumpWidget(scene(true));
+      provider.frames.emit(green);
+      await tester.pump();
+      pixels = await _capturePixels(tester);
+      _pixel(pixels.at(120, 60), _green);
+      _pixel(pixels.at(40, 60), const Color(0x00000000));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('内容对齐基本功能', () {
     testWidgets('有界、tight 和无界 auto 的实际与只读布局和官方 Align 一致，child 保持 loose', (
       tester,

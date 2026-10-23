@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' show ColorSpace, ImageByteFormat, ImageFilter, PictureRecorder;
+import 'dart:ui' as ui show Image;
 
+import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
@@ -379,7 +381,393 @@ class _AnimatedClipper extends CustomClipper<Path> {
   bool shouldReclip(_AnimatedClipper oldClipper) => true;
 }
 
+/// 同步提供确定的内存像素，动画时间不依赖图片解码或网络时序。
+class _FrameImage extends ImageProvider<_FrameImage> {
+  _FrameImage(this.frame);
+  final ui.Image frame;
+
+  @override
+  Future<_FrameImage> obtainKey(ImageConfiguration configuration) =>
+      SynchronousFuture(this);
+
+  @override
+  ImageStreamCompleter loadImage(
+    _FrameImage key,
+    ImageDecoderCallback decode,
+  ) => OneFrameImageStreamCompleter(
+    SynchronousFuture(ImageInfo(image: frame.clone())),
+  );
+}
+
+Future<_FrameImage> _frameImage(
+  WidgetTester tester,
+  Color color, {
+  Color? right,
+}) async {
+  final provider = (await tester.runAsync(() async {
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, 8, 4), Paint()..color = color);
+    if (right != null) {
+      canvas.drawRect(const Rect.fromLTWH(4, 0, 4, 4), Paint()..color = right);
+    }
+    final picture = recorder.endRecording();
+    try {
+      return _FrameImage(await picture.toImage(8, 4));
+    } finally {
+      picture.dispose();
+    }
+  }))!;
+  addTearDown(() async {
+    await provider.evict();
+    provider.frame.dispose();
+  });
+  return provider;
+}
+
+/// 用本机 Flutter 的原生装饰绘制作为中断混合、fit 和方向性几何的像素对照。
+Future<List<Color>> _nativeBackgroundPixels(
+  WidgetTester tester,
+  DecorationImage? image,
+  List<Offset> points, {
+  Size size = const Size(100, 60),
+  Color? background,
+  TextDirection direction = TextDirection.ltr,
+}) async => (await tester.runAsync(() async {
+  final painter = BoxDecoration(
+    color: background,
+    image: image,
+  ).createBoxPainter(() {});
+  final recorder = PictureRecorder();
+  final canvas = Canvas(recorder);
+  painter.paint(
+    canvas,
+    Offset.zero,
+    ImageConfiguration(size: size, textDirection: direction),
+  );
+  final picture = recorder.endRecording();
+  final result = await picture.toImage(size.width.ceil(), size.height.ceil());
+  try {
+    final data = (await result.toByteData(
+      format: ImageByteFormat.rawStraightRgba,
+    ))!;
+    return points.map((point) {
+      final i = (point.dy.floor() * result.width + point.dx.floor()) * 4;
+      return Color.fromARGB(
+        data.getUint8(i + 3),
+        data.getUint8(i),
+        data.getUint8(i + 1),
+        data.getUint8(i + 2),
+      );
+    }).toList();
+  } finally {
+    painter.dispose();
+    picture.dispose();
+    result.dispose();
+  }
+}))!;
+
 void main() {
+  group('背景图片中间值', () {
+    testWidgets('空值双向按原生逻辑淡入淡出，中间帧不会立即出现或消失', (tester) async {
+      final provider = await _frameImage(tester, const Color(0x80ff0000));
+      final image = DecorationImage(
+        image: provider,
+        fit: BoxFit.fill,
+        filterQuality: FilterQuality.none,
+      );
+      ElStyle style(DecorationImage? value) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundImage: value,
+        transitions: _linear,
+      );
+      const points = [Offset(50, 30)];
+      await tester.pumpWidget(_effectsScene(style(null)));
+      _pixel(
+        (await _effectsPixels(tester, points)).single,
+        const Color(0x00000000),
+      );
+      await tester.pumpWidget(_effectsScene(style(image)));
+      for (final (ms, t) in [(25, .25), (25, .5), (50, 1.0)]) {
+        await _advance(tester, ms);
+        final actual = (await _effectsPixels(tester, points)).single;
+        final expected = (await _nativeBackgroundPixels(
+          tester,
+          DecorationImage.lerp(null, image, t),
+          points,
+        )).single;
+        _pixel(actual, expected);
+        expect(actual.a, closeTo((128 / 255) * t, 2 / 255));
+      }
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, points)).single,
+        (await _nativeBackgroundPixels(
+          tester,
+          DecorationImage.lerp(image, null, .5),
+          points,
+        )).single,
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, points)).single,
+        const Color(0x00000000),
+      );
+    });
+
+    testWidgets('两张半透明图使用原生预乘相加，中间值不因 source-over 叠深', (tester) async {
+      final red = await _frameImage(tester, const Color(0x80ff0000));
+      final blue = await _frameImage(tester, const Color(0x800000ff));
+      final a = DecorationImage(image: red, fit: BoxFit.fill);
+      final b = DecorationImage(image: blue, fit: BoxFit.fill);
+      ElStyle style(DecorationImage image) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundImage: image,
+        transitions: _linear,
+      );
+      const points = [Offset(20, 20), Offset(80, 40)];
+      await tester.pumpWidget(_effectsScene(style(a)));
+      await tester.pumpWidget(_effectsScene(style(b)));
+      for (final (ms, t) in [(25, .25), (25, .5), (50, 1.0)]) {
+        await _advance(tester, ms);
+        final actual = await _effectsPixels(tester, points);
+        final expected = await _nativeBackgroundPixels(
+          tester,
+          DecorationImage.lerp(a, b, t),
+          points,
+        );
+        for (var i = 0; i < actual.length; i++) {
+          _pixel(actual[i], expected[i]);
+          expect(actual[i].a, closeTo(128 / 255, 2 / 255));
+        }
+      }
+    });
+
+    testWidgets('延迟、等值重建和连续换图清空从原生混合值接续，背景色按独立截止结束', (tester) async {
+      final a = DecorationImage(
+        image: await _frameImage(tester, const Color(0x80ff0000)),
+        fit: BoxFit.none,
+      );
+      final b = DecorationImage(
+        image: await _frameImage(tester, const Color(0x800000ff)),
+        fit: BoxFit.none,
+      );
+      final c = DecorationImage(
+        image: await _frameImage(tester, const Color(0x8000ff00)),
+        fit: BoxFit.none,
+      );
+      const transitions = [
+        ElTransition(
+          field: ElTransitionField.backgroundImage,
+          duration: Duration(milliseconds: 100),
+          delay: Duration(milliseconds: 20),
+          curve: Curves.linear,
+        ),
+        ElTransition.field(
+          ElTransitionField.backgroundColor,
+          Duration(milliseconds: 200),
+          Curves.linear,
+        ),
+      ];
+      ElStyle style(
+        DecorationImage? image,
+        Color color, {
+        bool rebuild = false,
+      }) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundImage: image,
+        backgroundColor: color,
+        transitions: rebuild ? List.of(transitions) : transitions,
+      );
+      const points = [Offset(50, 30), Offset(5, 5)];
+      Future<void> compare(DecorationImage? image, double colorT) async {
+        final actual = await _effectsPixels(tester, points);
+        final expected = await _nativeBackgroundPixels(
+          tester,
+          image,
+          points,
+          background: Color.lerp(_red, _blue, colorT),
+        );
+        for (var i = 0; i < points.length; i++) {
+          _pixel(actual[i], expected[i]);
+        }
+      }
+
+      await tester.pumpWidget(_effectsScene(style(a, _red)));
+      await tester.pumpWidget(_effectsScene(style(b, _blue)));
+      await _advance(tester, 20);
+      await compare(a, .1);
+      await _advance(tester, 25);
+      await compare(DecorationImage.lerp(a, b, .25), .225);
+      await tester.pumpWidget(
+        _effectsScene(
+          style(
+            DecorationImage(image: b.image, fit: BoxFit.none),
+            _blue,
+            rebuild: true,
+          ),
+        ),
+      );
+      await _advance(tester, 25);
+      final half = DecorationImage.lerp(a, b, .5);
+      await compare(half, .35);
+      await tester.pumpWidget(_effectsScene(style(c, _blue)));
+      await _advance(tester, 20);
+      await compare(half, .45);
+      await _advance(tester, 25);
+      final interrupted = DecorationImage.lerp(half, c, .25);
+      await compare(interrupted, .575);
+      await tester.pumpWidget(_effectsScene(style(null, _blue)));
+      await _advance(tester, 20);
+      await compare(interrupted, .675);
+      await _advance(tester, 50);
+      await compare(DecorationImage.lerp(interrupted, null, .5), .925);
+      await _advance(tester, 15);
+      await compare(DecorationImage.lerp(interrupted, null, .65), 1);
+      await _advance(tester, 35);
+      await compare(null, 1);
+    });
+
+    testWidgets('图片与尺寸边距圆角变换透明度及自身滤镜同步，复合 child 仍正常覆盖', (tester) async {
+      final a = DecorationImage(
+        image: await _frameImage(tester, _red),
+        fit: BoxFit.fill,
+      );
+      final b = DecorationImage(
+        image: await _frameImage(tester, _blue),
+        fit: BoxFit.fill,
+      );
+      ElStyle style(bool end) => ElStyle(
+        width: end ? 120 : 80,
+        height: end ? 80 : 40,
+        padding: EdgeInsets.all(end ? 12 : 4),
+        backgroundImage: end ? b : a,
+        borderRadius: BorderRadius.circular(end ? 20 : 0),
+        clipBehavior: Clip.antiAlias,
+        transform: ElTransform.translateX(end ? 12 : 0),
+        opacity: end ? .5 : 1,
+        filter: ElFilter(brightness: end ? .5 : 1),
+        transitions: _linear,
+      );
+      const child = RepaintBoundary(
+        child: Align(
+          child: SizedBox(
+            width: 10,
+            height: 10,
+            child: ColoredBox(color: Color(0xffffffff)),
+          ),
+        ),
+      );
+      await tester.pumpWidget(_effectsScene(style(false), child: child));
+      await tester.pumpWidget(_effectsScene(style(true), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(100, 60));
+      final middle = await _effectsPixels(tester, const [
+        Offset(9, 30),
+        Offset(56, 30),
+        Offset(6, 0),
+        Offset(0, 30),
+      ]);
+      _pixel(
+        middle[0],
+        const Color.from(alpha: .75, red: .375, green: 0, blue: .375),
+      );
+      _pixel(
+        middle[1],
+        const Color.from(alpha: .75, red: .75, green: .75, blue: .75),
+      );
+      _pixel(middle[2], const Color(0x00000000));
+      _pixel(middle[3], const Color(0x00000000));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(120, 80));
+      final end = await _effectsPixels(tester, const [
+        Offset(15, 40),
+        Offset(72, 40),
+      ]);
+      _pixel(end[0], const Color.from(alpha: .5, red: 0, green: 0, blue: .5));
+      _pixel(end[1], const Color.from(alpha: .5, red: .5, green: .5, blue: .5));
+    });
+
+    testWidgets('原生图片 fit 与方向性几何在百分比尺寸过渡和 RTL 改向后保持同一截止', (tester) async {
+      final a = DecorationImage(
+        image: await _frameImage(tester, _red, right: const Color(0xff00ff00)),
+        fit: BoxFit.contain,
+        alignment: AlignmentDirectional.centerStart,
+        matchTextDirection: true,
+        filterQuality: FilterQuality.none,
+      );
+      final b = DecorationImage(
+        image: await _frameImage(tester, _blue, right: const Color(0xffffff00)),
+        fit: BoxFit.none,
+        alignment: AlignmentDirectional.bottomEnd,
+        matchTextDirection: true,
+        opacity: .6,
+        filterQuality: FilterQuality.none,
+      );
+      ElStyle style(bool end) => ElStyle(
+        width: end ? '75%' : '50%',
+        height: 60,
+        backgroundImage: end ? b : a,
+        transitions: _linear,
+      );
+      Future<void> compare(
+        double t,
+        double width,
+        TextDirection direction, {
+        bool exiting = false,
+      }) async {
+        expect(viewSize(tester), Size(width, 60));
+        final points = [
+          const Offset(1, 10),
+          Offset(width - 1, 58),
+          Offset(width / 2, 30),
+          const Offset(1, 58),
+        ];
+        final actual = await _effectsPixels(tester, points);
+        final expected = await _nativeBackgroundPixels(
+          tester,
+          exiting
+              ? DecorationImage.lerp(b, null, t)
+              : DecorationImage.lerp(a, b, t),
+          points,
+          size: Size(width, 60),
+          direction: direction,
+        );
+        for (var i = 0; i < points.length; i++) {
+          _pixel(actual[i], expected[i]);
+        }
+      }
+
+      await tester.pumpWidget(_effectsScene(style(false)));
+      await tester.pumpWidget(_effectsScene(style(true)));
+      await _advance(tester, 25);
+      await compare(.25, 90, TextDirection.ltr);
+      await tester.pumpWidget(
+        _effectsScene(style(true), direction: TextDirection.rtl),
+      );
+      await compare(.25, 90, TextDirection.rtl);
+      await _advance(tester, 25);
+      await compare(.5, 100, TextDirection.rtl);
+      await _advance(tester, 50);
+      await compare(1, 120, TextDirection.rtl);
+      const exitStyle = ElStyle(width: '75%', height: 60, transitions: _linear);
+      await tester.pumpWidget(_effectsScene(exitStyle));
+      await _advance(tester, 50);
+      await compare(.5, 120, TextDirection.ltr, exiting: true);
+      // 目标已清空，当前退出画面仍须响应环境方向，且保留原来的退出截止。
+      await tester.pumpWidget(
+        _effectsScene(exitStyle, direction: TextDirection.rtl),
+      );
+      await compare(.5, 120, TextDirection.rtl, exiting: true);
+      await _advance(tester, 50);
+      await compare(1, 120, TextDirection.rtl, exiting: true);
+    });
+  });
+
   group('内容对齐中间值', () {
     testWidgets('对齐插值保留边距、越界值及尺寸倍数穿越 1 的自然尺寸', (tester) async {
       const childKey = ValueKey('alignment-interpolation-child');

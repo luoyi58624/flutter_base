@@ -70,6 +70,9 @@ enum ElTransitionField {
 
   /// 内容对齐，两个非空值平滑插值，单侧 null 在中点切换布局模式。
   alignment,
+
+  /// 背景图片，沿官方 DecorationImage.lerp 混合，null 平滑淡入淡出。
+  backgroundImage,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

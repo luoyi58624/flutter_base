@@ -25,8 +25,13 @@ class ElView extends SingleChildRenderObjectWidget {
   final ElStyle style;
 
   @override
-  ElRenderView createRenderObject(BuildContext context) =>
-      ElRenderView(style, Directionality.maybeOf(context) ?? TextDirection.ltr);
+  ElRenderView createRenderObject(BuildContext context) => ElRenderView(
+    style,
+    Directionality.maybeOf(context) ?? TextDirection.ltr,
+    imageConfiguration: style.backgroundImage == null
+        ? null
+        : createLocalImageConfiguration(context),
+  );
 
   @override
   void updateRenderObject(
@@ -37,5 +42,8 @@ class ElView extends SingleChildRenderObjectWidget {
       style,
       textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
+    renderObject.imageConfiguration = renderObject.needsImageConfiguration
+        ? createLocalImageConfiguration(context)
+        : null;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/rendering.dart';
 
 import 'border.dart';
+import 'image.dart';
 import 'outline.dart';
 import 'shape.dart';
 import 'shadow.dart';
@@ -10,15 +11,60 @@ import '../style/resolved/outline.dart';
 /// 按需持有盒装饰资源，简单背景不构造路径或合成图层。
 class DecorationPainter {
   /// 创建装饰执行器，可与裁剪执行器按需共用同一局部形状。
-  DecorationPainter(this._shape);
+  DecorationPainter(this._shape, {required VoidCallback onImageChanged})
+    // ignore: prefer_initializing_formals
+    : _onImageChanged = onImageChanged;
 
   final ShapeGeometry Function() _shape;
+  final VoidCallback _onImageChanged;
+  BackgroundImagePainter? _backgroundImage;
   Paint? _background;
   BorderPainter? _border;
   OutlinePainter? _outline;
   ShadowPainter? _shadow;
   Paint? _gradient;
   Object? _gradientKey;
+
+  /// 图片位于背景色之上，使用官方 DecorationImagePainter 处理完整图片声明。
+  void paintBackgroundImage(
+    PaintingContext context,
+    Rect rect,
+    DecorationImage image,
+    ImageConfiguration configuration, {
+    required TextDirection textDirection,
+    BorderRadius? borderRadius,
+  }) {
+    if (rect.isEmpty) {
+      clearBackgroundImage();
+      return;
+    }
+    (_backgroundImage ??= BackgroundImagePainter(
+      _shape,
+      _onImageChanged,
+    )).paint(
+      context,
+      rect,
+      image,
+      configuration,
+      textDirection: textDirection,
+      borderRadius: borderRadius,
+    );
+  }
+
+  /// 更新已有图片资源，未发生实际绘制时不提前创建图片订阅。
+  void updateBackgroundImage(DecorationImage? value) {
+    if (value == null) {
+      clearBackgroundImage();
+    } else {
+      _backgroundImage?.update(value);
+    }
+  }
+
+  /// 图片退出、隐藏或宿主脱离渲染树时立即释放图片订阅。
+  void clearBackgroundImage() {
+    _backgroundImage?.dispose();
+    _backgroundImage = null;
+  }
 
   /// 在背景之前绘制外阴影，在背景与 child 之间绘制内阴影。
   void paintShadows(
