@@ -1,22 +1,43 @@
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:build/build.dart';
 import 'package:meta/meta.dart';
 
 import '../dart/extensions/index.dart';
 
 import 'package:source_gen/source_gen.dart';
 
-import '../dart/gen/index.dart';
+import '../dart/gen/index.dart' as annotations;
 
 import 'config.dart';
 import 'utils.dart';
 
+/// 按模型注解生成序列化、复制和合并扩展。
 @immutable
-class ElModelGenerator extends GeneratorForAnnotation<ElModelGenerator> {
+class ElModelGenerator
+    extends GeneratorForAnnotation<annotations.ElModelGenerator> {
+  /// 每个构建器独立持有配置，避免多个 target 的后缀相互覆盖。
+  const ElModelGenerator(this.config) : super(inPackage: 'flutter_base');
+
+  /// 当前构建器独立持有的生成配置。
+  final ModelTemplateConfig config;
+
   @override
-  generateForAnnotatedElement(element, annotation, buildStep) {
-    final classInfo = element as ClassElement;
+  String generateForAnnotatedElement(
+    Element element,
+    ConstantReader annotation,
+    BuildStep buildStep,
+  ) {
+    if (element is! ClassElement) {
+      throw InvalidGenerationSourceError(
+        '@ElModelGenerator 只能标记类声明。',
+        element: element,
+      );
+    }
+    final classInfo = element;
+    _validateModel(classInfo, annotation);
     final className = classInfo.name!;
     final isConstConstructor = MirrorUtils.getDefaultConstructor(classInfo)
         .isConst;
@@ -26,7 +47,7 @@ class ElModelGenerator extends GeneratorForAnnotation<ElModelGenerator> {
     );
 
     return '''
-extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
+extension $className${config.extSuffix} on $className {
   ${_generateFromJson(classInfo, className, isConstConstructor, fields, annotation)}
   ${_generateToJson(classInfo, fields, annotation)}
   ${_generateCopyWith(classInfo, className, fields, annotation)}
@@ -34,6 +55,60 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
   ${_generateProps(classInfo, annotation)}
 }
 ''';
+  }
+
+  void _validateModel(ClassElement element, ConstantReader annotation) {
+    if (element.isAbstract) {
+      throw InvalidGenerationSourceError('抽象类不能直接构造模型实例。', element: element);
+    }
+    if (element.typeParameters.isNotEmpty) {
+      throw InvalidGenerationSourceError(
+        '暂不支持泛型模型，请为具体数据类型定义模型。',
+        element: element,
+      );
+    }
+    final constructor = MirrorUtils.getDefaultConstructor(element);
+    final reconstruct =
+        annotation.read('formJson').boolValue ||
+        annotation.read('copyWith').boolValue ||
+        annotation.read('merge').boolValue;
+    for (final parameter in constructor.formalParameters) {
+      if (reconstruct && parameter.isPositional) {
+        throw InvalidGenerationSourceError(
+          '模型重建暂不支持位置参数，请使用命名参数。',
+          element: parameter,
+        );
+      }
+      final field = MirrorUtils.getField(element, parameter, visitSuper: true);
+      if (reconstruct && field == null) {
+        throw InvalidGenerationSourceError(
+          '构造参数 `${parameter.name}` 没有同名字段，无法重建模型。',
+          element: parameter,
+        );
+      }
+      if (field != null &&
+          (annotation.read('formJson').boolValue ||
+              annotation.read('toJson').boolValue)) {
+        _validateJsonType(field.type, field);
+      }
+    }
+  }
+
+  void _validateJsonType(DartType type, FieldElement field) {
+    if (type is! InterfaceType) return;
+    if (type.isDartCoreMap) {
+      final keyType = type.typeArguments.first;
+      if (!(keyType is DynamicType || keyType.isDartCoreString) ||
+          keyType.nullabilitySuffix == NullabilitySuffix.question) {
+        throw InvalidGenerationSourceError(
+          'JSON Map 的键必须是 String 或 dynamic，当前是 `${keyType.getDisplayString()}`。',
+          element: field,
+        );
+      }
+    }
+    if (_isCollection(type)) {
+      _validateJsonType(type.typeArguments.last, field);
+    }
   }
 
   String _generateFromJson(
@@ -61,13 +136,14 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           : null;
 
       // 编译期算好驼峰 key 对应的下划线 key 直接写入生成代码，运行时不再做字符串转换
-      final underlineArg = ", '${jsonKey.toUnderline}'";
+      final keyCode = dartStringLiteral(jsonKey);
+      final underlineArg = ', ${dartStringLiteral(jsonKey.toUnderline)}';
 
       String valueContent;
       String? defaultModelValueContent;
 
       if (fieldType == 'String' || fieldType == 'String?') {
-        valueContent = "\$ElJsonUtil.\$string(json, '$jsonKey'$underlineArg)";
+        valueContent = "\$ElJsonUtil.\$string(json, $keyCode$underlineArg)";
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
           defaultModelValueContent = '$defaultValue';
@@ -78,7 +154,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           }
         }
       } else if (fieldType == 'num' || fieldType == 'num?') {
-        valueContent = "\$ElJsonUtil.\$num(json, '$jsonKey'$underlineArg)";
+        valueContent = "\$ElJsonUtil.\$num(json, $keyCode$underlineArg)";
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
           defaultModelValueContent = '$defaultValue';
@@ -89,7 +165,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           }
         }
       } else if (fieldType == 'int' || fieldType == 'int?') {
-        valueContent = "\$ElJsonUtil.\$int(json, '$jsonKey'$underlineArg)";
+        valueContent = "\$ElJsonUtil.\$int(json, $keyCode$underlineArg)";
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
           defaultModelValueContent = '$defaultValue';
@@ -100,7 +176,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           }
         }
       } else if (fieldType == 'double' || fieldType == 'double?') {
-        valueContent = "\$ElJsonUtil.\$double(json, '$jsonKey'$underlineArg)";
+        valueContent = "\$ElJsonUtil.\$double(json, $keyCode$underlineArg)";
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
           defaultModelValueContent = '$defaultValue';
@@ -111,7 +187,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           }
         }
       } else if (fieldType == 'bool' || fieldType == 'bool?') {
-        valueContent = "\$ElJsonUtil.\$bool(json, '$jsonKey'$underlineArg)";
+        valueContent = "\$ElJsonUtil.\$bool(json, $keyCode$underlineArg)";
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
           defaultModelValueContent = '$defaultValue';
@@ -121,22 +197,44 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
             defaultModelValueContent = 'false';
           }
         }
+      } else if (_hasNestedCollection(fieldInfo.type)) {
+        final decoder = _decodeNestedValue(
+          fieldInfo.type,
+          'value',
+          _getCustomSerialize(fieldInfo),
+          config,
+          checked: true,
+        );
+        final inputType = fieldInfo.type.isDartCoreMap
+            ? 'Map'
+            : (fieldInfo.type.isDartCoreList ? 'List' : 'Iterable');
+        valueContent =
+            '\$ElJsonUtil.\$decode<$fieldType>(json, $keyCode, '
+            '(value) => value is $inputType ? $decoder : null$underlineArg)';
+        if (defaultValue != null) {
+          valueContent = '$valueContent ?? $defaultValue';
+          defaultModelValueContent = '$defaultValue';
+        } else if (!_isNullable(fieldInfo.type)) {
+          final empty = fieldInfo.type.isDartCoreList ? '[]' : '{}';
+          valueContent = '$valueContent ?? $empty';
+          defaultModelValueContent = empty;
+        }
       } else if (fieldInfo.type.isDartCoreList) {
         final itemType = _firstTypeArgument(fieldInfo);
-        final defaultModel = _serializeModelDefaultForType(itemType);
+        final defaultModel = _serializeModelDefaultForType(itemType, config);
         final serializeName = defaultModel == null
             ? _getCustomSerialize(fieldInfo)
             : null;
         if (serializeName != null) {
           // 元素级自定义序列化，例如 @ElDateTimeSerialize() List<DateTime>
           valueContent =
-              "\$ElJsonUtil.\$listCustom<${fieldType.getGenericType}>(json, '$jsonKey', const $serializeName()$underlineArg)";
+              "\$ElJsonUtil.\$listCustom<${itemType!.getDisplayString()}>(json, $keyCode, ($serializeName)$underlineArg)";
         } else {
           final defaultModelArg = defaultModel == null
               ? ', null'
               : ', $defaultModel';
           valueContent =
-              "\$ElJsonUtil.\$list<${fieldType.getGenericType}>(json, '$jsonKey'$defaultModelArg$underlineArg)";
+              "\$ElJsonUtil.\$list<${itemType!.getDisplayString()}>(json, $keyCode$defaultModelArg$underlineArg)";
         }
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
@@ -149,19 +247,19 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
         }
       } else if (fieldInfo.type.isDartCoreSet) {
         final itemType = _firstTypeArgument(fieldInfo);
-        final defaultModel = _serializeModelDefaultForType(itemType);
+        final defaultModel = _serializeModelDefaultForType(itemType, config);
         final serializeName = defaultModel == null
             ? _getCustomSerialize(fieldInfo)
             : null;
         if (serializeName != null) {
           valueContent =
-              "\$ElJsonUtil.\$setCustom<${fieldType.getGenericType}>(json, '$jsonKey', const $serializeName()$underlineArg)";
+              "\$ElJsonUtil.\$setCustom<${itemType!.getDisplayString()}>(json, $keyCode, ($serializeName)$underlineArg)";
         } else {
           final defaultModelArg = defaultModel == null
               ? ', null'
               : ', $defaultModel';
           valueContent =
-              "\$ElJsonUtil.\$set<${fieldType.getGenericType}>(json, '$jsonKey'$defaultModelArg$underlineArg)";
+              "\$ElJsonUtil.\$set<${itemType!.getDisplayString()}>(json, $keyCode$defaultModelArg$underlineArg)";
         }
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
@@ -174,19 +272,19 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
         }
       } else if (fieldInfo.type.isDartCoreMap) {
         final valueType = _mapValueTypeArgument(fieldInfo);
-        final defaultModel = _serializeModelDefaultForType(valueType);
+        final defaultModel = _serializeModelDefaultForType(valueType, config);
         final serializeName = defaultModel == null
             ? _getCustomSerialize(fieldInfo)
             : null;
         if (serializeName != null) {
           valueContent =
-              "\$ElJsonUtil.\$mapCustom<${fieldType.getMapGenericType?.value}>(json, '$jsonKey', const $serializeName()$underlineArg)";
+              "\$ElJsonUtil.\$mapCustom<${valueType!.getDisplayString()}>(json, $keyCode, ($serializeName)$underlineArg)";
         } else {
           final defaultModelArg = defaultModel == null
               ? ', null'
               : ', $defaultModel';
           valueContent =
-              "\$ElJsonUtil.\$map<${fieldType.getMapGenericType?.value}>(json, '$jsonKey'$defaultModelArg$underlineArg)";
+              "\$ElJsonUtil.\$map<${valueType!.getDisplayString()}>(json, $keyCode$defaultModelArg$underlineArg)";
         }
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
@@ -198,14 +296,10 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           }
         }
       } else if (MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
-        final fieldClassName = fieldType.replaceAll(
-          MirrorUtils.genericsRegExp,
-          '',
-        );
-        final defaultModel =
-            '$fieldClassName${ModelTemplateConfig.instance.extSuffix}.defaultModel';
+        final fieldClassName = (fieldInfo.type as InterfaceType).element.name!;
+        final defaultModel = '$fieldClassName${config.extSuffix}.defaultModel';
         valueContent =
-            "\$ElJsonUtil.\$model<$fieldType>(json, '$jsonKey', $defaultModel$underlineArg)";
+            "\$ElJsonUtil.\$model<$fieldType>(json, $keyCode, $defaultModel$underlineArg)";
 
         if (defaultValue != null) {
           valueContent = '$valueContent ?? $defaultValue';
@@ -219,11 +313,11 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
       } else {
         final serializeName = _getCustomSerialize(fieldInfo);
         if (serializeName == null) {
-          valueContent = "json['$jsonKey']";
+          valueContent = "json[$keyCode]";
           defaultModelContent.write('$field: null,');
         } else {
           valueContent =
-              "\$ElJsonUtil.\$custom<$fieldType>(json, '$jsonKey', const $serializeName()$underlineArg)";
+              "\$ElJsonUtil.\$custom<$fieldType>(json, $keyCode, ($serializeName)$underlineArg)";
           if (fieldType.endsWith('?') == false) {
             // 非空自定义序列化字段：用构造函数参数的默认值兜底（defaultValue 注解无法
             // 还原 DateTime/Duration 等非核心类型的 const 对象，构造默认值是编译期现成的源码）
@@ -275,16 +369,23 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
       final fieldType = fieldInfo.type.toString();
       final jsonKey = _getJsonKey(fieldInfo);
 
-      final key =
-          "'${jsonKey ?? (toJsonUnderline ? field.toUnderline : field)}'";
+      final key = dartStringLiteral(
+        jsonKey ?? (toJsonUnderline ? field.toUnderline : field),
+      );
       late String value;
       if (MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
         final suffix = fieldType.endsWith('?') ? '?' : '';
         value = '$field$suffix.toJson()';
+      } else if (_hasNestedCollection(fieldInfo.type)) {
+        value = _encodeNestedValue(
+          fieldInfo.type,
+          field,
+          _getCustomSerialize(fieldInfo),
+        );
       } else if (fieldInfo.type.isDartCoreList) {
         final itemType = _firstTypeArgument(fieldInfo);
         final suffix = fieldType.endsWith('?') ? '?' : '';
-        if (_serializeModelDefaultForType(itemType) != null) {
+        if (_serializeModelDefaultForType(itemType, config) != null) {
           value = '$field$suffix.map((e) => e.toJson()).toList()';
         } else {
           final serializeName = _getCustomSerialize(fieldInfo);
@@ -293,13 +394,13 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
           } else {
             // 自定义序列化作用于元素而不是整个集合
             value =
-                '$field$suffix.map((e) => const $serializeName().serialize(e)).toList()';
+                '$field$suffix.map((e) => ($serializeName).serialize(e)).toList()';
           }
         }
       } else if (fieldInfo.type.isDartCoreSet) {
         final itemType = _firstTypeArgument(fieldInfo);
         final suffix = fieldType.endsWith('?') ? '?' : '';
-        if (_serializeModelDefaultForType(itemType) != null) {
+        if (_serializeModelDefaultForType(itemType, config) != null) {
           value = '$field$suffix.map((e) => e.toJson()).toList()';
         } else {
           final serializeName = _getCustomSerialize(fieldInfo);
@@ -308,13 +409,13 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
             value = '$field$suffix.toList()';
           } else {
             value =
-                '$field$suffix.map((e) => const $serializeName().serialize(e)).toList()';
+                '$field$suffix.map((e) => ($serializeName).serialize(e)).toList()';
           }
         }
       } else if (fieldInfo.type.isDartCoreMap) {
         final valueType = _mapValueTypeArgument(fieldInfo);
         final suffix = fieldType.endsWith('?') ? '?' : '';
-        if (_serializeModelDefaultForType(valueType) != null) {
+        if (_serializeModelDefaultForType(valueType, config) != null) {
           value =
               '$field$suffix.map((key, value) => MapEntry(key, value.toJson()))';
         } else {
@@ -323,7 +424,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
             value = field;
           } else {
             value =
-                '$field$suffix.map((key, value) => MapEntry(key, const $serializeName().serialize(value)))';
+                '$field$suffix.map((key, value) => MapEntry(key, ($serializeName).serialize(value)))';
           }
         }
       } else {
@@ -331,7 +432,7 @@ extension $className${ModelTemplateConfig.instance.extSuffix} on $className {
         if (serializeName == null) {
           value = field;
         } else {
-          value = "const $serializeName().serialize($field)";
+          value = "($serializeName).serialize($field)";
         }
       }
       content.write('$key: $value,\n');
@@ -729,26 +830,139 @@ DartType? _mapValueTypeArgument(FieldElement fieldInfo) {
 }
 
 /// 如果类型实现了 ElSerializeModel，返回其生成扩展上的 defaultModel 引用。
-String? _serializeModelDefaultForType(DartType? type) {
+String? _serializeModelDefaultForType(
+  DartType? type,
+  ModelTemplateConfig config,
+) {
   if (type == null || !MirrorUtils.hasSerializeModel(type.element)) return null;
-  final className = type.toString().replaceAll(MirrorUtils.genericsRegExp, '');
-  return '$className${ModelTemplateConfig.instance.extSuffix}.defaultModel';
+  final className = (type as InterfaceType).element.name!;
+  return '$className${config.extSuffix}.defaultModel';
 }
 
-/// 获取自定义序列化的注解名字
+/// 保留序列化注解的完整构造表达式，包括参数、命名构造和导入前缀。
 String? _getCustomSerialize(FieldElement fieldInfo) {
-  if (fieldInfo.metadata.annotations.isEmpty) return null;
-
-  for (final meta in fieldInfo.metadata.annotations) {
-    final element = meta.element;
-    if (element is ConstructorElement) {
-      final flag = element.enclosingElement.allSupertypes.any(
-        (e) => e.toString().contains(
-          '$ElSerialize'.replaceAll(MirrorUtils.genericsRegExp, ''),
-        ),
-      );
-      if (flag) return element.displayName;
-    }
+  for (final annotation in fieldInfo.metadata.annotations) {
+    final type = annotation.computeConstantValue()?.type;
+    if (type == null || !serializeChecker.isAssignableFromType(type)) continue;
+    final source = annotation.toSource();
+    final expression = source.startsWith('@') ? source.substring(1) : source;
+    return annotation.element is ConstructorElement
+        ? 'const $expression'
+        : expression;
   }
   return null;
+}
+
+/// 类型判断使用 analyzer 的结构；字符串仅用于最终源码输出。
+bool _isCollection(DartType type) =>
+    type.isDartCoreList || type.isDartCoreSet || type.isDartCoreMap;
+
+bool _isNullable(DartType type) =>
+    type is DynamicType || type.nullabilitySuffix == NullabilitySuffix.question;
+
+bool _hasNestedCollection(DartType type) =>
+    type is InterfaceType &&
+    _isCollection(type) &&
+    _isCollection(type.typeArguments.last);
+
+bool _usesCustomSerializer(DartType type, String? serializer) =>
+    serializer != null &&
+    !_isCollection(type) &&
+    !MirrorUtils.hasSerializeModel(type.element);
+
+/// 仅移除输出类型名最外层的可空标记，不破坏内层泛型的可空性。
+String _nonNullableTypeCode(DartType type) {
+  final code = type.getDisplayString();
+  return code.endsWith('?') ? code.substring(0, code.length - 1) : code;
+}
+
+/// 嵌套集合按声明的类型逐层转换，避免 List.from/Map.from 只检查最外层。
+String _decodeNestedValue(
+  DartType type,
+  String value,
+  String? serializer,
+  ModelTemplateConfig config, {
+  bool checked = false,
+}) {
+  if (_usesCustomSerializer(type, serializer)) {
+    return '\$ElJsonUtil.\$customValue(($serializer), $value)';
+  }
+  late String decoded;
+  if (type is InterfaceType && _isCollection(type)) {
+    final itemType = type.typeArguments.last;
+    final itemCode = itemType.getDisplayString();
+    final item = _decodeNestedValue(itemType, 'item', serializer, config);
+    final custom = _usesCustomSerializer(itemType, serializer);
+    if (type.isDartCoreMap) {
+      final input = checked ? value : '($value as Map)';
+      if (custom) {
+        final entry = _decodeNestedValue(
+          itemType,
+          'entry.value',
+          serializer,
+          config,
+        );
+        decoded =
+            '''
+(() {
+  final result = <String, $itemCode>{};
+  for (final entry in $input.entries) {
+    final decoded = $entry;
+    if (decoded is $itemCode) {
+      result[entry.key as String] = decoded;
+    }
+  }
+  return result;
+})()
+''';
+      } else {
+        decoded =
+            '$input.map<String, $itemCode>('
+            '(key, item) => MapEntry(key as String, $item))';
+      }
+    } else {
+      final input = type.isDartCoreList ? 'List' : 'Iterable';
+      final receiver = checked ? value : '($value as $input)';
+      final finish = type.isDartCoreList ? 'toList' : 'toSet';
+      decoded = custom
+          ? '$receiver.map((item) => $item).whereType<$itemCode>().$finish()'
+          : '$receiver.map<$itemCode>((item) => $item).$finish()';
+    }
+  } else {
+    final model = _serializeModelDefaultForType(type, config);
+    if (model != null) {
+      decoded =
+          '$model.fromJson($value is Map '
+          '? Map<String, dynamic>.from($value) : null)';
+    } else {
+      decoded = type is DynamicType
+          ? value
+          : '$value as ${_nonNullableTypeCode(type)}';
+    }
+  }
+  return !checked && _isNullable(type)
+      ? '($value == null ? null : $decoded)'
+      : decoded;
+}
+
+/// 嵌套集合中的模型、自定义类型和 Set 也必须逐层转成 JSON 可编码值。
+String _encodeNestedValue(DartType type, String value, String? serializer) {
+  if (_usesCustomSerializer(type, serializer)) {
+    return '($serializer).serialize($value)';
+  }
+  final receiver = _isNullable(type) ? '$value?' : value;
+  if (type is InterfaceType && _isCollection(type)) {
+    final item = _encodeNestedValue(
+      type.typeArguments.last,
+      'item',
+      serializer,
+    );
+    return type.isDartCoreMap
+        ? '$receiver.map((key, item) => MapEntry(key, $item))'
+        : '$receiver.map((item) => $item).toList()';
+  } else if (MirrorUtils.hasSerializeModel(type.element)) {
+    return '$receiver.toJson()';
+  } else {
+    return value;
+  }
 }

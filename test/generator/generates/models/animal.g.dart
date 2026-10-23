@@ -12,13 +12,13 @@ extension AnimalModelExt on AnimalModel {
   static AnimalModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return AnimalModel(
-      name: $ElJsonUtil.$string(json, 'name', 'name'),
-      type: $ElJsonUtil.$string(json, 'type', 'type'),
+      name: $ElJsonUtil.$string(json, "name", "name"),
+      type: $ElJsonUtil.$string(json, "type", "type"),
     );
   }
 
   Map<String, dynamic> _toJson() {
-    return {'name': name, 'type': type};
+    return {"name": name, "type": type};
   }
 
   AnimalModel copyWith({Object? name = $elAbsent, Object? type = $elAbsent}) {

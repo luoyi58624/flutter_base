@@ -10,7 +10,7 @@ extension AllFeaturesModelExt on AllFeaturesModel {
   static const AllFeaturesModel defaultModel = AllFeaturesModel(
     withJsonKey: '',
     withDefault: 42,
-    nullableWithDefault: 'fallback',
+    nullableWithDefault: "fallback",
     normalString: '',
     normalInt: 0,
     normalDouble: 0.0,
@@ -23,39 +23,39 @@ extension AllFeaturesModelExt on AllFeaturesModel {
   static AllFeaturesModel fromJsonAllFeaturesModel(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return AllFeaturesModel(
-      withJsonKey: $ElJsonUtil.$string(json, 'custom_key', 'custom_key') ?? '',
-      withDefault: $ElJsonUtil.$int(json, 'withDefault', 'with_default') ?? 42,
+      withJsonKey: $ElJsonUtil.$string(json, "custom_key", "custom_key") ?? '',
+      withDefault: $ElJsonUtil.$int(json, "withDefault", "with_default") ?? 42,
       nullableWithDefault:
-          $ElJsonUtil.$string(json, 'nullable_key', 'nullable_key') ??
-          'fallback',
+          $ElJsonUtil.$string(json, "nullable_key", "nullable_key") ??
+          "fallback",
       normalString:
-          $ElJsonUtil.$string(json, 'normalString', 'normal_string') ?? '',
-      normalInt: $ElJsonUtil.$int(json, 'normalInt', 'normal_int') ?? 0,
+          $ElJsonUtil.$string(json, "normalString", "normal_string") ?? '',
+      normalInt: $ElJsonUtil.$int(json, "normalInt", "normal_int") ?? 0,
       normalDouble:
-          $ElJsonUtil.$double(json, 'normalDouble', 'normal_double') ?? 0.0,
-      normalBool: $ElJsonUtil.$bool(json, 'normalBool', 'normal_bool') ?? false,
+          $ElJsonUtil.$double(json, "normalDouble", "normal_double") ?? 0.0,
+      normalBool: $ElJsonUtil.$bool(json, "normalBool", "normal_bool") ?? false,
       stringList:
-          $ElJsonUtil.$list<String>(json, 'stringList', null, 'string_list') ??
+          $ElJsonUtil.$list<String>(json, "stringList", null, "string_list") ??
           [],
-      intSet: $ElJsonUtil.$set<int>(json, 'intSet', null, 'int_set') ?? {},
+      intSet: $ElJsonUtil.$set<int>(json, "intSet", null, "int_set") ?? {},
       normalMap:
-          $ElJsonUtil.$map<dynamic>(json, 'normalMap', null, 'normal_map') ??
+          $ElJsonUtil.$map<dynamic>(json, "normalMap", null, "normal_map") ??
           {},
     );
   }
 
   Map<String, dynamic> _toJson() {
     return {
-      'custom_key': withJsonKey,
-      'with_default': withDefault,
-      'nullable_key': nullableWithDefault,
-      'normal_string': normalString,
-      'normal_int': normalInt,
-      'normal_double': normalDouble,
-      'normal_bool': normalBool,
-      'string_list': stringList,
-      'int_set': intSet.toList(),
-      'normal_map': normalMap,
+      "custom_key": withJsonKey,
+      "with_default": withDefault,
+      "nullable_key": nullableWithDefault,
+      "normal_string": normalString,
+      "normal_int": normalInt,
+      "normal_double": normalDouble,
+      "normal_bool": normalBool,
+      "string_list": stringList,
+      "int_set": intSet.toList(),
+      "normal_map": normalMap,
     };
   }
 
@@ -133,13 +133,13 @@ extension JsonOnlyModelExt on JsonOnlyModel {
   static JsonOnlyModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return JsonOnlyModel(
-      name: $ElJsonUtil.$string(json, 'name', 'name') ?? '',
-      age: $ElJsonUtil.$int(json, 'age', 'age') ?? 0,
+      name: $ElJsonUtil.$string(json, "name", "name") ?? '',
+      age: $ElJsonUtil.$int(json, "age", "age") ?? 0,
     );
   }
 
   Map<String, dynamic> _toJson() {
-    return {'name': name, 'age': age};
+    return {"name": name, "age": age};
   }
 
   List<Object?> get _props => [name, age];
@@ -169,12 +169,12 @@ extension MergeForcesCopyWithModelExt on MergeForcesCopyWithModel {
   static MergeForcesCopyWithModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return MergeForcesCopyWithModel(
-      title: $ElJsonUtil.$string(json, 'title', 'title') ?? '',
+      title: $ElJsonUtil.$string(json, "title", "title") ?? '',
     );
   }
 
   Map<String, dynamic> _toJson() {
-    return {'title': title};
+    return {"title": title};
   }
 
   MergeForcesCopyWithModel copyWith({Object? title}) {
@@ -197,12 +197,12 @@ extension NoPropsModelExt on NoPropsModel {
   static NoPropsModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return NoPropsModel(
-      value: $ElJsonUtil.$string(json, 'value', 'value') ?? '',
+      value: $ElJsonUtil.$string(json, "value", "value") ?? '',
     );
   }
 
   Map<String, dynamic> _toJson() {
-    return {'value': value};
+    return {"value": value};
   }
 
   NoPropsModel copyWith({Object? value}) {
@@ -225,43 +225,43 @@ extension CustomSerializeModelExt on CustomSerializeModel {
     return CustomSerializeModel(
       dateField: $ElJsonUtil.$custom<DateTime?>(
         json,
-        'dateField',
-        const ElDateTimeSerialize(),
-        'date_field',
+        "dateField",
+        (const ElDateTimeSerialize()),
+        "date_field",
       ),
       durationField: $ElJsonUtil.$custom<Duration?>(
         json,
-        'durationField',
-        const ElDurationSerialize(),
-        'duration_field',
+        "durationField",
+        (const ElDurationSerialize()),
+        "duration_field",
       ),
       dateList: $ElJsonUtil.$listCustom<DateTime>(
         json,
-        'dateList',
-        const ElDateTimeSerialize(),
-        'date_list',
+        "dateList",
+        (const ElDateTimeSerialize()),
+        "date_list",
       ),
       timeout:
           $ElJsonUtil.$custom<Duration>(
             json,
-            'timeout',
-            const ElDurationSerialize(),
-            'timeout',
+            "timeout",
+            (const ElDurationSerialize()),
+            "timeout",
           ) ??
           const Duration(seconds: 3),
-      name: $ElJsonUtil.$string(json, 'name', 'name') ?? '',
+      name: $ElJsonUtil.$string(json, "name", "name") ?? '',
     );
   }
 
   Map<String, dynamic> _toJson() {
     return {
-      'dateField': const ElDateTimeSerialize().serialize(dateField),
-      'durationField': const ElDurationSerialize().serialize(durationField),
-      'dateList': dateList
-          ?.map((e) => const ElDateTimeSerialize().serialize(e))
+      "dateField": (const ElDateTimeSerialize()).serialize(dateField),
+      "durationField": (const ElDurationSerialize()).serialize(durationField),
+      "dateList": dateList
+          ?.map((e) => (const ElDateTimeSerialize()).serialize(e))
           .toList(),
-      'timeout': const ElDurationSerialize().serialize(timeout),
-      'name': name,
+      "timeout": (const ElDurationSerialize()).serialize(timeout),
+      "name": name,
     };
   }
 
@@ -334,19 +334,19 @@ extension MergeHostModelExt on MergeHostModel {
   static MergeHostModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return MergeHostModel(
-      forceMergeField: json['forceMergeField'],
-      autoDetectMergeField: json['autoDetectMergeField'],
-      noMergeField: json['noMergeField'],
-      name: $ElJsonUtil.$string(json, 'name', 'name') ?? '',
+      forceMergeField: json["forceMergeField"],
+      autoDetectMergeField: json["autoDetectMergeField"],
+      noMergeField: json["noMergeField"],
+      name: $ElJsonUtil.$string(json, "name", "name") ?? '',
     );
   }
 
   Map<String, dynamic> _toJson() {
     return {
-      'forceMergeField': forceMergeField,
-      'autoDetectMergeField': autoDetectMergeField,
-      'noMergeField': noMergeField,
-      'name': name,
+      "forceMergeField": forceMergeField,
+      "autoDetectMergeField": autoDetectMergeField,
+      "noMergeField": noMergeField,
+      "name": name,
     };
   }
 
@@ -485,18 +485,18 @@ extension NestedModelExt on NestedModel {
   static NestedModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return NestedModel(
-      label: $ElJsonUtil.$string(json, 'label', 'label') ?? '',
+      label: $ElJsonUtil.$string(json, "label", "label") ?? '',
       child: $ElJsonUtil.$model<NestedModel?>(
         json,
-        'child',
+        "child",
         NestedModelExt.defaultModel,
-        'child',
+        "child",
       ),
     );
   }
 
   Map<String, dynamic> _toJson() {
-    return {'label': label, 'child': child?.toJson()};
+    return {"label": label, "child": child?.toJson()};
   }
 
   NestedModel copyWith({Object? label, Object? child = $elAbsent}) {

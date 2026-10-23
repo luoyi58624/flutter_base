@@ -252,6 +252,27 @@ class $ElJsonUtil {
     }
   }
 
+  /// 供生成代码解码嵌套集合，保持字段级错误报告与发布模式的容错行为。
+  static T? $decode<T>(
+    dynamic json,
+    String key,
+    T? Function(dynamic value) decode, [
+    String? underlineKey,
+  ]) {
+    final value = _getJsonValue(json, key, underlineKey);
+    if (value == null) return null;
+    try {
+      return decode(value);
+    } catch (_) {
+      _throwFromJsonError(key, '$T', value);
+      return null;
+    }
+  }
+
+  /// 供嵌套集合的叶子元素复用自定义序列化的转换与异常处理规则。
+  static dynamic $customValue(ElSerialize serialize, dynamic value) =>
+      _decodeCustom(serialize, value);
+
   /// 比较两个 List 是否相等，并安全处理 null。
   static bool eqList(List? value1, List? value2) {
     if (value1 == null && value2 == null) return true;

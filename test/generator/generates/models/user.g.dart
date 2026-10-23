@@ -12,58 +12,58 @@ extension UserModelExt on UserModel {
   static UserModel fromJson(Map<String, dynamic>? json) {
     if (json == null) return defaultModel;
     return UserModel(
-      username: $ElJsonUtil.$string(json, 'username', 'username'),
-      age: $ElJsonUtil.$int(json, 'age', 'age'),
-      count: $ElJsonUtil.$int(json, 'count', 'count'),
+      username: $ElJsonUtil.$string(json, "username", "username"),
+      age: $ElJsonUtil.$int(json, "age", "age"),
+      count: $ElJsonUtil.$int(json, "count", "count"),
       child: $ElJsonUtil.$model<UserModel?>(
         json,
-        'child',
+        "child",
         UserModelExt.defaultModel,
-        'child',
+        "child",
       ),
       children: $ElJsonUtil.$list<UserModel>(
         json,
-        'children',
+        "children",
         UserModelExt.defaultModel,
-        'children',
+        "children",
       ),
       animalMap: $ElJsonUtil.$map<AnimalModel>(
         json,
-        'animalMap',
+        "animalMap",
         AnimalModelExt.defaultModel,
-        'animal_map',
+        "animal_map",
       ),
-      mapField: $ElJsonUtil.$map<dynamic>(json, 'mapField', null, 'map_field'),
+      mapField: $ElJsonUtil.$map<dynamic>(json, "mapField", null, "map_field"),
       startDate: $ElJsonUtil.$custom<DateTime?>(
         json,
-        'startDate',
-        const ElDateTimeSerialize(),
-        'start_date',
+        "startDate",
+        (const ElDateTimeSerialize()),
+        "start_date",
       ),
       endDate: $ElJsonUtil.$custom<DateTime?>(
         json,
-        'endDate',
-        const ElDateTimeSerialize(),
-        'end_date',
+        "endDate",
+        (const ElDateTimeSerialize()),
+        "end_date",
       ),
-      childName: $ElJsonUtil.$string(json, 'childName', 'child_name'),
+      childName: $ElJsonUtil.$string(json, "childName", "child_name"),
     );
   }
 
   Map<String, dynamic> _toJson() {
     return {
-      'username': username,
-      'age': age,
-      'count': count,
-      'child': child?.toJson(),
-      'children': children?.map((e) => e.toJson()).toList(),
-      'animalMap': animalMap?.map(
+      "username": username,
+      "age": age,
+      "count": count,
+      "child": child?.toJson(),
+      "children": children?.map((e) => e.toJson()).toList(),
+      "animalMap": animalMap?.map(
         (key, value) => MapEntry(key, value.toJson()),
       ),
-      'mapField': mapField,
-      'startDate': const ElDateTimeSerialize().serialize(startDate),
-      'endDate': const ElDateTimeSerialize().serialize(endDate),
-      'childName': childName,
+      "mapField": mapField,
+      "startDate": (const ElDateTimeSerialize()).serialize(startDate),
+      "endDate": (const ElDateTimeSerialize()).serialize(endDate),
+      "childName": childName,
     };
   }
 

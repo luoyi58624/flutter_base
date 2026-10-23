@@ -1,18 +1,35 @@
+import 'dart:convert';
+
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:source_gen/source_gen.dart';
 
 import '../dart/gen/index.dart';
 
-const TypeChecker modelChecker = TypeChecker.typeNamed(ElModelGenerator);
-const TypeChecker fieldChecker = TypeChecker.typeNamed(ElFieldGenerator);
+const TypeChecker modelChecker = TypeChecker.typeNamed(
+  ElModelGenerator,
+  inPackage: 'flutter_base',
+);
+const TypeChecker fieldChecker = TypeChecker.typeNamed(
+  ElFieldGenerator,
+  inPackage: 'flutter_base',
+);
+const TypeChecker serializeModelChecker = TypeChecker.typeNamed(
+  ElSerializeModel,
+  inPackage: 'flutter_base',
+);
+const TypeChecker serializeChecker = TypeChecker.typeNamed(
+  ElSerialize,
+  inPackage: 'flutter_base',
+);
+
+/// 输出合法的 Dart 字符串字面量，避免引号、换行与插值字符改变生成代码。
+String dartStringLiteral(String value) =>
+    jsonEncode(value).replaceAll(r'$', r'\$');
 
 /// 反射工具类
 class MirrorUtils {
   MirrorUtils._();
-
-  /// 沿用旧生成器的规则，匹配泛型参数与可空标记。
-  static final genericsRegExp = RegExp(r'(<.*>)|\?');
 
   /// 获取元素上声明的注解对象
   static DartObject? getElFieldAnnotation(
@@ -28,7 +45,14 @@ class MirrorUtils {
 
   /// 获取 class 默认的构造方法
   static ConstructorElement getDefaultConstructor(ClassElement classElement) {
-    return classElement.constructors.first;
+    final constructor = classElement.unnamedConstructor;
+    if (constructor == null) {
+      throw InvalidGenerationSourceError(
+        '`${classElement.name}` 缺少无名构造，无法生成模型重建代码。',
+        element: classElement,
+      );
+    }
+    return constructor;
   }
 
   /// 获取 ClassElement 默认构造函数所包含的字段集合
@@ -37,8 +61,8 @@ class MirrorUtils {
     bool visitSuper = false, // 是否收集 super 父类的字段
   }) {
     List<FieldElement> result = [];
-    final fields = MirrorUtils.getDefaultConstructor(classElement).children
-        .cast<VariableElement>();
+    final fields = MirrorUtils.getDefaultConstructor(classElement)
+        .formalParameters;
     for (int i = 0; i < fields.length; i++) {
       final field = getField(classElement, fields[i], visitSuper: visitSuper);
       if (field != null) result.add(field);
@@ -65,7 +89,7 @@ class MirrorUtils {
         }
       }
     }
-    return null;
+    return classElement.getField(varElement.name!);
   }
 
   /// 字段过滤，实体类需要生成的字段代码不需要关心以下修饰符
@@ -84,14 +108,7 @@ class MirrorUtils {
 
   /// 判断元素是否实现了 [ElSerializeModel] 序列化模型
   static bool hasSerializeModel(Element? element) {
-    if (element is InterfaceElement) {
-      return element.allSupertypes.any(
-        (e) => e.toString().contains(
-          '$ElSerializeModel'.replaceAll(MirrorUtils.genericsRegExp, ''),
-        ),
-      );
-    }
-    return false;
+    return element != null && serializeModelChecker.isAssignableFrom(element);
   }
 
   /// 使用递归深度遍历元素字段默认值
@@ -117,7 +134,7 @@ class MirrorUtils {
       return content;
     }
     if (reader.isString) {
-      return "'${reader.literalValue}'";
+      return dartStringLiteral(reader.stringValue);
     }
     if (reader.isDouble || reader.isInt || reader.isBool) {
       return reader.literalValue;

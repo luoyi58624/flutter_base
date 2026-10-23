@@ -4,8 +4,8 @@ part of 'index.dart';
 class ElModelGenerator {
   /// 生成通用的操作数据模型方法：json序列化、copyWith对象克隆等...
   ///
-  /// 注意：生成的代码是根据默认的构造函数参数决定的，构造参数必须是命名构造，
-  /// 同时字段参数必须通过 this 或 super 指定，不能存在自命名参数，否则生成的代码会出现错误。
+  /// 根据无名构造函数的命名参数收集字段，支持 this、super 和同名字段的初始化参数。
+  /// 重建模型时不支持位置参数；泛型模型、抽象类和缺少无名构造的模型会在生成阶段报错。
   ///
   /// 提示：[fromJson] 是 [formJson]（历史拼写错误）的正确拼写，二者等价，推荐使用 [fromJson]
   const ElModelGenerator({
