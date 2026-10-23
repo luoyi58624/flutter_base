@@ -105,9 +105,9 @@ flowchart TB
 
 2026-10-23 自动化验收：
 
-- `flutter test test/ui/event`：255 项通过。
+- `flutter test test/ui/cores/event`：255 项通过。
 - 在 example 中运行 `flutter test test/custom_gestures_page_test.dart`：12 项通过、1 项预览用例按原条件跳过。
-- `flutter analyze lib/src/ui/event test/ui/event --no-pub`：无问题。
+- `flutter analyze lib/src/ui/cores/event test/ui/cores/event --no-pub`：无问题。
 - `git diff --check`：通过。
 
 代码规模按 Dart 文件统计，包含空行与注释，以本次实施前的 HEAD 为基线：事件目录从 22 个文件、12,691 行降为 19 个文件、6,592 行；`view.dart` 从 287 行降为 256 行；内部 Dispatcher 从 3,466 行降为 1,229 行。此处不作为更早的 el_ui 源仓库对比。
@@ -116,8 +116,8 @@ flowchart TB
 
 ## 源码入口
 
-- [Widget 与状态订阅](/D:/project/flutter/flutter_base/lib/src/ui/event/view.dart)
-- [内部宿主控制器](/D:/project/flutter/flutter_base/lib/src/ui/event/dispatcher.dart)
-- [反馈与输入适配](/D:/project/flutter/flutter_base/lib/src/ui/event/interaction.dart)
-- [拖拽输出](/D:/project/flutter/flutter_base/lib/src/ui/event/drag/output.dart)
-- [独立识别器说明](/D:/project/flutter/flutter_base/lib/src/ui/event/recognizers/README.md)
+- [Widget 与状态订阅](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/view.dart)
+- [内部宿主控制器](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/dispatcher.dart)
+- [反馈与输入适配](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/interaction.dart)
+- [拖拽输出](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/drag/output.dart)
+- [独立识别器说明](/D:/project/flutter/flutter_base/lib/src/ui/cores/event/recognizers/README.md)

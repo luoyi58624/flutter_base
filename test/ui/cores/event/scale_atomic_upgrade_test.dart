@@ -1,6 +1,5 @@
-import 'package:flutter_base/src/ui/event/index.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -251,7 +250,7 @@ void main() {
     leaf.event = ElEvent(
       config: const ElEventConfig(
         dragStartDistance: 3,
-        dragResampling: <TargetPlatform>{},
+
       ),
       onScaleStart: (_) => trace.add('scaleStart'),
       onVerticalDragStart: (_) => trace.add('dragStart'),
@@ -343,7 +342,7 @@ void main() {
     root.event = ElEvent(
       config: const ElEventConfig(
         dragStartDistance: 3,
-        dragResampling: <TargetPlatform>{},
+
       ),
       onScaleStart: (_) {},
       onDragCancel: (event) => ancestorCancelPointerCount = event.pointerCount,
@@ -351,7 +350,7 @@ void main() {
     left.event = ElEvent(
       config: const ElEventConfig(
         dragStartDistance: 3,
-        dragResampling: <TargetPlatform>{},
+
       ),
       onDragStart: (_) {},
       onDragUpdate: (_) {},
@@ -417,7 +416,7 @@ ElEvent _dragEvent(
   return ElEvent(
     config: const ElEventConfig(
       dragStartDistance: 3,
-      dragResampling: <TargetPlatform>{},
+
     ),
     onPointerDown: onPointerDown,
     onDragStart: (event) {

@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';

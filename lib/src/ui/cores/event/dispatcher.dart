@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -9,8 +8,6 @@ import 'package:flutter/scheduler.dart';
 import 'callback.dart';
 import 'event.dart';
 import 'recognizers/recognizers.dart';
-import 'drag/resampling/mounts.dart';
-import 'drag/resampling/resampler.dart';
 
 part 'interaction.dart';
 part 'drag/output.dart';
@@ -635,11 +632,7 @@ class ElEventDispatcher {
       route.dragIdentity = details.sequenceIdentity;
       _dragOutputs.remove(details.sequenceIdentity)?.dispose();
       snapshot.input.route.driver ??= this;
-      final output = _DragOutput(
-        this,
-        details,
-        resample: identical(snapshot.input.route.driver, this),
-      );
+      final output = _DragOutput(this, details);
       _dragOutputs[details.sequenceIdentity] = output;
       if (output.proxies.isNotEmpty &&
           identical(snapshot.input.route.driver, this)) {
@@ -670,9 +663,7 @@ class ElEventDispatcher {
       return;
     }
     if (phase == ElEventPhase.dragEnd || phase == ElEventPhase.dragCancel) {
-      _dragOutputs
-          .remove(details.sequenceIdentity)
-          ?.finish(details, canceled: phase == ElEventPhase.dragCancel);
+      _dragOutputs.remove(details.sequenceIdentity)?.dispose();
     }
     final callback = _gestureCallback(details, phase);
     _invoke(_handler(phase, details.dragAxis), callback);
@@ -1172,58 +1163,4 @@ class ElEventDispatcher {
     _routes.clear();
   }
 
-  /// 控制下一轮拖拽的输出重采样，不改变识别规则。
-  static bool get enableDragResampling => DragResamplingPolicy.enabled;
-  static set enableDragResampling(bool value) =>
-      DragResamplingPolicy.enabled = value;
-
-  /// 按刷新率选择输出采样偏移。
-  static Duration? Function(double fps) get dragSamplingBuilder =>
-      DragResamplingPolicy.samplingBuilder;
-  static set dragSamplingBuilder(Duration? Function(double fps) value) =>
-      DragResamplingPolicy.samplingBuilder = value;
-
-  /// 为下一轮输出采样指定固定偏移。
-  static Duration? get dragSamplingOffsetOverride =>
-      DragResamplingPolicy.samplingOffsetOverride;
-  static set dragSamplingOffsetOverride(Duration? value) =>
-      DragResamplingPolicy.samplingOffsetOverride = value;
-
-  /// 采样器累计创建数量。
-  static int get debugDragResamplingEngageCount =>
-      DragResamplingPolicy.debugEngageCount;
-  static set debugDragResamplingEngageCount(int value) =>
-      DragResamplingPolicy.debugEngageCount = value;
-
-  /// 测试中的采样平台覆写。
-  static TargetPlatform? get debugDragResamplingPlatformOverride =>
-      DragResamplingPolicy.debugPlatformOverride;
-  static set debugDragResamplingPlatformOverride(TargetPlatform? value) =>
-      DragResamplingPolicy.debugPlatformOverride = value;
-
-  /// 测试中的显示刷新率覆写。
-  static double? get debugDragResamplingRefreshRateOverride =>
-      DragResamplingPolicy.debugRefreshRateOverride;
-  static set debugDragResamplingRefreshRateOverride(double? value) =>
-      DragResamplingPolicy.debugRefreshRateOverride = value;
-
-  /// 当前拖拽是否正在输出重采样。
-  bool get debugDragResamplingActive =>
-      _dragOutputs.values.any((output) => output.sampler != null);
-
-  /// 读取当前宿主显示刷新率，供测试核对采样门控。
-  double? debugDisplayRefreshRateForTest() => _displayRefreshRate();
-  double? _displayRefreshRate() {
-    final override = DragResamplingPolicy.debugRefreshRateOverride;
-    if (override != null) return override;
-    final root = _owner.owner?.rootNode;
-    if (root is RenderView) return root.flutterView.display.refreshRate;
-    return ui
-        .PlatformDispatcher
-        .instance
-        .views
-        .firstOrNull
-        ?.display
-        .refreshRate;
-  }
 }

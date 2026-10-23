@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _shell(Widget child) => Directionality(
@@ -510,7 +510,7 @@ void main() {
               config: const ElEventConfig(
                 delayTouchUp: Duration(milliseconds: 200),
                 dragStartDistance: 0,
-                dragResampling: {},
+
               ),
               onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
               onDragEnd: (_) {},
@@ -549,7 +549,7 @@ void main() {
             event: ElEvent(
               config: _immediate.copyWith(
                 dragStartDistance: 0,
-                dragResampling: {},
+
               ),
               onTap: (_) => taps++,
               onDragStart: (_) {},

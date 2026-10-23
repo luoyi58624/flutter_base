@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/event/recognizers/recognizers.dart';
+import 'package:flutter_base/src/ui/cores/event/recognizers/recognizers.dart';
 
 /// 等待旧序列的长按与连击窗口全部结束。
 const afterGesture = Duration(milliseconds: 700);

@@ -183,7 +183,6 @@ class ElEventCallback {
     this.logScaleVelocity = 0.0,
     ElEventCancelReason? cancelReason,
     this.originalEvent,
-    this.sampleTimeStamp,
   }) : assert(
          phase == ElEventPhase.tapCancel ||
              phase == ElEventPhase.pointerCancel ||
@@ -201,9 +200,6 @@ class ElEventCallback {
 
   /// 事件阶段。
   final ElEventPhase phase;
-
-  /// 合成采样的实际时刻；为 null 时沿用原始事件时间，不以复用的 raw 事件代替采样帧。
-  final Duration? sampleTimeStamp;
 
   /// 全局坐标。
   final Offset globalPosition;

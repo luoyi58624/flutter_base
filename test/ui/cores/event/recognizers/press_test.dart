@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/event/recognizers/recognizers.dart';
+import 'package:flutter_base/src/ui/cores/event/recognizers/recognizers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/recognizer_test_host.dart';
@@ -11,7 +11,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('识别器只导入 Dart 和 Flutter，不依赖宿主配置或事件模块', () {
-    final files = Directory('lib/src/ui/event/recognizers')
+    final files = Directory('lib/src/ui/cores/event/recognizers')
         .listSync()
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'));

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -193,7 +193,7 @@ void main() {
 
 const _config = ElEventConfig(
   dragStartDistance: 3,
-  dragResampling: <TargetPlatform>{},
+
 );
 
 Future<void> _start(

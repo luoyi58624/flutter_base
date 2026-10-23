@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, internal, setEquals;
+import 'package:flutter/foundation.dart' show internal, setEquals;
 import 'package:flutter/gestures.dart'
     show PointerDeviceKind, kMaxFlingVelocity, kMinFlingVelocity;
 
@@ -27,7 +26,6 @@ final class ElEventConfig {
     this.dragMinFlingDistance,
     this._dragMinFlingVelocity,
     this._dragMaxFlingVelocity,
-    this._dragResampling,
   }) : assert(
          _longPressCancelDistance == null || _longPressCancelDistance >= 0,
          'longPressCancelDistance 必须大于等于 0。',
@@ -190,23 +188,6 @@ final class ElEventConfig {
   /// 拖拽结束速度的最大幅度。默认 [kMaxFlingVelocity]（8000）。
   double get dragMaxFlingVelocity => _dragMaxFlingVelocity ?? kMaxFlingVelocity;
 
-  final Set<TargetPlatform>? _dragResampling;
-
-  /// 允许本节点启用拖拽重采样（帧驱动插值）的平台集合。
-  ///
-  /// `null` 回落内部默认 **{android}**；声明即**整值覆写**（集合整体替换，
-  /// 不做并集）。
-  /// 指针矩阵由 dispatcher 判定：Android 收 touch；Windows 仅在显式加入后
-  /// 收 touch + mouse；管线未接入的平台放进集合也不生效
-  /// （iOS/macOS 系统按刷新率对齐投递触摸，无此需求）。全局调试总闸见
-  /// `ElEventDispatcher.enableDragResampling`。
-  Set<TargetPlatform> get dragResampling =>
-      _dragResampling ?? _kDefaultDragResamplingPlatforms;
-
-  static const Set<TargetPlatform> _kDefaultDragResamplingPlatforms = {
-    TargetPlatform.android,
-  };
-
   // ---------------------------------------------------------------------------
 
   bool get _allSet =>
@@ -224,8 +205,7 @@ final class ElEventConfig {
       _dragHorizontalAngle != null &&
       dragMinFlingDistance != null &&
       _dragMinFlingVelocity != null &&
-      _dragMaxFlingVelocity != null &&
-      _dragResampling != null;
+      _dragMaxFlingVelocity != null;
 
   bool get _allUnset =>
       _doubleTapInterval == null &&
@@ -242,8 +222,7 @@ final class ElEventConfig {
       _dragHorizontalAngle == null &&
       dragMinFlingDistance == null &&
       _dragMinFlingVelocity == null &&
-      _dragMaxFlingVelocity == null &&
-      _dragResampling == null;
+      _dragMaxFlingVelocity == null;
 
   /// 以 [base] 为底合并：本配置已设置的字段覆盖，未设置的沿用 [base]。
   ///
@@ -268,7 +247,6 @@ final class ElEventConfig {
       dragMinFlingDistance: dragMinFlingDistance ?? base.dragMinFlingDistance,
       dragMinFlingVelocity: _dragMinFlingVelocity ?? base._dragMinFlingVelocity,
       dragMaxFlingVelocity: _dragMaxFlingVelocity ?? base._dragMaxFlingVelocity,
-      dragResampling: _dragResampling ?? base._dragResampling,
     );
   }
 
@@ -289,7 +267,6 @@ final class ElEventConfig {
     double? dragMinFlingDistance,
     double? dragMinFlingVelocity,
     double? dragMaxFlingVelocity,
-    Set<TargetPlatform>? dragResampling,
   }) {
     return ElEventConfig(
       doubleTapInterval: doubleTapInterval ?? _doubleTapInterval,
@@ -308,7 +285,6 @@ final class ElEventConfig {
       dragMinFlingDistance: dragMinFlingDistance ?? this.dragMinFlingDistance,
       dragMinFlingVelocity: dragMinFlingVelocity ?? _dragMinFlingVelocity,
       dragMaxFlingVelocity: dragMaxFlingVelocity ?? _dragMaxFlingVelocity,
-      dragResampling: dragResampling ?? _dragResampling,
     );
   }
 
@@ -330,10 +306,7 @@ final class ElEventConfig {
         other._dragHorizontalAngle == _dragHorizontalAngle &&
         other.dragMinFlingDistance == dragMinFlingDistance &&
         other._dragMinFlingVelocity == _dragMinFlingVelocity &&
-        other._dragMaxFlingVelocity == _dragMaxFlingVelocity &&
-        // Set 无深比较，用 setEquals（乱序等值集合视为同配置，避免 rebuild
-        // 新建集合被误判结构替换）。
-        setEquals(other._dragResampling, _dragResampling);
+        other._dragMaxFlingVelocity == _dragMaxFlingVelocity;
   }
 
   @override
@@ -353,7 +326,5 @@ final class ElEventConfig {
     dragMinFlingDistance,
     _dragMinFlingVelocity,
     _dragMaxFlingVelocity,
-    // 与 setEquals 口径配套：等值集合必须同 hash（无序聚合）。
-    _dragResampling == null ? null : Object.hashAllUnordered(_dragResampling),
   );
 }

@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -9,24 +8,17 @@ import 'support/dispatcher_test_host.dart';
 void main() {
   setUp(ElEventDispatcher.debugResetEagerGestureOwners);
 
-  for (final resampling in [false, true]) {
-    testWidgets('真实输入估速，合成移动只影响输出，重采样也不改变速度：$resampling', (tester) async {
-      final baseline = await _runDrag(tester, resampling: resampling);
-      final synthetic = await _runDrag(
-        tester,
-        resampling: resampling,
-        synthetic: true,
-      );
-      expect(baseline.velocity.pixelsPerSecond.dx, greaterThan(0));
-      expect(
-        synthetic.velocity.pixelsPerSecond.dx,
-        closeTo(baseline.velocity.pixelsPerSecond.dx, 0.001),
-      );
-      expect(synthetic.delta.dx, closeTo(40.01, 0.001));
-      expect(baseline.delta.dx, closeTo(40, 0.001));
-    });
-  }
-
+  testWidgets('真实输入估速，合成移动只影响输出', (tester) async {
+    final baseline = await _runDrag(tester);
+    final synthetic = await _runDrag(tester, synthetic: true);
+    expect(baseline.velocity.pixelsPerSecond.dx, greaterThan(0));
+    expect(
+      synthetic.velocity.pixelsPerSecond.dx,
+      closeTo(baseline.velocity.pixelsPerSecond.dx, 0.001),
+    );
+    expect(synthetic.delta.dx, closeTo(40.01, 0.001));
+    expect(baseline.delta.dx, closeTo(40, 0.001));
+  });
   testWidgets('输入派发延迟不算手指停顿，真实事件停顿仍清零释放速度', (tester) async {
     final baseline = await _runDrag(tester);
     final delayed = await _runDrag(tester, processingDelay: true);
@@ -84,7 +76,7 @@ void main() {
     var starts = 0;
     var ends = 0;
     host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3, dragResampling: {}),
+      config: const ElEventConfig(dragStartDistance: 3),
       onDragStart: (_) => starts++,
       onDragUpdate: (event) => deltas.add(event.delta),
       onDragEnd: (_) => ends++,
@@ -139,18 +131,11 @@ void main() {
 
 Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
   WidgetTester tester, {
-  bool resampling = false,
   bool synthetic = false,
   bool paused = false,
   bool processingDelay = false,
   Offset upPosition = const Offset(60, 0),
 }) async {
-  final previousPlatform =
-      ElEventDispatcher.debugDragResamplingPlatformOverride;
-  final previousRate = ElEventDispatcher.debugDragResamplingRefreshRateOverride;
-  ElEventDispatcher.debugDragResamplingPlatformOverride =
-      TargetPlatform.android;
-  ElEventDispatcher.debugDragResamplingRefreshRateOverride = 120;
   final host = DispatcherTestHost.chain();
   Velocity? velocity;
   var delta = Offset.zero;
@@ -159,7 +144,7 @@ Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
     config: ElEventConfig(
       dragStartDistance: 3,
       dragMinFlingDistance: 3,
-      dragResampling: {if (resampling) TargetPlatform.android},
+
     ),
     onHorizontalDragStart: (_) {},
     onHorizontalDragUpdate: (event) => delta += event.delta,
@@ -181,7 +166,7 @@ Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
         ),
       );
     }
-    expect(host.leafDispatcher.debugDragResamplingActive, resampling);
+
     if (processingDelay) await tester.pump(const Duration(milliseconds: 100));
     final release = paused ? 500 : 32;
     if (synthetic) {
@@ -202,11 +187,9 @@ Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
         timeStamp: Duration(milliseconds: release),
       ),
     );
-    expect(host.leafDispatcher.debugDragResamplingActive, isFalse);
+
     return (velocity: velocity!, delta: delta, offset: offset);
   } finally {
     host.dispose();
-    ElEventDispatcher.debugDragResamplingPlatformOverride = previousPlatform;
-    ElEventDispatcher.debugDragResamplingRefreshRateOverride = previousRate;
   }
 }

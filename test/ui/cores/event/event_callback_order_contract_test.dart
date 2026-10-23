@@ -1,6 +1,5 @@
-import 'package:flutter_base/src/ui/event/index.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,7 +17,7 @@ void main() {
     host.leafDispatcher.event = ElEvent(
       config: const ElEventConfig(
         dragStartDistance: 3,
-        dragResampling: <TargetPlatform>{},
+
       ),
       onPointerDown: record,
       onDragDown: record,

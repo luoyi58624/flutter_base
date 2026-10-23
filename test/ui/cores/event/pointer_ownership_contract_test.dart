@@ -1,6 +1,5 @@
-import 'package:flutter_base/src/ui/event/index.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -360,7 +359,7 @@ void main() {
           dragStartDistance: 100,
           dragMinFlingDistance: 1,
           dragMinFlingVelocity: 10,
-          dragResampling: <TargetPlatform>{},
+
         ),
         onDragStart: (event) {
           trace.add('ancestor:${event.phase.name}');
@@ -692,7 +691,7 @@ void main() {
 
 const _dragConfig = ElEventConfig(
   dragStartDistance: 3,
-  dragResampling: <TargetPlatform>{},
+
 );
 
 ElEvent _tapEvent(String owner, List<String> trace) {

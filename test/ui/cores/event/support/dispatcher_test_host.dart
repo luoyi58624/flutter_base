@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 

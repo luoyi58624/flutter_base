@@ -38,6 +38,35 @@ TODO: Tell users more about the package: where to find more information, how to
 contribute to the package, how to file issues, what response they can expect
 from the package authors, and more.
 
+## 可选的 Android 全局触摸重采样
+
+由现有入口 `package:flutter_base/flutter_base.dart` 导出，显式初始化才启用；
+采样实现仅依赖 Flutter SDK，不依赖 ElEvent、ElView 或其他第三方库。
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_base/flutter_base.dart';
+
+void main() {
+  ElWidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
+}
+```
+
+这行必须先于其他绑定或插件初始化。重复调用复用当前实例；已有其他绑定时会
+明确报错。未接入时使用官方事件管线。接入后仅采样 Android 原生 touch 输入，
+其他平台、鼠标、触控板和触笔直接分发；不再提供 Windows 采样分支。
+
+按下即时分发，移动使用原有自适应尾随、插值及最多 8ms 的有界外推；多指共享
+采样时刻，抬起前结清真实移动，取消后不再输出帧。官方手势、滚动组件、Listener
+和 ElEvent 共同接收这一条事件流，ElEvent 不再单独进行输出重采样。
+若应用显式启用 Flutter 官方 `resamplingEnabled`，此管线自动让位，避免重复采样。
+
+重采样后的事件参与官方识别与估速，纯预测帧标记为 `synthesized`，不向官方速度
+估计器伪造新输入；实际拖拽阈值和甩出手感仍需在目标 Android 设备验证。
+
+实现位于 `lib/src/flutter_base/sdk/`，对应测试位于 `test/flutter_base/sdk/`。
+
 ## 代码生成
 
 注解和序列化辅助通过 `package:flutter_base/dart.dart` 导出；构建器通过
@@ -216,7 +245,7 @@ child 在紧约束下可以独立更新，父 dirty 不能作为可靠的跨帧�
 无界百分比仅订阅实际查询经过的候选祖先，按轴使依赖节点失效，不扫描整个后代树；
 未使用相对尺寸就不创建引用登记；普通像素尺寸不计算百分比参照。文本和事件子系统暂不处理。
 
-新增样式功能测试集中在 `test/ui/view/base_test.dart` 和 `animation_test.dart`，均通过
+新增样式功能测试集中在 `test/ui/cores/view/base_test.dart` 和 `animation_test.dart`，均通过
 真实 `ElView(style: ElStyle(...), child: ...)` 环境验证实际布局、绘制与命中。
 前者覆盖正常情况下的基础功能，后者覆盖插值中间值、auto/百分比转换、延迟、中断、
 方向变化、null/半透明颜色及裁剪联动等边界。测试不依赖内部状态、调用次数、缓存身份或
@@ -228,8 +257,8 @@ child 在紧约束下可以独立更新，父 dirty 不能作为可靠的跨帧�
 Render 调度骨架稳定，再重新生成模型代码。相关验证只运行本次文件：
 
 ```powershell
-dart run build_runner build --build-filter 'lib/src/ui/view/style/index.g.dart'
-flutter test test/ui/view --concurrency=1
+dart run build_runner build --build-filter 'lib/src/ui/cores/view/style/index.g.dart'
+flutter test test/ui/cores/view --concurrency=1
 ```
 
 ## 独立事件 Widget
@@ -281,11 +310,11 @@ ElEventView(
   这些配置只影响 `hasTap`，不延迟点击回调。短于进入延迟的触摸不补播反馈，
   取消、禁用和卸载立即清理；鼠标和笔即时响应。
 
-事件实现在 `lib/src/ui/event/`，只依赖 Dart、Flutter 和自身目录，不依赖 ElView、
+事件实现在 `lib/src/ui/cores/event/`，只依赖 Dart、Flutter 和自身目录，不依赖 ElView、
 样式、滚动、投影或选区模块。交互状态由后代自行用于改变样式；本次不包含键盘、
 焦点或全局指针屏障。
 内部 dispatcher 与状态机不从公共入口导出。
 
 ```powershell
-flutter test test/ui/event --concurrency=1
+flutter test test/ui/cores/event --concurrency=1
 ```

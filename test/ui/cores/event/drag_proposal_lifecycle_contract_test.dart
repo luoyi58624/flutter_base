@@ -1,8 +1,7 @@
-import 'package:flutter_base/src/ui/event/index.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -837,7 +836,7 @@ void _installBubblingPair(
 
 ElEventConfig _dragConfig(double distance) => ElEventConfig(
   dragStartDistance: distance,
-  dragResampling: const <TargetPlatform>{},
+
 );
 
 bool _isDragTerminal(ElEventPhase phase) =>

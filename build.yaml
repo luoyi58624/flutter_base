@@ -25,12 +25,12 @@ targets:
       source_gen:combining_builder:
         options:
           build_extensions:
-            '^lib/src/ui/view/style/index.dart': 'lib/src/ui/view/style/index.g.dart'
+            '^lib/src/ui/cores/view/style/index.dart': 'lib/src/ui/cores/view/style/index.g.dart'
             '^test/generator/models/{{}}.dart': 'test/generator/generates/models/{{}}.g.dart'
             '^test/generator/source_generator/{{}}.dart': 'test/generator/generates/source_generator/{{}}.g.dart'
       flutter_base|model:
         generate_for:
-          - lib/src/ui/view/style/index.dart
+          - lib/src/ui/cores/view/style/index.dart
           - test/generator/models/**
       flutter_base|sourceGenerator:
         generate_for:

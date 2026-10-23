@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/event/recognizers/recognizers.dart';
+import 'package:flutter_base/src/ui/cores/event/recognizers/recognizers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/recognizer_test_host.dart';

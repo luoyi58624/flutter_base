@@ -1,12 +1,11 @@
 part of '../dispatcher.dart';
 
-/// 处理已经识别成功的拖拽输出，采样与代理分账不会反向改变手势归属。
+/// 处理已经识别成功的拖拽输出与代理分账，不改变手势归属。
 final class _DragOutput {
   _DragOutput(
     this.host,
-    ElTransformGestureDetails start, {
-    bool resample = true,
-  }) : axis = start.dragAxis,
+    ElTransformGestureDetails start,
+  ) : axis = start.dragAxis,
        position = start.globalPosition,
        last = start,
        generation = host._transformGeneration {
@@ -18,35 +17,12 @@ final class _DragOutput {
         break;
       }
     }
-    if (!resample) return;
-    final platform = DragResamplingPolicy.hostPlatform;
-    if (platform != null &&
-        DragResamplingPolicy.allowsGlobalGate() &&
-        host.config.dragResampling.contains(platform) &&
-        dragResamplingAllowsKind(
-          platform: platform,
-          kind: start.originalEvent.kind,
-        )) {
-      sampler = createDragResampler(
-        DragResamplingContext(
-          refreshRate: host._displayRefreshRate(),
-          seedTime: start.timeStamp,
-          seedPosition: position,
-          onSample: (sampler, next, delta) {
-            if (_valid) {
-              _deliver(next, delta, sampleTime: sampler.lastSampleTime);
-            }
-          },
-        ),
-      );
-    }
   }
 
   final ElEventDispatcher host;
   final int generation;
   final Axis? axis;
   final List<ElEventDispatcher> proxies = [];
-  DragResampler? sampler;
   Offset position;
   Offset offset = Offset.zero;
   ElTransformGestureDetails last;
@@ -57,15 +33,10 @@ final class _DragOutput {
   void update(ElTransformGestureDetails details) {
     if (!_valid) return;
     last = details;
-    final current = sampler;
-    if (current == null) {
-      _deliver(details.globalPosition, details.delta);
-    } else {
-      current.push(details.timeStamp, details.globalPosition);
-    }
+    _deliver(details.globalPosition, details.delta);
   }
 
-  void _deliver(Offset next, Offset delta, {Duration? sampleTime}) {
+  void _deliver(Offset next, Offset delta) {
     if (!_valid) return;
     position = next;
     offset += delta;
@@ -80,7 +51,6 @@ final class _DragOutput {
       dragDirection: last.dragDirection,
       buttons: last.buttons,
       originalEvent: last.originalEvent,
-      sampleTimeStamp: sampleTime,
     );
     callback.dragPipelineActive = proxies.isNotEmpty;
     callback.hasAncestorDragConsumer = host._transform?.parent != null;
@@ -130,18 +100,8 @@ final class _DragOutput {
     callback.resetPropagation();
   }
 
-  void finish(ElTransformGestureDetails details, {required bool canceled}) {
-    if (disposed) return;
-    if (!canceled && sampler != null && last.globalPosition != position) {
-      _deliver(last.globalPosition, last.globalPosition - position);
-    }
-    dispose();
-  }
-
   void dispose() {
     if (disposed) return;
     disposed = true;
-    sampler?.dispose();
-    sampler = null;
   }
 }

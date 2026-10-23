@@ -139,6 +139,6 @@ final transform = ElTransformGestureRecognizer()..team = team;
 
 只保留 `press_test.dart` 与 `transform_test.dart` 两个识别器测试入口，覆盖独立参数、
 官方竞争、各回调冒泡控制、主动取消、坐标、多指、速度和重入清理。
-元素范围、状态反馈、配置替换、位移消费及重采样在 `test/ui/event` 的宿主回归中验证。
+元素范围、状态反馈、配置替换、位移消费及重采样在 `test/ui/cores/event` 的宿主回归中验证。
 `view_test.dart` 覆盖官方 Tap 上下层、样式读取开关、纯 Down 观察者、长按穿插节点、
 双向 Drag 竞争和落败后的独占请求；示例页自动化不代表真实设备输入已验收。

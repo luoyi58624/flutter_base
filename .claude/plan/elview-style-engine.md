@@ -20,7 +20,7 @@
 
 ### 实测
 
-1. `flutter test test/ui/view --concurrency=1 --reporter expanded`：重构前已有的 23 项场景全部通过，后续统一归入 base_test.dart 和 animation_test.dart。
+1. `flutter test test/ui/cores/view --concurrency=1 --reporter expanded`：重构前已有的 23 项场景全部通过，后续统一归入 base_test.dart 和 animation_test.dart。
 2. 临时实验：width 从 200 转 auto，child 自然宽 100，width 过渡 100ms；padding 从 0 转左右各 40，过渡 200ms。99ms 宽度为 180.2，100ms 为 140.0，确认存在截止帧跳变。
 3. 临时实验：width/height 从 200/50 同时转 auto，分别过渡 100/200ms，child 为比例 2 的 AspectRatio。99ms 为 398×124.25，100ms 为 250×125，确认跨轴耦合下的截止帧跳变。
 4. 临时实验：仅背景色过渡时，LayoutBuilder 执行次数保持 1，没有随颜色帧重新执行 builder；此计数本身不能证明真实 layout 方法从未被调用，真实调用计数列入后续验收。
@@ -361,7 +361,7 @@ flowchart TD
 ## 13. 本阶段目标代码组织
 
 ```text
-ui/view/
+ui/cores/view/
   index.dart                     ElView：Widget 入口
   render/
     view.dart                    ElRenderView：框架协议中转
@@ -395,7 +395,7 @@ ui/view/
 - 测量中保存临时参照，正式布局恢复后代几何；恢复标脏不当作外部内容突变，不改变后代动画时间线。
 - 祖先参照在实际查询时才按轴求值；没有对应依赖时不做引用计算或后代扫描，重挂接清理旧登记。
 
-该阶段验证范围限定为 test/ui/view/ 及对应生产目录；原测试现已归入 base_test.dart 和 animation_test.dart，并行会话的事件目录不属于本阶段。
+该阶段验证范围限定为 test/ui/cores/view/ 及对应生产目录；原测试现已归入 base_test.dart 和 animation_test.dart，并行会话的事件目录不属于本阶段。
 
 最终验证：上述三个文件共 42 项测试全部通过；对应生产目录与三个测试文件的静态分析无问题。未运行全量测试或设备 Profile 测量。
 
@@ -425,7 +425,7 @@ flowchart LR
 
 验证：原有 42 项与新增圆角 17 项、裁剪 14 项合计 73 项全部通过；生产目录、上述五个测试文件及示例页静态分析无问题。仅运行相关测试，未运行全量测试或设备 Profile 测量。
 
-测试统一放在 test/ui/view/，只保留 base_test.dart 和 animation_test.dart。执行入口为 `flutter test test/ui/view --concurrency=1`，test/ui/ 顶层只按模块组织目录。
+测试统一放在 test/ui/cores/view/，只保留 base_test.dart 和 animation_test.dart。执行入口为 `flutter test test/ui/cores/view --concurrency=1`，test/ui/cores/ 按模块组织目录。
 
 ## 16. 功能测试收敛与实现精简
 

@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_base/src/ui/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -150,11 +149,11 @@ void main() {
   test('事件配置的设备与平台集合按内容比较且保持相同 hash', () {
     final first = ElEventConfig(
       dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
-      dragResampling: {TargetPlatform.android, TargetPlatform.windows},
+
     );
     final second = ElEventConfig(
       dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch},
-      dragResampling: {TargetPlatform.windows, TargetPlatform.android},
+
     );
     expect(first, second);
     expect(first.hashCode, second.hashCode);
@@ -164,6 +163,5 @@ void main() {
       first.copyWith(dragDevices: {PointerDeviceKind.touch}),
       isNot(first),
     );
-    expect(first.copyWith(dragResampling: {}), isNot(first));
   });
 }

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('事件模块仅依赖 Dart、Flutter 和自身目录', () {
-    final root = Directory('lib/src/ui/event').absolute.uri;
+    final root = Directory('lib/src/ui/cores/event').absolute.uri;
     final directives = RegExp(r'''(?:import|export|part)\s+(?!of\b)[^;]+;''');
     final strings = RegExp(r'''['"]([^'"]+)['"]''');
     final files = Directory.fromUri(root)
@@ -34,14 +34,14 @@ void main() {
   });
 
   test('公共事件入口仅导出使用者所需的 Widget 和事件配置', () {
-    final entry = File('lib/src/ui/event/index.dart').readAsStringSync();
+    final entry = File('lib/src/ui/cores/event/index.dart').readAsStringSync();
     expect(entry, contains('ElEventView'));
     expect(entry, contains('ElEventState'));
     expect(entry, contains('ElEventCallback'));
     expect(entry, contains('ElDragProxy'));
     expect(entry, isNot(contains('dispatcher.dart')));
     expect(entry, isNot(contains('resampling/')));
-    final sources = Directory('lib/src/ui/event')
+    final sources = Directory('lib/src/ui/cores/event')
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))

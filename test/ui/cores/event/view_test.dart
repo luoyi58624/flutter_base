@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/event/index.dart';
-import 'package:flutter_base/src/ui/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBoxWithHitTestBehavior;
 import 'package:flutter_test/flutter_test.dart';
@@ -13,87 +13,6 @@ Widget _box() => SizedBox(width: 100, height: 100);
 
 void main() {
   setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
-  for (final android in [true, false]) {
-    testWidgets('Widget 拖拽按帧采样并在松手释放：Android=$android', (tester) async {
-      final previousPlatform =
-          ElEventDispatcher.debugDragResamplingPlatformOverride;
-      final previousRefreshRate =
-          ElEventDispatcher.debugDragResamplingRefreshRateOverride;
-      final previousEnabled = ElEventDispatcher.enableDragResampling;
-      final previousOffset = ElEventDispatcher.dragSamplingOffsetOverride;
-      final previousOfficial = tester.binding.resamplingEnabled;
-      TestGesture? gesture;
-      var pressed = false;
-      try {
-        ElEventDispatcher.debugDragResamplingPlatformOverride = android
-            ? .android
-            : .windows;
-        ElEventDispatcher.debugDragResamplingRefreshRateOverride = 120;
-        ElEventDispatcher.enableDragResampling = true;
-        // 固定尾随量，使首个采样帧的插值位置不受自适应触点节奏影响。
-        ElEventDispatcher.dragSamplingOffsetOverride = Duration(
-          milliseconds: -5,
-        );
-        tester.binding.resamplingEnabled = false;
-        final updates = <Offset>[];
-        var ends = 0;
-        await tester.pumpWidget(
-          _shell(
-            ElEventView(
-              event: ElEvent(
-                config: ElEventConfig(
-                  dragStartDistance: 3,
-                  dragResampling: android ? {.android} : {.windows},
-                ),
-                onDragStart: (_) {},
-                onDragUpdate: (e) => updates.add(e.delta),
-                onDragEnd: (_) => ends++,
-              ),
-              child: _box(),
-            ),
-          ),
-        );
-        final base = tester.binding.currentSystemFrameTimeStamp;
-        final currentGesture = await tester.createGesture(
-          kind: android ? .touch : .mouse,
-        );
-        gesture = currentGesture;
-        await currentGesture.down(Offset(20, 20), timeStamp: base);
-        pressed = true;
-        final box = tester.renderObject<RenderBox>(find.byType(ElEventView));
-        final dispatcher = ElEventDispatcher.of(box)!;
-        await currentGesture.moveBy(
-          Offset(10, 0),
-          timeStamp: base + Duration(milliseconds: 8),
-        );
-        expect(dispatcher.debugDragResamplingActive, isTrue);
-        await currentGesture.moveBy(
-          Offset(10, 0),
-          timeStamp: base + Duration(milliseconds: 16),
-        );
-        expect(updates, isEmpty);
-        await tester.pump(Duration(milliseconds: 16));
-        expect(updates, hasLength(1));
-        expect(updates.single.dx, closeTo(3.75, 0.001));
-        await currentGesture.up(timeStamp: base + Duration(milliseconds: 24));
-        pressed = false;
-        expect(dispatcher.debugDragResamplingActive, isFalse);
-        expect(ends, 1);
-        expect(tester.binding.resamplingEnabled, isFalse);
-      } finally {
-        if (pressed) await gesture?.cancel();
-        await tester.pumpWidget(_shell(SizedBox.shrink()));
-        ElEventDispatcher.debugDragResamplingPlatformOverride =
-            previousPlatform;
-        ElEventDispatcher.debugDragResamplingRefreshRateOverride =
-            previousRefreshRate;
-        ElEventDispatcher.enableDragResampling = previousEnabled;
-        ElEventDispatcher.dragSamplingOffsetOverride = previousOffset;
-        tester.binding.resamplingEnabled = previousOfficial;
-      }
-    });
-  }
 
   testWidgets('直接更新 dispatcher 光标会调度静止鼠标刷新', (tester) async {
     await tester.pumpWidget(
@@ -523,7 +442,7 @@ void main() {
       _shell(
         ElEventView(
           event: ElEvent(
-            config: ElEventConfig(dragStartDistance: 0, dragResampling: {}),
+            config: ElEventConfig(dragStartDistance: 0),
             onDragStart: record,
             onDragEnd: record,
             onDragCancel: record,
@@ -715,7 +634,7 @@ void main() {
             event: ElEvent(
               config: const ElEventConfig(
                 dragStartDistance: 100,
-                dragResampling: {},
+
               ),
               onPointerMove: (event) {
                 if (++moves > 1) event.eagerGesture();
@@ -784,7 +703,7 @@ void main() {
               event: ElEvent(
                 config: ElEventConfig(
                   dragStartDistance: elFirst ? 3 : 100,
-                  dragResampling: const {},
+
                 ),
                 onVerticalDragStart: (_) => trace.add('el.start'),
                 onVerticalDragEnd: (_) => trace.add('el.end'),
