@@ -71,7 +71,7 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 
 入口为 `package:flutter_base/ui.dart`。`ElView` 只有 `style`、`child`（以及标准
 `key`），使用一个 RenderObject 完成盒模型与装饰绘制。当前样式字段为
-`width`、`height`、`minWidth`、`maxWidth`、`minHeight`、`maxHeight`、`widthFactor`、`heightFactor`、`aspectRatio`、`backgroundColor`、`gradient`、`boxShadow`、`opacity`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
+`width`、`height`、`minWidth`、`maxWidth`、`minHeight`、`maxHeight`、`widthFactor`、`heightFactor`、`aspectRatio`、`backgroundColor`、`gradient`、`boxShadow`、`opacity`、`transform`、`transformAlignment`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
 和过渡配置 `transitions`。
 
 - 宽高接受数值或百分比字符串，包含 padding、不包含 margin；null 为 auto。
@@ -113,6 +113,19 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - opacity 限制到 0～1，null 为 1；对全部装饰与 child 进行整组合成，保持重叠区域颜色。
   零值跳过绘制和命中，保留布局及语义子树；完全不透明时直接绘制，中间值才启用透明度层。
   null 按 1 插值，曲线过冲限制在有效范围，不裁掉阴影、轮廓或 child 的原有溢出。
+- transform 接受 ElTransform，支持 2D / 3D 平移、缩放、旋转、倾斜、透视以及原始矩阵。
+  平移单位为逻辑像素，旋转 / 倾斜使用弧度；组合可先用 Matrix4.multiply，再用
+  ElTransform.matrix4 快照，输入与输出矩阵互不共享可变状态。它包住整组 opacity、
+  装饰与 child，自身裁剪随整组移动，布局、百分比参照、dry 与 intrinsic 均不改变。
+  原点按 transformAlignment、transform.origin、Alignment.center 回退，参考包含 padding
+  而不包含 margin 的视觉盒；方向性原点由引擎统一解析，RTL 下绘制、命中和语义一致。
+  两类原点都连续过渡，独立原点清空时平滑回退当前内部原点；null / identity 变换借用
+  对侧原点，不在退出途中跳到中心。同类函数插参数，同轴旋转保留整圈而不取最短路径；
+  异类 / 异轴 / 原始矩阵逐分量插值，可能经过退化矩阵，不实现 CSS 矩阵分解。
+  绘制、整体命中、后代坐标转换、语义与裁剪共用有效矩阵；视图自身的 localToGlobal
+  仍描述布局坐标，后代的坐标链包含其变换。自身语义及裁剪输出有限的近似包围盒，
+  动画每帧同步；非有限、奇异、触及或位于视平面后方的投影样本不绘制、不命中且不保留后代
+  语义，恢复有效值后重新出现。祖先原有的尺寸和裁剪命中门禁继续生效。
 - 边框接受原生 `Border` / `BorderDirectional`，支持独立四边颜色、粗细、none、hairline
   和 `strokeAlign`。它只触发重绘，不占布局空间、不自动增加 padding；粗细过渡不挤压
   child 或移动兄弟元素。方向、粗细、描边位置和预乘 alpha 颜色由 StyleEngine 处理，
@@ -153,14 +166,18 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   纯色不创建 shader；静态值和 null 过渡保持单次绘制，纯色与渐变的两项贡献同时可见时
   才使用局部透明层预乘相加；颜色、整体位置和仅圆角变化不使无关几何或 shader 重建。
 - `paint/shadow.dart` 缓存实际使用的内外阴影几何和画笔，颜色与整体位置不重建几何。
+- `style/transform.dart` 保留函数来源与参数，避免矩阵相同却丢失整圈动画；
+  `paint/transform.dart` 只补实际视觉盒原点，缓存有效矩阵并检查有限投影。
 - `paint/effects.dart` 的 EffectController 仅在实际裁剪或组透明时创建，与装饰共用局部形状。
   由 Flutter 根据现有合成需求选择画布或图层，复用可用裁剪层，停用时释放持有权；
   不因 saveLayer 模式强制增加合成层。裁剪层与透明度层独立释放，组透明使用 OpacityLayer，
   支持 child 自身含合成层；外层已裁剪时，背景、渐变和内阴影不重复裁剪圆角。
+  变换层独立持有，纯平移直接调整偏移，其余由 Flutter 按已有合成需求选择画布或图层。
 
 Ticker 和轨道集合只为实际过渡创建；首次挂载或仅声明 transitions 不启动时钟。
 动画只采样活动轨道，不重建 ElStyle 或 child；固定尺寸采样值未变时不请求布局，
 纯颜色、渐变、阴影、透明度、圆角、边框或轮廓变化只重绘，也不重新解析尺寸和边距。
+变换与原点也不触发布局，同时更新语义；未声明 transform 时不创建矩阵、几何或变换层。
 
 ```dart
 ElView(

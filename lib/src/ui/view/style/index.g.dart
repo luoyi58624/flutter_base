@@ -21,6 +21,8 @@ extension ElStyleExt on ElStyle {
     Object? gradient = $absent,
     Object? boxShadow = $absent,
     Object? opacity = $absent,
+    Object? transform = $absent,
+    Object? transformAlignment = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
     Object? border = $absent,
@@ -55,6 +57,12 @@ extension ElStyleExt on ElStyle {
           ? this.boxShadow
           : boxShadow as List<BoxShadow>?,
       opacity: identical(opacity, $absent) ? this.opacity : opacity as num?,
+      transform: identical(transform, $absent)
+          ? this.transform
+          : transform as ElTransform?,
+      transformAlignment: identical(transformAlignment, $absent)
+          ? this.transformAlignment
+          : transformAlignment as AlignmentGeometry?,
       padding: identical(padding, $absent)
           ? this.padding
           : padding as EdgeInsetsGeometry?,
@@ -93,6 +101,8 @@ extension ElStyleExt on ElStyle {
       gradient: other.gradient ?? gradient,
       boxShadow: other.boxShadow ?? boxShadow,
       opacity: other.opacity ?? opacity,
+      transform: other.transform ?? transform,
+      transformAlignment: other.transformAlignment ?? transformAlignment,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
       border: other.border ?? border,
@@ -117,6 +127,8 @@ extension ElStyleExt on ElStyle {
     gradient,
     boxShadow,
     opacity,
+    transform,
+    transformAlignment,
     padding,
     margin,
     border,

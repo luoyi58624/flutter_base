@@ -55,6 +55,12 @@ enum ElTransitionField {
 
   /// 整组透明度，null 按 1 插值，过冲限制在 0～1。
   opacity,
+
+  /// 整组视觉变换，同类函数按参数插值，其他组合逐矩阵分量插值。
+  transform,
+
+  /// 变换原点，null 连续回退到当前变换的内部原点或盒中心。
+  transformAlignment,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

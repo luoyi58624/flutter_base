@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ColorSpace, ImageByteFormat, PictureRecorder;
 
 import 'package:flutter/rendering.dart';
@@ -309,7 +310,435 @@ Future<List<Color>> _effectsPixels(
   }
 }))!;
 
+const _transformChildKey = ValueKey('animated-transform-child');
+const _transformChild = SizedBox(
+  key: _transformChildKey,
+  width: 100,
+  height: 60,
+);
+
+void _transformPoint(WidgetTester tester, Offset local, Offset expected) {
+  final child = tester.renderObject<RenderBox>(find.byKey(_transformChildKey));
+  final actual = child.localToGlobal(local, ancestor: viewBox(tester));
+  expect(actual.dx, closeTo(expected.dx, 1e-6));
+  expect(actual.dy, closeTo(expected.dy, 1e-6));
+  final inverse = child.globalToLocal(child.localToGlobal(local));
+  expect(inverse.dx, closeTo(local.dx, 1e-6));
+  expect(inverse.dy, closeTo(local.dy, 1e-6));
+}
+
+Rect _semanticRect(SemanticsNode node, SemanticsNode ancestor) {
+  var matrix = Matrix4.identity();
+  for (var current = node; current != ancestor; current = current.parent!) {
+    if (current.transform != null) matrix = current.transform! * matrix;
+  }
+  return MatrixUtils.transformRect(matrix, node.rect);
+}
+
 void main() {
+  group('视觉变换中间值', () {
+    testWidgets('null 以中性变换参与平移缩放，打断从当前值接续并最终清空', (tester) async {
+      ElStyle style(ElTransform? transform) => ElStyle(
+        width: 100,
+        height: 60,
+        transform: transform,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(null), child: _transformChild));
+      await tester.pumpWidget(
+        viewScene(
+          style(const ElTransform.translate(40, 20)),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(30, 30));
+      await tester.pumpWidget(
+        viewScene(
+          style(const ElTransform.translate(80, 40)),
+          child: _transformChild,
+        ),
+      );
+      _transformPoint(tester, const Offset(10, 20), const Offset(30, 30));
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(60, 45));
+      await _advance(tester, 50);
+      await tester.pumpWidget(viewScene(style(null), child: _transformChild));
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(50, 40));
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(10, 20));
+      await tester.pumpWidget(
+        viewScene(
+          style(const ElTransform.scale(2).alignment(Alignment.topLeft)),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      // null 端借用非中性端的原点，不会先绕中心再跳到左上角。
+      _transformPoint(tester, const Offset(10, 20), const Offset(15, 30));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('等矩阵不同来源仍保留角度，零到两 pi 的四分之一帧真实旋转整圈', (tester) async {
+      ElStyle style(ElTransform transform) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        transform: transform,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(
+        _effectsScene(
+          style(const ElTransform.scale(1)),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        _effectsScene(style(ElTransform.rotate(0)), child: _transformChild),
+      );
+      await _advance(tester, 100);
+      await tester.pumpWidget(
+        _effectsScene(
+          style(ElTransform.rotate(2 * math.pi)),
+          child: _transformChild,
+        ),
+      );
+      for (final (position, painted) in <(Offset, bool)>[
+        (const Offset(50, 70), true),
+        (const Offset(10, 30), false),
+        (const Offset(50, -10), true),
+        (const Offset(90, 30), false),
+      ]) {
+        await _advance(tester, 25);
+        _transformPoint(tester, const Offset(90, 30), position);
+        _pixel(
+          (await _effectsPixels(tester, const [Offset(50, -10)])).single,
+          painted ? _red : const Color(0x00000000),
+        );
+      }
+    });
+
+    testWidgets('同类 skew 插角度，异类和异轴按矩阵过渡，曲线过冲保留真实外推', (tester) async {
+      ElStyle style(
+        ElTransform transform, {
+        List<ElTransition>? transitions = _linear,
+      }) => ElStyle(
+        width: 100,
+        height: 60,
+        transform: transform,
+        transformAlignment: Alignment.topLeft,
+        transitions: transitions,
+      );
+      await tester.pumpWidget(
+        viewScene(style(ElTransform.skewX(0)), child: _transformChild),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(ElTransform.skewX(math.pi / 4)),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      _transformPoint(
+        tester,
+        const Offset(10, 20),
+        Offset(10 + 20 * math.tan(math.pi / 8), 20),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(const ElTransform.translateX(40), transitions: null),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(style(const ElTransform.scale(2)), child: _transformChild),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(35, 30));
+      await tester.pumpWidget(
+        viewScene(
+          style(ElTransform.rotateX(math.pi / 2), transitions: null),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(ElTransform.rotateY(math.pi / 2)),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      // 两个不同旋转轴退回矩阵插值，二维投影的中点分别为一半。
+      final child = tester.renderObject<RenderBox>(
+        find.byKey(_transformChildKey),
+      );
+      final point = child.localToGlobal(
+        const Offset(10, 20),
+        ancestor: viewBox(tester),
+      );
+      expect(point.dx, closeTo(5, 1e-6));
+      expect(point.dy, closeTo(10, 1e-6));
+      await tester.pumpWidget(
+        viewScene(
+          style(const ElTransform.identity(), transitions: null),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(
+            const ElTransform.translateX(40),
+            transitions: const [
+              ElTransition.field(
+                ElTransitionField.transform,
+                Duration(milliseconds: 100),
+                _NegativeCurve(),
+              ),
+            ],
+          ),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-10, 20));
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(50, 20));
+    });
+
+    testWidgets('内置原点与独立对齐连续插值，延迟和 RTL 改向不重启原截止时间', (tester) async {
+      ElStyle style(
+        AlignmentGeometry origin, {
+        AlignmentGeometry? alignment,
+        List<ElTransition>? transitions = _linear,
+      }) => ElStyle(
+        width: 100,
+        height: 60,
+        transform: const ElTransform.scale(2).alignment(origin),
+        transformAlignment: alignment,
+        transitions: transitions,
+      );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.topLeft), child: _transformChild),
+      );
+      await tester.pumpWidget(
+        viewScene(style(Alignment.bottomRight), child: _transformChild),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
+      await _advance(tester, 50);
+      await tester.pumpWidget(
+        viewScene(
+          style(Alignment.topLeft, transitions: null),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(Alignment.topLeft, alignment: Alignment.bottomRight),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
+      await _advance(tester, 50);
+      await tester.pumpWidget(
+        viewScene(style(Alignment.topLeft), child: _transformChild),
+      );
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
+      await _advance(tester, 50);
+      const delayed = [
+        ElTransition.field(
+          ElTransitionField.transformAlignment,
+          Duration(milliseconds: 100),
+          Curves.linear,
+          Duration(milliseconds: 20),
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(
+          style(AlignmentDirectional.centerStart, transitions: null),
+          child: _transformChild,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          style(
+            AlignmentDirectional.centerStart,
+            alignment: AlignmentDirectional.centerEnd,
+            transitions: delayed,
+          ),
+          child: _transformChild,
+        ),
+      );
+      await _advance(tester, 20);
+      _transformPoint(tester, const Offset(10, 20), const Offset(20, 10));
+      await _advance(tester, 25);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-5, 10));
+      await tester.pumpWidget(
+        viewScene(
+          style(
+            AlignmentDirectional.centerStart,
+            alignment: AlignmentDirectional.centerEnd,
+            transitions: delayed,
+          ),
+          direction: TextDirection.rtl,
+          child: _transformChild,
+        ),
+      );
+      _transformPoint(tester, const Offset(10, 20), const Offset(-55, 10));
+      await _advance(tester, 25);
+      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
+      await _advance(tester, 50);
+      _transformPoint(tester, const Offset(10, 20), const Offset(20, 10));
+      for (final animatedExit in [false, true]) {
+        await tester.pumpWidget(
+          viewScene(
+            style(
+              Alignment.center,
+              alignment: Alignment.topLeft,
+              transitions: null,
+            ),
+            child: _transformChild,
+          ),
+        );
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              width: 100,
+              height: 60,
+              transformAlignment: Alignment.bottomRight,
+              transitions: [
+                if (animatedExit)
+                  const ElTransition.field(
+                    ElTransitionField.transform,
+                    Duration(milliseconds: 100),
+                    Curves.linear,
+                  ),
+                const ElTransition.field(
+                  ElTransitionField.transformAlignment,
+                  Duration(milliseconds: 200),
+                  Curves.linear,
+                ),
+              ],
+            ),
+            child: _transformChild,
+          ),
+        );
+        await _advance(tester, 50);
+        _transformPoint(
+          tester,
+          const Offset(10, 20),
+          animatedExit ? const Offset(2.5, 22.5) : const Offset(10, 20),
+        );
+        await _advance(tester, 50);
+        _transformPoint(tester, const Offset(10, 20), const Offset(10, 20));
+        // 变换退出后，对齐应落在声明目标，再出现时不能沿用旧中间原点。
+        await tester.pumpWidget(
+          viewScene(
+            style(
+              Alignment.center,
+              alignment: Alignment.bottomRight,
+              transitions: const [
+                ElTransition.field(
+                  ElTransitionField.transformAlignment,
+                  Duration(milliseconds: 200),
+                  Curves.linear,
+                ),
+              ],
+            ),
+            child: _transformChild,
+          ),
+        );
+        _transformPoint(tester, const Offset(10, 20), const Offset(-80, -20));
+      }
+    });
+
+    testWidgets('每帧真实语义边界与变换后的裁剪同步，切换裁剪后完整后代重新出现', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const rootKey = ValueKey('animated-transform-semantics-root');
+      try {
+        Widget scene(double x, Clip clip) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: Semantics(
+              key: rootKey,
+              container: true,
+              explicitChildNodes: true,
+              child: ElView(
+                key: viewKey,
+                style: ElStyle(
+                  width: 100,
+                  height: 60,
+                  transform: ElTransform.translateX(x),
+                  clipBehavior: clip,
+                  transitions: _linear,
+                ),
+                child: OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: 160,
+                  maxWidth: 160,
+                  minHeight: 100,
+                  maxHeight: 100,
+                  child: Stack(
+                    children: [
+                      for (final (label, left) in [
+                        ('animated-inside', 10.0),
+                        ('animated-partial', 90.0),
+                        ('animated-outside', 130.0),
+                      ])
+                        Positioned(
+                          left: left,
+                          top: 20,
+                          child: Semantics(
+                            container: true,
+                            label: label,
+                            child: const SizedBox(width: 20, height: 20),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpWidget(scene(0, Clip.hardEdge));
+        await tester.pumpWidget(scene(40, Clip.hardEdge));
+        for (final (ms, x) in [(25, 10.0), (25, 20.0), (50, 40.0)]) {
+          await _advance(tester, ms);
+          final root = tester.semantics.find(find.byKey(rootKey));
+          for (final (label, expected) in <(String, Rect)>[
+            ('animated-inside', Rect.fromLTWH(10 + x, 20, 20, 20)),
+            ('animated-partial', Rect.fromLTWH(90 + x, 20, 10, 20)),
+          ]) {
+            final node = find.semantics.byLabel(label).evaluate().single;
+            final actual = _semanticRect(node, root);
+            expect(actual.left, closeTo(expected.left, 1e-6));
+            expect(actual.top, closeTo(expected.top, 1e-6));
+            expect(actual.width, closeTo(expected.width, 1e-6));
+            expect(actual.height, closeTo(expected.height, 1e-6));
+          }
+          expect(find.semantics.byLabel('animated-outside'), findsNothing);
+        }
+        await tester.pumpWidget(scene(40, Clip.none));
+        expect(find.semantics.byLabel('animated-outside'), findsOne);
+        final node = find.semantics
+            .byLabel('animated-partial')
+            .evaluate()
+            .single;
+        expect(
+          _semanticRect(node, tester.semantics.find(find.byKey(rootKey))).width,
+          20,
+        );
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('宽高比中间值', () {
     testWidgets('样式宽高比使双 auto 轴跨越不同截止帧时保持连续', (tester) async {
       const child = SizedBox(width: 120, height: 20);

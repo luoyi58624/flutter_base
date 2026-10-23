@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -220,7 +221,515 @@ void _pixel(Color actual, Color expected) {
   expect(actual.b, closeTo(expected.b, 2 / 255));
 }
 
+void _point(Offset actual, Offset expected) {
+  expect(actual.dx, closeTo(expected.dx, 1e-6));
+  expect(actual.dy, closeTo(expected.dy, 1e-6));
+}
+
+Rect _semanticRect(SemanticsNode node, SemanticsNode ancestor) {
+  var matrix = Matrix4.identity();
+  for (var current = node; current != ancestor; current = current.parent!) {
+    if (current.transform != null) matrix = current.transform! * matrix;
+  }
+  return MatrixUtils.transformRect(matrix, node.rect);
+}
+
+void _rect(Rect actual, Rect expected) {
+  _point(actual.topLeft, expected.topLeft);
+  _point(actual.bottomRight, expected.bottomRight);
+}
+
 void main() {
+  group('视觉变换基本功能', () {
+    testWidgets('复制合并与清空变换只移动画面，布局占位及只读尺寸查询保持不变', (tester) async {
+      const childKey = ValueKey('transform-layout-child');
+      const style = ElStyle(
+        width: 100,
+        height: 60,
+        transform: ElTransform.translate(20, 10),
+      );
+      for (final (value, offset) in <(ElStyle, Offset)>[
+        (style, const Offset(20, 10)),
+        (
+          style.copyWith(transform: const ElTransform.translate(-10, 5)),
+          const Offset(-10, 5),
+        ),
+        (
+          style.merge(const ElStyle(transform: ElTransform.translate(8, 6))),
+          const Offset(8, 6),
+        ),
+        (
+          style.copyWith(transform: null, transformAlignment: null),
+          Offset.zero,
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            value,
+            child: const SizedBox(key: childKey, width: 20, height: 10),
+          ),
+        );
+        final child = tester.renderObject<RenderBox>(find.byKey(childKey));
+        final box = viewBox(tester);
+        expect(viewSize(tester), const Size(100, 60));
+        expect(
+          box.getDryLayout(const BoxConstraints(maxWidth: 200, maxHeight: 200)),
+          const Size(100, 60),
+        );
+        expect(box.getMaxIntrinsicWidth(300), 100);
+        expect(box.getMaxIntrinsicHeight(300), 60);
+        _point(child.localToGlobal(Offset.zero, ancestor: box), offset);
+      }
+    });
+
+    testWidgets('便捷构造和完整矩阵让后代坐标与真实绘制采用同一个变换', (tester) async {
+      const childKey = ValueKey('transform-coordinate-child');
+      final matrix = Matrix4.identity()..setTranslationRaw(12, 6, 0);
+      for (final (transform, expected) in <(ElTransform, Offset)>[
+        (const ElTransform.identity(), const Offset(10, 20)),
+        (const ElTransform.translate(12, 6), const Offset(22, 26)),
+        (const ElTransform.translateX(12), const Offset(22, 20)),
+        (const ElTransform.translateY(6), const Offset(10, 26)),
+        (const ElTransform.translateZ(6), const Offset(10, 20)),
+        (const ElTransform.translate3d(12, 6, 8), const Offset(22, 26)),
+        (const ElTransform.scale(2, 0.5), const Offset(20, 10)),
+        (const ElTransform.scaleX(2), const Offset(20, 20)),
+        (const ElTransform.scaleY(0.5), const Offset(10, 10)),
+        (const ElTransform.scaleZ(2), const Offset(10, 20)),
+        (const ElTransform.scale3d(2, 0.5, 3), const Offset(20, 10)),
+        (ElTransform.rotate(math.pi / 2), const Offset(-20, 10)),
+        (ElTransform.rotateX(math.pi / 3), const Offset(10, 10)),
+        (ElTransform.rotateY(math.pi / 3), const Offset(5, 20)),
+        (ElTransform.rotateZ(math.pi / 2), const Offset(-20, 10)),
+        (ElTransform.rotate3d(0, 0, 2, math.pi / 2), const Offset(-20, 10)),
+        (ElTransform.rotate3d(0, 0, 1e300, math.pi / 2), const Offset(-20, 10)),
+        (
+          ElTransform.skew(math.atan(0.5), math.atan(0.25)),
+          const Offset(20, 22.5),
+        ),
+        (ElTransform.skewX(math.atan(0.5)), const Offset(20, 20)),
+        (ElTransform.skewY(math.atan(0.25)), const Offset(10, 22.5)),
+        (const ElTransform.perspective(500), const Offset(10, 20)),
+        (
+          const ElTransform.matrix(1, 0.25, 0.5, 1, 12, 6),
+          const Offset(32, 28.5),
+        ),
+        (
+          const ElTransform.matrix3d(
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            12,
+            6,
+            0,
+            1,
+          ),
+          const Offset(22, 26),
+        ),
+        (ElTransform.matrix4(matrix), const Offset(22, 26)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              width: 100,
+              height: 60,
+              transform: transform,
+              transformAlignment: Alignment.topLeft,
+            ),
+            child: const SizedBox(key: childKey, width: 40, height: 40),
+          ),
+        );
+        final child = tester.renderObject<RenderBox>(find.byKey(childKey));
+        final box = viewBox(tester);
+        const local = Offset(10, 20);
+        _point(child.localToGlobal(local, ancestor: box), expected);
+        _point(
+          MatrixUtils.transformPoint(child.getTransformTo(box), local),
+          expected,
+        );
+        _point(child.globalToLocal(child.localToGlobal(local)), local);
+      }
+      for (final (transform, inside, outside)
+          in <(ElTransform, Offset, Offset)>[
+            (
+              const ElTransform.translateX(20),
+              const Offset(140, 60),
+              const Offset(40, 60),
+            ),
+            (
+              const ElTransform.scale(0.5),
+              const Offset(80, 60),
+              const Offset(40, 60),
+            ),
+            (
+              ElTransform.rotate(math.pi / 2),
+              const Offset(80, 15),
+              const Offset(40, 60),
+            ),
+          ]) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _red,
+            transform: transform,
+          ),
+        );
+        _pixel(pixels.at(inside.dx.toInt(), inside.dy.toInt()), _red);
+        _pixel(
+          pixels.at(outside.dx.toInt(), outside.dy.toInt()),
+          const Color(0x00000000),
+        );
+      }
+    });
+
+    testWidgets('原点优先级与方向性对齐以含 padding、不含 margin 的视觉盒为准', (tester) async {
+      const childKey = ValueKey('transform-origin-child');
+      final transform = const ElTransform.scale(2)
+          .alignment(Alignment.bottomRight);
+      for (final (alignment, direction, expected)
+          in <(AlignmentGeometry?, TextDirection, Offset)>[
+            (null, TextDirection.ltr, const Offset(-74, -36)),
+            (Alignment.topLeft, TextDirection.ltr, const Offset(26, 24)),
+            (
+              AlignmentDirectional.centerStart,
+              TextDirection.ltr,
+              const Offset(26, -6),
+            ),
+            (
+              AlignmentDirectional.centerStart,
+              TextDirection.rtl,
+              const Offset(-74, -6),
+            ),
+          ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              width: 100,
+              height: 60,
+              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.fromLTRB(6, 4, 10, 8),
+              transform: transform,
+              transformAlignment: alignment,
+            ),
+            direction: direction,
+            child: const SizedBox(key: childKey, width: 20, height: 10),
+          ),
+        );
+        final child = tester.renderObject<RenderBox>(find.byKey(childKey));
+        _point(
+          child.localToGlobal(Offset.zero, ancestor: viewBox(tester)),
+          expected,
+        );
+        expect(viewSize(tester), const Size(116, 72));
+      }
+    });
+
+    testWidgets('变换包住组透明、装饰和合成 child，自身与祖先裁剪各守住其坐标范围', (tester) async {
+      final style = ElStyle(
+        width: 100,
+        height: 60,
+        transform: const ElTransform.translateX(10),
+        opacity: 0.5,
+        gradient: const LinearGradient(colors: [_green, _green]),
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        boxShadow: const [BoxShadow(color: _blue, offset: Offset(12, 0))],
+        border: Border.all(color: _yellow, width: 4),
+        outline: const ElOutline(width: 4, color: _red),
+      );
+      var pixels = await _borderPixels(
+        tester,
+        style,
+        child: const RepaintBoundary(
+          child: Align(
+            child: SizedBox(
+              width: 40,
+              height: 20,
+              child: ColoredBox(color: _blue),
+            ),
+          ),
+        ),
+      );
+      for (final (point, color) in <(Offset, Color)>[
+        (const Offset(90, 60), const Color(0x800000ff)),
+        (const Offset(90, 45), const Color(0x8000ff00)),
+        (const Offset(42, 60), const Color(0x80ffff00)),
+        (const Offset(38, 60), const Color(0x80ff0000)),
+        (const Offset(150, 60), const Color(0x800000ff)),
+        (const Offset(32, 60), const Color(0x00000000)),
+      ]) {
+        _pixel(pixels.at(point.dx.toInt(), point.dy.toInt()), color);
+      }
+      pixels = await _borderPixels(
+        tester,
+        style,
+        wrap: (child) => ClipRect(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 0.6,
+            heightFactor: 1,
+            child: child,
+          ),
+        ),
+      );
+      _pixel(pixels.at(90, 60), const Color(0x8000ff00));
+      _pixel(pixels.at(120, 60), const Color(0x00000000));
+    });
+
+    testWidgets('实际指针路径使用逆变换后的 child 局部坐标，旧位置不再命中', (tester) async {
+      final positions = <Offset>[];
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _red,
+            transform: ElTransform.scale(0.5),
+          ),
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (event) => positions.add(event.localPosition),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+      final origin = viewBox(tester).localToGlobal(Offset.zero);
+      await tester.tapAt(origin + const Offset(45, 25));
+      expect(positions, hasLength(1));
+      _point(positions.single, const Offset(40, 20));
+      await tester.tapAt(origin + const Offset(10, 30));
+      expect(positions, hasLength(1));
+      expect(_hits(tester, const Offset(10, 30)), isFalse);
+    });
+
+    testWidgets('不可逆、非有限及跨投影零面的变换不绘制不命中并移除子语义，清空后恢复', (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        final crossesPlane = Matrix4.identity()..setEntry(3, 0, -0.02);
+        for (final transform in <ElTransform?>[
+          const ElTransform.scale(0),
+          const ElTransform.scaleZ(0),
+          const ElTransform.matrix(1, 0, 0, 1, double.nan, 0),
+          const ElTransform.matrix(1, 0, 0, 1, double.infinity, 0),
+          ElTransform.matrix4(crossesPlane),
+          const ElTransform.matrix3d(
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            -1,
+          ),
+          null,
+        ]) {
+          final pixels = await _borderPixels(
+            tester,
+            ElStyle(
+              width: 100,
+              height: 60,
+              backgroundColor: _red,
+              transform: transform,
+            ),
+            child: Semantics(
+              container: true,
+              label: '变换可访问内容',
+              child: const SizedBox.expand(),
+            ),
+          );
+          final visible = transform == null;
+          _pixel(pixels.at(80, 60), visible ? _red : const Color(0x00000000));
+          expect(_hits(tester, const Offset(50, 30)), visible);
+          expect(
+            find.semantics.byLabel('变换可访问内容'),
+            visible ? findsOne : findsNothing,
+          );
+          expect(viewSize(tester), const Size(100, 60));
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+
+    testWidgets('真实语义节点的矩形与父级累计变换对应可见画面，嵌套原生变换不重复计算', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const rootKey = ValueKey('transform-semantics-root');
+      try {
+        for (final (transform, expected) in <(ElTransform, Rect)>[
+          (
+            const ElTransform.translate(12, 6),
+            const Rect.fromLTWH(22, 16, 20, 10),
+          ),
+          (const ElTransform.scale(2), const Rect.fromLTWH(20, 20, 40, 20)),
+          (
+            ElTransform.rotate(math.pi / 2),
+            const Rect.fromLTWH(-20, 10, 10, 20),
+          ),
+        ]) {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: Semantics(
+                  key: rootKey,
+                  container: true,
+                  explicitChildNodes: true,
+                  child: Transform.translate(
+                    offset: const Offset(7, 3),
+                    child: ElView(
+                      key: viewKey,
+                      style: ElStyle(
+                        width: 100,
+                        height: 60,
+                        padding: const EdgeInsets.all(10),
+                        transform: transform,
+                        transformAlignment: Alignment.topLeft,
+                      ),
+                      child: Semantics(
+                        container: true,
+                        label: '坐标标记',
+                        child: const SizedBox(width: 20, height: 10),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          final node = find.semantics.byLabel('坐标标记').evaluate().single;
+          final root = tester.semantics.find(find.byKey(rootKey));
+          _rect(_semanticRect(node, root), expected.shift(const Offset(7, 3)));
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+
+    testWidgets('嵌套旋转和祖先裁剪下，子语义的裁剪矩形与树节点和原生 Transform 一致', (tester) async {
+      final semantics = tester.ensureSemantics();
+      const rootKey = ValueKey('transform-clip-semantics-root');
+      try {
+        Widget markers() => OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: 160,
+          maxWidth: 160,
+          minHeight: 100,
+          maxHeight: 100,
+          child: Stack(
+            children: [
+              for (final (label, left) in [
+                ('clip-inside', 10.0),
+                ('clip-partial', 90.0),
+                ('clip-outside', 130.0),
+              ])
+                Positioned(
+                  left: left,
+                  top: 20,
+                  child: Semantics(
+                    container: true,
+                    label: label,
+                    child: const SizedBox(width: 20, height: 20),
+                  ),
+                ),
+            ],
+          ),
+        );
+        Future<Map<String, (Rect, bool)>> snapshot(
+          bool native,
+          Clip clip,
+        ) async {
+          Widget child = native
+              ? Transform.rotate(
+                  angle: math.pi / 12,
+                  child: Transform.translate(
+                    offset: const Offset(10, 0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: clip,
+                      child: SizedBox(width: 100, height: 60, child: markers()),
+                    ),
+                  ),
+                )
+              : Transform.rotate(
+                  angle: math.pi / 12,
+                  child: ElView(
+                    style: ElStyle(
+                      width: 100,
+                      height: 60,
+                      transform: const ElTransform.translateX(10),
+                      clipBehavior: clip,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: markers(),
+                  ),
+                );
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: Semantics(
+                  key: rootKey,
+                  container: true,
+                  explicitChildNodes: true,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 140,
+                      height: 100,
+                      child: Center(child: child),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          final root = tester.semantics.find(find.byKey(rootKey));
+          return {
+            for (final node
+                in find.semantics.byLabel(RegExp('^clip-')).evaluate())
+              node.label: (
+                _semanticRect(node, root),
+                node.flagsCollection.isHidden,
+              ),
+          };
+        }
+
+        for (final clip in [Clip.none, Clip.hardEdge, Clip.antiAlias]) {
+          final expected = await snapshot(true, clip);
+          final actual = await snapshot(false, clip);
+          expect(expected, contains('clip-inside'));
+          expect(actual.keys, unorderedEquals(expected.keys));
+          for (final label in expected.keys) {
+            _rect(actual[label]!.$1, expected[label]!.$1);
+            expect(actual[label]!.$2, expected[label]!.$2);
+          }
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('宽高比基本功能', () {
     testWidgets('显式轴、自然盒、百分比和边距按先比例后限制的顺序求值', (tester) async {
       for (final (style, expected) in <(ElStyle, Size)>[

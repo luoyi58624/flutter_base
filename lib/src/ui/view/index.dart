@@ -10,6 +10,7 @@ export 'style/index.dart'
         ElOutline,
         ElOutlineExt,
         ElBoxShadow,
+        ElTransform,
         ElTransition,
         ElTransitionField;
 

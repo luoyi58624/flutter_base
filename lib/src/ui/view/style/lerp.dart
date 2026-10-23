@@ -66,6 +66,24 @@ double? _parseOpacity(num value) {
 double? _opacityLerp(double? from, double? to, double t) =>
     _parseOpacity(lerpDouble(from ?? 1, to ?? 1, t)!);
 
+// 缺省原点是动态回退项，不能提前冻结为中心，否则清空时会在终点跳变。
+typedef _TransformAlignment = ({AlignmentGeometry value, double fallback});
+
+_TransformAlignment? _transformAlignmentLerp(
+  _TransformAlignment? from,
+  _TransformAlignment? to,
+  double t,
+) => from == null && to == null
+    ? null
+    : (
+        value: AlignmentGeometry.lerp(
+          from?.value ?? Alignment.center,
+          to?.value ?? Alignment.center,
+          t,
+        )!,
+        fallback: lerpDouble(from?.fallback ?? 1, to?.fallback ?? 1, t)!,
+      );
+
 EdgeInsets? _resolveInsets(EdgeInsetsGeometry value, TextDirection direction) {
   final result = value.resolve(direction);
   assert(

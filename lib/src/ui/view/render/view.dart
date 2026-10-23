@@ -4,6 +4,7 @@ import '../layout/box_layout.dart';
 import '../paint/decoration.dart';
 import '../paint/effects.dart';
 import '../paint/shape.dart';
+import '../paint/transform.dart';
 import '../style/index.dart';
 
 /// 单子视图的框架宿主，样式、盒模型和绘制分别委托给独立协作者。
@@ -27,6 +28,17 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
       _decoration ??= DecorationPainter(_ensureShape);
 
   EffectController get _effect => _effects ??= EffectController(_ensureShape);
+
+  TransformGeometry? _readTransform([Rect? paintBounds]) {
+    final value = _styleEngine.transform;
+    return value == null
+        ? null
+        : _effect.resolveTransform(
+            value,
+            boxLayout.boxRect,
+            paintBounds ?? _untransformedPaintBounds,
+          );
+  }
 
   @override
   bool get alwaysNeedsCompositing {
@@ -121,6 +133,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
     final alpha = _styleEngine.opacityAlpha;
     if (alpha == 0) {
       _effects?.clearOpacity();
+      _effects?.clearTransform();
       // 隐藏期间移除装饰也应解除资源持有，无需等待下一次可见帧。
       final decoration = _decoration;
       if (decoration != null) {
@@ -130,6 +143,23 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
       }
       return;
     }
+    final transform = _readTransform();
+    if (transform == null) {
+      _effects?.clearTransform();
+      _paintOpacity(context, offset);
+    } else {
+      _effect.paintTransform(
+        context,
+        offset,
+        transform,
+        needsCompositing: needsCompositing,
+        painter: _paintOpacity,
+      );
+    }
+  }
+
+  void _paintOpacity(PaintingContext context, Offset offset) {
+    final alpha = _styleEngine.opacityAlpha;
     if (alpha < 255) {
       _effect.paintOpacity(context, offset, alpha, _paintBox);
     } else {
@@ -193,6 +223,11 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   @override
   Rect get paintBounds {
+    final bounds = _untransformedPaintBounds;
+    return _readTransform(bounds)?.mapBounds(bounds) ?? bounds;
+  }
+
+  Rect get _untransformedPaintBounds {
     final border = _styleEngine.border;
     var bounds = super.paintBounds;
     final shadows = _styleEngine.boxShadow;
@@ -260,9 +295,35 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   }
 
   @override
-  bool hitTest(BoxHitTestResult result, {required Offset position}) =>
-      _styleEngine.opacityAlpha != 0 &&
-      super.hitTest(result, position: position);
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (_styleEngine.opacityAlpha == 0) return false;
+    final transform = _readTransform();
+    if (transform == null) return super.hitTest(result, position: position);
+    if (!transform.valid) return false;
+    return result.addWithPaintTransform(
+      transform: transform.matrix,
+      position: position,
+      hitTest: (result, local) => super.hitTest(result, position: local),
+    );
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    final geometry = _readTransform();
+    if (geometry != null) transform.multiply(geometry.matrix);
+    super.applyPaintTransform(child, transform);
+  }
+
+  @override
+  Rect get semanticBounds =>
+      _readTransform()?.mapBounds(super.semanticBounds) ?? super.semanticBounds;
+
+  @override
+  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
+    if (_readTransform()?.valid ?? true) {
+      super.visitChildrenForSemantics(visitor);
+    }
+  }
 
   @override
   bool hitTestSelf(Offset position) =>
@@ -288,7 +349,9 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   @override
   Rect? describeApproximatePaintClip(RenderObject child) =>
-      _styleEngine.clipBehavior == Clip.none ? null : boxLayout.boxRect;
+      _styleEngine.clipBehavior == Clip.none
+      ? null
+      : (_readTransform()?.mapBounds(boxLayout.boxRect) ?? boxLayout.boxRect);
 
   @override
   void attach(PipelineOwner owner) {

@@ -22,7 +22,7 @@ class StyleEngine {
   /// 消费结果只需要重新绘制。
   static const paint = 2;
 
-  /// 消费结果改变后代的近似语义裁剪边界。
+  /// 消费结果改变语义变换或后代的近似语义裁剪边界。
   static const semantics = 4;
 
   /// 消费结果切换是否需要合成图层。
@@ -44,6 +44,52 @@ class StyleEngine {
   bool _widthResolved = true, _heightResolved = true;
   Object? _measurementKey;
   Size? _measurementSize;
+  ElTransform? _transformSource;
+  Object? _transformKey;
+  TransformStyle? _resolvedTransform;
+
+  /// 变换表达式与方向性原点已在引擎内求值，执行器只处理实际盒几何。
+  TransformStyle? get transform {
+    final value = _values[StyleField.transform.index] as ElTransform?;
+    if (value == null) return null;
+    final explicit =
+        _values[StyleField.transformAlignment.index] as _TransformAlignment?;
+    final key = (value, explicit, _direction);
+    if (_transformKey != key) {
+      final matrix = _transformSource == value
+          ? _resolvedTransform!.matrix
+          : value.toMatrix4();
+      final origin = value.origin ?? Alignment.center;
+      final Alignment alignment;
+      if (explicit == null) {
+        alignment = origin.resolve(_direction);
+      } else if (explicit.fallback == 0) {
+        alignment = explicit.value.resolve(_direction);
+      } else {
+        final point = explicit.value.resolve(_direction);
+        final fallback = origin.resolve(_direction);
+        alignment = Alignment(
+          point.x + fallback.x * explicit.fallback,
+          point.y + fallback.y * explicit.fallback,
+        );
+      }
+      _transformKey = key;
+      _transformSource = value;
+      _resolvedTransform = (matrix: matrix, alignment: alignment);
+    }
+    return _resolvedTransform;
+  }
+
+  bool get _directionalTransform {
+    final value = _values[StyleField.transform.index] as ElTransform?;
+    if (value == null) return false;
+    final explicit =
+        _values[StyleField.transformAlignment.index] as _TransformAlignment?;
+    return (explicit != null && explicit.value is! Alignment) ||
+        ((explicit == null || explicit.fallback != 0) &&
+            value.origin != null &&
+            value.origin is! Alignment);
+  }
 
   /// 已完成颜色解析和本帧插值的背景色。
   Color? get backgroundColor =>
@@ -124,6 +170,15 @@ class StyleEngine {
     if (field.sameValue(_values[field.index], value)) return;
     final composited = field == StyleField.opacity && _hasOpacityLayer;
     _values[field.index] = value;
+    if (field == StyleField.transform && value == null) {
+      _transformSource = null;
+      _transformKey = null;
+      _resolvedTransform = null;
+    }
+    if (field == StyleField.transformAlignment &&
+        _values[StyleField.transform.index] == null) {
+      return;
+    }
     _damage |= field.damage;
     if (field == StyleField.opacity && composited != _hasOpacityLayer) {
       _damage |= compositing;
@@ -180,6 +235,7 @@ class StyleEngine {
     if (directionChanged && (outline?.gradient != null || gradient != null)) {
       _damage |= paint;
     }
+    if (directionChanged && _directionalTransform) _damage |= paint | semantics;
     for (final field in StyleField.values) {
       final raw = field.declaration(style);
       final changed =
@@ -190,7 +246,11 @@ class StyleEngine {
       final to = changed
           ? (raw == null ? null : field.parse(raw, _direction))
           : _targets[field.index];
-      final transition = _hasLayout
+      final transition =
+          _hasLayout &&
+              (field != StyleField.transformAlignment ||
+                  _values[StyleField.transform.index] != null ||
+                  _targets[StyleField.transform.index] != null)
           ? _transition(field, style.transitions)
           : null;
       assert(
@@ -211,6 +271,9 @@ class StyleEngine {
       var from = _values[field.index];
       if (immediate || field.sameValue(from, to)) {
         _write(field, to);
+        if (field == StyleField.transform && to == null) {
+          _finishUnusedAlignment();
+        }
         continue;
       }
       if (field.isLength &&
@@ -242,11 +305,15 @@ class StyleEngine {
   void _tick(Duration elapsed) {
     final tracks = _tracks!;
     final now = SchedulerBinding.instance.currentFrameTimeStamp;
+    var transformRemoved = false;
     for (var i = tracks.length - 1; i >= 0; i--) {
       final track = tracks[i];
       if (now >= track.deadline) {
         _write(track.field, track.target);
         tracks.removeAt(i);
+        if (track.field == StyleField.transform && track.target == null) {
+          transformRemoved = true;
+        }
       } else {
         _write(track.field, track.sample(now));
         // 活动 auto 需要观察 tight 子树的独立内容更新；等待 delay 时仍不探测。
@@ -257,8 +324,17 @@ class StyleEngine {
         }
       }
     }
+    if (transformRemoved) _finishUnusedAlignment();
     _flush();
     if (tracks.isEmpty) _ticker!.stop();
+  }
+
+  void _finishUnusedAlignment() {
+    // 变换已退出时原点不再有消费者，直接落到目标并停掉其剩余轨道。
+    final track = _track(StyleField.transformAlignment);
+    if (track == null) return;
+    _write(StyleField.transformAlignment, track.target);
+    _tracks!.remove(track);
   }
 
   /// child、约束或引用导致的外部布局变化，仅使有关端点下次重新测量。

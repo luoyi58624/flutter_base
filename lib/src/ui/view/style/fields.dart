@@ -20,7 +20,9 @@ enum StyleField {
   aspectRatio,
   gradient,
   boxShadow,
-  opacity;
+  opacity,
+  transform,
+  transformAlignment;
 
   /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
@@ -49,7 +51,9 @@ enum StyleField {
     gradient ||
     boxShadow ||
     opacity => StyleEngine.paint,
-    clipBehavior => StyleEngine.paint | StyleEngine.semantics,
+    clipBehavior ||
+    transform ||
+    transformAlignment => StyleEngine.paint | StyleEngine.semantics,
   };
 
   ElTransitionField? get transitionField => switch (this) {
@@ -72,6 +76,8 @@ enum StyleField {
     gradient => ElTransitionField.gradient,
     boxShadow => ElTransitionField.boxShadow,
     opacity => ElTransitionField.opacity,
+    transform => ElTransitionField.transform,
+    transformAlignment => ElTransitionField.transformAlignment,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -94,6 +100,8 @@ enum StyleField {
     gradient => style.gradient,
     boxShadow => style.boxShadow,
     opacity => style.opacity,
+    transform => style.transform,
+    transformAlignment => style.transformAlignment,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -115,7 +123,9 @@ enum StyleField {
     aspectRatio ||
     gradient ||
     boxShadow ||
-    opacity => false,
+    opacity ||
+    transform ||
+    transformAlignment => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -136,6 +146,8 @@ enum StyleField {
     gradient => value as Gradient,
     boxShadow => _parseShadows(value as List<BoxShadow>),
     opacity => _parseOpacity(value as num),
+    transform => value as ElTransform,
+    transformAlignment => (value: value as AlignmentGeometry, fallback: 0.0),
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -160,5 +172,11 @@ enum StyleField {
       t,
     ),
     opacity => _opacityLerp(from as double?, to as double?, t),
+    transform => ElTransform.lerp(from as ElTransform?, to as ElTransform?, t),
+    transformAlignment => _transformAlignmentLerp(
+      from as _TransformAlignment?,
+      to as _TransformAlignment?,
+      t,
+    ),
   };
 }

@@ -10,6 +10,7 @@ import 'package:flutter_base/dart.dart';
 import '../layout/box_layout.dart';
 import 'resolved/layout.dart';
 import 'resolved/outline.dart';
+import 'resolved/transform.dart';
 
 part 'index.g.dart';
 part 'transition.dart';
@@ -18,6 +19,7 @@ part 'style_engine.dart';
 part 'fields.dart';
 part 'outline.dart';
 part 'shadow.dart';
+part 'transform.dart';
 
 /// 不可变的盒模型样式；宽高包含 padding，不包含 margin。
 @immutable
@@ -38,6 +40,8 @@ class ElStyle with Equatable {
     this.gradient,
     this.boxShadow,
     this.opacity,
+    this.transform,
+    this.transformAlignment,
     this.padding,
     this.margin,
     this.border,
@@ -85,6 +89,12 @@ class ElStyle with Equatable {
 
   /// 整组装饰与 child 的透明度，限制在 0～1；null 为 1，零值不绘制或命中。
   final num? opacity;
+
+  /// 整组视觉变换，不占布局；null 表示不变换，平移单位为逻辑像素。
+  final ElTransform? transform;
+
+  /// 变换原点，优先于 transform.origin；缺省回退内部原点或视觉盒中心。
+  final AlignmentGeometry? transformAlignment;
 
   /// 非负有限内边距，支持方向性边距；null 等同于零。
   final EdgeInsetsGeometry? padding;
