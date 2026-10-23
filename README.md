@@ -142,7 +142,7 @@ Render 调度骨架稳定，再重新生成模型代码。相关验证只运行�
 
 ```powershell
 dart run build_runner build --build-filter 'lib/src/ui/view/style/index.g.dart'
-flutter test test/ui/view_test.dart test/ui/view_architecture_test.dart test/ui/style_engine_test.dart test/ui/view_radius_test.dart test/ui/view_clip_test.dart --concurrency=1
+flutter test test/ui/view --concurrency=1
 ```
 
 ## 独立事件 Widget
@@ -158,7 +158,16 @@ ElEventView(
     onTap: (event) => print(event.localPosition),
     onLongPress: (event) => print('长按'),
   ),
-  child: const SizedBox(width: 120, height: 40, child: Text('点击我')),
+  child: Builder(
+    builder: (context) => ColoredBox(
+      color: context.hasTap
+          ? const Color(0xffbbbbbb)
+          : context.hasHover
+          ? const Color(0xffeeeeee)
+          : const Color(0xffffffff),
+      child: const SizedBox(width: 120, height: 40, child: Text('点击我')),
+    ),
+  ),
 )
 ```
 
@@ -175,9 +184,19 @@ ElEventView(
   `consumeDelta` / `consumePrimaryDelta` / `consumeAllDelta` 分配拖动位移。
 - 重建时同结构的新闭包热替换并保留手势；`copyWith` 的 null 表示保留，
   清除回调使用 `clear: {ElEventClearField.onTap}`。卸载、禁用和结构变化均结算已开始的手势。
+- `ElEventView.maybeOf(context)` 读取最近祖先的只读 `ElEventState`，没有宿主时返回 null。
+  `context.hasTap`、`context.hasHover` 按字段订阅状态，没有宿主时返回 false；
+  `hasLongPress`、`hasDrag` 表示已配置的相应手势是否处于活动状态。
+  必须使用 child 内部的 context（例如上述 Builder）；创建 ElEventView 的外层 context
+  无法读取它自己的状态。状态变化只通知实际订阅字段的后代，静态 child 不重建。
+- `ElEventConfig.delayTouchDown` 默认 0ms，控制触摸按压反馈的进入延迟；
+  `delayTouchUp` 默认 100ms，表示从最初按下起算的最短反馈时间。
+  这些配置只影响 `hasTap`，不延迟点击回调。短于进入延迟的触摸不补播反馈，
+  取消、禁用和卸载立即清理；鼠标和笔即时响应。
 
 事件实现在 `lib/src/ui/event/`，只依赖 Dart、Flutter 和自身目录，不依赖 ElView、
-样式、滚动、投影或选区模块。本次不包含键盘和焦点，也不提供全局指针屏障或样式反馈。
+样式、滚动、投影或选区模块。交互状态由后代自行用于改变样式；本次不包含键盘、
+焦点或全局指针屏障。
 内部 dispatcher 与状态机不从公共入口导出。
 
 ```powershell
