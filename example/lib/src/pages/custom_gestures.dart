@@ -143,6 +143,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       ElGestureCancelReason.longPressAccepted => '长按已成立',
       ElGestureCancelReason.arenaRejected => '其他手势取得所有权',
       ElGestureCancelReason.rejected => '移动、按钮或指针条件不满足',
+      ElGestureCancelReason.ineligible => '暂时不满足点击条件',
       ElGestureCancelReason.pointerCanceled => '平台取消指针',
       ElGestureCancelReason.canceled => '宿主取消或生命周期结束',
       null => null,

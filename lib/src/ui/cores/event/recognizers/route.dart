@@ -12,6 +12,22 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
   bool _disposed = false;
   bool _canceling = false;
 
+  ElGestureArenaTeam? get _cooperation =>
+      team is ElGestureArenaTeam ? team as ElGestureArenaTeam : null;
+
+  @override
+  set team(GestureArenaTeam? value) {
+    super.team = value;
+    _cooperation?._members.add(this);
+  }
+
+  bool _participates(int pointer) =>
+      _cooperation?._participates(pointer) ?? true;
+
+  bool _registeredFor(_GestureRoute route, int pointer) =>
+      _cooperation?.onPointerEvent == null ||
+      (route.downEvents[this]?.containsKey(pointer) ?? false);
+
   /// 官方竞技场确认本路线获胜时通知成员，不代表拖拽或长按已经达到阈值。
   void Function(int pointer)? onAccepted;
 
@@ -26,6 +42,8 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     int pointer,
     PointerEvent? event,
   );
+
+  void _stopOtherRoutes(_GestureRoute route, ElGestureDetails details) {}
 
   /// 请求接受指定指针的官方竞技场归属；不会覆盖已经确认的其他赢家。
   void acceptPointer(int pointer) {
@@ -166,6 +184,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     ElGestureDetails callback, {
     int firstMember = 0,
     int? lastMember,
+    bool skipCancelingMembers = false,
     ElGestureDetails? Function(_ElGestureRecognizer member)? prepare,
   }) {
     final terminal = _isTerminalPhase(callback.phase);
@@ -190,6 +209,10 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
         }
         final member = route.members[index];
         if (member._disposed ||
+            skipCancelingMembers &&
+                route.cancelingMembers.contains((family, member)) ||
+            !member._registeredFor(route, callback.pointer) ||
+            candidate && !member._participates(callback.pointer) ||
             (route.excluded[family]?.contains(member) ?? false)) {
           continue;
         }
@@ -200,14 +223,27 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
         if (details == null) continue;
         details._sequenceIdentity = route;
         details._isPrimaryTarget = firstTarget;
+        final memberRevision = route.memberRevisions[(family, member)];
+        details._isActive = () =>
+            route.active &&
+            !member._disposed &&
+            !(route.excluded[family]?.contains(member) ?? false) &&
+            route.revisions[family] == revision &&
+            route.memberRevisions[(family, member)] == memberRevision;
         firstTarget = false;
         member.invokeCallback<void>(callback.phase.name, () {
           final down = route.downEvents[member]?[callback.pointer];
           details._updateTransform(down?.transform);
-          handler(details);
+          final cooperation = member._cooperation;
+          if (cooperation == null) {
+            handler(details);
+          } else {
+            cooperation._during(details.originalEvent, () => handler(details));
+          }
         });
         // 终态是已公开生命周期的清理义务，不能由子回调吞掉祖先的唯一结算。
         if (details.propagationStopped) {
+          member._stopOtherRoutes(route, details);
           // Up 之后的业务点击仍遵守最早截断点，已经公开的释放通知继续结清。
           if (terminal) {
             if (_establishesBoundary(callback.phase)) {
@@ -269,6 +305,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
       return ElPressGestureDetails(
         phase: ElGesturePhase.tapCancel,
         globalPosition: details.globalPosition,
+        downEvent: details.downEvent,
         originalEvent: details.originalEvent,
         buttons: details.buttons,
         cancelReason: ElGestureCancelReason.canceled,
@@ -332,6 +369,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _cooperation?._members.remove(this);
     for (final route in _routes.values.toSet()) {
       if (identical(route.owner, this)) _endRoute(route);
     }
@@ -353,10 +391,16 @@ class _GestureRoute {
       <_ElGestureRecognizer, Map<int, PointerEvent>>{};
   final Map<_GestureFamily, int> cutoffs = <_GestureFamily, int>{};
   final Map<_GestureFamily, int> revisions = <_GestureFamily, int>{};
+  final Map<(_GestureFamily, _ElGestureRecognizer), int> memberRevisions = {};
   final Map<_GestureFamily, int> observedEnds = <_GestureFamily, int>{};
   final Map<_GestureFamily, Set<_ElGestureRecognizer>> excluded = {};
   final Set<(_GestureFamily, _ElGestureRecognizer)> cancelingMembers = {};
   int terminalDispatchDepth = 0;
   bool closeRequested = false;
   bool active = true;
+
+  void invalidate(_ElGestureRecognizer member, _GestureFamily family) {
+    final key = (family, member);
+    memberRevisions[key] = (memberRevisions[key] ?? 0) + 1;
+  }
 }

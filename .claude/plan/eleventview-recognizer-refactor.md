@@ -1,75 +1,79 @@
 # ElEventView 独立手势接入与 Render 精简记录
 
-状态：代码实施与自动化验收完成；真实设备输入和性能尚未实测。
+状态：本轮职责收敛已完成，保留全部既有回归，并补充纯识别器验证。
 
 ## 目标与边界
 
-- 删除 ElEventDispatcher，Render 直接连接独立识别器，不保留旧的全局输入路线、胜出者和驱动者模型。
-- 识别器负责手势识别、成员冒泡、停止传播和官方竞技场协作；Render 只处理元素相关行为。
-- ElEventConfig 仅保存可空声明，默认识别参数由识别器管理；边界策略与反馈时间由 Render 管理。
-- 识别器构造器保留官方通用选项，识别参数通过属性修改；可空参数设为 null 恢复默认行为，当前轮继续使用冻结参数。
-- 事件模型使用现有生成器生成复制接口，移除 ElEventClearField。
-- 只公开 context.hasTap / hasHover 和 maybeOf；读取反馈、仅监听 Down / Up 不占用点击席位。
-- 不包含焦点、键盘、选择、窗口或全局触摸重采样。
+- 删除 ElEventDispatcher；Render 直接复用 Press、Transform 的识别、冒泡与终态处理。
+- Render 不保存另一份点击资格、竞技场接受标志、手势阶段或指针所有者。
+- ElEventConfig 仅保存可空声明，识别器管理默认参数；构造器保留官方通用选项。
+- ElEvent、ElEventConfig、ElDragProxy 继续使用模型生成接口，本轮没有修改生成器。
+- 状态接口只保留 context.hasTap / hasHover 和 ElEventView.maybeOf。
+- 不接入焦点、键盘、选择、窗口或全局触摸重采样。
 
-## 最终结构
+## 职责划分
 
 ```mermaid
 flowchart TB
-  MODEL["生成模型：ElEvent / ElEventConfig / ElDragProxy"] --> VIEW["ElEventView：Widget 与状态订阅"]
-  VIEW --> RENDER["单个 RenderElEvent：命中、输入、边界、反馈"]
-  RENDER --> PRESS["Press：点击、连击、侧键、长按"]
-  RENDER --> TRANSFORM["Transform：拖拽、缩放、旋转"]
-  PRESS --> BUBBLE["识别器成员冒泡与终态结清"]
-  TRANSFORM --> BUBBLE
-  PRESS --> TEAM["官方团队"]
+  VIEW["ElEventView：Widget、按字段订阅"] --> RENDER["单个 RenderElEvent：几何、声明与回调适配"]
+  RENDER --> PRESS["Press：点击、连击、侧键、长按、被动按压"]
+  RENDER --> TRANSFORM["Transform：拖拽、缩放、旋转、升级终态"]
+  RENDER --> FEEDBACK["反馈计时、悬停、光标、拖拽代理消费"]
+  PRESS --> ROUTE["原生路线：冒泡、停止传播、回调有效性"]
+  TRANSFORM --> ROUTE
+  PRESS --> TEAM["协作团队：实际输入观察、独占请求"]
   TRANSFORM --> TEAM
-  TEAM <--> ARENA["Flutter 手势竞技场"]
+  TEAM <--> ARENA["Flutter GestureArenaTeam / GestureArena"]
   OFFICIAL["官方 Tap / Drag / Scrollable / Scale"] <--> ARENA
-  RENDER --> PROXY["回调适配与按需代理消费"]
-  RENDER --> STATE["hasTap / hasHover"]
 ```
 
-| 文件 | 职责 |
+| 所在位置 | 维护的职责 |
 | --- | --- |
-| view.dart | Widget、按字段订阅、状态快照，172 行 |
-| render.dart | 实际元素、原始命中输入、识别器连接、禁用与生命周期，716 行 |
-| render_binding.dart | 识别参数映射、回调载荷映射、拖拽代理消费，413 行 |
-| interaction.dart | 每个元素的输入记录、边界资格与反馈计时，200 行 |
-| recognizers/press.dart | 点击、连击、侧键、长按与独立成员历史 |
-| recognizers/transform.dart | 拖拽、多指变换和真实输入速度 |
-| recognizers/route.dart / team.dart | 纯手势冒泡、官方团队协作和已公开终态清理 |
-| event.dart / config.dart | 模型声明及专用声明结构比较，复制接口位于生成文件 |
+| view.dart | Widget、hasTap / hasHover 按字段订阅、状态快照 |
+| render.dart | 命中、父级挂接、禁用与卸载、范围判断、反馈及业务默认动作 |
+| render_binding.dart | 参数与载荷映射、声明到处理器的选择、按需代理消费 |
+| interaction.dart | 反馈的原始 Down 身份和两个计时器，不保存手势资格 |
+| recognizers/press.dart | 被动与竞争按压共用生命周期，移动容差、资格取消与恢复、连击历史 |
+| recognizers/transform.dart | 逐指官方接受、拖拽与变换、速度、Drag→Scale 的取消策略 |
+| recognizers/route.dart | 冻结冒泡路线、终态义务、每个成员和手势家族的回调有效性 |
+| recognizers/team.dart | 实际投递的原始输入与官方团队结果，协调独占和成员取消 |
 
-## 已完成
+## 本轮已完成
 
-- [x] 删除 Dispatcher、全局控制器注册表、指针路线表及其 winner / driver / dragIdentity 状态。
-- [x] 保留冻结的真实元素命中链，仅用于原始输入和跨家族业务默认动作。
-- [x] 不兼容的拖拽分别参加官方竞争，兼容成员复用原生 parent 冒泡。
-- [x] 以识别器 isPrimaryTarget 选择高频位移消费者，不在 Render 判断普通拖拽归属。
-- [x] 显式独占使用官方席位与接受通知，之后调用成员取消原语；官方落败者不能重新报名。
-- [x] 保留边界移出取消、移回复原、移动永久取消、最短按压反馈与多鼠标悬停。
-- [x] 保留拖拽代理的 pre / 主回调 / overflow 消费顺序。
-- [x] Drag 升级 Scale 前完整结清 Drag，重入不能漏掉其他已公开生命周期的终态。
-- [x] 配置替换、禁用子树、延迟点击、GlobalKey 重挂和卸载均保留回归覆盖。
-- [x] 配置省略字段保留 null，默认值不在配置类中解析。
-- [x] 生成 copyWith：省略保留、显式 null 清除；局部 config 整体替换，允许恢复默认声明。
-- [x] 保留 ElEvent / ElDragProxy 按回调空性比较的业务语义，闭包热替换不重置同形手势。
-- [x] 修复生成器的 double 复制参数对整数字面量的转换，增加可空、非空与错误类型回归。
-- [x] 测试宿主替换为真实 Render 元素，识别器测试仍仅有 Press / Transform 两个入口。
+- [x] 删除 Render 的 `_ElementInput`、`_inputs`、命中参与表、手势快照、双手势版本号和独占处理链。
+- [x] 不新增替代 Dispatcher 的宿主控制器；Press / Transform 的原生状态是识别结果来源。
+- [x] `competeForTap = false` 的主键观察不占用官方席位，长按和侧键仍独立竞争；意图在 Down 冻结。
+- [x] 资格函数由宿主提供，识别器负责移出 Cancel、移回 Down；移动容差或永久取消不恢复。
+- [x] 团队以官方接受结果结算独占，不允许已落败的候选重新报名。
+- [x] `cancelDragOnScale` 在 ScaleStart 前结清 Drag；取消回调重入不能漏发或重复终态。
+- [x] `details.isActive` 按实际成员、路线和家族校验，不因取消别的指针或家族而误失效。
+- [x] 反馈以物理 Down 身份区分同编号的新输入；旧回调的独占请求不能作用于下一次输入。
+- [x] Render 只连接最近祖先；团队按点击意图、拖拽轴和阈值筛选自动冒泡，手工 parent 链默认保留原语义。
+- [x] 保留拖拽代理的 pre / 主回调 / overflow 消费顺序，多鼠标悬停和光标更新。
+- [x] 保留配置替换、禁用子树、延迟点击、GlobalKey 重挂、卸载和官方手势混用回归。
+- [x] 同步示例页的新增取消原因，不修改其他会话的示例导航或 SDK 绑定工作。
 
-## 自动化验收
+## 本轮验收
 
-- 事件模块与模型生成结果运行回归 259 项通过；最终 Render 整理后相关 64 项回归再次通过。
-- 生成器自身 13 项测试通过 Dart 测试环境运行；Flutter 测试环境不支持其 Isolate.packageConfig 读取。
-- 示例页 12 项通过、1 项预览按原条件跳过，覆盖点击、连击、按钮、冒泡、官方混用、导航、窄屏和放大文字。
-- 静态检查与限定文件的差异检查。
-- 不运行整个仓库测试，不把自动化通过视为真实设备体验或性能证明。
+- 事件模块 265 项通过，保留原有 251 项并新增 14 项；其中两个独立识别器测试入口合计 95 项。
+- 新增验证覆盖被动观察、长按独立竞争、资格恢复、逐指取消、意图冻结、侧键优先级、纯团队独占、缩放升级与终态重入。
+- 宿主回归补充保存的旧原始回调和旧语义回调不能独占同编号新输入。
+- 自定义手势示例页 12 项通过，1 项预览按原有条件跳过。
+- 执行事件源码与事件测试的静态检查、限定文件的差异检查。
+- 仅验证改动涉及的模块，没有运行全库测试，也没有重新运行未修改的生成器测试。
 
-## 规模
+## 规模与限制
 
-按本次开始时的 HEAD 统计 Dart 文件，包含注释与空行：事件目录由 14 个文件、6079 行变为 17 个文件、5638 行。其中手写源码 5272 行，生成代码 366 行。Widget 为 172 行。此口径不等同于最早 el_ui 源仓库。
+按上一版提交 `f89795a` 对比，Dart 行数包含注释与空行：
 
-## 仍需真实设备验收
+| 文件或范围 | 上一版 | 当前 |
+| --- | ---: | ---: |
+| render.dart | 716 | 354 |
+| render_binding.dart | 413 | 362 |
+| interaction.dart | 200 | 72 |
+| 三个宿主文件合计 | 1329 | 788 |
+| 事件目录全部 Dart | 5638 | 5723 |
 
-Windows 鼠标侧键、触控板与 Android 触摸、滚动、多指体验尚未实测；本次没有进行性能测量或更改全局触摸重采样。
+宿主减少 541 行；整个事件目录增加 85 行，主要用于识别器职责与独立协作。判断标准是状态归属和可独立验证，不能用宿主缩短冒充整体代码减少。
+
+Windows 侧键、触控板及 Android 触摸和多指体验尚未实机验收。本轮未做性能测量，未更改全局触摸重采样。

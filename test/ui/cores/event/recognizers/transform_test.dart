@@ -10,6 +10,117 @@ import '../support/recognizer_test_host.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('拖拽升级缩放由识别器结清每个成员，无需 Render 补发 Cancel', (tester) async {
+    final trace = <String>[];
+    final parent = ElTransformGestureRecognizer()
+      ..cancelDragOnScale = true
+      ..onDragStart = ((_) => trace.add('parent.drag'))
+      ..onDragCancel = ((_) => trace.add('parent.cancel'))
+      ..onDragEnd = ((_) => trace.add('parent.end'))
+      ..onScaleStart = (_) => trace.add('parent.scale');
+    final child = ElTransformGestureRecognizer()
+      ..parent = parent
+      ..cancelDragOnScale = true
+      ..startDistance = 2
+      ..onDragStart = ((_) => trace.add('child.drag'))
+      ..onDragCancel = ((_) => trace.add('child.cancel'))
+      ..onDragEnd = ((_) => trace.add('child.end'))
+      ..onScaleStart = (_) => trace.add('child.scale');
+    addTearDown(child.dispose);
+    addTearDown(parent.dispose);
+    final first = TestPointer(1900);
+    final second = TestPointer(1901);
+    _down(first.down(Offset.zero), [child, parent]);
+    _route(first.move(const Offset(10, 0)));
+    _down(second.down(const Offset(30, 0)), [child, parent]);
+    expect(trace, [
+      'child.drag',
+      'parent.drag',
+      'child.cancel',
+      'parent.cancel',
+      'child.scale',
+      'parent.scale',
+    ]);
+    expect([child.isDragging, parent.isDragging], [false, false]);
+    _route(second.up());
+    _route(first.up());
+    expect(trace, hasLength(6));
+  });
+
+  testWidgets('升级取消回调重入整体 cancel，已公开的拖拽各有且只有一个终态', (tester) async {
+    final trace = <String>[];
+    final parent = ElTransformGestureRecognizer()
+      ..cancelDragOnScale = true
+      ..onDragStart = ((_) => trace.add('parent.start'))
+      ..onDragCancel = (_) => trace.add('parent.cancel');
+    late ElTransformGestureRecognizer child;
+    child = ElTransformGestureRecognizer()
+      ..parent = parent
+      ..cancelDragOnScale = true
+      ..startDistance = 2
+      ..onDragStart = ((_) => trace.add('child.start'))
+      ..onDragCancel = (_) {
+        trace.add('child.cancel');
+        child.cancel();
+      }
+      ..onScaleStart = (_) => trace.add('scale');
+    addTearDown(child.dispose);
+    addTearDown(parent.dispose);
+    final first = TestPointer(1902);
+    final second = TestPointer(1903);
+    _down(first.down(Offset.zero), [child, parent]);
+    _route(first.move(const Offset(10, 0)));
+    _down(second.down(const Offset(30, 0)), [child, parent]);
+    _route(second.up());
+    _route(first.up());
+    expect(trace, [
+      'child.start',
+      'parent.start',
+      'child.cancel',
+      'parent.cancel',
+    ]);
+  });
+
+  testWidgets('取消 Drag 不使同次 Scale 回调失效，禁用 Scale 后不得误取消 Drag', (tester) async {
+    final trace = <String>[];
+    late ElTransformGestureRecognizer drag;
+    drag = ElTransformGestureRecognizer()
+      ..startDistance = 2
+      ..onDragStart = ((_) => trace.add('drag'))
+      ..onDragCancel = ((_) => trace.add('cancel'))
+      ..onDragEnd = ((_) => trace.add('end'))
+      ..onScaleStart = (event) {
+        trace.add('scale');
+        drag.cancelMember(event.pointer, cancelScale: false);
+        expect(event.isActive, isTrue);
+      };
+    addTearDown(drag.dispose);
+    final first = TestPointer(1904);
+    final second = TestPointer(1905);
+    _down(first.down(Offset.zero), [drag]);
+    _route(first.move(const Offset(10, 0)));
+    _down(second.down(const Offset(30, 0)), [drag]);
+    _route(second.up());
+    _route(first.up());
+    expect(trace, ['drag', 'scale', 'cancel']);
+
+    trace.clear();
+    drag
+      ..cancelDragOnScale = true
+      ..onDragStart = (event) {
+        trace.add('drag');
+        drag.cancelMember(event.pointer, cancelDrag: false);
+      };
+    final third = TestPointer(1906);
+    final fourth = TestPointer(1907);
+    _down(third.down(Offset.zero), [drag]);
+    _route(third.move(const Offset(10, 0)));
+    _down(fourth.down(const Offset(30, 0)), [drag]);
+    _route(fourth.up());
+    _route(third.up());
+    expect(trace, ['drag', 'end']);
+  });
+
   testWidgets('属性更新从下一轮生效，清空启动距离恢复设备容差', (tester) async {
     var starts = 0;
     final drag = ElTransformGestureRecognizer()

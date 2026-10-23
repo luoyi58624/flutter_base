@@ -5,6 +5,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/event_test_host.dart';
 
 void main() {
+  for (final raw in [false, true]) {
+    testWidgets('旧回调不能独占同编号的新输入：raw=$raw', (tester) async {
+      final host = EventTestHost.chain(depth: 2);
+      addTearDown(host.dispose);
+      var parentCancels = 0;
+      var taps = 0;
+      ElEventCallback? first;
+      void remember(ElEventCallback event) => first ??= event;
+      host.rootElement.event = ElEvent(onPointerCancel: (_) => parentCancels++);
+      host.leaf.event = ElEvent(
+        onPointerDown: raw ? remember : null,
+        onTapDown: raw ? null : remember,
+        onTap: (_) => taps++,
+      );
+      await host.tap(
+        pointer: 1900,
+        downTime: Duration.zero,
+        upTime: const Duration(milliseconds: 10),
+      );
+      await host.dispatch(
+        const PointerDownEvent(
+          pointer: 1900,
+          timeStamp: Duration(milliseconds: 20),
+        ),
+      );
+      first!.eagerGesture();
+      expect(parentCancels, 0);
+      await host.dispatch(
+        const PointerUpEvent(
+          pointer: 1900,
+          timeStamp: Duration(milliseconds: 30),
+        ),
+      );
+      expect(taps, 2);
+    });
+  }
+
   testWidgets('释放回调重入同一指针的新按下，旧释放通知不清除新反馈', (tester) async {
     final host = EventTestHost.chain();
     addTearDown(host.dispose);

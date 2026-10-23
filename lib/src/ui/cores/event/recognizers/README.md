@@ -5,7 +5,8 @@
 `ElEventConfig`、`ElEventCallback`、RenderBox 或元素命中函数。
 公共入口是 `package:flutter_base/ui.dart`，也可直接导入本目录的 `index.dart`。
 
-`ElEventView` 直接由单个 Render 元素连接这两个识别器，旧控制器和点击、拖拽、缩放状态机已移除。
+`ElEventView` 直接由单个 Render 元素连接这两个识别器。Render 不再保存指针参与表、
+点击资格、接受标志、手势快照或手势版本号；取消和升级直接使用识别器的生命周期。
 
 ## 职责边界
 
@@ -17,6 +18,8 @@
 | parent 路线、回调顺序与 stopPropagation | ElGestureDetails 到 ElEventCallback 的适配 |
 | 根据各级官方事件变换换算坐标 | 实时元素几何和越界业务策略 |
 | 唯一终态、指针路由与计时器清理 | dragProxy 与位移消费 |
+| 被动按压、资格失效后的取消与恢复 | 提供范围资格函数、按压反馈计时 |
+| 团队独占与 Drag→Scale 取消策略 | 根据 preventDefault 决定是否请求默认独占 |
 
 ## 冒泡与官方规则
 
@@ -30,8 +33,8 @@
   可以建立本轮后续阶段的传播边界。已公开的 Down／Start 必须结清，终态中的 stop
   不吞掉祖先清理；Start 或连击 Down 后发截断会取消祖先已公开的候选。
 - 祖先列表在本轮开始时冻结，修改 parent 从下一轮生效。Press 各成员保存自己的
-  参数、资格和连击历史；Transform 的同一路线采用所有者参数，宿主只将兼容的
-  轴向和阈值连为冒泡链，不同意图独立报名。
+  参数、资格和连击历史；Transform 的同一路线采用所有者参数。
+  自动挂接时团队按点击意图、轴向和阈值筛选父级，不同意图独立报名；显式手工 parent 链默认保留原行为。
 - 各成员登记自己的开始事件，识别器使用其官方 transform 换算本地坐标。
   详情沿路线复用，跨回调保存记录时应保存所需数值。
 
@@ -48,13 +51,14 @@ final child = ElPressGestureRecognizer()
 
 | 参数 | 用途 |
 | --- | --- |
+| competeForTap | 是否竞争主键点击，默认 true；关闭时 Down／Up 仅观察，长按和侧键仍按自己的条件参赛 |
 | doubleTapInterval／tripleTapInterval | 连击时间窗口 |
 | consecutiveTapDistance | 连击间允许的位置间距 |
 | longPressDelay | 长按等待时间 |
 | tapSlopTolerance／longPressSlopTolerance | 点击与长按的移动容差，缺省采用官方设备值 |
 | secondaryTapSlopTolerance | 侧键独立移动容差，缺省沿用主键容差 |
 | deferTap | 有双击订阅时等待窗口结束再通知单击，不持有竞技场 |
-| isEligible | 提交成员点击历史或请求长按归属前的纯资格检查 |
+| isEligible | 外部资格检查；移动时暂时失效发送 Cancel，恢复发送 Down，尺寸由宿主计算 |
 | cancelTapOnLongPress | 长按是否直接取消本成员点击，默认 true |
 | supportedDevices／allowedButtonsFilter | 官方设备和按钮过滤 |
 
@@ -77,7 +81,8 @@ final drag = ElTransformGestureRecognizer()
 ```
 
 参数为 `axis`、`lockAxis`、`startDistance`、`horizontalAngle`、`minFlingDistance`、
-`minFlingVelocity`、`maxFlingVelocity`，设备过滤使用官方 `supportedDevices` 和
+`minFlingVelocity`、`maxFlingVelocity`，以及默认关闭的 `cancelDragOnScale`；
+开启该策略后，识别器在 ScaleStart 前结清 Drag。设备过滤使用官方 `supportedDevices` 和
 `allowedButtonsFilter`。构造器仅接收官方通用选项，识别参数直接修改属性；
 属性保存默认值，可空参数设为 null 后恢复对应默认行为，当前轮仍使用开始时冻结的参数。
 
@@ -97,16 +102,19 @@ final drag = ElTransformGestureRecognizer()
   `cancelMember(pointer)` 则结清本成员，不中止其他成员；省略 pointer 时结清本成员全部输入和待发点击。
 - Transform 的 `cancelMember(pointer, cancelDrag: ..., cancelScale: ...)`
   只结清指定成员和家族，pointer 为 null 时覆盖本成员全部输入，适用于拖拽升级或动态卸载。
-- `onAccepted(pointer)` 表示官方已经接受该路线；Press 的 `onReleased(event)`
-  在同步 Up／Tap／连击回调之后触发，延迟单击不推迟该通知。
+- `onAccepted(pointer)` 表示官方已经接受该路线；Press 的 `onReleased(details)`
+  在同步 Up／Tap／连击回调之后触发，`details.downEvent` 标识本轮物理按下，延迟单击不推迟该通知。
+- `details.isActive` 表示本成员的本次派发是否仍有效；取消其他指针或其他手势家族不会使它误失效。
 
 元素范围由宿主判断。需要完全按元素范围决定点击时，可将 `tapSlopTolerance`
-设为 `double.infinity`，将范围结果通过 `isEligible` 提供给识别器；移出／移回
-的反馈由宿主控制。若需要永久终止当前成员，调用 `cancelMember`；仅永久取消
+设为 `double.infinity`，将范围结果通过 `isEligible` 提供给识别器；识别器发送移出 Cancel／移回 Down，
+宿主消费这些通知更新反馈。移动容差和 `rejectTap` 造成的取消不会恢复。若需要永久终止当前成员，调用 `cancelMember`；仅永久取消
 点击用 `rejectTap`。`cancelPointer` 会取消整条路线，不能用来暂时表示元素越界。
 
 `eagerGesture(cancelSelfTap, allowScaleUpgrade)`、`preventDefault` 和 `consumeDelta`
-属于上层事件接口，不放入纯手势详情。宿主结合接受／取消原语和回调结果实现对应策略；
+属于上层事件接口，不放入纯手势详情。独占通过团队 `claimPointer` 请求并按官方结果执行；
+`downEventFor(pointer)` 可获取开始事件，延后请求将其作为 `downEvent` 传回，防止编号复用后误接受新输入。
+团队只记录真实输入投递和官方归属，不复制 Press／Transform 的阶段；
 官方已判负的候选仍不能被强行复活。Press 与 Transform 独立使用时正常竞争；
 需要长按后继续拖拽等同次输入协作时，可在报名之前共享 `ElGestureArenaTeam`：
 
@@ -133,7 +141,7 @@ final transform = ElTransformGestureRecognizer()..team = team;
   中途新增手势不会补报旧 Down，不会在已经关闭的竞技场重新报名。
 - 不同拖拽阈值或轴向分别参加官方竞争，落败者不能随后抢回。
   兼容成员由识别器冒泡，`isPrimaryTarget` 标识当前阶段首个实际接收者，宿主据此选择位移消费者。
-- 宿主在 Drag 升级 Scale 前结清 Drag；触摸指针从两指变为一指时发送 ScaleEnd，
+- 宿主开启 `cancelDragOnScale`，由识别器在 Drag 升级 Scale 前结清 Drag；触摸指针从两指变为一指时发送 ScaleEnd，
   不再额外合成一次 pointerCount 为 1 的 ScaleUpdate。
 - 移动阈值由真实 Move 触发；Up 坐标跳变不补救 DragStart、不加入位移或速度拟合。
 

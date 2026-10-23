@@ -9,30 +9,6 @@ extension _EventBinding on RenderElEvent {
       _event?.onTripleTap != null ||
       _event?.onTripleTapDown != null;
 
-  bool get _hasPress =>
-      _event != null &&
-      (_inputs.values.any((input) => input.claim != null) ||
-          [
-            _event!.onTap,
-            _event!.onDoubleTap,
-            _event!.onDoubleTapDown,
-            _event!.onTripleTap,
-            _event!.onTripleTapDown,
-            _event!.onLongPress,
-            _event!.onSecondaryTapDown,
-            _event!.onSecondaryTapUp,
-            _event!.onSecondaryTap,
-            _event!.onTertiaryTapDown,
-            _event!.onTertiaryTapUp,
-            _event!.onTertiaryTap,
-            _event!.onForwardTapDown,
-            _event!.onForwardTapUp,
-            _event!.onForwardTap,
-            _event!.onBackTapDown,
-            _event!.onBackTapUp,
-            _event!.onBackTap,
-          ].any((handler) => handler != null));
-
   bool get _hasFreeDrag =>
       _event != null &&
       [
@@ -80,100 +56,81 @@ extension _EventBinding on RenderElEvent {
       : null;
 
   void _configureRecognizers() {
-    if (_hasPress) {
-      final press = _press ??= ElPressGestureRecognizer(debugOwner: this)
-        ..team = _team;
-      press
-        ..onAccepted = _accepted
-        ..onReleased = (event) {
-          final input = _inputs[event.pointer];
-          if (input != null &&
-              identical(
-                input.lastEvent.original ?? input.lastEvent,
-                event.original ?? event,
-              )) {
-            _feedback.up(input);
-          }
-        }
-        ..gestureSettings = gestureSettings
-        ..doubleTapInterval = config.doubleTapInterval
-        ..tripleTapInterval = config.tripleTapInterval
-        ..longPressDelay = config.longPressDelay
-        ..tapSlopTolerance = config.tapCancelOnMove == true
-            ? _tapDistance
-            : double.infinity
-        ..secondaryTapSlopTolerance = _tapDistance
-        ..longPressSlopTolerance = config.longPressCancelDistance
-        ..consecutiveTapDistance = config.tapCancelDistance
-        ..deferTap = config.deferTap
-        ..cancelTapOnLongPress = false
-        ..isEligible = (phase, event) {
-          final input = _inputs[event.pointer];
-          return input != null &&
-              input.active &&
-              input.tapEligible &&
-              (config.tapCancelOnMove == true || _contains(event.position)) &&
-              (_handler(ElEventPhase.values.byName(phase.name)) != null ||
-                  phase == ElGesturePhase.tap &&
-                      (_event?.onDoubleTap != null ||
-                          _event?.onTripleTap != null ||
-                          _event?.onDoubleTapDown != null ||
-                          _event?.onTripleTapDown != null));
-        }
-        ..onTapDown = _handlePress
-        ..onTapUp = _handlePress
-        ..onTap = _handlePress
-        ..onTapCancel = _handlePress
-        ..onDoubleTap = _event?.onDoubleTap == null ? null : _handlePress
-        ..onDoubleTapDown = _event?.onDoubleTapDown == null
-            ? null
-            : _handlePress
-        ..onTripleTap = _event?.onTripleTap == null ? null : _handlePress
-        ..onTripleTapDown = _event?.onTripleTapDown == null
-            ? null
-            : _handlePress
-        ..onLongPress = _event?.onLongPress == null ? null : _handlePress
-        ..onSecondaryTapDown = _handlePress
-        ..onSecondaryTapUp = _handlePress
-        ..onSecondaryTap = _handlePress
-        ..onTertiaryTapDown = _handlePress
-        ..onTertiaryTapUp = _handlePress
-        ..onTertiaryTap = _handlePress
-        ..onForwardTapDown = _handlePress
-        ..onForwardTapUp = _handlePress
-        ..onForwardTap = _handlePress
-        ..onBackTapDown = _handlePress
-        ..onBackTapUp = _handlePress
-        ..onBackTap = _handlePress;
-    }
-    if (_hasDrag || _hasScale) {
-      final transform = _transform ??= ElTransformGestureRecognizer(
-        debugOwner: this,
-      )..team = _team;
-      transform
-        ..onAccepted = _accepted
-        ..gestureSettings = gestureSettings
-        ..supportedDevices = config.dragDevices
-        ..startDistance = config.dragStartDistance
-        ..horizontalAngle = config.dragHorizontalAngle
-        ..minFlingDistance = config.dragMinFlingDistance
-        ..minFlingVelocity = config.dragMinFlingVelocity
-        ..maxFlingVelocity = config.dragMaxFlingVelocity
-        ..axis = _axis
-        ..lockAxis = _hasHorizontal && _hasVertical
-        ..onDragDown = _hasDrag ? _handleTransform : null
-        ..onDragStart = _hasDrag ? _handleTransform : null
-        ..onDragUpdate = _hasDrag ? _handleTransform : null
-        ..onDragEnd = _hasDrag ? _handleTransform : null
-        ..onDragCancel = _hasDrag ? _handleTransform : null
-        ..onScaleStart = _hasScale ? _handleTransform : null
-        ..onScaleUpdate = _hasScale ? _handleTransform : null
-        ..onScaleEnd = _hasScale ? _handleTransform : null
-        ..onScaleCancel = _hasScale ? _handleTransform : null
-        ..onRotationUpdate = _event?.onRotationUpdate == null
-            ? null
-            : _handleTransform;
-    }
+    final press = _press;
+    press
+      ..onReleased = (details) {
+        _feedback.up(details.downEvent);
+      }
+      ..gestureSettings = gestureSettings
+      ..doubleTapInterval = config.doubleTapInterval
+      ..tripleTapInterval = config.tripleTapInterval
+      ..longPressDelay = config.longPressDelay
+      ..tapSlopTolerance = config.tapCancelOnMove == true
+          ? _tapDistance
+          : double.infinity
+      ..secondaryTapSlopTolerance = _tapDistance
+      ..longPressSlopTolerance = config.longPressCancelDistance
+      ..consecutiveTapDistance = config.tapCancelDistance
+      ..deferTap = config.deferTap
+      ..cancelTapOnLongPress = false
+      ..isEligible = (phase, event) {
+        return config.tapCancelOnMove == true || _contains(event.position);
+      }
+      ..competeForTap = _hasPrimaryTap
+      ..onTapDown = _handlePress
+      ..onTapUp = _handlePress
+      ..onTap = _event?.onTap == null ? null : _handlePress
+      ..onTapCancel = _handlePress
+      ..onDoubleTap = _event?.onDoubleTap == null ? null : _handlePress
+      ..onDoubleTapDown = _event?.onDoubleTapDown == null ? null : _handlePress
+      ..onTripleTap = _event?.onTripleTap == null ? null : _handlePress
+      ..onTripleTapDown = _event?.onTripleTapDown == null ? null : _handlePress
+      ..onLongPress = _event?.onLongPress == null ? null : _handlePress
+      ..onSecondaryTapDown = _event?.onSecondaryTapDown == null
+          ? null
+          : _handlePress
+      ..onSecondaryTapUp = _event?.onSecondaryTapUp == null
+          ? null
+          : _handlePress
+      ..onSecondaryTap = _event?.onSecondaryTap == null ? null : _handlePress
+      ..onTertiaryTapDown = _event?.onTertiaryTapDown == null
+          ? null
+          : _handlePress
+      ..onTertiaryTapUp = _event?.onTertiaryTapUp == null ? null : _handlePress
+      ..onTertiaryTap = _event?.onTertiaryTap == null ? null : _handlePress
+      ..onForwardTapDown = _event?.onForwardTapDown == null
+          ? null
+          : _handlePress
+      ..onForwardTapUp = _event?.onForwardTapUp == null ? null : _handlePress
+      ..onForwardTap = _event?.onForwardTap == null ? null : _handlePress
+      ..onBackTapDown = _event?.onBackTapDown == null ? null : _handlePress
+      ..onBackTapUp = _event?.onBackTapUp == null ? null : _handlePress
+      ..onBackTap = _event?.onBackTap == null ? null : _handlePress;
+
+    _transform
+      ..gestureSettings = gestureSettings
+      ..supportedDevices = config.dragDevices
+      ..startDistance = config.dragStartDistance
+      ..horizontalAngle = config.dragHorizontalAngle
+      ..minFlingDistance = config.dragMinFlingDistance
+      ..minFlingVelocity = config.dragMinFlingVelocity
+      ..maxFlingVelocity = config.dragMaxFlingVelocity
+      ..axis = _axis
+      ..lockAxis = _hasHorizontal && _hasVertical
+      ..cancelDragOnScale = true
+      ..onDragDown = _hasDrag ? _handleTransform : null
+      ..onDragStart = _hasDrag ? _handleTransform : null
+      ..onDragUpdate = _hasDrag ? _handleTransform : null
+      ..onDragEnd = _hasDrag ? _handleTransform : null
+      ..onDragCancel = _hasDrag ? _handleTransform : null
+      ..onScaleStart = _hasScale ? _handleTransform : null
+      ..onScaleUpdate = _hasScale ? _handleTransform : null
+      ..onScaleEnd = _hasScale ? _handleTransform : null
+      ..onScaleCancel = _hasScale ? _handleTransform : null
+      ..onRotationUpdate = _event?.onRotationUpdate == null
+          ? null
+          : _handleTransform;
+    _team.acceptsPanZoom = _event?.onPointerPanZoomUpdate != null;
   }
 
   ElEventCallback _gestureCallback(
@@ -201,6 +158,9 @@ extension _EventBinding on RenderElEvent {
           rotation: transform?.rotation ?? 0,
           logScaleVelocity: transform?.logScaleVelocity ?? 0,
           originalEvent: details.originalEvent,
+          cancelReason: phase == ElEventPhase.tapCancel
+              ? RenderElEvent._cancelReason(press?.cancelReason)
+              : null,
         );
     callback.localPosition = details.localPosition;
     callback.tapCount = press?.tapCount ?? 0;
@@ -209,11 +169,16 @@ extension _EventBinding on RenderElEvent {
     callback.updateLocalDeltaResolver(
       (delta) => _localDelta(details.globalPosition, delta),
     );
-    final input = _snapshot(details).$1;
-    callback.updateEagerGestureHandler(
-      (callback, cancelTap, allowScale) =>
-          _claim(input, callback, cancelTap, allowScale),
-    );
+    final down = _team.downEventFor(details.pointer);
+    callback.updateEagerGestureHandler((callback, cancelTap, allowScale) {
+      if (!details.isActive || down == null) return;
+      _team.claimPointer(
+        details.pointer,
+        downEvent: down,
+        cancelTap: cancelTap,
+        allowScaleUpgrade: allowScale,
+      );
+    });
     return callback;
   }
 
@@ -234,13 +199,16 @@ extension _EventBinding on RenderElEvent {
       scale: event is PointerPanZoomUpdateEvent ? event.scale : 1,
       rotation: event is PointerPanZoomUpdateEvent ? event.rotation : 0,
     );
-    final input = _inputs[event.pointer];
-    if (input != null) {
-      callback.updateEagerGestureHandler(
-        (callback, cancelTap, allowScale) =>
-            _claim(input, callback, cancelTap, allowScale),
+    final down = _team.downEventFor(event.pointer);
+    callback.updateEagerGestureHandler((callback, cancelTap, allowScale) {
+      if (down == null) return;
+      _team.claimPointer(
+        event.pointer,
+        downEvent: down,
+        cancelTap: cancelTap,
+        allowScaleUpgrade: allowScale,
       );
-    }
+    });
     return callback;
   }
 
@@ -257,18 +225,14 @@ extension _EventBinding on RenderElEvent {
     return proxies ?? const [];
   }
 
-  void _dispatchDragUpdate(
-    ElTransformGestureDetails details,
-    (_ElementInput, int, bool) snapshot,
-  ) {
+  void _dispatchDragUpdate(ElTransformGestureDetails details) {
     final proxies = _dragProxies[details.sequenceIdentity];
-    if (proxies == null) return;
-    bool isActive() =>
-        _valid(snapshot) && _dragProxies.containsKey(details.sequenceIdentity);
+    final pipeline = proxies ?? const <RenderElEvent>[];
+    bool isActive() => details.isActive;
     final callback = _gestureCallback(details, ElEventPhase.dragUpdate)
-      ..dragPipelineActive = proxies.isNotEmpty
-      ..hasAncestorDragConsumer = _transform?.parent != null;
-    for (final member in proxies.reversed) {
+      ..dragPipelineActive = pipeline.isNotEmpty
+      ..hasAncestorDragConsumer = _transform.parent != null;
+    for (final member in pipeline.reversed) {
       if (!isActive()) return;
       _invokeDragProxy(
         member,
@@ -278,10 +242,10 @@ extension _EventBinding on RenderElEvent {
     }
     if (!isActive()) return;
     // 代理共享消费余量，主处理器沿用同一回调并恢复自身坐标与独占入口。
-    if (proxies.isNotEmpty) _gestureCallback(details, ElEventPhase.dragUpdate);
+    if (pipeline.isNotEmpty) _gestureCallback(details, ElEventPhase.dragUpdate);
     _invoke(_handler(ElEventPhase.dragUpdate, details.dragAxis), callback);
     if (callback.propagationStopped) details.stopPropagation();
-    for (final member in proxies) {
+    for (final member in pipeline) {
       if (!isActive() || callback.remainingDelta == Offset.zero) break;
       _invokeDragProxy(
         member,
@@ -382,19 +346,6 @@ extension _EventBinding on RenderElEvent {
   void _invoke(ElEventHandler? handler, ElEventCallback callback) {
     if (handler == null) return;
     callback.markCallbackInvoked();
-    final previousClaimPhase = _mayClaimNewPointer;
-    _mayClaimNewPointer =
-        (callback.originalEvent is PointerDownEvent ||
-            callback.originalEvent is PointerPanZoomStartEvent) &&
-        [
-          ElEventPhase.pointerDown,
-          ElEventPhase.tapDown,
-          ElEventPhase.secondaryTapDown,
-          ElEventPhase.tertiaryTapDown,
-          ElEventPhase.forwardTapDown,
-          ElEventPhase.backTapDown,
-          ElEventPhase.pointerPanZoomStart,
-        ].contains(callback.phase);
     try {
       handler(callback);
     } catch (error, stack) {
@@ -406,8 +357,6 @@ extension _EventBinding on RenderElEvent {
           context: ErrorDescription('处理 ${callback.phase.name}'),
         ),
       );
-    } finally {
-      _mayClaimNewPointer = previousClaimPhase;
     }
   }
 }

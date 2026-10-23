@@ -101,6 +101,9 @@ enum ElGestureCancelReason {
   /// 移动容差、按钮变化或追加指针使候选失效。
   rejected,
 
+  /// 外部资格暂时不满足，重新满足后可恢复按下候选。
+  ineligible,
+
   /// 长按成立，结束普通点击候选。
   longPressAccepted,
 
@@ -159,6 +162,10 @@ sealed class ElGestureDetails {
   Object? _dispatchIdentity;
   Object? _sequenceIdentity;
   bool _isPrimaryTarget = true;
+  bool Function()? _isActive;
+
+  /// 当前成员的本次派发是否仍有效，取消或回调重入后立即失效。
+  bool get isActive => _isActive?.call() ?? true;
 
   /// 当前阶段首个实际接收回调的成员，可用于宿主选择位移消费者。
   bool get isPrimaryTarget => _isPrimaryTarget;
@@ -188,9 +195,14 @@ final class ElPressGestureDetails extends ElGestureDetails {
     required super.originalEvent,
     required super.globalPosition,
     required this.buttons,
+    PointerEvent? downEvent,
     this.tapCount = 0,
     this.cancelReason,
-  }) : super._();
+  }) : downEvent = downEvent ?? originalEvent,
+       super._();
+
+  /// 本轮物理按下事件，移回后的按下通知仍保留原事件。
+  final PointerEvent downEvent;
 
   /// 按下时的按钮，释放事件仍保留原按钮信息。
   @override
@@ -219,9 +231,17 @@ final class ElTransformGestureDetails extends ElGestureDetails {
     this.scale = 1,
     this.rotation = 0,
     this.logScaleVelocity = 0,
+    this.started = false,
+    this.pointerIds = const [],
   }) : _localDelta = delta,
        _localVelocity = velocity.pixelsPerSecond,
        super._();
+
+  /// 当前家族是否已经进入 Start，候选被取消时为 false。
+  final bool started;
+
+  /// 当前变换中已接受的真实指针标识。
+  final List<int> pointerIds;
 
   /// 本次全局位移。
   final Offset delta;

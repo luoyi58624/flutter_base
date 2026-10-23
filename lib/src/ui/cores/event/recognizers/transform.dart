@@ -64,6 +64,28 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   /// [axis] 为空时，是否按照起手方向锁定水平或垂直轴。
   bool lockAxis = false;
 
+  /// 进入缩放前是否结清拖拽家族，默认允许两者继续并行。
+  bool cancelDragOnScale = false;
+
+  /// 当前成员是否仍有已开始且未被取消的拖拽。
+  bool get isDragging => _routes.values.any(
+    (route) =>
+        route.owner is ElTransformGestureRecognizer &&
+        (route.owner as ElTransformGestureRecognizer)._session?.dragStarted ==
+            true &&
+        !(route.excluded[_GestureFamily.drag]?.contains(this) ?? false),
+  );
+
+  bool get _hasOwnDrag =>
+      _dragPhases.any((phase) => _handlerFor(phase) != null);
+  bool _compatibleWith(ElTransformGestureRecognizer other) =>
+      !_hasOwnDrag ||
+      !other._hasOwnDrag ||
+      axis == other.axis &&
+          lockAxis == other.lockAxis &&
+          _settings.startDistance == other._settings.startDistance &&
+          _settings.horizontalAngle == other._settings.horizontalAngle;
+
   /// 拖拽候选按下；此阶段尚未取得官方手势所有权。
   ElTransformGestureCallback? onDragDown;
 
@@ -98,7 +120,14 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   bool _disposing = false;
 
   @override
-  ElTransformGestureRecognizer? get _bubbleParent => parent;
+  ElTransformGestureRecognizer? get _bubbleParent {
+    if (_cooperation?.matchParentGestures != true) return parent;
+    var candidate = parent;
+    while (candidate != null && !_compatibleWith(candidate)) {
+      candidate = candidate.parent;
+    }
+    return candidate;
+  }
 
   @override
   _ElGestureCallback? _handlerFor(ElGesturePhase phase) {
@@ -415,7 +444,20 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     if (session.hasScale &&
         session.scaleThresholdMet &&
         !session.scaleStarted &&
+        _scalePhases.any((phase) => _routeHasHandler(session.route, phase)) &&
         _geometry(session).canScale) {
+      final cooperation = _cooperation;
+      if (cooperation != null) {
+        cooperation._cancelDragForScale(session.acceptedOrder.toList());
+      } else {
+        for (final member
+            in session.route.members.cast<ElTransformGestureRecognizer>()) {
+          if (member.cancelDragOnScale) {
+            member.cancelMember(null, cancelScale: false);
+          }
+        }
+      }
+      if (!_isCurrent(session)) return;
       session.scaleStarted = true;
       session.scale = 1;
       session.rotation = 0;
@@ -625,6 +667,12 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       session.route,
       ElTransformGestureDetails(
         phase: phase,
+        started: scalePhase
+            ? session.scaleStarted ||
+                  phase == ElGesturePhase.scaleEnd ||
+                  phase == ElGesturePhase.scaleCancel
+            : session.dragStarted,
+        pointerIds: session.acceptedOrder.toList(),
         globalPosition: position,
         delta: delta,
         dragOffset: session.dragOffset,
@@ -638,11 +686,16 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
             session.scaleVelocity?.getVelocity().pixelsPerSecond.dx ?? 0,
         originalEvent: event,
       ),
+      skipCancelingMembers: onlyMember == null,
       prepare: onlyMember == null
           ? null
           : (member) => identical(member, onlyMember)
                 ? ElTransformGestureDetails(
                     phase: phase,
+                    started: scalePhase
+                        ? session.scaleStarted
+                        : session.dragStarted,
+                    pointerIds: session.acceptedOrder.toList(),
                     originalEvent: event,
                     globalPosition: position,
                     dragOffset: session.dragOffset,
@@ -677,6 +730,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
       if (cancelDrag) _GestureFamily.drag,
       if (cancelScale) _GestureFamily.scale,
     ]) {
+      route.invalidate(this, family);
       final excluded = route.excluded.putIfAbsent(family, () => {});
       final key = (family, this);
       if (excluded.contains(this) || !route.cancelingMembers.add(key)) continue;
