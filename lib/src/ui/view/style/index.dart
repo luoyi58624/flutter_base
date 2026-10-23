@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' show ColorSpace, lerpDouble;
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/dart.dart';
@@ -16,6 +17,7 @@ part 'lerp.dart';
 part 'style_engine.dart';
 part 'fields.dart';
 part 'outline.dart';
+part 'shadow.dart';
 
 /// 不可变的盒模型样式；宽高包含 padding，不包含 margin。
 @immutable
@@ -31,7 +33,11 @@ class ElStyle with Equatable {
     this.maxHeight,
     this.widthFactor,
     this.heightFactor,
+    this.aspectRatio,
     this.backgroundColor,
+    this.gradient,
+    this.boxShadow,
+    this.opacity,
     this.padding,
     this.margin,
     this.border,
@@ -65,8 +71,20 @@ class ElStyle with Equatable {
   /// 非负有限的自然盒高度倍数，包含 padding；null 等同于 1，显式高度优先。
   final num? heightFactor;
 
+  /// 正有限的视觉盒宽高比；双显式轴或有效 auto 倍数优先，null 表示不用比例。
+  final num? aspectRatio;
+
   /// 背景色，覆盖内容和 padding；null 表示不绘制。
   final Color? backgroundColor;
+
+  /// 覆盖背景色的原生渐变；null 表示不绘制，使用当前文字方向解析几何。
+  final Gradient? gradient;
+
+  /// 按声明顺序绘制的阴影，支持 ElBoxShadow.inset；不占布局或扩大命中范围。
+  final List<BoxShadow>? boxShadow;
+
+  /// 整组装饰与 child 的透明度，限制在 0～1；null 为 1，零值不绘制或命中。
+  final num? opacity;
 
   /// 非负有限内边距，支持方向性边距；null 等同于零。
   final EdgeInsetsGeometry? padding;

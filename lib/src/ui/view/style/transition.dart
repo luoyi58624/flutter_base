@@ -43,6 +43,18 @@ enum ElTransitionField {
 
   /// 最大高度，数值与百分比插值；null 在中点切换。
   maxHeight,
+
+  /// 视觉盒宽高比，null 在中点切换，仅正有限数值有效。
+  aspectRatio,
+
+  /// 背景渐变，沿原生 Gradient.lerp 规则插值。
+  gradient,
+
+  /// 内外阴影的几何与预乘 alpha 颜色，null 平滑退去。
+  boxShadow,
+
+  /// 整组透明度，null 按 1 插值，过冲限制在 0～1。
+  opacity,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

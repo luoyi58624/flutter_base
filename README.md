@@ -71,7 +71,7 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 
 入口为 `package:flutter_base/ui.dart`。`ElView` 只有 `style`、`child`（以及标准
 `key`），使用一个 RenderObject 完成盒模型与装饰绘制。当前样式字段为
-`width`、`height`、`minWidth`、`maxWidth`、`minHeight`、`maxHeight`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
+`width`、`height`、`minWidth`、`maxWidth`、`minHeight`、`maxHeight`、`widthFactor`、`heightFactor`、`aspectRatio`、`backgroundColor`、`gradient`、`boxShadow`、`opacity`、`padding`、`margin`、`border`、`outline`、`borderRadius`、`clipBehavior`
 和过渡配置 `transitions`。
 
 - 宽高接受数值或百分比字符串，包含 padding、不包含 margin；null 为 auto。
@@ -88,6 +88,11 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   显式像素或可解析百分比尺寸优先；无参照百分比回退 auto 时使用因子。
   因子不缩放 child，也不改变 child 约束；小于 1 时 child 可溢出，裁剪仍由 clipBehavior 控制。
   例如父宽 300、child 自然宽 80 且无边距时，width: '60%' 得到 180，widthFactor: .6 得到 48。
+- aspectRatio 是正有限的视觉盒宽高比，包含 padding、不包含 margin。单显式轴派生另一轴，
+  双 auto 以自然盒宽派生高；双显式轴或有效 auto 倍数优先。先按比例派生，再应用自身
+  min/max 和父约束，因此 width: 100、maxWidth: 80、aspectRatio: 2 得到 80×50。
+  真实、dry、intrinsic 与基线共用算法；双 auto 只测一次自然宽，再按派生盒限制 child。
+  数值间线性插值，null 在中点切换；非法或非正值不启用比例。
 - 百分比优先使用扣除 margin 后的父最大约束；无界轴查找最近具有确定内容尺寸的
   ElView 祖先，没有参照则按 auto 布局。像素与百分比过渡保留混合表达式，随参照求值。
 - 首次挂载直接应用目标值；重建样式后按属性分别过渡，同一属性采用最后一条匹配配置。
@@ -97,6 +102,17 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   消失或恢复也从当前尺寸接续，delay 内失去参照不会造成等待期跳变或首帧停顿。
 - 背景使用预乘 alpha 插值，透明端点的隐藏 RGB 不污染中间颜色；null 与颜色之间
   平滑淡入淡出，最终 null 停止绘制。支持方向性边距及曲线过冲的有效值约束。
+- gradient 接受原生三类渐变及 GradientTransform，覆盖背景色，空白域仍露出背景。
+  使用原生 Gradient.lerp，包括 null 淡出和跨类型的淡出再淡入；改向立即更新 shader，
+  不重启过渡。未声明或全透明时不创建 shader，尺寸、渐变和方向之外的变化复用 shader。
+- boxShadow 接受原生 BoxShadow 列表，也可混用 ElBoxShadow(inset: true)。绘制顺序为
+  外阴影、背景色、渐变、内阴影、child、border、outline；同类阴影按声明顺序覆盖。
+  内阴影始终受盒形状裁剪，外阴影不受自身 clipBehavior 裁剪；模糊外溢计入 paintBounds，
+  不占布局或增加命中区域。null 和列表增减同时退去颜色与几何，内外类型切换经过透明中点；
+  颜色使用预乘 alpha，负 spread 收缩至空时停止绘制，负模糊过冲归零。
+- opacity 限制到 0～1，null 为 1；对全部装饰与 child 进行整组合成，保持重叠区域颜色。
+  零值跳过绘制和命中，保留布局及语义子树；完全不透明时直接绘制，中间值才启用透明度层。
+  null 按 1 插值，曲线过冲限制在有效范围，不裁掉阴影、轮廓或 child 的原有溢出。
 - 边框接受原生 `Border` / `BorderDirectional`，支持独立四边颜色、粗细、none、hairline
   和 `strokeAlign`。它只触发重绘，不占布局空间、不自动增加 padding；粗细过渡不挤压
   child 或移动兄弟元素。方向、粗细、描边位置和预乘 alpha 颜色由 StyleEngine 处理，
@@ -136,13 +152,15 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - `paint/outline.dart` 复用旧版外推规则，缓存局部中心线和实际使用的 shader。
   纯色不创建 shader；静态值和 null 过渡保持单次绘制，纯色与渐变的两项贡献同时可见时
   才使用局部透明层预乘相加；颜色、整体位置和仅圆角变化不使无关几何或 shader 重建。
-- `paint/effects.dart` 的 EffectController 仅在实际裁剪时创建，与装饰共用局部形状。
+- `paint/shadow.dart` 缓存实际使用的内外阴影几何和画笔，颜色与整体位置不重建几何。
+- `paint/effects.dart` 的 EffectController 仅在实际裁剪或组透明时创建，与装饰共用局部形状。
   由 Flutter 根据现有合成需求选择画布或图层，复用可用裁剪层，停用时释放持有权；
-  不因 saveLayer 模式强制增加合成层。外层裁剪已定义圆角时，背景画矩形以避免重复抗锯齿。
+  不因 saveLayer 模式强制增加合成层。裁剪层与透明度层独立释放，组透明使用 OpacityLayer，
+  支持 child 自身含合成层；外层已裁剪时，背景、渐变和内阴影不重复裁剪圆角。
 
 Ticker 和轨道集合只为实际过渡创建；首次挂载或仅声明 transitions 不启动时钟。
 动画只采样活动轨道，不重建 ElStyle 或 child；固定尺寸采样值未变时不请求布局，
-纯颜色、圆角、边框或轮廓变化只重绘，也不重新解析尺寸和边距。
+纯颜色、渐变、阴影、透明度、圆角、边框或轮廓变化只重绘，也不重新解析尺寸和边距。
 
 ```dart
 ElView(

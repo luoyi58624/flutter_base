@@ -258,7 +258,550 @@ ElStyle _outlineStyle(
 }) =>
     ElStyle(width: 100, height: 60, outline: outline, transitions: transitions);
 
+const _effectsCaptureKey = ValueKey('effects-capture');
+
+Widget _effectsScene(
+  ElStyle style, {
+  Widget? child,
+  TextDirection direction = TextDirection.ltr,
+}) => Directionality(
+  textDirection: direction,
+  child: Center(
+    child: RepaintBoundary(
+      key: _effectsCaptureKey,
+      child: SizedBox(
+        width: 160,
+        height: 120,
+        child: Center(
+          child: ElView(key: viewKey, style: style, child: child),
+        ),
+      ),
+    ),
+  ),
+);
+
+/// 从真实合成结果采样，子层也参与透明度与裁剪的验证。
+Future<List<Color>> _effectsPixels(
+  WidgetTester tester,
+  List<Offset> positions,
+) async => (await tester.runAsync(() async {
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(_effectsCaptureKey),
+  );
+  final origin = viewBox(tester).localToGlobal(Offset.zero, ancestor: boundary);
+  final image = await boundary.toImage(pixelRatio: 1);
+  try {
+    final data = (await image.toByteData(
+      format: ImageByteFormat.rawStraightRgba,
+    ))!;
+    return positions.map((position) {
+      final point = origin + position;
+      final index = (point.dy.floor() * image.width + point.dx.floor()) * 4;
+      return Color.fromARGB(
+        data.getUint8(index + 3),
+        data.getUint8(index),
+        data.getUint8(index + 1),
+        data.getUint8(index + 2),
+      );
+    }).toList();
+  } finally {
+    image.dispose();
+  }
+}))!;
+
 void main() {
+  group('宽高比中间值', () {
+    testWidgets('样式宽高比使双 auto 轴跨越不同截止帧时保持连续', (tester) async {
+      const child = SizedBox(width: 120, height: 20);
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(
+            width: 40,
+            height: 100,
+            aspectRatio: 2,
+            transitions: _widthAndHeight,
+          ),
+          child: child,
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          const ElStyle(aspectRatio: 2, transitions: _widthAndHeight),
+          child: child,
+        ),
+      );
+      await _advance(tester, 99);
+      final beforeWidthEnd = viewSize(tester);
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(160, 80));
+      expect(
+        (viewSize(tester).width - beforeWidthEnd.width).abs(),
+        lessThan(2),
+      );
+      await _advance(tester, 99);
+      final beforeHeightEnd = viewSize(tester);
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(120, 60));
+      expect(
+        (viewSize(tester).height - beforeHeightEnd.height).abs(),
+        lessThan(1),
+      );
+    });
+
+    testWidgets('比例按数值插值，百分比与上下限使用当帧尺寸，中断从当前比例接续', (tester) async {
+      ElStyle style(num ratio) => ElStyle(
+        width: '50%',
+        aspectRatio: ratio,
+        maxHeight: 150,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(1)));
+      await tester.pumpWidget(viewScene(style(3)));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(200, 100));
+      await tester.pumpWidget(viewScene(style(4), width: 300));
+      expect(viewSize(tester), const Size(150, 75));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(150, 50));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(150, 37.5));
+    });
+
+    testWidgets('null 双向在中点切换，auto 因子即时禁用比例但不重启其轨道', (tester) async {
+      ElStyle style(num? ratio, {num? factor}) => ElStyle(
+        width: 100,
+        aspectRatio: ratio,
+        heightFactor: factor,
+        transitions: const [
+          ElTransition.field(
+            ElTransitionField.aspectRatio,
+            Duration(milliseconds: 100),
+            Curves.linear,
+          ),
+        ],
+      );
+      const child = SizedBox(width: 80, height: 30);
+      await tester.pumpWidget(viewScene(style(null), child: child));
+      await tester.pumpWidget(viewScene(style(2), child: child));
+      await _advance(tester, 49);
+      expect(viewSize(tester), const Size(100, 30));
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(100, 50));
+      await _advance(tester, 50);
+      await tester.pumpWidget(viewScene(style(null), child: child));
+      await _advance(tester, 49);
+      expect(viewSize(tester), const Size(100, 50));
+      await _advance(tester, 1);
+      expect(viewSize(tester), const Size(100, 30));
+      await _advance(tester, 50);
+      await tester.pumpWidget(viewScene(style(1), child: child));
+      await _advance(tester, 100);
+      await tester.pumpWidget(viewScene(style(3), child: child));
+      await _advance(tester, 25);
+      await tester.pumpWidget(viewScene(style(3, factor: 2), child: child));
+      expect(viewSize(tester), const Size(100, 60));
+      await _advance(tester, 25);
+      await tester.pumpWidget(viewScene(style(3), child: child));
+      expect(viewSize(tester), const Size(100, 50));
+      await _advance(tester, 50);
+      expect(viewSize(tester).height, closeTo(100 / 3, 1e-8));
+    });
+
+    testWidgets('auto 端点随比例与内容更新，在原截止帧落到实际目标盒', (tester) async {
+      ElStyle style(Object? width, num ratio) => ElStyle(
+        width: width,
+        aspectRatio: ratio,
+        transitions: const [
+          ElTransition.field(
+            ElTransitionField.width,
+            Duration(milliseconds: 100),
+            Curves.linear,
+          ),
+        ],
+      );
+      Widget scene(Object? width, num ratio, double natural) => viewScene(
+        style(width, ratio),
+        child: SizedBox(width: natural, height: 20),
+      );
+      await tester.pumpWidget(scene(40, 2, 120));
+      await tester.pumpWidget(scene(null, 2, 120));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(80, 40));
+      await tester.pumpWidget(scene(null, 4, 160));
+      expect(viewSize(tester), const Size(80, 20));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(120, 30));
+      await _advance(tester, 25);
+      expect(viewSize(tester), const Size(160, 40));
+    });
+  });
+
+  group('渐变阴影与透明度中间值', () {
+    testWidgets('渐变 null 双向淡入淡出，同类型插值与中断均保持当前颜色', (tester) async {
+      ElStyle style(Gradient? gradient) => ElStyle(
+        width: 100,
+        height: 60,
+        gradient: gradient,
+        transitions: _linear,
+      );
+      const red = LinearGradient(colors: [_red, _red]);
+      const blue = LinearGradient(colors: [_blue, _blue]);
+      const green = LinearGradient(
+        colors: [Color(0xff00ff00), Color(0xff00ff00)],
+      );
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await tester.pumpWidget(_effectsScene(style(red)));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 50);
+      await tester.pumpWidget(_effectsScene(style(blue)));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xff800080),
+      );
+      await tester.pumpWidget(_effectsScene(style(green)));
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xff800080),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xff408040),
+      );
+      await _advance(tester, 50);
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x8000ff00),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x00000000),
+      );
+    });
+
+    testWidgets('跨渐变类型遵循原生淡出再淡入，方向切换不重新计时', (tester) async {
+      ElStyle style(Gradient gradient) => ElStyle(
+        width: 100,
+        height: 60,
+        gradient: gradient,
+        transitions: _linear,
+      );
+      const linear = LinearGradient(colors: [_red, _red]);
+      const radial = RadialGradient(colors: [_blue, _blue]);
+      const sweep = SweepGradient(colors: [_red, _red]);
+      await tester.pumpWidget(_effectsScene(style(linear)));
+      for (final target in const <Gradient>[radial, sweep]) {
+        await tester.pumpWidget(_effectsScene(style(target)));
+        final isBlue = target == radial;
+        for (final (ms, color) in <(int, Color)>[
+          (25, isBlue ? const Color(0x80ff0000) : const Color(0x800000ff)),
+          (25, const Color(0x00000000)),
+          (25, isBlue ? const Color(0x800000ff) : const Color(0x80ff0000)),
+          (25, isBlue ? _blue : _red),
+        ]) {
+          await _advance(tester, ms);
+          _pixel(
+            (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+            color,
+          );
+        }
+      }
+      const start = LinearGradient(
+        begin: AlignmentDirectional.centerStart,
+        end: AlignmentDirectional.centerEnd,
+        colors: [_red, _blue],
+        stops: [0.25, 0.75],
+      );
+      const end = LinearGradient(
+        begin: AlignmentDirectional.centerStart,
+        end: AlignmentDirectional.centerEnd,
+        colors: [Color(0xff00ff00), _blue],
+        stops: [0.25, 0.75],
+      );
+      await tester.pumpWidget(
+        _effectsScene(style(start).copyWith(transitions: null)),
+      );
+      await tester.pumpWidget(_effectsScene(style(end)));
+      await _advance(tester, 25);
+      await tester.pumpWidget(
+        _effectsScene(style(end), direction: TextDirection.rtl),
+      );
+      var pixels = await _effectsPixels(tester, const [
+        Offset(10, 30),
+        Offset(90, 30),
+      ]);
+      _pixel(pixels[0], _blue);
+      _pixel(pixels[1], const Color(0xffbf4000));
+      await _advance(tester, 25);
+      pixels = await _effectsPixels(tester, const [
+        Offset(10, 30),
+        Offset(90, 30),
+      ]);
+      _pixel(pixels[0], _blue);
+      _pixel(pixels[1], const Color(0xff808000));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(90, 30)])).single,
+        const Color(0xff00ff00),
+      );
+    });
+
+    testWidgets('阴影 null 与列表增删同时插值几何和透明度，透明端隐藏 RGB 不混色', (tester) async {
+      ElStyle style(List<BoxShadow>? shadows) => ElStyle(
+        width: 100,
+        height: 60,
+        boxShadow: shadows,
+        transitions: _linear,
+      );
+      const red = BoxShadow(
+        color: _red,
+        offset: Offset(16, 0),
+        spreadRadius: 8,
+      );
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await tester.pumpWidget(_effectsScene(style(const [red])));
+      await _advance(tester, 50);
+      var pixels = await _effectsPixels(tester, const [
+        Offset(106, 30),
+        Offset(114, 30),
+      ]);
+      _pixel(pixels[0], const Color(0x80ff0000));
+      _pixel(pixels[1], const Color(0x00000000));
+      // 父级重建传入等值新列表时，必须沿用原截止时间。
+      await tester.pumpWidget(_effectsScene(style([red])));
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(118, 30)])).single,
+        _red,
+      );
+      await tester.pumpWidget(
+        _effectsScene(
+          style(const [
+            red,
+            BoxShadow(color: _blue, offset: Offset(-16, 0), spreadRadius: 8),
+          ]),
+        ),
+      );
+      await _advance(tester, 50);
+      pixels = await _effectsPixels(tester, const [
+        Offset(-6, 30),
+        Offset(118, 30),
+      ]);
+      _pixel(pixels[0], const Color(0x800000ff));
+      _pixel(pixels[1], _red);
+      await _advance(tester, 50);
+      await tester.pumpWidget(
+        _effectsScene(
+          style(const [
+            BoxShadow(
+              color: Color(0x000000ff),
+              offset: Offset(16, 0),
+              spreadRadius: 8,
+            ),
+          ]),
+        ),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(118, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 50);
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 100);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x00000000),
+      );
+    });
+
+    testWidgets('内外阴影类型切换经透明中点，偏移、模糊和扩散变化不影响实际布局', (tester) async {
+      ElStyle style(BoxShadow shadow) => ElStyle(
+        width: 100,
+        height: 60,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [shadow],
+        transitions: _linear,
+      );
+      await tester.pumpWidget(
+        _effectsScene(
+          style(
+            const BoxShadow(
+              color: _red,
+              offset: Offset(12, 0),
+              spreadRadius: 4,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        _effectsScene(
+          style(const ElBoxShadow(color: _blue, spreadRadius: 12, inset: true)),
+        ),
+      );
+      await _advance(tester, 25);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(105, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 25);
+      var pixels = await _effectsPixels(tester, const [
+        Offset(105, 30),
+        Offset(2, 30),
+      ]);
+      expect(pixels.every((color) => color.a == 0), isTrue);
+      await _advance(tester, 25);
+      pixels = await _effectsPixels(tester, const [
+        Offset(105, 30),
+        Offset(2, 30),
+      ]);
+      _pixel(pixels[0], const Color(0x00000000));
+      _pixel(pixels[1], const Color(0x800000ff));
+      await _advance(tester, 25);
+      await tester.pumpWidget(
+        _effectsScene(
+          style(
+            const ElBoxShadow(
+              color: _red,
+              offset: Offset(4, 2),
+              blurRadius: 8,
+              spreadRadius: 4,
+              inset: true,
+            ),
+          ),
+        ),
+      );
+      await _advance(tester, 50);
+      pixels = await _effectsPixels(tester, const [
+        Offset(1, 30),
+        Offset(50, 30),
+        Offset(110, 30),
+      ]);
+      expect(pixels[0].a, greaterThan(0.8));
+      expect(pixels[0].r, closeTo(0.5, 3 / 255));
+      expect(pixels[0].b, closeTo(0.5, 3 / 255));
+      expect(pixels[1].a, lessThan(0.05));
+      _pixel(pixels[2], const Color(0x00000000));
+      expect(viewSize(tester), const Size(100, 60));
+      await _advance(tester, 50);
+    });
+
+    testWidgets('透明度 null 为一，延迟、中断、钳制和过渡移除遵守实际可见时间线', (tester) async {
+      ElStyle style(num? opacity, {bool animate = true}) => ElStyle(
+        width: 100,
+        height: 60,
+        backgroundColor: _red,
+        opacity: opacity,
+        transitions: animate
+            ? const [
+                ElTransition.field(
+                  ElTransitionField.opacity,
+                  Duration(milliseconds: 100),
+                  Curves.linear,
+                  Duration(milliseconds: 20),
+                ),
+              ]
+            : null,
+      );
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await tester.pumpWidget(_effectsScene(style(-1)));
+      await _advance(tester, 20);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        _red,
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await tester.pumpWidget(_effectsScene(style(2)));
+      await _advance(tester, 20);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0xbfff0000),
+      );
+      await tester.pumpWidget(_effectsScene(style(0, animate: false)));
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x00000000),
+      );
+      expect(_hits(tester, const Offset(50, 30)), isFalse);
+      await tester.pumpWidget(_effectsScene(style(null)));
+      await _advance(tester, 70);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        const Color(0x80ff0000),
+      );
+      await _advance(tester, 50);
+      _pixel(
+        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
+        _red,
+      );
+    });
+
+    testWidgets('渐变阴影与透明度同帧变化时，合成 child、边框和轮廓整体只乘一次 alpha', (tester) async {
+      ElStyle style(double opacity, Color color) => ElStyle(
+        width: 100,
+        height: 60,
+        opacity: opacity,
+        gradient: LinearGradient(colors: [color, color]),
+        boxShadow: [BoxShadow(color: color, offset: const Offset(12, 0))],
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _red, width: 4),
+        outline: const ElOutline(width: 4, color: _blue),
+        transitions: _linear,
+      );
+      const child = RepaintBoundary(
+        child: Align(
+          child: SizedBox(
+            width: 40,
+            height: 20,
+            child: ColoredBox(color: _blue),
+          ),
+        ),
+      );
+      await tester.pumpWidget(_effectsScene(style(1, _red), child: child));
+      await tester.pumpWidget(_effectsScene(style(0, _blue), child: child));
+      await _advance(tester, 50);
+      final pixels = await _effectsPixels(tester, const [
+        Offset(50, 30),
+        Offset(50, 15),
+        Offset(2, 30),
+        Offset(-2, 30),
+        Offset(110, 30),
+      ]);
+      _pixel(pixels[0], const Color(0x800000ff));
+      _pixel(pixels[1], const Color(0x80800080));
+      _pixel(pixels[2], const Color(0x80ff0000));
+      _pixel(pixels[3], const Color(0x800000ff));
+      _pixel(pixels[4], const Color(0x80800080));
+      await _advance(tester, 50);
+      expect(
+        (await _effectsPixels(tester, const [
+          Offset(50, 30),
+          Offset(110, 30),
+        ])).every((color) => color.a == 0),
+        isTrue,
+      );
+      expect(viewSize(tester), const Size(100, 60));
+    });
+  });
+
   group('样式过渡与颜色中间值', () {
     for (final fadeIn in [false, true]) {
       testWidgets('颜色曲线过冲时中间帧保持有效透明度：淡入=$fadeIn', (tester) async {

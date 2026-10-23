@@ -94,7 +94,7 @@ class BoxLayout {
 
   /// 按相同盒模型规则查询外占位，不改变引用、偏移或正式几何。
   Size dryLayout(BoxConstraints outer, LayoutStyle style) {
-    final plan = _constraints(outer, style);
+    final plan = _queryConstraints(outer, style);
     return _withQueryGeometry(plan.box, style.padding, () {
       final content = _host.child?.getDryLayout(plan.inner) ?? Size.zero;
       final box = _constrainBox(plan.box, content, style);
@@ -111,7 +111,7 @@ class BoxLayout {
   ) {
     final child = _host.child;
     if (child == null) return null;
-    final plan = _constraints(outer, style);
+    final plan = _queryConstraints(outer, style);
     final value = _withQueryGeometry(
       plan.box,
       style.padding,
@@ -135,8 +135,18 @@ class BoxLayout {
         : (margin?.vertical ?? 0);
     final lower = horizontal ? style.minWidth : style.minHeight;
     final upper = horizontal ? style.maxWidth : style.maxHeight;
-    final fixed = horizontal ? style.width : style.height;
+    var fixed = horizontal ? style.width : style.height;
+    final ratio = style.aspectRatio;
+    if (fixed == null && ratio != null) {
+      final cross = horizontal ? style.height : style.width;
+      if (cross != null) fixed = _ratioExtent(cross, ratio, horizontal);
+    }
     if (fixed != null) return _bound(fixed, lower, upper) + axisMargin;
+    if (!horizontal && ratio != null) {
+      // 双 auto 用内容自然宽派生高度；查询也必须遵守跨轴上限与百分比参照。
+      final plan = _queryConstraints(BoxConstraints(maxWidth: extent), style);
+      return plan.box.maxHeight + axisMargin;
+    }
     final factor = horizontal ? style.widthFactor : style.heightFactor;
     if (factor == 0) return _bound(0, lower, upper) + axisMargin;
     final child = _host.child;
@@ -163,20 +173,30 @@ class BoxLayout {
       ),
     );
     final childExtent = math.max(0.0, cross - crossPadding);
-    final double value;
-    if (horizontal) {
-      value = minimum
-          ? child.getMinIntrinsicWidth(childExtent)
-          : child.getMaxIntrinsicWidth(childExtent);
-    } else {
-      value = minimum
-          ? child.getMinIntrinsicHeight(childExtent)
-          : child.getMaxIntrinsicHeight(childExtent);
-    }
+    final value = ratio == null
+        ? _childIntrinsic(child, horizontal, minimum, childExtent)
+        : _withQueryGeometry(
+            _constraints(BoxConstraints(maxHeight: extent), style).box,
+            padding,
+            () => _childIntrinsic(child, horizontal, minimum, childExtent),
+          );
     final natural = value + axisPadding;
     return _bound(factor == null ? natural : natural * factor, lower, upper) +
         axisMargin;
   }
+
+  double _childIntrinsic(
+    RenderBox child,
+    bool horizontal,
+    bool minimum,
+    double extent,
+  ) => horizontal
+      ? (minimum
+            ? child.getMinIntrinsicWidth(extent)
+            : child.getMaxIntrinsicWidth(extent))
+      : (minimum
+            ? child.getMinIntrinsicHeight(extent)
+            : child.getMaxIntrinsicHeight(extent));
 
   /// 按需沿祖先查找确定内容尺寸，真实查询只订阅经过的候选节点。
   double? reference(Axis axis, {bool dry = false}) {
@@ -202,10 +222,22 @@ class BoxLayout {
 
   ({BoxConstraints box, BoxConstraints inner}) _constraints(
     BoxConstraints outer,
-    LayoutStyle style,
-  ) {
+    LayoutStyle style, {
+    double? naturalWidth,
+  }) {
     final available = availableConstraints(outer, style.margin);
-    final width = style.width, height = style.height;
+    var width = style.width, height = style.height;
+    final ratio = style.aspectRatio;
+    if (ratio != null) {
+      if (width != null && height == null) {
+        height = _ratioExtent(width, ratio, false);
+      } else if (height != null && width == null) {
+        width = _ratioExtent(height, ratio, true);
+      } else if (width == null && height == null && naturalWidth != null) {
+        width = naturalWidth;
+        height = _ratioExtent(width, ratio, false);
+      }
+    }
     final bounded =
         style.minWidth != null ||
         style.maxWidth != null ||
@@ -255,6 +287,33 @@ class BoxLayout {
     return (box: box, inner: inner);
   }
 
+  ({BoxConstraints box, BoxConstraints inner}) _queryConstraints(
+    BoxConstraints outer,
+    LayoutStyle style,
+  ) {
+    final plan = _constraints(outer, style);
+    if (!_usesNaturalRatio(style)) return plan;
+    final content = _withQueryGeometry(
+      plan.box,
+      style.padding,
+      () => _host.child?.getDryLayout(plan.inner) ?? Size.zero,
+    );
+    return _constraints(
+      outer,
+      style,
+      naturalWidth: content.width + (style.padding?.horizontal ?? 0),
+    );
+  }
+
+  bool _usesNaturalRatio(LayoutStyle style) =>
+      style.aspectRatio != null && style.width == null && style.height == null;
+
+  double _ratioExtent(double extent, double ratio, bool width) {
+    final result = width ? extent * ratio : extent / ratio;
+    // 极小或极大的有限比值也不能向 Flutter 交付无限紧约束。
+    return result.isFinite ? result : double.maxFinite;
+  }
+
   double _bound(double value, double? minimum, double? maximum) {
     if (minimum != null) value = math.max(value, minimum);
     if (maximum != null) value = math.min(value, maximum);
@@ -266,13 +325,23 @@ class BoxLayout {
     LayoutStyle style, {
     required bool temporary,
   }) {
-    final plan = _constraints(outer, style);
+    var plan = _constraints(outer, style);
     final padding = style.padding;
     final previousBox = _referenceBox;
     final previousPadding = _referencePadding;
     _setReferenceGeometry(plan.box, padding);
     try {
       final child = _host.child;
+      if (_usesNaturalRatio(style)) {
+        child?.layout(plan.inner, parentUsesSize: true);
+        plan = _constraints(
+          outer,
+          style,
+          naturalWidth: (child?.size.width ?? 0) + (padding?.horizontal ?? 0),
+        );
+        // 先确定视觉盒，再让后代按派生轴重新布局；只测一次自然宽，不循环逼近。
+        _setReferenceGeometry(plan.box, padding);
+      }
       child?.layout(plan.inner, parentUsesSize: true);
       final content = child?.size ?? Size.zero;
       final box = _constrainBox(plan.box, content, style);

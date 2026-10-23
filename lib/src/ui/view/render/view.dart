@@ -10,11 +10,13 @@ import '../style/index.dart';
 class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   /// 创建宿主时立即创建唯一引擎，动画与绘制资源仍按需创建。
   ElRenderView(ElStyle style, TextDirection direction) : super(null) {
-    _styleEngine = StyleEngine(style, direction, invalidate: _invalidate);
+    _engine = StyleEngine(style, direction, invalidate: _invalidate);
     boxLayout = BoxLayout(this, mutateLayout: _mutateLayout);
+    if (alwaysNeedsCompositing) markNeedsCompositingBitsUpdate();
   }
 
-  late final StyleEngine _styleEngine;
+  StyleEngine? _engine;
+  StyleEngine get _styleEngine => _engine!;
   DecorationPainter? _decoration;
   EffectController? _effects;
   ShapeGeometry? _shape;
@@ -24,7 +26,14 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   DecorationPainter get _painter =>
       _decoration ??= DecorationPainter(_ensureShape);
 
-  EffectController get _clip => _effects ??= EffectController(_ensureShape);
+  EffectController get _effect => _effects ??= EffectController(_ensureShape);
+
+  @override
+  bool get alwaysNeedsCompositing {
+    // RenderObject 父构造期间会读取此属性，此时样式引擎尚未创建。
+    final alpha = _engine?.opacityAlpha ?? 255;
+    return alpha > 0 && alpha < 255;
+  }
 
   /// 本节点唯一的盒模型执行器，也是祖先几何查询的入口。
   @override
@@ -37,10 +46,10 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   void _invalidate(int damage) {
     if (damage & StyleEngine.layout != 0) super.markNeedsLayout();
     if (damage & StyleEngine.paint != 0) markNeedsPaint();
+    if (damage & StyleEngine.compositing != 0) markNeedsCompositingBitsUpdate();
     if (damage & StyleEngine.semantics != 0) {
       if (_styleEngine.clipBehavior == Clip.none) {
-        _effects?.dispose();
-        _effects = null;
+        _effects?.clearClip();
       }
       markNeedsSemanticsUpdate();
     }
@@ -109,9 +118,45 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    final alpha = _styleEngine.opacityAlpha;
+    if (alpha == 0) {
+      _effects?.clearOpacity();
+      // 隐藏期间移除装饰也应解除资源持有，无需等待下一次可见帧。
+      final decoration = _decoration;
+      if (decoration != null) {
+        if (_styleEngine.gradient == null) decoration.clearGradient();
+        if (_styleEngine.boxShadow == null) decoration.clearShadows();
+        if (_styleEngine.outline == null) decoration.clearOutline();
+      }
+      return;
+    }
+    if (alpha < 255) {
+      _effect.paintOpacity(context, offset, alpha, _paintBox);
+    } else {
+      _effects?.clearOpacity();
+      _paintBox(context, offset);
+    }
+  }
+
+  void _paintBox(PaintingContext context, Offset offset) {
+    final shadows = _styleEngine.boxShadow;
+    if (shadows != null) {
+      _painter.paintShadows(
+        context,
+        boxLayout.boxRect.shift(offset),
+        shadows,
+        inset: false,
+        borderRadius: _styleEngine.borderRadius,
+      );
+    } else {
+      _decoration?.clearShadows();
+    }
     if (_styleEngine.clipBehavior != Clip.none &&
-        (child != null || _styleEngine.backgroundColor != null)) {
-      _clip.paint(
+        (child != null ||
+            _styleEngine.backgroundColor != null ||
+            _styleEngine.gradient != null ||
+            _styleEngine.hasInnerShadow)) {
+      _effect.paint(
         context,
         offset,
         rect: boxLayout.boxRect,
@@ -121,7 +166,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
         painter: _paintContents,
       );
     } else {
-      _effects?.dispose();
+      _effects?.clearClip();
       _paintContents(context, offset);
     }
     final border = _styleEngine.border;
@@ -150,6 +195,12 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   Rect get paintBounds {
     final border = _styleEngine.border;
     var bounds = super.paintBounds;
+    final shadows = _styleEngine.boxShadow;
+    if (shadows != null) {
+      bounds = bounds.expandToInclude(
+        _painter.shadowBounds(boxLayout.boxRect, shadows),
+      );
+    }
     if (border != null) {
       bounds = bounds.expandToInclude(
         _painter.borderBounds(
@@ -180,12 +231,44 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
             : null,
       );
     }
+    final gradient = _styleEngine.gradient;
+    if (gradient != null) {
+      _painter.paintGradient(
+        context,
+        boxLayout.boxRect.shift(offset),
+        gradient,
+        _styleEngine.direction,
+        borderRadius: _styleEngine.clipBehavior == Clip.none
+            ? _styleEngine.borderRadius
+            : null,
+      );
+    } else {
+      _decoration?.clearGradient();
+    }
+    final shadows = _styleEngine.boxShadow;
+    if (shadows != null) {
+      _painter.paintShadows(
+        context,
+        boxLayout.boxRect.shift(offset),
+        shadows,
+        inset: true,
+        borderRadius: _styleEngine.borderRadius,
+        clipped: _styleEngine.clipBehavior != Clip.none,
+      );
+    }
     super.paint(context, offset);
   }
 
   @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) =>
+      _styleEngine.opacityAlpha != 0 &&
+      super.hitTest(result, position: position);
+
+  @override
   bool hitTestSelf(Offset position) =>
-      (_styleEngine.backgroundColor != null || _styleEngine.border != null) &&
+      (_styleEngine.backgroundColor != null ||
+          _styleEngine.border != null ||
+          _styleEngine.gradient != null) &&
       _painter.contains(
         boxLayout.boxRect,
         position,
@@ -196,7 +279,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
       child != null &&
       (_styleEngine.clipBehavior == Clip.none ||
-          _clip.contains(
+          _effect.contains(
             boxLayout.boxRect,
             position,
             _styleEngine.borderRadius,
@@ -223,6 +306,8 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   void dispose() {
     boxLayout.dispose();
     _decoration?.clearOutline();
+    _decoration?.clearGradient();
+    _decoration?.clearShadows();
     _effects?.dispose();
     _styleEngine.dispose();
     super.dispose();

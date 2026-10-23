@@ -16,7 +16,11 @@ extension ElStyleExt on ElStyle {
     Object? maxHeight = $absent,
     Object? widthFactor = $absent,
     Object? heightFactor = $absent,
+    Object? aspectRatio = $absent,
     Object? backgroundColor = $absent,
+    Object? gradient = $absent,
+    Object? boxShadow = $absent,
+    Object? opacity = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
     Object? border = $absent,
@@ -38,9 +42,19 @@ extension ElStyleExt on ElStyle {
       heightFactor: identical(heightFactor, $absent)
           ? this.heightFactor
           : heightFactor as num?,
+      aspectRatio: identical(aspectRatio, $absent)
+          ? this.aspectRatio
+          : aspectRatio as num?,
       backgroundColor: identical(backgroundColor, $absent)
           ? this.backgroundColor
           : backgroundColor as Color?,
+      gradient: identical(gradient, $absent)
+          ? this.gradient
+          : gradient as Gradient?,
+      boxShadow: identical(boxShadow, $absent)
+          ? this.boxShadow
+          : boxShadow as List<BoxShadow>?,
+      opacity: identical(opacity, $absent) ? this.opacity : opacity as num?,
       padding: identical(padding, $absent)
           ? this.padding
           : padding as EdgeInsetsGeometry?,
@@ -74,7 +88,11 @@ extension ElStyleExt on ElStyle {
       maxHeight: other.maxHeight ?? maxHeight,
       widthFactor: other.widthFactor ?? widthFactor,
       heightFactor: other.heightFactor ?? heightFactor,
+      aspectRatio: other.aspectRatio ?? aspectRatio,
       backgroundColor: other.backgroundColor ?? backgroundColor,
+      gradient: other.gradient ?? gradient,
+      boxShadow: other.boxShadow ?? boxShadow,
+      opacity: other.opacity ?? opacity,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
       border: other.border ?? border,
@@ -94,7 +112,11 @@ extension ElStyleExt on ElStyle {
     maxHeight,
     widthFactor,
     heightFactor,
+    aspectRatio,
     backgroundColor,
+    gradient,
+    boxShadow,
+    opacity,
     padding,
     margin,
     border,

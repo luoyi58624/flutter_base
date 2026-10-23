@@ -16,10 +16,19 @@ enum StyleField {
   minWidth,
   maxWidth,
   minHeight,
-  maxHeight;
+  maxHeight,
+  aspectRatio,
+  gradient,
+  boxShadow,
+  opacity;
 
   /// 仅宽高需要真实 auto 端点，min/max 的空值沿旧版规则切换。
   bool get isLength => this == width || this == height;
+
+  /// 阴影列表按内容比较，重建等值声明不能重启动画或重复解析。
+  bool sameValue(Object? a, Object? b) => this == boxShadow
+      ? listEquals(a as List<BoxShadow>?, b as List<BoxShadow>?)
+      : a == b;
 
   int get damage => switch (this) {
     width ||
@@ -31,8 +40,15 @@ enum StyleField {
     minWidth ||
     maxWidth ||
     minHeight ||
-    maxHeight => StyleEngine.layout,
-    backgroundColor || borderRadius || border || outline => StyleEngine.paint,
+    maxHeight ||
+    aspectRatio => StyleEngine.layout,
+    backgroundColor ||
+    borderRadius ||
+    border ||
+    outline ||
+    gradient ||
+    boxShadow ||
+    opacity => StyleEngine.paint,
     clipBehavior => StyleEngine.paint | StyleEngine.semantics,
   };
 
@@ -52,6 +68,10 @@ enum StyleField {
     maxWidth => ElTransitionField.maxWidth,
     minHeight => ElTransitionField.minHeight,
     maxHeight => ElTransitionField.maxHeight,
+    aspectRatio => ElTransitionField.aspectRatio,
+    gradient => ElTransitionField.gradient,
+    boxShadow => ElTransitionField.boxShadow,
+    opacity => ElTransitionField.opacity,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -70,6 +90,10 @@ enum StyleField {
     maxWidth => style.maxWidth,
     minHeight => style.minHeight,
     maxHeight => style.maxHeight,
+    aspectRatio => style.aspectRatio,
+    gradient => style.gradient,
+    boxShadow => style.boxShadow,
+    opacity => style.opacity,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -87,7 +111,11 @@ enum StyleField {
     minWidth ||
     maxWidth ||
     minHeight ||
-    maxHeight => false,
+    maxHeight ||
+    aspectRatio ||
+    gradient ||
+    boxShadow ||
+    opacity => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -104,6 +132,10 @@ enum StyleField {
     widthFactor || heightFactor => _parseFactor(value as num),
     border => _resolveBorder(value as BoxBorder, direction),
     outline => _parseOutline(value as ElOutline, direction),
+    aspectRatio => _parseAspectRatio(value as num),
+    gradient => value as Gradient,
+    boxShadow => _parseShadows(value as List<BoxShadow>),
+    opacity => _parseOpacity(value as num),
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -120,5 +152,13 @@ enum StyleField {
     widthFactor || heightFactor => _factorLerp(from, to, t),
     border => _borderLerp(from as Border?, to as Border?, t),
     outline => _outlineLerp(from as OutlineStyle?, to as OutlineStyle?, t),
+    aspectRatio => _ratioLerp(from as double?, to as double?, t),
+    gradient => Gradient.lerp(from as Gradient?, to as Gradient?, t),
+    boxShadow => _shadowsLerp(
+      from as List<ElBoxShadow>?,
+      to as List<ElBoxShadow>?,
+      t,
+    ),
+    opacity => _opacityLerp(from as double?, to as double?, t),
   };
 }

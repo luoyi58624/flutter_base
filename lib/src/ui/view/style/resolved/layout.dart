@@ -16,6 +16,7 @@ class LayoutStyle {
     this.margin,
     this.widthFactor,
     this.heightFactor,
+    this.aspectRatio,
   });
 
   /// 无尺寸和边距修饰的共享属性。
@@ -50,4 +51,7 @@ class LayoutStyle {
 
   /// 仅用于 auto 高度的自然盒倍数，空值表示 1。
   final double? heightFactor;
+
+  /// 未被显式双轴或自然盒倍数覆盖的视觉盒宽高比。
+  final double? aspectRatio;
 }

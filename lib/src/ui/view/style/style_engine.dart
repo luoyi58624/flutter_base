@@ -25,6 +25,9 @@ class StyleEngine {
   /// 消费结果改变后代的近似语义裁剪边界。
   static const semantics = 4;
 
+  /// 消费结果切换是否需要合成图层。
+  static const compositing = 8;
+
   /// 宿主执行已经裁决的框架失效，不参与字段解析。
   final void Function(int damage) invalidate;
 
@@ -45,6 +48,33 @@ class StyleEngine {
   /// 已完成颜色解析和本帧插值的背景色。
   Color? get backgroundColor =>
       _values[StyleField.backgroundColor.index] as Color?;
+
+  /// 可见背景渐变；全透明时不创建 shader。
+  Gradient? get gradient {
+    final value = _values[StyleField.gradient.index] as Gradient?;
+    return value != null && value.colors.any((color) => color.a > 0)
+        ? value
+        : null;
+  }
+
+  /// 已解析本帧阴影；完全不可见时不启动阴影执行器。
+  List<ElBoxShadow>? get boxShadow {
+    final value = _values[StyleField.boxShadow.index] as List<ElBoxShadow>?;
+    return _hasVisibleShadows(value) ? value : null;
+  }
+
+  /// 内阴影是需要按盒形状裁剪的背景内容，纯外阴影不启动内容裁剪。
+  bool get hasInnerShadow =>
+      boxShadow?.any((shadow) => shadow.inset && shadow.color.a > 0) ?? false;
+
+  /// 渐变消费当前方向，环境变化不重启轨道。
+  TextDirection get direction => _direction;
+
+  /// 框架合成使用的整组 alpha，缺省完全不透明。
+  int get opacityAlpha {
+    final value = _values[StyleField.opacity.index] as double?;
+    return value == null ? 255 : Color.getAlphaFromOpacity(value);
+  }
 
   /// 已解析方向和本帧过渡的物理边框；完全不可见时不启动绘制执行器。
   Border? get border {
@@ -91,9 +121,18 @@ class StyleEngine {
       _values[StyleField.clipBehavior.index] as Clip? ?? Clip.none;
 
   void _write(StyleField field, Object? value) {
-    if (_values[field.index] == value) return;
+    if (field.sameValue(_values[field.index], value)) return;
+    final composited = field == StyleField.opacity && _hasOpacityLayer;
     _values[field.index] = value;
     _damage |= field.damage;
+    if (field == StyleField.opacity && composited != _hasOpacityLayer) {
+      _damage |= compositing;
+    }
+  }
+
+  bool get _hasOpacityLayer {
+    final alpha = opacityAlpha;
+    return alpha > 0 && alpha < 255;
   }
 
   void _flush() {
@@ -138,11 +177,13 @@ class StyleEngine {
     _style = style;
     _direction = direction;
     // 仅刷新可见渐变的 shader，不因方向变化重启宽度、颜色或偏移动画。
-    if (directionChanged && outline?.gradient != null) _damage |= paint;
+    if (directionChanged && (outline?.gradient != null || gradient != null)) {
+      _damage |= paint;
+    }
     for (final field in StyleField.values) {
       final raw = field.declaration(style);
       final changed =
-          field.declaration(before) != raw ||
+          !field.sameValue(field.declaration(before), raw) ||
           (directionChanged && field.dependsOnDirection(raw));
       final old = _track(field);
       if (!changed && (!transitionsChanged || old == null)) continue;
@@ -159,15 +200,16 @@ class StyleEngine {
       final immediate =
           transition == null ||
           transition.duration + transition.delay == Duration.zero;
-      if (!immediate && _targets[field.index] == to) continue;
-      if (field.damage == layout && _targets[field.index] != to) {
+      if (!immediate && field.sameValue(_targets[field.index], to)) continue;
+      if (field.damage == layout &&
+          !field.sameValue(_targets[field.index], to)) {
         _externalLayout = true;
         _externalVersion++;
       }
       if (old != null) _tracks!.remove(old);
       _targets[field.index] = to;
       var from = _values[field.index];
-      if (immediate || from == to) {
+      if (immediate || field.sameValue(from, to)) {
         _write(field, to);
         continue;
       }
@@ -260,6 +302,7 @@ class StyleEngine {
     final padding = _padding, margin = _margin;
     final widthFactor = _values[StyleField.widthFactor.index] as double?;
     final heightFactor = _values[StyleField.heightFactor.index] as double?;
+    final ratio = _values[StyleField.aspectRatio.index] as double?;
     final minWidth = _values[StyleField.minWidth.index] as StyleLength?;
     final maxWidth = _values[StyleField.maxWidth.index] as StyleLength?;
     final minHeight = _values[StyleField.minHeight.index] as StyleLength?;
@@ -270,6 +313,7 @@ class StyleEngine {
         margin == null &&
         widthFactor == null &&
         heightFactor == null &&
+        ratio == null &&
         minWidth == null &&
         maxWidth == null &&
         minHeight == null &&
@@ -304,6 +348,12 @@ class StyleEngine {
       margin: margin,
       widthFactor: usedWidth == null ? widthFactor : null,
       heightFactor: usedHeight == null ? heightFactor : null,
+      aspectRatio:
+          (usedWidth != null && usedHeight != null) ||
+              (usedWidth == null && widthFactor != null) ||
+              (usedHeight == null && heightFactor != null)
+          ? null
+          : ratio,
     );
   }
 
@@ -403,6 +453,7 @@ class StyleEngine {
       request.maxWidth,
       request.minHeight,
       request.maxHeight,
+      request.aspectRatio,
       _externalVersion,
     );
     if (_measurementKey != key || lostReference) {

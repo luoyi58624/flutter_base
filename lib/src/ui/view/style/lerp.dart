@@ -49,6 +49,23 @@ Object? _factorLerp(Object? from, Object? to, double t) {
   return value == 1 ? null : value;
 }
 
+double? _parseAspectRatio(num value) =>
+    value.isFinite && value > 0 ? value.toDouble() : null;
+
+double? _ratioLerp(double? from, double? to, double t) =>
+    from == null || to == null
+    ? (t < .5 ? from : to)
+    : _parseAspectRatio(lerpDouble(from, to, t)!);
+
+double? _parseOpacity(num value) {
+  if (value.isNaN) return null;
+  final result = value.toDouble().clamp(0.0, 1.0);
+  return result == 1 ? null : result;
+}
+
+double? _opacityLerp(double? from, double? to, double t) =>
+    _parseOpacity(lerpDouble(from ?? 1, to ?? 1, t)!);
+
 EdgeInsets? _resolveInsets(EdgeInsetsGeometry value, TextDirection direction) {
   final result = value.resolve(direction);
   assert(

@@ -178,7 +178,9 @@ Future<_Pixels> _borderPixels(
   ElStyle style, {
   Widget? child,
   TextDirection direction = TextDirection.ltr,
+  Widget Function(Widget)? wrap,
 }) async {
+  final view = ElView(key: viewKey, style: style, child: child);
   await tester.pumpWidget(
     Directionality(
       textDirection: direction,
@@ -188,9 +190,7 @@ Future<_Pixels> _borderPixels(
           child: SizedBox(
             width: 160,
             height: 120,
-            child: Center(
-              child: ElView(key: viewKey, style: style, child: child),
-            ),
+            child: Center(child: wrap?.call(view) ?? view),
           ),
         ),
       ),
@@ -212,7 +212,465 @@ Future<_Pixels> _borderPixels(
   }))!;
 }
 
+void _pixel(Color actual, Color expected) {
+  expect(actual.a, closeTo(expected.a, 2 / 255));
+  if (expected.a == 0) return;
+  expect(actual.r, closeTo(expected.r, 2 / 255));
+  expect(actual.g, closeTo(expected.g, 2 / 255));
+  expect(actual.b, closeTo(expected.b, 2 / 255));
+}
+
 void main() {
+  group('宽高比基本功能', () {
+    testWidgets('显式轴、自然盒、百分比和边距按先比例后限制的顺序求值', (tester) async {
+      for (final (style, expected) in <(ElStyle, Size)>[
+        (const ElStyle(width: 100, aspectRatio: 2), const Size(100, 50)),
+        (const ElStyle(height: 60, aspectRatio: 2), const Size(120, 60)),
+        (
+          const ElStyle(width: 100, height: 60, aspectRatio: 2),
+          const Size(100, 60),
+        ),
+        (
+          const ElStyle(aspectRatio: 2, padding: EdgeInsets.all(10)),
+          const Size(100, 50),
+        ),
+        (
+          const ElStyle(
+            width: '50%',
+            aspectRatio: 2,
+            padding: EdgeInsets.all(10),
+            margin: EdgeInsets.all(10),
+          ),
+          const Size(210, 115),
+        ),
+        (
+          const ElStyle(width: 100, maxWidth: 80, aspectRatio: 2),
+          const Size(80, 50),
+        ),
+        (
+          const ElStyle(width: 100, minHeight: 70, aspectRatio: 2),
+          const Size(100, 70),
+        ),
+        (const ElStyle(width: 1000, aspectRatio: 2), const Size(400, 300)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(style, child: const SizedBox(width: 80, height: 40)),
+        );
+        expect(viewSize(tester), expected, reason: '$style');
+      }
+    });
+
+    testWidgets('仅有效 auto 因子禁用比例，非法比例恢复自然尺寸', (tester) async {
+      for (final (style, expected) in <(ElStyle, Size)>[
+        (const ElStyle(aspectRatio: 2, widthFactor: 2), const Size(160, 40)),
+        (
+          const ElStyle(width: 100, aspectRatio: 2, widthFactor: 2),
+          const Size(100, 50),
+        ),
+        (
+          const ElStyle(width: 100, aspectRatio: 2, heightFactor: 2),
+          const Size(100, 80),
+        ),
+        (
+          const ElStyle(aspectRatio: 4, widthFactor: 1, heightFactor: 1),
+          const Size(80, 20),
+        ),
+        for (final ratio in <num?>[null, 0, -2, double.nan, double.infinity])
+          (ElStyle(aspectRatio: ratio), const Size(80, 40)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(style, child: const SizedBox(width: 80, height: 40)),
+        );
+        expect(viewSize(tester), expected);
+      }
+    });
+
+    testWidgets('真实布局、dry 查询与固有尺寸都包含比例后的盒和外边距', (tester) async {
+      const style = ElStyle(
+        width: 100,
+        aspectRatio: 2,
+        padding: EdgeInsets.all(10),
+        margin: EdgeInsets.all(5),
+      );
+      await tester.pumpWidget(
+        viewScene(style, child: const SizedBox(width: 80, height: 40)),
+      );
+      final box = viewBox(tester);
+      expect(viewSize(tester), const Size(110, 60));
+      expect(
+        box.getDryLayout(const BoxConstraints(maxWidth: 400, maxHeight: 300)),
+        const Size(110, 60),
+      );
+      expect(box.getMinIntrinsicWidth(300), 110);
+      expect(box.getMaxIntrinsicWidth(300), 110);
+      expect(box.getMinIntrinsicHeight(400), 60);
+      expect(box.getMaxIntrinsicHeight(400), 60);
+      expect(
+        box.getDryLayout(const BoxConstraints.tightFor(width: 80, height: 45)),
+        const Size(80, 45),
+      );
+      expect(viewSize(tester), const Size(110, 60));
+    });
+
+    testWidgets('比例父盒在 Row 与 Column 中为无界轴的百分比后代提供当前内容参照', (tester) async {
+      const nestedKey = ValueKey('ratio-percentage-child');
+      for (final vertical in [false, true]) {
+        Widget scene(double width, num ratio) {
+          const nested = ElView(
+            key: nestedKey,
+            style: ElStyle(width: '50%', height: '50%'),
+          );
+          return viewScene(
+            ElStyle(
+              width: width,
+              aspectRatio: ratio,
+              padding: const EdgeInsets.all(10),
+            ),
+            child: vertical
+                ? const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [nested],
+                  )
+                : const Row(mainAxisSize: MainAxisSize.min, children: [nested]),
+          );
+        }
+
+        await tester.pumpWidget(scene(200, 2));
+        expect(viewSize(tester), const Size(200, 100));
+        expect(tester.getSize(find.byKey(nestedKey)), const Size(90, 40));
+        expect(
+          viewBox(
+            tester,
+          ).getDryLayout(const BoxConstraints(maxWidth: 100, maxHeight: 300)),
+          const Size(100, 100),
+        );
+        expect(tester.getSize(find.byKey(nestedKey)), const Size(90, 40));
+        await tester.pumpWidget(scene(200, 4));
+        expect(tester.getSize(find.byKey(nestedKey)), const Size(90, 15));
+        await tester.pumpWidget(scene(300, 4));
+        expect(viewSize(tester), const Size(300, 75));
+        expect(tester.getSize(find.byKey(nestedKey)), const Size(140, 27.5));
+      }
+    });
+  });
+
+  group('渐变阴影与透明度基本功能', () {
+    testWidgets('四项样式支持复制、合并和显式清空，并反映在尺寸与画面上', (tester) async {
+      const style = ElStyle(
+        width: 100,
+        aspectRatio: 2,
+        gradient: LinearGradient(colors: [_red, _red]),
+        opacity: 0.5,
+        boxShadow: [BoxShadow(color: _blue, offset: Offset(12, 0))],
+      );
+      var pixels = await _borderPixels(tester, style);
+      expect(viewSize(tester), const Size(100, 50));
+      _pixel(pixels.at(80, 60), const Color(0x80ff0000));
+      _pixel(pixels.at(140, 60), const Color(0x800000ff));
+      pixels = await _borderPixels(
+        tester,
+        style.merge(
+          const ElStyle(
+            aspectRatio: 1,
+            gradient: LinearGradient(colors: [_green, _green]),
+            opacity: 1,
+            boxShadow: [],
+          ),
+        ),
+      );
+      expect(viewSize(tester), const Size(100, 100));
+      _pixel(pixels.at(80, 60), _green);
+      _pixel(pixels.at(140, 60), const Color(0x00000000));
+      pixels = await _borderPixels(
+        tester,
+        style.copyWith(
+          aspectRatio: null,
+          gradient: null,
+          opacity: null,
+          boxShadow: null,
+        ),
+        child: const SizedBox(height: 40),
+      );
+      expect(viewSize(tester), const Size(100, 40));
+      _pixel(pixels.at(80, 60), const Color(0x00000000));
+    });
+
+    testWidgets('渐变覆盖背景并响应方向、圆角和尺寸，三种原生渐变均可见', (tester) async {
+      const gradient = LinearGradient(
+        begin: AlignmentDirectional.centerStart,
+        end: AlignmentDirectional.centerEnd,
+        colors: [_red, _blue],
+        stops: [0.25, 0.75],
+      );
+      for (final direction in TextDirection.values) {
+        final pixels = await _borderPixels(
+          tester,
+          const ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _green,
+            gradient: gradient,
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
+          direction: direction,
+        );
+        _pixel(
+          pixels.at(40, 60),
+          direction == TextDirection.ltr ? _red : _blue,
+        );
+        _pixel(
+          pixels.at(120, 60),
+          direction == TextDirection.ltr ? _blue : _red,
+        );
+        _pixel(pixels.at(30, 30), const Color(0x00000000));
+      }
+      for (final gradient in const <Gradient>[
+        RadialGradient(colors: [_red, _red]),
+        SweepGradient(colors: [_blue, _blue]),
+      ]) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(width: 100, height: 60, gradient: gradient),
+        );
+        _pixel(pixels.at(80, 60), gradient.colors.first);
+      }
+      final pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _green,
+          gradient: LinearGradient(
+            colors: [Color(0x80ff0000), Color(0x80ff0000)],
+          ),
+        ),
+      );
+      _pixel(pixels.at(80, 60), const Color(0xff807f00));
+      expect(_hits(tester, const Offset(50, 30)), isTrue);
+    });
+
+    testWidgets('外阴影按 offset 和 spread 绘制，负 spread、模糊及圆角保留真实边缘', (tester) async {
+      const base = ElStyle(width: 100, height: 60, backgroundColor: _green);
+      var pixels = await _borderPixels(
+        tester,
+        base.copyWith(
+          boxShadow: const [
+            BoxShadow(color: _blue, offset: Offset(12, 0), spreadRadius: 4),
+          ],
+        ),
+      );
+      _pixel(pixels.at(140, 60), _blue);
+      _pixel(pixels.at(80, 28), _blue);
+      _pixel(pixels.at(80, 60), _green);
+      expect(viewSize(tester), const Size(100, 60));
+      expect(
+        viewBox(tester).paintBounds.contains(const Offset(114, 30)),
+        isTrue,
+      );
+      expect(_hits(tester, const Offset(110, 30)), isFalse);
+      pixels = await _borderPixels(
+        tester,
+        base.copyWith(
+          backgroundColor: null,
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          boxShadow: const [BoxShadow(color: _blue, spreadRadius: -5)],
+        ),
+      );
+      _pixel(pixels.at(32, 60), const Color(0x00000000));
+      _pixel(pixels.at(35, 35), const Color(0x00000000));
+      _pixel(pixels.at(80, 60), _blue);
+      final previous = debugDisableShadows;
+      debugDisableShadows = false;
+      try {
+        pixels = await _borderPixels(
+          tester,
+          base.copyWith(
+            boxShadow: const [BoxShadow(color: _blue, blurRadius: 8)],
+          ),
+        );
+        expect(pixels.at(80, 26).a, inExclusiveRange(0, 1));
+        expect(pixels.at(80, 26).b, closeTo(1, 2 / 255));
+        _pixel(pixels.at(80, 60), _green);
+        expect(viewBox(tester).paintBounds.top, lessThan(-8));
+      } finally {
+        debugDisableShadows = previous;
+      }
+    });
+
+    testWidgets('内外阴影混排保持声明顺序，内阴影覆盖背景且在 child 之前', (tester) async {
+      final pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _green,
+          boxShadow: [
+            BoxShadow(color: _red, offset: Offset(12, 0)),
+            ElBoxShadow(color: _blue, offset: Offset(12, 0)),
+            ElBoxShadow(color: _red, spreadRadius: 8, inset: true),
+            ElBoxShadow(color: Color(0x800000ff), spreadRadius: 8, inset: true),
+          ],
+        ),
+        child: const Align(
+          child: SizedBox(
+            width: 40,
+            height: 20,
+            child: ColoredBox(color: _yellow),
+          ),
+        ),
+      );
+      _pixel(pixels.at(140, 60), _blue);
+      _pixel(pixels.at(35, 60), const Color(0xff7f0080));
+      _pixel(pixels.at(80, 45), _green);
+      _pixel(pixels.at(80, 60), _yellow);
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('自身裁剪保留外阴影，内阴影与渐变遵守圆角，边框和轮廓最后绘制', (tester) async {
+      for (final clip in Clip.values) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            gradient: const LinearGradient(colors: [_green, _green]),
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: clip,
+            boxShadow: const [
+              BoxShadow(color: _blue, offset: Offset(12, 0)),
+              ElBoxShadow(color: _red, spreadRadius: 8, inset: true),
+            ],
+            border: Border.all(color: _yellow, width: 4),
+            outline: const ElOutline(width: 4, color: _red),
+          ),
+        );
+        _pixel(pixels.at(140, 60), _blue);
+        _pixel(pixels.at(35, 60), _red);
+        _pixel(pixels.at(32, 60), _yellow);
+        _pixel(pixels.at(28, 60), _red);
+        _pixel(pixels.at(30, 30), const Color(0x00000000));
+      }
+    });
+
+    testWidgets('透明度对背景、渐变、阴影、合成 child、边框和轮廓整体合成', (tester) async {
+      for (final (clip, margin) in <(Clip, EdgeInsets?)>[
+        (Clip.antiAlias, null),
+        (Clip.antiAliasWithSaveLayer, const EdgeInsets.fromLTRB(6, 4, 10, 8)),
+      ]) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _red,
+            gradient: const LinearGradient(colors: [_green, _green]),
+            opacity: 0.5,
+            clipBehavior: clip,
+            margin: margin,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(color: _blue, offset: Offset(12, 0)),
+              ElBoxShadow(color: _red, spreadRadius: 8, inset: true),
+            ],
+            border: Border.all(color: _yellow, width: 4),
+            outline: const ElOutline(width: 4, color: _blue),
+          ),
+          child: const RepaintBoundary(
+            child: Align(
+              child: SizedBox(
+                width: 40,
+                height: 20,
+                child: ColoredBox(color: _blue),
+              ),
+            ),
+          ),
+        );
+        final origin =
+            tester.getTopLeft(find.byKey(viewKey)) -
+            tester.getTopLeft(find.byKey(_borderCaptureKey)) +
+            Offset(margin?.left ?? 0, margin?.top ?? 0);
+        for (final (position, expected) in <(Offset, Color)>[
+          (const Offset(50, 30), const Color(0x800000ff)),
+          (const Offset(50, 15), const Color(0x8000ff00)),
+          (const Offset(5, 30), const Color(0x80ff0000)),
+          (const Offset(2, 30), const Color(0x80ffff00)),
+          (const Offset(-2, 30), const Color(0x800000ff)),
+          (const Offset(110, 30), const Color(0x800000ff)),
+        ]) {
+          final point = origin + position;
+          _pixel(pixels.at(point.dx.toInt(), point.dy.toInt()), expected);
+        }
+        expect(
+          viewSize(tester),
+          margin?.inflateSize(const Size(100, 60)) ?? const Size(100, 60),
+        );
+      }
+      await tester.pumpWidget(const SizedBox());
+      final pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          backgroundColor: _red,
+          opacity: 0.5,
+        ),
+        wrap: (child) => ClipRect(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 0.5,
+            heightFactor: 1,
+            child: child,
+          ),
+        ),
+      );
+      final origin =
+          tester.getTopLeft(find.byKey(viewKey)) -
+          tester.getTopLeft(find.byKey(_borderCaptureKey));
+      // 首次挂载就半透明且没有 child，也必须服从祖先裁剪。
+      _pixel(
+        pixels.at((origin.dx + 25).toInt(), (origin.dy + 30).toInt()),
+        const Color(0x80ff0000),
+      );
+      _pixel(
+        pixels.at((origin.dx + 75).toInt(), (origin.dy + 30).toInt()),
+        const Color(0x00000000),
+      );
+    });
+
+    testWidgets('透明度默认与非法值为一，越界钳制，零不命中但保留语义及布局', (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        for (final opacity in <num?>[
+          null,
+          1,
+          2,
+          double.nan,
+          double.infinity,
+          0,
+          -1,
+        ]) {
+          final pixels = await _borderPixels(
+            tester,
+            ElStyle(
+              width: 100,
+              height: 60,
+              backgroundColor: _red,
+              opacity: opacity,
+            ),
+            child: Semantics(label: '透明内容', child: const SizedBox.expand()),
+          );
+          final hidden = opacity != null && opacity.isFinite && opacity <= 0;
+          _pixel(pixels.at(80, 60), hidden ? const Color(0x00000000) : _red);
+          expect(_hits(tester, const Offset(50, 30)), !hidden);
+          expect(viewSize(tester), const Size(100, 60));
+          expect(find.bySemanticsLabel('透明内容'), findsOneWidget);
+        }
+      } finally {
+        semantics.dispose();
+      }
+    });
+  });
+
   group('轮廓基本功能', () {
     testWidgets('默认零宽、透明和空轮廓不画，正宽默认黑色且不创建命中区域', (tester) async {
       for (final outline in <ElOutline?>[

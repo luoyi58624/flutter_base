@@ -3,6 +3,8 @@ import 'package:flutter/rendering.dart';
 import 'border.dart';
 import 'outline.dart';
 import 'shape.dart';
+import 'shadow.dart';
+import '../style/index.dart';
 import '../style/resolved/outline.dart';
 
 /// 按需持有盒装饰资源，简单背景不构造路径或合成图层。
@@ -14,6 +16,83 @@ class DecorationPainter {
   Paint? _background;
   BorderPainter? _border;
   OutlinePainter? _outline;
+  ShadowPainter? _shadow;
+  Paint? _gradient;
+  Object? _gradientKey;
+
+  /// 在背景之前绘制外阴影，在背景与 child 之间绘制内阴影。
+  void paintShadows(
+    PaintingContext context,
+    Rect rect,
+    List<ElBoxShadow> shadows, {
+    required bool inset,
+    BorderRadius? borderRadius,
+    bool clipped = false,
+  }) {
+    if (!shadows.any((shadow) => shadow.inset == inset && shadow.color.a > 0)) {
+      return;
+    }
+    final painter = _shadow ??= ShadowPainter(_shape);
+    if (inset) {
+      painter.paintInner(
+        context.canvas,
+        rect,
+        shadows,
+        borderRadius: borderRadius,
+        clipped: clipped,
+      );
+    } else {
+      painter.paintOuter(
+        context.canvas,
+        rect,
+        shadows,
+        borderRadius: borderRadius,
+      );
+    }
+  }
+
+  /// 外阴影只扩大绘制范围，不改变布局或命中范围。
+  Rect shadowBounds(Rect rect, List<ElBoxShadow> shadows) =>
+      ShadowPainter.bounds(rect, shadows);
+
+  /// 阴影退出后释放其画笔与局部几何持有。
+  void clearShadows() => _shadow = null;
+
+  /// 渐变覆盖背景色；shader 仅在渐变、尺寸或方向变化时重新创建。
+  void paintGradient(
+    PaintingContext context,
+    Rect rect,
+    Gradient gradient,
+    TextDirection direction, {
+    BorderRadius? borderRadius,
+  }) {
+    if (rect.isEmpty) return;
+    final local = Offset.zero & rect.size;
+    final key = (gradient, rect.size, direction);
+    final paint = _gradient ??= Paint();
+    if (_gradientKey != key) {
+      _gradientKey = key;
+      paint.shader = gradient.createShader(local, textDirection: direction);
+    }
+    final canvas = context.canvas;
+    final shifted = rect.topLeft != Offset.zero;
+    if (shifted) {
+      canvas.save();
+      canvas.translate(rect.left, rect.top);
+    }
+    if (borderRadius == null) {
+      canvas.drawRect(local, paint);
+    } else {
+      canvas.drawRRect(_shape().resolve(rect.size, borderRadius), paint);
+    }
+    if (shifted) canvas.restore();
+  }
+
+  /// 渐变退出后解除 shader 的持有。
+  void clearGradient() {
+    _gradient = null;
+    _gradientKey = null;
+  }
 
   /// 按需绘制位于边框之上的轮廓。
   void paintOutline(
