@@ -15,10 +15,7 @@ void main() {
     void record(ElEventCallback event) => phases.add(event.phase);
 
     host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(
-        dragStartDistance: 3,
-
-      ),
+      config: const ElEventConfig(dragStartDistance: 3),
       onPointerDown: record,
       onDragDown: record,
       onTapDown: record,

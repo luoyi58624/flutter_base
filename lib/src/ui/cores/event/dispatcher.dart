@@ -1162,5 +1162,4 @@ class ElEventDispatcher {
     }
     _routes.clear();
   }
-
 }

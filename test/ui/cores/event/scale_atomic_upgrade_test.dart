@@ -248,10 +248,7 @@ void main() {
       },
     );
     leaf.event = ElEvent(
-      config: const ElEventConfig(
-        dragStartDistance: 3,
-
-      ),
+      config: const ElEventConfig(dragStartDistance: 3),
       onScaleStart: (_) => trace.add('scaleStart'),
       onVerticalDragStart: (_) => trace.add('dragStart'),
       onVerticalDragUpdate: (_) => trace.add('dragUpdate'),
@@ -340,18 +337,12 @@ void main() {
 
     int? ancestorCancelPointerCount;
     root.event = ElEvent(
-      config: const ElEventConfig(
-        dragStartDistance: 3,
-
-      ),
+      config: const ElEventConfig(dragStartDistance: 3),
       onScaleStart: (_) {},
       onDragCancel: (event) => ancestorCancelPointerCount = event.pointerCount,
     );
     left.event = ElEvent(
-      config: const ElEventConfig(
-        dragStartDistance: 3,
-
-      ),
+      config: const ElEventConfig(dragStartDistance: 3),
       onDragStart: (_) {},
       onDragUpdate: (_) {},
       onDragCancel: (_) {},
@@ -414,10 +405,7 @@ ElEvent _dragEvent(
   required ElEventHandler onStart,
 }) {
   return ElEvent(
-    config: const ElEventConfig(
-      dragStartDistance: 3,
-
-    ),
+    config: const ElEventConfig(dragStartDistance: 3),
     onPointerDown: onPointerDown,
     onDragStart: (event) {
       trace.add('dragStart');

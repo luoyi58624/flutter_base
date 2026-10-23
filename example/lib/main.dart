@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_base/flutter_base.dart';
 
 import 'src/pages/index.dart';
-import 'src/pages/view.dart';
 
-void main() => runApp(_App());
+void main() {
+  ElWidgetsFlutterBinding.ensureInitialized();
+  runApp(_App());
+}
 
 class _App extends StatelessWidget {
   const _App();

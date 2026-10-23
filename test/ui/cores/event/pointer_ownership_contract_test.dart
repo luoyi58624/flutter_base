@@ -359,7 +359,6 @@ void main() {
           dragStartDistance: 100,
           dragMinFlingDistance: 1,
           dragMinFlingVelocity: 10,
-
         ),
         onDragStart: (event) {
           trace.add('ancestor:${event.phase.name}');
@@ -689,10 +688,7 @@ void main() {
   );
 }
 
-const _dragConfig = ElEventConfig(
-  dragStartDistance: 3,
-
-);
+const _dragConfig = ElEventConfig(dragStartDistance: 3);
 
 ElEvent _tapEvent(String owner, List<String> trace) {
   void record(ElEventCallback event) => trace.add('$owner:${event.phase.name}');

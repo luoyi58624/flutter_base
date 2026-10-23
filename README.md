@@ -65,7 +65,8 @@ void main() {
 重采样后的事件参与官方识别与估速，纯预测帧标记为 `synthesized`，不向官方速度
 估计器伪造新输入；实际拖拽阈值和甩出手感仍需在目标 Android 设备验证。
 
-实现位于 `lib/src/flutter_base/sdk/`，对应测试位于 `test/flutter_base/sdk/`。
+Binding 接入位于 `lib/src/flutter_base/sdk/binding.dart`，重采样实现位于同目录
+`touch_resampling.dart`；相关测试集中在 `test/flutter_base/sdk/touch_resampling_test.dart`。
 
 ## 代码生成
 

@@ -632,10 +632,7 @@ void main() {
           onPanEnd: (_) => trace.add('official.end'),
           child: ElEventView(
             event: ElEvent(
-              config: const ElEventConfig(
-                dragStartDistance: 100,
-
-              ),
+              config: const ElEventConfig(dragStartDistance: 100),
               onPointerMove: (event) {
                 if (++moves > 1) event.eagerGesture();
               },
@@ -701,10 +698,7 @@ void main() {
             onVerticalDragEnd: (_) => trace.add('official.end'),
             child: ElEventView(
               event: ElEvent(
-                config: ElEventConfig(
-                  dragStartDistance: elFirst ? 3 : 100,
-
-                ),
+                config: ElEventConfig(dragStartDistance: elFirst ? 3 : 100),
                 onVerticalDragStart: (_) => trace.add('el.start'),
                 onVerticalDragEnd: (_) => trace.add('el.end'),
               ),

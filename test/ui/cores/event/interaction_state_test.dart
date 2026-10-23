@@ -510,7 +510,6 @@ void main() {
               config: const ElEventConfig(
                 delayTouchUp: Duration(milliseconds: 200),
                 dragStartDistance: 0,
-
               ),
               onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
               onDragEnd: (_) {},
@@ -547,10 +546,7 @@ void main() {
         _shell(
           ElEventView(
             event: ElEvent(
-              config: _immediate.copyWith(
-                dragStartDistance: 0,
-
-              ),
+              config: _immediate.copyWith(dragStartDistance: 0),
               onTap: (_) => taps++,
               onDragStart: (_) {},
               onDragEnd: (_) {},

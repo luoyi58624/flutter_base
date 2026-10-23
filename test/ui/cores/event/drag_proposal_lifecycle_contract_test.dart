@@ -834,10 +834,8 @@ void _installBubblingPair(
   );
 }
 
-ElEventConfig _dragConfig(double distance) => ElEventConfig(
-  dragStartDistance: distance,
-
-);
+ElEventConfig _dragConfig(double distance) =>
+    ElEventConfig(dragStartDistance: distance);
 
 bool _isDragTerminal(ElEventPhase phase) =>
     phase == ElEventPhase.dragEnd || phase == ElEventPhase.dragCancel;

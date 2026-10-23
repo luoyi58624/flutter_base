@@ -191,10 +191,7 @@ void main() {
   });
 }
 
-const _config = ElEventConfig(
-  dragStartDistance: 3,
-
-);
+const _config = ElEventConfig(dragStartDistance: 3);
 
 Future<void> _start(
   DispatcherTestHost host, {

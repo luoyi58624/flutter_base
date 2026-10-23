@@ -2,13 +2,10 @@ part of '../dispatcher.dart';
 
 /// 处理已经识别成功的拖拽输出与代理分账，不改变手势归属。
 final class _DragOutput {
-  _DragOutput(
-    this.host,
-    ElTransformGestureDetails start,
-  ) : axis = start.dragAxis,
-       position = start.globalPosition,
-       last = start,
-       generation = host._transformGeneration {
+  _DragOutput(this.host, ElTransformGestureDetails start)
+    : axis = start.dragAxis,
+      last = start,
+      generation = host._transformGeneration {
     for (final member in host._chain().skip(1)) {
       final proxy = member.event?.dragProxy;
       if (proxy != null && (proxy.axis == null || proxy.axis == axis)) {
@@ -23,7 +20,6 @@ final class _DragOutput {
   final int generation;
   final Axis? axis;
   final List<ElEventDispatcher> proxies = [];
-  Offset position;
   Offset offset = Offset.zero;
   ElTransformGestureDetails last;
   bool disposed = false;
@@ -38,7 +34,6 @@ final class _DragOutput {
 
   void _deliver(Offset next, Offset delta) {
     if (!_valid) return;
-    position = next;
     offset += delta;
     final callback = ElEventCallback(
       phase: ElEventPhase.dragUpdate,

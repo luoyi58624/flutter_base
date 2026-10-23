@@ -141,11 +141,7 @@ Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
   var delta = Offset.zero;
   var offset = Offset.zero;
   host.leafDispatcher.event = ElEvent(
-    config: ElEventConfig(
-      dragStartDistance: 3,
-      dragMinFlingDistance: 3,
-
-    ),
+    config: ElEventConfig(dragStartDistance: 3, dragMinFlingDistance: 3),
     onHorizontalDragStart: (_) {},
     onHorizontalDragUpdate: (event) => delta += event.delta,
     onHorizontalDragEnd: (event) {

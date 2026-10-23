@@ -149,11 +149,9 @@ void main() {
   test('事件配置的设备与平台集合按内容比较且保持相同 hash', () {
     final first = ElEventConfig(
       dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
-
     );
     final second = ElEventConfig(
       dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch},
-
     );
     expect(first, second);
     expect(first.hashCode, second.hashCode);
