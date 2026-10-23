@@ -472,11 +472,11 @@ extension $className${config.extSuffix} on $className {
           ? fieldTypeStr.substring(0, fieldTypeStr.length - 1)
           : fieldTypeStr;
 
-      // freezed 式三态哨兵：可空字段默认 $elAbsent，让 null 腾出来做合法负载
+      // freezed 式三态哨兵：可空字段默认 $absent，让 null 腾出来做合法负载
       // （显式传 null = 置空）；非空字段 null 本就不是合法值，直接兜哨兵位
       // （可选参数默认值即 null，显式写出会触发 avoid_init_to_null）。
       copyWithArg.write(
-        isNullable ? 'Object? $field = \$elAbsent,\n' : 'Object? $field,\n',
+        isNullable ? 'Object? $field = \$absent,\n' : 'Object? $field,\n',
       );
 
       // 参数退化为 Object? 后在消费点还原静态类型；dynamic 与 Object 系字段
@@ -485,7 +485,7 @@ extension $className${config.extSuffix} on $className {
       // 可 merge 分支的 cast 均在 `$field == null` 判空之后，$field 已提升为
       // 非空 Object，cast 到非空类型不触发 cast_nullable_to_non_nullable。
       final keep = isNullable
-          ? 'identical($field, \$elAbsent)'
+          ? 'identical($field, \$absent)'
           : '$field == null';
       final noCast = isDynamic || fieldTypeBase == 'Object';
       final castFull = noCast ? field : '$field as $fieldTypeStr';

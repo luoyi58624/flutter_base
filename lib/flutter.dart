@@ -1,7 +1,4 @@
-/// Flutter 通用机制、响应式状态、扩展和功能组件入口。
 library;
-
-export 'dart.dart';
 
 export 'src/flutter/commons/index.dart';
 export 'src/flutter/extensions/index.dart';

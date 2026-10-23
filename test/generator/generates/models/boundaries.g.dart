@@ -350,7 +350,7 @@ extension NestedBoundaryModelExt on NestedBoundaryModel {
     Object? rows,
     Object? leaves,
     Object? sets,
-    Object? optionalRows = $elAbsent,
+    Object? optionalRows = $absent,
     Object? times,
     Object? strictTimes,
   }) {
@@ -363,7 +363,7 @@ extension NestedBoundaryModelExt on NestedBoundaryModel {
           ? this.leaves
           : leaves as Map<String, List<BoundaryLeaf?>>,
       sets: sets == null ? this.sets : sets as Map<String, Set<int>>,
-      optionalRows: identical(optionalRows, $elAbsent)
+      optionalRows: identical(optionalRows, $absent)
           ? this.optionalRows
           : optionalRows as List<List<int>?>?,
       times: times == null ? this.times : times as Map<String, List<Duration?>>,

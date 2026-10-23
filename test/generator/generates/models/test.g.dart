@@ -388,155 +388,155 @@ extension TestModelExt on TestModel {
 
   TestModel copyWith({
     Object? stringField,
-    Object? stringField2 = $elAbsent,
+    Object? stringField2 = $absent,
     Object? stringField3,
-    Object? stringField4 = $elAbsent,
+    Object? stringField4 = $absent,
     Object? numField,
-    Object? numField2 = $elAbsent,
+    Object? numField2 = $absent,
     Object? numField3,
-    Object? numField4 = $elAbsent,
+    Object? numField4 = $absent,
     Object? intField,
-    Object? intField2 = $elAbsent,
+    Object? intField2 = $absent,
     Object? intField3,
-    Object? intField4 = $elAbsent,
+    Object? intField4 = $absent,
     Object? doubleField,
-    Object? doubleField2 = $elAbsent,
+    Object? doubleField2 = $absent,
     Object? doubleField3,
-    Object? doubleField4 = $elAbsent,
+    Object? doubleField4 = $absent,
     Object? boolField,
-    Object? boolField2 = $elAbsent,
+    Object? boolField2 = $absent,
     Object? boolField3,
-    Object? boolField4 = $elAbsent,
+    Object? boolField4 = $absent,
     Object? listField,
-    Object? listField2 = $elAbsent,
+    Object? listField2 = $absent,
     Object? listStringField,
-    Object? listStringField2 = $elAbsent,
+    Object? listStringField2 = $absent,
     Object? listStringField3,
-    Object? listStringField4 = $elAbsent,
+    Object? listStringField4 = $absent,
     Object? listIntField,
-    Object? listIntField2 = $elAbsent,
+    Object? listIntField2 = $absent,
     Object? listIntField3,
-    Object? listIntField4 = $elAbsent,
+    Object? listIntField4 = $absent,
     Object? listDoubleField,
-    Object? listDoubleField2 = $elAbsent,
+    Object? listDoubleField2 = $absent,
     Object? listDoubleField3,
-    Object? listDoubleField4 = $elAbsent,
+    Object? listDoubleField4 = $absent,
     Object? setField,
-    Object? setField2 = $elAbsent,
+    Object? setField2 = $absent,
     Object? mapField,
-    Object? mapField2 = $elAbsent,
+    Object? mapField2 = $absent,
     Object? userModel,
-    Object? userModel2 = $elAbsent,
+    Object? userModel2 = $absent,
     Object? myAnimal,
-    Object? myDog = $elAbsent,
+    Object? myDog = $absent,
     Object? animalList,
-    Object? startDate = $elAbsent,
+    Object? startDate = $absent,
   }) {
     return TestModel(
       stringField: stringField == null
           ? this.stringField
           : stringField as String,
-      stringField2: identical(stringField2, $elAbsent)
+      stringField2: identical(stringField2, $absent)
           ? this.stringField2
           : stringField2 as String?,
       stringField3: stringField3 == null
           ? this.stringField3
           : stringField3 as String,
-      stringField4: identical(stringField4, $elAbsent)
+      stringField4: identical(stringField4, $absent)
           ? this.stringField4
           : stringField4 as String?,
       numField: numField == null ? this.numField : numField as num,
-      numField2: identical(numField2, $elAbsent)
+      numField2: identical(numField2, $absent)
           ? this.numField2
           : numField2 as num?,
       numField3: numField3 == null ? this.numField3 : numField3 as num,
-      numField4: identical(numField4, $elAbsent)
+      numField4: identical(numField4, $absent)
           ? this.numField4
           : numField4 as num?,
       intField: intField == null ? this.intField : intField as int,
-      intField2: identical(intField2, $elAbsent)
+      intField2: identical(intField2, $absent)
           ? this.intField2
           : intField2 as int?,
       intField3: intField3 == null ? this.intField3 : intField3 as int,
-      intField4: identical(intField4, $elAbsent)
+      intField4: identical(intField4, $absent)
           ? this.intField4
           : intField4 as int?,
       doubleField: doubleField == null
           ? this.doubleField
           : doubleField as double,
-      doubleField2: identical(doubleField2, $elAbsent)
+      doubleField2: identical(doubleField2, $absent)
           ? this.doubleField2
           : doubleField2 as double?,
       doubleField3: doubleField3 == null
           ? this.doubleField3
           : doubleField3 as double,
-      doubleField4: identical(doubleField4, $elAbsent)
+      doubleField4: identical(doubleField4, $absent)
           ? this.doubleField4
           : doubleField4 as double?,
       boolField: boolField == null ? this.boolField : boolField as bool,
-      boolField2: identical(boolField2, $elAbsent)
+      boolField2: identical(boolField2, $absent)
           ? this.boolField2
           : boolField2 as bool?,
       boolField3: boolField3 == null ? this.boolField3 : boolField3 as bool,
-      boolField4: identical(boolField4, $elAbsent)
+      boolField4: identical(boolField4, $absent)
           ? this.boolField4
           : boolField4 as bool?,
       listField: listField == null
           ? this.listField
           : listField as List<dynamic>,
-      listField2: identical(listField2, $elAbsent)
+      listField2: identical(listField2, $absent)
           ? this.listField2
           : listField2 as List<dynamic>?,
       listStringField: listStringField == null
           ? this.listStringField
           : listStringField as List<String>,
-      listStringField2: identical(listStringField2, $elAbsent)
+      listStringField2: identical(listStringField2, $absent)
           ? this.listStringField2
           : listStringField2 as List<String>?,
       listStringField3: listStringField3 == null
           ? this.listStringField3
           : listStringField3 as List<String>,
-      listStringField4: identical(listStringField4, $elAbsent)
+      listStringField4: identical(listStringField4, $absent)
           ? this.listStringField4
           : listStringField4 as List<String>?,
       listIntField: listIntField == null
           ? this.listIntField
           : listIntField as List<int>,
-      listIntField2: identical(listIntField2, $elAbsent)
+      listIntField2: identical(listIntField2, $absent)
           ? this.listIntField2
           : listIntField2 as List<int>?,
       listIntField3: listIntField3 == null
           ? this.listIntField3
           : listIntField3 as List<int>,
-      listIntField4: identical(listIntField4, $elAbsent)
+      listIntField4: identical(listIntField4, $absent)
           ? this.listIntField4
           : listIntField4 as List<int>?,
       listDoubleField: listDoubleField == null
           ? this.listDoubleField
           : listDoubleField as List<double>,
-      listDoubleField2: identical(listDoubleField2, $elAbsent)
+      listDoubleField2: identical(listDoubleField2, $absent)
           ? this.listDoubleField2
           : listDoubleField2 as List<double>?,
       listDoubleField3: listDoubleField3 == null
           ? this.listDoubleField3
           : listDoubleField3 as List<double>,
-      listDoubleField4: identical(listDoubleField4, $elAbsent)
+      listDoubleField4: identical(listDoubleField4, $absent)
           ? this.listDoubleField4
           : listDoubleField4 as List<double>?,
       setField: setField == null ? this.setField : setField as Set<dynamic>,
-      setField2: identical(setField2, $elAbsent)
+      setField2: identical(setField2, $absent)
           ? this.setField2
           : setField2 as Set<dynamic>?,
       mapField: mapField == null
           ? this.mapField
           : mapField as Map<String, dynamic>,
-      mapField2: identical(mapField2, $elAbsent)
+      mapField2: identical(mapField2, $absent)
           ? this.mapField2
           : mapField2 as Map<String, dynamic>?,
       userModel: userModel == null
           ? this.userModel
           : this.userModel.merge(userModel as UserModel),
-      userModel2: identical(userModel2, $elAbsent)
+      userModel2: identical(userModel2, $absent)
           ? this.userModel2
           : (userModel2 == null
                 ? null
@@ -546,7 +546,7 @@ extension TestModelExt on TestModel {
       myAnimal: myAnimal == null
           ? this.myAnimal
           : this.myAnimal.merge(myAnimal as AnimalModel),
-      myDog: identical(myDog, $elAbsent)
+      myDog: identical(myDog, $absent)
           ? this.myDog
           : (myDog == null
                 ? null
@@ -556,7 +556,7 @@ extension TestModelExt on TestModel {
       animalList: animalList == null
           ? this.animalList
           : animalList as List<AnimalModel>,
-      startDate: identical(startDate, $elAbsent)
+      startDate: identical(startDate, $absent)
           ? this.startDate
           : startDate as DateTime?,
     );

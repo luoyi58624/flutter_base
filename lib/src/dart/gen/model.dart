@@ -70,7 +70,7 @@ class ElModelGenerator {
 
   /// 生成 copyWith 方法。
   ///
-  /// 三态语义(freezed 式,哨兵见 `$elAbsent`):不传参 = 保留原值;
+  /// 三态语义(freezed 式,哨兵见 `$absent`):不传参 = 保留原值;
   /// 显式传 null = 置空(非空字段除外,null 兜哨兵位等于不传);传值 = 覆盖
   /// (可 merge 的嵌套类型仍走深合并)。
   final bool copyWith;

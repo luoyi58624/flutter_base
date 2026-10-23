@@ -21,10 +21,10 @@ extension AnimalModelExt on AnimalModel {
     return {"name": name, "type": type};
   }
 
-  AnimalModel copyWith({Object? name = $elAbsent, Object? type = $elAbsent}) {
+  AnimalModel copyWith({Object? name = $absent, Object? type = $absent}) {
     return AnimalModel(
-      name: identical(name, $elAbsent) ? this.name : name as String?,
-      type: identical(type, $elAbsent) ? this.type : type as String?,
+      name: identical(name, $absent) ? this.name : name as String?,
+      type: identical(type, $absent) ? this.type : type as String?,
     );
   }
 

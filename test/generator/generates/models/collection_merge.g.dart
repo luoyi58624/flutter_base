@@ -8,20 +8,20 @@ part of '../../models/collection_merge.dart';
 
 extension CollectionMergeModelExt on CollectionMergeModel {
   CollectionMergeModel copyWith({
-    Object? vars = $elAbsent,
-    Object? styles = $elAbsent,
+    Object? vars = $absent,
+    Object? styles = $absent,
     Object? counts,
-    Object? plain = $elAbsent,
+    Object? plain = $absent,
   }) {
     return CollectionMergeModel(
-      vars: identical(vars, $elAbsent)
+      vars: identical(vars, $absent)
           ? this.vars
           : (vars == null
                 ? null
                 : (this.vars == null
                       ? vars as Map<String, Object>
                       : $elMergeMap(this.vars!, vars as Map<String, Object>))),
-      styles: identical(styles, $elAbsent)
+      styles: identical(styles, $absent)
           ? this.styles
           : (styles == null
                 ? null
@@ -35,7 +35,7 @@ extension CollectionMergeModelExt on CollectionMergeModel {
       counts: counts == null
           ? this.counts
           : $elMergeMap(this.counts, counts as Map<String, int>),
-      plain: identical(plain, $elAbsent)
+      plain: identical(plain, $absent)
           ? this.plain
           : plain as Map<String, int>?,
     );
@@ -66,14 +66,14 @@ extension CollectionMergeModelExt on CollectionMergeModel {
 
 extension SlotFieldModelExt on SlotFieldModel {
   SlotFieldModel copyWith({
-    Object? width = $elAbsent,
+    Object? width = $absent,
     Object? anyValue,
-    Object? dyn = $elAbsent,
+    Object? dyn = $absent,
   }) {
     return SlotFieldModel(
-      width: identical(width, $elAbsent) ? this.width : width,
+      width: identical(width, $absent) ? this.width : width,
       anyValue: anyValue ?? this.anyValue,
-      dyn: identical(dyn, $elAbsent) ? this.dyn : dyn,
+      dyn: identical(dyn, $absent) ? this.dyn : dyn,
     );
   }
 

@@ -68,46 +68,46 @@ extension UserModelExt on UserModel {
   }
 
   UserModel copyWith({
-    Object? username = $elAbsent,
-    Object? age = $elAbsent,
-    Object? count = $elAbsent,
-    Object? child = $elAbsent,
-    Object? children = $elAbsent,
-    Object? animalMap = $elAbsent,
-    Object? mapField = $elAbsent,
-    Object? startDate = $elAbsent,
-    Object? endDate = $elAbsent,
-    Object? childName = $elAbsent,
+    Object? username = $absent,
+    Object? age = $absent,
+    Object? count = $absent,
+    Object? child = $absent,
+    Object? children = $absent,
+    Object? animalMap = $absent,
+    Object? mapField = $absent,
+    Object? startDate = $absent,
+    Object? endDate = $absent,
+    Object? childName = $absent,
   }) {
     return UserModel(
-      username: identical(username, $elAbsent)
+      username: identical(username, $absent)
           ? this.username
           : username as String?,
-      age: identical(age, $elAbsent) ? this.age : age as int?,
-      count: identical(count, $elAbsent) ? this.count : count as int?,
-      child: identical(child, $elAbsent)
+      age: identical(age, $absent) ? this.age : age as int?,
+      count: identical(count, $absent) ? this.count : count as int?,
+      child: identical(child, $absent)
           ? this.child
           : (child == null
                 ? null
                 : (this.child == null
                       ? child as UserModel
                       : this.child!.merge(child as UserModel))),
-      children: identical(children, $elAbsent)
+      children: identical(children, $absent)
           ? this.children
           : children as List<UserModel>?,
-      animalMap: identical(animalMap, $elAbsent)
+      animalMap: identical(animalMap, $absent)
           ? this.animalMap
           : animalMap as Map<String, AnimalModel>?,
-      mapField: identical(mapField, $elAbsent)
+      mapField: identical(mapField, $absent)
           ? this.mapField
           : mapField as Map<dynamic, dynamic>?,
-      startDate: identical(startDate, $elAbsent)
+      startDate: identical(startDate, $absent)
           ? this.startDate
           : startDate as DateTime?,
-      endDate: identical(endDate, $elAbsent)
+      endDate: identical(endDate, $absent)
           ? this.endDate
           : endDate as DateTime?,
-      childName: identical(childName, $elAbsent)
+      childName: identical(childName, $absent)
           ? this.childName
           : childName as String?,
     );

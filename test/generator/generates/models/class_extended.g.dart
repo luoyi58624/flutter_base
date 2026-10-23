@@ -7,9 +7,9 @@ part of '../../models/class_extended.dart';
 // **************************************************************************
 
 extension RootModelExt on RootModel {
-  RootModel copyWith({Object? rootName = $elAbsent}) {
+  RootModel copyWith({Object? rootName = $absent}) {
     return RootModel(
-      rootName: identical(rootName, $elAbsent)
+      rootName: identical(rootName, $absent)
           ? this.rootName
           : rootName as String?,
     );
@@ -23,14 +23,14 @@ extension RootModelExt on RootModel {
 
 extension ParentModelExt on ParentModel {
   ParentModel copyWith({
-    Object? parentName = $elAbsent,
-    Object? rootName = $elAbsent,
+    Object? parentName = $absent,
+    Object? rootName = $absent,
   }) {
     return ParentModel(
-      parentName: identical(parentName, $elAbsent)
+      parentName: identical(parentName, $absent)
           ? this.parentName
           : parentName as String?,
-      rootName: identical(rootName, $elAbsent)
+      rootName: identical(rootName, $absent)
           ? this.rootName
           : rootName as String?,
     );
@@ -50,15 +50,15 @@ extension ParentModelExt on ParentModel {
 extension ChildModelExt on ChildModel {
   ChildModel copyWith({
     Object? childName,
-    Object? parentName = $elAbsent,
-    Object? rootName = $elAbsent,
+    Object? parentName = $absent,
+    Object? rootName = $absent,
   }) {
     return ChildModel(
       childName: childName == null ? this.childName : childName as String,
-      parentName: identical(parentName, $elAbsent)
+      parentName: identical(parentName, $absent)
           ? this.parentName
           : parentName as String?,
-      rootName: identical(rootName, $elAbsent)
+      rootName: identical(rootName, $absent)
           ? this.rootName
           : rootName as String?,
     );
@@ -77,9 +77,9 @@ extension ChildModelExt on ChildModel {
 }
 
 extension ChildModel2Ext on ChildModel2 {
-  ChildModel2 copyWith({Object? childName = $elAbsent}) {
+  ChildModel2 copyWith({Object? childName = $absent}) {
     return ChildModel2(
-      childName: identical(childName, $elAbsent)
+      childName: identical(childName, $absent)
           ? this.childName
           : childName as String?,
     );

@@ -62,7 +62,7 @@ extension AllFeaturesModelExt on AllFeaturesModel {
   AllFeaturesModel copyWith({
     Object? withJsonKey,
     Object? withDefault,
-    Object? nullableWithDefault = $elAbsent,
+    Object? nullableWithDefault = $absent,
     Object? normalString,
     Object? normalInt,
     Object? normalDouble,
@@ -76,7 +76,7 @@ extension AllFeaturesModelExt on AllFeaturesModel {
           ? this.withJsonKey
           : withJsonKey as String,
       withDefault: withDefault == null ? this.withDefault : withDefault as int,
-      nullableWithDefault: identical(nullableWithDefault, $elAbsent)
+      nullableWithDefault: identical(nullableWithDefault, $absent)
           ? this.nullableWithDefault
           : nullableWithDefault as String?,
       normalString: normalString == null
@@ -266,20 +266,20 @@ extension CustomSerializeModelExt on CustomSerializeModel {
   }
 
   CustomSerializeModel copyWith({
-    Object? dateField = $elAbsent,
-    Object? durationField = $elAbsent,
-    Object? dateList = $elAbsent,
+    Object? dateField = $absent,
+    Object? durationField = $absent,
+    Object? dateList = $absent,
     Object? timeout,
     Object? name,
   }) {
     return CustomSerializeModel(
-      dateField: identical(dateField, $elAbsent)
+      dateField: identical(dateField, $absent)
           ? this.dateField
           : dateField as DateTime?,
-      durationField: identical(durationField, $elAbsent)
+      durationField: identical(durationField, $absent)
           ? this.durationField
           : durationField as Duration?,
-      dateList: identical(dateList, $elAbsent)
+      dateList: identical(dateList, $absent)
           ? this.dateList
           : dateList as List<DateTime>?,
       timeout: timeout == null ? this.timeout : timeout as Duration,
@@ -351,13 +351,13 @@ extension MergeHostModelExt on MergeHostModel {
   }
 
   MergeHostModel copyWith({
-    Object? forceMergeField = $elAbsent,
-    Object? autoDetectMergeField = $elAbsent,
-    Object? noMergeField = $elAbsent,
+    Object? forceMergeField = $absent,
+    Object? autoDetectMergeField = $absent,
+    Object? noMergeField = $absent,
     Object? name,
   }) {
     return MergeHostModel(
-      forceMergeField: identical(forceMergeField, $elAbsent)
+      forceMergeField: identical(forceMergeField, $absent)
           ? this.forceMergeField
           : (forceMergeField == null
                 ? null
@@ -366,7 +366,7 @@ extension MergeHostModelExt on MergeHostModel {
                       : this.forceMergeField!.merge(
                           forceMergeField as MergeTargetModel,
                         ))),
-      autoDetectMergeField: identical(autoDetectMergeField, $elAbsent)
+      autoDetectMergeField: identical(autoDetectMergeField, $absent)
           ? this.autoDetectMergeField
           : (autoDetectMergeField == null
                 ? null
@@ -375,7 +375,7 @@ extension MergeHostModelExt on MergeHostModel {
                       : this.autoDetectMergeField!.merge(
                           autoDetectMergeField as MergeTargetModel,
                         ))),
-      noMergeField: identical(noMergeField, $elAbsent)
+      noMergeField: identical(noMergeField, $absent)
           ? this.noMergeField
           : noMergeField as MergeTargetModel?,
       name: name == null ? this.name : name as String,
@@ -406,11 +406,11 @@ extension MergeHostModelExt on MergeHostModel {
 
 extension StaticMergeHostModelExt on StaticMergeHostModel {
   StaticMergeHostModel copyWith({
-    Object? optional = $elAbsent,
+    Object? optional = $absent,
     Object? required$,
   }) {
     return StaticMergeHostModel(
-      optional: identical(optional, $elAbsent)
+      optional: identical(optional, $absent)
           ? this.optional
           : (optional == null
                 ? null
@@ -499,10 +499,10 @@ extension NestedModelExt on NestedModel {
     return {"label": label, "child": child?.toJson()};
   }
 
-  NestedModel copyWith({Object? label, Object? child = $elAbsent}) {
+  NestedModel copyWith({Object? label, Object? child = $absent}) {
     return NestedModel(
       label: label == null ? this.label : label as String,
-      child: identical(child, $elAbsent)
+      child: identical(child, $absent)
           ? this.child
           : (child == null
                 ? null
