@@ -1,5 +1,7 @@
+import 'support/dispatcher_test_host.dart';
+
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,8 +22,8 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -38,7 +40,7 @@ void main() {
           phases,
           onTap: (event) => phases.add('new:${event.phase.name}'),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -68,12 +70,12 @@ void main() {
         ..event = _dragEvent('old', phases);
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
 
         dispatcher.event = _dragEvent('new', phases, includeLongPress: false);
         await tester.pump(const Duration(milliseconds: 40));
 
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -103,10 +105,10 @@ void main() {
         ..event = _dragEvent('old', phases);
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
 
         dispatcher.event = _dragEvent('new', phases);
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -117,7 +119,7 @@ void main() {
             timeStamp: Duration(milliseconds: 16),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -136,95 +138,92 @@ void main() {
     },
   );
 
-  testWidgets(
-    'replacing non-equivalent drag config keeps active pointer tracking alive',
-    (tester) async {
-      final box = _attachedBox();
-      final entry = BoxHitTestEntry(box, Offset.zero);
-      final phases = <String>[];
+  testWidgets('拖拽参数在 Down 冻结，更新的阈值从下一次 Down 生效', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    final phases = <String>[];
 
-      final dispatcher = ElEventDispatcher(box)
-        ..event = _dragEvent('old', phases, dragStartDistance: 30);
-      addTearDown(dispatcher.dispose);
-      try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+    final dispatcher = ElEventDispatcher(box)
+      ..event = _dragEvent('old', phases, dragStartDistance: 30);
+    addTearDown(dispatcher.dispose);
+    try {
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
 
-        dispatcher.event = _dragEvent('new', phases, dragStartDistance: 12);
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            delta: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 16),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerUpEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 32),
-          ),
-        );
+      dispatcher.event = _dragEvent('new', phases, dragStartDistance: 12);
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          delta: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerUpEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 32),
+        ),
+      );
 
-        expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-        expect(dispatcher.activePointerCount, 0);
-      } finally {
-        dispatcher.dispose();
-      }
-    },
-  );
+      expect(phases, isEmpty);
+      await _nextDrag(dispatcher, entry);
+      expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
+      expect(dispatcher.activePointerCount, 0);
+    } finally {
+      dispatcher.dispose();
+    }
+  });
 
-  testWidgets(
-    'replacing non-drag event with drag event seeds active pointer tracking',
-    (tester) async {
-      final box = _attachedBox();
-      final entry = BoxHitTestEntry(box, Offset.zero);
-      final phases = <String>[];
+  testWidgets('中途新增 Drag 不补报旧 Down，下一次输入正常识别', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    final phases = <String>[];
 
-      final dispatcher = ElEventDispatcher(box)
-        ..event = ElEvent(
-          onTap: (event) => phases.add('old:${event.phase.name}'),
-        );
-      addTearDown(dispatcher.dispose);
-      try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+    final dispatcher = ElEventDispatcher(
+      box,
+    )..event = ElEvent(onTap: (event) => phases.add('old:${event.phase.name}'));
+    addTearDown(dispatcher.dispose);
+    try {
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
 
-        dispatcher.event = _dragEvent('new', phases);
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            delta: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 16),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerUpEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 32),
-          ),
-        );
+      dispatcher.event = _dragEvent('new', phases);
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          delta: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerUpEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 32),
+        ),
+      );
 
-        expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-        expect(dispatcher.activePointerCount, 0);
-      } finally {
-        dispatcher.dispose();
-      }
-    },
-  );
+      expect(phases, isEmpty);
+      await _nextDrag(dispatcher, entry);
+      expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
+      expect(dispatcher.activePointerCount, 0);
+    } finally {
+      dispatcher.dispose();
+    }
+  });
 
   testWidgets(
     'replacing equivalent event during accepted move keeps touch drag alive',
@@ -233,19 +232,20 @@ void main() {
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
       late ElEventDispatcher dispatcher;
+      var moves = 0;
 
       dispatcher = ElEventDispatcher(box)
         ..event = _dragEvent(
           'old',
           phases,
           onPointerMove: (_) {
-            dispatcher.event = _dragEvent('new', phases);
+            if (++moves == 2) dispatcher.event = _dragEvent('new', phases);
           },
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -256,7 +256,7 @@ void main() {
             timeStamp: Duration(milliseconds: 16),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -267,7 +267,7 @@ void main() {
             timeStamp: Duration(milliseconds: 32),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -279,7 +279,7 @@ void main() {
         );
 
         expect(phases, <String>[
-          'new:dragStart',
+          'old:dragStart',
           'new:dragUpdate',
           'new:dragEnd',
         ]);
@@ -290,91 +290,86 @@ void main() {
     },
   );
 
-  testWidgets(
-    'deferred dragStart replacement does not fire update into replacement',
-    (tester) async {
-      final box = _attachedBox();
-      final entry = BoxHitTestEntry(box, Offset.zero);
-      final phases = <String>[];
-      late ElEventDispatcher dispatcher;
+  testWidgets('原始 Move 改变声明结构会取消候选，下轮 Start 内热替换可继续更新', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    final phases = <String>[];
+    late ElEventDispatcher dispatcher;
 
-      dispatcher = ElEventDispatcher(box)
-        ..event = _dragEvent(
-          'old',
-          phases,
-          onPointerMove: (_) {
-            dispatcher.event = _dragEvent(
-              'new',
-              phases,
-              onDragStart: (_) {
-                phases.add('new:dragStart');
-                dispatcher.event = _dragEvent('replacement', phases);
-              },
-            );
-          },
-        );
-      addTearDown(dispatcher.dispose);
-      try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            delta: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 16),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -28),
-            delta: Offset(0, -12),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 32),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -40),
-            delta: Offset(0, -12),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 48),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerUpEvent(
-            pointer: 1,
-            position: Offset(0, -40),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 64),
-          ),
-        );
+    dispatcher = ElEventDispatcher(box)
+      ..event = _dragEvent(
+        'old',
+        phases,
+        onPointerMove: (_) {
+          dispatcher.event = _dragEvent(
+            'new',
+            phases,
+            onDragStart: (_) {
+              phases.add('new:dragStart');
+              dispatcher.event = _dragEvent('replacement', phases);
+            },
+          );
+        },
+      );
+    addTearDown(dispatcher.dispose);
+    try {
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          delta: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -28),
+          delta: Offset(0, -12),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 32),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -40),
+          delta: Offset(0, -12),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 48),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerUpEvent(
+          pointer: 1,
+          position: Offset(0, -40),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 64),
+        ),
+      );
 
-        // 'new' -> 'replacement' 是 shape 相等的热替换：已入队的 dragUpdate 改为
-        // 实时解析 handler（新闭包即刻生效），不再像旧闭包身份等值时代那样整体
-        // 丢弃——move2 的 update 不丢失，fire 到 replacement 闭包。
-        expect(phases, <String>[
-          'new:dragStart',
-          'replacement:dragUpdate',
-          'replacement:dragUpdate',
-          'replacement:dragEnd',
-        ]);
-        expect(dispatcher.activePointerCount, 0);
-      } finally {
-        dispatcher.dispose();
-      }
-    },
-  );
+      expect(phases, isEmpty);
+      await _nextDrag(dispatcher, entry);
+      expect(phases, <String>[
+        'new:dragStart',
+        'replacement:dragUpdate',
+        'replacement:dragEnd',
+      ]);
+      expect(dispatcher.activePointerCount, 0);
+    } finally {
+      dispatcher.dispose();
+    }
+  });
 
   testWidgets(
     'deferred dragStart replacement followed by pointerUp does not retarget replacement',
@@ -394,8 +389,8 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -406,7 +401,7 @@ void main() {
             timeStamp: Duration(milliseconds: 16),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -425,72 +420,76 @@ void main() {
     },
   );
 
-  testWidgets(
-    'dragStart replacement cancels old drag and preserves the pending tap candidate',
-    (tester) async {
-      final box = _attachedBox();
-      final entry = BoxHitTestEntry(box, Offset.zero);
-      final phases = <String>[];
-      late ElEventDispatcher dispatcher;
+  testWidgets('DragStart 中新增 Tap 不复活旧指针，下一次点击可用', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    final phases = <String>[];
+    late ElEventDispatcher dispatcher;
 
-      dispatcher = ElEventDispatcher(box)
-        ..event = _dragEvent(
-          'old',
-          phases,
-          onDragStart: (_) {
-            phases.add('old:dragStart');
-            dispatcher.event = ElEvent(
-              onTap: (event) => phases.add('replacement:${event.phase.name}'),
-            );
-          },
-        );
-      addTearDown(dispatcher.dispose);
-      try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -16),
-            delta: Offset(0, -16),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 16),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(0, -28),
-            delta: Offset(0, -12),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 32),
-          ),
-        );
-        _dispatch(
-          dispatcher,
-          entry,
-          const PointerUpEvent(
-            pointer: 1,
-            position: Offset(0, -28),
-            kind: PointerDeviceKind.touch,
-            timeStamp: Duration(milliseconds: 48),
-          ),
-        );
+    dispatcher = ElEventDispatcher(box)
+      ..event = _dragEvent(
+        'old',
+        phases,
+        onDragStart: (_) {
+          phases.add('old:dragStart');
+          dispatcher.event = ElEvent(
+            onTap: (event) => phases.add('replacement:${event.phase.name}'),
+          );
+        },
+      );
+    addTearDown(dispatcher.dispose);
+    try {
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -16),
+          delta: Offset(0, -16),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, -28),
+          delta: Offset(0, -12),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 32),
+        ),
+      );
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerUpEvent(
+          pointer: 1,
+          position: Offset(0, -28),
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 48),
+        ),
+      );
 
-        expect(phases, <String>[
-          'old:dragStart',
-          'old:dragCancel',
-          'replacement:tap',
-        ]);
-        expect(dispatcher.activePointerCount, 0);
-      } finally {
-        dispatcher.dispose();
-      }
-    },
-  );
+      expect(phases, <String>['old:dragStart', 'old:dragCancel']);
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 2));
+      await _dispatch(
+        dispatcher,
+        entry,
+        const PointerUpEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+      expect(phases, ['old:dragStart', 'old:dragCancel', 'replacement:tap']);
+      expect(dispatcher.activePointerCount, 0);
+    } finally {
+      dispatcher.dispose();
+    }
+  });
 
   testWidgets(
     'dragStart replacement with null event cancels old tracking without leaking callbacks',
@@ -511,8 +510,8 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -523,7 +522,7 @@ void main() {
             timeStamp: Duration(milliseconds: 16),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -534,7 +533,7 @@ void main() {
             timeStamp: Duration(milliseconds: 32),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -573,8 +572,8 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-        _dispatch(
+        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -585,7 +584,7 @@ void main() {
             timeStamp: Duration(milliseconds: 16),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -596,7 +595,7 @@ void main() {
           ),
         );
 
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerDownEvent(
@@ -606,7 +605,7 @@ void main() {
             timeStamp: Duration(milliseconds: 48),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerMoveEvent(
@@ -617,7 +616,7 @@ void main() {
             timeStamp: Duration(milliseconds: 64),
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -661,8 +660,8 @@ void main() {
       );
     addTearDown(dispatcher.dispose);
     try {
-      _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-      _dispatch(
+      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(
         dispatcher,
         entry,
         const PointerMoveEvent(
@@ -673,7 +672,7 @@ void main() {
           timeStamp: Duration(milliseconds: 16),
         ),
       );
-      _dispatch(
+      await _dispatch(
         dispatcher,
         entry,
         const PointerCancelEvent(
@@ -734,6 +733,39 @@ _EventTestBox _attachedBox() {
   return box;
 }
 
+Future<void> _nextDrag(
+  ElEventDispatcher dispatcher,
+  BoxHitTestEntry entry,
+) async {
+  await _dispatch(dispatcher, entry, _touchDown(pointer: 2));
+  for (final (millis, position, delta) in [
+    (16, const Offset(0, -16), const Offset(0, -16)),
+    (32, const Offset(0, -28), const Offset(0, -12)),
+  ]) {
+    await _dispatch(
+      dispatcher,
+      entry,
+      PointerMoveEvent(
+        pointer: 2,
+        kind: PointerDeviceKind.touch,
+        position: position,
+        delta: delta,
+        timeStamp: Duration(milliseconds: millis),
+      ),
+    );
+  }
+  await _dispatch(
+    dispatcher,
+    entry,
+    const PointerUpEvent(
+      pointer: 2,
+      kind: PointerDeviceKind.touch,
+      position: Offset(0, -28),
+      timeStamp: Duration(milliseconds: 48),
+    ),
+  );
+}
+
 PointerDownEvent _touchDown({required int pointer}) {
   return PointerDownEvent(
     pointer: pointer,
@@ -743,18 +775,12 @@ PointerDownEvent _touchDown({required int pointer}) {
   );
 }
 
-void _dispatch(
+Future<void> _dispatch(
   ElEventDispatcher dispatcher,
   BoxHitTestEntry entry,
   PointerEvent event,
-) {
-  dispatcher.handleEvent(event, entry);
-  GestureBinding.instance.pointerRouter.route(event);
-  if (event is PointerDownEvent) {
-    GestureBinding.instance.gestureArena.close(event.pointer);
-  } else if (event is PointerUpEvent || event is PointerPanZoomEndEvent) {
-    GestureBinding.instance.gestureArena.sweep(event.pointer);
-  }
+) async {
+  await dispatcher.dispatchInput(event, entry);
 }
 
 final class _EventTestBox extends RenderBox {

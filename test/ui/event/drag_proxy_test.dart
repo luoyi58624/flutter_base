@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -41,13 +41,13 @@ void main() {
       },
     );
 
-    _start(host);
+    await _start(host);
     expect(trace, isEmpty, reason: 'DragStart 仅公开生命周期，代理不得消费激活阈值之前的位移');
-    _move(host, 20, 32);
+    await _move(host, 20, 32);
 
     expect(trace, ['pre:10.0', 'main:7.0', 'overflow:5.0']);
     expect(consumed.reduce((a, b) => a + b), 10);
-    _end(host, 20);
+    await _end(host, 20);
   });
 
   testWidgets('pre 消费全部 delta 仍向 main 投递一次零余量，overflow 不再执行', (_) async {
@@ -72,10 +72,10 @@ void main() {
           trace.add('main:${event.remainingDelta.dy}'),
     );
 
-    _start(host);
-    _move(host, 20, 32);
+    await _start(host);
+    await _move(host, 20, 32);
     expect(trace, ['pre', 'main:0.0']);
-    _end(host, 20);
+    await _end(host, 20);
   });
 
   for (final axis in <Axis?>[Axis.horizontal, Axis.vertical, null]) {
@@ -96,11 +96,11 @@ void main() {
         onVerticalDragUpdate: (_) => driverUpdates++,
       );
 
-      _start(host);
-      _move(host, 20, 32);
+      await _start(host);
+      await _move(host, 20, 32);
       expect(driverUpdates, 1);
       expect(preUpdates, axis == Axis.horizontal ? 0 : 1);
-      _end(host, 20);
+      await _end(host, 20);
     });
   }
 
@@ -116,14 +116,14 @@ void main() {
       onDragStart: (_) {},
       onDragUpdate: (_) {},
     );
-    _start(host);
-    _move(host, 20, 32);
+    await _start(host);
+    await _move(host, 20, 32);
     host.rootDispatcher.event = ElEvent(
       dragProxy: ElDragProxy(onDragPreUpdate: (_) => trace.add('new')),
     );
-    _move(host, 30, 48);
+    await _move(host, 30, 48);
     expect(trace, ['old', 'new']);
-    _end(host, 30);
+    await _end(host, 30);
   });
 
   testWidgets('取消 pipeline 后代理成员可以在下一条序列重新参加', (_) async {
@@ -146,9 +146,9 @@ void main() {
       onVerticalDragStart: (_) {},
       onVerticalDragUpdate: (_) {},
     );
-    _start(host);
-    _move(host, 20, 32);
-    host.dispatch(
+    await _start(host);
+    await _move(host, 20, 32);
+    await host.dispatch(
       const PointerCancelEvent(
         pointer: 1,
         position: Offset(0, 20),
@@ -162,9 +162,9 @@ void main() {
       everyElement(0),
     );
 
-    _start(host, pointer: 2, baseMillis: 100);
-    _move(host, 20, 132, pointer: 2);
-    _end(host, 20, pointer: 2, millis: 148);
+    await _start(host, pointer: 2, baseMillis: 100);
+    await _move(host, 20, 132, pointer: 2);
+    await _end(host, 20, pointer: 2, millis: 148);
     expect(starts, 2);
     expect(cancels, 1);
     expect(preUpdates, 2);
@@ -196,18 +196,27 @@ const _config = ElEventConfig(
   dragResampling: <TargetPlatform>{},
 );
 
-void _start(DispatcherTestHost host, {int pointer = 1, int baseMillis = 0}) {
-  host.dispatch(
+Future<void> _start(
+  DispatcherTestHost host, {
+  int pointer = 1,
+  int baseMillis = 0,
+}) async {
+  await host.dispatch(
     PointerDownEvent(
       pointer: pointer,
       timeStamp: Duration(milliseconds: baseMillis),
     ),
   );
-  _move(host, 10, baseMillis + 16, pointer: pointer);
+  await _move(host, 10, baseMillis + 16, pointer: pointer);
 }
 
-void _move(DispatcherTestHost host, double y, int millis, {int pointer = 1}) {
-  host.dispatch(
+Future<void> _move(
+  DispatcherTestHost host,
+  double y,
+  int millis, {
+  int pointer = 1,
+}) async {
+  await host.dispatch(
     PointerMoveEvent(
       pointer: pointer,
       position: Offset(0, y),
@@ -217,13 +226,13 @@ void _move(DispatcherTestHost host, double y, int millis, {int pointer = 1}) {
   );
 }
 
-void _end(
+Future<void> _end(
   DispatcherTestHost host,
   double y, {
   int pointer = 1,
   int millis = 64,
-}) {
-  host.dispatch(
+}) async {
+  await host.dispatch(
     PointerUpEvent(
       pointer: pointer,
       position: Offset(0, y),

@@ -1094,6 +1094,79 @@ void main() {
       ('parent', const Offset(20, 0)),
     ]);
   });
+  testWidgets('协作团队允许长按获胜后继续拖拽，外部官方点击不能同时触发', (tester) async {
+    final trace = <String>[];
+    final team = ElGestureArenaTeam();
+    final press =
+        ElPressGestureRecognizer(
+            longPressDelay: const Duration(milliseconds: 20),
+          )
+          ..team = team
+          ..onLongPress = (_) => trace.add('long');
+    final transform = ElTransformGestureRecognizer(startDistance: 3)
+      ..team = team
+      ..onDragStart = (_) {
+        trace.add('drag');
+      }
+      ..onDragEnd = (_) => trace.add('end');
+    final official = TapGestureRecognizer()
+      ..onTap = () => trace.add('official');
+    addTearDown(press.dispose);
+    addTearDown(transform.dispose);
+    addTearDown(official.dispose);
+    _down(const PointerDownEvent(pointer: 1600), [press, transform, official]);
+    await tester.pump(const Duration(milliseconds: 20));
+    _route(
+      const PointerMoveEvent(
+        pointer: 1600,
+        position: Offset(10, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 30),
+      ),
+    );
+    _route(
+      const PointerUpEvent(
+        pointer: 1600,
+        position: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 40),
+      ),
+    );
+    expect(trace, ['long', 'drag', 'end']);
+  });
+
+  testWidgets('官方拖拽获胜同步拒绝整个协作团队，主动退出成员不被重新接受', (tester) async {
+    final trace = <String>[];
+    final team = ElGestureArenaTeam();
+    final press = ElPressGestureRecognizer()
+      ..team = team
+      ..onTap = (_) {
+        trace.add('tap');
+      }
+      ..onTapCancel = (_) => trace.add('press.cancel');
+    final transform = ElTransformGestureRecognizer(startDistance: 100)
+      ..team = team
+      ..onDragDown = (_) {}
+      ..onDragStart = (_) {
+        trace.add('el.drag');
+      }
+      ..onDragCancel = (_) => trace.add('drag.cancel');
+    final official = VerticalDragGestureRecognizer()
+      ..onStart = (_) => trace.add('official.drag');
+    addTearDown(press.dispose);
+    addTearDown(transform.dispose);
+    addTearDown(official.dispose);
+    _down(const PointerDownEvent(pointer: 1601), [press, transform, official]);
+    press.cancel();
+    _route(
+      const PointerMoveEvent(
+        pointer: 1601,
+        position: Offset(0, 30),
+        delta: Offset(0, 30),
+      ),
+    );
+    _route(const PointerUpEvent(pointer: 1601, position: Offset(0, 30)));
+    expect(trace, ['press.cancel', 'drag.cancel', 'official.drag']);
+  });
 }
 
 void _down(PointerDownEvent event, List<GestureRecognizer> recognizers) {

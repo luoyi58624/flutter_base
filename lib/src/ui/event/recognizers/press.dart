@@ -11,9 +11,12 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     this.tripleTapInterval = kDoubleTapTimeout,
     this.longPressDelay = kLongPressTimeout,
     this.tapSlopTolerance,
+    this.secondaryTapSlopTolerance,
     this.longPressSlopTolerance,
     this.consecutiveTapDistance = 10,
     this.deferTap = false,
+    this.isEligible,
+    this.cancelTapOnLongPress = true,
     super.debugOwner,
     super.supportedDevices,
     super.allowedButtonsFilter,
@@ -21,6 +24,9 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
        assert(tripleTapInterval >= Duration.zero),
        assert(longPressDelay >= Duration.zero),
        assert(tapSlopTolerance == null || tapSlopTolerance >= 0),
+       assert(
+         secondaryTapSlopTolerance == null || secondaryTapSlopTolerance >= 0,
+       ),
        assert(longPressSlopTolerance == null || longPressSlopTolerance >= 0),
        assert(consecutiveTapDistance >= 0);
 
@@ -39,6 +45,15 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   /// 点击移动容差；为空时使用官方设备容差，可设为无穷大交由宿主决定取消。
   double? tapSlopTolerance;
 
+  /// 侧键点击移动容差；为空时沿用主键容差，与宿主的主键边界策略独立。
+  double? secondaryTapSlopTolerance;
+
+  /// 提交点击或长按前的成员资格判断，尺寸等外部条件由调用方计算。
+  bool Function(ElGesturePhase phase, PointerEvent event)? isEligible;
+
+  /// 长按成立后是否自动取消自身点击，关闭后可由调用方通过 rejectTap 决定。
+  bool cancelTapOnLongPress;
+
   /// 长按移动容差；为空时使用官方设备容差。
   double? longPressSlopTolerance;
 
@@ -53,6 +68,7 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     tripleTapInterval: tripleTapInterval,
     longPressDelay: longPressDelay,
     tapSlopTolerance: tapSlopTolerance,
+    secondaryTapSlopTolerance: secondaryTapSlopTolerance,
     longPressSlopTolerance: longPressSlopTolerance,
     consecutiveTapDistance: consecutiveTapDistance,
     deferTap: deferTap,
@@ -84,6 +100,9 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
 
   /// 候选因失权、超出移动容差或宿主主动取消而结束。
   ElPressGestureCallback? onTapCancel;
+
+  /// 物理释放对应的同步语义通知全部结束后调用，不等待延迟单击。
+  void Function(PointerUpEvent event)? onReleased;
 
   /// 第二按钮按下候选，通常对应鼠标右键。
   ElPressGestureCallback? onSecondaryTapDown;
@@ -121,8 +140,8 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   /// 获胜后的鼠标后退按钮点击。
   ElPressGestureCallback? onBackTap;
 
-  _PressSequence? _sequence;
-  final Map<_GestureRoute, _PressSequence> _pressRoutes = {};
+  _PressGroup? _group;
+  final Map<_GestureRoute, _PressSequence> _sequences = {};
   final Set<_DeferredPressTap> _deferred = {};
   Timer? _historyTimer;
   Offset? _lastTapPosition;
@@ -167,16 +186,6 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
         : (details) => handler(details as ElPressGestureDetails);
   }
 
-  bool _chainHasHandler(ElGesturePhase phase) {
-    final visited = <ElPressGestureRecognizer>{};
-    ElPressGestureRecognizer? node = this;
-    while (node != null && visited.add(node)) {
-      if (!node._disposed && node._handlerFor(phase) != null) return true;
-      node = node.parent;
-    }
-    return false;
-  }
-
   @override
   bool isPointerAllowed(PointerDownEvent event) {
     if (_disposed || _disposing || _canceling) return false;
@@ -184,93 +193,131 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     if (!super.isPointerAllowed(event)) return false;
     final phases = _pressPhases(event.buttons);
     if (phases == null) return false;
-    if (_chainHasHandler(phases.$1) ||
-        _chainHasHandler(phases.$2) ||
-        _chainHasHandler(phases.$3)) {
-      return true;
-    }
-    return event.buttons == kPrimaryButton &&
-        const [
-          ElGesturePhase.doubleTap,
-          ElGesturePhase.doubleTapDown,
-          ElGesturePhase.tripleTap,
-          ElGesturePhase.tripleTapDown,
-          ElGesturePhase.longPress,
-          ElGesturePhase.tapCancel,
-        ].any(_chainHasHandler);
+    return [
+      phases.$1,
+      phases.$2,
+      phases.$3,
+      if (event.buttons == kPrimaryButton) ...[
+        ElGesturePhase.doubleTap,
+        ElGesturePhase.doubleTapDown,
+        ElGesturePhase.tripleTap,
+        ElGesturePhase.tripleTapDown,
+        ElGesturePhase.longPress,
+        ElGesturePhase.tapCancel,
+      ],
+    ].any(_hasHandlerInChain);
   }
 
   @override
-  void handleNonAllowedPointer(PointerDownEvent event) {
-    // 无关按钮或设备不能把正在识别的另一根指针整体踢出竞技场。
-  }
+  void handleNonAllowedPointer(PointerDownEvent event) {}
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
     if (_delegatePointer(event)) return;
-    final previous = _sequence;
+    final previous = _group;
     if (previous != null) {
       final stillDown = previous.up == null;
-      _abort(previous, ElGestureCancelReason.rejected, previous.lastEvent);
-      if (stillDown || _disposed || _disposing || _sequence != null) return;
+      _abortGroup(previous, ElGestureCancelReason.rejected, previous.lastEvent);
+      if (stillDown || _disposed || _disposing || _group != null) return;
     }
     final route = _beginRoute(event);
-    final sequence = _PressSequence(
-      route: route,
-      down: event,
-      settings: _settings,
-      tapSlop: tapSlopTolerance ?? computeHitSlop(event.kind, gestureSettings),
-      longPressSlop:
-          longPressSlopTolerance ?? computeHitSlop(event.kind, gestureSettings),
-    );
-    _sequence = sequence;
-    _pressRoutes[route] = sequence;
+    final group = _PressGroup(this, route, event);
+    _group = group;
+    for (final node in route.members.cast<ElPressGestureRecognizer>()) {
+      final settings = node._settings;
+      final slop = event.buttons == kPrimaryButton
+          ? settings.tapSlopTolerance
+          : settings.secondaryTapSlopTolerance ?? settings.tapSlopTolerance;
+      final sequence = _PressSequence(
+        node,
+        group,
+        settings,
+        slop ?? computeHitSlop(event.kind, node.gestureSettings),
+        settings.longPressSlopTolerance ??
+            computeHitSlop(event.kind, node.gestureSettings),
+        node.isEligible,
+        node.cancelTapOnLongPress,
+      );
+      group.sequences[node] = sequence;
+      node._sequences[route] = sequence;
+    }
     super.addAllowedPointer(event);
   }
 
   @override
   void handleEvent(PointerEvent event) {
-    final sequence = _sequence;
-    if (sequence == null || sequence.down.pointer != event.pointer) return;
-    sequence.lastEvent = event;
+    final group = _group;
+    if (group == null || group.down.pointer != event.pointer) return;
+    group.lastEvent = event;
     if (event is PointerDownEvent) {
-      _sendDown(sequence, event);
-      if (!_isCurrent(sequence)) return;
-      if (event.buttons == kPrimaryButton &&
-          _routeHasHandler(sequence.route, ElGesturePhase.longPress)) {
-        sequence.longPressPossible = true;
-        sequence.longPressTimer = Timer(
-          sequence.settings.longPressDelay,
-          () => _longPressDeadline(sequence),
-        );
+      for (final sequence in group.sequences.values) {
+        sequence.downVisible = true;
+      }
+      _emit(group, _pressPhases(event.buttons)!.$1, event);
+      for (final sequence in group.sequences.values.toList()) {
+        final node = sequence.node;
+        if (!node._isCurrent(sequence) || event.buttons != kPrimaryButton) {
+          continue;
+        }
+        final count = node._consecutiveCount(sequence, event);
+        if (count > 1) {
+          _emit(
+            group,
+            count == 2
+                ? ElGesturePhase.doubleTapDown
+                : ElGesturePhase.tripleTapDown,
+            event,
+            only: sequence,
+            tapCount: count,
+          );
+        }
+        if (node._isCurrent(sequence) &&
+            node.onLongPress != null &&
+            _allows(sequence)) {
+          sequence.longPressTimer = Timer(
+            sequence.settings.longPressDelay,
+            () => _longPressDeadline(sequence),
+          );
+        }
       }
       return;
     }
-    if (event is PointerCancelEvent) {
-      _abort(sequence, ElGestureCancelReason.pointerCanceled, event);
+    if (event is PointerCancelEvent ||
+        event is PointerMoveEvent && event.buttons != group.down.buttons) {
+      _abortGroup(
+        group,
+        event is PointerCancelEvent
+            ? ElGestureCancelReason.pointerCanceled
+            : ElGestureCancelReason.rejected,
+        event,
+      );
       return;
     }
-    if (event is PointerMoveEvent) {
-      if (event.buttons != sequence.down.buttons) {
-        _abort(sequence, ElGestureCancelReason.rejected, event);
-        return;
+    if (event is PointerMoveEvent || event is PointerUpEvent) {
+      for (final sequence in group.sequences.values.toList()) {
+        _updatePosition(sequence, event);
       }
-      _updatePosition(sequence, event);
-      return;
     }
-    if (event is PointerUpEvent) {
-      sequence.longPressTimer?.cancel();
-      sequence.longPressTimer = null;
-      sequence.longPressPossible = false;
-      _updatePosition(sequence, event);
-      if (!_isCurrent(sequence)) return;
-      sequence.up = event;
-      if (sequence.accepted) {
-        _completeAccepted(sequence);
-      } else if (!sequence.tapEligible) {
-        _abort(sequence, ElGestureCancelReason.rejected, event);
+    if (event is PointerUpEvent && identical(_group, group)) {
+      group.up = event;
+      for (final sequence in group.sequences.values) {
+        sequence.longPressTimer?.cancel();
+      }
+      if (group.accepted) {
+        _completeAccepted(group);
+      } else if (!group.sequences.values.any(
+        (sequence) =>
+            sequence.tapEligible &&
+            sequence.node._isCurrent(sequence) &&
+            (sequence.eligible?.call(
+                  _pressPhases(group.down.buttons)!.$3,
+                  event,
+                ) ??
+                true),
+      )) {
+        _abortGroup(group, ElGestureCancelReason.rejected, event);
       } else {
-        // 等待官方 sweep，避免父 El 在 up 阶段抢赢先入场的官方子 Tap。
+        // 释放交给官方 sweep；不能在 up 抢先接受而越过更内层的官方 Tap。
         stopTrackingPointer(event.pointer);
       }
     }
@@ -278,104 +325,103 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
 
   bool _isCurrent(_PressSequence sequence) =>
       !_disposed &&
-      !sequence.finished &&
-      sequence.route.active &&
-      identical(_sequence, sequence);
+      !sequence.canceled &&
+      !sequence.released &&
+      !sequence.canceling &&
+      sequence.group.route.active;
 
-  void _sendDown(_PressSequence sequence, PointerEvent event) {
-    if (sequence.downVisible || sequence.finished) return;
-    sequence.downVisible = true;
-    _emit(sequence, _pressPhases(sequence.down.buttons)!.$1, event);
-    if (!_isCurrent(sequence) || sequence.down.buttons != kPrimaryButton) {
-      return;
-    }
-    final count = _consecutiveCount(sequence, sequence.down);
-    if (count == 2) {
-      _emit(sequence, ElGesturePhase.doubleTapDown, event, tapCount: count);
-    } else if (count == 3) {
-      _emit(sequence, ElGesturePhase.tripleTapDown, event, tapCount: count);
-    }
+  static bool _allows(_PressSequence sequence) {
+    final route = sequence.group.route;
+    final index = route.members.indexOf(sequence.node);
+    return index >= 0 &&
+        index <=
+            (route.cutoffs[_GestureFamily.press] ?? route.members.length - 1);
   }
 
   void _updatePosition(_PressSequence sequence, PointerEvent event) {
-    final distance = (event.position - sequence.down.position).distance;
+    if (!sequence.node._isCurrent(sequence)) return;
+    final distance = (event.position - sequence.group.down.position).distance;
     if (distance > sequence.longPressSlop) {
-      sequence.longPressPossible = false;
       sequence.longPressTimer?.cancel();
       sequence.longPressTimer = null;
     }
-    if (!sequence.tapEligible || sequence.longPressFired) return;
-    if (distance <= sequence.tapSlop) return;
-    sequence.tapEligible = false;
-    _notifyCancel(sequence, ElGestureCancelReason.rejected, event);
-    if (_isCurrent(sequence) &&
-        !sequence.accepted &&
-        !sequence.longPressPossible) {
-      _abort(sequence, ElGestureCancelReason.rejected, event);
+    if (sequence.tapEligible && distance > sequence.tapSlop) {
+      sequence.tapEligible = false;
+      _notifyCancel(sequence, ElGestureCancelReason.rejected, event);
     }
   }
 
   void _longPressDeadline(_PressSequence sequence) {
     sequence.longPressTimer = null;
-    if (!_isCurrent(sequence) || !sequence.longPressPossible) return;
+    final group = sequence.group;
+    if (!sequence.node._isCurrent(sequence) ||
+        group.up != null ||
+        !_allows(sequence) ||
+        !(sequence.eligible?.call(ElGesturePhase.longPress, group.lastEvent) ??
+            true)) {
+      return;
+    }
     sequence.longPressRequested = true;
-    if (sequence.accepted) {
+    if (group.accepted) {
       _deliverLongPress(sequence);
     } else {
-      resolvePointer(sequence.down.pointer, GestureDisposition.accepted);
+      resolvePointer(group.down.pointer, GestureDisposition.accepted);
     }
   }
 
   void _deliverLongPress(_PressSequence sequence) {
-    if (!_isCurrent(sequence) ||
-        !sequence.accepted ||
+    if (!sequence.node._isCurrent(sequence) ||
         !sequence.longPressRequested ||
-        sequence.longPressFired) {
+        sequence.longPressFired ||
+        !_allows(sequence)) {
       return;
     }
     sequence.longPressFired = true;
-    sequence.tapEligible = false;
-    sequence.longPressPossible = false;
-    _resetHistory();
-    _notifyCancel(
-      sequence,
-      ElGestureCancelReason.longPressAccepted,
-      sequence.lastEvent,
+    if (sequence.cancelTapOnLongPress) {
+      sequence.tapEligible = false;
+      sequence.node._resetHistory();
+      _notifyCancel(
+        sequence,
+        ElGestureCancelReason.longPressAccepted,
+        sequence.group.lastEvent,
+      );
+    }
+    _emit(
+      sequence.group,
+      ElGesturePhase.longPress,
+      sequence.group.lastEvent,
+      only: sequence,
     );
-    if (!_isCurrent(sequence)) return;
-    _emit(sequence, ElGesturePhase.longPress, sequence.lastEvent);
   }
 
   @override
   void acceptGesture(int pointer) {
-    final sequence = _sequence;
-    if (sequence == null || sequence.down.pointer != pointer) return;
-    sequence.accepted = true;
-    resolvePointer(pointer, GestureDisposition.accepted);
-    if (sequence.longPressRequested) _deliverLongPress(sequence);
-    if (_isCurrent(sequence) && sequence.up != null) {
-      _completeAccepted(sequence);
+    final group = _group;
+    if (group == null || group.down.pointer != pointer || group.accepted) {
+      return;
     }
+    group.accepted = true;
+    resolvePointer(pointer, GestureDisposition.accepted);
+    _notifyAccepted(group.route, pointer);
+    for (final sequence in group.sequences.values.toList()) {
+      if (sequence.longPressRequested) _deliverLongPress(sequence);
+    }
+    if (identical(_group, group) && group.up != null) _completeAccepted(group);
   }
 
   @override
   void rejectGesture(int pointer) {
-    final sequence = _sequence;
-    if (sequence == null || sequence.down.pointer != pointer) return;
-    _abort(sequence, ElGestureCancelReason.arenaRejected, sequence.lastEvent);
+    final group = _group;
+    if (group != null && group.down.pointer == pointer) {
+      _abortGroup(group, ElGestureCancelReason.arenaRejected, group.lastEvent);
+    }
   }
 
   @override
   void _requestAccept(_GestureRoute route, int pointer) {
-    final sequence = _sequence;
-    if (_disposing ||
-        _canceling ||
-        sequence == null ||
-        sequence.down.pointer != pointer ||
-        !identical(sequence.route, route)) {
-      return;
+    if (!_disposing && !_canceling && identical(_group?.route, route)) {
+      resolvePointer(pointer, GestureDisposition.accepted);
     }
-    resolvePointer(pointer, GestureDisposition.accepted);
   }
 
   @override
@@ -384,15 +430,48 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     int pointer,
     PointerEvent? event,
   ) {
-    final sequence = _sequence;
-    if (sequence != null &&
-        sequence.down.pointer == pointer &&
-        identical(sequence.route, route)) {
-      _abort(
-        sequence,
+    final group = _group;
+    if (group != null &&
+        identical(group.route, route) &&
+        group.down.pointer == pointer) {
+      _abortGroup(
+        group,
         ElGestureCancelReason.canceled,
-        event ?? sequence.lastEvent,
+        event ?? group.lastEvent,
       );
+    }
+  }
+
+  /// 永久取消当前成员的点击资格，保留同一路线其他成员及物理释放通知。
+  void rejectTap(
+    int pointer, {
+    ElGestureCancelReason reason = ElGestureCancelReason.rejected,
+  }) {
+    for (final sequence in _sequences.values.toList()) {
+      if (sequence.group.down.pointer != pointer || !_isCurrent(sequence)) {
+        continue;
+      }
+      sequence.tapEligible = false;
+      sequence.longPressTimer?.cancel();
+      _resetHistory();
+      sequence.group.owner._notifyCancel(
+        sequence,
+        reason,
+        sequence.group.lastEvent,
+      );
+    }
+  }
+
+  /// 终止当前成员及其待发点击，不终止同一路线的父子成员。
+  void cancelMember(int pointer) {
+    for (final sequence in _sequences.values.toList()) {
+      if (sequence.group.down.pointer == pointer) {
+        _cancelSequence(
+          sequence,
+          ElGestureCancelReason.canceled,
+          sequence.group.lastEvent,
+        );
+      }
     }
   }
 
@@ -401,88 +480,123 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     if (_disposed || _canceling) return;
     _canceling = true;
     try {
-      final sequence = _sequence;
-      if (sequence != null) {
-        _abort(sequence, ElGestureCancelReason.canceled, sequence.lastEvent);
+      final groups = _sequences.values
+          .map((sequence) => sequence.group)
+          .toSet();
+      if (_group != null) groups.add(_group!);
+      for (final group in groups) {
+        if (identical(group.owner, this)) {
+          _abortGroup(group, ElGestureCancelReason.canceled, group.lastEvent);
+        } else {
+          final sequence = group.sequences[this];
+          if (sequence != null) {
+            _cancelSequence(
+              sequence,
+              ElGestureCancelReason.canceled,
+              group.lastEvent,
+            );
+          }
+        }
       }
       _resetHistory();
-      for (final pending in _deferred.toList()) {
-        pending.timer?.cancel();
-        _releaseSequence(pending.sequence);
-      }
-      _deferred.clear();
-      for (final route in _pressRoutes.keys.toList()) {
-        _endRoute(route);
-      }
-      _pressRoutes.clear();
     } finally {
       _canceling = false;
     }
   }
 
-  void _completeAccepted(_PressSequence sequence) {
-    final up = sequence.up;
-    if (!_isCurrent(sequence) || up == null) return;
-    _releaseRoutePointers(sequence.route);
-    _sequence = null;
-    stopTrackingPointer(sequence.down.pointer);
-    final phases = _pressPhases(sequence.down.buttons)!;
-    _emit(sequence, phases.$2, up);
-    if (_disposed || !sequence.route.active || sequence.finished) {
-      _releaseSequence(sequence);
-      return;
+  void _completeAccepted(_PressGroup group) {
+    final up = group.up;
+    if (up == null || group.completing || !group.route.active) return;
+    group.completing = true;
+    if (identical(_group, group)) _group = null;
+    _releaseRoutePointers(group.route);
+    stopTrackingPointer(group.down.pointer);
+    for (final sequence in group.sequences.values) {
+      sequence.longPressTimer?.cancel();
     }
-    var deferred = false;
-    if (sequence.tapEligible) {
-      if (sequence.down.buttons == kPrimaryButton) {
-        deferred = _completePrimaryTap(sequence, up);
-      } else {
-        _emit(sequence, phases.$3, up, tapCount: 1);
+    _emit(group, _pressPhases(group.down.buttons)!.$2, up);
+    for (final sequence in group.sequences.values) {
+      sequence.downVisible = false;
+    }
+    final counts = <_PressSequence, int>{};
+    for (final sequence in group.sequences.values.toList()) {
+      final node = sequence.node;
+      if (!node._isCurrent(sequence)) continue;
+      if (!sequence.tapEligible ||
+          !(sequence.eligible?.call(_pressPhases(group.down.buttons)!.$3, up) ??
+              true) ||
+          !_allows(sequence)) {
+        node._resetHistory();
+        continue;
       }
-    } else {
-      _resetHistory();
+      final count = group.down.buttons == kPrimaryButton
+          ? node._consecutiveCount(sequence, up)
+          : 1;
+      counts[sequence] = count;
+      if (group.down.buttons != kPrimaryButton) continue;
+      final hasDouble = node.onDoubleTap != null;
+      final hasTriple =
+          node.onTripleTap != null || node.onTripleTapDown != null;
+      final needsHistory =
+          hasDouble || hasTriple || node.onDoubleTapDown != null;
+      final historyGroup = count > 1 ? node._historyGroup : ++node._nextGroup;
+      if (needsHistory) {
+        node._recordHistory(
+          sequence,
+          up,
+          count,
+          historyGroup,
+          hasTriple: hasTriple,
+        );
+      }
+      if (sequence.settings.deferTap && hasDouble && count == 1) {
+        node._scheduleTap(sequence, up, historyGroup);
+      } else if (count > 1) {
+        node._cancelDeferredGroup(historyGroup);
+      }
     }
-    sequence.finished = true;
-    if (!deferred) _releaseSequence(sequence);
-  }
-
-  bool _completePrimaryTap(_PressSequence sequence, PointerUpEvent up) {
-    final route = sequence.route;
-    final count = _consecutiveCount(sequence, up);
-    final hasDouble = _routeHasHandler(route, ElGesturePhase.doubleTap);
-    final hasTriple =
-        _routeHasHandler(route, ElGesturePhase.tripleTap) ||
-        _routeHasHandler(route, ElGesturePhase.tripleTapDown);
-    final needsHistory =
-        hasDouble ||
-        hasTriple ||
-        _routeHasHandler(route, ElGesturePhase.doubleTapDown);
-    final group = count > 1 ? _historyGroup : ++_nextGroup;
-    if (needsHistory) {
-      _recordHistory(sequence, up, count, group, hasTriple: hasTriple);
+    final primary = group.down.buttons == kPrimaryButton;
+    _emit(
+      group,
+      _pressPhases(group.down.buttons)!.$3,
+      up,
+      select: (sequence) =>
+          counts.containsKey(sequence) &&
+          !(primary &&
+              sequence.settings.deferTap &&
+              sequence.node.onDoubleTap != null),
+      counts: counts,
+    );
+    if (primary) {
+      _emit(
+        group,
+        ElGesturePhase.doubleTap,
+        group.down,
+        select: (sequence) => counts[sequence] == 2,
+        tapCount: 2,
+      );
+      _emit(
+        group,
+        ElGesturePhase.tripleTap,
+        group.down,
+        select: (sequence) => counts[sequence] == 3,
+        tapCount: 3,
+      );
     }
-    final defer = sequence.settings.deferTap && hasDouble;
-    if (defer && count == 1) {
-      _scheduleTap(sequence, up, group);
-      return true;
+    for (final sequence in group.sequences.values.toList()) {
+      final node = sequence.node;
+      final callback = node.onReleased;
+      if (!node._disposed && callback != null) {
+        node.invokeCallback<void>('released', () => callback(up));
+      }
     }
-    if (!defer) _emit(sequence, ElGesturePhase.tap, up, tapCount: count);
-    if (_disposed || !route.active || !sequence.tapEligible) return false;
-    if (count == 2) {
-      if (hasDouble) _cancelDeferredGroup(group);
-      _emit(sequence, ElGesturePhase.doubleTap, sequence.down, tapCount: count);
-    } else if (count == 3) {
-      _cancelDeferredGroup(group);
-      _emit(sequence, ElGesturePhase.tripleTap, sequence.down, tapCount: count);
+    for (final sequence in group.sequences.values.toList()) {
+      if (!sequence.pending) sequence.node._releaseSequence(sequence);
     }
-    return false;
   }
 
   int _consecutiveCount(_PressSequence sequence, PointerEvent event) {
-    final previous = _historySettings;
-    if (sequence.down.buttons != kPrimaryButton ||
-        previous == null ||
-        previous != sequence.settings ||
+    if (_historySettings != sequence.settings ||
         !(_historyTimer?.isActive ?? false) ||
         _historyDeadline == null ||
         event.timeStamp > _historyDeadline! ||
@@ -502,7 +616,7 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
     required bool hasTriple,
   }) {
     _resetHistory();
-    if (count == 3 || (count == 2 && !hasTriple)) return;
+    if (count == 3 || count == 2 && !hasTriple) return;
     final interval = count == 2
         ? sequence.settings.tripleTapInterval
         : sequence.settings.doubleTapInterval;
@@ -525,14 +639,20 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   }
 
   void _scheduleTap(_PressSequence sequence, PointerUpEvent up, int group) {
-    late final _DeferredPressTap pending;
-    pending = _DeferredPressTap(sequence, group);
+    final pending = _DeferredPressTap(sequence, group);
+    sequence.pending = true;
     _deferred.add(pending);
     pending.timer = Timer(sequence.settings.doubleTapInterval, () {
       if (!_deferred.remove(pending)) return;
       try {
-        if (!_disposed && sequence.route.active) {
-          _emit(sequence, ElGesturePhase.tap, up, tapCount: 1);
+        if (_isCurrent(sequence)) {
+          sequence.group.owner._emit(
+            sequence.group,
+            ElGesturePhase.tap,
+            up,
+            only: sequence,
+            tapCount: 1,
+          );
         }
       } finally {
         _releaseSequence(sequence);
@@ -556,59 +676,125 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   ) {
     if (!sequence.downVisible) return;
     sequence.downVisible = false;
-    _emit(sequence, ElGesturePhase.tapCancel, event, cancelReason: reason);
+    _emit(
+      sequence.group,
+      ElGesturePhase.tapCancel,
+      event,
+      only: sequence,
+      cancelReason: reason,
+    );
   }
 
-  void _abort(
+  void _cancelSequence(
     _PressSequence sequence,
     ElGestureCancelReason reason,
     PointerEvent event,
   ) {
-    if (sequence.finished) return;
-    sequence.finished = true;
+    if (sequence.canceled || sequence.released || sequence.canceling) return;
+    sequence.canceling = true;
     sequence.longPressTimer?.cancel();
-    sequence.longPressTimer = null;
-    if (identical(_sequence, sequence)) _sequence = null;
     _resetHistory();
-    _releaseRoutePointers(sequence.route);
-    resolvePointer(sequence.down.pointer, GestureDisposition.rejected);
-    stopTrackingPointer(sequence.down.pointer);
-    _notifyCancel(sequence, reason, event);
+    for (final pending in _deferred.toList()) {
+      if (!identical(pending.sequence, sequence)) continue;
+      _deferred.remove(pending);
+      pending.timer?.cancel();
+    }
+    sequence.group.owner._notifyCancel(sequence, reason, event);
+    sequence.canceled = true;
     _releaseSequence(sequence);
   }
 
+  void _abortGroup(
+    _PressGroup group,
+    ElGestureCancelReason reason,
+    PointerEvent event,
+  ) {
+    if (group.canceling) return;
+    if (group.completing && group.route.terminalDispatchDepth > 0) {
+      // Up 内销毁只阻止后续业务点击，已经公开的父级释放仍须兑现。
+      for (final sequence in group.sequences.values) {
+        sequence.tapEligible = false;
+        sequence.longPressTimer?.cancel();
+        sequence.node._resetHistory();
+      }
+      return;
+    }
+    group.canceling = true;
+    if (identical(_group, group)) _group = null;
+    _releaseRoutePointers(group.route);
+    resolvePointer(group.down.pointer, GestureDisposition.rejected);
+    stopTrackingPointer(group.down.pointer);
+    for (final sequence in group.sequences.values.toList()) {
+      sequence.node._cancelSequence(sequence, reason, event);
+    }
+    _endRoute(group.route);
+  }
+
   void _releaseSequence(_PressSequence sequence) {
-    _pressRoutes.remove(sequence.route);
-    _endRoute(sequence.route);
+    if (sequence.released) return;
+    sequence.released = true;
+    if (identical(_sequences[sequence.group.route], sequence)) {
+      _sequences.remove(sequence.group.route);
+    }
+    if (sequence.group.sequences.values.every((member) => member.released)) {
+      final group = sequence.group;
+      final owner = group.owner;
+      if (identical(owner._group, group)) {
+        owner._group = null;
+        owner.resolvePointer(group.down.pointer, GestureDisposition.rejected);
+        owner.stopTrackingPointer(group.down.pointer);
+      }
+      owner._endRoute(group.route);
+    }
   }
 
   void _emit(
-    _PressSequence sequence,
+    _PressGroup group,
     ElGesturePhase phase,
     PointerEvent event, {
+    _PressSequence? only,
+    bool Function(_PressSequence sequence)? select,
+    Map<_PressSequence, int>? counts,
     int tapCount = 0,
     ElGestureCancelReason? cancelReason,
   }) {
-    if (_disposed || !sequence.route.active) return;
+    if (!group.route.active) return;
+    final shared = ElPressGestureDetails(
+      phase: phase,
+      globalPosition: event.position,
+      buttons: group.down.buttons,
+      originalEvent: event,
+      cancelReason: cancelReason,
+    );
     _dispatchGesture(
-      sequence.route,
-      ElPressGestureDetails(
-        phase: phase,
-        globalPosition: event.position,
-        buttons: sequence.down.buttons,
-        tapCount: tapCount,
-        originalEvent: event,
-        cancelReason: cancelReason,
-      ),
+      group.route,
+      shared,
+      prepare: (member) {
+        final sequence = group.sequences[member];
+        if (sequence == null ||
+            sequence.canceled ||
+            sequence.released ||
+            sequence.canceling && phase != ElGesturePhase.tapCancel ||
+            only != null && !identical(only, sequence) ||
+            !(select?.call(sequence) ?? true)) {
+          return null;
+        }
+        return ElPressGestureDetails(
+          phase: phase,
+          globalPosition: event.position,
+          buttons: group.down.buttons,
+          originalEvent: event,
+          tapCount: counts?[sequence] ?? tapCount,
+          cancelReason: cancelReason,
+        ).._dispatchIdentity = shared;
+      },
     );
   }
 
   @override
   void didStopTrackingLastPointer(int pointer) {}
-
   @override
   String get debugDescription => 'el press';
-
   @override
   void dispose() {
     if (_disposed || _disposing || _canceling) return;
@@ -618,35 +804,49 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   }
 }
 
-final class _PressSequence {
-  _PressSequence({
-    required this.route,
-    required this.down,
-    required this.settings,
-    required this.tapSlop,
-    required this.longPressSlop,
-  }) : lastEvent = down;
-
+final class _PressGroup {
+  _PressGroup(this.owner, this.route, this.down) : lastEvent = down;
+  final ElPressGestureRecognizer owner;
   final _GestureRoute route;
   final PointerDownEvent down;
+  final Map<ElPressGestureRecognizer, _PressSequence> sequences = {};
+  PointerEvent lastEvent;
+  PointerUpEvent? up;
+  bool accepted = false;
+  bool completing = false;
+  bool canceling = false;
+}
+
+final class _PressSequence {
+  _PressSequence(
+    this.node,
+    this.group,
+    this.settings,
+    this.tapSlop,
+    this.longPressSlop,
+    this.eligible,
+    this.cancelTapOnLongPress,
+  );
+  final ElPressGestureRecognizer node;
+  final _PressGroup group;
   final _PressSettings settings;
   final double tapSlop;
   final double longPressSlop;
-  PointerEvent lastEvent;
-  PointerUpEvent? up;
+  final bool Function(ElGesturePhase, PointerEvent)? eligible;
+  final bool cancelTapOnLongPress;
   Timer? longPressTimer;
-  bool accepted = false;
   bool downVisible = false;
   bool tapEligible = true;
-  bool longPressPossible = false;
   bool longPressRequested = false;
   bool longPressFired = false;
-  bool finished = false;
+  bool canceled = false;
+  bool canceling = false;
+  bool pending = false;
+  bool released = false;
 }
 
 final class _DeferredPressTap {
   _DeferredPressTap(this.sequence, this.group);
-
   final _PressSequence sequence;
   final int group;
   Timer? timer;
@@ -687,6 +887,7 @@ typedef _PressSettings = ({
   Duration tripleTapInterval,
   Duration longPressDelay,
   double? tapSlopTolerance,
+  double? secondaryTapSlopTolerance,
   double? longPressSlopTolerance,
   double consecutiveTapDistance,
   bool deferTap,

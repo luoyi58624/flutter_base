@@ -1218,6 +1218,95 @@ void main() {
     await tester.tapAt(const Offset(50, 50));
     expect(trace, ['child.down', 'child.tap']);
   });
+  testWidgets('成员资格在连击提交前生效，子成员无效点击不污染父级历史', (tester) async {
+    final trace = <String>[];
+    var eligible = true;
+    final parent = ElPressGestureRecognizer()
+      ..onTap = (event) {
+        trace.add('parent:${event.tapCount}');
+      }
+      ..onDoubleTap = (_) {};
+    final child =
+        ElPressGestureRecognizer(parent: parent, isEligible: (_, _) => eligible)
+          ..onTap = (event) {
+            trace.add('child:${event.tapCount}');
+          }
+          ..onDoubleTap = (_) {};
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    for (var i = 0; i < 3; i++) {
+      eligible = i != 1;
+      _down(1500 + i, [child, parent], milliseconds: i * 40);
+      _up(1500 + i, milliseconds: i * 40 + 10);
+    }
+    expect(trace, ['child:1', 'parent:1', 'parent:2', 'child:1', 'parent:1']);
+    child.dispose();
+    parent.dispose();
+  });
+
+  testWidgets('取消当前成员不会结束父成员或复活已取消成员', (tester) async {
+    final trace = <String>[];
+    final parent = recordingPress(trace, 'parent');
+    final child = recordingPress(trace, 'child', parent: parent);
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    _down(1510, [child, parent]);
+    child.cancelMember(1510);
+    _up(1510);
+    expect(trace, [
+      'child.down',
+      'parent.down',
+      'child.cancel',
+      'parent.up',
+      'parent.tap',
+    ]);
+  });
+
+  testWidgets('父子长按采用各自等待时间，资格失败不提前认领官方手势', (tester) async {
+    final trace = <String>[];
+    var childEligible = false;
+    final parent = ElPressGestureRecognizer(
+      longPressDelay: const Duration(milliseconds: 40),
+    )..onLongPress = (_) => trace.add('parent.long');
+    final child = ElPressGestureRecognizer(
+      parent: parent,
+      longPressDelay: const Duration(milliseconds: 10),
+      isEligible: (_, _) => childEligible,
+    )..onLongPress = (_) => trace.add('child.long');
+    final official = TapGestureRecognizer()
+      ..onTap = () => trace.add('official.tap');
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    addTearDown(official.dispose);
+    _down(1520, [child, parent, official]);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(trace, isEmpty);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(trace, ['parent.long']);
+    _up(1520, milliseconds: 50);
+    expect(trace, ['parent.long']);
+    childEligible = true;
+  });
+
+  testWidgets('主键放宽移动不改变侧键的独立移动容差', (tester) async {
+    final taps = <String>[];
+    final press =
+        ElPressGestureRecognizer(
+            tapSlopTolerance: double.infinity,
+            secondaryTapSlopTolerance: 3,
+          )
+          ..onTap = (_) {
+            taps.add('primary');
+          }
+          ..onSecondaryTap = (_) => taps.add('secondary');
+    addTearDown(press.dispose);
+    _down(1530, [press]);
+    _move(1530, const Offset(20, 0));
+    _up(1530, position: const Offset(20, 0));
+    _down(1531, [press], buttons: kSecondaryButton);
+    _up(1531, position: const Offset(20, 0));
+    expect(taps, ['primary']);
+  });
 }
 
 void _down(

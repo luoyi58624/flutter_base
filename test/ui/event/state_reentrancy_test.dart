@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -25,14 +25,14 @@ void main() {
         onTap: (_) => phases.add('old:tap'),
       );
 
-    host.dispatch(
+    await host.dispatch(
       const PointerDownEvent(
         pointer: 1,
         kind: PointerDeviceKind.mouse,
         buttons: kPrimaryButton,
       ),
     );
-    host.dispatch(
+    await host.dispatch(
       const PointerUpEvent(pointer: 1, kind: PointerDeviceKind.mouse),
     );
 
@@ -46,27 +46,25 @@ void main() {
     expect(dispatcher.activePointerCount, 0);
   });
 
-  testWidgets('拖拽释放通知中替换配置仍兑现唯一旧 DragCancel', (_) async {
+  testWidgets('拖拽取消回调内替换配置只兑现一次旧 DragCancel', (_) async {
     final host = DispatcherTestHost.chain();
     addTearDown(host.dispose);
     final dispatcher = host.leafDispatcher;
     final phases = <String>[];
-    dispatcher
-      ..onDragChanged = (dragged) {
-        phases.add('dragged:$dragged');
-        if (!dragged) dispatcher.event = const ElEvent();
-      }
-      ..event = ElEvent(
-        config: const ElEventConfig(
-          dragStartDistance: 3,
-          delayTouchUp: Duration.zero,
-        ),
-        onDragStart: (_) => phases.add('old:dragStart'),
-        onDragCancel: (_) => phases.add('old:dragCancel'),
-      );
+    dispatcher.event = ElEvent(
+      config: const ElEventConfig(
+        dragStartDistance: 3,
+        delayTouchUp: Duration.zero,
+      ),
+      onDragStart: (_) => phases.add('old:dragStart'),
+      onDragCancel: (_) {
+        phases.add('old:dragCancel');
+        dispatcher.event = const ElEvent();
+      },
+    );
 
-    host.dispatch(const PointerDownEvent(pointer: 2));
-    host.dispatch(
+    await host.dispatch(const PointerDownEvent(pointer: 2));
+    await host.dispatch(
       const PointerMoveEvent(
         pointer: 2,
         position: Offset(5, 0),
@@ -75,15 +73,14 @@ void main() {
       ),
     );
     expect(dispatcher.isDragged, isTrue);
-    host.dispatch(const PointerCancelEvent(pointer: 2, position: Offset(5, 0)));
-    host.dispatch(const PointerUpEvent(pointer: 2, position: Offset(5, 0)));
+    await host.dispatch(
+      const PointerCancelEvent(pointer: 2, position: Offset(5, 0)),
+    );
+    await host.dispatch(
+      const PointerUpEvent(pointer: 2, position: Offset(5, 0)),
+    );
 
-    expect(phases, <String>[
-      'old:dragStart',
-      'dragged:true',
-      'old:dragCancel',
-      'dragged:false',
-    ]);
+    expect(phases, <String>['old:dragStart', 'old:dragCancel']);
     expect(dispatcher.isDragged, isFalse);
     expect(dispatcher.activePointerCount, 0);
   });
@@ -101,14 +98,14 @@ void main() {
       };
 
     for (var pointer = 3; pointer <= 4; pointer++) {
-      host.dispatch(
+      await host.dispatch(
         PointerDownEvent(
           pointer: pointer,
           kind: PointerDeviceKind.mouse,
           buttons: kPrimaryButton,
         ),
       );
-      host.dispatch(
+      await host.dispatch(
         PointerUpEvent(pointer: pointer, kind: PointerDeviceKind.mouse),
       );
     }
@@ -118,28 +115,26 @@ void main() {
     expect(dispatcher.activePointerCount, 0);
   });
 
-  testWidgets('收到祖先 DragStart 提案的节点同步公开与结清拖拽状态', (_) async {
+  testWidgets('不同阈值分别参赛，祖先获胜后子节点只结清候选', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
-    final states = <bool>[];
     host.rootDispatcher.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 0),
       onDragStart: (_) {},
       onDragEnd: (_) {},
       onDragCancel: (_) {},
     );
-    host.leafDispatcher
-      ..onDragChanged = states.add
-      ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 20),
-        onDragStart: (event) => phases.add(event.phase),
-        onDragEnd: (event) => phases.add(event.phase),
-        onDragCancel: (event) => phases.add(event.phase),
-      );
+    host.leafDispatcher.event = ElEvent(
+      config: const ElEventConfig(dragStartDistance: 20),
+      onDragDown: (event) => phases.add(event.phase),
+      onDragStart: (event) => phases.add(event.phase),
+      onDragEnd: (event) => phases.add(event.phase),
+      onDragCancel: (event) => phases.add(event.phase),
+    );
 
-    host.dispatch(const PointerDownEvent(pointer: 5));
-    host.dispatch(
+    await host.dispatch(const PointerDownEvent(pointer: 5));
+    await host.dispatch(
       const PointerMoveEvent(
         pointer: 5,
         position: Offset(5, 0),
@@ -147,15 +142,15 @@ void main() {
         timeStamp: Duration(milliseconds: 16),
       ),
     );
-    expect(host.leafDispatcher.isDragged, isTrue);
-    expect(states, <bool>[true]);
-    host.dispatch(const PointerUpEvent(pointer: 5, position: Offset(5, 0)));
+    expect(host.leafDispatcher.isDragged, isFalse);
+    await host.dispatch(
+      const PointerUpEvent(pointer: 5, position: Offset(5, 0)),
+    );
 
     expect(phases, <ElEventPhase>[
-      ElEventPhase.dragStart,
-      ElEventPhase.dragEnd,
+      ElEventPhase.dragDown,
+      ElEventPhase.dragCancel,
     ]);
-    expect(states, <bool>[true, false]);
     expect(host.leafDispatcher.isDragged, isFalse);
   });
 }

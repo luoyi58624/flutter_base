@@ -1,4 +1,4 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -31,7 +31,7 @@ void main() {
       onDragCancel: record,
     );
 
-    host.dispatch(
+    await host.dispatch(
       const PointerDownEvent(
         pointer: 1,
         position: Offset.zero,
@@ -45,7 +45,7 @@ void main() {
       ElEventPhase.tapDown,
     ]);
 
-    host.dispatch(
+    await host.dispatch(
       const PointerMoveEvent(
         pointer: 1,
         position: Offset(4, 0),
@@ -62,7 +62,7 @@ void main() {
       ElEventPhase.dragStart,
     ]);
 
-    host.dispatch(
+    await host.dispatch(
       const PointerMoveEvent(
         pointer: 1,
         position: Offset(8, 0),
@@ -81,7 +81,7 @@ void main() {
       ElEventPhase.dragUpdate,
     ]);
 
-    host.dispatch(
+    await host.dispatch(
       const PointerCancelEvent(
         pointer: 1,
         position: Offset(8, 0),
@@ -119,7 +119,7 @@ void main() {
       onTapCancel: record,
     );
 
-    host.dispatch(
+    await host.dispatch(
       const PointerDownEvent(
         pointer: 2,
         position: Offset.zero,
@@ -127,7 +127,7 @@ void main() {
         timeStamp: Duration.zero,
       ),
     );
-    host.dispatch(
+    await host.dispatch(
       const PointerCancelEvent(
         pointer: 2,
         position: Offset.zero,

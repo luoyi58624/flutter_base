@@ -1,4 +1,4 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -10,20 +10,20 @@ import 'support/dispatcher_test_host.dart';
 void main() {
   setUp(ElEventDispatcher.debugResetEagerGestureOwners);
 
-  group('DragStart proposal 生命周期', () {
+  group('DragStart 路线 生命周期', () {
     testWidgets('配置移除同步向旧 handler 补唯一 DragCancel', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
-      _installProposalPair(host, childPhases: childPhases);
+      _installBubblingPair(host, childPhases: childPhases);
 
       final move = _move(
         pointer: 1,
         position: const Offset(5, 0),
         delta: const Offset(5, 0),
       );
-      host.dispatch(_down(pointer: 1));
-      host.dispatch(move);
+      await host.dispatch(_down(pointer: 1));
+      await host.dispatch(move);
       expect(childPhases, <ElEventPhase>[ElEventPhase.dragStart]);
 
       host.leafDispatcher.event = null;
@@ -32,7 +32,7 @@ void main() {
         ElEventPhase.dragCancel,
       ]);
 
-      host.dispatch(_up(pointer: 1, position: move.position));
+      await host.dispatch(_up(pointer: 1, position: move.position));
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -43,22 +43,22 @@ void main() {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
-      _installProposalPair(host, childPhases: childPhases);
+      _installBubblingPair(host, childPhases: childPhases);
 
       final move = _move(
         pointer: 2,
         position: const Offset(5, 0),
         delta: const Offset(5, 0),
       );
-      host.dispatch(_down(pointer: 2));
-      host.dispatch(move);
+      await host.dispatch(_down(pointer: 2));
+      await host.dispatch(move);
       host.leafDispatcher.cancelAllPending(move);
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
       ]);
 
-      host.dispatch(_up(pointer: 2, position: move.position));
+      await host.dispatch(_up(pointer: 2, position: move.position));
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -70,10 +70,10 @@ void main() {
         final host = DispatcherTestHost.chain(depth: 2);
         addTearDown(host.dispose);
         final childPhases = <ElEventPhase>[];
-        _installProposalPair(host, childPhases: childPhases);
+        _installBubblingPair(host, childPhases: childPhases);
 
-        host.dispatch(_down(pointer: 3));
-        host.dispatch(
+        await host.dispatch(_down(pointer: 3));
+        await host.dispatch(
           _move(
             pointer: 3,
             position: const Offset(5, 0),
@@ -90,7 +90,7 @@ void main() {
           ElEventPhase.dragCancel,
         ]);
 
-        host.dispatch(_up(pointer: 3, position: const Offset(5, 0)));
+        await host.dispatch(_up(pointer: 3, position: const Offset(5, 0)));
         expect(childPhases, <ElEventPhase>[
           ElEventPhase.dragStart,
           ElEventPhase.dragCancel,
@@ -98,25 +98,28 @@ void main() {
       });
     }
 
-    testWidgets('PointerRemoved 同步取消 active 与 proposal Start', (_) async {
+    testWidgets('移除前的 PointerCancel 结清路线，Removed 不重复结清', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
       final ancestorPhases = <ElEventPhase>[];
-      _installProposalPair(
+      _installBubblingPair(
         host,
         childPhases: childPhases,
         ancestorPhases: ancestorPhases,
       );
 
-      host.dispatch(_down(pointer: 4, device: 404));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 4, device: 404));
+      await host.dispatch(
         _move(
           pointer: 4,
           device: 404,
           position: const Offset(5, 0),
           delta: const Offset(5, 0),
         ),
+      );
+      await host.dispatch(
+        _cancel(pointer: 4, device: 404, position: const Offset(5, 0)),
       );
       GestureBinding.instance.pointerRouter.route(
         const PointerRemovedEvent(
@@ -138,33 +141,31 @@ void main() {
     });
   });
 
-  group('DragStart proposal 路由终态', () {
+  group('DragStart 路线 路由终态', () {
     testWidgets('一指 PointerCancel 后仍有指针继续时只在最终 Up 发 End', (_) async {
       final host = DispatcherTestHost.chain();
       addTearDown(host.dispose);
       final phases = <ElEventPhase>[];
-      host.leafDispatcher
-        ..multitouchDragStrategy = MultitouchDragStrategy.latestPointer
-        ..event = ElEvent(
-          config: _dragConfig(3),
-          onDragStart: (event) => phases.add(event.phase),
-          onDragUpdate: (_) {},
-          onDragEnd: (event) => phases.add(event.phase),
-          onDragCancel: (event) => phases.add(event.phase),
-        );
+      host.leafDispatcher.event = ElEvent(
+        config: _dragConfig(3),
+        onDragStart: (event) => phases.add(event.phase),
+        onDragUpdate: (_) {},
+        onDragEnd: (event) => phases.add(event.phase),
+        onDragCancel: (event) => phases.add(event.phase),
+      );
 
-      host.dispatch(_down(pointer: 5, position: Offset.zero));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 5, position: Offset.zero));
+      await host.dispatch(
         _move(
           pointer: 5,
           position: const Offset(4, 0),
           delta: const Offset(4, 0),
         ),
       );
-      host.dispatch(
+      await host.dispatch(
         _down(pointer: 6, position: const Offset(100, 0), millis: 20),
       );
-      host.dispatch(
+      await host.dispatch(
         _move(
           pointer: 6,
           position: const Offset(110, 0),
@@ -172,7 +173,7 @@ void main() {
           millis: 32,
         ),
       );
-      host.dispatch(
+      await host.dispatch(
         _cancel(pointer: 6, position: const Offset(110, 0), millis: 48),
       );
       expect(
@@ -181,7 +182,7 @@ void main() {
         reason: '还有一指继续时不得提前结清整次 Drag。',
       );
 
-      host.dispatch(
+      await host.dispatch(
         _move(
           pointer: 5,
           position: const Offset(12, 0),
@@ -189,7 +190,9 @@ void main() {
           millis: 64,
         ),
       );
-      host.dispatch(_up(pointer: 5, position: const Offset(12, 0), millis: 80));
+      await host.dispatch(
+        _up(pointer: 5, position: const Offset(12, 0), millis: 80),
+      );
       expect(phases.where(_isDragTerminal), <ElEventPhase>[
         ElEventPhase.dragEnd,
       ]);
@@ -202,7 +205,7 @@ void main() {
       final ends = <int>[];
       for (var index = 0; index < host.dispatchers.length; index++) {
         host.dispatchers[index].event = ElEvent(
-          config: _dragConfig(index == 0 ? 0 : 20),
+          config: _dragConfig(0),
           onDragStart: (_) => starts.add(index),
           onDragEnd: (event) {
             ends.add(index);
@@ -211,15 +214,15 @@ void main() {
         );
       }
 
-      host.dispatch(_down(pointer: 7));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 7));
+      await host.dispatch(
         _move(
           pointer: 7,
           position: const Offset(5, 0),
           delta: const Offset(5, 0),
         ),
       );
-      host.dispatch(_up(pointer: 7, position: const Offset(5, 0)));
+      await host.dispatch(_up(pointer: 7, position: const Offset(5, 0)));
 
       expect(starts, <int>[2, 1, 0]);
       expect(ends, <int>[
@@ -229,9 +232,7 @@ void main() {
       ], reason: 'Start 已公开后，每个成员都必须独立结清，终态 stop 不能制造悬空生命周期。');
     });
 
-    testWidgets('generic child 继承 vertical ancestor proposal 的轴并保持到 End', (
-      _,
-    ) async {
+    testWidgets('不同轴向独立识别，free child 不继承祖先的 vertical 轴', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childEvents = <(ElEventPhase, Axis?)>[];
@@ -241,54 +242,60 @@ void main() {
         onVerticalDragEnd: (_) {},
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (event) => childEvents.add((event.phase, event.dragAxis)),
         onDragEnd: (event) => childEvents.add((event.phase, event.dragAxis)),
       );
 
-      host.dispatch(_down(pointer: 8));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 8));
+      await host.dispatch(
         _move(
           pointer: 8,
           position: const Offset(0, 5),
           delta: const Offset(0, 5),
         ),
       );
-      host.dispatch(_up(pointer: 8, position: const Offset(0, 5)));
+      await host.dispatch(_up(pointer: 8, position: const Offset(0, 5)));
 
       expect(childEvents, <(ElEventPhase, Axis?)>[
-        (ElEventPhase.dragStart, Axis.vertical),
-        (ElEventPhase.dragEnd, Axis.vertical),
+        (ElEventPhase.dragStart, null),
+        (ElEventPhase.dragEnd, null),
       ]);
     });
 
     for (final ancestorHasStart in <bool>[true, false]) {
       testWidgets(
-        '后发 child.stop 截断${ancestorHasStart ? '已公开' : '仅有 Cancel handler 的'} ancestor 并保留真实偏移',
+        '祖先 Drag 已接受后，后发的不同轴 child.stop 不得重新接管：start=$ancestorHasStart',
         (_) async {
           final host = DispatcherTestHost.chain(depth: 2);
           addTearDown(host.dispose);
           var ancestorStarts = 0;
+          var childStarts = 0;
+          var ancestorEnds = 0;
           final cancelOffsets = <Offset>[];
           host.rootDispatcher.event = ElEvent(
             config: _dragConfig(3),
             onDragStart: ancestorHasStart ? (_) => ancestorStarts++ : null,
             onDragCancel: (event) => cancelOffsets.add(event.dragOffset),
+            onDragEnd: (_) => ancestorEnds++,
           );
           host.leafDispatcher.event = ElEvent(
-            config: _dragConfig(20),
-            onVerticalDragStart: (event) => event.stopPropagation(),
+            config: _dragConfig(0),
+            onVerticalDragStart: (event) {
+              childStarts++;
+              event.stopPropagation();
+            },
           );
 
-          host.dispatch(_down(pointer: 9));
-          host.dispatch(
+          await host.dispatch(_down(pointer: 9));
+          await host.dispatch(
             _move(
               pointer: 9,
               position: const Offset(10, 0),
               delta: const Offset(10, 0),
             ),
           );
-          host.dispatch(
+          await host.dispatch(
             _move(
               pointer: 9,
               position: const Offset(18, 0),
@@ -296,7 +303,7 @@ void main() {
               millis: 32,
             ),
           );
-          host.dispatch(
+          await host.dispatch(
             _move(
               pointer: 9,
               position: const Offset(18, 25),
@@ -306,152 +313,151 @@ void main() {
           );
 
           expect(ancestorStarts, ancestorHasStart ? 1 : 0);
-          expect(cancelOffsets, <Offset>[const Offset(8, 0)]);
-          host.dispatch(
+          expect(cancelOffsets, isEmpty);
+          expect(childStarts, 0);
+          await host.dispatch(
             _up(pointer: 9, position: const Offset(18, 25), millis: 64),
           );
-          expect(cancelOffsets, <Offset>[
-            const Offset(8, 0),
-          ], reason: '截断时已结清，Up 不得重复产生第二个终态。');
+          expect(cancelOffsets, isEmpty);
+          expect(ancestorEnds, 1);
         },
       );
     }
 
     for (final firstTerminal in <String>['Up', 'Cancel', 'PointerRemoved']) {
-      testWidgets(
-        'sibling 多指 Drag：pointer1 $firstTerminal 只结清 A，ancestor 等待 pointer2',
-        (_) async {
-          final host = _SiblingDispatcherTestHost();
-          addTearDown(host.dispose);
-          final childAPhases = <ElEventPhase>[];
-          final ancestorPhases = <ElEventPhase>[];
-          var ancestorUpdates = 0;
-          host.rootDispatcher
-            ..multitouchDragStrategy = MultitouchDragStrategy.latestPointer
-            ..event = ElEvent(
-              config: _dragConfig(0),
-              onDragStart: (event) => ancestorPhases.add(event.phase),
-              onDragUpdate: (_) => ancestorUpdates++,
-              onDragEnd: (event) => ancestorPhases.add(event.phase),
-              onDragCancel: (event) => ancestorPhases.add(event.phase),
-            );
-          host.childADispatcher.event = ElEvent(
-            config: _dragConfig(20),
-            onDragStart: (event) => childAPhases.add(event.phase),
-            onDragEnd: (event) => childAPhases.add(event.phase),
-            onDragCancel: (event) => childAPhases.add(event.phase),
-          );
-          host.childBDispatcher.event = ElEvent(onPointerDown: (_) {});
+      testWidgets('兄弟独立路线分别向共同祖先配对 Start 与终态：$firstTerminal', (_) async {
+        final host = _SiblingDispatcherTestHost();
+        addTearDown(host.dispose);
+        final childAPhases = <ElEventPhase>[];
+        final ancestorPhases = <ElEventPhase>[];
+        var ancestorUpdates = 0;
+        host.rootDispatcher.event = ElEvent(
+          config: _dragConfig(0),
+          onDragStart: (event) => ancestorPhases.add(event.phase),
+          onDragUpdate: (_) => ancestorUpdates++,
+          onDragEnd: (event) => ancestorPhases.add(event.phase),
+          onDragCancel: (event) => ancestorPhases.add(event.phase),
+        );
+        host.childADispatcher.event = ElEvent(
+          config: _dragConfig(0),
+          onDragStart: (event) => childAPhases.add(event.phase),
+          onDragEnd: (event) => childAPhases.add(event.phase),
+          onDragCancel: (event) => childAPhases.add(event.phase),
+        );
+        host.childBDispatcher.event = ElEvent(onPointerDown: (_) {});
 
-          host.dispatchA(
-            _down(pointer: 21, device: 421, position: const Offset(50, 50)),
-          );
-          host.dispatchA(
-            _move(
+        await host.dispatchA(
+          _down(pointer: 21, device: 421, position: const Offset(50, 50)),
+        );
+        await host.dispatchA(
+          _move(
+            pointer: 21,
+            device: 421,
+            position: const Offset(55, 50),
+            delta: const Offset(5, 0),
+          ),
+        );
+        expect(childAPhases, <ElEventPhase>[ElEventPhase.dragStart]);
+        expect(ancestorPhases, <ElEventPhase>[ElEventPhase.dragStart]);
+
+        await host.dispatchB(
+          _down(
+            pointer: 22,
+            device: 422,
+            position: const Offset(150, 50),
+            millis: 20,
+          ),
+        );
+        await host.dispatchB(
+          _move(
+            pointer: 22,
+            device: 422,
+            position: const Offset(160, 50),
+            delta: const Offset(10, 0),
+            millis: 32,
+          ),
+        );
+        expect(ancestorPhases, [
+          ElEventPhase.dragStart,
+          ElEventPhase.dragStart,
+        ]);
+
+        if (firstTerminal == 'Up') {
+          await host.dispatchA(
+            _up(
               pointer: 21,
               device: 421,
               position: const Offset(55, 50),
-              delta: const Offset(5, 0),
+              millis: 48,
             ),
           );
-          expect(childAPhases, <ElEventPhase>[ElEventPhase.dragStart]);
-          expect(ancestorPhases, <ElEventPhase>[ElEventPhase.dragStart]);
+        } else if (firstTerminal == 'Cancel') {
+          await host.dispatchA(
+            _cancel(
+              pointer: 21,
+              device: 421,
+              position: const Offset(55, 50),
+              millis: 48,
+            ),
+          );
+        } else {
+          host.remove(
+            const PointerRemovedEvent(
+              pointer: 21,
+              device: 421,
+              kind: PointerDeviceKind.touch,
+              position: Offset(55, 50),
+              timeStamp: Duration(milliseconds: 48),
+            ),
+          );
+        }
 
-          host.dispatchB(
-            _down(
-              pointer: 22,
-              device: 422,
-              position: const Offset(150, 50),
-              millis: 20,
-            ),
-          );
-          host.dispatchB(
-            _move(
-              pointer: 22,
-              device: 422,
-              position: const Offset(160, 50),
-              delta: const Offset(10, 0),
-              millis: 32,
-            ),
-          );
-          expect(
-            ancestorUpdates,
-            1,
-            reason: 'latestPointer 下 sibling B 的 pointer2 必须接管共同 ancestor 的更新。',
-          );
+        final expectedATerminal = firstTerminal == 'Up'
+            ? ElEventPhase.dragEnd
+            : ElEventPhase.dragCancel;
+        expect(childAPhases, <ElEventPhase>[
+          ElEventPhase.dragStart,
+          expectedATerminal,
+        ]);
+        expect(ancestorPhases, <ElEventPhase>[
+          ElEventPhase.dragStart,
+          ElEventPhase.dragStart,
+          expectedATerminal,
+        ], reason: '共同祖先分别结清 A 的路线，B 的路线仍可继续。');
 
-          if (firstTerminal == 'Up') {
-            host.dispatchA(
-              _up(
-                pointer: 21,
-                device: 421,
-                position: const Offset(55, 50),
-                millis: 48,
-              ),
-            );
-          } else if (firstTerminal == 'Cancel') {
-            host.dispatchA(
-              _cancel(
-                pointer: 21,
-                device: 421,
-                position: const Offset(55, 50),
-                millis: 48,
-              ),
-            );
-          } else {
-            host.remove(
-              const PointerRemovedEvent(
-                pointer: 21,
-                device: 421,
-                kind: PointerDeviceKind.touch,
-                position: Offset(55, 50),
-                timeStamp: Duration(milliseconds: 48),
-              ),
-            );
-          }
-
-          final expectedATerminal = firstTerminal == 'Up'
-              ? ElEventPhase.dragEnd
-              : ElEventPhase.dragCancel;
-          expect(childAPhases, <ElEventPhase>[
-            ElEventPhase.dragStart,
-            expectedATerminal,
-          ]);
-          expect(ancestorPhases, <ElEventPhase>[
-            ElEventPhase.dragStart,
-          ], reason: '共同 ancestor 仍由 pointer2 驱动，不能随 A 提前结清。');
-
-          host.dispatchB(
-            _move(
-              pointer: 22,
-              device: 422,
-              position: const Offset(170, 50),
-              delta: const Offset(10, 0),
-              millis: 64,
-            ),
-          );
-          host.dispatchB(
-            _up(
-              pointer: 22,
-              device: 422,
-              position: const Offset(170, 50),
-              millis: 80,
-            ),
-          );
-          expect(childAPhases, <ElEventPhase>[
-            ElEventPhase.dragStart,
-            expectedATerminal,
-          ]);
-          expect(ancestorPhases, <ElEventPhase>[
-            ElEventPhase.dragStart,
-            ElEventPhase.dragEnd,
-          ]);
-        },
-      );
+        await host.dispatchB(
+          _move(
+            pointer: 22,
+            device: 422,
+            position: const Offset(170, 50),
+            delta: const Offset(10, 0),
+            millis: 64,
+          ),
+        );
+        await host.dispatchB(
+          _up(
+            pointer: 22,
+            device: 422,
+            position: const Offset(170, 50),
+            millis: 80,
+          ),
+        );
+        expect(childAPhases, <ElEventPhase>[
+          ElEventPhase.dragStart,
+          expectedATerminal,
+        ]);
+        expect(ancestorPhases, <ElEventPhase>[
+          ElEventPhase.dragStart,
+          ElEventPhase.dragStart,
+          expectedATerminal,
+          ElEventPhase.dragEnd,
+        ]);
+        expect(ancestorUpdates, 1);
+      });
     }
   });
 
-  group('DragStart proposal 失权', () {
+  group('DragStart 路线 失权', () {
     testWidgets('ancestor eagerGesture 返回前同步取消 child proposal', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
@@ -466,7 +472,7 @@ void main() {
         },
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (event) => childPhases.add(event.phase),
         onDragCancel: (event) {
           childPhases.add(event.phase);
@@ -474,8 +480,8 @@ void main() {
         },
       );
 
-      host.dispatch(_down(pointer: 10));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 10));
+      await host.dispatch(
         _move(
           pointer: 10,
           position: const Offset(5, 0),
@@ -504,15 +510,15 @@ void main() {
         onDragCancel: (_) {},
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (_) => trace.add('dragStart'),
         onDragCancel: (_) => trace.add('dragCancel'),
         onScaleStart: (_) => trace.add('scaleStart'),
         onScaleUpdate: (_) {},
       );
 
-      host.dispatch(_down(pointer: 11, position: const Offset(70, 100)));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 11, position: const Offset(70, 100)));
+      await host.dispatch(
         _move(
           pointer: 11,
           position: const Offset(75, 100),
@@ -521,10 +527,10 @@ void main() {
       );
       expect(trace, <String>['dragStart']);
 
-      host.dispatch(
+      await host.dispatch(
         _down(pointer: 12, position: const Offset(130, 100), millis: 20),
       );
-      host.dispatch(
+      await host.dispatch(
         _move(
           pointer: 12,
           position: const Offset(170, 100),
@@ -552,7 +558,7 @@ void main() {
         onDragCancel: (_) => cancels[0]++,
       );
       host.dispatchers[1].event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (_) => starts[1]++,
         onDragEnd: (_) => ends[1]++,
         onDragCancel: (_) {
@@ -561,7 +567,7 @@ void main() {
         },
       );
       scaleHost.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (_) => starts[2]++,
         onDragEnd: (_) => ends[2]++,
         onDragCancel: (_) => cancels[2]++,
@@ -569,8 +575,8 @@ void main() {
         onScaleUpdate: (_) {},
       );
 
-      host.dispatch(_down(pointer: 13, position: const Offset(70, 100)));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 13, position: const Offset(70, 100)));
+      await host.dispatch(
         _move(
           pointer: 13,
           position: const Offset(75, 100),
@@ -579,10 +585,10 @@ void main() {
       );
       expect(starts, <int>[1, 1, 1]);
 
-      host.dispatch(
+      await host.dispatch(
         _down(pointer: 14, position: const Offset(130, 100), millis: 20),
       );
-      host.dispatch(
+      await host.dispatch(
         _move(
           pointer: 14,
           position: const Offset(170, 100),
@@ -599,10 +605,10 @@ void main() {
       expect(ends, <int>[0, 0, 0]);
       expect(scaleStarts, 0);
 
-      host.dispatch(
+      await host.dispatch(
         _up(pointer: 14, position: const Offset(170, 100), millis: 48),
       );
-      host.dispatch(
+      await host.dispatch(
         _up(pointer: 13, position: const Offset(75, 100), millis: 64),
       );
       expect(cancels, <int>[1, 1, 1]);
@@ -615,7 +621,7 @@ void main() {
     });
   });
 
-  group('DragStart proposal 配置替换', () {
+  group('DragStart 路线 配置替换', () {
     testWidgets('free proposal 外部替换为 vertical shape 时同步取消旧 handler', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
@@ -627,14 +633,14 @@ void main() {
         onDragEnd: (_) {},
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
         onDragCancel: (event) => oldPhases.add(event.phase),
       );
 
-      host.dispatch(_down(pointer: 31));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 31));
+      await host.dispatch(
         _move(
           pointer: 31,
           position: const Offset(5, 0),
@@ -644,7 +650,7 @@ void main() {
       expect(oldPhases, <ElEventPhase>[ElEventPhase.dragStart]);
 
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onVerticalDragStart: (event) => newPhases.add(event.phase),
         onVerticalDragEnd: (event) => newPhases.add(event.phase),
         onVerticalDragCancel: (event) => newPhases.add(event.phase),
@@ -655,7 +661,7 @@ void main() {
       ]);
       expect(newPhases, isEmpty);
 
-      host.dispatch(_up(pointer: 31, position: const Offset(5, 0)));
+      await host.dispatch(_up(pointer: 31, position: const Offset(5, 0)));
       expect(oldPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -667,46 +673,49 @@ void main() {
       );
     });
 
-    testWidgets(
-      'free proposal 外部替换为 generic End+Cancel 完整 terminal shape 时保持到 Up',
-      (_) async {
-        final host = DispatcherTestHost.chain(depth: 2);
-        addTearDown(host.dispose);
-        final oldPhases = <ElEventPhase>[];
-        final newPhases = <ElEventPhase>[];
-        host.rootDispatcher.event = ElEvent(
-          config: _dragConfig(0),
-          onDragStart: (_) {},
-          onDragEnd: (_) {},
-        );
-        host.leafDispatcher.event = ElEvent(
-          config: _dragConfig(20),
-          onDragStart: (event) => oldPhases.add(event.phase),
-          onDragEnd: (event) => oldPhases.add(event.phase),
-          onDragCancel: (event) => oldPhases.add(event.phase),
-        );
+    testWidgets('移除 Start 属于声明结构变化，即使保留 End+Cancel 也结清旧路线', (_) async {
+      final host = DispatcherTestHost.chain(depth: 2);
+      addTearDown(host.dispose);
+      final oldPhases = <ElEventPhase>[];
+      final newPhases = <ElEventPhase>[];
+      host.rootDispatcher.event = ElEvent(
+        config: _dragConfig(0),
+        onDragStart: (_) {},
+        onDragEnd: (_) {},
+      );
+      host.leafDispatcher.event = ElEvent(
+        config: _dragConfig(0),
+        onDragStart: (event) => oldPhases.add(event.phase),
+        onDragEnd: (event) => oldPhases.add(event.phase),
+        onDragCancel: (event) => oldPhases.add(event.phase),
+      );
 
-        host.dispatch(_down(pointer: 32));
-        host.dispatch(
-          _move(
-            pointer: 32,
-            position: const Offset(5, 0),
-            delta: const Offset(5, 0),
-          ),
-        );
-        host.leafDispatcher.event = ElEvent(
-          config: _dragConfig(20),
-          onDragEnd: (event) => newPhases.add(event.phase),
-          onDragCancel: (event) => newPhases.add(event.phase),
-        );
-        expect(oldPhases, <ElEventPhase>[ElEventPhase.dragStart]);
-        expect(newPhases, isEmpty);
+      await host.dispatch(_down(pointer: 32));
+      await host.dispatch(
+        _move(
+          pointer: 32,
+          position: const Offset(5, 0),
+          delta: const Offset(5, 0),
+        ),
+      );
+      host.leafDispatcher.event = ElEvent(
+        config: _dragConfig(0),
+        onDragEnd: (event) => newPhases.add(event.phase),
+        onDragCancel: (event) => newPhases.add(event.phase),
+      );
+      expect(oldPhases, <ElEventPhase>[
+        ElEventPhase.dragStart,
+        ElEventPhase.dragCancel,
+      ]);
+      expect(newPhases, isEmpty);
 
-        host.dispatch(_up(pointer: 32, position: const Offset(5, 0)));
-        expect(oldPhases, <ElEventPhase>[ElEventPhase.dragStart]);
-        expect(newPhases, <ElEventPhase>[ElEventPhase.dragEnd]);
-      },
-    );
+      await host.dispatch(_up(pointer: 32, position: const Offset(5, 0)));
+      expect(oldPhases, <ElEventPhase>[
+        ElEventPhase.dragStart,
+        ElEventPhase.dragCancel,
+      ]);
+      expect(newPhases, isEmpty);
+    });
 
     testWidgets('free proposal 替换为 generic End-only 时当场取消旧 handler', (_) async {
       final host = DispatcherTestHost.chain(depth: 2);
@@ -720,14 +729,14 @@ void main() {
         onDragCancel: (_) {},
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
         onDragCancel: (event) => oldPhases.add(event.phase),
       );
 
-      host.dispatch(_down(pointer: 33));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 33));
+      await host.dispatch(
         _move(
           pointer: 33,
           position: const Offset(5, 0),
@@ -735,7 +744,7 @@ void main() {
         ),
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragEnd: (event) => newPhases.add(event.phase),
       );
       expect(oldPhases, <ElEventPhase>[
@@ -744,7 +753,7 @@ void main() {
       ]);
       expect(newPhases, isEmpty);
 
-      host.dispatch(_cancel(pointer: 33, position: const Offset(5, 0)));
+      await host.dispatch(_cancel(pointer: 33, position: const Offset(5, 0)));
       expect(oldPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -769,14 +778,14 @@ void main() {
         onDragEnd: (_) {},
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
         onDragCancel: (event) => oldPhases.add(event.phase),
       );
 
-      host.dispatch(_down(pointer: 34));
-      host.dispatch(
+      await host.dispatch(_down(pointer: 34));
+      await host.dispatch(
         _move(
           pointer: 34,
           position: const Offset(5, 0),
@@ -784,7 +793,7 @@ void main() {
         ),
       );
       host.leafDispatcher.event = ElEvent(
-        config: _dragConfig(20),
+        config: _dragConfig(0),
         onDragUpdate: (event) => newPhases.add(event.phase),
       );
       expect(oldPhases, <ElEventPhase>[
@@ -793,7 +802,7 @@ void main() {
       ]);
       expect(newPhases, isEmpty);
 
-      host.dispatch(_up(pointer: 34, position: const Offset(5, 0)));
+      await host.dispatch(_up(pointer: 34, position: const Offset(5, 0)));
       expect(oldPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -807,7 +816,7 @@ void main() {
   });
 }
 
-void _installProposalPair(
+void _installBubblingPair(
   DispatcherTestHost host, {
   required List<ElEventPhase> childPhases,
   List<ElEventPhase>? ancestorPhases,
@@ -819,7 +828,7 @@ void _installProposalPair(
     onDragCancel: (event) => ancestorPhases?.add(event.phase),
   );
   host.leafDispatcher.event = ElEvent(
-    config: _dragConfig(20),
+    config: _dragConfig(0),
     onDragStart: (event) => childPhases.add(event.phase),
     onDragEnd: (event) => childPhases.add(event.phase),
     onDragCancel: (event) => childPhases.add(event.phase),
@@ -923,14 +932,26 @@ final class _SiblingDispatcherTestHost {
   late final ElEventDispatcher childADispatcher;
   late final ElEventDispatcher childBDispatcher;
 
-  void dispatchA(PointerEvent event) =>
+  Future<void> dispatchA(PointerEvent event) async =>
       _dispatch(childADispatcher, childA, event);
 
-  void dispatchB(PointerEvent event) =>
+  Future<void> dispatchB(PointerEvent event) async =>
       _dispatch(childBDispatcher, childB, event);
 
-  void remove(PointerRemovedEvent event) =>
-      GestureBinding.instance.pointerRouter.route(event);
+  void remove(PointerRemovedEvent event) {
+    _dispatch(
+      childADispatcher,
+      childA,
+      PointerCancelEvent(
+        pointer: event.pointer,
+        device: event.device,
+        kind: event.kind,
+        position: event.position,
+        timeStamp: event.timeStamp,
+      ),
+    );
+    GestureBinding.instance.pointerRouter.route(event);
+  }
 
   void _dispatch(ElEventDispatcher leaf, RenderBox box, PointerEvent event) {
     leaf.handleEvent(

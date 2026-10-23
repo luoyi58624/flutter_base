@@ -43,45 +43,41 @@ final class DispatcherTestHost {
   ElEventDispatcher get leafDispatcher => dispatchers.last;
 
   /// 按真实命中顺序把事件投递到叶到根，并推进 Flutter 的全局指针路由与竞技场。
-  void dispatch(PointerEvent event) {
+  Future<void> dispatch(PointerEvent event) async {
     for (var index = nodes.length - 1; index >= 0; index--) {
       dispatchers[index].handleEvent(
         event,
         BoxHitTestEntry(nodes[index], event.position),
       );
     }
-    GestureBinding.instance.pointerRouter.route(event);
-    if (event is PointerDownEvent) {
-      GestureBinding.instance.gestureArena.close(event.pointer);
-    } else if (event is PointerUpEvent || event is PointerPanZoomEndEvent) {
-      GestureBinding.instance.gestureArena.sweep(event.pointer);
-    }
+    routeTestPointer(event);
   }
 
-  /// 仅向指定链索引直接投递事件，不触发 PointerRouter 或 gesture arena。
+  /// 按指定命中顺序投递，最后到根时推进路由；await 等待官方竞技场微任务结算。
   void direct(int chainIndex, PointerEvent event) {
     RangeError.checkValidIndex(chainIndex, dispatchers, 'chainIndex');
     dispatchers[chainIndex].handleEvent(
       event,
       BoxHitTestEntry(nodes[chainIndex], event.position),
     );
+    if (chainIndex == 0) routeTestPointer(event);
   }
 
-  /// 仅向根 dispatcher 直接投递事件，不推进 Flutter 的全局指针设施。
-  void directRoot(PointerEvent event) => direct(0, event);
+  /// 投递根节点并结算整条命中路径的官方路由。
+  Future<void> directRoot(PointerEvent event) async => direct(0, event);
 
-  /// 仅向最深命中 dispatcher 直接投递事件，不推进 Flutter 的全局指针设施。
+  /// 先投递最深节点，仍需投递根节点以结算完整路径。
   void directLeaf(PointerEvent event) => direct(dispatchers.length - 1, event);
 
   /// 投递一次完整主键点击，并允许测试显式控制连击窗口时间戳。
-  void tap({
+  Future<void> tap({
     required int pointer,
     required Duration downTime,
     required Duration upTime,
     Offset position = Offset.zero,
     PointerDeviceKind kind = PointerDeviceKind.touch,
-  }) {
-    dispatch(
+  }) async {
+    await dispatch(
       PointerDownEvent(
         pointer: pointer,
         position: position,
@@ -89,7 +85,7 @@ final class DispatcherTestHost {
         timeStamp: downTime,
       ),
     );
-    dispatch(
+    await dispatch(
       PointerUpEvent(
         pointer: pointer,
         position: position,
@@ -105,6 +101,24 @@ final class DispatcherTestHost {
       dispatcher.dispose();
     }
     _pipelineOwner.rootNode = null;
+  }
+}
+
+/// 推进真实的官方指针路由与竞技场，不能以直接调用宿主代替手势识别。
+void routeTestPointer(PointerEvent event) {
+  GestureBinding.instance.pointerRouter.route(event);
+  if (event is PointerDownEvent || event is PointerPanZoomStartEvent) {
+    GestureBinding.instance.gestureArena.close(event.pointer);
+  } else if (event is PointerUpEvent || event is PointerPanZoomEndEvent) {
+    GestureBinding.instance.gestureArena.sweep(event.pointer);
+  }
+}
+
+/// 单节点宿主的真实输入入口，多节点命中应先投递整条链再统一路由。
+extension DispatcherInputTestExt on ElEventDispatcher {
+  Future<void> dispatchInput(PointerEvent event, BoxHitTestEntry entry) async {
+    handleEvent(event, entry);
+    routeTestPointer(event);
   }
 }
 

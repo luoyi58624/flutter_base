@@ -1,4 +1,4 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

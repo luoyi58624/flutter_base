@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _shell(Widget child) => Directionality(
@@ -31,8 +31,6 @@ void main() {
           expect(ElEventView.maybeOf(context), isNull);
           expect(context.hasTap, isFalse);
           expect(context.hasHover, isFalse);
-          expect(context.hasLongPress, isFalse);
-          expect(context.hasDrag, isFalse);
         }),
       ),
     );
@@ -301,6 +299,30 @@ void main() {
     }
   });
 
+  testWidgets('移出再移回不会重置从物理按下起算的最短反馈时间', (tester) async {
+    var pressed = false;
+    await tester.pumpWidget(
+      _shell(
+        ElEventView(
+          event: const ElEvent(),
+          child: _probe((context) => pressed = context.hasTap),
+        ),
+      ),
+    );
+    final touch = await tester.startGesture(const Offset(20, 20));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(pressed, isTrue);
+    await touch.moveTo(const Offset(150, 20));
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(pressed, isFalse);
+    await touch.moveTo(const Offset(20, 20));
+    await touch.up();
+    await tester.pump();
+    expect(pressed, isTrue);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(pressed, isFalse);
+  });
+
   testWidgets('连续触摸不会被上一次抬手遗留的退出计时器清除', (tester) async {
     ElEventState? state;
     TestGesture? touch;
@@ -441,7 +463,7 @@ void main() {
     }
   });
 
-  testWidgets('长按仅在识别成功时置位，接管按压并在抬手清除', (tester) async {
+  testWidgets('长按识别成功后通过取消阶段清理按压反馈', (tester) async {
     ElEventState? state;
     var longPresses = 0;
     TestGesture? touch;
@@ -463,23 +485,20 @@ void main() {
       touch = await tester.startGesture(const Offset(20, 20));
       down = true;
       await tester.pump(const Duration(milliseconds: 49));
-      expect(state!.hasLongPress, isFalse);
       expect(state!.hasTap, isTrue);
       await tester.pump(const Duration(milliseconds: 1));
       expect(longPresses, 1);
-      expect(state!.hasLongPress, isTrue);
       expect(state!.hasTap, isFalse);
       await touch.up();
       down = false;
       await tester.pump();
-      expect(state!.hasLongPress, isFalse);
     } finally {
       if (down) await touch?.cancel();
       await tester.pumpWidget(_shell(const SizedBox.shrink()));
     }
   });
 
-  testWidgets('拖拽接管立即清除触摸保留，拖拽状态随生命周期变化', (tester) async {
+  testWidgets('拖拽主动接管后立即清除按压反馈且不会补播', (tester) async {
     ElEventState? state;
     TestGesture? touch;
     var down = false;
@@ -504,15 +523,12 @@ void main() {
       down = true;
       await tester.pump();
       expect(state!.hasTap, isTrue);
-      expect(state!.hasDrag, isFalse);
       await touch.moveBy(const Offset(20, 0));
       await tester.pump();
       expect(state!.hasTap, isFalse);
-      expect(state!.hasDrag, isTrue);
       await touch.up();
       down = false;
       await tester.pump();
-      expect(state!.hasDrag, isFalse);
       await tester.pump(const Duration(milliseconds: 250));
       expect(state!.hasTap, isFalse);
     } finally {
@@ -521,7 +537,7 @@ void main() {
     }
   });
 
-  testWidgets('被动拖拽状态与按压并存，读取状态不改变盒内抬手的点击语义', (tester) async {
+  testWidgets('被动拖拽保留按压反馈，读取状态不改变盒内点击语义', (tester) async {
     ElEventState? state;
     var taps = 0;
     TestGesture? touch;
@@ -547,13 +563,11 @@ void main() {
       down = true;
       await touch.moveBy(const Offset(20, 0));
       await tester.pump();
-      expect(state!.hasDrag, isTrue);
       expect(state!.hasTap, isTrue);
       await touch.up();
       down = false;
       await tester.pump();
       expect(taps, 1);
-      expect(state!.hasDrag, isFalse);
       expect(state!.hasTap, isFalse);
     } finally {
       if (down) await touch?.cancel();

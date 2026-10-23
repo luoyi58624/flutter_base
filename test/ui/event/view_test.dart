@@ -1,6 +1,7 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart' show RenderProxyBoxWithHitTestBehavior;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _shell(Widget child) => Directionality(
@@ -172,7 +173,7 @@ void main() {
     final box = tester.renderObject<RenderBox>(finder);
     expect(tester.getSize(finder), Size(100, 100));
     expect(ElEventDispatcher.of(box)!.event, same(event));
-    expect(find.byType(ElView), findsNothing);
+    expect(box, isA<RenderProxyBoxWithHitTestBehavior>());
     expect(
       find.descendant(of: finder, matching: find.byType(Focus)),
       findsNothing,
@@ -542,4 +543,265 @@ void main() {
     await gesture.up();
     expect(phases, hasLength(2));
   });
+  for (final listenTap in [false, true]) {
+    for (final readFeedback in [false, true]) {
+      testWidgets(
+        'onTap 决定官方点击竞争，读取样式不改变结果：tap=$listenTap read=$readFeedback',
+        (tester) async {
+          var officialTaps = 0;
+          var elTaps = 0;
+          var downs = 0;
+          var ups = 0;
+          var pressed = false;
+          await tester.pumpWidget(
+            _shell(
+              GestureDetector(
+                onTap: () => officialTaps++,
+                child: ElEventView(
+                  event: ElEvent(
+                    config: const ElEventConfig(delayTouchUp: Duration.zero),
+                    onTap: listenTap ? (_) => elTaps++ : null,
+                    onTapDown: (_) => downs++,
+                    onTapUp: (_) => ups++,
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      if (readFeedback) pressed = context.hasTap;
+                      return _box();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+          final pointer = await tester.startGesture(const Offset(20, 20));
+          await tester.pump();
+          if (readFeedback) expect(pressed, isTrue);
+          await pointer.up();
+          await tester.pump();
+          expect(
+            [elTaps, officialTaps, downs, ups],
+            [listenTap ? 1 : 0, listenTap ? 0 : 1, 1, 1],
+          );
+          if (readFeedback) expect(pressed, isFalse);
+        },
+      );
+    }
+  }
+
+  testWidgets('只监听 Down 也能截断 El 点击冒泡，并让官方 Tap 正常竞争', (tester) async {
+    final trace = <String>[];
+    await tester.pumpWidget(
+      _shell(
+        GestureDetector(
+          onTap: () => trace.add('official.tap'),
+          child: ElEventView(
+            event: ElEvent(
+              onPointerUp: (_) => trace.add('parent.rawUp'),
+              onTapDown: (_) => trace.add('parent.down'),
+              onTap: (_) => trace.add('parent.tap'),
+            ),
+            child: ElEventView(
+              event: ElEvent(
+                onTapDown: (event) {
+                  trace.add('child.down');
+                  event.stopPropagation();
+                },
+                onTapUp: (_) => trace.add('child.up'),
+              ),
+              child: _box(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(const Offset(20, 20));
+    expect(trace, ['child.down', 'parent.rawUp', 'child.up', 'official.tap']);
+  });
+
+  testWidgets('官方子 Tap 获胜，外层 El 不会因冒泡或读取样式抢回点击', (tester) async {
+    var official = 0;
+    var el = 0;
+    var pressed = false;
+    await tester.pumpWidget(
+      _shell(
+        ElEventView(
+          event: ElEvent(onTap: (_) => el++),
+          child: Builder(
+            builder: (context) {
+              pressed = context.hasTap;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => official++,
+                child: _box(),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pump();
+    expect([official, el, pressed], [1, 0, false]);
+  });
+
+  testWidgets('仅声明长按不拦截官方普通点击，达到长按时间后才接管', (tester) async {
+    var taps = 0;
+    var longs = 0;
+    await tester.pumpWidget(
+      _shell(
+        GestureDetector(
+          onTap: () => taps++,
+          child: ElEventView(
+            event: ElEvent(
+              config: const ElEventConfig(
+                longPressDelay: Duration(milliseconds: 30),
+              ),
+              onLongPress: (_) => longs++,
+            ),
+            child: _box(),
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(const Offset(20, 20));
+    expect([taps, longs], [1, 0]);
+    final pointer = await tester.startGesture(const Offset(20, 20));
+    await tester.pump(const Duration(milliseconds: 30));
+    await pointer.up();
+    expect([taps, longs], [1, 1]);
+  });
+
+  testWidgets('内层仅监听长按，不替外层 El 点击抢占中间官方 Tap', (tester) async {
+    final trace = <String>[];
+    await tester.pumpWidget(
+      _shell(
+        ElEventView(
+          event: ElEvent(onTap: (_) => trace.add('outer.tap')),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => trace.add('official.tap'),
+            child: ElEventView(
+              event: ElEvent(
+                config: const ElEventConfig(
+                  longPressDelay: Duration(milliseconds: 30),
+                ),
+                onLongPress: (_) => trace.add('inner.long'),
+              ),
+              child: _box(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(const Offset(20, 20));
+    expect(trace, ['official.tap']);
+    trace.clear();
+    final pointer = await tester.startGesture(const Offset(20, 20));
+    await tester.pump(const Duration(milliseconds: 30));
+    await pointer.up();
+    expect(trace, ['inner.long']);
+  });
+
+  testWidgets('官方 Drag 获胜后，原始 Move 中的独占请求不能抢回归属', (tester) async {
+    final trace = <String>[];
+    var moves = 0;
+    await tester.pumpWidget(
+      _shell(
+        GestureDetector(
+          onPanStart: (_) => trace.add('official.start'),
+          onPanEnd: (_) => trace.add('official.end'),
+          child: ElEventView(
+            event: ElEvent(
+              config: const ElEventConfig(
+                dragStartDistance: 100,
+                dragResampling: {},
+              ),
+              onPointerMove: (event) {
+                if (++moves > 1) event.eagerGesture();
+              },
+              onDragStart: (_) => trace.add('el.start'),
+              onDragEnd: (_) => trace.add('el.end'),
+            ),
+            child: _box(),
+          ),
+        ),
+      ),
+    );
+    final pointer = await tester.startGesture(const Offset(20, 20));
+    await pointer.moveBy(const Offset(60, 0));
+    expect(trace, ['official.start']);
+    await pointer.moveBy(const Offset(120, 0));
+    await pointer.up();
+    expect(moves, 2);
+    expect(trace, ['official.start', 'official.end']);
+  });
+
+  testWidgets('子元素越界只取消自身点击，父级保留点击与独立连击历史', (tester) async {
+    final trace = <String>[];
+    await tester.pumpWidget(
+      _shell(
+        ElEventView(
+          event: ElEvent(
+            onTap: (event) => trace.add('parent:${event.tapCount}'),
+            onDoubleTap: (_) {},
+          ),
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: ElEventView(
+                event: ElEvent(
+                  onTap: (event) => trace.add('child:${event.tapCount}'),
+                  onDoubleTap: (_) {},
+                ),
+                child: _box(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tapAt(const Offset(20, 20));
+    final pointer = await tester.startGesture(const Offset(20, 20));
+    await pointer.moveTo(const Offset(150, 20));
+    await pointer.up();
+    await tester.tapAt(const Offset(20, 20));
+    expect(trace, ['child:1', 'parent:1', 'parent:1', 'child:1', 'parent:1']);
+    await tester.pump(const Duration(milliseconds: 301));
+  });
+
+  for (final elFirst in [false, true]) {
+    testWidgets('El 和官方 Drag 双向互斥且落败后不复活：elFirst=$elFirst', (tester) async {
+      final trace = <String>[];
+      await tester.pumpWidget(
+        _shell(
+          GestureDetector(
+            onVerticalDragStart: (_) => trace.add('official.start'),
+            onVerticalDragEnd: (_) => trace.add('official.end'),
+            child: ElEventView(
+              event: ElEvent(
+                config: ElEventConfig(
+                  dragStartDistance: elFirst ? 3 : 100,
+                  dragResampling: const {},
+                ),
+                onVerticalDragStart: (_) => trace.add('el.start'),
+                onVerticalDragEnd: (_) => trace.add('el.end'),
+              ),
+              child: _box(),
+            ),
+          ),
+        ),
+      );
+      final pointer = await tester.startGesture(const Offset(20, 20));
+      await pointer.moveBy(const Offset(0, 30));
+      await pointer.moveBy(const Offset(0, 30));
+      await pointer.up();
+      expect(
+        trace,
+        elFirst ? ['el.start', 'el.end'] : ['official.start', 'official.end'],
+      );
+    });
+  }
 }

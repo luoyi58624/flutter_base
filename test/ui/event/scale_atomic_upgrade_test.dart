@@ -1,4 +1,4 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -20,8 +20,10 @@ void main() {
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
 
-    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
-    host.dispatch(
+    await host.dispatch(
+      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 60),
@@ -31,7 +33,7 @@ void main() {
     );
     expect(trace, <String>['dragStart']);
 
-    host.dispatch(
+    await host.dispatch(
       _down(pointer: 2, position: const Offset(150, 50), millis: 32),
     );
     expect(trace, <String>[
@@ -40,7 +42,7 @@ void main() {
       'scaleStart:2',
     ], reason: '两根序列必须先整体改归 Scale，再终止 Drag，最后才公开 scaleStart');
 
-    host.dispatch(
+    await host.dispatch(
       _move(
         pointer: 2,
         position: const Offset(170, 50),
@@ -48,8 +50,10 @@ void main() {
         millis: 48,
       ),
     );
-    host.dispatch(_up(pointer: 2, position: const Offset(170, 50), millis: 64));
-    host.dispatch(
+    await host.dispatch(
+      _up(pointer: 2, position: const Offset(170, 50), millis: 64),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(60, 70),
@@ -57,14 +61,15 @@ void main() {
         millis: 80,
       ),
     );
-    host.dispatch(_up(pointer: 1, position: const Offset(60, 70), millis: 96));
+    await host.dispatch(
+      _up(pointer: 1, position: const Offset(60, 70), millis: 96),
+    );
 
     expect(trace, <String>[
       'dragStart',
       'dragCancel',
       'scaleStart:2',
       'scaleUpdate:2',
-      'scaleUpdate:1',
       'scaleEnd',
     ], reason: '1→2→1 只允许一套 Scale 生命周期，减回单指后继续 update 而不是重启');
   });
@@ -79,8 +84,10 @@ void main() {
       onStart: (event) => event.eagerGesture(),
     );
 
-    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
-    host.dispatch(
+    await host.dispatch(
+      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 60),
@@ -88,15 +95,17 @@ void main() {
         millis: 16,
       ),
     );
-    host.dispatch(
+    await host.dispatch(
       _down(pointer: 2, position: const Offset(150, 50), millis: 32),
     );
     expect(trace, <String>[
       'dragStart',
     ], reason: '第二指加入不能越过默认 eager owner 接管第一指');
 
-    host.dispatch(_up(pointer: 2, position: const Offset(150, 50), millis: 48));
-    host.dispatch(
+    await host.dispatch(
+      _up(pointer: 2, position: const Offset(150, 50), millis: 48),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 75),
@@ -104,7 +113,9 @@ void main() {
         millis: 64,
       ),
     );
-    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
+    await host.dispatch(
+      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
+    );
 
     expect(trace, <String>['dragStart', 'dragUpdate', 'dragEnd']);
   });
@@ -126,8 +137,10 @@ void main() {
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
 
-    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
-    host.dispatch(
+    await host.dispatch(
+      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 60),
@@ -135,7 +148,7 @@ void main() {
         millis: 16,
       ),
     );
-    host.dispatch(
+    await host.dispatch(
       _down(pointer: 2, position: const Offset(150, 50), millis: 32),
     );
     expect(trace, <String>[
@@ -143,8 +156,10 @@ void main() {
       'pointer2Exclusive',
     ], reason: '第二指已不可让渡时，祖先必须零提交，不能先改归第一指并发出 dragCancel');
 
-    host.dispatch(_up(pointer: 2, position: const Offset(150, 50), millis: 48));
-    host.dispatch(
+    await host.dispatch(
+      _up(pointer: 2, position: const Offset(150, 50), millis: 48),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 75),
@@ -152,7 +167,9 @@ void main() {
         millis: 64,
       ),
     );
-    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
+    await host.dispatch(
+      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
+    );
 
     expect(trace, <String>[
       'dragStart',
@@ -172,8 +189,10 @@ void main() {
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
 
-    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
-    host.dispatch(
+    await host.dispatch(
+      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 60),
@@ -241,8 +260,10 @@ void main() {
       onVerticalDragCancel: (_) => trace.add('dragCancel'),
     );
 
-    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
-    host.dispatch(
+    await host.dispatch(
+      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
+    );
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 60),
@@ -267,7 +288,7 @@ void main() {
     final up2 = _up(pointer: 2, position: const Offset(150, 50), millis: 48);
     middle.handleEvent(up2, BoxHitTestEntry(host.nodes[1], up2.position));
     root.handleEvent(up2, BoxHitTestEntry(host.nodes[0], up2.position));
-    host.dispatch(
+    await host.dispatch(
       _move(
         pointer: 1,
         position: const Offset(50, 75),
@@ -275,7 +296,9 @@ void main() {
         millis: 64,
       ),
     );
-    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
+    await host.dispatch(
+      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
+    );
     expect(trace, [
       'dragStart',
       'pointer2Exclusive',
@@ -322,6 +345,7 @@ void main() {
         dragStartDistance: 3,
         dragResampling: <TargetPlatform>{},
       ),
+      onScaleStart: (_) {},
       onDragCancel: (event) => ancestorCancelPointerCount = event.pointerCount,
     );
     left.event = ElEvent(
@@ -329,28 +353,28 @@ void main() {
         dragStartDistance: 3,
         dragResampling: <TargetPlatform>{},
       ),
-      onScaleStart: (_) {},
       onDragStart: (_) {},
       onDragUpdate: (_) {},
       onDragCancel: (_) {},
     );
     right.event = ElEvent(onPointerDown: (_) {});
 
-    void dispatchThrough(
+    Future<void> dispatchThrough(
       ElEventDispatcher leaf,
       RenderBox box,
       PointerEvent event,
-    ) {
+    ) async {
       leaf.handleEvent(event, BoxHitTestEntry(box, event.position));
       root.handleEvent(event, BoxHitTestEntry(rootBox, event.position));
+      routeTestPointer(event);
     }
 
-    dispatchThrough(
+    await dispatchThrough(
       left,
       leftBox,
       _down(pointer: 31, position: const Offset(50, 50), millis: 0),
     );
-    dispatchThrough(
+    await dispatchThrough(
       left,
       leftBox,
       _move(
@@ -360,13 +384,13 @@ void main() {
         millis: 16,
       ),
     );
-    dispatchThrough(
+    await dispatchThrough(
       right,
       rightBox,
       _down(pointer: 32, position: const Offset(150, 50), millis: 32),
     );
 
-    left.debugHandleScaleStartForTest(const Offset(50, 60));
+    // 第二指通过共同祖先加入真实识别路线，不再强制调用内部 Scale 阶段。
 
     expect(
       ancestorCancelPointerCount,

@@ -6,5 +6,6 @@ import 'package:flutter/rendering.dart' show Axis, AxisDirection, Matrix4;
 
 part 'details.dart';
 part 'route.dart';
+part 'team.dart';
 part 'press.dart';
 part 'transform.dart';

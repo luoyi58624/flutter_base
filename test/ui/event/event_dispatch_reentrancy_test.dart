@@ -1,5 +1,7 @@
+import 'support/dispatcher_test_host.dart';
+
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,11 +27,11 @@ void main() {
       );
     addTearDown(dispatcher.dispose);
     try {
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -62,11 +64,11 @@ void main() {
       );
     addTearDown(dispatcher.dispose);
     try {
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -102,11 +104,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -115,7 +117,7 @@ void main() {
           ),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerUpEvent(pointer: 1, position: Offset(4, 0)),
           entry,
         );
@@ -148,11 +150,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerCancelEvent(pointer: 1, position: Offset(20, 20)),
           entry,
         );
@@ -188,11 +190,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
           entry,
         );
@@ -230,11 +232,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
           entry,
         );
@@ -277,11 +279,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -292,7 +294,7 @@ void main() {
         );
 
         expect(phases, <String>['old:dragStart']);
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           PointerUpEvent(pointer: 1, position: Offset(4, 0)),
           entry,
         );
@@ -328,7 +330,7 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerDownEvent(pointer: 1, position: Offset.zero),
@@ -364,11 +366,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -378,7 +380,10 @@ void main() {
           entry,
         );
 
-        dispatcher.debugHandleScaleStartForTest(const Offset(4, 0));
+        await dispatcher.dispatchInput(
+          const PointerDownEvent(pointer: 2, position: Offset(40, 0)),
+          entry,
+        );
 
         expect(phases, <String>['old:dragStart', 'old:dragCancel']);
       } finally {
@@ -408,7 +413,7 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerDownEvent(
             pointer: 1,
             position: Offset(10, 10),
@@ -417,7 +422,7 @@ void main() {
           ),
           entry,
         );
-        dispatcher.handleEvent(
+        await dispatcher.dispatchInput(
           const PointerUpEvent(
             pointer: 1,
             position: Offset(10, 10),
@@ -454,7 +459,7 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerDownEvent(
@@ -464,7 +469,7 @@ void main() {
             buttons: kSecondaryButton,
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -502,7 +507,7 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
       try {
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerDownEvent(
@@ -512,7 +517,7 @@ void main() {
             buttons: kTertiaryButton,
           ),
         );
-        _dispatch(
+        await _dispatch(
           dispatcher,
           entry,
           const PointerUpEvent(
@@ -529,35 +534,52 @@ void main() {
     },
   );
 
-  test('scale update replacing event does not fire rotationUpdate into replacement', () {
-    final box = _attachedBox();
+  testWidgets(
+    'scale update replacing event does not fire rotationUpdate into replacement',
+    (tester) async {
+      final box = _attachedBox();
 
-    late final ElEventDispatcher dispatcher;
-    final phases = <String>[];
-    dispatcher = ElEventDispatcher(box)
-      ..event = ElEvent(
-        onScaleStart: (event) => phases.add('old:${event.phase.name}'),
-        onScaleUpdate: (event) {
-          phases.add('old:${event.phase.name}');
-          dispatcher.event = ElEvent(
-            onRotationUpdate: (event) => phases.add('new:${event.phase.name}'),
-          );
-        },
-        onRotationUpdate: (event) => phases.add('old:${event.phase.name}'),
+      late final ElEventDispatcher dispatcher;
+      final phases = <String>[];
+      dispatcher = ElEventDispatcher(box)
+        ..event = ElEvent(
+          onScaleStart: (event) => phases.add('old:${event.phase.name}'),
+          onScaleUpdate: (event) {
+            phases.add('old:${event.phase.name}');
+            dispatcher.event = ElEvent(
+              onRotationUpdate: (event) =>
+                  phases.add('new:${event.phase.name}'),
+            );
+          },
+          onRotationUpdate: (event) => phases.add('old:${event.phase.name}'),
+        );
+      addTearDown(dispatcher.dispose);
+
+      final entry = BoxHitTestEntry(box, Offset.zero);
+      await dispatcher.dispatchInput(
+        const PointerPanZoomStartEvent(pointer: 1, position: Offset(4, 0)),
+        entry,
       );
-    addTearDown(dispatcher.dispose);
-
-    dispatcher.debugHandleScaleStartForTest(const Offset(4, 0));
-    dispatcher.debugFireScaleUpdateForTest(
-      ScaleUpdateDetails(
-        focalPoint: const Offset(4, 0),
-        scale: 1.1,
-        rotation: 0.2,
-      ),
-    );
-
-    expect(phases, <String>['old:scaleStart', 'old:scaleUpdate']);
-  });
+      await dispatcher.dispatchInput(
+        const PointerPanZoomUpdateEvent(
+          pointer: 1,
+          position: Offset(4, 0),
+          scale: 1.1,
+        ),
+        entry,
+      );
+      await dispatcher.dispatchInput(
+        const PointerPanZoomUpdateEvent(
+          pointer: 1,
+          position: Offset(4, 0),
+          scale: 1.2,
+          rotation: 0.2,
+        ),
+        entry,
+      );
+      expect(phases, <String>['old:scaleStart', 'old:scaleUpdate']);
+    },
+  );
 
   testWidgets('pointerMove no longer bubbles from child to parent', (
     tester,
@@ -612,9 +634,9 @@ void main() {
     }
   });
 
-  test(
+  testWidgets(
     'pointerPanZoomStart replacing event does not retarget the same start',
-    () {
+    (tester) async {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
@@ -634,11 +656,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
 
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(20, 20),
@@ -647,7 +669,7 @@ void main() {
         ),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -659,9 +681,9 @@ void main() {
     },
   );
 
-  test(
+  testWidgets(
     'pointerPanZoomUpdate replacing event does not retarget the same update',
-    () {
+    (tester) async {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
@@ -679,11 +701,11 @@ void main() {
         );
       addTearDown(dispatcher.dispose);
 
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(20, 20),
@@ -692,7 +714,7 @@ void main() {
         ),
         entry,
       );
-      dispatcher.handleEvent(
+      await dispatcher.dispatchInput(
         const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -701,49 +723,46 @@ void main() {
     },
   );
 
-  test('pointerPanZoomEnd replacing event does not retarget the same end', () {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
+  testWidgets(
+    'pointerPanZoomEnd replacing event does not retarget the same end',
+    (tester) async {
+      final box = _attachedBox();
+      final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final ElEventDispatcher dispatcher;
-    final phases = <String>[];
-    dispatcher = ElEventDispatcher(box)
-      ..event = ElEvent(
-        onPointerPanZoomEnd: (event) {
-          phases.add('old:${event.phase.name}');
-          dispatcher.event = ElEvent(
-            onPointerPanZoomEnd: (event) =>
-                phases.add('new:${event.phase.name}'),
-          );
-        },
+      late final ElEventDispatcher dispatcher;
+      final phases = <String>[];
+      dispatcher = ElEventDispatcher(box)
+        ..event = ElEvent(
+          onPointerPanZoomEnd: (event) {
+            phases.add('old:${event.phase.name}');
+            dispatcher.event = ElEvent(
+              onPointerPanZoomEnd: (event) =>
+                  phases.add('new:${event.phase.name}'),
+            );
+          },
+        );
+      addTearDown(dispatcher.dispose);
+
+      await dispatcher.dispatchInput(
+        const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
       );
-    addTearDown(dispatcher.dispose);
+      await dispatcher.dispatchInput(
+        const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
+        entry,
+      );
 
-    dispatcher.handleEvent(
-      const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-    dispatcher.handleEvent(
-      const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
-      entry,
-    );
-
-    expect(phases, <String>['old:pointerPanZoomEnd']);
-  });
+      expect(phases, <String>['old:pointerPanZoomEnd']);
+    },
+  );
 }
 
-void _dispatch(
+Future<void> _dispatch(
   ElEventDispatcher dispatcher,
   BoxHitTestEntry entry,
   PointerEvent event,
-) {
-  dispatcher.handleEvent(event, entry);
-  GestureBinding.instance.pointerRouter.route(event);
-  if (event is PointerDownEvent) {
-    GestureBinding.instance.gestureArena.close(event.pointer);
-  } else if (event is PointerUpEvent || event is PointerPanZoomEndEvent) {
-    GestureBinding.instance.gestureArena.sweep(event.pointer);
-  }
+) async {
+  await dispatcher.dispatchInput(event, entry);
 }
 
 _EventTestBox _attachedBox() {

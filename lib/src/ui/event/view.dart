@@ -39,17 +39,9 @@ extension ElEventContextExt on BuildContext {
   /// 是否有鼠标悬停，仅在悬停状态变化时重建当前消费者。
   bool get hasHover =>
       _EventScope.read(this, _EventAspect.hover)?.hasHover ?? false;
-
-  /// 已配置的长按手势是否成立且尚未释放。
-  bool get hasLongPress =>
-      _EventScope.read(this, _EventAspect.longPress)?.hasLongPress ?? false;
-
-  /// 已配置的拖拽手势是否开始且尚未结束或取消。
-  bool get hasDrag =>
-      _EventScope.read(this, _EventAspect.drag)?.hasDrag ?? false;
 }
 
-enum _EventAspect { tap, hover, longPress, drag }
+enum _EventAspect { tap, hover }
 
 class _EventScope extends InheritedModel<_EventAspect> {
   const _EventScope({required this.data, required super.child});
@@ -70,9 +62,6 @@ class _EventScope extends InheritedModel<_EventAspect> {
     (aspect) => switch (aspect) {
       _EventAspect.tap => data.hasTap != oldWidget.data.hasTap,
       _EventAspect.hover => data.hasHover != oldWidget.data.hasHover,
-      _EventAspect.longPress =>
-        data.hasLongPress != oldWidget.data.hasLongPress,
-      _EventAspect.drag => data.hasDrag != oldWidget.data.hasDrag,
     },
   );
 }
@@ -131,14 +120,10 @@ class _InteractionSource {
   bool _disabled;
   bool _tap = false;
   bool _hover = false;
-  bool _longPress = false;
-  bool _drag = false;
 
   ElEventState get snapshot => ElEventState(
     hasTap: !_disabled && _tap,
     hasHover: !_disabled && _hover,
-    hasLongPress: !_disabled && _longPress,
-    hasDrag: !_disabled && _drag,
     disabled: _disabled,
   );
 
@@ -147,8 +132,6 @@ class _InteractionSource {
     _disabled = value;
     if (value) {
       _tap = false;
-      _longPress = false;
-      _drag = false;
     }
   }
 
@@ -161,18 +144,6 @@ class _InteractionSource {
   void updateHover(bool value) {
     if (_hover == value) return;
     _hover = value;
-    if (!_disabled) onChanged?.call();
-  }
-
-  void updateLongPress(bool value) {
-    if (_longPress == value) return;
-    _longPress = value;
-    if (!_disabled) onChanged?.call();
-  }
-
-  void updateDrag(bool value) {
-    if (_drag == value) return;
-    _drag = value;
     if (!_disabled) onChanged?.call();
   }
 }
@@ -207,8 +178,6 @@ class _EventBox extends RenderProxyBoxWithHitTestBehavior
       ..hitBoundsContainsGlobal = _containsGlobal
       ..gestureSettings = gestureSettings
       ..onTapChanged = _source.updateTap
-      ..onLongPressChanged = _source.updateLongPress
-      ..onDragChanged = _source.updateDrag
       ..event = event;
   }
 

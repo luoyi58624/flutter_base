@@ -6,6 +6,7 @@ export 'recognizers/recognizers.dart'
     show
         ElPressGestureRecognizer,
         ElTransformGestureRecognizer,
+        ElGestureArenaTeam,
         ElGesturePhase,
         ElGestureCancelReason,
         ElGestureDetails,

@@ -427,11 +427,10 @@ class ElEvent {
 
   /// 长按成立回调。
   ///
-  /// 回调链执行完成后，事件层默认认领当前 pointer 手势，并取消
-  /// 本节点的后续 Tap 激活；普通使用无需再手动调用
-  /// [ElEventCallback.eagerGesture]。如果长按成立后组件判定当前位置
-  /// 不可处理，可在任意一层回调中调用 [ElEventCallback.preventDefault]
-  /// 拒绝这项默认认领；此时 pointer 归属与 Tap 资格均保持不变。
+  /// 只有赢得官方竞技场后才通知。回调链执行完成后，事件宿主默认独占
+  /// El 成员路线，并取消本节点的后续 Tap 激活；普通使用无需再手动调用
+  /// [ElEventCallback.eagerGesture]。任意一层调用 [ElEventCallback.preventDefault]
+  /// 可保留 El 冒泡与点击资格，但不能撤销官方竞技场已经确认的结果。
   ///
   /// [ElEventCallback.stopPropagation] 只停止向祖先传播，不会取消默认认领。
   final ElEventHandler? onLongPress;
@@ -879,10 +878,17 @@ class ElEvent {
             (_handlerShapeMaskHi & nonDragMaskHi);
   }
 
+  /// 变换回调与代理结构相等时保留当前识别，新的参数由下一轮序列采用。
+  @internal
+  bool hasSameTransformShape(ElEvent other) =>
+      other.dragProxy == dragProxy &&
+      other.rotationStartEnabled == rotationStartEnabled &&
+      other._handlerShapeMaskHi == _handlerShapeMaskHi;
+
   /// 识别配置与回调结构相等时，光标、命中行为变化只热更新声明。
   @internal
-  bool hasSameGestureShape(ElEvent other) =>
-      other.config == config &&
+  bool hasSameGestureShape(ElEvent other, {bool compareConfig = true}) =>
+      (!compareConfig || other.config == config) &&
       other.dragProxy == dragProxy &&
       other.rotationStartEnabled == rotationStartEnabled &&
       other._handlerShapeMaskLo == _handlerShapeMaskLo &&

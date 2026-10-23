@@ -156,6 +156,14 @@ sealed class ElGestureDetails {
   int get buttons => originalEvent.buttons;
 
   bool _propagationStopped = false;
+  Object? _dispatchIdentity;
+  Object? _sequenceIdentity;
+
+  /// 同次语义派发的身份，用于宿主在各冒泡成员之间共享默认行为和消费结果。
+  Object get dispatchIdentity => _dispatchIdentity ?? this;
+
+  /// 本轮冻结路线的身份，延迟回调仍沿用原身份，便于宿主隔离配置代际。
+  Object get sequenceIdentity => _sequenceIdentity ?? dispatchIdentity;
 
   /// 当前回调是否已经请求停止冒泡。
   bool get propagationStopped => _propagationStopped;

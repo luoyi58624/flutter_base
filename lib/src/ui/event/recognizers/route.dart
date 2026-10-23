@@ -12,6 +12,9 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
   bool _disposed = false;
   bool _canceling = false;
 
+  /// 官方竞技场确认本路线获胜时通知成员，不代表拖拽或长按已经达到阈值。
+  void Function(int pointer)? onAccepted;
+
   _ElGestureRecognizer? get _bubbleParent;
 
   _ElGestureCallback? _handlerFor(ElGesturePhase phase);
@@ -30,6 +33,16 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     final route = _routes[pointer];
     if (route != null && route.active && !route.owner._disposed) {
       route.owner._requestAccept(route, pointer);
+    }
+  }
+
+  void _notifyAccepted(_GestureRoute route, int pointer) {
+    for (final member in route.members.toList()) {
+      if (!route.active || member._disposed) continue;
+      final callback = member.onAccepted;
+      if (callback != null) {
+        member.invokeCallback<void>('accepted', () => callback(pointer));
+      }
     }
   }
 
@@ -115,7 +128,11 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     final end = route.cutoffs[_familyFor(phase)] ?? route.members.length - 1;
     for (var index = 0; index <= end; index++) {
       final member = route.members[index];
-      if (!member._disposed && member._handlerFor(phase) != null) return true;
+      if (!member._disposed &&
+          !(route.excluded[_familyFor(phase)]?.contains(member) ?? false) &&
+          member._handlerFor(phase) != null) {
+        return true;
+      }
     }
     return false;
   }
@@ -149,6 +166,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     ElGestureDetails callback, {
     int firstMember = 0,
     int? lastMember,
+    ElGestureDetails? Function(_ElGestureRecognizer member)? prepare,
   }) {
     final terminal = _isTerminalPhase(callback.phase);
     if (!route.active || _disposed && !terminal) return;
@@ -170,17 +188,23 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
           break;
         }
         final member = route.members[index];
-        if (member._disposed) continue;
+        if (member._disposed ||
+            (route.excluded[family]?.contains(member) ?? false)) {
+          continue;
+        }
         if (candidate) route.observedEnds[family] = index;
         final handler = member._handlerFor(callback.phase);
         if (handler == null) continue;
+        final details = prepare == null ? callback : prepare(member);
+        if (details == null) continue;
+        details._sequenceIdentity = route;
         member.invokeCallback<void>(callback.phase.name, () {
           final down = route.downEvents[member]?[callback.pointer];
-          callback._updateTransform(down?.transform);
-          handler(callback);
+          details._updateTransform(down?.transform);
+          handler(details);
         });
         // 终态是已公开生命周期的清理义务，不能由子回调吞掉祖先的唯一结算。
-        if (callback.propagationStopped) {
+        if (details.propagationStopped) {
           // Up 之后的业务点击仍遵守最早截断点，已经公开的释放通知继续结清。
           if (terminal) {
             if (_establishesBoundary(callback.phase)) {
@@ -237,7 +261,8 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
     }
     if (details is ElPressGestureDetails &&
         (details.phase == ElGesturePhase.doubleTapDown ||
-            details.phase == ElGesturePhase.tripleTapDown)) {
+            details.phase == ElGesturePhase.tripleTapDown ||
+            details.phase == ElGesturePhase.longPress)) {
       return ElPressGestureDetails(
         phase: ElGesturePhase.tapCancel,
         globalPosition: details.globalPosition,
@@ -326,6 +351,8 @@ class _GestureRoute {
   final Map<_GestureFamily, int> cutoffs = <_GestureFamily, int>{};
   final Map<_GestureFamily, int> revisions = <_GestureFamily, int>{};
   final Map<_GestureFamily, int> observedEnds = <_GestureFamily, int>{};
+  final Map<_GestureFamily, Set<_ElGestureRecognizer>> excluded = {};
+  final Set<(_GestureFamily, _ElGestureRecognizer)> cancelingMembers = {};
   int terminalDispatchDepth = 0;
   bool closeRequested = false;
   bool active = true;

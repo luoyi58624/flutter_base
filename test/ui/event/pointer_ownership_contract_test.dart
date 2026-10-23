@@ -1,4 +1,4 @@
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -71,9 +71,9 @@ void main() {
         );
 
         host.directLeaf(down);
-        host.directRoot(down);
+        await host.directRoot(down);
         host.directLeaf(start);
-        host.directRoot(start);
+        await host.directRoot(start);
         host.directLeaf(
           const PointerUpEvent(
             pointer: 1,
@@ -81,7 +81,7 @@ void main() {
             timeStamp: Duration(milliseconds: 32),
           ),
         );
-        host.directRoot(
+        await host.directRoot(
           const PointerUpEvent(
             pointer: 1,
             position: Offset(20, 0),
@@ -114,9 +114,8 @@ void main() {
         expect(parentCancelReason, ElEventCancelReason.otherGestureAccepted);
         expect(
           parentPointerMoves,
-          0,
-          reason:
-              'eagerGesture 淘汰 loser 的整条事件链，ancestor 不再收到当前或后续 raw pointerMove',
+          1,
+          reason: '触发认领的 raw Move 先经过完整命中路径；官方路由获胜后才取消后续投递',
         );
         expect(
           parentDragStarts,
@@ -145,9 +144,9 @@ void main() {
       host.rootDispatcher.event = _dragEvent('ancestor', trace, eager: true);
       host.leafDispatcher.event = _tapEvent('child', trace);
 
-      host.dispatch(_down(pointer: 2));
-      host.dispatch(_move(pointer: 2, x: 4, deltaX: 4, millis: 16));
-      host.dispatch(_up(pointer: 2, x: 4, millis: 32));
+      await host.dispatch(_down(pointer: 2));
+      await host.dispatch(_move(pointer: 2, x: 4, deltaX: 4, millis: 16));
+      await host.dispatch(_up(pointer: 2, x: 4, millis: 32));
 
       expect(trace, hasLength(4));
       expect(trace.toSet(), <String>{
@@ -176,9 +175,9 @@ void main() {
         );
         host.dispatchers[2].event = _tapEvent('descendant', trace);
 
-        host.dispatch(_down(pointer: 3));
-        host.dispatch(_move(pointer: 3, x: 4, deltaX: 4, millis: 16));
-        host.dispatch(_up(pointer: 3, x: 4, millis: 32));
+        await host.dispatch(_down(pointer: 3));
+        await host.dispatch(_move(pointer: 3, x: 4, deltaX: 4, millis: 16));
+        await host.dispatch(_up(pointer: 3, x: 4, millis: 32));
 
         expect(trace, hasLength(9));
         expect(trace.toSet(), <String>{
@@ -226,9 +225,9 @@ void main() {
         onDragEnd: (event) => driverDragPhases.add(event.phase),
       );
 
-      host.dispatch(_down(pointer: 31));
-      host.dispatch(_move(pointer: 31, x: 4, deltaX: 4, millis: 16));
-      host.dispatch(_up(pointer: 31, x: 4, millis: 32));
+      await host.dispatch(_down(pointer: 31));
+      await host.dispatch(_move(pointer: 31, x: 4, deltaX: 4, millis: 16));
+      await host.dispatch(_up(pointer: 31, x: 4, millis: 32));
 
       expect(driverReason, ElEventCancelReason.selfGestureAccepted);
       expect(rosterReason, ElEventCancelReason.otherGestureAccepted);
@@ -286,10 +285,10 @@ void main() {
           onDragEnd: recordWinner,
         );
 
-        host.dispatch(_down(pointer: 4));
-        host.dispatch(_move(pointer: 4, x: 4, deltaX: 4, millis: 16));
-        host.dispatch(_move(pointer: 4, x: 8, deltaX: 4, millis: 32));
-        host.dispatch(_up(pointer: 4, x: 8, millis: 48));
+        await host.dispatch(_down(pointer: 4));
+        await host.dispatch(_move(pointer: 4, x: 4, deltaX: 4, millis: 16));
+        await host.dispatch(_move(pointer: 4, x: 8, deltaX: 4, millis: 32));
+        await host.dispatch(_up(pointer: 4, x: 8, millis: 48));
 
         expect(winnerPhases, <ElEventPhase>[
           ElEventPhase.pointerDown,
@@ -333,8 +332,8 @@ void main() {
           onTap: (event) => winnerPhases.add(event.phase),
         );
 
-        host.dispatch(_down(pointer: 5));
-        host.dispatch(_up(pointer: 5, x: 0, millis: 16));
+        await host.dispatch(_down(pointer: 5));
+        await host.dispatch(_up(pointer: 5, x: 0, millis: 16));
 
         expect(winnerPhases, <ElEventPhase>[
           ElEventPhase.tapUp,
@@ -351,9 +350,7 @@ void main() {
     },
   );
 
-  testWidgets('OWN-6: ancestor up-stage fling rescue cancels descendant tap', (
-    _,
-  ) async {
+  testWidgets('OWN-6: 未过拖拽阈值的高速 Up 不得取消子节点的有效点击', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     try {
@@ -373,17 +370,11 @@ void main() {
       );
       host.leafDispatcher.event = _tapEvent('child', trace);
 
-      host.dispatch(_down(pointer: 6));
-      host.dispatch(_move(pointer: 6, x: 20, deltaX: 20, millis: 4));
-      host.dispatch(_up(pointer: 6, x: 20, millis: 8));
+      await host.dispatch(_down(pointer: 6));
+      await host.dispatch(_move(pointer: 6, x: 20, deltaX: 20, millis: 4));
+      await host.dispatch(_up(pointer: 6, x: 20, millis: 8));
 
-      expect(trace, hasLength(4));
-      expect(trace.toSet(), <String>{
-        'child:tapDown',
-        'child:tapCancel',
-        'ancestor:dragStart',
-        'ancestor:dragEnd',
-      });
+      expect(trace, <String>['child:tapDown', 'child:tapUp', 'child:tap']);
     } finally {
       host.dispose();
     }
@@ -416,14 +407,14 @@ void main() {
         },
       );
 
-      host.dispatch(
+      await host.dispatch(
         const PointerDownEvent(
           pointer: 13,
           position: Offset.zero,
           buttons: kPrimaryButton,
         ),
       );
-      host.dispatch(
+      await host.dispatch(
         const PointerMoveEvent(
           pointer: 13,
           position: Offset(20, 0),
@@ -471,7 +462,7 @@ void main() {
           onTapDown: (event) => event.eagerGesture(),
         );
 
-        host.dispatch(_down(pointer: 14));
+        await host.dispatch(_down(pointer: 14));
 
         expect(phases, <ElEventPhase>[
           ElEventPhase.pointerDown,
@@ -512,10 +503,10 @@ void main() {
           },
         );
 
-        host.dispatch(_down(pointer: 15));
-        host.dispatch(_move(pointer: 15, x: 20, deltaX: 20, millis: 16));
+        await host.dispatch(_down(pointer: 15));
+        await host.dispatch(_move(pointer: 15, x: 20, deltaX: 20, millis: 16));
         shouldClaim = true;
-        host.dispatch(_move(pointer: 15, x: 30, deltaX: 10, millis: 32));
+        await host.dispatch(_move(pointer: 15, x: 30, deltaX: 10, millis: 32));
 
         expect(parentTerminals, <ElEventPhase>[
           ElEventPhase.pointerCancel,
@@ -527,36 +518,30 @@ void main() {
     },
   );
 
-  testWidgets(
-    'OWN-16: eager settles active Scale with PointerCancel then ScaleCancel',
-    (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
-      addTearDown(host.dispose);
-      try {
-        final parentTerminals = <ElEventPhase>[];
-        host.rootDispatcher.event = ElEvent(
-          onPointerCancel: (event) => parentTerminals.add(event.phase),
-          onScaleStart: (_) {},
-          onScaleCancel: (event) => parentTerminals.add(event.phase),
-        );
-        host.leafDispatcher.event = ElEvent(
-          onPointerMove: (event) => event.eagerGesture(),
-        );
-
-        host.dispatch(_down(pointer: 16));
-        host.rootDispatcher.debugHandleScaleStartForTest(const Offset(10, 10));
-        host.dispatch(_move(pointer: 16, x: 20, deltaX: 20, millis: 16));
-
-        expect(parentTerminals, <ElEventPhase>[
-          ElEventPhase.pointerCancel,
-          ElEventPhase.scaleCancel,
-        ]);
-      } finally {
-        host.dispose();
-      }
-    },
-  );
-
+  testWidgets('OWN-16: 已确认的 Scale 不能由失权 raw 观察者重新抢回', (_) async {
+    final host = DispatcherTestHost.chain(depth: 2);
+    final parentPhases = <ElEventPhase>[];
+    ElEventCallback? candidate;
+    host.rootDispatcher.event = ElEvent(
+      onScaleStart: (event) => parentPhases.add(event.phase),
+      onScaleEnd: (event) => parentPhases.add(event.phase),
+      onScaleCancel: (event) => parentPhases.add(event.phase),
+    );
+    host.leafDispatcher.event = ElEvent(
+      onPointerDown: (event) => candidate = event,
+    );
+    try {
+      await host.dispatch(_down(pointer: 16));
+      await host.dispatch(_down(pointer: 161));
+      await host.dispatch(_move(pointer: 16, x: 60, deltaX: 60, millis: 16));
+      candidate!.eagerGesture();
+      await host.dispatch(_up(pointer: 16, x: 60, millis: 32));
+      await host.dispatch(_up(pointer: 161, x: 0, millis: 33));
+      expect(parentPhases, [ElEventPhase.scaleStart, ElEventPhase.scaleEnd]);
+    } finally {
+      host.dispose();
+    }
+  });
   testWidgets(
     'OWN-17: eager clears an active side-button tracker after PointerCancel',
     (_) async {
@@ -574,7 +559,7 @@ void main() {
           onPointerMove: (event) => event.eagerGesture(),
         );
 
-        host.dispatch(
+        await host.dispatch(
           const PointerDownEvent(
             pointer: 17,
             kind: PointerDeviceKind.mouse,
@@ -582,7 +567,7 @@ void main() {
             buttons: kSecondaryButton,
           ),
         );
-        host.dispatch(
+        await host.dispatch(
           const PointerMoveEvent(
             pointer: 17,
             kind: PointerDeviceKind.mouse,
@@ -591,7 +576,7 @@ void main() {
             buttons: kSecondaryButton,
           ),
         );
-        host.dispatch(
+        await host.dispatch(
           const PointerUpEvent(
             pointer: 17,
             kind: PointerDeviceKind.mouse,
@@ -629,10 +614,10 @@ void main() {
           onPointerPanZoomUpdate: (event) => event.eagerGesture(),
         );
 
-        host.dispatch(
+        await host.dispatch(
           const PointerPanZoomStartEvent(pointer: 18, position: Offset(20, 20)),
         );
-        host.dispatch(
+        await host.dispatch(
           const PointerPanZoomUpdateEvent(
             pointer: 18,
             position: Offset(20, 20),
@@ -640,7 +625,7 @@ void main() {
             panDelta: Offset(4, 0),
           ),
         );
-        host.dispatch(
+        await host.dispatch(
           const PointerPanZoomEndEvent(pointer: 18, position: Offset(20, 20)),
         );
 
@@ -686,12 +671,12 @@ void main() {
         );
 
         host.directLeaf(down);
-        host.directRoot(down);
+        await host.directRoot(down);
         host.leafDispatcher.cancelAllPending(move);
         host.directLeaf(move);
-        host.directRoot(move);
+        await host.directRoot(move);
         host.directLeaf(up);
-        host.directRoot(up);
+        await host.directRoot(up);
 
         expect(
           parentPointerMoves,

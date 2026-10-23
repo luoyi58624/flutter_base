@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_base/src/ui/event/dispatcher.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/ui/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/dispatcher_test_host.dart';
@@ -20,7 +20,7 @@ void main() {
         onDoubleTap: record,
       );
 
-      _tap(host, 1, 0);
+      await _tap(host, 1, 0);
 
       expect(phases, [
         ElEventPhase.tapDown,
@@ -47,7 +47,7 @@ void main() {
         );
 
         for (ordinal = 1; ordinal <= 5; ordinal++) {
-          _tap(host, ordinal, ordinal * 40);
+          await _tap(host, ordinal, ordinal * 40);
         }
 
         expect(
@@ -68,22 +68,22 @@ void main() {
       var doubles = 0;
       void doubleTap(ElEventCallback _) => doubles++;
       host.leafDispatcher.event = ElEvent(onDoubleTapDown: doubleTap);
-      _tap(host, 1, 0);
+      await _tap(host, 1, 0);
       host.leafDispatcher.event = ElEvent(
         config: const ElEventConfig(dragStartDistance: 8),
         onDoubleTapDown: doubleTap,
       );
-      _tap(host, 2, 40);
+      await _tap(host, 2, 40);
       expect(doubles, 1);
 
-      _tap(host, 3, 80);
+      await _tap(host, 3, 80);
       host.leafDispatcher.event = ElEvent(
         config: const ElEventConfig(
           doubleTapInterval: Duration(milliseconds: 500),
         ),
         onDoubleTapDown: doubleTap,
       );
-      _tap(host, 4, 120);
+      await _tap(host, 4, 120);
       expect(doubles, 1);
     } finally {
       host.dispose();
@@ -105,15 +105,15 @@ void main() {
         onDoubleTap: record,
       );
 
-      _tap(host, 1, 0);
+      await _tap(host, 1, 0);
       expect(phases, [ElEventPhase.tapUp]);
       await tester.pump(const Duration(milliseconds: 120));
       expect(phases, [ElEventPhase.tapUp, ElEventPhase.tap]);
 
       phases.clear();
-      _tap(host, 2, 200);
+      await _tap(host, 2, 200);
       await tester.pump(const Duration(milliseconds: 20));
-      _tap(host, 3, 240);
+      await _tap(host, 3, 240);
       await tester.pump(const Duration(milliseconds: 120));
       expect(phases, [
         ElEventPhase.tapUp,
@@ -133,7 +133,7 @@ void main() {
         config: const ElEventConfig(deferTap: true),
         onTap: (_) => taps++,
       );
-      _tap(host, 1, 0);
+      await _tap(host, 1, 0);
       expect(taps, 1);
     } finally {
       host.dispose();
@@ -163,11 +163,11 @@ void main() {
         onTap: (_) => trace.add('child:tap'),
       );
 
-      host.dispatch(
+      await host.dispatch(
         const PointerDownEvent(pointer: 1, position: Offset(30, 30)),
       );
       await tester.pump(const Duration(milliseconds: 40));
-      host.dispatch(
+      await host.dispatch(
         const PointerUpEvent(
           pointer: 1,
           position: Offset(30, 30),
@@ -210,8 +210,8 @@ void main() {
         },
       );
 
-      host.dispatch(const PointerDownEvent(pointer: 1));
-      host.dispatch(
+      await host.dispatch(const PointerDownEvent(pointer: 1));
+      await host.dispatch(
         const PointerMoveEvent(
           pointer: 1,
           position: Offset(10, 0),
@@ -219,7 +219,7 @@ void main() {
         ),
       );
       await tester.pump(const Duration(milliseconds: 60));
-      host.dispatch(
+      await host.dispatch(
         const PointerUpEvent(
           pointer: 1,
           position: Offset(10, 0),
@@ -286,7 +286,7 @@ void main() {
           onBackTap: record,
         );
 
-        host.dispatch(
+        await host.dispatch(
           PointerDownEvent(
             pointer: 1,
             position: const Offset(30, 30),
@@ -295,7 +295,7 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 40));
-        host.dispatch(
+        await host.dispatch(
           const PointerUpEvent(
             pointer: 1,
             position: Offset(30, 30),
@@ -322,17 +322,17 @@ void main() {
         onTap: (_) => taps++,
         onForwardTap: (_) => sideTaps++,
       );
-      host.dispatch(
+      await host.dispatch(
         const PointerDownEvent(
           pointer: 1,
           kind: PointerDeviceKind.mouse,
           buttons: kForwardMouseButton,
         ),
       );
-      host.dispatch(
+      await host.dispatch(
         const PointerCancelEvent(pointer: 1, kind: PointerDeviceKind.mouse),
       );
-      _tap(host, 2, 50);
+      await _tap(host, 2, 50);
       expect(taps, 1);
       expect(sideTaps, 0);
     } finally {
@@ -341,8 +341,8 @@ void main() {
   });
 }
 
-void _tap(DispatcherTestHost host, int pointer, int millis) {
-  host.tap(
+Future<void> _tap(DispatcherTestHost host, int pointer, int millis) async {
+  await host.tap(
     pointer: pointer,
     downTime: Duration(milliseconds: millis),
     upTime: Duration(milliseconds: millis + 10),

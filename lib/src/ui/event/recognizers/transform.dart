@@ -160,6 +160,26 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   @override
   void addAllowedPointer(PointerDownEvent event) {
     if (_delegatePointer(event)) return;
+    if (_session == null &&
+        _scalePhases.any((phase) => _handlerFor(phase) != null)) {
+      for (final route in _routes.values.toSet()) {
+        final owner = route.owner;
+        if (!route.active ||
+            identical(owner, this) ||
+            owner is! ElTransformGestureRecognizer ||
+            owner._session?.route != route ||
+            !_scalePhases.any(
+              (phase) => owner._routeHasHandler(route, phase),
+            )) {
+          continue;
+        }
+        // 共同祖先收到兄弟节点的新触点，仍由原识别器逐指参加官方竞技场。
+        owner._addTransformPointer(event);
+        (route.downEvents[this] ??= {})[event.pointer] = event;
+        owner.startTrackingPointer(event.pointer, event.transform);
+        return;
+      }
+    }
     _addTransformPointer(event);
     super.addAllowedPointer(event);
   }
@@ -343,6 +363,8 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     final tracked = session?.pointers[pointer];
     if (session == null || tracked == null || tracked.accepted) return;
     tracked.accepted = true;
+    _notifyAccepted(session.route, pointer);
+    if (!_isCurrent(session)) return;
     if (tracked.dragThresholdMet) _acceptDragThreshold(session, tracked);
     session.acceptedOrder.add(pointer);
     session.driver = pointer;
@@ -588,6 +610,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
     PointerEvent event, {
     Offset delta = Offset.zero,
     Velocity velocity = Velocity.zero,
+    ElTransformGestureRecognizer? onlyMember,
   }) {
     final scalePhase = _scalePhases.contains(phase);
     final geometry = _geometry(session);
@@ -614,7 +637,59 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
             session.scaleVelocity?.getVelocity().pixelsPerSecond.dx ?? 0,
         originalEvent: event,
       ),
+      prepare: onlyMember == null
+          ? null
+          : (member) => identical(member, onlyMember)
+                ? ElTransformGestureDetails(
+                    phase: phase,
+                    originalEvent: event,
+                    globalPosition: position,
+                    dragOffset: session.dragOffset,
+                    dragAxis: session.acceptedAxis,
+                    dragDirection: session.direction,
+                    pointerCount: geometry.count,
+                  )
+                : null,
     );
+  }
+
+  /// 终止当前成员的家族订阅，其他成员及已接受的指针继续识别。
+  void cancelMember(
+    int pointer, {
+    bool cancelDrag = true,
+    bool cancelScale = true,
+  }) {
+    final route = _routes[pointer];
+    final owner = route?.owner;
+    if (route == null || owner is! ElTransformGestureRecognizer) return;
+    final session = owner._session;
+    if (session == null || !identical(session.route, route)) return;
+    final event = session.pointers[pointer]?.event;
+    if (event == null) return;
+    for (final family in [
+      if (cancelDrag) _GestureFamily.drag,
+      if (cancelScale) _GestureFamily.scale,
+    ]) {
+      final excluded = route.excluded.putIfAbsent(family, () => {});
+      final key = (family, this);
+      if (excluded.contains(this) || !route.cancelingMembers.add(key)) continue;
+      try {
+        final observed = route.observedEnds[family] ?? -1;
+        if (route.members.indexOf(this) <= observed) {
+          owner._emit(
+            session,
+            family == _GestureFamily.drag
+                ? ElGesturePhase.dragCancel
+                : ElGesturePhase.scaleCancel,
+            event,
+            onlyMember: this,
+          );
+        }
+      } finally {
+        excluded.add(this);
+        route.cancelingMembers.remove(key);
+      }
+    }
   }
 
   @override
