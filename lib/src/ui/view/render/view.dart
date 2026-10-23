@@ -22,16 +22,13 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   ShapeGeometry _ensureShape() => _shape ??= ShapeGeometry();
 
   DecorationPainter get _painter =>
-      _decoration ??= DecorationPainter(shape: _ensureShape);
+      _decoration ??= DecorationPainter(_ensureShape);
 
   EffectController get _clip => _effects ??= EffectController(_ensureShape);
 
   /// 本节点唯一的盒模型执行器，也是祖先几何查询的入口。
   @override
   late final BoxLayout boxLayout;
-
-  /// 本节点从构造到销毁保持不变的样式引擎。
-  StyleEngine get styleEngine => _styleEngine;
 
   /// 转交目标声明，字段解析和动画策略由样式引擎处理。
   void applyStyle(ElStyle style, {required TextDirection textDirection}) =>
@@ -63,7 +60,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
     boxLayout.beginLayout();
     final values = _styleEngine.prepareLayout(constraints, boxLayout);
     size = boxLayout.perform(constraints, values);
-    _styleEngine.didLayout(boxLayout.boxSize);
+    _styleEngine.didLayout(boxLayout.boxSize, values);
   }
 
   @override

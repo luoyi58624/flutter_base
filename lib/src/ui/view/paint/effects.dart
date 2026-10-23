@@ -35,7 +35,7 @@ class EffectController {
         needsCompositing,
         offset,
         rect,
-        _shape().resolve(rect.size, radius).shift(rect.topLeft),
+        _shape().positioned(rect, radius),
         painter,
         clipBehavior: clipBehavior,
         oldLayer: old is ClipRRectLayer ? old : null,

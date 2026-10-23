@@ -20,7 +20,7 @@
 
 ### 实测
 
-1. `flutter test test/ui/view/view_test.dart --concurrency=1 --reporter expanded`：现有 23 项全部通过。
+1. `flutter test test/ui/view --concurrency=1 --reporter expanded`：重构前已有的 23 项场景全部通过，后续统一归入 base_test.dart 和 animation_test.dart。
 2. 临时实验：width 从 200 转 auto，child 自然宽 100，width 过渡 100ms；padding 从 0 转左右各 40，过渡 200ms。99ms 宽度为 180.2，100ms 为 140.0，确认存在截止帧跳变。
 3. 临时实验：width/height 从 200/50 同时转 auto，分别过渡 100/200ms，child 为比例 2 的 AspectRatio。99ms 为 398×124.25，100ms 为 250×125，确认跨轴耦合下的截止帧跳变。
 4. 临时实验：仅背景色过渡时，LayoutBuilder 执行次数保持 1，没有随颜色帧重新执行 builder；此计数本身不能证明真实 layout 方法从未被调用，真实调用计数列入后续验收。
@@ -395,7 +395,7 @@ ui/view/
 - 测量中保存临时参照，正式布局恢复后代几何；恢复标脏不当作外部内容突变，不改变后代动画时间线。
 - 祖先参照在实际查询时才按轴求值；没有对应依赖时不做引用计算或后代扫描，重挂接清理旧登记。
 
-验证范围限定为 test/ui/view/ 下的 view_test.dart、layout_animation_test.dart、style_engine_test.dart 及对应生产目录；并行会话的事件目录不属于本阶段。
+该阶段验证范围限定为 test/ui/view/ 及对应生产目录；原测试现已归入 base_test.dart 和 animation_test.dart，并行会话的事件目录不属于本阶段。
 
 最终验证：上述三个文件共 42 项测试全部通过；对应生产目录与三个测试文件的静态分析无问题。未运行全量测试或设备 Profile 测量。
 
@@ -425,4 +425,16 @@ flowchart LR
 
 验证：原有 42 项与新增圆角 17 项、裁剪 14 项合计 73 项全部通过；生产目录、上述五个测试文件及示例页静态分析无问题。仅运行相关测试，未运行全量测试或设备 Profile 测量。
 
-测试统一放在 test/ui/view/：view_test.dart、layout_animation_test.dart、style_engine_test.dart、radius_test.dart、clip_test.dart。执行入口为 `flutter test test/ui/view --concurrency=1`，test/ui/ 顶层只按模块组织目录。
+测试统一放在 test/ui/view/，只保留 base_test.dart 和 animation_test.dart。执行入口为 `flutter test test/ui/view --concurrency=1`，test/ui/ 顶层只按模块组织目录。
+
+## 16. 功能测试收敛与实现精简
+
+- base_test.dart 只验证 ElStyle 正常使用时的基础功能；animation_test.dart 验证实际过渡中间值和边界。均从公开 ElView 挂载、更新、布局和绘制结果验证，不直接测试内部引擎或控制器。
+- 删除布局/解析/重建次数、缓存和图层身份等持久测试，以及相应生产调试探针；不编写性能测试，流畅度由用户真机体验验收。
+- 删除 BoxLayout 没有消费者的几何 getter、快照及写入；child 偏移直接提交给父布局数据。
+- DecorationPainter 统一使用共享形状工厂，删除仅为内部测试存在的独立创建分支；形状定位由 ShapeGeometry 统一处理，原点处直接复用局部形状。
+- Engine 仅在实际存在相对长度时按轴计算百分比参照，不为 px 或仅有边距的布局创建参照约束；正式布局结果直接传回 didLayout，不再保存重复 LayoutStyle 状态。
+- 边距负过冲归零后统一使用空值，保留无边距直通路径；轨道接续统一保留原截止时间和剩余 delay。
+- 修复父子同时转 auto 时百分比起点漂移，以及等待 delay 时失去百分比参照导致首个有效中间帧停顿。新增回归均曾复现错误后通过修复。
+
+验证：base_test.dart 33 项、animation_test.dart 54 项，合计 87 项功能测试全部通过；生产目录、两个测试文件及现有示例页静态分析无问题。生产代码由 1617 行减至 1530 行，统计含注释、空行和生成代码；其中手写 1458 行、生成 72 行。

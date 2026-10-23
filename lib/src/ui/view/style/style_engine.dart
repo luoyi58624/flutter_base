@@ -11,7 +11,7 @@ class StyleEngine {
        _direction = direction {
     for (final field in StyleField.values) {
       final raw = field.declaration(style);
-      if (raw != null) _values[field.index] = _parse(field, raw);
+      if (raw != null) _values[field.index] = field.parse(raw, _direction);
     }
     _targets.setAll(0, _values);
   }
@@ -34,12 +34,11 @@ class StyleEngine {
   final _targets = List<Object?>.filled(StyleField.values.length, null);
   List<_StyleTrack>? _tracks;
   Ticker? _ticker;
-  int _damage = 0, _externalVersion = 0, _parseCount = 0;
+  int _damage = 0, _externalVersion = 0;
   bool _hasLayout = false, _externalLayout = false;
   Size _lastBoxSize = Size.zero;
   BoxConstraints? _lastConstraints;
   bool _widthResolved = true, _heightResolved = true;
-  LayoutStyle _layoutValues = LayoutStyle.empty;
   Object? _measurementKey;
   Size? _measurementSize;
 
@@ -56,22 +55,6 @@ class StyleEngine {
   /// 立即生效的裁剪模式，不占用动画轨道。
   Clip get clipBehavior =>
       _values[StyleField.clipBehavior.index] as Clip? ?? Clip.none;
-
-  /// 测试观察实际进入字段解析的次数，空属性不计入。
-  @visibleForTesting
-  int get debugParseCount => _parseCount;
-
-  /// 测试观察是否曾为实际过渡创建时钟。
-  @visibleForTesting
-  bool get debugTickerCreated => _ticker != null;
-
-  Object? _parse(StyleField field, Object value) {
-    assert(() {
-      _parseCount++;
-      return true;
-    }());
-    return field.parse(value, _direction);
-  }
 
   void _write(StyleField field, Object? value) {
     if (_values[field.index] == value) return;
@@ -128,7 +111,7 @@ class StyleEngine {
       final old = _track(field);
       if (!changed && (!transitionsChanged || old == null)) continue;
       final to = changed
-          ? (raw == null ? null : _parse(field, raw))
+          ? (raw == null ? null : field.parse(raw, _direction))
           : _targets[field.index];
       final transition = _hasLayout
           ? _transition(field, style.transitions)
@@ -152,7 +135,8 @@ class StyleEngine {
         _write(field, to);
         continue;
       }
-      if (field.isLength && _unresolvedLast(field, from as StyleLength?)) {
+      if (field.isLength &&
+          (to == null || _unresolvedLast(field, from as StyleLength?))) {
         from = styleLength(_usedLength(field));
       }
       (_tracks ??= []).add(_StyleTrack(field, from, to, transition));
@@ -209,22 +193,36 @@ class StyleEngine {
   EdgeInsets? get _padding => _values[StyleField.padding.index] as EdgeInsets?;
   EdgeInsets? get _margin => _values[StyleField.margin.index] as EdgeInsets?;
 
-  double? _length(
-    StyleLength? value,
+  double _lengthBasis(
     Axis axis,
-    BoxConstraints available,
+    BoxConstraints constraints,
     BoxLayout box, {
     required bool dry,
   }) {
-    if (value == null) return null;
-    var bound = axis == Axis.horizontal
-        ? available.maxWidth
-        : available.maxHeight;
-    if (value.relative && !bound.isFinite) {
+    final horizontal = axis == Axis.horizontal;
+    final margin = _margin;
+    var bound = horizontal ? constraints.maxWidth : constraints.maxHeight;
+    if (margin != null) {
+      bound = math.max(
+        0.0,
+        bound - (horizontal ? margin.horizontal : margin.vertical),
+      );
+    }
+    if (!bound.isFinite) {
       bound = box.reference(axis, dry: dry) ?? double.infinity;
     }
-    return value.resolve(bound);
+    return bound;
   }
+
+  double? _length(
+    StyleLength? value,
+    Axis axis,
+    BoxConstraints constraints,
+    BoxLayout box, {
+    required bool dry,
+  }) => value?.resolve(
+    value.relative ? _lengthBasis(axis, constraints, box, dry: dry) : 0,
+  );
 
   LayoutStyle _resolve(
     BoxConstraints constraints,
@@ -237,10 +235,9 @@ class StyleEngine {
     if (width == null && height == null && padding == null && margin == null) {
       return LayoutStyle.empty;
     }
-    final available = BoxLayout.availableConstraints(constraints, margin);
     return LayoutStyle(
-      width: _length(width, Axis.horizontal, available, box, dry: dry),
-      height: _length(height, Axis.vertical, available, box, dry: dry),
+      width: _length(width, Axis.horizontal, constraints, box, dry: dry),
+      height: _length(height, Axis.vertical, constraints, box, dry: dry),
       padding: padding,
       margin: margin,
     );
@@ -262,14 +259,12 @@ class StyleEngine {
       _externalLayout = false;
       _lastConstraints = constraints;
     }
-    final result = _resolve(
+    return _resolve(
       constraints,
       box,
       width: _values[StyleField.width.index] as StyleLength?,
       height: _values[StyleField.height.index] as StyleLength?,
     );
-    if (!BoxLayout.isMeasuring) _layoutValues = result;
-    return result;
   }
 
   void _prepareLength(
@@ -280,39 +275,31 @@ class StyleEngine {
     final axis = track.field == StyleField.width
         ? Axis.horizontal
         : Axis.vertical;
-    final available = BoxLayout.availableConstraints(constraints, _margin);
-    var bound = axis == Axis.horizontal
-        ? available.maxWidth
-        : available.maxHeight;
-    if (!bound.isFinite) {
-      final current = _values[track.field.index] as StyleLength?;
-      final target = track.target as StyleLength?;
-      if ((current?.relative ?? false) || (target?.relative ?? false)) {
-        bound = box.reference(axis) ?? double.infinity;
-      }
-    }
-    var current = _values[track.field.index];
-    final lostReference =
-        current != null && (current as StyleLength).relative && !bound.isFinite;
+    var current = _values[track.field.index] as StyleLength?;
+    final target = track.target as StyleLength?;
+    final relative =
+        (current?.relative ?? false) || (target?.relative ?? false);
+    final bound = relative
+        ? _lengthBasis(axis, constraints, box, dry: false)
+        : double.infinity;
+    final lostReference = (current?.relative ?? false) && !bound.isFinite;
     if (lostReference) {
       current = styleLength(_usedLength(track.field));
       _values[track.field.index] = current;
+      // 等待 delay 时也必须冻结起点，后续采样不能恢复已失去参照的百分比。
+      track.rebase(current);
     }
-    final target = track.target as StyleLength?;
     final resolved = target?.resolve(bound);
     if (resolved != null) {
-      track.setEnd(
-        target!,
-        current,
-        rebase: lostReference || track.measured,
-        force: lostReference,
-      );
+      track.setEnd(target!, current, rebase: track.measured);
       track.measured = false;
       return;
     }
 
     if (SchedulerBinding.instance.currentFrameTimeStamp <
         track.start + track.delay) {
+      // 无参照目标保持待测量，延迟后的首次采样应使用原进度而非重新冻结起点。
+      track.end = null;
       return;
     }
 
@@ -357,12 +344,7 @@ class StyleEngine {
     final external =
         _externalLayout ||
         (_lastConstraints != null && _lastConstraints != constraints);
-    track.setEnd(
-      end,
-      current,
-      rebase: lostReference || (external && track.end != null),
-      force: lostReference,
-    );
+    track.setEnd(end, current, rebase: !lostReference && external);
     track.measured = true;
     // 连续几何动画更新端点后在本帧重新采样，避免截止帧才切换成真实自然尺寸。
     _values[track.field.index] = track.sample(
@@ -380,12 +362,12 @@ class StyleEngine {
   );
 
   /// 正式布局结束后记录实际几何，用于 auto 和失去参照时的动画接续。
-  void didLayout(Size boxSize) {
+  void didLayout(Size boxSize, LayoutStyle values) {
     if (BoxLayout.isMeasuring) return;
     _hasLayout = true;
     _lastBoxSize = boxSize;
-    _widthResolved = _layoutValues.width != null;
-    _heightResolved = _layoutValues.height != null;
+    _widthResolved = values.width != null;
+    _heightResolved = values.height != null;
   }
 
   /// 释放按需创建的动画时钟。
@@ -420,27 +402,21 @@ class _StyleTrack {
     return field.interpolate(from, end, t);
   }
 
-  void setEnd(
-    Object value,
-    Object? current, {
-    required bool rebase,
-    bool force = false,
-  }) {
-    // 无关布局请求不能改变曲线；只有失去参照才需要同端点强制接续。
-    if (end == value && !force) return;
-    if (end != null && rebase) {
-      final now = SchedulerBinding.instance.currentFrameTimeStamp;
-      final waiting = start + delay - now;
-      duration = Duration(
-        microseconds: math.max(
-          0,
-          (deadline - now).inMicroseconds - math.max(0, waiting.inMicroseconds),
-        ),
-      );
-      delay = Duration(microseconds: math.max(0, waiting.inMicroseconds));
-      start = now;
-      from = current;
-    }
+  void setEnd(Object value, Object? current, {required bool rebase}) {
+    if (end == value) return;
+    if (end != null && rebase) this.rebase(current);
     end = value;
+  }
+
+  // 接续当前画面时保留剩余等待时间与原截止时间。
+  void rebase(Object? current) {
+    final now = SchedulerBinding.instance.currentFrameTimeStamp;
+    final waiting = math.max(0, (start + delay - now).inMicroseconds);
+    duration = Duration(
+      microseconds: math.max(0, (deadline - now).inMicroseconds - waiting),
+    );
+    delay = Duration(microseconds: waiting);
+    start = now;
+    from = current;
   }
 }

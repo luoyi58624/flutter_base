@@ -29,47 +29,19 @@ class BoxLayout {
   /// 当前调用栈是否处于真实端点测量，期间不得提交正式样式或几何。
   static bool get isMeasuring => _measurementDepth != 0;
 
-  Size _layoutSize = Size.zero;
   Size _boxSize = Size.zero;
   Offset _boxOrigin = Offset.zero;
-  Offset _childOffset = Offset.zero;
-  EdgeInsets? _padding;
-  BoxConstraints? _childConstraints;
 
   BoxConstraints? _referenceBox;
   EdgeInsets? _referencePadding;
   Set<BoxLayout>? _widthReferences, _heightReferences;
   Set<BoxLayout>? _widthDependents, _heightDependents;
 
-  /// 正式布局的外占位，包含外边距并满足父约束。
-  Size get layoutSize => _layoutSize;
-
   /// 正式视觉盒尺寸，包含内边距，不包含外边距。
   Size get boxSize => _boxSize;
 
-  /// 正式视觉盒在宿主局部坐标中的起点。
-  Offset get boxOrigin => _boxOrigin;
-
-  /// 正式 child 在宿主局部坐标中的偏移。
-  Offset get childOffset => _childOffset;
-
-  /// 正式布局传给 child 的约束，尚未布局时为空。
-  BoxConstraints? get childConstraints => _childConstraints;
-
   /// 正式视觉盒在宿主局部坐标中的范围。
   Rect get boxRect => _boxOrigin & _boxSize;
-
-  /// 正式视觉盒扣除内边距后的内容范围。
-  Rect get contentRect {
-    final padding = _padding;
-    if (padding == null) return boxRect;
-    return Rect.fromLTWH(
-      _boxOrigin.dx + padding.left,
-      _boxOrigin.dy + padding.top,
-      math.max(0, _boxSize.width - padding.horizontal),
-      math.max(0, _boxSize.height - padding.vertical),
-    );
-  }
 
   /// 扣除外边距得到可用盒约束；未声明外边距时直接复用父约束。
   static BoxConstraints availableConstraints(
@@ -88,11 +60,7 @@ class BoxLayout {
     if (temporary) _measuredLayouts!.add(this);
     final box = _layout(outer, style, temporary: temporary);
     final margin = style.margin;
-    final result = margin == null
-        ? box
-        : outer.constrain(margin.inflateSize(box));
-    if (!temporary) _layoutSize = result;
-    return result;
+    return margin == null ? box : outer.constrain(margin.inflateSize(box));
   }
 
   /// 按已解析请求测量真实目标视觉盒，测量结果不覆盖正式几何。
@@ -260,13 +228,10 @@ class BoxLayout {
       if (!temporary) {
         _boxSize = box;
         _boxOrigin = style.margin?.topLeft ?? Offset.zero;
-        _childOffset = padding == null
-            ? _boxOrigin
-            : _boxOrigin + padding.topLeft;
-        _childConstraints = plan.inner;
-        _padding = padding;
         if (child != null) {
-          (child.parentData! as BoxParentData).offset = _childOffset;
+          (child.parentData! as BoxParentData).offset = padding == null
+              ? _boxOrigin
+              : _boxOrigin + padding.topLeft;
         }
       }
       return box;

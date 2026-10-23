@@ -5,7 +5,6 @@ class ShapeGeometry {
   Size? _size;
   BorderRadius? _radius;
   RRect? _rrect;
-  int _buildCount = 0;
 
   /// 按实际尺寸统一缩放过大的圆角，返回以原点为起点的圆角矩形。
   RRect resolve(Size size, BorderRadius radius) {
@@ -13,14 +12,13 @@ class ShapeGeometry {
       _size = size;
       _radius = radius;
       _rrect = radius.toRRect(Offset.zero & size).scaleRadii();
-      assert(() {
-        _buildCount++;
-        return true;
-      }());
     }
     return _rrect!;
   }
 
-  /// 测试观察实际几何生成次数，仅在 assert 启用时计数。
-  int get debugBuildCount => _buildCount;
+  /// 将局部形状放到视觉盒的位置，供绘制与裁剪共用。
+  RRect positioned(Rect rect, BorderRadius radius) {
+    final shape = resolve(rect.size, radius);
+    return rect.left == 0 && rect.top == 0 ? shape : shape.shift(rect.topLeft);
+  }
 }

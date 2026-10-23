@@ -50,20 +50,20 @@ EdgeInsets? _resolveInsets(EdgeInsetsGeometry value, TextDirection direction) {
 }
 
 Object? _insetsLerp(Object? from, Object? to, double t) {
-  final value = EdgeInsets.lerp(
+  var value = EdgeInsets.lerp(
     from as EdgeInsets? ?? EdgeInsets.zero,
     to as EdgeInsets? ?? EdgeInsets.zero,
     t,
   )!;
-  if (value == EdgeInsets.zero) return null;
-  return value.isNonNegative
-      ? value
-      : EdgeInsets.fromLTRB(
-          math.max(0, value.left),
-          math.max(0, value.top),
-          math.max(0, value.right),
-          math.max(0, value.bottom),
-        );
+  if (!value.isNonNegative) {
+    value = EdgeInsets.fromLTRB(
+      math.max(0, value.left),
+      math.max(0, value.top),
+      math.max(0, value.right),
+      math.max(0, value.bottom),
+    );
+  }
+  return value == EdgeInsets.zero ? null : value;
 }
 
 BorderRadius? _resolveRadius(

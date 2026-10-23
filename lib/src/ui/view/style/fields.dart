@@ -10,14 +10,7 @@ enum StyleField {
   borderRadius,
   clipBehavior;
 
-  bool get isLength => switch (this) {
-    width || height => true,
-    backgroundColor ||
-    padding ||
-    margin ||
-    borderRadius ||
-    clipBehavior => false,
-  };
+  bool get isLength => this == width || this == height;
 
   int get damage => switch (this) {
     width || height || padding || margin => StyleEngine.layout,
