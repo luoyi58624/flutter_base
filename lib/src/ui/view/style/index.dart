@@ -8,12 +8,14 @@ import 'package:flutter_base/dart.dart';
 
 import '../layout/box_layout.dart';
 import 'resolved/layout.dart';
+import 'resolved/outline.dart';
 
 part 'index.g.dart';
 part 'transition.dart';
 part 'lerp.dart';
 part 'style_engine.dart';
 part 'fields.dart';
+part 'outline.dart';
 
 /// 不可变的盒模型样式；宽高包含 padding，不包含 margin。
 @immutable
@@ -29,6 +31,7 @@ class ElStyle with Equatable {
     this.padding,
     this.margin,
     this.border,
+    this.outline,
     this.borderRadius,
     this.clipBehavior,
     this.transitions,
@@ -58,6 +61,9 @@ class ElStyle with Equatable {
   /// 原生 Border 或 BorderDirectional，仅覆盖绘制、不占布局；null 表示无边框。
   /// 粗细必须非负且有限，strokeAlign 必须有限；零宽 solid 保留原生 hairline。
   final BoxBorder? border;
+
+  /// 盒外轮廓，仅绘制、不占布局；偏移可将其移入盒内，null 表示不绘制。
+  final ElOutline? outline;
 
   /// 非负有限的背景与边框圆角，支持方向性圆角；裁剪由 clipBehavior 决定。
   final BorderRadiusGeometry? borderRadius;

@@ -133,19 +133,37 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
         borderRadius: _styleEngine.borderRadius,
       );
     }
+    final outline = _styleEngine.outline;
+    if (outline != null) {
+      _painter.paintOutline(
+        context,
+        boxLayout.boxRect.shift(offset),
+        outline,
+        borderRadius: _styleEngine.borderRadius,
+      );
+    } else {
+      _decoration?.clearOutline();
+    }
   }
 
   @override
   Rect get paintBounds {
     final border = _styleEngine.border;
-    return border == null
-        ? super.paintBounds
-        : super.paintBounds.expandToInclude(
-            _painter.borderBounds(
-              boxLayout.boxRect,
-              border,
-              borderRadius: _styleEngine.borderRadius,
-            ),
+    var bounds = super.paintBounds;
+    if (border != null) {
+      bounds = bounds.expandToInclude(
+        _painter.borderBounds(
+          boxLayout.boxRect,
+          border,
+          borderRadius: _styleEngine.borderRadius,
+        ),
+      );
+    }
+    final outline = _styleEngine.outline;
+    return outline == null
+        ? bounds
+        : bounds.expandToInclude(
+            _painter.outlineBounds(boxLayout.boxRect, outline),
           );
   }
 
@@ -204,6 +222,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   @override
   void dispose() {
     boxLayout.dispose();
+    _decoration?.clearOutline();
     _effects?.dispose();
     _styleEngine.dispose();
     super.dispose();

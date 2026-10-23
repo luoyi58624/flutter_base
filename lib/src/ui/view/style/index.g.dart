@@ -16,6 +16,7 @@ extension ElStyleExt on ElStyle {
     Object? padding = $absent,
     Object? margin = $absent,
     Object? border = $absent,
+    Object? outline = $absent,
     Object? borderRadius = $absent,
     Object? clipBehavior = $absent,
     Object? transitions = $absent,
@@ -39,6 +40,9 @@ extension ElStyleExt on ElStyle {
           ? this.margin
           : margin as EdgeInsetsGeometry?,
       border: identical(border, $absent) ? this.border : border as BoxBorder?,
+      outline: identical(outline, $absent)
+          ? this.outline
+          : outline as ElOutline?,
       borderRadius: identical(borderRadius, $absent)
           ? this.borderRadius
           : borderRadius as BorderRadiusGeometry?,
@@ -62,6 +66,7 @@ extension ElStyleExt on ElStyle {
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
       border: other.border ?? border,
+      outline: other.outline ?? outline,
       borderRadius: other.borderRadius ?? borderRadius,
       clipBehavior: other.clipBehavior ?? clipBehavior,
       transitions: other.transitions ?? transitions,
@@ -77,6 +82,7 @@ extension ElStyleExt on ElStyle {
     padding,
     margin,
     border,
+    outline,
     borderRadius,
     clipBehavior,
     transitions,
@@ -85,4 +91,24 @@ extension ElStyleExt on ElStyle {
 
 extension ElTransitionExt on ElTransition {
   List<Object?> get _props => [field, duration, curve, delay];
+}
+
+extension ElOutlineExt on ElOutline {
+  ElOutline copyWith({
+    Object? width,
+    Object? color,
+    Object? gradient = $absent,
+    Object? offset,
+  }) {
+    return ElOutline(
+      width: width == null ? this.width : width as num,
+      color: color == null ? this.color : color as Color,
+      gradient: identical(gradient, $absent)
+          ? this.gradient
+          : gradient as Gradient?,
+      offset: offset == null ? this.offset : offset as num,
+    );
+  }
+
+  List<Object?> get _props => [width, color, gradient, offset];
 }

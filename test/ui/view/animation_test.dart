@@ -244,6 +244,20 @@ ElStyle _borderStyle(
   List<ElTransition>? transitions = _linear,
 }) => ElStyle(width: 100, height: 60, border: border, transitions: transitions);
 
+const _outlineTransition = [
+  ElTransition.field(
+    ElTransitionField.outline,
+    Duration(milliseconds: 100),
+    Curves.linear,
+  ),
+];
+
+ElStyle _outlineStyle(
+  ElOutline? outline, {
+  List<ElTransition>? transitions = _outlineTransition,
+}) =>
+    ElStyle(width: 100, height: 60, outline: outline, transitions: transitions);
+
 void main() {
   group('样式过渡与颜色中间值', () {
     for (final fadeIn in [false, true]) {
@@ -1722,6 +1736,568 @@ void main() {
       expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
       await _advance(tester, 25);
       expect(viewSize(tester), const Size(240, 120));
+    });
+  });
+
+  group('轮廓中间值与可见结果', () {
+    testWidgets('粗细、间距与颜色共同过渡，child 和 Row 兄弟位置保持不变', (tester) async {
+      const childKey = ValueKey('outline-animation-child');
+      const siblingKey = ValueKey('outline-animation-sibling');
+      Widget scene(ElOutline outline) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElView(
+                key: viewKey,
+                style: _outlineStyle(outline),
+                child: const SizedBox(key: childKey, width: 30, height: 20),
+              ),
+              const SizedBox(key: siblingKey, width: 30, height: 20),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpWidget(scene(const ElOutline(width: 4, color: _red)));
+      final childPosition = tester.getTopLeft(find.byKey(childKey));
+      final siblingPosition = tester.getTopLeft(find.byKey(siblingKey));
+      await tester.pumpWidget(
+        scene(const ElOutline(width: 12, color: _blue, offset: 8)),
+      );
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, -11),
+        Offset(50, -5),
+        Offset(50, -13),
+        Offset(50, -3),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0xff800080));
+      _pixel(pixels[2], const Color(0x00000000));
+      _pixel(pixels[3], const Color(0x00000000));
+      expect(viewSize(tester), const Size(100, 60));
+      expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
+      expect(_childOffset(tester, childKey), Offset.zero);
+      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
+      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [
+        Offset(50, -18),
+        Offset(50, -6),
+      ]);
+      _pixel(pixels[0], _blue);
+      _pixel(pixels[1], const Color(0x00000000));
+      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
+      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
+    });
+
+    testWidgets('null 双向过渡同时收放宽度与 offset，并淡入淡出可见颜色', (tester) async {
+      const outline = ElOutline(width: 8, color: _red, offset: 8);
+      await tester.pumpWidget(viewScene(_outlineStyle(null)));
+      await tester.pumpWidget(viewScene(_outlineStyle(outline)));
+      for (final fadingOut in [false, true]) {
+        if (fadingOut) {
+          await tester.pumpWidget(viewScene(_outlineStyle(null)));
+        }
+        await _advance(tester, 50);
+        final pixels = await _borderPixels(tester, const [
+          Offset(50, -6),
+          Offset(50, -10),
+          Offset(50, -2),
+        ]);
+        _pixel(pixels[0], const Color(0x80ff0000));
+        _pixel(pixels[1], const Color(0x00000000));
+        _pixel(pixels[2], const Color(0x00000000));
+        await _advance(tester, 50);
+      }
+      final end = await _borderPixels(tester, const [
+        Offset(50, 0),
+        Offset(50, -1),
+      ], offset: const Offset(32.5, 32.5));
+      expect(end.every((color) => color.a == 0), isTrue);
+    });
+
+    testWidgets('半透明与带隐藏 RGB 的透明颜色互转，不混入透明端的蓝色', (tester) async {
+      const visible = ElOutline(width: 8, color: Color(0x80ff0000), offset: 4);
+      const hidden = ElOutline(width: 16, color: Color(0x000000ff), offset: 12);
+      await tester.pumpWidget(viewScene(_outlineStyle(visible)));
+      await tester.pumpWidget(viewScene(_outlineStyle(hidden)));
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, -12),
+        Offset(50, -6),
+      ]);
+      _pixel(pixels[0], const Color(0x40ff0000));
+      _pixel(pixels[1], const Color(0x00000000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -20)]);
+      _pixel(pixels.single, const Color(0x00000000));
+      await tester.pumpWidget(viewScene(_outlineStyle(visible)));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -12)]);
+      _pixel(pixels.single, const Color(0x40ff0000));
+      await _advance(tester, 50);
+    });
+
+    testWidgets('三种渐变与纯色双向切换保持不透明，清空 shader 时终点不跳变', (tester) async {
+      const gradients = <Gradient>[
+        LinearGradient(colors: [_red, _blue], stops: [0.2, 0.8]),
+        RadialGradient(
+          colors: [_red, _blue],
+          center: Alignment(-0.5, -0.5),
+          radius: 1.2,
+          stops: [0.2, 0.8],
+        ),
+        SweepGradient(
+          colors: [_red, _blue],
+          startAngle: 0.2,
+          endAngle: 5.8,
+          stops: [0.2, 0.8],
+        ),
+      ];
+      const green = Color(0xff00ff00);
+      const positions = [Offset(20, -8), Offset(80, -8)];
+      for (var i = 0; i < gradients.length; i++) {
+        final gradient = ElOutline(
+          width: 8,
+          color: green,
+          gradient: gradients[i],
+          offset: 4,
+        );
+        const solid = ElOutline(width: 8, color: green, offset: 4);
+        await tester.pumpWidget(
+          viewScene(_outlineStyle(gradient), key: ValueKey('gradient-$i')),
+        );
+        // 更换 key 仅隔开渐变类型，随后同一个 ElView 连续接受双向样式更新。
+        await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
+        for (final toSolid in [true, false]) {
+          await tester.pumpWidget(
+            viewScene(_outlineStyle(toSolid ? solid : gradient)),
+          );
+          await _advance(tester, 50);
+          var pixels = await _borderPixels(tester, positions);
+          for (final pixel in pixels) {
+            expect(pixel.a, closeTo(1, 2 / 255));
+            expect(pixel.g, closeTo(0.5, 2 / 255));
+            expect(pixel.r + pixel.b, closeTo(0.5, 3 / 255));
+          }
+          await _advance(tester, 49);
+          final beforeEnd = await _borderPixels(tester, positions);
+          await _advance(tester, 1);
+          pixels = await _borderPixels(tester, positions);
+          for (var point = 0; point < positions.length; point++) {
+            expect(beforeEnd[point].a, closeTo(pixels[point].a, 2 / 255));
+            expect(beforeEnd[point].r, closeTo(pixels[point].r, 4 / 255));
+            expect(beforeEnd[point].g, closeTo(pixels[point].g, 4 / 255));
+            expect(beforeEnd[point].b, closeTo(pixels[point].b, 4 / 255));
+            if (toSolid) _pixel(pixels[point], green);
+          }
+        }
+      }
+    });
+
+    testWidgets('decal 外域的纯色贡献连续淡入淡出，中断后从当前混合态接续', (tester) async {
+      const gradients = <Gradient>[
+        LinearGradient(
+          begin: Alignment(-0.2, 0),
+          end: Alignment(0.2, 0),
+          colors: [_red, _blue],
+          tileMode: TileMode.decal,
+        ),
+        RadialGradient(
+          radius: 0.2,
+          colors: [_red, _blue],
+          tileMode: TileMode.decal,
+        ),
+        SweepGradient(
+          startAngle: 0.5,
+          endAngle: 1.5,
+          colors: [_red, _blue],
+          tileMode: TileMode.decal,
+        ),
+      ];
+      const green = Color(0xff00ff00);
+      const solid = ElOutline(width: 8, color: green, offset: 4);
+      const red = ElOutline(width: 8, color: _red, offset: 4);
+      const childKey = ValueKey('outline-decal-child');
+      const child = SizedBox(key: childKey, width: 30, height: 20);
+      Future<void> sample(Color expected) async => _pixel(
+        (await _borderPixels(tester, const [Offset(20, -8)])).single,
+        expected,
+      );
+      for (final gradient in gradients) {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpWidget(viewScene(_outlineStyle(solid), child: child));
+        final childPosition = tester.getTopLeft(find.byKey(childKey));
+        final outline = ElOutline(width: 8, gradient: gradient, offset: 4);
+        await sample(green);
+        await tester.pumpWidget(
+          viewScene(_outlineStyle(outline), child: child),
+        );
+        await _advance(tester, 1);
+        await sample(green.withValues(alpha: 0.99));
+        await _advance(tester, 49);
+        await sample(green.withValues(alpha: 0.5));
+        await _advance(tester, 49);
+        await sample(green.withValues(alpha: 0.01));
+        await _advance(tester, 1);
+        await sample(const Color(0x00000000));
+
+        await tester.pumpWidget(viewScene(_outlineStyle(solid), child: child));
+        await _advance(tester, 1);
+        await sample(green.withValues(alpha: 0.01));
+        await _advance(tester, 49);
+        await sample(green.withValues(alpha: 0.5));
+        await _advance(tester, 49);
+        await sample(green.withValues(alpha: 0.99));
+        await _advance(tester, 1);
+        await sample(green);
+
+        await tester.pumpWidget(
+          viewScene(_outlineStyle(outline), child: child),
+        );
+        await _advance(tester, 50);
+        await sample(green.withValues(alpha: 0.5));
+        await tester.pumpWidget(viewScene(_outlineStyle(red), child: child));
+        await sample(green.withValues(alpha: 0.5));
+        await _advance(tester, 1);
+        await sample(
+          const Color.from(
+            alpha: 0.505,
+            red: 0.01 / 0.505,
+            green: 0.495 / 0.505,
+            blue: 0,
+          ),
+        );
+        await _advance(tester, 49);
+        await sample(
+          const Color.from(alpha: 0.75, red: 2 / 3, green: 1 / 3, blue: 0),
+        );
+        await _advance(tester, 50);
+        await sample(_red);
+        expect(viewSize(tester), const Size(100, 60));
+        expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
+        expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
+      }
+    });
+
+    testWidgets('方向性渐变与纯色双向过渡途中改向，颜色立即镜像且保持原尺寸截止时间', (tester) async {
+      const gradient = ElOutline(
+        width: 8,
+        offset: 4,
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.centerStart,
+          end: AlignmentDirectional.centerEnd,
+          colors: [_red, _blue],
+        ),
+      );
+      const solid = ElOutline(width: 16, offset: 12, color: Color(0xff00ff00));
+      const positions = [Offset(10, -14), Offset(89, -14)];
+      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
+      await tester.pumpWidget(viewScene(_outlineStyle(solid)));
+      await _advance(tester, 50);
+      var beforeDirection = await _borderPixels(tester, positions);
+      expect(beforeDirection[0].r, greaterThan(beforeDirection[1].r));
+      for (final pixel in beforeDirection) {
+        expect(pixel.a, closeTo(1, 2 / 255));
+        expect(pixel.g, closeTo(0.5, 2 / 255));
+      }
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(solid), direction: TextDirection.rtl),
+      );
+      var afterDirection = await _borderPixels(tester, positions);
+      _pixel(afterDirection[0], beforeDirection[1]);
+      _pixel(afterDirection[1], beforeDirection[0]);
+      await _advance(tester, 25);
+      var pixels = await _borderPixels(tester, positions);
+      for (final pixel in pixels) {
+        expect(pixel.a, closeTo(1, 2 / 255));
+        expect(pixel.g, closeTo(0.75, 2 / 255));
+        expect(pixel.r + pixel.b, closeTo(0.25, 3 / 255));
+      }
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [
+        Offset(50, -26),
+        Offset(50, -30),
+        Offset(50, -10),
+      ]);
+      _pixel(pixels[0], const Color(0xff00ff00));
+      _pixel(pixels[1], const Color(0x00000000));
+      _pixel(pixels[2], const Color(0x00000000));
+
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(gradient), direction: TextDirection.rtl),
+      );
+      await _advance(tester, 50);
+      beforeDirection = await _borderPixels(tester, positions);
+      expect(beforeDirection[0].r, lessThan(beforeDirection[1].r));
+      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
+      afterDirection = await _borderPixels(tester, positions);
+      _pixel(afterDirection[0], beforeDirection[1]);
+      _pixel(afterDirection[1], beforeDirection[0]);
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, positions);
+      for (final pixel in pixels) {
+        expect(pixel.a, closeTo(1, 2 / 255));
+        expect(pixel.g, closeTo(0.25, 2 / 255));
+        expect(pixel.r + pixel.b, closeTo(0.75, 3 / 255));
+      }
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [
+        Offset(10, -8),
+        Offset(50, -14),
+        Offset(50, -2),
+      ]);
+      _pixel(pixels[0], const Color(0xffd60029));
+      _pixel(pixels[1], const Color(0x00000000));
+      _pixel(pixels[2], const Color(0x00000000));
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('渐变方向与 stops 在过渡中间帧共同变化', (tester) async {
+      const a = LinearGradient(colors: [_red, _blue], stops: [0, 0.6]);
+      const b = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [_red, _blue],
+        stops: [0.4, 1],
+      );
+      ElOutline outline(Gradient gradient) =>
+          ElOutline(width: 8, offset: 4, gradient: gradient);
+      await tester.pumpWidget(viewScene(_outlineStyle(outline(a))));
+      await tester.pumpWidget(viewScene(_outlineStyle(outline(b))));
+      await _advance(tester, 50);
+      final pixels = await _borderPixels(tester, const [
+        Offset(10, -8),
+        Offset(90, -8),
+        Offset(50, -8),
+      ]);
+      _pixel(pixels[0], _red);
+      // 原生渐变合并两端 stops 后采样颜色，中间帧并非直接平均 stop 位置。
+      _pixel(pixels[1], const Color(0xff4100be));
+      _pixel(pixels[2], const Color(0xffd2002d));
+      await _advance(tester, 50);
+      final end = await _borderPixels(tester, const [
+        Offset(10, -8),
+        Offset(90, -8),
+      ]);
+      _pixel(end[0], _red);
+      _pixel(end[1], _red);
+    });
+
+    testWidgets('真正 null 与渐变双向过渡保持渐变色相并同时改变轮廓范围', (tester) async {
+      const gradient = ElOutline(
+        width: 8,
+        offset: 4,
+        gradient: LinearGradient(colors: [_red, _blue]),
+      );
+      await tester.pumpWidget(viewScene(_outlineStyle(null)));
+      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
+      for (final fadingOut in [false, true]) {
+        if (fadingOut) {
+          await tester.pumpWidget(viewScene(_outlineStyle(null)));
+        }
+        await _advance(tester, 50);
+        final pixels = await _borderPixels(tester, const [
+          Offset(20, -4),
+          Offset(80, -4),
+          Offset(50, -8),
+        ]);
+        for (final pixel in pixels.take(2)) {
+          expect(pixel.a, closeTo(0.5, 2 / 255));
+          expect(pixel.r + pixel.b, closeTo(1, 3 / 255));
+          expect(pixel.g, closeTo(0, 2 / 255));
+        }
+        expect(pixels[0].r, greaterThan(pixels[1].r));
+        expect(pixels[0].b, lessThan(pixels[1].b));
+        _pixel(pixels[2], const Color(0x00000000));
+        await _advance(tester, 50);
+      }
+      final end = await _borderPixels(tester, const [Offset(50, 0)]);
+      _pixel(end.single, const Color(0x00000000));
+    });
+
+    testWidgets('独立 outline 通道遵守延迟、中断接续、移除配置及零时长延迟', (tester) async {
+      const delayed = [
+        ElTransition.field(
+          ElTransitionField.outline,
+          Duration(milliseconds: 100),
+          Curves.linear,
+          Duration(milliseconds: 50),
+        ),
+      ];
+      const red = ElOutline(width: 4, color: _red);
+      const blue = ElOutline(width: 12, offset: 8, color: _blue);
+      const green = ElOutline(width: 20, offset: 16, color: Color(0xff00ff00));
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(red, transitions: delayed)),
+      );
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(blue, transitions: delayed)),
+      );
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, -2),
+        Offset(50, -6),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], const Color(0x00000000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -6)]);
+      _pixel(pixels.single, const Color(0xff800080));
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(green, transitions: delayed)),
+      );
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -6)]);
+      _pixel(pixels.single, const Color(0xff800080));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -14)]);
+      _pixel(pixels.single, const Color(0xff408040));
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(green, transitions: null)),
+      );
+      pixels = await _borderPixels(tester, const [Offset(50, -24)]);
+      _pixel(pixels.single, const Color(0xff00ff00));
+      const instant = [
+        ElTransition.field(
+          ElTransitionField.outline,
+          Duration.zero,
+          Curves.linear,
+          Duration(milliseconds: 30),
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(_outlineStyle(red, transitions: instant)),
+      );
+      await _advance(tester, 29);
+      pixels = await _borderPixels(tester, const [Offset(50, -24)]);
+      _pixel(pixels.single, const Color(0xff00ff00));
+      await _advance(tester, 1);
+      pixels = await _borderPixels(tester, const [
+        Offset(50, -2),
+        Offset(50, -8),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], const Color(0x00000000));
+    });
+
+    testWidgets('宽度负过冲不会出现 hairline，终点恢复实际轮廓', (tester) async {
+      const transitions = [
+        ElTransition.field(
+          ElTransitionField.outline,
+          Duration(milliseconds: 100),
+          _NegativeCurve(),
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(
+          _outlineStyle(
+            const ElOutline(width: 4, color: _red),
+            transitions: transitions,
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          _outlineStyle(
+            const ElOutline(width: 12, color: _blue),
+            transitions: transitions,
+          ),
+        ),
+      );
+      await _advance(tester, 75);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, 0),
+        Offset(50, -1),
+        Offset(0, 30),
+      ], offset: const Offset(32.5, 32.5));
+      expect(pixels.every((color) => color.a == 0), isTrue);
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [Offset(50, -10)]);
+      _pixel(pixels.single, _blue);
+    });
+
+    testWidgets('负 offset 使中心轮廓塌缩时隐藏，过渡到有效范围后重新出现', (tester) async {
+      ElStyle style(num offset) =>
+          _outlineStyle(ElOutline(width: 8, color: _red, offset: offset));
+      await tester.pumpWidget(viewScene(style(-60)));
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, 24),
+        Offset(50, 30),
+      ]);
+      expect(pixels.every((color) => color.a == 0), isTrue);
+      await tester.pumpWidget(viewScene(style(0)));
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [Offset(50, 24)]);
+      _pixel(pixels.single, const Color(0x00000000));
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [
+        Offset(50, 24),
+        Offset(50, 0),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], const Color(0x00000000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -4)]);
+      _pixel(pixels.single, _red);
+      expect(viewSize(tester), const Size(100, 60));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('auto、百分比和圆角边距联动时，轮廓位于 child 裁剪及边框之上', (tester) async {
+      const childKey = ValueKey('outline-geometry-child');
+      const child = SizedBox(
+        key: childKey,
+        width: 80,
+        height: 40,
+        child: ColoredBox(color: Color(0xff00ff00)),
+      );
+      ElStyle style(bool target) => ElStyle(
+        width: target ? '50%' : null,
+        padding: EdgeInsets.all(target ? 20 : 10),
+        margin: EdgeInsets.all(target ? 10 : 5),
+        borderRadius: BorderRadius.circular(target ? 40 : 0),
+        border: Border.all(
+          color: const Color(0xff000000),
+          width: 12,
+          strokeAlign: BorderSide.strokeAlignOutside,
+        ),
+        outline: ElOutline(
+          width: target ? 12 : 4,
+          offset: target ? 8 : 0,
+          color: target ? _blue : _red,
+        ),
+        clipBehavior: Clip.antiAlias,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(false), child: child));
+      expect(viewSize(tester), const Size(110, 70));
+      await tester.pumpWidget(viewScene(style(true), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(161.25, 85));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      expect(_childOffset(tester, childKey), const Offset(22.5, 22.5));
+      _clip(
+        tester,
+        Clip.antiAlias,
+        radius: BorderRadius.circular(20),
+        rect: const Rect.fromLTWH(7.5, 7.5, 146.25, 70),
+      );
+      final pixels = await _borderPixels(tester, const [
+        Offset(82, -1),
+        Offset(82, 5),
+        Offset(-3, -3),
+        Offset(40, 40),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0xff000000));
+      _pixel(pixels[2], const Color(0x00000000));
+      _pixel(pixels[3], const Color(0xff00ff00));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(210, 100));
+      expect(tester.takeException(), isNull);
     });
   });
 

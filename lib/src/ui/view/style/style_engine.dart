@@ -58,6 +58,28 @@ class StyleEngine {
         : null;
   }
 
+  /// 已完成数值与动画求值的轮廓；零宽或完全透明时不交给绘制器。
+  OutlineStyle? get outline {
+    final value = _values[StyleField.outline.index] as OutlineStyle?;
+    if (value == null || value.width <= 0) return null;
+    if (!(value.color.a > 0 ||
+        (value.gradientOpacity > 0 &&
+            (value.gradient?.colors.any((color) => color.a > 0) ?? false)))) {
+      return null;
+    }
+    // 环境方向立即生效，包括目标已变为纯色、但当前渐变仍在退出的阶段。
+    return value.gradient == null || value.direction == _direction
+        ? value
+        : (
+            width: value.width,
+            offset: value.offset,
+            color: value.color,
+            gradient: value.gradient,
+            gradientOpacity: value.gradientOpacity,
+            direction: _direction,
+          );
+  }
+
   /// 已解析方向、规范零值并完成本帧插值的物理圆角。
   BorderRadius? get borderRadius {
     final value = _values[StyleField.borderRadius.index] as BorderRadius?;
@@ -115,6 +137,8 @@ class StyleEngine {
     );
     _style = style;
     _direction = direction;
+    // 仅刷新可见渐变的 shader，不因方向变化重启宽度、颜色或偏移动画。
+    if (directionChanged && outline?.gradient != null) _damage |= paint;
     for (final field in StyleField.values) {
       final raw = field.declaration(style);
       final changed =

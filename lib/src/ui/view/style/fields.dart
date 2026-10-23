@@ -11,7 +11,8 @@ enum StyleField {
   clipBehavior,
   widthFactor,
   heightFactor,
-  border;
+  border,
+  outline;
 
   bool get isLength => this == width || this == height;
 
@@ -22,7 +23,7 @@ enum StyleField {
     margin ||
     widthFactor ||
     heightFactor => StyleEngine.layout,
-    backgroundColor || borderRadius || border => StyleEngine.paint,
+    backgroundColor || borderRadius || border || outline => StyleEngine.paint,
     clipBehavior => StyleEngine.paint | StyleEngine.semantics,
   };
 
@@ -37,6 +38,7 @@ enum StyleField {
     widthFactor => ElTransitionField.widthFactor,
     heightFactor => ElTransitionField.heightFactor,
     border => ElTransitionField.border,
+    outline => ElTransitionField.outline,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -50,6 +52,7 @@ enum StyleField {
     widthFactor => style.widthFactor,
     heightFactor => style.heightFactor,
     border => style.border,
+    outline => style.outline,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
@@ -62,7 +65,8 @@ enum StyleField {
     backgroundColor ||
     clipBehavior ||
     widthFactor ||
-    heightFactor => false,
+    heightFactor ||
+    outline => false,
   };
 
   Object? parse(Object value, TextDirection direction) => switch (this) {
@@ -73,6 +77,7 @@ enum StyleField {
     clipBehavior => value == Clip.none ? null : value as Clip,
     widthFactor || heightFactor => _parseFactor(value as num),
     border => _resolveBorder(value as BoxBorder, direction),
+    outline => _parseOutline(value as ElOutline, direction),
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -83,5 +88,6 @@ enum StyleField {
     clipBehavior => to,
     widthFactor || heightFactor => _factorLerp(from, to, t),
     border => _borderLerp(from as Border?, to as Border?, t),
+    outline => _outlineLerp(from as OutlineStyle?, to as OutlineStyle?, t),
   };
 }

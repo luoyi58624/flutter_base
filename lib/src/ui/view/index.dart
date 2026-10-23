@@ -4,7 +4,13 @@ import 'render/index.dart';
 import 'style/index.dart';
 
 export 'style/index.dart'
-    show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
+    show
+        ElStyle,
+        ElStyleExt,
+        ElOutline,
+        ElOutlineExt,
+        ElTransition,
+        ElTransitionField;
 
 /// 由一个渲染对象实现盒模型；重建后的样式变化按 transitions 过渡。
 class ElView extends SingleChildRenderObjectWidget {

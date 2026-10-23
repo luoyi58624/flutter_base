@@ -1,7 +1,9 @@
 import 'package:flutter/rendering.dart';
 
 import 'border.dart';
+import 'outline.dart';
 import 'shape.dart';
+import '../style/resolved/outline.dart';
 
 /// 按需持有盒装饰资源，简单背景不构造路径或合成图层。
 class DecorationPainter {
@@ -11,6 +13,24 @@ class DecorationPainter {
   final ShapeGeometry Function() _shape;
   Paint? _background;
   BorderPainter? _border;
+  OutlinePainter? _outline;
+
+  /// 按需绘制位于边框之上的轮廓。
+  void paintOutline(
+    PaintingContext context,
+    Rect rect,
+    OutlineStyle outline, {
+    BorderRadius? borderRadius,
+  }) => (_outline ??= OutlinePainter(
+    _shape,
+  )).paint(context.canvas, rect, outline, borderRadius: borderRadius);
+
+  /// 不创建绘制资源，计算轮廓可能扩大的可见范围。
+  Rect outlineBounds(Rect rect, OutlineStyle outline) =>
+      OutlinePainter.bounds(rect, outline);
+
+  /// 轮廓退出后解除对旧画笔、几何和 shader 的持有。
+  void clearOutline() => _outline = null;
 
   /// 按需绘制覆盖在盒与内容之上的边框。
   void paintBorder(
