@@ -1,4 +1,4 @@
-import 'dart:ui' show ColorSpace;
+import 'dart:ui' show ColorSpace, ImageByteFormat, PictureRecorder;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -200,6 +200,49 @@ Color _color(RenderBox box) {
 
 Future<void> _advance(WidgetTester tester, int ms) =>
     tester.pump(Duration(milliseconds: ms));
+
+/// 在真实画布上采样当前视图，验证边框覆盖范围和最终可见颜色。
+Future<List<Color>> _borderPixels(
+  WidgetTester tester,
+  List<Offset> positions, {
+  Offset offset = const Offset(32, 32),
+}) async => (await tester.runAsync(() async {
+  const imageWidth = 600;
+  final recorder = PictureRecorder();
+  viewBox(tester).paint(TestRecordingPaintingContext(Canvas(recorder)), offset);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(imageWidth, 400);
+  final data = (await image.toByteData(
+    format: ImageByteFormat.rawStraightRgba,
+  ))!;
+  final bytes = data.buffer.asUint8List();
+  final colors = positions.map((position) {
+    final point = position + offset;
+    final index = (point.dy.floor() * imageWidth + point.dx.floor()) * 4;
+    return Color.fromARGB(
+      bytes[index + 3],
+      bytes[index],
+      bytes[index + 1],
+      bytes[index + 2],
+    );
+  }).toList();
+  image.dispose();
+  picture.dispose();
+  return colors;
+}))!;
+
+void _pixel(Color actual, Color expected) {
+  expect(actual.a, closeTo(expected.a, 2 / 255));
+  if (expected.a == 0) return;
+  expect(actual.r, closeTo(expected.r, 2 / 255));
+  expect(actual.g, closeTo(expected.g, 2 / 255));
+  expect(actual.b, closeTo(expected.b, 2 / 255));
+}
+
+ElStyle _borderStyle(
+  BoxBorder? border, {
+  List<ElTransition>? transitions = _linear,
+}) => ElStyle(width: 100, height: 60, border: border, transitions: transitions);
 
 void main() {
   group('样式过渡与颜色中间值', () {
@@ -1679,6 +1722,376 @@ void main() {
       expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
       await _advance(tester, 25);
       expect(viewSize(tester), const Size(240, 120));
+    });
+  });
+
+  group('边框中间值与可见结果', () {
+    testWidgets('宽度、颜色和内外描边共同插值，边框不改变布局', (tester) async {
+      const childKey = ValueKey('border-animation-child');
+      const siblingKey = ValueKey('border-animation-sibling');
+      const child = SizedBox(key: childKey, width: 30, height: 20);
+      Widget scene(BoxBorder border) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElView(key: viewKey, style: _borderStyle(border), child: child),
+              const SizedBox(key: siblingKey, width: 30, height: 20),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpWidget(scene(Border.all(color: _red, width: 4)));
+      final childPosition = tester.getTopLeft(find.byKey(childKey));
+      final siblingPosition = tester.getTopLeft(find.byKey(siblingKey));
+      await tester.pumpWidget(
+        scene(
+          Border.all(
+            color: _blue,
+            width: 12,
+            strokeAlign: BorderSide.strokeAlignOutside,
+          ),
+        ),
+      );
+      await _advance(tester, 50);
+      final pixels = await _borderPixels(tester, const [
+        Offset(50, -3),
+        Offset(50, 3),
+        Offset(50, -5),
+        Offset(50, 5),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0xff800080));
+      _pixel(pixels[2], const Color(0x00000000));
+      _pixel(pixels[3], const Color(0x00000000));
+      expect(viewSize(tester), const Size(100, 60));
+      expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
+      expect(_childOffset(tester, childKey), Offset.zero);
+      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
+      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
+      await _advance(tester, 50);
+      final end = await _borderPixels(tester, const [
+        Offset(50, -10),
+        Offset(50, 2),
+      ]);
+      _pixel(end[0], _blue);
+      _pixel(end[1], const Color(0x00000000));
+      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
+      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
+    });
+
+    for (final hairline in [false, true]) {
+      testWidgets('null 与${hairline ? '细线' : '外描边'}双向过渡保留可见颜色和位置', (
+        tester,
+      ) async {
+        final border = Border.all(
+          color: _red,
+          width: hairline ? 0 : 8,
+          strokeAlign: BorderSide.strokeAlignOutside,
+        );
+        final offset = hairline
+            ? const Offset(32.5, 32.5)
+            : const Offset(32, 32);
+        final positions = hairline
+            ? const [Offset(50, 0), Offset(50, 2)]
+            : const [Offset(50, -2), Offset(50, 2), Offset(50, -6)];
+        await tester.pumpWidget(viewScene(_borderStyle(null)));
+        await tester.pumpWidget(viewScene(_borderStyle(border)));
+        await _advance(tester, 50);
+        var pixels = await _borderPixels(tester, positions, offset: offset);
+        _pixel(pixels.first, const Color(0x80ff0000));
+        for (final pixel in pixels.skip(1)) {
+          _pixel(pixel, const Color(0x00000000));
+        }
+        await _advance(tester, 50);
+        await tester.pumpWidget(viewScene(_borderStyle(null)));
+        await _advance(tester, 50);
+        pixels = await _borderPixels(tester, positions, offset: offset);
+        _pixel(pixels.first, const Color(0x80ff0000));
+        for (final pixel in pixels.skip(1)) {
+          _pixel(pixel, const Color(0x00000000));
+        }
+        await _advance(tester, 50);
+        pixels = await _borderPixels(tester, positions, offset: offset);
+        expect(pixels.every((color) => color.a == 0), isTrue);
+      });
+    }
+
+    testWidgets('半透明与带隐藏 RGB 的透明 solid 互转，保留宽度并按预乘颜色淡出', (tester) async {
+      final visible = Border.all(color: const Color(0x80ff0000), width: 8);
+      final transparent = Border.all(color: const Color(0x000000ff), width: 16);
+      await tester.pumpWidget(viewScene(_borderStyle(visible)));
+      await tester.pumpWidget(viewScene(_borderStyle(transparent)));
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, 10),
+        Offset(50, 13),
+      ]);
+      _pixel(pixels[0], const Color(0x40ff0000));
+      _pixel(pixels[1], const Color(0x00000000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 2)]);
+      _pixel(pixels.single, const Color(0x00000000));
+      await tester.pumpWidget(viewScene(_borderStyle(visible)));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
+      _pixel(pixels.single, const Color(0x40ff0000));
+      await _advance(tester, 50);
+    });
+
+    testWidgets('单边 none 的隐藏宽度和颜色不污染 solid 中间值，描边位置仍连续变化', (tester) async {
+      const hidden = Border(
+        top: BorderSide(
+          color: _blue,
+          width: 100,
+          style: BorderStyle.none,
+          strokeAlign: BorderSide.strokeAlignOutside,
+        ),
+      );
+      const visible = Border(top: BorderSide(color: _red, width: 8));
+      await tester.pumpWidget(viewScene(_borderStyle(hidden)));
+      await tester.pumpWidget(viewScene(_borderStyle(visible)));
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, -1),
+        Offset(50, 1),
+        Offset(50, 3),
+      ]);
+      _pixel(pixels[0], const Color(0x80ff0000));
+      _pixel(pixels[1], const Color(0x80ff0000));
+      _pixel(pixels[2], const Color(0x00000000));
+      await _advance(tester, 50);
+      await tester.pumpWidget(viewScene(_borderStyle(hidden)));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, -1)]);
+      _pixel(pixels.single, const Color(0x80ff0000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 0)]);
+      _pixel(pixels.single, const Color(0x00000000));
+    });
+
+    testWidgets('非均匀四边分别插值宽度、透明度和细线，不借用相邻边结果', (tester) async {
+      const a = Border(
+        top: BorderSide(color: _red, width: 4),
+        right: BorderSide(color: Color(0xff00ff00), width: 8),
+        left: BorderSide(color: Color(0x80ff0000), width: 20),
+      );
+      const b = Border(
+        top: BorderSide(color: _blue, width: 12),
+        right: BorderSide(color: Color(0xff00ff00), width: 0),
+        bottom: BorderSide(color: _blue, width: 8),
+        left: BorderSide(color: Color(0x80ff0000), width: 4),
+      );
+      await tester.pumpWidget(viewScene(_borderStyle(a)));
+      await tester.pumpWidget(viewScene(_borderStyle(b)));
+      await _advance(tester, 50);
+      final pixels = await _borderPixels(tester, const [
+        Offset(50, 5),
+        Offset(98, 30),
+        Offset(50, 58),
+        Offset(8, 30),
+        Offset(50, 30),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0xff00ff00));
+      _pixel(pixels[2], const Color(0x800000ff));
+      _pixel(pixels[3], const Color(0x80ff0000));
+      _pixel(pixels[4], const Color(0x00000000));
+      await _advance(tester, 50);
+    });
+
+    testWidgets('BorderDirectional 的方向切换从当前物理边框接续', (tester) async {
+      final style = _borderStyle(
+        const BorderDirectional(
+          start: BorderSide(color: _red, width: 8),
+          end: BorderSide(color: _blue, width: 4),
+        ),
+      );
+      await tester.pumpWidget(viewScene(style));
+      await tester.pumpWidget(viewScene(style, direction: TextDirection.rtl));
+      var pixels = await _borderPixels(tester, const [
+        Offset(2, 30),
+        Offset(98, 30),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], _blue);
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [
+        Offset(4, 30),
+        Offset(95, 30),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0xff800080));
+      await tester.pumpWidget(viewScene(style));
+      pixels = await _borderPixels(tester, const [Offset(4, 30)]);
+      _pixel(pixels.single, const Color(0xff800080));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [
+        Offset(4, 30),
+        Offset(98, 30),
+      ]);
+      _pixel(pixels[0], const Color(0xffbf0040));
+      _pixel(pixels[1], const Color(0xff4000bf));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [
+        Offset(6, 30),
+        Offset(98, 30),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], _blue);
+    });
+
+    testWidgets('边框独立配置的 delay、中断、移除与零时长延迟遵守可见时间线', (tester) async {
+      const delayed = [
+        ElTransition.field(
+          ElTransitionField.border,
+          Duration(milliseconds: 100),
+          Curves.linear,
+          Duration(milliseconds: 50),
+        ),
+      ];
+      final red = Border.all(color: _red, width: 4);
+      final blue = Border.all(color: _blue, width: 12);
+      final green = Border.all(color: const Color(0xff00ff00), width: 20);
+      await tester.pumpWidget(
+        viewScene(_borderStyle(red, transitions: delayed)),
+      );
+      await tester.pumpWidget(
+        viewScene(_borderStyle(blue, transitions: delayed)),
+      );
+      await _advance(tester, 50);
+      var pixels = await _borderPixels(tester, const [
+        Offset(50, 2),
+        Offset(50, 5),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], const Color(0x00000000));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 5)]);
+      _pixel(pixels.single, const Color(0xff800080));
+      await tester.pumpWidget(
+        viewScene(_borderStyle(green, transitions: delayed)),
+      );
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 5)]);
+      _pixel(pixels.single, const Color(0xff800080));
+      await _advance(tester, 50);
+      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
+      _pixel(pixels.single, const Color(0xff408040));
+      await tester.pumpWidget(
+        viewScene(_borderStyle(green, transitions: null)),
+      );
+      pixels = await _borderPixels(tester, const [Offset(50, 18)]);
+      _pixel(pixels.single, const Color(0xff00ff00));
+      const instant = [
+        ElTransition.field(
+          ElTransitionField.border,
+          Duration.zero,
+          Curves.linear,
+          Duration(milliseconds: 30),
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(_borderStyle(red, transitions: instant)),
+      );
+      await _advance(tester, 29);
+      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
+      _pixel(pixels.single, const Color(0xff00ff00));
+      await _advance(tester, 1);
+      pixels = await _borderPixels(tester, const [
+        Offset(50, 2),
+        Offset(50, 10),
+      ]);
+      _pixel(pixels[0], _red);
+      _pixel(pixels[1], const Color(0x00000000));
+    });
+
+    testWidgets('auto 与百分比、边距和圆角联动时，外描边始终绘制在 child 裁剪之外', (tester) async {
+      const childKey = ValueKey('border-geometry-child');
+      const child = SizedBox(
+        key: childKey,
+        width: 80,
+        height: 40,
+        child: ColoredBox(color: Color(0xff00ff00)),
+      );
+      ElStyle style(bool target) => ElStyle(
+        width: target ? '50%' : null,
+        padding: EdgeInsets.all(target ? 20 : 10),
+        margin: EdgeInsets.all(target ? 10 : 5),
+        borderRadius: BorderRadius.circular(target ? 40 : 0),
+        border: Border.all(
+          color: target ? _blue : _red,
+          width: target ? 12 : 4,
+          strokeAlign: target
+              ? BorderSide.strokeAlignOutside
+              : BorderSide.strokeAlignInside,
+        ),
+        clipBehavior: Clip.antiAlias,
+        transitions: _linear,
+      );
+      await tester.pumpWidget(viewScene(style(false), child: child));
+      expect(viewSize(tester), const Size(110, 70));
+      await tester.pumpWidget(viewScene(style(true), child: child));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(161.25, 85));
+      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+      expect(_childOffset(tester, childKey), const Offset(22.5, 22.5));
+      _clip(
+        tester,
+        Clip.antiAlias,
+        radius: BorderRadius.circular(20),
+        rect: const Rect.fromLTWH(7.5, 7.5, 146.25, 70),
+      );
+      final pixels = await _borderPixels(tester, const [
+        Offset(82, 5),
+        Offset(5, 5),
+        Offset(40, 40),
+      ]);
+      _pixel(pixels[0], const Color(0xff800080));
+      _pixel(pixels[1], const Color(0x00000000));
+      _pixel(pixels[2], const Color(0xff00ff00));
+      await _advance(tester, 50);
+      expect(viewSize(tester), const Size(210, 100));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('负过冲导致宽度小于零时不退化成意外细线，终点恢复目标边框', (tester) async {
+      const transitions = [
+        ElTransition.field(
+          ElTransitionField.border,
+          Duration(milliseconds: 100),
+          _NegativeCurve(),
+        ),
+      ];
+      await tester.pumpWidget(
+        viewScene(
+          _borderStyle(
+            Border.all(color: _red, width: 4),
+            transitions: transitions,
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        viewScene(
+          _borderStyle(
+            Border.all(color: _blue, width: 12),
+            transitions: transitions,
+          ),
+        ),
+      );
+      await _advance(tester, 75);
+      final positions = const [Offset(50, 0), Offset(50, 2), Offset(0, 30)];
+      var pixels = await _borderPixels(
+        tester,
+        positions,
+        offset: const Offset(32.5, 32.5),
+      );
+      expect(pixels.every((color) => color.a == 0), isTrue);
+      expect(tester.takeException(), isNull);
+      await _advance(tester, 25);
+      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
+      _pixel(pixels.single, _blue);
     });
   });
 

@@ -46,6 +46,18 @@ class StyleEngine {
   Color? get backgroundColor =>
       _values[StyleField.backgroundColor.index] as Color?;
 
+  /// 已解析方向和本帧过渡的物理边框；完全不可见时不启动绘制执行器。
+  Border? get border {
+    final value = _values[StyleField.border.index] as Border?;
+    return value != null &&
+            (_paintsBorderSide(value.top) ||
+                _paintsBorderSide(value.right) ||
+                _paintsBorderSide(value.bottom) ||
+                _paintsBorderSide(value.left))
+        ? value
+        : null;
+  }
+
   /// 已解析方向、规范零值并完成本帧插值的物理圆角。
   BorderRadius? get borderRadius {
     final value = _values[StyleField.borderRadius.index] as BorderRadius?;

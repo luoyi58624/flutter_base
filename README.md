@@ -70,8 +70,8 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 ## ElView 基础视图
 
 入口为 `package:flutter_base/ui.dart`。`ElView` 只有 `style`、`child`（以及标准
-`key`），使用一个 RenderObject 完成盒模型与背景绘制。首版样式字段为
-`width`、`height`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`borderRadius`、`clipBehavior`
+`key`），使用一个 RenderObject 完成盒模型与装饰绘制。当前样式字段为
+`width`、`height`、`widthFactor`、`heightFactor`、`backgroundColor`、`padding`、`margin`、`border`、`borderRadius`、`clipBehavior`
 和过渡配置 `transitions`。
 
 - 宽高接受数值或百分比字符串，包含 padding、不包含 margin；null 为 auto。
@@ -90,12 +90,19 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
   消失或恢复也从当前尺寸接续，delay 内失去参照不会造成等待期跳变或首帧停顿。
 - 背景使用预乘 alpha 插值，透明端点的隐藏 RGB 不污染中间颜色；null 与颜色之间
   平滑淡入淡出，最终 null 停止绘制。支持方向性边距及曲线过冲的有效值约束。
+- 边框接受原生 `Border` / `BorderDirectional`，支持独立四边颜色、粗细、none、hairline
+  和 `strokeAlign`。它只触发重绘，不占布局空间、不自动增加 padding；粗细过渡不挤压
+  child 或移动兄弟元素。方向、粗细、描边位置和预乘 alpha 颜色由 StyleEngine 处理，
+  null / none 从零宽透明边过渡，明确的透明 solid 边保留粗细与圆角归属。
+  单边接管相邻完整圆弧，共角的两条边各占半角；与椭圆角、超大圆角共用规范形状。
+  边框在 child 上方绘制，外描边计入绘制范围，不扩大盒外的命中范围。
 - 圆角接受原生 `BorderRadiusGeometry`，支持独立四角、椭圆角和方向性圆角；非负且有限，
-  null 或等效方角走矩形快路。超大圆角按实际尺寸统一缩放，默认只作用于背景。
+  null 或等效方角走矩形快路。超大圆角按实际尺寸统一缩放，作用于背景与边框。
   方向解析与过渡由 StyleEngine 完成，null 按零插值；纯圆角动画只重绘，不触发布局。
 - `clipBehavior` 默认为 `Clip.none`；启用后按当前盒形状裁剪背景与 child，不包含 margin，
   同步过滤 child 命中。支持 hardEdge、antiAlias、antiAliasWithSaveLayer，模式立即切换，
-  不参与 `ElTransition.all()` 插值。无圆角使用矩形裁剪，无背景也可以裁剪 child。
+  不参与 `ElTransition.all()` 插值。无圆角使用矩形裁剪，无背景也可以裁剪 child；
+  边框在该裁剪结束后绘制，center / outside 描边不会被自身裁剪截掉。
 - 盒模型属性不级联继承；边距方向通过官方 Directionality 读取。声明式过渡仅由
   transitions 控制，不订阅系统动画开关；此层没有 vars、styleBuilder 或事件系统。
 
@@ -108,15 +115,17 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - `layout/box_layout.dart` 的 BoxLayout 统一执行尺寸、内外边距、真实/dry/intrinsic/
   baseline、正式几何和按轴百分比参照依赖；未声明边距时直接复用约束。
 - `paint/decoration.dart` 的 DecorationPainter 按需创建并复用背景画笔，矩形背景不构造
-  形状、路径或图层。有背景且实际消费圆角时才创建 `paint/shape.dart` 的 ShapeGeometry，
+  形状、路径或图层。背景、边框或裁剪实际消费圆角时才创建 `paint/shape.dart` 的 ShapeGeometry，
   绘制与自身命中共用规范圆角；仅尺寸或圆角变化重建，颜色、外边距和整体位置变化复用局部形状。
+- `paint/border.dart` 由 DecorationPainter 按需持有，复用旧版角归属与中心线算法；
+  补齐非均匀粗细、原生描边位置和 hairline，纯颜色变化不重建边框几何。
 - `paint/effects.dart` 的 EffectController 仅在实际裁剪时创建，与装饰共用局部形状。
   由 Flutter 根据现有合成需求选择画布或图层，复用可用裁剪层，停用时释放持有权；
   不因 saveLayer 模式强制增加合成层。外层裁剪已定义圆角时，背景画矩形以避免重复抗锯齿。
 
 Ticker 和轨道集合只为实际过渡创建；首次挂载或仅声明 transitions 不启动时钟。
 动画只采样活动轨道，不重建 ElStyle 或 child；固定尺寸采样值未变时不请求布局，
-纯颜色或圆角变化只重绘，也不重新解析尺寸和边距。
+纯颜色、圆角或边框变化只重绘，也不重新解析尺寸和边距。
 
 ```dart
 ElView(

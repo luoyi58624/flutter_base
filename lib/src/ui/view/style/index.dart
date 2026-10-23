@@ -28,6 +28,7 @@ class ElStyle with Equatable {
     this.backgroundColor,
     this.padding,
     this.margin,
+    this.border,
     this.borderRadius,
     this.clipBehavior,
     this.transitions,
@@ -54,7 +55,11 @@ class ElStyle with Equatable {
   /// 非负有限外边距，背景不覆盖此区域；null 等同于零。
   final EdgeInsetsGeometry? margin;
 
-  /// 非负有限的背景圆角，支持方向性圆角；null 等同于零，裁剪由 clipBehavior 决定。
+  /// 原生 Border 或 BorderDirectional，仅覆盖绘制、不占布局；null 表示无边框。
+  /// 粗细必须非负且有限，strokeAlign 必须有限；零宽 solid 保留原生 hairline。
+  final BoxBorder? border;
+
+  /// 非负有限的背景与边框圆角，支持方向性圆角；裁剪由 clipBehavior 决定。
   final BorderRadiusGeometry? borderRadius;
 
   /// 背景与 child 的裁剪方式；null 等同于 Clip.none，模式切换不参与过渡。

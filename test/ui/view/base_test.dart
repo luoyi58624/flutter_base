@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
@@ -149,7 +152,560 @@ Color _color(RenderBox box) {
   return result!;
 }
 
+const _borderCaptureKey = ValueKey('border-capture');
+const _green = Color(0xff00ff00), _yellow = Color(0xffffff00);
+
+class _Pixels {
+  const _Pixels(this.bytes, this.width);
+
+  final ByteData bytes;
+  final int width;
+
+  Color at(int x, int y) {
+    final index = (y * width + x) * 4;
+    return Color.fromARGB(
+      bytes.getUint8(index + 3),
+      bytes.getUint8(index),
+      bytes.getUint8(index + 1),
+      bytes.getUint8(index + 2),
+    );
+  }
+}
+
+/// 在视觉盒四周保留空间，读取真实合成后的内外描边像素。
+Future<_Pixels> _borderPixels(
+  WidgetTester tester,
+  ElStyle style, {
+  Widget? child,
+  TextDirection direction = TextDirection.ltr,
+}) async {
+  await tester.pumpWidget(
+    Directionality(
+      textDirection: direction,
+      child: Center(
+        child: RepaintBoundary(
+          key: _borderCaptureKey,
+          child: SizedBox(
+            width: 160,
+            height: 120,
+            child: Center(
+              child: ElView(key: viewKey, style: style, child: child),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  return (await tester.runAsync(() async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(_borderCaptureKey),
+    );
+    final image = await boundary.toImage(pixelRatio: 1);
+    try {
+      final bytes = await image.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      );
+      return _Pixels(bytes!, image.width);
+    } finally {
+      image.dispose();
+    }
+  }))!;
+}
+
 void main() {
+  group('边框基本功能', () {
+    testWidgets('边框覆盖自然盒，不挤占 auto、百分比和 factor 的内容与边距', (tester) async {
+      const childKey = ValueKey('border-layout-child');
+      const base = ElStyle(
+        padding: EdgeInsets.fromLTRB(5, 7, 15, 13),
+        margin: EdgeInsets.fromLTRB(3, 4, 7, 6),
+        border: Border.fromBorderSide(BorderSide(color: _red, width: 30)),
+      );
+      for (final (style, size) in [
+        (base, const Size(110, 70)),
+        (base.copyWith(width: '50%', height: '50%'), const Size(205, 155)),
+        (base.copyWith(widthFactor: 2, heightFactor: 2), const Size(210, 130)),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            style,
+            child: const SizedBox(key: childKey, width: 80, height: 40),
+          ),
+        );
+        expect(viewSize(tester), size);
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+        expect(
+          tester.getTopLeft(find.byKey(childKey)) -
+              tester.getTopLeft(find.byKey(viewKey)),
+          const Offset(8, 11),
+        );
+      }
+      const neighborKey = ValueKey('border-layout-neighbor');
+      for (final width in [2.0, 40.0]) {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElView(
+                    key: viewKey,
+                    style: ElStyle(
+                      width: 100,
+                      height: 60,
+                      margin: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(5),
+                      border: Border.all(color: _red, width: width),
+                    ),
+                    child: const SizedBox(key: childKey, width: 80, height: 40),
+                  ),
+                  const SizedBox(key: neighborKey, width: 20, height: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+        final origin = tester.getTopLeft(find.byKey(viewKey));
+        expect(viewSize(tester), const Size(120, 80));
+        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
+        expect(
+          tester.getTopLeft(find.byKey(childKey)) - origin,
+          const Offset(15, 15),
+        );
+        expect(tester.getTopLeft(find.byKey(neighborKey)).dx - origin.dx, 120);
+      }
+    });
+
+    testWidgets('边框通过 copyWith、merge 替换与显式清空后更新可见结果', (tester) async {
+      const base = ElStyle(
+        width: 100,
+        height: 60,
+        border: Border.fromBorderSide(BorderSide(color: _red, width: 4)),
+      );
+      var pixels = await _borderPixels(tester, base);
+      expect(pixels.at(80, 31), _red);
+      pixels = await _borderPixels(
+        tester,
+        base.merge(
+          const ElStyle(
+            border: Border.fromBorderSide(BorderSide(color: _green, width: 8)),
+          ),
+        ),
+      );
+      expect(pixels.at(80, 35), _green);
+      await tester.pumpWidget(viewScene(base.copyWith(border: null)));
+      expect(viewBox(tester), paintsNothing);
+      expect(viewSize(tester), const Size(100, 60));
+    });
+
+    testWidgets('矩形四边独立颜色和粗细正确，单边 none 不留下颜色', (tester) async {
+      const border = Border(
+        top: BorderSide(color: _red, width: 4),
+        right: BorderSide(color: _green, width: 8),
+        bottom: BorderSide(color: _blue, width: 12),
+        left: BorderSide(color: _yellow, width: 16),
+      );
+      var pixels = await _borderPixels(
+        tester,
+        const ElStyle(width: 100, height: 60, border: border),
+      );
+      for (final (point, color) in [
+        (const Offset(80, 31), _red),
+        (const Offset(128, 60), _green),
+        (const Offset(80, 85), _blue),
+        (const Offset(35, 60), _yellow),
+      ]) {
+        expect(pixels.at(point.dx.toInt(), point.dy.toInt()), color);
+      }
+      expect(pixels.at(80, 35).a, 0);
+      expect(pixels.at(80, 60).a, 0);
+      pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border(top: BorderSide(color: _red, width: 4)),
+        ),
+      );
+      expect(pixels.at(80, 31), _red);
+      expect(pixels.at(128, 60).a, 0);
+      expect(pixels.at(35, 60).a, 0);
+    });
+
+    testWidgets('方向性边框随 LTR 和 RTL 更新，而上下边保持不变', (tester) async {
+      const style = ElStyle(
+        width: 100,
+        height: 60,
+        border: BorderDirectional(
+          top: BorderSide(color: _red, width: 2),
+          start: BorderSide(color: _blue, width: 8),
+          end: BorderSide(color: _green, width: 14),
+          bottom: BorderSide(color: _yellow, width: 6),
+        ),
+      );
+      for (final direction in TextDirection.values) {
+        final pixels = await _borderPixels(tester, style, direction: direction);
+        expect(
+          pixels.at(34, 60),
+          direction == TextDirection.ltr ? _blue : _green,
+        );
+        expect(
+          pixels.at(125, 60),
+          direction == TextDirection.ltr ? _green : _blue,
+        );
+        expect(pixels.at(80, 30), _red);
+        expect(pixels.at(80, 87), _yellow);
+      }
+    });
+
+    testWidgets('孤立底边独占两端完整圆弧，仅与可见相邻边分角', (tester) async {
+      const base = ElStyle(
+        width: 100,
+        height: 60,
+        border: Border(bottom: BorderSide(color: _blue, width: 6)),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      );
+      var pixels = await _borderPixels(tester, base);
+      for (final point in [
+        const Offset(34, 78),
+        const Offset(42, 86),
+        const Offset(126, 78),
+        const Offset(118, 86),
+      ]) {
+        expect(pixels.at(point.dx.toInt(), point.dy.toInt()), _blue);
+      }
+      expect(pixels.at(42, 33).a, 0);
+      pixels = await _borderPixels(
+        tester,
+        base.copyWith(
+          border: const Border(
+            bottom: BorderSide(color: _blue, width: 6, strokeAlign: 1),
+          ),
+        ),
+      );
+      expect(viewBox(tester).paintBounds, const Rect.fromLTRB(-6, 0, 106, 66));
+      expect(pixels.at(26, 75), _blue);
+      expect(pixels.at(134, 75), _blue);
+      pixels = await _borderPixels(
+        tester,
+        base.copyWith(
+          border: const Border(
+            bottom: BorderSide(color: _blue, width: 6),
+            left: BorderSide(color: _yellow, width: 10),
+          ),
+        ),
+      );
+      expect(pixels.at(34, 78), _yellow);
+      expect(pixels.at(42, 86), _blue);
+      expect(pixels.at(126, 78), _blue);
+      expect(pixels.at(42, 33), _yellow);
+      expect(pixels.at(118, 33).a, 0);
+    });
+
+    testWidgets('null、全部 none 和全透明边框不绘制，也不单独创建命中区域', (tester) async {
+      for (final border in <BoxBorder?>[
+        null,
+        const Border.fromBorderSide(
+          BorderSide(color: _red, width: 30, style: BorderStyle.none),
+        ),
+        const Border.fromBorderSide(
+          BorderSide(color: Color(0x00ff0000), width: 30, strokeAlign: 2),
+        ),
+      ]) {
+        await tester.pumpWidget(
+          viewScene(
+            ElStyle(
+              width: 100,
+              height: 60,
+              border: border,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        );
+        expect(viewBox(tester), paintsNothing);
+        expect(_hits(tester, const Offset(50, 30)), isFalse);
+        expect(viewBox(tester).paintBounds, const Rect.fromLTWH(0, 0, 100, 60));
+      }
+    });
+
+    testWidgets('width 为零的 solid 边框保留 hairline，不变成 none 或填满', (tester) async {
+      var pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border.fromBorderSide(BorderSide(color: _red, width: 0)),
+        ),
+      );
+      expect(pixels.at(80, 29).a + pixels.at(80, 30).a, greaterThan(0));
+      expect(pixels.at(80, 32).a, 0);
+      expect(pixels.at(80, 60).a, 0);
+      expect(_hits(tester, const Offset(50, 30)), isTrue);
+      pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border(
+            top: BorderSide(color: _red, width: 0),
+            left: BorderSide(color: _blue, width: 8),
+            bottom: BorderSide(color: _green, width: 6),
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+      );
+      expect(pixels.at(80, 29).a + pixels.at(80, 30).a, greaterThan(0));
+      expect(pixels.at(34, 60), _blue);
+      expect(pixels.at(80, 87), _green);
+      expect(pixels.at(129, 60).a, 0);
+      expect(pixels.at(80, 60).a, 0);
+    });
+
+    testWidgets('内外描边与范围外的有限 strokeAlign 正常，外描边不扩大命中', (tester) async {
+      for (final (align, sampleX) in [
+        (-2.0, 35),
+        (-1.0, 35),
+        (0.0, 28),
+        (1.0, 25),
+        (2.0, 20),
+      ]) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            border: Border.all(color: _red, width: 10, strokeAlign: align),
+          ),
+        );
+        expect(pixels.at(sampleX, 60), _red, reason: 'strokeAlign: $align');
+        final outset = (10 * (1 + align) / 2).clamp(0.0, double.infinity);
+        expect(
+          viewBox(tester).paintBounds,
+          Rect.fromLTRB(-outset, -outset, 100 + outset, 60 + outset),
+        );
+        if (outset > 0) {
+          final corner = (30 - outset + 1).toInt();
+          expect(
+            pixels.at(corner, corner),
+            _red,
+            reason: 'strokeAlign: $align 的无圆角外框仍是方角',
+          );
+        }
+        expect(_hits(tester, const Offset(-2, 30)), isFalse);
+        expect(_hits(tester, const Offset(50, 30)), isTrue);
+        expect(pixels.at(80, 60).a, 0);
+      }
+      final pixels = await _borderPixels(
+        tester,
+        ElStyle(
+          width: 100,
+          height: 60,
+          border: Border.all(color: _red, width: 10, strokeAlign: 1),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(20)),
+        ),
+      );
+      expect(pixels.at(138, 21), _red);
+      expect(pixels.at(21, 21).a, 0);
+    });
+
+    testWidgets('非均匀多色边框组合椭圆圆角，过粗和超大圆角仍绘制有限形状', (tester) async {
+      const border = Border(
+        top: BorderSide(color: _red, width: 6),
+        right: BorderSide(color: _green, width: 10),
+        bottom: BorderSide(color: _blue, width: 14),
+        left: BorderSide(color: _yellow, width: 18),
+      );
+      var pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: border,
+          borderRadius: BorderRadius.all(Radius.elliptical(30, 20)),
+        ),
+      );
+      expect(pixels.at(31, 31).a, 0);
+      expect(pixels.at(80, 32), _red);
+      expect(pixels.at(125, 60), _green);
+      expect(pixels.at(80, 85), _blue);
+      expect(pixels.at(35, 60), _yellow);
+      expect(pixels.at(80, 60).a, 0);
+      pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border(
+            top: BorderSide(color: _red, width: 80),
+            right: BorderSide(color: _green, width: 90),
+            bottom: BorderSide(color: _blue, width: 70),
+            left: BorderSide(color: _yellow, width: 60),
+          ),
+          borderRadius: BorderRadius.all(Radius.elliptical(200, 100)),
+        ),
+      );
+      expect(pixels.at(80, 60).a, 1);
+      expect(pixels.at(31, 31).a, 0);
+      expect(pixels.at(10, 60).a, 0);
+      expect(viewBox(tester).paintBounds.isFinite, isTrue);
+      pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 100,
+          border: Border(
+            top: BorderSide(color: _red, width: 1),
+            right: BorderSide(color: _green, width: 1),
+            bottom: BorderSide(color: _blue, width: 1),
+            left: BorderSide(color: _yellow, width: 80),
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(40)),
+        ),
+      );
+      final inner = RRect.fromLTRBAndCorners(
+        80,
+        1,
+        99,
+        99,
+        topLeft: const Radius.elliptical(0, 39),
+        topRight: const Radius.circular(39),
+        bottomRight: const Radius.circular(39),
+        bottomLeft: const Radius.elliptical(0, 39),
+      ).scaleRadii();
+      for (final point in [
+        const Offset(81, 6),
+        const Offset(81, 93),
+        const Offset(90, 20),
+        const Offset(90, 79),
+        const Offset(84, 50),
+      ]) {
+        expect(inner.contains(point + const Offset(0.5, 0.5)), isTrue);
+        expect(
+          pixels.at(30 + point.dx.toInt(), 10 + point.dy.toInt()).a,
+          0,
+          reason: '极不均匀粗细仍保留规范内孔 $point',
+        );
+      }
+      expect(pixels.at(109, 60), _yellow);
+      expect(pixels.at(129, 60), _green);
+      final outer = RRect.fromRectAndRadius(
+        const Rect.fromLTWH(0, 0, 100, 100),
+        const Radius.circular(40),
+      );
+      expect(outer.contains(const Offset(90.5, 10.5)), isFalse);
+      expect(pixels.at(120, 20).a, 0);
+    });
+
+    testWidgets('半透明多色圆角交界处不重叠加深，也不留下透明裂缝', (tester) async {
+      const halfRed = Color(0x80ff0000);
+      const halfBlue = Color(0x800000ff);
+      const halfGreen = Color(0x8000ff00);
+      const halfYellow = Color(0x80ffff00);
+      final pixels = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border(
+            top: BorderSide(color: halfRed, width: 10),
+            right: BorderSide(color: halfBlue, width: 14),
+            bottom: BorderSide(color: halfGreen, width: 8),
+            left: BorderSide(color: halfYellow, width: 18),
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+      );
+      expect(pixels.at(80, 32), halfRed);
+      expect(pixels.at(127, 60), halfBlue);
+      expect(pixels.at(80, 87), halfGreen);
+      expect(pixels.at(32, 60), halfYellow);
+      var maximumAlpha = 0;
+      for (var index = 3; index < pixels.bytes.lengthInBytes; index += 4) {
+        final alpha = pixels.bytes.getUint8(index);
+        if (alpha > maximumAlpha) maximumAlpha = alpha;
+      }
+      expect(maximumAlpha, closeTo(128, 1));
+      for (var step = 7; step <= 11; step++) {
+        expect(
+          pixels.at(30 + step, 30 + step).a,
+          greaterThanOrEqualTo(120 / 255),
+          reason: '左上圆角交界像素 $step',
+        );
+      }
+      final reference = await _borderPixels(
+        tester,
+        const ElStyle(
+          width: 100,
+          height: 60,
+          border: Border.fromBorderSide(BorderSide(color: halfRed, width: 10)),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+      );
+      var partialSamples = 0;
+      for (final (x, y) in [
+        (0, 15),
+        (1, 12),
+        (2, 10),
+        (3, 8),
+        (4, 7),
+        (5, 6),
+        (6, 5),
+        (7, 4),
+        (8, 3),
+        (10, 2),
+        (12, 1),
+        (15, 0),
+      ]) {
+        for (final (localX, localY) in [
+          (x, y),
+          (99 - x, y),
+          (99 - x, 59 - y),
+          (x, 59 - y),
+        ]) {
+          final actual = pixels.at(30 + localX, 30 + localY).a * 255;
+          final expected = reference.at(30 + localX, 30 + localY).a * 255;
+          if (expected > 0 && expected < 128) partialSamples++;
+          expect(
+            actual,
+            closeTo(expected, 1),
+            reason: '圆角外弧 ($localX, $localY) 与同几何单色边框抗锯齿一致',
+          );
+        }
+      }
+      expect(partialSamples, greaterThan(4));
+    });
+
+    testWidgets('边框在 child 之后绘制，所有 clipBehavior 保留外描边并裁剪 child', (
+      tester,
+    ) async {
+      for (final clip in Clip.values) {
+        final pixels = await _borderPixels(
+          tester,
+          ElStyle(
+            width: 100,
+            height: 60,
+            backgroundColor: _green,
+            border: Border.all(color: _red, width: 12, strokeAlign: 0),
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: clip,
+          ),
+          child: const RepaintBoundary(child: _overflow),
+        );
+        expect(pixels.at(80, 27), _red, reason: '$clip 外描边');
+        expect(pixels.at(80, 33), _red, reason: '$clip 覆盖 child');
+        expect(pixels.at(80, 60), _blue);
+        expect(pixels.at(150, 60).a, clip == Clip.none ? 1 : 0);
+        expect(_hits(tester, const Offset(50, 30)), isTrue);
+        expect(
+          _hits(tester, const Offset(1, 1)),
+          clip == Clip.none,
+          reason: '$clip 仅按视觉盒裁剪命中',
+        );
+      }
+    });
+  });
+
   group('基础盒模型与样式声明', () {
     testWidgets('空样式使用自然尺寸，复制、合并和显式清空后布局与背景正确', (tester) async {
       const child = SizedBox(width: 80, height: 40);

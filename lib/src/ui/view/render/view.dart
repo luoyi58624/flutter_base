@@ -124,6 +124,29 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
       _effects?.dispose();
       _paintContents(context, offset);
     }
+    final border = _styleEngine.border;
+    if (border != null) {
+      _painter.paintBorder(
+        context,
+        boxLayout.boxRect.shift(offset),
+        border,
+        borderRadius: _styleEngine.borderRadius,
+      );
+    }
+  }
+
+  @override
+  Rect get paintBounds {
+    final border = _styleEngine.border;
+    return border == null
+        ? super.paintBounds
+        : super.paintBounds.expandToInclude(
+            _painter.borderBounds(
+              boxLayout.boxRect,
+              border,
+              borderRadius: _styleEngine.borderRadius,
+            ),
+          );
   }
 
   void _paintContents(PaintingContext context, Offset offset) {
@@ -144,7 +167,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
 
   @override
   bool hitTestSelf(Offset position) =>
-      _styleEngine.backgroundColor != null &&
+      (_styleEngine.backgroundColor != null || _styleEngine.border != null) &&
       _painter.contains(
         boxLayout.boxRect,
         position,

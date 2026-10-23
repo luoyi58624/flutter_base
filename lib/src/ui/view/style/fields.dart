@@ -10,7 +10,8 @@ enum StyleField {
   borderRadius,
   clipBehavior,
   widthFactor,
-  heightFactor;
+  heightFactor,
+  border;
 
   bool get isLength => this == width || this == height;
 
@@ -21,7 +22,7 @@ enum StyleField {
     margin ||
     widthFactor ||
     heightFactor => StyleEngine.layout,
-    backgroundColor || borderRadius => StyleEngine.paint,
+    backgroundColor || borderRadius || border => StyleEngine.paint,
     clipBehavior => StyleEngine.paint | StyleEngine.semantics,
   };
 
@@ -35,6 +36,7 @@ enum StyleField {
     clipBehavior => null,
     widthFactor => ElTransitionField.widthFactor,
     heightFactor => ElTransitionField.heightFactor,
+    border => ElTransitionField.border,
   };
 
   Object? declaration(ElStyle style) => switch (this) {
@@ -47,12 +49,14 @@ enum StyleField {
     clipBehavior => style.clipBehavior,
     widthFactor => style.widthFactor,
     heightFactor => style.heightFactor,
+    border => style.border,
   };
 
   /// 物理值不随文字方向变化，混合方向值与方向性声明才需要重新解析。
   bool dependsOnDirection(Object? value) => switch (this) {
     padding || margin => value is EdgeInsetsGeometry && value is! EdgeInsets,
     borderRadius => value is BorderRadiusGeometry && value is! BorderRadius,
+    border => value is BorderDirectional,
     width ||
     height ||
     backgroundColor ||
@@ -68,6 +72,7 @@ enum StyleField {
     borderRadius => _resolveRadius(value as BorderRadiusGeometry, direction),
     clipBehavior => value == Clip.none ? null : value as Clip,
     widthFactor || heightFactor => _parseFactor(value as num),
+    border => _resolveBorder(value as BoxBorder, direction),
   };
 
   Object? interpolate(Object? from, Object? to, double t) => switch (this) {
@@ -77,5 +82,6 @@ enum StyleField {
     borderRadius => _radiusLerp(from, to, t),
     clipBehavior => to,
     widthFactor || heightFactor => _factorLerp(from, to, t),
+    border => _borderLerp(from as Border?, to as Border?, t),
   };
 }

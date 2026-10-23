@@ -449,3 +449,22 @@ flowchart LR
 - base_test.dart 新增 7 个场景，覆盖自然盒、约束、溢出/裁剪、空 child、复制/合并/清空，并更新 Intrinsic 与基线场景；animation_test.dart 新增 10 项中间值与边界回归。
 
 验证：两个文件合计 104 项功能测试全部通过（基础 40、动画 64）；生产目录与两个文件静态分析无问题。生产代码 1642 行，含注释、空行和生成代码，其中手写 1558 行、生成 84 行。
+
+## 18. 边框实施计划
+
+- ElStyle 增加原生 BoxBorder? border，接受 Border / BorderDirectional；引擎统一解析成物理 Border，新增独立 border 过渡通道。边框仅绘制，不挤占内容、不改变 auto、百分比或 intrinsic 尺寸。
+- 四边独立处理颜色、粗细、none、hairline 和 strokeAlign；颜色沿用预乘 alpha，null / none 从零宽透明边接续，保留明确透明边的粗细，负宽度过冲不产生意外 hairline。
+- 绘制职责归 DecorationPainter 按需持有的 BorderPainter；复用 ShapeGeometry 已规范的外形，支持多色非均匀圆角，不依赖原生 Border.paint 不支持的组合。颜色与整体偏移不进入几何缓存键。
+- 顺序保持背景、child、边框；clipBehavior 只裁剪已有背景和 child，边框在裁剪后绘制。外描边纳入 paintBounds，不扩张 RenderBox 的命中范围；边框装饰使用当前盒形状参与自身命中。
+- 测试仍仅放 base_test.dart 与 animation_test.dart，从真实 ElView 检查布局、绘制、必要像素和动画中间值；不增加性能测试或内部缓存断言。
+- 验证完成后记录实际测试结果和相对本轮基线 1642 行的生产代码增量（含注释、空行及生成代码）。
+
+### 边框实施结果
+
+- 已实现 Border / BorderDirectional 的四边解析、预乘 alpha 颜色、粗细与 strokeAlign 过渡；null / none、显式透明、hairline、方向切换、delay、中断和负过冲均在真实 ElView 中验证。边框字段只通知 paint，不进入布局输出或 auto 端点测量。
+- 复用旧 ViewBoxPainter 的角序、孤边 90° / 共角 45°弧域、单边闭合轮廓和中心线规则；未迁移旧主题变量或整套 paint plan。新增 BorderPainter 由 DecorationPainter 按需持有，Render 只增加绘制、边界与已有命中协议的转发。
+- 外内轮廓共享规范角和粗线坍缩结果；修复极不对称宽度的内弧反向、内孔残留及外缘漏画。uniform 保留未声明圆角的方角；纯颜色或整体位置变化复用几何，无圆角的角点不执行三角函数，全 hairline 不生成填充布尔路径。
+- 多条可见非均匀边使用局部透明层累加预乘覆盖，保留内外轮廓抗锯齿并避免半透明接缝叠深；单边与 uniform 不增加该层。外描边和孤角突出部分计入 paintBounds，绘制在 child 自身裁剪结束之后。
+- 基础增加 11 项、动画增加 10 项，覆盖真实像素、粗细变更前中后的 child / 兄弟位置、半透明弧边、混合 hairline、内外描边及极窄内孔。临时逐像素复核已删除，仅保留两个原有功能文件中的新增场景。
+
+验证：base_test.dart 51 项、animation_test.dart 74 项，合计 125 项通过；生产目录与这两个文件静态分析无问题，未执行其他测试文件或性能测试。本轮生产代码净增 559 行（手写 555、生成 4），当前 view 生产共 2201 行（手写 2113、生成 88），均包含注释与空行；测试净增 969 行。

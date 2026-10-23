@@ -140,6 +140,63 @@ Object? _radiusLerp(Object? from, Object? to, double t) => _normalizeRadius(
   )!,
 );
 
+bool _paintsBorderSide(BorderSide side) =>
+    side.style == BorderStyle.solid && side.color.a > 0;
+
+Border _resolveBorder(BoxBorder value, TextDirection direction) {
+  final result = switch (value) {
+    Border() => value,
+    BorderDirectional() => Border(
+      top: value.top,
+      right: direction == TextDirection.ltr ? value.end : value.start,
+      bottom: value.bottom,
+      left: direction == TextDirection.ltr ? value.start : value.end,
+    ),
+    _ => throw ArgumentError.value(
+      value,
+      'border',
+      '仅支持 Border 和 BorderDirectional',
+    ),
+  };
+  final sides = [result.top, result.right, result.bottom, result.left];
+  assert(
+    sides.every(
+      (s) => s.width >= 0 && s.width.isFinite && s.strokeAlign.isFinite,
+    ),
+    '边框粗细必须非负且有限，strokeAlign 必须有限',
+  );
+  return result;
+}
+
+BorderSide _borderSideLerp(BorderSide? a, BorderSide? b, double t) {
+  if (a == b) return a ?? BorderSide.none;
+  // 缺省端只退去宽度和颜色，不把显式外描边拉回默认内描边。
+  a ??= b!.copyWith(width: 0, style: BorderStyle.none);
+  b ??= a.copyWith(width: 0, style: BorderStyle.none);
+  final width = lerpDouble(
+    a.style == BorderStyle.none ? 0 : a.width,
+    b.style == BorderStyle.none ? 0 : b.width,
+    t,
+  )!;
+  if (width < 0) return BorderSide.none;
+  return BorderSide(
+    width: width,
+    color: _colorLerp(
+      a.style == BorderStyle.none ? a.color.withValues(alpha: 0) : a.color,
+      b.style == BorderStyle.none ? b.color.withValues(alpha: 0) : b.color,
+      t,
+    ) as Color,
+    strokeAlign: lerpDouble(a.strokeAlign, b.strokeAlign, t)!,
+  );
+}
+
+Border _borderLerp(Border? a, Border? b, double t) => Border(
+  top: _borderSideLerp(a?.top, b?.top, t),
+  right: _borderSideLerp(a?.right, b?.right, t),
+  bottom: _borderSideLerp(a?.bottom, b?.bottom, t),
+  left: _borderSideLerp(a?.left, b?.left, t),
+);
+
 /// 沿用旧版预乘 alpha，透明端点的隐藏 RGB 不污染中间帧。
 Object? _colorLerp(Object? from, Object? to, double t) {
   var a = from as Color?;

@@ -25,6 +25,9 @@ enum ElTransitionField {
 
   /// 自然盒高度倍数，null 按 1 插值，负过冲夹到零。
   heightFactor,
+
+  /// 边框，逐边过渡粗细、预乘 alpha 颜色与描边位置。
+  border,
 }
 
 /// 指定属性的时间过渡，时长和延迟均不得为负。

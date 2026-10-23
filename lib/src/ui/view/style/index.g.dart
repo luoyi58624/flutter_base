@@ -15,6 +15,7 @@ extension ElStyleExt on ElStyle {
     Object? backgroundColor = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
+    Object? border = $absent,
     Object? borderRadius = $absent,
     Object? clipBehavior = $absent,
     Object? transitions = $absent,
@@ -37,6 +38,7 @@ extension ElStyleExt on ElStyle {
       margin: identical(margin, $absent)
           ? this.margin
           : margin as EdgeInsetsGeometry?,
+      border: identical(border, $absent) ? this.border : border as BoxBorder?,
       borderRadius: identical(borderRadius, $absent)
           ? this.borderRadius
           : borderRadius as BorderRadiusGeometry?,
@@ -59,6 +61,7 @@ extension ElStyleExt on ElStyle {
       backgroundColor: other.backgroundColor ?? backgroundColor,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
+      border: other.border ?? border,
       borderRadius: other.borderRadius ?? borderRadius,
       clipBehavior: other.clipBehavior ?? clipBehavior,
       transitions: other.transitions ?? transitions,
@@ -73,6 +76,7 @@ extension ElStyleExt on ElStyle {
     backgroundColor,
     padding,
     margin,
+    border,
     borderRadius,
     clipBehavior,
     transitions,

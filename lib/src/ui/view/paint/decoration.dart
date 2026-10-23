@@ -1,5 +1,6 @@
 import 'package:flutter/rendering.dart';
 
+import 'border.dart';
 import 'shape.dart';
 
 /// 按需持有盒装饰资源，简单背景不构造路径或合成图层。
@@ -9,6 +10,23 @@ class DecorationPainter {
 
   final ShapeGeometry Function() _shape;
   Paint? _background;
+  BorderPainter? _border;
+
+  /// 按需绘制覆盖在盒与内容之上的边框。
+  void paintBorder(
+    PaintingContext context,
+    Rect rect,
+    Border border, {
+    BorderRadius? borderRadius,
+  }) {
+    (_border ??= BorderPainter(
+      _shape,
+    )).paint(context.canvas, rect, border, borderRadius: borderRadius);
+  }
+
+  /// 不依赖绘制资源，计算边框可能伸出盒外的范围。
+  Rect borderBounds(Rect rect, Border border, {BorderRadius? borderRadius}) =>
+      BorderPainter.bounds(rect, border, borderRadius: borderRadius);
 
   /// 绘制已解析的背景；无圆角直接画矩形，有圆角才创建局部形状。
   void paintBackground(
