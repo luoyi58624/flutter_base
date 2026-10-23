@@ -1,4 +1,4 @@
-part of 'recognizers.dart';
+part of 'index.dart';
 
 /// 独立手势的回调阶段，不包含 Widget 的原始指针和样式事件。
 enum ElGesturePhase {
@@ -158,6 +158,10 @@ sealed class ElGestureDetails {
   bool _propagationStopped = false;
   Object? _dispatchIdentity;
   Object? _sequenceIdentity;
+  bool _isPrimaryTarget = true;
+
+  /// 当前阶段首个实际接收回调的成员，可用于宿主选择位移消费者。
+  bool get isPrimaryTarget => _isPrimaryTarget;
 
   /// 同次语义派发的身份，用于宿主在各冒泡成员之间共享默认行为和消费结果。
   Object get dispatchIdentity => _dispatchIdentity ?? this;

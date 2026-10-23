@@ -1,21 +1,18 @@
-import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart'
-    show
-        MouseTrackerAnnotation,
-        PointerEnterEventListener,
-        PointerExitEventListener;
 import 'package:flutter/widgets.dart';
 
-import 'dispatcher.dart';
+import 'render.dart';
 import 'event.dart';
 import 'state.dart';
 
 /// 为任意子组件提供独立的指针与手势事件，不改变子组件的布局和绘制。
 class ElEventView extends StatefulWidget {
   /// 创建事件宿主，命中、光标和禁用行为统一由 [event] 声明。
-  const ElEventView({super.key, required this.event, required this.child});
+  const ElEventView({
+    super.key,
+    this.event = const ElEvent(),
+    required this.child,
+  });
 
   /// 指针、点击、拖拽、缩放旋转及事件传播配置。
   final ElEvent event;
@@ -159,98 +156,17 @@ class _EventRenderWidget extends SingleChildRenderObjectWidget {
   final _InteractionSource source;
 
   @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _EventBox(event, source, MediaQuery.maybeGestureSettingsOf(context));
+  RenderObject createRenderObject(BuildContext context) => RenderElEvent(
+    event: event,
+    onTapChanged: source.updateTap,
+    onHoverChanged: source.updateHover,
+    gestureSettings: MediaQuery.maybeGestureSettingsOf(context),
+  );
 
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
-    (renderObject as _EventBox)
+    (renderObject as RenderElEvent)
       ..gestureSettings = MediaQuery.maybeGestureSettingsOf(context)
       ..event = event;
-  }
-}
-
-class _EventBox extends RenderProxyBoxWithHitTestBehavior
-    implements MouseTrackerAnnotation {
-  _EventBox(ElEvent event, this._source, DeviceGestureSettings? gestureSettings)
-    : super(behavior: event.behavior) {
-    _dispatcher = ElEventDispatcher(this)
-      ..hitBoundsContainsGlobal = _containsGlobal
-      ..gestureSettings = gestureSettings
-      ..onTapChanged = _source.updateTap
-      ..event = event;
-  }
-
-  final _InteractionSource _source;
-  final Set<int> _hoverDevices = <int>{};
-  late final ElEventDispatcher _dispatcher;
-
-  set gestureSettings(DeviceGestureSettings? value) =>
-      _dispatcher.gestureSettings = value;
-
-  set event(ElEvent value) {
-    _dispatcher.event = value;
-    behavior = _dispatcher.event?.behavior ?? value.behavior;
-  }
-
-  bool _containsGlobal(Offset position) {
-    if (!attached || !hasSize) return false;
-    final inverse = Matrix4.tryInvert(getTransformTo(null));
-    return inverse != null &&
-        size.contains(MatrixUtils.transformPoint(inverse, position));
-  }
-
-  @override
-  bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    if (!_dispatcher.disabled) return super.hitTest(result, position: position);
-    if (!size.contains(position)) return false;
-    result.add(BoxHitTestEntry(this, position));
-    return true;
-  }
-
-  @override
-  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) =>
-      _dispatcher.handleEvent(event, entry);
-
-  @override
-  MouseCursor get cursor => _dispatcher.cursor;
-
-  void _handleEnter(PointerEnterEvent event) {
-    _hoverDevices.add(event.device);
-    _source.updateHover(true);
-    _dispatcher.handlePointerEnter(event);
-  }
-
-  void _handleExit(PointerExitEvent event) {
-    _hoverDevices.remove(event.device);
-    _source.updateHover(_hoverDevices.isNotEmpty);
-    _dispatcher.handlePointerExit(event);
-  }
-
-  @override
-  PointerEnterEventListener get onEnter => _handleEnter;
-
-  @override
-  PointerExitEventListener get onExit => _handleExit;
-
-  @override
-  bool get validForMouseTracker => attached;
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _dispatcher.attach();
-  }
-
-  @override
-  void detach() {
-    _dispatcher.detach(preserveEvent: true);
-    super.detach();
-  }
-
-  @override
-  void dispose() {
-    _dispatcher.dispose();
-    super.dispose();
   }
 }

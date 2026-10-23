@@ -1,6 +1,6 @@
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/render.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -14,17 +14,17 @@ void main() {
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
 
-      final dispatcher = ElEventDispatcher(box)
+      final element = box
         ..event = _dragEvent(
           'old',
           phases,
           onTap: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -35,13 +35,13 @@ void main() {
           ),
         );
 
-        dispatcher.event = _dragEvent(
+        element.event = _dragEvent(
           'new',
           phases,
           onTap: (event) => phases.add('new:${event.phase.name}'),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -52,9 +52,9 @@ void main() {
         );
 
         expect(phases, <String>['new:tap']);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -66,17 +66,16 @@ void main() {
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
 
-      final dispatcher = ElEventDispatcher(box)
-        ..event = _dragEvent('old', phases);
-      addTearDown(dispatcher.dispose);
+      final element = box..event = _dragEvent('old', phases);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
 
-        dispatcher.event = _dragEvent('new', phases, includeLongPress: false);
+        element.event = _dragEvent('new', phases, includeLongPress: false);
         await tester.pump(const Duration(milliseconds: 40));
 
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -87,9 +86,9 @@ void main() {
         );
 
         expect(phases, isEmpty);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -101,15 +100,14 @@ void main() {
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
 
-      final dispatcher = ElEventDispatcher(box)
-        ..event = _dragEvent('old', phases);
-      addTearDown(dispatcher.dispose);
+      final element = box..event = _dragEvent('old', phases);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
 
-        dispatcher.event = _dragEvent('new', phases);
+        element.event = _dragEvent('new', phases);
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -120,7 +118,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -131,9 +129,9 @@ void main() {
         );
 
         expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -143,15 +141,15 @@ void main() {
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
 
-    final dispatcher = ElEventDispatcher(box)
+    final element = box
       ..event = _dragEvent('old', phases, dragStartDistance: 30);
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(element, entry, _touchDown(pointer: 1));
 
-      dispatcher.event = _dragEvent('new', phases, dragStartDistance: 12);
+      element.event = _dragEvent('new', phases, dragStartDistance: 12);
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -162,7 +160,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerUpEvent(
           pointer: 1,
@@ -173,11 +171,11 @@ void main() {
       );
 
       expect(phases, isEmpty);
-      await _nextDrag(dispatcher, entry);
+      await _nextDrag(element, entry);
       expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -186,16 +184,17 @@ void main() {
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
 
-    final dispatcher = ElEventDispatcher(
-      box,
-    )..event = ElEvent(onTap: (event) => phases.add('old:${event.phase.name}'));
-    addTearDown(dispatcher.dispose);
+    final element = box
+      ..event = ElEvent(
+        onTap: (event) => phases.add('old:${event.phase.name}'),
+      );
+    addTearDown(element.dispose);
     try {
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(element, entry, _touchDown(pointer: 1));
 
-      dispatcher.event = _dragEvent('new', phases);
+      element.event = _dragEvent('new', phases);
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -206,7 +205,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerUpEvent(
           pointer: 1,
@@ -217,11 +216,11 @@ void main() {
       );
 
       expect(phases, isEmpty);
-      await _nextDrag(dispatcher, entry);
+      await _nextDrag(element, entry);
       expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -231,22 +230,22 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElEventDispatcher dispatcher;
+      late RenderElEvent element;
       var moves = 0;
 
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = _dragEvent(
           'old',
           phases,
           onPointerMove: (_) {
-            if (++moves == 2) dispatcher.event = _dragEvent('new', phases);
+            if (++moves == 2) element.event = _dragEvent('new', phases);
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -257,7 +256,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -268,7 +267,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -283,9 +282,9 @@ void main() {
           'new:dragUpdate',
           'new:dragEnd',
         ]);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -294,28 +293,28 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late ElEventDispatcher dispatcher;
+    late RenderElEvent element;
 
-    dispatcher = ElEventDispatcher(box)
+    element = box
       ..event = _dragEvent(
         'old',
         phases,
         onPointerMove: (_) {
-          dispatcher.event = _dragEvent(
+          element.event = _dragEvent(
             'new',
             phases,
             onDragStart: (_) {
               phases.add('new:dragStart');
-              dispatcher.event = _dragEvent('replacement', phases);
+              element.event = _dragEvent('replacement', phases);
             },
           );
         },
       );
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(element, entry, _touchDown(pointer: 1));
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -326,7 +325,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -337,7 +336,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -348,7 +347,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerUpEvent(
           pointer: 1,
@@ -359,15 +358,15 @@ void main() {
       );
 
       expect(phases, isEmpty);
-      await _nextDrag(dispatcher, entry);
+      await _nextDrag(element, entry);
       expect(phases, <String>[
         'new:dragStart',
         'replacement:dragUpdate',
         'replacement:dragEnd',
       ]);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -377,21 +376,21 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElEventDispatcher dispatcher;
+      late RenderElEvent element;
 
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = _dragEvent(
           'old',
           phases,
           onPointerMove: (_) {
-            dispatcher.event = _dragEvent('new', phases);
+            element.event = _dragEvent('new', phases);
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -402,7 +401,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -413,9 +412,9 @@ void main() {
         );
 
         expect(phases, isEmpty);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -424,24 +423,24 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late ElEventDispatcher dispatcher;
+    late RenderElEvent element;
 
-    dispatcher = ElEventDispatcher(box)
+    element = box
       ..event = _dragEvent(
         'old',
         phases,
         onDragStart: (_) {
           phases.add('old:dragStart');
-          dispatcher.event = ElEvent(
+          element.event = ElEvent(
             onTap: (event) => phases.add('replacement:${event.phase.name}'),
           );
         },
       );
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(element, entry, _touchDown(pointer: 1));
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -452,7 +451,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -463,7 +462,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerUpEvent(
           pointer: 1,
@@ -474,9 +473,9 @@ void main() {
       );
 
       expect(phases, <String>['old:dragStart', 'old:dragCancel']);
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 2));
+      await _dispatch(element, entry, _touchDown(pointer: 2));
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerUpEvent(
           pointer: 2,
@@ -485,9 +484,9 @@ void main() {
         ),
       );
       expect(phases, ['old:dragStart', 'old:dragCancel', 'replacement:tap']);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -497,22 +496,22 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElEventDispatcher dispatcher;
+      late RenderElEvent element;
 
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = _dragEvent(
           'old',
           phases,
           onDragStart: (_) {
             phases.add('old:dragStart');
-            dispatcher.event = null;
+            element.event = null;
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -523,7 +522,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -534,7 +533,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -545,10 +544,10 @@ void main() {
         );
 
         expect(phases, <String>['old:dragStart', 'old:dragCancel']);
-        expect(dispatcher.event, isNull);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.event, isNull);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -559,22 +558,22 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
 
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = _dragEvent(
           'old',
           phases,
           onPointerUp: (_) {
             phases.add('old:pointerUp');
-            dispatcher.event = _dragEvent('replacement', phases);
+            element.event = _dragEvent('replacement', phases);
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+        await _dispatch(element, entry, _touchDown(pointer: 1));
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 1,
@@ -585,7 +584,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -596,7 +595,7 @@ void main() {
         );
 
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerDownEvent(
             pointer: 2,
@@ -606,7 +605,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerMoveEvent(
             pointer: 2,
@@ -617,7 +616,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 2,
@@ -634,9 +633,9 @@ void main() {
           'replacement:dragStart',
           'replacement:dragEnd',
         ]);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -647,22 +646,22 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late final ElEventDispatcher dispatcher;
+    late final RenderElEvent element;
 
-    dispatcher = ElEventDispatcher(box)
+    element = box
       ..event = _dragEvent(
         'old',
         phases,
         onPointerCancel: (_) {
           phases.add('old:pointerCancel');
-          dispatcher.event = _dragEvent('replacement', phases);
+          element.event = _dragEvent('replacement', phases);
         },
       );
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await _dispatch(dispatcher, entry, _touchDown(pointer: 1));
+      await _dispatch(element, entry, _touchDown(pointer: 1));
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerMoveEvent(
           pointer: 1,
@@ -673,7 +672,7 @@ void main() {
         ),
       );
       await _dispatch(
-        dispatcher,
+        element,
         entry,
         const PointerCancelEvent(
           pointer: 1,
@@ -688,9 +687,9 @@ void main() {
         'old:pointerCancel',
         'old:dragCancel',
       ]);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 }
@@ -733,17 +732,14 @@ _EventTestBox _attachedBox() {
   return box;
 }
 
-Future<void> _nextDrag(
-  ElEventDispatcher dispatcher,
-  BoxHitTestEntry entry,
-) async {
-  await _dispatch(dispatcher, entry, _touchDown(pointer: 2));
+Future<void> _nextDrag(RenderElEvent element, BoxHitTestEntry entry) async {
+  await _dispatch(element, entry, _touchDown(pointer: 2));
   for (final (millis, position, delta) in [
     (16, const Offset(0, -16), const Offset(0, -16)),
     (32, const Offset(0, -28), const Offset(0, -12)),
   ]) {
     await _dispatch(
-      dispatcher,
+      element,
       entry,
       PointerMoveEvent(
         pointer: 2,
@@ -755,7 +751,7 @@ Future<void> _nextDrag(
     );
   }
   await _dispatch(
-    dispatcher,
+    element,
     entry,
     const PointerUpEvent(
       pointer: 2,
@@ -776,14 +772,14 @@ PointerDownEvent _touchDown({required int pointer}) {
 }
 
 Future<void> _dispatch(
-  ElEventDispatcher dispatcher,
+  RenderElEvent element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
-  await dispatcher.dispatchInput(event, entry);
+  await element.dispatchInput(event, entry);
 }
 
-final class _EventTestBox extends RenderBox {
+final class _EventTestBox extends RenderElEvent {
   @override
   void performLayout() {
     size = constraints.constrain(const Size(100, 100));

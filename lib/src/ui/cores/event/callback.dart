@@ -144,7 +144,7 @@ enum ElEventCancelReason {
   /// 当前节点的 Drag、Scale 或 eager 已接受，只取消本节点 Tap 激活资格。
   selfGestureAccepted,
 
-  /// 其他节点或复合手势 driver 已接受，当前节点只取消 Tap/主手势资格。
+  /// 其他节点或复合手势已接受，当前节点只取消 Tap/主手势资格。
   ///
   /// DragProxy 等旁路生命周期仍可继续投递，本值不表示整个 pointer 链已终止。
   otherGestureAccepted,
@@ -158,7 +158,7 @@ enum ElEventCancelReason {
 
 /// 事件回调参数。
 ///
-/// 同一个对象会被沿冒泡链复用，每跳前由 dispatcher 重写 [localPosition] /
+/// 同一个对象会被沿冒泡链复用，每跳前由 Render 适配 [localPosition] /
 /// [localDelta] 为当前目标本地坐标，回调中不要再用 `globalToLocal` 自行换算。
 class ElEventCallback {
   /// 创建事件回调参数。
@@ -354,19 +354,19 @@ class ElEventCallback {
     _defaultPrevented = true;
   }
 
-  /// 标记已有处理器被调用。仅供事件分发器使用。
+  /// 标记已有处理器被调用。仅供Render 元素使用。
   void markCallbackInvoked() {
     _callbackInvoked = true;
   }
 
-  /// 复位 [propagationStopped]。仅供事件分发器使用（`ElEvent.dragProxy`
+  /// 复位 [propagationStopped]。仅供Render 元素使用（`ElEvent.dragProxy`
   /// 三段管线包装每段调用后复位，防止 proxy handler 内误用
   /// [stopPropagation] 打断管线）。
   void resetPropagation() {
     _propagationStopped = false;
   }
 
-  /// 更新当前目标的本地增量换算器。仅供事件分发器使用。
+  /// 更新当前目标的本地增量换算器。仅供Render 元素使用。
   void updateLocalDeltaResolver(Offset Function(Offset globalDelta)? resolver) {
     _localDeltaResolver = resolver;
     // 余量尚未被消费时，当前目标的 localDelta 就是本地余量；
@@ -376,7 +376,7 @@ class ElEventCallback {
         : resolver?.call(remainingDelta) ?? remainingDelta;
   }
 
-  /// 更新当前目标的 eager gesture 处理器。仅供事件分发器使用。
+  /// 更新当前目标的 eager gesture 处理器。仅供Render 元素使用。
   void updateEagerGestureHandler(
     void Function(
       ElEventCallback callback,

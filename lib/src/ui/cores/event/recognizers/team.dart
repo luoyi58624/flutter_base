@@ -1,4 +1,4 @@
-part of 'recognizers.dart';
+part of 'index.dart';
 
 /// 让同一交互的多个识别器共享官方归属，获胜后仍各自维护识别生命周期。
 ///

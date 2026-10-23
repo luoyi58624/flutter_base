@@ -5,6 +5,16 @@ import 'package:test/test.dart';
 import 'models/boundaries.dart';
 
 void main() {
+  test('copyWith 数值转换保留整数字面量、三态空值和错误类型边界', () {
+    const model = NumericCopyModel(value: 2, optional: 3);
+    final changed = model.copyWith(value: 0, optional: 4);
+    expect(changed.value, 0.0);
+    expect(changed.optional, 4.0);
+    expect(changed.copyWith().optional, 4.0);
+    expect(changed.copyWith(optional: null).optional, isNull);
+    expect(() => model.copyWith(value: 'invalid'), throwsA(isA<TypeError>()));
+  });
+
   test('特殊字符在 JSON 键、标量和集合默认值中保持原值', () {
     final model = BoundaryModelExt.fromJson({});
     expect(model.value, escapedDefault);

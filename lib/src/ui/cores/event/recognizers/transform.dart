@@ -1,4 +1,4 @@
-part of 'recognizers.dart';
+part of 'index.dart';
 
 /// 在官方竞技场内统一识别拖拽、缩放和旋转。
 ///
@@ -10,22 +10,10 @@ part of 'recognizers.dart';
 class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   /// 创建独立变换识别器；[axis] 为空时自由拖拽，[lockAxis] 可按起手方向锁轴。
   ElTransformGestureRecognizer({
-    this.startDistance,
-    this.horizontalAngle = math.pi / 4,
-    this.minFlingDistance,
-    this.minFlingVelocity = kMinFlingVelocity,
-    this.maxFlingVelocity = kMaxFlingVelocity,
-    this.parent,
-    this.axis,
-    this.lockAxis = false,
     super.debugOwner,
     super.supportedDevices,
     AllowedButtonsFilter? allowedButtonsFilter,
-  }) : assert(startDistance == null || startDistance >= 0),
-       assert(horizontalAngle > 0 && horizontalAngle < math.pi / 2),
-       assert(minFlingDistance == null || minFlingDistance >= 0),
-       assert(minFlingVelocity >= 0 && maxFlingVelocity >= minFlingVelocity),
-       super(
+  }) : super(
          allowedButtonsFilter: allowedButtonsFilter ?? _primaryTransformButton,
        );
 
@@ -35,24 +23,37 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   double? startDistance;
 
   /// 水平起手方向的捕获半角，默认 45 度。
-  double horizontalAngle;
+  double? horizontalAngle = math.pi / 4;
 
   /// 产生释放速度的最小移动距离；为空时采用官方设备容差。
   double? minFlingDistance;
 
   /// 产生甩动的最小速度。
-  double minFlingVelocity;
+  double? minFlingVelocity = kMinFlingVelocity;
 
   /// 释放速度的最大值。
-  double maxFlingVelocity;
+  double? maxFlingVelocity = kMaxFlingVelocity;
 
-  _TransformSettings get _settings => (
-    startDistance: startDistance,
-    horizontalAngle: horizontalAngle,
-    minFlingDistance: minFlingDistance,
-    minFlingVelocity: minFlingVelocity,
-    maxFlingVelocity: maxFlingVelocity,
-  );
+  _TransformSettings get _settings {
+    assert(startDistance == null || startDistance! >= 0);
+    assert(
+      horizontalAngle == null ||
+          horizontalAngle! > 0 && horizontalAngle! < math.pi / 2,
+    );
+    assert(minFlingDistance == null || minFlingDistance! >= 0);
+    assert((minFlingVelocity ?? kMinFlingVelocity) >= 0);
+    assert(
+      (maxFlingVelocity ?? kMaxFlingVelocity) >=
+          (minFlingVelocity ?? kMinFlingVelocity),
+    );
+    return (
+      startDistance: startDistance,
+      horizontalAngle: horizontalAngle ?? math.pi / 4,
+      minFlingDistance: minFlingDistance,
+      minFlingVelocity: minFlingVelocity ?? kMinFlingVelocity,
+      maxFlingVelocity: maxFlingVelocity ?? kMaxFlingVelocity,
+    );
+  }
 
   /// El 冒泡父级；在一次指针序列开始时冻结路线。
   ElTransformGestureRecognizer? parent;
@@ -61,7 +62,7 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
   Axis? axis;
 
   /// [axis] 为空时，是否按照起手方向锁定水平或垂直轴。
-  bool lockAxis;
+  bool lockAxis = false;
 
   /// 拖拽候选按下；此阶段尚未取得官方手势所有权。
   ElTransformGestureCallback? onDragDown;
@@ -655,10 +656,16 @@ class ElTransformGestureRecognizer extends _ElGestureRecognizer {
 
   /// 终止当前成员的家族订阅，其他成员及已接受的指针继续识别。
   void cancelMember(
-    int pointer, {
+    int? pointer, {
     bool cancelDrag = true,
     bool cancelScale = true,
   }) {
+    if (pointer == null) {
+      for (final tracked in _routes.keys.toList()) {
+        cancelMember(tracked, cancelDrag: cancelDrag, cancelScale: cancelScale);
+      }
+      return;
+    }
     final route = _routes[pointer];
     final owner = route?.owner;
     if (route == null || owner is! ElTransformGestureRecognizer) return;

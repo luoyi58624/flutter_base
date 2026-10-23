@@ -1,5 +1,5 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/render.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart' show RenderProxyBoxWithHitTestBehavior;
 import 'package:flutter_test/flutter_test.dart';
@@ -12,9 +12,7 @@ Widget _shell(Widget child) => Directionality(
 Widget _box() => SizedBox(width: 100, height: 100);
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
-  testWidgets('直接更新 dispatcher 光标会调度静止鼠标刷新', (tester) async {
+  testWidgets('直接更新 element 光标会调度静止鼠标刷新', (tester) async {
     await tester.pumpWidget(
       _shell(
         ElEventView(
@@ -32,10 +30,8 @@ void main() {
       SystemMouseCursors.click,
     );
     final render = tester.renderObject<RenderBox>(find.byType(ElEventView));
-    final dispatcher = ElEventDispatcher.of(render)!;
-    dispatcher.event = dispatcher.event!.copyWith(
-      cursor: SystemMouseCursors.text,
-    );
+    final element = render as RenderElEvent;
+    element.event = element.event!.copyWith(cursor: SystemMouseCursors.text);
     expect(tester.binding.hasScheduledFrame, isTrue);
     expect(render.debugNeedsPaint, isFalse);
     expect(render.debugNeedsLayout, isFalse);
@@ -44,9 +40,7 @@ void main() {
       tester.binding.mouseTracker.debugDeviceActiveCursor(1),
       SystemMouseCursors.text,
     );
-    dispatcher.event = dispatcher.event!.copyWith(
-      clear: {ElEventClearField.cursor},
-    );
+    element.event = element.event!.copyWith(cursor: null);
     await tester.pump();
     expect(
       tester.binding.mouseTracker.debugDeviceActiveCursor(1),
@@ -91,7 +85,7 @@ void main() {
     final finder = find.byType(ElEventView);
     final box = tester.renderObject<RenderBox>(finder);
     expect(tester.getSize(finder), Size(100, 100));
-    expect(ElEventDispatcher.of(box)!.event, same(event));
+    expect((box as RenderElEvent).event, same(event));
     expect(box, isA<RenderProxyBoxWithHitTestBehavior>());
     expect(
       find.descendant(of: finder, matching: find.byType(Focus)),
@@ -397,7 +391,7 @@ void main() {
     ]);
   });
 
-  testWidgets('GlobalKey 重挂保留分发器与当前按压序列', (tester) async {
+  testWidgets('GlobalKey 重挂保留 Render 元素与当前按压序列', (tester) async {
     final key = GlobalKey();
     final phases = <ElEventPhase>[];
     void record(ElEventCallback e) => phases.add(e.phase);
@@ -421,11 +415,11 @@ void main() {
 
     await tester.pumpWidget(tree(true));
     final render = tester.renderObject<RenderBox>(find.byKey(key));
-    final dispatcher = ElEventDispatcher.of(render)!;
+    final element = render as RenderElEvent;
     final gesture = await tester.startGesture(Offset(20, 20));
     await tester.pumpWidget(tree(false));
     expect(tester.renderObject(find.byKey(key)), same(render));
-    expect(ElEventDispatcher.of(render), same(dispatcher));
+    expect(render, same(element));
     await gesture.up();
     await tester.pump();
     expect(phases, [
@@ -435,7 +429,7 @@ void main() {
     ]);
   });
 
-  testWidgets('卸载已开始的拖拽只发一次 Cancel 并释放注册', (tester) async {
+  testWidgets('卸载已开始的拖拽只发一次 Cancel 并销毁元素', (tester) async {
     final phases = <ElEventPhase>[];
     void record(ElEventCallback e) => phases.add(e.phase);
     await tester.pumpWidget(
@@ -458,7 +452,7 @@ void main() {
     expect(phases, [ElEventPhase.dragStart]);
     await tester.pumpWidget(_shell(SizedBox.shrink()));
     expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-    expect(ElEventDispatcher.of(render), isNull);
+    expect((render as RenderElEvent).isDisposed, isTrue);
     await gesture.up();
     expect(phases, hasLength(2));
   });

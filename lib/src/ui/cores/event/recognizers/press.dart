@@ -1,46 +1,30 @@
-part of 'recognizers.dart';
+part of 'index.dart';
 
 /// 在官方竞技场中识别点击、连击、侧键与长按，并沿 [parent] 冒泡。
 ///
 /// 仅使用指针输入与识别参数；元素边界和样式反馈由宿主判断及处理。
 class ElPressGestureRecognizer extends _ElGestureRecognizer {
+  /// 连续点击的默认位置容差，也可供元素适配采用相同的点击距离规则。
+  static const double defaultConsecutiveTapDistance = 10;
+
   /// 创建独立按压识别器，识别参数在每次按下时冻结。
   ElPressGestureRecognizer({
-    this.parent,
-    this.doubleTapInterval = kDoubleTapTimeout,
-    this.tripleTapInterval = kDoubleTapTimeout,
-    this.longPressDelay = kLongPressTimeout,
-    this.tapSlopTolerance,
-    this.secondaryTapSlopTolerance,
-    this.longPressSlopTolerance,
-    this.consecutiveTapDistance = 10,
-    this.deferTap = false,
-    this.isEligible,
-    this.cancelTapOnLongPress = true,
     super.debugOwner,
     super.supportedDevices,
     super.allowedButtonsFilter,
-  }) : assert(doubleTapInterval >= Duration.zero),
-       assert(tripleTapInterval >= Duration.zero),
-       assert(longPressDelay >= Duration.zero),
-       assert(tapSlopTolerance == null || tapSlopTolerance >= 0),
-       assert(
-         secondaryTapSlopTolerance == null || secondaryTapSlopTolerance >= 0,
-       ),
-       assert(longPressSlopTolerance == null || longPressSlopTolerance >= 0),
-       assert(consecutiveTapDistance >= 0);
+  });
 
   /// 同类手势冒泡父级，不重复参加同一指针的竞技场。
   ElPressGestureRecognizer? parent;
 
-  /// 第二击与前一击的最长间隔。
-  Duration doubleTapInterval;
+  /// 第二击与前一击的最长间隔，空值恢复官方默认时限。
+  Duration? doubleTapInterval = kDoubleTapTimeout;
 
   /// 第三击与前一击的最长间隔。
-  Duration tripleTapInterval;
+  Duration? tripleTapInterval = kDoubleTapTimeout;
 
   /// 长按成立前的等待时间。
-  Duration longPressDelay;
+  Duration? longPressDelay = kLongPressTimeout;
 
   /// 点击移动容差；为空时使用官方设备容差，可设为无穷大交由宿主决定取消。
   double? tapSlopTolerance;
@@ -52,27 +36,39 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   bool Function(ElGesturePhase phase, PointerEvent event)? isEligible;
 
   /// 长按成立后是否自动取消自身点击，关闭后可由调用方通过 rejectTap 决定。
-  bool cancelTapOnLongPress;
+  bool cancelTapOnLongPress = true;
 
   /// 长按移动容差；为空时使用官方设备容差。
   double? longPressSlopTolerance;
 
   /// 相邻连续点击允许的最大位置间距。
-  double consecutiveTapDistance;
+  double? consecutiveTapDistance = defaultConsecutiveTapDistance;
 
   /// 有双击订阅时是否等待窗口结束再通知单击，不延迟释放或持有竞技场。
-  bool deferTap;
+  bool? deferTap = false;
 
-  _PressSettings get _settings => (
-    doubleTapInterval: doubleTapInterval,
-    tripleTapInterval: tripleTapInterval,
-    longPressDelay: longPressDelay,
-    tapSlopTolerance: tapSlopTolerance,
-    secondaryTapSlopTolerance: secondaryTapSlopTolerance,
-    longPressSlopTolerance: longPressSlopTolerance,
-    consecutiveTapDistance: consecutiveTapDistance,
-    deferTap: deferTap,
-  );
+  _PressSettings get _settings {
+    assert(doubleTapInterval == null || doubleTapInterval! >= Duration.zero);
+    assert(tripleTapInterval == null || tripleTapInterval! >= Duration.zero);
+    assert(longPressDelay == null || longPressDelay! >= Duration.zero);
+    assert(tapSlopTolerance == null || tapSlopTolerance! >= 0);
+    assert(
+      secondaryTapSlopTolerance == null || secondaryTapSlopTolerance! >= 0,
+    );
+    assert(longPressSlopTolerance == null || longPressSlopTolerance! >= 0);
+    assert(consecutiveTapDistance == null || consecutiveTapDistance! >= 0);
+    return (
+      doubleTapInterval: doubleTapInterval ?? kDoubleTapTimeout,
+      tripleTapInterval: tripleTapInterval ?? kDoubleTapTimeout,
+      longPressDelay: longPressDelay ?? kLongPressTimeout,
+      tapSlopTolerance: tapSlopTolerance,
+      secondaryTapSlopTolerance: secondaryTapSlopTolerance,
+      longPressSlopTolerance: longPressSlopTolerance,
+      consecutiveTapDistance:
+          consecutiveTapDistance ?? defaultConsecutiveTapDistance,
+      deferTap: deferTap ?? false,
+    );
+  }
 
   /// 主按钮按下候选；竞技场落败时随后通知 [onTapCancel]。
   ElPressGestureCallback? onTapDown;
@@ -463,9 +459,9 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
   }
 
   /// 终止当前成员及其待发点击，不终止同一路线的父子成员。
-  void cancelMember(int pointer) {
+  void cancelMember([int? pointer]) {
     for (final sequence in _sequences.values.toList()) {
-      if (sequence.group.down.pointer == pointer) {
+      if (pointer == null || sequence.group.down.pointer == pointer) {
         _cancelSequence(
           sequence,
           ElGestureCancelReason.canceled,
@@ -473,6 +469,13 @@ class ElPressGestureRecognizer extends _ElGestureRecognizer {
         );
       }
     }
+    for (final pending in _deferred.toList()) {
+      if (pointer == null || pending.sequence.group.down.pointer == pointer) {
+        pending.timer?.cancel();
+        _deferred.remove(pending);
+      }
+    }
+    if (pointer == null) _resetHistory();
   }
 
   @override

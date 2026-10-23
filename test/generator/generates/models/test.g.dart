@@ -463,16 +463,16 @@ extension TestModelExt on TestModel {
           : intField4 as int?,
       doubleField: doubleField == null
           ? this.doubleField
-          : doubleField as double,
+          : (doubleField as num).toDouble(),
       doubleField2: identical(doubleField2, $absent)
           ? this.doubleField2
-          : doubleField2 as double?,
+          : (doubleField2 as num?)?.toDouble(),
       doubleField3: doubleField3 == null
           ? this.doubleField3
-          : doubleField3 as double,
+          : (doubleField3 as num).toDouble(),
       doubleField4: identical(doubleField4, $absent)
           ? this.doubleField4
-          : doubleField4 as double?,
+          : (doubleField4 as num?)?.toDouble(),
       boolField: boolField == null ? this.boolField : boolField as bool,
       boolField2: identical(boolField2, $absent)
           ? this.boolField2

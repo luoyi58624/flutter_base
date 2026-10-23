@@ -31,75 +31,100 @@ void main() {
   test('高位 Drag、Scale、Rotation 与低位回调各自形成不同结构且支持显式清除', () {
     void first(ElEventCallback _) {}
     void second(ElEventCallback _) {}
-    final shapes = <(ElEventClearField, ElEvent Function(ElEventHandler))>[
-      (ElEventClearField.onPointerEnter, (h) => ElEvent(onPointerEnter: h)),
-      (ElEventClearField.onTapCancel, (h) => ElEvent(onTapCancel: h)),
-      (ElEventClearField.onDragDown, (h) => ElEvent(onDragDown: h)),
-      (ElEventClearField.onDragStart, (h) => ElEvent(onDragStart: h)),
-      (ElEventClearField.onDragUpdate, (h) => ElEvent(onDragUpdate: h)),
-      (ElEventClearField.onDragEnd, (h) => ElEvent(onDragEnd: h)),
-      (ElEventClearField.onDragCancel, (h) => ElEvent(onDragCancel: h)),
-      (
-        ElEventClearField.onVerticalDragStart,
-        (h) => ElEvent(onVerticalDragStart: h),
-      ),
-      (
-        ElEventClearField.onVerticalDragUpdate,
-        (h) => ElEvent(onVerticalDragUpdate: h),
-      ),
-      (
-        ElEventClearField.onVerticalDragEnd,
-        (h) => ElEvent(onVerticalDragEnd: h),
-      ),
-      (
-        ElEventClearField.onVerticalDragCancel,
-        (h) => ElEvent(onVerticalDragCancel: h),
-      ),
-      (
-        ElEventClearField.onHorizontalDragStart,
-        (h) => ElEvent(onHorizontalDragStart: h),
-      ),
-      (
-        ElEventClearField.onHorizontalDragUpdate,
-        (h) => ElEvent(onHorizontalDragUpdate: h),
-      ),
-      (
-        ElEventClearField.onHorizontalDragEnd,
-        (h) => ElEvent(onHorizontalDragEnd: h),
-      ),
-      (
-        ElEventClearField.onHorizontalDragCancel,
-        (h) => ElEvent(onHorizontalDragCancel: h),
-      ),
-      (ElEventClearField.onScaleStart, (h) => ElEvent(onScaleStart: h)),
-      (ElEventClearField.onScaleUpdate, (h) => ElEvent(onScaleUpdate: h)),
-      (ElEventClearField.onScaleEnd, (h) => ElEvent(onScaleEnd: h)),
-      (ElEventClearField.onScaleCancel, (h) => ElEvent(onScaleCancel: h)),
-      (ElEventClearField.onRotationUpdate, (h) => ElEvent(onRotationUpdate: h)),
-    ];
+    final shapes =
+        <(ElEvent Function(ElEvent), ElEvent Function(ElEventHandler))>[
+          (
+            (e) => e.copyWith(onPointerEnter: null),
+            (h) => ElEvent(onPointerEnter: h),
+          ),
+          (
+            (e) => e.copyWith(onTapCancel: null),
+            (h) => ElEvent(onTapCancel: h),
+          ),
+          ((e) => e.copyWith(onDragDown: null), (h) => ElEvent(onDragDown: h)),
+          (
+            (e) => e.copyWith(onDragStart: null),
+            (h) => ElEvent(onDragStart: h),
+          ),
+          (
+            (e) => e.copyWith(onDragUpdate: null),
+            (h) => ElEvent(onDragUpdate: h),
+          ),
+          ((e) => e.copyWith(onDragEnd: null), (h) => ElEvent(onDragEnd: h)),
+          (
+            (e) => e.copyWith(onDragCancel: null),
+            (h) => ElEvent(onDragCancel: h),
+          ),
+          (
+            (e) => e.copyWith(onVerticalDragStart: null),
+            (h) => ElEvent(onVerticalDragStart: h),
+          ),
+          (
+            (e) => e.copyWith(onVerticalDragUpdate: null),
+            (h) => ElEvent(onVerticalDragUpdate: h),
+          ),
+          (
+            (e) => e.copyWith(onVerticalDragEnd: null),
+            (h) => ElEvent(onVerticalDragEnd: h),
+          ),
+          (
+            (e) => e.copyWith(onVerticalDragCancel: null),
+            (h) => ElEvent(onVerticalDragCancel: h),
+          ),
+          (
+            (e) => e.copyWith(onHorizontalDragStart: null),
+            (h) => ElEvent(onHorizontalDragStart: h),
+          ),
+          (
+            (e) => e.copyWith(onHorizontalDragUpdate: null),
+            (h) => ElEvent(onHorizontalDragUpdate: h),
+          ),
+          (
+            (e) => e.copyWith(onHorizontalDragEnd: null),
+            (h) => ElEvent(onHorizontalDragEnd: h),
+          ),
+          (
+            (e) => e.copyWith(onHorizontalDragCancel: null),
+            (h) => ElEvent(onHorizontalDragCancel: h),
+          ),
+          (
+            (e) => e.copyWith(onScaleStart: null),
+            (h) => ElEvent(onScaleStart: h),
+          ),
+          (
+            (e) => e.copyWith(onScaleUpdate: null),
+            (h) => ElEvent(onScaleUpdate: h),
+          ),
+          ((e) => e.copyWith(onScaleEnd: null), (h) => ElEvent(onScaleEnd: h)),
+          (
+            (e) => e.copyWith(onScaleCancel: null),
+            (h) => ElEvent(onScaleCancel: h),
+          ),
+          (
+            (e) => e.copyWith(onRotationUpdate: null),
+            (h) => ElEvent(onRotationUpdate: h),
+          ),
+        ];
     final events = <ElEvent>[];
-    for (final (field, build) in shapes) {
+    for (final (clear, build) in shapes) {
       final event = build(first);
       final replaced = build(second);
-      expect(event.hasAnyCallback, isTrue, reason: field.name);
-      expect(event, replaced, reason: '${field.name} 替换闭包不改变结构');
-      expect(event.hashCode, replaced.hashCode, reason: field.name);
-      expect(event.identicalHandlers(replaced), isFalse, reason: field.name);
+      expect(event.hasAnyCallback, isTrue, reason: build.toString());
+      expect(event, replaced, reason: '${build.toString()} 替换闭包不改变结构');
+      expect(event.hashCode, replaced.hashCode, reason: build.toString());
       expect(
-        event.copyWith(clear: {field}).hasAnyCallback,
+        event.identicalHandlers(replaced),
         isFalse,
-        reason: field.name,
+        reason: build.toString(),
       );
-      expect(
-        event.copyWith(clear: {field}),
-        const ElEvent(),
-        reason: field.name,
-      );
+      expect(clear(event).hasAnyCallback, isFalse, reason: build.toString());
+      expect(clear(event), const ElEvent(), reason: build.toString());
       for (var previous = 0; previous < events.length; previous++) {
         expect(
           event,
           isNot(events[previous]),
-          reason: '${field.name} 不能与 ${shapes[previous].$1.name} 共享结构',
+          reason:
+              '${build.toString()} 不能与 ${shapes[previous].$2.toString()} 共享结构',
         );
       }
       events.add(event);
@@ -107,7 +132,7 @@ void main() {
     expect(events.toSet(), hasLength(shapes.length));
   });
 
-  test('copyWith 的 null 保留声明，clear 显式删除可空字段并保留标志', () {
+  test('生成 copyWith 省略保留、显式 null 清除，并保留非空标志', () {
     void handler(ElEventCallback _) {}
     final event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 8),
@@ -119,23 +144,15 @@ void main() {
       onTap: handler,
       onScaleUpdate: handler,
     );
-    final retained = event.copyWith(
+    final retained = event.copyWith();
+    expect(retained, event);
+    expect(retained.identicalHandlers(event), isTrue);
+    final cleared = event.copyWith(
       config: null,
       dragProxy: null,
       cursor: null,
       onTap: null,
       onScaleUpdate: null,
-    );
-    expect(retained, event);
-    expect(retained.identicalHandlers(event), isTrue);
-    final cleared = event.copyWith(
-      clear: {
-        ElEventClearField.config,
-        ElEventClearField.dragProxy,
-        ElEventClearField.cursor,
-        ElEventClearField.onTap,
-        ElEventClearField.onScaleUpdate,
-      },
     );
     expect(cleared.config, isNull);
     expect(cleared.dragProxy, isNull);
@@ -160,6 +177,21 @@ void main() {
     expect(
       first.copyWith(dragDevices: {PointerDeviceKind.touch}),
       isNot(first),
+    );
+  });
+
+  test('生成配置复制接受整数字面量且可恢复默认声明', () {
+    const config = ElEventConfig(dragStartDistance: 8, tapCancelDistance: 12);
+    final immediate = config.copyWith(dragStartDistance: 0);
+    expect(immediate.dragStartDistance, 0.0);
+    expect(immediate.tapCancelDistance, 12.0);
+    expect(
+      immediate.copyWith(dragStartDistance: null).dragStartDistance,
+      isNull,
+    );
+    expect(
+      ElEvent(config: config).copyWith(config: const ElEventConfig()).config,
+      const ElEventConfig(),
     );
   });
 }

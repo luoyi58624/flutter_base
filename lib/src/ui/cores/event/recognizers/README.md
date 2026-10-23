@@ -3,9 +3,9 @@
 `ElPressGestureRecognizer` 与 `ElTransformGestureRecognizer` 直接参加 Flutter
 手势竞技场，只依赖 Dart 和 Flutter。它们保留同类手势冒泡，不依赖
 `ElEventConfig`、`ElEventCallback`、RenderBox 或元素命中函数。
-公共入口是 `package:flutter_base/ui.dart`，也可直接导入本目录的 `recognizers.dart`。
+公共入口是 `package:flutter_base/ui.dart`，也可直接导入本目录的 `index.dart`。
 
-`ElEventView` 已通过内部宿主接入这两个识别器，旧点击、拖拽与缩放状态机已移除。
+`ElEventView` 直接由单个 Render 元素连接这两个识别器，旧控制器和点击、拖拽、缩放状态机已移除。
 
 ## 职责边界
 
@@ -39,7 +39,8 @@
 
 ```dart
 final parent = ElPressGestureRecognizer()..onTap = (details) {};
-final child = ElPressGestureRecognizer(parent: parent)
+final child = ElPressGestureRecognizer()
+  ..parent = parent
   ..onTap = (details) {
     details.stopPropagation();
   };
@@ -65,19 +66,20 @@ final child = ElPressGestureRecognizer(parent: parent)
 ## 变换 API
 
 ```dart
-final drag = ElTransformGestureRecognizer(
-  axis: Axis.horizontal,
-  startDistance: 6,
-  minFlingVelocity: 50,
-  maxFlingVelocity: 8000,
-)..onDragUpdate = (details) {
+final drag = ElTransformGestureRecognizer()
+  ..axis = Axis.horizontal
+  ..startDistance = 6
+  ..minFlingVelocity = 50
+  ..maxFlingVelocity = 8000
+  ..onDragUpdate = (details) {
   details.stopPropagation();
 };
 ```
 
 参数为 `axis`、`lockAxis`、`startDistance`、`horizontalAngle`、`minFlingDistance`、
 `minFlingVelocity`、`maxFlingVelocity`，设备过滤使用官方 `supportedDevices` 和
-`allowedButtonsFilter`。识别参数在本轮开始时冻结。
+`allowedButtonsFilter`。构造器仅接收官方通用选项，识别参数直接修改属性；
+属性保存默认值，可空参数设为 null 后恢复对应默认行为，当前轮仍使用开始时冻结的参数。
 
 单指拖拽与多指变换共用所有权，每根新增指针仍须赢得自己的官方竞技场。
 拖拽采用 latestPointer，只有已接受的指针参与驱动、中心、比例和旋转计算。
@@ -92,9 +94,9 @@ final drag = ElTransformGestureRecognizer(
 - `cancel()`：取消自身拥有的全部活动手势、连击窗口及待发通知，之后可以复用。
 - `dispose()`：销毁识别器，释放自己的路线和计时器。
 - Press 的 `rejectTap(pointer)` 只撤销本成员点击资格，保留已经开始的释放通知；
-  `cancelMember(pointer)` 则结清本成员，不中止其他成员。
+  `cancelMember(pointer)` 则结清本成员，不中止其他成员；省略 pointer 时结清本成员全部输入和待发点击。
 - Transform 的 `cancelMember(pointer, cancelDrag: ..., cancelScale: ...)`
-  只结清指定成员和家族，适用于宿主的拖拽升级或动态卸载。
+  只结清指定成员和家族，pointer 为 null 时覆盖本成员全部输入，适用于拖拽升级或动态卸载。
 - `onAccepted(pointer)` 表示官方已经接受该路线；Press 的 `onReleased(event)`
   在同步 Up／Tap／连击回调之后触发，延迟单击不推迟该通知。
 
@@ -129,11 +131,15 @@ final transform = ElTransformGestureRecognizer()..team = team;
 - Transform 参数从下一次 Down 生效；Press 识别配置变化会取消当前候选并重置分组。
   同形闭包热替换可继续当前手势，回调结构变化结清旧路线。
   中途新增手势不会补报旧 Down，不会在已经关闭的竞技场重新报名。
-- 不同拖拽阈值或轴向独立识别，不再向尚未达标的后代反向发送“提案 Start”。
-  同一命中链首个实际接受的拖拽作为输出驱动，其他意图不能随后抢回。
+- 不同拖拽阈值或轴向分别参加官方竞争，落败者不能随后抢回。
+  兼容成员由识别器冒泡，`isPrimaryTarget` 标识当前阶段首个实际接收者，宿主据此选择位移消费者。
 - 宿主在 Drag 升级 Scale 前结清 Drag；触摸指针从两指变为一指时发送 ScaleEnd，
   不再额外合成一次 pointerCount 为 1 的 ScaleUpdate。
 - 移动阈值由真实 Move 触发；Up 坐标跳变不补救 DragStart、不加入位移或速度拟合。
+
+`ElEvent`、`ElEventConfig` 和 `ElDragProxy` 的复制接口由模型生成器生成：
+`copyWith()` 保留原声明，`copyWith(onTap: null)` 显式清除回调。
+局部 config 整体替换，空配置字段交给识别器采用默认值；反馈时间和边界策略由 Render 采用默认行为。
 
 ## 测试组织
 

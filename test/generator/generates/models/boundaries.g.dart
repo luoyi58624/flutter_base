@@ -6,6 +6,17 @@ part of '../../models/boundaries.dart';
 // ElModelGenerator
 // **************************************************************************
 
+extension NumericCopyModelExt on NumericCopyModel {
+  NumericCopyModel copyWith({Object? value, Object? optional = $absent}) {
+    return NumericCopyModel(
+      value: value == null ? this.value : (value as num).toDouble(),
+      optional: identical(optional, $absent)
+          ? this.optional
+          : (optional as num?)?.toDouble(),
+    );
+  }
+}
+
 extension BoundaryModelExt on BoundaryModel {
   static const BoundaryModel defaultModel = BoundaryModel(
     value: "It's \\ready\n\$value",

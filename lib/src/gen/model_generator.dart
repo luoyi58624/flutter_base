@@ -488,8 +488,19 @@ extension $className${config.extSuffix} on $className {
           ? 'identical($field, \$absent)'
           : '$field == null';
       final noCast = isDynamic || fieldTypeBase == 'Object';
-      final castFull = noCast ? field : '$field as $fieldTypeStr';
-      final castBase = noCast ? field : '$field as $fieldTypeBase';
+      // 哨兵参数使用 Object?，整数字面量不再获得 double 的上下文类型，需要恢复数值转换。
+      final castBase = noCast
+          ? field
+          : fieldTypeBase == 'double'
+          ? '($field as num).toDouble()'
+          : '$field as $fieldTypeBase';
+      final castFull = fieldTypeBase == 'double' && isNullable
+          ? '($field as num?)?.toDouble()'
+          : noCast
+          ? field
+          : isNullable
+          ? '$field as $fieldTypeStr'
+          : castBase;
 
       final mergeStyle = _resolveMergeStyle(fieldInfo);
       switch (mergeStyle) {

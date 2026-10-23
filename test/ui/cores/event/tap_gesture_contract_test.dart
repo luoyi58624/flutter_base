@@ -1,19 +1,16 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets('主键点击立即依次发送 tapDown、tapUp、tap', (_) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       final phases = <ElEventPhase>[];
       void record(ElEventCallback event) => phases.add(event.phase);
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         onTapDown: record,
         onTapUp: record,
         onTap: record,
@@ -27,7 +24,7 @@ void main() {
         ElEventPhase.tapUp,
         ElEventPhase.tap,
       ]);
-      expect(host.leafDispatcher.activePointerCount, 0);
+      expect(host.leaf.activePointerCount, 0);
     } finally {
       host.dispose();
     }
@@ -35,11 +32,11 @@ void main() {
 
   for (final triples in [false, true]) {
     testWidgets('连击窗口按双击或三击分组：triple=$triples', (_) async {
-      final host = DispatcherTestHost.chain();
+      final host = EventTestHost.chain();
       try {
         final phases = <String>[];
         var ordinal = 0;
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onDoubleTapDown: (_) => phases.add('double:$ordinal'),
           onTripleTapDown: triples
               ? (_) => phases.add('triple:$ordinal')
@@ -63,13 +60,13 @@ void main() {
   }
 
   testWidgets('连击参数变化清空旧窗口，Drag 参数变化保留窗口', (_) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       var doubles = 0;
       void doubleTap(ElEventCallback _) => doubles++;
-      host.leafDispatcher.event = ElEvent(onDoubleTapDown: doubleTap);
+      host.leaf.event = ElEvent(onDoubleTapDown: doubleTap);
       await _tap(host, 1, 0);
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(dragStartDistance: 8),
         onDoubleTapDown: doubleTap,
       );
@@ -77,7 +74,7 @@ void main() {
       expect(doubles, 1);
 
       await _tap(host, 3, 80);
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(
           doubleTapInterval: Duration(milliseconds: 500),
         ),
@@ -91,11 +88,11 @@ void main() {
   });
 
   testWidgets('deferTap 延迟单击但不延迟 tapUp，第二击取消延迟单击', (tester) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       final phases = <ElEventPhase>[];
       void record(ElEventCallback event) => phases.add(event.phase);
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(
           deferTap: true,
           doubleTapInterval: Duration(milliseconds: 100),
@@ -126,10 +123,10 @@ void main() {
   });
 
   testWidgets('deferTap 未声明双击时仍立即发送单击', (_) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       var taps = 0;
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(deferTap: true),
         onTap: (_) => taps++,
       );
@@ -141,17 +138,17 @@ void main() {
   });
 
   testWidgets('长按接管终止祖先候选并保留自身 tapUp', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     try {
       final trace = <String>[];
       const config = ElEventConfig(longPressDelay: Duration(milliseconds: 20));
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: config,
         onLongPress: (_) => trace.add('parent:long'),
         onTapCancel: (_) => trace.add('parent:cancel'),
         onTap: (_) => trace.add('parent:tap'),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: config,
         onTapDown: (_) => trace.add('child:down'),
         onTapCancel: (_) => trace.add('child:cancel'),
@@ -185,7 +182,7 @@ void main() {
         'parent:cancel',
       ]);
       expect(
-        host.dispatchers.map((dispatcher) => dispatcher.activePointerCount),
+        host.elements.map((element) => element.activePointerCount),
         everyElement(0),
       );
     } finally {
@@ -194,11 +191,11 @@ void main() {
   });
 
   testWidgets('拖拽先接管后不再触发长按', (tester) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       var drags = 0;
       var longPresses = 0;
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(
           longPressDelay: Duration(milliseconds: 30),
           dragStartDistance: 3,
@@ -260,13 +257,13 @@ void main() {
     ),
   ]) {
     testWidgets('鼠标按钮 $buttons 仅发送对应按下、抬起、点击', (tester) async {
-      final host = DispatcherTestHost.chain();
+      final host = EventTestHost.chain();
       try {
         final phases = <ElEventPhase>[];
         var primaryTaps = 0;
         var longPresses = 0;
         void record(ElEventCallback event) => phases.add(event.phase);
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           config: const ElEventConfig(
             longPressDelay: Duration(milliseconds: 20),
           ),
@@ -306,7 +303,7 @@ void main() {
         expect(phases, [down, up, tap]);
         expect(primaryTaps, 0);
         expect(longPresses, 0);
-        expect(host.leafDispatcher.activePointerCount, 0);
+        expect(host.leaf.activePointerCount, 0);
       } finally {
         host.dispose();
       }
@@ -314,11 +311,11 @@ void main() {
   }
 
   testWidgets('侧键取消后下一次主键不残留侧键回调', (_) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     try {
       var taps = 0;
       var sideTaps = 0;
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         onTap: (_) => taps++,
         onForwardTap: (_) => sideTaps++,
       );
@@ -341,7 +338,7 @@ void main() {
   });
 }
 
-Future<void> _tap(DispatcherTestHost host, int pointer, int millis) async {
+Future<void> _tap(EventTestHost host, int pointer, int millis) async {
   await host.tap(
     pointer: pointer,
     downTime: Duration(milliseconds: millis),

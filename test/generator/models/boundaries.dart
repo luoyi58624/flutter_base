@@ -4,6 +4,19 @@ import '../support/serializers.dart' as serializers;
 
 part '../generates/models/boundaries.g.dart';
 
+/// 验证复制时仍接受可用于 double 参数的整数字面量。
+@ElModelGenerator(copyWith: true)
+class NumericCopyModel {
+  /// 创建包含可空与非空数值的模型。
+  const NumericCopyModel({this.value = 1, this.optional});
+
+  /// 必填数值的默认声明。
+  final double value;
+
+  /// 可清除的数值声明。
+  final double? optional;
+}
+
 /// 转义后的 JSON 键。
 const escapedKey = "user's\\key\$id\n下一行";
 

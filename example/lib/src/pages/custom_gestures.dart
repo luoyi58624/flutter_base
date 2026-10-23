@@ -56,10 +56,9 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     ElPressGestureRecognizer? parent,
   }) {
     _bounds.putIfAbsent(source, () => GlobalKey());
-    return ElPressGestureRecognizer(
-        parent: parent,
-        tapSlopTolerance: double.infinity,
-      )
+    return ElPressGestureRecognizer()
+      ..parent = parent
+      ..tapSlopTolerance = double.infinity
       ..onTapDown = _handler(source, pressed: true)
       ..onTapUp = _handler(source, pressed: false)
       ..onTap = _handler(source, counter: tapCounter)

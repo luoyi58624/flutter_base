@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,8 +21,6 @@ const _immediate = ElEventConfig(
 );
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets('宿主外查询返回空状态，交互扩展均返回 false', (tester) async {
     await tester.pumpWidget(
       _shell(

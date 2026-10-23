@@ -1,20 +1,18 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/render.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets('SCALE-A1: 可让渡 Drag 在第二指加入时由祖先 Scale 原子接管', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootDispatcher.event = _scaleEvent(trace);
-    host.leafDispatcher.event = _dragEvent(
+    host.rootElement.event = _scaleEvent(trace);
+    host.leaf.event = _dragEvent(
       trace,
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
@@ -74,11 +72,11 @@ void main() {
   });
 
   testWidgets('SCALE-A2: 默认 eagerGesture 不向祖先 Scale 让渡', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootDispatcher.event = _scaleEvent(trace);
-    host.leafDispatcher.event = _dragEvent(
+    host.rootElement.event = _scaleEvent(trace);
+    host.leaf.event = _dragEvent(
       trace,
       onStart: (event) => event.eagerGesture(),
     );
@@ -120,11 +118,11 @@ void main() {
   });
 
   testWidgets('SCALE-A3: 任一参与指针不可让渡时不得部分取消既有 Drag', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootDispatcher.event = _scaleEvent(trace);
-    host.leafDispatcher.event = _dragEvent(
+    host.rootElement.event = _scaleEvent(trace);
+    host.leaf.event = _dragEvent(
       trace,
       onPointerDown: (event) {
         final original = event.originalEvent;
@@ -179,11 +177,11 @@ void main() {
   });
 
   testWidgets('SCALE-A4: 可让渡 winner 被移除后不得残留第二指立即升级权限', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     var scaleStarts = 0;
-    host.rootDispatcher.event = ElEvent(onScaleStart: (_) => scaleStarts++);
-    host.leafDispatcher.event = _dragEvent(
+    host.rootElement.event = ElEvent(onScaleStart: (_) => scaleStarts++);
+    host.leaf.event = _dragEvent(
       <String>[],
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
@@ -199,10 +197,10 @@ void main() {
         millis: 16,
       ),
     );
-    host.leafDispatcher.dispose();
+    host.leaf.dispose();
 
     final rootEntry = BoxHitTestEntry(host.nodes.first, Offset.zero);
-    host.rootDispatcher.handleEvent(
+    host.rootElement.handleEvent(
       _down(pointer: 2, position: const Offset(150, 50), millis: 32),
       rootEntry,
     );
@@ -212,7 +210,7 @@ void main() {
       reason: '原 winner 已消失，遗留 tracker 只能退回普通双指阈值，不能沿用旧让渡权',
     );
 
-    host.rootDispatcher.handleEvent(
+    host.rootElement.handleEvent(
       _move(
         pointer: 2,
         position: const Offset(210, 50),
@@ -229,12 +227,12 @@ void main() {
   });
 
   testWidgets('SCALE-A6: pipeline shadow 不得覆盖第二指自己的默认 eager', (_) async {
-    final host = DispatcherTestHost.chain(depth: 3);
+    final host = EventTestHost.chain(depth: 3);
     addTearDown(host.dispose);
     final trace = <String>[];
-    final root = host.dispatchers[0];
-    final middle = host.dispatchers[1];
-    final leaf = host.dispatchers[2];
+    final root = host.elements[0];
+    final middle = host.elements[1];
+    final leaf = host.elements[2];
     root.event = ElEvent(
       dragProxy: ElDragProxy(axis: Axis.vertical, onDragOverflow: (_) {}),
     );
@@ -305,29 +303,35 @@ void main() {
 
   testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (_) async {
     final pipelineOwner = PipelineOwner();
-    final rootBox = RenderFlex(
-      direction: Axis.horizontal,
-      textDirection: TextDirection.ltr,
-    );
-    final leftBox = RenderConstrainedBox(
-      additionalConstraints: const BoxConstraints.tightFor(
-        width: 100,
-        height: 100,
+    final rootBox = RenderElEvent(
+      child: RenderFlex(
+        direction: Axis.horizontal,
+        textDirection: TextDirection.ltr,
       ),
     );
-    final rightBox = RenderConstrainedBox(
-      additionalConstraints: const BoxConstraints.tightFor(
-        width: 100,
-        height: 100,
+    final leftBox = RenderElEvent(
+      child: RenderConstrainedBox(
+        additionalConstraints: const BoxConstraints.tightFor(
+          width: 100,
+          height: 100,
+        ),
       ),
     );
-    rootBox.addAll(<RenderBox>[leftBox, rightBox]);
+    final rightBox = RenderElEvent(
+      child: RenderConstrainedBox(
+        additionalConstraints: const BoxConstraints.tightFor(
+          width: 100,
+          height: 100,
+        ),
+      ),
+    );
+    (rootBox.child as RenderFlex).addAll(<RenderBox>[leftBox, rightBox]);
     pipelineOwner.rootNode = rootBox;
     rootBox.layout(const BoxConstraints.tightFor(width: 200, height: 100));
 
-    final root = ElEventDispatcher(rootBox);
-    final left = ElEventDispatcher(leftBox);
-    final right = ElEventDispatcher(rightBox);
+    final root = rootBox;
+    final left = leftBox;
+    final right = rightBox;
     addTearDown(() {
       right.dispose();
       left.dispose();
@@ -350,7 +354,7 @@ void main() {
     right.event = ElEvent(onPointerDown: (_) {});
 
     Future<void> dispatchThrough(
-      ElEventDispatcher leaf,
+      RenderElEvent leaf,
       RenderBox box,
       PointerEvent event,
     ) async {

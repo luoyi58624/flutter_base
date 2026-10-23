@@ -1,4 +1,4 @@
-part of 'recognizers.dart';
+part of 'index.dart';
 
 /// 将同一 El 路线的订阅者与参加官方竞技场的所有者分开。
 abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
@@ -181,6 +181,7 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
       if (!candidate && lastMember == null) {
         end = math.min(end, route.observedEnds[family] ?? end);
       }
+      var firstTarget = true;
       for (var index = firstMember; index <= end; index++) {
         // 同家族重入可能已取消当前阶段，不能再把旧 Down/Start 送给后续祖先。
         if (!route.active ||
@@ -198,6 +199,8 @@ abstract class _ElGestureRecognizer extends OneSequenceGestureRecognizer {
         final details = prepare == null ? callback : prepare(member);
         if (details == null) continue;
         details._sequenceIdentity = route;
+        details._isPrimaryTarget = firstTarget;
+        firstTarget = false;
         member.invokeCallback<void>(callback.phase.name, () {
           final down = route.downEvents[member]?[callback.pointer];
           details._updateTransform(down?.transform);

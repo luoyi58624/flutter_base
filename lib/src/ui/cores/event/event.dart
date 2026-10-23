@@ -1,178 +1,19 @@
 import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/painting.dart' show Axis;
 import 'package:flutter/rendering.dart' show HitTestBehavior, MouseCursor;
+import 'package:flutter_base/src/dart/gen/index.dart';
 
 import 'callback.dart';
 import 'config.dart';
 
 export 'config.dart';
 
+part 'event.g.dart';
+
 bool _sameTapConfiguration(ElEventConfig? left, ElEventConfig? right) =>
     left?.hasSameTapConfiguration(right) ??
     right?.hasSameTapConfiguration(null) ??
     true;
-
-/// 可通过 [ElEvent.copyWith] 显式清除的可空字段。
-enum ElEventClearField {
-  /// 清除局部识别配置。
-  config,
-
-  /// 清除拖拽代理配置。
-  dragProxy,
-
-  /// 清除onPointerEnter 回调。
-  onPointerEnter,
-
-  /// 清除onPointerHover 回调。
-  onPointerHover,
-
-  /// 清除onPointerExit 回调。
-  onPointerExit,
-
-  /// 清除onPointerDown 回调。
-  onPointerDown,
-
-  /// 清除onPointerMove 回调。
-  onPointerMove,
-
-  /// 清除onPointerUp 回调。
-  onPointerUp,
-
-  /// 清除onPointerCancel 回调。
-  onPointerCancel,
-
-  /// 清除onPointerPanZoomStart 回调。
-  onPointerPanZoomStart,
-
-  /// 清除onPointerPanZoomUpdate 回调。
-  onPointerPanZoomUpdate,
-
-  /// 清除onPointerPanZoomEnd 回调。
-  onPointerPanZoomEnd,
-
-  /// 清除onPointerSignal 回调。
-  onPointerSignal,
-
-  /// 清除onTapDown 回调。
-  onTapDown,
-
-  /// 清除onTapUp 回调。
-  onTapUp,
-
-  /// 清除onTap 回调。
-  onTap,
-
-  /// 清除onDoubleTap 回调。
-  onDoubleTap,
-
-  /// 清除onDoubleTapDown 回调。
-  onDoubleTapDown,
-
-  /// 清除onTripleTap 回调。
-  onTripleTap,
-
-  /// 清除onTripleTapDown 回调。
-  onTripleTapDown,
-
-  /// 清除onSecondaryTapDown 回调。
-  onSecondaryTapDown,
-
-  /// 清除onSecondaryTapUp 回调。
-  onSecondaryTapUp,
-
-  /// 清除onSecondaryTap 回调。
-  onSecondaryTap,
-
-  /// 清除onTertiaryTapDown 回调。
-  onTertiaryTapDown,
-
-  /// 清除onTertiaryTapUp 回调。
-  onTertiaryTapUp,
-
-  /// 清除onTertiaryTap 回调。
-  onTertiaryTap,
-
-  /// 清除onForwardTapDown 回调。
-  onForwardTapDown,
-
-  /// 清除onForwardTapUp 回调。
-  onForwardTapUp,
-
-  /// 清除onForwardTap 回调。
-  onForwardTap,
-
-  /// 清除onBackTapDown 回调。
-  onBackTapDown,
-
-  /// 清除onBackTapUp 回调。
-  onBackTapUp,
-
-  /// 清除onBackTap 回调。
-  onBackTap,
-
-  /// 清除onLongPress 回调。
-  onLongPress,
-
-  /// 清除onTapCancel 回调。
-  onTapCancel,
-
-  /// 清除onDragDown 回调。
-  onDragDown,
-
-  /// 清除onDragStart 回调。
-  onDragStart,
-
-  /// 清除onDragUpdate 回调。
-  onDragUpdate,
-
-  /// 清除onDragEnd 回调。
-  onDragEnd,
-
-  /// 清除onDragCancel 回调。
-  onDragCancel,
-
-  /// 清除onVerticalDragStart 回调。
-  onVerticalDragStart,
-
-  /// 清除onVerticalDragUpdate 回调。
-  onVerticalDragUpdate,
-
-  /// 清除onVerticalDragEnd 回调。
-  onVerticalDragEnd,
-
-  /// 清除onVerticalDragCancel 回调。
-  onVerticalDragCancel,
-
-  /// 清除onHorizontalDragStart 回调。
-  onHorizontalDragStart,
-
-  /// 清除onHorizontalDragUpdate 回调。
-  onHorizontalDragUpdate,
-
-  /// 清除onHorizontalDragEnd 回调。
-  onHorizontalDragEnd,
-
-  /// 清除onHorizontalDragCancel 回调。
-  onHorizontalDragCancel,
-
-  /// 清除onScaleStart 回调。
-  onScaleStart,
-
-  /// 清除onScaleUpdate 回调。
-  onScaleUpdate,
-
-  /// 清除onScaleEnd 回调。
-  onScaleEnd,
-
-  /// 清除onScaleCancel 回调。
-  onScaleCancel,
-
-  /// 清除onRotationUpdate 回调。
-  onRotationUpdate,
-
-  /// 清除光标配置。
-  cursor,
-}
 
 /// 拖拽代理配置，用于沿祖先链分配后代拖拽产生的位移。
 ///
@@ -182,6 +23,7 @@ enum ElEventClearField {
 /// 代理回调中的停止冒泡与独占请求不影响管线。
 ///
 /// 等值比较使用 [axis] 和回调的空性，重建时替换闭包可保留手势状态。
+@ElModelGenerator(copyWith: true)
 final class ElDragProxy {
   /// 创建拖拽代理配置。
   const ElDragProxy({this.axis, this.onDragPreUpdate, this.onDragOverflow});
@@ -223,6 +65,7 @@ final class ElDragProxy {
 ///
 /// 等值比较使用配置值和回调的空性，不比较闭包身份；相同声明结构下替换
 /// 回调可保留正在进行的连击、长按和拖拽状态。
+@ElModelGenerator(copyWith: true)
 class ElEvent {
   /// 创建事件配置。
   const ElEvent({
@@ -305,6 +148,8 @@ class ElEvent {
   /// 非空时按**字段级**覆盖：只设置了的字段生效，未设置的字段同样回落内部
   /// 默认值。配置**只对声明它的那个节点生效**，不沿 render 树向子组件注入。
   /// 详见 [ElEventConfig]。
+  // 替换局部声明时，未设置字段需要恢复识别器默认行为，不能隐式合并旧配置。
+  @ElFieldGenerator(useMerge: false)
   final ElEventConfig? config;
 
   /// 拖拽分账代理。声明本节点参与后代拖拽序列的 pre/overflow 阶段管线。
@@ -503,240 +348,6 @@ class ElEvent {
   /// 旋转更新回调。
   final ElEventHandler? onRotationUpdate;
 
-  /// 复制配置并覆盖指定字段，通过 [clear] 显式清除可空字段。
-  ///
-  /// 可空参数省略或传 null 均保留原值，例如 `copyWith(onTap: null)`
-  /// 不会清除回调；需将对应字段加入 [clear]。
-  ElEvent copyWith({
-    ElEventConfig? config,
-    ElDragProxy? dragProxy,
-    HitTestBehavior? behavior,
-    MouseCursor? cursor,
-    bool? disabled,
-    bool? rotationStartEnabled,
-    ElEventHandler? onPointerEnter,
-    ElEventHandler? onPointerHover,
-    ElEventHandler? onPointerExit,
-    ElEventHandler? onPointerDown,
-    ElEventHandler? onPointerMove,
-    ElEventHandler? onPointerUp,
-    ElEventHandler? onPointerCancel,
-    ElEventHandler? onPointerPanZoomStart,
-    ElEventHandler? onPointerPanZoomUpdate,
-    ElEventHandler? onPointerPanZoomEnd,
-    ElEventHandler? onPointerSignal,
-    ElEventHandler? onTapDown,
-    ElEventHandler? onTapUp,
-    ElEventHandler? onTap,
-    ElEventHandler? onDoubleTap,
-    ElEventHandler? onDoubleTapDown,
-    ElEventHandler? onTripleTap,
-    ElEventHandler? onTripleTapDown,
-    ElEventHandler? onSecondaryTapDown,
-    ElEventHandler? onSecondaryTapUp,
-    ElEventHandler? onSecondaryTap,
-    ElEventHandler? onTertiaryTapDown,
-    ElEventHandler? onTertiaryTapUp,
-    ElEventHandler? onTertiaryTap,
-    ElEventHandler? onForwardTapDown,
-    ElEventHandler? onForwardTapUp,
-    ElEventHandler? onForwardTap,
-    ElEventHandler? onBackTapDown,
-    ElEventHandler? onBackTapUp,
-    ElEventHandler? onBackTap,
-    ElEventHandler? onLongPress,
-    ElEventHandler? onTapCancel,
-    ElEventHandler? onDragDown,
-    ElEventHandler? onDragStart,
-    ElEventHandler? onDragUpdate,
-    ElEventHandler? onDragEnd,
-    ElEventHandler? onDragCancel,
-    ElEventHandler? onVerticalDragStart,
-    ElEventHandler? onVerticalDragUpdate,
-    ElEventHandler? onVerticalDragEnd,
-    ElEventHandler? onVerticalDragCancel,
-    ElEventHandler? onHorizontalDragStart,
-    ElEventHandler? onHorizontalDragUpdate,
-    ElEventHandler? onHorizontalDragEnd,
-    ElEventHandler? onHorizontalDragCancel,
-    ElEventHandler? onScaleStart,
-    ElEventHandler? onScaleUpdate,
-    ElEventHandler? onScaleEnd,
-    ElEventHandler? onScaleCancel,
-    ElEventHandler? onRotationUpdate,
-    Set<ElEventClearField> clear = const <ElEventClearField>{},
-  }) {
-    bool shouldClear(ElEventClearField field) => clear.contains(field);
-
-    return ElEvent(
-      config: shouldClear(ElEventClearField.config)
-          ? null
-          : config ?? this.config,
-      dragProxy: shouldClear(ElEventClearField.dragProxy)
-          ? null
-          : dragProxy ?? this.dragProxy,
-      behavior: behavior ?? this.behavior,
-      cursor: shouldClear(ElEventClearField.cursor)
-          ? null
-          : cursor ?? this.cursor,
-      disabled: disabled ?? this.disabled,
-      rotationStartEnabled: rotationStartEnabled ?? this.rotationStartEnabled,
-      onPointerEnter: shouldClear(ElEventClearField.onPointerEnter)
-          ? null
-          : onPointerEnter ?? this.onPointerEnter,
-      onPointerHover: shouldClear(ElEventClearField.onPointerHover)
-          ? null
-          : onPointerHover ?? this.onPointerHover,
-      onPointerExit: shouldClear(ElEventClearField.onPointerExit)
-          ? null
-          : onPointerExit ?? this.onPointerExit,
-      onPointerDown: shouldClear(ElEventClearField.onPointerDown)
-          ? null
-          : onPointerDown ?? this.onPointerDown,
-      onPointerMove: shouldClear(ElEventClearField.onPointerMove)
-          ? null
-          : onPointerMove ?? this.onPointerMove,
-      onPointerUp: shouldClear(ElEventClearField.onPointerUp)
-          ? null
-          : onPointerUp ?? this.onPointerUp,
-      onPointerCancel: shouldClear(ElEventClearField.onPointerCancel)
-          ? null
-          : onPointerCancel ?? this.onPointerCancel,
-      onPointerPanZoomStart:
-          shouldClear(ElEventClearField.onPointerPanZoomStart)
-          ? null
-          : onPointerPanZoomStart ?? this.onPointerPanZoomStart,
-      onPointerPanZoomUpdate:
-          shouldClear(ElEventClearField.onPointerPanZoomUpdate)
-          ? null
-          : onPointerPanZoomUpdate ?? this.onPointerPanZoomUpdate,
-      onPointerPanZoomEnd: shouldClear(ElEventClearField.onPointerPanZoomEnd)
-          ? null
-          : onPointerPanZoomEnd ?? this.onPointerPanZoomEnd,
-      onPointerSignal: shouldClear(ElEventClearField.onPointerSignal)
-          ? null
-          : onPointerSignal ?? this.onPointerSignal,
-      onTapDown: shouldClear(ElEventClearField.onTapDown)
-          ? null
-          : onTapDown ?? this.onTapDown,
-      onTapUp: shouldClear(ElEventClearField.onTapUp)
-          ? null
-          : onTapUp ?? this.onTapUp,
-      onTap: shouldClear(ElEventClearField.onTap) ? null : onTap ?? this.onTap,
-      onDoubleTap: shouldClear(ElEventClearField.onDoubleTap)
-          ? null
-          : onDoubleTap ?? this.onDoubleTap,
-      onDoubleTapDown: shouldClear(ElEventClearField.onDoubleTapDown)
-          ? null
-          : onDoubleTapDown ?? this.onDoubleTapDown,
-      onTripleTap: shouldClear(ElEventClearField.onTripleTap)
-          ? null
-          : onTripleTap ?? this.onTripleTap,
-      onTripleTapDown: shouldClear(ElEventClearField.onTripleTapDown)
-          ? null
-          : onTripleTapDown ?? this.onTripleTapDown,
-      onSecondaryTapDown: shouldClear(ElEventClearField.onSecondaryTapDown)
-          ? null
-          : onSecondaryTapDown ?? this.onSecondaryTapDown,
-      onSecondaryTapUp: shouldClear(ElEventClearField.onSecondaryTapUp)
-          ? null
-          : onSecondaryTapUp ?? this.onSecondaryTapUp,
-      onSecondaryTap: shouldClear(ElEventClearField.onSecondaryTap)
-          ? null
-          : onSecondaryTap ?? this.onSecondaryTap,
-      onTertiaryTapDown: shouldClear(ElEventClearField.onTertiaryTapDown)
-          ? null
-          : onTertiaryTapDown ?? this.onTertiaryTapDown,
-      onTertiaryTapUp: shouldClear(ElEventClearField.onTertiaryTapUp)
-          ? null
-          : onTertiaryTapUp ?? this.onTertiaryTapUp,
-      onTertiaryTap: shouldClear(ElEventClearField.onTertiaryTap)
-          ? null
-          : onTertiaryTap ?? this.onTertiaryTap,
-      onForwardTapDown: shouldClear(ElEventClearField.onForwardTapDown)
-          ? null
-          : onForwardTapDown ?? this.onForwardTapDown,
-      onForwardTapUp: shouldClear(ElEventClearField.onForwardTapUp)
-          ? null
-          : onForwardTapUp ?? this.onForwardTapUp,
-      onForwardTap: shouldClear(ElEventClearField.onForwardTap)
-          ? null
-          : onForwardTap ?? this.onForwardTap,
-      onBackTapDown: shouldClear(ElEventClearField.onBackTapDown)
-          ? null
-          : onBackTapDown ?? this.onBackTapDown,
-      onBackTapUp: shouldClear(ElEventClearField.onBackTapUp)
-          ? null
-          : onBackTapUp ?? this.onBackTapUp,
-      onBackTap: shouldClear(ElEventClearField.onBackTap)
-          ? null
-          : onBackTap ?? this.onBackTap,
-      onLongPress: shouldClear(ElEventClearField.onLongPress)
-          ? null
-          : onLongPress ?? this.onLongPress,
-      onTapCancel: shouldClear(ElEventClearField.onTapCancel)
-          ? null
-          : onTapCancel ?? this.onTapCancel,
-      onDragDown: shouldClear(ElEventClearField.onDragDown)
-          ? null
-          : onDragDown ?? this.onDragDown,
-      onDragStart: shouldClear(ElEventClearField.onDragStart)
-          ? null
-          : onDragStart ?? this.onDragStart,
-      onDragUpdate: shouldClear(ElEventClearField.onDragUpdate)
-          ? null
-          : onDragUpdate ?? this.onDragUpdate,
-      onDragEnd: shouldClear(ElEventClearField.onDragEnd)
-          ? null
-          : onDragEnd ?? this.onDragEnd,
-      onDragCancel: shouldClear(ElEventClearField.onDragCancel)
-          ? null
-          : onDragCancel ?? this.onDragCancel,
-      onVerticalDragStart: shouldClear(ElEventClearField.onVerticalDragStart)
-          ? null
-          : onVerticalDragStart ?? this.onVerticalDragStart,
-      onVerticalDragUpdate: shouldClear(ElEventClearField.onVerticalDragUpdate)
-          ? null
-          : onVerticalDragUpdate ?? this.onVerticalDragUpdate,
-      onVerticalDragEnd: shouldClear(ElEventClearField.onVerticalDragEnd)
-          ? null
-          : onVerticalDragEnd ?? this.onVerticalDragEnd,
-      onVerticalDragCancel: shouldClear(ElEventClearField.onVerticalDragCancel)
-          ? null
-          : onVerticalDragCancel ?? this.onVerticalDragCancel,
-      onHorizontalDragStart:
-          shouldClear(ElEventClearField.onHorizontalDragStart)
-          ? null
-          : onHorizontalDragStart ?? this.onHorizontalDragStart,
-      onHorizontalDragUpdate:
-          shouldClear(ElEventClearField.onHorizontalDragUpdate)
-          ? null
-          : onHorizontalDragUpdate ?? this.onHorizontalDragUpdate,
-      onHorizontalDragEnd: shouldClear(ElEventClearField.onHorizontalDragEnd)
-          ? null
-          : onHorizontalDragEnd ?? this.onHorizontalDragEnd,
-      onHorizontalDragCancel:
-          shouldClear(ElEventClearField.onHorizontalDragCancel)
-          ? null
-          : onHorizontalDragCancel ?? this.onHorizontalDragCancel,
-      onScaleStart: shouldClear(ElEventClearField.onScaleStart)
-          ? null
-          : onScaleStart ?? this.onScaleStart,
-      onScaleUpdate: shouldClear(ElEventClearField.onScaleUpdate)
-          ? null
-          : onScaleUpdate ?? this.onScaleUpdate,
-      onScaleEnd: shouldClear(ElEventClearField.onScaleEnd)
-          ? null
-          : onScaleEnd ?? this.onScaleEnd,
-      onScaleCancel: shouldClear(ElEventClearField.onScaleCancel)
-          ? null
-          : onScaleCancel ?? this.onScaleCancel,
-      onRotationUpdate: shouldClear(ElEventClearField.onRotationUpdate)
-          ? null
-          : onRotationUpdate ?? this.onRotationUpdate,
-    );
-  }
-
   /// 全量替换合并：[other] 非空时**整体取代**当前配置（含 null 字段——other 的
   /// null 会清掉 this 的同名 handler），为空时返回 this。
   ///
@@ -864,7 +475,7 @@ class ElEvent {
 
   /// 除 Drag 家族外的声明结构是否完全一致。
   ///
-  /// 仅供事件分发器判定动态挂卸 Drag 时能否保留 Tap / LongPress
+  /// 仅供 Render 宿主判定动态挂卸 Drag 时能否保留 Tap / LongPress
   /// 的离散状态。Drag 家族包含 `onDragDown`、自由拖拽与轴向
   /// 拖拽；配置仅比较 Tap / 连击 / 长按字段，纯 Drag 参数变化可保留连击窗口。
   @internal
@@ -918,7 +529,7 @@ class ElEvent {
 
   /// 两份配置的全部回调是否为同一批闭包实例（shape 相等之上的强判定）。
   ///
-  /// dispatcher 用它区分"同构热替换"与"完全相同无需处理"。
+  /// Render 用它区分"同构热替换"与"完全相同无需处理"。
   bool identicalHandlers(ElEvent other) {
     final proxyOwn = dragProxy;
     final proxyOther = other.dragProxy;

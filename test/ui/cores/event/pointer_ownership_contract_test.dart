@@ -1,17 +1,14 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets(
     'OWN-1: descendant eager drag cancels ancestor chain and preserves winner tap',
     (tester) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         var parentPointerMoves = 0;
@@ -25,7 +22,7 @@ void main() {
         var childDragStarts = 0;
         final childTapPhases = <ElEventPhase>[];
 
-        host.rootDispatcher.event = .new(
+        host.rootElement.event = .new(
           config: const ElEventConfig(
             longPressDelay: Duration(milliseconds: 30),
             dragStartDistance: 3,
@@ -44,7 +41,7 @@ void main() {
             parentCancelReason = event.cancelReason;
           },
         );
-        host.leafDispatcher.event = .new(
+        host.leaf.event = .new(
           config: const ElEventConfig(dragStartDistance: 3),
           onTapDown: (event) => childTapPhases.add(event.phase),
           onTapUp: (event) => childTapPhases.add(event.phase),
@@ -136,12 +133,12 @@ void main() {
   testWidgets('OWN-2: ancestor eager drag cancels active descendant tap', (
     _,
   ) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     try {
       final trace = <String>[];
-      host.rootDispatcher.event = _dragEvent('ancestor', trace, eager: true);
-      host.leafDispatcher.event = _tapEvent('child', trace);
+      host.rootElement.event = _dragEvent('ancestor', trace, eager: true);
+      host.leaf.event = _tapEvent('child', trace);
 
       await host.dispatch(_down(pointer: 2));
       await host.dispatch(_move(pointer: 2, x: 4, deltaX: 4, millis: 16));
@@ -162,17 +159,17 @@ void main() {
   testWidgets(
     'OWN-3: cancelSelfTap settles every active tap once but preserves winner terminal',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 3);
+      final host = EventTestHost.chain(depth: 3);
       addTearDown(host.dispose);
       try {
         final trace = <String>[];
-        host.dispatchers[0].event = _tapEvent('ancestor', trace);
-        host.dispatchers[1].event = _tapAndDragEvent(
+        host.elements[0].event = _tapEvent('ancestor', trace);
+        host.elements[1].event = _tapAndDragEvent(
           'winner',
           trace,
           cancelSelfTapOnDragStart: true,
         );
-        host.dispatchers[2].event = _tapEvent('descendant', trace);
+        host.elements[2].event = _tapEvent('descendant', trace);
 
         await host.dispatch(_down(pointer: 3));
         await host.dispatch(_move(pointer: 3, x: 4, deltaX: 4, millis: 16));
@@ -199,7 +196,7 @@ void main() {
   testWidgets('OWN-3A: DragProxy driver/roster 区分自身与他手势取消，roster 仍收到终态', (
     _,
   ) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     try {
       ElEventCancelReason? driverReason;
@@ -207,7 +204,7 @@ void main() {
       final driverDragPhases = <ElEventPhase>[];
       final rosterDragPhases = <ElEventPhase>[];
 
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig,
         dragProxy: ElDragProxy(onDragPreUpdate: (_) {}, onDragOverflow: (_) {}),
         onTapDown: (_) {},
@@ -215,7 +212,7 @@ void main() {
         onDragStart: (event) => rosterDragPhases.add(event.phase),
         onDragEnd: (event) => rosterDragPhases.add(event.phase),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig,
         onTapDown: (_) {},
         onTapCancel: (event) => driverReason = event.cancelReason,
@@ -246,7 +243,7 @@ void main() {
   testWidgets(
     'OWN-4: pointerDown eager keeps winner raw, tapUp and drag but drops the loser chain',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final winnerPhases = <ElEventPhase>[];
@@ -255,7 +252,7 @@ void main() {
             winnerPhases.add(event.phase);
         void recordLoser(ElEventCallback event) => loserPhases.add(event.phase);
 
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           config: _dragConfig,
           onPointerDown: recordLoser,
           onPointerMove: recordLoser,
@@ -268,7 +265,7 @@ void main() {
           onDragUpdate: recordLoser,
           onDragEnd: recordLoser,
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           config: _dragConfig,
           onPointerDown: (event) {
             recordWinner(event);
@@ -314,16 +311,16 @@ void main() {
   testWidgets(
     'OWN-5: tapUp eager drops loser callbacks already queued in the same dispatch',
     (tester) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final winnerPhases = <ElEventPhase>[];
         final loserPhases = <ElEventPhase>[];
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           onTapUp: (event) => loserPhases.add(event.phase),
           onTap: (event) => loserPhases.add(event.phase),
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onTapUp: (event) {
             winnerPhases.add(event.phase);
             event.eagerGesture();
@@ -350,11 +347,11 @@ void main() {
   );
 
   testWidgets('OWN-6: 未过拖拽阈值的高速 Up 不得取消子节点的有效点击', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     try {
       final trace = <String>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: const ElEventConfig(
           dragStartDistance: 100,
           dragMinFlingDistance: 1,
@@ -366,7 +363,7 @@ void main() {
         },
         onDragEnd: (event) => trace.add('ancestor:${event.phase.name}'),
       );
-      host.leafDispatcher.event = _tapEvent('child', trace);
+      host.leaf.event = _tapEvent('child', trace);
 
       await host.dispatch(_down(pointer: 6));
       await host.dispatch(_move(pointer: 6, x: 20, deltaX: 20, millis: 4));
@@ -379,13 +376,13 @@ void main() {
   });
 
   testWidgets('OWN-13: eagerGesture 返回前同步结清 loser terminal', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     try {
       var winnerSideEffectCommitted = false;
       final loserTerminals = <ElEventPhase>[];
       final loserObservedCommittedStates = <bool>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: const ElEventConfig(dragStartDistance: 3),
         onTapDown: (_) {},
         onPointerCancel: (event) {
@@ -397,7 +394,7 @@ void main() {
           loserObservedCommittedStates.add(winnerSideEffectCommitted);
         },
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: const ElEventConfig(dragStartDistance: 3),
         onDragStart: (event) {
           event.eagerGesture(cancelSelfTap: true);
@@ -438,7 +435,7 @@ void main() {
   testWidgets(
     'OWN-14: raw-started loser receives PointerCancel without an orphan TapCancel',
     (tester) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final phases = <ElEventPhase>[];
@@ -446,7 +443,7 @@ void main() {
         ElEventCancelReason? cancelReason;
         var pointerCount = -1;
         var orphanTapCancels = 0;
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           onPointerDown: (event) => phases.add(event.phase),
           onPointerCancel: (event) {
             phases.add(event.phase);
@@ -456,9 +453,7 @@ void main() {
           },
           onTapCancel: (_) => orphanTapCancels++,
         );
-        host.leafDispatcher.event = ElEvent(
-          onTapDown: (event) => event.eagerGesture(),
-        );
+        host.leaf.event = ElEvent(onTapDown: (event) => event.eagerGesture());
 
         await host.dispatch(_down(pointer: 14));
 
@@ -483,19 +478,19 @@ void main() {
   testWidgets(
     'OWN-15: eager settles active Drag with PointerCancel then DragCancel',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final parentTerminals = <ElEventPhase>[];
         var shouldClaim = false;
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           config: _dragConfig,
           onPointerCancel: (event) => parentTerminals.add(event.phase),
           onDragStart: (_) {},
           onDragUpdate: (_) {},
           onDragCancel: (event) => parentTerminals.add(event.phase),
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onPointerMove: (event) {
             if (shouldClaim) event.eagerGesture();
           },
@@ -517,17 +512,15 @@ void main() {
   );
 
   testWidgets('OWN-16: 已确认的 Scale 不能由失权 raw 观察者重新抢回', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     final parentPhases = <ElEventPhase>[];
     ElEventCallback? candidate;
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       onScaleStart: (event) => parentPhases.add(event.phase),
       onScaleEnd: (event) => parentPhases.add(event.phase),
       onScaleCancel: (event) => parentPhases.add(event.phase),
     );
-    host.leafDispatcher.event = ElEvent(
-      onPointerDown: (event) => candidate = event,
-    );
+    host.leaf.event = ElEvent(onPointerDown: (event) => candidate = event);
     try {
       await host.dispatch(_down(pointer: 16));
       await host.dispatch(_down(pointer: 161));
@@ -543,17 +536,17 @@ void main() {
   testWidgets(
     'OWN-17: eager clears an active side-button tracker after PointerCancel',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final parentPhases = <ElEventPhase>[];
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           onPointerCancel: (event) => parentPhases.add(event.phase),
           onSecondaryTapDown: (event) => parentPhases.add(event.phase),
           onSecondaryTapUp: (event) => parentPhases.add(event.phase),
           onSecondaryTap: (event) => parentPhases.add(event.phase),
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onPointerMove: (event) => event.eagerGesture(),
         );
 
@@ -595,11 +588,11 @@ void main() {
   testWidgets(
     'OWN-18: eager clears an active PanZoom route after PointerCancel',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         final parentPhases = <ElEventPhase>[];
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           onPointerCancel: (event) {
             parentPhases.add(event.phase);
             expect(event.originalEvent, isA<PointerCancelEvent>());
@@ -608,7 +601,7 @@ void main() {
           onPointerPanZoomUpdate: (event) => parentPhases.add(event.phase),
           onPointerPanZoomEnd: (event) => parentPhases.add(event.phase),
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onPointerPanZoomUpdate: (event) => event.eagerGesture(),
         );
 
@@ -640,14 +633,14 @@ void main() {
   testWidgets(
     'OWN-11: cancelAllPending keeps the winner tombstone until pointer terminal',
     (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       try {
         var parentPointerMoves = 0;
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           onPointerMove: (_) => parentPointerMoves++,
         );
-        host.leafDispatcher.event = ElEvent(
+        host.leaf.event = ElEvent(
           onPointerDown: (event) => event.eagerGesture(),
         );
 
@@ -670,7 +663,7 @@ void main() {
 
         host.directLeaf(down);
         await host.directRoot(down);
-        host.leafDispatcher.cancelAllPending(move);
+        host.leaf.cancelAllPending(move);
         host.directLeaf(move);
         await host.directRoot(move);
         host.directLeaf(up);

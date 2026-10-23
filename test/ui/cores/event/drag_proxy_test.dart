@@ -1,19 +1,16 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets('普通拖拽直接适配识别器位移，累计偏移与终态一致', (_) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     addTearDown(host.dispose);
     final updates = <(Offset, Offset, Offset, Offset)>[];
     Offset? endOffset;
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: _config,
       onVerticalDragUpdate: (event) {
         expect(event.dragPipelineActive, isFalse);
@@ -45,25 +42,23 @@ void main() {
       ),
     ]);
     expect(endOffset, const Offset(0, 20));
-    expect(host.leafDispatcher.isDragged, isFalse);
+    expect(host.leaf.isDragged, isFalse);
   });
 
   for (final cancelInPre in [true, false]) {
     testWidgets('代理回调内取消立即中止当前更新，下一轮仍可使用：pre=$cancelInPre', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final trace = <String>[];
       var shouldCancel = true;
       void cancel(ElEventCallback event) {
         if (shouldCancel) {
           shouldCancel = false;
-          host.leafDispatcher.cancelAllPending(
-            event.originalEvent! as PointerEvent,
-          );
+          host.leaf.cancelAllPending(event.originalEvent! as PointerEvent);
         }
       }
 
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         dragProxy: ElDragProxy(
           axis: Axis.vertical,
           onDragPreUpdate: (event) {
@@ -73,7 +68,7 @@ void main() {
           onDragOverflow: (_) => trace.add('overflow'),
         ),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _config,
         onVerticalDragUpdate: (event) {
           trace.add('main');
@@ -88,7 +83,7 @@ void main() {
         trace,
         cancelInPre ? ['pre', 'cancel'] : ['pre', 'main', 'cancel'],
       );
-      expect(host.leafDispatcher.isDragged, isFalse);
+      expect(host.leaf.isDragged, isFalse);
       await _end(host, 20);
       expect(trace.where((phase) => phase == 'cancel'), hasLength(1));
       expect(trace, isNot(contains('end')));
@@ -101,11 +96,11 @@ void main() {
   }
 
   testWidgets('代理按 pre、main、overflow 顺序消费同一份 delta', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
     final consumed = <double>[];
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       dragProxy: ElDragProxy(
         axis: Axis.vertical,
         onDragPreUpdate: (event) {
@@ -120,7 +115,7 @@ void main() {
         },
       ),
     );
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: _config,
       onVerticalDragStart: (event) {
         expect(event.delta, Offset.zero);
@@ -143,10 +138,10 @@ void main() {
   });
 
   testWidgets('pre 消费全部 delta 仍向 main 投递一次零余量，overflow 不再执行', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       dragProxy: ElDragProxy(
         axis: Axis.vertical,
         onDragPreUpdate: (event) {
@@ -157,7 +152,7 @@ void main() {
         onDragOverflow: (_) => trace.add('overflow'),
       ),
     );
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: _config,
       onVerticalDragStart: (_) {},
       onVerticalDragUpdate: (event) =>
@@ -172,17 +167,17 @@ void main() {
 
   for (final axis in <Axis?>[Axis.horizontal, Axis.vertical, null]) {
     testWidgets('纵向 Drag 仅收集兼容轴的代理：axis=$axis', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       var preUpdates = 0;
       var driverUpdates = 0;
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         dragProxy: ElDragProxy(
           axis: axis,
           onDragPreUpdate: (_) => preUpdates++,
         ),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _config,
         onVerticalDragStart: (_) {},
         onVerticalDragUpdate: (_) => driverUpdates++,
@@ -197,20 +192,20 @@ void main() {
   }
 
   testWidgets('等形代理替换保留当前 pipeline 并使用新回调', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       dragProxy: ElDragProxy(onDragPreUpdate: (_) => trace.add('old')),
     );
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: _config,
       onDragStart: (_) {},
       onDragUpdate: (_) {},
     );
     await _start(host);
     await _move(host, 20, 32);
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       dragProxy: ElDragProxy(onDragPreUpdate: (_) => trace.add('new')),
     );
     await _move(host, 30, 48);
@@ -219,12 +214,12 @@ void main() {
   });
 
   testWidgets('取消 pipeline 后代理成员可以在下一条序列重新参加', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+    final host = EventTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     var starts = 0;
     var cancels = 0;
     var preUpdates = 0;
-    host.rootDispatcher.event = ElEvent(
+    host.rootElement.event = ElEvent(
       config: _config,
       dragProxy: ElDragProxy(
         axis: Axis.vertical,
@@ -233,7 +228,7 @@ void main() {
       onVerticalDragStart: (_) => starts++,
       onVerticalDragCancel: (_) => cancels++,
     );
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: _config,
       onVerticalDragStart: (_) {},
       onVerticalDragUpdate: (_) {},
@@ -250,7 +245,7 @@ void main() {
     expect(starts, 1);
     expect(cancels, 1);
     expect(
-      host.dispatchers.map((dispatcher) => dispatcher.activePointerCount),
+      host.elements.map((element) => element.activePointerCount),
       everyElement(0),
     );
 
@@ -276,17 +271,14 @@ void main() {
     expect(first, isNot(otherAxis));
     final event = ElEvent(dragProxy: first);
     expect(event.hasAnyCallback, isFalse);
-    expect(
-      event.copyWith(clear: {ElEventClearField.dragProxy}).dragProxy,
-      isNull,
-    );
+    expect(event.copyWith(dragProxy: null).dragProxy, isNull);
   });
 }
 
 const _config = ElEventConfig(dragStartDistance: 3);
 
 Future<void> _start(
-  DispatcherTestHost host, {
+  EventTestHost host, {
   int pointer = 1,
   int baseMillis = 0,
 }) async {
@@ -300,7 +292,7 @@ Future<void> _start(
 }
 
 Future<void> _move(
-  DispatcherTestHost host,
+  EventTestHost host,
   double y,
   int millis, {
   int pointer = 1,
@@ -316,7 +308,7 @@ Future<void> _move(
 }
 
 Future<void> _end(
-  DispatcherTestHost host,
+  EventTestHost host,
   double y, {
   int pointer = 1,
   int millis = 64,

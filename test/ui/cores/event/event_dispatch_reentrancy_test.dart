@@ -1,6 +1,6 @@
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/render.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -13,32 +13,32 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final ElEventDispatcher dispatcher;
+    late final RenderElEvent element;
     final phases = <String>[];
-    dispatcher = ElEventDispatcher(box)
+    element = box
       ..event = ElEvent(
         onTapUp: (event) {
           phases.add('old:${event.phase.name}');
-          dispatcher.event = ElEvent(
+          element.event = ElEvent(
             onTap: (event) => phases.add('new:${event.phase.name}'),
           );
         },
         onTap: (event) => phases.add('old:${event.phase.name}'),
       );
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
 
       expect(phases, <String>['old:tapUp']);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -48,13 +48,13 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final ElEventDispatcher dispatcher;
+    late final RenderElEvent element;
     final phases = <String>[];
-    dispatcher = ElEventDispatcher(box)
+    element = box
       ..event = ElEvent(
         onPointerUp: (event) {
           phases.add('old:${event.phase.name}');
-          dispatcher.event = ElEvent(
+          element.event = ElEvent(
             onTapUp: (event) => phases.add('new:${event.phase.name}'),
             onTap: (event) => phases.add('new:${event.phase.name}'),
           );
@@ -62,21 +62,21 @@ void main() {
         onTapUp: (event) => phases.add('old:${event.phase.name}'),
         onTap: (event) => phases.add('old:${event.phase.name}'),
       );
-    addTearDown(dispatcher.dispose);
+    addTearDown(element.dispose);
     try {
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerUpEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
 
       expect(phases, <String>['old:pointerUp']);
-      expect(dispatcher.activePointerCount, 0);
+      expect(element.activePointerCount, 0);
     } finally {
-      dispatcher.dispose();
+      element.dispose();
     }
   });
 
@@ -86,14 +86,14 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           config: const ElEventConfig(dragStartDistance: 3),
           onPointerMove: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               config: const ElEventConfig(dragStartDistance: 3),
               onDragStart: (event) => phases.add('new:${event.phase.name}'),
               onTap: (event) => phases.add('new:${event.phase.name}'),
@@ -102,13 +102,13 @@ void main() {
           onDragStart: (event) => phases.add('old:${event.phase.name}'),
           onTap: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -117,15 +117,15 @@ void main() {
           ),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerUpEvent(pointer: 1, position: Offset(4, 0)),
           entry,
         );
 
         expect(phases, <String>['old:pointerMove']);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -136,33 +136,33 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onPointerCancel: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onTapCancel: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onTapCancel: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerCancelEvent(pointer: 1, position: Offset(20, 20)),
           entry,
         );
 
         expect(phases, <String>['old:pointerCancel']);
-        expect(dispatcher.activePointerCount, 0);
+        expect(element.activePointerCount, 0);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -173,13 +173,13 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onTapCancel: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onPointerPanZoomEnd: (event) =>
                   phases.add('new:${event.phase.name}'),
             );
@@ -188,23 +188,23 @@ void main() {
               phases.add('old:${event.phase.name}'),
           onPointerPanZoomEnd: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
           entry,
         );
 
-        dispatcher.event = null;
+        element.event = null;
 
         expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
-        expect(dispatcher.event, isNotNull);
+        expect(element.event, isNotNull);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -215,13 +215,13 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onTapCancel: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onPointerPanZoomEnd: (event) =>
                   phases.add('new:${event.phase.name}'),
             );
@@ -230,18 +230,18 @@ void main() {
               phases.add('old:${event.phase.name}'),
           onPointerPanZoomEnd: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)),
           entry,
         );
 
-        dispatcher.cancelAllPending(
+        element.cancelAllPending(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -250,9 +250,9 @@ void main() {
         );
 
         expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
-        expect(dispatcher.event, isNotNull);
+        expect(element.event, isNotNull);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -263,27 +263,27 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           config: const ElEventConfig(dragStartDistance: 3),
           onTapCancel: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               config: const ElEventConfig(dragStartDistance: 3),
               onDragStart: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onDragStart: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -294,12 +294,12 @@ void main() {
         );
 
         expect(phases, <String>['old:dragStart']);
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           PointerUpEvent(pointer: 1, position: Offset(4, 0)),
           entry,
         );
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -310,16 +310,16 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           config: const ElEventConfig(
             longPressDelay: Duration(milliseconds: 20),
           ),
           onPointerDown: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               config: const ElEventConfig(
                 longPressDelay: Duration(milliseconds: 20),
               ),
@@ -328,10 +328,10 @@ void main() {
           },
           onLongPress: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerDownEvent(pointer: 1, position: Offset.zero),
         );
@@ -339,7 +339,7 @@ void main() {
 
         expect(phases, <String>['old:pointerDown']);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -350,27 +350,27 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           config: const ElEventConfig(dragStartDistance: 3),
           onDragStart: (event) => phases.add('old:${event.phase.name}'),
           onDragCancel: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onScaleStart: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onScaleStart: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 1, position: Offset.zero),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerMoveEvent(
             pointer: 1,
             position: Offset(4, 0),
@@ -380,14 +380,14 @@ void main() {
           entry,
         );
 
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(pointer: 2, position: Offset(40, 0)),
           entry,
         );
 
         expect(phases, <String>['old:dragStart', 'old:dragCancel']);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -398,22 +398,22 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onForwardTapDown: (event) => phases.add('old:${event.phase.name}'),
           onForwardTapUp: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onForwardTap: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onForwardTap: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerDownEvent(
             pointer: 1,
             position: Offset(10, 10),
@@ -422,7 +422,7 @@ void main() {
           ),
           entry,
         );
-        await dispatcher.dispatchInput(
+        await element.dispatchInput(
           const PointerUpEvent(
             pointer: 1,
             position: Offset(10, 10),
@@ -433,7 +433,7 @@ void main() {
 
         expect(phases, <String>['old:forwardTapDown', 'old:forwardTapUp']);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -444,23 +444,23 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onSecondaryTapDown: (event) => phases.add('old:${event.phase.name}'),
           onSecondaryTapUp: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onSecondaryTap: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onSecondaryTap: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerDownEvent(
             pointer: 1,
@@ -470,7 +470,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -481,7 +481,7 @@ void main() {
 
         expect(phases, <String>['old:secondaryTapDown', 'old:secondaryTapUp']);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -492,23 +492,23 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onTertiaryTapDown: (event) => phases.add('old:${event.phase.name}'),
           onTertiaryTapUp: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onTertiaryTap: (event) => phases.add('new:${event.phase.name}'),
             );
           },
           onTertiaryTap: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
       try {
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerDownEvent(
             pointer: 1,
@@ -518,7 +518,7 @@ void main() {
           ),
         );
         await _dispatch(
-          dispatcher,
+          element,
           entry,
           const PointerUpEvent(
             pointer: 1,
@@ -529,7 +529,7 @@ void main() {
 
         expect(phases, <String>['old:tertiaryTapDown', 'old:tertiaryTapUp']);
       } finally {
-        dispatcher.dispose();
+        element.dispose();
       }
     },
   );
@@ -539,28 +539,28 @@ void main() {
     (tester) async {
       final box = _attachedBox();
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onScaleStart: (event) => phases.add('old:${event.phase.name}'),
           onScaleUpdate: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onRotationUpdate: (event) =>
                   phases.add('new:${event.phase.name}'),
             );
           },
           onRotationUpdate: (event) => phases.add('old:${event.phase.name}'),
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
 
       final entry = BoxHitTestEntry(box, Offset.zero);
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(4, 0)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(4, 0),
@@ -568,7 +568,7 @@ void main() {
         ),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(4, 0),
@@ -588,32 +588,29 @@ void main() {
 
     var parentMoves = 0;
     var childMoves = 0;
-    final childDispatcher = ElEventDispatcher(pair.child)
+    final childElement = pair.child
       ..event = ElEvent(
         onPointerMove: (event) {
           childMoves++;
           event.consumeDelta(const Offset(4, 0));
         },
       );
-    final parentDispatcher = ElEventDispatcher(pair.parent)
+    final parentElement = pair.parent
       ..event = ElEvent(
         onPointerMove: (event) {
           parentMoves++;
         },
       );
-    addTearDown(childDispatcher.dispose);
-    addTearDown(parentDispatcher.dispose);
+    addTearDown(childElement.dispose);
+    addTearDown(parentElement.dispose);
     try {
       const down = PointerDownEvent(pointer: 42, position: Offset(10, 20));
-      childDispatcher.handleEvent(
-        down,
-        BoxHitTestEntry(pair.child, Offset.zero),
-      );
-      parentDispatcher.handleEvent(
+      childElement.handleEvent(down, BoxHitTestEntry(pair.child, Offset.zero));
+      parentElement.handleEvent(
         down,
         BoxHitTestEntry(pair.parent, Offset.zero),
       );
-      childDispatcher.handleEvent(
+      childElement.handleEvent(
         const PointerMoveEvent(
           pointer: 42,
           position: Offset(20, 20),
@@ -629,8 +626,8 @@ void main() {
         reason: 'high-frequency pointerMove must not bubble back into the scroll hot path',
       );
     } finally {
-      parentDispatcher.dispose();
-      childDispatcher.dispose();
+      parentElement.dispose();
+      childElement.dispose();
     }
   });
 
@@ -640,13 +637,13 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onPointerPanZoomStart: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onPointerPanZoomStart: (event) =>
                   phases.add('new:${event.phase.name}'),
               onPointerPanZoomUpdate: (event) =>
@@ -654,13 +651,13 @@ void main() {
             );
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
 
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(20, 20),
@@ -669,7 +666,7 @@ void main() {
         ),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -687,25 +684,25 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onPointerPanZoomUpdate: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onPointerPanZoomUpdate: (event) =>
                   phases.add('new:${event.phase.name}'),
             );
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
 
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomUpdateEvent(
           pointer: 1,
           position: Offset(20, 20),
@@ -714,7 +711,7 @@ void main() {
         ),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -729,25 +726,25 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElEventDispatcher dispatcher;
+      late final RenderElEvent element;
       final phases = <String>[];
-      dispatcher = ElEventDispatcher(box)
+      element = box
         ..event = ElEvent(
           onPointerPanZoomEnd: (event) {
             phases.add('old:${event.phase.name}');
-            dispatcher.event = ElEvent(
+            element.event = ElEvent(
               onPointerPanZoomEnd: (event) =>
                   phases.add('new:${event.phase.name}'),
             );
           },
         );
-      addTearDown(dispatcher.dispose);
+      addTearDown(element.dispose);
 
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomStartEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
-      await dispatcher.dispatchInput(
+      await element.dispatchInput(
         const PointerPanZoomEndEvent(pointer: 1, position: Offset(20, 20)),
         entry,
       );
@@ -758,11 +755,11 @@ void main() {
 }
 
 Future<void> _dispatch(
-  ElEventDispatcher dispatcher,
+  RenderElEvent element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
-  await dispatcher.dispatchInput(event, entry);
+  await element.dispatchInput(event, entry);
 }
 
 _EventTestBox _attachedBox() {
@@ -781,8 +778,7 @@ _EventTestBox _attachedBox() {
   return (parent: parent, child: child);
 }
 
-final class _EventTestBox extends RenderBox
-    with RenderObjectWithChildMixin<RenderBox> {
+final class _EventTestBox extends RenderElEvent {
   @override
   void performLayout() {
     final child = this.child;

@@ -1,13 +1,10 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   testWidgets('真实输入估速，合成移动只影响输出', (tester) async {
     final baseline = await _runDrag(tester);
     final synthetic = await _runDrag(tester, synthetic: true);
@@ -39,9 +36,9 @@ void main() {
   });
 
   testWidgets('未越过启动阈值不能在 Up 通过高速救援伪造已开始的拖拽', (tester) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     final phases = <ElEventPhase>[];
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 1000),
       onDragStart: (event) => phases.add(event.phase),
       onDragEnd: (event) => phases.add(event.phase),
@@ -64,18 +61,18 @@ void main() {
         ),
       );
       expect(phases, isEmpty);
-      expect(host.leafDispatcher.activePointerCount, 0);
+      expect(host.leaf.activePointerCount, 0);
     } finally {
       host.dispose();
     }
   });
 
   testWidgets('多指使用最新已接受触点，释放交还旧触点时不跳位移且只有一次 End', (tester) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     final deltas = <Offset>[];
     var starts = 0;
     var ends = 0;
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 3),
       onDragStart: (_) => starts++,
       onDragUpdate: (event) => deltas.add(event.delta),
@@ -136,11 +133,11 @@ Future<({Velocity velocity, Offset delta, Offset offset})> _runDrag(
   bool processingDelay = false,
   Offset upPosition = const Offset(60, 0),
 }) async {
-  final host = DispatcherTestHost.chain();
+  final host = EventTestHost.chain();
   Velocity? velocity;
   var delta = Offset.zero;
   var offset = Offset.zero;
-  host.leafDispatcher.event = ElEvent(
+  host.leaf.event = ElEvent(
     config: ElEventConfig(dragStartDistance: 3, dragMinFlingDistance: 3),
     onHorizontalDragStart: (_) {},
     onHorizontalDragUpdate: (event) => delta += event.delta,

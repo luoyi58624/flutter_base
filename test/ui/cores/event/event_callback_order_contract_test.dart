@@ -1,20 +1,35 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
+  testWidgets('禁用期间仍结清缓存输入，恢复后相同 Down 对象可以重新使用', (tester) async {
+    final host = EventTestHost.chain();
+    addTearDown(host.dispose);
+    var taps = 0;
+    final event = ElEvent(onTap: (_) => taps++);
+    const down = PointerDownEvent(pointer: 1800);
+    const up = PointerUpEvent(pointer: 1800);
+    host.leaf.event = event;
+    await host.dispatch(down);
+    host.leaf.event = event.copyWith(disabled: true);
+    await host.dispatch(up);
+    host.leaf.event = event;
+    await host.dispatch(down);
+    await host.dispatch(up);
+    expect(taps, 1);
+    expect(host.leaf.activePointerCount, 0);
+  });
 
   testWidgets('ORDER-1: raw、tap 终止与 drag 生命周期保持固定顺序', (tester) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
     void record(ElEventCallback event) => phases.add(event.phase);
 
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 3),
       onPointerDown: record,
       onDragDown: record,
@@ -102,12 +117,12 @@ void main() {
   testWidgets('ORDER-2: 未接受 drag 时 pointer cancel 先发 raw 再终止 tap', (
     tester,
   ) async {
-    final host = DispatcherTestHost.chain();
+    final host = EventTestHost.chain();
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
     void record(ElEventCallback event) => phases.add(event.phase);
 
-    host.leafDispatcher.event = ElEvent(
+    host.leaf.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 100),
       onPointerDown: record,
       onTapDown: record,

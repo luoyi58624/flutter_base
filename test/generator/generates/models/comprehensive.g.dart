@@ -85,7 +85,7 @@ extension AllFeaturesModelExt on AllFeaturesModel {
       normalInt: normalInt == null ? this.normalInt : normalInt as int,
       normalDouble: normalDouble == null
           ? this.normalDouble
-          : normalDouble as double,
+          : (normalDouble as num).toDouble(),
       normalBool: normalBool == null ? this.normalBool : normalBool as bool,
       stringList: stringList == null
           ? this.stringList

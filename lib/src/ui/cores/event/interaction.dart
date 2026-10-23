@@ -1,69 +1,52 @@
-part of 'dispatcher.dart';
+part of 'render.dart';
 
-/// 只冻结真实输入的命中成员，手势冒泡和竞技场不在这里实现。
-final class _InputRoute {
-  _InputRoute(this.pointer, this.chain) : active = chain.toSet();
-  final int pointer;
-  final List<ElEventDispatcher> chain;
-  final Set<ElEventDispatcher> active;
-  ElEventDispatcher? winner;
-  ElEventDispatcher? driver;
-  Object? dragIdentity;
-  ElEventDispatcher? requester;
-  bool accepted = false;
-}
-
-final class _HostInput {
-  _HostInput(this.route, this.down, this.generation)
-    : lastEvent = down,
-      initialGeneration = generation;
-  final _InputRoute route;
+/// 元素输入仅保存命中链、几何资格和反馈；不计算手势与竞技场归属。
+final class _ElementInput {
+  _ElementInput(this.path, this.down, this.tapVersion, this.transformVersion)
+    : lastEvent = down;
+  final List<RenderElEvent> path;
   final PointerEvent down;
-  int generation;
-  final int initialGeneration;
+  final int tapVersion;
+  final int transformVersion;
   PointerEvent lastEvent;
   bool active = true;
   bool registered = false;
   bool pressRegistered = false;
-  int tapGeneration = 0;
-  bool eager = false;
-  bool eagerRegistered = false;
+  bool rawStarted = false;
   bool accepted = false;
-  bool cancelSelfTap = false;
-  bool allowScale = false;
+  bool ended = false;
   bool scaleAllowed = false;
   bool claiming = false;
-  ElEventCallback? claimCallback;
-  bool ended = false;
   bool tapVisible = false;
   bool tapObserved = false;
-  bool rawStarted = false;
   bool tapEligible = true;
   bool inside = true;
+  (ElEventCallback, bool, bool)? claim;
+  GestureArenaEntry? entry;
 }
 
-final class _GestureSnapshot {
-  _GestureSnapshot(this.input, this.generation, this.press);
-  final _HostInput input;
-  final int generation;
-  final bool press;
-}
-
-/// 显式独占请求直接使用官方团队席位，不另建输入识别状态机。
-final class _EagerClaim extends GestureArenaMember {
-  _EagerClaim(this.host);
-  final ElEventDispatcher host;
+/// 原始指针回调可显式申请官方席位，落败后不能重新报名。
+final class _InputClaim extends GestureArenaMember {
+  _InputClaim(this.element);
+  final RenderElEvent element;
   @override
-  void acceptGesture(int pointer) => host._accepted(pointer);
+  void acceptGesture(int pointer) => element._accepted(pointer);
   @override
   void rejectGesture(int pointer) {
-    host._claims.remove(pointer);
+    element._inputs[pointer]?.entry = null;
   }
 }
 
-extension _TapHost on ElEventDispatcher {
-  void _tapDown(_HostInput input, PointerEvent event) {
+extension _TapHost on RenderElEvent {
+  void _tapDown(_ElementInput input, PointerEvent event) {
     if (input.tapVisible || !input.active || !input.tapEligible) return;
+    if (input.path.any(
+      (member) =>
+          !identical(member, this) &&
+          member._inputs[event.pointer]?.claim != null,
+    )) {
+      return;
+    }
     input.tapVisible = true;
     input.tapObserved = true;
     if (onTapChanged != null) _feedback.down(input, config);
@@ -72,9 +55,7 @@ extension _TapHost on ElEventDispatcher {
       _invoke(_handler(ElEventPhase.tapDown), callback);
       if (callback.propagationStopped) {
         // 纯 Down 观察者没有识别器，截断祖先候选时仍使用识别器的成员取消原语。
-        for (final ancestor in input.route.chain.skip(
-          input.route.chain.indexOf(this) + 1,
-        )) {
+        for (final ancestor in input.path.skip(input.path.indexOf(this) + 1)) {
           final ancestorInput = ancestor._inputs[event.pointer];
           if (ancestorInput == null) continue;
           ancestorInput.tapEligible = false;
@@ -89,7 +70,7 @@ extension _TapHost on ElEventDispatcher {
     }
   }
 
-  void _tapUp(_HostInput input, PointerEvent event) {
+  void _tapUp(_ElementInput input, PointerEvent event) {
     if (!input.tapObserved) return;
     input.tapVisible = false;
     if (!input.pressRegistered) {
@@ -97,12 +78,12 @@ extension _TapHost on ElEventDispatcher {
         _handler(ElEventPhase.tapUp),
         _rawCallback(ElEventPhase.tapUp, event),
       );
-      _feedback.up(input, config);
+      _feedback.up(input);
     }
   }
 
   void _cancelTap(
-    _HostInput input,
+    _ElementInput input,
     PointerEvent event,
     ElEventCancelReason reason, {
     bool preserveFeedbackDuration = false,
@@ -116,11 +97,10 @@ extension _TapHost on ElEventDispatcher {
     );
   }
 
-  void _updateBounds(_HostInput input, PointerMoveEvent event) {
+  void _updateBounds(_ElementInput input, PointerMoveEvent event) {
     if (!input.tapEligible) return;
-    if (config.tapCancelOnMove) {
-      if ((event.position - input.down.position).distance >
-          config.tapCancelDistance) {
+    if (config.tapCancelOnMove == true) {
+      if ((event.position - input.down.position).distance > _tapDistance) {
         input.tapEligible = false;
         _cancelTap(input, event, ElEventCancelReason.tapRejected);
       }
@@ -152,7 +132,7 @@ extension _TapHost on ElEventDispatcher {
 final class _TapFeedback {
   _TapFeedback(this.onChanged);
   final ValueChanged<bool> onChanged;
-  _HostInput? _input;
+  _ElementInput? _input;
   Timer? _enter;
   Timer? _leave;
   bool value = false;
@@ -163,21 +143,24 @@ final class _TapFeedback {
     onChanged(next);
   }
 
-  void down(_HostInput input, ElEventConfig config) {
+  void down(_ElementInput input, ElEventConfig config) {
+    final minimum = config.delayTouchUp ?? const Duration(milliseconds: 100);
+    final enterDelay = config.delayTouchDown ?? Duration.zero;
+    assert(minimum >= Duration.zero && enterDelay >= Duration.zero);
     _enter?.cancel();
     final firstDown = !identical(_input, input);
     if (firstDown) _leave?.cancel();
     _input = input;
     if (firstDown &&
         input.down.kind == PointerDeviceKind.touch &&
-        config.delayTouchUp > Duration.zero) {
-      _leave = Timer(config.delayTouchUp, () {
+        minimum > Duration.zero) {
+      _leave = Timer(minimum, () {
         _leave = null;
         if (identical(_input, input) && input.ended) cancel(input: input);
       });
     }
     final delay = input.down.kind == PointerDeviceKind.touch
-        ? config.delayTouchDown
+        ? enterDelay
         : Duration.zero;
     if (delay == Duration.zero) {
       _set(true);
@@ -193,7 +176,7 @@ final class _TapFeedback {
     }
   }
 
-  void up(_HostInput input, ElEventConfig config) {
+  void up(_ElementInput input) {
     if (!identical(_input, input)) return;
     _enter?.cancel();
     if (!value || input.down.kind != PointerDeviceKind.touch) {
@@ -203,7 +186,7 @@ final class _TapFeedback {
     if (!(_leave?.isActive ?? false)) cancel(input: input);
   }
 
-  void cancel({_HostInput? input, bool preserveDuration = false}) {
+  void cancel({_ElementInput? input, bool preserveDuration = false}) {
     if (input != null && !identical(input, _input)) return;
     _enter?.cancel();
     _enter = null;

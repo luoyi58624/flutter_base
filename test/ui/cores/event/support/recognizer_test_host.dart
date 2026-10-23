@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/recognizers/recognizers.dart';
+import 'package:flutter_base/src/ui/cores/event/recognizers/index.dart';
 
 /// 等待旧序列的长按与连击窗口全部结束。
 const afterGesture = Duration(milliseconds: 700);
@@ -27,7 +27,7 @@ ElPressGestureRecognizer recordingPress(
   String name, {
   ElPressGestureRecognizer? parent,
 }) {
-  final recognizer = ElPressGestureRecognizer(parent: parent);
+  final recognizer = ElPressGestureRecognizer()..parent = parent;
   recognizer.onTapDown = (_) => events.add('$name.down');
   recognizer.onTapUp = (_) => events.add('$name.up');
   recognizer.onTap = (_) => events.add('$name.tap');
@@ -43,11 +43,10 @@ ElTransformGestureRecognizer recordingDrag(
   ElTransformGestureRecognizer? parent,
   double distance = 6,
 }) {
-  final recognizer = ElTransformGestureRecognizer(
-    startDistance: distance,
-    parent: parent,
-    axis: Axis.horizontal,
-  );
+  final recognizer = ElTransformGestureRecognizer()
+    ..startDistance = distance
+    ..parent = parent
+    ..axis = Axis.horizontal;
   recognizer.onDragDown = (_) => events.add('$name.down');
   recognizer.onDragStart = (_) => events.add('$name.start');
   recognizer.onDragUpdate = (_) => events.add('$name.update');

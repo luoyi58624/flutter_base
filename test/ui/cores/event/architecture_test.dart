@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('事件模块仅依赖 Dart、Flutter 和自身目录', () {
+  test('事件运行时仅依赖 Flutter、自身目录与模型生成声明', () {
     final root = Directory('lib/src/ui/cores/event').absolute.uri;
     final directives = RegExp(r'''(?:import|export|part)\s+(?!of\b)[^;]+;''');
     final strings = RegExp(r'''['"]([^'"]+)['"]''');
@@ -16,7 +16,9 @@ void main() {
         for (final match in strings.allMatches(directive.group(0)!)) {
           final target = match.group(1)!;
           if (target.startsWith('dart:') ||
-              target.startsWith('package:flutter/')) {
+              target.startsWith('package:flutter/') ||
+              target == 'package:equatable/equatable.dart' ||
+              target == 'package:flutter_base/src/dart/gen/index.dart') {
             continue;
           }
           expect(Uri.parse(target).hasScheme, isFalse, reason: file.path);
@@ -39,7 +41,7 @@ void main() {
     expect(entry, contains('ElEventState'));
     expect(entry, contains('ElEventCallback'));
     expect(entry, contains('ElDragProxy'));
-    expect(entry, isNot(contains('dispatcher.dart')));
+    expect(entry, isNot(contains('render.dart')));
     expect(entry, isNot(contains('resampling/')));
     final sources = Directory('lib/src/ui/cores/event')
         .listSync(recursive: true)

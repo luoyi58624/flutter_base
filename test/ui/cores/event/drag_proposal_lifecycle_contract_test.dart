@@ -1,17 +1,15 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/dispatcher.dart';
+import 'package:flutter_base/src/ui/cores/event/render.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/dispatcher_test_host.dart';
+import 'support/event_test_host.dart';
 
 void main() {
-  setUp(ElEventDispatcher.debugResetEagerGestureOwners);
-
   group('DragStart 路线 生命周期', () {
     testWidgets('配置移除同步向旧 handler 补唯一 DragCancel', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
       _installBubblingPair(host, childPhases: childPhases);
@@ -25,7 +23,7 @@ void main() {
       await host.dispatch(move);
       expect(childPhases, <ElEventPhase>[ElEventPhase.dragStart]);
 
-      host.leafDispatcher.event = null;
+      host.leaf.event = null;
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -39,7 +37,7 @@ void main() {
     });
 
     testWidgets('cancelAllPending 同步取消 proposal，后续 Up 不得再发 End', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
       _installBubblingPair(host, childPhases: childPhases);
@@ -51,7 +49,7 @@ void main() {
       );
       await host.dispatch(_down(pointer: 2));
       await host.dispatch(move);
-      host.leafDispatcher.cancelAllPending(move);
+      host.leaf.cancelAllPending(move);
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -64,9 +62,9 @@ void main() {
       ]);
     });
 
-    for (final lifecycle in <String>['detach', 'dispose']) {
+    for (final lifecycle in <String>['cancelAtLastPosition', 'dispose']) {
       testWidgets('$lifecycle 同步取消 proposal 且只产生一个终态', (_) async {
-        final host = DispatcherTestHost.chain(depth: 2);
+        final host = EventTestHost.chain(depth: 2);
         addTearDown(host.dispose);
         final childPhases = <ElEventPhase>[];
         _installBubblingPair(host, childPhases: childPhases);
@@ -79,10 +77,10 @@ void main() {
             delta: const Offset(5, 0),
           ),
         );
-        if (lifecycle == 'detach') {
-          host.leafDispatcher.detach();
+        if (lifecycle == 'cancelAtLastPosition') {
+          host.leaf.cancelAllPendingAtLastPosition();
         } else {
-          host.leafDispatcher.dispose();
+          host.leaf.dispose();
         }
         expect(childPhases, <ElEventPhase>[
           ElEventPhase.dragStart,
@@ -98,7 +96,7 @@ void main() {
     }
 
     testWidgets('移除前的 PointerCancel 结清路线，Removed 不重复结清', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
       final ancestorPhases = <ElEventPhase>[];
@@ -142,10 +140,10 @@ void main() {
 
   group('DragStart 路线 路由终态', () {
     testWidgets('一指 PointerCancel 后仍有指针继续时只在最终 Up 发 End', (_) async {
-      final host = DispatcherTestHost.chain();
+      final host = EventTestHost.chain();
       addTearDown(host.dispose);
       final phases = <ElEventPhase>[];
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(3),
         onDragStart: (event) => phases.add(event.phase),
         onDragUpdate: (_) {},
@@ -198,12 +196,12 @@ void main() {
     });
 
     testWidgets('终态 stopPropagation 不得吞掉已收到 Start 成员的唯一终态', (_) async {
-      final host = DispatcherTestHost.chain(depth: 3);
+      final host = EventTestHost.chain(depth: 3);
       addTearDown(host.dispose);
       final starts = <int>[];
       final ends = <int>[];
-      for (var index = 0; index < host.dispatchers.length; index++) {
-        host.dispatchers[index].event = ElEvent(
+      for (var index = 0; index < host.elements.length; index++) {
+        host.elements[index].event = ElEvent(
           config: _dragConfig(0),
           onDragStart: (_) => starts.add(index),
           onDragEnd: (event) {
@@ -232,15 +230,15 @@ void main() {
     });
 
     testWidgets('不同轴向独立识别，free child 不继承祖先的 vertical 轴', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childEvents = <(ElEventPhase, Axis?)>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onVerticalDragStart: (_) {},
         onVerticalDragEnd: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => childEvents.add((event.phase, event.dragAxis)),
         onDragEnd: (event) => childEvents.add((event.phase, event.dragAxis)),
@@ -266,19 +264,19 @@ void main() {
       testWidgets(
         '祖先 Drag 已接受后，后发的不同轴 child.stop 不得重新接管：start=$ancestorHasStart',
         (_) async {
-          final host = DispatcherTestHost.chain(depth: 2);
+          final host = EventTestHost.chain(depth: 2);
           addTearDown(host.dispose);
           var ancestorStarts = 0;
           var childStarts = 0;
           var ancestorEnds = 0;
           final cancelOffsets = <Offset>[];
-          host.rootDispatcher.event = ElEvent(
+          host.rootElement.event = ElEvent(
             config: _dragConfig(3),
             onDragStart: ancestorHasStart ? (_) => ancestorStarts++ : null,
             onDragCancel: (event) => cancelOffsets.add(event.dragOffset),
             onDragEnd: (_) => ancestorEnds++,
           );
-          host.leafDispatcher.event = ElEvent(
+          host.leaf.event = ElEvent(
             config: _dragConfig(0),
             onVerticalDragStart: (event) {
               childStarts++;
@@ -325,25 +323,25 @@ void main() {
 
     for (final firstTerminal in <String>['Up', 'Cancel', 'PointerRemoved']) {
       testWidgets('兄弟独立路线分别向共同祖先配对 Start 与终态：$firstTerminal', (_) async {
-        final host = _SiblingDispatcherTestHost();
+        final host = _SiblingEventTestHost();
         addTearDown(host.dispose);
         final childAPhases = <ElEventPhase>[];
         final ancestorPhases = <ElEventPhase>[];
         var ancestorUpdates = 0;
-        host.rootDispatcher.event = ElEvent(
+        host.rootElement.event = ElEvent(
           config: _dragConfig(0),
           onDragStart: (event) => ancestorPhases.add(event.phase),
           onDragUpdate: (_) => ancestorUpdates++,
           onDragEnd: (event) => ancestorPhases.add(event.phase),
           onDragCancel: (event) => ancestorPhases.add(event.phase),
         );
-        host.childADispatcher.event = ElEvent(
+        host.childAElement.event = ElEvent(
           config: _dragConfig(0),
           onDragStart: (event) => childAPhases.add(event.phase),
           onDragEnd: (event) => childAPhases.add(event.phase),
           onDragCancel: (event) => childAPhases.add(event.phase),
         );
-        host.childBDispatcher.event = ElEvent(onPointerDown: (_) {});
+        host.childBElement.event = ElEvent(onPointerDown: (_) {});
 
         await host.dispatchA(
           _down(pointer: 21, device: 421, position: const Offset(50, 50)),
@@ -458,19 +456,19 @@ void main() {
 
   group('DragStart 路线 失权', () {
     testWidgets('ancestor eagerGesture 返回前同步取消 child proposal', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final childPhases = <ElEventPhase>[];
       var eagerReturned = false;
       bool? cancelObservedEagerReturned;
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) {
           event.eagerGesture();
           eagerReturned = true;
         },
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => childPhases.add(event.phase),
         onDragCancel: (event) {
@@ -500,15 +498,15 @@ void main() {
     });
 
     testWidgets('双指 Scale Start 前同步取消 child proposal', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final trace = <String>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) {},
         onDragCancel: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) => trace.add('dragStart'),
         onDragCancel: (_) => trace.add('dragCancel'),
@@ -542,21 +540,21 @@ void main() {
     });
 
     testWidgets('Scale takeover 重入中止仍完整结清全部 proposal', (_) async {
-      final host = DispatcherTestHost.chain(depth: 3);
+      final host = EventTestHost.chain(depth: 3);
       addTearDown(host.dispose);
       final starts = List<int>.filled(3, 0);
       final cancels = List<int>.filled(3, 0);
       final ends = List<int>.filled(3, 0);
       var scaleStarts = 0;
-      final scaleHost = host.leafDispatcher;
+      final scaleHost = host.leaf;
 
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) => starts[0]++,
         onDragEnd: (_) => ends[0]++,
         onDragCancel: (_) => cancels[0]++,
       );
-      host.dispatchers[1].event = ElEvent(
+      host.elements[1].event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) => starts[1]++,
         onDragEnd: (_) => ends[1]++,
@@ -622,16 +620,16 @@ void main() {
 
   group('DragStart 路线 配置替换', () {
     testWidgets('free proposal 外部替换为 vertical shape 时同步取消旧 handler', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final oldPhases = <ElEventPhase>[];
       final newPhases = <ElEventPhase>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) {},
         onDragEnd: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
@@ -648,7 +646,7 @@ void main() {
       );
       expect(oldPhases, <ElEventPhase>[ElEventPhase.dragStart]);
 
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onVerticalDragStart: (event) => newPhases.add(event.phase),
         onVerticalDragEnd: (event) => newPhases.add(event.phase),
@@ -673,16 +671,16 @@ void main() {
     });
 
     testWidgets('移除 Start 属于声明结构变化，即使保留 End+Cancel 也结清旧路线', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final oldPhases = <ElEventPhase>[];
       final newPhases = <ElEventPhase>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) {},
         onDragEnd: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
@@ -697,7 +695,7 @@ void main() {
           delta: const Offset(5, 0),
         ),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragEnd: (event) => newPhases.add(event.phase),
         onDragCancel: (event) => newPhases.add(event.phase),
@@ -717,17 +715,17 @@ void main() {
     });
 
     testWidgets('free proposal 替换为 generic End-only 时当场取消旧 handler', (_) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final oldPhases = <ElEventPhase>[];
       final newPhases = <ElEventPhase>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) {},
         onDragEnd: (_) {},
         onDragCancel: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
@@ -742,7 +740,7 @@ void main() {
           delta: const Offset(5, 0),
         ),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragEnd: (event) => newPhases.add(event.phase),
       );
@@ -767,16 +765,16 @@ void main() {
     testWidgets('free proposal 替换为 generic Update-only 时当场取消旧 handler', (
       _,
     ) async {
-      final host = DispatcherTestHost.chain(depth: 2);
+      final host = EventTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       final oldPhases = <ElEventPhase>[];
       final newPhases = <ElEventPhase>[];
-      host.rootDispatcher.event = ElEvent(
+      host.rootElement.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (_) {},
         onDragEnd: (_) {},
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragEnd: (event) => oldPhases.add(event.phase),
@@ -791,7 +789,7 @@ void main() {
           delta: const Offset(5, 0),
         ),
       );
-      host.leafDispatcher.event = ElEvent(
+      host.leaf.event = ElEvent(
         config: _dragConfig(0),
         onDragUpdate: (event) => newPhases.add(event.phase),
       );
@@ -816,17 +814,17 @@ void main() {
 }
 
 void _installBubblingPair(
-  DispatcherTestHost host, {
+  EventTestHost host, {
   required List<ElEventPhase> childPhases,
   List<ElEventPhase>? ancestorPhases,
 }) {
-  host.rootDispatcher.event = ElEvent(
+  host.rootElement.event = ElEvent(
     config: _dragConfig(0),
     onDragStart: (event) => ancestorPhases?.add(event.phase),
     onDragEnd: (event) => ancestorPhases?.add(event.phase),
     onDragCancel: (event) => ancestorPhases?.add(event.phase),
   );
-  host.leafDispatcher.event = ElEvent(
+  host.leaf.event = ElEvent(
     config: _dragConfig(0),
     onDragStart: (event) => childPhases.add(event.phase),
     onDragEnd: (event) => childPhases.add(event.phase),
@@ -894,50 +892,56 @@ PointerCancelEvent _cancel({
   timeStamp: Duration(milliseconds: millis),
 );
 
-final class _SiblingDispatcherTestHost {
-  _SiblingDispatcherTestHost()
+final class _SiblingEventTestHost {
+  _SiblingEventTestHost()
     : _pipelineOwner = PipelineOwner(),
-      root = RenderFlex(
-        direction: Axis.horizontal,
-        textDirection: TextDirection.ltr,
-      ),
-      childA = RenderConstrainedBox(
-        additionalConstraints: const BoxConstraints.tightFor(
-          width: 100,
-          height: 100,
+      root = RenderElEvent(
+        child: RenderFlex(
+          direction: Axis.horizontal,
+          textDirection: TextDirection.ltr,
         ),
       ),
-      childB = RenderConstrainedBox(
-        additionalConstraints: const BoxConstraints.tightFor(
-          width: 100,
-          height: 100,
+      childA = RenderElEvent(
+        child: RenderConstrainedBox(
+          additionalConstraints: const BoxConstraints.tightFor(
+            width: 100,
+            height: 100,
+          ),
+        ),
+      ),
+      childB = RenderElEvent(
+        child: RenderConstrainedBox(
+          additionalConstraints: const BoxConstraints.tightFor(
+            width: 100,
+            height: 100,
+          ),
         ),
       ) {
-    root.addAll(<RenderBox>[childA, childB]);
+    (root.child as RenderFlex).addAll(<RenderBox>[childA, childB]);
     _pipelineOwner.rootNode = root;
     root.layout(const BoxConstraints.tightFor(width: 200, height: 100));
-    rootDispatcher = ElEventDispatcher(root);
-    childADispatcher = ElEventDispatcher(childA);
-    childBDispatcher = ElEventDispatcher(childB);
+    rootElement = root;
+    childAElement = childA;
+    childBElement = childB;
   }
 
   final PipelineOwner _pipelineOwner;
-  final RenderFlex root;
-  final RenderBox childA;
-  final RenderBox childB;
-  late final ElEventDispatcher rootDispatcher;
-  late final ElEventDispatcher childADispatcher;
-  late final ElEventDispatcher childBDispatcher;
+  final RenderElEvent root;
+  final RenderElEvent childA;
+  final RenderElEvent childB;
+  late final RenderElEvent rootElement;
+  late final RenderElEvent childAElement;
+  late final RenderElEvent childBElement;
 
   Future<void> dispatchA(PointerEvent event) async =>
-      _dispatch(childADispatcher, childA, event);
+      _dispatch(childAElement, childA, event);
 
   Future<void> dispatchB(PointerEvent event) async =>
-      _dispatch(childBDispatcher, childB, event);
+      _dispatch(childBElement, childB, event);
 
   void remove(PointerRemovedEvent event) {
     _dispatch(
-      childADispatcher,
+      childAElement,
       childA,
       PointerCancelEvent(
         pointer: event.pointer,
@@ -950,12 +954,12 @@ final class _SiblingDispatcherTestHost {
     GestureBinding.instance.pointerRouter.route(event);
   }
 
-  void _dispatch(ElEventDispatcher leaf, RenderBox box, PointerEvent event) {
+  void _dispatch(RenderElEvent leaf, RenderBox box, PointerEvent event) {
     leaf.handleEvent(
       event,
       BoxHitTestEntry(box, box.globalToLocal(event.position)),
     );
-    rootDispatcher.handleEvent(event, BoxHitTestEntry(root, event.position));
+    rootElement.handleEvent(event, BoxHitTestEntry(root, event.position));
     GestureBinding.instance.pointerRouter.route(event);
     if (event is PointerDownEvent) {
       GestureBinding.instance.gestureArena.close(event.pointer);
@@ -965,9 +969,9 @@ final class _SiblingDispatcherTestHost {
   }
 
   void dispose() {
-    childBDispatcher.dispose();
-    childADispatcher.dispose();
-    rootDispatcher.dispose();
+    childBElement.dispose();
+    childAElement.dispose();
+    rootElement.dispose();
     _pipelineOwner.rootNode = null;
   }
 }
