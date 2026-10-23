@@ -15,23 +15,17 @@ class ElView extends SingleChildRenderObjectWidget {
   final ElStyle style;
 
   @override
-  RenderObject createRenderObject(BuildContext context) =>
-      ViewRenderBox(style, Directionality.maybeOf(context) ?? TextDirection.ltr)
-        ..configure(
-          TickerMode.valuesOf(context),
-          MediaQuery.maybeDisableAnimationsOf(context) ?? false,
-        );
+  ElRenderView createRenderObject(BuildContext context) =>
+      ElRenderView(style, Directionality.maybeOf(context) ?? TextDirection.ltr);
 
   @override
   void updateRenderObject(
     BuildContext context,
-    covariant RenderObject renderObject,
+    covariant ElRenderView renderObject,
   ) {
-    (renderObject as ViewRenderBox)
-      ..configure(
-        TickerMode.valuesOf(context),
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false,
-      )
-      ..update(style, Directionality.maybeOf(context) ?? TextDirection.ltr);
+    renderObject.applyStyle(
+      style,
+      textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 }

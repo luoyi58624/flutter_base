@@ -15,20 +15,12 @@ Widget _scene(
   double width = 400,
   double height = 300,
   TextDirection direction = TextDirection.ltr,
-  bool enabled = true,
-  bool disabled = false,
 }) => Directionality(
   textDirection: direction,
-  child: MediaQuery(
-    data: MediaQueryData(disableAnimations: disabled),
-    child: TickerMode(
-      enabled: enabled,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: width, maxHeight: height),
-          child: ElView(key: _key, style: style, child: child),
-        ),
-      ),
+  child: Center(
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width, maxHeight: height),
+      child: ElView(key: _key, style: style, child: child),
     ),
   ),
 );
@@ -466,32 +458,25 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('TickerMode 静音期间新目标使用自己的起点，减少动态效果立即结束', (tester) async {
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 100, transitions: _linear)),
+  testWidgets('声明式过渡不受 TickerMode 与系统动画开关影响', (tester) async {
+    Widget host(double width, {bool disableAnimations = false}) => MediaQuery(
+      data: MediaQueryData(disableAnimations: disableAnimations),
+      child: TickerMode(
+        enabled: !disableAnimations,
+        child: _scene(ElStyle(width: width, transitions: _linear)),
+      ),
     );
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 200, transitions: _linear)),
-    );
-    await _advance(tester, 25);
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 200, transitions: _linear), enabled: false),
-    );
-    await _advance(tester, 100);
-    expect(_size(tester).width, 125);
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 300, transitions: _linear), enabled: false),
-    );
+
+    await tester.pumpWidget(host(100));
+    await tester.pumpWidget(host(200, disableAnimations: true));
     await _advance(tester, 50);
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 300, transitions: _linear)),
-    );
-    await tester.pump();
-    expect(_size(tester).width, 212.5);
-    await tester.pumpWidget(
-      _scene(const ElStyle(width: 300, transitions: _linear), disabled: true),
-    );
-    expect(_size(tester).width, 300);
+    expect(_size(tester).width, 150);
+    await tester.pumpWidget(host(200));
+    await _advance(tester, 25);
+    expect(_size(tester).width, 175);
+    await tester.pumpWidget(host(200, disableAnimations: true));
+    await _advance(tester, 25);
+    expect(_size(tester).width, 200);
     expect(tester.binding.transientCallbackCount, 0);
   });
 

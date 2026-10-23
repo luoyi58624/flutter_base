@@ -78,16 +78,17 @@ dart test test/dart/gen test/generator --concurrency=1 --fail-fast
 - 百分比优先使用扣除 margin 后的父最大约束；无界轴查找最近具有确定内容尺寸的
   ElView 祖先，没有参照则按 auto 布局。像素与百分比过渡保留混合表达式，随参照求值。
 - 首次挂载直接应用目标值；重建样式后按属性分别过渡，同一属性采用最后一条匹配配置。
-  相同目标不重启，目标改变从当前值接续；移除过渡或关闭动画立即应用目标。
+  相同目标不重启，目标改变从当前值接续；移除过渡立即应用目标。
 - auto 的动画端点在子组件更新后的真实布局中测量，支持 LayoutBuilder；子内容或约束
   变化时更新快照并保留原截止时间。百分比参照消失或恢复也从当前尺寸接续。
 - 背景使用预乘 alpha 插值，透明端点的隐藏 RGB 不污染中间颜色；null 与颜色之间
   平滑淡入淡出，最终 null 停止绘制。支持方向性边距及曲线过冲的有效值约束。
-- 盒模型属性不级联继承。方向、TickerMode、减少动态效果直接依赖 Flutter 的
-  InheritedWidget 机制；此层没有 vars、styleBuilder 或事件系统。
+- 盒模型属性不级联继承；边距方向通过官方 Directionality 读取。声明式过渡仅由
+  transitions 控制，不订阅系统动画开关；此层没有 vars、styleBuilder 或事件系统。
 
-`view/index.dart`、`view/render/index.dart`、`view/style/index.dart` 是独立 library，
-依赖方向为 view → render → style。样式引擎负责时间和字段插值，通过捕获起始尺寸、
+`render/index.dart` 仅导出 ElRenderView；`render/view.dart` 负责渲染对象与生命周期，
+`render/layout.dart` 负责盒模型计算。各目录独立，依赖方向为 view → render → style。
+样式引擎负责时间和字段插值，通过捕获起始尺寸、
 通知失效两个回调协作；渲染层负责布局参照及目标尺寸测量。内部类型不通过 UI 入口导出。
 
 动画引擎和 Ticker 按需创建，每帧只访问活动轨道，不重建 ElStyle 或 child；颜色变化

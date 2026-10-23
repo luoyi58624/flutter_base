@@ -42,16 +42,7 @@ class StyleEngine {
     null,
   );
   Ticker? _ticker;
-  bool _enabled = true, _forceFrames = false;
   int _damage = 0;
-
-  void configure({required bool enabled, required bool forceFrames}) {
-    _enabled = enabled;
-    _forceFrames = forceFrames;
-    _ticker
-      ?..muted = !enabled
-      ..forceFrames = forceFrames;
-  }
 
   void _write(ElTransitionField field, Object? value) {
     if (_values[field.index] == value) return;
@@ -107,13 +98,10 @@ class StyleEngine {
       _ticker?.stop();
     } else {
       _ticker ??= Ticker(_tick);
-      configure(enabled: _enabled, forceFrames: _forceFrames);
       if (!_ticker!.isActive) _ticker!.start();
     }
     _flush();
   }
-
-  void finish() => update(targets, const [], false);
 
   void _tick(Duration elapsed) {
     final now = SchedulerBinding.instance.currentFrameTimeStamp;
