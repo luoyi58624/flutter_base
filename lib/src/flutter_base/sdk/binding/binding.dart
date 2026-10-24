@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import 'touch_resampling.dart';
+import 'resampling.dart';
 
 /// 在官方手势分发之前启用 Android 触摸重采样的可选应用绑定。
 ///

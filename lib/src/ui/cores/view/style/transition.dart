@@ -82,7 +82,7 @@ class ElTransition with Equatable {
   /// 创建过渡配置，省略 field 表示全部属性。
   const ElTransition({
     this.field,
-    this.duration = const Duration(milliseconds: 240),
+    this.duration = const Duration(milliseconds: 250),
     this.curve = Curves.easeOutCubic,
     this.delay = Duration.zero,
   });

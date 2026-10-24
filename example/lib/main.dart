@@ -1,3 +1,4 @@
+import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -13,6 +14,10 @@ class _App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(showPerformanceOverlay: true, home: HomePage());
+    return ObsBuilder(
+      builder: (context) {
+        return MaterialApp(showPerformanceOverlay: GlobalState.showPerformanceOverlay.value, home: HomePage());
+      },
+    );
   }
 }

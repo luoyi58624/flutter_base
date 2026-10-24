@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter_base/sdk/binding.dart';
-import 'package:flutter_base/src/flutter_base/sdk/touch_resampling.dart';
+import 'package:flutter_base/src/flutter_base/sdk/binding/binding.dart';
+import 'package:flutter_base/src/flutter_base/sdk/binding/resampling.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

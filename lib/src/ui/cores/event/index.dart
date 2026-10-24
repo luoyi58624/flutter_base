@@ -1,7 +1,5 @@
-export 'callback.dart'
-    show ElEventHandler, ElEventPhase, ElEventCancelReason, ElEventCallback;
-export 'config.dart' show ElEventConfig, ElEventConfigExt;
-export 'event.dart' show ElEvent, ElEventExt, ElDragProxy, ElDragProxyExt;
+export 'callback.dart' show ElEventHandler, ElEventPhase, ElEventCancelReason, ElEventCallback;
+export 'event.dart' show ElEvent, ElEventExt, ElDragProxy, ElDragProxyExt, ElEventConfig, ElEventConfigExt;
 export 'recognizers/index.dart'
     show
         ElPressGestureRecognizer,
@@ -14,5 +12,4 @@ export 'recognizers/index.dart'
         ElTransformGestureDetails,
         ElPressGestureCallback,
         ElTransformGestureCallback;
-export 'state.dart' show ElEventState;
-export 'view.dart' show ElEventView, ElEventContextExt;
+export 'view.dart' show ElEventView, ElEventContextExt, ElEventState;

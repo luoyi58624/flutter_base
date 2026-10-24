@@ -1,8 +1,9 @@
 part of 'index.dart';
 
 class MyListGroup extends StatelessWidget {
-  const MyListGroup({super.key, required this.children});
+  const MyListGroup({super.key, required this.children, this.title});
 
+  final Widget? title;
   final List<MyListTile> children;
 
   @override
