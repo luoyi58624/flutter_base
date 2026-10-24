@@ -5,7 +5,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('事件运行时仅依赖 Flutter、既有识别器与具体 Render 宿主', () {
+  test('事件运行时独立于视图，仅兼容 Widget 入口允许接入视图', () {
     final root = Directory('lib/src/ui/cores/event').absolute.uri;
     final files = Directory.fromUri(root)
         .listSync(recursive: true)
@@ -24,8 +24,6 @@ void main() {
                     '../view/render/index.dart',
                     '../view/style/index.dart',
                   }.contains(target)) ||
-              (file.absolute.uri == root.resolve('dispatcher.dart') &&
-                  target == '../view/render/index.dart') ||
               target == 'package:flutter_base/src/dart/gen/index.dart') {
             continue;
           }
@@ -43,7 +41,7 @@ void main() {
     }
   });
 
-  test('公共事件入口保留 Widget 与事件配置且不导出内部实现', () {
+  test('公共事件入口导出独立 Dispatcher 并保留 Widget 与事件配置', () {
     final entry = File('lib/src/ui/cores/event/index.dart').readAsStringSync();
     expect(entry, contains('ElEventView'));
     expect(entry, contains('ElEventState'));
@@ -53,7 +51,7 @@ void main() {
         .whereType<ExportDirective>()
         .expand(_targets);
     expect(exports, isNot(contains('render.dart')));
-    expect(exports, isNot(contains('dispatcher.dart')));
+    expect(exports, contains('dispatcher.dart'));
     expect(exports.any((target) => target.contains('resampling/')), isFalse);
     final sources = Directory('lib/src/ui/cores/event')
         .listSync(recursive: true)
@@ -87,7 +85,7 @@ void main() {
       'package:flutter/painting.dart',
       'package:flutter/services.dart',
       'package:flutter/rendering.dart',
-      '../view/render/index.dart',
+      'package:flutter/scheduler.dart',
       'event.dart',
       'recognizers/index.dart',
     };
@@ -97,7 +95,7 @@ void main() {
       expect(
         allowedImports,
         contains(target),
-        reason: 'Dispatcher 只允许依赖具体 Render 与现有识别器：$target',
+        reason: 'Dispatcher 只允许依赖 Flutter 与现有事件模块：$target',
       );
     }
     final dispatcher = unit.declarations
@@ -123,7 +121,7 @@ void main() {
       source,
       isNot(
         matches(
-          r'\b(?:Widget|BuildContext|ElRenderEvent|ElView|ElStyle|StyleEngine)\b',
+          r'\b(?:Widget|BuildContext|ElRenderEvent|ElRenderView|ElView|ElStyle|StyleEngine)\b',
         ),
       ),
     );

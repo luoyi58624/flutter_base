@@ -21,6 +21,8 @@ void main() {
     await host.dispatch(up);
     expect(taps, 1);
     expect(host.leaf.eventDispatcher!.activePointerCount, 0);
+    host.dispose();
+    expect(host.leaf.eventDispatcher!.isTapPressed, isFalse);
   });
 
   testWidgets('ORDER-1: raw、tap 终止与 drag 生命周期保持固定顺序', (tester) async {
@@ -112,6 +114,7 @@ void main() {
       ElEventPhase.dragCancel,
       ElEventPhase.tapCancel,
     ]);
+    host.dispose();
   });
 
   testWidgets('ORDER-2: 未接受 drag 时 pointer cancel 先发 raw 再终止 tap', (
@@ -153,5 +156,6 @@ void main() {
       ElEventPhase.pointerCancel,
       ElEventPhase.tapCancel,
     ]);
+    host.dispose();
   });
 }

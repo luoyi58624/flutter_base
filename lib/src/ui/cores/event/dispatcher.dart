@@ -2,23 +2,26 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/painting.dart' show Axis;
-import 'package:flutter/services.dart' show MouseCursor, SystemMouseCursors;
+import 'package:flutter/rendering.dart';
 
-import '../view/render/index.dart';
 import 'event.dart';
 import 'recognizers/index.dart';
 
-/// 将宿主输入与几何连接到独立识别器，管理反馈、业务回调和拖拽代理。
+/// 为任意 Render 接入 ElEvent，复用独立识别器处理反馈、回调和拖拽代理。
+///
+/// 宿主转接命中、指针、MouseTracker 与 attach/dispose；普通几何无需额外配置。
 class ElEventDispatcher {
-  /// 连接具体视图宿主与事件声明；构造期间不向宿主发送通知。
+  /// 注册宿主与事件声明；保存实例后由宿主调用 [attach]，构造期间不触发业务回调。
   ElEventDispatcher(this._render, ElEvent event) : _event = event {
+    assert(_registry[_render] == null || _registry[_render]!._disposing, '同一 Render 只能持有一个活动分发器');
+    _registry[_render] = this;
     _team.onPointerEvent = _handlePointer;
-    _feedback = _TapFeedback((value) => _render.onTapChanged?.call(value));
+    _feedback = _TapFeedback((value) => onTapChanged?.call(value));
     _configureRecognizers();
   }
 
-  final ElRenderView _render;
+  final RenderObject _render;
+  static final _registry = Expando<ElEventDispatcher>('ElEvent dispatcher');
   static final _callbacks = Expando<ElEventCallback>('ElEvent callback');
   final _team = ElGestureArenaTeam()..matchParentGestures = true;
   late final _press = ElPressGestureRecognizer(debugOwner: this)..team = _team;
@@ -31,6 +34,32 @@ class ElEventDispatcher {
   bool _disposing = false;
   int _configurationRevision = 0;
 
+  /// 查找该 Render 持有的分发器，不要求宿主继承特定组件。
+  static ElEventDispatcher? of(RenderObject render) => _registry[render];
+
+  /// 按压反馈变化通知；未设置时仍维护 [isTapPressed]。
+  ValueChanged<bool>? onTapChanged;
+
+  /// 真实鼠标悬停变化通知；禁用时保留位置事实，由使用方遮蔽反馈。
+  ValueChanged<bool>? onHoverChanged;
+
+  /// 覆盖全局到局部坐标的转换，仅特殊绘制坐标系需要设置。
+  Offset Function(Offset position)? localPositionResolver;
+
+  /// 覆盖全局坐标范围判断，仅非矩形或带自身绘制变换的宿主需要设置。
+  bool Function(Offset position)? hitBoundsContainsGlobal;
+
+  DeviceGestureSettings? _gestureSettings;
+
+  /// 官方设备手势容差；更新环境不需要替换事件声明。
+  DeviceGestureSettings? get gestureSettings => _gestureSettings;
+  set gestureSettings(DeviceGestureSettings? value) {
+    if (_disposed || _disposing || _gestureSettings == value) return;
+    _gestureSettings = value;
+    _press.gestureSettings = value;
+    _transform.gestureSettings = value;
+  }
+
   /// 当前元素的局部配置声明。
   ElEventConfig get config => _event?.config ?? const ElEventConfig();
 
@@ -39,6 +68,9 @@ class ElEventDispatcher {
 
   /// 当前是否显示按压反馈。
   bool get isTapPressed => _feedback.value;
+
+  /// 是否仍有鼠标位于宿主内，禁用不会清除真实悬停位置。
+  bool get isHovered => _hoverDevices.isNotEmpty;
 
   /// 直接读取识别器的拖拽状态。
   bool get isDragged => _transform.isDragging;
@@ -70,37 +102,91 @@ class ElEventDispatcher {
       if (_disposed || revision != _configurationRevision) return;
     }
     if (value == null || value.disabled) {
-      _render.cancelDescendantEvents();
+      _cancelDescendantEvents();
       if (_disposed || revision != _configurationRevision) return;
       cancelAllPending();
     }
     if (_disposed || revision != _configurationRevision) return;
     _event = value;
     _configureRecognizers();
+    if (old?.cursor != value?.cursor ||
+        old?.disabled != value?.disabled ||
+        old?.behavior != value?.behavior ||
+        (old?.onPointerEnter == null) != (value?.onPointerEnter == null) ||
+        (old?.onPointerExit == null) != (value?.onPointerExit == null)) {
+      _refreshMouseTracker();
+    }
   }
 
   double get _tapDistance => config.tapCancelDistance ?? ElPressGestureRecognizer.defaultConsecutiveTapDistance;
 
   ElEventDispatcher? _parent;
 
-  /// 刷新宿主设备配置与反馈需求，不取消正在识别的输入。
-  void sync() {
-    if (!_disposed && !_disposing) _configureRecognizers();
+  /// 宿主挂载或在已挂载的宿主上新增分发器后调用，重挂保留在途手势。
+  void attach() {
+    if (_disposed || _disposing) return;
+    _syncParent();
+    if (disabled) _cancelDescendantEvents();
+    _refreshMouseTracker();
   }
 
-  /// 按真实渲染树更新祖先关系，当前手势仍使用识别器已冻结的路线。
-  void syncParent() {
-    if (_disposed || _disposing) return;
-    _parent = null;
-    for (var node = _render.parent; node != null; node = node.parent) {
-      final candidate = node is ElRenderView ? node.eventDispatcher : null;
-      if (candidate == null || candidate._disposed || candidate._disposing) continue;
-      _parent = candidate;
-      break;
+  void _refreshMouseTracker() {
+    if (!_disposed && _render.attached) {
+      RendererBinding.instance.ensureVisualUpdate();
     }
+  }
+
+  // 注册表只关联宿主；当前输入的路线和所有权仍由识别器保存。
+  void _syncParent() {
+    if (_disposed || _disposing) return;
+    var member = this;
+    for (var node = _render.parent; node != null; node = node.parent) {
+      final candidate = _registry[node];
+      if (candidate == null || candidate._disposed || candidate._disposing) {
+        continue;
+      }
+      member._connectParent(candidate);
+      member = candidate;
+    }
+    member._connectParent(null);
+  }
+
+  void _connectParent(ElEventDispatcher? parent) {
+    _parent = parent;
     _press.parent = _parent?._press;
     _transform.parent = _parent?._transform;
     _team.parent = _parent?._team;
+  }
+
+  void _cancelDescendantEvents() {
+    final revision = _configurationRevision;
+    void cancel(RenderObject node) {
+      if (_disposed || revision != _configurationRevision) return;
+      node.visitChildren(cancel);
+      if (_disposed || revision != _configurationRevision) return;
+      _registry[node]?.cancelAllPending();
+    }
+
+    _render.visitChildren(cancel);
+  }
+
+  Offset _localPosition(Offset position) {
+    if (localPositionResolver case final resolver?) return resolver(position);
+    if (!_render.attached) return position;
+    if (_render case final RenderBox box) return box.globalToLocal(position);
+    final inverse = Matrix4.tryInvert(_render.getTransformTo(null));
+    return inverse == null ? Offset.zero : MatrixUtils.transformPoint(inverse, position);
+  }
+
+  bool _contains(Offset position) {
+    if (hitBoundsContainsGlobal case final contains?) return contains(position);
+    if (!_render.attached) return true;
+    final inverse = Matrix4.tryInvert(_render.getTransformTo(null));
+    if (inverse == null) return false;
+    if (_render case final RenderBox box) {
+      return box.hasSize && box.size.contains(box.globalToLocal(position));
+    }
+    return _render.paintBounds.contains(MatrixUtils.transformPoint(inverse, position));
   }
 
   Iterable<ElEventDispatcher> get _ancestors sync* {
@@ -121,7 +207,7 @@ class ElEventDispatcher {
     final before = _event;
     final start = event is PointerDownEvent || event is PointerPanZoomStartEvent;
     if (start && (disabled || before == null)) return;
-    if (start) syncParent();
+    if (start) _syncParent();
     if (!_team.observePointer(event) || disabled || _event == null) return;
     if (event is PointerDownEvent) {
       if (before != null && before.hasSameTransformShape(_event!) && (_hasDrag || _hasScale)) {
@@ -176,7 +262,7 @@ class ElEventDispatcher {
 
   void _handlePress(ElPressGestureDetails details, ElEventPhase phase, ElEventHandler? Function(ElEvent) select) {
     if (_disposed) return;
-    if (phase == ElEventPhase.tapDown && _render.onTapChanged != null) {
+    if (phase == ElEventPhase.tapDown) {
       _feedback.down(details.downEvent, config);
     }
     if (phase == ElEventPhase.tapCancel) {
@@ -231,8 +317,7 @@ class ElEventDispatcher {
     }
   }
 
-  Offset _localDelta(Offset position, Offset delta) =>
-      _render.eventLocalPosition(position) - _render.eventLocalPosition(position - delta);
+  Offset _localDelta(Offset position, Offset delta) => _localPosition(position) - _localPosition(position - delta);
 
   /// 当前光标；禁用时显示禁止操作。
   MouseCursor get cursor => disabled ? SystemMouseCursors.forbidden : _event?.cursor ?? MouseCursor.defer;
@@ -240,8 +325,9 @@ class ElEventDispatcher {
   /// 接收官方鼠标进入通知。
   void handlePointerEnter(PointerEnterEvent event) {
     if (_disposed || _disposing) return;
+    final wasHovered = isHovered;
     _hoverDevices.add(event.device);
-    _render.onHoverChanged?.call(true);
+    if (wasHovered != isHovered) onHoverChanged?.call(isHovered);
     if (!disabled && !_disposed) {
       _invoke(_event?.onPointerEnter, _rawCallback(ElEventPhase.pointerEnter, event));
     }
@@ -250,8 +336,9 @@ class ElEventDispatcher {
   /// 接收官方鼠标离开通知。
   void handlePointerExit(PointerExitEvent event) {
     if (_disposed || _disposing) return;
+    final wasHovered = isHovered;
     _hoverDevices.remove(event.device);
-    _render.onHoverChanged?.call(_hoverDevices.isNotEmpty);
+    if (wasHovered != isHovered) onHoverChanged?.call(isHovered);
     if (!disabled && !_disposed) {
       _invoke(_event?.onPointerExit, _rawCallback(ElEventPhase.pointerExit, event));
     }
@@ -259,6 +346,7 @@ class ElEventDispatcher {
 
   /// 结清当前元素，原始输入和手势终态由团队与识别器负责。
   void cancelAllPending() {
+    if (_disposed) return;
     final down = _feedback.contact;
     _team.cancel();
     _feedback.cancel(down: down);
@@ -275,6 +363,9 @@ class ElEventDispatcher {
     _transform.dispose();
     _dragProxies.clear();
     _hoverDevices.clear();
+    onTapChanged = null;
+    onHoverChanged = null;
+    if (identical(_registry[_render], this)) _registry[_render] = null;
   }
 }
 
@@ -397,7 +488,7 @@ extension _EventBinding on ElEventDispatcher {
       ..onReleased = (details) {
         _feedback.up(details.downEvent);
       }
-      ..gestureSettings = _render.gestureSettings
+      ..gestureSettings = gestureSettings
       ..doubleTapInterval = config.doubleTapInterval
       ..tripleTapInterval = config.tripleTapInterval
       ..longPressDelay = config.longPressDelay
@@ -408,7 +499,7 @@ extension _EventBinding on ElEventDispatcher {
       ..deferTap = config.deferTap
       ..cancelTapOnLongPress = false
       ..isEligible = (phase, event) {
-        return config.tapCancelOnMove == true || _render.eventContains(event.position);
+        return config.tapCancelOnMove == true || _contains(event.position);
       }
       ..competeForTap = _hasPrimaryTap
       ..onTapDown = _bindPress(.tapDown, (event) => event.onTapDown, observe: true)
@@ -434,7 +525,7 @@ extension _EventBinding on ElEventDispatcher {
       ..onBackTap = _bindPress(.backTap, (event) => event.onBackTap);
 
     _transform
-      ..gestureSettings = _render.gestureSettings
+      ..gestureSettings = gestureSettings
       ..supportedDevices = config.dragDevices
       ..startDistance = config.dragStartDistance
       ..horizontalAngle = config.dragHorizontalAngle
@@ -519,7 +610,7 @@ extension _EventBinding on ElEventDispatcher {
     final callback = ElEventCallback(
       phase: phase,
       globalPosition: event.position,
-      localPosition: _render.eventLocalPosition(event.position),
+      localPosition: _localPosition(event.position),
       delta: event.delta,
       localDelta: _localDelta(event.position, event.delta),
       buttons: event.buttons,
@@ -573,7 +664,7 @@ extension _EventBinding on ElEventDispatcher {
 
   void _invokeDragProxy(ElEventDispatcher member, ElEventHandler? handler, ElEventCallback callback) {
     if (member._disposed || member.disabled || handler == null) return;
-    callback.localPosition = member._render.eventLocalPosition(callback.globalPosition);
+    callback.localPosition = member._localPosition(callback.globalPosition);
     callback.localDelta = member._localDelta(callback.globalPosition, callback.delta);
     callback.updateLocalDeltaResolver((delta) => member._localDelta(callback.globalPosition, delta));
     callback.updateEagerGestureHandler(null);

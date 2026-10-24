@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart'
     show
         MouseTrackerAnnotation,
@@ -70,42 +69,30 @@ class ElRenderView extends RenderShiftedBox
   set gestureSettings(DeviceGestureSettings? value) {
     if (_gestureSettings == value) return;
     _gestureSettings = value;
-    _eventDispatcher?.sync();
+    _eventDispatcher?.gestureSettings = value;
   }
 
   /// 事件声明，更新时由分发器结清失效的订阅。
   ElEvent? get event => _eventDispatcher?.event;
   set event(ElEvent? value) {
     if (_disposing) return;
-    final old = event;
     if (_eventDispatcher == null) {
       if (value == null) return;
-      _eventDispatcher = ElEventDispatcher(this, value);
-      // 保存实例后再取消子树，避免业务回调读取尚未完成构造的分发器。
-      if (value.disabled) cancelDescendantEvents();
-      if (attached) _eventDispatcher!.syncParent();
+      _eventDispatcher = ElEventDispatcher(this, value)
+        ..gestureSettings = gestureSettings
+        ..localPositionResolver = eventLocalPosition
+        ..hitBoundsContainsGlobal = eventContains
+        ..onTapChanged = (value) {
+          onTapChanged?.call(value);
+        }
+        ..onHoverChanged = (value) {
+          onHoverChanged?.call(value);
+        };
+      // attach 可能结清禁用子树，必须先保存实例以允许业务回调重入。
+      if (attached) _eventDispatcher!.attach();
     } else {
       _eventDispatcher!.event = value;
     }
-    // 取消回调可能重入替换配置，后续框架更新只读取最终声明。
-    if (_disposing) return;
-    final current = event;
-    if ((old == null ||
-            old.cursor != current?.cursor ||
-            old.disabled != current?.disabled) &&
-        SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
-      RendererBinding.instance.ensureVisualUpdate();
-    }
-  }
-
-  /// 结清所有后代事件，包含已抬起但仍在等待的延迟点击。
-  void cancelDescendantEvents() {
-    void cancel(RenderObject node) {
-      node.visitChildren(cancel);
-      if (node is ElRenderView) node._eventDispatcher?.cancelAllPending();
-    }
-
-    visitChildren(cancel);
   }
 
   Matrix4? _eventInverse() {
@@ -665,7 +652,7 @@ class ElRenderView extends RenderShiftedBox
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _eventDispatcher?.syncParent();
+    _eventDispatcher?.attach();
     _syncClipper();
     _shape?.attach();
     markNeedsLayout();

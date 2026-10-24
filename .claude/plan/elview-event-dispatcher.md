@@ -2,7 +2,18 @@
 
 日期：2026-10-24。
 
-状态：第一步已按两参数构造重写并完成模块验证，结果见第 15 节。用户明确要求把当前模块一次写好，并非一次完成全部后续功能；本次停在 Dispatcher 与必需 Render 接入，不推进 ElView.of/maybeOf、状态模型和样式变体。
+状态：第一步重新修正独立复用边界。第 15 节仅记录上一版结果，其绑定 ElRenderView 的设计已被用户明确否定；本次只修 Dispatcher 与必需 Render 接入，不推进 ElView.of/maybeOf、状态模型和样式变体。
+
+## 当前模块修正方案（取代下文第 5 节的具体宿主绑定）
+
+- 构造固定为 `ElEventDispatcher(RenderObject render, ElEvent event)`，运行时不得导入 View 或 Style。
+- 用 `Expando` 保存 Render 与 Dispatcher 的对应关系，父链、后代取消覆盖不同 Render 类型；不保存第二套指针或手势路线。
+- 默认坐标使用 Flutter 的 Render 变换，RenderBox 默认按 size 判断范围，其他 Render 按 paintBounds；普通宿主无需提供几何回调。
+- 沿用旧版的可选坐标、命中范围覆盖点，仅 ElView 等特殊绘制宿主需要提供。反馈通知和设备配置属于 Dispatcher，未设置通知也能读取交互状态。
+- 宿主只转接 hitTest、handleEvent、MouseTracker 和 attach/dispose。attach 在宿主保存实例后连接父链并结清禁用子树，detach 保留在途手势。
+- ElRenderView 使用与其他宿主相同的公共接口，不再向 Dispatcher 提供专有成员。
+- 先以两个无 ElView 继承关系的真实 Render 验证默认几何、反馈、鼠标、点击、变换、跨类型冒泡、禁用与销毁；再运行原有事件及 Render 接入子集。
+- 交付本模块时报告实测行数、复杂度和后续阻力，停下来审核。
 
 用户已确认保留 onHover/onTap 嵌套组合，并沿用旧版覆盖优先级。每完成一步必须停下供用户审核，汇报后续阻力、复杂度和实际行数；未经审核不进入下一步。
 
@@ -131,34 +142,32 @@ flowchart TD
 | 位置 | 负责 | 不拥有 |
 | --- | --- | --- |
 | ElView / 私有 Widget 桥接 | 参数、环境、of/maybeOf、scope 发布 | 手势阶段、样式计算、第二份交互事实 |
-| ElRenderView | 命中、实时几何、坐标适配、设备配置、树关系、状态通知与生命周期 | 点击/拖拽算法、变体覆盖规则 |
-| ElEventDispatcher | 参数映射、输入接入、反馈、有效状态、回调适配、dragProxy；直接使用具体 Render 宿主 | 布局绘制、样式树、独立手势状态机 |
+| ElRenderView | 自身视觉命中、特殊几何、环境与框架生命周期转接 | 通用事件树关系、点击/拖拽算法、变体覆盖规则 |
+| ElEventDispatcher | 参数映射、输入接入、默认几何、父子关联、反馈、有效状态、回调适配、dragProxy | 具体 Render 类型、布局绘制、样式树、独立手势状态机 |
 | Press / Transform / Team | 当前已有识别、路线、竞技场与终态合同 | Widget、StyleEngine、组件尺寸 |
 | StyleEngine | 原始声明、变体求值、有效目标、动画与失效 | 原始 Pointer、鼠标设备集合、业务事件 |
 
-ElViewState 直接替代现有 event/event.dart 中的 ElEventState，事件入口与 view 入口按需导出同一类型。不再新增 StateSource、StateResolver、Context、Snapshot、Change 等并行模型。Dispatcher 允许依赖具体 ElRenderView，但不直接使用样式引擎；两个识别器继续独立于 View 和 Style。
+后续状态步骤中，ElViewState 直接替代现有 event/event.dart 中的 ElEventState，事件入口与 view 入口按需导出同一类型。不再新增 StateSource、StateResolver、Context、Snapshot、Change 等并行模型。Dispatcher 和两个识别器均独立于 View 和 Style。
 
 Dispatcher 只保留一份有效 ElViewState。鼠标设备集合和触摸反馈计时属于产生该状态的内部输入事实；禁用时保留真实鼠标位置信息，公开的 hasHover/hasTap 均为 false。
 
 构造严格收敛为两个位置参数：
 
 ```dart
-ElEventDispatcher(ElRenderView render, ElEvent event);
+ElEventDispatcher(RenderObject render, ElEvent event);
 ```
 
-这里选择具体的 ElRenderView，而不是任意 RenderBox：当前任务就是服务 ElView，宿主自己的变换、margin、clip 和状态发布也需要具体实现。直接组合比再增加宿主接口或注册表更短、更明确。
+沿用旧版通用宿主与弱引用注册的方式，接受 Flutter 的 RenderObject，不要求宿主继承 ElView 或额外 Host 接口。
 
-- Dispatcher 保存 `final ElRenderView _render` 与当前 ElEvent，不接收几何、反馈、设备配置或后代取消回调。
-- 不把删除的构造参数搬到 setter、options 对象或另一组依赖注入入口。
-- 几何与坐标通过 Render 的具体内部方法访问；该方法计入 ElView 的自身变换与实际视觉盒，不能仅使用 RenderBox.size/globalToLocal。
-- 设备手势配置和是否需要被动反馈由 Render 保存，Dispatcher 更新配置时读取；相同 event identity 不能吞掉设备配置更新。
-- Render 接收 handleEvent/MouseTracker 并转发；Dispatcher 直接调用 Render 的单一状态变化入口，由 Render 更新样式及通知 Widget。
-- 父链和禁用后代通过实际 Render 树处理，只在具体 ElRenderView 上读取其 Dispatcher；不创建全局 Expando 注册表或可写的外部 Dispatcher.parent API。
-- Dispatcher 内部继续连接已有 Press/Transform/Team 的父链，新输入前刷新连接；在途路线仍由识别器冻结。
-- Render 唯一持有并释放 Dispatcher；构造初始化不得在 Render 尚未保存实例时反向读取该实例，禁用子树等外部副作用在保存实例之后执行。
-- 保留 `event` 更新、`handleEvent`、鼠标 enter/exit、只读状态/光标、`cancelAllPending` 和 `dispose`，不暴露第二套事件控制器。
-
-上述 Render 内部成员属于同模块协作入口，按需要使用 `@internal` 和中文注释，不新增 Host 基类、mixin、接口或 manager。Dart 文件可以互相引用；私有成员不能跨库访问，不能通过 dynamic 绕过类型检查。
+- 只传两个构造参数就具备默认坐标、范围、手势、反馈与事件树关联；通知回调未设置也维护可读状态。
+- 普通 RenderBox 使用 globalToLocal 和 size，其他 Render 使用变换矩阵和 paintBounds。不可逆矩阵不能视为范围内。
+- `localPositionResolver` 与 `hitBoundsContainsGlobal` 为可选覆盖：ElView 的自身 transform、margin 和 clip 使用它们，普通宿主不必设置。
+- `onTapChanged/onHoverChanged` 是可选状态通知，`gestureSettings` 是可选设备环境；均不反向读取 ElView。
+- 宿主只转接 hitTest（含 behavior/disabled）、handleEvent、MouseTracker 和 attach/dispose。
+- 一张 Expando 只负责 Render 到 Dispatcher 的关联。新输入扫描父链并连接沿途 Press/Transform/Team，路线仍由识别器冻结。
+- 禁用与取消沿真实子树访问已注册 Dispatcher，逐节点检查配置重入，不依赖 Render 的具体类型。
+- 宿主保存实例后调用 attach，构造不派发业务回调；普通 detach 保留在途手势，dispose 释放计时器、识别器并注销。
+- 公开入口导出 Dispatcher，可通过 of(RenderObject) 查找已注册实例；不存在时返回 null。
 
 配置版本与 disposed 检查继续保留，用于保护业务回调重入；它们不是另一套手势状态机。拖拽代理沿实际祖先宿主找到 Dispatcher，保留 pre → 当前消费者 → overflow 顺序与余量共享。
 
@@ -346,7 +355,7 @@ ElEventDispatcher(ElRenderView render, ElEvent event);
 - 比较完整宿主代码量与类型数量，不通过拆文件或把宿主逻辑塞进识别器制造“更少行数”。生成文件与测试分别统计。
 - 不给未经验证的行数或性能承诺。以完整合同通过、职责唯一、调用链短和真实无关工作被跳过作为完成依据。
 
-## 14. 第一轮草稿记录与重设计阻力
+## 14. 历史草稿记录（已否定，不作为当前设计）
 
 以下仅记录被要求重设计的回调注入草稿，方便审查成本，不代表两参数版本已实现：
 
@@ -371,7 +380,7 @@ ElEventDispatcher(ElRenderView render, ElEvent event);
 4. 下一阶段的按需 Dispatcher 会使祖先后来才加入事件；新输入要刷新父链，同时保留当前手势的冻结路线。
 5. 状态作用域发布、嵌套变体优先级、图片环境与几何反馈仍分别在后续阶段处理，不提前塞进第一步。
 
-## 15. 第一阶段实际交付
+## 15. 上一版交付记录（独立复用验收失败，由第 16 节取代）
 
 完成范围仅为当前 Dispatcher 模块与必要宿主连接：
 
@@ -406,3 +415,32 @@ Dispatcher 比上一轮 668 行草稿减少 41 行。完整接入与生命周期
 - 未运行全仓库测试、前台应用或性能测试。
 
 审核后的下一步仍单独开展：将现有 Widget 状态桥收敛为 ElViewState 与 of/maybeOf，重点处理通知时机、读者重建和 GlobalKey 重挂；样式变体与按需识别器再按原阶段推进。当前未实现这些后续功能。
+
+## 16. Dispatcher 独立复用修正结果
+
+本次只修正当前模块。构造为 `ElEventDispatcher(RenderObject render, ElEvent event)`，运行时不再导入 View，公共事件入口可直接使用。没有新增 Host 类型、事件阶段或识别状态机。
+
+默认几何、交互反馈、设备配置、光标更新与父子关联由 Dispatcher 自己完成。ElView 只转接框架入口并提供其自身变换与裁剪的可选覆盖。attach 在保存实例后连接父链并取消禁用子树；普通 detach 不取消手势，dispose 清理计时器、识别器与弱引用注册。
+
+独立行为测试使用真实的 RenderProxyBoxWithHitTestBehavior、RenderConstrainedBox、RenderSliverToBoxAdapter，不注入坐标或范围函数。额外修正并覆盖三层中最外层后来新增事件、禁用取消时跨兄弟重入、帧后修改命中行为导致静止鼠标状态更新。
+
+物理行数（含注释、空行，以上一版提交 7595fcb 为基线）：
+
+| 运行时文件 | 上一版 | 当前 | 差额 |
+| --- | ---: | ---: | ---: |
+| event/dispatcher.dart | 627 | 718 | +91 |
+| event/index.dart | 176 | 178 | +2 |
+| view/render/index.dart | 699 | 686 | -13 |
+| 本次运行时合计 | 1502 | 1582 | +80 |
+
+本次是补齐通用默认实现、公开接口与边界保护，不能宣称总代码减少。增加一张 Render→Dispatcher 弱引用表，每个实例一条关联；没有额外的指针参与表。注册查找 O(1)，单次父链同步 O(h)，同一次开始输入若命中 h 个事件祖先则整体最坏 O(h²)；禁用遍历 O(n)，h 是 Render 深度、n 是子树节点数。未进行性能测量。拖拽、连击、多指升级的算法仍在原识别器内。
+
+独立宿主测试及架构测试净增 403 行；既有测试只调整手工 Render fixture 的释放时机。未设置反馈通知也维护按压状态后，触摸反馈计时器真实存在，必须在 testWidgets 不变量检查前释放手工宿主，不能通过关闭反馈隐藏资源问题。
+
+验证结果：
+
+- event、view 与指定 resampling_test 子集共 563 项通过，低并发、无窗口。
+- event、view 及对应测试静态检查无问题，git diff --check 通过。
+- 独立宿主覆盖默认坐标、范围出入、未订阅反馈、鼠标/光标、跨类型冒泡、禁用取消、销毁注销与 PanZoom；其余按钮、长按、拖拽代理继续由现有事件回归覆盖。
+
+后续阻力：状态发布必须避开 build/layout 中同步重建；hover/tap 样式改变尺寸或 transform 时要避免反馈抖动；嵌套变体仍需遵守已确认的深度优先级。ElViewState、of/maybeOf 与样式变体本次未实现，停在本模块供用户审核。

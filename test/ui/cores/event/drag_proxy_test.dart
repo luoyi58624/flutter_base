@@ -43,6 +43,7 @@ void main() {
     ]);
     expect(endOffset, const Offset(0, 20));
     expect(host.leaf.eventDispatcher!.isDragged, isFalse);
+    host.dispose();
   });
 
   for (final cancelInPre in [true, false]) {
@@ -92,6 +93,7 @@ void main() {
       await _move(host, 20, 132, pointer: 2);
       await _end(host, 20, pointer: 2, millis: 148);
       expect(trace, ['pre', 'main', 'overflow', 'end']);
+      host.dispose();
     });
   }
 
@@ -135,6 +137,7 @@ void main() {
     expect(trace, ['pre:10.0', 'main:7.0', 'overflow:5.0']);
     expect(consumed.reduce((a, b) => a + b), 10);
     await _end(host, 20);
+    host.dispose();
   });
 
   testWidgets('pre 消费全部 delta 仍向 main 投递一次零余量，overflow 不再执行', (_) async {
@@ -163,6 +166,7 @@ void main() {
     await _move(host, 20, 32);
     expect(trace, ['pre', 'main:0.0']);
     await _end(host, 20);
+    host.dispose();
   });
 
   for (final axis in <Axis?>[Axis.horizontal, Axis.vertical, null]) {
@@ -188,6 +192,7 @@ void main() {
       expect(driverUpdates, 1);
       expect(preUpdates, axis == Axis.horizontal ? 0 : 1);
       await _end(host, 20);
+      host.dispose();
     });
   }
 
@@ -211,6 +216,7 @@ void main() {
     await _move(host, 30, 48);
     expect(trace, ['old', 'new']);
     await _end(host, 30);
+    host.dispose();
   });
 
   testWidgets('取消 pipeline 后代理成员可以在下一条序列重新参加', (_) async {
@@ -257,6 +263,7 @@ void main() {
     expect(starts, 2);
     expect(cancels, 1);
     expect(preUpdates, 2);
+    host.dispose();
   });
 
   test('代理形状仅比较轴与回调是否存在，独立代理不伪造事件回调', () {

@@ -7,8 +7,14 @@
 
 `ElEventView` 暂保留 Widget 与状态作用域，内部由 `ElRenderView` 持有
 `ElEventDispatcher(render, event)`，不再创建独立的事件 Render。Dispatcher 连接这两个
-识别器，处理声明、反馈和业务适配；Render 提供几何与框架生命周期。两者均不复制
+识别器，处理声明、反馈和业务适配。Dispatcher 接受任意 `RenderObject`，通过弱引用表
+关联父子，普通宿主自带默认坐标与范围；ElView 的特殊绘制几何使用可选覆盖。
+宿主只转接命中、输入、MouseTracker 和 attach/dispose。两者均不复制
 指针参与表、点击资格或手势阶段，取消和升级直接使用识别器的生命周期。
+
+`ElEventDispatcher` 也由公共事件入口导出。构造仅需 `(render, event)`；
+`onTapChanged/onHoverChanged` 是可选通知，未设置时仍可读取 `isTapPressed/isHovered`。
+宿主保存实例后调用 `attach()`，普通 detach 保留手势，最终 `dispose()` 释放并注销。
 
 ## 职责边界
 

@@ -92,6 +92,7 @@ void main() {
         ),
       );
       expect(taps, 2);
+      host.dispose();
     });
   }
 
@@ -281,5 +282,6 @@ void main() {
       ElEventPhase.dragCancel,
     ]);
     expect(host.leaf.eventDispatcher!.isDragged, isFalse);
+    host.dispose();
   });
 }

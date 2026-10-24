@@ -5,6 +5,8 @@ import '../view/render/index.dart';
 import '../view/style/index.dart';
 import 'event.dart';
 
+export 'dispatcher.dart' show ElEventDispatcher;
+
 export 'event.dart'
     show
         ElEvent,

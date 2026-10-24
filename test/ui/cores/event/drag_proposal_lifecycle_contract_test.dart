@@ -35,6 +35,7 @@ void main() {
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
       ]);
+      host.dispose();
     });
 
     testWidgets('cancelAllPending 同步取消 proposal，后续 Up 不得再发 End', (_) async {
@@ -61,6 +62,7 @@ void main() {
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
       ]);
+      host.dispose();
     });
 
     for (final lifecycle in <String>['cancelAtLastPosition', 'dispose']) {
@@ -93,6 +95,7 @@ void main() {
           ElEventPhase.dragStart,
           ElEventPhase.dragCancel,
         ]);
+        host.dispose();
       });
     }
 
@@ -136,6 +139,7 @@ void main() {
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
       ]);
+      host.dispose();
     });
   });
 
@@ -194,6 +198,7 @@ void main() {
       expect(phases.where(_isDragTerminal), <ElEventPhase>[
         ElEventPhase.dragEnd,
       ]);
+      host.dispose();
     });
 
     testWidgets('终态 stopPropagation 不得吞掉已收到 Start 成员的唯一终态', (_) async {
@@ -228,6 +233,7 @@ void main() {
         1,
         0,
       ], reason: 'Start 已公开后，每个成员都必须独立结清，终态 stop 不能制造悬空生命周期。');
+      host.dispose();
     });
 
     testWidgets('不同轴向独立识别，free child 不继承祖先的 vertical 轴', (_) async {
@@ -259,6 +265,7 @@ void main() {
         (ElEventPhase.dragStart, null),
         (ElEventPhase.dragEnd, null),
       ]);
+      host.dispose();
     });
 
     for (final ancestorHasStart in <bool>[true, false]) {
@@ -318,6 +325,7 @@ void main() {
           );
           expect(cancelOffsets, isEmpty);
           expect(ancestorEnds, 1);
+          host.dispose();
         },
       );
     }
@@ -451,6 +459,7 @@ void main() {
           ElEventPhase.dragEnd,
         ]);
         expect(ancestorUpdates, 1);
+        host.dispose();
       });
     }
   });
@@ -496,6 +505,7 @@ void main() {
         isFalse,
         reason: 'loser terminal 必须在 eagerGesture 调用返回前同步完成。',
       );
+      host.dispose();
     });
 
     testWidgets('双指 Scale Start 前同步取消 child proposal', (_) async {
@@ -538,6 +548,7 @@ void main() {
       );
 
       expect(trace, <String>['dragStart', 'dragCancel', 'scaleStart']);
+      host.dispose();
     });
 
     testWidgets('Scale takeover 重入中止仍完整结清全部 proposal', (_) async {
@@ -616,6 +627,7 @@ void main() {
         0,
       ], reason: 'Scale takeover 已用 Cancel 结清，后续 Up 不得再补第二终态。');
       expect(scaleStarts, 0);
+      host.dispose();
     });
   });
 
@@ -669,6 +681,7 @@ void main() {
         isEmpty,
         reason: 'actual axis 为 null 的旧 free Start 不能由 vertical-only 新配置承接。',
       );
+      host.dispose();
     });
 
     testWidgets('移除 Start 属于声明结构变化，即使保留 End+Cancel 也结清旧路线', (_) async {
@@ -713,6 +726,7 @@ void main() {
         ElEventPhase.dragCancel,
       ]);
       expect(newPhases, isEmpty);
+      host.dispose();
     });
 
     testWidgets('free proposal 替换为 generic End-only 时当场取消旧 handler', (_) async {
@@ -761,6 +775,7 @@ void main() {
         isEmpty,
         reason: 'End-only 无法承接 PointerCancel，替换时已由旧 handler 唯一结清。',
       );
+      host.dispose();
     });
 
     testWidgets('free proposal 替换为 generic Update-only 时当场取消旧 handler', (
@@ -810,6 +825,7 @@ void main() {
         isEmpty,
         reason: 'Update-only 没有完整 terminal shape，Up 不得向新配置补终态。',
       );
+      host.dispose();
     });
   });
 }

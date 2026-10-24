@@ -70,6 +70,7 @@ void main() {
       'scaleUpdate:2',
       'scaleEnd',
     ], reason: '1→2→1 只允许一套 Scale 生命周期，减回单指后继续 update 而不是重启');
+    host.dispose();
   });
 
   testWidgets('SCALE-A2: 默认 eagerGesture 不向祖先 Scale 让渡', (_) async {
@@ -116,6 +117,7 @@ void main() {
     );
 
     expect(trace, <String>['dragStart', 'dragUpdate', 'dragEnd']);
+    host.dispose();
   });
 
   testWidgets('SCALE-A3: 任一参与指针不可让渡时不得部分取消既有 Drag', (_) async {
@@ -175,6 +177,7 @@ void main() {
       'dragUpdate',
       'dragEnd',
     ], reason: '失败的 Scale 接管不得留下半提交状态，原 Drag 必须能继续并正常结束');
+    host.dispose();
   });
 
   testWidgets('SCALE-A4: 可让渡 winner 被移除后不得残留第二指立即升级权限', (_) async {
@@ -222,6 +225,7 @@ void main() {
       0,
       reason: 'winner 离场会终止旧 pointer 序列，旧 loser 不能借第二指重新复活',
     );
+    host.dispose();
   });
 
   testWidgets('SCALE-A6: pipeline shadow 不得覆盖第二指自己的默认 eager', (_) async {
@@ -297,6 +301,7 @@ void main() {
       'dragUpdate',
       'dragEnd',
     ], reason: '失败的 shadow 不得取消或污染首指 pipeline');
+    host.dispose();
   });
 
   testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (_) async {
@@ -339,12 +344,13 @@ void main() {
     final root = rootBox;
     final left = leftBox;
     final right = rightBox;
-    addTearDown(() {
+    void dispose() {
       right.dispose();
       left.dispose();
       root.dispose();
       pipelineOwner.rootNode = null;
-    });
+    }
+    addTearDown(dispose);
 
     int? ancestorCancelPointerCount;
     root.event = ElEvent(
@@ -398,6 +404,7 @@ void main() {
       2,
       reason: '内层 Drag 仅跟踪左侧指针，但冒泡到共同祖先时必须按祖先的两条活跃序列重写计数',
     );
+    dispose();
   });
 }
 
