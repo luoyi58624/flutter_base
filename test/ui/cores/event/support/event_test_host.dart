@@ -1,10 +1,12 @@
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/event/event.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 
 /// 用最小 RenderBox 链验证事件分发合同，隔离其他组件的行为。
 final class EventTestHost {
-  EventTestHost._(this._pipelineOwner, this.nodes);
+  EventTestHost._(this._pipelineOwner, this._nodes);
 
   /// 创建一条根到叶的渲染链，索引零为根，末项为最深命中节点。
   factory EventTestHost.chain({
@@ -13,7 +15,10 @@ final class EventTestHost {
   }) {
     assert(depth > 0);
     final pipelineOwner = PipelineOwner();
-    final nodes = List<_EventTestBox>.generate(depth, (_) => _EventTestBox());
+    final nodes = List<ElRenderView>.generate(
+      depth,
+      (_) => ElRenderView(ElStyle(), TextDirection.ltr, event: ElEvent()),
+    );
     for (var index = 0; index < nodes.length - 1; index++) {
       nodes[index].child = nodes[index + 1];
     }
@@ -23,25 +28,25 @@ final class EventTestHost {
   }
 
   final PipelineOwner _pipelineOwner;
+  bool _disposed = false;
 
-  /// 根到叶排列的渲染节点。
-  final List<ElRenderEvent> nodes;
+  final List<ElRenderView> _nodes;
 
-  /// 与 [nodes] 同索引排列的事件元素。
-  List<ElRenderEvent> get elements => nodes;
+  /// 根到叶排列的真实事件宿主。
+  List<ElRenderView> get elements => _nodes;
 
   /// 根节点的事件元素。
-  ElRenderEvent get rootElement => elements.first;
+  ElRenderView get rootElement => _nodes.first;
 
   /// 最深命中节点的事件元素。
-  ElRenderEvent get leaf => elements.last;
+  ElRenderView get leaf => _nodes.last;
 
   /// 按真实命中顺序把事件投递到叶到根，并推进 Flutter 的全局指针路由与竞技场。
   Future<void> dispatch(PointerEvent event) async {
-    for (var index = nodes.length - 1; index >= 0; index--) {
-      elements[index].handleEvent(
+    for (var index = _nodes.length - 1; index >= 0; index--) {
+      _nodes[index].handleEvent(
         event,
-        BoxHitTestEntry(nodes[index], event.position),
+        BoxHitTestEntry(_nodes[index], event.position),
       );
     }
     routeTestPointer(event);
@@ -50,9 +55,9 @@ final class EventTestHost {
   /// 按指定命中顺序投递，最后到根时推进路由；await 等待官方竞技场微任务结算。
   void direct(int chainIndex, PointerEvent event) {
     RangeError.checkValidIndex(chainIndex, elements, 'chainIndex');
-    elements[chainIndex].handleEvent(
+    _nodes[chainIndex].handleEvent(
       event,
-      BoxHitTestEntry(nodes[chainIndex], event.position),
+      BoxHitTestEntry(_nodes[chainIndex], event.position),
     );
     if (chainIndex == 0) routeTestPointer(event);
   }
@@ -91,8 +96,10 @@ final class EventTestHost {
 
   /// 释放真实事件元素与渲染链挂载。
   void dispose() {
-    for (final element in elements.reversed) {
-      element.dispose();
+    if (_disposed) return;
+    _disposed = true;
+    for (final node in _nodes.reversed) {
+      node.dispose();
     }
     _pipelineOwner.rootNode = null;
   }
@@ -109,18 +116,9 @@ void routeTestPointer(PointerEvent event) {
 }
 
 /// 单节点宿主的真实输入入口，多节点命中应先投递整条链再统一路由。
-extension EventInputTestExt on ElRenderEvent {
+extension EventInputTestExt on ElRenderView {
   Future<void> dispatchInput(PointerEvent event, BoxHitTestEntry entry) async {
     handleEvent(event, entry);
     routeTestPointer(event);
-  }
-}
-
-/// 测试专用的最小单子 RenderBox。
-final class _EventTestBox extends ElRenderEvent {
-  @override
-  void performLayout() {
-    child?.layout(constraints, parentUsesSize: true);
-    size = constraints.constrain(const Size(200, 200));
   }
 }

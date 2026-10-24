@@ -1,5 +1,6 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +50,7 @@ void main() {
       );
       await host.dispatch(_down(pointer: 2));
       await host.dispatch(move);
-      host.leaf.cancelAllPending(move);
+      host.leaf.eventDispatcher!.cancelAllPending();
       expect(childPhases, <ElEventPhase>[
         ElEventPhase.dragStart,
         ElEventPhase.dragCancel,
@@ -78,7 +79,7 @@ void main() {
           ),
         );
         if (lifecycle == 'cancelAtLastPosition') {
-          host.leaf.cancelAllPendingAtLastPosition();
+          host.leaf.eventDispatcher!.cancelAllPending();
         } else {
           host.leaf.dispose();
         }
@@ -895,13 +896,19 @@ PointerCancelEvent _cancel({
 final class _SiblingEventTestHost {
   _SiblingEventTestHost()
     : _pipelineOwner = PipelineOwner(),
-      root = ElRenderEvent(
+      root = ElRenderView(
+        ElStyle(),
+        TextDirection.ltr,
+        event: ElEvent(),
         child: RenderFlex(
           direction: Axis.horizontal,
           textDirection: TextDirection.ltr,
         ),
       ),
-      childA = ElRenderEvent(
+      childA = ElRenderView(
+        ElStyle(),
+        TextDirection.ltr,
+        event: ElEvent(),
         child: RenderConstrainedBox(
           additionalConstraints: const BoxConstraints.tightFor(
             width: 100,
@@ -909,7 +916,10 @@ final class _SiblingEventTestHost {
           ),
         ),
       ),
-      childB = ElRenderEvent(
+      childB = ElRenderView(
+        ElStyle(),
+        TextDirection.ltr,
+        event: ElEvent(),
         child: RenderConstrainedBox(
           additionalConstraints: const BoxConstraints.tightFor(
             width: 100,
@@ -926,12 +936,12 @@ final class _SiblingEventTestHost {
   }
 
   final PipelineOwner _pipelineOwner;
-  final ElRenderEvent root;
-  final ElRenderEvent childA;
-  final ElRenderEvent childB;
-  late final ElRenderEvent rootElement;
-  late final ElRenderEvent childAElement;
-  late final ElRenderEvent childBElement;
+  final ElRenderView root;
+  final ElRenderView childA;
+  final ElRenderView childB;
+  late final ElRenderView rootElement;
+  late final ElRenderView childAElement;
+  late final ElRenderView childBElement;
 
   Future<void> dispatchA(PointerEvent event) async =>
       _dispatch(childAElement, childA, event);
@@ -954,7 +964,7 @@ final class _SiblingEventTestHost {
     GestureBinding.instance.pointerRouter.route(event);
   }
 
-  void _dispatch(ElRenderEvent leaf, RenderBox box, PointerEvent event) {
+  void _dispatch(ElRenderView leaf, RenderBox box, PointerEvent event) {
     leaf.handleEvent(
       event,
       BoxHitTestEntry(box, box.globalToLocal(event.position)),

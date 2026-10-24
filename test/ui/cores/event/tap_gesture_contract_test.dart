@@ -24,7 +24,7 @@ void main() {
         ElEventPhase.tapUp,
         ElEventPhase.tap,
       ]);
-      expect(host.leaf.activePointerCount, 0);
+      expect(host.leaf.eventDispatcher!.activePointerCount, 0);
     } finally {
       host.dispose();
     }
@@ -182,7 +182,9 @@ void main() {
         'parent:cancel',
       ]);
       expect(
-        host.elements.map((element) => element.activePointerCount),
+        host.elements.map(
+          (element) => element.eventDispatcher!.activePointerCount,
+        ),
         everyElement(0),
       );
     } finally {
@@ -303,7 +305,7 @@ void main() {
         expect(phases, [down, up, tap]);
         expect(primaryTaps, 0);
         expect(longPresses, 0);
-        expect(host.leaf.activePointerCount, 0);
+        expect(host.leaf.eventDispatcher!.activePointerCount, 0);
       } finally {
         host.dispose();
       }

@@ -617,11 +617,11 @@ Widget _shell(Widget child) => Directionality(
 Duration _ms(int milliseconds) => Duration(milliseconds: milliseconds);
 void _architectureTests() {
   test('可选输入模块仅依赖 Flutter SDK 和自身目录', () {
-    final root = Directory('lib/src/flutter_base/sdk').absolute.uri;
+    final root = Directory('lib/src/flutter_base/sdk/binding').absolute.uri;
     final imports = RegExp(r'''(?:import|export)\s+['"]([^'"]+)['"]''');
     for (final path in [
-      'lib/src/flutter_base/sdk/binding.dart',
-      'lib/src/flutter_base/sdk/touch_resampling.dart',
+      'lib/src/flutter_base/sdk/binding/binding.dart',
+      'lib/src/flutter_base/sdk/binding/resampling.dart',
     ]) {
       final file = File(path);
       for (final match in imports.allMatches(file.readAsStringSync())) {
@@ -641,7 +641,7 @@ void _architectureTests() {
 
   test('主入口只导出可选绑定，事件模块不引用输入模块', () {
     final entry = File('lib/flutter_base.dart').readAsStringSync();
-    expect(entry, contains("export 'src/flutter_base/sdk/binding.dart'"));
+    expect(entry, contains("export 'src/flutter_base/sdk/binding/binding.dart'"));
     expect(entry, isNot(contains('ensureInitialized()')));
     for (final path in ['lib/flutter.dart', 'lib/ui.dart']) {
       expect(File(path).readAsStringSync(), isNot(contains('binding.dart')));

@@ -1,6 +1,7 @@
 import 'support/event_test_host.dart';
 
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -52,7 +53,7 @@ void main() {
         );
 
         expect(phases, <String>['new:tap']);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -86,7 +87,7 @@ void main() {
         );
 
         expect(phases, isEmpty);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -129,7 +130,7 @@ void main() {
         );
 
         expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -173,7 +174,7 @@ void main() {
       expect(phases, isEmpty);
       await _nextDrag(element, entry);
       expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -218,7 +219,7 @@ void main() {
       expect(phases, isEmpty);
       await _nextDrag(element, entry);
       expect(phases, ['new:dragStart', 'new:dragUpdate', 'new:dragEnd']);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -230,7 +231,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElRenderEvent element;
+      late ElRenderView element;
       var moves = 0;
 
       element = box
@@ -282,7 +283,7 @@ void main() {
           'new:dragUpdate',
           'new:dragEnd',
         ]);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -293,7 +294,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late ElRenderEvent element;
+    late ElRenderView element;
 
     element = box
       ..event = _dragEvent(
@@ -364,7 +365,7 @@ void main() {
         'replacement:dragUpdate',
         'replacement:dragEnd',
       ]);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -376,7 +377,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElRenderEvent element;
+      late ElRenderView element;
 
       element = box
         ..event = _dragEvent(
@@ -412,7 +413,7 @@ void main() {
         );
 
         expect(phases, isEmpty);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -423,7 +424,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late ElRenderEvent element;
+    late ElRenderView element;
 
     element = box
       ..event = _dragEvent(
@@ -484,7 +485,7 @@ void main() {
         ),
       );
       expect(phases, ['old:dragStart', 'old:dragCancel', 'replacement:tap']);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -496,7 +497,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late ElRenderEvent element;
+      late ElRenderView element;
 
       element = box
         ..event = _dragEvent(
@@ -545,7 +546,7 @@ void main() {
 
         expect(phases, <String>['old:dragStart', 'old:dragCancel']);
         expect(element.event, isNull);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -558,7 +559,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late final ElRenderEvent element;
+      late final ElRenderView element;
 
       element = box
         ..event = _dragEvent(
@@ -633,7 +634,7 @@ void main() {
           'replacement:dragStart',
           'replacement:dragEnd',
         ]);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -646,7 +647,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late final ElRenderEvent element;
+    late final ElRenderView element;
 
     element = box
       ..event = _dragEvent(
@@ -687,7 +688,7 @@ void main() {
         'old:pointerCancel',
         'old:dragCancel',
       ]);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -732,7 +733,7 @@ _EventTestBox _attachedBox() {
   return box;
 }
 
-Future<void> _nextDrag(ElRenderEvent element, BoxHitTestEntry entry) async {
+Future<void> _nextDrag(ElRenderView element, BoxHitTestEntry entry) async {
   await _dispatch(element, entry, _touchDown(pointer: 2));
   for (final (millis, position, delta) in [
     (16, const Offset(0, -16), const Offset(0, -16)),
@@ -772,16 +773,18 @@ PointerDownEvent _touchDown({required int pointer}) {
 }
 
 Future<void> _dispatch(
-  ElRenderEvent element,
+  ElRenderView element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
   await element.dispatchInput(event, entry);
 }
 
-final class _EventTestBox extends ElRenderEvent {
-  @override
-  void performLayout() {
-    size = constraints.constrain(const Size(100, 100));
-  }
+final class _EventTestBox extends ElRenderView {
+  _EventTestBox()
+    : super(
+        ElStyle(width: 100, height: 100),
+        TextDirection.ltr,
+        event: ElEvent(),
+      );
 }

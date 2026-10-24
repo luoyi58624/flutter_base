@@ -5,6 +5,59 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/event_test_host.dart';
 
 void main() {
+  testWidgets('禁用父节点的后代取消重入不能取消父节点新输入', (_) async {
+    final host = EventTestHost.chain(depth: 2);
+    addTearDown(host.dispose);
+    final parent = host.rootElement;
+    final child = host.leaf;
+    final parentPhases = <ElEventPhase>[];
+    final childPhases = <ElEventPhase>[];
+    void recordParent(ElEventCallback event) => parentPhases.add(event.phase);
+    final replacement = ElEvent(
+      onPointerUp: recordParent,
+      onPointerCancel: recordParent,
+      onTapUp: recordParent,
+      onTap: recordParent,
+      onTapCancel: recordParent,
+    );
+    child.event = ElEvent(
+      onPointerCancel: (event) {
+        childPhases.add(event.phase);
+        parent.event = replacement;
+        // 新指针只进入父节点，不能被尚未返回的旧禁用操作结清。
+        host.direct(0, PointerDownEvent(pointer: 32, kind: .mouse));
+      },
+      onTap: (event) => childPhases.add(event.phase),
+      onTapCancel: (event) => childPhases.add(event.phase),
+    );
+
+    // 旧指针只属于后代，确保重入来自 cancelDescendantEvents 的取消回调。
+    final down = PointerDownEvent(pointer: 31, kind: .mouse);
+    host.directLeaf(down);
+    routeTestPointer(down);
+    await Future<void>.value();
+    parent.event = parent.event!.copyWith(disabled: true);
+
+    expect(parent.event, same(replacement));
+    expect(parent.eventDispatcher!.disabled, isFalse);
+    expect(parent.eventDispatcher!.activePointerCount, 1);
+    expect(parentPhases, isEmpty);
+    expect(childPhases, [ElEventPhase.pointerCancel, ElEventPhase.tapCancel]);
+
+    await host.dispatch(PointerUpEvent(pointer: 31, kind: .mouse));
+    await host.directRoot(PointerUpEvent(pointer: 32, kind: .mouse));
+    expect(parentPhases, [
+      ElEventPhase.pointerUp,
+      ElEventPhase.tapUp,
+      ElEventPhase.tap,
+    ]);
+    expect(childPhases, [ElEventPhase.pointerCancel, ElEventPhase.tapCancel]);
+    expect(parent.eventDispatcher!.activePointerCount, 0);
+    expect(child.eventDispatcher!.activePointerCount, 0);
+    expect(parent.eventDispatcher!.isTapPressed, isFalse);
+    expect(child.eventDispatcher!.isTapPressed, isFalse);
+  });
+
   for (final raw in [false, true]) {
     testWidgets('旧回调不能独占同编号的新输入：raw=$raw', (tester) async {
       final host = EventTestHost.chain(depth: 2);
@@ -72,7 +125,7 @@ void main() {
         timeStamp: Duration(milliseconds: 20),
       ),
     );
-    expect(host.leaf.isTapPressed, isTrue);
+    expect(host.leaf.eventDispatcher!.isTapPressed, isTrue);
     await host.dispatch(
       const PointerUpEvent(
         pointer: 1800,
@@ -80,8 +133,8 @@ void main() {
         timeStamp: Duration(milliseconds: 40),
       ),
     );
-    expect(host.leaf.isTapPressed, isFalse);
-    expect(host.leaf.activePointerCount, 0);
+    expect(host.leaf.eventDispatcher!.isTapPressed, isFalse);
+    expect(host.leaf.eventDispatcher!.activePointerCount, 0);
   });
 
   testWidgets('按压释放通知中替换配置仍兑现旧 TapUp 与 Tap', (_) async {
@@ -118,8 +171,8 @@ void main() {
       'old:tap',
       'pressed:false',
     ]);
-    expect(element.isTapPressed, isFalse);
-    expect(element.activePointerCount, 0);
+    expect(element.eventDispatcher!.isTapPressed, isFalse);
+    expect(element.eventDispatcher!.activePointerCount, 0);
   });
 
   testWidgets('拖拽取消回调内替换配置只兑现一次旧 DragCancel', (_) async {
@@ -148,7 +201,7 @@ void main() {
         timeStamp: Duration(milliseconds: 16),
       ),
     );
-    expect(element.isDragged, isTrue);
+    expect(element.eventDispatcher!.isDragged, isTrue);
     await host.dispatch(
       const PointerCancelEvent(pointer: 2, position: Offset(5, 0)),
     );
@@ -157,8 +210,8 @@ void main() {
     );
 
     expect(phases, <String>['old:dragStart', 'old:dragCancel']);
-    expect(element.isDragged, isFalse);
-    expect(element.activePointerCount, 0);
+    expect(element.eventDispatcher!.isDragged, isFalse);
+    expect(element.eventDispatcher!.activePointerCount, 0);
   });
 
   testWidgets('状态通知重入新周期不会覆盖单例队列', (_) async {
@@ -170,7 +223,7 @@ void main() {
       ..event = const ElEvent()
       ..onTapChanged = (pressed) {
         states.add(pressed);
-        if (pressed) element.cancelAllPendingAtLastPosition();
+        if (pressed) element.eventDispatcher!.cancelAllPending();
       };
 
     for (var pointer = 3; pointer <= 4; pointer++) {
@@ -187,8 +240,8 @@ void main() {
     }
 
     expect(states, <bool>[true, false, true, false]);
-    expect(element.isTapPressed, isFalse);
-    expect(element.activePointerCount, 0);
+    expect(element.eventDispatcher!.isTapPressed, isFalse);
+    expect(element.eventDispatcher!.activePointerCount, 0);
   });
 
   testWidgets('不同阈值分别参赛，祖先获胜后子节点只结清候选', (_) async {
@@ -218,7 +271,7 @@ void main() {
         timeStamp: Duration(milliseconds: 16),
       ),
     );
-    expect(host.leaf.isDragged, isFalse);
+    expect(host.leaf.eventDispatcher!.isDragged, isFalse);
     await host.dispatch(
       const PointerUpEvent(pointer: 5, position: Offset(5, 0)),
     );
@@ -227,6 +280,6 @@ void main() {
       ElEventPhase.dragDown,
       ElEventPhase.dragCancel,
     ]);
-    expect(host.leaf.isDragged, isFalse);
+    expect(host.leaf.eventDispatcher!.isDragged, isFalse);
   });
 }

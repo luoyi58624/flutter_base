@@ -1,5 +1,6 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -199,10 +200,8 @@ void main() {
     );
     host.leaf.dispose();
 
-    final rootEntry = BoxHitTestEntry(host.nodes.first, Offset.zero);
-    host.rootElement.handleEvent(
+    host.rootElement.eventDispatcher!.handleEvent(
       _down(pointer: 2, position: const Offset(150, 50), millis: 32),
-      rootEntry,
     );
     expect(
       scaleStarts,
@@ -210,14 +209,13 @@ void main() {
       reason: '原 winner 已消失，遗留 tracker 只能退回普通双指阈值，不能沿用旧让渡权',
     );
 
-    host.rootElement.handleEvent(
+    host.rootElement.eventDispatcher!.handleEvent(
       _move(
         pointer: 2,
         position: const Offset(210, 50),
         delta: const Offset(60, 0),
         millis: 48,
       ),
-      rootEntry,
     );
     expect(
       scaleStarts,
@@ -272,16 +270,16 @@ void main() {
       position: const Offset(150, 50),
       millis: 32,
     );
-    middle.handleEvent(down2, BoxHitTestEntry(host.nodes[1], down2.position));
-    root.handleEvent(down2, BoxHitTestEntry(host.nodes[0], down2.position));
+    middle.handleEvent(down2, BoxHitTestEntry(middle, down2.position));
+    root.handleEvent(down2, BoxHitTestEntry(root, down2.position));
     expect(trace, [
       'dragStart',
       'pointer2Exclusive',
     ], reason: '不在 target 链上的第二指已默认 eager，shadow 不得后写可让渡权限');
 
     final up2 = _up(pointer: 2, position: const Offset(150, 50), millis: 48);
-    middle.handleEvent(up2, BoxHitTestEntry(host.nodes[1], up2.position));
-    root.handleEvent(up2, BoxHitTestEntry(host.nodes[0], up2.position));
+    middle.handleEvent(up2, BoxHitTestEntry(middle, up2.position));
+    root.handleEvent(up2, BoxHitTestEntry(root, up2.position));
     await host.dispatch(
       _move(
         pointer: 1,
@@ -303,13 +301,19 @@ void main() {
 
   testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (_) async {
     final pipelineOwner = PipelineOwner();
-    final rootBox = ElRenderEvent(
+    final rootBox = ElRenderView(
+      ElStyle(),
+      TextDirection.ltr,
+      event: ElEvent(),
       child: RenderFlex(
         direction: Axis.horizontal,
         textDirection: TextDirection.ltr,
       ),
     );
-    final leftBox = ElRenderEvent(
+    final leftBox = ElRenderView(
+      ElStyle(),
+      TextDirection.ltr,
+      event: ElEvent(),
       child: RenderConstrainedBox(
         additionalConstraints: const BoxConstraints.tightFor(
           width: 100,
@@ -317,7 +321,10 @@ void main() {
         ),
       ),
     );
-    final rightBox = ElRenderEvent(
+    final rightBox = ElRenderView(
+      ElStyle(),
+      TextDirection.ltr,
+      event: ElEvent(),
       child: RenderConstrainedBox(
         additionalConstraints: const BoxConstraints.tightFor(
           width: 100,
@@ -354,7 +361,7 @@ void main() {
     right.event = ElEvent(onPointerDown: (_) {});
 
     Future<void> dispatchThrough(
-      ElRenderEvent leaf,
+      ElRenderView leaf,
       RenderBox box,
       PointerEvent event,
     ) async {

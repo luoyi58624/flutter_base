@@ -663,7 +663,7 @@ void main() {
 
         host.directLeaf(down);
         await host.directRoot(down);
-        host.leaf.cancelAllPending(move);
+        host.leaf.eventDispatcher!.cancelAllPending();
         host.directLeaf(move);
         await host.directRoot(move);
         host.directLeaf(up);

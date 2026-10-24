@@ -1,5 +1,14 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart'
+    show
+        MouseTrackerAnnotation,
+        PointerEnterEventListener,
+        PointerExitEventListener;
 
+import '../../event/dispatcher.dart';
+import '../../event/event.dart';
 import '../layout/box_layout.dart';
 import '../paint/decoration.dart';
 import '../paint/effects.dart';
@@ -8,17 +17,33 @@ import '../paint/transform.dart';
 import '../style/index.dart';
 
 /// 单子视图的框架宿主，样式、盒模型和绘制分别委托给独立协作者。
-class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
+class ElRenderView extends RenderShiftedBox
+    implements BoxLayoutOwner, MouseTrackerAnnotation {
   /// 创建宿主时立即创建唯一引擎，动画与绘制资源仍按需创建。
   ElRenderView(
     ElStyle style,
     TextDirection direction, {
     ImageConfiguration? imageConfiguration,
-  }) : super(null) {
+    ElEvent? event,
+    DeviceGestureSettings? gestureSettings,
+    this.onTapChanged,
+    this.onHoverChanged,
+    RenderBox? child,
+    bool establishesLayoutReference = true,
+    // 保留公开的设备配置参数名。
+    // ignore: prefer_initializing_formals
+  }) : _gestureSettings = gestureSettings,
+       super(null) {
     _engine = StyleEngine(style, direction, invalidate: _invalidate);
-    boxLayout = BoxLayout(this, mutateLayout: _mutateLayout);
+    boxLayout = BoxLayout(
+      this,
+      mutateLayout: _mutateLayout,
+      establishesReference: establishesLayoutReference,
+    );
     _imageConfiguration = imageConfiguration;
+    this.child = child;
     if (alwaysNeedsCompositing) markNeedsCompositingBitsUpdate();
+    this.event = event;
   }
 
   StyleEngine? _engine;
@@ -27,6 +52,114 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   EffectController? _effects;
   ShapeGeometry? _shape;
   ImageConfiguration? _imageConfiguration;
+  ElEventDispatcher? _eventDispatcher;
+  DeviceGestureSettings? _gestureSettings;
+  bool _disposing = false;
+
+  /// 当前事件分发器；未声明事件的视图不创建事件资源。
+  ElEventDispatcher? get eventDispatcher => _eventDispatcher;
+
+  /// 按压反馈通知，反馈延迟由事件配置决定。
+  ValueChanged<bool>? onTapChanged;
+
+  /// 多鼠标悬停反馈通知，禁用状态由使用方遮蔽。
+  ValueChanged<bool>? onHoverChanged;
+
+  /// 当前设备的官方手势容差；环境更新不依赖事件对象变化。
+  DeviceGestureSettings? get gestureSettings => _gestureSettings;
+  set gestureSettings(DeviceGestureSettings? value) {
+    if (_gestureSettings == value) return;
+    _gestureSettings = value;
+    _eventDispatcher?.sync();
+  }
+
+  /// 事件声明，更新时由分发器结清失效的订阅。
+  ElEvent? get event => _eventDispatcher?.event;
+  set event(ElEvent? value) {
+    if (_disposing) return;
+    final old = event;
+    if (_eventDispatcher == null) {
+      if (value == null) return;
+      _eventDispatcher = ElEventDispatcher(this, value);
+      // 保存实例后再取消子树，避免业务回调读取尚未完成构造的分发器。
+      if (value.disabled) cancelDescendantEvents();
+      if (attached) _eventDispatcher!.syncParent();
+    } else {
+      _eventDispatcher!.event = value;
+    }
+    // 取消回调可能重入替换配置，后续框架更新只读取最终声明。
+    if (_disposing) return;
+    final current = event;
+    if ((old == null ||
+            old.cursor != current?.cursor ||
+            old.disabled != current?.disabled) &&
+        SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
+      RendererBinding.instance.ensureVisualUpdate();
+    }
+  }
+
+  /// 结清所有后代事件，包含已抬起但仍在等待的延迟点击。
+  void cancelDescendantEvents() {
+    void cancel(RenderObject node) {
+      node.visitChildren(cancel);
+      if (node is ElRenderView) node._eventDispatcher?.cancelAllPending();
+    }
+
+    visitChildren(cancel);
+  }
+
+  Matrix4? _eventInverse() {
+    final matrix = getTransformTo(null);
+    final own = _readTransform();
+    if (own != null) {
+      if (!own.valid) return null;
+      matrix.multiply(own.matrix);
+    }
+    return Matrix4.tryInvert(matrix);
+  }
+
+  /// 将全局坐标转换为事件局部坐标，包含本视图自己的绘制变换。
+  Offset eventLocalPosition(Offset position) {
+    if (!attached) return position;
+    final inverse = _eventInverse();
+    return inverse == null
+        ? Offset.zero
+        : MatrixUtils.transformPoint(inverse, position);
+  }
+
+  /// 检查指针是否仍在自身视觉盒内，包含 padding、裁剪，排除 margin。
+  bool eventContains(Offset position) {
+    if (!attached || !hasSize) return true;
+    if (_styleEngine.opacityAlpha == 0) return false;
+    final inverse = _eventInverse();
+    if (inverse == null) return false;
+    final local = MatrixUtils.transformPoint(inverse, position);
+    return boxLayout.boxRect.contains(local) && _insideClip(local);
+  }
+
+  @override
+  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) =>
+      _eventDispatcher?.handleEvent(event);
+
+  @override
+  MouseCursor get cursor => _eventDispatcher?.cursor ?? MouseCursor.defer;
+
+  @override
+  bool get validForMouseTracker => attached && _eventDispatcher != null;
+
+  @override
+  PointerEnterEventListener get onEnter => handlePointerEnter;
+
+  @override
+  PointerExitEventListener get onExit => handlePointerExit;
+
+  /// 接收官方鼠标进入通知。
+  void handlePointerEnter(PointerEnterEvent event) =>
+      _eventDispatcher?.handlePointerEnter(event);
+
+  /// 接收官方鼠标离开通知。
+  void handlePointerExit(PointerExitEvent event) =>
+      _eventDispatcher?.handlePointerExit(event);
 
   /// 当前或目标仍有图片时由 Widget 收集环境，退出过渡结束前保留依赖。
   bool get needsImageConfiguration => _styleEngine.needsImageConfiguration;
@@ -441,13 +574,37 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   }
 
   bool _hitTestClipped(BoxHitTestResult result, Offset position) {
+    if (!_insideClip(position)) return false;
+    if (_eventDispatcher == null) {
+      return super.hitTest(result, position: position);
+    }
+    if (!size.contains(position)) return false;
+    final inside = boxLayout.boxRect.contains(position);
+    if (event?.disabled ?? false) {
+      if (inside) result.add(BoxHitTestEntry(this, position));
+      return inside;
+    }
+    final behavior = event?.behavior ?? HitTestBehavior.opaque;
+    final hit =
+        hitTestChildren(result, position: position) ||
+        (inside && behavior == HitTestBehavior.opaque);
+    if (hit || inside && behavior == HitTestBehavior.translucent) {
+      result.add(BoxHitTestEntry(this, position));
+    }
+    return hit;
+  }
+
+  bool _insideClip(Offset position) {
     if (_styleEngine.clipper != null) {
       final rect = boxLayout.boxRect;
-      if (!_ensureShape().clip(rect.size).contains(position - rect.topLeft)) {
-        return false;
-      }
+      return _ensureShape().clip(rect.size).contains(position - rect.topLeft);
     }
-    return super.hitTest(result, position: position);
+    return _styleEngine.clipBehavior == Clip.none ||
+        _effect.contains(
+          boxLayout.boxRect,
+          position,
+          _styleEngine.borderRadius,
+        );
   }
 
   @override
@@ -508,6 +665,7 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
+    _eventDispatcher?.syncParent();
     _syncClipper();
     _shape?.attach();
     markNeedsLayout();
@@ -520,11 +678,14 @@ class ElRenderView extends RenderShiftedBox implements BoxLayoutOwner {
     _decoration?.clearBackgroundImage();
     super.detach();
     // 脱离后停止图片通知，重挂必须重新绘制以恢复动图订阅。
-    markNeedsPaint();
+    if (!_disposing) markNeedsPaint();
   }
 
   @override
   void dispose() {
+    if (_disposing) return;
+    _disposing = true;
+    _eventDispatcher?.dispose();
     boxLayout.dispose();
     _decoration?.clearOutline();
     _decoration?.clearGradient();

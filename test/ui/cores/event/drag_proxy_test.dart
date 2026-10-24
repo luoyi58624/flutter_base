@@ -42,7 +42,7 @@ void main() {
       ),
     ]);
     expect(endOffset, const Offset(0, 20));
-    expect(host.leaf.isDragged, isFalse);
+    expect(host.leaf.eventDispatcher!.isDragged, isFalse);
   });
 
   for (final cancelInPre in [true, false]) {
@@ -54,7 +54,7 @@ void main() {
       void cancel(ElEventCallback event) {
         if (shouldCancel) {
           shouldCancel = false;
-          host.leaf.cancelAllPending(event.originalEvent! as PointerEvent);
+          host.leaf.eventDispatcher!.cancelAllPending();
         }
       }
 
@@ -83,7 +83,7 @@ void main() {
         trace,
         cancelInPre ? ['pre', 'cancel'] : ['pre', 'main', 'cancel'],
       );
-      expect(host.leaf.isDragged, isFalse);
+      expect(host.leaf.eventDispatcher!.isDragged, isFalse);
       await _end(host, 20);
       expect(trace.where((phase) => phase == 'cancel'), hasLength(1));
       expect(trace, isNot(contains('end')));
@@ -245,7 +245,9 @@ void main() {
     expect(starts, 1);
     expect(cancels, 1);
     expect(
-      host.elements.map((element) => element.activePointerCount),
+      host.elements.map(
+        (element) => element.eventDispatcher!.activePointerCount,
+      ),
       everyElement(0),
     );
 

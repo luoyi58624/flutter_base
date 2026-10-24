@@ -16,12 +16,16 @@ class BoxLayout {
   BoxLayout(
     this._host, {
     required void Function(VoidCallback) mutateLayout,
+    this.establishesReference = true,
     // 保留语义明确的公开参数名，内部回调不暴露为可调用字段。
     // ignore: prefer_initializing_formals
   }) : _mutateLayout = mutateLayout;
 
   final RenderShiftedBox _host;
   final void Function(VoidCallback) _mutateLayout;
+
+  /// 是否向后代提供百分比参照；纯事件包装保持原有布局参照链。
+  final bool establishesReference;
 
   static int _measurementDepth = 0;
   static Set<BoxLayout>? _measuredLayouts;
@@ -206,6 +210,7 @@ class BoxLayout {
     for (RenderObject? node = _host.parent; node != null; node = node.parent) {
       if (node is! BoxLayoutOwner) continue;
       final candidate = (node as BoxLayoutOwner).boxLayout;
+      if (!candidate.establishesReference) continue;
       if (!dry && !isMeasuring) _dependOn(candidate, axis);
       final value = candidate._reference(axis, query: dry);
       if (value != null) return value;

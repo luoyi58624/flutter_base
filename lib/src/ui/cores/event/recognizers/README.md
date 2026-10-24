@@ -5,8 +5,10 @@
 `ElEventConfig`、`ElEventCallback`、RenderBox 或元素命中函数。
 公共入口是 `package:flutter_base/ui.dart`，也可直接导入本目录的 `index.dart`。
 
-`ElEventView` 直接由单个 Render 元素连接这两个识别器。Render 不再保存指针参与表、
-点击资格、接受标志、手势快照或手势版本号；取消和升级直接使用识别器的生命周期。
+`ElEventView` 暂保留 Widget 与状态作用域，内部由 `ElRenderView` 持有
+`ElEventDispatcher(render, event)`，不再创建独立的事件 Render。Dispatcher 连接这两个
+识别器，处理声明、反馈和业务适配；Render 提供几何与框架生命周期。两者均不复制
+指针参与表、点击资格或手势阶段，取消和升级直接使用识别器的生命周期。
 
 ## 职责边界
 
@@ -130,7 +132,7 @@ final transform = ElTransformGestureRecognizer()..team = team;
 
 ## ElEventView 的状态与兼容边界
 
-- 仅公开 `context.hasTap`、`context.hasHover`，以及 `ElEventView.maybeOf(context)`。
+- 当前通过 `context.hasTap`、`context.hasHover` 读取反馈状态。
   按压反馈来自 Down／Up，Cancel、禁用、卸载会清理；读取状态不创建参赛者。
 - 只监听主键 Down／Up／Cancel 时通过 PointerRouter 观察；声明 onTap 或连击
   激活回调才参与主键点击竞争。长按与侧键按自己的监听和识别条件竞争。
@@ -147,7 +149,7 @@ final transform = ElTransformGestureRecognizer()..team = team;
 
 `ElEvent`、`ElEventConfig` 和 `ElDragProxy` 的复制接口由模型生成器生成：
 `copyWith()` 保留原声明，`copyWith(onTap: null)` 显式清除回调。
-局部 config 整体替换，空配置字段交给识别器采用默认值；反馈时间和边界策略由 Render 采用默认行为。
+局部 config 整体替换，空配置字段交给识别器采用默认值；反馈时间由 Dispatcher 处理，边界几何由 Render 提供。
 
 ## 测试组织
 

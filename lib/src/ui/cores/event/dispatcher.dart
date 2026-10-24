@@ -2,47 +2,34 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart' show MouseTrackerAnnotation, PointerEnterEventListener, PointerExitEventListener;
+import 'package:flutter/painting.dart' show Axis;
+import 'package:flutter/services.dart' show MouseCursor, SystemMouseCursors;
 
+import '../view/render/index.dart';
 import 'event.dart';
 import 'recognizers/index.dart';
 
-/// 事件元素，只处理几何、样式反馈与业务载荷适配。
-class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTrackerAnnotation {
-  /// 创建单个事件元素，按压反馈使用识别器的被动观察能力。
-  ElRenderEvent({
-    ElEvent event = const ElEvent(),
-    this.onTapChanged,
-    this.onHoverChanged,
-    this.gestureSettings,
-    super.child,
-  }) : super(behavior: event.behavior) {
+/// 将宿主输入与几何连接到独立识别器，管理反馈、业务回调和拖拽代理。
+class ElEventDispatcher {
+  /// 连接具体视图宿主与事件声明；构造期间不向宿主发送通知。
+  ElEventDispatcher(this._render, ElEvent event) : _event = event {
     _team.onPointerEvent = _handlePointer;
-    _feedback = _TapFeedback((value) => onTapChanged?.call(value));
-    this.event = event;
+    _feedback = _TapFeedback((value) => _render.onTapChanged?.call(value));
+    _configureRecognizers();
   }
 
+  final ElRenderView _render;
   static final _callbacks = Expando<ElEventCallback>('ElEvent callback');
   final _team = ElGestureArenaTeam()..matchParentGestures = true;
   late final _press = ElPressGestureRecognizer(debugOwner: this)..team = _team;
   late final _transform = ElTransformGestureRecognizer(debugOwner: this)..team = _team;
   late final _TapFeedback _feedback;
-  final _dragProxies = <Object, List<ElRenderEvent>>{};
+  final _dragProxies = <Object, List<ElEventDispatcher>>{};
   final _hoverDevices = <int>{};
   ElEvent? _event;
   bool _disposed = false;
+  bool _disposing = false;
   int _configurationRevision = 0;
-
-  /// 按压反馈通知，不影响官方点击竞争。
-  ValueChanged<bool>? onTapChanged;
-
-  /// 多鼠标悬停反馈通知。
-  ValueChanged<bool>? onHoverChanged;
-
-  /// 当前设备的官方手势容差。
-  DeviceGestureSettings? gestureSettings;
 
   /// 当前元素的局部配置声明。
   ElEventConfig get config => _event?.config ?? const ElEventConfig();
@@ -59,9 +46,6 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
   /// 当前仍接收原始输入的指针数。
   int get activePointerCount => _team.pointerCount;
 
-  /// 用于验证物理输入已结清。
-  int get debugRoutedPointerCount => activePointerCount;
-
   /// 当前元素是否已销毁。
   bool get isDisposed => _disposed;
 
@@ -69,7 +53,7 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
   ElEvent? get event => _event;
 
   set event(ElEvent? value) {
-    if (_disposed || identical(_event, value)) return;
+    if (_disposed || _disposing || identical(_event, value)) return;
     final revision = ++_configurationRevision;
     final old = _event;
     final terminal = _team.isDispatchingTerminal;
@@ -85,47 +69,51 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
       }
       if (_disposed || revision != _configurationRevision) return;
     }
-    if (value == null || value.disabled) _cancelSubtree(this);
+    if (value == null || value.disabled) {
+      _render.cancelDescendantEvents();
+      if (_disposed || revision != _configurationRevision) return;
+      cancelAllPending();
+    }
     if (_disposed || revision != _configurationRevision) return;
     _event = value;
-    behavior = value?.behavior ?? HitTestBehavior.opaque;
     _configureRecognizers();
-    if ((old?.cursor != value?.cursor || old?.disabled != value?.disabled) &&
-        SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
-      RendererBinding.instance.ensureVisualUpdate();
-    }
   }
 
   double get _tapDistance => config.tapCancelDistance ?? ElPressGestureRecognizer.defaultConsecutiveTapDistance;
 
-  Iterable<ElRenderEvent> get _ancestors sync* {
-    RenderObject? node = parent;
+  ElEventDispatcher? _parent;
+
+  /// 刷新宿主设备配置与反馈需求，不取消正在识别的输入。
+  void sync() {
+    if (!_disposed && !_disposing) _configureRecognizers();
+  }
+
+  /// 按真实渲染树更新祖先关系，当前手势仍使用识别器已冻结的路线。
+  void syncParent() {
+    if (_disposed || _disposing) return;
+    _parent = null;
+    for (var node = _render.parent; node != null; node = node.parent) {
+      final candidate = node is ElRenderView ? node.eventDispatcher : null;
+      if (candidate == null || candidate._disposed || candidate._disposing) continue;
+      _parent = candidate;
+      break;
+    }
+    _press.parent = _parent?._press;
+    _transform.parent = _parent?._transform;
+    _team.parent = _parent?._team;
+  }
+
+  Iterable<ElEventDispatcher> get _ancestors sync* {
+    var node = _parent;
     while (node != null) {
-      if (node is ElRenderEvent && !node._disposed) yield node;
-      node = node.parent;
+      if (!node._disposed) yield node;
+      node = node._parent;
     }
   }
 
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    final ancestor = _ancestors.firstOrNull;
-    _press.parent = ancestor?._press;
-    _transform.parent = ancestor?._transform;
-    _team.parent = ancestor?._team;
-  }
-
-  @override
-  bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    if (!disabled) return super.hitTest(result, position: position);
-    if (!size.contains(position)) return false;
-    result.add(BoxHitTestEntry(this, position));
-    return true;
-  }
-
-  @override
-  void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
-    if (_disposed) return;
+  /// 接收保留命中路径变换的原始输入，后续手势输入由官方指针路由投递。
+  void handleEvent(PointerEvent event) {
+    if (_disposed || _disposing) return;
     if (event is PointerHoverEvent || event is PointerSignalEvent) {
       if (!disabled && _event != null) _handlePointer(event, null);
       return;
@@ -133,6 +121,7 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
     final before = _event;
     final start = event is PointerDownEvent || event is PointerPanZoomStartEvent;
     if (start && (disabled || before == null)) return;
+    if (start) syncParent();
     if (!_team.observePointer(event) || disabled || _event == null) return;
     if (event is PointerDownEvent) {
       if (before != null && before.hasSameTransformShape(_event!) && (_hasDrag || _hasScale)) {
@@ -150,22 +139,24 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
   }
 
   bool _handlePointer(PointerEvent input, ElGestureCancelReason? reason) {
-    final phase = switch (input) {
-      PointerDownEvent() => ElEventPhase.pointerDown,
-      PointerMoveEvent() => ElEventPhase.pointerMove,
-      PointerUpEvent() => ElEventPhase.pointerUp,
-      PointerCancelEvent() => ElEventPhase.pointerCancel,
-      PointerHoverEvent() => ElEventPhase.pointerHover,
-      PointerSignalEvent() => ElEventPhase.pointerSignal,
-      PointerPanZoomStartEvent() => ElEventPhase.pointerPanZoomStart,
-      PointerPanZoomUpdateEvent() => ElEventPhase.pointerPanZoomUpdate,
-      PointerPanZoomEndEvent() => ElEventPhase.pointerPanZoomEnd,
+    final event = _event;
+    final target = switch (input) {
+      PointerDownEvent() => (ElEventPhase.pointerDown, event?.onPointerDown),
+      PointerMoveEvent() => (ElEventPhase.pointerMove, event?.onPointerMove),
+      PointerUpEvent() => (ElEventPhase.pointerUp, event?.onPointerUp),
+      PointerCancelEvent() => (ElEventPhase.pointerCancel, event?.onPointerCancel),
+      PointerHoverEvent() => (ElEventPhase.pointerHover, event?.onPointerHover),
+      PointerSignalEvent() => (ElEventPhase.pointerSignal, event?.onPointerSignal),
+      PointerPanZoomStartEvent() => (ElEventPhase.pointerPanZoomStart, event?.onPointerPanZoomStart),
+      PointerPanZoomUpdateEvent() => (ElEventPhase.pointerPanZoomUpdate, event?.onPointerPanZoomUpdate),
+      PointerPanZoomEndEvent() => (ElEventPhase.pointerPanZoomEnd, event?.onPointerPanZoomEnd),
       _ => null,
     };
-    if (phase == null) return true;
+    if (target == null) return true;
+    final (phase, handler) = target;
     final callback = _rawCallback(phase, input, reason: reason == null ? null : _cancelReason(reason))
       ..pointerCount = activePointerCount;
-    _invoke(_handler(phase), callback);
+    _invoke(handler, callback);
     if (input is PointerSignalEvent && callback.defaultPrevented) {
       GestureBinding.instance.pointerSignalResolver.register(
         input,
@@ -183,10 +174,9 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
     _ => ElEventCancelReason.external,
   };
 
-  void _handlePress(ElPressGestureDetails details) {
+  void _handlePress(ElPressGestureDetails details, ElEventPhase phase, ElEventHandler? Function(ElEvent) select) {
     if (_disposed) return;
-    final phase = ElEventPhase.values.byName(details.phase.name);
-    if (phase == ElEventPhase.tapDown && onTapChanged != null) {
+    if (phase == ElEventPhase.tapDown && _render.onTapChanged != null) {
       _feedback.down(details.downEvent, config);
     }
     if (phase == ElEventPhase.tapCancel) {
@@ -198,16 +188,19 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
     }
     if (!details.isActive) return;
     final callback = _gestureCallback(details, phase);
-    _invoke(_handler(phase), callback);
+    _invoke(_event == null ? null : select(_event!), callback);
     if (callback.propagationStopped) details.stopPropagation();
     if (phase == ElEventPhase.longPress && !callback.defaultPrevented && details.isActive) {
       _team.claimPointer(details.pointer, cancelTap: true);
     }
   }
 
-  void _handleTransform(ElTransformGestureDetails details) {
+  void _handleTransform(
+    ElTransformGestureDetails details,
+    ElEventPhase phase,
+    ElEventHandler? Function(ElEvent, Axis?) select,
+  ) {
     if (_disposed) return;
-    final phase = ElEventPhase.values.byName(details.phase.name);
     if (phase == ElEventPhase.dragCancel && !details.started && _event?.onDragDown == null) {
       return;
     }
@@ -222,14 +215,14 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
       }
     }
     if (phase == ElEventPhase.dragUpdate) {
-      if (details.isPrimaryTarget) _dispatchDragUpdate(details);
+      if (details.isPrimaryTarget) _dispatchDragUpdate(details, select);
       return;
     }
     if (phase == ElEventPhase.dragEnd || phase == ElEventPhase.dragCancel) {
       _dragProxies.remove(details.sequenceIdentity);
     }
     final callback = _gestureCallback(details, phase);
-    _invoke(_handler(phase, details.dragAxis), callback);
+    _invoke(_event == null ? null : select(_event!, details.dragAxis), callback);
     if (callback.propagationStopped) details.stopPropagation();
     if (phase == ElEventPhase.scaleStart && !callback.defaultPrevented && details.isActive) {
       for (final pointer in details.pointerIds) {
@@ -238,71 +231,50 @@ class ElRenderEvent extends RenderProxyBoxWithHitTestBehavior implements MouseTr
     }
   }
 
-  bool _contains(Offset position) {
-    if (!attached || !hasSize) return true;
-    final inverse = Matrix4.tryInvert(getTransformTo(null));
-    return inverse != null && size.contains(MatrixUtils.transformPoint(inverse, position));
-  }
+  Offset _localDelta(Offset position, Offset delta) =>
+      _render.eventLocalPosition(position) - _render.eventLocalPosition(position - delta);
 
-  Offset _local(Offset position) => attached ? globalToLocal(position) : position;
-
-  Offset _localDelta(Offset position, Offset delta) => _local(position) - _local(position - delta);
-
-  @override
+  /// 当前光标；禁用时显示禁止操作。
   MouseCursor get cursor => disabled ? SystemMouseCursors.forbidden : _event?.cursor ?? MouseCursor.defer;
-
-  @override
-  bool get validForMouseTracker => attached;
-
-  @override
-  PointerEnterEventListener get onEnter => handlePointerEnter;
-
-  @override
-  PointerExitEventListener get onExit => handlePointerExit;
 
   /// 接收官方鼠标进入通知。
   void handlePointerEnter(PointerEnterEvent event) {
+    if (_disposed || _disposing) return;
     _hoverDevices.add(event.device);
-    onHoverChanged?.call(true);
+    _render.onHoverChanged?.call(true);
     if (!disabled && !_disposed) {
-      _invoke(_handler(ElEventPhase.pointerEnter), _rawCallback(ElEventPhase.pointerEnter, event));
+      _invoke(_event?.onPointerEnter, _rawCallback(ElEventPhase.pointerEnter, event));
     }
   }
 
   /// 接收官方鼠标离开通知。
   void handlePointerExit(PointerExitEvent event) {
+    if (_disposed || _disposing) return;
     _hoverDevices.remove(event.device);
-    onHoverChanged?.call(_hoverDevices.isNotEmpty);
+    _render.onHoverChanged?.call(_hoverDevices.isNotEmpty);
     if (!disabled && !_disposed) {
-      _invoke(_handler(ElEventPhase.pointerExit), _rawCallback(ElEventPhase.pointerExit, event));
+      _invoke(_event?.onPointerExit, _rawCallback(ElEventPhase.pointerExit, event));
     }
   }
 
   /// 结清当前元素，原始输入和手势终态由团队与识别器负责。
-  void cancelAllPending([PointerEvent? event]) {
+  void cancelAllPending() {
     final down = _feedback.contact;
     _team.cancel();
     _feedback.cancel(down: down);
   }
 
-  /// 结清当前元素，使用识别器记录的最后输入位置。
-  void cancelAllPendingAtLastPosition() => cancelAllPending();
-
-  static void _cancelSubtree(RenderObject root) {
-    root.visitChildren(_cancelSubtree);
-    if (root is ElRenderEvent) root.cancelAllPending();
-  }
-
-  @override
+  /// 结清当前输入并释放识别器；宿主的 detach 不应调用此方法。
   void dispose() {
-    if (_disposed) return;
+    if (_disposed || _disposing) return;
+    _disposing = true;
     cancelAllPending();
     _disposed = true;
     _team.dispose();
     _press.dispose();
     _transform.dispose();
     _dragProxies.clear();
-    super.dispose();
+    _hoverDevices.clear();
   }
 }
 
@@ -376,7 +348,7 @@ final class _TapFeedback {
 }
 
 /// 将声明映射到原生识别器及业务回调，不维护另一套手势路线。
-extension _EventBinding on ElRenderEvent {
+extension _EventBinding on ElEventDispatcher {
   bool get _hasPrimaryTap =>
       _event?.onTap != null ||
       _event?.onDoubleTap != null ||
@@ -385,43 +357,31 @@ extension _EventBinding on ElRenderEvent {
       _event?.onTripleTapDown != null;
 
   bool get _hasFreeDrag =>
-      _event != null &&
-      [
-        _event!.onDragStart,
-        _event!.onDragUpdate,
-        _event!.onDragEnd,
-        _event!.onDragCancel,
-      ].any((handler) => handler != null);
+      _event?.onDragStart != null ||
+      _event?.onDragUpdate != null ||
+      _event?.onDragEnd != null ||
+      _event?.onDragCancel != null;
 
   bool get _hasVertical =>
-      _event != null &&
-      [
-        _event!.onVerticalDragStart,
-        _event!.onVerticalDragUpdate,
-        _event!.onVerticalDragEnd,
-        _event!.onVerticalDragCancel,
-      ].any((handler) => handler != null);
+      _event?.onVerticalDragStart != null ||
+      _event?.onVerticalDragUpdate != null ||
+      _event?.onVerticalDragEnd != null ||
+      _event?.onVerticalDragCancel != null;
 
   bool get _hasHorizontal =>
-      _event != null &&
-      [
-        _event!.onHorizontalDragStart,
-        _event!.onHorizontalDragUpdate,
-        _event!.onHorizontalDragEnd,
-        _event!.onHorizontalDragCancel,
-      ].any((handler) => handler != null);
+      _event?.onHorizontalDragStart != null ||
+      _event?.onHorizontalDragUpdate != null ||
+      _event?.onHorizontalDragEnd != null ||
+      _event?.onHorizontalDragCancel != null;
 
   bool get _hasDrag => _hasFreeDrag || _hasVertical || _hasHorizontal || _event?.onDragDown != null;
 
   bool get _hasScale =>
-      _event != null &&
-      [
-        _event!.onScaleStart,
-        _event!.onScaleUpdate,
-        _event!.onScaleEnd,
-        _event!.onScaleCancel,
-        _event!.onRotationUpdate,
-      ].any((handler) => handler != null);
+      _event?.onScaleStart != null ||
+      _event?.onScaleUpdate != null ||
+      _event?.onScaleEnd != null ||
+      _event?.onScaleCancel != null ||
+      _event?.onRotationUpdate != null;
 
   Axis? get _axis => _hasFreeDrag || _hasHorizontal && _hasVertical
       ? null
@@ -437,7 +397,7 @@ extension _EventBinding on ElRenderEvent {
       ..onReleased = (details) {
         _feedback.up(details.downEvent);
       }
-      ..gestureSettings = gestureSettings
+      ..gestureSettings = _render.gestureSettings
       ..doubleTapInterval = config.doubleTapInterval
       ..tripleTapInterval = config.tripleTapInterval
       ..longPressDelay = config.longPressDelay
@@ -448,33 +408,33 @@ extension _EventBinding on ElRenderEvent {
       ..deferTap = config.deferTap
       ..cancelTapOnLongPress = false
       ..isEligible = (phase, event) {
-        return config.tapCancelOnMove == true || _contains(event.position);
+        return config.tapCancelOnMove == true || _render.eventContains(event.position);
       }
       ..competeForTap = _hasPrimaryTap
-      ..onTapDown = _handlePress
-      ..onTapUp = _handlePress
-      ..onTap = _event?.onTap == null ? null : _handlePress
-      ..onTapCancel = _handlePress
-      ..onDoubleTap = _event?.onDoubleTap == null ? null : _handlePress
-      ..onDoubleTapDown = _event?.onDoubleTapDown == null ? null : _handlePress
-      ..onTripleTap = _event?.onTripleTap == null ? null : _handlePress
-      ..onTripleTapDown = _event?.onTripleTapDown == null ? null : _handlePress
-      ..onLongPress = _event?.onLongPress == null ? null : _handlePress
-      ..onSecondaryTapDown = _event?.onSecondaryTapDown == null ? null : _handlePress
-      ..onSecondaryTapUp = _event?.onSecondaryTapUp == null ? null : _handlePress
-      ..onSecondaryTap = _event?.onSecondaryTap == null ? null : _handlePress
-      ..onTertiaryTapDown = _event?.onTertiaryTapDown == null ? null : _handlePress
-      ..onTertiaryTapUp = _event?.onTertiaryTapUp == null ? null : _handlePress
-      ..onTertiaryTap = _event?.onTertiaryTap == null ? null : _handlePress
-      ..onForwardTapDown = _event?.onForwardTapDown == null ? null : _handlePress
-      ..onForwardTapUp = _event?.onForwardTapUp == null ? null : _handlePress
-      ..onForwardTap = _event?.onForwardTap == null ? null : _handlePress
-      ..onBackTapDown = _event?.onBackTapDown == null ? null : _handlePress
-      ..onBackTapUp = _event?.onBackTapUp == null ? null : _handlePress
-      ..onBackTap = _event?.onBackTap == null ? null : _handlePress;
+      ..onTapDown = _bindPress(.tapDown, (event) => event.onTapDown, observe: true)
+      ..onTapUp = _bindPress(.tapUp, (event) => event.onTapUp, observe: true)
+      ..onTap = _bindPress(.tap, (event) => event.onTap)
+      ..onTapCancel = _bindPress(.tapCancel, (event) => event.onTapCancel, observe: true)
+      ..onDoubleTap = _bindPress(.doubleTap, (event) => event.onDoubleTap)
+      ..onDoubleTapDown = _bindPress(.doubleTapDown, (event) => event.onDoubleTapDown)
+      ..onTripleTap = _bindPress(.tripleTap, (event) => event.onTripleTap)
+      ..onTripleTapDown = _bindPress(.tripleTapDown, (event) => event.onTripleTapDown)
+      ..onLongPress = _bindPress(.longPress, (event) => event.onLongPress)
+      ..onSecondaryTapDown = _bindPress(.secondaryTapDown, (event) => event.onSecondaryTapDown)
+      ..onSecondaryTapUp = _bindPress(.secondaryTapUp, (event) => event.onSecondaryTapUp)
+      ..onSecondaryTap = _bindPress(.secondaryTap, (event) => event.onSecondaryTap)
+      ..onTertiaryTapDown = _bindPress(.tertiaryTapDown, (event) => event.onTertiaryTapDown)
+      ..onTertiaryTapUp = _bindPress(.tertiaryTapUp, (event) => event.onTertiaryTapUp)
+      ..onTertiaryTap = _bindPress(.tertiaryTap, (event) => event.onTertiaryTap)
+      ..onForwardTapDown = _bindPress(.forwardTapDown, (event) => event.onForwardTapDown)
+      ..onForwardTapUp = _bindPress(.forwardTapUp, (event) => event.onForwardTapUp)
+      ..onForwardTap = _bindPress(.forwardTap, (event) => event.onForwardTap)
+      ..onBackTapDown = _bindPress(.backTapDown, (event) => event.onBackTapDown)
+      ..onBackTapUp = _bindPress(.backTapUp, (event) => event.onBackTapUp)
+      ..onBackTap = _bindPress(.backTap, (event) => event.onBackTap);
 
     _transform
-      ..gestureSettings = gestureSettings
+      ..gestureSettings = _render.gestureSettings
       ..supportedDevices = config.dragDevices
       ..startDistance = config.dragStartDistance
       ..horizontalAngle = config.dragHorizontalAngle
@@ -484,23 +444,45 @@ extension _EventBinding on ElRenderEvent {
       ..axis = _axis
       ..lockAxis = _hasHorizontal && _hasVertical
       ..cancelDragOnScale = true
-      ..onDragDown = _hasDrag ? _handleTransform : null
-      ..onDragStart = _hasDrag ? _handleTransform : null
-      ..onDragUpdate = _hasDrag ? _handleTransform : null
-      ..onDragEnd = _hasDrag ? _handleTransform : null
-      ..onDragCancel = _hasDrag ? _handleTransform : null
-      ..onScaleStart = _hasScale ? _handleTransform : null
-      ..onScaleUpdate = _hasScale ? _handleTransform : null
-      ..onScaleEnd = _hasScale ? _handleTransform : null
-      ..onScaleCancel = _hasScale ? _handleTransform : null
-      ..onRotationUpdate = _event?.onRotationUpdate == null ? null : _handleTransform;
+      ..onDragDown = _bindTransform(.dragDown, (event, _) => event.onDragDown, enabled: _hasDrag)
+      ..onDragStart = _bindTransform(
+        .dragStart,
+        (event, axis) => _dragHandler(axis, event.onDragStart, event.onHorizontalDragStart, event.onVerticalDragStart),
+        enabled: _hasDrag,
+      )
+      ..onDragUpdate = _bindTransform(
+        .dragUpdate,
+        (event, axis) =>
+            _dragHandler(axis, event.onDragUpdate, event.onHorizontalDragUpdate, event.onVerticalDragUpdate),
+        enabled: _hasDrag,
+      )
+      ..onDragEnd = _bindTransform(
+        .dragEnd,
+        (event, axis) => _dragHandler(axis, event.onDragEnd, event.onHorizontalDragEnd, event.onVerticalDragEnd),
+        enabled: _hasDrag,
+      )
+      ..onDragCancel = _bindTransform(
+        .dragCancel,
+        (event, axis) =>
+            _dragHandler(axis, event.onDragCancel, event.onHorizontalDragCancel, event.onVerticalDragCancel),
+        enabled: _hasDrag,
+      )
+      ..onScaleStart = _bindTransform(.scaleStart, (event, _) => event.onScaleStart, enabled: _hasScale)
+      ..onScaleUpdate = _bindTransform(.scaleUpdate, (event, _) => event.onScaleUpdate, enabled: _hasScale)
+      ..onScaleEnd = _bindTransform(.scaleEnd, (event, _) => event.onScaleEnd, enabled: _hasScale)
+      ..onScaleCancel = _bindTransform(.scaleCancel, (event, _) => event.onScaleCancel, enabled: _hasScale)
+      ..onRotationUpdate = _bindTransform(
+        .rotationUpdate,
+        (event, _) => event.onRotationUpdate,
+        enabled: _event?.onRotationUpdate != null,
+      );
     _team.acceptsPanZoom = _event?.onPointerPanZoomUpdate != null;
   }
 
   ElEventCallback _gestureCallback(ElGestureDetails details, ElEventPhase phase) {
     final transform = details is ElTransformGestureDetails ? details : null;
     final press = details is ElPressGestureDetails ? details : null;
-    final callback = ElRenderEvent._callbacks[details.dispatchIdentity] ??= ElEventCallback(
+    final callback = ElEventDispatcher._callbacks[details.dispatchIdentity] ??= ElEventCallback(
       phase: phase,
       globalPosition: details.globalPosition,
       localPosition: details.localPosition,
@@ -518,7 +500,7 @@ extension _EventBinding on ElRenderEvent {
       rotation: transform?.rotation ?? 0,
       logScaleVelocity: transform?.logScaleVelocity ?? 0,
       originalEvent: details.originalEvent,
-      cancelReason: phase == ElEventPhase.tapCancel ? ElRenderEvent._cancelReason(press?.cancelReason) : null,
+      cancelReason: phase == ElEventPhase.tapCancel ? ElEventDispatcher._cancelReason(press?.cancelReason) : null,
     );
     callback.localPosition = details.localPosition;
     callback.tapCount = press?.tapCount ?? 0;
@@ -537,7 +519,7 @@ extension _EventBinding on ElRenderEvent {
     final callback = ElEventCallback(
       phase: phase,
       globalPosition: event.position,
-      localPosition: _local(event.position),
+      localPosition: _render.eventLocalPosition(event.position),
       delta: event.delta,
       localDelta: _localDelta(event.position, event.delta),
       buttons: event.buttons,
@@ -554,8 +536,8 @@ extension _EventBinding on ElRenderEvent {
     return callback;
   }
 
-  List<ElRenderEvent> _collectDragProxies(Axis? axis) {
-    List<ElRenderEvent>? proxies;
+  List<ElEventDispatcher> _collectDragProxies(Axis? axis) {
+    List<ElEventDispatcher>? proxies;
     for (final member in _ancestors) {
       final proxy = member.event?.dragProxy;
       if (proxy != null && (proxy.axis == null || proxy.axis == axis)) {
@@ -567,9 +549,9 @@ extension _EventBinding on ElRenderEvent {
     return proxies ?? const [];
   }
 
-  void _dispatchDragUpdate(ElTransformGestureDetails details) {
+  void _dispatchDragUpdate(ElTransformGestureDetails details, ElEventHandler? Function(ElEvent, Axis?) select) {
     final proxies = _dragProxies[details.sequenceIdentity];
-    final pipeline = proxies ?? const <ElRenderEvent>[];
+    final pipeline = proxies ?? const <ElEventDispatcher>[];
     bool isActive() => details.isActive;
     final callback = _gestureCallback(details, ElEventPhase.dragUpdate)
       ..dragPipelineActive = pipeline.isNotEmpty
@@ -581,7 +563,7 @@ extension _EventBinding on ElRenderEvent {
     if (!isActive()) return;
     // 代理共享消费余量，主处理器沿用同一回调并恢复自身坐标与独占入口。
     if (pipeline.isNotEmpty) _gestureCallback(details, ElEventPhase.dragUpdate);
-    _invoke(_handler(ElEventPhase.dragUpdate, details.dragAxis), callback);
+    _invoke(_event == null ? null : select(_event!, details.dragAxis), callback);
     if (callback.propagationStopped) details.stopPropagation();
     for (final member in pipeline) {
       if (!isActive() || callback.remainingDelta == Offset.zero) break;
@@ -589,9 +571,9 @@ extension _EventBinding on ElRenderEvent {
     }
   }
 
-  void _invokeDragProxy(ElRenderEvent member, ElEventHandler? handler, ElEventCallback callback) {
+  void _invokeDragProxy(ElEventDispatcher member, ElEventHandler? handler, ElEventCallback callback) {
     if (member._disposed || member.disabled || handler == null) return;
-    callback.localPosition = member._local(callback.globalPosition);
+    callback.localPosition = member._render.eventLocalPosition(callback.globalPosition);
     callback.localDelta = member._localDelta(callback.globalPosition, callback.delta);
     callback.updateLocalDeltaResolver((delta) => member._localDelta(callback.globalPosition, delta));
     callback.updateEagerGestureHandler(null);
@@ -599,74 +581,32 @@ extension _EventBinding on ElRenderEvent {
     callback.resetPropagation();
   }
 
-  ElEventHandler? _handler(ElEventPhase phase, [Axis? axis]) {
-    final event = _event;
-    if (event == null) return null;
-    return switch (phase) {
-      ElEventPhase.pointerEnter => event.onPointerEnter,
-      ElEventPhase.pointerHover => event.onPointerHover,
-      ElEventPhase.pointerExit => event.onPointerExit,
-      ElEventPhase.pointerDown => event.onPointerDown,
-      ElEventPhase.pointerMove => event.onPointerMove,
-      ElEventPhase.pointerUp => event.onPointerUp,
-      ElEventPhase.pointerCancel => event.onPointerCancel,
-      ElEventPhase.pointerPanZoomStart => event.onPointerPanZoomStart,
-      ElEventPhase.pointerPanZoomUpdate => event.onPointerPanZoomUpdate,
-      ElEventPhase.pointerPanZoomEnd => event.onPointerPanZoomEnd,
-      ElEventPhase.pointerSignal => event.onPointerSignal,
-      ElEventPhase.tapDown => event.onTapDown,
-      ElEventPhase.tapUp => event.onTapUp,
-      ElEventPhase.tap => event.onTap,
-      ElEventPhase.doubleTap => event.onDoubleTap,
-      ElEventPhase.doubleTapDown => event.onDoubleTapDown,
-      ElEventPhase.tripleTap => event.onTripleTap,
-      ElEventPhase.tripleTapDown => event.onTripleTapDown,
-      ElEventPhase.longPress => event.onLongPress,
-      ElEventPhase.tapCancel => event.onTapCancel,
-      ElEventPhase.secondaryTapDown => event.onSecondaryTapDown,
-      ElEventPhase.secondaryTapUp => event.onSecondaryTapUp,
-      ElEventPhase.secondaryTap => event.onSecondaryTap,
-      ElEventPhase.tertiaryTapDown => event.onTertiaryTapDown,
-      ElEventPhase.tertiaryTapUp => event.onTertiaryTapUp,
-      ElEventPhase.tertiaryTap => event.onTertiaryTap,
-      ElEventPhase.forwardTapDown => event.onForwardTapDown,
-      ElEventPhase.forwardTapUp => event.onForwardTapUp,
-      ElEventPhase.forwardTap => event.onForwardTap,
-      ElEventPhase.backTapDown => event.onBackTapDown,
-      ElEventPhase.backTapUp => event.onBackTapUp,
-      ElEventPhase.backTap => event.onBackTap,
-      ElEventPhase.dragDown => event.onDragDown,
-      ElEventPhase.dragStart =>
-        axis == Axis.vertical
-            ? event.onVerticalDragStart ?? event.onDragStart
-            : axis == Axis.horizontal
-            ? event.onHorizontalDragStart ?? event.onDragStart
-            : event.onDragStart,
-      ElEventPhase.dragUpdate =>
-        axis == Axis.vertical
-            ? event.onVerticalDragUpdate ?? event.onDragUpdate
-            : axis == Axis.horizontal
-            ? event.onHorizontalDragUpdate ?? event.onDragUpdate
-            : event.onDragUpdate,
-      ElEventPhase.dragEnd =>
-        axis == Axis.vertical
-            ? event.onVerticalDragEnd ?? event.onDragEnd
-            : axis == Axis.horizontal
-            ? event.onHorizontalDragEnd ?? event.onDragEnd
-            : event.onDragEnd,
-      ElEventPhase.dragCancel =>
-        axis == Axis.vertical
-            ? event.onVerticalDragCancel ?? event.onDragCancel
-            : axis == Axis.horizontal
-            ? event.onHorizontalDragCancel ?? event.onDragCancel
-            : event.onDragCancel,
-      ElEventPhase.scaleStart => event.onScaleStart,
-      ElEventPhase.scaleUpdate => event.onScaleUpdate,
-      ElEventPhase.scaleEnd => event.onScaleEnd,
-      ElEventPhase.scaleCancel => event.onScaleCancel,
-      ElEventPhase.rotationUpdate => event.onRotationUpdate,
-    };
+  ElPressGestureCallback? _bindPress(
+    ElEventPhase phase,
+    ElEventHandler? Function(ElEvent) select, {
+    bool observe = false,
+  }) {
+    if (!observe && (_event == null || select(_event!) == null)) return null;
+    // 反馈通知可能同步替换声明，派发时再读取当前业务闭包。
+    return (details) => _handlePress(details, phase, select);
   }
+
+  ElTransformGestureCallback? _bindTransform(
+    ElEventPhase phase,
+    ElEventHandler? Function(ElEvent, Axis?) select, {
+    required bool enabled,
+  }) => enabled ? (details) => _handleTransform(details, phase, select) : null;
+
+  ElEventHandler? _dragHandler(
+    Axis? axis,
+    ElEventHandler? free,
+    ElEventHandler? horizontal,
+    ElEventHandler? vertical,
+  ) => switch (axis) {
+    Axis.horizontal => horizontal ?? free,
+    Axis.vertical => vertical ?? free,
+    null => free,
+  };
 
   void _invoke(ElEventHandler? handler, ElEventCallback callback) {
     if (handler == null) return;

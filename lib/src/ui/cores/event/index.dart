@@ -1,8 +1,8 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/dart.dart';
 
-import 'render.dart';
+import '../view/render/index.dart';
+import '../view/style/index.dart';
 import 'event.dart';
 
 export 'event.dart'
@@ -157,8 +157,11 @@ class _EventRenderWidget extends SingleChildRenderObjectWidget {
   final _InteractionSource source;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => ElRenderEvent(
+  RenderObject createRenderObject(BuildContext context) => ElRenderView(
+    const ElStyle(),
+    Directionality.maybeOf(context) ?? TextDirection.ltr,
     event: event,
+    establishesLayoutReference: false,
     onTapChanged: source.updateTap,
     onHoverChanged: source.updateHover,
     gestureSettings: MediaQuery.maybeGestureSettingsOf(context),
@@ -166,7 +169,7 @@ class _EventRenderWidget extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
-    (renderObject as ElRenderEvent)
+    (renderObject as ElRenderView)
       ..gestureSettings = MediaQuery.maybeGestureSettingsOf(context)
       ..event = event;
   }

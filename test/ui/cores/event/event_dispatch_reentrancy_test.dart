@@ -1,6 +1,7 @@
 import 'support/event_test_host.dart';
 
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter_base/src/ui/cores/event/index.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -13,7 +14,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final ElRenderEvent element;
+    late final ElRenderView element;
     final phases = <String>[];
     element = box
       ..event = ElEvent(
@@ -48,7 +49,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final ElRenderEvent element;
+    late final ElRenderView element;
     final phases = <String>[];
     element = box
       ..event = ElEvent(
@@ -74,7 +75,7 @@ void main() {
       );
 
       expect(phases, <String>['old:pointerUp']);
-      expect(element.activePointerCount, 0);
+      expect(element.eventDispatcher!.activePointerCount, 0);
     } finally {
       element.dispose();
     }
@@ -86,7 +87,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -123,7 +124,7 @@ void main() {
         );
 
         expect(phases, <String>['old:pointerMove']);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -136,7 +137,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -160,7 +161,7 @@ void main() {
         );
 
         expect(phases, <String>['old:pointerCancel']);
-        expect(element.activePointerCount, 0);
+        expect(element.eventDispatcher!.activePointerCount, 0);
       } finally {
         element.dispose();
       }
@@ -173,7 +174,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -215,7 +216,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -241,13 +242,7 @@ void main() {
           entry,
         );
 
-        element.cancelAllPending(
-          const PointerMoveEvent(
-            pointer: 1,
-            position: Offset(4, 0),
-            delta: Offset(4, 0),
-          ),
-        );
+        element.eventDispatcher!.cancelAllPending();
 
         expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
         expect(element.event, isNotNull);
@@ -263,7 +258,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -310,7 +305,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -350,7 +345,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -398,7 +393,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -444,7 +439,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -492,7 +487,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -539,7 +534,7 @@ void main() {
     (tester) async {
       final box = _attachedBox();
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -637,7 +632,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -684,7 +679,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -726,7 +721,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final ElRenderEvent element;
+      late final ElRenderView element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -755,7 +750,7 @@ void main() {
 }
 
 Future<void> _dispatch(
-  ElRenderEvent element,
+  ElRenderView element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
@@ -778,13 +773,11 @@ _EventTestBox _attachedBox() {
   return (parent: parent, child: child);
 }
 
-final class _EventTestBox extends ElRenderEvent {
-  @override
-  void performLayout() {
-    final child = this.child;
-    if (child != null) {
-      child.layout(constraints, parentUsesSize: true);
-    }
-    size = constraints.constrain(const Size(100, 100));
-  }
+final class _EventTestBox extends ElRenderView {
+  _EventTestBox()
+    : super(
+        ElStyle(width: 100, height: 100),
+        TextDirection.ltr,
+        event: ElEvent(),
+      );
 }

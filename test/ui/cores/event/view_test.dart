@@ -1,7 +1,7 @@
 import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/event/render.dart';
+import 'package:flutter_base/src/ui/cores/view/render/index.dart';
+import 'package:flutter_base/src/ui/cores/view/style/index.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/rendering.dart' show RenderProxyBoxWithHitTestBehavior;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _shell(Widget child) => Directionality(
@@ -12,6 +12,13 @@ Widget _shell(Widget child) => Directionality(
 Widget _box() => SizedBox(width: 100, height: 100);
 
 void main() {
+  testWidgets('分发器提前释放后宿主仍完成 Render 销毁', (_) async {
+    final render = ElRenderView(ElStyle(), TextDirection.ltr, event: ElEvent());
+    render.eventDispatcher!.dispose();
+    render.dispose();
+    expect(render.debugDisposed, isTrue);
+  });
+
   testWidgets('直接更新 element 光标会调度静止鼠标刷新', (tester) async {
     await tester.pumpWidget(
       _shell(
@@ -30,7 +37,7 @@ void main() {
       SystemMouseCursors.click,
     );
     final render = tester.renderObject<RenderBox>(find.byType(ElEventView));
-    final element = render as ElRenderEvent;
+    final element = render as ElRenderView;
     element.event = element.event!.copyWith(cursor: SystemMouseCursors.text);
     expect(tester.binding.hasScheduledFrame, isTrue);
     expect(render.debugNeedsPaint, isFalse);
@@ -85,8 +92,8 @@ void main() {
     final finder = find.byType(ElEventView);
     final box = tester.renderObject<RenderBox>(finder);
     expect(tester.getSize(finder), Size(100, 100));
-    expect((box as ElRenderEvent).event, same(event));
-    expect(box, isA<RenderProxyBoxWithHitTestBehavior>());
+    expect((box as ElRenderView).event, same(event));
+    expect(box, isA<ElRenderView>());
     expect(
       find.descendant(of: finder, matching: find.byType(Focus)),
       findsNothing,
@@ -415,7 +422,7 @@ void main() {
 
     await tester.pumpWidget(tree(true));
     final render = tester.renderObject<RenderBox>(find.byKey(key));
-    final element = render as ElRenderEvent;
+    final element = render as ElRenderView;
     final gesture = await tester.startGesture(Offset(20, 20));
     await tester.pumpWidget(tree(false));
     expect(tester.renderObject(find.byKey(key)), same(render));
@@ -452,7 +459,7 @@ void main() {
     expect(phases, [ElEventPhase.dragStart]);
     await tester.pumpWidget(_shell(SizedBox.shrink()));
     expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-    expect((render as ElRenderEvent).isDisposed, isTrue);
+    expect((render as ElRenderView).eventDispatcher!.isDisposed, isTrue);
     await gesture.up();
     expect(phases, hasLength(2));
   });

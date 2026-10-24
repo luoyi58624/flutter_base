@@ -61,7 +61,7 @@ void main() {
         ),
       );
       expect(phases, isEmpty);
-      expect(host.leaf.activePointerCount, 0);
+      expect(host.leaf.eventDispatcher!.activePointerCount, 0);
     } finally {
       host.dispose();
     }
