@@ -28,20 +28,12 @@ class ElView extends SingleChildRenderObjectWidget {
   ElRenderView createRenderObject(BuildContext context) => ElRenderView(
     style,
     Directionality.maybeOf(context) ?? TextDirection.ltr,
-    imageConfiguration: style.backgroundImage == null
-        ? null
-        : createLocalImageConfiguration(context),
+    imageConfiguration: style.backgroundImage == null ? null : createLocalImageConfiguration(context),
   );
 
   @override
-  void updateRenderObject(
-    BuildContext context,
-    covariant ElRenderView renderObject,
-  ) {
-    renderObject.applyStyle(
-      style,
-      textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
-    );
+  void updateRenderObject(BuildContext context, covariant ElRenderView renderObject) {
+    renderObject.applyStyle(style, textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr);
     renderObject.imageConfiguration = renderObject.needsImageConfiguration
         ? createLocalImageConfiguration(context)
         : null;
