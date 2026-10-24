@@ -895,13 +895,13 @@ PointerCancelEvent _cancel({
 final class _SiblingEventTestHost {
   _SiblingEventTestHost()
     : _pipelineOwner = PipelineOwner(),
-      root = RenderElEvent(
+      root = ElRenderEvent(
         child: RenderFlex(
           direction: Axis.horizontal,
           textDirection: TextDirection.ltr,
         ),
       ),
-      childA = RenderElEvent(
+      childA = ElRenderEvent(
         child: RenderConstrainedBox(
           additionalConstraints: const BoxConstraints.tightFor(
             width: 100,
@@ -909,7 +909,7 @@ final class _SiblingEventTestHost {
           ),
         ),
       ),
-      childB = RenderElEvent(
+      childB = ElRenderEvent(
         child: RenderConstrainedBox(
           additionalConstraints: const BoxConstraints.tightFor(
             width: 100,
@@ -926,12 +926,12 @@ final class _SiblingEventTestHost {
   }
 
   final PipelineOwner _pipelineOwner;
-  final RenderElEvent root;
-  final RenderElEvent childA;
-  final RenderElEvent childB;
-  late final RenderElEvent rootElement;
-  late final RenderElEvent childAElement;
-  late final RenderElEvent childBElement;
+  final ElRenderEvent root;
+  final ElRenderEvent childA;
+  final ElRenderEvent childB;
+  late final ElRenderEvent rootElement;
+  late final ElRenderEvent childAElement;
+  late final ElRenderEvent childBElement;
 
   Future<void> dispatchA(PointerEvent event) async =>
       _dispatch(childAElement, childA, event);
@@ -954,7 +954,7 @@ final class _SiblingEventTestHost {
     GestureBinding.instance.pointerRouter.route(event);
   }
 
-  void _dispatch(RenderElEvent leaf, RenderBox box, PointerEvent event) {
+  void _dispatch(ElRenderEvent leaf, RenderBox box, PointerEvent event) {
     leaf.handleEvent(
       event,
       BoxHitTestEntry(box, box.globalToLocal(event.position)),

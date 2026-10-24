@@ -13,7 +13,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final RenderElEvent element;
+    late final ElRenderEvent element;
     final phases = <String>[];
     element = box
       ..event = ElEvent(
@@ -48,7 +48,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    late final RenderElEvent element;
+    late final ElRenderEvent element;
     final phases = <String>[];
     element = box
       ..event = ElEvent(
@@ -86,7 +86,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -136,7 +136,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -173,7 +173,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -215,7 +215,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -263,7 +263,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -310,7 +310,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -350,7 +350,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -398,7 +398,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -444,7 +444,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -492,7 +492,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -539,7 +539,7 @@ void main() {
     (tester) async {
       final box = _attachedBox();
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -637,7 +637,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -684,7 +684,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -726,7 +726,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
 
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
       final phases = <String>[];
       element = box
         ..event = ElEvent(
@@ -755,7 +755,7 @@ void main() {
 }
 
 Future<void> _dispatch(
-  RenderElEvent element,
+  ElRenderEvent element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
@@ -778,7 +778,7 @@ _EventTestBox _attachedBox() {
   return (parent: parent, child: child);
 }
 
-final class _EventTestBox extends RenderElEvent {
+final class _EventTestBox extends ElRenderEvent {
   @override
   void performLayout() {
     final child = this.child;

@@ -303,13 +303,13 @@ void main() {
 
   testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (_) async {
     final pipelineOwner = PipelineOwner();
-    final rootBox = RenderElEvent(
+    final rootBox = ElRenderEvent(
       child: RenderFlex(
         direction: Axis.horizontal,
         textDirection: TextDirection.ltr,
       ),
     );
-    final leftBox = RenderElEvent(
+    final leftBox = ElRenderEvent(
       child: RenderConstrainedBox(
         additionalConstraints: const BoxConstraints.tightFor(
           width: 100,
@@ -317,7 +317,7 @@ void main() {
         ),
       ),
     );
-    final rightBox = RenderElEvent(
+    final rightBox = ElRenderEvent(
       child: RenderConstrainedBox(
         additionalConstraints: const BoxConstraints.tightFor(
           width: 100,
@@ -354,7 +354,7 @@ void main() {
     right.event = ElEvent(onPointerDown: (_) {});
 
     Future<void> dispatchThrough(
-      RenderElEvent leaf,
+      ElRenderEvent leaf,
       RenderBox box,
       PointerEvent event,
     ) async {

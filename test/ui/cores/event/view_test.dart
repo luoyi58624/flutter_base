@@ -30,7 +30,7 @@ void main() {
       SystemMouseCursors.click,
     );
     final render = tester.renderObject<RenderBox>(find.byType(ElEventView));
-    final element = render as RenderElEvent;
+    final element = render as ElRenderEvent;
     element.event = element.event!.copyWith(cursor: SystemMouseCursors.text);
     expect(tester.binding.hasScheduledFrame, isTrue);
     expect(render.debugNeedsPaint, isFalse);
@@ -85,7 +85,7 @@ void main() {
     final finder = find.byType(ElEventView);
     final box = tester.renderObject<RenderBox>(finder);
     expect(tester.getSize(finder), Size(100, 100));
-    expect((box as RenderElEvent).event, same(event));
+    expect((box as ElRenderEvent).event, same(event));
     expect(box, isA<RenderProxyBoxWithHitTestBehavior>());
     expect(
       find.descendant(of: finder, matching: find.byType(Focus)),
@@ -415,7 +415,7 @@ void main() {
 
     await tester.pumpWidget(tree(true));
     final render = tester.renderObject<RenderBox>(find.byKey(key));
-    final element = render as RenderElEvent;
+    final element = render as ElRenderEvent;
     final gesture = await tester.startGesture(Offset(20, 20));
     await tester.pumpWidget(tree(false));
     expect(tester.renderObject(find.byKey(key)), same(render));
@@ -452,7 +452,7 @@ void main() {
     expect(phases, [ElEventPhase.dragStart]);
     await tester.pumpWidget(_shell(SizedBox.shrink()));
     expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-    expect((render as RenderElEvent).isDisposed, isTrue);
+    expect((render as ElRenderEvent).isDisposed, isTrue);
     await gesture.up();
     expect(phases, hasLength(2));
   });

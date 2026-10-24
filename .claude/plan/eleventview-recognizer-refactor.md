@@ -15,7 +15,7 @@
 
 ```mermaid
 flowchart TB
-  VIEW["ElEventView：Widget、按字段订阅"] --> RENDER["单个 RenderElEvent：几何、声明与回调适配"]
+  VIEW["ElEventView：Widget、按字段订阅"] --> RENDER["单个 ElRenderEvent：几何、声明与回调适配"]
   RENDER --> PRESS["Press：点击、连击、侧键、长按、被动按压"]
   RENDER --> TRANSFORM["Transform：拖拽、缩放、旋转、升级终态"]
   RENDER --> FEEDBACK["反馈计时、悬停、光标、拖拽代理消费"]

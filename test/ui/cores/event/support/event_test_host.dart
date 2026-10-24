@@ -25,16 +25,16 @@ final class EventTestHost {
   final PipelineOwner _pipelineOwner;
 
   /// 根到叶排列的渲染节点。
-  final List<RenderElEvent> nodes;
+  final List<ElRenderEvent> nodes;
 
   /// 与 [nodes] 同索引排列的事件元素。
-  List<RenderElEvent> get elements => nodes;
+  List<ElRenderEvent> get elements => nodes;
 
   /// 根节点的事件元素。
-  RenderElEvent get rootElement => elements.first;
+  ElRenderEvent get rootElement => elements.first;
 
   /// 最深命中节点的事件元素。
-  RenderElEvent get leaf => elements.last;
+  ElRenderEvent get leaf => elements.last;
 
   /// 按真实命中顺序把事件投递到叶到根，并推进 Flutter 的全局指针路由与竞技场。
   Future<void> dispatch(PointerEvent event) async {
@@ -109,7 +109,7 @@ void routeTestPointer(PointerEvent event) {
 }
 
 /// 单节点宿主的真实输入入口，多节点命中应先投递整条链再统一路由。
-extension EventInputTestExt on RenderElEvent {
+extension EventInputTestExt on ElRenderEvent {
   Future<void> dispatchInput(PointerEvent event, BoxHitTestEntry entry) async {
     handleEvent(event, entry);
     routeTestPointer(event);
@@ -117,7 +117,7 @@ extension EventInputTestExt on RenderElEvent {
 }
 
 /// 测试专用的最小单子 RenderBox。
-final class _EventTestBox extends RenderElEvent {
+final class _EventTestBox extends ElRenderEvent {
   @override
   void performLayout() {
     child?.layout(constraints, parentUsesSize: true);

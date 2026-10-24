@@ -230,7 +230,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late RenderElEvent element;
+      late ElRenderEvent element;
       var moves = 0;
 
       element = box
@@ -293,7 +293,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late RenderElEvent element;
+    late ElRenderEvent element;
 
     element = box
       ..event = _dragEvent(
@@ -376,7 +376,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late RenderElEvent element;
+      late ElRenderEvent element;
 
       element = box
         ..event = _dragEvent(
@@ -423,7 +423,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late RenderElEvent element;
+    late ElRenderEvent element;
 
     element = box
       ..event = _dragEvent(
@@ -496,7 +496,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late RenderElEvent element;
+      late ElRenderEvent element;
 
       element = box
         ..event = _dragEvent(
@@ -558,7 +558,7 @@ void main() {
       final box = _attachedBox();
       final entry = BoxHitTestEntry(box, Offset.zero);
       final phases = <String>[];
-      late final RenderElEvent element;
+      late final ElRenderEvent element;
 
       element = box
         ..event = _dragEvent(
@@ -646,7 +646,7 @@ void main() {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
-    late final RenderElEvent element;
+    late final ElRenderEvent element;
 
     element = box
       ..event = _dragEvent(
@@ -732,7 +732,7 @@ _EventTestBox _attachedBox() {
   return box;
 }
 
-Future<void> _nextDrag(RenderElEvent element, BoxHitTestEntry entry) async {
+Future<void> _nextDrag(ElRenderEvent element, BoxHitTestEntry entry) async {
   await _dispatch(element, entry, _touchDown(pointer: 2));
   for (final (millis, position, delta) in [
     (16, const Offset(0, -16), const Offset(0, -16)),
@@ -772,14 +772,14 @@ PointerDownEvent _touchDown({required int pointer}) {
 }
 
 Future<void> _dispatch(
-  RenderElEvent element,
+  ElRenderEvent element,
   BoxHitTestEntry entry,
   PointerEvent event,
 ) async {
   await element.dispatchInput(event, entry);
 }
 
-final class _EventTestBox extends RenderElEvent {
+final class _EventTestBox extends ElRenderEvent {
   @override
   void performLayout() {
     size = constraints.constrain(const Size(100, 100));
