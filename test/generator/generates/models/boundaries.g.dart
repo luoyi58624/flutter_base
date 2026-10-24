@@ -3,7 +3,7 @@
 part of '../../models/boundaries.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension NumericCopyModelExt on NumericCopyModel {

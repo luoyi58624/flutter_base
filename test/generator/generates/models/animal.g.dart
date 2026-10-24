@@ -3,7 +3,7 @@
 part of '../../models/animal.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension AnimalModelExt on AnimalModel {

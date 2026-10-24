@@ -3,7 +3,7 @@
 part of '../../models/user.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension UserModelExt on UserModel {

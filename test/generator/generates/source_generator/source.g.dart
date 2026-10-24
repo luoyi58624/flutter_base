@@ -3,7 +3,7 @@
 part of '../../source_generator/source.dart';
 
 // **************************************************************************
-// ElSourceTextGenerator
+// _SourceGenerator
 // **************************************************************************
 
 String get _mainCode =>

@@ -3,7 +3,7 @@
 part of '../../models/class_extended.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension RootModelExt on RootModel {

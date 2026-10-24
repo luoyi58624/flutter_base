@@ -1,35 +1,29 @@
-import 'dart:convert';
+part of 'index.dart';
 
-import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:source_gen/source_gen.dart';
-
-import '../dart/gen/index.dart';
-
-const TypeChecker modelChecker = TypeChecker.typeNamed(
+const TypeChecker _modelChecker = TypeChecker.typeNamed(
   ElModelGenerator,
   inPackage: 'flutter_base',
 );
-const TypeChecker fieldChecker = TypeChecker.typeNamed(
+const TypeChecker _fieldChecker = TypeChecker.typeNamed(
   ElFieldGenerator,
   inPackage: 'flutter_base',
 );
-const TypeChecker serializeModelChecker = TypeChecker.typeNamed(
+const TypeChecker _serializeModelChecker = TypeChecker.typeNamed(
   ElSerializeModel,
   inPackage: 'flutter_base',
 );
-const TypeChecker serializeChecker = TypeChecker.typeNamed(
+const TypeChecker _serializeChecker = TypeChecker.typeNamed(
   ElSerialize,
   inPackage: 'flutter_base',
 );
 
 /// 输出合法的 Dart 字符串字面量，避免引号、换行与插值字符改变生成代码。
-String dartStringLiteral(String value) =>
+String _dartStringLiteral(String value) =>
     jsonEncode(value).replaceAll(r'$', r'\$');
 
 /// 反射工具类
-class MirrorUtils {
-  MirrorUtils._();
+class _MirrorUtils {
+  _MirrorUtils._();
 
   /// 获取元素上声明的注解对象
   static DartObject? getElFieldAnnotation(
@@ -61,7 +55,7 @@ class MirrorUtils {
     bool visitSuper = false, // 是否收集 super 父类的字段
   }) {
     List<FieldElement> result = [];
-    final fields = MirrorUtils.getDefaultConstructor(classElement)
+    final fields = _MirrorUtils.getDefaultConstructor(classElement)
         .formalParameters;
     for (int i = 0; i < fields.length; i++) {
       final field = getField(classElement, fields[i], visitSuper: visitSuper);
@@ -103,12 +97,12 @@ class MirrorUtils {
 
   /// 过滤掉实体类中不需要生成的字段
   static List<FieldElement> filterFields(ClassElement classInfo) {
-    return classInfo.fields.where((e) => MirrorUtils._fieldFilter(e)).toList();
+    return classInfo.fields.where((e) => _MirrorUtils._fieldFilter(e)).toList();
   }
 
   /// 判断元素是否实现了 [ElSerializeModel] 序列化模型
   static bool hasSerializeModel(Element? element) {
-    return element != null && serializeModelChecker.isAssignableFrom(element);
+    return element != null && _serializeModelChecker.isAssignableFrom(element);
   }
 
   /// 使用递归深度遍历元素字段默认值
@@ -121,7 +115,7 @@ class MirrorUtils {
 
     if (element != null && hasSerializeModel(element)) {
       final classInfo = element as ClassElement;
-      final fields = MirrorUtils.filterFields(classInfo);
+      final fields = _MirrorUtils.filterFields(classInfo);
       String content = '';
       for (var field in fields) {
         content +=
@@ -134,7 +128,7 @@ class MirrorUtils {
       return content;
     }
     if (reader.isString) {
-      return dartStringLiteral(reader.stringValue);
+      return _dartStringLiteral(reader.stringValue);
     }
     if (reader.isDouble || reader.isInt || reader.isBool) {
       return reader.literalValue;

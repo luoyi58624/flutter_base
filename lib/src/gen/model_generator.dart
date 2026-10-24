@@ -1,28 +1,13 @@
-import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
-import 'package:build/build.dart';
-import 'package:meta/meta.dart';
-
-import '../dart/extensions/index.dart';
-
-import 'package:source_gen/source_gen.dart';
-
-import '../dart/gen/index.dart' as annotations;
-
-import 'config.dart';
-import 'utils.dart';
+part of 'index.dart';
 
 /// 按模型注解生成序列化、复制和合并扩展。
 @immutable
-class ElModelGenerator
-    extends GeneratorForAnnotation<annotations.ElModelGenerator> {
+class _ModelGenerator extends GeneratorForAnnotation<ElModelGenerator> {
   /// 每个构建器独立持有配置，避免多个 target 的后缀相互覆盖。
-  const ElModelGenerator(this.config) : super(inPackage: 'flutter_base');
+  const _ModelGenerator(this.config) : super(inPackage: 'flutter_base');
 
   /// 当前构建器独立持有的生成配置。
-  final ModelTemplateConfig config;
+  final _ModelTemplateConfig config;
 
   @override
   String generateForAnnotatedElement(
@@ -39,9 +24,9 @@ class ElModelGenerator
     final classInfo = element;
     _validateModel(classInfo, annotation);
     final className = classInfo.name!;
-    final isConstConstructor = MirrorUtils.getDefaultConstructor(classInfo)
+    final isConstConstructor = _MirrorUtils.getDefaultConstructor(classInfo)
         .isConst;
-    final fields = MirrorUtils.getFieldsByConstructor(
+    final fields = _MirrorUtils.getFieldsByConstructor(
       classInfo,
       visitSuper: true,
     );
@@ -67,7 +52,7 @@ extension $className${config.extSuffix} on $className {
         element: element,
       );
     }
-    final constructor = MirrorUtils.getDefaultConstructor(element);
+    final constructor = _MirrorUtils.getDefaultConstructor(element);
     final reconstruct =
         annotation.read('formJson').boolValue ||
         annotation.read('copyWith').boolValue ||
@@ -79,7 +64,7 @@ extension $className${config.extSuffix} on $className {
           element: parameter,
         );
       }
-      final field = MirrorUtils.getField(element, parameter, visitSuper: true);
+      final field = _MirrorUtils.getField(element, parameter, visitSuper: true);
       if (reconstruct && field == null) {
         throw InvalidGenerationSourceError(
           '构造参数 `${parameter.name}` 没有同名字段，无法重建模型。',
@@ -136,8 +121,8 @@ extension $className${config.extSuffix} on $className {
           : null;
 
       // 编译期算好驼峰 key 对应的下划线 key 直接写入生成代码，运行时不再做字符串转换
-      final keyCode = dartStringLiteral(jsonKey);
-      final underlineArg = ', ${dartStringLiteral(jsonKey.toUnderline)}';
+      final keyCode = _dartStringLiteral(jsonKey);
+      final underlineArg = ', ${_dartStringLiteral(jsonKey.toUnderline)}';
 
       String valueContent;
       String? defaultModelValueContent;
@@ -295,7 +280,7 @@ extension $className${config.extSuffix} on $className {
             defaultModelValueContent = '{}';
           }
         }
-      } else if (MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
+      } else if (_MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
         final fieldClassName = (fieldInfo.type as InterfaceType).element.name!;
         final defaultModel = '$fieldClassName${config.extSuffix}.defaultModel';
         valueContent =
@@ -369,11 +354,11 @@ extension $className${config.extSuffix} on $className {
       final fieldType = fieldInfo.type.toString();
       final jsonKey = _getJsonKey(fieldInfo);
 
-      final key = dartStringLiteral(
+      final key = _dartStringLiteral(
         jsonKey ?? (toJsonUnderline ? field.toUnderline : field),
       );
       late String value;
-      if (MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
+      if (_MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
         final suffix = fieldType.endsWith('?') ? '?' : '';
         value = '$field$suffix.toJson()';
       } else if (_hasNestedCollection(fieldInfo.type)) {
@@ -654,7 +639,7 @@ extension $className${config.extSuffix} on $className {
 
   String _generateProps(ClassElement classInfo, ConstantReader annotation) {
     if (!annotation.read('generateProps').boolValue) return '';
-    final fields = MirrorUtils.getFieldsByConstructor(classInfo);
+    final fields = _MirrorUtils.getFieldsByConstructor(classInfo);
     return '''
   List<Object?> get _props => [${fields.map((e) => e.name).join(',')}];
 ''';
@@ -665,7 +650,7 @@ extension $className${config.extSuffix} on $className {
 /// 返回 `const Duration(seconds: 3)`，找不到时返回 null
 String? _constructorDefaultCode(ClassElement classInfo, String fieldName) {
   try {
-    for (final param in MirrorUtils.getDefaultConstructor(
+    for (final param in _MirrorUtils.getDefaultConstructor(
       classInfo,
     ).formalParameters) {
       if (param.name == fieldName) return param.defaultValueCode;
@@ -676,7 +661,7 @@ String? _constructorDefaultCode(ClassElement classInfo, String fieldName) {
 
 DartObject? _tryGetFieldAnnotation(FieldElement fieldInfo) {
   try {
-    return MirrorUtils.getElFieldAnnotation(fieldChecker, fieldInfo);
+    return _MirrorUtils.getElFieldAnnotation(_fieldChecker, fieldInfo);
   } catch (_) {
     return null;
   }
@@ -686,7 +671,7 @@ dynamic _extractDefaultValue(DartObject annotation, FieldElement fieldInfo) {
   try {
     final value = annotation.getField('defaultValue');
     if (value == null || value.isNull) return null;
-    return MirrorUtils.deepGetFieldValue(
+    return _MirrorUtils.deepGetFieldValue(
       ConstantReader(value),
       fieldInfo.type.element,
       true,
@@ -699,8 +684,8 @@ dynamic _extractDefaultValue(DartObject annotation, FieldElement fieldInfo) {
 /// 获取当前字段配置的 jsonKey，如果为空则表示用户没有指定 jsonKey
 String? _getJsonKey(FieldElement fieldInfo) {
   try {
-    final annotation = MirrorUtils.getElFieldAnnotation(
-      fieldChecker,
+    final annotation = _MirrorUtils.getElFieldAnnotation(
+      _fieldChecker,
       fieldInfo,
     );
     if (annotation == null) return null;
@@ -781,8 +766,8 @@ _MergeStyle _resolveMergeStyleForType(Element? classElement) {
   try {
     if (classElement is! ClassElement) return _MergeStyle.none;
 
-    final classAnnotation = MirrorUtils.getElFieldAnnotation(
-      modelChecker,
+    final classAnnotation = _MirrorUtils.getElFieldAnnotation(
+      _modelChecker,
       classElement,
     );
     if (classAnnotation?.getField('merge')?.toBoolValue() == true) {
@@ -843,9 +828,11 @@ DartType? _mapValueTypeArgument(FieldElement fieldInfo) {
 /// 如果类型实现了 ElSerializeModel，返回其生成扩展上的 defaultModel 引用。
 String? _serializeModelDefaultForType(
   DartType? type,
-  ModelTemplateConfig config,
+  _ModelTemplateConfig config,
 ) {
-  if (type == null || !MirrorUtils.hasSerializeModel(type.element)) return null;
+  if (type == null || !_MirrorUtils.hasSerializeModel(type.element)) {
+    return null;
+  }
   final className = (type as InterfaceType).element.name!;
   return '$className${config.extSuffix}.defaultModel';
 }
@@ -854,7 +841,7 @@ String? _serializeModelDefaultForType(
 String? _getCustomSerialize(FieldElement fieldInfo) {
   for (final annotation in fieldInfo.metadata.annotations) {
     final type = annotation.computeConstantValue()?.type;
-    if (type == null || !serializeChecker.isAssignableFromType(type)) continue;
+    if (type == null || !_serializeChecker.isAssignableFromType(type)) continue;
     final source = annotation.toSource();
     final expression = source.startsWith('@') ? source.substring(1) : source;
     return annotation.element is ConstructorElement
@@ -879,7 +866,7 @@ bool _hasNestedCollection(DartType type) =>
 bool _usesCustomSerializer(DartType type, String? serializer) =>
     serializer != null &&
     !_isCollection(type) &&
-    !MirrorUtils.hasSerializeModel(type.element);
+    !_MirrorUtils.hasSerializeModel(type.element);
 
 /// 仅移除输出类型名最外层的可空标记，不破坏内层泛型的可空性。
 String _nonNullableTypeCode(DartType type) {
@@ -892,7 +879,7 @@ String _decodeNestedValue(
   DartType type,
   String value,
   String? serializer,
-  ModelTemplateConfig config, {
+  _ModelTemplateConfig config, {
   bool checked = false,
 }) {
   if (_usesCustomSerializer(type, serializer)) {
@@ -971,7 +958,7 @@ String _encodeNestedValue(DartType type, String value, String? serializer) {
     return type.isDartCoreMap
         ? '$receiver.map((key, item) => MapEntry(key, $item))'
         : '$receiver.map((item) => $item).toList()';
-  } else if (MirrorUtils.hasSerializeModel(type.element)) {
+  } else if (_MirrorUtils.hasSerializeModel(type.element)) {
     return '$receiver.toJson()';
   } else {
     return value;

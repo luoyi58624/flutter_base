@@ -3,7 +3,7 @@
 part of '../../models/collection_merge.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension CollectionMergeModelExt on CollectionMergeModel {

@@ -1,16 +1,7 @@
-import 'dart:convert';
-
-import 'package:analyzer/dart/analysis/utilities.dart';
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:build/build.dart';
-
-import '../dart/gen/index.dart';
-
-import 'package:source_gen/source_gen.dart';
+part of 'index.dart';
 
 /// 把 `@ElSourceGenerator` 标记类的原始声明生成为同步字符串 getter。
-class ElSourceTextGenerator extends GeneratorForAnnotation<ElSourceGenerator> {
+class _SourceGenerator extends GeneratorForAnnotation<ElSourceGenerator> {
   @override
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     final annotations = library.annotatedWith(typeChecker).toList();

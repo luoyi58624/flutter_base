@@ -3,7 +3,7 @@
 part of '../../models/comprehensive.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension AllFeaturesModelExt on AllFeaturesModel {

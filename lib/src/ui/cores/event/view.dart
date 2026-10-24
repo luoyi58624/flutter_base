@@ -1,18 +1,31 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/dart.dart';
 
 import 'render.dart';
 import 'event.dart';
-import 'state.dart';
+
+/// 最近事件宿主的只读交互状态，供后代根据状态构建外观。
+@immutable
+@ElModelGenerator(copyWith: true)
+final class ElEventState {
+  /// 创建交互状态快照，默认没有活动交互。
+  const ElEventState({this.hasTap = false, this.hasHover = false, this.disabled = false});
+
+  /// 是否处于按压反馈中；触摸遵循 delayTouchDown 和 delayTouchUp。
+  final bool hasTap;
+
+  /// 是否有鼠标位于宿主内，与是否按下鼠标按键无关。
+  final bool hasHover;
+
+  /// 当前事件宿主是否禁用，禁用期间各交互状态均为 false。
+  final bool disabled;
+}
 
 /// 为任意子组件提供独立的指针与手势事件，不改变子组件的布局和绘制。
 class ElEventView extends StatefulWidget {
   /// 创建事件宿主，命中、光标和禁用行为统一由 [event] 声明。
-  const ElEventView({
-    super.key,
-    this.event = const ElEvent(),
-    required this.child,
-  });
+  const ElEventView({super.key, this.event = const ElEvent(), required this.child});
 
   /// 指针、点击、拖拽、缩放旋转及事件传播配置。
   final ElEvent event;
@@ -21,8 +34,7 @@ class ElEventView extends StatefulWidget {
   final Widget child;
 
   /// 读取并订阅最近祖先事件宿主的全部状态，没有宿主时返回 null。
-  static ElEventState? maybeOf(BuildContext context) =>
-      _EventScope.read(context);
+  static ElEventState? maybeOf(BuildContext context) => _EventScope.read(context);
 
   @override
   State<ElEventView> createState() => _EventViewState();
@@ -34,8 +46,7 @@ extension ElEventContextExt on BuildContext {
   bool get hasTap => _EventScope.read(this, _EventAspect.tap)?.hasTap ?? false;
 
   /// 是否有鼠标悬停，仅在悬停状态变化时重建当前消费者。
-  bool get hasHover =>
-      _EventScope.read(this, _EventAspect.hover)?.hasHover ?? false;
+  bool get hasHover => _EventScope.read(this, _EventAspect.hover)?.hasHover ?? false;
 }
 
 enum _EventAspect { tap, hover }
@@ -52,10 +63,7 @@ class _EventScope extends InheritedModel<_EventAspect> {
   bool updateShouldNotify(_EventScope oldWidget) => data != oldWidget.data;
 
   @override
-  bool updateShouldNotifyDependent(
-    _EventScope oldWidget,
-    Set<_EventAspect> dependencies,
-  ) => dependencies.any(
+  bool updateShouldNotifyDependent(_EventScope oldWidget, Set<_EventAspect> dependencies) => dependencies.any(
     (aspect) => switch (aspect) {
       _EventAspect.tap => data.hasTap != oldWidget.data.hasTap,
       _EventAspect.hover => data.hasHover != oldWidget.data.hasHover,
@@ -64,17 +72,13 @@ class _EventScope extends InheritedModel<_EventAspect> {
 }
 
 class _EventViewState extends State<ElEventView> {
-  late final _InteractionSource _source = _InteractionSource(
-    widget.event.disabled,
-    _onChanged,
-  );
+  late final _InteractionSource _source = _InteractionSource(widget.event.disabled, _onChanged);
   bool _publishScheduled = false;
 
   void _onChanged() {
     if (!mounted) return;
     // 配置更新或拆树可能在渲染期间结清手势，此时延后发布，避免反向标脏祖先。
-    if (SchedulerBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
       if (_publishScheduled) return;
       _publishScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,11 +99,7 @@ class _EventViewState extends State<ElEventView> {
   @override
   Widget build(BuildContext context) => _EventScope(
     data: _source.snapshot,
-    child: _EventRenderWidget(
-      event: widget.event,
-      source: _source,
-      child: widget.child,
-    ),
+    child: _EventRenderWidget(event: widget.event, source: _source, child: widget.child),
   );
 
   @override
@@ -118,11 +118,8 @@ class _InteractionSource {
   bool _tap = false;
   bool _hover = false;
 
-  ElEventState get snapshot => ElEventState(
-    hasTap: !_disabled && _tap,
-    hasHover: !_disabled && _hover,
-    disabled: _disabled,
-  );
+  ElEventState get snapshot =>
+      ElEventState(hasTap: !_disabled && _tap, hasHover: !_disabled && _hover, disabled: _disabled);
 
   void updateDisabled(bool value) {
     if (_disabled == value) return;
@@ -146,11 +143,7 @@ class _InteractionSource {
 }
 
 class _EventRenderWidget extends SingleChildRenderObjectWidget {
-  const _EventRenderWidget({
-    required this.event,
-    required this.source,
-    required super.child,
-  });
+  const _EventRenderWidget({required this.event, required this.source, required super.child});
 
   final ElEvent event;
   final _InteractionSource source;

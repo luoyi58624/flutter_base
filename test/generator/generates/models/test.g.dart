@@ -3,7 +3,7 @@
 part of '../../models/test.dart';
 
 // **************************************************************************
-// ElModelGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension TestModelExt on TestModel {
