@@ -15,17 +15,24 @@ Widget _probe(void Function(BuildContext) read) => Builder(
   },
 );
 
+typedef _InteractionState = ({bool hasTap, bool hasHover});
+
+// 分别订阅公开字段，记录当前构建时的交互状态。
+_InteractionState _readState(BuildContext context) =>
+    (hasTap: context.hasTap, hasHover: context.hasHover);
+
 const _immediate = ElEventConfig(
   delayTouchDown: Duration.zero,
   delayTouchUp: Duration.zero,
 );
 
 void main() {
-  testWidgets('宿主外查询返回空状态，交互扩展均返回 false', (tester) async {
+  testWidgets('宿主外字段查询与交互扩展均返回 false', (tester) async {
     await tester.pumpWidget(
       _shell(
         _probe((context) {
-          expect(ElEventView.maybeOf(context), isNull);
+          expect(ElEventView.hasTap(context), isFalse);
+          expect(ElEventView.hasHover(context), isFalse);
           expect(context.hasTap, isFalse);
           expect(context.hasHover, isFalse);
         }),
@@ -84,10 +91,10 @@ void main() {
     }
   });
 
-  testWidgets('扩展按字段订阅，整体查询订阅全部，静态后代不重建', (tester) async {
+  testWidgets('扩展按字段订阅，组合查询订阅两项，静态后代不重建', (tester) async {
     var tapBuilds = 0;
     var hoverBuilds = 0;
-    var allBuilds = 0;
+    var combinedBuilds = 0;
     var staticBuilds = 0;
     final child = SizedBox(
       width: 100,
@@ -103,8 +110,8 @@ void main() {
             context.hasHover;
           }),
           _probe((context) {
-            allBuilds++;
-            ElEventView.maybeOf(context);
+            combinedBuilds++;
+            _readState(context);
           }),
           _probe((_) => staticBuilds++),
         ],
@@ -121,20 +128,32 @@ void main() {
           ),
         ),
       );
-      expect([tapBuilds, hoverBuilds, allBuilds, staticBuilds], [1, 1, 1, 1]);
+      expect(
+        [tapBuilds, hoverBuilds, combinedBuilds, staticBuilds],
+        [1, 1, 1, 1],
+      );
       mouse = await tester.createGesture(kind: .mouse);
       await mouse.addPointer(location: const Offset(150, 20));
       await mouse.moveTo(const Offset(20, 20));
       await tester.pump();
-      expect([tapBuilds, hoverBuilds, allBuilds, staticBuilds], [1, 2, 2, 1]);
+      expect(
+        [tapBuilds, hoverBuilds, combinedBuilds, staticBuilds],
+        [1, 2, 2, 1],
+      );
       await mouse.down(const Offset(20, 20));
       down = true;
       await tester.pump();
-      expect([tapBuilds, hoverBuilds, allBuilds, staticBuilds], [2, 2, 3, 1]);
+      expect(
+        [tapBuilds, hoverBuilds, combinedBuilds, staticBuilds],
+        [2, 2, 3, 1],
+      );
       await mouse.up();
       down = false;
       await tester.pump();
-      expect([tapBuilds, hoverBuilds, allBuilds, staticBuilds], [3, 2, 4, 1]);
+      expect(
+        [tapBuilds, hoverBuilds, combinedBuilds, staticBuilds],
+        [3, 2, 4, 1],
+      );
     } finally {
       if (down) await mouse?.cancel();
       await mouse?.removePointer();
@@ -143,8 +162,8 @@ void main() {
   });
 
   testWidgets('嵌套查询始终读取最近宿主，外层交互不会污染内层', (tester) async {
-    ElEventState? inner;
-    ElEventState? outer;
+    _InteractionState? inner;
+    _InteractionState? outer;
     TestGesture? mouse;
     var down = false;
     try {
@@ -159,11 +178,9 @@ void main() {
                 children: [
                   ElEventView(
                     event: const ElEvent(config: _immediate),
-                    child: _probe(
-                      (context) => inner = ElEventView.maybeOf(context),
-                    ),
+                    child: _probe((context) => inner = _readState(context)),
                   ),
-                  _probe((context) => outer = ElEventView.maybeOf(context)),
+                  _probe((context) => outer = _readState(context)),
                 ],
               ),
             ),
@@ -194,7 +211,7 @@ void main() {
   });
 
   testWidgets('触摸反馈延迟进入，抬手保留从物理按下起算且不延迟点击', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     var taps = 0;
     TestGesture? touch;
     var down = false;
@@ -209,7 +226,7 @@ void main() {
               ),
               onTap: (_) => taps++,
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -265,7 +282,7 @@ void main() {
   });
 
   testWidgets('持续按住超过最短反馈时间后松手立即清除', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     TestGesture? touch;
     var down = false;
     try {
@@ -278,7 +295,7 @@ void main() {
                 delayTouchUp: Duration(milliseconds: 100),
               ),
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -321,7 +338,7 @@ void main() {
   });
 
   testWidgets('连续触摸不会被上一次抬手遗留的退出计时器清除', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     TestGesture? touch;
     var down = false;
     try {
@@ -331,7 +348,7 @@ void main() {
             event: const ElEvent(
               config: ElEventConfig(delayTouchUp: Duration(milliseconds: 100)),
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -360,7 +377,7 @@ void main() {
   });
 
   testWidgets('鼠标和笔忽略触摸进入延迟与抬手保留', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     try {
       await tester.pumpWidget(
         _shell(
@@ -371,7 +388,7 @@ void main() {
                 delayTouchUp: Duration(milliseconds: 200),
               ),
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -396,7 +413,7 @@ void main() {
   });
 
   testWidgets('按压移出边界清除反馈，移回恢复反馈', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     TestGesture? mouse;
     var down = false;
     try {
@@ -404,7 +421,7 @@ void main() {
         _shell(
           ElEventView(
             event: const ElEvent(config: _immediate),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -430,7 +447,7 @@ void main() {
   });
 
   testWidgets('PointerCancel 同时清理已生效和仍等待进入的触摸反馈', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     try {
       for (final wait in [20, 60]) {
         await tester.pumpWidget(
@@ -442,7 +459,7 @@ void main() {
                   delayTouchUp: Duration(milliseconds: 200),
                 ),
               ),
-              child: _probe((context) => state = ElEventView.maybeOf(context)),
+              child: _probe((context) => state = _readState(context)),
             ),
           ),
         );
@@ -461,7 +478,7 @@ void main() {
   });
 
   testWidgets('长按识别成功后通过取消阶段清理按压反馈', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     var longPresses = 0;
     TestGesture? touch;
     var down = false;
@@ -475,7 +492,7 @@ void main() {
               ),
               onLongPress: (_) => longPresses++,
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -496,7 +513,7 @@ void main() {
   });
 
   testWidgets('拖拽主动接管后立即清除按压反馈且不会补播', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     TestGesture? touch;
     var down = false;
     try {
@@ -511,7 +528,7 @@ void main() {
               onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
               onDragEnd: (_) {},
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -534,7 +551,7 @@ void main() {
   });
 
   testWidgets('被动拖拽保留按压反馈，读取状态不改变盒内点击语义', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     var taps = 0;
     TestGesture? touch;
     var down = false;
@@ -548,7 +565,7 @@ void main() {
               onDragStart: (_) {},
               onDragEnd: (_) {},
             ),
-            child: _probe((context) => state = ElEventView.maybeOf(context)),
+            child: _probe((context) => state = _readState(context)),
           ),
         ),
       );
@@ -569,8 +586,8 @@ void main() {
   });
 
   testWidgets('祖先独占后立即清除失权后代，不补播其等待中的触摸反馈', (tester) async {
-    ElEventState? inner;
-    ElEventState? outer;
+    _InteractionState? inner;
+    _InteractionState? outer;
     TestGesture? touch;
     var down = false;
     try {
@@ -583,7 +600,7 @@ void main() {
             ),
             child: Builder(
               builder: (context) {
-                outer = ElEventView.maybeOf(context);
+                outer = _readState(context);
                 return ElEventView(
                   event: const ElEvent(
                     config: ElEventConfig(
@@ -591,9 +608,7 @@ void main() {
                       delayTouchUp: Duration(milliseconds: 200),
                     ),
                   ),
-                  child: _probe(
-                    (context) => inner = ElEventView.maybeOf(context),
-                  ),
+                  child: _probe((context) => inner = _readState(context)),
                 );
               },
             ),
@@ -617,8 +632,8 @@ void main() {
   });
 
   testWidgets('禁用清空交互，重新启用可恢复静止鼠标悬停', (tester) async {
-    ElEventState? state;
-    final child = _probe((context) => state = ElEventView.maybeOf(context));
+    _InteractionState? state;
+    final child = _probe((context) => state = _readState(context));
     Widget tree(bool disabled) => _shell(
       ElEventView(
         event: ElEvent(config: _immediate, disabled: disabled),
@@ -638,14 +653,12 @@ void main() {
       await tester.pump();
       expect(state!.hasTap, isTrue);
       await tester.pumpWidget(tree(true));
-      expect(state!.disabled, isTrue);
       expect(state!.hasTap, isFalse);
       expect(state!.hasHover, isFalse);
       await mouse.up();
       down = false;
       await tester.pumpWidget(tree(false));
       await tester.pump();
-      expect(state!.disabled, isFalse);
       expect(state!.hasHover, isTrue);
       expect(state!.hasTap, isFalse);
     } finally {
@@ -656,7 +669,7 @@ void main() {
   });
 
   testWidgets('卸载会释放等待进入和等待退出的计时器', (tester) async {
-    ElEventState? state;
+    _InteractionState? state;
     Widget tree() => _shell(
       ElEventView(
         event: const ElEvent(
@@ -665,7 +678,7 @@ void main() {
             delayTouchUp: Duration(milliseconds: 200),
           ),
         ),
-        child: _probe((context) => state = ElEventView.maybeOf(context)),
+        child: _probe((context) => state = _readState(context)),
       ),
     );
     TestGesture? touch;
