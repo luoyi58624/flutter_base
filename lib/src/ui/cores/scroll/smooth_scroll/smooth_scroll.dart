@@ -201,7 +201,7 @@ class ElChromiumSmoothScroll extends ElSmoothScroll {
   /// 创建默认对齐 Chromium 鼠标滚轮距离与曲线的平滑滚动算法。
   const ElChromiumSmoothScroll({
     this.minStep = 0.0,
-    this.strongDeltaMultiplier = 1.5,
+    this.strongDeltaMultiplier = 1.0,
     this.maxStep = double.infinity,
     this.accelerationPerTick = 0.0,
     this.maxAcceleration = 1.2,

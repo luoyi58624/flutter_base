@@ -431,7 +431,7 @@ class EventDispatcher {
     callback.hasAncestorDragConsumer = _hasAncestorDragConsumer(details.pointer, details.dragAxis);
     callback.dragPipelineActive = _proxyMembers(details.pointer).isNotEmpty;
 
-    _invoke(_handlerFor(callback.phase, axis: details.dragAxis), callback);
+    _invoke(_handlerFor(callback.phase, axis: _dragCallbackAxis(details)), callback);
     if (phase == ElEventPhase.dragStart &&
         details.isPrimaryTarget &&
         details.isActive &&
@@ -876,7 +876,7 @@ extension _EventBinding on EventDispatcher {
       if (!isActive()) return;
       // 主段承担生命周期，即使预处理耗尽余量也必须投递。
       if (pipeline.isNotEmpty) _gestureCallback(details);
-      _invoke(_handlerFor(callback.phase, axis: details.dragAxis), callback);
+      _invoke(_handlerFor(callback.phase, axis: _dragCallbackAxis(details)), callback);
       for (final member in pipeline) {
         if (!isActive() || exhausted()) break;
         _invokeDragProxy(member, member.event?.dragProxy?.onDragOverflow, callback, pre: false);
@@ -922,6 +922,11 @@ extension _EventBinding on EventDispatcher {
         Axis.vertical => _hasVertical,
         null => _hasHorizontal || _hasVertical,
       };
+
+  /// 自由拖拽的合作祖先按起手方向分派轴向回调，保留自由拖拽本身的二维语义。
+  Axis? _dragCallbackAxis(TransformGestureDetails details) =>
+      details.dragAxis ??
+      (!_hasFreeDrag && details.dragDirection != null ? axisDirectionToAxis(details.dragDirection!) : null);
 
   ElEventHandler? _dragHandler(
     Axis? axis,

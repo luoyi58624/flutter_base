@@ -372,7 +372,8 @@ class ViewElement extends RenderObjectElement {
     }
   }
 
-  bool get _needsKeyEventHandler => _hasKeyboardCallback;
+  // 无本地回调的主焦点仍须转发按键，让逻辑祖先收到未消费的事件。
+  bool get _needsKeyEventHandler => _needsFocusNode;
 
   void _syncKeyEventHandler(FocusNode node) {
     if (!_needsKeyEventHandler) {

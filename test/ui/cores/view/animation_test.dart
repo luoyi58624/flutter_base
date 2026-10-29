@@ -1,5265 +1,4855 @@
-import 'dart:math' as math;
-import 'dart:ui' show ColorSpace, ImageByteFormat, ImageFilter, PictureRecorder;
-import 'dart:ui' as ui show Image;
+import 'paint_recording.dart';
 
-import 'package:flutter/foundation.dart' show SynchronousFuture;
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+import 'dart:math' as math;
+import 'dart:ui';
+
+import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/cores/view/style/resolved/builder.dart';
+import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 场景中接受样式的视图标识。
-const viewKey = ValueKey('view');
-
-/// 在方向、父约束和 child 都真实参与布局的环境中挂载视图。
-Widget viewScene(
-  ElStyle style, {
-  Widget? child,
-  double width = 400,
-  double height = 300,
-  TextDirection direction = TextDirection.ltr,
-  Key key = viewKey,
-}) => Directionality(
-  textDirection: direction,
-  child: Center(
-    child: ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: width, maxHeight: height),
-      child: ElView(key: key, style: style, child: child),
-    ),
+Widget _directionalApp(Widget child) => MaterialApp(
+  home: Directionality(
+    textDirection: TextDirection.ltr,
+    child: Align(alignment: Alignment.topLeft, child: child),
   ),
 );
 
-/// 获取已挂载视图的实际渲染结果，不读取组件内部状态。
-RenderBox viewBox(WidgetTester tester, {Key key = viewKey}) =>
-    tester.renderObject<RenderBox>(find.byKey(key));
-
-/// 读取包含 margin 的实际占位。
-Size viewSize(WidgetTester tester, {Key key = viewKey}) =>
-    tester.getSize(find.byKey(key));
-
-/// 记录实际绘制输出，用于验证背景、圆角与裁剪的可见结果。
-List<Invocation> recordView(
-  WidgetTester tester, {
-  Key key = viewKey,
-  Offset offset = Offset.zero,
-}) {
-  final canvas = TestRecordingCanvas();
-  viewBox(tester, key: key).paint(TestRecordingPaintingContext(canvas), offset);
-  return canvas.invocations.map((entry) => entry.invocation).toList();
-}
-
-const _red = Color(0xffff0000), _blue = Color(0xff0000ff);
-const _linear = [ElTransition.all(Duration(milliseconds: 100), Curves.linear)];
-const _radiusTransition = [
-  ElTransition.field(
-    ElTransitionField.borderRadius,
-    Duration(milliseconds: 100),
-    Curves.linear,
-  ),
-];
-
-ElStyle _radiusStyle(BorderRadiusGeometry? radius, {Color? color = _red}) =>
-    ElStyle(
-      width: 100,
-      height: 60,
-      backgroundColor: color,
-      borderRadius: radius,
-      transitions: _radiusTransition,
-    );
-
-void _background(
-  WidgetTester tester,
-  BorderRadius? radius, {
-  Rect rect = const Rect.fromLTWH(0, 0, 100, 60),
-  Color color = _red,
-}) => expect(
-  viewBox(tester),
-  radius == null
-      ? (paints..rect(rect: rect, color: color))
-      : (paints..rrect(rrect: radius.toRRect(rect).scaleRadii(), color: color)),
+FieldAnimation _anim(ElTransitionField field) => FieldAnimation(
+  field: field,
+  from: const Color(0xFF000000),
+  to: const Color(0xFFFFFFFF),
+  duration: const Duration(milliseconds: 200),
 );
 
-const _overflowKey = ValueKey('clip-overflow-child');
-const _overflow = OverflowBox(
-  alignment: Alignment.topLeft,
-  minWidth: 160,
-  maxWidth: 160,
-  minHeight: 100,
-  maxHeight: 100,
-  child: ColoredBox(key: _overflowKey, color: _blue),
-);
-
-ElStyle _clipStyle({
-  Clip? clip,
-  BorderRadiusGeometry? radius = const BorderRadius.all(Radius.circular(30)),
-  Color? color = _red,
-  List<ElTransition>? transitions,
-}) => ElStyle(
-  width: 100,
-  height: 60,
-  backgroundColor: color,
-  borderRadius: radius,
-  clipBehavior: clip,
-  transitions: transitions,
-);
-
-Iterable<Invocation> _calls(List<Invocation> calls, Symbol method) =>
-    calls.where((call) => call.memberName == method);
-
-bool _hits(WidgetTester tester, Offset position, {Key key = viewKey}) =>
-    viewBox(tester, key: key).hitTest(BoxHitTestResult(), position: position);
-
-void _clip(
-  WidgetTester tester,
-  Clip clip, {
-  BorderRadius? radius,
-  Rect rect = const Rect.fromLTWH(0, 0, 100, 60),
-  Offset offset = Offset.zero,
-  Key key = viewKey,
-}) {
-  final calls = recordView(tester, key: key, offset: offset);
-  if (clip == Clip.none) {
-    expect(calls.map((call) => call.memberName), isNot(contains(#clipRect)));
-    expect(calls.map((call) => call.memberName), isNot(contains(#clipRRect)));
-    return;
-  }
-  final invocation = _calls(
-    calls,
-    radius == null ? #clipRect : #clipRRect,
-  ).first;
-  expect(
-    invocation.positionalArguments.first,
-    radius == null
-        ? rect.shift(offset)
-        : radius.toRRect(rect).scaleRadii().shift(offset),
-  );
-  expect(invocation.namedArguments[#doAntiAlias], clip != Clip.hardEdge);
-  if (clip == Clip.antiAliasWithSaveLayer) {
-    expect(
-      _calls(calls, #saveLayer).first.positionalArguments.first,
-      rect.shift(offset),
-    );
-  }
-}
-
-const _widthAndPadding = [
-  ElTransition.field(
-    ElTransitionField.width,
-    Duration(milliseconds: 100),
-    Curves.linear,
+Map<ElTransitionField, (Object?, Object?)> _transitionSamples() => {
+  ElTransitionField.color: (const Color(0xFF000000), const Color(0xFFFFFFFF)),
+  ElTransitionField.fontSize: (12.0, 20.0),
+  ElTransitionField.fontWeight: (FontWeight.w400, FontWeight.w700),
+  ElTransitionField.lineHeight: (1.0, 1.5),
+  ElTransitionField.letterSpacing: (0.0, 2.0),
+  ElTransitionField.wordSpacing: (0.0, 4.0),
+  ElTransitionField.textShadow: (
+    const <Shadow>[Shadow(color: Color(0x33000000), blurRadius: 2)],
+    const <Shadow>[Shadow(color: Color(0x66000000), blurRadius: 8)],
   ),
-  ElTransition.field(
-    ElTransitionField.padding,
-    Duration(milliseconds: 200),
-    Curves.linear,
+  ElTransitionField.decorationColor: (const Color(0xFF000000), const Color(0xFFFF0000)),
+  ElTransitionField.decorationThickness: (1.0, 2.0),
+  ElTransitionField.textBackgroundColor: (const Color(0x00FFFFFF), const Color(0xFFFFFF00)),
+  ElTransitionField.width: (100, 200),
+  ElTransitionField.height: (40, 80),
+  ElTransitionField.widthFactor: (0.5, 1.0),
+  ElTransitionField.heightFactor: (0.25, 1.0),
+  ElTransitionField.bgColor: (const Color(0xFF000000), const Color(0xFFFFFFFF)),
+  ElTransitionField.padding: (EdgeInsets.zero, const EdgeInsets.all(8)),
+  ElTransitionField.margin: (EdgeInsets.zero, const EdgeInsets.all(12)),
+  ElTransitionField.alignment: (Alignment.topLeft, Alignment.bottomRight),
+  ElTransitionField.border: (
+    const ElBorder.fromSide(ElBorderSide(color: Color(0xFF000000), width: 1)),
+    const ElBorder.fromSide(ElBorderSide(color: Color(0xFFFF0000), width: 4)),
   ),
-];
-const _widthAndHeight = [
-  ElTransition.field(
-    ElTransitionField.width,
-    Duration(milliseconds: 100),
-    Curves.linear,
+  ElTransitionField.borderRadius: (BorderRadius.zero, const BorderRadius.all(Radius.elliptical(12, 12))),
+  ElTransitionField.boxShadow: (
+    const <BoxShadow>[BoxShadow(color: Color(0x33000000), blurRadius: 2)],
+    const <BoxShadow>[BoxShadow(color: Color(0x66000000), blurRadius: 12)],
   ),
-  ElTransition.field(
-    ElTransitionField.height,
-    Duration(milliseconds: 200),
-    Curves.linear,
+  ElTransitionField.minWidth: (80, 120),
+  ElTransitionField.maxWidth: (200, 320),
+  ElTransitionField.minHeight: (24, 48),
+  ElTransitionField.maxHeight: (80, 120),
+  ElTransitionField.opacity: (1.0, 0.5),
+  ElTransitionField.transform: (const ElTransform.scale(1), const ElTransform.scale(1.2)),
+  ElTransitionField.transformAlignment: (Alignment.topLeft, Alignment.center),
+  ElTransitionField.gradient: (
+    const LinearGradient(colors: [Color(0xFFFF0000), Color(0xFF0000FF)]),
+    const LinearGradient(colors: [Color(0xFF00FF00), Color(0xFFFFFF00)]),
   ),
-];
+  ElTransitionField.textGradient: (
+    const ElLinearGradient(angle: 90, colors: [Color(0xFFFF0000), Color(0xFF0000FF)]),
+    const ElLinearGradient(angle: 90, colors: [Color(0xFF00FF00), Color(0xFFFFFF00)]),
+  ),
+  ElTransitionField.outline: (
+    const ElOutline(color: Color(0xFF000000), width: 1, offset: 0),
+    const ElOutline(color: Color(0xFF0000FF), width: 3, offset: 6),
+  ),
+  ElTransitionField.aspectRatio: (1.0, 16 / 9),
+  ElTransitionField.iconSize: (12.0, 20.0),
+  ElTransitionField.iconColor: (const Color(0xFF000000), const Color(0xFF409EFF)),
+  ElTransitionField.filter: (const ElFilter(blur: 2), const ElFilter(blur: 12)),
+  ElTransitionField.backdropFilter: (const ElFilter(blur: 4, saturate: 1.0), const ElFilter(blur: 24, saturate: 1.6)),
+};
 
-Future<void> _advanceTo99(WidgetTester tester, {required bool dense}) async {
-  if (dense) {
-    for (var i = 0; i < 9; i++) {
-      await tester.pump(const Duration(milliseconds: 10));
-    }
-    await tester.pump(const Duration(milliseconds: 9));
-  } else {
-    await tester.pump(const Duration(milliseconds: 99));
+ElStyle _styleFor(ElTransitionField field, Object? value) {
+  final transition = ElTransition.field(field, const Duration(milliseconds: 200));
+  switch (field) {
+    case ElTransitionField.color:
+      return ElStyle(color: value as Color?, transitions: [transition]);
+    case ElTransitionField.fontSize:
+      return ElStyle(fontSize: value as double?, transitions: [transition]);
+    case ElTransitionField.fontWeight:
+      return ElStyle(fontWeight: value as FontWeight?, transitions: [transition]);
+    case ElTransitionField.lineHeight:
+      return ElStyle(lineHeight: value as double?, transitions: [transition]);
+    case ElTransitionField.letterSpacing:
+      return ElStyle(letterSpacing: value as double?, transitions: [transition]);
+    case ElTransitionField.wordSpacing:
+      return ElStyle(wordSpacing: value as double?, transitions: [transition]);
+    case ElTransitionField.textShadow:
+      return ElStyle(textShadow: value as List<Shadow>?, transitions: [transition]);
+    case ElTransitionField.decorationColor:
+      return ElStyle(decorationColor: value as Color?, transitions: [transition]);
+    case ElTransitionField.decorationThickness:
+      return ElStyle(decorationThickness: value as double?, transitions: [transition]);
+    case ElTransitionField.textBackgroundColor:
+      return ElStyle(textBackgroundColor: value as Color?, transitions: [transition]);
+    case ElTransitionField.width:
+      return ElStyle(width: value, transitions: [transition]);
+    case ElTransitionField.height:
+      return ElStyle(height: value, transitions: [transition]);
+    case ElTransitionField.widthFactor:
+      return ElStyle(widthFactor: value as double?, transitions: [transition]);
+    case ElTransitionField.heightFactor:
+      return ElStyle(heightFactor: value as double?, transitions: [transition]);
+    case ElTransitionField.bgColor:
+      return ElStyle(bgColor: value as Color?, transitions: [transition]);
+    case ElTransitionField.padding:
+      return ElStyle(padding: value as EdgeInsetsGeometry?, transitions: [transition]);
+    case ElTransitionField.margin:
+      return ElStyle(margin: value as EdgeInsetsGeometry?, transitions: [transition]);
+    case ElTransitionField.alignment:
+      return ElStyle(alignment: value as AlignmentGeometry?, transitions: [transition]);
+    case ElTransitionField.border:
+      return ElStyle(border: value as ElBorder?, transitions: [transition]);
+    case ElTransitionField.borderRadius:
+      return ElStyle(borderRadius: value as BorderRadiusGeometry?, transitions: [transition]);
+    case ElTransitionField.boxShadow:
+      return ElStyle(boxShadow: value as List<BoxShadow>?, transitions: [transition]);
+    case ElTransitionField.minWidth:
+      return ElStyle(minWidth: value, transitions: [transition]);
+    case ElTransitionField.maxWidth:
+      return ElStyle(maxWidth: value, transitions: [transition]);
+    case ElTransitionField.minHeight:
+      return ElStyle(minHeight: value, transitions: [transition]);
+    case ElTransitionField.maxHeight:
+      return ElStyle(maxHeight: value, transitions: [transition]);
+    case ElTransitionField.opacity:
+      return ElStyle(opacity: value as double?, transitions: [transition]);
+    case ElTransitionField.transform:
+      return ElStyle(transform: value as ElTransform?, transitions: [transition]);
+    case ElTransitionField.transformAlignment:
+      return ElStyle(transformAlignment: value as AlignmentGeometry?, transitions: [transition]);
+    case ElTransitionField.gradient:
+      return ElStyle(gradient: value as Gradient?, transitions: [transition]);
+    case ElTransitionField.textGradient:
+      return ElStyle(textGradient: value as Gradient?, transitions: [transition]);
+    case ElTransitionField.outline:
+      return ElStyle(outline: value as ElOutline?, transitions: [transition]);
+    case ElTransitionField.aspectRatio:
+      return ElStyle(aspectRatio: value as double?, transitions: [transition]);
+    case ElTransitionField.iconSize:
+      return ElStyle(iconSize: value as double?, transitions: [transition]);
+    case ElTransitionField.iconColor:
+      return ElStyle(iconColor: value as Color?, transitions: [transition]);
+    case ElTransitionField.filter:
+      return ElStyle(filter: value as ElFilter?, transitions: [transition]);
+    case ElTransitionField.backdropFilter:
+      return ElStyle(backdropFilter: value as ElFilter?, transitions: [transition]);
+    default:
+      throw ArgumentError('No transition sample for ${field.name}');
   }
 }
 
-Offset _childOffset(WidgetTester tester, Key key) =>
-    tester.getTopLeft(find.byKey(key)) - tester.getTopLeft(find.byKey(viewKey));
+const _themeDuration = Duration(milliseconds: 160);
 
-class _NegativeCurve extends Curve {
-  const _NegativeCurve();
+const _frameDuration = Duration(milliseconds: 16);
+
+const _lightColor = Colors.white;
+
+const _darkColor = Color(0xFF212121);
+
+const _animationDuration = Duration(milliseconds: 200);
+
+const _firstFrameDuration = Duration(milliseconds: 16);
+
+const _elViewBodyKey = ValueKey('demo-el-view-body');
+
+const _contextVarContainerKey = ValueKey('demo-context-var-container');
+
+const _animatedContainerKey = ValueKey('demo-animated-container');
+
+class _DemoHarness extends StatefulWidget {
+  const _DemoHarness({super.key});
 
   @override
-  double transformInternal(double t) => -t;
+  State<_DemoHarness> createState() => _DemoHarnessState();
 }
 
-Color _color(RenderBox box) {
-  Color? result;
-  expect(
-    box,
-    paints..something((method, arguments) {
-      if (method != #drawRect) return false;
-      result = (arguments[1] as Paint).color;
-      return true;
-    }),
-  );
-  return result!;
-}
+class _DemoHarnessState extends State<_DemoHarness> {
+  bool _isDark = false;
 
-Future<void> _advance(WidgetTester tester, int ms) =>
-    tester.pump(Duration(milliseconds: ms));
+  void toggleTheme() => setState(() => _isDark = !_isDark);
 
-/// 在真实画布上采样当前视图，验证边框覆盖范围和最终可见颜色。
-Future<List<Color>> _borderPixels(
-  WidgetTester tester,
-  List<Offset> positions, {
-  Offset offset = const Offset(32, 32),
-}) async => (await tester.runAsync(() async {
-  const imageWidth = 600;
-  final recorder = PictureRecorder();
-  viewBox(tester).paint(TestRecordingPaintingContext(Canvas(recorder)), offset);
-  final picture = recorder.endRecording();
-  final image = await picture.toImage(imageWidth, 400);
-  final data = (await image.toByteData(
-    format: ImageByteFormat.rawStraightRgba,
-  ))!;
-  final bytes = data.buffer.asUint8List();
-  final colors = positions.map((position) {
-    final point = position + offset;
-    final index = (point.dy.floor() * imageWidth + point.dx.floor()) * 4;
-    return Color.fromARGB(
-      bytes[index + 3],
-      bytes[index],
-      bytes[index + 1],
-      bytes[index + 2],
-    );
-  }).toList();
-  image.dispose();
-  picture.dispose();
-  return colors;
-}))!;
+  @override
+  Widget build(BuildContext context) {
+    final brightness = _isDark ? Brightness.dark : Brightness.light;
 
-void _pixel(Color actual, Color expected) {
-  expect(actual.a, closeTo(expected.a, 2 / 255));
-  if (expected.a == 0) return;
-  expect(actual.r, closeTo(expected.r, 2 / 255));
-  expect(actual.g, closeTo(expected.g, 2 / 255));
-  expect(actual.b, closeTo(expected.b, 2 / 255));
-}
-
-ElStyle _borderStyle(
-  BoxBorder? border, {
-  List<ElTransition>? transitions = _linear,
-}) => ElStyle(width: 100, height: 60, border: border, transitions: transitions);
-
-const _outlineTransition = [
-  ElTransition.field(
-    ElTransitionField.outline,
-    Duration(milliseconds: 100),
-    Curves.linear,
-  ),
-];
-
-ElStyle _outlineStyle(
-  ElOutline? outline, {
-  List<ElTransition>? transitions = _outlineTransition,
-}) =>
-    ElStyle(width: 100, height: 60, outline: outline, transitions: transitions);
-
-const _effectsCaptureKey = ValueKey('effects-capture');
-
-Widget _effectsScene(
-  ElStyle style, {
-  Widget? child,
-  TextDirection direction = TextDirection.ltr,
-  Widget? behind,
-}) => Directionality(
-  textDirection: direction,
-  child: Center(
-    child: RepaintBoundary(
-      key: _effectsCaptureKey,
-      child: SizedBox(
-        width: 160,
-        height: 120,
-        child: behind == null
-            ? Center(
-                child: ElView(key: viewKey, style: style, child: child),
-              )
-            : Stack(
+    return ElView(
+      themeMode: ElThemeMode(brightness: brightness, duration: _animationDuration, curve: Curves.linear),
+      style: const ElStyle(
+        color: _lightColor,
+        onDark: ElStyle(color: _darkColor),
+      ),
+      child: MaterialApp(
+        themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
+        themeAnimationDuration: _animationDuration,
+        themeAnimationCurve: Curves.linear,
+        theme: ThemeData(
+          brightness: Brightness.light,
+          appBarTheme: AppBarThemeData(backgroundColor: _lightColor),
+        ),
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          appBarTheme: AppBarThemeData(backgroundColor: _darkColor),
+        ),
+        home: Scaffold(
+          appBar: AppBar(title: const Text('Home')),
+          body: ElView(
+            key: _elViewBodyKey,
+            style: const ElStyle(
+              width: '100%',
+              height: '100%',
+              bgColor: _lightColor,
+              onDark: ElStyle(bgColor: _darkColor),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Positioned.fill(child: behind),
-                  Center(
-                    child: ElView(key: viewKey, style: style, child: child),
+                  Builder(
+                    builder: (context) => AnimatedContainer(
+                      key: _contextVarContainerKey,
+                      duration: _animationDuration,
+                      curve: Curves.linear,
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(color: ElView.of(context).isDark ? _darkColor : _lightColor),
+                    ),
+                  ),
+                  AnimatedContainer(
+                    key: _animatedContainerKey,
+                    duration: _animationDuration,
+                    curve: Curves.linear,
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(color: _isDark ? _darkColor : _lightColor),
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
       ),
-    ),
-  ),
-);
-
-/// 从真实合成结果采样，子层也参与透明度与裁剪的验证。
-Future<List<Color>> _effectsPixels(
-  WidgetTester tester,
-  List<Offset> positions,
-) async => (await tester.runAsync(() async {
-  final boundary = tester.renderObject<RenderRepaintBoundary>(
-    find.byKey(_effectsCaptureKey),
-  );
-  final origin = viewBox(tester).localToGlobal(Offset.zero, ancestor: boundary);
-  final image = await boundary.toImage(pixelRatio: 1);
-  try {
-    final data = (await image.toByteData(
-      format: ImageByteFormat.rawStraightRgba,
-    ))!;
-    return positions.map((position) {
-      final point = origin + position;
-      final index = (point.dy.floor() * image.width + point.dx.floor()) * 4;
-      return Color.fromARGB(
-        data.getUint8(index + 3),
-        data.getUint8(index),
-        data.getUint8(index + 1),
-        data.getUint8(index + 2),
-      );
-    }).toList();
-  } finally {
-    image.dispose();
+    );
   }
-}))!;
-
-const _transformChildKey = ValueKey('animated-transform-child');
-const _transformChild = SizedBox(
-  key: _transformChildKey,
-  width: 100,
-  height: 60,
-);
-
-void _transformPoint(WidgetTester tester, Offset local, Offset expected) {
-  final child = tester.renderObject<RenderBox>(find.byKey(_transformChildKey));
-  final actual = child.localToGlobal(local, ancestor: viewBox(tester));
-  expect(actual.dx, closeTo(expected.dx, 1e-6));
-  expect(actual.dy, closeTo(expected.dy, 1e-6));
-  final inverse = child.globalToLocal(child.localToGlobal(local));
-  expect(inverse.dx, closeTo(local.dx, 1e-6));
-  expect(inverse.dy, closeTo(local.dy, 1e-6));
 }
 
-Rect _semanticRect(SemanticsNode node, SemanticsNode ancestor) {
-  var matrix = Matrix4.identity();
-  for (var current = node; current != ancestor; current = current.parent!) {
-    if (current.transform != null) matrix = current.transform! * matrix;
-  }
-  return MatrixUtils.transformRect(matrix, node.rect);
-}
+const _start = Color(0xFF000000);
 
-class _StripePattern extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var x = 0.0; x < size.width; x += 8) {
-      canvas.drawRect(
-        Rect.fromLTWH(x, 0, 8, size.height),
-        Paint()
-          ..color = (x / 8).floor().isEven
-              ? const Color(0xff000000)
-              : const Color(0xffffffff),
-      );
-    }
-  }
+const _themeEnd = Color(0xFFFFFFFF);
 
-  @override
-  bool shouldRepaint(_StripePattern oldDelegate) => false;
-}
-
-class _AnimatedClipper extends CustomClipper<Path> {
-  _AnimatedClipper(this.progress) : super(reclip: progress);
-
-  final ValueNotifier<double> progress;
-
-  @override
-  Path getClip(Size size) => Path()..addRect(getApproximateClipRect(size));
-
-  @override
-  Rect getApproximateClipRect(Size size) =>
-      Rect.fromLTWH(0, 0, size.width * progress.value, size.height);
-
-  @override
-  bool shouldReclip(_AnimatedClipper oldClipper) => true;
-}
-
-/// 同步提供确定的内存像素，动画时间不依赖图片解码或网络时序。
-class _FrameImage extends ImageProvider<_FrameImage> {
-  _FrameImage(this.frame);
-  final ui.Image frame;
-
-  @override
-  Future<_FrameImage> obtainKey(ImageConfiguration configuration) =>
-      SynchronousFuture(this);
-
-  @override
-  ImageStreamCompleter loadImage(
-    _FrameImage key,
-    ImageDecoderCallback decode,
-  ) => OneFrameImageStreamCompleter(
-    SynchronousFuture(ImageInfo(image: frame.clone())),
-  );
-}
-
-Future<_FrameImage> _frameImage(
-  WidgetTester tester,
-  Color color, {
-  Color? right,
-}) async {
-  final provider = (await tester.runAsync(() async {
-    final recorder = PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, 8, 4), Paint()..color = color);
-    if (right != null) {
-      canvas.drawRect(const Rect.fromLTWH(4, 0, 4, 4), Paint()..color = right);
-    }
-    final picture = recorder.endRecording();
-    try {
-      return _FrameImage(await picture.toImage(8, 4));
-    } finally {
-      picture.dispose();
-    }
-  }))!;
-  addTearDown(() async {
-    await provider.evict();
-    provider.frame.dispose();
-  });
-  return provider;
-}
-
-/// 用本机 Flutter 的原生装饰绘制作为中断混合、fit 和方向性几何的像素对照。
-Future<List<Color>> _nativeBackgroundPixels(
-  WidgetTester tester,
-  DecorationImage? image,
-  List<Offset> points, {
-  Size size = const Size(100, 60),
-  Color? background,
-  TextDirection direction = TextDirection.ltr,
-}) async => (await tester.runAsync(() async {
-  final painter = BoxDecoration(
-    color: background,
-    image: image,
-  ).createBoxPainter(() {});
-  final recorder = PictureRecorder();
-  final canvas = Canvas(recorder);
-  painter.paint(
-    canvas,
-    Offset.zero,
-    ImageConfiguration(size: size, textDirection: direction),
-  );
-  final picture = recorder.endRecording();
-  final result = await picture.toImage(size.width.ceil(), size.height.ceil());
-  try {
-    final data = (await result.toByteData(
-      format: ImageByteFormat.rawStraightRgba,
-    ))!;
-    return points.map((point) {
-      final i = (point.dy.floor() * result.width + point.dx.floor()) * 4;
-      return Color.fromARGB(
-        data.getUint8(i + 3),
-        data.getUint8(i),
-        data.getUint8(i + 1),
-        data.getUint8(i + 2),
-      );
-    }).toList();
-  } finally {
-    painter.dispose();
-    picture.dispose();
-    result.dispose();
-  }
-}))!;
+const _frameCount = 10;
 
 void main() {
-  group('背景图片中间值', () {
-    testWidgets('空值双向按原生逻辑淡入淡出，中间帧不会立即出现或消失', (tester) async {
-      final provider = await _frameImage(tester, const Color(0x80ff0000));
-      final image = DecorationImage(
-        image: provider,
-        fit: BoxFit.fill,
-        filterQuality: FilterQuality.none,
-      );
-      ElStyle style(DecorationImage? value) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundImage: value,
-        transitions: _linear,
-      );
-      const points = [Offset(50, 30)];
-      await tester.pumpWidget(_effectsScene(style(null)));
-      _pixel(
-        (await _effectsPixels(tester, points)).single,
-        const Color(0x00000000),
-      );
-      await tester.pumpWidget(_effectsScene(style(image)));
-      for (final (ms, t) in [(25, .25), (25, .5), (50, 1.0)]) {
-        await _advance(tester, ms);
-        final actual = (await _effectsPixels(tester, points)).single;
-        final expected = (await _nativeBackgroundPixels(
-          tester,
-          DecorationImage.lerp(null, image, t),
-          points,
-        )).single;
-        _pixel(actual, expected);
-        expect(actual.a, closeTo((128 / 255) * t, 2 / 255));
-      }
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, points)).single,
-        (await _nativeBackgroundPixels(
-          tester,
-          DecorationImage.lerp(image, null, .5),
-          points,
-        )).single,
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, points)).single,
-        const Color(0x00000000),
-      );
+  group('对齐插值', () {
+    group('双侧非 null：平滑插值', () {
+      test('topLeft → center → t=0.5 应为 (-0.5, -0.5)', () {
+        final v = lerpAlignment(Alignment.topLeft, Alignment.center, 0.5) as Alignment;
+        expect(v.x, closeTo(-0.5, 1e-9));
+        expect(v.y, closeTo(-0.5, 1e-9));
+      });
+
+      test('topLeft → bottomRight → t=0.5 应为 .center', () {
+        final v = lerpAlignment(Alignment.topLeft, Alignment.bottomRight, 0.5) as Alignment;
+        expect(v.x, closeTo(0, 1e-9));
+        expect(v.y, closeTo(0, 1e-9));
+      });
+
+      test('AlignmentDirectional ↔ Alignment 跨类型也能 lerp', () {
+        final v = lerpAlignment(AlignmentDirectional.centerStart, Alignment.centerRight, 0.5);
+        expect(v, isNotNull);
+      });
     });
 
-    testWidgets('两张半透明图使用原生预乘相加，中间值不因 source-over 叠深', (tester) async {
-      final red = await _frameImage(tester, const Color(0x80ff0000));
-      final blue = await _frameImage(tester, const Color(0x800000ff));
-      final a = DecorationImage(image: red, fit: BoxFit.fill);
-      final b = DecorationImage(image: blue, fit: BoxFit.fill);
-      ElStyle style(DecorationImage image) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundImage: image,
-        transitions: _linear,
-      );
-      const points = [Offset(20, 20), Offset(80, 40)];
-      await tester.pumpWidget(_effectsScene(style(a)));
-      await tester.pumpWidget(_effectsScene(style(b)));
-      for (final (ms, t) in [(25, .25), (25, .5), (50, 1.0)]) {
-        await _advance(tester, ms);
-        final actual = await _effectsPixels(tester, points);
-        final expected = await _nativeBackgroundPixels(
-          tester,
-          DecorationImage.lerp(a, b, t),
-          points,
-        );
-        for (var i = 0; i < actual.length; i++) {
-          _pixel(actual[i], expected[i]);
-          expect(actual[i].a, closeTo(128 / 255, 2 / 255));
-        }
-      }
+    group('单侧 null：step（layout 模式切换不能平滑）', () {
+      test('null → .center → t=0.3 取 from=null', () {
+        expect(lerpAlignment(null, Alignment.center, 0.3), isNull);
+      });
+
+      test('null → .center → t=0.7 取 to=.center', () {
+        expect(lerpAlignment(null, Alignment.center, 0.7), Alignment.center);
+      });
+
+      test('.bottomRight → null → t=0.3 取 from=.bottomRight', () {
+        expect(lerpAlignment(Alignment.bottomRight, null, 0.3), Alignment.bottomRight);
+      });
+
+      test('.bottomRight → null → t=0.7 取 to=null（必须能回到未声明）', () {
+        expect(lerpAlignment(Alignment.bottomRight, null, 0.7), isNull);
+      });
     });
 
-    testWidgets('延迟、等值重建和连续换图清空从原生混合值接续，背景色按独立截止结束', (tester) async {
-      final a = DecorationImage(
-        image: await _frameImage(tester, const Color(0x80ff0000)),
-        fit: BoxFit.none,
-      );
-      final b = DecorationImage(
-        image: await _frameImage(tester, const Color(0x800000ff)),
-        fit: BoxFit.none,
-      );
-      final c = DecorationImage(
-        image: await _frameImage(tester, const Color(0x8000ff00)),
-        fit: BoxFit.none,
-      );
-      const transitions = [
-        ElTransition(
-          field: ElTransitionField.backgroundImage,
-          duration: Duration(milliseconds: 100),
-          delay: Duration(milliseconds: 20),
-          curve: Curves.linear,
-        ),
-        ElTransition.field(
-          ElTransitionField.backgroundColor,
-          Duration(milliseconds: 200),
-          Curves.linear,
-        ),
-      ];
-      ElStyle style(
-        DecorationImage? image,
-        Color color, {
-        bool rebuild = false,
-      }) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundImage: image,
-        backgroundColor: color,
-        transitions: rebuild ? List.of(transitions) : transitions,
-      );
-      const points = [Offset(50, 30), Offset(5, 5)];
-      Future<void> compare(DecorationImage? image, double colorT) async {
-        final actual = await _effectsPixels(tester, points);
-        final expected = await _nativeBackgroundPixels(
-          tester,
-          image,
-          points,
-          background: Color.lerp(_red, _blue, colorT),
-        );
-        for (var i = 0; i < points.length; i++) {
-          _pixel(actual[i], expected[i]);
-        }
-      }
+    group('退化', () {
+      test('双侧均 null → null', () {
+        expect(lerpAlignment(null, null, 0.5), isNull);
+      });
 
-      await tester.pumpWidget(_effectsScene(style(a, _red)));
-      await tester.pumpWidget(_effectsScene(style(b, _blue)));
-      await _advance(tester, 20);
-      await compare(a, .1);
-      await _advance(tester, 25);
-      await compare(DecorationImage.lerp(a, b, .25), .225);
-      await tester.pumpWidget(
-        _effectsScene(
-          style(
-            DecorationImage(image: b.image, fit: BoxFit.none),
-            _blue,
-            rebuild: true,
-          ),
-        ),
-      );
-      await _advance(tester, 25);
-      final half = DecorationImage.lerp(a, b, .5);
-      await compare(half, .35);
-      await tester.pumpWidget(_effectsScene(style(c, _blue)));
-      await _advance(tester, 20);
-      await compare(half, .45);
-      await _advance(tester, 25);
-      final interrupted = DecorationImage.lerp(half, c, .25);
-      await compare(interrupted, .575);
-      await tester.pumpWidget(_effectsScene(style(null, _blue)));
-      await _advance(tester, 20);
-      await compare(interrupted, .675);
-      await _advance(tester, 50);
-      await compare(DecorationImage.lerp(interrupted, null, .5), .925);
-      await _advance(tester, 15);
-      await compare(DecorationImage.lerp(interrupted, null, .65), 1);
-      await _advance(tester, 35);
-      await compare(null, 1);
-    });
-
-    testWidgets('图片与尺寸边距圆角变换透明度及自身滤镜同步，复合 child 仍正常覆盖', (tester) async {
-      final a = DecorationImage(
-        image: await _frameImage(tester, _red),
-        fit: BoxFit.fill,
-      );
-      final b = DecorationImage(
-        image: await _frameImage(tester, _blue),
-        fit: BoxFit.fill,
-      );
-      ElStyle style(bool end) => ElStyle(
-        width: end ? 120 : 80,
-        height: end ? 80 : 40,
-        padding: EdgeInsets.all(end ? 12 : 4),
-        backgroundImage: end ? b : a,
-        borderRadius: BorderRadius.circular(end ? 20 : 0),
-        clipBehavior: Clip.antiAlias,
-        transform: ElTransform.translateX(end ? 12 : 0),
-        opacity: end ? .5 : 1,
-        filter: ElFilter(brightness: end ? .5 : 1),
-        transitions: _linear,
-      );
-      const child = RepaintBoundary(
-        child: Align(
-          child: SizedBox(
-            width: 10,
-            height: 10,
-            child: ColoredBox(color: Color(0xffffffff)),
-          ),
-        ),
-      );
-      await tester.pumpWidget(_effectsScene(style(false), child: child));
-      await tester.pumpWidget(_effectsScene(style(true), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(100, 60));
-      final middle = await _effectsPixels(tester, const [
-        Offset(9, 30),
-        Offset(56, 30),
-        Offset(6, 0),
-        Offset(0, 30),
-      ]);
-      _pixel(
-        middle[0],
-        const Color.from(alpha: .75, red: .375, green: 0, blue: .375),
-      );
-      _pixel(
-        middle[1],
-        const Color.from(alpha: .75, red: .75, green: .75, blue: .75),
-      );
-      _pixel(middle[2], const Color(0x00000000));
-      _pixel(middle[3], const Color(0x00000000));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 80));
-      final end = await _effectsPixels(tester, const [
-        Offset(15, 40),
-        Offset(72, 40),
-      ]);
-      _pixel(end[0], const Color.from(alpha: .5, red: 0, green: 0, blue: .5));
-      _pixel(end[1], const Color.from(alpha: .5, red: .5, green: .5, blue: .5));
-    });
-
-    testWidgets('原生图片 fit 与方向性几何在百分比尺寸过渡和 RTL 改向后保持同一截止', (tester) async {
-      final a = DecorationImage(
-        image: await _frameImage(tester, _red, right: const Color(0xff00ff00)),
-        fit: BoxFit.contain,
-        alignment: AlignmentDirectional.centerStart,
-        matchTextDirection: true,
-        filterQuality: FilterQuality.none,
-      );
-      final b = DecorationImage(
-        image: await _frameImage(tester, _blue, right: const Color(0xffffff00)),
-        fit: BoxFit.none,
-        alignment: AlignmentDirectional.bottomEnd,
-        matchTextDirection: true,
-        opacity: .6,
-        filterQuality: FilterQuality.none,
-      );
-      ElStyle style(bool end) => ElStyle(
-        width: end ? '75%' : '50%',
-        height: 60,
-        backgroundImage: end ? b : a,
-        transitions: _linear,
-      );
-      Future<void> compare(
-        double t,
-        double width,
-        TextDirection direction, {
-        bool exiting = false,
-      }) async {
-        expect(viewSize(tester), Size(width, 60));
-        final points = [
-          const Offset(1, 10),
-          Offset(width - 1, 58),
-          Offset(width / 2, 30),
-          const Offset(1, 58),
-        ];
-        final actual = await _effectsPixels(tester, points);
-        final expected = await _nativeBackgroundPixels(
-          tester,
-          exiting
-              ? DecorationImage.lerp(b, null, t)
-              : DecorationImage.lerp(a, b, t),
-          points,
-          size: Size(width, 60),
-          direction: direction,
-        );
-        for (var i = 0; i < points.length; i++) {
-          _pixel(actual[i], expected[i]);
-        }
-      }
-
-      await tester.pumpWidget(_effectsScene(style(false)));
-      await tester.pumpWidget(_effectsScene(style(true)));
-      await _advance(tester, 25);
-      await compare(.25, 90, TextDirection.ltr);
-      await tester.pumpWidget(
-        _effectsScene(style(true), direction: TextDirection.rtl),
-      );
-      await compare(.25, 90, TextDirection.rtl);
-      await _advance(tester, 25);
-      await compare(.5, 100, TextDirection.rtl);
-      await _advance(tester, 50);
-      await compare(1, 120, TextDirection.rtl);
-      const exitStyle = ElStyle(width: '75%', height: 60, transitions: _linear);
-      await tester.pumpWidget(_effectsScene(exitStyle));
-      await _advance(tester, 50);
-      await compare(.5, 120, TextDirection.ltr, exiting: true);
-      // 目标已清空，当前退出画面仍须响应环境方向，且保留原来的退出截止。
-      await tester.pumpWidget(
-        _effectsScene(exitStyle, direction: TextDirection.rtl),
-      );
-      await compare(.5, 120, TextDirection.rtl, exiting: true);
-      await _advance(tester, 50);
-      await compare(1, 120, TextDirection.rtl, exiting: true);
+      test('identical → 直接返回（不算 lerp）', () {
+        const a = Alignment.center;
+        expect(identical(lerpAlignment(a, a, 0.5), a), isTrue);
+      });
     });
   });
 
-  group('内容对齐中间值', () {
-    testWidgets('对齐插值保留边距、越界值及尺寸倍数穿越 1 的自然尺寸', (tester) async {
-      const childKey = ValueKey('alignment-interpolation-child');
-      const child = SizedBox(key: childKey, width: 20, height: 10);
-      ElStyle style(AlignmentGeometry alignment) => ElStyle(
-        width: 100,
-        height: 80,
-        padding: const EdgeInsets.fromLTRB(10, 6, 20, 14),
-        margin: const EdgeInsets.all(4),
-        alignment: alignment,
-        transitions: _linear,
-      );
+  group('边框插值', () {
+    testWidgets('onHover border 通过 Border.lerp 平滑过渡', (tester) async {
+      const key = ValueKey('border');
       await tester.pumpWidget(
-        viewScene(style(Alignment.topLeft), child: child),
-      );
-      expect(_childOffset(tester, childKey), const Offset(14, 10));
-      await tester.pumpWidget(
-        viewScene(style(Alignment.bottomRight), child: child),
-      );
-      for (final (ms, expected) in [
-        (25, const Offset(26.5, 22.5)),
-        (25, const Offset(39, 35)),
-        (50, const Offset(64, 60)),
-      ]) {
-        await _advance(tester, ms);
-        expect(viewSize(tester), const Size(108, 88));
-        expect(tester.getSize(find.byKey(childKey)), const Size(20, 10));
-        expect(_childOffset(tester, childKey), expected);
-      }
-      await tester.pumpWidget(
-        viewScene(style(const Alignment(3, -3)), child: child),
-      );
-      await _advance(tester, 50);
-      expect(_childOffset(tester, childKey), const Offset(89, 10));
-      await _advance(tester, 50);
-      expect(_childOffset(tester, childKey), const Offset(114, -40));
-
-      const factorViewKey = ValueKey('alignment-factor-view');
-      const factorChildKey = ValueKey('alignment-factor-child');
-      const factorChild = SizedBox(key: factorChildKey, width: 100, height: 40);
-      Widget factorScene(double factor) => viewScene(
-        ElStyle(
-          alignment: Alignment.center,
-          widthFactor: factor,
-          heightFactor: factor,
-          transitions: _linear,
-        ),
-        key: factorViewKey,
-        child: factorChild,
-      );
-      await tester.pumpWidget(factorScene(0.5));
-      expect(viewSize(tester, key: factorViewKey), const Size(50, 20));
-      await tester.pumpWidget(factorScene(1.5));
-      for (final (ms, expected) in [
-        (25, const Size(75, 30)),
-        (25, const Size(100, 40)),
-        (50, const Size(150, 60)),
-      ]) {
-        await _advance(tester, ms);
-        // 经过 1 仍是自然盒倍数模式，不能在中间一帧突然扩张到父上限。
-        expect(viewSize(tester, key: factorViewKey), expected);
-        expect(tester.getSize(find.byKey(factorChildKey)), const Size(100, 40));
-      }
-    });
-
-    testWidgets('对齐等待与中断接续当前坐标，等值声明重建不推迟截止时间', (tester) async {
-      const childKey = ValueKey('alignment-delay-child');
-      const child = SizedBox(key: childKey, width: 20, height: 10);
-      const transitions = [
-        ElTransition(
-          field: ElTransitionField.alignment,
-          duration: Duration(milliseconds: 100),
-          delay: Duration(milliseconds: 20),
-          curve: Curves.linear,
-        ),
-      ];
-      ElStyle style(AlignmentGeometry alignment, {bool rebuild = false}) =>
-          ElStyle(
-            width: 100,
-            height: 60,
-            alignment: alignment,
-            transitions: rebuild ? List.of(transitions) : transitions,
-          );
-      await tester.pumpWidget(
-        viewScene(style(Alignment.topLeft), child: child),
-      );
-      await tester.pumpWidget(
-        viewScene(style(Alignment.bottomRight), child: child),
-      );
-      await _advance(tester, 19);
-      expect(_childOffset(tester, childKey), Offset.zero);
-      await _advance(tester, 1);
-      expect(_childOffset(tester, childKey), Offset.zero);
-      await _advance(tester, 25);
-      expect(_childOffset(tester, childKey), const Offset(20, 12.5));
-      await tester.pumpWidget(
-        viewScene(style(Alignment.bottomRight, rebuild: true), child: child),
-      );
-      await _advance(tester, 25);
-      expect(_childOffset(tester, childKey), const Offset(40, 25));
-      await tester.pumpWidget(
-        viewScene(style(Alignment.topRight), child: child),
-      );
-      expect(_childOffset(tester, childKey), const Offset(40, 25));
-      await _advance(tester, 20);
-      expect(_childOffset(tester, childKey), const Offset(40, 25));
-      await _advance(tester, 25);
-      expect(_childOffset(tester, childKey), const Offset(50, 18.75));
-      await _advance(tester, 75);
-      expect(_childOffset(tester, childKey), const Offset(80, 0));
-    });
-
-    testWidgets('空值双向在中点切换布局模式，auto 在自然尺寸与有界扩张之间恢复', (tester) async {
-      const childKey = ValueKey('alignment-null-child');
-      const child = SizedBox(key: childKey, width: 20, height: 10);
-      ElStyle style(AlignmentGeometry? alignment) => ElStyle(
-        alignment: alignment,
-        padding: const EdgeInsets.all(10),
-        margin: const EdgeInsets.all(4),
-        transitions: _linear,
-      );
-      Widget scene(AlignmentGeometry? alignment) =>
-          viewScene(style(alignment), width: 200, height: 120, child: child);
-      await tester.pumpWidget(scene(null));
-      expect(viewSize(tester), const Size(48, 38));
-      expect(_childOffset(tester, childKey), const Offset(14, 14));
-      await tester.pumpWidget(scene(Alignment.bottomRight));
-      await _advance(tester, 49);
-      expect(viewSize(tester), const Size(48, 38));
-      expect(_childOffset(tester, childKey), const Offset(14, 14));
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(200, 120));
-      expect(_childOffset(tester, childKey), const Offset(166, 96));
-      await _advance(tester, 50);
-      await tester.pumpWidget(scene(null));
-      await _advance(tester, 49);
-      expect(viewSize(tester), const Size(200, 120));
-      expect(_childOffset(tester, childKey), const Offset(166, 96));
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(48, 38));
-      expect(_childOffset(tester, childKey), const Offset(14, 14));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(48, 38));
-    });
-
-    testWidgets('方向性起点与物理终点混合插值，改向立即更新坐标且不重启动画', (tester) async {
-      const childKey = ValueKey('alignment-direction-child');
-      const child = SizedBox(key: childKey, width: 20, height: 10);
-      ElStyle style(AlignmentGeometry alignment) => ElStyle(
-        width: 100,
-        height: 60,
-        alignment: alignment,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(
-        viewScene(style(AlignmentDirectional.topStart), child: child),
-      );
-      await tester.pumpWidget(
-        viewScene(style(Alignment.bottomRight), child: child),
-      );
-      await _advance(tester, 25);
-      expect(_childOffset(tester, childKey), const Offset(20, 12.5));
-      await tester.pumpWidget(
-        viewScene(
-          style(Alignment.bottomRight),
-          direction: TextDirection.rtl,
-          child: child,
-        ),
-      );
-      expect(_childOffset(tester, childKey), const Offset(80, 12.5));
-      await _advance(tester, 25);
-      expect(_childOffset(tester, childKey), const Offset(80, 25));
-      await _advance(tester, 50);
-      expect(_childOffset(tester, childKey), const Offset(80, 50));
-    });
-
-    testWidgets('对齐与 auto 百分比宽度和 padding 联动，真实坐标基线与语义每帧同步', (tester) async {
-      final semantics = tester.ensureSemantics();
-      const childKey = ValueKey('alignment-baseline-child');
-      const referenceKey = ValueKey('alignment-baseline-reference');
-      const rootKey = ValueKey('alignment-semantics-root');
-      const label = 'alignment-moving-child';
-      final child = Semantics(
-        container: true,
-        label: label,
-        child: const SizedBox(
-          key: childKey,
-          width: 20,
-          height: 10,
-          child: ExcludeSemantics(
-            child: Text('x', style: TextStyle(fontSize: 10, height: 1)),
-          ),
-        ),
-      );
-      ElStyle style(Object? width, double padding, Alignment alignment) =>
-          ElStyle(
-            width: width,
-            height: 80,
-            padding: EdgeInsets.all(padding),
-            alignment: alignment,
-            transitions: _linear,
-          );
-      Widget scene(ElStyle style, {double width = 200}) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: Semantics(
-            key: rootKey,
-            container: true,
-            explicitChildNodes: true,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: width, maxHeight: 120),
-                  child: ElView(key: viewKey, style: style, child: child),
-                ),
-                const SizedBox(
-                  key: referenceKey,
-                  width: 20,
-                  height: 10,
-                  child: ExcludeSemantics(
-                    child: Text('x', style: TextStyle(fontSize: 10, height: 1)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      void expectGeometry(Size size, Offset offset) {
-        expect(viewSize(tester), size);
-        expect(_childOffset(tester, childKey), offset);
-        final box = viewBox(tester);
-        final childBox = tester.renderObject<RenderBox>(find.byKey(childKey));
-        final baseline =
-            childBox.getDryBaseline(
-              childBox.constraints,
-              TextBaseline.alphabetic,
-            )! +
-            offset.dy;
-        expect(
-          tester.getTopLeft(find.byKey(referenceKey)).dy -
-              tester.getTopLeft(find.byKey(viewKey)).dy,
-          closeTo(offset.dy, 1e-6),
-        );
-        expect(
-          box.getDryBaseline(box.constraints, TextBaseline.alphabetic),
-          closeTo(baseline, 1e-6),
-        );
-        final node = find.semantics.byLabel(label).evaluate().single;
-        final rect = _semanticRect(
-          node,
-          tester.semantics.find(find.byKey(rootKey)),
-        );
-        expect(rect, offset & const Size(20, 10));
-      }
-
-      try {
-        await tester.pumpWidget(scene(style(null, 10, Alignment.topLeft)));
-        expectGeometry(const Size(200, 80), const Offset(10, 10));
-        await tester.pumpWidget(scene(style('50%', 20, Alignment.bottomRight)));
-        await _advance(tester, 50);
-        expectGeometry(const Size(150, 80), const Offset(65, 35));
-        await tester.pumpWidget(
-          scene(style('50%', 20, Alignment.bottomRight), width: 300),
-        );
-        expectGeometry(const Size(175, 80), const Offset(77.5, 35));
-        await _advance(tester, 50);
-        expectGeometry(const Size(150, 80), const Offset(110, 50));
-        await tester.pumpWidget(
-          scene(style(null, 20, Alignment.centerLeft), width: 300),
-        );
-        await _advance(tester, 50);
-        expectGeometry(const Size(225, 80), const Offset(102.5, 42.5));
-        await _advance(tester, 50);
-        expectGeometry(const Size(300, 80), const Offset(20, 35));
-      } finally {
-        semantics.dispose();
-      }
-    });
-  });
-
-  group('滤镜与自定义裁剪中间值', () {
-    testWidgets('颜色滤镜从 null 按各自恒等值插值，退场与中间像素连续', (tester) async {
-      ElStyle style(ElFilter? filter, {bool animate = true}) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundColor: _red,
-        filter: filter,
-        transitions: animate ? _linear : null,
-      );
-      for (final (filter, midpoint) in <(ElFilter, Color)>[
-        (
-          const ElFilter(saturate: 0),
-          const Color.from(alpha: 1, red: 0.6065, green: 0.1065, blue: 0.1065),
-        ),
-        (const ElFilter(brightness: 0), const Color(0xff800000)),
-        (const ElFilter(contrast: 0), const Color(0xffbf4040)),
-        (
-          const ElFilter(grayscale: 1),
-          const Color.from(alpha: 1, red: 0.6063, green: 0.1063, blue: 0.1063),
-        ),
-        (
-          const ElFilter(sepia: 1),
-          const Color.from(alpha: 1, red: 0.6965, green: 0.1745, blue: 0.136),
-        ),
-        (const ElFilter(invert: 1), const Color(0xff808080)),
-        (const ElFilter(hueRotate: 180), const Color(0xff005b00)),
-        (const ElFilter(hueRotate: 360), const Color(0xff006d6d)),
-        (const ElFilter(opacity: 0), const Color(0x80ff0000)),
-      ]) {
-        await tester.pumpWidget(_effectsScene(style(null, animate: false)));
-        await tester.pumpWidget(_effectsScene(style(filter)));
-        await _advance(tester, 50);
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-          midpoint,
-        );
-        await _advance(tester, 50);
-      }
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        _red,
-      );
-    });
-
-    testWidgets('blur 短手与双轴平滑转换使用 sigma，空值及负过冲不会泄漏残余模糊', (tester) async {
-      ElStyle style(
-        ElFilter? filter, {
-        List<ElTransition>? transitions = _linear,
-      }) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundColor: _red,
-        filter: filter,
-        transitions: transitions,
-      );
-      const samples = [
-        Offset(-3, 30),
-        Offset(50, -3),
-        Offset(-2, -2),
-        Offset(50, 30),
-      ];
-      await tester.pumpWidget(_effectsScene(style(const ElFilter(blur: 4))));
-      await tester.pumpWidget(
-        _effectsScene(style(const ElFilter(blurX: 8, blurY: 0))),
-      );
-      await _advance(tester, 50);
-      final actual = await _effectsPixels(tester, samples);
-      await tester.pumpWidget(
-        _effectsScene(
-          const ElStyle(width: 100, height: 60),
-          child: ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 2),
-            child: const SizedBox.expand(child: ColoredBox(color: _red)),
-          ),
-        ),
-      );
-      final expected = await _effectsPixels(tester, samples);
-      for (var i = 0; i < actual.length; i++) {
-        _pixel(actual[i], expected[i]);
-      }
-      await tester.pumpWidget(_effectsScene(style(null, transitions: null)));
-      await tester.pumpWidget(
-        _effectsScene(
-          style(
-            const ElFilter(blur: 4),
-            transitions: const [
-              ElTransition.field(
-                ElTransitionField.filter,
-                Duration(milliseconds: 100),
-                _NegativeCurve(),
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                padding: .symmetric(vertical: 8, horizontal: 16),
+                border: .fromSide(ElBorderSide(color: Colors.grey, width: 1)),
+                transitions: [ElTransition.all(Duration(milliseconds: 250))],
+                onHover: ElStyle(border: .fromSide(ElBorderSide(color: Colors.blue, width: 3.5))),
               ),
-            ],
+              child: ElView(child: 'hello'),
+            ),
           ),
         ),
       );
-      await _advance(tester, 50);
-      var pixels = await _effectsPixels(tester, samples);
-      _pixel(pixels[0], const Color(0x00000000));
-      _pixel(pixels[1], const Color(0x00000000));
-      _pixel(pixels[3], _red);
-      await _advance(tester, 50);
-      pixels = await _effectsPixels(tester, samples);
-      expect(pixels[0].a, greaterThan(0));
-      expect(pixels[1].a, greaterThan(0));
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 100);
-      pixels = await _effectsPixels(tester, samples);
-      _pixel(pixels[0], const Color(0x00000000));
-      _pixel(pixels[3], _red);
+      await tester.pump();
+
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(render.committedResolvedStyle.box.border!.top.width, 1);
+      expect(render.committedResolvedStyle.box.border!.top.color, Colors.grey);
+
+      render.setHover(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 125));
+
+      final middle = render.committedResolvedStyle.box.border!;
+      expect(middle.top.width, greaterThan(1));
+      expect(middle.top.width, lessThan(3.5));
+      expect(middle.top.color, isNot(Colors.grey));
+      expect(middle.top.color, isNot(Colors.blue));
+
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final end = render.committedResolvedStyle.box.border!;
+      expect(end.top.width, 3.5);
+      expect(end.top.color, Colors.blue);
     });
 
-    testWidgets('自身与背景滤镜各自延迟和中断，等值重建后仍在原截止帧完成', (tester) async {
-      ElStyle style(double brightness, double invert) => ElStyle(
-        width: 100,
-        height: 60,
-        filter: ElFilter(brightness: brightness),
-        backdropFilter: ElFilter(invert: invert),
-        transitions: const [
-          ElTransition.field(
-            ElTransitionField.filter,
-            Duration(milliseconds: 100),
-            Curves.linear,
-            Duration(milliseconds: 20),
-          ),
-          ElTransition.field(
-            ElTransitionField.backdropFilter,
-            Duration(milliseconds: 200),
-            Curves.linear,
-          ),
-        ],
-      );
-      const child = Align(
-        child: SizedBox(width: 20, height: 20, child: ColoredBox(color: _red)),
-      );
-      Widget scene(double brightness, double invert) => _effectsScene(
-        style(brightness, invert),
-        behind: CustomPaint(painter: _StripePattern()),
-        child: child,
-      );
-      await tester.pumpWidget(scene(1, 0));
-      await tester.pumpWidget(scene(0.5, 1));
-      await _advance(tester, 20);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        _red,
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xffbf0000),
-      );
-      await tester.pumpWidget(scene(1, 1));
-      await _advance(tester, 20);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xffbf0000),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xffdf0000),
-      );
-      final combined = await _effectsPixels(tester, const [
-        Offset(46, 15),
-        Offset(50, 15),
-      ]);
-      _pixel(
-        combined[0],
-        const Color.from(alpha: 1, red: 0.2625, green: 0.2625, blue: 0.2625),
-      );
-      _pixel(
-        combined[1],
-        const Color.from(alpha: 1, red: 0.6125, green: 0.6125, blue: 0.6125),
-      );
-      await tester.pumpWidget(scene(1, 1));
-      await _advance(tester, 60);
-      final pixels = await _effectsPixels(tester, const [
-        Offset(46, 15),
-        Offset(50, 15),
-        Offset(50, 30),
-      ]);
-      _pixel(pixels[0], const Color(0xff000000));
-      _pixel(pixels[1], const Color(0xffffffff));
-      _pixel(pixels[2], _red);
-    });
-
-    testWidgets('clipper 切换立即生效，监听通知在滤镜过渡中同步真实像素和语义', (tester) async {
-      final progress = ValueNotifier(0.5);
-      final semantics = tester.ensureSemantics();
-      final clipper = _AnimatedClipper(progress);
-      try {
-        ElStyle style(ElFilter? filter, {Clip? clip}) => ElStyle(
-          width: 100,
-          height: 60,
-          backgroundColor: _red,
-          clipper: clipper,
-          clipBehavior: clip,
-          filter: filter,
-          transitions: _linear,
-        );
-        Widget scene(ElStyle value) => _effectsScene(
-          value,
-          child: OverflowBox(
-            alignment: Alignment.topLeft,
-            minWidth: 100,
-            maxWidth: 100,
-            minHeight: 60,
-            maxHeight: 60,
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 60,
-                  top: 10,
-                  child: Semantics(
-                    container: true,
-                    label: '动画裁剪内容',
-                    child: const SizedBox(width: 20, height: 20),
-                  ),
+    testWidgets('example2：border align 在过渡中点发生几何跳变', (tester) async {
+      const key = ValueKey('example2-border');
+      const outerRect = Rect.fromLTWH(0, 0, 60, 60);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 60,
+                height: 60,
+                padding: .all(16),
+                border: .all(color: Colors.grey),
+                borderRadius: .all(Radius.circular(8)),
+                transitions: [.all()],
+                onHover: ElStyle(
+                  border: .all(width: 5, color: Colors.blue, align: .center),
                 ),
-              ],
+              ),
             ),
           ),
+        ),
+      );
+      await tester.pump();
+
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+
+      (ElBorder border, Rect centerRect, double width) sample() {
+        final committed = render.committedResolvedStyle;
+        final border = committed.box.border!;
+        final ops = recordBorderPaints(
+          rect: outerRect,
+          border: border,
+          borderRadius: ViewBoxPainter.effectiveBorderRadius(
+            committed.box,
+            textDirection: committed.inheritedBox.textDirection ?? TextDirection.ltr,
+          ),
+        )!;
+        final centerRect = switch (ops.single.$1) {
+          Rect value => value,
+          RRect value => value.outerRect,
+          Path value => value.getBounds(),
+          final value => throw StateError('未知 border 几何：${value.runtimeType}'),
+        };
+        return (border, centerRect, border.top.resolveWidth());
+      }
+
+      render.setHover(true);
+      await tester.pump();
+
+      var previous = sample();
+      var foundJump = false;
+      for (var frame = 0; frame < 30; frame++) {
+        await tester.pump(const Duration(milliseconds: 10));
+        final current = sample();
+        if (previous.$1.align != current.$1.align) {
+          expect(previous.$1.align, ElBorderAlign.inside);
+          expect(current.$1.align, ElBorderAlign.center);
+          expect(current.$3 - previous.$3, lessThan(0.75), reason: '边宽本身仍是连续插值');
+          expect(previous.$2.left - current.$2.left, greaterThan(1), reason: 'align 离散切换使描边中心线瞬间外移');
+          foundJump = true;
+          break;
+        }
+        previous = current;
+      }
+
+      expect(foundJump, isTrue, reason: 'example2 的 inside → center 应能稳定复现几何跳变');
+    });
+  });
+
+  group('CSS 初值插值', () {
+    group('lerpColor: 透明端点沿用可见端点色相', () {
+      test('from=null, to=white → t=0.5 应为 50% alpha 的 white', () {
+        final v = lerpColor(null, const Color(0xFFFFFFFF), 0.5) as Color;
+        // r/g/b 保持 1.0 (white)，alpha 在 0 → 1 中点 ≈ 0.5
+        expect(v.r, closeTo(1.0, 1e-6));
+        expect(v.g, closeTo(1.0, 1e-6));
+        expect(v.b, closeTo(1.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('from=red, to=null → t=0.5 应为 50% alpha 的 red', () {
+        final v = lerpColor(const Color(0xFFFF0000), null, 0.5) as Color;
+        expect(v.r, closeTo(1.0, 1e-6));
+        expect(v.g, closeTo(0.0, 1e-6));
+        expect(v.b, closeTo(0.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('transparent black → blue：t=0.5 保持 blue 色相，仅插值 alpha', () {
+        final v = lerpColor(const Color(0x00000000), const Color(0xFF0000FF), 0.5) as Color;
+        expect(v.r, closeTo(0.0, 1e-6));
+        expect(v.g, closeTo(0.0, 1e-6));
+        expect(v.b, closeTo(1.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('blue → transparent black：t=0.5 保持 blue 色相，仅插值 alpha', () {
+        final v = lerpColor(const Color(0xFF0000FF), const Color(0x00000000), 0.5) as Color;
+        expect(v.r, closeTo(0.0, 1e-6));
+        expect(v.g, closeTo(0.0, 1e-6));
+        expect(v.b, closeTo(1.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('双侧均 null → null（无可插值端点）', () {
+        expect(lerpColor(null, null, 0.5), isNull);
+      });
+
+      test('双侧不透明：与 Color.lerp 一致', () {
+        final v = lerpColor(const Color(0xFF000000), const Color(0xFFFFFFFF), 0.5) as Color;
+        expect(v.r, closeTo(0.5, 0.01));
+        expect(v.g, closeTo(0.5, 0.01));
+        expect(v.b, closeTo(0.5, 0.01));
+      });
+    });
+
+    group('lerpOpacityValue: 单侧 null → 1.0 替换', () {
+      test('from=null, to=0.5 → t=0.5 应为 0.75 (1→0.5 中点)', () {
+        expect(lerpOpacityValue(null, 0.5, 0.5), closeTo(0.75, 1e-9));
+      });
+
+      test('from=0.2, to=null → t=0.5 应为 0.6 (0.2→1 中点)', () {
+        expect(lerpOpacityValue(0.2, null, 0.5), closeTo(0.6, 1e-9));
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpOpacityValue(null, null, 0.5), isNull);
+      });
+
+      test('双侧非 null：线性插值', () {
+        expect(lerpOpacityValue(0.0, 1.0, 0.5), closeTo(0.5, 1e-9));
+      });
+    });
+
+    group('lerpFactorValue: 单侧 null → 1.0 替换', () {
+      test('from=null, to=0.5 → t=0.5 应为 0.75', () {
+        expect(lerpFactorValue(null, 0.5, 0.5), closeTo(0.75, 1e-9));
+      });
+
+      test('from=0.5, to=null → t=0.5 应为 0.75', () {
+        expect(lerpFactorValue(0.5, null, 0.5), closeTo(0.75, 1e-9));
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpFactorValue(null, null, 0.5), isNull);
+      });
+
+      test('双侧非 null：线性插值', () {
+        expect(lerpFactorValue(0.2, 0.8, 0.5), closeTo(0.5, 1e-9));
+      });
+    });
+
+    group('lerpDoubleZero: 单侧 null → 0.0 替换', () {
+      test('from=null, to=10 → t=0.5 应为 5 (0→10 中点)', () {
+        expect(lerpDoubleZero(null, 10.0, 0.5), closeTo(5, 1e-9));
+      });
+
+      test('from=20, to=null → t=0.5 应为 10 (20→0 中点)', () {
+        expect(lerpDoubleZero(20.0, null, 0.5), closeTo(10, 1e-9));
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpDoubleZero(null, null, 0.5), isNull);
+      });
+    });
+
+    group('lerpEdgeInsetsValue: 单侧 null → 原生零边距', () {
+      test('from=null, to=EI.all(8) → t=0.5 应为 EI.all(4)', () {
+        final v = (lerpEdgeInsetsValue(null, const EdgeInsets.all(8), 0.5) as EdgeInsetsGeometry).resolve(
+          TextDirection.ltr,
         );
-        await tester.pumpWidget(scene(style(null)));
-        await tester.pumpWidget(scene(style(const ElFilter(invert: 1))));
-        await _advance(tester, 25);
-        expect(find.semantics.byLabel('动画裁剪内容'), findsNothing);
-        progress.value = 0.8;
-        await tester.pump();
-        var pixels = await _effectsPixels(tester, const [
-          Offset(70, 30),
-          Offset(90, 30),
-        ]);
-        _pixel(pixels[0], const Color(0xffbf4040));
-        _pixel(pixels[1], const Color(0x00000000));
-        expect(find.semantics.byLabel('动画裁剪内容'), findsOne);
-        await tester.pumpWidget(
-          scene(style(const ElFilter(invert: 1), clip: Clip.none)),
+        expect(v, const EdgeInsets.all(4));
+      });
+
+      test('from=EI.all(16), to=null → t=0.5 应为 EI.all(8)', () {
+        final v = (lerpEdgeInsetsValue(const EdgeInsets.all(16), null, 0.5) as EdgeInsetsGeometry).resolve(
+          TextDirection.ltr,
         );
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(90, 30)])).single,
-          const Color(0xffbf4040),
-        );
-        await _advance(tester, 25);
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(90, 30)])).single,
-          const Color(0xff808080),
-        );
-        progress.value = 0.3;
-        await tester.pump();
-        await tester.pumpWidget(scene(style(const ElFilter(invert: 1))));
-        expect(find.semantics.byLabel('动画裁剪内容'), findsNothing);
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(70, 30)])).single,
-          const Color(0x00000000),
-        );
-        await _advance(tester, 50);
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(20, 30)])).single,
-          const Color(0xff00ffff),
-        );
+        expect(v, const EdgeInsets.all(8));
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpEdgeInsetsValue(null, null, 0.5), isNull);
+      });
+    });
+
+    group('lerpBorderRadiusValue: 单侧 null → zero 替换', () {
+      test('from=null, to=circular(20) → t=0.5 半径 10', () {
+        final v = lerpBorderRadiusValue(null, const BorderRadius.all(Radius.circular(20)), 0.5) as BorderRadiusGeometry;
+        final br = v.resolve(TextDirection.ltr);
+        expect(br.topLeft.x, closeTo(10, 1e-9));
+        expect(br.topLeft.y, closeTo(10, 1e-9));
+      });
+
+      test('from=circular(16), to=null → t=0.5 半径 8', () {
+        final v = lerpBorderRadiusValue(const BorderRadius.all(Radius.circular(16)), null, 0.5) as BorderRadiusGeometry;
+        final br = v.resolve(TextDirection.ltr);
+        expect(br.topLeft.x, closeTo(8, 1e-9));
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpBorderRadiusValue(null, null, 0.5), isNull);
+      });
+    });
+
+    group('lerpTransform: 单侧 null → identity 替换', () {
+      test('from=null, to=matrix3d → t=0.5 逐矩阵分量向目标插值', () {
+        const end = ElTransform.matrix3d(0.8, 0, 0, 0, 0, 0.6, 0, 0, 0, 0, 2, -0.002, 10, 20, 4, 1);
+
+        final v = lerpTransform(null, end, 0.5)! as ElTransform;
+        final matrix = v.toMatrix4();
+
+        expect(matrix.storage[0], closeTo(0.9, 0.0001));
+        expect(matrix.storage[5], closeTo(0.8, 0.0001));
+        expect(matrix.storage[10], closeTo(1.5, 0.0001));
+        expect(matrix.storage[11], closeTo(-0.001, 0.0001));
+        expect(matrix.storage[12], closeTo(5, 0.0001));
+        expect(matrix.storage[13], closeTo(10, 0.0001));
+        expect(matrix.storage[14], closeTo(2, 0.0001));
+      });
+
+      test('from=scale, to=null → t=0.5 向 identity 插值', () {
+        const start = ElTransform.scale(0.8, 0.6, 2);
+
+        final v = lerpTransform(start, null, 0.5)! as ElTransform;
+        final matrix = v.toMatrix4();
+
+        expect(matrix.storage[0], closeTo(0.9, 0.0001));
+        expect(matrix.storage[5], closeTo(0.8, 0.0001));
+        expect(matrix.storage[10], closeTo(1.5, 0.0001));
+        expect(lerpTransform(start, null, 1.0), isNull);
+      });
+
+      test('双侧均 null → null', () {
+        expect(lerpTransform(null, null, 0.5), isNull);
+      });
+    });
+
+    group('lerpDoubleValue: 单侧 null 仍 step（继承字段 + 无清晰零值字段兜底）', () {
+      test('from=null, to=10 → t=0.3 取 from (step)', () {
+        expect(lerpDoubleValue(null, 10.0, 0.3), isNull);
+      });
+
+      test('from=null, to=10 → t=0.7 取 to (step)', () {
+        expect(lerpDoubleValue(null, 10.0, 0.7), 10.0);
+      });
+    });
+  });
+
+  group('动画字段快照', () {
+    testWidgets('字段集合不变时复用同一快照实例', (tester) async {
+      final d = StyleAnimationDriver(onTick: () {});
+      try {
+        d.startAnimation(_anim(ElTransitionField.color));
+        final first = d.activeFields;
+        final second = d.activeFields;
+        expect(identical(first, second), isTrue, reason: '稳态逐帧读取应零分配复用');
+        expect(first, [ElTransitionField.color]);
       } finally {
-        semantics.dispose();
-        progress.dispose();
+        d.dispose();
+      }
+    });
+
+    testWidgets('字段集合变更后重建快照，旧快照内容不受影响', (tester) async {
+      final d = StyleAnimationDriver(onTick: () {});
+      try {
+        d.startAnimation(_anim(ElTransitionField.color));
+        final before = d.activeFields;
+        final beforeContent = before.toList();
+
+        d.startAnimation(_anim(ElTransitionField.bgColor));
+        final after = d.activeFields;
+        expect(identical(before, after), isFalse, reason: '字段集合变更必须换新实例');
+        expect(after, unorderedEquals([ElTransitionField.color, ElTransitionField.bgColor]));
+        expect(before, beforeContent, reason: '已被持有的旧快照不被原地改写');
+
+        d.cancelAnimation(ElTransitionField.color);
+        expect(d.activeFields, [ElTransitionField.bgColor]);
+
+        d.cancelAll();
+        expect(d.activeFields, isEmpty);
+      } finally {
+        d.dispose();
       }
     });
   });
 
-  group('视觉变换中间值', () {
-    testWidgets('null 以中性变换参与平移缩放，打断从当前值接续并最终清空', (tester) async {
-      ElStyle style(ElTransform? transform) => ElStyle(
-        width: 100,
-        height: 60,
-        transform: transform,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(null), child: _transformChild));
-      await tester.pumpWidget(
-        viewScene(
-          style(const ElTransform.translate(40, 20)),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(30, 30));
-      await tester.pumpWidget(
-        viewScene(
-          style(const ElTransform.translate(80, 40)),
-          child: _transformChild,
-        ),
-      );
-      _transformPoint(tester, const Offset(10, 20), const Offset(30, 30));
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(60, 45));
-      await _advance(tester, 50);
-      await tester.pumpWidget(viewScene(style(null), child: _transformChild));
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(50, 40));
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(10, 20));
-      await tester.pumpWidget(
-        viewScene(
-          style(const ElTransform.scale(2).alignment(Alignment.topLeft)),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      // null 端借用非中性端的原点，不会先绕中心再跳到左上角。
-      _transformPoint(tester, const Offset(10, 20), const Offset(15, 30));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(100, 60));
-    });
+  group('动画长度快照', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
 
-    testWidgets('等矩阵不同来源仍保留角度，零到两 pi 的四分之一帧真实旋转整圈', (tester) async {
-      ElStyle style(ElTransform transform) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundColor: _red,
-        transform: transform,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(
-        _effectsScene(
-          style(const ElTransform.scale(1)),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        _effectsScene(style(ElTransform.rotate(0)), child: _transformChild),
-      );
-      await _advance(tester, 100);
-      await tester.pumpWidget(
-        _effectsScene(
-          style(ElTransform.rotate(2 * math.pi)),
-          child: _transformChild,
-        ),
-      );
-      for (final (position, painted) in <(Offset, bool)>[
-        (const Offset(50, 70), true),
-        (const Offset(10, 30), false),
-        (const Offset(50, -10), true),
-        (const Offset(90, 30), false),
-      ]) {
-        await _advance(tester, 25);
-        _transformPoint(tester, const Offset(90, 30), position);
-        _pixel(
-          (await _effectsPixels(tester, const [Offset(50, -10)])).single,
-          painted ? _red : const Color(0x00000000),
+    group('lengthSnapshotResolver: null↔px 平滑过渡', () {
+      test('from=null, to=100, snapshot=30 → t=0.5 应为 65 (30→100 中点)', () {
+        ElTransitionField? queried;
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            queried = f;
+            return 30.0;
+          },
         );
-      }
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: null,
+            to: const ElDimension.pixels(100),
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+          expect(queried, ElTransitionField.width, reason: 'driver 应调 resolver 拿快照');
+
+          anim.advance(const Duration(milliseconds: 50));
+          final v = anim.currentValue() as ElDimension;
+          expect(v.kind, ElLengthKind.pixels);
+          expect(v.pxPart, closeTo(65, 1e-9), reason: 'from=null 被替换为 30，从 30 → 100 在 t=0.5 是 65');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('from=200, to=null, snapshot=50 → t=0.5 应为 125 (200→50 中点)', () {
+        final d = StyleAnimationDriver(onTick: () {}, lengthSnapshotResolver: (f) => 50.0);
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: const ElDimension.pixels(200),
+            to: null,
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+          anim.advance(const Duration(milliseconds: 50));
+          final v = anim.currentValue() as ElDimension;
+          expect(v.kind, ElLengthKind.pixels);
+          expect(v.pxPart, closeTo(125, 1e-9), reason: 'to=null 被替换为 50，从 200 → 50 在 t=0.5 是 125');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('完成态精确对齐原始 to=null（保 null 语义）', () {
+        final d = StyleAnimationDriver(onTick: () {}, lengthSnapshotResolver: (f) => 80.0);
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: const ElDimension.pixels(200),
+            to: null,
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+          anim.advance(const Duration(milliseconds: 100));
+          expect(anim.isComplete, isTrue);
+          expect(anim.currentValue(), isNull, reason: '完成态仍回原始 to=null —— cascade 收尾可正确回到 auto');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('height 字段也走快照替换', () {
+        final queried = <ElTransitionField>[];
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            queried.add(f);
+            return 40.0;
+          },
+        );
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.height,
+              from: null,
+              to: const ElDimension.pixels(120),
+              duration: const Duration(milliseconds: 100),
+            ),
+          );
+          expect(queried, [ElTransitionField.height]);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('to:auto 可在真实 layout 后补入快照，并保留另一侧已归一化端点', () {
+        final d = StyleAnimationDriver(onTick: () {}, lengthSnapshotResolver: (f) => null);
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: const ElDimension.pixels(240),
+            to: null,
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+
+          expect(d.resolveDeferredLengthSnapshot(ElTransitionField.width, 80), isTrue);
+          anim.advance(const Duration(milliseconds: 50));
+          final value = anim.currentValue() as ElDimension;
+          expect(value.pxPart, 160, reason: '补入 auto=80 时显式端点仍须为 240');
+          expect(anim.from, const ElDimension.pixels(240));
+          expect(anim.to, isNull);
+        } finally {
+          d.dispose();
+        }
+      });
     });
 
-    testWidgets('同类 skew 插角度，异类和异轴按矩阵过渡，曲线过冲保留真实外推', (tester) async {
-      ElStyle style(
-        ElTransform transform, {
-        List<ElTransition>? transitions = _linear,
-      }) => ElStyle(
-        width: 100,
-        height: 60,
-        transform: transform,
-        transformAlignment: Alignment.topLeft,
-        transitions: transitions,
-      );
-      await tester.pumpWidget(
-        viewScene(style(ElTransform.skewX(0)), child: _transformChild),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(ElTransform.skewX(math.pi / 4)),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      _transformPoint(
-        tester,
-        const Offset(10, 20),
-        Offset(10 + 20 * math.tan(math.pi / 8), 20),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(const ElTransform.translateX(40), transitions: null),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(style(const ElTransform.scale(2)), child: _transformChild),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(35, 30));
-      await tester.pumpWidget(
-        viewScene(
-          style(ElTransform.rotateX(math.pi / 2), transitions: null),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(ElTransform.rotateY(math.pi / 2)),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      // 两个不同旋转轴退回矩阵插值，二维投影的中点分别为一半。
-      final child = tester.renderObject<RenderBox>(
-        find.byKey(_transformChildKey),
-      );
-      final point = child.localToGlobal(
-        const Offset(10, 20),
-        ancestor: viewBox(tester),
-      );
-      expect(point.dx, closeTo(5, 1e-6));
-      expect(point.dy, closeTo(10, 1e-6));
-      await tester.pumpWidget(
-        viewScene(
-          style(const ElTransform.identity(), transitions: null),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(
-            const ElTransform.translateX(40),
-            transitions: const [
-              ElTransition.field(
-                ElTransitionField.transform,
-                Duration(milliseconds: 100),
-                _NegativeCurve(),
+    group('lengthSnapshotResolver: 跳过 / 降级路径', () {
+      test('未注入 resolver → 单侧 null 仍走 lerpStep 瞬跳（旧行为）', () {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: null,
+            to: const ElDimension.pixels(100),
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+          anim.advance(const Duration(milliseconds: 30));
+          expect(anim.currentValue(), isNull, reason: 't=0.3<0.5 step 取 from=null');
+          anim.advance(const Duration(milliseconds: 30));
+          expect(anim.currentValue(), const ElDimension.pixels(100), reason: 't=0.6>=0.5 step 切到 to');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('resolver 返回 null 且未延迟补入 → 退回 step', () {
+        final d = StyleAnimationDriver(onTick: () {}, lengthSnapshotResolver: (f) => null);
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.width,
+            from: null,
+            to: const ElDimension.pixels(100),
+            duration: const Duration(milliseconds: 100),
+          );
+          d.startAnimation(anim);
+          anim.advance(const Duration(milliseconds: 30));
+          expect(anim.currentValue(), isNull);
+          anim.advance(const Duration(milliseconds: 30));
+          expect(anim.currentValue(), const ElDimension.pixels(100));
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('非长度字段 → 不调 resolver', () {
+        var called = false;
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            called = true;
+            return 30.0;
+          },
+        );
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFF000000),
+              to: null,
+              duration: const Duration(milliseconds: 100),
+            ),
+          );
+          expect(called, isFalse, reason: 'color 不在 _lengthFieldsForSnapshot 集合，应跳过 resolver');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('min/max width/height 不走快照（null 语义是无约束，不是内容尺寸）', () {
+        var called = false;
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            called = true;
+            return 30.0;
+          },
+        );
+        try {
+          for (final f in const [
+            ElTransitionField.minWidth,
+            ElTransitionField.maxWidth,
+            ElTransitionField.minHeight,
+            ElTransitionField.maxHeight,
+          ]) {
+            d.startAnimation(
+              FieldAnimation(
+                field: f,
+                from: null,
+                to: const ElDimension.pixels(100),
+                duration: const Duration(milliseconds: 100),
               ),
-            ],
-          ),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-10, 20));
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(50, 20));
+            );
+          }
+          expect(called, isFalse, reason: 'min/max 字段的 null 等价于 0 / infinity，不应替换为 auto used-size');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('双侧非 null → 不调 resolver（直接走 ElDimension.lerp）', () {
+        var called = false;
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            called = true;
+            return 30.0;
+          },
+        );
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.width,
+              from: const ElDimension.pixels(100),
+              to: const ElDimension.pixels(200),
+              duration: const Duration(milliseconds: 100),
+            ),
+          );
+          expect(called, isFalse);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      test('双侧均 null → 不调 resolver（无动画可言）', () {
+        var called = false;
+        final d = StyleAnimationDriver(
+          onTick: () {},
+          lengthSnapshotResolver: (f) {
+            called = true;
+            return 30.0;
+          },
+        );
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.width,
+              from: null,
+              to: null,
+              duration: const Duration(milliseconds: 100),
+            ),
+          );
+          expect(called, isFalse);
+        } finally {
+          d.dispose();
+        }
+      });
     });
 
-    testWidgets('内置原点与独立对齐连续插值，延迟和 RTL 改向不重启原截止时间', (tester) async {
-      ElStyle style(
-        AlignmentGeometry origin, {
-        AlignmentGeometry? alignment,
-        List<ElTransition>? transitions = _linear,
-      }) => ElStyle(
-        width: 100,
-        height: 60,
-        transform: const ElTransform.scale(2).alignment(origin),
-        transformAlignment: alignment,
-        transitions: transitions,
-      );
-      await tester.pumpWidget(
-        viewScene(style(Alignment.topLeft), child: _transformChild),
-      );
-      await tester.pumpWidget(
-        viewScene(style(Alignment.bottomRight), child: _transformChild),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
-      await _advance(tester, 50);
-      await tester.pumpWidget(
-        viewScene(
-          style(Alignment.topLeft, transitions: null),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(Alignment.topLeft, alignment: Alignment.bottomRight),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
-      await _advance(tester, 50);
-      await tester.pumpWidget(
-        viewScene(style(Alignment.topLeft), child: _transformChild),
-      );
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
-      await _advance(tester, 50);
-      const delayed = [
-        ElTransition.field(
-          ElTransitionField.transformAlignment,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 20),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(
-          style(AlignmentDirectional.centerStart, transitions: null),
-          child: _transformChild,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          style(
-            AlignmentDirectional.centerStart,
-            alignment: AlignmentDirectional.centerEnd,
-            transitions: delayed,
-          ),
-          child: _transformChild,
-        ),
-      );
-      await _advance(tester, 20);
-      _transformPoint(tester, const Offset(10, 20), const Offset(20, 10));
-      await _advance(tester, 25);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-5, 10));
-      await tester.pumpWidget(
-        viewScene(
-          style(
-            AlignmentDirectional.centerStart,
-            alignment: AlignmentDirectional.centerEnd,
-            transitions: delayed,
-          ),
-          direction: TextDirection.rtl,
-          child: _transformChild,
-        ),
-      );
-      _transformPoint(tester, const Offset(10, 20), const Offset(-55, 10));
-      await _advance(tester, 25);
-      _transformPoint(tester, const Offset(10, 20), const Offset(-30, 10));
-      await _advance(tester, 50);
-      _transformPoint(tester, const Offset(10, 20), const Offset(20, 10));
-      for (final animatedExit in [false, true]) {
-        await tester.pumpWidget(
-          viewScene(
-            style(
-              Alignment.center,
-              alignment: Alignment.topLeft,
-              transitions: null,
+    group('FieldAnimation auto 快照', () {
+      test('补齐 auto 不影响 from/to 声明', () {
+        final anim = FieldAnimation(
+          field: ElTransitionField.width,
+          from: null,
+          to: const ElDimension.pixels(100),
+          duration: const Duration(milliseconds: 100),
+        );
+        expect(anim.from, isNull);
+        expect(anim.to, const ElDimension.pixels(100));
+
+        anim.replaceNullLerpEndpoint(const ElDimension.pixels(30));
+        expect(anim.from, isNull, reason: 'user-visible from 不应被改');
+        expect(anim.to, const ElDimension.pixels(100), reason: 'user-visible to 不应被改');
+
+        anim.advance(const Duration(milliseconds: 50));
+        final v = anim.currentValue() as ElDimension;
+        expect(v.pxPart, closeTo(65, 1e-9), reason: 'lerp 用替换后的端点 (30, 100)');
+      });
+    });
+  });
+
+  group('动画驱动器', () {
+    group('状态管理（无 ticker 推进）', () {
+      test('初始：无活跃动画 + hasActiveAnimations=false', () {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          expect(d.activeFields, isEmpty);
+          expect(d.hasActiveAnimations, isFalse);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      testWidgets('startAnimation：进活跃集合 + animationOf 可取回', (tester) async {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          final anim = FieldAnimation(
+            field: ElTransitionField.color,
+            from: const Color(0xFF000000),
+            to: const Color(0xFFFFFFFF),
+            duration: const Duration(milliseconds: 200),
+          );
+          d.startAnimation(anim);
+          expect(d.activeFields, contains(ElTransitionField.color));
+          expect(d.hasActiveAnimations, isTrue);
+          expect(identical(d.animationOf(ElTransitionField.color), anim), isTrue);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      testWidgets('cancelAnimation：从活跃集合移除', (tester) async {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFF000000),
+              to: const Color(0xFFFFFFFF),
+              duration: const Duration(milliseconds: 200),
             ),
-            child: _transformChild,
-          ),
-        );
-        await tester.pumpWidget(
-          viewScene(
-            ElStyle(
-              width: 100,
-              height: 60,
-              transformAlignment: Alignment.bottomRight,
-              transitions: [
-                if (animatedExit)
-                  const ElTransition.field(
-                    ElTransitionField.transform,
-                    Duration(milliseconds: 100),
-                    Curves.linear,
-                  ),
-                const ElTransition.field(
-                  ElTransitionField.transformAlignment,
-                  Duration(milliseconds: 200),
-                  Curves.linear,
-                ),
-              ],
+          );
+          d.cancelAnimation(ElTransitionField.color);
+          expect(d.activeFields, isEmpty);
+          expect(d.animationOf(ElTransitionField.color), isNull);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      testWidgets('cancelAll：清空所有', (tester) async {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFF000000),
+              to: const Color(0xFFFFFFFF),
+              duration: const Duration(milliseconds: 200),
             ),
-            child: _transformChild,
-          ),
-        );
-        await _advance(tester, 50);
-        _transformPoint(
-          tester,
-          const Offset(10, 20),
-          animatedExit ? const Offset(2.5, 22.5) : const Offset(10, 20),
-        );
-        await _advance(tester, 50);
-        _transformPoint(tester, const Offset(10, 20), const Offset(10, 20));
-        // 变换退出后，对齐应落在声明目标，再出现时不能沿用旧中间原点。
-        await tester.pumpWidget(
-          viewScene(
-            style(
-              Alignment.center,
-              alignment: Alignment.bottomRight,
-              transitions: const [
-                ElTransition.field(
-                  ElTransitionField.transformAlignment,
-                  Duration(milliseconds: 200),
-                  Curves.linear,
-                ),
-              ],
+          );
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.opacity,
+              from: 0.0,
+              to: 1.0,
+              duration: const Duration(milliseconds: 200),
             ),
-            child: _transformChild,
-          ),
-        );
-        _transformPoint(tester, const Offset(10, 20), const Offset(-80, -20));
-      }
+          );
+          expect(d.activeFields, hasLength(2));
+          d.cancelAll();
+          expect(d.activeFields, isEmpty);
+        } finally {
+          d.dispose();
+        }
+      });
+
+      testWidgets('同字段 startAnimation 覆盖旧动画', (tester) async {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          final a1 = FieldAnimation(
+            field: ElTransitionField.color,
+            from: const Color(0xFF000000),
+            to: const Color(0xFFFFFFFF),
+            duration: const Duration(milliseconds: 200),
+          );
+          final a2 = FieldAnimation(
+            field: ElTransitionField.color,
+            from: const Color(0xFFFF0000),
+            to: const Color(0xFF00FF00),
+            duration: const Duration(milliseconds: 500),
+          );
+          d.startAnimation(a1);
+          d.startAnimation(a2);
+          expect(identical(d.animationOf(ElTransitionField.color), a2), isTrue, reason: '后启动应覆盖');
+        } finally {
+          d.dispose();
+        }
+      });
     });
 
-    testWidgets('每帧真实语义边界与变换后的裁剪同步，切换裁剪后完整后代重新出现', (tester) async {
-      final semantics = tester.ensureSemantics();
-      const rootKey = ValueKey('animated-transform-semantics-root');
-      try {
-        Widget scene(double x, Clip clip) => Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: Semantics(
-              key: rootKey,
-              container: true,
-              explicitChildNodes: true,
-              child: ElView(
-                key: viewKey,
+    group('Ticker lifecycle + 帧推进', () {
+      testWidgets('完成回调内替换同字段动画，不会被上一条动画的收尾清除', (tester) async {
+        final replacement = FieldAnimation(
+          field: ElTransitionField.color,
+          from: Color(0xffffffff),
+          to: Color(0xff000000),
+          duration: Duration(milliseconds: 200),
+        );
+        late StyleAnimationDriver driver;
+        var replaced = false;
+        driver = StyleAnimationDriver(
+          onTick: () {
+            if (!replaced && driver.animationOf(ElTransitionField.color)?.isComplete == true) {
+              replaced = true;
+              driver.startAnimation(replacement);
+            }
+          },
+        );
+        addTearDown(driver.dispose);
+        driver.startAnimation(
+          FieldAnimation(
+            field: ElTransitionField.color,
+            from: Color(0xff000000),
+            to: Color(0xffffffff),
+            duration: Duration(milliseconds: 100),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 100));
+        expect(identical(driver.animationOf(ElTransitionField.color), replacement), isTrue);
+        await tester.pump(Duration(milliseconds: 50));
+        expect(replacement.progress, closeTo(0.25, 0.000001));
+        await tester.pump(Duration(milliseconds: 150));
+        expect(driver.hasActiveAnimations, isFalse);
+      });
+
+      testWidgets('build 帧启动后首个真实 tick 计入完整帧间隔', (tester) async {
+        StyleAnimationDriver? driver;
+        late final FieldAnimation animation;
+
+        try {
+          await tester.pumpWidget(
+            Builder(
+              builder: (context) {
+                if (driver == null) {
+                  animation = FieldAnimation(
+                    field: ElTransitionField.color,
+                    from: const Color(0xFF000000),
+                    to: const Color(0xFFFFFFFF),
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.linear,
+                  );
+                  driver = StyleAnimationDriver(onTick: () {})..startAnimation(animation);
+                }
+                return const SizedBox();
+              },
+            ),
+          );
+
+          await tester.pump(const Duration(milliseconds: 16));
+
+          expect(animation.progress, closeTo(0.08, 0.000001));
+        } finally {
+          driver?.dispose();
+        }
+      });
+
+      testWidgets('startAnimation 触发 onTick；动画完成后自动清理 + 停 ticker', (tester) async {
+        var tickCount = 0;
+        final d = StyleAnimationDriver(onTick: () => tickCount++);
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFF000000),
+              to: const Color(0xFFFFFFFF),
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.linear,
+            ),
+          );
+          // idle 阶段启动的 Ticker 首次回调 elapsed=0，后续 pump 累计推进。
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.pump(const Duration(milliseconds: 50));
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(tickCount, greaterThan(0), reason: 'onTick 应被调用');
+          expect(d.activeFields, isEmpty, reason: '动画完成 → 从活跃集合移除');
+        } finally {
+          d.dispose();
+        }
+      });
+
+      testWidgets('多字段并发：各字段独立 lerp', (tester) async {
+        final d = StyleAnimationDriver(onTick: () {});
+        try {
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFF000000),
+              to: const Color(0xFFFFFFFF),
+              duration: const Duration(milliseconds: 200),
+            ),
+          );
+          d.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.opacity,
+              from: 0.0,
+              to: 1.0,
+              duration: const Duration(milliseconds: 100), // 较短
+            ),
+          );
+
+          // 推进几帧；此处 driver 在 idle 阶段启动，首次回调 elapsed=0。
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.pump(const Duration(milliseconds: 50));
+          final pColor = d.animationOf(ElTransitionField.color)?.progress ?? 1.0;
+          final pOpacity = d.animationOf(ElTransitionField.opacity)?.progress ?? 1.0;
+
+          // opacity duration 较短 → 同样 elapsed 时 progress 更大（或已完成清空）
+          expect(pOpacity, greaterThanOrEqualTo(pColor), reason: '不同 duration 字段独立推进');
+        } finally {
+          d.dispose();
+        }
+      });
+    });
+
+    testWidgets('dispose：取消所有 + 释放 ticker', (tester) async {
+      final d = StyleAnimationDriver(onTick: () {});
+      d.startAnimation(
+        FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        ),
+      );
+      d.dispose();
+      expect(d.activeFields, isEmpty);
+      // dispose 后再调 dispose / cancelAll 不抛
+      d.cancelAll();
+    });
+  });
+
+  group('字段动画', () {
+    group('progress', () {
+      test('未启动（elapsed=0）：progress=0', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        );
+        expect(a.progress, 0);
+      });
+
+      test('elapsed = delay：progress=0', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+          delay: const Duration(milliseconds: 50),
+        );
+        a.advance(const Duration(milliseconds: 50));
+        expect(a.progress, 0);
+      });
+
+      test('elapsed = delay + duration / 2：linear → progress ≈ 0.5', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 100));
+        expect(a.progress, closeTo(0.5, 1e-6));
+      });
+
+      test('elapsed >= delay + duration：progress=1', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 500));
+        expect(a.progress, 1);
+        expect(a.isComplete, isTrue);
+      });
+
+      test('curve 应用：easeIn 中点 < 0.5', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeIn,
+        );
+        a.advance(const Duration(milliseconds: 100));
+        expect(a.progress, lessThan(0.5));
+      });
+    });
+
+    group('currentValue', () {
+      test('color lerp 中点 ≈ 0xFF808080', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 100));
+        final c = a.currentValue()! as Color;
+        // Color.lerp 中点 - 灰（r/g/b 范围 0~1，*255 取整）
+        expect((c.r * 255).round(), closeTo(128, 2));
+        expect((c.g * 255).round(), closeTo(128, 2));
+        expect((c.b * 255).round(), closeTo(128, 2));
+      });
+
+      test('double lerp 中点 = (from+to)/2', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.opacity,
+          from: 0.2,
+          to: 1.0,
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 100));
+        final v = a.currentValue()! as double;
+        expect(v, closeTo(0.6, 1e-6));
+      });
+
+      test('fontWeight 通过 FontWeight.lerp 连续插值', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.fontWeight,
+          from: FontWeight.w400,
+          to: FontWeight.w700,
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 50)); // progress=0.25
+        expect(a.currentValue(), FontWeight.lerp(FontWeight.w400, FontWeight.w700, 0.25));
+
+        a.advance(const Duration(milliseconds: 150)); // progress=1
+        expect(a.currentValue(), FontWeight.w700);
+      });
+    });
+
+    group('advance：累计 + clamp', () {
+      test('advance 多次累加', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+        );
+        a.advance(const Duration(milliseconds: 50));
+        a.advance(const Duration(milliseconds: 30));
+        expect(a.debugElapsed, const Duration(milliseconds: 80));
+      });
+
+      test('advance 超出 duration：elapsed 被 clamp 到 delay+duration', () {
+        final a = FieldAnimation(
+          field: ElTransitionField.color,
+          from: const Color(0xFF000000),
+          to: const Color(0xFFFFFFFF),
+          duration: const Duration(milliseconds: 200),
+          delay: const Duration(milliseconds: 50),
+        );
+        a.advance(const Duration(milliseconds: 500));
+        expect(a.debugElapsed, const Duration(milliseconds: 250));
+      });
+    });
+
+    group('theme 声明 retarget', () {});
+  });
+
+  group('长度插值', () {
+    FieldAnimation makeAnim({
+      required Object? from,
+      required Object? to,
+      Duration duration = const Duration(milliseconds: 100),
+    }) {
+      return FieldAnimation(field: ElTransitionField.width, from: from, to: to, duration: duration);
+    }
+
+    group('lerpLengthValue 单测', () {
+      test('null + null → null', () {
+        expect(lerpLengthValue(null, null, 0.5), isNull);
+      });
+
+      test('null 单侧 step（t=0.5 阈值；t>=0.5 必能切到 to，含 to=null）', () {
+        // from=null → to=100
+        expect(lerpLengthValue(null, const ElDimension.pixels(100), 0.3), isNull);
+        expect(lerpLengthValue(null, const ElDimension.pixels(100), 0.7), const ElDimension.pixels(100));
+        // from=200 → to=null：t>=0.5 必能回到 null（旧实现 bug：恒返回 from）
+        expect(lerpLengthValue(const ElDimension.pixels(200), null, 0.3), const ElDimension.pixels(200));
+        expect(lerpLengthValue(const ElDimension.pixels(200), null, 0.7), isNull);
+      });
+
+      test('同 kind 数值插值', () {
+        expect(
+          lerpLengthValue(const ElDimension.pixels(0), const ElDimension.pixels(100), 0.5),
+          const ElDimension.pixels(50),
+        );
+        expect(
+          lerpLengthValue(const ElDimension.percent(20), const ElDimension.percent(80), 0.5),
+          const ElDimension.percent(50),
+        );
+      });
+
+      test('跨 kind 走 calc 形态（lazy 像素插值）', () {
+        // pixels(100) → percent(80) at t=0.3 → calc(70, 24)
+        final r1 = lerpLengthValue(const ElDimension.pixels(100), const ElDimension.percent(80), 0.3) as ElDimension;
+        expect(r1.kind, ElLengthKind.calc);
+        expect(r1.pxPart, closeTo(70, 1e-9));
+        expect(r1.percentPart, closeTo(24, 1e-9));
+        // at t=0.7 → calc(30, 56)
+        final r2 = lerpLengthValue(const ElDimension.pixels(100), const ElDimension.percent(80), 0.7) as ElDimension;
+        expect(r2.kind, ElLengthKind.calc);
+        expect(r2.pxPart, closeTo(30, 1e-9));
+        expect(r2.percentPart, closeTo(56, 1e-9));
+      });
+    });
+
+    group('FieldAnimation: ElTransitionField.width 全流程', () {
+      test("'80%' → 100：跨 kind 走 calc 连续插值", () {
+        final anim = makeAnim(from: const ElDimension.percent(80), to: const ElDimension.pixels(100));
+        // 起点：calc(0, 80) 等价于 percent(80)
+        var v = anim.currentValue() as ElDimension;
+        expect(v.kind, ElLengthKind.calc);
+        expect(v.pxPart, closeTo(0, 1e-9));
+        expect(v.percentPart, closeTo(80, 1e-9));
+
+        anim.advance(const Duration(milliseconds: 30));
+        v = anim.currentValue() as ElDimension;
+        expect(v.pxPart, closeTo(30, 1e-9));
+        expect(v.percentPart, closeTo(56, 1e-9));
+
+        anim.advance(const Duration(milliseconds: 30));
+        v = anim.currentValue() as ElDimension;
+        expect(v.pxPart, closeTo(60, 1e-9));
+        expect(v.percentPart, closeTo(32, 1e-9));
+
+        anim.advance(const Duration(milliseconds: 50));
+        v = anim.currentValue() as ElDimension;
+        // 完成：calc(100, 0) 等价于 pixels(100)
+        expect(v.pxPart, closeTo(100, 1e-9));
+        expect(v.percentPart, closeTo(0, 1e-9));
+        expect(anim.isComplete, isTrue);
+      });
+
+      test('null → 200：t<0.5 仍 null，t>=0.5 切到 200，完成 200', () {
+        final anim = makeAnim(from: null, to: const ElDimension.pixels(200));
+        expect(anim.currentValue(), isNull, reason: 't=0 取 from=null');
+        anim.advance(const Duration(milliseconds: 30));
+        expect(anim.currentValue(), isNull, reason: 't=0.3<0.5 仍 from');
+        anim.advance(const Duration(milliseconds: 30));
+        expect(anim.currentValue(), const ElDimension.pixels(200), reason: 't=0.6>=0.5 切 to');
+        anim.advance(const Duration(milliseconds: 60));
+        // isComplete → driver 直接返回 to
+        expect(anim.isComplete, isTrue);
+        expect(anim.currentValue(), const ElDimension.pixels(200));
+      });
+
+      test('200 → null：t<0.5 仍 200，t>=0.5 必能回到 null（核心修复点）', () {
+        final anim = makeAnim(from: const ElDimension.pixels(200), to: null);
+        expect(anim.currentValue(), const ElDimension.pixels(200));
+        anim.advance(const Duration(milliseconds: 30));
+        expect(anim.currentValue(), const ElDimension.pixels(200), reason: 't=0.3<0.5 取 from');
+        anim.advance(const Duration(milliseconds: 30));
+        expect(anim.currentValue(), isNull, reason: 't=0.6 step 切到 to=null');
+        anim.advance(const Duration(milliseconds: 60));
+        expect(anim.isComplete, isTrue);
+        expect(anim.currentValue(), isNull, reason: '完成时对齐 to=null');
+      });
+
+      test('100 → 300：纯数值线性插值', () {
+        final anim = makeAnim(from: const ElDimension.pixels(100), to: const ElDimension.pixels(300));
+        anim.advance(const Duration(milliseconds: 50));
+        expect(anim.currentValue(), const ElDimension.pixels(200));
+        anim.advance(const Duration(milliseconds: 50));
+        expect(anim.currentValue(), const ElDimension.pixels(300));
+      });
+
+      test("'20%' → '80%'：percent 线性插值", () {
+        final anim = makeAnim(from: const ElDimension.percent(20), to: const ElDimension.percent(80));
+        anim.advance(const Duration(milliseconds: 25));
+        expect(anim.currentValue(), const ElDimension.percent(35));
+        anim.advance(const Duration(milliseconds: 25));
+        expect(anim.currentValue(), const ElDimension.percent(50));
+      });
+    });
+  });
+
+  group('长度过渡集成', () {
+    ElRenderView findRender(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byType(ElView));
+
+    Widget boundedTarget({
+      required Key key,
+      required ElStyle style,
+      Widget? child,
+      double maxWidth = 300,
+      double maxHeight = 100,
+    }) {
+      return MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
+            child: ElView(key: key, style: style, child: child),
+          ),
+        ),
+      );
+    }
+
+    testWidgets("ElTransition.all 触发 width 100 → '80%' 跨 kind 连续插值", (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 400),
+              child: const ElView(
+                key: ValueKey('target'),
                 style: ElStyle(
                   width: 100,
-                  height: 60,
-                  transform: ElTransform.translateX(x),
-                  clipBehavior: clip,
-                  transitions: _linear,
+                  height: 100,
+                  bgColor: Color(0xffff0000),
+                  transitions: [ElTransition.all()],
+                  onHover: ElStyle(width: '80%', bgColor: Color(0xff00ff00)),
                 ),
-                child: OverflowBox(
-                  alignment: Alignment.topLeft,
-                  minWidth: 160,
-                  maxWidth: 160,
-                  minHeight: 100,
-                  maxHeight: 100,
-                  child: Stack(
-                    children: [
-                      for (final (label, left) in [
-                        ('animated-inside', 10.0),
-                        ('animated-partial', 90.0),
-                        ('animated-outside', 130.0),
-                      ])
-                        Positioned(
-                          left: left,
-                          top: 20,
-                          child: Semantics(
-                            container: true,
-                            label: label,
-                            child: const SizedBox(width: 20, height: 20),
-                          ),
-                        ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester);
+
+      expect(box.size.width, 100);
+      expect(box.committedResolvedStyle.box.width, const ElDimension.pixels(100));
+
+      box.setHover(true);
+      await tester.pump();
+
+      // 跨 kind → calc 形态 lazy 插值。size.width 应在 (100, 320) 区间内单调推进，
+      // 而不是 100 → 320 的突变。
+      await tester.pump(const Duration(milliseconds: 60));
+      final mid = box.size.width;
+      expect(mid, greaterThan(100));
+      expect(mid, lessThan(320));
+
+      await tester.pump(const Duration(milliseconds: 60));
+      final later = box.size.width;
+      expect(later, greaterThan(mid), reason: '动画推进 → 像素值应单调增（calc 中 percent 分量增、px 分量减）');
+      expect(later, lessThanOrEqualTo(320));
+
+      // 跑完
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(box.size.width, 320, reason: '最终 percent(80) of 400 = 320');
+    });
+
+    testWidgets('同 kind: 100px → 300px 平滑数值插值', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 400),
+              child: const ElView(
+                key: ValueKey('target'),
+                style: ElStyle(
+                  width: 100,
+                  height: 100,
+                  bgColor: Color(0xffff0000),
+                  transitions: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
+                  onHover: ElStyle(width: 300),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester);
+      expect(box.size.width, 100);
+
+      box.setHover(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      // 中间应平滑过渡（curve 影响具体值，只断在开区间内）
+      expect(box.size.width, greaterThan(100));
+      expect(box.size.width, lessThan(300));
+
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(box.size.width, 300);
+    });
+
+    testWidgets('同 kind percent: 20% → 80% 平滑插值', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 400),
+              child: const ElView(
+                key: ValueKey('target'),
+                style: ElStyle(
+                  width: '20%',
+                  height: 100,
+                  bgColor: Color(0xffff0000),
+                  transitions: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
+                  onHover: ElStyle(width: '80%'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester);
+      expect(box.size.width, 80, reason: '20% of 400 = 80');
+
+      box.setHover(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      // 中间应平滑过渡
+      expect(box.size.width, greaterThan(80));
+      expect(box.size.width, lessThan(320));
+
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(box.size.width, 320, reason: '80% of 400 = 320');
+    });
+
+    testWidgets('空 child：120px ↔ auto 收缩到 padding，且起止帧连续', (tester) async {
+      const key = ValueKey('empty-auto');
+      Widget host(Object? width) {
+        return MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300, maxHeight: 100),
+              child: ElView(
+                key: key,
+                style: ElStyle(
+                  width: width,
+                  height: 40,
+                  padding: .symmetric(horizontal: 12),
+                  alignment: .center,
+                  transitions: const [
+                    ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(box.size.width, 120);
+
+      await tester.pumpWidget(host(null));
+      expect(box.size.width, 120);
+
+      await tester.pump(const Duration(milliseconds: 50));
+      final middle = box.size.width;
+
+      await tester.pump(const Duration(milliseconds: 49));
+      final beforeComplete = box.size.width;
+
+      await tester.pump(const Duration(milliseconds: 1));
+      final completed = box.size.width;
+      expect(completed, 24);
+      expect(box.committedResolvedStyle.box.width, isNull);
+
+      await tester.pumpWidget(host(120));
+      final reverseStart = box.size.width;
+
+      await tester.pump(const Duration(milliseconds: 50));
+      final reverseMiddle = box.size.width;
+
+      await tester.pump(const Duration(milliseconds: 50));
+      final reverseCompleted = box.size.width;
+      expect(reverseCompleted, 120);
+      expect(box.committedResolvedStyle.box.width, const ElDimension.pixels(120));
+      expect(
+        middle,
+        72,
+        reason:
+            'auto 的真实 used width 是 padding 24，中点应从 120 减至 72；'
+            '正向实际时间线为 50ms=$middle、99ms=$beforeComplete、100ms=$completed；'
+            '反向实际时间线为 0ms=$reverseStart、50ms=$reverseMiddle、100ms=$reverseCompleted',
+      );
+      expect(beforeComplete, closeTo(24.96, 0.01), reason: '结束前应连续逼近 padding 宽度 24');
+      expect(reverseStart, 24, reason: 'auto → 120 起手必须保留真实 auto used width');
+      expect(reverseMiddle, 72, reason: 'auto → 120 中点应从 24 增至 72');
+    });
+
+    testWidgets('auto width 有 child 且无 alignment 时 hug child + padding', (tester) async {
+      const key = ValueKey('hug-child-auto');
+      Widget host(Object? width) => boundedTarget(
+        key: key,
+        style: ElStyle(
+          width: width,
+          height: 40,
+          padding: .symmetric(horizontal: 10),
+          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+        ),
+        child: const ElView(style: ElStyle(width: 60, height: 20)),
+      );
+
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+
+      await tester.pumpWidget(host(null));
+      expect(box.size.width, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 100, reason: 'auto 端点应为 child 60 + padding 20 = 80');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 80);
+    });
+
+    testWidgets('auto width 有 alignment 时填满可用宽度，动画端点不含 margin', (tester) async {
+      const key = ValueKey('aligned-auto-with-margin');
+      Widget host(Object? width) => boundedTarget(
+        key: key,
+        style: ElStyle(
+          width: width,
+          height: 40,
+          padding: .symmetric(horizontal: 10),
+          margin: .symmetric(horizontal: 10),
+          alignment: .center,
+          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+        ),
+        child: const ElView(style: ElStyle(width: 60, height: 20)),
+      );
+
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(box.boxSize.width, 120);
+      expect(box.size.width, 140);
+
+      await tester.pumpWidget(host(null));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.boxSize.width, 200, reason: 'auto width 端点是扣除 margin 后的 280，不是节点总宽 300');
+      expect(box.size.width, 220, reason: 'RenderBox 对父布局的占位仍包含 20px margin');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.boxSize.width, 280);
+      expect(box.size.width, 300);
+    });
+
+    testWidgets('无界空盒 auto width 仅收缩到 padding，margin 只计入外部占位', (tester) async {
+      const key = ValueKey('unbounded-empty-auto');
+      Widget host(Object? width) {
+        return MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElView(
+                  key: key,
+                  style: ElStyle(
+                    width: width,
+                    height: 40,
+                    padding: .symmetric(horizontal: 12),
+                    margin: .symmetric(horizontal: 8),
+                    transitions: const [
+                      ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpWidget(scene(0, Clip.hardEdge));
-        await tester.pumpWidget(scene(40, Clip.hardEdge));
-        for (final (ms, x) in [(25, 10.0), (25, 20.0), (50, 40.0)]) {
-          await _advance(tester, ms);
-          final root = tester.semantics.find(find.byKey(rootKey));
-          for (final (label, expected) in <(String, Rect)>[
-            ('animated-inside', Rect.fromLTWH(10 + x, 20, 20, 20)),
-            ('animated-partial', Rect.fromLTWH(90 + x, 20, 10, 20)),
-          ]) {
-            final node = find.semantics.byLabel(label).evaluate().single;
-            final actual = _semanticRect(node, root);
-            expect(actual.left, closeTo(expected.left, 1e-6));
-            expect(actual.top, closeTo(expected.top, 1e-6));
-            expect(actual.width, closeTo(expected.width, 1e-6));
-            expect(actual.height, closeTo(expected.height, 1e-6));
-          }
-          expect(find.semantics.byLabel('animated-outside'), findsNothing);
-        }
-        await tester.pumpWidget(scene(40, Clip.none));
-        expect(find.semantics.byLabel('animated-outside'), findsOne);
-        final node = find.semantics
-            .byLabel('animated-partial')
-            .evaluate()
-            .single;
-        expect(
-          _semanticRect(node, tester.semantics.find(find.byKey(rootKey))).width,
-          20,
-        );
-      } finally {
-        semantics.dispose();
-      }
-    });
-  });
-
-  group('宽高比中间值', () {
-    testWidgets('样式宽高比使双 auto 轴跨越不同截止帧时保持连续', (tester) async {
-      const child = SizedBox(width: 120, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 100,
-            aspectRatio: 2,
-            transitions: _widthAndHeight,
-          ),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(aspectRatio: 2, transitions: _widthAndHeight),
-          child: child,
-        ),
-      );
-      await _advance(tester, 99);
-      final beforeWidthEnd = viewSize(tester);
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(160, 80));
-      expect(
-        (viewSize(tester).width - beforeWidthEnd.width).abs(),
-        lessThan(2),
-      );
-      await _advance(tester, 99);
-      final beforeHeightEnd = viewSize(tester);
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(120, 60));
-      expect(
-        (viewSize(tester).height - beforeHeightEnd.height).abs(),
-        lessThan(1),
-      );
-    });
-
-    testWidgets('比例按数值插值，百分比与上下限使用当帧尺寸，中断从当前比例接续', (tester) async {
-      ElStyle style(num ratio) => ElStyle(
-        width: '50%',
-        aspectRatio: ratio,
-        maxHeight: 150,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(1)));
-      await tester.pumpWidget(viewScene(style(3)));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(200, 100));
-      await tester.pumpWidget(viewScene(style(4), width: 300));
-      expect(viewSize(tester), const Size(150, 75));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(150, 50));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(150, 37.5));
-    });
-
-    testWidgets('null 双向在中点切换，auto 因子即时禁用比例但不重启其轨道', (tester) async {
-      ElStyle style(num? ratio, {num? factor}) => ElStyle(
-        width: 100,
-        aspectRatio: ratio,
-        heightFactor: factor,
-        transitions: const [
-          ElTransition.field(
-            ElTransitionField.aspectRatio,
-            Duration(milliseconds: 100),
-            Curves.linear,
-          ),
-        ],
-      );
-      const child = SizedBox(width: 80, height: 30);
-      await tester.pumpWidget(viewScene(style(null), child: child));
-      await tester.pumpWidget(viewScene(style(2), child: child));
-      await _advance(tester, 49);
-      expect(viewSize(tester), const Size(100, 30));
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(100, 50));
-      await _advance(tester, 50);
-      await tester.pumpWidget(viewScene(style(null), child: child));
-      await _advance(tester, 49);
-      expect(viewSize(tester), const Size(100, 50));
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(100, 30));
-      await _advance(tester, 50);
-      await tester.pumpWidget(viewScene(style(1), child: child));
-      await _advance(tester, 100);
-      await tester.pumpWidget(viewScene(style(3), child: child));
-      await _advance(tester, 25);
-      await tester.pumpWidget(viewScene(style(3, factor: 2), child: child));
-      expect(viewSize(tester), const Size(100, 60));
-      await _advance(tester, 25);
-      await tester.pumpWidget(viewScene(style(3), child: child));
-      expect(viewSize(tester), const Size(100, 50));
-      await _advance(tester, 50);
-      expect(viewSize(tester).height, closeTo(100 / 3, 1e-8));
-    });
-
-    testWidgets('auto 端点随比例与内容更新，在原截止帧落到实际目标盒', (tester) async {
-      ElStyle style(Object? width, num ratio) => ElStyle(
-        width: width,
-        aspectRatio: ratio,
-        transitions: const [
-          ElTransition.field(
-            ElTransitionField.width,
-            Duration(milliseconds: 100),
-            Curves.linear,
-          ),
-        ],
-      );
-      Widget scene(Object? width, num ratio, double natural) => viewScene(
-        style(width, ratio),
-        child: SizedBox(width: natural, height: 20),
-      );
-      await tester.pumpWidget(scene(40, 2, 120));
-      await tester.pumpWidget(scene(null, 2, 120));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(80, 40));
-      await tester.pumpWidget(scene(null, 4, 160));
-      expect(viewSize(tester), const Size(80, 20));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(120, 30));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(160, 40));
-    });
-  });
-
-  group('渐变阴影与透明度中间值', () {
-    testWidgets('渐变 null 双向淡入淡出，同类型插值与中断均保持当前颜色', (tester) async {
-      ElStyle style(Gradient? gradient) => ElStyle(
-        width: 100,
-        height: 60,
-        gradient: gradient,
-        transitions: _linear,
-      );
-      const red = LinearGradient(colors: [_red, _red]);
-      const blue = LinearGradient(colors: [_blue, _blue]);
-      const green = LinearGradient(
-        colors: [Color(0xff00ff00), Color(0xff00ff00)],
-      );
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await tester.pumpWidget(_effectsScene(style(red)));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 50);
-      await tester.pumpWidget(_effectsScene(style(blue)));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xff800080),
-      );
-      await tester.pumpWidget(_effectsScene(style(green)));
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xff800080),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xff408040),
-      );
-      await _advance(tester, 50);
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x8000ff00),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x00000000),
-      );
-    });
-
-    testWidgets('跨渐变类型遵循原生淡出再淡入，方向切换不重新计时', (tester) async {
-      ElStyle style(Gradient gradient) => ElStyle(
-        width: 100,
-        height: 60,
-        gradient: gradient,
-        transitions: _linear,
-      );
-      const linear = LinearGradient(colors: [_red, _red]);
-      const radial = RadialGradient(colors: [_blue, _blue]);
-      const sweep = SweepGradient(colors: [_red, _red]);
-      await tester.pumpWidget(_effectsScene(style(linear)));
-      for (final target in const <Gradient>[radial, sweep]) {
-        await tester.pumpWidget(_effectsScene(style(target)));
-        final isBlue = target == radial;
-        for (final (ms, color) in <(int, Color)>[
-          (25, isBlue ? const Color(0x80ff0000) : const Color(0x800000ff)),
-          (25, const Color(0x00000000)),
-          (25, isBlue ? const Color(0x800000ff) : const Color(0x80ff0000)),
-          (25, isBlue ? _blue : _red),
-        ]) {
-          await _advance(tester, ms);
-          _pixel(
-            (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-            color,
-          );
-        }
-      }
-      const start = LinearGradient(
-        begin: AlignmentDirectional.centerStart,
-        end: AlignmentDirectional.centerEnd,
-        colors: [_red, _blue],
-        stops: [0.25, 0.75],
-      );
-      const end = LinearGradient(
-        begin: AlignmentDirectional.centerStart,
-        end: AlignmentDirectional.centerEnd,
-        colors: [Color(0xff00ff00), _blue],
-        stops: [0.25, 0.75],
-      );
-      await tester.pumpWidget(
-        _effectsScene(style(start).copyWith(transitions: null)),
-      );
-      await tester.pumpWidget(_effectsScene(style(end)));
-      await _advance(tester, 25);
-      await tester.pumpWidget(
-        _effectsScene(style(end), direction: TextDirection.rtl),
-      );
-      var pixels = await _effectsPixels(tester, const [
-        Offset(10, 30),
-        Offset(90, 30),
-      ]);
-      _pixel(pixels[0], _blue);
-      _pixel(pixels[1], const Color(0xffbf4000));
-      await _advance(tester, 25);
-      pixels = await _effectsPixels(tester, const [
-        Offset(10, 30),
-        Offset(90, 30),
-      ]);
-      _pixel(pixels[0], _blue);
-      _pixel(pixels[1], const Color(0xff808000));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(90, 30)])).single,
-        const Color(0xff00ff00),
-      );
-    });
-
-    testWidgets('阴影 null 与列表增删同时插值几何和透明度，透明端隐藏 RGB 不混色', (tester) async {
-      ElStyle style(List<BoxShadow>? shadows) => ElStyle(
-        width: 100,
-        height: 60,
-        boxShadow: shadows,
-        transitions: _linear,
-      );
-      const red = BoxShadow(
-        color: _red,
-        offset: Offset(16, 0),
-        spreadRadius: 8,
-      );
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await tester.pumpWidget(_effectsScene(style(const [red])));
-      await _advance(tester, 50);
-      var pixels = await _effectsPixels(tester, const [
-        Offset(106, 30),
-        Offset(114, 30),
-      ]);
-      _pixel(pixels[0], const Color(0x80ff0000));
-      _pixel(pixels[1], const Color(0x00000000));
-      // 父级重建传入等值新列表时，必须沿用原截止时间。
-      await tester.pumpWidget(_effectsScene(style([red])));
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(118, 30)])).single,
-        _red,
-      );
-      await tester.pumpWidget(
-        _effectsScene(
-          style(const [
-            red,
-            BoxShadow(color: _blue, offset: Offset(-16, 0), spreadRadius: 8),
-          ]),
-        ),
-      );
-      await _advance(tester, 50);
-      pixels = await _effectsPixels(tester, const [
-        Offset(-6, 30),
-        Offset(118, 30),
-      ]);
-      _pixel(pixels[0], const Color(0x800000ff));
-      _pixel(pixels[1], _red);
-      await _advance(tester, 50);
-      await tester.pumpWidget(
-        _effectsScene(
-          style(const [
-            BoxShadow(
-              color: Color(0x000000ff),
-              offset: Offset(16, 0),
-              spreadRadius: 8,
-            ),
-          ]),
-        ),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(118, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 50);
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 100);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x00000000),
-      );
-    });
-
-    testWidgets('内外阴影类型切换经透明中点，偏移、模糊和扩散变化不影响实际布局', (tester) async {
-      ElStyle style(BoxShadow shadow) => ElStyle(
-        width: 100,
-        height: 60,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [shadow],
-        transitions: _linear,
-      );
-      await tester.pumpWidget(
-        _effectsScene(
-          style(
-            const BoxShadow(
-              color: _red,
-              offset: Offset(12, 0),
-              spreadRadius: 4,
-            ),
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        _effectsScene(
-          style(const ElBoxShadow(color: _blue, spreadRadius: 12, inset: true)),
-        ),
-      );
-      await _advance(tester, 25);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(105, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 25);
-      var pixels = await _effectsPixels(tester, const [
-        Offset(105, 30),
-        Offset(2, 30),
-      ]);
-      expect(pixels.every((color) => color.a == 0), isTrue);
-      await _advance(tester, 25);
-      pixels = await _effectsPixels(tester, const [
-        Offset(105, 30),
-        Offset(2, 30),
-      ]);
-      _pixel(pixels[0], const Color(0x00000000));
-      _pixel(pixels[1], const Color(0x800000ff));
-      await _advance(tester, 25);
-      await tester.pumpWidget(
-        _effectsScene(
-          style(
-            const ElBoxShadow(
-              color: _red,
-              offset: Offset(4, 2),
-              blurRadius: 8,
-              spreadRadius: 4,
-              inset: true,
-            ),
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      pixels = await _effectsPixels(tester, const [
-        Offset(1, 30),
-        Offset(50, 30),
-        Offset(110, 30),
-      ]);
-      expect(pixels[0].a, greaterThan(0.8));
-      expect(pixels[0].r, closeTo(0.5, 3 / 255));
-      expect(pixels[0].b, closeTo(0.5, 3 / 255));
-      expect(pixels[1].a, lessThan(0.05));
-      _pixel(pixels[2], const Color(0x00000000));
-      expect(viewSize(tester), const Size(100, 60));
-      await _advance(tester, 50);
-    });
-
-    testWidgets('透明度 null 为一，延迟、中断、钳制和过渡移除遵守实际可见时间线', (tester) async {
-      ElStyle style(num? opacity, {bool animate = true}) => ElStyle(
-        width: 100,
-        height: 60,
-        backgroundColor: _red,
-        opacity: opacity,
-        transitions: animate
-            ? const [
-                ElTransition.field(
-                  ElTransitionField.opacity,
-                  Duration(milliseconds: 100),
-                  Curves.linear,
-                  Duration(milliseconds: 20),
-                ),
-              ]
-            : null,
-      );
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await tester.pumpWidget(_effectsScene(style(-1)));
-      await _advance(tester, 20);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        _red,
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await tester.pumpWidget(_effectsScene(style(2)));
-      await _advance(tester, 20);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0xbfff0000),
-      );
-      await tester.pumpWidget(_effectsScene(style(0, animate: false)));
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x00000000),
-      );
-      expect(_hits(tester, const Offset(50, 30)), isFalse);
-      await tester.pumpWidget(_effectsScene(style(null)));
-      await _advance(tester, 70);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        const Color(0x80ff0000),
-      );
-      await _advance(tester, 50);
-      _pixel(
-        (await _effectsPixels(tester, const [Offset(50, 30)])).single,
-        _red,
-      );
-    });
-
-    testWidgets('渐变阴影与透明度同帧变化时，合成 child、边框和轮廓整体只乘一次 alpha', (tester) async {
-      ElStyle style(double opacity, Color color) => ElStyle(
-        width: 100,
-        height: 60,
-        opacity: opacity,
-        gradient: LinearGradient(colors: [color, color]),
-        boxShadow: [BoxShadow(color: color, offset: const Offset(12, 0))],
-        clipBehavior: Clip.antiAliasWithSaveLayer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _red, width: 4),
-        outline: const ElOutline(width: 4, color: _blue),
-        transitions: _linear,
-      );
-      const child = RepaintBoundary(
-        child: Align(
-          child: SizedBox(
-            width: 40,
-            height: 20,
-            child: ColoredBox(color: _blue),
-          ),
-        ),
-      );
-      await tester.pumpWidget(_effectsScene(style(1, _red), child: child));
-      await tester.pumpWidget(_effectsScene(style(0, _blue), child: child));
-      await _advance(tester, 50);
-      final pixels = await _effectsPixels(tester, const [
-        Offset(50, 30),
-        Offset(50, 15),
-        Offset(2, 30),
-        Offset(-2, 30),
-        Offset(110, 30),
-      ]);
-      _pixel(pixels[0], const Color(0x800000ff));
-      _pixel(pixels[1], const Color(0x80800080));
-      _pixel(pixels[2], const Color(0x80ff0000));
-      _pixel(pixels[3], const Color(0x800000ff));
-      _pixel(pixels[4], const Color(0x80800080));
-      await _advance(tester, 50);
-      expect(
-        (await _effectsPixels(tester, const [
-          Offset(50, 30),
-          Offset(110, 30),
-        ])).every((color) => color.a == 0),
-        isTrue,
-      );
-      expect(viewSize(tester), const Size(100, 60));
-    });
-  });
-
-  group('样式过渡与颜色中间值', () {
-    for (final fadeIn in [false, true]) {
-      testWidgets('颜色曲线过冲时中间帧保持有效透明度：淡入=$fadeIn', (tester) async {
-        ElStyle style(Color? color) => ElStyle(
-          width: 40,
-          height: 30,
-          backgroundColor: color,
-          transitions: const [
-            ElTransition.all(Duration(milliseconds: 100), Curves.easeOutBack),
-          ],
-        );
-        await tester.pumpWidget(viewScene(style(fadeIn ? null : _red)));
-        await tester.pumpWidget(viewScene(style(fadeIn ? _red : null)));
-        await tester.pump(const Duration(milliseconds: 60));
-        expect(_color(viewBox(tester)).a, fadeIn ? 1 : 0);
-        expect(viewSize(tester), const Size(40, 30));
-        await tester.pump(const Duration(milliseconds: 40));
-        if (fadeIn) {
-          expect(_color(viewBox(tester)), _red);
-        } else {
-          expect(viewBox(tester), paintsNothing);
-        }
-      });
-    }
-    testWidgets('px 与百分比混合插值，父尺寸变化和中断从当前值接续', (tester) async {
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 100, height: 20, transitions: _linear)),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: '50%', height: 20, transitions: _linear),
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 150);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: '50%', height: 20, transitions: _linear),
-          width: 600,
-        ),
-      );
-      expect(viewSize(tester).width, 200);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 80, height: 20, transitions: _linear),
-          width: 600,
-        ),
-      );
-      expect(viewSize(tester).width, 200);
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 140);
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 80);
-    });
-
-    testWidgets('相同目标或另一属性变化不重启已有轨道', (tester) async {
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 100, height: 20, transitions: _linear)),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 200, height: 20, transitions: _linear)),
-      );
-      await _advance(tester, 25);
-      await tester.pumpWidget(
-        viewScene(
-          ElStyle(width: 200, height: 20, transitions: List.of(_linear)),
-        ),
-      );
-      await _advance(tester, 25);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 200,
-            height: 20,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 200);
-      expect(_color(viewBox(tester)).a, closeTo(.5, .005));
-      await _advance(tester, 50);
-    });
-
-    testWidgets('auto 双向过渡使用已更新的真实子布局，支持 LayoutBuilder', (tester) async {
-      Widget child(double width, double height) => LayoutBuilder(
-        builder: (_, _) => SizedBox(width: width, height: height),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child(80, 30)),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, height: 100, transitions: _linear),
-          child: child(80, 30),
-        ),
-      );
-      expect(viewSize(tester), const Size(80, 30));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(140, 65));
-      await _advance(tester, 50);
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child(120, 40)),
-      );
-      expect(viewSize(tester), const Size(200, 100));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(160, 70));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 40));
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child(150, 60)),
-      );
-      expect(viewSize(tester), const Size(150, 60));
-    });
-
-    testWidgets('自动尺寸目标在途中变化保持当前画面和原截止时间', (tester) async {
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: _linear),
-          child: const SizedBox(width: 100),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(transitions: _linear),
-          child: const SizedBox(width: 100),
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 150);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(transitions: _linear),
-          child: const SizedBox(width: 180),
-        ),
-      );
-      expect(viewSize(tester).width, 150);
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 165);
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 180);
-    });
-
-    testWidgets('透明色使用预乘 alpha，null 过渡终点停止绘制', (tester) async {
-      const transparentBlue = Color(0x000000ff);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: transparentBlue,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      var color = _color(viewBox(tester));
-      expect(color.r, 1);
-      expect(color.b, 0);
-      expect(color.a, closeTo(.5, .005));
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: _blue,
-            transitions: _linear,
-          ),
-        ),
-      );
-      expect(_color(viewBox(tester)), color);
-      await _advance(tester, 50);
-      color = _color(viewBox(tester));
-      expect(color.a, closeTo(.75, .005));
-      expect(color.r, closeTo(1 / 3, .005));
-      expect(color.b, closeTo(2 / 3, .005));
-      await _advance(tester, 50);
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 40, height: 40, transitions: _linear)),
-      );
-      await _advance(tester, 50);
-      expect(_color(viewBox(tester)).b, 1);
-      await _advance(tester, 50);
-      expect(viewBox(tester), paintsNothing);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      expect(_color(viewBox(tester)).r, 1);
-      expect(_color(viewBox(tester)).a, closeTo(.5, .005));
-    });
-
-    testWidgets('不同色域与半透明颜色过渡保持有限通道值', (tester) async {
-      const p3 = Color.from(
-        alpha: .2,
-        red: 0,
-        green: 1,
-        blue: 0,
-        colorSpace: ColorSpace.displayP3,
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 40,
-            backgroundColor: p3,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      final color = _color(viewBox(tester));
-      expect(color.a, closeTo(.6, .005));
-      expect([color.r, color.g, color.b].every((v) => v.isFinite), isTrue);
-      await _advance(tester, 49);
-      final extended = p3.withValues(colorSpace: ColorSpace.extendedSRGB);
-      expect(
-        _color(viewBox(tester)).r,
-        closeTo((.01 + extended.r * .198) / .208, .00001),
-      );
-      await _advance(tester, 1);
-      expect(_color(viewBox(tester)), isSameColorAs(p3));
-      expect(_color(viewBox(tester)).colorSpace, p3.colorSpace);
-    });
-
-    testWidgets('边距方向变化与显式清空均参与过渡', (tester) async {
-      const style = ElStyle(
-        width: 100,
-        height: 50,
-        padding: EdgeInsetsDirectional.only(start: 20),
-        margin: EdgeInsets.all(10),
-        transitions: _linear,
-      );
-      const childKey = ValueKey('animated-insets-child');
-      const child = SizedBox(key: childKey, width: 10, height: 10);
-      await tester.pumpWidget(viewScene(style, child: child));
-      await tester.pumpWidget(
-        viewScene(
-          style.copyWith(margin: null),
-          direction: TextDirection.rtl,
-          child: child,
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(110, 60));
-      expect(_childOffset(tester, childKey), const Offset(15, 5));
-      await _advance(tester, 50);
-      expect(_childOffset(tester, childKey), Offset.zero);
-    });
-
-    testWidgets('逐字段配置、delay、零时长延迟和移除过渡', (tester) async {
-      const config = [
-        ElTransition.all(Duration(milliseconds: 100), Curves.linear),
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration.zero,
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 100, height: 20, transitions: config)),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 200, height: 120, transitions: config)),
-      );
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(100, 45));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(200, 70));
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 200, height: 120)),
-      );
-      expect(viewSize(tester), const Size(200, 120));
-    });
-
-    testWidgets('声明式过渡不受 TickerMode 与系统动画开关影响', (tester) async {
-      Widget host(double width, {bool disableAnimations = false}) => MediaQuery(
-        data: MediaQueryData(disableAnimations: disableAnimations),
-        child: TickerMode(
-          enabled: !disableAnimations,
-          child: viewScene(ElStyle(width: width, transitions: _linear)),
-        ),
-      );
-
-      await tester.pumpWidget(host(100));
-      await tester.pumpWidget(host(200, disableAnimations: true));
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 150);
-      await tester.pumpWidget(host(200));
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 175);
-      await tester.pumpWidget(host(200, disableAnimations: true));
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 200);
-    });
-
-    for (final target in <Object>['50%', 100]) {
-      testWidgets('百分比参照消失时保持连续：目标 $target', (tester) async {
-        Widget host(ElStyle style, {bool bounded = true}) => Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: UnconstrainedBox(
-              constrainedAxis: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: bounded ? 400 : double.infinity,
-                ),
-                child: ElView(
-                  key: viewKey,
-                  style: style,
-                  child: const SizedBox(width: 80, height: 20),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpWidget(
-          host(
-            ElStyle(
-              width: target is String ? 100 : '50%',
-              transitions: _linear,
-            ),
-          ),
-        );
-        final end = ElStyle(width: target, transitions: _linear);
-        await tester.pumpWidget(host(end));
-        await _advance(tester, 50);
-        expect(viewSize(tester).width, 150);
-        await tester.pumpWidget(host(end, bounded: false));
-        expect(viewSize(tester).width, 150);
-        await _advance(tester, 25);
-        expect(viewSize(tester).width, target is String ? 115 : 125);
-        await _advance(tester, 25);
-        expect(viewSize(tester).width, target is String ? 80 : 100);
-      });
-    }
-
-    testWidgets('两个透明端点跨色域不触发 Color.lerp 限制', (tester) async {
-      const a = Color.from(alpha: 0, red: 1, green: 0, blue: 0);
-      const b = Color.from(
-        alpha: 0,
-        red: 0,
-        green: 0,
-        blue: 1,
-        colorSpace: ColorSpace.displayP3,
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 20,
-            height: 20,
-            backgroundColor: a,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 20,
-            height: 20,
-            backgroundColor: b,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      expect(tester.takeException(), isNull);
-      expect(_color(viewBox(tester)).a, 0);
-    });
-
-    testWidgets('百分比重新获得参照时从当前尺寸接续到原截止时间', (tester) async {
-      Widget host(ElStyle style, bool bounded) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: UnconstrainedBox(
-            constrainedAxis: Axis.vertical,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: bounded ? 400 : double.infinity,
-              ),
-              child: ElView(
-                key: viewKey,
-                style: style,
-                child: const SizedBox(width: 80),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        host(const ElStyle(width: 200, transitions: _linear), false),
-      );
-      const target = ElStyle(width: '50%', transitions: _linear);
-      await tester.pumpWidget(host(target, false));
-      await _advance(tester, 50);
-      expect(viewSize(tester).width, 140);
-      await tester.pumpWidget(host(target, true));
-      expect(viewSize(tester).width, 140);
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 170);
-      await _advance(tester, 25);
-      expect(viewSize(tester).width, 200);
-    });
-
-    testWidgets('GlobalKey 重挂后动画从当前尺寸继续到原截止时间', (tester) async {
-      final key = GlobalKey();
-      Widget host(bool right, double width) {
-        final view = ElView(
-          key: key,
-          style: ElStyle(width: width, height: 20, transitions: _linear),
-        );
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: Row(
-              children: [
-                SizedBox(width: 250, child: Center(child: right ? null : view)),
-                SizedBox(width: 250, child: Center(child: right ? view : null)),
               ],
             ),
           ),
         );
       }
 
-      await tester.pumpWidget(host(false, 100));
-      await tester.pumpWidget(host(false, 200));
-      await _advance(tester, 50);
-      await tester.pumpWidget(host(true, 200));
-      expect(tester.getSize(find.byKey(key)).width, 150);
-      await _advance(tester, 50);
-      expect(tester.getSize(find.byKey(key)).width, 200);
-    });
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
 
-    testWidgets('曲线过冲不会产生负尺寸、负边距或越界 alpha', (tester) async {
-      const transitions = [
-        ElTransition.all(Duration(milliseconds: 100), Curves.easeOutBack),
-      ];
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 100,
-            height: 100,
-            padding: EdgeInsets.all(10),
-            margin: EdgeInsets.all(10),
-            backgroundColor: _red,
-            transitions: transitions,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(width: 0, height: 0, transitions: transitions)),
-      );
-      await _advance(tester, 60);
-      expect(viewSize(tester), Size.zero);
-      await _advance(tester, 40);
-      expect(viewBox(tester), paintsNothing);
-      expect(tester.takeException(), isNull);
-    });
-
-    for (final (name, from, to, alpha, red, blue)
-        in <(String, Color?, Color?, double, double, double)>[
-          ('null → 不透明', null, _red, .5, 1, 0),
-          ('不透明 → null', _red, null, .5, 1, 0),
-          (
-            'null → 半透明',
-            null,
-            Color.from(alpha: .5, red: 0, green: 0, blue: 1),
-            .25,
-            0,
-            1,
-          ),
-          (
-            '半透明 → null',
-            Color.from(alpha: .5, red: 0, green: 0, blue: 1),
-            null,
-            .25,
-            0,
-            1,
-          ),
-          (
-            '半透明红 → 半透明蓝',
-            Color.from(alpha: .5, red: 1, green: 0, blue: 0),
-            Color.from(alpha: .5, red: 0, green: 0, blue: 1),
-            .5,
-            .5,
-            .5,
-          ),
-          (
-            '不透明红 → 半透明蓝',
-            _red,
-            Color.from(alpha: .5, red: 0, green: 0, blue: 1),
-            .75,
-            2 / 3,
-            1 / 3,
-          ),
-          ('透明蓝 → 不透明红', Color(0x000000ff), _red, .5, 1, 0),
-        ]) {
-      testWidgets('颜色中间值：$name', (tester) async {
-        ElStyle style(Color? color) => ElStyle(
-          width: 40,
-          height: 30,
-          backgroundColor: color,
-          transitions: _linear,
-        );
-        await tester.pumpWidget(viewScene(style(from)));
-        await tester.pumpWidget(viewScene(style(to)));
-        await tester.pump(const Duration(milliseconds: 50));
-        final actual = _color(viewBox(tester));
-        expect(actual.a, closeTo(alpha, .00001));
-        expect(actual.r, closeTo(red, .00001));
-        expect(actual.g, 0);
-        expect(actual.b, closeTo(blue, .00001));
-        await tester.pump(const Duration(milliseconds: 50));
-        if (to == null) {
-          expect(viewBox(tester), paintsNothing);
-        } else {
-          expect(_color(viewBox(tester)), isSameColorAs(to));
-        }
-      });
-    }
-
-    testWidgets('动画中卸载后重新挂载使用新的声明值', (tester) async {
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 40,
-            height: 30,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 100,
-            height: 60,
-            backgroundColor: _blue,
-            transitions: _linear,
-          ),
-        ),
-      );
+      await tester.pumpWidget(host(null));
       await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(70, 45));
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(milliseconds: 200));
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 80,
-            height: 20,
-            backgroundColor: _red,
-            transitions: _linear,
-          ),
+      expect(box.boxSize.width, 72, reason: '120 → padding 24 的中点');
+      expect(box.size.width, 88, reason: '节点总宽在 box width 之外再包含 16px margin');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.boxSize.width, 24);
+      expect(box.size.width, 40);
+    });
+
+    testWidgets('空 child：120px → auto height 收缩到 padding', (tester) async {
+      const key = ValueKey('empty-auto-height');
+      Widget host(Object? height) => boundedTarget(
+        key: key,
+        maxWidth: 100,
+        maxHeight: 300,
+        style: ElStyle(
+          width: 40,
+          height: height,
+          padding: .symmetric(vertical: 12),
+          alignment: .center,
+          transitions: const [ElTransition.field(ElTransitionField.height, Duration(milliseconds: 100), Curves.linear)],
         ),
       );
-      expect(viewSize(tester), const Size(80, 20));
-      expect(_color(viewBox(tester)), _red);
-    });
-  });
 
-  group('尺寸、参照与 auto 边界', () {
-    for (final restore in [false, true]) {
-      testWidgets('等待期间失去百分比参照后，中间尺寸保持正确：恢复=$restore', (tester) async {
-        const transitions = [
-          ElTransition.all(
-            Duration(milliseconds: 100),
-            Curves.linear,
-            Duration(milliseconds: 50),
-          ),
-        ];
-        Widget host(Object width, {bool bounded = true}) => Directionality(
-          textDirection: TextDirection.ltr,
-          child: Center(
-            child: UnconstrainedBox(
-              constrainedAxis: Axis.vertical,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: bounded ? 400 : double.infinity,
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+
+      await tester.pumpWidget(host(null));
+      expect(box.size.height, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.height, 72, reason: '高度快照应与宽度一样取 padding 24');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.height, 24);
+    });
+
+    testWidgets('width 动画中途反向时从当前 used size 连续返回', (tester) async {
+      const key = ValueKey('empty-auto-mid-reverse');
+      Widget host(Object? width) => boundedTarget(
+        key: key,
+        style: ElStyle(
+          width: width,
+          height: 40,
+          padding: .symmetric(horizontal: 12),
+          alignment: .center,
+          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+        ),
+      );
+
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+
+      await tester.pumpWidget(host(null));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 72);
+
+      await tester.pumpWidget(host(120));
+      expect(box.size.width, 72, reason: '反向起手帧必须保留当前插值，不能跳到任一端点');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 96, reason: '新时间线应从 72 连续返回 120');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 120);
+    });
+
+    testWidgets('width → auto 同轮 child 变宽时使用新 child 的 used size', (tester) async {
+      const key = ValueKey('auto-with-new-child-size');
+      Widget host(Object? width, double childWidth) => boundedTarget(
+        key: key,
+        style: ElStyle(
+          width: width,
+          height: 40,
+          padding: .symmetric(horizontal: 10),
+          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+        ),
+        child: ElView(
+          key: const ValueKey('resized-child'),
+          style: ElStyle(width: childWidth, height: 20),
+        ),
+      );
+
+      await tester.pumpWidget(host(120, 60));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+
+      await tester.pumpWidget(host(null, 160));
+      expect(box.size.width, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.width, 150, reason: '新 auto 端点应为 child 160 + padding 20 = 180');
+      await tester.pump(const Duration(milliseconds: 49));
+      expect(box.size.width, closeTo(179.4, 0.01), reason: '完成前应连续逼近新 child 决定的 auto 宽度');
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(box.size.width, 180, reason: '完成帧不能再从旧 child 的 auto 快照跳到新尺寸');
+    });
+
+    testWidgets('height → auto 同轮父宽变化时使用新约束下的 child 高度', (tester) async {
+      const key = ValueKey('auto-height-with-new-parent-width');
+      Widget host(Object? height, double maxWidth) {
+        return MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 300),
+              child: ElView(
+                key: key,
+                style: ElStyle(
+                  height: height,
+                  transitions: const [
+                    ElTransition.field(ElTransitionField.height, Duration(milliseconds: 100), Curves.linear),
+                  ],
                 ),
+                child: const ElView(style: ElStyle(width: '100%', aspectRatio: 2)),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(host(120, 100));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(box.size, const Size(100, 120));
+
+      await tester.pumpWidget(host(null, 200));
+      expect(box.size.height, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(box.size.height, 110, reason: '新父宽 200 使 100% / 2 的 child 高度为 100');
+      await tester.pump(const Duration(milliseconds: 49));
+      expect(box.size.height, closeTo(100.2, 0.01), reason: '完成前应连续逼近新父约束决定的 auto 高度');
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(box.size, const Size(200, 100), reason: '完成帧不能从旧父宽对应的高度跳到新高度');
+    });
+
+    testWidgets('不支持 dry layout 的 child 仍可连续从显式 width 过渡到 auto', (tester) async {
+      const key = ValueKey('auto-with-layout-builder');
+      Widget host(Object? width) => boundedTarget(
+        key: key,
+        style: ElStyle(
+          width: width,
+          height: 40,
+          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+        ),
+        child: LayoutBuilder(builder: (context, constraints) => const ElView(style: ElStyle(width: 180, height: 20))),
+      );
+
+      await tester.pumpWidget(host(120));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(box.size.width, 120);
+
+      await tester.pumpWidget(host(null));
+      expect(tester.takeException(), isNull, reason: '合法 child 不支持 dry layout 时不能抛异常');
+      expect(box.size.width, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.takeException(), isNull);
+      expect(box.size.width, 150, reason: '不能用保留旧宽度直到完成的离散回退');
+      await tester.pump(const Duration(milliseconds: 49));
+      expect(tester.takeException(), isNull);
+      expect(box.size.width, closeTo(179.4, 0.01), reason: '完成前应连续逼近 LayoutBuilder 的真实 auto 宽度');
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(tester.takeException(), isNull);
+      expect(box.size.width, 180);
+    });
+
+    testWidgets('rich TextSpan 的 width 与 fontSize 同时过渡时目标探测不污染正式首帧', (tester) async {
+      const key = ValueKey('rich-auto-with-font-size');
+      Widget host(Object? width, double fontSize) {
+        return MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300, maxHeight: 200),
+              child: ElView(
+                key: key,
+                style: ElStyle(
+                  width: width,
+                  fontSize: fontSize as double?,
+                  softWrap: false,
+                  transitions: const [
+                    ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
+                    ElTransition.field(ElTransitionField.fontSize, Duration(milliseconds: 100), Curves.linear),
+                  ],
+                ),
+                child: const TextSpan(text: 'MMMMMM'),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(host(120, 10));
+      await tester.pump();
+      final box = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, 10);
+
+      await tester.pumpWidget(host(null, 30));
+      expect(box.size.width, 120);
+      expect(box.targetStyleForTest.inheritedText.fontSize, 30);
+      expect(box.committedResolvedStyle.inheritedText.fontSize, 10);
+      expect(
+        (box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize,
+        10,
+        reason: 'target auto 探测使用 30px 后，正式首帧必须按 committed 10px 重建 rich context',
+      );
+
+      await tester.pump(const Duration(milliseconds: 99));
+      final beforeComplete = box.size.width;
+      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, closeTo(29.8, 0.01));
+
+      await tester.pump(const Duration(milliseconds: 1));
+      final completed = box.size.width;
+      expect(completed, greaterThan(120));
+      expect(
+        beforeComplete,
+        closeTo(120 + (completed - 120) * 0.99, 0.01),
+        reason: '99ms 应沿冻结的 rich auto 终点连续逼近，完成帧不能重新测量后跳变',
+      );
+      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, 30);
+    });
+
+    testWidgets('无界轴 host 切到 auto 时清旧参照并让百分比 child 向外取参照', (tester) async {
+      const hostKey = ValueKey('unbounded-auto-reference-host');
+      const childKey = ValueKey('unbounded-auto-reference-child');
+      Widget tree(Object? width) {
+        return MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: ElView(
+              style: const ElStyle(width: 400, height: 100),
+              child: UnconstrainedBox(
+                constrainedAxis: Axis.vertical,
+                alignment: Alignment.topLeft,
                 child: ElView(
-                  key: viewKey,
+                  key: hostKey,
                   style: ElStyle(
                     width: width,
-                    height: 20,
-                    transitions: transitions,
+                    height: 40,
+                    transitions: const [
+                      ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
+                    ],
                   ),
-                  child: const SizedBox(width: 80, height: 20),
+                  child: const ElView(
+                    key: childKey,
+                    style: ElStyle(width: '50%', height: 20),
+                  ),
                 ),
               ),
             ),
           ),
         );
-        final target = restore ? '75%' : '50%';
-        await tester.pumpWidget(host(restore ? '25%' : 100));
-        await tester.pumpWidget(host(target));
-        await tester.pump(const Duration(milliseconds: 25));
-        await tester.pumpWidget(host(target, bounded: false));
-        expect(viewSize(tester).width, 100);
-        if (restore) {
-          await tester.pump(const Duration(milliseconds: 10));
-          expect(viewSize(tester).width, 100);
-          await tester.pumpWidget(host(target));
-        }
-        await tester.pump(Duration(milliseconds: restore ? 40 : 50));
-        expect(viewSize(tester).width, restore ? 150 : 95);
-        await tester.pump(const Duration(milliseconds: 25));
-        expect(viewSize(tester).width, restore ? 200 : 90);
-        await tester.pump(const Duration(milliseconds: 50));
-        expect(viewSize(tester).width, restore ? 300 : 80);
-      });
-    }
-    for (final dense in [false, true]) {
-      final sampling = dense ? '逐帧推进' : '跨帧推进';
-
-      testWidgets('auto 宽度与较慢 padding 在截止帧保持连续：$sampling', (tester) async {
-        const child = SizedBox(width: 100, height: 20);
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(width: 200, transitions: _widthAndPadding),
-            child: child,
-          ),
-        );
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              transitions: _widthAndPadding,
-            ),
-            child: child,
-          ),
-        );
-        await _advanceTo99(tester, dense: dense);
-        final before = viewSize(tester).width;
-        await tester.pump(const Duration(milliseconds: 1));
-        expect((viewSize(tester).width - before).abs(), lessThan(3));
-        expect(viewSize(tester).width, closeTo(140, .001));
-        if (dense) {
-          for (var i = 0; i < 10; i++) {
-            await tester.pump(const Duration(milliseconds: 10));
-          }
-        } else {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        expect(viewSize(tester).width, closeTo(180, .001));
-        expect(tester.takeException(), isNull);
-      });
-
-      testWidgets('双 auto 与宽高比跨轴耦合在不同截止帧保持连续：$sampling', (tester) async {
-        const child = AspectRatio(aspectRatio: 2);
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(width: 200, height: 50, transitions: _widthAndHeight),
-            child: child,
-          ),
-        );
-        await tester.pumpWidget(
-          viewScene(const ElStyle(transitions: _widthAndHeight), child: child),
-        );
-        await _advanceTo99(tester, dense: dense);
-        final before = viewSize(tester).width;
-        await tester.pump(const Duration(milliseconds: 1));
-        expect((viewSize(tester).width - before).abs(), lessThan(5));
-        expect(viewSize(tester).width, closeTo(250, .001));
-        expect(viewSize(tester).height, closeTo(125, .001));
-        if (dense) {
-          for (var i = 0; i < 10; i++) {
-            await tester.pump(const Duration(milliseconds: 10));
-          }
-        } else {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        expect(viewSize(tester), const Size(400, 200));
-        expect(tester.takeException(), isNull);
-      });
-    }
-
-    testWidgets('固定像素宽度按声明曲线插值，child 同步受到可用宽度限制', (tester) async {
-      const childKey = ValueKey('pixel-child');
-      const child = SizedBox(key: childKey, width: 1000, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 100, transitions: _linear),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: _linear),
-          child: child,
-        ),
-      );
-      for (var i = 1; i <= 10; i++) {
-        await tester.pump(const Duration(milliseconds: 10));
-        final width = 100 + i * 10.0;
-        expect(viewSize(tester).width, closeTo(width, .001));
-        expect(tester.getSize(find.byKey(childKey)), Size(width, 20));
       }
-      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(tree(120));
+      await tester.pump();
+      final host = tester.renderObject<ElRenderView>(find.byKey(hostKey));
+      expect(host.size.width, 120);
+      expect(tester.getSize(find.byKey(childKey)).width, 60);
+
+      await tester.pumpWidget(tree(null));
+      expect(host.size.width, 120);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(host.size.width, 160, reason: 'auto target 应清 host 的旧 120 参照，child 改向外取 400 × 50% = 200');
+      await tester.pump(const Duration(milliseconds: 49));
+      expect(host.size.width, closeTo(199.2, 0.01));
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(host.size.width, 200);
+      expect(tester.getSize(find.byKey(childKey)).width, 200);
+    });
+  });
+
+  group('可空值插值', () {
+    ElRenderView findRender(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
+
+    Future<TestGesture> arm(WidgetTester tester) async {
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(() => mouse.removePointer());
+      await mouse.addPointer(location: const Offset(-10, -10));
+      await tester.pump();
+      return mouse;
+    }
+
+    Future<void> hoverInOut(WidgetTester tester, TestGesture mouse, Key key) async {
+      final center = tester.getCenter(find.byKey(key));
+      await mouse.moveTo(center);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      await mouse.moveTo(const Offset(500, 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+    }
+
+    testWidgets('borderRadius: null → circular(20) → null', (tester) async {
+      const key = ValueKey('br');
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 100,
+                height: 100,
+                bgColor: Color(0xffff0000),
+                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                onHover: ElStyle(borderRadius: BorderRadius.all(Radius.elliptical(20, 20))),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.borderRadius, isNull);
+
+      final mouse = await arm(tester);
+      await hoverInOut(tester, mouse, key);
+
+      expect(box.committedResolvedStyle.box.borderRadius, isNull, reason: 'hover 离开后 borderRadius 必须回到 null');
     });
 
-    testWidgets('auto 临时测量后嵌套百分比、位置与后代动画仍使用正式几何', (tester) async {
-      const columnKey = ValueKey('nested-column');
-      const nestedKey = ValueKey('nested-view');
-      const leafKey = ValueKey('nested-leaf');
-      const padding = EdgeInsets.fromLTRB(7, 11, 13, 17);
-      const margin = EdgeInsets.fromLTRB(3, 5, 9, 15);
-      const childTransitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 200),
-          Curves.linear,
+    testWidgets('padding: null → EI(8) → null', (tester) async {
+      const key = ValueKey('pad');
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 100,
+                height: 100,
+                bgColor: Color(0xffff0000),
+                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                onHover: ElStyle(padding: .all(8)),
+              ),
+            ),
+          ),
         ),
-      ];
-      Widget nested(double width) => Column(
-        key: columnKey,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      );
+      await tester.pump();
+
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.padding, isNull);
+
+      final mouse = await arm(tester);
+      await hoverInOut(tester, mouse, key);
+
+      expect(box.committedResolvedStyle.box.padding, isNull);
+    });
+
+    testWidgets('width (ElDimension): null → 200 → null', (tester) async {
+      const key = ValueKey('w');
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                height: 100,
+                bgColor: Color(0xffff0000),
+                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                onHover: ElStyle(width: 200),
+              ),
+              child: SizedBox(width: 30, height: 30),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.width, isNull, reason: '初始 width 未声明');
+
+      final mouse = await arm(tester);
+      await hoverInOut(tester, mouse, key);
+
+      expect(box.committedResolvedStyle.box.width, isNull, reason: 'hover 离开后 width 必须回到 null（child intrinsic）');
+    });
+
+    testWidgets('opacity (double?): null → 0.5 → null', (tester) async {
+      const key = ValueKey('op');
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 100,
+                height: 100,
+                bgColor: Color(0xffff0000),
+                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                onHover: ElStyle(opacity: 0.5),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.opacity, isNull);
+
+      final mouse = await arm(tester);
+      await hoverInOut(tester, mouse, key);
+
+      expect(box.committedResolvedStyle.box.opacity, isNull, reason: 'hover 离开后 opacity 必须回到 null');
+    });
+
+    testWidgets('transform: null → scale → null 连续过渡', (tester) async {
+      const key = ValueKey('transform');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 100,
+                height: 100,
+                bgColor: const Color(0xffff0000),
+                transitions: const [ElTransition.all(Duration(milliseconds: 100))],
+                onHover: const ElStyle(transform: .scale(0.8, 0.8)),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.transform, isNull);
+
+      final mouse = await arm(tester);
+      await mouse.moveTo(tester.getCenter(find.byKey(key)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final middle = box.committedResolvedStyle.box.transform;
+      expect(middle, isNotNull);
+      final enterMatrix = middle!.toMatrix4();
+      final enterScale = enterMatrix.storage[0];
+      expect(enterScale, greaterThanOrEqualTo(0.8), reason: '中间帧不能越过目标 scale');
+      expect(enterScale, lessThan(1.0), reason: 'null 应按 identity 参与 scale 插值，而不是半程 step');
+
+      await mouse.moveTo(const Offset(500, 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final retreat = box.committedResolvedStyle.box.transform;
+      expect(retreat, isNotNull);
+      final retreatScale = retreat!.toMatrix4().storage[0];
+      expect(retreatScale, greaterThan(enterScale), reason: 'transform -> null 退场也必须向 identity 连续 lerp');
+      expect(retreatScale, lessThan(1.0), reason: '退场中间帧不能提前 step 到 null / identity');
+
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(box.committedResolvedStyle.box.transform, isNull, reason: 'hover 离开后 transform 必须回到 null');
+    });
+
+    testWidgets('transformAlignment 单字段 transition：topLeft → center 平滑过渡', (tester) async {
+      const key = ValueKey('ta');
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: ElView(
+              key: key,
+              style: ElStyle(
+                width: 100,
+                height: 100,
+                bgColor: Color(0xffff0000),
+                transform: .scale(2),
+                transformAlignment: Alignment.topLeft,
+                transitions: [ElTransition.field(ElTransitionField.transformAlignment, Duration(milliseconds: 100))],
+                onHover: ElStyle(transformAlignment: Alignment.center),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final box = findRender(tester, key);
+      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.topLeft);
+
+      final mouse = await arm(tester);
+      await mouse.moveTo(tester.getCenter(find.byKey(key)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // 中间帧应在 topLeft (-1,-1) 与 center (0,0) 之间
+      final mid = box.committedResolvedStyle.box.transformAlignment;
+      expect(mid, isNotNull);
+      expect(mid, isA<Alignment>(), reason: 'AlignmentGeometry.lerp 返回 Alignment 实例');
+      final a = mid! as Alignment;
+      expect(a.x, greaterThan(-1.0));
+      expect(a.x, lessThan(0.0));
+      expect(a.y, greaterThan(-1.0));
+      expect(a.y, lessThan(0.0));
+
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.center);
+
+      await mouse.moveTo(const Offset(500, 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.topLeft);
+    });
+
+    group('lerpStep 单元', () {
+      test('双侧非 null：t<0.5 取 from，否则 to', () {
+        expect(lerpStep('a', 'b', 0.0), 'a');
+        expect(lerpStep('a', 'b', 0.49), 'a');
+        expect(lerpStep('a', 'b', 0.5), 'b');
+        expect(lerpStep('a', 'b', 1.0), 'b');
+      });
+
+      test('to=null：退场时 t>=0.5 必须返回 null（而非永远 from）', () {
+        expect(lerpStep('a', null, 0.0), 'a');
+        expect(lerpStep('a', null, 0.49), 'a');
+        expect(lerpStep('a', null, 0.5), isNull);
+        expect(lerpStep('a', null, 1.0), isNull);
+      });
+
+      test('from=null：入场时 t<0.5 返回 null', () {
+        expect(lerpStep(null, 'b', 0.0), isNull);
+        expect(lerpStep(null, 'b', 0.49), isNull);
+        expect(lerpStep(null, 'b', 0.5), 'b');
+        expect(lerpStep(null, 'b', 1.0), 'b');
+      });
+    });
+
+    group('lerpTransform 单元', () {
+      test('双侧 null：始终 null', () {
+        expect(lerpTransform(null, null, 0.0), isNull);
+        expect(lerpTransform(null, null, 0.5), isNull);
+        expect(lerpTransform(null, null, 1.0), isNull);
+      });
+
+      test('t=0：返回 start（含 start=null）', () {
+        const a = ElTransform.scale(2.0, 2.0);
+        expect(lerpTransform(a, null, 0.0), same(a));
+        expect(lerpTransform(a, const ElTransform.translate(20, 0), 0.0), same(a));
+        expect(lerpTransform(null, const ElTransform.translate(20, 0), 0.0), isNull);
+      });
+
+      test('t=1：返回 end（含 end=null）', () {
+        const a = ElTransform.scale(2.0, 2.0);
+        const b = ElTransform.translate(20, 0);
+        expect(lerpTransform(a, b, 1.0), same(b));
+        expect(lerpTransform(a, null, 1.0), isNull);
+        expect(lerpTransform(null, b, 1.0), same(b));
+      });
+
+      test('单侧 null 以 identity scale(1) 为视觉端点', () {
+        const end = ElTransform.matrix3d(0.8, 0, 0, 0, 0, 0.6, 0, 0, 0, 0, 2, -0.002, 10, 20, 4, 1);
+        final mid = lerpTransform(null, end, 0.5)! as ElTransform;
+        final m = mid.toMatrix4();
+        expect(m.storage[0], closeTo(0.9, 1e-4));
+        expect(m.storage[5], closeTo(0.8, 1e-4));
+        expect(m.storage[10], closeTo(1.5, 1e-4));
+        expect(m.storage[11], closeTo(-0.001, 1e-4));
+        expect(m.storage[12], closeTo(5, 1e-4));
+        expect(m.storage[13], closeTo(10, 1e-4));
+        expect(m.storage[14], closeTo(2, 1e-4));
+      });
+
+      test('to=null：origin 在 t<0.5 取 start origin，t>=0.5 取 null', () {
+        final start = const ElTransform.scale(0.8, 0.6).alignment(Alignment.topLeft);
+        final low = lerpTransform(start, null, 0.4)! as ElTransform;
+        final high = lerpTransform(start, null, 0.6)! as ElTransform;
+        expect(low.origin, Alignment.topLeft, reason: 't<0.5 时 origin 应取 start 的');
+        expect(high.origin, isNull, reason: 't>=0.5 时 origin 切到 end (null)');
+      });
+
+      test('identical(start, end)：t=0 返回 start，无副本', () {
+        const a = ElTransform.scale(1.5);
+        expect(lerpTransform(a, a, 0.5), same(a), reason: 'identical 短路返回 from');
+      });
+    });
+  });
+
+  group('预乘颜色插值', () {
+    double composite(double src, double srcAlpha, double dst) => src * srcAlpha + dst * (1.0 - srcAlpha);
+
+    group('lerpColorPremul: 不透明 ↔ 半透明（用户报告的 hover 缺陷场景）', () {
+      // examples/example main.dart hero 次要按钮实际端点：
+      // bgSoft #f6f6f7（不透明近白）→ defaultSoft 0x248e96aa（alpha≈14% 灰蓝）
+      const from = Color(0xfff6f6f7);
+      const to = Color(0x248e96aa);
+
+      test('中间帧合成到白底后亮度落在两端之间（直通道插值会低于两端）', () {
+        final fromComposited = composite(from.r, from.a, 1.0);
+        final toComposited = composite(to.r, to.a, 1.0);
+        final lo = fromComposited < toComposited ? fromComposited : toComposited;
+        final hi = fromComposited < toComposited ? toComposited : fromComposited;
+        for (final t in [0.1, 0.25, 0.5, 0.75, 0.9]) {
+          final mid = lerpColorPremul(from, to, t)!;
+          final midComposited = composite(mid.r, mid.a, 1.0);
+          expect(midComposited, greaterThanOrEqualTo(lo - 1e-6), reason: 't=$t 合成亮度低于两端（暗坑）');
+          expect(midComposited, lessThanOrEqualTo(hi + 1e-6), reason: 't=$t 合成亮度高于两端');
+        }
+      });
+
+      test('合成结果 = 两端合成结果的线性插值（CSS 预乘语义，逐通道验证）', () {
+        const bg = 0.2; // 任意深色背景
+        for (final t in [0.3, 0.5, 0.7]) {
+          final mid = lerpColorPremul(from, to, t)!;
+          for (final (channel, cf, ct, cm) in [
+            ('r', from.r, to.r, mid.r),
+            ('g', from.g, to.g, mid.g),
+            ('b', from.b, to.b, mid.b),
+          ]) {
+            final expected = composite(cf, from.a, bg) * (1 - t) + composite(ct, to.a, bg) * t;
+            expect(composite(cm, mid.a, bg), closeTo(expected, 1e-6), reason: 'channel=$channel t=$t');
+          }
+        }
+      });
+
+      test('alpha 线性插值（与 CSS 一致）', () {
+        final mid = lerpColorPremul(from, to, 0.5)!;
+        expect(mid.a, closeTo((from.a + to.a) / 2, 1e-6));
+      });
+    });
+
+    group('lerpColorPremul: 端点语义', () {
+      test('双侧 null → null', () {
+        expect(lerpColorPremul(null, null, 0.5), isNull);
+      });
+
+      test('单侧 null → 对侧色相 alpha 渐入', () {
+        final v = lerpColorPremul(null, const Color(0xFFFFFFFF), 0.5)!;
+        expect(v.r, closeTo(1.0, 1e-6));
+        expect(v.g, closeTo(1.0, 1e-6));
+        expect(v.b, closeTo(1.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('全透明黑 → 可见色：不向中间帧混入黑色', () {
+        final v = lerpColorPremul(const Color(0x00000000), const Color(0xFF0000FF), 0.5)!;
+        expect(v.r, closeTo(0.0, 1e-6));
+        expect(v.g, closeTo(0.0, 1e-6));
+        expect(v.b, closeTo(1.0, 1e-6));
+        expect(v.a, closeTo(0.5, 0.01));
+      });
+
+      test('双侧不透明：退化为普通线性插值（与 Color.lerp 一致）', () {
+        final v = lerpColorPremul(const Color(0xFF000000), const Color(0xFFFFFFFF), 0.5)!;
+        expect(v.r, closeTo(0.5, 0.01));
+        expect(v.g, closeTo(0.5, 0.01));
+        expect(v.b, closeTo(0.5, 0.01));
+        expect(v.a, closeTo(1.0, 1e-6));
+      });
+
+      test('t=0 / t=1 精确等于端点', () {
+        const a = Color(0xfff6f6f7);
+        const b = Color(0x248e96aa);
+        final v0 = lerpColorPremul(a, b, 0.0)!;
+        final v1 = lerpColorPremul(a, b, 1.0)!;
+        expect(v0.r, closeTo(a.r, 1e-6));
+        expect(v0.a, closeTo(a.a, 1e-6));
+        expect(v1.r, closeTo(b.r, 1e-6));
+        expect(v1.g, closeTo(b.g, 1e-6));
+        expect(v1.b, closeTo(b.b, 1e-6));
+        expect(v1.a, closeTo(b.a, 1e-6));
+      });
+    });
+
+    group('消费点接线：各颜色 lerper 走预乘', () {
+      test('lerpColor（bgColor/color 字段）：半透明中间帧无暗坑', () {
+        final mid = lerpColor(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5)! as Color;
+        final expected = lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5)!;
+        expect(mid, expected);
+      });
+
+      test('ElBorderSide.lerp：color 分量走预乘', () {
+        const a = ElBorderSide(width: 1, color: Color(0xfff6f6f7));
+        const b = ElBorderSide(width: 1, color: Color(0x248e96aa));
+        final mid = ElBorderSide.lerp(a, b, 0.5);
+        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+      });
+
+      test('ElOutline.lerp：color 分量走预乘', () {
+        const a = ElOutline(width: 2, color: Color(0xfff6f6f7));
+        const b = ElOutline(width: 2, color: Color(0x248e96aa));
+        final mid = ElOutline.lerp(a, b, 0.5)!;
+        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+      });
+
+      test('ElBoxShadow.lerp：color 分量走预乘，几何分量沿用 Flutter', () {
+        const a = BoxShadow(color: Color(0xfff6f6f7), blurRadius: 4);
+        const b = BoxShadow(color: Color(0x248e96aa), blurRadius: 12);
+        final mid = ElBoxShadow.lerp(a, b, 0.5)!;
+        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+        expect(mid.blurRadius, closeTo(8.0, 1e-6));
+      });
+
+      test('lerpShadowListValue（textShadow 字段）：color 分量走预乘', () {
+        const a = [Shadow(color: Color(0xfff6f6f7), blurRadius: 2)];
+        const b = [Shadow(color: Color(0x248e96aa), blurRadius: 6)];
+        final mid = (lerpShadowListValue(a, b, 0.5)! as List<Shadow>).single;
+        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+        expect(mid.blurRadius, closeTo(4.0, 1e-6));
+      });
+    });
+  });
+
+  group('变换函数插值', () {
+    Matrix4 mat(ElTransform? v) => v!.toMatrix4();
+
+    group('rotate 角度插值', () {
+      test('identity → rotate(2π)：spinner 场景，中途帧真在转', () {
+        const start = ElTransform.identity();
+        final end = ElTransform.rotate(math.pi * 2);
+        // t=0.25 → 旋转 π/2。
+        final quarter = mat(ElTransform.lerp(start, end, 0.25));
+        expect(quarter.storage[0], closeTo(math.cos(math.pi / 2), 1e-9));
+        expect(quarter.storage[1], closeTo(1.0, 1e-9));
+        // t=0.5 → 旋转 π（旧矩阵插值下这里恒 ≈ identity）。
+        final half = mat(ElTransform.lerp(start, end, 0.5));
+        expect(half.storage[0], closeTo(-1.0, 1e-9));
+        expect(half.storage[5], closeTo(-1.0, 1e-9));
+      });
+
+      test('null 端点视为 identity：null → rotate(2π) 同样在转', () {
+        final end = ElTransform.rotate(math.pi * 2);
+        final half = mat(ElTransform.lerp(null, end, 0.5));
+        expect(half.storage[0], closeTo(-1.0, 1e-9));
+      });
+
+      test('rotate(π/2) → rotate(π)：角度线性、无缩放塌缩（行列式恒 1）', () {
+        final v = mat(ElTransform.lerp(ElTransform.rotate(math.pi / 2), ElTransform.rotate(math.pi), 0.5));
+        expect(v.storage[0], closeTo(math.cos(math.pi * 0.75), 1e-9));
+        expect(v.storage[1], closeTo(math.sin(math.pi * 0.75), 1e-9));
+        final det2d = v.storage[0] * v.storage[5] - v.storage[1] * v.storage[4];
+        expect(det2d, closeTo(1.0, 1e-9), reason: '按角度插值不得出现中途缩放');
+      });
+
+      test('rotateX 同轴插值', () {
+        final v = mat(ElTransform.lerp(ElTransform.rotateX(math.pi / 4), ElTransform.rotateX(math.pi * 0.75), 0.5));
+        expect(v.storage[5], closeTo(math.cos(math.pi / 2), 1e-9));
+        expect(v.storage[6], closeTo(1.0, 1e-9));
+      });
+
+      test('rotate3d 同轴插值：等价于直接构造中间角', () {
+        final v = mat(
+          ElTransform.lerp(ElTransform.rotate3d(1, 1, 0, math.pi / 2), ElTransform.rotate3d(1, 1, 0, math.pi), 0.5),
+        );
+        final expected = ElTransform.rotate3d(1, 1, 0, math.pi * 0.75).toMatrix4();
+        for (var i = 0; i < 16; i++) {
+          expect(v.storage[i], closeTo(expected.storage[i], 1e-9));
+        }
+      });
+
+      test('零角端点轴任意：rotateZ(0) → rotateX(π) 按 X 轴插角度', () {
+        final v = mat(ElTransform.lerp(ElTransform.rotateZ(0), ElTransform.rotateX(math.pi), 0.5));
+        final expected = ElTransform.rotateX(math.pi / 2).toMatrix4();
+        for (var i = 0; i < 16; i++) {
+          expect(v.storage[i], closeTo(expected.storage[i], 1e-9));
+        }
+      });
+
+      test('轴不同回退矩阵插值：rotateX(π) ↔ rotateZ(π) 中点为元素均值', () {
+        final v = mat(ElTransform.lerp(ElTransform.rotateX(math.pi), ElTransform.rotateZ(math.pi), 0.5));
+        // 元素均值：m00 = (1 + -1)/2 = 0，m22 = (-1 + 1)/2 = 0。
+        expect(v.storage[0], closeTo(0.0, 1e-9));
+        expect(v.storage[10], closeTo(0.0, 1e-9));
+      });
+    });
+
+    group('skew 角度插值', () {
+      test('skewX 按角度插值而非 tan 值', () {
+        final v = mat(ElTransform.lerp(ElTransform.skewX(0), ElTransform.skewX(math.pi / 3), 0.5));
+        // 角度中点 π/6 → tan(π/6) ≈ 0.577；tan 值中点是 tan(π/3)/2 ≈ 0.866。
+        expect(v.storage[4], closeTo(math.tan(math.pi / 6), 1e-9));
+      });
+
+      test('identity → skew(x, y)：中性 0 角补位', () {
+        final v = mat(ElTransform.lerp(const ElTransform.identity(), ElTransform.skew(math.pi / 3, math.pi / 4), 0.5));
+        expect(v.storage[4], closeTo(math.tan(math.pi / 6), 1e-9));
+        expect(v.storage[1], closeTo(math.tan(math.pi / 8), 1e-9));
+      });
+    });
+
+    group('translate / scale 与回退路径既有行为不变', () {
+      test('scale → null：中性 scale(1) 补位', () {
+        final v = mat(ElTransform.lerp(const ElTransform.scale(0.8, 0.6), null, 0.5));
+        expect(v.storage[0], closeTo(0.9, 1e-9));
+        expect(v.storage[5], closeTo(0.8, 1e-9));
+      });
+
+      test('null → translate：中性 translate(0) 补位', () {
+        final v = mat(ElTransform.lerp(null, const ElTransform.translate(20, 10), 0.5));
+        expect(v.storage[12], closeTo(10.0, 1e-9));
+        expect(v.storage[13], closeTo(5.0, 1e-9));
+      });
+
+      test('手写 matrix 端点不吃函数插值：identity 同值矩阵 → rotate(2π) 恒静止', () {
+        // 与函数插值形成对照：同样的 identity 数值、以 .matrix 构造即失去角度信息。
+        const start = ElTransform.matrix(1, 0, 0, 1, 0, 0);
+        final half = mat(ElTransform.lerp(start, ElTransform.rotate(math.pi * 2), 0.5));
+        expect(half.storage[0], closeTo(1.0, 1e-4));
+        expect(half.storage[1], closeTo(0.0, 1e-4));
+      });
+
+      test('函数不同类（scale ↔ translate）回退矩阵插值', () {
+        final v = mat(ElTransform.lerp(const ElTransform.scale(2.0, 2.0), const ElTransform.translate(20, 0), 0.5));
+        expect(v.storage[0], closeTo(1.5, 1e-9));
+        expect(v.storage[12], closeTo(10.0, 1e-9));
+      });
+    });
+
+    group('origin 与插值产物再插值', () {
+      test('函数插值路径保持 origin step 规则：t<0.5 取 start，t>=0.5 取 end', () {
+        final start = ElTransform.rotate(math.pi).alignment(Alignment.topLeft);
+        final end = ElTransform.rotate(math.pi * 2);
+        final low = ElTransform.lerp(start, end, 0.4)!;
+        final high = ElTransform.lerp(start, end, 0.6)!;
+        expect(low.origin, Alignment.topLeft);
+        expect(high.origin, isNull);
+        // origin 之外角度照常插值。
+        expect(mat(low).storage[0], closeTo(math.cos(math.pi * 1.4), 1e-9));
+      });
+
+      test('lerp 产物保留来源函数：链式再插值仍按角度', () {
+        final end = ElTransform.rotate(math.pi * 2);
+        final mid = ElTransform.lerp(const ElTransform.identity(), end, 0.5); // rotate(π)
+        final v = mat(ElTransform.lerp(mid, end, 0.5)); // rotate(1.5π)
+        expect(v.storage[0], closeTo(math.cos(math.pi * 1.5), 1e-9));
+        expect(v.storage[1], closeTo(math.sin(math.pi * 1.5), 1e-9));
+      });
+    });
+
+    group('关键帧端到端', () {
+      testWidgets('spinner：identity → rotate(2π) 无限循环，中途帧真在转', (tester) async {
+        const k = ValueKey('spin');
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ElView(
+              key: k,
+              style: ElStyle(
+                width: 40,
+                height: 40,
+                animations: [
+                  ElAnimation(
+                    keyframes: {
+                      0: const ElStyle(transform: .identity()),
+                      100: ElStyle(transform: .rotate(math.pi * 2)),
+                    },
+                    duration: const Duration(seconds: 1),
+                    curve: Curves.linear,
+                    iterationCount: double.infinity,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump(); // ticker 基线帧
+        await tester.pump(const Duration(milliseconds: 250));
+        final render = tester.renderObject<ElRenderView>(find.byKey(k));
+        final transform = render.committedResolvedStyle.box.transform!;
+        final m = transform.toMatrix4();
+        // progress 0.25 → 旋转 π/2（修复前恒 ≈ identity）。
+        expect(m.storage[0], closeTo(0.0, 0.05));
+        expect(m.storage[1], closeTo(1.0, 0.05));
+      });
+    });
+  });
+
+  group('级联帧提交', () {
+    final emptyState = 0;
+
+    ResolvedStyle empty() => ResolvedStyleBuilder.empty().build();
+
+    group('newTarget / newCommitted / changedFields 三元组', () {
+      test('无 style + 无 parent：newTarget = newCommitted = empty, 无 changes', () {
+        final result = CascadeTick.tick(
+          style: null,
+          parent: null,
+          oldCommitted: empty(),
+          state: emptyState,
+
+          driver: null,
+        );
+        expect(result.changedMask.fields.toSet(), isEmpty);
+        expect(result.newCommitted.inheritedText.color, InheritedText.initial.color);
+      });
+
+      test('style.color：committed/target 都含 color，进 changedFields', () {
+        final result = CascadeTick.tick(
+          style: const ElStyle(color: Color(0xFFFF0000)),
+          parent: null,
+          oldCommitted: empty(),
+          state: emptyState,
+
+          driver: null,
+        );
+        expect(result.newTarget.inheritedText.color, const Color(0xFFFF0000));
+        expect(result.newCommitted.inheritedText.color, const Color(0xFFFF0000));
+        expect(result.changedMask.fields.toSet(), contains(ElTransitionField.color));
+      });
+
+      test('字段未变（与 oldCommitted 相同）：不进 changedFields', () {
+        final old = ResolvedStyleBuilder.empty();
+        old.writeColor(const Color(0xFFFF0000));
+        final oldCommitted = old.build();
+
+        final result = CascadeTick.tick(
+          style: const ElStyle(color: Color(0xFFFF0000)),
+          parent: null,
+          oldCommitted: oldCommitted,
+          state: emptyState,
+
+          driver: null,
+        );
+        expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.color)));
+      });
+    });
+
+    group('transition：进 driver + newCommitted 保留旧值', () {
+      testWidgets('有 transition 的字段：driver 收到 startAnimation', (tester) async {
+        var ticks = 0;
+        final driver = StyleAnimationDriver(onTick: () => ticks++);
+        try {
+          final old = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+          final result = CascadeTick.tick(
+            style: const ElStyle(
+              color: Color(0xFF0000FF),
+              transitions: [ElTransition.field(ElTransitionField.color, Duration(milliseconds: 200))],
+            ),
+            parent: null,
+            oldCommitted: old.build(),
+            state: emptyState,
+
+            driver: driver,
+          );
+          // newTarget 是新值
+          expect(result.newTarget.inheritedText.color, const Color(0xFF0000FF));
+          // newCommitted 保持旧值（动画字段未立即跳）
+          expect(
+            result.newCommitted.inheritedText.color,
+            const Color(0xFFFF0000),
+            reason: 'transition 的字段：committed 保持旧值，等 driver 推进',
+          );
+          // driver 应该有 active animation
+          expect(driver.activeFields, contains(ElTransitionField.color));
+          // 该字段**不**进 changedFields（动画字段不是立即变化）
+          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.color)));
+        } finally {
+          driver.dispose();
+        }
+      });
+
+      test('duration=0 + delay=0：立即生效，不进 driver', () {
+        var ticks = 0;
+        final driver = StyleAnimationDriver(onTick: () => ticks++);
+        try {
+          final old = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+          final result = CascadeTick.tick(
+            style: const ElStyle(
+              color: Color(0xFF0000FF),
+              transitions: [ElTransition.field(ElTransitionField.color, Duration.zero)],
+            ),
+            parent: null,
+            oldCommitted: old.build(),
+            state: emptyState,
+
+            driver: driver,
+          );
+          expect(driver.activeFields, isEmpty, reason: 'duration=0 视为无动画');
+          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.color));
+        } finally {
+          driver.dispose();
+        }
+      });
+
+      testWidgets('fontWeight 是连续字段：transition 进 driver', (tester) async {
+        var ticks = 0;
+        final driver = StyleAnimationDriver(onTick: () => ticks++);
+        try {
+          final old = ResolvedStyleBuilder.empty()..writeFontWeight(FontWeight.w400);
+          final result = CascadeTick.tick(
+            style: const ElStyle(
+              fontWeight: FontWeight.w700,
+              transitions: [ElTransition.field(ElTransitionField.fontWeight, Duration(milliseconds: 200))],
+            ),
+            parent: null,
+            oldCommitted: old.build(),
+            state: emptyState,
+
+            driver: driver,
+          );
+          expect(driver.activeFields, contains(ElTransitionField.fontWeight));
+          expect(result.newCommitted.inheritedText.fontWeight, FontWeight.w400);
+          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.fontWeight)));
+        } finally {
+          driver.dispose();
+        }
+      });
+
+      test('所有非离散字段命中 transition 时都进入 driver', () {
+        final samples = _transitionSamples();
+        final missing = [
+          for (final entry in fieldSpecs.entries)
+            if (!entry.value.isDiscrete && !samples.containsKey(entry.key)) entry.key.name,
+        ];
+        expect(missing, isEmpty, reason: '新增可动画字段必须补 transition 样本，防止漏处理');
+
+        for (final entry in samples.entries) {
+          final field = entry.key;
+          final (from, to) = entry.value;
+          final spec = fieldSpecs[field]!;
+          if (spec.isDiscrete) continue;
+
+          var ticks = 0;
+          final driver = StyleAnimationDriver(onTick: () => ticks++);
+          try {
+            final old = ResolvedStyleBuilder.empty();
+            spec.write(old, from);
+            final result = CascadeTick.tick(
+              style: _styleFor(field, to),
+              parent: null,
+              oldCommitted: old.build(),
+              state: emptyState,
+
+              driver: driver,
+            );
+            expect(driver.activeFields, contains(field), reason: '${field.name} 可 lerp，必须进入动画 driver');
+            expect(result.changedMask.fields.toSet(), isNot(contains(field)), reason: '${field.name} 启动动画时不应立即 commit');
+          } finally {
+            driver.dispose();
+          }
+        }
+      });
+
+      testWidgets('字段值相同：driver 中已有的动画被 cancel', (tester) async {
+        var ticks = 0;
+        final driver = StyleAnimationDriver(onTick: () => ticks++);
+        try {
+          // 先启动一个 color 动画
+          driver.startAnimation(
+            FieldAnimation(
+              field: ElTransitionField.color,
+              from: const Color(0xFFFF0000),
+              to: const Color(0xFF0000FF),
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.linear,
+            ),
+          );
+          expect(driver.activeFields, contains(ElTransitionField.color));
+
+          final old = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+          CascadeTick.tick(
+            style: const ElStyle(color: Color(0xFFFF0000)),
+            parent: null,
+            oldCommitted: old.build(),
+            state: emptyState,
+
+            driver: driver,
+          );
+          // tick 见到 target == old → 自动 cancel
+          expect(
+            driver.activeFields,
+            isNot(contains(ElTransitionField.color)),
+            reason: 'target 与 old 相等时应 cancel 已有动画',
+          );
+        } finally {
+          driver.dispose();
+        }
+      });
+    });
+
+    group('继承传播：parent → newTarget', () {
+      test('parent 有 color，子无 color：newTarget 继承 parent color', () {
+        final parentOld = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+        final result = CascadeTick.tick(
+          style: null,
+          parent: parentOld.build(),
+          oldCommitted: empty(),
+          state: emptyState,
+
+          driver: null,
+        );
+        expect(result.newTarget.inheritedText.color, const Color(0xFFFF0000));
+        expect(result.changedMask.fields.toSet(), contains(ElTransitionField.color));
+      });
+    });
+
+    group('theme animation 接管边界', () {
+      testWidgets('继承 theme mask 只强制提交命中字段，其他本地动画保持原实例和进度', (tester) async {
+        final driver = StyleAnimationDriver(onTick: () {});
+        try {
+          final colorAnimation = FieldAnimation(
+            field: ElTransitionField.color,
+            from: const Color(0xFF000000),
+            to: const Color(0xFFFFFFFF),
+            duration: const Duration(milliseconds: 200),
+          )..advance(const Duration(milliseconds: 40));
+          final opacityAnimation = FieldAnimation(
+            field: ElTransitionField.opacity,
+            from: 0.2,
+            to: 0.8,
+            duration: const Duration(milliseconds: 200),
+          )..advance(const Duration(milliseconds: 40));
+          driver.startAnimation(colorAnimation);
+          driver.startAnimation(opacityAnimation);
+
+          final old = ResolvedStyleBuilder.empty()
+            ..writeColor(colorAnimation.currentValue() as Color?)
+            ..writeOpacity(opacityAnimation.currentValue() as double?);
+          final parent = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFFFFFF));
+          final opacityElapsed = opacityAnimation.debugElapsed;
+
+          final result = CascadeTick.tick(
+            style: const ElStyle(opacity: 0.8, transitions: [ElTransition.all(Duration(milliseconds: 200))]),
+            parent: parent.build(),
+            oldCommitted: old.build(),
+            state: emptyState,
+
+            driver: driver,
+            inheritedThemeAnimationMask: maskBit(ElTransitionField.color.index),
+          );
+
+          expect(result.newCommitted.inheritedText.color, const Color(0xFFFFFFFF));
+          expect(result.changedMask.fields.toSet(), {ElTransitionField.color});
+          expect(driver.animationOf(ElTransitionField.color), isNull, reason: 'mask 命中的旧动画必须取消');
+          expect(identical(driver.animationOf(ElTransitionField.opacity), opacityAnimation), isTrue);
+          expect(opacityAnimation.debugElapsed, opacityElapsed, reason: '非 mask 字段不能被重启或推进');
+          expect(result.newCommitted.box.opacity, opacityAnimation.currentValue());
+        } finally {
+          driver.dispose();
+        }
+      });
+    });
+
+    group('writeFieldsFromAnimation：driver 中间帧推进', () {
+      test('与 old 不等：返回新 committed 和变化字段', () {
+        final old = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+        final (nc, changed) = CascadeTick.writeFieldsFromAnimation(
+          oldCommitted: old.build(),
+          fieldValues: {ElTransitionField.color: const Color(0xFF0000FF)},
+        );
+        expect(changed.fields, [ElTransitionField.color]);
+        expect(nc.inheritedText.color, const Color(0xFF0000FF));
+      });
+
+      test('与 old 相等：复用旧 committed 且无变化字段', () {
+        final old = ResolvedStyleBuilder.empty()..writeColor(const Color(0xFFFF0000));
+        final oldStyle = old.build();
+        final (nc, changed) = CascadeTick.writeFieldsFromAnimation(
+          oldCommitted: oldStyle,
+          fieldValues: {ElTransitionField.color: const Color(0xFFFF0000)},
+        );
+        expect(changed.isEmpty, isTrue);
+        expect(identical(nc, oldStyle), isTrue, reason: '无变化时返回同实例');
+      });
+    });
+  });
+
+  group('暗色边框过渡', () {
+    const cLight = Color(0xFFFFFFFF);
+
+    const cDark = Color(0xFF000000);
+
+    const key = ValueKey('child');
+
+    Widget build(Brightness brightness) => Directionality(
+      textDirection: TextDirection.ltr,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: ElView(
+          themeMode: ElThemeMode(
+            brightness: brightness,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.linear,
+          ),
+          style: const ElStyle(
+            color: cLight,
+            onDark: ElStyle(color: cDark),
+          ),
+          child: ElView(
+            key: key,
+            style: const ElStyle(
+              width: 100,
+              height: 60,
+              bgColor: cLight,
+              border: .all(color: cLight, width: 2),
+              onDark: ElStyle(
+                bgColor: cDark,
+                border: .all(color: cDark, width: 2),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('border 与 bgColor 按同一主题进度插值', (tester) async {
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      // linear 200ms 中点。
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final rv = tester.renderObject<ElRenderView>(find.byKey(key));
+      final committed = rv.committedResolvedStyle;
+      final bg = committed.box.bgColor;
+      final borderColor = committed.box.border?.top.color;
+      final mid = Color.lerp(cLight, cDark, 0.5)!;
+
+      expect(bg, isA<Color>(), reason: '过渡中 bgColor 应为插值字面量');
+      expect(bg as Color, isSameColorAs(mid), reason: 'bgColor 应在 theme 过渡中点');
+      expect(borderColor, isA<Color>(), reason: '过渡中 border 色应为插值字面量（当前 bug：仍持引用 → 瞬跳）');
+      expect(borderColor as Color, isSameColorAs(mid), reason: 'border 必须与 bgColor 同一进度（theme 统一过渡）');
+    });
+
+    testWidgets('过渡完成态：border 与背景收敛到 dark 端点', (tester) async {
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pumpAndSettle();
+
+      final rv = tester.renderObject<ElRenderView>(find.byKey(key));
+      final committed = rv.committedResolvedStyle;
+      // 完成后提交值与绘制值均为暗色端点。
+      expect(committed.box.border?.top.color, cDark);
+      expect(committed.box.bgColor, cDark);
+      // paint 产物为 dark 端点色。
+      expect(
+        find.byKey(key),
+        paints
+          ..rect(color: cDark)
+          ..rect(color: cDark, style: PaintingStyle.stroke),
+      );
+    });
+  });
+
+  group('关键帧动画', () {
+    ElRenderView renderOf(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
+
+    const k = ValueKey('anim');
+
+    double? opacityOf(WidgetTester tester) {
+      final v = renderOf(tester, k).committedResolvedStyle.box.opacity;
+      return v == null ? null : (v as num).toDouble();
+    }
+
+    Widget buildOpacityAnim({
+      double iterationCount = 1,
+      ElAnimationDirection direction = ElAnimationDirection.normal,
+      ElAnimationFillMode fillMode = ElAnimationFillMode.none,
+      bool paused = false,
+      double? baseOpacity,
+      List<ElTransition>? transitions,
+    }) {
+      return MaterialApp(
+        home: ElView(
+          key: k,
+          style: ElStyle(
+            width: 50,
+            height: 50,
+            bgColor: const Color(0xFF222222),
+            opacity: baseOpacity,
+            transitions: transitions,
+            animations: [
+              ElAnimation(
+                keyframes: const {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
+                duration: const Duration(seconds: 1),
+                curve: Curves.linear,
+                iterationCount: iterationCount,
+                direction: direction,
+                fillMode: fillMode,
+                paused: paused,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    group('基础采样', () {
+      testWidgets('挂载即应用首帧；中点采样 0.5', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(iterationCount: double.infinity));
+        // 挂载同步采样：progress 0 → opacity 0。
+        expect(opacityOf(tester), closeTo(0, 0.001));
+        await tester.pump(); // ticker 基线帧
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+      });
+
+      testWidgets('无限循环：第二迭代继续插值', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(iterationCount: double.infinity));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1250));
+        // 第二迭代 progress 0.25。
+        expect(opacityOf(tester), closeTo(0.25, 0.02));
+      });
+
+      testWidgets('direction alternate：奇数迭代反向', (tester) async {
+        await tester.pumpWidget(
+          buildOpacityAnim(iterationCount: double.infinity, direction: ElAnimationDirection.alternate),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1250));
+        // 第 1 次迭代（奇数）反向：p=0.25 → 0.75。
+        expect(opacityOf(tester), closeTo(0.75, 0.02));
+      });
+    });
+
+    group('fillMode 与结束态', () {
+      testWidgets('fillMode none：播完回 base', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(baseOpacity: 0.9));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1500));
+        await tester.pump(const Duration(milliseconds: 100)); // 收尾 tick
+        expect(opacityOf(tester), closeTo(0.9, 0.001));
+      });
+
+      testWidgets('fillMode forwards：停在末帧', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(baseOpacity: 0.9, fillMode: ElAnimationFillMode.forwards));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 1500));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(opacityOf(tester), closeTo(1.0, 0.001));
+      });
+    });
+
+    group('隐式端点与暂停', () {
+      testWidgets('仅 50% 帧：0→0.5 段从 base 渐出、0.5→1 段渐回 base', (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ElView(
+              key: k,
+              style: const ElStyle(
+                width: 50,
+                height: 50,
+                opacity: 1.0,
+                animations: [
+                  ElAnimation(
+                    keyframes: {50: ElStyle(opacity: 0)},
+                    duration: Duration(seconds: 1),
+                    curve: Curves.linear,
+                    iterationCount: double.infinity,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        // base(1.0) → 0 段的中点。
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+        await tester.pump(const Duration(milliseconds: 500));
+        // 0 → base(1.0) 段的中点（t=0.75）。
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+      });
+
+      testWidgets('paused：时钟冻结在首帧', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(iterationCount: double.infinity, paused: true));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(opacityOf(tester), closeTo(0, 0.001));
+      });
+    });
+
+    group('声明变更与级联交互', () {
+      testWidgets('声明移除 → 字段回 base', (tester) async {
+        await tester.pumpWidget(buildOpacityAnim(iterationCount: double.infinity, baseOpacity: 0.9));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+        // rebuild 无 animations。
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: ElView(
+              key: k,
+              style: ElStyle(width: 50, height: 50, bgColor: Color(0xFF222222), opacity: 0.9),
+            ),
+          ),
+        );
+        expect(opacityOf(tester), closeTo(0.9, 0.001));
+      });
+
+      testWidgets('10s transition 不拖慢 1s 动画（动画变化不触发 transition）', (tester) async {
+        await tester.pumpWidget(
+          buildOpacityAnim(
+            iterationCount: double.infinity,
+            transitions: [const ElTransition.all(Duration(seconds: 10))],
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        // 若被 transition 接管，10s 时长下 500ms 处远小于 0.5。
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+      });
+
+      testWidgets('onHover 空表停止动画（longhand 覆盖），离开后从头重启', (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            // Stack 给宽松约束：ElView 真实落成 50×50（直接作 home 会被 tight
+            // 约束 enforce 成全屏，指针根本移不出盒外）。
+            home: Stack(
+              children: [
+                ElView(
+                  key: k,
+                  style: const ElStyle(
+                    width: 50,
+                    height: 50,
+                    bgColor: Color(0xFF222222),
+                    opacity: 0.9,
+                    animations: [
+                      ElAnimation(
+                        keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
+                        duration: Duration(seconds: 1),
+                        curve: Curves.linear,
+                        iterationCount: double.infinity,
+                      ),
+                    ],
+                    onHover: ElStyle(animations: []),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+
+        final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await gesture.addPointer(location: Offset.zero);
+        addTearDown(gesture.removePointer);
+        await tester.pump();
+        await gesture.moveTo(tester.getCenter(find.byKey(k)));
+        await tester.pump();
+        // hover：空表覆盖 → 动画摘除 → 回 base。
+        expect(opacityOf(tester), closeTo(0.9, 0.001));
+
+        await gesture.moveTo(const Offset(200, 200));
+        await tester.pump();
+        // 离开：动画重启（CSS animation-name 重新出现 → 从头播）→ 首帧 0。
+        expect(opacityOf(tester), closeTo(0, 0.001));
+      });
+
+      testWidgets('GlobalKey 重挂（父链 resolved 不变）：动画从头重播，不冻结', (tester) async {
+        // 安卓预测性返回事故的最小复现：手势开始瞬间路由过渡包装换类型，页面
+        // 子树靠 ModalRoute._subtreeKey（GlobalKey）保活 → 整棵 render 子树
+        // detach → attach，父链 resolved identical。detach 已按 CSS 摘树口径清零
+        // keyframe 时钟，re-attach 必须重建时钟从头播，不许冻死在摘树前最后一帧。
+        final gk = GlobalKey();
+        // widget 实例保持稳定：重挂时 element 不重建、style 不重设，
+        // 时钟重建只能靠 attach 路径自己触发。
+        final anim = ElView(
+          key: gk,
+          style: const ElStyle(
+            width: 50,
+            height: 50,
+            animations: [
+              ElAnimation(
+                keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
+                duration: Duration(seconds: 1),
+                curve: Curves.linear,
+                iterationCount: double.infinity,
+              ),
+            ],
+          ),
+        );
+        Widget wrap({required bool nested}) => MaterialApp(
+          home: Stack(children: [if (nested) Center(child: anim) else anim]),
+        );
+        double? gkOpacity() {
+          final v = renderOf(tester, gk).committedResolvedStyle.box.opacity;
+          return v == null ? null : (v as num).toDouble();
+        }
+
+        await tester.pumpWidget(wrap(nested: false));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(gkOpacity(), closeTo(0.25, 0.02));
+        // 换包装深度触发 GlobalKey reparent（同帧 detach + attach）。
+        await tester.pumpWidget(wrap(nested: true));
+        await tester.pump(const Duration(milliseconds: 500));
+        // 从头重播 → 500ms 处 0.5；冻结缺陷下卡死在 0.25。
+        expect(gkOpacity(), closeTo(0.5, 0.02), reason: '重挂后时钟必须重建从头播');
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(gkOpacity(), closeTo(0.7, 0.02), reason: '重挂后时钟必须持续推进');
+      });
+    });
+  });
+
+  group('首次挂载过渡', () {
+    ElRenderView findRender(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byType(ElView));
+
+    group('mount 时不启动 transition', () {
+      testWidgets('根 transitions=[all()] + 首次 mount：committed=target，不启 animation', (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(
+                  width: 200,
+                  height: 60,
+                  color: Color(0xFF000000),
+                  bgColor: Color(0xFFFF0000),
+                  fontSize: 18,
+                  transitions: [ElTransition.all()],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final box = findRender(tester);
+        // committed 直接是目标值（初始 mount → target 应一帧到位）
+        expect(box.committedResolvedStyle.inheritedText.color, const Color(0xFF000000));
+        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFFFF0000));
+        expect(box.committedResolvedStyle.inheritedText.fontSize, 18);
+
+        // 不应启动动画（mount 直接对齐 target）
+        expect(box.hasActiveAnimationsForTest, isFalse);
+      });
+
+      testWidgets('mount 后立即 setHover：触发 transition（_transitionsEnabled=true）', (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(
+                  width: 200,
+                  height: 60,
+                  color: Color(0xFF000000),
+                  onHover: ElStyle(color: Color(0xFF0000FF)),
+                  transitions: [ElTransition.all()],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final box = findRender(tester);
+        expect(box.hasActiveAnimationsForTest, isFalse, reason: 'mount 后未 hover');
+
+        box.setHover(true);
+        await tester.pump();
+
+        expect(
+          box.hasActiveAnimationsForTest,
+          isTrue,
+          reason: 'attach 已完成 → _transitionsEnabled=true → setHover 触发 transition',
+        );
+      });
+
+      testWidgets('嵌套 ElView：父 + 子 mount 都不启动 transition', (tester) async {
+        const parentKey = ValueKey('parent');
+        const childKey = ValueKey('child');
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                key: parentKey,
+                style: ElStyle(color: Color(0xFFFF0000), transitions: [ElTransition.all()]),
+                child: ElView(
+                  key: childKey,
+                  style: ElStyle(transitions: [ElTransition.all()]),
+                  child: 'inherited',
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final parent = tester.renderObject<ElRenderView>(find.byKey(parentKey));
+        final child = tester.renderObject<ElRenderView>(find.byKey(childKey));
+        // 父 + 子都不应有活跃动画（mount 直接对齐 target）
+        expect(parent.hasActiveAnimationsForTest, isFalse);
+        expect(child.hasActiveAnimationsForTest, isFalse);
+        // 子继承父 color
+        expect(child.committedResolvedStyle.inheritedText.color, const Color(0xFFFF0000));
+      });
+
+      testWidgets('mount 后立即改 widget.style.color：触发 transition', (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(width: 200, height: 60, color: Color(0xFF000000), transitions: [ElTransition.all()]),
+              ),
+            ),
+          ),
+        );
+
+        final box = findRender(tester);
+        expect(box.hasActiveAnimationsForTest, isFalse);
+
+        // widget update 改 color
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(
+                  width: 200,
+                  height: 60,
+                  color: Color(0xFF0000FF), // 改
+                  transitions: [ElTransition.all()],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(box.hasActiveAnimationsForTest, isTrue, reason: 'attach 后 widget update：style.color 变化 → 走 transition');
+      });
+
+      testWidgets('mount 不启 transition：父 color → 子继承到 mount 帧直接生效', (tester) async {
+        const childKey = ValueKey('child');
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(color: Color(0xFFFF0000), transitions: [ElTransition.all()]),
+                child: ElView(key: childKey, child: 'inherited'),
+              ),
+            ),
+          ),
+        );
+
+        final inner = tester.renderObject<ElRenderView>(find.byKey(childKey));
+        // 子 mount 时通过 attach 反查到父 color，cascade 立即写入 inheritedText.color
+        // —— 这步本身就应该是 mount 阶段，不该启动 transition
+        expect(inner.committedResolvedStyle.inheritedText.color, const Color(0xFFFF0000));
+        expect(inner.hasActiveAnimationsForTest, isFalse);
+      });
+
+      testWidgets('layoutCount 验证：mount 走非动画路径，不会因 driver 触发多帧重绘', (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Center(
+              child: ElView(
+                style: ElStyle(
+                  width: 200,
+                  height: 60,
+                  color: Color(0xFF000000),
+                  fontSize: 14,
+                  transitions: [ElTransition.all()],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final box = findRender(tester);
+        final mountCount = box.debugLayoutCount;
+
+        // pump 推进多帧：若 mount 启动了 transition，driver 会让多次 _onAnimTick 触发
+        // 哪怕字段是 paint-only color，至少 fontSize 这种 layout-affecting transition
+        // 会重排（如果有的话）。本场景只有 color，不影响 layout，但作为冒烟看
+        // layoutCount 是否被 driver 间接干扰。
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.pump(const Duration(milliseconds: 16));
+
+        expect(box.debugLayoutCount, mountCount, reason: 'mount 不启动 transition → 没有 driver ticker → 不会触发额外重排');
+      });
+    });
+  });
+
+  group('入场与离场', () {
+    const k = ValueKey('p');
+
+    double? opacityOf(WidgetTester tester) {
+      final v = tester.renderObject<ElRenderView>(find.byKey(k)).committedResolvedStyle.box.opacity;
+      return v == null ? null : (v as num).toDouble();
+    }
+
+    group('ElStyle.starting', () {
+      Widget host({List<ElTransition>? transitions}) => MaterialApp(
+        home: Stack(
+          children: [
+            ElView(
+              key: k,
+              style: ElStyle(
+                width: 50,
+                height: 50,
+                opacity: 1.0,
+                bgColor: const Color(0xFF222222),
+                starting: const ElStyle(opacity: 0),
+                transitions: transitions,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      testWidgets('挂载帧钉在起始值，随 transition 播向 base', (tester) async {
+        await tester.pumpWidget(host(transitions: [const ElTransition.all(Duration(seconds: 1), Curves.linear)]));
+        expect(opacityOf(tester), closeTo(0, 0.001));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(opacityOf(tester), closeTo(0.5, 0.02));
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(opacityOf(tester), closeTo(1.0, 0.001));
+      });
+
+      testWidgets('无 transition 覆盖 → 无效果', (tester) async {
+        await tester.pumpWidget(host());
+        expect(opacityOf(tester), closeTo(1.0, 0.001));
+      });
+
+      testWidgets('reduced-motion 下整体跳过', (tester) async {
+        tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+          disableAnimations: true,
+        );
+        addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+        await tester.pumpWidget(host(transitions: [const ElTransition.all(Duration(seconds: 1))]));
+        expect(opacityOf(tester), closeTo(1.0, 0.001));
+      });
+    });
+
+    group('ElPresence', () {
+      Widget host({
+        required bool visible,
+        Duration exitDuration = const Duration(milliseconds: 200),
+        VoidCallback? onExited,
+        List<ElPresencePhase>? phaseLog,
+      }) {
+        return MaterialApp(
+          home: Stack(
+            children: [
+              ElPresence(
+                visible: visible,
+                exitDuration: exitDuration,
+                onExited: onExited,
+                builder: (context, phase) {
+                  phaseLog?.add(phase);
+                  return ElView(
+                    key: k,
+                    style: ElStyle(
+                      width: 50,
+                      height: 50,
+                      opacity: phase == ElPresencePhase.visible ? 1.0 : 0.0,
+                      transitions: const [ElTransition.all(Duration(milliseconds: 150), Curves.linear)],
+                    ),
+                    child: 'content',
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      }
+
+      testWidgets('entering 仅一帧后翻 visible', (tester) async {
+        final log = <ElPresencePhase>[];
+        await tester.pumpWidget(host(visible: true, phaseLog: log));
+        expect(log.last, ElPresencePhase.entering);
+        await tester.pump();
+        expect(log.last, ElPresencePhase.visible);
+      });
+
+      testWidgets('退场保活：exiting 期子树仍挂载，计满摘树 + onExited', (tester) async {
+        var exited = false;
+        final log = <ElPresencePhase>[];
+        await tester.pumpWidget(host(visible: true, phaseLog: log, onExited: () => exited = true));
+        await tester.pump();
+        await tester.pumpWidget(host(visible: false, phaseLog: log, onExited: () => exited = true));
+        // 退场中：仍挂载，相位 exiting。
+        expect(find.byKey(k), findsOneWidget);
+        expect(log.last, ElPresencePhase.exiting);
+        expect(exited, isFalse);
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.byKey(k), findsNothing);
+        expect(exited, isTrue);
+      });
+
+      testWidgets('退场中途返场：取消摘树，相位回 visible', (tester) async {
+        var exited = false;
+        final log = <ElPresencePhase>[];
+        await tester.pumpWidget(host(visible: true, phaseLog: log, onExited: () => exited = true));
+        await tester.pump();
+        await tester.pumpWidget(host(visible: false, phaseLog: log, onExited: () => exited = true));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(host(visible: true, phaseLog: log, onExited: () => exited = true));
+        expect(log.last, ElPresencePhase.visible);
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byKey(k), findsOneWidget);
+        expect(exited, isFalse);
+      });
+    });
+  });
+
+  group('减少动画偏好', () {
+    const k = ValueKey('box');
+
+    Widget build({required bool selected}) => MaterialApp(
+      home: Stack(
         children: [
           ElView(
-            key: nestedKey,
+            key: k,
+
             style: ElStyle(
-              width: width,
-              height: '50%',
-              transitions: childTransitions,
-            ),
-            child: LayoutBuilder(
-              builder: (_, _) =>
-                  const SizedBox(key: leafKey, width: 30, height: 40),
+              width: 50,
+              height: 50,
+              bgColor: selected ? Color(0xFFFFFFFF) : Color(0xFF000000),
+              transitions: [ElTransition.all(Duration(seconds: 10))],
             ),
           ),
         ],
+      ),
+    );
+
+    Color? bgOf(WidgetTester tester) =>
+        tester.renderObject<ElRenderView>(find.byKey(k)).committedResolvedStyle.box.bgColor;
+
+    testWidgets('开启：10s transition 声明被忽略，selected 切换瞬跳', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
       );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 200,
-            height: 200,
-            padding: padding,
-            margin: margin,
-            transitions: _linear,
-          ),
-          child: nested(100),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 200,
-            padding: padding,
-            margin: margin,
-            transitions: _linear,
-          ),
-          child: nested(140),
-        ),
-      );
-      for (var i = 1; i <= 20; i++) {
-        await tester.pump(const Duration(milliseconds: 10));
-        final nestedSize = tester.getSize(find.byKey(nestedKey));
-        final columnSize = tester.getSize(find.byKey(columnKey));
-        expect(nestedSize.width, closeTo(100 + i * 2, .001));
-        expect(
-          _childOffset(tester, columnKey),
-          offsetMoreOrLessEquals(const Offset(10, 16)),
-        );
-        expect(
-          tester.getTopLeft(find.byKey(nestedKey)),
-          tester.getTopLeft(find.byKey(columnKey)),
-        );
-        if (i < 10) {
-          final contentHeight =
-              viewSize(tester).height - margin.vertical - padding.vertical;
-          expect(nestedSize.height, closeTo(contentHeight * .5, .001));
-        } else {
-          expect(viewSize(tester), const Size(212, 88));
-          expect(nestedSize.height, 40);
-          expect(tester.getSize(find.byKey(leafKey)).height, 40);
-        }
-        expect(columnSize.height, nestedSize.height);
-        expect(tester.takeException(), isNull);
-      }
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+      await tester.pumpWidget(build(selected: false));
+      await tester.pumpWidget(build(selected: true));
+      expect(bgOf(tester), const Color(0xFFFFFFFF));
     });
 
-    testWidgets('auto 宽度与较慢非对称 margin 保持截止帧、背景和内容位置连续', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Curves.linear,
-        ),
-        ElTransition.field(
-          ElTransitionField.margin,
-          Duration(milliseconds: 200),
-          Curves.linear,
-        ),
-      ];
-      const childKey = ValueKey('margin-child');
-      const child = SizedBox(key: childKey, width: 400, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 200,
-            backgroundColor: _red,
-            transitions: transitions,
-          ),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            margin: EdgeInsets.fromLTRB(40, 10, 20, 30),
-            backgroundColor: _red,
-            transitions: transitions,
-          ),
-          child: child,
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 99));
-      final before = viewSize(tester).width;
-      await tester.pump(const Duration(milliseconds: 1));
-      expect((viewSize(tester).width - before).abs(), lessThan(3));
-      expect(viewSize(tester), const Size(400, 40));
-      expect(tester.getSize(find.byKey(childKey)), const Size(370, 20));
-      expect(_childOffset(tester, childKey), const Offset(20, 5));
-      expect(
-        viewBox(tester),
-        paints..rect(rect: const Rect.fromLTWH(20, 5, 370, 20), color: _red),
-      );
-      for (var i = 0; i < 10; i++) {
-        await tester.pump(const Duration(milliseconds: 10));
-        expect(viewSize(tester).width, 400);
-      }
-      expect(viewSize(tester), const Size(400, 60));
-      expect(tester.getSize(find.byKey(childKey)), const Size(340, 20));
-      expect(_childOffset(tester, childKey), const Offset(40, 10));
-      expect(
-        viewBox(tester),
-        paints..rect(rect: const Rect.fromLTWH(40, 10, 340, 20), color: _red),
-      );
-      expect(tester.takeException(), isNull);
+    testWidgets('对照组：开关关闭时同场景走过渡', (tester) async {
+      await tester.pumpWidget(build(selected: false));
+      await tester.pumpWidget(build(selected: true));
+      // 过渡刚启动：committed 仍钉在旧值。
+      expect(bgOf(tester), const Color(0xFF000000));
     });
 
-    testWidgets('auto 端点未变时父约束变化保持原缓动时间线', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Curves.easeInQuad,
-        ),
-      ];
-      const child = SizedBox(width: 100, height: 20);
+    testWidgets('keyframe 动画不受开关影响', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
       await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: transitions),
-          child: child,
-        ),
-      );
-      const target = ElStyle(transitions: transitions);
-      await tester.pumpWidget(viewScene(target, child: child));
-      await tester.pump(const Duration(milliseconds: 50));
-      final halfway = 200 - 100 * Curves.easeInQuad.transform(.5);
-      expect(viewSize(tester).width, closeTo(halfway, .001));
-      await tester.pumpWidget(viewScene(target, child: child, width: 500));
-      expect(viewSize(tester).width, closeTo(halfway, .001));
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(
-        viewSize(tester).width,
-        closeTo(200 - 100 * Curves.easeInQuad.transform(.75), .001),
-      );
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(viewSize(tester).width, 100);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('阶跃曲线在阈值前保持原宽度，越过阈值后切换最终尺寸', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Threshold(.8),
-        ),
-      ];
-      const childKey = ValueKey('threshold-child');
-      const child = SizedBox(key: childKey, width: 1000, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 100, transitions: transitions),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: transitions),
-          child: child,
-        ),
-      );
-      for (var i = 0; i < 3; i++) {
-        await tester.pump(const Duration(milliseconds: 25));
-        expect(viewSize(tester).width, 100);
-        expect(tester.getSize(find.byKey(childKey)).width, 100);
-      }
-      await tester.pump(const Duration(milliseconds: 10));
-      expect(viewSize(tester).width, 200);
-      expect(tester.getSize(find.byKey(childKey)).width, 200);
-      await tester.pump(const Duration(milliseconds: 15));
-      expect(viewSize(tester).width, 200);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('auto 宽度 delay 期间保持当前宽度，padding 正常变化，延迟后完成过渡', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 1000),
-        ),
-        ElTransition.field(
-          ElTransitionField.padding,
-          Duration(milliseconds: 200),
-          Curves.linear,
-        ),
-      ];
-      const childKey = ValueKey('delayed-child');
-      const child = SizedBox(key: childKey, width: 400, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: transitions),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            transitions: transitions,
-          ),
-          child: child,
-        ),
-      );
-      for (var i = 1; i <= 20; i++) {
-        await tester.pump(const Duration(milliseconds: 10));
-        expect(viewSize(tester).width, 200);
-        expect(
-          tester.getSize(find.byKey(childKey)).width,
-          closeTo(200 - i * 4, .001),
-        );
-        expect(_childOffset(tester, childKey).dx, closeTo(i * 2, .001));
-      }
-      await tester.pump(const Duration(milliseconds: 800));
-      expect(viewSize(tester).width, 200);
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester).width, 300);
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester).width, 400);
-      expect(tester.getSize(find.byKey(childKey)).width, 320);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('紧约束 child 在同一时间戳更新内容后 auto 动画使用新尺寸', (tester) async {
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 0, height: 0, transitions: _linear),
-          child: const SizedBox(width: 100),
-        ),
-      );
-      const target = ElStyle(height: 0, transitions: _linear);
-      await tester.pumpWidget(
-        viewScene(target, child: const SizedBox(width: 100)),
-      );
-      expect(viewSize(tester), Size.zero);
-      await tester.pumpWidget(
-        viewScene(target, child: const SizedBox(width: 200)),
-      );
-      expect(viewSize(tester), Size.zero);
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(100, 0));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(200, 0));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('auto 动画中即时修改 padding 保持当前画面与原截止时间', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Curves.linear,
-        ),
-      ];
-      const child = SizedBox(width: 100, height: 20);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, transitions: transitions),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: transitions), child: child),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester).width, 150);
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            transitions: transitions,
-          ),
-          child: child,
-        ),
-      );
-      expect(viewSize(tester).width, 150);
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(viewSize(tester).width, 165);
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(viewSize(tester).width, 180);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('auto 起终点同为零时 child 独立更新仍能改变动画结果', (tester) async {
-      final naturalWidth = ValueNotifier<double>(0);
-      addTearDown(naturalWidth.dispose);
-      final child = ValueListenableBuilder<double>(
-        valueListenable: naturalWidth,
-        builder: (_, width, _) => SizedBox(width: width),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 0, height: 0, transitions: _linear),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(height: 0, transitions: _linear), child: child),
-      );
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(viewSize(tester), Size.zero);
-      naturalWidth.value = 200;
-      await tester.pump();
-      expect(viewSize(tester), Size.zero);
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(viewSize(tester), const Size(100, 0));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(200, 0));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('auto 与百分比双向过渡都按当前父尺寸和自然内容求值', (tester) async {
-      const child = SizedBox(width: 80, height: 40);
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: '50%', height: '50%', transitions: _linear),
-          child: child,
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(140, 95));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(200, 150));
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(140, 95));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(80, 40));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('方向性 padding 与 margin 在 RTL 切换中连续移动内容与背景', (tester) async {
-      const childKey = ValueKey('directional-child');
-      const child = SizedBox(key: childKey, width: 20, height: 10);
-      const style = ElStyle(
-        width: 100,
-        height: 60,
-        padding: EdgeInsetsDirectional.fromSTEB(10, 2, 30, 4),
-        margin: EdgeInsetsDirectional.fromSTEB(5, 7, 15, 9),
-        backgroundColor: _red,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style, child: child));
-      expect(viewSize(tester), const Size(120, 76));
-      expect(_childOffset(tester, childKey), const Offset(15, 9));
-      await tester.pumpWidget(
-        viewScene(style, child: child, direction: TextDirection.rtl),
-      );
-      expect(_childOffset(tester, childKey), const Offset(15, 9));
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(viewSize(tester), const Size(120, 76));
-      expect(_childOffset(tester, childKey), const Offset(30, 9));
-      expect(
-        viewBox(tester),
-        paints..rect(rect: const Rect.fromLTWH(10, 7, 100, 60), color: _red),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(_childOffset(tester, childKey), const Offset(45, 9));
-      expect(
-        viewBox(tester),
-        paints..rect(rect: const Rect.fromLTWH(15, 7, 100, 60), color: _red),
-      );
-      expect(tester.takeException(), isNull);
-    });
-
-    for (final animateParent in [false, true]) {
-      for (final delay in [Duration.zero, const Duration(milliseconds: 50)]) {
-        testWidgets(
-          '无界横轴中父子同时转 auto 时，百分比宽度从当前画面接续：父动画=$animateParent，delay=$delay',
-          (tester) async {
-            final transitions = [
-              ElTransition.field(
-                ElTransitionField.width,
-                const Duration(milliseconds: 100),
-                Curves.linear,
-                delay,
-              ),
-            ];
-            Widget host({required bool automatic}) => Directionality(
-              textDirection: TextDirection.ltr,
-              child: Center(
-                child: UnconstrainedBox(
-                  constrainedAxis: Axis.vertical,
-                  child: ElView(
-                    style: ElStyle(
-                      width: automatic ? null : 200,
-                      transitions: animateParent ? transitions : null,
+        MaterialApp(
+          home: Stack(
+            children: [
+              ElView(
+                key: k,
+                style: const ElStyle(
+                  width: 50,
+                  height: 50,
+                  animations: [
+                    ElAnimation(
+                      keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
+                      duration: Duration(seconds: 1),
+                      curve: Curves.linear,
+                      iterationCount: double.infinity,
                     ),
-                    child: ElView(
-                      key: viewKey,
-                      style: ElStyle(
-                        width: automatic ? null : '50%',
-                        transitions: transitions,
-                      ),
-                      child: const SizedBox(width: 60, height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      final opacity = tester.renderObject<ElRenderView>(find.byKey(k)).committedResolvedStyle.box.opacity;
+      expect((opacity! as num).toDouble(), closeTo(0.5, 0.02));
+    });
+  });
+
+  group('重挂载过渡', () {
+    for (final releaseBeforeReattach in [false, true]) {
+      testWidgets('tap 中途重挂清除残留并恢复后续交互：已抬起=$releaseBeforeReattach', (tester) async {
+        final pageKey = GlobalKey();
+        final viewKey = GlobalKey();
+        final white = Color(0xffffffff);
+        final black = Color(0xff000000);
+        var taps = 0;
+        final view = ElView(
+          key: viewKey,
+          event: ElEvent(onTap: (_) => taps++),
+          style: ElStyle(
+            width: 100,
+            height: 50,
+            bgColor: white,
+            opacity: 1,
+            onTap: ElStyle(width: 150, bgColor: black, opacity: .5),
+            transitions: [ElTransition.all(Duration(milliseconds: 300), Curves.linear)],
+          ),
+        );
+        final page = ElView(
+          key: pageKey,
+          style: ElStyle(width: 300, height: 200, alignment: .topLeft),
+          child: view,
+        );
+        Widget tree(bool nested) => Directionality(
+          textDirection: .ltr,
+          child: ElView(
+            style: ElStyle(alignment: .topLeft),
+            child: nested ? Column(mainAxisSize: .min, children: [page]) : page,
+          ),
+        );
+        await tester.pumpWidget(tree(false));
+        final render = tester.renderObject<ElRenderView>(find.byKey(viewKey));
+        final touch = await tester.startGesture(tester.getCenter(find.byKey(viewKey)));
+        await tester.pump();
+        if (releaseBeforeReattach) {
+          await tester.pumpAndSettle();
+          await touch.up();
+          await tester.pump();
+        }
+        await tester.pump(Duration(milliseconds: 90));
+        expect(render.hasActiveAnimationsForTest, isTrue);
+        expect(render.committedResolvedStyle.box.bgColor, isNot(white));
+        expect(render.committedResolvedStyle.box.bgColor, isNot(black));
+        expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
+        expect(tester.getSize(find.byKey(viewKey)).width, inExclusiveRange(100, 150));
+        expect(render.internalStateHas(ViewState.tap), !releaseBeforeReattach);
+
+        await tester.pumpWidget(tree(true));
+        expect(tester.renderObject<ElRenderView>(find.byKey(viewKey)), same(render));
+        // 重挂不是手势结束：手指还按着时，按压状态与它对应的目标样式都要原样保留；
+        // 已抬手的那一支本来就该回基础态。
+        expect(render.internalStateHas(ViewState.tap), !releaseBeforeReattach);
+        expect(render.hasActiveAnimationsForTest, isFalse, reason: '重挂首帧直接落到当前状态对应的样式，不残留过渡');
+        expect(
+          render.committedResolvedStyle.box.bgColor,
+          releaseBeforeReattach ? white : black,
+          reason: '重挂首帧应恢复当前按压状态对应的颜色，不得留下中间色',
+        );
+        expect(render.committedResolvedStyle.box.opacity, releaseBeforeReattach ? 1 : .5);
+        expect(tester.getSize(find.byKey(viewKey)).width, releaseBeforeReattach ? 100 : 150, reason: '布局字段也应在重挂首帧恢复');
+        if (!releaseBeforeReattach) await touch.up();
+        // 让离场过渡走完：过渡启动帧只是 Ticker 的基线（首帧 elapsed 恒为 0，
+        // 不推进进度），单帧 pump 会让样式停在起始值上。
+        await tester.pumpAndSettle();
+        expect(taps, 1, reason: '重挂不是手势结束，抬手仍要完成这次点击');
+        expect(render.committedResolvedStyle.box.bgColor, white, reason: '离场过渡必须把样式带回常态');
+        expect(render.committedResolvedStyle.box.opacity, 1);
+
+        final nextTouch = await tester.startGesture(tester.getCenter(find.byKey(viewKey)));
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 90));
+        expect(render.internalStateHas(ViewState.tap), isTrue);
+        expect(render.hasActiveAnimationsForTest, isTrue);
+        expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
+        await tester.pumpAndSettle();
+        expect(render.committedResolvedStyle.box.bgColor, black);
+        expect(tester.getSize(find.byKey(viewKey)).width, 150);
+        await nextTouch.up();
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 90));
+        expect(render.hasActiveAnimationsForTest, isTrue, reason: '新的抬手退场过渡仍正常播放');
+        expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
+        await tester.pumpAndSettle();
+        expect(taps, 2);
+        expect(render.committedResolvedStyle.box.bgColor, white);
+        expect(render.committedResolvedStyle.box.opacity, 1);
+        expect(tester.getSize(find.byKey(viewKey)).width, 100);
+      });
+    }
+
+    testWidgets('GlobalKey reparent 到不同继承上下文：snap 不启 transition', (tester) async {
+      final key = GlobalKey();
+      // 子声明 transitions:[all()] 且不显式 color → 继承父 color
+      Widget child() => ElView(
+        key: key,
+        style: const ElStyle(transitions: <ElTransition>[ElTransition.all()]),
+        child: 'x',
+      );
+
+      Widget tree({required bool underBlue}) => MaterialApp(
+        home: Column(
+          children: <Widget>[
+            // parent A：red
+            ElView(
+              style: const ElStyle(color: Color(0xFFFF0000)),
+              child: underBlue ? const SizedBox() : child(),
+            ),
+            // parent B：blue
+            ElView(
+              style: const ElStyle(color: Color(0xFF0000FF)),
+              child: underBlue ? child() : const SizedBox(),
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(tree(underBlue: false)); // 子挂在 red 父下
+      var rt = key.currentContext!.findRenderObject()! as ElRenderView;
+      expect(rt.committedResolvedStyle.inheritedText.color, const Color(0xFFFF0000));
+      expect(rt.hasActiveAnimationsForTest, isFalse);
+
+      await tester.pumpWidget(tree(underBlue: true)); // reparent 到 blue 父下
+      rt = key.currentContext!.findRenderObject()! as ElRenderView;
+
+      expect(rt.hasActiveAnimationsForTest, isFalse, reason: 'reparent 到不同继承上下文应像 mount 一样 snap，不启 transition');
+      expect(
+        rt.committedResolvedStyle.inheritedText.color,
+        const Color(0xFF0000FF),
+        reason: 're-attach 一帧 snap 到新父 blue',
+      );
+    });
+  });
+
+  group('起始样式重挂载', () {
+    for (final finish in [false, true]) {
+      for (final changeInheritance in [false, true]) {
+        testWidgets('starting 重挂不重播：已结束=$finish，换继承=$changeInheritance', (tester) async {
+          final key = GlobalKey();
+          final view = ElView(
+            key: key,
+            style: ElStyle(
+              width: 50,
+              height: 50,
+              opacity: 1,
+              starting: ElStyle(opacity: 0),
+              transitions: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
+            ),
+          );
+          Widget tree(bool nested) => Directionality(
+            textDirection: .ltr,
+            child: ElView(
+              style: ElStyle(color: Color(0xff000000)),
+              child: nested
+                  ? changeInheritance
+                        ? ElView(
+                            style: ElStyle(color: Color(0xffff0000)),
+                            child: view,
+                          )
+                        : Column(children: [view])
+                  : view,
+            ),
+          );
+          await tester.pumpWidget(tree(false));
+          final render = tester.renderObject<ElRenderView>(find.byKey(key));
+          expect(render.committedResolvedStyle.box.opacity, 0);
+          await tester.pump();
+          await tester.pump(Duration(milliseconds: finish ? 1100 : 250));
+          expect(render.committedResolvedStyle.box.opacity, closeTo(finish ? 1 : .25, .02));
+          await tester.pumpWidget(tree(true));
+          expect(tester.renderObject<ElRenderView>(find.byKey(key)), same(render));
+          expect(render.committedResolvedStyle.box.opacity, 1);
+          expect(render.hasActiveAnimationsForTest, isFalse);
+          if (changeInheritance) {
+            expect(render.committedResolvedStyle.inheritedText.color, Color(0xffff0000));
+          }
+          await tester.pump(Duration(milliseconds: 500));
+          expect(render.committedResolvedStyle.box.opacity, 1);
+        });
+      }
+    }
+
+    testWidgets('真正卸载后新建仍播放入场，普通样式更新仍有过渡', (tester) async {
+      final key = GlobalKey();
+      Widget tree({double opacity = 1}) => Directionality(
+        textDirection: .ltr,
+        child: ElView(
+          key: key,
+          style: ElStyle(
+            width: 50,
+            height: 50,
+            opacity: opacity,
+            starting: ElStyle(opacity: 0),
+            transitions: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
+          ),
+        ),
+      );
+      await tester.pumpWidget(tree());
+      final old = tester.renderObject<ElRenderView>(find.byKey(key));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(ElView());
+      await tester.pumpWidget(tree());
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(render, isNot(same(old)));
+      expect(render.committedResolvedStyle.box.opacity, 0);
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(tree(opacity: .2));
+      await tester.pump(Duration(milliseconds: 500));
+      expect(render.committedResolvedStyle.box.opacity, closeTo(.6, .02));
+      await tester.pumpAndSettle();
+      expect(render.committedResolvedStyle.box.opacity, .2);
+    });
+  });
+
+  group('按下态文字继承过渡', () {
+    Widget shell(Widget child) => MaterialApp(
+      home: Scaffold(body: Center(child: child)),
+    );
+
+    testWidgets('tap variant introducing inherited text color does not fade text in from transparent', (tester) async {
+      const boxKey = ValueKey('box');
+      const textKey = ValueKey('text');
+
+      await tester.pumpWidget(
+        shell(
+          const ElView(
+            key: boxKey,
+            style: ElStyle(
+              width: 100,
+              height: 100,
+              alignment: Alignment.center,
+              bgColor: Colors.grey,
+              transitions: [ElTransition.all(Duration(milliseconds: 200))],
+              onTap: ElStyle(width: 80, height: 150, bgColor: Colors.yellow, color: Colors.black),
+            ),
+            child: ElView(key: textKey, child: 'hello'),
+          ),
+        ),
+      );
+
+      final box = tester.renderObject<ElRenderView>(find.byKey(boxKey));
+      final text = tester.renderObject<ElRenderView>(find.byKey(textKey));
+
+      expect(text.committedResolvedStyle.inheritedText.color, Colors.black);
+
+      box.setTap(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(box.hasActiveAnimationsForTest, isTrue, reason: 'width/height/bgColor should still animate');
+      expect(
+        text.committedResolvedStyle.inheritedText.color,
+        Colors.black,
+        reason:
+            'Text inherited color should start from the CSS default black. '
+            'Animating an undeclared root color as transparent -> black makes BoxPage text fade in.',
+      );
+    });
+  });
+
+  group('文字背景色状态过渡', () {
+    ElRenderView renderOf(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
+
+    const base = Color(0xFF113355);
+
+    const active = Color(0xFFFFDD22);
+
+    const baseBg = Color(0xFF220044);
+
+    const activeBg = Color(0xFF44AA66);
+
+    final half = Color.lerp(base, active, 0.5)!;
+
+    final halfBg = Color.lerp(baseBg, activeBg, 0.5)!;
+
+    group('事件状态变体过渡', () {
+      testWidgets('onHover 换 textBackgroundColor：半程精确 50% lerp，与 bgColor 对照同进度', (tester) async {
+        const k = ValueKey('hover');
+        await tester.pumpWidget(
+          _directionalApp(
+            const ElView(
+              key: k,
+              style: ElStyle(
+                width: 120,
+                height: 40,
+                bgColor: baseBg,
+                textBackgroundColor: base,
+                onHover: ElStyle(bgColor: activeBg, textBackgroundColor: active),
+                transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
+              ),
+              child: 'Hi',
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final box = renderOf(tester, k);
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, base);
+
+        box.setHover(true);
+        await tester.pump();
+        expect(box.hasActiveAnimationsForTest, isTrue, reason: 'hover 激活应启动过渡动画');
+
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(box.committedResolvedStyle.box.bgColor, halfBg, reason: '对照字段 bgColor 半程 50%（过渡机制本身在跑）');
+        expect(
+          box.committedResolvedStyle.inheritedText.textBackgroundColor,
+          half,
+          reason: 'textBackgroundColor 半程应为精确 50% lerp——若已是终点值即瞬跳 bug',
+        );
+
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, active);
+        expect(box.hasActiveAnimationsForTest, isFalse);
+
+        // 反向：hover 撤销同样过渡
+        box.setHover(false);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, half, reason: '撤销 hover 半程同样 50%');
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, base);
+      });
+
+      testWidgets('onTap 换 textBackgroundColor：半程精确 50% lerp', (tester) async {
+        const k = ValueKey('tap');
+        await tester.pumpWidget(
+          _directionalApp(
+            const ElView(
+              key: k,
+              style: ElStyle(
+                width: 120,
+                height: 40,
+                textBackgroundColor: base,
+                onTap: ElStyle(textBackgroundColor: active),
+                transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
+              ),
+              child: 'Hi',
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final box = renderOf(tester, k);
+        box.setTap(true);
+        await tester.pump();
+        expect(box.hasActiveAnimationsForTest, isTrue, reason: 'tap 激活应启动过渡动画');
+
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(
+          box.committedResolvedStyle.inheritedText.textBackgroundColor,
+          half,
+          reason: 'textBackgroundColor 半程应为精确 50% lerp——若已是终点值即瞬跳 bug',
+        );
+
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, active);
+      });
+    });
+
+    group('暗黑模式过渡', () {
+      testWidgets('onDark 直接换 textBackgroundColor：dark 统一过渡半程 50%', (tester) async {
+        const k = ValueKey('dark-direct');
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: k,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: const ElStyle(
+              width: 120,
+              height: 40,
+              bgColor: baseBg,
+              textBackgroundColor: base,
+              onDark: ElStyle(bgColor: activeBg, textBackgroundColor: active),
+            ),
+            child: 'Hi',
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final box = renderOf(tester, k);
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, base);
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(box.committedResolvedStyle.box.bgColor, halfBg, reason: '对照字段 bgColor 半程 50%（dark 统一过渡在跑）');
+        expect(
+          box.committedResolvedStyle.inheritedText.textBackgroundColor,
+          half,
+          reason: 'textBackgroundColor 半程应为精确 50% lerp——若已是终点值即瞬跳 bug',
+        );
+
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(box.committedResolvedStyle.inheritedText.textBackgroundColor, active);
+        expect(box.hasActiveAnimationsForTest, isFalse);
+      });
+
+      // inline 变体过渡引擎（InlineVariantAnimator）落地后启用：dark 统一过渡
+      // 强制覆盖 inline owner（无视自身 transitions 声明，对齐宿主 T-theme10）。
+      testWidgets('富文本 inline span（复刻 richtext 示例）：onDark 换 textBackgroundColor 半程 50%', (tester) async {
+        // 对应 ui_example richtext.dart 的 inline code 用法：
+        // 段落 child 列表里嵌 ElView，span 自带 textBackgroundColor + onDark。
+        // 当前 inline ElView 通过 WidgetSpan 挂载，探针读取子节点实际绘制的文字样式。
+        const paraKey = ValueKey('inline-para');
+        const codeKey = ValueKey('inline-code');
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: paraKey,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: const ElStyle(
+              width: 400,
+              fontSize: 14,
+              color: Color(0xFF334155),
+              onDark: ElStyle(color: Color(0xFFE2E8F0)),
+            ),
+            child: const [
+              '你也可以嵌入 ',
+              ElView(
+                key: codeKey,
+                child: 'ElStyle',
+                style: ElStyle(
+                  textBackgroundColor: base,
+                  onDark: ElStyle(textBackgroundColor: active),
+                ),
+              ),
+              ' 这样的代码片段。',
+            ],
+          ),
+        );
+
+        TextStyle? codeSpanStyle() =>
+            (renderOf(tester, codeKey).textEngineForTest!.painterForTest.text! as TextSpan).style;
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        expect(codeSpanStyle()?.backgroundColor, base, reason: 'light 起点');
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(
+          codeSpanStyle()?.backgroundColor,
+          half,
+          reason: 'inline span textBackgroundColor 半程应为 50% lerp——若已是终点值即瞬跳 bug',
+        );
+
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(codeSpanStyle()?.backgroundColor, active);
+      });
+    });
+  });
+
+  group('主题动画帧同步', () {
+    Color elViewBackground(WidgetTester tester) {
+      final render = tester.renderObject<ElRenderView>(find.byKey(_elViewBodyKey));
+      return render.committedResolvedStyle.box.bgColor!;
+    }
+
+    Color animatedContainerBackground(WidgetTester tester, Key key) {
+      final decoratedBox = tester.widget<DecoratedBox>(
+        find.descendant(of: find.byKey(key), matching: find.byType(DecoratedBox)).first,
+      );
+      return (decoratedBox.decoration as BoxDecoration).color!;
+    }
+
+    testWidgets('ElView 与示例 AnimatedContainer 在每次切换的首个真实帧保持同一主题进度', (tester) async {
+      final harnessKey = GlobalKey<_DemoHarnessState>();
+      await tester.pumpWidget(_DemoHarness(key: harnessKey));
+
+      expect(elViewBackground(tester), _lightColor);
+      expect(animatedContainerBackground(tester, _contextVarContainerKey), _lightColor);
+      expect(animatedContainerBackground(tester, _animatedContainerKey), _lightColor);
+
+      harnessKey.currentState!.toggleTheme();
+      await tester.pump();
+      await tester.pump(_firstFrameDuration);
+
+      final expected = Color.lerp(
+        _lightColor,
+        _darkColor,
+        _firstFrameDuration.inMicroseconds / _animationDuration.inMicroseconds,
+      )!;
+      final contextVarColor = animatedContainerBackground(tester, _contextVarContainerKey);
+      final flutterColor = animatedContainerBackground(tester, _animatedContainerKey);
+
+      expect(flutterColor, expected, reason: 'Flutter 对照动画应消费首个 16ms');
+      expect(elViewBackground(tester), flutterColor, reason: 'ElView 不应丢弃首个真实 vsync 而比 AnimatedContainer 慢一帧');
+      expect(contextVarColor, flutterColor, reason: 'ElView.of(context) 方块应与同帧启动的 Flutter 对照动画同步');
+
+      await tester.pump(_animationDuration - _firstFrameDuration);
+      expect(elViewBackground(tester), _darkColor);
+      expect(animatedContainerBackground(tester, _contextVarContainerKey), _darkColor);
+      expect(animatedContainerBackground(tester, _animatedContainerKey), _darkColor);
+
+      harnessKey.currentState!.toggleTheme();
+      await tester.pump();
+      await tester.pump(_firstFrameDuration);
+
+      final reverseExpected = Color.lerp(
+        _darkColor,
+        _lightColor,
+        _firstFrameDuration.inMicroseconds / _animationDuration.inMicroseconds,
+      )!;
+      final reverseContextVarColor = animatedContainerBackground(tester, _contextVarContainerKey);
+      final reverseFlutterColor = animatedContainerBackground(tester, _animatedContainerKey);
+
+      expect(reverseFlutterColor, reverseExpected, reason: 'Flutter 对照动画反向时应消费首个 16ms');
+      expect(elViewBackground(tester), reverseFlutterColor, reason: 'ElView ticker 重启后仍应与 AnimatedContainer 保持同一首帧进度');
+      expect(reverseContextVarColor, reverseFlutterColor, reason: 'ElView.of(context) 方块反向切换时也应同步启动');
+    });
+  });
+
+  group('主题动画与状态边界', () {
+    ElRenderView renderOf(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
+
+    Color backgroundOf(WidgetTester tester, Key key) =>
+        renderOf(tester, key).committedResolvedStyle.inheritedText.color!;
+
+    testWidgets('active self 与 nested 动画不被祖先 theme tick 取消', (tester) async {
+      const rootKey = ValueKey('variant-root');
+      const selfKey = ValueKey('self-variant');
+      const nestedKey = ValueKey('nested-variant');
+      const selfEnd = Color(0xFFFF0000);
+      const nestedEnd = Color(0xFF00FF00);
+      const variantDuration = Duration(milliseconds: 320);
+      const colorTransition = ElTransition.field(ElTransitionField.color, variantDuration, Curves.linear);
+
+      Widget build(Brightness brightness) => MaterialApp(
+        home: ElView(
+          key: rootKey,
+          themeMode: ElThemeMode(brightness: brightness, duration: _themeDuration, curve: Curves.linear),
+          style: const ElStyle(
+            color: _start,
+            onDark: ElStyle(color: _themeEnd),
+          ),
+          child: [
+            const ElView(
+              key: selfKey,
+              style: ElStyle(
+                transitions: [colorTransition],
+                onHover: ElStyle(color: selfEnd),
+              ),
+            ),
+            const ElView(
+              key: nestedKey,
+              style: ElStyle(
+                transitions: [colorTransition],
+                onHover: ElStyle(onTap: ElStyle(color: nestedEnd)),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      final root = renderOf(tester, rootKey);
+      final self = renderOf(tester, selfKey);
+      final nested = renderOf(tester, nestedKey);
+      root.setHover(true);
+      self.setHover(true);
+      nested.setHover(true);
+      nested.setTap(true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      expect(backgroundOf(tester, selfKey), Color.lerp(_start, selfEnd, 0.25));
+      expect(backgroundOf(tester, nestedKey), Color.lerp(_start, nestedEnd, 0.25));
+
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      for (var frame = 1; frame <= _frameCount; frame++) {
+        await tester.pump(_frameDuration);
+        final variantProgress = (80 + frame * 16) / variantDuration.inMilliseconds;
+        expect(
+          backgroundOf(tester, selfKey),
+          Color.lerp(_start, selfEnd, variantProgress),
+          reason: 'onHover color 动画在 theme 第 $frame 帧不能被取消',
+        );
+        expect(
+          backgroundOf(tester, nestedKey),
+          Color.lerp(_start, nestedEnd, variantProgress),
+          reason: 'nested color 动画在 theme 第 $frame 帧不能被取消',
+        );
+      }
+    });
+
+    testWidgets('active 变体解除时立即读取祖先当前主题中间帧', (tester) async {
+      const rootKey = ValueKey('snapshot-root');
+      const childKey = ValueKey('snapshot-child');
+      const hoverColor = Color(0xFFFF0000);
+
+      Widget build(Brightness brightness) => MaterialApp(
+        home: ElView(
+          key: rootKey,
+          themeMode: ElThemeMode(brightness: brightness, duration: _themeDuration, curve: Curves.linear),
+          style: const ElStyle(
+            color: _start,
+            onDark: ElStyle(color: _themeEnd),
+          ),
+          child: const ElView(
+            key: childKey,
+            style: ElStyle(onHover: ElStyle(color: hoverColor)),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      final child = renderOf(tester, childKey)..setHover(true);
+      await tester.pump();
+      expect(backgroundOf(tester, childKey), hoverColor);
+
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      final rootMiddle = renderOf(tester, rootKey).committedResolvedStyle.inheritedText.color;
+      expect(rootMiddle, Color.lerp(_start, _themeEnd, 0.5));
+      expect(backgroundOf(tester, childKey), hoverColor);
+
+      child.setHover(false);
+      expect(child.targetStyleForTest.inheritedText.color, rootMiddle, reason: 'active 期间也必须持续刷新 parent 快照');
+      expect(child.committedResolvedStyle.inheritedText.color, rootMiddle);
+      expect(backgroundOf(tester, childKey), rootMiddle);
+    });
+
+    testWidgets('active 变体未声明 color 时 theme color mask 仍逐帧传播', (tester) async {
+      const childKey = ValueKey('non-color-variant');
+
+      Widget build(Brightness brightness) => MaterialApp(
+        home: ElView(
+          themeMode: ElThemeMode(brightness: brightness, duration: _themeDuration, curve: Curves.linear),
+          style: const ElStyle(
+            color: _start,
+            onDark: ElStyle(color: _themeEnd),
+          ),
+          child: const ElView(
+            key: childKey,
+            style: ElStyle(onHover: ElStyle(width: 120)),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      renderOf(tester, childKey).setHover(true);
+      await tester.pump();
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      for (var frame = 1; frame <= _frameCount; frame++) {
+        await tester.pump(_frameDuration);
+        expect(
+          backgroundOf(tester, childKey),
+          Color.lerp(_start, _themeEnd, frame / _frameCount),
+          reason: '无 color 声明的 active 变体不能粗暴截断整张 mask',
+        );
+      }
+    });
+
+    testWidgets('active onDark 自有 color 使用统一主题时钟且不被祖先采样覆盖', (tester) async {
+      const childKey = ValueKey('on-dark-owner');
+      const childDark = Color(0xFFFF0000);
+
+      Widget build(Brightness brightness) => MaterialApp(
+        home: ElView(
+          themeMode: ElThemeMode(brightness: brightness, duration: _themeDuration, curve: Curves.linear),
+          style: const ElStyle(
+            color: _start,
+            onDark: ElStyle(color: _themeEnd),
+          ),
+          child: const ElView(
+            key: childKey,
+            style: ElStyle(onDark: ElStyle(color: childDark)),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      for (var frame = 1; frame <= _frameCount; frame++) {
+        await tester.pump(_frameDuration);
+        expect(
+          backgroundOf(tester, childKey),
+          Color.lerp(_start, childDark, frame / _frameCount),
+          reason: 'child onDark 应在第 $frame 帧保留自己的 theme 动画',
+        );
+      }
+    });
+  });
+
+  group('暗色主题统一过渡', () {
+    ElRenderView renderOf(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
+
+    group('dark 强制统一过渡（覆盖各自 transitions）', () {
+      testWidgets('半程所有后代颜色处于同一进度：50% 精确 lerp 值逐一相等（无 / 100ms / 2s / 异曲线声明全被统一）', (tester) async {
+        const lightA = Color(0xFF102030);
+        const darkA = Color(0xFFEEEEEE);
+        const lightB = Color(0xFF004400);
+        const darkB = Color(0xFF88FF88);
+        const k1 = ValueKey('u-none');
+        const k2 = ValueKey('u-100ms');
+        const k3 = ValueKey('u-2s');
+        const k4 = ValueKey('u-curve');
+
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: [
+              // 四种声明形态：无 / 短时长 / 超长时长 / 异曲线——统一后半程
+              // 颜色必须逐一等于精确 50% lerp 值（割裂感 = 进度不一致）。
+              ElView(
+                key: k1,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: lightA,
+                  onDark: ElStyle().merge(ElStyle(bgColor: darkA)),
+                ),
+              ),
+              ElView(
+                key: k2,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: lightA,
+                  transitions: [ElTransition.all(Duration(milliseconds: 100))],
+                  onDark: ElStyle().merge(ElStyle(bgColor: darkA)),
+                ),
+              ),
+              ElView(
+                key: k3,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: lightB,
+                  transitions: [ElTransition.all(Duration(seconds: 2))],
+                  onDark: ElStyle().merge(ElStyle(bgColor: darkB)),
+                ),
+              ),
+              ElView(
+                key: k4,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: lightB,
+                  transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.easeInExpo)],
+                  onDark: ElStyle().merge(ElStyle(bgColor: darkB)),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        final halfA = Color.lerp(lightA, darkA, 0.5)!;
+        final halfB = Color.lerp(lightB, darkB, 0.5)!;
+        expect(renderOf(tester, k1).committedResolvedStyle.box.bgColor, halfA, reason: '无声明节点半程 = 精确 50% lerp');
+        expect(
+          renderOf(tester, k2).committedResolvedStyle.box.bgColor,
+          halfA,
+          reason: '100ms 声明被统一为 400ms：半程仍是 50%（若走自身声明早已到位）',
+        );
+        expect(
+          renderOf(tester, k3).committedResolvedStyle.box.bgColor,
+          halfB,
+          reason: '2s 声明被统一为 400ms：半程 50%（若走自身声明才 10%）',
+        );
+        expect(
+          renderOf(tester, k4).committedResolvedStyle.box.bgColor,
+          halfB,
+          reason: '异曲线声明被统一为 linear：半程 50%（easeInExpo(0.5)≈3%）',
+        );
+
+        // 收尾：全部精确到位。
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(renderOf(tester, k1).committedResolvedStyle.box.bgColor, darkA);
+        expect(renderOf(tester, k2).committedResolvedStyle.box.bgColor, darkA);
+        expect(renderOf(tester, k3).committedResolvedStyle.box.bgColor, darkB);
+        expect(renderOf(tester, k4).committedResolvedStyle.box.bgColor, darkB);
+      });
+
+      testWidgets('R3：祖先继承色同帧动画时，无 transitions 后代的 onDark 过渡不被继承传播打断', (tester) async {
+        // 复现自 view 示例（transition 页）：body 根的 color 声明了 onDark →
+        // dark 动画每 tick 沿继承链传播（inheritedText.color 变）→ 后代 fast
+        // patch 因自身 onDark 命中 bail 到 _reresolve；后代无 transitions 声明
+        // 且传播时 pending 已 restore 为 null → 旧判据不给 CascadeTick 传
+        // driver → 看不见在跑的 dark 动画 → bgColor 直接写终点（瞬跳），与
+        // 声明了 color 的兄弟（不受该传播路径影响）视觉割裂。
+        const stageKey = ValueKey('r3-stage'); // 无 color、无 transitions
+        const footerKey = ValueKey('r3-footer'); // 声明 color 的对照兄弟
+        const lightBg = Color(0xFFF8FAFC);
+        const darkBg = Color(0xFF0F172A);
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 300), curve: Curves.linear),
+            style: const ElStyle(
+              color: Color(0xFF334155),
+              onDark: ElStyle(color: Color(0xFFE2E8F0)),
+            ),
+            child: const [
+              ElView(
+                key: stageKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: lightBg,
+                  onDark: ElStyle(bgColor: darkBg),
+                ),
+              ),
+              ElView(
+                key: footerKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  color: Color(0xFF64748B),
+                  bgColor: lightBg,
+                  onDark: ElStyle(bgColor: darkBg),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump(); // 首 tick 对齐
+        await tester.pump(const Duration(milliseconds: 150));
+
+        final half = Color.lerp(lightBg, darkBg, 0.5)!;
+        expect(renderOf(tester, footerKey).committedResolvedStyle.box.bgColor, half, reason: '对照兄弟半程精确 50%');
+        expect(
+          renderOf(tester, stageKey).committedResolvedStyle.box.bgColor,
+          half,
+          reason: '无 color 声明的节点同进度——瞬跳到终点即继承传播打断 bug 复发',
+        );
+
+        // 收尾精确到位、驱动器清空（无僵尸动画）。
+        await tester.pump(const Duration(milliseconds: 160));
+        await tester.pump();
+        expect(renderOf(tester, stageKey).committedResolvedStyle.box.bgColor, darkBg);
+        expect(renderOf(tester, stageKey).hasActiveAnimationsForTest, isFalse);
+      });
+
+      testWidgets('三种后代：无 transitions / 声明 100ms transitions / 引用不同 var → 半程中间帧一致（400ms 统一）', (tester) async {
+        const rootKey = ValueKey('theme-root');
+        const aKey = ValueKey('a-no-trans');
+        const bKey = ValueKey('b-100ms-trans');
+        const cKey = ValueKey('c-diff-var');
+
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: [
+              ElView(
+                key: aKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+              ElView(
+                key: bKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  transitions: [
+                    ElTransition.field(ElTransitionField.bgColor, Duration(milliseconds: 100), Curves.easeIn),
+                  ],
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+              ElView(
+                key: cKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFFFAFAFA),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFF111111))),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+
+        // 初始 light：a/b/--primary=0xFF102030，c/--surface=0xFFFAFAFA
+        final a = renderOf(tester, aKey);
+        final b = renderOf(tester, bKey);
+        final c = renderOf(tester, cKey);
+        expect(a.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+        expect(b.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+        expect(c.committedResolvedStyle.box.bgColor, const Color(0xFFFAFAFA));
+
+        // 切 dark
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+
+        // 三者都应该处于过渡中：ElThemeMode 强制统一 400ms 覆盖 100ms 声明
+        expect(a.hasActiveAnimationsForTest, isTrue, reason: 'a 无自身 transitions，dark 强制统一启动 400ms 过渡');
+        expect(b.hasActiveAnimationsForTest, isTrue, reason: 'b 有 100ms transitions，被强制统一为 400ms');
+        expect(c.hasActiveAnimationsForTest, isTrue, reason: 'c 引用不同 var，一并统一');
+
+        // 半程：pump 200ms（400ms 统一时长的一半）
+        await tester.pump(const Duration(milliseconds: 200));
+        // 100ms 声明如果生效，b 早就到位——本用例锁的是"没有到位"
+        expect(b.hasActiveAnimationsForTest, isTrue, reason: '400ms 统一：200ms 时 b 仍在过渡中（不是 100ms 完成）');
+        expect(a.hasActiveAnimationsForTest, isTrue);
+        expect(c.hasActiveAnimationsForTest, isTrue);
+
+        // 全程：pump 到 400ms（此时已从 setDark 起算共 400ms+ε）
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(a.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: 'a 到位');
+        expect(b.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: 'b 到位');
+        expect(c.committedResolvedStyle.box.bgColor, const Color(0xFF111111), reason: 'c 到位');
+        // 无残留动画
+        expect(a.hasActiveAnimationsForTest, isFalse);
+        expect(b.hasActiveAnimationsForTest, isFalse);
+        expect(c.hasActiveAnimationsForTest, isFalse);
+      });
+    });
+
+    group('局部 dark 岛（后代自己切 theme）', () {
+      testWidgets('后代 theme.brightness=dark 只影响其子树', (tester) async {
+        const outerKey = ValueKey('outer');
+        const islandKey = ValueKey('island');
+        const outsideKey = ValueKey('outside');
+        const insideKey = ValueKey('inside');
+
+        Widget tree({required Brightness inner}) => _directionalApp(
+          ElView(
+            key: outerKey,
+            themeMode: const ElThemeMode(brightness: Brightness.light),
+            style: ElStyle(onDark: ElStyle()),
+            child: [
+              ElView(
+                key: outsideKey,
+                style: ElStyle(
+                  width: 20,
+                  height: 20,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+              ElView(
+                key: islandKey,
+                themeMode: ElThemeMode(brightness: inner),
+                child: ElView(
+                  key: insideKey,
+                  style: ElStyle(
+                    width: 20,
+                    height: 20,
+                    bgColor: Color(0xFF102030),
+                    onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(tree(inner: Brightness.light));
+        await tester.pump();
+        final outside = renderOf(tester, outsideKey);
+        final inside = renderOf(tester, insideKey);
+        expect(outside.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+        expect(inside.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+
+        // island 翻 dark
+        await tester.pumpWidget(tree(inner: Brightness.dark));
+        await tester.pumpAndSettle();
+        expect(inside.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: '岛内切 dark 后按 onDark.vars');
+        expect(outside.committedResolvedStyle.box.bgColor, const Color(0xFF102030), reason: '岛外未受影响，仍 light 值');
+      });
+    });
+
+    group('逐属性继承矩阵（brightness / duration / curve 独立可空）', () {
+      testWidgets('1) 根声明 duration+curve，中层只声明 brightness=dark → 中层子树用根的 500ms+linear', (tester) async {
+        const rootKey = ValueKey('m1-root');
+        const midKey = ValueKey('m1-mid');
+        const leafKey = ValueKey('m1-leaf');
+
+        Widget build({required Brightness midBrightness}) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(duration: const Duration(milliseconds: 500), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: ElView(
+              key: midKey,
+              themeMode: ElThemeMode(brightness: midBrightness),
+              child: ElView(
+                key: leafKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(build(midBrightness: Brightness.light));
+        await tester.pump();
+        final leaf = renderOf(tester, leafKey);
+        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+
+        // 切 dark
+        await tester.pumpWidget(build(midBrightness: Brightness.dark));
+        await tester.pump();
+        // 半程 250ms（500ms 的一半）—— 若默认 300ms，此时早过 250ms，颜色接近末态；
+        // 若正确继承根 500ms，此时应处于过渡中且距末态还有明显距离。
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '继承根 500ms → 250ms 时仍在过渡中');
+        // 冲到 500ms 全部完成
+        await tester.pump(const Duration(milliseconds: 260));
+        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.hasActiveAnimationsForTest, isFalse);
+      });
+
+      testWidgets('2) 根声明 curve only，子声明 duration only → 独立继承/覆盖', (tester) async {
+        const rootKey = ValueKey('m2-root');
+        const midKey = ValueKey('m2-mid');
+        const leafKey = ValueKey('m2-leaf');
+
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: const ElThemeMode(curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: ElView(
+              key: midKey,
+              // 子只声明 duration=200ms，curve 继承根 linear
+              themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 200)),
+              child: ElView(
+                key: leafKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final leaf = renderOf(tester, leafKey);
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        // 半程 100ms（子 200ms 的一半）
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '子声明 200ms + 根 linear：100ms 时仍在过渡中');
+        await tester.pump(const Duration(milliseconds: 110));
+        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+      });
+
+      testWidgets('3) 整条链只有 brightness 声明 → 过渡兜底 300ms/easeOutCubic', (tester) async {
+        const rootKey = ValueKey('m3-root');
+        const leafKey = ValueKey('m3-leaf');
+
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(brightness: b), // 只声明 brightness
+            style: ElStyle(onDark: ElStyle()),
+            child: ElView(
+              key: leafKey,
+              style: ElStyle(
+                width: 40,
+                height: 40,
+                bgColor: Color(0xFF102030),
+                onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final leaf = renderOf(tester, leafKey);
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        // 半程 150ms（兜底 300ms 的一半）
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '兜底 300ms：150ms 时应仍在过渡中');
+        await tester.pump(const Duration(milliseconds: 160));
+        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.hasActiveAnimationsForTest, isFalse);
+      });
+
+      testWidgets('4) 孙层覆盖 duration → 只影响孙子树，兄弟不受影响', (tester) async {
+        const rootKey = ValueKey('m4-root');
+        const midKey = ValueKey('m4-mid');
+        const siblingKey = ValueKey('m4-sib');
+        const grandsonKey = ValueKey('m4-grandson');
+        const grandsonLeafKey = ValueKey('m4-grandson-leaf');
+
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: [
+              // 兄弟：继承根 400ms
+              ElView(
+                key: siblingKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
+              ),
+              // 孙层覆盖 duration=200ms
+              ElView(
+                key: midKey,
+                child: ElView(
+                  key: grandsonKey,
+                  themeMode: const ElThemeMode(duration: Duration(milliseconds: 200)),
+                  child: ElView(
+                    key: grandsonLeafKey,
+                    style: ElStyle(
+                      width: 40,
+                      height: 40,
+                      bgColor: Color(0xFF102030),
+                      onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
                     ),
                   ),
                 ),
               ),
-            );
-            await tester.pumpWidget(host(automatic: false));
-            expect(viewSize(tester).width, 100);
-            await tester.pumpWidget(host(automatic: true));
-            expect(viewSize(tester).width, 100);
-            if (delay != Duration.zero) {
-              await tester.pump(const Duration(milliseconds: 25));
-              expect(viewSize(tester).width, 100);
-              await tester.pump(const Duration(milliseconds: 25));
-              expect(viewSize(tester).width, 100);
-            }
-            await tester.pump(const Duration(milliseconds: 25));
-            expect(viewSize(tester).width, 90);
-            await tester.pump(const Duration(milliseconds: 25));
-            expect(viewSize(tester).width, 80);
-            await tester.pump(const Duration(milliseconds: 50));
-            expect(viewSize(tester).width, 60);
-            expect(tester.takeException(), isNull);
-          },
-        );
-      }
-    }
-  });
-
-  group('尺寸上下限的中间值', () {
-    testWidgets('双轴 min 按当前值撑盒，内容位置、圆角裁剪与轮廓跟随实际尺寸', (tester) async {
-      const childKey = ValueKey('min-animation-child');
-      const child = SizedBox(key: childKey, width: 40, height: 20);
-      ElStyle style(double width, double height) => ElStyle(
-        minWidth: width,
-        minHeight: height,
-        padding: const EdgeInsets.all(10),
-        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-        backgroundColor: _red,
-        borderRadius: BorderRadius.circular(12),
-        outline: const ElOutline(width: 4, offset: 3, color: _blue),
-        clipBehavior: Clip.antiAlias,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(80, 50), child: child));
-      await tester.pumpWidget(viewScene(style(200, 130), child: child));
-      for (var step = 1; step <= 4; step++) {
-        await _advance(tester, 25);
-        final width = 80 + step * 30.0, height = 50 + step * 20.0;
-        final rect = Rect.fromLTWH(3, 5, width, height);
-        expect(viewSize(tester), Size(width + 6, height + 10));
-        expect(tester.getSize(find.byKey(childKey)), const Size(40, 20));
-        expect(_childOffset(tester, childKey), const Offset(13, 15));
-        _background(tester, null, rect: rect);
-        _clip(
-          tester,
-          Clip.antiAlias,
-          radius: BorderRadius.circular(12),
-          rect: rect,
-        );
-        final pixels = await _borderPixels(tester, [Offset(3 + width / 2, 0)]);
-        _pixel(pixels.single, _blue);
-      }
-    });
-
-    testWidgets('双轴 max 插值先限制 child，再将 padding 和 margin 计入实际占位', (
-      tester,
-    ) async {
-      const childKey = ValueKey('max-animation-child');
-      const child = SizedBox(key: childKey, width: 1000, height: 1000);
-      ElStyle style(double width, double height) => ElStyle(
-        maxWidth: width,
-        maxHeight: height,
-        padding: const EdgeInsets.all(10),
-        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(300, 200), child: child));
-      await tester.pumpWidget(viewScene(style(100, 80), child: child));
-      for (var step = 1; step <= 4; step++) {
-        await _advance(tester, 25);
-        final width = 300 - step * 50.0, height = 200 - step * 30.0;
-        expect(viewSize(tester), Size(width + 6, height + 10));
-        expect(
-          tester.getSize(find.byKey(childKey)),
-          Size(width - 20, height - 20),
-        );
-        expect(_childOffset(tester, childKey), const Offset(13, 15));
-      }
-    });
-
-    testWidgets('min 和 max 的像素百分比混合表达式按当帧父参照求值', (tester) async {
-      for (final minimum in [true, false]) {
-        final key = ValueKey('limit-percent-$minimum');
-        final child = SizedBox(
-          width: minimum ? 0 : 1000,
-          height: minimum ? 0 : 1000,
-        );
-        ElStyle style(bool target) => ElStyle(
-          minWidth: minimum ? (target ? '50%' : 40) : null,
-          minHeight: minimum ? (target ? '50%' : 20) : null,
-          maxWidth: minimum ? null : (target ? '50%' : 40),
-          maxHeight: minimum ? null : (target ? '50%' : 20),
-          transitions: _linear,
-        );
-        await tester.pumpWidget(
-          viewScene(style(false), child: child, key: key),
-        );
-        await tester.pumpWidget(viewScene(style(true), child: child, key: key));
-        await _advance(tester, 50);
-        expect(viewSize(tester, key: key), const Size(120, 85));
-        await tester.pumpWidget(
-          viewScene(
-            style(true),
-            child: child,
-            width: 600,
-            height: 500,
-            key: key,
-          ),
-        );
-        expect(viewSize(tester, key: key), const Size(170, 135));
-        await _advance(tester, 50);
-        expect(viewSize(tester, key: key), const Size(300, 250));
-      }
-    });
-
-    testWidgets('null 上下限双向切换遵守中点离散，不插值无限尺寸或触发 auto 测量', (tester) async {
-      const child = SizedBox(width: 20, height: 120);
-      ElStyle style(bool limited) => ElStyle(
-        minWidth: limited ? 100 : null,
-        maxHeight: limited ? 40 : null,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(false), child: child));
-      for (final limited in [true, false]) {
-        await tester.pumpWidget(viewScene(style(limited), child: child));
-        await _advance(tester, 49);
-        expect(
-          viewSize(tester),
-          limited ? const Size(20, 120) : const Size(100, 40),
-        );
-        await _advance(tester, 1);
-        expect(
-          viewSize(tester),
-          limited ? const Size(100, 40) : const Size(20, 120),
-        );
-        await _advance(tester, 50);
-        expect(
-          viewSize(tester),
-          limited ? const Size(100, 40) : const Size(20, 120),
-        );
-      }
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('上下限支持延迟、中断接续、移除过渡与零时长等待', (tester) async {
-      const child = SizedBox(width: 20, height: 200);
-      const delayed = [
-        ElTransition.all(
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      ElStyle style(Object? minimum, Object? maximum, {bool animate = true}) =>
-          ElStyle(
-            minWidth: minimum,
-            maxHeight: maximum,
-            transitions: animate ? delayed : null,
-          );
-      await tester.pumpWidget(viewScene(style(40, 160), child: child));
-      await tester.pumpWidget(viewScene(style(200, 80), child: child));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(40, 160));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(80, 140));
-      await tester.pumpWidget(viewScene(style(120, 100), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(80, 140));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(100, 120));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 100));
-      await tester.pumpWidget(
-        viewScene(style(null, null, animate: false), child: child),
-      );
-      expect(viewSize(tester), const Size(20, 200));
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            minWidth: 200,
-            maxHeight: 40,
-            transitions: [
-              ElTransition.all(
-                Duration.zero,
-                Curves.linear,
-                Duration(milliseconds: 20),
-              ),
             ],
           ),
-          child: child,
-        ),
-      );
-      await _advance(tester, 19);
-      expect(viewSize(tester), const Size(20, 200));
-      await _advance(tester, 1);
-      expect(viewSize(tester), const Size(200, 40));
-    });
-
-    testWidgets('负过冲限制到零，min 与 max 相交后由当前 max 决定尺寸', (tester) async {
-      const child = SizedBox(width: 10, height: 100);
-      ElStyle overshoot(double value) => ElStyle(
-        minWidth: value,
-        maxHeight: value,
-        transitions: const [
-          ElTransition.all(Duration(milliseconds: 100), _NegativeCurve()),
-        ],
-      );
-      await tester.pumpWidget(viewScene(overshoot(20), child: child));
-      await tester.pumpWidget(viewScene(overshoot(100), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(10, 0));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(100, 100));
-      const crossingKey = ValueKey('crossing-limit-view');
-      ElStyle crossing(double minimum, double maximum) =>
-          ElStyle(minWidth: minimum, maxWidth: maximum, transitions: _linear);
-      await tester.pumpWidget(
-        viewScene(crossing(40, 200), child: child, key: crossingKey),
-      );
-      await tester.pumpWidget(
-        viewScene(crossing(200, 80), child: child, key: crossingKey),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester, key: crossingKey), const Size(120, 100));
-      await _advance(tester, 25);
-      expect(viewSize(tester, key: crossingKey), const Size(110, 100));
-      await _advance(tester, 25);
-      expect(viewSize(tester, key: crossingKey), const Size(80, 100));
-      expect(tester.takeException(), isNull);
-    });
-
-    for (final dense in [false, true]) {
-      testWidgets('auto 端点使用当前上限、padding 与因子，各通道不同截止仍连续：逐帧=$dense', (
-        tester,
-      ) async {
-        const child = SizedBox(width: 100, height: 40);
-        const transitions = [
-          ElTransition.field(
-            ElTransitionField.width,
-            Duration(milliseconds: 100),
-            Curves.linear,
-          ),
-          ElTransition.field(
-            ElTransitionField.maxWidth,
-            Duration(milliseconds: 200),
-            Curves.linear,
-          ),
-          ElTransition.field(
-            ElTransitionField.padding,
-            Duration(milliseconds: 200),
-            Curves.linear,
-          ),
-          ElTransition.field(
-            ElTransitionField.widthFactor,
-            Duration(milliseconds: 200),
-            Curves.linear,
-          ),
-        ];
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(width: 240, maxWidth: 300, transitions: transitions),
-            child: child,
-          ),
         );
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(
-              maxWidth: 140,
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              widthFactor: 2,
-              transitions: transitions,
-            ),
-            child: child,
-          ),
-        );
-        await _advanceTo99(tester, dense: dense);
-        final before = viewSize(tester).width;
-        await _advance(tester, 1);
-        expect((viewSize(tester).width - before).abs(), lessThan(3));
-        expect(viewSize(tester), const Size(180, 40));
-        await _advance(tester, 50);
-        expect(viewSize(tester), const Size(180, 40));
-        await _advance(tester, 50);
-        expect(viewSize(tester), const Size(140, 40));
-        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final sib = renderOf(tester, siblingKey);
+        final grandson = renderOf(tester, grandsonLeafKey);
+
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        // pump 210ms —— 200ms 孙子已完成，400ms 兄弟仍在过渡
+        await tester.pump(const Duration(milliseconds: 210));
+        expect(grandson.hasActiveAnimationsForTest, isFalse, reason: '孙子 200ms 已完成');
+        expect(grandson.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(sib.hasActiveAnimationsForTest, isTrue, reason: '兄弟继承根 400ms，此时仍在过渡');
+
+        // 冲完
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(sib.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
       });
-    }
 
-    testWidgets('max 逐帧收紧时真实 child 按新宽度重新计算高度', (tester) async {
-      const childKey = ValueKey('max-reflow-child');
-      final child = LayoutBuilder(
-        builder: (_, constraints) => SizedBox(
-          key: childKey,
-          width: constraints.maxWidth,
-          height: constraints.maxWidth / 2,
-        ),
-      );
-      ElStyle style(double maximum) =>
-          ElStyle(maxWidth: maximum, transitions: _linear);
-      await tester.pumpWidget(viewScene(style(300), child: child));
-      await tester.pumpWidget(viewScene(style(100), child: child));
-      for (var step = 1; step <= 4; step++) {
-        await _advance(tester, 25);
-        final width = 300 - step * 50.0;
-        expect(viewSize(tester), Size(width, width / 2));
-        expect(tester.getSize(find.byKey(childKey)), Size(width, width / 2));
-      }
-    });
+      testWidgets('5) ElView(theme: null) 完全透明继承（等价无声明）', (tester) async {
+        const rootKey = ValueKey('m5-root');
+        const passKey = ValueKey('m5-pass'); // theme: null
+        const leafKey = ValueKey('m5-leaf');
 
-    testWidgets('动画中的上下限遵守父 tight 约束，嵌套百分比跟随正式内容参照', (tester) async {
-      const nestedKey = ValueKey('limit-nested-percent');
-      Widget scene(double maximum, {bool tight = false}) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: tight ? 240 : 0,
-              maxWidth: tight ? 240 : 400,
-              maxHeight: 300,
-            ),
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 300), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
             child: ElView(
-              key: viewKey,
-              style: ElStyle(
-                width: 400,
-                height: 40,
-                maxWidth: maximum,
-                padding: const EdgeInsets.all(10),
-                transitions: _linear,
-              ),
-              child: const ElView(
-                key: nestedKey,
-                style: ElStyle(width: '50%', minWidth: '75%', height: 20),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpWidget(scene(300));
-      expect(viewSize(tester, key: nestedKey), const Size(210, 20));
-      await tester.pumpWidget(scene(100));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(200, 40));
-      expect(viewSize(tester, key: nestedKey), const Size(135, 20));
-      await tester.pumpWidget(scene(100, tight: true));
-      expect(viewSize(tester), const Size(240, 40));
-      expect(viewSize(tester, key: nestedKey), const Size(165, 20));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(240, 40));
-      await tester.pumpWidget(scene(100));
-      expect(viewSize(tester), const Size(150, 40));
-      expect(viewSize(tester, key: nestedKey), const Size(97.5, 20));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(100, 40));
-      expect(viewSize(tester, key: nestedKey), const Size(60, 20));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('混合百分比上限暂失参照时不限制，参照恢复后继续原进度', (tester) async {
-      Widget scene(Object maximum, {bool bounded = true}) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: UnconstrainedBox(
-            constrainedAxis: Axis.vertical,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: bounded ? 400 : double.infinity,
-                maxHeight: 300,
-              ),
+              key: passKey,
+              themeMode: null, // 透明
               child: ElView(
-                key: viewKey,
-                style: ElStyle(maxWidth: maximum, transitions: _linear),
-                child: const SizedBox(width: 300, height: 40),
+                key: leafKey,
+                style: ElStyle(
+                  width: 40,
+                  height: 40,
+                  bgColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpWidget(scene(100));
-      await tester.pumpWidget(scene('50%'));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(125, 40));
-      await tester.pumpWidget(scene('50%', bounded: false));
-      expect(viewSize(tester), const Size(300, 40));
-      await tester.pumpWidget(scene('50%'));
-      expect(viewSize(tester), const Size(125, 40));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(150, 40));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(200, 40));
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('自然尺寸因子的中间值', () {
-    testWidgets('双轴因子从 null 过渡到 2 再清空，padding 参与缩放但 child 不缩放', (tester) async {
-      const childKey = ValueKey('factor-child');
-      const child = SizedBox(key: childKey, width: 80, height: 40);
-      ElStyle style(double? factor) => ElStyle(
-        widthFactor: factor,
-        heightFactor: factor,
-        padding: const EdgeInsets.all(10),
-        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-        backgroundColor: _red,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(null), child: child));
-      expect(viewSize(tester), const Size(106, 70));
-      await tester.pumpWidget(viewScene(style(2), child: child));
-      for (final size in [const Size(156, 100), const Size(206, 130)]) {
-        await _advance(tester, 50);
-        expect(viewSize(tester), size);
-        expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
-        expect(_childOffset(tester, childKey), const Offset(13, 15));
-        _background(
-          tester,
-          null,
-          rect: Rect.fromLTWH(3, 5, size.width - 6, size.height - 10),
         );
-      }
-      await tester.pumpWidget(viewScene(style(null), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(156, 100));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(106, 70));
-    });
 
-    testWidgets('因子过渡到零时只收缩视图占位，负过冲保持零尺寸', (tester) async {
-      const childKey = ValueKey('zero-factor-child');
-      const child = SizedBox(key: childKey, width: 80, height: 40);
-      ElStyle style(double factor, {Curve curve = Curves.linear}) => ElStyle(
-        widthFactor: factor,
-        heightFactor: factor,
-        transitions: [
-          ElTransition.all(const Duration(milliseconds: 100), curve),
-        ],
-      );
-      await tester.pumpWidget(viewScene(style(2), child: child));
-      await tester.pumpWidget(viewScene(style(0), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(80, 40));
-      await _advance(tester, 50);
-      expect(viewSize(tester), Size.zero);
-      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
-      await tester.pumpWidget(
-        viewScene(style(1, curve: const _NegativeCurve()), child: child),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester), Size.zero);
-      expect(tester.takeException(), isNull);
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(80, 40));
-    });
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final leaf = renderOf(tester, leafKey);
 
-    testWidgets('因子延迟与中断从当前尺寸接续，移除过渡后立即应用清空值', (tester) async {
-      const child = SizedBox(width: 80, height: 40);
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.widthFactor,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      ElStyle style(double? factor, {bool animate = true}) => ElStyle(
-        widthFactor: factor,
-        transitions: animate ? transitions : null,
-      );
-      await tester.pumpWidget(viewScene(style(null), child: child));
-      await tester.pumpWidget(viewScene(style(3), child: child));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(80, 40));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 40));
-      await tester.pumpWidget(viewScene(style(2), child: child));
-      expect(viewSize(tester), const Size(120, 40));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 40));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(140, 40));
-      await tester.pumpWidget(
-        viewScene(style(null, animate: false), child: child),
-      );
-      expect(viewSize(tester), const Size(80, 40));
-      await _advance(tester, 100);
-      expect(viewSize(tester), const Size(80, 40));
-    });
-
-    testWidgets('因子先结束、padding 后结束时，每帧只缩放一次当前自然盒', (tester) async {
-      const childKey = ValueKey('factor-padding-child');
-      const child = SizedBox(key: childKey, width: 100, height: 40);
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.widthFactor,
-          Duration(milliseconds: 100),
-          Curves.linear,
-        ),
-        ElTransition.field(
-          ElTransitionField.padding,
-          Duration(milliseconds: 200),
-          Curves.linear,
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: transitions), child: child),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            widthFactor: 2,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            transitions: transitions,
-          ),
-          child: child,
-        ),
-      );
-      for (final (width, inset) in [
-        (165.0, 5.0),
-        (240.0, 10.0),
-        (260.0, 15.0),
-        (280.0, 20.0),
-      ]) {
-        await _advance(tester, 50);
-        expect(viewSize(tester), Size(width, 40));
-        expect(tester.getSize(find.byKey(childKey)), const Size(100, 40));
-        expect(_childOffset(tester, childKey), Offset(inset, 0));
-      }
-    });
-
-    for (final dense in [false, true]) {
-      testWidgets('显式宽度转 auto 时跟随较慢因子，截止帧不双乘或跳变：逐帧=$dense', (tester) async {
-        const child = SizedBox(width: 100, height: 40);
-        const transitions = [
-          ElTransition.field(
-            ElTransitionField.width,
-            Duration(milliseconds: 100),
-            Curves.linear,
-          ),
-          ElTransition.field(
-            ElTransitionField.widthFactor,
-            Duration(milliseconds: 200),
-            Curves.linear,
-          ),
-        ];
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(width: 200, transitions: transitions),
-            child: child,
-          ),
-        );
-        await tester.pumpWidget(
-          viewScene(
-            const ElStyle(widthFactor: 2, transitions: transitions),
-            child: child,
-          ),
-        );
-        expect(viewSize(tester), const Size(200, 40));
-        await _advanceTo99(tester, dense: dense);
-        final before = viewSize(tester).width;
-        await _advance(tester, 1);
-        expect((viewSize(tester).width - before).abs(), lessThan(3));
-        expect(viewSize(tester), const Size(150, 40));
-        await _advance(tester, 50);
-        expect(viewSize(tester), const Size(175, 40));
-        await _advance(tester, 50);
-        expect(viewSize(tester), const Size(200, 40));
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        // 半程 150ms（300ms 的一半），theme: null 不阻断继承
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(leaf.hasActiveAnimationsForTest, isTrue, reason: 'theme: null 透明 → 用根的 300ms');
+        await tester.pump(const Duration(milliseconds: 160));
+        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
       });
-    }
-
-    testWidgets('百分比与 auto 双向切换时只对自然端点应用因子', (tester) async {
-      const child = SizedBox(width: 80, height: 40);
-      ElStyle style(Object? width, Object? height) => ElStyle(
-        width: width,
-        height: height,
-        widthFactor: 1.5,
-        heightFactor: 1.5,
-        padding: const EdgeInsets.all(10),
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(null, null), child: child));
-      expect(viewSize(tester), const Size(150, 90));
-      await tester.pumpWidget(viewScene(style('50%', '50%'), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(175, 120));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(200, 150));
-      await tester.pumpWidget(viewScene(style(null, null), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(175, 120));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(150, 90));
     });
 
-    testWidgets('因子运行期间 child 改变自然尺寸，继续缩放当前内容尺寸', (tester) async {
-      final natural = ValueNotifier<Size>(const Size(80, 40));
-      addTearDown(natural.dispose);
-      const childKey = ValueKey('changing-factor-child');
-      final child = ValueListenableBuilder<Size>(
-        valueListenable: natural,
-        builder: (_, size, _) => SizedBox.fromSize(key: childKey, size: size),
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(widthFactor: 2, heightFactor: 2, transitions: _linear),
-          child: child,
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(120, 60));
-      natural.value = const Size(120, 60);
-      await tester.pump();
-      expect(viewSize(tester), const Size(180, 90));
-      expect(tester.getSize(find.byKey(childKey)), const Size(120, 60));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(210, 105));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(240, 120));
-    });
+    group('过渡中翻回：不跳变（中间帧连续性）', () {
+      testWidgets('切 dark 半程再切回 light → 中间值方向反转，不跳变到端点', (tester) async {
+        const rootKey = ValueKey('reverse-root');
+        const boxKey = ValueKey('reverse-box');
 
-    testWidgets('auto 端点在 child 更新后重新求自然盒，保留画面和原截止时间', (tester) async {
-      final naturalWidth = ValueNotifier<double>(80);
-      addTearDown(naturalWidth.dispose);
-      final child = ValueListenableBuilder<double>(
-        valueListenable: naturalWidth,
-        builder: (_, width, _) => SizedBox(width: width, height: 40),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(width: 200, widthFactor: 2, transitions: _linear),
-          child: child,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(widthFactor: 2, transitions: _linear),
-          child: child,
-        ),
-      );
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(180, 40));
-      naturalWidth.value = 120;
-      await tester.pump();
-      expect(viewSize(tester), const Size(180, 40));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(210, 40));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(240, 40));
-    });
-
-    testWidgets('父约束收紧再放宽时，保留因子当前进度且不缩放 child', (tester) async {
-      const childKey = ValueKey('bounded-factor-child');
-      const child = SizedBox(key: childKey, width: 80, height: 40);
-      const target = ElStyle(
-        widthFactor: 3,
-        heightFactor: 3,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(
-        viewScene(const ElStyle(transitions: _linear), child: child),
-      );
-      await tester.pumpWidget(viewScene(target, child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(160, 80));
-      await tester.pumpWidget(viewScene(target, child: child, width: 120));
-      expect(viewSize(tester), const Size(120, 80));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(120, 100));
-      await tester.pumpWidget(viewScene(target, child: child));
-      expect(viewSize(tester), const Size(200, 100));
-      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
-      await _advance(tester, 25);
-      expect(viewSize(tester), const Size(240, 120));
-    });
-  });
-
-  group('轮廓中间值与可见结果', () {
-    testWidgets('粗细、间距与颜色共同过渡，child 和 Row 兄弟位置保持不变', (tester) async {
-      const childKey = ValueKey('outline-animation-child');
-      const siblingKey = ValueKey('outline-animation-sibling');
-      Widget scene(ElOutline outline) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElView(
-                key: viewKey,
-                style: _outlineStyle(outline),
-                child: const SizedBox(key: childKey, width: 30, height: 20),
+        Widget build(Brightness b) => _directionalApp(
+          ElView(
+            key: rootKey,
+            themeMode: ElThemeMode(brightness: b, duration: const Duration(milliseconds: 400), curve: Curves.linear),
+            style: ElStyle(onDark: ElStyle()),
+            child: ElView(
+              key: boxKey,
+              style: ElStyle(
+                width: 40,
+                height: 40,
+                bgColor: Color(0xFF000000),
+                onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFFFFFFF))),
               ),
-              const SizedBox(key: siblingKey, width: 30, height: 20),
-            ],
-          ),
-        ),
-      );
-      await tester.pumpWidget(scene(const ElOutline(width: 4, color: _red)));
-      final childPosition = tester.getTopLeft(find.byKey(childKey));
-      final siblingPosition = tester.getTopLeft(find.byKey(siblingKey));
-      await tester.pumpWidget(
-        scene(const ElOutline(width: 12, color: _blue, offset: 8)),
-      );
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, -11),
-        Offset(50, -5),
-        Offset(50, -13),
-        Offset(50, -3),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0xff800080));
-      _pixel(pixels[2], const Color(0x00000000));
-      _pixel(pixels[3], const Color(0x00000000));
-      expect(viewSize(tester), const Size(100, 60));
-      expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
-      expect(_childOffset(tester, childKey), Offset.zero);
-      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
-      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [
-        Offset(50, -18),
-        Offset(50, -6),
-      ]);
-      _pixel(pixels[0], _blue);
-      _pixel(pixels[1], const Color(0x00000000));
-      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
-      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
-    });
-
-    testWidgets('null 双向过渡同时收放宽度与 offset，并淡入淡出可见颜色', (tester) async {
-      const outline = ElOutline(width: 8, color: _red, offset: 8);
-      await tester.pumpWidget(viewScene(_outlineStyle(null)));
-      await tester.pumpWidget(viewScene(_outlineStyle(outline)));
-      for (final fadingOut in [false, true]) {
-        if (fadingOut) {
-          await tester.pumpWidget(viewScene(_outlineStyle(null)));
-        }
-        await _advance(tester, 50);
-        final pixels = await _borderPixels(tester, const [
-          Offset(50, -6),
-          Offset(50, -10),
-          Offset(50, -2),
-        ]);
-        _pixel(pixels[0], const Color(0x80ff0000));
-        _pixel(pixels[1], const Color(0x00000000));
-        _pixel(pixels[2], const Color(0x00000000));
-        await _advance(tester, 50);
-      }
-      final end = await _borderPixels(tester, const [
-        Offset(50, 0),
-        Offset(50, -1),
-      ], offset: const Offset(32.5, 32.5));
-      expect(end.every((color) => color.a == 0), isTrue);
-    });
-
-    testWidgets('半透明与带隐藏 RGB 的透明颜色互转，不混入透明端的蓝色', (tester) async {
-      const visible = ElOutline(width: 8, color: Color(0x80ff0000), offset: 4);
-      const hidden = ElOutline(width: 16, color: Color(0x000000ff), offset: 12);
-      await tester.pumpWidget(viewScene(_outlineStyle(visible)));
-      await tester.pumpWidget(viewScene(_outlineStyle(hidden)));
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, -12),
-        Offset(50, -6),
-      ]);
-      _pixel(pixels[0], const Color(0x40ff0000));
-      _pixel(pixels[1], const Color(0x00000000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -20)]);
-      _pixel(pixels.single, const Color(0x00000000));
-      await tester.pumpWidget(viewScene(_outlineStyle(visible)));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -12)]);
-      _pixel(pixels.single, const Color(0x40ff0000));
-      await _advance(tester, 50);
-    });
-
-    testWidgets('三种渐变与纯色双向切换保持不透明，清空 shader 时终点不跳变', (tester) async {
-      const gradients = <Gradient>[
-        LinearGradient(colors: [_red, _blue], stops: [0.2, 0.8]),
-        RadialGradient(
-          colors: [_red, _blue],
-          center: Alignment(-0.5, -0.5),
-          radius: 1.2,
-          stops: [0.2, 0.8],
-        ),
-        SweepGradient(
-          colors: [_red, _blue],
-          startAngle: 0.2,
-          endAngle: 5.8,
-          stops: [0.2, 0.8],
-        ),
-      ];
-      const green = Color(0xff00ff00);
-      const positions = [Offset(20, -8), Offset(80, -8)];
-      for (var i = 0; i < gradients.length; i++) {
-        final gradient = ElOutline(
-          width: 8,
-          color: green,
-          gradient: gradients[i],
-          offset: 4,
-        );
-        const solid = ElOutline(width: 8, color: green, offset: 4);
-        await tester.pumpWidget(
-          viewScene(_outlineStyle(gradient), key: ValueKey('gradient-$i')),
-        );
-        // 更换 key 仅隔开渐变类型，随后同一个 ElView 连续接受双向样式更新。
-        await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
-        for (final toSolid in [true, false]) {
-          await tester.pumpWidget(
-            viewScene(_outlineStyle(toSolid ? solid : gradient)),
-          );
-          await _advance(tester, 50);
-          var pixels = await _borderPixels(tester, positions);
-          for (final pixel in pixels) {
-            expect(pixel.a, closeTo(1, 2 / 255));
-            expect(pixel.g, closeTo(0.5, 2 / 255));
-            expect(pixel.r + pixel.b, closeTo(0.5, 3 / 255));
-          }
-          await _advance(tester, 49);
-          final beforeEnd = await _borderPixels(tester, positions);
-          await _advance(tester, 1);
-          pixels = await _borderPixels(tester, positions);
-          for (var point = 0; point < positions.length; point++) {
-            expect(beforeEnd[point].a, closeTo(pixels[point].a, 2 / 255));
-            expect(beforeEnd[point].r, closeTo(pixels[point].r, 4 / 255));
-            expect(beforeEnd[point].g, closeTo(pixels[point].g, 4 / 255));
-            expect(beforeEnd[point].b, closeTo(pixels[point].b, 4 / 255));
-            if (toSolid) _pixel(pixels[point], green);
-          }
-        }
-      }
-    });
-
-    testWidgets('decal 外域的纯色贡献连续淡入淡出，中断后从当前混合态接续', (tester) async {
-      const gradients = <Gradient>[
-        LinearGradient(
-          begin: Alignment(-0.2, 0),
-          end: Alignment(0.2, 0),
-          colors: [_red, _blue],
-          tileMode: TileMode.decal,
-        ),
-        RadialGradient(
-          radius: 0.2,
-          colors: [_red, _blue],
-          tileMode: TileMode.decal,
-        ),
-        SweepGradient(
-          startAngle: 0.5,
-          endAngle: 1.5,
-          colors: [_red, _blue],
-          tileMode: TileMode.decal,
-        ),
-      ];
-      const green = Color(0xff00ff00);
-      const solid = ElOutline(width: 8, color: green, offset: 4);
-      const red = ElOutline(width: 8, color: _red, offset: 4);
-      const childKey = ValueKey('outline-decal-child');
-      const child = SizedBox(key: childKey, width: 30, height: 20);
-      Future<void> sample(Color expected) async => _pixel(
-        (await _borderPixels(tester, const [Offset(20, -8)])).single,
-        expected,
-      );
-      for (final gradient in gradients) {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pumpWidget(viewScene(_outlineStyle(solid), child: child));
-        final childPosition = tester.getTopLeft(find.byKey(childKey));
-        final outline = ElOutline(width: 8, gradient: gradient, offset: 4);
-        await sample(green);
-        await tester.pumpWidget(
-          viewScene(_outlineStyle(outline), child: child),
-        );
-        await _advance(tester, 1);
-        await sample(green.withValues(alpha: 0.99));
-        await _advance(tester, 49);
-        await sample(green.withValues(alpha: 0.5));
-        await _advance(tester, 49);
-        await sample(green.withValues(alpha: 0.01));
-        await _advance(tester, 1);
-        await sample(const Color(0x00000000));
-
-        await tester.pumpWidget(viewScene(_outlineStyle(solid), child: child));
-        await _advance(tester, 1);
-        await sample(green.withValues(alpha: 0.01));
-        await _advance(tester, 49);
-        await sample(green.withValues(alpha: 0.5));
-        await _advance(tester, 49);
-        await sample(green.withValues(alpha: 0.99));
-        await _advance(tester, 1);
-        await sample(green);
-
-        await tester.pumpWidget(
-          viewScene(_outlineStyle(outline), child: child),
-        );
-        await _advance(tester, 50);
-        await sample(green.withValues(alpha: 0.5));
-        await tester.pumpWidget(viewScene(_outlineStyle(red), child: child));
-        await sample(green.withValues(alpha: 0.5));
-        await _advance(tester, 1);
-        await sample(
-          const Color.from(
-            alpha: 0.505,
-            red: 0.01 / 0.505,
-            green: 0.495 / 0.505,
-            blue: 0,
+            ),
           ),
         );
-        await _advance(tester, 49);
-        await sample(
-          const Color.from(alpha: 0.75, red: 2 / 3, green: 1 / 3, blue: 0),
-        );
-        await _advance(tester, 50);
-        await sample(_red);
-        expect(viewSize(tester), const Size(100, 60));
-        expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
-        expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
-      }
-    });
 
-    testWidgets('方向性渐变与纯色双向过渡途中改向，颜色立即镜像且保持原尺寸截止时间', (tester) async {
-      const gradient = ElOutline(
-        width: 8,
-        offset: 4,
-        gradient: LinearGradient(
-          begin: AlignmentDirectional.centerStart,
-          end: AlignmentDirectional.centerEnd,
-          colors: [_red, _blue],
-        ),
-      );
-      const solid = ElOutline(width: 16, offset: 12, color: Color(0xff00ff00));
-      const positions = [Offset(10, -14), Offset(89, -14)];
-      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
-      await tester.pumpWidget(viewScene(_outlineStyle(solid)));
-      await _advance(tester, 50);
-      var beforeDirection = await _borderPixels(tester, positions);
-      expect(beforeDirection[0].r, greaterThan(beforeDirection[1].r));
-      for (final pixel in beforeDirection) {
-        expect(pixel.a, closeTo(1, 2 / 255));
-        expect(pixel.g, closeTo(0.5, 2 / 255));
-      }
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(solid), direction: TextDirection.rtl),
-      );
-      var afterDirection = await _borderPixels(tester, positions);
-      _pixel(afterDirection[0], beforeDirection[1]);
-      _pixel(afterDirection[1], beforeDirection[0]);
-      await _advance(tester, 25);
-      var pixels = await _borderPixels(tester, positions);
-      for (final pixel in pixels) {
-        expect(pixel.a, closeTo(1, 2 / 255));
-        expect(pixel.g, closeTo(0.75, 2 / 255));
-        expect(pixel.r + pixel.b, closeTo(0.25, 3 / 255));
-      }
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [
-        Offset(50, -26),
-        Offset(50, -30),
-        Offset(50, -10),
-      ]);
-      _pixel(pixels[0], const Color(0xff00ff00));
-      _pixel(pixels[1], const Color(0x00000000));
-      _pixel(pixels[2], const Color(0x00000000));
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        final box = renderOf(tester, boxKey);
+        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF000000));
 
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(gradient), direction: TextDirection.rtl),
-      );
-      await _advance(tester, 50);
-      beforeDirection = await _borderPixels(tester, positions);
-      expect(beforeDirection[0].r, lessThan(beforeDirection[1].r));
-      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
-      afterDirection = await _borderPixels(tester, positions);
-      _pixel(afterDirection[0], beforeDirection[1]);
-      _pixel(afterDirection[1], beforeDirection[0]);
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, positions);
-      for (final pixel in pixels) {
-        expect(pixel.a, closeTo(1, 2 / 255));
-        expect(pixel.g, closeTo(0.25, 2 / 255));
-        expect(pixel.r + pixel.b, closeTo(0.75, 3 / 255));
-      }
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [
-        Offset(10, -8),
-        Offset(50, -14),
-        Offset(50, -2),
-      ]);
-      _pixel(pixels[0], const Color(0xffd60029));
-      _pixel(pixels[1], const Color(0x00000000));
-      _pixel(pixels[2], const Color(0x00000000));
-      expect(viewSize(tester), const Size(100, 60));
-    });
+        // 切 dark，进 200ms（半程）
+        await tester.pumpWidget(build(Brightness.dark));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        // Box.bgColor 是 Object?（承载 Color | '--key'），显式 cast
+        final midToDark = box.committedResolvedStyle.box.bgColor!;
+        // 中间态：0x00 + 0xFF 之间，接近 0x80
+        final midR = midToDark.r;
+        expect(midR > 0.1 && midR < 0.9, isTrue, reason: '半程 R 在 (0.1, 0.9) 之间');
 
-    testWidgets('渐变方向与 stops 在过渡中间帧共同变化', (tester) async {
-      const a = LinearGradient(colors: [_red, _blue], stops: [0, 0.6]);
-      const b = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [_red, _blue],
-        stops: [0.4, 1],
-      );
-      ElOutline outline(Gradient gradient) =>
-          ElOutline(width: 8, offset: 4, gradient: gradient);
-      await tester.pumpWidget(viewScene(_outlineStyle(outline(a))));
-      await tester.pumpWidget(viewScene(_outlineStyle(outline(b))));
-      await _advance(tester, 50);
-      final pixels = await _borderPixels(tester, const [
-        Offset(10, -8),
-        Offset(90, -8),
-        Offset(50, -8),
-      ]);
-      _pixel(pixels[0], _red);
-      // 原生渐变合并两端 stops 后采样颜色，中间帧并非直接平均 stop 位置。
-      _pixel(pixels[1], const Color(0xff4100be));
-      _pixel(pixels[2], const Color(0xffd2002d));
-      await _advance(tester, 50);
-      final end = await _borderPixels(tester, const [
-        Offset(10, -8),
-        Offset(90, -8),
-      ]);
-      _pixel(end[0], _red);
-      _pixel(end[1], _red);
-    });
+        // 半程翻回 light
+        await tester.pumpWidget(build(Brightness.light));
+        await tester.pump();
+        // 立即断言：不跳变——committed 仍接近 midToDark（不是 0x000000 也不是 0xFFFFFF）
+        final immediatelyAfterReverse = box.committedResolvedStyle.box.bgColor!;
+        expect((immediatelyAfterReverse.r - midToDark.r).abs() < 0.1, isTrue, reason: '翻回瞬间中间值连续，不跳变');
 
-    testWidgets('真正 null 与渐变双向过渡保持渐变色相并同时改变轮廓范围', (tester) async {
-      const gradient = ElOutline(
-        width: 8,
-        offset: 4,
-        gradient: LinearGradient(colors: [_red, _blue]),
-      );
-      await tester.pumpWidget(viewScene(_outlineStyle(null)));
-      await tester.pumpWidget(viewScene(_outlineStyle(gradient)));
-      for (final fadingOut in [false, true]) {
-        if (fadingOut) {
-          await tester.pumpWidget(viewScene(_outlineStyle(null)));
-        }
-        await _advance(tester, 50);
-        final pixels = await _borderPixels(tester, const [
-          Offset(20, -4),
-          Offset(80, -4),
-          Offset(50, -8),
-        ]);
-        for (final pixel in pixels.take(2)) {
-          expect(pixel.a, closeTo(0.5, 2 / 255));
-          expect(pixel.r + pixel.b, closeTo(1, 3 / 255));
-          expect(pixel.g, closeTo(0, 2 / 255));
-        }
-        expect(pixels[0].r, greaterThan(pixels[1].r));
-        expect(pixels[0].b, lessThan(pixels[1].b));
-        _pixel(pixels[2], const Color(0x00000000));
-        await _advance(tester, 50);
-      }
-      final end = await _borderPixels(tester, const [Offset(50, 0)]);
-      _pixel(end.single, const Color(0x00000000));
-    });
+        // 推进一小段：方向应反向（往 0x000000 接近）
+        await tester.pump(const Duration(milliseconds: 100));
+        final laterAfterReverse = box.committedResolvedStyle.box.bgColor!;
+        expect(laterAfterReverse.r < midToDark.r, isTrue, reason: '翻回后 R 值向 0 方向单调递减（不跳变端点）');
 
-    testWidgets('独立 outline 通道遵守延迟、中断接续、移除配置及零时长延迟', (tester) async {
-      const delayed = [
-        ElTransition.field(
-          ElTransitionField.outline,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      const red = ElOutline(width: 4, color: _red);
-      const blue = ElOutline(width: 12, offset: 8, color: _blue);
-      const green = ElOutline(width: 20, offset: 16, color: Color(0xff00ff00));
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(red, transitions: delayed)),
-      );
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(blue, transitions: delayed)),
-      );
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, -2),
-        Offset(50, -6),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], const Color(0x00000000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -6)]);
-      _pixel(pixels.single, const Color(0xff800080));
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(green, transitions: delayed)),
-      );
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -6)]);
-      _pixel(pixels.single, const Color(0xff800080));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -14)]);
-      _pixel(pixels.single, const Color(0xff408040));
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(green, transitions: null)),
-      );
-      pixels = await _borderPixels(tester, const [Offset(50, -24)]);
-      _pixel(pixels.single, const Color(0xff00ff00));
-      const instant = [
-        ElTransition.field(
-          ElTransitionField.outline,
-          Duration.zero,
-          Curves.linear,
-          Duration(milliseconds: 30),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(_outlineStyle(red, transitions: instant)),
-      );
-      await _advance(tester, 29);
-      pixels = await _borderPixels(tester, const [Offset(50, -24)]);
-      _pixel(pixels.single, const Color(0xff00ff00));
-      await _advance(tester, 1);
-      pixels = await _borderPixels(tester, const [
-        Offset(50, -2),
-        Offset(50, -8),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], const Color(0x00000000));
-    });
-
-    testWidgets('宽度负过冲不会出现 hairline，终点恢复实际轮廓', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.outline,
-          Duration(milliseconds: 100),
-          _NegativeCurve(),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(
-          _outlineStyle(
-            const ElOutline(width: 4, color: _red),
-            transitions: transitions,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          _outlineStyle(
-            const ElOutline(width: 12, color: _blue),
-            transitions: transitions,
-          ),
-        ),
-      );
-      await _advance(tester, 75);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, 0),
-        Offset(50, -1),
-        Offset(0, 30),
-      ], offset: const Offset(32.5, 32.5));
-      expect(pixels.every((color) => color.a == 0), isTrue);
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [Offset(50, -10)]);
-      _pixel(pixels.single, _blue);
-    });
-
-    testWidgets('负 offset 使中心轮廓塌缩时隐藏，过渡到有效范围后重新出现', (tester) async {
-      ElStyle style(num offset) =>
-          _outlineStyle(ElOutline(width: 8, color: _red, offset: offset));
-      await tester.pumpWidget(viewScene(style(-60)));
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, 24),
-        Offset(50, 30),
-      ]);
-      expect(pixels.every((color) => color.a == 0), isTrue);
-      await tester.pumpWidget(viewScene(style(0)));
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [Offset(50, 24)]);
-      _pixel(pixels.single, const Color(0x00000000));
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [
-        Offset(50, 24),
-        Offset(50, 0),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], const Color(0x00000000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -4)]);
-      _pixel(pixels.single, _red);
-      expect(viewSize(tester), const Size(100, 60));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('auto、百分比和圆角边距联动时，轮廓位于 child 裁剪及边框之上', (tester) async {
-      const childKey = ValueKey('outline-geometry-child');
-      const child = SizedBox(
-        key: childKey,
-        width: 80,
-        height: 40,
-        child: ColoredBox(color: Color(0xff00ff00)),
-      );
-      ElStyle style(bool target) => ElStyle(
-        width: target ? '50%' : null,
-        padding: EdgeInsets.all(target ? 20 : 10),
-        margin: EdgeInsets.all(target ? 10 : 5),
-        borderRadius: BorderRadius.circular(target ? 40 : 0),
-        border: Border.all(
-          color: const Color(0xff000000),
-          width: 12,
-          strokeAlign: BorderSide.strokeAlignOutside,
-        ),
-        outline: ElOutline(
-          width: target ? 12 : 4,
-          offset: target ? 8 : 0,
-          color: target ? _blue : _red,
-        ),
-        clipBehavior: Clip.antiAlias,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(false), child: child));
-      expect(viewSize(tester), const Size(110, 70));
-      await tester.pumpWidget(viewScene(style(true), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(161.25, 85));
-      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
-      expect(_childOffset(tester, childKey), const Offset(22.5, 22.5));
-      _clip(
-        tester,
-        Clip.antiAlias,
-        radius: BorderRadius.circular(20),
-        rect: const Rect.fromLTWH(7.5, 7.5, 146.25, 70),
-      );
-      final pixels = await _borderPixels(tester, const [
-        Offset(82, -1),
-        Offset(82, 5),
-        Offset(-3, -3),
-        Offset(40, 40),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0xff000000));
-      _pixel(pixels[2], const Color(0x00000000));
-      _pixel(pixels[3], const Color(0xff00ff00));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(210, 100));
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('边框中间值与可见结果', () {
-    testWidgets('宽度、颜色和内外描边共同插值，边框不改变布局', (tester) async {
-      const childKey = ValueKey('border-animation-child');
-      const siblingKey = ValueKey('border-animation-sibling');
-      const child = SizedBox(key: childKey, width: 30, height: 20);
-      Widget scene(BoxBorder border) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElView(key: viewKey, style: _borderStyle(border), child: child),
-              const SizedBox(key: siblingKey, width: 30, height: 20),
-            ],
-          ),
-        ),
-      );
-      await tester.pumpWidget(scene(Border.all(color: _red, width: 4)));
-      final childPosition = tester.getTopLeft(find.byKey(childKey));
-      final siblingPosition = tester.getTopLeft(find.byKey(siblingKey));
-      await tester.pumpWidget(
-        scene(
-          Border.all(
-            color: _blue,
-            width: 12,
-            strokeAlign: BorderSide.strokeAlignOutside,
-          ),
-        ),
-      );
-      await _advance(tester, 50);
-      final pixels = await _borderPixels(tester, const [
-        Offset(50, -3),
-        Offset(50, 3),
-        Offset(50, -5),
-        Offset(50, 5),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0xff800080));
-      _pixel(pixels[2], const Color(0x00000000));
-      _pixel(pixels[3], const Color(0x00000000));
-      expect(viewSize(tester), const Size(100, 60));
-      expect(tester.getSize(find.byKey(childKey)), const Size(30, 20));
-      expect(_childOffset(tester, childKey), Offset.zero);
-      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
-      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
-      await _advance(tester, 50);
-      final end = await _borderPixels(tester, const [
-        Offset(50, -10),
-        Offset(50, 2),
-      ]);
-      _pixel(end[0], _blue);
-      _pixel(end[1], const Color(0x00000000));
-      expect(tester.getTopLeft(find.byKey(childKey)), childPosition);
-      expect(tester.getTopLeft(find.byKey(siblingKey)), siblingPosition);
-    });
-
-    for (final hairline in [false, true]) {
-      testWidgets('null 与${hairline ? '细线' : '外描边'}双向过渡保留可见颜色和位置', (
-        tester,
-      ) async {
-        final border = Border.all(
-          color: _red,
-          width: hairline ? 0 : 8,
-          strokeAlign: BorderSide.strokeAlignOutside,
-        );
-        final offset = hairline
-            ? const Offset(32.5, 32.5)
-            : const Offset(32, 32);
-        final positions = hairline
-            ? const [Offset(50, 0), Offset(50, 2)]
-            : const [Offset(50, -2), Offset(50, 2), Offset(50, -6)];
-        await tester.pumpWidget(viewScene(_borderStyle(null)));
-        await tester.pumpWidget(viewScene(_borderStyle(border)));
-        await _advance(tester, 50);
-        var pixels = await _borderPixels(tester, positions, offset: offset);
-        _pixel(pixels.first, const Color(0x80ff0000));
-        for (final pixel in pixels.skip(1)) {
-          _pixel(pixel, const Color(0x00000000));
-        }
-        await _advance(tester, 50);
-        await tester.pumpWidget(viewScene(_borderStyle(null)));
-        await _advance(tester, 50);
-        pixels = await _borderPixels(tester, positions, offset: offset);
-        _pixel(pixels.first, const Color(0x80ff0000));
-        for (final pixel in pixels.skip(1)) {
-          _pixel(pixel, const Color(0x00000000));
-        }
-        await _advance(tester, 50);
-        pixels = await _borderPixels(tester, positions, offset: offset);
-        expect(pixels.every((color) => color.a == 0), isTrue);
+        // 冲完全程
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF000000));
+        expect(box.hasActiveAnimationsForTest, isFalse);
       });
-    }
-
-    testWidgets('半透明与带隐藏 RGB 的透明 solid 互转，保留宽度并按预乘颜色淡出', (tester) async {
-      final visible = Border.all(color: const Color(0x80ff0000), width: 8);
-      final transparent = Border.all(color: const Color(0x000000ff), width: 16);
-      await tester.pumpWidget(viewScene(_borderStyle(visible)));
-      await tester.pumpWidget(viewScene(_borderStyle(transparent)));
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, 10),
-        Offset(50, 13),
-      ]);
-      _pixel(pixels[0], const Color(0x40ff0000));
-      _pixel(pixels[1], const Color(0x00000000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 2)]);
-      _pixel(pixels.single, const Color(0x00000000));
-      await tester.pumpWidget(viewScene(_borderStyle(visible)));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
-      _pixel(pixels.single, const Color(0x40ff0000));
-      await _advance(tester, 50);
-    });
-
-    testWidgets('单边 none 的隐藏宽度和颜色不污染 solid 中间值，描边位置仍连续变化', (tester) async {
-      const hidden = Border(
-        top: BorderSide(
-          color: _blue,
-          width: 100,
-          style: BorderStyle.none,
-          strokeAlign: BorderSide.strokeAlignOutside,
-        ),
-      );
-      const visible = Border(top: BorderSide(color: _red, width: 8));
-      await tester.pumpWidget(viewScene(_borderStyle(hidden)));
-      await tester.pumpWidget(viewScene(_borderStyle(visible)));
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, -1),
-        Offset(50, 1),
-        Offset(50, 3),
-      ]);
-      _pixel(pixels[0], const Color(0x80ff0000));
-      _pixel(pixels[1], const Color(0x80ff0000));
-      _pixel(pixels[2], const Color(0x00000000));
-      await _advance(tester, 50);
-      await tester.pumpWidget(viewScene(_borderStyle(hidden)));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, -1)]);
-      _pixel(pixels.single, const Color(0x80ff0000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 0)]);
-      _pixel(pixels.single, const Color(0x00000000));
-    });
-
-    testWidgets('非均匀四边分别插值宽度、透明度和细线，不借用相邻边结果', (tester) async {
-      const a = Border(
-        top: BorderSide(color: _red, width: 4),
-        right: BorderSide(color: Color(0xff00ff00), width: 8),
-        left: BorderSide(color: Color(0x80ff0000), width: 20),
-      );
-      const b = Border(
-        top: BorderSide(color: _blue, width: 12),
-        right: BorderSide(color: Color(0xff00ff00), width: 0),
-        bottom: BorderSide(color: _blue, width: 8),
-        left: BorderSide(color: Color(0x80ff0000), width: 4),
-      );
-      await tester.pumpWidget(viewScene(_borderStyle(a)));
-      await tester.pumpWidget(viewScene(_borderStyle(b)));
-      await _advance(tester, 50);
-      final pixels = await _borderPixels(tester, const [
-        Offset(50, 5),
-        Offset(98, 30),
-        Offset(50, 58),
-        Offset(8, 30),
-        Offset(50, 30),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0xff00ff00));
-      _pixel(pixels[2], const Color(0x800000ff));
-      _pixel(pixels[3], const Color(0x80ff0000));
-      _pixel(pixels[4], const Color(0x00000000));
-      await _advance(tester, 50);
-    });
-
-    testWidgets('BorderDirectional 的方向切换从当前物理边框接续', (tester) async {
-      final style = _borderStyle(
-        const BorderDirectional(
-          start: BorderSide(color: _red, width: 8),
-          end: BorderSide(color: _blue, width: 4),
-        ),
-      );
-      await tester.pumpWidget(viewScene(style));
-      await tester.pumpWidget(viewScene(style, direction: TextDirection.rtl));
-      var pixels = await _borderPixels(tester, const [
-        Offset(2, 30),
-        Offset(98, 30),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], _blue);
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [
-        Offset(4, 30),
-        Offset(95, 30),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0xff800080));
-      await tester.pumpWidget(viewScene(style));
-      pixels = await _borderPixels(tester, const [Offset(4, 30)]);
-      _pixel(pixels.single, const Color(0xff800080));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [
-        Offset(4, 30),
-        Offset(98, 30),
-      ]);
-      _pixel(pixels[0], const Color(0xffbf0040));
-      _pixel(pixels[1], const Color(0xff4000bf));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [
-        Offset(6, 30),
-        Offset(98, 30),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], _blue);
-    });
-
-    testWidgets('边框独立配置的 delay、中断、移除与零时长延迟遵守可见时间线', (tester) async {
-      const delayed = [
-        ElTransition.field(
-          ElTransitionField.border,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      final red = Border.all(color: _red, width: 4);
-      final blue = Border.all(color: _blue, width: 12);
-      final green = Border.all(color: const Color(0xff00ff00), width: 20);
-      await tester.pumpWidget(
-        viewScene(_borderStyle(red, transitions: delayed)),
-      );
-      await tester.pumpWidget(
-        viewScene(_borderStyle(blue, transitions: delayed)),
-      );
-      await _advance(tester, 50);
-      var pixels = await _borderPixels(tester, const [
-        Offset(50, 2),
-        Offset(50, 5),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], const Color(0x00000000));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 5)]);
-      _pixel(pixels.single, const Color(0xff800080));
-      await tester.pumpWidget(
-        viewScene(_borderStyle(green, transitions: delayed)),
-      );
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 5)]);
-      _pixel(pixels.single, const Color(0xff800080));
-      await _advance(tester, 50);
-      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
-      _pixel(pixels.single, const Color(0xff408040));
-      await tester.pumpWidget(
-        viewScene(_borderStyle(green, transitions: null)),
-      );
-      pixels = await _borderPixels(tester, const [Offset(50, 18)]);
-      _pixel(pixels.single, const Color(0xff00ff00));
-      const instant = [
-        ElTransition.field(
-          ElTransitionField.border,
-          Duration.zero,
-          Curves.linear,
-          Duration(milliseconds: 30),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(_borderStyle(red, transitions: instant)),
-      );
-      await _advance(tester, 29);
-      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
-      _pixel(pixels.single, const Color(0xff00ff00));
-      await _advance(tester, 1);
-      pixels = await _borderPixels(tester, const [
-        Offset(50, 2),
-        Offset(50, 10),
-      ]);
-      _pixel(pixels[0], _red);
-      _pixel(pixels[1], const Color(0x00000000));
-    });
-
-    testWidgets('auto 与百分比、边距和圆角联动时，外描边始终绘制在 child 裁剪之外', (tester) async {
-      const childKey = ValueKey('border-geometry-child');
-      const child = SizedBox(
-        key: childKey,
-        width: 80,
-        height: 40,
-        child: ColoredBox(color: Color(0xff00ff00)),
-      );
-      ElStyle style(bool target) => ElStyle(
-        width: target ? '50%' : null,
-        padding: EdgeInsets.all(target ? 20 : 10),
-        margin: EdgeInsets.all(target ? 10 : 5),
-        borderRadius: BorderRadius.circular(target ? 40 : 0),
-        border: Border.all(
-          color: target ? _blue : _red,
-          width: target ? 12 : 4,
-          strokeAlign: target
-              ? BorderSide.strokeAlignOutside
-              : BorderSide.strokeAlignInside,
-        ),
-        clipBehavior: Clip.antiAlias,
-        transitions: _linear,
-      );
-      await tester.pumpWidget(viewScene(style(false), child: child));
-      expect(viewSize(tester), const Size(110, 70));
-      await tester.pumpWidget(viewScene(style(true), child: child));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(161.25, 85));
-      expect(tester.getSize(find.byKey(childKey)), const Size(80, 40));
-      expect(_childOffset(tester, childKey), const Offset(22.5, 22.5));
-      _clip(
-        tester,
-        Clip.antiAlias,
-        radius: BorderRadius.circular(20),
-        rect: const Rect.fromLTWH(7.5, 7.5, 146.25, 70),
-      );
-      final pixels = await _borderPixels(tester, const [
-        Offset(82, 5),
-        Offset(5, 5),
-        Offset(40, 40),
-      ]);
-      _pixel(pixels[0], const Color(0xff800080));
-      _pixel(pixels[1], const Color(0x00000000));
-      _pixel(pixels[2], const Color(0xff00ff00));
-      await _advance(tester, 50);
-      expect(viewSize(tester), const Size(210, 100));
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('负过冲导致宽度小于零时不退化成意外细线，终点恢复目标边框', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.border,
-          Duration(milliseconds: 100),
-          _NegativeCurve(),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(
-          _borderStyle(
-            Border.all(color: _red, width: 4),
-            transitions: transitions,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          _borderStyle(
-            Border.all(color: _blue, width: 12),
-            transitions: transitions,
-          ),
-        ),
-      );
-      await _advance(tester, 75);
-      final positions = const [Offset(50, 0), Offset(50, 2), Offset(0, 30)];
-      var pixels = await _borderPixels(
-        tester,
-        positions,
-        offset: const Offset(32.5, 32.5),
-      );
-      expect(pixels.every((color) => color.a == 0), isTrue);
-      expect(tester.takeException(), isNull);
-      await _advance(tester, 25);
-      pixels = await _borderPixels(tester, const [Offset(50, 10)]);
-      _pixel(pixels.single, _blue);
-    });
-  });
-
-  group('圆角中间值', () {
-    testWidgets('圆角从零过渡，中断和清空时画面保持连续', (tester) async {
-      await tester.pumpWidget(viewScene(_radiusStyle(null)));
-      await tester.pumpWidget(
-        viewScene(_radiusStyle(BorderRadius.circular(40))),
-      );
-      _background(tester, null);
-      await tester.pump(const Duration(milliseconds: 25));
-      _background(tester, BorderRadius.circular(10));
-      await tester.pumpWidget(
-        viewScene(_radiusStyle(BorderRadius.circular(20))),
-      );
-      _background(tester, BorderRadius.circular(10));
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, BorderRadius.circular(15));
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, BorderRadius.circular(20));
-      await tester.pumpWidget(viewScene(_radiusStyle(null)));
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, BorderRadius.circular(10));
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, null);
-      expect(_hits(tester, const Offset(1, 1)), isTrue);
-    });
-
-    for (final end in [
-      const Radius.elliptical(20, 20),
-      const Radius.elliptical(20, 0),
-    ]) {
-      testWidgets('退化椭圆角过渡到 $end 时中间帧可见', (tester) async {
-        await tester.pumpWidget(
-          viewScene(
-            _radiusStyle(const BorderRadius.all(Radius.elliptical(0, 20))),
-          ),
-        );
-        _background(tester, null);
-        await tester.pumpWidget(viewScene(_radiusStyle(BorderRadius.all(end))));
-        _background(tester, null);
-        await tester.pump(const Duration(milliseconds: 50));
-        _background(
-          tester,
-          BorderRadius.all(Radius.elliptical(10, (20 + end.y) / 2)),
-        );
-        expect(_hits(tester, const Offset(1, 1)), isFalse);
-        await tester.pump(const Duration(milliseconds: 50));
-        _background(tester, end.y == 0 ? null : BorderRadius.all(end));
-      });
-    }
-
-    testWidgets('颜色、宽高与较慢圆角联动时每个时刻显示正确结果', (tester) async {
-      const transitions = [
-        ElTransition.all(Duration(milliseconds: 200), Curves.linear),
-        ElTransition.field(
-          ElTransitionField.width,
-          Duration(milliseconds: 100),
-          Curves.linear,
-        ),
-        ElTransition.field(
-          ElTransitionField.height,
-          Duration(milliseconds: 100),
-          Curves.linear,
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 100,
-            height: 60,
-            backgroundColor: _red,
-            borderRadius: BorderRadius.all(Radius.circular(110)),
-            transitions: transitions,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          const ElStyle(
-            width: 200,
-            height: 100,
-            backgroundColor: _blue,
-            borderRadius: BorderRadius.all(Radius.circular(30)),
-            transitions: transitions,
-          ),
-        ),
-      );
-      for (final (size, radius, progress) in [
-        (const Size(150, 80), 40.0, .25),
-        (const Size(200, 100), 50.0, .5),
-        (const Size(200, 100), 50.0, .75),
-        (const Size(200, 100), 30.0, 1.0),
-      ]) {
-        await tester.pump(const Duration(milliseconds: 50));
-        expect(viewSize(tester), size);
-        _background(
-          tester,
-          BorderRadius.circular(radius),
-          rect: Offset.zero & size,
-          color: Color.lerp(_red, _blue, progress)!,
-        );
-      }
-    });
-
-    testWidgets('延迟开始前保持矩形，结束等待后显示正确插值', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.borderRadius,
-          Duration(milliseconds: 100),
-          Curves.linear,
-          Duration(milliseconds: 50),
-        ),
-      ];
-      await tester.pumpWidget(
-        viewScene(_radiusStyle(null).copyWith(transitions: transitions)),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          _radiusStyle(BorderRadius.circular(20))
-              .copyWith(transitions: transitions),
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 49));
-      _background(tester, null);
-      await tester.pump(const Duration(milliseconds: 1));
-      _background(tester, null);
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, BorderRadius.circular(10));
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, BorderRadius.circular(20));
-    });
-
-    testWidgets('负过冲帧显示方角，过渡结束显示精确椭圆角', (tester) async {
-      const transitions = [
-        ElTransition.field(
-          ElTransitionField.borderRadius,
-          Duration(milliseconds: 100),
-          _NegativeCurve(),
-        ),
-      ];
-      const radius = BorderRadius.only(
-        topLeft: Radius.elliptical(10, 20),
-        bottomRight: Radius.elliptical(30, 40),
-      );
-      await tester.pumpWidget(
-        viewScene(_radiusStyle(null).copyWith(transitions: transitions)),
-      );
-      await tester.pumpWidget(
-        viewScene(_radiusStyle(radius).copyWith(transitions: transitions)),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, null);
-      expect(_hits(tester, const Offset(1, 1)), isTrue);
-      await tester.pump(const Duration(milliseconds: 50));
-      _background(tester, radius);
-      expect(_hits(tester, const Offset(1, 1)), isFalse);
-    });
-  });
-
-  group('裁剪与动画联动', () {
-    testWidgets('动画中打开和关闭裁剪后圆角仍按原截止时间显示', (tester) async {
-      await tester.pumpWidget(
-        viewScene(
-          _clipStyle(radius: null, transitions: _linear),
-          child: _overflow,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(_clipStyle(transitions: _linear), child: _overflow),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(
-        viewBox(tester),
-        paints..rrect(
-          rrect: RRect.fromRectAndRadius(
-            const Rect.fromLTWH(0, 0, 100, 60),
-            const Radius.circular(15),
-          ),
-          color: _red,
-        ),
-      );
-      await tester.pumpWidget(
-        viewScene(
-          _clipStyle(clip: Clip.hardEdge, transitions: _linear),
-          child: _overflow,
-        ),
-      );
-      _clip(tester, Clip.hardEdge, radius: BorderRadius.circular(15));
-      expect(_hits(tester, const Offset(1, 1)), isFalse);
-      await tester.pump(const Duration(milliseconds: 25));
-      _clip(tester, Clip.hardEdge, radius: BorderRadius.circular(22.5));
-      await tester.pumpWidget(
-        viewScene(_clipStyle(transitions: _linear), child: _overflow),
-      );
-      _clip(tester, Clip.none);
-      expect(_hits(tester, const Offset(1, 1)), isTrue);
-      await tester.pump(const Duration(milliseconds: 25));
-      expect(
-        viewBox(tester),
-        paints..rrect(
-          rrect: RRect.fromRectAndRadius(
-            const Rect.fromLTWH(0, 0, 100, 60),
-            const Radius.circular(30),
-          ),
-          color: _red,
-        ),
-      );
-    });
-
-    testWidgets('宽高与圆角动画共同决定裁剪，清空圆角后变为矩形', (tester) async {
-      ElStyle style(double width, double height, BorderRadius? radius) =>
-          ElStyle(
-            width: width,
-            height: height,
-            backgroundColor: _red,
-            borderRadius: radius,
-            clipBehavior: Clip.antiAlias,
-            transitions: _linear,
-          );
-      await tester.pumpWidget(
-        viewScene(style(100, 60, BorderRadius.circular(110))),
-      );
-      await tester.pumpWidget(
-        viewScene(style(200, 100, BorderRadius.circular(30))),
-      );
-      for (final (size, radius) in [
-        (const Size(150, 80), 40.0),
-        (const Size(200, 100), 30.0),
-      ]) {
-        await tester.pump(const Duration(milliseconds: 50));
-        expect(viewSize(tester), size);
-        _clip(
-          tester,
-          Clip.antiAlias,
-          radius: BorderRadius.circular(radius),
-          rect: Offset.zero & size,
-        );
-        expect(
-          viewBox(tester),
-          paints..rect(rect: Offset.zero & size, color: _red),
-        );
-      }
-      await tester.pumpWidget(viewScene(style(200, 100, null)));
-      await tester.pump(const Duration(milliseconds: 50));
-      _clip(
-        tester,
-        Clip.antiAlias,
-        radius: BorderRadius.circular(15),
-        rect: const Rect.fromLTWH(0, 0, 200, 100),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      _clip(tester, Clip.antiAlias, rect: const Rect.fromLTWH(0, 0, 200, 100));
-      expect(_hits(tester, const Offset(1, 1)), isTrue);
     });
   });
 }

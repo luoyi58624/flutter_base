@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/recognizers/index.dart';
+import 'package:flutter_base/src/ui/cores/view/event/press.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/recognizer_test_host.dart';
@@ -13,15 +13,14 @@ void main() {
   for (final longPress in [false, true]) {
     testWidgets('被动按压不抢官方点击，长按仍可独立竞争：long=$longPress', (tester) async {
       final trace = <String>[];
-      final press = ElPressGestureRecognizer()
+      final press = PressRecognizer()
         ..competeForTap = false
         ..longPressDelay = const Duration(milliseconds: 20)
-        ..onTapDown = ((_) => trace.add('down'))
-        ..onTapUp = ((_) => trace.add('up'))
-        ..onTap = ((_) => trace.add('tap'))
-        ..onLongPress = longPress ? (_) => trace.add('long') : null;
-      final official = TapGestureRecognizer()
-        ..onTap = () => trace.add('official');
+        ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('down'))
+        ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('up'))
+        ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'))
+        ..callbacks[ElEventPhase.longPress] = longPress ? (_) => trace.add('long') : null;
+      final official = TapGestureRecognizer()..onTap = () => trace.add('official');
       addTearDown(press.dispose);
       addTearDown(official.dispose);
       _down(1900, [press, official]);
@@ -38,14 +37,14 @@ void main() {
   }
 
   testWidgets('资格移出取消、移回恢复，所有通知保留原始 Down', (tester) async {
-    final details = <ElPressGestureDetails>[];
-    final press = ElPressGestureRecognizer()
+    final details = <PressGestureDetails>[];
+    final press = PressRecognizer()
       ..tapSlopTolerance = double.infinity
       ..isEligible = ((_, event) => event.position.dx < 20)
-      ..onTapDown = details.add
-      ..onTapCancel = details.add
-      ..onTapUp = details.add
-      ..onTap = details.add
+      ..callbacks[ElEventPhase.tapDown] = details.add
+      ..callbacks[ElEventPhase.tapCancel] = details.add
+      ..callbacks[ElEventPhase.tapUp] = details.add
+      ..callbacks[ElEventPhase.tap] = details.add
       ..onReleased = details.add;
     addTearDown(press.dispose);
     _down(1902, [press]);
@@ -53,37 +52,32 @@ void main() {
     _move(1902, const Offset(10, 0));
     _up(1902, position: const Offset(10, 0));
     expect(details.map((event) => event.phase), [
-      ElGesturePhase.tapDown,
-      ElGesturePhase.tapCancel,
-      ElGesturePhase.tapDown,
-      ElGesturePhase.tapUp,
-      ElGesturePhase.tap,
-      ElGesturePhase.tapUp,
+      ElEventPhase.tapDown,
+      ElEventPhase.tapCancel,
+      ElEventPhase.tapDown,
+      ElEventPhase.tapUp,
+      ElEventPhase.tap,
+      ElEventPhase.tapUp,
     ]);
-    expect(details[1].cancelReason, ElGestureCancelReason.ineligible);
+    expect(details[1].cancelReason, PressCancelReason.ineligible);
     expect(details[2].originalEvent, isA<PointerMoveEvent>());
-    expect(
-      details.every(
-        (event) => identical(event.downEvent, details.first.downEvent),
-      ),
-      isTrue,
-    );
+    expect(details.every((event) => identical(event.downEvent, details.first.downEvent)), isTrue);
   });
 
   testWidgets('被动多指可逐指取消，取消别的指针不使当前回调失效', (tester) async {
     final trace = <String>[];
-    late ElPressGestureRecognizer press;
-    press = ElPressGestureRecognizer()
+    late PressRecognizer press;
+    press = PressRecognizer()
       ..competeForTap = false
-      ..onTapDown = (event) {
+      ..callbacks[ElEventPhase.tapDown] = (event) {
         trace.add('${event.pointer}.down');
         if (event.pointer == 1904) {
           press.cancelPointer(1903);
           expect(event.isActive, isTrue);
         }
       }
-      ..onTapCancel = ((event) => trace.add('${event.pointer}.cancel'))
-      ..onTapUp = (event) => trace.add('${event.pointer}.up');
+      ..callbacks[ElEventPhase.tapCancel] = ((event) => trace.add('${event.pointer}.cancel'))
+      ..callbacks[ElEventPhase.tapUp] = (event) => trace.add('${event.pointer}.up');
     addTearDown(press.dispose);
     _down(1903, [press]);
     _down(1904, [press]);
@@ -99,11 +93,10 @@ void main() {
   for (final competing in [false, true]) {
     testWidgets('点击竞争意图在本轮 Down 冻结：competing=$competing', (tester) async {
       final trace = <String>[];
-      final press = ElPressGestureRecognizer()
+      final press = PressRecognizer()
         ..competeForTap = competing
-        ..onTap = (_) => trace.add('el');
-      final official = TapGestureRecognizer()
-        ..onTap = () => trace.add('official');
+        ..callbacks[ElEventPhase.tap] = (_) => trace.add('el');
+      final official = TapGestureRecognizer()..onTap = () => trace.add('official');
       addTearDown(press.dispose);
       addTearDown(official.dispose);
       _down(1906, [press, official]);
@@ -115,49 +108,41 @@ void main() {
 
   testWidgets('关闭主键竞争不提前提交侧键，官方内层右键仍优先', (tester) async {
     final trace = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..competeForTap = false
-      ..onSecondaryTap = (_) => trace.add('el');
-    final official = TapGestureRecognizer()
-      ..onSecondaryTap = () => trace.add('official');
+      ..callbacks[ElEventPhase.secondaryTap] = (_) => trace.add('el');
+    final official = TapGestureRecognizer()..onSecondaryTap = () => trace.add('official');
     addTearDown(press.dispose);
     addTearDown(official.dispose);
-    _down(
-      1907,
-      [official, press],
-      buttons: kSecondaryButton,
-      kind: PointerDeviceKind.mouse,
-    );
+    _down(1907, [official, press], buttons: kSecondaryButton, kind: PointerDeviceKind.mouse);
     _up(1907, kind: PointerDeviceKind.mouse);
     expect(trace, ['official']);
   });
 
   testWidgets('纯团队独占结清祖先原始输入与按压，本成员取消点击后仍收到 Up', (tester) async {
     final trace = <String>[];
-    final parentTeam = ElGestureArenaTeam()
+    final parentTeam = GestureTeam()
       ..onPointerEvent = (event, _) {
         if (event is PointerCancelEvent) trace.add('parent.rawCancel');
         return true;
       };
-    final childTeam = ElGestureArenaTeam(parent: parentTeam)
-      ..onPointerEvent = (_, _) => true;
-    final parent = ElPressGestureRecognizer()
+    final childTeam = GestureTeam(parent: parentTeam)..onPointerEvent = (_, _) => true;
+    final parent = PressRecognizer()
       ..team = parentTeam
-      ..onTapDown = ((_) => trace.add('parent.down'))
-      ..onTapCancel = ((_) => trace.add('parent.cancel'))
-      ..onTap = (_) => trace.add('parent.tap');
-    final child = ElPressGestureRecognizer()
+      ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('parent.down'))
+      ..callbacks[ElEventPhase.tapCancel] = ((_) => trace.add('parent.cancel'))
+      ..callbacks[ElEventPhase.tap] = (_) => trace.add('parent.tap');
+    final child = PressRecognizer()
       ..team = childTeam
       ..parent = parent
-      ..onTapDown = (event) {
+      ..callbacks[ElEventPhase.tapDown] = (event) {
         trace.add('child.down');
         childTeam.claimPointer(event.pointer, cancelTap: true);
       }
-      ..onTapCancel = ((_) => trace.add('child.cancel'))
-      ..onTapUp = ((_) => trace.add('child.up'))
-      ..onTap = (_) => trace.add('child.tap');
-    final official = TapGestureRecognizer()
-      ..onTap = () => trace.add('official');
+      ..callbacks[ElEventPhase.tapCancel] = ((_) => trace.add('child.cancel'))
+      ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('child.up'))
+      ..callbacks[ElEventPhase.tap] = (_) => trace.add('child.tap');
+    final official = TapGestureRecognizer()..onTap = () => trace.add('official');
     addTearDown(child.dispose);
     addTearDown(parent.dispose);
     addTearDown(official.dispose);
@@ -177,20 +162,15 @@ void main() {
     GestureBinding.instance.pointerRouter.route(up);
     GestureBinding.instance.gestureArena.sweep(up.pointer);
     await tester.pump();
-    expect(trace, [
-      'child.down',
-      'child.cancel',
-      'parent.rawCancel',
-      'child.up',
-    ]);
+    expect(trace, ['child.down', 'child.cancel', 'parent.rawCancel', 'child.up']);
     expect([childTeam.pointerCount, parentTeam.pointerCount], [0, 0]);
   });
 
   testWidgets('属性配置在按下时冻结，清空参数后由识别器恢复默认时限', (tester) async {
     var count = 0;
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..longPressDelay = const Duration(milliseconds: 10)
-      ..onLongPress = (_) => count++;
+      ..callbacks[ElEventPhase.longPress] = (_) => count++;
     addTearDown(press.dispose);
     _down(1800, [press]);
     press.longPressDelay = null;
@@ -207,14 +187,13 @@ void main() {
 
   testWidgets('团队独占按物理 Down 校验，旧序列不能接受同编号的新竞技场', (tester) async {
     final trace = <String>[];
-    final team = ElGestureArenaTeam()..onPointerEvent = (_, _) => true;
-    final press = ElPressGestureRecognizer()
+    final team = GestureTeam()..onPointerEvent = (_, _) => true;
+    final press = PressRecognizer()
       ..team = team
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         trace.add('el');
       };
-    final official = TapGestureRecognizer()
-      ..onTap = () => trace.add('official');
+    final official = TapGestureRecognizer()..onTap = () => trace.add('official');
     addTearDown(press.dispose);
     addTearDown(official.dispose);
     addTearDown(team.dispose);
@@ -247,90 +226,86 @@ void main() {
   });
 
   test('识别器只导入 Dart 和 Flutter，不依赖宿主配置或事件模块', () {
-    final files = Directory('lib/src/ui/cores/event/recognizers')
-        .listSync()
-        .whereType<File>()
-        .where((file) => file.path.endsWith('.dart'));
+    final files = <File>[
+      File('lib/src/ui/cores/view/event/press.dart'),
+      File('lib/src/ui/cores/view/event/transform.dart'),
+    ];
     final imports = RegExp("import\\s+['\"]([^'\"]+)['\"]");
     for (final file in files) {
       for (final directive in imports.allMatches(file.readAsStringSync())) {
-        expect(
-          directive.group(1),
-          anyOf(startsWith('dart:'), startsWith('package:flutter/')),
-          reason: file.path,
-        );
+        expect(directive.group(1), anyOf(startsWith('dart:'), startsWith('package:flutter/')), reason: file.path);
       }
     }
   });
 
   testWidgets('所有按压阶段都提供冒泡控制，截断后的祖先候选仍被结清', (tester) async {
     const phases = [
-      ElGesturePhase.tapDown,
-      ElGesturePhase.tapUp,
-      ElGesturePhase.tap,
-      ElGesturePhase.doubleTapDown,
-      ElGesturePhase.doubleTap,
-      ElGesturePhase.tripleTapDown,
-      ElGesturePhase.tripleTap,
-      ElGesturePhase.longPress,
-      ElGesturePhase.tapCancel,
-      ElGesturePhase.secondaryTapDown,
-      ElGesturePhase.secondaryTapUp,
-      ElGesturePhase.secondaryTap,
-      ElGesturePhase.tertiaryTapDown,
-      ElGesturePhase.tertiaryTapUp,
-      ElGesturePhase.tertiaryTap,
-      ElGesturePhase.forwardTapDown,
-      ElGesturePhase.forwardTapUp,
-      ElGesturePhase.forwardTap,
-      ElGesturePhase.backTapDown,
-      ElGesturePhase.backTapUp,
-      ElGesturePhase.backTap,
+      ElEventPhase.tapDown,
+      ElEventPhase.tapUp,
+      ElEventPhase.tap,
+      ElEventPhase.doubleTapDown,
+      ElEventPhase.doubleTap,
+      ElEventPhase.tripleTapDown,
+      ElEventPhase.tripleTap,
+      ElEventPhase.longPress,
+      ElEventPhase.tapCancel,
+      ElEventPhase.secondaryTapDown,
+      ElEventPhase.secondaryTapUp,
+      ElEventPhase.secondaryTap,
+      ElEventPhase.tertiaryTapDown,
+      ElEventPhase.tertiaryTapUp,
+      ElEventPhase.tertiaryTap,
+      ElEventPhase.forwardTapDown,
+      ElEventPhase.forwardTapUp,
+      ElEventPhase.forwardTap,
+      ElEventPhase.backTapDown,
+      ElEventPhase.backTapUp,
+      ElEventPhase.backTap,
     ];
     var nextPointer = 430;
     for (final phase in phases) {
-      final trace = <(bool, ElGesturePhase)>[];
+      final trace = <(bool, ElEventPhase)>[];
       final downEvents = <PointerEvent>[];
-      final parent = ElPressGestureRecognizer();
-      final child = ElPressGestureRecognizer()
+      final parent = PressRecognizer();
+      final child = PressRecognizer()
         ..parent = parent
         ..longPressDelay = const Duration(milliseconds: 20);
-      void wire(ElPressGestureRecognizer recognizer, bool isChild) {
-        void record(ElPressGestureDetails details) {
+      void wire(PressRecognizer recognizer, bool isChild) {
+        void record(PressGestureDetails details) {
           downEvents.add(details.downEvent);
           trace.add((isChild, details.phase));
           if (isChild && details.phase == phase) details.stopPropagation();
         }
 
         recognizer
-          ..onTapDown = record
-          ..onTapUp = record
-          ..onTap = record
-          ..onDoubleTapDown = record
-          ..onDoubleTap = record
-          ..onTripleTapDown = record
-          ..onTripleTap = record
-          ..onLongPress = record
-          ..onTapCancel = record
-          ..onSecondaryTapDown = record
-          ..onSecondaryTapUp = record
-          ..onSecondaryTap = record
-          ..onTertiaryTapDown = record
-          ..onTertiaryTapUp = record
-          ..onTertiaryTap = record
-          ..onForwardTapDown = record
-          ..onForwardTapUp = record
-          ..onForwardTap = record
-          ..onBackTapDown = record
-          ..onBackTapUp = record
-          ..onBackTap = record;
+          ..callbacks[ElEventPhase.tapDown] = record
+          ..callbacks[ElEventPhase.tapUp] = record
+          ..callbacks[ElEventPhase.tap] = record
+          ..callbacks[ElEventPhase.doubleTapDown] = record
+          ..callbacks[ElEventPhase.doubleTap] = record
+          ..callbacks[ElEventPhase.tripleTapDown] = record
+          ..callbacks[ElEventPhase.tripleTap] = record
+          ..callbacks[ElEventPhase.longPress] = record
+          ..callbacks[ElEventPhase.tapCancel] = record
+          ..callbacks[ElEventPhase.secondaryTapDown] = record
+          ..callbacks[ElEventPhase.secondaryTapUp] = record
+          ..callbacks[ElEventPhase.secondaryTap] = record
+          ..callbacks[ElEventPhase.tertiaryTapDown] = record
+          ..callbacks[ElEventPhase.tertiaryTapUp] = record
+          ..callbacks[ElEventPhase.tertiaryTap] = record
+          ..callbacks[ElEventPhase.forwardTapDown] = record
+          ..callbacks[ElEventPhase.forwardTapUp] = record
+          ..callbacks[ElEventPhase.forwardTap] = record
+          ..callbacks[ElEventPhase.backTapDown] = record
+          ..callbacks[ElEventPhase.backTapUp] = record
+          ..callbacks[ElEventPhase.backTap] = record;
       }
 
       wire(parent, false);
       wire(child, true);
       final clicks = switch (phase) {
-        ElGesturePhase.doubleTapDown || ElGesturePhase.doubleTap => 2,
-        ElGesturePhase.tripleTapDown || ElGesturePhase.tripleTap => 3,
+        ElEventPhase.doubleTapDown || ElEventPhase.doubleTap => 2,
+        ElEventPhase.tripleTapDown || ElEventPhase.tripleTap => 3,
         _ => 1,
       };
       final buttons = switch (phase.name) {
@@ -344,34 +319,22 @@ void main() {
         trace.clear();
         final pointer = nextPointer++;
         _down(pointer, [child, parent], buttons: buttons, milliseconds: i * 40);
-        if (phase == ElGesturePhase.longPress) {
+        if (phase == ElEventPhase.longPress) {
           _move(pointer, const Offset(1, 0));
           await tester.pump(const Duration(milliseconds: 30));
         }
-        if (phase == ElGesturePhase.tapCancel) {
-          GestureBinding.instance.pointerRouter.route(
-            PointerCancelEvent(pointer: pointer),
-          );
+        if (phase == ElEventPhase.tapCancel) {
+          GestureBinding.instance.pointerRouter.route(PointerCancelEvent(pointer: pointer));
         }
         _up(pointer, milliseconds: i * 40 + 30);
       }
       expect(trace, contains((true, phase)), reason: phase.name);
-      expect(
-        downEvents,
-        everyElement(isA<PointerDownEvent>()),
-        reason: phase.name,
-      );
-      final cleanup =
-          phase == ElGesturePhase.tapCancel || phase.name.endsWith('Up');
+      expect(downEvents, everyElement(isA<PointerDownEvent>()), reason: phase.name);
+      final cleanup = phase == ElEventPhase.tapCancel || phase.name.endsWith('Up');
       expect(trace.contains((false, phase)), cleanup, reason: phase.name);
-      if (trace.contains((false, ElGesturePhase.tapDown))) {
+      if (trace.contains((false, ElEventPhase.tapDown))) {
         expect(
-          trace.any(
-            (item) =>
-                !item.$1 &&
-                (item.$2 == ElGesturePhase.tapUp ||
-                    item.$2 == ElGesturePhase.tapCancel),
-          ),
+          trace.any((item) => !item.$1 && (item.$2 == ElEventPhase.tapUp || item.$2 == ElEventPhase.tapCancel)),
           isTrue,
           reason: '${phase.name} 不能遗留祖先按压',
         );
@@ -382,19 +345,19 @@ void main() {
   });
 
   testWidgets('主动取消清除活动长按与待发单击，取消后识别器可复用', (tester) async {
-    final trace = <ElGesturePhase>[];
-    final press = ElPressGestureRecognizer()
+    final trace = <ElEventPhase>[];
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTap = (event) {
+      ..callbacks[ElEventPhase.tap] = (event) {
         trace.add(event.phase);
       }
-      ..onDoubleTap = (event) {
+      ..callbacks[ElEventPhase.doubleTap] = (event) {
         trace.add(event.phase);
       }
-      ..onLongPress = (event) {
+      ..callbacks[ElEventPhase.longPress] = (event) {
         trace.add(event.phase);
       }
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         trace.add(event.phase);
       };
     _down(410, [press]);
@@ -402,16 +365,16 @@ void main() {
     press.cancel();
     _up(410);
     await tester.pump(const Duration(seconds: 1));
-    expect(trace, [ElGesturePhase.tapCancel]);
+    expect(trace, [ElEventPhase.tapCancel]);
     _down(411, [press]);
     _up(411);
     press.cancel();
     await tester.pump(const Duration(seconds: 1));
-    expect(trace, [ElGesturePhase.tapCancel]);
+    expect(trace, [ElEventPhase.tapCancel]);
     press.deferTap = false;
     _down(412, [press]);
     _up(412);
-    expect(trace, [ElGesturePhase.tapCancel, ElGesturePhase.tap]);
+    expect(trace, [ElEventPhase.tapCancel, ElEventPhase.tap]);
     press.dispose();
   });
 
@@ -419,9 +382,9 @@ void main() {
     testWidgets('Up 中截断或销毁不能遗留祖先候选：dispose=$disposeOnUp', (tester) async {
       final trace = <String>[];
       final parent = recordingPress(trace, 'parent');
-      late ElPressGestureRecognizer child;
+      late PressRecognizer child;
       child = recordingPress(trace, 'child', parent: parent)
-        ..onTapUp = (event) {
+        ..callbacks[ElEventPhase.tapUp] = (event) {
           trace.add('child.up');
           if (disposeOnUp) {
             child.dispose();
@@ -433,44 +396,28 @@ void main() {
       addTearDown(child.dispose);
       _down(260, [child, parent]);
       _up(260);
-      expect(trace, [
-        'child.down',
-        'parent.down',
-        'child.up',
-        'parent.up',
-        if (!disposeOnUp) 'child.tap',
-      ]);
+      expect(trace, ['child.down', 'parent.down', 'child.up', 'parent.up', disposeOnUp ? 'parent.tap' : 'child.tap']);
     });
   }
 
   testWidgets('连击窗口按双击分组，过期后重新开始且无双击时 deferTap 不延迟', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTap = (event) => calls.add('tap${event.tapCount}');
+      ..callbacks[ElEventPhase.tap] = (event) => calls.add('tap${event.tapCount}');
     addTearDown(press.dispose);
     _down(201, [press]);
     _up(201);
     expect(calls, ['tap1']);
-    press.onDoubleTapDown = (_) => calls.add('doubleDown');
-    press.onDoubleTap = (_) => calls.add('double');
+    press.callbacks[ElEventPhase.doubleTapDown] = (_) => calls.add('doubleDown');
+    press.callbacks[ElEventPhase.doubleTap] = (_) => calls.add('double');
     press.deferTap = false;
     for (var index = 0; index < 4; index++) {
       _down(202 + index, [press], milliseconds: 50 + index * 40);
       _up(202 + index, milliseconds: 60 + index * 40);
       await tester.pump(const Duration(milliseconds: 40));
     }
-    expect(calls, [
-      'tap1',
-      'tap1',
-      'doubleDown',
-      'tap2',
-      'double',
-      'tap1',
-      'doubleDown',
-      'tap2',
-      'double',
-    ]);
+    expect(calls, ['tap1', 'tap1', 'doubleDown', 'tap2', 'double', 'tap1', 'doubleDown', 'tap2', 'double']);
     await tester.pump(const Duration(milliseconds: 350));
     _down(206, [press], milliseconds: 600);
     _up(206, milliseconds: 610);
@@ -480,8 +427,7 @@ void main() {
 
   testWidgets('相同识别参数保留连击窗口，修改间隔后重新分组', (tester) async {
     var doubles = 0;
-    final press = ElPressGestureRecognizer()
-      ..onDoubleTapDown = (_) => doubles++;
+    final press = PressRecognizer()..callbacks[ElEventPhase.doubleTapDown] = (_) => doubles++;
     addTearDown(press.dispose);
     _down(210, [press]);
     _up(210, milliseconds: 10);
@@ -500,17 +446,17 @@ void main() {
 
   testWidgets('长按移动取消不可回燃，宿主可独立取消点击', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..tapSlopTolerance = double.infinity
       ..longPressDelay = Duration(milliseconds: 50)
       ..longPressSlopTolerance = 10
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         calls.add('long');
       };
     addTearDown(press.dispose);
@@ -523,11 +469,7 @@ void main() {
     _down(221, [press], milliseconds: 120);
     press.cancelPointer(
       221,
-      event: const PointerMoveEvent(
-        pointer: 221,
-        position: Offset(60, 0),
-        timeStamp: Duration(milliseconds: 130),
-      ),
+      event: const PointerMoveEvent(pointer: 221, position: Offset(60, 0), timeStamp: Duration(milliseconds: 130)),
     );
     _up(221, position: const Offset(60, 0), milliseconds: 130);
     expect(calls, ['tap', 'cancel']);
@@ -535,37 +477,28 @@ void main() {
 
   testWidgets('侧键不触发长按，按钮组合变化只取消一次且不污染下一次主键', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..longPressDelay = Duration(milliseconds: 20)
-      ..onSecondaryTapDown = (_) {
+      ..callbacks[ElEventPhase.secondaryTapDown] = (_) {
         calls.add('side.down');
       }
-      ..onSecondaryTap = (_) {
+      ..callbacks[ElEventPhase.secondaryTap] = (_) {
         calls.add('side.tap');
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         calls.add('long');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       };
     addTearDown(press.dispose);
-    _down(
-      230,
-      [press],
-      buttons: kSecondaryButton,
-      kind: PointerDeviceKind.mouse,
-    );
+    _down(230, [press], buttons: kSecondaryButton, kind: PointerDeviceKind.mouse);
     await tester.pump(const Duration(milliseconds: 30));
     GestureBinding.instance.pointerRouter.route(
-      const PointerMoveEvent(
-        pointer: 230,
-        kind: PointerDeviceKind.mouse,
-        buttons: kSecondaryButton | kPrimaryButton,
-      ),
+      const PointerMoveEvent(pointer: 230, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton | kPrimaryButton),
     );
     _up(230, kind: PointerDeviceKind.mouse);
     _down(231, [press]);
@@ -577,23 +510,16 @@ void main() {
     final trace = <String>[];
     final parent = recordingPress(trace, 'parent');
     final child = recordingPress(trace, 'child', parent: parent)
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         trace.add('child.cancel');
         event.stopPropagation();
       };
     addTearDown(child.dispose);
     addTearDown(parent.dispose);
     _down(240, [child, parent]);
-    GestureBinding.instance.pointerRouter.route(
-      const PointerCancelEvent(pointer: 240),
-    );
+    GestureBinding.instance.pointerRouter.route(const PointerCancelEvent(pointer: 240));
     _up(240);
-    expect(trace, [
-      'child.down',
-      'parent.down',
-      'child.cancel',
-      'parent.cancel',
-    ]);
+    expect(trace, ['child.down', 'parent.down', 'child.cancel', 'parent.cancel']);
   });
 
   testWidgets('活动路线冻结 parent，下一次按下采用新的祖先', (tester) async {
@@ -609,30 +535,25 @@ void main() {
     _up(250);
     _down(251, [child, second]);
     _up(251);
-    expect(trace.where((e) => e.endsWith('.tap')), [
-      'child.tap',
-      'first.tap',
-      'child.tap',
-      'second.tap',
-    ]);
+    expect(trace.where((e) => e.endsWith('.tap')), ['child.tap', 'first.tap', 'child.tap', 'second.tap']);
   });
 
   testWidgets('单击双击三击和候选 Down 按三次分组', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
-      ..onTap = (event) {
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (event) {
         calls.add('tap${event.tapCount}');
       }
-      ..onDoubleTapDown = (_) {
+      ..callbacks[ElEventPhase.doubleTapDown] = (_) {
         calls.add('doubleDown');
       }
-      ..onDoubleTap = (event) {
+      ..callbacks[ElEventPhase.doubleTap] = (event) {
         calls.add('double${event.tapCount}');
       }
-      ..onTripleTapDown = (_) {
+      ..callbacks[ElEventPhase.tripleTapDown] = (_) {
         calls.add('tripleDown');
       }
-      ..onTripleTap = (event) {
+      ..callbacks[ElEventPhase.tripleTap] = (event) {
         calls.add('triple${event.tapCount}');
       };
     for (var pointer = 10; pointer < 14; pointer++) {
@@ -640,30 +561,21 @@ void main() {
       _up(pointer, milliseconds: (pointer - 10) * 50 + 10);
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(calls, [
-      'tap1',
-      'doubleDown',
-      'tap2',
-      'double2',
-      'tripleDown',
-      'tap3',
-      'triple3',
-      'tap1',
-    ]);
+    expect(calls, ['tap1', 'doubleDown', 'tap2', 'double2', 'tripleDown', 'tap3', 'triple3', 'tap1']);
     press.dispose();
   });
 
   testWidgets('deferTap 只延迟业务通知，不持有竞技场', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTapUp = (_) {
+      ..callbacks[ElEventPhase.tapUp] = (_) {
         calls.add('up');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onDoubleTap = (_) {
+      ..callbacks[ElEventPhase.doubleTap] = (_) {
         calls.add('double');
       };
     final official = TapGestureRecognizer()
@@ -685,12 +597,12 @@ void main() {
 
   testWidgets('不同位置的 deferred 单击不会被下一次点击吞掉', (tester) async {
     final taps = <Offset>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTap = (event) {
+      ..callbacks[ElEventPhase.tap] = (event) {
         taps.add(event.globalPosition);
       }
-      ..onDoubleTap = (_) {};
+      ..callbacks[ElEventPhase.doubleTap] = (_) {};
     _down(22, [press]);
     _up(22);
     await tester.pump(const Duration(milliseconds: 50));
@@ -703,20 +615,20 @@ void main() {
 
   testWidgets('长按遵循官方胜负且只通知一次，抬起不再单击', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
-      ..onTapDown = (_) {
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tapDown] = (_) {
         calls.add('down');
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onLongPress = (event) {
+      ..callbacks[ElEventPhase.longPress] = (event) {
         calls.add('long');
       }
-      ..onTapUp = (_) {
+      ..callbacks[ElEventPhase.tapUp] = (_) {
         calls.add('up');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       };
     final official = TapGestureRecognizer()
@@ -725,26 +637,26 @@ void main() {
       };
     _down(30, [press, official]);
     await tester.pump(const Duration(milliseconds: 600));
-    expect(calls, ['down', 'cancel', 'long']);
+    expect(calls, ['down', 'long', 'cancel']);
     _up(30, milliseconds: 600);
-    expect(calls, ['down', 'cancel', 'long', 'up']);
+    expect(calls, ['down', 'long', 'cancel', 'up']);
     await tester.pump(const Duration(seconds: 1));
-    expect(calls, ['down', 'cancel', 'long', 'up']);
+    expect(calls, ['down', 'long', 'cancel', 'up']);
     press.dispose();
     official.dispose();
   });
 
   testWidgets('长按输给官方拖拽后 timer 不再通知且下一次可点击', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..tapSlopTolerance = double.infinity
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         calls.add('long');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       };
     final official = VerticalDragGestureRecognizer()
@@ -765,15 +677,15 @@ void main() {
 
   testWidgets('宿主取消不需要元素尺寸，取消后重新按下才产生新候选', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..tapSlopTolerance = double.infinity
-      ..onTapDown = (_) {
+      ..callbacks[ElEventPhase.tapDown] = (_) {
         calls.add('down');
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       };
     _down(40, [press]);
@@ -800,9 +712,9 @@ void main() {
 
   testWidgets('活动识别参数冻结，下一次按下才采用修改后的参数', (tester) async {
     final taps = <int>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..tapSlopTolerance = 30
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         taps.add(1);
       };
     _down(42, [press]);
@@ -817,56 +729,46 @@ void main() {
   });
 
   testWidgets('每种单独鼠标按钮都有 down、up、tap', (tester) async {
-    final phases = <ElGesturePhase>[];
-    void record(ElPressGestureDetails event) => phases.add(event.phase);
-    final press = ElPressGestureRecognizer()
-      ..onSecondaryTapDown = record
-      ..onSecondaryTapUp = record
-      ..onSecondaryTap = record
-      ..onTertiaryTapDown = record
-      ..onTertiaryTapUp = record
-      ..onTertiaryTap = record
-      ..onForwardTapDown = record
-      ..onForwardTapUp = record
-      ..onForwardTap = record
-      ..onBackTapDown = record
-      ..onBackTapUp = record
-      ..onBackTap = record;
-    const buttons = [
-      kSecondaryButton,
-      kTertiaryButton,
-      kForwardMouseButton,
-      kBackMouseButton,
-    ];
+    final phases = <ElEventPhase>[];
+    void record(PressGestureDetails event) => phases.add(event.phase);
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.secondaryTapDown] = record
+      ..callbacks[ElEventPhase.secondaryTapUp] = record
+      ..callbacks[ElEventPhase.secondaryTap] = record
+      ..callbacks[ElEventPhase.tertiaryTapDown] = record
+      ..callbacks[ElEventPhase.tertiaryTapUp] = record
+      ..callbacks[ElEventPhase.tertiaryTap] = record
+      ..callbacks[ElEventPhase.forwardTapDown] = record
+      ..callbacks[ElEventPhase.forwardTapUp] = record
+      ..callbacks[ElEventPhase.forwardTap] = record
+      ..callbacks[ElEventPhase.backTapDown] = record
+      ..callbacks[ElEventPhase.backTapUp] = record
+      ..callbacks[ElEventPhase.backTap] = record;
+    const buttons = [kSecondaryButton, kTertiaryButton, kForwardMouseButton, kBackMouseButton];
     for (var index = 0; index < buttons.length; index++) {
-      _down(
-        50 + index,
-        [press],
-        buttons: buttons[index],
-        kind: PointerDeviceKind.mouse,
-      );
+      _down(50 + index, [press], buttons: buttons[index], kind: PointerDeviceKind.mouse);
       _up(50 + index, kind: PointerDeviceKind.mouse);
     }
     expect(phases, [
-      ElGesturePhase.secondaryTapDown,
-      ElGesturePhase.secondaryTapUp,
-      ElGesturePhase.secondaryTap,
-      ElGesturePhase.tertiaryTapDown,
-      ElGesturePhase.tertiaryTapUp,
-      ElGesturePhase.tertiaryTap,
-      ElGesturePhase.forwardTapDown,
-      ElGesturePhase.forwardTapUp,
-      ElGesturePhase.forwardTap,
-      ElGesturePhase.backTapDown,
-      ElGesturePhase.backTapUp,
-      ElGesturePhase.backTap,
+      ElEventPhase.secondaryTapDown,
+      ElEventPhase.secondaryTapUp,
+      ElEventPhase.secondaryTap,
+      ElEventPhase.tertiaryTapDown,
+      ElEventPhase.tertiaryTapUp,
+      ElEventPhase.tertiaryTap,
+      ElEventPhase.forwardTapDown,
+      ElEventPhase.forwardTapUp,
+      ElEventPhase.forwardTap,
+      ElEventPhase.backTapDown,
+      ElEventPhase.backTapUp,
+      ElEventPhase.backTap,
     ]);
     press.dispose();
   });
 
   testWidgets('空处理器、按钮过滤和设备过滤不抢官方 Tap', (tester) async {
     var taps = 0;
-    final press = ElPressGestureRecognizer();
+    final press = PressRecognizer();
     final official = TapGestureRecognizer()
       ..onTap = () {
         taps++;
@@ -874,16 +776,15 @@ void main() {
     _down(60, [press, official]);
     _up(60);
     expect(taps, 1);
-    press.onTap = (_) => fail('设备过滤后的识别器不能触发');
+    press.callbacks[ElEventPhase.tap] = (_) => fail('设备过滤后的识别器不能触发');
     press.supportedDevices = {PointerDeviceKind.mouse};
     _down(61, [press, official]);
     _up(61);
     expect(taps, 2);
-    final filtered =
-        ElPressGestureRecognizer(allowedButtonsFilter: (_) => false)
-          ..onTap = (_) {
-            fail('按钮过滤后的识别器不能触发');
-          };
+    final filtered = PressRecognizer(allowedButtonsFilter: (_) => false)
+      ..callbacks[ElEventPhase.tap] = (_) {
+        fail('按钮过滤后的识别器不能触发');
+      };
     _down(62, [filtered, official]);
     _up(62);
     expect(taps, 3);
@@ -894,22 +795,22 @@ void main() {
 
   testWidgets('主动接受请求参与官方裁决，成功后仍正常通知释放和点击', (tester) async {
     final calls = <String>[];
-    late ElPressGestureRecognizer press;
-    press = ElPressGestureRecognizer()
-      ..onTapDown = (event) {
+    late PressRecognizer press;
+    press = PressRecognizer()
+      ..callbacks[ElEventPhase.tapDown] = (event) {
         calls.add('down');
         press.acceptPointer(event.pointer);
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       }
-      ..onTapUp = (_) {
+      ..callbacks[ElEventPhase.tapUp] = (_) {
         calls.add('up');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         calls.add('long');
       };
     final official = TapGestureRecognizer()
@@ -926,8 +827,8 @@ void main() {
 
   testWidgets('业务异常不会破坏后续识别，dispose 回调重入不会重复取消', (tester) async {
     var taps = 0;
-    final press = ElPressGestureRecognizer()
-      ..onTap = (_) {
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (_) {
         taps++;
         throw StateError('expected callback failure');
       };
@@ -940,11 +841,11 @@ void main() {
     expect(taps, 2);
     var cancels = 0;
     press
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         cancels++;
         press.dispose();
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         fail('销毁后的 timer 不能触发');
       };
     _down(82, [press]);
@@ -956,11 +857,11 @@ void main() {
   testWidgets('追加指针取消原候选，取消后新的独立序列可正常点击', (tester) async {
     var taps = 0;
     var cancels = 0;
-    final press = ElPressGestureRecognizer()
-      ..onTap = (_) {
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (_) {
         taps++;
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         cancels++;
       };
     _down(90, [press]);
@@ -976,52 +877,30 @@ void main() {
 
   testWidgets('追加指针取消沿用旧指针最后位置和各级坐标变换', (tester) async {
     final canceled = <(String, Offset, Offset, int)>[];
-    void record(String name, ElPressGestureDetails event) {
-      canceled.add((
-        name,
-        event.globalPosition,
-        event.localPosition,
-        event.pointer,
-      ));
+    void record(String name, PressGestureDetails event) {
+      canceled.add((name, event.globalPosition, event.localPosition, event.pointer));
     }
 
-    final parent = ElPressGestureRecognizer()
-      ..onTapCancel = (event) {
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         record('parent', event);
       };
-    final child = ElPressGestureRecognizer()
+    final child = PressRecognizer()
       ..parent = parent
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         record('child', event);
       };
-    const first = PointerDownEvent(
-      pointer: 130,
-      position: Offset(100, 100),
-      buttons: kPrimaryButton,
-    );
+    const first = PointerDownEvent(pointer: 130, position: Offset(100, 100), buttons: kPrimaryButton);
     child.addPointer(first.transformed(Matrix4.translationValues(-10, -20, 0)));
-    parent.addPointer(
-      first.transformed(Matrix4.translationValues(-30, -40, 0)),
-    );
+    parent.addPointer(first.transformed(Matrix4.translationValues(-30, -40, 0)));
     GestureBinding.instance.pointerRouter.route(first);
     GestureBinding.instance.gestureArena.close(130);
     GestureBinding.instance.pointerRouter.route(
-      const PointerMoveEvent(
-        pointer: 130,
-        position: Offset(105, 107),
-        delta: Offset(5, 7),
-        buttons: kPrimaryButton,
-      ),
+      const PointerMoveEvent(pointer: 130, position: Offset(105, 107), delta: Offset(5, 7), buttons: kPrimaryButton),
     );
 
-    const second = PointerDownEvent(
-      pointer: 131,
-      position: Offset(400, 500),
-      buttons: kPrimaryButton,
-    );
-    child.addPointer(
-      second.transformed(Matrix4.translationValues(-100, -200, 0)),
-    );
+    const second = PointerDownEvent(pointer: 131, position: Offset(400, 500), buttons: kPrimaryButton);
+    child.addPointer(second.transformed(Matrix4.translationValues(-100, -200, 0)));
     expect(canceled, [
       ('child', const Offset(105, 107), const Offset(95, 87), 130),
       ('parent', const Offset(105, 107), const Offset(75, 67), 130),
@@ -1033,24 +912,22 @@ void main() {
 
   testWidgets('平台取消清除长按计时，deferred 通知也随 dispose 释放', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onDoubleTap = (_) {
+      ..callbacks[ElEventPhase.doubleTap] = (_) {
         calls.add('double');
       }
-      ..onLongPress = (_) {
+      ..callbacks[ElEventPhase.longPress] = (_) {
         calls.add('long');
       }
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         calls.add(event.cancelReason!.name);
       };
     _down(100, [press]);
-    GestureBinding.instance.pointerRouter.route(
-      const PointerCancelEvent(pointer: 100),
-    );
+    GestureBinding.instance.pointerRouter.route(const PointerCancelEvent(pointer: 100));
     GestureBinding.instance.gestureArena.sweep(100);
     await tester.pump(const Duration(seconds: 1));
     expect(calls, ['pointerCanceled']);
@@ -1063,12 +940,12 @@ void main() {
 
   testWidgets('后续候选失权不会吞掉已成功的 deferred 单击', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..deferTap = true
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onDoubleTap = (_) {
+      ..callbacks[ElEventPhase.doubleTap] = (_) {
         calls.add('double');
       };
     final official = TapGestureRecognizer()
@@ -1088,14 +965,14 @@ void main() {
 
   testWidgets('deferred 路线允许复用鼠标指针并冻结各次祖先坐标', (tester) async {
     final positions = <Offset>[];
-    final parent = ElPressGestureRecognizer()
-      ..onTap = (event) {
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (event) {
         positions.add(event.localPosition);
       };
-    final child = ElPressGestureRecognizer()
+    final child = PressRecognizer()
       ..parent = parent
       ..deferTap = true
-      ..onDoubleTap = (_) {};
+      ..callbacks[ElEventPhase.doubleTap] = (_) {};
 
     void down(Offset position, Offset translation, int milliseconds) {
       const pointer = 110;
@@ -1107,11 +984,7 @@ void main() {
         timeStamp: Duration(milliseconds: milliseconds),
       );
       child.addPointer(event);
-      parent.addPointer(
-        event.transformed(
-          Matrix4.translationValues(translation.dx, translation.dy, 0),
-        ),
-      );
+      parent.addPointer(event.transformed(Matrix4.translationValues(translation.dx, translation.dy, 0)));
       GestureBinding.instance.pointerRouter.route(event);
       GestureBinding.instance.gestureArena.close(pointer);
     }
@@ -1123,12 +996,7 @@ void main() {
     // 旧 timer 结束路线时不能清掉复用同一 pointer 的新候选。
     await tester.pump(const Duration(milliseconds: 220));
     expect(positions, [const Offset(90, 80)]);
-    _up(
-      110,
-      position: const Offset(200, 200),
-      milliseconds: 330,
-      kind: PointerDeviceKind.mouse,
-    );
+    _up(110, position: const Offset(200, 200), milliseconds: 330, kind: PointerDeviceKind.mouse);
     await tester.pump(const Duration(milliseconds: 400));
     expect(positions, [const Offset(90, 80), const Offset(130, 120)]);
     child.dispose();
@@ -1137,14 +1005,14 @@ void main() {
 
   testWidgets('官方 DoubleTap 持有前一次竞技场时仍跟踪下一次候选', (tester) async {
     final calls = <String>[];
-    final press = ElPressGestureRecognizer()
-      ..onTapDown = (_) {
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tapDown] = (_) {
         calls.add('down');
       }
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         calls.add('tap');
       }
-      ..onTapCancel = (_) {
+      ..callbacks[ElEventPhase.tapCancel] = (_) {
         calls.add('cancel');
       };
     final official = DoubleTapGestureRecognizer()
@@ -1166,7 +1034,7 @@ void main() {
     final events = <String>[];
     final parent = recordingPress(events, 'parent');
     final child = recordingPress(events, 'child', parent: parent)
-      ..onTapDown = (event) {
+      ..callbacks[ElEventPhase.tapDown] = (event) {
         events.add('child.down');
         event.stopPropagation();
       };
@@ -1196,7 +1064,7 @@ void main() {
     final events = <String>[];
     final parent = recordingPress(events, 'parent');
     final child = recordingPress(events, 'child', parent: parent)
-      ..onTapDown = (event) {
+      ..callbacks[ElEventPhase.tapDown] = (event) {
         events.add('child.down');
         event.stopPropagation();
       };
@@ -1265,11 +1133,11 @@ void main() {
     final parentKey = GlobalKey();
     final childKey = GlobalKey();
     final positions = <String, Offset>{};
-    final parent = ElPressGestureRecognizer()
-      ..onTap = (event) => positions['parent'] = event.localPosition;
-    final child = ElPressGestureRecognizer()
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (event) => positions['parent'] = event.localPosition;
+    final child = PressRecognizer()
       ..parent = parent
-      ..onTap = (event) => positions['child'] = event.localPosition;
+      ..callbacks[ElEventPhase.tap] = (event) => positions['child'] = event.localPosition;
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
     await tester.pumpWidget(
@@ -1306,12 +1174,12 @@ void main() {
     final events = <String>[];
     final cancelPositions = <String, Offset>{};
     final parent = recordingPress(events, 'parent')
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         events.add('parent.cancel');
         cancelPositions['parent'] = event.localPosition;
       };
     final child = recordingPress(events, 'child', parent: parent)
-      ..onTapCancel = (event) {
+      ..callbacks[ElEventPhase.tapCancel] = (event) {
         events.add('child.cancel');
         cancelPositions['child'] = event.localPosition;
       };
@@ -1340,10 +1208,7 @@ void main() {
     await tester.tapAt(const Offset(50, 65));
     await tester.pump(afterGesture);
 
-    expect(events.where((event) => event.endsWith('.cancel')), [
-      'child.cancel',
-      'parent.cancel',
-    ]);
+    expect(events.where((event) => event.endsWith('.cancel')), ['child.cancel', 'parent.cancel']);
     expect(events.where((event) => event.endsWith('.up')), isEmpty);
     expect(events.where((event) => event.endsWith('.tap')), ['official.tap']);
     expect(cancelPositions['child'], const Offset(10, 15));
@@ -1372,58 +1237,39 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
 
     // 两个分支都必须收到 Down，保证没有误将测试简化成单一命中。
-    expect(
-      events,
-      containsAllInOrder(['front.down', 'parent.down', 'back.down']),
-    );
-    expect(events.where((event) => event.startsWith('front.')), [
-      'front.down',
-      'front.up',
-      'front.tap',
-    ]);
-    expect(events.where((event) => event.startsWith('back.')), [
-      'back.down',
-      'back.cancel',
-    ]);
-    expect(events.where((event) => event.startsWith('parent.')), [
-      'parent.down',
-      'parent.up',
-      'parent.tap',
-    ]);
-    expect(events.where((event) => event.startsWith('official.')), [
-      'official.down',
-      'official.cancel',
-    ]);
+    expect(events, containsAllInOrder(['front.down', 'parent.down', 'back.down']));
+    expect(events.where((event) => event.startsWith('front.')), ['front.down', 'front.up', 'front.tap']);
+    expect(events.where((event) => event.startsWith('back.')), ['back.down', 'back.cancel']);
+    expect(events.where((event) => event.startsWith('parent.')), ['parent.down', 'parent.up', 'parent.tap']);
+    expect(events.where((event) => event.startsWith('official.')), ['official.down', 'official.cancel']);
   });
 
   for (final stopCancel in [false, true]) {
     testWidgets('Down 内同步取消不向祖先补发孤立候选：stopCancel=$stopCancel', (tester) async {
       final trace = <String>[];
-      final parent = ElPressGestureRecognizer()
-        ..onTapDown = (_) {
+      final parent = PressRecognizer()
+        ..callbacks[ElEventPhase.tapDown] = (_) {
           trace.add('parent.down');
         }
-        ..onTapCancel = (_) {
+        ..callbacks[ElEventPhase.tapCancel] = (_) {
           trace.add('parent.cancel');
         }
-        ..onTapUp = (_) => trace.add('parent.up');
-      late ElPressGestureRecognizer child;
-      child = ElPressGestureRecognizer()
+        ..callbacks[ElEventPhase.tapUp] = (_) => trace.add('parent.up');
+      late PressRecognizer child;
+      child = PressRecognizer()
         ..parent = parent
-        ..onTapDown = (event) {
+        ..callbacks[ElEventPhase.tapDown] = (event) {
           trace.add('child.down');
           child.cancelPointer(event.pointer);
         }
-        ..onTapCancel = (event) {
+        ..callbacks[ElEventPhase.tapCancel] = (event) {
           trace.add('child.cancel');
           if (stopCancel) event.stopPropagation();
         }
-        ..onTapUp = (_) => trace.add('child.up');
+        ..callbacks[ElEventPhase.tapUp] = (_) => trace.add('child.up');
       addTearDown(parent.dispose);
       addTearDown(child.dispose);
-      await tester.pumpWidget(
-        gestureShell(gestureHost(parent, child: gestureHost(child))),
-      );
+      await tester.pumpWidget(gestureShell(gestureHost(parent, child: gestureHost(child))));
 
       await tester.tapAt(const Offset(50, 50));
       expect(trace, ['child.down', 'child.cancel']);
@@ -1432,19 +1278,16 @@ void main() {
 
   testWidgets('子回调异常不会截断父冒泡，下一次点击仍可识别', (tester) async {
     final trace = <String>[];
-    final parent = ElPressGestureRecognizer()
-      ..onTap = (_) => trace.add('parent');
-    final child = ElPressGestureRecognizer()
+    final parent = PressRecognizer()..callbacks[ElEventPhase.tap] = (_) => trace.add('parent');
+    final child = PressRecognizer()
       ..parent = parent
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         trace.add('child');
         throw StateError('回调失败');
       };
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
-    await tester.pumpWidget(
-      gestureShell(gestureHost(parent, child: gestureHost(child))),
-    );
+    await tester.pumpWidget(gestureShell(gestureHost(parent, child: gestureHost(child))));
     for (var i = 0; i < 2; i++) {
       await tester.tapAt(const Offset(50, 50));
       expect(tester.takeException(), isA<StateError>());
@@ -1454,23 +1297,21 @@ void main() {
 
   testWidgets('子回调销毁委托父级后继续自身点击，父级不再收到事件', (tester) async {
     final trace = <String>[];
-    final parent = ElPressGestureRecognizer()
-      ..onTapDown = (_) {
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.tapDown] = (_) {
         trace.add('parent.down');
       }
-      ..onTap = (_) => trace.add('parent.tap');
-    final child = ElPressGestureRecognizer()
+      ..callbacks[ElEventPhase.tap] = (_) => trace.add('parent.tap');
+    final child = PressRecognizer()
       ..parent = parent
-      ..onTapDown = (_) {
+      ..callbacks[ElEventPhase.tapDown] = (_) {
         trace.add('child.down');
         parent.dispose();
       }
-      ..onTap = (_) => trace.add('child.tap');
+      ..callbacks[ElEventPhase.tap] = (_) => trace.add('child.tap');
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
-    await tester.pumpWidget(
-      gestureShell(gestureHost(parent, child: gestureHost(child))),
-    );
+    await tester.pumpWidget(gestureShell(gestureHost(parent, child: gestureHost(child))));
 
     await tester.tapAt(const Offset(50, 50));
     expect(trace, ['child.down', 'child.tap']);
@@ -1478,18 +1319,18 @@ void main() {
   testWidgets('成员资格在连击提交前生效，子成员无效点击不污染父级历史', (tester) async {
     final trace = <String>[];
     var eligible = true;
-    final parent = ElPressGestureRecognizer()
-      ..onTap = (event) {
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = (event) {
         trace.add('parent:${event.tapCount}');
       }
-      ..onDoubleTap = (_) {};
-    final child = ElPressGestureRecognizer()
+      ..callbacks[ElEventPhase.doubleTap] = (_) {};
+    final child = PressRecognizer()
       ..parent = parent
       ..isEligible = ((_, _) => eligible)
-      ..onTap = (event) {
+      ..callbacks[ElEventPhase.tap] = (event) {
         trace.add('child:${event.tapCount}');
       }
-      ..onDoubleTap = (_) {};
+      ..callbacks[ElEventPhase.doubleTap] = (_) {};
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
     for (var i = 0; i < 3; i++) {
@@ -1509,30 +1350,28 @@ void main() {
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
     _down(1510, [child, parent]);
+    expect(child.hasActiveInput, isTrue);
+    expect(parent.hasActiveInput, isTrue);
     child.cancelMember(1510);
+    expect(child.hasActiveInput, isFalse);
+    expect(parent.hasActiveInput, isTrue);
     _up(1510);
-    expect(trace, [
-      'child.down',
-      'parent.down',
-      'child.cancel',
-      'parent.up',
-      'parent.tap',
-    ]);
+    expect(parent.hasActiveInput, isFalse);
+    expect(trace, ['child.down', 'parent.down', 'child.cancel', 'parent.up', 'parent.tap']);
   });
 
   testWidgets('父子长按采用各自等待时间，资格失败不提前认领官方手势', (tester) async {
     final trace = <String>[];
     var childEligible = false;
-    final parent = ElPressGestureRecognizer()
+    final parent = PressRecognizer()
       ..longPressDelay = const Duration(milliseconds: 40)
-      ..onLongPress = (_) => trace.add('parent.long');
-    final child = ElPressGestureRecognizer()
+      ..callbacks[ElEventPhase.longPress] = (_) => trace.add('parent.long');
+    final child = PressRecognizer()
       ..parent = parent
       ..longPressDelay = const Duration(milliseconds: 10)
       ..isEligible = ((_, _) => childEligible)
-      ..onLongPress = (_) => trace.add('child.long');
-    final official = TapGestureRecognizer()
-      ..onTap = () => trace.add('official.tap');
+      ..callbacks[ElEventPhase.longPress] = (_) => trace.add('child.long');
+    final official = TapGestureRecognizer()..onTap = () => trace.add('official.tap');
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
     addTearDown(official.dispose);
@@ -1546,15 +1385,410 @@ void main() {
     childEligible = true;
   });
 
+  testWidgets('反馈只观察输入，不报名或抢走官方点击，短触摸不补播', (tester) async {
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..feedbackDelay = Duration(milliseconds: 20)
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..onFeedbackChanged = ((value) => trace.add('feedback:$value'));
+    final official = TapGestureRecognizer()..onTap = (() => trace.add('official'));
+    addTearDown(press.dispose);
+    addTearDown(official.dispose);
+    _down(1800, [press, official]);
+    expect(press.isPressed, isTrue);
+    expect(press.isFeedbackActive, isFalse);
+    await tester.pump(Duration(milliseconds: 5));
+    _up(1800, milliseconds: 5);
+    expect(press.isPressed, isFalse);
+    await tester.pump(Duration(milliseconds: 120));
+    expect(trace, ['official']);
+    expect(press.isFeedbackActive, isFalse);
+  });
+
+  testWidgets('反馈延迟和最短时间不延迟 Up 与 Tap', (tester) async {
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..feedbackDelay = Duration(milliseconds: 20)
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..onFeedbackChanged = ((value) => trace.add('feedback:$value'))
+      ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('down'))
+      ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('up'))
+      ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'));
+    addTearDown(press.dispose);
+    _down(1801, [press]);
+    expect(trace, ['down']);
+    await tester.pump(Duration(milliseconds: 25));
+    expect(trace, ['down', 'feedback:true']);
+    _up(1801, milliseconds: 25);
+    expect(trace, ['down', 'feedback:true', 'up', 'tap']);
+    expect(press.isPressed, isFalse);
+    expect(press.isFeedbackActive, isTrue);
+    await tester.pump(Duration(milliseconds: 74));
+    expect(press.isFeedbackActive, isTrue);
+    await tester.pump(Duration(milliseconds: 1));
+    expect(trace, ['down', 'feedback:true', 'up', 'tap', 'feedback:false']);
+  });
+
+  testWidgets('活跃输入不包含已抬手的反馈保留和延迟单击窗口', (tester) async {
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..deferTap = true
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..onFeedbackChanged = ((value) => trace.add('feedback:$value'))
+      ..callbacks[ElEventPhase.doubleTap] = ((_) => trace.add('double'))
+      ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'));
+    addTearDown(press.dispose);
+    _down(1821, [press]);
+    expect(press.hasActiveInput, isTrue);
+    _up(1821);
+    expect(press.hasActiveInput, isFalse);
+    expect(press.isFeedbackActive, isTrue);
+    expect(trace, ['feedback:true']);
+    press.cancel();
+    expect(press.hasActiveInput, isFalse);
+    expect(trace, ['feedback:true', 'feedback:false']);
+    await tester.pump(Duration(seconds: 1));
+    expect(trace, ['feedback:true', 'feedback:false']);
+  });
+
+  testWidgets('临时越界熄灭反馈，返回不重算最初按下的最短时间', (tester) async {
+    final feedback = <bool>[];
+    var taps = 0;
+    final press = PressRecognizer()
+      ..tapSlopTolerance = double.infinity
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..isEligible = ((_, event) => event.position.dx < 20)
+      ..onFeedbackChanged = feedback.add
+      ..callbacks[ElEventPhase.tap] = ((_) => taps++);
+    addTearDown(press.dispose);
+    _down(1802, [press]);
+    await tester.pump(Duration(milliseconds: 40));
+    _move(1802, Offset(30, 0));
+    expect(press.isPressed, isFalse);
+    expect(feedback, [true, false]);
+    await tester.pump(Duration(milliseconds: 20));
+    _move(1802, Offset(10, 0));
+    expect(press.isPressed, isTrue);
+    _up(1802, position: Offset(10, 0), milliseconds: 60);
+    expect(taps, 1);
+    expect(feedback, [true, false, true]);
+    await tester.pump(Duration(milliseconds: 39));
+    expect(press.isFeedbackActive, isTrue);
+    await tester.pump(Duration(milliseconds: 1));
+    expect(feedback, [true, false, true, false]);
+  });
+
+  testWidgets('反馈计时按物理 Down 隔离，旧触摸截止不清除新反馈', (tester) async {
+    final feedback = <bool>[];
+    final press = PressRecognizer()
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..onFeedbackChanged = feedback.add;
+    addTearDown(press.dispose);
+    _down(1803, [press]);
+    _up(1803, milliseconds: 5);
+    await tester.pump(Duration(milliseconds: 50));
+    _down(1804, [press], milliseconds: 50);
+    _up(1804, milliseconds: 55);
+    await tester.pump(Duration(milliseconds: 50));
+    expect(press.isFeedbackActive, isTrue);
+    expect(feedback, [true]);
+    press.cancel();
+    expect(feedback, [true, false]);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(feedback, [true, false]);
+  });
+
+  testWidgets('成员取消也清除已经抬手的反馈保留', (tester) async {
+    final feedback = <bool>[];
+    final press = PressRecognizer()
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..onFeedbackChanged = feedback.add;
+    addTearDown(press.dispose);
+    _down(1822, [press]);
+    _up(1822);
+    expect(press.isFeedbackActive, isTrue);
+    press.cancelMember();
+    expect(press.isFeedbackActive, isFalse);
+    expect(feedback, [true, false]);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(feedback, [true, false]);
+  });
+
+  testWidgets('反馈回调异常不吞掉同一次按压的业务通知', (tester) async {
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..onFeedbackChanged = (value) {
+        if (value) throw StateError('feedback failure');
+      }
+      ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('down'))
+      ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('up'))
+      ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'));
+    addTearDown(press.dispose);
+    _down(1823, [press]);
+    expect(tester.takeException(), isA<StateError>());
+    _up(1823);
+    expect(trace, ['down', 'up', 'tap']);
+  });
+
+  testWidgets('鼠标反馈即时进入和释放，不采用触摸延迟或保留时间', (tester) async {
+    final feedback = <bool>[];
+    final press = PressRecognizer()
+      ..feedbackDelay = Duration(seconds: 1)
+      ..minimumFeedbackDuration = Duration(seconds: 1)
+      ..onFeedbackChanged = feedback.add;
+    addTearDown(press.dispose);
+    _down(1805, [press], kind: PointerDeviceKind.mouse);
+    expect(feedback, [true]);
+    _up(1805, kind: PointerDeviceKind.mouse);
+    expect(feedback, [true, false]);
+  });
+
+  testWidgets('反馈到期回调重入新的按压后，旧清理不会覆盖新状态', (tester) async {
+    var reentered = false;
+    final feedback = <bool>[];
+    late PressRecognizer press;
+    press = PressRecognizer()
+      ..minimumFeedbackDuration = Duration(milliseconds: 20)
+      ..onFeedbackChanged = (value) {
+        feedback.add(value);
+        if (!value && !reentered) {
+          reentered = true;
+          _down(1807, [press], milliseconds: 20);
+        }
+      };
+    addTearDown(press.dispose);
+    _down(1806, [press]);
+    _up(1806, milliseconds: 5);
+    await tester.pump(Duration(milliseconds: 20));
+    expect(feedback, [true, false, true]);
+    expect(press.isPressed, isTrue);
+    expect(press.isFeedbackActive, isTrue);
+    _up(1807, milliseconds: 25);
+    await tester.pump(Duration(milliseconds: 20));
+    expect(feedback, [true, false, true, false]);
+  });
+
+  testWidgets('祖先参考点搬动永久取消，移回原点也不恢复点击', (tester) async {
+    var origin = Offset.zero;
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..tapSlopTolerance = double.infinity
+      ..ancestorOriginResolver = (() => origin)
+      ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('down'))
+      ..callbacks[ElEventPhase.tapCancel] = ((_) => trace.add('cancel'))
+      ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('up'))
+      ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'));
+    addTearDown(press.dispose);
+    _down(1808, [press]);
+    origin = Offset(100, 0);
+    _move(1808, Offset.zero);
+    origin = Offset.zero;
+    _move(1808, Offset.zero);
+    _up(1808);
+    expect(trace, ['down', 'cancel', 'up']);
+    _down(1809, [press]);
+    _up(1809);
+    expect(trace, ['down', 'cancel', 'up', 'down', 'up', 'tap']);
+  });
+
+  testWidgets('待定点击因祖先搬移放弃时结清 Up，也不挡住官方点击', (tester) async {
+    var origin = Offset.zero;
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..ancestorOriginResolver = (() => origin)
+      ..callbacks[ElEventPhase.tapDown] = ((_) => trace.add('down'))
+      ..callbacks[ElEventPhase.tapCancel] = ((_) => trace.add('cancel'))
+      ..callbacks[ElEventPhase.tapUp] = ((_) => trace.add('up'))
+      ..callbacks[ElEventPhase.tap] = ((_) => trace.add('tap'));
+    final official = TapGestureRecognizer()..onTap = () => trace.add('official');
+    addTearDown(press.dispose);
+    addTearDown(official.dispose);
+    _down(1820, [press, official]);
+    origin = Offset(100, 0);
+    _move(1820, Offset.zero);
+    _up(1820);
+    expect(trace, ['down', 'cancel', 'up', 'official']);
+  });
+
+  testWidgets('没有 Move 时长按截止仍检查祖先搬动并取消反馈', (tester) async {
+    var origin = Offset.zero;
+    final trace = <String>[];
+    final press = PressRecognizer()
+      ..ancestorOriginResolver = (() => origin)
+      ..longPressDelay = Duration(milliseconds: 20)
+      ..onFeedbackChanged = ((value) => trace.add('feedback:$value'))
+      ..callbacks[ElEventPhase.tapCancel] = ((_) => trace.add('cancel'))
+      ..callbacks[ElEventPhase.longPress] = ((_) => trace.add('long'));
+    addTearDown(press.dispose);
+    _down(1810, [press]);
+    origin = Offset(100, 0);
+    await tester.pump(Duration(milliseconds: 20));
+    _up(1810);
+    expect(trace, ['feedback:true', 'feedback:false', 'cancel']);
+  });
+
+  testWidgets('祖先长按先到期仍从最深有效成员沿链通知，整组只发生一次', (tester) async {
+    final trace = <String>[];
+    final parent = recordingPress(trace, 'parent')..longPressDelay = Duration(milliseconds: 20);
+    final child = recordingPress(trace, 'child', parent: parent)..longPressDelay = Duration(milliseconds: 100);
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    _down(1811, [child, parent]);
+    await tester.pump(Duration(milliseconds: 20));
+    expect(trace, [
+      'child.down',
+      'parent.down',
+      'child.longPress',
+      'parent.longPress',
+      'child.cancel',
+      'parent.cancel',
+    ]);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(trace.where((event) => event.endsWith('longPress')), hasLength(2));
+    _up(1811, milliseconds: 120);
+    expect(trace.where((event) => event.endsWith('.tap')), isEmpty);
+  });
+
+  testWidgets('祖先可否决长按默认点击取消，同阶段共享而后续点击重新置空', (tester) async {
+    final trace = <String>[];
+    var defaults = 0;
+    final parent = recordingPress(trace, 'parent')
+      ..longPressDelay = Duration(milliseconds: 100)
+      ..onLongPressDefault = ((_) => defaults++)
+      ..callbacks[ElEventPhase.longPress] = (event) {
+        trace.add('parent.long');
+        event.preventDefault();
+      };
+    final child = recordingPress(trace, 'child', parent: parent)
+      ..longPressDelay = Duration(milliseconds: 20)
+      ..onLongPressDefault = ((_) => defaults++)
+      ..callbacks[ElEventPhase.longPress] = ((event) => trace.add('child.long:${event.defaultPrevented}'))
+      ..callbacks[ElEventPhase.tap] = ((event) => trace.add('child.tap:${event.defaultPrevented}'));
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    _down(1812, [child, parent]);
+    await tester.pump(Duration(milliseconds: 20));
+    expect(trace, ['child.down', 'parent.down', 'child.long:false', 'parent.long']);
+    expect(defaults, 0);
+    _up(1812, milliseconds: 25);
+    expect(trace, [
+      'child.down',
+      'parent.down',
+      'child.long:false',
+      'parent.long',
+      'child.up',
+      'parent.up',
+      'child.tap:false',
+      'parent.tap',
+    ]);
+  });
+
+  testWidgets('长按默认动作在整链完成后仅由最先到期成员执行一次', (tester) async {
+    final trace = <String>[];
+    PressGestureDetails? parentDetails;
+    PressGestureDetails? defaultDetails;
+    bool? defaultWasActive;
+    final parent = PressRecognizer()
+      ..longPressDelay = Duration(milliseconds: 20)
+      ..callbacks[ElEventPhase.longPress] = (event) {
+        trace.add('parent.long');
+        parentDetails = event;
+      }
+      ..onLongPressDefault = (event) {
+        trace.add('parent.default');
+        defaultDetails = event;
+        defaultWasActive = event.isActive;
+      };
+    final child = PressRecognizer()
+      ..parent = parent
+      ..longPressDelay = Duration(milliseconds: 100)
+      ..callbacks[ElEventPhase.longPress] = ((_) => trace.add('child.long'))
+      ..onLongPressDefault = ((_) => trace.add('child.default'));
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    _down(1824, [child, parent]);
+    await tester.pump(Duration(milliseconds: 20));
+    expect(trace, ['child.long', 'parent.long', 'parent.default']);
+    expect(defaultDetails!.dispatchIdentity, same(parentDetails!.dispatchIdentity));
+    expect(defaultDetails!.sequenceIdentity, same(parentDetails!.sequenceIdentity));
+    expect(defaultWasActive, isTrue);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(trace, ['child.long', 'parent.long', 'parent.default']);
+    _up(1824, milliseconds: 120);
+  });
+
+  testWidgets('长按链中其他成员取消最先到期候选后不再执行旧默认动作', (tester) async {
+    var defaults = 0;
+    final parent = PressRecognizer()..longPressDelay = Duration(milliseconds: 100);
+    final child = PressRecognizer()
+      ..parent = parent
+      ..longPressDelay = Duration(milliseconds: 20)
+      ..callbacks[ElEventPhase.longPress] = ((_) {})
+      ..onLongPressDefault = ((_) => defaults++);
+    parent.callbacks[ElEventPhase.longPress] = (event) => child.cancelMember(event.pointer);
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    _down(1825, [child, parent]);
+    await tester.pump(Duration(milliseconds: 120));
+    expect(defaults, 0);
+    expect(child.hasActiveInput, isFalse);
+    _up(1825, milliseconds: 120);
+  });
+
+  testWidgets('只声明通用长按默认动作也能独立识别且不重复执行', (tester) async {
+    var defaults = 0;
+    final press = PressRecognizer()
+      ..longPressDelay = Duration(milliseconds: 20)
+      ..onLongPressDefault = ((_) => defaults++);
+    addTearDown(press.dispose);
+    _down(1826, [press]);
+    await tester.pump(Duration(milliseconds: 120));
+    expect(defaults, 1);
+    _up(1826, milliseconds: 120);
+    expect(defaults, 1);
+  });
+
+  testWidgets('侧键最近订阅策略不让祖先收到任一阶段，四种按钮均可独立点击', (tester) async {
+    final trace = <String>[];
+    final parent = PressRecognizer()
+      ..callbacks[ElEventPhase.secondaryTapDown] = ((_) => trace.add('parent.down'))
+      ..callbacks[ElEventPhase.secondaryTapUp] = ((_) => trace.add('parent.up'))
+      ..callbacks[ElEventPhase.secondaryTap] = ((_) => trace.add('parent.secondary'))
+      ..callbacks[ElEventPhase.tertiaryTapDown] = ((_) => trace.add('parent.down'))
+      ..callbacks[ElEventPhase.tertiaryTapUp] = ((_) => trace.add('parent.up'))
+      ..callbacks[ElEventPhase.tertiaryTap] = ((_) => trace.add('parent.tertiary'))
+      ..callbacks[ElEventPhase.forwardTapDown] = ((_) => trace.add('parent.down'))
+      ..callbacks[ElEventPhase.forwardTapUp] = ((_) => trace.add('parent.up'))
+      ..callbacks[ElEventPhase.forwardTap] = ((_) => trace.add('parent.forward'))
+      ..callbacks[ElEventPhase.backTapDown] = ((_) => trace.add('parent.down'))
+      ..callbacks[ElEventPhase.backTapUp] = ((_) => trace.add('parent.up'))
+      ..callbacks[ElEventPhase.backTap] = ((_) => trace.add('parent.back'));
+    final child = PressRecognizer()
+      ..parent = parent
+      ..bubbleSideButtons = false
+      ..callbacks[ElEventPhase.secondaryTap] = ((_) => trace.add('child.secondary'))
+      ..callbacks[ElEventPhase.tertiaryTap] = ((_) => trace.add('child.tertiary'))
+      ..callbacks[ElEventPhase.forwardTap] = ((_) => trace.add('child.forward'))
+      ..callbacks[ElEventPhase.backTap] = ((_) => trace.add('child.back'));
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    var pointer = 1813;
+    for (final button in [kSecondaryButton, kTertiaryButton, kForwardMouseButton, kBackMouseButton]) {
+      _down(pointer, [child, parent], buttons: button, kind: PointerDeviceKind.mouse);
+      _up(pointer++, kind: PointerDeviceKind.mouse);
+    }
+    expect(trace, ['child.secondary', 'child.tertiary', 'child.forward', 'child.back']);
+  });
+
   testWidgets('主键放宽移动不改变侧键的独立移动容差', (tester) async {
     final taps = <String>[];
-    final press = ElPressGestureRecognizer()
+    final press = PressRecognizer()
       ..tapSlopTolerance = double.infinity
       ..secondaryTapSlopTolerance = 3
-      ..onTap = (_) {
+      ..callbacks[ElEventPhase.tap] = (_) {
         taps.add('primary');
       }
-      ..onSecondaryTap = (_) => taps.add('secondary');
+      ..callbacks[ElEventPhase.secondaryTap] = (_) => taps.add('secondary');
     addTearDown(press.dispose);
     _down(1530, [press]);
     _move(1530, const Offset(20, 0));
@@ -1562,6 +1796,131 @@ void main() {
     _down(1531, [press], buttons: kSecondaryButton);
     _up(1531, position: const Offset(20, 0));
     expect(taps, ['primary']);
+  });
+  testWidgets('取消旧延期点击的反馈回调中新建同编号输入，不取消新点击', (tester) async {
+    final taps = <int>[];
+    var replaceInput = false;
+    final press = PressRecognizer()
+      ..deferTap = true
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..callbacks[ElEventPhase.doubleTap] = (_) {}
+      ..callbacks[ElEventPhase.tap] = (details) => taps.add(details.downEvent.timeStamp.inMilliseconds);
+    addTearDown(press.dispose);
+    press.onFeedbackChanged = (value) {
+      if (!value && replaceInput) {
+        replaceInput = false;
+        _down(1840, [press], milliseconds: 10);
+        _up(1840, milliseconds: 20);
+      }
+    };
+    _down(1840, [press]);
+    _up(1840, milliseconds: 1);
+
+    replaceInput = true;
+    press.cancelMember(1840);
+    await tester.pump(Duration(milliseconds: 301));
+
+    expect(taps, [10]);
+  });
+
+  testWidgets('取消全部旧延期点击不清除反馈回调中新输入的连击历史', (tester) async {
+    final taps = <int>[];
+    final doubles = <int>[];
+    var replaceInput = false;
+    final press = PressRecognizer()
+      ..deferTap = true
+      ..minimumFeedbackDuration = Duration(milliseconds: 100)
+      ..callbacks[ElEventPhase.doubleTap] = ((details) => doubles.add(details.tapCount))
+      ..callbacks[ElEventPhase.tap] = (details) => taps.add(details.downEvent.timeStamp.inMilliseconds);
+    addTearDown(press.dispose);
+    press.onFeedbackChanged = (value) {
+      if (!value && replaceInput) {
+        replaceInput = false;
+        _down(1841, [press], milliseconds: 10);
+        _up(1841, milliseconds: 20);
+      }
+    };
+    _down(1841, [press]);
+    _up(1841, milliseconds: 1);
+
+    replaceInput = true;
+    press.cancelMember();
+    _down(1842, [press], milliseconds: 50);
+    _up(1842, milliseconds: 60);
+    await tester.pump(Duration(milliseconds: 301));
+
+    expect(doubles, [2]);
+    expect(taps, isEmpty);
+  });
+
+  testWidgets('释放资格回调取消自身后不重新建立连击窗口', (tester) async {
+    var taps = 0, doubleDowns = 0, doubles = 0;
+    var cancelOnRelease = true;
+    final press = PressRecognizer()
+      ..deferTap = true
+      ..callbacks[ElEventPhase.tap] = ((_) => taps++)
+      ..callbacks[ElEventPhase.doubleTapDown] = ((_) => doubleDowns++)
+      ..callbacks[ElEventPhase.doubleTap] = (_) => doubles++;
+    addTearDown(press.dispose);
+    press.isEligible = (phase, event) {
+      if (phase == ElEventPhase.tap && event is PointerUpEvent && cancelOnRelease) {
+        cancelOnRelease = false;
+        press.cancelMember(event.pointer);
+      }
+      return true;
+    };
+    _down(1843, [press]);
+    await tester.pump();
+    _up(1843, milliseconds: 10);
+    _down(1844, [press], milliseconds: 50);
+    await tester.pump();
+    _up(1844, milliseconds: 60);
+    await tester.pump(Duration(milliseconds: 301));
+
+    expect(doubleDowns, 0);
+    expect(doubles, 0);
+    expect(taps, 1);
+  });
+
+  testWidgets('释放资格回调拒绝点击后保留释放通知且不再提交点击', (tester) async {
+    var taps = 0, ups = 0;
+    final press = PressRecognizer()
+      ..callbacks[ElEventPhase.tap] = ((_) => taps++)
+      ..callbacks[ElEventPhase.tapUp] = (_) => ups++;
+    addTearDown(press.dispose);
+    press.isEligible = (phase, event) {
+      if (phase == ElEventPhase.tap && event is PointerUpEvent) press.rejectTap(event.pointer);
+      return true;
+    };
+    _down(1846, [press]);
+    await tester.pump();
+    _up(1846);
+
+    expect(ups, 1);
+    expect(taps, 0);
+  });
+
+  testWidgets('释放资格回调取消子成员后祖先点击不继承已取消的延期策略', (tester) async {
+    final taps = <String>[];
+    final parent = PressRecognizer()..callbacks[ElEventPhase.tap] = (_) => taps.add('parent');
+    final child = PressRecognizer()
+      ..parent = parent
+      ..deferTap = true
+      ..callbacks[ElEventPhase.tap] = ((_) => taps.add('child'))
+      ..callbacks[ElEventPhase.doubleTap] = (_) {};
+    addTearDown(parent.dispose);
+    addTearDown(child.dispose);
+    child.isEligible = (phase, event) {
+      if (phase == ElEventPhase.tap && event is PointerUpEvent) child.cancelMember(event.pointer);
+      return true;
+    };
+    _down(1845, [child, parent]);
+    await tester.pump();
+    _up(1845, milliseconds: 10);
+
+    expect(taps, ['parent']);
+    await tester.pump(Duration(milliseconds: 301));
+    expect(taps, ['parent']);
   });
 }
 
