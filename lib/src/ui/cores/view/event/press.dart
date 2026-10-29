@@ -1034,7 +1034,9 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
                 member is TransformRecognizer &&
                 !member.receivesDragUpdates(pointer) ||
             skipCancelingMembers && state.canceling ||
-            !member._registeredFor(route, pointer) ||
+            (callback.phase == ElEventPhase.tapCancel
+                ? !subscription.downs.containsKey(pointer)
+                : !member._registeredFor(route, pointer)) ||
             candidate &&
                 !member._participates(pointer) &&
                 !(family == _GestureFamily.scale && member._cooperation?.canClaimPointers([pointer]) == true) ||
@@ -2924,6 +2926,8 @@ class PressRecognizer extends _GestureRecognizer {
     sequence.group.deferredTap?.remove(sequence);
     sequence.group.owner._notifyCancel(sequence, reason, event);
     sequence.canceled = true;
+    // 边界传播可能重入取消；已结算的成员不得再次接收合成 TapCancel。
+    sequence.group.route.subscription(this).phase(_GestureFamily.press).excluded = true;
     _releaseSequence(sequence);
   }
 

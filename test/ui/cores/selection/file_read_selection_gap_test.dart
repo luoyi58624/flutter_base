@@ -107,7 +107,8 @@ SelectionParticipant _participantForRender(WidgetTester tester, ElRenderView ren
 bool _isSelected(WidgetTester tester, Key key) {
   final render = _renderForKey(tester, key);
   final range = _participantForRender(tester, render).currentSelectionRange;
-  return range != null && !range.isCollapsed;
+  return range != null && !range.isCollapsed ||
+      selectionParticipantsOf([render]).any((participant) => participant.currentSelectionRange?.isCollapsed == false);
 }
 
 ui.Rect _selectionRect(ElRenderView render) {
@@ -123,6 +124,14 @@ ui.Rect _selectionRect(ElRenderView render) {
 ui.Rect _firstGlyphRect(ElRenderView render) {
   final boxes = render.textEngineForTest!.getBoxesForSelectionForTest(0, 1);
   expect(boxes, isNotEmpty, reason: '富文本首字符必须有 tight glyph box');
+  // 首字符是 WidgetSpan 时，占位盒含完整行距；探针应读取子文本的真实字形。
+  final placeholders = render.textEngineForTest!.painterForTest.inlinePlaceholderBoxes;
+  if (placeholders != null && placeholders.isNotEmpty && boxes.first.toRect() == placeholders.first.toRect()) {
+    final child = render.getChildrenAsList().first;
+    if (child is ElRenderView && child.textEngineForTest != null) {
+      return MatrixUtils.transformRect(child.getTransformTo(render), _firstGlyphRect(child));
+    }
+  }
   return boxes.first.toRect().shift(render.contentOrigin);
 }
 
@@ -178,8 +187,6 @@ void main() {
         );
       }
     },
-    // 暂跳过：无头字体下富文本行顶仅有 0.5px leading，无法满足大于 1px 的探针前置条件；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -221,7 +228,5 @@ void main() {
       expect(belowAnchorSelectedAtGap, isFalse, reason: '锚点下方的正文行不得因空隙命中错误而反向溢出');
       expect(firstSelectedAtGap, isTrue, reason: '拖选停在首行顶部 leading 时，首行正文应正常进入选区');
     },
-    // 暂跳过：无头字体下富文本行顶仅有 0.5px leading，无法满足大于 1px 的探针前置条件；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }

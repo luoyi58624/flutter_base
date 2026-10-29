@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
 import '../presence/presence.dart';
 import '../view/event/dispatcher.dart' show EventDispatcher;
 import 'anchor.dart';
@@ -347,12 +349,12 @@ class _PortalState extends State<ElPortal> {
     back?.remove();
   }
 
-  KeyEventResult _key(KeyEvent event) {
+  KeyEventResult _key(KeyEvent event, {bool fromScope = false}) {
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.escape &&
         widget.closeOnEscape &&
         _top &&
-        FocusManager.instance.primaryFocus?.context?.findAncestorStateOfType<_PortalState>() != this &&
+        (fromScope || FocusManager.instance.primaryFocus?.context?.findAncestorStateOfType<_PortalState>() != this) &&
         ElPopupStack.isTopmostForEvent(this, event)) {
       _dismiss();
       return KeyEventResult.handled;
@@ -377,68 +379,92 @@ class _PortalState extends State<ElPortal> {
   @override
   Widget build(BuildContext context) {
     _bindController();
-    return OverlayPortal.overlayChildLayoutBuilder(
-      controller: _portal,
-      overlayLocation: _root ? OverlayChildLocation.rootOverlay : OverlayChildLocation.nearestOverlay,
-      child: TapRegion(key: _targetKey, groupId: this, child: _shortcuts(_region(widget.child))),
-      overlayChildBuilder: (context, info) {
-        if (_content == null) return const SizedBox.shrink();
-        if (_open && widget.captureFocus && !_focus.hasFocus) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _open) _requestFocus();
-          });
-        }
-        final rect = MatrixUtils.transformRect(info.childPaintTransform, Offset.zero & info.childSize);
-        final viewport = Offset.zero & info.overlaySize;
-        final lost = rect.isEmpty ? !viewport.contains(rect.topLeft) : !rect.overlaps(viewport);
-        if (lost && !_lost && widget.closeWhenUnlinked) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _dismiss();
-          });
-        }
-        _lost = lost;
-        return IgnorePointer(
-          key: _ignoreKey,
-          ignoring: !_open,
-          child: Offstage(
-            offstage: lost && widget.hideWhenUnlinked,
-            child: CustomSingleChildLayout(
-              delegate: _PopupLayout(rect, widget.anchor, _publish),
-              child: TapRegion(
-                key: _tapKey,
-                groupId: this,
-                behavior: _top ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
-                consumeOutsideTaps: _top && widget.consumeOutsideTap,
-                onTapOutside: (event) {
-                  if (_top && ElPopupStack.isTopmostForEvent(this, event)) {
-                    _outsideDown = (event.pointer, event.position);
-                  }
-                },
-                onTapUpOutside: (event) {
-                  final down = _outsideDown;
-                  _outsideDown = null;
-                  if (down != null &&
-                      down.$1 == event.pointer &&
-                      (event.position - down.$2).distance <= kTouchSlop &&
-                      widget.closeOnOutsideTap &&
-                      _top &&
-                      ElPopupStack.isTopmostForEvent(this, event)) {
-                    scheduleMicrotask(_dismiss);
-                  }
-                },
-                child: _PortalScope(
-                  geometry: _geometry,
-                  phase: _phase,
-                  child: FocusScope(
-                    node: _focus,
-                    child: KeyedSubtree(key: _panelKey, child: _shortcuts(_region(_content!))),
-                  ),
+    Widget buildOverlay(BuildContext context, Matrix4 targetTransform, Size targetSize, Size overlaySize) {
+      if (_content == null) return const SizedBox.shrink();
+      if (_open && widget.captureFocus && !_focus.hasFocus) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _open) _requestFocus();
+        });
+      }
+      final rect = MatrixUtils.transformRect(targetTransform, Offset.zero & targetSize);
+      final viewport = Offset.zero & overlaySize;
+      final lost = rect.isEmpty ? !viewport.contains(rect.topLeft) : !rect.overlaps(viewport);
+      if (lost && !_lost && widget.closeWhenUnlinked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _dismiss();
+        });
+      }
+      _lost = lost;
+      return IgnorePointer(
+        key: _ignoreKey,
+        ignoring: !_open,
+        child: Offstage(
+          offstage: lost && widget.hideWhenUnlinked,
+          child: CustomSingleChildLayout(
+            delegate: _PopupLayout(rect, widget.anchor, _publish),
+            child: TapRegion(
+              key: _tapKey,
+              groupId: this,
+              behavior: _top ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
+              consumeOutsideTaps: _top && widget.consumeOutsideTap,
+              onTapOutside: (event) {
+                if (_top && ElPopupStack.isTopmostForEvent(this, event)) {
+                  _outsideDown = (event.pointer, event.position);
+                }
+              },
+              onTapUpOutside: (event) {
+                final down = _outsideDown;
+                _outsideDown = null;
+                if (down != null &&
+                    down.$1 == event.pointer &&
+                    (event.position - down.$2).distance <= kTouchSlop &&
+                    widget.closeOnOutsideTap &&
+                    _top &&
+                    ElPopupStack.isTopmostForEvent(this, event)) {
+                  scheduleMicrotask(_dismiss);
+                }
+              },
+              child: _PortalScope(
+                geometry: _geometry,
+                phase: _phase,
+                child: FocusScope(
+                  node: _focus,
+                  onKeyEvent: (_, event) => _key(event, fromScope: true),
+                  canRequestFocus: _open,
+                  descendantsAreFocusable: _open,
+                  descendantsAreTraversable: _open,
+                  child: KeyedSubtree(key: _panelKey, child: _shortcuts(_region(_content!))),
                 ),
               ),
             ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    final child = TapRegion(key: _targetKey, groupId: this, child: _shortcuts(_region(widget.child)));
+    final location = _root ? OverlayChildLocation.rootOverlay : OverlayChildLocation.nearestOverlay;
+    // Follower 的坐标只在合成后有效，不能交给官方布局期目标变换查询。
+    if (context.findAncestorRenderObjectOfType<RenderFollowerLayer>() != null) {
+      return OverlayPortal(
+        controller: _portal,
+        overlayLocation: location,
+        child: child,
+        overlayChildBuilder: (context) => LayoutBuilder(
+          builder: (context, constraints) {
+            final target = _targetKey.currentContext!.findRenderObject()! as RenderBox;
+            final overlay = Overlay.of(context, rootOverlay: _root).context.findRenderObject();
+            return buildOverlay(context, target.getTransformTo(overlay), target.size, constraints.biggest);
+          },
+        ),
+      );
+    }
+    return OverlayPortal.overlayChildLayoutBuilder(
+      controller: _portal,
+      overlayLocation: location,
+      child: child,
+      overlayChildBuilder: (context, info) =>
+          buildOverlay(context, info.childPaintTransform, info.childSize, info.overlaySize),
     );
   }
 

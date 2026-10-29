@@ -135,8 +135,6 @@ void main() {
       expect((render.isHandleDragInProgress || render.isSelectionDragging), isFalse);
       expect(controller.offset, 0);
     },
-    // 暂跳过：当前句柄祖先含两层 SelectionChromeSlotHost，旧契约要求唯一独立宿主；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('提升后的句柄响应 controls 动态更新，选区内容保持', (tester) async {
@@ -257,7 +255,5 @@ void main() {
       expect(find.byType(ElEditableView), findsNothing);
       expect(tester.takeException(), isNull);
     },
-    // 暂跳过：当前句柄祖先含两层 SelectionChromeSlotHost，旧契约要求唯一独立宿主；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }

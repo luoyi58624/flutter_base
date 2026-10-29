@@ -45,7 +45,12 @@ class TextContent {
   factory TextContent.parse(Object? value) {
     InlineSpan convert(Object? item) => switch (item) {
       InlineSpan span => span,
-      Widget widget => WidgetSpan(child: widget),
+      // 内联文本按真实基线对齐，bottom 会把子行盒再叠加一次父行 descent。
+      Widget widget => WidgetSpan(
+        alignment: widget is ElView ? PlaceholderAlignment.baseline : PlaceholderAlignment.bottom,
+        baseline: widget is ElView ? TextBaseline.alphabetic : null,
+        child: widget,
+      ),
       IconData icon => WidgetSpan(child: ElView(child: icon)),
       Iterable items => TextSpan(children: items.where((item) => item != null).map(convert).toList()),
       _ => TextSpan(text: item?.toString() ?? ''),
@@ -233,7 +238,8 @@ class TextEngine extends SelectionContent {
         (child.parentData! as ElTextParentData).scale = scale;
       }
       final baseline = span.alignment == PlaceholderAlignment.baseline
-          ? (dry ? child.getDryBaseline(constraints, span.baseline!) : child.getDistanceToBaseline(span.baseline!))
+          ? (dry ? child.getDryBaseline(constraints, span.baseline!) : child.getDistanceToBaseline(span.baseline!)) ??
+                size.height
           : null;
       out.add(
         PlaceholderDimensions(
@@ -272,20 +278,27 @@ class TextEngine extends SelectionContent {
   }
 
   /// dry/intrinsic 使用短生命周期 painter，不改主排版及子项位置。
-  TextPainter _probe(TextPaintInput input, BoxConstraints constraints) {
+  TextPainter _probe(TextPaintInput input, BoxConstraints constraints, {bool fillWidth = false}) {
     final painter = _configure(TextPainter(), input, dry: true);
     painter.setPlaceholderDimensions(_placeholders(painter, constraints, dry: true));
-    return painter..layout(maxWidth: _maxWidth(input, constraints.maxWidth));
+    final tight = fillWidth && input.style.box.alignment == null && constraints.hasBoundedWidth;
+    return painter
+      ..layout(minWidth: tight ? constraints.maxWidth : 0, maxWidth: _maxWidth(input, constraints.maxWidth));
   }
 
-  Size computeDryContentSize(BoxConstraints constraints, TextPaintInput input, {bool fillWidth = false}) {
-    final painter = _probe(input, constraints);
-    if (fillWidth && input.style.box.alignment == null && constraints.hasBoundedWidth) {
-      painter.layout(minWidth: constraints.maxWidth, maxWidth: _maxWidth(input, constraints.maxWidth));
-    }
+  /// dry 尺寸和基线共用一次独立排版，不改正式 painter 和子项位置。
+  ({Size size, double baseline}) computeDryMetrics(
+    BoxConstraints constraints,
+    TextPaintInput input, {
+    bool fillWidth = false,
+    TextBaseline baseline = TextBaseline.alphabetic,
+  }) {
+    final painter = _probe(input, constraints, fillWidth: fillWidth);
     final size = constraints.loosen().constrain(_icon ? Size.square(_iconExtent(input)) : painter.size);
+    final distance =
+        painter.computeDistanceToActualBaseline(baseline) + (_icon ? (size.height - painter.height) / 2 : 0);
     painter.dispose();
-    return size;
+    return (size: size, baseline: distance);
   }
 
   ContentSizes computeIntrinsicSizes(double width, TextPaintInput input) {
@@ -296,13 +309,8 @@ class TextEngine extends SelectionContent {
     return sizes;
   }
 
-  double intrinsicHeight(TextPaintInput input, double width) {
-    if (_icon) return _iconExtent(input);
-    final painter = _probe(input, BoxConstraints(maxWidth: width));
-    final height = painter.height;
-    painter.dispose();
-    return height;
-  }
+  double intrinsicHeight(TextPaintInput input, double width) =>
+      computeDryMetrics(BoxConstraints(maxWidth: width), input).size.height;
 
   /// 最终盒尺寸确定后统一更新文本原点。
   void repositionAlignedText(TextPaintInput input, {required double contentW, required double contentH}) {
@@ -491,6 +499,8 @@ class TextEngine extends SelectionContent {
     );
     if (!boxes.any((box) => _accepts(box.toRect(), local))) return false;
     final span = _content!.span.getSpanForPosition(TextPosition(offset: glyph.graphemeClusterCodeUnitRange.start));
+    // 占位子项没有命中时，不能把它原来的布局盒当作可点击文字挡住后方内容。
+    if (span is WidgetSpan) return false;
     if (span is HitTestTarget) result.add(HitTestEntry(span as HitTestTarget));
     return true;
   }
@@ -614,6 +624,14 @@ class TextEngine extends SelectionContent {
     var index = 0;
     for (final box in getBoxesForSelectionForTest(safe.start, safe.end)) {
       if (box.toRect().isEmpty) continue;
+      // 子参与者已有实际选区时由它绘制；独立几何查询仍返回完整占位盒。
+      final placeholderIndex = (_painter.inlinePlaceholderBoxes ?? const <TextBox>[]).indexWhere(
+        (placeholder) => placeholder.toRect() == box.toRect(),
+      );
+      if (placeholderIndex >= 0 &&
+          selectionParticipantOf(_children()[placeholderIndex])?.currentSelectionRange?.isCollapsed == false) {
+        continue;
+      }
       while (index < bands.length - 1 &&
           box.toRect().center.dy > bands[index].line.baseline + bands[index].line.descent + .5) {
         index++;

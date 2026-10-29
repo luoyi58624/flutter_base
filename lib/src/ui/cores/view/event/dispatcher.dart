@@ -376,7 +376,8 @@ class EventDispatcher {
     )..pointerCount = activePointerCount;
     if (input is PointerPanZoomEndEvent && reason != null) callback.preventDefault();
     _invoke(handler, callback);
-    if (input is PointerSignalEvent && (callback.defaultPrevented || callback.remainingDelta != callback.delta)) {
+    if (input is PointerSignalEvent &&
+        (callback.defaultPrevented || callback.remainingDelta == Offset.zero && callback.delta != Offset.zero)) {
       GestureBinding.instance.pointerSignalResolver.register(
         input,
         (event) => event.respond(allowPlatformDefault: false),
@@ -775,7 +776,7 @@ extension _EventBinding on EventDispatcher {
     callback.localDelta = localPositionResolver == null
         ? transform?.localDelta ?? Offset.zero
         : _localDelta(position, transform?.delta ?? Offset.zero);
-    callback.pointerCount = phase == ElEventPhase.dragCancel ? activePointerCount : transform?.pointerCount ?? 0;
+    callback.pointerCount = _dragPhases.contains(phase) ? activePointerCount : transform?.pointerCount ?? 0;
     callback.updateLocalDeltaResolver((delta) => _localDelta(details.globalPosition, delta));
     _bindEagerGesture(callback, details.pointer, details);
     return callback;
@@ -850,7 +851,8 @@ extension _EventBinding on EventDispatcher {
           (proxy.axis == null || proxy.axis == axis) &&
           (registered || member._team.onPointerEvent == null)) {
         proxies.add(member._transform);
-      } else if (registered && member._hasDragForAxis(axis) && member._transform.canReceiveDrag(pointer, axis)) {
+      } else if (registered &&
+          (member._hasPrimaryTap || member._hasDragForAxis(axis) && member._transform.canReceiveDrag(pointer, axis))) {
         cutoff = member._team;
         break;
       }

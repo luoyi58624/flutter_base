@@ -572,8 +572,6 @@ void main() {
       // 新弹窗夺焦时旧菜单已经收起，弹窗关闭后不会重新出现。
       expect(itemFocus(tester, preferred).hasPrimaryFocus, isTrue);
     },
-    // 暂跳过：Esc 关闭上层弹窗后旧 FocusScope 仍持焦，尚未完成菜单焦点归还；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('动态禁用、清空模型和移除组件会释放菜单与快捷键', (tester) async {

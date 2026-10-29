@@ -154,7 +154,5 @@ void main() {
       expect(pageRoot.attached, isTrue);
       expect(controller.text, isNull, reason: '已销毁 selection window 的 pointer 余序列不得写入页面');
     },
-    // 暂跳过：该拖拽场景未激活全局 selection window，无法进入卸载清理的前置状态；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }

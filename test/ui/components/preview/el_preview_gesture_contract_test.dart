@@ -234,8 +234,6 @@ void main() {
       expect(innerTaps, 0, reason: '内容拖拽成立后后代 Tap 必须失权');
       expect(outerTaps, 0, reason: '内容拖拽成立后祖先 Tap 必须失权');
     },
-    // 暂跳过：Zoom 与分页合作拖拽结束后祖先 Tap 仍触发，尚未完整排除竞争者；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -337,8 +335,6 @@ void main() {
       expect(outerTaps, 0, reason: 'page drag/Scale 成立后祖先 Tap 必须失权');
       expect(nextTaps, 0, reason: 'inert 邻页不得因第二指 down/up 合成 Tap');
     },
-    // 暂跳过：半页追加第二指后未升级 Scale，当前缩放仍为 1；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-G5: 切页动画纯触摸不中断，真实拖动从当前视觉位置无缝接管', (tester) async {
@@ -940,8 +936,6 @@ void main() {
       await tester.pump();
       expect(preview.index, 0);
     },
-    // 暂跳过：Scroll 消费首指后第二指 4px span 未立即升级 Scale；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -1019,8 +1013,6 @@ void main() {
       await _finishPageMotion(tester);
       expect(preview.index, 0, reason: '第二指加入后本次 page drag 必须取消，不得沿用旧 gap 提交页');
     },
-    // 暂跳过：第二指落在露出的邻页时，首指的 Scale reservation 未完成交接；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -1082,8 +1074,6 @@ void main() {
       await remaining.cancel();
       await _finishPageMotion(tester);
     },
-    // 暂跳过：双指未过 Scale slop 时分页仍提前移动了 10px；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-D1: 默认 wheel 围绕光标缩放并阻止平台重复处理', (tester) async {
@@ -1223,8 +1213,6 @@ void main() {
       expect(preview.currentTransform.scale, closeTo(1, 1e-9));
       expect(outer.offset, closeTo(expectedRemainder, 1e-6), reason: 'Scroll resolver 不得在 flush 时重新吃原始 1000px');
     },
-    // 暂跳过：缩放消费滚轮后外层 Scroll 未接收剩余 653.426px，offset 仍为 0；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-D5: trackpad 半页后 pinch 转入 transform，不误提交页面', (tester) async {
@@ -1763,8 +1751,6 @@ void main() {
       await scaleFirst.up();
       await scaleSecond.up();
     },
-    // 暂跳过：手势中更新旋转开关后缩放仍为 1，未延续已锁定的双指策略；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -1811,8 +1797,6 @@ void main() {
       await tester.pumpAndSettle();
       _expectOffset(controller.currentTransform.offset, const Offset(30, 20));
     },
-    // 暂跳过：对称双指原始 move 得到小于 1 的缩放值，尚未稳定分离缩放与平移；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-G26: 正常双指旋转不平移图片，松手后就近回正', (tester) async {
@@ -2078,8 +2062,6 @@ void main() {
       await _finishPageMotion(tester);
       expect(controller.index, 1);
     },
-    // 暂跳过：连续拖动跨页后反向的页位移为 -40px，尚未达到预期 +60px；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-G32: preloadCount=0 连续跨页也会及时挂载下一张且没有空白帧', (tester) async {
@@ -2183,8 +2165,6 @@ void main() {
       await _finishPageMotion(tester);
       expect(controller.index, 1);
     },
-    // 暂跳过：单个 trackpad pan stream 跨页后的余量只推进 -40px，预期为 -60px；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-D12: 默认与自定义 scaleSensitivity 同时作用于 trackpad pinch', (tester) async {
@@ -2346,8 +2326,6 @@ void main() {
       await gesture.cancel();
       await _finishPageMotion(tester);
     },
-    // 暂跳过：分页合作起拖前未取消祖先 Tap，无法满足先取消后副作用的顺序契约；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('PREVIEW-G38: strictPageDragIntent 下纵向斜拖交给父级，明确横拖仍翻页', (tester) async {

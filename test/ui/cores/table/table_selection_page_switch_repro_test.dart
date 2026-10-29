@@ -54,8 +54,6 @@ void main() {
 
       expect(tester.takeException(), isNull);
     },
-    // 暂跳过：表格首轮无法建立跨行跨列选区，无法进入切页重挂回归场景；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }
 

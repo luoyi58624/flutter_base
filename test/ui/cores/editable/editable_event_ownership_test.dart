@@ -110,8 +110,6 @@ void main() {
         expect(ancestorTaps, 0);
         await _unmount(tester);
       },
-      // 暂跳过：拖选独占时祖先仍收到未启动拖拽的 DragCancel，违反零 Drag 通知契约；保留原断言，待实现修复后恢复。
-      skip: true,
     );
   }
 
@@ -165,7 +163,5 @@ void main() {
       expect(ancestorCancels, 1);
       await _unmount(tester);
     },
-    // 暂跳过：长按认领会向祖先重复发送 TapCancel，第二次已发生选区变更；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }

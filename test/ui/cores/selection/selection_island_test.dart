@@ -113,8 +113,6 @@ void main() {
 
       expect(controller.text, isNull, reason: '点入岛即清外层选区');
     },
-    // 暂跳过：点击内层选择岛尚未清空外层已有选区；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('EditableView 自动成岛：编辑器内拖选不惊动外层选区', (tester) async {

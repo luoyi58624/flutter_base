@@ -302,11 +302,23 @@ SelectionParticipant? selectionParticipantOf(RenderObject node) {
   return null;
 }
 
-/// 从一批 RenderObject 收集非空选区参与者（测试 / 调试用）。
+/// 从一批 RenderObject 及其真实渲染后代收集选区参与者，自动去重（测试 / 调试用）。
 Iterable<SelectionParticipant> selectionParticipantsOf(Iterable<RenderObject> nodes) sync* {
-  for (final node in nodes) {
+  final seen = Set<RenderObject>.identity();
+  Iterable<SelectionParticipant> visit(RenderObject node) sync* {
+    if (!seen.add(node)) return;
     final participant = selectionParticipantOf(node);
     if (participant != null) yield participant;
+    final children = <RenderObject>[];
+    visitSelectionChildren(node, children.add);
+    for (final child in children) {
+      yield* visit(child);
+    }
+  }
+
+  for (final node in nodes) {
+    // 表格等直接持有 Render 子节点的宿主也属于真实选区树。
+    yield* visit(node);
   }
 }
 

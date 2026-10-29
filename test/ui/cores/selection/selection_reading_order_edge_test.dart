@@ -162,8 +162,6 @@ void main() {
       controller.clear();
       await tester.pump();
     },
-    // 暂跳过：当前选区按视觉或层叠顺序连接文本，尚未满足这些用例要求的文档树顺序；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -234,8 +232,6 @@ void main() {
       controller.clear();
       await tester.pump();
     },
-    // 暂跳过：当前选区按视觉或层叠顺序连接文本，尚未满足这些用例要求的文档树顺序；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -271,8 +267,6 @@ void main() {
         await tester.pump();
       }
     },
-    // 暂跳过：当前选区按视觉或层叠顺序连接文本，尚未满足这些用例要求的文档树顺序；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }
 

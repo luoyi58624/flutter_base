@@ -284,8 +284,6 @@ void main() {
       expect(find.byKey(_dialogPanelKey), findsOneWidget);
       expect(_handleIsHit(tester), isTrue, reason: '层序变化后句柄继续随 dialog 内容命中');
     },
-    // 暂跳过：句柄仍位于 SelectionView 文档子树内，尚未提升到独立内容宿主；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -334,8 +332,6 @@ void main() {
       expect(find.byKey(selectionToolbarKey), findsNothing);
       expect(find.byKey(_toolbarChildOverlayKey), findsNothing);
     },
-    // 暂跳过：工具条子浮层在 layout 中读取 FollowerLayer 变换触发断言，子浮层无法创建；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('dialog 隐藏和退场时关闭独立句柄，恢复可见后重新挂载', (tester) async {
@@ -783,8 +779,6 @@ void main() {
       expect(rotatedToolbar.width, closeTo(beforeToolbar.width, 0.1));
       expect(rotatedToolbar.height, closeTo(beforeToolbar.height, 0.1));
     },
-    // 暂跳过：句柄随 retained scale 放大为 24x36，尚未保持 12x18 屏幕逻辑尺寸；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -817,8 +811,6 @@ void main() {
       await tester.pump();
       expect(taps, 1, reason: '超出窄 editor 自身盒的右侧动作仍必须可命中');
     },
-    // 暂跳过：宽工具条被 follower 缩为 176px，尚未保持预期 220px 屏幕宽度；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('toolbar 本体宽于安全视口时按视口收缩而不是继续越屏', (tester) async {
@@ -888,8 +880,6 @@ void main() {
       expect(magnifier.center.dx, closeTo(180, 0.1));
       expect(magnifier.center.dy, closeTo(100, 0.1));
     },
-    // 暂跳过：放大镜随 scale 放大为 100x60，尚未保持 50x30 屏幕逻辑尺寸；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('magnifier 使用独立选区宿主和全局坐标，随页面内容留在 dialog 下方', (tester) async {

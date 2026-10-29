@@ -88,8 +88,6 @@ void main() {
         expect(selection.text, isNull);
         await tester.pumpWidget(ElView());
       },
-      // 暂跳过：全选状态仍续接新挂载的虚拟行，尚不符合只保留原有挂载节点的契约；保留原断言，待实现修复后恢复。
-      skip: true,
     );
   }
 }

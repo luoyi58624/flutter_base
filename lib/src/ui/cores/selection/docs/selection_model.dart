@@ -4,6 +4,64 @@ part of 'selection_view.dart';
 class SelectionDocument extends StaticSelectionContainerDelegate {
   VoidCallback? onMembersChanged;
 
+  bool _mountedSelectAll = false;
+
+  @override
+  SelectionResult handleSelectAll(SelectAllSelectionEvent event) {
+    final result = super.handleSelectAll(event);
+    // 全选是当前挂载节点的快照，不能向虚拟窗口回放历史全局坐标。
+    clearInternalSelectionState();
+    _mountedSelectAll = true;
+    return result;
+  }
+
+  @override
+  SelectionResult handleClearSelection(ClearSelectionEvent event) {
+    _mountedSelectAll = false;
+    return super.handleClearSelection(event);
+  }
+
+  @override
+  SelectionResult handleSelectionEdgeUpdate(SelectionEdgeUpdateEvent event) {
+    _mountedSelectAll = false;
+    return super.handleSelectionEdgeUpdate(event);
+  }
+
+  @override
+  void ensureChildUpdated(Selectable selectable) {
+    if (!_mountedSelectAll) super.ensureChildUpdated(selectable);
+  }
+
+  @override
+  Comparator<Selectable> get compareOrder => (a, b) {
+    final left = a is SelectionParticipant ? a.box : (a is RenderObject ? a as RenderObject : null);
+    final right = b is SelectionParticipant ? b.box : (b is RenderObject ? b as RenderObject : null);
+    if (left == null || right == null) return super.compareOrder(a, b);
+    final leftPath = <RenderObject>[];
+    final rightPath = <RenderObject>[];
+    for (RenderObject? node = left; node != null; node = node.parent) {
+      leftPath.add(node);
+    }
+    for (RenderObject? node = right; node != null; node = node.parent) {
+      rightPath.add(node);
+    }
+    var i = leftPath.length - 1;
+    var j = rightPath.length - 1;
+    while (i >= 0 && j >= 0 && identical(leftPath[i], rightPath[j])) {
+      i--;
+      j--;
+    }
+    if (i < 0 || j < 0) return i.compareTo(j);
+    if (i + 1 >= leftPath.length) return super.compareOrder(a, b);
+    var order = 0;
+    // 正文按结构序连接，不能随 Stack 层序、RTL 或滚动后的位置重排。
+    leftPath[i + 1].visitChildren((child) {
+      if (identical(child, leftPath[i])) order = order == 0 ? -1 : order;
+      if (identical(child, rightPath[j])) order = order == 0 ? 1 : order;
+    });
+    return order;
+  };
+
   Iterable<Selectable> get members => selectables;
 
   @override
@@ -41,6 +99,17 @@ class SelectionDocument extends StaticSelectionContainerDelegate {
   @override
   void didChangeSelectables() {
     super.didChangeSelectables();
+    if (!_mountedSelectAll) {
+      final first = selectables.indexWhere((member) => member.value.status == SelectionStatus.uncollapsed);
+      final last = selectables.lastIndexWhere((member) => member.value.status == SelectionStatus.uncollapsed);
+      // 拖选的两个存活端点之间插入正文时，范围仍连续；全选快照不扩张。
+      for (var index = first + 1; first >= 0 && index < last; index++) {
+        final member = selectables[index];
+        if (member.value.status != SelectionStatus.uncollapsed) {
+          member.dispatchSelectionEvent(const SelectAllSelectionEvent());
+        }
+      }
+    }
     onMembersChanged?.call();
   }
 

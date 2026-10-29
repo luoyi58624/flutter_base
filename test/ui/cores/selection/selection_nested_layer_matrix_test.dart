@@ -500,8 +500,6 @@ void main() {
       expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
       expect(pageController.text, isNull);
     },
-    // 暂跳过：四层嵌套动态插入 participant 后，既有范围尚未包含新加入的中间文本；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('四层嵌套：popover 富文本 inline/atomic 只写入自身 root', (tester) async {

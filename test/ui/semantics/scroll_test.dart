@@ -357,7 +357,8 @@ void _registerOverlayScrollTests(ElSemanticsTestBinding binding) {
           await tester.pumpAndSettle();
           expect(binding.reachableNodes.where((node) => node.label.startsWith('menu-row-')), isEmpty);
         },
-        // 暂跳过：菜单浮层的 Windows 语义命中落到 page-row-0，尚未命中上层 menu-row-3；保留原断言，待实现修复后恢复。
+        // 未修复：OverlayPortal 的 traversalChildIdentifier 外壳排在正文之后，面板 sortKey 无法越过该外壳。
+        // Windows 仍先命中 page-row-0；保留真实失败与原断言，证据和修复边界见第二轮报告。
         skip: true,
       );
     }

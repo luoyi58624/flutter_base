@@ -361,19 +361,34 @@ class TransformRecognizer extends _GestureRecognizer {
       return;
     }
     _attachScaleUpgradePointer(event);
-    if (_session == null && _scalePhases.any((phase) => _handlerFor(phase) != null)) {
+    if (_session == null) {
       for (final route in _routes.values.toSet()) {
         final owner = route.owner;
         if (!route.active ||
             identical(owner, this) ||
             owner is! TransformRecognizer ||
             owner._session?.route != route ||
+            !_scalePhases.any((phase) => _handlerFor(phase) != null) &&
+                owner._session?.cooperation?.members.contains(this) != true ||
             !_scalePhases.any((phase) => owner._routeHasHandler(route, phase))) {
           continue;
         }
         // 共同祖先收到兄弟节点的新触点，仍由原识别器逐指参加官方竞技场。
         if (!owner._addTransformPointer(event)) return;
-        if (_cooperation != null && owner._cooperation?._observations[event.pointer] == null) {
+        // 共同祖先可把第二指接回首指冻结的 Scale 订阅，无需伪造子节点 raw Down。
+        for (final member in route.members.whereType<TransformRecognizer>()) {
+          if (route.subscription(member).phase(_GestureFamily.scale).excluded ||
+              !_scalePhases.any((phase) => member._handlerFor(phase) != null)) {
+            continue;
+          }
+          final originalDown = route.subscription(member).downs.values.firstOrNull;
+          if (originalDown != null) {
+            route.subscription(member).downs[event.pointer] = event.transformed(originalDown.transform);
+          }
+        }
+        if (_cooperation != null &&
+            owner._cooperation?._observations[event.pointer] == null &&
+            !_scalePhases.any((phase) => owner._handlerFor(phase) != null)) {
           route.subscription(owner).downs.remove(event.pointer);
         }
         route.subscription(this).downs[event.pointer] = event;
@@ -726,6 +741,22 @@ class TransformRecognizer extends _GestureRecognizer {
       dispatch.primaryCutoff = next;
     }
     dispatch.primaryExempt.addAll([?_cooperation, for (final member in plan.members) ?member._cooperation]);
+    final cutoff = dispatch.primaryCutoff;
+    if (cutoff == null) return;
+    final boundary = dispatch.indexOfTeam(cutoff);
+    if (boundary < 0) return;
+    for (final input in dispatch.members.skip(boundary).toList()) {
+      if (!input.isCurrent || !input.active || dispatch.primaryExempt.contains(input.team)) continue;
+      input.active = false;
+      input.scaleAllowed = true;
+      if (input.notified) {
+        input.team._deliver(GestureTeam._cancelEvent(input, rejected: true), PressCancelReason.arenaRejected);
+      }
+      for (final member in input.team._members.toList()) {
+        if (member is PressRecognizer) member._cancelMember(pointer, PressCancelReason.arenaRejected);
+        if (member is TransformRecognizer) member.cancelMember(pointer, cancelScale: false);
+      }
+    }
   }
 
   Offset _dragDelta(_TransformSession session, _TransformPointer pointer, PointerEvent event) {
@@ -970,7 +1001,10 @@ class TransformRecognizer extends _GestureRecognizer {
       }
       session.deferredStartEvent = null;
     }
-    if (session.capabilities.drag && session.dragThresholdMet && !session.dragStarted) {
+    if (session.capabilities.drag &&
+        session.dragThresholdMet &&
+        !session.dragStarted &&
+        !(cancelDragOnScale && session.hasScale && _geometry(session).count > 1 && !session.scaleStarted)) {
       if (_hasConflictingDragStart(session, event.pointer, session.acceptedAxis)) return;
       session.dragStarted = true;
       if (!_prepareDragCooperation(session, event)) return;
@@ -1315,7 +1349,9 @@ class TransformRecognizer extends _GestureRecognizer {
       phase: phase,
       started: scalePhase
           ? session.scaleStarted || phase == ElEventPhase.scaleEnd || phase == ElEventPhase.scaleCancel
-          : session.dragStarted || session.route.dragStartRecipients.isNotEmpty,
+          : onlyMember == null
+          ? session.dragStarted || session.route.dragStartRecipients.isNotEmpty
+          : session.route.dragStartRecipients.contains(onlyMember),
       pointerIds: session.acceptedOrder.toList(),
       globalPosition: position,
       // 单成员终态沿用原独立详情的默认变换值，不能混入整条路线的增量。
@@ -1375,7 +1411,7 @@ class TransformRecognizer extends _GestureRecognizer {
       // 新触点失权只退出自己的订阅，不能结束另一根仍已获准的拖拽。
       downs.remove(pointer);
       final tracked = session.pointers[pointer];
-      if (identical(owner, this) && tracked != null) {
+      if (identical(owner, this) && tracked != null && !owner._hasActiveReceiver(pointer)) {
         owner._removePointer(session, tracked, source, canceled: true);
       }
       return;

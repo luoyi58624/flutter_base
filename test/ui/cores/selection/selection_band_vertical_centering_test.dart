@@ -161,8 +161,6 @@ void main() {
           reason: '实际 above=${m.gapAbove.toStringAsFixed(2)} below=${m.gapBelow.toStringAsFixed(2)}',
         );
       },
-      // 暂跳过：富文本 WidgetSpan 行带高度为 28px，尚未满足 24px 的 half-leading 契约；保留原断言，待实现修复后恢复。
-      skip: true,
     );
 
     testWidgets('显式 leadingDistribution.proportional 覆盖仍被尊重', (tester) async {

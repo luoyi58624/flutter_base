@@ -424,8 +424,6 @@ void main() {
 
         await gesture.up();
       },
-      // 暂跳过：五列网格拖柄时挂载 42 项，超过现有断言的 40 项上限；保留原断言，待实现修复后恢复。
-      skip: true,
     );
 
     testWidgets('485 张五列网格：连续快速拖 thumb 时每帧都挂载完整可见行', (tester) async {
@@ -583,6 +581,7 @@ void main() {
               scrollbar: const ElNoScrollBar(),
               body: ElScrollView(
                 controller: controller,
+                physics: const ClampingScrollPhysics(),
                 children: List<Widget>.generate(40, (index) => SizedBox(height: 30, child: Text('row $index'))),
               ),
             ),
@@ -601,8 +600,6 @@ void main() {
           controller.dispose();
         }
       },
-      // 暂跳过：官方 ScrollBehavior 宿主内的滚轮信号未驱动 ElScrollView，offset 保持 0；保留原断言，待实现修复后恢复。
-      skip: true,
     );
   });
 

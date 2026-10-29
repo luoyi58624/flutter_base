@@ -449,7 +449,7 @@ class ElRenderView extends RenderBox
     if (_hasTextPayload) {
       final input = _textPaintInput(resolvedOverride: resolved, contentOriginOverride: contentOrigin);
       return dry
-          ? _textPainter.computeDryContentSize(constraints, input, fillWidth: textWidthIsDefinite)
+          ? _textPainter.computeDryMetrics(constraints, input, fillWidth: textWidthIsDefinite).size
           : _textPainter.layoutContent(constraints, input, fillWidth: textWidthIsDefinite);
     }
     final child = _singleWidgetChild;
@@ -1469,6 +1469,47 @@ class ElRenderView extends RenderBox
       dry: true,
     );
     return constraints.constrain(metrics.addMargin(metrics.resolveSize(content)));
+  }
+
+  @override
+  double? computeDryBaseline(BoxConstraints constraints, TextBaseline baseline) {
+    final metrics = _prepareLayout(_committedResolved, constraints);
+    final content = _layoutContent(
+      metrics.inner,
+      metrics.contentOrigin,
+      textWidthIsDefinite: metrics.used.hasTightWidth,
+      dry: true,
+    );
+    final box = metrics.resolveSize(content);
+    final contentSize = Size(
+      (box.width - metrics.padding.horizontal).clamp(0.0, double.infinity),
+      (box.height - metrics.padding.vertical).clamp(0.0, double.infinity),
+    );
+    if (_hasTextPayload) {
+      final text = _textPainter.computeDryMetrics(
+        metrics.inner,
+        _textPaintInput(contentOriginOverride: metrics.contentOrigin),
+        baseline: baseline,
+        fillWidth: metrics.used.hasTightWidth,
+      );
+      final alignment = _committedResolved.box.alignment
+          ?.resolve(_committedResolved.inheritedBox.textDirection ?? TextDirection.ltr)
+          .alongOffset(Offset(contentSize.width - text.size.width, contentSize.height - text.size.height));
+      return metrics.contentOrigin.dy + (alignment?.dy ?? 0) + text.baseline;
+    }
+    final child = _singleWidgetChild;
+    if (child == null) return null;
+    final alignment = _committedResolved.box.alignment?.resolve(
+      _committedResolved.inheritedBox.textDirection ?? TextDirection.ltr,
+    );
+    final childConstraints = alignment == null ? metrics.inner : metrics.inner.loosen();
+    final childBaseline = child.getDryBaseline(childConstraints, baseline);
+    if (childBaseline == null) return null;
+    final childSize = child.getDryLayout(childConstraints);
+    final offset = alignment?.alongOffset(
+      Offset(contentSize.width - childSize.width, contentSize.height - childSize.height),
+    );
+    return metrics.contentOrigin.dy + (offset?.dy ?? 0) + childBaseline;
   }
 
   @override

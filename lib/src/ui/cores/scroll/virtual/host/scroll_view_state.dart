@@ -3274,7 +3274,8 @@ final class ElScrollViewState extends State<ElScrollView> with TickerProviderSta
     final fallbackExtent = fixedExtent != null && fixedExtent > precisionErrorTolerance
         ? fixedExtent
         : _extentIndex.estimatedExtent;
-    final extent = ((observedExtent == null ? fallbackExtent : math.min(observedExtent, fallbackExtent)) + _gap)
+    final rowGap = fixedExtent == null ? _gap : plan.spacingAfterRow(firstRowForExtent);
+    final extent = ((observedExtent == null ? fallbackExtent : math.min(observedExtent, fallbackExtent)) + rowGap)
         .clamp(1.0, double.infinity)
         .toDouble();
     final firstStart = _layoutOffsetOfItem(first);

@@ -268,8 +268,6 @@ void main() {
         reason: '选区拖选已成立时，pointer up 不得再触发任何一层的 tapUp/tap',
       );
     },
-    // 暂跳过：Overlay 普通轻点的上下游 TapUp/Tap 计数均为 0，无法建立独占对照前置状态；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('触摸长按会话中关闭 entry 同步清 body route、magnifier 与 range', (tester) async {

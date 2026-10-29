@@ -88,8 +88,6 @@ void main() {
       await pressCtrlA(tester);
       expect(controller.text, isNull, reason: '失焦后 Ctrl+A 不再作用于本选区根');
     },
-    // 暂跳过：点击根外空白尚未解除选区根焦点，Ctrl+A 或 Esc 仍作用于旧选区；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('点击选区内可聚焦元素：元素持焦不被根抢占，Ctrl+A 沿链冒泡到选区根', (tester) async {
@@ -243,8 +241,6 @@ void main() {
       await tester.pump();
       expect(controller.text, selected, reason: '失焦后 Esc 不再作用于本根');
     },
-    // 暂跳过：点击根外空白尚未解除选区根焦点，Ctrl+A 或 Esc 仍作用于旧选区；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('点击当前聚焦的选中区域内部才清除选区', (tester) async {

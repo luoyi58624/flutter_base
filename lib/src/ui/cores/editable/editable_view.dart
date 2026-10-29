@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart' show internal;
+
 import 'inherited_text.dart';
 import 'input_events.dart';
 import 'controller.dart' show EditableViewport;
 import '../layout/list/list_view.dart';
 import '../layout/geometry/pixel_grid.dart';
+
 import 'dart:async' show Completer, Timer, scheduleMicrotask, unawaited;
 import 'dart:math' as math;
 import 'dart:ui' show SemanticsInputType, ViewFocusEvent, ViewFocusState;
@@ -40,6 +42,7 @@ import 'package:flutter_base/src/ui/cores/view/style/style.dart';
 import 'package:flutter_base/src/ui/cores/view/render/render_view.dart'
     show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
 import 'package:flutter_base/src/ui/cores/view/style/state/view_state.dart' show ViewStateSource;
+
 import 'keyboard/input_action.dart';
 import 'composer.dart';
 import 'editing/editable_ops.dart';
@@ -5832,92 +5835,90 @@ class _EditableViewState extends State<EditableView>
     final dualAxis = !widget.style.softWrap;
     // 编辑态自带选区，岛内起手由编辑器接管；只读态关闭岛，让外层文档选区
     // 从任意方向正常穿过正文。
-    return SelectionChromeSlotHost(
-      child: Builder(
-        builder: (context) => EditableCaretMotionOverlay(
-          rect: _caretMotionRect,
+    final content = Builder(
+      builder: (context) => EditableCaretMotionOverlay(
+        rect: _caretMotionRect,
+        caretColor: renderConfig.caretColor,
+        scope: _scope,
+        child: EditableFloatingCursorOverlay(
+          frame: _floatingCursorFrame,
           caretColor: renderConfig.caretColor,
           scope: _scope,
-          child: EditableFloatingCursorOverlay(
-            frame: _floatingCursorFrame,
-            caretColor: renderConfig.caretColor,
-            scope: _scope,
-            child: SelectionChromePortal(
-              visible: _selectionChromeVisible,
-              visibilityListenable: _selectionChromeVisibility,
-              fallbackGlobalToLocal: _selectionChromeGlobalToLocal,
-              chromeBuilder: _buildSelectionChrome,
-              content: _EditableSelectionPaintGeometryObserver(
-                onGeometryChanged: _handlePaintGeometryChanged,
-                onViewportWidthChanged: _handleViewportWidthChanged,
-                onViewportMetricsChanged: _syncTextViewportWidth,
-                viewportPadding: widget.style.contentPadding,
-                child: SelectionIsland(
-                  enabled: !readOnly,
-                  child: _EditableSemanticsHost(
-                    controller: _controller,
-                    lineProjection: _lineProjection,
-                    opsProvider: () => _ops,
-                    selectionActions: _selectionActions,
-                    focusNode: _focusNode,
-                    readOnly: readOnly,
-                    interactiveSelectionEnabled: interactiveSelectionEnabled,
-                    obscureText: widget.style.obscureText,
-                    obscuringCharacter: widget.style.obscuringCharacter,
-                    semanticLabel: widget.style.semanticLabel,
-                    keyboardType: widget.style.keyboardType,
-                    // 透明命中面保证空行没有字形 RenderBox 时，整块编辑区域仍可点击。
-                    style: const ElStyle(bgColor: Color(0x00000000), cursor: SystemMouseCursors.text),
-                    event: combineEditableEvents(
-                      readOnly
-                          ? const ElEvent()
-                          : ElEvent(
-                              config: ElEventConfig(
-                                longPressDelay: _selectionControls.resolveLongPressDelay(context),
-                                tapCancelByDistance: true,
-                              ),
-                              onPointerDown: _handlePointerDownFocus,
-                              // 收起软键盘可能保留焦点与连接；只在点击成立后重新 show，避免滑动误弹。
-                              onTap: (_) => _requestKeyboard(),
-                              onTapDown: interactiveSelectionEnabled || _selectionTextBlocked ? _handleTapDown : null,
-                              onTapUp: interactiveSelectionEnabled ? _handleTapUp : null,
-                              onTapCancel: interactiveSelectionEnabled ? _handleTapCancel : null,
-                              onSecondaryTapDown: interactiveSelectionEnabled ? _handleSecondaryTapDown : null,
-                              onSecondaryTapUp: interactiveSelectionEnabled ? _handleSecondaryTapUp : null,
-                              onDoubleTapDown: interactiveSelectionEnabled ? _handleDoubleTapDown : null,
-                              onDoubleTap: interactiveSelectionEnabled ? _handleDoubleTap : null,
-                              onTripleTapDown: interactiveSelectionEnabled ? _handleTripleTapDown : null,
-                              onTripleTap: interactiveSelectionEnabled ? _handleTripleTap : null,
-                              onLongPress: interactiveSelectionEnabled ? _handleLongPress : null,
-                              onDragStart: interactiveSelectionEnabled ? _handleDragStart : null,
-                              onDragUpdate: interactiveSelectionEnabled ? _handleDragUpdate : null,
-                              onDragEnd: interactiveSelectionEnabled ? _handleDragEnd : null,
-                              onDragCancel: interactiveSelectionEnabled ? _handleDragCancel : null,
+          child: SelectionChromePortal(
+            visible: _selectionChromeVisible,
+            visibilityListenable: _selectionChromeVisibility,
+            fallbackGlobalToLocal: _selectionChromeGlobalToLocal,
+            chromeBuilder: _buildSelectionChrome,
+            content: _EditableSelectionPaintGeometryObserver(
+              onGeometryChanged: _handlePaintGeometryChanged,
+              onViewportWidthChanged: _handleViewportWidthChanged,
+              onViewportMetricsChanged: _syncTextViewportWidth,
+              viewportPadding: widget.style.contentPadding,
+              child: SelectionIsland(
+                enabled: !readOnly,
+                child: _EditableSemanticsHost(
+                  controller: _controller,
+                  lineProjection: _lineProjection,
+                  opsProvider: () => _ops,
+                  selectionActions: _selectionActions,
+                  focusNode: _focusNode,
+                  readOnly: readOnly,
+                  interactiveSelectionEnabled: interactiveSelectionEnabled,
+                  obscureText: widget.style.obscureText,
+                  obscuringCharacter: widget.style.obscuringCharacter,
+                  semanticLabel: widget.style.semanticLabel,
+                  keyboardType: widget.style.keyboardType,
+                  // 透明命中面保证空行没有字形 RenderBox 时，整块编辑区域仍可点击。
+                  style: const ElStyle(bgColor: Color(0x00000000), cursor: SystemMouseCursors.text),
+                  event: combineEditableEvents(
+                    readOnly
+                        ? const ElEvent()
+                        : ElEvent(
+                            config: ElEventConfig(
+                              longPressDelay: _selectionControls.resolveLongPressDelay(context),
+                              tapCancelByDistance: true,
                             ),
-                      widget.event,
-                    ),
-                    child: Directionality(
-                      // 编辑器的完整行几何恒使用左起视觉坐标；段落/run 的 RTL 由
-                      // TextPainter 与 UAX#9 自己处理，不能再让滚动轴把 x=0 镜像。
-                      textDirection: TextDirection.ltr,
-                      child: EditableSelectionLayer(
-                        scope: _scope,
-                        beforePaint: _syncDragSelectionBeforePaint,
-                        child: ElScrollView(
-                          controller: _scrollController,
-                          horizontalController: dualAxis ? _horizontalController : null,
-                          axis: dualAxis ? null : Axis.vertical,
-                          physics: widget.style.scrollPhysics,
-                          scrollbar: widget.style.scrollbar,
-                          cacheExtent: widget.style.cacheExtent,
-                          padding: widget.style.contentPadding,
-                          // 文档增删行时保住当前可见正文：不保位的话，在视口上方插入
-                          // 内容会把正文整体往下推，用户正在看的那一行被顶走。
-                          preserveAnchor: true,
-                          minimumCrossAxisExtentListenable: dualAxis ? _scope.minimumCrossAxisExtent : null,
-                          itemExtentInvalidationListenable: fixedLogicalLineExtent ? null : _lineExtentInvalidation,
-                          children: [lineList],
-                        ),
+                            onPointerDown: _handlePointerDownFocus,
+                            // 收起软键盘可能保留焦点与连接；只在点击成立后重新 show，避免滑动误弹。
+                            onTap: (_) => _requestKeyboard(),
+                            onTapDown: interactiveSelectionEnabled || _selectionTextBlocked ? _handleTapDown : null,
+                            onTapUp: interactiveSelectionEnabled ? _handleTapUp : null,
+                            onTapCancel: interactiveSelectionEnabled ? _handleTapCancel : null,
+                            onSecondaryTapDown: interactiveSelectionEnabled ? _handleSecondaryTapDown : null,
+                            onSecondaryTapUp: interactiveSelectionEnabled ? _handleSecondaryTapUp : null,
+                            onDoubleTapDown: interactiveSelectionEnabled ? _handleDoubleTapDown : null,
+                            onDoubleTap: interactiveSelectionEnabled ? _handleDoubleTap : null,
+                            onTripleTapDown: interactiveSelectionEnabled ? _handleTripleTapDown : null,
+                            onTripleTap: interactiveSelectionEnabled ? _handleTripleTap : null,
+                            onLongPress: interactiveSelectionEnabled ? _handleLongPress : null,
+                            onDragStart: interactiveSelectionEnabled ? _handleDragStart : null,
+                            onDragUpdate: interactiveSelectionEnabled ? _handleDragUpdate : null,
+                            onDragEnd: interactiveSelectionEnabled ? _handleDragEnd : null,
+                            onDragCancel: interactiveSelectionEnabled ? _handleDragCancel : null,
+                          ),
+                    widget.event,
+                  ),
+                  child: Directionality(
+                    // 编辑器的完整行几何恒使用左起视觉坐标；段落/run 的 RTL 由
+                    // TextPainter 与 UAX#9 自己处理，不能再让滚动轴把 x=0 镜像。
+                    textDirection: TextDirection.ltr,
+                    child: EditableSelectionLayer(
+                      scope: _scope,
+                      beforePaint: _syncDragSelectionBeforePaint,
+                      child: ElScrollView(
+                        controller: _scrollController,
+                        horizontalController: dualAxis ? _horizontalController : null,
+                        axis: dualAxis ? null : Axis.vertical,
+                        physics: widget.style.scrollPhysics,
+                        scrollbar: widget.style.scrollbar,
+                        cacheExtent: widget.style.cacheExtent,
+                        padding: widget.style.contentPadding,
+                        // 文档增删行时保住当前可见正文：不保位的话，在视口上方插入
+                        // 内容会把正文整体往下推，用户正在看的那一行被顶走。
+                        preserveAnchor: true,
+                        minimumCrossAxisExtentListenable: dualAxis ? _scope.minimumCrossAxisExtent : null,
+                        itemExtentInvalidationListenable: fixedLogicalLineExtent ? null : _lineExtentInvalidation,
+                        children: [lineList],
                       ),
                     ),
                   ),
@@ -5928,6 +5929,8 @@ class _EditableViewState extends State<EditableView>
         ),
       ),
     );
+    // 复用外部页面/弹层宿主，句柄不随编辑器的裁剪和缩放。
+    return SelectionChromeSlot.maybeOf(context) == null ? SelectionChromeSlotHost(child: content) : content;
   }
 
   Widget _buildSelectionChrome(BuildContext context, Offset Function(Offset global) globalToLocal) {

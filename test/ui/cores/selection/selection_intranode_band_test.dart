@@ -137,8 +137,6 @@ void main() {
       // 行 4 = `child: Text('Click Me'),`（事故截图里的选中行）。
       expectLineBandStable(textParticipant(tester), line: 4);
     },
-    // 暂跳过：富文本局部选中带仍使用 14px 整行高度，尚无独立的小于行高的字形带；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets('逐行窗口扫描：每一行在"仅本行"与"从行 0 选到本行"两窗口下带恒定', (tester) async {

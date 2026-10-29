@@ -35,8 +35,6 @@ void main() {
       expect(selection.text, 'keep');
       expect(selection.hasSelection, isTrue);
     },
-    // 暂跳过：替换或全部销毁节点后全选意图仍被保留，新节点继承了旧选中状态；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 
   testWidgets(
@@ -62,7 +60,5 @@ void main() {
       await tester.pump();
       expect(selection.text, 'new');
     },
-    // 暂跳过：替换或全部销毁节点后全选意图仍被保留，新节点继承了旧选中状态；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }

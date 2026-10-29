@@ -354,7 +354,15 @@ class RenderSelectionView extends RenderProxyBox
     }
     if (ScrollCatchPointers.contains(event.pointer)) return;
     final source = _hitSource(event.position);
-    if (!_canStart(event.position, source)) return;
+    if (!_canStart(event.position, source)) {
+      for (RenderObject? node = source; node != null && !identical(node, this); node = node.parent) {
+        if (node is RenderSelectionIsland && node.enabled) {
+          clearSelection();
+          break;
+        }
+      }
+      return;
+    }
     _claimFocus();
     _pointer = event.pointer;
     _pointerKind = event.kind;
@@ -401,7 +409,16 @@ class RenderSelectionView extends RenderProxyBox
 
   void _longPress(ElEventDetails callback) {
     final down = _down;
-    if (!attached || !_enabled || !_mobileGesture || _pointer == null || down == null) return;
+    if (!attached ||
+        !_enabled ||
+        !_mobileGesture ||
+        _pointer == null ||
+        down == null ||
+        document.selectableAt(down) == null) {
+      // 拒绝选择也必须拒绝长按默认认领，让轻点或后续滚动继续竞争。
+      callback.preventDefault();
+      return;
+    }
     callback.eagerGesture(cancelSelfTap: true);
     callback.stopPropagation();
     _mobileChrome.value = true;
@@ -909,7 +926,23 @@ class RenderSelectionView extends RenderProxyBox
   bool setSelectionHandleEndpoint(SelectionHandleSide side, Offset global) {
     if (!attached || _isMobileSelectionGap(global)) return false;
     final before = document.edge(end: true, ordered: false);
+    final fixed = document.edge(end: false, ordered: false);
     _dispatch(SelectionEdgeUpdateEvent.forEnd(globalPosition: global));
+    final current = document.edge(end: true, ordered: false);
+    if (fixed != null &&
+        current != null &&
+        before != null &&
+        identical(fixed.selectable, current.selectable) &&
+        fixed.offset == current.offset) {
+      // 触摸句柄至少保留一个字符，拖到文档边缘不能把自身选区和 chrome 清掉。
+      _dispatch(
+        GranularlyExtendSelectionEvent(
+          forward: before.offset > fixed.offset,
+          isEnd: true,
+          granularity: TextGranularity.character,
+        ),
+      );
+    }
     final after = document.edge(end: true, ordered: false);
     final changed = !identical(before?.selectable, after?.selectable) || before?.offset != after?.offset;
     final type = _activeHandleType;

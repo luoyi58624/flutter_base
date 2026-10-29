@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart' show CupertinoTheme;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
 import '../common/selection_core.dart';
 import '../../view/event/event.dart';
 import '../../view/event/dispatcher.dart';
@@ -243,56 +245,60 @@ class _SelectionViewState extends State<ElSelectionView> {
     // 禁用/让位由 render 侧 selectionEnabled 决定是否认领；根节点仅在组件
     // 明确 disabled 时整体不可聚焦。
     _rootFocusNode.canRequestFocus = enabled;
-    return SelectionChromeSlotHost(
-      enabled: enabled,
-      child: Builder(
-        builder: (context) => SelectionChromePortal(
-          visible: enabled && _chromeVisible && _render != null,
-          fallbackGlobalToLocal: _chromeGlobalToLocal,
-          content: Focus(
-            focusNode: _rootFocusNode,
-            includeSemantics: false,
-            onKeyEvent: _handleRootKeyEvent,
-            child: _wrapDocument(
+    final content = Builder(
+      builder: (context) => SelectionChromePortal(
+        visible: enabled && _chromeVisible && _render != null,
+        fallbackGlobalToLocal: _chromeGlobalToLocal,
+        content: Focus(
+          focusNode: _rootFocusNode,
+          includeSemantics: false,
+          onKeyEvent: _handleRootKeyEvent,
+          child: _wrapDocument(
+            enabled: enabled,
+            child: SelectionRenderWidget(
+              document: _document,
+              selectionControls: _controls,
+              selectionColor: _fallbackBgColor,
+              selectionTextColor: _fallbackTextColor,
+              dragThreshold: _controls.resolveDragThreshold(context),
+              longPressDelay: _controls.resolveLongPressDelay(context),
+              longPressSelection: _controls.resolveLongPressSelection(context),
+              longPressAutoScrollThreshold: _controls.resolveLongPressAutoScrollThreshold(context),
+              clearOnTapOutside: _controls.resolveClearOnTapOutside(context),
+              clearOnEsc: _controls.resolveClearOnEsc(context),
+              longPressHaptics: _controls.resolveLongPressHaptics(context),
+              handleHaptics: _controls.resolveHandleHaptics(context),
+              touchAutoScroll: _controls.resolveTouchAutoScroll(context),
+              mouseAutoScroll: _controls.resolveMouseAutoScroll(context),
               enabled: enabled,
-              child: SelectionRenderWidget(
-                document: _document,
-                selectionControls: _controls,
-                selectionColor: _fallbackBgColor,
-                selectionTextColor: _fallbackTextColor,
-                dragThreshold: _controls.resolveDragThreshold(context),
-                longPressDelay: _controls.resolveLongPressDelay(context),
-                longPressSelection: _controls.resolveLongPressSelection(context),
-                longPressAutoScrollThreshold: _controls.resolveLongPressAutoScrollThreshold(context),
-                clearOnTapOutside: _controls.resolveClearOnTapOutside(context),
-                clearOnEsc: _controls.resolveClearOnEsc(context),
-                longPressHaptics: _controls.resolveLongPressHaptics(context),
-                handleHaptics: _controls.resolveHandleHaptics(context),
-                touchAutoScroll: _controls.resolveTouchAutoScroll(context),
-                mouseAutoScroll: _controls.resolveMouseAutoScroll(context),
-                enabled: enabled,
-                controller: widget.controller,
-                onSelectionChanged: widget.onSelectionChanged,
-                onContextMenuRequested: _handleContextMenuRequested,
-                onRenderAttached: _attachRender,
-                onRenderDetached: _detachRender,
-                rootFocusNode: _rootFocusNode,
-                child: DefaultSelectionStyle(selectionColor: _fallbackBgColor, child: widget.child),
-              ),
+              controller: widget.controller,
+              onSelectionChanged: widget.onSelectionChanged,
+              onContextMenuRequested: _handleContextMenuRequested,
+              onRenderAttached: _attachRender,
+              onRenderDetached: _detachRender,
+              rootFocusNode: _rootFocusNode,
+              child: DefaultSelectionStyle(selectionColor: _fallbackBgColor, child: widget.child),
             ),
           ),
-          chromeBuilder: (context, globalToLocal) => _buildChrome(context, globalToLocal: globalToLocal),
         ),
+        chromeBuilder: (context, globalToLocal) => _buildChrome(context, globalToLocal: globalToLocal),
       ),
     );
+    // 页面/弹层显式宿主优先，避免在裁剪或变换内部再建一层宿主。
+    return SelectionChromeSlot.maybeOf(context) == null
+        ? SelectionChromeSlotHost(enabled: enabled, child: content)
+        : content;
   }
 
   Widget _wrapDocument({required bool enabled, required Widget child}) {
-    return SelectionContainer.disabled(
-      // 保留注册容器的元素位置，启停时不重建渲染根和在用控制器。
-      child: enabled
-          ? SelectionContainer(key: _containerKey, delegate: _document, child: child)
-          : SelectionContainer.disabled(key: _containerKey, child: child),
+    return TapRegion(
+      onTapOutside: (_) => _rootFocusNode.unfocus(),
+      child: SelectionContainer.disabled(
+        // 保留注册容器的元素位置，启停时不重建渲染根和在用控制器。
+        child: enabled
+            ? SelectionContainer(key: _containerKey, delegate: _document, child: child)
+            : SelectionContainer.disabled(key: _containerKey, child: child),
+      ),
     );
   }
 

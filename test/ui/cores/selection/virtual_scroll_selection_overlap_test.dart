@@ -242,8 +242,6 @@ void main() {
       selectionController.clear();
       await tester.pump();
     },
-    // 暂跳过：富文本 inline 项产生重叠选区矩形，尚未统一 WidgetSpan 与行带几何；保留原断言，待实现修复后恢复。
-    skip: true,
   );
 }
 

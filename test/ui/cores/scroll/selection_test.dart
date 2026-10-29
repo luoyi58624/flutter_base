@@ -253,8 +253,6 @@ void main() {
         await gesture.up();
         await tester.pumpAndSettle();
       },
-      // 暂跳过：空白长按被拒绝后仍占有该触点，后续拖动不能驱动滚动；保留原断言，待实现修复后恢复。
-      skip: true,
     );
   });
 }

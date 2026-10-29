@@ -337,8 +337,6 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
   bool _proxyPageDrag = false;
   bool _panZoomPageDrag = false;
   bool _handoffActive = false;
-  bool _absorbingHandoff = false;
-  ElZoomTransform _observedTransform = const ElZoomTransform();
   int _pointerCount = 0;
 
   double _animationTo = 0;
@@ -421,7 +419,6 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
         }
       }
     }
-    _observedTransform = _currentTransform;
     if (previousIndex != _index) _scheduleIndexReport();
     _syncExternalController();
   }
@@ -674,32 +671,8 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
 
   void _handleItemTransform(Object id, ElZoomTransform value) {
     if (id != _currentId) return;
-    if (_absorbingHandoff) {
-      _observedTransform = value;
-      return;
-    }
-    var actual = value;
-    final scaleOrRotationChanged =
-        value.scale != _observedTransform.scale || value.rotation != _observedTransform.rotation;
-    if (_handoffActive && scaleOrRotationChanged && _pageOffset.abs() > precisionErrorTolerance) {
-      _absorbingHandoff = true;
-      final controller = _zoomControllers[id]!;
-      final before = value.offset;
-      controller.jumpTo(value.copyWith(offset: before + Offset(_pageOffset, 0)));
-      actual = controller.value;
-      final consumed = actual.offset.dx - before.dx;
-      _absorbingHandoff = false;
-      if (consumed.abs() > precisionErrorTolerance) {
-        _setPageOffset(_pageOffset - consumed);
-        if (_pageOffset.abs() <= precisionErrorTolerance) {
-          _handoffActive = false;
-          _clearPageTarget();
-          setState(() {});
-        }
-      }
-    }
-    _observedTransform = actual;
-    widget.controller?._sync(_index, actual);
+    // gap 保留在 transient 通道直到手势结清，不能用 jumpTo 打断正在执行的 Scale。
+    widget.controller?._sync(_index, value);
   }
 
   void _handlePointerDown(ElEventDetails event) {
@@ -738,7 +711,11 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
   void _handlePageDragStart(ElEventDetails event) {
     _pointerCount = event.pointerCount;
     if (_ids.length < 2 || _pointerCount > 1) return;
-    if (event.dragPipelineActive) return;
+    if (event.dragPipelineActive) {
+      _takeOverPageAnimation();
+      _proxyPageDrag = true;
+      return;
+    }
     event.eagerGesture(cancelSelfTap: true, allowScaleUpgrade: true);
     _takeOverPageAnimation();
     if (_handoffActive) return;
@@ -959,7 +936,6 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
     _directPageDrag = false;
     _proxyPageDrag = false;
     _panZoomPageDrag = false;
-    _observedTransform = _currentTransform;
     final id = _currentId;
     if (id != null) _zoomControllers[id]?.setTransientTranslation(_pageOffset, 0);
     _render?.notePageOffsetChanged();
@@ -1128,7 +1104,6 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
     if (oldId != null) _zoomControllers[oldId]?.setTransientTranslation(0, 0);
     _index = normalized;
     _currentId = _ids[_index];
-    _observedTransform = _currentTransform;
     _setPageOffset(0);
     _pageTargetIndex = null;
     _pageDirection = 0;
@@ -1189,34 +1164,36 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
         _PreviewPage(
           key: ValueKey<Object>(id),
           child: ElView(
-            event: !active ? ElEvent(disabled: true) : null,
             focusNode: active ? null : _blockerNodeFor(id),
             semantics: active ? null : ElSemantics(exclude: true, blockUserActions: true),
-            child: ElZoomView(
-              controller: controller,
-              minScale: widget.minScale,
-              maxScale: widget.maxScale,
-              doubleTapScale: widget.doubleTapScale,
-              scaleSensitivity: widget.scaleSensitivity,
-              enableRotation: widget.enableRotation,
-              panInertia: widget.panInertia,
-              scaleInertia: widget.scaleInertia,
-              mouseWheelZoom: widget.mouseWheelZoom,
-              mouseDragPan: widget.mouseDragPan,
-              wheelScaleSensitivity: widget.wheelScaleSensitivity,
-              elasticScaleBounds: true,
-              lockScaleRotationIntent: true,
-              constrained: widget.constrained,
-              alignment: widget.alignment,
-              clipBehavior: widget.clipBehavior,
-              interactionEnabled: active,
-              onPanEnd: active ? _handleProxyDragEnd : null,
-              onPanCancel: active ? _handleZoomPanCancel : null,
-              onPointerCountChanged: active ? _handleZoomPointerCountChanged : null,
-              onTransformChanged: active && (widget.controller != null || _handoffActive)
-                  ? (value) => _handleItemTransform(id, value)
-                  : null,
-              child: _itemAt(context, index),
+            child: IgnorePointer(
+              ignoring: !active,
+              child: ElZoomView(
+                controller: controller,
+                minScale: widget.minScale,
+                maxScale: widget.maxScale,
+                doubleTapScale: widget.doubleTapScale,
+                scaleSensitivity: widget.scaleSensitivity,
+                enableRotation: widget.enableRotation,
+                panInertia: widget.panInertia,
+                scaleInertia: widget.scaleInertia,
+                mouseWheelZoom: widget.mouseWheelZoom,
+                mouseDragPan: widget.mouseDragPan,
+                wheelScaleSensitivity: widget.wheelScaleSensitivity,
+                elasticScaleBounds: true,
+                lockScaleRotationIntent: true,
+                constrained: widget.constrained,
+                alignment: widget.alignment,
+                clipBehavior: widget.clipBehavior,
+                interactionEnabled: active,
+                onPanEnd: active ? _handleProxyDragEnd : null,
+                onPanCancel: active ? _handleZoomPanCancel : null,
+                onPointerCountChanged: active ? _handleZoomPointerCountChanged : null,
+                onTransformChanged: active && (widget.controller != null || _handoffActive)
+                    ? (value) => _handleItemTransform(id, value)
+                    : null,
+                child: _itemAt(context, index),
+              ),
             ),
           ),
         ),

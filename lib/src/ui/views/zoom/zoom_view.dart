@@ -452,6 +452,7 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(covariant ElZoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_gestureActive && widget.enableRotation != oldWidget.enableRotation) _eventShellRebuildDeferred = true;
     if (!identical(widget.controller, oldWidget.controller)) {
       _stopAnimation();
       oldWidget.controller?._detach(this);
@@ -882,6 +883,8 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
     // 滚动），未缩放时让给祖先。
     _consuming = e.pointerCount >= 2 || _hasPanExtent;
     if (_consuming) e.eagerGesture(cancelSelfTap: true);
+    // 独占会取消分页祖先的 raw 输入，随后用真实 Scale 触点数恢复门禁。
+    widget.onPointerCountChanged?.call(e.pointerCount);
   }
 
   void _onPointerDown(ElEventDetails e) {
@@ -923,6 +926,7 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
 
   void _onScaleUpdate(ElEventDetails e) {
     if (!_gestureActive) return;
+    widget.onPointerCountChanged?.call(e.pointerCount);
     final focal = e.localPosition;
     _gestureFocal = focal;
     if (!_consuming && e.pointerCount >= 2) {
@@ -1395,7 +1399,8 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
               // 8~36px 区间被外层滚动抢走。未缩放态保持默认，继续让祖先翻页。
               config: _eventConfig,
               dragProxy: widget.enablePan ? _dragProxy : null,
-              rotationStartEnabled: widget.lockScaleRotationIntent && widget.enableRotation,
+              rotationStartEnabled:
+                  widget.lockScaleRotationIntent && (_gestureActive ? _gestureRotationEnabled : widget.enableRotation),
               onPointerDown: _onPointerDown,
               onPointerUp: _onPointerTerminal,
               onPointerCancel: _onPointerTerminal,

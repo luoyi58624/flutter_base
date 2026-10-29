@@ -1617,8 +1617,6 @@ void main() {
         await tester.pump();
         expect(sealedTaps, 0, reason: '默认裁剪封口，视口外溢出不得命中');
       },
-      // 暂跳过：视口内行溢出块尚未贯通命中路径，点击计数为 0 而非 1；保留原断言，待实现修复后恢复。
-      skip: true,
     );
 
     testWidgets('虚拟滚动默认裁剪封口：视口外不可点、视口内 item 照常', (tester) async {
