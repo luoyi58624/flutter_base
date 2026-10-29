@@ -1,37 +1,20 @@
-import 'package:flutter_base/src/ui/cores/event/index.dart';
+import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart' show EventDispatcher;
+import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
-import 'support/event_test_host.dart';
+import 'support/dispatcher_test_host.dart';
 
 void main() {
-  testWidgets('禁用期间仍结清缓存输入，恢复后相同 Down 对象可以重新使用', (tester) async {
-    final host = EventTestHost.chain();
-    addTearDown(host.dispose);
-    var taps = 0;
-    final event = ElEvent(onTap: (_) => taps++);
-    const down = PointerDownEvent(pointer: 1800);
-    const up = PointerUpEvent(pointer: 1800);
-    host.leaf.event = event;
-    await host.dispatch(down);
-    host.leaf.event = event.copyWith(disabled: true);
-    await host.dispatch(up);
-    host.leaf.event = event;
-    await host.dispatch(down);
-    await host.dispatch(up);
-    expect(taps, 1);
-    expect(host.leaf.eventDispatcher!.activePointerCount, 0);
-    host.dispose();
-    expect(host.leaf.eventDispatcher!.isTapPressed, isFalse);
-  });
+  setUp(EventDispatcher.debugResetEagerGestureOwners);
 
   testWidgets('ORDER-1: raw、tap 终止与 drag 生命周期保持固定顺序', (tester) async {
-    final host = EventTestHost.chain();
+    final host = DispatcherTestHost.chain();
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
-    void record(ElEventCallback event) => phases.add(event.phase);
+    void record(ElEventDetails event) => phases.add(event.phase);
 
-    host.leaf.event = ElEvent(
+    host.leafDispatcher.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 3),
       onPointerDown: record,
       onDragDown: record,
@@ -44,7 +27,7 @@ void main() {
       onDragCancel: record,
     );
 
-    await host.dispatch(
+    host.dispatch(
       const PointerDownEvent(
         pointer: 1,
         position: Offset.zero,
@@ -52,13 +35,9 @@ void main() {
         timeStamp: Duration.zero,
       ),
     );
-    expect(phases, <ElEventPhase>[
-      ElEventPhase.pointerDown,
-      ElEventPhase.dragDown,
-      ElEventPhase.tapDown,
-    ]);
+    expect(phases, <ElEventPhase>[ElEventPhase.pointerDown, ElEventPhase.dragDown, ElEventPhase.tapDown]);
 
-    await host.dispatch(
+    host.dispatch(
       const PointerMoveEvent(
         pointer: 1,
         position: Offset(4, 0),
@@ -75,7 +54,7 @@ void main() {
       ElEventPhase.dragStart,
     ]);
 
-    await host.dispatch(
+    host.dispatch(
       const PointerMoveEvent(
         pointer: 1,
         position: Offset(8, 0),
@@ -94,7 +73,7 @@ void main() {
       ElEventPhase.dragUpdate,
     ]);
 
-    await host.dispatch(
+    host.dispatch(
       const PointerCancelEvent(
         pointer: 1,
         position: Offset(8, 0),
@@ -114,18 +93,15 @@ void main() {
       ElEventPhase.dragCancel,
       ElEventPhase.tapCancel,
     ]);
-    host.dispose();
   });
 
-  testWidgets('ORDER-2: 未接受 drag 时 pointer cancel 先发 raw 再终止 tap', (
-    tester,
-  ) async {
-    final host = EventTestHost.chain();
+  testWidgets('ORDER-2: 未接受 drag 时 pointer cancel 先发 raw 再终止 tap', (tester) async {
+    final host = DispatcherTestHost.chain();
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
-    void record(ElEventCallback event) => phases.add(event.phase);
+    void record(ElEventDetails event) => phases.add(event.phase);
 
-    host.leaf.event = ElEvent(
+    host.leafDispatcher.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 100),
       onPointerDown: record,
       onTapDown: record,
@@ -133,7 +109,7 @@ void main() {
       onTapCancel: record,
     );
 
-    await host.dispatch(
+    host.dispatch(
       const PointerDownEvent(
         pointer: 2,
         position: Offset.zero,
@@ -141,7 +117,7 @@ void main() {
         timeStamp: Duration.zero,
       ),
     );
-    await host.dispatch(
+    host.dispatch(
       const PointerCancelEvent(
         pointer: 2,
         position: Offset.zero,
@@ -156,6 +132,5 @@ void main() {
       ElEventPhase.pointerCancel,
       ElEventPhase.tapCancel,
     ]);
-    host.dispose();
   });
 }

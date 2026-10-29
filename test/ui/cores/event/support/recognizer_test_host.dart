@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/recognizers/index.dart';
+import 'package:flutter_base/src/ui/cores/view/event/press.dart';
 
 /// 等待旧序列的长按与连击窗口全部结束。
 const afterGesture = Duration(milliseconds: 700);
@@ -12,46 +12,41 @@ Widget gestureShell(Widget child) => Directionality(
 );
 
 /// 只向识别器登记官方命中路径中的开始事件。
-Widget gestureHost(GestureRecognizer recognizer, {Key? key, Widget? child}) =>
-    Listener(
-      key: key,
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: recognizer.addPointer,
-      onPointerPanZoomStart: recognizer.addPointerPanZoom,
-      child: child ?? const SizedBox(width: 200, height: 200),
-    );
+Widget gestureHost(GestureRecognizer recognizer, {Key? key, Widget? child}) => Listener(
+  key: key,
+  behavior: HitTestBehavior.opaque,
+  onPointerDown: recognizer.addPointer,
+  onPointerPanZoomStart: recognizer.addPointerPanZoom,
+  child: child ?? const SizedBox(width: 200, height: 200),
+);
 
 /// 记录点击生命周期，供真实命中场景复用。
-ElPressGestureRecognizer recordingPress(
-  List<String> events,
-  String name, {
-  ElPressGestureRecognizer? parent,
-}) {
-  final recognizer = ElPressGestureRecognizer()..parent = parent;
-  recognizer.onTapDown = (_) => events.add('$name.down');
-  recognizer.onTapUp = (_) => events.add('$name.up');
-  recognizer.onTap = (_) => events.add('$name.tap');
-  recognizer.onLongPress = (_) => events.add('$name.longPress');
-  recognizer.onTapCancel = (_) => events.add('$name.cancel');
+PressRecognizer recordingPress(List<String> events, String name, {PressRecognizer? parent}) {
+  final recognizer = PressRecognizer()..parent = parent;
+  recognizer.callbacks[.tapDown] = (_) => events.add('$name.down');
+  recognizer.callbacks[.tapUp] = (_) => events.add('$name.up');
+  recognizer.callbacks[.tap] = (_) => events.add('$name.tap');
+  recognizer.callbacks[.longPress] = (_) => events.add('$name.longPress');
+  recognizer.callbacks[.tapCancel] = (_) => events.add('$name.cancel');
   return recognizer;
 }
 
 /// 记录水平拖拽生命周期，供真实命中场景复用。
-ElTransformGestureRecognizer recordingDrag(
+TransformRecognizer recordingDrag(
   List<String> events,
   String name, {
-  ElTransformGestureRecognizer? parent,
+  TransformRecognizer? parent,
   double distance = 6,
 }) {
-  final recognizer = ElTransformGestureRecognizer()
+  final recognizer = TransformRecognizer()
     ..startDistance = distance
     ..parent = parent
     ..axis = Axis.horizontal;
-  recognizer.onDragDown = (_) => events.add('$name.down');
-  recognizer.onDragStart = (_) => events.add('$name.start');
-  recognizer.onDragUpdate = (_) => events.add('$name.update');
-  recognizer.onDragEnd = (_) => events.add('$name.end');
-  recognizer.onDragCancel = (_) => events.add('$name.cancel');
+  recognizer.callbacks[.dragDown] = (_) => events.add('$name.down');
+  recognizer.callbacks[.dragStart] = (_) => events.add('$name.start');
+  recognizer.callbacks[.dragUpdate] = (_) => events.add('$name.update');
+  recognizer.callbacks[.dragEnd] = (_) => events.add('$name.end');
+  recognizer.callbacks[.dragCancel] = (_) => events.add('$name.cancel');
   return recognizer;
 }
 

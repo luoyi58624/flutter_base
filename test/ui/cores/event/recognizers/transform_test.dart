@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/event/recognizers/index.dart';
+import 'package:flutter_base/src/ui/cores/view/event/press.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/recognizer_test_host.dart';
@@ -12,20 +12,20 @@ void main() {
 
   testWidgets('拖拽升级缩放由识别器结清每个成员，无需 Render 补发 Cancel', (tester) async {
     final trace = <String>[];
-    final parent = ElTransformGestureRecognizer()
+    final parent = TransformRecognizer()
       ..cancelDragOnScale = true
-      ..onDragStart = ((_) => trace.add('parent.drag'))
-      ..onDragCancel = ((_) => trace.add('parent.cancel'))
-      ..onDragEnd = ((_) => trace.add('parent.end'))
-      ..onScaleStart = (_) => trace.add('parent.scale');
-    final child = ElTransformGestureRecognizer()
+      ..callbacks[ElEventPhase.dragStart] = ((_) => trace.add('parent.drag'))
+      ..callbacks[ElEventPhase.dragCancel] = ((_) => trace.add('parent.cancel'))
+      ..callbacks[ElEventPhase.dragEnd] = ((_) => trace.add('parent.end'))
+      ..callbacks[ElEventPhase.scaleStart] = (_) => trace.add('parent.scale');
+    final child = TransformRecognizer()
       ..parent = parent
       ..cancelDragOnScale = true
       ..startDistance = 2
-      ..onDragStart = ((_) => trace.add('child.drag'))
-      ..onDragCancel = ((_) => trace.add('child.cancel'))
-      ..onDragEnd = ((_) => trace.add('child.end'))
-      ..onScaleStart = (_) => trace.add('child.scale');
+      ..callbacks[ElEventPhase.dragStart] = ((_) => trace.add('child.drag'))
+      ..callbacks[ElEventPhase.dragCancel] = ((_) => trace.add('child.cancel'))
+      ..callbacks[ElEventPhase.dragEnd] = ((_) => trace.add('child.end'))
+      ..callbacks[ElEventPhase.scaleStart] = (_) => trace.add('child.scale');
     addTearDown(child.dispose);
     addTearDown(parent.dispose);
     final first = TestPointer(1900);
@@ -33,14 +33,7 @@ void main() {
     _down(first.down(Offset.zero), [child, parent]);
     _route(first.move(const Offset(10, 0)));
     _down(second.down(const Offset(30, 0)), [child, parent]);
-    expect(trace, [
-      'child.drag',
-      'parent.drag',
-      'child.cancel',
-      'parent.cancel',
-      'child.scale',
-      'parent.scale',
-    ]);
+    expect(trace, ['child.drag', 'parent.drag', 'child.cancel', 'parent.cancel', 'child.scale', 'parent.scale']);
     expect([child.isDragging, parent.isDragging], [false, false]);
     _route(second.up());
     _route(first.up());
@@ -49,21 +42,21 @@ void main() {
 
   testWidgets('升级取消回调重入整体 cancel，已公开的拖拽各有且只有一个终态', (tester) async {
     final trace = <String>[];
-    final parent = ElTransformGestureRecognizer()
+    final parent = TransformRecognizer()
       ..cancelDragOnScale = true
-      ..onDragStart = ((_) => trace.add('parent.start'))
-      ..onDragCancel = (_) => trace.add('parent.cancel');
-    late ElTransformGestureRecognizer child;
-    child = ElTransformGestureRecognizer()
+      ..callbacks[ElEventPhase.dragStart] = ((_) => trace.add('parent.start'))
+      ..callbacks[ElEventPhase.dragCancel] = (_) => trace.add('parent.cancel');
+    late TransformRecognizer child;
+    child = TransformRecognizer()
       ..parent = parent
       ..cancelDragOnScale = true
       ..startDistance = 2
-      ..onDragStart = ((_) => trace.add('child.start'))
-      ..onDragCancel = (_) {
+      ..callbacks[ElEventPhase.dragStart] = ((_) => trace.add('child.start'))
+      ..callbacks[ElEventPhase.dragCancel] = (_) {
         trace.add('child.cancel');
         child.cancel();
       }
-      ..onScaleStart = (_) => trace.add('scale');
+      ..callbacks[ElEventPhase.scaleStart] = (_) => trace.add('scale');
     addTearDown(child.dispose);
     addTearDown(parent.dispose);
     final first = TestPointer(1902);
@@ -73,23 +66,18 @@ void main() {
     _down(second.down(const Offset(30, 0)), [child, parent]);
     _route(second.up());
     _route(first.up());
-    expect(trace, [
-      'child.start',
-      'parent.start',
-      'child.cancel',
-      'parent.cancel',
-    ]);
+    expect(trace, ['child.start', 'parent.start', 'child.cancel', 'parent.cancel']);
   });
 
   testWidgets('取消 Drag 不使同次 Scale 回调失效，禁用 Scale 后不得误取消 Drag', (tester) async {
     final trace = <String>[];
-    late ElTransformGestureRecognizer drag;
-    drag = ElTransformGestureRecognizer()
+    late TransformRecognizer drag;
+    drag = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = ((_) => trace.add('drag'))
-      ..onDragCancel = ((_) => trace.add('cancel'))
-      ..onDragEnd = ((_) => trace.add('end'))
-      ..onScaleStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = ((_) => trace.add('drag'))
+      ..callbacks[ElEventPhase.dragCancel] = ((_) => trace.add('cancel'))
+      ..callbacks[ElEventPhase.dragEnd] = ((_) => trace.add('end'))
+      ..callbacks[ElEventPhase.scaleStart] = (event) {
         trace.add('scale');
         drag.cancelMember(event.pointer, cancelScale: false);
         expect(event.isActive, isTrue);
@@ -107,7 +95,7 @@ void main() {
     trace.clear();
     drag
       ..cancelDragOnScale = true
-      ..onDragStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (event) {
         trace.add('drag');
         drag.cancelMember(event.pointer, cancelDrag: false);
       };
@@ -123,9 +111,9 @@ void main() {
 
   testWidgets('属性更新从下一轮生效，清空启动距离恢复设备容差', (tester) async {
     var starts = 0;
-    final drag = ElTransformGestureRecognizer()
+    final drag = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) => starts++;
+      ..callbacks[ElEventPhase.dragStart] = (_) => starts++;
     addTearDown(drag.dispose);
     final first = TestPointer(1800);
     _down(first.down(Offset.zero), [drag]);
@@ -145,35 +133,35 @@ void main() {
   testWidgets('拖拽和变换各业务回调均可独立停止冒泡', (tester) async {
     var nextPointer = 450;
     for (final phase in [
-      ElGesturePhase.dragDown,
-      ElGesturePhase.dragStart,
-      ElGesturePhase.dragUpdate,
-      ElGesturePhase.scaleStart,
-      ElGesturePhase.scaleUpdate,
-      ElGesturePhase.rotationUpdate,
+      ElEventPhase.dragDown,
+      ElEventPhase.dragStart,
+      ElEventPhase.dragUpdate,
+      ElEventPhase.scaleStart,
+      ElEventPhase.scaleUpdate,
+      ElEventPhase.rotationUpdate,
     ]) {
-      final trace = <(bool, ElGesturePhase)>[];
-      final parent = ElTransformGestureRecognizer();
-      final child = ElTransformGestureRecognizer()
+      final trace = <(bool, ElEventPhase)>[];
+      final parent = TransformRecognizer();
+      final child = TransformRecognizer()
         ..parent = parent
         ..startDistance = 2;
-      void wire(ElTransformGestureRecognizer recognizer, bool isChild) {
-        void record(ElTransformGestureDetails details) {
+      void wire(TransformRecognizer recognizer, bool isChild) {
+        void record(TransformGestureDetails details) {
           trace.add((isChild, details.phase));
           if (isChild && details.phase == phase) details.stopPropagation();
         }
 
         recognizer
-          ..onDragDown = record
-          ..onDragStart = record
-          ..onDragUpdate = record
-          ..onDragEnd = record
-          ..onDragCancel = record
-          ..onScaleStart = record
-          ..onScaleUpdate = record
-          ..onScaleEnd = record
-          ..onScaleCancel = record
-          ..onRotationUpdate = record;
+          ..callbacks[ElEventPhase.dragDown] = record
+          ..callbacks[ElEventPhase.dragStart] = record
+          ..callbacks[ElEventPhase.dragUpdate] = record
+          ..callbacks[ElEventPhase.dragEnd] = record
+          ..callbacks[ElEventPhase.dragCancel] = record
+          ..callbacks[ElEventPhase.scaleStart] = record
+          ..callbacks[ElEventPhase.scaleUpdate] = record
+          ..callbacks[ElEventPhase.scaleEnd] = record
+          ..callbacks[ElEventPhase.scaleCancel] = record
+          ..callbacks[ElEventPhase.rotationUpdate] = record;
       }
 
       wire(parent, false);
@@ -185,17 +173,8 @@ void main() {
       parent.addPointerPanZoom(start);
       GestureBinding.instance.gestureArena.close(pointer);
       _route(start);
-      _route(
-        p.panZoomUpdate(Offset.zero, pan: const Offset(10, 0), scale: 1.2),
-      );
-      _route(
-        p.panZoomUpdate(
-          Offset.zero,
-          pan: const Offset(20, 0),
-          scale: 1.5,
-          rotation: 0.2,
-        ),
-      );
+      _route(p.panZoomUpdate(Offset.zero, pan: const Offset(10, 0), scale: 1.2));
+      _route(p.panZoomUpdate(Offset.zero, pan: const Offset(20, 0), scale: 1.5, rotation: 0.2));
       _route(p.panZoomEnd());
       expect(trace, contains((true, phase)), reason: phase.name);
       expect(trace, isNot(contains((false, phase))), reason: phase.name);
@@ -205,22 +184,22 @@ void main() {
   });
 
   testWidgets('主动取消单指保留其他指针，整体取消唯一结清后可再次识别', (tester) async {
-    final phases = <ElGesturePhase>[];
-    final drag = ElTransformGestureRecognizer()
+    final phases = <ElEventPhase>[];
+    final drag = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (event) {
         phases.add(event.phase);
       }
-      ..onDragEnd = (event) {
+      ..callbacks[ElEventPhase.dragEnd] = (event) {
         phases.add(event.phase);
       }
-      ..onDragCancel = (event) {
+      ..callbacks[ElEventPhase.dragCancel] = (event) {
         phases.add(event.phase);
       }
-      ..onScaleStart = (event) {
+      ..callbacks[ElEventPhase.scaleStart] = (event) {
         phases.add(event.phase);
       }
-      ..onScaleCancel = (event) {
+      ..callbacks[ElEventPhase.scaleCancel] = (event) {
         phases.add(event.phase);
       };
     final p = TestPointer(420);
@@ -229,25 +208,19 @@ void main() {
     _route(p.move(const Offset(10, 0)));
     _down(q.down(const Offset(30, 0)), [drag]);
     drag.cancelPointer(421);
-    expect(phases, [
-      ElGesturePhase.dragStart,
-      ElGesturePhase.scaleStart,
-      ElGesturePhase.scaleCancel,
-    ]);
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.scaleStart]);
     drag.cancel();
     drag.cancel();
     _route(q.up());
     _route(p.up());
-    expect(phases.last, ElGesturePhase.dragCancel);
-    expect(
-      phases.where((phase) => phase == ElGesturePhase.dragCancel),
-      hasLength(1),
-    );
+    expect(phases.last, ElEventPhase.dragCancel);
+    expect(phases.where((phase) => phase == ElEventPhase.dragCancel), hasLength(1));
+    expect(phases.where((phase) => phase == ElEventPhase.scaleCancel), hasLength(1));
     final next = TestPointer(422);
     _down(next.down(Offset.zero), [drag]);
     _route(next.move(const Offset(10, 0)));
     _route(next.up());
-    expect(phases.last, ElGesturePhase.dragEnd);
+    expect(phases.last, ElEventPhase.dragEnd);
     drag.dispose();
   });
 
@@ -256,11 +229,11 @@ void main() {
     final root = recordingDrag(trace, 'root');
     final middle = recordingDrag(trace, 'middle', parent: root);
     final child = recordingDrag(trace, 'child', parent: middle)
-      ..onDragStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (event) {
         trace.add('child.start');
         event.stopPropagation();
       };
-    middle.onDragCancel = (_) {
+    middle.callbacks[ElEventPhase.dragCancel] = (_) {
       trace.add('middle.cancel');
       child.dispose();
     };
@@ -283,11 +256,11 @@ void main() {
   });
 
   testWidgets('最新 driver 尚未移动就释放时，End 使用该指针坐标且忽略 Up 跳变', (tester) async {
-    ElTransformGestureDetails? end;
-    final drag = ElTransformGestureRecognizer()
+    TransformGestureDetails? end;
+    final drag = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onDragEnd = (event) => end = event;
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragEnd] = (event) => end = event;
     addTearDown(drag.dispose);
     final first = TestPointer(350);
     final second = TestPointer(351);
@@ -304,12 +277,12 @@ void main() {
   testWidgets('ScaleEnd 内销毁仍向祖先结清 Scale 与 Drag 两个已开始家族', (tester) async {
     final trace = <String>[];
     final parent = recordingDrag(trace, 'parent');
-    parent.onScaleStart = (_) => trace.add('parent.scaleStart');
-    parent.onScaleEnd = (_) => trace.add('parent.scaleEnd');
-    late ElTransformGestureRecognizer child;
+    parent.callbacks[ElEventPhase.scaleStart] = (_) => trace.add('parent.scaleStart');
+    parent.callbacks[ElEventPhase.scaleEnd] = (_) => trace.add('parent.scaleEnd');
+    late TransformRecognizer child;
     child = recordingDrag(trace, 'child', parent: parent);
-    child.onScaleStart = (_) => trace.add('child.scaleStart');
-    child.onScaleEnd = (_) {
+    child.callbacks[ElEventPhase.scaleStart] = (_) => trace.add('child.scaleStart');
+    child.callbacks[ElEventPhase.scaleEnd] = (_) {
       trace.add('child.scaleEnd');
       child.dispose();
     };
@@ -341,13 +314,13 @@ void main() {
       final trace = <String>[];
       final parent = recordingDrag(trace, 'parent');
       final child = recordingDrag(trace, 'child', parent: parent);
-      void stop(ElTransformGestureDetails event) {
+      void stop(TransformGestureDetails event) {
         trace.add('child.${cancel ? 'cancel' : 'end'}');
         event.stopPropagation();
       }
 
-      child.onDragEnd = stop;
-      child.onDragCancel = stop;
+      child.callbacks[ElEventPhase.dragEnd] = stop;
+      child.callbacks[ElEventPhase.dragCancel] = stop;
       addTearDown(child.dispose);
       addTearDown(parent.dispose);
       final p = TestPointer(301);
@@ -370,7 +343,7 @@ void main() {
     final trace = <String>[];
     final parent = recordingDrag(trace, 'parent');
     final child = recordingDrag(trace, 'child', parent: parent)
-      ..onDragStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (event) {
         trace.add('child.start');
         event.stopPropagation();
       };
@@ -379,44 +352,28 @@ void main() {
     final p = TestPointer(302);
     _down(p.down(Offset.zero), [child, parent]);
     _route(p.move(const Offset(12, 0)));
-    expect(trace, [
-      'child.down',
-      'parent.down',
-      'child.start',
-      'parent.cancel',
-    ]);
+    expect(trace, ['child.down', 'parent.down', 'child.start', 'parent.cancel']);
     _route(p.up());
     expect(trace.last, 'child.end');
     expect(trace.where((e) => e == 'parent.cancel'), hasLength(1));
     expect(trace, isNot(contains('parent.end')));
   });
 
-  for (final timing in [
-    'continuous',
-    'paused',
-    'deliveryDelay',
-    'synthesized',
-    'sparse',
-  ]) {
+  for (final timing in ['continuous', 'paused', 'deliveryDelay', 'synthesized', 'sparse']) {
     testWidgets('甩出速度使用真实采样与事件时间：$timing', (tester) async {
-      ElTransformGestureDetails? end;
-      final drag = ElTransformGestureRecognizer()
+      TransformGestureDetails? end;
+      final drag = TransformRecognizer()
         ..axis = Axis.horizontal
         ..startDistance = 2
         ..minFlingDistance = 3
-        ..onDragStart = (_) {}
-        ..onDragEnd = (event) => end = event;
+        ..callbacks[ElEventPhase.dragStart] = (_) {}
+        ..callbacks[ElEventPhase.dragEnd] = (event) => end = event;
       addTearDown(drag.dispose);
       final p = TestPointer(310);
       _down(p.down(Offset.zero), [drag]);
       final samples = timing == 'sparse' ? 1 : 3;
       for (var i = 1; i <= samples; i++) {
-        _route(
-          p.move(
-            Offset(i * 20.0, 0),
-            timeStamp: Duration(milliseconds: i * 10),
-          ),
-        );
+        _route(p.move(Offset(i * 20.0, 0), timeStamp: Duration(milliseconds: i * 10)));
       }
       if (timing == 'deliveryDelay') {
         await tester.pump(const Duration(milliseconds: 150));
@@ -437,10 +394,7 @@ void main() {
       _route(p.up(timeStamp: Duration(milliseconds: releaseMs)));
       expect(
         end!.velocity.pixelsPerSecond.dx,
-        closeTo(
-          timing == 'paused' ? 0 : (timing == 'sparse' ? 3333.333333 : 2000),
-          0.01,
-        ),
+        closeTo(timing == 'paused' ? 0 : (timing == 'sparse' ? 3333.333333 : 2000), 0.01),
       );
       if (timing == 'synthesized') {
         expect(end!.dragOffset, const Offset(980, 0));
@@ -449,16 +403,16 @@ void main() {
   }
 
   testWidgets('取消其中一根已接受指针不结束 Drag，最后一指释放才发 End', (tester) async {
-    final phases = <ElGesturePhase>[];
-    final drag = ElTransformGestureRecognizer()
+    final phases = <ElEventPhase>[];
+    final drag = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (e) {
+      ..callbacks[ElEventPhase.dragStart] = (e) {
         phases.add(e.phase);
       }
-      ..onDragEnd = (e) {
+      ..callbacks[ElEventPhase.dragEnd] = (e) {
         phases.add(e.phase);
       }
-      ..onDragCancel = (e) {
+      ..callbacks[ElEventPhase.dragCancel] = (e) {
         phases.add(e.phase);
       };
     addTearDown(drag.dispose);
@@ -468,33 +422,33 @@ void main() {
     _route(first.move(const Offset(10, 0)));
     _down(second.down(const Offset(100, 0)), [drag]);
     _route(second.cancel());
-    expect(phases, [ElGesturePhase.dragStart]);
+    expect(phases, [ElEventPhase.dragStart]);
     _route(first.move(const Offset(15, 0)));
     _route(first.up());
-    expect(phases, [ElGesturePhase.dragStart, ElGesturePhase.dragEnd]);
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragEnd]);
   });
 
   testWidgets('Scale 终态停止冒泡仍结清祖先，指针增减重基准不跳比例', (tester) async {
     final trace = <String>[];
     final values = <double>[];
-    final parent = ElTransformGestureRecognizer()
-      ..onScaleStart = (_) {
+    final parent = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         trace.add('parent.start');
       }
-      ..onScaleEnd = (_) {
+      ..callbacks[ElEventPhase.scaleEnd] = (_) {
         trace.add('parent.end');
       };
-    final child = ElTransformGestureRecognizer()
+    final child = TransformRecognizer()
       ..parent = parent
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onScaleStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         trace.add('child.start');
       }
-      ..onScaleUpdate = (event) {
+      ..callbacks[ElEventPhase.scaleUpdate] = (event) {
         values.add(event.scale);
       }
-      ..onScaleEnd = (event) {
+      ..callbacks[ElEventPhase.scaleEnd] = (event) {
         trace.add('child.end');
         event.stopPropagation();
       };
@@ -520,19 +474,19 @@ void main() {
   });
 
   testWidgets('El 拖拽先过阈值后，官方拖拽和 Tap 都不能激活', (tester) async {
-    final phases = <ElGesturePhase>[];
+    final phases = <ElEventPhase>[];
     var officialDrag = 0;
     var officialTap = 0;
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..axis = Axis.horizontal
       ..startDistance = 4
-      ..onDragStart = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (event) {
         phases.add(event.phase);
       }
-      ..onDragUpdate = (event) {
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
         phases.add(event.phase);
       }
-      ..onDragEnd = (event) {
+      ..callbacks[ElEventPhase.dragEnd] = (event) {
         phases.add(event.phase);
       };
     final drag = HorizontalDragGestureRecognizer()
@@ -551,11 +505,7 @@ void main() {
     _route(pointer.move(const Offset(8, 0)));
     _route(pointer.move(const Offset(80, 0)));
     _route(pointer.up());
-    expect(phases, [
-      ElGesturePhase.dragStart,
-      ElGesturePhase.dragUpdate,
-      ElGesturePhase.dragEnd,
-    ]);
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragUpdate, ElEventPhase.dragEnd]);
     expect(officialDrag, 0);
     expect(officialTap, 0);
   });
@@ -565,16 +515,16 @@ void main() {
     var updates = 0;
     var cancels = 0;
     var officialStarts = 0;
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..axis = Axis.vertical
       ..startDistance = 60
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         starts++;
       }
-      ..onDragUpdate = (_) {
+      ..callbacks[ElEventPhase.dragUpdate] = (_) {
         updates++;
       }
-      ..onDragCancel = (_) {
+      ..callbacks[ElEventPhase.dragCancel] = (_) {
         cancels++;
       };
     final official = VerticalDragGestureRecognizer()
@@ -597,16 +547,16 @@ void main() {
   });
 
   testWidgets('单轴尊重起手方向，双轴锁定只输出胜出轴', (tester) async {
-    final values = <ElTransformGestureDetails>[];
-    final vertical = ElTransformGestureRecognizer()
+    final values = <TransformGestureDetails>[];
+    final vertical = TransformRecognizer()
       ..axis = Axis.vertical
       ..startDistance = 3
-      ..onDragStart = values.add;
-    final lock = ElTransformGestureRecognizer()
+      ..callbacks[ElEventPhase.dragStart] = values.add;
+    final lock = TransformRecognizer()
       ..lockAxis = true
       ..startDistance = 3
-      ..onDragStart = values.add
-      ..onDragUpdate = values.add;
+      ..callbacks[ElEventPhase.dragStart] = values.add
+      ..callbacks[ElEventPhase.dragUpdate] = values.add;
     addTearDown(vertical.dispose);
     addTearDown(lock.dispose);
     final p = TestPointer(4);
@@ -628,12 +578,12 @@ void main() {
   });
 
   testWidgets('正式拖拽首帧不追补 slop，坐标按官方变换回到本地', (tester) async {
-    final values = <ElTransformGestureDetails>[];
-    final transform = ElTransformGestureRecognizer()
+    final values = <TransformGestureDetails>[];
+    final transform = TransformRecognizer()
       ..axis = Axis.horizontal
       ..startDistance = 5
-      ..onDragStart = values.add
-      ..onDragUpdate = values.add;
+      ..callbacks[ElEventPhase.dragStart] = values.add
+      ..callbacks[ElEventPhase.dragUpdate] = values.add;
     addTearDown(transform.dispose);
     final matrix = Matrix4.diagonal3Values(0.5, 0.5, 1);
     final pointer = TestPointer(6);
@@ -651,13 +601,13 @@ void main() {
   testWidgets('拖拽中追加指针落败，不切换 driver 或触发幽灵缩放', (tester) async {
     var scaleStarts = 0;
     final updates = <Offset>[];
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onDragUpdate = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
         updates.add(event.delta);
       }
-      ..onScaleStart = (_) {
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         scaleStarts++;
       };
     final eager = EagerGestureRecognizer();
@@ -678,10 +628,10 @@ void main() {
 
   testWidgets('latestPointer 只由已获胜的新指针接管，抬起无位移跳变', (tester) async {
     final updates = <Offset>[];
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onDragUpdate = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
         updates.add(event.delta);
       };
     addTearDown(transform.dispose);
@@ -703,19 +653,19 @@ void main() {
     var scaleStarts = 0;
     final scales = <double>[];
     final ends = <int>[];
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         dragStarts++;
       }
-      ..onDragUpdate = (_) {}
-      ..onScaleStart = (_) {
+      ..callbacks[ElEventPhase.dragUpdate] = (_) {}
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         scaleStarts++;
       }
-      ..onScaleUpdate = (event) {
+      ..callbacks[ElEventPhase.scaleUpdate] = (event) {
         scales.add(event.scale);
       }
-      ..onScaleEnd = (event) {
+      ..callbacks[ElEventPhase.scaleEnd] = (event) {
         ends.add(event.pointerCount);
       };
     addTearDown(transform.dispose);
@@ -730,20 +680,22 @@ void main() {
     _route(q.up());
     _route(p.move(const Offset(13, 0)));
     expect(dragStarts, 1);
-    expect(ends, [1]);
+    expect(scales, [closeTo(2, 0.0001), closeTo(2, 0.0001)]);
+    expect(ends, isEmpty);
     _route(p.up());
+    expect(ends, [0]);
   });
 
   testWidgets('触控板平移缩放共用官方竞技场，并保留连续旋转', (tester) async {
     var officialStarts = 0;
     final rotations = <double>[];
-    final scales = <ElTransformGestureDetails>[];
-    final transform = ElTransformGestureRecognizer()
+    final scales = <TransformGestureDetails>[];
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onScaleStart = scales.add
-      ..onScaleUpdate = scales.add
-      ..onRotationUpdate = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.scaleStart] = scales.add
+      ..callbacks[ElEventPhase.scaleUpdate] = scales.add
+      ..callbacks[ElEventPhase.rotationUpdate] = (event) {
         rotations.add(event.rotation);
       };
     final official = PanGestureRecognizer()
@@ -759,22 +711,8 @@ void main() {
     GestureBinding.instance.gestureArena.close(13);
     _route(start);
     _route(p.panZoomUpdate(const Offset(20, 20), pan: const Offset(5, 0)));
-    _route(
-      p.panZoomUpdate(
-        const Offset(20, 20),
-        pan: const Offset(8, 0),
-        scale: 2,
-        rotation: 3,
-      ),
-    );
-    _route(
-      p.panZoomUpdate(
-        const Offset(20, 20),
-        pan: const Offset(10, 0),
-        scale: 3,
-        rotation: 6,
-      ),
-    );
+    _route(p.panZoomUpdate(const Offset(20, 20), pan: const Offset(8, 0), scale: 2, rotation: 3));
+    _route(p.panZoomUpdate(const Offset(20, 20), pan: const Offset(10, 0), scale: 3, rotation: 6));
     expect(officialStarts, 0);
     expect(scales.last.scale, closeTo(3, 0.0001));
     expect(scales.last.pointerCount, 2);
@@ -783,15 +721,15 @@ void main() {
   });
 
   testWidgets('结束速度过滤最小距离并限幅，旋转宿主 primaryVelocity 使用本地轴', (tester) async {
-    ElTransformGestureDetails? end;
-    final transform = ElTransformGestureRecognizer()
+    TransformGestureDetails? end;
+    final transform = TransformRecognizer()
       ..axis = Axis.horizontal
       ..startDistance = 2
       ..minFlingDistance = 4
       ..minFlingVelocity = 10
       ..maxFlingVelocity = 300
-      ..onDragStart = (_) {}
-      ..onDragEnd = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragEnd] = (event) {
         end = event;
       };
     addTearDown(transform.dispose);
@@ -799,12 +737,7 @@ void main() {
     final pointer = TestPointer(14);
     _down(pointer.down(Offset.zero).transformed(matrix), [transform]);
     for (var index = 1; index <= 8; index++) {
-      _route(
-        pointer.move(
-          Offset(0, index * 10.0),
-          timeStamp: Duration(milliseconds: index * 10),
-        ),
-      );
+      _route(pointer.move(Offset(0, index * 10.0), timeStamp: Duration(milliseconds: index * 10)));
     }
     _route(pointer.up(timeStamp: const Duration(milliseconds: 80)));
     expect(end!.primaryVelocity, closeTo(300, 0.01));
@@ -815,17 +748,14 @@ void main() {
   testWidgets('配置只影响下一轮，额外不支持设备不会取消现有拖拽', (tester) async {
     var starts = 0;
     var cancels = 0;
-    final transform =
-        ElTransformGestureRecognizer(
-            supportedDevices: {PointerDeviceKind.touch},
-          )
-          ..startDistance = 20
-          ..onDragStart = (_) {
-            starts++;
-          }
-          ..onDragCancel = (_) {
-            cancels++;
-          };
+    final transform = TransformRecognizer(supportedDevices: {PointerDeviceKind.touch})
+      ..startDistance = 20
+      ..callbacks[ElEventPhase.dragStart] = (_) {
+        starts++;
+      }
+      ..callbacks[ElEventPhase.dragCancel] = (_) {
+        cancels++;
+      };
     addTearDown(transform.dispose);
     final pointer = TestPointer(15);
     _down(pointer.down(Offset.zero), [transform]);
@@ -843,13 +773,13 @@ void main() {
   testWidgets('终态回调可以开始新序列，旧清理不能删除新序列', (tester) async {
     var starts = 0;
     final next = TestPointer(19);
-    final transform = ElTransformGestureRecognizer()
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         starts++;
       };
-    transform.onDragEnd = (_) {
-      transform.onDragEnd = null;
+    transform.callbacks[ElEventPhase.dragEnd] = (_) {
+      transform.callbacks[ElEventPhase.dragEnd] = null;
       _down(next.down(Offset.zero), [transform]);
     };
     addTearDown(transform.dispose);
@@ -863,11 +793,11 @@ void main() {
   });
 
   testWidgets('落败新指针的宿主变换不能覆盖旧 driver 的冻结坐标', (tester) async {
-    final updates = <ElTransformGestureDetails>[];
-    final transform = ElTransformGestureRecognizer()
+    final updates = <TransformGestureDetails>[];
+    final transform = TransformRecognizer()
       ..startDistance = 2
-      ..onDragStart = (_) {}
-      ..onDragUpdate = updates.add;
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = updates.add;
     final eager = EagerGestureRecognizer();
     addTearDown(transform.dispose);
     addTearDown(eager.dispose);
@@ -875,12 +805,7 @@ void main() {
     _down(pointer.down(Offset.zero), [transform]);
     _route(pointer.move(const Offset(10, 0)));
     final next = TestPointer(21);
-    _down(
-      next
-          .down(const Offset(100, 0))
-          .transformed(Matrix4.diagonal3Values(0.5, 0.5, 1)),
-      [eager, transform],
-    );
+    _down(next.down(const Offset(100, 0)).transformed(Matrix4.diagonal3Values(0.5, 0.5, 1)), [eager, transform]);
     _route(pointer.move(const Offset(20, 0)));
     expect(updates.single.delta, const Offset(10, 0));
     expect(updates.single.localDelta, const Offset(10, 0));
@@ -890,8 +815,8 @@ void main() {
 
   testWidgets('纯缩放候选失去新增指针后，后来的静止指针不能幽灵启动', (tester) async {
     var starts = 0;
-    final transform = ElTransformGestureRecognizer()
-      ..onScaleStart = (_) {
+    final transform = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         starts++;
       };
     final eager = EagerGestureRecognizer();
@@ -915,25 +840,20 @@ void main() {
   });
 
   testWidgets('未满足最小 fling 距离时高速释放仍输出零速度', (tester) async {
-    ElTransformGestureDetails? end;
-    final transform = ElTransformGestureRecognizer()
+    TransformGestureDetails? end;
+    final transform = TransformRecognizer()
       ..startDistance = 1
       ..minFlingDistance = 100
       ..minFlingVelocity = 10
-      ..onDragStart = (_) {}
-      ..onDragEnd = (event) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragEnd] = (event) {
         end = event;
       };
     addTearDown(transform.dispose);
     final pointer = TestPointer(25);
     _down(pointer.down(Offset.zero), [transform]);
     for (var index = 1; index <= 5; index++) {
-      _route(
-        pointer.move(
-          Offset(index * 5.0, 0),
-          timeStamp: Duration(milliseconds: index * 5),
-        ),
-      );
+      _route(pointer.move(Offset(index * 5.0, 0), timeStamp: Duration(milliseconds: index * 5)));
     }
     _route(pointer.up(timeStamp: const Duration(milliseconds: 25)));
     expect(end!.velocity, Velocity.zero);
@@ -942,12 +862,12 @@ void main() {
   testWidgets('仅旋转订阅不会因触控板纯缩放认领，纯旋转也不启动仅缩放订阅', (tester) async {
     var rotations = 0;
     var zoomStarts = 0;
-    final rotate = ElTransformGestureRecognizer()
-      ..onRotationUpdate = (_) {
+    final rotate = TransformRecognizer()
+      ..callbacks[ElEventPhase.rotationUpdate] = (_) {
         rotations++;
       };
-    final zoom = ElTransformGestureRecognizer()
-      ..onScaleStart = (_) {
+    final zoom = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
         zoomStarts++;
       };
     addTearDown(rotate.dispose);
@@ -1000,14 +920,8 @@ void main() {
     await gesture.up();
     await tester.pump(afterGesture);
 
-    expect(
-      events,
-      containsAllInOrder(['official.start', 'official.update', 'official.end']),
-    );
-    expect(events.where((event) => event.startsWith('el.')), [
-      'el.down',
-      'el.cancel',
-    ]);
+    expect(events, containsAllInOrder(['official.start', 'official.update', 'official.end']));
+    expect(events.where((event) => event.startsWith('el.')), ['el.down', 'el.cancel']);
   });
 
   testWidgets('同一宿主的 El 拖拽获胜会取消 El 点击', (tester) async {
@@ -1034,22 +948,16 @@ void main() {
     await gesture.up();
     await tester.pump(afterGesture);
 
-    expect(events.where((event) => event.startsWith('press.')), [
-      'press.down',
-      'press.cancel',
-    ]);
-    expect(
-      events,
-      containsAllInOrder(['drag.start', 'drag.update', 'drag.end']),
-    );
+    expect(events.where((event) => event.startsWith('press.')), ['press.down', 'press.cancel']);
+    expect(events, containsAllInOrder(['drag.start', 'drag.update', 'drag.end']));
   });
 
   testWidgets('El 多指缩放获胜后外层官方 Scale 不跟随更新', (tester) async {
     final events = <String>[];
-    final transform = ElTransformGestureRecognizer()..startDistance = 4;
-    transform.onScaleStart = (_) => events.add('el.start');
-    transform.onScaleUpdate = (_) => events.add('el.update');
-    transform.onScaleEnd = (_) => events.add('el.end');
+    final transform = TransformRecognizer()..startDistance = 4;
+    transform.callbacks[ElEventPhase.scaleStart] = (_) => events.add('el.start');
+    transform.callbacks[ElEventPhase.scaleUpdate] = (_) => events.add('el.update');
+    transform.callbacks[ElEventPhase.scaleEnd] = (_) => events.add('el.end');
     addTearDown(transform.dispose);
     await tester.pumpWidget(
       gestureShell(
@@ -1062,10 +970,7 @@ void main() {
       ),
     );
     final first = await tester.startGesture(const Offset(80, 100), pointer: 1);
-    final second = await tester.startGesture(
-      const Offset(120, 100),
-      pointer: 2,
-    );
+    final second = await tester.startGesture(const Offset(120, 100), pointer: 2);
     await first.moveTo(const Offset(40, 100));
     await second.moveTo(const Offset(160, 100));
     await first.moveTo(const Offset(30, 100));
@@ -1079,11 +984,11 @@ void main() {
 
   testWidgets('官方 Scale 先获胜后 El 缩放候选失权，继续移动也不复活', (tester) async {
     final events = <String>[];
-    final transform = ElTransformGestureRecognizer()..startDistance = 100;
-    transform.onScaleStart = (_) => events.add('el.start');
-    transform.onScaleUpdate = (_) => events.add('el.update');
-    transform.onScaleEnd = (_) => events.add('el.end');
-    transform.onScaleCancel = (_) => events.add('el.cancel');
+    final transform = TransformRecognizer()..startDistance = 100;
+    transform.callbacks[ElEventPhase.scaleStart] = (_) => events.add('el.start');
+    transform.callbacks[ElEventPhase.scaleUpdate] = (_) => events.add('el.update');
+    transform.callbacks[ElEventPhase.scaleEnd] = (_) => events.add('el.end');
+    transform.callbacks[ElEventPhase.scaleCancel] = (_) => events.add('el.cancel');
     addTearDown(transform.dispose);
     await tester.pumpWidget(
       gestureShell(
@@ -1100,10 +1005,7 @@ void main() {
       ),
     );
     final first = await tester.startGesture(const Offset(80, 100), pointer: 1);
-    final second = await tester.startGesture(
-      const Offset(120, 100),
-      pointer: 2,
-    );
+    final second = await tester.startGesture(const Offset(120, 100), pointer: 2);
     await first.moveTo(const Offset(40, 100));
     await second.moveTo(const Offset(160, 100));
     await first.moveTo(const Offset(5, 100));
@@ -1112,10 +1014,7 @@ void main() {
     await first.up();
     await tester.pump(afterGesture);
 
-    expect(
-      events,
-      containsAllInOrder(['official.start', 'official.update', 'official.end']),
-    );
+    expect(events, containsAllInOrder(['official.start', 'official.update', 'official.end']));
     // Scale 没有对外 Down 候选通知，尚未开始的候选失权不制造取消生命周期。
     expect(events.where((event) => event.startsWith('el.')), isEmpty);
   });
@@ -1142,52 +1041,41 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    expect(
-      events,
-      containsAllInOrder(['front.down', 'parent.down', 'back.down']),
-    );
+    expect(events, containsAllInOrder(['front.down', 'parent.down', 'back.down']));
     expect(events.where((event) => event.startsWith('front.')), [
       'front.down',
       'front.start',
       'front.update',
       'front.end',
     ]);
-    expect(events.where((event) => event.startsWith('back.')), [
-      'back.down',
-      'back.cancel',
-    ]);
+    expect(events.where((event) => event.startsWith('back.')), ['back.down', 'back.cancel']);
     expect(events.where((event) => event.startsWith('parent.')), [
       'parent.down',
       'parent.start',
       'parent.update',
       'parent.end',
     ]);
-    expect(events.where((event) => event.startsWith('official.')), [
-      'official.down',
-      'official.cancel',
-    ]);
+    expect(events.where((event) => event.startsWith('official.')), ['official.down', 'official.cancel']);
   });
 
   testWidgets('拖拽 Start 内销毁所有者时祖先不会在 Cancel 后又收到 Start', (tester) async {
     final trace = <String>[];
-    final parent = ElTransformGestureRecognizer()
-      ..onDragDown = (_) {
+    final parent = TransformRecognizer()
+      ..callbacks[ElEventPhase.dragDown] = (_) {
         trace.add('parent.down');
       }
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         trace.add('parent.start');
       }
-      ..onDragCancel = (_) => trace.add('parent.cancel');
-    late ElTransformGestureRecognizer child;
-    child = ElTransformGestureRecognizer()
+      ..callbacks[ElEventPhase.dragCancel] = (_) => trace.add('parent.cancel');
+    late TransformRecognizer child;
+    child = TransformRecognizer()
       ..parent = parent
       ..startDistance = 6
-      ..onDragStart = (_) => child.dispose();
+      ..callbacks[ElEventPhase.dragStart] = (_) => child.dispose();
     addTearDown(parent.dispose);
     addTearDown(child.dispose);
-    await tester.pumpWidget(
-      gestureShell(gestureHost(parent, child: gestureHost(child))),
-    );
+    await tester.pumpWidget(gestureShell(gestureHost(parent, child: gestureHost(child))));
 
     final gesture = await tester.startGesture(const Offset(50, 50));
     await gesture.moveBy(const Offset(12, 0));
@@ -1197,16 +1085,16 @@ void main() {
 
   testWidgets('冒泡按各成员的官方坐标变换换算位移', (tester) async {
     final deltas = <(String, Offset)>[];
-    final parent = ElTransformGestureRecognizer()
+    final parent = TransformRecognizer()
       ..axis = Axis.horizontal
-      ..onDragUpdate = (event) {
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
         deltas.add(('parent', event.localDelta));
       };
-    final child = ElTransformGestureRecognizer()
+    final child = TransformRecognizer()
       ..parent = parent
       ..axis = Axis.horizontal
       ..startDistance = 6
-      ..onDragUpdate = (event) {
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
         deltas.add(('child', event.localDelta));
       };
     addTearDown(parent.dispose);
@@ -1218,11 +1106,7 @@ void main() {
           alignment: Alignment.topLeft,
           child: gestureHost(
             parent,
-            child: Transform.scale(
-              scale: 4,
-              alignment: Alignment.topLeft,
-              child: gestureHost(child),
-            ),
+            child: Transform.scale(scale: 4, alignment: Alignment.topLeft, child: gestureHost(child)),
           ),
         ),
       ),
@@ -1231,27 +1115,23 @@ void main() {
     await gesture.moveBy(const Offset(12, 0));
     await gesture.moveBy(const Offset(10, 0));
     await gesture.up();
-    expect(deltas, [
-      ('child', const Offset(5, 0)),
-      ('parent', const Offset(20, 0)),
-    ]);
+    expect(deltas, [('child', const Offset(5, 0)), ('parent', const Offset(20, 0))]);
   });
   testWidgets('协作团队允许长按获胜后继续拖拽，外部官方点击不能同时触发', (tester) async {
     final trace = <String>[];
-    final team = ElGestureArenaTeam();
-    final press = ElPressGestureRecognizer()
+    final team = GestureTeam();
+    final press = PressRecognizer()
       ..longPressDelay = const Duration(milliseconds: 20)
       ..team = team
-      ..onLongPress = (_) => trace.add('long');
-    final transform = ElTransformGestureRecognizer()
+      ..callbacks[.longPress] = (_) => trace.add('long');
+    final transform = TransformRecognizer()
       ..startDistance = 3
       ..team = team
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         trace.add('drag');
       }
-      ..onDragEnd = (_) => trace.add('end');
-    final official = TapGestureRecognizer()
-      ..onTap = () => trace.add('official');
+      ..callbacks[ElEventPhase.dragEnd] = (_) => trace.add('end');
+    final official = TapGestureRecognizer()..onTap = () => trace.add('official');
     addTearDown(press.dispose);
     addTearDown(transform.dispose);
     addTearDown(official.dispose);
@@ -1265,49 +1145,375 @@ void main() {
         timeStamp: Duration(milliseconds: 30),
       ),
     );
-    _route(
-      const PointerUpEvent(
-        pointer: 1600,
-        position: Offset(10, 0),
-        timeStamp: Duration(milliseconds: 40),
-      ),
-    );
+    _route(const PointerUpEvent(pointer: 1600, position: Offset(10, 0), timeStamp: Duration(milliseconds: 40)));
     expect(trace, ['long', 'drag', 'end']);
   });
 
   testWidgets('官方拖拽获胜同步拒绝整个协作团队，主动退出成员不被重新接受', (tester) async {
     final trace = <String>[];
-    final team = ElGestureArenaTeam();
-    final press = ElPressGestureRecognizer()
+    final team = GestureTeam();
+    final press = PressRecognizer()
       ..team = team
-      ..onTap = (_) {
+      ..callbacks[.tap] = (_) {
         trace.add('tap');
       }
-      ..onTapCancel = (_) => trace.add('press.cancel');
-    final transform = ElTransformGestureRecognizer()
+      ..callbacks[.tapCancel] = (_) => trace.add('press.cancel');
+    final transform = TransformRecognizer()
       ..startDistance = 100
       ..team = team
-      ..onDragDown = (_) {}
-      ..onDragStart = (_) {
+      ..callbacks[ElEventPhase.dragDown] = (_) {}
+      ..callbacks[ElEventPhase.dragStart] = (_) {
         trace.add('el.drag');
       }
-      ..onDragCancel = (_) => trace.add('drag.cancel');
-    final official = VerticalDragGestureRecognizer()
-      ..onStart = (_) => trace.add('official.drag');
+      ..callbacks[ElEventPhase.dragCancel] = (_) => trace.add('drag.cancel');
+    final official = VerticalDragGestureRecognizer()..onStart = (_) => trace.add('official.drag');
     addTearDown(press.dispose);
     addTearDown(transform.dispose);
     addTearDown(official.dispose);
     _down(const PointerDownEvent(pointer: 1601), [press, transform, official]);
     press.cancel();
-    _route(
-      const PointerMoveEvent(
-        pointer: 1601,
-        position: Offset(0, 30),
-        delta: Offset(0, 30),
-      ),
-    );
+    _route(const PointerMoveEvent(pointer: 1601, position: Offset(0, 30), delta: Offset(0, 30)));
     _route(const PointerUpEvent(pointer: 1601, position: Offset(0, 30)));
     expect(trace, ['press.cancel', 'drag.cancel', 'official.drag']);
+  });
+
+  for (final enabled in [false, true]) {
+    testWidgets('纯旋转启动开关对仅 Scale 订阅生效：$enabled', (tester) async {
+      var starts = 0;
+      final recognizer = TransformRecognizer()
+        ..rotationStartEnabled = enabled
+        ..callbacks[ElEventPhase.scaleStart] = (_) => starts++;
+      addTearDown(recognizer.dispose);
+      final first = TestPointer(1700);
+      final second = TestPointer(1701);
+      _down(first.down(Offset(-50, 0)), [recognizer]);
+      _down(second.down(Offset(50, 0)), [recognizer]);
+      _route(first.move(Offset(-50 * math.cos(0.5), -50 * math.sin(0.5))));
+      _route(second.move(Offset(50 * math.cos(0.5), 50 * math.sin(0.5))));
+      expect(starts, enabled ? 1 : 0);
+      _route(second.up());
+      _route(first.up());
+    });
+  }
+
+  testWidgets('仅 Scale 订阅可以单指平移，最后释放提供真实平移速度', (tester) async {
+    final updates = <TransformGestureDetails>[];
+    TransformGestureDetails? end;
+    var starts = 0;
+    final recognizer = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {
+        starts++;
+      }
+      ..callbacks[ElEventPhase.scaleUpdate] = updates.add
+      ..callbacks[ElEventPhase.scaleEnd] = (event) => end = event;
+    addTearDown(recognizer.dispose);
+    final pointer = TestPointer(1702);
+    _down(pointer.down(Offset.zero), [recognizer]);
+    for (var index = 1; index <= 4; index++) {
+      _route(pointer.move(Offset(index * 20.0, 0), timeStamp: Duration(milliseconds: index * 10)));
+    }
+    expect(starts, 1);
+    expect(updates.map((event) => event.pointerCount), [1, 1]);
+    expect(updates.map((event) => event.delta), [Offset(20, 0), Offset(20, 0)]);
+    expect(updates.every((event) => event.scale == 1), isTrue);
+    _route(pointer.up(timeStamp: Duration(milliseconds: 42)));
+    expect(end!.pointerCount, 0);
+    expect(end!.velocity.pixelsPerSecond.dx, closeTo(2000, 0.01));
+  });
+
+  testWidgets('自定义速度估计器只接真实输入，运行中替换从下一轮生效', (tester) async {
+    final tracker = _FixedVelocityTracker(Offset(321, 45));
+    final unused = _FixedVelocityTracker(Offset(999, 0));
+    TransformGestureDetails? end;
+    var created = 0;
+    final recognizer = TransformRecognizer()
+      ..axis = Axis.horizontal
+      ..startDistance = 2
+      ..minFlingDistance = 1
+      ..velocityTrackerBuilder = (_) {
+        created++;
+        return tracker;
+      }
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragEnd] = (event) => end = event;
+    addTearDown(recognizer.dispose);
+    final pointer = TestPointer(1703);
+    _down(pointer.down(Offset.zero), [recognizer]);
+    recognizer.velocityTrackerBuilder = (_) => unused;
+    _route(pointer.move(Offset(10, 0), timeStamp: Duration(milliseconds: 10)));
+    _route(
+      PointerMoveEvent(
+        pointer: 1703,
+        position: Offset(100, 0),
+        buttons: kPrimaryButton,
+        synthesized: true,
+        timeStamp: Duration(milliseconds: 11),
+      ),
+    );
+    _route(pointer.move(Offset(20, 0), timeStamp: Duration(milliseconds: 20)));
+    _route(pointer.up(timeStamp: Duration(milliseconds: 22)));
+    expect(created, 1);
+    expect(tracker.positions, [Offset.zero, Offset(10, 0), Offset(20, 0)]);
+    expect(unused.positions, isEmpty);
+    expect(end!.velocity.pixelsPerSecond, Offset(321, 0));
+  });
+
+  for (final strategy in MultitouchDragStrategy.values) {
+    testWidgets('多指策略保留各自位移且触点抬起不跳变：$strategy', (tester) async {
+      final updates = <Offset>[];
+      final recognizer = TransformRecognizer()
+        ..axis = Axis.horizontal
+        ..startDistance = 2
+        ..multitouchDragStrategy = strategy
+        ..callbacks[ElEventPhase.dragStart] = (_) {}
+        ..callbacks[ElEventPhase.dragUpdate] = (event) => updates.add(event.delta);
+      addTearDown(recognizer.dispose);
+      final first = TestPointer(1704);
+      final second = TestPointer(1705);
+      _down(first.down(Offset.zero), [recognizer]);
+      _route(first.move(Offset(10, 0), timeStamp: Duration(milliseconds: 10)));
+      _down(second.down(Offset(30, 0), timeStamp: Duration(milliseconds: 20)), [recognizer]);
+      _route(first.move(Offset(14, 0), timeStamp: Duration(milliseconds: 32)));
+      _route(second.move(Offset(36, 0), timeStamp: Duration(milliseconds: 33)));
+      final beforeRelease = switch (strategy) {
+        MultitouchDragStrategy.latestPointer => [Offset(6, 0)],
+        MultitouchDragStrategy.sumAllPointers => [Offset(4, 0), Offset(6, 0)],
+        MultitouchDragStrategy.averageBoundaryPointers => [Offset(4, 0), Offset(2, 0)],
+      };
+      expect(updates, beforeRelease);
+      _route(second.up(timeStamp: Duration(milliseconds: 40)));
+      _route(first.move(Offset(17, 0), timeStamp: Duration(milliseconds: 48)));
+      expect(updates, [...beforeRelease, Offset(3, 0)]);
+      _route(first.up(timeStamp: Duration(milliseconds: 50)));
+    });
+  }
+
+  testWidgets('边界平均的空闲帧桶遵循注入刷新率', (tester) async {
+    final deltas = <Offset>[];
+    final recognizer = TransformRecognizer()
+      ..axis = Axis.horizontal
+      ..startDistance = 2
+      ..multitouchDragStrategy = MultitouchDragStrategy.averageBoundaryPointers
+      ..displayRefreshRate = (() => 120)
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = (event) => deltas.add(event.delta);
+    addTearDown(recognizer.dispose);
+    final first = TestPointer(1706);
+    final second = TestPointer(1707);
+    _down(first.down(Offset.zero), [recognizer]);
+    _route(first.move(Offset(10, 0), timeStamp: Duration(milliseconds: 10)));
+    _down(second.down(Offset(30, 0), timeStamp: Duration(milliseconds: 20)), [recognizer]);
+    _route(first.move(Offset(14, 0), timeStamp: Duration(milliseconds: 32)));
+    _route(second.move(Offset(36, 0), timeStamp: Duration(milliseconds: 42)));
+    expect(deltas, [Offset(4, 0), Offset(6, 0)]);
+    _route(second.up());
+    _route(first.up());
+  });
+
+  testWidgets('短促轻扫未过起拖距离也补零位移 Start 和 End', (tester) async {
+    final phases = <ElEventPhase>[];
+    TransformGestureDetails? end;
+    final recognizer = TransformRecognizer()
+      ..axis = Axis.horizontal
+      ..startDistance = 100
+      ..minFlingDistance = 1
+      ..minFlingVelocity = 10
+      ..callbacks[ElEventPhase.dragStart] = (event) {
+        phases.add(event.phase);
+      }
+      ..callbacks[ElEventPhase.dragUpdate] = (event) {
+        phases.add(event.phase);
+      }
+      ..callbacks[ElEventPhase.dragEnd] = (event) {
+        phases.add(event.phase);
+        end = event;
+      };
+    addTearDown(recognizer.dispose);
+    final pointer = TestPointer(1708);
+    _down(pointer.down(Offset.zero), [recognizer]);
+    _route(pointer.move(Offset(4, 0), timeStamp: Duration(milliseconds: 8)));
+    _route(pointer.move(Offset(8, 0), timeStamp: Duration(milliseconds: 16)));
+    expect(phases, isEmpty);
+    _route(pointer.up(timeStamp: Duration(milliseconds: 20)));
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragEnd]);
+    expect(end!.dragOffset, Offset.zero);
+    expect(end!.velocity.pixelsPerSecond.dx, greaterThan(10));
+    expect(end!.dragAxis, Axis.horizontal);
+  });
+
+  for (final age in [80, 81]) {
+    testWidgets('缩放速度跨单指释放保留且严格按输入时间过期：${age}ms', (tester) async {
+      TransformGestureDetails? end;
+      final recognizer = TransformRecognizer()
+        ..callbacks[ElEventPhase.scaleStart] = (_) {}
+        ..callbacks[ElEventPhase.scaleEnd] = (event) => end = event;
+      addTearDown(recognizer.dispose);
+      final first = TestPointer(1709);
+      final second = TestPointer(1710);
+      _down(first.down(Offset.zero), [recognizer]);
+      _down(second.down(Offset(100, 0)), [recognizer]);
+      _route(second.move(Offset(140, 0), timeStamp: Duration(milliseconds: 10)));
+      _route(second.move(Offset(160, 0), timeStamp: Duration(milliseconds: 20)));
+      _route(second.up(timeStamp: Duration(milliseconds: 21)));
+      expect(end, isNull);
+      _route(first.up(timeStamp: Duration(milliseconds: 20 + age)));
+      expect(end!.logScaleVelocity, closeTo(age == 80 ? math.log(8 / 7) / 0.01 : 0, 0.0001));
+      expect(end!.globalPosition, age == 80 ? Offset(80, 0) : Offset.zero, reason: '缩放惯性沿最后一次有效双指焦点继续，速度过期后使用剩余触点位置');
+    });
+  }
+
+  testWidgets('缩放降单指后的真实平移清除旧缩放惯性', (tester) async {
+    TransformGestureDetails? end;
+    final recognizer = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {}
+      ..callbacks[ElEventPhase.scaleUpdate] = (_) {}
+      ..callbacks[ElEventPhase.scaleEnd] = (event) => end = event;
+    addTearDown(recognizer.dispose);
+    final first = TestPointer(1711);
+    final second = TestPointer(1712);
+    _down(first.down(Offset.zero), [recognizer]);
+    _down(second.down(Offset(100, 0)), [recognizer]);
+    _route(second.move(Offset(140, 0), timeStamp: Duration(milliseconds: 10)));
+    _route(second.move(Offset(160, 0), timeStamp: Duration(milliseconds: 20)));
+    _route(second.up(timeStamp: Duration(milliseconds: 21)));
+    _route(first.move(Offset(10, 0), timeStamp: Duration(milliseconds: 30)));
+    _route(first.up(timeStamp: Duration(milliseconds: 32)));
+    expect(end!.scale, closeTo(8 / 7, 0.0001));
+    expect(end!.logScaleVelocity, 0);
+    expect(end!.velocity.pixelsPerSecond.dx, greaterThan(0));
+  });
+
+  for (final distance in [9.0, 72.0, 73.0]) {
+    testWidgets('稀疏轻扫只信任有界 Up 终点且不污染真实采样：$distance', (tester) async {
+      final tracker = _FixedVelocityTracker(Offset.zero);
+      TransformGestureDetails? end;
+      final recognizer = TransformRecognizer()
+        ..axis = Axis.horizontal
+        ..startDistance = 100
+        ..minFlingDistance = 1
+        ..velocityTrackerBuilder = ((_) => tracker)
+        ..callbacks[ElEventPhase.dragStart] = (_) {}
+        ..callbacks[ElEventPhase.dragEnd] = (event) => end = event;
+      addTearDown(recognizer.dispose);
+      _down(PointerDownEvent(pointer: 1713), [recognizer]);
+      _route(PointerMoveEvent(pointer: 1713, buttons: kPrimaryButton, timeStamp: Duration(milliseconds: 10)));
+      _route(PointerUpEvent(pointer: 1713, position: Offset(distance, 0), timeStamp: Duration(milliseconds: 20)));
+      expect(tracker.positions, [Offset.zero, Offset.zero]);
+      if (distance <= 72) {
+        expect(end!.velocity.pixelsPerSecond.dx, closeTo(distance * 100, 0.01));
+        expect(end!.globalPosition, Offset.zero);
+        expect(end!.dragOffset, Offset.zero);
+      } else {
+        expect(end, isNull);
+      }
+    });
+  }
+
+  testWidgets('设备 slop 在会话开始时冻结，更新只影响下一轮', (tester) async {
+    var starts = 0;
+    final recognizer = TransformRecognizer()
+      ..gestureSettings = DeviceGestureSettings(touchSlop: 5)
+      ..callbacks[ElEventPhase.dragStart] = (_) => starts++;
+    addTearDown(recognizer.dispose);
+    final first = TestPointer(1714);
+    _down(first.down(Offset.zero), [recognizer]);
+    recognizer.gestureSettings = DeviceGestureSettings(touchSlop: 100);
+    _route(first.move(Offset(12, 0)));
+    expect(starts, 1);
+    _route(first.up());
+    final second = TestPointer(1715);
+    _down(second.down(Offset.zero), [recognizer]);
+    _route(second.move(Offset(12, 0)));
+    _route(second.up());
+    expect(starts, 1);
+  });
+
+  testWidgets('自由拖拽的边界平均按全部有效触点分配同帧位移', (tester) async {
+    final deltas = <Offset>[];
+    final recognizer = TransformRecognizer()
+      ..startDistance = 2
+      ..multitouchDragStrategy = MultitouchDragStrategy.averageBoundaryPointers
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = (event) => deltas.add(event.delta);
+    addTearDown(recognizer.dispose);
+    final first = TestPointer(1716);
+    final second = TestPointer(1717);
+    _down(first.down(Offset.zero), [recognizer]);
+    _route(first.move(Offset(10, 0), timeStamp: Duration(milliseconds: 10)));
+    _down(second.down(Offset(30, 0), timeStamp: Duration(milliseconds: 20)), [recognizer]);
+    _route(first.move(Offset(14, 0), timeStamp: Duration(milliseconds: 32)));
+    _route(second.move(Offset(36, 0), timeStamp: Duration(milliseconds: 33)));
+    expect(deltas, [Offset(2, 0), Offset(3, 0)]);
+    _route(first.up(timeStamp: Duration(milliseconds: 40)));
+    _route(second.move(Offset(39, 0), timeStamp: Duration(milliseconds: 48)));
+    expect(deltas, [Offset(2, 0), Offset(3, 0), Offset(3, 0)]);
+    _route(second.up(timeStamp: Duration(milliseconds: 50)));
+  });
+
+  testWidgets('真实同帧输入不因指针时间戳不同重复消费边界位移', (tester) async {
+    final deltas = <Offset>[];
+    final recognizer = TransformRecognizer()
+      ..axis = Axis.horizontal
+      ..startDistance = 2
+      ..multitouchDragStrategy = MultitouchDragStrategy.averageBoundaryPointers
+      ..displayRefreshRate = (() => 120)
+      ..callbacks[ElEventPhase.dragStart] = (_) {}
+      ..callbacks[ElEventPhase.dragUpdate] = (event) => deltas.add(event.delta);
+    addTearDown(recognizer.dispose);
+    final first = TestPointer(1718);
+    final second = TestPointer(1719);
+    _down(first.down(Offset.zero), [recognizer]);
+    _route(first.move(Offset(10, 0), timeStamp: Duration(milliseconds: 10)));
+    _down(second.down(Offset(30, 0), timeStamp: Duration(milliseconds: 20)), [recognizer]);
+    tester.binding.addPostFrameCallback((_) {
+      _route(first.move(Offset(14, 0), timeStamp: Duration(milliseconds: 32)));
+      _route(second.move(Offset(36, 0), timeStamp: Duration(milliseconds: 42)));
+    });
+    tester.binding.scheduleFrame();
+    await tester.pump(Duration(milliseconds: 16));
+    expect(deltas, [Offset(4, 0), Offset(2, 0)]);
+    _route(second.up());
+    _route(first.up());
+  });
+
+  testWidgets('ScaleEnd 使用自定义估计器的二维速度并忽略 Drag 距离门限', (tester) async {
+    final tracker = _FixedVelocityTracker(Offset(321, 45));
+    TransformGestureDetails? end;
+    final recognizer = TransformRecognizer()
+      ..minFlingDistance = 1000
+      ..velocityTrackerBuilder = ((_) => tracker)
+      ..callbacks[ElEventPhase.scaleStart] = (_) {}
+      ..callbacks[ElEventPhase.scaleEnd] = (event) => end = event;
+    addTearDown(recognizer.dispose);
+    final pointer = TestPointer(1720);
+    _down(pointer.down(Offset.zero), [recognizer]);
+    _route(pointer.move(Offset(40, 0), timeStamp: Duration(milliseconds: 10)));
+    _route(pointer.move(Offset(60, 0), timeStamp: Duration(milliseconds: 20)));
+    _route(pointer.up(timeStamp: Duration(milliseconds: 22)));
+    expect(end!.velocity.pixelsPerSecond, Offset(321, 45));
+    expect(tracker.positions, [Offset.zero, Offset(40, 0), Offset(60, 0)]);
+  });
+
+  testWidgets('新增指针落败不清除原有缩放速度', (tester) async {
+    TransformGestureDetails? end;
+    final recognizer = TransformRecognizer()
+      ..callbacks[ElEventPhase.scaleStart] = (_) {}
+      ..callbacks[ElEventPhase.scaleEnd] = (event) => end = event;
+    final eager = EagerGestureRecognizer();
+    addTearDown(recognizer.dispose);
+    addTearDown(eager.dispose);
+    final first = TestPointer(1721);
+    final second = TestPointer(1722);
+    final rejected = TestPointer(1723);
+    _down(first.down(Offset.zero), [recognizer]);
+    _down(second.down(Offset(100, 0)), [recognizer]);
+    _route(second.move(Offset(140, 0), timeStamp: Duration(milliseconds: 10)));
+    _route(second.move(Offset(160, 0), timeStamp: Duration(milliseconds: 20)));
+    _down(rejected.down(Offset(300, 0), timeStamp: Duration(milliseconds: 21)), [eager, recognizer]);
+    _route(rejected.up(timeStamp: Duration(milliseconds: 22)));
+    _route(second.up(timeStamp: Duration(milliseconds: 23)));
+    _route(first.up(timeStamp: Duration(milliseconds: 24)));
+    expect(end!.logScaleVelocity, closeTo(math.log(8 / 7) / 0.01, 0.0001));
   });
 }
 
@@ -1324,4 +1530,25 @@ void _route(PointerEvent event) {
   if (event is PointerUpEvent || event is PointerPanZoomEndEvent) {
     GestureBinding.instance.gestureArena.sweep(event.pointer);
   }
+}
+
+class _FixedVelocityTracker extends VelocityTracker {
+  _FixedVelocityTracker(this.speed) : super.withKind(PointerDeviceKind.touch);
+
+  final Offset speed;
+  final List<Offset> positions = [];
+
+  @override
+  void addPosition(Duration time, Offset position) {
+    positions.add(position);
+    super.addPosition(time, position);
+  }
+
+  @override
+  VelocityEstimate? getVelocityEstimate() => VelocityEstimate(
+    pixelsPerSecond: speed,
+    confidence: 1,
+    duration: Duration(milliseconds: 20),
+    offset: Offset(40, 0),
+  );
 }

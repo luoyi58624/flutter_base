@@ -1,131 +1,73 @@
-import 'package:flutter_base/src/ui/cores/event/index.dart';
-import 'package:flutter_base/src/ui/cores/view/render/index.dart';
-import 'package:flutter_base/src/ui/cores/view/style/index.dart';
+import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart' show EventDispatcher;
+import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
-import 'support/event_test_host.dart';
+import 'support/dispatcher_test_host.dart';
 
 void main() {
-  testWidgets('SCALE-A1: 可让渡 Drag 在第二指加入时由祖先 Scale 原子接管', (_) async {
-    final host = EventTestHost.chain(depth: 2);
+  setUp(EventDispatcher.debugResetEagerGestureOwners);
+
+  testWidgets('SCALE-A1: 可让渡 Drag 在第二指加入时由祖先 Scale 原子接管', (tester) async {
+    final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootElement.event = _scaleEvent(trace);
-    host.leaf.event = _dragEvent(
-      trace,
-      onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
-    );
+    host.rootDispatcher.event = _scaleEvent(trace);
+    host.leafDispatcher.event = _dragEvent(trace, onStart: (event) => event.eagerGesture(allowScaleUpgrade: true));
 
-    await host.dispatch(
-      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16));
     expect(trace, <String>['dragStart']);
 
-    await host.dispatch(
-      _down(pointer: 2, position: const Offset(150, 50), millis: 32),
-    );
+    host.dispatch(_down(pointer: 2, position: const Offset(150, 50), millis: 32));
+    await tester.pump();
     expect(trace, <String>[
       'dragStart',
       'dragCancel',
       'scaleStart:2',
     ], reason: '两根序列必须先整体改归 Scale，再终止 Drag，最后才公开 scaleStart');
 
-    await host.dispatch(
-      _move(
-        pointer: 2,
-        position: const Offset(170, 50),
-        delta: const Offset(20, 0),
-        millis: 48,
-      ),
-    );
-    await host.dispatch(
-      _up(pointer: 2, position: const Offset(170, 50), millis: 64),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(60, 70),
-        delta: const Offset(10, 10),
-        millis: 80,
-      ),
-    );
-    await host.dispatch(
-      _up(pointer: 1, position: const Offset(60, 70), millis: 96),
-    );
+    host.dispatch(_move(pointer: 2, position: const Offset(170, 50), delta: const Offset(20, 0), millis: 48));
+    host.dispatch(_up(pointer: 2, position: const Offset(170, 50), millis: 64));
+    host.dispatch(_move(pointer: 1, position: const Offset(60, 70), delta: const Offset(10, 10), millis: 80));
+    host.dispatch(_up(pointer: 1, position: const Offset(60, 70), millis: 96));
 
     expect(trace, <String>[
       'dragStart',
       'dragCancel',
       'scaleStart:2',
       'scaleUpdate:2',
+      'scaleUpdate:1',
       'scaleEnd',
     ], reason: '1→2→1 只允许一套 Scale 生命周期，减回单指后继续 update 而不是重启');
-    host.dispose();
   });
 
   testWidgets('SCALE-A2: 默认 eagerGesture 不向祖先 Scale 让渡', (_) async {
-    final host = EventTestHost.chain(depth: 2);
+    final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootElement.event = _scaleEvent(trace);
-    host.leaf.event = _dragEvent(
-      trace,
-      onStart: (event) => event.eagerGesture(),
-    );
+    host.rootDispatcher.event = _scaleEvent(trace);
+    host.leafDispatcher.event = _dragEvent(trace, onStart: (event) => event.eagerGesture());
 
-    await host.dispatch(
-      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
-    await host.dispatch(
-      _down(pointer: 2, position: const Offset(150, 50), millis: 32),
-    );
-    expect(trace, <String>[
-      'dragStart',
-    ], reason: '第二指加入不能越过默认 eager owner 接管第一指');
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16));
+    host.dispatch(_down(pointer: 2, position: const Offset(150, 50), millis: 32));
+    expect(trace, <String>['dragStart'], reason: '第二指加入不能越过默认 eager owner 接管第一指');
 
-    await host.dispatch(
-      _up(pointer: 2, position: const Offset(150, 50), millis: 48),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 75),
-        delta: const Offset(0, 15),
-        millis: 64,
-      ),
-    );
-    await host.dispatch(
-      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
-    );
+    host.dispatch(_up(pointer: 2, position: const Offset(150, 50), millis: 48));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 75), delta: const Offset(0, 15), millis: 64));
+    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
 
     expect(trace, <String>['dragStart', 'dragUpdate', 'dragEnd']);
-    host.dispose();
   });
 
   testWidgets('SCALE-A3: 任一参与指针不可让渡时不得部分取消既有 Drag', (_) async {
-    final host = EventTestHost.chain(depth: 2);
+    final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final trace = <String>[];
-    host.rootElement.event = _scaleEvent(trace);
-    host.leaf.event = _dragEvent(
+    host.rootDispatcher.event = _scaleEvent(trace);
+    host.leafDispatcher.event = _dragEvent(
       trace,
       onPointerDown: (event) {
         final original = event.originalEvent;
@@ -137,39 +79,14 @@ void main() {
       onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
     );
 
-    await host.dispatch(
-      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
-    await host.dispatch(
-      _down(pointer: 2, position: const Offset(150, 50), millis: 32),
-    );
-    expect(trace, <String>[
-      'dragStart',
-      'pointer2Exclusive',
-    ], reason: '第二指已不可让渡时，祖先必须零提交，不能先改归第一指并发出 dragCancel');
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16));
+    host.dispatch(_down(pointer: 2, position: const Offset(150, 50), millis: 32));
+    expect(trace, <String>['dragStart', 'pointer2Exclusive'], reason: '第二指已不可让渡时，祖先必须零提交，不能先改归第一指并发出 dragCancel');
 
-    await host.dispatch(
-      _up(pointer: 2, position: const Offset(150, 50), millis: 48),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 75),
-        delta: const Offset(0, 15),
-        millis: 64,
-      ),
-    );
-    await host.dispatch(
-      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
-    );
+    host.dispatch(_up(pointer: 2, position: const Offset(150, 50), millis: 48));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 75), delta: const Offset(0, 15), millis: 64));
+    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
 
     expect(trace, <String>[
       'dragStart',
@@ -177,64 +94,67 @@ void main() {
       'dragUpdate',
       'dragEnd',
     ], reason: '失败的 Scale 接管不得留下半提交状态，原 Drag 必须能继续并正常结束');
-    host.dispose();
   });
 
   testWidgets('SCALE-A4: 可让渡 winner 被移除后不得残留第二指立即升级权限', (_) async {
-    final host = EventTestHost.chain(depth: 2);
+    final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     var scaleStarts = 0;
-    host.rootElement.event = ElEvent(onScaleStart: (_) => scaleStarts++);
-    host.leaf.event = _dragEvent(
-      <String>[],
-      onStart: (event) => event.eagerGesture(allowScaleUpgrade: true),
+    host.rootDispatcher.event = ElEvent(onScaleStart: (_) => scaleStarts++);
+    host.leafDispatcher.event = _dragEvent(<String>[], onStart: (event) => event.eagerGesture(allowScaleUpgrade: true));
+
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16));
+    host.leafDispatcher.dispose();
+
+    final rootEntry = BoxHitTestEntry(host.nodes.first, Offset.zero);
+    host.rootDispatcher.dispatchTestPointer(_down(pointer: 2, position: const Offset(150, 50), millis: 32), rootEntry);
+    expect(scaleStarts, 0, reason: '原 winner 已消失，遗留 tracker 只能退回普通双指阈值，不能沿用旧让渡权');
+
+    host.rootDispatcher.dispatchTestPointer(
+      _move(pointer: 2, position: const Offset(210, 50), delta: const Offset(60, 0), millis: 48),
+      rootEntry,
+    );
+    expect(scaleStarts, 0, reason: 'winner 离场会终止旧 pointer 序列，旧 loser 不能借第二指重新复活');
+    GestureBinding.instance.pointerRouter.route(const PointerRemovedEvent(pointer: 1, kind: PointerDeviceKind.touch));
+    host.rootDispatcher.dispatchTestPointer(
+      _move(pointer: 2, position: const Offset(220, 50), delta: const Offset(10, 0), millis: 64),
+      rootEntry,
+    );
+    expect(scaleStarts, 1, reason: '失权旧触点设备移除后，剩余真实新触点恢复独立识别');
+  });
+
+  testWidgets('SCALE-A5: loser 状态回调重接配置时不得启动失效的旧 ScaleMachine', (_) async {
+    final host = DispatcherTestHost.chain();
+    addTearDown(host.dispose);
+    var scaleStarts = 0;
+    var replaceOnRelease = false;
+    final dispatcher = host.leafDispatcher;
+    dispatcher.onTapChanged = (active) {
+      if (!active && replaceOnRelease) {
+        dispatcher.event = ElEvent(onTap: (_) {});
+      }
+    };
+    dispatcher.event = ElEvent(onTapDown: (_) {}, onScaleStart: (_) => scaleStarts++);
+
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    replaceOnRelease = true;
+    DispatcherScaleGesture.start(
+      dispatcher,
+      BoxHitTestEntry(host.nodes.last, Offset.zero),
+      existingDown: _down(pointer: 1, position: const Offset(50, 50), millis: 0),
     );
 
-    await host.dispatch(
-      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
-    host.leaf.dispose();
-
-    host.rootElement.eventDispatcher!.handleEvent(
-      _down(pointer: 2, position: const Offset(150, 50), millis: 32),
-    );
-    expect(
-      scaleStarts,
-      0,
-      reason: '原 winner 已消失，遗留 tracker 只能退回普通双指阈值，不能沿用旧让渡权',
-    );
-
-    host.rootElement.eventDispatcher!.handleEvent(
-      _move(
-        pointer: 2,
-        position: const Offset(210, 50),
-        delta: const Offset(60, 0),
-        millis: 48,
-      ),
-    );
-    expect(
-      scaleStarts,
-      0,
-      reason: 'winner 离场会终止旧 pointer 序列，旧 loser 不能借第二指重新复活',
-    );
-    host.dispose();
+    expect(scaleStarts, 0, reason: 'Tap 失权同步重接 event 后，旧 ScaleMachine 不得越过配置代际继续 start');
   });
 
   testWidgets('SCALE-A6: pipeline shadow 不得覆盖第二指自己的默认 eager', (_) async {
-    final host = EventTestHost.chain(depth: 3);
+    final host = DispatcherTestHost.chain(depth: 3);
     addTearDown(host.dispose);
     final trace = <String>[];
-    final root = host.elements[0];
-    final middle = host.elements[1];
-    final leaf = host.elements[2];
+    final root = host.dispatchers[0];
+    final middle = host.dispatchers[1];
+    final leaf = host.dispatchers[2];
     root.event = ElEvent(
       dragProxy: ElDragProxy(axis: Axis.vertical, onDragOverflow: (_) {}),
     );
@@ -256,155 +176,76 @@ void main() {
       onVerticalDragCancel: (_) => trace.add('dragCancel'),
     );
 
-    await host.dispatch(
-      _down(pointer: 1, position: const Offset(50, 50), millis: 0),
-    );
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
+    host.dispatch(_down(pointer: 1, position: const Offset(50, 50), millis: 0));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16));
     expect(trace, ['dragStart']);
 
-    final down2 = _down(
-      pointer: 2,
-      position: const Offset(150, 50),
-      millis: 32,
-    );
-    middle.handleEvent(down2, BoxHitTestEntry(middle, down2.position));
-    root.handleEvent(down2, BoxHitTestEntry(root, down2.position));
-    expect(trace, [
-      'dragStart',
-      'pointer2Exclusive',
-    ], reason: '不在 target 链上的第二指已默认 eager，shadow 不得后写可让渡权限');
+    final down2 = _down(pointer: 2, position: const Offset(150, 50), millis: 32);
+    middle.dispatchTestPointer(down2, BoxHitTestEntry(host.nodes[1], down2.position));
+    root.dispatchTestPointer(down2, BoxHitTestEntry(host.nodes[0], down2.position));
+    expect(trace, ['dragStart', 'pointer2Exclusive'], reason: '不在 target 链上的第二指已默认 eager，shadow 不得后写可让渡权限');
 
     final up2 = _up(pointer: 2, position: const Offset(150, 50), millis: 48);
-    middle.handleEvent(up2, BoxHitTestEntry(middle, up2.position));
-    root.handleEvent(up2, BoxHitTestEntry(root, up2.position));
-    await host.dispatch(
-      _move(
-        pointer: 1,
-        position: const Offset(50, 75),
-        delta: const Offset(0, 15),
-        millis: 64,
-      ),
-    );
-    await host.dispatch(
-      _up(pointer: 1, position: const Offset(50, 75), millis: 80),
-    );
-    expect(trace, [
-      'dragStart',
-      'pointer2Exclusive',
-      'dragUpdate',
-      'dragEnd',
-    ], reason: '失败的 shadow 不得取消或污染首指 pipeline');
-    host.dispose();
+    middle.dispatchTestPointer(up2, BoxHitTestEntry(host.nodes[1], up2.position));
+    root.dispatchTestPointer(up2, BoxHitTestEntry(host.nodes[0], up2.position));
+    host.dispatch(_move(pointer: 1, position: const Offset(50, 75), delta: const Offset(0, 15), millis: 64));
+    host.dispatch(_up(pointer: 1, position: const Offset(50, 75), millis: 80));
+    expect(trace, ['dragStart', 'pointer2Exclusive', 'dragUpdate', 'dragEnd'], reason: '失败的 shadow 不得取消或污染首指 pipeline');
   });
 
-  testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (_) async {
+  testWidgets('SCALE-A8: 跨后代 Scale 接管时祖先 dragCancel 报告目标侧双指计数', (tester) async {
     final pipelineOwner = PipelineOwner();
-    final rootBox = ElRenderView(
-      ElStyle(),
-      TextDirection.ltr,
-      event: ElEvent(),
-      child: RenderFlex(
-        direction: Axis.horizontal,
-        textDirection: TextDirection.ltr,
-      ),
+    final rootBox = RenderFlex(direction: Axis.horizontal, textDirection: TextDirection.ltr);
+    final leftBox = RenderConstrainedBox(additionalConstraints: const BoxConstraints.tightFor(width: 100, height: 100));
+    final rightBox = RenderConstrainedBox(
+      additionalConstraints: const BoxConstraints.tightFor(width: 100, height: 100),
     );
-    final leftBox = ElRenderView(
-      ElStyle(),
-      TextDirection.ltr,
-      event: ElEvent(),
-      child: RenderConstrainedBox(
-        additionalConstraints: const BoxConstraints.tightFor(
-          width: 100,
-          height: 100,
-        ),
-      ),
-    );
-    final rightBox = ElRenderView(
-      ElStyle(),
-      TextDirection.ltr,
-      event: ElEvent(),
-      child: RenderConstrainedBox(
-        additionalConstraints: const BoxConstraints.tightFor(
-          width: 100,
-          height: 100,
-        ),
-      ),
-    );
-    (rootBox.child as RenderFlex).addAll(<RenderBox>[leftBox, rightBox]);
+    rootBox.addAll(<RenderBox>[leftBox, rightBox]);
     pipelineOwner.rootNode = rootBox;
     rootBox.layout(const BoxConstraints.tightFor(width: 200, height: 100));
 
-    final root = rootBox;
-    final left = leftBox;
-    final right = rightBox;
-    void dispose() {
+    final root = EventDispatcher(rootBox);
+    final left = EventDispatcher(leftBox);
+    final right = EventDispatcher(rightBox);
+    addTearDown(() {
       right.dispose();
       left.dispose();
       root.dispose();
       pipelineOwner.rootNode = null;
-    }
-    addTearDown(dispose);
+    });
 
     int? ancestorCancelPointerCount;
     root.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 3),
-      onScaleStart: (_) {},
       onDragCancel: (event) => ancestorCancelPointerCount = event.pointerCount,
     );
     left.event = ElEvent(
       config: const ElEventConfig(dragStartDistance: 3),
+      onScaleStart: (_) {},
       onDragStart: (_) {},
       onDragUpdate: (_) {},
       onDragCancel: (_) {},
     );
     right.event = ElEvent(onPointerDown: (_) {});
 
-    Future<void> dispatchThrough(
-      ElRenderView leaf,
-      RenderBox box,
-      PointerEvent event,
-    ) async {
-      leaf.handleEvent(event, BoxHitTestEntry(box, event.position));
-      root.handleEvent(event, BoxHitTestEntry(rootBox, event.position));
-      routeTestPointer(event);
+    void dispatchThrough(EventDispatcher leaf, RenderBox box, PointerEvent event) {
+      leaf.dispatchTestPointer(event, BoxHitTestEntry(box, event.position));
+      root.dispatchTestPointer(event, BoxHitTestEntry(rootBox, event.position));
     }
 
-    await dispatchThrough(
+    dispatchThrough(left, leftBox, _down(pointer: 31, position: const Offset(50, 50), millis: 0));
+    dispatchThrough(
       left,
       leftBox,
-      _down(pointer: 31, position: const Offset(50, 50), millis: 0),
+      _move(pointer: 31, position: const Offset(50, 60), delta: const Offset(0, 10), millis: 16),
     );
-    await dispatchThrough(
-      left,
-      leftBox,
-      _move(
-        pointer: 31,
-        position: const Offset(50, 60),
-        delta: const Offset(0, 10),
-        millis: 16,
-      ),
-    );
-    await dispatchThrough(
-      right,
-      rightBox,
-      _down(pointer: 32, position: const Offset(150, 50), millis: 32),
-    );
+    dispatchThrough(right, rightBox, _down(pointer: 32, position: const Offset(150, 50), millis: 32));
+    await tester.pump();
 
-    // 第二指通过共同祖先加入真实识别路线，不再强制调用内部 Scale 阶段。
+    dispatchThrough(left, leftBox, _down(pointer: 33, position: const Offset(150, 60), millis: 40));
+    await tester.pump();
 
-    expect(
-      ancestorCancelPointerCount,
-      2,
-      reason: '内层 Drag 仅跟踪左侧指针，但冒泡到共同祖先时必须按祖先的两条活跃序列重写计数',
-    );
-    dispose();
+    expect(ancestorCancelPointerCount, 3, reason: '真实缩放使用左侧两指，祖先还持有右侧指针，终态计数必须按祖先的三条活跃序列重写');
   });
 }
 
@@ -417,11 +258,7 @@ ElEvent _scaleEvent(List<String> trace) {
   );
 }
 
-ElEvent _dragEvent(
-  List<String> trace, {
-  ElEventHandler? onPointerDown,
-  required ElEventHandler onStart,
-}) {
+ElEvent _dragEvent(List<String> trace, {ElEventHandler? onPointerDown, required ElEventHandler onStart}) {
   return ElEvent(
     config: const ElEventConfig(dragStartDistance: 3),
     onPointerDown: onPointerDown,
@@ -435,11 +272,7 @@ ElEvent _dragEvent(
   );
 }
 
-PointerDownEvent _down({
-  required int pointer,
-  required Offset position,
-  required int millis,
-}) {
+PointerDownEvent _down({required int pointer, required Offset position, required int millis}) {
   return PointerDownEvent(
     pointer: pointer,
     position: position,
@@ -448,12 +281,7 @@ PointerDownEvent _down({
   );
 }
 
-PointerMoveEvent _move({
-  required int pointer,
-  required Offset position,
-  required Offset delta,
-  required int millis,
-}) {
+PointerMoveEvent _move({required int pointer, required Offset position, required Offset delta, required int millis}) {
   return PointerMoveEvent(
     pointer: pointer,
     position: position,
@@ -463,11 +291,7 @@ PointerMoveEvent _move({
   );
 }
 
-PointerUpEvent _up({
-  required int pointer,
-  required Offset position,
-  required int millis,
-}) {
+PointerUpEvent _up({required int pointer, required Offset position, required int millis}) {
   return PointerUpEvent(
     pointer: pointer,
     position: position,
