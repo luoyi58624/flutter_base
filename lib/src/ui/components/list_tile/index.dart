@@ -25,43 +25,35 @@ class MyListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnd = ElChildIndex.of(context).isEnd;
-    Widget result = ElEventView(
+    Widget result = ElView(
       event: ElEvent(
         onTap: (e) => onPressed?.call(),
         config: ElEventConfig(delayTouchDown: Duration.zero, delayTouchUp: Duration(milliseconds: 100)),
       ),
-      // 读取宿主下的 context，避免订阅到条目外层的事件状态。
-      child: Builder(
-        builder: (context) => ElView(
-          style: .new(
-            padding: .symmetric(vertical: 16),
-            backgroundColor: context.hasTap
-                ? Colors.grey.shade300
-                : context.hasHover
-                ? Colors.grey.shade100
-                : null,
-            transitions: [.all()],
-          ),
-          child: Row(
-            children: [
-              icon == null
-                  ? ElView(style: .new(width: 16))
-                  : ElView(
-                      style: .new(width: iconWidth),
-                      child: Center(child: icon),
-                    ),
-              Expanded(
-                child: ElView(
-                  style: .new(),
-                  child: Text(
-                    title,
-                    style: TextStyle(fontWeight: .w500, fontSize: 15, color: Colors.black),
-                  ),
+      style: .new(
+        padding: .symmetric(vertical: 16),
+        onHover: .new(bgColor: Colors.grey.shade100),
+        onTap: .new(bgColor: Colors.grey.shade300),
+        transitions: [.all()],
+      ),
+      child: Row(
+        children: [
+          icon == null
+              ? ElView(style: .new(width: 16))
+              : ElView(
+                  style: .new(width: iconWidth),
+                  child: Center(child: icon),
                 ),
+          Expanded(
+            child: ElView(
+              style: .new(),
+              child: Text(
+                title,
+                style: TextStyle(fontWeight: .w500, fontSize: 15, color: Colors.black),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
 
