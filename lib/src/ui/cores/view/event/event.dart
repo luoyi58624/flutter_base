@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/dart.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_base/dart.dart';
 import 'package:flutter/foundation.dart' show internal, setEquals;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, kMaxFlingVelocity, kMinFlingVelocity;
 import 'package:flutter/widgets.dart';

@@ -3,7 +3,7 @@
 /// **摆放位置**：故意放在 [BenchmarkProbe] 所在文件（benchmark_probe.dart 未
 /// export，见文件文档），让 flag 与 mount 快路径的探针计数字段（[BenchmarkProbe.mountFastPathHitCount]）
 /// 就近；对外部 `import 'package:flutter_base/ui.dart'` 不可见（package pub API
-/// 面不含此符号，`tool/dump_api_surface.dart` 只扫 `lib/ui.dart` 递归可
+/// 面不含此符号，`tool/dump_api_surface.dart` 只扫 `lib/el_ui.dart` 递归可
 /// 达符号）；测试文件通过 `import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart'`
 /// 直接切换，走 package-internal path 与 `probe_snapshot_test.dart` 同源。
 ///

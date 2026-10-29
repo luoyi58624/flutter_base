@@ -18,7 +18,7 @@ import '../../view/event/dispatcher.dart';
 import '../../view/render/scroll_cursor_freeze.dart';
 import '../../scroll/common/pointer/scroll_touch_gate.dart' show ScrollCatchPointers;
 import '../../scroll/common/viewport/scroll_viewport.dart';
-import '../../menu/context_menu.dart';
+import '../../../views/menu/context_menu.dart';
 part 'selection_controller.dart';
 part 'selection_model.dart';
 part 'selection_render.dart';

@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter.dart';
 import 'package:flutter_base/ui.dart';
 
 part 'group.dart';
