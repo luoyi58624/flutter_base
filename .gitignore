@@ -1,3 +1,8 @@
+# 本地产物：codex/脚本的临时文件一律放这里，别散在仓库根
+.codex/
+.codex-*
+.migrate-*.ps1
+
 # Miscellaneous
 *.class
 *.log
