@@ -1,0 +1,158 @@
+{
+  "light": {
+    "web": [
+      {
+        "sample": "small",
+        "frameSize": 16,
+        "inkBoundsInclusive": [
+          1,
+          1,
+          14,
+          14
+        ],
+        "inkWidth": 14,
+        "inkHeight": 14
+      },
+      {
+        "sample": "medium",
+        "frameSize": 24,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          21,
+          21
+        ],
+        "inkWidth": 20,
+        "inkHeight": 20
+      },
+      {
+        "sample": "large",
+        "frameSize": 32,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          29,
+          29
+        ],
+        "inkWidth": 28,
+        "inkHeight": 28
+      }
+    ],
+    "flutter": [
+      {
+        "sample": "small",
+        "frameSize": 16,
+        "inkBoundsInclusive": [
+          1,
+          1,
+          14,
+          14
+        ],
+        "inkWidth": 14,
+        "inkHeight": 14
+      },
+      {
+        "sample": "medium",
+        "frameSize": 24,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          21,
+          21
+        ],
+        "inkWidth": 20,
+        "inkHeight": 20
+      },
+      {
+        "sample": "large",
+        "frameSize": 32,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          29,
+          29
+        ],
+        "inkWidth": 28,
+        "inkHeight": 28
+      }
+    ]
+  },
+  "dark": {
+    "web": [
+      {
+        "sample": "small",
+        "frameSize": 16,
+        "inkBoundsInclusive": [
+          1,
+          1,
+          14,
+          14
+        ],
+        "inkWidth": 14,
+        "inkHeight": 14
+      },
+      {
+        "sample": "medium",
+        "frameSize": 24,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          21,
+          21
+        ],
+        "inkWidth": 20,
+        "inkHeight": 20
+      },
+      {
+        "sample": "large",
+        "frameSize": 32,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          29,
+          29
+        ],
+        "inkWidth": 28,
+        "inkHeight": 28
+      }
+    ],
+    "flutter": [
+      {
+        "sample": "small",
+        "frameSize": 16,
+        "inkBoundsInclusive": [
+          1,
+          1,
+          14,
+          14
+        ],
+        "inkWidth": 14,
+        "inkHeight": 14
+      },
+      {
+        "sample": "medium",
+        "frameSize": 24,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          21,
+          21
+        ],
+        "inkWidth": 20,
+        "inkHeight": 20
+      },
+      {
+        "sample": "large",
+        "frameSize": 32,
+        "inkBoundsInclusive": [
+          2,
+          2,
+          29,
+          29
+        ],
+        "inkWidth": 28,
+        "inkHeight": 28
+      }
+    ]
+  }
+}

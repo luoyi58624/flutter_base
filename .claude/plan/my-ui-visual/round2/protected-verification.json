@@ -1,0 +1,18 @@
+{
+  "checked": 471,
+  "changed": [
+    "D:/project/flutter/flutter_base/lib/src/my_ui/components/loading.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/components/progress.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/glyph.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/theme.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/theme_data.dart"
+  ],
+  "allowedLib": [
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/glyph.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/theme.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/cores/theme_data.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/components/loading.dart",
+    "D:/project/flutter/flutter_base/lib/src/my_ui/components/progress.dart"
+  ],
+  "outsideScope": []
+}

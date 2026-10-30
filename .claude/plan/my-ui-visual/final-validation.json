@@ -1,0 +1,55 @@
+{
+  "verifiedAt": "2026-10-30T07:03:43.961Z",
+  "coreWeb": 32,
+  "coreFlutter": 32,
+  "examplePages": 32,
+  "webStates": 24,
+  "flutterStates": 24,
+  "pngTotal": 208,
+  "pngDecoded": 208,
+  "pngDecodeFailures": [],
+  "missingMatrixFiles": [],
+  "reportLinkTargets": 75,
+  "missingReportLinks": [],
+  "flutterRenderTests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "analyze": {
+    "before": 39,
+    "after": 39,
+    "added": [],
+    "removed": [],
+    "counts": {
+      "error": 31,
+      "warning": 0,
+      "info": 8
+    },
+    "newFileDiagnostics": []
+  },
+  "sourceProtection": {
+    "checked": 471,
+    "changed": [],
+    "errors": [],
+    "rootLibFiles": 389,
+    "verifiedAt": "2026-10-30T07:03:21.746Z"
+  },
+  "cleanup": {
+    "removed": [
+      "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\sdk",
+      "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\project",
+      "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\vite-cache"
+    ],
+    "retained": [
+      "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\runtime"
+    ],
+    "serviceStopped": true,
+    "browserClosed": true,
+    "blocked": {
+      "operation": "lstat",
+      "code": "EACCES",
+      "path": "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\runtime\\local\\Dart\\perf\\230824",
+      "impact": "保留运行时缓存残留；PNG、报告和源码不受影响"
+    }
+  }
+}

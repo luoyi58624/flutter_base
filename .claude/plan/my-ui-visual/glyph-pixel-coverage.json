@@ -1,0 +1,18 @@
+{
+  "web": {
+    "dark_stroke_coverage_local_inclusive": [
+      2,
+      2,
+      29,
+      29
+    ]
+  },
+  "flutter": {
+    "dark_stroke_coverage_local_inclusive": [
+      2,
+      2,
+      21,
+      21
+    ]
+  }
+}

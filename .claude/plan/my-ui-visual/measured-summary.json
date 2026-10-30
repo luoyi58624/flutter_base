@@ -1,0 +1,1174 @@
+{
+  "button-390-light": {
+    "web": [
+      {
+        "c": "my-button my-primary",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 90.921875,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 13px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-button my-outline",
+        "rect": {
+          "x": 126.921875,
+          "y": 120,
+          "width": 69.65625,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 13px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-button my-text-only",
+        "rect": {
+          "x": 208.578125,
+          "y": 120,
+          "width": 50.5,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 8px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-icon-button my-button my-selected",
+        "rect": {
+          "x": 24,
+          "y": 212,
+          "width": 44,
+          "height": 44
+        },
+        "radius": "12px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-icon-button my-bare-icon my-button",
+        "rect": {
+          "x": 80,
+          "y": 212,
+          "width": 44,
+          "height": 44
+        },
+        "radius": "12px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "primary": {
+        "x": 24,
+        "y": 120,
+        "width": 92.73876953125,
+        "height": 44
+      },
+      "outline": {
+        "x": 128.73876953125,
+        "y": 120,
+        "width": 71.8134765625,
+        "height": 44
+      }
+    }
+  },
+  "tag-390-light": {
+    "web": [
+      {
+        "c": "my-tag my-blue",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 66.8125,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag-content",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 66.8125,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px 12px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag my-green",
+        "rect": {
+          "x": 102.8125,
+          "y": 120,
+          "width": 57.765625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag-content",
+        "rect": {
+          "x": 102.8125,
+          "y": 120,
+          "width": 57.765625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px 12px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag my-orange",
+        "rect": {
+          "x": 172.578125,
+          "y": 120,
+          "width": 64.265625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "blue": {
+        "x": 24,
+        "y": 120,
+        "width": 67.31689453125,
+        "height": 28
+      },
+      "off": {
+        "x": 24,
+        "y": 304,
+        "width": 65.97119140625,
+        "height": 32
+      },
+      "on": {
+        "x": 101.97119140625,
+        "y": 304,
+        "width": 74.51513671875,
+        "height": 32
+      }
+    }
+  },
+  "switch-390-light": {
+    "web": [
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 28,
+          "y": 123,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 94,
+          "y": 123,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 28,
+          "y": 215,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 94,
+          "y": 215,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "off": {
+        "x": 24,
+        "y": 120,
+        "width": 47,
+        "height": 28
+      },
+      "on": {
+        "x": 83,
+        "y": 120,
+        "width": 47,
+        "height": 28
+      }
+    }
+  },
+  "card-390-light": {
+    "web": [
+      {
+        "c": "my-card",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 342,
+          "height": 174.78125
+        },
+        "radius": "26px",
+        "padding": "24px 22px 25px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-card my-tappable-card",
+        "rect": {
+          "x": 24,
+          "y": 362,
+          "width": 342,
+          "height": 99
+        },
+        "radius": "26px",
+        "padding": "24px 22px 25px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "default": {
+        "x": 24,
+        "y": 120,
+        "width": 342,
+        "height": 175
+      },
+      "interactive": {
+        "x": 24,
+        "y": 362,
+        "width": 342,
+        "height": 99
+      }
+    }
+  },
+  "loading-390-light": {
+    "web": [
+      {
+        "c": "my-loading my-small",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 16,
+          "height": 16
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "16px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-medium",
+        "rect": {
+          "x": 52,
+          "y": 120,
+          "width": 24,
+          "height": 24
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "24px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-large",
+        "rect": {
+          "x": 88,
+          "y": 120,
+          "width": 32,
+          "height": 32
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "32px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-medium",
+        "rect": {
+          "x": 24,
+          "y": 212,
+          "width": 118.578125,
+          "height": 24
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "24px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "small": {
+        "x": 24,
+        "y": 120,
+        "width": 16,
+        "height": 16
+      },
+      "medium": {
+        "x": 52,
+        "y": 120,
+        "width": 24,
+        "height": 24
+      },
+      "large": {
+        "x": 88,
+        "y": 120,
+        "width": 32,
+        "height": 32
+      },
+      "label": {
+        "x": 24,
+        "y": 212,
+        "width": 121.7275390625,
+        "height": 24
+      }
+    }
+  },
+  "progress-390-light": {
+    "web": [
+      {
+        "c": "my-progress my-line my-normal",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 342,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-success",
+        "rect": {
+          "x": 24,
+          "y": 196,
+          "width": 342,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-warning",
+        "rect": {
+          "x": 24,
+          "y": 272,
+          "width": 342,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-error",
+        "rect": {
+          "x": 24,
+          "y": 348,
+          "width": 342,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-normal my-indeterminate",
+        "rect": {
+          "x": 24,
+          "y": 424,
+          "width": 342,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "line": {
+        "x": 24,
+        "y": 120,
+        "width": 342,
+        "height": 21
+      },
+      "success": {
+        "x": 24,
+        "y": 196,
+        "width": 342,
+        "height": 21
+      },
+      "warning": {
+        "x": 24,
+        "y": 272,
+        "width": 342,
+        "height": 21
+      },
+      "error": {
+        "x": 24,
+        "y": 348,
+        "width": 342,
+        "height": 21
+      },
+      "indeterminate": {
+        "x": 24,
+        "y": 424,
+        "width": 342,
+        "height": 21
+      },
+      "circle": {
+        "x": 24,
+        "y": 500,
+        "width": 96,
+        "height": 96
+      }
+    }
+  },
+  "skeleton-390-light": {
+    "web": [
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 342,
+          "height": 123
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 296,
+          "width": 342,
+          "height": 123
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 472,
+          "width": 342,
+          "height": 98
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 624,
+          "width": 342,
+          "height": 20
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "default": {
+        "x": 24,
+        "y": 120,
+        "width": 342,
+        "height": 123
+      },
+      "avatar": {
+        "x": 24,
+        "y": 296,
+        "width": 342,
+        "height": 123
+      },
+      "two": {
+        "x": 24,
+        "y": 472,
+        "width": 342,
+        "height": 98
+      },
+      "loaded": {
+        "x": 24,
+        "y": 624,
+        "width": 342,
+        "height": 22
+      }
+    }
+  },
+  "button-1440-light": {
+    "web": [
+      {
+        "c": "my-button my-primary",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 98.921875,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 17px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-button my-outline",
+        "rect": {
+          "x": 134.921875,
+          "y": 120,
+          "width": 77.65625,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 17px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-button my-text-only",
+        "rect": {
+          "x": 224.578125,
+          "y": 120,
+          "width": 50.5,
+          "height": 44
+        },
+        "radius": "13px",
+        "padding": "0px 8px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-icon-button my-button my-selected",
+        "rect": {
+          "x": 24,
+          "y": 212,
+          "width": 44,
+          "height": 44
+        },
+        "radius": "12px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-icon-button my-bare-icon my-button",
+        "rect": {
+          "x": 80,
+          "y": 212,
+          "width": 44,
+          "height": 44
+        },
+        "radius": "12px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "primary": {
+        "x": 24,
+        "y": 120,
+        "width": 100.73876953125,
+        "height": 44
+      },
+      "outline": {
+        "x": 136.73876953125,
+        "y": 120,
+        "width": 79.8134765625,
+        "height": 44
+      }
+    }
+  },
+  "tag-1440-light": {
+    "web": [
+      {
+        "c": "my-tag my-blue",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 66.8125,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag-content",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 66.8125,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px 12px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag my-green",
+        "rect": {
+          "x": 102.8125,
+          "y": 120,
+          "width": 57.765625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag-content",
+        "rect": {
+          "x": 102.8125,
+          "y": 120,
+          "width": 57.765625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px 12px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-tag my-orange",
+        "rect": {
+          "x": 172.578125,
+          "y": 120,
+          "width": 64.265625,
+          "height": 28
+        },
+        "radius": "999px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "blue": {
+        "x": 24,
+        "y": 120,
+        "width": 67.31689453125,
+        "height": 28
+      },
+      "off": {
+        "x": 24,
+        "y": 304,
+        "width": 65.97119140625,
+        "height": 32
+      },
+      "on": {
+        "x": 101.97119140625,
+        "y": 304,
+        "width": 74.51513671875,
+        "height": 32
+      }
+    }
+  },
+  "switch-1440-light": {
+    "web": [
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 28,
+          "y": 123,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 94,
+          "y": 123,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 28,
+          "y": 215,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-switch",
+        "rect": {
+          "x": 94,
+          "y": 215,
+          "width": 47,
+          "height": 28
+        },
+        "radius": "99px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "off": {
+        "x": 24,
+        "y": 120,
+        "width": 47,
+        "height": 28
+      },
+      "on": {
+        "x": 83,
+        "y": 120,
+        "width": 47,
+        "height": 28
+      }
+    }
+  },
+  "card-1440-light": {
+    "web": [
+      {
+        "c": "my-card",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 720,
+          "height": 183.140625
+        },
+        "radius": "30px",
+        "padding": "28px 29px 29px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-card my-tappable-card",
+        "rect": {
+          "x": 24,
+          "y": 362,
+          "width": 720,
+          "height": 107
+        },
+        "radius": "30px",
+        "padding": "28px 29px 29px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "default": {
+        "x": 24,
+        "y": 120,
+        "width": 720,
+        "height": 183
+      },
+      "interactive": {
+        "x": 24,
+        "y": 362,
+        "width": 720,
+        "height": 107
+      }
+    }
+  },
+  "loading-1440-light": {
+    "web": [
+      {
+        "c": "my-loading my-small",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 16,
+          "height": 16
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "16px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-medium",
+        "rect": {
+          "x": 52,
+          "y": 120,
+          "width": 24,
+          "height": 24
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "24px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-large",
+        "rect": {
+          "x": 88,
+          "y": 120,
+          "width": 32,
+          "height": 32
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "32px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-loading my-medium",
+        "rect": {
+          "x": 24,
+          "y": 212,
+          "width": 118.578125,
+          "height": 24
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "24px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "small": {
+        "x": 24,
+        "y": 120,
+        "width": 16,
+        "height": 16
+      },
+      "medium": {
+        "x": 52,
+        "y": 120,
+        "width": 24,
+        "height": 24
+      },
+      "large": {
+        "x": 88,
+        "y": 120,
+        "width": 32,
+        "height": 32
+      },
+      "label": {
+        "x": 24,
+        "y": 212,
+        "width": 121.7275390625,
+        "height": 24
+      }
+    }
+  },
+  "progress-1440-light": {
+    "web": [
+      {
+        "c": "my-progress my-line my-normal",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 720,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-success",
+        "rect": {
+          "x": 24,
+          "y": 196,
+          "width": 720,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-warning",
+        "rect": {
+          "x": 24,
+          "y": 272,
+          "width": 720,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-error",
+        "rect": {
+          "x": 24,
+          "y": 348,
+          "width": 720,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-progress my-line my-normal my-indeterminate",
+        "rect": {
+          "x": 24,
+          "y": 424,
+          "width": 720,
+          "height": 21
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "13px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "line": {
+        "x": 24,
+        "y": 120,
+        "width": 720,
+        "height": 21
+      },
+      "success": {
+        "x": 24,
+        "y": 196,
+        "width": 720,
+        "height": 21
+      },
+      "warning": {
+        "x": 24,
+        "y": 272,
+        "width": 720,
+        "height": 21
+      },
+      "error": {
+        "x": 24,
+        "y": 348,
+        "width": 720,
+        "height": 21
+      },
+      "indeterminate": {
+        "x": 24,
+        "y": 424,
+        "width": 720,
+        "height": 21
+      },
+      "circle": {
+        "x": 24,
+        "y": 500,
+        "width": 96,
+        "height": 96
+      }
+    }
+  },
+  "skeleton-1440-light": {
+    "web": [
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 120,
+          "width": 720,
+          "height": 123
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 296,
+          "width": 720,
+          "height": 123
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 472,
+          "width": 720,
+          "height": 98
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      },
+      {
+        "c": "my-skeleton",
+        "rect": {
+          "x": 24,
+          "y": 624,
+          "width": 720,
+          "height": 20
+        },
+        "radius": "0px",
+        "padding": "0px",
+        "font": "\"Times New Roman\"",
+        "size": "15px",
+        "opacity": "1"
+      }
+    ],
+    "flutter": {
+      "default": {
+        "x": 24,
+        "y": 120,
+        "width": 720,
+        "height": 123
+      },
+      "avatar": {
+        "x": 24,
+        "y": 296,
+        "width": 720,
+        "height": 123
+      },
+      "two": {
+        "x": 24,
+        "y": 472,
+        "width": 720,
+        "height": 98
+      },
+      "loaded": {
+        "x": 24,
+        "y": 624,
+        "width": 720,
+        "height": 22
+      }
+    }
+  }
+}

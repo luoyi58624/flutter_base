@@ -29,7 +29,7 @@ class ElViewPage extends StatelessWidget {
                         style: ElStyle(
                           width: flag.value ? 180 : 120,
                           height: 80,
-                          backgroundColor: flag.value
+                          bgColor: flag.value
                               ? Colors.blue
                               : Colors.green,
                           borderRadius: flag.value
@@ -50,7 +50,7 @@ class ElViewPage extends StatelessWidget {
                               style: .new(
                                 width: 100,
                                 height: 100,
-                                backgroundColor: flag.value
+                                bgColor: flag.value
                                     ? Colors.blue
                                     : Colors.green,
                                 margin: .only(bottom: 8),

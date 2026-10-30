@@ -1,0 +1,18 @@
+{
+  "removed": [
+    "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\sdk",
+    "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\project",
+    "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\vite-cache"
+  ],
+  "retained": [
+    "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\runtime"
+  ],
+  "serviceStopped": true,
+  "browserClosed": true,
+  "blocked": {
+    "operation": "lstat",
+    "code": "EACCES",
+    "path": "D:\\project\\flutter\\flutter_base\\.claude\\plan\\my-ui-visual\\run\\runtime\\local\\Dart\\perf\\230824",
+    "impact": "保留运行时缓存残留；PNG、报告和源码不受影响"
+  }
+}

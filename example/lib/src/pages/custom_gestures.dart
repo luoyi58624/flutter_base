@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_base/ui.dart';
+// 独立识别器未由公共入口导出；此页演示内核，保留自行判断范围与取消的行为。
+// ignore: implementation_imports
+import 'package:flutter_base/src/ui/cores/view/event/press.dart'
+    show
+        ElEventPhase,
+        PressRecognizer,
+        PressGestureCallback,
+        PressGestureDetails,
+        PressCancelReason;
 
 const _ink = Color(0xff202839);
 const _muted = Color(0xff697386);
@@ -22,12 +30,12 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
   final _bounds = <String, GlobalKey>{};
   final _scrollController = ScrollController();
   final _logRevision = ValueNotifier<int>(0);
-  late ElPressGestureRecognizer _basic;
-  late ElPressGestureRecognizer _bubbleParent;
-  late ElPressGestureRecognizer _bubbleChild;
-  late ElPressGestureRecognizer _elInOfficial;
-  late ElPressGestureRecognizer _elOutsideOfficial;
-  late ElPressGestureRecognizer _scrollPress;
+  late PressRecognizer _basic;
+  late PressRecognizer _bubbleParent;
+  late PressRecognizer _bubbleChild;
+  late PressRecognizer _elInOfficial;
+  late PressRecognizer _elOutsideOfficial;
+  late PressRecognizer _scrollPress;
   bool _deferSingle = false;
   bool _stopBubble = false;
   bool _ignoreCallbacks = false;
@@ -50,26 +58,26 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     _createRecognizers();
   }
 
-  ElPressGestureRecognizer _press(
+  PressRecognizer _press(
     String source, {
     String? tapCounter,
-    ElPressGestureRecognizer? parent,
+    PressRecognizer? parent,
   }) {
     _bounds.putIfAbsent(source, () => GlobalKey());
-    return ElPressGestureRecognizer()
+    return PressRecognizer()
       ..parent = parent
       ..tapSlopTolerance = double.infinity
-      ..onTapDown = _handler(source, pressed: true)
-      ..onTapUp = _handler(source, pressed: false)
-      ..onTap = _handler(source, counter: tapCounter)
-      ..onTapCancel = _handler(
+      ..callbacks[ElEventPhase.tapDown] = _handler(source, pressed: true)
+      ..callbacks[ElEventPhase.tapUp] = _handler(source, pressed: false)
+      ..callbacks[ElEventPhase.tap] = _handler(source, counter: tapCounter)
+      ..callbacks[ElEventPhase.tapCancel] = _handler(
         source,
         pressed: false,
         counter: source == 'scroll' ? 'scrollCancel' : null,
       );
   }
 
-  ElPressGestureCallback _handler(
+  PressGestureCallback _handler(
     String source, {
     bool? pressed,
     String? counter,
@@ -80,20 +88,30 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
   void _createRecognizers() {
     _basic = _press('basic', tapCounter: 'tap')
       ..deferTap = _deferSingle
-      ..onDoubleTapDown = _handler('basic')
-      ..onTripleTapDown = _handler('basic')
-      ..onDoubleTap = _handler('basic', counter: 'doubleTap')
-      ..onTripleTap = _handler('basic', counter: 'tripleTap')
-      ..onLongPress = _handler('basic', counter: 'longPress', pressed: true);
+      ..callbacks[ElEventPhase.doubleTapDown] = _handler('basic')
+      ..callbacks[ElEventPhase.tripleTapDown] = _handler('basic')
+      ..callbacks[ElEventPhase.doubleTap] = _handler(
+        'basic',
+        counter: 'doubleTap',
+      )
+      ..callbacks[ElEventPhase.tripleTap] = _handler(
+        'basic',
+        counter: 'tripleTap',
+      )
+      ..callbacks[ElEventPhase.longPress] = _handler(
+        'basic',
+        counter: 'longPress',
+        pressed: true,
+      );
     _wireMouseButtons();
     _bubbleParent = _press('bubbleParent', tapCounter: 'bubbleParent');
     _bubbleChild =
         _press('bubbleChild', tapCounter: 'bubbleChild', parent: _bubbleParent)
-          ..onTapDown = (event) {
+          ..callbacks[ElEventPhase.tapDown] = (event) {
             if (_stopBubble) event.stopPropagation();
             _recordEvent('bubbleChild', event, pressed: true);
           }
-          ..onTap = (event) {
+          ..callbacks[ElEventPhase.tap] = (event) {
             if (_stopBubble) event.stopPropagation();
             _recordEvent('bubbleChild', event, counter: 'bubbleChild');
           };
@@ -104,21 +122,45 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   void _wireMouseButtons() {
     _basic
-      ..onSecondaryTapDown = _handler('basic', pressed: true)
-      ..onSecondaryTapUp = _handler('basic', pressed: false)
-      ..onSecondaryTap = _handler('basic', counter: 'secondaryTap')
-      ..onTertiaryTapDown = _handler('basic', pressed: true)
-      ..onTertiaryTapUp = _handler('basic', pressed: false)
-      ..onTertiaryTap = _handler('basic', counter: 'tertiaryTap')
-      ..onForwardTapDown = _handler('basic', pressed: true)
-      ..onForwardTapUp = _handler('basic', pressed: false)
-      ..onForwardTap = _handler('basic', counter: 'forwardTap')
-      ..onBackTapDown = _handler('basic', pressed: true)
-      ..onBackTapUp = _handler('basic', pressed: false)
-      ..onBackTap = _handler('basic', counter: 'backTap');
+      ..callbacks[ElEventPhase.secondaryTapDown] = _handler(
+        'basic',
+        pressed: true,
+      )
+      ..callbacks[ElEventPhase.secondaryTapUp] = _handler(
+        'basic',
+        pressed: false,
+      )
+      ..callbacks[ElEventPhase.secondaryTap] = _handler(
+        'basic',
+        counter: 'secondaryTap',
+      )
+      ..callbacks[ElEventPhase.tertiaryTapDown] = _handler(
+        'basic',
+        pressed: true,
+      )
+      ..callbacks[ElEventPhase.tertiaryTapUp] = _handler(
+        'basic',
+        pressed: false,
+      )
+      ..callbacks[ElEventPhase.tertiaryTap] = _handler(
+        'basic',
+        counter: 'tertiaryTap',
+      )
+      ..callbacks[ElEventPhase.forwardTapDown] = _handler(
+        'basic',
+        pressed: true,
+      )
+      ..callbacks[ElEventPhase.forwardTapUp] = _handler('basic', pressed: false)
+      ..callbacks[ElEventPhase.forwardTap] = _handler(
+        'basic',
+        counter: 'forwardTap',
+      )
+      ..callbacks[ElEventPhase.backTapDown] = _handler('basic', pressed: true)
+      ..callbacks[ElEventPhase.backTapUp] = _handler('basic', pressed: false)
+      ..callbacks[ElEventPhase.backTap] = _handler('basic', counter: 'backTap');
   }
 
-  Iterable<ElPressGestureRecognizer> get _recognizers => [
+  Iterable<PressRecognizer> get _recognizers => [
     _basic,
     _bubbleChild,
     _bubbleParent,
@@ -129,7 +171,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   void _recordEvent(
     String source,
-    ElPressGestureDetails event, {
+    PressGestureDetails event, {
     bool? pressed,
     String? counter,
   }) => _record(
@@ -140,12 +182,12 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     position: event.localPosition,
     taps: event.tapCount,
     cancelReason: switch (event.cancelReason) {
-      ElGestureCancelReason.longPressAccepted => '长按已成立',
-      ElGestureCancelReason.arenaRejected => '其他手势取得所有权',
-      ElGestureCancelReason.rejected => '移动、按钮或指针条件不满足',
-      ElGestureCancelReason.ineligible => '暂时不满足点击条件',
-      ElGestureCancelReason.pointerCanceled => '平台取消指针',
-      ElGestureCancelReason.canceled => '宿主取消或生命周期结束',
+      PressCancelReason.longPressAccepted => '长按已成立',
+      PressCancelReason.arenaRejected => '其他手势取得所有权',
+      PressCancelReason.rejected => '移动、按钮或指针条件不满足',
+      PressCancelReason.ineligible => '暂时不满足点击条件',
+      PressCancelReason.pointerCanceled => '平台取消指针',
+      PressCancelReason.canceled => '宿主取消或生命周期结束',
       null => null,
     },
   );
@@ -512,7 +554,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   void _cancelOutside(
     String source,
-    ElPressGestureRecognizer recognizer,
+    PressRecognizer recognizer,
     PointerEvent event,
   ) {
     final render = _bounds[source]?.currentContext?.findRenderObject();
@@ -526,7 +568,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   Widget _surface(
     String source,
-    ElPressGestureRecognizer recognizer, {
+    PressRecognizer recognizer, {
     required Widget child,
     String? targetKey,
   }) => MouseRegion(

@@ -399,13 +399,13 @@ void _bindingTests(_InputTestBinding binding) {
 
   _platformTest('ElEvent 接收全局采样事件，不再进行第二次输出采样', (tester) async {
     final rawMoves = <PointerMoveEvent>[];
-    final updates = <ElEventCallback>[];
+    final updates = <ElEventDetails>[];
     var ends = 0;
     await tester.pumpWidget(
       _shell(
         Listener(
           onPointerMove: rawMoves.add,
-          child: ElEventView(
+          child: ElView(
             event: ElEvent(
               config: const ElEventConfig(dragStartDistance: 0),
               onDragStart: (_) {},
@@ -646,7 +646,7 @@ void _architectureTests() {
     for (final path in ['lib/flutter.dart', 'lib/ui.dart']) {
       expect(File(path).readAsStringSync(), isNot(contains('binding.dart')));
     }
-    final eventFiles = Directory('lib/src/ui/cores/event')
+    final eventFiles = Directory('lib/src/ui/cores/view/event')
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'));

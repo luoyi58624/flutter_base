@@ -1,0 +1,38 @@
+[
+  {
+    "fonts": [
+      {
+        "familyName": "Times New Roman",
+        "postScriptName": "TimesNewRomanPSMT",
+        "isCustomFont": false,
+        "glyphCount": 5
+      },
+      {
+        "familyName": "Microsoft YaHei",
+        "postScriptName": "MicrosoftYaHei",
+        "isCustomFont": false,
+        "glyphCount": 2
+      }
+    ]
+  },
+  {
+    "fonts": [
+      {
+        "familyName": "Times New Roman",
+        "postScriptName": "TimesNewRomanPSMT",
+        "isCustomFont": false,
+        "glyphCount": 6
+      }
+    ]
+  },
+  {
+    "fonts": [
+      {
+        "familyName": "Times New Roman",
+        "postScriptName": "TimesNewRomanPSMT",
+        "isCustomFont": false,
+        "glyphCount": 4
+      }
+    ]
+  }
+]

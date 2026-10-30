@@ -1,0 +1,530 @@
+--- lib/src/my_ui/cores/glyph.dart before
++++ lib/src/my_ui/cores/glyph.dart after
+@@ -7,7 +7,12 @@
+ /// SVG 的绘制读取最近 ElView 已提交的文字色，主题和颜色动画不会重建图标。
+ class MyGlyph extends LeafRenderObjectWidget {
+   /// 内置图标或加载圆弧。
+-  const MyGlyph({super.key, this.name = '', this.spinner = false});
++  const MyGlyph({
++    super.key,
++    this.name = '',
++    this.spinner = false,
++    this.size = 24,
++  });
+ 
+   /// 与Web相同的图标名称。
+   final String name;
+@@ -15,23 +20,31 @@
+   /// 是否绘制加载圆弧。
+   final bool spinner;
+ 
++  /// 目标边长（逻辑像素），实际尺寸仍受父约束限制。
++  final double size;
++
+   @override
+   RenderObject createRenderObject(BuildContext context) =>
+-      _GlyphRender(name, spinner);
++      _GlyphRender(name, spinner, size);
+ 
+   @override
+   void updateRenderObject(
+     BuildContext context,
+     covariant RenderBox renderObject,
+-  ) => (renderObject as _GlyphRender).configure(name, spinner);
++  ) => (renderObject as _GlyphRender).configure(name, spinner, size);
+ }
+ 
+ class _GlyphRender extends RenderBox {
+-  _GlyphRender(this._name, this._spinner);
++  _GlyphRender(this._name, this._spinner, this._extent);
+   String _name;
+   bool _spinner;
+-
+-  void configure(String name, bool spinner) {
++  double _extent;
++
++  void configure(String name, bool spinner, double extent) {
++    if (_extent != extent) {
++      _extent = extent;
++      markNeedsLayout();
++    }
+     if (_name == name && _spinner == spinner) return;
+     _name = name;
+     _spinner = spinner;
+@@ -40,7 +53,7 @@
+ 
+   @override
+   Size computeDryLayout(BoxConstraints constraints) =>
+-      constraints.constrain(const Size(24, 24));
++      constraints.constrain(Size.square(_extent));
+ 
+   @override
+   void performLayout() => size = computeDryLayout(constraints);
+--- lib/src/my_ui/cores/theme.dart before
++++ lib/src/my_ui/cores/theme.dart after
+@@ -10,6 +10,10 @@
+ final _dark = MyThemeData(brightness: Brightness.dark);
+ 
+ /// 为 my-ui 和 ElView 提供一致主题，省略 brightness 时跟随系统。
++///
++/// 默认 Times New Roman，中文依次回退 Microsoft YaHei、SimSun；宿主负责提供字体。
++/// 根行高使用字体自身度量（对应 Web normal），避免继承 Material 宿主行高。
++/// Flutter Text 与 ElView 字符串均继承主题字体，子级显式字体和组件行高优先，嵌套 MyTheme 重新建立契约。
+ class MyTheme extends StatelessWidget {
+   /// data 可单独用于局部主题，darkData 用于系统暗色模式。
+   const MyTheme({
+@@ -46,22 +50,27 @@
+     final resolved = mode == Brightness.dark
+         ? (darkData ?? (data?.brightness == mode ? data : null) ?? _dark)
+         : (data ?? _light);
+-    // TODO(parity): Web body 未指定字体族；系统字体与浏览器默认字体需同平台渲染验收。
+     return _ThemeScope(
+       data: resolved,
+       child: DefaultTextStyle.merge(
+         style: TextStyle(
++          fontFamily: resolved.fontFamily,
++          fontFamilyFallback: resolved.fontFamilyFallback,
+           color: resolved.text,
+           fontSize: 15,
++          height: kTextHeightNone,
+           fontWeight: resolved.weight(resolved.fontWeight),
+           fontVariations: [FontVariation('wght', resolved.fontWeight)],
+         ),
+         child: ElView(
+           themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
+           style: ElStyle(
++            fontFamily: resolved.fontFamily,
++            fontFamilyFallback: resolved.fontFamilyFallback,
+             color: resolved.text,
+             iconColor: resolved.text,
+             fontSize: 15,
++            lineHeight: kTextHeightNone,
+             fontWeight: resolved.weight(resolved.fontWeight),
+             fontVariations: [FontVariation('wght', resolved.fontWeight)],
+           ),
+--- lib/src/my_ui/cores/theme_data.dart before
++++ lib/src/my_ui/cores/theme_data.dart after
+@@ -12,6 +12,8 @@
+   /// 按 brightness 选取完整默认色板，再应用显式覆写。
+   MyThemeData({
+     this.brightness = Brightness.light,
++    this.fontFamily = 'Times New Roman',
++    List<String> fontFamilyFallback = const ['Microsoft YaHei', 'SimSun'],
+     Color? background,
+     Color? cardBackground,
+     Color? fill,
+@@ -54,7 +56,8 @@
+     this.progressBufferColor,
+     this.progressThickness,
+     this.progressSize,
+-  }) : background =
++  }) : fontFamilyFallback = List.unmodifiable(fontFamilyFallback),
++       background =
+            background ??
+            Color(brightness == Brightness.dark ? 0xff121419 : 0xfff2f3f5),
+        cardBackground =
+@@ -351,6 +354,12 @@
+   /// 模态背景模糊半径。
+   final double overlayBackdropBlur;
+ 
++  /// 复刻同机 Web 的主体字体；宿主须提供该字体，子树可显式覆写。
++  final String fontFamily;
++
++  /// 主字体缺字时依次回退，默认中文使用 Microsoft YaHei、其次 SimSun。
++  final List<String> fontFamilyFallback;
++
+   /// 正文字重。
+   final double fontWeight;
+ 
+@@ -413,6 +422,8 @@
+ 
+   /// 省略字段保留原值，组件变量显式传 null 可清除覆写。
+   MyThemeData copyWith({
++    String? fontFamily,
++    List<String>? fontFamilyFallback,
+     Color? background,
+     Color? cardBackground,
+     Color? fill,
+@@ -457,6 +468,8 @@
+     Object? progressSize = _absent,
+   }) => MyThemeData(
+     brightness: brightness,
++    fontFamily: fontFamily ?? this.fontFamily,
++    fontFamilyFallback: fontFamilyFallback ?? this.fontFamilyFallback,
+     background: background ?? this.background,
+     cardBackground: cardBackground ?? this.cardBackground,
+     fill: fill ?? this.fill,
+--- lib/src/my_ui/components/loading.dart before
++++ lib/src/my_ui/components/loading.dart after
+@@ -78,7 +78,7 @@
+                       ),
+                     ],
+             ),
+-            child: const MyGlyph(spinner: true),
++            child: MyGlyph(spinner: true, size: size.pixels),
+           ),
+         ),
+         if (child != null)
+--- lib/src/my_ui/components/progress.dart before
++++ lib/src/my_ui/components/progress.dart after
+@@ -194,7 +194,10 @@
+                           height: circle ? size * .28 : 18,
+                           color: color,
+                         ),
+-                        child: MyGlyph(name: glyph),
++                        child: MyGlyph(
++                          name: glyph,
++                          size: circle ? size * .28 : 18,
++                        ),
+                       )),
+           ),
+         ),
+--- test/my_ui/theme_test.dart before
++++ test/my_ui/theme_test.dart after
+@@ -4,7 +4,9 @@
+ 
+ import 'dart:convert';
+ 
+-import 'package:flutter/widgets.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter/rendering.dart';
++import 'package:flutter_base/ui.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:flutter_base/src/my_ui/index.dart';
+ 
+@@ -15,6 +17,8 @@
+       final t = MyThemeData(
+         brightness: mode == 'dark' ? Brightness.dark : Brightness.light,
+       );
++      expect(t.fontFamily, 'Times New Roman');
++      expect(t.fontFamilyFallback, ['Microsoft YaHei', 'SimSun']);
+       final colors = <String, Color>{
+         'background': t.background,
+         'card-background': t.cardBackground,
+@@ -81,6 +85,93 @@
+       );
+     });
+   }
++
++  test('主题字体 token 的覆写、保留和回退列表不可变', () {
++    final fallback = ['Microsoft YaHei'];
++    final data = MyThemeData(fontFamilyFallback: fallback);
++    fallback.clear();
++    expect(data.fontFamilyFallback, ['Microsoft YaHei']);
++    expect(() => data.fontFamilyFallback.clear(), throwsUnsupportedError);
++    final custom = data.copyWith(
++      fontFamily: 'Arial',
++      fontFamilyFallback: ['SimSun'],
++    );
++    expect(custom.fontFamily, 'Arial');
++    expect(custom.fontFamilyFallback, ['SimSun']);
++    expect(custom.copyWith(primary: Colors.blue).fontFamily, 'Arial');
++    expect(custom.copyWith().fontFamilyFallback, ['SimSun']);
++  });
++
++  testWidgets('MyTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
++    final textKey = GlobalKey(),
++        viewKey = GlobalKey(),
++        explicitKey = GlobalKey();
++    for (final data in [
++      MyThemeData(),
++      MyThemeData().copyWith(
++        fontFamily: 'Arial',
++        fontFamilyFallback: ['SimSun'],
++      ),
++    ]) {
++      await tester.pumpWidget(
++        MaterialApp(
++          home: MyTheme(
++            data: data,
++            child: Column(
++              children: [
++                Text('Text 默认', key: textKey),
++                ElView(key: viewKey, child: 'ElView 默认'),
++                ElView(
++                  key: explicitKey,
++                  style: ElStyle(fontFamily: 'Courier New'),
++                  child: '局部字体',
++                ),
++                Text('Text 局部', style: TextStyle(fontFamily: 'Courier New')),
++              ],
++            ),
++          ),
++        ),
++      );
++      final text = tester.renderObject<RenderParagraph>(
++        find.descendant(
++          of: find.byKey(textKey),
++          matching: find.byType(RichText),
++        ),
++      );
++      final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
++      expect(text.text.style!.height, kTextHeightNone);
++      expect(text.text.style!.fontFamily, data.fontFamily);
++      expect(text.text.style!.fontFamilyFallback, data.fontFamilyFallback);
++      expect(
++        view.committedResolvedStyle.inheritedText.lineHeight,
++        kTextHeightNone,
++      );
++      expect(
++        view.committedResolvedStyle.inheritedText.fontFamily,
++        data.fontFamily,
++      );
++      expect(
++        view.committedResolvedStyle.inheritedText.fontFamilyFallback,
++        data.fontFamilyFallback,
++      );
++      expect(
++        tester
++            .renderObject<ElRenderView>(find.byKey(explicitKey))
++            .committedResolvedStyle
++            .inheritedText
++            .fontFamily,
++        'Courier New',
++      );
++      final explicitText = tester.renderObject<RenderParagraph>(
++        find.descendant(
++          of: find.text('Text 局部'),
++          matching: find.byType(RichText),
++        ),
++      );
++      expect(explicitText.text.style!.fontFamily, 'Courier New');
++      expect(tester.takeException(), isNull);
++    }
++  });
+ }
+ 
+ final _cssSnapshot =
+--- test/my_ui/visual_render_test.dart before
++++ test/my_ui/visual_render_test.dart after
+@@ -206,6 +206,25 @@
+       MyProgress(value: 60, type: MyProgressType.circle, showText: false),
+     ], height: 148),
+   ],
++  'progress-sizes' => [
++    for (final size in [40.0, 64.0, 96.0, 128.0])
++      _row('circle size ${size.toInt()} / success / error', [
++        for (final status in [MyProgressStatus.success, MyProgressStatus.error])
++          _record(
++            '${size.toInt()}-${status.name}',
++            Builder(
++              builder: (context) => MyTheme(
++                data: MyTheme.of(context).copyWith(progressSize: size),
++                child: MyProgress(
++                  value: 100,
++                  type: MyProgressType.circle,
++                  status: status,
++                ),
++              ),
++            ),
++          ),
++      ], height: 176),
++  ],
+   'skeleton' => [
+     _row('default: 3 rows', [_wide('default', MySkeleton())], height: 176),
+     _row('avatar: 3 rows', [
+@@ -222,11 +241,13 @@
+   final sdk = Platform.environment['MY_UI_SDK'] ?? 'D:/app/fvm/versions/stable';
+   for (final entry in <String, List<String>>{
+     'Arial': ['C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf'],
+-    'Segoe UI': [
+-      'C:/Windows/Fonts/segoeui.ttf',
+-      'C:/Windows/Fonts/seguisb.ttf',
+-      'C:/Windows/Fonts/segoeuib.ttf',
++    'Times New Roman': [
++      'C:/Windows/Fonts/times.ttf',
++      'C:/Windows/Fonts/timesbd.ttf',
++      'C:/Windows/Fonts/timesi.ttf',
++      'C:/Windows/Fonts/timesbi.ttf',
+     ],
++    'SimSun': ['C:/Windows/Fonts/simsun.ttc'],
+     'Microsoft YaHei': [
+       'C:/Windows/Fonts/msyh.ttc',
+       'C:/Windows/Fonts/msyhbd.ttc',
+@@ -279,6 +300,7 @@
+           'divider',
+           'loading',
+           'progress',
++          'progress-sizes',
+           'skeleton',
+         ]) {
+           _keys.clear();
+@@ -287,17 +309,9 @@
+           _labelColor = data.textSecondary;
+           await tester.pumpWidget(
+             MaterialApp(
+-              // 显式加载Windows宿主字体，避免flutter_tester默认Ahem污染视觉验收。
+-              builder: (context, child) => Material(
+-                type: MaterialType.transparency,
+-                child: ElView(
+-                  style: ElStyle(
+-                    fontFamily: 'Segoe UI',
+-                    fontFamilyFallback: ['Microsoft YaHei'],
+-                  ),
+-                  child: child,
+-                ),
+-              ),
++              // 仅提供Material宿主；字体由MyTheme建立，避免宿主覆盖复验契约。
++              builder: (context, child) =>
++                  Material(type: MaterialType.transparency, child: child),
+               theme: ThemeData(
+                 platform: TargetPlatform.windows,
+                 fontFamilyFallback: ['Microsoft YaHei'],
+@@ -380,7 +394,50 @@
+             'fontFamily': DefaultTextStyle.of(
+               _keys.values.first.currentContext!,
+             ).style.fontFamily,
++            'fontFamilyFallback': data.fontFamilyFallback,
+             'positions': positions,
++            'officialTexts': find.byType(RichText).evaluate().map((element) {
++              final box = element.renderObject! as RenderParagraph;
++              final point = box.localToGlobal(Offset.zero);
++              return {
++                'text': box.text.toPlainText(),
++                'x': point.dx,
++                'y': point.dy,
++                'width': box.size.width,
++                'height': box.size.height,
++                'fontFamily': box.text.style?.fontFamily,
++                'lineHeight': box.text.style?.height,
++              };
++            }).toList(),
++            'texts': find
++                .byWidgetPredicate((w) => w is ElView && w.child is String)
++                .evaluate()
++                .map((element) {
++                  final box = element.renderObject! as ElRenderView;
++                  final engine = box.textEngineForTest;
++                  final text = box.committedResolvedStyle.inheritedText;
++                  final point = box.localToGlobal(Offset.zero);
++                  return {
++                    'text': (element.widget as ElView).child,
++                    'x': point.dx,
++                    'y': point.dy,
++                    'width': box.size.width,
++                    'height': box.size.height,
++                    'fontFamily': text.fontFamily,
++                    'fontFamilyFallback': text.fontFamilyFallback,
++                    'fontSize': text.fontSize,
++                    'fontWeight': text.fontWeight?.value,
++                    'lineHeight': text.lineHeight,
++                    'baseline':
++                        point.dy +
++                        (engine?.computeDistanceToActualBaseline(
++                              TextBaseline.alphabetic,
++                            ) ??
++                            0),
++                    'paintY': point.dy + (engine?.textPaintOrigin.dy ?? 0),
++                  };
++                })
++                .toList(),
+             'glyphs': find
+                 .byWidgetPredicate((w) => w.runtimeType.toString() == 'MyGlyph')
+                 .evaluate()
+--- test/my_ui/glyph_size_test.dart before
++++ test/my_ui/glyph_size_test.dart after
+@@ -0,0 +1,104 @@
++/// 检查组件实际 glyph 的尺寸和全局中心，避免只验证外层包装。
++library;
++
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:flutter_base/src/my_ui/index.dart';
++import 'package:flutter_base/src/my_ui/cores/glyph.dart';
++import 'package:flutter_base/ui.dart';
++
++Widget _host(Widget child, {double? progressSize}) => MaterialApp(
++  home: MediaQuery(
++    data: MediaQueryData(disableAnimations: true),
++    child: MyTheme(
++      data: MyThemeData(progressSize: progressSize),
++      child: Align(
++        alignment: Alignment.topLeft,
++        child: SizedBox(width: 320, child: child),
++      ),
++    ),
++  ),
++);
++
++void _expectGlyph(
++  WidgetTester tester,
++  Finder component,
++  double extent, {
++  double? circleSize,
++}) {
++  final glyph = find.descendant(of: component, matching: find.byType(MyGlyph));
++  expect(glyph, findsOneWidget);
++  final rect = tester.getRect(glyph);
++  expect(rect.width, closeTo(extent, .000001));
++  expect(rect.height, closeTo(extent, .000001));
++  final frame = find.descendant(
++    of: component,
++    matching: find.byWidgetPredicate(
++      (w) =>
++          w is ElView && w.style?.width == extent && w.style?.height == extent,
++    ),
++  );
++  expect(frame, findsOneWidget);
++  final frameRect = tester.getRect(frame);
++  expect((rect.topLeft - frameRect.topLeft).distance, closeTo(0, .000001));
++  expect((rect.center - frameRect.center).distance, closeTo(0, .000001));
++  if (circleSize != null) {
++    // MyProgress 的内联宿主可占满父宽，应与实际圆环比较中心。
++    final ring = find.descendant(
++      of: component,
++      matching: find.byWidgetPredicate(
++        (w) =>
++            w is ElView &&
++            w.style?.width == circleSize &&
++            w.style?.height == circleSize,
++      ),
++    );
++    expect(ring, findsOneWidget);
++    expect(
++      (rect.center - tester.getCenter(ring)).distance,
++      closeTo(0, .000001),
++    );
++  }
++  expect(tester.takeException(), isNull);
++}
++
++void main() {
++  testWidgets('Loading 三档实际 glyph 随同一实例尺寸更新并居中', (tester) async {
++    for (final size in [
++      MyLoadingSize.small,
++      MyLoadingSize.medium,
++      MyLoadingSize.large,
++      MyLoadingSize.small,
++    ]) {
++      await tester.pumpWidget(_host(MyLoading(size: size)));
++      await tester.pumpAndSettle();
++      _expectGlyph(tester, find.byType(MyLoading), size.pixels);
++    }
++  });
++  for (final status in [MyProgressStatus.success, MyProgressStatus.error]) {
++    testWidgets('Progress line ${status.name} 实际 glyph 为18且居中', (tester) async {
++      await tester.pumpWidget(_host(MyProgress(value: 100, status: status)));
++      await tester.pumpAndSettle();
++      _expectGlyph(tester, find.byType(MyProgress), 18);
++    });
++    testWidgets('Progress circle ${status.name} 在40/64/96/128切换时保持0.28比例与圆心', (
++      tester,
++    ) async {
++      for (final size in [40.0, 64.0, 96.0, 128.0, 40.0]) {
++        await tester.pumpWidget(
++          _host(
++            MyProgress(value: 100, type: MyProgressType.circle, status: status),
++            progressSize: size,
++          ),
++        );
++        await tester.pumpAndSettle();
++        _expectGlyph(
++          tester,
++          find.byType(MyProgress),
++          size * .28,
++          circleSize: size,
++        );
++      }
++    });
++  }
++}

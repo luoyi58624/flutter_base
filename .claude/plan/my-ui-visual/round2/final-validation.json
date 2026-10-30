@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-30T07:32:48.102Z",
+  "analyze": {
+    "exit": 0,
+    "diagnostics": 0,
+    "log": "../run/round2-analyze-final-clean.log"
+  },
+  "tests": {
+    "exit": 0,
+    "count": 62,
+    "log": "../run/round2-tests-verified.log"
+  },
+  "png": {
+    "count": 190,
+    "badHashes": []
+  },
+  "originalPng": {
+    "count": 208,
+    "changed": []
+  },
+  "brokenReportLinks": [],
+  "replaySyntax": "PowerShell 5.1 parse OK (UTF-8 BOM)",
+  "requestedReport": {
+    "path": ".codex/my-ui-fix-last.md",
+    "status": "blocked",
+    "error": "EPERM",
+    "fallback": ".claude/plan/my-ui-visual/my-ui-fix-last.md"
+  },
+  "releaseNext46": false,
+  "dedicatedViteStopped": true,
+  "gallery": {
+    "pairs": 60,
+    "failures": [],
+    "pageErrors": []
+  }
+}

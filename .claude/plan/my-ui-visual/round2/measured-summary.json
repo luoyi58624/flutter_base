@@ -1,0 +1,1329 @@
+{
+  "dpr": 1,
+  "loading": {
+    "390-light": [
+      {
+        "size": 16,
+        "glyph": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "frame": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 24,
+        "glyph": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "frame": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 32,
+        "glyph": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "frame": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "centerDistance": 0.0
+      }
+    ],
+    "390-dark": [
+      {
+        "size": 16,
+        "glyph": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "frame": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 24,
+        "glyph": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "frame": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 32,
+        "glyph": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "frame": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "centerDistance": 0.0
+      }
+    ],
+    "1440-light": [
+      {
+        "size": 16,
+        "glyph": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "frame": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 24,
+        "glyph": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "frame": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 32,
+        "glyph": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "frame": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "centerDistance": 0.0
+      }
+    ],
+    "1440-dark": [
+      {
+        "size": 16,
+        "glyph": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "frame": {
+          "x": 24.0,
+          "y": 120.0,
+          "width": 16.0,
+          "height": 16.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 24,
+        "glyph": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "frame": {
+          "x": 52.0,
+          "y": 120.0,
+          "width": 24.0,
+          "height": 24.0
+        },
+        "centerDistance": 0.0
+      },
+      {
+        "size": 32,
+        "glyph": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "frame": {
+          "x": 88.0,
+          "y": 120.0,
+          "width": 32.0,
+          "height": 32.0
+        },
+        "centerDistance": 0.0
+      }
+    ]
+  },
+  "progress": {
+    "390-light": {
+      "circleSizes": [
+        {
+          "sample": "40-success",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 38.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 38.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "40-error",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 90.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 90.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "64-success",
+          "expected": 17.92,
+          "flutter": {
+            "x": 47.04,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 47.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "64-error",
+          "expected": 17.92,
+          "flutter": {
+            "x": 123.03999999999999,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 123.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "96-success",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 58.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 58.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "96-error",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 166.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 166.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "128-success",
+          "expected": 35.84,
+          "flutter": {
+            "x": 70.08,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 70.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        },
+        {
+          "sample": "128-error",
+          "expected": 35.84,
+          "flutter": {
+            "x": 210.07999999999998,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 210.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        }
+      ],
+      "standardGlyphs": [
+        {
+          "x": 336.0,
+          "y": 197.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 336.0,
+          "y": 349.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 166.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        },
+        {
+          "x": 274.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        }
+      ]
+    },
+    "390-dark": {
+      "circleSizes": [
+        {
+          "sample": "40-success",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 38.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 38.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "40-error",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 90.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 90.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "64-success",
+          "expected": 17.92,
+          "flutter": {
+            "x": 47.04,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 47.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "64-error",
+          "expected": 17.92,
+          "flutter": {
+            "x": 123.03999999999999,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 123.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "96-success",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 58.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 58.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "96-error",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 166.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 166.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "128-success",
+          "expected": 35.84,
+          "flutter": {
+            "x": 70.08,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 70.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        },
+        {
+          "sample": "128-error",
+          "expected": 35.84,
+          "flutter": {
+            "x": 210.07999999999998,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 210.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        }
+      ],
+      "standardGlyphs": [
+        {
+          "x": 336.0,
+          "y": 197.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 336.0,
+          "y": 349.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 166.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        },
+        {
+          "x": 274.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        }
+      ]
+    },
+    "1440-light": {
+      "circleSizes": [
+        {
+          "sample": "40-success",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 38.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 38.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "40-error",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 90.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 90.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "64-success",
+          "expected": 17.92,
+          "flutter": {
+            "x": 47.04,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 47.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "64-error",
+          "expected": 17.92,
+          "flutter": {
+            "x": 123.03999999999999,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 123.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "96-success",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 58.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 58.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "96-error",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 166.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 166.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "128-success",
+          "expected": 35.84,
+          "flutter": {
+            "x": 70.08,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 70.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        },
+        {
+          "sample": "128-error",
+          "expected": 35.84,
+          "flutter": {
+            "x": 210.07999999999998,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 210.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        }
+      ],
+      "standardGlyphs": [
+        {
+          "x": 714.0,
+          "y": 197.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 714.0,
+          "y": 349.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 166.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        },
+        {
+          "x": 274.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        }
+      ]
+    },
+    "1440-dark": {
+      "circleSizes": [
+        {
+          "sample": "40-success",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 38.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 38.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "40-error",
+          "expected": 11.200000000000001,
+          "flutter": {
+            "x": 90.4,
+            "y": 134.4,
+            "width": 11.200000000000001,
+            "height": 11.200000000000001
+          },
+          "web": {
+            "x": 90.40625,
+            "y": 134.40625,
+            "width": 11.1875,
+            "height": 11.1875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.012500000000001066
+        },
+        {
+          "sample": "64-success",
+          "expected": 17.92,
+          "flutter": {
+            "x": 47.04,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 47.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "64-error",
+          "expected": 17.92,
+          "flutter": {
+            "x": 123.03999999999999,
+            "y": 319.04,
+            "width": 17.92,
+            "height": 17.92
+          },
+          "web": {
+            "x": 123.046875,
+            "y": 319.046875,
+            "width": 17.90625,
+            "height": 17.90625
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.013750000000001705
+        },
+        {
+          "sample": "96-success",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 58.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 58.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "96-error",
+          "expected": 26.880000000000003,
+          "flutter": {
+            "x": 166.56,
+            "y": 506.56,
+            "width": 26.880000000000003,
+            "height": 26.880000000000003
+          },
+          "web": {
+            "x": 166.5625,
+            "y": 506.5625,
+            "width": 26.875,
+            "height": 26.875
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.005000000000002558
+        },
+        {
+          "sample": "128-success",
+          "expected": 35.84,
+          "flutter": {
+            "x": 70.08,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 70.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        },
+        {
+          "sample": "128-error",
+          "expected": 35.84,
+          "flutter": {
+            "x": 210.07999999999998,
+            "y": 694.08,
+            "width": 35.84,
+            "height": 35.84
+          },
+          "web": {
+            "x": 210.078125,
+            "y": 694.078125,
+            "width": 35.828125,
+            "height": 35.828125
+          },
+          "centerDistance": 0.0,
+          "widthDelta": 0.01187500000000341
+        }
+      ],
+      "standardGlyphs": [
+        {
+          "x": 714.0,
+          "y": 197.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 714.0,
+          "y": 349.5,
+          "width": 18.0,
+          "height": 18.0
+        },
+        {
+          "x": 166.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        },
+        {
+          "x": 274.56,
+          "y": 534.56,
+          "width": 26.880000000000003,
+          "height": 26.880000000000003
+        }
+      ]
+    }
+  },
+  "button": {
+    "390-light": [
+      {
+        "text": "Save 保存",
+        "webWidth": 90.921875,
+        "flutterWidth": 90.90771484375,
+        "widthDelta": -0.01416015625,
+        "webBaseline": 148,
+        "flutterBaseline": 147.87158203125,
+        "baselineDelta": -0.12841796875
+      },
+      {
+        "text": "Cancel",
+        "webWidth": 69.65625,
+        "flutterWidth": 69.6455078125,
+        "widthDelta": -0.0107421875,
+        "webBaseline": 146.5,
+        "flutterBaseline": 147.185302734375,
+        "baselineDelta": 0.685302734375
+      }
+    ],
+    "390-dark": [
+      {
+        "text": "Save 保存",
+        "webWidth": 90.921875,
+        "flutterWidth": 90.90771484375,
+        "widthDelta": -0.01416015625,
+        "webBaseline": 148,
+        "flutterBaseline": 147.87158203125,
+        "baselineDelta": -0.12841796875
+      },
+      {
+        "text": "Cancel",
+        "webWidth": 69.65625,
+        "flutterWidth": 69.6455078125,
+        "widthDelta": -0.0107421875,
+        "webBaseline": 146.5,
+        "flutterBaseline": 147.185302734375,
+        "baselineDelta": 0.685302734375
+      }
+    ],
+    "1440-light": [
+      {
+        "text": "Save 保存",
+        "webWidth": 98.921875,
+        "flutterWidth": 98.90771484375,
+        "widthDelta": -0.01416015625,
+        "webBaseline": 148,
+        "flutterBaseline": 147.87158203125,
+        "baselineDelta": -0.12841796875
+      },
+      {
+        "text": "Cancel",
+        "webWidth": 77.65625,
+        "flutterWidth": 77.6455078125,
+        "widthDelta": -0.0107421875,
+        "webBaseline": 146.5,
+        "flutterBaseline": 147.185302734375,
+        "baselineDelta": 0.685302734375
+      }
+    ],
+    "1440-dark": [
+      {
+        "text": "Save 保存",
+        "webWidth": 98.921875,
+        "flutterWidth": 98.90771484375,
+        "widthDelta": -0.01416015625,
+        "webBaseline": 148,
+        "flutterBaseline": 147.87158203125,
+        "baselineDelta": -0.12841796875
+      },
+      {
+        "text": "Cancel",
+        "webWidth": 77.65625,
+        "flutterWidth": 77.6455078125,
+        "widthDelta": -0.0107421875,
+        "webBaseline": 146.5,
+        "flutterBaseline": 147.185302734375,
+        "baselineDelta": 0.685302734375
+      }
+    ]
+  },
+  "tag": {
+    "390-light": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 66.8125,
+        "height": 28
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 66.802734375,
+        "height": 28.0
+      },
+      "widthDelta": -0.009765625
+    },
+    "390-dark": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 66.8125,
+        "height": 28
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 66.802734375,
+        "height": 28.0
+      },
+      "widthDelta": -0.009765625
+    },
+    "1440-light": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 66.8125,
+        "height": 28
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 66.802734375,
+        "height": 28.0
+      },
+      "widthDelta": -0.009765625
+    },
+    "1440-dark": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 66.8125,
+        "height": 28
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 66.802734375,
+        "height": 28.0
+      },
+      "widthDelta": -0.009765625
+    }
+  },
+  "card": {
+    "390-light": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 342,
+        "height": 174.78125
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 342.0,
+        "height": 177.0
+      },
+      "heightDelta": 2.21875
+    },
+    "390-dark": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 342,
+        "height": 174.78125
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 342.0,
+        "height": 177.0
+      },
+      "heightDelta": 2.21875
+    },
+    "1440-light": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 720,
+        "height": 183.140625
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 720.0,
+        "height": 185.0
+      },
+      "heightDelta": 1.859375
+    },
+    "1440-dark": {
+      "web": {
+        "x": 24,
+        "y": 120,
+        "width": 720,
+        "height": 183.140625
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 120.0,
+        "width": 720.0,
+        "height": 185.0
+      },
+      "heightDelta": 1.859375
+    }
+  },
+  "skeletonLoaded": {
+    "390-light": {
+      "web": {
+        "x": 24,
+        "y": 624,
+        "width": 342,
+        "height": 20
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 624.0,
+        "width": 342.0,
+        "height": 20.0
+      },
+      "heightDelta": 0.0
+    },
+    "390-dark": {
+      "web": {
+        "x": 24,
+        "y": 624,
+        "width": 342,
+        "height": 20
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 624.0,
+        "width": 342.0,
+        "height": 20.0
+      },
+      "heightDelta": 0.0
+    },
+    "1440-light": {
+      "web": {
+        "x": 24,
+        "y": 624,
+        "width": 720,
+        "height": 20
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 624.0,
+        "width": 720.0,
+        "height": 20.0
+      },
+      "heightDelta": 0.0
+    },
+    "1440-dark": {
+      "web": {
+        "x": 24,
+        "y": 624,
+        "width": 720,
+        "height": 20
+      },
+      "flutter": {
+        "x": 24.0,
+        "y": 624.0,
+        "width": 720.0,
+        "height": 20.0
+      },
+      "heightDelta": 0.0
+    }
+  },
+  "inkCoverage": {
+    "light": {
+      "web": [
+        {
+          "sample": "small",
+          "frameSize": 16,
+          "inkBoundsInclusive": [
+            1,
+            1,
+            14,
+            14
+          ],
+          "inkWidth": 14,
+          "inkHeight": 14
+        },
+        {
+          "sample": "medium",
+          "frameSize": 24,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            21,
+            21
+          ],
+          "inkWidth": 20,
+          "inkHeight": 20
+        },
+        {
+          "sample": "large",
+          "frameSize": 32,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            29,
+            29
+          ],
+          "inkWidth": 28,
+          "inkHeight": 28
+        }
+      ],
+      "flutter": [
+        {
+          "sample": "small",
+          "frameSize": 16,
+          "inkBoundsInclusive": [
+            1,
+            1,
+            14,
+            14
+          ],
+          "inkWidth": 14,
+          "inkHeight": 14
+        },
+        {
+          "sample": "medium",
+          "frameSize": 24,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            21,
+            21
+          ],
+          "inkWidth": 20,
+          "inkHeight": 20
+        },
+        {
+          "sample": "large",
+          "frameSize": 32,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            29,
+            29
+          ],
+          "inkWidth": 28,
+          "inkHeight": 28
+        }
+      ]
+    },
+    "dark": {
+      "web": [
+        {
+          "sample": "small",
+          "frameSize": 16,
+          "inkBoundsInclusive": [
+            1,
+            1,
+            14,
+            14
+          ],
+          "inkWidth": 14,
+          "inkHeight": 14
+        },
+        {
+          "sample": "medium",
+          "frameSize": 24,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            21,
+            21
+          ],
+          "inkWidth": 20,
+          "inkHeight": 20
+        },
+        {
+          "sample": "large",
+          "frameSize": 32,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            29,
+            29
+          ],
+          "inkWidth": 28,
+          "inkHeight": 28
+        }
+      ],
+      "flutter": [
+        {
+          "sample": "small",
+          "frameSize": 16,
+          "inkBoundsInclusive": [
+            1,
+            1,
+            14,
+            14
+          ],
+          "inkWidth": 14,
+          "inkHeight": 14
+        },
+        {
+          "sample": "medium",
+          "frameSize": 24,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            21,
+            21
+          ],
+          "inkWidth": 20,
+          "inkHeight": 20
+        },
+        {
+          "sample": "large",
+          "frameSize": 32,
+          "inkBoundsInclusive": [
+            2,
+            2,
+            29,
+            29
+          ],
+          "inkWidth": 28,
+          "inkHeight": 28
+        }
+      ]
+    }
+  }
+}

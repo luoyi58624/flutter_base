@@ -14,28 +14,36 @@ class ViewBasePage extends HookWidget {
           child: Center(
             child: Column(
               children: [
-                ElEventView(
+                ElView(
                   child: Builder(
                     builder: (context) {
+                      // 读取外层视图状态，并按实际读取的属性订阅更新。
+                      final state = ElView.of(context);
                       return ElView(
                         style: .new(
                           width: 100,
                           height: 100,
                           padding: .all(16),
-                          backgroundColor: context.hasTap
+                          bgColor: state.hasTap
                               ? Colors.green
-                              : context.hasHover
+                              : state.hasHover
                               ? Colors.purple
                               : Colors.blue,
                           borderRadius: .circular(8),
                           transform: .scale(
-                            context.hasTap
+                            state.hasTap
                                 ? 0.9
-                                : context.hasHover
+                                : state.hasHover
                                 ? 1.5
                                 : 1.0,
                           ),
-                          transitions: [.all(context.hasTap ? .zero : Duration(milliseconds: 250))],
+                          transitions: [
+                            .all(
+                              state.hasTap
+                                  ? .zero
+                                  : Duration(milliseconds: 250),
+                            ),
+                          ],
                         ),
                       );
                     },
