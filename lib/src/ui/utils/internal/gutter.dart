@@ -7,7 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 /// 单个可见序号的几何输入。
-typedef ElOrdinalGutterEntry = ({
+typedef OrdinalGutterEntry = ({
   int viewIndex,
   int ordinal,
   int referenceOrdinal,
@@ -19,17 +19,17 @@ typedef ElOrdinalGutterEntry = ({
 });
 
 /// 按当前 gutter 尺寸提供需要绘制的可见序号。
-typedef ElOrdinalGutterEntriesBuilder = Iterable<ElOrdinalGutterEntry> Function(Size size);
+typedef OrdinalGutterEntriesBuilder = Iterable<OrdinalGutterEntry> Function(Size size);
 
 /// 最近一帧实际绘制的序号快照。
-typedef ElOrdinalGutterPaintEntry = ({int viewIndex, int ordinal, String label, bool active, Rect? textBounds});
+typedef OrdinalGutterPaintEntry = ({int viewIndex, int ordinal, String label, bool active, Rect? textBounds});
 
 /// 数字序号 gutter 的统一测量与绘制内核。
 ///
 /// 本类型不参与文本选择和自身命中；宿主只负责提供可见序号及其行几何。
-final class ElRenderOrdinalGutter extends RenderBox {
+final class RenderOrdinalGutter extends RenderBox {
   /// 创建共享序号渲染器，数字区整体居中、区内数字默认右对齐。
-  ElRenderOrdinalGutter({
+  RenderOrdinalGutter({
     required int totalRows,
     required int firstNumber,
     required int minChars,
@@ -38,12 +38,12 @@ final class ElRenderOrdinalGutter extends RenderBox {
     required TextScaler textScaler,
     required EdgeInsets padding,
     required int mode,
-    required ElOrdinalGutterEntriesBuilder entriesBuilder,
+    required OrdinalGutterEntriesBuilder entriesBuilder,
     TextAlign textAlign = TextAlign.right,
     AlignmentGeometry alignment = Alignment.center,
     Locale? locale,
     Listenable? repaint,
-    ValueChanged<List<ElOrdinalGutterPaintEntry>>? onPaint,
+    ValueChanged<List<OrdinalGutterPaintEntry>>? onPaint,
   }) : _totalRows = totalRows,
        _firstNumber = firstNumber,
        _minChars = minChars,
@@ -60,7 +60,7 @@ final class ElRenderOrdinalGutter extends RenderBox {
        _onPaint = onPaint;
 
   /// 创建只绘制一个绝对序号的表格行渲染器。
-  ElRenderOrdinalGutter.single({
+  RenderOrdinalGutter.single({
     required int totalRows,
     required int firstNumber,
     required int rowIndex,
@@ -107,18 +107,18 @@ final class ElRenderOrdinalGutter extends RenderBox {
   int _mode;
   TextAlign _textAlign;
   AlignmentGeometry _alignment;
-  ElOrdinalGutterEntriesBuilder _entriesBuilder;
+  OrdinalGutterEntriesBuilder _entriesBuilder;
   Locale? _locale;
   Listenable? _repaint;
-  ValueChanged<List<ElOrdinalGutterPaintEntry>>? _onPaint;
+  ValueChanged<List<OrdinalGutterPaintEntry>>? _onPaint;
 
   double? _preferredWidth;
   double? _numberWidth;
   final TextPainter _painter = TextPainter(maxLines: 1, textAlign: TextAlign.right);
-  List<ElOrdinalGutterPaintEntry> _debugPaintEntries = const [];
+  List<OrdinalGutterPaintEntry> _debugPaintEntries = const [];
 
   /// 最近一帧实际绘制的标签，仅供白盒测试验证统一渲染路径。
-  List<ElOrdinalGutterPaintEntry> get debugPaintEntries => _debugPaintEntries;
+  List<OrdinalGutterPaintEntry> get debugPaintEntries => _debugPaintEntries;
 
   /// 按完整序号范围的文本宽度、最少字符占位和内边距解析总宽度。
   static double measureWidth({
@@ -218,12 +218,12 @@ final class ElRenderOrdinalGutter extends RenderBox {
     required TextScaler textScaler,
     required EdgeInsets padding,
     required int mode,
-    required ElOrdinalGutterEntriesBuilder entriesBuilder,
+    required OrdinalGutterEntriesBuilder entriesBuilder,
     TextAlign textAlign = TextAlign.right,
     AlignmentGeometry alignment = Alignment.center,
     Locale? locale,
     Listenable? repaint,
-    ValueChanged<List<ElOrdinalGutterPaintEntry>>? onPaint,
+    ValueChanged<List<OrdinalGutterPaintEntry>>? onPaint,
   }) {
     final layoutChanged =
         _totalRows != totalRows ||
@@ -296,12 +296,12 @@ final class ElRenderOrdinalGutter extends RenderBox {
     );
   }
 
-  static ElOrdinalGutterEntriesBuilder _singleEntryBuilder({
+  static OrdinalGutterEntriesBuilder _singleEntryBuilder({
     required int totalRows,
     required int firstNumber,
     required int rowIndex,
   }) =>
-      (size) => <ElOrdinalGutterEntry>[
+      (size) => <OrdinalGutterEntry>[
         (
           viewIndex: rowIndex,
           ordinal: ordinalAt(rowIndex, firstNumber: firstNumber),
@@ -376,7 +376,7 @@ final class ElRenderOrdinalGutter extends RenderBox {
     final contentWidth = math.min(availableWidth, numberWidth);
     final dx =
         _padding.left + _alignment.resolve(_textDirection).alongOffset(Offset(availableWidth - contentWidth, 0)).dx;
-    final snapshot = <ElOrdinalGutterPaintEntry>[];
+    final snapshot = <OrdinalGutterPaintEntry>[];
     context.canvas.save();
     context.canvas.clipRect(offset & size);
     for (final entry in _entriesBuilder(size)) {
@@ -421,11 +421,11 @@ final class ElRenderOrdinalGutter extends RenderBox {
       _painter.paint(context.canvas, offset + origin);
     }
     context.canvas.restore();
-    _debugPaintEntries = List<ElOrdinalGutterPaintEntry>.unmodifiable(snapshot);
+    _debugPaintEntries = List<OrdinalGutterPaintEntry>.unmodifiable(snapshot);
     _onPaint?.call(_debugPaintEntries);
   }
 
-  String _labelFor(ElOrdinalGutterEntry entry) => switch (_mode) {
+  String _labelFor(OrdinalGutterEntry entry) => switch (_mode) {
     relative when !entry.active => '${(entry.ordinal - entry.referenceOrdinal).abs()}',
     interval when !entry.active && entry.ordinal % 10 != 0 && !entry.isLast => '',
     _ => '${entry.ordinal}',
@@ -438,10 +438,10 @@ final class ElRenderOrdinalGutter extends RenderBox {
   }
 }
 
-/// [ElRenderOrdinalGutter] 的 Widget 挂载壳，供编辑器和表格等宿主复用。
-class ElOrdinalGutterHost extends LeafRenderObjectWidget {
+/// [RenderOrdinalGutter] 的 Widget 挂载壳，供编辑器和表格等宿主复用。
+class OrdinalGutterHost extends LeafRenderObjectWidget {
   /// 创建共享序号视图。
-  const ElOrdinalGutterHost({
+  const OrdinalGutterHost({
     super.key,
     required this.totalRows,
     this.firstNumber = 1,
@@ -450,7 +450,7 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
     required this.textDirection,
     required this.textScaler,
     this.padding = EdgeInsets.zero,
-    this.mode = ElRenderOrdinalGutter.absolute,
+    this.mode = RenderOrdinalGutter.absolute,
     required this.entriesBuilder,
     this.textAlign = TextAlign.right,
     this.alignment = Alignment.center,
@@ -460,7 +460,7 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
   });
 
   /// 创建只绘制一个绝对序号的表格单元格 gutter。
-  ElOrdinalGutterHost.single({
+  OrdinalGutterHost.single({
     Key? key,
     required int totalRows,
     required int firstNumber,
@@ -481,7 +481,7 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
          textAlign: textAlign,
          alignment: alignment,
          locale: locale,
-         entriesBuilder: ElRenderOrdinalGutter._singleEntryBuilder(
+         entriesBuilder: RenderOrdinalGutter._singleEntryBuilder(
            totalRows: totalRows,
            firstNumber: firstNumber,
            rowIndex: rowIndex,
@@ -513,7 +513,7 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
   final int mode;
 
   /// 当前可见序号及行几何。
-  final ElOrdinalGutterEntriesBuilder entriesBuilder;
+  final OrdinalGutterEntriesBuilder entriesBuilder;
 
   /// 数字在测量宽度内的对齐方式，默认右对齐。
   final TextAlign textAlign;
@@ -528,10 +528,10 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
   final Listenable? repaint;
 
   /// 接收最近一帧的标签和实际文字布局盒。
-  final ValueChanged<List<ElOrdinalGutterPaintEntry>>? onPaint;
+  final ValueChanged<List<OrdinalGutterPaintEntry>>? onPaint;
 
   @override
-  ElRenderOrdinalGutter createRenderObject(BuildContext context) => ElRenderOrdinalGutter(
+  RenderOrdinalGutter createRenderObject(BuildContext context) => RenderOrdinalGutter(
     totalRows: totalRows,
     firstNumber: firstNumber,
     minChars: minChars,
@@ -549,7 +549,7 @@ class ElOrdinalGutterHost extends LeafRenderObjectWidget {
   );
 
   @override
-  void updateRenderObject(BuildContext context, ElRenderOrdinalGutter renderObject) {
+  void updateRenderObject(BuildContext context, RenderOrdinalGutter renderObject) {
     renderObject.configure(
       totalRows: totalRows,
       firstNumber: firstNumber,

@@ -107,19 +107,19 @@ void main() {
   ElRenderView contentRender(WidgetTester tester, Object value) =>
       contentRenders(tester, (child) => child == value).single;
 
-  Iterable<ElRenderOrdinalGutter> ordinalRenders(WidgetTester tester, Object value) sync* {
+  Iterable<RenderOrdinalGutter> ordinalRenders(WidgetTester tester, Object value) sync* {
     final root = tester.renderObject<RenderObject>(find.byType(ElTable));
     final nodes = <RenderObject>[root];
     while (nodes.isNotEmpty) {
       final node = nodes.removeLast();
-      if (node is ElRenderOrdinalGutter && node.debugPaintEntries.any((entry) => entry.label == '$value')) {
+      if (node is RenderOrdinalGutter && node.debugPaintEntries.any((entry) => entry.label == '$value')) {
         yield node;
       }
       node.visitChildren(nodes.add);
     }
   }
 
-  ElRenderOrdinalGutter ordinalRender(WidgetTester tester, Object value) => ordinalRenders(tester, value).single;
+  RenderOrdinalGutter ordinalRender(WidgetTester tester, Object value) => ordinalRenders(tester, value).single;
 
   Offset contentTopLeft(WidgetTester tester, Object value) => contentRender(tester, value).localToGlobal(Offset.zero);
 

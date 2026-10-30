@@ -6,7 +6,7 @@ void main() {
   testWidgets('数字只在测量区内对齐，测量区独立居中且配置可动态切换', (tester) async {
     tester.view.devicePixelRatio = 1.75;
     addTearDown(tester.view.resetDevicePixelRatio);
-    final entries = <ElOrdinalGutterEntry>[
+    final entries = <OrdinalGutterEntry>[
       for (final (i, number) in [1, 10, 10000].indexed)
         (
           viewIndex: i,
@@ -19,7 +19,7 @@ void main() {
           baseline: null,
         ),
     ];
-    Iterable<ElOrdinalGutterEntry> buildEntries(Size size) => entries;
+    Iterable<OrdinalGutterEntry> buildEntries(Size size) => entries;
     Widget host({
       TextAlign textAlign = TextAlign.right,
       AlignmentGeometry alignment = Alignment.center,
@@ -32,7 +32,7 @@ void main() {
       child: SizedBox(
         width: 140,
         height: 60,
-        child: ElOrdinalGutterHost(
+        child: OrdinalGutterHost(
           totalRows: totalRows,
           minChars: minChars,
           styles: [TextStyle(fontSize: 10)],
@@ -45,7 +45,7 @@ void main() {
         ),
       ),
     );
-    ElRenderOrdinalGutter render() => tester.renderObject(find.byType(ElOrdinalGutterHost));
+    RenderOrdinalGutter render() => tester.renderObject(find.byType(OrdinalGutterHost));
     List<Rect> boxes() => render().debugPaintEntries.map((e) => e.textBounds!).toList();
 
     await tester.pumpWidget(host());
@@ -77,21 +77,21 @@ void main() {
 
   testWidgets('统一按最大序号、minChars、样式和缩放解析宽度', (tester) async {
     const style = TextStyle(fontSize: 10);
-    final oneDigit = ElRenderOrdinalGutter.measureWidth(
+    final oneDigit = RenderOrdinalGutter.measureWidth(
       totalRows: 9,
       styles: const [style],
       textDirection: TextDirection.ltr,
       textScaler: TextScaler.noScaling,
       padding: const EdgeInsets.only(right: 8),
     );
-    final twoDigits = ElRenderOrdinalGutter.measureWidth(
+    final twoDigits = RenderOrdinalGutter.measureWidth(
       totalRows: 10,
       styles: const [style],
       textDirection: TextDirection.ltr,
       textScaler: TextScaler.noScaling,
       padding: const EdgeInsets.only(right: 8),
     );
-    final minChars = ElRenderOrdinalGutter.measureWidth(
+    final minChars = RenderOrdinalGutter.measureWidth(
       totalRows: 9,
       minChars: 5,
       styles: const [style],
@@ -99,7 +99,7 @@ void main() {
       textScaler: TextScaler.noScaling,
       padding: const EdgeInsets.only(right: 8),
     );
-    final scaled = ElRenderOrdinalGutter.measureWidth(
+    final scaled = RenderOrdinalGutter.measureWidth(
       totalRows: 9,
       styles: const [style],
       textDirection: TextDirection.ltr,
@@ -113,14 +113,14 @@ void main() {
   });
 
   testWidgets('Render gutter 统一生成 absolute、relative 与 interval 标签', (tester) async {
-    List<ElOrdinalGutterPaintEntry> snapshot = const [];
+    List<OrdinalGutterPaintEntry> snapshot = const [];
 
     Widget host(int mode) => Directionality(
       textDirection: TextDirection.ltr,
       child: SizedBox(
         width: 100,
         height: 60,
-        child: ElOrdinalGutterHost(
+        child: OrdinalGutterHost(
           totalRows: 3,
           styles: const [TextStyle(fontSize: 12)],
           textDirection: TextDirection.ltr,
@@ -163,17 +163,17 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(host(ElRenderOrdinalGutter.absolute));
+    await tester.pumpWidget(host(RenderOrdinalGutter.absolute));
     await tester.pump();
-    final render = tester.renderObject<ElRenderOrdinalGutter>(find.byType(ElOrdinalGutterHost));
+    final render = tester.renderObject<RenderOrdinalGutter>(find.byType(OrdinalGutterHost));
     expect(render.hitTestSelf(Offset.zero), isFalse, reason: '序号 gutter 不参与命中或文本选择');
     expect(snapshot.map((entry) => entry.label), ['1', '2', '3']);
 
-    await tester.pumpWidget(host(ElRenderOrdinalGutter.relative));
+    await tester.pumpWidget(host(RenderOrdinalGutter.relative));
     await tester.pump();
     expect(snapshot.map((entry) => entry.label), ['1', '2', '1']);
 
-    await tester.pumpWidget(host(ElRenderOrdinalGutter.interval));
+    await tester.pumpWidget(host(RenderOrdinalGutter.interval));
     await tester.pump();
     expect(snapshot.map((entry) => entry.label), ['', '2', '3']);
   });

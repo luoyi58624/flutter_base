@@ -1334,7 +1334,7 @@ class ElTableController extends ChangeNotifier {
     final environment =
         _indexTextEnvironment ??
         (style: _fallbackIndexMeasureStyle(), scaler: TextScaler.noScaling, direction: TextDirection.ltr, locale: null);
-    return ElRenderOrdinalGutter.measureWidth(
+    return RenderOrdinalGutter.measureWidth(
       totalRows: _data.length,
       firstNumber: start,
       minChars: _indexColumnMinChars,
@@ -1559,8 +1559,8 @@ class ElTableController extends ChangeNotifier {
     final index = cell.column.index;
     return switch (index) {
       ElTableIndexBuilder builder => builder(cell),
-      int start => ElRenderOrdinalGutter.ordinalAt(cell.rowIndex, firstNumber: start),
-      null => ElRenderOrdinalGutter.ordinalAt(cell.rowIndex),
+      int start => RenderOrdinalGutter.ordinalAt(cell.rowIndex, firstNumber: start),
+      null => RenderOrdinalGutter.ordinalAt(cell.rowIndex),
       _ => index,
     };
   }

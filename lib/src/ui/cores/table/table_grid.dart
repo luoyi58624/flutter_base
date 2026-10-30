@@ -793,7 +793,7 @@ class _RenderTableOrdinalCell extends RenderProxyBox {
     child = box;
   }
 
-  final ElRenderOrdinalGutter gutter;
+  final RenderOrdinalGutter gutter;
   late final ElRenderView box;
 
   @override
@@ -1485,7 +1485,7 @@ class _RenderTableGridRow extends RenderBox
     return false;
   }
 
-  ElRenderOrdinalGutter _createOrdinalRender(_TableHostedOrdinal ordinal) => ElRenderOrdinalGutter.single(
+  RenderOrdinalGutter _createOrdinalRender(_TableHostedOrdinal ordinal) => RenderOrdinalGutter.single(
     totalRows: ordinal.totalRows,
     firstNumber: ordinal.firstNumber,
     rowIndex: ordinal.rowIndex,
@@ -1496,7 +1496,7 @@ class _RenderTableGridRow extends RenderBox
     locale: ordinal.environment.locale,
   );
 
-  void _configureOrdinalRender(ElRenderOrdinalGutter render, _TableHostedOrdinal ordinal) {
+  void _configureOrdinalRender(RenderOrdinalGutter render, _TableHostedOrdinal ordinal) {
     render.configureSingle(
       totalRows: ordinal.totalRows,
       firstNumber: ordinal.firstNumber,

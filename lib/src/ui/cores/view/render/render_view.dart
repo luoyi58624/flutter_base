@@ -40,7 +40,7 @@ import '../style/internal/responsive.dart';
 import '../style/dimension.dart';
 import '../../selection/common/selection_core.dart';
 
-import 'package:flutter_base/src/ui/cores/common/layout_reference.dart';
+import 'package:flutter_base/src/ui/utils/internal/layout_reference.dart';
 
 import 'scroll_cursor_freeze.dart';
 import '../style/state/view_state.dart';

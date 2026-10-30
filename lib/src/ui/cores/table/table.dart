@@ -15,7 +15,7 @@ import 'package:flutter/widgets.dart';
 import '../../components/index.dart' show ElComponentProvider;
 import '../../views/button/button_view.dart';
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
-import '../common/gutter.dart' show ElOrdinalGutterHost, ElRenderOrdinalGutter;
+import '../../utils/internal/gutter.dart' show OrdinalGutterHost, RenderOrdinalGutter;
 import '../view/event/event.dart';
 import '../layout/stack/stack_view.dart';
 import '../scroll/scroll_view.dart';

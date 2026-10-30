@@ -23,7 +23,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
-import 'package:flutter_base/src/ui/cores/common/layout_reference.dart';
+import 'package:flutter_base/src/ui/utils/internal/layout_reference.dart';
 import '../../../view/event/event.dart';
 import '../../../view/event/dispatcher.dart';
 import '../../../selection/common/selection_core.dart';

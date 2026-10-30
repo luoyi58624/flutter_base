@@ -1545,7 +1545,7 @@ class _TableViewState extends State<ElTable> {
       final environment = _indexTextEnvironmentFor(cellStyle);
       return _cellBox(
         cellStyle,
-        ElOrdinalGutterHost.single(
+        OrdinalGutterHost.single(
           totalRows: controller.data.length,
           firstNumber: start,
           rowIndex: rowIndex,

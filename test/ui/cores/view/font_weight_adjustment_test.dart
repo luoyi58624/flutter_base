@@ -328,12 +328,12 @@ void main() {
       final labels = <String>[];
       while (nodes.isNotEmpty) {
         final node = nodes.removeLast();
-        if (node is ElRenderOrdinalGutter) labels.addAll(node.debugPaintEntries.map((entry) => entry.label));
+        if (node is RenderOrdinalGutter) labels.addAll(node.debugPaintEntries.map((entry) => entry.label));
         node.visitChildren(nodes.add);
       }
       expect(labels, ['1']);
       if (interactive) {
-        final gutters = tester.widgetList<ElOrdinalGutterHost>(find.byType(ElOrdinalGutterHost));
+        final gutters = tester.widgetList<OrdinalGutterHost>(find.byType(OrdinalGutterHost));
         expect(gutters, isNotEmpty);
         for (final gutter in gutters) {
           expect(gutter.styles.map(_wght), everyElement(590));

@@ -8,13 +8,13 @@ export 'src/ui/cores/view/index.dart';
 export 'package:flutter_base/flutter.dart';
 
 // 基础类型与全局扩展
-export 'src/ui/cores/common/gutter.dart'
+export 'src/ui/utils/internal/gutter.dart'
     show
-        ElOrdinalGutterEntry,
-        ElOrdinalGutterEntriesBuilder,
-        ElOrdinalGutterPaintEntry,
-        ElOrdinalGutterHost,
-        ElRenderOrdinalGutter;
+        OrdinalGutterEntry,
+        OrdinalGutterEntriesBuilder,
+        OrdinalGutterPaintEntry,
+        OrdinalGutterHost,
+        RenderOrdinalGutter;
 export 'src/ui/cores/view/style/dimension.dart' show ElDimension, ElLengthKind;
 export 'src/ui/cores/common/global.dart' show ElViewExt;
 export 'src/ui/cores/common/models.dart'
