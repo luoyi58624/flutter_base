@@ -45,11 +45,8 @@ class MyListTile extends StatelessWidget {
                 ),
           Expanded(
             child: ElView(
-              style: .new(),
-              child: Text(
-                title,
-                style: TextStyle(fontWeight: .w500, fontSize: 15, color: Colors.black),
-              ),
+              style: .new(fontWeight: .w500, fontSize: 15, color: Colors.black),
+              child: title,
             ),
           ),
         ],

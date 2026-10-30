@@ -1,25 +1,22 @@
-# 本地产物：codex/脚本的临时文件一律放这里，别散在仓库根
-.codex/
-.codex-*
-.migrate-*.ps1
-
-# Miscellaneous
 *.class
 *.log
 *.pyc
 *.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
+**/.DS_Store
+**/.atom/
+**/.build/
+**/.buildlog/
+**/.history
+**/.svn/
+**/.swiftpm/
+**/migrate_working_dir/
 
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+**/.idea/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -27,10 +24,58 @@ migrate_working_dir/
 #.vscode/
 
 # Flutter/Dart/Pub related
-# Libraries should not include pubspec.lock, per https://dart.dev/guides/libraries/private-files#pubspeclock.
-/pubspec.lock
-**/doc/api/
 .dart_tool/
-.flutter-plugins-dependencies
-/build/
-/coverage/
+pubspec.lock
+
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+# 已移除的独立文档工程可能仍留有本地构建缓存。
+/examples/ui_example/
+**/pubspec.lock
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/app/.cxx
+**/android/.gradle
+**/dist/
+
+# FVM Version Cache
+.fvm/
+.tool/
+
+coverage
+**/.codex-run/
+**/.cursor/
+**/.claude*/memory/**
+**/.claude*/plan/**
+**/.codex*/**
+
+# Hermes 的私人协作笔记（主人要求不在仓库里提交）
+.hermes.md
+.hermes-notes.md
+
+# Hermes 的分析报告存档（同上，不进仓库）
+.hermes-reports/
+
+**/tmp/
+
+.pi/
+luoyi-windows-1.tail639ee2.ts.net.crt
+luoyi-windows-1.tail639ee2.ts.net.key
+
+# Command Code 会话产物
+.commandcode/
