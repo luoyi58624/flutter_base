@@ -21,7 +21,7 @@ import '../../view/style/style.dart';
 import '../../view/view.dart';
 import '../../scroll/common/viewport/scroll_viewport.dart';
 import '../../scroll/common/viewport/scroll_position_binding.dart';
-import '../../../../ui/views/button/button_view.dart';
+import '../../button/button_view.dart';
 import '../../../../ui/views/menu/context_menu.dart';
 import 'selection_chrome_host.dart';
 import 'selection_auto_scroll.dart';

@@ -13,7 +13,7 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
 import '../../../ui/components/index.dart' show ElComponentProvider;
-import '../../../ui/views/button/button_view.dart';
+import '../button/button_view.dart';
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
 import '../../utils/internal/gutter.dart' show OrdinalGutterHost, RenderOrdinalGutter;
 import '../view/event/event.dart';

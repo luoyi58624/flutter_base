@@ -15,7 +15,7 @@ import 'mention.dart';
 import 'input_tag.dart';
 import 'input_otp.dart';
 import 'text.dart';
-import '../widgets/form/index.dart';
+import '../../flutter/widgets/form/index.dart';
 
 export 'button.dart';
 export 'tag.dart';

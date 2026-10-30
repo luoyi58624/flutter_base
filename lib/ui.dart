@@ -166,8 +166,8 @@ export 'src/flutter/views/table/table.dart' show ElTable, ElTableStyle, ElTableC
 export 'src/ui/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRowJustify;
 
 // 基础视图：卡片、按钮、切换、链接与分隔线
-export 'src/ui/views/card/card_view.dart' show ElCardView;
-export 'src/ui/views/button/button_view.dart' show ElButtonView, ElButtonViewPressController;
+export 'src/flutter/views/card_view.dart' show ElCardView;
+export 'src/flutter/views/button/button_view.dart' show ElButtonView, ElButtonViewPressController;
 
 export 'src/ui/widgets/link/index.dart' show LinkTarget, ElLink;
 export 'src/ui/widgets/link/status_bar.dart' show ElLinkStatusBar;
@@ -179,8 +179,8 @@ export 'src/ui/widgets/splitter/splitter_view.dart' show ElSplitterPanel, ElSpli
 // 图片、缩放与预览
 export 'src/ui/cores/image/image_view.dart' show ElImageView, ImageLoadInfo;
 export 'src/ui/cores/image/image_prefetch_controller.dart' show ImagePrefetchController;
-export 'src/ui/views/zoom/zoom_view.dart' show ElZoomController, ElZoomTransform, ElZoomView;
-export 'src/ui/views/preview/preview_view.dart' show ElPreviewController, PreviewItemIdBuilder, ElPreviewView;
+export 'src/flutter/views/zoom/zoom_view.dart' show ElZoomController, ElZoomTransform, ElZoomView;
+export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, PreviewItemIdBuilder, ElPreviewView;
 
 // 菜单与上下文菜单
 export 'src/ui/widgets/menu_bar/index.dart' show ElMenuBar, ElMenuBarItem, ElMenuBarShortcutPriority;
@@ -192,10 +192,10 @@ export 'src/ui/widgets/dnd/draggable.dart' show ElDraggable;
 export 'src/ui/widgets/dnd/drop_target.dart' show ElDropCandidate, ElDropDetails, ElDropTarget;
 
 // 点击反馈
-export 'src/ui/widgets/tap/index.dart' show ElFadeTap, ElRippleTap, ElScaleTap;
+export 'src/flutter/widgets/tap/index.dart' show ElFadeTap, ElRippleTap, ElScaleTap;
 
 // 通用表单状态、校验、字段绑定与布局。
-export 'src/ui/widgets/form/index.dart'
+export 'src/flutter/widgets/form/index.dart'
     show
         ElForm,
         ElFormItem,

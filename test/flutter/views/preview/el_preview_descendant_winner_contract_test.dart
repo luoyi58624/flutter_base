@@ -1,4 +1,4 @@
-import '../../support/overlay.dart';
+import '../../../ui/support/overlay.dart';
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
