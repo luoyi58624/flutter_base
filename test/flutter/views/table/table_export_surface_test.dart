@@ -174,7 +174,7 @@ void main() {
   test('barrel 可见的表格类型恰好是 5 入口 + 20 配套，5 个包内载体仍不可命名', () {
     final source = _read('lib/ui.dart');
 
-    final tableExports = RegExp(r"export 'src/ui/cores/table/([^']+\.dart)'")
+    final tableExports = RegExp(r"export 'src/flutter/views/table/([^']+\.dart)'")
         .allMatches(source)
         .map((match) => match.group(1))
         .toList();
@@ -183,14 +183,14 @@ void main() {
       'table.dart',
     ], reason: '表格只有这两条导出指令：一条整文件放「列 + 配套类型」，一条 show 入口与少数同库配套类型。');
 
-    final columnExport = RegExp(r"export 'src/ui/cores/table/table_column\.dart'([^;]*);")
+    final columnExport = RegExp(r"export 'src/flutter/views/table/table_column\.dart'([^;]*);")
         .firstMatch(source)!
         .group(1)!;
     expect(columnExport.trim(), isEmpty, reason: 'table_column.dart 按整文件导出，不再逐个 show / hide 列名字。');
 
-    final shown = RegExp(r"export 'src/ui/cores/table/table\.dart'\s+show\s+([^;]*);").firstMatch(source)!.group(1)!;
+    final shown = RegExp(r"export 'src/flutter/views/table/table\.dart'\s+show\s+([^;]*);").firstMatch(source)!.group(1)!;
     final visible = <String>{
-      ..._publicDeclarationsIn('lib/src/ui/cores/table/table_column.dart'),
+      ..._publicDeclarationsIn('lib/src/flutter/views/table/table_column.dart'),
       ...RegExp(r'[A-Za-z_][A-Za-z0-9_]*').allMatches(shown).map((match) => match.group(0)!),
     };
 
@@ -217,7 +217,7 @@ void main() {
   });
 
   test('table_column.dart 已是独立库，且 table.dart 仍然转发它的类型', () {
-    final column = _read('lib/src/ui/cores/table/table_column.dart');
+    final column = _read('lib/src/flutter/views/table/table_column.dart');
     expect(column.contains("part of 'table.dart';"), isFalse, reason: '它不再是 table.dart 的 part。');
     expect(
       column.contains("import 'table.dart' show ElTableController;"),
@@ -225,7 +225,7 @@ void main() {
       reason: '独立库后它自己 import 需要的 el_ui 类型。',
     );
 
-    final library = _read('lib/src/ui/cores/table/table.dart');
+    final library = _read('lib/src/flutter/views/table/table.dart');
     expect(library.contains("part 'table_column.dart';"), isFalse);
     expect(library.contains("import 'table_column.dart';"), isTrue);
     expect(
@@ -297,7 +297,7 @@ List<String> _publicDeclarationsIn(String path) => _declaration
     .toList();
 
 List<String> _tableSourceFiles() =>
-    _resolveDirectory('lib/src/ui/cores/table')
+    _resolveDirectory('lib/src/flutter/views/table')
         .listSync()
         .whereType<File>()
         .map((file) => file.path)

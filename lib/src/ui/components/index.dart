@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../cores/table/table.dart' show ElTableStyle;
+import '../../flutter/views/table/table.dart' show ElTableStyle;
 import 'button.dart';
 import 'tag.dart';
 import 'button_group.dart';

@@ -1,4 +1,4 @@
-import '../../support/scrollbar_thumb.dart';
+import '../../../ui/support/scrollbar_thumb.dart';
 
 import 'dart:math' as math;
 import 'dart:ui' as ui;

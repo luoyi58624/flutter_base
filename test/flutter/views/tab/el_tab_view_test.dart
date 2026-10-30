@@ -4,7 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../support/scrollbar_thumb.dart';
+import '../../../ui/support/scrollbar_thumb.dart';
 
 /// 固定物理的测试行为：把"环境物理"经官方 [ScrollConfiguration] 通道下发。
 ///

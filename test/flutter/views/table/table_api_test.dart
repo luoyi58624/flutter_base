@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/cores/table/table.dart';
+import 'package:flutter_base/src/flutter/views/table/table.dart';
 import 'package:flutter_base/src/flutter/views/view/style/resolved/resolved_style.dart';
 import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/widgets.dart';

@@ -157,11 +157,11 @@ export 'src/ui/cores/editable/style.dart' show ElEditableStyle;
 export 'src/ui/cores/editable/controller.dart' show ElEditableController;
 
 // 标签页与表格
-export 'src/ui/cores/tab/tab_view.dart' show ElTabView;
-export 'src/ui/cores/tab/tab_controller.dart' show ElTabController;
+export 'src/flutter/views/tab/tab_view.dart' show ElTabView;
+export 'src/flutter/views/tab/tab_controller.dart' show ElTabController;
 
-export 'src/ui/cores/table/table_column.dart'; // 列 + 大部分配套类型
-export 'src/ui/cores/table/table.dart' show ElTable, ElTableStyle, ElTableController, ElTableSelectionChange;
+export 'src/flutter/views/table/table_column.dart'; // 列 + 大部分配套类型
+export 'src/flutter/views/table/table.dart' show ElTable, ElTableStyle, ElTableController, ElTableSelectionChange;
 
 export 'src/ui/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRowJustify;
 

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_base/dart.dart' show ElStorageGroup;
-import 'package:flutter_base/src/ui/cores/table/table.dart';
+import 'package:flutter_base/src/flutter/views/table/table.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 旧格式列缓存负载的兼容契约（schema 1、没有 `fixed` 字段）。

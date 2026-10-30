@@ -1,5 +1,5 @@
-import '../../support/overlay.dart';
-import '../../support/portal.dart';
+import '../../../ui/support/overlay.dart';
+import '../../../ui/support/portal.dart';
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';

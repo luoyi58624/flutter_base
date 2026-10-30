@@ -7,7 +7,7 @@
 // 背景缺陷：`autoRowHeight: true` + 任一带 slotBuilder（element 单元格）的列
 // 会让数据行走「稀疏混合托管」这条懒建路径，而该路径要求定高，于是挂载即命中
 // 行原语的深层断言（`cellBuilder == null || rowHeight != null`）。
-import 'package:flutter_base/src/ui/cores/table/table.dart';
+import 'package:flutter_base/src/flutter/views/table/table.dart';
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
