@@ -1,279 +1,394 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-/// 通过临时布局探测子组件尺寸，再构建实际内容。
+/// 同一帧测量内容并构建外层结构，测量和显示复用同一个内容实例。
 class ElChildSizeBuilder extends RenderObjectWidget {
-  /// 在布局阶段取得子组件尺寸并构建内容，无需帧后回调，
-  /// 其核心原理便是在进行实际布局前探测 [tempChild] 的尺寸，
-  /// 然后将 size 传递给 [builder] 方法。
-  ///
-  /// 提示：使用该小部件需要注意性能问题，因为布局成本可能翻倍，创建该小部件的灵感来自此评论：
-  /// https://github.com/flutter/flutter/issues/14488#issuecomment-675837800
+  /// 创建尺寸构建器，builder 的 child 参数用于放置已测量的内容。
   const ElChildSizeBuilder({
     super.key,
-    this.constraints,
-    required this.tempChild,
+    required this.child,
     required this.builder,
+    this.constraints,
   });
 
-  /// 对 [tempChild] 添加尺寸约束，默认情况下 [tempChild] 使用的是 [ElChildSizeBuilder] 父级的尺寸约束，
-  /// 但如果你实际构建的组件间接引用了新的约束，那么你应当将此约束应用给 [tempChild]
+  /// 需要测量的内容，其 State 在测量和显示之间保留。
+  final Widget child;
+
+  /// 根据测得的尺寸构建结果；回调提供的 child 可以省略或放置一次。
+  final Widget Function(Size size, Widget child) builder;
+
+  /// 测量约束，默认使用父约束移除最小尺寸限制后的值。
   final BoxConstraints? constraints;
 
-  /// 需要计算尺寸的临时小部件，它参与布局但不进行渲染，布局完成后会拿到 size 并传递给 [builder] 回调
-  final Widget tempChild;
-
-  /// 实际构建的小部件，其回调参数便是 [tempChild] 的尺寸
-  final Widget Function(Size size) builder;
-
-  /// 判断组件是否处于临时布局中
+  /// 判断内容当前是否位于不显示的测量位置。
   static bool isTempLayout(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<_ChildSizeInheritedWidget>() !=
-      null;
+      context.dependOnInheritedWidgetOfExactType<_MeasurementScope>() != null;
 
   @override
-  RenderObjectElement createElement() => _ChildSizeElement(this);
+  RenderObjectElement createElement() => _SizeBuilderElement(this);
 
   @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _RenderChildSizeBox(constraints);
-
-  @override
-  void updateRenderObject(BuildContext context, RenderObject renderObject) {
-    (renderObject as _RenderChildSizeBox).builderConstraints = constraints;
-  }
+  RenderObject createRenderObject(BuildContext context) => _RenderSizeBuilder();
 }
 
-class _ChildSizeElement extends RenderObjectElement {
-  _ChildSizeElement(super.widget);
+enum _Slot { probe, result }
+
+class _SizeBuilderElement extends RenderObjectElement {
+  _SizeBuilderElement(super.widget);
 
   @override
   ElChildSizeBuilder get widget => super.widget as ElChildSizeBuilder;
 
   @override
-  _RenderChildSizeBox get renderObject =>
-      super.renderObject as _RenderChildSizeBox;
+  _RenderSizeBuilder get renderObject =>
+      super.renderObject as _RenderSizeBuilder;
 
+  @override
+  BuildScope get buildScope => _buildScope;
+
+  late final BuildScope _buildScope = BuildScope(
+    scheduleRebuild: _scheduleBuild,
+  );
+  final _contentKey = GlobalKey();
+  Element? _probe;
+  Element? _result;
+  _ContentSlotElement? _contentSlot;
+  bool _measuring = false;
   bool _needsBuild = true;
-  Element? _tempChild;
-  Element? _child;
+  bool _needsMeasurement = true;
+  bool _active = false;
+  int? _frameCallbackId;
+  bool _inLayout = false;
+  Size? _measuredSize;
+  BoxConstraints? _lastConstraints;
+  FocusNode? _focusedContent;
 
-  /// 探测尺寸的临时小部件需要排除焦点、语义，尤其是焦点，如果不排除将会破坏正常布局的聚焦，
-  /// 你还可以通过 [ElChildSizeBuilder.isTempLayout] 方法判断组件是否处于临时布局中
-  Widget get tempChildWidget => TickerMode(
+  Widget get _content => _Content(
+    key: _contentKey,
+    onNeedsLayout: _invalidateMeasurement,
+    child: widget.child,
+  );
+
+  Widget _probeWidget(Widget child) => TickerMode(
     enabled: false,
-    child: ExcludeSemantics(
-      child: ExcludeFocus(
-        child: _ChildSizeInheritedWidget(child: widget.tempChild),
-      ),
+    child: ExcludeFocus(
+      child: ExcludeSemantics(child: _MeasurementScope(child: child)),
     ),
   );
 
-  @override
-  void visitChildren(ElementVisitor visitor) {
-    if (_child != null) visitor(_child!);
-    if (_tempChild != null) visitor(_tempChild!);
+  void _invalidateMeasurement() {
+    _needsMeasurement = true;
+    // 内容可能处于自己的布局边界内，不能只等祖先自然收到布局失效。
+    if (!_inLayout) _scheduleBuild();
   }
 
-  @override
-  void forgetChild(Element child) {
-    if (child == _child) _child = null;
-    if (child == _tempChild) _tempChild = null;
-    super.forgetChild(child);
+  void _scheduleBuild() {
+    if (!_active) return;
+    // 固定约束会截断渲染布局失效的传播，内容重建也必须使测量缓存失效。
+    if (!_inLayout) _needsMeasurement = true;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase != SchedulerPhase.idle &&
+        phase != SchedulerPhase.postFrameCallbacks) {
+      renderObject.markNeedsLayout();
+      return;
+    }
+    if (_frameCallbackId != null) return;
+    _frameCallbackId = SchedulerBinding.instance.scheduleFrameCallback((_) {
+      _frameCallbackId = null;
+      if (_active) renderObject.markNeedsLayout();
+    });
   }
 
   @override
   void mount(Element? parent, Object? newSlot) {
     super.mount(parent, newSlot);
-    _tempChild = updateChild(_tempChild, tempChildWidget, #tempChild);
-    renderObject._rebuild = _rebuild;
+    _active = true;
+    renderObject._layout = _layout;
   }
 
   @override
-  void update(covariant RenderObjectWidget newWidget) {
+  void update(ElChildSizeBuilder newWidget) {
     super.update(newWidget);
-    _tempChild = updateChild(_tempChild, tempChildWidget, #tempChild);
-    renderObject.markNeedsLayout();
     _needsBuild = true;
+    _scheduleBuild();
   }
 
   @override
   void markNeedsBuild() {
-    renderObject.markNeedsLayout();
     _needsBuild = true;
+    _scheduleBuild();
   }
 
   @override
   void performRebuild() {
-    renderObject.markNeedsLayout();
     _needsBuild = true;
+    _scheduleBuild();
     super.performRebuild();
   }
 
   @override
+  void activate() {
+    super.activate();
+    _active = true;
+    _needsBuild = true;
+    _scheduleBuild();
+  }
+
+  @override
+  void deactivate() {
+    _active = false;
+    super.deactivate();
+  }
+
+  @override
   void unmount() {
-    renderObject._rebuild = null;
-    _child = null;
-    _tempChild = null;
+    if (_frameCallbackId != null) {
+      SchedulerBinding.instance.cancelFrameCallbackWithId(_frameCallbackId!);
+      _frameCallbackId = null;
+    }
+    renderObject._layout = null;
+    _probe = null;
+    _result = null;
+    _contentSlot = null;
+    _focusedContent = null;
     super.unmount();
   }
 
   @override
-  void insertRenderObjectChild(
-    covariant RenderObject child,
-    covariant Object? slot,
-  ) {
-    if (slot == #tempChild) {
-      renderObject.tempChild = child as RenderBox;
-    } else if (slot == #child) {
+  void visitChildren(ElementVisitor visitor) {
+    if (_probe != null) visitor(_probe!);
+    if (_result != null) visitor(_result!);
+  }
+
+  @override
+  void forgetChild(Element child) {
+    if (child == _probe) _probe = null;
+    if (child == _result) _result = null;
+    super.forgetChild(child);
+  }
+
+  void _prepareMeasurement() {
+    final focused = FocusManager.instance.primaryFocus;
+    final root = _contentKey.currentContext;
+    final context = focused?.context;
+    if (root != null && context != null) {
+      var inside = identical(root, context);
+      context.visitAncestorElements((ancestor) {
+        if (identical(ancestor, root)) inside = true;
+        return !inside;
+      });
+      if (inside) _focusedContent = focused;
+    }
+    _measuring = true;
+    _probe = updateChild(_probe, _probeWidget(_content), _Slot.probe);
+    // 内容已移到测量位置，刷新旧插槽，清理它对 GlobalKey 的旧配置。
+    _contentSlot?.rebuild(force: true);
+  }
+
+  void _buildResult() {
+    _measuring = false;
+    Widget result;
+    try {
+      result = widget.builder(_measuredSize!, _ContentSlot(this));
+    } catch (error, stack) {
+      final details = FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'flutter_base',
+        context: ErrorDescription('构建 ElChildSizeBuilder 内容时'),
+      );
+      FlutterError.reportError(details);
+      result = ErrorWidget.builder(details);
+    }
+    _result = updateChild(_result, result, _Slot.result);
+    // builder 可以复用旧 Widget，仍需将同一份内容恢复到它的插槽。
+    _contentSlot?.rebuild(force: true);
+    if (_contentSlot != null) {
+      _probe = updateChild(
+        _probe,
+        _probeWidget(SizedBox.shrink()),
+        _Slot.probe,
+      );
+      final focused = _focusedContent;
+      if (focused?.context?.mounted == true && focused!.canRequestFocus) {
+        focused.requestFocus();
+      }
+    }
+    _focusedContent = null;
+    _needsBuild = false;
+  }
+
+  void _layout(BoxConstraints constraints) {
+    _inLayout = true;
+    try {
+      _layoutContent(constraints);
+    } finally {
+      _inLayout = false;
+    }
+  }
+
+  void _layoutContent(BoxConstraints constraints) {
+    // 先应用内容自身的 setState，渲染尺寸失效标记才能用于本帧的测量决策。
+    owner!.buildScope(this);
+    final needsMeasurement =
+        _needsBuild ||
+        _needsMeasurement ||
+        _measuredSize == null ||
+        _lastConstraints != constraints;
+    if (needsMeasurement) {
+      owner!.buildScope(this, _prepareMeasurement);
+      renderObject.probe!.layout(
+        widget.constraints ?? constraints.loosen(),
+        parentUsesSize: true,
+      );
+      final measured = renderObject.probe!.size;
+      final size = Size(measured.width, measured.height);
+      final changed = size != _measuredSize;
+      _measuredSize = size;
+      _lastConstraints = constraints;
+      // 每次迁移后都恢复插槽，尺寸相同也不重新创建内容 State。
+      owner!.buildScope(this, _buildResult);
+      if (changed) renderObject.markNeedsSemanticsUpdate();
+    }
+    renderObject.child?.layout(constraints.loosen(), parentUsesSize: true);
+    _needsMeasurement = false;
+  }
+
+  @override
+  void insertRenderObjectChild(RenderObject child, _Slot slot) {
+    if (slot == _Slot.probe) {
+      renderObject.probe = child as RenderBox;
+    } else {
       renderObject.child = child as RenderBox;
     }
   }
 
   @override
-  void removeRenderObjectChild(
-    covariant RenderObject child,
-    covariant Object? slot,
-  ) {
-    if (slot == #tempChild) {
-      renderObject.tempChild = null;
-    } else if (slot == #child) {
+  void removeRenderObjectChild(RenderObject child, _Slot slot) {
+    if (slot == _Slot.probe) {
+      renderObject.probe = null;
+    } else {
       renderObject.child = null;
     }
   }
 
   @override
-  void moveRenderObjectChild(
-    covariant RenderObject child,
-    covariant Object? oldSlot,
-    covariant Object? newSlot,
-  ) {
-    assert(false);
-  }
-
-  /// 当 [_tempChild] 的尺寸发生变化时，需要重新构建 builder 代码块
-  Size? _oldTempChildSize;
-
-  void _rebuild(Constraints constraints) {
-    void updateChildCallback() {
-      Widget result;
-      try {
-        result = widget.builder(renderObject.tempChildSize);
-      } catch (error, stack) {
-        final details = FlutterErrorDetails(
-          exception: error,
-          stack: stack,
-          library: 'flutter_base',
-          context: ErrorDescription('构建 ElChildSizeBuilder 内容时'),
-        );
-        FlutterError.reportError(details);
-        result = ErrorWidget.builder(details);
-      }
-      try {
-        _child = updateChild(_child, result, #child);
-      } finally {
-        _needsBuild = false;
-        _oldTempChildSize = renderObject.tempChildSize;
-      }
-    }
-
-    owner!.buildScope(
-      this,
-      _needsBuild || _oldTempChildSize != renderObject.tempChildSize
-          ? updateChildCallback
-          : null,
-    );
+  void moveRenderObjectChild(RenderObject child, _Slot oldSlot, _Slot newSlot) {
+    removeRenderObjectChild(child, oldSlot);
+    insertRenderObjectChild(child, newSlot);
   }
 }
 
-class _RenderChildSizeBox extends RenderShiftedBox {
-  _RenderChildSizeBox(this._builderConstraints) : super(null);
+class _ContentSlot extends Widget {
+  const _ContentSlot(this.owner);
+  final _SizeBuilderElement owner;
+  @override
+  Element createElement() => _ContentSlotElement(this);
+}
 
-  LayoutCallback? _rebuild;
-
-  Size get tempChildSize => _tempChildSize!;
-  Size? _tempChildSize;
-
-  RenderBox? _tempChild;
-
-  set tempChild(RenderBox? v) {
-    if (_tempChild == v) return;
-    if (_tempChild != null) {
-      dropChild(_tempChild!);
-    }
-    _tempChild = v;
-    if (_tempChild != null) {
-      adoptChild(_tempChild!);
-    }
+class _ContentSlotElement extends ComponentElement {
+  _ContentSlotElement(super.widget);
+  _SizeBuilderElement get _owner => (widget as _ContentSlot).owner;
+  @override
+  Widget build() {
+    _owner._contentSlot = this;
+    return _owner._measuring ? SizedBox.shrink() : _owner._content;
   }
 
-  BoxConstraints? _builderConstraints;
+  @override
+  void update(_ContentSlot newWidget) {
+    super.update(newWidget);
+    rebuild(force: true);
+  }
 
-  set builderConstraints(BoxConstraints? v) {
-    if (_builderConstraints != v) {
-      _builderConstraints = v;
-      markNeedsLayout();
-    }
+  @override
+  void deactivate() {
+    if (identical(_owner._contentSlot, this)) _owner._contentSlot = null;
+    super.deactivate();
+  }
+}
+
+class _Content extends SingleChildRenderObjectWidget {
+  const _Content({
+    super.key,
+    required this.onNeedsLayout,
+    required super.child,
+  });
+  final VoidCallback onNeedsLayout;
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderContent(onNeedsLayout);
+}
+
+class _RenderContent extends RenderProxyBox {
+  _RenderContent(this._onNeedsLayout);
+  final VoidCallback _onNeedsLayout;
+  @override
+  void markNeedsLayout() {
+    _onNeedsLayout();
+    super.markNeedsLayout();
+  }
+}
+
+class _MeasurementScope extends InheritedWidget {
+  const _MeasurementScope({required super.child});
+  @override
+  bool updateShouldNotify(_MeasurementScope oldWidget) => false;
+}
+
+class _RenderSizeBuilder extends RenderShiftedBox {
+  _RenderSizeBuilder() : super(null);
+  LayoutCallback<BoxConstraints>? _layout;
+  RenderBox? _probe;
+  RenderBox? get probe => _probe;
+  set probe(RenderBox? value) {
+    if (value == _probe) return;
+    if (_probe != null) dropChild(_probe!);
+    _probe = value;
+    if (_probe != null) adoptChild(_probe!);
   }
 
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _tempChild?.attach(owner);
+    _probe?.attach(owner);
   }
 
   @override
   void detach() {
     super.detach();
-    _tempChild?.detach();
+    _probe?.detach();
   }
 
   @override
   void redepthChildren() {
     super.redepthChildren();
-    if (_tempChild != null) redepthChild(_tempChild!);
+    if (_probe != null) redepthChild(_probe!);
   }
 
   @override
   void visitChildren(RenderObjectVisitor visitor) {
     super.visitChildren(visitor);
-    if (_tempChild != null) visitor(_tempChild!);
+    if (_probe != null) visitor(_probe!);
+  }
+
+  @override
+  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
+    if (child != null) visitor(child!);
   }
 
   @override
   void performLayout() {
-    // 对临时子组件进行布局，它的作用只用于探测尺寸，不做渲染
-    _tempChild!.layout(
-      _builderConstraints ?? constraints.loosen(),
-      parentUsesSize: true,
-    );
-
-    _tempChildSize = _tempChild!.size;
-
-    // 调用 builder 代码块，将返回的 Widget 插入到 Element 树中
-    if (_rebuild != null) invokeLayoutCallback(_rebuild!);
-
-    if (child != null) {
-      child!.layout(constraints.loosen(), parentUsesSize: true);
-      size = constraints.constrain(child!.size);
-    } else {
-      size = constraints.smallest;
-    }
+    if (_layout != null) invokeLayoutCallback(_layout!);
+    size = child == null
+        ? constraints.smallest
+        : constraints.constrain(child!.size);
   }
 
   @override
   void dispose() {
-    _tempChildSize = null;
-    _rebuild = null;
+    _layout = null;
     super.dispose();
   }
-}
-
-/// 子组件可以通过 [ElChildSizeBuilder.isTempLayout] 判断当前构建是否处于临时布局中，
-/// 这样可以规避一些错误，例如：排除 [Focus] 焦点
-class _ChildSizeInheritedWidget extends InheritedWidget {
-  const _ChildSizeInheritedWidget({required super.child});
-
-  @override
-  bool updateShouldNotify(_ChildSizeInheritedWidget oldWidget) => false;
 }

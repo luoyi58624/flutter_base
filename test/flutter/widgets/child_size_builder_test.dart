@@ -1,96 +1,158 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('临时布局将探测尺寸传给实际内容', (tester) async {
-    Size? measured;
+  testWidgets('首帧测量 child 并用文本显示 size，builder 可以不显示 child', (tester) async {
     await tester.pumpWidget(
-      Center(
-        child: ElChildSizeBuilder(
-          tempChild: SizedBox(width: 30, height: 20),
-          builder: (size) {
-            measured = size;
-            return SizedBox(
-              key: ValueKey('actual'),
-              width: size.width + 5,
-              height: size.height,
-            );
-          },
-        ),
-      ),
-    );
-    expect(measured, Size(30, 20));
-    expect(tester.getSize(find.byKey(ValueKey('actual'))), Size(35, 20));
-  });
-
-  testWidgets('首帧用文本显示子组件尺寸，测量内容不参与绘制和命中', (tester) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      _scene(
-        GestureDetector(
-          onTap: () => taps++,
-          child: SizedBox(width: 80, height: 40),
-        ),
-      ),
+      _scene(SizedBox(width: 80, height: 40), showChild: false),
     );
     expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
-    await tester.tap(find.text('size: Size(80.0, 40.0)'));
-    expect(taps, 0);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('测量子树自己更新后，同一帧刷新尺寸文本', (tester) async {
+  testWidgets('测量和显示只创建一个 State，更新尺寸时保持实例', (tester) async {
     final model = ValueNotifier(Size(80, 40));
+    final events = <String>[];
+    final key = GlobalKey<_ContentState>();
     addTearDown(model.dispose);
-    await tester.pumpWidget(
-      _scene(
-        ValueListenableBuilder<Size>(
-          valueListenable: model,
-          builder: (_, size, _) => SizedBox.fromSize(size: size),
-        ),
-      ),
-    );
+    Widget scene() => _scene(_Content(key: key, model: model, events: events));
+    await tester.pumpWidget(scene());
+    final state = key.currentState;
+    expect(events, ['init']);
+    expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
     model.value = Size(120, 60);
     await tester.pump();
     expect(find.text('size: Size(120.0, 60.0)'), findsOneWidget);
+    expect(key.currentState, same(state));
+    await tester.pumpWidget(scene());
+    expect(key.currentState, same(state));
+    expect(events, ['init']);
+    await tester.pumpWidget(SizedBox());
+    expect(events, ['init', 'dispose']);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('父级宽度和文本缩放变化后重新测量真实排版', (tester) async {
-    late Size measured;
-    Widget scene(double width, double scale) => MediaQuery(
-      data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: SizedBox(
-            width: width,
-            child: ElChildSizeBuilder(
-              tempChild: Text(
-                'a long piece of text that wraps over several lines',
+  testWidgets('带外部 FocusNode 的真实内容只挂载一次并保持键盘输入', (tester) async {
+    final node = FocusNode();
+    final controller = TextEditingController();
+    final key = GlobalKey();
+    addTearDown(node.dispose);
+    addTearDown(controller.dispose);
+    Widget scene(double width) => MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: ElChildSizeBuilder(
+            child: SizedBox(
+              width: width,
+              child: TextField(
+                key: key,
+                autofocus: true,
+                focusNode: node,
+                controller: controller,
               ),
-              builder: (size) {
-                measured = size;
-                return Text('size: $size');
-              },
+            ),
+            builder: (size, child) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [Text('size: $size'), child],
             ),
           ),
         ),
       ),
     );
-    await tester.pumpWidget(scene(200, 1));
-    final wide = measured;
-    await tester.pumpWidget(scene(80, 1));
-    expect(measured.width, lessThanOrEqualTo(80));
-    expect(measured.height, greaterThan(wide.height));
-    final normal = measured;
-    await tester.pumpWidget(scene(80, 2));
-    expect(measured.height, greaterThan(normal.height));
-    expect(find.text('size: $measured'), findsOneWidget);
+    await tester.pumpWidget(scene(200));
+    await tester.pump();
+    expect(node.hasPrimaryFocus, isTrue);
+    final state = key.currentState;
+    await tester.enterText(find.byKey(key), 'kept');
+    final editing = TextEditingValue(
+      text: 'kept',
+      selection: TextSelection.collapsed(offset: 2),
+      composing: TextRange(start: 1, end: 3),
+    );
+    tester.testTextInput.updateEditingValue(editing);
+    tester.testTextInput.log.clear();
+    await tester.pumpWidget(scene(250));
+    await tester.pump();
+    expect(node.hasPrimaryFocus, isTrue);
+    expect(key.currentState, same(state));
+    expect(controller.text, 'kept');
+    expect(controller.value, editing);
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+    expect(
+      tester.testTextInput.log.where(
+        (call) => call.method == 'TextInput.clearClient',
+      ),
+      isEmpty,
+    );
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    expect(node.hasPrimaryFocus, isTrue);
+    await tester.enterText(find.byKey(key), 'still editable');
+    expect(controller.text, 'still editable');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('指定约束更新后文本显示受约束的尺寸', (tester) async {
+  testWidgets('不显示 child 时，测量内容不能抢走外部焦点或处理键盘', (tester) async {
+    final outer = FocusNode();
+    final measured = FocusNode();
+    addTearDown(outer.dispose);
+    addTearDown(measured.dispose);
+    var hiddenKeys = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Focus(focusNode: outer, child: Text('outside')),
+              ElChildSizeBuilder(
+                child: Focus(
+                  focusNode: measured,
+                  autofocus: true,
+                  onKeyEvent: (_, _) {
+                    hiddenKeys++;
+                    return KeyEventResult.handled;
+                  },
+                  child: SizedBox(width: 80, height: 40),
+                ),
+                builder: (size, _) => Text('size: $size'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    outer.requestFocus();
+    await tester.pump();
+    measured.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    expect(outer.hasPrimaryFocus, isTrue);
+    expect(measured.canRequestFocus, isFalse);
+    expect(hiddenKeys, 0);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('首帧只有真实内容进入语义树，没有测量副本', (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        _scene(
+          Semantics(label: 'content', child: SizedBox(width: 80, height: 40)),
+        ),
+      );
+      expect(find.bySemanticsLabel('content'), findsOneWidget);
+      expect(find.bySemanticsLabel('size: Size(80.0, 40.0)'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('指定测量约束改变后首帧显示新尺寸', (tester) async {
     await tester.pumpWidget(
       _scene(
         SizedBox(width: 200, height: 100),
@@ -107,7 +169,35 @@ void main() {
     expect(find.text('size: Size(70.0, 20.0)'), findsOneWidget);
   });
 
-  testWidgets('内容尺寸不变也会应用新 builder', (tester) async {
+  testWidgets('父约束改变后重新测量换行文本', (tester) async {
+    late Size measured;
+    Widget scene(double width) => Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: SizedBox(
+          width: width,
+          child: ElChildSizeBuilder(
+            child: Text('a long piece of text that wraps over several lines'),
+            builder: (size, child) {
+              measured = size;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [Text('size: $size'), child],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(scene(200));
+    final wide = measured;
+    await tester.pumpWidget(scene(80));
+    expect(measured.width, lessThanOrEqualTo(80));
+    expect(measured.height, greaterThan(wide.height));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('尺寸不变也应用新 builder 的外层结构', (tester) async {
     await tester.pumpWidget(
       _scene(SizedBox(width: 80, height: 40), prefix: 'first'),
     );
@@ -118,7 +208,7 @@ void main() {
     expect(find.text('first: Size(80.0, 40.0)'), findsNothing);
   });
 
-  testWidgets('仅重新布局且输入和尺寸未变时不重复调用 builder', (tester) async {
+  testWidgets('仅重复布局不会再次调用 builder 或重新挂载内容', (tester) async {
     var builds = 0;
     await tester.pumpWidget(
       _scene(SizedBox(width: 80, height: 40), onBuild: (_) => builds++),
@@ -126,190 +216,63 @@ void main() {
     tester.renderObject(find.byType(ElChildSizeBuilder)).markNeedsLayout();
     await tester.pump();
     expect(builds, 1);
-  });
-
-  testWidgets('临时自动聚焦节点不能抢走外部焦点', (tester) async {
-    final external = FocusNode();
-    final temporary = FocusNode();
-    addTearDown(external.dispose);
-    addTearDown(temporary.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Column(
-            children: [
-              Focus(focusNode: external, child: Text('external')),
-              ElChildSizeBuilder(
-                tempChild: Focus(
-                  focusNode: temporary,
-                  autofocus: true,
-                  child: SizedBox(width: 80, height: 40),
-                ),
-                builder: (size) => Text('size: $size'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    external.requestFocus();
-    await tester.pump();
-    temporary.requestFocus();
-    await tester.pump();
-    expect(external.hasPrimaryFocus, isTrue);
-    expect(temporary.canRequestFocus, isFalse);
-    expect(temporary.hasFocus, isFalse);
-    await tester.pumpWidget(SizedBox());
-  });
-
-  testWidgets('真实输入框保持焦点和输入，尺寸更新不会让探测树接管键盘', (tester) async {
-    final actual = FocusNode();
-    final temporary = FocusNode();
-    final controller = TextEditingController();
-    final model = ValueNotifier(Size(80, 40));
-    addTearDown(actual.dispose);
-    addTearDown(temporary.dispose);
-    addTearDown(controller.dispose);
-    addTearDown(model.dispose);
-    var probeKeys = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ElChildSizeBuilder(
-            tempChild: Focus(
-              focusNode: temporary,
-              autofocus: true,
-              onKeyEvent: (_, _) {
-                probeKeys++;
-                return KeyEventResult.handled;
-              },
-              child: ValueListenableBuilder<Size>(
-                valueListenable: model,
-                builder: (_, size, _) => SizedBox.fromSize(size: size),
-              ),
-            ),
-            builder: (size) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('size: $size'),
-                TextField(
-                  key: ValueKey('input'),
-                  focusNode: actual,
-                  controller: controller,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.byKey(ValueKey('input')));
-    await tester.enterText(find.byKey(ValueKey('input')), 'kept');
-    model.value = Size(120, 60);
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
-    expect(actual.hasPrimaryFocus, isTrue);
-    expect(temporary.hasFocus, isFalse);
-    expect(controller.text, 'kept');
-    expect(probeKeys, 0);
-    expect(find.text('size: Size(120.0, 60.0)'), findsOneWidget);
-    await tester.pumpWidget(SizedBox());
-  });
-
-  testWidgets('测量树不进入语义树，真实内容仍能被访问', (tester) async {
-    final semantics = tester.ensureSemantics();
-    try {
-      await tester.pumpWidget(
-        _scene(
-          Semantics(
-            label: 'measurement only',
-            child: SizedBox(width: 80, height: 40),
-          ),
-        ),
-      );
-      expect(find.bySemanticsLabel('measurement only'), findsNothing);
-      expect(find.bySemanticsLabel('size: Size(80.0, 40.0)'), findsOneWidget);
-    } finally {
-      semantics.dispose();
-    }
-  });
-
-  testWidgets('临时布局标记只出现在测量子树', (tester) async {
-    bool? probe;
-    bool? actual;
-    await tester.pumpWidget(
-      Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: ElChildSizeBuilder(
-            tempChild: Builder(
-              builder: (context) {
-                probe = ElChildSizeBuilder.isTempLayout(context);
-                return SizedBox(width: 80, height: 40);
-              },
-            ),
-            builder: (size) => Builder(
-              builder: (context) {
-                actual = ElChildSizeBuilder.isTempLayout(context);
-                return Text('size: $size');
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(probe, isTrue);
-    expect(actual, isFalse);
-  });
-
-  testWidgets('嵌套测量在首帧完成，不需要帧后回调', (tester) async {
-    await tester.pumpWidget(
-      _scene(
-        ElChildSizeBuilder(
-          tempChild: SizedBox(width: 30, height: 20),
-          builder: (size) =>
-              SizedBox(width: size.width + 1, height: size.height + 2),
-        ),
-      ),
-    );
-    expect(find.text('size: Size(31.0, 22.0)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('测量和真实子树分别复用 State，卸载时都释放', (tester) async {
-    final events = <String>[];
-    Widget scene() => Directionality(
+  testWidgets('builder 抛异常时显示错误内容，下次更新正常恢复', (tester) async {
+    Widget scene(bool fail) => Directionality(
       textDirection: TextDirection.ltr,
       child: Center(
         child: ElChildSizeBuilder(
-          tempChild: _TrackedBox(tag: 'probe', events: events),
-          builder: (size) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('size: $size'),
-              _TrackedBox(tag: 'actual', events: events),
-            ],
-          ),
+          child: SizedBox(width: 80, height: 40),
+          builder: (size, child) {
+            if (fail) throw StateError('builder failed');
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [Text('size: $size'), child],
+            );
+          },
         ),
       ),
     );
-    await tester.pumpWidget(scene());
-    await tester.pumpWidget(scene());
-    expect(events, ['init probe', 'init actual']);
-    await tester.pumpWidget(SizedBox());
-    expect(events.where((event) => event.startsWith('dispose')).toSet(), {
-      'dispose probe',
-      'dispose actual',
-    });
+    await tester.pumpWidget(scene(true));
+    expect(tester.takeException(), isA<StateError>());
+    expect(find.byType(ErrorWidget), findsOneWidget);
+    await tester.pumpWidget(scene(false));
+    expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('GlobalKey 移动整个组件后两棵渲染子树的深度都正确', (tester) async {
+  testWidgets('显示与隐藏内容反复切换时仍保留原 State', (tester) async {
+    final events = <String>[];
+    final model = ValueNotifier(Size(80, 40));
+    final key = GlobalKey<_ContentState>();
+    addTearDown(model.dispose);
+    Widget scene(bool show) => _scene(
+      _Content(key: key, model: model, events: events),
+      showChild: show,
+    );
+    await tester.pumpWidget(scene(true));
+    final state = key.currentState;
+    await tester.pumpWidget(scene(false));
+    await tester.pumpWidget(scene(true));
+    expect(key.currentState, same(state));
+    expect(events, ['init']);
+    await tester.pumpWidget(SizedBox());
+    expect(events, ['init', 'dispose']);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('GlobalKey 移动整个组件后渲染深度正确且内容不丢失', (tester) async {
     final key = GlobalKey();
     Widget scene(bool deep) {
       Widget result = ElChildSizeBuilder(
         key: key,
-        tempChild: SizedBox(width: 80, height: 40),
-        builder: (size) => Text('size: $size'),
+        child: SizedBox(width: 80, height: 40),
+        builder: (size, child) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [Text('size: $size'), child],
+        ),
       );
       if (deep) {
         for (var i = 0; i < 6; i++) {
@@ -325,65 +288,200 @@ void main() {
     await tester.pumpWidget(scene(false));
     await tester.pumpWidget(scene(true));
     _expectRenderDepths(tester.renderObject(find.byKey(key)));
+    expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('真实子组件的 GlobalKey 移到外部后不保留旧 Element 引用', (tester) async {
-    final key = GlobalKey();
-    final events = <String>[];
-    Widget scene(bool outside) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ElChildSizeBuilder(
-              tempChild: SizedBox(width: 80, height: 40),
-              builder: (size) => outside
-                  ? Text('size: $size')
-                  : _TrackedBox(key: key, tag: 'moved', events: events),
+  testWidgets('嵌套测量在首帧得到尺寸且没有重复 Key', (tester) async {
+    await tester.pumpWidget(
+      _scene(
+        ElChildSizeBuilder(
+          child: SizedBox(width: 30, height: 20),
+          builder: (size, child) =>
+              Padding(padding: EdgeInsets.all(1), child: child),
+        ),
+      ),
+    );
+    expect(find.text('size: Size(32.0, 22.0)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('内容被固定尺寸的布局边界包裹后，自身更新仍刷新测量文本', (tester) async {
+    final model = ValueNotifier(Size(80, 40));
+    addTearDown(model.dispose);
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: ElChildSizeBuilder(
+            child: ValueListenableBuilder<Size>(
+              valueListenable: model,
+              builder: (_, size, _) => SizedBox.fromSize(size: size),
             ),
-            if (outside) _TrackedBox(key: key, tag: 'moved', events: events),
-          ],
+            builder: (size, child) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('size: $size'),
+                SizedBox(width: 200, height: 100, child: child),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    model.value = Size(120, 60);
+    await tester.pump();
+    expect(find.text('size: Size(120.0, 60.0)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('异步内容到达后同一帧更新尺寸', (tester) async {
+    final complete = Completer<Size>();
+    await tester.pumpWidget(
+      _scene(
+        FutureBuilder<Size>(
+          future: complete.future,
+          builder: (_, snapshot) =>
+              SizedBox.fromSize(size: snapshot.data ?? Size(30, 20)),
+        ),
+      ),
+    );
+    expect(find.text('size: Size(30.0, 20.0)'), findsOneWidget);
+    complete.complete(Size(120, 60));
+    // 先清空 Future 的微任务，随后检查它请求的第一个渲染帧。
+    await tester.pump();
+    expect(tester.binding.hasScheduledFrame, isTrue);
+    await tester.pump();
+    expect(find.text('size: Size(120.0, 60.0)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('继承的文本缩放变化后更新尺寸', (tester) async {
+    late Size measured;
+    Widget scene(double scale) => MediaQuery(
+      data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: SizedBox(
+            width: 100,
+            child: ElChildSizeBuilder(
+              child: Text('text that wraps over several lines'),
+              builder: (size, child) {
+                measured = size;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [Text('size: $size'), child],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(scene(1));
+    final normal = measured;
+    await tester.pumpWidget(scene(2));
+    expect(measured.height, greaterThan(normal.height));
+    expect(find.text('size: $measured'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('更换外层结构不会丢失内容 State 或临时清空焦点', (tester) async {
+    final node = FocusNode();
+    final controller = TextEditingController();
+    final key = GlobalKey();
+    addTearDown(node.dispose);
+    addTearDown(controller.dispose);
+    var losses = 0;
+    node.addListener(() {
+      if (!node.hasFocus) losses++;
+    });
+    Widget scene(bool padded) => MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: ElChildSizeBuilder(
+            child: SizedBox(
+              width: 200,
+              child: TextField(
+                key: key,
+                focusNode: node,
+                controller: controller,
+              ),
+            ),
+            builder: (size, child) => padded
+                ? Padding(padding: EdgeInsets.all(10), child: child)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [Text('size: $size'), child],
+                  ),
+          ),
         ),
       ),
     );
     await tester.pumpWidget(scene(false));
+    await tester.tap(find.byKey(key));
+    await tester.enterText(find.byKey(key), 'kept');
     final state = key.currentState;
     await tester.pumpWidget(scene(true));
+    await tester.pump();
     expect(key.currentState, same(state));
-    expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
+    expect(node.hasPrimaryFocus, isTrue);
+    expect(controller.text, 'kept');
+    expect(losses, 0);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
-    expect(events, ['init moved', 'dispose moved']);
   });
 
-  testWidgets('builder 异常显示错误内容，更新后可以恢复', (tester) async {
-    Widget scene(bool fail) => Directionality(
-      textDirection: TextDirection.ltr,
-      child: Center(
-        child: ElChildSizeBuilder(
-          tempChild: SizedBox(width: 80, height: 40),
-          builder: (size) {
-            if (fail) throw StateError('builder failed');
-            return Text('size: $size');
+  testWidgets('真实内容只响应一次点击，测量位置没有额外命中', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      _scene(
+        GestureDetector(
+          key: ValueKey('content'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => taps++,
+          child: SizedBox(width: 80, height: 40),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(ValueKey('content')));
+    expect(taps, 1);
+    expect(find.byKey(ValueKey('content')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('两种布局阶段都能识别，最终内容位于真实构建位置', (tester) async {
+    final stages = <bool>[];
+    await tester.pumpWidget(
+      _scene(
+        Builder(
+          builder: (context) {
+            stages.add(ElChildSizeBuilder.isTempLayout(context));
+            return SizedBox(width: 80, height: 40);
           },
         ),
       ),
     );
-    await tester.pumpWidget(scene(true));
-    expect(tester.takeException(), isA<StateError>());
-    expect(find.byType(ErrorWidget), findsOneWidget);
-    await tester.pumpWidget(scene(false));
-    expect(find.text('size: Size(80.0, 40.0)'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(stages, containsAll([true, false]));
+    final context = tester.element(
+      find.byWidgetPredicate(
+        (widget) => widget is Builder && stages.isNotEmpty,
+      ),
+    );
+    expect(ElChildSizeBuilder.isTempLayout(context), isFalse);
   });
 
-  testWidgets('临时动画不持续请求帧，卸载时释放 ticker', (tester) async {
+  testWidgets('未显示的内容动画保持静默，显示后启用并正常释放', (tester) async {
     var ticks = 0;
-    await tester.pumpWidget(_scene(_AnimatedBox(onTick: () => ticks++)));
+    Widget scene(bool show) =>
+        _scene(_AnimatedContent(onTick: () => ticks++), showChild: show);
+    await tester.pumpWidget(scene(false));
     await tester.pump(Duration(milliseconds: 100));
     expect(ticks, 0);
+    await tester.pumpWidget(scene(true));
+    await tester.pump(Duration(milliseconds: 100));
+    expect(ticks, greaterThan(0));
     await tester.pumpWidget(SizedBox());
     await tester.pump();
     expect(tester.binding.transientCallbackCount, 0);
@@ -395,16 +493,20 @@ Widget _scene(
   Widget child, {
   BoxConstraints? constraints,
   String prefix = 'size',
+  bool showChild = true,
   ValueChanged<Size>? onBuild,
 }) => Directionality(
   textDirection: TextDirection.ltr,
   child: Center(
     child: ElChildSizeBuilder(
       constraints: constraints,
-      tempChild: child,
-      builder: (size) {
+      child: child,
+      builder: (size, child) {
         onBuild?.call(size);
-        return Text('$prefix: $size');
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [Text('$prefix: $size'), if (showChild) child],
+        );
       },
     ),
   ),
@@ -412,48 +514,47 @@ Widget _scene(
 
 void _expectRenderDepths(RenderObject parent) {
   parent.visitChildren((child) {
-    expect(
-      child.depth,
-      greaterThan(parent.depth),
-      reason: 'GlobalKey 迁移后每个子节点必须比父节点更深',
-    );
+    expect(child.depth, greaterThan(parent.depth));
     _expectRenderDepths(child);
   });
 }
 
-class _TrackedBox extends StatefulWidget {
-  const _TrackedBox({super.key, required this.tag, required this.events});
-  final String tag;
+class _Content extends StatefulWidget {
+  const _Content({super.key, required this.model, required this.events});
+  final ValueNotifier<Size> model;
   final List<String> events;
   @override
-  State<_TrackedBox> createState() => _TrackedBoxState();
+  State<_Content> createState() => _ContentState();
 }
 
-class _TrackedBoxState extends State<_TrackedBox> {
+class _ContentState extends State<_Content> {
   @override
   void initState() {
     super.initState();
-    widget.events.add('init ${widget.tag}');
+    widget.events.add('init');
   }
 
   @override
   void dispose() {
-    widget.events.add('dispose ${widget.tag}');
+    widget.events.add('dispose');
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => SizedBox(width: 80, height: 40);
+  Widget build(BuildContext context) => ValueListenableBuilder<Size>(
+    valueListenable: widget.model,
+    builder: (_, size, _) => SizedBox.fromSize(size: size),
+  );
 }
 
-class _AnimatedBox extends StatefulWidget {
-  const _AnimatedBox({required this.onTick});
+class _AnimatedContent extends StatefulWidget {
+  const _AnimatedContent({required this.onTick});
   final VoidCallback onTick;
   @override
-  State<_AnimatedBox> createState() => _AnimatedBoxState();
+  State<_AnimatedContent> createState() => _AnimatedContentState();
 }
 
-class _AnimatedBoxState extends State<_AnimatedBox>
+class _AnimatedContentState extends State<_AnimatedContent>
     with SingleTickerProviderStateMixin {
   late final AnimationController controller;
   @override
