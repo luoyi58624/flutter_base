@@ -5,7 +5,7 @@ import 'dart:ui' show FramePhase, FrameTiming;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../utils/util.dart';
+import '../../utils/util.dart';
 import 'base.dart';
 
 /// 显示当前帧率的小部件。

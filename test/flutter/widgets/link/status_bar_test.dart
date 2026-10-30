@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/widgets/link/status_bar.dart';
+import 'package:flutter_base/src/flutter/widgets/link/status_bar.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

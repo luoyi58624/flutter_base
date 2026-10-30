@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../dart.dart';
+import '../../../../dart.dart';
 
 /// 调试小部件
 class ElDebugWidget extends SingleChildRenderObjectWidget {

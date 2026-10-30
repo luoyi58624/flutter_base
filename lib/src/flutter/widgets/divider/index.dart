@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../flutter/views/view/style/style.dart';
-import '../../../flutter/views/view/view.dart';
+import '../../views/view/style/style.dart';
+import '../../views/view/view.dart';
 
 /// 无外观分割线，负责方向、内容插槽与线段布局。
 class ElDivider extends ElView {

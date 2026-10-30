@@ -4,7 +4,7 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../widgets/base.dart';
+import '../../widgets/others/base.dart';
 
 part 'collapse.dart';
 part 'fade.dart';

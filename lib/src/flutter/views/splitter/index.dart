@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 /// 分栏面板配置。
 class ElSplitterPanel {
   const ElSplitterPanel({required this.child, this.size, this.min = 0.0, this.max = 1.0, this.resizable = true})
-    : assert(min >= 0 && min <= 1, 'min 是 0~1 的占比'),
-      assert(max >= 0 && max <= 1, 'max 是 0~1 的占比');
+      : assert(min >= 0 && min <= 1, 'min 是 0~1 的占比'),
+        assert(max >= 0 && max <= 1, 'max 是 0~1 的占比');
 
   final Widget child;
 
@@ -62,15 +62,17 @@ class _SplitterViewState extends State<ElSplitterView> {
     // 面板数量或声明占比变了才重置，纯内容变化保留用户拖出来的比例
     final sizesChanged =
         widget.panels.length != oldWidget.panels.length ||
-        List.generate(widget.panels.length, (i) => widget.panels[i].size).toString() !=
-            List.generate(oldWidget.panels.length, (i) => oldWidget.panels[i].size).toString();
+            List.generate(widget.panels.length, (i) => widget.panels[i].size).toString() !=
+                List.generate(oldWidget.panels.length, (i) => oldWidget.panels[i].size).toString();
     if (sizesChanged) _weights = _initialWeights();
   }
 
   /// 已声明 size 的面板按声明值，其余均分剩余；总和归一
   List<double> _initialWeights() {
     final declared = widget.panels.where((p) => p.size != null).fold<double>(0, (sum, p) => sum + p.size!);
-    final rest = widget.panels.where((p) => p.size == null).length;
+    final rest = widget.panels
+        .where((p) => p.size == null)
+        .length;
     final each = rest == 0 ? 0.0 : ((1 - declared) / rest).clamp(0.0, 1.0);
     final weights = [for (final panel in widget.panels) panel.size ?? each];
     final total = weights.fold<double>(0, (sum, w) => sum + w);
@@ -133,11 +135,11 @@ class _SplitterViewState extends State<ElSplitterView> {
     return ElView(
       event: enabled
           ? ElEvent(
-              onHorizontalDragUpdate: horizontal ? (e) => _drag(index, e.delta.dx) : null,
-              onVerticalDragUpdate: horizontal ? null : (e) => _drag(index, e.delta.dy),
-              onHorizontalDragEnd: horizontal ? (_) => widget.onResize?.call(List.of(_weights)) : null,
-              onVerticalDragEnd: horizontal ? null : (_) => widget.onResize?.call(List.of(_weights)),
-            )
+        onHorizontalDragUpdate: horizontal ? (e) => _drag(index, e.delta.dx) : null,
+        onVerticalDragUpdate: horizontal ? null : (e) => _drag(index, e.delta.dy),
+        onHorizontalDragEnd: horizontal ? (_) => widget.onResize?.call(List.of(_weights)) : null,
+        onVerticalDragEnd: horizontal ? null : (_) => widget.onResize?.call(List.of(_weights)),
+      )
           : null,
       style: ElStyle(
         width: horizontal ? widget.barSize : null,

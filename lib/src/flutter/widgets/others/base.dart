@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart' show ListEquality;
 
-import '../commons/index.dart';
+import '../../commons/index.dart';
 
 import 'package:flutter/widgets.dart';
 

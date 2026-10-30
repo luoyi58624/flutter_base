@@ -163,18 +163,18 @@ export 'src/flutter/views/tab/tab_controller.dart' show ElTabController;
 export 'src/flutter/views/table/table_column.dart'; // 列 + 大部分配套类型
 export 'src/flutter/views/table/table.dart' show ElTable, ElTableStyle, ElTableController, ElTableSelectionChange;
 
-export 'src/ui/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRowJustify;
+export 'src/flutter/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRowJustify;
 
 // 基础视图：卡片、按钮、切换、链接与分隔线
-export 'src/flutter/views/card_view.dart' show ElCardView;
+export 'src/flutter/views/card/card_view.dart' show ElCardView;
 export 'src/flutter/views/button/button_view.dart' show ElButtonView, ElButtonViewPressController;
 
-export 'src/ui/widgets/link/index.dart' show LinkTarget, ElLink;
-export 'src/ui/widgets/link/status_bar.dart' show ElLinkStatusBar;
-export 'src/ui/widgets/divider/index.dart' show ElDivider;
+export 'src/flutter/widgets/link/index.dart' show LinkTarget, ElLink;
+export 'src/flutter/widgets/link/status_bar.dart' show ElLinkStatusBar;
+export 'src/flutter/widgets/divider/index.dart' show ElDivider;
 export 'src/ui/widgets/badge/index.dart' show ElBadge;
-export 'src/ui/widgets/watermark/index.dart' show ElWatermark;
-export 'src/ui/widgets/splitter/splitter_view.dart' show ElSplitterPanel, ElSplitterView;
+export 'src/flutter/widgets/watermark/index.dart' show ElWatermark;
+export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterView;
 
 // 图片、缩放与预览
 export 'src/ui/cores/image/image_view.dart' show ElImageView, ImageLoadInfo;
