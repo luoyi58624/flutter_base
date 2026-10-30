@@ -21,6 +21,9 @@ class ElCheckboxGroup<T> extends ElFormModelValue<List<T>> {
        assert(max == null || max >= 0),
        assert(min == null || max == null || min <= max);
 
+  /// 读取最近的多选分组上下文并订阅变化，组外返回 null。
+  static ElCheckboxGroupScope? maybeOf(BuildContext context) => _CheckboxGroupItem.maybeOf(context);
+
   /// 分组内容，允许包装过的多选框。
   final List<Widget> children;
 
@@ -79,7 +82,7 @@ class ElCheckboxGroup<T> extends ElFormModelValue<List<T>> {
             min: min,
             max: max,
             isLast: i == children.length - 1,
-            setSelected: _setSelected,
+            onSetSelected: _setSelected,
             child: children[i],
           ),
       ],
@@ -87,7 +90,31 @@ class ElCheckboxGroup<T> extends ElFormModelValue<List<T>> {
   );
 }
 
-class _CheckboxGroupItem extends InheritedWidget {
+/// 多选分组向后代提供的只读状态与受数量限制的选择操作。
+abstract interface class ElCheckboxGroupScope {
+  /// 当前选中值的只读快照。
+  List<Object?> get value;
+
+  /// 整组是否禁用。
+  bool get disabled;
+
+  /// 最少可选数量，null 表示不限制。
+  int? get min;
+
+  /// 最多可选数量，null 表示不限制。
+  int? get max;
+
+  /// 当前后代是否位于分组最后一个直接布局项内。
+  bool get isLast;
+
+  /// 当前选中状态下，数量限制是否阻止切换。
+  bool limitReached(bool checked);
+
+  /// 更新指定值的选中状态，遵循整组禁用与 min/max 限制。
+  void setSelected(Object? value, bool checked);
+}
+
+class _CheckboxGroupItem extends InheritedWidget implements ElCheckboxGroupScope {
   const _CheckboxGroupItem({
     super.key,
     required this.selection,
@@ -95,19 +122,29 @@ class _CheckboxGroupItem extends InheritedWidget {
     required this.min,
     required this.max,
     required this.isLast,
-    required this.setSelected,
+    required this.onSetSelected,
     required super.child,
   });
 
   final List<Object?> selection;
+  @override
+  List<Object?> get value => List<Object?>.unmodifiable(selection);
+  @override
   final bool disabled;
+  @override
   final int? min;
+  @override
   final int? max;
+  @override
   final bool isLast;
-  final void Function(Object? label, bool checked) setSelected;
+  final void Function(Object? value, bool checked) onSetSelected;
 
+  @override
   bool limitReached(bool checked) =>
       checked ? min != null && selection.length <= min! : max != null && selection.length >= max!;
+
+  @override
+  void setSelected(Object? value, bool checked) => onSetSelected(value, checked);
 
   static _CheckboxGroupItem? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_CheckboxGroupItem>();
@@ -119,5 +156,5 @@ class _CheckboxGroupItem extends InheritedWidget {
       max != oldWidget.max ||
       isLast != oldWidget.isLast ||
       !listEquals(selection, oldWidget.selection) ||
-      setSelected != oldWidget.setSelected;
+      onSetSelected != oldWidget.onSetSelected;
 }

@@ -1,6 +1,5 @@
 part of 'index.dart';
 
-
 /// 通用单选分组，共用值绑定、布局、方向键导航和单一 Tab 入口。
 class ElRadioGroup<T> extends ElFormModelValue<T?> {
   /// 创建单选分组，未选中时 value 可为空。
@@ -21,6 +20,9 @@ class ElRadioGroup<T> extends ElFormModelValue<T?> {
            if (value != null || null is T) onChanged?.call(value as T);
          },
        );
+
+  /// 读取最近的单选分组上下文并订阅变化，组外返回 null。
+  static ElRadioGroupScope? maybeOf(BuildContext context) => _RadioGroupItem.maybeOf(context);
 
   /// 分组内容，支持经过布局 Widget 包装的单选框。
   final List<Widget> children;
@@ -165,13 +167,17 @@ class _RadioGroupState extends State<_RadioGroup> {
     () => FocusNode(debugLabel: 'ElRadio ${component.value}', onKeyEvent: _handleKey),
   );
   void select(Object? label) {
-    if (widget.disabled || label == value || !_radios.any((radio) => radio.value == label)) return;
+    if (widget.disabled || label == value || !_radios.any((radio) => radio.value == label)) {
+      return;
+    }
     setState(() => _selection = label);
     widget.select(label);
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (widget.disabled || (event is! KeyDownEvent && event is! KeyRepeatEvent)) return .ignored;
+    if (widget.disabled || (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+      return .ignored;
+    }
     final delta = switch (event.logicalKey) {
       LogicalKeyboardKey.arrowLeft || LogicalKeyboardKey.arrowUp => -1,
       LogicalKeyboardKey.arrowRight || LogicalKeyboardKey.arrowDown => 1,
@@ -232,7 +238,22 @@ class _RadioGroupState extends State<_RadioGroup> {
   }
 }
 
-class _RadioGroupItem extends InheritedWidget {
+/// 单选分组向后代提供的只读状态与已登记选项的选择操作。
+abstract interface class ElRadioGroupScope {
+  /// 当前选中值，未选中时为 null。
+  Object? get value;
+
+  /// 整组是否禁用。
+  bool get disabled;
+
+  /// 当前后代是否位于分组最后一个直接布局项内。
+  bool get isLast;
+
+  /// 选中已登记且启用的选项；整组禁用、值无效或未变化时不操作。
+  void select(Object? value);
+}
+
+class _RadioGroupItem extends InheritedWidget implements ElRadioGroupScope {
   const _RadioGroupItem({
     super.key,
     required this.group,
@@ -243,8 +264,16 @@ class _RadioGroupItem extends InheritedWidget {
   });
   final _RadioGroupState group;
   final int index;
+  @override
+  Object? get value => group.value;
+  @override
+  bool get disabled => group.widget.disabled;
+  @override
   final bool isLast;
   final Object revision;
+  @override
+  void select(Object? value) => group.select(value);
+
   static _RadioGroupItem? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_RadioGroupItem>();
   @override
