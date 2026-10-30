@@ -1,37 +1,6 @@
-/// **T24** mount 快路径灰度开关（默认开）。
+/// 控制首次挂载是否跳过构造期样式解析，供回归测试对比快路径与完整路径。
 ///
-/// **摆放位置**：故意放在 [BenchmarkProbe] 所在文件（benchmark_probe.dart 未
-/// export，见文件文档），让 flag 与 mount 快路径的探针计数字段（[BenchmarkProbe.mountFastPathHitCount]）
-/// 就近；对外部 `import 'package:flutter_base/ui.dart'` 不可见（package pub API
-/// 面不含此符号，`tool/dump_api_surface.dart` 只扫 `lib/el_ui.dart` 递归可
-/// 达符号）；测试文件通过 `import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart'`
-/// 直接切换，走 package-internal path 与 `probe_snapshot_test.dart` 同源。
-///
-/// **快路径语义**（详见 `ElRenderView` 构造/attach）：跳过构造函数期的
-/// `_reresolve()`，把 cascade 延后到 attach 首次触发。attach 里
-/// `_isFirstAttach == true` 时强制 `_reresolve()`（把构造 + attach 两次
-/// cascade 合并成 attach 一次）。之后的 reparent 场景（`_isFirstAttach = false`）
-/// 回退到"仅在父引用变化时 _reresolve"的老路径。
-///
-/// **正确性推导**：
-/// 1. 构造期读 committed 的路径不存在（构造函数体内 `_reresolve()` 之前的初
-///    始化步骤 [_publishState] / [_ensureDispatcherIfNeededForVariants] /
-///    [_syncStateSourceGroup] 均只读 `_style` / `_state`）；用户 API 中在
-///    attach 前 `set style` 触发的 fast_patch 以 oldStyle vs newStyle 字段级
-///    diff 为源，与 `_targetResolved` 是否为 `initial` 无关。
-/// 2. 首次 attach 强制 `_reresolve()` 时 `_findAncestorResolvedStyle` 拿到
-///    父的 committed（父若走快路径，其构造后 committed = initial；但父
-///    attach 主体走在 `super.attach` 之后，子在父 attach 完之前先 attach，
-///    此时父的 committed 仍是 initial —— 子第一次 cascade 借用父 initial
-///    的 inheritedText/Box 引用；父 attach 主体的强制 `_reresolve()` 换新
-///    committed 后走 damage_router → propagate；子的 `reresolveFromInheritance`
-///    走 `tryInheritPatch` 借用恢复路径命中 → 子的 inheritedText/Box 换成
-///    父的新引用，链上共享 identity 与老路径 bit-identical）。
-/// 3. Root 无 ElView 祖先：`_isFirstAttach==true` 分支强制 `_reresolve()`，
-///    即便 ancestor==null 也会做一次 cascade，root committed 正确。
-///
-/// **收益**：ThemeSwapAll-100 mount 从 201 cascadeTick / 402 builderBuild
-/// 降到 101 tick / 202 build（近乎减半）；子孙借用共享 identity 保持不变。
+/// 默认开启，将构造期与首次 attach 的重复解析合并；仅供 UI 内部和测试使用。
 bool elViewDebugUseMountFastPath = true;
 
 /// 挂载分段墙钟追踪开关：`--dart-define=el.mount.trace=true` 才编译进热路径。
@@ -214,9 +183,7 @@ abstract final class MountTrace {
 /// final snapshot = BenchmarkProbe.snapshot();
 /// ```
 ///
-/// 探针类**不 export**（不出现在 `packages/el_ui/lib/el_ui.dart` 的 export
-/// 清单里），benchmark 文件用 `package:flutter_base/src/ui/cores/common/benchmark_probe.dart`
-/// 直接 import。
+/// 不从公共入口导出；测试通过 `src/ui/utils/internal/benchmark_probe.dart` 直接导入。
 class BenchmarkProbe {
   BenchmarkProbe._();
 
@@ -290,9 +257,7 @@ class BenchmarkProbe {
   /// 无盒装饰的裸行稳态该值应恒为 0。
   static int paintControllerInstantiateCount = 0;
 
-  /// 每 `ViewElement` 焦点状态对象实例化累计。
-  ///
-  /// 门 = `focus != null || style 声明 focusWithin 变体`；不可聚焦节点恒为 0。
+  /// 旧焦点状态对象的分配占位计数；当前状态由 ViewElement 持有，恒为零。
   static int focusStateInstantiateCount = 0;
 
   /// 选中换色 overlay 的 `TextPainter.layout` 次数（= 真 shape 次数）。

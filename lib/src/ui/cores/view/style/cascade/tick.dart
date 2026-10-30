@@ -4,8 +4,8 @@ import '../animation/driver.dart';
 import '../animation/field_animation.dart';
 
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
-import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart';
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 
 import 'resolver.dart';
 import 'style_spec.dart';

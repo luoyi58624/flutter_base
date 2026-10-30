@@ -1,6 +1,6 @@
 import 'package:flutter/rendering.dart';
 
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import 'internal/field_spec.dart';
 import '../render/hit_bounds.dart';
 import 'inheritance/inheritable_node.dart';

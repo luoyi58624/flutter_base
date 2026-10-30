@@ -2,7 +2,7 @@ import 'package:collection/collection.dart' show IdentityEquality, IterableEqual
 import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
+import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
 
 import 'event/event.dart';

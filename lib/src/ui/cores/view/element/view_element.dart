@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart' show GestureBinding, PointerDownEvent, Po
 import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
+import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
 
 import '../event/event.dart';

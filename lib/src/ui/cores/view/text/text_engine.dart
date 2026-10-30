@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart' show HitTestEntry, HitTestTarget;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' show IconData, Widget, WidgetSpan;
-import '../../common/benchmark_probe.dart';
+import '../../../utils/internal/benchmark_probe.dart';
 import '../../selection/common/selection_core.dart';
 import '../style/style.dart';
 import '../style/resolved/resolved_style.dart';

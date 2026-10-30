@@ -1,7 +1,7 @@
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
 import '../resolved/builder.dart';
 import '../resolved/resolved_style.dart';
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import '../internal/field_spec.dart';
 import 'style_spec.dart';
 

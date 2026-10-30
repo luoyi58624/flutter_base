@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 双段字段位图回归，覆盖旧 53 位边界与新增高位字段。

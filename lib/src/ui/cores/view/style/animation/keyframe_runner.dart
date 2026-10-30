@@ -2,7 +2,7 @@ import 'package:flutter/animation.dart' show Curve;
 import 'frame_clock.dart';
 
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import '../cascade/style_spec.dart';
 import '../internal/field_spec.dart';
 import '../resolved/resolved_style.dart';

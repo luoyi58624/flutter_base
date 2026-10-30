@@ -5,7 +5,7 @@ import 'dart:ui' show Codec;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter_base/src/ui/cores/view/style/resolved/builder.dart';
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;

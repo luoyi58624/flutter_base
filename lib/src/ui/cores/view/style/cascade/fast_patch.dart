@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart';
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import '../internal/field_spec.dart';
 import '../resolved/resolved_style.dart';
 import '../resolved/builder.dart';

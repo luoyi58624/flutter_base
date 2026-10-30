@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/common/bit_mask.dart';
+import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
 import '../state/view_state.dart';
 import '../style.dart';
 import '../internal/field_spec.dart';

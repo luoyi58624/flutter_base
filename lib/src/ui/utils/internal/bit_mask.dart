@@ -3,8 +3,6 @@
 /// dart2js / DDC 的原生 int 位运算只有 32 位，JS number 又只能精确表示
 /// 53 位整数。这里把位图拆为两个 30 位分段，让每次位运算都留在 JS 的有符号
 /// 32 位安全区间，并把字段容量扩到 60。
-library;
-
 /// transition 字段位图，按 30 位拆成两个跨平台安全分段。
 final class FieldMask {
   const FieldMask._(this.low, this.high);
