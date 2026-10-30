@@ -1,0 +1,11 @@
+# 移动端示例
+
+布局、图标路径和示例数据来自 `D:/project/my-project/el/examples/flutter_demo/lib`，保留推荐、分类、消息、我的四栏，以及详情、收藏、聊天、账号设置页面。`main.dart` 启动 `ElExampleApp`。
+
+根节点安装 `MyTheme`，通用文本、标签和开关使用移动端 Builder。品牌尚未提供的页面级导航和列表布局组合现有视图基元，使用移动端配色。
+
+所有示例滚动视口使用 `ElScrollView`；长列表通过直接子段 `ElListView.builder` 虚拟化，推荐页使用内建刷新器，聊天使用反向列表。分类通过真实条目坐标定位，避免依赖 Flutter Scrollable 的祖先协议。
+
+“我的 → 组件示例”进入原有 demo 列表，保留视图、基础用法和自定义手势页面以及性能浮层开关。旧手势页仍保留原生手势识别器对照，滚动容器统一迁移。
+
+本次复用移动布局，不引入源工程专用的 Android WebView、Toast 或字体度量通道。帮助和关于页提供 Flutter 内容，可通过 pageContentBuilder 替换；轻提示由当前应用 ScaffoldMessenger 展示。验证使用无头测试，未启动用户设备或窗口。

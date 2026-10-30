@@ -1,46 +1,17 @@
-# Flutter Base 动画示例
+# Flutter Base 移动端示例
 
-首页展示九个实际界面场景：轻量提示、侧边面板、状态反馈、消息通知、确认弹窗、内容揭示、卡片翻转、纵向折叠面板和横向搜索工具栏。
+默认入口沿用 flutter_demo 的推荐、分类、消息、我的四栏布局，安装 mobile.dart 的 MyTheme。图标和演示数据保留参考工程内容，排版使用移动端主题。
 
-每种动画内置运动响应和动作幅度。透明度与几何变化分别驱动，连续切换只改变目标，保留当前位置和速度，沿用相同的刚度与阻尼。结束时间由当前运动状态自然决定。示例只保留各场景开关和全部播放，无需调整动效参数。
+“我的 → 组件示例”可进入原有视图、基础用法和自定义手势页面；性能浮层开关仍在原示例列表中。
 
-布局、侧栏、翻转和揭示使用 [Flutter Cupertino 对话框与 action sheet 的弹簧参数](https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/cupertino/route.dart)：质量 1、刚度 522.35、阻尼 45.7099552。小幅反馈取 [Material 标准运动](https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens/StandardMotionTokens.kt) 的 fast spatial 刚度 1400，并使用临界阻尼保持尺寸范围；透明度使用 fast effects 刚度 3800 和临界阻尼。
+页面滚动统一采用 ElScrollView，长列表组合 ElListView.builder。保留推荐刷新与追加、分类联动、消息已读、聊天发送和模拟回复。帮助、关于使用 Flutter 内容页，不依赖源工程的 Android 专用通道。
 
-弹窗从 92% 尺寸进入，退场仅淡出，内容完全不可见后才复位几何状态。背景显隐与弹窗透明度同步，折叠箭头与面板运动同步；中途反转也保持同步。翻转沿 X 轴从下方抬起，Reveal 使用中心圆形遮罩。
-
-```dart
-import 'package:flutter_base/flutter_base.dart';
-
-ElFadeScaleAnimation(
-  value,
-  child: content,
-)
-```
-
-位置参数 `value` 为 true 时显示，为 false 时隐藏。初次挂载直接呈现目标状态。动画途中可以反向切换，隐藏时禁用指针交互和语义。
-
-Collapse 额外保留方向及状态管理：
-
-```dart
-ElCollapseAnimation(
-  value,
-  axis: Axis.horizontal,
-  keepState: false,
-  child: content,
-)
-```
-
-`keepState: false` 在退场完成后销毁内容；中途重新展开保留原有状态。Collapse 改变布局占位，其他动画保留占位。
-
-在此目录运行：
-
-```powershell
-flutter pub get
-flutter run -d windows
-```
+源码与迁移边界见 [移动端布局说明](lib/src/mobile/README.md)。
 
 无头验证：
 
 ```powershell
-flutter test test/animations_page_test.dart
+flutter test test/mobile_shell_test.dart test/custom_gestures_page_test.dart
 ```
+
+当前验证覆盖移动布局跳转、分页刷新、分类定位、聊天贴底和既有手势行为；未作真机视觉验收。

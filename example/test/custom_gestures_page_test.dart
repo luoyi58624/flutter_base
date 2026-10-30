@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_base/mobile.dart' show ElScrollView, ElScrollViewState;
 
 const _desktopSize = Size(1280, 1000);
 const _settledGesture = Duration(milliseconds: 700);
@@ -47,8 +48,26 @@ Future<void> _pumpPage(
 
 Future<Finder> _reveal(WidgetTester tester, String key) async {
   final target = _key(key);
-  await tester.ensureVisible(target);
-  await tester.pumpAndSettle();
+  // 自定义视口按真实坐标定位，兼容同页的内外层滚动宿主。
+  final hosts = find
+      .ancestor(of: target, matching: find.byType(ElScrollView))
+      .evaluate()
+      .toList()
+      .reversed;
+  for (final host in hosts) {
+    final viewport = tester.getRect(find.byWidget(host.widget));
+    final box = tester.getRect(target);
+    final position = tester
+        .state<ElScrollViewState>(find.byWidget(host.widget))
+        .position;
+    position.jumpTo(
+      (position.pixels + box.center.dy - viewport.center.dy).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
   return target;
 }
 
@@ -193,15 +212,11 @@ void main() {
     expect(_count(tester, 'mixedElOuter'), 0);
   });
 
-  testWidgets('ListView 赢得拖拽后，行点击取消且列表真实滚动', (tester) async {
+  testWidgets('ElScrollView 赢得拖拽后，行点击取消且列表真实滚动', (tester) async {
     await _pumpPage(tester);
     final target = await _reveal(tester, 'gesture.scroll.target');
     final list = _key('gesture.scroll.list');
-    final scrollable = find.descendant(
-      of: list,
-      matching: find.byType(Scrollable),
-    );
-    final position = tester.state<ScrollableState>(scrollable).position;
+    final position = tester.state<ElScrollViewState>(list).position;
     final initialPixels = position.pixels;
 
     await tester.tap(target);
@@ -266,7 +281,7 @@ void main() {
 
   testWidgets('首页自定义手势导航打开可操作页面', (tester) async {
     await _pumpPage(tester, page: const HomePage());
-    final navigation = find.text('自定义手势');
+    final navigation = _key('demo-gestures');
     await tester.ensureVisible(navigation);
     await tester.tap(navigation);
     await tester.pumpAndSettle();

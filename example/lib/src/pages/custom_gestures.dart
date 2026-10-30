@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_base/mobile.dart' show ElScrollView, ElListView;
 // 独立识别器未由公共入口导出；此页演示内核，保留自行判断范围与取消的行为。
 // ignore: implementation_imports
 import 'package:flutter_base/src/flutter/views/view/event/press.dart'
@@ -250,12 +251,14 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       builder: (context) => FractionallySizedBox(
         heightFactor: .85,
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: ElScrollView(
             padding: const EdgeInsets.all(16),
-            child: ValueListenableBuilder<int>(
-              valueListenable: _logRevision,
-              builder: (_, _, _) => _logCard(),
-            ),
+            children: [
+              ValueListenableBuilder<int>(
+                valueListenable: _logRevision,
+                builder: (_, _, _) => _logCard(),
+              ),
+            ],
           ),
         ),
       ),
@@ -329,12 +332,14 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
               ),
             ],
           );
-          final narrowContent = SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: 20,
-              children: [heading, tests, _logCard()],
-            ),
+          final narrowContent = ElScrollView(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 20,
+                children: [heading, tests, _logCard()],
+              ),
+            ],
           );
           return Padding(
             padding: EdgeInsets.all(constraints.maxWidth < 600 ? 16 : 24),
@@ -353,13 +358,11 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
                               spacing: 20,
                               children: [
                                 Expanded(
-                                  child: SingleChildScrollView(child: tests),
+                                  child: ElScrollView(children: [tests]),
                                 ),
                                 SizedBox(
                                   width: 340,
-                                  child: SingleChildScrollView(
-                                    child: _logCard(),
-                                  ),
+                                  child: ElScrollView(children: [_logCard()]),
                                 ),
                               ],
                             ),
@@ -521,7 +524,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
         decoration: _frame('scroll'),
         child: SizedBox(
           height: 190,
-          child: ListView(
+          child: ElScrollView(
             key: const ValueKey('gesture.scroll.list'),
             controller: _scrollController,
             padding: const EdgeInsets.all(12),
@@ -715,41 +718,45 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       else
         SizedBox(
           height: 430,
-          child: ListView.separated(
-            itemCount: _entries.length,
-            separatorBuilder: (_, _) =>
-                const Divider(height: 17, color: Color(0xffedf0f5)),
-            itemBuilder: (_, index) {
-              final entry = _entries[index];
-              final canceled = entry.phase == 'tapCancel';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 4,
-                children: [
-                  Text(
-                    '#${entry.sequence.toString().padLeft(3, '0')}  ${entry.source}',
-                    style: const TextStyle(fontSize: 11, color: _muted),
-                  ),
-                  Text(
-                    entry.phase,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: canceled ? const Color(0xffb46c16) : _blue,
-                    ),
-                  ),
-                  if (entry.position != null)
-                    Text(
-                      '位置 ${entry.position!.dx.toStringAsFixed(0)}, ${entry.position!.dy.toStringAsFixed(0)}${entry.taps > 0 ? ' · 连击 ${entry.taps}' : ''}',
-                      style: const TextStyle(color: _muted, fontSize: 11),
-                    ),
-                  if (entry.cancelReason != null)
-                    Text(
-                      entry.cancelReason!,
-                      style: const TextStyle(color: _muted, fontSize: 11),
-                    ),
-                ],
-              );
-            },
+          child: ElScrollView(
+            children: [
+              ElListView.builder(
+                itemCount: _entries.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 17, color: Color(0xffedf0f5)),
+                itemBuilder: (_, index) {
+                  final entry = _entries[index];
+                  final canceled = entry.phase == 'tapCancel';
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 4,
+                    children: [
+                      Text(
+                        '#${entry.sequence.toString().padLeft(3, '0')}  ${entry.source}',
+                        style: const TextStyle(fontSize: 11, color: _muted),
+                      ),
+                      Text(
+                        entry.phase,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: canceled ? const Color(0xffb46c16) : _blue,
+                        ),
+                      ),
+                      if (entry.position != null)
+                        Text(
+                          '位置 ${entry.position!.dx.toStringAsFixed(0)}, ${entry.position!.dy.toStringAsFixed(0)}${entry.taps > 0 ? ' · 连击 ${entry.taps}' : ''}',
+                          style: const TextStyle(color: _muted, fontSize: 11),
+                        ),
+                      if (entry.cancelReason != null)
+                        Text(
+                          entry.cancelReason!,
+                          style: const TextStyle(color: _muted, fontSize: 11),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
         ),
     ],

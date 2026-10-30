@@ -29,9 +29,7 @@ class ElViewPage extends StatelessWidget {
                         style: ElStyle(
                           width: flag.value ? 180 : 120,
                           height: 80,
-                          bgColor: flag.value
-                              ? Colors.blue
-                              : Colors.green,
+                          bgColor: flag.value ? Colors.blue : Colors.green,
                           borderRadius: flag.value
                               ? BorderRadius.circular(40)
                               : const BorderRadius.only(
@@ -44,20 +42,24 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ListView.builder(
-                          itemBuilder: (c, i) => Center(
-                            child: ElView(
-                              style: .new(
-                                width: 100,
-                                height: 100,
-                                bgColor: flag.value
-                                    ? Colors.blue
-                                    : Colors.green,
-                                margin: .only(bottom: 8),
-                                // transitions: [.all()],
+                        child: ElScrollView(
+                          children: [
+                            ElListView.builder(
+                              itemCount: 1000,
+                              itemBuilder: (c, i) => Center(
+                                child: ElView(
+                                  style: .new(
+                                    width: 100,
+                                    height: 100,
+                                    bgColor: flag.value
+                                        ? Colors.blue
+                                        : Colors.green,
+                                    margin: .only(bottom: 8),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ],
@@ -97,16 +99,23 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ListView.builder(
-                          itemBuilder: (c, i) => Center(
-                            child: Padding(
-                              padding: .only(bottom: 8),
-                              child: ColoredBox(
-                                color: flag.value ? Colors.blue : Colors.red,
-                                child: SizedBox(width: 100, height: 100),
+                        child: ElScrollView(
+                          children: [
+                            ElListView.builder(
+                              itemCount: 1000,
+                              itemBuilder: (c, i) => Center(
+                                child: Padding(
+                                  padding: .only(bottom: 8),
+                                  child: ColoredBox(
+                                    color: flag.value
+                                        ? Colors.blue
+                                        : Colors.red,
+                                    child: SizedBox(width: 100, height: 100),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ],

@@ -10,14 +10,17 @@ import '../widgets/icons/settings_icons.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  MyListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) => MyListTile(
-    title: icon.label,
-    onPressed: () {
-      if (page != null) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
-      }
-    },
-  );
+  MyListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) =>
+      MyListTile(
+        key: page is CustomGesturesPage ? ValueKey('demo-gestures') : null,
+        title: icon.label,
+        onPressed: () {
+          if (page != null) {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => page));
+          }
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -37,49 +40,57 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: .all(16),
-          child: Column(
-            spacing: 16,
-            children: [
-              MyListGroup(
-                children: [
-                  _tile(context, .airplane, ElViewPage()),
-                  _tile(context, .wifi, CustomGesturesPage()),
-                  _tile(context, .bluetooth, ViewBasePage()),
-                  _tile(context, .mobile),
-                  _tile(context, .connect),
-                ],
-              ),
-              MyListGroup(
-                children: [
-                  _tile(context, .personalize),
-                  _tile(context, .display),
-                  _tile(context, .sound),
-                  _tile(context, .notifications),
-                ],
-              ),
-              MyListGroup(children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)]),
-              MyListGroup(
-                children: [
-                  _tile(context, .apps),
-                  _tile(context, .battery),
-                  _tile(context, .accessibility),
-                  _tile(context, .cloud),
-                ],
-              ),
-              MyListGroup(
-                children: [
-                  _tile(context, .system),
-                  _tile(context, .about),
-                  _tile(context, .account),
-                  _tile(context, .help),
-                ],
-              ),
-            ],
+      body: ElScrollView(
+        children: [
+          Padding(
+            padding: .all(16),
+            child: Column(
+              spacing: 16,
+              children: [
+                MyListGroup(
+                  children: [
+                    _tile(context, .airplane, ElViewPage()),
+                    _tile(context, .wifi, CustomGesturesPage()),
+                    _tile(context, .bluetooth, ViewBasePage()),
+                    _tile(context, .mobile),
+                    _tile(context, .connect),
+                  ],
+                ),
+                MyListGroup(
+                  children: [
+                    _tile(context, .personalize),
+                    _tile(context, .display),
+                    _tile(context, .sound),
+                    _tile(context, .notifications),
+                  ],
+                ),
+                MyListGroup(
+                  children: [
+                    _tile(context, .password),
+                    _tile(context, .privacy),
+                    _tile(context, .location),
+                  ],
+                ),
+                MyListGroup(
+                  children: [
+                    _tile(context, .apps),
+                    _tile(context, .battery),
+                    _tile(context, .accessibility),
+                    _tile(context, .cloud),
+                  ],
+                ),
+                MyListGroup(
+                  children: [
+                    _tile(context, .system),
+                    _tile(context, .about),
+                    _tile(context, .account),
+                    _tile(context, .help),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
