@@ -1,4 +1,10 @@
-part of 'index.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/widgets.dart';
+
+import '../../../flutter/views/view/semantics/semantics.dart';
+import '../../../flutter/views/view/style/style.dart';
+import '../../../flutter/views/view/view.dart';
+import '../../../flutter/widgets/form/index.dart';
 
 /// 通用多选分组，统一维护集合、数量限制、表单绑定与布局。
 class ElCheckboxGroup<T> extends ElFormModelValue<List<T>> {

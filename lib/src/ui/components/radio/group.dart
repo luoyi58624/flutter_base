@@ -1,4 +1,24 @@
-part of 'index.dart';
+import 'package:flutter/foundation.dart' show internal;
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../../flutter/views/view/semantics/semantics.dart';
+import '../../../flutter/views/view/style/style.dart';
+import '../../../flutter/views/view/view.dart';
+import '../../../flutter/widgets/form/index.dart';
+
+/// 跨库登记单选项所需的最小信息，不依赖具体外观组件。
+@internal
+abstract interface class ElRadioGroupOption implements Widget {
+  /// 选项的稳定业务值。
+  Object? get value;
+
+  /// 选项是否禁用。
+  bool get disabled;
+
+  /// 是否为不参与分组的独立开关。
+  bool get isToggle;
+}
 
 /// 通用单选分组，共用值绑定、布局、方向键导航和单一 Tab 入口。
 class ElRadioGroup<T> extends ElFormModelValue<T?> {
@@ -44,8 +64,10 @@ class ElRadioGroup<T> extends ElFormModelValue<T?> {
 
   /// 辅助技术读取的组名称。
   final String? semanticLabel;
+
   @override
   T? get value => $formBound ? coerceFormValue($formState!.formData[$formProp]) : super.value;
+
   @override
   Widget obsBuilder(BuildContext context) => _RadioGroup(
     value: $obs.value,
@@ -72,6 +94,7 @@ class _RadioGroup extends StatefulWidget {
     required this.semanticLabel,
     required this.children,
   });
+
   final Object? value;
   final ValueChanged<Object?> select;
   final bool disabled;
@@ -81,19 +104,23 @@ class _RadioGroup extends StatefulWidget {
   final ElStyle? style;
   final String? semanticLabel;
   final List<Widget> children;
+
   @override
   State<_RadioGroup> createState() => _RadioGroupState();
 }
 
 class _RadioEntry {
   _RadioEntry(this.component, this.index);
-  ElRadio component;
+
+  ElRadioGroupOption component;
   int index;
 }
 
 class _RadioGroupState extends State<_RadioGroup> {
   late Object? _selection;
+
   Object? get value => _selection;
+
   @override
   void initState() {
     super.initState();
@@ -123,16 +150,16 @@ class _RadioGroupState extends State<_RadioGroup> {
     });
   }
 
-  void _validate(Iterable<ElRadio> radios) {
+  void _validate(Iterable<ElRadioGroupOption> radios) {
     final labels = <Object?>{};
     for (final radio in radios) {
-      if (!radio._toggle && !labels.add(radio.value)) {
+      if (!radio.isToggle && !labels.add(radio.value)) {
         throw FlutterError('ElRadioGroup 子项 value ${radio.value} 重复。');
       }
     }
   }
 
-  void register(Object owner, ElRadio component, int index) {
+  void register(Object owner, ElRadioGroupOption component, int index) {
     final previous = _entries[owner];
     if (previous != null &&
         previous.component.value == component.value &&
@@ -148,12 +175,12 @@ class _RadioGroupState extends State<_RadioGroup> {
     if (_entries.remove(owner) != null) _notify();
   }
 
-  List<ElRadio> get _radios {
+  List<ElRadioGroupOption> get _radios {
     // 直接子项在首帧即可决定唯一 Tab 入口，包装过的后代由实际挂载登记补齐。
-    final result = <ElRadio>[];
+    final result = <ElRadioGroupOption>[];
     for (var index = 0; index < widget.children.length; index++) {
       final direct = widget.children[index];
-      if (direct is ElRadio && !direct._toggle) {
+      if (direct is ElRadioGroupOption && !direct.isToggle) {
         result.add(direct);
         continue;
       }
@@ -162,10 +189,11 @@ class _RadioGroupState extends State<_RadioGroup> {
     return result.where((radio) => !radio.disabled).toList();
   }
 
-  FocusNode _node(ElRadio component) => _nodes.putIfAbsent(
+  FocusNode _node(ElRadioGroupOption component) => _nodes.putIfAbsent(
     component.value,
     () => FocusNode(debugLabel: 'ElRadio ${component.value}', onKeyEvent: _handleKey),
   );
+
   void select(Object? label) {
     if (widget.disabled || label == value || !_radios.any((radio) => radio.value == label)) {
       return;
@@ -193,7 +221,7 @@ class _RadioGroupState extends State<_RadioGroup> {
     return .handled;
   }
 
-  FocusNode focusFor(ElRadio component) {
+  FocusNode focusFor(ElRadioGroupOption component) {
     final enabled = _radios;
     final selected = enabled.any((radio) => radio.value == value);
     final tabStop = selected ? component.value == value : enabled.isNotEmpty && component.value == enabled.first.value;
@@ -213,7 +241,7 @@ class _RadioGroupState extends State<_RadioGroup> {
 
   @override
   Widget build(BuildContext context) {
-    _validate(widget.children.whereType<ElRadio>());
+    _validate(widget.children.whereType<ElRadioGroupOption>());
     return ElView(
       style: widget.style,
       semantics: ElSemantics(container: true, label: widget.semanticLabel),
@@ -251,6 +279,22 @@ abstract interface class ElRadioGroupScope {
 
   /// 选中已登记且启用的选项；整组禁用、值无效或未变化时不操作。
   void select(Object? value);
+
+  /// 内部分组的稳定身份，避免上下文重建触发选项反复注销。
+  @internal
+  Object get groupIdentity;
+
+  /// 内部选项在构建时登记身份与状态，顺序沿用所属的直接布局项。
+  @internal
+  void register(Object owner, ElRadioGroupOption option);
+
+  /// 内部选项卸载或切换分组时注销原登记。
+  @internal
+  void unregister(Object owner);
+
+  /// 内部选项读取组管理的焦点节点，不得自行销毁。
+  @internal
+  FocusNode focusFor(ElRadioGroupOption option);
 }
 
 class _RadioGroupItem extends InheritedWidget implements ElRadioGroupScope {
@@ -262,20 +306,37 @@ class _RadioGroupItem extends InheritedWidget implements ElRadioGroupScope {
     required this.revision,
     required super.child,
   });
+
   final _RadioGroupState group;
   final int index;
+
   @override
   Object? get value => group.value;
+
   @override
   bool get disabled => group.widget.disabled;
   @override
   final bool isLast;
   final Object revision;
+
   @override
   void select(Object? value) => group.select(value);
 
+  @override
+  Object get groupIdentity => group;
+
+  @override
+  void register(Object owner, ElRadioGroupOption option) => group.register(owner, option, index);
+
+  @override
+  void unregister(Object owner) => group.unregister(owner);
+
+  @override
+  FocusNode focusFor(ElRadioGroupOption option) => group.focusFor(option);
+
   static _RadioGroupItem? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_RadioGroupItem>();
+
   @override
   bool updateShouldNotify(_RadioGroupItem oldWidget) => revision != oldWidget.revision;
 }

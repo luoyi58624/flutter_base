@@ -1,11 +1,11 @@
 import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/ui.dart' hide ElCheckboxGroup, ElCheckboxGroupScope;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'group.dart';
 
-part 'group.dart';
+export 'group.dart' show ElCheckboxGroup, ElCheckboxGroupScope;
 
 /// 多选框公共声明；值绑定与交互共用，Builder 仅提供外观。
 class ElCheckbox extends ElModelValue<Object?> {
@@ -40,12 +40,12 @@ class ElCheckbox extends ElModelValue<Object?> {
 
   /// 外观后代订阅焦点和按压状态的宿主组。
   static final _groupKey = UniqueKey();
-  _CheckboxGroupItem? get _item => $get<_CheckboxGroupItem?>(_groupKey);
+  ElCheckboxGroupScope? get _item => $get<ElCheckboxGroupScope?>(_groupKey);
   bool get _inGroup => !_toggle && _item != null;
 
   @override
   Widget build(BuildContext context) {
-    final item = $set(_groupKey, _toggle ? null : _CheckboxGroupItem.maybeOf(context));
+    final item = $set(_groupKey, _toggle ? null : ElCheckboxGroup.maybeOf(context));
     assert(_toggle || item != null, 'ElCheckbox 必须放在 ElCheckboxGroup 内，独立开关请用 ElCheckbox.toggle');
     return super.build(context);
   }
@@ -53,7 +53,7 @@ class ElCheckbox extends ElModelValue<Object?> {
   @override
   Widget obsBuilder(BuildContext context) {
     final item = _item;
-    final checked = _inGroup ? item!.selection.contains(value) : $obs.value as bool;
+    final checked = _inGroup ? item!.value.contains(value) : $obs.value as bool;
     final state = ElCheckboxState(
       checked: checked,
       disabled: disabled || (item?.disabled ?? false) || (_inGroup && item!.limitReached(checked)),

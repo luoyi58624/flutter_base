@@ -2,14 +2,14 @@ import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/ui.dart' hide ElRadioGroup, ElRadioGroupScope;
 
-import 'package:flutter/services.dart';
+import 'group.dart';
 
-part 'group.dart';
+export 'group.dart' show ElRadioGroup, ElRadioGroupScope;
 
 /// 单选框公共声明；值绑定与交互共用，Builder 仅提供外观。
-class ElRadio<T> extends ElModelValue<Object?> {
+class ElRadio<T> extends ElModelValue<Object?> implements ElRadioGroupOption {
   /// 创建组内选项，value 未提供时使用右侧文案 label 作为选项值。
   ElRadio({T? value, this.label, super.key, this.disabled = false})
     : assert(value != null || label != null, '组内选项必须提供 value 或 label'),
@@ -32,27 +32,30 @@ class ElRadio<T> extends ElModelValue<Object?> {
   final String? label;
   final bool _toggle;
 
+  /// 是否为不参与分组和表单的独立开关。
+  @override
+  bool get isToggle => _toggle;
+
   /// 禁止交互与焦点请求。
+  @override
   final bool disabled;
 
   /// 外观后代订阅焦点和按压状态的宿主组。
   static final _groupKey = UniqueKey();
 
-  _RadioGroupItem? get _item => $get<_RadioGroupItem?>(_groupKey);
-
-  _RadioGroupState? get _group => _toggle ? null : _item?.group;
+  ElRadioGroupScope? get _group => _toggle ? null : $get<ElRadioGroupScope?>(_groupKey);
 
   @override
   Widget build(BuildContext context) {
-    final item = $set(_groupKey, _toggle ? null : _RadioGroupItem.maybeOf(context));
+    $set(_groupKey, _toggle ? null : ElRadioGroup.maybeOf(context));
     final group = _group;
     assert(_toggle || group != null, 'ElRadio 必须放在 ElRadioGroup 内，独立开关请用 ElRadio.toggle');
     final owner = useMemoized(Object.new);
-    group?.register(owner, this, item!.index);
+    group?.register(owner, this);
     useEffect(
       () =>
           () => group?.unregister(owner),
-      [group, owner],
+      [group?.groupIdentity, owner],
     );
 
     return super.build(context);
@@ -64,8 +67,8 @@ class ElRadio<T> extends ElModelValue<Object?> {
     final checked = _toggle ? $obs.value as bool : group!.value == value;
     final state = ElRadioState(
       checked: checked,
-      disabled: disabled || (_item?.group.widget.disabled ?? false),
-      isLast: _item?.isLast ?? true,
+      disabled: disabled || (group?.disabled ?? false),
+      isLast: group?.isLast ?? true,
     );
     void toggle() {
       if (_toggle) {

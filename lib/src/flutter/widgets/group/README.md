@@ -1,6 +1,6 @@
 # Group：目标 API
 
-Group 负责选择、禁用、数量限制、表单与焦点协调；自定义子项负责外观。目前已提供 maybeOf，目录迁移和 Item 接口仍为后续目标。
+Group 负责选择、禁用、数量限制、表单与焦点协调；自定义子项负责外观。两个 Group 已是独立 Dart 库，提供 maybeOf；目录迁移和 Item 接口仍为后续目标。
 
 ## 当前用法
 
@@ -64,7 +64,7 @@ ElCheckboxGroup<String>(
 
 组外返回 null，嵌套时读取最近同类组；在后代 build 中查询会订阅状态变化，不要跨构建缓存上下文。isLast 指直接布局项，包装项内的后代共享该值。
 
-Checkbox 的 setSelected 遵循整组禁用与数量限制。Radio 的 select **目前仅接受已登记且启用的 ElRadio 值**，尚未提供任意自定义单选项的注册与焦点接口；调用方仍负责自身禁用、交互与辅助语义。
+Checkbox 的 setSelected 遵循整组禁用与数量限制。Radio 的 select 只接受已登记且启用的选项；ElRadio 已通过内部 ElRadioGroupOption 协议和 Scope 的内部登记、焦点方法接入。该协议目前用于跨库衔接，任意自定义单选项的稳定公共接口仍未确定；调用方负责自身禁用、交互与辅助语义。
 
 ## 迁移目标：自定义 Item
 
@@ -111,7 +111,9 @@ ElRadioGroup<String>(
 
 ## 依赖与迁移边界
 
-迁移范围为 **4 个实现文件**：两个 group.dart、两个 UI 子项适配文件，另加公共导出；已有测试为 selection_test.dart、toggle_test.dart 和 group_scope_test.dart。Checkbox 已通过 maybeOf 开放选择通道；Radio 还需去掉对 ElRadio 实例及 _toggle 的依赖。不能仅跨目录保留 part of，否则仍与 UI 库耦合。
+两个 group.dart 已移除 part of；UI 子项改为导入并使用公开 Scope，原 index.dart 继续导出 Group。Radio Group 只依赖内部选项协议，不再导入 ElRadio 或访问它的私有字段。后续迁移涉及这 **4 个实现文件**及导出、测试路径。
+
+相关测试为 selection_test.dart、toggle_test.dart、group_scope_test.dart 和 group_library_test.dart，覆盖原组件行为、上下文查询及独立库导入。
 
 验收时增加不导入 ui.dart、也不使用 ElComponentProvider 的自定义子项测试；同时保留 min/max、禁用、表单、重排、键盘与独立 toggle 的现有行为。Form 上游仍引用 ui.dart，是已有的间接依赖。
 
