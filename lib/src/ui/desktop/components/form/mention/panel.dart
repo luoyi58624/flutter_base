@@ -1,0 +1,296 @@
+part of 'index.dart';
+
+Duration get _mentionPanelExitDuration => const Duration(milliseconds: 90);
+
+List<double> get _mentionOptionHeights => const [28, 32, 36, 40, 44];
+
+ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
+  bgColor: ElThemeData.of(context).cardColor,
+  color: ElThemeData.of(context).textColorSm,
+  border: .all(color: null),
+  borderRadius: .circular(ElThemeData.of(context).radiusSm),
+  boxShadow: ElThemeData.of(context).shadowSm,
+  opacity: 1,
+  transform: .translateY(0),
+  starting: ElStyle(opacity: 0, transform: .translateY(-4)),
+  transitions: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
+  iconColor: ElThemeData.of(context).textColorSm,
+);
+
+ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
+    ElStyle(
+      width: '100%',
+      padding: .symmetric(horizontal: 12),
+      alignment: .centerLeft,
+      cursor: SystemMouseCursors.click,
+      userSelect: .none,
+      onHover: (isSelected)
+          ? null
+          : (ElStyle(bgColor: ElThemeData.of(context).overlayColorLighter)),
+    ).merge(
+      (isSelected)
+          ? (ElStyle(
+              bgColor: ElThemeData.of(context).overlayColorLight,
+              color: ElThemeData.of(context).primary,
+              iconColor: ElThemeData.of(context).primary,
+            ))
+          : null,
+    );
+
+ElStyle _mentionDisabledOptionStyle(BuildContext context) => ElStyle(
+  color: ElThemeData.of(context).textColorLg,
+  cursor: SystemMouseCursors.basic,
+  onHover: ElStyle(bgColor: Color(0x00000000)),
+  iconColor: ElThemeData.of(context).textColorLg,
+);
+
+class _MentionPanel<T> extends StatelessWidget {
+  const _MentionPanel({
+    required this.suggestions,
+    required this.loading,
+    required this.activeIndex,
+    required this.maxHeight,
+    required this.width,
+    required this.showArrow,
+    required this.placement,
+    required this.scrollController,
+    required this.size,
+    required this.panelStyle,
+    required this.optionStyle,
+    required this.itemBuilder,
+    required this.header,
+    required this.footer,
+    required this.loadingBuilder,
+    required this.emptyBuilder,
+    required this.onOptionPointerDown,
+    required this.onOptionPointerEnd,
+    required this.onSelected,
+  });
+
+  final List<_ResolvedMentionOption<T>> suggestions;
+  final bool loading;
+  final int? activeIndex;
+  final double maxHeight;
+  final double width;
+  final bool showArrow;
+  final ElMentionPlacement placement;
+  final ScrollController scrollController;
+  final ElLevelType size;
+  final ElStyle? panelStyle;
+  final ElStyle? optionStyle;
+  final Widget Function(
+    BuildContext context,
+    ElMentionOption<T> option,
+    bool active,
+  )?
+  itemBuilder;
+  final Widget? header;
+  final Widget? footer;
+  final WidgetBuilder? loadingBuilder;
+  final WidgetBuilder? emptyBuilder;
+  final VoidCallback onOptionPointerDown;
+  final VoidCallback onOptionPointerEnd;
+  final ValueChanged<_ResolvedMentionOption<T>> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final phase = ElPortal.phaseOf(context);
+    final geometry = ElPortal.geometryOf(context);
+    final exiting = phase == ElPortalPhase.exiting;
+    var style = _mentionPanelBaseStyle(context).merge(
+      ElStyle(
+        width: width,
+        maxHeight: maxHeight,
+        opacity: exiting ? 0 : 1,
+        transform: .translateY(exiting ? -4 : 0),
+      ),
+    );
+    if (panelStyle != null) style = style.merge(panelStyle);
+    final optionHeight = _mentionOptionHeights[size.index];
+
+    final list = ElScrollView(
+      controller: scrollController,
+      shrinkWrap: true,
+      crossAxisAlignment: .stretch,
+      semanticsRole: SemanticsRole.list,
+      children: _children(context, optionHeight),
+    );
+    final content = header == null && footer == null
+        ? list
+        : Column(
+            mainAxisSize: .min,
+            crossAxisAlignment: .stretch,
+            children: [
+              ?header,
+              Flexible(child: list),
+              ?footer,
+            ],
+          );
+    final panel = ElView(
+      key: const ValueKey<String>('el-mention-panel'),
+      style: style,
+      semantics: ElSemantics(container: true, explicitChildNodes: true),
+      child: content,
+    );
+    if (!showArrow) return panel;
+
+    final actualSide =
+        geometry?.placement.side ??
+        (placement == ElMentionPlacement.top
+            ? AxisDirection.up
+            : AxisDirection.down);
+    final arrowTarget =
+        geometry?.arrowTarget ??
+        Offset(width / 2, actualSide == AxisDirection.up ? maxHeight : 0);
+    final arrowLeft = (arrowTarget.dx - 4)
+        .clamp(0, math.max(0, width - 8))
+        .toDouble();
+    final arrowTop = actualSide == AxisDirection.up ? null : -4.0;
+    final arrowBottom = actualSide == AxisDirection.up ? -4.0 : null;
+    return ElStackView(
+      clipBehavior: Clip.none,
+      children: [
+        panel,
+        ElPositioned(
+          left: arrowLeft,
+          top: arrowTop,
+          bottom: arrowBottom,
+          width: 8,
+          height: 8,
+          zIndex: 1,
+          child: ElView(
+            key: const ValueKey<String>('el-mention-arrow'),
+            style: ElStyle(
+              bgColor: ElThemeData.of(context).cardColor,
+              border: ElBorder.all(color: ElThemeData.of(context).borderColor),
+              transform: ElTransform.rotate(0.7853981633974483),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _children(BuildContext context, double optionHeight) {
+    if (loading) {
+      return [
+        _MentionMessage(
+          height: optionHeight,
+          child: loadingBuilder?.call(context) ?? '加载中…',
+        ),
+      ];
+    }
+    if (suggestions.isEmpty) {
+      return [
+        _MentionMessage(
+          height: optionHeight,
+          child: emptyBuilder?.call(context) ?? '暂无匹配',
+        ),
+      ];
+    }
+    return [
+      for (var index = 0; index < suggestions.length; index++)
+        _MentionOption<T>(
+          suggestion: suggestions[index],
+          active: index == activeIndex,
+          height: optionHeight,
+          style: optionStyle,
+          itemBuilder: itemBuilder,
+          onPointerDown: onOptionPointerDown,
+          onPointerEnd: onOptionPointerEnd,
+          onSelected: onSelected,
+        ),
+    ];
+  }
+}
+
+class _MentionMessage extends StatelessWidget {
+  const _MentionMessage({required this.height, required this.child});
+
+  final double height;
+  final Object child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElView(
+      style: ElStyle(
+        height: height,
+        padding: .symmetric(horizontal: 12),
+        alignment: .centerLeft,
+        color: ElThemeData.of(context).textColorLg,
+        userSelect: .none,
+        iconColor: ElThemeData.of(context).textColorLg,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _MentionOption<T> extends StatelessWidget {
+  const _MentionOption({
+    required this.suggestion,
+    required this.active,
+    required this.height,
+    required this.style,
+    required this.itemBuilder,
+    required this.onPointerDown,
+    required this.onPointerEnd,
+    required this.onSelected,
+  });
+
+  final _ResolvedMentionOption<T> suggestion;
+  final bool active;
+  final double height;
+  final ElStyle? style;
+  final Widget Function(
+    BuildContext context,
+    ElMentionOption<T> option,
+    bool active,
+  )?
+  itemBuilder;
+  final VoidCallback onPointerDown;
+  final VoidCallback onPointerEnd;
+  final ValueChanged<_ResolvedMentionOption<T>> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = suggestion.source.disabled;
+    var resolvedStyle = _mentionOptionBaseStyle(
+      context,
+      active,
+    ).merge(ElStyle(height: height));
+    if (disabled) {
+      resolvedStyle = resolvedStyle.merge(_mentionDisabledOptionStyle(context));
+    }
+    if (style != null) resolvedStyle = resolvedStyle.merge(style);
+    void select() {
+      if (!disabled) onSelected(suggestion);
+    }
+
+    return ElView(
+      key: ValueKey<(String, int)>(('el-mention-option', suggestion.index)),
+
+      style: resolvedStyle,
+      event: ElEvent(
+        disabled: disabled,
+        onPointerDown: (event) {
+          event.preserveFocus();
+          onPointerDown();
+        },
+        onPointerUp: (_) => onPointerEnd(),
+        onPointerCancel: (_) => onPointerEnd(),
+        onTap: (_) => select(),
+      ),
+      semantics: ElSemantics(
+        label: suggestion.label,
+        role: SemanticsRole.listItem,
+        enabled: !disabled,
+        selected: active,
+        onTap: disabled ? null : select,
+      ),
+      child:
+          itemBuilder?.call(context, suggestion.source, active) ??
+          suggestion.label,
+    );
+  }
+}

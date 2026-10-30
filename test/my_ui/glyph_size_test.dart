@@ -3,9 +3,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_base/src/my_ui/index.dart';
-import 'package:flutter_base/src/my_ui/cores/glyph.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/ui/mobile/cores/glyph.dart';
 
 Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   home: MediaQuery(

@@ -9,8 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_base/src/my_ui/index.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/mobile.dart';
 
 final _output = Directory(
   Platform.environment['MY_UI_VISUAL_OUT'] ?? '.claude/plan/my-ui-visual',

@@ -6,9 +6,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_base/ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_base/src/my_ui/index.dart';
+import 'package:flutter_base/mobile.dart';
 
 void main() {
   final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
