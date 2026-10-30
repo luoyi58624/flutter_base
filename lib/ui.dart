@@ -143,9 +143,9 @@ export 'src/flutter/views/layout/grid/grid_view.dart' show ElGridView, ElGridPar
 export 'src/flutter/views/layout/list/list_view.dart' show ElListView, ElListParentData, ElRenderListView;
 
 // 浮层、锚点与 Portal
-export 'src/ui/cores/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
-export 'src/ui/cores/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry, ElPlacement;
-export 'src/ui/cores/popup/hover_intent.dart' show ElHoverIntent;
+export 'src/flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
+export 'src/flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry, ElPlacement;
+export 'src/flutter/widgets/popup/hover_intent.dart' show ElHoverIntent;
 
 // 文本选择、框选与选区操作
 export 'src/flutter/views/selection/selection.dart'

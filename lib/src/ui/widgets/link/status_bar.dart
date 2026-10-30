@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:flutter_base/ui.dart';
-import '../../cores/popup/anchor.dart' as popup;
+import '../../../flutter/widgets/popup/anchor.dart' as popup;
 
 /// 白盒测试识别链接状态栏面板的稳定 key。
 @visibleForTesting

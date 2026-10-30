@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/popup/hover_intent.dart' show HoverIntentMachine;
+import 'package:flutter_base/src/flutter/widgets/popup/hover_intent.dart' show HoverIntentMachine;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
