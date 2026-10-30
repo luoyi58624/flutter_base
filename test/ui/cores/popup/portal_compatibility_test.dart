@@ -51,7 +51,7 @@ void main() {
   testWidgets('仅官方 Overlay：相位与几何读取入口获得新内核数据', (tester) async {
     final controller = ElPortalController();
     addTearDown(controller.dispose);
-    ElPresencePhase? phase;
+    ElPortalPhase? phase;
     ElOverlayAnchorGeometry? geometry;
     await tester.pumpWidget(
       MaterialApp(
@@ -73,12 +73,12 @@ void main() {
     );
     controller.open();
     await settle(tester);
-    expect(phase, ElPresencePhase.visible);
+    expect(phase, ElPortalPhase.visible);
     expect(geometry?.overlayRect, Rect.fromLTWH(8, 40, 120, 60));
     expect(geometry?.anchorRect, Rect.fromLTWH(0, 0, 80, 40));
     controller.close();
     await tester.pump();
-    expect(phase, ElPresencePhase.exiting);
+    expect(phase, ElPortalPhase.exiting);
     await tester.pump(Duration(milliseconds: 100));
     await settle(tester);
   });

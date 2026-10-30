@@ -143,7 +143,7 @@ export 'src/ui/cores/layout/grid/grid_view.dart' show ElGridView, ElGridParentDa
 export 'src/ui/cores/layout/list/list_view.dart' show ElListView, ElListParentData, ElRenderListView;
 
 // 浮层、锚点与 Portal
-export 'src/ui/cores/popup/portal.dart' show ElPortal, ElPortalController;
+export 'src/ui/cores/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 export 'src/ui/cores/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry, ElPlacement;
 export 'src/ui/cores/popup/hover_intent.dart' show ElHoverIntent;
 
@@ -191,9 +191,7 @@ export 'src/ui/views/menu/context_menu.dart'
 export 'src/ui/widgets/dnd/draggable.dart' show ElDraggable;
 export 'src/ui/widgets/dnd/drop_target.dart' show ElDropCandidate, ElDropDetails, ElDropTarget;
 
-// 进出场动画与点击反馈
-export 'src/ui/cores/presence/presence.dart' show ElPresence, ElPresencePhase;
-
+// 点击反馈
 export 'src/ui/widgets/tap/index.dart' show ElFadeTap, ElRippleTap, ElScaleTap;
 
 // 通用表单状态、校验、字段绑定与布局。

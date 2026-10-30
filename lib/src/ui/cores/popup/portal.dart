@@ -6,11 +6,22 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../presence/presence.dart';
 import '../view/event/dispatcher.dart' show EventDispatcher;
 import 'anchor.dart';
 import 'hover_intent.dart';
 import 'popup_stack.dart';
+
+/// 锚定弹层的进退场阶段，供面板构建时选择对应样式。
+enum ElPortalPhase {
+  /// 入场首帧，下一帧切换为可见阶段。
+  entering,
+
+  /// 面板正常显示。
+  visible,
+
+  /// 面板停止交互，等待退场完成后移除。
+  exiting,
+}
 
 /// 锚定弹层的开闭控制器，关闭后可再次打开。
 class ElPortalController extends ChangeNotifier {
@@ -113,8 +124,8 @@ class ElPortal extends StatefulWidget {
       context.dependOnInheritedWidgetOfExactType<_PortalScope>()?.geometry;
 
   /// 最近面板的进退场阶段。
-  static ElPresencePhase phaseOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_PortalScope>()?.phase ?? ElPresencePhase.visible;
+  static ElPortalPhase phaseOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_PortalScope>()?.phase ?? ElPortalPhase.visible;
   @override
   State<ElPortal> createState() => _PortalState();
 }
@@ -135,7 +146,7 @@ class _PortalState extends State<ElPortal> {
   LocalHistoryEntry? _back;
   HoverIntentMachine? _hover;
   ElOverlayAnchorGeometry? _geometry;
-  ElPresencePhase _phase = ElPresencePhase.entering;
+  ElPortalPhase _phase = ElPortalPhase.entering;
   bool _open = false, _queued = false, _root = false, _lost = false;
   bool get _top => _open && ElPopupStack.isTopmost(this);
 
@@ -238,7 +249,7 @@ class _PortalState extends State<ElPortal> {
       ..descendantsAreTraversable = true;
     setState(() {
       _open = true;
-      _phase = ElPresencePhase.entering;
+      _phase = ElPortalPhase.entering;
     });
     _syncStack();
     _afterBuild(() {
@@ -248,7 +259,7 @@ class _PortalState extends State<ElPortal> {
       _requestFocus();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _open) setState(() => _phase = ElPresencePhase.visible);
+      if (mounted && _open) setState(() => _phase = ElPortalPhase.visible);
     });
     widget.controller?._changed();
   }
@@ -267,7 +278,7 @@ class _PortalState extends State<ElPortal> {
       ..descendantsAreTraversable = false;
     setState(() {
       _open = false;
-      _phase = ElPresencePhase.exiting;
+      _phase = ElPortalPhase.exiting;
     });
     _syncStack();
     if (widget.exitDuration == Duration.zero) {
@@ -487,7 +498,7 @@ class _PortalState extends State<ElPortal> {
 class _PortalScope extends InheritedWidget {
   const _PortalScope({required this.geometry, required this.phase, required super.child});
   final ElOverlayAnchorGeometry? geometry;
-  final ElPresencePhase phase;
+  final ElPortalPhase phase;
   @override
   bool updateShouldNotify(_PortalScope oldWidget) => geometry != oldWidget.geometry || phase != oldWidget.phase;
 }

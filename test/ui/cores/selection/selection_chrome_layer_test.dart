@@ -347,7 +347,7 @@ void main() {
         child: ValueListenableBuilder<bool>(
           valueListenable: shown,
           builder: (context, visible, _) => SelectionChromeSlotHost(
-            enabled: visible && ElPortal.phaseOf(context) != ElPresencePhase.exiting,
+            enabled: visible && ElPortal.phaseOf(context) != ElPortalPhase.exiting,
             child: Offstage(
               offstage: !visible,
               child: SelectionView(
