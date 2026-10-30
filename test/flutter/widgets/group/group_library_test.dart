@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/flutter/widgets/group/checkbox_group.dart' as checks;
-import 'package:flutter_base/src/flutter/widgets/group/radio_group.dart' as radios;
+import 'package:flutter_base/src/flutter/components/checkbox/group.dart' as checks;
+import 'package:flutter_base/src/flutter/components/radio/group.dart' as radios;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -12,7 +12,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
-import '../../../ui/components/index.dart' show ElComponentProvider;
+import '../../components/index.dart' show ElComponentProvider;
 import '../button/button_view.dart';
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
 import '../../utils/internal/gutter.dart' show OrdinalGutterHost, RenderOrdinalGutter;

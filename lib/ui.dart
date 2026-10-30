@@ -1,7 +1,7 @@
 /// flutter_base UI 公共入口：视图引擎（ElView）、事件、选中、滚动、布局、浮层与功能组件。
 library;
 
-export 'src/ui/components/list_tile/index.dart';
+export 'src/flutter/components/list_tile/index.dart';
 export 'src/flutter/views/selection/index.dart';
 export 'src/flutter/views/view/index.dart';
 
@@ -211,7 +211,7 @@ export 'src/flutter/widgets/form/index.dart'
         ElRequiredFormRule;
 
 // 组件
-export 'src/ui/components/index.dart'
+export 'src/flutter/components/index.dart'
     show
         ElAutocomplete,
         ElButton,

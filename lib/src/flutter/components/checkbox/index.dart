@@ -3,7 +3,9 @@ import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/ui.dart' hide ElCheckboxGroup, ElCheckboxGroupScope;
 
-import '../../../flutter/widgets/group/checkbox_group.dart';
+import 'group.dart';
+
+export 'group.dart' show ElCheckboxGroup, ElCheckboxGroupScope;
 
 /// 多选框公共声明；值绑定与交互共用，Builder 仅提供外观。
 class ElCheckbox extends ElModelValue<Object?> {
