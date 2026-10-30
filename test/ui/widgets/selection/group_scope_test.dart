@@ -1,28 +1,23 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) => Text('${component.value}');
-
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
-  child: ElComponentProvider(
-    builders: ElComponentBuilders(radioBuilder: _radio),
-    child: ElView(
-      style: ElStyle(alignment: .topLeft),
-      child: child,
-    ),
-  ),
+  child: Align(alignment: .topLeft, child: child),
 );
 
 void main() {
-  testWidgets('组外 maybeOf 返回 null', (tester) async {
+  testWidgets('组外 maybeOf 返回 null，of 要求分组祖先', (tester) async {
     await tester.pumpWidget(
       _host(
         Builder(
           builder: (context) {
             expect(ElCheckboxGroup.maybeOf(context), isNull);
             expect(ElRadioGroup.maybeOf(context), isNull);
+            expect(() => ElCheckboxGroup.of(context), throwsAssertionError);
+            expect(() => ElRadioGroup.of(context), throwsAssertionError);
             return SizedBox();
           },
         ),
@@ -30,111 +25,152 @@ void main() {
     );
   });
 
-  testWidgets('多选上下文订阅模型变化，公开操作遵循数量限制与整组禁用', (tester) async {
+  testWidgets('多选 Scope 直接读写模型，保持集合类型并提供增删与数量标志', (tester) async {
     final model = ValueNotifier<List<String>>(['a']);
     addTearDown(model.dispose);
     late ElCheckboxGroupScope scope;
     var builds = 0;
-    final probe = Builder(
-      builder: (context) {
-        scope = ElCheckboxGroup.maybeOf(context)!;
-        builds++;
-        return Text('${scope.value}');
-      },
+    await tester.pumpWidget(
+      _host(
+        ElCheckboxGroup<String>(
+          modelValue: model,
+          min: 1,
+          max: 2,
+          child: Builder(
+            builder: (context) {
+              scope = ElCheckboxGroup.of(context);
+              builds++;
+              return Text('${scope.modelValue}');
+            },
+          ),
+        ),
+      ),
     );
-    Widget scene({bool disabled = false}) =>
-        _host(ElCheckboxGroup<String>(modelValue: model, min: 1, max: 2, disabled: disabled, children: [probe]));
-
-    await tester.pumpWidget(scene());
-    expect(scope.value, ['a']);
-    expect(scope.min, 1);
-    expect(scope.max, 2);
-    expect(scope.isLast, isTrue);
-    expect(scope.limitReached(true), isTrue);
-    expect(() => scope.value.add('b'), throwsUnsupportedError);
-
-    scope.setSelected('a', false);
-    expect(model.value, ['a']);
-    final initialBuilds = builds;
-    scope.setSelected('b', true);
+    expect(scope.hasElement('a'), isTrue);
+    expect(scope.disabledRemove, isTrue);
+    final before = builds;
+    scope.addElement('b');
     await tester.pump();
     expect(model.value, ['a', 'b']);
-    expect(scope.value, ['a', 'b']);
-    expect(builds, greaterThan(initialBuilds));
-    expect(scope.limitReached(false), isTrue);
-    scope.setSelected('c', true);
-    expect(model.value, ['a', 'b']);
-    scope.setSelected('a', false);
+    expect(model.value, isA<List<String>>());
+    expect(scope.disabledAdd, isTrue);
+    expect(builds, greaterThan(before));
+    scope.removeElement('a');
     await tester.pump();
     expect(model.value, ['b']);
-
-    model.value = ['c'];
+    scope.modelValue = 'c';
     await tester.pump();
-    expect(scope.value, ['c']);
-    await tester.pumpWidget(scene(disabled: true));
-    expect(scope.disabled, isTrue);
-    scope.setSelected('b', true);
-    expect(model.value, ['c']);
+    expect(model.value, ['b', 'c']);
+    scope.modelValue = 'c';
+    await tester.pump();
+    expect(model.value, ['b']);
+    scope.modelValue = ['x', 'y'];
+    await tester.pump();
+    expect(model.value, ['x', 'y']);
+    scope.clear();
+    await tester.pump();
+    expect(model.value, isEmpty);
+    model.value = ['external'];
+    await tester.pump();
+    expect(scope.modelValue, ['external']);
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('单选上下文订阅变化，只选择已登记且启用的选项', (tester) async {
-    final model = ValueNotifier<String?>('a');
-    addTearDown(model.dispose);
-    late ElRadioGroupScope scope;
-    var builds = 0;
-    final probe = Builder(
-      builder: (context) {
-        scope = ElRadioGroup.maybeOf(context)!;
-        builds++;
-        return Text('${scope.value}');
-      },
+  testWidgets('listen false 不订阅重建，Scope 仍可读取实时模型', (tester) async {
+    final checks = ValueNotifier<List<String>>([]);
+    final radio = ValueNotifier<String?>(null);
+    addTearDown(checks.dispose);
+    addTearDown(radio.dispose);
+    var checkBuilds = 0, radioBuilds = 0;
+    late ElCheckboxGroupScope checkScope;
+    late ElRadioGroupScope radioScope;
+    await tester.pumpWidget(
+      _host(
+        Column(
+          mainAxisSize: .min,
+          children: [
+            ElCheckboxGroup<String>(
+              modelValue: checks,
+              child: Builder(
+                builder: (context) {
+                  checkBuilds++;
+                  checkScope = ElCheckboxGroup.of(context, listen: false);
+                  return SizedBox();
+                },
+              ),
+            ),
+            ElRadioGroup<String>(
+              modelValue: radio,
+              child: Builder(
+                builder: (context) {
+                  radioBuilds++;
+                  radioScope = ElRadioGroup.of(context, listen: false);
+                  return SizedBox();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-    final children = <Widget>[ElRadio(value: 'a'), ElRadio(value: 'b', disabled: true), ElRadio(value: 'c'), probe];
-    Widget scene({bool disabled = false}) =>
-        _host(ElRadioGroup<String>(modelValue: model, disabled: disabled, children: children));
-
-    await tester.pumpWidget(scene());
-    await tester.pumpAndSettle();
-    expect(scope.value, 'a');
-    expect(scope.isLast, isTrue);
-    final initialBuilds = builds;
-    scope.select('c');
+    checks.value = ['a'];
+    radio.value = 'b';
     await tester.pump();
-    expect(model.value, 'c');
-    expect(scope.value, 'c');
-    expect(builds, greaterThan(initialBuilds));
-    scope.select('b');
-    scope.select('missing');
-    expect(model.value, 'c');
-
-    model.value = null;
-    await tester.pump();
-    expect(scope.value, isNull);
-    await tester.pumpWidget(scene(disabled: true));
-    await tester.pumpAndSettle();
-    expect(scope.disabled, isTrue);
-    scope.select('a');
-    expect(model.value, isNull);
+    expect(checkBuilds, 1);
+    expect(radioBuilds, 1);
+    expect(checkScope.modelValue, ['a']);
+    expect(radioScope.modelValue, 'b');
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('嵌套分组读取最近上下文，isLast 按直接布局项计算', (tester) async {
+  testWidgets('自定义单选无需登记，required false 支持取消且回调包含 null', (tester) async {
+    final model = ValueNotifier<String?>(null);
+    final changes = <String?>[];
+    addTearDown(model.dispose);
+    await tester.pumpWidget(
+      _host(
+        ElRadioGroup<String>(
+          modelValue: model,
+          required: false,
+          onChanged: changes.add,
+          child: Builder(
+            builder: (context) {
+              final scope = ElRadioGroup.of(context);
+              return ElButtonView(
+                key: ValueKey('custom-option'),
+                onPressed: () => scope.modelValue = 'custom',
+                child: scope.modelValue ?? 'empty',
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(ValueKey('custom-option')));
+    await tester.pump();
+    expect(model.value, 'custom');
+    await tester.tap(find.byKey(ValueKey('custom-option')));
+    await tester.pump();
+    expect(model.value, isNull);
+    expect(changes, ['custom', null]);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('嵌套分组查询最近同类祖先', (tester) async {
     final checks = <ElCheckboxGroupScope>[];
     final radios = <ElRadioGroupScope>[];
     Widget checkProbe() => Builder(
       builder: (context) {
-        checks.add(ElCheckboxGroup.maybeOf(context)!);
+        checks.add(ElCheckboxGroup.of(context));
         return SizedBox();
       },
     );
     Widget radioProbe() => Builder(
       builder: (context) {
-        radios.add(ElRadioGroup.maybeOf(context)!);
+        radios.add(ElRadioGroup.of(context));
         return SizedBox();
       },
     );
-
     await tester.pumpWidget(
       _host(
         Column(
@@ -142,28 +178,64 @@ void main() {
           children: [
             ElCheckboxGroup<String>(
               value: ['outer'],
-              children: [
-                checkProbe(),
-                ElCheckboxGroup<String>(value: ['inner'], children: [checkProbe()]),
-              ],
+              child: Column(
+                mainAxisSize: .min,
+                children: [
+                  checkProbe(),
+                  ElCheckboxGroup<String>(value: ['inner'], child: checkProbe()),
+                ],
+              ),
             ),
             ElRadioGroup<String>(
               value: 'outer',
-              children: [
-                radioProbe(),
-                ElRadioGroup<String>(value: 'inner', children: [radioProbe()]),
-              ],
+              child: Column(
+                mainAxisSize: .min,
+                children: [
+                  radioProbe(),
+                  ElRadioGroup<String>(value: 'inner', child: radioProbe()),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
-    expect(checks.map((scope) => scope.value), [
+    expect(checks.map((scope) => scope.modelValue), [
       ['outer'],
       ['inner'],
     ]);
-    expect(checks.map((scope) => scope.isLast), [false, true]);
-    expect(radios.map((scope) => scope.value), ['outer', 'inner']);
-    expect(radios.map((scope) => scope.isLast), [false, true]);
+    expect(radios.map((scope) => scope.modelValue), ['outer', 'inner']);
+  });
+
+  testWidgets('可直接组合官方 Radio，Tab 与方向键由官方分组处理', (tester) async {
+    final model = ValueNotifier<String?>('a');
+    final first = FocusNode(), last = FocusNode();
+    addTearDown(model.dispose);
+    addTearDown(first.dispose);
+    addTearDown(last.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ElRadioGroup<String>(
+            modelValue: model,
+            child: Column(
+              children: [
+                Radio<Object?>(value: 'a', focusNode: first),
+                Radio<Object?>(value: 'disabled', enabled: false),
+                Radio<Object?>(value: 'b', focusNode: last),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(first.hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(model.value, 'b');
+    expect(last.hasFocus, isTrue);
+    await tester.pumpWidget(SizedBox());
   });
 }

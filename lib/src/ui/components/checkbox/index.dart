@@ -53,17 +53,16 @@ class ElCheckbox extends ElModelValue<Object?> {
   @override
   Widget obsBuilder(BuildContext context) {
     final item = _item;
-    final checked = _inGroup ? item!.value.contains(value) : $obs.value as bool;
+    final checked = _inGroup ? item!.hasElement(value) : $obs.value as bool;
     final state = ElCheckboxState(
       checked: checked,
-      disabled: disabled || (item?.disabled ?? false) || (_inGroup && item!.limitReached(checked)),
-      isLast: item?.isLast ?? true,
+      disabled: disabled || (_inGroup && (checked ? item!.disabledRemove : item!.disabledAdd)),
     );
     void toggle() {
       if (_toggle) {
         $obs.value = !($obs.value as bool);
       } else {
-        item!.setSelected(value, indeterminate ? true : !checked);
+        indeterminate || !checked ? item!.addElement(value) : item!.removeElement(value);
       }
     }
 
@@ -88,14 +87,11 @@ class ElCheckbox extends ElModelValue<Object?> {
 /// 供外观 Builder 读取的有效状态，不包含模型写入或分组行为。
 class ElCheckboxState {
   /// 创建外观状态快照。
-  const ElCheckboxState({required this.checked, required this.disabled, this.isLast = true});
+  const ElCheckboxState({required this.checked, required this.disabled});
 
   /// 当前是否选中。
   final bool checked;
 
   /// 合并分组限制后的禁用状态。
   final bool disabled;
-
-  /// 是否为分组最后一个布局项，组外为 true。
-  final bool isLast;
 }

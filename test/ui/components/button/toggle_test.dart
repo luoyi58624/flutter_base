@@ -1,4 +1,5 @@
 import 'dart:ui' show CheckedState, SemanticsAction, Tristate;
+
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -168,11 +169,15 @@ void main() {
           children: [
             ElCheckboxGroup<String>(
               modelValue: selection,
-              children: [ElCheckbox(key: ValueKey('mixed'), label: 'a', indeterminate: true)],
+              child: Wrap(
+                children: [ElCheckbox(key: ValueKey('mixed'), label: 'a', indeterminate: true)],
+              ),
             ),
             ElRadioGroup<String>(
               modelValue: radio,
-              children: [ElRadio(key: ValueKey('radio'), label: 'a')],
+              child: Wrap(
+                children: [ElRadio(key: ValueKey('radio'), label: 'a')],
+              ),
             ),
           ],
         ),

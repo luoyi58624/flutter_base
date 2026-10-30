@@ -17,36 +17,32 @@ void main() {
           children: [
             checks.ElCheckboxGroup<String>(
               modelValue: model,
-              children: [
-                Builder(
-                  builder: (context) {
-                    checkbox = checks.ElCheckboxGroup.maybeOf(context)!;
-                    return Text('${checkbox.value}');
-                  },
-                ),
-              ],
+              child: Builder(
+                builder: (context) {
+                  checkbox = checks.ElCheckboxGroup.maybeOf(context)!;
+                  return Text('${checkbox.modelValue}');
+                },
+              ),
             ),
             radios.ElRadioGroup<String>(
               value: 'r',
-              children: [
-                Builder(
-                  builder: (context) {
-                    radio = radios.ElRadioGroup.maybeOf(context)!;
-                    return Text('${radio.value}');
-                  },
-                ),
-              ],
+              child: Builder(
+                builder: (context) {
+                  radio = radios.ElRadioGroup.maybeOf(context)!;
+                  return Text('${radio.modelValue}');
+                },
+              ),
             ),
           ],
         ),
       ),
     );
-    expect(checkbox.value, ['a']);
-    expect(radio.value, 'r');
-    checkbox.setSelected('b', true);
+    expect(checkbox.modelValue, ['a']);
+    expect(radio.modelValue, 'r');
+    checkbox.addElement('b');
     await tester.pump();
     expect(model.value, ['a', 'b']);
-    expect(checkbox.value, ['a', 'b']);
+    expect(checkbox.modelValue, ['a', 'b']);
     await tester.pumpWidget(SizedBox());
   });
 }

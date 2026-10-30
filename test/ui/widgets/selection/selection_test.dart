@@ -1,6 +1,6 @@
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState state) => ElView(
@@ -12,13 +12,15 @@ Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state)
   child: component.label,
 );
 ElComponentBuilders get _builders => ElComponentBuilders(checkboxBuilder: _checkbox, radioBuilder: _radio);
-Widget _host(Widget child) => Directionality(
-  textDirection: .ltr,
-  child: ElComponentProvider(
-    builders: _builders,
-    child: ElView(
-      style: ElStyle(alignment: .topLeft),
-      child: child,
+Widget _host(Widget child) => MaterialApp(
+  home: Directionality(
+    textDirection: .ltr,
+    child: ElComponentProvider(
+      builders: _builders,
+      child: ElView(
+        style: ElStyle(alignment: .topLeft),
+        child: child,
+      ),
     ),
   ),
 );
@@ -51,17 +53,21 @@ void main() {
           children: [
             ElCheckboxGroup<Object>(
               modelValue: checks,
-              children: [
-                ElCheckbox(key: ValueKey('explicit-check'), value: 7, label: '七号选项'),
-                ElCheckbox(key: ValueKey('fallback-check'), label: '标签值'),
-              ],
+              child: Wrap(
+                children: [
+                  ElCheckbox(key: ValueKey('explicit-check'), value: 7, label: '七号选项'),
+                  ElCheckbox(key: ValueKey('fallback-check'), label: '标签值'),
+                ],
+              ),
             ),
             ElRadioGroup<Object>(
               modelValue: radio,
-              children: [
-                ElRadio(value: 9, label: '九号选项', key: ValueKey('explicit-radio')),
-                ElRadio(label: '标签单选', key: ValueKey('fallback-radio')),
-              ],
+              child: Wrap(
+                children: [
+                  ElRadio(value: 9, label: '九号选项', key: ValueKey('explicit-radio')),
+                  ElRadio(label: '标签单选', key: ValueKey('fallback-radio')),
+                ],
+              ),
             ),
           ],
         ),
@@ -110,7 +116,7 @@ void main() {
     expect(model.listening, isFalse);
   });
 
-  testWidgets('toggle 不接入外层分组的值或禁用规则', (tester) async {
+  testWidgets('toggle 不接入外层分组的值或数量规则', (tester) async {
     var changes = 0;
     await tester.pumpWidget(
       _host(
@@ -119,12 +125,16 @@ void main() {
           children: [
             ElCheckboxGroup<String>(
               value: [],
-              disabled: true,
-              children: [ElCheckbox.toggle(key: ValueKey('check'), value: false, onChanged: (_) => changes++)],
+              max: 0,
+              child: Wrap(
+                children: [ElCheckbox.toggle(key: ValueKey('check'), value: false, onChanged: (_) => changes++)],
+              ),
             ),
             ElRadioGroup<String>(
-              disabled: true,
-              children: [ElRadio<String>.toggle(key: ValueKey('radio'), value: false, onChanged: (_) => changes++)],
+              value: 'unrelated',
+              child: Wrap(
+                children: [ElRadio<String>.toggle(key: ValueKey('radio'), value: false, onChanged: (_) => changes++)],
+              ),
             ),
           ],
         ),
@@ -169,14 +179,16 @@ void main() {
           modelValue: model,
           min: 1,
           max: 2,
-          children: [
-            ElCheckbox(key: ValueKey('a'), value: 'a', label: 'A'),
-            ElComponentProvider(
-              builders: _builders.copyWith(checkboxBuilder: alternate),
-              child: ElCheckbox(key: ValueKey('b'), value: 'b', label: 'B'),
-            ),
-            ElCheckbox(key: ValueKey('c'), value: 'c', label: 'C'),
-          ],
+          child: Wrap(
+            children: [
+              ElCheckbox(key: ValueKey('a'), value: 'a', label: 'A'),
+              ElComponentProvider(
+                builders: _builders.copyWith(checkboxBuilder: alternate),
+                child: ElCheckbox(key: ValueKey('b'), value: 'b', label: 'B'),
+              ),
+              ElCheckbox(key: ValueKey('c'), value: 'c', label: 'C'),
+            ],
+          ),
         ),
       ),
     );
@@ -212,13 +224,18 @@ void main() {
               ElFormItem(
                 prop: 'checks',
                 child: ElCheckboxGroup<String>(
-                  children: [ElCheckbox(key: ValueKey('check'), label: 'b')],
+                  child: Wrap(
+                    children: [ElCheckbox(key: ValueKey('check'), label: 'b')],
+                  ),
                 ),
               ),
               ElFormItem(
                 prop: 'radio',
                 child: ElRadioGroup<String>(
-                  children: [ElRadio<String>(key: ValueKey('radio'), label: 'b')],
+                  required: false,
+                  child: Wrap(
+                    children: [ElRadio<String>(key: ValueKey('radio'), label: 'b')],
+                  ),
                 ),
               ),
             ],
@@ -233,6 +250,9 @@ void main() {
     await tester.tap(find.byKey(ValueKey('radio')));
     await tester.pump();
     expect(form.value['radio'], 'b');
+    await tester.tap(find.byKey(ValueKey('radio')));
+    await tester.pump();
+    expect(form.value['radio'], isNull);
   });
 
   testWidgets('嵌套单选重排后保持内部焦点和方向键顺序', (tester) async {
@@ -241,29 +261,25 @@ void main() {
     Widget scene(List<int> order) => _host(
       ElRadioGroup<int>(
         modelValue: model,
-        children: [
-          for (final value in order)
-            ElView(
-              key: ValueKey(value),
-              child: ElRadio<int>(key: ValueKey('radio-$value'), value: value, disabled: value == 2, label: '$value'),
-            ),
-        ],
+        child: Wrap(
+          children: [
+            for (final value in order)
+              ElView(
+                key: ValueKey(value),
+                child: ElRadio<int>(key: ValueKey('radio-$value'), value: value, disabled: value == 2, label: '$value'),
+              ),
+          ],
+        ),
       ),
     );
     await tester.pumpWidget(scene([1, 2, 3]));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widgetList<ElView>(
-            find.byWidgetPredicate(
-              (widget) =>
-                  widget is ElView &&
-                  (widget.semantics?.properties.checked != null || widget.semantics?.properties.toggled != null),
-            ),
-          )
-          .where((view) => view.focusNode?.skipTraversal == false),
-      hasLength(1),
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    final selectedRadio = tester.widget<RawRadio<Object?>>(
+      find.descendant(of: find.byKey(ValueKey('radio-3')), matching: find.byType(RawRadio<Object?>)),
     );
+    expect(FocusManager.instance.primaryFocus, same(selectedRadio.focusNode));
     await tester.tap(find.byKey(ValueKey('radio-1')));
     await tester.pump();
     final firstFocus = FocusManager.instance.primaryFocus;
@@ -287,16 +303,18 @@ void main() {
     Widget scene(bool swapped) => _host(
       ElRadioGroup<String>(
         value: 'a',
-        children: [
-          ElView(
-            key: ValueKey(1),
-            child: ElRadio(value: swapped ? 'b' : 'a'),
-          ),
-          ElView(
-            key: ValueKey(2),
-            child: ElRadio(value: swapped ? 'a' : 'b'),
-          ),
-        ],
+        child: Wrap(
+          children: [
+            ElView(
+              key: ValueKey(1),
+              child: ElRadio(value: swapped ? 'b' : 'a'),
+            ),
+            ElView(
+              key: ValueKey(2),
+              child: ElRadio(value: swapped ? 'a' : 'b'),
+            ),
+          ],
+        ),
       ),
     );
     await tester.pumpWidget(scene(false));
