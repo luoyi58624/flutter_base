@@ -4,6 +4,8 @@ Group 提供值绑定和上下文，布局写在 child 中；自定义组件直�
 
 导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。modelValue 在 State / Hook 生命周期内持有，卸载时 dispose。
 
+仅使用 Group 和自定义 Flutter 组件时可导入 `package:flutter_base/flutter.dart`；内置 ElRadio / ElCheckbox 从 UI 入口提供。
+
 ## 单选：内置组件与自由布局
 
 ```dart
@@ -96,4 +98,4 @@ ElForm(
 
 独立使用给 value 或 modelValue；放在 ElFormItem(prop: ...) 内可直接绑定表单字段。Checkbox 字段为 List<T>，Radio 字段为 T?。独立 ElCheckbox.toggle / ElRadio.toggle 不接入祖先 Group。
 
-实现仍位于 UI 组件目录，两个 group.dart 保持独立库；Form 上游已有的 ui.dart 依赖尚待单独清理。
+实现位于本目录的 [radio_group.dart](radio_group.dart)、[checkbox_group.dart](checkbox_group.dart)，通用测试位于 test/flutter/widgets/group；UI 子项集成测试仍放在 UI 测试目录。Form 上游已有的 ElComponentProvider 反向依赖尚待单独清理。

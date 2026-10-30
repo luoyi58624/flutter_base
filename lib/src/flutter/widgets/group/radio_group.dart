@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../flutter/state/obs/index.dart';
-import '../../../flutter/widgets/form/index.dart';
+import '../../state/obs/index.dart';
+import '../form/index.dart';
 
 /// 只提供单选值绑定与上下文，布局由调用方组合。
 class ElRadioGroup<T> extends ElFormModelValue<T?> {

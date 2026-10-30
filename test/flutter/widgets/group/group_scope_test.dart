@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _host(Widget child) => Directionality(
@@ -136,10 +136,10 @@ void main() {
           child: Builder(
             builder: (context) {
               final scope = ElRadioGroup.of(context);
-              return ElButtonView(
+              return TextButton(
                 key: ValueKey('custom-option'),
                 onPressed: () => scope.modelValue = 'custom',
-                child: scope.modelValue ?? 'empty',
+                child: Text(scope.modelValue ?? 'empty'),
               );
             },
           ),

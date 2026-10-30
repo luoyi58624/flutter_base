@@ -4,9 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:flutter_base/ui.dart' hide ElRadioGroup, ElRadioGroupScope;
 
-import 'group.dart';
-
-export 'group.dart' show ElRadioGroup, ElRadioGroupScope;
+import '../../../flutter/widgets/group/radio_group.dart';
 
 /// 单选框公共声明；值绑定与交互共用，Builder 仅提供外观。
 class ElRadio<T> extends ElModelValue<Object?> {
