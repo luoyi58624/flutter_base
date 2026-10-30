@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/view/event/press.dart';
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart' show EventDispatcher;
+import 'package:flutter_base/src/flutter/views/view/event/press.dart';
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter/rendering.dart' show RenderConstrainedBox;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;

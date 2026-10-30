@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/layout/geometry/grid_geometry.dart';
+import 'package:flutter_base/src/flutter/views/layout/geometry/grid_geometry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

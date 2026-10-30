@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' show immutable, listEquals;
 import 'package:flutter/widgets.dart';
 
-import '../view/style/style.dart';
+import '../../../flutter/views/view/style/style.dart';
 import 'table.dart' show ElTableController;
 
 /// 表格行数据统一使用 Map，动态表头和运行时加列都按字段名读取。

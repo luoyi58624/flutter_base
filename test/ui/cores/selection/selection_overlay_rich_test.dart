@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

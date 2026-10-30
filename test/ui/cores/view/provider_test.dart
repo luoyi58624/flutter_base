@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';

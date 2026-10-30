@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;

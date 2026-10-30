@@ -1,7 +1,7 @@
 // 回归：滚动同步路径（auto-scroll tick / 滚动 offset 变化）的 handle 端点重解析
 // 必须走与 move 路径同口径的 H1 touch-through 修正——手指按在行下方手柄上，
 // raw 位置直接命中会落到低约一行处，边缘自动滚动期间端点在两行间逐帧跳变。
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 

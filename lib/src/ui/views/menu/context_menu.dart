@@ -6,13 +6,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/utils/internal/focus.dart';
-import 'package:flutter_base/src/ui/cores/selection/common/selection_chrome_host.dart'
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_chrome_host.dart'
     show SelectionChromeMountHost, SelectionChromeSlot;
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/semantics/semantics.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 
 part 'menu_overlay.dart';
 

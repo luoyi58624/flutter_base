@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/scroll/common/viewport/scroll_viewport.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/viewport/scroll_viewport.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

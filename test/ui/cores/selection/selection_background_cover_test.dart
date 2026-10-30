@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // 选区覆盖文本背景（CSS highlight painting 对齐）—— 集成侧。
 //
 // 不变量：
@@ -12,8 +12,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

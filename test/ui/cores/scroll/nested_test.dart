@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'package:flutter_base/src/ui/cores/scroll/common/pointer/scroll_pointer_chain.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/pointer/scroll_pointer_chain.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/gestures.dart';

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/cores/view/event/press.dart';
+import 'package:flutter_base/src/flutter/views/view/event/press.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/recognizer_test_host.dart';
@@ -227,8 +227,8 @@ void main() {
 
   test('识别器只导入 Dart 和 Flutter，不依赖宿主配置或事件模块', () {
     final files = <File>[
-      File('lib/src/ui/cores/view/event/press.dart'),
-      File('lib/src/ui/cores/view/event/transform.dart'),
+      File('lib/src/flutter/views/view/event/press.dart'),
+      File('lib/src/flutter/views/view/event/transform.dart'),
     ];
     final imports = RegExp("import\\s+['\"]([^'\"]+)['\"]");
     for (final file in files) {

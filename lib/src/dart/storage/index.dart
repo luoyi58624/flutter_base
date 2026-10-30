@@ -5,12 +5,12 @@ import 'package:meta/meta.dart';
 import '../gen/index.dart';
 import '../utils/index.dart';
 
-import './codec.dart';
-import './migration.dart';
-import './web.dart' if (dart.library.io) './io.dart';
+import 'codec.dart';
+import 'migration.dart';
+import 'web.dart' if (dart.library.io) './io.dart';
 
-export './codec.dart' show ElCodec, ElCodecException;
-export './migration.dart'
+export 'codec.dart' show ElCodec, ElCodecException;
+export 'migration.dart'
     show ElStorageMigrate, ElStorageMigration, ElStorageMigrationException;
 
 part 'group.dart';

@@ -1,7 +1,7 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/render/render_view.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

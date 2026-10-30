@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/cores/layout/stack/stack_view.dart';
+import 'package:flutter_base/src/flutter/views/layout/stack/stack_view.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 

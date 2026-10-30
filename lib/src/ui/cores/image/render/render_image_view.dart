@@ -7,11 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter_base/src/ui/cores/image/image_byte_source.dart';
 import 'package:flutter_base/src/ui/cores/image/image_decode_pipeline.dart';
 

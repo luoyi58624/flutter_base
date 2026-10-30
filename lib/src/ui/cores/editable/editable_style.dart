@@ -14,8 +14,8 @@ import 'package:flutter/services.dart'
 import 'package:flutter/widgets.dart'
     show Brightness, Color, EdgeInsets, FocusOnKeyEventCallback, Locale, ScrollPhysics, Size, TextAlign, TextStyle;
 
-import '../scroll/scrollbar/scrollbar_base.dart' show ElScrollbar;
-import '../selection/common/selection_core.dart' show SelectionControls;
+import '../../../flutter/views/scroll/scrollbar/scrollbar_base.dart' show ElScrollbar;
+import '../../../flutter/views/selection/common/selection_core.dart' show SelectionControls;
 import 'composer.dart' show EditableComposer;
 import 'line_height.dart' show EditableLineHeightMode;
 

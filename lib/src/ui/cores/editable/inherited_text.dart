@@ -1,5 +1,5 @@
 import 'package:flutter/painting.dart';
-import '../view/style/resolved/resolved_style.dart';
+import '../../../flutter/views/view/style/resolved/resolved_style.dart';
 
 /// 将宿主已解析的文字样式送入编辑排版，不注册 Widget 构建依赖。
 TextStyle editableInheritedTextStyle(ResolvedStyle resolved, Color? currentColor) {

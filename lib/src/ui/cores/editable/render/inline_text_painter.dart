@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 import '../inline_content.dart';
-import '../../selection/common/selection_core.dart';
+import '../../../../flutter/views/selection/common/selection_core.dart';
 
 /// 一次出现对应独立组件状态；文本前后缀未变时保留身份和实测尺寸。
 class InlineContentSlot {

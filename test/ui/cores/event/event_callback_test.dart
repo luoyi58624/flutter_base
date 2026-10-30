@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/view/event/press.dart' show GestureControl, GestureControlAccess, EventDetailsAccess;
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/view/event/press.dart' show GestureControl, GestureControlAccess, EventDetailsAccess;
 import 'package:flutter/gestures.dart' show Velocity;
 import 'package:flutter/rendering.dart' show Axis;
 import 'package:flutter/services.dart';

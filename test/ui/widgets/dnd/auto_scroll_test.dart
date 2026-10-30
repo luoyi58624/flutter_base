@@ -1,6 +1,6 @@
 import '../../support/overlay.dart';
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/scroll/common/render/scroll_viewport_base.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

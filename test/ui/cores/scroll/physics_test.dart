@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/scroll/common/pointer/scroll_pointer_chain.dart';
-import 'package:flutter_base/src/ui/cores/scroll/common/viewport/scroll_engine_position.dart';
-import 'package:flutter_base/src/ui/cores/scroll/smooth_scroll/smooth_pointer_scroll.dart';
-import 'package:flutter_base/src/ui/cores/scroll/smooth_scroll/smooth_scroll.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/pointer/scroll_pointer_chain.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/viewport/scroll_engine_position.dart';
+import 'package:flutter_base/src/flutter/views/scroll/smooth_scroll/smooth_pointer_scroll.dart';
+import 'package:flutter_base/src/flutter/views/scroll/smooth_scroll/smooth_scroll.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';

@@ -1,10 +1,10 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // ElSelectionView.enabled 开关 + eager 淘汰后的选区会话清理集成验证。
 
-import 'package:flutter_base/src/ui/cores/scroll/scroll_view.dart';
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/scroll/scroll_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

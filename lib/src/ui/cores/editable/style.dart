@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../scroll/scrollbar/scrollbar_base.dart';
-import '../selection/common/selection_core.dart';
-import '../view/style/style.dart';
+import '../../../flutter/views/scroll/scrollbar/scrollbar_base.dart';
+import '../../../flutter/views/selection/common/selection_core.dart';
+import '../../../flutter/views/view/style/style.dart';
 
 /// 可编辑视图的组合样式与编辑配置，文字外观统一由 view 级联。
 ///

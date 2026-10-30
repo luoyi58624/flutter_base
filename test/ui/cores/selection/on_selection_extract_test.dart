@@ -1,9 +1,9 @@
 // onSelection 伪类提取器单测：层叠语义 / var 解析 / currentColor / memo /
 // layout 字段静默忽略（零 assert 硬规则）。
 
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
-import 'package:flutter_base/src/ui/cores/view/style/state/view_state.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/view/style/state/view_state.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

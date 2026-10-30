@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/view/semantics/semantics.dart';
-import 'package:flutter_base/src/ui/cores/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
 
 /// 无默认样式的区域语义基元，为内容盒建立独立容器并保留后代语义节点。
 ///

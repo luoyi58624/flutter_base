@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/view/style/dimension.dart';
+import 'package:flutter_base/src/flutter/views/view/style/dimension.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// `ElDimension` 值类型单测：parse / resolve / lerp / 比较。

@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart' show EventDispatcher;
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart' show EventDispatcher;
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show DragPointerLock, ViewState, ViewStateRenderAccess;
 import 'package:flutter/gestures.dart';

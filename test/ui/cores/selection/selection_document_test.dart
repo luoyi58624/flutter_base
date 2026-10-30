@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'dart:convert';
 
 import 'package:flutter_base/ui.dart';

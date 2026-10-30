@@ -1,11 +1,11 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'dart:ui' as ui;
 
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

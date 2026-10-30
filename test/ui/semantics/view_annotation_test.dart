@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/view/semantics/render_semantics.dart';
+import 'package:flutter_base/src/flutter/views/view/semantics/render_semantics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';

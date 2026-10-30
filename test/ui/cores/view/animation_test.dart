@@ -3,8 +3,8 @@ import 'paint_recording.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flutter_base/src/ui/utils/internal/bit_mask.dart';
-import 'package:flutter_base/src/ui/cores/view/style/resolved/builder.dart';
+import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+import 'package:flutter_base/src/flutter/views/view/style/resolved/builder.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

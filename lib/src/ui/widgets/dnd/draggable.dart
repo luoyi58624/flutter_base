@@ -5,9 +5,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'drag_session.dart';
 
 /// 数据拖拽源：把 [data] 拖给任意 [接收该类型的] `ElDropTarget<T>`。

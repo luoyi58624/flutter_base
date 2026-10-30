@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/scroll/virtual/virtual_pipeline.dart' show ElScrollMixin;
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/scroll/virtual/virtual_pipeline.dart' show ElScrollMixin;
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'image_byte_source.dart';
 import 'image_decode_pipeline.dart';
 import 'image_platform_bridge.dart';

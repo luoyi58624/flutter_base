@@ -1,11 +1,11 @@
-import '../view/event/event.dart';
+import '../../../flutter/views/view/event/event.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../scroll/scroll_view.dart';
-import '../selection/common/selection_core.dart';
-import '../view/view.dart';
+import '../../../flutter/views/scroll/scroll_view.dart';
+import '../../../flutter/views/selection/common/selection_core.dart';
+import '../../../flutter/views/view/view.dart';
 import 'style.dart';
 import 'composer.dart';
 import 'controller.dart';

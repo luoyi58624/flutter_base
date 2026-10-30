@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart' show ElEventDetails;
-import 'package:flutter_base/src/ui/cores/view/event/press.dart' hide ElEventDetails;
+import 'package:flutter_base/src/flutter/views/view/event/event.dart' show ElEventDetails;
+import 'package:flutter_base/src/flutter/views/view/event/press.dart' hide ElEventDetails;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart' show Axis, Matrix4;
 import 'package:flutter_test/flutter_test.dart';

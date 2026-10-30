@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // 独立识别器未由公共入口导出；此页演示内核，保留自行判断范围与取消的行为。
 // ignore: implementation_imports
-import 'package:flutter_base/src/ui/cores/view/event/press.dart'
+import 'package:flutter_base/src/flutter/views/view/event/press.dart'
     show
         ElEventPhase,
         PressRecognizer,

@@ -2,28 +2,28 @@
 library;
 
 export 'src/ui/components/list_tile/index.dart';
-export 'src/ui/cores/selection/index.dart';
-export 'src/ui/cores/view/index.dart';
+export 'src/flutter/views/selection/index.dart';
+export 'src/flutter/views/view/index.dart';
 
 export 'package:flutter_base/flutter.dart';
 
 // 基础类型与全局扩展
-export 'src/ui/utils/internal/gutter.dart'
+export 'src/flutter/utils/internal/gutter.dart'
     show
         OrdinalGutterEntry,
         OrdinalGutterEntriesBuilder,
         OrdinalGutterPaintEntry,
         OrdinalGutterHost,
         RenderOrdinalGutter;
-export 'src/ui/cores/view/style/dimension.dart' show ElDimension, ElLengthKind;
-export 'src/ui/cores/common/global.dart' show ElViewExt;
-export 'src/ui/cores/common/models.dart'
-    show ElLabelModel, ElLevelType, ElMenuModel, ElMenuModelExt, ElNestModel, ElScrollControllerAttrModel, ElThemeType;
+export 'src/flutter/views/view/style/dimension.dart' show ElDimension, ElLengthKind;
+export 'src/flutter/commons/global.dart' show ElViewExt;
+export 'src/flutter/commons/models.dart'
+    show ElLabelModel, ElLevelType, ElMenuModel, ElMenuModelExt, ElNestModel, ElThemeType;
 
 // 核心视图、样式、状态与语义
-export 'src/ui/cores/view/view.dart' show ElView;
-export 'src/ui/cores/view/provider.dart' show ElViewProvider;
-export 'src/ui/cores/view/style/style.dart'
+export 'src/flutter/views/view/view.dart' show ElView;
+export 'src/flutter/views/view/provider.dart' show ElViewProvider;
+export 'src/flutter/views/view/style/style.dart'
     show
         ElAnimation,
         ElAnimationDirection,
@@ -45,14 +45,14 @@ export 'src/ui/cores/view/style/style.dart'
         ElTransition,
         ElTransitionField,
         ElUserSelect;
-export 'src/ui/cores/view/style/style_context.dart' show ElStyleContext;
-export 'src/ui/cores/view/style/linear_gradient.dart' show ElLinearGradient;
-export 'src/ui/cores/view/render/hit_bounds.dart' show ElOverflowHitBounds;
-export 'src/ui/cores/view/render/render_view.dart' show ElRenderView;
-export 'src/ui/cores/view/semantics/semantics.dart' show ElSemantics, ElSemanticsExt;
+export 'src/flutter/views/view/style/style_context.dart' show ElStyleContext;
+export 'src/flutter/views/view/style/linear_gradient.dart' show ElLinearGradient;
+export 'src/flutter/views/view/render/hit_bounds.dart' show ElOverflowHitBounds;
+export 'src/flutter/views/view/render/render_view.dart' show ElRenderView;
+export 'src/flutter/views/view/semantics/semantics.dart' show ElSemantics, ElSemanticsExt;
 
 // 事件与手势
-export 'src/ui/cores/view/event/event.dart'
+export 'src/flutter/views/view/event/event.dart'
     show
         ElDragProxy,
         ElDragProxyExt,
@@ -67,8 +67,8 @@ export 'src/ui/cores/view/event/event.dart'
         ElFocusReason;
 
 // 滚动、虚拟化、滚动条与刷新
-export 'src/ui/cores/scroll/scroll_view.dart' show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
-export 'src/ui/cores/scroll/scroll_state.dart'
+export 'src/flutter/views/scroll/scroll_view.dart' show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
+export 'src/flutter/views/scroll/scroll_state.dart'
     show
         ElScrollSnapshot,
         ElScrollItemSnapshot,
@@ -77,7 +77,7 @@ export 'src/ui/cores/scroll/scroll_state.dart'
         ElScrollActivityType,
         ElScrollUpdateCause,
         ElScrollVelocitySource;
-export 'src/ui/cores/scroll/virtual/virtual_pipeline.dart'
+export 'src/flutter/views/scroll/virtual/virtual_pipeline.dart'
     show
         ElScrollViewState,
         ElScrollMixin,
@@ -101,7 +101,7 @@ export 'src/ui/cores/scroll/virtual/virtual_pipeline.dart'
         ElScrollEffectTrack,
         ElScrollEffectUnit,
         ElStickyMixin;
-export 'src/ui/cores/scroll/scrollbar/scrollbar.dart'
+export 'src/flutter/views/scroll/scrollbar/scrollbar.dart'
     show
         ElAndroidScrollBar,
         ElIosScrollBar,
@@ -111,17 +111,17 @@ export 'src/ui/cores/scroll/scrollbar/scrollbar.dart'
         ElScrollbarAxisDetails,
         ElScrollbarDetails,
         ElWindowScrollBar;
-export 'src/ui/cores/scroll/smooth_scroll/smooth_scroll.dart'
+export 'src/flutter/views/scroll/smooth_scroll/smooth_scroll.dart'
     show ElChromiumSmoothScroll, ElNoSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
-export 'src/ui/cores/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
-export 'src/ui/cores/scroll/common/nested/scroll_delta_interceptor.dart'
+export 'src/flutter/views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
+export 'src/flutter/views/scroll/common/nested/scroll_delta_interceptor.dart'
     show ElScrollDeltaInterceptor, ElScrollDeltaSource;
-export 'src/ui/cores/scroll/common/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
-export 'src/ui/cores/scroll/common/physics/browser_scroll_physics.dart'
+export 'src/flutter/views/scroll/common/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
+export 'src/flutter/views/scroll/common/physics/browser_scroll_physics.dart'
     show ElBrowserScrollPhysics, ElFlingBoostSpec, elBrowserMaxFlingDuration, elBrowserMaxFlingVelocity;
-export 'src/ui/cores/scroll/common/physics/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
-export 'src/ui/cores/scroll/common/physics/platform_scroll_physics.dart' show ElScrollBehavior, elScrollPhysicsFor;
-export 'src/ui/cores/scroll/refresh/refresh.dart'
+export 'src/flutter/views/scroll/common/physics/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
+export 'src/flutter/views/scroll/common/physics/platform_scroll_physics.dart' show ElScrollBehavior, elScrollPhysicsFor;
+export 'src/flutter/views/scroll/refresh/refresh.dart'
     show
         ElAndroidRefresher,
         ElCustomRefresher,
@@ -137,10 +137,10 @@ export 'src/ui/cores/scroll/refresh/refresh.dart'
         elWebKitRubberBandSpring;
 
 // 布局
-export 'src/ui/cores/layout/stack/stack_view.dart'
+export 'src/flutter/views/layout/stack/stack_view.dart'
     show ElStackView, ElStackItem, ElPositioned, ElStackParentData, RenderStackView;
-export 'src/ui/cores/layout/grid/grid_view.dart' show ElGridView, ElGridParentData, ElRenderGridView;
-export 'src/ui/cores/layout/list/list_view.dart' show ElListView, ElListParentData, ElRenderListView;
+export 'src/flutter/views/layout/grid/grid_view.dart' show ElGridView, ElGridParentData, ElRenderGridView;
+export 'src/flutter/views/layout/list/list_view.dart' show ElListView, ElListParentData, ElRenderListView;
 
 // 浮层、锚点与 Portal
 export 'src/ui/cores/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
@@ -148,7 +148,7 @@ export 'src/ui/cores/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeo
 export 'src/ui/cores/popup/hover_intent.dart' show ElHoverIntent;
 
 // 文本选择、框选与选区操作
-export 'src/ui/cores/selection/selection.dart'
+export 'src/flutter/views/selection/selection.dart'
     show ElSelectionView, ElSelectionController, ElBoxSelectionView, ElBoxSelectionController, ElBoxSelectable;
 
 // 文本编辑：公开视图和控制器，编辑器扩展由 el_editor 提供。

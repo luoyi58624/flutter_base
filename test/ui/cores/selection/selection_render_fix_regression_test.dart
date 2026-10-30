@@ -1,13 +1,13 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // selection-render 修复批次的回归测试：
 // 1. 拖选进行中（未松键）Ctrl+C 复制的是**当前**选区，不是拖动首帧的陈旧快照
 //    （copySelection / keyC 分支改走 resolveSelectionInfo 刷脏）。
 // 2. ElSelectionView.enabled 运行时翻转后重绑子树参与者：false→true 让禁用期
 //    挂载的内容可被本 root 选中；SelectionIsland.enabled 关闭时注销手势岛。
 
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

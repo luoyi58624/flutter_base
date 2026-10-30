@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/selection/docs/selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // onSelection 伪类 per-participant 着色接线（Phase 2a）：
 //
 // - 文本宿主：声明节点用自己的色，未声明邻段回退 root 平台默认 → 混排双色
@@ -11,9 +11,9 @@ import 'dart:typed_data';
 import 'package:flutter_base/src/ui/cores/image/image_view.dart';
 import 'package:flutter_base/src/ui/cores/image/render/render_image_view.dart';
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/render/render_view.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

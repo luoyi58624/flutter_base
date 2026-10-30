@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart' show internal;
 import 'inherited_text.dart';
 import 'input_events.dart';
 import 'controller.dart' show EditableViewport;
-import '../layout/list/list_view.dart';
-import '../layout/geometry/pixel_grid.dart';
+import '../../../flutter/views/layout/list/list_view.dart';
+import '../../../flutter/views/layout/geometry/pixel_grid.dart';
 
 import 'dart:async' show Completer, Timer, scheduleMicrotask, unawaited;
 import 'dart:math' as math;
@@ -29,19 +29,19 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/utils/internal/focus.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
 import 'package:flutter_base/src/ui/views/menu/context_menu.dart' show ElContextMenuHandle;
-import 'package:flutter_base/src/ui/cores/scroll/common/viewport/scroll_viewport.dart';
-import 'package:flutter_base/src/ui/cores/scroll/scroll_view.dart';
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/viewport/scroll_viewport.dart';
+import 'package:flutter_base/src/flutter/views/scroll/scroll_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/semantics/semantics.dart';
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
-import 'package:flutter_base/src/ui/cores/view/render/render_view.dart'
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/render/render_view.dart'
     show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
-import 'package:flutter_base/src/ui/cores/view/style/state/view_state.dart' show ViewStateSource;
+import 'package:flutter_base/src/flutter/views/view/style/state/view_state.dart' show ViewStateSource;
 
 import 'keyboard/input_action.dart';
 import 'composer.dart';

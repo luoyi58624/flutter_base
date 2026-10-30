@@ -6,11 +6,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../view/event/event.dart';
-import '../view/event/dispatcher.dart';
-import '../scroll/common/physics/bouncing_scroll_physics.dart';
-import '../scroll/common/physics/platform_scroll_physics.dart';
-import '../view/render/hit_bounds.dart';
+import '../../../flutter/views/view/event/event.dart';
+import '../../../flutter/views/view/event/dispatcher.dart';
+import '../../../flutter/views/scroll/common/physics/bouncing_scroll_physics.dart';
+import '../../../flutter/views/scroll/common/physics/platform_scroll_physics.dart';
+import '../../../flutter/views/view/render/hit_bounds.dart';
 import 'tab_controller.dart';
 
 const Curve _kDefaultTabAnimationCurve = Curves.easeOutCubic;

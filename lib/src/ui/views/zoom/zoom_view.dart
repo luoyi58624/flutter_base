@@ -7,10 +7,10 @@ import 'package:flutter/physics.dart' show FrictionSimulation, SpringDescription
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/view/event/dispatcher.dart';
-import 'package:flutter_base/src/ui/cores/view/style/animation/driver.dart' show elDisableAnimations;
-import 'package:flutter_base/src/ui/cores/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
+import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart';
+import 'package:flutter_base/src/flutter/views/view/style/animation/driver.dart' show elDisableAnimations;
+import 'package:flutter_base/src/flutter/views/view/view.dart';
 
 /// 缩放视图的可控变换值；[offset] 是相对 [ElZoomView.alignment] 基位的平移。
 @immutable

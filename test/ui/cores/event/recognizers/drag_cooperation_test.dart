@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/view/event/press.dart';
+import 'package:flutter_base/src/flutter/views/view/event/press.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';

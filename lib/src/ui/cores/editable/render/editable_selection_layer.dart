@@ -1,8 +1,8 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../scroll/common/viewport/scroll_viewport.dart';
-import '../../layout/geometry/pixel_grid.dart';
+import '../../../../flutter/views/scroll/common/viewport/scroll_viewport.dart';
+import '../../../../flutter/views/layout/geometry/pixel_grid.dart';
 import '../composer.dart';
 import 'editable_line_view.dart';
 import 'editable_render_scope.dart';

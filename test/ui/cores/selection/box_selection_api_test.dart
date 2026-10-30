@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart' show ElStyle, ElView;
-import 'package:flutter_base/src/ui/cores/selection/box/box_selection_view.dart';
+import 'package:flutter_base/src/flutter/views/selection/box/box_selection_view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

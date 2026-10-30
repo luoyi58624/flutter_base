@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter_base/src/ui/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +37,7 @@ MouseCursor effectiveCursorAt(WidgetTester tester, Offset global) {
 void main() {
   group('最小文本合约', () {
     test('文本实现严格限制为两个文件、八百总行', () {
-      final files = Directory('lib/src/ui/cores/view/text')
+      final files = Directory('lib/src/flutter/views/view/text')
           .listSync()
           .whereType<File>()
           .where((file) => file.path.endsWith('.dart'))

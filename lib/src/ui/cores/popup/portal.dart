@@ -6,7 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../view/event/dispatcher.dart' show EventDispatcher;
+import '../../../flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'anchor.dart';
 import 'hover_intent.dart';
 import 'popup_stack.dart';

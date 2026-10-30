@@ -14,7 +14,7 @@ void main() {
       multiLine: true,
     );
     final violations = <String>[];
-    for (final file in Directory('lib/src/ui/cores/view/event').listSync().whereType<File>()) {
+    for (final file in Directory('lib/src/flutter/views/view/event').listSync().whereType<File>()) {
       if (!file.path.endsWith('.dart')) continue;
       for (final declaration in declarations.allMatches(file.readAsStringSync())) {
         final name = declaration.group(1)!;
@@ -30,7 +30,7 @@ void main() {
   test('事件模块不保留废弃标注或过渡别名', () {
     final deprecated = RegExp(r'@\s*Deprecated\b');
     final violations = <String>[];
-    for (final file in Directory('lib/src/ui/cores/view/event').listSync().whereType<File>()) {
+    for (final file in Directory('lib/src/flutter/views/view/event').listSync().whereType<File>()) {
       if (!file.path.endsWith('.dart')) continue;
       if (deprecated.hasMatch(file.readAsStringSync())) violations.add(file.path);
     }
@@ -344,7 +344,7 @@ void main() {
 /// 解析事件主入口的唯一显式导出块，供命名与导出名单合同共用。
 List<String> _eventExportNames() {
   final source = File('lib/ui.dart').readAsStringSync();
-  final exports = RegExp(r"export\s+'src/ui/cores/view/event/[^']+'[^;]*;").allMatches(source).toList();
+  final exports = RegExp(r"export\s+'src/flutter/views/view/event/[^']+'[^;]*;").allMatches(source).toList();
   expect(exports, hasLength(1));
   final names = <String>[];
   for (final export in exports) {

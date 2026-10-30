@@ -646,7 +646,7 @@ void _architectureTests() {
     for (final path in ['lib/flutter.dart', 'lib/ui.dart']) {
       expect(File(path).readAsStringSync(), isNot(contains('binding.dart')));
     }
-    final eventFiles = Directory('lib/src/ui/cores/view/event')
+    final eventFiles = Directory('lib/src/flutter/views/view/event')
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'));

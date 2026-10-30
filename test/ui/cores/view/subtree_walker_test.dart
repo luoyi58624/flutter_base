@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/ui/cores/view/style/inheritance/inheritable_node.dart';
-import 'package:flutter_base/src/ui/cores/view/style/inheritance/subtree_walker.dart';
+import 'package:flutter_base/src/flutter/views/view/style/inheritance/inheritable_node.dart';
+import 'package:flutter_base/src/flutter/views/view/style/inheritance/subtree_walker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Node implements InheritableNode {

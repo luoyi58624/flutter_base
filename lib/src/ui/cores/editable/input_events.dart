@@ -1,4 +1,4 @@
-import '../view/event/event.dart';
+import '../../../flutter/views/view/event/event.dart';
 
 /// 上层可阻止基础默认动作，不改变 ElEvent 自身的冒泡和手势所有权。
 ElEvent combineEditableEvents(ElEvent defaults, ElEvent? custom) {

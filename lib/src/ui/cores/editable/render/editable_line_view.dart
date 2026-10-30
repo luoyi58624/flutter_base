@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/selection/common/selection_core.dart';
-import 'package:flutter_base/src/ui/cores/view/text/text_style_adapter.dart';
-import 'package:flutter_base/src/ui/cores/scroll/common/render/scroll_viewport_base.dart';
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
+import 'package:flutter_base/src/flutter/views/view/text/text_style_adapter.dart';
+import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import '../composer.dart';
 import '../model/grapheme_boundary.dart';
 import 'editable_line_layout.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'package:flutter_base/src/ui/cores/view/view.dart';
-import 'package:flutter_base/src/ui/cores/view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges;
-import 'package:flutter_base/src/ui/cores/view/style/style.dart';
+import 'package:flutter_base/src/flutter/views/view/view.dart';
+import 'package:flutter_base/src/flutter/views/view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges;
+import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'drag_session.dart';
 
 /// ghost 跟手壳（会话内部件）：监听 [DndSession.ghostPosition]，把 global

@@ -7,7 +7,7 @@ import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/utils/internal/focus.dart';
+import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
 
 // 焦点已进入其他 scope 时，页面菜单栏不接管该作用域的全局按键。
 bool _focusCapturedAbove(FocusNode node) {
