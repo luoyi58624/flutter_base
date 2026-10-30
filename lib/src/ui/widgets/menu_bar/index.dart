@@ -7,7 +7,7 @@ import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/ui/cores/focus/focus_utils.dart';
+import 'package:flutter_base/src/ui/utils/internal/focus.dart';
 
 // 焦点已进入其他 scope 时，页面菜单栏不接管该作用域的全局按键。
 bool _focusCapturedAbove(FocusNode node) {
@@ -139,7 +139,7 @@ class _MenuBarState extends State<ElMenuBar> {
       (_ownsOpenMenu
           ? _menuEntry!.hasFocus
           // 更高层弹层（对话框、context menu）持有焦点时，页面内的菜单栏不能抢全局键。
-          : _focusNodes.any((node) => node.canRequestFocus && focusNodeIsVisible(node) && !_focusCapturedAbove(node)));
+          : _focusNodes.any((node) => node.canRequestFocus && FocusUtil.isVisible(node) && !_focusCapturedAbove(node)));
 
   @override
   void initState() {
@@ -308,7 +308,7 @@ class _MenuBarState extends State<ElMenuBar> {
     _interactionSerial = _MenuBarShortcutDispatcher.instance.touch(this);
     final node = _focusNodes[index];
     if (!node.canRequestFocus) return;
-    markFocusReason(node, reason);
+    FocusUtil.markReason(node, reason);
     node.requestFocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
   }
@@ -622,14 +622,14 @@ class _MenuBarState extends State<ElMenuBar> {
       _selectionMovedFocus = false;
       _closingPopupFocus = null;
     });
-    if (target == null || target.context?.mounted != true || !target.canRequestFocus || !focusNodeIsVisible(target)) {
+    if (target == null || target.context?.mounted != true || !target.canRequestFocus || !FocusUtil.isVisible(target)) {
       return;
     }
     if (_shouldPreserveFocus(focusWhenLeaving, target, closingPopupFocus)) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || target.context?.mounted != true || !target.canRequestFocus || !focusNodeIsVisible(target)) {
+      if (!mounted || target.context?.mounted != true || !target.canRequestFocus || !FocusUtil.isVisible(target)) {
         return;
       }
       // 命令可在同一帧末 requestFocus，先提交它的请求再判断是否需要归还。

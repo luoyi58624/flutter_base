@@ -30,7 +30,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/focus/focus_utils.dart';
+import 'package:flutter_base/src/ui/utils/internal/focus.dart';
 import 'package:flutter_base/src/ui/views/menu/context_menu.dart' show ElContextMenuHandle;
 import 'package:flutter_base/src/ui/cores/scroll/common/viewport/scroll_viewport.dart';
 import 'package:flutter_base/src/ui/cores/scroll/scroll_view.dart';
@@ -468,7 +468,7 @@ class _EditableViewState extends State<EditableView>
       if (!mounted || widget.style.readOnly) return;
       final node = _focusNode;
       if (!node.canRequestFocus) return;
-      markFocusReason(node, ElFocusReason.lifecycle);
+      FocusUtil.markReason(node, ElFocusReason.lifecycle);
       node.requestFocus();
     });
   }

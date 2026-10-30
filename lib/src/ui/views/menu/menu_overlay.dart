@@ -94,7 +94,7 @@ class ElContextMenuHandle extends ChangeNotifier {
 
   void _captureFocus() {
     if (!_open || _focusScope.context == null) return;
-    requestFocusNode(_focusScope);
+    FocusUtil.requestFocus(_focusScope);
     _capturedFocus = _focusScope.hasFocus;
   }
 
@@ -209,11 +209,11 @@ class ElContextMenuHandle extends ChangeNotifier {
 
   void _restorePreviousFocus() {
     final target = _previousFocus;
-    if (target == null || !focusNodeIsVisible(target)) return;
+    if (target == null || !FocusUtil.isVisible(target)) return;
     void restore() {
-      if (!focusNodeIsVisible(target)) return;
-      markFocusReason(target, ElFocusReason.lifecycle);
-      requestFocusNode(target);
+      if (!FocusUtil.isVisible(target)) return;
+      FocusUtil.markReason(target, ElFocusReason.lifecycle);
+      FocusUtil.requestFocus(target);
     }
 
     if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {

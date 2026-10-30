@@ -1,8 +1,4 @@
-import 'package:flutter/gestures.dart' show GestureBinding, PointerDownEvent, PointerEvent;
-import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
-import 'package:flutter/widgets.dart' show VoidCallback;
-
-import '../view/event/press.dart' show ElFocusReason;
+part of 'view_element.dart';
 
 /// 会发起「键盘导航」的按键：遍历键 + F10（菜单栏键盘模式）。
 ///
@@ -38,7 +34,7 @@ final Set<LogicalKeyboardKey> _kNavigationKeys = <LogicalKeyboardKey>{
 ///
 /// Alt / Meta 组合不算导航：Alt+方向键、Cmd+方向键是历史/空间导航或组合键，
 /// 不应把焦点环点亮。
-bool get elKeyboardNavigationInFlight {
+bool get _keyboardNavigationInFlight {
   final keyboard = HardwareKeyboard.instance;
   if (keyboard.isAltPressed || keyboard.isMetaPressed) return false;
   for (final key in keyboard.logicalKeysPressed) {
@@ -56,9 +52,9 @@ bool get elKeyboardNavigationInFlight {
 ///
 /// 该判定只决定 `focusVisible` 这一位；[ElFocusReason] 本身照旧同步给渲染层，
 /// 焦点事件与 onFocus / onFocusWithin 语义与本判定无关。
-bool elFocusVisibleForReason(ElFocusReason reason) => switch (reason) {
+bool _focusVisibleForReason(ElFocusReason reason) => switch (reason) {
   ElFocusReason.keyboard => true,
-  ElFocusReason.programmatic => elKeyboardNavigationInFlight,
+  ElFocusReason.programmatic => _keyboardNavigationInFlight,
   ElFocusReason.pointer => false,
   ElFocusReason.lifecycle => false,
 };
@@ -67,7 +63,7 @@ bool elFocusVisibleForReason(ElFocusReason reason) => switch (reason) {
 ///
 /// 单个 [FlutterView] 的 viewId 恒为 0，与浏览器「一个 document 一个
 /// `:focus-visible`」同构；多 View（多窗口/多 embedding）各自收自己的环。
-const int elGlobalFocusRingViewId = -1;
+const int _globalFocusRingViewId = -1;
 
 /// 正在显示焦点环的视图，按 [View.viewId] 分桶。
 ///
@@ -79,7 +75,7 @@ final Map<int, Set<VoidCallback>> _ringOwners = <int, Set<VoidCallback>>{};
 int _ringOwnerCount = 0;
 
 /// 视图点亮焦点环时登记；同一回调重复登记无副作用（幂等）。
-void elRegisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
+void _registerFocusRingOwner(VoidCallback retract, {required int viewId}) {
   final owners = _ringOwners.putIfAbsent(viewId, () => <VoidCallback>{});
   if (!owners.add(retract)) return;
   if (_ringOwnerCount++ == 0) {
@@ -88,7 +84,7 @@ void elRegisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
 }
 
 /// 视图收环/卸载时注销；最后一个持有者离开即移除全局路由。
-void elUnregisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
+void _unregisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
   final owners = _ringOwners[viewId];
   if (owners == null || !owners.remove(retract)) return;
   if (owners.isEmpty) _ringOwners.remove(viewId);
@@ -102,7 +98,7 @@ void elUnregisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
 void _handleGlobalPointer(PointerEvent event) {
   if (event is! PointerDownEvent) return;
   _retractRingOwners(event.viewId);
-  if (event.viewId != elGlobalFocusRingViewId) _retractRingOwners(elGlobalFocusRingViewId);
+  if (event.viewId != _globalFocusRingViewId) _retractRingOwners(_globalFocusRingViewId);
 }
 
 void _retractRingOwners(int viewId) {

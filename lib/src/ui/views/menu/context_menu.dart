@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/src/ui/cores/view/event/event.dart';
-import 'package:flutter_base/src/ui/cores/focus/focus_utils.dart';
+import 'package:flutter_base/src/ui/utils/internal/focus.dart';
 import 'package:flutter_base/src/ui/cores/selection/common/selection_chrome_host.dart'
     show SelectionChromeMountHost, SelectionChromeSlot;
 import 'package:flutter_base/src/ui/cores/view/view.dart';
@@ -385,7 +385,7 @@ class _MenuChain {
   void focusItem(_MenuItemHostState item, ElFocusReason reason) {
     if (!item.mounted || item._focusNode.context == null || !item._focusNode.canRequestFocus) return;
     noteFocus(item);
-    markFocusReason(item._focusNode, reason);
+    FocusUtil.markReason(item._focusNode, reason);
     item._focusNode.requestFocus();
   }
 

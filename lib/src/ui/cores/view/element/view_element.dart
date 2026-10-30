@@ -1,17 +1,20 @@
+import 'package:flutter/gestures.dart' show GestureBinding, PointerDownEvent, PointerEvent;
+import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/src/ui/cores/common/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
 import 'package:flutter_base/src/ui/cores/view/style/style.dart';
 
 import '../event/event.dart';
-import '../../focus/focus_indicator.dart';
-import '../../focus/focus_utils.dart';
+import '../../../utils/internal/focus.dart';
 import '../style/style_context.dart';
 import '../style/state/view_state.dart';
 import '../style/cascade/style_spec.dart';
 import '../view.dart';
 import '../render/render_view.dart';
 import '../semantics/semantics_frame.dart';
+
+part 'focus_indicator.dart';
 
 /// ElView 的 Element：负责渲染树挂载、样式/事件推送与最小焦点集成。
 ///
@@ -327,7 +330,7 @@ class ViewElement extends RenderObjectElement {
     final disabled = _renderView.disabled;
     _applyFocusNodeState(node, disabled: disabled);
     if (disabled && node.hasFocus) {
-      markFocusReason(node, ElFocusReason.lifecycle);
+      FocusUtil.markReason(node, ElFocusReason.lifecycle);
       node.unfocus();
     }
     _renderView.requestFocusForEvent = _interactiveFocus && !disabled ? _requestFocusFromPointer : null;
@@ -454,7 +457,7 @@ class ViewElement extends RenderObjectElement {
     _pendingPointerFocusGlobalPosition = globalPosition;
     _pendingPointerFocusLocalPosition = localPosition;
     _renderView.rememberFocusEventPosition(globalPosition, localPosition);
-    markFocusReason(node, ElFocusReason.pointer);
+    FocusUtil.markReason(node, ElFocusReason.pointer);
     node.requestFocus();
     if (alreadyPrimary) {
       _syncRenderFocus(force: true);
@@ -537,15 +540,15 @@ class ViewElement extends RenderObjectElement {
     }
   }
 
-  int get _focusRingBucket => _focusRingViewId ?? elGlobalFocusRingViewId;
+  int get _focusRingBucket => _focusRingViewId ?? _globalFocusRingViewId;
 
   void _setFocusIndicator(bool on) {
     if (on == _focusIndicatorOn) return;
     _focusIndicatorOn = on;
     if (on) {
-      elRegisterFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
+      _registerFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
     } else {
-      elUnregisterFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
+      _unregisterFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
     }
   }
 
@@ -586,22 +589,22 @@ class ViewElement extends RenderObjectElement {
       _pendingPointerFocusLocalPosition = null;
       // force 视觉同步可能发生在 requestFocus 已排队、但目标尚未成为 primary
       // 的同一次 pointer down 内；此时不能提前消费目标节点的 reason。
-      final markedReason = primary ? takeFocusReason(node!) : null;
+      final markedReason = primary ? FocusUtil.takeReason(node!) : null;
       // 没有显式 reason 时，靠「导航键仍按下」把 Flutter 的遍历/快捷键换焦
       // 归因为 keyboard；其余无来源的焦点变化是程序化恢复。
       final reason =
           markedReason ??
           (primaryChanged
-              ? (elKeyboardNavigationInFlight ? ElFocusReason.keyboard : ElFocusReason.programmatic)
+              ? (_keyboardNavigationInFlight ? ElFocusReason.keyboard : ElFocusReason.programmatic)
               : ElFocusReason.lifecycle);
       // focus-visible 只认「本次聚焦来源」，不看全局 highlightMode（桌面恒为
       // traditional）。已有环位在 force 重同步时保留，指针/触摸才收起。
       if (!primary) {
         _setFocusIndicator(false);
       } else if (markedReason != null) {
-        _setFocusIndicator(elFocusVisibleForReason(markedReason));
+        _setFocusIndicator(_focusVisibleForReason(markedReason));
       } else if (primaryChanged) {
-        _setFocusIndicator(elFocusVisibleForReason(reason));
+        _setFocusIndicator(_focusVisibleForReason(reason));
       }
       _renderView.setFocus(
         primary,
@@ -629,7 +632,7 @@ class ViewElement extends RenderObjectElement {
     final node = _node;
     if (node == null) return;
     if (node.hasFocus) {
-      markFocusReason(node, ElFocusReason.lifecycle);
+      FocusUtil.markReason(node, ElFocusReason.lifecycle);
       // 与 Flutter FocusAttachment.detach 同口径：节点销毁时把焦点交回该 scope
       // 里上一个持焦项；默认的 scope disposition 会清空整条焦点历史，弹层内容
       // 卸载后焦点只能停在 scope 上，无法自然回落。
