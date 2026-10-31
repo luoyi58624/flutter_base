@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
-import '../../cores/theme.dart';
 import '../loading/index.dart';
 
 /// 使用移动端开关皮肤实现通用值通道，并连接祖先表单字段。
@@ -28,7 +27,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
   @override
   Widget obsBuilder(BuildContext context) {
     final current = $obs.value;
-    final theme = MyTheme.of(context);
+    final theme = context.elTheme;
     final height = component.height ?? 28;
     final gap = component.gap ?? 3;
     final thumb = (height - 2 * gap).clamp(0.0, double.infinity);
@@ -50,7 +49,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
         alignment: .center,
         borderRadius: BorderRadius.circular(999),
         backgroundColor:
-            theme.switchThumbBackground ??
+            ElView.maybeOf(context)?.getVar<Color>(MySwitch.$thumbBackground) ??
             (current ? theme.primaryText : const Color(0xffffffff)),
         color: current ? theme.primary : theme.textSecondary,
         boxShadow: [
@@ -94,7 +93,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
             backgroundColor: current
                 ? (component.activeColor ?? theme.primary)
                 : (component.inactiveColor ?? theme.gray),
-            color: current ? theme.primaryText : theme.text,
+            color: current ? theme.primaryText : theme.textColor,
             cursor: component.disabled
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.click,
@@ -142,6 +141,9 @@ class _CommonSwitch extends ElFormModelValue<bool> {
 
 /// 47×28的开关，使用原生开关的Space与辅助技术语义。
 class MySwitch extends StatelessWidget {
+  /// 局部开关滑块背景。
+  static const $thumbBackground = 'my.switch.thumbBackground';
+
   /// value或modelValue必须提供其一，label不绘制为可见文字。
   const MySwitch({
     super.key,
@@ -177,7 +179,7 @@ class MySwitch extends StatelessWidget {
     notifier: modelValue,
     onChanged: onChanged,
     builder: (context, current, change) {
-      final t = MyTheme.of(context);
+      final t = context.elTheme;
       final transitions = myReducedMotion(context)
           ? <ElTransition>[]
           : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)];
@@ -210,7 +212,7 @@ class MySwitch extends StatelessWidget {
               height: 22,
               borderRadius: BorderRadius.circular(99),
               backgroundColor:
-                  t.switchThumbBackground ??
+                  ElView.maybeOf(context)?.getVar<Color>(MySwitch.$thumbBackground) ??
                   (current ? t.primaryText : const Color(0xffffffff)),
               transform: ElTransform.translate(current ? 19 : 0, 0),
               boxShadow: [

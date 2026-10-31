@@ -213,7 +213,7 @@ List<Widget> _samples(String id) => switch (id) {
             '${size.toInt()}-${status.name}',
             Builder(
               builder: (context) => MyTheme(
-                data: MyTheme.of(context).copyWith(progressSize: size),
+                style: ElStyle(vars: {MyProgress.$size: size}),
                 child: MyProgress(
                   value: 100,
                   type: MyProgressType.circle,
@@ -304,8 +304,11 @@ void main() {
         ]) {
           _keys.clear();
           final boundaryKey = GlobalKey();
-          final data = MyThemeData(brightness: brightness);
-          _labelColor = data.textSecondary;
+          final data = {
+            ...MyTheme.lightVars,
+            if (brightness == Brightness.dark) ...MyTheme.darkVars,
+          };
+          _labelColor = (data[ElTheme.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
               // 仅提供Material宿主；字体由MyTheme建立，避免宿主覆盖复验契约。
@@ -327,7 +330,7 @@ void main() {
                   child: RepaintBoundary(
                     key: boundaryKey,
                     child: ColoredBox(
-                      color: data.background,
+                      color: (data[ElTheme.$bgColor] as Color),
                       child: Padding(
                         padding: EdgeInsets.all(24),
                         child: Align(
@@ -357,7 +360,9 @@ void main() {
                                       fontFamily: 'Arial',
                                       fontSize: 12,
                                       height: 16 / 12,
-                                      color: data.textSecondary,
+                                      color:
+                                          (data[ElTheme.$textSecondary]
+                                              as Color),
                                     ),
                                   ),
                                 ),
@@ -393,7 +398,7 @@ void main() {
             'fontFamily': DefaultTextStyle.of(
               _keys.values.first.currentContext!,
             ).style.fontFamily,
-            'fontFamilyFallback': data.fontFamilyFallback,
+            'fontFamilyFallback': (data[ElTheme.$fontFamilyFallback] as List<String>),
             'positions': positions,
             'officialTexts': find.byType(RichText).evaluate().map((element) {
               final box = element.renderObject! as RenderParagraph;

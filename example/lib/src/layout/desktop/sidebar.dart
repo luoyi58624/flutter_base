@@ -12,7 +12,7 @@ class _Sidebar extends StatelessWidget {
       style: .new(
         width: 250,
         height: '100%',
-        backgroundColor: ElThemeData.of(context).bgColor,
+        backgroundColor: context.elTheme.bgColor,
       ),
       child: ElNavMenu<String>(
         value: current,

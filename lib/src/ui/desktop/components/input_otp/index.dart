@@ -166,7 +166,7 @@ class InputOtp extends ElFormModelValue<String> {
 
   // ---- 组件 token ----
 
-  /// 解析尺寸档：未声明时读上层 vars 的 [ElThemeData.of(context).size]
+  /// 解析尺寸档：未声明时读上层 vars 的 size。
   ElLevelType _size(BuildContext context) => context.elComponentSize(style);
 
   @override
@@ -549,7 +549,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     final hiddenTextColor =
         (declaredColor is Color
                 ? declaredColor
-                : ElThemeData.of(context).textColorSm)
+                : context.elTheme.textRegular)
             .withValues(alpha: 0);
     const geometryFontSize = 0.001;
     final baseTextStyle = ElStyle(
@@ -712,11 +712,11 @@ class _ElInputOtpCell extends StatelessWidget {
   }
 
   ElStyle _cellStyle(BuildContext context, double side) {
-    final activeColor = ElThemeData.of(context).primary;
+    final activeColor = context.elTheme.primary;
     final textColor =
-        config.style?.color ?? ElThemeData.of(context).textColorSm;
-    final bgColor = ElThemeData.of(context).bgColor;
-    final borderColor = ElThemeData.of(context).borderColor;
+        config.style?.color ?? context.elTheme.textRegular;
+    final bgColor = context.elTheme.bgColor;
+    final borderColor = context.elTheme.borderColor;
     return switch (config.type) {
       ElInputOtpType.outlined =>
         ElStyle(
@@ -727,12 +727,12 @@ class _ElInputOtpCell extends StatelessWidget {
           color: textColor,
           backgroundColor: bgColor,
           border: ElBorder.all(borderWidth: 1, borderColor: borderColor),
-          borderRadius: BorderRadius.circular(ElThemeData.of(context).radiusSm),
+          borderRadius: BorderRadius.circular(context.elTheme.radiusSm),
 
         onDisabled: ElStyle(
           backgroundColor: context.isDark ? const Color(0xff262727) : const Color(0xfff5f7fa),
-          color: ElThemeData.of(context).textColorLg,
-          iconColor: ElThemeData.of(context).textColorLg,
+          color: context.elTheme.textPlaceholder,
+          iconColor: context.elTheme.textPlaceholder,
         ),
         transition: const [ElTransition.all(Duration(milliseconds: 150))],
         iconColor: textColor,
@@ -744,14 +744,14 @@ class _ElInputOtpCell extends StatelessWidget {
         fontSize: _fontSize(size),
         color: textColor,
         // filled 填充底从 $bgColor 派生加深 1 级
-        backgroundColor: ElThemeData.of(context).bgColor
-            .elLight1(context, reverse: !ElThemeData.of(context).bgColor.isDark),
-        borderRadius: BorderRadius.circular(ElThemeData.of(context).radiusSm),
+        backgroundColor: context.elTheme.bgColor
+            .elLight1(context, reverse: !context.elTheme.bgColor.isDark),
+        borderRadius: BorderRadius.circular(context.elTheme.radiusSm),
 
         onDisabled: ElStyle(
           backgroundColor: context.isDark ? const Color(0xff262727) : const Color(0xfff5f7fa),
-          color: ElThemeData.of(context).textColorLg,
-          iconColor: ElThemeData.of(context).textColorLg,
+          color: context.elTheme.textPlaceholder,
+          iconColor: context.elTheme.textPlaceholder,
         ),
         transition: const [ElTransition.all(Duration(milliseconds: 150))],
         iconColor: textColor,
@@ -768,8 +768,8 @@ class _ElInputOtpCell extends StatelessWidget {
           ),
 
           onDisabled: ElStyle(
-            color: ElThemeData.of(context).textColorLg,
-            iconColor: ElThemeData.of(context).textColorLg,
+            color: context.elTheme.textPlaceholder,
+            iconColor: context.elTheme.textPlaceholder,
           ),
           transition: const [ElTransition.all(Duration(milliseconds: 150))],
           iconColor: textColor,

@@ -88,7 +88,7 @@ class ElNavMenu<T> extends ElModelValue<String> {
                 children,
                 activeKey,
               ).map((e) => e.key).toSet();
-        final theme = ElThemeData.of(context);
+        final theme = context.elTheme;
         final background = style?.backgroundColor ?? theme.bgColor;
         final textColor = background.elTextColor(context);
         final itemStyle = ElStyle(
@@ -167,7 +167,7 @@ class _MenuItem<T> extends HookWidget {
     // 与旧版一致：首次展开激活分支，后续路由变化保留手动折叠状态。
     final expanded = useState(isActive);
     final hasChildren = item.children.isNotEmpty;
-    final primary = ElThemeData.of(context).primary;
+    final primary = context.elTheme.primary;
     final itemStyle = style.merge(
       ElStyle(
         width: '100%',

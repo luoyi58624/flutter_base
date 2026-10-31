@@ -315,29 +315,29 @@ class _InputNumberButtonState extends State<_InputNumberButton> {
         height: widget.height,
         alignment: .center,
         // 步进钮底从 $bgColor 派生加深 1 级
-        backgroundColor: ElThemeData.of(context).bgColor.elLight1(
+        backgroundColor: context.elTheme.bgColor.elLight1(
           context,
-          reverse: !ElThemeData.of(context).bgColor.isDark,
+          reverse: !context.elTheme.bgColor.isDark,
         ),
         border: ElBorder.all(
           borderWidth: 1,
-          borderColor: ElThemeData.of(context).borderColor,
+          borderColor: context.elTheme.borderColor,
         ),
-        color: ElThemeData.of(context).textColorSm,
+        color: context.elTheme.textRegular,
         fontSize: 13,
         cursor: SystemMouseCursors.click,
         userSelect: .none,
         onHover: ElStyle(
-          color: ElThemeData.of(context).primary,
-          iconColor: ElThemeData.of(context).primary,
+          color: context.elTheme.primary,
+          iconColor: context.elTheme.primary,
         ),
         onDisabled: ElStyle(
-          color: ElThemeData.of(context).textColorLg,
+          color: context.elTheme.textPlaceholder,
           cursor: SystemMouseCursors.forbidden,
-          iconColor: ElThemeData.of(context).textColorLg,
+          iconColor: context.elTheme.textPlaceholder,
         ),
         transition: const [ElTransition.all(Duration(milliseconds: 250))],
-        iconColor: ElThemeData.of(context).textColorSm,
+        iconColor: context.elTheme.textRegular,
       ),
       // 跟随本包既有惯例（alert/tag/steps 同）：图标用 Flutter Icon，
       // 颜色取 currentColor，好让按钮的 hover / disabled 变色传下来

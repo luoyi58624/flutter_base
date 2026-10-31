@@ -397,14 +397,14 @@ class Input extends ElInputModelValue<String> {
       editArea = ElView(
         key: const ValueKey<String>('el-input-edit-area'),
         semantics: ElSemantics(exclude: true),
-        style: ((c) => ElStyle(
-          color: ElThemeData.of(c).textColorLg,
+        style: ((BuildContext c) => ElStyle(
+          color: c.elTheme.textPlaceholder,
           height: component.textarea ? visibleLines * lineHeight : lineHeight,
           padding: _inputProjectionPadding(component.textarea),
           textAlign: resolvedTextAlign,
           direction: resolvedTextDirection,
           userSelect: ElUserSelect.none,
-          iconColor: ElThemeData.of(c).textColorLg,
+          iconColor: c.elTheme.textPlaceholder,
         ))(context),
         child: TextSpan(
           text: text,
@@ -414,20 +414,20 @@ class Input extends ElInputModelValue<String> {
     } else {
       editArea = ElView(
         key: const ValueKey<String>('el-input-edit-area'),
-        style: ((c) {
+        style: ((BuildContext c) {
           final declared = _style;
           final resolved = declared;
           return ElStyle(
             height: component.textarea ? visibleLines * lineHeight : lineHeight,
             color:
                 _resolveInputColorSlot(c, resolved?.color) ??
-                ElThemeData.of(c).textColorSm,
+                c.elTheme.textRegular,
             onSelection: ElStyle(
-              backgroundColor: ElThemeData.of(c).primary.withValues(alpha: 0.25),
+              backgroundColor: c.elTheme.primary.withValues(alpha: 0.25),
             ),
             iconColor:
                 _resolveInputColorSlot(c, resolved?.color) ??
-                ElThemeData.of(c).textColorSm,
+                c.elTheme.textRegular,
           ).merge(
             resolved?.onSelection == null
                 ? null
@@ -662,7 +662,7 @@ class Input extends ElInputModelValue<String> {
               ),
             )
           : null,
-      style: ((c) {
+      style: ((BuildContext c) {
         final base = _inputShellStyle(
           c,
           isDisabled: isDisabled,

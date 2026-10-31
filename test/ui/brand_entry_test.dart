@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart' as desktop;
 import 'package:flutter_base/mobile.dart' as mobile;
+import 'package:flutter_base/ui.dart' show ElTheme, ElThemeContextExt;
 import 'package:flutter_test/flutter_test.dart';
 
 Finder _action(String label) => find.byWidgetPredicate(
@@ -9,6 +10,42 @@ Finder _action(String label) => find.byWidgetPredicate(
 );
 
 void main() {
+  for (final (name, host) in <(String, Widget Function(desktop.ElStyle, Widget))>[
+    ('desktop', (style, child) => desktop.ElDesktopTheme(style: style, child: child)),
+    ('mobile', (style, child) => mobile.MyTheme(style: style, child: child)),
+  ]) {
+    testWidgets('$name 主题根只应用一次用户实际样式', (tester) async {
+      final childKey = GlobalKey();
+      await tester.pumpWidget(MaterialApp(home: Align(
+        alignment: Alignment.topLeft,
+        child: host(desktop.ElStyle(padding: EdgeInsets.all(8)), SizedBox(key: childKey, width: 20, height: 10)),
+      )));
+      final root = find.byType(name == 'desktop' ? desktop.ElDesktopTheme : mobile.MyTheme);
+      expect(tester.getSize(root), Size(36, 26));
+      expect(tester.getTopLeft(find.byKey(childKey)) - tester.getTopLeft(root), Offset(8, 8));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('两端读取同一组主题键和同一个 context.elTheme 扩展', (tester) async {
+    final primary = Color(0xff123456);
+    final shadow = [BoxShadow(color: Color(0x22000000), blurRadius: 3)];
+    final seen = <(Color, List<BoxShadow>)>[];
+    Widget reader() => desktop.ElView(
+      style: desktop.ElStyle(vars: {ElTheme.$primary: primary, ElTheme.$shadowSm: shadow}),
+      child: Builder(builder: (context) {
+        seen.add((context.elTheme.primary, context.elTheme.shadowSm));
+        return SizedBox();
+      }),
+    );
+    await tester.pumpWidget(MaterialApp(home: Column(children: [
+      desktop.ElDesktopTheme(child: reader()),
+      mobile.MyTheme(child: reader()),
+    ])));
+    expect(seen, [(primary, shadow), (primary, shadow)]);
+    expect(tester.takeException(), isNull);
+  });
+
   test('两端入口导出同一套通用组件声明', () {
     expect(mobile.ElButton(), isA<desktop.ElButton>());
     expect(desktop.ElSwitch(value: false), isA<mobile.ElSwitch>());

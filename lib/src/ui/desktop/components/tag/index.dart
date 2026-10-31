@@ -36,7 +36,7 @@ class Tag extends StatelessWidget {
         final bg = solid
             ? color
             : component.effect == .plain
-            ? ElThemeData.of(context).bgColor
+            ? context.elTheme.bgColor
             : color.elLight9(context);
         final border = component.hit || solid ? color : color.elLight8(context);
         return ElStyle(
@@ -51,7 +51,7 @@ class Tag extends StatelessWidget {
               borderRadius: .all(
                 Radius.circular(component.round ? 9999 : height * 0.45),
               ),
-              color: solid ? ElThemeData.of(context).white : color,
+              color: solid ? context.elTheme.white : color,
               fontSize: _fontSizes[size],
               fontWeight: .w500,
               lineHeight: 1,
@@ -65,7 +65,7 @@ class Tag extends StatelessWidget {
               transition: const [
                 ElTransition.all(Duration(milliseconds: 150), Curves.easeInOut),
               ],
-              iconColor: solid ? ElThemeData.of(context).white : color,
+              iconColor: solid ? context.elTheme.white : color,
             )
             .merge(
               component.isToggle && !component.disabled
@@ -75,7 +75,7 @@ class Tag extends StatelessWidget {
                               ? ElStyle(
                                   outline: .new(
                                     outlineWidth: 2,
-                                    outlineColor: ElThemeData.of(context).primary,
+                                    outlineColor: context.elTheme.primary,
                                     outlineOffset: 2,
                                   ),
                                 )
@@ -130,7 +130,7 @@ class _TagClose extends StatelessWidget {
       final solid =
           component.effect == .dark &&
           (!component.isToggle || component.selected);
-      final foreground = solid ? ElThemeData.of(context).white : color;
+      final foreground = solid ? context.elTheme.white : color;
       final override = component.closeStyle;
       return ElStyle(
         margin: .only(left: _closeGaps[size]),
@@ -142,17 +142,17 @@ class _TagClose extends StatelessWidget {
         iconColor: foreground,
         cursor: SystemMouseCursors.click,
         onHover: ElStyle(
-          iconColor: ElThemeData.of(context).white,
+          iconColor: context.elTheme.white,
           backgroundColor: solid ? color.elLight3(context) : color,
         ),
         onTap: ElStyle(
-          iconColor: ElThemeData.of(context).white,
+          iconColor: context.elTheme.white,
           backgroundColor: color.mix(const Color(0xff000000), 20),
         ),
         onFocusVisible: ElStyle(
           outline: .new(
             outlineWidth: 2,
-            outlineColor: ElThemeData.of(context).primary,
+            outlineColor: context.elTheme.primary,
             outlineOffset: 2,
           ),
         ),

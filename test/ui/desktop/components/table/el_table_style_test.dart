@@ -29,7 +29,7 @@ void main() {
             style: ElStyle(),
             child: Builder(
               builder: (context) {
-                primary = ElThemeData.of(context).primary;
+                primary = context.elTheme.primary;
                 borderColor = context.elTheme.borderColorLighter;
                 currentRow = primary.elLight9(context);
                 style = ElementPlusThemeData.tableStyle(context);

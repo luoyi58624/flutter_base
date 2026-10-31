@@ -5,16 +5,16 @@ Duration get _mentionPanelExitDuration => const Duration(milliseconds: 90);
 List<double> get _mentionOptionHeights => const [28, 32, 36, 40, 44];
 
 ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
-  backgroundColor: ElThemeData.of(context).cardColor,
-  color: ElThemeData.of(context).textColorSm,
+  backgroundColor: context.elTheme.cardColor,
+  color: context.elTheme.textRegular,
   border: .all(borderColor: null),
-  borderRadius: .circular(ElThemeData.of(context).radiusSm),
-  boxShadow: ElThemeData.of(context).shadowSm,
+  borderRadius: .circular(context.elTheme.radiusSm),
+  boxShadow: context.elTheme.shadowSm,
   opacity: 1,
   transform: .translateY(0),
   starting: ElStyle(opacity: 0, transform: .translateY(-4)),
   transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
-  iconColor: ElThemeData.of(context).textColorSm,
+  iconColor: context.elTheme.textRegular,
 );
 
 ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
@@ -26,22 +26,22 @@ ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
       userSelect: .none,
       onHover: (isSelected)
           ? null
-          : (ElStyle(backgroundColor: ElThemeData.of(context).overlayColorLighter)),
+          : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
-              backgroundColor: ElThemeData.of(context).overlayColorLight,
-              color: ElThemeData.of(context).primary,
-              iconColor: ElThemeData.of(context).primary,
+              backgroundColor: context.elTheme.overlayColorLight,
+              color: context.elTheme.primary,
+              iconColor: context.elTheme.primary,
             ))
           : null,
     );
 
 ElStyle _mentionDisabledOptionStyle(BuildContext context) => ElStyle(
-  color: ElThemeData.of(context).textColorLg,
+  color: context.elTheme.textPlaceholder,
   cursor: SystemMouseCursors.basic,
   onHover: ElStyle(backgroundColor: Color(0x00000000)),
-  iconColor: ElThemeData.of(context).textColorLg,
+  iconColor: context.elTheme.textPlaceholder,
 );
 
 class _MentionPanel<T> extends StatelessWidget {
@@ -161,8 +161,8 @@ class _MentionPanel<T> extends StatelessWidget {
           child: ElView(
             key: const ValueKey<String>('el-mention-arrow'),
             style: ElStyle(
-              backgroundColor: ElThemeData.of(context).cardColor,
-              border: ElBorder.all(borderColor: ElThemeData.of(context).borderColor),
+              backgroundColor: context.elTheme.cardColor,
+              border: ElBorder.all(borderColor: context.elTheme.borderColor),
               transform: ElTransform.rotate(0.7853981633974483),
             ),
           ),
@@ -217,9 +217,9 @@ class _MentionMessage extends StatelessWidget {
         height: height,
         padding: .symmetric(horizontal: 12),
         alignment: .centerLeft,
-        color: ElThemeData.of(context).textColorLg,
+        color: context.elTheme.textPlaceholder,
         userSelect: .none,
-        iconColor: ElThemeData.of(context).textColorLg,
+        iconColor: context.elTheme.textPlaceholder,
       ),
       child: child,
     );

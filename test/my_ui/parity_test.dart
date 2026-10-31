@@ -14,7 +14,7 @@ Widget shell(
   Widget child, {
   double viewport = 1200,
   bool reduced = true,
-  MyThemeData? theme,
+  ElStyle? theme,
   Brightness brightness = Brightness.light,
 }) => MaterialApp(
   home: MediaQuery(
@@ -24,7 +24,7 @@ Widget shell(
       platformBrightness: brightness,
     ),
     child: MyTheme(
-      data: theme,
+      style: theme,
       child: Align(
         alignment: Alignment.topLeft,
         child: SizedBox(width: 320, child: child),
@@ -60,43 +60,45 @@ class ProbeState extends State<StateProbe> {
 }
 
 void main() {
-  test('明暗token、精确透明阴影、只读集合和组件变量清除', () {
-    final light = MyThemeData(),
-        dark = MyThemeData(brightness: Brightness.dark);
-    expect(light.primary, Color(0xff2454c6));
-    expect(light.background, Color(0xfff2f3f5));
-    expect(light.text, Color(0xff17191e));
-    expect(dark.primary, Color(0xffaac8ff));
-    expect(dark.primaryText, Color(0xff000000));
-    expect(dark.border, Color(0xff596576));
-    expect(light.shadow.first.color.a, closeTo(.045, .000001));
-    expect(dark.shadow.first.color.a, closeTo(.16, .000001));
-    expect(() => light.shadow.add(BoxShadow()), throwsUnsupportedError);
-    final override = light.copyWith(cardRadius: 18, primary: Color(0xff008877));
-    expect(override.cardRadius, 18);
-    expect(override.copyWith(cardRadius: null).cardRadius, null);
-    expect(override.copyWith(cardRadius: null).primary, Color(0xff008877));
+  test('明暗默认变量保留原配色、阴影精度与只读集合', () {
+    final light = MyTheme.lightVars, dark = MyTheme.darkVars;
+    expect(light[ElTheme.$primary], Color(0xff2454c6));
+    expect(light[ElTheme.$bgColor], Color(0xfff2f3f5));
+    expect(light[ElTheme.$textColor], Color(0xff17191e));
+    expect(dark[ElTheme.$primary], Color(0xffaac8ff));
+    expect(dark[ElTheme.$primaryText], Color(0xff000000));
+    expect(dark[ElTheme.$borderColor], Color(0xff596576));
+    final lightShadow = light[ElTheme.$shadowMd] as List<BoxShadow>;
+    final darkShadow = dark[ElTheme.$shadowMd] as List<BoxShadow>;
+    expect(lightShadow.first.color.a, closeTo(.045, .000001));
+    expect(darkShadow.first.color.a, closeTo(.16, .000001));
+    expect(() => lightShadow.add(BoxShadow()), throwsUnsupportedError);
   });
 
   testWidgets('系统暗色与局部主题同步到ElView', (tester) async {
-    MyThemeData? seen;
+    Brightness? seenBrightness;
+    Color? seenPrimary;
     await tester.pumpWidget(
       shell(
         Builder(
           builder: (context) {
-            seen = MyTheme.of(context);
+            seenBrightness = ElView.of(context).brightness;
+            seenPrimary = context.elTheme.primary;
             return MyButton(child: '主题');
           },
         ),
         brightness: Brightness.dark,
       ),
     );
-    expect(seen!.brightness, Brightness.dark);
-    expect(tester.widget<ElView>(buttonHost()).style!.backgroundColor, seen!.primary);
+    expect(seenBrightness, Brightness.dark);
+    expect(
+      tester.widget<ElView>(buttonHost()).style!.backgroundColor,
+      seenPrimary,
+    );
     await tester.pumpWidget(
       shell(
         MyButton(child: '主题'),
-        theme: MyThemeData(primary: Color(0xff008877)),
+        theme: ElStyle(vars: {ElTheme.$primary: Color(0xff008877)}),
       ),
     );
     expect(
@@ -647,13 +649,13 @@ void main() {
   });
 
   testWidgets('Tag五色遵守CSS混色，disabled不回调', (tester) async {
-    final theme = MyThemeData();
+    final theme = MyTheme.lightVars;
     final accents = [
-      theme.primary,
-      theme.success,
-      theme.warning,
-      theme.danger,
-      theme.textSecondary,
+      (theme[ElTheme.$primary] as Color),
+      (theme[ElTheme.$success] as Color),
+      (theme[ElTheme.$warning] as Color),
+      (theme[ElTheme.$error] as Color),
+      (theme[ElTheme.$textSecondary] as Color),
     ];
     for (var i = 0; i < MyTagTone.values.length; i++) {
       await tester.pumpWidget(
@@ -665,7 +667,7 @@ void main() {
       expect(view.style!.color, accents[i]);
       expect(
         view.style!.backgroundColor,
-        Color.lerp(theme.cardBackground, accents[i], .1),
+        Color.lerp((theme[ElTheme.$cardColor] as Color), accents[i], .1),
       );
     }
     var calls = 0;
@@ -685,14 +687,16 @@ void main() {
   });
 
   testWidgets('组件主题变量有真实消费者', (tester) async {
-    final theme = MyThemeData(
-      cardPadding: EdgeInsets.all(5),
-      cardRadius: 11,
-      switchThumbBackground: Color(0xff123456),
-      dividerHeight: 31,
-      dividerSpacing: 4,
-      progressSize: 80,
-      progressThickness: 9,
+    final theme = ElStyle(
+      vars: {
+        MyCard.$padding: EdgeInsets.all(5),
+        MyCard.$radius: 11,
+        MySwitch.$thumbBackground: Color(0xff123456),
+        MyDivider.$height: 31,
+        MyDivider.$spacing: 4,
+        MyProgress.$size: 80,
+        MyProgress.$thickness: 9,
+      },
     );
     await tester.pumpWidget(
       shell(
@@ -830,7 +834,7 @@ void main() {
             return Column(
               children: [
                 MyTheme(
-                  data: MyThemeData(primary: color),
+                  style: ElStyle(vars: {ElTheme.$primary: color}),
                   child: MyButton(key: nested, child: '局部'),
                 ),
                 MyButton(key: sibling, child: '默认'),

@@ -107,7 +107,7 @@ extension _ButtonAppearance on ElButton {
   /// 变体优先级同官方组件：link > text > ghost > plain。
   ElStyle _styleBuilder(BuildContext context) {
     final isDesktop = _isDesktop;
-    // 尺寸档统一跟有效 ElThemeData.size，高度由 ElApp 全局表统一驱动。
+    // 尺寸档与控件高度统一读取祖先注入的通用主题变量。
     final resolvedSize = _size(context);
     var base = ElStyle(
       // 官方 .el-button line-height: 1（高度全由 padding 撑出）
@@ -122,7 +122,7 @@ extension _ButtonAppearance on ElButton {
     );
     // link 是纯文字形态（官方 padding 2 / height auto），其余变体共享同一套盒尺寸；
     // circle 固定方盒（宽 = 高）
-    final boxSize = ElThemeData.of(context).buttonHeights[resolvedSize.index];
+    final boxSize = context.elTheme.controlHeights[resolvedSize.index];
     if (link) {
       base = base.copyWith(padding: const EdgeInsets.all(2));
     } else if (circle) {
@@ -173,7 +173,7 @@ extension _ButtonAppearance on ElButton {
         result = _defaultStyle(context, base);
       }
       if (typeColor != null || plain || ghost || text) {
-        final color = typeColor ?? ElThemeData.of(context).primary;
+        final color = typeColor ?? context.elTheme.primary;
         final theme = _themeStyle(context, const ElStyle(), color);
         // 文本按钮没有描边占位，填色时也不新增边框宽度，避免选中导致尺寸跳动。
         final selected = theme
@@ -207,26 +207,25 @@ extension _ButtonAppearance on ElButton {
     );
   }
 
-  /// 按背景明暗取文本色：背景暗 → **纯白**（[ElThemeData.of(context).white]）；
-  /// 背景亮 → 常规深色文字（[ElThemeData.of(context).textColorSm]）。
+  /// 按背景明暗取通用对比文字色，背景暗用 textOnDark，背景亮用 textOnLight。
   /// 只按基础底判定一次，消费时兜底使跨风格局部使用无需 ElApp。
   /// 交互态（hover/tap 背景变浅变深）不参与——实心按钮文字色一经确定
   /// 不再变化。
   Color _textOnBackground(BuildContext context, Color background) {
     final dark = background.isDark.brightness == Brightness.dark;
     return dark
-        ? ElThemeData.of(context, brightness: .dark).white
-        : ElThemeData.of(context, brightness: .light).textColorXs;
+        ? context.elTheme.textOnDark
+        : context.elTheme.textOnLight;
   }
 
   /// 无 type 的默认按钮；
   /// plain 时 hover 保持卡片底不染色（官方 is-plain 基础形态）
   ElStyle _defaultStyle(BuildContext context, ElStyle base) {
     final isDesktop = _isDesktop;
-    final primary = ElThemeData.of(context).primary;
-    final bgColor = ElThemeData.of(context).bgColor;
-    final textColor = ElThemeData.of(context).textColorSm;
-    final borderColor = ElThemeData.of(context).borderColor;
+    final primary = context.elTheme.primary;
+    final bgColor = context.elTheme.bgColor;
+    final textColor = context.elTheme.textRegular;
+    final borderColor = context.elTheme.borderColor;
     final plainAppearance = plain;
     final hoverTextColor = primary;
     final hoverBgColor = plainAppearance ? bgColor : primary.elLight9(context);
@@ -260,10 +259,10 @@ extension _ButtonAppearance on ElButton {
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
-            color: ElThemeData.of(context).textColorLg,
+            color: context.elTheme.textPlaceholder,
             backgroundColor: bgColor,
             border: _border(context, color: borderColor),
-            iconColor: ElThemeData.of(context).textColorLg,
+            iconColor: context.elTheme.textPlaceholder,
           ),
           iconColor: textColor,
         )
@@ -370,7 +369,7 @@ extension _ButtonAppearance on ElButton {
   /// 构建幽灵按钮样式，背景恒透明，鼠标悬停边框高亮
   ElStyle _ghostStyle(BuildContext context, ElStyle base, Color? typeColor) {
     final isDesktop = _isDesktop;
-    final primary = typeColor ?? ElThemeData.of(context).primary;
+    final primary = typeColor ?? context.elTheme.primary;
     final textColor = primary;
     // 幽灵形态边框：默认级别与 plain 一致（light-5）
     final borderColor = primary.elLight5(context);
@@ -401,10 +400,10 @@ extension _ButtonAppearance on ElButton {
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
-            color: ElThemeData.of(context).textColorLg,
+            color: context.elTheme.textPlaceholder,
             backgroundColor: const Color(0x00000000),
             border: _border(context, color: borderColor),
-            iconColor: ElThemeData.of(context).textColorLg,
+            iconColor: context.elTheme.textPlaceholder,
           ),
           iconColor: textColor,
         )
@@ -414,10 +413,10 @@ extension _ButtonAppearance on ElButton {
   /// 构建文本按钮样式，透明背景，悬停加深
   ElStyle _textStyle(BuildContext context, ElStyle base, Color? typeColor) {
     final isDesktop = _isDesktop;
-    final textColor = typeColor ?? ElThemeData.of(context).textColorSm;
+    final textColor = typeColor ?? context.elTheme.textRegular;
     // 交互底从 $bgColor 加深派生：按背景明暗调整 elLight 反转值，恒走 _darken
     // 方向（亮底 reverse 混深灰、暗底走暗色分支混深灰）；hover 3 级、active 6 级
-    final background = ElThemeData.of(context).bgColor;
+    final background = context.elTheme.bgColor;
     final activeColor = background.elLight1(context, reverse: true);
     final active = ElStyle(
       color: textColor,
@@ -439,11 +438,11 @@ extension _ButtonAppearance on ElButton {
             cursor: SystemMouseCursors.forbidden,
             color:
                 typeColor?.elLight5(context) ??
-                ElThemeData.of(context).textColorLg,
+                context.elTheme.textPlaceholder,
             backgroundColor: bg ? background.deepen(5) : const Color(0x00000000),
             iconColor:
                 typeColor?.elLight5(context) ??
-                ElThemeData.of(context).textColorLg,
+                context.elTheme.textPlaceholder,
           ),
           iconColor: textColor,
         )
@@ -455,7 +454,7 @@ extension _ButtonAppearance on ElButton {
   /// 构建链接按钮样式，纯文本
   ElStyle _linkStyle(BuildContext context, ElStyle base, Color? typeColor) {
     final isDesktop = _isDesktop;
-    final textColor = typeColor ?? ElThemeData.of(context).textColorSm;
+    final textColor = typeColor ?? context.elTheme.textRegular;
     final active = ElStyle(
       color: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
       iconColor: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
@@ -482,10 +481,10 @@ extension _ButtonAppearance on ElButton {
                     : ElStyle(
                         color:
                             typeColor?.elLightOf(.light, 5) ??
-                            ElThemeData.of(context).textColorMd,
+                            context.elTheme.textSecondary,
                         iconColor:
                             typeColor?.elLightOf(.light, 5) ??
-                            ElThemeData.of(context).textColorMd,
+                            context.elTheme.textSecondary,
                       )),
           onTap: (selected && !isToggle)
               ? null
@@ -502,10 +501,10 @@ extension _ButtonAppearance on ElButton {
             cursor: SystemMouseCursors.forbidden,
             color:
                 typeColor?.elLight5(context) ??
-                ElThemeData.of(context).textColorLg,
+                context.elTheme.textPlaceholder,
             iconColor:
                 typeColor?.elLight5(context) ??
-                ElThemeData.of(context).textColorLg,
+                context.elTheme.textPlaceholder,
           ),
           iconColor: textColor,
         )
@@ -514,11 +513,11 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建聚焦环样式
   ElStyle _focusRingStyle(BuildContext context, Color? typeColor) {
-    final ringColor = typeColor ?? ElThemeData.of(context).primary;
+    final ringColor = typeColor ?? context.elTheme.primary;
     return ElStyle(outline: ElOutline(outlineWidth: 2, outlineColor: ringColor, outlineOffset: 1));
   }
 
-  /// 组件尺寸档：读取 Element 样式中的 [ElThemeData.of(context).size]。
+  /// 组件尺寸档：读取祖先主题变量中的 size。
   ElLevelType _size(BuildContext context) => context.elComponentSize(style);
 
   /// 构建 loading 小部件
@@ -570,5 +569,5 @@ extension _ButtonAppearance on ElButton {
 
 ElBorder _border(BuildContext context, {required Color color}) => .all(
   borderColor: color,
-  borderWidth: ElThemeData.of(context).borderWidths[ElLevelType.md.index],
+  borderWidth: context.elTheme.borderWidths[ElLevelType.md.index],
 );

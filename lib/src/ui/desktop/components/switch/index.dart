@@ -54,7 +54,7 @@ extension _SwitchAppearance on ElSwitch {
   ElStyle _rootStyle(BuildContext context, ElLevelType resolved) => ElStyle(
     height: _heightOf(context, resolved),
     fontSize: 12,
-    color: ElThemeData.of(context).white,
+    color: context.elTheme.white,
     iconSize: 12,
 
     cursor: _interactive
@@ -66,15 +66,15 @@ extension _SwitchAppearance on ElSwitch {
       opacity: 0.6,
       cursor: SystemMouseCursors.forbidden,
     ),
-    iconColor: ElThemeData.of(context).white,
+    iconColor: context.elTheme.white,
   );
 
   Color _trackColor(BuildContext context, bool on) {
     final custom = on ? activeColor : inactiveColor;
     if (custom is Color) return custom;
     return (on
-        ? ElThemeData.of(context).primary
-        : ElThemeData.of(context).borderColor);
+        ? context.elTheme.primary
+        : context.elTheme.borderColor);
   }
 
   /// 轨道本体（几何 + 轨道色 + 滑块定位）。
@@ -296,7 +296,7 @@ extension _SwitchAppearance on ElSwitch {
       style: ElStyle(
         width: thumbSize,
         height: thumbSize,
-        backgroundColor: ElThemeData.of(context).white,
+        backgroundColor: context.elTheme.white,
         borderRadius: .all(Radius.circular(thumbSize / 2)),
         alignment: .center,
         color: _trackColor(context, on),

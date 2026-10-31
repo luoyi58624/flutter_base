@@ -10,7 +10,9 @@ Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
     child: MyTheme(
-      data: MyThemeData(progressSize: progressSize),
+      style: ElStyle(
+        vars: {MyProgress.$size: ?progressSize},
+      ),
       child: Align(
         alignment: Alignment.topLeft,
         child: SizedBox(width: 320, child: child),

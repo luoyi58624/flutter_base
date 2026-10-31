@@ -1,7 +1,6 @@
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter/widgets.dart';
 
-import '../others/app/index.dart';
 import '../../extensions/color.dart';
 import '../../extensions/el.dart';
 
@@ -31,12 +30,12 @@ import '../../extensions/el.dart';
 abstract final class ElTableTheme {
   /// 表格外观工厂：只返回 [ElTableStyle]，不接管任何表格实现。
   static ElTableStyle style(BuildContext context) {
-    final size = ElThemeData.of(context).size;
-    final primary = ElThemeData.of(context).primary;
+    final size = context.elTheme.size;
+    final primary = context.elTheme.primary;
     final borderColor = context.elTheme.borderColorLighter;
-    final textColor = ElThemeData.of(context).textColorSm;
-    final headerTextColor = ElThemeData.of(context).textColorMd;
-    final background = ElThemeData.of(context).bgColor;
+    final textColor = context.elTheme.textRegular;
+    final headerTextColor = context.elTheme.textSecondary;
+    final background = context.elTheme.bgColor;
     final rowBackground = background;
     final headerBackground = rowBackground;
     final hoverBackground = context.isDark

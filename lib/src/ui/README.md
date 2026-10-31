@@ -17,7 +17,7 @@ void main() {
 }
 ```
 
-移动端沿用 my-ui 的 MyTheme / MyThemeData 与既有 My* 组件。已有通用实现通过 MyTheme 安装，业务代码可以使用同一套 El* 声明。品牌组件与通用接口之间的支持范围见 [Mobile](mobile/README.md)。
+移动端由 MyTheme 向 ElView 注入默认主题变量，并保留既有 My* 组件。已有通用实现通过 MyTheme 安装，业务代码可以使用同一套 El* 声明。品牌组件与通用接口之间的支持范围见 [Mobile](mobile/README.md)。
 
 ## 桌面端
 
@@ -34,9 +34,25 @@ void main() {
 }
 ```
 
-桌面端从 Element Plus 迁入可满足通用接口的品牌实现，保留类型化 ElThemeData、尺寸档、明暗色板和源组件行为。ElDesktopTheme 安装主题、组件 Builder 与候选面板所需的 Overlay 环境；服务类组件和平台菜单等待各自接口，当前不注册。支持清单及缺口见 [Desktop](desktop/README.md)。
+桌面端从 Element Plus 迁入可满足通用接口的品牌实现，保留尺寸档、明暗默认变量和源组件行为。ElDesktopTheme 安装主题、组件 Builder 与候选面板所需的 Overlay 环境；服务类组件和平台菜单等待各自接口，当前不注册。支持清单及缺口见 [Desktop](desktop/README.md)。
 
 ## 组合与覆盖
+
+两端共享 `ElTheme` 的通用颜色、阴影、字体和基础度量键，以及同一个 `context.elTheme` 读取扩展。通过普通 ElView 局部覆盖，无需复制主题对象：
+
+```dart
+ElView(
+  style: ElStyle(
+    vars: {ElTheme.$primary: Colors.blue},
+    onDark: ElStyle(vars: {ElTheme.$primary: Colors.green}),
+  ),
+  child: Builder(builder: (context) => Text('主色', style: TextStyle(color: context.elTheme.primary))),
+);
+```
+
+读取哪个变量就订阅哪个变量；仅访问 `context.elTheme` 不建立依赖。背景对比文字使用 `textOnLight`、`textOnDark`，无需反向读取另一套主题。组件专属变量由各组件声明键并提供本地默认值，不加入全局注入表。
+
+明暗值由声明节点的 `onDark.vars` 应用。后代只改变 themeMode 不会重选祖先变量的另一套配色；需要局部配色时声明自己的变量变体，或安装新的主题宿主。
 
 两个入口都重新导出通用 flutter_base API；同时导入两端时使用库前缀区分品牌主题。不同主题可嵌套，后代从最近的 ElComponentProvider 读取该品牌的完整组件配置。需要替换某项实现时，在品牌安装器的 componentBuilders 参数中显式传入覆盖配置。
 

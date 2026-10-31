@@ -7,7 +7,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../../cores/common.dart';
-import '../../../cores/theme.dart';
 
 /// 带文字分割线的对齐位置。
 enum MyDividerAlign {
@@ -23,6 +22,15 @@ enum MyDividerAlign {
 
 /// 1px水平或竖向分割线，默认插槽只在水平模式显示。
 class MyDivider extends StatelessWidget {
+  /// 局部分隔线颜色。
+  static const $color = 'my.divider.color';
+
+  /// 局部分隔线两侧间距。
+  static const $spacing = 'my.divider.spacing';
+
+  /// 局部竖向分隔线高度。
+  static const $height = 'my.divider.height';
+
   /// dashed保留与实线相同的厚度，变量通过MyTheme覆写。
   const MyDivider({
     super.key,
@@ -45,10 +53,11 @@ class MyDivider extends StatelessWidget {
   final Object? child;
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context);
+    final t = context.elTheme;
+    final vars = ElView.maybeOf(context);
     final side = ElBorderSide(
       borderWidth: 1,
-      borderColor: t.dividerColor ?? t.border,
+      borderColor: vars?.getVar<Color>($color) ?? t.borderColor,
       borderStyle: dashed ? ElBorderStyle.dashed : ElBorderStyle.solid,
     );
     Widget line() => ElView(
@@ -64,10 +73,10 @@ class MyDivider extends StatelessWidget {
       style: myTextStyle(context, 13, t.fontWeight, color: t.textSecondary, height: 1.6).merge(
         ElStyle(
           width: vertical ? 1 : '100%',
-          height: vertical ? t.dividerHeight ?? 13 : null,
+          height: vertical ? vars?.getVar<num>($height)?.toDouble() ?? 13 : null,
           margin: vertical
-              ? EdgeInsets.symmetric(horizontal: t.dividerSpacing ?? 12)
-              : EdgeInsets.symmetric(vertical: t.dividerSpacing ?? 20),
+              ? EdgeInsets.symmetric(horizontal: vars?.getVar<num>($spacing)?.toDouble() ?? 12)
+              : EdgeInsets.symmetric(vertical: vars?.getVar<num>($spacing)?.toDouble() ?? 20),
         ),
       ),
       child: vertical || child == null

@@ -5,23 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(
-  Widget child, {
-  MyThemeData? data,
-  ElComponentBuilders? builders,
-}) => MaterialApp(
-  home: MediaQuery(
-    data: MediaQueryData(disableAnimations: true),
-    child: MyTheme(
-      data: data,
-      componentBuilders: builders,
-      child: Align(
-        alignment: .topLeft,
-        child: SizedBox(width: 320, child: child),
+Widget _host(Widget child, {ElStyle? style, ElComponentBuilders? builders}) =>
+    MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MyTheme(
+          style: style,
+          componentBuilders: builders,
+          child: Align(
+            alignment: .topLeft,
+            child: SizedBox(width: 320, child: child),
+          ),
+        ),
       ),
-    ),
-  ),
-);
+    );
 
 Finder _view(bool Function(ElView view) test) =>
     find.byWidgetPredicate((widget) => widget is ElView && test(widget));
@@ -260,7 +257,9 @@ void main() {
     await tester.pump();
     expect(find.text('开启'), findsOneWidget);
     expect(find.text('一'), findsOneWidget);
-    final track = _view((view) => view.style?.backgroundColor == Color(0xff112233));
+    final track = _view(
+      (view) => view.style?.backgroundColor == Color(0xff112233),
+    );
     expect(track, findsOneWidget);
     expect(tester.getSize(track), Size(120, 40));
     expect(

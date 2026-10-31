@@ -10,7 +10,6 @@ import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
 import '../../cores/glyph.dart';
-import '../../cores/theme.dart';
 
 /// 进度展示方式。
 enum MyProgressType {
@@ -59,6 +58,21 @@ typedef MyProgressTextBuilder = Widget Function(
 
 /// 支持缓冲、确定/不确定值和自定义读数的进度条或圆环。
 class MyProgress extends HookWidget {
+  /// 局部进度颜色。
+  static const $color = 'my.progress.color';
+
+  /// 局部轨道颜色。
+  static const $track = 'my.progress.track';
+
+  /// 局部缓冲颜色。
+  static const $bufferColor = 'my.progress.bufferColor';
+
+  /// 局部轨道粗细。
+  static const $thickness = 'my.progress.thickness';
+
+  /// 局部圆环尺寸。
+  static const $size = 'my.progress.size';
+
   /// 非有限value进入不确定状态，非法max回退100。
   const MyProgress({
     super.key,
@@ -97,7 +111,8 @@ class MyProgress extends HookWidget {
   final MyProgressTextBuilder? textBuilder;
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context),
+    final vars = ElView.maybeOf(context);
+    final t = context.elTheme,
         reduced = myReducedMotion(context),
         circle = type == MyProgressType.circle;
     final total = max.isFinite && max > 0 ? max : 100.0;
@@ -108,16 +123,17 @@ class MyProgress extends HookWidget {
         : null;
     final indefinite = amount == null, percentage = (ratio * 100).round();
     final color =
-        t.progressColor ??
+        vars?.getVar<Color>($color) ??
         switch (status) {
           MyProgressStatus.normal => t.primary,
           MyProgressStatus.success => t.success,
           MyProgressStatus.warning => t.warning,
-          MyProgressStatus.error => t.danger,
+          MyProgressStatus.error => t.error,
         };
-    final track = t.progressTrack ?? t.fill,
-        bufferColor = t.progressBufferColor ?? Color.lerp(track, color, .28)!;
-    final size = t.progressSize ?? 96, thickness = t.progressThickness ?? 6;
+    final track = vars?.getVar<Color>($track) ?? t.fill,
+        bufferColor = vars?.getVar<Color>($bufferColor) ?? Color.lerp(track, color, .28)!;
+    final size = vars?.getVar<num>($size)?.toDouble() ?? 96,
+        thickness = vars?.getVar<num>($thickness)?.toDouble() ?? 6;
     final clock = useAnimationController(
       duration: Duration(milliseconds: circle ? 1000 : 1400),
     );
@@ -174,7 +190,7 @@ class MyProgress extends HookWidget {
                   context,
                   circle ? (indefinite ? 12 : 16) : 13,
                   circle && !indefinite ? t.fontWeightAction : t.fontWeight,
-                  color: circle ? t.text : t.textSecondary,
+                  color: circle ? t.textColor : t.textSecondary,
                   height: 1.6,
                 ).merge(
                   ElStyle(

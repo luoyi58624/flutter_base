@@ -49,13 +49,18 @@ Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未
 
 ## 主题与覆盖
 
-`ElThemeData` 保留源主题的实际类型值和明暗默认表，`ElTheme` 用于局部主题或尺寸覆盖。`ElementPlusThemeData` 是可直接传给 ElComponentProvider 的实现预设；ElDesktopTheme.componentBuilders 在品牌预设上合并非空实现。组件的显式 style 沿源实现的合并顺序覆盖默认外观。
+`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTheme` 键读取实际值。局部主题或尺寸直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
 
 ```dart
 ElDesktopTheme(
-  theme: ElThemeData(primary: Color(0xff2454c6)),
-  darkTheme: ElThemeData.dark().copyWith(primary: Color(0xffaac8ff)),
-  child: ElTheme(size: ElLevelType.sm, child: ElButton(child: '紧凑按钮')),
+  style: ElStyle(
+    vars: {ElTheme.$primary: Color(0xff2454c6)},
+    onDark: ElStyle(vars: {ElTheme.$primary: Color(0xffaac8ff)}),
+  ),
+  child: ElView(
+    style: ElStyle(vars: {ElTheme.$size: ElLevelType.sm}),
+    child: ElButton(child: '紧凑按钮'),
+  ),
 );
 ```
 

@@ -4,24 +4,22 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
-import 'theme_data.dart';
 import '../components/builders.dart';
+import '../../theme_vars.dart';
+export '../../theme.dart';
 
-final _light = MyThemeData();
-final _dark = MyThemeData(brightness: Brightness.dark);
+part 'tokens.dart';
 
-/// 为 my-ui 和 ElView 提供一致主题，省略 brightness 时跟随系统。
-///
-/// 默认 Times New Roman，中文依次回退 Microsoft YaHei、SimSun；宿主负责提供字体。
-/// 根行高使用字体自身度量（对应 Web normal），避免继承 Material 宿主行高。
-/// Flutter Text 与 ElView 字符串均继承主题字体，子级显式字体和组件行高优先，嵌套 MyTheme 重新建立契约。
+final Map<Object, Object> _lightVars = Map.unmodifiable({...ElTheme.lightVars, ..._buildVars(false)});
+final Map<Object, Object> _darkVars = Map.unmodifiable({...ElTheme.darkVars, ..._buildVars(true)});
+
+/// 向 ElView 注入移动端默认变量，并同步 Flutter Text 与 ElView 的字体。
 class MyTheme extends StatelessWidget {
-  /// data 可单独用于局部主题，darkData 用于系统暗色模式。
+  /// 明暗默认表按当前状态级联，用户变量与实际样式通过 style 覆盖。
   const MyTheme({
     super.key,
     required this.child,
-    this.data,
-    this.darkData,
+    this.style,
     this.brightness,
     this.componentBuilders,
   });
@@ -29,72 +27,71 @@ class MyTheme extends StatelessWidget {
   /// 当前子树。
   final Widget child;
 
-  /// 浅色或显式局部主题。
-  final MyThemeData? data;
+  /// 在品牌默认值之后合并的样式及变量。
+  final ElStyle? style;
 
-  /// 暗色主题，省略时使用 CSS 默认暗色。
-  final MyThemeData? darkData;
-
-  /// 明确指定亮暗，优先于系统设置。
+  /// 明确指定亮暗，省略时跟随系统。
   final Brightness? brightness;
 
   /// 在移动端默认实现上合并的通用组件覆写。
   final ElComponentBuilders? componentBuilders;
 
-  /// 订阅最近主题，缺少宿主时使用默认浅色。
-  static MyThemeData of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_ThemeScope>()?.data ?? _light;
+  /// 移动端默认浅色变量，调用方用新 Map 声明覆盖。
+  static Map<Object, Object> get lightVars => _lightVars;
+
+  /// 移动端默认暗色差异，其余变量继承浅色基础表。
+  static Map<Object, Object> get darkVars => _darkVars;
 
   @override
   Widget build(BuildContext context) {
     final mode =
         brightness ??
-        (darkData == null ? data?.brightness : null) ??
         MediaQuery.maybePlatformBrightnessOf(context) ??
         Brightness.light;
-    final resolved = mode == Brightness.dark
-        ? (darkData ?? (data?.brightness == mode ? data : null) ?? _dark)
-        : (data ?? _light);
-    return _ThemeScope(
-      data: resolved,
+    return ElView(
+      themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
+      style: ElStyle(
+        vars: _lightVars,
+        onDark: ElStyle(vars: _darkVars),
+      ).merge(themeVarsOf(style)),
       child: ElComponentProvider(
         builders: myComponentBuilders.merge(componentBuilders),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(
-            fontFamily: resolved.fontFamily,
-            fontFamilyFallback: resolved.fontFamilyFallback,
-            color: resolved.text,
-            fontSize: 15,
-            height: kTextHeightNone,
-            fontWeight: resolved.weight(resolved.fontWeight),
-            fontVariations: [FontVariation('wght', resolved.fontWeight)],
-          ),
-          child: ElView(
-            themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
-            style: ElStyle(
-              fontFamily: resolved.fontFamily,
-              fontFamilyFallback: resolved.fontFamilyFallback,
-              color: resolved.text,
-              iconColor: resolved.text,
-              fontSize: 15,
-              lineHeight: kTextHeightNone,
-              fontWeight: resolved.weight(resolved.fontWeight),
-              fontVariationSettings: [FontVariation('wght', resolved.fontWeight)],
-            ),
-            child: child,
-          ),
+        child: Builder(
+          builder: (context) {
+            final theme = context.elTheme;
+            final fontWeight = myTextWeight(theme.fontWeight);
+            final axes = [FontVariation('wght', theme.fontWeight)];
+            return DefaultTextStyle.merge(
+              style: TextStyle(
+                fontFamily: theme.fontFamily,
+                fontFamilyFallback: theme.fontFamilyFallback,
+                color: theme.textColor,
+                fontSize: 15,
+                height: kTextHeightNone,
+                fontWeight: fontWeight,
+                fontVariations: axes,
+              ),
+              child: ElView(
+                style: ElStyle(
+                  fontFamily: theme.fontFamily,
+                  fontFamilyFallback: theme.fontFamilyFallback,
+                  color: theme.textColor,
+                  iconColor: theme.textColor,
+                  fontSize: 15,
+                  lineHeight: kTextHeightNone,
+                  fontWeight: fontWeight,
+                  fontVariationSettings: axes,
+                ).merge(style),
+                child: child,
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _ThemeScope extends InheritedTheme {
-  const _ThemeScope({required this.data, required super.child});
-  final MyThemeData data;
-  @override
-  bool updateShouldNotify(_ThemeScope oldWidget) => data != oldWidget.data;
-  @override
-  Widget wrap(BuildContext context, Widget child) =>
-      _ThemeScope(data: data, child: child);
-}
+/// 以最近百位字重回退静态字体，数值轴由实际样式单独保留。
+FontWeight myTextWeight(double value) =>
+    FontWeight.values[((value / 100).round() - 1).clamp(0, 8)];

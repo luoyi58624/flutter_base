@@ -85,7 +85,7 @@ class ElExampleApp extends StatelessWidget {
           value: _systemBars,
           child: MyTheme(
             brightness: Brightness.light,
-            data: MyThemeData(fontWeight: systemWght),
+            style: ElStyle(vars: {ElTheme.$fontWeight: ?systemWght}),
             child: Scaffold(resizeToAvoidBottomInset: false, body: child),
           ),
         ),

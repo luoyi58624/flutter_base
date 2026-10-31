@@ -6,16 +6,16 @@ List<double> get _selectOptionHeights => const [28, 32, 36, 40, 44];
 
 ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
   padding: .symmetric(vertical: 6),
-  backgroundColor: ElThemeData.of(context).cardColor,
-  color: ElThemeData.of(context).textColorSm,
+  backgroundColor: context.elTheme.cardColor,
+  color: context.elTheme.textRegular,
   border: .all(borderColor: null),
-  borderRadius: .circular(ElThemeData.of(context).radiusSm),
-  boxShadow: ElThemeData.of(context).shadowSm,
+  borderRadius: .circular(context.elTheme.radiusSm),
+  boxShadow: context.elTheme.shadowSm,
   opacity: 1,
   transform: .translateY(0),
   starting: ElStyle(opacity: 0, transform: .translateY(-4)),
   transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
-  iconColor: ElThemeData.of(context).textColorSm,
+  iconColor: context.elTheme.textRegular,
 );
 
 ElStyle _selectOptionBaseStyle(BuildContext context, bool isSelected) =>
@@ -26,19 +26,19 @@ ElStyle _selectOptionBaseStyle(BuildContext context, bool isSelected) =>
       cursor: SystemMouseCursors.click,
       userSelect: .none,
       onDisabled: ElStyle(
-        color: ElThemeData.of(context).textColorLg,
+        color: context.elTheme.textPlaceholder,
         cursor: SystemMouseCursors.forbidden,
-        iconColor: ElThemeData.of(context).textColorLg,
+        iconColor: context.elTheme.textPlaceholder,
       ),
       onHover: (isSelected)
           ? null
-          : (ElStyle(backgroundColor: ElThemeData.of(context).overlayColorLighter)),
+          : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
-              backgroundColor: ElThemeData.of(context).overlayColorLight,
-              color: ElThemeData.of(context).primary,
-              iconColor: ElThemeData.of(context).primary,
+              backgroundColor: context.elTheme.overlayColorLight,
+              color: context.elTheme.primary,
+              iconColor: context.elTheme.primary,
             ))
           : null,
     );
@@ -106,9 +106,9 @@ class _ElSelectPanel<T> extends StatelessWidget {
                     height: optionHeight,
                     padding: .symmetric(horizontal: 12),
                     alignment: .centerLeft,
-                    color: ElThemeData.of(context).textColorLg,
+                    color: context.elTheme.textPlaceholder,
                     userSelect: .none,
-                    iconColor: ElThemeData.of(context).textColorLg,
+                    iconColor: context.elTheme.textPlaceholder,
                   ),
                   child: '暂无选项',
                 ),

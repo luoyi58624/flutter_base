@@ -3,7 +3,7 @@ part of 'index.dart';
 /// 输入框壳样式（官方 el-input 盒模型直译）：
 /// - 边框 = `1px inset box-shadow` 三态（base → hover → focus-within），
 ///   官方就是 shadow 而非真实 border，零布局影响、过渡走 transitionBoxShadow；
-/// - 单行：高度跟随 [ElThemeData.buttonHeights] 当前档，字号与 padding 同档递进；
+/// - 单行：高度跟随 [ElThemeExt.controlHeights] 当前档，字号与 padding 同档递进；
 ///   textarea：垂直 padding 固定 5，水平 padding 随档 + 列布局自然高；
 /// - 错误态（表单校验失败）danger 环压过 hover/focus；禁用态三色 + not-allowed。
 ElStyle _inputShellStyle(
@@ -17,8 +17,8 @@ ElStyle _inputShellStyle(
   required ElLevelType? declaredSize,
 }) {
   final isDesktop = ElPlatform.isDesktop;
-  final boxSize = ElThemeData.of(c).buttonHeights[size.index];
-  final radius = BorderRadius.circular(ElThemeData.of(c).radiusSm);
+  final boxSize = c.elTheme.controlHeights[size.index];
+  final radius = BorderRadius.circular(c.elTheme.radiusSm);
   List<BoxShadow> ring(Color color) => [
     ElBoxShadow(color: color, spreadRadius: 1, inset: true),
   ];
@@ -40,21 +40,27 @@ ElStyle _inputShellStyle(
     );
   }
 
-  final danger = hasError ? ElThemeData.of(c).error : null;
-  final baseRing = danger ?? ElThemeData.of(c).borderColor;
+  final danger = hasError ? c.elTheme.error : null;
+  final baseRing = danger ?? c.elTheme.borderColor;
   final hoverRing =
       danger ?? (c.isDark ? const Color(0xff8d9095) : const Color(0xffc0c4cc));
-  final focusRing = danger ?? ElThemeData.of(c).primary;
+  final focusRing = danger ?? c.elTheme.primary;
 
   return ElStyle(
     width: '100%',
     height: textarea ? null : boxSize,
     cursor: SystemMouseCursors.text,
     alignment: textarea ? null : .centerLeft,
-    backgroundColor: ElThemeData.of(c).bgColor,
+    backgroundColor: c.elTheme.bgColor,
     borderRadius: radius,
     boxShadow: ring(baseRing),
-    transition: ElThemeData.of(c).transitionBoxShadow,
+    transition: const [
+      ElTransition.field(
+        ElTransitionField.boxShadow,
+        Duration(milliseconds: 200),
+        Cubic(0.645, 0.045, 0.355, 1),
+      ),
+    ],
     fontSize: fontSize,
     lineHeight: elInputLineHeightFactor,
     leadingDistribution: .even,

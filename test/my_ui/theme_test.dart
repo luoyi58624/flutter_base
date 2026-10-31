@@ -12,18 +12,29 @@ import 'package:flutter_base/mobile.dart';
 void main() {
   final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
   for (final mode in ['light', 'dark']) {
-    test('$mode 全部根颜色、阴影、overlay与四档字重', () {
-      final t = MyThemeData(
-        brightness: mode == 'dark' ? Brightness.dark : Brightness.light,
+    testWidgets('$mode 全部根颜色、阴影、overlay与四档字重', (tester) async {
+      late ElThemeExt t;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MyTheme(
+            brightness: mode == 'dark' ? Brightness.dark : Brightness.light,
+            child: Builder(
+              builder: (context) {
+                t = context.elTheme;
+                return SizedBox();
+              },
+            ),
+          ),
+        ),
       );
       expect(t.fontFamily, 'Times New Roman');
       expect(t.fontFamilyFallback, ['Microsoft YaHei', 'SimSun']);
       final colors = <String, Color>{
-        'background': t.background,
-        'card-background': t.cardBackground,
+        'background': t.bgColor,
+        'card-background': t.cardColor,
         'fill': t.fill,
-        'border': t.border,
-        'text': t.text,
+        'border': t.borderColor,
+        'text': t.textColor,
         'text-secondary': t.textSecondary,
         'gray': t.gray,
         'hover': t.hover,
@@ -31,7 +42,7 @@ void main() {
         'selected-background': t.selectedBackground,
         'success': t.success,
         'warning': t.warning,
-        'danger': t.danger,
+        'danger': t.error,
         'primary': t.primary,
         'primary-text': t.primaryText,
       };
@@ -44,10 +55,10 @@ void main() {
       }
       final shadows = <String, List<BoxShadow>>{
         'selected-shadow': t.selectedShadow,
-        'small-shadow': t.smallShadow,
-        'shadow': t.shadow,
-        'popup-shadow': t.popupShadow,
-        'modal-shadow': t.modalShadow,
+        'small-shadow': t.shadowSm,
+        'shadow': t.shadowMd,
+        'popup-shadow': t.shadowLg,
+        'modal-shadow': t.shadowXl,
       };
       for (final entry in shadows.entries) {
         final values = expected[mode][entry.key] as List;
@@ -65,12 +76,9 @@ void main() {
         }
       }
       expect(t.overlayBackdropBlur, 4);
+      expect(t.overlayColor.a, closeTo(mode == 'dark' ? .62 : .34, .000001));
       expect(
-        t.overlayBackground.a,
-        closeTo(mode == 'dark' ? .62 : .34, .000001),
-      );
-      expect(
-        t.overlayBackground.toARGB32() & 0xffffff,
+        t.overlayColor.toARGB32() & 0xffffff,
         mode == 'dark' ? 0 : 0x0c121c,
       );
       expect(
@@ -85,20 +93,72 @@ void main() {
     });
   }
 
-  test('主题字体 token 的覆写、保留和回退列表不可变', () {
-    final fallback = ['Microsoft YaHei'];
-    final data = MyThemeData(fontFamilyFallback: fallback);
-    fallback.clear();
-    expect(data.fontFamilyFallback, ['Microsoft YaHei']);
-    expect(() => data.fontFamilyFallback.clear(), throwsUnsupportedError);
-    final custom = data.copyWith(
-      fontFamily: 'Arial',
-      fontFamilyFallback: ['SimSun'],
+  test('默认变量表与字体回退集合保持只读', () {
+    expect(MyTheme.lightVars[ElTheme.$fontFamily], 'Times New Roman');
+    expect(MyTheme.lightVars[ElTheme.$fontFamilyFallback], [
+      'Microsoft YaHei',
+      'SimSun',
+    ]);
+    expect(() => MyTheme.lightVars.clear(), throwsUnsupportedError);
+    expect(MyTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
+    expect(MyTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
+    expect(
+      () => (MyTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>)
+          .clear(),
+      throwsUnsupportedError,
     );
-    expect(custom.fontFamily, 'Arial');
-    expect(custom.fontFamilyFallback, ['SimSun']);
-    expect(custom.copyWith(primary: Colors.blue).fontFamily, 'Arial');
-    expect(custom.copyWith().fontFamilyFallback, ['SimSun']);
+  });
+
+  testWidgets('暗色增量不遮蔽基础字体和字重覆写，Text 与 ElView 同步', (tester) async {
+    final textKey = GlobalKey(), viewKey = GlobalKey();
+    late ElThemeExt theme;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyTheme(
+          brightness: Brightness.dark,
+          style: ElStyle(
+            vars: {
+              ElTheme.$fontFamily: 'Arial',
+              ElTheme.$fontFamilyFallback: ['SimSun'],
+              ElTheme.$fontWeight: 500,
+              ElTheme.$fontWeightAction: 600,
+            },
+          ),
+          child: Builder(
+            builder: (context) {
+              theme = context.elTheme;
+              return Column(
+                children: [
+                  Text('暗色正文', key: textKey),
+                  ElView(key: viewKey, child: '暗色视图'),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    expect(theme.fontFamily, 'Arial');
+    expect(theme.fontFamilyFallback, ['SimSun']);
+    expect(theme.fontWeight, 500);
+    expect(theme.fontWeightAction, 600);
+    final text = tester.renderObject<RenderParagraph>(
+      find.descendant(of: find.byKey(textKey), matching: find.byType(RichText)),
+    );
+    expect(text.text.style!.fontFamily, 'Arial');
+    expect(text.text.style!.fontFamilyFallback, ['SimSun']);
+    expect(text.text.style!.fontWeight, FontWeight.w500);
+    expect(text.text.style!.fontVariations, [FontVariation('wght', 500)]);
+    final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
+    expect(view.committedResolvedStyle.inheritedText.fontFamily, 'Arial');
+    expect(
+      view.committedResolvedStyle.inheritedText.fontWeight,
+      FontWeight.w500,
+    );
+    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, [
+      FontVariation('wght', 500),
+    ]);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('MyTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
@@ -106,16 +166,18 @@ void main() {
         viewKey = GlobalKey(),
         explicitKey = GlobalKey();
     for (final data in [
-      MyThemeData(),
-      MyThemeData().copyWith(
-        fontFamily: 'Arial',
-        fontFamilyFallback: ['SimSun'],
+      ElStyle(),
+      ElStyle(
+        vars: {
+          ElTheme.$fontFamily: 'Arial',
+          ElTheme.$fontFamilyFallback: ['SimSun'],
+        },
       ),
     ]) {
       await tester.pumpWidget(
         MaterialApp(
           home: MyTheme(
-            data: data,
+            style: data,
             child: Column(
               children: [
                 Text('Text 默认', key: textKey),
@@ -139,19 +201,29 @@ void main() {
       );
       final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
       expect(text.text.style!.height, kTextHeightNone);
-      expect(text.text.style!.fontFamily, data.fontFamily);
-      expect(text.text.style!.fontFamilyFallback, data.fontFamilyFallback);
+      expect(
+        text.text.style!.fontFamily,
+        data.vars?[ElTheme.$fontFamily] ??
+            MyTheme.lightVars[ElTheme.$fontFamily],
+      );
+      expect(
+        text.text.style!.fontFamilyFallback,
+        data.vars?[ElTheme.$fontFamilyFallback] ??
+            MyTheme.lightVars[ElTheme.$fontFamilyFallback],
+      );
       expect(
         view.committedResolvedStyle.inheritedText.lineHeight,
         kTextHeightNone,
       );
       expect(
         view.committedResolvedStyle.inheritedText.fontFamily,
-        data.fontFamily,
+        data.vars?[ElTheme.$fontFamily] ??
+            MyTheme.lightVars[ElTheme.$fontFamily],
       );
       expect(
         view.committedResolvedStyle.inheritedText.fontFamilyFallback,
-        data.fontFamilyFallback,
+        data.vars?[ElTheme.$fontFamilyFallback] ??
+            MyTheme.lightVars[ElTheme.$fontFamilyFallback],
       );
       expect(
         tester
@@ -170,6 +242,87 @@ void main() {
       expect(explicitText.text.style!.fontFamily, 'Courier New');
       expect(tester.takeException(), isNull);
     }
+  });
+  testWidgets('固定子树按键订阅，改主色不重建只读正文色的读取者', (tester) async {
+    var color = Color(0xff123456);
+    var primaryBuilds = 0, textBuilds = 0;
+    Color? primary;
+    final child = Column(
+      children: [
+        Builder(
+          builder: (context) {
+            primaryBuilds++;
+            primary = context.elTheme.primary;
+            return SizedBox();
+          },
+        ),
+        Builder(
+          builder: (context) {
+            textBuilds++;
+            context.elTheme.textColor;
+            return SizedBox();
+          },
+        ),
+      ],
+    );
+    Widget host() => MaterialApp(
+      home: MyTheme(
+        style: ElStyle(vars: {ElTheme.$primary: color}),
+        child: child,
+      ),
+    );
+    await tester.pumpWidget(host());
+    expect(primary, color);
+    expect(primaryBuilds, 1);
+    expect(textBuilds, 1);
+    color = Color(0xff654321);
+    await tester.pumpWidget(host());
+    expect(primary, color);
+    expect(primaryBuilds, 2);
+    expect(textBuilds, 1);
+  });
+
+  testWidgets('普通 ElView 局部变量覆盖与暗色变体按键级联，兄弟继续继承', (tester) async {
+    Color? local, sibling;
+    double? radius;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MyTheme(
+          brightness: Brightness.dark,
+          child: Column(
+            children: [
+              ElView(
+                style: ElStyle(
+                  vars: {
+                    ElTheme.$primary: Color(0xff123456),
+                    MyCard.$radius: 18,
+                  },
+                  onDark: ElStyle(vars: {ElTheme.$primary: Color(0xff654321)}),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    local = context.elTheme.primary;
+                    radius = ElView.of(context)
+                        .getVar<num>(MyCard.$radius)
+                        ?.toDouble();
+                    return MyCard(child: SizedBox());
+                  },
+                ),
+              ),
+              Builder(
+                builder: (context) {
+                  sibling = context.elTheme.primary;
+                  return SizedBox();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(local, Color(0xff654321));
+    expect(sibling, MyTheme.darkVars[ElTheme.$primary]);
+    expect(radius, 18);
   });
 }
 

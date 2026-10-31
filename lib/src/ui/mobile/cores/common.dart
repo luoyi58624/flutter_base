@@ -25,7 +25,7 @@ double myViewport(BuildContext context) =>
 
 /// CSS focus-visible 的公共轮廓。
 ElStyle myFocusStyle(BuildContext context) => ElStyle(
-  outline: ElOutline(outlineWidth: 2, outlineColor: MyTheme.of(context).primary, outlineOffset: 3),
+  outline: ElOutline(outlineWidth: 2, outlineColor: context.elTheme.primary, outlineOffset: 3),
 );
 
 /// 保留数值字重，兼顾静态字体与可变字体。
@@ -36,10 +36,9 @@ ElStyle myTextStyle(
   Color? color,
   double? height,
 }) {
-  final theme = MyTheme.of(context);
   return ElStyle(
     fontSize: size,
-    fontWeight: theme.weight(weight),
+    fontWeight: myTextWeight(weight),
     fontVariationSettings: [FontVariation('wght', weight)],
     color: color,
     lineHeight: height,

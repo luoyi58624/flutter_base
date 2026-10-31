@@ -1126,16 +1126,16 @@ class _InputTagAffix extends StatelessWidget {
       child = ElIcon(
         content as IconData,
         size: iconSize,
-        color: ElThemeData.of(context).textColorLg,
+        color: context.elTheme.textPlaceholder,
       );
     } else if (content is Widget) {
       child = content as Widget;
     } else {
       child = ElView(
         style: ElStyle(
-          color: ElThemeData.of(context).textColorMd,
+          color: context.elTheme.textSecondary,
           fontSize: 13,
-          iconColor: ElThemeData.of(context).textColorMd,
+          iconColor: context.elTheme.textSecondary,
         ),
         child: content,
       );
@@ -1186,20 +1186,20 @@ class _InputTagClearButton extends StatelessWidget {
         height: extent,
         alignment: .center,
         cursor: SystemMouseCursors.click,
-        color: ElThemeData.of(context).textColorLg,
+        color: context.elTheme.textPlaceholder,
         borderRadius: const BorderRadius.all(Radius.circular(9999)),
         onHover: ElStyle(
-          color: ElThemeData.of(context).textColorMd,
-          iconColor: ElThemeData.of(context).textColorMd,
+          color: context.elTheme.textSecondary,
+          iconColor: context.elTheme.textSecondary,
         ),
         onFocusVisible: ElStyle(
           outline: ElOutline(
             outlineWidth: 2,
-            outlineColor: ElThemeData.of(context).primary,
+            outlineColor: context.elTheme.primary,
             outlineOffset: 1,
           ),
         ),
-        iconColor: ElThemeData.of(context).textColorLg,
+        iconColor: context.elTheme.textPlaceholder,
       ),
       child: ElIcon(icon, size: iconSize),
     );
@@ -1282,7 +1282,7 @@ class _InputTagCollapseTooltip extends StatelessWidget {
       style: ElStyle(
         maxWidth: 260,
         padding: const .all(8),
-        backgroundColor: ElThemeData.of(context).bgColor,
+        backgroundColor: context.elTheme.bgColor,
         border: ElBorder.all(borderColor: context.elTheme.borderColorLighter),
         borderRadius: .all(Radius.circular(6)),
         boxShadow: const [
@@ -1332,10 +1332,10 @@ Widget _inputTagInline(Widget child, {required double height, Key? key}) =>
 List<double> get _inputTagHeights => const [16, 20, 24, 32, 40];
 
 ElStyle _inputTagDropStyle(BuildContext context, bool active) => ElStyle(
-  border: active ? ElBorder.all(borderColor: ElThemeData.of(context).primary) : null,
+  border: active ? ElBorder.all(borderColor: context.elTheme.primary) : null,
   borderRadius: .all(Radius.circular(4)),
   outline: active
-      ? ElOutline(outlineWidth: 1, outlineColor: ElThemeData.of(context).primary, outlineOffset: 1)
+      ? ElOutline(outlineWidth: 1, outlineColor: context.elTheme.primary, outlineOffset: 1)
       : null,
 );
 
@@ -1357,8 +1357,8 @@ ElStyle _inputTagShellStyle(
   required bool hasError,
   required ElLevelType size,
 }) {
-  final height = ElThemeData.of(context).buttonHeights[size.index];
-  final radius = BorderRadius.circular(ElThemeData.of(context).radiusSm);
+  final height = context.elTheme.controlHeights[size.index];
+  final radius = BorderRadius.circular(context.elTheme.radiusSm);
   List<BoxShadow> ring(Color color) => <BoxShadow>[
     ElBoxShadow(color: color, spreadRadius: 1, inset: true),
   ];
@@ -1375,20 +1375,26 @@ ElStyle _inputTagShellStyle(
     );
   }
 
-  final danger = hasError ? ElThemeData.of(context).error : null;
-  final base = danger ?? ElThemeData.of(context).borderColor;
+  final danger = hasError ? context.elTheme.error : null;
+  final base = danger ?? context.elTheme.borderColor;
   final hover = danger ?? context.elTheme.borderColorHover;
-  final focus = danger ?? ElThemeData.of(context).primary;
+  final focus = danger ?? context.elTheme.primary;
   return ElStyle(
     width: '100%',
     minHeight: height,
     padding: const EdgeInsets.all(4),
     alignment: .centerLeft,
-    backgroundColor: ElThemeData.of(context).bgColor,
+    backgroundColor: context.elTheme.bgColor,
     borderRadius: radius,
     boxShadow: ring(base),
     cursor: readOnly ? SystemMouseCursors.basic : SystemMouseCursors.text,
-    transition: ElThemeData.of(context).transitionBoxShadow,
+    transition: const [
+      ElTransition.field(
+        ElTransitionField.boxShadow,
+        Duration(milliseconds: 200),
+        Cubic(0.645, 0.045, 0.355, 1),
+      ),
+    ],
     onHover: ElStyle(boxShadow: ring(hover)),
     onFocusWithin: ElStyle(boxShadow: ring(focus)),
   );

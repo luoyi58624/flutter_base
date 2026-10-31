@@ -25,7 +25,7 @@ class _InputPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElView(
       key: const ValueKey<String>('el-input-placeholder'),
-      style: ((c) => ElStyle(
+      style: ((BuildContext c) => ElStyle(
         color: _placeholderColor(c),
         padding: _inputProjectionPadding(textarea),
         textAlign: textAlign,
@@ -72,12 +72,12 @@ class _InputAffix extends StatelessWidget {
     }
     return ElView(
       key: slotKey,
-      style: ((c) => ElStyle(
+      style: ((BuildContext c) => ElStyle(
         width: extent,
         height: extent,
         alignment: .center,
         clipBehavior: Clip.hardEdge,
-        iconColor: ElThemeData.of(c).textColorLg,
+        iconColor: c.elTheme.textPlaceholder,
       ).merge(_resolveInputStyle(c, style)))(context),
       child: child,
     );
@@ -131,21 +131,21 @@ class _InputActionIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElView(
-      style: ((c) => ElStyle(
+      style: ((BuildContext c) => ElStyle(
         width: extent,
         height: extent,
         alignment: .center,
         cursor: SystemMouseCursors.click,
         color: active
-            ? ElThemeData.of(c).primary
-            : ElThemeData.of(c).textColorLg,
+            ? c.elTheme.primary
+            : c.elTheme.textPlaceholder,
         onHover: ElStyle(
-          color: ElThemeData.of(c).textColorMd,
-          iconColor: ElThemeData.of(c).textColorMd,
+          color: c.elTheme.textSecondary,
+          iconColor: c.elTheme.textSecondary,
         ),
         iconColor: active
-            ? ElThemeData.of(c).primary
-            : ElThemeData.of(c).textColorLg,
+            ? c.elTheme.primary
+            : c.elTheme.textPlaceholder,
       ).merge(_resolveInputStyle(c, style)))(context),
       event: ElEvent(
         onPointerDown: (e) {
@@ -175,9 +175,9 @@ class _InputCount extends StatelessWidget {
     return ElView(
       style: ElStyle(
         fontSize: 12,
-        color: ElThemeData.of(context).info,
+        color: context.elTheme.info,
         userSelect: .none,
-        iconColor: ElThemeData.of(context).info,
+        iconColor: context.elTheme.info,
       ),
       child: '$length/$maxLength',
     );

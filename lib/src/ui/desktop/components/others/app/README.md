@@ -1,16 +1,16 @@
 # Desktop Theme
 
-`ElDesktopTheme` 提供桌面品牌安装，`ElThemeData` 和 `ElTheme` 保留源 Element Plus 的类型化主题与局部覆盖。公共用法见 [Desktop](../../../README.md)。
+`ElDesktopTheme` 安装桌面组件实现，并将通用默认变量注入 ElView。两端共享 `ElTheme` 键和 `context.elTheme` 读取入口，局部覆盖直接使用普通 ElView。公共用法见 [Desktop](../../../README.md)。
 
 | 参数或接口 | 用途 |
 | --- | --- |
-| theme / darkTheme / size | 浅色、暗色主题与尺寸覆盖 |
+| size | 全局尺寸档便利参数，也可通过 ElTheme.$size 覆写 |
 | themeMode / breakpoint / locale | 明暗及过渡、断点与语言环境 |
-| style | 根默认样式之后合并的样式 |
+| style | 默认表之后合并的实际样式与 vars / onDark.vars |
 | componentBuilders | 在品牌实现预设上合并的实现 |
 | ElementPlusThemeData | 12 个组件及 FormItem、TableStyle 的默认 Builder |
-| ElTheme | 局部组件主题与尺寸，不重复安装 Overlay |
+| lightVars / darkVars | 默认浅色表与暗色增量 |
 
-theme.dart 保留源主题登记方式；palette.dart 与 shadow.dart 保留源默认颜色、五档度量和阴影。Text Builder 原样透传 Flutter Text 的参数；FormItem Builder 只为通用 ElFormItemView 提供标签与错误颜色。
+theme.dart 保留源组件登记方式；tokens.dart 与 shadow.dart 提供默认变量和阴影。外层 ElView 注入变量，内层 Builder 读取后生成实际根样式。Text Builder 原样透传 Flutter Text 的参数；FormItem Builder 只为通用 ElFormItemView 提供标签与错误颜色。
 
 安装器只提供主题、组件和候选层宿主。源 ElApp 的服务与平台 chrome 依赖没有对应通用接口，因此该应用根没有以 ElApp 名称迁入。

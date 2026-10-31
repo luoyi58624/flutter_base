@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 
+import '../../../../theme_vars.dart';
+
 import '../../button/index.dart';
 import '../../button_group/index.dart';
 import '../../tag/index.dart';
@@ -15,7 +17,7 @@ import '../../select/index.dart';
 import '../../switch/index.dart';
 
 part 'theme.dart';
-part 'palette.dart';
+part 'tokens.dart';
 part 'shadow.dart';
 
 /// 安装 Element Plus 桌面主题和已有通用接口的组件实现。
@@ -28,20 +30,12 @@ class ElDesktopTheme extends StatelessWidget {
     this.breakpoint,
     this.locale,
     this.componentBuilders,
-    this.theme,
-    this.darkTheme,
     this.size,
     required this.child,
   });
 
   /// 合并在默认根样式之后的用户样式。
   final ElStyle? style;
-
-  /// 浅色品牌主题。
-  final ElThemeData? theme;
-
-  /// 暗色品牌主题。
-  final ElThemeData? darkTheme;
 
   /// 覆盖品牌主题中的组件尺寸档位。
   final ElLevelType? size;
@@ -65,44 +59,48 @@ class ElDesktopTheme extends StatelessWidget {
   Widget build(BuildContext context) {
     final declared = themeMode;
     final mode = ElThemeMode(
-      brightness:
-          declared?.brightness ??
-          MediaQuery.maybePlatformBrightnessOf(context) ??
-          Brightness.light,
+      brightness: declared?.brightness ?? MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light,
       duration: declared?.duration,
       curve: declared?.curve,
     );
-    final light = (theme ?? ElThemeData()).copyWith(size: size);
-    final dark = (darkTheme ?? ElThemeData.dark()).copyWith(size: size);
-    ElStyle rootStyle(ElThemeData values) => ElStyle(
-      backgroundColor: values.bgColor,
-      color: values.textColorXs,
-      fontSize: values.fontSizes[values.size.index],
-      iconSize: values.iconSizes[values.size.index],
-      iconColor: values.iconColor,
-    );
-    return _ElThemeScope(
-      light: light,
-      dark: dark,
-      brightness: mode.brightness!,
-      child: ElView(
-        themeMode: mode,
-        breakpoint: breakpoint,
-        locale: locale,
-        style: rootStyle(light).copyWith(onDark: rootStyle(dark)).merge(style),
-        child: ElComponentProvider(
-          builders: const ElementPlusThemeData().merge(componentBuilders),
-          child: Directionality(
-            textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
-            // 保留输入候选层的官方 Overlay 环境，并按内容测量宿主。
-            child: Overlay.wrap(
-              clipBehavior: Clip.none,
-              alwaysSizeToContent: true,
-              child: child,
+    return ElView(
+      themeMode: mode,
+      breakpoint: breakpoint,
+      locale: locale,
+      style: ElStyle(
+        vars: {...lightVars, ElTheme.$size: ?size},
+        onDark: ElStyle(vars: darkVars),
+      ).merge(themeVarsOf(style)),
+      // 沿用旧主题的两层根：先注入变量，再由后代读取生成实际继承样式。
+      child: Builder(
+        builder: (context) {
+          final values = context.elTheme;
+          final rootStyle = ElStyle(
+            backgroundColor: values.bgColor,
+            color: values.textColor,
+            fontSize: values.fontSizes[values.size.index],
+            iconSize: values.iconSizes[values.size.index],
+            iconColor: values.textSecondary,
+          ).merge(style);
+          return ElView(
+            style: rootStyle,
+            child: ElComponentProvider(
+              builders: const ElementPlusThemeData().merge(componentBuilders),
+              child: Directionality(
+                textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+                // 保留输入候选层的官方 Overlay 环境，并按内容测量宿主。
+                child: Overlay.wrap(clipBehavior: Clip.none, alwaysSizeToContent: true, child: child),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
+  /// 桌面端的通用主题浅色默认表。
+  static Map<Object, Object> get lightVars => _lightVars;
+
+  /// 桌面端的暗色增量，按普通 onDark 变体覆盖。
+  static Map<Object, Object> get darkVars => _darkVars;
 }

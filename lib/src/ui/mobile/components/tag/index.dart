@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
-import '../../cores/theme.dart';
 
 /// 为通用标签绘制移动端外观，值切换和主入口事件由 ElTag 统一持有。
 Widget myTagBuilder(BuildContext context, ElTag component) =>
@@ -31,6 +30,9 @@ enum MyTagTone {
 
 /// value为空时展示，为布尔值时作为独立选择按钮。
 class MyTag extends StatelessWidget {
+  /// 覆盖标签默认语义颜色。
+  static const $color = 'my.tag.color';
+
   /// value与modelValue互斥，onChanged先于onClick。
   const MyTag({
     super.key,
@@ -77,15 +79,15 @@ class MyTag extends StatelessWidget {
     notifier: modelValue,
     onChanged: onChanged,
     builder: (context, current, change) {
-      final t = MyTheme.of(context);
+      final t = context.elTheme;
       final selectable = value != null || modelValue != null;
       final accent =
-          t.tagColor ??
+          ElView.maybeOf(context)?.getVar<Color>(MyTag.$color) ??
           switch (tone) {
             MyTagTone.blue => t.primary,
             MyTagTone.green => t.success,
             MyTagTone.orange => t.warning,
-            MyTagTone.red => t.danger,
+            MyTagTone.red => t.error,
             MyTagTone.gray => t.textSecondary,
           };
       final radius = BorderRadius.circular(selectable ? 11 : 999);
@@ -110,8 +112,8 @@ class MyTag extends StatelessWidget {
                           border: ElBorder.all(
                             borderWidth: 1,
                             borderColor: selectable
-                                ? (selected ? t.primary : t.border)
-                                : Color.lerp(t.cardBackground, accent, .18),
+                                ? (selected ? t.primary : t.borderColor)
+                                : Color.lerp(t.cardColor, accent, .18),
                           ),
                           color: selectable
                               ? (selected ? t.primaryText : t.textSecondary)
@@ -133,8 +135,8 @@ class MyTag extends StatelessWidget {
                                       )
                                     : t.hover)
                               : selectable
-                              ? (selected ? t.primary : t.cardBackground)
-                              : Color.lerp(t.cardBackground, accent, .1),
+                              ? (selected ? t.primary : t.cardColor)
+                              : Color.lerp(t.cardColor, accent, .1),
                           transform: ElTransform.scale(pressed ? .95 : 1),
                           transition: myReducedMotion(context)
                               ? const []
@@ -189,16 +191,16 @@ class MyTag extends StatelessWidget {
 }
 
 Widget _commonTag(BuildContext context, ElTag component) {
-  final theme = MyTheme.of(context);
+  final theme = context.elTheme;
   final state = ElView.of(context);
   final pressed = component.isToggle && !component.disabled && state.hasTap;
   final hovered = component.isToggle && !component.disabled && state.hasHover;
   final accent =
-      theme.tagColor ??
+      ElView.maybeOf(context)?.getVar<Color>(MyTag.$color) ??
       switch (component.type) {
         ElThemeType.success => theme.success,
         ElThemeType.warning => theme.warning,
-        ElThemeType.error => theme.danger,
+        ElThemeType.error => theme.error,
         ElThemeType.info => theme.textSecondary,
         _ => theme.primary,
       };
@@ -210,8 +212,8 @@ Widget _commonTag(BuildContext context, ElTag component) {
   final background = filled
       ? displayAccent
       : component.effect == ElTagEffect.plain
-      ? theme.cardBackground
-      : Color.lerp(theme.cardBackground, displayAccent, selected ? .18 : .1)!;
+      ? theme.cardColor
+      : Color.lerp(theme.cardColor, displayAccent, selected ? .18 : .1)!;
   final foreground = filled
       ? (displayAccent.computeLuminance() > .45
             ? const Color(0xff000000)
@@ -221,10 +223,10 @@ Widget _commonTag(BuildContext context, ElTag component) {
       filled || component.hit || component.effect == ElTagEffect.plain
       ? displayAccent
       : selected
-      ? Color.lerp(theme.cardBackground, displayAccent, .4)!
+      ? Color.lerp(theme.cardColor, displayAccent, .4)!
       : component.isToggle
-      ? theme.border
-      : Color.lerp(theme.cardBackground, displayAccent, .18)!;
+      ? theme.borderColor
+      : Color.lerp(theme.cardColor, displayAccent, .18)!;
   final style =
       myTextStyle(context, 13, theme.fontWeightAction, height: 20 / 13)
           .merge(

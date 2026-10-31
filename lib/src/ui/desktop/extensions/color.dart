@@ -4,47 +4,37 @@ import 'package:flutter/material.dart';
 /// 根据当前明暗环境从实际基色派生颜色。
 extension ElColorContextExt on Color {
   /// light-1：离原色最近的一档。
-  Color elLight1(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 1, reverse);
+  Color elLight1(BuildContext context, {bool reverse = false}) => _elLight(context, 1, reverse);
 
   /// 第二档浅色阶，按当前明暗环境派生。
-  Color elLight2(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 2, reverse);
+  Color elLight2(BuildContext context, {bool reverse = false}) => _elLight(context, 2, reverse);
 
   /// light-3：常用于 hover 态的描边/文字色。
-  Color elLight3(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 3, reverse);
+  Color elLight3(BuildContext context, {bool reverse = false}) => _elLight(context, 3, reverse);
 
   /// 第四档浅色阶，按当前明暗环境派生。
-  Color elLight4(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 4, reverse);
+  Color elLight4(BuildContext context, {bool reverse = false}) => _elLight(context, 4, reverse);
 
   /// light-5：常用于禁用态文字色、聚焦环。
-  Color elLight5(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 5, reverse);
+  Color elLight5(BuildContext context, {bool reverse = false}) => _elLight(context, 5, reverse);
 
   /// 第六档浅色阶，按当前明暗环境派生。
-  Color elLight6(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 6, reverse);
+  Color elLight6(BuildContext context, {bool reverse = false}) => _elLight(context, 6, reverse);
 
   /// light-7：常用于 hover 态底色、浅描边。
-  Color elLight7(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 7, reverse);
+  Color elLight7(BuildContext context, {bool reverse = false}) => _elLight(context, 7, reverse);
 
   /// light-8：常用于 tag/badge 的描边色。
-  Color elLight8(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 8, reverse);
+  Color elLight8(BuildContext context, {bool reverse = false}) => _elLight(context, 8, reverse);
 
   /// light-9：最淡的一档，常用于 alert/tag 的填充底色。
-  Color elLight9(BuildContext context, {bool reverse = false}) =>
-      _elLight(context, 9, reverse);
+  Color elLight9(BuildContext context, {bool reverse = false}) => _elLight(context, 9, reverse);
 
   /// 按档位号取色阶，[level] 取值 1~9。
   ///
   /// 档位号来自运行时数据（如遍历、配置表）时用它，档位号写死在代码里时用
   /// [elLight3] 这类具名方法，读起来更直白。
-  Color elLight(BuildContext context, int level, {bool reverse = false}) =>
-      _elLight(context, level, reverse);
+  Color elLight(BuildContext context, int level, {bool reverse = false}) => _elLight(context, level, reverse);
 
   /// 按**显式**明暗轴取色阶，不读 context。
   ///
@@ -62,43 +52,38 @@ extension ElColorContextExt on Color {
   /// 按钮 active 态的加深。注意它**不跟随明暗态翻转**——暗色模式下 Element 官方
   /// 把 dark-2 定义成比原色更**亮**（`mix($white, $color, 20%)`），因为暗底上
   /// 「更强调」意味着更亮，这里用 [deepen] 的 reversal 语义表达同一件事。
-  Color elDark2(BuildContext context) => context.isDark
-      ? mix(const Color(0xffffffff), 20)
-      : mix(const Color(0xff000000), 20);
+  Color elDark2(BuildContext context) =>
+      context.isDark ? mix(const Color(0xffffffff), 20) : mix(const Color(0xff000000), 20);
 
   /// 按当前颜色明暗读取对应主题的常规文字色。
   Color elTextColor(BuildContext context) {
-    return ElThemeData.of(context, brightness: isDark.brightness).textColorSm;
+    final theme = context.elTheme;
+    return isDark == context.isDark ? theme.textRegular : (isDark ? theme.textOnDark : theme.textOnLight);
   }
 
   /// 按当前颜色明暗读取对应主题的常规文字色。
   Color elRegularTextColor(BuildContext context) {
-    return ElThemeData.of(context, brightness: isDark.brightness).textColorSm;
+    return elTextColor(context);
   }
 
   /// 按当前颜色明暗读取对应主题的次要文字色。
   Color elSecondaryTextColor(BuildContext context) {
-    return ElThemeData.of(context, brightness: isDark.brightness).textColorMd;
+    return isDark == context.isDark ? context.elTheme.textSecondary : elTextColor(context);
   }
 
   /// 按当前颜色明暗读取对应主题的占位文字色。
   Color elPlaceholderTextColor(BuildContext context) {
-    return ElThemeData.of(context, brightness: isDark.brightness).textColorLg;
+    return isDark == context.isDark ? context.elTheme.textPlaceholder : elTextColor(context);
   }
 
   /// 按当前颜色明暗读取对应主题的次要图标色。
   Color elIconColor(BuildContext context) {
-    return ElThemeData.of(context, brightness: isDark.brightness).textColorMd;
+    return elSecondaryTextColor(context);
   }
 
   /// 根据颜色自身明暗与全局白色或黑色混合 50% 生成边框色。
   Color elBorderColor(BuildContext context) {
-    return mix(
-      (isDark
-          ? ElThemeData.of(context, brightness: isDark.brightness).white
-          : ElThemeData.of(context, brightness: isDark.brightness).black),
-      50,
-    );
+    return mix((isDark ? context.elTheme.white : context.elTheme.black), 50);
   }
 
   /// 一次性取出 9 档色阶，下标 0 对应 light-1、下标 8 对应 light-9。

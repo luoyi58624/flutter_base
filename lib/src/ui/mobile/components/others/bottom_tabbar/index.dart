@@ -10,7 +10,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../../cores/common.dart';
-import '../../../cores/theme.dart';
 
 /// 移动端底部导航栏，替换 Material NavigationBar。
 ///
@@ -48,13 +47,13 @@ class ElBottomTabbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context);
+    final t = context.elTheme;
     // 高度只在内层定一次，外层去掉 height 避免被 SafeArea 再挤压。
     final barHeight = style?.height ?? height;
     return ElView(
       style: ElStyle(
         width: '100%',
-        backgroundColor: t.cardBackground,
+        backgroundColor: t.cardColor,
       ).merge(style?.copyWith(height: null)),
       child: SafeArea(
         top: false,
@@ -101,7 +100,7 @@ class _MyTabBarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context);
+    final t = context.elTheme;
     final color = selected ? t.primary : t.textSecondary;
     // 官方语义：选中且给了 selectedIcon 时优先用它。
     final icon = selected && destination.selectedIcon != null ? destination.selectedIcon! : destination.icon;

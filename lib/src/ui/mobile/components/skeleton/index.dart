@@ -6,7 +6,6 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
-import '../../cores/theme.dart';
 
 /// 保留正文实例的加载骨架，加载中退出焦点和语义树。
 class MySkeleton extends StatelessWidget {
@@ -44,7 +43,7 @@ class MySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context);
+    final t = context.elTheme;
     Widget block(Object width, double height, [double radius = 6]) => ElView(
       style: ElStyle(
         width: width,

@@ -97,16 +97,15 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     return component.type?.color(context);
   }
 
-  /// 按背景明暗取文本色：背景暗 → 纯白（[ElThemeData.of(context).white]）；
-  /// 背景亮 → 常规深色文字（[ElThemeData.of(context).textColorXs]）。
+  /// 按背景明暗取通用对比文字色，背景暗用 textOnDark，背景亮用 textOnLight。
   Color _textOnBackground(BuildContext context, Color background) {
     final dark = background.isDark.brightness == Brightness.dark;
     return dark
-        ? ElThemeData.of(context, brightness: .dark).white
-        : ElThemeData.of(context, brightness: .light).textColorXs;
+        ? context.elTheme.textOnDark
+        : context.elTheme.textOnLight;
   }
 
-  /// 组件尺寸档：读取 Element 样式中的 [ElThemeData.of(context).size]
+  /// 组件尺寸档：读取祖先主题变量中的 size。
   ElLevelType _resolvedSize(BuildContext context) =>
       context.elComponentSize(component.style);
 
@@ -192,7 +191,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
   }) {
     final isDesktop = _isDesktop;
     final size = _resolvedSize(context);
-    final radius = Radius.circular(ElThemeData.of(context).radiusSm);
+    final radius = Radius.circular(context.elTheme.radiusSm);
     final base = ElStyle(
       alignment: .center,
       lineHeight: 1.0,
@@ -200,7 +199,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
       iconSize: _buttonIcons[size.index],
       fontWeight: .w500,
       cursor: SystemMouseCursors.click,
-      minHeight: ElThemeData.of(context).buttonHeights[size.index],
+      minHeight: context.elTheme.controlHeights[size.index],
       padding: _buttonPaddings[size.index],
       borderRadius: _positionRadius(
         isFirst: isFirst,
@@ -271,10 +270,10 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
           .merge((selected) ? (active) : null);
     }
 
-    final primary = ElThemeData.of(context).primary;
-    final bgColor = ElThemeData.of(context).bgColor;
-    final textColor = ElThemeData.of(context).textColorSm;
-    final borderColor = ElThemeData.of(context).borderColor;
+    final primary = context.elTheme.primary;
+    final bgColor = context.elTheme.bgColor;
+    final textColor = context.elTheme.textRegular;
+    final borderColor = context.elTheme.borderColor;
     final active = ElStyle(
       color: primary,
       backgroundColor: primary.elLight9(context),
@@ -283,10 +282,10 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     );
     final disabled = ElStyle(
       cursor: SystemMouseCursors.forbidden,
-      color: ElThemeData.of(context).textColorLg,
+      color: context.elTheme.textPlaceholder,
       backgroundColor: bgColor,
       border: border(borderColor),
-      iconColor: ElThemeData.of(context).textColorLg,
+      iconColor: context.elTheme.textPlaceholder,
     );
     final selectedText = typeColor == null
         ? primary

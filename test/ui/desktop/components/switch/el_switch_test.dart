@@ -42,7 +42,7 @@ ElView _core(WidgetTester tester) =>
 
 ElView _thumb(WidgetTester tester) =>
     _views(tester)
-        .firstWhere((v) => _style(tester, v)?.backgroundColor == ElThemeData().white);
+        .firstWhere((v) => _style(tester, v)?.backgroundColor == const Color(0xffffffff));
 
 /// 轨道内显示内容 = child 是给定 Text 的 ElView（取最后一个——测量层在前，显示层在后）
 ElView _promptView(WidgetTester tester, String data) =>
@@ -485,7 +485,7 @@ void main() {
 
     // 字符串走 ElView 文本载荷：外壳声明白色 + 12px 向下传递
     final root = tester.widget<ElView>(_rootFinder());
-    expect(_style(tester, root)?.color, ElThemeData().white);
+    expect(_style(tester, root)?.color, const Color(0xffffffff));
     expect(_style(tester, root)?.fontSize, 12);
     // 内容层渲染时吃到继承的白色
     final prompt = tester.renderObject<ElRenderView>(
@@ -801,8 +801,8 @@ void main() {
   testWidgets('显式 widthAspect 与尺寸档高度组合', (tester) async {
     await tester.pumpWidget(
       _host(
-        ElTheme(
-          size: ElLevelType.lg,
+        ElView(
+          style: ElStyle(vars: {ElTheme.$size: ElLevelType.lg}),
           child: ElSwitch(
             value: false,
             style: ElStyle(),

@@ -39,7 +39,7 @@ ElEditableController _controller(WidgetTester tester) =>
 /// 当前分格不暴露逐格语义，活动格以真实外观和控制器选区共同验证。
 bool _isActiveCell(WidgetTester tester, ElView cell) =>
     cell.style?.border?.borderTop.borderColor ==
-    ElThemeData.of(tester.element(find.byWidget(cell))).primary;
+    tester.element(find.byWidget(cell)).elTheme.primary;
 
 EditableViewTestState _editableState(WidgetTester tester) =>
     findEditableViewState(tester.element(find.byType(ElEditableView)));
@@ -916,21 +916,9 @@ void main() {
       const custom = Color(0xff123456);
       await tester.pumpWidget(
         _host(
-          Builder(
-            builder: (context) => ElTheme(
-              data: ElThemeData.of(
-                context,
-                brightness: Brightness.light,
-              ).copyWith(borderColor: custom),
-              darkData: ElThemeData.of(
-                context,
-                brightness: Brightness.dark,
-              ).copyWith(borderColor: custom),
-              child: ElView(
-                style: ElStyle(),
-                child: ElInputOtp(value: '', length: 1),
-              ),
-            ),
+          ElView(
+            style: ElStyle(vars: {ElTheme.$borderColor: custom}),
+            child: ElInputOtp(value: '', length: 1),
           ),
         ),
       );
@@ -941,8 +929,8 @@ void main() {
     testWidgets('三档尺寸切格子边长', (tester) async {
       await tester.pumpWidget(
         _host(
-          ElTheme(
-            size: ElLevelType.sm,
+          ElView(
+            style: ElStyle(vars: {ElTheme.$size: ElLevelType.sm}),
             child: ElInputOtp(value: '', length: 1, style: ElStyle()),
           ),
         ),
@@ -952,8 +940,8 @@ void main() {
 
       await tester.pumpWidget(
         _host(
-          ElTheme(
-            size: ElLevelType.lg,
+          ElView(
+            style: ElStyle(vars: {ElTheme.$size: ElLevelType.lg}),
             child: ElInputOtp(value: '', length: 1, style: ElStyle()),
           ),
         ),

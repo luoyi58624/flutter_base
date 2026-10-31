@@ -52,7 +52,7 @@ void main() {
       _host(ElTag(effect: .plain, type: .success, child: '标签')),
     );
     await tester.pumpAndSettle();
-    expect(_bg(tester), ElThemeData().bgColor);
+    expect(_bg(tester), const Color(0xffffffff));
     expect(_border(tester), _success.mix(_white, 80));
     await tester.pumpWidget(_host(ElTag(hit: true, round: true, child: '标签')));
     await tester.pumpAndSettle();
@@ -70,8 +70,8 @@ void main() {
     ]) {
       await tester.pumpWidget(
         _host(
-          ElTheme(
-            size: size,
+          ElView(
+            style: ElStyle(vars: {ElTheme.$size: size}),
             child: ElTag(closable: true, style: ElStyle(), child: '标签'),
           ),
         ),

@@ -43,7 +43,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
 
         return Scaffold(
           body: ElView(
-            style: .new(backgroundColor: ElThemeData.of(context).bgColor),
+            style: .new(backgroundColor: context.elTheme.bgColor),
             child: Row(
               crossAxisAlignment: .stretch,
               children: [

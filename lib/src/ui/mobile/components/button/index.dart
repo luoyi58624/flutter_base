@@ -141,7 +141,7 @@ class MyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context);
+    final t = context.elTheme;
     final fixed = [
       MyButtonVariant.icon,
       MyButtonVariant.bare,
@@ -161,7 +161,7 @@ class MyButton extends StatelessWidget {
     };
     final background = switch (variant) {
       MyButtonVariant.primary => t.primary,
-      MyButtonVariant.outline => t.cardBackground,
+      MyButtonVariant.outline => t.cardColor,
       MyButtonVariant.icon || MyButtonVariant.round => t.fill,
       _ => const Color(0x00000000),
     };
@@ -171,7 +171,7 @@ class MyButton extends StatelessWidget {
           MyButtonVariant.icon,
           MyButtonVariant.round,
         ].contains(variant)
-        ? t.border
+        ? t.borderColor
         : const Color(0x00000000);
     final noFeedback = disabled || loading;
     var buttonStyle = ElStyle(
@@ -203,7 +203,7 @@ class MyButton extends StatelessWidget {
           ? t.textSecondary
           : foreground,
       fontSize: variant == MyButtonVariant.link ? 14 : 15,
-      fontWeight: t.weight(t.fontWeightAction),
+      fontWeight: myTextWeight(t.fontWeightAction),
       fontVariationSettings: [FontVariation('wght', t.fontWeightAction)],
       border: ElBorder.all(
         borderWidth: variant == MyButtonVariant.link ? 0 : 1,
@@ -350,13 +350,13 @@ Widget _commonContent(ElButton component) {
 }
 
 ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
-  final theme = MyTheme.of(context);
+  final theme = context.elTheme;
   final accent =
       component.bgColor ??
       switch (component.type) {
         ElThemeType.success => theme.success,
         ElThemeType.warning => theme.warning,
-        ElThemeType.error => theme.danger,
+        ElThemeType.error => theme.error,
         ElThemeType.info => theme.textSecondary,
         _ => theme.primary,
       };
@@ -369,7 +369,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
       : component.ghost
       ? const Color(0x00000000)
       : component.plain
-      ? Color.lerp(theme.cardBackground, accent, .1)!
+      ? Color.lerp(theme.cardColor, accent, .1)!
       : accent;
   final foreground = flat || outlined
       ? accent
@@ -397,7 +397,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     border: ElBorder.all(
       borderWidth: flat ? 0 : 1,
       borderColor: component.disabled
-          ? theme.border
+          ? theme.borderColor
           : outlined
           ? accent
           : background,

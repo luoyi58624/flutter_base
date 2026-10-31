@@ -5,10 +5,27 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
-import '../../cores/theme.dart';
 
 /// 原版响应式卡片，interactive启用整卡操作且隐藏默认标题区。
 class MyCard extends StatelessWidget {
+  /// 局部卡片圆角。
+  static const $radius = 'my.card.radius';
+
+  /// 局部卡片内边距。
+  static const $padding = 'my.card.padding';
+
+  /// 标题区与正文间距。
+  static const $headerGap = 'my.card.headerGap';
+
+  /// 按压缩放比例。
+  static const $pressScale = 'my.card.pressScale';
+
+  /// 按压背景。
+  static const $pressBackground = 'my.card.pressBackground';
+
+  /// 悬停背景。
+  static const $hoverBackground = 'my.card.hoverBackground';
+
   /// 内部按钮与输入独立操作，onActivate只接收整卡激活。
   const MyCard({
     super.key,
@@ -55,10 +72,11 @@ class MyCard extends StatelessWidget {
   final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) {
-    final t = MyTheme.of(context), width = myViewport(context);
+    final t = context.elTheme, width = myViewport(context);
+    final vars = ElView.maybeOf(context);
     final mobile = width <= 760, narrow = width <= 400;
     final padding =
-        t.cardPadding ??
+        vars?.getVar<EdgeInsetsGeometry>($padding) ??
         (mobile
             ? const EdgeInsets.fromLTRB(22, 24, 22, 25)
             : width <= 1100
@@ -66,13 +84,13 @@ class MyCard extends StatelessWidget {
             : const EdgeInsets.fromLTRB(29, 28, 29, 29));
     final cardStyle = ElStyle(
       width: '100%',
-      backgroundColor: t.cardBackground,
-      borderRadius: BorderRadius.circular(t.cardRadius ?? (mobile ? 26 : 30)),
+      backgroundColor: t.cardColor,
+      borderRadius: BorderRadius.circular(vars?.getVar<num>($radius)?.toDouble() ?? (mobile ? 26 : 30)),
       border: ElBorder.all(
         borderWidth: 1,
-        borderColor: t.border.withValues(alpha: t.border.a * .65),
+        borderColor: t.borderColor.withValues(alpha: t.borderColor.a * .65),
       ),
-      boxShadow: t.shadow,
+      boxShadow: t.shadowMd,
       padding: padding.add(const EdgeInsets.all(1)),
       userSelect: interactive ? ElUserSelect.none : null,
       transition: myReducedMotion(context)
@@ -83,16 +101,16 @@ class MyCard extends StatelessWidget {
       onHover: interactive
           ? ElStyle(
               backgroundColor:
-                  t.cardHoverBackground ??
-                  Color.lerp(t.cardBackground, t.text, .03),
+                  vars?.getVar<Color>($hoverBackground) ??
+                  Color.lerp(t.cardColor, t.textColor, .03),
             )
           : null,
       onTap: interactive
           ? ElStyle(
               backgroundColor:
-                  t.cardPressBackground ??
-                  Color.lerp(t.cardBackground, t.text, .085),
-              transform: ElTransform.scale(t.cardPressScale ?? .96),
+                  vars?.getVar<Color>($pressBackground) ??
+                  Color.lerp(t.cardColor, t.textColor, .085),
+              transform: ElTransform.scale(vars?.getVar<num>($pressScale)?.toDouble() ?? .96),
             )
           : null,
       onFocusVisible: interactive ? myFocusStyle(context) : null,
@@ -104,7 +122,7 @@ class MyCard extends StatelessWidget {
         if (!interactive && title?.isNotEmpty == true)
           Padding(
             padding: EdgeInsets.only(
-              bottom: t.cardHeaderGap ?? (mobile ? 23 : 22),
+              bottom: vars?.getVar<num>($headerGap)?.toDouble() ?? (mobile ? 23 : 22),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
