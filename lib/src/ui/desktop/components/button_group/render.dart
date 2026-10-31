@@ -304,14 +304,14 @@ class _RenderButtonGroup extends RenderBox
         final leftBorder = child.committedResolvedStyle.box.border;
         final rightBorder = next.committedResolvedStyle.box.border;
         final border = source == child ? leftBorder : rightBorder;
-        final side = _horizontal ? border?.top : border?.left;
-        final color = side?.color;
+        final side = _horizontal ? border?.borderTop : border?.borderLeft;
+        final color = side?.borderColor;
         final leftSeam =
-            (_horizontal ? leftBorder?.right : leftBorder?.bottom)?.color;
+            (_horizontal ? leftBorder?.borderRight : leftBorder?.borderBottom)?.borderColor;
         final rightSeam =
-            (_horizontal ? rightBorder?.left : rightBorder?.top)?.color;
+            (_horizontal ? rightBorder?.borderLeft : rightBorder?.borderTop)?.borderColor;
         if (side != null &&
-            side.style != ElBorderStyle.none &&
+            side.borderStyle != ElBorderStyle.none &&
             color is Color &&
             leftSeam is Color &&
             rightSeam is Color) {

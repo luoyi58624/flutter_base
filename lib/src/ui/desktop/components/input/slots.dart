@@ -29,7 +29,7 @@ class _InputPlaceholder extends StatelessWidget {
         color: _placeholderColor(c),
         padding: _inputProjectionPadding(textarea),
         textAlign: textAlign,
-        textDirection: textDirection,
+        direction: textDirection,
         userSelect: ElUserSelect.none,
         iconColor: _placeholderColor(c),
       ).merge(_resolveInputStyle(c, style)))(context),

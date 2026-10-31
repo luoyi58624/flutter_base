@@ -24,9 +24,9 @@ class CascadeFastPatch {
     for (final (read, _) in selfVariantEntries) {
       if (!identical(read(oldStyle), read(newStyle))) return null;
     }
-    if (!identical(oldStyle.transitions, newStyle.transitions) ||
-        !identical(oldStyle.animations, newStyle.animations) ||
-        (newStyle.transitions?.isNotEmpty ?? false)) {
+    if (!identical(oldStyle.transition, newStyle.transition) ||
+        !identical(oldStyle.animation, newStyle.animation) ||
+        (newStyle.transition?.isNotEmpty ?? false)) {
       return null;
     }
     final (activeFields, activeTransitions) = activeSelfVariantContribution(newStyle, state);
@@ -72,7 +72,7 @@ class CascadeFastPatch {
     if (maskAndNot(changedMask, inheritedFieldsMask).isNotEmpty) return null;
     if (style != null) {
       final (active, transitions) = activeSelfVariantContribution(style, state);
-      if (transitions || maskAnd(changedMask, active).isNotEmpty || (style.transitions?.isNotEmpty ?? false)) {
+      if (transitions || maskAnd(changedMask, active).isNotEmpty || (style.transition?.isNotEmpty ?? false)) {
         return null;
       }
     }

@@ -835,7 +835,7 @@ class _MenuBarLabel extends StatelessWidget {
       child: [
         if (index > 0) label.substring(0, index),
         ElView(
-          style: const ElStyle(decoration: TextDecoration.underline),
+          style: const ElStyle(textDecorationLine: TextDecoration.underline),
           child: label.substring(index, index + key.length),
         ),
         if (index + key.length < label.length) label.substring(index + key.length),

@@ -18,8 +18,8 @@ class ElFadeTap extends ElButtonView {
     super.semanticLabel,
   }) : super(
          style: const ElStyle(
-           transitions: [.field(ElTransitionField.opacity, Duration(milliseconds: 250), Curves.easeInOutQuad)],
-           onTap: ElStyle(opacity: 0.2, transitions: [.field(ElTransitionField.opacity, Duration.zero)]),
+           transition: [.field(ElTransitionField.opacity, Duration(milliseconds: 180), Curves.easeInOutQuad)],
+           onTap: ElStyle(opacity: 0.2, transition: [.field(ElTransitionField.opacity, Duration.zero)]),
          ).merge(style),
        );
 }
@@ -35,7 +35,7 @@ class ElScaleTap extends ElButtonView {
     super.semanticLabel,
   }) : super(
          style: const ElStyle(
-           transitions: [.field(ElTransitionField.transform, Duration(milliseconds: 100), Curves.easeOut)],
+           transition: [.field(ElTransitionField.transform, Duration(milliseconds: 100), Curves.easeOut)],
            onTap: ElStyle(transform: ElTransform.scale(0.95)),
          ).merge(style),
        );

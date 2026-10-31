@@ -6,7 +6,7 @@
 ElLink(
   href: 'https://example.com',
   target: LinkTarget.blank,
-  style: ElStyle(color: Colors.blue, onHover: ElStyle(decoration: TextDecoration.underline)),
+  style: ElStyle(color: Colors.blue, onHover: ElStyle(textDecorationLine: TextDecoration.underline)),
   child: '查看详情',
 );
 ```

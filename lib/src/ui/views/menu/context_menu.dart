@@ -232,7 +232,7 @@ abstract class ElContextMenu {
             opacity: exiting ? 0.0 : null,
             pointerEvents: exiting ? .none : null,
             starting: const ElStyle(opacity: 0.0),
-            transitions: const [.field(.opacity, Duration(milliseconds: 90), Curves.easeOutCubic)],
+            transition: const [.field(.opacity, Duration(milliseconds: 90), Curves.easeOutCubic)],
           ),
           child: KeyedSubtree(
             key: level == 0 ? contextMenuPanelKey : contextMenuSubmenuPanelKey(level),

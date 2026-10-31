@@ -54,8 +54,8 @@ _VariantScan _scan(ElStyle style) {
   final cached = _scans[style];
   if (cached != null) return cached;
   final result = _VariantScan()
-    ..transitions = style.transitions != null
-    ..animations = style.animations != null;
+    ..transitions = style.transition != null
+    ..animations = style.animation != null;
   // index=-1 先展开根声明，再按层处理追加项，保留同层的父节点与状态声明顺序。
   for (var index = -1; index < result.variants.length; index++) {
     final (current, conditions, depth) = index < 0 ? (style, 0, 0) : result.variants[index];
@@ -64,8 +64,8 @@ _VariantScan _scan(ElStyle style) {
       final variant = read(current);
       if (variant == null) continue;
       result.states |= 1 << state.index;
-      result.transitions |= variant.transitions != null;
-      result.animations |= variant.animations != null;
+      result.transitions |= variant.transition != null;
+      result.animations |= variant.animation != null;
       final mask = conditions | (1 << state.index);
       result.variants.add((variant, mask, depth + 1));
     }
@@ -90,7 +90,7 @@ bool mayDeclareAnimationsOf(ElStyle? style) => style != null && _scan(style).ani
   var transitions = false;
   for (final variant in activeVariantsOf(style, stateBits)) {
     declared = maskOr(declared, specOf(variant).declaredMask);
-    transitions |= variant.transitions?.isNotEmpty ?? false;
+    transitions |= variant.transition?.isNotEmpty ?? false;
   }
   return (declared, transitions);
 }

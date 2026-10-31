@@ -230,10 +230,10 @@ class CascadeTick {
   static List<ElAnimation> effectiveAnimations({required ElStyle? style, required int state}) =>
       _effectiveVariantList(style: style, state: state, read: _readAnimations) ?? const <ElAnimation>[];
 
-  static List<ElTransition>? _readTransitions(ElStyle s) => s.transitions;
-  static List<ElAnimation>? _readAnimations(ElStyle s) => s.animations;
+  static List<ElTransition>? _readTransitions(ElStyle s) => s.transition;
+  static List<ElAnimation>? _readAnimations(ElStyle s) => s.animation;
 
-  /// longhand 列表字段（transitions / animations）的统一变体覆盖链。
+  /// longhand 列表字段（transition / animation）的统一变体覆盖链。
   static List<T>? _effectiveVariantList<T>({
     required ElStyle? style,
     required int state,

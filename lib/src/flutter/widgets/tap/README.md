@@ -19,6 +19,6 @@ ElRippleTap(
 | ElScaleTap | 按压时缩放到 0.95，默认 100ms 过渡 |
 | ElRippleTap | 悬停高亮，按压从落点扩散涟漪，支持键盘反馈 |
 
-共同参数为 onPressed（可 null）、child、disabled、semanticLabel、style；disabled 同时关闭反馈与激活。Fade/Scale 可用 style.onTap 和 transitions 覆写默认效果；Ripple 额外提供 focusNode，外部节点由调用方 dispose。
+共同参数为 onPressed（可 null）、child、disabled、semanticLabel、style；disabled 同时关闭反馈与激活。Fade/Scale 可用 style.onTap 和 transition 覆写默认效果；Ripple 额外提供 focusNode，外部节点由调用方 dispose。
 
 键盘和辅助激活沿用 [ElButtonView](../../views/button/README.md)：Enter 激活，Space 按住/释放完成会话。需要 event、toggled 或 selected 等完整按钮参数时，直接组合 ElButtonView 的样式与状态。

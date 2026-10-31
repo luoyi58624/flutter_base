@@ -6,11 +6,11 @@ class BoxInsets {
 
   /// padding 不含边框，边框只参与绘制。
   static EdgeInsets outerInsets(ResolvedStyle style) =>
-      style.box.padding?.resolve(style.inheritedBox.textDirection ?? TextDirection.ltr) ?? EdgeInsets.zero;
+      style.box.padding?.resolve(style.inheritedBox.direction ?? TextDirection.ltr) ?? EdgeInsets.zero;
 
   /// margin 是节点对外占位，不计入视觉盒。
   static EdgeInsets marginInsets(ResolvedStyle style) =>
-      style.box.margin?.resolve(style.inheritedBox.textDirection ?? TextDirection.ltr) ?? EdgeInsets.zero;
+      style.box.margin?.resolve(style.inheritedBox.direction ?? TextDirection.ltr) ?? EdgeInsets.zero;
 
   /// max 优先于冲突的 min。
   static double clampDimension(double value, double min, double max) => value.clamp(min <= max ? min : max, max);

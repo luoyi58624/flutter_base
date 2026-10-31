@@ -59,7 +59,7 @@ void main() {
             controller: controller,
             child: const ElView(
               child: text,
-              style: ElStyle(fontSize: 24, textDirection: TextDirection.rtl),
+              style: ElStyle(fontSize: 24, direction: TextDirection.rtl),
             ),
           ),
         ),
@@ -162,7 +162,7 @@ void main() {
             controller: controller,
             child: const ElView(
               child: text,
-              style: ElStyle(fontSize: 24, textDirection: TextDirection.rtl),
+              style: ElStyle(fontSize: 24, direction: TextDirection.rtl),
             ),
           ),
         ),
