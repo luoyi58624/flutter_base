@@ -20,17 +20,9 @@ import 'list_tile/index.dart';
 import 'card/index.dart';
 import 'loading_indicator/index.dart';
 import 'icon/index.dart';
-import 'splitter/index.dart';
-import 'app_bar/index.dart';
-import 'scaffold/index.dart';
 import 'anchor/index.dart';
 import 'affix/index.dart';
-import 'breadcrumb/index.dart';
-import 'bottom_navigation_bar/index.dart';
-import 'navigation_menu/index.dart';
 import 'steps/index.dart';
-import 'toolbar/index.dart';
-import 'drawer/index.dart';
 import 'avatar/index.dart';
 import 'calendar/index.dart';
 import 'carousel/index.dart';
@@ -49,7 +41,6 @@ import 'tabs/index.dart';
 import 'timeline/index.dart';
 import 'alert/index.dart';
 import 'result/index.dart';
-import 'contacts/index.dart';
 import 'backtop/index.dart';
 
 export 'button/index.dart';
@@ -70,18 +61,9 @@ export 'list_tile/index.dart';
 export 'card/index.dart';
 export 'loading_indicator/index.dart';
 export 'icon/index.dart';
-export 'splitter/index.dart';
-export 'app_bar/index.dart';
-export 'scaffold/index.dart';
-export 'sidebar/index.dart';
 export 'anchor/index.dart';
 export 'affix/index.dart';
-export 'breadcrumb/index.dart';
-export 'bottom_navigation_bar/index.dart';
-export 'navigation_menu/index.dart';
 export 'steps/index.dart';
-export 'toolbar/index.dart';
-export 'drawer/index.dart';
 export 'avatar/index.dart';
 export 'calendar/index.dart';
 export 'carousel/index.dart';
@@ -100,7 +82,6 @@ export 'tabs/index.dart';
 export 'timeline/index.dart';
 export 'alert/index.dart';
 export 'result/index.dart';
-export 'contacts/index.dart';
 export 'backtop/index.dart';
 
 const _absent = Object();
@@ -128,22 +109,12 @@ class ElComponentBuilders {
     this.cardBuilder,
     this.loadingIndicatorBuilder,
     this.iconBuilder,
-    this.splitterBuilder,
     this.listTileBuilder,
     this.listTileGroupBuilder,
-    this.appBarBuilder,
-    this.appBarSearchBuilder,
-    this.scaffoldBuilder,
     this.anchorBuilder,
     this.affixBuilder,
-    this.breadcrumbBuilder,
-    this.breadcrumbItemBuilder,
-    this.bottomNavigationBarBuilder,
-    this.navigationMenuBuilder,
     this.stepsBuilder,
     this.stepBuilder,
-    this.toolbarBuilder,
-    this.drawerBuilder,
     this.avatarBuilder,
     this.avatarGroupBuilder,
     this.calendarBuilder,
@@ -167,7 +138,6 @@ class ElComponentBuilders {
     this.timelineItemBuilder,
     this.alertBuilder,
     this.resultBuilder,
-    this.contactsBuilder,
     this.backtopBuilder,
   });
 
@@ -249,10 +219,6 @@ class ElComponentBuilders {
   /// 根据 ElIcon 声明构建品牌组件。
   final Widget Function(BuildContext context, ElIcon component)? iconBuilder;
 
-  /// 根据 ElSplitter 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSplitter component)?
-  splitterBuilder;
-
   /// 根据 ElListTile 声明构建品牌组件。
   final Widget Function(BuildContext context, ElListTile component)?
   listTileBuilder;
@@ -261,18 +227,6 @@ class ElComponentBuilders {
   final Widget Function(BuildContext context, ElListTileGroup component)?
   listTileGroupBuilder;
 
-  /// 根据 ElAppBar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAppBar component)?
-  appBarBuilder;
-
-  /// 根据 ElAppBarSearch 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAppBarSearch component)?
-  appBarSearchBuilder;
-
-  /// 根据 ElScaffold 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElScaffold component)?
-  scaffoldBuilder;
-
   /// 根据 ElAnchor 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAnchor component)?
   anchorBuilder;
@@ -280,35 +234,11 @@ class ElComponentBuilders {
   /// 根据 ElAffix 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAffix component)? affixBuilder;
 
-  /// 根据 ElBreadcrumb 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElBreadcrumb component)?
-  breadcrumbBuilder;
-
-  /// 根据 ElBreadcrumbItem 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElBreadcrumbItem component)?
-  breadcrumbItemBuilder;
-
-  /// 根据 ElBottomNavigationBar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElBottomNavigationBar component)?
-  bottomNavigationBarBuilder;
-
-  /// 根据 ElNavigationMenu 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElNavigationMenu<T> component)?
-  navigationMenuBuilder;
-
   /// 根据 ElSteps 声明构建品牌组件。
   final Widget Function(BuildContext context, ElSteps component)? stepsBuilder;
 
   /// 根据 ElStep 声明构建品牌组件。
   final Widget Function(BuildContext context, ElStep component)? stepBuilder;
-
-  /// 根据 ElToolbar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElToolbar component)?
-  toolbarBuilder;
-
-  /// 根据 ElDrawer 声明构建布局抽屉。
-  final Widget Function(BuildContext context, ElDrawer component)?
-  drawerBuilder;
 
   /// 根据 ElAvatar 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAvatar component)?
@@ -398,10 +328,6 @@ class ElComponentBuilders {
   final Widget Function(BuildContext context, ElResult component)?
   resultBuilder;
 
-  /// 根据 ElContacts 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElContacts<T> component)?
-  contactsBuilder;
-
   /// 根据 ElBacktop 声明构建品牌组件。
   final Widget Function(BuildContext context, ElBacktop component)?
   backtopBuilder;
@@ -427,22 +353,12 @@ class ElComponentBuilders {
     Object? cardBuilder = _absent,
     Object? loadingIndicatorBuilder = _absent,
     Object? iconBuilder = _absent,
-    Object? splitterBuilder = _absent,
     Object? listTileBuilder = _absent,
     Object? listTileGroupBuilder = _absent,
-    Object? appBarBuilder = _absent,
-    Object? appBarSearchBuilder = _absent,
-    Object? scaffoldBuilder = _absent,
     Object? anchorBuilder = _absent,
     Object? affixBuilder = _absent,
-    Object? breadcrumbBuilder = _absent,
-    Object? breadcrumbItemBuilder = _absent,
-    Object? bottomNavigationBarBuilder = _absent,
-    Object? navigationMenuBuilder = _absent,
     Object? stepsBuilder = _absent,
     Object? stepBuilder = _absent,
-    Object? toolbarBuilder = _absent,
-    Object? drawerBuilder = _absent,
     Object? avatarBuilder = _absent,
     Object? avatarGroupBuilder = _absent,
     Object? calendarBuilder = _absent,
@@ -466,7 +382,6 @@ class ElComponentBuilders {
     Object? timelineItemBuilder = _absent,
     Object? alertBuilder = _absent,
     Object? resultBuilder = _absent,
-    Object? contactsBuilder = _absent,
     Object? backtopBuilder = _absent,
   }) => ElComponentBuilders(
     buttonBuilder: identical(buttonBuilder, _absent)
@@ -569,10 +484,6 @@ class ElComponentBuilders {
         ? this.iconBuilder
         : iconBuilder
               as Widget Function(BuildContext context, ElIcon component)?,
-    splitterBuilder: identical(splitterBuilder, _absent)
-        ? this.splitterBuilder
-        : splitterBuilder
-              as Widget Function(BuildContext context, ElSplitter component)?,
     listTileBuilder: identical(listTileBuilder, _absent)
         ? this.listTileBuilder
         : listTileBuilder
@@ -584,21 +495,6 @@ class ElComponentBuilders {
                 BuildContext context,
                 ElListTileGroup component,
               )?,
-    appBarBuilder: identical(appBarBuilder, _absent)
-        ? this.appBarBuilder
-        : appBarBuilder
-              as Widget Function(BuildContext context, ElAppBar component)?,
-    appBarSearchBuilder: identical(appBarSearchBuilder, _absent)
-        ? this.appBarSearchBuilder
-        : appBarSearchBuilder
-              as Widget Function(
-                BuildContext context,
-                ElAppBarSearch component,
-              )?,
-    scaffoldBuilder: identical(scaffoldBuilder, _absent)
-        ? this.scaffoldBuilder
-        : scaffoldBuilder
-              as Widget Function(BuildContext context, ElScaffold component)?,
     anchorBuilder: identical(anchorBuilder, _absent)
         ? this.anchorBuilder
         : anchorBuilder
@@ -607,31 +503,6 @@ class ElComponentBuilders {
         ? this.affixBuilder
         : affixBuilder
               as Widget Function(BuildContext context, ElAffix component)?,
-    breadcrumbBuilder: identical(breadcrumbBuilder, _absent)
-        ? this.breadcrumbBuilder
-        : breadcrumbBuilder
-              as Widget Function(BuildContext context, ElBreadcrumb component)?,
-    breadcrumbItemBuilder: identical(breadcrumbItemBuilder, _absent)
-        ? this.breadcrumbItemBuilder
-        : breadcrumbItemBuilder
-              as Widget Function(
-                BuildContext context,
-                ElBreadcrumbItem component,
-              )?,
-    bottomNavigationBarBuilder: identical(bottomNavigationBarBuilder, _absent)
-        ? this.bottomNavigationBarBuilder
-        : bottomNavigationBarBuilder
-              as Widget Function(
-                BuildContext context,
-                ElBottomNavigationBar component,
-              )?,
-    navigationMenuBuilder: identical(navigationMenuBuilder, _absent)
-        ? this.navigationMenuBuilder
-        : navigationMenuBuilder
-              as Widget Function<T>(
-                BuildContext context,
-                ElNavigationMenu<T> component,
-              )?,
     stepsBuilder: identical(stepsBuilder, _absent)
         ? this.stepsBuilder
         : stepsBuilder
@@ -640,14 +511,6 @@ class ElComponentBuilders {
         ? this.stepBuilder
         : stepBuilder
               as Widget Function(BuildContext context, ElStep component)?,
-    toolbarBuilder: identical(toolbarBuilder, _absent)
-        ? this.toolbarBuilder
-        : toolbarBuilder
-              as Widget Function(BuildContext context, ElToolbar component)?,
-    drawerBuilder: identical(drawerBuilder, _absent)
-        ? this.drawerBuilder
-        : drawerBuilder
-              as Widget Function(BuildContext context, ElDrawer component)?,
     avatarBuilder: identical(avatarBuilder, _absent)
         ? this.avatarBuilder
         : avatarBuilder
@@ -755,13 +618,6 @@ class ElComponentBuilders {
         ? this.resultBuilder
         : resultBuilder
               as Widget Function(BuildContext context, ElResult component)?,
-    contactsBuilder: identical(contactsBuilder, _absent)
-        ? this.contactsBuilder
-        : contactsBuilder
-              as Widget Function<T>(
-                BuildContext context,
-                ElContacts<T> component,
-              )?,
     backtopBuilder: identical(backtopBuilder, _absent)
         ? this.backtopBuilder
         : backtopBuilder
@@ -792,26 +648,13 @@ class ElComponentBuilders {
           loadingIndicatorBuilder:
               other.loadingIndicatorBuilder ?? loadingIndicatorBuilder,
           iconBuilder: other.iconBuilder ?? iconBuilder,
-          splitterBuilder: other.splitterBuilder ?? splitterBuilder,
           listTileBuilder: other.listTileBuilder ?? listTileBuilder,
           listTileGroupBuilder:
               other.listTileGroupBuilder ?? listTileGroupBuilder,
-          appBarBuilder: other.appBarBuilder ?? appBarBuilder,
-          appBarSearchBuilder: other.appBarSearchBuilder ?? appBarSearchBuilder,
-          scaffoldBuilder: other.scaffoldBuilder ?? scaffoldBuilder,
           anchorBuilder: other.anchorBuilder ?? anchorBuilder,
           affixBuilder: other.affixBuilder ?? affixBuilder,
-          breadcrumbBuilder: other.breadcrumbBuilder ?? breadcrumbBuilder,
-          breadcrumbItemBuilder:
-              other.breadcrumbItemBuilder ?? breadcrumbItemBuilder,
-          bottomNavigationBarBuilder:
-              other.bottomNavigationBarBuilder ?? bottomNavigationBarBuilder,
-          navigationMenuBuilder:
-              other.navigationMenuBuilder ?? navigationMenuBuilder,
           stepsBuilder: other.stepsBuilder ?? stepsBuilder,
           stepBuilder: other.stepBuilder ?? stepBuilder,
-          toolbarBuilder: other.toolbarBuilder ?? toolbarBuilder,
-          drawerBuilder: other.drawerBuilder ?? drawerBuilder,
           avatarBuilder: other.avatarBuilder ?? avatarBuilder,
           avatarGroupBuilder: other.avatarGroupBuilder ?? avatarGroupBuilder,
           calendarBuilder: other.calendarBuilder ?? calendarBuilder,
@@ -835,7 +678,6 @@ class ElComponentBuilders {
           timelineItemBuilder: other.timelineItemBuilder ?? timelineItemBuilder,
           alertBuilder: other.alertBuilder ?? alertBuilder,
           resultBuilder: other.resultBuilder ?? resultBuilder,
-          contactsBuilder: other.contactsBuilder ?? contactsBuilder,
           backtopBuilder: other.backtopBuilder ?? backtopBuilder,
         );
 
@@ -862,22 +704,12 @@ class ElComponentBuilders {
           cardBuilder == other.cardBuilder &&
           loadingIndicatorBuilder == other.loadingIndicatorBuilder &&
           iconBuilder == other.iconBuilder &&
-          splitterBuilder == other.splitterBuilder &&
           listTileBuilder == other.listTileBuilder &&
           listTileGroupBuilder == other.listTileGroupBuilder &&
-          appBarBuilder == other.appBarBuilder &&
-          appBarSearchBuilder == other.appBarSearchBuilder &&
-          scaffoldBuilder == other.scaffoldBuilder &&
           anchorBuilder == other.anchorBuilder &&
           affixBuilder == other.affixBuilder &&
-          breadcrumbBuilder == other.breadcrumbBuilder &&
-          breadcrumbItemBuilder == other.breadcrumbItemBuilder &&
-          bottomNavigationBarBuilder == other.bottomNavigationBarBuilder &&
-          navigationMenuBuilder == other.navigationMenuBuilder &&
           stepsBuilder == other.stepsBuilder &&
           stepBuilder == other.stepBuilder &&
-          toolbarBuilder == other.toolbarBuilder &&
-          drawerBuilder == other.drawerBuilder &&
           avatarBuilder == other.avatarBuilder &&
           avatarGroupBuilder == other.avatarGroupBuilder &&
           calendarBuilder == other.calendarBuilder &&
@@ -901,7 +733,6 @@ class ElComponentBuilders {
           timelineItemBuilder == other.timelineItemBuilder &&
           alertBuilder == other.alertBuilder &&
           resultBuilder == other.resultBuilder &&
-          contactsBuilder == other.contactsBuilder &&
           backtopBuilder == other.backtopBuilder;
 
   @override
@@ -925,22 +756,12 @@ class ElComponentBuilders {
     cardBuilder,
     loadingIndicatorBuilder,
     iconBuilder,
-    splitterBuilder,
     listTileBuilder,
     listTileGroupBuilder,
-    appBarBuilder,
-    appBarSearchBuilder,
-    scaffoldBuilder,
     anchorBuilder,
     affixBuilder,
-    breadcrumbBuilder,
-    breadcrumbItemBuilder,
-    bottomNavigationBarBuilder,
-    navigationMenuBuilder,
     stepsBuilder,
     stepBuilder,
-    toolbarBuilder,
-    drawerBuilder,
     avatarBuilder,
     avatarGroupBuilder,
     calendarBuilder,
@@ -964,7 +785,6 @@ class ElComponentBuilders {
     timelineItemBuilder,
     alertBuilder,
     resultBuilder,
-    contactsBuilder,
     backtopBuilder,
   ]);
 }

@@ -2,7 +2,7 @@
 
 组件按用途分目录，每个目录以 `index.dart` 为入口，`README.md` 说明当前接口和组合方式。Radio 与 Checkbox 的分组实现分别位于各自目录的 `group.dart`。
 
-新增的 44 个 Builder 入口目前仅声明，不含默认实现；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。原有组件的行为与品牌安装保持不变。
+只有桌面端与移动端都适用、职责一致的组件才能进入本目录；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。新增的 33 个 Builder 入口目前仅声明，不含默认实现；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。原有组件的行为与品牌安装保持不变。
 
 ## 导入与实现登记
 
@@ -46,16 +46,9 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [Card](card/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [LoadingIndicator](loading_indicator/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Icon](icon/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Splitter](splitter/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [AppBar](app_bar/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Scaffold](scaffold/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Anchor](anchor/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Affix](affix/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Breadcrumb](breadcrumb/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [BottomNavigationBar](bottom_navigation_bar/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [NavigationMenu](navigation_menu/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Steps](steps/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Toolbar](toolbar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Avatar](avatar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Calendar](calendar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Carousel](carousel/README.md) | 参数与 Builder 契约，尚无默认实现 |
@@ -74,10 +67,7 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [Timeline](timeline/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Alert](alert/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Result](result/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Contacts](contacts/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Backtop](backtop/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Drawer](drawer/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Sidebar](sidebar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 
 ## 值绑定与生命周期
 

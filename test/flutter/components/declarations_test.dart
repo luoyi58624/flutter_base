@@ -3,7 +3,6 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _plain(BuildContext context, dynamic component) => SizedBox();
-Widget _generic<T>(BuildContext context, dynamic component) => SizedBox();
 
 void main() {
   test('card 的登记、复制、清空、合并与比较', () {
@@ -42,17 +41,6 @@ void main() {
     expect(value, isNot(ElComponentBuilders()));
   });
 
-  test('splitter 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(splitterBuilder: _plain);
-    expect(value.splitterBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(splitterBuilder: null).splitterBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
   test('listTile 的登记、复制、清空、合并与比较', () {
     final value = ElComponentBuilders(listTileBuilder: _plain);
     expect(value.listTileBuilder, _plain);
@@ -73,42 +61,6 @@ void main() {
       value.copyWith(listTileGroupBuilder: null).listTileGroupBuilder,
       isNull,
     );
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('appBar 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(appBarBuilder: _plain);
-    expect(value.appBarBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(appBarBuilder: null).appBarBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('appBarSearch 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(appBarSearchBuilder: _plain);
-    expect(value.appBarSearchBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(
-      value.copyWith(appBarSearchBuilder: null).appBarSearchBuilder,
-      isNull,
-    );
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('scaffold 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(scaffoldBuilder: _plain);
-    expect(value.scaffoldBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(scaffoldBuilder: null).scaffoldBuilder, isNull);
     expect(ElComponentBuilders().merge(value), value);
     expect(value.merge(ElComponentBuilders()), value);
     expect(value, isNot(ElComponentBuilders()));
@@ -136,61 +88,6 @@ void main() {
     expect(value, isNot(ElComponentBuilders()));
   });
 
-  test('breadcrumb 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(breadcrumbBuilder: _plain);
-    expect(value.breadcrumbBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(breadcrumbBuilder: null).breadcrumbBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('breadcrumbItem 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(breadcrumbItemBuilder: _plain);
-    expect(value.breadcrumbItemBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(
-      value.copyWith(breadcrumbItemBuilder: null).breadcrumbItemBuilder,
-      isNull,
-    );
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('bottomNavigationBar 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(bottomNavigationBarBuilder: _plain);
-    expect(value.bottomNavigationBarBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(
-      value
-          .copyWith(bottomNavigationBarBuilder: null)
-          .bottomNavigationBarBuilder,
-      isNull,
-    );
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('navigationMenu 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(navigationMenuBuilder: _generic);
-    expect(value.navigationMenuBuilder, _generic);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(
-      value.copyWith(navigationMenuBuilder: null).navigationMenuBuilder,
-      isNull,
-    );
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
   test('steps 的登记、复制、清空、合并与比较', () {
     final value = ElComponentBuilders(stepsBuilder: _plain);
     expect(value.stepsBuilder, _plain);
@@ -208,17 +105,6 @@ void main() {
     expect(value.copyWith(), value);
     expect(value.copyWith().hashCode, value.hashCode);
     expect(value.copyWith(stepBuilder: null).stepBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
-  test('toolbar 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(toolbarBuilder: _plain);
-    expect(value.toolbarBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(toolbarBuilder: null).toolbarBuilder, isNull);
     expect(ElComponentBuilders().merge(value), value);
     expect(value.merge(ElComponentBuilders()), value);
     expect(value, isNot(ElComponentBuilders()));
@@ -489,17 +375,6 @@ void main() {
     expect(value, isNot(ElComponentBuilders()));
   });
 
-  test('contacts 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(contactsBuilder: _generic);
-    expect(value.contactsBuilder, _generic);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(contactsBuilder: null).contactsBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
   test('backtop 的登记、复制、清空、合并与比较', () {
     final value = ElComponentBuilders(backtopBuilder: _plain);
     expect(value.backtopBuilder, _plain);
@@ -511,35 +386,16 @@ void main() {
     expect(value, isNot(ElComponentBuilders()));
   });
 
-  test('drawer 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(drawerBuilder: _plain);
-    expect(value.drawerBuilder, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(drawerBuilder: null).drawerBuilder, isNull);
-    expect(ElComponentBuilders().merge(value), value);
-    expect(value.merge(ElComponentBuilders()), value);
-    expect(value, isNot(ElComponentBuilders()));
-  });
-
   testWidgets('新声明仅分派原始参数，不执行交互或绑定', (tester) async {
     final seen = <Widget>[];
     var closes = 0;
     final alert = ElAlert(title: '提示', onClose: () => closes++);
     final progress = ElProgress(value: 30, max: 60, buffer: 50);
-    final contacts = ElContacts<int>(
-      groups: [
-        ElContactGroup(index: 'A', items: [1]),
-      ],
-      nameBuilder: (item) => '$item',
-    );
     Widget capture(BuildContext context, dynamic component) {
       seen.add(component as Widget);
       return SizedBox();
     }
 
-    Widget captureContacts<T>(BuildContext context, ElContacts<T> component) =>
-        capture(context, component);
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
@@ -547,13 +403,12 @@ void main() {
           builders: ElComponentBuilders(
             alertBuilder: capture,
             progressBuilder: capture,
-            contactsBuilder: captureContacts,
           ),
-          child: Column(children: [alert, progress, contacts]),
+          child: Column(children: [alert, progress]),
         ),
       ),
     );
-    expect(seen, orderedEquals([alert, progress, contacts]));
+    expect(seen, orderedEquals([alert, progress]));
     expect(closes, 0);
     expect(progress.value, 30);
     expect(progress.max, 60);

@@ -56,7 +56,7 @@ ElDesktopTheme(
 ## 等待接口的组件
 
 - Radio、Checkbox：State 已声明可空 isLast，但当前宿主尚未提供实际末项信息；两个品牌 Builder 继续保持 null，不用默认布尔值伪造布局状态。
-- Card、Avatar、Pagination、Tabs、导航等普通组件的通用声明已补齐，当前仍未安装相应品牌实现。消息、提示、对话框等服务 API 另行处理。
+- Card、Avatar、Pagination、Tabs 等两端通用组件的声明已补齐，当前仍未安装相应品牌实现。端专属导航与布局不再进入通用登记表，筛选范围见[通用声明说明](../../flutter/components/DECLARATIONS.md)。消息、提示、对话框等服务 API 另行处理。
 
 迁移只调整包与文件引用、字体归属和 Portal 阶段枚举名称（ElPresencePhase → ElPortalPhase）；不依赖旧 element_plus、el_ui、el_flutter 或 el_dart 包。源许可见 [LICENSE](LICENSE)。
 
