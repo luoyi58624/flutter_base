@@ -1,6 +1,6 @@
 import 'dart:async' show scheduleMicrotask;
 
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/foundation.dart' show ValueNotifier, listEquals;
 import 'package:flutter/scheduler.dart' show SchedulerPhase;
 import 'package:flutter/services.dart';

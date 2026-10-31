@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/material.dart'
     show
         DropdownMenuCloseBehavior,

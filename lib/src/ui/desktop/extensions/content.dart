@@ -1,4 +1,4 @@
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/widgets.dart';
 
 import '../components/basic/icon/index.dart';

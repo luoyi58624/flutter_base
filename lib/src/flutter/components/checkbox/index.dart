@@ -87,7 +87,10 @@ class ElCheckbox extends ElModelValue<Object?> {
 /// 供外观 Builder 读取的有效状态，不包含模型写入或分组行为。
 class ElCheckboxState {
   /// 创建外观状态快照。
-  const ElCheckboxState({required this.checked, required this.disabled});
+  const ElCheckboxState({required this.checked, required this.disabled, this.isLast});
+
+  /// 是否为分组末项；null 表示宿主尚未提供布局信息。
+  final bool? isLast;
 
   /// 当前是否选中。
   final bool checked;

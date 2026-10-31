@@ -1,5 +1,13 @@
 # ListTile
 
+## 公共声明
+
+`ElListTile` 提供普通、page、switcher 三个构造，声明标题、副标题、前后槽、目标页面或开关值通道，通过 `listTileBuilder(context, component)` 分派。开关通道沿用原列表行的 dynamic 模型，开关模式的变化值为 bool。`ElListTileGroup` 声明标题、行集合和容器样式，通过 `listTileGroupBuilder` 分派。
+
+新声明不包含品牌尺寸档位，不实现布局、导航、模型绑定或分隔线。以下已有 My* 具体入口保持原样。
+
+## 既有入口
+
 当前目录提供 `MyListTile` 和 `MyListGroup`，分别位于 [index.dart](index.dart) 和 [group.dart](group.dart)。二者直接组合 ElView，不依赖组件品牌 Builder；导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
 
 ```dart

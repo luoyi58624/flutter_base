@@ -55,8 +55,8 @@ ElDesktopTheme(
 
 ## 等待接口的组件
 
-- Radio、Checkbox：源外观依赖 State.isLast 决定末项的 30 逻辑像素边距，当前通用 State 只有 checked、disabled，因此两个 Builder 默认保持 null；可显式注入自定义实现，没有硬编码末项，也没有改通用接口。
-- 源库的 Card、Avatar、Pagination、Tabs、导航与反馈服务等组件尚无本次对应的通用组件接口，保持源仓库实现，等待后续迁移指令。
+- Radio、Checkbox：State 已声明可空 isLast，但当前宿主尚未提供实际末项信息；两个品牌 Builder 继续保持 null，不用默认布尔值伪造布局状态。
+- Card、Avatar、Pagination、Tabs、导航等普通组件的通用声明已补齐，当前仍未安装相应品牌实现。消息、提示、对话框等服务 API 另行处理。
 
 迁移只调整包与文件引用、字体归属和 Portal 阶段枚举名称（ElPresencePhase → ElPortalPhase）；不依赖旧 element_plus、el_ui、el_flutter 或 el_dart 包。源许可见 [LICENSE](LICENSE)。
 

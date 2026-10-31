@@ -1,7 +1,7 @@
 /// 桌面品牌实现共用的内部依赖入口。
 library;
 
-export 'package:flutter_base/flutter_base.dart';
+export 'package:flutter_base/flutter_base.dart' hide ElIcon;
 
 export 'components/app/index.dart';
 export 'components/basic/icon/index.dart';

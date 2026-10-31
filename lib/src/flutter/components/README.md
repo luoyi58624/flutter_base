@@ -2,6 +2,8 @@
 
 组件按用途分目录，每个目录以 `index.dart` 为入口，`README.md` 说明当前接口和组合方式。Radio 与 Checkbox 的分组实现分别位于各自目录的 `group.dart`。
 
+新增的 44 个 Builder 入口目前仅声明，不含默认实现；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。原有组件的行为与品牌安装保持不变。
+
 ## 导入与实现登记
 
 使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。除 ListTile 外，本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。
@@ -41,6 +43,41 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [Switch](switch/README.md) | 布尔开关与轨道配置 |
 | [Tag](tag/README.md) | 展示、关闭与布尔切换标签 |
 | [Text](text/README.md) | 文本参数声明与品牌分派 |
+| [Card](card/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [LoadingIndicator](loading_indicator/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Icon](icon/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Splitter](splitter/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [AppBar](app_bar/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Scaffold](scaffold/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Anchor](anchor/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Affix](affix/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Breadcrumb](breadcrumb/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [BottomNavigationBar](bottom_navigation_bar/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [NavigationMenu](navigation_menu/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Steps](steps/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Toolbar](toolbar/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Avatar](avatar/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Calendar](calendar/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Carousel](carousel/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Collapse](collapse/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Countdown](countdown/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Descriptions](descriptions/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Empty](empty/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Pagination](pagination/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Progress](progress/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Rate](rate/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Segmented](segmented/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Slider](slider/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Skeleton](skeleton/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Statistic](statistic/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Tabs](tabs/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Timeline](timeline/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Alert](alert/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Result](result/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Contacts](contacts/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Backtop](backtop/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Drawer](drawer/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Sidebar](sidebar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 
 ## 值绑定与生命周期
 

@@ -27,6 +27,6 @@ MyTheme(
 
 ## 保留的品牌组件
 
-既有 MyButton、MyTag、MySwitch、MyCard、MyDivider、MyLoading、MyProgress、MySkeleton 均迁入各自目录的 `index.dart`，已有 My* 参数和行为保留。后五项缺少对应通用组件声明或 Builder 插槽，因此只保留品牌 API，不为适配新增公共接口。
+既有 MyButton、MyTag、MySwitch、MyCard、MyDivider、MyLoading、MyProgress、MySkeleton 均迁入各自目录的 `index.dart`，已有 My* 参数和行为保留。Card、LoadingIndicator、Progress、Skeleton 的通用声明现已补齐，品牌适配尚未接入；MyDivider 继续保留其品牌接口，现有通用 ElDivider 不增加无效参数。
 
 MyThemeData、外部 notifier 与焦点节点仍按原有生命周期管理。现有颜色、几何、事件测试保留；本次验证为无头测试，不代表手机视觉和输入设备验收。
