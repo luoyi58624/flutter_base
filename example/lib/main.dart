@@ -1,7 +1,6 @@
 import 'package:android_system_font_weight/android_system_font_weight.dart';
 import 'package:example/src/layout/index.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_base/mobile.dart';
 
 import 'src/mobile/app.dart';
