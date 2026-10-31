@@ -2,6 +2,12 @@
 
 my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`MyTheme` 提供 CSS 对应的明暗颜色、字体和阴影，并安装通用组件实现。
 
+## 目录约定
+
+对应通用接口的组件直接放在 `components/<组件名>/index.dart`，辅助文件与 README.md 留在组件目录。Card、LoadingIndicator、Progress、Skeleton 等已有通用声明但尚未适配的组件也保留在这一层；MyLoading 对应 LoadingIndicator 的加载指示职责。
+
+没有通用品牌接口的组件放在 `components/others/<组件名>/`。MyDivider 位于 [others/divider](components/others/divider/README.md)，公共导出与原有行为保持不变，不向独立的 ElDivider 基元添加品牌 Builder。
+
 ```dart
 MyTheme(
   child: Column(children: [

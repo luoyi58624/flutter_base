@@ -1,7 +1,7 @@
 import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/widgets.dart';
 
-import '../components/basic/icon/index.dart';
+import '../components/icon/index.dart';
 
 /// 内容归一化（button / switch 设计体系的公共内容通道）。
 ///

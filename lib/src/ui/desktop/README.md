@@ -2,6 +2,12 @@
 
 Element Plus 桌面品牌实现，源码来自 `D:/project/my-project/el/ui/element_plus`。通用声明、值绑定基类、视图与编辑内核仍使用 flutter_base，品牌目录保留源组件的布局、配色、动效和交互实现。
 
+## 目录约定
+
+对应通用组件接口的实现直接放在 `components/<组件名>/index.dart`，不再按 basic、form、data 分类。组件内部的辅助文件与 README.md 保留在各自目录中；测试按相同组件层级组织。
+
+没有通用组件接口的品牌组件放在 `components/others/<组件名>/`，主题安装器位于 [others/app](components/others/app/README.md)。图标已有通用声明，当前内部实现仍保留在 icon，后续接入 Builder；表格皮肤实现已有 tableStyleBuilder 契约，保留在 table。
+
 ## 安装
 
 ```dart
@@ -25,21 +31,21 @@ ElDesktopTheme(
 
 | 通用接口 | 品牌实现目录 |
 | --- | --- |
-| Button | [basic/button](components/basic/button/README.md) |
-| ButtonGroup | [basic/button_group](components/basic/button_group/README.md) |
-| Tag | [basic/tag](components/basic/tag/README.md) |
-| Switch | [form/switch](components/form/switch/README.md) |
-| Input | [form/input](components/form/input/README.md) |
-| InputNumber | [form/input_number](components/form/input_number/README.md) |
-| InputOtp | [form/input_otp](components/form/input_otp/README.md) |
-| InputTag | [form/input_tag](components/form/input_tag/README.md) |
-| Select | [form/select](components/form/select/README.md) |
-| Autocomplete | [form/autocomplete](components/form/autocomplete/README.md) |
-| Mention | [form/mention](components/form/mention/README.md) |
-| Text / FormItem | [主题登记](components/app/README.md)，透传源品牌的文本和表单项实现 |
-| TableStyle | [data/table](components/data/table/README.md)，仅提供表格皮肤 |
+| Button | [button](components/button/README.md) |
+| ButtonGroup | [button_group](components/button_group/README.md) |
+| Tag | [tag](components/tag/README.md) |
+| Switch | [switch](components/switch/README.md) |
+| Input | [input](components/input/README.md) |
+| InputNumber | [input_number](components/input_number/README.md) |
+| InputOtp | [input_otp](components/input_otp/README.md) |
+| InputTag | [input_tag](components/input_tag/README.md) |
+| Select | [select](components/select/README.md) |
+| Autocomplete | [autocomplete](components/autocomplete/README.md) |
+| Mention | [mention](components/mention/README.md) |
+| Text / FormItem | [主题登记](components/others/app/README.md)，透传源品牌的文本和表单项实现 |
+| TableStyle | [table](components/table/README.md)，仅提供表格皮肤 |
 
-Element 图标及内容归一化作为上述实现的内部依赖迁入，不增加新的通用组件声明。图标字体 family 仍为 element，字体包归属改为 flutter_base。
+Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未安装通用 iconBuilder。图标字体 family 仍为 element，字体包归属改为 flutter_base。
 
 ## 主题与覆盖
 
