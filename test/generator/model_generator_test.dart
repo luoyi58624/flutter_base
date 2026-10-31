@@ -4,50 +4,54 @@ import 'package:build_test/build_test.dart';
 import 'package:flutter_base/builder.dart';
 import 'package:test/test.dart';
 
+import 'support/builder_test_support.dart';
+
 void main() {
+  if (runGeneratorTestsInDartVm('test/generator/model_generator_test.dart')) {
+    return;
+  }
   var caseIndex = 0;
 
   Future<({bool succeeded, String code, String logs})> generate(
     String declarations, {
     Builder? builder,
   }) async {
-    final readerWriter = TestReaderWriter(
-      rootPackage: 'flutter_base',
-      flattenOutput: true,
-    );
-    await readerWriter.testing.loadIsolateSources();
+    final readerWriter = await createGeneratorReaderWriter();
     final name = 'model_boundary_${caseIndex++}';
     final logs = <String>[];
     final result = await testBuilder(
       builder ?? elModelBuilder(BuilderOptions.empty),
       {
-        'flutter_base|lib/$name.dart':
+        'generator_test|lib/$name.dart':
             '''
 import 'package:flutter_base/dart.dart';
 part '$name.g.dart';
 $declarations
 ''',
       },
-      rootPackage: 'flutter_base',
-      generateFor: {'flutter_base|lib/$name.dart'},
+      rootPackage: 'generator_test',
+      generateFor: {'generator_test|lib/$name.dart'},
       readerWriter: readerWriter,
       flattenOutput: true,
       onLog: (record) => logs.add(record.toString()),
     );
-    final output = AssetId('flutter_base', 'lib/$name.model_generator.g.part');
+    // 读取本次构建的实际产物，避免依赖 build_runner 的缓存目录布局。
+    final outputs = readerWriter.testing.assets
+        .where(
+          (asset) =>
+              asset.package == 'generator_test' &&
+              asset.path.endsWith('.g.part'),
+        )
+        .toList();
     if (result.succeeded) {
-      expect(
-        readerWriter.testing.exists(output),
-        isTrue,
-        reason: logs.join('\n'),
-      );
-      expect(readerWriter.testing.readString(output), isNotEmpty);
+      expect(outputs, hasLength(1), reason: logs.join('\n'));
+      expect(readerWriter.testing.readString(outputs.single), isNotEmpty);
     }
     return (
       succeeded: result.succeeded,
-      code: readerWriter.testing.exists(output)
-          ? readerWriter.testing.readString(output)
-          : '',
+      code: outputs.isEmpty
+          ? ''
+          : readerWriter.testing.readString(outputs.single),
       logs: logs.join('\n'),
     );
   }

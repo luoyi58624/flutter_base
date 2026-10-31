@@ -6,8 +6,12 @@ import 'package:flutter_base/builder.dart';
 import 'package:test/test.dart';
 
 import 'source_generator/source.dart';
+import 'support/builder_test_support.dart';
 
 void main() {
+  if (runGeneratorTestsInDartVm('test/generator/source_generator_test.dart')) {
+    return;
+  }
   group('@ElSourceGenerator', () {
     test('主文件类声明与私有输出名保持源码一致', () {
       expect(
@@ -35,12 +39,11 @@ void main() {
 
     test('拒绝非法输出名', () async {
       final logs = <String>[];
-      final readerWriter = TestReaderWriter(rootPackage: 'flutter_base');
-      await readerWriter.testing.loadIsolateSources();
-      await testBuilder(
+      final readerWriter = await createGeneratorReaderWriter();
+      final result = await testBuilder(
         elSourceGeneratorBuilder(BuilderOptions.empty),
         {
-          'flutter_base|lib/invalid_name.dart': '''
+          'generator_test|lib/invalid_name.dart': '''
 import 'package:flutter_base/dart.dart';
 part 'invalid_name.g.dart';
 
@@ -48,22 +51,22 @@ part 'invalid_name.g.dart';
 class Example {}
 ''',
         },
-        rootPackage: 'flutter_base',
+        rootPackage: 'generator_test',
         onLog: (record) => logs.add(record.toString()),
         readerWriter: readerWriter,
       );
 
+      expect(result.succeeded, isFalse);
       expect(logs, contains(contains('不是合法的 Dart 标识符')));
     });
 
     test('拒绝同一 library 的重复输出名', () async {
       final logs = <String>[];
-      final readerWriter = TestReaderWriter(rootPackage: 'flutter_base');
-      await readerWriter.testing.loadIsolateSources();
-      await testBuilder(
+      final readerWriter = await createGeneratorReaderWriter();
+      final result = await testBuilder(
         elSourceGeneratorBuilder(BuilderOptions.empty),
         {
-          'flutter_base|lib/duplicate_name.dart': '''
+          'generator_test|lib/duplicate_name.dart': '''
 import 'package:flutter_base/dart.dart';
 part 'duplicate_name.g.dart';
 
@@ -74,11 +77,12 @@ class FirstExample {}
 class SecondExample {}
 ''',
         },
-        rootPackage: 'flutter_base',
+        rootPackage: 'generator_test',
         onLog: (record) => logs.add(record.toString()),
         readerWriter: readerWriter,
       );
 
+      expect(result.succeeded, isFalse);
       expect(logs, contains(contains('重复生成了 `_code`')));
     });
   });
