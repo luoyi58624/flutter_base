@@ -1450,7 +1450,60 @@ void main() {
 
     const blue = Color(0xFF0000FF);
 
-    group('merge / vars', () {});
+    group('merge / vars', () {
+      test('对象键逐项合并，同名键以后声明为准，空表保留原声明', () {
+        final objectKey = Object();
+        final symbolKey = Symbol('spacing');
+        final base = ElStyle(
+          vars: {'primary': red, objectKey: '原值', symbolKey: 8},
+        );
+        final other = ElStyle(vars: {'primary': blue, 1: '新增'});
+
+        expect(base.merge(other).vars, {
+          'primary': blue,
+          objectKey: '原值',
+          symbolKey: 8,
+          1: '新增',
+        });
+        expect(base.copyWith(vars: other.vars).vars, base.merge(other).vars);
+        expect(base.merge(ElStyle(vars: {})).vars, base.vars);
+        expect(base.copyWith().vars, same(base.vars));
+        expect(base.copyWith(vars: null).vars, isNull);
+        expect(base.vars!['primary'], red, reason: '合并不会修改输入 Map');
+      });
+
+      test('copyWith 保留 / 合并 / 置空 vars', () {
+        final s = ElStyle(vars: {'x': 1});
+        expect(s.copyWith(width: 10).vars, {'x': 1});
+        expect(s.copyWith(vars: {'y': 2}).vars, {
+          'x': 1,
+          'y': 2,
+        }, reason: '逐 key 并集,非整表替换');
+        expect(s.copyWith(vars: {'x': 9}).vars, {
+          'x': 9,
+        }, reason: '同名 key 后表覆前表');
+        expect(s.copyWith(vars: null).vars, isNull, reason: '显式 null 清表');
+      });
+
+      test('merge：other 声明则逐 key 并集、未声明则保留 this', () {
+        final base = ElStyle(vars: {'x': 1});
+        expect(base.merge(ElStyle(vars: {'y': 2})).vars, {
+          'x': 1,
+          'y': 2,
+        }, reason: 'CSS custom properties 口径:逐 key 并集,同名 key other 胜出');
+        expect(base.merge(ElStyle(width: 10)).vars, {
+          'x': 1,
+        }, reason: 'other 未声明 → 保留 this');
+      });
+
+      test('props 含 vars（等值判定）', () {
+        final a = ElStyle(vars: {'x': 1});
+        final b = ElStyle(vars: {'x': 1});
+        final c = ElStyle(vars: {'x': 2});
+        expect(a == b, isTrue);
+        expect(a == c, isFalse);
+      });
+    });
 
     group('merge 深合并', () {});
 

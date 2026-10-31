@@ -1,14 +1,29 @@
-import 'package:flutter/foundation.dart' show internal;
+import 'package:flutter/foundation.dart' show debugPrint, internal;
 import 'package:flutter/widgets.dart';
 
 import '../render/render_view.dart' show ElRenderView, ViewStateRenderAccess;
 import 'state/view_state.dart';
 
-/// 由 `ElView.of(context)` 获取的只读状态；读取哪个属性就订阅哪个属性。
+/// 由 `ElView.of(context)` 获取的只读样式上下文，按读取的状态与变量订阅变化。
 final class ElStyleContext {
   ElStyleContext._(this._context);
 
   final BuildContext _context;
+
+  /// 读取祖先样式合并变体后的变量并订阅该键，未定义或类型不符时返回 null。
+  T? getVar<T extends Object>(Object key) {
+    final access = StyleDependencyScope.maybeHostOf(_context);
+    if (access == null) return null;
+    access.ensureVarsBuildDependents().register(_context as Element, key);
+    final value = access.internalVars[key];
+    assert(() {
+      if (value != null && value is! T) {
+        debugPrint('ElView.of(context).getVar("$key") 解析为 ${value.runtimeType}，期望 $T——按"未声明"处理');
+      }
+      return true;
+    }());
+    return value is T ? value : null;
+  }
 
   /// 当前样式上下文的明暗轴。
   Brightness get brightness => isDark ? Brightness.dark : Brightness.light;
@@ -60,13 +75,20 @@ final class ElStyleContext {
   }
 }
 
-/// 创建只订阅读过的状态位的上下文。
+/// 创建按需订阅状态位与变量的上下文。
 @internal
 ElStyleContext readStyleContextFromContext(BuildContext context) => ElStyleContext._(context);
 
 /// 检查最近视图是否存在，不登记依赖。
 @internal
 bool hasViewStateAccess(BuildContext context) => StyleDependencyScope.maybeHostOf(context) != null;
+
+/// build 依赖源在读者离树时释放对应登记。
+@internal
+abstract interface class BuildDependencySource {
+  /// 移除读者，不要求源值再次变化。
+  void removeBuildDependent(Element dependent);
+}
 
 /// 借框架生命周期清理样式订阅，不参与文本排版或渲染。
 @internal
@@ -79,6 +101,12 @@ class StyleDependencyScope extends InheritedTheme {
   /// 借继承表找到最近宿主，不登记状态依赖。
   static ElRenderView? maybeHostOf(BuildContext context) =>
       (context.getElementForInheritedWidgetOfExactType<StyleDependencyScope>()?.widget as StyleDependencyScope?)?.host;
+
+  /// 登记退订关系，值变化仍由原来的样式源通知。
+  static void dependOnBuildSource(Element dependent, BuildDependencySource source) {
+    final scope = dependent.getElementForInheritedWidgetOfExactType<StyleDependencyScope>();
+    if (scope != null) dependent.dependOnInheritedElement(scope, aspect: source);
+  }
 
   @override
   Widget wrap(BuildContext context, Widget child) => StyleDependencyScope(host: host, child: child);
@@ -94,8 +122,25 @@ class _DependencyElement extends InheritedElement {
   _DependencyElement(StyleDependencyScope super.widget);
 
   @override
+  void updateDependencies(Element dependent, Object? aspect) {
+    if (aspect is! BuildDependencySource) {
+      // 状态读取沿用空 aspect，同时保留该读者已经登记的变量源。
+      if (getDependencies(dependent) == null) super.updateDependencies(dependent, aspect);
+      return;
+    }
+    final sources = getDependencies(dependent) as Set<BuildDependencySource>? ?? <BuildDependencySource>{};
+    sources.add(aspect);
+    setDependencies(dependent, sources);
+  }
+
+  @override
   void removeDependent(Element dependent) {
+    final sources = getDependencies(dependent) as Set<BuildDependencySource>?;
     super.removeDependent(dependent);
-    (widget as StyleDependencyScope).host.stateSource.removeBuildDependent(dependent);
+    (widget as StyleDependencyScope).host.removeStateBuildDependent(dependent);
+    if (sources == null) return;
+    for (final source in sources) {
+      source.removeBuildDependent(dependent);
+    }
   }
 }

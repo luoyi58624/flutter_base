@@ -9,6 +9,18 @@ import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+enum _VariableKey { primary }
+
+String _varHex(Color? color) => color?.toARGB32().toRadixString(16) ?? 'null';
+
+Future<TestGesture> _hoverVar(WidgetTester tester, Finder target) async {
+  final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  await mouse.addPointer(location: Offset(700, 500));
+  await mouse.moveTo(tester.getCenter(target));
+  await tester.pump();
+  return mouse;
+}
+
 Widget _directionalHost(Widget child) => Directionality(
   textDirection: TextDirection.ltr,
   child: Align(alignment: Alignment.topLeft, child: child),
@@ -305,6 +317,618 @@ FieldMask _maskOf(List<ElTransitionField> fields) {
 }
 
 void main() {
+  group('变量继承与变体', () {
+    testWidgets('任意对象键跨普通容器继承，最近声明按键覆盖，字符串原样读取', (tester) async {
+      final objectKey = Object();
+      final symbolKey = Symbol('spacing');
+      final values = <Object, Object?>{};
+      await tester.pumpWidget(
+        _directionalHost(
+          ElView(
+            style: ElStyle(
+              vars: {
+                _VariableKey.primary: Colors.red,
+                objectKey: 7,
+                symbolKey: 8,
+                1: '整数键',
+                'primary': Colors.red,
+                'literal': '--primary',
+                'currentColor': 'currentColor',
+              },
+            ),
+            child: Padding(
+              padding: .all(2),
+              child: ElView(
+                style: ElStyle(
+                  vars: {_VariableKey.primary: Colors.blue, 'primary': '局部字符串'},
+                ),
+                child: ElView(
+                  child: Builder(
+                    builder: (context) {
+                      final style = ElView.of(context);
+                      values[_VariableKey.primary] = style.getVar<Color>(
+                        _VariableKey.primary,
+                      );
+                      values[objectKey] = style.getVar<int>(objectKey);
+                      values[symbolKey] = style.getVar<int>(Symbol('spacing'));
+                      values[1] = style.getVar<String>(1);
+                      values['primary'] = style.getVar<Color>('primary');
+                      values['literal'] = style.getVar<String>('literal');
+                      values['currentColor'] = style.getVar<String>(
+                        'currentColor',
+                      );
+                      values['missing'] = style.getVar<Object>('missing');
+                      return SizedBox();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(values, {
+        _VariableKey.primary: Colors.blue,
+        objectKey: 7,
+        symbolKey: 8,
+        1: '整数键',
+        'primary': null,
+        'literal': '--primary',
+        'currentColor': 'currentColor',
+        'missing': null,
+      });
+    });
+
+    testWidgets('缺失的对象键新增移除会更新读者，仅 of 不订阅', (tester) async {
+      final key = GlobalKey();
+      final variableKey = Symbol('optional');
+      var readerBuilds = 0;
+      var contextBuilds = 0;
+      int? value;
+      await tester.pumpWidget(
+        _directionalHost(
+          ElView(
+            key: key,
+            child: Column(
+              children: [
+                Builder(
+                  builder: (context) {
+                    readerBuilds++;
+                    value = ElView.of(context).getVar<int>(variableKey);
+                    return SizedBox();
+                  },
+                ),
+                Builder(
+                  builder: (context) {
+                    contextBuilds++;
+                    ElView.of(context);
+                    return SizedBox();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(value, isNull);
+      render.style = ElStyle(vars: {'other': 1});
+      await tester.pump();
+      expect(readerBuilds, 1);
+      render.style = ElStyle(vars: {variableKey: 7});
+      await tester.pump();
+      expect(value, 7);
+      expect(readerBuilds, 2);
+      render.style = ElStyle();
+      await tester.pump();
+      expect(value, isNull);
+      expect(readerBuilds, 3);
+      expect(contextBuilds, 1);
+    });
+
+    // 迁移旧 vars_test.dart 的变量上下文与状态传播用例，仅调整当前 API 和普通键。
+    testWidgets('getVar rebuilds when the selected value changes', (
+      tester,
+    ) async {
+      var buildCount = 0;
+      final reader = Builder(
+        builder: (context) {
+          buildCount++;
+          final value = ElView.of(context).getVar<Color>('primary');
+          return Text(_varHex(value));
+        },
+      );
+
+      Widget build(Color value) => _directionalHost(
+        ElView(
+          style: ElStyle(vars: {'primary': value}),
+          child: reader,
+        ),
+      );
+
+      await tester.pumpWidget(build(Color(0xff102030)));
+      await tester.pump();
+      expect(find.text('ff102030'), findsOneWidget);
+      final baseline = buildCount;
+
+      await tester.pumpWidget(build(Color(0xff3366cc)));
+      await tester.pump();
+
+      expect(find.text('ff3366cc'), findsOneWidget);
+      expect(buildCount, greaterThan(baseline));
+    });
+
+    testWidgets('theme 切换在同一 build 帧向 Flutter 后代暴露新 var 端点', (tester) async {
+      final resultKey = ValueKey('same-frame-theme-var');
+      final reader = Builder(
+        builder: (context) => Text(
+          _varHex(ElView.of(context).getVar<Color>('surface')),
+          key: resultKey,
+        ),
+      );
+
+      Widget build(Brightness brightness) => _directionalHost(
+        ElView(
+          themeMode: ElThemeMode(
+            brightness: brightness,
+            duration: Duration(milliseconds: 200),
+            curve: Curves.linear,
+          ),
+          style: ElStyle(
+            vars: {'surface': Colors.white},
+            onDark: ElStyle(vars: {'surface': Color(0xff212121)}),
+          ),
+          child: reader,
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      expect(find.text('ffffffff'), findsOneWidget);
+
+      await tester.pumpWidget(build(Brightness.dark));
+
+      expect(
+        tester.widget<Text>(find.byKey(resultKey)).data,
+        'ff212121',
+        reason:
+            'Flutter AnimatedContainer 必须在主题切换的 build 帧拿到终点，才能与 ElView 同帧启动',
+      );
+    });
+
+    testWidgets('getVar 值级订阅：只重建读到变化 key 的后代', (tester) async {
+      var primaryBuildCount = 0;
+      var secondaryBuildCount = 0;
+      final primaryReader = Builder(
+        builder: (context) {
+          primaryBuildCount++;
+          return Text('primary=${ElView.of(context).getVar<int>('primary')}');
+        },
+      );
+      final secondaryReader = Builder(
+        builder: (context) {
+          secondaryBuildCount++;
+          return Text(
+            'secondary=${ElView.of(context).getVar<int>('secondary')}',
+          );
+        },
+      );
+      final readers = Column(children: [primaryReader, secondaryReader]);
+
+      Widget build({required int primary, required int secondary}) =>
+          _directionalHost(
+            ElView(
+              style: ElStyle(
+                vars: {'primary': primary, 'secondary': secondary},
+              ),
+              child: readers,
+            ),
+          );
+
+      await tester.pumpWidget(build(primary: 1, secondary: 10));
+      await tester.pump();
+      expect(find.text('primary=1'), findsOneWidget);
+      expect(find.text('secondary=10'), findsOneWidget);
+      final primaryBaseline = primaryBuildCount;
+      final secondaryBaseline = secondaryBuildCount;
+
+      await tester.pumpWidget(build(primary: 2, secondary: 10));
+      await tester.pump();
+
+      expect(find.text('primary=2'), findsOneWidget);
+      expect(primaryBuildCount, greaterThan(primaryBaseline));
+      expect(
+        secondaryBuildCount,
+        secondaryBaseline,
+        reason: 'secondary 解析值未变，不应跟随 primary 重建',
+      );
+    });
+
+    testWidgets('vars remain readable through ElView ancestors without vars', (
+      tester,
+    ) async {
+      final reader = Builder(
+        builder: (context) {
+          final value = ElView.of(context).getVar<Color>('primary');
+          return Text(_varHex(value));
+        },
+      );
+      final descendants = ElView(
+        child: ElView(child: ElView(child: reader)),
+      );
+
+      Widget build(Color value) => _directionalHost(
+        ElView(
+          style: ElStyle(vars: {'primary': value}),
+          child: descendants,
+        ),
+      );
+
+      await tester.pumpWidget(build(Color(0xff102030)));
+      await tester.pump();
+      expect(find.text('ff102030'), findsOneWidget);
+
+      await tester.pumpWidget(build(Color(0xffaa00aa)));
+      await tester.pump();
+
+      expect(find.text('ffaa00aa'), findsOneWidget);
+    });
+
+    testWidgets('hover variant vars rebuild an elStyle descendant', (
+      tester,
+    ) async {
+      final hostKey = ValueKey('hover-vars-host');
+      var buildCount = 0;
+      final reader = Builder(
+        builder: (context) {
+          buildCount++;
+          final value = ElView.of(context).getVar<Color>('tint');
+          return Text(_varHex(value));
+        },
+      );
+
+      await tester.pumpWidget(
+        _directionalHost(
+          ElView(
+            key: hostKey,
+            style: ElStyle(
+              width: 200,
+              height: 200,
+              vars: {'tint': Color(0xff102030)},
+              onHover: ElStyle(vars: {'tint': Color(0xff3366cc)}),
+            ),
+            child: reader,
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('ff102030'), findsOneWidget);
+      final baseline = buildCount;
+
+      final mouse = await _hoverVar(tester, find.byKey(hostKey));
+      addTearDown(mouse.removePointer);
+
+      expect(find.text('ff3366cc'), findsOneWidget);
+      expect(buildCount, greaterThan(baseline));
+
+      await mouse.moveTo(Offset(700, 500));
+      await tester.pump();
+      expect(find.text('ff102030'), findsOneWidget);
+    });
+
+    testWidgets('hover shadow: variant value survives ancestor swap', (
+      tester,
+    ) async {
+      final hostKey = ValueKey('t1-hover-shadow');
+      final reader = Builder(
+        builder: (context) {
+          final v = ElView.of(context).getVar<Color>('tint');
+          return Text(_varHex(v));
+        },
+      );
+
+      Widget build(Color base) => _directionalHost(
+        ElView(
+          style: ElStyle(vars: {'tint': base}),
+          child: ElView(
+            key: hostKey,
+            style: ElStyle(
+              width: 200,
+              height: 200,
+              onHover: ElStyle(vars: {'tint': Color(0xff3366cc)}),
+            ),
+            child: reader,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(Color(0xff102030)));
+      await tester.pump();
+      expect(find.text('ff102030'), findsOneWidget);
+
+      // 进入 hover：变体 shadow 生效。
+      final mouse = await _hoverVar(tester, find.byKey(hostKey));
+      addTearDown(mouse.removePointer);
+      expect(find.text('ff3366cc'), findsOneWidget);
+
+      // hover 仍活跃时祖先换 vars——变体 shadow 不能回退到新的祖先值。
+      await tester.pumpWidget(build(Color(0xffaa00aa)));
+      await tester.pump();
+      expect(
+        find.text('ff3366cc'),
+        findsOneWidget,
+        reason: '活跃 hover 变体 shadow 必须保留',
+      );
+    });
+
+    testWidgets(
+      'variant-only key: subtree keeps reading it after ancestor swap',
+      (tester) async {
+        final hostKey = ValueKey('t1-variant-only-key');
+        final reader = Builder(
+          builder: (context) {
+            final v = ElView.of(context).getVar<Color>('variant-only');
+            return Text(_varHex(v));
+          },
+        );
+
+        Widget build(Color other) => _directionalHost(
+          ElView(
+            style: ElStyle(vars: {'other': other}),
+            child: ElView(
+              key: hostKey,
+              style: ElStyle(
+                width: 200,
+                height: 200,
+                onHover: ElStyle(vars: {'variant-only': Color(0xff223344)}),
+              ),
+              child: reader,
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(build(Color(0xff111111)));
+        await tester.pump();
+
+        // 进入 hover：变体独有 key 可读。
+        final mouse = await _hoverVar(tester, find.byKey(hostKey));
+        addTearDown(mouse.removePointer);
+        expect(find.text('ff223344'), findsOneWidget);
+
+        // 祖先换一个跟本 key 无关的 var——变体独有 key 不能被扇出重建吞掉成 null。
+        await tester.pumpWidget(build(Color(0xff999999)));
+        await tester.pump();
+        expect(
+          find.text('ff223344'),
+          findsOneWidget,
+          reason: '祖先换 vars 帧变体独有 key 必须仍可读',
+        );
+      },
+    );
+
+    testWidgets('dark-driven ancestor swap preserves active variant vars', (
+      tester,
+    ) async {
+      final hostKey = ValueKey('t1-dark-driven');
+      final reader = Builder(
+        builder: (context) {
+          final v = ElView.of(context).getVar<Color>('tint');
+          return Text(_varHex(v));
+        },
+      );
+
+      Widget build(Brightness brightness) => _directionalHost(
+        ElView(
+          themeMode: ElThemeMode(
+            brightness: brightness,
+            duration: Duration.zero,
+          ),
+          style: ElStyle(
+            vars: {'tint': Color(0xff111111)},
+            onDark: ElStyle(vars: {'tint': Color(0xff222222)}),
+          ),
+          child: ElView(
+            key: hostKey,
+            style: ElStyle(
+              width: 200,
+              height: 200,
+              onHover: ElStyle(vars: {'tint': Color(0xffabcdef)}),
+            ),
+            child: reader,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(Brightness.light));
+      await tester.pump();
+      expect(find.text('ff111111'), findsOneWidget);
+
+      final mouse = await _hoverVar(tester, find.byKey(hostKey));
+      addTearDown(mouse.removePointer);
+      expect(find.text('ffabcdef'), findsOneWidget);
+
+      // 翻 dark：祖先 vars 表切到暗表，全树扇出。hover 仍活跃 → 变体 shadow 不回退。
+      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pump();
+      expect(
+        find.text('ffabcdef'),
+        findsOneWidget,
+        reason: 'dark 驱动扇出下变体 shadow 必须保留',
+      );
+    });
+
+    testWidgets('变体按现有优先级合并，嵌套组合退出后恢复基础声明', (tester) async {
+      final key = GlobalKey();
+      (Color?, int?)? seen;
+      await tester.pumpWidget(
+        _directionalHost(
+          ElView(
+            key: key,
+            style: ElStyle(
+              vars: {'primary': Colors.red, 'spacing': 8},
+              onHover: ElStyle(
+                vars: {'primary': Colors.blue},
+                onDark: ElStyle(vars: {'primary': Colors.purple}),
+              ),
+              onDark: ElStyle(vars: {'primary': Colors.orange}),
+              onDisabled: ElStyle(vars: {'primary': Colors.grey}),
+            ),
+            child: Builder(
+              builder: (context) {
+                final style = ElView.of(context);
+                seen = (
+                  style.getVar<Color>('primary'),
+                  style.getVar<int>('spacing'),
+                );
+                return SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      expect(seen, (Colors.red, 8));
+
+      render.setHover(true);
+      await tester.pump();
+      expect(seen, (Colors.blue, 8));
+      render.setDark(true);
+      await tester.pump();
+      expect(seen, (Colors.purple, 8));
+      render.setHover(false);
+      await tester.pump();
+      expect(seen, (Colors.orange, 8));
+      render.event = ElEvent(disabled: true);
+      await tester.pump();
+      expect(seen, (Colors.grey, 8));
+      render.event = ElEvent(disabled: false);
+      render.setDark(false);
+      await tester.pump();
+      expect(seen, (Colors.red, 8));
+    });
+
+    for (final richInline in [false, true]) {
+      testWidgets('变量读者随 GlobalKey 换父，并在卸载后停止接收变化（rich=$richInline）', (
+        tester,
+      ) async {
+        final firstKey = GlobalKey();
+        final secondKey = GlobalKey();
+        final movingKey = GlobalKey();
+        final readerKey = GlobalKey();
+        var moved = false;
+        var visible = true;
+        var builds = 0;
+        Color? primary;
+        late StateSetter rebuild;
+        final reader = Builder(
+          key: readerKey,
+          builder: (context) {
+            builds++;
+            primary = ElView.of(context).getVar<Color>('primary');
+            return SizedBox(width: 10, height: 10);
+          },
+        );
+        final moving = ElView(
+          key: movingKey,
+          child: richInline ? [reader] : reader,
+        );
+        await tester.pumpWidget(
+          _directionalHost(
+            StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Row(
+                  children: [
+                    ElView(
+                      key: firstKey,
+                      style: ElStyle(vars: {'primary': Colors.red}),
+                      child: visible && !moved ? moving : null,
+                    ),
+                    ElView(
+                      key: secondKey,
+                      style: ElStyle(vars: {'primary': Colors.blue}),
+                      child: visible && moved ? moving : null,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        final first = tester.renderObject<ElRenderView>(find.byKey(firstKey));
+        final second = tester.renderObject<ElRenderView>(find.byKey(secondKey));
+        final readerElement = readerKey.currentContext;
+        expect(primary, Colors.red);
+
+        rebuild(() => moved = true);
+        await tester.pump();
+        expect(readerKey.currentContext, same(readerElement));
+        expect(primary, Colors.blue);
+        final buildsAfterMove = builds;
+        first.style = ElStyle(vars: {'primary': Colors.orange});
+        await tester.pump();
+        expect(builds, buildsAfterMove, reason: '旧祖先的变化不会影响已经迁走的读者');
+        second.style = ElStyle(vars: {'primary': Colors.green});
+        await tester.pump();
+        expect(primary, Colors.green);
+        expect(builds, buildsAfterMove + 1);
+
+        rebuild(() => visible = false);
+        await tester.pump();
+        final buildsAfterUnmount = builds;
+        second.style = ElStyle(vars: {'primary': Colors.purple});
+        await tester.pump();
+        expect(builds, buildsAfterUnmount);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('captureAll 保留跨 Overlay 的逻辑变量祖先及其后续变化', (tester) async {
+      final key = GlobalKey();
+      late BuildContext sourceContext;
+      Color? primary;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ElView(
+            key: key,
+            style: ElStyle(vars: {'primary': Colors.red}),
+            child: Builder(
+              builder: (context) {
+                sourceContext = context;
+                return SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      final captured = InheritedTheme.captureAll(
+        sourceContext,
+        ElView(
+          child: Builder(
+            builder: (context) {
+              primary = ElView.of(context).getVar<Color>('primary');
+              return SizedBox();
+            },
+          ),
+        ),
+      );
+      final entry = OverlayEntry(builder: (_) => captured);
+      Overlay.of(sourceContext).insert(entry);
+      await tester.pump();
+      expect(primary, Colors.red);
+
+      tester.renderObject<ElRenderView>(find.byKey(key)).style = ElStyle(
+        vars: {'primary': Colors.blue},
+      );
+      await tester.pump();
+      expect(primary, Colors.blue);
+      entry.remove();
+      await tester.pump();
+      entry.dispose();
+    });
+  });
+
   group('挂载继承链', () {
     List<ElRenderView> allRenderViews(WidgetTester tester) =>
         tester.renderObjectList<ElRenderView>(find.byType(ElView)).toList();

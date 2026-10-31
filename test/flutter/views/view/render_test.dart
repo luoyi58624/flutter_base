@@ -133,6 +133,11 @@ class _InheritStub implements InheritableNode {
   }
 
   @override
+  void reresolveVarsFromInheritance(ResolvedStyle? newParentResolved) {
+    visitInheritableChildren((child) => child.reresolveVarsFromInheritance(newParentResolved));
+  }
+
+  @override
   FieldMask reresolveFromInheritance(
     ResolvedStyle? newParentResolved,
     FieldMask changedMask, {

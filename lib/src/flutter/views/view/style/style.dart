@@ -15,6 +15,7 @@ part 'style.g.dart';
 class ElStyle with Equatable {
   /// 创建样式。
   const ElStyle({
+    this.vars,
     // InheritedText (24)
     this.color,
     this.fontSize,
@@ -103,6 +104,10 @@ class ElStyle with Equatable {
 
   /// 合并实际样式值，后声明的非空字段覆盖当前字段。
   ElStyle merge([ElStyle? other]) => other == null ? this : ElStyleExt(this).merge(other);
+
+  /// 后代可读取的变量，按 key 继承并由当前层及命中变体覆盖，键遵循 Map 的相等规则。
+  @ElFieldGenerator(useMerge: true)
+  final Map<Object, Object>? vars;
 
   /// 文本色。继承字段。
   final Color? color;

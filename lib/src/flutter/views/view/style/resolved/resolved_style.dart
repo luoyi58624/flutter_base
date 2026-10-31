@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show MouseCursor;
 
 import '../style.dart';
 import '../dimension.dart';
+import 'inherited_vars.dart';
 
 /// 文本相关继承字段组（25 个字段）。
 @immutable
@@ -389,7 +390,12 @@ class Box with Equatable {
 /// 级联结果：继承字段共享父级引用，盒字段始终属于当前节点。
 @immutable
 class ResolvedStyle {
-  const ResolvedStyle({required this.inheritedText, required this.inheritedBox, required this.box});
+  const ResolvedStyle({
+    required this.inheritedText,
+    required this.inheritedBox,
+    required this.box,
+    this.inheritedVars = InheritedVars.empty,
+  });
 
   /// 根节点的默认样式。
   static const initial = ResolvedStyle(
@@ -407,11 +413,20 @@ class ResolvedStyle {
   /// 当前节点的盒模型与装饰字段。
   final Box box;
 
+  /// 后代共享的有效变量表。
+  final InheritedVars inheritedVars;
+
   /// 替换已发生变化的字段组。
-  ResolvedStyle copyWith({InheritedText? inheritedText, InheritedBox? inheritedBox, Box? box}) => ResolvedStyle(
+  ResolvedStyle copyWith({
+    InheritedText? inheritedText,
+    InheritedBox? inheritedBox,
+    Box? box,
+    InheritedVars? inheritedVars,
+  }) => ResolvedStyle(
     inheritedText: inheritedText ?? this.inheritedText,
     inheritedBox: inheritedBox ?? this.inheritedBox,
     box: box ?? this.box,
+    inheritedVars: inheritedVars ?? this.inheritedVars,
   );
   @override
   bool operator ==(Object other) =>
@@ -419,7 +434,8 @@ class ResolvedStyle {
       other is ResolvedStyle &&
           inheritedText == other.inheritedText &&
           inheritedBox == other.inheritedBox &&
-          box == other.box;
+          box == other.box &&
+          inheritedVars == other.inheritedVars;
   @override
-  int get hashCode => Object.hash(inheritedText, inheritedBox, box);
+  int get hashCode => Object.hash(inheritedText, inheritedBox, box, inheritedVars);
 }

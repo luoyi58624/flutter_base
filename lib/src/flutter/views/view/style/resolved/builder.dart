@@ -5,7 +5,9 @@ import 'package:flutter/services.dart' show MouseCursor;
 import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/flutter/views/view/style/dimension.dart';
+
 import 'resolved_style.dart';
+import 'inherited_vars.dart';
 
 /// 可变的 ResolvedStyle 构造器。cascade 主算法内部使用。
 class ResolvedStyleBuilder {
@@ -13,7 +15,8 @@ class ResolvedStyleBuilder {
   ResolvedStyleBuilder.fromParent(ResolvedStyle? parent)
     : _inheritedText = InheritedText.fromInheritedParent(parent?.inheritedText),
       _inheritedBox = parent?.inheritedBox ?? InheritedBox.initial,
-      _box = Box.initial;
+      _box = Box.initial,
+      _inheritedVars = parent?.inheritedVars ?? InheritedVars.empty;
 
   /// 创建空白根。
   ResolvedStyleBuilder.empty() : this.fromParent(null);
@@ -24,11 +27,29 @@ class ResolvedStyleBuilder {
   ResolvedStyleBuilder.fromExisting(ResolvedStyle existing)
     : _inheritedText = existing.inheritedText,
       _inheritedBox = existing.inheritedBox,
-      _box = existing.box;
+      _box = existing.box,
+      _inheritedVars = existing.inheritedVars;
 
   final InheritedText _inheritedText;
   final InheritedBox _inheritedBox;
   final Box _box;
+
+  InheritedVars _inheritedVars;
+
+  /// 按级联顺序合并当前层变量，无声明时共享已有表。
+  void mergeVars(Map<Object, Object>? local) {
+    _inheritedVars = _inheritedVars.merge(local);
+  }
+
+  /// 继承更新时从新父表重建，避免叠加旧的有效变量。
+  void adoptVars(InheritedVars vars) {
+    _inheritedVars = vars;
+  }
+
+  /// 同值合并结果复用旧实例，避免无效向后代传播。
+  void stabilizeVars(InheritedVars previous) {
+    _inheritedVars = _inheritedVars.stabilize(previous);
+  }
 
   // 每组只在首次写入时创建缓冲，build 时一次性合并覆盖。
   BoxStyleBuffer? _boxBufferLazy;
@@ -70,7 +91,7 @@ class ResolvedStyleBuilder {
       writeMaxLines(null);
       text = _inheritedTextBuffer.flush(_inheritedText);
     }
-    return ResolvedStyle(inheritedText: text, inheritedBox: inheritedBox, box: box);
+    return ResolvedStyle(inheritedText: text, inheritedBox: inheritedBox, box: box, inheritedVars: _inheritedVars);
   }
 
   /// 写入 color 的样式值。
@@ -457,7 +478,9 @@ class InheritedTextStyleBuffer {
       lineHeight: identical(_lineHeight, _unset) ? base.lineHeight : _lineHeight as double?,
       letterSpacing: identical(_letterSpacing, _unset) ? base.letterSpacing : _letterSpacing as double?,
       wordSpacing: identical(_wordSpacing, _unset) ? base.wordSpacing : _wordSpacing as double?,
-      fontFeatureSettings: identical(_fontFeatureSettings, _unset) ? base.fontFeatureSettings : _fontFeatureSettings as List<FontFeature>?,
+      fontFeatureSettings: identical(_fontFeatureSettings, _unset)
+          ? base.fontFeatureSettings
+          : _fontFeatureSettings as List<FontFeature>?,
       fontVariationSettings: identical(_fontVariationSettings, _unset)
           ? base.fontVariationSettings
           : _fontVariationSettings as List<FontVariation>?,
@@ -468,8 +491,12 @@ class InheritedTextStyleBuffer {
           : _leadingDistribution as TextLeadingDistribution?,
       textShadow: identical(_textShadow, _unset) ? base.textShadow : _textShadow as List<Shadow>?,
       textGradient: identical(_textGradient, _unset) ? base.textGradient : _textGradient as Gradient?,
-      textDecorationLine: identical(_textDecorationLine, _unset) ? base.textDecorationLine : _textDecorationLine as TextDecoration?,
-      textDecorationColor: identical(_textDecorationColor, _unset) ? base.textDecorationColor : _textDecorationColor as Color?,
+      textDecorationLine: identical(_textDecorationLine, _unset)
+          ? base.textDecorationLine
+          : _textDecorationLine as TextDecoration?,
+      textDecorationColor: identical(_textDecorationColor, _unset)
+          ? base.textDecorationColor
+          : _textDecorationColor as Color?,
       textDecorationStyle: identical(_textDecorationStyle, _unset)
           ? base.textDecorationStyle
           : _textDecorationStyle as TextDecorationStyle?,
@@ -796,7 +823,9 @@ class BoxStyleBuffer {
           : _transformOrigin as AlignmentGeometry?,
       clipBehavior: identical(_clipBehavior, _unset) ? base.clipBehavior : _clipBehavior as Clip?,
       gradient: identical(_gradient, _unset) ? base.gradient : _gradient as Gradient?,
-      backgroundImage: identical(_backgroundImage, _unset) ? base.backgroundImage : _backgroundImage as DecorationImage?,
+      backgroundImage: identical(_backgroundImage, _unset)
+          ? base.backgroundImage
+          : _backgroundImage as DecorationImage?,
       outline: identical(_outline, _unset) ? base.outline : _outline as ElOutline?,
       aspectRatio: identical(_aspectRatio, _unset) ? base.aspectRatio : _aspectRatio as double?,
       filter: identical(_filter, _unset) ? base.filter : _filter as ElFilter?,

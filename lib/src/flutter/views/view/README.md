@@ -73,6 +73,23 @@ ElView(
 
 ElView.of 读取最近祖先的只读状态，访问哪项就订阅哪项：hasHover、hasTap、hasFocus、hasFocusVisible、hasFocusWithin、isDisabled、isDark 与断点属性。无祖先时用 maybeOf；需要读取当前视图时放到它的 Builder 后代中。
 
+## 变量继承
+
+```dart
+ElView(
+  style: ElStyle(
+    vars: {'primary': Colors.blue},
+    onDark: ElStyle(vars: {'primary': Colors.green}),
+  ),
+  child: Builder(builder: (context) {
+    final primary = ElView.of(context).getVar<Color>('primary');
+    return Text('继承变量', style: TextStyle(color: primary));
+  }),
+);
+```
+
+`vars` 是 `Map<Object, Object>`，key 可以是字符串、枚举或自定义对象，按 Map 的相等规则识别，不要求前缀。变量按 key 继承，近层声明及命中的变体覆盖同名值；字符串值原样保存。`getVar<T>(key)` 读取并订阅该 key，有效值变化才通知当前读取者；未定义或类型不匹配时返回 null。仅调用 `ElView.of(context)` 不登记依赖。声明后的 Map 应保持不变，通过新样式更新变量。
+
 ## 过渡与入场
 
 ```dart

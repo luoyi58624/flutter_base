@@ -16,7 +16,7 @@ import 'package:flutter/services.dart'
         MouseTrackerAnnotation;
 
 import 'package:flutter/widgets.dart'
-    show Brightness, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData;
+    show Brightness, Element, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData;
 
 import 'dart:ui' as ui;
 
@@ -36,6 +36,8 @@ import '../style/inheritance/inheritable_node.dart';
 import '../style/inheritance/subtree_walker.dart';
 
 import '../style/resolved/resolved_style.dart';
+import '../style/resolved/inherited_vars.dart';
+import '../style/state/vars_dependents.dart';
 import '../style/internal/responsive.dart';
 import '../style/dimension.dart';
 import '../../selection/common/selection_core.dart';
@@ -236,6 +238,7 @@ class ElRenderView extends RenderBox
   bool _isFirstAttach = true;
 
   ViewStateSource? _stateSource;
+  VarsBuildDependents? _varsBuildDeps;
   ElView? _ownerWidget;
 
   StyleAnimationDriver? _animDriver;
@@ -1230,12 +1233,21 @@ class ElRenderView extends RenderBox
       final oldCommitted = _committedResolved;
       final oldInheritedText = oldCommitted.inheritedText;
       final oldInheritedBox = oldCommitted.inheritedBox;
+      final oldVars = oldCommitted.inheritedVars;
       _committedResolved = value;
       _syncCompositedOpacity(oldCommitted, value);
       // cursor 只继承、不改变像素；静止鼠标仍需在下一帧读取新的样式光标。
       if (oldInheritedBox.cursor != value.inheritedBox.cursor) owner?.requestVisualUpdate();
-      if (!identical(oldInheritedText, value.inheritedText) || !identical(oldInheritedBox, value.inheritedBox)) {
+      if (!identical(oldInheritedText, value.inheritedText) ||
+          !identical(oldInheritedBox, value.inheritedBox) ||
+          !identical(oldVars, value.inheritedVars)) {
         _cascadeBridgeChanges?.publish();
+      }
+      if (!identical(oldVars, value.inheritedVars)) {
+        if (oldVars != value.inheritedVars) {
+          visitInheritableChildren((child) => child.reresolveVarsFromInheritance(value));
+        }
+        _varsBuildDeps?.notifyCommit(value.inheritedVars.map, pipelineOwner: owner);
       }
       if (!identical(oldInheritedText, value.inheritedText) && _hasTextPayload) {
         if (maskAnd(changedMask, textLayoutAffectingMask).isEmpty) {
@@ -1306,6 +1318,33 @@ class ElRenderView extends RenderBox
 
   @override
   void visitInheritableChildren(void Function(InheritableNode child) visitor) => _visitNearestDescendants(visitor);
+
+  /// 沿用旧变量继承通道，从新父表重建并在有效值相等时截断传播。
+  @override
+  void reresolveVarsFromInheritance(ResolvedStyle? newParentResolved) {
+    if (!attached) return;
+    if (!identical(_parentResolved, newParentResolved)) {
+      _parentResolved = newParentResolved;
+    }
+    if (hasVariantVarsOf(_style)) {
+      _reresolve();
+      return;
+    }
+    final parentVars = newParentResolved?.inheritedVars ?? InheritedVars.empty;
+    final newVars = parentVars.merge(_style?.vars);
+    final oldVars = _committedResolved.inheritedVars;
+    if (identical(newVars, oldVars) || newVars == oldVars) return;
+    final target = _targetResolved;
+    final committed = _committedResolved;
+    if (identical(target, committed)) {
+      final next = committed.copyWith(inheritedVars: newVars);
+      _targetResolved = next;
+      _commitResolved(next, FieldMask.empty);
+    } else {
+      _targetResolved = target.copyWith(inheritedVars: newVars);
+      _commitResolved(committed.copyWith(inheritedVars: newVars), FieldMask.empty);
+    }
+  }
 
   @override
   FieldMask reresolveFromInheritance(
@@ -2210,6 +2249,8 @@ class ElRenderView extends RenderBox
     _isDisposing = true;
     _stateSource?.onListenerPresenceChanged = null;
     _stateSource = null;
+    _varsBuildDeps?.dispose();
+    _varsBuildDeps = null;
     _animDriver?.dispose();
     _animDriver = null;
     _keyframeRunner?.dispose();
@@ -2278,6 +2319,16 @@ class _WindowMetricsObserver with WidgetsBindingObserver {
 /// 引擎与组件渲染内部使用的状态接线，不从 el_ui 公共入口导出。
 @internal
 extension ViewStateRenderAccess on ElRenderView {
+  /// 继承与当前激活变体合并后的变量表，读取本身不登记依赖。
+  Map<Object, Object> get internalVars => _committedResolved.inheritedVars.map;
+
+  /// 首次读取变量时才创建旧实现的按键依赖登记器。
+  VarsBuildDependents ensureVarsBuildDependents() =>
+      _varsBuildDeps ??= VarsBuildDependents(_committedResolved.inheritedVars.map);
+
+  /// 离树清理状态订阅，不为仅变量读取者创建状态源。
+  void removeStateBuildDependent(Element dependent) => _stateSource?.removeBuildDependent(dependent);
+
   /// 当前状态位，读取不创建订阅对象。
   int get internalStateBits => _stateBits;
 

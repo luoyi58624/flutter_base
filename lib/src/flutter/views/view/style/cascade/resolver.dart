@@ -1,7 +1,11 @@
 import 'package:flutter_base/src/flutter/views/view/style/style.dart';
+
 import '../resolved/builder.dart';
 import '../resolved/resolved_style.dart';
+import '../resolved/inherited_vars.dart';
+
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+
 import '../internal/field_spec.dart';
 import 'style_spec.dart';
 
@@ -11,9 +15,15 @@ class StyleResolver {
   const StyleResolver._();
 
   /// 按当前状态与继承样式解析字段。
-  static ResolvedStyle resolve({required ElStyle? style, required ResolvedStyle? parent, required int state}) {
+  static ResolvedStyle resolve({
+    required ElStyle? style,
+    required ResolvedStyle? parent,
+    required int state,
+    InheritedVars? previousVars,
+  }) {
     final builder = ResolvedStyleBuilder.fromParent(parent);
     void apply(ElStyle style) {
+      builder.mergeVars(style.vars);
       for (final entry in specOf(style).values.entries) {
         fieldSpecOf(entry.key).write(builder, entry.value);
       }
@@ -27,6 +37,7 @@ class StyleResolver {
         }
       }
     }
+    if (previousVars != null) builder.stabilizeVars(previousVars);
     return builder.build();
   }
 

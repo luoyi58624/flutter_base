@@ -65,7 +65,7 @@ class ElView extends RenderObjectWidget {
   /// 需要精确语言字形时显式传入（如 `Locale('ja', 'JP')`）。
   final Locale? locale;
 
-  /// 最近 ElView 的只读状态；读取属性时自动订阅对应状态的变化。
+  /// 最近 ElView 的只读样式上下文，读取状态或变量时自动订阅对应变化。
   static ElStyleContext of(BuildContext context) {
     assert(hasViewStateAccess(context), 'No ElView found in context.');
     return readStyleContextFromContext(context);

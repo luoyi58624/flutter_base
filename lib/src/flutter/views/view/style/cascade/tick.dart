@@ -58,7 +58,12 @@ class CascadeTick {
       BenchmarkProbe.cascadeTickCount++;
       return true;
     }());
-    final newTarget = StyleResolver.resolve(style: style, parent: parent, state: state);
+    final newTarget = StyleResolver.resolve(
+      style: style,
+      parent: parent,
+      state: state,
+      previousVars: oldCommitted.inheritedVars,
+    );
 
     var changedMask = FieldMask.empty;
     ResolvedStyleBuilder? builder;

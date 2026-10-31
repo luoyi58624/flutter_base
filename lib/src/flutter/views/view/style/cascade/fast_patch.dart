@@ -1,5 +1,6 @@
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+
 import '../internal/field_spec.dart';
 import '../resolved/resolved_style.dart';
 import '../resolved/builder.dart';
@@ -24,7 +25,8 @@ class CascadeFastPatch {
     for (final (read, _) in selfVariantEntries) {
       if (!identical(read(oldStyle), read(newStyle))) return null;
     }
-    if (!identical(oldStyle.transition, newStyle.transition) ||
+    if (!identical(oldStyle.vars, newStyle.vars) ||
+        !identical(oldStyle.transition, newStyle.transition) ||
         !identical(oldStyle.animation, newStyle.animation) ||
         (newStyle.transition?.isNotEmpty ?? false)) {
       return null;
@@ -75,6 +77,8 @@ class CascadeFastPatch {
       if (transitions || maskAnd(changedMask, active).isNotEmpty || (style.transition?.isNotEmpty ?? false)) {
         return null;
       }
+      // 新父表合并基础声明无法保留激活变体的变量，沿用旧实现的回退门。
+      if (activeVariantsOf(style, state).any((variant) => variant.vars?.isNotEmpty ?? false)) return null;
     }
     if (oldParent != null) {
       final declared = style == null ? FieldMask.empty : specOf(style).declaredMask;
@@ -94,6 +98,7 @@ class CascadeFastPatch {
               ? InheritedText.fromInheritedParent(newParent.inheritedText)
               : oldTarget.inheritedText,
           inheritedBox: boxChanged ? newParent.inheritedBox : oldTarget.inheritedBox,
+          inheritedVars: newParent.inheritedVars.merge(style?.vars).stabilize(oldTarget.inheritedVars),
         );
         assert(() {
           BenchmarkProbe.inheritBorrowHitCount++;
@@ -103,6 +108,7 @@ class CascadeFastPatch {
       }
     }
     final builder = ResolvedStyleBuilder.fromExisting(oldTarget);
+    builder.adoptVars(newParent.inheritedVars.merge(style?.vars).stabilize(oldTarget.inheritedVars));
     for (final field in changedMask.fields) {
       final spec = fieldSpecOf(field);
       spec.write(builder, spec.read(newParent));

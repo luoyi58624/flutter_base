@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+
 import '../state/view_state.dart';
 import '../style.dart';
 import '../internal/field_spec.dart';
@@ -47,6 +48,7 @@ class _VariantScan {
   int states = 0;
   bool transitions = false;
   bool animations = false;
+  bool vars = false;
   final variants = <(ElStyle, int, int)>[];
 }
 
@@ -66,6 +68,7 @@ _VariantScan _scan(ElStyle style) {
       result.states |= 1 << state.index;
       result.transitions |= variant.transition != null;
       result.animations |= variant.animation != null;
+      result.vars |= variant.vars?.isNotEmpty ?? false;
       final mask = conditions | (1 << state.index);
       result.variants.add((variant, mask, depth + 1));
     }
@@ -83,6 +86,9 @@ bool mayDeclareTransitionsOf(ElStyle? style) => style != null && _scan(style).tr
 
 /// 顶层声明或状态变体是否可能配置关键帧动画。
 bool mayDeclareAnimationsOf(ElStyle? style) => style != null && _scan(style).animations;
+
+/// 变体树声明变量时，继承更新回退完整级联以保留变体贡献。
+bool hasVariantVarsOf(ElStyle? style) => style != null && _scan(style).vars;
 
 /// 当前激活变体覆写的字段与过渡声明，用于判断能否直接差量更新。
 (FieldMask, bool) activeSelfVariantContribution(ElStyle style, int stateBits) {

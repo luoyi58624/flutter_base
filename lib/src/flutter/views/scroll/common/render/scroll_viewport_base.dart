@@ -24,6 +24,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
 import 'package:flutter_base/src/flutter/utils/internal/layout_reference.dart';
+
 import '../../../view/event/event.dart';
 import '../../../view/event/dispatcher.dart';
 import '../../../selection/common/selection_core.dart';
@@ -878,6 +879,11 @@ abstract class RenderScrollViewportBase extends RenderStackingBox<ScrollChildPar
     FieldMask changedMask, {
     FieldMask inheritedThemeAnimationMask = FieldMask.empty,
   }) => inheritedThemeAnimationMask;
+
+  @override
+  void reresolveVarsFromInheritance(ResolvedStyle? newParentResolved) {
+    visitInheritableChildren((child) => child.reresolveVarsFromInheritance(newParentResolved));
+  }
 
   @override
   bool inheritDarkFromAncestor(bool dark) => true;

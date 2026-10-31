@@ -8,6 +8,7 @@ part of 'style.dart';
 
 extension ElStyleExt on ElStyle {
   ElStyle copyWith({
+    Object? vars = $absent,
     Object? color = $absent,
     Object? fontSize = $absent,
     Object? fontWeight = $absent,
@@ -82,6 +83,13 @@ extension ElStyleExt on ElStyle {
     Object? starting = $absent,
   }) {
     return ElStyle(
+      vars: identical(vars, $absent)
+          ? this.vars
+          : (vars == null
+                ? null
+                : (this.vars == null
+                      ? vars as Map<Object, Object>
+                      : $elMergeMap(this.vars!, vars as Map<Object, Object>))),
       color: identical(color, $absent) ? this.color : color as Color?,
       fontSize: identical(fontSize, $absent)
           ? this.fontSize
@@ -338,6 +346,9 @@ extension ElStyleExt on ElStyle {
   ElStyle merge([ElStyle? other]) {
     if (other == null) return this;
     return ElStyle(
+      vars: vars == null
+          ? other.vars
+          : (other.vars == null ? vars : $elMergeMap(vars!, other.vars!)),
       color: other.color ?? color,
       fontSize: other.fontSize ?? fontSize,
       fontWeight: other.fontWeight ?? fontWeight,
@@ -426,6 +437,7 @@ extension ElStyleExt on ElStyle {
   }
 
   List<Object?> get _props => [
+    vars,
     color,
     fontSize,
     fontWeight,

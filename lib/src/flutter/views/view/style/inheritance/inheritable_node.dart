@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+
 import '../resolved/resolved_style.dart';
 
 /// 继承传播目标的抽象接口。
@@ -19,6 +20,11 @@ abstract class InheritableNode {
   ///
   /// 实现应跳过非 ElRenderView 类型的 child，继续递归找到下一层 ElRenderView。
   void visitInheritableChildren(void Function(InheritableNode child) visitor);
+
+  /// 祖先变量表变化时向后代转发，实际样式节点重建自己的有效表。
+  void reresolveVarsFromInheritance(ResolvedStyle? newParentResolved) {
+    visitInheritableChildren((child) => child.reresolveVarsFromInheritance(newParentResolved));
+  }
 
   /// 重新 cascade 自身（祖先 inherited 字段变化触发）。
   FieldMask reresolveFromInheritance(
