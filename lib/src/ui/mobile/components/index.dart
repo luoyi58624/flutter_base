@@ -8,6 +8,7 @@ export 'tag/index.dart';
 export 'switch/index.dart';
 export 'card/index.dart';
 export 'others/divider/index.dart';
+export 'others/bottom_tabbar/index.dart';
 export 'loading/index.dart';
 export 'progress/index.dart';
 export 'skeleton/index.dart';
