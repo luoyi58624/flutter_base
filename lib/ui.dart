@@ -222,6 +222,7 @@ export 'src/flutter/components/index.dart'
         ElCheckboxState,
         ElComponentProvider,
         ElComponentBuilders,
+        ElComponentBuildersExt,
         ElInput,
         ElInputController,
         ElInputNumber,

@@ -27,6 +27,8 @@ targets:
           build_extensions:
             # 当前样式模型的生成产物落在同目录 .g.dart。
             '^lib/src/flutter/views/view/style/style.dart': 'lib/src/flutter/views/view/style/style.g.dart'
+            # 组件实现登记表的 copyWith、merge 与相等性。
+            '^lib/src/flutter/components/index.dart': 'lib/src/flutter/components/index.g.dart'
             # 保留原有 view 生成目标配置。
             '^lib/src/ui/cores/view/{{}}.dart': 'lib/src/ui/cores/view/{{}}.g.dart'
             '^test/generator/models/{{}}.dart': 'test/generator/generates/models/{{}}.g.dart'
@@ -34,6 +36,7 @@ targets:
       flutter_base|model:
         generate_for:
           - lib/src/flutter/views/view/style/style.dart
+          - lib/src/flutter/components/index.dart
           - lib/src/ui/cores/view/event/event.dart
           - lib/src/ui/cores/view/semantics/semantics.dart
           - test/generator/models/**
