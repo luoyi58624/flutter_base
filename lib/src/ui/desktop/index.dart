@@ -17,3 +17,4 @@ export 'extensions/el.dart'
         ElThemeColorExt,
         ElResponsiveContextExt,
         ElThemeExt;
+export 'components/others/nav_menu/index.dart' show ElNavMenu;
