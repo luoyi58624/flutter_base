@@ -421,7 +421,7 @@ Widget _singleScrollShell(ScrollController controller) {
           children: List<Widget>.generate(10, (index) {
             return ElView(
               key: ValueKey('row-$index'),
-              style: ElStyle(width: 120, height: 40, bgColor: Color(0xFF101010 + index)),
+              style: ElStyle(width: 120, height: 40, backgroundColor: Color(0xFF101010 + index)),
             );
           }),
         ),
@@ -648,7 +648,7 @@ Widget _messageRow(int index) {
       width: 320,
       padding: const .all(10),
       margin: const .only(bottom: 6),
-      bgColor: Color(index.isEven ? 0xFFE7F6DF : 0xFFFFFFFF),
+      backgroundColor: Color(index.isEven ? 0xFFE7F6DF : 0xFFFFFFFF),
     ),
     child: _messageText(index),
   );
@@ -2002,7 +2002,7 @@ void main() {
               event: event,
               children: [
                 ElView(
-                  style: ElStyle(width: axis == null ? 900 : 240, height: 1200, bgColor: const Color(0xff334155)),
+                  style: ElStyle(width: axis == null ? 900 : 240, height: 1200, backgroundColor: const Color(0xff334155)),
                 ),
               ],
             ),
@@ -2463,7 +2463,7 @@ void main() {
                     children: List<Widget>.generate(10, (index) {
                       return ElView(
                         key: ValueKey('row-$index'),
-                        style: ElStyle(width: 120, height: 40, bgColor: Color(0xFF101010 + index)),
+                        style: ElStyle(width: 120, height: 40, backgroundColor: Color(0xFF101010 + index)),
                       );
                     }),
                   ),
@@ -2655,7 +2655,7 @@ void main() {
                   60,
                   (i) => ElView(
                     key: ValueKey('item-$i'),
-                    style: ElStyle(width: 200, height: 40, bgColor: Color(0xff222222 + i)),
+                    style: ElStyle(width: 200, height: 40, backgroundColor: Color(0xff222222 + i)),
                   ),
                 ),
               ),
@@ -2889,7 +2889,7 @@ void main() {
                 children: List<Widget>.generate(itemCount, (index) {
                   return ElView(
                     key: ValueKey('item-$index'),
-                    style: ElStyle(width: width, height: itemExtent, bgColor: Color(0xFF303030 + index)),
+                    style: ElStyle(width: width, height: itemExtent, backgroundColor: Color(0xFF303030 + index)),
                   );
                 }),
               ),
@@ -3096,7 +3096,7 @@ void main() {
       Widget itemBuilder(int i) => ElView(
         key: ValueKey('item-$i'),
         event: ElEvent(onTap: (_) => taps.add(i)),
-        style: ElStyle(width: 200, height: 40, bgColor: Color(0xff222222 + i)),
+        style: ElStyle(width: 200, height: 40, backgroundColor: Color(0xff222222 + i)),
       );
       final children = List<Widget>.generate(80, itemBuilder);
       return MaterialApp(
@@ -3468,7 +3468,7 @@ void main() {
                 (i) => ElView(
                   key: ValueKey('item-$i'),
                   event: itemEventBuilder?.call(i),
-                  style: ElStyle(width: 120, height: 40, bgColor: Color(0xff222222 + i)),
+                  style: ElStyle(width: 120, height: 40, backgroundColor: Color(0xff222222 + i)),
                 ),
               ),
             ),
@@ -3717,12 +3717,12 @@ void main() {
             child: ElView(
               key: paneKey,
               event: ElEvent(onVerticalDragUpdate: (e) => dragTravel += e.localDelta.dy.abs()),
-              style: ElStyle(width: 300, height: 300, bgColor: Color(0xff334155)),
+              style: ElStyle(width: 300, height: 300, backgroundColor: Color(0xff334155)),
               child: Center(
                 child: ElView(
                   key: lpKey,
                   event: ElEvent(onLongPress: (_) => longPressed++),
-                  style: ElStyle(width: 120, height: 120, bgColor: Color(0xffcc0000)),
+                  style: ElStyle(width: 120, height: 120, backgroundColor: Color(0xffcc0000)),
                 ),
               ),
             ),
@@ -3948,7 +3948,7 @@ void main() {
               itemBuilder: (_, i) => ElView(
                 key: ValueKey('virtual-item-$i'),
                 event: itemEventBuilder?.call(i),
-                style: ElStyle(width: 120, height: 40, bgColor: Color(0xff222222 + (i % 100))),
+                style: ElStyle(width: 120, height: 40, backgroundColor: Color(0xff222222 + (i % 100))),
               ),
             ),
           ),

@@ -2759,7 +2759,7 @@ void main() {
         ),
       ),
     );
-    final thumb = find.byWidgetPredicate((widget) => widget is ElView && widget.style?.bgColor == marker);
+    final thumb = find.byWidgetPredicate((widget) => widget is ElView && widget.style?.backgroundColor == marker);
     final rowZero = find.byWidgetPredicate((widget) => widget is ElView && widget.child == 'row 0');
 
     await tester.pumpWidget(host());
@@ -3159,7 +3159,7 @@ void main() {
                       style: ElStyle(
                         width: axis == .horizontal ? extent : null,
                         height: axis == .vertical ? extent : null,
-                        bgColor: Color(0xff224466),
+                        backgroundColor: Color(0xff224466),
                       ),
                     );
                   },

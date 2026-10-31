@@ -84,9 +84,9 @@ class ElIcon extends StatelessWidget {
         iconSize: size,
         iconColor: color,
         alignment: .center,
-        textDirection: textDirection,
+        direction: textDirection,
         fontWeight: fontWeight ?? .normal,
-        fontVariations: [
+        fontVariationSettings: [
           if (fill != null) FontVariation('FILL', fill!),
           if (weight != null) FontVariation('wght', weight!),
           if (grade != null) FontVariation('GRAD', grade!),

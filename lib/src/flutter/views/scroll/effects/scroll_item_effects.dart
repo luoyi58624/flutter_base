@@ -167,7 +167,7 @@ mixin ElScrollProgressMixin<T extends StatefulWidget> on State<T>, ElScrollMixin
 
   /// 进度条外观；主轴长度由实际进度控制。
   @protected
-  ElStyle get scrollProgressStyle => const ElStyle(height: 3, bgColor: Color(0xff808080));
+  ElStyle get scrollProgressStyle => const ElStyle(height: 3, backgroundColor: Color(0xff808080));
 
   /// 进度条的展示方向，与 requestedScrollAxis 选择的滚动来源独立。
   @protected

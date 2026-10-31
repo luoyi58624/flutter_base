@@ -287,8 +287,8 @@ void main() {
               style: ElStyle(
                 width: 200,
                 height: 600,
-                bgColor: Color(0xFF00FF00),
-                onTap: ElStyle(bgColor: Color(0xFFFF0000)),
+                backgroundColor: Color(0xFF00FF00),
+                onTap: ElStyle(backgroundColor: Color(0xFFFF0000)),
               ),
             ),
           ],
@@ -298,14 +298,14 @@ void main() {
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
     final gesture = await tester.startGesture(Offset(50, 100));
     await tester.pump(_styleDelay - const Duration(milliseconds: 1));
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xFF00FF00));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xFF00FF00));
     await tester.pump(const Duration(milliseconds: 1));
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xFFFF0000));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xFFFF0000));
     await gesture.moveBy(Offset(0, -60));
     await gesture.moveBy(Offset(0, -30));
     await tester.pump();
     expect(controller.offset, greaterThan(0));
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xFF00FF00));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xFF00FF00));
     await gesture.cancel();
     await tester.pumpAndSettle();
   });

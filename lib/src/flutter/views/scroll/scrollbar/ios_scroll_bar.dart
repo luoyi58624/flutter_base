@@ -130,16 +130,16 @@ class ElIosScrollBar extends ElScrollbar {
     final duration = animationStyle.duration ?? const Duration(milliseconds: 100);
     final curve = animationStyle.curve ?? Curves.easeOut;
     final transition = ElTransition.all(duration, curve);
-    final fade = ElTransition.fields(const {ElTransitionField.bgColor}, resolveFadeDuration(context, axis), curve);
+    final fade = ElTransition.fields(const {ElTransitionField.backgroundColor}, resolveFadeDuration(context, axis), curve);
     final isVertical = axis.axis == Axis.vertical;
     return ElView(
       style: ElStyle(
         width: isVertical ? resolveThumbThickness(context, axis, hovered: hovered, dragging: dragging) : '100%',
         height: isVertical ? '100%' : resolveThumbThickness(context, axis, hovered: hovered, dragging: dragging),
-        bgColor: light,
-        onDark: ElStyle(bgColor: dark),
+        backgroundColor: light,
+        onDark: ElStyle(backgroundColor: dark),
         borderRadius: BorderRadius.circular(resolveThumbRadius(context, hovered: hovered, dragging: dragging)),
-        transitions: <ElTransition>[transition, fade],
+        transition: <ElTransition>[transition, fade],
       ),
     );
   }

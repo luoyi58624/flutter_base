@@ -29,29 +29,29 @@ class _KeyframeClock {
 
   /// 是否还需要推进时钟（无限循环 / 未播完 / delay 未结束；paused 不需要）。
   bool get needsTicking {
-    if (anim.paused) return false;
-    if (anim.iterationCount.isInfinite) return true;
-    final total = anim.delay + anim.duration * anim.iterationCount;
+    if (anim.animationPlayState) return false;
+    if (anim.animationIterationCount.isInfinite) return true;
+    final total = anim.animationDelay + anim.animationDuration * anim.animationIterationCount;
     return elapsed < total;
   }
 
   /// 本帧施加的方向进度；delay 与结束区间按 fill 决定，null 表示回落声明值。
   double? sampleProgress() {
-    final delay = anim.delay;
+    final delay = anim.animationDelay;
     if (elapsed < delay) {
-      return switch (anim.fillMode) {
+      return switch (anim.animationFillMode) {
         ElAnimationFillMode.backwards || ElAnimationFillMode.both => _mapDirection(0, 0),
         _ => null,
       };
     }
-    final durationUs = anim.duration.inMicroseconds;
-    final count = anim.iterationCount;
+    final durationUs = anim.animationDuration.inMicroseconds;
+    final count = anim.animationIterationCount;
     // duration 0 或 count 0 → active 相位不存在，直接结束态。
     final activeUs = durationUs * count;
     final tUs = (elapsed - delay).inMicroseconds;
     if (durationUs == 0 || count == 0 || (!count.isInfinite && tUs >= activeUs)) {
       final end = _endProgress();
-      return switch (anim.fillMode) {
+      return switch (anim.animationFillMode) {
         ElAnimationFillMode.forwards || ElAnimationFillMode.both => end,
         _ => null,
       };
@@ -69,7 +69,7 @@ class _KeyframeClock {
   /// 播完后的末帧进度（最后一次迭代的终点，按 direction 映射；小数次数取
   /// 最后一段部分迭代的终点）。
   double _endProgress() {
-    final count = anim.iterationCount;
+    final count = anim.animationIterationCount;
     if (count == 0) return _mapDirection(0, 0);
     final lastIter = (count == count.floorToDouble()) ? count.toInt() - 1 : count.floor();
     final endP = (count - lastIter).clamp(0.0, 1.0);
@@ -77,7 +77,7 @@ class _KeyframeClock {
   }
 
   double _mapDirection(double p, int iteration) {
-    final reversed = switch (anim.direction) {
+    final reversed = switch (anim.animationDirection) {
       ElAnimationDirection.normal => false,
       ElAnimationDirection.reverse => true,
       ElAnimationDirection.alternate => iteration.isOdd,
@@ -173,7 +173,7 @@ class KeyframeRunner {
           field: field,
           stops: entry.value,
           progress: progress,
-          curve: clock.anim.curve,
+          curve: clock.anim.animationTimingFunction,
           base: base,
         );
         appliedMask = maskSetBit(appliedMask, field.index);

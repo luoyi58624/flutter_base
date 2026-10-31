@@ -54,7 +54,7 @@ abstract final class ElTableTheme {
     final divider =
         declaredDivider ??
         (dark ? borderColor.withValues(alpha: 0.6) : const Color(0xffebeef5));
-    final dividerBorder = ElBorderSide(color: divider);
+    final dividerBorder = ElBorderSide(borderColor: divider);
     final controlHitSize = switch (size) {
       ElLevelType.xs => 26.0,
       ElLevelType.sm => 28.0,
@@ -84,12 +84,12 @@ abstract final class ElTableTheme {
       controlHitSize: controlHitSize,
       // 外框与网格线
       border: true,
-      frame: ElStyle(border: ElBorder.all(color: divider)),
+      frame: ElStyle(border: ElBorder.all(borderColor: divider)),
       gridLines: true,
-      columnDivider: ElStyle(border: ElBorder.only(left: dividerBorder)),
+      columnDivider: ElStyle(border: ElBorder.only(borderLeft: dividerBorder)),
       // 结构面
       table: ElStyle(
-        bgColor: background,
+        backgroundColor: background,
         color: textColor,
         fontSize: switch (size) {
           ElLevelType.xs => 12.0,
@@ -101,29 +101,29 @@ abstract final class ElTableTheme {
         iconColor: textColor,
       ),
       header: ElStyle(
-        bgColor: headerBackground,
+        backgroundColor: headerBackground,
         color: headerTextColor,
         fontWeight: .w600,
-        border: ElBorder.only(bottom: dividerBorder),
+        border: ElBorder.only(borderBottom: dividerBorder),
         iconColor: headerTextColor,
       ),
       row: ElStyle(
-        bgColor: rowBackground,
-        border: ElBorder.only(bottom: dividerBorder),
-        onHover: ElStyle(bgColor: hoverBackground),
+        backgroundColor: rowBackground,
+        border: ElBorder.only(borderBottom: dividerBorder),
+        onHover: ElStyle(backgroundColor: hoverBackground),
       ),
       // 开关：斑马纹与当前行高亮按官方默认关闭（历史 `ElTable` 的默认值也是 false）。
       stripe: false,
       highlightCurrentRow: false,
       expanded: ElStyle(
         padding: const .symmetric(horizontal: 12, vertical: 12),
-        bgColor: expandedBackground,
-        border: ElBorder.only(bottom: dividerBorder),
+        backgroundColor: expandedBackground,
+        border: ElBorder.only(borderBottom: dividerBorder),
       ),
       summary: ElStyle(
-        bgColor: headerBackground,
+        backgroundColor: headerBackground,
         fontWeight: .w600,
-        border: ElBorder.only(top: dividerBorder),
+        border: ElBorder.only(borderTop: dividerBorder),
       ),
       // 非数据态
       empty: ElStyle(
@@ -144,8 +144,8 @@ abstract final class ElTableTheme {
         width: size.index >= ElLevelType.lg.index ? 16.0 : 14.0,
         height: size.index >= ElLevelType.lg.index ? 16.0 : 14.0,
         alignment: .center,
-        bgColor: background,
-        border: ElBorder.all(color: borderColor),
+        backgroundColor: background,
+        border: ElBorder.all(borderColor: borderColor),
         borderRadius: .all(Radius.circular(2)),
       ),
       sort: ElStyle(
@@ -165,10 +165,10 @@ abstract final class ElTableTheme {
       ),
       sortActive: ElStyle(color: primary, iconColor: primary),
       selectionActive: ElStyle(
-        bgColor: primary,
-        border: ElBorder.all(color: primary),
+        backgroundColor: primary,
+        border: ElBorder.all(borderColor: primary),
       ),
-      currentRow: ElStyle(bgColor: currentRowBackground),
+      currentRow: ElStyle(backgroundColor: currentRowBackground),
     );
   }
 }

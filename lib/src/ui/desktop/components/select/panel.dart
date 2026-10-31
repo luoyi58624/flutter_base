@@ -6,15 +6,15 @@ List<double> get _selectOptionHeights => const [28, 32, 36, 40, 44];
 
 ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
   padding: .symmetric(vertical: 6),
-  bgColor: ElThemeData.of(context).cardColor,
+  backgroundColor: ElThemeData.of(context).cardColor,
   color: ElThemeData.of(context).textColorSm,
-  border: .all(color: null),
+  border: .all(borderColor: null),
   borderRadius: .circular(ElThemeData.of(context).radiusSm),
   boxShadow: ElThemeData.of(context).shadowSm,
   opacity: 1,
   transform: .translateY(0),
   starting: ElStyle(opacity: 0, transform: .translateY(-4)),
-  transitions: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
+  transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
   iconColor: ElThemeData.of(context).textColorSm,
 );
 
@@ -32,11 +32,11 @@ ElStyle _selectOptionBaseStyle(BuildContext context, bool isSelected) =>
       ),
       onHover: (isSelected)
           ? null
-          : (ElStyle(bgColor: ElThemeData.of(context).overlayColorLighter)),
+          : (ElStyle(backgroundColor: ElThemeData.of(context).overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
-              bgColor: ElThemeData.of(context).overlayColorLight,
+              backgroundColor: ElThemeData.of(context).overlayColorLight,
               color: ElThemeData.of(context).primary,
               iconColor: ElThemeData.of(context).primary,
             ))

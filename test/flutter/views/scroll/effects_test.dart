@@ -40,7 +40,7 @@ class _NavbarState extends State<_Navbar> with ElScrollMixin<_Navbar>, ElLargeTi
     leading: const ElView(style: ElStyle(width: 56, height: 56)),
     bottom: ElView(
       key: const ValueKey('search'),
-      style: ElStyle(height: bottomHeight, bgColor: const Color(0xffabcde1)),
+      style: ElStyle(height: bottomHeight, backgroundColor: const Color(0xffabcde1)),
       event: ElEvent(onTap: (_) => searchTaps++),
       semantics: ElSemantics(container: true, label: '搜索内容'),
     ),
@@ -227,12 +227,12 @@ class _LargeTitleNavbarNavbarState extends State<_LargeTitleNavbarNavbar>
       context,
       largeTitle: ElView(
         key: const ValueKey('large'),
-        style: ElStyle(width: 200, height: 40 + extraHeight, bgColor: const Color(0xffef4444)),
+        style: ElStyle(width: 200, height: 40 + extraHeight, backgroundColor: const Color(0xffef4444)),
         semantics: ElSemantics(container: true, label: '大标题内容'),
       ),
       compactTitle: ElView(
         key: const ValueKey('compact'),
-        style: const ElStyle(width: 80, height: 20, bgColor: Color(0xff2563eb)),
+        style: const ElStyle(width: 80, height: 20, backgroundColor: Color(0xff2563eb)),
         semantics: ElSemantics(container: true, label: '小标题内容'),
       ),
       leading: const ElView(style: ElStyle(width: 30, height: 40)),
@@ -270,7 +270,7 @@ Future<void> _largeTitleNavbarMount(
           child: Align(
             alignment: .topLeft,
             child: ElView(
-              style: const ElStyle(width: 300, height: 240, bgColor: Color(0xffffffff)),
+              style: const ElStyle(width: 300, height: 240, backgroundColor: Color(0xffffffff)),
               child: ElScrollView(
                 controller: controller,
                 inputOrder: {
@@ -380,10 +380,10 @@ class _HeaderState extends State<_Header> with ElScrollMixin<_Header>, ElScrollC
   Widget build(BuildContext context) => buildScrollCollapse(
     context,
     expanded: ElView(
-      style: ElStyle(height: widget.expanded, bgColor: const Color(0xff336699)),
+      style: ElStyle(height: widget.expanded, backgroundColor: const Color(0xff336699)),
     ),
     collapsed: ElView(
-      style: ElStyle(height: widget.collapsed, bgColor: const Color(0xff557799)),
+      style: ElStyle(height: widget.collapsed, backgroundColor: const Color(0xff557799)),
     ),
   );
 }
@@ -459,7 +459,7 @@ class _ToolbarState extends State<_Toolbar> with ElScrollMixin<_Toolbar>, ElScro
       context,
       child: ElView(
         key: const ValueKey('toolbar-content'),
-        style: ElStyle(height: widget.height, bgColor: const Color(0xff2456aa)),
+        style: ElStyle(height: widget.height, backgroundColor: const Color(0xff2456aa)),
         child: '工具栏',
       ),
     );
@@ -492,7 +492,7 @@ Future<void> _collapseMixinMount(
           alignment: .topLeft,
           child: RepaintBoundary(
             child: ElView(
-              style: const ElStyle(width: 300, height: 240, bgColor: Color(0xffeeeeee)),
+              style: const ElStyle(width: 300, height: 240, backgroundColor: Color(0xffeeeeee)),
               child: ElScrollView(
                 focusNode: focus && bodyEvent == null ? focusNode : null,
                 controller: controller,
@@ -652,7 +652,7 @@ class _FollowFilterHeaderState extends State<_FollowFilterHeader>
   Widget build(BuildContext context) => buildScrollCollapse(
     context,
     child: ElView(
-      style: const ElStyle(height: 56, bgColor: Color(0xff2456aa)),
+      style: const ElStyle(height: 56, backgroundColor: Color(0xff2456aa)),
       child: '导航',
     ),
   );
@@ -761,7 +761,7 @@ class _CardState extends State<_Card> with ElScrollMixin<_Card>, ElScrollRevealM
         context,
         child: ElView(
           key: const ValueKey('card-content'),
-          style: ElStyle(width: widget.horizontal ? 100 : null, height: 100, bgColor: const Color(0xff4488aa)),
+          style: ElStyle(width: widget.horizontal ? 100 : null, height: 100, backgroundColor: const Color(0xff4488aa)),
         ),
       ),
     );
@@ -1281,7 +1281,7 @@ void main() {
       await tester.pumpAndSettle();
       final builds = navbar.currentState!.builds;
       final title = tester.renderObject<ElRenderView>(find.byKey(const ValueKey('large')));
-      title.style = const ElStyle(width: 200, height: 70, bgColor: Color(0xffef4444));
+      title.style = const ElStyle(width: 200, height: 70, backgroundColor: Color(0xffef4444));
       expect(render.debugNeedsLayout, isTrue);
       await tester.pumpAndSettle();
       expect(navbar.currentState!.builds, builds);
@@ -1304,7 +1304,7 @@ void main() {
       final title = tester.renderObject<ElRenderView>(
         find.descendant(of: find.byKey(first), matching: find.byKey(const ValueKey('large'))),
       );
-      title.style = const ElStyle(width: 200, height: 70, bgColor: Color(0xffef4444));
+      title.style = const ElStyle(width: 200, height: 70, backgroundColor: Color(0xffef4444));
       await tester.pumpAndSettle();
       expect(first.currentState!.measuredRange, 56);
       expect(second.currentState!.measuredRange, 86);

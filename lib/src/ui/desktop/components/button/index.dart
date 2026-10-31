@@ -92,7 +92,7 @@ extension _ButtonAppearance on ElButton {
 
   /// 移动端按下立即进入目标样式，松开后由基础态 transition 恢复。
   ElStyle _mobileTap(ElStyle style) =>
-      style.copyWith(transitions: const [ElTransition.all(Duration.zero)]);
+      style.copyWith(transition: const [ElTransition.all(Duration.zero)]);
 
   /// 主题色源：bgColor 显式覆盖 > type token（祖先主题色）。
   Color? _resolvedTypeColor(BuildContext context) {
@@ -118,7 +118,7 @@ extension _ButtonAppearance on ElButton {
       cursor: SystemMouseCursors.click,
       userSelect: .none,
       alignment: .center,
-      transitions: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
+      transition: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
     );
     // link 是纯文字形态（官方 padding 2 / height auto），其余变体共享同一套盒尺寸；
     // circle 固定方盒（宽 = 高）
@@ -235,14 +235,14 @@ extension _ButtonAppearance on ElButton {
         : primary.elLight7(context);
     final active = ElStyle(
       color: primary,
-      bgColor: plainAppearance ? bgColor : primary.elLight9(context),
+      backgroundColor: plainAppearance ? bgColor : primary.elLight9(context),
       border: _border(context, color: primary),
       iconColor: primary,
     );
     return base
         .copyWith(
           color: textColor,
-          bgColor: bgColor,
+          backgroundColor: bgColor,
           border: _border(context, color: borderColor),
           onHover: (selected && !isToggle)
               ? null
@@ -250,7 +250,7 @@ extension _ButtonAppearance on ElButton {
                     ? null
                     : ElStyle(
                         color: hoverTextColor,
-                        bgColor: hoverBgColor,
+                        backgroundColor: hoverBgColor,
                         border: _border(context, color: hoverBorderColor),
                         iconColor: hoverTextColor,
                       )),
@@ -261,7 +261,7 @@ extension _ButtonAppearance on ElButton {
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
             color: ElThemeData.of(context).textColorLg,
-            bgColor: bgColor,
+            backgroundColor: bgColor,
             border: _border(context, color: borderColor),
             iconColor: ElThemeData.of(context).textColorLg,
           ),
@@ -282,7 +282,7 @@ extension _ButtonAppearance on ElButton {
 
     final active = ElStyle(
       color: textColor,
-      bgColor: activeColor,
+      backgroundColor: activeColor,
       border: _border(context, color: activeColor),
       iconColor: textColor,
     );
@@ -290,7 +290,7 @@ extension _ButtonAppearance on ElButton {
     return base
         .copyWith(
           color: textColor,
-          bgColor: typeColor,
+          backgroundColor: typeColor,
           border: _border(context, color: typeColor),
           onHover: (selected && !isToggle)
               ? null
@@ -298,7 +298,7 @@ extension _ButtonAppearance on ElButton {
                     ? null
                     : ElStyle(
                         color: textColor,
-                        bgColor: hoverBg,
+                        backgroundColor: hoverBg,
                         border: _border(context, color: hoverBg),
                         iconColor: textColor,
                       )),
@@ -309,7 +309,7 @@ extension _ButtonAppearance on ElButton {
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
             color: const Color(0xffffffff),
-            bgColor: typeColor.elLight5(context),
+            backgroundColor: typeColor.elLight5(context),
             border: _border(context, color: typeColor.elLight5(context)),
             iconColor: const Color(0xffffffff),
           ),
@@ -326,20 +326,20 @@ extension _ButtonAppearance on ElButton {
     final textColor = _textOnBackground(context, typeColor);
     final active = ElStyle(
       color: textColor,
-      bgColor: dark2,
+      backgroundColor: dark2,
       border: _border(context, color: dark2),
       iconColor: textColor,
     );
     final mobileActive = ElStyle(
       color: textColor,
-      bgColor: typeColor,
+      backgroundColor: typeColor,
       border: _border(context, color: typeColor),
       iconColor: textColor,
     );
     return base
         .copyWith(
           color: typeColor,
-          bgColor: typeColor.elLight9(context),
+          backgroundColor: typeColor.elLight9(context),
           border: _border(context, color: typeColor.elLight5(context)),
           onHover: (selected && !isToggle)
               ? null
@@ -347,7 +347,7 @@ extension _ButtonAppearance on ElButton {
                     ? null
                     : ElStyle(
                         color: textColor,
-                        bgColor: typeColor,
+                        backgroundColor: typeColor,
                         border: _border(context, color: typeColor),
                         iconColor: textColor,
                       )),
@@ -358,7 +358,7 @@ extension _ButtonAppearance on ElButton {
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
             color: typeColor.elLight5(context),
-            bgColor: typeColor.elLight9(context),
+            backgroundColor: typeColor.elLight9(context),
             border: _border(context, color: typeColor.elLight8(context)),
             iconColor: typeColor.elLight5(context),
           ),
@@ -376,14 +376,14 @@ extension _ButtonAppearance on ElButton {
     final borderColor = primary.elLight5(context);
     final active = ElStyle(
       color: primary,
-      bgColor: const Color(0x00000000),
+      backgroundColor: const Color(0x00000000),
       border: _border(context, color: primary),
       iconColor: primary,
     );
     return base
         .copyWith(
           color: textColor,
-          bgColor: const Color(0x00000000),
+          backgroundColor: const Color(0x00000000),
           border: _border(context, color: borderColor),
           onHover: (selected && !isToggle)
               ? null
@@ -391,7 +391,7 @@ extension _ButtonAppearance on ElButton {
                     ? null
                     : ElStyle(
                         color: primary,
-                        bgColor: const Color(0x00000000),
+                        backgroundColor: const Color(0x00000000),
                         border: _border(context, color: primary),
                         iconColor: primary,
                       )),
@@ -402,7 +402,7 @@ extension _ButtonAppearance on ElButton {
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
             color: ElThemeData.of(context).textColorLg,
-            bgColor: const Color(0x00000000),
+            backgroundColor: const Color(0x00000000),
             border: _border(context, color: borderColor),
             iconColor: ElThemeData.of(context).textColorLg,
           ),
@@ -421,13 +421,13 @@ extension _ButtonAppearance on ElButton {
     final activeColor = background.elLight1(context, reverse: true);
     final active = ElStyle(
       color: textColor,
-      bgColor: activeColor,
+      backgroundColor: activeColor,
       iconColor: textColor,
     );
     return base
         .copyWith(
           color: textColor,
-          bgColor: bg ? background.deepen(5) : null,
+          backgroundColor: bg ? background.deepen(5) : null,
           onHover: (selected && !isToggle)
               ? null
               : (!isDesktop ? null : active),
@@ -440,7 +440,7 @@ extension _ButtonAppearance on ElButton {
             color:
                 typeColor?.elLight5(context) ??
                 ElThemeData.of(context).textColorLg,
-            bgColor: bg ? background.deepen(5) : const Color(0x00000000),
+            backgroundColor: bg ? background.deepen(5) : const Color(0x00000000),
             iconColor:
                 typeColor?.elLight5(context) ??
                 ElThemeData.of(context).textColorLg,
@@ -448,7 +448,7 @@ extension _ButtonAppearance on ElButton {
           iconColor: textColor,
         )
         .merge(
-          (selected && !isToggle) ? (ElStyle(bgColor: activeColor)) : null,
+          (selected && !isToggle) ? (ElStyle(backgroundColor: activeColor)) : null,
         );
   }
 
@@ -463,8 +463,8 @@ extension _ButtonAppearance on ElButton {
     final interactiveBase = isDesktop
         ? base
         : base.copyWith(
-            transitions: [
-              ...?base.transitions,
+            transition: [
+              ...?base.transition,
               const ElTransition.field(
                 ElTransitionField.opacity,
                 Duration(milliseconds: 250),
@@ -493,7 +493,7 @@ extension _ButtonAppearance on ElButton {
                     ? active
                     : const ElStyle(
                         opacity: 0.2,
-                        transitions: [
+                        transition: [
                           .field(ElTransitionField.opacity, Duration.zero),
                         ],
                       )),
@@ -515,7 +515,7 @@ extension _ButtonAppearance on ElButton {
   /// 构建聚焦环样式
   ElStyle _focusRingStyle(BuildContext context, Color? typeColor) {
     final ringColor = typeColor ?? ElThemeData.of(context).primary;
-    return ElStyle(outline: ElOutline(width: 2, color: ringColor, offset: 1));
+    return ElStyle(outline: ElOutline(outlineWidth: 2, outlineColor: ringColor, outlineOffset: 1));
   }
 
   /// 组件尺寸档：读取 Element 样式中的 [ElThemeData.of(context).size]。
@@ -569,6 +569,6 @@ extension _ButtonAppearance on ElButton {
 }
 
 ElBorder _border(BuildContext context, {required Color color}) => .all(
-  color: color,
-  width: ElThemeData.of(context).borderWidths[ElLevelType.md.index],
+  borderColor: color,
+  borderWidth: ElThemeData.of(context).borderWidths[ElLevelType.md.index],
 );

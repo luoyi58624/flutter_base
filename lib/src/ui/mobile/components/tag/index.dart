@@ -108,15 +108,15 @@ class MyTag extends StatelessWidget {
                           softWrap: false,
                           borderRadius: radius,
                           border: ElBorder.all(
-                            width: 1,
-                            color: selectable
+                            borderWidth: 1,
+                            borderColor: selectable
                                 ? (selected ? t.primary : t.border)
                                 : Color.lerp(t.cardBackground, accent, .18),
                           ),
                           color: selectable
                               ? (selected ? t.primaryText : t.textSecondary)
                               : accent,
-                          bgColor: pressed
+                          backgroundColor: pressed
                               ? (selected
                                     ? Color.lerp(
                                         t.primary,
@@ -136,7 +136,7 @@ class MyTag extends StatelessWidget {
                               ? (selected ? t.primary : t.cardBackground)
                               : Color.lerp(t.cardBackground, accent, .1),
                           transform: ElTransform.scale(pressed ? .95 : 1),
-                          transitions: myReducedMotion(context)
+                          transition: myReducedMotion(context)
                               ? const []
                               : const [
                                   ElTransition.all(
@@ -240,8 +240,8 @@ Widget _commonTag(BuildContext context, ElTag component) {
                     ? 11
                     : 8,
               ),
-              border: ElBorder.all(width: 1, color: border),
-              bgColor: pressed
+              border: ElBorder.all(borderWidth: 1, borderColor: border),
+              backgroundColor: pressed
                   ? Color.lerp(
                       background,
                       filled ? const Color(0xff000000) : theme.press,
@@ -260,7 +260,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
               outline: state.hasFocusVisible
                   ? myFocusStyle(context).outline
                   : null,
-              transitions: myReducedMotion(context)
+              transition: myReducedMotion(context)
                   ? const []
                   : const [
                       ElTransition.all(

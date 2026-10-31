@@ -191,7 +191,7 @@ class _RippleRender extends RenderProxyBox {
     final color = button.currentColorForBuild ?? const Color(0xff000000);
     final bounds = Offset.zero & button.boxSize;
     final radius = resolved.box.borderRadius;
-    final clipper = resolved.box.clipper;
+    final clipper = resolved.box.clipPath;
     final canvas = context.canvas;
     final origin = offset + buttonBounds.topLeft;
     canvas.save();
@@ -199,7 +199,7 @@ class _RippleRender extends RenderProxyBox {
     if (clipper != null) {
       canvas.clipPath(clipper.getClip(bounds.size));
     } else if (radius != null) {
-      canvas.clipRRect(radius.resolve(resolved.inheritedBox.textDirection ?? TextDirection.ltr).toRRect(bounds));
+      canvas.clipRRect(radius.resolve(resolved.inheritedBox.direction ?? TextDirection.ltr).toRRect(bounds));
     } else {
       canvas.clipRect(bounds);
     }
@@ -225,7 +225,7 @@ class _RippleRender extends RenderProxyBox {
     final childOffset = parentData is BoxParentData ? parentData.offset - buttonBounds.topLeft : -buttonBounds.topLeft;
     final childBounds = (surfaceChild.boxOrigin & surfaceChild.boxSize).shift(childOffset);
     final resolved = surfaceChild.committedResolvedStyle;
-    final clipper = resolved.box.clipper;
+    final clipper = resolved.box.clipPath;
     if (clipper != null) {
       canvas.clipPath(clipper.getClip(surfaceChild.boxSize).shift(childBounds.topLeft));
       return;
@@ -233,6 +233,6 @@ class _RippleRender extends RenderProxyBox {
 
     final radius = resolved.box.borderRadius;
     if (radius == null) return;
-    canvas.clipRRect(radius.resolve(resolved.inheritedBox.textDirection ?? TextDirection.ltr).toRRect(childBounds));
+    canvas.clipRRect(radius.resolve(resolved.inheritedBox.direction ?? TextDirection.ltr).toRRect(childBounds));
   }
 }

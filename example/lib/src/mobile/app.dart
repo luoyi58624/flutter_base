@@ -215,7 +215,7 @@ Widget _line({double indent = 0, bool visible = true}) => ElView(
     height: 0.5,
     width: '100%',
     margin: EdgeInsets.only(left: indent),
-    bgColor: visible ? _divider : Color(0x00000000),
+    backgroundColor: visible ? _divider : Color(0x00000000),
   ),
 );
 
@@ -251,7 +251,7 @@ class _TitleBar extends StatelessWidget {
     children: [
       ElCardView(
         key: ValueKey('title-bar'),
-        style: ElStyle(height: desktop ? 64 : 44, bgColor: _surface),
+        style: ElStyle(height: desktop ? 64 : 44, backgroundColor: _surface),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -304,7 +304,7 @@ class _TitleBar extends StatelessWidget {
                         horizontal: search ? 12 : 8,
                         vertical: search ? 5 : 6,
                       ),
-                      bgColor: search ? Color(0xfff2f3f5) : null,
+                      backgroundColor: search ? Color(0xfff2f3f5) : null,
                       borderRadius: .circular(14),
                     ),
                     child: _Label(
@@ -337,7 +337,7 @@ class _Page extends StatelessWidget {
   final Color color;
   @override
   Widget build(BuildContext context) => ElCardView(
-    style: ElStyle(bgColor: _surface),
+    style: ElStyle(backgroundColor: _surface),
     child: SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

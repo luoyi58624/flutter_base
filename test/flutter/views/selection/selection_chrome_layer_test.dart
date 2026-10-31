@@ -41,13 +41,13 @@ class _ToolbarControls extends SelectionControls {
       child: Builder(
         builder: (context) => ElView(
           key: _toolbarButtonKey,
-          style: const ElStyle(width: 80, height: 32, bgColor: Color(0xFF111111)),
+          style: const ElStyle(width: 80, height: 32, backgroundColor: Color(0xFF111111)),
           event: ElEvent(
             onTap: (_) {
               ElTestPortal.of(context).show(
                 builder: (_) => const ElView(
                   key: _toolbarChildOverlayKey,
-                  style: ElStyle(width: 96, height: 40, bgColor: Color(0xFF444444)),
+                  style: ElStyle(width: 96, height: 40, backgroundColor: Color(0xFF444444)),
                 ),
               );
             },
@@ -74,7 +74,7 @@ class _WideToolbarControls extends SelectionControls {
   Widget? buildToolbar(BuildContext context, SelectionToolbarDetails details) {
     return ElView(
       key: _toolbarButtonKey,
-      style: const ElStyle(width: 220, height: 32, bgColor: Color(0xFF111111)),
+      style: const ElStyle(width: 220, height: 32, backgroundColor: Color(0xFF111111)),
       event: ElEvent(onTap: (_) => onTap()),
     );
   }
@@ -211,7 +211,7 @@ void main() {
       builder: (_) => KeyedSubtree(
         key: _dialogPanelKey,
         child: SelectionChromeSlotHost(
-          child: const ElView(style: ElStyle(width: 420, height: 260, bgColor: Color(0x22000000))),
+          child: const ElView(style: ElStyle(width: 420, height: 260, backgroundColor: Color(0x22000000))),
         ),
       ),
     );
@@ -236,29 +236,27 @@ void main() {
     expect(find.byKey(_dialogPanelKey), findsNothing);
   });
 
-  testWidgets(
-    'dialog 内句柄位于独立内容宿主，层序改变后仍可命中',
-    (tester) async {
-      await tester.pumpWidget(_app(child: const ElView(child: 'page')));
-      final host = _host(tester);
-      final pageContext = tester.element(find.byKey(_pageKey));
-      final dialog = host.show(
-        align: .topLeft,
-        builder: (_) => KeyedSubtree(
-          key: _dialogPanelKey,
-          child: SelectionChromeSlotHost(
-            child: ElView(
-              style: const ElStyle(width: 260, height: 120, padding: .all(8)),
-              child: SelectionView(
-                controls: const _ChromeControls(),
-                child: const ElView(key: _dialogTextKey, style: ElStyle(width: 220), child: 'dialog alpha beta'),
-              ),
+  testWidgets('dialog 内句柄位于独立内容宿主，层序改变后仍可命中', (tester) async {
+    await tester.pumpWidget(_app(child: const ElView(child: 'page')));
+    final host = _host(tester);
+    final pageContext = tester.element(find.byKey(_pageKey));
+    final dialog = host.show(
+      align: .topLeft,
+      builder: (_) => KeyedSubtree(
+        key: _dialogPanelKey,
+        child: SelectionChromeSlotHost(
+          child: ElView(
+            style: const ElStyle(width: 260, height: 120, padding: .all(8)),
+            child: SelectionView(
+              controls: const _ChromeControls(),
+              child: const ElView(key: _dialogTextKey, style: ElStyle(width: 220), child: 'dialog alpha beta'),
             ),
           ),
         ),
-      );
-      await tester.pump();
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
 
       await _showMobileChrome(tester, _dialogTextKey);
 
@@ -286,28 +284,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    '独立工具条保留 dialog 上下文，dialog 关闭时子弹层一并摘除',
-    (tester) async {
-      await tester.pumpWidget(_app(child: const ElView(child: 'page')));
-      final host = _host(tester);
-      final dialog = host.show(
-        align: .topLeft,
-        builder: (_) => KeyedSubtree(
-          key: _dialogPanelKey,
-          child: SelectionChromeSlotHost(
-            child: ElView(
-              style: const ElStyle(width: 280, height: 140, padding: .all(8)),
-              child: SelectionView(
-                controls: const _ToolbarControls(),
-                child: const ElView(key: _dialogTextKey, style: ElStyle(width: 220), child: 'dialog alpha beta'),
-              ),
+  testWidgets('独立工具条保留 dialog 上下文，dialog 关闭时子弹层一并摘除', (tester) async {
+    await tester.pumpWidget(_app(child: const ElView(child: 'page')));
+    final host = _host(tester);
+    final dialog = host.show(
+      align: .topLeft,
+      builder: (_) => KeyedSubtree(
+        key: _dialogPanelKey,
+        child: SelectionChromeSlotHost(
+          child: ElView(
+            style: const ElStyle(width: 280, height: 140, padding: .all(8)),
+            child: SelectionView(
+              controls: const _ToolbarControls(),
+              child: const ElView(key: _dialogTextKey, style: ElStyle(width: 220), child: 'dialog alpha beta'),
             ),
           ),
         ),
-      );
-      await tester.pump();
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
 
       await _showMobileChrome(tester, _dialogTextKey);
       expect(find.byKey(selectionToolbarKey), findsOneWidget);
@@ -707,37 +703,35 @@ void main() {
     await hiddenGesture.up();
   });
 
-  testWidgets(
-    'retained scale 变化时 handle 与 toolbar 跟随锚点但保持屏幕逻辑尺寸',
-    (tester) async {
-      var scale = 1.0;
-      var angle = 0.0;
-      late StateSetter update;
-      var taps = 0;
-      final editor = RepaintBoundary(
-        child: SelectionView(
-          controls: _WideToolbarControls(() => taps++),
-          child: const ElView(
-            key: _pageTextKey,
-            style: ElStyle(width: 180, padding: .all(8)),
-            child: 'alpha beta gamma',
-          ),
+  testWidgets('retained scale 变化时 handle 与 toolbar 跟随锚点但保持屏幕逻辑尺寸', (tester) async {
+    var scale = 1.0;
+    var angle = 0.0;
+    late StateSetter update;
+    var taps = 0;
+    final editor = RepaintBoundary(
+      child: SelectionView(
+        controls: _WideToolbarControls(() => taps++),
+        child: const ElView(
+          key: _pageTextKey,
+          style: ElStyle(width: 180, padding: .all(8)),
+          child: 'alpha beta gamma',
         ),
-      );
-      await tester.pumpWidget(
-        _app(
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              update = setState;
-              return Transform(
-                transform: Matrix4.diagonal3Values(scale, scale, 1)..rotateZ(angle),
-                alignment: Alignment.topLeft,
-                child: editor,
-              );
-            },
-          ),
+      ),
+    );
+    await tester.pumpWidget(
+      _app(
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return Transform(
+              transform: Matrix4.diagonal3Values(scale, scale, 1)..rotateZ(angle),
+              alignment: Alignment.topLeft,
+              child: editor,
+            );
+          },
         ),
-      );
+      ),
+    );
 
       await _showMobileChrome(tester, _pageTextKey);
       final beforeHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
@@ -781,26 +775,24 @@ void main() {
     },
   );
 
-  testWidgets(
-    '右对齐窄 editor 的宽 toolbar 可越过 follower 盒左缘并钳在屏幕内',
-    (tester) async {
-      var taps = 0;
-      await tester.pumpWidget(
-        _app(
-          width: 800,
-          child: ElView(
-            style: const ElStyle(width: 800, alignment: .centerRight),
-            child: SelectionView(
-              controls: _WideToolbarControls(() => taps++),
-              child: const ElView(
-                key: _pageTextKey,
-                style: ElStyle(width: 80, padding: .all(8)),
-                child: 'alpha beta',
-              ),
+  testWidgets('右对齐窄 editor 的宽 toolbar 可越过 follower 盒左缘并钳在屏幕内', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      _app(
+        width: 800,
+        child: ElView(
+          style: const ElStyle(width: 800, alignment: .centerRight),
+          child: SelectionView(
+            controls: _WideToolbarControls(() => taps++),
+            child: const ElView(
+              key: _pageTextKey,
+              style: ElStyle(width: 80, padding: .all(8)),
+              child: 'alpha beta',
             ),
           ),
         ),
-      );
+      ),
+    );
 
       await _showMobileChrome(tester, _pageTextKey);
       final toolbar = tester.getRect(find.byKey(_toolbarButtonKey));
@@ -845,25 +837,23 @@ void main() {
     expect(toolbar.width, lessThanOrEqualTo(160));
   });
 
-  testWidgets(
-    'scale 下 magnifier 保持固定屏幕尺寸与全局中心',
-    (tester) async {
-      await tester.pumpWidget(
-        _app(
-          child: Transform.scale(
-            scale: 2,
-            alignment: Alignment.topLeft,
-            child: SelectionView(
-              controls: const _MagnifierControls(),
-              child: const ElView(
-                key: _pageTextKey,
-                style: ElStyle(width: 180, padding: .all(8)),
-                child: 'alpha beta gamma',
-              ),
+  testWidgets('scale 下 magnifier 保持固定屏幕尺寸与全局中心', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        child: Transform.scale(
+          scale: 2,
+          alignment: Alignment.topLeft,
+          child: SelectionView(
+            controls: const _MagnifierControls(),
+            child: const ElView(
+              key: _pageTextKey,
+              style: ElStyle(width: 180, padding: .all(8)),
+              child: 'alpha beta gamma',
             ),
           ),
         ),
-      );
+      ),
+    );
 
       await _showMobileChrome(tester, _pageTextKey);
       final render = _selectionRenderOf(tester, _pageTextKey);
@@ -914,7 +904,7 @@ void main() {
       builder: (_) => KeyedSubtree(
         key: _dialogPanelKey,
         child: SelectionChromeSlotHost(
-          child: const ElView(style: ElStyle(width: 420, height: 260, bgColor: Color(0x22000000))),
+          child: const ElView(style: ElStyle(width: 420, height: 260, backgroundColor: Color(0x22000000))),
         ),
       ),
     );

@@ -1102,7 +1102,7 @@ void main() {
                 child: Column(
                   children: <Widget>[
                     ElView(
-                      style: const ElStyle(width: 220, height: 110, bgColor: Color(0xFFCCCCCC)),
+                      style: const ElStyle(width: 220, height: 110, backgroundColor: Color(0xFFCCCCCC)),
                       focusNode: outer,
                       child: Row(
                         children: <Widget>[

@@ -75,7 +75,7 @@ class ElDesktopTheme extends StatelessWidget {
     final light = (theme ?? ElThemeData()).copyWith(size: size);
     final dark = (darkTheme ?? ElThemeData.dark()).copyWith(size: size);
     ElStyle rootStyle(ElThemeData values) => ElStyle(
-      bgColor: values.bgColor,
+      backgroundColor: values.bgColor,
       color: values.textColorXs,
       fontSize: values.fontSizes[values.size.index],
       iconSize: values.iconSizes[values.size.index],

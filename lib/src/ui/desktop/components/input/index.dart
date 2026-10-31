@@ -68,17 +68,17 @@ TextStyle _inputTextStyle(
           letterSpacing: _resolveInputDoubleSlot(context, style.letterSpacing),
           wordSpacing: _resolveInputDoubleSlot(context, style.wordSpacing),
           textBaseline: style.textBaseline,
-          fontFeatures: style.fontFeatures,
-          fontVariations: style.fontVariations,
-          decoration: style.decoration,
+          fontFeatures: style.fontFeatureSettings,
+          fontVariations: style.fontVariationSettings,
+          decoration: style.textDecorationLine,
           decorationColor: _resolveInputColorSlot(
             context,
-            style.decorationColor,
+            style.textDecorationColor,
           ),
-          decorationStyle: style.decorationStyle,
+          decorationStyle: style.textDecorationStyle,
           decorationThickness: _resolveInputDoubleSlot(
             context,
-            style.decorationThickness,
+            style.textDecorationThickness,
           ),
           backgroundColor: _resolveInputColorSlot(
             context,
@@ -359,7 +359,7 @@ class Input extends ElInputModelValue<String> {
     final resolvedTextAlign =
         component.textAlign ?? style?.textAlign ?? TextAlign.start;
     final resolvedTextDirection =
-        style?.textDirection ??
+        style?.direction ??
         Directionality.maybeOf(context) ??
         TextDirection.ltr;
 
@@ -402,7 +402,7 @@ class Input extends ElInputModelValue<String> {
           height: component.textarea ? visibleLines * lineHeight : lineHeight,
           padding: _inputProjectionPadding(component.textarea),
           textAlign: resolvedTextAlign,
-          textDirection: resolvedTextDirection,
+          direction: resolvedTextDirection,
           userSelect: ElUserSelect.none,
           iconColor: ElThemeData.of(c).textColorLg,
         ))(context),
@@ -423,7 +423,7 @@ class Input extends ElInputModelValue<String> {
                 _resolveInputColorSlot(c, resolved?.color) ??
                 ElThemeData.of(c).textColorSm,
             onSelection: ElStyle(
-              bgColor: ElThemeData.of(c).primary.withValues(alpha: 0.25),
+              backgroundColor: ElThemeData.of(c).primary.withValues(alpha: 0.25),
             ),
             iconColor:
                 _resolveInputColorSlot(c, resolved?.color) ??

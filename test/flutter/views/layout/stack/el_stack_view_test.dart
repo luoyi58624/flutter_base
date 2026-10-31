@@ -14,7 +14,7 @@ class _HitProbe extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElView(
-      style: const ElStyle(width: 40, height: 40, bgColor: Color(0xFF000000)),
+      style: const ElStyle(width: 40, height: 40, backgroundColor: Color(0xFF000000)),
       event: ElEvent(onTap: (_) => log.add(tag)),
     );
   }

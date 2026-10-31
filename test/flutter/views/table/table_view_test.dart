@@ -21,24 +21,24 @@ class _AutoHeightTableStyle extends ElTableStyle {
 /// 皮肤声明斑马纹：奇数展示序号行叠加底色（与 `ElTableStyle.stripe / stripeRow` 同一入口）。
 class _SkinHookTableStyle extends ElTableStyle {
   const _SkinHookTableStyle()
-    : super(columnResizable: true, stripe: true, stripeRow: const ElStyle(bgColor: Color(0xff123456)));
+    : super(columnResizable: true, stripe: true, stripeRow: const ElStyle(backgroundColor: Color(0xff123456)));
 }
 
 class _FixedDividerTableStyle extends ElTableStyle {
   const _FixedDividerTableStyle();
 
   @override
-  ElStyle get table => const ElStyle(bgColor: Color(0xffffffff));
+  ElStyle get table => const ElStyle(backgroundColor: Color(0xffffffff));
 
   @override
-  ElStyle get header => const ElStyle(bgColor: Color(0xffffffff));
+  ElStyle get header => const ElStyle(backgroundColor: Color(0xffffffff));
 
   @override
-  ElStyle get row => const ElStyle(bgColor: Color(0xffffffff));
+  ElStyle get row => const ElStyle(backgroundColor: Color(0xffffffff));
 
   @override
   ElStyle get cell => const ElStyle(
-    border: .only(left: ElBorderSide(color: Color(0xffff0000))),
+    border: .only(borderLeft: ElBorderSide(borderColor: Color(0xffff0000))),
   );
 
   @override
@@ -52,11 +52,11 @@ class _DragHeaderSurfaceTableStyle extends ElTableStyle {
   const _DragHeaderSurfaceTableStyle();
 
   @override
-  ElStyle get header => const ElStyle(bgColor: Color(0xffdcecff));
+  ElStyle get header => const ElStyle(backgroundColor: Color(0xffdcecff));
 
   @override
   ElStyle get headerCell => const ElStyle(
-    border: .only(left: ElBorderSide(color: Color(0xff99aabb))),
+    border: .only(borderLeft: ElBorderSide(borderColor: Color(0xff99aabb))),
   );
 }
 
@@ -182,7 +182,7 @@ void main() {
             ElTable(
               controller: controller,
               height: 240,
-              style: ElTableStyle(cell: ElStyle(bgColor: Color(0xffabcdef))),
+              style: ElTableStyle(cell: ElStyle(backgroundColor: Color(0xffabcdef))),
               onCellTap: interactive ? (_) {} : null,
             ),
           ),
@@ -199,7 +199,7 @@ void main() {
       final render = ordinalRender(tester, 10);
       final cell = render.parent! as ElRenderView;
       final cellRect = cell.localToGlobal(Offset.zero) & cell.size;
-      expect(cell.style?.bgColor, Color(0xffabcdef));
+      expect(cell.style?.backgroundColor, Color(0xffabcdef));
       expect(bounds(10).center.dx, closeTo(cellRect.center.dx, .001));
       expect(bounds(10).left - cellRect.left, closeTo(12, .001));
       expect(cellRect.right - bounds(10).right, closeTo(12, .001));
@@ -734,7 +734,7 @@ void main() {
               (widget) =>
                   widget is ElView &&
                   widget.event?.onHorizontalDragStart != null &&
-                  widget.style?.bgColor == const Color(0xffdcecff),
+                  widget.style?.backgroundColor == const Color(0xffdcecff),
             ),
           ),
         )
@@ -767,7 +767,7 @@ void main() {
           title: '名称',
           prop: 'name',
           headerBuilder: (context, header) => '列级表头',
-          cellStyleBuilder: (cell) => cell.row['hot'] == true ? const ElStyle(bgColor: Color(0xffffcc66)) : null,
+          cellStyleBuilder: (cell) => cell.row['hot'] == true ? const ElStyle(backgroundColor: Color(0xffffcc66)) : null,
         ),
       ],
     );
@@ -777,8 +777,8 @@ void main() {
 
     expect(contentRenders(tester, (value) => value == '列级表头'), hasLength(1));
     expect(contentRenders(tester, (value) => value == '名称'), isEmpty, reason: '列级 headerBuilder 接管表头内容。');
-    expect(contentRender(tester, 'Alice').committedResolvedStyle.box.bgColor, const Color(0xffffcc66));
-    expect(contentRender(tester, 'Bob').committedResolvedStyle.box.bgColor, isNull);
+    expect(contentRender(tester, 'Alice').committedResolvedStyle.box.backgroundColor, const Color(0xffffcc66));
+    expect(contentRender(tester, 'Bob').committedResolvedStyle.box.backgroundColor, isNull);
   });
 
   testWidgets('默认排序保持等值行原序并复用双向排序缓存', (tester) async {
@@ -1326,7 +1326,7 @@ void main() {
         ElTableColumn(
           title: '名称',
           prop: 'name',
-          cellStyleBuilder: (cell) => const ElStyle(bgColor: Color(0xffffcc66)),
+          cellStyleBuilder: (cell) => const ElStyle(backgroundColor: Color(0xffffcc66)),
         ),
       ],
     );
@@ -1335,7 +1335,7 @@ void main() {
     await tester.pumpWidget(shell(ElTable(controller: controller)));
     expect(contentRenders(tester, (value) => value == 'Alice'), hasLength(1));
     expect(ordinalRenders(tester, 1), hasLength(1));
-    expect(contentRender(tester, 'Alice').committedResolvedStyle.box.bgColor, const Color(0xffffcc66));
+    expect(contentRender(tester, 'Alice').committedResolvedStyle.box.backgroundColor, const Color(0xffffcc66));
     expect(hasSemanticsLabel(tester, 'Alice'), isTrue);
     expect(
       find.byWidgetPredicate((widget) => widget is ElView && widget.child == 'Alice'),
@@ -1541,7 +1541,7 @@ void main() {
     bool hasBackground(Object value, Color color) {
       RenderObject? node = contentRender(tester, value);
       while (node != null) {
-        if (node is ElRenderView && node.committedResolvedStyle.box.bgColor == color) return true;
+        if (node is ElRenderView && node.committedResolvedStyle.box.backgroundColor == color) return true;
         node = node.parent;
       }
       return false;

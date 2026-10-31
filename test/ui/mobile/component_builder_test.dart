@@ -66,7 +66,7 @@ void main() {
     expect(find.text('主'), findsOneWidget);
     expect(find.text('右'), findsOneWidget);
     expect(
-      _view((view) => view.style?.bgColor == Color(0xff123456)),
+      _view((view) => view.style?.backgroundColor == Color(0xff123456)),
       findsOneWidget,
     );
     expect(tester.getSize(find.byType(MyButton)).width, 320);
@@ -207,7 +207,7 @@ void main() {
       final skin = tester.widget<ElView>(
         _view((view) => view.style?.minHeight == 32),
       );
-      backgrounds[effect] = skin.style?.bgColor;
+      backgrounds[effect] = skin.style?.backgroundColor;
     }
     expect(backgrounds.values.toSet().length, 3);
     for (final round in [false, true]) {
@@ -260,7 +260,7 @@ void main() {
     await tester.pump();
     expect(find.text('开启'), findsOneWidget);
     expect(find.text('一'), findsOneWidget);
-    final track = _view((view) => view.style?.bgColor == Color(0xff112233));
+    final track = _view((view) => view.style?.backgroundColor == Color(0xff112233));
     expect(track, findsOneWidget);
     expect(tester.getSize(track), Size(120, 40));
     expect(
@@ -273,7 +273,7 @@ void main() {
     expect(find.text('关闭'), findsOneWidget);
     expect(find.text('零'), findsOneWidget);
     expect(
-      _view((view) => view.style?.bgColor == Color(0xff445566)),
+      _view((view) => view.style?.backgroundColor == Color(0xff445566)),
       findsOneWidget,
     );
     semantics.dispose();

@@ -5,15 +5,15 @@ Duration get _mentionPanelExitDuration => const Duration(milliseconds: 90);
 List<double> get _mentionOptionHeights => const [28, 32, 36, 40, 44];
 
 ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
-  bgColor: ElThemeData.of(context).cardColor,
+  backgroundColor: ElThemeData.of(context).cardColor,
   color: ElThemeData.of(context).textColorSm,
-  border: .all(color: null),
+  border: .all(borderColor: null),
   borderRadius: .circular(ElThemeData.of(context).radiusSm),
   boxShadow: ElThemeData.of(context).shadowSm,
   opacity: 1,
   transform: .translateY(0),
   starting: ElStyle(opacity: 0, transform: .translateY(-4)),
-  transitions: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
+  transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
   iconColor: ElThemeData.of(context).textColorSm,
 );
 
@@ -26,11 +26,11 @@ ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
       userSelect: .none,
       onHover: (isSelected)
           ? null
-          : (ElStyle(bgColor: ElThemeData.of(context).overlayColorLighter)),
+          : (ElStyle(backgroundColor: ElThemeData.of(context).overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
-              bgColor: ElThemeData.of(context).overlayColorLight,
+              backgroundColor: ElThemeData.of(context).overlayColorLight,
               color: ElThemeData.of(context).primary,
               iconColor: ElThemeData.of(context).primary,
             ))
@@ -40,7 +40,7 @@ ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
 ElStyle _mentionDisabledOptionStyle(BuildContext context) => ElStyle(
   color: ElThemeData.of(context).textColorLg,
   cursor: SystemMouseCursors.basic,
-  onHover: ElStyle(bgColor: Color(0x00000000)),
+  onHover: ElStyle(backgroundColor: Color(0x00000000)),
   iconColor: ElThemeData.of(context).textColorLg,
 );
 
@@ -161,8 +161,8 @@ class _MentionPanel<T> extends StatelessWidget {
           child: ElView(
             key: const ValueKey<String>('el-mention-arrow'),
             style: ElStyle(
-              bgColor: ElThemeData.of(context).cardColor,
-              border: ElBorder.all(color: ElThemeData.of(context).borderColor),
+              backgroundColor: ElThemeData.of(context).cardColor,
+              border: ElBorder.all(borderColor: ElThemeData.of(context).borderColor),
               transform: ElTransform.rotate(0.7853981633974483),
             ),
           ),

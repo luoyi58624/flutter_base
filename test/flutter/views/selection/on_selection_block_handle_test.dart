@@ -20,7 +20,7 @@ RenderSelectionView _selectionRender(WidgetTester tester) {
 }
 
 void main() {
-  testWidgets('图片的 onSelection.bgColor 决定选中底色', (tester) async {
+  testWidgets('图片的 onSelection.backgroundColor 决定选中底色', (tester) async {
     final controller = ElSelectionController();
     const blockKey = Key('styled-block');
     const textKey = Key('lead-text');
@@ -41,7 +41,7 @@ void main() {
                 alt: 'picture',
                 width: 60,
                 height: 30,
-                style: ElStyle(onSelection: ElStyle(bgColor: Color(0x33FF8800))),
+                style: ElStyle(onSelection: ElStyle(backgroundColor: Color(0x33FF8800))),
               ),
             ],
           ),
@@ -73,7 +73,7 @@ void main() {
             children: [
               ElView(
                 child: 'first segment',
-                style: ElStyle(onSelection: ElStyle(bgColor: Color(0x55123456))),
+                style: ElStyle(onSelection: ElStyle(backgroundColor: Color(0x55123456))),
               ),
               ElView(child: 'second segment'),
             ],

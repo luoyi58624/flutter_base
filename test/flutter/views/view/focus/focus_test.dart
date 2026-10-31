@@ -37,7 +37,7 @@ void main() {
   ElView focusBox(
     FocusNode node, {
     Key? key,
-    ElStyle style = const ElStyle(width: 80, height: 36, bgColor: base),
+    ElStyle style = const ElStyle(width: 80, height: 36, backgroundColor: base),
     ElEvent? event,
     bool disabled = false,
     Widget? child,
@@ -54,14 +54,14 @@ void main() {
   ElStyle triStateStyle() => const ElStyle(
     width: 120,
     height: 64,
-    bgColor: base,
-    onFocusWithin: ElStyle(bgColor: withinBg),
-    onFocus: ElStyle(bgColor: focusBg),
-    onFocusVisible: ElStyle(bgColor: ringBg),
+    backgroundColor: base,
+    onFocusWithin: ElStyle(backgroundColor: withinBg),
+    onFocus: ElStyle(backgroundColor: focusBg),
+    onFocusVisible: ElStyle(backgroundColor: ringBg),
   );
 
   Color? bgOf(WidgetTester tester, Key key) =>
-      tester.renderObject<ElRenderView>(find.byKey(key)).committedResolvedStyle.box.bgColor;
+      tester.renderObject<ElRenderView>(find.byKey(key)).committedResolvedStyle.box.backgroundColor;
 
   Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
     await tester.sendKeyEvent(key);
@@ -126,7 +126,7 @@ void main() {
         tester,
         ElView(
           key: key,
-          style: const ElStyle(width: 80, height: 36, bgColor: base, onFocusWithin: ElStyle(bgColor: withinBg)),
+          style: const ElStyle(width: 80, height: 36, backgroundColor: base, onFocusWithin: ElStyle(backgroundColor: withinBg)),
         ),
       );
 
@@ -153,8 +153,8 @@ void main() {
               style: const ElStyle(
                 width: 120,
                 height: 64,
-                bgColor: base,
-                onFocusWithin: ElStyle(bgColor: withinBg),
+                backgroundColor: base,
+                onFocusWithin: ElStyle(backgroundColor: withinBg),
               ),
               child: focusBox(child),
             ),
@@ -188,9 +188,9 @@ void main() {
           style: const ElStyle(
             width: 80,
             height: 36,
-            bgColor: base,
-            onFocus: ElStyle(bgColor: focusBg),
-            onFocusVisible: ElStyle(bgColor: ringBg),
+            backgroundColor: base,
+            onFocus: ElStyle(backgroundColor: focusBg),
+            onFocusVisible: ElStyle(backgroundColor: ringBg),
           ),
           event: ElEvent(onFocus: (event) => phases.add(event.phase)),
         ),
@@ -212,10 +212,10 @@ void main() {
         tester,
         Row(
           children: [
-            const ElView(key: plainKey, style: ElStyle(width: 80, height: 36, bgColor: base)),
+            const ElView(key: plainKey, style: ElStyle(width: 80, height: 36, backgroundColor: base)),
             const ElView(
               key: focusKey,
-              style: ElStyle(width: 80, height: 36, bgColor: base, onFocus: ElStyle(bgColor: focusBg)),
+              style: ElStyle(width: 80, height: 36, backgroundColor: base, onFocus: ElStyle(backgroundColor: focusBg)),
             ),
           ],
         ),
@@ -244,7 +244,7 @@ void main() {
         ElView(
           key: outerKey,
           focusNode: outer,
-          style: const ElStyle(width: 200, height: 120, bgColor: base),
+          style: const ElStyle(width: 200, height: 120, backgroundColor: base),
           child: focusBox(inner, key: innerKey, child: const SizedBox(width: 80, height: 36)),
         ),
       );

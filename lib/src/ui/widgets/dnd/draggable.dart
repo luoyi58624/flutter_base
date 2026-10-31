@@ -192,7 +192,7 @@ class _DraggableState<T extends Object> extends State<ElDraggable<T>> {
     return ElView(
       style: ElStyle(
         opacity: _sessionMine ? widget.draggingOpacity : 1.0,
-        transitions: const [.field(.opacity, Duration(milliseconds: 100), Curves.easeOutCubic)],
+        transition: const [.field(.opacity, Duration(milliseconds: 100), Curves.easeOutCubic)],
       ),
       event: ElEvent(
         onPointerUp: _releaseUnusedSnapshot,
@@ -285,13 +285,13 @@ class _DefaultDragGhostState extends State<_DefaultDragGhost> {
         width: snapshot.size.width,
         height: snapshot.size.height,
         opacity: 0.94,
-        bgColor: snapshot.image == null ? const Color(0x22ffffff) : null,
-        border: snapshot.image == null ? .all(color: const Color(0x44808080)) : null,
+        backgroundColor: snapshot.image == null ? const Color(0x22ffffff) : null,
+        border: snapshot.image == null ? .all(borderColor: const Color(0x44808080)) : null,
         borderRadius: .all(Radius.circular(3)),
         boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 10, offset: Offset(0, 4))],
         transform: .scale(1.015),
         starting: const ElStyle(opacity: 0.0, transform: .scale(0.98)),
-        transitions: const [
+        transition: const [
           .field(.opacity, Duration(milliseconds: 90), Curves.easeOutCubic),
           .field(.transform, Duration(milliseconds: 90), Curves.easeOutCubic),
         ],

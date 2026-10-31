@@ -33,7 +33,7 @@ class _CodeExampleCardState extends State<_CodeExampleCard> {
         children: [
           ElView(
             key: const ValueKey('demo'),
-            style: const ElStyle(height: 120, bgColor: Color(0xfff0f0f0)),
+            style: const ElStyle(height: 120, backgroundColor: Color(0xfff0f0f0)),
             child: '演示区',
           ),
           ElButtonView(key: const ValueKey('bar'), onPressed: _toggle, child: '展开代码'),
@@ -42,7 +42,7 @@ class _CodeExampleCardState extends State<_CodeExampleCard> {
             keepState: false,
             child: ElView(
               key: const ValueKey('code'),
-              style: ElStyle(height: _codeHeight, bgColor: const Color(0xff222222)),
+              style: ElStyle(height: _codeHeight, backgroundColor: const Color(0xff222222)),
               child: '代码区',
             ),
           ),

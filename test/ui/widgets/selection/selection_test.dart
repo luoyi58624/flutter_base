@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState state) => ElView(
-  style: ElStyle(width: 80, height: 24, bgColor: state.checked ? Color(0xff123456) : Color(0xffeeeeee)),
+  style: ElStyle(width: 80, height: 24, backgroundColor: state.checked ? Color(0xff123456) : Color(0xffeeeeee)),
   child: component.label,
 );
 Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) => ElView(
-  style: ElStyle(width: 80, height: 24, bgColor: state.checked ? Color(0xff123456) : Color(0xffeeeeee)),
+  style: ElStyle(width: 80, height: 24, backgroundColor: state.checked ? Color(0xff123456) : Color(0xffeeeeee)),
   child: component.label,
 );
 ElComponentBuilders get _builders => ElComponentBuilders(checkboxBuilder: _checkbox, radioBuilder: _radio);

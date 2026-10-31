@@ -580,7 +580,7 @@ class AndroidSelectionControls extends SelectionControls {
           BoxShadow(color: Color(0x1F000000), blurRadius: 1.0, offset: Offset(0.0, 1.0)),
         ],
       ),
-      child: const ElView(style: ElStyle(bgColor: Color(0x0EFFFFFF))),
+      child: const ElView(style: ElStyle(backgroundColor: Color(0x0EFFFFFF))),
     );
   }
 
@@ -592,13 +592,13 @@ class AndroidSelectionControls extends SelectionControls {
       key: _toolbarVisualKey,
       style: const ElStyle(
         height: 40,
-        bgColor: Color(0xFFFFFFFF),
+        backgroundColor: Color(0xFFFFFFFF),
         borderRadius: .all(Radius.circular(10)),
         boxShadow: [
           BoxShadow(color: Color(0x2E000000), blurRadius: 14, offset: Offset(0, 4), spreadRadius: -3),
           BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
         ],
-        onDark: ElStyle(bgColor: Color(0xFF2E2E2E)),
+        onDark: ElStyle(backgroundColor: Color(0xFF2E2E2E)),
       ),
       child: Row(
         mainAxisSize: .min,
@@ -620,12 +620,12 @@ class AndroidSelectionControls extends SelectionControls {
         fontSize: 14,
         fontWeight: .w500,
         color: Color(0xFF1F1F1F),
-        onHover: ElStyle(bgColor: Color(0x0F000000)),
-        onTap: ElStyle(bgColor: Color(0x1A000000)),
+        onHover: ElStyle(backgroundColor: Color(0x0F000000)),
+        onTap: ElStyle(backgroundColor: Color(0x1A000000)),
         onDark: ElStyle(
           color: Color(0xFFE8EAED),
-          onHover: ElStyle(bgColor: Color(0x14FFFFFF)),
-          onTap: ElStyle(bgColor: Color(0x24FFFFFF)),
+          onHover: ElStyle(backgroundColor: Color(0x14FFFFFF)),
+          onTap: ElStyle(backgroundColor: Color(0x24FFFFFF)),
         ),
       ),
     );
@@ -784,7 +784,7 @@ class IosSelectionControls extends SelectionControls {
     final children = <Widget>[];
     for (var i = 0; i < actions.length; i++) {
       if (i > 0) {
-        children.add(const ElView(style: ElStyle(width: 1, height: 36, bgColor: Color(0x33FFFFFF))));
+        children.add(const ElView(style: ElStyle(width: 1, height: 36, backgroundColor: Color(0x33FFFFFF))));
       }
       final action = actions[i];
       children.add(_iosToolbarAction(action.label, action.callback));
@@ -793,7 +793,7 @@ class IosSelectionControls extends SelectionControls {
       key: _toolbarVisualKey,
       style: const ElStyle(
         height: 36,
-        bgColor: bubbleColor,
+        backgroundColor: bubbleColor,
         borderRadius: .all(Radius.circular(9)),
         clipBehavior: Clip.antiAlias,
       ),
@@ -804,8 +804,8 @@ class IosSelectionControls extends SelectionControls {
       style: ElStyle(
         width: 16,
         height: 7,
-        bgColor: bubbleColor,
-        clipper: ElClipper.triangle(pointTo: details.isAbove ? AxisDirection.down : AxisDirection.up),
+        backgroundColor: bubbleColor,
+        clipPath: ElClipper.triangle(pointTo: details.isAbove ? AxisDirection.down : AxisDirection.up),
       ),
     );
     return Column(mainAxisSize: .min, children: details.isAbove ? [bar, arrow] : [arrow, bar]);
@@ -822,8 +822,8 @@ class IosSelectionControls extends SelectionControls {
         alignment: .center,
         fontSize: 14,
         color: Color(0xFFFFFFFF),
-        onHover: ElStyle(bgColor: Color(0x1FFFFFFF)),
-        onTap: ElStyle(bgColor: Color(0x33FFFFFF)),
+        onHover: ElStyle(backgroundColor: Color(0x1FFFFFFF)),
+        onTap: ElStyle(backgroundColor: Color(0x33FFFFFF)),
       ),
     );
   }

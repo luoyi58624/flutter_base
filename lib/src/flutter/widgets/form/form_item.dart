@@ -198,7 +198,7 @@ class _FormItemState extends State<ElFormItemView> {
           if (asterisk) const ElView(style: ElStyle(width: 4)),
           Flexible(
             child: ElView(
-              style: const ElStyle(softWrap: false, overflow: TextOverflow.ellipsis),
+              style: const ElStyle(softWrap: false, textOverflow: TextOverflow.ellipsis),
               child: '${widget.component.label}${scope?.labelSuffix ?? ''}',
             ),
           ),
@@ -326,8 +326,8 @@ class _FormItemErrorTextState extends State<_FormItemErrorText> {
         lineHeight: 1.0,
         opacity: _shown ? 1.0 : 0.0,
         transform: .scaleY(_shown ? 1.0 : 0.0),
-        transformAlignment: .topCenter,
-        transitions: const [.all(_duration, _curve)],
+        transformOrigin: .topCenter,
+        transition: const [.all(_duration, _curve)],
       ).merge(widget.style),
       child: text ?? '',
     );

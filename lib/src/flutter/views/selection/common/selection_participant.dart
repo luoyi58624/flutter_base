@@ -908,7 +908,7 @@ OnSelectionPaint extractOnSelectionPaint(ElStyle? style, {int stateBits = 0}) {
   visit(style);
   final m = merged;
   if (m == null) return OnSelectionPaint.empty;
-  final bg = m.bgColor;
+  final bg = m.backgroundColor;
   final fg = m.color;
   if (bg == null && fg == null) return OnSelectionPaint.empty;
   return OnSelectionPaint(bgColor: bg, color: fg);

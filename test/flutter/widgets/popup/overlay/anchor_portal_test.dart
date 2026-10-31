@@ -42,11 +42,11 @@ void main() {
                       builder ??
                       (_) => ElView(
                         key: popupKey,
-                        style: ElStyle(width: 120, height: 60, bgColor: Color(0xFFAA0000)),
+                        style: ElStyle(width: 120, height: 60, backgroundColor: Color(0xFFAA0000)),
                       ),
                   child: ElView(
                     key: anchorKey,
-                    style: ElStyle(width: anchorW, height: anchorH, bgColor: Color(0xFF222222)),
+                    style: ElStyle(width: anchorW, height: anchorH, backgroundColor: Color(0xFF222222)),
                   ),
                 ),
               ),
@@ -59,7 +59,7 @@ void main() {
 
   Widget popup({double w = 120, double h = 60}) => ElView(
     key: popupKey,
-    style: ElStyle(width: w, height: h, bgColor: const Color(0xFFAA0000)),
+    style: ElStyle(width: w, height: h, backgroundColor: const Color(0xFFAA0000)),
   );
 
   group('锚定解算', () {
@@ -127,7 +127,7 @@ void main() {
           anchor: ElOverlayAnchor(matchWidth: true),
           builder: (_) => ElView(
             key: popupKey,
-            style: ElStyle(height: 60, bgColor: Color(0xFFAA0000)),
+            style: ElStyle(height: 60, backgroundColor: Color(0xFFAA0000)),
           ),
         ),
       );
@@ -185,7 +185,7 @@ void main() {
                       },
                       child: ElView(
                         key: anchorKey,
-                        style: const ElStyle(width: 80, height: 40, bgColor: Color(0xFF222222)),
+                        style: const ElStyle(width: 80, height: 40, backgroundColor: Color(0xFF222222)),
                       ),
                     ),
                   ),

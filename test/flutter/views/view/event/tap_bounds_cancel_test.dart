@@ -224,8 +224,8 @@ void main() {
                     style: const ElStyle(
                       width: 200,
                       height: 200,
-                      bgColor: Color(0xFFFF0000),
-                      onTap: ElStyle(bgColor: Color(0xFF0000FF)),
+                      backgroundColor: Color(0xFFFF0000),
+                      onTap: ElStyle(backgroundColor: Color(0xFF0000FF)),
                     ),
                     event: ElEvent(onTap: (_) => taps++, onTapCancel: (_) => cancels++),
                   ),
@@ -237,7 +237,7 @@ void main() {
     );
 
     final box = tester.renderObject<ElRenderView>(find.byKey(const ValueKey('btn-0')));
-    Object? bg() => box.committedResolvedStyle.box.bgColor;
+    Object? bg() => box.committedResolvedStyle.box.backgroundColor;
 
     final g = await tester.createGesture();
     await g.down(const Offset(100, 100));
@@ -323,7 +323,7 @@ void main() {
           style: const ElStyle(
             width: 300,
             height: 300,
-            bgColor: Color(0xFF884422),
+            backgroundColor: Color(0xFF884422),
             onTap: ElStyle(transform: .scale(0.85)),
           ),
           event: ElEvent(onTap: (_) => taps++, onTapCancel: (_) => cancels++),
@@ -352,7 +352,7 @@ void main() {
           style: const ElStyle(
             width: 200,
             height: 200,
-            bgColor: Color(0xFF884422),
+            backgroundColor: Color(0xFF884422),
             onTap: ElStyle(transform: .translate(0, 25)),
           ),
           event: ElEvent(onTap: (_) => taps++),
@@ -388,7 +388,7 @@ void main() {
               children: [
                 for (var i = 0; i < 60; i++)
                   ElView(
-                    style: const ElStyle(width: 200, height: 100, bgColor: Color(0xFF884422)),
+                    style: const ElStyle(width: 200, height: 100, backgroundColor: Color(0xFF884422)),
                     event: ElEvent(onTap: (_) {}),
                   ),
               ],
@@ -430,7 +430,7 @@ void main() {
               height: 300,
               child: present
                   ? ElView(
-                      style: const ElStyle(width: 300, height: 300, bgColor: Color(0xFF884422)),
+                      style: const ElStyle(width: 300, height: 300, backgroundColor: Color(0xFF884422)),
                       event: ElEvent(onTap: (_) {}, onTapCancel: (_) {}),
                     )
                   : const SizedBox.shrink(),

@@ -9,7 +9,7 @@ class _ProfilePage extends HookWidget {
     final push = useState(true), update = useState(false);
     return ElCardView(
       key: ValueKey('page-我的'),
-      style: ElStyle(bgColor: _background),
+      style: ElStyle(backgroundColor: _background),
       child: ElScrollView(
         key: PageStorageKey('profile-list'),
         padding: EdgeInsets.only(bottom: 12),
@@ -18,7 +18,7 @@ class _ProfilePage extends HookWidget {
             style: ElStyle(
               margin: .all(12),
               padding: .all(16),
-              bgColor: _surface,
+              backgroundColor: _surface,
               borderRadius: .circular(8),
             ),
             child: Row(
@@ -27,7 +27,7 @@ class _ProfilePage extends HookWidget {
                   style: ElStyle(
                     width: 56,
                     height: 56,
-                    bgColor: _primary,
+                    backgroundColor: _primary,
                     borderRadius: .circular(16),
                     alignment: .center,
                   ),
@@ -183,7 +183,7 @@ class _Setting extends StatelessWidget {
   final VoidCallback? onPressed;
   @override
   Widget build(BuildContext context) => ElCardView(
-    style: ElStyle(bgColor: _surface),
+    style: ElStyle(backgroundColor: _surface),
     child: Column(
       children: [
         ElButtonView(

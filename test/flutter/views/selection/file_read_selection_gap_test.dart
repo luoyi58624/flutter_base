@@ -18,7 +18,7 @@ Widget _fileReadPage({int rowCount = 32}) {
           title: const ElView(key: _navTitleKey, child: 'FileRead'),
         ),
         body: ElView(
-          style: const ElStyle(bgColor: Color(0xff282c34)),
+          style: const ElStyle(backgroundColor: Color(0xff282c34)),
           child: Column(
             children: [
               ElView(
@@ -26,7 +26,7 @@ Widget _fileReadPage({int rowCount = 32}) {
                 style: const ElStyle(
                   height: 52,
                   padding: .symmetric(horizontal: 16, vertical: 10),
-                  bgColor: Color(0xff21252b),
+                  backgroundColor: Color(0xff21252b),
                 ),
                 child: Row(
                   spacing: 12,
@@ -168,26 +168,25 @@ void main() {
         points.add(Offset(codeX, seamY));
       }
 
-      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
-      addTearDown(mouse.removePointer);
-      await mouse.addPointer(location: points.first);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: points.first);
+    await tester.pump();
+    expect(
+      RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+      SystemMouseCursors.text,
+      reason: '首行顶部 leading 内仍应是 text 光标',
+    );
+    for (final point in points.skip(1)) {
+      await mouse.moveTo(point);
       await tester.pump();
       expect(
         RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
         SystemMouseCursors.text,
-        reason: '首行顶部 leading 内仍应是 text 光标',
+        reason: '虚拟富文本行的 leading 或相邻行界 $point 不得退回默认光标',
       );
-      for (final point in points.skip(1)) {
-        await mouse.moveTo(point);
-        await tester.pump();
-        expect(
-          RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
-          SystemMouseCursors.text,
-          reason: '虚拟富文本行的 leading 或相邻行界 $point 不得退回默认光标',
-        );
-      }
-    },
-  );
+    }
+  });
 
   testWidgets(
     'FileRead 虚拟滚动：拖过正文行间空隙不得反向溢出到导航和工具栏',

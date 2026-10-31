@@ -6,9 +6,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState state) =>
-    ElView(style: ElStyle(width: 100, height: 32, bgColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
+    ElView(style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
 Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) =>
-    ElView(style: ElStyle(width: 100, height: 32, bgColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
+    ElView(style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
 Widget _button(BuildContext context, ElButton component) => ElButtonView(
   onPressed: component.onPressed,
   event: component.event,

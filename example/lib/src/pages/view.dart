@@ -29,14 +29,14 @@ class ElViewPage extends StatelessWidget {
                         style: ElStyle(
                           width: flag.value ? 180 : 120,
                           height: 80,
-                          bgColor: flag.value ? Colors.blue : Colors.green,
+                          backgroundColor: flag.value ? Colors.blue : Colors.green,
                           borderRadius: flag.value
                               ? BorderRadius.circular(40)
                               : const BorderRadius.only(
                                   topLeft: Radius.elliptical(32, 16),
                                   bottomRight: Radius.circular(16),
                                 ),
-                          transitions: const [ElTransition.all()],
+                          transition: const [ElTransition.all()],
                           clipBehavior: Clip.antiAlias,
                         ),
                         child: _radiusContent,
@@ -51,7 +51,7 @@ class ElViewPage extends StatelessWidget {
                                   style: .new(
                                     width: 100,
                                     height: 100,
-                                    bgColor: flag.value
+                                    backgroundColor: flag.value
                                         ? Colors.blue
                                         : Colors.green,
                                     margin: .only(bottom: 8),

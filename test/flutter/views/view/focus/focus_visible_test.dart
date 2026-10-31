@@ -32,15 +32,15 @@ void main() {
       style: const ElStyle(
         width: 80,
         height: 36,
-        bgColor: base,
-        onFocus: ElStyle(bgColor: focusBg),
-        onFocusVisible: ElStyle(bgColor: ringBg),
+        backgroundColor: base,
+        onFocus: ElStyle(backgroundColor: focusBg),
+        onFocusVisible: ElStyle(backgroundColor: ringBg),
       ),
     );
   }
 
   Color? bgOf(WidgetTester tester, Key key) =>
-      tester.renderObject<ElRenderView>(find.byKey(key)).committedResolvedStyle.box.bgColor;
+      tester.renderObject<ElRenderView>(find.byKey(key)).committedResolvedStyle.box.backgroundColor;
 
   Future<void> pressKey(WidgetTester tester, LogicalKeyboardKey key) async {
     await tester.sendKeyEvent(key);
@@ -360,8 +360,8 @@ void main() {
         style: const ElStyle(
           width: 80,
           height: 36,
-          bgColor: base,
-          onFocusVisible: ElStyle(bgColor: ringBg),
+          backgroundColor: base,
+          onFocusVisible: ElStyle(backgroundColor: ringBg),
         ),
         child: Builder(
           builder: (context) {

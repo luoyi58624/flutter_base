@@ -181,7 +181,7 @@ class MyProgress extends HookWidget {
                     minWidth: circle ? null : 42,
                     minHeight: 21,
                     alignment: Alignment.center,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                    fontFeatureSettings: const [FontFeature.tabularFigures()],
                   ),
                 ),
             child:

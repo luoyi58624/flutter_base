@@ -37,7 +37,7 @@ class _AlwaysVisibleScrollbar extends ElScrollbar {
     required bool visible,
     required bool hovered,
     required bool dragging,
-  }) => ElView(style: const ElStyle(bgColor: Color(0xff409eff)));
+  }) => ElView(style: const ElStyle(backgroundColor: Color(0xff409eff)));
 }
 
 const _narrowWindow = Size(580, 300);
@@ -1213,12 +1213,12 @@ void main() {
                       width: 100,
                       height: 50,
                       margin: .only(left: 12, right: 12, bottom: 8),
-                      bgColor: Colors.green,
+                      backgroundColor: Colors.green,
                     ),
                   ),
                   ElView(
                     key: ValueKey('virtual-margin-item-1'),
-                    style: ElStyle(width: 100, height: 50, bgColor: Colors.blue),
+                    style: ElStyle(width: 100, height: 50, backgroundColor: Colors.blue),
                   ),
                 ],
               ),

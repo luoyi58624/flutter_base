@@ -10,9 +10,9 @@ ElButtonView(
   semanticLabel: '保存',
   style: ElStyle(
     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    bgColor: Colors.blue,
+    backgroundColor: Colors.blue,
     color: Colors.white,
-    onHover: ElStyle(bgColor: Colors.indigo),
+    onHover: ElStyle(backgroundColor: Colors.indigo),
     onTap: ElStyle(opacity: 0.7),
     onDisabled: ElStyle(opacity: 0.4),
   ),
@@ -40,7 +40,7 @@ ValueListenableBuilder<bool>(
   builder: (_, value, _) => ElButtonView(
     toggled: value,
     onPressed: () => selected.value = !value,
-    style: ElStyle(bgColor: value ? Colors.blue : Colors.grey),
+    style: ElStyle(backgroundColor: value ? Colors.blue : Colors.grey),
     child: value ? '已开启' : '已关闭',
   ),
 );

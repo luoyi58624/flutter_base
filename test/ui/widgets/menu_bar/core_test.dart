@@ -637,7 +637,7 @@ void main() {
 class _TestMenu extends ElContextMenu {
   @override
   Widget buildPanel(BuildContext context, List<Widget> children) => ElView(
-    style: ElStyle(bgColor: Color(0xffffffff), padding: .all(2)),
+    style: ElStyle(backgroundColor: Color(0xffffffff), padding: .all(2)),
     child: IntrinsicWidth(
       child: Column(mainAxisSize: .min, crossAxisAlignment: .stretch, children: children),
     ),

@@ -124,7 +124,7 @@ void main() {
                     style: ElStyle(
                       color: const Color(0xff111827),
                       lineHeight: 1.25,
-                      textDirection: languageLines[i].$2,
+                      direction: languageLines[i].$2,
                     ),
                     child: languageLines[i].$1,
                   ),
@@ -159,8 +159,8 @@ void main() {
               style: const ElStyle(
                 padding: .all(12),
                 borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-                bgColor: Colors.white,
-                border: .all(color: Color(0xffe2e8f0)),
+                backgroundColor: Colors.white,
+                border: .all(borderColor: Color(0xffe2e8f0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +188,7 @@ void main() {
                           style: ElStyle(
                             color: const Color(0xff111827),
                             lineHeight: 1.25,
-                            textDirection: languageLines[i].$2,
+                            direction: languageLines[i].$2,
                           ),
                           child: languageLines[i].$1,
                         ),

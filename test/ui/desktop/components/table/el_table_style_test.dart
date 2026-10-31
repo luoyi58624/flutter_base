@@ -101,22 +101,22 @@ void main() {
     expect(style.highlightCurrentRow, isFalse);
     expect(style.minColumnWidth, 80);
     // 分隔线：外框 / 表头下边 / 行下边 / 列左竖线同一个色。
-    expect(style.frame.border?.top.color, divider);
-    expect(style.header.border?.bottom.color, divider);
-    expect(style.row.border?.bottom.color, divider);
-    expect(style.columnDivider?.border?.left.color, divider);
-    expect(style.expanded.border?.bottom.color, divider);
-    expect(style.summary.border?.top.color, divider);
+    expect(style.frame.border?.borderTop.borderColor, divider);
+    expect(style.header.border?.borderBottom.borderColor, divider);
+    expect(style.row.border?.borderBottom.borderColor, divider);
+    expect(style.columnDivider?.border?.borderLeft.borderColor, divider);
+    expect(style.expanded.border?.borderBottom.borderColor, divider);
+    expect(style.summary.border?.borderTop.borderColor, divider);
     expect(style.fixedDividerColor, divider);
     // 结构面：表头底回落行底、悬停底 #f5f7fa、当前行底取主色亮阶。
-    expect(style.table.bgColor, style.row.bgColor);
-    expect(style.header.bgColor, style.row.bgColor);
+    expect(style.table.backgroundColor, style.row.backgroundColor);
+    expect(style.header.backgroundColor, style.row.backgroundColor);
     expect(style.header.fontWeight, FontWeight.w600);
-    expect(style.row.onHover?.bgColor, const Color(0xfff5f7fa));
-    expect(style.currentRow?.bgColor, r.currentRow);
+    expect(style.row.onHover?.backgroundColor, const Color(0xfff5f7fa));
+    expect(style.currentRow?.backgroundColor, r.currentRow);
     // 行内控件：选择框描边跟随主题边框色，选中态用主色。
-    expect(style.selection.border?.top.color, r.borderColor);
-    expect(style.selectionActive.bgColor, r.primary);
+    expect(style.selection.border?.borderTop.borderColor, r.borderColor);
+    expect(style.selectionActive.backgroundColor, r.primary);
     expect(style.sortActive.color, r.primary);
     expect(style.expand.color, style.header.color);
     expect(style.fixedColumnShadow, isNotNull);
@@ -125,22 +125,22 @@ void main() {
   testWidgets('暗色下分隔线跟随主题边框色（半透明）', (tester) async {
     final r = await resolve(tester, brightness: .dark);
     final divider = r.borderColor.withValues(alpha: 0.6);
-    expect(r.style.row.border?.bottom.color, divider);
-    expect(r.style.header.border?.bottom.color, divider);
-    expect(r.style.columnDivider?.border?.left.color, divider);
-    expect(r.style.row.onHover?.bgColor, const Color(0xff262727));
+    expect(r.style.row.border?.borderBottom.borderColor, divider);
+    expect(r.style.header.border?.borderBottom.borderColor, divider);
+    expect(r.style.columnDivider?.border?.borderLeft.borderColor, divider);
+    expect(r.style.row.onHover?.backgroundColor, const Color(0xff262727));
   });
 
   testWidgets('表格实际行样式可微调，copyWith 不改变原预设', (tester) async {
     final r = await resolve(tester);
     final custom = r.style.copyWith(
       row: r.style.row.copyWith(
-        onHover: ElStyle(bgColor: Color(0xffff0000)),
-        border: ElBorder.only(bottom: ElBorderSide(color: Color(0xff00ff00))),
+        onHover: ElStyle(backgroundColor: Color(0xffff0000)),
+        border: ElBorder.only(borderBottom: ElBorderSide(borderColor: Color(0xff00ff00))),
       ),
     );
-    expect(custom.row.onHover?.bgColor, Color(0xffff0000));
-    expect(custom.row.border?.bottom.color, Color(0xff00ff00));
+    expect(custom.row.onHover?.backgroundColor, Color(0xffff0000));
+    expect(custom.row.border?.borderBottom.borderColor, Color(0xff00ff00));
     final tweaked = r.style.copyWith(
       stripe: true,
       highlightCurrentRow: true,

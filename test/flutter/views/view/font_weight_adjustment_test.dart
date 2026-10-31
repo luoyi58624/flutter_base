@@ -51,7 +51,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(fontVariations: axes),
+            style: ElStyle(fontVariationSettings: axes),
             child: Column(
               mainAxisSize: .min,
               children: [
@@ -71,7 +71,7 @@ void main() {
         expect(style.fontWeight, FontWeight.values[i]);
         expect(style.fontVariations, axes);
         expect(style.fontVariations!.last, FontVariation('wdth', 90));
-        expect(_render(tester, keys[i]).committedResolvedStyle.inheritedText.fontVariations, same(axes));
+        expect(_render(tester, keys[i]).committedResolvedStyle.inheritedText.fontVariationSettings, same(axes));
       }
     }
   });
@@ -83,7 +83,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElView(
-          style: ElStyle(fontVariations: [FontVariation('wght', 590.5)]),
+          style: ElStyle(fontVariationSettings: [FontVariation('wght', 590.5)]),
           child: Column(
             mainAxisSize: .min,
             children: [
@@ -139,7 +139,7 @@ void main() {
           valueListenable: value,
           child: leaf,
           builder: (context, weight, child) => ElView(
-            style: ElStyle(fontVariations: weight == null ? null : [FontVariation('wght', weight)]),
+            style: ElStyle(fontVariationSettings: weight == null ? null : [FontVariation('wght', weight)]),
             child: child,
           ),
         ),
@@ -171,7 +171,7 @@ void main() {
       _host(
         ElView(
           key: key,
-          style: ElStyle(fontWeight: .w500, fontVariations: [FontVariation('wght', 590)]),
+          style: ElStyle(fontWeight: .w500, fontVariationSettings: [FontVariation('wght', 590)]),
           child: TextSpan(
             text: '根',
             children: [
@@ -230,7 +230,7 @@ void main() {
       _host(
         ElView(
           key: key,
-          style: ElStyle(fontVariations: [FontVariation('wght', 590)]),
+          style: ElStyle(fontVariationSettings: [FontVariation('wght', 590)]),
           child: TextSpan(
             text: '点击',
             style: TextStyle(fontWeight: .w500),
@@ -257,7 +257,7 @@ void main() {
       _host(
         ElView(
           key: key,
-          style: ElStyle(fontVariations: [FontVariation('wght', 590)]),
+          style: ElStyle(fontVariationSettings: [FontVariation('wght', 590)]),
           child: _RecordingSpan(() => downs++),
         ),
       ),
@@ -278,12 +278,12 @@ void main() {
           children: [
             ElView(
               key: icon,
-              style: ElStyle(fontWeight: .w500, fontVariations: [FontVariation('wght', 590)]),
+              style: ElStyle(fontWeight: .w500, fontVariationSettings: [FontVariation('wght', 590)]),
               child: IconData(0xe000, fontFamily: 'test-icons'),
             ),
             ElView(
               key: text,
-              style: ElStyle(fontWeight: .w500, fontVariations: [FontVariation('wdth', 90)]),
+              style: ElStyle(fontWeight: .w500, fontVariationSettings: [FontVariation('wdth', 90)]),
               child: '普通文字',
             ),
           ],
@@ -310,7 +310,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(fontVariations: [FontVariation('wght', 590)]),
+            style: ElStyle(fontVariationSettings: [FontVariation('wght', 590)]),
             child: SizedBox(
               width: 300,
               child: ElTable(

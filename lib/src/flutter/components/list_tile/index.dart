@@ -31,9 +31,9 @@ class MyListTile extends StatelessWidget {
       ),
       style: .new(
         padding: .symmetric(vertical: 16),
-        onHover: .new(bgColor: Colors.grey.shade100),
-        onTap: .new(bgColor: Colors.grey.shade300),
-        transitions: [.all()],
+        onHover: .new(backgroundColor: Colors.grey.shade100),
+        onTap: .new(backgroundColor: Colors.grey.shade300),
+        transition: [.all()],
       ),
       child: Row(
         children: [

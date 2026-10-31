@@ -10,7 +10,7 @@ ElView(
     width: '100%',
     padding: EdgeInsets.all(12),
     margin: EdgeInsets.only(bottom: 8),
-    bgColor: Colors.blue,
+    backgroundColor: Colors.blue,
     borderRadius: BorderRadius.circular(8),
     color: Colors.white,
     fontSize: 16,
@@ -25,14 +25,14 @@ ElView(
 | --- | --- |
 | width / height、minWidth / maxWidth、minHeight / maxHeight | 尺寸和约束，尺寸支持数字、百分比及 ElDimension |
 | padding / margin / alignment / aspectRatio | 内外间距、内容对齐、宽高比 |
-| bgColor / gradient / bgImage / border / borderRadius / boxShadow | 背景、边框、圆角与阴影 |
+| backgroundColor / gradient / backgroundImage / border / borderRadius / boxShadow | 背景、边框、圆角与阴影 |
 | color / fontSize / fontWeight / fontFamily / lineHeight | 文本样式；可继承字段沿 ElView 链传递 |
-| maxLines / overflow / softWrap / textAlign | 文本行数、溢出、换行和对齐 |
+| maxLines / textOverflow / softWrap / textAlign | 文本行数、溢出、换行和对齐 |
 | iconSize / iconColor、cursor / pointerEvents / userSelect | 图标、光标、命中与文本选择 |
-| opacity / transform / transformAlignment / clipBehavior | 透明度、变换、变换原点与裁剪 |
-| filter / backdropFilter / outline / clipper | 滤镜、背景滤镜、外轮廓与自定义裁剪 |
+| opacity / transform / transformOrigin / clipBehavior | 透明度、变换、变换原点与裁剪 |
+| filter / backdropFilter / outline / clipPath | 滤镜、背景滤镜、外轮廓与自定义裁剪 |
 
-`style.merge(other)` 用后者的非空字段覆盖前者。clipper 与 borderRadius 不应同时声明。
+`style.merge(other)` 用后者的非空字段覆盖前者。clipPath 与 borderRadius 不应同时声明。
 
 ## 交互状态与主题
 
@@ -40,12 +40,12 @@ ElView(
 ElView(
   style: ElStyle(
     padding: EdgeInsets.all(12),
-    bgColor: Colors.blue,
-    onHover: ElStyle(bgColor: Colors.indigo),
+    backgroundColor: Colors.blue,
+    onHover: ElStyle(backgroundColor: Colors.indigo),
     onTap: ElStyle(opacity: 0.7),
-    onFocusVisible: ElStyle(bgColor: Colors.deepPurple),
+    onFocusVisible: ElStyle(backgroundColor: Colors.deepPurple),
     onDisabled: ElStyle(opacity: 0.4),
-    onDark: ElStyle(bgColor: Colors.blueGrey),
+    onDark: ElStyle(backgroundColor: Colors.blueGrey),
   ),
   event: ElEvent(onTap: (_) {}),
   child: '交互区域',
@@ -83,8 +83,8 @@ ValueListenableBuilder<bool>(
     style: ElStyle(
       width: value ? 200 : 100,
       height: 40,
-      bgColor: Colors.blue,
-      transitions: [ElTransition.all(Duration(milliseconds: 200))],
+      backgroundColor: Colors.blue,
+      transition: [ElTransition.all(Duration(milliseconds: 200))],
       starting: ElStyle(opacity: 0),
     ),
     child: '尺寸过渡',
@@ -92,7 +92,7 @@ ValueListenableBuilder<bool>(
 );
 ```
 
-事件中修改 expanded.value，外部持有的 notifier 在卸载时 dispose。transitions 为样式变化定义过渡，starting 定义入场起始样式；重复关键帧动画使用 animations / ElAnimation。
+事件中修改 expanded.value，外部持有的 notifier 在卸载时 dispose。transition 为样式变化定义过渡，starting 定义入场起始样式；重复关键帧动画使用 animation / ElAnimation。
 
 ## 事件、焦点与语义
 

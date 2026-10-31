@@ -24,7 +24,7 @@ class ViewBasePage extends HookWidget {
                             width: 100,
                             height: 100,
                             padding: .all(16),
-                            bgColor: state.hasTap
+                            backgroundColor: state.hasTap
                                 ? Colors.green
                                 : state.hasHover
                                 ? Colors.purple
@@ -37,7 +37,7 @@ class ViewBasePage extends HookWidget {
                                   ? 1.5
                                   : 1.0,
                             ),
-                            transitions: [
+                            transition: [
                               .all(
                                 state.hasTap
                                     ? .zero

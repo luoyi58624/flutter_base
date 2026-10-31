@@ -193,8 +193,8 @@ void main() {
               style: ElStyle(
                 width: 200,
                 height: 600,
-                bgColor: Color(0xff00ff00),
-                onTap: ElStyle(bgColor: Color(0xffff0000)),
+                backgroundColor: Color(0xff00ff00),
+                onTap: ElStyle(backgroundColor: Color(0xffff0000)),
               ),
             ),
           ],
@@ -206,15 +206,15 @@ void main() {
     await tester.pump(Duration(milliseconds: 20));
     await first.up();
     await tester.pump();
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xffff0000));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xffff0000));
     await tester.pump(Duration(milliseconds: 80));
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xff00ff00));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff00ff00));
     final second = await tester.startGesture(Offset(50, 100));
     await tester.pump(Duration(milliseconds: 10));
     await second.moveBy(Offset(0, -60));
     await second.moveBy(Offset(0, -30));
     await tester.pump();
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xff00ff00));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff00ff00));
     await second.cancel();
     await tester.pumpAndSettle();
   });

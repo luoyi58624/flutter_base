@@ -8,10 +8,10 @@ void main() {
   );
   Finder mark() => find.byWidgetPredicate((widget) => widget is ElView && widget.style?.minWidth != null);
 
-  testWidgets('只导入 el_ui 即可使用徽章，背景完全由 bgColor 控制', (tester) async {
+  testWidgets('只导入 el_ui 即可使用徽章，背景完全由 backgroundColor 控制', (tester) async {
     await tester.pumpWidget(host(ElBadge(bgColor: Color(0xff123456), value: 123)));
     expect(tester.widget<ElView>(mark()).child, '99+');
-    expect(tester.widget<ElView>(mark()).style?.bgColor, Color(0xff123456));
+    expect(tester.widget<ElView>(mark()).style?.backgroundColor, Color(0xff123456));
     expect(tester.takeException(), isNull);
   });
 

@@ -20,7 +20,7 @@ const _darkSurface = Color(0xFF1E293B);
 
 const _darkText = Color(0xFFE2E8F0);
 
-const _darkBase = ElStyle(bgColor: _darkSurface, color: _darkText);
+const _darkBase = ElStyle(backgroundColor: _darkSurface, color: _darkText);
 
 Widget _box(Key key, ElStyle style) {
   return ElView(
@@ -28,7 +28,7 @@ Widget _box(Key key, ElStyle style) {
     style: style.copyWith(
       width: style.width ?? 96,
       height: style.height ?? 40,
-      transitions: style.transitions ?? _instant,
+      transition: style.transition ?? _instant,
     ),
   );
 }
@@ -69,14 +69,14 @@ void main() {
             style: ElStyle(
               width: 150,
               height: 48,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))],
               borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
               padding: .symmetric(horizontal: 14),
               alignment: Alignment.center,
-              transitions: _instant,
+              transition: _instant,
               onDark: _darkBase,
-              onHover: ElStyle(width: 200, bgColor: Colors.green),
+              onHover: ElStyle(width: 200, backgroundColor: Colors.green),
             ),
             child: ElView(style: ElStyle(fontSize: 13), child: 'width 150 -> 200'),
           ),
@@ -89,7 +89,7 @@ void main() {
 
         await hover(tester, key);
         expect(render.size, const Size(200, 48));
-        expect(render.committedResolvedStyle.box.bgColor, Colors.green);
+        expect(render.committedResolvedStyle.box.backgroundColor, Colors.green);
 
         render.setDark(true);
         await tester.pump();
@@ -104,11 +104,11 @@ void main() {
             key: key,
             style: ElStyle(
               height: 48,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               alignment: Alignment.center,
               padding: .symmetric(horizontal: 14),
-              transitions: _instant,
-              onHover: ElStyle(width: 200, bgColor: Colors.green),
+              transition: _instant,
+              onHover: ElStyle(width: 200, backgroundColor: Colors.green),
             ),
             child: SizedBox(width: 80, height: 20),
           ),
@@ -132,11 +132,11 @@ void main() {
             style: ElStyle(
               width: '50%',
               height: 48,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               alignment: Alignment.center,
               padding: .symmetric(horizontal: 14),
-              transitions: _instant,
-              onHover: ElStyle(width: '100%', bgColor: Colors.green),
+              transition: _instant,
+              onHover: ElStyle(width: '100%', backgroundColor: Colors.green),
             ),
             child: SizedBox(width: 20, height: 20),
           ),
@@ -160,10 +160,10 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 48,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               margin: .zero,
               alignment: Alignment.center,
-              transitions: _instant,
+              transition: _instant,
               onHover: ElStyle(margin: .all(8)),
             ),
             child: ElView(style: ElStyle(fontSize: 13), child: 'margin'),
@@ -190,10 +190,10 @@ void main() {
           const ElView(
             key: key,
             style: ElStyle(
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               padding: .all(8),
               alignment: Alignment.center,
-              transitions: _instant,
+              transition: _instant,
               onHover: ElStyle(padding: .all(20)),
             ),
             child: SizedBox(width: 30, height: 10),
@@ -436,7 +436,7 @@ void main() {
               style: ElStyle(),
               child: ElView(
                 key: inner,
-                style: ElStyle(width: 50, height: 30, bgColor: Color(0xffff0000)),
+                style: ElStyle(width: 50, height: 30, backgroundColor: Color(0xffff0000)),
               ),
             ),
           ),
@@ -463,7 +463,7 @@ void main() {
             style: ElStyle(alignment: Alignment.center),
             child: ElView(
               key: inner,
-              style: ElStyle(width: 50, height: 30, bgColor: Color(0xffff0000)),
+              style: ElStyle(width: 50, height: 30, backgroundColor: Color(0xffff0000)),
             ),
           ),
         ),
@@ -488,7 +488,7 @@ void main() {
             style: ElStyle(alignment: Alignment.bottomRight),
             child: ElView(
               key: inner,
-              style: ElStyle(width: 50, height: 30, bgColor: Color(0xff00ff00)),
+              style: ElStyle(width: 50, height: 30, backgroundColor: Color(0xff00ff00)),
             ),
           ),
         ),
@@ -1147,7 +1147,7 @@ void main() {
             key: hostKey,
             style: ElStyle(
               heightFactor: factor,
-              transitions: const [ElTransition.field(.heightFactor, Duration(milliseconds: 100), Curves.linear)],
+              transition: const [ElTransition.field(.heightFactor, Duration(milliseconds: 100), Curves.linear)],
             ),
             child: const SizedBox(key: childKey, width: 100, height: 40),
           ),
@@ -1834,7 +1834,7 @@ void main() {
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 300, maxHeight: 600),
               child: const ElView(
-                style: ElStyle(width: 100, height: 50, bgColor: Color(0xFFFF0000)),
+                style: ElStyle(width: 100, height: 50, backgroundColor: Color(0xFFFF0000)),
                 child: SizedBox(),
               ),
             ),
@@ -1857,7 +1857,7 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 50,
-              textDirection: dir,
+              direction: dir,
               padding: const EdgeInsetsDirectional.only(start: 10, end: 30),
             ),
             child: 'x',

@@ -79,7 +79,7 @@ class MyTheme extends StatelessWidget {
               fontSize: 15,
               lineHeight: kTextHeightNone,
               fontWeight: resolved.weight(resolved.fontWeight),
-              fontVariations: [FontVariation('wght', resolved.fontWeight)],
+              fontVariationSettings: [FontVariation('wght', resolved.fontWeight)],
             ),
             child: child,
           ),

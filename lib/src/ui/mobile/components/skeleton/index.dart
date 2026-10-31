@@ -49,7 +49,7 @@ class MySkeleton extends StatelessWidget {
       style: ElStyle(
         width: width,
         height: height,
-        bgColor: t.fill,
+        backgroundColor: t.fill,
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -69,13 +69,13 @@ class MySkeleton extends StatelessWidget {
             ),
             style: ElStyle(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              animations: myReducedMotion(context)
+              animation: myReducedMotion(context)
                   ? const []
                   : [
                       ElAnimation(
-                        duration: const Duration(milliseconds: 1500),
-                        curve: Curves.easeInOut,
-                        iterationCount: double.infinity,
+                        animationDuration: const Duration(milliseconds: 1500),
+                        animationTimingFunction: Curves.easeInOut,
+                        animationIterationCount: double.infinity,
                         keyframes: {
                           0: const ElStyle(opacity: 1),
                           50: const ElStyle(opacity: .45),

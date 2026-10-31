@@ -25,23 +25,23 @@ class ElStyle with Equatable {
     this.lineHeight,
     this.letterSpacing,
     this.wordSpacing,
-    this.fontFeatures,
+    this.fontFeatureSettings,
     this.textAlign,
     this.textShadow,
     this.textGradient,
-    this.decoration,
-    this.decorationColor,
-    this.decorationStyle,
-    this.decorationThickness,
+    this.textDecorationLine,
+    this.textDecorationColor,
+    this.textDecorationStyle,
+    this.textDecorationThickness,
     this.textBackgroundColor,
-    this.fontVariations,
+    this.fontVariationSettings,
     this.leadingDistribution,
     this.textBaseline,
     this.softWrap,
-    this.overflow,
+    this.textOverflow,
     this.maxLines,
     // InheritedBox (5)
-    this.textDirection,
+    this.direction,
     this.cursor,
     this.pointerEvents,
     this.iconSize,
@@ -52,13 +52,13 @@ class ElStyle with Equatable {
     this.height,
     this.widthFactor,
     this.heightFactor,
-    this.bgColor,
+    this.backgroundColor,
     this.padding,
     this.margin,
     this.alignment,
     this.border,
     this.borderRadius,
-    this.clipper,
+    this.clipPath,
     this.boxShadow,
     this.minWidth,
     this.maxWidth,
@@ -66,10 +66,10 @@ class ElStyle with Equatable {
     this.maxHeight,
     this.opacity,
     this.transform,
-    this.transformAlignment,
+    this.transformOrigin,
     this.clipBehavior,
     this.gradient,
-    this.bgImage,
+    this.backgroundImage,
     this.outline,
     this.aspectRatio,
     this.filter,
@@ -90,15 +90,15 @@ class ElStyle with Equatable {
     this.onSelection,
     this.onDark,
     // Transitions
-    this.transitions,
-    // Keyframe animations
-    this.animations,
+    this.transition,
+    // Keyframe animation
+    this.animation,
     // Enter starting style
     this.starting,
   }) : assert(
-         clipper == null || borderRadius == null,
-         '裁剪/圆角字段互斥：声明 clipper 时，borderRadius 会被忽略 '
-         '（优先级 clipper > borderRadius）',
+         clipPath == null || borderRadius == null,
+         '裁剪/圆角字段互斥：声明 clipPath 时，borderRadius 会被忽略 '
+         '（优先级 clipPath > borderRadius）',
        );
 
   /// 合并实际样式值，后声明的非空字段覆盖当前字段。
@@ -123,23 +123,23 @@ class ElStyle with Equatable {
   /// 字体回退族列表。继承字段。
   final List<String>? fontFamilyFallback;
 
-  /// OpenType 字体特性（`tnum` 等宽数字 / `liga` 连字 / `smcp` 小型大写 等）。
+  /// OpenType 字体特性（CSS `font-feature-settings`，如 `tnum` / `liga` / `smcp`）。
   /// 继承字段。
-  final List<FontFeature>? fontFeatures;
+  final List<FontFeature>? fontFeatureSettings;
 
-  /// 装饰线颜色（独立于文字色）。继承字段（CSS Text Decoration L3）。
+  /// 装饰线颜色（CSS `text-decoration-color`，独立于文字色）。继承字段。
   ///
-  final Color? decorationColor;
+  final Color? textDecorationColor;
 
-  /// 装饰线样式（实线/虚线/波浪线等）。继承字段。
-  final TextDecorationStyle? decorationStyle;
+  /// 装饰线样式（CSS `text-decoration-style`，实线/虚线/波浪线等）。继承字段。
+  final TextDecorationStyle? textDecorationStyle;
 
-  /// 装饰线粗细。继承字段。
-  final double? decorationThickness;
+  /// 装饰线粗细（CSS `text-decoration-thickness`）。继承字段。
+  final double? textDecorationThickness;
 
-  /// Variable Font 可变轴（`wght`/`wdth`/`slnt`/...）。继承字段。
+  /// 可变字体轴设置（CSS `font-variation-settings`，如 `wght` / `wdth` / `slnt`）。继承字段。
   /// 按 Flutter 规则原样传递，显式 wght 覆盖 fontWeight；空列表清除继承轴。
-  final List<FontVariation>? fontVariations;
+  final List<FontVariation>? fontVariationSettings;
 
   /// 行高 leading 在上下半行的分布策略。继承字段。
   final TextLeadingDistribution? leadingDistribution;
@@ -166,8 +166,8 @@ class ElStyle with Equatable {
   /// 字形绘制段蒙渐变，选中高亮/换色不受影响。
   final Gradient? textGradient;
 
-  /// 文本装饰。非继承字段。
-  final TextDecoration? decoration;
+  /// 文本装饰线类型（CSS `text-decoration-line`）。非继承字段。
+  final TextDecoration? textDecorationLine;
 
   /// 文本背景色。非继承字段。
   final Color? textBackgroundColor;
@@ -175,14 +175,14 @@ class ElStyle with Equatable {
   /// 软换行。非继承字段。
   final bool? softWrap;
 
-  /// 文本溢出策略。非继承字段。
-  final TextOverflow? overflow;
+  /// 文本溢出策略（CSS `text-overflow` 的 Flutter 子集）。非继承字段。
+  final TextOverflow? textOverflow;
 
   /// 最大行数。非继承字段。
   final int? maxLines;
 
-  /// 文本方向（LTR / RTL）。继承字段。
-  final TextDirection? textDirection;
+  /// 文本方向（CSS `direction`，LTR / RTL）。继承字段。
+  final TextDirection? direction;
 
   /// 鼠标光标。继承字段。
   final MouseCursor? cursor;
@@ -217,8 +217,8 @@ class ElStyle with Equatable {
   /// auto 高度相对自然盒高度的系数，作用等同 Flutter Align.heightFactor。
   final double? heightFactor;
 
-  /// 节点背景色。
-  final Color? bgColor;
+  /// 节点背景色（CSS `background-color`）。
+  final Color? backgroundColor;
 
   /// 原生内边距，支持物理边和逻辑边，按当前文字方向解析。
   final EdgeInsetsGeometry? padding;
@@ -239,8 +239,8 @@ class ElStyle with Equatable {
   /// 圆角。Paint-only。
   final BorderRadiusGeometry? borderRadius;
 
-  /// 自定义裁剪形状（兼容 Flutter `ClipPath.clipper`）。Paint-only。
-  final CustomClipper<Path>? clipper;
+  /// 裁剪路径（CSS `clip-path`，由 Flutter 的 CustomClipper 提供形状）。Paint-only。
+  final CustomClipper<Path>? clipPath;
 
   /// 盒阴影列表。Paint-only。
   final List<BoxShadow>? boxShadow;
@@ -264,23 +264,23 @@ class ElStyle with Equatable {
   /// 视觉变换。Paint-only。
   final ElTransform? transform;
 
-  /// 变换原点对齐。Paint-only。
-  final AlignmentGeometry? transformAlignment;
+  /// 变换原点对齐（CSS `transform-origin`）。Paint-only。
+  final AlignmentGeometry? transformOrigin;
 
   /// 裁剪行为。Paint-only。
   final Clip? clipBehavior;
 
-  /// 渐变背景。Paint-only。Paint 顺序：bgColor < bgImage < gradient（CSS 短手默认）。
+  /// 渐变背景。Paint-only。Paint 顺序：backgroundColor < backgroundImage < gradient（CSS 短手默认）。
   ///
   final Gradient? gradient;
 
-  /// 背景图（含 fit/alignment/repeat）。Paint-only。Paint 顺序：在 bgColor 之上、
+  /// 背景图（CSS `background-image`，含 fit/alignment/repeat）。Paint-only。Paint 顺序：在 backgroundColor 之上、
   /// gradient 之下。
-  final DecorationImage? bgImage;
+  final DecorationImage? backgroundImage;
 
   /// 描边（CSS outline）。Paint-only。**永远不影响 layout**（与 border 的唯一区别）。
   ///
-  /// [ElOutline] 聚合 width / color / gradient / offset / position 五个属性。
+  /// [ElOutline] 聚合 outlineWidth / outlineColor / gradient / outlineOffset 四个属性。
   /// 自动支持 null ↔ value 平滑过渡（width / color alpha / offset 同时从 0 渐入）
   /// 与自适应圆角外推算法（解决小圆角 + 大 offset 时变胶囊的失真）。
   final ElOutline? outline;
@@ -341,15 +341,15 @@ class ElStyle with Equatable {
   ///
   /// **整体替换**（CSS `transition` 单条声明口径）：merge 后表非 null 即整表
   /// 覆前表,勿加 useMerge。
-  final List<ElTransition>? transitions;
+  final List<ElTransition>? transition;
 
   /// 关键帧动画声明列表（CSS `animation` + `@keyframes` 等价物，见 [ElAnimation]）。
   ///
-  /// **整体替换**（同 [transitions]）：变体声明的表按 longhand 覆盖语义整表替换
-  /// base 表（如 `onHover: ElStyle(animations: [])` 在 hover 时停掉全部动画）。
+  /// **整体替换**（同 [transition]）：变体声明的表按 longhand 覆盖语义整表替换
+  /// base 表（如 `onHover: ElStyle(animation: [])` 在 hover 时停掉全部动画）。
   /// 同字段被多条动画覆盖时靠后者胜出（CSS `animation-name` 列表序）。
   /// 动画驱动的字段变化不触发 transition（CSS 口径）。
-  final List<ElAnimation>? animations;
+  final List<ElAnimation>? animation;
 
   /// 入场起始样式（CSS `@starting-style` 等价物）。
   final ElStyle? starting;
@@ -391,7 +391,7 @@ typedef _TransformParameters = (double, double, double, double);
 ///
 /// 用于 `ElStyle(transform: ...)`，支持 CSS transform 便捷构造和点简写
 /// `const .scale(...)` / `const .translate(...)`。内部渲染时会转换为 [Matrix4]，
-/// 并与 `transformAlignment` 或 [origin] 一起组成最终 paint / hit-test 矩阵。
+/// 并与 `transformOrigin` 或 [origin] 一起组成最终 paint / hit-test 矩阵。
 @immutable
 final class ElTransform {
   /// 矩阵与来源参数分开保存，旋转过渡保留原始角度。
@@ -567,7 +567,7 @@ final class ElTransform {
     );
   }
 
-  /// 变换原点；未指定时由样式的 `transformAlignment` 或中心点决定。
+  /// 变换原点；未指定时由样式的 `transformOrigin` 或中心点决定。
   final AlignmentGeometry? origin;
 
   final (
@@ -763,37 +763,37 @@ enum ElTransitionField {
   textGradient,
 
   /// 文本装饰（下划线 / 中划线 等）。
-  decoration,
+  textDecorationLine,
 
   /// 装饰线颜色（独立于文字色）。
-  decorationColor,
+  textDecorationColor,
 
   /// 装饰线样式（实线/虚线/波浪线等）。
-  decorationStyle,
+  textDecorationStyle,
 
   /// 装饰线粗细（相对 fontSize 的倍数）。
-  decorationThickness,
+  textDecorationThickness,
 
   /// 字体回退族列表（fontFamily 失败时按序尝试）。
   fontFamilyFallback,
 
   /// OpenType 字体特性（`tnum`/`liga`/`smcp` 等）。
-  fontFeatures,
+  fontFeatureSettings,
 
-  /// 文本背景色（vs `bgColor` 是节点背景）。
+  /// 文本背景色（vs `backgroundColor` 是节点背景）。
   textBackgroundColor,
 
   /// 是否允许软换行。
   softWrap,
 
   /// 文本溢出策略。
-  overflow,
+  textOverflow,
 
   /// 最大行数。
   maxLines,
 
   /// Variable Font 的可变轴（`wght` / `wdth` 等）。继承字段。
-  fontVariations,
+  fontVariationSettings,
 
   /// 行高 leading 在上下半行的分布策略。继承字段。
   leadingDistribution,
@@ -804,7 +804,7 @@ enum ElTransitionField {
   // ===== Group: InheritedBox (5) =====
 
   /// 文本方向（LTR / RTL）。
-  textDirection,
+  direction,
 
   /// 鼠标光标。
   cursor,
@@ -833,7 +833,7 @@ enum ElTransitionField {
   heightFactor,
 
   /// 节点背景色。
-  bgColor,
+  backgroundColor,
 
   /// 内边距。Layout 影响（待 layout 接入）。
   padding,
@@ -853,7 +853,7 @@ enum ElTransitionField {
   borderRadius,
 
   /// 自定义裁剪形状（[CustomClipper]\<Path\>）。Paint-only，lerp = step。
-  clipper,
+  clipPath,
 
   /// 盒阴影列表。Paint-only。
   boxShadow,
@@ -877,19 +877,19 @@ enum ElTransitionField {
   transform,
 
   /// 变换原点对齐。Paint-only。
-  transformAlignment,
+  transformOrigin,
 
   /// 裁剪行为。Paint-only。
   clipBehavior,
 
-  /// 渐变背景（线性 / 径向 / 扫描）。Paint-only。在 bgImage 之上、children 之下。
+  /// 渐变背景（线性 / 径向 / 扫描）。Paint-only。在 backgroundImage 之上、children 之下。
   gradient,
 
   /// 背景图（DecorationImage 含 image/fit/alignment/repeat）。Paint-only。
-  /// 在 bgColor 之上、gradient 之下。
-  bgImage,
+  /// 在 backgroundColor 之上、gradient 之下。
+  backgroundImage,
 
-  /// 描边（[ElOutline] 聚合：width / color / gradient / offset / position）。
+  /// 描边（[ElOutline] 聚合：outlineWidth / outlineColor / gradient / outlineOffset）。
   /// Paint-only。**永远不影响 layout**。
   outline,
 
@@ -906,7 +906,7 @@ enum ElTransitionField {
   backdropFilter,
 }
 
-/// 字段过渡声明。`ElStyle.transitions` 的元素类型。
+/// 字段过渡声明。`ElStyle.transition` 的元素类型。
 @immutable
 class ElTransition {
   /// 单字段过渡。
@@ -1006,74 +1006,74 @@ enum ElAnimationFillMode {
   both,
 }
 
-/// 关键帧动画声明。`ElStyle.animations` 的元素类型 —— CSS `animation` 简写 +
+/// 关键帧动画声明。`ElStyle.animation` 的元素类型 —— CSS `animation` 简写 +
 /// `@keyframes` 的合体（无命名层，keyframes 直接内联）。
 @immutable
 class ElAnimation {
   /// 创建关键帧动画声明。
   const ElAnimation({
     required this.keyframes,
-    required this.duration,
-    this.curve = Curves.ease,
-    this.delay = Duration.zero,
-    this.iterationCount = 1,
-    this.direction = ElAnimationDirection.normal,
-    this.fillMode = ElAnimationFillMode.none,
-    this.paused = false,
-  }) : assert(iterationCount >= 0, 'iterationCount 不能为负');
+    required this.animationDuration,
+    this.animationTimingFunction = Curves.ease,
+    this.animationDelay = Duration.zero,
+    this.animationIterationCount = 1,
+    this.animationDirection = ElAnimationDirection.normal,
+    this.animationFillMode = ElAnimationFillMode.none,
+    this.animationPlayState = false,
+  }) : assert(animationIterationCount >= 0, 'animationIterationCount 不能为负');
 
   /// 关键帧表：offset 百分比整数（0..100）→ 样式帧。表本身即 CSS `@keyframes` 块。
   ///
   /// 帧的**身份锚**：rebuild 时 runner 按「keyframes 相等」判定是否同一动画
-  /// （等价 CSS 的 animation-name 不变）——仅改 timing 参数（duration / paused
+  /// （等价 CSS 的 animation-name 不变）——仅改 timing 参数（animationDuration / animationPlayState
   /// 等）原地更新不重启；keyframes 变了才视为新动画从头播。
   final Map<int, ElStyle> keyframes;
 
   /// 单次迭代时长（CSS `animation-duration`）。
-  final Duration duration;
+  final Duration animationDuration;
 
   /// 逐段缓动（CSS `animation-timing-function`，默认 ease）。
-  final Curve curve;
+  final Curve animationTimingFunction;
 
   /// 起播延迟（CSS `animation-delay`）。
-  final Duration delay;
+  final Duration animationDelay;
 
   /// 迭代次数（CSS `animation-iteration-count`）：可为小数；`double.infinity`
   /// = 无限循环。默认 1。
-  final double iterationCount;
+  final double animationIterationCount;
 
   /// 播放方向（CSS `animation-direction`）。
-  final ElAnimationDirection direction;
+  final ElAnimationDirection animationDirection;
 
   /// 填充模式（CSS `animation-fill-mode`）。
-  final ElAnimationFillMode fillMode;
+  final ElAnimationFillMode animationFillMode;
 
-  /// 暂停（CSS `animation-play-state: paused`）：时钟冻结、当前帧样式保持施加。
-  final bool paused;
+  /// 播放状态（CSS `animation-play-state`）：true 为 paused，false 为 running。
+  final bool animationPlayState;
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! ElAnimation) return false;
-    return duration == other.duration &&
-        curve == other.curve &&
-        delay == other.delay &&
-        iterationCount == other.iterationCount &&
-        direction == other.direction &&
-        fillMode == other.fillMode &&
-        paused == other.paused &&
+    return animationDuration == other.animationDuration &&
+        animationTimingFunction == other.animationTimingFunction &&
+        animationDelay == other.animationDelay &&
+        animationIterationCount == other.animationIterationCount &&
+        animationDirection == other.animationDirection &&
+        animationFillMode == other.animationFillMode &&
+        animationPlayState == other.animationPlayState &&
         keyframesEqual(keyframes, other.keyframes);
   }
 
   @override
   int get hashCode => Object.hash(
-    duration,
-    curve,
-    delay,
-    iterationCount,
-    direction,
-    fillMode,
-    paused,
+    animationDuration,
+    animationTimingFunction,
+    animationDelay,
+    animationIterationCount,
+    animationDirection,
+    animationFillMode,
+    animationPlayState,
     Object.hashAllUnordered(keyframes.keys),
   );
 
@@ -1144,48 +1144,64 @@ enum ElBorderStyle {
 @immutable
 class ElBorderSide {
   /// 创建单边。
-  const ElBorderSide({this.width = 1.0, this.color = const Color(0xFF000000), this.style = ElBorderStyle.solid});
+  const ElBorderSide({
+    this.borderWidth = 1.0,
+    this.borderColor = const Color(0xFF000000),
+    this.borderStyle = ElBorderStyle.solid,
+  });
 
-  /// 无边 sentinel（style = none，paint 跳过）。
-  static const ElBorderSide none = ElBorderSide(width: 0.0, style: ElBorderStyle.none);
+  /// 无边 sentinel（borderStyle = none，paint 跳过）。
+  static const ElBorderSide none = ElBorderSide(borderWidth: 0.0, borderStyle: ElBorderStyle.none);
 
   /// 边宽。
-  final double? width;
+  final double? borderWidth;
 
   /// 边色。直接使用 Color 值。
-  final Color? color;
+  final Color? borderColor;
 
   /// 边样式。[ElBorderStyle.none] = 不绘制。
-  final ElBorderStyle style;
+  final ElBorderStyle borderStyle;
 
   /// 消费点解析边宽到像素。
-  double resolveWidth() => width ?? 0;
+  double resolveWidth() => borderWidth ?? 0;
 
   /// 副本。
-  ElBorderSide copyWith({double? width, Color? color, ElBorderStyle? style}) {
-    return ElBorderSide(width: width ?? this.width, color: color ?? this.color, style: style ?? this.style);
+  ElBorderSide copyWith({double? borderWidth, Color? borderColor, ElBorderStyle? borderStyle}) {
+    return ElBorderSide(
+      borderWidth: borderWidth ?? this.borderWidth,
+      borderColor: borderColor ?? this.borderColor,
+      borderStyle: borderStyle ?? this.borderStyle,
+    );
   }
 
   static ElBorderSide lerp(ElBorderSide a, ElBorderSide b, double t) {
     if (identical(a, b)) return a;
     return ElBorderSide(
-      width: a.width != null && b.width != null ? lerpDouble(a.width, b.width, t) : (t < 0.5 ? a.width : b.width),
-      color: a.color != null && b.color != null ? lerpColorPremul(a.color, b.color, t) : (t < 0.5 ? a.color : b.color),
-      style: t < 0.5 ? a.style : b.style,
+      borderWidth: a.borderWidth != null && b.borderWidth != null
+          ? lerpDouble(a.borderWidth, b.borderWidth, t)
+          : (t < 0.5 ? a.borderWidth : b.borderWidth),
+      borderColor: a.borderColor != null && b.borderColor != null
+          ? lerpColorPremul(a.borderColor, b.borderColor, t)
+          : (t < 0.5 ? a.borderColor : b.borderColor),
+      borderStyle: t < 0.5 ? a.borderStyle : b.borderStyle,
     );
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is ElBorderSide && other.width == width && other.color == color && other.style == style;
+    return other is ElBorderSide &&
+        other.borderWidth == borderWidth &&
+        other.borderColor == borderColor &&
+        other.borderStyle == borderStyle;
   }
 
   @override
-  int get hashCode => Object.hash(ElBorderSide, width, color, style);
+  int get hashCode => Object.hash(ElBorderSide, borderWidth, borderColor, borderStyle);
 
   @override
-  String toString() => 'ElBorderSide(width: $width, color: $color, style: ${style.name})';
+  String toString() =>
+      'ElBorderSide(borderWidth: $borderWidth, borderColor: $borderColor, borderStyle: ${borderStyle.name})';
 }
 
 /// 边框相对视觉盒的绘制位置，始终不占布局空间。
@@ -1208,26 +1224,26 @@ enum ElBorderAlign {
 class ElBorder {
   /// 四边独立声明。未传的边为 [ElBorderSide.none]。
   const ElBorder.only({
-    ElBorderSide top = ElBorderSide.none,
-    ElBorderSide right = ElBorderSide.none,
-    ElBorderSide bottom = ElBorderSide.none,
-    ElBorderSide left = ElBorderSide.none,
+    ElBorderSide borderTop = ElBorderSide.none,
+    ElBorderSide borderRight = ElBorderSide.none,
+    ElBorderSide borderBottom = ElBorderSide.none,
+    ElBorderSide borderLeft = ElBorderSide.none,
     ElBorderAlign align = ElBorderAlign.inside,
-  }) : this._((top, right, bottom, left), null, align);
+  }) : this._((borderTop, borderRight, borderBottom, borderLeft), null, align);
 
   /// 四边统一声明；保存原始值，让构造保持 const。
   const ElBorder.all({
-    double? width = 1.0,
-    Color? color = const Color(0xFF000000),
-    ElBorderStyle style = ElBorderStyle.solid,
+    double? borderWidth = 1.0,
+    Color? borderColor = const Color(0xFF000000),
+    ElBorderStyle borderStyle = ElBorderStyle.solid,
     ElBorderAlign align = ElBorderAlign.inside,
-  }) : this._(null, (width, color, style), align);
+  }) : this._(null, (borderWidth, borderColor, borderStyle), align);
 
   /// 从单边构造四边统一边框。
   const ElBorder.fromSide(ElBorderSide side, {ElBorderAlign align = ElBorderAlign.inside})
     : this._((side, side, side, side), null, align);
 
-  /// 对称声明：horizontal = top+bottom，vertical = left+right（对齐
+  /// 对称声明：horizontal = borderTop+borderBottom，vertical = borderLeft+borderRight（对齐
   /// [Border.symmetric] 语义）。
   const ElBorder.symmetric({
     ElBorderSide horizontal = ElBorderSide.none,
@@ -1244,47 +1260,56 @@ class ElBorder {
   /// 摆位（inside / center / outside），整框统一，默认 inside。
   final ElBorderAlign align;
 
-  ElBorderSide get _uniformSide =>
-      _uniformSides[this] ??= ElBorderSide(width: _uniform!.$1, color: _uniform.$2, style: _uniform.$3);
+  ElBorderSide get _uniformSide => _uniformSides[this] ??= ElBorderSide(
+    borderWidth: _uniform!.$1,
+    borderColor: _uniform.$2,
+    borderStyle: _uniform.$3,
+  );
 
   /// 上边。
-  ElBorderSide get top => _sides?.$1 ?? _uniformSide;
+  ElBorderSide get borderTop => _sides?.$1 ?? _uniformSide;
 
   /// 右边。
-  ElBorderSide get right => _sides?.$2 ?? _uniformSide;
+  ElBorderSide get borderRight => _sides?.$2 ?? _uniformSide;
 
   /// 下边。
-  ElBorderSide get bottom => _sides?.$3 ?? _uniformSide;
+  ElBorderSide get borderBottom => _sides?.$3 ?? _uniformSide;
 
   /// 左边。
-  ElBorderSide get left => _sides?.$4 ?? _uniformSide;
+  ElBorderSide get borderLeft => _sides?.$4 ?? _uniformSide;
 
   /// 四边等值（paint uniform 快路径判据，对齐 [Border.isUniform] 心智）。
-  bool get isUniform => _sides == null || (top == right && top == bottom && top == left);
+  bool get isUniform =>
+      _sides == null || (borderTop == borderRight && borderTop == borderBottom && borderTop == borderLeft);
 
   Border? resolveToFlutterBorder() {
     BorderSide sideOf(ElBorderSide s) {
-      if (s.style == ElBorderStyle.none) return BorderSide.none;
-      final c = s.color;
+      if (s.borderStyle == ElBorderStyle.none) return BorderSide.none;
+      final c = s.borderColor;
       return BorderSide(width: s.resolveWidth(), color: c ?? const Color(0xFF000000));
     }
 
-    return Border(top: sideOf(top), right: sideOf(right), bottom: sideOf(bottom), left: sideOf(left));
+    return Border(
+      top: sideOf(borderTop),
+      right: sideOf(borderRight),
+      bottom: sideOf(borderBottom),
+      left: sideOf(borderLeft),
+    );
   }
 
   /// 副本。
   ElBorder copyWith({
-    ElBorderSide? top,
-    ElBorderSide? right,
-    ElBorderSide? bottom,
-    ElBorderSide? left,
+    ElBorderSide? borderTop,
+    ElBorderSide? borderRight,
+    ElBorderSide? borderBottom,
+    ElBorderSide? borderLeft,
     ElBorderAlign? align,
   }) {
     return ElBorder.only(
-      top: top ?? this.top,
-      right: right ?? this.right,
-      bottom: bottom ?? this.bottom,
-      left: left ?? this.left,
+      borderTop: borderTop ?? this.borderTop,
+      borderRight: borderRight ?? this.borderRight,
+      borderBottom: borderBottom ?? this.borderBottom,
+      borderLeft: borderLeft ?? this.borderLeft,
       align: align ?? this.align,
     );
   }
@@ -1296,10 +1321,10 @@ class ElBorder {
     if (identical(a, b)) return a;
     if (a == null || b == null) return t < 0.5 ? a : b;
     return ElBorder.only(
-      top: ElBorderSide.lerp(a.top, b.top, t),
-      right: ElBorderSide.lerp(a.right, b.right, t),
-      bottom: ElBorderSide.lerp(a.bottom, b.bottom, t),
-      left: ElBorderSide.lerp(a.left, b.left, t),
+      borderTop: ElBorderSide.lerp(a.borderTop, b.borderTop, t),
+      borderRight: ElBorderSide.lerp(a.borderRight, b.borderRight, t),
+      borderBottom: ElBorderSide.lerp(a.borderBottom, b.borderBottom, t),
+      borderLeft: ElBorderSide.lerp(a.borderLeft, b.borderLeft, t),
       align: t < 0.5 ? a.align : b.align,
     );
   }
@@ -1313,18 +1338,22 @@ class ElBorder {
     if (_sides == null && other._sides == null) {
       return _uniform == other._uniform;
     }
-    return other.top == top && other.right == right && other.bottom == bottom && other.left == left;
+    return other.borderTop == borderTop &&
+        other.borderRight == borderRight &&
+        other.borderBottom == borderBottom &&
+        other.borderLeft == borderLeft;
   }
 
   @override
-  int get hashCode => Object.hash(ElBorder, top, right, bottom, left, align);
+  int get hashCode => Object.hash(ElBorder, borderTop, borderRight, borderBottom, borderLeft, align);
 
   @override
-  String toString() => 'ElBorder(top: $top, right: $right, bottom: $bottom, left: $left, align: $align)';
+  String toString() =>
+      'ElBorder(borderTop: $borderTop, borderRight: $borderRight, borderBottom: $borderBottom, borderLeft: $borderLeft, align: $align)';
 }
 
 // ============================================================================
-// Public style value types migrated from 'clipper.dart'.
+// Public borderStyle value types migrated from 'clipPath.dart'.
 // ============================================================================
 
 /// ElView 自定义裁剪形状预设集。
@@ -1356,7 +1385,7 @@ abstract class ElClipper extends CustomClipper<Path> {
   /// 星形。
   ///
   /// [points] 角数（≥3）；[innerRatio] 内顶点距中心相对外顶点距中心 `[0, 1]`。
-  /// 中心 = box 中心，外半径 = `min(width, height) / 2`。
+  /// 中心 = box 中心，外半径 = `min(borderWidth, height) / 2`。
   const factory ElClipper.star({int points, double innerRatio}) = _ShapeClipper.star;
 
   /// 正多边形（中心对称 n 边形）。
@@ -1466,44 +1495,49 @@ class _ShapeClipper extends ElClipper {
 /// 四个属性聚合到一个 immutable 值上，单字段过渡共享同一条 driver。
 @immutable
 class ElOutline {
-  /// 创建。所有字段都有合理默认值，最少声明 `ElOutline(color: ..., width: ...)`。
-  const ElOutline({this.width = 0, this.color = const Color(0xFF000000), this.gradient, this.offset = 0});
+  /// 创建。所有字段都有合理默认值，最少声明 `ElOutline(outlineColor: ..., outlineWidth: ...)`。
+  const ElOutline({
+    this.outlineWidth = 0,
+    this.outlineColor = const Color(0xFF000000),
+    this.gradient,
+    this.outlineOffset = 0,
+  });
 
   /// 视觉零值 —— 完全等价"未声明 outline"。
   ///
-  /// **作用**：[lerp] 在单侧 null 时把 null 替换成 [zero]，让 width / color alpha
+  /// **作用**：[lerp] 在单侧 null 时把 null 替换成 [zero]，让 outlineWidth / outlineColor alpha
   /// 都从 0 平滑过渡到目标值（避免硬切）。
-  static const ElOutline zero = ElOutline(width: 0, color: Color(0x00000000));
+  static const ElOutline zero = ElOutline(outlineWidth: 0, outlineColor: Color(0x00000000));
 
-  /// 描边宽度。`num`。解析后 `width <= 0` 时 paint pipeline 早退
+  /// 描边宽度。`num`。解析后 `outlineWidth <= 0` 时 paint pipeline 早退
   /// （零开销）。
-  final double? width;
+  final double? outlineWidth;
 
   /// 描边纯色。直接使用 Color 值。
   /// 当 [gradient] 非 null 时被忽略。
-  final Color? color;
+  final Color? outlineColor;
 
-  /// 渐变描边。非 null 时 paint 走 `Paint.shader`，覆盖 [color]。
+  /// 渐变描边。非 null 时 paint 走 `Paint.shader`，覆盖 [outlineColor]。
   ///
   /// 典型用法：彩虹 ring / 品牌渐变 focus 高亮。
   final Gradient? gradient;
 
   /// 描边与 box 边界的距离（CSS `outline-offset` 对应）。`num`。
-  final double? offset;
+  final double? outlineOffset;
 
-  /// 消费点解析 [width] 到像素。
-  double resolveWidth() => width ?? 0;
+  /// 消费点解析 [outlineWidth] 到像素。
+  double resolveWidth() => outlineWidth ?? 0;
 
-  /// 消费点解析 [offset] 到像素。未声明时使用 0。
-  double resolveOffset() => offset ?? 0;
+  /// 消费点解析 [outlineOffset] 到像素。未声明时使用 0。
+  double resolveOffset() => outlineOffset ?? 0;
 
   /// 副本工厂（手写 copyWith，不依赖 generator）。
-  ElOutline copyWith({double? width, Color? color, Object? gradient = _sentinel, double? offset}) {
+  ElOutline copyWith({double? outlineWidth, Color? outlineColor, Object? gradient = _sentinel, double? outlineOffset}) {
     return ElOutline(
-      width: width ?? this.width,
-      color: color ?? this.color,
+      outlineWidth: outlineWidth ?? this.outlineWidth,
+      outlineColor: outlineColor ?? this.outlineColor,
       gradient: identical(gradient, _sentinel) ? this.gradient : gradient as Gradient?,
-      offset: offset ?? this.offset,
+      outlineOffset: outlineOffset ?? this.outlineOffset,
     );
   }
 
@@ -1524,10 +1558,10 @@ class ElOutline {
     final from = a ?? zero;
     final to = b ?? zero;
     return ElOutline(
-      width: _lerpNumSlot(from.width, to.width, t),
-      color: _lerpColorSlot(from.color, to.color, t),
+      outlineWidth: _lerpNumSlot(from.outlineWidth, to.outlineWidth, t),
+      outlineColor: _lerpColorSlot(from.outlineColor, to.outlineColor, t),
       gradient: Gradient.lerp(from.gradient, to.gradient, t),
-      offset: _lerpNumSlot(from.offset, to.offset, t),
+      outlineOffset: _lerpNumSlot(from.outlineOffset, to.outlineOffset, t),
     );
   }
 
@@ -1564,17 +1598,18 @@ class ElOutline {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ElOutline &&
-        width == other.width &&
-        color == other.color &&
+        outlineWidth == other.outlineWidth &&
+        outlineColor == other.outlineColor &&
         gradient == other.gradient &&
-        offset == other.offset;
+        outlineOffset == other.outlineOffset;
   }
 
   @override
-  int get hashCode => Object.hash(width, color, gradient, offset);
+  int get hashCode => Object.hash(outlineWidth, outlineColor, gradient, outlineOffset);
 
   @override
-  String toString() => 'ElOutline(width: $width, color: $color, gradient: $gradient, offset: $offset)';
+  String toString() =>
+      'ElOutline(outlineWidth: $outlineWidth, outlineColor: $outlineColor, gradient: $gradient, outlineOffset: $outlineOffset)';
 }
 
 /// 滤镜聚合值对象 —— CSS `filter` / `backdrop-filter` 的 ElView 对应。

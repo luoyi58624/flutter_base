@@ -152,8 +152,8 @@ class ElWindowScrollBar extends ElScrollbar {
   }) {
     return ElView(
       style: ElStyle(
-        bgColor: resolveTrackColor(context, dark: false),
-        onDark: ElStyle(bgColor: resolveTrackColor(context, dark: true)),
+        backgroundColor: resolveTrackColor(context, dark: false),
+        onDark: ElStyle(backgroundColor: resolveTrackColor(context, dark: true)),
       ),
     );
   }
@@ -172,14 +172,14 @@ class ElWindowScrollBar extends ElScrollbar {
       style: ElStyle(
         width: isVertical ? thumbThickness ?? 9.0 : '100%',
         height: isVertical ? '100%' : thumbThickness ?? 9.0,
-        bgColor: resolveThumbColor(context, dark: false, hovered: false, dragging: dragging),
-        onHover: ElStyle(bgColor: resolveThumbColor(context, dark: false, hovered: true, dragging: dragging)),
+        backgroundColor: resolveThumbColor(context, dark: false, hovered: false, dragging: dragging),
+        onHover: ElStyle(backgroundColor: resolveThumbColor(context, dark: false, hovered: true, dragging: dragging)),
         onDark: ElStyle(
-          bgColor: resolveThumbColor(context, dark: true, hovered: false, dragging: dragging),
-          onHover: ElStyle(bgColor: resolveThumbColor(context, dark: true, hovered: true, dragging: dragging)),
+          backgroundColor: resolveThumbColor(context, dark: true, hovered: false, dragging: dragging),
+          onHover: ElStyle(backgroundColor: resolveThumbColor(context, dark: true, hovered: true, dragging: dragging)),
         ),
         borderRadius: const BorderRadius.all(Radius.circular(9999)),
-        transitions: const [ElTransition.field(ElTransitionField.bgColor, Duration(milliseconds: 150))],
+        transition: const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))],
       ),
     );
   }
@@ -225,9 +225,9 @@ class ElWindowScrollBar extends ElScrollbar {
       style: ElStyle(
         width: side,
         height: side,
-        bgColor: resolveArrowColor(context, dark: false),
-        onDark: ElStyle(bgColor: resolveArrowColor(context, dark: true)),
-        clipper: _WinArrowClipper(direction),
+        backgroundColor: resolveArrowColor(context, dark: false),
+        onDark: ElStyle(backgroundColor: resolveArrowColor(context, dark: true)),
+        clipPath: _WinArrowClipper(direction),
         transform: transform,
       ),
     );
@@ -237,8 +237,8 @@ class ElWindowScrollBar extends ElScrollbar {
   Widget buildCorner(BuildContext context, ElScrollbarDetails details) {
     return ElView(
       style: ElStyle(
-        bgColor: resolveTrackColor(context, dark: false),
-        onDark: ElStyle(bgColor: resolveTrackColor(context, dark: true)),
+        backgroundColor: resolveTrackColor(context, dark: false),
+        onDark: ElStyle(backgroundColor: resolveTrackColor(context, dark: true)),
       ),
     );
   }

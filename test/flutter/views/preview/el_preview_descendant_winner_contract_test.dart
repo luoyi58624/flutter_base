@@ -129,12 +129,12 @@ void main() {
                       },
                       ghostBuilder: (_) => const ElView(
                         key: _ghostKey,
-                        style: ElStyle(width: 44, height: 44, bgColor: Color(0x882266aa)),
+                        style: ElStyle(width: 44, height: 44, backgroundColor: Color(0x882266aa)),
                       ),
                       child: ElView(
                         key: _dragKey,
                         event: ElEvent(onTap: (_) => sourceTaps++),
-                        style: const ElStyle(width: 60, height: 60, bgColor: Color(0xff2266aa), alignment: .center),
+                        style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xff2266aa), alignment: .center),
                         child: 'drag',
                       ),
                     ),
@@ -149,7 +149,7 @@ void main() {
                         style: ElStyle(
                           width: 90,
                           height: 80,
-                          bgColor: candidate == null ? const Color(0xff333333) : const Color(0xff22aa66),
+                          backgroundColor: candidate == null ? const Color(0xff333333) : const Color(0xff22aa66),
                           alignment: .center,
                         ),
                         child: 'drop',
@@ -381,11 +381,11 @@ void main() {
         onDragEnded: ended.add,
         ghostBuilder: (_) => const ElView(
           key: _reparentGhostKey,
-          style: ElStyle(width: 44, height: 44, bgColor: Color(0x882266aa)),
+          style: ElStyle(width: 44, height: 44, backgroundColor: Color(0x882266aa)),
         ),
         child: const ElView(
           key: _reparentDragKey,
-          style: ElStyle(width: 60, height: 60, bgColor: Color(0xff2266aa)),
+          style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xff2266aa)),
         ),
       );
     }
@@ -594,12 +594,12 @@ Widget _selectionFixture(bool box, VoidCallback onTap) {
           ElBoxSelectable(
             key: _blockStartKey,
             value: 'block-a',
-            child: ElView(style: ElStyle(width: 90, height: 60, bgColor: Color(0xff335577))),
+            child: ElView(style: ElStyle(width: 90, height: 60, backgroundColor: Color(0xff335577))),
           ),
           ElBoxSelectable(
             key: _blockEndKey,
             value: 'block-b',
-            child: ElView(style: ElStyle(width: 90, height: 60, bgColor: Color(0xff557733))),
+            child: ElView(style: ElStyle(width: 90, height: 60, backgroundColor: Color(0xff557733))),
           ),
         ],
       ),
@@ -635,11 +635,11 @@ Widget _cancelableDndPreview({
           onDragEnded: onEnded,
           ghostBuilder: (_) => const ElView(
             key: _cancelGhostKey,
-            style: ElStyle(width: 44, height: 44, bgColor: Color(0x882266aa)),
+            style: ElStyle(width: 44, height: 44, backgroundColor: Color(0x882266aa)),
           ),
           child: const ElView(
             key: _cancelDragKey,
-            style: ElStyle(width: 60, height: 60, bgColor: Color(0xff2266aa), alignment: .center),
+            style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xff2266aa), alignment: .center),
             child: 'drag',
           ),
         ),

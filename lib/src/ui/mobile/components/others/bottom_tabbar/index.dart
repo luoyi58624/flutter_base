@@ -54,7 +54,7 @@ class ElBottomTabbar extends StatelessWidget {
     return ElView(
       style: ElStyle(
         width: '100%',
-        bgColor: t.cardBackground,
+        backgroundColor: t.cardBackground,
       ).merge(style?.copyWith(height: null)),
       child: SafeArea(
         top: false,

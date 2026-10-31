@@ -958,7 +958,7 @@ void main() {
         style: eventTestDefaultStyle,
         event: .new(onTap: (_) => outerTaps++),
         child: ElView(
-          style: const ElStyle(width: 60, height: 60, bgColor: Color(0xFF0000FF)),
+          style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF0000FF)),
           event: .new(config: const ElEventConfig(deferTap: true), onTap: (_) => innerTaps++, onDoubleTap: (_) {}),
         ),
       ),
@@ -982,7 +982,7 @@ void main() {
         style: eventTestDefaultStyle,
         event: .new(onTap: (_) => outerTaps++),
         child: ElView(
-          style: const ElStyle(width: 60, height: 60, bgColor: Color(0xFF0000FF)),
+          style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF0000FF)),
           event: .new(
             config: const ElEventConfig(deferTap: true),
             onTap: (event) {
@@ -1013,7 +1013,7 @@ void main() {
         style: eventTestDefaultStyle,
         event: .new(onTap: (_) => outerTaps++, onDoubleTap: (_) => outerDoubleTaps++),
         child: ElView(
-          style: const ElStyle(width: 60, height: 60, bgColor: Color(0xFF0000FF)),
+          style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF0000FF)),
           event: .new(
             config: const ElEventConfig(deferTap: true),
             onTap: (_) => innerTaps++,
@@ -1046,7 +1046,7 @@ void main() {
         style: eventTestDefaultStyle,
         event: .new(onTap: (_) => outerTaps++, onTripleTap: (_) => outerTripleTaps++),
         child: ElView(
-          style: const ElStyle(width: 60, height: 60, bgColor: Color(0xFF0000FF)),
+          style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF0000FF)),
           event: .new(
             config: const ElEventConfig(deferTap: true),
             onTap: (_) => innerTaps++,

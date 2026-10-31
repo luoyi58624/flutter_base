@@ -103,7 +103,7 @@ void main() {
           ElTransitionField.maxHeight,
           ElTransitionField.opacity,
           ElTransitionField.transform,
-          ElTransitionField.transformAlignment,
+          ElTransitionField.transformOrigin,
           ElTransitionField.clipBehavior,
         ];
         for (final f in newBox) {
@@ -130,13 +130,13 @@ void main() {
         }
       });
 
-      test('paint-only：borderRadius / boxShadow / opacity / transform / transformAlignment / clipBehavior', () {
+      test('paint-only：borderRadius / boxShadow / opacity / transform / transformOrigin / clipBehavior', () {
         const paintOnly = <ElTransitionField>[
           ElTransitionField.borderRadius,
           ElTransitionField.boxShadow,
           ElTransitionField.opacity,
           ElTransitionField.transform,
-          ElTransitionField.transformAlignment,
+          ElTransitionField.transformOrigin,
           ElTransitionField.clipBehavior,
         ];
         for (final f in paintOnly) {
@@ -230,17 +230,17 @@ void main() {
         expect(box.maxHeight, const ElDimension.pixels(80));
       });
 
-      testWidgets('opacity / transformAlignment / clipBehavior 写入', (tester) async {
+      testWidgets('opacity / transformOrigin / clipBehavior 写入', (tester) async {
         await tester.pumpWidget(
           _semanticsFreeApp(
             const ElView(
-              style: ElStyle(opacity: 0.5, transformAlignment: Alignment.center, clipBehavior: Clip.hardEdge),
+              style: ElStyle(opacity: 0.5, transformOrigin: Alignment.center, clipBehavior: Clip.hardEdge),
             ),
           ),
         );
         final box = findRender(tester).committedResolvedStyle.box;
         expect(box.opacity, 0.5);
-        expect(box.transformAlignment, Alignment.center);
+        expect(box.transformOrigin, Alignment.center);
         expect(box.clipBehavior, Clip.hardEdge);
       });
 
@@ -372,9 +372,9 @@ void main() {
         expect(tl, base.alignment(Alignment.topLeft));
       });
 
-      testWidgets('.alignment(topLeft) 链式 origin：未设 transformAlignment 时绕 topLeft', (tester) async {
-        // 验回退顺序 transformAlignment ?? transform.origin ?? center 真的尊重 transform.origin。
-        // 100×100 box，scale(2)。没有 transformAlignment：
+      testWidgets('.alignment(topLeft) 链式 origin：未设 transformOrigin 时绕 topLeft', (tester) async {
+        // 验回退顺序 transformOrigin ?? transform.origin ?? center 真的尊重 transform.origin。
+        // 100×100 box，scale(2)。没有 transformOrigin：
         //   - origin = transform.origin = topLeft → effective: T(0,0)·S(2)·T(0,0) = S(2)
         //   - paint 时画到 (0, 0, 200, 200)
         // 如果 origin 错误退回 center：S 围绕 (50,50) → 画到 (-50, -50, 150, 150)
@@ -389,22 +389,22 @@ void main() {
         );
         final box = findRender(tester).committedResolvedStyle.box;
         expect(box.transform!.origin, Alignment.topLeft);
-        expect(box.transformAlignment, isNull, reason: 'field 未设，回退到 transform.origin');
+        expect(box.transformOrigin, isNull, reason: 'field 未设，回退到 transform.origin');
       });
 
-      testWidgets('Box.transformAlignment 覆盖 transform.origin', (tester) async {
+      testWidgets('Box.transformOrigin 覆盖 transform.origin', (tester) async {
         final t = const ElTransform.scale(2).alignment(Alignment.topLeft);
         await tester.pumpWidget(
           _semanticsFreeApp(
             ElView(
-              style: ElStyle(transform: t, transformAlignment: Alignment.bottomRight),
+              style: ElStyle(transform: t, transformOrigin: Alignment.bottomRight),
               child: const Text('x'),
             ),
           ),
         );
         final box = findRender(tester).committedResolvedStyle.box;
         // 两源同时存在时，field 优先（document spec）
-        expect(box.transformAlignment, Alignment.bottomRight);
+        expect(box.transformOrigin, Alignment.bottomRight);
         // transform 的 origin 字段保留不变（仅 paint / hit-test 选 field）
         expect(box.transform!.origin, Alignment.topLeft);
       });
@@ -542,7 +542,7 @@ void main() {
         expect((box.gradient! as LinearGradient).colors, [const Color(0xFFFF0000), const Color(0xFF0000FF)]);
       });
 
-      testWidgets('bgImage（DecorationImage 单字段）写入 box', (tester) async {
+      testWidgets('backgroundImage（DecorationImage 单字段）写入 box', (tester) async {
         // 用 fake provider（永远 pending） —— 让 paint 时 image 还没 resolve，
         // DecorationImagePainter 早退，不抛错。
         const image = DecorationImage(
@@ -551,11 +551,11 @@ void main() {
           alignment: Alignment.center,
           repeat: ImageRepeat.noRepeat,
         );
-        await tester.pumpWidget(shell(const ElView(style: ElStyle(bgImage: image))));
+        await tester.pumpWidget(shell(const ElView(style: ElStyle(backgroundImage: image))));
         final box = render(tester).committedResolvedStyle.box;
-        expect(box.bgImage, isNotNull);
-        expect(box.bgImage!.fit, BoxFit.cover);
-        expect(box.bgImage!.repeat, ImageRepeat.noRepeat);
+        expect(box.backgroundImage, isNotNull);
+        expect(box.backgroundImage!.fit, BoxFit.cover);
+        expect(box.backgroundImage!.repeat, ImageRepeat.noRepeat);
       });
 
       testWidgets('aspectRatio 写入 box', (tester) async {
@@ -571,10 +571,10 @@ void main() {
     });
 
     group('damage 路由（spec 元数据）', () {
-      test('paint-only：gradient / bgImage / outline / filter / backdropFilter', () {
+      test('paint-only：gradient / backgroundImage / outline / filter / backdropFilter', () {
         const paintOnly = <ElTransitionField>[
           ElTransitionField.gradient,
-          ElTransitionField.bgImage,
+          ElTransitionField.backgroundImage,
           ElTransitionField.outline,
           ElTransitionField.filter,
           ElTransitionField.backdropFilter,
@@ -606,8 +606,8 @@ void main() {
         expect(fieldSpecs[ElTransitionField.aspectRatio]!.isDiscrete, isFalse);
       });
 
-      test('无法平滑插值的引用字段 step 切换：bgImage', () {
-        expect(fieldSpecs[ElTransitionField.bgImage]!.isDiscrete, isTrue);
+      test('无法平滑插值的引用字段 step 切换：backgroundImage', () {
+        expect(fieldSpecs[ElTransitionField.backgroundImage]!.isDiscrete, isTrue);
       });
 
       test('filter / backdropFilter 可平滑插值（ElFilter 聚合 lerp）', () {
@@ -619,7 +619,7 @@ void main() {
     });
 
     group('非继承约束', () {
-      testWidgets('父 gradient / outline / aspectRatio 不传给子（无 bgImage 避免资源加载）', (tester) async {
+      testWidgets('父 gradient / outline / aspectRatio 不传给子（无 backgroundImage 避免资源加载）', (tester) async {
         const parentKey = ValueKey('visual-parent');
         const childKey = ValueKey('visual-child');
 
@@ -629,7 +629,7 @@ void main() {
               key: parentKey,
               style: ElStyle(
                 gradient: LinearGradient(colors: [Color(0xFFFF0000), Color(0xFF0000FF)]),
-                outline: ElOutline(color: Color(0xFF000000), width: 1),
+                outline: ElOutline(outlineColor: Color(0xFF000000), outlineWidth: 1),
                 aspectRatio: 2,
               ),
               child: ElView(key: childKey, child: 'inner'),
@@ -823,20 +823,20 @@ void main() {
 
     group('Box.clipper 字段管线', () {
       test('Box.initial.clipper 是 null', () {
-        expect(Box.initial.clipper, isNull);
+        expect(Box.initial.clipPath, isNull);
       });
 
       test('buffer flush 写 clipper 返回新对象，Box.initial 不变', () {
         const clipper = ElClipper.triangle();
-        final updated = (BoxStyleBuffer()..writeClipper(clipper)).flush(Box.initial);
-        expect(updated.clipper, same(clipper));
-        expect(Box.initial.clipper, isNull);
+        final updated = (BoxStyleBuffer()..writeClipPath(clipper)).flush(Box.initial);
+        expect(updated.clipPath, same(clipper));
+        expect(Box.initial.clipPath, isNull);
       });
 
       test('clipper 字段元数据：paint damage, discrete, !inherited, lerp = step', () {
-        final spec = fieldSpecs[ElTransitionField.clipper];
+        final spec = fieldSpecs[ElTransitionField.clipPath];
         expect(spec, isNotNull);
-        expect(maskHas(boxGroupMask, ElTransitionField.clipper.index), isTrue);
+        expect(maskHas(boxGroupMask, ElTransitionField.clipPath.index), isTrue);
         expect(spec!.isInherited, isFalse);
         expect(spec.isDiscrete, isTrue);
         expect(spec.lerp, same(lerpStep));
@@ -852,13 +852,13 @@ void main() {
           const MaterialApp(
             home: Scaffold(
               body: ElView(
-                style: ElStyle(width: 100, height: 80, bgColor: Color(0xFFFF0000), clipper: clipper),
+                style: ElStyle(width: 100, height: 80, backgroundColor: Color(0xFFFF0000), clipPath: clipper),
               ),
             ),
           ),
         );
         final render = tester.renderObject<ElRenderView>(find.byType(ElView));
-        expect(render.committedResolvedStyle.box.clipper, same(clipper));
+        expect(render.committedResolvedStyle.box.clipPath, same(clipper));
       });
     });
 
@@ -879,7 +879,12 @@ void main() {
           shell(
             ElView(
               event: ElEvent(onTap: (_) => tapped++),
-              style: const ElStyle(width: 100, height: 80, bgColor: Color(0xFFFF0000), clipper: ElClipper.triangle()),
+              style: const ElStyle(
+                width: 100,
+                height: 80,
+                backgroundColor: Color(0xFFFF0000),
+                clipPath: ElClipper.triangle(),
+              ),
             ),
           ),
         );
@@ -906,7 +911,12 @@ void main() {
           shell(
             ElView(
               event: ElEvent(onTap: (_) {}),
-              style: const ElStyle(width: 100, height: 80, bgColor: Color(0xFFFF0000), clipper: ElClipper.diamond()),
+              style: const ElStyle(
+                width: 100,
+                height: 80,
+                backgroundColor: Color(0xFFFF0000),
+                clipPath: ElClipper.diamond(),
+              ),
             ),
           ),
         );
@@ -921,7 +931,12 @@ void main() {
           shell(
             ElView(
               event: ElEvent(onTap: (_) {}),
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFFFF0000), clipper: _OvalClipper()),
+              style: const ElStyle(
+                width: 100,
+                height: 100,
+                backgroundColor: Color(0xFFFF0000),
+                clipPath: _OvalClipper(),
+              ),
             ),
           ),
         );
@@ -941,7 +956,7 @@ void main() {
               style: const ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xFFFF0000),
+                backgroundColor: Color(0xFFFF0000),
                 borderRadius: BorderRadius.all(Radius.elliptical(50, 50)),
                 clipBehavior: Clip.antiAlias,
               ),
@@ -962,7 +977,7 @@ void main() {
               style: const ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xFFFF0000),
+                backgroundColor: Color(0xFFFF0000),
                 borderRadius: BorderRadius.all(Radius.circular(9999)),
                 clipBehavior: Clip.antiAlias,
               ),
@@ -983,8 +998,8 @@ void main() {
               style: const ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xFFFF0000),
-                clipper: _RectClipper(),
+                backgroundColor: Color(0xFFFF0000),
+                clipPath: _RectClipper(),
                 clipBehavior: Clip.antiAlias,
                 onHover: ElStyle(borderRadius: BorderRadius.all(Radius.elliptical(50, 50))),
               ),
@@ -995,7 +1010,7 @@ void main() {
         render.setHover(true);
         await tester.pump();
 
-        expect(render.committedResolvedStyle.box.clipper, isNotNull);
+        expect(render.committedResolvedStyle.box.clipPath, isNotNull);
         expect(hitRender(render, const Offset(2, 2)), isTrue, reason: 'custom clipper 命中后不应再叠加圆角裁剪');
       });
 
@@ -1005,7 +1020,7 @@ void main() {
           shell(
             ElView(
               event: ElEvent(onTap: (_) {}),
-              style: ElStyle(width: 100, height: 100, bgColor: const Color(0xFFFF0000), clipper: clipper),
+              style: ElStyle(width: 100, height: 100, backgroundColor: const Color(0xFFFF0000), clipPath: clipper),
             ),
           ),
         );
@@ -1055,7 +1070,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: ElView(
-              style: ElStyle(width: 80, height: 40, bgColor: Color(0xFFFF0000), clipper: clipper),
+              style: ElStyle(width: 80, height: 40, backgroundColor: Color(0xFFFF0000), clipPath: clipper),
             ),
           ),
         ),
@@ -1082,75 +1097,75 @@ void main() {
   group('边框值', () {
     group('值语义', () {
       test('.all 四边统一', () {
-        final b = ElBorder.all(width: 2, color: const Color(0xFF112233));
+        final b = ElBorder.all(borderWidth: 2, borderColor: const Color(0xFF112233));
         expect(b.isUniform, isTrue);
-        expect(b.top.width, 2);
-        expect(b.top.color, const Color(0xFF112233));
-        expect(b.top, b.left);
+        expect(b.borderTop.borderWidth, 2);
+        expect(b.borderTop.borderColor, const Color(0xFF112233));
+        expect(b.borderTop, b.borderLeft);
       });
 
       test('.all const 可用（uniform 双存储形态）', () {
-        const b = ElBorder.all(width: 2, color: Color(0xFF112233), style: ElBorderStyle.dashed);
+        const b = ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed);
         expect(b.isUniform, isTrue);
-        expect(b.top, const ElBorderSide(width: 2, color: Color(0xFF112233), style: ElBorderStyle.dashed));
+        expect(b.borderTop, const ElBorderSide(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed));
         // const 规范化：同参数 const 实例 identical
         expect(
-          identical(b, const ElBorder.all(width: 2, color: Color(0xFF112233), style: ElBorderStyle.dashed)),
+          identical(b, const ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed)),
           isTrue,
         );
         // 默认值与旧 factory 口径一致
         const d = ElBorder.all();
-        expect(d.top, const ElBorderSide());
+        expect(d.borderTop, const ElBorderSide());
       });
 
       test('uniform / sides 双形态跨形态等值', () {
-        const side = ElBorderSide(width: 2, color: Color(0xFF112233));
-        const all = ElBorder.all(width: 2, color: Color(0xFF112233));
+        const side = ElBorderSide(borderWidth: 2, borderColor: Color(0xFF112233));
+        const all = ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233));
         const fromSide = ElBorder.fromSide(side);
-        const only = ElBorder.only(top: side, right: side, bottom: side, left: side);
+        const only = ElBorder.only(borderTop: side, borderRight: side, borderBottom: side, borderLeft: side);
         expect(all, fromSide);
         expect(all, only);
         expect(all.hashCode, fromSide.hashCode);
         expect(all.hashCode, only.hashCode);
         // copyWith 从 uniform 形态出发仍正确
-        expect(all.copyWith(top: ElBorderSide.none).top, ElBorderSide.none);
-        expect(all.copyWith(top: ElBorderSide.none).bottom, side);
+        expect(all.copyWith(borderTop: ElBorderSide.none).borderTop, ElBorderSide.none);
+        expect(all.copyWith(borderTop: ElBorderSide.none).borderBottom, side);
       });
 
       test('.only 单边，未声明边为 none', () {
-        const b = ElBorder.only(bottom: ElBorderSide(width: 1));
-        expect(b.bottom.width, 1);
-        expect(b.top, ElBorderSide.none);
+        const b = ElBorder.only(borderBottom: ElBorderSide(borderWidth: 1));
+        expect(b.borderBottom.borderWidth, 1);
+        expect(b.borderTop, ElBorderSide.none);
         expect(b.isUniform, isFalse);
       });
 
       test('.symmetric', () {
-        const b = ElBorder.symmetric(horizontal: ElBorderSide(width: 3));
-        expect(b.top.width, 3);
-        expect(b.bottom.width, 3);
-        expect(b.left, ElBorderSide.none);
+        const b = ElBorder.symmetric(horizontal: ElBorderSide(borderWidth: 3));
+        expect(b.borderTop.borderWidth, 3);
+        expect(b.borderBottom.borderWidth, 3);
+        expect(b.borderLeft, ElBorderSide.none);
       });
 
       test('.fromSide const 可用', () {
-        const b = ElBorder.fromSide(ElBorderSide(width: 2, color: Color(0xFF000000)));
+        const b = ElBorder.fromSide(ElBorderSide(borderWidth: 2, borderColor: Color(0xFF000000)));
         expect(b.isUniform, isTrue);
       });
 
       test('等值 / 哈希', () {
-        expect(ElBorder.all(width: 2), ElBorder.all(width: 2));
-        expect(ElBorder.all(width: 2).hashCode, ElBorder.all(width: 2).hashCode);
-        expect(ElBorder.all(width: 2) == ElBorder.all(width: 3), isFalse);
+        expect(ElBorder.all(borderWidth: 2), ElBorder.all(borderWidth: 2));
+        expect(ElBorder.all(borderWidth: 2).hashCode, ElBorder.all(borderWidth: 2).hashCode);
+        expect(ElBorder.all(borderWidth: 2) == ElBorder.all(borderWidth: 3), isFalse);
       });
     });
 
     group('值级 lerp', () {
       test('width 数值级插值 + color lerp', () {
-        final mid = ElBorder.lerp(ElBorder.all(width: 0), ElBorder.all(width: 10), 0.5)!;
-        expect(mid.top.width, 5.0);
+        final mid = ElBorder.lerp(ElBorder.all(borderWidth: 0), ElBorder.all(borderWidth: 10), 0.5)!;
+        expect(mid.borderTop.borderWidth, 5.0);
       });
 
       test('单侧 null step（多 side 无通用零值替换）', () {
-        final to = ElBorder.all(width: 2);
+        final to = ElBorder.all(borderWidth: 2);
         expect(ElBorder.lerp(null, to, 0.4), isNull);
         expect(identical(ElBorder.lerp(null, to, 0.6), to), isTrue);
       });
@@ -1304,7 +1319,7 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xff2196f3),
+                backgroundColor: Color(0xff2196f3),
                 onHover: ElStyle(filter: ElFilter(blur: 6)),
               ),
             ),
@@ -1325,7 +1340,7 @@ void main() {
               style: ElStyle(
                 width: 80,
                 height: 80,
-                bgColor: Color(0x882196f3),
+                backgroundColor: Color(0x882196f3),
                 filter: ElFilter(saturate: 1.2),
                 backdropFilter: ElFilter(blur: 12),
               ),
@@ -1441,22 +1456,22 @@ void main() {
 
     group('merge / transitions 整体替换(护栏)', () {
       test('other 声明即整表覆前表,不做拼接', () {
-        const base = ElStyle(transitions: [ElTransition.all(Duration(milliseconds: 100))]);
-        const other = ElStyle(transitions: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 200))]);
+        const base = ElStyle(transition: [ElTransition.all(Duration(milliseconds: 100))]);
+        const other = ElStyle(transition: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 200))]);
         final merged = base.merge(other);
-        expect(merged.transitions!.length, 1, reason: '整体替换而非拼接');
-        expect(identical(merged.transitions, other.transitions), isTrue);
+        expect(merged.transition!.length, 1, reason: '整体替换而非拼接');
+        expect(identical(merged.transition, other.transition), isTrue);
         // other 未声明 → 保留 base
-        expect(identical(base.merge(const ElStyle(width: 1)).transitions, base.transitions), isTrue);
+        expect(identical(base.merge(const ElStyle(width: 1)).transition, base.transition), isTrue);
       });
     });
 
     group('merge / 嵌套变体深合并', () {
       test('onHover 深合并,base 未覆盖字段保留', () {
-        const base = ElStyle(onHover: ElStyle(bgColor: red, width: 10));
-        const other = ElStyle(onHover: ElStyle(bgColor: blue));
+        const base = ElStyle(onHover: ElStyle(backgroundColor: red, width: 10));
+        const other = ElStyle(onHover: ElStyle(backgroundColor: blue));
         final merged = base.merge(other);
-        expect(merged.onHover!.bgColor, blue);
+        expect(merged.onHover!.backgroundColor, blue);
         expect(merged.onHover!.width, 10);
       });
     });
@@ -1517,14 +1532,14 @@ void main() {
       });
 
       test('overflow: layout + paint 双通道', () {
-        final spec = fieldSpecs[ElTransitionField.overflow]!;
+        final spec = fieldSpecs[ElTransitionField.textOverflow]!;
         expect(spec.affectsLayout, isTrue);
         expect(spec.affectsPaint, isTrue);
         expect(spec.isInherited, isFalse);
       });
 
       test('textDirection: 跨 InheritedBox 组的 inherit + layout', () {
-        final spec = fieldSpecs[ElTransitionField.textDirection]!;
+        final spec = fieldSpecs[ElTransitionField.direction]!;
         expect(spec.isInherited, isTrue);
         expect(spec.affectsLayout, isTrue);
       });
@@ -1652,7 +1667,7 @@ void main() {
                 iconSize: 16,
                 iconColor: Color(0xff000000),
                 onHover: ElStyle(iconColor: Color(0xffffffff)),
-                transitions: [ElTransition.field(.iconColor, Duration(milliseconds: 200), Curves.linear)],
+                transition: [ElTransition.field(.iconColor, Duration(milliseconds: 200), Curves.linear)],
               ),
               child: ElView(key: iconKey, child: glyph),
             ),
@@ -1809,19 +1824,19 @@ void main() {
   group('文字扩展字段', () {
     ElRenderView findFirstRender(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byType(ElView));
 
-    group('fontVariations 字段', () {
+    group('fontVariationSettings 字段', () {
       testWidgets('cascade 出的可变轴列表保留顺序', (tester) async {
         const variations = <ui.FontVariation>[ui.FontVariation('wght', 600), ui.FontVariation('wdth', 110)];
         await tester.pumpWidget(
           _semanticsFreeApp(
             const ElView(
-              style: ElStyle(fontSize: 14, fontFamily: 'Roboto Flex', fontVariations: variations),
+              style: ElStyle(fontSize: 14, fontFamily: 'Roboto Flex', fontVariationSettings: variations),
               child: 'variable',
             ),
           ),
         );
         final r = findFirstRender(tester);
-        final cascaded = r.committedResolvedStyle.inheritedText.fontVariations;
+        final cascaded = r.committedResolvedStyle.inheritedText.fontVariationSettings;
         expect(cascaded, hasLength(2));
         expect(cascaded![0].axis, 'wght');
         expect(cascaded[0].value, 600);
@@ -1865,21 +1880,21 @@ void main() {
       test('initial 全 null', () {
         expect(Box.initial.width, isNull);
         expect(Box.initial.height, isNull);
-        expect(Box.initial.bgColor, isNull);
+        expect(Box.initial.backgroundColor, isNull);
       });
 
       // 旧 withX 已由生成器剥离；字段级独立写入统一走 BoxStyleBuffer flush，
       // 每步 buffer 累积字段覆盖，flush 一次性 alloc 新 Box。
-      test('buffer flush 独立写入 width / height / bgColor', () {
+      test('buffer flush 独立写入 width / height / backgroundColor', () {
         final buf = BoxStyleBuffer()
           ..writeWidth(ElDimension.parse(100))
           ..writeHeight(ElDimension.parse(50))
-          ..writeBgColor(const Color(0xFFFF0000));
+          ..writeBackgroundColor(const Color(0xFFFF0000));
         final s = buf.flush(Box.initial);
 
         expect(s.width, const ElDimension.pixels(100));
         expect(s.height, const ElDimension.pixels(50));
-        expect(s.bgColor, const Color(0xFFFF0000));
+        expect(s.backgroundColor, const Color(0xFFFF0000));
         // 未写入的字段仍是 initial
         expect(s.padding, isNull);
         expect(s.border, isNull);
@@ -1899,9 +1914,9 @@ void main() {
       });
 
       test('== / hashCode', () {
-        const a = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), bgColor: Color(0xFFFF0000));
-        const b = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), bgColor: Color(0xFFFF0000));
-        const c = Box(width: ElDimension.pixels(101), height: ElDimension.pixels(50), bgColor: Color(0xFFFF0000));
+        const a = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
+        const b = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
+        const c = Box(width: ElDimension.pixels(101), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
         expect(a, b);
         expect(a.hashCode, b.hashCode);
         expect(a, isNot(c));
@@ -1922,12 +1937,12 @@ void main() {
           ..writeColor(const Color(0xFFFF0000))
           ..writeFontSize(16)
           ..writeWidth(const ElDimension.pixels(100))
-          ..writeBgColor(const Color(0xFFFFFFFF));
+          ..writeBackgroundColor(const Color(0xFFFFFFFF));
         final s = b.build();
         expect(s.inheritedText.color, const Color(0xFFFF0000));
         expect(s.inheritedText.fontSize, 16);
         expect(s.box.width, const ElDimension.pixels(100));
-        expect(s.box.bgColor, const Color(0xFFFFFFFF));
+        expect(s.box.backgroundColor, const Color(0xFFFFFFFF));
       });
     });
 
@@ -1935,7 +1950,7 @@ void main() {
       test('未写入任何字段时三组都 identical 父', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000)),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(width: ElDimension.pixels(100)),
         );
         final b = ResolvedStyleBuilder.fromParent(parent);
@@ -1976,7 +1991,7 @@ void main() {
       test('写入 inheritedBox 字段独立断开 identical', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000)),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(),
         );
         final b = ResolvedStyleBuilder.fromParent(parent)..writeCursor(SystemMouseCursors.click);
@@ -1985,13 +2000,13 @@ void main() {
         expect(identical(out.inheritedText, parent.inheritedText), isTrue);
         expect(identical(out.inheritedBox, parent.inheritedBox), isFalse);
         expect(out.inheritedBox.cursor, SystemMouseCursors.click);
-        expect(out.inheritedBox.textDirection, TextDirection.ltr, reason: '原 textDirection 必须保留');
+        expect(out.inheritedBox.direction, TextDirection.ltr, reason: '原 textDirection 必须保留');
       });
 
       test('写入 box 字段不影响任何继承组', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000)),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(width: ElDimension.pixels(100)),
         );
         final b = ResolvedStyleBuilder.fromParent(parent)..writeWidth(const ElDimension.pixels(200));
@@ -2008,31 +2023,31 @@ void main() {
   group('盒继承值', () {
     group('InheritedBox', () {
       test('initial 全 null', () {
-        expect(InheritedBox.initial.textDirection, isNull);
+        expect(InheritedBox.initial.direction, isNull);
         expect(InheritedBox.initial.cursor, isNull);
       });
 
       // 旧 withX 已由生成器剥离；字段级独立写入统一走 InheritedBoxStyleBuffer flush。
       test('buffer flush 独立写入 textDirection / cursor', () {
         final buf = InheritedBoxStyleBuffer()
-          ..writeTextDirection(TextDirection.ltr)
+          ..writeDirection(TextDirection.ltr)
           ..writeCursor(SystemMouseCursors.click);
         final s = buf.flush(InheritedBox.initial);
-        expect(s.textDirection, TextDirection.ltr);
+        expect(s.direction, TextDirection.ltr);
         expect(s.cursor, SystemMouseCursors.click);
       });
 
       test('buffer flush：写入相同值触发等值短路，返回 base', () {
-        const base = InheritedBox(textDirection: TextDirection.ltr);
-        final buf = InheritedBoxStyleBuffer()..writeTextDirection(TextDirection.ltr);
+        const base = InheritedBox(direction: TextDirection.ltr);
+        final buf = InheritedBoxStyleBuffer()..writeDirection(TextDirection.ltr);
         final after = buf.flush(base);
         expect(identical(after, base), isTrue);
       });
 
       test('== / hashCode', () {
-        const a = InheritedBox(textDirection: TextDirection.ltr, cursor: SystemMouseCursors.click);
-        const b = InheritedBox(textDirection: TextDirection.ltr, cursor: SystemMouseCursors.click);
-        const c = InheritedBox(textDirection: TextDirection.rtl, cursor: SystemMouseCursors.click);
+        const a = InheritedBox(direction: TextDirection.ltr, cursor: SystemMouseCursors.click);
+        const b = InheritedBox(direction: TextDirection.ltr, cursor: SystemMouseCursors.click);
+        const c = InheritedBox(direction: TextDirection.rtl, cursor: SystemMouseCursors.click);
         expect(a, b);
         expect(a.hashCode, b.hashCode);
         expect(a, isNot(c));
@@ -2087,13 +2102,13 @@ void main() {
         const parent = InheritedText(
           color: Color(0xFFFF0000),
           fontSize: 20,
-          decoration: TextDecoration.underline,
-          decorationColor: Color(0xFF0000FF),
-          decorationThickness: 2,
+          textDecorationLine: TextDecoration.underline,
+          textDecorationColor: Color(0xFF0000FF),
+          textDecorationThickness: 2,
           textBackgroundColor: Color(0xFFFFFF00),
           letterSpacing: 0.5,
           softWrap: false,
-          overflow: TextOverflow.ellipsis,
+          textOverflow: TextOverflow.ellipsis,
           maxLines: 1,
         );
 
@@ -2101,13 +2116,13 @@ void main() {
 
         expect(childBase.color, const Color(0xFFFF0000));
         expect(childBase.fontSize, 20);
-        expect(childBase.decorationColor, const Color(0xFF0000FF));
-        expect(childBase.decorationThickness, 2);
+        expect(childBase.textDecorationColor, const Color(0xFF0000FF));
+        expect(childBase.textDecorationThickness, 2);
         expect(childBase.letterSpacing, 0.5);
-        expect(childBase.decoration, isNull);
+        expect(childBase.textDecorationLine, isNull);
         expect(childBase.textBackgroundColor, isNull);
         expect(childBase.softWrap, isNull);
-        expect(childBase.overflow, isNull);
+        expect(childBase.textOverflow, isNull);
         expect(childBase.maxLines, isNull);
       });
 
@@ -2148,10 +2163,10 @@ void main() {
           ..writeWordSpacing(1.0)
           ..writeTextAlign(TextAlign.center)
           ..writeTextShadow(const [Shadow(blurRadius: 2)])
-          ..writeDecoration(TextDecoration.underline)
+          ..writeTextDecorationLine(TextDecoration.underline)
           ..writeTextBackgroundColor(const Color(0xFFFFFF00))
           ..writeSoftWrap(false)
-          ..writeOverflow(TextOverflow.ellipsis)
+          ..writeTextOverflow(TextOverflow.ellipsis)
           ..writeMaxLines(2);
         final s = buf.flush(InheritedText.initial);
 
@@ -2165,10 +2180,10 @@ void main() {
         expect(s.wordSpacing, 1.0);
         expect(s.textAlign, TextAlign.center);
         expect(s.textShadow, hasLength(1));
-        expect(s.decoration, TextDecoration.underline);
+        expect(s.textDecorationLine, TextDecoration.underline);
         expect(s.textBackgroundColor, const Color(0xFFFFFF00));
         expect(s.softWrap, isFalse);
-        expect(s.overflow, TextOverflow.ellipsis);
+        expect(s.textOverflow, TextOverflow.ellipsis);
         expect(s.maxLines, 2);
       });
 
@@ -2187,8 +2202,8 @@ void main() {
       test('fromParent 子节点 identical 共享父可继承组', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000), fontSize: 16),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
-          box: Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), bgColor: Color(0xFFFFFFFF)),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
+          box: Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFFFFFF)),
         );
         final child = ResolvedStyleBuilder.fromParent(parent).build();
 
@@ -2207,23 +2222,23 @@ void main() {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(
             color: Color(0xFFFF0000),
-            decoration: TextDecoration.underline,
+            textDecorationLine: TextDecoration.underline,
             textBackgroundColor: Color(0xFFFFFF00),
             softWrap: false,
-            overflow: TextOverflow.ellipsis,
+            textOverflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(width: ElDimension.pixels(100)),
         );
 
         final child = ResolvedStyleBuilder.fromParent(parent).build();
 
         expect(child.inheritedText.color, const Color(0xFFFF0000));
-        expect(child.inheritedText.decoration, isNull);
+        expect(child.inheritedText.textDecorationLine, isNull);
         expect(child.inheritedText.textBackgroundColor, isNull);
         expect(child.inheritedText.softWrap, isNull);
-        expect(child.inheritedText.overflow, isNull);
+        expect(child.inheritedText.textOverflow, isNull);
         expect(child.inheritedText.maxLines, isNull);
         expect(identical(child.inheritedBox, parent.inheritedBox), isTrue);
         expect(identical(child.box, Box.initial), isTrue);
@@ -2326,7 +2341,7 @@ void main() {
               // 白底节点承载渐变文字：底色像素必须保持白（渐变只蒙字形，
               // ShaderMask 式整树蒙版会把底色一起灌成渐变）
               style: ElStyle(
-                bgColor: Color(0xffffffff),
+                backgroundColor: Color(0xffffffff),
                 padding: .all(8),
                 fontSize: 40,
                 fontWeight: .w800,
@@ -2394,7 +2409,7 @@ void main() {
               child: RepaintBoundary(
                 child: ElView(
                   key: ValueKey('grad'),
-                  style: ElStyle(bgColor: Color(0xffffffff), fontSize: 40, fontWeight: .w800, textGradient: gradient),
+                  style: ElStyle(backgroundColor: Color(0xffffffff), fontSize: 40, fontWeight: .w800, textGradient: gradient),
                   child: 'Element',
                 ),
               ),

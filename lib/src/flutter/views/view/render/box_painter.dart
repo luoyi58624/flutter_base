@@ -11,7 +11,7 @@ class ViewBoxPainter {
 
   /// 按文字方向解析原生圆角，自定义裁剪存在时圆角让位。
   static BorderRadius? effectiveBorderRadius(Box box, {TextDirection textDirection = TextDirection.ltr}) =>
-      box.clipper == null ? box.borderRadius?.resolve(textDirection) : null;
+      box.clipPath == null ? box.borderRadius?.resolve(textDirection) : null;
 
   /// 背景、裁剪与内阴影共用当前盒子的原生圆角几何。
   static RRect resolveContentRRect(Rect outer, BorderRadius? radius) =>
@@ -96,12 +96,12 @@ class ViewBoxPainter {
   }) {
     if (rect.isEmpty) return;
     final sides = border.isUniform
-        ? List<ElBorderSide>.filled(4, _paintableSide(border.top), growable: false)
+        ? List<ElBorderSide>.filled(4, _paintableSide(border.borderTop), growable: false)
         : [
-            _paintableSide(border.top),
-            _paintableSide(border.right),
-            _paintableSide(border.bottom),
-            _paintableSide(border.left),
+            _paintableSide(border.borderTop),
+            _paintableSide(border.borderRight),
+            _paintableSide(border.borderBottom),
+            _paintableSide(border.borderLeft),
           ];
     final top = sides.first;
     final uniform = top == sides[1] && top == sides[2] && top == sides[3];
@@ -128,7 +128,7 @@ class ViewBoxPainter {
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w
-        ..color = top.color!;
+        ..color = top.borderColor!;
       Radius shiftR(Radius r) => Radius.elliptical(math.max(0, r.x + radiusShift), math.max(0, r.y + radiusShift));
       final RRect? centerRRect = resolvedRadius == null
           ? null
@@ -139,7 +139,7 @@ class ViewBoxPainter {
               bottomRight: shiftR(resolvedRadius.bottomRight),
               bottomLeft: shiftR(resolvedRadius.bottomLeft),
             );
-      final lineStyle = top.style;
+      final lineStyle = top.borderStyle;
       if (lineStyle == ElBorderStyle.solid) {
         drawShapeOp(canvas, centerRRect ?? centerRect, paint);
         return;
@@ -179,7 +179,7 @@ class ViewBoxPainter {
     for (var i = 0; i < 4; i++) {
       final s = sides[i];
       if (!_isPaintableSide(s)) continue;
-      final lineStyle = s.style;
+      final lineStyle = s.borderStyle;
       final fill = lineStyle == ElBorderStyle.solid;
       var path = _sidePath(
         fill: fill,
@@ -190,7 +190,7 @@ class ViewBoxPainter {
         outExts: outExts,
         inExts: inExts,
       );
-      final paint = Paint()..color = s.color!;
+      final paint = Paint()..color = s.borderColor!;
       if (!fill) {
         // dashed / dotted：沿本边中心线（fill 带的中线）分段 stroke。
         final (on, off, cap) = _dashPattern(s.resolveWidth(), lineStyle);
@@ -254,7 +254,7 @@ class ViewBoxPainter {
     final width = outline.resolveWidth();
     final offset = outline.resolveOffset();
     if (width <= 0) return;
-    final outlineColor = outline.color is Color ? outline.color! : const Color(0xFF000000);
+    final outlineColor = outline.outlineColor is Color ? outline.outlineColor! : const Color(0xFF000000);
     // outline 固定画在 box 外；offset 再向外推（可为负）。
     final finalRect = outerRect.inflate(width + offset);
     // 圆角自适应外推（替代 CSS 简单加法，解决小圆角 + 大 offset 变胶囊的失真）
@@ -361,13 +361,13 @@ class ViewBoxPainter {
   }
 
   static bool _isPaintableSide(ElBorderSide side) =>
-      side.style != ElBorderStyle.none && side.resolveWidth() > 0 && (side.color?.a ?? 1) > 0;
+      side.borderStyle != ElBorderStyle.none && side.resolveWidth() > 0 && (side.borderColor?.a ?? 1) > 0;
 
   /// 不可见边不参与相邻圆弧归属，缺省边色统一按黑色绘制。
   static ElBorderSide _paintableSide(ElBorderSide side) {
-    assert(side.style == ElBorderStyle.none || side.resolveWidth() >= 0, '可见边框的宽度必须非负。');
+    assert(side.borderStyle == ElBorderStyle.none || side.resolveWidth() >= 0, '可见边框的宽度必须非负。');
     if (!_isPaintableSide(side)) return ElBorderSide.none;
-    return side.color == null ? side.copyWith(color: const Color(0xFF000000)) : side;
+    return side.borderColor == null ? side.copyWith(borderColor: const Color(0xFF000000)) : side;
   }
 
   static RRect _shadowRRect(RRect base, BoxShadow shadow, {required bool inset}) {
@@ -409,9 +409,9 @@ class ViewBoxPainter {
   }) {
     final transform = resolved.box.transform;
     if (transform == null) return null;
-    // transform 原点：transformAlignment 默认 center（CSS transform-origin: 50% 50%）
-    final align = resolved.box.transformAlignment ?? transform.origin ?? Alignment.center;
-    final resolvedAlign = align.resolve(textDirection ?? resolved.inheritedBox.textDirection ?? TextDirection.ltr);
+    // transform 原点：transformOrigin 默认 center（CSS transform-origin: 50% 50%）
+    final align = resolved.box.transformOrigin ?? transform.origin ?? Alignment.center;
+    final resolvedAlign = align.resolve(textDirection ?? resolved.inheritedBox.direction ?? TextDirection.ltr);
     final origin = offset + resolvedAlign.alongSize(size);
     return Matrix4.identity()
       ..translateByDouble(origin.dx, origin.dy, 0.0, 1.0)

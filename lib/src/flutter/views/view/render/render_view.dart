@@ -258,7 +258,7 @@ class ElRenderView extends RenderBox
   bool get _hasActiveAnimations => _animDriver?.hasActiveAnimations ?? false;
 
   /// keyframe 动画运行时（CSS animations 通道，与 transition driver 并列）。
-  /// 懒建：仅声明过 `ElStyle.animations` 的节点付这次分配。
+  /// 懒建：仅声明过 `ElStyle.animation` 的节点付这次分配。
   KeyframeRunner? _keyframeRunner;
 
   /// cascade 前对齐 keyframe 声明表，返回本轮的钉住掩码（0 = 无动画）。
@@ -305,7 +305,7 @@ class ElRenderView extends RenderBox
   @override
   bool debugValidateChild(RenderObject child) => child is RenderBox;
 
-  /// paint 编排协作体（bgImage 生命周期 + backdrop layer + paint 编排）。
+  /// paint 编排协作体（backgroundImage 生命周期 + backdrop layer + paint 编排）。
   PaintController? _paintControllerOrNull;
 
   PaintController get _paintController => _paintControllerOrNull ??= PaintController(this);
@@ -455,7 +455,7 @@ class ElRenderView extends RenderBox
     final child = _singleWidgetChild;
     if (child == null) return Size.zero;
     final box = resolved.box;
-    final alignment = box.alignment?.resolve(resolved.inheritedBox.textDirection ?? TextDirection.ltr);
+    final alignment = box.alignment?.resolve(resolved.inheritedBox.direction ?? TextDirection.ltr);
     final childConstraints = alignment == null ? constraints : constraints.loosen();
     final Size childSize;
     if (dry) {
@@ -943,7 +943,7 @@ class ElRenderView extends RenderBox
 
   bool _tapBoundsContainsLocal(Offset local) {
     if (!_boxRect.contains(local)) return false;
-    final clipper = _committedResolved.box.clipper;
+    final clipper = _committedResolved.box.clipPath;
     if (clipper != null) return clipper.getClip(_boxSize).contains(local - _boxOrigin);
     return _containsClipRRectForHitTest(local);
   }
@@ -1245,10 +1245,10 @@ class ElRenderView extends RenderBox
           markNeedsLayout();
         }
       }
-      if (_hasTextPayload && oldInheritedBox.textDirection != value.inheritedBox.textDirection) {
+      if (_hasTextPayload && oldInheritedBox.direction != value.inheritedBox.direction) {
         markNeedsSemanticsUpdate();
       }
-      _listenToClipper(attached ? _committedResolved.box.clipper : null);
+      _listenToClipper(attached ? _committedResolved.box.clipPath : null);
     }
     _markCompositingBitsIfBackdropChanged(changedMask);
     DamageRouter.route(
@@ -1275,8 +1275,8 @@ class ElRenderView extends RenderBox
   /// `ImageFilterLayer`，开关变化时需要刷新合成位。
   void _markCompositingBitsIfBackdropChanged(FieldMask changedMask) {
     if (maskHas(changedMask, ElTransitionField.transform.index) ||
-        maskHas(changedMask, ElTransitionField.transformAlignment.index) ||
-        maskHas(changedMask, ElTransitionField.clipper.index) ||
+        maskHas(changedMask, ElTransitionField.transformOrigin.index) ||
+        maskHas(changedMask, ElTransitionField.clipPath.index) ||
         maskHas(changedMask, ElTransitionField.clipBehavior.index)) {
       _notifySelectionVisualGeometryChanged();
     }
@@ -1493,14 +1493,14 @@ class ElRenderView extends RenderBox
         fillWidth: metrics.used.hasTightWidth,
       );
       final alignment = _committedResolved.box.alignment
-          ?.resolve(_committedResolved.inheritedBox.textDirection ?? TextDirection.ltr)
+          ?.resolve(_committedResolved.inheritedBox.direction ?? TextDirection.ltr)
           .alongOffset(Offset(contentSize.width - text.size.width, contentSize.height - text.size.height));
       return metrics.contentOrigin.dy + (alignment?.dy ?? 0) + text.baseline;
     }
     final child = _singleWidgetChild;
     if (child == null) return null;
     final alignment = _committedResolved.box.alignment?.resolve(
-      _committedResolved.inheritedBox.textDirection ?? TextDirection.ltr,
+      _committedResolved.inheritedBox.direction ?? TextDirection.ltr,
     );
     final childConstraints = alignment == null ? metrics.inner : metrics.inner.loosen();
     final childBaseline = child.getDryBaseline(childConstraints, baseline);
@@ -1536,7 +1536,7 @@ class ElRenderView extends RenderBox
       final slack = Offset(contentWidth - child.size.width, contentHeight - child.size.height);
       (child.parentData! as BoxParentData).offset =
           _contentOrigin +
-          alignment.resolve(_committedResolved.inheritedBox.textDirection ?? TextDirection.ltr).alongOffset(slack);
+          alignment.resolve(_committedResolved.inheritedBox.direction ?? TextDirection.ltr).alongOffset(slack);
     }
     if (_hasTextPayload) {
       _textPainter.repositionAlignedText(_textPaintInput(), contentW: contentWidth, contentH: contentHeight);
@@ -1751,7 +1751,7 @@ class ElRenderView extends RenderBox
       return;
     }
     // 控制器未分配：先零成本判定零 op（identical 命中即直通），只有真出现
-    // 盒装饰 op 才落地 PaintController。资源正确性不受影响——bgImage /
+    // 盒装饰 op 才落地 PaintController。资源正确性不受影响——backgroundImage /
     // backdrop layer 等跨 frame 资源只可能在控制器存在后产生。
     final box = committedResolvedStyle.box;
     if (identical(box, _zeroPaintOpsFor)) {
@@ -1785,7 +1785,7 @@ class ElRenderView extends RenderBox
   bool get clipsHitBounds {
     if (_hasTextPayload && _textPainter.overflowNeedsClipping) return true;
     final box = _committedResolved.box;
-    if (box.clipper != null) return true;
+    if (box.clipPath != null) return true;
     final clip = box.clipBehavior;
     return clip != null && clip != Clip.none;
   }
@@ -1793,14 +1793,14 @@ class ElRenderView extends RenderBox
   @override
   Rect? describeApproximatePaintClip(RenderObject child) {
     final box = _committedResolved.box;
-    final clipper = box.clipper;
+    final clipper = box.clipPath;
     final outer = _boxOrigin & _boxSize;
     if (clipper != null) return clipper.getApproximateClipRect(_boxSize).shift(_boxOrigin);
     final clip = box.clipBehavior;
     if (clip == null || clip == Clip.none) return null;
     final radius = ViewBoxPainter.effectiveBorderRadius(
       box,
-      textDirection: _committedResolved.inheritedBox.textDirection ?? TextDirection.ltr,
+      textDirection: _committedResolved.inheritedBox.direction ?? TextDirection.ltr,
     );
     return ViewBoxPainter.resolveContentRRect(outer, radius).outerRect;
   }
@@ -1838,7 +1838,7 @@ class ElRenderView extends RenderBox
         final inside = _containsForHitTest(transformed);
         if (inside) {
           // 裁剪判断先于子命中；clipper 优先于圆角。
-          final clipper = _committedResolved.box.clipper;
+          final clipper = _committedResolved.box.clipPath;
           if (clipper != null) {
             if (!clipper.getClip(_boxSize).contains(transformed - _boxOrigin)) return false;
           } else if (!_containsClipRRectForHitTest(transformed)) {
@@ -1900,7 +1900,7 @@ class ElRenderView extends RenderBox
     // 有焦点入口时，即使没有事件或视觉内容，也应允许点击聚焦。
     if (requestFocusForEvent != null) return true;
     // 有视觉内容：bgColor 参与命中
-    if (_committedResolved.box.bgColor != null) return true;
+    if (_committedResolved.box.backgroundColor != null) return true;
     return false;
   }
 
@@ -1924,7 +1924,7 @@ class ElRenderView extends RenderBox
     final outer = _boxOrigin & _boxSize;
     final radius = ViewBoxPainter.effectiveBorderRadius(
       box,
-      textDirection: _committedResolved.inheritedBox.textDirection ?? TextDirection.ltr,
+      textDirection: _committedResolved.inheritedBox.direction ?? TextDirection.ltr,
     );
     if (radius == null || radius == BorderRadius.zero) return true;
     final contentRRect = ViewBoxPainter.resolveContentRRect(outer, radius);
@@ -2045,7 +2045,7 @@ class ElRenderView extends RenderBox
       config,
       semantics: _semantics,
       textLabel: textLabel,
-      textDirection: textLabel == null ? null : _committedResolved.inheritedBox.textDirection ?? TextDirection.ltr,
+      textDirection: textLabel == null ? null : _committedResolved.inheritedBox.direction ?? TextDirection.ltr,
       includeFocusSemantics: _includeFocusSemantics,
       focusableForSemantics: _focusableForSemantics,
       focusedForSemantics: _focusedGetterForSemantics?.call() ?? _focusedForSemantics,
@@ -2109,7 +2109,7 @@ class ElRenderView extends RenderBox
     final isResponsiveRoot = _selfSizeBasis || ancestorNode == null;
     if (isResponsiveRoot) _WindowMetricsObserver.instance.register(this);
     _syncResponsiveBits(_computeSelfResponsiveBits(ancestorNode: ancestorNode), propagate: false);
-    _listenToClipper(_committedResolved.box.clipper);
+    _listenToClipper(_committedResolved.box.clipPath);
     _textPainterOrNull?.syncSelectionParticipation();
     // attach 完成后才打开 transition 闸门
     _transitionsEnabled = true;

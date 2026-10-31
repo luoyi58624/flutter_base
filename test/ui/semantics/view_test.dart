@@ -36,7 +36,7 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
             height: 160,
             padding: .all(30),
             transform: transform,
-            transformAlignment: alignment,
+            transformOrigin: alignment,
           );
           return Directionality(
             textDirection: .ltr,
@@ -90,16 +90,16 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
                 padding: .all(30),
                 transform: mode == 'transition' && shifted ? .translate(0, 8) : null,
                 starting: mode == 'starting' ? ElStyle(transform: .translate(0, 8)) : null,
-                transitions: [.field(.transform, Duration(milliseconds: 200), Curves.linear)],
-                animations: mode == 'keyframe'
+                transition: [.field(.transform, Duration(milliseconds: 200), Curves.linear)],
+                animation: mode == 'keyframe'
                     ? [
                         ElAnimation(
                           keyframes: {
                             0: ElStyle(transform: .translate(0, 8)),
                             100: ElStyle(transform: .translate(0, 0)),
                           },
-                          duration: Duration(milliseconds: 200),
-                          curve: Curves.linear,
+                          animationDuration: Duration(milliseconds: 200),
+                          animationTimingFunction: Curves.linear,
                         ),
                       ]
                     : null,
@@ -132,7 +132,7 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
     Widget host(Color color) => Directionality(
       textDirection: .ltr,
       child: ElCardView(
-        style: ElStyle(bgColor: color),
+        style: ElStyle(backgroundColor: color),
         child: child,
       ),
     );
@@ -159,7 +159,7 @@ void _registerGeometryTests(ElSemanticsTestBinding binding) {
             padding: .all(padding),
             alignment: .topLeft,
             transform: ElTransform.matrix(scale, 0, 0, scale, shift, 20),
-            transformAlignment: .topLeft,
+            transformOrigin: .topLeft,
           ),
           child: ElView(
             key: ValueKey('styled-child'),

@@ -315,13 +315,13 @@ class _InputNumberButtonState extends State<_InputNumberButton> {
         height: widget.height,
         alignment: .center,
         // 步进钮底从 $bgColor 派生加深 1 级
-        bgColor: ElThemeData.of(context).bgColor.elLight1(
+        backgroundColor: ElThemeData.of(context).bgColor.elLight1(
           context,
           reverse: !ElThemeData.of(context).bgColor.isDark,
         ),
         border: ElBorder.all(
-          width: 1,
-          color: ElThemeData.of(context).borderColor,
+          borderWidth: 1,
+          borderColor: ElThemeData.of(context).borderColor,
         ),
         color: ElThemeData.of(context).textColorSm,
         fontSize: 13,
@@ -336,7 +336,7 @@ class _InputNumberButtonState extends State<_InputNumberButton> {
           cursor: SystemMouseCursors.forbidden,
           iconColor: ElThemeData.of(context).textColorLg,
         ),
-        transitions: const [ElTransition.all(Duration(milliseconds: 250))],
+        transition: const [ElTransition.all(Duration(milliseconds: 250))],
         iconColor: ElThemeData.of(context).textColorSm,
       ),
       // 跟随本包既有惯例（alert/tag/steps 同）：图标用 Flutter Icon，

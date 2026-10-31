@@ -25,7 +25,7 @@ double myViewport(BuildContext context) =>
 
 /// CSS focus-visible 的公共轮廓。
 ElStyle myFocusStyle(BuildContext context) => ElStyle(
-  outline: ElOutline(width: 2, color: MyTheme.of(context).primary, offset: 3),
+  outline: ElOutline(outlineWidth: 2, outlineColor: MyTheme.of(context).primary, outlineOffset: 3),
 );
 
 /// 保留数值字重，兼顾静态字体与可变字体。
@@ -40,7 +40,7 @@ ElStyle myTextStyle(
   return ElStyle(
     fontSize: size,
     fontWeight: theme.weight(weight),
-    fontVariations: [FontVariation('wght', weight)],
+    fontVariationSettings: [FontVariation('wght', weight)],
     color: color,
     lineHeight: height,
   );
@@ -288,7 +288,7 @@ class MyAction extends HookWidget {
     final pointerStyle = quickTouchFeedback && directInput.value
         ? inputStyle.copyWith(
             onTap: inputStyle.onTap?.copyWith(
-              transitions: const [
+              transition: const [
                 ElTransition.all(Duration.zero),
                 ElTransition.field(
                   ElTransitionField.transform,
@@ -304,10 +304,10 @@ class MyAction extends HookWidget {
         : pointerStyle;
     if (reduced) {
       resolved = resolved.copyWith(
-        transitions: const <ElTransition>[],
-        onTap: resolved.onTap?.copyWith(transitions: const <ElTransition>[]),
+        transition: const <ElTransition>[],
+        onTap: resolved.onTap?.copyWith(transition: const <ElTransition>[]),
         onHover: resolved.onHover?.copyWith(
-          transitions: const <ElTransition>[],
+          transition: const <ElTransition>[],
         ),
       );
     }

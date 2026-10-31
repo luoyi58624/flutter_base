@@ -47,39 +47,29 @@ class MyDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = MyTheme.of(context);
     final side = ElBorderSide(
-      width: 1,
-      color: t.dividerColor ?? t.border,
-      style: dashed ? ElBorderStyle.dashed : ElBorderStyle.solid,
+      borderWidth: 1,
+      borderColor: t.dividerColor ?? t.border,
+      borderStyle: dashed ? ElBorderStyle.dashed : ElBorderStyle.solid,
     );
     Widget line() => ElView(
       style: ElStyle(
         height: vertical ? '100%' : 1,
         width: vertical ? 1 : '100%',
-        border: vertical ? ElBorder.only(left: side) : ElBorder.only(top: side),
+        border: vertical ? ElBorder.only(borderLeft: side) : ElBorder.only(borderTop: side),
       ),
     );
     // TODO(parity): 当前Flutter SemanticsRole无separator/orientation，用中文hint表达方向，需平台读屏验收。
     return ElView(
-      semantics: ElSemantics(
-        container: true,
-        hint: vertical ? '垂直分隔线' : '水平分隔线',
+      semantics: ElSemantics(container: true, hint: vertical ? '垂直分隔线' : '水平分隔线'),
+      style: myTextStyle(context, 13, t.fontWeight, color: t.textSecondary, height: 1.6).merge(
+        ElStyle(
+          width: vertical ? 1 : '100%',
+          height: vertical ? t.dividerHeight ?? 13 : null,
+          margin: vertical
+              ? EdgeInsets.symmetric(horizontal: t.dividerSpacing ?? 12)
+              : EdgeInsets.symmetric(vertical: t.dividerSpacing ?? 20),
+        ),
       ),
-      style:
-          myTextStyle(
-            context,
-            13,
-            t.fontWeight,
-            color: t.textSecondary,
-            height: 1.6,
-          ).merge(
-            ElStyle(
-              width: vertical ? 1 : '100%',
-              height: vertical ? t.dividerHeight ?? 13 : null,
-              margin: vertical
-                  ? EdgeInsets.symmetric(horizontal: t.dividerSpacing ?? 12)
-                  : EdgeInsets.symmetric(vertical: t.dividerSpacing ?? 20),
-            ),
-          ),
       child: vertical || child == null
           ? line()
           : LayoutBuilder(

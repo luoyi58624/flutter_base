@@ -32,7 +32,7 @@ const _darkSurface = Color(0xFF1E293B);
 
 const _darkText = Color(0xFFE2E8F0);
 
-const _darkBase = ElStyle(bgColor: _darkSurface, color: _darkText);
+const _darkBase = ElStyle(backgroundColor: _darkSurface, color: _darkText);
 
 Widget _box(Key key, ElStyle style) {
   return ElView(
@@ -40,7 +40,7 @@ Widget _box(Key key, ElStyle style) {
     style: style.copyWith(
       width: style.width ?? 96,
       height: style.height ?? 40,
-      transitions: style.transitions ?? _instant,
+      transition: style.transition ?? _instant,
     ),
   );
 }
@@ -259,24 +259,24 @@ void main() {
                 circleKey,
                 ElStyle(
                   borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-                  onHover: const ElStyle(clipper: ShapeBorderClipper(shape: CircleBorder())),
+                  onHover: const ElStyle(clipPath: ShapeBorderClipper(shape: CircleBorder())),
                 ),
               ),
               _box(
                 borderKey,
                 ElStyle(
-                  border: .all(width: 0, style: ElBorderStyle.none),
+                  border: .all(borderWidth: 0, borderStyle: ElBorderStyle.none),
                   borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-                  onHover: ElStyle(border: .all(color: const Color(0xFF3B82F6), width: 2)),
+                  onHover: ElStyle(border: .all(borderColor: const Color(0xFF3B82F6), borderWidth: 2)),
                 ),
               ),
               _box(
                 borderBottomKey,
                 const ElStyle(
-                  border: .only(bottom: ElBorderSide.none),
+                  border: .only(borderBottom: ElBorderSide.none),
                   borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
                   onHover: ElStyle(
-                    border: .only(bottom: ElBorderSide(color: Color(0xFF3B82F6), width: 2)),
+                    border: .only(borderBottom: ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 2)),
                   ),
                 ),
               ),
@@ -311,7 +311,7 @@ void main() {
               _box(
                 outlineKey,
                 const ElStyle(
-                  onHover: ElStyle(outline: ElOutline(color: Color(0xFF3B82F6), width: 2.5, offset: 3)),
+                  onHover: ElStyle(outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3)),
                 ),
               ),
             ],
@@ -340,16 +340,16 @@ void main() {
           viewOf(tester, roundKey).committedResolvedStyle.box.borderRadius?.resolve(TextDirection.ltr).topLeft.x,
           20,
         );
-        expect(viewOf(tester, circleKey).committedResolvedStyle.box.clipper, isA<ShapeBorderClipper>());
-        expect(viewOf(tester, borderKey).committedResolvedStyle.box.border!.top.width, 2);
-        expect(viewOf(tester, borderBottomKey).committedResolvedStyle.box.border!.bottom.width, 2);
+        expect(viewOf(tester, circleKey).committedResolvedStyle.box.clipPath, isA<ShapeBorderClipper>());
+        expect(viewOf(tester, borderKey).committedResolvedStyle.box.border!.borderTop.borderWidth, 2);
+        expect(viewOf(tester, borderBottomKey).committedResolvedStyle.box.border!.borderBottom.borderWidth, 2);
         expect(
           (viewOf(tester, shadowKey).committedResolvedStyle.box.boxShadow as List<BoxShadow>).single.blurRadius,
           20,
         );
         expect(viewOf(tester, multiShadowKey).committedResolvedStyle.box.boxShadow, hasLength(2));
         expect(viewOf(tester, clipKey).committedResolvedStyle.box.clipBehavior, Clip.hardEdge);
-        expect(viewOf(tester, outlineKey).committedResolvedStyle.box.outline!.offset, 3);
+        expect(viewOf(tester, outlineKey).committedResolvedStyle.box.outline!.outlineOffset, 3);
       });
 
       testWidgets('zero-width border with radius is not painted as a Flutter hairline border', (tester) async {
@@ -359,9 +359,9 @@ void main() {
             style: ElStyle(
               width: 80,
               height: 40,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-              border: .only(bottom: ElBorderSide(color: Colors.transparent, width: 0)),
+              border: .only(borderBottom: ElBorderSide(borderColor: Colors.transparent, borderWidth: 0)),
             ),
           ),
         );
@@ -378,12 +378,12 @@ void main() {
             style: ElStyle(
               width: 96,
               height: 64,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-              border: .only(bottom: ElBorderSide(color: Colors.transparent, width: 0)),
-              transitions: const [ElTransition.all(Duration(milliseconds: 250))],
+              border: .only(borderBottom: ElBorderSide(borderColor: Colors.transparent, borderWidth: 0)),
+              transition: const [ElTransition.all(Duration(milliseconds: 250))],
               onHover: const ElStyle(
-                border: .only(bottom: ElBorderSide(color: Color(0xFF3B82F6), width: 2)),
+                border: .only(borderBottom: ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 2)),
               ),
             ),
           ),
@@ -397,7 +397,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 125));
 
         expect(tester.takeException(), isNull);
-        expect(render.committedResolvedStyle.box.border!.bottom.width, 2);
+        expect(render.committedResolvedStyle.box.border!.borderBottom.borderWidth, 2);
       });
 
       testWidgets('animated BorderSide.none bottom border with radius matches decoration example', (tester) async {
@@ -409,12 +409,12 @@ void main() {
             style: ElStyle(
               width: 96,
               height: 64,
-              bgColor: Colors.white,
+              backgroundColor: Colors.white,
               borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
-              border: .only(bottom: ElBorderSide.none),
-              transitions: [ElTransition.all(Duration(milliseconds: 250))],
+              border: .only(borderBottom: ElBorderSide.none),
+              transition: [ElTransition.all(Duration(milliseconds: 250))],
               onHover: ElStyle(
-                border: .only(bottom: ElBorderSide(color: Color(0xFF3B82F6), width: 2)),
+                border: .only(borderBottom: ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 2)),
               ),
             ),
           ),
@@ -429,7 +429,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 125));
 
         expect(tester.takeException(), isNull);
-        expect(render.committedResolvedStyle.box.border!.bottom.width, 2);
+        expect(render.committedResolvedStyle.box.border!.borderBottom.borderWidth, 2);
       });
 
       testWidgets('animated BorderSide.none bottom border with radius exits without Flutter hairline border', (
@@ -451,16 +451,16 @@ void main() {
                     key: key,
                     style: ElStyle(
                       height: 64,
-                      bgColor: Colors.white,
+                      backgroundColor: Colors.white,
                       boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))],
-                      border: .only(bottom: ElBorderSide.none),
+                      border: .only(borderBottom: ElBorderSide.none),
                       borderRadius: BorderRadius.all(Radius.elliptical(8, 8)),
                       alignment: Alignment.center,
                       padding: const .symmetric(horizontal: 16),
-                      transitions: const [ElTransition.all()],
+                      transition: const [ElTransition.all()],
                       onDark: _darkBase,
                       onHover: const ElStyle(
-                        border: .only(bottom: ElBorderSide(color: Color(0xFF3B82F6), width: 2)),
+                        border: .only(borderBottom: ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 2)),
                       ),
                     ),
                     child: 'border-bottom',
@@ -486,12 +486,12 @@ void main() {
 
         expect(tester.takeException(), isNull);
         final render = viewOf(tester, key);
-        expect(render.committedResolvedStyle.box.border!.bottom, ElBorderSide.none);
+        expect(render.committedResolvedStyle.box.border!.borderBottom, ElBorderSide.none);
       });
     });
 
     group('渐变与背景效果', () {
-      testWidgets('gradient hover variants commit gradient, backdrop filter, and bgImage', (tester) async {
+      testWidgets('gradient hover variants commit gradient, backdrop filter, and backgroundImage', (tester) async {
         const linearKey = ValueKey('gradient-linear');
         const radialKey = ValueKey('gradient-radial');
         const sweepKey = ValueKey('gradient-sweep');
@@ -561,7 +561,7 @@ void main() {
                 style: ElStyle(
                   width: 120,
                   height: 60,
-                  bgColor: Color(0xff4facfe),
+                  backgroundColor: Color(0xff4facfe),
                   onHover: ElStyle(
                     gradient: LinearGradient(
                       colors: [Color(0xff4facfe), Color(0xff00f2fe)],
@@ -576,8 +576,8 @@ void main() {
                 style: ElStyle(
                   width: 120,
                   height: 60,
-                  bgColor: Color(0xff667eea),
-                  onHover: ElStyle(backdropFilter: const ElFilter(blur: 4), bgColor: const Color(0x66ffffff)),
+                  backgroundColor: Color(0xff667eea),
+                  onHover: ElStyle(backdropFilter: const ElFilter(blur: 4), backgroundColor: const Color(0x66ffffff)),
                 ),
               ),
               ElView(
@@ -585,8 +585,8 @@ void main() {
                 style: ElStyle(
                   width: 120,
                   height: 60,
-                  bgImage: imageA,
-                  onHover: ElStyle(bgImage: imageB),
+                  backgroundImage: imageA,
+                  onHover: ElStyle(backgroundImage: imageB),
                 ),
               ),
             ],
@@ -606,8 +606,8 @@ void main() {
         expect(sweep.startAngle, 0.5);
         expect(viewOf(tester, bgToGradientKey).committedResolvedStyle.box.gradient, isA<LinearGradient>());
         expect(viewOf(tester, backdropKey).committedResolvedStyle.box.backdropFilter, isNotNull);
-        expect(viewOf(tester, backdropKey).committedResolvedStyle.box.bgColor, const Color(0x66ffffff));
-        expect(viewOf(tester, bgImageKey).committedResolvedStyle.box.bgImage, same(imageB));
+        expect(viewOf(tester, backdropKey).committedResolvedStyle.box.backgroundColor, const Color(0x66ffffff));
+        expect(viewOf(tester, bgImageKey).committedResolvedStyle.box.backgroundImage, same(imageB));
       });
     });
   });
@@ -621,14 +621,14 @@ void main() {
 
     ElRenderView render(WidgetTester tester) => tester.renderObjectList<ElRenderView>(find.byType(ElView)).first;
 
-    group('bgImage painter lifecycle', () {
+    group('backgroundImage painter lifecycle', () {
       testWidgets('image 引用不变（identical）：painter 跨 pump 复用', (tester) async {
         const image = DecorationImage(image: _FakeImageProvider());
         // pump 第一次：创建 painter
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: image),
+              style: ElStyle(width: 100, height: 100, backgroundImage: image),
               child: SizedBox(),
             ),
           ),
@@ -639,11 +639,11 @@ void main() {
         expect(painter1, isNotNull, reason: '首次 paint 后应创建 painter');
         expect(identical(imageFor1, image), isTrue, reason: 'image identity 与持有的引用一致');
 
-        // pump 第二次：同样的 ElStyle(..., bgImage: image)（image 仍 const identical）
+        // pump 第二次：同样的 ElStyle(..., backgroundImage: image)（image 仍 const identical）
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: image),
+              style: ElStyle(width: 100, height: 100, backgroundImage: image),
               child: SizedBox(),
             ),
           ),
@@ -662,7 +662,7 @@ void main() {
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: imageA),
+              style: ElStyle(width: 100, height: 100, backgroundImage: imageA),
               child: SizedBox(),
             ),
           ),
@@ -675,7 +675,7 @@ void main() {
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: imageB),
+              style: ElStyle(width: 100, height: 100, backgroundImage: imageB),
               child: SizedBox(),
             ),
           ),
@@ -687,12 +687,12 @@ void main() {
         expect(identical((r.paintControllerForTest?.bgImagePainterFor), imageB), isTrue);
       });
 
-      testWidgets('bgImage 从有到 null：painter 被 dispose 清空', (tester) async {
+      testWidgets('backgroundImage 从有到 null：painter 被 dispose 清空', (tester) async {
         const image = DecorationImage(image: _FakeImageProvider());
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: image),
+              style: ElStyle(width: 100, height: 100, backgroundImage: image),
               child: SizedBox(),
             ),
           ),
@@ -700,34 +700,34 @@ void main() {
         final r = render(tester);
         expect((r.paintControllerForTest?.bgImagePainter), isNotNull);
 
-        // 移除 bgImage
+        // 移除 backgroundImage
         await tester.pumpWidget(shell(const ElView(style: ElStyle(width: 100, height: 100), child: SizedBox())));
         await tester.pump();
-        expect((r.paintControllerForTest?.bgImagePainter), isNull, reason: 'bgImage 移除后 painter 应清空');
+        expect((r.paintControllerForTest?.bgImagePainter), isNull, reason: 'backgroundImage 移除后 painter 应清空');
         expect((r.paintControllerForTest?.bgImagePainterFor), isNull);
       });
 
-      testWidgets('bgImage 从 null 到有：lazy create painter', (tester) async {
-        // 初始无 bgImage
+      testWidgets('backgroundImage 从 null 到有：lazy create painter', (tester) async {
+        // 初始无 backgroundImage
         await tester.pumpWidget(shell(const ElView(style: ElStyle(width: 100, height: 100), child: SizedBox())));
         final r = render(tester);
         expect((r.paintControllerForTest?.bgImagePainter), isNull);
 
-        // 加 bgImage
+        // 加 backgroundImage
         const image = DecorationImage(image: _FakeImageProvider());
         await tester.pumpWidget(
           shell(
             const ElView(
-              style: ElStyle(width: 100, height: 100, bgImage: image),
+              style: ElStyle(width: 100, height: 100, backgroundImage: image),
               child: SizedBox(),
             ),
           ),
         );
         await tester.pump();
-        expect((r.paintControllerForTest?.bgImagePainter), isNotNull, reason: '首次设置 bgImage 应 create painter');
+        expect((r.paintControllerForTest?.bgImagePainter), isNotNull, reason: '首次设置 backgroundImage 应 create painter');
       });
 
-      testWidgets('onHover 切 bgImage：painter 被 dispose 重建', (tester) async {
+      testWidgets('onHover 切 backgroundImage：painter 被 dispose 重建', (tester) async {
         const imageA = DecorationImage(image: _FakeImageProvider(), fit: BoxFit.cover);
         const imageB = DecorationImage(image: _FakeImageProvider(), fit: BoxFit.contain);
         await tester.pumpWidget(
@@ -736,8 +736,8 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgImage: imageA,
-                onHover: ElStyle(bgImage: imageB),
+                backgroundImage: imageA,
+                onHover: ElStyle(backgroundImage: imageB),
               ),
               child: SizedBox(),
             ),
@@ -768,10 +768,10 @@ void main() {
           test('$align / $lineStyle：分色边框先缩放圆角，路径留在盒子附近', () {
             final box = Rect.fromLTWH(10, 20, 34, 34);
             final border = ElBorder.only(
-              top: ElBorderSide(color: Color(0xff409eff), width: 3, style: lineStyle),
-              right: ElBorderSide(color: Color(0xffe4e7ed), width: 3, style: lineStyle),
-              bottom: ElBorderSide(color: Color(0xffe4e7ed), width: 3, style: lineStyle),
-              left: ElBorderSide(color: Color(0xffe4e7ed), width: 3, style: lineStyle),
+              borderTop: ElBorderSide(borderColor: Color(0xff409eff), borderWidth: 3, borderStyle: lineStyle),
+              borderRight: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3, borderStyle: lineStyle),
+              borderBottom: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3, borderStyle: lineStyle),
+              borderLeft: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3, borderStyle: lineStyle),
               align: align,
             );
             final huge = recordBorderPaints(rect: box, border: border, borderRadius: BorderRadius.circular(9999))!;
@@ -812,10 +812,10 @@ void main() {
           bottomRight: Radius.elliptical(90 * 3 / 13, 150 * 3 / 13),
         );
         final border = ElBorder.only(
-          top: ElBorderSide(width: 3, color: Colors.blue),
-          right: ElBorderSide(width: 2, color: Colors.red),
-          bottom: ElBorderSide(width: 4, color: Colors.green),
-          left: ElBorderSide(width: 1, color: Colors.orange),
+          borderTop: ElBorderSide(borderWidth: 3, borderColor: Colors.blue),
+          borderRight: ElBorderSide(borderWidth: 2, borderColor: Colors.red),
+          borderBottom: ElBorderSide(borderWidth: 4, borderColor: Colors.green),
+          borderLeft: ElBorderSide(borderWidth: 1, borderColor: Colors.orange),
         );
         final actual = recordBorderPaints(rect: rect, border: border, borderRadius: raw)!;
         final fitted = recordBorderPaints(rect: rect, border: border, borderRadius: expected)!;
@@ -850,20 +850,20 @@ void main() {
                       height: 34,
                       borderRadius: BorderRadius.all(Radius.circular(9999)),
                       border: ElBorder.only(
-                        top: ElBorderSide(color: Color(0xff409eff), width: 3),
-                        right: ElBorderSide(color: Color(0xffe4e7ed), width: 3),
-                        bottom: ElBorderSide(color: Color(0xffe4e7ed), width: 3),
-                        left: ElBorderSide(color: Color(0xffe4e7ed), width: 3),
+                        borderTop: ElBorderSide(borderColor: Color(0xff409eff), borderWidth: 3),
+                        borderRight: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3),
+                        borderBottom: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3),
+                        borderLeft: ElBorderSide(borderColor: Color(0xffe4e7ed), borderWidth: 3),
                       ),
-                      animations: [
+                      animation: [
                         ElAnimation(
                           keyframes: {
                             0: ElStyle(transform: .identity()),
                             100: ElStyle(transform: .rotate(2 * math.pi)),
                           },
-                          duration: Duration(milliseconds: 900),
-                          curve: Curves.linear,
-                          iterationCount: double.infinity,
+                          animationDuration: Duration(milliseconds: 900),
+                          animationTimingFunction: Curves.linear,
+                          animationIterationCount: double.infinity,
                         ),
                       ],
                     ),
@@ -908,7 +908,7 @@ void main() {
       test('inside：声明宽度不变，中心线向盒内偏移半宽', () {
         final ops = recordBorderPaints(
           rect: const Rect.fromLTWH(10.3, 5.2, 100.5, 60.5),
-          border: ElBorder.all(width: 1, color: red),
+          border: ElBorder.all(borderWidth: 1, borderColor: red),
           borderRadius: null,
         )!;
 
@@ -919,12 +919,12 @@ void main() {
       test('center / outside：只按声明半宽移动，不做物理像素量化', () {
         final center = recordBorderPaints(
           rect: rect,
-          border: ElBorder.all(width: 2, color: red, align: .center),
+          border: ElBorder.all(borderWidth: 2, borderColor: red, align: .center),
           borderRadius: null,
         )!;
         final outside = recordBorderPaints(
           rect: rect,
-          border: ElBorder.all(width: 2, color: red, align: .outside),
+          border: ElBorder.all(borderWidth: 2, borderColor: red, align: .outside),
           borderRadius: null,
         )!;
 
@@ -937,7 +937,7 @@ void main() {
       test('per-side：保留声明宽度', () {
         final ops = recordBorderPaints(
           rect: rect,
-          border: ElBorder.only(bottom: ElBorderSide(color: red, width: 1)),
+          border: ElBorder.only(borderBottom: ElBorderSide(borderColor: red, borderWidth: 1)),
           borderRadius: null,
         )!;
 
@@ -945,11 +945,11 @@ void main() {
       });
 
       test('缺省黑色与显式黑色共同使用 uniform 路径', () {
-        final implicit = ElBorderSide(width: 2, color: null, style: .dashed);
-        final explicit = ElBorderSide(width: 2, style: .dashed);
+        final implicit = ElBorderSide(borderWidth: 2, borderColor: null, borderStyle: .dashed);
+        final explicit = ElBorderSide(borderWidth: 2, borderStyle: .dashed);
         final ops = recordBorderPaints(
           rect: rect,
-          border: ElBorder.only(top: implicit, right: explicit, bottom: implicit, left: explicit),
+          border: ElBorder.only(borderTop: implicit, borderRight: explicit, borderBottom: implicit, borderLeft: explicit),
           borderRadius: BorderRadius.circular(8),
         )!;
         expect(ops, hasLength(1));
@@ -963,16 +963,16 @@ void main() {
         final ops = recordBorderPaints(
           rect: rect,
           border: ElBorder.only(
-            top: ElBorderSide(width: 3, color: Colors.transparent, style: .dashed),
-            right: ElBorderSide(width: 0, style: .dotted),
-            bottom: ElBorderSide(width: null),
-            left: ElBorderSide(width: -2, style: .none),
+            borderTop: ElBorderSide(borderWidth: 3, borderColor: Colors.transparent, borderStyle: .dashed),
+            borderRight: ElBorderSide(borderWidth: 0, borderStyle: .dotted),
+            borderBottom: ElBorderSide(borderWidth: null),
+            borderLeft: ElBorderSide(borderWidth: -2, borderStyle: .none),
           ),
           borderRadius: BorderRadius.circular(8),
         );
         expect(ops, isNull);
         expect(
-          () => recordBorderPaints(rect: rect, border: ElBorder.all(width: -1), borderRadius: null),
+          () => recordBorderPaints(rect: rect, border: ElBorder.all(borderWidth: -1), borderRadius: null),
           throwsAssertionError,
         );
       });
@@ -991,7 +991,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             ElView(
-              style: ElStyle(width: 100, height: 60, border: .all(color: red, width: 1)),
+              style: ElStyle(width: 100, height: 60, border: .all(borderColor: red, borderWidth: 1)),
             ),
           ),
         );
@@ -1015,7 +1015,7 @@ void main() {
                 width: 100,
                 height: 60,
                 borderRadius: const .all(Radius.circular(8)),
-                border: .all(color: red, width: 2),
+                border: .all(borderColor: red, borderWidth: 2),
               ),
             ),
           ),
@@ -1043,17 +1043,17 @@ void main() {
 
     group('uniform 线型', () {
       test('solid 维持 RRect/Rect stroke 快路径（回归锁）', () {
-        final ops = opsOf(ElBorder.all(width: 2, color: red))!;
+        final ops = opsOf(ElBorder.all(borderWidth: 2, borderColor: red))!;
         expect(ops, hasLength(1));
         expect(ops.single.$1, isA<Rect>(), reason: '无圆角 solid → Rect stroke');
 
-        final rounded = opsOf(ElBorder.all(width: 2, color: red), radius: BorderRadius.circular(8))!;
+        final rounded = opsOf(ElBorder.all(borderWidth: 2, borderColor: red), radius: BorderRadius.circular(8))!;
         expect(rounded.single.$1, isA<RRect>(), reason: '圆角 solid → RRect stroke');
       });
 
       test('dashed 矩形：dash Path + 整周期对齐（100×60 inside 中心线周长 312 → 26 段）', () {
-        final ops = opsOf(ElBorder.all(width: 2, color: red))!;
-        final dashed = opsOf(ElBorder.all(width: 2, color: red, style: ElBorderStyle.dashed))!;
+        final ops = opsOf(ElBorder.all(borderWidth: 2, borderColor: red))!;
+        final dashed = opsOf(ElBorder.all(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed))!;
         expect(dashed, hasLength(1));
         final (shape, paint) = dashed.single;
         expect(shape, isA<Path>());
@@ -1074,7 +1074,7 @@ void main() {
 
       test('dashed + 圆角：contour 多段、包络贴 inside 中心线 RRect', () {
         final dashed = opsOf(
-          ElBorder.all(width: 2, color: red, style: ElBorderStyle.dashed),
+          ElBorder.all(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed),
           radius: BorderRadius.circular(12),
         )!;
         final (shape, paint) = dashed.single;
@@ -1086,7 +1086,7 @@ void main() {
       });
 
       test('dotted：round cap 圆点', () {
-        final dotted = opsOf(ElBorder.all(width: 2, color: red, style: ElBorderStyle.dotted))!;
+        final dotted = opsOf(ElBorder.all(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dotted))!;
         final (shape, paint) = dotted.single;
         expect(paint.strokeCap, StrokeCap.round);
         // 中心距 2w=4，inside 中心线周长 312 → 78 个点。
@@ -1100,7 +1100,7 @@ void main() {
     group('per-side 线型', () {
       test('bottom-only dashed：中心线开放段、两端都落 dash（首尾不秃）', () {
         const bottom = ElBorder.only(
-          bottom: ElBorderSide(width: 2, color: red, style: ElBorderStyle.dashed),
+          borderBottom: ElBorderSide(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed),
         );
         final ops = opsOf(bottom)!;
         expect(ops, hasLength(1));
@@ -1122,8 +1122,8 @@ void main() {
 
       test('top solid + bottom dashed 混排：solid 走 fill path，dashed 走 stroke path', () {
         const mixed = ElBorder.only(
-          top: ElBorderSide(width: 2, color: red),
-          bottom: ElBorderSide(width: 2, color: red, style: ElBorderStyle.dashed),
+          borderTop: ElBorderSide(borderWidth: 2, borderColor: red),
+          borderBottom: ElBorderSide(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed),
         );
         final ops = opsOf(mixed)!;
         expect(ops, hasLength(2));
@@ -1138,7 +1138,7 @@ void main() {
 
       test('bottom-only dashed + 圆角：孤边接管全弧，中心线延伸进两个底角', () {
         const bottom = ElBorder.only(
-          bottom: ElBorderSide(width: 2, color: red, style: ElBorderStyle.dashed),
+          borderBottom: ElBorderSide(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed),
         );
         final ops = opsOf(bottom, radius: BorderRadius.circular(10))!;
         final bounds = (ops.single.$1 as Path).getBounds();
@@ -1152,8 +1152,8 @@ void main() {
 
       test('style: none 边不产出 op', () {
         const border = ElBorder.only(
-          top: ElBorderSide(width: 2, color: red, style: ElBorderStyle.none),
-          bottom: ElBorderSide(width: 2, color: red),
+          borderTop: ElBorderSide(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.none),
+          borderBottom: ElBorderSide(borderWidth: 2, borderColor: red),
         );
         final ops = opsOf(border)!;
         expect(ops, hasLength(1), reason: 'none 边在 resolveToFlutterBorder 即变 BorderSide.none');
@@ -1162,11 +1162,11 @@ void main() {
 
     group('值类语义', () {
       test('ElBorderSide.lerp 线型 step（t<0.5 取 a，否则 b）', () {
-        const a = ElBorderSide(width: 1, color: red, style: ElBorderStyle.dashed);
-        const b = ElBorderSide(width: 3, color: red);
-        expect(ElBorderSide.lerp(a, b, 0.25).style, ElBorderStyle.dashed);
-        expect(ElBorderSide.lerp(a, b, 0.75).style, ElBorderStyle.solid);
-        expect(ElBorderSide.lerp(a, b, 0.5).width, 2.0, reason: '宽度数值插值不受线型影响');
+        const a = ElBorderSide(borderWidth: 1, borderColor: red, borderStyle: ElBorderStyle.dashed);
+        const b = ElBorderSide(borderWidth: 3, borderColor: red);
+        expect(ElBorderSide.lerp(a, b, 0.25).borderStyle, ElBorderStyle.dashed);
+        expect(ElBorderSide.lerp(a, b, 0.75).borderStyle, ElBorderStyle.solid);
+        expect(ElBorderSide.lerp(a, b, 0.5).borderWidth, 2.0, reason: '宽度数值插值不受线型影响');
       });
     });
 
@@ -1183,7 +1183,7 @@ void main() {
                 style: ElStyle(
                   width: 100,
                   height: 60,
-                  border: ElBorder.all(width: 2, color: red, style: ElBorderStyle.dashed),
+                  border: ElBorder.all(borderWidth: 2, borderColor: red, borderStyle: ElBorderStyle.dashed),
                 ),
               ),
             ),
@@ -1208,7 +1208,7 @@ void main() {
       test('分数盒 + 3px：右/底外缘 = 逻辑盒边', () {
         final ops = recordBorderPaints(
           rect: fracBox,
-          border: ElBorder.all(width: 3, color: borderBlue),
+          border: ElBorder.all(borderWidth: 3, borderColor: borderBlue),
           borderRadius: null,
         )!;
         final center = ops.single.$1 as Rect;
@@ -1224,7 +1224,7 @@ void main() {
         const box = Rect.fromLTWH(0, 0, 260, 100);
         final ops = recordBorderPaints(
           rect: box,
-          border: ElBorder.all(width: 3, color: borderBlue),
+          border: ElBorder.all(borderWidth: 3, borderColor: borderBlue),
           borderRadius: null,
         )!;
         final center = ops.single.$1 as Rect;
@@ -1240,7 +1240,7 @@ void main() {
       test('3px + 圆角 10：stroke 外接（含半宽）贴盒', () {
         final ops = recordBorderPaints(
           rect: fracBox,
-          border: ElBorder.all(width: 3, color: borderBlue),
+          border: ElBorder.all(borderWidth: 3, borderColor: borderBlue),
           borderRadius: BorderRadius.circular(10),
         )!;
         final stroke = ops.single.$1 as RRect;
@@ -1301,9 +1301,9 @@ void main() {
                     style: ElStyle(
                       width: 260.5,
                       height: 100.5,
-                      bgColor: bgWhite,
+                      backgroundColor: bgWhite,
                       borderRadius: BorderRadius.all(Radius.elliptical(10, 10)),
-                      border: .all(color: borderBlue, width: 3),
+                      border: .all(borderColor: borderBlue, borderWidth: 3),
                     ),
                   ),
                 ),
@@ -1349,8 +1349,8 @@ void main() {
                     key: target,
                     style: const ElStyle(
                       padding: .all(8),
-                      border: .fromSide(ElBorderSide(color: Color(0xFF3B82F6), width: 1)),
-                      onTap: ElStyle(border: .fromSide(ElBorderSide(color: Color(0xFF3B82F6), width: 4))),
+                      border: .fromSide(ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 1)),
+                      onTap: ElStyle(border: .fromSide(ElBorderSide(borderColor: Color(0xFF3B82F6), borderWidth: 4))),
                     ),
                     child: const ElView(key: child, style: ElStyle(width: 80, height: 30)),
                   ),
@@ -1372,7 +1372,7 @@ void main() {
         await tester.pump();
 
         // 变体确实生效（先证明不是"没触发"）
-        expect(rv.committedResolvedStyle.box.border!.top.width, 4, reason: 'onTap 变体应已 cascade 到 committed');
+        expect(rv.committedResolvedStyle.box.border!.borderTop.borderWidth, 4, reason: 'onTap 变体应已 cascade 到 committed');
         // 布局零参与
         expect(BenchmarkProbe.performLayoutCount, 0, reason: 'border 变粗是 paint-only damage，禁止任何 performLayout');
         expect(rv.size, sizeBefore, reason: '自身 size 不变');
@@ -1389,7 +1389,7 @@ void main() {
               alignment: Alignment.topLeft,
               child: ElView(
                 key: target,
-                style: const ElStyle(padding: .all(10), border: .fromSide(ElBorderSide(width: 6))),
+                style: const ElStyle(padding: .all(10), border: .fromSide(ElBorderSide(borderWidth: 6))),
                 child: const SizedBox(width: 80, height: 30),
               ),
             ),
@@ -1419,9 +1419,9 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: bgBlue,
+              backgroundColor: bgBlue,
               borderRadius: const .all(Radius.circular(8)),
-              border: .all(color: borderBlack, width: 2),
+              border: .all(borderColor: borderBlack, borderWidth: 2),
               boxShadow: const [BoxShadow(color: shadowGrey, blurRadius: 4)],
               gradient: const LinearGradient(colors: [Color(0xFFFF0000), Color(0xFF00FF00)]),
             ),
@@ -1449,9 +1449,9 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: bgBlue,
+              backgroundColor: bgBlue,
               borderRadius: const .all(Radius.circular(8)),
-              border: .all(color: borderBlack, width: 2),
+              border: .all(borderColor: borderBlack, borderWidth: 2),
               clipBehavior: Clip.antiAlias,
             ),
           ),
@@ -1475,8 +1475,8 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: bgBlue,
-              border: .all(color: borderBlack, width: 2),
+              backgroundColor: bgBlue,
+              border: .all(borderColor: borderBlack, borderWidth: 2),
             ),
           ),
         ),
@@ -1503,7 +1503,7 @@ void main() {
               width: 100,
               height: 60,
               borderRadius: const .all(Radius.circular(8)),
-              border: .all(color: borderBlack, width: 2),
+              border: .all(borderColor: borderBlack, borderWidth: 2),
             ),
           ),
         ),
@@ -1529,7 +1529,7 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: bgBlue,
+              backgroundColor: bgBlue,
               borderRadius: const .all(Radius.circular(8)),
               boxShadow: const [BoxShadow(color: shadowGrey, offset: Offset(2, 3), blurRadius: 4, spreadRadius: 5)],
             ),
@@ -1578,7 +1578,7 @@ void main() {
                 style: ElStyle(
                   width: 80,
                   height: 60,
-                  bgColor: Colors.white,
+                  backgroundColor: Colors.white,
                   borderRadius: BorderRadius.all(Radius.circular(8)),
                   boxShadow: [ElBoxShadow(color: Colors.black, offset: Offset(0, 4), inset: true)],
                 ),
@@ -1663,8 +1663,8 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: Color(0xFF2196F3),
-              outline: ElOutline(color: outlinePurple, width: 2, offset: 3),
+              backgroundColor: Color(0xFF2196F3),
+              outline: ElOutline(outlineColor: outlinePurple, outlineWidth: 2, outlineOffset: 3),
             ),
           ),
         ),
@@ -1692,8 +1692,8 @@ void main() {
               width: 100,
               height: 60,
               outline: ElOutline(
-                color: outlinePurple,
-                width: 2,
+                outlineColor: outlinePurple,
+                outlineWidth: 2,
                 gradient: LinearGradient(colors: [Color(0xFFFF0000), Color(0xFF00FF00)]),
               ),
             ),
@@ -1712,8 +1712,8 @@ void main() {
               width: 100,
               height: 60,
               borderRadius: const .all(Radius.circular(8)),
-              border: .all(color: borderBlack, width: 2),
-              outline: const ElOutline(color: outlinePurple, width: 2),
+              border: .all(borderColor: borderBlack, borderWidth: 2),
+              outline: const ElOutline(outlineColor: outlinePurple, outlineWidth: 2),
             ),
           ),
         ),
@@ -1740,11 +1740,11 @@ void main() {
         expect(host.paintCalls, 0);
       });
 
-      test('paint-only 字段（bgColor）：markNeedsPaint 1 次，layout 0 次', () {
+      test('paint-only 字段（backgroundColor）：markNeedsPaint 1 次，layout 0 次', () {
         final host = _MarkRecordingBox();
         DamageRouter.route(
           host: host,
-          changedMask: fieldsMask({ElTransitionField.bgColor}),
+          changedMask: fieldsMask({ElTransitionField.backgroundColor}),
           inheritableHost: _InheritStub(),
         );
         expect(host.paintCalls, 1);
@@ -1755,7 +1755,7 @@ void main() {
         final host = _MarkRecordingBox();
         DamageRouter.route(
           host: host,
-          changedMask: fieldsMask({ElTransitionField.overflow}), // overflow = layout + paint
+          changedMask: fieldsMask({ElTransitionField.textOverflow}), // overflow = layout + paint
           inheritableHost: _InheritStub(),
         );
         // DamageRouter 现在使用独立 if：layout 和 paint 分别 mark；Flutter 自己合并。
@@ -1775,14 +1775,14 @@ void main() {
         expect(host.paintCalls, 0, reason: 'cursor 只走 inherit 不动 RenderObject');
       });
 
-      test('多个字段混合（width + bgColor）：两通道各 mark 一次', () {
+      test('多个字段混合（width + backgroundColor）：两通道各 mark 一次', () {
         final host = _MarkRecordingBox();
         DamageRouter.route(
           host: host,
-          changedMask: fieldsMask({ElTransitionField.width, ElTransitionField.bgColor}),
+          changedMask: fieldsMask({ElTransitionField.width, ElTransitionField.backgroundColor}),
           inheritableHost: _InheritStub(),
         );
-        // 独立 if：width 触发 layout，bgColor 触发 paint —— 不互斥，让 Flutter 合并。
+        // 独立 if：width 触发 layout，backgroundColor 触发 paint —— 不互斥，让 Flutter 合并。
         expect(host.layoutCalls, 1);
         expect(host.paintCalls, 1);
       });
@@ -1894,10 +1894,10 @@ void main() {
       await tester.pumpWidget(
         _hitOverflowBoundsApp(
           ElView(
-            style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFFEEEEEE)),
+            style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFFEEEEEE)),
             event: ElEvent(onTap: (_) => parentTaps++),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), bgColor: Color(0xFF2196F3)),
+              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
               event: ElEvent(onTap: (_) => childTaps++),
             ),
           ),
@@ -1929,7 +1929,7 @@ void main() {
           ElView(
             style: const ElStyle(width: 100, height: 100),
             child: ElView(
-              style: const ElStyle(width: 40, height: 40, transform: .translate(120, 120), bgColor: Color(0xFF4CAF50)),
+              style: const ElStyle(width: 40, height: 40, transform: .translate(120, 120), backgroundColor: Color(0xFF4CAF50)),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -1957,7 +1957,7 @@ void main() {
               // 子被父 30×30 紧约束钳成 30×30（现行布局语义），绕中心 (15,15)
               // 旋转 45°：半对角线 15√2≈21.2，菱形 |dx|+|dy|≤21.2，
               // AABB (-6.2..36.2)²——下顶点 (15,36.2) 溢出父盒。
-              style: ElStyle(width: 30, height: 30, transform: .rotate(math.pi / 4), bgColor: const Color(0xFFFF9800)),
+              style: ElStyle(width: 30, height: 30, transform: .rotate(math.pi / 4), backgroundColor: const Color(0xFFFF9800)),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -1985,9 +1985,9 @@ void main() {
       await tester.pumpWidget(
         _hitOverflowBoundsApp(
           ElView(
-            style: const ElStyle(width: 100, height: 100, clipBehavior: Clip.hardEdge, bgColor: Color(0xFFEEEEEE)),
+            style: const ElStyle(width: 100, height: 100, clipBehavior: Clip.hardEdge, backgroundColor: Color(0xFFEEEEEE)),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), bgColor: Color(0xFF2196F3)),
+              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -2018,7 +2018,7 @@ void main() {
                   width: 40,
                   height: 40,
                   transform: .translate(100, 100),
-                  bgColor: Color(0xFF9C27B0),
+                  backgroundColor: Color(0xFF9C27B0),
                 ),
                 event: ElEvent(onTap: (_) => taps++),
               ),
@@ -2039,7 +2039,7 @@ void main() {
           ElView(
             style: const ElStyle(width: 100, height: 100),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), bgColor: Color(0xFF2196F3)),
+              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
               event: ElEvent(onPointerEnter: (e) => hovered = true),
             ),
           ),
@@ -2060,7 +2060,7 @@ void main() {
         _hitOverflowBoundsApp(
           ElView(
             style: const ElStyle(width: 100, height: 100),
-            child: ElView(style: const ElStyle(width: 50, height: 50, bgColor: Color(0xFF000000))),
+            child: ElView(style: const ElStyle(width: 50, height: 50, backgroundColor: Color(0xFF000000))),
           ),
         ),
       );
@@ -2083,8 +2083,8 @@ void main() {
                 width: 40,
                 height: 40,
                 transform: .translate(0, 0),
-                transitions: [ElTransition.all(Duration(milliseconds: 300))],
-                bgColor: Color(0xFF4CAF50),
+                transition: [ElTransition.all(Duration(milliseconds: 300))],
+                backgroundColor: Color(0xFF4CAF50),
                 onHover: ElStyle(transform: .translate(200, 200)),
               ),
               event: ElEvent(onTap: (_) => taps++),
@@ -2138,7 +2138,7 @@ void main() {
               child: [
                 'prefix ',
                 ElView(
-                  style: const ElStyle(width: 30, height: 16, transform: .translate(0, 80), bgColor: Color(0xFFE91E63)),
+                  style: const ElStyle(width: 30, height: 16, transform: .translate(0, 80), backgroundColor: Color(0xFFE91E63)),
                   event: ElEvent(onTap: (_) => taps++),
                 ),
                 ' suffix',
@@ -2180,15 +2180,15 @@ void main() {
           () => ElRenderView(
             child: 'D',
             style: const ElStyle(
-              bgColor: lightBg,
-              onDark: ElStyle(bgColor: darkBg),
+              backgroundColor: lightBg,
+              onDark: ElStyle(backgroundColor: darkBg),
             ),
           ),
           themeMode: const ElThemeMode(brightness: Brightness.dark),
         ),
       );
 
-      expect(_label(tester).committedResolvedStyle.box.bgColor, darkBg);
+      expect(_label(tester).committedResolvedStyle.box.backgroundColor, darkBg);
     });
 
     testWidgets('textScaler 未传走 platformDispatcher 现取，显式传则关闭兜底', (tester) async {
@@ -2236,17 +2236,17 @@ void main() {
         _tree(
           () => ElRenderView(
             child: 'x',
-            style: const ElStyle(bgColor: a, lineHeight: 1.0),
+            style: const ElStyle(backgroundColor: a, lineHeight: 1.0),
           ),
         ),
       );
 
       final label = _label(tester);
-      expect(label.committedResolvedStyle.box.bgColor, a);
+      expect(label.committedResolvedStyle.box.backgroundColor, a);
 
-      label.style = const ElStyle(bgColor: b, lineHeight: 1.0);
+      label.style = const ElStyle(backgroundColor: b, lineHeight: 1.0);
       await tester.pump();
-      expect(label.committedResolvedStyle.box.bgColor, b);
+      expect(label.committedResolvedStyle.box.backgroundColor, b);
 
       label.setTextPayload('xyz');
       await tester.pump();
@@ -2289,32 +2289,32 @@ void main() {
             child: 'btn',
             event: ElEvent(onTap: (_) => taps++),
             style: const ElStyle(
-              bgColor: base,
+              backgroundColor: base,
               lineHeight: 1.0,
-              onHover: ElStyle(bgColor: hover),
-              onTap: ElStyle(bgColor: active),
+              onHover: ElStyle(backgroundColor: hover),
+              onTap: ElStyle(backgroundColor: active),
             ),
           ),
         ),
       );
       final label = _label(tester);
-      expect(label.committedResolvedStyle.box.bgColor, base);
+      expect(label.committedResolvedStyle.box.backgroundColor, base);
 
       final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await gesture.addPointer(location: Offset.zero);
       addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.byType(_HostWidget)));
       await tester.pump();
-      expect(label.committedResolvedStyle.box.bgColor, hover, reason: 'MouseTrackerAnnotation 悬停命中');
+      expect(label.committedResolvedStyle.box.backgroundColor, hover, reason: 'MouseTrackerAnnotation 悬停命中');
 
       await gesture.down(tester.getCenter(find.byType(_HostWidget)));
       await tester.pump();
-      expect(label.committedResolvedStyle.box.bgColor, active, reason: '按压期 onTap（active）变体');
+      expect(label.committedResolvedStyle.box.backgroundColor, active, reason: '按压期 onTap（active）变体');
 
       await gesture.up();
       await tester.pump();
       expect(taps, 1);
-      expect(label.committedResolvedStyle.box.bgColor, hover, reason: '抬起回悬停态');
+      expect(label.committedResolvedStyle.box.backgroundColor, hover, reason: '抬起回悬停态');
     });
 
     test('门禁：Widget child 在构造现场拒收', () {
@@ -2428,8 +2428,8 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 60,
-            bgColor: bgBlue,
-            border: .all(color: borderBlack, width: 2),
+            backgroundColor: bgBlue,
+            border: .all(borderColor: borderBlack, borderWidth: 2),
             boxShadow: withShadow ? const [ElBoxShadow(color: shadowGrey, blurRadius: 4, inset: true)] : null,
           ),
         ),
@@ -2454,7 +2454,7 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 60,
-            bgColor: bgBlue,
+            backgroundColor: bgBlue,
             boxShadow: withShadow ? const [ElBoxShadow(color: shadowGrey, blurRadius: 4, inset: true)] : null,
           ),
         ),
@@ -2473,9 +2473,9 @@ void main() {
     ElStyle decorated({Color bg = const Color(0xFF2196F3), double width = 100}) => ElStyle(
       width: width,
       height: 60,
-      bgColor: bg,
+      backgroundColor: bg,
       borderRadius: const .all(Radius.circular(8)),
-      border: .all(color: const Color(0xFF000000), width: 2),
+      border: .all(borderColor: const Color(0xFF000000), borderWidth: 2),
       boxShadow: const [BoxShadow(color: Color(0xFF9E9E9E), blurRadius: 4)],
     );
 
@@ -2530,11 +2530,11 @@ void main() {
   });
 
   group('圆角绘制快路径', () {
-    testWidgets('L2R：字面量圆角 + bgColor → 单 drawRRect 几何正确', (tester) async {
+    testWidgets('L2R：字面量圆角 + backgroundColor → 单 drawRRect 几何正确', (tester) async {
       await tester.pumpWidget(
         _viewport(
           const ElView(
-            style: ElStyle(width: 100, height: 60, bgColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
+            style: ElStyle(width: 100, height: 60, backgroundColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
           ),
         ),
       );
@@ -2554,9 +2554,9 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 60,
-              bgColor: const Color(0xFF2196F3),
+              backgroundColor: const Color(0xFF2196F3),
               borderRadius: const .all(Radius.circular(8)),
-              border: .all(color: const Color(0xFF000000), width: 2),
+              border: .all(borderColor: const Color(0xFF000000), borderWidth: 2),
             ),
           ),
         ),
@@ -2588,16 +2588,16 @@ void main() {
     ElRenderView findRender(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byType(ElView).first);
 
     group('盒模型 paint-only 字段变化不触发 layout', () {
-      testWidgets('bgColor 变化：debugLayoutCount 不增', (tester) async {
-        await pumpStyled(tester, const ElStyle(width: 200, height: 60, bgColor: Color(0xFFFF0000)));
+      testWidgets('backgroundColor 变化：debugLayoutCount 不增', (tester) async {
+        await pumpStyled(tester, const ElStyle(width: 200, height: 60, backgroundColor: Color(0xFFFF0000)));
         final box = findRender(tester);
         final layoutsBefore = box.debugLayoutCount;
 
-        await pumpStyled(tester, const ElStyle(width: 200, height: 60, bgColor: Color(0xFF00FF00)));
+        await pumpStyled(tester, const ElStyle(width: 200, height: 60, backgroundColor: Color(0xFF00FF00)));
         await tester.pump();
 
         expect(box.debugLayoutCount, layoutsBefore, reason: 'bgColor 是节点背景 paint-only damage');
-        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF00FF00));
+        expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF00FF00));
       });
     });
 
@@ -2692,7 +2692,7 @@ void main() {
       testWidgets('overflow=ellipsis 变化：触发 performLayout', (tester) async {
         await pumpStyled(
           tester,
-          const ElStyle(width: 100, height: 60, overflow: TextOverflow.clip),
+          const ElStyle(width: 100, height: 60, textOverflow: TextOverflow.clip),
           child: const ElView(child: 'this is a long text that may wrap'),
         );
         final box = findRender(tester);
@@ -2700,7 +2700,7 @@ void main() {
 
         await pumpStyled(
           tester,
-          const ElStyle(width: 100, height: 60, overflow: TextOverflow.ellipsis),
+          const ElStyle(width: 100, height: 60, textOverflow: TextOverflow.ellipsis),
           child: const ElView(child: 'this is a long text that may wrap'),
         );
         await tester.pump();
@@ -2755,14 +2755,14 @@ void main() {
         expect(box.committedResolvedStyle.inheritedText.color, const Color(0xFF000000));
       });
 
-      testWidgets('active 切换只改 bgColor：debugLayoutCount 不增', (tester) async {
+      testWidgets('active 切换只改 backgroundColor：debugLayoutCount 不增', (tester) async {
         await pumpStyled(
           tester,
           const ElStyle(
             width: 100,
             height: 100,
-            bgColor: Color(0xFFFF0000),
-            onTap: ElStyle(bgColor: Color(0xFF0000FF)),
+            backgroundColor: Color(0xFFFF0000),
+            onTap: ElStyle(backgroundColor: Color(0xFF0000FF)),
           ),
         );
         final box = findRender(tester);
@@ -2772,7 +2772,7 @@ void main() {
         await tester.pump();
 
         expect(box.debugLayoutCount, layoutsBefore, reason: 'onTap 仅切 bgColor → 不应触发 performLayout');
-        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF0000FF));
+        expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF0000FF));
       });
     });
   });
@@ -2782,7 +2782,7 @@ void main() {
       await tester.pumpWidget(
         _viewport(
           const ElView(
-            style: ElStyle(width: 100, height: 60, bgColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
+            style: ElStyle(width: 100, height: 60, backgroundColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
           ),
         ),
       );
@@ -2801,10 +2801,10 @@ void main() {
       );
     });
 
-    testWidgets('值真变：bgColor 翻转 → 分类恰好 +1，rrect 颜色更新', (tester) async {
+    testWidgets('值真变：backgroundColor 翻转 → 分类恰好 +1，rrect 颜色更新', (tester) async {
       Widget build(Color color) => _viewport(
         ElView(
-          style: ElStyle(width: 100, height: 60, bgColor: color, borderRadius: const .all(Radius.circular(8))),
+          style: ElStyle(width: 100, height: 60, backgroundColor: color, borderRadius: const .all(Radius.circular(8))),
         ),
       );
 
@@ -2833,9 +2833,9 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 60,
-            bgColor: const Color(0xFF2196F3),
+            backgroundColor: const Color(0xFF2196F3),
             borderRadius: const .all(Radius.circular(8)),
-            border: withBorder ? .all(color: const Color(0xFF000000), width: 2) : null,
+            border: withBorder ? .all(borderColor: const Color(0xFF000000), borderWidth: 2) : null,
           ),
         ),
       );
@@ -2884,7 +2884,7 @@ void main() {
         _app(
           ElView(
             event: ElEvent(onTap: (_) => tapped++),
-            style: const ElStyle(width: 40, height: 40, transform: .translate(20, 0), bgColor: Color(0xFF00AA00)),
+            style: const ElStyle(width: 40, height: 40, transform: .translate(20, 0), backgroundColor: Color(0xFF00AA00)),
           ),
         ),
       );
@@ -2907,8 +2907,8 @@ void main() {
               width: 40,
               height: 40,
               transform: .scale(2, 2),
-              transformAlignment: Alignment.topLeft,
-              bgColor: Color(0xFF00AA00),
+              transformOrigin: Alignment.topLeft,
+              backgroundColor: Color(0xFF00AA00),
             ),
           ),
         ),
@@ -2924,8 +2924,8 @@ void main() {
       await tester.pumpWidget(
         _app(
           const ElView(
-            style: ElStyle(width: 100, height: 60, transform: .translate(30, 0), transformAlignment: Alignment.topLeft),
-            child: ElView(style: ElStyle(width: 20, height: 20, bgColor: Color(0xFF00AA00))),
+            style: ElStyle(width: 100, height: 60, transform: .translate(30, 0), transformOrigin: Alignment.topLeft),
+            child: ElView(style: ElStyle(width: 20, height: 20, backgroundColor: Color(0xFF00AA00))),
           ),
         ),
       );
@@ -2951,8 +2951,8 @@ void main() {
               width: 40,
               height: 20,
               transform: .rotate(math.pi / 2),
-              transformAlignment: Alignment.topLeft,
-              bgColor: const Color(0xFF00AA00),
+              transformOrigin: Alignment.topLeft,
+              backgroundColor: const Color(0xFF00AA00),
             ),
           ),
         ),
@@ -2973,18 +2973,18 @@ void main() {
         _app(
           const ElView(
             // 祖父
-            style: ElStyle(width: 200, height: 200, transform: .scale(2), transformAlignment: Alignment.topLeft),
+            style: ElStyle(width: 200, height: 200, transform: .scale(2), transformOrigin: Alignment.topLeft),
             child: ElView(
               // 父
               style: ElStyle(
                 width: 50,
                 height: 50,
                 transform: .translate(20, 0),
-                transformAlignment: Alignment.topLeft,
+                transformOrigin: Alignment.topLeft,
               ),
               child: ElView(
                 // 孙子
-                style: ElStyle(width: 10, height: 10, bgColor: Color(0xFF00AA00)),
+                style: ElStyle(width: 10, height: 10, backgroundColor: Color(0xFF00AA00)),
               ),
             ),
           ),
@@ -3018,7 +3018,7 @@ void main() {
         _app(
           ElView(
             event: ElEvent(onTap: (_) {}),
-            style: const ElStyle(width: 40, height: 40, bgColor: Color(0xFF00AA00)),
+            style: const ElStyle(width: 40, height: 40, backgroundColor: Color(0xFF00AA00)),
           ),
         ),
       );
@@ -3036,8 +3036,8 @@ void main() {
               width: 40,
               height: 40,
               transform: .scale(0, 0),
-              transformAlignment: Alignment.topLeft,
-              bgColor: Color(0xFF00AA00),
+              transformOrigin: Alignment.topLeft,
+              backgroundColor: Color(0xFF00AA00),
             ),
           ),
         ),
@@ -3080,8 +3080,8 @@ void main() {
               style: const ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFFFFFFFF),
-                transformAlignment: Alignment.center,
+                backgroundColor: Color(0xFFFFFFFF),
+                transformOrigin: Alignment.center,
                 onHover: ElStyle(transform: .scale(1.5)),
               ),
             ),
@@ -3122,8 +3122,8 @@ void main() {
               style: const ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFFFFFFFF),
-                transformAlignment: Alignment.center,
+                backgroundColor: Color(0xFFFFFFFF),
+                transformOrigin: Alignment.center,
                 onHover: ElStyle(transform: .scale(1.5)),
               ),
             ),
@@ -3159,8 +3159,8 @@ void main() {
               style: const ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFFFFFFFF),
-                transformAlignment: Alignment.center,
+                backgroundColor: Color(0xFFFFFFFF),
+                transformOrigin: Alignment.center,
                 onHover: ElStyle(transform: .scale(1.5)),
               ),
             ),
@@ -3201,9 +3201,9 @@ void main() {
               style: ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFFFFFFFF),
+                backgroundColor: Color(0xFFFFFFFF),
                 transform: .scale(0.5),
-                transformAlignment: Alignment.center,
+                transformOrigin: Alignment.center,
               ),
             ),
           ),
@@ -3228,9 +3228,9 @@ void main() {
               style: ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFFFFFFFF),
+                backgroundColor: Color(0xFFFFFFFF),
                 transform: .translate(50, 0),
-                transformAlignment: Alignment.topLeft,
+                transformOrigin: Alignment.topLeft,
               ),
             ),
           ),

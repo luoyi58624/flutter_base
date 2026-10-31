@@ -100,11 +100,11 @@ class ResolvedStyleBuilder {
   /// 写入 wordSpacing 的样式值。
   void writeWordSpacing(double? v) => _inheritedTextBuffer.writeWordSpacing(v);
 
-  /// 写入 fontFeatures 的样式值。
-  void writeFontFeatures(List<FontFeature>? v) => _inheritedTextBuffer.writeFontFeatures(v);
+  /// 写入 fontFeatureSettings 的样式值。
+  void writeFontFeatureSettings(List<FontFeature>? v) => _inheritedTextBuffer.writeFontFeatureSettings(v);
 
-  /// 写入 fontVariations 的样式值。
-  void writeFontVariations(List<FontVariation>? v) => _inheritedTextBuffer.writeFontVariations(v);
+  /// 写入 fontVariationSettings 的样式值。
+  void writeFontVariationSettings(List<FontVariation>? v) => _inheritedTextBuffer.writeFontVariationSettings(v);
 
   /// 写入 textAlign 的样式值。
   void writeTextAlign(TextAlign? v) => _inheritedTextBuffer.writeTextAlign(v);
@@ -121,17 +121,17 @@ class ResolvedStyleBuilder {
   /// 写入 textGradient 的样式值。
   void writeTextGradient(Gradient? v) => _inheritedTextBuffer.writeTextGradient(v);
 
-  /// 写入 decoration 的样式值。
-  void writeDecoration(TextDecoration? v) => _inheritedTextBuffer.writeDecoration(v);
+  /// 写入 textDecorationLine 的样式值。
+  void writeTextDecorationLine(TextDecoration? v) => _inheritedTextBuffer.writeTextDecorationLine(v);
 
-  /// 写入 decorationColor 的样式值。
-  void writeDecorationColor(Color? v) => _inheritedTextBuffer.writeDecorationColor(v);
+  /// 写入 textDecorationColor 的样式值。
+  void writeTextDecorationColor(Color? v) => _inheritedTextBuffer.writeTextDecorationColor(v);
 
-  /// 写入 decorationStyle 的样式值。
-  void writeDecorationStyle(TextDecorationStyle? v) => _inheritedTextBuffer.writeDecorationStyle(v);
+  /// 写入 textDecorationStyle 的样式值。
+  void writeTextDecorationStyle(TextDecorationStyle? v) => _inheritedTextBuffer.writeTextDecorationStyle(v);
 
-  /// 写入 decorationThickness 的样式值。
-  void writeDecorationThickness(double? v) => _inheritedTextBuffer.writeDecorationThickness(v);
+  /// 写入 textDecorationThickness 的样式值。
+  void writeTextDecorationThickness(double? v) => _inheritedTextBuffer.writeTextDecorationThickness(v);
 
   /// 写入 textBackgroundColor 的样式值。
   void writeTextBackgroundColor(Color? v) => _inheritedTextBuffer.writeTextBackgroundColor(v);
@@ -139,14 +139,14 @@ class ResolvedStyleBuilder {
   /// 写入 softWrap 的样式值。
   void writeSoftWrap(bool? v) => _inheritedTextBuffer.writeSoftWrap(v);
 
-  /// 写入 overflow 的样式值。
-  void writeOverflow(TextOverflow? v) => _inheritedTextBuffer.writeOverflow(v);
+  /// 写入 textOverflow 的样式值。
+  void writeTextOverflow(TextOverflow? v) => _inheritedTextBuffer.writeTextOverflow(v);
 
   /// 写入 maxLines 的样式值。
   void writeMaxLines(int? v) => _inheritedTextBuffer.writeMaxLines(v);
 
-  /// 写入 textDirection 的样式值。
-  void writeTextDirection(TextDirection? v) => _inheritedBoxBuffer.writeTextDirection(v);
+  /// 写入 direction 的样式值。
+  void writeDirection(TextDirection? v) => _inheritedBoxBuffer.writeDirection(v);
 
   /// 写入 cursor 的样式值。
   void writeCursor(MouseCursor? v) => _inheritedBoxBuffer.writeCursor(v);
@@ -172,8 +172,8 @@ class ResolvedStyleBuilder {
   /// 写入 heightFactor 的样式值。
   void writeHeightFactor(double? v) => _boxBuffer.writeHeightFactor(v);
 
-  /// 写入 bgColor 的样式值。
-  void writeBgColor(Color? v) => _boxBuffer.writeBgColor(v);
+  /// 写入 backgroundColor 的样式值。
+  void writeBackgroundColor(Color? v) => _boxBuffer.writeBackgroundColor(v);
 
   /// 写入 padding 的样式值。
   void writePadding(EdgeInsetsGeometry? v) => _boxBuffer.writePadding(v);
@@ -190,8 +190,8 @@ class ResolvedStyleBuilder {
   /// 写入 borderRadius 的样式值。
   void writeBorderRadius(BorderRadiusGeometry? v) => _boxBuffer.writeBorderRadius(v);
 
-  /// 写入 clipper 的样式值。
-  void writeClipper(CustomClipper<Path>? v) => _boxBuffer.writeClipper(v);
+  /// 写入 clipPath 的样式值。
+  void writeClipPath(CustomClipper<Path>? v) => _boxBuffer.writeClipPath(v);
 
   /// 写入 boxShadow 的样式值。
   void writeBoxShadow(List<BoxShadow>? v) => _boxBuffer.writeBoxShadow(v);
@@ -214,8 +214,8 @@ class ResolvedStyleBuilder {
   /// 写入 transform 的样式值。
   void writeTransform(ElTransform? v) => _boxBuffer.writeTransform(v);
 
-  /// 写入 transformAlignment 的样式值。
-  void writeTransformAlignment(AlignmentGeometry? v) => _boxBuffer.writeTransformAlignment(v);
+  /// 写入 transformOrigin 的样式值。
+  void writeTransformOrigin(AlignmentGeometry? v) => _boxBuffer.writeTransformOrigin(v);
 
   /// 写入 clipBehavior 的样式值。
   void writeClipBehavior(Clip? v) => _boxBuffer.writeClipBehavior(v);
@@ -223,8 +223,8 @@ class ResolvedStyleBuilder {
   /// 写入 gradient 的样式值。
   void writeGradient(Gradient? v) => _boxBuffer.writeGradient(v);
 
-  /// 写入 bgImage 的样式值。
-  void writeBgImage(DecorationImage? v) => _boxBuffer.writeBgImage(v);
+  /// 写入 backgroundImage 的样式值。
+  void writeBackgroundImage(DecorationImage? v) => _boxBuffer.writeBackgroundImage(v);
 
   /// 写入 outline 的样式值。
   void writeOutline(ElOutline? v) => _boxBuffer.writeOutline(v);
@@ -252,20 +252,20 @@ class InheritedTextStyleBuffer {
   Object? _lineHeight = _unset;
   Object? _letterSpacing = _unset;
   Object? _wordSpacing = _unset;
-  Object? _fontFeatures = _unset;
-  Object? _fontVariations = _unset;
+  Object? _fontFeatureSettings = _unset;
+  Object? _fontVariationSettings = _unset;
   Object? _textAlign = _unset;
   Object? _textBaseline = _unset;
   Object? _leadingDistribution = _unset;
   Object? _textShadow = _unset;
   Object? _textGradient = _unset;
-  Object? _decoration = _unset;
-  Object? _decorationColor = _unset;
-  Object? _decorationStyle = _unset;
-  Object? _decorationThickness = _unset;
+  Object? _textDecorationLine = _unset;
+  Object? _textDecorationColor = _unset;
+  Object? _textDecorationStyle = _unset;
+  Object? _textDecorationThickness = _unset;
   Object? _textBackgroundColor = _unset;
   Object? _softWrap = _unset;
-  Object? _overflow = _unset;
+  Object? _textOverflow = _unset;
   Object? _maxLines = _unset;
 
   /// 是否接收过字段写入。
@@ -325,15 +325,15 @@ class InheritedTextStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 fontFeatures 的覆盖值。
-  void writeFontFeatures(Object? v) {
-    _fontFeatures = v as List<FontFeature>?;
+  /// 暂存 fontFeatureSettings 的覆盖值。
+  void writeFontFeatureSettings(Object? v) {
+    _fontFeatureSettings = v as List<FontFeature>?;
     isDirty = true;
   }
 
-  /// 暂存 fontVariations 的覆盖值。
-  void writeFontVariations(Object? v) {
-    _fontVariations = v as List<FontVariation>?;
+  /// 暂存 fontVariationSettings 的覆盖值。
+  void writeFontVariationSettings(Object? v) {
+    _fontVariationSettings = v as List<FontVariation>?;
     isDirty = true;
   }
 
@@ -367,27 +367,27 @@ class InheritedTextStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 decoration 的覆盖值。
-  void writeDecoration(Object? v) {
-    _decoration = v as TextDecoration?;
+  /// 暂存 textDecorationLine 的覆盖值。
+  void writeTextDecorationLine(Object? v) {
+    _textDecorationLine = v as TextDecoration?;
     isDirty = true;
   }
 
-  /// 暂存 decorationColor 的覆盖值。
-  void writeDecorationColor(Object? v) {
-    _decorationColor = v as Color?;
+  /// 暂存 textDecorationColor 的覆盖值。
+  void writeTextDecorationColor(Object? v) {
+    _textDecorationColor = v as Color?;
     isDirty = true;
   }
 
-  /// 暂存 decorationStyle 的覆盖值。
-  void writeDecorationStyle(Object? v) {
-    _decorationStyle = v as TextDecorationStyle?;
+  /// 暂存 textDecorationStyle 的覆盖值。
+  void writeTextDecorationStyle(Object? v) {
+    _textDecorationStyle = v as TextDecorationStyle?;
     isDirty = true;
   }
 
-  /// 暂存 decorationThickness 的覆盖值。
-  void writeDecorationThickness(Object? v) {
-    _decorationThickness = v as double?;
+  /// 暂存 textDecorationThickness 的覆盖值。
+  void writeTextDecorationThickness(Object? v) {
+    _textDecorationThickness = v as double?;
     isDirty = true;
   }
 
@@ -403,9 +403,9 @@ class InheritedTextStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 overflow 的覆盖值。
-  void writeOverflow(Object? v) {
-    _overflow = v as TextOverflow?;
+  /// 暂存 textOverflow 的覆盖值。
+  void writeTextOverflow(Object? v) {
+    _textOverflow = v as TextOverflow?;
     isDirty = true;
   }
 
@@ -428,20 +428,20 @@ class InheritedTextStyleBuffer {
         (identical(_lineHeight, _unset) || _lineHeight == base.lineHeight) &&
         (identical(_letterSpacing, _unset) || _letterSpacing == base.letterSpacing) &&
         (identical(_wordSpacing, _unset) || _wordSpacing == base.wordSpacing) &&
-        (identical(_fontFeatures, _unset) || _fontFeatures == base.fontFeatures) &&
-        (identical(_fontVariations, _unset) || _fontVariations == base.fontVariations) &&
+        (identical(_fontFeatureSettings, _unset) || _fontFeatureSettings == base.fontFeatureSettings) &&
+        (identical(_fontVariationSettings, _unset) || _fontVariationSettings == base.fontVariationSettings) &&
         (identical(_textAlign, _unset) || _textAlign == base.textAlign) &&
         (identical(_textBaseline, _unset) || _textBaseline == base.textBaseline) &&
         (identical(_leadingDistribution, _unset) || _leadingDistribution == base.leadingDistribution) &&
         (identical(_textShadow, _unset) || _textShadow == base.textShadow) &&
         (identical(_textGradient, _unset) || _textGradient == base.textGradient) &&
-        (identical(_decoration, _unset) || _decoration == base.decoration) &&
-        (identical(_decorationColor, _unset) || _decorationColor == base.decorationColor) &&
-        (identical(_decorationStyle, _unset) || _decorationStyle == base.decorationStyle) &&
-        (identical(_decorationThickness, _unset) || _decorationThickness == base.decorationThickness) &&
+        (identical(_textDecorationLine, _unset) || _textDecorationLine == base.textDecorationLine) &&
+        (identical(_textDecorationColor, _unset) || _textDecorationColor == base.textDecorationColor) &&
+        (identical(_textDecorationStyle, _unset) || _textDecorationStyle == base.textDecorationStyle) &&
+        (identical(_textDecorationThickness, _unset) || _textDecorationThickness == base.textDecorationThickness) &&
         (identical(_textBackgroundColor, _unset) || _textBackgroundColor == base.textBackgroundColor) &&
         (identical(_softWrap, _unset) || _softWrap == base.softWrap) &&
-        (identical(_overflow, _unset) || _overflow == base.overflow) &&
+        (identical(_textOverflow, _unset) || _textOverflow == base.textOverflow) &&
         (identical(_maxLines, _unset) || _maxLines == base.maxLines)) {
       return base;
     }
@@ -457,10 +457,10 @@ class InheritedTextStyleBuffer {
       lineHeight: identical(_lineHeight, _unset) ? base.lineHeight : _lineHeight as double?,
       letterSpacing: identical(_letterSpacing, _unset) ? base.letterSpacing : _letterSpacing as double?,
       wordSpacing: identical(_wordSpacing, _unset) ? base.wordSpacing : _wordSpacing as double?,
-      fontFeatures: identical(_fontFeatures, _unset) ? base.fontFeatures : _fontFeatures as List<FontFeature>?,
-      fontVariations: identical(_fontVariations, _unset)
-          ? base.fontVariations
-          : _fontVariations as List<FontVariation>?,
+      fontFeatureSettings: identical(_fontFeatureSettings, _unset) ? base.fontFeatureSettings : _fontFeatureSettings as List<FontFeature>?,
+      fontVariationSettings: identical(_fontVariationSettings, _unset)
+          ? base.fontVariationSettings
+          : _fontVariationSettings as List<FontVariation>?,
       textAlign: identical(_textAlign, _unset) ? base.textAlign : _textAlign as TextAlign?,
       textBaseline: identical(_textBaseline, _unset) ? base.textBaseline : _textBaseline as TextBaseline?,
       leadingDistribution: identical(_leadingDistribution, _unset)
@@ -468,19 +468,19 @@ class InheritedTextStyleBuffer {
           : _leadingDistribution as TextLeadingDistribution?,
       textShadow: identical(_textShadow, _unset) ? base.textShadow : _textShadow as List<Shadow>?,
       textGradient: identical(_textGradient, _unset) ? base.textGradient : _textGradient as Gradient?,
-      decoration: identical(_decoration, _unset) ? base.decoration : _decoration as TextDecoration?,
-      decorationColor: identical(_decorationColor, _unset) ? base.decorationColor : _decorationColor as Color?,
-      decorationStyle: identical(_decorationStyle, _unset)
-          ? base.decorationStyle
-          : _decorationStyle as TextDecorationStyle?,
-      decorationThickness: identical(_decorationThickness, _unset)
-          ? base.decorationThickness
-          : _decorationThickness as double?,
+      textDecorationLine: identical(_textDecorationLine, _unset) ? base.textDecorationLine : _textDecorationLine as TextDecoration?,
+      textDecorationColor: identical(_textDecorationColor, _unset) ? base.textDecorationColor : _textDecorationColor as Color?,
+      textDecorationStyle: identical(_textDecorationStyle, _unset)
+          ? base.textDecorationStyle
+          : _textDecorationStyle as TextDecorationStyle?,
+      textDecorationThickness: identical(_textDecorationThickness, _unset)
+          ? base.textDecorationThickness
+          : _textDecorationThickness as double?,
       textBackgroundColor: identical(_textBackgroundColor, _unset)
           ? base.textBackgroundColor
           : _textBackgroundColor as Color?,
       softWrap: identical(_softWrap, _unset) ? base.softWrap : _softWrap as bool?,
-      overflow: identical(_overflow, _unset) ? base.overflow : _overflow as TextOverflow?,
+      textOverflow: identical(_textOverflow, _unset) ? base.textOverflow : _textOverflow as TextOverflow?,
       maxLines: identical(_maxLines, _unset) ? base.maxLines : _maxLines as int?,
     );
   }
@@ -490,7 +490,7 @@ class InheritedTextStyleBuffer {
 class InheritedBoxStyleBuffer {
   static const Object _unset = Object();
 
-  Object? _textDirection = _unset;
+  Object? _direction = _unset;
   Object? _cursor = _unset;
   Object? _pointerEvents = _unset;
   Object? _iconSize = _unset;
@@ -499,9 +499,9 @@ class InheritedBoxStyleBuffer {
   /// 是否接收过字段写入。
   bool isDirty = false;
 
-  /// 暂存 textDirection 的覆盖值。
-  void writeTextDirection(Object? v) {
-    _textDirection = v as TextDirection?;
+  /// 暂存 direction 的覆盖值。
+  void writeDirection(Object? v) {
+    _direction = v as TextDirection?;
     isDirty = true;
   }
 
@@ -533,7 +533,7 @@ class InheritedBoxStyleBuffer {
   InheritedBox flush(InheritedBox base) {
     if (!isDirty) return base;
     // 保留等值引用共享，避免无效的级联和继承传播。
-    if ((identical(_textDirection, _unset) || _textDirection == base.textDirection) &&
+    if ((identical(_direction, _unset) || _direction == base.direction) &&
         (identical(_cursor, _unset) || _cursor == base.cursor) &&
         (identical(_pointerEvents, _unset) || _pointerEvents == base.pointerEvents) &&
         (identical(_iconSize, _unset) || _iconSize == base.iconSize) &&
@@ -541,7 +541,7 @@ class InheritedBoxStyleBuffer {
       return base;
     }
     return InheritedBox(
-      textDirection: identical(_textDirection, _unset) ? base.textDirection : _textDirection as TextDirection?,
+      direction: identical(_direction, _unset) ? base.direction : _direction as TextDirection?,
       cursor: identical(_cursor, _unset) ? base.cursor : _cursor as MouseCursor?,
       pointerEvents: identical(_pointerEvents, _unset) ? base.pointerEvents : _pointerEvents as ElPointerEvents?,
       iconSize: identical(_iconSize, _unset) ? base.iconSize : _iconSize as double?,
@@ -558,13 +558,13 @@ class BoxStyleBuffer {
   Object? _height = _unset;
   Object? _widthFactor = _unset;
   Object? _heightFactor = _unset;
-  Object? _bgColor = _unset;
+  Object? _backgroundColor = _unset;
   Object? _padding = _unset;
   Object? _margin = _unset;
   Object? _alignment = _unset;
   Object? _border = _unset;
   Object? _borderRadius = _unset;
-  Object? _clipper = _unset;
+  Object? _clipPath = _unset;
   Object? _boxShadow = _unset;
   Object? _minWidth = _unset;
   Object? _maxWidth = _unset;
@@ -572,10 +572,10 @@ class BoxStyleBuffer {
   Object? _maxHeight = _unset;
   Object? _opacity = _unset;
   Object? _transform = _unset;
-  Object? _transformAlignment = _unset;
+  Object? _transformOrigin = _unset;
   Object? _clipBehavior = _unset;
   Object? _gradient = _unset;
-  Object? _bgImage = _unset;
+  Object? _backgroundImage = _unset;
   Object? _outline = _unset;
   Object? _aspectRatio = _unset;
   Object? _filter = _unset;
@@ -608,9 +608,9 @@ class BoxStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 bgColor 的覆盖值。
-  void writeBgColor(Object? v) {
-    _bgColor = v as Color?;
+  /// 暂存 backgroundColor 的覆盖值。
+  void writeBackgroundColor(Object? v) {
+    _backgroundColor = v as Color?;
     isDirty = true;
   }
 
@@ -644,9 +644,9 @@ class BoxStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 clipper 的覆盖值。
-  void writeClipper(Object? v) {
-    _clipper = v as CustomClipper<Path>?;
+  /// 暂存 clipPath 的覆盖值。
+  void writeClipPath(Object? v) {
+    _clipPath = v as CustomClipper<Path>?;
     isDirty = true;
   }
 
@@ -692,9 +692,9 @@ class BoxStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 transformAlignment 的覆盖值。
-  void writeTransformAlignment(Object? v) {
-    _transformAlignment = v as AlignmentGeometry?;
+  /// 暂存 transformOrigin 的覆盖值。
+  void writeTransformOrigin(Object? v) {
+    _transformOrigin = v as AlignmentGeometry?;
     isDirty = true;
   }
 
@@ -710,9 +710,9 @@ class BoxStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 bgImage 的覆盖值。
-  void writeBgImage(Object? v) {
-    _bgImage = v as DecorationImage?;
+  /// 暂存 backgroundImage 的覆盖值。
+  void writeBackgroundImage(Object? v) {
+    _backgroundImage = v as DecorationImage?;
     isDirty = true;
   }
 
@@ -748,13 +748,13 @@ class BoxStyleBuffer {
         (identical(_height, _unset) || _height == base.height) &&
         (identical(_widthFactor, _unset) || _widthFactor == base.widthFactor) &&
         (identical(_heightFactor, _unset) || _heightFactor == base.heightFactor) &&
-        (identical(_bgColor, _unset) || _bgColor == base.bgColor) &&
+        (identical(_backgroundColor, _unset) || _backgroundColor == base.backgroundColor) &&
         (identical(_padding, _unset) || _padding == base.padding) &&
         (identical(_margin, _unset) || _margin == base.margin) &&
         (identical(_alignment, _unset) || _alignment == base.alignment) &&
         (identical(_border, _unset) || _border == base.border) &&
         (identical(_borderRadius, _unset) || _borderRadius == base.borderRadius) &&
-        (identical(_clipper, _unset) || _clipper == base.clipper) &&
+        (identical(_clipPath, _unset) || _clipPath == base.clipPath) &&
         (identical(_boxShadow, _unset) || _boxShadow == base.boxShadow) &&
         (identical(_minWidth, _unset) || _minWidth == base.minWidth) &&
         (identical(_maxWidth, _unset) || _maxWidth == base.maxWidth) &&
@@ -762,10 +762,10 @@ class BoxStyleBuffer {
         (identical(_maxHeight, _unset) || _maxHeight == base.maxHeight) &&
         (identical(_opacity, _unset) || _opacity == base.opacity) &&
         (identical(_transform, _unset) || _transform == base.transform) &&
-        (identical(_transformAlignment, _unset) || _transformAlignment == base.transformAlignment) &&
+        (identical(_transformOrigin, _unset) || _transformOrigin == base.transformOrigin) &&
         (identical(_clipBehavior, _unset) || _clipBehavior == base.clipBehavior) &&
         (identical(_gradient, _unset) || _gradient == base.gradient) &&
-        (identical(_bgImage, _unset) || _bgImage == base.bgImage) &&
+        (identical(_backgroundImage, _unset) || _backgroundImage == base.backgroundImage) &&
         (identical(_outline, _unset) || _outline == base.outline) &&
         (identical(_aspectRatio, _unset) || _aspectRatio == base.aspectRatio) &&
         (identical(_filter, _unset) || _filter == base.filter) &&
@@ -777,13 +777,13 @@ class BoxStyleBuffer {
       height: identical(_height, _unset) ? base.height : _height as ElDimension?,
       widthFactor: identical(_widthFactor, _unset) ? base.widthFactor : _widthFactor as double?,
       heightFactor: identical(_heightFactor, _unset) ? base.heightFactor : _heightFactor as double?,
-      bgColor: identical(_bgColor, _unset) ? base.bgColor : _bgColor as Color?,
+      backgroundColor: identical(_backgroundColor, _unset) ? base.backgroundColor : _backgroundColor as Color?,
       padding: identical(_padding, _unset) ? base.padding : _padding as EdgeInsetsGeometry?,
       margin: identical(_margin, _unset) ? base.margin : _margin as EdgeInsetsGeometry?,
       alignment: identical(_alignment, _unset) ? base.alignment : _alignment as AlignmentGeometry?,
       border: identical(_border, _unset) ? base.border : _border as ElBorder?,
       borderRadius: identical(_borderRadius, _unset) ? base.borderRadius : _borderRadius as BorderRadiusGeometry?,
-      clipper: identical(_clipper, _unset) ? base.clipper : _clipper as CustomClipper<Path>?,
+      clipPath: identical(_clipPath, _unset) ? base.clipPath : _clipPath as CustomClipper<Path>?,
       boxShadow: identical(_boxShadow, _unset) ? base.boxShadow : _boxShadow as List<BoxShadow>?,
       minWidth: identical(_minWidth, _unset) ? base.minWidth : _minWidth as ElDimension?,
       maxWidth: identical(_maxWidth, _unset) ? base.maxWidth : _maxWidth as ElDimension?,
@@ -791,12 +791,12 @@ class BoxStyleBuffer {
       maxHeight: identical(_maxHeight, _unset) ? base.maxHeight : _maxHeight as ElDimension?,
       opacity: identical(_opacity, _unset) ? base.opacity : _opacity as double?,
       transform: identical(_transform, _unset) ? base.transform : _transform as ElTransform?,
-      transformAlignment: identical(_transformAlignment, _unset)
-          ? base.transformAlignment
-          : _transformAlignment as AlignmentGeometry?,
+      transformOrigin: identical(_transformOrigin, _unset)
+          ? base.transformOrigin
+          : _transformOrigin as AlignmentGeometry?,
       clipBehavior: identical(_clipBehavior, _unset) ? base.clipBehavior : _clipBehavior as Clip?,
       gradient: identical(_gradient, _unset) ? base.gradient : _gradient as Gradient?,
-      bgImage: identical(_bgImage, _unset) ? base.bgImage : _bgImage as DecorationImage?,
+      backgroundImage: identical(_backgroundImage, _unset) ? base.backgroundImage : _backgroundImage as DecorationImage?,
       outline: identical(_outline, _unset) ? base.outline : _outline as ElOutline?,
       aspectRatio: identical(_aspectRatio, _unset) ? base.aspectRatio : _aspectRatio as double?,
       filter: identical(_filter, _unset) ? base.filter : _filter as ElFilter?,

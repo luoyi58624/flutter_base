@@ -33,12 +33,12 @@ void main() {
                           style: ElStyle(
                             width: 4,
                             height: 4,
-                            bgColor: red,
-                            textDirection: direction,
+                            backgroundColor: red,
+                            direction: direction,
                             transform: styleOrigin
                                 ? const ElTransform.scale(0.5)
                                 : const ElTransform.scale(0.5).alignment(origin),
-                            transformAlignment: styleOrigin ? origin : null,
+                            transformOrigin: styleOrigin ? origin : null,
                             filter: composited ? const ElFilter() : null,
                           ),
                           child: const SizedBox(width: 4, height: 4),

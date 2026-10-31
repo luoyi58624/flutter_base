@@ -15,7 +15,7 @@ void main() {
         child: Align(
           alignment: Alignment.topLeft,
           child: ElView(
-            style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF00FF00)),
+            style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF00FF00)),
             event: ElEvent(
               onTap: (e) => phases.add(e.phase),
               onForwardTap: (e) => phases.add(e.phase),

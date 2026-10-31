@@ -2,9 +2,9 @@ import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dar
 // onSelection 伪类 per-participant 着色接线（Phase 2a）：
 //
 // - 文本宿主：声明节点用自己的色，未声明邻段回退 root 平台默认 → 混排双色
-// - vars 通道：onSelection.bgColor 引用 '--key' 经宿主 vars 表折算
+// - vars 通道：onSelection.backgroundColor 引用 '--key' 经宿主 vars 表折算
 // - 状态流入：onHover 嵌套 onSelection 随真实 hover 激活/退场
-// - 图片宿主：ElImageView.style.onSelection.bgColor 生效
+// - 图片宿主：ElImageView.style.onSelection.backgroundColor 生效
 
 import 'dart:typed_data';
 
@@ -65,7 +65,7 @@ void main() {
                 key: _styledKey,
                 child: 'styled segment',
                 style: ElStyle(
-                  onSelection: ElStyle(bgColor: Color(0xFF123456), color: Color(0xFFFEDCBA)),
+                  onSelection: ElStyle(backgroundColor: Color(0xFF123456), color: Color(0xFFFEDCBA)),
                 ),
               ),
               ElView(key: _plainKey, child: 'plain segment'),
@@ -87,7 +87,7 @@ void main() {
     expect(plain.selectionColor, styled.selectionParticipant!.selectionColor, reason: '回退值即 root 推送色');
   });
 
-  testWidgets('onSelection 只声明 bgColor 时 color=null（整对脱离 root，不继承兜底字色）', (tester) async {
+  testWidgets('onSelection 只声明 backgroundColor 时 color=null（整对脱离 root，不继承兜底字色）', (tester) async {
     // Windows 平台默认 = 实底蓝 + 白字兜底，验证声明节点不吃兜底白字。
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
@@ -99,7 +99,7 @@ void main() {
             child: const ElView(
               key: _styledKey,
               child: 'only bg',
-              style: ElStyle(onSelection: ElStyle(bgColor: Color(0xFF123456))),
+              style: ElStyle(onSelection: ElStyle(backgroundColor: Color(0xFF123456))),
             ),
           ),
         ),
@@ -126,8 +126,8 @@ void main() {
             key: _styledKey,
             child: 'hover nested',
             style: ElStyle(
-              onSelection: ElStyle(bgColor: Color(0xFF111111)),
-              onHover: ElStyle(onSelection: ElStyle(bgColor: Color(0xFF999999))),
+              onSelection: ElStyle(backgroundColor: Color(0xFF111111)),
+              onHover: ElStyle(onSelection: ElStyle(backgroundColor: Color(0xFF999999))),
             ),
           ),
         ),
@@ -157,7 +157,7 @@ void main() {
     expect(styled.selectionColor, const Color(0xFF111111), reason: '退出 hover 恢复 base 声明');
   });
 
-  testWidgets('ElImageView.style.onSelection.bgColor 生效', (tester) async {
+  testWidgets('ElImageView.style.onSelection.backgroundColor 生效', (tester) async {
     final controller = ElSelectionController();
     const imageKey = Key('sel-image');
     await tester.pumpWidget(
@@ -176,7 +176,7 @@ void main() {
                 alt: 'diagram',
                 width: 40,
                 height: 24,
-                style: const ElStyle(onSelection: ElStyle(bgColor: Color(0x55336699))),
+                style: const ElStyle(onSelection: ElStyle(backgroundColor: Color(0x55336699))),
               ),
             ],
           ),

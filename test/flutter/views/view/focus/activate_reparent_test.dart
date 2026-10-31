@@ -30,14 +30,14 @@ void main() {
       focusNode: outerNode,
       style: const ElStyle(
         padding: EdgeInsets.all(8),
-        onFocusVisible: ElStyle(outline: ElOutline(color: Colors.blue, width: 2)),
+        onFocusVisible: ElStyle(outline: ElOutline(outlineColor: Colors.blue, outlineWidth: 2)),
       ),
       child: ElView(
         focusNode: middleNode,
         style: const ElStyle(padding: EdgeInsets.all(8)),
         child: ElView(
           focusNode: innerNode,
-          style: const ElStyle(width: 40, height: 20, bgColor: Colors.white),
+          style: const ElStyle(width: 40, height: 20, backgroundColor: Colors.white),
         ),
       ),
     );

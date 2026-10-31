@@ -92,7 +92,7 @@ void main() {
       ),
     );
     expect(seen!.brightness, Brightness.dark);
-    expect(tester.widget<ElView>(buttonHost()).style!.bgColor, seen!.primary);
+    expect(tester.widget<ElView>(buttonHost()).style!.backgroundColor, seen!.primary);
     await tester.pumpWidget(
       shell(
         MyButton(child: '主题'),
@@ -100,7 +100,7 @@ void main() {
       ),
     );
     expect(
-      tester.widget<ElView>(buttonHost()).style!.bgColor,
+      tester.widget<ElView>(buttonHost()).style!.backgroundColor,
       Color(0xff008877),
     );
     expect(tester.takeException(), null);
@@ -424,7 +424,7 @@ void main() {
     expect(tester.getSize(find.byType(MyDivider)).height, 13);
     final line = views(
       find.byType(MyDivider),
-      (v) => v.style?.border?.left != null,
+      (v) => v.style?.border?.borderLeft != null,
     ).last;
     expect(tester.getSize(line), Size(1, 13));
   });
@@ -664,7 +664,7 @@ void main() {
       );
       expect(view.style!.color, accents[i]);
       expect(
-        view.style!.bgColor,
+        view.style!.backgroundColor,
         Color.lerp(theme.cardBackground, accents[i], .1),
       );
     }
@@ -722,7 +722,7 @@ void main() {
             views(find.byType(MySwitch), (v) => v.style?.width == 22),
           )
           .style!
-          .bgColor,
+          .backgroundColor,
       Color(0xff123456),
     );
     expect(tester.getSize(find.byType(MyDivider)).height, 31);
@@ -843,7 +843,7 @@ void main() {
     Color? background(Key key) => tester
         .widget<ElView>(views(find.byKey(key), (v) => v.event?.onTap != null))
         .style!
-        .bgColor;
+        .backgroundColor;
     expect(background(nested), color);
     expect(background(sibling), Color(0xff2454c6));
     update(() => color = Color(0xff554433));

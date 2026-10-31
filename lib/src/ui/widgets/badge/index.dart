@@ -93,7 +93,7 @@ class ElBadge extends StatelessWidget {
                   ? ElStyle(
                       width: 8,
                       height: 8,
-                      bgColor: bgColor,
+                      backgroundColor: bgColor,
                       borderRadius: BorderRadius.all(Radius.circular(9999)),
                     )
                   : ElStyle(
@@ -101,7 +101,7 @@ class ElBadge extends StatelessWidget {
                       minWidth: 18,
                       padding: .symmetric(horizontal: 6),
                       alignment: .center,
-                      bgColor: bgColor,
+                      backgroundColor: bgColor,
                       color: Color(0xffffffff),
                       fontSize: 12,
                       lineHeight: 1.0,

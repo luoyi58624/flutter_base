@@ -3,7 +3,7 @@
 part of 'style.dart';
 
 // **************************************************************************
-// ElModelCodeGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension ElStyleExt on ElStyle {
@@ -17,22 +17,22 @@ extension ElStyleExt on ElStyle {
     Object? lineHeight = $absent,
     Object? letterSpacing = $absent,
     Object? wordSpacing = $absent,
-    Object? fontFeatures = $absent,
+    Object? fontFeatureSettings = $absent,
     Object? textAlign = $absent,
     Object? textShadow = $absent,
     Object? textGradient = $absent,
-    Object? decoration = $absent,
-    Object? decorationColor = $absent,
-    Object? decorationStyle = $absent,
-    Object? decorationThickness = $absent,
+    Object? textDecorationLine = $absent,
+    Object? textDecorationColor = $absent,
+    Object? textDecorationStyle = $absent,
+    Object? textDecorationThickness = $absent,
     Object? textBackgroundColor = $absent,
-    Object? fontVariations = $absent,
+    Object? fontVariationSettings = $absent,
     Object? leadingDistribution = $absent,
     Object? textBaseline = $absent,
     Object? softWrap = $absent,
-    Object? overflow = $absent,
+    Object? textOverflow = $absent,
     Object? maxLines = $absent,
-    Object? textDirection = $absent,
+    Object? direction = $absent,
     Object? cursor = $absent,
     Object? pointerEvents = $absent,
     Object? iconSize = $absent,
@@ -42,13 +42,13 @@ extension ElStyleExt on ElStyle {
     Object? height = $absent,
     Object? widthFactor = $absent,
     Object? heightFactor = $absent,
-    Object? bgColor = $absent,
+    Object? backgroundColor = $absent,
     Object? padding = $absent,
     Object? margin = $absent,
     Object? alignment = $absent,
     Object? border = $absent,
     Object? borderRadius = $absent,
-    Object? clipper = $absent,
+    Object? clipPath = $absent,
     Object? boxShadow = $absent,
     Object? minWidth = $absent,
     Object? maxWidth = $absent,
@@ -56,10 +56,10 @@ extension ElStyleExt on ElStyle {
     Object? maxHeight = $absent,
     Object? opacity = $absent,
     Object? transform = $absent,
-    Object? transformAlignment = $absent,
+    Object? transformOrigin = $absent,
     Object? clipBehavior = $absent,
     Object? gradient = $absent,
-    Object? bgImage = $absent,
+    Object? backgroundImage = $absent,
     Object? outline = $absent,
     Object? aspectRatio = $absent,
     Object? filter = $absent,
@@ -77,109 +77,213 @@ extension ElStyleExt on ElStyle {
     Object? onDisabled = $absent,
     Object? onSelection = $absent,
     Object? onDark = $absent,
-    Object? transitions = $absent,
-    Object? animations = $absent,
+    Object? transition = $absent,
+    Object? animation = $absent,
     Object? starting = $absent,
   }) {
     return ElStyle(
       color: identical(color, $absent) ? this.color : color as Color?,
-      fontSize: identical(fontSize, $absent) ? this.fontSize : (fontSize as num?)?.toDouble(),
-      fontWeight: identical(fontWeight, $absent) ? this.fontWeight : fontWeight as FontWeight?,
-      fontStyle: identical(fontStyle, $absent) ? this.fontStyle : fontStyle as FontStyle?,
-      fontFamily: identical(fontFamily, $absent) ? this.fontFamily : fontFamily as String?,
+      fontSize: identical(fontSize, $absent)
+          ? this.fontSize
+          : (fontSize as num?)?.toDouble(),
+      fontWeight: identical(fontWeight, $absent)
+          ? this.fontWeight
+          : fontWeight as FontWeight?,
+      fontStyle: identical(fontStyle, $absent)
+          ? this.fontStyle
+          : fontStyle as FontStyle?,
+      fontFamily: identical(fontFamily, $absent)
+          ? this.fontFamily
+          : fontFamily as String?,
       fontFamilyFallback: identical(fontFamilyFallback, $absent)
           ? this.fontFamilyFallback
           : fontFamilyFallback as List<String>?,
-      lineHeight: identical(lineHeight, $absent) ? this.lineHeight : (lineHeight as num?)?.toDouble(),
-      letterSpacing: identical(letterSpacing, $absent) ? this.letterSpacing : (letterSpacing as num?)?.toDouble(),
-      wordSpacing: identical(wordSpacing, $absent) ? this.wordSpacing : (wordSpacing as num?)?.toDouble(),
-      fontFeatures: identical(fontFeatures, $absent) ? this.fontFeatures : fontFeatures as List<FontFeature>?,
-      textAlign: identical(textAlign, $absent) ? this.textAlign : textAlign as TextAlign?,
-      textShadow: identical(textShadow, $absent) ? this.textShadow : textShadow as List<Shadow>?,
-      textGradient: identical(textGradient, $absent) ? this.textGradient : textGradient as Gradient?,
-      decoration: identical(decoration, $absent) ? this.decoration : decoration as TextDecoration?,
-      decorationColor: identical(decorationColor, $absent) ? this.decorationColor : decorationColor as Color?,
-      decorationStyle: identical(decorationStyle, $absent)
-          ? this.decorationStyle
-          : decorationStyle as TextDecorationStyle?,
-      decorationThickness: identical(decorationThickness, $absent)
-          ? this.decorationThickness
-          : (decorationThickness as num?)?.toDouble(),
+      lineHeight: identical(lineHeight, $absent)
+          ? this.lineHeight
+          : (lineHeight as num?)?.toDouble(),
+      letterSpacing: identical(letterSpacing, $absent)
+          ? this.letterSpacing
+          : (letterSpacing as num?)?.toDouble(),
+      wordSpacing: identical(wordSpacing, $absent)
+          ? this.wordSpacing
+          : (wordSpacing as num?)?.toDouble(),
+      fontFeatureSettings: identical(fontFeatureSettings, $absent)
+          ? this.fontFeatureSettings
+          : fontFeatureSettings as List<FontFeature>?,
+      textAlign: identical(textAlign, $absent)
+          ? this.textAlign
+          : textAlign as TextAlign?,
+      textShadow: identical(textShadow, $absent)
+          ? this.textShadow
+          : textShadow as List<Shadow>?,
+      textGradient: identical(textGradient, $absent)
+          ? this.textGradient
+          : textGradient as Gradient?,
+      textDecorationLine: identical(textDecorationLine, $absent)
+          ? this.textDecorationLine
+          : textDecorationLine as TextDecoration?,
+      textDecorationColor: identical(textDecorationColor, $absent)
+          ? this.textDecorationColor
+          : textDecorationColor as Color?,
+      textDecorationStyle: identical(textDecorationStyle, $absent)
+          ? this.textDecorationStyle
+          : textDecorationStyle as TextDecorationStyle?,
+      textDecorationThickness: identical(textDecorationThickness, $absent)
+          ? this.textDecorationThickness
+          : (textDecorationThickness as num?)?.toDouble(),
       textBackgroundColor: identical(textBackgroundColor, $absent)
           ? this.textBackgroundColor
           : textBackgroundColor as Color?,
-      fontVariations: identical(fontVariations, $absent)
-          ? this.fontVariations
-          : fontVariations as List<FontVariation>?,
+      fontVariationSettings: identical(fontVariationSettings, $absent)
+          ? this.fontVariationSettings
+          : fontVariationSettings as List<FontVariation>?,
       leadingDistribution: identical(leadingDistribution, $absent)
           ? this.leadingDistribution
           : leadingDistribution as TextLeadingDistribution?,
-      textBaseline: identical(textBaseline, $absent) ? this.textBaseline : textBaseline as TextBaseline?,
-      softWrap: identical(softWrap, $absent) ? this.softWrap : softWrap as bool?,
-      overflow: identical(overflow, $absent) ? this.overflow : overflow as TextOverflow?,
+      textBaseline: identical(textBaseline, $absent)
+          ? this.textBaseline
+          : textBaseline as TextBaseline?,
+      softWrap: identical(softWrap, $absent)
+          ? this.softWrap
+          : softWrap as bool?,
+      textOverflow: identical(textOverflow, $absent)
+          ? this.textOverflow
+          : textOverflow as TextOverflow?,
       maxLines: identical(maxLines, $absent) ? this.maxLines : maxLines as int?,
-      textDirection: identical(textDirection, $absent) ? this.textDirection : textDirection as TextDirection?,
+      direction: identical(direction, $absent)
+          ? this.direction
+          : direction as TextDirection?,
       cursor: identical(cursor, $absent) ? this.cursor : cursor as MouseCursor?,
-      pointerEvents: identical(pointerEvents, $absent) ? this.pointerEvents : pointerEvents as ElPointerEvents?,
-      iconSize: identical(iconSize, $absent) ? this.iconSize : (iconSize as num?)?.toDouble(),
-      iconColor: identical(iconColor, $absent) ? this.iconColor : iconColor as Color?,
-      userSelect: identical(userSelect, $absent) ? this.userSelect : userSelect as ElUserSelect?,
+      pointerEvents: identical(pointerEvents, $absent)
+          ? this.pointerEvents
+          : pointerEvents as ElPointerEvents?,
+      iconSize: identical(iconSize, $absent)
+          ? this.iconSize
+          : (iconSize as num?)?.toDouble(),
+      iconColor: identical(iconColor, $absent)
+          ? this.iconColor
+          : iconColor as Color?,
+      userSelect: identical(userSelect, $absent)
+          ? this.userSelect
+          : userSelect as ElUserSelect?,
       width: identical(width, $absent) ? this.width : width,
       height: identical(height, $absent) ? this.height : height,
-      widthFactor: identical(widthFactor, $absent) ? this.widthFactor : (widthFactor as num?)?.toDouble(),
-      heightFactor: identical(heightFactor, $absent) ? this.heightFactor : (heightFactor as num?)?.toDouble(),
-      bgColor: identical(bgColor, $absent) ? this.bgColor : bgColor as Color?,
-      padding: identical(padding, $absent) ? this.padding : padding as EdgeInsetsGeometry?,
-      margin: identical(margin, $absent) ? this.margin : margin as EdgeInsetsGeometry?,
-      alignment: identical(alignment, $absent) ? this.alignment : alignment as AlignmentGeometry?,
+      widthFactor: identical(widthFactor, $absent)
+          ? this.widthFactor
+          : (widthFactor as num?)?.toDouble(),
+      heightFactor: identical(heightFactor, $absent)
+          ? this.heightFactor
+          : (heightFactor as num?)?.toDouble(),
+      backgroundColor: identical(backgroundColor, $absent)
+          ? this.backgroundColor
+          : backgroundColor as Color?,
+      padding: identical(padding, $absent)
+          ? this.padding
+          : padding as EdgeInsetsGeometry?,
+      margin: identical(margin, $absent)
+          ? this.margin
+          : margin as EdgeInsetsGeometry?,
+      alignment: identical(alignment, $absent)
+          ? this.alignment
+          : alignment as AlignmentGeometry?,
       border: identical(border, $absent) ? this.border : border as ElBorder?,
-      borderRadius: identical(borderRadius, $absent) ? this.borderRadius : borderRadius as BorderRadiusGeometry?,
-      clipper: identical(clipper, $absent) ? this.clipper : clipper as CustomClipper<Path>?,
-      boxShadow: identical(boxShadow, $absent) ? this.boxShadow : boxShadow as List<BoxShadow>?,
+      borderRadius: identical(borderRadius, $absent)
+          ? this.borderRadius
+          : borderRadius as BorderRadiusGeometry?,
+      clipPath: identical(clipPath, $absent)
+          ? this.clipPath
+          : clipPath as CustomClipper<Path>?,
+      boxShadow: identical(boxShadow, $absent)
+          ? this.boxShadow
+          : boxShadow as List<BoxShadow>?,
       minWidth: identical(minWidth, $absent) ? this.minWidth : minWidth,
       maxWidth: identical(maxWidth, $absent) ? this.maxWidth : maxWidth,
       minHeight: identical(minHeight, $absent) ? this.minHeight : minHeight,
       maxHeight: identical(maxHeight, $absent) ? this.maxHeight : maxHeight,
-      opacity: identical(opacity, $absent) ? this.opacity : (opacity as num?)?.toDouble(),
-      transform: identical(transform, $absent) ? this.transform : transform as ElTransform?,
-      transformAlignment: identical(transformAlignment, $absent)
-          ? this.transformAlignment
-          : transformAlignment as AlignmentGeometry?,
-      clipBehavior: identical(clipBehavior, $absent) ? this.clipBehavior : clipBehavior as Clip?,
-      gradient: identical(gradient, $absent) ? this.gradient : gradient as Gradient?,
-      bgImage: identical(bgImage, $absent) ? this.bgImage : bgImage as DecorationImage?,
-      outline: identical(outline, $absent) ? this.outline : outline as ElOutline?,
-      aspectRatio: identical(aspectRatio, $absent) ? this.aspectRatio : (aspectRatio as num?)?.toDouble(),
+      opacity: identical(opacity, $absent)
+          ? this.opacity
+          : (opacity as num?)?.toDouble(),
+      transform: identical(transform, $absent)
+          ? this.transform
+          : transform as ElTransform?,
+      transformOrigin: identical(transformOrigin, $absent)
+          ? this.transformOrigin
+          : transformOrigin as AlignmentGeometry?,
+      clipBehavior: identical(clipBehavior, $absent)
+          ? this.clipBehavior
+          : clipBehavior as Clip?,
+      gradient: identical(gradient, $absent)
+          ? this.gradient
+          : gradient as Gradient?,
+      backgroundImage: identical(backgroundImage, $absent)
+          ? this.backgroundImage
+          : backgroundImage as DecorationImage?,
+      outline: identical(outline, $absent)
+          ? this.outline
+          : outline as ElOutline?,
+      aspectRatio: identical(aspectRatio, $absent)
+          ? this.aspectRatio
+          : (aspectRatio as num?)?.toDouble(),
       filter: identical(filter, $absent) ? this.filter : filter as ElFilter?,
-      backdropFilter: identical(backdropFilter, $absent) ? this.backdropFilter : backdropFilter as ElFilter?,
+      backdropFilter: identical(backdropFilter, $absent)
+          ? this.backdropFilter
+          : backdropFilter as ElFilter?,
       xs: identical(xs, $absent)
           ? this.xs
-          : (xs == null ? null : (this.xs == null ? xs as ElStyle : this.xs!.merge(xs as ElStyle))),
+          : (xs == null
+                ? null
+                : (this.xs == null
+                      ? xs as ElStyle
+                      : this.xs!.merge(xs as ElStyle))),
       sm: identical(sm, $absent)
           ? this.sm
-          : (sm == null ? null : (this.sm == null ? sm as ElStyle : this.sm!.merge(sm as ElStyle))),
+          : (sm == null
+                ? null
+                : (this.sm == null
+                      ? sm as ElStyle
+                      : this.sm!.merge(sm as ElStyle))),
       md: identical(md, $absent)
           ? this.md
-          : (md == null ? null : (this.md == null ? md as ElStyle : this.md!.merge(md as ElStyle))),
+          : (md == null
+                ? null
+                : (this.md == null
+                      ? md as ElStyle
+                      : this.md!.merge(md as ElStyle))),
       lg: identical(lg, $absent)
           ? this.lg
-          : (lg == null ? null : (this.lg == null ? lg as ElStyle : this.lg!.merge(lg as ElStyle))),
+          : (lg == null
+                ? null
+                : (this.lg == null
+                      ? lg as ElStyle
+                      : this.lg!.merge(lg as ElStyle))),
       xl: identical(xl, $absent)
           ? this.xl
-          : (xl == null ? null : (this.xl == null ? xl as ElStyle : this.xl!.merge(xl as ElStyle))),
+          : (xl == null
+                ? null
+                : (this.xl == null
+                      ? xl as ElStyle
+                      : this.xl!.merge(xl as ElStyle))),
       onHover: identical(onHover, $absent)
           ? this.onHover
           : (onHover == null
                 ? null
-                : (this.onHover == null ? onHover as ElStyle : this.onHover!.merge(onHover as ElStyle))),
+                : (this.onHover == null
+                      ? onHover as ElStyle
+                      : this.onHover!.merge(onHover as ElStyle))),
       onTap: identical(onTap, $absent)
           ? this.onTap
-          : (onTap == null ? null : (this.onTap == null ? onTap as ElStyle : this.onTap!.merge(onTap as ElStyle))),
+          : (onTap == null
+                ? null
+                : (this.onTap == null
+                      ? onTap as ElStyle
+                      : this.onTap!.merge(onTap as ElStyle))),
       onFocus: identical(onFocus, $absent)
           ? this.onFocus
           : (onFocus == null
                 ? null
-                : (this.onFocus == null ? onFocus as ElStyle : this.onFocus!.merge(onFocus as ElStyle))),
+                : (this.onFocus == null
+                      ? onFocus as ElStyle
+                      : this.onFocus!.merge(onFocus as ElStyle))),
       onFocusVisible: identical(onFocusVisible, $absent)
           ? this.onFocusVisible
           : (onFocusVisible == null
@@ -198,7 +302,9 @@ extension ElStyleExt on ElStyle {
           ? this.onDisabled
           : (onDisabled == null
                 ? null
-                : (this.onDisabled == null ? onDisabled as ElStyle : this.onDisabled!.merge(onDisabled as ElStyle))),
+                : (this.onDisabled == null
+                      ? onDisabled as ElStyle
+                      : this.onDisabled!.merge(onDisabled as ElStyle))),
       onSelection: identical(onSelection, $absent)
           ? this.onSelection
           : (onSelection == null
@@ -208,14 +314,24 @@ extension ElStyleExt on ElStyle {
                       : this.onSelection!.merge(onSelection as ElStyle))),
       onDark: identical(onDark, $absent)
           ? this.onDark
-          : (onDark == null ? null : (this.onDark == null ? onDark as ElStyle : this.onDark!.merge(onDark as ElStyle))),
-      transitions: identical(transitions, $absent) ? this.transitions : transitions as List<ElTransition>?,
-      animations: identical(animations, $absent) ? this.animations : animations as List<ElAnimation>?,
+          : (onDark == null
+                ? null
+                : (this.onDark == null
+                      ? onDark as ElStyle
+                      : this.onDark!.merge(onDark as ElStyle))),
+      transition: identical(transition, $absent)
+          ? this.transition
+          : transition as List<ElTransition>?,
+      animation: identical(animation, $absent)
+          ? this.animation
+          : animation as List<ElAnimation>?,
       starting: identical(starting, $absent)
           ? this.starting
           : (starting == null
                 ? null
-                : (this.starting == null ? starting as ElStyle : this.starting!.merge(starting as ElStyle))),
+                : (this.starting == null
+                      ? starting as ElStyle
+                      : this.starting!.merge(starting as ElStyle))),
     );
   }
 
@@ -231,22 +347,24 @@ extension ElStyleExt on ElStyle {
       lineHeight: other.lineHeight ?? lineHeight,
       letterSpacing: other.letterSpacing ?? letterSpacing,
       wordSpacing: other.wordSpacing ?? wordSpacing,
-      fontFeatures: other.fontFeatures ?? fontFeatures,
+      fontFeatureSettings: other.fontFeatureSettings ?? fontFeatureSettings,
       textAlign: other.textAlign ?? textAlign,
       textShadow: other.textShadow ?? textShadow,
       textGradient: other.textGradient ?? textGradient,
-      decoration: other.decoration ?? decoration,
-      decorationColor: other.decorationColor ?? decorationColor,
-      decorationStyle: other.decorationStyle ?? decorationStyle,
-      decorationThickness: other.decorationThickness ?? decorationThickness,
+      textDecorationLine: other.textDecorationLine ?? textDecorationLine,
+      textDecorationColor: other.textDecorationColor ?? textDecorationColor,
+      textDecorationStyle: other.textDecorationStyle ?? textDecorationStyle,
+      textDecorationThickness:
+          other.textDecorationThickness ?? textDecorationThickness,
       textBackgroundColor: other.textBackgroundColor ?? textBackgroundColor,
-      fontVariations: other.fontVariations ?? fontVariations,
+      fontVariationSettings:
+          other.fontVariationSettings ?? fontVariationSettings,
       leadingDistribution: other.leadingDistribution ?? leadingDistribution,
       textBaseline: other.textBaseline ?? textBaseline,
       softWrap: other.softWrap ?? softWrap,
-      overflow: other.overflow ?? overflow,
+      textOverflow: other.textOverflow ?? textOverflow,
       maxLines: other.maxLines ?? maxLines,
-      textDirection: other.textDirection ?? textDirection,
+      direction: other.direction ?? direction,
       cursor: other.cursor ?? cursor,
       pointerEvents: other.pointerEvents ?? pointerEvents,
       iconSize: other.iconSize ?? iconSize,
@@ -256,13 +374,13 @@ extension ElStyleExt on ElStyle {
       height: other.height ?? height,
       widthFactor: other.widthFactor ?? widthFactor,
       heightFactor: other.heightFactor ?? heightFactor,
-      bgColor: other.bgColor ?? bgColor,
+      backgroundColor: other.backgroundColor ?? backgroundColor,
       padding: other.padding ?? padding,
       margin: other.margin ?? margin,
       alignment: other.alignment ?? alignment,
       border: other.border ?? border,
       borderRadius: other.borderRadius ?? borderRadius,
-      clipper: other.clipper ?? clipper,
+      clipPath: other.clipPath ?? clipPath,
       boxShadow: other.boxShadow ?? boxShadow,
       minWidth: other.minWidth ?? minWidth,
       maxWidth: other.maxWidth ?? maxWidth,
@@ -270,10 +388,10 @@ extension ElStyleExt on ElStyle {
       maxHeight: other.maxHeight ?? maxHeight,
       opacity: other.opacity ?? opacity,
       transform: other.transform ?? transform,
-      transformAlignment: other.transformAlignment ?? transformAlignment,
+      transformOrigin: other.transformOrigin ?? transformOrigin,
       clipBehavior: other.clipBehavior ?? clipBehavior,
       gradient: other.gradient ?? gradient,
-      bgImage: other.bgImage ?? bgImage,
+      backgroundImage: other.backgroundImage ?? backgroundImage,
       outline: other.outline ?? outline,
       aspectRatio: other.aspectRatio ?? aspectRatio,
       filter: other.filter ?? filter,
@@ -286,14 +404,24 @@ extension ElStyleExt on ElStyle {
       onHover: onHover == null ? other.onHover : onHover!.merge(other.onHover),
       onTap: onTap == null ? other.onTap : onTap!.merge(other.onTap),
       onFocus: onFocus == null ? other.onFocus : onFocus!.merge(other.onFocus),
-      onFocusVisible: onFocusVisible == null ? other.onFocusVisible : onFocusVisible!.merge(other.onFocusVisible),
-      onFocusWithin: onFocusWithin == null ? other.onFocusWithin : onFocusWithin!.merge(other.onFocusWithin),
-      onDisabled: onDisabled == null ? other.onDisabled : onDisabled!.merge(other.onDisabled),
-      onSelection: onSelection == null ? other.onSelection : onSelection!.merge(other.onSelection),
+      onFocusVisible: onFocusVisible == null
+          ? other.onFocusVisible
+          : onFocusVisible!.merge(other.onFocusVisible),
+      onFocusWithin: onFocusWithin == null
+          ? other.onFocusWithin
+          : onFocusWithin!.merge(other.onFocusWithin),
+      onDisabled: onDisabled == null
+          ? other.onDisabled
+          : onDisabled!.merge(other.onDisabled),
+      onSelection: onSelection == null
+          ? other.onSelection
+          : onSelection!.merge(other.onSelection),
       onDark: onDark == null ? other.onDark : onDark!.merge(other.onDark),
-      transitions: other.transitions ?? transitions,
-      animations: other.animations ?? animations,
-      starting: starting == null ? other.starting : starting!.merge(other.starting),
+      transition: other.transition ?? transition,
+      animation: other.animation ?? animation,
+      starting: starting == null
+          ? other.starting
+          : starting!.merge(other.starting),
     );
   }
 
@@ -307,22 +435,22 @@ extension ElStyleExt on ElStyle {
     lineHeight,
     letterSpacing,
     wordSpacing,
-    fontFeatures,
+    fontFeatureSettings,
     textAlign,
     textShadow,
     textGradient,
-    decoration,
-    decorationColor,
-    decorationStyle,
-    decorationThickness,
+    textDecorationLine,
+    textDecorationColor,
+    textDecorationStyle,
+    textDecorationThickness,
     textBackgroundColor,
-    fontVariations,
+    fontVariationSettings,
     leadingDistribution,
     textBaseline,
     softWrap,
-    overflow,
+    textOverflow,
     maxLines,
-    textDirection,
+    direction,
     cursor,
     pointerEvents,
     iconSize,
@@ -332,13 +460,13 @@ extension ElStyleExt on ElStyle {
     height,
     widthFactor,
     heightFactor,
-    bgColor,
+    backgroundColor,
     padding,
     margin,
     alignment,
     border,
     borderRadius,
-    clipper,
+    clipPath,
     boxShadow,
     minWidth,
     maxWidth,
@@ -346,10 +474,10 @@ extension ElStyleExt on ElStyle {
     maxHeight,
     opacity,
     transform,
-    transformAlignment,
+    transformOrigin,
     clipBehavior,
     gradient,
-    bgImage,
+    backgroundImage,
     outline,
     aspectRatio,
     filter,
@@ -367,8 +495,8 @@ extension ElStyleExt on ElStyle {
     onDisabled,
     onSelection,
     onDark,
-    transitions,
-    animations,
+    transition,
+    animation,
     starting,
   ];
 }

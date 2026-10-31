@@ -1376,7 +1376,7 @@ class _EditableViewState extends State<EditableView>
     return EditableRenderConfig(
       textStyle: style,
       textDirection:
-          inherited?.inheritedBox.textDirection ??
+          inherited?.inheritedBox.direction ??
           (useContext ? (Directionality.maybeOf(context) ?? TextDirection.ltr) : TextDirection.ltr),
       textAlign: widget.inheritTextAlign
           ? inherited?.inheritedText.textAlign ?? widget.style.textAlign
@@ -5869,7 +5869,7 @@ class _EditableViewState extends State<EditableView>
                   semanticLabel: widget.style.semanticLabel,
                   keyboardType: widget.style.keyboardType,
                   // 透明命中面保证空行没有字形 RenderBox 时，整块编辑区域仍可点击。
-                  style: const ElStyle(bgColor: Color(0x00000000), cursor: SystemMouseCursors.text),
+                  style: const ElStyle(backgroundColor: Color(0x00000000), cursor: SystemMouseCursors.text),
                   event: combineEditableEvents(
                     readOnly
                         ? const ElEvent()

@@ -50,7 +50,7 @@ class _VisibleBar extends ElAndroidScrollBar {
   bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }
 
-Finder _thumb(Color color) => find.byWidgetPredicate((widget) => widget is ElView && widget.style?.bgColor == color);
+Finder _thumb(Color color) => find.byWidgetPredicate((widget) => widget is ElView && widget.style?.backgroundColor == color);
 
 Future<Color> _pixel(WidgetTester tester, GlobalKey key, Offset point) async => (await tester.runAsync(() async {
   final image = await tester.renderObject<RenderRepaintBoundary>(find.byKey(key)).toImage(pixelRatio: 1);
@@ -371,25 +371,25 @@ void main() {
         final controller = ScrollController();
         addTearDown(controller.dispose);
 
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: ElScrollView(
-              controller: controller,
-              scrollbar: const ElWindowScrollBar(),
-              children: [
-                ElGridView.builder(
-                  crossAxisCount: 5,
-                  rowGap: 2,
-                  columnGap: 2,
-                  itemCount: 97,
-                  itemBuilder: (_, index) => ElView(key: ValueKey('cell-$index'), child: '$index'),
-                ),
-              ],
-            ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: ElScrollView(
+            controller: controller,
+            scrollbar: const ElWindowScrollBar(),
+            children: [
+              ElGridView.builder(
+                crossAxisCount: 5,
+                rowGap: 2,
+                columnGap: 2,
+                itemCount: 97,
+                itemBuilder: (_, index) => ElView(key: ValueKey('cell-$index'), child: '$index'),
+              ),
+            ],
           ),
-        );
-        await tester.pump();
+        ),
+      );
+      await tester.pump();
 
         final render = tester.renderObject<RenderVirtualScrollView>(
           find.byElementPredicate(
@@ -575,17 +575,17 @@ void main() {
         debugDefaultTargetPlatformOverride = TargetPlatform.windows;
         final controller = ScrollController();
 
-        try {
-          await tester.pumpWidget(
-            host(
-              scrollbar: const ElNoScrollBar(),
-              body: ElScrollView(
-                controller: controller,
-                physics: const ClampingScrollPhysics(),
-                children: List<Widget>.generate(40, (index) => SizedBox(height: 30, child: Text('row $index'))),
-              ),
+      try {
+        await tester.pumpWidget(
+          host(
+            scrollbar: const ElNoScrollBar(),
+            body: ElScrollView(
+              controller: controller,
+              physics: const ClampingScrollPhysics(),
+              children: List<Widget>.generate(40, (index) => SizedBox(height: 30, child: Text('row $index'))),
             ),
-          );
+          ),
+        );
 
           expect(find.byKey(const ValueKey<String>('flutter-scrollbar-wrapper')), findsNothing);
           expect(find.byKey(const ValueKey<String>('el-scrollbar-win-strip-vertical')), findsNothing);
@@ -715,7 +715,7 @@ void main() {
                   ),
                   ElPositioned.fill(
                     zIndex: 9,
-                    child: ElView(style: ElStyle(bgColor: white)),
+                    child: ElView(style: ElStyle(backgroundColor: white)),
                   ),
                 ],
               ),

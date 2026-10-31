@@ -170,7 +170,7 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
         style: ElStyle(
           width: _kCircleDiameter,
           height: _kCircleDiameter,
-          bgColor: widget.bgColor,
+          backgroundColor: widget.bgColor,
           borderRadius: .all(Radius.circular(_kCircleDiameter / 2)),
           boxShadow: [BoxShadow(color: const Color(0x2e000000), blurRadius: 5, offset: const Offset(0, 2))],
           transform: .matrix(scale, 0, 0, scale, 0, atStart ? travel : -travel),
@@ -179,7 +179,7 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
         child: ElView(
           style: ElStyle(
             opacity: snapshot.status == RefreshIndicatorStatus.drag || canceling ? 0.3 : 1.0,
-            transitions: const [.all(Duration(milliseconds: 300))],
+            transition: const [.all(Duration(milliseconds: 300))],
           ),
           child: ElRefreshMaterialSpinner(
             status: snapshot.status,

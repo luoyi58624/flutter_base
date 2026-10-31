@@ -59,7 +59,7 @@ void main() {
       await pumpEventView(
         tester,
         const ElView(
-          style: ElStyle(width: 100, height: 100, onTap: ElStyle(bgColor: Color(0xFFFF0000))),
+          style: ElStyle(width: 100, height: 100, onTap: ElStyle(backgroundColor: Color(0xFFFF0000))),
         ),
       );
       var box = tester.renderObject<RenderBox>(find.byType(ElView));
@@ -113,7 +113,7 @@ void main() {
       await pumpEventView(
         tester,
         ElView(
-          style: const ElStyle(width: 200, height: 100, bgColor: Color(0xFF0000FF)),
+          style: const ElStyle(width: 200, height: 100, backgroundColor: Color(0xFF0000FF)),
           event: event,
         ),
       );
@@ -132,10 +132,10 @@ void main() {
       const hoverStyle = ElStyle(
         width: 100,
         height: 100,
-        bgColor: idleColor,
-        onHover: ElStyle(bgColor: hoverColor),
+        backgroundColor: idleColor,
+        onHover: ElStyle(backgroundColor: hoverColor),
       );
-      const plainStyle = ElStyle(width: 100, height: 100, bgColor: plainColor);
+      const plainStyle = ElStyle(width: 100, height: 100, backgroundColor: plainColor);
 
       var useHoverStyle = true;
       late StateSetter setViewState;
@@ -155,7 +155,7 @@ void main() {
       );
 
       final box = tester.renderObject<ElRenderView>(find.byType(ElView));
-      Color? bgColor() => box.committedResolvedStyle.box.bgColor;
+      Color? bgColor() => box.committedResolvedStyle.box.backgroundColor;
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
       await mouse.addPointer(location: const Offset(-10, -10));
@@ -188,9 +188,9 @@ void main() {
               style: const ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xFF808080),
-                transitions: <ElTransition>[ElTransition.all()],
-                onHover: ElStyle(width: 120, height: 80, bgColor: Color(0xFF0000FF)),
+                backgroundColor: Color(0xFF808080),
+                transition: <ElTransition>[ElTransition.all()],
+                onHover: ElStyle(width: 120, height: 80, backgroundColor: Color(0xFF0000FF)),
               ),
               event: .new(onPointerEnter: (_) => enters++, onPointerExit: (_) => exits++),
             ),
@@ -1056,22 +1056,22 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 100,
-            bgColor: Color(0xFFFF0000),
-            onTap: ElStyle(bgColor: Color(0xFF0000FF)),
+            backgroundColor: Color(0xFFFF0000),
+            onTap: ElStyle(backgroundColor: Color(0xFF0000FF)),
           ),
         ),
       );
       final box = tester.renderObject<ElRenderView>(find.byType(ElView));
-      expect(box.committedResolvedStyle.box.bgColor, const Color(0xFFFF0000));
+      expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFFFF0000));
 
       final gesture = await tester.startGesture(const Offset(20, 20));
       await tester.pump();
-      expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF0000FF));
+      expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF0000FF));
       await gesture.up();
       await tester.pump();
-      expect(box.committedResolvedStyle.box.bgColor, Color(0xFF0000FF));
+      expect(box.committedResolvedStyle.box.backgroundColor, Color(0xFF0000FF));
       await tester.pump(Duration(milliseconds: 100));
-      expect(box.committedResolvedStyle.box.bgColor, const Color(0xFFFF0000));
+      expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFFFF0000));
       // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
       await tester.pump(Duration(milliseconds: 100));
     });
@@ -1080,12 +1080,12 @@ void main() {
       const idleColor = Color(0x00000000);
       const hoverColor = Color(0xFFFFFFFF);
       const selectedColor = Color(0xFFD6D6D6);
-      const selectedStyle = ElStyle(width: 80, height: 32, bgColor: selectedColor);
+      const selectedStyle = ElStyle(width: 80, height: 32, backgroundColor: selectedColor);
       const idleStyle = ElStyle(
         width: 80,
         height: 32,
-        bgColor: idleColor,
-        onHover: ElStyle(bgColor: hoverColor),
+        backgroundColor: idleColor,
+        onHover: ElStyle(backgroundColor: hoverColor),
       );
       const tabKeys = <ValueKey<String>>[
         ValueKey<String>('tab-0'),
@@ -1120,7 +1120,7 @@ void main() {
       );
 
       Color? tabBg(int index) =>
-          tester.renderObject<ElRenderView>(find.byKey(tabKeys[index])).committedResolvedStyle.box.bgColor;
+          tester.renderObject<ElRenderView>(find.byKey(tabKeys[index])).committedResolvedStyle.box.backgroundColor;
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
       await mouse.addPointer(location: const Offset(-10, -10));

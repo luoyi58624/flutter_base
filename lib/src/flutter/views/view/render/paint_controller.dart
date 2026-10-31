@@ -28,7 +28,7 @@ class PaintController {
   /// 背景滤镜只持有当前使用的裁剪层，切换形状时自动释放旧层。
   LayerHandle<ContainerLayer>? _backdropClipLayerHandle;
 
-  /// 持久化 bgImage painter（跨 frame）+ 当前持有的 image 引用（identity 比对）。
+  /// 持久化 backgroundImage painter（跨 frame）+ 当前持有的 image 引用（identity 比对）。
   ///
   /// `DecorationImagePainter` 内部持有 `ImageStream.addListener`，dispose 后
   /// 异步图片加载完成 → 监听不触发 → 图片永远不显示。所以这里在 paint 阶段
@@ -36,10 +36,10 @@ class PaintController {
   DecorationImagePainter? _bgImagePainter;
   DecorationImage? _bgImagePainterFor;
 
-  /// 测试观察：当前 bgImage painter 持有的 image 引用（identity 用于不变量验证）。
+  /// 测试观察：当前 backgroundImage painter 持有的 image 引用（identity 用于不变量验证）。
   DecorationImage? get bgImagePainterFor => _bgImagePainterFor;
 
-  /// 测试观察：当前 bgImage painter 实例（identity 用于跨 frame 复用验证）。
+  /// 测试观察：当前 backgroundImage painter 实例（identity 用于跨 frame 复用验证）。
   Object? get bgImagePainter => _bgImagePainter;
 
   /// dispose 资源（host.dispose 内调）。
@@ -102,17 +102,17 @@ class PaintController {
     var bits = 0;
     // bg：paint 期已是字面色（var 未定义解析为 null → 无 op，与旧
     // `bg is Color` 门一致）。
-    if (box.bgColor != null) bits |= _opBg;
+    if (box.backgroundColor != null) bits |= _opBg;
     if (box.borderRadius != null) bits |= _opRadius;
     if (box.border != null) bits |= _opBorder;
     final shadows = box.boxShadow;
     if (shadows?.isNotEmpty ?? false) bits |= _opShadow;
-    if (box.bgImage != null) bits |= _opBgImage;
+    if (box.backgroundImage != null) bits |= _opBgImage;
     if (box.gradient != null) bits |= _opGradient;
     if (box.outline != null) bits |= _opOutline;
     final clip = box.clipBehavior;
     if (clip != null && clip != Clip.none) bits |= _opClip;
-    if (box.clipper != null) bits |= _opClipper;
+    if (box.clipPath != null) bits |= _opClipper;
     if (box.transform != null) bits |= _opTransform;
     if (box.opacity != null && ViewBoxPainter.opacityAlpha(box.opacity) < 255) bits |= _opOpacity;
     if (box.backdropFilter != null && !box.backdropFilter!.isIdentity) bits |= _opBackdrop;
@@ -135,7 +135,7 @@ class PaintController {
       bits = classifyPaintOps(box);
       _paintOpBitsFor = box;
       _paintOpBits = bits;
-      // 跨 frame 资源在位迁移点收尾（bgImage / backdropFilter / filter 被
+      // 跨 frame 资源在位迁移点收尾（backgroundImage / backdropFilter / filter 被
       // 移除的换装帧）——位不含对应 op 而资源仍在 ⇒ 上一形态遗留，必须释放。
       if ((bits & _opBgImage) == 0 && _bgImagePainter != null) _ensureBgImagePainter(null);
       if ((bits & _opBackdrop) == 0 && _backdropLayerHandle?.layer != null) {
@@ -167,14 +167,14 @@ class PaintController {
     // 不被发射端消费）。形态迁移安全：位一旦不再恰为 bg 就回到 plan 管线，
     // 并按本次绘制的输入构建几何。
     if (bits == _opBg) {
-      context.canvas.drawRect(outerRect, _solidColorPaint..color = box.bgColor!);
+      context.canvas.drawRect(outerRect, _solidColorPaint..color = box.backgroundColor!);
       _host.paintContent(context, offset);
       return;
     }
 
     final radius = ViewBoxPainter.effectiveBorderRadius(
       box,
-      textDirection: _host.committedResolvedStyle.inheritedBox.textDirection ?? TextDirection.ltr,
+      textDirection: _host.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr,
     );
     final geometry = (
       outer: outerRect,
@@ -240,9 +240,9 @@ class PaintController {
       final bounds = Offset.zero & size;
       final radius = ViewBoxPainter.effectiveBorderRadius(
         box,
-        textDirection: _host.committedResolvedStyle.inheritedBox.textDirection ?? TextDirection.ltr,
+        textDirection: _host.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr,
       );
-      final Object clip = box.clipper?.getClip(size) ?? radius?.toRRect(bounds) ?? bounds;
+      final Object clip = box.clipPath?.getClip(size) ?? radius?.toRRect(bounds) ?? bounds;
       final clipHandle = _backdropClipLayerHandle ??= LayerHandle<ContainerLayer>();
       clipHandle.layer = _pushClip(
         ctx,
@@ -279,7 +279,7 @@ class PaintController {
       _emitBoxOps(context, childOffset, bits, box, geometry);
       return;
     }
-    final clipPath = box.clipper!.getClip(geometry.outer.size).shift(geometry.outer.topLeft);
+    final clipPath = box.clipPath!.getClip(geometry.outer.size).shift(geometry.outer.topLeft);
     context.pushClipPath(_host.needsCompositing, Offset.zero, geometry.outer, clipPath, (innerCtx, _) {
       _emitBoxOps(innerCtx, childOffset, bits, box, geometry);
     });
@@ -288,7 +288,7 @@ class PaintController {
   /// 盒装饰十步发射 —— 严格对齐 CSS Backgrounds & Borders L3 §3.10：
   /// 1. **shadows (outset)** — 沿 outer RRect 偏移 + spread
   /// 2. **bgColor** — CSS 强制最底
-  /// 3. **bgImage** — DecorationImage，在 content RRect 内
+  /// 3. **backgroundImage** — DecorationImage，在 content RRect 内
   /// 4. **gradient** — CSS 短手 `background: <grad>, <img>` 默认 grad 在上
   /// 5. **shadows (inset)** — 裁剪到 content RRect 内，覆盖背景
   /// 6–8. **clip + children + restore** — clipBehavior 裁 children 到
@@ -306,13 +306,13 @@ class PaintController {
     }
     if ((bits & _opBg) != 0) {
       if ((bits & _opRadius) != 0) {
-        context.canvas.drawRRect(geometry.contentRRect, _solidColorPaint..color = box.bgColor!);
+        context.canvas.drawRRect(geometry.contentRRect, _solidColorPaint..color = box.backgroundColor!);
       } else {
-        context.canvas.drawRect(geometry.outer, _solidColorPaint..color = box.bgColor!);
+        context.canvas.drawRect(geometry.outer, _solidColorPaint..color = box.backgroundColor!);
       }
     }
     if ((bits & _opBgImage) != 0) {
-      final painter = _ensureBgImagePainter(box.bgImage);
+      final painter = _ensureBgImagePainter(box.backgroundImage);
       if (painter != null) {
         painter.paint(
           context.canvas,
@@ -322,7 +322,7 @@ class PaintController {
               : null,
           ImageConfiguration(
             size: geometry.outer.size,
-            textDirection: _host.committedResolvedStyle.inheritedBox.textDirection ?? TextDirection.ltr,
+            textDirection: _host.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr,
           ),
         );
       }

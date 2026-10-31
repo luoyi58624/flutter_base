@@ -22,7 +22,7 @@ void main() {
                   top: 20,
                   child: ElDraggable<String>(
                     data: 'x',
-                    child: const ElView(key: dragKey, style: ElStyle(width: 60, height: 60, bgColor: Color(0xFF2266AA))),
+                    child: const ElView(key: dragKey, style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF2266AA))),
                   ),
                 ),
                 Positioned(
@@ -30,7 +30,7 @@ void main() {
                   top: 100,
                   child: ElView(
                     key: scrollKey,
-                    style: const ElStyle(width: 200, height: 200, bgColor: Color(0xFF222222)),
+                    style: const ElStyle(width: 200, height: 200, backgroundColor: Color(0xFF222222)),
                     child: ElScrollView(
                       children: [
                         for (var i = 0; i < 40; i++)

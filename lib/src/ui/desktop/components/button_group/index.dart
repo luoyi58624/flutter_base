@@ -89,7 +89,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
 
   /// 移动端立即进入按压配色，松开沿基础过渡恢复，与普通按钮一致。
   ElStyle _mobileTap(ElStyle style) =>
-      style.copyWith(transitions: const [ElTransition.all(Duration.zero)]);
+      style.copyWith(transition: const [ElTransition.all(Duration.zero)]);
 
   Color? _resolvedColor(BuildContext context) {
     final bg = component.bgColor;
@@ -209,7 +209,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         horizontal: horizontal,
         r: radius,
       ),
-      transitions: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
+      transition: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
     );
     ElBorder border(Color color, {bool contrast = false}) {
       // 只有实心背景启用对比接缝，浅底交互已有底色差异，无需再加亮边。
@@ -238,20 +238,20 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
       final hoverBg = typeColor.elLightOf(.light, 3);
       final disabledBg = typeColor.elLight5(context);
       final active = ElStyle(
-        bgColor: activeBg,
+        backgroundColor: activeBg,
         border: border(activeBg, contrast: true),
       );
       return base
           .copyWith(
             color: textColor,
             iconColor: textColor,
-            bgColor: typeColor,
+            backgroundColor: typeColor,
             border: border(typeColor, contrast: true),
             onHover: (selected)
                 ? null
                 : (isDesktop && !selected
                       ? ElStyle(
-                          bgColor: hoverBg,
+                          backgroundColor: hoverBg,
                           border: border(hoverBg, contrast: true),
                         )
                       : null),
@@ -262,7 +262,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
             onDisabled: ElStyle(
               cursor: SystemMouseCursors.forbidden,
               color: const Color(0xffffffff),
-              bgColor: disabledBg,
+              backgroundColor: disabledBg,
               border: border(disabledBg, contrast: true),
               iconColor: const Color(0xffffffff),
             ),
@@ -277,14 +277,14 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     final borderColor = ElThemeData.of(context).borderColor;
     final active = ElStyle(
       color: primary,
-      bgColor: primary.elLight9(context),
+      backgroundColor: primary.elLight9(context),
       border: border(primary),
       iconColor: primary,
     );
     final disabled = ElStyle(
       cursor: SystemMouseCursors.forbidden,
       color: ElThemeData.of(context).textColorLg,
-      bgColor: bgColor,
+      backgroundColor: bgColor,
       border: border(borderColor),
       iconColor: ElThemeData.of(context).textColorLg,
     );
@@ -293,7 +293,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         : _textOnBackground(context, typeColor);
     ElStyle selectedColor(Color color) => ElStyle(
       color: selectedText,
-      bgColor: color,
+      backgroundColor: color,
       border: border(
         typeColor == null ? primary : color,
         contrast: typeColor != null,
@@ -308,7 +308,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         .copyWith(
           color: textColor,
           iconColor: textColor,
-          bgColor: bgColor,
+          backgroundColor: bgColor,
           border: border(borderColor),
           onHover: (selected)
               ? null
@@ -316,7 +316,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
                     ? null
                     : ElStyle(
                         color: primary,
-                        bgColor: primary.elLight9(context),
+                        backgroundColor: primary.elLight9(context),
                         border: border(primary.elLight7(context)),
                         iconColor: primary,
                       )),
@@ -373,15 +373,15 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     required Color color,
     required Color seamColor,
   }) {
-    if (single) return ElBorder.all(color: color);
-    final side = ElBorderSide(color: color, width: context.elBorderWidth);
+    if (single) return ElBorder.all(borderColor: color);
+    final side = ElBorderSide(borderColor: color, borderWidth: context.elBorderWidth);
     // 内侧保存对比边及其透明度，由组取两侧共同可见度，随边框一起过渡。
-    final seam = ElBorderSide(color: seamColor, width: 0, style: .none);
+    final seam = ElBorderSide(borderColor: seamColor, borderWidth: 0, borderStyle: .none);
     return ElBorder.only(
-      left: horizontal ? (isFirst ? side : seam) : side,
-      right: horizontal ? (isLast ? side : seam) : side,
-      top: horizontal ? side : (isFirst ? side : seam),
-      bottom: horizontal ? side : (isLast ? side : seam),
+      borderLeft: horizontal ? (isFirst ? side : seam) : side,
+      borderRight: horizontal ? (isLast ? side : seam) : side,
+      borderTop: horizontal ? side : (isFirst ? side : seam),
+      borderBottom: horizontal ? side : (isLast ? side : seam),
     );
   }
 }

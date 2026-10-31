@@ -797,7 +797,7 @@ class _TableViewState extends State<ElTable> {
       alignment: _alignmentFor(header ? plan.headerAlign : plan.align),
       textAlign: header ? plan.headerAlign : plan.align,
       minHeight: !header && style.autoRowHeight ? style.rowHeight : null,
-      overflow: header || plan.showOverflow == true ? TextOverflow.ellipsis : null,
+      textOverflow: header || plan.showOverflow == true ? TextOverflow.ellipsis : null,
       maxLines: header || plan.showOverflow == true ? 1 : null,
     ).merge(header ? style.headerCell : style.cell).merge(_columnDividerStyle);
     return header ? base.merge(plan.headerStyle) : base;
@@ -1195,7 +1195,7 @@ class _TableViewState extends State<ElTable> {
       padding: style.cellPadding,
       alignment: _alignmentFor(align),
       textAlign: align,
-      overflow: TextOverflow.ellipsis,
+      textOverflow: TextOverflow.ellipsis,
       maxLines: 1,
     ).merge(style.cell).merge(_columnDividerStyle).merge(extension);
   }
@@ -1600,7 +1600,7 @@ class _TableViewState extends State<ElTable> {
         style: active ? style.selection.merge(style.selectionActive) : style.selection,
 
         child: control.indeterminate
-            ? const ElView(style: ElStyle(width: 8, height: 2, bgColor: Color(0xffffffff)))
+            ? const ElView(style: ElStyle(width: 8, height: 2, backgroundColor: Color(0xffffffff)))
             : control.checked
             ? ElView(
                 style: ElStyle(
@@ -1609,8 +1609,8 @@ class _TableViewState extends State<ElTable> {
                   margin: .only(bottom: 2),
                   transform: .rotate(0.7853981633974483),
                   border: ElBorder.only(
-                    right: ElBorderSide(width: 1.6, color: Color(0xffffffff)),
-                    bottom: ElBorderSide(width: 1.6, color: Color(0xffffffff)),
+                    borderRight: ElBorderSide(borderWidth: 1.6, borderColor: Color(0xffffffff)),
+                    borderBottom: ElBorderSide(borderWidth: 1.6, borderColor: Color(0xffffffff)),
                   ),
                 ),
               )
@@ -1631,10 +1631,10 @@ class _TableViewState extends State<ElTable> {
         style: ElStyle(
           width: 7,
           height: 10,
-          bgColor: style.expand.color ?? const Color(0xff727984),
-          clipper: _TableTriangleClipper(AxisDirection.right),
+          backgroundColor: style.expand.color ?? const Color(0xff727984),
+          clipPath: _TableTriangleClipper(AxisDirection.right),
           transform: control.expanded ? ElTransform.rotate(math.pi / 2) : null,
-          transitions: const [ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 160))],
+          transition: const [ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 160))],
         ),
       ),
     );

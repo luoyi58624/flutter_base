@@ -29,7 +29,7 @@ void main() {
     // 别名一旦从 barrel 上消失，这里每一条都会立刻编译失败。
     bool selectable(ElTableRow row) => row['name'] == 'Alice';
     Object? format(Object? value, ElTableCell cell) => '${cell.rowKey}:$value';
-    ElStyle? cellStyle(ElTableCell cell) => const ElStyle(bgColor: Color(0xffffffff));
+    ElStyle? cellStyle(ElTableCell cell) => const ElStyle(backgroundColor: Color(0xffffffff));
     ElStyle? rowStyle(ElTableRowContext row) => row.rowIndex.isEven ? const ElStyle() : null;
     Object? slot(BuildContext context, ElTableCell cell) => cell.value;
     Object? header(BuildContext context, ElTableHeaderCell cell) => cell.columnIndex;
@@ -167,7 +167,7 @@ void main() {
     expect(summaryCell.data, hasLength(2));
     expect(selectionChange.selected, isTrue);
     expect(format(cell.value, cell), '1:Alice');
-    expect(cellStyle(cell)?.bgColor, const Color(0xffffffff));
+    expect(cellStyle(cell)?.backgroundColor, const Color(0xffffffff));
     expect(rowStyle(rowContext), isNotNull, reason: '展示序 0 是偶数行。');
   });
 

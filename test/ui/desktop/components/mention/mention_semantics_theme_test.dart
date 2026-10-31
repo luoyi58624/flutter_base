@@ -8,23 +8,19 @@ import 'package:flutter/semantics.dart' show SemanticsNode, SemanticsRole;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>
-    MediaQuery(
-      data: const MediaQueryData(size: Size(800, 600)),
-      child: Directionality(
-        textDirection: .ltr,
-        child: ElDesktopTheme(
-          themeMode: ElThemeMode(
-            brightness: brightness,
-            duration: Duration.zero,
-          ),
-          child: ElView(
-            style: const ElStyle(width: 560, height: 420, alignment: .center),
-            child: ElView(style: const ElStyle(width: 360), child: child),
-          ),
-        ),
+Widget _host(Widget child, {Brightness brightness = Brightness.light}) => MediaQuery(
+  data: const MediaQueryData(size: Size(800, 600)),
+  child: Directionality(
+    textDirection: .ltr,
+    child: ElDesktopTheme(
+      themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
+      child: ElView(
+        style: const ElStyle(width: 560, height: 420, alignment: .center),
+        child: ElView(style: const ElStyle(width: 360), child: child),
       ),
-    );
+    ),
+  ),
+);
 
 Finder _option(int index) =>
     find.byKey(ValueKey<(String, int)>(('el-mention-option', index)));
@@ -149,17 +145,17 @@ void main() {
         final focusNode = FocusNode();
         addTearDown(focusNode.dispose);
 
-        await tester.pumpWidget(
-          _host(
-            ElMention<String>(
-              value: '@a',
-              focusNode: focusNode,
-              options: const [ElMentionOption<String>(value: 'alice')],
-            ),
-            brightness: brightness,
+      await tester.pumpWidget(
+        _host(
+          ElMention<String>(
+            value: '@a',
+            focusNode: focusNode,
+            options: const [ElMentionOption<String>(value: 'alice')],
           ),
-        );
-        await _focusAt(tester, focusNode, 2);
+          brightness: brightness,
+        ),
+      );
+      await _focusAt(tester, focusNode, 2);
 
         final line = tester.renderObject<RenderEditableLine>(
           find.byType(EditableLineView).first,
@@ -174,7 +170,7 @@ void main() {
 
         final panel = tester.renderObject<ElRenderView>(_panel);
         expect(
-          panel.committedResolvedStyle.box.bgColor,
+          panel.committedResolvedStyle.box.backgroundColor,
           brightness == Brightness.dark
               ? const Color.fromRGBO(43, 43, 43, 1)
               : const Color(0xffffffff),

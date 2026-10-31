@@ -62,13 +62,13 @@ class MyLoading extends StatelessWidget {
             style: ElStyle(
               width: size.pixels,
               height: size.pixels,
-              animations: myReducedMotion(context)
+              animation: myReducedMotion(context)
                   ? const []
                   : [
                       ElAnimation(
-                        duration: const Duration(milliseconds: 800),
-                        curve: Curves.linear,
-                        iterationCount: double.infinity,
+                        animationDuration: const Duration(milliseconds: 800),
+                        animationTimingFunction: Curves.linear,
+                        animationIterationCount: double.infinity,
                         keyframes: {
                           0: ElStyle(transform: ElTransform.rotate(0)),
                           100: ElStyle(

@@ -21,20 +21,20 @@ class InheritedText with Equatable {
     this.lineHeight,
     this.letterSpacing,
     this.wordSpacing,
-    this.fontFeatures,
-    this.fontVariations,
+    this.fontFeatureSettings,
+    this.fontVariationSettings,
     this.textAlign,
     this.textBaseline,
     this.leadingDistribution,
     this.textShadow,
     this.textGradient,
-    this.decoration,
-    this.decorationColor,
-    this.decorationStyle,
-    this.decorationThickness,
+    this.textDecorationLine,
+    this.textDecorationColor,
+    this.textDecorationStyle,
+    this.textDecorationThickness,
     this.textBackgroundColor,
     this.softWrap,
-    this.overflow,
+    this.textOverflow,
     this.maxLines,
   });
 
@@ -54,7 +54,7 @@ class InheritedText with Equatable {
   /// 从父节点文本组构造子节点的继承起点。
   ///
   /// [InheritedText] 是性能上的 group，不代表组内所有字段都按 CSS 继承。
-  /// decoration / textBackgroundColor / softWrap / overflow / maxLines 必须回到
+  /// textDecorationLine / textBackgroundColor / softWrap / textOverflow / maxLines 必须回到
   /// initial；其余字段保留父值。父节点没有声明这些非继承字段时，直接复用父引用，
   /// 保持常见继承路径的 identical 快路径。
   static InheritedText fromInheritedParent(InheritedText? parent) {
@@ -70,29 +70,29 @@ class InheritedText with Equatable {
       lineHeight: parent.lineHeight,
       letterSpacing: parent.letterSpacing,
       wordSpacing: parent.wordSpacing,
-      fontFeatures: parent.fontFeatures,
-      fontVariations: parent.fontVariations,
+      fontFeatureSettings: parent.fontFeatureSettings,
+      fontVariationSettings: parent.fontVariationSettings,
       textAlign: parent.textAlign,
       textBaseline: parent.textBaseline,
       leadingDistribution: parent.leadingDistribution,
       textShadow: parent.textShadow,
       textGradient: parent.textGradient,
-      decorationColor: parent.decorationColor,
-      decorationStyle: parent.decorationStyle,
-      decorationThickness: parent.decorationThickness,
-      decoration: initial.decoration,
+      textDecorationColor: parent.textDecorationColor,
+      textDecorationStyle: parent.textDecorationStyle,
+      textDecorationThickness: parent.textDecorationThickness,
+      textDecorationLine: initial.textDecorationLine,
       textBackgroundColor: initial.textBackgroundColor,
       softWrap: initial.softWrap,
-      overflow: initial.overflow,
+      textOverflow: initial.textOverflow,
       maxLines: initial.maxLines,
     );
   }
 
   bool get _nonInheritedFieldsAreInitial =>
-      decoration == initial.decoration &&
+      textDecorationLine == initial.textDecorationLine &&
       textBackgroundColor == initial.textBackgroundColor &&
       softWrap == initial.softWrap &&
-      overflow == initial.overflow &&
+      textOverflow == initial.textOverflow &&
       maxLines == initial.maxLines;
 
   /// 文本色。CSS 继承。
@@ -123,11 +123,11 @@ class InheritedText with Equatable {
   final double? wordSpacing;
 
   /// OpenType 字体特性。CSS 继承。
-  final List<FontFeature>? fontFeatures;
+  final List<FontFeature>? fontFeatureSettings;
 
   /// Variable Font 可变轴值。CSS 继承。
   /// 保留声明值，最终文字样式不额外调整轴值。
-  final List<FontVariation>? fontVariations;
+  final List<FontVariation>? fontVariationSettings;
 
   /// 文本对齐。CSS 继承。
   final TextAlign? textAlign;
@@ -147,16 +147,16 @@ class InheritedText with Equatable {
   final Gradient? textGradient;
 
   /// 文本装饰。CSS 不继承。
-  final TextDecoration? decoration;
+  final TextDecoration? textDecorationLine;
 
   /// 装饰线颜色。CSS 继承。
-  final Color? decorationColor;
+  final Color? textDecorationColor;
 
   /// 装饰线样式。CSS 继承。
-  final TextDecorationStyle? decorationStyle;
+  final TextDecorationStyle? textDecorationStyle;
 
   /// 装饰线粗细。CSS 继承。
-  final double? decorationThickness;
+  final double? textDecorationThickness;
 
   /// 文本背景色。CSS 不继承。
   final Color? textBackgroundColor;
@@ -165,7 +165,7 @@ class InheritedText with Equatable {
   final bool? softWrap;
 
   /// 文本溢出策略。CSS 不继承。
-  final TextOverflow? overflow;
+  final TextOverflow? textOverflow;
 
   /// 最大行数。CSS 不继承。
   final int? maxLines;
@@ -182,37 +182,37 @@ class InheritedText with Equatable {
     lineHeight,
     letterSpacing,
     wordSpacing,
-    fontFeatures,
-    fontVariations,
+    fontFeatureSettings,
+    fontVariationSettings,
     textAlign,
     textBaseline,
     leadingDistribution,
     textShadow,
     textGradient,
-    decoration,
-    decorationColor,
-    decorationStyle,
-    decorationThickness,
+    textDecorationLine,
+    textDecorationColor,
+    textDecorationStyle,
+    textDecorationThickness,
     textBackgroundColor,
     softWrap,
-    overflow,
+    textOverflow,
     maxLines,
   ];
 }
 
-/// 非文本继承字段组（5 个字段）：textDirection / cursor / pointerEvents /
+/// 非文本继承字段组（5 个字段）：direction / cursor / pointerEvents /
 /// iconSize / iconColor。
 @immutable
 class InheritedBox with Equatable {
   /// 创建实例。
-  const InheritedBox({this.textDirection, this.cursor, this.pointerEvents, this.iconSize, this.iconColor});
+  const InheritedBox({this.direction, this.cursor, this.pointerEvents, this.iconSize, this.iconColor});
 
   /// 全 null 初值（iconSize / iconColor 除外——图标 glyph 有独立默认，
   /// 不回落文本通道）。
   static const InheritedBox initial = InheritedBox(iconSize: 24, iconColor: Color(0xff909399));
 
   /// 文本方向（LTR / RTL）。CSS 继承。
-  final TextDirection? textDirection;
+  final TextDirection? direction;
 
   /// 鼠标光标。CSS 继承。
   final MouseCursor? cursor;
@@ -229,7 +229,7 @@ class InheritedBox with Equatable {
 
   /// 字段值参与结构相等，列表按元素比较。
   @override
-  List<Object?> get props => [textDirection, cursor, pointerEvents, iconSize, iconColor];
+  List<Object?> get props => [direction, cursor, pointerEvents, iconSize, iconColor];
 }
 
 /// 非继承字段组（27 个字段）：盒模型 + 装饰 + 约束几何 + transform + 视觉补全。
@@ -241,13 +241,13 @@ class Box with Equatable {
     this.height,
     this.widthFactor,
     this.heightFactor,
-    this.bgColor,
+    this.backgroundColor,
     this.padding,
     this.margin,
     this.alignment,
     this.border,
     this.borderRadius,
-    this.clipper,
+    this.clipPath,
     this.boxShadow,
     this.minWidth,
     this.maxWidth,
@@ -255,10 +255,10 @@ class Box with Equatable {
     this.maxHeight,
     this.opacity,
     this.transform,
-    this.transformAlignment,
+    this.transformOrigin,
     this.clipBehavior,
     this.gradient,
-    this.bgImage,
+    this.backgroundImage,
     this.outline,
     this.aspectRatio,
     this.filter,
@@ -281,7 +281,7 @@ class Box with Equatable {
   final double? heightFactor;
 
   /// 节点背景色。Paint 顺序:最底。
-  final Color? bgColor;
+  final Color? backgroundColor;
 
   /// 内边距。
   final EdgeInsetsGeometry? padding;
@@ -299,7 +299,7 @@ class Box with Equatable {
   final BorderRadiusGeometry? borderRadius;
 
   /// 自定义裁剪形状。Paint-only，lerp = step（跟 Flutter `ClipPath` 一致）。
-  final CustomClipper<Path>? clipper;
+  final CustomClipper<Path>? clipPath;
 
   /// 盒阴影列表。Paint-only。
   final List<BoxShadow>? boxShadow;
@@ -323,17 +323,17 @@ class Box with Equatable {
   final ElTransform? transform;
 
   /// 变换原点对齐（CSS `transform-origin`）。Paint-only。
-  final AlignmentGeometry? transformAlignment;
+  final AlignmentGeometry? transformOrigin;
 
   /// 裁剪行为。Paint-only。
   final Clip? clipBehavior;
 
-  /// 渐变背景。Paint-only。Paint 顺序：在 bgImage 之上。
+  /// 渐变背景。Paint-only。Paint 顺序：在 backgroundImage 之上。
   ///
   final Gradient? gradient;
 
-  /// 背景图（含 fit/alignment/repeat）。Paint-only。Paint 顺序：在 bgColor 之上、gradient 之下。
-  final DecorationImage? bgImage;
+  /// 背景图（含 fit/alignment/repeat）。Paint-only。Paint 顺序：在 backgroundColor 之上、gradient 之下。
+  final DecorationImage? backgroundImage;
 
   /// 描边（CSS outline 聚合：width / color / gradient / offset / position）。
   /// Paint-only。**永远不占 layout**。
@@ -361,13 +361,13 @@ class Box with Equatable {
     height,
     widthFactor,
     heightFactor,
-    bgColor,
+    backgroundColor,
     padding,
     margin,
     alignment,
     border,
     borderRadius,
-    clipper,
+    clipPath,
     boxShadow,
     minWidth,
     maxWidth,
@@ -375,10 +375,10 @@ class Box with Equatable {
     maxHeight,
     opacity,
     transform,
-    transformAlignment,
+    transformOrigin,
     clipBehavior,
     gradient,
-    bgImage,
+    backgroundImage,
     outline,
     aspectRatio,
     filter,

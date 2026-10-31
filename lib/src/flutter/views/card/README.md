@@ -7,7 +7,7 @@ ElCardView(
   semanticLabel: '订单摘要',
   style: ElStyle(
     padding: EdgeInsets.all(16),
-    bgColor: Colors.white,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.circular(12),
   ),
   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

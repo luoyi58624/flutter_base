@@ -35,7 +35,7 @@ void main() {
           leafBuilds++;
           return ElView(
             key: key,
-            style: ElStyle(fontWeight: .w300, fontVariations: [FontVariation('wght', 320), FontVariation('wdth', 90)]),
+            style: ElStyle(fontWeight: .w300, fontVariationSettings: [FontVariation('wght', 320), FontVariation('wdth', 90)]),
             child: '系统粗体',
           );
         },
@@ -64,7 +64,7 @@ void main() {
       children: [
         ElView(
           key: viewKey,
-          style: ElStyle(fontWeight: .w300, fontVariations: axes),
+          style: ElStyle(fontWeight: .w300, fontVariationSettings: axes),
           child: '显式字重',
         ),
         Text(

@@ -32,7 +32,7 @@ typedef TextPaintInput = ({
 });
 
 extension on TextPaintInput {
-  TextDirection get textDirection => style.inheritedBox.textDirection ?? TextDirection.ltr;
+  TextDirection get textDirection => style.inheritedBox.direction ?? TextDirection.ltr;
 }
 
 /// 宽容输入直接归一为 span；Widget 始终是真实占位子项。
@@ -105,7 +105,7 @@ class TextEngine extends SelectionContent {
 
   String? get semanticsTextLabel => _icon ? null : _content!.span.toPlainText().replaceAll('\ufffc', '');
   TextOverflow get _overflow =>
-      _icon ? TextOverflow.visible : _input!.style.inheritedText.overflow ?? TextOverflow.visible;
+      _icon ? TextOverflow.visible : _input!.style.inheritedText.textOverflow ?? TextOverflow.visible;
   bool get textOverflows =>
       _constraints != null &&
       (_painter.didExceedMaxLines || _painter.width > _size.width || _painter.height > _size.height);
@@ -121,7 +121,7 @@ class TextEngine extends SelectionContent {
       nodeOf: nodeOf,
       participatesOf: () => rawChild != null && host.style?.userSelect != ElUserSelect.none,
       lastHitCursorOf: lastHitCursorOf,
-      textDirectionOf: () => host.committedResolvedStyle.inheritedBox.textDirection ?? TextDirection.ltr,
+      textDirectionOf: () => host.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr,
       fallbackWidthOf: () => host.boxSize.width,
       selectionPaintOf: () => host.inheritedSelectionPaint,
     );
@@ -188,7 +188,7 @@ class TextEngine extends SelectionContent {
       height: 1,
       leadingDistribution: TextLeadingDistribution.even,
       fontWeight: input.style.inheritedText.fontWeight,
-      fontVariations: input.style.inheritedText.fontVariations,
+      fontVariations: input.style.inheritedText.fontVariationSettings,
       shadows: input.style.inheritedText.textShadow,
     );
   }
@@ -210,10 +210,10 @@ class TextEngine extends SelectionContent {
     ..textScaler = input.textScaler
     ..locale = input.locale
     ..maxLines = _icon ? 1 : input.style.inheritedText.maxLines
-    ..ellipsis = input.style.inheritedText.overflow == TextOverflow.ellipsis ? '…' : null;
+    ..ellipsis = input.style.inheritedText.textOverflow == TextOverflow.ellipsis ? '…' : null;
   double _maxWidth(TextPaintInput input, double width) =>
       !_icon &&
-          (input.style.inheritedText.softWrap != false || input.style.inheritedText.overflow == TextOverflow.ellipsis)
+          (input.style.inheritedText.softWrap != false || input.style.inheritedText.textOverflow == TextOverflow.ellipsis)
       ? width
       : double.infinity;
   List<PlaceholderDimensions> _placeholders(TextPainter painter, BoxConstraints available, {required bool dry}) {

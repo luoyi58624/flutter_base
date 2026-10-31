@@ -89,7 +89,7 @@ void main() {
           key: key,
           style: ElStyle(
             fontSize: 20,
-            onSelection: ElStyle(bgColor: Colors.blue, color: Colors.white),
+            onSelection: ElStyle(backgroundColor: Colors.blue, color: Colors.white),
           ),
           child: 'alpha beta gamma delta',
         ),

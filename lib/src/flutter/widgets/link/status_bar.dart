@@ -328,16 +328,16 @@ class _LinkStatusBarViewState extends State<_LinkStatusBarView> {
         // 悬停 expandDelay 后展开到全宽上限读长地址。
         maxWidth: _expanded ? '100%' : '33%',
         padding: .symmetric(horizontal: 6, vertical: 3),
-        bgColor: const Color(0xffe3e3e3),
+        backgroundColor: const Color(0xffe3e3e3),
         color: const Color(0xff474747),
         fontSize: 12,
         maxLines: 1,
-        overflow: .ellipsis,
+        textOverflow: .ellipsis,
         // Chromium 是包一圈的 1px 描边（kColorStatusBubbleShadow），停靠角
         // 的左/下边贴窗缘被裁掉——等效只画上、右两边；亮暗共用同一描边色。
         border: const .only(
-          top: ElBorderSide(color: Color(0x1e000000)),
-          right: ElBorderSide(color: Color(0x1e000000)),
+          borderTop: ElBorderSide(borderColor: Color(0x1e000000)),
+          borderRight: ElBorderSide(borderColor: Color(0x1e000000)),
         ),
         borderRadius: const .only(topRight: .circular(4)),
         pointerEvents: .none,
@@ -345,7 +345,7 @@ class _LinkStatusBarViewState extends State<_LinkStatusBarView> {
         starting: const ElStyle(opacity: 0.0),
         // Chromium 是 LinearAnimation：纯 opacity 线性淡入/淡出，无位移；
         // 淡入 120ms、淡出 200ms 时长不同，按相位切换 duration。
-        transitions: [
+        transition: [
           .field(
             ElTransitionField.opacity,
             exiting ? ElLinkStatusBar.hideFadeDuration : ElLinkStatusBar.showFadeDuration,
@@ -353,7 +353,7 @@ class _LinkStatusBarViewState extends State<_LinkStatusBarView> {
           ),
           .field(ElTransitionField.maxWidth, ElLinkStatusBar.expandDuration, Curves.linear),
         ],
-        onDark: const ElStyle(bgColor: Color(0xff1f2020), color: Color(0xffc7c7c7)),
+        onDark: const ElStyle(backgroundColor: Color(0xff1f2020), color: Color(0xffc7c7c7)),
       ),
       child: ElLinkStatusBar._href.value?.toString() ?? '',
     );

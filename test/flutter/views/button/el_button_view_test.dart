@@ -295,9 +295,9 @@ void main() {
             style: const ElStyle(
               width: 300,
               height: 120,
-              bgColor: Color(0xff111111),
-              onHover: ElStyle(bgColor: Color(0xff222222)),
-              onTap: ElStyle(bgColor: Color(0xff333333)),
+              backgroundColor: Color(0xff111111),
+              onHover: ElStyle(backgroundColor: Color(0xff222222)),
+              onTap: ElStyle(backgroundColor: Color(0xff333333)),
             ),
             child: 'Move inside',
           ),
@@ -313,13 +313,13 @@ void main() {
       await mouse.down(const Offset(150, 60));
       await tester.pump();
       expect(render.internalStateHas(ViewState.tap), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff333333));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
 
       for (final position in const <Offset>[Offset(30, 30), Offset(270, 30), Offset(270, 90), Offset(30, 90)]) {
         await mouse.moveTo(position);
         await tester.pump();
         expect(render.internalStateHas(ViewState.tap), isTrue);
-        expect(render.committedResolvedStyle.box.bgColor, const Color(0xff333333));
+        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
         expect(DragPointerLock.isActive, isFalse, reason: '普通按钮没有 Drag，不得因移动取得全局指针锁。');
       }
 
@@ -331,7 +331,7 @@ void main() {
       expect(presses, 1);
       expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff222222));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
     });
 
     testWidgets('普通按钮 mouse 移出再回来会完整恢复 Tap、Hover、样式与点击事件链', (tester) async {
@@ -357,9 +357,9 @@ void main() {
             style: const ElStyle(
               width: 100,
               height: 100,
-              bgColor: Color(0xff111111),
-              onHover: ElStyle(bgColor: Color(0xff222222)),
-              onTap: ElStyle(bgColor: Color(0xff333333)),
+              backgroundColor: Color(0xff111111),
+              onHover: ElStyle(backgroundColor: Color(0xff222222)),
+              onTap: ElStyle(backgroundColor: Color(0xff333333)),
             ),
             child: 'Exit and re-enter',
           ),
@@ -374,25 +374,25 @@ void main() {
       await mouse.moveTo(inside);
       await tester.pump();
       expect(render.internalStateHas(ViewState.hover), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff222222));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
 
       await mouse.down(inside);
       await tester.pump();
       expect(render.internalStateHas(ViewState.tap), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff333333));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
 
       await mouse.moveTo(outside);
       await tester.pump();
       expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isFalse);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff111111));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff111111));
 
       await mouse.moveTo(inside);
       await tester.pump();
       expect(DragPointerLock.isActive, isFalse, reason: '普通按钮移出再进入期间不应建立 Drag 指针锁。');
       expect(render.internalStateHas(ViewState.tap), isTrue);
       expect(render.internalStateHas(ViewState.hover), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff333333));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
 
       await mouse.up();
       await tester.pump();
@@ -412,7 +412,7 @@ void main() {
       expect(presses, 1);
       expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xff222222));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
     });
 
     testWidgets('caller tap runs before the default onPressed action', (tester) async {
@@ -825,14 +825,14 @@ void main() {
           ElButtonView(
             key: hostKey,
             onPressed: () {},
-            style: ElStyle(bgColor: Color(0xff112233)),
+            style: ElStyle(backgroundColor: Color(0xff112233)),
             child: 'S',
           ),
         ),
       );
 
       final view = tester.widget<ElButtonView>(find.byKey(hostKey));
-      expect(view.style!.bgColor, Color(0xff112233));
+      expect(view.style!.backgroundColor, Color(0xff112233));
       // 行为性默认：按钮文字不可选中。
       expect(view.style!.userSelect, isNotNull);
       // 其余未声明字段不被注入外观默认值。
@@ -851,14 +851,14 @@ void main() {
           ElButtonView(
             key: hostKey,
             onPressed: () {},
-            style: ElStyle(bgColor: Color(0xff112233)),
+            style: ElStyle(backgroundColor: Color(0xff112233)),
             child: 'S',
           ),
         ),
       );
 
       final render = tester.renderObject<ElRenderView>(find.byKey(hostKey));
-      expect(render.committedResolvedStyle.box.bgColor, Color(0xff112233));
+      expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff112233));
     });
   });
 }

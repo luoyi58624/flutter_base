@@ -31,10 +31,10 @@ Widget _cards(
         ElBoxSelectable(
           key: ValueKey(i),
           value: i,
-          style: ElStyle(width: 80, height: 50, bgColor: Color(0xffeeeeee)),
+          style: ElStyle(width: 80, height: 50, backgroundColor: Color(0xffeeeeee)),
           selectedStyle: ElStyle(
-            bgColor: Color(0xffddeeff),
-            border: .all(color: Color(0xff0000ff), width: 3),
+            backgroundColor: Color(0xffddeeff),
+            border: .all(borderColor: Color(0xff0000ff), borderWidth: 3),
             borderRadius: .all(Radius.circular(12)),
           ),
           child: ElView(child: '文件 $i'),
@@ -89,7 +89,7 @@ void main() {
                     ElBoxSelectable(
                       value: value,
                       style: ElStyle(width: 80, height: 60),
-                      selectedStyle: ElStyle(bgColor: Color(0xff2288ee)),
+                      selectedStyle: ElStyle(backgroundColor: Color(0xff2288ee)),
                       child: ElView(child: value),
                     ),
                 ],
@@ -107,7 +107,7 @@ void main() {
     expect(selection.selectedValues, {'a'});
     final selected = tester.allRenderObjects
         .whereType<ElRenderView>()
-        .where((view) => view.committedResolvedStyle.box.bgColor == Color(0xff2288ee))
+        .where((view) => view.committedResolvedStyle.box.backgroundColor == Color(0xff2288ee))
         .toList();
     expect(selected, hasLength(1));
     expect(selected.single.localToGlobal(Offset.zero).dx, 80);
@@ -237,7 +237,7 @@ void main() {
                   key: ValueKey(i),
                   value: i,
                   style: ElStyle(height: 40, width: 200),
-                  selectedStyle: ElStyle(bgColor: Color(0xff0088ff)),
+                  selectedStyle: ElStyle(backgroundColor: Color(0xff0088ff)),
                   child: _PaintProbe(onPaint: () => painted[i] = controller.isSelected(i)),
                 ),
               ),
@@ -395,7 +395,7 @@ void main() {
         )
         .first;
     expect(controller.isSelected(0), isTrue);
-    expect(view.committedResolvedStyle.box.border?.top.width, 3);
+    expect(view.committedResolvedStyle.box.border?.borderTop.borderWidth, 3);
   });
 
   testWidgets('点击替换、Ctrl 切换、Shift 加选与 Esc 清空', (tester) async {

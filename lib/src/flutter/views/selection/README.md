@@ -40,7 +40,7 @@ SizedBox(
         ElBoxSelectable(
           value: id,
           style: ElStyle(padding: EdgeInsets.all(12)),
-          selectedStyle: ElStyle(bgColor: Colors.lightBlue),
+          selectedStyle: ElStyle(backgroundColor: Colors.lightBlue),
           child: Text(id),
         ),
     ]),

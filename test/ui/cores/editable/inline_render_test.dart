@@ -76,7 +76,7 @@ void main() {
       inlineContent: {
         '[wide]': (_) => ElView(
           key: ValueKey('wide'),
-          style: ElStyle(width: 52, height: 80, bgColor: Color(0xffaa0000)),
+          style: ElStyle(width: 52, height: 80, backgroundColor: Color(0xffaa0000)),
         ),
         '[small]': (_) => ElView(key: ValueKey('small'), style: ElStyle(width: 10, height: 12)),
       },

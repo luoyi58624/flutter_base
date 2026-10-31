@@ -26,8 +26,8 @@ void main() {
       (.fontSize, 1, 0, true),
       (.cursor, 0, 0, true),
       (.width, 1, 0, false),
-      (.bgColor, 0, 1, false),
-      (.overflow, 1, 1, false),
+      (.backgroundColor, 0, 1, false),
+      (.textOverflow, 1, 1, false),
     ]) {
       test('${field.name} 的布局、绘制和继承相互独立', () {
         final spec = fieldSpecOf(field);

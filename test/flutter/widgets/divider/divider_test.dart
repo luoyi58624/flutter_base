@@ -11,13 +11,13 @@ void main() {
   );
   Iterable<ElView> lines(WidgetTester tester) => tester
       .widgetList<ElView>(find.descendant(of: find.byType(ElDivider), matching: find.byType(ElView)))
-      .where((view) => view.style?.bgColor != null);
+      .where((view) => view.style?.backgroundColor != null);
 
   testWidgets('默认分割线使用中性灰色，使用 24px 留白和 1px 厚度', (tester) async {
     await tester.pumpWidget(host(ElDivider()));
     final divider = tester.widget<ElDivider>(find.byType(ElDivider));
     expect(divider.style?.height, 24);
-    expect(lines(tester).single.style?.bgColor, const Color(0xff808080));
+    expect(lines(tester).single.style?.backgroundColor, const Color(0xff808080));
     expect(lines(tester).single.style?.height, 1);
   });
 
@@ -29,7 +29,7 @@ void main() {
     expect(divider.style?.height, 32);
     expect(divider.style?.padding, EdgeInsets.symmetric(horizontal: 3));
     expect(lines(tester), hasLength(2));
-    expect(lines(tester).every((line) => line.style?.height == 2 && line.style?.bgColor == Color(0xff123456)), isTrue);
+    expect(lines(tester).every((line) => line.style?.height == 2 && line.style?.backgroundColor == Color(0xff123456)), isTrue);
     await tester.pumpWidget(host(ElDivider(vertical: true, size: 40, thickness: 3)));
     expect(tester.widget<ElDivider>(find.byType(ElDivider)).style?.width, 40);
     expect(lines(tester).single.style?.width, 3);

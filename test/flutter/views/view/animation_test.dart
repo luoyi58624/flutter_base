@@ -35,20 +35,20 @@ Map<ElTransitionField, (Object?, Object?)> _transitionSamples() => {
     const <Shadow>[Shadow(color: Color(0x33000000), blurRadius: 2)],
     const <Shadow>[Shadow(color: Color(0x66000000), blurRadius: 8)],
   ),
-  ElTransitionField.decorationColor: (const Color(0xFF000000), const Color(0xFFFF0000)),
-  ElTransitionField.decorationThickness: (1.0, 2.0),
+  ElTransitionField.textDecorationColor: (const Color(0xFF000000), const Color(0xFFFF0000)),
+  ElTransitionField.textDecorationThickness: (1.0, 2.0),
   ElTransitionField.textBackgroundColor: (const Color(0x00FFFFFF), const Color(0xFFFFFF00)),
   ElTransitionField.width: (100, 200),
   ElTransitionField.height: (40, 80),
   ElTransitionField.widthFactor: (0.5, 1.0),
   ElTransitionField.heightFactor: (0.25, 1.0),
-  ElTransitionField.bgColor: (const Color(0xFF000000), const Color(0xFFFFFFFF)),
+  ElTransitionField.backgroundColor: (const Color(0xFF000000), const Color(0xFFFFFFFF)),
   ElTransitionField.padding: (EdgeInsets.zero, const EdgeInsets.all(8)),
   ElTransitionField.margin: (EdgeInsets.zero, const EdgeInsets.all(12)),
   ElTransitionField.alignment: (Alignment.topLeft, Alignment.bottomRight),
   ElTransitionField.border: (
-    const ElBorder.fromSide(ElBorderSide(color: Color(0xFF000000), width: 1)),
-    const ElBorder.fromSide(ElBorderSide(color: Color(0xFFFF0000), width: 4)),
+    const ElBorder.fromSide(ElBorderSide(borderColor: Color(0xFF000000), borderWidth: 1)),
+    const ElBorder.fromSide(ElBorderSide(borderColor: Color(0xFFFF0000), borderWidth: 4)),
   ),
   ElTransitionField.borderRadius: (BorderRadius.zero, const BorderRadius.all(Radius.elliptical(12, 12))),
   ElTransitionField.boxShadow: (
@@ -61,7 +61,7 @@ Map<ElTransitionField, (Object?, Object?)> _transitionSamples() => {
   ElTransitionField.maxHeight: (80, 120),
   ElTransitionField.opacity: (1.0, 0.5),
   ElTransitionField.transform: (const ElTransform.scale(1), const ElTransform.scale(1.2)),
-  ElTransitionField.transformAlignment: (Alignment.topLeft, Alignment.center),
+  ElTransitionField.transformOrigin: (Alignment.topLeft, Alignment.center),
   ElTransitionField.gradient: (
     const LinearGradient(colors: [Color(0xFFFF0000), Color(0xFF0000FF)]),
     const LinearGradient(colors: [Color(0xFF00FF00), Color(0xFFFFFF00)]),
@@ -71,8 +71,8 @@ Map<ElTransitionField, (Object?, Object?)> _transitionSamples() => {
     const ElLinearGradient(angle: 90, colors: [Color(0xFF00FF00), Color(0xFFFFFF00)]),
   ),
   ElTransitionField.outline: (
-    const ElOutline(color: Color(0xFF000000), width: 1, offset: 0),
-    const ElOutline(color: Color(0xFF0000FF), width: 3, offset: 6),
+    const ElOutline(outlineColor: Color(0xFF000000), outlineWidth: 1, outlineOffset: 0),
+    const ElOutline(outlineColor: Color(0xFF0000FF), outlineWidth: 3, outlineOffset: 6),
   ),
   ElTransitionField.aspectRatio: (1.0, 16 / 9),
   ElTransitionField.iconSize: (12.0, 20.0),
@@ -85,77 +85,77 @@ ElStyle _styleFor(ElTransitionField field, Object? value) {
   final transition = ElTransition.field(field, const Duration(milliseconds: 200));
   switch (field) {
     case ElTransitionField.color:
-      return ElStyle(color: value as Color?, transitions: [transition]);
+      return ElStyle(color: value as Color?, transition: [transition]);
     case ElTransitionField.fontSize:
-      return ElStyle(fontSize: value as double?, transitions: [transition]);
+      return ElStyle(fontSize: value as double?, transition: [transition]);
     case ElTransitionField.fontWeight:
-      return ElStyle(fontWeight: value as FontWeight?, transitions: [transition]);
+      return ElStyle(fontWeight: value as FontWeight?, transition: [transition]);
     case ElTransitionField.lineHeight:
-      return ElStyle(lineHeight: value as double?, transitions: [transition]);
+      return ElStyle(lineHeight: value as double?, transition: [transition]);
     case ElTransitionField.letterSpacing:
-      return ElStyle(letterSpacing: value as double?, transitions: [transition]);
+      return ElStyle(letterSpacing: value as double?, transition: [transition]);
     case ElTransitionField.wordSpacing:
-      return ElStyle(wordSpacing: value as double?, transitions: [transition]);
+      return ElStyle(wordSpacing: value as double?, transition: [transition]);
     case ElTransitionField.textShadow:
-      return ElStyle(textShadow: value as List<Shadow>?, transitions: [transition]);
-    case ElTransitionField.decorationColor:
-      return ElStyle(decorationColor: value as Color?, transitions: [transition]);
-    case ElTransitionField.decorationThickness:
-      return ElStyle(decorationThickness: value as double?, transitions: [transition]);
+      return ElStyle(textShadow: value as List<Shadow>?, transition: [transition]);
+    case ElTransitionField.textDecorationColor:
+      return ElStyle(textDecorationColor: value as Color?, transition: [transition]);
+    case ElTransitionField.textDecorationThickness:
+      return ElStyle(textDecorationThickness: value as double?, transition: [transition]);
     case ElTransitionField.textBackgroundColor:
-      return ElStyle(textBackgroundColor: value as Color?, transitions: [transition]);
+      return ElStyle(textBackgroundColor: value as Color?, transition: [transition]);
     case ElTransitionField.width:
-      return ElStyle(width: value, transitions: [transition]);
+      return ElStyle(width: value, transition: [transition]);
     case ElTransitionField.height:
-      return ElStyle(height: value, transitions: [transition]);
+      return ElStyle(height: value, transition: [transition]);
     case ElTransitionField.widthFactor:
-      return ElStyle(widthFactor: value as double?, transitions: [transition]);
+      return ElStyle(widthFactor: value as double?, transition: [transition]);
     case ElTransitionField.heightFactor:
-      return ElStyle(heightFactor: value as double?, transitions: [transition]);
-    case ElTransitionField.bgColor:
-      return ElStyle(bgColor: value as Color?, transitions: [transition]);
+      return ElStyle(heightFactor: value as double?, transition: [transition]);
+    case ElTransitionField.backgroundColor:
+      return ElStyle(backgroundColor: value as Color?, transition: [transition]);
     case ElTransitionField.padding:
-      return ElStyle(padding: value as EdgeInsetsGeometry?, transitions: [transition]);
+      return ElStyle(padding: value as EdgeInsetsGeometry?, transition: [transition]);
     case ElTransitionField.margin:
-      return ElStyle(margin: value as EdgeInsetsGeometry?, transitions: [transition]);
+      return ElStyle(margin: value as EdgeInsetsGeometry?, transition: [transition]);
     case ElTransitionField.alignment:
-      return ElStyle(alignment: value as AlignmentGeometry?, transitions: [transition]);
+      return ElStyle(alignment: value as AlignmentGeometry?, transition: [transition]);
     case ElTransitionField.border:
-      return ElStyle(border: value as ElBorder?, transitions: [transition]);
+      return ElStyle(border: value as ElBorder?, transition: [transition]);
     case ElTransitionField.borderRadius:
-      return ElStyle(borderRadius: value as BorderRadiusGeometry?, transitions: [transition]);
+      return ElStyle(borderRadius: value as BorderRadiusGeometry?, transition: [transition]);
     case ElTransitionField.boxShadow:
-      return ElStyle(boxShadow: value as List<BoxShadow>?, transitions: [transition]);
+      return ElStyle(boxShadow: value as List<BoxShadow>?, transition: [transition]);
     case ElTransitionField.minWidth:
-      return ElStyle(minWidth: value, transitions: [transition]);
+      return ElStyle(minWidth: value, transition: [transition]);
     case ElTransitionField.maxWidth:
-      return ElStyle(maxWidth: value, transitions: [transition]);
+      return ElStyle(maxWidth: value, transition: [transition]);
     case ElTransitionField.minHeight:
-      return ElStyle(minHeight: value, transitions: [transition]);
+      return ElStyle(minHeight: value, transition: [transition]);
     case ElTransitionField.maxHeight:
-      return ElStyle(maxHeight: value, transitions: [transition]);
+      return ElStyle(maxHeight: value, transition: [transition]);
     case ElTransitionField.opacity:
-      return ElStyle(opacity: value as double?, transitions: [transition]);
+      return ElStyle(opacity: value as double?, transition: [transition]);
     case ElTransitionField.transform:
-      return ElStyle(transform: value as ElTransform?, transitions: [transition]);
-    case ElTransitionField.transformAlignment:
-      return ElStyle(transformAlignment: value as AlignmentGeometry?, transitions: [transition]);
+      return ElStyle(transform: value as ElTransform?, transition: [transition]);
+    case ElTransitionField.transformOrigin:
+      return ElStyle(transformOrigin: value as AlignmentGeometry?, transition: [transition]);
     case ElTransitionField.gradient:
-      return ElStyle(gradient: value as Gradient?, transitions: [transition]);
+      return ElStyle(gradient: value as Gradient?, transition: [transition]);
     case ElTransitionField.textGradient:
-      return ElStyle(textGradient: value as Gradient?, transitions: [transition]);
+      return ElStyle(textGradient: value as Gradient?, transition: [transition]);
     case ElTransitionField.outline:
-      return ElStyle(outline: value as ElOutline?, transitions: [transition]);
+      return ElStyle(outline: value as ElOutline?, transition: [transition]);
     case ElTransitionField.aspectRatio:
-      return ElStyle(aspectRatio: value as double?, transitions: [transition]);
+      return ElStyle(aspectRatio: value as double?, transition: [transition]);
     case ElTransitionField.iconSize:
-      return ElStyle(iconSize: value as double?, transitions: [transition]);
+      return ElStyle(iconSize: value as double?, transition: [transition]);
     case ElTransitionField.iconColor:
-      return ElStyle(iconColor: value as Color?, transitions: [transition]);
+      return ElStyle(iconColor: value as Color?, transition: [transition]);
     case ElTransitionField.filter:
-      return ElStyle(filter: value as ElFilter?, transitions: [transition]);
+      return ElStyle(filter: value as ElFilter?, transition: [transition]);
     case ElTransitionField.backdropFilter:
-      return ElStyle(backdropFilter: value as ElFilter?, transitions: [transition]);
+      return ElStyle(backdropFilter: value as ElFilter?, transition: [transition]);
     default:
       throw ArgumentError('No transition sample for ${field.name}');
   }
@@ -220,8 +220,8 @@ class _DemoHarnessState extends State<_DemoHarness> {
             style: const ElStyle(
               width: '100%',
               height: '100%',
-              bgColor: _lightColor,
-              onDark: ElStyle(bgColor: _darkColor),
+              backgroundColor: _lightColor,
+              onDark: ElStyle(backgroundColor: _darkColor),
             ),
             child: Center(
               child: Column(
@@ -322,9 +322,9 @@ void main() {
               key: key,
               style: ElStyle(
                 padding: .symmetric(vertical: 8, horizontal: 16),
-                border: .fromSide(ElBorderSide(color: Colors.grey, width: 1)),
-                transitions: [ElTransition.all(Duration(milliseconds: 250))],
-                onHover: ElStyle(border: .fromSide(ElBorderSide(color: Colors.blue, width: 3.5))),
+                border: .fromSide(ElBorderSide(borderColor: Colors.grey, borderWidth: 1)),
+                transition: [ElTransition.all(Duration(milliseconds: 250))],
+                onHover: ElStyle(border: .fromSide(ElBorderSide(borderColor: Colors.blue, borderWidth: 3.5))),
               ),
               child: ElView(child: 'hello'),
             ),
@@ -334,24 +334,24 @@ void main() {
       await tester.pump();
 
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
-      expect(render.committedResolvedStyle.box.border!.top.width, 1);
-      expect(render.committedResolvedStyle.box.border!.top.color, Colors.grey);
+      expect(render.committedResolvedStyle.box.border!.borderTop.borderWidth, 1);
+      expect(render.committedResolvedStyle.box.border!.borderTop.borderColor, Colors.grey);
 
       render.setHover(true);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 125));
 
       final middle = render.committedResolvedStyle.box.border!;
-      expect(middle.top.width, greaterThan(1));
-      expect(middle.top.width, lessThan(3.5));
-      expect(middle.top.color, isNot(Colors.grey));
-      expect(middle.top.color, isNot(Colors.blue));
+      expect(middle.borderTop.borderWidth, greaterThan(1));
+      expect(middle.borderTop.borderWidth, lessThan(3.5));
+      expect(middle.borderTop.borderColor, isNot(Colors.grey));
+      expect(middle.borderTop.borderColor, isNot(Colors.blue));
 
       await tester.pump(const Duration(milliseconds: 200));
 
       final end = render.committedResolvedStyle.box.border!;
-      expect(end.top.width, 3.5);
-      expect(end.top.color, Colors.blue);
+      expect(end.borderTop.borderWidth, 3.5);
+      expect(end.borderTop.borderColor, Colors.blue);
     });
 
     testWidgets('example2：border align 在过渡中点发生几何跳变', (tester) async {
@@ -366,11 +366,11 @@ void main() {
                 width: 60,
                 height: 60,
                 padding: .all(16),
-                border: .all(color: Colors.grey),
+                border: .all(borderColor: Colors.grey),
                 borderRadius: .all(Radius.circular(8)),
-                transitions: [.all()],
+                transition: [.all()],
                 onHover: ElStyle(
-                  border: .all(width: 5, color: Colors.blue, align: .center),
+                  border: .all(borderWidth: 5, borderColor: Colors.blue, align: .center),
                 ),
               ),
             ),
@@ -389,7 +389,7 @@ void main() {
           border: border,
           borderRadius: ViewBoxPainter.effectiveBorderRadius(
             committed.box,
-            textDirection: committed.inheritedBox.textDirection ?? TextDirection.ltr,
+            textDirection: committed.inheritedBox.direction ?? TextDirection.ltr,
           ),
         )!;
         final centerRect = switch (ops.single.$1) {
@@ -398,7 +398,7 @@ void main() {
           Path value => value.getBounds(),
           final value => throw StateError('未知 border 几何：${value.runtimeType}'),
         };
-        return (border, centerRect, border.top.resolveWidth());
+        return (border, centerRect, border.borderTop.resolveWidth());
       }
 
       render.setHover(true);
@@ -625,14 +625,14 @@ void main() {
         final before = d.activeFields;
         final beforeContent = before.toList();
 
-        d.startAnimation(_anim(ElTransitionField.bgColor));
+        d.startAnimation(_anim(ElTransitionField.backgroundColor));
         final after = d.activeFields;
         expect(identical(before, after), isFalse, reason: '字段集合变更必须换新实例');
-        expect(after, unorderedEquals([ElTransitionField.color, ElTransitionField.bgColor]));
+        expect(after, unorderedEquals([ElTransitionField.color, ElTransitionField.backgroundColor]));
         expect(before, beforeContent, reason: '已被持有的旧快照不被原地改写');
 
         d.cancelAnimation(ElTransitionField.color);
-        expect(d.activeFields, [ElTransitionField.bgColor]);
+        expect(d.activeFields, [ElTransitionField.backgroundColor]);
 
         d.cancelAll();
         expect(d.activeFields, isEmpty);
@@ -1448,9 +1448,9 @@ void main() {
                 style: ElStyle(
                   width: 100,
                   height: 100,
-                  bgColor: Color(0xffff0000),
-                  transitions: [ElTransition.all()],
-                  onHover: ElStyle(width: '80%', bgColor: Color(0xff00ff00)),
+                  backgroundColor: Color(0xffff0000),
+                  transition: [ElTransition.all()],
+                  onHover: ElStyle(width: '80%', backgroundColor: Color(0xff00ff00)),
                 ),
               ),
             ),
@@ -1495,8 +1495,8 @@ void main() {
                 style: ElStyle(
                   width: 100,
                   height: 100,
-                  bgColor: Color(0xffff0000),
-                  transitions: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
+                  backgroundColor: Color(0xffff0000),
+                  transition: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
                   onHover: ElStyle(width: 300),
                 ),
               ),
@@ -1531,8 +1531,8 @@ void main() {
                 style: ElStyle(
                   width: '20%',
                   height: 100,
-                  bgColor: Color(0xffff0000),
-                  transitions: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
+                  backgroundColor: Color(0xffff0000),
+                  transition: [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100))],
                   onHover: ElStyle(width: '80%'),
                 ),
               ),
@@ -1571,7 +1571,7 @@ void main() {
                   height: 40,
                   padding: .symmetric(horizontal: 12),
                   alignment: .center,
-                  transitions: const [
+                  transition: const [
                     ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
                   ],
                 ),
@@ -1632,7 +1632,7 @@ void main() {
           width: width,
           height: 40,
           padding: .symmetric(horizontal: 10),
-          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
         ),
         child: const ElView(style: ElStyle(width: 60, height: 20)),
       );
@@ -1659,7 +1659,7 @@ void main() {
           padding: .symmetric(horizontal: 10),
           margin: .symmetric(horizontal: 10),
           alignment: .center,
-          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
         ),
         child: const ElView(style: ElStyle(width: 60, height: 20)),
       );
@@ -1695,7 +1695,7 @@ void main() {
                     height: 40,
                     padding: .symmetric(horizontal: 12),
                     margin: .symmetric(horizontal: 8),
-                    transitions: const [
+                    transition: const [
                       ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
                     ],
                   ),
@@ -1730,7 +1730,7 @@ void main() {
           height: height,
           padding: .symmetric(vertical: 12),
           alignment: .center,
-          transitions: const [ElTransition.field(ElTransitionField.height, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.height, Duration(milliseconds: 100), Curves.linear)],
         ),
       );
 
@@ -1755,7 +1755,7 @@ void main() {
           height: 40,
           padding: .symmetric(horizontal: 12),
           alignment: .center,
-          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
         ),
       );
 
@@ -1783,7 +1783,7 @@ void main() {
           width: width,
           height: 40,
           padding: .symmetric(horizontal: 10),
-          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
         ),
         child: ElView(
           key: const ValueKey('resized-child'),
@@ -1817,7 +1817,7 @@ void main() {
                 key: key,
                 style: ElStyle(
                   height: height,
-                  transitions: const [
+                  transition: const [
                     ElTransition.field(ElTransitionField.height, Duration(milliseconds: 100), Curves.linear),
                   ],
                 ),
@@ -1850,7 +1850,7 @@ void main() {
         style: ElStyle(
           width: width,
           height: 40,
-          transitions: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
+          transition: const [ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear)],
         ),
         child: LayoutBuilder(builder: (context, constraints) => const ElView(style: ElStyle(width: 180, height: 20))),
       );
@@ -1888,7 +1888,7 @@ void main() {
                   width: width,
                   fontSize: fontSize as double?,
                   softWrap: false,
-                  transitions: const [
+                  transition: const [
                     ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
                     ElTransition.field(ElTransitionField.fontSize, Duration(milliseconds: 100), Curves.linear),
                   ],
@@ -1947,7 +1947,7 @@ void main() {
                   style: ElStyle(
                     width: width,
                     height: 40,
-                    transitions: const [
+                    transition: const [
                       ElTransition.field(ElTransitionField.width, Duration(milliseconds: 100), Curves.linear),
                     ],
                   ),
@@ -2012,8 +2012,8 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xffff0000),
-                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                backgroundColor: Color(0xffff0000),
+                transition: [ElTransition.all(Duration(milliseconds: 80))],
                 onHover: ElStyle(borderRadius: BorderRadius.all(Radius.elliptical(20, 20))),
               ),
             ),
@@ -2041,8 +2041,8 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xffff0000),
-                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                backgroundColor: Color(0xffff0000),
+                transition: [ElTransition.all(Duration(milliseconds: 80))],
                 onHover: ElStyle(padding: .all(8)),
               ),
             ),
@@ -2069,8 +2069,8 @@ void main() {
               key: key,
               style: ElStyle(
                 height: 100,
-                bgColor: Color(0xffff0000),
-                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                backgroundColor: Color(0xffff0000),
+                transition: [ElTransition.all(Duration(milliseconds: 80))],
                 onHover: ElStyle(width: 200),
               ),
               child: SizedBox(width: 30, height: 30),
@@ -2099,8 +2099,8 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xffff0000),
-                transitions: [ElTransition.all(Duration(milliseconds: 80))],
+                backgroundColor: Color(0xffff0000),
+                transition: [ElTransition.all(Duration(milliseconds: 80))],
                 onHover: ElStyle(opacity: 0.5),
               ),
             ),
@@ -2128,8 +2128,8 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: const Color(0xffff0000),
-                transitions: const [ElTransition.all(Duration(milliseconds: 100))],
+                backgroundColor: const Color(0xffff0000),
+                transition: const [ElTransition.all(Duration(milliseconds: 100))],
                 onHover: const ElStyle(transform: .scale(0.8, 0.8)),
               ),
             ),
@@ -2168,7 +2168,7 @@ void main() {
       expect(box.committedResolvedStyle.box.transform, isNull, reason: 'hover 离开后 transform 必须回到 null');
     });
 
-    testWidgets('transformAlignment 单字段 transition：topLeft → center 平滑过渡', (tester) async {
+    testWidgets('transformOrigin 单字段 transition：topLeft → center 平滑过渡', (tester) async {
       const key = ValueKey('ta');
       await tester.pumpWidget(
         const MaterialApp(
@@ -2178,11 +2178,11 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xffff0000),
+                backgroundColor: Color(0xffff0000),
                 transform: .scale(2),
-                transformAlignment: Alignment.topLeft,
-                transitions: [ElTransition.field(ElTransitionField.transformAlignment, Duration(milliseconds: 100))],
-                onHover: ElStyle(transformAlignment: Alignment.center),
+                transformOrigin: Alignment.topLeft,
+                transition: [ElTransition.field(ElTransitionField.transformOrigin, Duration(milliseconds: 100))],
+                onHover: ElStyle(transformOrigin: Alignment.center),
               ),
             ),
           ),
@@ -2190,7 +2190,7 @@ void main() {
       );
       await tester.pump();
       final box = findRender(tester, key);
-      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.topLeft);
+      expect(box.committedResolvedStyle.box.transformOrigin, Alignment.topLeft);
 
       final mouse = await arm(tester);
       await mouse.moveTo(tester.getCenter(find.byKey(key)));
@@ -2198,7 +2198,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       // 中间帧应在 topLeft (-1,-1) 与 center (0,0) 之间
-      final mid = box.committedResolvedStyle.box.transformAlignment;
+      final mid = box.committedResolvedStyle.box.transformOrigin;
       expect(mid, isNotNull);
       expect(mid, isA<Alignment>(), reason: 'AlignmentGeometry.lerp 返回 Alignment 实例');
       final a = mid! as Alignment;
@@ -2208,12 +2208,12 @@ void main() {
       expect(a.y, lessThan(0.0));
 
       await tester.pump(const Duration(milliseconds: 80));
-      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.center);
+      expect(box.committedResolvedStyle.box.transformOrigin, Alignment.center);
 
       await mouse.moveTo(const Offset(500, 500));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      expect(box.committedResolvedStyle.box.transformAlignment, Alignment.topLeft);
+      expect(box.committedResolvedStyle.box.transformOrigin, Alignment.topLeft);
     });
 
     group('lerpStep 单元', () {
@@ -2376,24 +2376,24 @@ void main() {
     });
 
     group('消费点接线：各颜色 lerper 走预乘', () {
-      test('lerpColor（bgColor/color 字段）：半透明中间帧无暗坑', () {
+      test('lerpColor（backgroundColor/color 字段）：半透明中间帧无暗坑', () {
         final mid = lerpColor(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5)! as Color;
         final expected = lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5)!;
         expect(mid, expected);
       });
 
       test('ElBorderSide.lerp：color 分量走预乘', () {
-        const a = ElBorderSide(width: 1, color: Color(0xfff6f6f7));
-        const b = ElBorderSide(width: 1, color: Color(0x248e96aa));
+        const a = ElBorderSide(borderWidth: 1, borderColor: Color(0xfff6f6f7));
+        const b = ElBorderSide(borderWidth: 1, borderColor: Color(0x248e96aa));
         final mid = ElBorderSide.lerp(a, b, 0.5);
-        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+        expect(mid.borderColor, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
       });
 
       test('ElOutline.lerp：color 分量走预乘', () {
-        const a = ElOutline(width: 2, color: Color(0xfff6f6f7));
-        const b = ElOutline(width: 2, color: Color(0x248e96aa));
+        const a = ElOutline(outlineWidth: 2, outlineColor: Color(0xfff6f6f7));
+        const b = ElOutline(outlineWidth: 2, outlineColor: Color(0x248e96aa));
         final mid = ElOutline.lerp(a, b, 0.5)!;
-        expect(mid.color, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
+        expect(mid.outlineColor, lerpColorPremul(const Color(0xfff6f6f7), const Color(0x248e96aa), 0.5));
       });
 
       test('ElBoxShadow.lerp：color 分量走预乘，几何分量沿用 Flutter', () {
@@ -2550,15 +2550,15 @@ void main() {
               style: ElStyle(
                 width: 40,
                 height: 40,
-                animations: [
+                animation: [
                   ElAnimation(
                     keyframes: {
                       0: const ElStyle(transform: .identity()),
                       100: ElStyle(transform: .rotate(math.pi * 2)),
                     },
-                    duration: const Duration(seconds: 1),
-                    curve: Curves.linear,
-                    iterationCount: double.infinity,
+                    animationDuration: const Duration(seconds: 1),
+                    animationTimingFunction: Curves.linear,
+                    animationIterationCount: double.infinity,
                   ),
                 ],
               ),
@@ -2636,7 +2636,7 @@ void main() {
           final result = CascadeTick.tick(
             style: const ElStyle(
               color: Color(0xFF0000FF),
-              transitions: [ElTransition.field(ElTransitionField.color, Duration(milliseconds: 200))],
+              transition: [ElTransition.field(ElTransitionField.color, Duration(milliseconds: 200))],
             ),
             parent: null,
             oldCommitted: old.build(),
@@ -2669,7 +2669,7 @@ void main() {
           final result = CascadeTick.tick(
             style: const ElStyle(
               color: Color(0xFF0000FF),
-              transitions: [ElTransition.field(ElTransitionField.color, Duration.zero)],
+              transition: [ElTransition.field(ElTransitionField.color, Duration.zero)],
             ),
             parent: null,
             oldCommitted: old.build(),
@@ -2692,7 +2692,7 @@ void main() {
           final result = CascadeTick.tick(
             style: const ElStyle(
               fontWeight: FontWeight.w700,
-              transitions: [ElTransition.field(ElTransitionField.fontWeight, Duration(milliseconds: 200))],
+              transition: [ElTransition.field(ElTransitionField.fontWeight, Duration(milliseconds: 200))],
             ),
             parent: null,
             oldCommitted: old.build(),
@@ -2822,7 +2822,7 @@ void main() {
           final opacityElapsed = opacityAnimation.debugElapsed;
 
           final result = CascadeTick.tick(
-            style: const ElStyle(opacity: 0.8, transitions: [ElTransition.all(Duration(milliseconds: 200))]),
+            style: const ElStyle(opacity: 0.8, transition: [ElTransition.all(Duration(milliseconds: 200))]),
             parent: parent.build(),
             oldCommitted: old.build(),
             state: emptyState,
@@ -2893,11 +2893,11 @@ void main() {
             style: const ElStyle(
               width: 100,
               height: 60,
-              bgColor: cLight,
-              border: .all(color: cLight, width: 2),
+              backgroundColor: cLight,
+              border: .all(borderColor: cLight, borderWidth: 2),
               onDark: ElStyle(
-                bgColor: cDark,
-                border: .all(color: cDark, width: 2),
+                backgroundColor: cDark,
+                border: .all(borderColor: cDark, borderWidth: 2),
               ),
             ),
           ),
@@ -2905,7 +2905,7 @@ void main() {
       ),
     );
 
-    testWidgets('border 与 bgColor 按同一主题进度插值', (tester) async {
+    testWidgets('border 与 backgroundColor 按同一主题进度插值', (tester) async {
       await tester.pumpWidget(build(Brightness.light));
       await tester.pumpAndSettle();
 
@@ -2916,8 +2916,8 @@ void main() {
 
       final rv = tester.renderObject<ElRenderView>(find.byKey(key));
       final committed = rv.committedResolvedStyle;
-      final bg = committed.box.bgColor;
-      final borderColor = committed.box.border?.top.color;
+      final bg = committed.box.backgroundColor;
+      final borderColor = committed.box.border?.borderTop.borderColor;
       final mid = Color.lerp(cLight, cDark, 0.5)!;
 
       expect(bg, isA<Color>(), reason: '过渡中 bgColor 应为插值字面量');
@@ -2936,8 +2936,8 @@ void main() {
       final rv = tester.renderObject<ElRenderView>(find.byKey(key));
       final committed = rv.committedResolvedStyle;
       // 完成后提交值与绘制值均为暗色端点。
-      expect(committed.box.border?.top.color, cDark);
-      expect(committed.box.bgColor, cDark);
+      expect(committed.box.border?.borderTop.borderColor, cDark);
+      expect(committed.box.backgroundColor, cDark);
       // paint 产物为 dark 端点色。
       expect(
         find.byKey(key),
@@ -2972,18 +2972,18 @@ void main() {
           style: ElStyle(
             width: 50,
             height: 50,
-            bgColor: const Color(0xFF222222),
+            backgroundColor: const Color(0xFF222222),
             opacity: baseOpacity,
-            transitions: transitions,
-            animations: [
+            transition: transitions,
+            animation: [
               ElAnimation(
                 keyframes: const {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
-                duration: const Duration(seconds: 1),
-                curve: Curves.linear,
-                iterationCount: iterationCount,
-                direction: direction,
-                fillMode: fillMode,
-                paused: paused,
+                animationDuration: const Duration(seconds: 1),
+                animationTimingFunction: Curves.linear,
+                animationIterationCount: iterationCount,
+                animationDirection: direction,
+                animationFillMode: fillMode,
+                animationPlayState: paused,
               ),
             ],
           ),
@@ -3048,12 +3048,12 @@ void main() {
                 width: 50,
                 height: 50,
                 opacity: 1.0,
-                animations: [
+                animation: [
                   ElAnimation(
                     keyframes: {50: ElStyle(opacity: 0)},
-                    duration: Duration(seconds: 1),
-                    curve: Curves.linear,
-                    iterationCount: double.infinity,
+                    animationDuration: Duration(seconds: 1),
+                    animationTimingFunction: Curves.linear,
+                    animationIterationCount: double.infinity,
                   ),
                 ],
               ),
@@ -3088,7 +3088,7 @@ void main() {
           const MaterialApp(
             home: ElView(
               key: k,
-              style: ElStyle(width: 50, height: 50, bgColor: Color(0xFF222222), opacity: 0.9),
+              style: ElStyle(width: 50, height: 50, backgroundColor: Color(0xFF222222), opacity: 0.9),
             ),
           ),
         );
@@ -3120,17 +3120,17 @@ void main() {
                   style: const ElStyle(
                     width: 50,
                     height: 50,
-                    bgColor: Color(0xFF222222),
+                    backgroundColor: Color(0xFF222222),
                     opacity: 0.9,
-                    animations: [
+                    animation: [
                       ElAnimation(
                         keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
-                        duration: Duration(seconds: 1),
-                        curve: Curves.linear,
-                        iterationCount: double.infinity,
+                        animationDuration: Duration(seconds: 1),
+                        animationTimingFunction: Curves.linear,
+                        animationIterationCount: double.infinity,
                       ),
                     ],
-                    onHover: ElStyle(animations: []),
+                    onHover: ElStyle(animation: []),
                   ),
                 ),
               ],
@@ -3169,12 +3169,12 @@ void main() {
           style: const ElStyle(
             width: 50,
             height: 50,
-            animations: [
+            animation: [
               ElAnimation(
                 keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
-                duration: Duration(seconds: 1),
-                curve: Curves.linear,
-                iterationCount: double.infinity,
+                animationDuration: Duration(seconds: 1),
+                animationTimingFunction: Curves.linear,
+                animationIterationCount: double.infinity,
               ),
             ],
           ),
@@ -3215,9 +3215,9 @@ void main() {
                   width: 200,
                   height: 60,
                   color: Color(0xFF000000),
-                  bgColor: Color(0xFFFF0000),
+                  backgroundColor: Color(0xFFFF0000),
                   fontSize: 18,
-                  transitions: [ElTransition.all()],
+                  transition: [ElTransition.all()],
                 ),
               ),
             ),
@@ -3227,7 +3227,7 @@ void main() {
         final box = findRender(tester);
         // committed 直接是目标值（初始 mount → target 应一帧到位）
         expect(box.committedResolvedStyle.inheritedText.color, const Color(0xFF000000));
-        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFFFF0000));
+        expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFFFF0000));
         expect(box.committedResolvedStyle.inheritedText.fontSize, 18);
 
         // 不应启动动画（mount 直接对齐 target）
@@ -3244,7 +3244,7 @@ void main() {
                   height: 60,
                   color: Color(0xFF000000),
                   onHover: ElStyle(color: Color(0xFF0000FF)),
-                  transitions: [ElTransition.all()],
+                  transition: [ElTransition.all()],
                 ),
               ),
             ),
@@ -3273,10 +3273,10 @@ void main() {
             home: Center(
               child: ElView(
                 key: parentKey,
-                style: ElStyle(color: Color(0xFFFF0000), transitions: [ElTransition.all()]),
+                style: ElStyle(color: Color(0xFFFF0000), transition: [ElTransition.all()]),
                 child: ElView(
                   key: childKey,
-                  style: ElStyle(transitions: [ElTransition.all()]),
+                  style: ElStyle(transition: [ElTransition.all()]),
                   child: 'inherited',
                 ),
               ),
@@ -3298,7 +3298,7 @@ void main() {
           const MaterialApp(
             home: Center(
               child: ElView(
-                style: ElStyle(width: 200, height: 60, color: Color(0xFF000000), transitions: [ElTransition.all()]),
+                style: ElStyle(width: 200, height: 60, color: Color(0xFF000000), transition: [ElTransition.all()]),
               ),
             ),
           ),
@@ -3316,7 +3316,7 @@ void main() {
                   width: 200,
                   height: 60,
                   color: Color(0xFF0000FF), // 改
-                  transitions: [ElTransition.all()],
+                  transition: [ElTransition.all()],
                 ),
               ),
             ),
@@ -3333,7 +3333,7 @@ void main() {
           const MaterialApp(
             home: Center(
               child: ElView(
-                style: ElStyle(color: Color(0xFFFF0000), transitions: [ElTransition.all()]),
+                style: ElStyle(color: Color(0xFFFF0000), transition: [ElTransition.all()]),
                 child: ElView(key: childKey, child: 'inherited'),
               ),
             ),
@@ -3357,7 +3357,7 @@ void main() {
                   height: 60,
                   color: Color(0xFF000000),
                   fontSize: 14,
-                  transitions: [ElTransition.all()],
+                  transition: [ElTransition.all()],
                 ),
               ),
             ),
@@ -3398,9 +3398,9 @@ void main() {
                 width: 50,
                 height: 50,
                 opacity: 1.0,
-                bgColor: const Color(0xFF222222),
+                backgroundColor: const Color(0xFF222222),
                 starting: const ElStyle(opacity: 0),
-                transitions: transitions,
+                transition: transitions,
               ),
             ),
           ],
@@ -3445,8 +3445,8 @@ void main() {
             style: ElStyle(
               width: 50,
               height: 50,
-              bgColor: selected ? Color(0xFFFFFFFF) : Color(0xFF000000),
-              transitions: [ElTransition.all(Duration(seconds: 10))],
+              backgroundColor: selected ? Color(0xFFFFFFFF) : Color(0xFF000000),
+              transition: [ElTransition.all(Duration(seconds: 10))],
             ),
           ),
         ],
@@ -3454,7 +3454,7 @@ void main() {
     );
 
     Color? bgOf(WidgetTester tester) =>
-        tester.renderObject<ElRenderView>(find.byKey(k)).committedResolvedStyle.box.bgColor;
+        tester.renderObject<ElRenderView>(find.byKey(k)).committedResolvedStyle.box.backgroundColor;
 
     testWidgets('开启：10s transition 声明被忽略，selected 切换瞬跳', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
@@ -3487,12 +3487,12 @@ void main() {
                 style: const ElStyle(
                   width: 50,
                   height: 50,
-                  animations: [
+                  animation: [
                     ElAnimation(
                       keyframes: {0: ElStyle(opacity: 0), 100: ElStyle(opacity: 1)},
-                      duration: Duration(seconds: 1),
-                      curve: Curves.linear,
-                      iterationCount: double.infinity,
+                      animationDuration: Duration(seconds: 1),
+                      animationTimingFunction: Curves.linear,
+                      animationIterationCount: double.infinity,
                     ),
                   ],
                 ),
@@ -3522,10 +3522,10 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 50,
-            bgColor: white,
+            backgroundColor: white,
             opacity: 1,
-            onTap: ElStyle(width: 150, bgColor: black, opacity: .5),
-            transitions: [ElTransition.all(Duration(milliseconds: 300), Curves.linear)],
+            onTap: ElStyle(width: 150, backgroundColor: black, opacity: .5),
+            transition: [ElTransition.all(Duration(milliseconds: 300), Curves.linear)],
           ),
         );
         final page = ElView(
@@ -3551,8 +3551,8 @@ void main() {
         }
         await tester.pump(Duration(milliseconds: 90));
         expect(render.hasActiveAnimationsForTest, isTrue);
-        expect(render.committedResolvedStyle.box.bgColor, isNot(white));
-        expect(render.committedResolvedStyle.box.bgColor, isNot(black));
+        expect(render.committedResolvedStyle.box.backgroundColor, isNot(white));
+        expect(render.committedResolvedStyle.box.backgroundColor, isNot(black));
         expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
         expect(tester.getSize(find.byKey(viewKey)).width, inExclusiveRange(100, 150));
         expect(render.internalStateHas(ViewState.tap), !releaseBeforeReattach);
@@ -3564,7 +3564,7 @@ void main() {
         expect(render.internalStateHas(ViewState.tap), !releaseBeforeReattach);
         expect(render.hasActiveAnimationsForTest, isFalse, reason: '重挂首帧直接落到当前状态对应的样式，不残留过渡');
         expect(
-          render.committedResolvedStyle.box.bgColor,
+          render.committedResolvedStyle.box.backgroundColor,
           releaseBeforeReattach ? white : black,
           reason: '重挂首帧应恢复当前按压状态对应的颜色，不得留下中间色',
         );
@@ -3575,7 +3575,7 @@ void main() {
         // 不推进进度），单帧 pump 会让样式停在起始值上。
         await tester.pumpAndSettle();
         expect(taps, 1, reason: '重挂不是手势结束，抬手仍要完成这次点击');
-        expect(render.committedResolvedStyle.box.bgColor, white, reason: '离场过渡必须把样式带回常态');
+        expect(render.committedResolvedStyle.box.backgroundColor, white, reason: '离场过渡必须把样式带回常态');
         expect(render.committedResolvedStyle.box.opacity, 1);
 
         final nextTouch = await tester.startGesture(tester.getCenter(find.byKey(viewKey)));
@@ -3585,7 +3585,7 @@ void main() {
         expect(render.hasActiveAnimationsForTest, isTrue);
         expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
         await tester.pumpAndSettle();
-        expect(render.committedResolvedStyle.box.bgColor, black);
+        expect(render.committedResolvedStyle.box.backgroundColor, black);
         expect(tester.getSize(find.byKey(viewKey)).width, 150);
         await nextTouch.up();
         await tester.pump();
@@ -3594,7 +3594,7 @@ void main() {
         expect(render.committedResolvedStyle.box.opacity, inExclusiveRange(.5, 1));
         await tester.pumpAndSettle();
         expect(taps, 2);
-        expect(render.committedResolvedStyle.box.bgColor, white);
+        expect(render.committedResolvedStyle.box.backgroundColor, white);
         expect(render.committedResolvedStyle.box.opacity, 1);
         expect(tester.getSize(find.byKey(viewKey)).width, 100);
       });
@@ -3605,7 +3605,7 @@ void main() {
       // 子声明 transitions:[all()] 且不显式 color → 继承父 color
       Widget child() => ElView(
         key: key,
-        style: const ElStyle(transitions: <ElTransition>[ElTransition.all()]),
+        style: const ElStyle(transition: <ElTransition>[ElTransition.all()]),
         child: 'x',
       );
 
@@ -3655,7 +3655,7 @@ void main() {
               height: 50,
               opacity: 1,
               starting: ElStyle(opacity: 0),
-              transitions: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
+              transition: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
             ),
           );
           Widget tree(bool nested) => Directionality(
@@ -3702,7 +3702,7 @@ void main() {
             height: 50,
             opacity: opacity,
             starting: ElStyle(opacity: 0),
-            transitions: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
+            transition: [ElTransition.all(Duration(seconds: 1), Curves.linear)],
           ),
         ),
       );
@@ -3740,9 +3740,9 @@ void main() {
               width: 100,
               height: 100,
               alignment: Alignment.center,
-              bgColor: Colors.grey,
-              transitions: [ElTransition.all(Duration(milliseconds: 200))],
-              onTap: ElStyle(width: 80, height: 150, bgColor: Colors.yellow, color: Colors.black),
+              backgroundColor: Colors.grey,
+              transition: [ElTransition.all(Duration(milliseconds: 200))],
+              onTap: ElStyle(width: 80, height: 150, backgroundColor: Colors.yellow, color: Colors.black),
             ),
             child: ElView(key: textKey, child: 'hello'),
           ),
@@ -3785,7 +3785,7 @@ void main() {
     final halfBg = Color.lerp(baseBg, activeBg, 0.5)!;
 
     group('事件状态变体过渡', () {
-      testWidgets('onHover 换 textBackgroundColor：半程精确 50% lerp，与 bgColor 对照同进度', (tester) async {
+      testWidgets('onHover 换 textBackgroundColor：半程精确 50% lerp，与 backgroundColor 对照同进度', (tester) async {
         const k = ValueKey('hover');
         await tester.pumpWidget(
           _directionalApp(
@@ -3794,10 +3794,10 @@ void main() {
               style: ElStyle(
                 width: 120,
                 height: 40,
-                bgColor: baseBg,
+                backgroundColor: baseBg,
                 textBackgroundColor: base,
-                onHover: ElStyle(bgColor: activeBg, textBackgroundColor: active),
-                transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
+                onHover: ElStyle(backgroundColor: activeBg, textBackgroundColor: active),
+                transition: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
               ),
               child: 'Hi',
             ),
@@ -3813,7 +3813,7 @@ void main() {
         expect(box.hasActiveAnimationsForTest, isTrue, reason: 'hover 激活应启动过渡动画');
 
         await tester.pump(const Duration(milliseconds: 200));
-        expect(box.committedResolvedStyle.box.bgColor, halfBg, reason: '对照字段 bgColor 半程 50%（过渡机制本身在跑）');
+        expect(box.committedResolvedStyle.box.backgroundColor, halfBg, reason: '对照字段 bgColor 半程 50%（过渡机制本身在跑）');
         expect(
           box.committedResolvedStyle.inheritedText.textBackgroundColor,
           half,
@@ -3844,7 +3844,7 @@ void main() {
                 height: 40,
                 textBackgroundColor: base,
                 onTap: ElStyle(textBackgroundColor: active),
-                transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
+                transition: [ElTransition.all(Duration(milliseconds: 400), Curves.linear)],
               ),
               child: 'Hi',
             ),
@@ -3879,9 +3879,9 @@ void main() {
             style: const ElStyle(
               width: 120,
               height: 40,
-              bgColor: baseBg,
+              backgroundColor: baseBg,
               textBackgroundColor: base,
-              onDark: ElStyle(bgColor: activeBg, textBackgroundColor: active),
+              onDark: ElStyle(backgroundColor: activeBg, textBackgroundColor: active),
             ),
             child: 'Hi',
           ),
@@ -3895,7 +3895,7 @@ void main() {
         await tester.pumpWidget(build(Brightness.dark));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
-        expect(box.committedResolvedStyle.box.bgColor, halfBg, reason: '对照字段 bgColor 半程 50%（dark 统一过渡在跑）');
+        expect(box.committedResolvedStyle.box.backgroundColor, halfBg, reason: '对照字段 bgColor 半程 50%（dark 统一过渡在跑）');
         expect(
           box.committedResolvedStyle.inheritedText.textBackgroundColor,
           half,
@@ -3965,7 +3965,7 @@ void main() {
   group('主题动画帧同步', () {
     Color elViewBackground(WidgetTester tester) {
       final render = tester.renderObject<ElRenderView>(find.byKey(_elViewBodyKey));
-      return render.committedResolvedStyle.box.bgColor!;
+      return render.committedResolvedStyle.box.backgroundColor!;
     }
 
     Color animatedContainerBackground(WidgetTester tester, Key key) {
@@ -4049,14 +4049,14 @@ void main() {
             const ElView(
               key: selfKey,
               style: ElStyle(
-                transitions: [colorTransition],
+                transition: [colorTransition],
                 onHover: ElStyle(color: selfEnd),
               ),
             ),
             const ElView(
               key: nestedKey,
               style: ElStyle(
-                transitions: [colorTransition],
+                transition: [colorTransition],
                 onHover: ElStyle(onTap: ElStyle(color: nestedEnd)),
               ),
             ),
@@ -4228,8 +4228,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: lightA,
-                  onDark: ElStyle().merge(ElStyle(bgColor: darkA)),
+                  backgroundColor: lightA,
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: darkA)),
                 ),
               ),
               ElView(
@@ -4237,9 +4237,9 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: lightA,
-                  transitions: [ElTransition.all(Duration(milliseconds: 100))],
-                  onDark: ElStyle().merge(ElStyle(bgColor: darkA)),
+                  backgroundColor: lightA,
+                  transition: [ElTransition.all(Duration(milliseconds: 100))],
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: darkA)),
                 ),
               ),
               ElView(
@@ -4247,9 +4247,9 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: lightB,
-                  transitions: [ElTransition.all(Duration(seconds: 2))],
-                  onDark: ElStyle().merge(ElStyle(bgColor: darkB)),
+                  backgroundColor: lightB,
+                  transition: [ElTransition.all(Duration(seconds: 2))],
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: darkB)),
                 ),
               ),
               ElView(
@@ -4257,9 +4257,9 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: lightB,
-                  transitions: [ElTransition.all(Duration(milliseconds: 400), Curves.easeInExpo)],
-                  onDark: ElStyle().merge(ElStyle(bgColor: darkB)),
+                  backgroundColor: lightB,
+                  transition: [ElTransition.all(Duration(milliseconds: 400), Curves.easeInExpo)],
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: darkB)),
                 ),
               ),
             ],
@@ -4275,29 +4275,29 @@ void main() {
 
         final halfA = Color.lerp(lightA, darkA, 0.5)!;
         final halfB = Color.lerp(lightB, darkB, 0.5)!;
-        expect(renderOf(tester, k1).committedResolvedStyle.box.bgColor, halfA, reason: '无声明节点半程 = 精确 50% lerp');
+        expect(renderOf(tester, k1).committedResolvedStyle.box.backgroundColor, halfA, reason: '无声明节点半程 = 精确 50% lerp');
         expect(
-          renderOf(tester, k2).committedResolvedStyle.box.bgColor,
+          renderOf(tester, k2).committedResolvedStyle.box.backgroundColor,
           halfA,
           reason: '100ms 声明被统一为 400ms：半程仍是 50%（若走自身声明早已到位）',
         );
         expect(
-          renderOf(tester, k3).committedResolvedStyle.box.bgColor,
+          renderOf(tester, k3).committedResolvedStyle.box.backgroundColor,
           halfB,
           reason: '2s 声明被统一为 400ms：半程 50%（若走自身声明才 10%）',
         );
         expect(
-          renderOf(tester, k4).committedResolvedStyle.box.bgColor,
+          renderOf(tester, k4).committedResolvedStyle.box.backgroundColor,
           halfB,
           reason: '异曲线声明被统一为 linear：半程 50%（easeInExpo(0.5)≈3%）',
         );
 
         // 收尾：全部精确到位。
         await tester.pump(const Duration(milliseconds: 210));
-        expect(renderOf(tester, k1).committedResolvedStyle.box.bgColor, darkA);
-        expect(renderOf(tester, k2).committedResolvedStyle.box.bgColor, darkA);
-        expect(renderOf(tester, k3).committedResolvedStyle.box.bgColor, darkB);
-        expect(renderOf(tester, k4).committedResolvedStyle.box.bgColor, darkB);
+        expect(renderOf(tester, k1).committedResolvedStyle.box.backgroundColor, darkA);
+        expect(renderOf(tester, k2).committedResolvedStyle.box.backgroundColor, darkA);
+        expect(renderOf(tester, k3).committedResolvedStyle.box.backgroundColor, darkB);
+        expect(renderOf(tester, k4).committedResolvedStyle.box.backgroundColor, darkB);
       });
 
       testWidgets('R3：祖先继承色同帧动画时，无 transitions 后代的 onDark 过渡不被继承传播打断', (tester) async {
@@ -4305,7 +4305,7 @@ void main() {
         // dark 动画每 tick 沿继承链传播（inheritedText.color 变）→ 后代 fast
         // patch 因自身 onDark 命中 bail 到 _reresolve；后代无 transitions 声明
         // 且传播时 pending 已 restore 为 null → 旧判据不给 CascadeTick 传
-        // driver → 看不见在跑的 dark 动画 → bgColor 直接写终点（瞬跳），与
+        // driver → 看不见在跑的 dark 动画 → backgroundColor 直接写终点（瞬跳），与
         // 声明了 color 的兄弟（不受该传播路径影响）视觉割裂。
         const stageKey = ValueKey('r3-stage'); // 无 color、无 transitions
         const footerKey = ValueKey('r3-footer'); // 声明 color 的对照兄弟
@@ -4324,8 +4324,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: lightBg,
-                  onDark: ElStyle(bgColor: darkBg),
+                  backgroundColor: lightBg,
+                  onDark: ElStyle(backgroundColor: darkBg),
                 ),
               ),
               ElView(
@@ -4334,8 +4334,8 @@ void main() {
                   width: 40,
                   height: 40,
                   color: Color(0xFF64748B),
-                  bgColor: lightBg,
-                  onDark: ElStyle(bgColor: darkBg),
+                  backgroundColor: lightBg,
+                  onDark: ElStyle(backgroundColor: darkBg),
                 ),
               ),
             ],
@@ -4350,9 +4350,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
 
         final half = Color.lerp(lightBg, darkBg, 0.5)!;
-        expect(renderOf(tester, footerKey).committedResolvedStyle.box.bgColor, half, reason: '对照兄弟半程精确 50%');
+        expect(renderOf(tester, footerKey).committedResolvedStyle.box.backgroundColor, half, reason: '对照兄弟半程精确 50%');
         expect(
-          renderOf(tester, stageKey).committedResolvedStyle.box.bgColor,
+          renderOf(tester, stageKey).committedResolvedStyle.box.backgroundColor,
           half,
           reason: '无 color 声明的节点同进度——瞬跳到终点即继承传播打断 bug 复发',
         );
@@ -4360,7 +4360,7 @@ void main() {
         // 收尾精确到位、驱动器清空（无僵尸动画）。
         await tester.pump(const Duration(milliseconds: 160));
         await tester.pump();
-        expect(renderOf(tester, stageKey).committedResolvedStyle.box.bgColor, darkBg);
+        expect(renderOf(tester, stageKey).committedResolvedStyle.box.backgroundColor, darkBg);
         expect(renderOf(tester, stageKey).hasActiveAnimationsForTest, isFalse);
       });
 
@@ -4381,8 +4381,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
               ElView(
@@ -4390,11 +4390,11 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  transitions: [
-                    ElTransition.field(ElTransitionField.bgColor, Duration(milliseconds: 100), Curves.easeIn),
+                  backgroundColor: Color(0xFF102030),
+                  transition: [
+                    ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 100), Curves.easeIn),
                   ],
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
               ElView(
@@ -4402,8 +4402,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFFFAFAFA),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFF111111))),
+                  backgroundColor: Color(0xFFFAFAFA),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFF111111))),
                 ),
               ),
             ],
@@ -4417,9 +4417,9 @@ void main() {
         final a = renderOf(tester, aKey);
         final b = renderOf(tester, bKey);
         final c = renderOf(tester, cKey);
-        expect(a.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
-        expect(b.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
-        expect(c.committedResolvedStyle.box.bgColor, const Color(0xFFFAFAFA));
+        expect(a.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030));
+        expect(b.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030));
+        expect(c.committedResolvedStyle.box.backgroundColor, const Color(0xFFFAFAFA));
 
         // 切 dark
         await tester.pumpWidget(build(Brightness.dark));
@@ -4439,9 +4439,9 @@ void main() {
 
         // 全程：pump 到 400ms（此时已从 setDark 起算共 400ms+ε）
         await tester.pump(const Duration(milliseconds: 210));
-        expect(a.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: 'a 到位');
-        expect(b.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: 'b 到位');
-        expect(c.committedResolvedStyle.box.bgColor, const Color(0xFF111111), reason: 'c 到位');
+        expect(a.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE), reason: 'a 到位');
+        expect(b.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE), reason: 'b 到位');
+        expect(c.committedResolvedStyle.box.backgroundColor, const Color(0xFF111111), reason: 'c 到位');
         // 无残留动画
         expect(a.hasActiveAnimationsForTest, isFalse);
         expect(b.hasActiveAnimationsForTest, isFalse);
@@ -4467,8 +4467,8 @@ void main() {
                 style: ElStyle(
                   width: 20,
                   height: 20,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
               ElView(
@@ -4479,8 +4479,8 @@ void main() {
                   style: ElStyle(
                     width: 20,
                     height: 20,
-                    bgColor: Color(0xFF102030),
-                    onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                    backgroundColor: Color(0xFF102030),
+                    onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                   ),
                 ),
               ),
@@ -4492,14 +4492,14 @@ void main() {
         await tester.pump();
         final outside = renderOf(tester, outsideKey);
         final inside = renderOf(tester, insideKey);
-        expect(outside.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
-        expect(inside.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+        expect(outside.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030));
+        expect(inside.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030));
 
         // island 翻 dark
         await tester.pumpWidget(tree(inner: Brightness.dark));
         await tester.pumpAndSettle();
-        expect(inside.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE), reason: '岛内切 dark 后按 onDark.vars');
-        expect(outside.committedResolvedStyle.box.bgColor, const Color(0xFF102030), reason: '岛外未受影响，仍 light 值');
+        expect(inside.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE), reason: '岛内切 dark 后按 onDark.vars');
+        expect(outside.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030), reason: '岛外未受影响，仍 light 值');
       });
     });
 
@@ -4522,8 +4522,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
             ),
@@ -4533,7 +4533,7 @@ void main() {
         await tester.pumpWidget(build(midBrightness: Brightness.light));
         await tester.pump();
         final leaf = renderOf(tester, leafKey);
-        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFF102030));
+        expect(leaf.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030));
 
         // 切 dark
         await tester.pumpWidget(build(midBrightness: Brightness.dark));
@@ -4544,7 +4544,7 @@ void main() {
         expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '继承根 500ms → 250ms 时仍在过渡中');
         // 冲到 500ms 全部完成
         await tester.pump(const Duration(milliseconds: 260));
-        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
         expect(leaf.hasActiveAnimationsForTest, isFalse);
       });
 
@@ -4567,8 +4567,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
             ),
@@ -4585,7 +4585,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '子声明 200ms + 根 linear：100ms 时仍在过渡中');
         await tester.pump(const Duration(milliseconds: 110));
-        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
       });
 
       testWidgets('3) 整条链只有 brightness 声明 → 过渡兜底 300ms/easeOutCubic', (tester) async {
@@ -4602,8 +4602,8 @@ void main() {
               style: ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFF102030),
-                onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                backgroundColor: Color(0xFF102030),
+                onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
               ),
             ),
           ),
@@ -4619,7 +4619,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
         expect(leaf.hasActiveAnimationsForTest, isTrue, reason: '兜底 300ms：150ms 时应仍在过渡中');
         await tester.pump(const Duration(milliseconds: 160));
-        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
         expect(leaf.hasActiveAnimationsForTest, isFalse);
       });
 
@@ -4642,8 +4642,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
               // 孙层覆盖 duration=200ms
@@ -4657,8 +4657,8 @@ void main() {
                     style: ElStyle(
                       width: 40,
                       height: 40,
-                      bgColor: Color(0xFF102030),
-                      onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                      backgroundColor: Color(0xFF102030),
+                      onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                     ),
                   ),
                 ),
@@ -4677,12 +4677,12 @@ void main() {
         // pump 210ms —— 200ms 孙子已完成，400ms 兄弟仍在过渡
         await tester.pump(const Duration(milliseconds: 210));
         expect(grandson.hasActiveAnimationsForTest, isFalse, reason: '孙子 200ms 已完成');
-        expect(grandson.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(grandson.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
         expect(sib.hasActiveAnimationsForTest, isTrue, reason: '兄弟继承根 400ms，此时仍在过渡');
 
         // 冲完
         await tester.pump(const Duration(milliseconds: 200));
-        expect(sib.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(sib.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
       });
 
       testWidgets('5) ElView(theme: null) 完全透明继承（等价无声明）', (tester) async {
@@ -4703,8 +4703,8 @@ void main() {
                 style: ElStyle(
                   width: 40,
                   height: 40,
-                  bgColor: Color(0xFF102030),
-                  onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFEEEEEE))),
+                  backgroundColor: Color(0xFF102030),
+                  onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFEEEEEE))),
                 ),
               ),
             ),
@@ -4721,7 +4721,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 150));
         expect(leaf.hasActiveAnimationsForTest, isTrue, reason: 'theme: null 透明 → 用根的 300ms');
         await tester.pump(const Duration(milliseconds: 160));
-        expect(leaf.committedResolvedStyle.box.bgColor, const Color(0xFFEEEEEE));
+        expect(leaf.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE));
       });
     });
 
@@ -4740,8 +4740,8 @@ void main() {
               style: ElStyle(
                 width: 40,
                 height: 40,
-                bgColor: Color(0xFF000000),
-                onDark: ElStyle().merge(ElStyle(bgColor: Color(0xFFFFFFFF))),
+                backgroundColor: Color(0xFF000000),
+                onDark: ElStyle().merge(ElStyle(backgroundColor: Color(0xFFFFFFFF))),
               ),
             ),
           ),
@@ -4750,14 +4750,14 @@ void main() {
         await tester.pumpWidget(build(Brightness.light));
         await tester.pump();
         final box = renderOf(tester, boxKey);
-        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF000000));
+        expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF000000));
 
         // 切 dark，进 200ms（半程）
         await tester.pumpWidget(build(Brightness.dark));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
-        // Box.bgColor 是 Object?（承载 Color | '--key'），显式 cast
-        final midToDark = box.committedResolvedStyle.box.bgColor!;
+        // Box.backgroundColor 是 Object?（承载 Color | '--key'），显式 cast
+        final midToDark = box.committedResolvedStyle.box.backgroundColor!;
         // 中间态：0x00 + 0xFF 之间，接近 0x80
         final midR = midToDark.r;
         expect(midR > 0.1 && midR < 0.9, isTrue, reason: '半程 R 在 (0.1, 0.9) 之间');
@@ -4766,17 +4766,17 @@ void main() {
         await tester.pumpWidget(build(Brightness.light));
         await tester.pump();
         // 立即断言：不跳变——committed 仍接近 midToDark（不是 0x000000 也不是 0xFFFFFF）
-        final immediatelyAfterReverse = box.committedResolvedStyle.box.bgColor!;
+        final immediatelyAfterReverse = box.committedResolvedStyle.box.backgroundColor!;
         expect((immediatelyAfterReverse.r - midToDark.r).abs() < 0.1, isTrue, reason: '翻回瞬间中间值连续，不跳变');
 
         // 推进一小段：方向应反向（往 0x000000 接近）
         await tester.pump(const Duration(milliseconds: 100));
-        final laterAfterReverse = box.committedResolvedStyle.box.bgColor!;
+        final laterAfterReverse = box.committedResolvedStyle.box.backgroundColor!;
         expect(laterAfterReverse.r < midToDark.r, isTrue, reason: '翻回后 R 值向 0 方向单调递减（不跳变端点）');
 
         // 冲完全程
         await tester.pump(const Duration(milliseconds: 400));
-        expect(box.committedResolvedStyle.box.bgColor, const Color(0xFF000000));
+        expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF000000));
         expect(box.hasActiveAnimationsForTest, isFalse);
       });
     });

@@ -347,7 +347,7 @@ class _BoxSelectionState extends State<ElBoxSelectionView>
           child: _BoxRegionWidget(
             owner: this,
             child: ElView(
-              style: const ElStyle(bgColor: Color(0x00000000)),
+              style: const ElStyle(backgroundColor: Color(0x00000000)),
               focusNode: _focus,
               event: ElEvent(
                 config: ElEventConfig(

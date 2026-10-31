@@ -196,7 +196,7 @@ class MyButton extends StatelessWidget {
           : null,
       alignment: Alignment.center,
       softWrap: false,
-      bgColor: disabled && variant != MyButtonVariant.bare
+      backgroundColor: disabled && variant != MyButtonVariant.bare
           ? t.fill
           : background,
       color: disabled && !(variant == MyButtonVariant.icon && selected == true)
@@ -204,10 +204,10 @@ class MyButton extends StatelessWidget {
           : foreground,
       fontSize: variant == MyButtonVariant.link ? 14 : 15,
       fontWeight: t.weight(t.fontWeightAction),
-      fontVariations: [FontVariation('wght', t.fontWeightAction)],
+      fontVariationSettings: [FontVariation('wght', t.fontWeightAction)],
       border: ElBorder.all(
-        width: variant == MyButtonVariant.link ? 0 : 1,
-        color: border,
+        borderWidth: variant == MyButtonVariant.link ? 0 : 1,
+        borderColor: border,
       ),
       borderRadius: BorderRadius.circular(
         variant == MyButtonVariant.round
@@ -226,7 +226,7 @@ class MyButton extends StatelessWidget {
           : loading
           ? SystemMouseCursors.progress
           : SystemMouseCursors.click,
-      transitions: const [
+      transition: const [
         ElTransition.all(Duration(milliseconds: 150), Curves.ease),
         ElTransition.field(
           ElTransitionField.transform,
@@ -242,18 +242,18 @@ class MyButton extends StatelessWidget {
       onHover: noFeedback
           ? null
           : ElStyle(
-              bgColor: variant == MyButtonVariant.primary
+              backgroundColor: variant == MyButtonVariant.primary
                   ? Color.lerp(t.primary, const Color(0xff000000), .06)
                   : t.hover,
             ),
       onTap: noFeedback
           ? null
           : ElStyle(
-              bgColor: variant == MyButtonVariant.primary
+              backgroundColor: variant == MyButtonVariant.primary
                   ? Color.lerp(t.primary, const Color(0xff000000), .14)
                   : t.press,
               transform: ElTransform.scale(flat ? 1 : .95),
-              transitions: flat ? const [] : null,
+              transition: flat ? const [] : null,
             ),
       onFocusVisible: myFocusStyle(context),
     );
@@ -388,15 +388,15 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     borderRadius: component.circle || component.round
         ? BorderRadius.circular(999)
         : base.borderRadius,
-    bgColor: component.disabled
+    backgroundColor: component.disabled
         ? theme.fill
         : component.selected
         ? selectedBackground
         : background,
     color: component.disabled ? theme.textSecondary : foreground,
     border: ElBorder.all(
-      width: flat ? 0 : 1,
-      color: component.disabled
+      borderWidth: flat ? 0 : 1,
+      borderColor: component.disabled
           ? theme.border
           : outlined
           ? accent
@@ -404,11 +404,11 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     ),
     onHover: component.disabled || component.loading
         ? null
-        : ElStyle(bgColor: Color.lerp(background, accent, .12)),
+        : ElStyle(backgroundColor: Color.lerp(background, accent, .12)),
     onTap: component.disabled || component.loading
         ? null
         : ElStyle(
-            bgColor: selectedBackground,
+            backgroundColor: selectedBackground,
             transform: ElTransform.scale(flat ? 1 : .95),
           ),
   );

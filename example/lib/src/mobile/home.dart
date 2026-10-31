@@ -47,7 +47,7 @@ class _Home extends HookWidget {
     }, [scroll]);
     return ElCardView(
       key: ValueKey('page-推荐'),
-      style: ElStyle(bgColor: _background),
+      style: ElStyle(backgroundColor: _background),
       child: ElScrollView(
         onRefresh: () => load(refresh: true),
         refresher: ElAndroidRefresher(color: _primary),
@@ -131,7 +131,7 @@ class _ArticleCard extends StatelessWidget {
       onTap: (_) => _push(context, _DetailPage(article, typography)),
     ),
     style: ElStyle(
-      bgColor: _surface,
+      backgroundColor: _surface,
       borderRadius: .circular(8),
       padding: .all(desktop ? 16 : 12),
     ),
@@ -172,7 +172,7 @@ class _ArticleCard extends StatelessWidget {
           style: ElStyle(
             width: desktop ? 112 : 96,
             height: desktop ? 84 : 72,
-            bgColor: article.cover,
+            backgroundColor: article.cover,
             borderRadius: .circular(8),
           ),
         ),

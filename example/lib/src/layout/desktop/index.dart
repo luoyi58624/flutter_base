@@ -14,11 +14,11 @@ class DesktopLayout extends StatelessWidget {
         child: Row(
           children: [
             ElView(
-              style: .new(width: 200, height: '100%', bgColor: Colors.green),
+              style: .new(width: 200, height: '100%', backgroundColor: Colors.green),
             ),
             Expanded(
               child: ElView(
-                style: .new(width: 200, height: '100%', bgColor: Colors.grey),
+                style: .new(width: 200, height: '100%', backgroundColor: Colors.grey),
               ),
             ),
           ],

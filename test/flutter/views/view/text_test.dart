@@ -449,7 +449,7 @@ void main() {
     testWidgets('maxLines=1 + ellipsis 截断 → true', (tester) async {
       await tester.pumpWidget(
         host(
-          style: const ElStyle(width: 60, fontSize: 16, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false),
+          style: const ElStyle(width: 60, fontSize: 16, maxLines: 1, textOverflow: TextOverflow.ellipsis, softWrap: false),
           child: '这是一段远超六十像素宽度的长文本内容',
         ),
       );
@@ -464,7 +464,7 @@ void main() {
     testWidgets('单行不换行超宽（clip）→ true', (tester) async {
       await tester.pumpWidget(
         host(
-          style: const ElStyle(width: 60, fontSize: 16, softWrap: false, overflow: TextOverflow.clip),
+          style: const ElStyle(width: 60, fontSize: 16, softWrap: false, textOverflow: TextOverflow.clip),
           child: '这是一段远超六十像素宽度的长文本内容',
         ),
       );
@@ -479,7 +479,7 @@ void main() {
     });
 
     testWidgets('无文本载荷恒 false', (tester) async {
-      await tester.pumpWidget(host(style: const ElStyle(width: 60, height: 40, bgColor: Color(0xFF222222))));
+      await tester.pumpWidget(host(style: const ElStyle(width: 60, height: 40, backgroundColor: Color(0xFF222222))));
       expect(renderOf(tester).textOverflowing, isFalse);
     });
   });
@@ -561,7 +561,7 @@ void main() {
               height: 30,
               color: color,
               fontSize: 14,
-              transitions: [ElTransition.field(.color, Duration(milliseconds: 200))],
+              transition: [ElTransition.field(.color, Duration(milliseconds: 200))],
             ),
             child: 'transition sample',
           ),
@@ -778,7 +778,7 @@ void main() {
                         style: const ElStyle(
                           width: double.infinity,
                           height: double.infinity,
-                          bgColor: Color(0xFFFF66AA),
+                          backgroundColor: Color(0xFFFF66AA),
                         ),
                       ),
                     ],
@@ -917,7 +917,7 @@ void main() {
               '前缀 ',
               ElView(
                 key: blockAtomKey,
-                style: .new(width: 40, height: 18, bgColor: const Color(0xFF3311FF)),
+                style: .new(width: 40, height: 18, backgroundColor: const Color(0xFF3311FF)),
               ),
               ' 中缀 ',
               SizedBox(key: widgetAtomKey, width: 24, height: 24),
@@ -954,7 +954,7 @@ void main() {
                 child: const ElView(
                   style: ElStyle(
                     fontSize: 14,
-                    onSelection: ElStyle(bgColor: Color(0x553b82f6), color: Color(0xffffffff)),
+                    onSelection: ElStyle(backgroundColor: Color(0x553b82f6), color: Color(0xffffffff)),
                   ),
                   child: 'aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm nnn ooo ppp qqq rrr sss ttt',
                 ),
@@ -1032,7 +1032,7 @@ void main() {
                         fontSize: fontSize,
                         padding: .all(padding),
                         alignment: alignment,
-                        onSelection: ElStyle(bgColor: color),
+                        onSelection: ElStyle(backgroundColor: color),
                       ),
                       child: rich ? TextSpan(text: text) : text,
                     ),
@@ -1106,7 +1106,7 @@ void main() {
             child: SizedBox(
               width: 80,
               child: ElView(
-                style: ElStyle(fontSize: 14, softWrap: false, overflow: TextOverflow.ellipsis),
+                style: ElStyle(fontSize: 14, softWrap: false, textOverflow: TextOverflow.ellipsis),
                 child: 'abcdefghijklmnopqrstuvwxyz',
               ),
             ),
@@ -1128,7 +1128,7 @@ void main() {
             child: SizedBox(
               width: 80,
               child: ElView(
-                style: ElStyle(fontSize: 14, softWrap: false, overflow: TextOverflow.clip),
+                style: ElStyle(fontSize: 14, softWrap: false, textOverflow: TextOverflow.clip),
                 child: 'abcdefghijklmnopqrstuvwxyz',
               ),
             ),
@@ -1150,7 +1150,7 @@ void main() {
             child: SizedBox(
               width: 80,
               child: ElView(
-                style: ElStyle(fontSize: 14, softWrap: false, overflow: TextOverflow.ellipsis),
+                style: ElStyle(fontSize: 14, softWrap: false, textOverflow: TextOverflow.ellipsis),
                 child: TextSpan(
                   text: 'abcdefghijklmnopqrstuvwxyz',
                   children: <InlineSpan>[TextSpan(text: '0123456789')],
@@ -1240,7 +1240,7 @@ void main() {
         shell(
           const ElView(
             key: boxKey,
-            style: ElStyle(width: 80, height: 40, bgColor: Color(0xFF3366CC)),
+            style: ElStyle(width: 80, height: 40, backgroundColor: Color(0xFF3366CC)),
           ),
         ),
       );
@@ -1295,7 +1295,7 @@ void main() {
             child: SizedBox(
               width: 120,
               child: ElView(
-                style: ElStyle(fontSize: 14, softWrap: false, maxLines: 1, overflow: overflow),
+                style: ElStyle(fontSize: 14, softWrap: false, maxLines: 1, textOverflow: overflow),
                 child: child,
               ),
             ),
@@ -1446,7 +1446,7 @@ void main() {
         Widget build(double opacity) => _app(
           ElView(
             key: const ValueKey('text-host'),
-            style: ElStyle(width: 120, height: 40, opacity: opacity, bgColor: const Color(0xff336699)),
+            style: ElStyle(width: 120, height: 40, opacity: opacity, backgroundColor: const Color(0xff336699)),
             child: 'disabled',
           ),
         );
@@ -1491,7 +1491,7 @@ void main() {
           _app(
             const ElView(
               key: ValueKey('text-host'),
-              style: ElStyle(transform: .scale(2, 2), transformAlignment: Alignment.topLeft),
+              style: ElStyle(transform: .scale(2, 2), transformOrigin: Alignment.topLeft),
               child: 'X',
             ),
           ),
@@ -1516,7 +1516,7 @@ void main() {
           _app(
             const ElView(
               key: ValueKey('text-host'),
-              style: ElStyle(transform: .scale(0, 0), transformAlignment: Alignment.topLeft),
+              style: ElStyle(transform: .scale(0, 0), transformOrigin: Alignment.topLeft),
               child: 'X',
             ),
           ),
@@ -1531,7 +1531,7 @@ void main() {
           _app(
             ElView(
               key: const ValueKey('text-host'),
-              style: ElStyle(transform: .rotate(math.pi / 2), transformAlignment: Alignment.topLeft),
+              style: ElStyle(transform: .rotate(math.pi / 2), transformOrigin: Alignment.topLeft),
               child: 'A',
             ),
           ),
@@ -1556,7 +1556,7 @@ void main() {
                 width: 100,
                 height: 50,
                 transform: .translate(30, 0),
-                transformAlignment: Alignment.topLeft,
+                transformOrigin: Alignment.topLeft,
               ),
               child: ElView(key: ValueKey('text-host'), child: 'hello'),
             ),

@@ -142,7 +142,7 @@ class _ChatPage extends HookWidget {
                           style: ElStyle(
                             maxWidth: 270,
                             padding: .symmetric(horizontal: 12, vertical: 9),
-                            bgColor: message.mine
+                            backgroundColor: message.mine
                                 ? _primary
                                 : Color(0xfff7f8fa),
                             borderRadius: BorderRadius.only(
@@ -169,7 +169,7 @@ class _ChatPage extends HookWidget {
           ),
           _line(),
           ElCardView(
-            style: ElStyle(bgColor: _surface, padding: .all(8)),
+            style: ElStyle(backgroundColor: _surface, padding: .all(8)),
             child: Row(
               crossAxisAlignment: .end,
               children: [
@@ -184,7 +184,7 @@ class _ChatPage extends HookWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 height: style.lineHeight,
-                                fontVariations: style.fontVariations,
+                                fontVariations: style.fontVariationSettings,
                               ),
                             ),
                             textDirection: .ltr,
@@ -203,7 +203,7 @@ class _ChatPage extends HookWidget {
                       return ElView(
                         style: ElStyle(
                           height: height,
-                          bgColor: Color(0xfff2f3f5),
+                          backgroundColor: Color(0xfff2f3f5),
                           borderRadius: .circular(14),
                           padding: .symmetric(horizontal: 12, vertical: 9),
                         ),
@@ -252,7 +252,7 @@ class _ChatPage extends HookWidget {
                     height: 40,
                     padding: .symmetric(horizontal: 18),
                     alignment: .center,
-                    bgColor: _primary,
+                    backgroundColor: _primary,
                     borderRadius: .circular(6),
                   ),
                   child: _Label('发送', typography, size: 14, color: _surface),

@@ -50,7 +50,7 @@ void main() {
               onDragEnded: onDragEnded,
               child: const ElView(
                 key: dragKey,
-                style: ElStyle(width: 60, height: 60, bgColor: Color(0xFF2266AA)),
+                style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF2266AA)),
               ),
             ),
           ),
@@ -70,7 +70,7 @@ void main() {
                   style: ElStyle(
                     width: 120,
                     height: 120,
-                    bgColor: candidate == null
+                    backgroundColor: candidate == null
                         ? const Color(0xFF333333)
                         : candidate.accepted
                         ? const Color(0xFF22AA66)
@@ -205,7 +205,7 @@ void main() {
                       onEnter: (_) => entered++,
                       builder: (c, candidate) => const ElView(
                         key: targetKey,
-                        style: ElStyle(width: 120, height: 120, bgColor: Color(0xFF333333)),
+                        style: ElStyle(width: 120, height: 120, backgroundColor: Color(0xFF333333)),
                       ),
                     ),
                   ),
@@ -261,12 +261,12 @@ void main() {
                     child: ElDropTarget<String>(
                       onEnter: (_) => outerEntered++,
                       builder: (c, _) => ElView(
-                        style: const ElStyle(width: 200, height: 200, bgColor: Color(0xFF333333), alignment: .center),
+                        style: const ElStyle(width: 200, height: 200, backgroundColor: Color(0xFF333333), alignment: .center),
                         child: ElDropTarget<String>(
                           onEnter: (_) => innerEntered++,
                           builder: (c, _) => const ElView(
                             key: targetKey,
-                            style: ElStyle(width: 80, height: 80, bgColor: Color(0xFF555555)),
+                            style: ElStyle(width: 80, height: 80, backgroundColor: Color(0xFF555555)),
                           ),
                         ),
                       ),
@@ -542,7 +542,7 @@ void main() {
                 data: 'default-ghost',
                 child: const ElView(
                   key: dragKey,
-                  style: ElStyle(width: 60, height: 60, bgColor: Color(0xff2266aa)),
+                  style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xff2266aa)),
                 ),
               ),
             ),
@@ -579,7 +579,7 @@ void main() {
           selection: true,
           ghostBuilder: (c) => const ElView(
             key: ghostKey,
-            style: ElStyle(width: 40, height: 40, bgColor: Color(0x882266AA)),
+            style: ElStyle(width: 40, height: 40, backgroundColor: Color(0x882266AA)),
           ),
         ),
       );

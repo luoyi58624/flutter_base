@@ -298,7 +298,7 @@ void main() {
                 height: 100,
                 padding: .all(16),
                 transform: ElTransform.matrix(spec.$3, 0, 0, spec.$3, spec.$2, 30),
-                transformAlignment: .topLeft,
+                transformOrigin: .topLeft,
               ),
               child: ElView(child: '内容'),
             ),

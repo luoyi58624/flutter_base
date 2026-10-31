@@ -29,7 +29,7 @@ void main() {
           child: [
             ElView(
               key: leftKey,
-              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(bgColor: Color(0xFF654321))),
+              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(backgroundColor: Color(0xFF654321))),
               event: ElEvent(
                 config: const ElEventConfig(dragStartDistance: 6.0),
                 onDragStart: (event) => event.stopPropagation(),
@@ -38,7 +38,7 @@ void main() {
             ),
             ElView(
               key: rightKey,
-              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(bgColor: Color(0xFF123456))),
+              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(backgroundColor: Color(0xFF123456))),
             ),
           ],
         ),
@@ -92,7 +92,7 @@ void main() {
             ),
             ElView(
               key: rightKey,
-              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(bgColor: Color(0xFF123456))),
+              style: const ElStyle(width: 200, height: 200, onHover: ElStyle(backgroundColor: Color(0xFF123456))),
               event: ElEvent(
                 onPointerEnter: (_) => rightEnters++,
                 onPointerExit: (_) => rightExits++,

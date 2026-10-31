@@ -24,9 +24,9 @@ Finder _body() => find
 ElRenderView _render(WidgetTester tester) =>
     tester.renderObject<ElRenderView>(_body());
 Color? _bg(WidgetTester tester) =>
-    _render(tester).committedResolvedStyle.box.bgColor;
+    _render(tester).committedResolvedStyle.box.backgroundColor;
 Color? _border(WidgetTester tester) =>
-    _render(tester).committedResolvedStyle.box.border?.top.color;
+    _render(tester).committedResolvedStyle.box.border?.borderTop.borderColor;
 const _white = Color(0xffffffff);
 const _primary = Color(0xff409eff);
 const _info = Color(0xff909399);

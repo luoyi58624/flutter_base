@@ -26,8 +26,8 @@ extension ElThemeColorExt on BuildContext {
 
   /// 访问边框对象
   ElBorder elBorder({double? width, Color? color}) => ElBorder.all(
-    width: width ?? elBorderWidth,
-    color: color ?? ElThemeData.of(this).borderColor,
+    borderWidth: width ?? elBorderWidth,
+    borderColor: color ?? ElThemeData.of(this).borderColor,
   );
 
   /// 按当前明暗轴生成主题边框色。

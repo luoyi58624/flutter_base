@@ -144,8 +144,8 @@ class _TableSortIndicator extends StatelessWidget {
       style: ElStyle(
         width: 8,
         height: 5,
-        bgColor: style.color ?? const Color(0xff909399),
-        clipper: _TableTriangleClipper(ascending ? AxisDirection.up : AxisDirection.down),
+        backgroundColor: style.color ?? const Color(0xff909399),
+        clipPath: _TableTriangleClipper(ascending ? AxisDirection.up : AxisDirection.down),
       ),
     ),
   );

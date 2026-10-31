@@ -8,7 +8,7 @@ class _MessagesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ElCardView(
     key: ValueKey('page-消息'),
-    style: ElStyle(bgColor: _surface),
+    style: ElStyle(backgroundColor: _surface),
     child: ElScrollView(
       key: PageStorageKey('messages-list'),
       children: [
@@ -17,7 +17,7 @@ class _MessagesPage extends StatelessWidget {
             ElView(
               style: ElStyle(
                 height: 36,
-                bgColor: _background,
+                backgroundColor: _background,
                 padding: .symmetric(horizontal: 12),
                 alignment: .centerLeft,
               ),
@@ -42,7 +42,7 @@ class _MessagesPage extends StatelessWidget {
                         style: ElStyle(
                           width: 40,
                           height: 40,
-                          bgColor: _messages[i].color,
+                          backgroundColor: _messages[i].color,
                           borderRadius: .circular(8),
                           alignment: .center,
                         ),
@@ -98,7 +98,7 @@ class _MessagesPage extends StatelessWidget {
                             style: ElStyle(
                               width: 8,
                               height: 8,
-                              bgColor: Color(0xffff3b30),
+                              backgroundColor: Color(0xffff3b30),
                               borderRadius: .circular(4),
                             ),
                           ),

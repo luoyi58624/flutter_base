@@ -620,7 +620,7 @@ void main() {
                   key: const ValueKey('scrollbar-child-scroll'),
                   children: List<Widget>.generate(24, (index) {
                     return ElView(
-                      style: ElStyle(width: 300, height: 40, bgColor: Color(0xFF202020 + index)),
+                      style: ElStyle(width: 300, height: 40, backgroundColor: Color(0xFF202020 + index)),
                       child: Text('row-$index'),
                     );
                   }),

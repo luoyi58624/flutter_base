@@ -24,8 +24,8 @@ void main() {
           style: ElStyle(
             width: 120,
             height: 50,
-            bgColor: Colors.white,
-            onDark: ElStyle(bgColor: Colors.black),
+            backgroundColor: Colors.white,
+            onDark: ElStyle(backgroundColor: Colors.black),
           ),
           child: '内容',
         );
@@ -54,7 +54,7 @@ void main() {
     await settle(tester);
     expect(render.committedResolvedStyle.inheritedText.color, Colors.blue);
     expect(render.committedResolvedStyle.inheritedText.fontSize, 22);
-    expect(render.committedResolvedStyle.box.bgColor, Colors.black);
+    expect(render.committedResolvedStyle.box.backgroundColor, Colors.black);
     expect(builds, before);
   });
 

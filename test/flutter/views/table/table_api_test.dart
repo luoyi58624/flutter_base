@@ -1063,7 +1063,7 @@ void main() {
   test('Controller 集中管理表头、空态、固定行、汇总、行样式和排序模式', () {
     Object? summary(BuildContext context, ElTableSummaryCell cell) => cell.columnIndex;
     Object? empty(BuildContext context, ElTableController controller) => 'empty';
-    ElStyle? rowStyle(ElTableRowContext row) => row.rowIndex.isEven ? const ElStyle(bgColor: Color(0xffeeeeee)) : null;
+    ElStyle? rowStyle(ElTableRowContext row) => row.rowIndex.isEven ? const ElStyle(backgroundColor: Color(0xffeeeeee)) : null;
     final controller = ElTableController(
       showHeader: false,
       emptyBuilder: empty,

@@ -147,7 +147,7 @@ void main() {
               style: ElStyle(
                 width: 100,
                 height: 100,
-                bgColor: Color(0xff445566),
+                backgroundColor: Color(0xff445566),
                 borderRadius: BorderRadius.all(Radius.circular(50)),
                 clipBehavior: Clip.hardEdge,
                 transform: ElTransform.translate(20, 0),
@@ -218,8 +218,8 @@ void main() {
             style: ElStyle(
               width: 100,
               height: 100,
-              bgColor: Color(0xff112233),
-              onTap: ElStyle(bgColor: Color(0xff445566)),
+              backgroundColor: Color(0xff112233),
+              onTap: ElStyle(backgroundColor: Color(0xff445566)),
             ),
             event: ElEvent(
               onTap: (e) {
@@ -234,12 +234,12 @@ void main() {
     final gesture = await tester.startGesture(Offset(20, 20), kind: .mouse);
     await tester.pump();
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xff445566));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff445566));
     await gesture.up();
     await tester.pump();
     expect(childTaps, 1);
     expect(parentTaps, 0);
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xff112233));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff112233));
   });
 
   testWidgets('hover 回调与静止鼠标光标更新直接接入宿主', (tester) async {

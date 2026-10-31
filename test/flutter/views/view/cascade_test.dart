@@ -34,7 +34,7 @@ void _inheritPatchTests() {
     final b = ResolvedStyleBuilder.empty();
     if (color != null) b.writeColor(color);
     if (fontSize != null) b.writeFontSize(fontSize);
-    if (textDirection != null) b.writeTextDirection(textDirection);
+    if (textDirection != null) b.writeDirection(textDirection);
     return b.build();
   }
 
@@ -111,11 +111,11 @@ void _inheritPatchTests() {
 
     test('textDirection / cursor (InheritedBox) 传播', () {
       final b = ResolvedStyleBuilder.empty();
-      b.writeTextDirection(TextDirection.rtl);
+      b.writeDirection(TextDirection.rtl);
       final newParent = b.build();
 
       final oldB = ResolvedStyleBuilder.empty();
-      oldB.writeTextDirection(TextDirection.ltr);
+      oldB.writeDirection(TextDirection.ltr);
       final oldTarget = oldB.build();
 
       final result = CascadeFastPatch.tryInheritPatch(
@@ -124,12 +124,12 @@ void _inheritPatchTests() {
         newParent: newParent,
         oldParent: null,
         state: noState(),
-        changedMask: fieldsMask({ElTransitionField.textDirection}),
+        changedMask: fieldsMask({ElTransitionField.direction}),
         hasActiveAnimations: false,
       );
 
       expect(result, isNotNull);
-      expect(result!.newTarget.inheritedBox.textDirection, TextDirection.rtl);
+      expect(result!.newTarget.inheritedBox.direction, TextDirection.rtl);
     });
   });
 
@@ -239,7 +239,7 @@ void _inheritPatchTests() {
     test('T-variant3：激活变体声明 transitions → bail', () {
       const style = ElStyle(
         width: 100,
-        onHover: ElStyle(opacity: 0.5, transitions: [ElTransition.all(Duration(milliseconds: 100))]),
+        onHover: ElStyle(opacity: 0.5, transition: [ElTransition.all(Duration(milliseconds: 100))]),
       );
       final newParent = parentWithFields(color: const Color(0xFFFF0000));
       final mask = (1 << ViewState.hover.index);
@@ -258,7 +258,7 @@ void _inheritPatchTests() {
     });
 
     test('style 含 transitions → bail', () {
-      final style = ElStyle(width: 100, transitions: const [ElTransition.all(Duration(milliseconds: 100))]);
+      final style = ElStyle(width: 100, transition: const [ElTransition.all(Duration(milliseconds: 100))]);
       final newParent = parentWithFields(color: const Color(0xFFFF0000));
       expect(
         CascadeFastPatch.tryInheritPatch(
@@ -276,7 +276,7 @@ void _inheritPatchTests() {
 
     test('changedFields 含非 inherited 字段 → bail（contract 违反）', () {
       final newParent = parentWithFields(color: const Color(0xFFFF0000));
-      for (final field in [ElTransitionField.bgColor, ElTransitionField.decoration]) {
+      for (final field in [ElTransitionField.backgroundColor, ElTransitionField.textDecorationLine]) {
         expect(
           CascadeFastPatch.tryInheritPatch(
             style: null,
@@ -404,10 +404,10 @@ void main() {
               style: ElStyle(
                 color: Color(0xFFFF0000),
                 fontSize: 22,
-                decoration: TextDecoration.underline,
+                textDecorationLine: TextDecoration.underline,
                 textBackgroundColor: Color(0xFFFFFF00),
                 softWrap: false,
-                overflow: TextOverflow.ellipsis,
+                textOverflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
               child: ElView(child: 'hello'),
@@ -418,10 +418,10 @@ void main() {
         final text = allRenderViews(tester).last.committedResolvedStyle.inheritedText;
         expect(text.color, const Color(0xFFFF0000));
         expect(text.fontSize, 22);
-        expect(text.decoration, isNull);
+        expect(text.textDecorationLine, isNull);
         expect(text.textBackgroundColor, isNull);
         expect(text.softWrap, isNull);
-        expect(text.overflow, isNull);
+        expect(text.textOverflow, isNull);
         expect(text.maxLines, isNull);
       });
 
@@ -718,24 +718,24 @@ void main() {
     ResolvedStyle childText(WidgetTester tester) =>
         tester.renderObject<ElRenderView>(find.byKey(const ValueKey('child'))).committedResolvedStyle;
 
-    testWidgets('子显式 decorationColor：祖先改 decorationColor 不覆盖子', (tester) async {
+    testWidgets('子显式 textDecorationColor：祖先改 textDecorationColor 不覆盖子', (tester) async {
       Widget tree(Color ancestor) => MaterialApp(
         home: ElView(
-          style: ElStyle(decorationColor: ancestor),
+          style: ElStyle(textDecorationColor: ancestor),
           child: const ElView(
             key: ValueKey('child'),
-            style: ElStyle(decorationColor: Color(0xFF00FF00)),
+            style: ElStyle(textDecorationColor: Color(0xFF00FF00)),
             child: 'x',
           ),
         ),
       );
 
       await tester.pumpWidget(tree(const Color(0xFFFF0000)));
-      expect(childText(tester).inheritedText.decorationColor, const Color(0xFF00FF00), reason: '子显式 green，初始即 green');
+      expect(childText(tester).inheritedText.textDecorationColor, const Color(0xFF00FF00), reason: '子显式 green，初始即 green');
 
       await tester.pumpWidget(tree(const Color(0xFF0000FF)));
       expect(
-        childText(tester).inheritedText.decorationColor,
+        childText(tester).inheritedText.textDecorationColor,
         const Color(0xFF00FF00),
         reason: '修复前：propagator 未截断 decorationColor → tryInheritPatch 用父 blue 覆盖子 green',
       );
@@ -760,20 +760,20 @@ void main() {
       expect(childText(tester).inheritedText.textAlign, TextAlign.right, reason: '子显式 right 不应被祖先 center 覆盖');
     });
 
-    testWidgets('正控：子未声明 decorationColor → 正常继承且随祖先变化', (tester) async {
+    testWidgets('正控：子未声明 textDecorationColor → 正常继承且随祖先变化', (tester) async {
       Widget tree(Color ancestor) => MaterialApp(
         home: ElView(
-          style: ElStyle(decorationColor: ancestor),
+          style: ElStyle(textDecorationColor: ancestor),
           child: const ElView(key: ValueKey('child'), child: 'x'),
         ),
       );
 
       await tester.pumpWidget(tree(const Color(0xFFFF0000)));
-      expect(childText(tester).inheritedText.decorationColor, const Color(0xFFFF0000), reason: '未声明 → 继承祖先 red');
+      expect(childText(tester).inheritedText.textDecorationColor, const Color(0xFFFF0000), reason: '未声明 → 继承祖先 red');
 
       await tester.pumpWidget(tree(const Color(0xFF0000FF)));
       expect(
-        childText(tester).inheritedText.decorationColor,
+        childText(tester).inheritedText.textDecorationColor,
         const Color(0xFF0000FF),
         reason: '未声明 → 传播未被截断，跟随祖先 red→blue（确认修复没误伤正常继承）',
       );
@@ -873,7 +873,7 @@ void main() {
           fontSize: 18,
           fontWeight: FontWeight.w700,
           padding: .all(8),
-          bgColor: Color(0xff112233),
+          backgroundColor: Color(0xff112233),
         ),
         child: const ElView(child: 'inherited hello'),
       );
@@ -903,10 +903,10 @@ void main() {
           width: 300,
           height: 100,
           color: Color(0xff000000),
-          bgColor: Color(0xff111111),
+          backgroundColor: Color(0xff111111),
           padding: .all(4),
-          onDisabled: ElStyle(color: Color(0xff888888), bgColor: Color(0xff222222)),
-          onDark: ElStyle(color: Color(0xffe0e0e0), bgColor: Color(0xff333333)),
+          onDisabled: ElStyle(color: Color(0xff888888), backgroundColor: Color(0xff222222)),
+          onDark: ElStyle(color: Color(0xffe0e0e0), backgroundColor: Color(0xff333333)),
         ),
         child: const ElView(child: 'variant preset'),
       );
@@ -930,8 +930,8 @@ void main() {
         style: ElStyle(
           width: 200,
           height: 100,
-          bgColor: bg,
-          transitions: const [ElTransition.all(Duration(milliseconds: 200))],
+          backgroundColor: bg,
+          transition: const [ElTransition.all(Duration(milliseconds: 200))],
         ),
       );
 
@@ -948,7 +948,7 @@ void main() {
 
     testWidgets('mount 后 setStyle（无 transition）fast_patch 命中', (tester) async {
       elViewDebugUseMountFastPath = true;
-      Widget build(Color bg) => ElView(style: ElStyle(width: 200, height: 100, bgColor: bg));
+      Widget build(Color bg) => ElView(style: ElStyle(width: 200, height: 100, backgroundColor: bg));
 
       await tester.pumpWidget(wrap(build(const Color(0xff000000))));
       BenchmarkProbe.reset();
@@ -989,13 +989,13 @@ void main() {
       await tester.pumpWidget(
         wrap(
           const ElView(
-            style: ElStyle(width: 100, height: 50, bgColor: Color(0xff112233), color: Color(0xff445566)),
+            style: ElStyle(width: 100, height: 50, backgroundColor: Color(0xff112233), color: Color(0xff445566)),
           ),
         ),
       );
 
       final rv = tester.renderObject<ElRenderView>(find.byType(ElView));
-      expect(rv.committedResolvedStyle.box.bgColor, const Color(0xff112233));
+      expect(rv.committedResolvedStyle.box.backgroundColor, const Color(0xff112233));
       expect(rv.committedResolvedStyle.inheritedText.color, const Color(0xff445566));
     });
   });
@@ -1026,9 +1026,9 @@ void main() {
       style: ElStyle(
         width: 60,
         height: 30,
-        bgColor: base,
-        onDark: !disabled && enabled ? const ElStyle(bgColor: activeDark) : null,
-        onDisabled: disabled ? const ElStyle(onDark: ElStyle(bgColor: activeDark)) : null,
+        backgroundColor: base,
+        onDark: !disabled && enabled ? const ElStyle(backgroundColor: activeDark) : null,
+        onDisabled: disabled ? const ElStyle(onDark: ElStyle(backgroundColor: activeDark)) : null,
       ),
     );
 
@@ -1050,7 +1050,7 @@ void main() {
         for (final brightness in [Brightness.light, Brightness.dark, Brightness.light]) {
           await tester.pumpWidget(page(brightness: brightness, child: child));
           final render = tester.renderObject<ElRenderView>(find.byKey(targetKey));
-          expect(render.targetStyleForTest.box.bgColor, brightness == .dark ? activeDark : base);
+          expect(render.targetStyleForTest.box.backgroundColor, brightness == .dark ? activeDark : base);
           await tester.pumpAndSettle();
           expect(find.byKey(targetKey), paints..rect(color: brightness == .dark ? activeDark : base));
         }
@@ -1074,7 +1074,7 @@ void main() {
           ),
         );
         final render = tester.renderObject<ElRenderView>(find.byKey(targetKey));
-        expect(render.targetStyleForTest.box.bgColor, base);
+        expect(render.targetStyleForTest.box.backgroundColor, base);
         await tester.pumpAndSettle();
         expect(find.byKey(targetKey), paints..rect(color: base));
       });
@@ -1091,8 +1091,8 @@ void main() {
         const MaterialApp(
           home: ElView(
             style: ElStyle(
-              bgColor: base,
-              onDark: ElStyle(onHover: ElStyle(bgColor: darkHover)),
+              backgroundColor: base,
+              onDark: ElStyle(onHover: ElStyle(backgroundColor: darkHover)),
             ),
           ),
         ),
@@ -1100,22 +1100,22 @@ void main() {
       final render = renderOf(tester);
 
       // 未 dark 未 hover：base
-      expect(render.committedResolvedStyle.box.bgColor, base);
+      expect(render.committedResolvedStyle.box.backgroundColor, base);
 
-      // dark on, no hover：base（onDark 本身未声明 bgColor，嵌套 hover 未激活）
+      // dark on, no hover：base（onDark 本身未声明 backgroundColor，嵌套 hover 未激活）
       render.setDark(true);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, base, reason: 'dark on 但 hover 未激活 → 嵌套链剪枝');
+      expect(render.committedResolvedStyle.box.backgroundColor, base, reason: 'dark on 但 hover 未激活 → 嵌套链剪枝');
 
       // dark + hover：嵌套链激活
       render.setHover(true);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, darkHover, reason: 'dark+hover 齐活，嵌套链 bgColor 生效');
+      expect(render.committedResolvedStyle.box.backgroundColor, darkHover, reason: 'dark+hover 齐活，嵌套链 bgColor 生效');
 
       // hover 退出 → 回到 base
       render.setHover(false);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, base);
+      expect(render.committedResolvedStyle.box.backgroundColor, base);
     });
 
     testWidgets('setStyle 移除嵌套 hover 声明 → stale hover 位被清', (tester) async {
@@ -1125,10 +1125,10 @@ void main() {
         home: ElView(
           style: withNested
               ? const ElStyle(
-                  bgColor: base,
-                  onDark: ElStyle(onHover: ElStyle(bgColor: nested)),
+                  backgroundColor: base,
+                  onDark: ElStyle(onHover: ElStyle(backgroundColor: nested)),
                 )
-              : const ElStyle(bgColor: base),
+              : const ElStyle(backgroundColor: base),
         ),
       );
       await tester.pumpWidget(build(true));
@@ -1136,13 +1136,13 @@ void main() {
       render.setDark(true);
       render.setHover(true);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, nested);
+      expect(render.committedResolvedStyle.box.backgroundColor, nested);
 
       // 移除嵌套声明：hover state bit 应被清（新 mask 里无 hover 位）
       await tester.pumpWidget(build(false));
       await tester.pump();
       // 无嵌套 hover 声明后：paint 应回 base（stale hover bit 清 0 后就算残留也无变体可 emit）
-      expect(render.committedResolvedStyle.box.bgColor, base, reason: 'stale hover 位清除后 emit 回 base');
+      expect(render.committedResolvedStyle.box.backgroundColor, base, reason: 'stale hover 位清除后 emit 回 base');
     });
 
     testWidgets('嵌套变体激活时 set style 改 base 字段走 slow path — 输出正确', (tester) async {
@@ -1152,8 +1152,8 @@ void main() {
       Widget build(Color baseColor) => MaterialApp(
         home: ElView(
           style: ElStyle(
-            bgColor: baseColor,
-            onDark: const ElStyle(onHover: ElStyle(bgColor: nested)),
+            backgroundColor: baseColor,
+            onDark: const ElStyle(onHover: ElStyle(backgroundColor: nested)),
           ),
         ),
       );
@@ -1162,18 +1162,18 @@ void main() {
       render.setDark(true);
       render.setHover(true);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, nested);
+      expect(render.committedResolvedStyle.box.backgroundColor, nested);
 
       // 嵌套激活时切 base 字段（fast patch Bail 2 应触发 → slow path）
       await tester.pumpWidget(build(baseB));
       await tester.pump();
-      // 嵌套仍激活 → 输出仍是 nested（嵌套 bgColor 覆盖 base）
-      expect(render.committedResolvedStyle.box.bgColor, nested, reason: '嵌套激活时改 base，结果仍是嵌套值');
+      // 嵌套仍激活 → 输出仍是 nested（嵌套 backgroundColor 覆盖 base）
+      expect(render.committedResolvedStyle.box.backgroundColor, nested, reason: '嵌套激活时改 base，结果仍是嵌套值');
 
       // 关掉 hover → base 换成新的 baseB 生效
       render.setHover(false);
       await tester.pump();
-      expect(render.committedResolvedStyle.box.bgColor, baseB, reason: '嵌套退出后新 base 生效');
+      expect(render.committedResolvedStyle.box.backgroundColor, baseB, reason: '嵌套退出后新 base 生效');
     });
   });
 
@@ -1202,8 +1202,8 @@ void main() {
               child: ElView(
                 key: leafKey,
                 style: const ElStyle(
-                  bgColor: bg,
-                  sm: ElStyle(bgColor: bgSm),
+                  backgroundColor: bg,
+                  sm: ElStyle(backgroundColor: bgSm),
                 ),
                 child: SizedBox(width: 100, height: 50),
               ),
@@ -1213,7 +1213,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        findByKey(tester, leafKey).committedResolvedStyle.box.bgColor,
+        findByKey(tester, leafKey).committedResolvedStyle.box.backgroundColor,
         bgSm,
         reason: '690 <= 声明者 sm(700) → 后代 sm 命中（根默认 sm 上界 640 不命中）',
       );
@@ -1225,7 +1225,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(
-        findByKey(tester, leafKey).committedResolvedStyle.box.bgColor,
+        findByKey(tester, leafKey).committedResolvedStyle.box.backgroundColor,
         bgSm,
         reason: '680 仍 <= 声明者 sm(700)，resize 传播不得用根节点位覆盖声明者子树',
       );
@@ -1243,8 +1243,8 @@ void main() {
               child: ElView(
                 key: leafKey,
                 style: const ElStyle(
-                  bgColor: bg,
-                  md: ElStyle(bgColor: bgMd),
+                  backgroundColor: bg,
+                  md: ElStyle(backgroundColor: bgMd),
                 ),
                 child: SizedBox(width: 100, height: 50),
               ),
@@ -1253,13 +1253,13 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(findByKey(tester, leafKey).committedResolvedStyle.box.bgColor, bgMd, reason: '800 <= md(1024) → md 命中');
+      expect(findByKey(tester, leafKey).committedResolvedStyle.box.backgroundColor, bgMd, reason: '800 <= md(1024) → md 命中');
 
       tester.view.physicalSize = const Size(1300, 900);
       await tester.pump();
       await tester.pump();
       expect(
-        findByKey(tester, leafKey).committedResolvedStyle.box.bgColor,
+        findByKey(tester, leafKey).committedResolvedStyle.box.backgroundColor,
         bg,
         reason: '1300 > md(1024) → md 位关闭，透明链下推仍生效',
       );
@@ -1290,10 +1290,10 @@ void main() {
           ElView(
             key: key,
             style: ElStyle(
-              bgColor: bg,
-              sm: ElStyle(bgColor: bgSm),
-              md: ElStyle(bgColor: bgMd),
-              lg: ElStyle(bgColor: bgLg),
+              backgroundColor: bg,
+              sm: ElStyle(backgroundColor: bgSm),
+              md: ElStyle(backgroundColor: bgMd),
+              lg: ElStyle(backgroundColor: bgLg),
             ),
             child: SizedBox(width: 100, height: 50),
           ),
@@ -1303,7 +1303,7 @@ void main() {
       final render = findByKey(tester, key);
       // 800 > sm(640) → sm 不命中；800 <= md(1024) 且 <= lg(1920) → 双命中，
       // 档序后 emit 的 lg 覆盖 md。
-      expect(render.committedResolvedStyle.box.bgColor, bgLg, reason: '上界语义多档命中，高档 lg 胜出');
+      expect(render.committedResolvedStyle.box.backgroundColor, bgLg, reason: '上界语义多档命中，高档 lg 胜出');
     });
 
     testWidgets('resize 跨档 800→1300：md 位翻转关闭，样式回落 base', (tester) async {
@@ -1316,8 +1316,8 @@ void main() {
           ElView(
             key: key,
             style: ElStyle(
-              bgColor: bg,
-              md: ElStyle(bgColor: bgMd),
+              backgroundColor: bg,
+              md: ElStyle(backgroundColor: bgMd),
             ),
             child: SizedBox(width: 100, height: 50),
           ),
@@ -1325,14 +1325,14 @@ void main() {
       );
       await tester.pump();
       var render = findByKey(tester, key);
-      expect(render.committedResolvedStyle.box.bgColor, bgMd, reason: '800 <= md(1024) → md 命中');
+      expect(render.committedResolvedStyle.box.backgroundColor, bgMd, reason: '800 <= md(1024) → md 命中');
 
       // resize
       tester.view.physicalSize = const Size(1300, 900);
       await tester.pump();
       await tester.pump();
       render = findByKey(tester, key);
-      expect(render.committedResolvedStyle.box.bgColor, bg, reason: '1300 > md(1024) → md 位关闭，回落 base');
+      expect(render.committedResolvedStyle.box.backgroundColor, bg, reason: '1300 > md(1024) → md 位关闭，回落 base');
     });
 
     testWidgets('breakpoint 配置覆盖：sm=700 → 690 命中 sm，720 不命中', (tester) async {
@@ -1347,8 +1347,8 @@ void main() {
             // 声明本地断点：sm 上界 640 → 700。
             breakpoint: const ElBreakpoint(sm: 700),
             style: ElStyle(
-              bgColor: bg,
-              sm: ElStyle(bgColor: bgSm),
+              backgroundColor: bg,
+              sm: ElStyle(backgroundColor: bgSm),
             ),
             child: SizedBox(width: 100, height: 50),
           ),
@@ -1357,13 +1357,13 @@ void main() {
       await tester.pump();
       var render = findByKey(tester, key);
       // 690 <= sm(700) → sm 命中（默认上界 640 时 690 不会命中，证明覆盖生效）。
-      expect(render.committedResolvedStyle.box.bgColor, bgSm, reason: '690 <= 覆盖后的 sm(700) → 命中');
+      expect(render.committedResolvedStyle.box.backgroundColor, bgSm, reason: '690 <= 覆盖后的 sm(700) → 命中');
 
       tester.view.physicalSize = const Size(720, 900);
       await tester.pump();
       await tester.pump();
       render = findByKey(tester, key);
-      expect(render.committedResolvedStyle.box.bgColor, bg, reason: '720 > sm(700) → sm 位关闭');
+      expect(render.committedResolvedStyle.box.backgroundColor, bg, reason: '720 > sm(700) → sm 位关闭');
     });
 
     testWidgets('breakpoint 配置继承合并：祖先 sm=700，后代补 md=1200', (tester) async {
@@ -1384,16 +1384,16 @@ void main() {
               // 1100 <= md(1200) → md 命中（默认 md=1024 时 1100 不会命中，
               // 证明本地覆盖生效）。
               style: ElStyle(
-                bgColor: bg,
-                md: ElStyle(bgColor: bgMd),
+                backgroundColor: bg,
+                md: ElStyle(backgroundColor: bgMd),
               ),
               child: ElView(
                 key: smChildKey,
                 // 孙代无本地声明，effective 全部继承：sm=700。
                 // 1100 > sm(700) → sm 不命中 → base。
                 style: ElStyle(
-                  bgColor: bg,
-                  sm: ElStyle(bgColor: bgSm),
+                  backgroundColor: bg,
+                  sm: ElStyle(backgroundColor: bgSm),
                 ),
                 child: const SizedBox(width: 50, height: 50),
               ),
@@ -1403,11 +1403,11 @@ void main() {
       );
       await tester.pump();
       expect(
-        findByKey(tester, mdChildKey).committedResolvedStyle.box.bgColor,
+        findByKey(tester, mdChildKey).committedResolvedStyle.box.backgroundColor,
         bgMd,
         reason: '本地 md=1200 覆盖默认 1024，1100 命中 md',
       );
-      expect(findByKey(tester, smChildKey).committedResolvedStyle.box.bgColor, bg, reason: '继承 sm=700，1100 > 700 不命中');
+      expect(findByKey(tester, smChildKey).committedResolvedStyle.box.backgroundColor, bg, reason: '继承 sm=700，1100 > 700 不命中');
 
       // 缩窄到 690：孙代 sm 命中（继承的 700 上界；默认 640 时 690 不会命中，
       // 证明 sm=700 确实沿链继承）。
@@ -1415,7 +1415,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(
-        findByKey(tester, smChildKey).committedResolvedStyle.box.bgColor,
+        findByKey(tester, smChildKey).committedResolvedStyle.box.backgroundColor,
         bgSm,
         reason: '继承祖先 sm=700，690 <= 700 命中',
       );
@@ -1429,7 +1429,7 @@ void main() {
         _directionalHost(
           ElView(
             key: key,
-            style: const ElStyle(bgColor: Color(0xFF000000)),
+            style: const ElStyle(backgroundColor: Color(0xFF000000)),
             child: Builder(
               builder: (context) {
                 lastMd = ElView.of(context).md;
@@ -1462,8 +1462,8 @@ void main() {
               key: key,
               inheritSize: false,
               style: ElStyle(
-                bgColor: bg,
-                sm: ElStyle(bgColor: bgSm),
+                backgroundColor: bg,
+                sm: ElStyle(backgroundColor: bgSm),
               ),
               child: const SizedBox(width: 50, height: 50),
             ),
@@ -1477,7 +1477,7 @@ void main() {
       final render = findByKey(tester, key);
       // 自宽 600 <= sm(640) → sm 命中；若基准错误取窗口 1920（> 640）→ sm
       // 不会命中 → 断言失败。
-      expect(render.committedResolvedStyle.box.bgColor, bgSm, reason: 'inheritSize:false 以本节点 600 宽为基准，sm 命中');
+      expect(render.committedResolvedStyle.box.backgroundColor, bgSm, reason: 'inheritSize:false 以本节点 600 宽为基准，sm 命中');
     });
   });
 
@@ -1490,7 +1490,7 @@ void main() {
       ),
     );
 
-    testWidgets('T-variant3：声明 md 响应式变体的 20 子翻转 bgColor → fast patch 全命中', (tester) async {
+    testWidgets('T-variant3：声明 md 响应式变体的 20 子翻转 backgroundColor → fast patch 全命中', (tester) async {
       // 1000 <= md(1024) → md 位激活（上界语义，2026-07-16 定版）。
       tester.view.physicalSize = const Size(1000, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -1505,11 +1505,11 @@ void main() {
             for (var i = 0; i < 20; i++)
               ElView(
                 // 每帧新建 ElStyle 实例（churn 形态）；md 声明 padding（1000
-                // 宽下 md 位激活但不覆写 bgColor）。const 变体保 Bail 1 identical。
+                // 宽下 md 位激活但不覆写 backgroundColor）。const 变体保 Bail 1 identical。
                 style: ElStyle(
                   width: 100,
                   height: 20,
-                  bgColor: color,
+                  backgroundColor: color,
                   md: const ElStyle(padding: EdgeInsets.all(4)),
                 ),
               ),
@@ -1521,14 +1521,14 @@ void main() {
       BenchmarkProbe.reset();
       await tester.pumpWidget(wrap(build(const Color(0xFF0000FF))));
 
-      // 20 个子 bgColor 变化全走 fast patch；旧 Bail 2 下此值恒 0（md 位激活
+      // 20 个子 backgroundColor 变化全走 fast patch；旧 Bail 2 下此值恒 0（md 位激活
       // 即整体 bail）、cascadeTick = 20。
       expect(BenchmarkProbe.fastPatchHitCount, 20, reason: '响应式变体激活不再一票 bail');
       expect(BenchmarkProbe.cascadeTickCount, 0, reason: '零 slow path 逃逸');
 
-      // 视觉正确性：md 激活的 padding 生效 + 新 bgColor 生效。
+      // 视觉正确性：md 激活的 padding 生效 + 新 backgroundColor 生效。
       final renders = tester.renderObjectList<ElRenderView>(find.byType(ElView)).toList();
-      final child = renders.firstWhere((r) => r.committedResolvedStyle.box.bgColor == const Color(0xFF0000FF));
+      final child = renders.firstWhere((r) => r.committedResolvedStyle.box.backgroundColor == const Color(0xFF0000FF));
       expect(child.committedResolvedStyle.box.padding?.resolve(TextDirection.ltr).left, 4);
     });
 
@@ -1569,14 +1569,14 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      // md 覆写 bgColor（md 激活）；base bgColor 翻转必须走 slow path，
+      // md 覆写 backgroundColor（md 激活）；base backgroundColor 翻转必须走 slow path，
       // 且末态恒为变体色（base 新值不得穿透）。
       Widget build(Color base) => ElView(
         style: ElStyle(
           width: 100,
           height: 20,
-          bgColor: base,
-          md: const ElStyle(bgColor: Color(0xFF00FF00)),
+          backgroundColor: base,
+          md: const ElStyle(backgroundColor: Color(0xFF00FF00)),
         ),
       );
 
@@ -1586,7 +1586,7 @@ void main() {
 
       expect(BenchmarkProbe.fastPatchHitCount, 0, reason: 'dirty ∩ 激活链 declaredMask 非空必须 bail');
       final render = tester.renderObject<ElRenderView>(find.byType(ElView));
-      expect(render.committedResolvedStyle.box.bgColor, const Color(0xFF00FF00), reason: '变体覆写值不被 base 穿透');
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xFF00FF00), reason: '变体覆写值不被 base 穿透');
     });
   });
 
@@ -1599,7 +1599,7 @@ void main() {
         expect(r.inheritedText.color, InheritedText.initial.color);
         expect(r.inheritedText.fontSize, InheritedText.initial.fontSize);
         expect(r.box.width, isNull);
-        expect(r.box.bgColor, isNull);
+        expect(r.box.backgroundColor, isNull);
       });
 
       test('全 group 字段写入', () {
@@ -1609,7 +1609,7 @@ void main() {
             fontSize: 16,
             width: 100,
             height: 50,
-            bgColor: Color(0xFFFFFFFF),
+            backgroundColor: Color(0xFFFFFFFF),
           ),
           parent: null,
           state: emptyState,
@@ -1618,7 +1618,7 @@ void main() {
         expect(r.inheritedText.fontSize, 16);
         expect(r.box.width, const ElDimension.pixels(100));
         expect(r.box.height, const ElDimension.pixels(50));
-        expect(r.box.bgColor, const Color(0xFFFFFFFF));
+        expect(r.box.backgroundColor, const Color(0xFFFFFFFF));
       });
 
       test('Adjuster: 负 width → null', () {
@@ -1645,11 +1645,11 @@ void main() {
       test('子声明 box 字段不影响 inherited group 共享', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000)),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(),
         );
         final r = StyleResolver.resolve(
-          style: const ElStyle(width: 100, height: 50, bgColor: Color(0xFFFFFFFF)),
+          style: const ElStyle(width: 100, height: 50, backgroundColor: Color(0xFFFFFFFF)),
           parent: parent,
           state: emptyState,
         );
@@ -1657,13 +1657,13 @@ void main() {
         expect(identical(r.inheritedBox, parent.inheritedBox), isTrue);
         // box 是独立写入
         expect(r.box.width, const ElDimension.pixels(100));
-        expect(r.box.bgColor, const Color(0xFFFFFFFF));
+        expect(r.box.backgroundColor, const Color(0xFFFFFFFF));
       });
 
       test('子声明 color → inheritedText identical 断裂，inheritedBox 仍 identical', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000), fontSize: 16),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(),
         );
         final r = StyleResolver.resolve(
@@ -1680,7 +1680,7 @@ void main() {
       test('子声明 cursor → inheritedBox identical 断裂，inheritedText 保持', () {
         const parent = ResolvedStyle(
           inheritedText: InheritedText(color: Color(0xFFFF0000)),
-          inheritedBox: InheritedBox(textDirection: TextDirection.ltr),
+          inheritedBox: InheritedBox(direction: TextDirection.ltr),
           box: Box(),
         );
         final r = StyleResolver.resolve(
@@ -1691,7 +1691,7 @@ void main() {
         expect(identical(r.inheritedText, parent.inheritedText), isTrue);
         expect(identical(r.inheritedBox, parent.inheritedBox), isFalse);
         expect(r.inheritedBox.cursor, SystemMouseCursors.click);
-        expect(r.inheritedBox.textDirection, TextDirection.ltr, reason: 'textDirection 必须保留');
+        expect(r.inheritedBox.direction, TextDirection.ltr, reason: 'textDirection 必须保留');
       });
 
       test('selfVariant 写入字段也会断 identical（但仅在状态激活时）', () {
@@ -1871,7 +1871,7 @@ void main() {
         final driver = StyleAnimationDriver(onTick: () {});
         addTearDown(driver.dispose);
         final result = CascadeTick.tick(
-          style: const ElStyle(color: red, transitions: [ElTransition.all(Duration(milliseconds: 100), Curves.linear)]),
+          style: const ElStyle(color: red, transition: [ElTransition.all(Duration(milliseconds: 100), Curves.linear)]),
           parent: null,
           oldCommitted: applyAndBuild(style: const ElStyle(color: blue)),
           state: 0,
@@ -1918,11 +1918,11 @@ void main() {
       test('只含 isInherited 字段（非继承字段被过滤）', () {
         // 设了一堆非继承 box 字段 + 一个继承字段
         const style = ElStyle(
-          bgColor: Color(0xFF000000),
+          backgroundColor: Color(0xFF000000),
           width: 10,
           height: 10,
           padding: .all(4),
-          decoration: TextDecoration.underline, // InheritedText 组但 isInherited:false
+          textDecorationLine: TextDecoration.underline, // InheritedText 组但 isInherited:false
           softWrap: false, // 同上
           color: Color(0xFFFF0000), // 唯一继承字段
         );
@@ -1943,18 +1943,18 @@ void main() {
           lineHeight: 1.5,
           letterSpacing: 0.5,
           wordSpacing: 1,
-          fontFeatures: <FontFeature>[const FontFeature.enable('smcp')],
-          fontVariations: const <FontVariation>[FontVariation('wght', 700)],
+          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
+          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
           textAlign: TextAlign.center,
           textBaseline: TextBaseline.ideographic,
           leadingDistribution: TextLeadingDistribution.even,
           textShadow: const <Shadow>[Shadow(blurRadius: 1)],
           textGradient: const ElLinearGradient(angle: 90, colors: [Color(0xFF030303), Color(0xFF040404)]),
-          decorationColor: const Color(0xFF020202),
-          decorationStyle: TextDecorationStyle.dashed,
-          decorationThickness: 2,
+          textDecorationColor: const Color(0xFF020202),
+          textDecorationStyle: TextDecorationStyle.dashed,
+          textDecorationThickness: 2,
           // --- InheritedBox 继承字段（5）---
-          textDirection: TextDirection.rtl,
+          direction: TextDirection.rtl,
           cursor: SystemMouseCursors.click,
           pointerEvents: ElPointerEvents.none,
           iconSize: 18,
@@ -1972,25 +1972,25 @@ void main() {
       test('回归：曾被手写清单漏掉的继承字段都被收进', () {
         final style = ElStyle(
           fontFamilyFallback: const <String>['A'],
-          fontFeatures: <FontFeature>[const FontFeature.enable('smcp')],
-          fontVariations: const <FontVariation>[FontVariation('wght', 700)],
+          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
+          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
           textBaseline: TextBaseline.ideographic,
           leadingDistribution: TextLeadingDistribution.even,
-          decorationColor: const Color(0xFF112233),
-          decorationStyle: TextDecorationStyle.dashed,
-          decorationThickness: 2,
+          textDecorationColor: const Color(0xFF112233),
+          textDecorationStyle: TextDecorationStyle.dashed,
+          textDecorationThickness: 2,
         );
         expect(
           StyleResolver.explicitInheritedMask(style).fields.toSet(),
           containsAll(<ElTransitionField>{
             ElTransitionField.fontFamilyFallback,
-            ElTransitionField.fontFeatures,
-            ElTransitionField.fontVariations,
+            ElTransitionField.fontFeatureSettings,
+            ElTransitionField.fontVariationSettings,
             ElTransitionField.textBaseline,
             ElTransitionField.leadingDistribution,
-            ElTransitionField.decorationColor,
-            ElTransitionField.decorationStyle,
-            ElTransitionField.decorationThickness,
+            ElTransitionField.textDecorationColor,
+            ElTransitionField.textDecorationStyle,
+            ElTransitionField.textDecorationThickness,
           }),
         );
       });
@@ -2008,22 +2008,22 @@ void main() {
       .lineHeight: const ElStyle(lineHeight: 1.8),
       .letterSpacing: const ElStyle(letterSpacing: 2),
       .wordSpacing: const ElStyle(wordSpacing: 3),
-      .fontFeatures: const ElStyle(fontFeatures: [FontFeature.tabularFigures()]),
-      .fontVariations: const ElStyle(fontVariations: [FontVariation('wght', 500)]),
+      .fontFeatureSettings: const ElStyle(fontFeatureSettings: [FontFeature.tabularFigures()]),
+      .fontVariationSettings: const ElStyle(fontVariationSettings: [FontVariation('wght', 500)]),
       .textAlign: const ElStyle(textAlign: .right),
       .textBaseline: const ElStyle(textBaseline: .ideographic),
       .leadingDistribution: const ElStyle(leadingDistribution: .proportional),
       .textShadow: const ElStyle(textShadow: [Shadow(blurRadius: 2)]),
       .textGradient: const ElStyle(textGradient: LinearGradient(colors: [Colors.red, Colors.blue])),
-      .decoration: const ElStyle(decoration: TextDecoration.underline),
-      .decorationColor: const ElStyle(decorationColor: Colors.red),
-      .decorationStyle: const ElStyle(decorationStyle: .dashed),
-      .decorationThickness: const ElStyle(decorationThickness: 2),
+      .textDecorationLine: const ElStyle(textDecorationLine: TextDecoration.underline),
+      .textDecorationColor: const ElStyle(textDecorationColor: Colors.red),
+      .textDecorationStyle: const ElStyle(textDecorationStyle: .dashed),
+      .textDecorationThickness: const ElStyle(textDecorationThickness: 2),
       .textBackgroundColor: const ElStyle(textBackgroundColor: Colors.red),
       .softWrap: const ElStyle(softWrap: false),
-      .overflow: const ElStyle(overflow: .ellipsis),
+      .textOverflow: const ElStyle(textOverflow: .ellipsis),
       .maxLines: const ElStyle(maxLines: 2),
-      .textDirection: const ElStyle(textDirection: .rtl),
+      .direction: const ElStyle(direction: .rtl),
       .cursor: const ElStyle(cursor: SystemMouseCursors.click),
       .pointerEvents: const ElStyle(pointerEvents: .none),
       .iconSize: const ElStyle(iconSize: 32),
@@ -2032,13 +2032,13 @@ void main() {
       .height: const ElStyle(height: 90),
       .widthFactor: const ElStyle(widthFactor: 0.5),
       .heightFactor: const ElStyle(heightFactor: 1.5),
-      .bgColor: const ElStyle(bgColor: Colors.blue),
+      .backgroundColor: const ElStyle(backgroundColor: Colors.blue),
       .padding: const ElStyle(padding: EdgeInsets.all(10)),
       .margin: const ElStyle(margin: .all(3)),
       .alignment: const ElStyle(alignment: .center),
-      .border: const ElStyle(border: .all(color: Colors.red)),
+      .border: const ElStyle(border: .all(borderColor: Colors.red)),
       .borderRadius: const ElStyle(borderRadius: BorderRadius.all(Radius.circular(10))),
-      .clipper: ElStyle(clipper: _PathClipper()),
+      .clipPath: ElStyle(clipPath: _PathClipper()),
       .boxShadow: const ElStyle(boxShadow: [BoxShadow(blurRadius: 3)]),
       .minWidth: const ElStyle(minWidth: 25),
       .maxWidth: const ElStyle(maxWidth: '90%'),
@@ -2046,11 +2046,11 @@ void main() {
       .maxHeight: const ElStyle(maxHeight: '95%'),
       .opacity: const ElStyle(opacity: 0.4),
       .transform: ElStyle(transform: ElTransform.rotate(0.3)),
-      .transformAlignment: const ElStyle(transformAlignment: .topLeft),
+      .transformOrigin: const ElStyle(transformOrigin: .topLeft),
       .clipBehavior: const ElStyle(clipBehavior: .hardEdge),
       .gradient: const ElStyle(gradient: LinearGradient(colors: [Colors.red, Colors.blue])),
-      .bgImage: const ElStyle(bgImage: DecorationImage(image: NetworkImage('https://example.invalid/sample.png'))),
-      .outline: const ElStyle(outline: ElOutline(width: 2, color: Colors.red)),
+      .backgroundImage: const ElStyle(backgroundImage: DecorationImage(image: NetworkImage('https://example.invalid/sample.png'))),
+      .outline: const ElStyle(outline: ElOutline(outlineWidth: 2, outlineColor: Colors.red)),
       .aspectRatio: const ElStyle(aspectRatio: 1.5),
       .filter: const ElStyle(filter: ElFilter(blur: 2)),
       .backdropFilter: const ElStyle(backdropFilter: ElFilter(blur: 3)),
@@ -2092,7 +2092,7 @@ void main() {
       Widget page(double size, Color color) => Directionality(
         textDirection: .ltr,
         child: ElView(
-          style: ElStyle(iconSize: size, iconColor: color, bgColor: color),
+          style: ElStyle(iconSize: size, iconColor: color, backgroundColor: color),
           child: const IconData(0xe716, fontFamily: 'MaterialIcons'),
         ),
       );
@@ -2109,7 +2109,7 @@ void main() {
       Widget page(double size, Color color) => Directionality(
         textDirection: .ltr,
         child: ElView(
-          style: ElStyle(iconSize: size, iconColor: color, bgColor: color),
+          style: ElStyle(iconSize: size, iconColor: color, backgroundColor: color),
           child: Column(
             children: const [
               ElView(
@@ -2151,7 +2151,7 @@ void main() {
     }) => ElStyle(
       width: width ?? 100,
       height: height ?? 50,
-      bgColor: bgColor,
+      backgroundColor: bgColor,
       padding: padding,
       borderRadius: borderRadius,
       boxShadow: boxShadow,
@@ -2159,9 +2159,9 @@ void main() {
     );
 
     test('连续更新返回独立的变更字段集合', () {
-      const initial = ElStyle(width: 100, bgColor: Colors.red);
-      const recolored = ElStyle(width: 100, bgColor: Colors.blue);
-      const resized = ElStyle(width: 200, bgColor: Colors.blue);
+      const initial = ElStyle(width: 100, backgroundColor: Colors.red);
+      const recolored = ElStyle(width: 100, backgroundColor: Colors.blue);
+      const resized = ElStyle(width: 200, backgroundColor: Colors.blue);
       final first = CascadeFastPatch.tryPatch(
         oldStyle: initial,
         newStyle: recolored,
@@ -2179,7 +2179,7 @@ void main() {
         hasActiveAnimations: false,
       )!;
 
-      expect(first.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+      expect(first.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
       expect(second.changedMask.fields.toSet(), {ElTransitionField.width});
       expect(identical(first.changedMask.fields.toSet(), second.changedMask.fields.toSet()), isFalse);
     });
@@ -2188,13 +2188,13 @@ void main() {
       test('onHover ref 不同 → bail', () {
         final old = ElStyle(
           width: 100,
-          bgColor: Colors.red,
-          onHover: const ElStyle(bgColor: Color(0xFF111111)),
+          backgroundColor: Colors.red,
+          onHover: const ElStyle(backgroundColor: Color(0xFF111111)),
         );
         final newS = ElStyle(
           width: 100,
-          bgColor: Colors.blue,
-          onHover: const ElStyle(bgColor: Color(0xFF222222)),
+          backgroundColor: Colors.blue,
+          onHover: const ElStyle(backgroundColor: Color(0xFF222222)),
         );
         final result = CascadeFastPatch.tryPatch(
           oldStyle: old,
@@ -2209,12 +2209,12 @@ void main() {
 
       test('onTap ref 不同 → bail', () {
         final old = ElStyle(
-          bgColor: Colors.red,
-          onTap: const ElStyle(bgColor: Color(0xFF111111)),
+          backgroundColor: Colors.red,
+          onTap: const ElStyle(backgroundColor: Color(0xFF111111)),
         );
         final newS = ElStyle(
-          bgColor: Colors.blue,
-          onTap: const ElStyle(bgColor: Color(0xFF222222)),
+          backgroundColor: Colors.blue,
+          onTap: const ElStyle(backgroundColor: Color(0xFF222222)),
         );
         expect(
           CascadeFastPatch.tryPatch(
@@ -2230,8 +2230,8 @@ void main() {
       });
 
       test('其余 5 个 self variants ref 不同 → bail', () {
-        const baseVariant = ElStyle(bgColor: Color(0xFF111111));
-        const otherVariant = ElStyle(bgColor: Color(0xFF222222));
+        const baseVariant = ElStyle(backgroundColor: Color(0xFF111111));
+        const otherVariant = ElStyle(backgroundColor: Color(0xFF222222));
 
         ElStyle build({
           ElStyle? focus,
@@ -2279,8 +2279,8 @@ void main() {
       });
 
       test('transitions ref 不同 → bail', () {
-        final old = ElStyle(bgColor: Colors.red, transitions: const [ElTransition.all(Duration(milliseconds: 100))]);
-        final newS = ElStyle(bgColor: Colors.blue, transitions: const [ElTransition.all(Duration(milliseconds: 200))]);
+        final old = ElStyle(backgroundColor: Colors.red, transition: const [ElTransition.all(Duration(milliseconds: 100))]);
+        final newS = ElStyle(backgroundColor: Colors.blue, transition: const [ElTransition.all(Duration(milliseconds: 200))]);
         expect(
           CascadeFastPatch.tryPatch(
             oldStyle: old,
@@ -2297,9 +2297,9 @@ void main() {
 
     group('bail：state 命中 active self variant', () {
       test('newStyle 有 onHover + state.hover=true → bail', () {
-        const variant = ElStyle(bgColor: Color(0xFF111111));
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+        const variant = ElStyle(backgroundColor: Color(0xFF111111));
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final mask = (1 << ViewState.hover.index);
         expect(
           CascadeFastPatch.tryPatch(
@@ -2315,9 +2315,9 @@ void main() {
       });
 
       test('newStyle 有 onTap + state.active=true → bail', () {
-        const variant = ElStyle(bgColor: Color(0xFF111111));
-        final old = ElStyle(bgColor: Colors.red, onTap: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onTap: variant);
+        const variant = ElStyle(backgroundColor: Color(0xFF111111));
+        final old = ElStyle(backgroundColor: Colors.red, onTap: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onTap: variant);
         final mask = (1 << ViewState.tap.index);
         expect(
           CascadeFastPatch.tryPatch(
@@ -2333,9 +2333,9 @@ void main() {
       });
 
       test('newStyle 有 onHover 但 state.hover=false → 不 bail（其他条件都过的情况）', () {
-        const variant = ElStyle(bgColor: Color(0xFF111111));
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+        const variant = ElStyle(backgroundColor: Color(0xFF111111));
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final result = CascadeFastPatch.tryPatch(
           oldStyle: old,
           newStyle: newS,
@@ -2345,7 +2345,7 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(result, isNotNull);
-        expect(result!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+        expect(result!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
       });
 
       // =========================================================================
@@ -2353,10 +2353,10 @@ void main() {
       // declaredMask 非空 / 激活链声明 transitions 才回 slow path。
       // =========================================================================
 
-      test('T-variant3：hover 激活但变体只覆写 opacity、diff 是 bgColor → fast hit 且与 slow 等价', () {
+      test('T-variant3：hover 激活但变体只覆写 opacity、diff 是 backgroundColor → fast hit 且与 slow 等价', () {
         const variant = ElStyle(opacity: 0.5);
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final mask = (1 << ViewState.hover.index);
         final state = mask;
         final oldTarget = resolveSlow(old, state: state);
@@ -2369,17 +2369,17 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(result, isNotNull);
-        expect(result!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
-        // 变体覆写的 opacity 原样保留（来自 oldTarget），bgColor 取 base 新值。
+        expect(result!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
+        // 变体覆写的 opacity 原样保留（来自 oldTarget），backgroundColor 取 base 新值。
         final slow = resolveSlow(newS, state: state);
         expect(result.newTarget.box.opacity, slow.box.opacity);
-        expect(result.newTarget.box.bgColor, slow.box.bgColor);
+        expect(result.newTarget.box.backgroundColor, slow.box.backgroundColor);
       });
 
-      test('T-variant3：hover 激活且变体覆写 bgColor、diff 是 bgColor → bail（dirty 相交）', () {
-        const variant = ElStyle(bgColor: Color(0xFF111111));
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+      test('T-variant3：hover 激活且变体覆写 backgroundColor、diff 是 backgroundColor → bail（dirty 相交）', () {
+        const variant = ElStyle(backgroundColor: Color(0xFF111111));
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final mask = (1 << ViewState.hover.index);
         expect(
           CascadeFastPatch.tryPatch(
@@ -2394,12 +2394,12 @@ void main() {
         );
       });
 
-      test('T-variant3：响应式 md 激活（累进位恒亮）但只覆写 padding、diff 是 bgColor → fast hit', () {
+      test('T-variant3：响应式 md 激活（累进位恒亮）但只覆写 padding、diff 是 backgroundColor → fast hit', () {
         // T-variant2 累进语义：宽屏下 xs..md 全亮。旧 Bail 2 下本场景永久 bail
         // ——一切声明响应式变体的样式失去 fast path，是本轮修复的核心场景。
         const variant = ElStyle(padding: EdgeInsets.all(24));
-        final old = ElStyle(bgColor: Colors.red, md: variant);
-        final newS = ElStyle(bgColor: Colors.blue, md: variant);
+        final old = ElStyle(backgroundColor: Colors.red, md: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, md: variant);
         final mask = (((1 << ViewState.xs.index) | (1 << ViewState.sm.index)) | (1 << ViewState.md.index));
         final state = mask;
         final oldTarget = resolveSlow(old, state: state);
@@ -2412,19 +2412,19 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(result, isNotNull);
-        expect(result!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+        expect(result!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
         final slow = resolveSlow(newS, state: state);
         expect(result.newTarget.box.padding, slow.box.padding);
-        expect(result.newTarget.box.bgColor, slow.box.bgColor);
+        expect(result.newTarget.box.backgroundColor, slow.box.backgroundColor);
       });
 
       test('T-variant3：xs..xl 引用差异 → Bail 1 兜住（补进 identical 清单）', () {
         final old = ElStyle(
-          bgColor: Colors.red,
+          backgroundColor: Colors.red,
           md: const ElStyle(padding: EdgeInsets.all(8)),
         );
         final newS = ElStyle(
-          bgColor: Colors.blue,
+          backgroundColor: Colors.blue,
           md: const ElStyle(padding: EdgeInsets.all(16)),
         );
         expect(
@@ -2483,9 +2483,9 @@ void main() {
       });
 
       test('T-variant3：激活变体声明 transitions → bail', () {
-        const variant = ElStyle(opacity: 0.5, transitions: [ElTransition.all(Duration(milliseconds: 100))]);
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+        const variant = ElStyle(opacity: 0.5, transition: [ElTransition.all(Duration(milliseconds: 100))]);
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final mask = (1 << ViewState.hover.index);
         expect(
           CascadeFastPatch.tryPatch(
@@ -2503,9 +2503,9 @@ void main() {
       test('T-variant3：未激活变体声明 transitions 不影响 fast hit', () {
         // onHover 声明 transitions 但 hover 未激活 → effective transitions
         // 仍取 base（null）→ fast path 安全。
-        const variant = ElStyle(opacity: 0.5, transitions: [ElTransition.all(Duration(milliseconds: 100))]);
-        final old = ElStyle(bgColor: Colors.red, onHover: variant);
-        final newS = ElStyle(bgColor: Colors.blue, onHover: variant);
+        const variant = ElStyle(opacity: 0.5, transition: [ElTransition.all(Duration(milliseconds: 100))]);
+        final old = ElStyle(backgroundColor: Colors.red, onHover: variant);
+        final newS = ElStyle(backgroundColor: Colors.blue, onHover: variant);
         final result = CascadeFastPatch.tryPatch(
           oldStyle: old,
           newStyle: newS,
@@ -2515,15 +2515,15 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(result, isNotNull);
-        expect(result!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+        expect(result!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
       });
     });
 
     group('bail：声明 transitions / hasActiveAnimations', () {
       test('newStyle 声明 transitions（非空）→ bail（即使 ref 一致）', () {
         const sharedT = [ElTransition.all(Duration(milliseconds: 100))];
-        final old = ElStyle(bgColor: Colors.red, transitions: sharedT);
-        final newS = ElStyle(bgColor: Colors.blue, transitions: sharedT);
+        final old = ElStyle(backgroundColor: Colors.red, transition: sharedT);
+        final newS = ElStyle(backgroundColor: Colors.blue, transition: sharedT);
         expect(
           CascadeFastPatch.tryPatch(
             oldStyle: old,
@@ -2538,8 +2538,8 @@ void main() {
       });
 
       test('hasActiveAnimations=true → bail', () {
-        final old = ElStyle(bgColor: Colors.red);
-        final newS = ElStyle(bgColor: Colors.blue);
+        final old = ElStyle(backgroundColor: Colors.red);
+        final newS = ElStyle(backgroundColor: Colors.blue);
         expect(
           CascadeFastPatch.tryPatch(
             oldStyle: old,
@@ -2613,19 +2613,19 @@ void main() {
 
       test('非继承 text 字段切到 null + 有 parent：不 fall back parent', () {
         final parent = ResolvedStyleBuilder.empty();
-        parent.writeDecoration(TextDecoration.underline);
+        parent.writeTextDecorationLine(TextDecoration.underline);
         parent.writeTextBackgroundColor(const Color(0xFFFFFF00));
         parent.writeSoftWrap(false);
-        parent.writeOverflow(TextOverflow.ellipsis);
+        parent.writeTextOverflow(TextOverflow.ellipsis);
         parent.writeMaxLines(1);
         final parentResolved = parent.build();
 
         const old = ElStyle(
           width: 100,
-          decoration: TextDecoration.overline,
+          textDecorationLine: TextDecoration.overline,
           textBackgroundColor: Color(0xFF00FF00),
           softWrap: true,
-          overflow: TextOverflow.clip,
+          textOverflow: TextOverflow.clip,
           maxLines: 3,
         );
         const newS = ElStyle(width: 100);
@@ -2640,16 +2640,16 @@ void main() {
 
         expect(fast, isNotNull);
         expect(fast!.changedMask.fields.toSet(), {
-          ElTransitionField.decoration,
+          ElTransitionField.textDecorationLine,
           ElTransitionField.textBackgroundColor,
           ElTransitionField.softWrap,
-          ElTransitionField.overflow,
+          ElTransitionField.textOverflow,
           ElTransitionField.maxLines,
         });
-        expect(fast.newTarget.inheritedText.decoration, isNull);
+        expect(fast.newTarget.inheritedText.textDecorationLine, isNull);
         expect(fast.newTarget.inheritedText.textBackgroundColor, isNull);
         expect(fast.newTarget.inheritedText.softWrap, isNull);
-        expect(fast.newTarget.inheritedText.overflow, isNull);
+        expect(fast.newTarget.inheritedText.textOverflow, isNull);
         expect(fast.newTarget.inheritedText.maxLines, isNull);
 
         final slow = resolveSlow(newS, parent: parentResolved);
@@ -2657,8 +2657,8 @@ void main() {
       });
 
       test('textDirection 差异：patch + dirty 含 textDirection', () {
-        final old = ElStyle(width: 100, textDirection: TextDirection.ltr);
-        final newS = ElStyle(width: 100, textDirection: TextDirection.rtl);
+        final old = ElStyle(width: 100, direction: TextDirection.ltr);
+        final newS = ElStyle(width: 100, direction: TextDirection.rtl);
         final fast = CascadeFastPatch.tryPatch(
           oldStyle: old,
           newStyle: newS,
@@ -2668,8 +2668,8 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(fast, isNotNull);
-        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.textDirection});
-        expect(fast.newTarget.inheritedBox.textDirection, TextDirection.rtl);
+        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.direction});
+        expect(fast.newTarget.inheritedBox.direction, TextDirection.rtl);
       });
 
       test('cursor 差异：patch + dirty 含 cursor', () {
@@ -2768,7 +2768,7 @@ void main() {
         expect(
           CascadeFastPatch.tryPatch(
             oldStyle: null,
-            newStyle: ElStyle(bgColor: Colors.red),
+            newStyle: ElStyle(backgroundColor: Colors.red),
             oldTarget: resolveSlow(null),
             parent: null,
             state: noState(),
@@ -2779,7 +2779,7 @@ void main() {
       });
 
       test('newStyle = null → bail', () {
-        final old = ElStyle(bgColor: Colors.red);
+        final old = ElStyle(backgroundColor: Colors.red);
         expect(
           CascadeFastPatch.tryPatch(
             oldStyle: old,
@@ -2795,7 +2795,7 @@ void main() {
     });
 
     group('fast hit：单字段 patch + 与 slow path 等价', () {
-      test('bgColor 单字段变化', () {
+      test('backgroundColor 单字段变化', () {
         final old = boxStyle(bgColor: Colors.green);
         final newS = boxStyle(bgColor: Colors.blue);
         final oldT = resolveSlow(old);
@@ -2808,10 +2808,10 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(fast, isNotNull);
-        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
 
         final slow = resolveSlow(newS);
-        expect(fast.newTarget.box.bgColor, slow.box.bgColor);
+        expect(fast.newTarget.box.backgroundColor, slow.box.backgroundColor);
         expect(fast.newTarget.box.width, slow.box.width);
         expect(fast.newCommitted, same(fast.newTarget));
       });
@@ -2910,7 +2910,7 @@ void main() {
         expect(fast!.changedMask.fields.toSet(), {ElTransitionField.padding});
       });
 
-      test('多字段同时变化（bgColor + width + opacity）', () {
+      test('多字段同时变化（backgroundColor + width + opacity）', () {
         final old = boxStyle(bgColor: Colors.green, width: 100, opacity: 1.0);
         final newS = boxStyle(bgColor: Colors.blue, width: 200, opacity: 0.5);
         final fast = CascadeFastPatch.tryPatch(
@@ -2923,12 +2923,12 @@ void main() {
         );
         expect(fast, isNotNull);
         expect(fast!.changedMask.fields.toSet(), {
-          ElTransitionField.bgColor,
+          ElTransitionField.backgroundColor,
           ElTransitionField.width,
           ElTransitionField.opacity,
         });
         final slow = resolveSlow(newS);
-        expect(fast.newTarget.box.bgColor, slow.box.bgColor);
+        expect(fast.newTarget.box.backgroundColor, slow.box.backgroundColor);
         expect(fast.newTarget.box.width, slow.box.width);
         expect(fast.newTarget.box.opacity, slow.box.opacity);
       });
@@ -2945,7 +2945,7 @@ void main() {
           hasActiveAnimations: false,
         );
         expect(fast, isNotNull);
-        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.bgColor});
+        expect(fast!.changedMask.fields.toSet(), {ElTransitionField.backgroundColor});
         expect(fast.changedMask.fields.toSet(), isNot(contains(ElTransitionField.width)));
       });
 
@@ -2999,8 +2999,8 @@ void main() {
 
     group('与 slow path 输出端到端等价', () {
       test('fast.newTarget.box 与 slow.box 字段全等（多种 patch 组合）', () {
-        final old = ElStyle(width: 100, height: 50, bgColor: Colors.green, padding: const .all(8), opacity: 1.0);
-        final newS = ElStyle(width: 200, height: 80, bgColor: Colors.blue, padding: const .all(16), opacity: 0.5);
+        final old = ElStyle(width: 100, height: 50, backgroundColor: Colors.green, padding: const .all(8), opacity: 1.0);
+        final newS = ElStyle(width: 200, height: 80, backgroundColor: Colors.blue, padding: const .all(16), opacity: 0.5);
 
         final oldT = resolveSlow(old);
         final fast = CascadeFastPatch.tryPatch(
@@ -3017,7 +3017,7 @@ void main() {
         // box group 字段全等
         expect(fast!.newTarget.box.width, slow.box.width);
         expect(fast.newTarget.box.height, slow.box.height);
-        expect(fast.newTarget.box.bgColor, slow.box.bgColor);
+        expect(fast.newTarget.box.backgroundColor, slow.box.backgroundColor);
         expect(fast.newTarget.box.padding, slow.box.padding);
         expect(fast.newTarget.box.opacity, slow.box.opacity);
       });
@@ -3067,8 +3067,8 @@ void main() {
         expect(fast!.newTarget.inheritedText.color, const Color(0xFFFF0000));
         expect(fast.newTarget.inheritedText.color, slow.inheritedText.color);
         // box 字段 = newStyle 字段
-        expect(fast.newTarget.box.bgColor, Colors.blue);
-        expect(fast.newTarget.box.bgColor, slow.box.bgColor);
+        expect(fast.newTarget.box.backgroundColor, Colors.blue);
+        expect(fast.newTarget.box.backgroundColor, slow.box.backgroundColor);
       });
 
       test('newCommitted 与 newTarget 同 identity（无 active animation 路径）', () {
@@ -3088,7 +3088,7 @@ void main() {
     });
 
     group('集成：ElView widget 走 fast path 不破坏 cascade 末态', () {
-      testWidgets('Flex60 bgColor 翻转：所有子 resolved.bgColor 正确', (tester) async {
+      testWidgets('Flex60 backgroundColor 翻转：所有子 resolved.backgroundColor 正确', (tester) async {
         tester.view.physicalSize = const Size(800, 1600);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
@@ -3103,7 +3103,7 @@ void main() {
                   style: ElStyle(),
                   child: List<Widget>.generate(60, (i) {
                     return ElView(
-                      style: ElStyle(width: 360, height: 18, bgColor: (i.isEven == active) ? Colors.red : Colors.green),
+                      style: ElStyle(width: 360, height: 18, backgroundColor: (i.isEven == active) ? Colors.red : Colors.green),
                     );
                   }, growable: false),
                 ),
@@ -3116,14 +3116,14 @@ void main() {
         // 验证初始：even=green, odd=red
         final initial = tester.renderObjectList<RenderBox>(find.byType(ElView)).toList();
         // find.byType(ElView) DFS pre-order 抓到 62 个 ElView：
-        //   [0] = root container(width 360, 无 bgColor)
-        //   [1] = 内层 flex column 容器 (无 bgColor)
-        //   [2..61] = 60 个叶子 ElView（唯一带 bgColor 的层）
+        //   [0] = root container(width 360, 无 backgroundColor)
+        //   [1] = 内层 flex column 容器 (无 backgroundColor)
+        //   [2..61] = 60 个叶子 ElView（唯一带 backgroundColor 的层）
         // 跳前 2 个容器；老实现只跳 index 0 会把 flex 容器当叶子读，
-        // resolved.box.bgColor = null → 崩在 `as Color` 上。
+        // resolved.box.backgroundColor = null → 崩在 `as Color` 上。
         for (var i = 0; i < 60; i++) {
           final view = initial[i + 2];
-          final color = (view as dynamic).committedResolvedStyle.box.bgColor as Color;
+          final color = (view as dynamic).committedResolvedStyle.box.backgroundColor as Color;
           expect(color, i.isEven ? Colors.green : Colors.red, reason: 'i=$i initial active=false');
         }
 
@@ -3132,7 +3132,7 @@ void main() {
         final after = tester.renderObjectList<RenderBox>(find.byType(ElView)).toList();
         for (var i = 0; i < 60; i++) {
           final view = after[i + 2];
-          final color = (view as dynamic).committedResolvedStyle.box.bgColor as Color;
+          final color = (view as dynamic).committedResolvedStyle.box.backgroundColor as Color;
           expect(color, i.isEven ? Colors.red : Colors.green, reason: 'i=$i flipped active=true');
         }
       });
@@ -3148,8 +3148,8 @@ void main() {
                 style: ElStyle(
                   width: 100,
                   height: 100,
-                  bgColor: baseColor,
-                  onHover: const ElStyle(bgColor: Color(0xFF111111)),
+                  backgroundColor: baseColor,
+                  onHover: const ElStyle(backgroundColor: Color(0xFF111111)),
                 ),
               ),
             ),
@@ -3162,9 +3162,9 @@ void main() {
         // 触发 hover state
         hoverableRender.setHover(true);
         await tester.pump();
-        // 此时 resolved.bgColor 应该来自 onHover（0xFF111111）
+        // 此时 resolved.backgroundColor 应该来自 onHover（0xFF111111）
         expect(
-          (hoverableRender as dynamic).committedResolvedStyle.box.bgColor,
+          (hoverableRender as dynamic).committedResolvedStyle.box.backgroundColor,
           const Color(0xFF111111),
           reason: 'hover 命中 → variant 值',
         );
@@ -3172,15 +3172,15 @@ void main() {
         // 改变 baseColor，但 hover 仍命中：fast patch 应 bail，slow path 算出 variant 值不变
         await tester.pumpWidget(build(baseColor: Colors.blue));
         expect(
-          (hoverableRender as dynamic).committedResolvedStyle.box.bgColor,
+          (hoverableRender as dynamic).committedResolvedStyle.box.backgroundColor,
           const Color(0xFF111111),
           reason: 'hover 仍命中 → variant 值（不被 base 变化覆盖）',
         );
 
-        // 退出 hover：基色应回到 newStyle.bgColor = blue
+        // 退出 hover：基色应回到 newStyle.backgroundColor = blue
         hoverableRender.setHover(false);
         await tester.pump();
-        expect((hoverableRender as dynamic).committedResolvedStyle.box.bgColor, Colors.blue);
+        expect((hoverableRender as dynamic).committedResolvedStyle.box.backgroundColor, Colors.blue);
       });
     });
   });
@@ -3351,7 +3351,7 @@ void main() {
         Widget build(Color color) => shell(
           ElView(
             key: rootKey,
-            style: .new(width: 240, height: 30, color: color, fontSize: 14, decoration: TextDecoration.underline),
+            style: .new(width: 240, height: 30, color: color, fontSize: 14, textDecorationLine: TextDecoration.underline),
             child: ElView(key: childKey, child: 'text'),
           ),
         );
@@ -3361,14 +3361,14 @@ void main() {
 
         final child = viewOf(tester, childKey);
         final childText0 = child.committedResolvedStyle.inheritedText;
-        expect(childText0.decoration, isNull, reason: '父 decoration 是非继承字段，子应保持 null / initial');
+        expect(childText0.textDecorationLine, isNull, reason: '父 decoration 是非继承字段，子应保持 null / initial');
 
         await tester.pumpWidget(build(const Color(0xffff0000)));
         await tester.pump();
 
         final childText1 = child.committedResolvedStyle.inheritedText;
         expect(childText1.color, const Color(0xffff0000), reason: '子 color 更新');
-        expect(childText1.decoration, isNull, reason: '借用恢复必须承接 fromInheritedParent 重置语义，decoration 不泄漏');
+        expect(childText1.textDecorationLine, isNull, reason: '借用恢复必须承接 fromInheritedParent 重置语义，decoration 不泄漏');
       });
     });
 
@@ -3380,7 +3380,7 @@ void main() {
         Widget build(TextDirection dir) => shell(
           ElView(
             key: rootKey,
-            style: .new(width: 240, height: 30, textDirection: dir),
+            style: .new(width: 240, height: 30, direction: dir),
             child: ElView(key: childKey, child: 'text'),
           ),
         );
@@ -3395,7 +3395,7 @@ void main() {
 
         final rootBox = viewOf(tester, rootKey).committedResolvedStyle.inheritedBox;
         final childBox = viewOf(tester, childKey).committedResolvedStyle.inheritedBox;
-        expect(rootBox.textDirection, TextDirection.rtl);
+        expect(rootBox.direction, TextDirection.rtl);
         expect(identical(childBox, rootBox), isTrue, reason: 'inheritedBox 组借用恢复：子共享父新组实例');
         expect(BenchmarkProbe.inheritBorrowHitCount, greaterThanOrEqualTo(1), reason: 'inheritedBox 传播路径应命中借用');
       });
@@ -3574,45 +3574,45 @@ void main() {
       test('onHover(onTap: X) — 仅 hover 不生效', () {
         final r = resolve(
           const ElStyle(
-            bgColor: Color(0xFF000000),
+            backgroundColor: Color(0xFF000000),
             onHover: ElStyle(
-              bgColor: bgHover,
-              onTap: ElStyle(bgColor: bgNested),
+              backgroundColor: bgHover,
+              onTap: ElStyle(backgroundColor: bgNested),
             ),
           ),
           state: stateOf([ViewState.hover]),
         );
-        expect(r.box.bgColor, bgHover, reason: '仅 hover 命中顶层 onHover.bgColor，嵌套 onTap 未激活');
+        expect(r.box.backgroundColor, bgHover, reason: '仅 hover 命中顶层 onHover.backgroundColor，嵌套 onTap 未激活');
       });
 
       test('onHover(onTap: X) — 仅 active 不生效（顶层 onHover 未激活）', () {
         final r = resolve(
           const ElStyle(
-            bgColor: Color(0xFF000000),
+            backgroundColor: Color(0xFF000000),
             onHover: ElStyle(
-              bgColor: bgHover,
-              onTap: ElStyle(bgColor: bgNested),
+              backgroundColor: bgHover,
+              onTap: ElStyle(backgroundColor: bgNested),
             ),
-            onTap: ElStyle(bgColor: bgActive),
+            onTap: ElStyle(backgroundColor: bgActive),
           ),
           state: stateOf([ViewState.tap]),
         );
-        expect(r.box.bgColor, bgActive, reason: '仅 active：顶层 onTap 生效，嵌套链因 hover 未激活被剪枝');
+        expect(r.box.backgroundColor, bgActive, reason: '仅 active：顶层 onTap 生效，嵌套链因 hover 未激活被剪枝');
       });
 
       test('onHover(onTap: X) — hover+active 都激活 → 嵌套链生效', () {
         final r = resolve(
           const ElStyle(
-            bgColor: Color(0xFF000000),
+            backgroundColor: Color(0xFF000000),
             onHover: ElStyle(
-              bgColor: bgHover,
-              onTap: ElStyle(bgColor: bgNested),
+              backgroundColor: bgHover,
+              onTap: ElStyle(backgroundColor: bgNested),
             ),
-            onTap: ElStyle(bgColor: bgActive),
+            onTap: ElStyle(backgroundColor: bgActive),
           ),
           state: stateOf([ViewState.hover, ViewState.tap]),
         );
-        expect(r.box.bgColor, bgNested, reason: 'hover+active 同时激活，链长 2 压过链长 1 顶层');
+        expect(r.box.backgroundColor, bgNested, reason: 'hover+active 同时激活，链长 2 压过链长 1 顶层');
       });
     });
 
@@ -3622,12 +3622,12 @@ void main() {
         const nested = Color(0xFFBBBBBB);
         final r = resolve(
           const ElStyle(
-            onTap: ElStyle(bgColor: topActive),
-            onHover: ElStyle(onTap: ElStyle(bgColor: nested)),
+            onTap: ElStyle(backgroundColor: topActive),
+            onHover: ElStyle(onTap: ElStyle(backgroundColor: nested)),
           ),
           state: stateOf([ViewState.hover, ViewState.tap]),
         );
-        expect(r.box.bgColor, nested, reason: '链长 2 特异性 > 顶层链长 1');
+        expect(r.box.backgroundColor, nested, reason: '链长 2 特异性 > 顶层链长 1');
       });
     });
 
@@ -3638,43 +3638,43 @@ void main() {
       test('dark+hover → darkHover', () {
         final r = resolve(
           const ElStyle(
-            bgColor: base,
+            backgroundColor: base,
             onDark: ElStyle(
-              onHover: ElStyle(bgColor: darkHover),
-              onTap: ElStyle(bgColor: darkActive),
+              onHover: ElStyle(backgroundColor: darkHover),
+              onTap: ElStyle(backgroundColor: darkActive),
             ),
           ),
           state: stateOf([ViewState.dark, ViewState.hover]),
         );
-        expect(r.box.bgColor, darkHover);
+        expect(r.box.backgroundColor, darkHover);
       });
 
       test('dark+active → darkActive', () {
         final r = resolve(
           const ElStyle(
-            bgColor: base,
+            backgroundColor: base,
             onDark: ElStyle(
-              onHover: ElStyle(bgColor: darkHover),
-              onTap: ElStyle(bgColor: darkActive),
+              onHover: ElStyle(backgroundColor: darkHover),
+              onTap: ElStyle(backgroundColor: darkActive),
             ),
           ),
           state: stateOf([ViewState.dark, ViewState.tap]),
         );
-        expect(r.box.bgColor, darkActive);
+        expect(r.box.backgroundColor, darkActive);
       });
 
       test('dark+hover+active → 按表序 active(表序靠后) 覆 hover 同名字段', () {
         final r = resolve(
           const ElStyle(
-            bgColor: base,
+            backgroundColor: base,
             onDark: ElStyle(
-              onHover: ElStyle(bgColor: darkHover),
-              onTap: ElStyle(bgColor: darkActive),
+              onHover: ElStyle(backgroundColor: darkHover),
+              onTap: ElStyle(backgroundColor: darkActive),
             ),
           ),
           state: stateOf([ViewState.dark, ViewState.hover, ViewState.tap]),
         );
-        expect(r.box.bgColor, darkActive, reason: '同链长（都为 2），DFS pathOrder onHover 先、onTap 后 → active 胜出');
+        expect(r.box.backgroundColor, darkActive, reason: '同链长（都为 2），DFS pathOrder onHover 先、onTap 后 → active 胜出');
       });
     });
 
@@ -3683,15 +3683,15 @@ void main() {
       test('三态齐活才生效', () {
         final style = const ElStyle(
           onDark: ElStyle(
-            onHover: ElStyle(onTap: ElStyle(bgColor: deep)),
+            onHover: ElStyle(onTap: ElStyle(backgroundColor: deep)),
           ),
         );
         // dark+hover 缺 active
         final a = resolve(style, state: stateOf([ViewState.dark, ViewState.hover]));
-        expect(a.box.bgColor, isNull, reason: 'active 未激活 → 三层链剪枝');
+        expect(a.box.backgroundColor, isNull, reason: 'active 未激活 → 三层链剪枝');
         // 全齐
         final b = resolve(style, state: stateOf([ViewState.dark, ViewState.hover, ViewState.tap]));
-        expect(b.box.bgColor, deep, reason: '三态齐活 → 链长 3 生效');
+        expect(b.box.backgroundColor, deep, reason: '三态齐活 → 链长 3 生效');
       });
     });
 
@@ -3701,25 +3701,25 @@ void main() {
       test('普通顶层 onHover 语义与旧行为一致', () {
         final active = resolve(
           const ElStyle(
-            bgColor: Color(0xFF000000),
-            onHover: ElStyle(bgColor: Color(0xFFFF0000)),
+            backgroundColor: Color(0xFF000000),
+            onHover: ElStyle(backgroundColor: Color(0xFFFF0000)),
           ),
           state: stateOf([ViewState.hover]),
         );
-        expect(active.box.bgColor, const Color(0xFFFF0000));
+        expect(active.box.backgroundColor, const Color(0xFFFF0000));
         final inactive = resolve(
           const ElStyle(
-            bgColor: Color(0xFF000000),
-            onHover: ElStyle(bgColor: Color(0xFFFF0000)),
+            backgroundColor: Color(0xFF000000),
+            onHover: ElStyle(backgroundColor: Color(0xFFFF0000)),
           ),
         );
-        expect(inactive.box.bgColor, const Color(0xFF000000));
+        expect(inactive.box.backgroundColor, const Color(0xFF000000));
       });
     });
 
     group('style_spec 判据', () {
       test('单层变体仅在状态命中时进入级联', () {
-        const s = ElStyle(onHover: ElStyle(bgColor: Color(0xFF111111)));
+        const s = ElStyle(onHover: ElStyle(backgroundColor: Color(0xFF111111)));
         // mask 至少包含 hover 位（顶层声明）
         expect(variantStatesMaskOf(s) & (1 << ViewState.hover.index), isNot(0));
         expect(activeVariantsOf(s, 0), isEmpty);
@@ -3729,7 +3729,7 @@ void main() {
       test('嵌套条件必须全部命中，mask 涵盖各层状态', () {
         const s = ElStyle(
           onDark: ElStyle(
-            onHover: ElStyle(onTap: ElStyle(bgColor: Color(0xFF222222))),
+            onHover: ElStyle(onTap: ElStyle(backgroundColor: Color(0xFF222222))),
           ),
         );
         final m = variantStatesMaskOf(s);
@@ -3747,8 +3747,8 @@ void main() {
       });
 
       test('按组合深度保持优先级，共享声明经不同路径出现时不去重', () {
-        final sharedLeaf = ElStyle(bgColor: Color(0xff111111));
-        final otherLeaf = ElStyle(bgColor: Color(0xff222222));
+        final sharedLeaf = ElStyle(backgroundColor: Color(0xff111111));
+        final otherLeaf = ElStyle(backgroundColor: Color(0xff222222));
         final hoverTap = ElStyle(onDisabled: sharedLeaf);
         final hoverDark = ElStyle();
         final tapHover = ElStyle();
@@ -3890,92 +3890,92 @@ void main() {
       test('移动端宽度（sm+md+lg+xl 位）命中 sm 变体', () {
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
-            sm: ElStyle(bgColor: bgSm),
+            backgroundColor: bg,
+            sm: ElStyle(backgroundColor: bgSm),
           ),
           state: stateOf([ViewState.sm, ViewState.md, ViewState.lg, ViewState.xl]),
         );
-        expect(r.box.bgColor, bgSm);
+        expect(r.box.backgroundColor, bgSm);
       });
 
       test('多档同时命中：极小宽度下 sm+md 同亮，后 emit 的 md 胜出', () {
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
-            sm: ElStyle(bgColor: bgSm),
-            md: ElStyle(bgColor: bgMd),
+            backgroundColor: bg,
+            sm: ElStyle(backgroundColor: bgSm),
+            md: ElStyle(backgroundColor: bgMd),
           ),
           state: stateOf([ViewState.xs, ViewState.sm, ViewState.md, ViewState.lg, ViewState.xl]),
         );
-        expect(r.box.bgColor, bgMd, reason: '档序升序 emit，后写覆前');
+        expect(r.box.backgroundColor, bgMd, reason: '档序升序 emit，后写覆前');
       });
 
       test('宽屏不命中窄档：lg+xl 位时 md 不生效', () {
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
-            md: ElStyle(bgColor: bgMd),
+            backgroundColor: bg,
+            md: ElStyle(backgroundColor: bgMd),
           ),
           state: stateOf([ViewState.lg, ViewState.xl]),
         );
-        expect(r.box.bgColor, bg);
+        expect(r.box.backgroundColor, bg);
       });
 
       test('交互变体压过响应式：hover + md → onHover 胜出', () {
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
-            md: ElStyle(bgColor: bgMd),
-            onHover: ElStyle(bgColor: bgHover),
+            backgroundColor: bg,
+            md: ElStyle(backgroundColor: bgMd),
+            onHover: ElStyle(backgroundColor: bgHover),
           ),
           state: stateOf([ViewState.md, ViewState.lg, ViewState.xl, ViewState.hover]),
         );
-        expect(r.box.bgColor, bgHover, reason: '交互变体优先级高于响应式');
+        expect(r.box.backgroundColor, bgHover, reason: '交互变体优先级高于响应式');
       });
 
       test('嵌套 md(onHover:X) — 两位都激活时命中', () {
         const bgNested = Color(0xFF123456);
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
+            backgroundColor: bg,
             md: ElStyle(
-              bgColor: bgMd,
-              onHover: ElStyle(bgColor: bgNested),
+              backgroundColor: bgMd,
+              onHover: ElStyle(backgroundColor: bgNested),
             ),
           ),
           state: stateOf([ViewState.md, ViewState.lg, ViewState.xl, ViewState.hover]),
         );
-        expect(r.box.bgColor, bgNested);
+        expect(r.box.backgroundColor, bgNested);
       });
 
       test('嵌套 md(onHover:X) — 仅 md 无 hover 时回落到 md', () {
         const bgNested = Color(0xFF123456);
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
+            backgroundColor: bg,
             md: ElStyle(
-              bgColor: bgMd,
-              onHover: ElStyle(bgColor: bgNested),
+              backgroundColor: bgMd,
+              onHover: ElStyle(backgroundColor: bgNested),
             ),
           ),
           state: stateOf([ViewState.md, ViewState.lg, ViewState.xl]),
         );
-        expect(r.box.bgColor, bgMd);
+        expect(r.box.backgroundColor, bgMd);
       });
 
       test('嵌套 onHover(md:X) — 反向嵌套：hover+md 时命中', () {
         const bgNested = Color(0xFF654321);
         final r = resolve(
           const ElStyle(
-            bgColor: bg,
+            backgroundColor: bg,
             onHover: ElStyle(
-              bgColor: bgHover,
-              md: ElStyle(bgColor: bgNested),
+              backgroundColor: bgHover,
+              md: ElStyle(backgroundColor: bgNested),
             ),
           ),
           state: stateOf([ViewState.md, ViewState.lg, ViewState.xl, ViewState.hover]),
         );
-        expect(r.box.bgColor, bgNested);
+        expect(r.box.backgroundColor, bgNested);
       });
     });
   });
@@ -3989,7 +3989,7 @@ void main() {
             style: const ElStyle(width: 320, height: 200),
             child: List<Widget>.generate(
               8,
-              (_) => ElView(style: const ElStyle(width: 24, height: 20, bgColor: Color(0xFF4CAF50))),
+              (_) => ElView(style: const ElStyle(width: 24, height: 20, backgroundColor: Color(0xFF4CAF50))),
               growable: false,
             ),
           ),
@@ -4012,8 +4012,8 @@ void main() {
                 style: const ElStyle(
                   width: 24,
                   height: 20,
-                  bgColor: Color(0xFF4CAF50),
-                  onHover: ElStyle(bgColor: Color(0xFF2196F3)),
+                  backgroundColor: Color(0xFF4CAF50),
+                  onHover: ElStyle(backgroundColor: Color(0xFF2196F3)),
                 ),
               ),
               growable: false,
@@ -4039,14 +4039,14 @@ void main() {
         expect(specOf(ElStyle()).declaredMask, FieldMask.empty);
       });
 
-      test('单字段（bgColor） → 仅该位为 1', () {
-        final s = ElStyle(bgColor: Color(0xff112233));
-        expect(specOf(s).declaredMask, maskBit(ElTransitionField.bgColor.index));
+      test('单字段（backgroundColor） → 仅该位为 1', () {
+        final s = ElStyle(backgroundColor: Color(0xff112233));
+        expect(specOf(s).declaredMask, maskBit(ElTransitionField.backgroundColor.index));
       });
 
       test('三字段声明 → 三位 popcount = 3', () {
-        final s = ElStyle(bgColor: Color(0xff123456), padding: .all(4), fontSize: 12);
-        final expected = _maskOf([ElTransitionField.bgColor, ElTransitionField.padding, ElTransitionField.fontSize]);
+        final s = ElStyle(backgroundColor: Color(0xff123456), padding: .all(4), fontSize: 12);
+        final expected = _maskOf([ElTransitionField.backgroundColor, ElTransitionField.padding, ElTransitionField.fontSize]);
         expect(specOf(s).declaredMask, expected);
       });
 
@@ -4066,26 +4066,26 @@ void main() {
 
       test('顶层 spec 不含变体位（onHover 独立查）', () {
         final s = ElStyle(
-          bgColor: Color(0xff123456),
-          onHover: ElStyle(bgColor: Color(0xffaabbcc), padding: .all(2)),
+          backgroundColor: Color(0xff123456),
+          onHover: ElStyle(backgroundColor: Color(0xffaabbcc), padding: .all(2)),
         );
-        // 顶层 mask 只包含 bgColor（onHover 字段本身不进 declaration 流）
-        expect(specOf(s).declaredMask, maskBit(ElTransitionField.bgColor.index));
+        // 顶层 mask 只包含 backgroundColor（onHover 字段本身不进 declaration 流）
+        expect(specOf(s).declaredMask, maskBit(ElTransitionField.backgroundColor.index));
         // 变体本身也是 ElStyle，可查
-        final hoverExpected = _maskOf([ElTransitionField.bgColor, ElTransitionField.padding]);
+        final hoverExpected = _maskOf([ElTransitionField.backgroundColor, ElTransitionField.padding]);
         expect(specOf(s.onHover!).declaredMask, hoverExpected);
       });
 
       test('同一声明重复扫描的位图一致', () {
-        final s = ElStyle(bgColor: Color(0xff123456));
+        final s = ElStyle(backgroundColor: Color(0xff123456));
         final a = specOf(s);
         final b = specOf(s);
         expect(a.declaredMask, b.declaredMask);
       });
 
       test('值等的新声明实例得到相同位图', () {
-        final s1 = ElStyle(bgColor: Color(0xff123456));
-        final s2 = ElStyle(bgColor: Color(0xff123456));
+        final s1 = ElStyle(backgroundColor: Color(0xff123456));
+        final s2 = ElStyle(backgroundColor: Color(0xff123456));
         expect(s1 == s2, isTrue); // 前提确认
         final a = specOf(s1);
         final b = specOf(s2);
@@ -4153,80 +4153,80 @@ void main() {
 
     group('单个状态变体的 transitions 覆盖根 (7 状态全覆盖)', () {
       // 每个状态都构造同样的场景：根 transitions=slow，onXxx.transitions=fast，
-      // 命中 Xxx 时 bgColor red→blue 应立即生效（不启动动画）。
+      // 命中 Xxx 时 backgroundColor red→blue 应立即生效（不启动动画）。
       final cases = <(String, ViewState, ElStyle Function())>[
         (
           'onHover',
           ViewState.hover,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onHover: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onHover: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onTap',
           ViewState.tap,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onTap: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onTap: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onFocus',
           ViewState.focus,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onFocus: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onFocus: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onFocusWithin',
           ViewState.focusWithin,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onFocusWithin: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onFocusWithin: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onDisabled',
           ViewState.disabled,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onDisabled: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onDisabled: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onFocusVisible',
           ViewState.focusVisible,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onFocusVisible: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onFocusVisible: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
         (
           'onDark',
           ViewState.dark,
           () => const ElStyle(
-            bgColor: Color(0xFFFF0000),
-            onDark: ElStyle(bgColor: Color(0xFF0000FF), transitions: [transitionFast]),
-            transitions: [transitionSlow],
+            backgroundColor: Color(0xFFFF0000),
+            onDark: ElStyle(backgroundColor: Color(0xFF0000FF), transition: [transitionFast]),
+            transition: [transitionSlow],
           ),
         ),
       ];
 
       for (final (label, state, build) in cases) {
-        test('$label.transitions 覆盖根：duration=0 命中时 bgColor 立即生效', () {
+        test('$label.transitions 覆盖根：duration=0 命中时 backgroundColor 立即生效', () {
           final (:result, :driver) = tickWith(style: build(), activeStates: [state]);
           try {
             expect(
               result.changedMask.fields.toSet(),
-              contains(ElTransitionField.bgColor),
+              contains(ElTransitionField.backgroundColor),
               reason: '$label 状态变体的 transitions=[all(0)] 应被识别 → 立即生效',
             );
             expect(driver.activeFields, isEmpty, reason: '$label 状态下 0-duration 不应启动动画（short-circuit）');
@@ -4238,26 +4238,26 @@ void main() {
         test('$label 未声明 transitions：fallback 到根 slow → 启动动画', () {
           // 同样的 variant 但去掉 transitions，根仍是 slow（250ms）
           final style = ElStyle(
-            bgColor: red,
-            onHover: state == ViewState.hover ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onTap: state == ViewState.tap ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onFocus: state == ViewState.focus ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onFocusWithin: state == ViewState.focusWithin ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onDisabled: state == ViewState.disabled ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onFocusVisible: state == ViewState.focusVisible ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            onDark: state == ViewState.dark ? const ElStyle(bgColor: Color(0xFF0000FF)) : null,
-            transitions: const [transitionSlow],
+            backgroundColor: red,
+            onHover: state == ViewState.hover ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onTap: state == ViewState.tap ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onFocus: state == ViewState.focus ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onFocusWithin: state == ViewState.focusWithin ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onDisabled: state == ViewState.disabled ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onFocusVisible: state == ViewState.focusVisible ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            onDark: state == ViewState.dark ? const ElStyle(backgroundColor: Color(0xFF0000FF)) : null,
+            transition: const [transitionSlow],
           );
           final (:result, :driver) = tickWith(style: style, activeStates: [state]);
           try {
             expect(
               driver.activeFields,
-              contains(ElTransitionField.bgColor),
+              contains(ElTransitionField.backgroundColor),
               reason: '$label 未声明 transitions → fallback 根 slow → 启动动画',
             );
             expect(
               result.changedMask.fields.toSet(),
-              isNot(contains(ElTransitionField.bgColor)),
+              isNot(contains(ElTransitionField.backgroundColor)),
               reason: '字段进入动画时不应出现在 changedFields',
             );
           } finally {
@@ -4270,21 +4270,21 @@ void main() {
     group('cascade 优先级冲突', () {
       test('hover + active 同时命中：active.transitions 胜出（depth 高）', () {
         final style = ElStyle(
-          bgColor: red,
+          backgroundColor: red,
           onHover: ElStyle(
-            bgColor: green,
-            transitions: const [transitionSlow], // 故意 slow
+            backgroundColor: green,
+            transition: const [transitionSlow], // 故意 slow
           ),
           onTap: ElStyle(
-            bgColor: blue,
-            transitions: const [transitionFast], // active 是 fast
+            backgroundColor: blue,
+            transition: const [transitionFast], // active 是 fast
           ),
-          transitions: const [transitionSlow],
+          transition: const [transitionSlow],
         );
         final (:result, :driver) = tickWith(style: style, activeStates: [ViewState.hover, ViewState.tap]);
         try {
-          // active.bgColor=blue 是高优先级；transitions 也是 active 的（fast）→ 立即生效
-          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.bgColor));
+          // active.backgroundColor=blue 是高优先级；transitions 也是 active 的（fast）→ 立即生效
+          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.backgroundColor));
           expect(driver.activeFields, isEmpty);
         } finally {
           cleanup(driver);
@@ -4293,23 +4293,23 @@ void main() {
 
       test('hover + active 同时命中，active 未声明 transitions → fallback 到 hover', () {
         final style = ElStyle(
-          bgColor: red,
+          backgroundColor: red,
           onHover: const ElStyle(
-            bgColor: Color(0xFF00FF00),
-            transitions: [transitionFast], // hover 是 fast
+            backgroundColor: Color(0xFF00FF00),
+            transition: [transitionFast], // hover 是 fast
           ),
           onTap: const ElStyle(
-            bgColor: Color(0xFF0000FF),
+            backgroundColor: Color(0xFF0000FF),
             // 没声明 transitions
           ),
-          transitions: const [transitionSlow], // 根 slow
+          transition: const [transitionSlow], // 根 slow
         );
         final (:result, :driver) = tickWith(style: style, activeStates: [ViewState.hover, ViewState.tap]);
         try {
           // active 没声明 transitions → 不能跳过 active 直接走 base，应回退到次高优先级 hover.transitions
           expect(
             result.changedMask.fields.toSet(),
-            contains(ElTransitionField.bgColor),
+            contains(ElTransitionField.backgroundColor),
             reason: 'active 未声明 transitions → 回退到 hover.transitions=fast → 立即生效',
           );
           expect(driver.activeFields, isEmpty);
@@ -4321,21 +4321,21 @@ void main() {
       test('disabled > active > hover：disabled.transitions 应胜出', () {
         // disabled.depth=4 > active.depth=1 > hover.depth=0
         final style = ElStyle(
-          bgColor: red,
-          onHover: const ElStyle(bgColor: Color(0xFFFFFF00), transitions: [transitionSlow]),
-          onTap: const ElStyle(bgColor: Color(0xFF00FFFF), transitions: [transitionSlow]),
+          backgroundColor: red,
+          onHover: const ElStyle(backgroundColor: Color(0xFFFFFF00), transition: [transitionSlow]),
+          onTap: const ElStyle(backgroundColor: Color(0xFF00FFFF), transition: [transitionSlow]),
           onDisabled: const ElStyle(
-            bgColor: Color(0xFFFF00FF),
-            transitions: [transitionFast], // 仅 disabled 是 fast
+            backgroundColor: Color(0xFFFF00FF),
+            transition: [transitionFast], // 仅 disabled 是 fast
           ),
-          transitions: const [transitionSlow],
+          transition: const [transitionSlow],
         );
         final (:result, :driver) = tickWith(
           style: style,
           activeStates: [ViewState.hover, ViewState.tap, ViewState.disabled],
         );
         try {
-          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.bgColor));
+          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.backgroundColor));
           expect(driver.activeFields, isEmpty);
         } finally {
           cleanup(driver);
@@ -4346,16 +4346,16 @@ void main() {
     group('fallback 到 base', () {
       test('所有变体都未声明 transitions → 用 base', () {
         final style = ElStyle(
-          bgColor: red,
-          onHover: const ElStyle(bgColor: Color(0xFF0000FF)),
-          onTap: const ElStyle(bgColor: Color(0xFF00FF00)),
-          transitions: const [transitionFast], // base 是 fast
+          backgroundColor: red,
+          onHover: const ElStyle(backgroundColor: Color(0xFF0000FF)),
+          onTap: const ElStyle(backgroundColor: Color(0xFF00FF00)),
+          transition: const [transitionFast], // base 是 fast
         );
         final (:result, :driver) = tickWith(style: style, activeStates: [ViewState.hover, ViewState.tap]);
         try {
           expect(
             result.changedMask.fields.toSet(),
-            contains(ElTransitionField.bgColor),
+            contains(ElTransitionField.backgroundColor),
             reason: '所有变体均未声明 transitions → base.transitions=fast → 立即生效',
           );
           expect(driver.activeFields, isEmpty);
@@ -4366,14 +4366,14 @@ void main() {
 
       test('未命中任何变体 → 用 base', () {
         final style = ElStyle(
-          bgColor: red,
-          onTap: ElStyle(bgColor: blue, transitions: const [transitionFast]),
-          transitions: const [transitionSlow],
+          backgroundColor: red,
+          onTap: ElStyle(backgroundColor: blue, transition: const [transitionFast]),
+          transition: const [transitionSlow],
         );
-        // 不命中 active：cascade 没改 bgColor → 啥也不发生
+        // 不命中 active：cascade 没改 backgroundColor → 啥也不发生
         final (:result, :driver) = tickWith(style: style, activeStates: const []);
         try {
-          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.bgColor)));
+          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.backgroundColor)));
           expect(driver.activeFields, isEmpty);
         } finally {
           cleanup(driver);
@@ -4386,12 +4386,12 @@ void main() {
     group('0 duration short-circuit', () {
       test('transitions=[all(0)] 字段立即生效，不启动 driver 动画', () {
         final style = ElStyle(
-          bgColor: red,
-          onTap: ElStyle(bgColor: blue, transitions: const [transitionFast]),
+          backgroundColor: red,
+          onTap: ElStyle(backgroundColor: blue, transition: const [transitionFast]),
         );
         final (:result, :driver) = tickWith(style: style, activeStates: [ViewState.tap]);
         try {
-          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.bgColor));
+          expect(result.changedMask.fields.toSet(), contains(ElTransitionField.backgroundColor));
           expect(driver.activeFields, isEmpty, reason: '0-duration short-circuit：不应启动 0 时长的 placeholder 动画');
         } finally {
           cleanup(driver);
@@ -4400,16 +4400,16 @@ void main() {
 
       test('对照：transitions=[all(默认 250ms)] 启动动画', () {
         final style = ElStyle(
-          bgColor: red,
+          backgroundColor: red,
           onTap: ElStyle(
-            bgColor: blue,
-            transitions: const [transitionSlow], // 250ms
+            backgroundColor: blue,
+            transition: const [transitionSlow], // 250ms
           ),
         );
         final (:result, :driver) = tickWith(style: style, activeStates: [ViewState.tap]);
         try {
-          expect(driver.activeFields, contains(ElTransitionField.bgColor));
-          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.bgColor)));
+          expect(driver.activeFields, contains(ElTransitionField.backgroundColor));
+          expect(result.changedMask.fields.toSet(), isNot(contains(ElTransitionField.backgroundColor)));
         } finally {
           cleanup(driver);
         }

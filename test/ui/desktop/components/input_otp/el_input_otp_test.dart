@@ -38,7 +38,7 @@ ElEditableController _controller(WidgetTester tester) =>
 
 /// 当前分格不暴露逐格语义，活动格以真实外观和控制器选区共同验证。
 bool _isActiveCell(WidgetTester tester, ElView cell) =>
-    cell.style?.border?.top.color ==
+    cell.style?.border?.borderTop.borderColor ==
     ElThemeData.of(tester.element(find.byWidget(cell))).primary;
 
 EditableViewTestState _editableState(WidgetTester tester) =>
@@ -892,21 +892,13 @@ void main() {
     testWidgets('三种外观各自的边框形态', (tester) async {
       await tester.pumpWidget(_host(ElInputOtp(value: '', length: 1)));
       await tester.pumpAndSettle();
-      expect(
-        _cells(tester).first.style?.border?.top.color,
-        _borderColor,
-        reason: 'outlined 四边描边',
-      );
+      expect(_cells(tester).first.style?.border?.borderTop.borderColor, _borderColor, reason: 'outlined 四边描边');
 
       await tester.pumpWidget(
         _host(ElInputOtp(value: '', length: 1, type: ElInputOtpType.filled)),
       );
       await tester.pumpAndSettle();
-      expect(
-        _cells(tester).first.style?.bgColor,
-        const Color(0xffebebeb),
-        reason: 'filled 填充底',
-      );
+      expect(_cells(tester).first.style?.backgroundColor, const Color(0xffebebeb), reason: 'filled 填充底');
       expect(_cells(tester).first.style?.border, isNull);
 
       await tester.pumpWidget(
@@ -916,8 +908,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       final cell = _cells(tester).first;
-      expect(cell.style?.border?.bottom.color, _borderColor);
-      expect(cell.style?.border?.top.width, 0, reason: 'underlined 只有底线');
+      expect(cell.style?.border?.borderBottom.borderColor, _borderColor);
+      expect(cell.style?.border?.borderTop.borderWidth, 0, reason: 'underlined 只有底线');
     });
 
     testWidgets('复用 ElInput border token 的局部覆写', (tester) async {
@@ -943,7 +935,7 @@ void main() {
         ),
       );
 
-      expect(_cells(tester).first.style?.border?.top.color, custom);
+      expect(_cells(tester).first.style?.border?.borderTop.borderColor, custom);
     });
 
     testWidgets('三档尺寸切格子边长', (tester) async {

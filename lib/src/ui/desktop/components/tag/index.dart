@@ -46,8 +46,8 @@ class Tag extends StatelessWidget {
                 left: _paddings[size],
                 right: component.closable ? _closeGaps[size] : _paddings[size],
               ),
-              bgColor: bg,
-              border: .all(color: border),
+              backgroundColor: bg,
+              border: .all(borderColor: border),
               borderRadius: .all(
                 Radius.circular(component.round ? 9999 : height * 0.45),
               ),
@@ -62,7 +62,7 @@ class Tag extends StatelessWidget {
                 opacity: 0.5,
                 cursor: SystemMouseCursors.forbidden,
               ),
-              transitions: const [
+              transition: const [
                 ElTransition.all(Duration(milliseconds: 150), Curves.easeInOut),
               ],
               iconColor: solid ? ElThemeData.of(context).white : color,
@@ -74,9 +74,9 @@ class Tag extends StatelessWidget {
                           ElView.of(context).hasFocusVisible
                               ? ElStyle(
                                   outline: .new(
-                                    width: 2,
-                                    color: ElThemeData.of(context).primary,
-                                    offset: 2,
+                                    outlineWidth: 2,
+                                    outlineColor: ElThemeData.of(context).primary,
+                                    outlineOffset: 2,
                                   ),
                                 )
                               : null,
@@ -84,7 +84,7 @@ class Tag extends StatelessWidget {
                         .merge(
                           ElView.of(context).hasTap
                               ? ElStyle(
-                                  bgColor: solid
+                                  backgroundColor: solid
                                       ? color.mix(const Color(0xff000000), 20)
                                       : color.elLight8(context),
                                 )
@@ -143,20 +143,20 @@ class _TagClose extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         onHover: ElStyle(
           iconColor: ElThemeData.of(context).white,
-          bgColor: solid ? color.elLight3(context) : color,
+          backgroundColor: solid ? color.elLight3(context) : color,
         ),
         onTap: ElStyle(
           iconColor: ElThemeData.of(context).white,
-          bgColor: color.mix(const Color(0xff000000), 20),
+          backgroundColor: color.mix(const Color(0xff000000), 20),
         ),
         onFocusVisible: ElStyle(
           outline: .new(
-            width: 2,
-            color: ElThemeData.of(context).primary,
-            offset: 2,
+            outlineWidth: 2,
+            outlineColor: ElThemeData.of(context).primary,
+            outlineOffset: 2,
           ),
         ),
-        transitions: const [ElTransition.all(Duration(milliseconds: 150))],
+        transition: const [ElTransition.all(Duration(milliseconds: 150))],
       ).merge(override);
     })(context),
     child: const ElIcon(ElIcons.close),

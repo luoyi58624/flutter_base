@@ -25,14 +25,15 @@ targets:
       source_gen:combining_builder:
         options:
           build_extensions:
-            # view 引擎（迁移自 el_ui）的 model 产物统一落在同目录 .g.dart。
-            # 覆盖 style/style.dart、event/event.dart、semantics/semantics.dart。
+            # 当前样式模型的生成产物落在同目录 .g.dart。
+            '^lib/src/flutter/views/view/style/style.dart': 'lib/src/flutter/views/view/style/style.g.dart'
+            # 保留原有 view 生成目标配置。
             '^lib/src/ui/cores/view/{{}}.dart': 'lib/src/ui/cores/view/{{}}.g.dart'
             '^test/generator/models/{{}}.dart': 'test/generator/generates/models/{{}}.g.dart'
             '^test/generator/source_generator/{{}}.dart': 'test/generator/generates/source_generator/{{}}.g.dart'
       flutter_base|model:
         generate_for:
-          - lib/src/ui/cores/view/style/style.dart
+          - lib/src/flutter/views/view/style/style.dart
           - lib/src/ui/cores/view/event/event.dart
           - lib/src/ui/cores/view/semantics/semantics.dart
           - test/generator/models/**

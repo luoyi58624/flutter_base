@@ -70,13 +70,13 @@ class _CategoryPage extends HookWidget {
 
     return ElCardView(
       key: ValueKey('page-分类'),
-      style: ElStyle(bgColor: _background),
+      style: ElStyle(backgroundColor: _background),
       child: Row(
         children: [
           ElCardView(
             style: ElStyle(
               width: desktop ? 144 : 92,
-              bgColor: Color(0xfff7f8fa),
+              backgroundColor: Color(0xfff7f8fa),
             ),
             child: ElScrollView(
               controller: left,
@@ -90,7 +90,7 @@ class _CategoryPage extends HookWidget {
                     onPressed: () => unawaited(select(i)),
                     style: ElStyle(
                       height: 48,
-                      bgColor: selected.value == i ? _surface : null,
+                      backgroundColor: selected.value == i ? _surface : null,
                     ),
                     child: Stack(
                       fit: StackFit.expand,
@@ -112,7 +112,7 @@ class _CategoryPage extends HookWidget {
                               style: ElStyle(
                                 width: 3,
                                 height: 18,
-                                bgColor: _primary,
+                                backgroundColor: _primary,
                               ),
                             ),
                           ),
@@ -170,7 +170,7 @@ class _CategoryPage extends HookWidget {
                                           padding: EdgeInsets.all(8),
                                           child: ElCardView(
                                             style: ElStyle(
-                                              bgColor: _surface,
+                                              backgroundColor: _surface,
                                               borderRadius: .circular(8),
                                               padding: .all(10),
                                             ),
@@ -181,7 +181,7 @@ class _CategoryPage extends HookWidget {
                                                     width: 48,
                                                     height: 48,
                                                     borderRadius: .circular(10),
-                                                    bgColor: _categories[i]
+                                                    backgroundColor: _categories[i]
                                                         .items[row * columns +
                                                             column]
                                                         .color,

@@ -1194,9 +1194,9 @@ class _InputTagClearButton extends StatelessWidget {
         ),
         onFocusVisible: ElStyle(
           outline: ElOutline(
-            width: 2,
-            color: ElThemeData.of(context).primary,
-            offset: 1,
+            outlineWidth: 2,
+            outlineColor: ElThemeData.of(context).primary,
+            outlineOffset: 1,
           ),
         ),
         iconColor: ElThemeData.of(context).textColorLg,
@@ -1282,8 +1282,8 @@ class _InputTagCollapseTooltip extends StatelessWidget {
       style: ElStyle(
         maxWidth: 260,
         padding: const .all(8),
-        bgColor: ElThemeData.of(context).bgColor,
-        border: ElBorder.all(color: context.elTheme.borderColorLighter),
+        backgroundColor: ElThemeData.of(context).bgColor,
+        border: ElBorder.all(borderColor: context.elTheme.borderColorLighter),
         borderRadius: .all(Radius.circular(6)),
         boxShadow: const [
           BoxShadow(
@@ -1332,10 +1332,10 @@ Widget _inputTagInline(Widget child, {required double height, Key? key}) =>
 List<double> get _inputTagHeights => const [16, 20, 24, 32, 40];
 
 ElStyle _inputTagDropStyle(BuildContext context, bool active) => ElStyle(
-  border: active ? ElBorder.all(color: ElThemeData.of(context).primary) : null,
+  border: active ? ElBorder.all(borderColor: ElThemeData.of(context).primary) : null,
   borderRadius: .all(Radius.circular(4)),
   outline: active
-      ? ElOutline(width: 1, color: ElThemeData.of(context).primary, offset: 1)
+      ? ElOutline(outlineWidth: 1, outlineColor: ElThemeData.of(context).primary, outlineOffset: 1)
       : null,
 );
 
@@ -1343,7 +1343,7 @@ ElStyle _inputTagDraftStyle(double height) => ElStyle(
   width: '100%',
   height: height,
   padding: const EdgeInsets.symmetric(horizontal: 2),
-  bgColor: const Color(0x00000000),
+  backgroundColor: const Color(0x00000000),
   borderRadius: const BorderRadius.all(Radius.circular(0)),
   boxShadow: const <BoxShadow>[],
   onHover: const ElStyle(boxShadow: <BoxShadow>[]),
@@ -1368,7 +1368,7 @@ ElStyle _inputTagShellStyle(
       minHeight: height,
       padding: const EdgeInsets.all(4),
       alignment: .centerLeft,
-      bgColor: context.elTheme.disabledBgColor,
+      backgroundColor: context.elTheme.disabledBgColor,
       borderRadius: radius,
       boxShadow: ring(context.elTheme.disabledBorderColor),
       cursor: SystemMouseCursors.forbidden,
@@ -1384,11 +1384,11 @@ ElStyle _inputTagShellStyle(
     minHeight: height,
     padding: const EdgeInsets.all(4),
     alignment: .centerLeft,
-    bgColor: ElThemeData.of(context).bgColor,
+    backgroundColor: ElThemeData.of(context).bgColor,
     borderRadius: radius,
     boxShadow: ring(base),
     cursor: readOnly ? SystemMouseCursors.basic : SystemMouseCursors.text,
-    transitions: ElThemeData.of(context).transitionBoxShadow,
+    transition: ElThemeData.of(context).transitionBoxShadow,
     onHover: ElStyle(boxShadow: ring(hover)),
     onFocusWithin: ElStyle(boxShadow: ring(focus)),
   );

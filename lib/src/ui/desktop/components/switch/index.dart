@@ -95,8 +95,8 @@ extension _SwitchAppearance on ElSwitch {
         width: hasContent ? null : _containerWidth(context, resolved),
         minWidth: hasContent ? _containerWidth(context, resolved) : null,
         height: _heightOf(context, resolved),
-        bgColor: _trackColor(context, on),
-        border: ElBorder.all(width: 1, color: _trackColor(context, on)),
+        backgroundColor: _trackColor(context, on),
+        border: ElBorder.all(borderWidth: 1, borderColor: _trackColor(context, on)),
         borderRadius: BorderRadius.circular(_heightOf(context, resolved) / 2),
         padding: EdgeInsets.all(_gapOf(resolved)),
         alignment: hasContent
@@ -105,12 +105,12 @@ extension _SwitchAppearance on ElSwitch {
         clipBehavior: hasContent ? Clip.antiAlias : null,
         onFocusVisible: ElStyle(
           outline: ElOutline(
-            width: 2,
-            color: _trackColor(context, true),
-            offset: 1,
+            outlineWidth: 2,
+            outlineColor: _trackColor(context, true),
+            outlineOffset: 1,
           ),
         ),
-        transitions: !slide
+        transition: !slide
             ? const [ElTransition.all(Duration.zero)]
             : [ElTransition.all(_duration, Curves.ease)],
       ).merge(trackStyle),
@@ -180,7 +180,7 @@ extension _SwitchAppearance on ElSwitch {
               right: on ? thumbSize + 6 : gap + 6,
             ),
             // 切换时内容层宽/让位走 300ms 过渡，与滑块滑动同步
-            transitions: [ElTransition.all(_duration, Curves.ease)],
+            transition: [ElTransition.all(_duration, Curves.ease)],
             // 盒宽 = 内容宽 + 两侧让位 padding（el_ui 的 width 是整盒宽，
             // padding 在盒内）：切换时 width 与 padding 同步动画——
             // 与滑块滑动同引擎同曲线，滑块按 alignment 比例定位天然精准同步
@@ -280,7 +280,7 @@ extension _SwitchAppearance on ElSwitch {
             style: ElStyle(
               // 关贴左、开贴右，两端补间滑动
               alignment: on ? .centerRight : .centerLeft,
-              transitions: [ElTransition.all(_duration, Curves.ease)],
+              transition: [ElTransition.all(_duration, Curves.ease)],
             ),
             child: _thumb(context, resolved, on),
           ),
@@ -296,11 +296,11 @@ extension _SwitchAppearance on ElSwitch {
       style: ElStyle(
         width: thumbSize,
         height: thumbSize,
-        bgColor: ElThemeData.of(context).white,
+        backgroundColor: ElThemeData.of(context).white,
         borderRadius: .all(Radius.circular(thumbSize / 2)),
         alignment: .center,
         color: _trackColor(context, on),
-        transitions: [ElTransition.all(_duration, Curves.ease)],
+        transition: [ElTransition.all(_duration, Curves.ease)],
         iconColor: _trackColor(context, on),
       ),
       child: loading

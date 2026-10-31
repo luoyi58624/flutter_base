@@ -126,9 +126,9 @@ void main() {
     const light9 = Color(0xffecf5ff);
     final selectedBox = committed(tester, 1);
     expect(selectedBox.inheritedText.color, isSameColorAs(primary));
-    expect(selectedBox.box.bgColor, isSameColorAs(light9));
+    expect(selectedBox.box.backgroundColor, isSameColorAs(light9));
     expect(
-      committed(tester, 0).box.bgColor,
+      committed(tester, 0).box.backgroundColor,
       isSameColorAs(const Color(0xffffffff)),
       reason: '未选中项保持常态',
     );
@@ -217,7 +217,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      committed(tester, 1).box.bgColor,
+      committed(tester, 1).box.backgroundColor,
       isSameColorAs(light9),
       reason: '初始 Obs 值选中周',
     );
@@ -225,9 +225,9 @@ void main() {
     // 组内 → 外：点击月，Obs 被回写
     await tapItem(tester, 2);
     expect(period.value, 'month', reason: '组内切换必须回写外部 Obs');
-    expect(committed(tester, 2).box.bgColor, isSameColorAs(light9));
+    expect(committed(tester, 2).box.backgroundColor, isSameColorAs(light9));
     expect(
-      committed(tester, 1).box.bgColor,
+      committed(tester, 1).box.backgroundColor,
       isSameColorAs(const Color(0xffffffff)),
     );
 
@@ -235,13 +235,13 @@ void main() {
     period.value = 'day';
     await tester.pumpAndSettle();
     expect(
-      committed(tester, 0).box.bgColor,
+      committed(tester, 0).box.backgroundColor,
       isSameColorAs(light9),
       reason: '外部改 Obs 组必须自动刷新',
     );
     expect(committed(tester, 0).inheritedText.color, isSameColorAs(primary));
     expect(
-      committed(tester, 2).box.bgColor,
+      committed(tester, 2).box.backgroundColor,
       isSameColorAs(const Color(0xffffffff)),
     );
   });
@@ -265,15 +265,15 @@ void main() {
 
     const primary = Color(0xff409eff);
     expect(
-      committed(tester, 0).box.bgColor,
+      committed(tester, 0).box.backgroundColor,
       isSameColorAs(const Color(0xffffffff)),
     );
     expect(
-      committed(tester, 0).box.border?.top.color,
+      committed(tester, 0).box.border?.borderTop.borderColor,
       isSameColorAs(const Color(0xffdcdfe6)),
     );
-    expect(committed(tester, 1).box.bgColor, isSameColorAs(primary));
-    expect(committed(tester, 1).box.border?.top.color, isSameColorAs(primary));
+    expect(committed(tester, 1).box.backgroundColor, isSameColorAs(primary));
+    expect(committed(tester, 1).box.border?.borderTop.borderColor, isSameColorAs(primary));
     expect(
       committed(tester, 1).inheritedText.color,
       isSameColorAs(Color(0xffffffff)),

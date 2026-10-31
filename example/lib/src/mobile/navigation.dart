@@ -30,14 +30,14 @@ class _Navigation extends StatelessWidget {
       return ElCardView(
         key: ValueKey('bottom-nav'),
         semanticLabel: '底部导航',
-        style: ElStyle(height: 56, bgColor: _surface),
+        style: ElStyle(height: 56, backgroundColor: _surface),
         child: Row(children: [for (final item in items) Expanded(child: item)]),
       );
     }
     return ElCardView(
       key: ValueKey('desktop-nav'),
       semanticLabel: '桌面导航',
-      style: ElStyle(width: 208, bgColor: _surface),
+      style: ElStyle(width: 208, backgroundColor: _surface),
       child: Column(
         children: [
           SizedBox(
@@ -75,7 +75,7 @@ class _Navigation extends StatelessWidget {
                 height: 44,
                 padding: .symmetric(horizontal: 12),
                 borderRadius: .circular(8),
-                onHover: ElStyle(bgColor: _background),
+                onHover: ElStyle(backgroundColor: _background),
               ),
               child: Row(
                 children: [
@@ -132,9 +132,9 @@ class _NavigationItem extends StatelessWidget {
             ? EdgeInsets.symmetric(horizontal: 12)
             : EdgeInsets.zero,
         borderRadius: desktop ? BorderRadius.circular(8) : null,
-        bgColor: desktop && selected ? _primary.withValues(alpha: 0.08) : null,
+        backgroundColor: desktop && selected ? _primary.withValues(alpha: 0.08) : null,
         onHover: desktop
-            ? ElStyle(bgColor: _primary.withValues(alpha: 0.05))
+            ? ElStyle(backgroundColor: _primary.withValues(alpha: 0.05))
             : null,
       ),
       child: desktop

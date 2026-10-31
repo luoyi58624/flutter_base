@@ -10,7 +10,7 @@ class MyListGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: ElView(
-        style: .new(bgColor: Colors.white, borderRadius: .circular(16), clipBehavior: .hardEdge),
+        style: .new(backgroundColor: Colors.white, borderRadius: .circular(16), clipBehavior: .hardEdge),
         child: Column(
           children: children.mapIndexed((i, e) => ElChildIndex(index: i, end: children.length - 1, child: e)).toList(),
         ),

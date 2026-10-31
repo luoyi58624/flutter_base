@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   Finder item(int index) => find.byKey(ValueKey('el-menu-bar-item-$index'));
   ElRenderView render(WidgetTester tester, int index) => tester.renderObject<ElRenderView>(item(index));
-  Color? background(WidgetTester tester, int index) => render(tester, index).committedResolvedStyle.box.bgColor;
+  Color? background(WidgetTester tester, int index) => render(tester, index).committedResolvedStyle.box.backgroundColor;
   Widget host(Widget child) => Directionality(
     textDirection: .ltr,
     child: ElTestOverlay(child: child),
@@ -18,12 +18,12 @@ void main() {
     var color = Color(0xff112233);
     ElMenuBar bar() => ElMenuBar(
       style: ElStyle(height: 40),
-      itemStyle: ElStyle(height: 28, width: 72, bgColor: color),
+      itemStyle: ElStyle(height: 28, width: 72, backgroundColor: color),
       items: [
         ElMenuBarItem(label: '文件', items: []),
         ElMenuBarItem(
           label: '编辑',
-          style: ElStyle(width: 96, bgColor: Color(0xffabcdef)),
+          style: ElStyle(width: 96, backgroundColor: Color(0xffabcdef)),
           items: [],
         ),
       ],
@@ -64,8 +64,8 @@ void main() {
             itemStyle: ElStyle(
               height: 28,
               width: 72,
-              bgColor: base,
-              onFocusVisible: ElStyle(bgColor: ring),
+              backgroundColor: base,
+              onFocusVisible: ElStyle(backgroundColor: ring),
             ),
             items: [
               ElMenuBarItem(

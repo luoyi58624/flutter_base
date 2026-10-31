@@ -66,30 +66,30 @@ class MyCard extends StatelessWidget {
             : const EdgeInsets.fromLTRB(29, 28, 29, 29));
     final cardStyle = ElStyle(
       width: '100%',
-      bgColor: t.cardBackground,
+      backgroundColor: t.cardBackground,
       borderRadius: BorderRadius.circular(t.cardRadius ?? (mobile ? 26 : 30)),
       border: ElBorder.all(
-        width: 1,
-        color: t.border.withValues(alpha: t.border.a * .65),
+        borderWidth: 1,
+        borderColor: t.border.withValues(alpha: t.border.a * .65),
       ),
       boxShadow: t.shadow,
       padding: padding.add(const EdgeInsets.all(1)),
       userSelect: interactive ? ElUserSelect.none : null,
-      transitions: myReducedMotion(context)
+      transition: myReducedMotion(context)
           ? const []
           : const [
               ElTransition.all(Duration(milliseconds: 150), Curves.easeOut),
             ],
       onHover: interactive
           ? ElStyle(
-              bgColor:
+              backgroundColor:
                   t.cardHoverBackground ??
                   Color.lerp(t.cardBackground, t.text, .03),
             )
           : null,
       onTap: interactive
           ? ElStyle(
-              bgColor:
+              backgroundColor:
                   t.cardPressBackground ??
                   Color.lerp(t.cardBackground, t.text, .085),
               transform: ElTransform.scale(t.cardPressScale ?? .96),

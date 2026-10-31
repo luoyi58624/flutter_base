@@ -13,7 +13,7 @@ void main() {
             alignment: Alignment.topLeft,
             child: ElView(
               key: key,
-              style: ElStyle(width: 4, height: 4, opacity: 0.6, animations: animations),
+              style: ElStyle(width: 4, height: 4, opacity: 0.6, animation: animations),
             ),
           ),
         );
@@ -22,12 +22,12 @@ void main() {
           build([
             ElAnimation(
               keyframes: const {0: ElStyle(opacity: 0.2), 100: ElStyle(opacity: 0.8)},
-              duration: const Duration(milliseconds: 100),
-              delay: const Duration(milliseconds: 100),
-              iterationCount: 1.25,
-              curve: Curves.linear,
-              fillMode: fill,
-              direction: direction,
+              animationDuration: const Duration(milliseconds: 100),
+              animationDelay: const Duration(milliseconds: 100),
+              animationIterationCount: 1.25,
+              animationTimingFunction: Curves.linear,
+              animationFillMode: fill,
+              animationDirection: direction,
             ),
           ]),
         );

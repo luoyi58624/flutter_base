@@ -24,8 +24,8 @@ void main() {
                   style: const ElStyle(
                     width: '100%',
                     minHeight: 68,
-                    bgColor: Color(0xFFF8FAFC), // kSlate50
-                    border: .all(color: Color(0xFFE2E8F0)), // kSlate200
+                    backgroundColor: Color(0xFFF8FAFC), // kSlate50
+                    border: .all(borderColor: Color(0xFFE2E8F0)), // kSlate200
                     borderRadius: BorderRadius.all(Radius.elliptical(6, 6)),
                     padding: .symmetric(horizontal: 10, vertical: 8),
                     fontSize: 12,
@@ -61,8 +61,8 @@ void main() {
                   style: ElStyle(
                     width: '100%',
                     minHeight: 68,
-                    bgColor: Color(0xFFF8FAFC), // kSlate50
-                    border: .all(color: Color(0xFFE2E8F0)), // kSlate200
+                    backgroundColor: Color(0xFFF8FAFC), // kSlate50
+                    border: .all(borderColor: Color(0xFFE2E8F0)), // kSlate200
                     borderRadius: BorderRadius.all(Radius.elliptical(6, 6)),
                     padding: .symmetric(horizontal: 10, vertical: 8),
                     fontSize: 12,
@@ -155,8 +155,8 @@ void main() {
                     style: ElStyle(
                       width: '100%',
                       minHeight: 68,
-                      bgColor: const Color(0xFFF8FAFC),
-                      border: const .all(color: Color(0xFFE2E8F0)),
+                      backgroundColor: const Color(0xFFF8FAFC),
+                      border: const .all(borderColor: Color(0xFFE2E8F0)),
                       borderRadius: const BorderRadius.all(Radius.elliptical(6, 6)),
                       padding: const .symmetric(horizontal: 10, vertical: 8),
                       fontSize: 12,

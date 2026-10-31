@@ -53,7 +53,7 @@ void main() {
       captureFocus: captureFocus,
       builder: (c) => ElView(
         key: panelKey,
-        style: const ElStyle(width: 300, height: 120, bgColor: Color(0xFFEEEEEE)),
+        style: const ElStyle(width: 300, height: 120, backgroundColor: Color(0xFFEEEEEE)),
         child: content,
       ),
     );
@@ -174,7 +174,7 @@ void main() {
         requestFocus: false,
         pageBuilder: (_, _, _) => ElSelectionView(
           child: ElView(
-            style: const ElStyle(width: '100%', height: '100%', bgColor: Color(0xFFEEEEEE)),
+            style: const ElStyle(width: '100%', height: '100%', backgroundColor: Color(0xFFEEEEEE)),
             child: ElView(
               key: modalTextKey,
               semantics: ElSemantics(label: 'modal-selection-content'),

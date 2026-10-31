@@ -42,7 +42,7 @@ ElView _core(WidgetTester tester) =>
 
 ElView _thumb(WidgetTester tester) =>
     _views(tester)
-        .firstWhere((v) => _style(tester, v)?.bgColor == ElThemeData().white);
+        .firstWhere((v) => _style(tester, v)?.backgroundColor == ElThemeData().white);
 
 /// 轨道内显示内容 = child 是给定 Text 的 ElView（取最后一个——测量层在前，显示层在后）
 ElView _promptView(WidgetTester tester, String data) =>
@@ -147,7 +147,7 @@ void main() {
       _style(tester, core)?.borderRadius,
       const BorderRadius.all(Radius.circular(13)),
     );
-    expect(_style(tester, core)?.bgColor, _lightBorder);
+    expect(_style(tester, core)?.backgroundColor, _lightBorder);
     expect(_style(tester, core)?.alignment, Alignment.centerLeft);
     expect(_style(tester, core)?.padding, const EdgeInsets.all(2));
 
@@ -163,7 +163,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final core = _core(tester);
-    expect(_style(tester, core)?.bgColor, _primary);
+    expect(_style(tester, core)?.backgroundColor, _primary);
     expect(_style(tester, core)?.alignment, Alignment.centerRight);
 
     final render = tester.renderObject<ElRenderView>(
@@ -171,7 +171,7 @@ void main() {
           .descendant(of: find.byType(ElSwitch), matching: find.byType(ElView))
           .at(1),
     );
-    expect(render.committedResolvedStyle.box.bgColor, _primary);
+    expect(render.committedResolvedStyle.box.backgroundColor, _primary);
   });
 
   testWidgets('暗色默认 off 色跟随 ElDesktopTheme border token', (tester) async {
@@ -183,7 +183,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(_style(tester, _core(tester))?.bgColor, _darkBorder);
+    expect(_style(tester, _core(tester))?.backgroundColor, _darkBorder);
   });
 
   testWidgets('点击取反回调，禁用与加载中都不回调', (tester) async {
@@ -776,7 +776,7 @@ void main() {
           .descendant(of: find.byType(ElSwitch), matching: find.byType(ElView))
           .at(1),
     );
-    expect(render.committedResolvedStyle.box.bgColor, const Color(0xff13ce66));
+    expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff13ce66));
   });
 
   testWidgets('显式 height 覆写后行高固定不随档', (tester) async {
@@ -919,23 +919,21 @@ void main() {
       final gap = expectedGaps[i];
       for (final on in [false, true]) {
         for (final inline in [false, true]) {
-          testWidgets(
-            '${level.name} on=$on inline=$inline：滑块与端部半圆弧同心，上下/圆弧间隙处处 = $gap',
-            (tester) async {
-              // 尺寸由主题宿主明确传入，避免安装器重建主题时覆盖外层 ElTheme。
-              await tester.pumpWidget(
-                _host(
-                  ElSwitch(
-                    value: on,
-                    activeContent: inline ? Text('ON') : null,
-                    inactiveContent: inline ? Text('OFF') : null,
-                    onChanged: (_) {},
-                  ),
-                  style: ElStyle(),
-                  size: level,
+          testWidgets('${level.name} on=$on inline=$inline：滑块与端部半圆弧同心，上下/圆弧间隙处处 = $gap', (tester) async {
+            // 尺寸由主题宿主明确传入，避免安装器重建主题时覆盖外层 ElTheme。
+            await tester.pumpWidget(
+              _host(
+                ElSwitch(
+                  value: on,
+                  activeContent: inline ? Text('ON') : null,
+                  inactiveContent: inline ? Text('OFF') : null,
+                  onChanged: (_) {},
                 ),
-              );
-              await tester.pumpAndSettle();
+                style: ElStyle(),
+                size: level,
+              ),
+            );
+            await tester.pumpAndSettle();
 
               final core = _rectOf(tester, _core(tester));
               final thumb = _rectOf(tester, _thumb(tester));

@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 事件组件测试共享的固定命中盒样式。
-ElStyle get eventTestDefaultStyle => const ElStyle(width: 100, height: 100, bgColor: Color(0xFF00FF00));
+ElStyle get eventTestDefaultStyle => const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF00FF00));
 
 /// 把 [view] 挂到最小可命中布局，供真实 ElView wiring 合同复用。
 Future<void> pumpEventView(WidgetTester tester, ElView view) async {

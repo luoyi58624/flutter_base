@@ -725,52 +725,37 @@ class _ElInputOtpCell extends StatelessWidget {
           alignment: .center,
           fontSize: _fontSize(size),
           color: textColor,
-          bgColor: bgColor,
-          border: ElBorder.all(width: 1, color: borderColor),
+          backgroundColor: bgColor,
+          border: ElBorder.all(borderWidth: 1, borderColor: borderColor),
           borderRadius: BorderRadius.circular(ElThemeData.of(context).radiusSm),
 
-          onDisabled: ElStyle(
-            bgColor: context.isDark
-                ? const Color(0xff262727)
-                : const Color(0xfff5f7fa),
-            color: ElThemeData.of(context).textColorLg,
-            iconColor: ElThemeData.of(context).textColorLg,
-          ),
-          transitions: const [ElTransition.all(Duration(milliseconds: 150))],
-          iconColor: textColor,
-        ).merge(
-          (active)
-              ? (ElStyle(border: ElBorder.all(width: 1, color: activeColor)))
-              : null,
+        onDisabled: ElStyle(
+          backgroundColor: context.isDark ? const Color(0xff262727) : const Color(0xfff5f7fa),
+          color: ElThemeData.of(context).textColorLg,
+          iconColor: ElThemeData.of(context).textColorLg,
         ),
-      ElInputOtpType.filled =>
-        ElStyle(
-          width: side,
-          height: side,
-          alignment: .center,
-          fontSize: _fontSize(size),
-          color: textColor,
-          // filled 填充底从 $bgColor 派生加深 1 级
-          bgColor: ElThemeData.of(context).bgColor.elLight1(
-            context,
-            reverse: !ElThemeData.of(context).bgColor.isDark,
-          ),
-          borderRadius: BorderRadius.circular(ElThemeData.of(context).radiusSm),
+        transition: const [ElTransition.all(Duration(milliseconds: 150))],
+        iconColor: textColor,
+      ).merge((active) ? (ElStyle(border: ElBorder.all(borderWidth: 1, borderColor: activeColor))) : null),
+      ElInputOtpType.filled => ElStyle(
+        width: side,
+        height: side,
+        alignment: .center,
+        fontSize: _fontSize(size),
+        color: textColor,
+        // filled 填充底从 $bgColor 派生加深 1 级
+        backgroundColor: ElThemeData.of(context).bgColor
+            .elLight1(context, reverse: !ElThemeData.of(context).bgColor.isDark),
+        borderRadius: BorderRadius.circular(ElThemeData.of(context).radiusSm),
 
-          onDisabled: ElStyle(
-            bgColor: context.isDark
-                ? const Color(0xff262727)
-                : const Color(0xfff5f7fa),
-            color: ElThemeData.of(context).textColorLg,
-            iconColor: ElThemeData.of(context).textColorLg,
-          ),
-          transitions: const [ElTransition.all(Duration(milliseconds: 150))],
-          iconColor: textColor,
-        ).merge(
-          (active)
-              ? (ElStyle(border: ElBorder.all(width: 1, color: activeColor)))
-              : null,
+        onDisabled: ElStyle(
+          backgroundColor: context.isDark ? const Color(0xff262727) : const Color(0xfff5f7fa),
+          color: ElThemeData.of(context).textColorLg,
+          iconColor: ElThemeData.of(context).textColorLg,
         ),
+        transition: const [ElTransition.all(Duration(milliseconds: 150))],
+        iconColor: textColor,
+      ).merge((active) ? (ElStyle(border: ElBorder.all(borderWidth: 1, borderColor: activeColor))) : null),
       ElInputOtpType.underlined =>
         ElStyle(
           width: side,
@@ -779,20 +764,20 @@ class _ElInputOtpCell extends StatelessWidget {
           fontSize: _fontSize(size),
           color: textColor,
           border: ElBorder.only(
-            bottom: ElBorderSide(width: 1, color: borderColor),
+            borderBottom: ElBorderSide(borderWidth: 1, borderColor: borderColor),
           ),
 
           onDisabled: ElStyle(
             color: ElThemeData.of(context).textColorLg,
             iconColor: ElThemeData.of(context).textColorLg,
           ),
-          transitions: const [ElTransition.all(Duration(milliseconds: 150))],
+          transition: const [ElTransition.all(Duration(milliseconds: 150))],
           iconColor: textColor,
         ).merge(
           (active)
               ? (ElStyle(
                   border: ElBorder.only(
-                    bottom: ElBorderSide(width: 2, color: activeColor),
+                    borderBottom: ElBorderSide(borderWidth: 2, borderColor: activeColor),
                   ),
                 ))
               : null,

@@ -49,7 +49,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
         height: thumb,
         alignment: .center,
         borderRadius: BorderRadius.circular(999),
-        bgColor:
+        backgroundColor:
             theme.switchThumbBackground ??
             (current ? theme.primaryText : const Color(0xffffffff)),
         color: current ? theme.primary : theme.textSecondary,
@@ -60,7 +60,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
             blurRadius: 5,
           ),
         ],
-        transitions: reduced
+        transition: reduced
             ? const []
             : const [
                 ElTransition.all(Duration(milliseconds: 150), Curves.ease),
@@ -91,14 +91,14 @@ class _CommonSwitch extends ElFormModelValue<bool> {
             padding: EdgeInsets.all(gap),
             alignment: .centerLeft,
             borderRadius: BorderRadius.circular(999),
-            bgColor: current
+            backgroundColor: current
                 ? (component.activeColor ?? theme.primary)
                 : (component.inactiveColor ?? theme.gray),
             color: current ? theme.primaryText : theme.text,
             cursor: component.disabled
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.click,
-            transitions: reduced
+            transition: reduced
                 ? const []
                 : const [
                     ElTransition.all(Duration(milliseconds: 230), Curves.ease),
@@ -197,11 +197,11 @@ class MySwitch extends StatelessWidget {
             padding: const EdgeInsets.all(3),
             alignment: Alignment.centerLeft,
             borderRadius: BorderRadius.circular(99),
-            bgColor: current ? t.primary : t.gray,
+            backgroundColor: current ? t.primary : t.gray,
             cursor: disabled
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.click,
-            transitions: transitions,
+            transition: transitions,
             onFocusVisible: myFocusStyle(context),
           ),
           child: ElView(
@@ -209,7 +209,7 @@ class MySwitch extends StatelessWidget {
               width: 22,
               height: 22,
               borderRadius: BorderRadius.circular(99),
-              bgColor:
+              backgroundColor:
                   t.switchThumbBackground ??
                   (current ? t.primaryText : const Color(0xffffffff)),
               transform: ElTransform.translate(current ? 19 : 0, 0),
@@ -220,7 +220,7 @@ class MySwitch extends StatelessWidget {
                   blurRadius: 5,
                 ),
               ],
-              transitions: myReducedMotion(context)
+              transition: myReducedMotion(context)
                   ? const []
                   : const [
                       ElTransition.field(
@@ -229,7 +229,7 @@ class MySwitch extends StatelessWidget {
                         Curves.ease,
                       ),
                       ElTransition.field(
-                        ElTransitionField.bgColor,
+                        ElTransitionField.backgroundColor,
                         Duration(milliseconds: 150),
                         Curves.ease,
                       ),

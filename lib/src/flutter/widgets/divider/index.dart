@@ -69,7 +69,7 @@ Widget _buildDividerColumn({required Object? child, required double thickness, r
 }
 
 Widget _dividerLine({required double thickness, Color? color, bool vertical = false}) => ElView(
-  style: vertical ? ElStyle(width: thickness, bgColor: color) : ElStyle(height: thickness, bgColor: color),
+  style: vertical ? ElStyle(width: thickness, backgroundColor: color) : ElStyle(height: thickness, backgroundColor: color),
 );
 
 Widget _dividerGap({double? width, double? height}) => ElView(

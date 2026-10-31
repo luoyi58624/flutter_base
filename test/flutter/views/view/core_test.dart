@@ -15,7 +15,7 @@ Widget _box(Key key, ElStyle style) {
     style: style.copyWith(
       width: style.width ?? 96,
       height: style.height ?? 40,
-      transitions: style.transitions ?? _instant,
+      transition: style.transition ?? _instant,
     ),
   );
 }
@@ -101,9 +101,9 @@ void main() {
       MaterialApp(
         home: ElView(
           style: ElStyle(
-            bgColor: Color(0xff112233),
-            xl: ElStyle(bgColor: Color(0xff445566)),
-            onFocusVisible: ElStyle(bgColor: Color(0xff778899)),
+            backgroundColor: Color(0xff112233),
+            xl: ElStyle(backgroundColor: Color(0xff445566)),
+            onFocusVisible: ElStyle(backgroundColor: Color(0xff778899)),
           ),
         ),
       ),
@@ -111,7 +111,7 @@ void main() {
     final render = tester.renderObject<ElRenderView>(find.byType(ElView));
     expect(render.internalStateHas(ViewState.xl), isTrue);
     expect(render.internalStateHas(ViewState.focusVisible), isFalse);
-    expect(render.committedResolvedStyle.box.bgColor, Color(0xff445566));
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff445566));
   });
 
   group('事件配置光标与禁用', () {
@@ -199,9 +199,9 @@ void main() {
           style: ElStyle(
             width: 100,
             height: 80,
-            bgColor: Color(0xff112233),
+            backgroundColor: Color(0xff112233),
             cursor: SystemMouseCursors.click,
-            onDisabled: ElStyle(bgColor: Color(0xff445566), cursor: SystemMouseCursors.text),
+            onDisabled: ElStyle(backgroundColor: Color(0xff445566), cursor: SystemMouseCursors.text),
           ),
           event: hasEvent
               ? ElEvent(disabled: eventDisabled, cursor: SystemMouseCursors.help, onTap: (_) => taps++)
@@ -211,7 +211,7 @@ void main() {
       await tester.pumpWidget(tree(true));
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       expect(render.disabled, isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, Color(0xff445566));
+      expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff445566));
       expect(node.canRequestFocus, isFalse);
       final mouse = await tester.createGesture(kind: .mouse, pointer: 1);
       addTearDown(mouse.removePointer);
@@ -225,7 +225,7 @@ void main() {
       expect(node.canRequestFocus, isFalse);
       await tester.pumpWidget(tree(false));
       expect(render.disabled, isFalse);
-      expect(render.committedResolvedStyle.box.bgColor, Color(0xff112233));
+      expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff112233));
       expect(node.canRequestFocus, isTrue);
       expect(tester.binding.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.click);
       await tester.tapAt(Offset(20, 20));
@@ -234,7 +234,7 @@ void main() {
       await tester.pumpWidget(tree(false, hasEvent: false));
       expect(render.disabled, isFalse);
       expect(node.canRequestFocus, isTrue);
-      expect(render.committedResolvedStyle.box.bgColor, Color(0xff112233));
+      expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff112233));
     });
   });
 
@@ -261,7 +261,7 @@ void main() {
           ElView(
             key: key,
 
-            style: const ElStyle(width: 40, height: 40, bgColor: Color(0xFF000000)),
+            style: const ElStyle(width: 40, height: 40, backgroundColor: Color(0xFF000000)),
             child: Column(
               children: [
                 Builder(
@@ -446,43 +446,43 @@ void main() {
               _box(
                 hoverKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onHover: ElStyle(bgColor: Color(0xFF3B82F6)),
+                  backgroundColor: Colors.white,
+                  onHover: ElStyle(backgroundColor: Color(0xFF3B82F6)),
                 ),
               ),
               _box(
                 activeKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onTap: ElStyle(bgColor: Color(0xFFCBD5E1)),
+                  backgroundColor: Colors.white,
+                  onTap: ElStyle(backgroundColor: Color(0xFFCBD5E1)),
                 ),
               ),
               _box(
                 focusKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onFocus: ElStyle(outline: ElOutline(color: Color(0xFF3B82F6), width: 2.5, offset: 3)),
+                  backgroundColor: Colors.white,
+                  onFocus: ElStyle(outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3)),
                 ),
               ),
               _box(
                 focusWithinKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onFocusWithin: ElStyle(bgColor: Color(0xFF3B82F6)),
+                  backgroundColor: Colors.white,
+                  onFocusWithin: ElStyle(backgroundColor: Color(0xFF3B82F6)),
                 ),
               ),
               _box(
                 disabledKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onDisabled: ElStyle(bgColor: Color(0xFFCBD5E1), opacity: 0.4),
+                  backgroundColor: Colors.white,
+                  onDisabled: ElStyle(backgroundColor: Color(0xFFCBD5E1), opacity: 0.4),
                 ),
               ),
               _box(
                 darkKey,
                 const ElStyle(
-                  bgColor: Colors.white,
-                  onDark: ElStyle(bgColor: _darkSurface),
+                  backgroundColor: Colors.white,
+                  onDark: ElStyle(backgroundColor: _darkSurface),
                 ),
               ),
             ],
@@ -497,12 +497,12 @@ void main() {
         viewOf(tester, darkKey).setDark(true);
         await tester.pump();
 
-        expect(viewOf(tester, hoverKey).committedResolvedStyle.box.bgColor, const Color(0xFF3B82F6));
-        expect(viewOf(tester, activeKey).committedResolvedStyle.box.bgColor, const Color(0xFFCBD5E1));
-        expect(viewOf(tester, focusKey).committedResolvedStyle.box.outline!.width, 2.5);
-        expect(viewOf(tester, focusWithinKey).committedResolvedStyle.box.bgColor, const Color(0xFF3B82F6));
+        expect(viewOf(tester, hoverKey).committedResolvedStyle.box.backgroundColor, const Color(0xFF3B82F6));
+        expect(viewOf(tester, activeKey).committedResolvedStyle.box.backgroundColor, const Color(0xFFCBD5E1));
+        expect(viewOf(tester, focusKey).committedResolvedStyle.box.outline!.outlineWidth, 2.5);
+        expect(viewOf(tester, focusWithinKey).committedResolvedStyle.box.backgroundColor, const Color(0xFF3B82F6));
         expect(viewOf(tester, disabledKey).committedResolvedStyle.box.opacity, 0.4);
-        expect(viewOf(tester, darkKey).committedResolvedStyle.box.bgColor, _darkSurface);
+        expect(viewOf(tester, darkKey).committedResolvedStyle.box.backgroundColor, _darkSurface);
       });
     });
   });
@@ -527,15 +527,15 @@ void main() {
             child: <Widget>[
               ElView(
                 key: aKey,
-                style: ElStyle(width: 30, height: 20, bgColor: Color(0xffff0000)),
+                style: ElStyle(width: 30, height: 20, backgroundColor: Color(0xffff0000)),
               ),
               ElView(
                 key: bKey,
-                style: ElStyle(width: 30, height: 20, bgColor: Color(0xff00ff00)),
+                style: ElStyle(width: 30, height: 20, backgroundColor: Color(0xff00ff00)),
               ),
               ElView(
                 key: cKey,
-                style: ElStyle(width: 30, height: 20, bgColor: Color(0xff0000ff)),
+                style: ElStyle(width: 30, height: 20, backgroundColor: Color(0xff0000ff)),
               ),
             ],
           ),
@@ -574,7 +574,7 @@ void main() {
               height: 60,
               alignment: .center,
               cursor: SystemMouseCursors.click,
-              onFocusVisible: focusVariant ? ElStyle(bgColor: Color(0xffeeeeee)) : null,
+              onFocusVisible: focusVariant ? ElStyle(backgroundColor: Color(0xffeeeeee)) : null,
             ),
             child: 'Button',
           ),
@@ -745,11 +745,11 @@ void main() {
 
     testWidgets('上层切换普通样式即可更新选中外观', (tester) async {
       Widget build(bool selected) => MaterialApp(
-        home: ElView(style: ElStyle(bgColor: selected ? Color(0xFF22FF22) : Color(0xFF111111))),
+        home: ElView(style: ElStyle(backgroundColor: selected ? Color(0xFF22FF22) : Color(0xFF111111))),
       );
       for (final selected in [false, true, false]) {
         await tester.pumpWidget(build(selected));
-        expect(renderOf(tester).committedResolvedStyle.box.bgColor, selected ? Color(0xFF22FF22) : Color(0xFF111111));
+        expect(renderOf(tester).committedResolvedStyle.box.backgroundColor, selected ? Color(0xFF22FF22) : Color(0xFF111111));
       }
     });
 
@@ -760,13 +760,13 @@ void main() {
             home: ElView(
               event: ElEvent(disabled: true),
               style: ElStyle(
-                bgColor: Color(0xFF111111),
-                onDisabled: ElStyle(bgColor: Color(0xFF999999)),
+                backgroundColor: Color(0xFF111111),
+                onDisabled: ElStyle(backgroundColor: Color(0xFF999999)),
               ),
             ),
           ),
         );
-        expect(renderOf(tester).committedResolvedStyle.box.bgColor, const Color(0xFF999999));
+        expect(renderOf(tester).committedResolvedStyle.box.backgroundColor, const Color(0xFF999999));
       });
 
       testWidgets('disabled 优先级最高：冲突字段压过普通选中样式', (tester) async {
@@ -776,14 +776,14 @@ void main() {
               event: ElEvent(disabled: true),
 
               style: ElStyle(
-                bgColor: Color(0xFF22FF22),
-                onDisabled: ElStyle(bgColor: Color(0xFF999999)),
+                backgroundColor: Color(0xFF22FF22),
+                onDisabled: ElStyle(backgroundColor: Color(0xFF999999)),
               ),
             ),
           ),
         );
         expect(
-          renderOf(tester).committedResolvedStyle.box.bgColor,
+          renderOf(tester).committedResolvedStyle.box.backgroundColor,
           const Color(0xFF999999),
           reason: 'disabled 是最高优先级，同字段冲突时压过普通样式',
         );
@@ -795,9 +795,9 @@ void main() {
             home: ElView(
               event: ElEvent(disabled: true),
               style: ElStyle(
-                bgColor: Color(0xFF111111),
-                onDark: ElStyle(bgColor: Color(0xFF333333)),
-                onDisabled: ElStyle(bgColor: Color(0xFF999999)),
+                backgroundColor: Color(0xFF111111),
+                onDark: ElStyle(backgroundColor: Color(0xFF333333)),
+                onDisabled: ElStyle(backgroundColor: Color(0xFF999999)),
               ),
             ),
           ),
@@ -806,7 +806,7 @@ void main() {
         render.setDark(true);
         await tester.pump();
         expect(
-          render.committedResolvedStyle.box.bgColor,
+          render.committedResolvedStyle.box.backgroundColor,
           const Color(0xFF999999),
           reason: 'disabled 压过 dark（dark 在新库原本优先级更高，现 disabled 置顶）',
         );
@@ -819,7 +819,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: ElView(
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+              style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
               event: ElEvent(disabled: true, onTap: (_) => taps++),
             ),
           ),
@@ -834,7 +834,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: ElView(
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+              style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -848,7 +848,7 @@ void main() {
         var taps = 0;
         Widget build(bool disabled) => MaterialApp(
           home: ElView(
-            style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+            style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
             event: ElEvent(disabled: disabled, onTap: (_) => taps++),
           ),
         );
@@ -871,7 +871,7 @@ void main() {
 
         Widget build(bool disabled) => MaterialApp(
           home: ElView(
-            style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+            style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
             event: ElEvent(
               disabled: disabled,
               config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
@@ -909,7 +909,7 @@ void main() {
         Widget build({required bool right}) {
           final child = ElView(
             key: key,
-            style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+            style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
             event: ElEvent(onTap: (_) => taps++),
           );
           return MaterialApp(
@@ -964,7 +964,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: ElView(
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+              style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
               event: ElEvent(disabled: true, onTap: (_) {}),
             ),
           ),
@@ -976,7 +976,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: ElView(
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF111111)),
+              style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
               event: ElEvent(onTap: (_) {}),
             ),
           ),
@@ -991,9 +991,9 @@ void main() {
           const MaterialApp(
             home: ElView(
               style: ElStyle(
-                bgColor: Color(0xFF111111),
-                onHover: ElStyle(bgColor: Color(0xFFFF0000)),
-                onDisabled: ElStyle(bgColor: Color(0xFF999999)),
+                backgroundColor: Color(0xFF111111),
+                onHover: ElStyle(backgroundColor: Color(0xFFFF0000)),
+                onDisabled: ElStyle(backgroundColor: Color(0xFF999999)),
               ),
             ),
           ),
@@ -1002,16 +1002,16 @@ void main() {
 
         render.setHover(true);
         await tester.pump();
-        expect(render.committedResolvedStyle.box.bgColor, const Color(0xFFFF0000), reason: 'hover 命中');
+        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xFFFF0000), reason: 'hover 命中');
 
         render.event = (render.event ?? ElEvent()).copyWith(disabled: true);
         await tester.pump();
-        expect(render.committedResolvedStyle.box.bgColor, const Color(0xFF999999), reason: 'disabled 胜出');
+        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xFF999999), reason: 'disabled 胜出');
 
         render.event = (render.event ?? ElEvent()).copyWith(disabled: false);
         await tester.pump();
         expect(
-          render.committedResolvedStyle.box.bgColor,
+          render.committedResolvedStyle.box.backgroundColor,
           const Color(0xFF111111),
           reason: '进入 disabled 时 hover 瞬时态已清，解除后回到基础样式而非残留 hover',
         );
@@ -1100,7 +1100,7 @@ void main() {
       enlargeViewport(tester);
       final s = await mount(
         tester,
-        rows((_) => const ElView(style: ElStyle(width: 100, height: 8, bgColor: Color(0xff112233)))),
+        rows((_) => const ElView(style: ElStyle(width: 100, height: 8, backgroundColor: Color(0xff112233)))),
       );
       report('bgColor 行', s);
 
@@ -1150,7 +1150,7 @@ void main() {
           children: [
             ElView(
               key: bottomKey,
-              style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF222222)),
+              style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF222222)),
               event: ElEvent(onTap: (e) => onBottomTap()),
             ),
             ElView(
@@ -1169,7 +1169,7 @@ void main() {
         var topTapped = false, bottomTapped = false;
         await tester.pumpWidget(
           buildStack(
-            topStyle: const ElStyle(pointerEvents: .none, width: 100, height: 100, bgColor: Color(0xFFFF0000)),
+            topStyle: const ElStyle(pointerEvents: .none, width: 100, height: 100, backgroundColor: Color(0xFFFF0000)),
             onTopTap: () => topTapped = true,
             onBottomTap: () => bottomTapped = true,
           ),
@@ -1183,7 +1183,7 @@ void main() {
         var topTapped = false, bottomTapped = false;
         await tester.pumpWidget(
           buildStack(
-            topStyle: const ElStyle(width: 100, height: 100, bgColor: Color(0xFFFF0000)),
+            topStyle: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFFFF0000)),
             onTopTap: () => topTapped = true,
             onBottomTap: () => bottomTapped = true,
           ),
@@ -1200,8 +1200,8 @@ void main() {
               pointerEvents: .none,
               width: 100,
               height: 100,
-              bgColor: Color(0xFF111111),
-              onHover: ElStyle(bgColor: Color(0xFF22FF22)),
+              backgroundColor: Color(0xFF111111),
+              onHover: ElStyle(backgroundColor: Color(0xFF22FF22)),
             ),
             onTopTap: () {},
             onBottomTap: () {},
@@ -1214,7 +1214,7 @@ void main() {
         await gesture.moveTo(tester.getCenter(find.byKey(topKey)));
         await tester.pump();
         final render = tester.renderObject<ElRenderView>(find.byKey(topKey));
-        expect(render.committedResolvedStyle.box.bgColor, const Color(0xFF111111));
+        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xFF111111));
       });
     });
 
@@ -1227,7 +1227,7 @@ void main() {
               children: [
                 ElView(
                   key: bottomKey,
-                  style: const ElStyle(width: 100, height: 100, bgColor: Color(0xFF222222)),
+                  style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF222222)),
                   event: ElEvent(onTap: (e) => bottomTapped = true),
                 ),
                 ElView(
@@ -1236,7 +1236,7 @@ void main() {
                   child: Row(
                     children: [
                       ElView(
-                        style: const ElStyle(width: 50, height: 50, bgColor: Color(0xFF3333FF)),
+                        style: const ElStyle(width: 50, height: 50, backgroundColor: Color(0xFF3333FF)),
                         event: ElEvent(onTap: (e) => childTapped = true),
                       ),
                     ],
@@ -1262,7 +1262,7 @@ void main() {
               style: const ElStyle(pointerEvents: .none, width: 100, height: 100),
               event: ElEvent(onTap: (e) => ancestorTapped = true),
               child: ElView(
-                style: const ElStyle(pointerEvents: .auto, width: 50, height: 50, bgColor: Color(0xFF3333FF)),
+                style: const ElStyle(pointerEvents: .auto, width: 50, height: 50, backgroundColor: Color(0xFF3333FF)),
                 event: ElEvent(onTap: (e) => childTapped = true),
               ),
             ),
@@ -1319,7 +1319,7 @@ void main() {
       testWidgets('none ↔ 未声明 翻转即时生效', (tester) async {
         var topTapped = false, bottomTapped = false;
         Widget build(ElPointerEvents? pe) => buildStack(
-          topStyle: ElStyle(pointerEvents: pe, width: 100, height: 100, bgColor: const Color(0xFFFF0000)),
+          topStyle: ElStyle(pointerEvents: pe, width: 100, height: 100, backgroundColor: const Color(0xFFFF0000)),
           onTopTap: () => topTapped = true,
           onBottomTap: () => bottomTapped = true,
         );
@@ -1337,17 +1337,17 @@ void main() {
       });
 
       test('copyWith / merge 携带 pointerEvents', () {
-        const base = ElStyle(bgColor: Color(0xFF111111));
+        const base = ElStyle(backgroundColor: Color(0xFF111111));
         final copied = base.copyWith(pointerEvents: ElPointerEvents.none);
         expect(copied.pointerEvents, ElPointerEvents.none);
-        expect(copied.bgColor, const Color(0xFF111111));
+        expect(copied.backgroundColor, const Color(0xFF111111));
 
         const overlay = ElStyle(pointerEvents: .none);
         final merged = base.merge(overlay);
         expect(merged.pointerEvents, ElPointerEvents.none);
 
         // merge 空值不清除已有声明。
-        final kept = overlay.merge(const ElStyle(bgColor: Color(0xFF222222)));
+        final kept = overlay.merge(const ElStyle(backgroundColor: Color(0xFF222222)));
         expect(kept.pointerEvents, ElPointerEvents.none);
       });
     });
@@ -1390,7 +1390,7 @@ void main() {
             Wrap(
               children: List<Widget>.generate(
                 10,
-                (i) => ElView(style: .new(width: 20, height: 20, bgColor: Color(0xff00ff00))),
+                (i) => ElView(style: .new(width: 20, height: 20, backgroundColor: Color(0xff00ff00))),
               ),
             ),
           ),
@@ -1411,7 +1411,7 @@ void main() {
               mainAxisSize: MainAxisSize.min,
               children: List<Widget>.generate(
                 5,
-                (i) => ElView(style: .new(width: 30, height: 30, bgColor: Color(0xff0000ff))),
+                (i) => ElView(style: .new(width: 30, height: 30, backgroundColor: Color(0xff0000ff))),
               ),
             ),
           ),
@@ -1429,7 +1429,7 @@ void main() {
         await tester.pumpWidget(
           shell(
             ElView(
-              style: .new(width: 100, height: 100, bgColor: Color(0xffcccccc)),
+              style: .new(width: 100, height: 100, backgroundColor: Color(0xffcccccc)),
               child: SizedBox(width: 50, height: 50),
             ),
           ),
@@ -1474,8 +1474,8 @@ void main() {
             style: .new(
               width: 40,
               height: 40,
-              bgColor: color,
-              transitions: [ElTransition.all(Duration(milliseconds: 200))],
+              backgroundColor: color,
+              transition: [ElTransition.all(Duration(milliseconds: 200))],
             ),
           ),
         );
@@ -1509,8 +1509,8 @@ void main() {
               style: .new(
                 width: 100,
                 height: 40,
-                bgColor: Color(0xffff0000),
-                onHover: .new(bgColor: Color(0xff0000ff), transitions: [ElTransition.all(Duration(milliseconds: 200))]),
+                backgroundColor: Color(0xffff0000),
+                onHover: .new(backgroundColor: Color(0xff0000ff), transition: [ElTransition.all(Duration(milliseconds: 200))]),
               ),
             ),
           ),
@@ -1521,13 +1521,13 @@ void main() {
         render.setHover(true);
         await tester.pump();
         await tester.pump(Duration(milliseconds: 100));
-        final mid = render.committedResolvedStyle.box.bgColor;
+        final mid = render.committedResolvedStyle.box.backgroundColor;
         expect(mid, isNot(Color(0xffff0000)), reason: '过渡中途不应停在起点（变体过渡被静默禁用的症状）');
         expect(mid, isNot(Color(0xff0000ff)), reason: '过渡中途不应瞬移到终点（无动画直接 snap 的症状）');
         expect(BenchmarkProbe.animDriverInstantiateCount, greaterThanOrEqualTo(1));
 
         await tester.pump(Duration(milliseconds: 150));
-        expect(render.committedResolvedStyle.box.bgColor, Color(0xff0000ff));
+        expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff0000ff));
       });
 
       testWidgets('内部重绘订阅按需创建状态源', (tester) async {

@@ -69,7 +69,7 @@ void main() {
                         style: ElStyle(
                           width: 4,
                           height: 4,
-                          bgColor: foreground,
+                          backgroundColor: foreground,
                           opacity: opacity,
                           filter: filter,
                           transform: ElTransform.translateX(2),

@@ -52,7 +52,7 @@ void main() {
                   )
                 : ElView(
                     key: ValueKey('item-$i'),
-                    style: ElStyle(width: 200, height: 40, bgColor: Color(0xff222222 + i)),
+                    style: ElStyle(width: 200, height: 40, backgroundColor: Color(0xff222222 + i)),
                   ),
           ),
         ),
@@ -196,43 +196,41 @@ void main() {
       });
     }
 
-    testWidgets(
-      'SEL-E: 空白处长按被拒绝后同一触摸指针仍可开始滚动',
-      (tester) async {
-        final scroll = ScrollController();
-        final selection = ElSelectionController();
-        addTearDown(scroll.dispose);
-        addTearDown(selection.dispose);
-        const blankKey = ValueKey<String>('selection-blank-start');
-        await tester.pumpWidget(
-          MaterialApp(
-            scrollBehavior: const _NoChromeBehavior(),
-            home: Align(
-              alignment: Alignment.topLeft,
-              child: ElSelectionView(
-                controller: selection,
-                child: SizedBox(
-                  key: scrollKey,
-                  width: 200,
-                  height: 300,
-                  child: ElScrollView(
-                    controller: scroll,
-                    physics: const ClampingScrollPhysics(),
-                    children: <Widget>[
-                      const ElView(
-                        key: blankKey,
-                        style: ElStyle(width: 200, height: 120, userSelect: .none),
-                      ),
-                      for (var i = 0; i < 30; i++)
-                        ElView(style: const ElStyle(width: 200, height: 40), child: 'row $i selectable text'),
-                    ],
-                  ),
+    testWidgets('SEL-E: 空白处长按被拒绝后同一触摸指针仍可开始滚动', (tester) async {
+      final scroll = ScrollController();
+      final selection = ElSelectionController();
+      addTearDown(scroll.dispose);
+      addTearDown(selection.dispose);
+      const blankKey = ValueKey<String>('selection-blank-start');
+      await tester.pumpWidget(
+        MaterialApp(
+          scrollBehavior: const _NoChromeBehavior(),
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: ElSelectionView(
+              controller: selection,
+              child: SizedBox(
+                key: scrollKey,
+                width: 200,
+                height: 300,
+                child: ElScrollView(
+                  controller: scroll,
+                  physics: const ClampingScrollPhysics(),
+                  children: <Widget>[
+                    const ElView(
+                      key: blankKey,
+                      style: ElStyle(width: 200, height: 120, userSelect: .none),
+                    ),
+                    for (var i = 0; i < 30; i++)
+                      ElView(style: const ElStyle(width: 200, height: 40), child: 'row $i selectable text'),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-        await tester.pump();
+        ),
+      );
+      await tester.pump();
 
         final gesture = await tester.createGesture(kind: PointerDeviceKind.touch);
         addTearDown(gesture.removePointer);

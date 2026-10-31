@@ -129,7 +129,7 @@ void main() {
             child: const ElView(
               child: '不带背景的整段文本',
               style: ElStyle(
-                onSelection: ElStyle(bgColor: Color(0xff0078d7), color: Color(0xffffffff)),
+                onSelection: ElStyle(backgroundColor: Color(0xff0078d7), color: Color(0xffffffff)),
               ),
             ),
           ),

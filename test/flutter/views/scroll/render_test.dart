@@ -175,7 +175,7 @@ class _StickyState extends State<_Sticky> with ElScrollMixin<_Sticky>, ElStickyM
     child: ElView(
       key: ValueKey(widget.name),
       event: widget.onTap == null ? null : ElEvent(onTap: (_) => widget.onTap!()),
-      style: ElStyle(height: widget.height, bgColor: const Color(0xff4488aa)),
+      style: ElStyle(height: widget.height, backgroundColor: const Color(0xff4488aa)),
     ),
   );
 }
@@ -282,7 +282,7 @@ Widget _row({required double dy, required void Function() onTap}) {
           width: 40,
           height: 20,
           transform: ElTransform.translate(0, dy),
-          bgColor: const Color(0xFF2196F3),
+          backgroundColor: const Color(0xFF2196F3),
         ),
         event: ElEvent(onTap: (_) => onTap()),
       ),
@@ -546,11 +546,11 @@ void main() {
         of: find.byKey(const ValueKey('el-scrollbar-thumb-vertical')),
         matching: find.byType(ElView),
       );
-      final color = tester.widget<ElView>(thumb).style?.bgColor;
+      final color = tester.widget<ElView>(thumb).style?.backgroundColor;
       final before = viewport.debugLayoutCount;
       await mouse.moveTo(const Offset(234, 20));
       await tester.pump();
-      expect(tester.widget<ElView>(thumb).style?.bgColor, isNot(color));
+      expect(tester.widget<ElView>(thumb).style?.backgroundColor, isNot(color));
       expect(viewport.debugLayoutCount, before);
       await mouse.removePointer();
       await tester.pumpAndSettle();
@@ -937,7 +937,7 @@ void main() {
                   top: 0,
                   width: 100,
                   height: 60,
-                  child: ElView(style: ElStyle(bgColor: color)),
+                  child: ElView(style: ElStyle(backgroundColor: color)),
                 );
               },
             ),
@@ -1580,30 +1580,28 @@ void main() {
   });
 
   group('溢出成员命中', () {
-    testWidgets(
-      '默认裁剪（内容超视口）：行溢出出视口不可点、视口内行溢出照常命中',
-      (tester) async {
-        var inViewportTaps = 0;
-        var sealedTaps = 0;
-        await tester.pumpWidget(
-          _app(
-            ElView(
-              style: const ElStyle(width: 200, height: 100),
-              child: ElScrollView(
-                physics: const ClampingScrollPhysics(),
-                children: [
-                  ElView(style: const ElStyle(width: 200, height: 20), child: 'row 0'),
-                  ElView(style: const ElStyle(width: 200, height: 20), child: 'row 1'),
-                  // row 2（y 40..60）：块 +30 → 视觉 70..90 视口内（行内溢出，可点）。
-                  _row(dy: 30, onTap: () => inViewportTaps++),
-                  // row 3（y 60..80）：块 +50 → 视觉 110..130 视口外（封口，不可点）。
-                  _row(dy: 50, onTap: () => sealedTaps++),
-                  for (var i = 4; i < 20; i++) ElView(style: const ElStyle(width: 200, height: 20), child: 'row $i'),
-                ],
-              ),
+    testWidgets('默认裁剪（内容超视口）：行溢出出视口不可点、视口内行溢出照常命中', (tester) async {
+      var inViewportTaps = 0;
+      var sealedTaps = 0;
+      await tester.pumpWidget(
+        _app(
+          ElView(
+            style: const ElStyle(width: 200, height: 100),
+            child: ElScrollView(
+              physics: const ClampingScrollPhysics(),
+              children: [
+                ElView(style: const ElStyle(width: 200, height: 20), child: 'row 0'),
+                ElView(style: const ElStyle(width: 200, height: 20), child: 'row 1'),
+                // row 2（y 40..60）：块 +30 → 视觉 70..90 视口内（行内溢出，可点）。
+                _row(dy: 30, onTap: () => inViewportTaps++),
+                // row 3（y 60..80）：块 +50 → 视觉 110..130 视口外（封口，不可点）。
+                _row(dy: 50, onTap: () => sealedTaps++),
+                for (var i = 4; i < 20; i++) ElView(style: const ElStyle(width: 200, height: 20), child: 'row $i'),
+              ],
             ),
           ),
-        );
+        ),
+      );
 
         // 视口内的行内溢出块：命中（行自身 hitBounds 扩张 + 滚动 render 子循环）。
         // y=80 恰好是后续 row 4 的起点，后绘制行会按正常层序先命中；

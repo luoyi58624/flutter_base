@@ -17,8 +17,8 @@ void main() {
     style: const ElStyle(
       width: 100,
       height: 40,
-      bgColor: Color(0xFFEFF6FF),
-      onTap: ElStyle(bgColor: Color(0xFFBFDBFE)),
+      backgroundColor: Color(0xFFEFF6FF),
+      onTap: ElStyle(backgroundColor: Color(0xFFBFDBFE)),
     ),
   );
 

@@ -53,7 +53,7 @@ ElBoxSelectionView(
   onSelectionChanged: (change) => print(change.selectedCount),
   child: ElBoxSelectable(
     value: 'item-1',
-    selectedStyle: ElStyle(bgColor: Colors.blue),
+    selectedStyle: ElStyle(backgroundColor: Colors.blue),
     child: ElView(child: '对象'),
   ),
 );

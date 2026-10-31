@@ -72,10 +72,10 @@ Object? lerpStep(Object? from, Object? to, double t) {
   return t < 0.5 ? from : to;
 }
 
-/// 颜色字段插值（color / decorationColor / textBackgroundColor / bgColor）。
+/// 颜色字段插值（color / textDecorationColor / textBackgroundColor / backgroundColor）。
 Object? lerpColor(Object? from, Object? to, double t) => _typedLerp(lerpColorPremul, from, to, t);
 
-/// 通用 double 插值（fontSize / lineHeight / decorationThickness / aspectRatio）。
+/// 通用 double 插值（fontSize / lineHeight / textDecorationThickness / aspectRatio）。
 Object? lerpDoubleValue(Object? from, Object? to, double t) => _numericLerp(from, to, t, null);
 
 /// double 字段插值（initial value 为 0 的字段）：letterSpacing / wordSpacing /
@@ -138,7 +138,7 @@ Object? lerpFontWeightValue(Object? from, Object? to, double t) => _typedLerp(Fo
 /// 渐变插值，缺失端点时使用离散切换。
 Object? lerpGradientValue(Object? from, Object? to, double t) => _typedLerp(Gradient.lerp, from, to, t);
 
-/// AlignmentGeometry 字段插值（alignment / transformAlignment）。
+/// AlignmentGeometry 字段插值（alignment / transformOrigin）。
 Object? lerpAlignment(Object? from, Object? to, double t) {
   if (identical(from, to)) return from;
   if (from == null || to == null) return lerpStep(from, to, t);
@@ -276,19 +276,19 @@ final _inheritedTextSpecs = <ElTransitionField, FieldSpec>{
     layout: true,
     inherited: true,
   ),
-  ElTransitionField.fontFeatures: _field(
-    (s) => s.fontFeatures,
-    (s) => s.inheritedText.fontFeatures,
-    (b, v) => b.writeFontFeatures(v as List<FontFeature>?),
+  ElTransitionField.fontFeatureSettings: _field(
+    (s) => s.fontFeatureSettings,
+    (s) => s.inheritedText.fontFeatureSettings,
+    (b, v) => b.writeFontFeatureSettings(v as List<FontFeature>?),
     lerpStep,
     layout: true,
     inherited: true,
     discrete: true,
   ),
-  ElTransitionField.fontVariations: _field(
-    (s) => s.fontVariations,
-    (s) => s.inheritedText.fontVariations,
-    (b, v) => b.writeFontVariations(v as List<FontVariation>?),
+  ElTransitionField.fontVariationSettings: _field(
+    (s) => s.fontVariationSettings,
+    (s) => s.inheritedText.fontVariationSettings,
+    (b, v) => b.writeFontVariationSettings(v as List<FontVariation>?),
     lerpStep,
     layout: true,
     inherited: true,
@@ -337,35 +337,35 @@ final _inheritedTextSpecs = <ElTransitionField, FieldSpec>{
     paint: true,
     inherited: true,
   ),
-  ElTransitionField.decoration: _field(
-    (s) => s.decoration,
-    (s) => s.inheritedText.decoration,
-    (b, v) => b.writeDecoration(v as TextDecoration?),
+  ElTransitionField.textDecorationLine: _field(
+    (s) => s.textDecorationLine,
+    (s) => s.inheritedText.textDecorationLine,
+    (b, v) => b.writeTextDecorationLine(v as TextDecoration?),
     lerpStep,
     paint: true,
     discrete: true,
   ),
-  ElTransitionField.decorationColor: _field(
-    (s) => s.decorationColor,
-    (s) => s.inheritedText.decorationColor,
-    (b, v) => b.writeDecorationColor(v as Color?),
+  ElTransitionField.textDecorationColor: _field(
+    (s) => s.textDecorationColor,
+    (s) => s.inheritedText.textDecorationColor,
+    (b, v) => b.writeTextDecorationColor(v as Color?),
     lerpColor,
     paint: true,
     inherited: true,
   ),
-  ElTransitionField.decorationStyle: _field(
-    (s) => s.decorationStyle,
-    (s) => s.inheritedText.decorationStyle,
-    (b, v) => b.writeDecorationStyle(v as TextDecorationStyle?),
+  ElTransitionField.textDecorationStyle: _field(
+    (s) => s.textDecorationStyle,
+    (s) => s.inheritedText.textDecorationStyle,
+    (b, v) => b.writeTextDecorationStyle(v as TextDecorationStyle?),
     lerpStep,
     paint: true,
     inherited: true,
     discrete: true,
   ),
-  ElTransitionField.decorationThickness: _field(
-    (s) => s.decorationThickness,
-    (s) => s.inheritedText.decorationThickness,
-    (b, v) => b.writeDecorationThickness(parseNumericDoubleSlot(v)),
+  ElTransitionField.textDecorationThickness: _field(
+    (s) => s.textDecorationThickness,
+    (s) => s.inheritedText.textDecorationThickness,
+    (b, v) => b.writeTextDecorationThickness(parseNumericDoubleSlot(v)),
     lerpDoubleValue,
     paint: true,
     inherited: true,
@@ -385,10 +385,10 @@ final _inheritedTextSpecs = <ElTransitionField, FieldSpec>{
     layout: true,
     discrete: true,
   ),
-  ElTransitionField.overflow: _field(
-    (s) => s.overflow,
-    (s) => s.inheritedText.overflow,
-    (b, v) => b.writeOverflow(v as TextOverflow?),
+  ElTransitionField.textOverflow: _field(
+    (s) => s.textOverflow,
+    (s) => s.inheritedText.textOverflow,
+    (b, v) => b.writeTextOverflow(v as TextOverflow?),
     lerpStep,
     layout: true,
     paint: true,
@@ -405,10 +405,10 @@ final _inheritedTextSpecs = <ElTransitionField, FieldSpec>{
 };
 
 final _inheritedBoxSpecs = <ElTransitionField, FieldSpec>{
-  ElTransitionField.textDirection: _field(
-    (s) => s.textDirection,
-    (s) => s.inheritedBox.textDirection,
-    (b, v) => b.writeTextDirection(v as TextDirection?),
+  ElTransitionField.direction: _field(
+    (s) => s.direction,
+    (s) => s.inheritedBox.direction,
+    (b, v) => b.writeDirection(v as TextDirection?),
     lerpStep,
     layout: true,
     inherited: true,
@@ -477,10 +477,10 @@ final _boxSpecs = <ElTransitionField, FieldSpec>{
     lerpFactorValue,
     layout: true,
   ),
-  ElTransitionField.bgColor: _field(
-    (s) => s.bgColor,
-    (s) => s.box.bgColor,
-    (b, v) => b.writeBgColor(v as Color?),
+  ElTransitionField.backgroundColor: _field(
+    (s) => s.backgroundColor,
+    (s) => s.box.backgroundColor,
+    (b, v) => b.writeBackgroundColor(v as Color?),
     lerpColor,
     paint: true,
   ),
@@ -519,10 +519,10 @@ final _boxSpecs = <ElTransitionField, FieldSpec>{
     lerpBorderRadiusValue,
     paint: true,
   ),
-  ElTransitionField.clipper: _field(
-    (s) => s.clipper,
-    (s) => s.box.clipper,
-    (b, v) => b.writeClipper(v as CustomClipper<Path>?),
+  ElTransitionField.clipPath: _field(
+    (s) => s.clipPath,
+    (s) => s.box.clipPath,
+    (b, v) => b.writeClipPath(v as CustomClipper<Path>?),
     lerpStep,
     paint: true,
     discrete: true,
@@ -576,10 +576,10 @@ final _boxSpecs = <ElTransitionField, FieldSpec>{
     lerpTransform,
     paint: true,
   ),
-  ElTransitionField.transformAlignment: _field(
-    (s) => s.transformAlignment,
-    (s) => s.box.transformAlignment,
-    (b, v) => b.writeTransformAlignment(v as AlignmentGeometry?),
+  ElTransitionField.transformOrigin: _field(
+    (s) => s.transformOrigin,
+    (s) => s.box.transformOrigin,
+    (b, v) => b.writeTransformOrigin(v as AlignmentGeometry?),
     lerpAlignment,
     paint: true,
   ),
@@ -598,10 +598,10 @@ final _boxSpecs = <ElTransitionField, FieldSpec>{
     lerpGradientValue,
     paint: true,
   ),
-  ElTransitionField.bgImage: _field(
-    (s) => s.bgImage,
-    (s) => s.box.bgImage,
-    (b, v) => b.writeBgImage(v as DecorationImage?),
+  ElTransitionField.backgroundImage: _field(
+    (s) => s.backgroundImage,
+    (s) => s.box.backgroundImage,
+    (b, v) => b.writeBackgroundImage(v as DecorationImage?),
     lerpStep,
     paint: true,
     discrete: true,
@@ -673,12 +673,12 @@ final FieldMask paintAffectingMask = _fieldsMaskWhere((s) => s.affectsPaint);
 
 /// 影响溢出命中边界（ElOverflowHitBounds）的 **paint-only** 字段位图。
 ///
-/// transform / transformAlignment 变化不触发 relayout（paintOnlyDamage），但
+/// transform / transformOrigin 变化不触发 relayout（paintOnlyDamage），但
 /// 会改变节点暴露给父级的命中边界映射——[DamageRouter.route] 命中此 mask 时
 /// 额外走 `markHitBoundsDirty`（layout 字段无需入位：performLayout 入口已标脏）。
 final FieldMask hitBoundsAffectingPaintOnlyMask = maskOr(
   maskBit(ElTransitionField.transform.index),
-  maskBit(ElTransitionField.transformAlignment.index),
+  maskBit(ElTransitionField.transformOrigin.index),
 );
 
 /// 影响「文本排版」的字段位图（inheritedText / inheritedBox 两组内 damage

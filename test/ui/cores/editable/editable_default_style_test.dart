@@ -69,8 +69,8 @@ void main() {
     first.style = ElStyle(
       width: 150,
       color: Color(0xff22cc00),
-      onSelection: ElStyle(bgColor: Color(0xff112233), color: Color(0xffaabbcc)),
-      transitions: [ElTransition.all(Duration(milliseconds: 200), Curves.linear)],
+      onSelection: ElStyle(backgroundColor: Color(0xff112233), color: Color(0xffaabbcc)),
+      transition: [ElTransition.all(Duration(milliseconds: 200), Curves.linear)],
     );
     await tester.pump();
     await tester.pump(Duration(milliseconds: 100));
@@ -88,7 +88,7 @@ void main() {
     first.style = ElStyle(
       width: 150,
       color: Color(0xff22cc00),
-      onSelection: ElStyle(bgColor: Color(0xff445566)),
+      onSelection: ElStyle(backgroundColor: Color(0xff445566)),
     );
     await tester.pump();
     expect(scope.config.selectionColor, Color(0xff445566));
@@ -96,7 +96,7 @@ void main() {
     first.style = ElStyle(
       width: 150,
       color: Color(0xff22cc00),
-      onFocus: ElStyle(onSelection: ElStyle(bgColor: Color(0xff778899))),
+      onFocus: ElStyle(onSelection: ElStyle(backgroundColor: Color(0xff778899))),
     );
     first.setFocus(true);
     await tester.pump();
@@ -188,7 +188,7 @@ void main() {
     final hitSurface = tester
         .widgetList<ElView>(find.descendant(of: find.byType(EditableView), matching: find.byType(ElView)))
         .firstWhere((view) => view.style?.cursor == SystemMouseCursors.text);
-    expect(hitSurface.style!.bgColor, const Color(0x00000000));
+    expect(hitSurface.style!.backgroundColor, const Color(0x00000000));
     expect(hitSurface.style!.border, isNull);
     expect(hitSurface.style!.boxShadow, isNull);
     expect(hitSurface.style!.outline, isNull);

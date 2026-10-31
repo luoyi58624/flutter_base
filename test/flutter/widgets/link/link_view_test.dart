@@ -287,14 +287,14 @@ void main() {
           ElLink(
             key: hostKey,
             href: 'https://example.com',
-            style: ElStyle(bgColor: Color(0xff112233)),
+            style: ElStyle(backgroundColor: Color(0xff112233)),
             child: 'S',
           ),
         ),
       );
 
       final view = tester.widget<ElLink>(find.byKey(hostKey));
-      expect(view.style!.bgColor, Color(0xff112233));
+      expect(view.style!.backgroundColor, Color(0xff112233));
       // 行为性默认：<a href> 手型光标；调用方可覆盖。
       expect(view.style!.cursor, SystemMouseCursors.click);
       // 与按钮相反：链接文字参与文本选区，不注入 userSelect。
@@ -304,7 +304,7 @@ void main() {
 
     testWidgets('disabled link keeps caller style untouched (engine owns forbidden cursor)', (tester) async {
       const hostKey = ValueKey<String>('link-style-disabled');
-      final style = ElStyle(bgColor: Color(0xff112233));
+      final style = ElStyle(backgroundColor: Color(0xff112233));
 
       await tester.pumpWidget(
         shell(ElLink(key: hostKey, href: 'https://example.com', style: style, disabled: true, child: 'S')),
