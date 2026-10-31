@@ -1,20 +1,5 @@
 import 'package:flutter_base/src/ui/desktop/internal.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
-
-List<double> get _buttonFonts => const [12.0, 13.0, 14.0, 15.0, 16.0];
-
-List<double> get _buttonIcons => const [12.0, 13.0, 15.0, 16.0, 18.0];
-
-List<double> get _buttonGaps => const [4.0, 6.0, 6.0, 8.0, 10.0];
-
-List<EdgeInsetsGeometry> get _buttonPaddings => const [
-  EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 14),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 20),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 24),
-];
 
 /// Element 按钮主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Button extends StatefulWidget {
@@ -80,20 +65,6 @@ extension _ButtonAppearance on ElButton {
   /// 图标按钮：`child` 是 [IconData] 即图标按钮（与外观无关，忽略 left/right）。
   bool get _isIcon => child is IconData;
 
-  bool get _isDesktop {
-    if (!ElPlatform.isFlutterTest) return ElPlatform.isDesktop;
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.windows ||
-      TargetPlatform.linux => true,
-      _ => false,
-    };
-  }
-
-  /// 移动端按下立即进入目标样式，松开后由基础态 transition 恢复。
-  ElStyle _mobileTap(ElStyle style) =>
-      style.copyWith(transition: const [ElTransition.all(Duration.zero)]);
-
   /// 主题色源：bgColor 显式覆盖 > type token（祖先主题色）。
   Color? _resolvedTypeColor(BuildContext context) {
     if (bgColor != null) return bgColor;
@@ -106,28 +77,27 @@ extension _ButtonAppearance on ElButton {
 
   /// 变体优先级同官方组件：link > text > ghost > plain。
   ElStyle _styleBuilder(BuildContext context) {
-    final isDesktop = _isDesktop;
-    // 尺寸档与控件高度统一读取祖先注入的通用主题变量。
-    final resolvedSize = _size(context);
+    // 紧凑密度优先读取组件自身声明，再继承祖先配置。
+    final compact = context.elComponentCompact(style);
     var base = ElStyle(
       // 官方 .el-button line-height: 1（高度全由 padding 撑出）
       lineHeight: 1.0,
-      fontSize: _buttonFonts[resolvedSize.index],
+      fontSize: compact ? 13 : 14,
       fontWeight: .w500,
-      iconSize: _buttonIcons[resolvedSize.index],
+      iconSize: compact ? 13 : 15,
       cursor: SystemMouseCursors.click,
       userSelect: .none,
       alignment: .center,
-      transition: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
+      transition: const [.all(Duration(milliseconds: 100))],
     );
-    // link 是纯文字形态（官方 padding 2 / height auto），其余变体共享同一套盒尺寸；
+    // link 是纯文字形态，其他外观共享 normal / compact 盒尺寸；
     // circle 固定方盒（宽 = 高）
-    final boxSize = context.elTheme.controlHeights[resolvedSize.index];
+    final boxSize = compact ? 32.0 : 36.0;
     if (link) {
       base = base.copyWith(padding: const EdgeInsets.all(2));
     } else if (circle) {
       // 官方 is-circle：宽 = 高的正方盒 + 50% 圆角。内容区 = 整盒（无内边距），
-      // 图标/文字居中即与按钮盒同心——加 padding 反而会在 xs 档压缩内容区
+      // 图标/文字居中即与按钮盒同心——加 padding 反而会在紧凑密度下压缩内容区
       // 导致 glyph 超盒绘制右偏下。
       base = base.copyWith(
         width: boxSize,
@@ -137,15 +107,15 @@ extension _ButtonAppearance on ElButton {
     } else {
       base = base.copyWith(
         // 图标按钮：内边距归零 + 宽度固定 = 高度 × 1.2（不受 padding 撑宽）；
-        // 其余官方默认档：height 32 / padding 8px 15px，移动端对齐 large 档
+        // 普通按钮按 normal / compact 设置高度和水平内边距。
         minHeight: boxSize,
         width: _iconButtonWidth(boxSize),
         padding: _isIcon
             ? EdgeInsets.zero
-            : _buttonPaddings[resolvedSize.index],
-        // round 胶囊 = 半高全圆（官方 border-radius-round 的实际效果，padding 同直角档）
+            : EdgeInsets.symmetric(vertical: 4, horizontal: compact ? 14 : 16),
+        // round 胶囊 = 半高全圆，padding 与同密度普通按钮一致。
         borderRadius: BorderRadius.circular(
-          round ? boxSize / 2 : (isDesktop ? 4 : 6),
+          round ? boxSize / 2 : 4,
         ),
       );
     }
@@ -221,7 +191,6 @@ extension _ButtonAppearance on ElButton {
   /// 无 type 的默认按钮；
   /// plain 时 hover 保持卡片底不染色（官方 is-plain 基础形态）
   ElStyle _defaultStyle(BuildContext context, ElStyle base) {
-    final isDesktop = _isDesktop;
     final primary = context.elTheme.primary;
     final bgColor = context.elTheme.bgColor;
     final textColor = context.elTheme.textRegular;
@@ -245,17 +214,13 @@ extension _ButtonAppearance on ElButton {
           border: _border(context, color: borderColor),
           onHover: (selected && !isToggle)
               ? null
-              : (!isDesktop
-                    ? null
-                    : ElStyle(
-                        color: hoverTextColor,
-                        backgroundColor: hoverBgColor,
-                        border: _border(context, color: hoverBorderColor),
-                        iconColor: hoverTextColor,
-                      )),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop ? active : _mobileTap(active)),
+              : ElStyle(
+                color: hoverTextColor,
+                backgroundColor: hoverBgColor,
+                border: _border(context, color: hoverBorderColor),
+                iconColor: hoverTextColor,
+              ),
+          onTap: (selected && !isToggle) ? null : active,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -271,7 +236,6 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建主题按钮样式
   ElStyle _themeStyle(BuildContext context, ElStyle base, Color typeColor) {
-    final isDesktop = _isDesktop;
     // 文字色只按**基础底**明暗定一次（浅底深字 / 深底浅字）；
     // hover（light-3 变浅）/ active（dark-2 变深）交互态文字保持不变
     // （Element Plus 实心按钮交互只动背景，文字不反转）。
@@ -293,17 +257,13 @@ extension _ButtonAppearance on ElButton {
           border: _border(context, color: typeColor),
           onHover: (selected && !isToggle)
               ? null
-              : (!isDesktop
-                    ? null
-                    : ElStyle(
-                        color: textColor,
-                        backgroundColor: hoverBg,
-                        border: _border(context, color: hoverBg),
-                        iconColor: textColor,
-                      )),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop ? active : _mobileTap(active)),
+              : ElStyle(
+                color: textColor,
+                backgroundColor: hoverBg,
+                border: _border(context, color: hoverBg),
+                iconColor: textColor,
+              ),
+          onTap: (selected && !isToggle) ? null : active,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -319,7 +279,6 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建朴素按钮（浅底描边，hover 反转为实心）
   ElStyle _plainStyle(BuildContext context, ElStyle base, Color typeColor) {
-    final isDesktop = _isDesktop;
     final dark2 = typeColor.elLightOf(.dark, 2);
     // 转为实心后按基础主题色取对比文字，避免交互变色时文字明暗跳变。
     final textColor = _textOnBackground(context, typeColor);
@@ -329,12 +288,6 @@ extension _ButtonAppearance on ElButton {
       border: _border(context, color: dark2),
       iconColor: textColor,
     );
-    final mobileActive = ElStyle(
-      color: textColor,
-      backgroundColor: typeColor,
-      border: _border(context, color: typeColor),
-      iconColor: textColor,
-    );
     return base
         .copyWith(
           color: typeColor,
@@ -342,17 +295,13 @@ extension _ButtonAppearance on ElButton {
           border: _border(context, color: typeColor.elLight5(context)),
           onHover: (selected && !isToggle)
               ? null
-              : (!isDesktop
-                    ? null
-                    : ElStyle(
-                        color: textColor,
-                        backgroundColor: typeColor,
-                        border: _border(context, color: typeColor),
-                        iconColor: textColor,
-                      )),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop ? active : _mobileTap(mobileActive)),
+              : ElStyle(
+                color: textColor,
+                backgroundColor: typeColor,
+                border: _border(context, color: typeColor),
+                iconColor: textColor,
+              ),
+          onTap: (selected && !isToggle) ? null : active,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -368,7 +317,6 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建幽灵按钮样式，背景恒透明，鼠标悬停边框高亮
   ElStyle _ghostStyle(BuildContext context, ElStyle base, Color? typeColor) {
-    final isDesktop = _isDesktop;
     final primary = typeColor ?? context.elTheme.primary;
     final textColor = primary;
     // 幽灵形态边框：默认级别与 plain 一致（light-5）
@@ -386,17 +334,13 @@ extension _ButtonAppearance on ElButton {
           border: _border(context, color: borderColor),
           onHover: (selected && !isToggle)
               ? null
-              : (!isDesktop
-                    ? null
-                    : ElStyle(
-                        color: primary,
-                        backgroundColor: const Color(0x00000000),
-                        border: _border(context, color: primary),
-                        iconColor: primary,
-                      )),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop ? active : _mobileTap(active)),
+              : ElStyle(
+                color: primary,
+                backgroundColor: const Color(0x00000000),
+                border: _border(context, color: primary),
+                iconColor: primary,
+              ),
+          onTap: (selected && !isToggle) ? null : active,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -412,7 +356,6 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建文本按钮样式，透明背景，悬停加深
   ElStyle _textStyle(BuildContext context, ElStyle base, Color? typeColor) {
-    final isDesktop = _isDesktop;
     final textColor = typeColor ?? context.elTheme.textRegular;
     // 交互底从 $bgColor 加深派生：按背景明暗调整 elLight 反转值，恒走 _darken
     // 方向（亮底 reverse 混深灰、暗底走暗色分支混深灰）；hover 3 级、active 6 级
@@ -427,12 +370,8 @@ extension _ButtonAppearance on ElButton {
         .copyWith(
           color: textColor,
           backgroundColor: bg ? background.deepen(5) : null,
-          onHover: (selected && !isToggle)
-              ? null
-              : (!isDesktop ? null : active),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop ? null : _mobileTap(active)),
+          onHover: (selected && !isToggle) ? null : active,
+          onTap: null,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -453,49 +392,25 @@ extension _ButtonAppearance on ElButton {
 
   /// 构建链接按钮样式，纯文本
   ElStyle _linkStyle(BuildContext context, ElStyle base, Color? typeColor) {
-    final isDesktop = _isDesktop;
     final textColor = typeColor ?? context.elTheme.textRegular;
     final active = ElStyle(
       color: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
       iconColor: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
     );
-    final interactiveBase = isDesktop
-        ? base
-        : base.copyWith(
-            transition: [
-              ...?base.transition,
-              const ElTransition.field(
-                ElTransitionField.opacity,
-                Duration(milliseconds: 250),
-                Curves.easeInOutQuad,
-              ),
-            ],
-          );
-    return interactiveBase
+    return base
         .copyWith(
           color: textColor,
           onHover: (selected && !isToggle)
               ? null
-              : (!isDesktop
-                    ? null
-                    : ElStyle(
-                        color:
-                            typeColor?.elLightOf(.light, 5) ??
-                            context.elTheme.textSecondary,
-                        iconColor:
-                            typeColor?.elLightOf(.light, 5) ??
-                            context.elTheme.textSecondary,
-                      )),
-          onTap: (selected && !isToggle)
-              ? null
-              : (isDesktop
-                    ? active
-                    : const ElStyle(
-                        opacity: 0.2,
-                        transition: [
-                          .field(ElTransitionField.opacity, Duration.zero),
-                        ],
-                      )),
+              : ElStyle(
+                color:
+                    typeColor?.elLightOf(.light, 5) ??
+                    context.elTheme.textSecondary,
+                iconColor:
+                    typeColor?.elLightOf(.light, 5) ??
+                    context.elTheme.textSecondary,
+              ),
+          onTap: (selected && !isToggle) ? null : active,
 
           onDisabled: ElStyle(
             cursor: SystemMouseCursors.forbidden,
@@ -516,9 +431,6 @@ extension _ButtonAppearance on ElButton {
     final ringColor = typeColor ?? context.elTheme.primary;
     return ElStyle(outline: ElOutline(outlineWidth: 2, outlineColor: ringColor, outlineOffset: 1));
   }
-
-  /// 组件尺寸档：读取祖先主题变量中的 size。
-  ElLevelType _size(BuildContext context) => context.elComponentSize(style);
 
   /// 构建 loading 小部件
   Widget _loadingWidget() => ElLoading(child: _iconWidget(ElIcons.loading));
@@ -554,20 +466,18 @@ extension _ButtonAppearance on ElButton {
       children: [
         ?leftWidget,
         if (leftWidget != null && child != null)
-          ElView(style: (_gapStyle)(context)),
+          ElView(style: const ElStyle(width: 6)),
         if (child != null) _dynamicWidget(child),
         if (rightIcon != null && (leftWidget != null || child != null))
-          ElView(style: (_gapStyle)(context)),
+          ElView(style: const ElStyle(width: 6)),
         if (rightIcon != null) _iconWidget(rightIcon),
       ],
     );
   }
 
-  ElStyle _gapStyle(BuildContext context) =>
-      ElStyle(width: _buttonGaps[_size(context).index]);
 }
 
 ElBorder _border(BuildContext context, {required Color color}) => .all(
   borderColor: color,
-  borderWidth: context.elTheme.borderWidths[ElLevelType.md.index],
+  borderWidth: context.elTheme.borderWidth,
 );

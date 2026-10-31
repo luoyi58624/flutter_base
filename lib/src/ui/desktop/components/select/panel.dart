@@ -2,7 +2,7 @@ part of 'index.dart';
 
 Duration get _selectMenuExitDuration => const Duration(milliseconds: 90);
 
-List<double> get _selectOptionHeights => const [28, 32, 36, 40, 44];
+double _selectOptionHeight(bool compact) => elInputControlHeight(compact);
 
 ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
   padding: .symmetric(vertical: 6),
@@ -50,7 +50,7 @@ class _ElSelectPanel<T> extends StatelessWidget {
     required this.activeIndex,
     required this.menuHeight,
     required this.scrollController,
-    required this.size,
+    required this.compact,
     required this.menuStyle,
     required this.optionStyle,
     required this.onOptionPointerDown,
@@ -63,7 +63,7 @@ class _ElSelectPanel<T> extends StatelessWidget {
   final int? activeIndex;
   final double? menuHeight;
   final ScrollController scrollController;
-  final ElLevelType size;
+  final bool compact;
   final ElStyle? menuStyle;
   final ElStyle? optionStyle;
   final VoidCallback onOptionPointerDown;
@@ -82,7 +82,7 @@ class _ElSelectPanel<T> extends StatelessWidget {
       ),
     );
     if (menuStyle != null) style = style.merge(menuStyle);
-    final optionHeight = _selectOptionHeights[size.index];
+    final optionHeight = _selectOptionHeight(compact);
 
     return ElView(
       key: const ValueKey<String>('el-select-panel'),

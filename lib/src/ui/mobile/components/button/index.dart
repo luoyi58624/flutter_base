@@ -221,11 +221,6 @@ class MyButton extends StatelessWidget {
               ![MyButtonVariant.text, MyButtonVariant.bare].contains(variant)
           ? .68
           : 1,
-      cursor: disabled
-          ? SystemMouseCursors.forbidden
-          : loading
-          ? SystemMouseCursors.progress
-          : SystemMouseCursors.click,
       transition: const [
         ElTransition.all(Duration(milliseconds: 150), Curves.ease),
         ElTransition.field(
@@ -239,13 +234,6 @@ class MyButton extends StatelessWidget {
           Curves.ease,
         ),
       ],
-      onHover: noFeedback
-          ? null
-          : ElStyle(
-              backgroundColor: variant == MyButtonVariant.primary
-                  ? Color.lerp(t.primary, const Color(0xff000000), .06)
-                  : t.hover,
-            ),
       onTap: noFeedback
           ? null
           : ElStyle(
@@ -255,7 +243,6 @@ class MyButton extends StatelessWidget {
               transform: ElTransform.scale(flat ? 1 : .95),
               transition: flat ? const [] : null,
             ),
-      onFocusVisible: myFocusStyle(context),
     );
     final component = _component;
     if (component != null) {
@@ -402,9 +389,6 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
           ? accent
           : background,
     ),
-    onHover: component.disabled || component.loading
-        ? null
-        : ElStyle(backgroundColor: Color.lerp(background, accent, .12)),
     onTap: component.disabled || component.loading
         ? null
         : ElStyle(

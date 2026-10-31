@@ -716,7 +716,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       (option) => option.index == _activeIndex,
     );
     if (position < 0) return;
-    final itemHeight = _selectOptionHeights[_effectiveSize.index];
+    final itemHeight = _selectOptionHeight(_compact);
     final start = position * itemHeight;
     final end = start + itemHeight;
     final metrics = controller.position;
@@ -734,8 +734,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     }
   }
 
-  ElLevelType get _effectiveSize =>
-      context.elComponentSize(widget.config.style);
+  bool get _compact => context.elComponentCompact(widget.config.style);
 
   String get _selectedLabel {
     for (final option in _options) {
@@ -765,8 +764,9 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     final activeIndex = _activeIndex;
     final menuHeight = config.menuHeight;
     final scrollController = _scrollController;
-    final effectiveSize = _effectiveSize;
-    final inputIconSize = elInputDefaultIconSize(effectiveSize);
+    final compact = _compact;
+    final inputIconSize =
+        config.style?.iconSize ?? elInputDefaultIconSize(compact);
     final panelStyle = config.panelStyle;
     final optionStyle = config.optionStyle;
     final onSelected = _select;
@@ -827,7 +827,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       activeIndex: activeIndex,
       menuHeight: menuHeight,
       scrollController: scrollController,
-      size: effectiveSize,
+      compact: compact,
       menuStyle: panelStyle,
       optionStyle: optionStyle,
       onOptionPointerDown: _handleOptionPointerDown,

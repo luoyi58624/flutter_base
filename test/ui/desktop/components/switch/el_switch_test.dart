@@ -12,7 +12,7 @@ Widget _host(
   Widget child, {
   Brightness brightness = Brightness.light,
   ElStyle? style,
-  ElLevelType? size,
+  bool compact = false,
 }) {
   return DefaultTextStyle(
     style: const TextStyle(fontSize: 12),
@@ -21,7 +21,7 @@ Widget _host(
       child: ElDesktopTheme(
         themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
         style: style,
-        size: size,
+        compact: compact,
         child: child,
       ),
     ),
@@ -239,12 +239,12 @@ void main() {
     await tester.pumpWidget(_host(ElSwitch(value: false, onChanged: (_) {})));
   });
 
-  testWidgets('三档尺寸切轨道与滑块', (tester) async {
+  testWidgets('normal / compact 切换轨道与滑块', (tester) async {
     await tester.pumpWidget(
       _host(
         ElSwitch(value: false, onChanged: (_) {}),
         style: ElStyle(),
-        size: ElLevelType.sm,
+        compact: true,
       ),
     );
     expect(
@@ -265,14 +265,14 @@ void main() {
       _host(
         ElSwitch(value: false, onChanged: (_) {}),
         style: ElStyle(),
-        size: ElLevelType.lg,
+        compact: false,
       ),
     );
-    // lg = 移动端默认：轨道 52.5×30 / 滑块 24
+    // normal：轨道 45.5×26，滑块 22。
     expect(
       _views(tester).any(
         (v) =>
-            _style(tester, v)?.width == 52.5 && _style(tester, v)?.height == 30,
+            _style(tester, v)?.width == 45.5 && _style(tester, v)?.height == 26,
       ),
       isTrue,
       reason: _views(tester)
@@ -281,7 +281,7 @@ void main() {
           )
           .join(', '),
     );
-    expect(_style(tester, _thumb(tester))?.width, 24);
+    expect(_style(tester, _thumb(tester))?.width, 22);
   });
 
   testWidgets('inlinePrompt 把内容画进轨道并让开滑块一侧', (tester) async {
@@ -786,12 +786,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(_style(tester, tester.widget<ElView>(_rootFinder()))?.height, 30);
 
-    // 换全局档位（lg）仍钉死 30
+    // 换紧凑密度后仍钉死显式高度 30。
     await tester.pumpWidget(
       _host(
         ElSwitch(value: false, height: 30, onChanged: (_) {}),
         style: ElStyle(),
-        size: ElLevelType.lg,
+        compact: true,
       ),
     );
     await tester.pumpAndSettle();
@@ -802,7 +802,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElView(
-          style: ElStyle(vars: {ElTheme.$size: ElLevelType.lg}),
+          style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
           child: ElSwitch(
             value: false,
             style: ElStyle(),
@@ -814,7 +814,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(_rectOf(tester, _core(tester)).width, closeTo(48, 0.01));
+    expect(_rectOf(tester, _core(tester)).width, closeTo(38.4, 0.01));
   });
 
   testWidgets('尺寸变化时滑块逐帧跟随轨道几何，不跳位', (tester) async {
@@ -912,15 +912,13 @@ void main() {
   group('滑块与轨道圆环几何对齐', () {
     // 滑块圆必须与轨道端部半圆弧 100% 同心（贴左对左弧、贴右对右弧）：
     // 圆心重合 ⇒ 圆弧方向间隙处处 = 半径差 = (H-D)/2，再断言它等于直线段
-    // 的上下间隙（= 该档 gaps），五个档位 × 开/关 × inline 两态全锁。
-    const expectedGaps = [2.0, 2.0, 2.0, 3.0, 3.0];
-    for (var i = 0; i < ElLevelType.values.length; i++) {
-      final level = ElLevelType.values[i];
-      final gap = expectedGaps[i];
+    // 的上下间隙（= gap），两种密度 × 开/关 × inline 两态全锁。
+    for (final compact in [false, true]) {
+      final gap = 2.0;
       for (final on in [false, true]) {
         for (final inline in [false, true]) {
-          testWidgets('${level.name} on=$on inline=$inline：滑块与端部半圆弧同心，上下/圆弧间隙处处 = $gap', (tester) async {
-            // 尺寸由主题宿主明确传入，避免安装器重建主题时覆盖外层 ElTheme。
+          testWidgets('compact=$compact on=$on inline=$inline：滑块与端部半圆弧同心，上下/圆弧间隙处处 = $gap', (tester) async {
+            // 密度由主题宿主明确注入，普通局部 ElView 仍可覆盖。
             await tester.pumpWidget(
               _host(
                 ElSwitch(
@@ -930,7 +928,7 @@ void main() {
                   onChanged: (_) {},
                 ),
                 style: ElStyle(),
-                size: level,
+                compact: compact,
               ),
             );
             await tester.pumpAndSettle();

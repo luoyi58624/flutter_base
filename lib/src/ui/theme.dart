@@ -105,20 +105,8 @@ abstract final class ElTheme {
   /// 遮罩模糊半径。
   static const $overlayBackdropBlur = '--el-overlay-backdrop-blur';
 
-  /// 全局控件尺寸档。
-  static const $size = '--el-component-size';
-
-  /// 五档控件高度。
-  static const $controlHeights = '--el-control-heights';
-
-  /// 五档字号。
-  static const $fontSizes = '--el-font-sizes';
-
-  /// 五档图标尺寸。
-  static const $iconSizes = '--el-icon-sizes';
-
-  /// 五档边框宽度。
-  static const $borderWidths = '--el-border-widths';
+  /// 默认边框宽度。
+  static const $borderWidth = '--el-border-width';
 
   /// 最小圆角。
   static const $radiusXs = '--el-radius-xs';
@@ -188,11 +176,7 @@ abstract final class ElTheme {
     $overlayColorLight: Color(0xb3000000),
     $overlayColorLighter: Color(0x80000000),
     $overlayBackdropBlur: 4.0,
-    $size: ElLevelType.md,
-    $controlHeights: <double>[24, 32, 36, 40, 44],
-    $fontSizes: <double>[13, 14, 15, 15, 16],
-    $iconSizes: <double>[16, 20, 24, 28, 32],
-    $borderWidths: <double>[0.5, 0.75, 1, 1.5, 2],
+    $borderWidth: 1.0,
     $radiusXs: 2.0,
     $radiusSm: 4.0,
     $radiusMd: 6.0,
@@ -346,20 +330,8 @@ extension type const ElThemeExt(BuildContext _context) {
   /// 遮罩模糊半径。
   double get overlayBackdropBlur => _number(ElTheme.$overlayBackdropBlur);
 
-  /// 全局控件档位。
-  ElLevelType get size => _read(ElTheme.$size);
-
-  /// 五档控件高度。
-  List<double> get controlHeights => _read(ElTheme.$controlHeights);
-
-  /// 五档字号。
-  List<double> get fontSizes => _read(ElTheme.$fontSizes);
-
-  /// 五档图标尺寸。
-  List<double> get iconSizes => _read(ElTheme.$iconSizes);
-
-  /// 五档边框宽度。
-  List<double> get borderWidths => _read(ElTheme.$borderWidths);
+  /// 默认边框宽度，控件密度不改变描边粗细。
+  double get borderWidth => _number(ElTheme.$borderWidth);
 
   /// 最小圆角。
   double get radiusXs => _number(ElTheme.$radiusXs);

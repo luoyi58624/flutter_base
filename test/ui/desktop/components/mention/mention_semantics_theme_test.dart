@@ -58,6 +58,31 @@ SemanticsNode _scrollNode(WidgetTester tester, Finder finder) {
 }
 
 void main() {
+  testWidgets('提及输入与候选同步普通和紧凑模式', (tester) async {
+    for (final compact in [false, true]) {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+      await tester.pumpWidget(
+        _host(
+          ElMention<String>(
+            key: ValueKey(compact),
+            value: '@',
+            focusNode: focusNode,
+            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            options: [ElMentionOption(value: 'alice', label: 'Alice')],
+          ),
+        ),
+      );
+      await _focusAt(tester, focusNode, 1);
+      expect(tester.getSize(_option(0)).height, compact ? 32 : 36);
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+    }
+  });
+
   testWidgets('输入语义唯一，候选列表和 option 暴露 list/listItem/disabled/selected', (
     tester,
   ) async {

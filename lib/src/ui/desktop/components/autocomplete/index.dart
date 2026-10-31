@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import '../others/app/index.dart';
 import '../../extensions/el.dart';
+import '../input/metrics.dart';
 
 part 'panel.dart';
 
@@ -225,8 +226,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       !widget.config.readOnly &&
       _focusNode.hasFocus;
 
-  ElLevelType get _effectiveSize =>
-      context.elComponentSize(widget.config.style);
+  bool get _compact => context.elComponentCompact(widget.config.style);
 
   @override
   void initState() {
@@ -643,7 +643,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     final index = _activeIndex;
     final controller = _scrollController;
     if (index == null || !controller.hasClients) return;
-    final itemHeight = _autocompleteOptionHeights[_effectiveSize.index];
+    final itemHeight = _autocompleteOptionHeight(_compact);
     final start = index * itemHeight;
     final end = start + itemHeight;
     final metrics = controller.position;
@@ -716,7 +716,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       activeIndex: _activeIndex,
       maxHeight: config.menuHeight,
       scrollController: _scrollController,
-      size: _effectiveSize,
+      compact: _compact,
       panelStyle: config.panelStyle,
       optionStyle: config.optionStyle,
       itemBuilder: config.itemBuilder,

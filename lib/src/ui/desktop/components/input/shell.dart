@@ -3,21 +3,19 @@ part of 'index.dart';
 /// 输入框壳样式（官方 el-input 盒模型直译）：
 /// - 边框 = `1px inset box-shadow` 三态（base → hover → focus-within），
 ///   官方就是 shadow 而非真实 border，零布局影响、过渡走 transitionBoxShadow；
-/// - 单行：高度跟随 [ElThemeExt.controlHeights] 当前档，字号与 padding 同档递进；
-///   textarea：垂直 padding 固定 5，水平 padding 随档 + 列布局自然高；
+/// - 单行：高度、字号与水平 padding 跟随紧凑模式；
+///   textarea：垂直 padding 固定 5，水平 padding 随密度 + 列布局自然高；
 /// - 错误态（表单校验失败）danger 环压过 hover/focus；禁用态三色 + not-allowed。
 ElStyle _inputShellStyle(
   BuildContext c, {
   required bool isDisabled,
   required bool hasError,
   required bool textarea,
-  required ElLevelType size,
+  required bool compact,
   required double fontSize,
   required EdgeInsetsGeometry padding,
-  required ElLevelType? declaredSize,
 }) {
-  final isDesktop = ElPlatform.isDesktop;
-  final boxSize = c.elTheme.controlHeights[size.index];
+  final boxSize = elInputControlHeight(compact);
   final radius = BorderRadius.circular(c.elTheme.radiusSm);
   List<BoxShadow> ring(Color color) => [
     ElBoxShadow(color: color, spreadRadius: 1, inset: true),
@@ -66,9 +64,9 @@ ElStyle _inputShellStyle(
     leadingDistribution: .even,
     textBaseline: .alphabetic,
     padding: padding,
-    // 桌面才有 hover 语义；focus 用 onFocusWithin——焦点在内部 editable 节点上，
+    // focus 用 onFocusWithin，因为焦点在内部 editable 节点上；
     // 官方 `.is-focus` 是任意焦点来源（非 focus-visible），无键盘专属环
-    onHover: isDesktop ? ElStyle(boxShadow: ring(hoverRing)) : null,
+    onHover: ElStyle(boxShadow: ring(hoverRing)),
     onFocusWithin: ElStyle(boxShadow: ring(focusRing)),
   );
 }

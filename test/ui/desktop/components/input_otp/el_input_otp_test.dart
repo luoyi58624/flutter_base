@@ -926,28 +926,56 @@ void main() {
       expect(_cells(tester).first.style?.border?.borderTop.borderColor, custom);
     });
 
-    testWidgets('三档尺寸切格子边长', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          ElView(
-            style: ElStyle(vars: {ElTheme.$size: ElLevelType.sm}),
-            child: ElInputOtp(value: '', length: 1, style: ElStyle()),
+    testWidgets('普通和紧凑模式同步格子边长、间距与字号，cellStyle 保持优先', (tester) async {
+      for (final compact in [false, true]) {
+        await tester.pumpWidget(
+          _host(
+            ElView(
+              style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+              child: ElInputOtp(value: '12', length: 2),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(_cells(tester).first.style?.width, 24);
+        );
+        await tester.pumpAndSettle();
+        final cells = _cells(tester);
+        final first = find.byWidget(cells.first);
+        final second = find.byWidget(cells.last);
+        expect(tester.getSize(first), Size.square(compact ? 24 : 32));
+        expect(
+          tester.getTopLeft(second).dx - tester.getTopLeft(first).dx,
+          compact ? 30 : 40,
+        );
+        expect(
+          tester
+              .renderObject<ElRenderView>(first)
+              .targetStyleForTest
+              .inheritedText
+              .fontSize,
+          compact ? 12 : 14,
+        );
+      }
 
       await tester.pumpWidget(
         _host(
-          ElView(
-            style: ElStyle(vars: {ElTheme.$size: ElLevelType.lg}),
-            child: ElInputOtp(value: '', length: 1, style: ElStyle()),
+          ElInputOtp(
+            value: '1',
+            length: 1,
+            style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
+            cellStyle: ElStyle(width: 30, height: 30, fontSize: 18),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      expect(_cells(tester).first.style?.width, 40);
+      final cell = find.byWidget(_cells(tester).first);
+      expect(tester.getSize(cell), Size.square(30));
+      expect(
+        tester
+            .renderObject<ElRenderView>(cell)
+            .targetStyleForTest
+            .inheritedText
+            .fontSize,
+        18,
+      );
     });
 
     testWidgets('disabled 不挂 editable、不进焦点链且不建立 IME', (tester) async {

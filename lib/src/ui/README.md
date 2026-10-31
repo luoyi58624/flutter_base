@@ -34,11 +34,11 @@ void main() {
 }
 ```
 
-桌面端从 Element Plus 迁入可满足通用接口的品牌实现，保留尺寸档、明暗默认变量和源组件行为。ElDesktopTheme 安装主题、组件 Builder 与候选面板所需的 Overlay 环境；服务类组件和平台菜单等待各自接口，当前不注册。支持清单及缺口见 [Desktop](desktop/README.md)。
+桌面端从 Element Plus 迁入可满足通用接口的品牌实现，采用普通／紧凑两种控件密度，保留明暗默认变量和源组件行为。ElDesktopTheme 安装主题、组件 Builder 与候选面板所需的 Overlay 环境；服务类组件和平台菜单等待各自接口，当前不注册。支持清单及缺口见 [Desktop](desktop/README.md)。
 
 ## 组合与覆盖
 
-两端共享 `ElTheme` 的通用颜色、阴影、字体和基础度量键，以及同一个 `context.elTheme` 读取扩展。通过普通 ElView 局部覆盖，无需复制主题对象：
+两端共享 `ElTheme` 的通用颜色、阴影、字体和基础度量键，以及同一个 `context.elTheme` 读取扩展。桌面密度由 `ElDesktopTheme(compact: ...)` 和桌面专用的布尔变量控制，移动端保持自己的固定尺寸。通过普通 ElView 局部覆盖，无需复制主题对象：
 
 ```dart
 ElView(

@@ -44,7 +44,7 @@ EdgeInsetsGeometry _inputProjectionPadding(bool textarea) =>
     textarea ? EdgeInsets.zero : EdgeInsets.only(right: 3.5);
 
 /// 前后缀宽容输入：内容始终被固定正方形槽约束并裁剪，任意 Widget 都不能
-/// 把单行 Row 撑高；IconData 升格为当前尺寸档图标。
+/// 把单行 Row 撑高；IconData 使用当前密度的图标尺寸。
 class _InputAffix extends StatelessWidget {
   const _InputAffix(
     this.content, {

@@ -46,6 +46,62 @@ Future<void> _query(WidgetTester tester, String value) async {
 }
 
 void main() {
+  testWidgets('输入与候选同步紧凑模式，候选高度和输入字号可显式覆盖', (tester) async {
+    final option = find.byKey(ValueKey<(String, int)>(('el-select-option', 0)));
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        _host(
+          ElSelect<String>(
+            key: ValueKey(compact),
+            value: 'a',
+            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            children: [ElLabelModel('Alpha', 'a')],
+          ),
+        ),
+      );
+      await _open(tester);
+      expect(tester.getSize(option).height, compact ? 32 : 36);
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+    }
+
+    await tester.pumpWidget(
+      _host(
+        ElSelect<String>(
+          key: ValueKey('override'),
+          value: 'a',
+          style: ElStyle(
+            vars: {ElDesktopTheme.$compact: true},
+            fontSize: 18,
+            iconSize: 17,
+          ),
+          optionStyle: ElStyle(height: 47),
+          children: [ElLabelModel('Alpha', 'a')],
+        ),
+      ),
+    );
+    await _open(tester);
+    expect(tester.getSize(option).height, 47);
+    expect(
+      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+          ?.fontSize,
+      18,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byWidgetPredicate(
+              (widget) => widget is ElView && widget.child is IconData,
+            ),
+          )
+          .width,
+      17,
+    );
+  });
+
   test('option 校验：label 非空、value 唯一，null 简写仅接受 label is T', () {
     expect(
       () => ElSelect<int>(value: 1, children: [ElLabelModel<int>('一')]),

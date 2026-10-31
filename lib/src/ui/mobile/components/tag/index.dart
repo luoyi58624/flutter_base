@@ -71,7 +71,7 @@ class MyTag extends StatelessWidget {
   /// 选择按钮的外部焦点。
   final FocusNode? focusNode;
 
-  /// 内层外观覆盖。
+  /// 标签外观与交互变体覆盖。
   final ElStyle? style;
   @override
   Widget build(BuildContext context) => MyValueBuilder<bool>(
@@ -90,100 +90,66 @@ class MyTag extends StatelessWidget {
             MyTagTone.red => t.error,
             MyTagTone.gray => t.textSecondary,
           };
-      final radius = BorderRadius.circular(selectable ? 11 : 999);
-      Widget visual(bool keyboardPressed) => Builder(
-        builder: (innerContext) {
-          final state = ElView.of(innerContext);
-          final pressed =
-              selectable && !disabled && (state.hasTap || keyboardPressed);
-          final hover = selectable && !disabled && state.hasHover;
-          final selected = selectable && current;
-          return IgnorePointer(
-            child: ElView(
-              style:
-                  myTextStyle(context, 13, t.fontWeightAction, height: 20 / 13)
-                      .merge(
-                        ElStyle(
-                          minHeight: selectable ? 32 : 28,
-                          padding: const EdgeInsets.symmetric(horizontal: 13),
-                          alignment: Alignment.center,
-                          softWrap: false,
-                          borderRadius: radius,
-                          border: ElBorder.all(
-                            borderWidth: 1,
-                            borderColor: selectable
-                                ? (selected ? t.primary : t.borderColor)
-                                : Color.lerp(t.cardColor, accent, .18),
-                          ),
-                          color: selectable
-                              ? (selected ? t.primaryText : t.textSecondary)
-                              : accent,
-                          backgroundColor: pressed
-                              ? (selected
-                                    ? Color.lerp(
-                                        t.primary,
-                                        const Color(0xff000000),
-                                        .14,
-                                      )
-                                    : t.press)
-                              : hover
-                              ? (selected
-                                    ? Color.lerp(
-                                        t.primary,
-                                        const Color(0xff000000),
-                                        .06,
-                                      )
-                                    : t.hover)
-                              : selectable
-                              ? (selected ? t.primary : t.cardColor)
-                              : Color.lerp(t.cardColor, accent, .1),
-                          transform: ElTransform.scale(pressed ? .95 : 1),
-                          transition: myReducedMotion(context)
-                              ? const []
-                              : const [
-                                  ElTransition.all(
-                                    Duration(milliseconds: 160),
-                                    Curves.ease,
-                                  ),
-                                ],
-                        ),
-                      )
-                      .merge(style),
-              child: child,
+      final selected = selectable && current;
+      final base = myTextStyle(context, 13, t.fontWeightAction, height: 20 / 13)
+          .merge(ElStyle(
+            minHeight: selectable ? 32 : 28,
+            // 内容改由 Widget 承载后，仍按自然高度收紧，避免居中撑满父约束。
+            heightFactor: 1,
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            alignment: Alignment.center,
+            softWrap: false,
+            borderRadius: BorderRadius.circular(selectable ? 11 : 999),
+            border: ElBorder.all(
+              borderWidth: 1,
+              borderColor: selectable
+                  ? (selected ? t.primary : t.borderColor)
+                  : Color.lerp(t.cardColor, accent, .18),
             ),
-          );
-        },
-      );
-      final outer = ElStyle(
-        borderRadius: radius,
-        opacity: disabled ? .6 : 1,
-        onHover: const ElStyle(),
-        onTap: const ElStyle(),
-        onFocusVisible: selectable ? myFocusStyle(context) : null,
-      );
+            color: selectable ? (selected ? t.primaryText : t.textSecondary) : accent,
+            backgroundColor: selectable
+                ? (selected ? t.primary : t.cardColor)
+                : Color.lerp(t.cardColor, accent, .1),
+            opacity: disabled ? .6 : 1,
+            transform: ElTransform.scale(1),
+            transition: myReducedMotion(context)
+                ? const []
+                : const [ElTransition.all(Duration(milliseconds: 160), Curves.ease)],
+            onTap: selectable && !disabled
+                ? ElStyle(
+                    backgroundColor: selected
+                        ? Color.lerp(t.primary, const Color(0xff000000), .14)
+                        : t.press,
+                    transform: ElTransform.scale(.95),
+                  )
+                : null,
+          ))
+          .merge(style);
+      // 视觉和交互共用宿主，内容仍不参与命中，全部变体统一交给 ElView 级联。
+      final content = IgnorePointer(child: myContent(child));
       return myInline(
         selectable
             ? MyAction(
-                style: outer,
+                style: base,
                 disabled: disabled,
                 focusNode: focusNode,
                 toggled: current,
                 delayTouchUp: Duration.zero,
-                keyboardBuilder: visual,
                 onActivate: (e) {
                   change(!current);
                   onClick?.call(e);
                 },
-                child: const SizedBox.shrink(),
+                child: content,
               )
             : ElView(
-                style: outer.copyWith(onHover: null, onTap: null),
+                style: base,
                 event: ElEvent(
+                  disabled: disabled,
                   onTap: (e) {
                     if (!disabled) onClick?.call(e);
                   },
                 ),
-                child: visual(false),
+                child: content,
               ),
       );
     },
@@ -194,7 +160,6 @@ Widget _commonTag(BuildContext context, ElTag component) {
   final theme = context.elTheme;
   final state = ElView.of(context);
   final pressed = component.isToggle && !component.disabled && state.hasTap;
-  final hovered = component.isToggle && !component.disabled && state.hasHover;
   final accent =
       ElView.maybeOf(context)?.getVar<Color>(MyTag.$color) ??
       switch (component.type) {
@@ -249,19 +214,10 @@ Widget _commonTag(BuildContext context, ElTag component) {
                       filled ? const Color(0xff000000) : theme.press,
                       filled ? .14 : 1,
                     )
-                  : hovered
-                  ? Color.lerp(
-                      background,
-                      filled ? const Color(0xff000000) : theme.hover,
-                      filled ? .06 : 1,
-                    )
                   : background,
               color: foreground,
               opacity: component.disabled ? .6 : 1,
               transform: ElTransform.scale(pressed ? .95 : 1),
-              outline: state.hasFocusVisible
-                  ? myFocusStyle(context).outline
-                  : null,
               transition: myReducedMotion(context)
                   ? const []
                   : const [

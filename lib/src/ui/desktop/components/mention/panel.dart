@@ -2,7 +2,7 @@ part of 'index.dart';
 
 Duration get _mentionPanelExitDuration => const Duration(milliseconds: 90);
 
-List<double> get _mentionOptionHeights => const [28, 32, 36, 40, 44];
+double _mentionOptionHeight(bool compact) => elInputControlHeight(compact);
 
 ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
   backgroundColor: context.elTheme.cardColor,
@@ -54,7 +54,7 @@ class _MentionPanel<T> extends StatelessWidget {
     required this.showArrow,
     required this.placement,
     required this.scrollController,
-    required this.size,
+    required this.compact,
     required this.panelStyle,
     required this.optionStyle,
     required this.itemBuilder,
@@ -75,7 +75,7 @@ class _MentionPanel<T> extends StatelessWidget {
   final bool showArrow;
   final ElMentionPlacement placement;
   final ScrollController scrollController;
-  final ElLevelType size;
+  final bool compact;
   final ElStyle? panelStyle;
   final ElStyle? optionStyle;
   final Widget Function(
@@ -106,7 +106,7 @@ class _MentionPanel<T> extends StatelessWidget {
       ),
     );
     if (panelStyle != null) style = style.merge(panelStyle);
-    final optionHeight = _mentionOptionHeights[size.index];
+    final optionHeight = _mentionOptionHeight(compact);
 
     final list = ElScrollView(
       controller: scrollController,

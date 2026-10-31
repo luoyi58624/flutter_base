@@ -97,7 +97,6 @@ class InputTag extends ElFormModelValue<List<String>> {
   bool get draggable => component.draggable;
   ElThemeType get tagType => component.tagType;
   ElTagEffect get tagEffect => component.tagEffect;
-  ElLevelType? get tagSize => component.tagSize;
   ElStyle? get style => component.style;
   ElStyle? get tagStyle => component.tagStyle;
   String? get semanticLabel => component.semanticLabel;
@@ -824,7 +823,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
   Widget _buildTag(
     BuildContext context,
     int index,
-    ElLevelType tagSize,
+    bool compact,
     double inlineExtent,
   ) {
     final value = widget.tags[index];
@@ -845,7 +844,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         hit: selected,
         closable: _canMutate,
         onClose: () => _removeTag(index),
-        style: _compactTagStyle(context, tagSize, widget.config.tagStyle),
+        style: _inputTagStyle(compact, widget.config.tagStyle),
         semanticLabel: '标签：$value',
         closeSemanticLabel: '移除标签：$value',
         event: widget.config.disabled
@@ -867,7 +866,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
           value: value,
           type: widget.config.tagType,
           effect: widget.config.tagEffect,
-          size: tagSize,
+          compact: compact,
           style: widget.config.tagStyle,
         ),
         onDragStarted: _markInternalPointer,
@@ -885,7 +884,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
   Widget _buildCollapseTag(
     BuildContext context,
     List<String> hidden,
-    ElLevelType tagSize,
+    bool compact,
     double inlineExtent,
   ) {
     final trigger = _inputTagInline(
@@ -894,7 +893,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         child: '+${hidden.length}',
         type: widget.config.tagType,
         effect: widget.config.tagEffect,
-        style: _compactTagStyle(context, tagSize, widget.config.tagStyle),
+        style: _inputTagStyle(compact, widget.config.tagStyle),
         semanticLabel: '还有 ${hidden.length} 个标签',
       ),
       height: inlineExtent,
@@ -962,12 +961,12 @@ class _InputTagBodyState extends State<_InputTagBody> {
             hidden.isEmpty) {
           return const ElView(style: ElStyle(width: 0, height: 0));
         }
-        final effectiveSize = context.elComponentSize(config.style);
+        final compact = context.elComponentCompact(config.style);
         return _InputTagCollapseTooltip(
           values: hidden,
           type: config.tagType,
           effect: config.tagEffect,
-          size: config.tagSize ?? effectiveSize,
+          compact: compact,
           tagStyle: config.tagStyle,
         );
       },
@@ -977,11 +976,10 @@ class _InputTagBodyState extends State<_InputTagBody> {
   @override
   Widget build(BuildContext context) {
     final config = widget.config;
-    final effectiveSize = context.elComponentSize(config.style);
-    final tagSize = config.tagSize ?? effectiveSize;
-    final tagHeight = _inputTagHeights[tagSize.index];
-    final fontSize = elInputDefaultFontSize(effectiveSize);
-    final iconSize = elInputDefaultIconSize(effectiveSize);
+    final compact = context.elComponentCompact(config.style);
+    final tagHeight = _inputTagHeight(compact, config.tagStyle);
+    final fontSize = config.style?.fontSize ?? elInputDefaultFontSize(compact);
+    final iconSize = config.style?.iconSize ?? elInputDefaultIconSize(compact);
     final lineBoxHeight = elInputLineBoxHeight(fontSize);
     final inlineExtent = tagHeight > lineBoxHeight ? tagHeight : lineBoxHeight;
     final showClear =
@@ -1012,7 +1010,8 @@ class _InputTagBodyState extends State<_InputTagBody> {
               ? (_) => _attemptAdd()
               : null,
           maxLength: config.maxLength,
-          style: _inputTagDraftStyle(lineBoxHeight).merge(ElStyle()),
+          style: _inputTagDraftStyle(lineBoxHeight)
+              .copyWith(fontSize: fontSize, iconSize: iconSize),
           semanticLabel: config.semanticLabel ?? config.placeholder ?? '标签输入',
         ),
       ),
@@ -1026,7 +1025,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         disabled: config.disabled,
         readOnly: config.readOnly,
         hasError: widget.hasError,
-        size: effectiveSize,
+        compact: compact,
       ).merge(config.style),
       event: ElEvent(
         disabled: config.disabled,
@@ -1045,9 +1044,9 @@ class _InputTagBodyState extends State<_InputTagBody> {
               iconSize: iconSize,
             ),
           for (var index = 0; index < visibleCount; index++)
-            _buildTag(context, index, tagSize, inlineExtent),
+            _buildTag(context, index, compact, inlineExtent),
           if (hiddenTags.isNotEmpty)
-            _buildCollapseTag(context, hiddenTags, tagSize, inlineExtent),
+            _buildCollapseTag(context, hiddenTags, compact, inlineExtent),
           if (hiddenTags.isEmpty && _retainCollapsePortalAnchor)
             _buildCollapsePortalAnchor(),
           _inputTagInline(
@@ -1230,14 +1229,14 @@ class _InputTagDragGhost extends StatelessWidget {
     required this.value,
     required this.type,
     required this.effect,
-    required this.size,
+    required this.compact,
     required this.style,
   });
 
   final String value;
   final ElThemeType type;
   final ElTagEffect effect;
-  final ElLevelType size;
+  final bool compact;
   final ElStyle? style;
 
   @override
@@ -1251,10 +1250,10 @@ class _InputTagDragGhost extends StatelessWidget {
         ElTag(
           type: type,
           effect: effect,
-          style: _compactTagStyle(context, size, style),
+          style: _inputTagStyle(compact, style),
           child: value,
         ),
-        height: _inputTagHeights[size.index],
+        height: _inputTagHeight(compact, style),
       ),
     );
   }
@@ -1265,14 +1264,14 @@ class _InputTagCollapseTooltip extends StatelessWidget {
     required this.values,
     required this.type,
     required this.effect,
-    required this.size,
+    required this.compact,
     required this.tagStyle,
   });
 
   final List<String> values;
   final ElThemeType type;
   final ElTagEffect effect;
-  final ElLevelType size;
+  final bool compact;
   final ElStyle? tagStyle;
 
   @override
@@ -1302,10 +1301,10 @@ class _InputTagCollapseTooltip extends StatelessWidget {
               ElTag(
                 type: type,
                 effect: effect,
-                style: _compactTagStyle(context, size, tagStyle),
+                style: _inputTagStyle(compact, tagStyle),
                 child: value,
               ),
-              height: _inputTagHeights[size.index],
+              height: _inputTagHeight(compact, tagStyle),
             ),
         ],
       ),
@@ -1329,7 +1328,10 @@ Widget _inputTagInline(Widget child, {required double height, Key? key}) =>
       ),
     );
 
-List<double> get _inputTagHeights => const [16, 20, 24, 32, 40];
+double _inputTagHeight(bool compact, ElStyle? style) {
+  final height = style?.height;
+  return height is num ? height.toDouble() : (compact ? 20 : 24);
+}
 
 ElStyle _inputTagDropStyle(BuildContext context, bool active) => ElStyle(
   border: active ? ElBorder.all(borderColor: context.elTheme.primary) : null,
@@ -1355,9 +1357,9 @@ ElStyle _inputTagShellStyle(
   required bool disabled,
   required bool readOnly,
   required bool hasError,
-  required ElLevelType size,
+  required bool compact,
 }) {
-  final height = context.elTheme.controlHeights[size.index];
+  final height = elInputControlHeight(compact);
   final radius = BorderRadius.circular(context.elTheme.radiusSm);
   List<BoxShadow> ring(Color color) => <BoxShadow>[
     ElBoxShadow(color: color, spreadRadius: 1, inset: true),
@@ -1365,6 +1367,7 @@ ElStyle _inputTagShellStyle(
   if (disabled) {
     return ElStyle(
       width: '100%',
+      heightFactor: 1,
       minHeight: height,
       padding: const EdgeInsets.all(4),
       alignment: .centerLeft,
@@ -1381,6 +1384,8 @@ ElStyle _inputTagShellStyle(
   final focus = danger ?? context.elTheme.primary;
   return ElStyle(
     width: '100%',
+    // 保留 alignment 居中，同时按标签换行后的自然高度收缩。
+    heightFactor: 1,
     minHeight: height,
     padding: const EdgeInsets.all(4),
     alignment: .centerLeft,
@@ -1400,16 +1405,9 @@ ElStyle _inputTagShellStyle(
   );
 }
 
-// 输入框内保持紧凑的标签盒，品牌尺寸通过样式传递。
-ElStyle _compactTagStyle(
-  BuildContext context,
-  ElLevelType size,
-  ElStyle? override,
-) => ((BuildContext context) {
-  final style = override;
-  return ElStyle(
-    height: _inputTagHeights[size.index],
-    fontSize: 12,
-    padding: .symmetric(horizontal: 8),
-  ).merge(style);
-})(context);
+// 输入框中的标签跟随壳密度，个别外观仍由 tagStyle 覆写。
+ElStyle _inputTagStyle(bool compact, ElStyle? override) => ElStyle(
+  height: compact ? 20 : 24,
+  fontSize: 12,
+  padding: .symmetric(horizontal: 8),
+).merge(override);

@@ -20,22 +20,6 @@ import 'metrics.dart';
 part 'shell.dart';
 part 'slots.dart';
 
-List<EdgeInsetsGeometry> get _paddings => const [
-  EdgeInsets.symmetric(vertical: 1, horizontal: 7),
-  EdgeInsets.symmetric(vertical: 1, horizontal: 9),
-  EdgeInsets.symmetric(vertical: 1, horizontal: 11),
-  EdgeInsets.symmetric(vertical: 1, horizontal: 13),
-  EdgeInsets.symmetric(vertical: 1, horizontal: 15),
-];
-
-List<EdgeInsetsGeometry> get _textareaPaddings => const [
-  EdgeInsets.symmetric(vertical: 5, horizontal: 7),
-  EdgeInsets.symmetric(vertical: 5, horizontal: 9),
-  EdgeInsets.symmetric(vertical: 5, horizontal: 11),
-  EdgeInsets.symmetric(vertical: 5, horizontal: 13),
-  EdgeInsets.symmetric(vertical: 5, horizontal: 15),
-];
-
 ElStyle? _resolveInputStyle(BuildContext context, ElStyle? style) => style;
 
 double? _resolveInputDoubleSlot(BuildContext context, double? value) => value;
@@ -135,8 +119,8 @@ class Input extends ElInputModelValue<String> {
   @override
   bool get formBindable => component.formBindable;
 
-  /// 解析有效尺寸档：直参优先，否则读取上层全局尺寸 token。
-  ElLevelType _size(BuildContext context) => context.elComponentSize(_style);
+  /// 解析当前输入框的紧凑模式，样式变量优先于祖先。
+  bool _compact(BuildContext context) => context.elComponentCompact(_style);
 
   @override
   Widget build(BuildContext context) {
@@ -336,17 +320,18 @@ class Input extends ElInputModelValue<String> {
         effProp != null &&
         form.errorMessages.containsKey(effProp);
 
-    final resolvedSize = _size(context);
+    final compact = _compact(context);
     // 字号与行高决定编辑器和槽位几何，必须在构建布局时解析；颜色仍走样式级联。
     final declaredStyle = _style;
     final style = declaredStyle;
-    final fontSize = elInputDefaultFontSize(resolvedSize);
+    final fontSize = elInputDefaultFontSize(compact);
     final iconSize =
         _resolveInputDoubleSlot(context, style?.iconSize) ??
-        elInputDefaultIconSize(resolvedSize);
-    final padding = (component.textarea
-        ? _textareaPaddings
-        : _paddings)[resolvedSize.index];
+        elInputDefaultIconSize(compact);
+    final padding = EdgeInsets.symmetric(
+      vertical: component.textarea ? 5 : 1,
+      horizontal: compact ? 9 : 11,
+    );
     final valueTextStyle = _inputTextStyle(
       context,
       fontSize: fontSize,
@@ -668,10 +653,9 @@ class Input extends ElInputModelValue<String> {
           isDisabled: isDisabled,
           hasError: hasError,
           textarea: component.textarea,
-          size: resolvedSize,
+          compact: compact,
           fontSize: effectiveFontSize,
           padding: padding,
-          declaredSize: resolvedSize,
         );
         return base
             .merge(ElStyle(width: component.width))

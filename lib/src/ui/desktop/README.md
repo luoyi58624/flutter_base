@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
 ElDesktopTheme(
-  size: ElLevelType.md,
+  compact: false,
   child: Column(children: [
     ElButton(onPressed: () {}, type: ElThemeType.primary, child: '保存'),
     ElInput(value: '', placeholder: '请输入名称'),
@@ -49,20 +49,23 @@ Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未
 
 ## 主题与覆盖
 
-`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTheme` 键读取实际值。局部主题或尺寸直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
+`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTheme` 键读取实际值。桌面控件只区分普通和紧凑两种密度；局部主题或密度直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
 
 ```dart
 ElDesktopTheme(
+  compact: false,
   style: ElStyle(
     vars: {ElTheme.$primary: Color(0xff2454c6)},
     onDark: ElStyle(vars: {ElTheme.$primary: Color(0xffaac8ff)}),
   ),
   child: ElView(
-    style: ElStyle(vars: {ElTheme.$size: ElLevelType.sm}),
+    style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
     child: ElButton(child: '紧凑按钮'),
   ),
 );
 ```
+
+普通／紧凑默认高度分别为：按钮与输入框 36／32、Tag 与 Switch 26／24、表格行高 40／36。数字输入框及 OTP 保留自身的 32／24 几何。显式 style、height、padding 或 fontSize 继续覆盖预设。
 
 ## 等待接口的组件
 

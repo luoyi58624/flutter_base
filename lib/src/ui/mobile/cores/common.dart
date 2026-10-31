@@ -23,11 +23,6 @@ bool myReducedMotion(BuildContext context) =>
 double myViewport(BuildContext context) =>
     MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
 
-/// CSS focus-visible 的公共轮廓。
-ElStyle myFocusStyle(BuildContext context) => ElStyle(
-  outline: ElOutline(outlineWidth: 2, outlineColor: context.elTheme.primary, outlineOffset: 3),
-);
-
 /// 保留数值字重，兼顾静态字体与可变字体。
 ElStyle myTextStyle(
   BuildContext context,
@@ -249,14 +244,6 @@ class MyAction extends HookWidget {
           feedbackCancelled.value = true;
         }
         base.onPointerMove?.call(e);
-      },
-      onPointerEnter: (e) {
-        final original = e.originalEvent;
-        if (original is PointerEvent &&
-            original.kind == PointerDeviceKind.mouse) {
-          directInput.value = false;
-        }
-        base.onPointerEnter?.call(e);
       },
       onTap: activate,
       onKeyDown: ownsKeys ? (e) => keyDown(e) : base.onKeyDown,

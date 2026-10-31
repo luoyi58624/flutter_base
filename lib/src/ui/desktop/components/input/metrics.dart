@@ -1,15 +1,14 @@
-import 'package:flutter_base/flutter_base.dart';
-
 /// Element Plus 输入族共用的默认字号。
 ///
 /// 本文件不从组件 barrel 导出，只供表单复合组件复用同一套行盒度量，避免
 /// Select、InputTag 等各自复制尺寸表后逐渐漂移。
-double elInputDefaultFontSize(ElLevelType size) =>
-    const <double>[12, 13, 14, 15, 16][size.index];
+double elInputDefaultFontSize(bool compact) => compact ? 13 : 14;
 
 /// Element Plus 输入族共用的默认图标尺寸。
-double elInputDefaultIconSize(ElLevelType size) =>
-    const <double>[12, 13, 14, 15, 16][size.index];
+double elInputDefaultIconSize(bool compact) => compact ? 13 : 14;
+
+/// 桌面输入族共用的单行控件高度。
+double elInputControlHeight(bool compact) => compact ? 32 : 36;
 
 /// 输入正文的 CSS line-height 倍数。
 const double elInputLineHeightFactor = 1.5;

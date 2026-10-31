@@ -89,14 +89,15 @@ class ElNavMenu<T> extends ElModelValue<String> {
                 activeKey,
               ).map((e) => e.key).toSet();
         final theme = context.elTheme;
+        final compact = context.elComponentCompact(style);
         final background = style?.backgroundColor ?? theme.bgColor;
         final textColor = background.elTextColor(context);
         final itemStyle = ElStyle(
           backgroundColor: background,
           color: textColor,
-          fontSize: theme.fontSizes[theme.size.index],
+          fontSize: compact ? 14 : 15,
           fontWeight: .w500,
-          iconSize: theme.iconSizes[theme.size.index],
+          iconSize: compact ? 20 : 24,
           iconColor: textColor,
           cursor: SystemMouseCursors.click,
           alignment: .centerLeft,

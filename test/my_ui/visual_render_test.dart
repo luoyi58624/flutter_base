@@ -472,6 +472,11 @@ void main() {
             };
             if (target != null) {
               final targetFinder = find.byKey(_keys[target]!);
+              List<Object> appearance() => tester
+                  .renderObjectList<ElRenderView>(find.descendant(of: targetFinder, matching: find.byType(ElView)))
+                  .map((render) => render.committedResolvedStyle)
+                  .toList();
+              final initial = appearance();
               final focusHost = find
                   .descendant(
                     of: targetFinder,
@@ -481,28 +486,30 @@ void main() {
                   )
                   .first;
               final node = tester.widget<ElView>(focusHost).focusNode!;
-              // 焦点环识别本次Tab换焦，不能用程序化requestFocus冒充键盘导航。
+              // 保留真实键盘聚焦，手机默认外观不附带焦点环。
               await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
               node.requestFocus();
               await tester.pump();
               await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
               await tester.pumpAndSettle();
               expect(node.hasPrimaryFocus, isTrue);
+              expect(appearance(), initial);
               await _save(tester, boundary, 'flutter-state-$key-focus');
               node.unfocus();
               final mouse = await tester.createGesture(
                 kind: ui.PointerDeviceKind.mouse,
               );
               await mouse.addPointer(location: Offset(2, 2));
-              final point = tester.getCenter(targetFinder);
+              final point = tester.getCenter(focusHost);
               await mouse.moveTo(point);
               await tester.pumpAndSettle();
+              expect(appearance(), initial);
               await _save(tester, boundary, 'flutter-state-$key-hover');
-              await mouse.down(point);
+              await mouse.removePointer();
+              final touch = await tester.startGesture(point, kind: ui.PointerDeviceKind.touch);
               await tester.pump(Duration(milliseconds: 300));
               await _save(tester, boundary, 'flutter-state-$key-pressed');
-              await mouse.up();
-              await mouse.removePointer();
+              await touch.up();
               await tester.pumpAndSettle();
               expect(tester.takeException(), isNull);
             }

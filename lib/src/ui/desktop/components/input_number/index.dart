@@ -46,7 +46,7 @@ class InputNumber extends ElInputNumModelValue {
 
   @override
   Widget obsBuilder(BuildContext context) {
-    final resolvedSize = context.elComponentSize(style);
+    final compact = context.elComponentCompact(style);
     final current = $obs.value;
 
     // 触顶后对应方向的钮锁成禁用（官方口径），而非静默吞掉点击
@@ -61,19 +61,19 @@ class InputNumber extends ElInputNumModelValue {
 
     return ElView(
       event: disabled ? ElEvent(disabled: true) : null,
-      style: _rootStyle(resolvedSize).merge(style),
+      style: _rootStyle(compact).merge(style),
       child: Row(
         mainAxisSize: .min,
         crossAxisAlignment: .center,
         children: [
           if (_sideControls)
-            _button(resolvedSize, up: false, disabled: downDisabled),
-          _field(resolvedSize),
+            _button(compact, up: false, disabled: downDisabled),
+          _field(compact),
           if (_sideControls)
-            _button(resolvedSize, up: true, disabled: upDisabled),
+            _button(compact, up: true, disabled: upDisabled),
           if (controls && controlsPosition == ElInputNumberControls.right)
             _stackedButtons(
-              resolvedSize,
+              compact,
               upDisabled: upDisabled,
               downDisabled: downDisabled,
             ),
@@ -87,10 +87,10 @@ class InputNumber extends ElInputNumModelValue {
 
   /// 文本框吃掉按钮占位后的剩余宽度；提交时统一过钳制与精度，
   /// 所以手输 999 也会被 max 拉回来
-  Widget _field(ElLevelType size) {
-    final buttonWidth = controls ? _height(size) : 0.0;
+  Widget _field(bool compact) {
+    final buttonWidth = controls ? _height(compact) : 0.0;
     final taken = _sideControls ? buttonWidth * 2 : buttonWidth;
-    final fieldWidth = (width ?? _defaultWidth(size)) - taken;
+    final fieldWidth = (width ?? _defaultWidth(compact)) - taken;
     final fieldControl = $get<ElInputController>(_fieldControlKey);
 
     return _NumberField(
@@ -106,10 +106,12 @@ class InputNumber extends ElInputNumModelValue {
         decimal: precision != 0,
         signed: (min ?? -1) < 0,
       ),
-      // ElInput 的尺寸档显式跟随数字框；宽度与居中仍由 style 覆写。
+      // ElInput 的密度跟随数字框；宽度与居中仍由 style 覆写。
       style: ElStyle(
         width: fieldWidth <= 0 ? null : fieldWidth,
-        height: _height(size),
+        height: _height(compact),
+        fontSize: style?.fontSize,
+        iconSize: style?.iconSize,
         textAlign: .center,
         borderRadius: _sideControls ? BorderRadius.zero : null,
       ),
@@ -144,7 +146,7 @@ class InputNumber extends ElInputNumModelValue {
   }
 
   Widget _button(
-    ElLevelType size, {
+    bool compact, {
     required bool up,
     required bool disabled,
   }) => _InputNumberButton(
@@ -153,20 +155,20 @@ class InputNumber extends ElInputNumModelValue {
     ),
     icon: up ? ElIcons.plus : ElIcons.minus,
     semanticLabel: up ? '增加' : '减少',
-    width: _height(size),
-    height: _height(size),
-    iconSize: _sideGlyphSize(size),
+    width: _height(compact),
+    height: _height(compact),
+    iconSize: _sideGlyphSize(compact),
     disabled: disabled,
     onPressed: () => $obs.value = _clamp(_shift($obs.value, up ? 1 : -1)),
   );
 
   /// 右侧竖排：两钮各占内容高的一半（官方 `(input-height - 2) / 2`）
   Widget _stackedButtons(
-    ElLevelType size, {
+    bool compact, {
     required bool upDisabled,
     required bool downDisabled,
   }) {
-    final half = (_height(size) - 2) / 2;
+    final half = (_height(compact) - 2) / 2;
     return Column(
       mainAxisSize: .min,
       children: [
@@ -174,9 +176,9 @@ class InputNumber extends ElInputNumModelValue {
           key: const ValueKey<String>('el-input-number-right-increment'),
           icon: ElIcons.arrowUp,
           semanticLabel: '增加',
-          width: _height(size),
+          width: _height(compact),
           height: half,
-          iconSize: _stackedGlyphSize(size),
+          iconSize: _stackedGlyphSize(compact),
           disabled: upDisabled,
           onPressed: () => $obs.value = _clamp(_shift($obs.value, 1)),
         ),
@@ -184,9 +186,9 @@ class InputNumber extends ElInputNumModelValue {
           key: const ValueKey<String>('el-input-number-right-decrement'),
           icon: ElIcons.arrowDown,
           semanticLabel: '减少',
-          width: _height(size),
+          width: _height(compact),
           height: half,
-          iconSize: _stackedGlyphSize(size),
+          iconSize: _stackedGlyphSize(compact),
           disabled: downDisabled,
           onPressed: () => $obs.value = _clamp(_shift($obs.value, -1)),
         ),
@@ -223,46 +225,22 @@ class InputNumber extends ElInputNumModelValue {
     return parsed != null && parsed.isFinite ? parsed : $obs.value;
   }
 
-  ElStyle _rootStyle(ElLevelType size) => ElStyle(
-    width: width ?? _defaultWidth(size),
-    height: _height(size),
+  ElStyle _rootStyle(bool compact) => ElStyle(
+    width: width ?? _defaultWidth(compact),
+    height: _height(compact),
     alignment: .center,
     onDisabled: const ElStyle(cursor: SystemMouseCursors.forbidden),
   );
 
-  static double _defaultWidth(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 100,
-    ElLevelType.sm => 120,
-    ElLevelType.md => 150,
-    ElLevelType.lg => 180,
-    ElLevelType.xl => 210,
-  };
+  static double _defaultWidth(bool compact) => compact ? 120 : 150;
 
-  static double _height(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 20,
-    ElLevelType.sm => 24,
-    ElLevelType.md => 32,
-    ElLevelType.lg => 40,
-    ElLevelType.xl => 48,
-  };
+  static double _height(bool compact) => compact ? 24 : 32;
 
   /// 左右整高按钮留出至少 4px 纵向呼吸区。
-  static double _sideGlyphSize(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 10,
-    ElLevelType.sm => 11,
-    ElLevelType.md => 12,
-    ElLevelType.lg => 13,
-    ElLevelType.xl => 14,
-  };
+  static double _sideGlyphSize(bool compact) => compact ? 11 : 12;
 
-  /// 右侧半高按钮的 glyph 必须真正装进 9/11/15/19/23px 内容盒。
-  static double _stackedGlyphSize(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 6,
-    ElLevelType.sm => 8,
-    ElLevelType.md => 10,
-    ElLevelType.lg => 12,
-    ElLevelType.xl => 14,
-  };
+  /// 右侧半高按钮的 glyph 必须装进普通和紧凑模式的内容盒。
+  static double _stackedGlyphSize(bool compact) => compact ? 8 : 10;
 }
 
 /// 步进钮：`fill-color-light` 底 + 边框，hover 变主色，禁用不响应
@@ -336,7 +314,15 @@ class _InputNumberButtonState extends State<_InputNumberButton> {
           cursor: SystemMouseCursors.forbidden,
           iconColor: context.elTheme.textPlaceholder,
         ),
-        transition: const [ElTransition.all(Duration(milliseconds: 250))],
+        // 密度切换时按钮和输入必须同帧换尺寸，避免旧按钮宽度挤出新壳。
+        transition: const [
+          ElTransition.fields({
+            ElTransitionField.color,
+            ElTransitionField.iconColor,
+            ElTransitionField.backgroundColor,
+            ElTransitionField.border,
+          }),
+        ],
         iconColor: context.elTheme.textRegular,
       ),
       // 跟随本包既有惯例（alert/tag/steps 同）：图标用 Flutter Icon，

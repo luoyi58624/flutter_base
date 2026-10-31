@@ -55,6 +55,33 @@ Widget _decoyPrefix(ElEditableController controller) => ElView(
 );
 
 void main() {
+  testWidgets('自动补全输入与候选同步普通和紧凑模式', (tester) async {
+    for (final compact in [false, true]) {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+      await tester.pumpWidget(
+        _host(
+          ElAutocomplete<String>(
+            key: ValueKey(compact),
+            value: 'a',
+            focusNode: focusNode,
+            debounce: Duration.zero,
+            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            fetchSuggestions: (_) => [ElLabelModel('Alpha', 'a')],
+          ),
+        ),
+      );
+      await _focus(tester, focusNode);
+      await _settleQuery(tester);
+      expect(tester.getSize(_option(0)).height, compact ? 32 : 36);
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+    }
+  });
+
   testWidgets('唯一后端：可编辑态只有一个 ElEditableView，禁用态不挂输入旁路', (tester) async {
     await tester.pumpWidget(
       _host(

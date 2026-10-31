@@ -2,6 +2,8 @@
 
 my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`MyTheme` 提供 CSS 对应的明暗颜色、字体和阴影，并安装通用组件实现。
 
+默认外观只提供手机按压反馈，不附带鼠标悬停、键盘焦点环或宽屏桌面尺寸。需要这些外观时可由调用方显式声明 `ElStyle` 变体；键盘动作、焦点节点与辅助技术语义仍保留。
+
 ## 目录约定
 
 对应通用接口的组件直接放在 `components/<组件名>/index.dart`，辅助文件与 README.md 留在组件目录。Card、LoadingIndicator、Progress、Skeleton 等已有通用声明但尚未适配的组件也保留在这一层；MyLoading 对应 LoadingIndicator 的加载指示职责。

@@ -9,13 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child) {
+Widget _host(Widget child, {bool compact = false}) {
   return WidgetsApp(
     color: Color(0xffffffff),
     // 标准 Tab 行为由应用环境提供，品牌安装器只安装主题与组件。
     builder: (context, _) => Directionality(
       textDirection: TextDirection.ltr,
       child: ElDesktopTheme(
+        compact: compact,
         child: ElView(style: const ElStyle(width: 600), child: child),
       ),
     ),
@@ -101,6 +102,58 @@ Future<void> _sendTaggedAutofill(
 }
 
 void main() {
+  testWidgets('普通和紧凑模式同步数字框、步进钮与正文，显式宽度和字号优先', (tester) async {
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        _host(
+          Align(alignment: .centerLeft, child: ElInputNumber(value: 7)),
+          compact: compact,
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester.getSize(find.byType(ElInputNumber)),
+        Size(compact ? 120 : 150, compact ? 24 : 32),
+      );
+      expect(
+        tester.getSize(_buttonFinder(ElIcons.plus)).height,
+        compact ? 24 : 32,
+      );
+      expect(
+        tester
+            .getSize(
+              find.byWidgetPredicate(
+                (widget) => widget is ElIcon && widget.child == ElIcons.plus,
+              ),
+            )
+            .width,
+        compact ? 11 : 12,
+      );
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+    }
+
+    await tester.pumpWidget(
+      _host(
+        Align(
+          alignment: .centerLeft,
+          child: ElInputNumber(value: 7, width: 210, style: ElStyle(fontSize: 18)),
+        ),
+        compact: true,
+      ),
+    );
+    await tester.pump();
+    expect(tester.getSize(find.byType(ElInputNumber)).width, 210);
+    expect(
+      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+          ?.fontSize,
+      18,
+    );
+  });
+
   group('ElInputNumber 值通道', () {
     testWidgets('value 受控：显示传入值', (tester) async {
       await tester.pumpWidget(_host(ElInputNumber(value: 7)));

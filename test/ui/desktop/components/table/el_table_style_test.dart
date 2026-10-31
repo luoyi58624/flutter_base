@@ -13,7 +13,7 @@ void main() {
   resolve(
     WidgetTester tester, {
     Brightness brightness = .light,
-    ElLevelType? size,
+    bool compact = false,
   }) async {
     late ElTableStyle style;
     late Color primary;
@@ -24,7 +24,7 @@ void main() {
         textDirection: .ltr,
         child: ElDesktopTheme(
           themeMode: ElThemeMode(brightness: brightness),
-          size: size,
+          compact: compact,
           child: ElView(
             style: ElStyle(),
             child: Builder(
@@ -66,26 +66,16 @@ void main() {
     expect(const ElTableStyle().rowHeight, 40);
   });
 
-  testWidgets('尺寸档驱动行高 / 内边距 / 字号 / 命中尺寸', (tester) async {
-    const cases = <(ElLevelType, double, Object, Object, double, double)>[
-      // (档位, 行高, 横向内边距, 字号, 控件命中, 调宽命中)
-      (.xs, 32, 8, 12.0, 26, 8),
-      (.sm, 36, 10, 13.0, 28, 8),
-      (.md, 40, 12, 14.0, 30, 8),
-      (.lg, 48, 14, 14.0, 40, 10),
-      (.xl, 56, 16, 15.0, 44, 10),
-    ];
-    for (final (size, rowHeight, padding, fontSize, control, resize) in cases) {
-      final style = (await resolve(tester, size: size)).style;
-      expect(style.rowHeight, rowHeight, reason: '$size 行高');
-      expect(
-        style.cellPadding.resolve(TextDirection.ltr).left,
-        padding,
-        reason: '$size 内边距',
-      );
-      expect(style.table.fontSize, fontSize, reason: '$size 字号');
-      expect(style.controlHitSize, control, reason: '$size 控件命中');
-      expect(style.resizeHitSize, resize, reason: '$size 调宽命中');
+  testWidgets('normal / compact 驱动行高、内边距、字号和命中尺寸', (tester) async {
+    for (final compact in [false, true]) {
+      final style = (await resolve(tester, compact: compact)).style;
+      expect(style.rowHeight, compact ? 36 : 40);
+      expect(style.cellPadding.resolve(TextDirection.ltr).left, compact ? 10 : 12);
+      expect(style.table.fontSize, compact ? 13 : 14);
+      expect(style.controlHitSize, compact ? 28 : 30);
+      expect(style.resizeHitSize, 8);
+      expect(style.selection.width, 14);
+      expect(style.selection.height, 14);
     }
   });
 

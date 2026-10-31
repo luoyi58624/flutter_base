@@ -1,3 +1,6 @@
+import 'package:flutter_base/src/ui/desktop/components/icon/index.dart' show ElIcons;
+import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
+
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter_base/desktop.dart';
@@ -6,11 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child) => MediaQuery(
+Widget _host(Widget child, {bool compact = false}) => MediaQuery(
   data: const MediaQueryData(size: Size(800, 600)),
   child: Directionality(
     textDirection: .ltr,
     child: ElDesktopTheme(
+      compact: compact,
       child: ElView(
         style: const ElStyle(width: 620, height: 420, alignment: .center),
         child: ElView(style: const ElStyle(width: 420), child: child),
@@ -55,6 +59,77 @@ Future<void> _mouseTapAt(WidgetTester tester, Offset position) async {
 }
 
 void main() {
+  testWidgets('标签、草稿和前缀同步紧凑模式，tagStyle 与输入样式可显式覆盖', (tester) async {
+    final shell = find.byKey(ValueKey<String>('el-input-tag-shell'));
+    final prefixIcon = find.descendant(
+      of: find.byKey(ValueKey<String>('el-input-tag-prefix-slot')),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is ElView && widget.child is IconData,
+      ),
+    );
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        _host(
+          ElInputTag(value: ['Dart'], prefix: ElIcons.plus),
+          compact: compact,
+        ),
+      );
+      expect(tester.takeException(), isNull, reason: '密度切换首帧不应产生布局异常');
+      await tester.pumpAndSettle();
+      expect(tester.getSize(shell).height, compact ? 32 : 36);
+      expect(tester.getSize(_tag(0)).height, compact ? 20 : 24);
+      expect(tester.getSize(prefixIcon).width, compact ? 13 : 14);
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+    }
+
+    await tester.pumpWidget(
+      _host(
+        ElInputTag(
+          value: ['Dart'],
+          prefix: ElIcons.plus,
+          style: ElStyle(height: 52, fontSize: 18, iconSize: 17),
+          tagStyle: ElStyle(height: 34),
+        ),
+        compact: true,
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
+    expect(tester.getSize(shell).height, 52);
+    expect(tester.getSize(_tag(0)).height, 34);
+    expect(tester.getSize(prefixIcon).width, 17);
+    expect(
+      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+          ?.fontSize,
+      18,
+    );
+
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        _host(ElInputTag(value: ['Dart'], disabled: true), compact: compact),
+      );
+      expect(tester.takeException(), isNull, reason: '密度切换首帧不应产生布局异常');
+      await tester.pumpAndSettle();
+      expect(tester.getSize(shell).height, compact ? 32 : 36);
+    }
+
+    await tester.pumpWidget(
+      _host(
+        ElInputTag(
+          value: ['Dart', 'Flutter', 'Widget'],
+          style: ElStyle(width: 160),
+        ),
+        compact: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(shell).height, greaterThan(32), reason: '多行标签仍应自然增高');
+  });
+
   testWidgets('唯一输入后端：可编辑/只读只有一个 ElEditableView，禁用态完全摘除', (tester) async {
     await tester.pumpWidget(_host(ElInputTag(value: const ['Dart'])));
 

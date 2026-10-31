@@ -30,7 +30,7 @@ import '../../extensions/el.dart';
 abstract final class ElTableTheme {
   /// 表格外观工厂：只返回 [ElTableStyle]，不接管任何表格实现。
   static ElTableStyle style(BuildContext context) {
-    final size = context.elTheme.size;
+    final compact = context.elComponentCompact();
     final primary = context.elTheme.primary;
     final borderColor = context.elTheme.borderColorLighter;
     final textColor = context.elTheme.textRegular;
@@ -54,31 +54,13 @@ abstract final class ElTableTheme {
         declaredDivider ??
         (dark ? borderColor.withValues(alpha: 0.6) : const Color(0xffebeef5));
     final dividerBorder = ElBorderSide(borderColor: divider);
-    final controlHitSize = switch (size) {
-      ElLevelType.xs => 26.0,
-      ElLevelType.sm => 28.0,
-      ElLevelType.md => 30.0,
-      ElLevelType.lg => 40.0,
-      ElLevelType.xl => 44.0,
-    };
+    final controlHitSize = compact ? 28.0 : 30.0;
     return ElTableStyle(
-      // 尺寸与密度：行高 / 内边距 / 字号按全局尺寸档，与历史 `_sizePreset` 逐项一致。
-      rowHeight: switch (size) {
-        ElLevelType.xs => 32.0,
-        ElLevelType.sm => 36.0,
-        ElLevelType.md => 40.0,
-        ElLevelType.lg => 48.0,
-        ElLevelType.xl => 56.0,
-      },
-      cellPadding: switch (size) {
-        ElLevelType.xs => const .symmetric(horizontal: 8),
-        ElLevelType.sm => const .symmetric(horizontal: 10),
-        ElLevelType.md => const .symmetric(horizontal: 12),
-        ElLevelType.lg => const .symmetric(horizontal: 14),
-        ElLevelType.xl => const .symmetric(horizontal: 16),
-      },
+      // 行高、内边距与字号直接跟随 normal / compact 两态。
+      rowHeight: compact ? 36 : 40,
+      cellPadding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
       minColumnWidth: 80,
-      resizeHitSize: size.index >= ElLevelType.lg.index ? 10 : 8,
+      resizeHitSize: 8,
       columnResizable: false,
       controlHitSize: controlHitSize,
       // 外框与网格线
@@ -90,13 +72,7 @@ abstract final class ElTableTheme {
       table: ElStyle(
         backgroundColor: background,
         color: textColor,
-        fontSize: switch (size) {
-          ElLevelType.xs => 12.0,
-          ElLevelType.sm => 13.0,
-          ElLevelType.md => 14.0,
-          ElLevelType.lg => 14.0,
-          ElLevelType.xl => 15.0,
-        },
+        fontSize: compact ? 13 : 14,
         iconColor: textColor,
       ),
       header: ElStyle(
@@ -140,8 +116,8 @@ abstract final class ElTableTheme {
       fixedColumnShadow: fixedColumnShadow,
       // 行内控件
       selection: ElStyle(
-        width: size.index >= ElLevelType.lg.index ? 16.0 : 14.0,
-        height: size.index >= ElLevelType.lg.index ? 16.0 : 14.0,
+        width: 14,
+        height: 14,
         alignment: .center,
         backgroundColor: background,
         border: ElBorder.all(borderColor: borderColor),

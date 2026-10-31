@@ -71,8 +71,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
     );
     return myInline(
       MyAction(
-        style: ElStyle(onFocusVisible: myFocusStyle(context))
-            .merge(component.style),
+        style: component.style ?? const ElStyle(),
         label: component.semanticLabel,
         button: false,
         toggled: current,
@@ -94,9 +93,6 @@ class _CommonSwitch extends ElFormModelValue<bool> {
                 ? (component.activeColor ?? theme.primary)
                 : (component.inactiveColor ?? theme.gray),
             color: current ? theme.primaryText : theme.textColor,
-            cursor: component.disabled
-                ? SystemMouseCursors.basic
-                : SystemMouseCursors.click,
             transition: reduced
                 ? const []
                 : const [
@@ -200,11 +196,7 @@ class MySwitch extends StatelessWidget {
             alignment: Alignment.centerLeft,
             borderRadius: BorderRadius.circular(99),
             backgroundColor: current ? t.primary : t.gray,
-            cursor: disabled
-                ? SystemMouseCursors.basic
-                : SystemMouseCursors.click,
             transition: transitions,
-            onFocusVisible: myFocusStyle(context),
           ),
           child: ElView(
             style: ElStyle(

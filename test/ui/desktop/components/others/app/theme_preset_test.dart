@@ -161,4 +161,36 @@ void main() {
       expect(seenPrimary, brightness == Brightness.dark ? darkPrimary : lightPrimary);
     }
   });
+
+  testWidgets('紧凑模式只缩小控件，页面正文与图标保持默认尺寸', (tester) async {
+    final bodyKey = GlobalKey();
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        ElDesktopTheme(
+          compact: compact,
+          child: ElView(key: bodyKey, child: '正文'),
+        ),
+      );
+      final body = tester.renderObject<ElRenderView>(find.byKey(bodyKey));
+      expect(body.committedResolvedStyle.inheritedText.fontSize, 15);
+      expect(body.committedResolvedStyle.inheritedBox.iconSize, 24);
+    }
+  });
+
+  testWidgets('主题变体可级联覆盖 compact 并在明暗切换时恢复', (tester) async {
+    for (final brightness in [Brightness.light, Brightness.dark, Brightness.light]) {
+      await tester.pumpWidget(
+        ElDesktopTheme(
+          themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
+          style: ElStyle(onDark: ElStyle(vars: {ElDesktopTheme.$compact: true})),
+          child: ElButton(child: '按钮'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final button = tester.renderObject<ElRenderView>(
+        find.descendant(of: find.byType(ElButton), matching: find.byType(ElButtonView)).first,
+      );
+      expect(button.size.height, brightness == Brightness.dark ? 32 : 36);
+    }
+  });
 }

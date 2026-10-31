@@ -63,15 +63,15 @@ void main() {
     );
   });
 
-  testWidgets('品牌尺寸由局部主题传递，关闭图标同步缩放', (tester) async {
-    for (final (size, height, icon) in [
-      (ElLevelType.sm, 24.0, 14.0),
-      (ElLevelType.lg, 28.0, 18.0),
+  testWidgets('normal / compact 经局部变量传递，关闭图标保持独立尺寸', (tester) async {
+    for (final (compact, height, icon) in [
+      (true, 24.0, 14.0),
+      (false, 26.0, 14.0),
     ]) {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(vars: {ElTheme.$size: size}),
+            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
             child: ElTag(closable: true, style: ElStyle(), child: '标签'),
           ),
         ),

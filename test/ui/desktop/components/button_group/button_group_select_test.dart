@@ -31,6 +31,22 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('组内按钮直接跟随 normal / compact 密度', (tester) async {
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(host(ElView(
+        style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+        child: ElButtonGroup(children: [
+          ElButtonGroupItem(child: '日'),
+          ElButtonGroupItem(child: '周'),
+        ]),
+      )));
+      await tester.pumpAndSettle();
+      expect(itemAt(tester, 0).size.height, compact ? 32 : 36);
+      expect(itemAt(tester, 1).size.height, compact ? 32 : 36);
+      expect(committed(tester, 0).inheritedText.fontSize, compact ? 13 : 14);
+    }
+  });
+
   testWidgets('single：点击选中 → 回调值；再点已选中 → 回调 null；mandatory 静默', (tester) async {
     final changes = <Object?>[];
     Object? model;

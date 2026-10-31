@@ -3,147 +3,108 @@ import 'package:flutter_base/desktop.dart' hide ElIcon;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 通用主题尺寸档驱动按钮高度：
-/// - 默认注入桌面 medium（36）/ 移动 large（40）；
-/// - $size 可在祖先覆写，按钮与输入框共享 ElTheme.$controlHeights 五档表。
+/// normal / compact 两态尺寸及变量覆盖顺序。
 void main() {
-  Widget host(Widget child, {Map<Object, Object>? vars}) =>
-      Directionality(
-        textDirection: TextDirection.ltr,
-        child: ElDesktopTheme(
-          style: ElStyle(vars: vars),
-          child: child,
-        ),
-      );
+  Widget host(Widget child, {bool compact = false}) => Directionality(
+    textDirection: TextDirection.ltr,
+    child: ElDesktopTheme(compact: compact, child: child),
+  );
 
-  double buttonHeight(WidgetTester tester) => tester
-      .renderObject<ElRenderView>(
-        find
-            .descendant(
-              of: find.byType(ElButton),
-              matching: find.byType(ElButtonView),
-            )
-            .first,
-      )
-      .size
-      .height;
+  ElRenderView button(WidgetTester tester) => tester.renderObject<ElRenderView>(
+    find.descendant(of: find.byType(ElButton), matching: find.byType(ElButtonView)).first,
+  );
 
-  double inputHeight(WidgetTester tester) => tester
-      .renderObject<ElRenderView>(
-        find
-            .descendant(of: find.byType(ElInput), matching: find.byType(ElView))
-            .first,
-      )
-      .size
-      .height;
+  double inputHeight(WidgetTester tester) => tester.renderObject<ElRenderView>(
+    find.descendant(of: find.byType(ElInput), matching: find.byType(ElView)).first,
+  ).size.height;
 
-  testWidgets('默认档（桌面宿主 = medium）按钮高 36', (tester) async {
-    await tester.pumpWidget(host(ElButton(child: '按钮')));
-    await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 36);
+  testWidgets('normal / compact 直接决定按钮盒尺寸及字号', (tester) async {
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(host(ElButton(child: '按钮'), compact: compact));
+      await tester.pumpAndSettle();
+      final render = button(tester);
+      expect(render.size.height, compact ? 32 : 36);
+      expect(render.style!.fontSize, compact ? 13 : 14);
+      expect(render.style!.padding, EdgeInsets.symmetric(vertical: 4, horizontal: compact ? 14 : 16));
+      expect(render.style!.borderRadius, BorderRadius.all(Radius.circular(4)));
+    }
   });
 
-  testWidgets(r'$size 覆写 small / large 换档：32 / 40', (tester) async {
-    await tester.pumpWidget(
-      host(
-        ElButton(child: '按钮'),
-        vars: {ElTheme.$size: ElLevelType.sm},
-      ),
-    );
+  testWidgets('全局 compact 动态变化会更新复用的按钮与输入框', (tester) async {
+    var compact = false;
+    late StateSetter rebuild;
+    final child = Column(children: [ElButton(child: '按钮'), ElInput(value: '')]);
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: StatefulBuilder(builder: (context, setState) {
+        rebuild = setState;
+        return ElDesktopTheme(compact: compact, child: child);
+      }),
+    ));
     await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 32);
-
-    await tester.pumpWidget(
-      host(
-        ElButton(child: '按钮'),
-        vars: {ElTheme.$size: ElLevelType.lg},
-      ),
-    );
+    expect(button(tester).size.height, 36);
+    expect(inputHeight(tester), 36);
+    rebuild(() => compact = true);
     await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 40);
+    expect(button(tester).size.height, 32);
+    expect(inputHeight(tester), 32);
   });
 
-  testWidgets(r'祖先 ElView vars 的 $size 覆写全局档，并同步影响内容 token', (tester) async {
-    // 全局 large（40），局部 small（32）；vars 由用户自行嵌套 ElView 传递
-    await tester.pumpWidget(
-      host(
-        ElView(
-          style: ElStyle(vars: {ElTheme.$size: ElLevelType.sm}),
-          child: ElButton(
-            child: '按钮',
-            leftIcon: ElIcons.menu,
-            rightIcon: ElIcons.arrowRight,
-          ),
-        ),
-        vars: {ElTheme.$size: ElLevelType.lg},
+  testWidgets('普通 ElView 局部声明可以覆盖全局 compact', (tester) async {
+    await tester.pumpWidget(host(
+      ElView(
+        style: ElStyle(vars: {ElDesktopTheme.$compact: false}),
+        child: ElButton(child: '按钮'),
       ),
-    );
+      compact: true,
+    ));
     await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 32);
+    expect(button(tester).size.height, 36);
+  });
 
-    final icons = tester
-        .widgetList<ElIcon>(
-          find.descendant(
-            of: find.byType(ElButton),
-            matching: find.byType(ElIcon),
-          ),
-        )
-        .toList();
-    expect(icons.map((icon) => tester.getSize(find.byWidget(icon))), [
-      Size(13, 13),
-      Size(13, 13),
-    ]);
-    final gaps = find.descendant(
-      of: find.byType(ElButton),
-      matching: find.byWidgetPredicate(
+  testWidgets('组件自身 style.vars 的 compact 优先于祖先声明', (tester) async {
+    await tester.pumpWidget(host(
+      ElButton(style: ElStyle(vars: {ElDesktopTheme.$compact: false}), child: '按钮'),
+      compact: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(button(tester).size.height, 36);
+    await tester.pumpWidget(host(
+      ElButton(style: ElStyle(vars: {ElDesktopTheme.$compact: true}), child: '按钮'),
+    ));
+    await tester.pumpAndSettle();
+    expect(button(tester).size.height, 32);
+  });
+
+  testWidgets('按钮图标随密度变化，文字两侧间隔保持 6', (tester) async {
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(host(ElButton(
+        child: '按钮',
+        leftIcon: ElIcons.menu,
+        rightIcon: ElIcons.arrowRight,
+      ), compact: compact));
+      await tester.pumpAndSettle();
+      final icons = tester.widgetList<ElIcon>(find.descendant(
+        of: find.byType(ElButton), matching: find.byType(ElIcon),
+      ));
+      final iconSize = compact ? 13.0 : 15.0;
+      expect(icons.map((icon) => tester.getSize(find.byWidget(icon))), [Size.square(iconSize), Size.square(iconSize)]);
+      final gaps = find.descendant(of: find.byType(ElButton), matching: find.byWidgetPredicate(
         (widget) => widget is ElView && widget.child == null,
-      ),
-    );
-    expect(
-      gaps.evaluate().map(
-        (gap) => tester.getSize(find.byWidget(gap.widget)).width,
-      ),
-      [6.0, 6.0],
-    );
+      ));
+      expect(gaps.evaluate().map((gap) => tester.getSize(find.byWidget(gap.widget)).width), [6.0, 6.0]);
+    }
   });
 
-  testWidgets(r'按钮与输入框共享 ElTheme.$controlHeights，可由全局表统一覆写', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      host(
-        Column(
-          children: [
-            ElButton(child: '按钮'),
-            ElInput(value: ''),
-          ],
-        ),
-        vars: {
-          ElTheme.$size: ElLevelType.sm,
-          ElTheme.$controlHeights: [25.0, 33.0, 37.0, 41.0, 45.0],
-        },
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 33);
-    expect(inputHeight(tester), 33);
-
-    await tester.pumpWidget(
-      host(
-        Column(
-          children: [
-            ElButton(child: '按钮'),
-            ElInput(value: ''),
-          ],
-        ),
-        vars: {
-          ElTheme.$size: ElLevelType.lg,
-          ElTheme.$controlHeights: [25.0, 33.0, 37.0, 41.0, 45.0],
-        },
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(buttonHeight(tester), 41);
-    expect(inputHeight(tester), 41);
+  testWidgets('显式 style 高度覆盖两态默认，不再依赖全局高度表', (tester) async {
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(host(Column(children: [
+        ElButton(style: ElStyle(height: 45), child: '按钮'),
+        ElInput(style: ElStyle(height: 41), value: ''),
+      ]), compact: compact));
+      await tester.pumpAndSettle();
+      expect(button(tester).size.height, 45);
+      expect(inputHeight(tester), 41);
+    }
   });
 }

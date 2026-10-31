@@ -1,16 +1,6 @@
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/widgets.dart';
 
-List<double> get _heights => const [20, 24, 26, 28, 32];
-
-List<double> get _paddings => const [10, 12, 12, 20, 24];
-
-List<double> get _fontSizes => const [10, 11, 12, 12, 13];
-
-List<double> get _closeGaps => const [3, 4, 4, 8, 10];
-
-List<double> get _closeSizes => const [12, 14, 14, 18, 20];
-
 /// Element 标签主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Tag extends StatelessWidget {
   const Tag(this.component, {super.key});
@@ -25,8 +15,8 @@ class Tag extends StatelessWidget {
       style: ((BuildContext context) {
         final override = component.style;
         final style = override;
-        final size = context.elComponentSize(style).index;
-        final height = _heights[size];
+        final compact = context.elComponentCompact(style);
+        final height = compact ? 24.0 : 26.0;
         final type = component.isToggle && !selected
             ? ElThemeType.info
             : component.type;
@@ -43,8 +33,8 @@ class Tag extends StatelessWidget {
               height: height,
               widthFactor: 1,
               padding: .only(
-                left: _paddings[size],
-                right: component.closable ? _closeGaps[size] : _paddings[size],
+                left: 12,
+                right: component.closable ? 4 : 12,
               ),
               backgroundColor: bg,
               border: .all(borderColor: border),
@@ -52,7 +42,7 @@ class Tag extends StatelessWidget {
                 Radius.circular(component.round ? 9999 : height * 0.45),
               ),
               color: solid ? context.elTheme.white : color,
-              fontSize: _fontSizes[size],
+              fontSize: compact ? 11 : 12,
               fontWeight: .w500,
               lineHeight: 1,
               alignment: .center,
@@ -122,7 +112,6 @@ class _TagClose extends StatelessWidget {
     semanticLabel: component.closeSemanticLabel,
     event: ElEvent(onTapDown: _stopPropagation, onTap: _stopPropagation),
     style: ((BuildContext context) {
-      final size = context.elComponentSize(null).index;
       final type = component.isToggle && !component.selected
           ? ElThemeType.info
           : component.type;
@@ -133,12 +122,12 @@ class _TagClose extends StatelessWidget {
       final foreground = solid ? context.elTheme.white : color;
       final override = component.closeStyle;
       return ElStyle(
-        margin: .only(left: _closeGaps[size]),
-        width: _closeSizes[size],
-        height: _closeSizes[size],
+        margin: .only(left: 4),
+        width: 14,
+        height: 14,
         borderRadius: BorderRadius.all(Radius.circular(9999)),
         alignment: .center,
-        iconSize: _closeSizes[size] - 2,
+        iconSize: 12,
         iconColor: foreground,
         cursor: SystemMouseCursors.click,
         onHover: ElStyle(

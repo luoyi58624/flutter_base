@@ -24,7 +24,7 @@ ElInputTag(
 | onInput / onAdd / onRemove / onClear / onDragTag | 草稿、增删、清空和拖拽通知 |
 | disabled / readOnly / clearable / draggable | 交互限制、清空和拖拽重排 |
 | collapseTags / maxCollapseTags / collapseTagsTooltip | 标签折叠数量和隐藏项提示 |
-| tagBuilder / tagType / tagEffect / tagSize / tagStyle | 标签内容与外观 |
+| tagBuilder / tagType / tagEffect / tagStyle | 标签内容与外观 |
 | controller / focusNode / autofocus / onKeyEvent | 控制门面、焦点和键盘拦截 |
 | prefix / suffix / clearIcon / style / semanticLabel | 输入槽、清空图标、外观和辅助名称 |
 

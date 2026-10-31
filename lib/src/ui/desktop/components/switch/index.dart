@@ -1,17 +1,6 @@
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/widgets.dart';
 
-// 品牌尺寸档位表（xs/sm/md/lg/xl），显式参数优先于档位默认值。
-// 三参数模型：heights = switch 最终高度（轨道高/行高），gaps = 滑块与轨道
-// 边缘间距，滑块直径 = heights - 2*gaps，widthAspects = 轨道宽高比。
-// 档位值沿用现有高度与间距，lg = 移动端默认。
-List<double> get _heights => const [20.0, 24.0, 26.0, 30.0, 32.0];
-
-List<double> get _gaps => const [2.0, 2.0, 2.0, 3.0, 3.0];
-
-/// 轨道宽高比档（xs/sm/md/lg/xl）。
-List<double> get _widthAspects => const [1.75, 1.75, 1.75, 1.75, 1.75];
-
 /// Element 开关主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Switch extends ElFormModelValue<bool> {
   Switch(this.component, {super.key})
@@ -26,12 +15,12 @@ class Switch extends ElFormModelValue<bool> {
   @override
   Widget obsBuilder(BuildContext context) {
     final on = $obs.value;
-    final resolved = context.elComponentSize(component.style);
+    final compact = context.elComponentCompact(component.style);
     return _SwitchBody(
       config: component,
       on: on,
       toggle: () => $obs.value = !$obs.value,
-      resolved: resolved,
+      compact: compact,
       slide: component.slide,
     );
   }
@@ -51,8 +40,8 @@ extension _SwitchAppearance on ElSwitch {
   // 滑块内内容在 [_thumb] 里覆盖成轨道色。icon 样式同源注入——
   // iconSize 12 与 iconColor（currentColor = 外壳文字色）都在这一层声明，
   // 内层 [elContent] 不再显式传尺寸/颜色，全部吃继承。
-  ElStyle _rootStyle(BuildContext context, ElLevelType resolved) => ElStyle(
-    height: _heightOf(context, resolved),
+  ElStyle _rootStyle(BuildContext context, bool compact) => ElStyle(
+    height: _heightOf(context, compact),
     fontSize: 12,
     color: context.elTheme.white,
     iconSize: 12,
@@ -80,7 +69,7 @@ extension _SwitchAppearance on ElSwitch {
   /// 轨道本体（几何 + 轨道色 + 滑块定位）。
   Widget _core(
     BuildContext context,
-    ElLevelType resolved,
+    bool compact,
     bool on, {
     bool slide = true,
     double contentWidth = 0,
@@ -92,13 +81,13 @@ extension _SwitchAppearance on ElSwitch {
     final hasContent = activeContent != null || inactiveContent != null;
     return ElView(
       style: ElStyle(
-        width: hasContent ? null : _containerWidth(context, resolved),
-        minWidth: hasContent ? _containerWidth(context, resolved) : null,
-        height: _heightOf(context, resolved),
+        width: hasContent ? null : _containerWidth(context, compact),
+        minWidth: hasContent ? _containerWidth(context, compact) : null,
+        height: _heightOf(context, compact),
         backgroundColor: _trackColor(context, on),
         border: ElBorder.all(borderWidth: 1, borderColor: _trackColor(context, on)),
-        borderRadius: BorderRadius.circular(_heightOf(context, resolved) / 2),
-        padding: EdgeInsets.all(_gapOf(resolved)),
+        borderRadius: BorderRadius.circular(_heightOf(context, compact) / 2),
+        padding: EdgeInsets.all(_gapOf(compact)),
         alignment: hasContent
             ? null
             : (on ? Alignment.centerRight : Alignment.centerLeft),
@@ -117,13 +106,13 @@ extension _SwitchAppearance on ElSwitch {
       child: hasContent
           ? _inlineContent(
               context,
-              resolved,
+              compact,
               on,
               contentWidth: contentWidth,
               activeWKey: activeWKey,
               inactiveWKey: inactiveWKey,
             )
-          : _thumb(context, resolved, on),
+          : _thumb(context, compact, on),
     );
   }
 
@@ -138,14 +127,14 @@ extension _SwitchAppearance on ElSwitch {
   /// `(W + padLeft - padRight) / 2`，等价。
   Widget _inlineContent(
     BuildContext context,
-    ElLevelType resolved,
+    bool compact,
     bool on, {
     double contentWidth = 0,
     GlobalKey? activeWKey,
     GlobalKey? inactiveWKey,
   }) {
-    final thumbSize = _thumbSize(context, resolved);
-    final gap = _gapOf(resolved);
+    final thumbSize = _thumbSize(context, compact);
+    final gap = _gapOf(compact);
     // 滑块进度（0 = 贴左 / 1 = 贴右），与滑块 alignment 补间同源
     final t = on ? 1.0 : 0.0;
     // 内容层盒宽 = 内容宽 + 两侧让位（与 width 公式同构，动画同步）
@@ -282,7 +271,7 @@ extension _SwitchAppearance on ElSwitch {
               alignment: on ? .centerRight : .centerLeft,
               transition: [ElTransition.all(_duration, Curves.ease)],
             ),
-            child: _thumb(context, resolved, on),
+            child: _thumb(context, compact, on),
           ),
         ),
       ],
@@ -290,8 +279,8 @@ extension _SwitchAppearance on ElSwitch {
   }
 
   /// 切换时保持圆块尺寸不变，仅让轨道负责位移。
-  Widget _thumb(BuildContext context, ElLevelType resolved, bool on) {
-    final thumbSize = _thumbSize(context, resolved);
+  Widget _thumb(BuildContext context, bool compact, bool on) {
+    final thumbSize = _thumbSize(context, compact);
     return ElView(
       style: ElStyle(
         width: thumbSize,
@@ -328,17 +317,16 @@ extension _SwitchAppearance on ElSwitch {
     );
   }
 
-  /// 显式高度和间距优先于品牌尺寸档。
-  double _heightOf(BuildContext context, ElLevelType size) =>
-      height ?? _heights[size.index];
+  /// 显式高度、间距与宽高比优先于密度默认值。
+  double _heightOf(BuildContext context, bool compact) => height ?? (compact ? 24 : 26);
 
-  double _gapOf(ElLevelType size) => gap ?? _gaps[size.index];
+  double _gapOf(bool compact) => gap ?? 2;
 
-  double _containerWidth(BuildContext context, ElLevelType size) =>
-      _heightOf(context, size) * (widthAspect ?? _widthAspects[size.index]);
+  double _containerWidth(BuildContext context, bool compact) =>
+      _heightOf(context, compact) * (widthAspect ?? 1.75);
 
-  double _thumbSize(BuildContext context, ElLevelType size) =>
-      (_heightOf(context, size) - 2 * _gapOf(size)).clamp(0.0, double.infinity);
+  double _thumbSize(BuildContext context, bool compact) =>
+      (_heightOf(context, compact) - 2 * _gapOf(compact)).clamp(0.0, double.infinity);
 }
 
 /// 渲染主体（独立 StatefulWidget）：tap 切换由引擎手势裁决，切换后滑块补间
@@ -348,14 +336,14 @@ class _SwitchBody extends StatefulWidget {
     required this.config,
     required this.on,
     required this.toggle,
-    required this.resolved,
+    required this.compact,
     required this.slide,
   });
 
   final ElSwitch config;
   final bool on;
   final VoidCallback toggle;
-  final ElLevelType resolved;
+  final bool compact;
 
   /// 滑动动画开关（slide 参数）
   final bool slide;
@@ -402,7 +390,7 @@ class _SwitchBodyState extends State<_SwitchBody> {
   Widget build(BuildContext context) {
     final config = widget.config;
     final on = widget.on;
-    final resolved = widget.resolved;
+    final compact = widget.compact;
     void toggle() => widget.toggle();
     _measureContentWidths();
 
@@ -427,7 +415,7 @@ class _SwitchBodyState extends State<_SwitchBody> {
         label: config.semanticLabel,
         onTap: config._interactive ? toggle : null,
       ),
-      style: config._rootStyle(context, resolved).merge(config.style),
+      style: config._rootStyle(context, compact).merge(config.style),
       // Row 主轴无界：inline 档空内容层在无界约束下 contentSize = 0（只留
       // padding），轨道宽度由 minWidth 兜底；直接放 core 会拿有界父宽，
       // 空内容层撑满、轨道占满整行（见 el_render_view._layoutWidgetOrEmpty
@@ -438,7 +426,7 @@ class _SwitchBodyState extends State<_SwitchBody> {
         children: [
           config._core(
             context,
-            resolved,
+            compact,
             on,
             slide: widget.slide,
             contentWidth: _contentWidth(_activeContentW, _inactiveContentW),

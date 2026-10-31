@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import '../others/app/index.dart';
 import '../../extensions/el.dart';
+import '../input/metrics.dart';
 
 part 'panel.dart';
 
@@ -260,8 +261,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       _focusNode.context != null &&
       _focusNode.canRequestFocus;
 
-  ElLevelType get _effectiveSize =>
-      context.elComponentSize(widget.config.style);
+  bool get _compact => context.elComponentCompact(widget.config.style);
 
   ElOverlayAnchor get _portalAnchor => ElOverlayAnchor(
     // 有箭头时需要官方 top/bottom 居中；无箭头时按 caret 起点对齐候选面板。
@@ -863,7 +863,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
     final index = _activeIndex;
     final controller = _scrollController;
     if (index == null || !controller.hasClients) return;
-    final itemHeight = _mentionOptionHeights[_effectiveSize.index];
+    final itemHeight = _mentionOptionHeight(_compact);
     final start = index * itemHeight;
     final end = start + itemHeight;
     final metrics = controller.position;
@@ -894,7 +894,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       showArrow: config.showArrow,
       placement: config.placement,
       scrollController: _scrollController,
-      size: _effectiveSize,
+      compact: _compact,
       panelStyle: config.panelStyle,
       optionStyle: config.optionStyle,
       itemBuilder: config.itemBuilder,

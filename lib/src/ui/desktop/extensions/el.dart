@@ -16,12 +16,12 @@ extension ElViewContextExt on BuildContext {
   bool get hasTap => ElView.of(this).hasTap;
 }
 
-/// 沿用旧组件的尺寸与边框便利读法，主题值由共享变量入口提供。
+/// 桌面控件的密度与边框便利读法，主题值由共享变量入口提供。
 extension ElThemeColorExt on BuildContext {
-  /// 当前组件显式样式中的档位优先，其次继承通用尺寸变量。
-  ElLevelType elComponentSize([ElStyle? style]) {
-    final declared = style?.vars?[ElTheme.$size];
-    return declared is ElLevelType ? declared : elTheme.size;
+  /// 当前组件样式中的密度优先，其次继承祖先变量，未声明时使用普通密度。
+  bool elComponentCompact([ElStyle? style]) {
+    final declared = style?.vars?[ElDesktopTheme.$compact];
+    return declared is bool ? declared : (ElView.maybeOf(this)?.getVar<bool>(ElDesktopTheme.$compact) ?? false);
   }
 
   /// 当前主题的默认边框。
@@ -38,7 +38,7 @@ extension ElThemeColorExt on BuildContext {
   Color elDarkBorderColor(Color color) => color.mix(elTheme.black, 50);
 
   /// 标准边框宽度。
-  double get elBorderWidth => elTheme.borderWidths[ElLevelType.md.index];
+  double get elBorderWidth => elTheme.borderWidth;
 
   /// 普通控件圆角。
   BorderRadiusGeometry get elBorderRadius => BorderRadius.circular(elTheme.radiusSm);

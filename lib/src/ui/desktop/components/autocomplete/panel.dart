@@ -2,7 +2,7 @@ part of 'index.dart';
 
 Duration get _autocompletePanelExitDuration => const Duration(milliseconds: 90);
 
-List<double> get _autocompleteOptionHeights => const [28, 32, 36, 40, 44];
+double _autocompleteOptionHeight(bool compact) => elInputControlHeight(compact);
 
 ElStyle _autocompletePanelBaseStyle(BuildContext context) => ElStyle(
   backgroundColor: context.elTheme.cardColor,
@@ -46,7 +46,7 @@ class _AutocompletePanel<T> extends StatelessWidget {
     required this.activeIndex,
     required this.maxHeight,
     required this.scrollController,
-    required this.size,
+    required this.compact,
     required this.panelStyle,
     required this.optionStyle,
     required this.itemBuilder,
@@ -67,7 +67,7 @@ class _AutocompletePanel<T> extends StatelessWidget {
   final int? activeIndex;
   final double maxHeight;
   final ScrollController scrollController;
-  final ElLevelType size;
+  final bool compact;
   final ElStyle? panelStyle;
   final ElStyle? optionStyle;
   final Widget Function(
@@ -97,7 +97,7 @@ class _AutocompletePanel<T> extends StatelessWidget {
       ),
     );
     if (panelStyle != null) style = style.merge(panelStyle);
-    final optionHeight = _autocompleteOptionHeights[size.index];
+    final optionHeight = _autocompleteOptionHeight(compact);
 
     final list = ElScrollView(
       controller: scrollController,

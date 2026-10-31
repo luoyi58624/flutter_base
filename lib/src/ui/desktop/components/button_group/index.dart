@@ -5,23 +5,11 @@ import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
 import 'dart:math' as math;
 
 import 'package:flutter_base/src/ui/desktop/internal.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 part 'render.dart';
-
-List<double> get _buttonFonts => const [12.0, 13.0, 14.0, 15.0, 16.0];
-
-List<double> get _buttonIcons => const [12.0, 13.0, 15.0, 16.0, 18.0];
-
-List<EdgeInsetsGeometry> get _buttonPaddings => const [
-  EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 14),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 20),
-  EdgeInsets.symmetric(vertical: 4, horizontal: 24),
-];
 
 /// Element 按钮组主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class ButtonGroup<D> extends ElFormModelValue<D> {
@@ -77,20 +65,6 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     }
   }
 
-  bool get _isDesktop {
-    if (!ElPlatform.isFlutterTest) return ElPlatform.isDesktop;
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.windows ||
-      TargetPlatform.linux => true,
-      _ => false,
-    };
-  }
-
-  /// 移动端立即进入按压配色，松开沿基础过渡恢复，与普通按钮一致。
-  ElStyle _mobileTap(ElStyle style) =>
-      style.copyWith(transition: const [ElTransition.all(Duration.zero)]);
-
   Color? _resolvedColor(BuildContext context) {
     final bg = component.bgColor;
     if (bg != null) return bg;
@@ -104,10 +78,6 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         ? context.elTheme.textOnDark
         : context.elTheme.textOnLight;
   }
-
-  /// 组件尺寸档：读取祖先主题变量中的 size。
-  ElLevelType _resolvedSize(BuildContext context) =>
-      context.elComponentSize(component.style);
 
   @override
   Widget obsBuilder(BuildContext context) {
@@ -161,7 +131,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     );
   }
 
-  /// 项内容：IconData 升格为图标（尺寸跟档位、颜色跟 currentColor），
+  /// 项内容：IconData 升格为图标（尺寸跟密度、颜色继承组内样式），
   /// Widget 原样托管，其余按文本渲染。
   Widget _buildContent(BuildContext context, Object? child) {
     if (child is Widget) return child;
@@ -178,7 +148,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
   /// - **默认主题**：白底灰边（内侧缝边不画、归组在 render 层画），
   ///   hover 文字/边框染 primary、底色 light-9，按压/选中边框实色。
   ///
-  /// 两种形态共用同一套盒尺寸（高度/字号/内边距/圆角档位），与 [ElButton]
+  /// 两种形态共用 normal / compact 盒尺寸（高度、字号、内边距），与 [ElButton]
   /// 一致；默认值由按钮组自身持有，所有条目使用组级配色。
   ElStyle _itemStyle(
     BuildContext context, {
@@ -189,18 +159,17 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     required bool horizontal,
     required Color? typeColor,
   }) {
-    final isDesktop = _isDesktop;
-    final size = _resolvedSize(context);
-    final radius = Radius.circular(context.elTheme.radiusSm);
+    final compact = context.elComponentCompact(component.style);
+    final radius = Radius.circular(4);
     final base = ElStyle(
       alignment: .center,
       lineHeight: 1.0,
-      fontSize: _buttonFonts[size.index],
-      iconSize: _buttonIcons[size.index],
+      fontSize: compact ? 13 : 14,
+      iconSize: compact ? 13 : 15,
       fontWeight: .w500,
       cursor: SystemMouseCursors.click,
-      minHeight: context.elTheme.controlHeights[size.index],
-      padding: _buttonPaddings[size.index],
+      minHeight: compact ? 32 : 36,
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: compact ? 14 : 16),
       borderRadius: _positionRadius(
         isFirst: isFirst,
         isLast: isLast,
@@ -208,7 +177,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         horizontal: horizontal,
         r: radius,
       ),
-      transition: [.all(Duration(milliseconds: isDesktop ? 100 : 200))],
+      transition: [.all(Duration(milliseconds: 100))],
     );
     ElBorder border(Color color, {bool contrast = false}) {
       // 只有实心背景启用对比接缝，浅底交互已有底色差异，无需再加亮边。
@@ -248,15 +217,11 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
             border: border(typeColor, contrast: true),
             onHover: (selected)
                 ? null
-                : (isDesktop && !selected
-                      ? ElStyle(
-                          backgroundColor: hoverBg,
-                          border: border(hoverBg, contrast: true),
-                        )
-                      : null),
-            onTap: (selected)
-                ? null
-                : (isDesktop ? active : _mobileTap(active)),
+                : ElStyle(
+                  backgroundColor: hoverBg,
+                  border: border(hoverBg, contrast: true),
+                ),
+            onTap: selected ? null : active,
 
             onDisabled: ElStyle(
               cursor: SystemMouseCursors.forbidden,
@@ -311,15 +276,13 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
           border: border(borderColor),
           onHover: (selected)
               ? null
-              : (!isDesktop || selected
-                    ? null
-                    : ElStyle(
-                        color: primary,
-                        backgroundColor: primary.elLight9(context),
-                        border: border(primary.elLight7(context)),
-                        iconColor: primary,
-                      )),
-          onTap: (selected) ? null : (isDesktop ? active : _mobileTap(active)),
+              : ElStyle(
+                color: primary,
+                backgroundColor: primary.elLight9(context),
+                border: border(primary.elLight7(context)),
+                iconColor: primary,
+              ),
+          onTap: (selected) ? null : active,
           // 选中态仅承接按压和键盘焦点反馈，悬停保持选中底色。
 
           onDisabled: disabled,
@@ -328,9 +291,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         .merge(
           (selected)
               ? (selectedBase.copyWith(
-                  onTap: isDesktop
-                      ? selectedActive
-                      : _mobileTap(selectedActive),
+                  onTap: selectedActive,
                   onFocusVisible: selectedActive,
                   onDisabled: disabled,
                 ))
@@ -372,7 +333,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     required Color color,
     required Color seamColor,
   }) {
-    if (single) return ElBorder.all(borderColor: color);
+    if (single) return ElBorder.all(borderColor: color, borderWidth: context.elBorderWidth);
     final side = ElBorderSide(borderColor: color, borderWidth: context.elBorderWidth);
     // 内侧保存对比边及其透明度，由组取两侧共同可见度，随边框一起过渡。
     final seam = ElBorderSide(borderColor: seamColor, borderWidth: 0, borderStyle: .none);

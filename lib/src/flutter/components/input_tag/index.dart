@@ -96,7 +96,6 @@ class ElInputTag extends StatelessWidget {
     this.draggable = false,
     this.tagType = ElThemeType.primary,
     this.tagEffect = ElTagEffect.light,
-    this.tagSize,
     this.style,
     this.tagStyle,
     this.semanticLabel,
@@ -211,9 +210,6 @@ class ElInputTag extends StatelessWidget {
 
   /// 标签外观效果。
   final ElTagEffect tagEffect;
-
-  /// 标签尺寸；null 时跟随 Element 当前尺寸档。
-  final ElLevelType? tagSize;
 
   /// 输入框壳样式覆盖。
   final ElStyle? style;

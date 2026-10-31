@@ -30,15 +30,15 @@ class ElDesktopTheme extends StatelessWidget {
     this.breakpoint,
     this.locale,
     this.componentBuilders,
-    this.size,
+    this.compact = false,
     required this.child,
   });
 
   /// 合并在默认根样式之后的用户样式。
   final ElStyle? style;
 
-  /// 覆盖品牌主题中的组件尺寸档位。
-  final ElLevelType? size;
+  /// 使用紧凑控件密度，默认保留普通桌面尺寸。
+  final bool compact;
 
   /// 明暗模式及统一过渡参数。
   final ElThemeMode? themeMode;
@@ -68,7 +68,7 @@ class ElDesktopTheme extends StatelessWidget {
       breakpoint: breakpoint,
       locale: locale,
       style: ElStyle(
-        vars: {...lightVars, ElTheme.$size: ?size},
+        vars: {...lightVars, $compact: compact},
         onDark: ElStyle(vars: darkVars),
       ).merge(themeVarsOf(style)),
       // 沿用旧主题的两层根：先注入变量，再由后代读取生成实际继承样式。
@@ -78,8 +78,8 @@ class ElDesktopTheme extends StatelessWidget {
           final rootStyle = ElStyle(
             backgroundColor: values.bgColor,
             color: values.textColor,
-            fontSize: values.fontSizes[values.size.index],
-            iconSize: values.iconSizes[values.size.index],
+            fontSize: 15,
+            iconSize: 24,
             iconColor: values.textSecondary,
           ).merge(style);
           return ElView(
@@ -100,6 +100,9 @@ class ElDesktopTheme extends StatelessWidget {
 
   /// 桌面端的通用主题浅色默认表。
   static Map<Object, Object> get lightVars => _lightVars;
+
+  /// 桌面控件密度变量，普通 ElView 可局部覆盖，移动端组件不消费它。
+  static const $compact = '--el-desktop-compact';
 
   /// 桌面端的暗色增量，按普通 onDark 变体覆盖。
   static Map<Object, Object> get darkVars => _darkVars;

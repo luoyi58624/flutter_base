@@ -1,11 +1,14 @@
+import 'package:flutter_base/src/ui/desktop/components/icon/index.dart' show ElIcons;
+import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child) {
+Widget _host(Widget child, {bool compact = false}) {
   return Directionality(
     textDirection: TextDirection.ltr,
     child: ElDesktopTheme(
+      compact: compact,
       child: ElView(
         style: const ElStyle(width: 420, height: 260, alignment: .center),
         child: ElView(style: const ElStyle(width: 260), child: child),
@@ -20,6 +23,60 @@ Future<void> _pumpControl(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('普通和紧凑模式同步输入壳、正文与图标，显式样式保持优先', (tester) async {
+    final icon = find.byWidgetPredicate(
+      (widget) => widget is ElView && widget.child is IconData,
+    );
+    for (final compact in [false, true]) {
+      await tester.pumpWidget(
+        _host(
+          ElInput(value: 'density', prefix: ElIcons.plus),
+          compact: compact,
+        ),
+      );
+      await _pumpControl(tester);
+      expect(tester.getSize(find.byType(ElInput)).height, compact ? 32 : 36);
+      expect(
+        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+            ?.fontSize,
+        compact ? 13 : 14,
+      );
+      expect(tester.getSize(icon).width, compact ? 13 : 14);
+    }
+
+    await tester.pumpWidget(
+      _host(
+        ElInput(
+          value: 'override',
+          prefix: ElIcons.plus,
+          style: ElStyle(
+            height: 44,
+            padding: .symmetric(horizontal: 19),
+            fontSize: 18,
+            iconSize: 17,
+          ),
+        ),
+        compact: true,
+      ),
+    );
+    await _pumpControl(tester);
+    expect(tester.getSize(find.byType(ElInput)).height, 44);
+    expect(
+      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
+          ?.fontSize,
+      18,
+    );
+    expect(tester.getSize(icon).width, 17);
+    expect(
+      tester
+          .renderObject<ElRenderView>(find.byType(ElInput))
+          .targetStyleForTest
+          .box
+          .padding,
+      EdgeInsets.symmetric(horizontal: 19),
+    );
+  });
+
   testWidgets(
     'ElInputController 挂载 enabled 输入框，focus/blur/clear/selectAll 均走唯一 Editable',
     (tester) async {

@@ -166,13 +166,13 @@ class InputOtp extends ElFormModelValue<String> {
 
   // ---- 组件 token ----
 
-  /// 解析尺寸档：未声明时读上层 vars 的 size。
-  ElLevelType _size(BuildContext context) => context.elComponentSize(style);
+  /// 解析紧凑模式：优先读取当前样式，再查找祖先变量。
+  bool _compact(BuildContext context) => context.elComponentCompact(style);
 
   @override
   Widget obsBuilder(BuildContext context) => _ElInputOtpBody(
     config: this,
-    size: _size(context),
+    compact: _compact(context),
     value: $obs.value,
     // 输入只改 $obs：基类负责镜像到 modelValue / onChanged / 表单 Map
     onInput: (next) => $obs.value = next,
@@ -183,15 +183,15 @@ class InputOtp extends ElFormModelValue<String> {
 class _ElInputOtpBody extends StatefulWidget {
   const _ElInputOtpBody({
     required this.config,
-    required this.size,
+    required this.compact,
     required this.value,
     required this.onInput,
   });
 
   final InputOtp config;
 
-  /// 父级解析后的非空尺寸档
-  final ElLevelType size;
+  /// 父级解析后的紧凑模式。
+  final bool compact;
   final String value;
   final ValueChanged<String> onInput;
 
@@ -456,8 +456,8 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
   }
 
   int _offsetAtCellX(double x) {
-    final side = _ElInputOtpCell._side(widget.size);
-    final pitch = side + _gap(widget.size);
+    final side = _ElInputOtpCell._side(widget.compact);
+    final pitch = side + _gap(widget.compact);
     final index = ((x - side / 2) / pitch).round().clamp(
       0,
       widget.config.length - 1,
@@ -537,8 +537,8 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     final config = widget.config;
     final text = _controller.text;
     final graphemes = text.characters.toList(growable: false);
-    final side = _ElInputOtpCell._side(widget.size);
-    final pitch = side + _gap(widget.size);
+    final side = _ElInputOtpCell._side(widget.compact);
+    final pitch = side + _gap(widget.compact);
     const caretWidth = 1.0;
     final textScaler =
         MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling;
@@ -592,7 +592,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
         children: [
           Row(
             mainAxisSize: .min,
-            spacing: _gap(widget.size),
+            spacing: _gap(widget.compact),
             children: [
               for (var i = 0; i < config.length; i++)
                 _ElInputOtpCell(
@@ -600,7 +600,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
                       ? _display(graphemes[i])
                       : null,
                   active: _focused && i == _activeIndex,
-                  size: widget.size,
+                  compact: widget.compact,
                   config: config,
                 ),
             ],
@@ -675,13 +675,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
   String _display(String raw) =>
       widget.config.mask ? widget.config.maskCharacter : raw;
 
-  static double _gap(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 5,
-    ElLevelType.sm => 6,
-    ElLevelType.md => 8,
-    ElLevelType.lg => 10,
-    ElLevelType.xl => 12,
-  };
+  static double _gap(bool compact) => compact ? 6 : 8;
 }
 
 /// 单格：三种外观 + 激活态描主色
@@ -689,18 +683,18 @@ class _ElInputOtpCell extends StatelessWidget {
   const _ElInputOtpCell({
     required this.character,
     required this.active,
-    required this.size,
+    required this.compact,
     required this.config,
   });
 
   final String? character;
   final bool active;
-  final ElLevelType size;
+  final bool compact;
   final InputOtp config;
 
   @override
   Widget build(BuildContext context) {
-    final side = _side(size);
+    final side = _side(compact);
     return ElView(
       event: config.disabled ? ElEvent(disabled: true) : null,
 
@@ -713,6 +707,7 @@ class _ElInputOtpCell extends StatelessWidget {
 
   ElStyle _cellStyle(BuildContext context, double side) {
     final activeColor = context.elTheme.primary;
+    final fontSize = config.style?.fontSize ?? _fontSize(compact);
     final textColor =
         config.style?.color ?? context.elTheme.textRegular;
     final bgColor = context.elTheme.bgColor;
@@ -723,7 +718,7 @@ class _ElInputOtpCell extends StatelessWidget {
           width: side,
           height: side,
           alignment: .center,
-          fontSize: _fontSize(size),
+          fontSize: fontSize,
           color: textColor,
           backgroundColor: bgColor,
           border: ElBorder.all(borderWidth: 1, borderColor: borderColor),
@@ -741,7 +736,7 @@ class _ElInputOtpCell extends StatelessWidget {
         width: side,
         height: side,
         alignment: .center,
-        fontSize: _fontSize(size),
+        fontSize: fontSize,
         color: textColor,
         // filled 填充底从 $bgColor 派生加深 1 级
         backgroundColor: context.elTheme.bgColor
@@ -761,7 +756,7 @@ class _ElInputOtpCell extends StatelessWidget {
           width: side,
           height: side,
           alignment: .center,
-          fontSize: _fontSize(size),
+          fontSize: fontSize,
           color: textColor,
           border: ElBorder.only(
             borderBottom: ElBorderSide(borderWidth: 1, borderColor: borderColor),
@@ -785,19 +780,7 @@ class _ElInputOtpCell extends StatelessWidget {
     };
   }
 
-  static double _side(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 20,
-    ElLevelType.sm => 24,
-    ElLevelType.md => 32,
-    ElLevelType.lg => 40,
-    ElLevelType.xl => 48,
-  };
+  static double _side(bool compact) => compact ? 24 : 32;
 
-  static double _fontSize(ElLevelType size) => switch (size) {
-    ElLevelType.xs => 10,
-    ElLevelType.sm => 12,
-    ElLevelType.md => 14,
-    ElLevelType.lg => 16,
-    ElLevelType.xl => 18,
-  };
+  static double _fontSize(bool compact) => compact ? 12 : 14;
 }

@@ -2,7 +2,7 @@
 /// 尺寸来自 packages/core/my-ui.css；交互来自 packages/core/my-ui.js。
 library;
 
-import 'dart:ui' show Tristate;
+import 'dart:ui' show PointerDeviceKind, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -207,6 +207,162 @@ void main() {
     expect(calls, 2);
   });
 
+  for (final entry in <String, Widget Function(FocusNode)>{
+    'Button': (focus) => MyButton(focusNode: focus, child: '手机按钮'),
+    'Tag': (focus) => MyTag(value: false, focusNode: focus, child: '手机标签'),
+    'Card': (focus) => MyCard(interactive: true, focusNode: focus, child: SizedBox(height: 60)),
+    'Switch': (focus) => MySwitch(value: false, focusNode: focus, label: '手机开关'),
+  }.entries) {
+    testWidgets('${entry.key} 默认悬停和键盘聚焦保持手机外观', (tester) async {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final key = GlobalKey();
+      await tester.pumpWidget(shell(KeyedSubtree(key: key, child: entry.value(focus))));
+      final target = find.byKey(key);
+      final action = find.descendant(
+        of: target,
+        matching: find.byWidgetPredicate((widget) =>
+            widget is ElView && widget.focusNode != null && widget.event?.onTap != null),
+      ).first;
+      List<Object> appearance() => tester.renderObjectList<ElRenderView>(
+        find.descendant(of: target, matching: find.byType(ElView)),
+      ).map((render) => render.committedResolvedStyle).toList();
+      final initial = appearance();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset(2, 2));
+      await mouse.moveTo(tester.getCenter(action));
+      await tester.pumpAndSettle();
+      expect(appearance(), initial, reason: '鼠标进入不添加手机默认悬停外观');
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+      focus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(focus.hasPrimaryFocus, isTrue);
+      expect(appearance(), initial, reason: '保留键盘聚焦能力但不添加默认焦点环');
+    });
+  }
+
+  for (final entry in <String, Widget>{
+    'Button': MyButton(child: '按压'),
+    'Tag': MyTag(value: false, child: '按压'),
+    'Card': MyCard(interactive: true, child: SizedBox(height: 60)),
+  }.entries) {
+    testWidgets('${entry.key} 保留触摸按压外观并在取消后恢复', (tester) async {
+      final key = GlobalKey();
+      await tester.pumpWidget(shell(KeyedSubtree(key: key, child: entry.value)));
+      final target = find.byKey(key);
+      final action = find.descendant(
+        of: target,
+        matching: find.byWidgetPredicate((widget) =>
+            widget is ElView && widget.focusNode != null && widget.event?.onTap != null),
+      ).first;
+      List<Object> appearance() => tester.renderObjectList<ElRenderView>(
+        find.descendant(of: target, matching: find.byType(ElView)),
+      ).map((render) => render.committedResolvedStyle).toList();
+      final initial = appearance();
+      final touch = await tester.startGesture(tester.getCenter(action), kind: PointerDeviceKind.touch);
+      await tester.pump(Duration(milliseconds: 80));
+      expect(appearance(), isNot(initial), reason: '手机按压反馈仍然生效');
+      await touch.cancel();
+      await tester.pumpAndSettle();
+      expect(appearance(), initial);
+    });
+  }
+
+  testWidgets('显式声明的悬停和焦点变体仍由 ElView 生效', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    final outline = ElOutline(outlineWidth: 2, outlineColor: Color(0xff123456));
+    await tester.pumpWidget(shell(MyButton(
+      focusNode: focus,
+      style: ElStyle(
+        onHover: ElStyle(backgroundColor: Color(0xff654321)),
+        onFocusVisible: ElStyle(outline: outline),
+      ),
+      child: '自定义外观',
+    )));
+    final render = tester.renderObject<ElRenderView>(buttonHost());
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: tester.getCenter(buttonHost()));
+    await tester.pumpAndSettle();
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff654321));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    focus.requestFocus();
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    expect(render.committedResolvedStyle.box.outline, outline);
+  });
+
+  testWidgets('MyTag 显式悬停和焦点变体使用真实交互宿主', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    final outline = ElOutline(outlineWidth: 2, outlineColor: Color(0xff123456));
+    await tester.pumpWidget(shell(MyTag(
+      value: false,
+      focusNode: focus,
+      style: ElStyle(
+        onHover: ElStyle(backgroundColor: Color(0xff654321)),
+        onFocusVisible: ElStyle(outline: outline),
+      ),
+      child: '自定义标签',
+    )));
+    final action = views(find.byType(MyTag), (view) => view.focusNode == focus && view.event?.onTap != null);
+    final visual = tester.renderObject<ElRenderView>(views(find.byType(MyTag), (view) => view.style?.minHeight == 32));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: tester.getCenter(action));
+    await tester.pumpAndSettle();
+    expect(visual.committedResolvedStyle.box.backgroundColor, Color(0xff654321));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    focus.requestFocus();
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    expect(focus.hasPrimaryFocus, isTrue);
+    expect(visual.committedResolvedStyle.box.outline, outline);
+  });
+
+  testWidgets('MyTag 嵌套暗色悬停与焦点变体遵循 ElView 完整级联', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    final outline = ElOutline(outlineWidth: 3, outlineColor: Color(0xff123456));
+    await tester.pumpWidget(shell(MyTag(
+      value: false,
+      focusNode: focus,
+      style: ElStyle(
+        onHover: ElStyle(
+          backgroundColor: Color(0xff654321),
+          onFocusVisible: ElStyle(outline: outline),
+        ),
+        onDark: ElStyle(onHover: ElStyle(backgroundColor: Color(0xff246813))),
+      ),
+      child: '嵌套标签',
+    ), brightness: Brightness.dark));
+    final action = views(find.byType(MyTag), (view) => view.focusNode == focus && view.event?.onTap != null);
+    final render = tester.renderObject<ElRenderView>(action);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: tester.getCenter(action));
+    await tester.pumpAndSettle();
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff246813));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
+    focus.requestFocus();
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    expect(focus.hasPrimaryFocus, isTrue);
+    expect(render.committedResolvedStyle.box.backgroundColor, Color(0xff246813));
+    expect(render.committedResolvedStyle.box.outline, outline);
+    await mouse.moveTo(tester.getBottomRight(action) + Offset(30, 30));
+    await tester.pumpAndSettle();
+    expect(render.committedResolvedStyle.box.outline, isNull);
+    expect(render.committedResolvedStyle.box.backgroundColor, isNot(Color(0xff246813)));
+  });
+
   testWidgets('Button submit/reset与preventDefault', (tester) async {
     var clicks = 0, saved = 0, reset = 0;
     Widget form(MyButtonType type, {bool prevent = false}) => Form(
@@ -350,7 +506,7 @@ void main() {
   });
 
   for (final width in [1200.0, 1000.0, 760.0, 400.0]) {
-    testWidgets('Card viewport=$width 使用原CSS断点', (tester) async {
+    testWidgets('Card viewport=$width 保持手机几何', (tester) async {
       final childKey = UniqueKey();
       await tester.pumpWidget(
         shell(
@@ -369,22 +525,15 @@ void main() {
       ).first;
       expect(
         tester.widget<ElView>(rootView).style!.padding,
-        width <= 760
-            ? EdgeInsets.fromLTRB(23, 25, 23, 26)
-            : width <= 1100
-            ? EdgeInsets.fromLTRB(29, 30, 29, 31)
-            : EdgeInsets.fromLTRB(30, 29, 30, 30),
+        EdgeInsets.fromLTRB(23, 25, 23, 26),
       );
       expect(tester.getSize(rootView).width, 320);
       expect(
         tester.getTopLeft(find.byKey(childKey)).dx -
             tester.getTopLeft(rootView).dx,
-        width <= 760
-            ? 23
-            : width <= 1100
-            ? 29
-            : 30,
+        23,
       );
+      expect(tester.widget<ElView>(rootView).style!.borderRadius, BorderRadius.circular(26));
       expect(tester.takeException(), null);
     });
   }
