@@ -27,6 +27,7 @@ part 'category.dart';
 part 'messages.dart';
 part 'profile.dart';
 part 'pages.dart';
+part 'navigation.dart';
 
 const _primary = Color(0xff2454c6);
 const _background = Color(0xfff2f3f5);
@@ -36,6 +37,7 @@ const _text = Color(0xff222222);
 const _secondary = Color(0xff666666);
 const _tertiary = Color(0xff999999);
 const _tabs = ['推荐', '分类', '消息', '我的'];
+const _desktopBreakpoint = 768.0;
 final _messenger = GlobalKey<ScaffoldMessengerState>();
 const _systemBars = SystemUiOverlayStyle(
   statusBarColor: Color(0x00000000),
@@ -46,7 +48,7 @@ const _systemBars = SystemUiOverlayStyle(
   systemNavigationBarContrastEnforced: false,
 );
 
-/// 沿用 flutter_demo 四栏布局并接入移动端主题的示例应用。
+/// 使用移动端主题，按可用宽度切换桌面与移动布局的示例应用。
 class ElExampleApp extends StatelessWidget {
   /// 创建示例，可注入请求延时用于无头验证。
   const ElExampleApp({
@@ -106,86 +108,103 @@ class _Shell extends HookWidget {
         if (_messages[i].unread) i,
     });
     return SafeArea(
-      child: Column(
-        children: [
-          _TitleBar(
-            _tabs[selected.value],
-            typography,
-            centered: selected.value == 3,
-            action: selected.value == 3
-                ? null
-                : switch (selected.value) {
-                    0 => '搜索内容',
-                    1 => '搜索分类',
-                    _ => '全部已读',
-                  },
-            search: selected.value < 2,
-            onAction: selected.value != 2
-                ? null
-                : () {
-                    _toast(unread.value.isEmpty ? '没有未读消息' : '已全部标记为已读');
-                    unread.value = {};
-                  },
-          ),
-          Expanded(
-            child: IndexedStack(
-              index: selected.value,
-              children: [
-                _Home(typography, options.networkDelay),
-                _CategoryPage(typography),
-                _MessagesPage(typography, unread.value, (index) {
-                  unread.value = {...unread.value}..remove(index);
-                  _push(
-                    context,
-                    _ChatPage(
-                      _messages[index].title,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final desktop = constraints.maxWidth >= _desktopBreakpoint;
+          return Row(
+            children: [
+              if (desktop)
+                _Navigation(
+                  typography,
+                  selected.value,
+                  (i) => selected.value = i,
+                  desktop: true,
+                ),
+              // 保持内容分支的身份，插入侧栏时不重建页面及其 Hook 状态。
+              Expanded(
+                key: ValueKey('shell-content'),
+                child: Column(
+                  children: [
+                    _TitleBar(
+                      _tabs[selected.value],
                       typography,
-                      options.replyDelay,
+                      desktop: desktop,
+                      centered: !desktop && selected.value == 3,
+                      action: selected.value == 3
+                          ? null
+                          : switch (selected.value) {
+                              0 => '搜索内容',
+                              1 => '搜索分类',
+                              _ => '全部已读',
+                            },
+                      search: selected.value < 2,
+                      onAction: selected.value != 2
+                          ? null
+                          : () {
+                              _toast(
+                                unread.value.isEmpty ? '没有未读消息' : '已全部标记为已读',
+                              );
+                              unread.value = {};
+                            },
                     ),
-                  );
-                }),
-                _ProfilePage(typography, options),
-              ],
-            ),
-          ),
-          _line(),
-          ElCardView(
-            key: ValueKey('bottom-nav'),
-            semanticLabel: '底部导航',
-            style: ElStyle(height: 56, bgColor: _surface),
-            child: Row(
-              children: [
-                for (var i = 0; i < _tabs.length; i++)
-                  Expanded(
-                    child: ElButtonView(
-                      key: ValueKey('tab-${_tabs[i]}'),
-                      semanticLabel: _tabs[i],
-                      selected: selected.value == i,
-                      onPressed: () => selected.value = i,
-                      style: ElStyle(height: 56, alignment: .center),
-                      child: Column(
-                        mainAxisAlignment: .center,
-                        children: [
-                          _Icon(
-                            'tab_${['home', 'category', 'message', 'profile'][i]}',
-                            color: selected.value == i ? _primary : _tertiary,
+                    Expanded(
+                      child: ColoredBox(
+                        color: _background,
+                        child: Center(
+                          child: SizedBox(
+                            width: desktop
+                                ? (selected.value < 2 ? 1120 : 840)
+                                : double.infinity,
+                            height: double.infinity,
+                            child: Padding(
+                              padding: desktop
+                                  ? EdgeInsets.all(24)
+                                  : EdgeInsets.zero,
+                              child: IndexedStack(
+                                index: selected.value,
+                                children: [
+                                  _Home(
+                                    typography,
+                                    options.networkDelay,
+                                    desktop: desktop,
+                                  ),
+                                  _CategoryPage(typography, desktop: desktop),
+                                  _MessagesPage(typography, unread.value, (
+                                    index,
+                                  ) {
+                                    unread.value = {...unread.value}
+                                      ..remove(index);
+                                    _push(
+                                      context,
+                                      _ChatPage(
+                                        _messages[index].title,
+                                        typography,
+                                        options.replyDelay,
+                                      ),
+                                    );
+                                  }),
+                                  _ProfilePage(typography, options),
+                                ],
+                              ),
+                            ),
                           ),
-                          SizedBox(height: 2),
-                          _Label(
-                            _tabs[i],
-                            typography,
-                            size: 12,
-                            color: selected.value == i ? _primary : _tertiary,
-                            letterSpacing: 0.4,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-        ],
+                    if (!desktop) ...[
+                      _line(),
+                      _Navigation(
+                        typography,
+                        selected.value,
+                        (i) => selected.value = i,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -218,10 +237,11 @@ class _TitleBar extends StatelessWidget {
     this.action,
     this.search = false,
     this.onAction,
+    this.desktop = false,
   });
   final String title;
   final _Typography typography;
-  final bool centered, back, search;
+  final bool centered, back, search, desktop;
   final String? action;
   final VoidCallback? onAction;
 
@@ -231,21 +251,24 @@ class _TitleBar extends StatelessWidget {
     children: [
       ElCardView(
         key: ValueKey('title-bar'),
-        style: ElStyle(height: 44, bgColor: _surface),
+        style: ElStyle(height: desktop ? 64 : 44, bgColor: _surface),
         child: Stack(
           fit: StackFit.expand,
           children: [
             Align(
-              alignment: centered || back
+              alignment: centered || (back && !desktop)
                   ? Alignment.center
                   : Alignment.centerLeft,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
+                padding: EdgeInsets.only(
+                  left: desktop ? (back ? 56 : 24) : 12,
+                  right: 12,
+                ),
                 child: _Label(
                   title,
                   typography,
                   key: ValueKey('page-title'),
-                  size: 17,
+                  size: desktop ? 20 : 17,
                   weight: .w700,
                   color: _text,
                   maxLines: 1,
@@ -259,7 +282,11 @@ class _TitleBar extends StatelessWidget {
                   semanticLabel: '返回',
                   key: ValueKey('back'),
                   onPressed: () => Navigator.of(context).pop(),
-                  style: ElStyle(width: 44, height: 44, alignment: .center),
+                  style: ElStyle(
+                    width: 44,
+                    height: desktop ? 64 : 44,
+                    alignment: .center,
+                  ),
                   child: _Icon('arrow_back', size: 22, color: _text),
                 ),
               ),
@@ -267,11 +294,12 @@ class _TitleBar extends StatelessWidget {
               Align(
                 alignment: .centerRight,
                 child: Padding(
-                  padding: EdgeInsets.only(right: 12),
+                  padding: EdgeInsets.only(right: desktop ? 24 : 12),
                   child: ElButtonView(
                     semanticLabel: action,
                     onPressed: onAction,
                     style: ElStyle(
+                      minWidth: desktop && search ? 200 : null,
                       padding: EdgeInsets.symmetric(
                         horizontal: search ? 12 : 8,
                         vertical: search ? 5 : 6,
@@ -311,21 +339,37 @@ class _Page extends StatelessWidget {
   Widget build(BuildContext context) => ElCardView(
     style: ElStyle(bgColor: _surface),
     child: SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          children: [
-            _TitleBar(title, typography, back: true),
-            Expanded(
-              child: ElView(
-                style: ElStyle(bgColor: color),
-                child: child,
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final desktop = constraints.maxWidth >= _desktopBreakpoint;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                _TitleBar(title, typography, back: true, desktop: desktop),
+                Expanded(
+                  child: ColoredBox(
+                    color: color,
+                    child: Center(
+                      child: SizedBox(
+                        width: desktop ? 960 : double.infinity,
+                        height: double.infinity,
+                        child: Padding(
+                          padding: desktop
+                              ? EdgeInsets.all(24)
+                              : EdgeInsets.zero,
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     ),
   );

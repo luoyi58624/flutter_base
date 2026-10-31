@@ -1,9 +1,10 @@
 part of 'app.dart';
 
 class _Home extends HookWidget {
-  const _Home(this.typography, this.delay);
+  const _Home(this.typography, this.delay, {this.desktop = false});
   final _Typography typography;
   final Duration delay;
+  final bool desktop;
   @override
   Widget build(BuildContext context) {
     final scroll = useScrollController();
@@ -53,32 +54,59 @@ class _Home extends HookWidget {
         key: PageStorageKey('home-list'),
         controller: scroll,
         physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
-        padding: EdgeInsets.all(12),
+        padding: desktop ? EdgeInsets.zero : EdgeInsets.all(12),
         children: [
-          ElListView.builder(
-            itemCount: count.value + 1,
-            itemBuilder: (context, index) => index < count.value
-                ? Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: _ArticleCard(
-                      _articles[index],
-                      typography,
-                      index: index,
+          if (desktop) ...[
+            ElGridView.builder(
+              key: ValueKey('home-grid'),
+              itemCount: count.value,
+              minCrossAxisExtent: 360,
+              mainAxisExtent:
+                  216 * MediaQuery.textScalerOf(context).scale(14) / 14,
+              gap: 16,
+              itemBuilder: (context, index) => _ArticleCard(
+                _articles[index],
+                typography,
+                index: index,
+                desktop: true,
+              ),
+            ),
+            if (ended.value || busy.value)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: _Label(
+                  ended.value ? '没有更多了' : '加载中…',
+                  typography,
+                  size: 12,
+                  color: _tertiary,
+                  align: .center,
+                ),
+              ),
+          ] else
+            ElListView.builder(
+              itemCount: count.value + 1,
+              itemBuilder: (context, index) => index < count.value
+                  ? Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: _ArticleCard(
+                        _articles[index],
+                        typography,
+                        index: index,
+                      ),
+                    )
+                  : (!ended.value && !(busy.value && count.value > 0))
+                  ? SizedBox.shrink()
+                  : Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: _Label(
+                        ended.value ? '没有更多了' : '加载中…',
+                        typography,
+                        size: 12,
+                        color: _tertiary,
+                        align: .center,
+                      ),
                     ),
-                  )
-                : (!ended.value && !(busy.value && count.value > 0))
-                ? SizedBox.shrink()
-                : Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: _Label(
-                      ended.value ? '没有更多了' : '加载中…',
-                      typography,
-                      size: 12,
-                      color: _tertiary,
-                      align: .center,
-                    ),
-                  ),
-          ),
+            ),
         ],
       ),
     );
@@ -86,10 +114,16 @@ class _Home extends HookWidget {
 }
 
 class _ArticleCard extends StatelessWidget {
-  const _ArticleCard(this.article, this.typography, {required this.index});
+  const _ArticleCard(
+    this.article,
+    this.typography, {
+    required this.index,
+    this.desktop = false,
+  });
   final _Article article;
   final _Typography typography;
   final int index;
+  final bool desktop;
   @override
   Widget build(BuildContext context) => ElCardView(
     key: ValueKey('article-$index'),
@@ -99,7 +133,7 @@ class _ArticleCard extends StatelessWidget {
     style: ElStyle(
       bgColor: _surface,
       borderRadius: .circular(8),
-      padding: .all(12),
+      padding: .all(desktop ? 16 : 12),
     ),
     child: Row(
       crossAxisAlignment: .start,
@@ -114,7 +148,7 @@ class _ArticleCard extends StatelessWidget {
                 article.title,
                 typography,
                 key: ValueKey('home-title-$index'),
-                size: 16,
+                size: desktop ? 18 : 16,
                 weight: .w700,
                 color: _text,
                 maxLines: 2,
@@ -124,7 +158,7 @@ class _ArticleCard extends StatelessWidget {
                 article.summary,
                 typography,
                 key: ValueKey('home-summary-$index'),
-                size: 13,
+                size: desktop ? 14 : 13,
                 extraLeading: 3,
                 maxLines: 2,
               ),
@@ -136,8 +170,8 @@ class _ArticleCard extends StatelessWidget {
         SizedBox(width: 12),
         ElView(
           style: ElStyle(
-            width: 96,
-            height: 72,
+            width: desktop ? 112 : 96,
+            height: desktop ? 84 : 72,
             bgColor: article.cover,
             borderRadius: .circular(8),
           ),

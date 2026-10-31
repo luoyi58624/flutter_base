@@ -1,10 +1,12 @@
 part of 'app.dart';
 
 class _CategoryPage extends HookWidget {
-  const _CategoryPage(this.typography);
+  const _CategoryPage(this.typography, {this.desktop = false});
   final _Typography typography;
+  final bool desktop;
   @override
   Widget build(BuildContext context) {
+    final columns = desktop ? 3 : 2;
     final selected = useState(0);
     final right = useScrollController();
     final left = useScrollController();
@@ -72,7 +74,10 @@ class _CategoryPage extends HookWidget {
       child: Row(
         children: [
           ElCardView(
-            style: ElStyle(width: 92, bgColor: Color(0xfff7f8fa)),
+            style: ElStyle(
+              width: desktop ? 144 : 92,
+              bgColor: Color(0xfff7f8fa),
+            ),
             child: ElScrollView(
               controller: left,
               children: [
@@ -152,10 +157,14 @@ class _CategoryPage extends HookWidget {
                                   color: _text,
                                 ),
                               ),
-                              for (var row = 0; row < 3; row++)
+                              for (var row = 0; row < 6 ~/ columns; row++)
                                 Row(
                                   children: [
-                                    for (var column = 0; column < 2; column++)
+                                    for (
+                                      var column = 0;
+                                      column < columns;
+                                      column++
+                                    )
                                       Expanded(
                                         child: Padding(
                                           padding: EdgeInsets.all(8),
@@ -173,14 +182,16 @@ class _CategoryPage extends HookWidget {
                                                     height: 48,
                                                     borderRadius: .circular(10),
                                                     bgColor: _categories[i]
-                                                        .items[row * 2 + column]
+                                                        .items[row * columns +
+                                                            column]
                                                         .color,
                                                   ),
                                                 ),
                                                 SizedBox(height: 6),
                                                 _Label(
                                                   _categories[i]
-                                                      .items[row * 2 + column]
+                                                      .items[row * columns +
+                                                          column]
                                                       .name,
                                                   typography,
                                                   size: 12,
