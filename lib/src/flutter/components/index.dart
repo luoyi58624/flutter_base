@@ -205,7 +205,7 @@ class ElComponentBuilders with Equatable {
   final Widget Function(BuildContext context, ElIcon component)? iconBuilder;
 
   /// 根据 ElListTile 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElListTile component)? listTileBuilder;
+  final Widget Function<T>(BuildContext context, ElListTile<T> component)? listTileBuilder;
 
   /// 根据 ElListTileGroup 声明构建品牌组件。
   final Widget Function(BuildContext context, ElListTileGroup component)? listTileGroupBuilder;

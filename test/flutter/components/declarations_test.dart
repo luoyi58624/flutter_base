@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 Widget _plain(BuildContext context, dynamic component) => SizedBox();
 
+Widget _listTile<T>(BuildContext context, ElListTile<T> component) => SizedBox();
+
 void main() {
   test('card 的登记、复制、清空、合并与比较', () {
     final value = ElComponentBuilders(cardBuilder: _plain);
@@ -42,8 +44,8 @@ void main() {
   });
 
   test('listTile 的登记、复制、清空、合并与比较', () {
-    final value = ElComponentBuilders(listTileBuilder: _plain);
-    expect(value.listTileBuilder, _plain);
+    final value = ElComponentBuilders(listTileBuilder: _listTile);
+    expect(value.listTileBuilder, _listTile);
     expect(value.copyWith(), value);
     expect(value.copyWith().hashCode, value.hashCode);
     expect(value.copyWith(listTileBuilder: null).listTileBuilder, isNull);

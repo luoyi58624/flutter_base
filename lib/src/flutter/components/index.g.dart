@@ -123,7 +123,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
           : iconBuilder as Widget Function(BuildContext, ElIcon)?,
       listTileBuilder: identical(listTileBuilder, $absent)
           ? this.listTileBuilder
-          : listTileBuilder as Widget Function(BuildContext, ElListTile)?,
+          : listTileBuilder as Widget Function<T>(BuildContext, ElListTile<T>)?,
       listTileGroupBuilder: identical(listTileGroupBuilder, $absent)
           ? this.listTileGroupBuilder
           : listTileGroupBuilder
