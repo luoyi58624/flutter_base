@@ -46,14 +46,10 @@ class ElExampleApp extends StatelessWidget {
   /// 创建示例，可注入请求延时用于无头验证。
   const ElExampleApp({
     super.key,
-    this.systemWght,
     this.networkDelay = const Duration(milliseconds: 800),
     this.replyDelay = const Duration(milliseconds: 900),
     this.pageContentBuilder,
   });
-
-  /// 字重插件返回的系统常规字重，空值保留字体原始档位。
-  final double? systemWght;
 
   /// 原生示例使用的分页延时，允许测试替换。
   final Duration networkDelay;
@@ -69,7 +65,6 @@ class ElExampleApp extends StatelessWidget {
     final typography = _Typography();
     return ElMobileTheme(
       brightness: Brightness.light,
-      style: ElStyle(vars: {ElTheme.$fontWeight: ?systemWght}),
       child: ObsBuilder(
         builder: (context) => MaterialApp(
           showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,

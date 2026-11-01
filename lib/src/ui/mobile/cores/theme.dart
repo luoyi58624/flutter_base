@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:android_system_font_weight/android_system_font_weight.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../components/builders.dart';
@@ -13,7 +14,11 @@ part 'tokens.dart';
 final Map<Object, Object> _lightVars = Map.unmodifiable({...ElTheme.lightVars, ..._buildVars(false)});
 final Map<Object, Object> _darkVars = Map.unmodifiable({...ElTheme.darkVars, ..._buildVars(true)});
 
-/// 向 ElView 注入移动端默认变量，并同步 Flutter Text 与 ElView 的字体。
+/// 系统字重采集入口，仅供无头测试替换原生调用，不从公共入口导出。
+@visibleForTesting
+double? Function() readSystemFontWeight = AndroidSystemFontWeight.getWght;
+
+/// 注入移动端变量及 Android 系统字重，并同步 Flutter Text 与 ElView 的字体。
 class ElMobileTheme extends StatelessWidget {
   /// 明暗默认表按当前状态级联，用户变量与实际样式通过 style 覆盖。
   const ElMobileTheme({super.key, required this.child, this.style, this.brightness, this.componentBuilders});
@@ -39,6 +44,11 @@ class ElMobileTheme extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mode = brightness ?? MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light;
+    final systemWeight = readSystemFontWeight();
+    final systemVariations =
+        systemWeight != null && systemWeight.isFinite && systemWeight >= 100 && systemWeight <= 1000
+        ? [FontVariation('wght', systemWeight)]
+        : null;
     return ElView(
       themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
       style: ElStyle(
@@ -61,6 +71,7 @@ class ElMobileTheme extends StatelessWidget {
                 fontSize: 15,
                 height: kTextHeightNone,
                 fontWeight: fontWeight,
+                fontVariations: style?.fontVariationSettings ?? systemVariations,
               ),
               child: ElView(
                 style: ElStyle(
@@ -71,6 +82,8 @@ class ElMobileTheme extends StatelessWidget {
                   fontSize: 15,
                   lineHeight: kTextHeightNone,
                   fontWeight: fontWeight,
+                  // 系统轴由插件原样提供，保留各组件 fontWeight 档位，显式 style 仍优先。
+                  fontVariationSettings: systemVariations,
                 ).merge(style),
                 child: child,
               ),

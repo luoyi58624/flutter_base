@@ -18,7 +18,7 @@ packages:
     source: hosted
     version: "13.3.0"
   android_system_font_weight:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: android_system_font_weight
       sha256: "09132b7711253de3ab79465ebadbac8469a9528d137bd32df15ce278c0eb7792"
