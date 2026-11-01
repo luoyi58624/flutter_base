@@ -2,11 +2,11 @@
 
 组件按用途分目录，每个目录以 `index.dart` 为入口，`README.md` 说明当前接口和组合方式。Radio 与 Checkbox 的分组实现分别位于各自目录的 `group.dart`。
 
-只有桌面端与移动端都适用、职责一致的组件才能进入本目录；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。新增的 33 个 Builder 入口目前仅声明，不含默认实现；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。原有组件的行为与品牌安装保持不变。
+只有桌面端与移动端都适用、职责一致的组件才能进入本目录；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。通用声明按品牌逐步接入，实际支持清单见各品牌目录；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。
 
 ## 导入与实现登记
 
-使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。除 ListTile 外，本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。
+使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。移动端列表由 MyTheme 安装默认实现。
 
 ```dart
 ElComponentProvider(
@@ -36,7 +36,7 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [InputNumber](input_number/README.md) | 步进、范围和精度配置 |
 | [InputOtp](input_otp/README.md) | 定长验证码输入 |
 | [InputTag](input_tag/README.md) | 将文本确认为标签列表 |
-| [ListTile](list_tile/README.md) | 当前内置列表项与列表分组 |
+| [ListTile](list_tile/README.md) | 普通、开关、弹窗列表行及单选、多选分组 |
 | [Mention](mention/README.md) | 前缀匹配、候选项与完整提及 |
 | [Radio](radio/README.md) | 单选项、独立开关与单选分组 |
 | [Select](select/README.md) | 业务值与候选选项选择 |

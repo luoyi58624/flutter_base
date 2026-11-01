@@ -1,24 +1,5 @@
 part of 'index.dart';
 
-class MyListGroup extends StatelessWidget {
-  const MyListGroup({super.key, required this.children, this.title});
-
-  final Widget? title;
-  final List<MyListTile> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: ElView(
-        style: .new(backgroundColor: Colors.white, borderRadius: .circular(16), clipBehavior: .hardEdge),
-        child: Column(
-          children: children.mapIndexed((i, e) => ElChildIndex(index: i, end: children.length - 1, child: e)).toList(),
-        ),
-      ),
-    );
-  }
-}
-
 /// 列表组声明，D 表示完整模型：单选为业务值类型，多选为 List<业务值类型>。
 class ElListTileGroup<D> extends ElModelValue<D> {
   /// 创建普通列表组，不接管子项选择。

@@ -29,6 +29,8 @@ MyTheme(
 | ElTag | 已接入 | 公共宿主持有切换；纯视觉 Builder 提供标签和独立关闭入口 |
 | ElSwitch | 已接入 | bool / notifier / 表单字段绑定，以及尺寸、颜色、内容、加载与事件 |
 | ElText | 已接入 | 全部 Text 参数原样转交，继承 MyTheme 默认字体 |
+| ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |
+| ElListTileGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
 | ButtonGroup / Checkbox / Radio / Input / InputNumber / InputOtp / InputTag / Select / Autocomplete / Mention | 等待实现 | 当前没有对应移动端 Flutter 实现，未登记 Builder |
 
 `MyTheme.componentBuilders` 在默认的 `myComponentBuilders` 上合并非空覆写。每个 MyTheme 安装自己的完整品牌配置，未实现项不会隐式借用祖先桌面实现。
@@ -36,5 +38,7 @@ MyTheme(
 ## 保留的品牌组件
 
 既有 MyButton、MyTag、MySwitch、MyCard、MyDivider、MyLoading、MyProgress、MySkeleton 均迁入各自目录的 `index.dart`，已有 My* 参数和行为保留。Card、LoadingIndicator、Progress、Skeleton 的通用声明现已补齐，品牌适配尚未接入；MyDivider 继续保留其品牌接口，现有通用 ElDivider 不增加无效参数。
+
+原简版 MyListTile / MyListGroup 已由通用列表声明与 [mobile 列表实现](components/list_tile/README.md) 接替，示例直接使用 ElListTile / ElListTileGroup。
 
 主题通过 `MyTheme(style: ElStyle(vars: {ElTheme.$primary: color}))` 注入，后代通过 `context.elTheme.primary` 按键读取；局部覆写直接使用 ElView.vars。外部 notifier 与焦点节点仍按原有生命周期管理。现有颜色、几何、事件测试保留；本次验证为无头测试，不代表手机视觉和输入设备验收。

@@ -15,7 +15,7 @@
 
 `value`、`modelValue`、`onChanged` 直接沿用基类的 `T?`、`ValueNotifier<T>?`、`ValueChanged<T>?`，不另外声明一份值通道。`value` 与 `modelValue` 互斥，外部模型更新和普通值回灌沿用 ElModelValue 的通知规则。显式非空 T 必须提供初始值或模型；允许未选择时使用 `ElListTile<String?>`，普通无绑定行可省略泛型。品牌构建和事件通过挂载后的 `currentValue` 读写同一模型，不另建绑定。
 
-普通行的 `trailingText` 是右侧当前值，与后缀独立。`trailing` 默认为现有的 `ElEmptyWidget.instance` 占位符，品牌实现通过 `identical` 识别并绘制默认图标；显式传 `null` 完全移除后缀与对应间距，其他值替换默认图标。普通行的移动实现应复用 `ElFlutterUtil.hasAncestorWidget`，根据 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
+普通行的 `trailingText` 是右侧当前值，与后缀独立。`trailing` 默认为现有的 `ElEmptyWidget.instance` 占位符，品牌实现通过 `identical` 识别并绘制默认图标；显式传 `null` 完全移除后缀与对应间距，其他值替换默认图标。移动实现复用 `ElFlutterUtil.getAncestorElement`，根据最近的 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
 
 开关行使用 `ElListTile<bool>.switcher`，不接受 `trailing` 或 `trailingText`，末端固定为开关，未提供值通道时从 false 开始。整行与内部开关共享一次激活，避免一次点击切换两次。触摸反馈延迟通过 `event.config` 配置，不重复提供行参数。
 
@@ -57,31 +57,10 @@ ElListTileGroup<List<ThemeMode>>.multi(
 
 选择组默认生成单选／多选标记，不生成导航右箭头；具体子项继续使用已有内容、事件和样式入口。单选再次点击同项保持选中，多选以新 List 更新选中值。不另造 Item、模式枚举、options 或行 Builder。
 
-当前接通基类模型绑定和泛型 Builder 声明，不实现品牌布局、箭头、菜单弹出或分隔线，也不安装 mobile Builder。以下已有 My* 具体入口保持原样。
+## 移动端实现
 
-## 既有入口
+`MyTheme` 已安装两个列表 Builder，导入 `package:flutter_base/mobile.dart` 即可使用。实现位于 [mobile/list_tile](../../../ui/mobile/components/list_tile/README.md)，原有两类简版入口已移除。
 
-当前目录提供 `MyListTile` 和 `MyListGroup`，分别位于 [index.dart](index.dart) 和 [group.dart](group.dart)。二者直接组合 ElView，不依赖组件品牌 Builder；导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
+布局沿用原代码：ElView 包 Row，内容区 Expanded；上下内边距 16，无前侧内容时留 16，有前侧内容时占 56。分组为圆角 16 的裁剪容器，通过 ElChildIndex 告知末项；分隔线用 Stack / Positioned 覆盖绘制，厚度 .5，左侧与正文对齐、右侧缩进 16。独立列表行不要求索引祖先。
 
-```dart
-MyListGroup(
-  title: Text('设置'),
-  children: [
-    MyListTile(
-      title: '通知',
-      icon: Icon(Icons.notifications_outlined),
-      onPressed: () { debugPrint('打开通知设置'); },
-    ),
-    MyListTile(title: '关于', icon: Icon(Icons.info_outline)),
-  ],
-);
-```
-
-| 接口 | 用途 |
-| --- | --- |
-| MyListTile.title / icon / onPressed | 字符串标题、可选图标与点击回调 |
-| MyListTile.iconWidth | 当前图标区域宽度，默认 56 逻辑像素 |
-| MyListGroup.children | 必填的列表项集合 |
-| MyListGroup.title | 保留的分组标题参数，当前实现尚未绘制 |
-
-MyListGroup 提供白色圆角容器和子项索引环境；MyListTile 根据索引决定是否绘制分隔线，并提供固定的悬停、按压反馈。列表项应放在 MyListGroup 或其他 ElChildIndex 环境中。当前接口的名称和固定样式保持源码现状。
+颜色读取 `context.elTheme`，默认只提供按压反馈。单选使用 Flutter RadioGroup，开关尾部只绘制视觉，不另外绑定表单或外部模型；弹窗使用已有 ElPortal 管理定位、外点、Escape 和焦点恢复。

@@ -1,74 +1,7 @@
-import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 part 'group.dart';
-
-/// 根据最近事件状态显示按压与悬停反馈的列表条目。
-class MyListTile extends StatelessWidget {
-  /// 创建列表条目。
-  const MyListTile({super.key, required this.title, this.icon, this.onPressed});
-
-  /// 条目标题。
-  final String title;
-
-  /// 标题前的可选图标。
-  final Widget? icon;
-
-  /// 点击条目时执行。
-  final VoidCallback? onPressed;
-
-  /// 图标区域的逻辑宽度。
-  double get iconWidth => 56;
-
-  @override
-  Widget build(BuildContext context) {
-    final isEnd = ElChildIndex.of(context).isEnd;
-    Widget result = ElView(
-      event: ElEvent(
-        onTap: (e) => onPressed?.call(),
-        config: ElEventConfig(delayTouchDown: Duration.zero, delayTouchUp: Duration(milliseconds: 100)),
-      ),
-      style: .new(
-        padding: .symmetric(vertical: 16),
-        onHover: .new(backgroundColor: Colors.grey.shade100),
-        onTap: .new(backgroundColor: Colors.grey.shade300),
-        transition: [.all()],
-      ),
-      child: Row(
-        children: [
-          icon == null
-              ? ElView(style: .new(width: 16))
-              : ElView(
-                  style: .new(width: iconWidth),
-                  child: Center(child: icon),
-                ),
-          Expanded(
-            child: ElView(
-              style: .new(fontWeight: .w500, fontSize: 15, color: Colors.black),
-              child: title,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (!isEnd) {
-      result = Stack(
-        children: [
-          result,
-          Positioned(
-            left: icon == null ? 16 : iconWidth,
-            right: 16,
-            bottom: 0,
-            child: ColoredBox(color: Colors.grey.shade300, child: SizedBox(height: 0.5)),
-          ),
-        ],
-      );
-    }
-    return result;
-  }
-}
 
 /// 列表行的声明模式。
 enum ElListTileType {
@@ -93,8 +26,8 @@ class ElListTile<T> extends ElModelValue<T> {
     required this.title,
     this.subtitle,
     this.leading,
-    this.valueText,
     this.trailing = ElEmptyWidget.instance,
+    this.trailingText,
     this.onTap,
     this.disabled = false,
     this.style,
@@ -135,7 +68,7 @@ class ElListTile<T> extends ElModelValue<T> {
        assert(value == null || value is bool, 'switcher 只接受 bool 值'),
        assert(modelValue == null || modelValue.value is bool, 'switcher 的模型必须持有 bool 值'),
        type = .switcher,
-       valueText = null,
+       trailingText = null,
        trailing = null,
        onTap = null,
        options = const [],
@@ -156,8 +89,8 @@ class ElListTile<T> extends ElModelValue<T> {
     required this.title,
     this.subtitle,
     this.leading,
-    this.valueText,
     this.trailing = ElEmptyWidget.instance,
+    this.trailingText,
     required this.options,
     this.popupAnchor = const ElOverlayAnchor(placement: .bottomStart, offset: 4),
     this.popupMaxHeight,
@@ -197,11 +130,11 @@ class ElListTile<T> extends ElModelValue<T> {
   /// 起边内容。
   final Object? leading;
 
-  /// 右侧当前值的显示覆盖，弹窗行省略时显示选中项文案，与后缀是否显示无关。
-  final Object? valueText;
-
   /// 后缀占位符表示品牌默认图标，普通行显示右箭头，弹窗行显示菜单提示；null 移除后缀及间距。
   final Object? trailing;
+
+  /// 右侧当前值的显示覆盖，弹窗行省略时显示选中项文案，与后缀是否显示无关。
+  final Object? trailingText;
 
   /// 普通行的默认激活动作，导航由调用方处理，可由 event.preventDefault 阻止。
   final VoidCallback? onTap;

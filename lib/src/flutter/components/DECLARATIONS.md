@@ -36,7 +36,7 @@ Radio / Checkbox 的状态声明新增可空 isLast：null 明确表示当前宿
 
 ElDivider、ElBadge、ElForm 及各通用 View 已有公共接口，继续复用；不在本阶段重建它们。移动端分割线的 align / dashed 差异仍由 MyDivider 保留，未向现有具体 ElDivider 塞入不生效的参数。
 
-ElLoading 是已有的旋转包装器，新加载指示器使用 ElLoadingIndicator；二者职责和名称独立。ElTabController 等现有模型与控制器继续复用。旧 MyListTile / MyListGroup 保留；ElListTile<T> 与 ElListTileGroup<D> 复用 ElModelValue 持有完整泛型模型，品牌 Builder 保留泛型。列表组提供普通、单选、多选声明，选择标记及前后位置属于品牌接口合同，尚未接入品牌布局、标记绘制或弹层实现。
+ElLoading 是已有的旋转包装器，新加载指示器使用 ElLoadingIndicator；二者职责和名称独立。ElTabController 等现有模型与控制器继续复用。ElListTile<T> 与 ElListTileGroup<D> 复用 ElModelValue 持有完整泛型模型，品牌 Builder 保留泛型；移动端已实现列表布局、选择标记和弹出菜单，并移除通用目录中的旧 MyListTile / MyListGroup 简版入口。
 
 平台 ContextMenu、Refresher 是现有协议的品牌实现；HTML 文本、滚动效果、过渡和内容准备属于便捷包装或机制，不作为新品牌组件登记。ElApp / ElTheme 属品牌启动与主题基础，继续使用 MyTheme / ElDesktopTheme，不新增通用主题宿主。
 

@@ -10,11 +10,11 @@ import '../widgets/icons/settings_icons.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  MyListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) =>
-      MyListTile(
+  ElListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) =>
+      ElListTile(
         key: page is CustomGesturesPage ? ValueKey('demo-gestures') : null,
         title: icon.label,
-        onPressed: () {
+        onTap: () {
           if (page != null) {
             Navigator.of(context)
                 .push(MaterialPageRoute(builder: (context) => page));
@@ -47,7 +47,7 @@ class HomePage extends StatelessWidget {
             child: Column(
               spacing: 16,
               children: [
-                MyListGroup(
+                ElListTileGroup(
                   children: [
                     _tile(context, .airplane, ElViewPage()),
                     _tile(context, .wifi, CustomGesturesPage()),
@@ -56,7 +56,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .connect),
                   ],
                 ),
-                MyListGroup(
+                ElListTileGroup(
                   children: [
                     _tile(context, .personalize),
                     _tile(context, .display),
@@ -64,14 +64,14 @@ class HomePage extends StatelessWidget {
                     _tile(context, .notifications),
                   ],
                 ),
-                MyListGroup(
+                ElListTileGroup(
                   children: [
                     _tile(context, .password),
                     _tile(context, .privacy),
                     _tile(context, .location),
                   ],
                 ),
-                MyListGroup(
+                ElListTileGroup(
                   children: [
                     _tile(context, .apps),
                     _tile(context, .battery),
@@ -79,7 +79,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .cloud),
                   ],
                 ),
-                MyListGroup(
+                ElListTileGroup(
                   children: [
                     _tile(context, .system),
                     _tile(context, .about),

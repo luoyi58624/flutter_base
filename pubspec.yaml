@@ -26,6 +26,7 @@ dependencies:
   source_gen: ^4.2.3
   url_launcher: ^6.3.3
   characters: ^1.4.1
+  cupertino_icons: ^2.0.0
 
 dev_dependencies:
   flutter_test:
