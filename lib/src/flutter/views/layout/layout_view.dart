@@ -434,11 +434,16 @@ abstract class RenderLayoutView extends RenderBox
       final grid = _grid!;
       final count = grid.crossAxisCount ?? 1;
       final gap = _axis.axis == Axis.vertical ? grid.columnGap : grid.rowGap;
-      final cell = grid.mainAxisExtent == null
-          ? grid.minCrossAxisExtent ?? grid.maxCrossAxisExtent ?? 0
-          : _axis.axis == Axis.vertical
-          ? grid.mainAxisExtent! * grid.aspectRatio
-          : grid.mainAxisExtent! / grid.aspectRatio;
+      final double cell;
+      if (grid.itemWidth != null) {
+        cell = _axis.axis == Axis.vertical ? grid.itemWidth! : grid.itemWidth! / grid.aspectRatio;
+      } else if (grid.mainAxisExtent != null) {
+        cell = _axis.axis == Axis.vertical
+            ? grid.mainAxisExtent! * grid.aspectRatio
+            : grid.mainAxisExtent! / grid.aspectRatio;
+      } else {
+        cell = grid.minCrossAxisExtent ?? grid.maxCrossAxisExtent ?? 0;
+      }
       return count * cell + math.max(0, count - 1) * gap;
     }
     double result = 0;

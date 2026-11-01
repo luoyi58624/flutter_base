@@ -6,9 +6,10 @@ import 'axis_geometry.dart';
 
 /// 网格的轴无关声明，独立布局和滚动段共同使用。
 final class GridLayoutGeometry {
-  /// 创建共享网格声明；三种轨道数量规则互斥。
+  /// 创建共享网格声明，固定轨道数优先于预估格宽。
   const GridLayoutGeometry({
     this.crossAxisCount,
+    this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
@@ -16,6 +17,8 @@ final class GridLayoutGeometry {
     this.rowGap = 0,
     this.columnGap = 0,
   }) : assert(crossAxisCount == null || crossAxisCount > 0),
+       assert(itemWidth == null || itemWidth > 0 && itemWidth < double.infinity),
+       assert(itemWidth == null || minCrossAxisExtent == null && maxCrossAxisExtent == null),
        assert(minCrossAxisExtent == null || minCrossAxisExtent > 0 && minCrossAxisExtent < double.infinity),
        assert(maxCrossAxisExtent == null || maxCrossAxisExtent > 0 && maxCrossAxisExtent < double.infinity),
        assert(mainAxisExtent == null || mainAxisExtent >= 0 && mainAxisExtent < double.infinity),
@@ -31,6 +34,9 @@ final class GridLayoutGeometry {
 
   /// 固定交叉轴轨道数。
   final int? crossAxisCount;
+
+  /// 预估物理格宽，用于向下取整轨道数，实际尺寸再扣除间距并均分。
+  final double? itemWidth;
 
   /// 自动轨道的最小目标尺寸。
   final double? minCrossAxisExtent;
@@ -55,23 +61,29 @@ final class GridLayoutGeometry {
     assert(itemCount >= 0);
     final mainGap = axis == Axis.vertical ? rowGap : columnGap;
     final crossGap = axis == Axis.vertical ? columnGap : rowGap;
+    final targetCross = itemWidth == null ? null : (axis == Axis.vertical ? itemWidth! : itemWidth! / aspectRatio);
+    var tracks = crossAxisCount;
     var cross = crossExtent;
     if (!cross.isFinite && itemCount == 0) cross = 0;
     if (!cross.isFinite) {
-      final canResolve = crossAxisCount != null && mainAxisExtent != null;
-      assert(canResolve, 'ElGridView 交叉轴无界时必须指定 crossAxisCount 与 mainAxisExtent。');
+      final canResolve = targetCross != null || tracks != null && mainAxisExtent != null;
+      assert(canResolve, 'ElGridView 交叉轴无界时必须指定 itemWidth，或同时指定 crossAxisCount 与 mainAxisExtent。');
       if (!canResolve) throw StateError('ElGridView 缺少有限交叉轴尺寸。');
-      final cell = axis == Axis.vertical ? mainAxisExtent! * aspectRatio : mainAxisExtent! / aspectRatio;
-      cross = crossAxisCount! * cell + (crossAxisCount! - 1) * crossGap;
+      // 无界时按预估尺寸定轨道，未指定数量则排成一带，无需探测子项。
+      tracks ??= math.max(1, itemCount);
+      final cell =
+          targetCross ?? (axis == Axis.vertical ? mainAxisExtent! * aspectRatio : mainAxisExtent! / aspectRatio);
+      cross = tracks * cell + (tracks - 1) * crossGap;
     }
     cross = math.max(0, cross);
-    final tracks =
-        crossAxisCount ??
-        (minCrossAxisExtent != null
-            ? math.max(1, ((cross + crossGap) / (minCrossAxisExtent! + crossGap)).floor())
-            : maxCrossAxisExtent != null
-            ? math.max(1, ((cross + crossGap) / (maxCrossAxisExtent! + crossGap)).ceil())
-            : 1);
+    // 预估宽度只决定轨道数，间距随后扣除，保留旧版 Grid 的布局断点。
+    tracks ??= targetCross != null
+        ? math.max(1, (cross / targetCross).floor())
+        : (minCrossAxisExtent != null
+              ? math.max(1, ((cross + crossGap) / (minCrossAxisExtent! + crossGap)).floor())
+              : maxCrossAxisExtent != null
+              ? math.max(1, ((cross + crossGap) / (maxCrossAxisExtent! + crossGap)).ceil())
+              : 1);
     final cellCross = math.max(0.0, (cross - (tracks - 1) * crossGap) / tracks);
     final cellMain = mainAxisExtent ?? (axis == Axis.vertical ? cellCross / aspectRatio : cellCross * aspectRatio);
     return ResolvedGridGeometry(
@@ -90,6 +102,7 @@ final class GridLayoutGeometry {
   bool operator ==(Object other) =>
       other is GridLayoutGeometry &&
       crossAxisCount == other.crossAxisCount &&
+      itemWidth == other.itemWidth &&
       minCrossAxisExtent == other.minCrossAxisExtent &&
       maxCrossAxisExtent == other.maxCrossAxisExtent &&
       mainAxisExtent == other.mainAxisExtent &&
@@ -100,6 +113,7 @@ final class GridLayoutGeometry {
   @override
   int get hashCode => Object.hash(
     crossAxisCount,
+    itemWidth,
     minCrossAxisExtent,
     maxCrossAxisExtent,
     mainAxisExtent,

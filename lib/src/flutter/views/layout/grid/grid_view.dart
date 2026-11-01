@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+
 import '../geometry/grid_geometry.dart';
 import '../layout_view.dart';
 
@@ -8,6 +9,7 @@ class ElGridView extends LayoutView {
   const ElGridView({
     super.key,
     this.crossAxisCount,
+    this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
@@ -24,6 +26,11 @@ class ElGridView extends LayoutView {
        rowGap = rowGap ?? gap ?? 0,
        columnGap = columnGap ?? gap ?? 0,
        assert(crossAxisCount == null || crossAxisCount > 0),
+       assert(itemWidth == null || itemWidth > 0 && itemWidth < double.infinity),
+       assert(
+         itemWidth == null || minCrossAxisExtent == null && maxCrossAxisExtent == null,
+         'itemWidth 与 minCrossAxisExtent/maxCrossAxisExtent 不能同时设置。',
+       ),
        assert(minCrossAxisExtent == null || minCrossAxisExtent > 0 && minCrossAxisExtent < double.infinity),
        assert(maxCrossAxisExtent == null || maxCrossAxisExtent > 0 && maxCrossAxisExtent < double.infinity),
        assert(mainAxisExtent == null || mainAxisExtent >= 0 && mainAxisExtent < double.infinity),
@@ -47,6 +54,7 @@ class ElGridView extends LayoutView {
     this.keepAlive = false,
     this.findChildIndexCallback,
     this.crossAxisCount,
+    this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
@@ -61,6 +69,11 @@ class ElGridView extends LayoutView {
        rowGap = rowGap ?? gap ?? 0,
        columnGap = columnGap ?? gap ?? 0,
        assert(crossAxisCount == null || crossAxisCount > 0),
+       assert(itemWidth == null || itemWidth > 0 && itemWidth < double.infinity),
+       assert(
+         itemWidth == null || minCrossAxisExtent == null && maxCrossAxisExtent == null,
+         'itemWidth 与 minCrossAxisExtent/maxCrossAxisExtent 不能同时设置。',
+       ),
        assert(minCrossAxisExtent == null || minCrossAxisExtent > 0 && minCrossAxisExtent < double.infinity),
        assert(maxCrossAxisExtent == null || maxCrossAxisExtent > 0 && maxCrossAxisExtent < double.infinity),
        assert(mainAxisExtent == null || mainAxisExtent >= 0 && mainAxisExtent < double.infinity),
@@ -78,6 +91,13 @@ class ElGridView extends LayoutView {
 
   /// 固定交叉轴格数：纵向为列数，横向为行数。
   final int? crossAxisCount;
+
+  /// 预估格宽，按可用宽度向下取列数，再扣除间距并均分剩余空间。
+  ///
+  /// 例如可用宽度 400、itemWidth 为 150 时排 2 列，无间距时每格宽 200。
+  /// 横向布局先按 aspectRatio 换算预估格高，再按可用高度取行数。
+  /// crossAxisCount 优先；与 minCrossAxisExtent/maxCrossAxisExtent 互斥。
+  final double? itemWidth;
 
   /// 自动排布时单格交叉轴尺寸的最小目标。
   final double? minCrossAxisExtent;
@@ -127,6 +147,7 @@ class ElGridView extends LayoutView {
   @override
   GridLayoutGeometry get gridGeometry => GridLayoutGeometry(
     crossAxisCount: crossAxisCount,
+    itemWidth: itemWidth,
     minCrossAxisExtent: minCrossAxisExtent,
     maxCrossAxisExtent: maxCrossAxisExtent,
     mainAxisExtent: mainAxisExtent,

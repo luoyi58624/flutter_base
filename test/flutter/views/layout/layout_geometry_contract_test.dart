@@ -12,6 +12,94 @@ Widget _host(Widget child) => Directionality(
 );
 
 void main() {
+  test('itemWidth 沿用旧版取整顺序，固定数量和主轴尺寸仍优先', () {
+    final grid = GridLayoutGeometry(itemWidth: 150, columnGap: 10, rowGap: 6, aspectRatio: 2);
+    final resolved = grid.resolve(axis: .vertical, crossExtent: 300, itemCount: 5);
+    expect(resolved.trackCount, 2);
+    expect(resolved.cellSize, Size(145, 72.5));
+    expect(resolved.size, Size(300, 229.5));
+    expect(resolved.mainStart(4), 157);
+
+    final fixed = GridLayoutGeometry(
+      itemWidth: 150,
+      crossAxisCount: 4,
+      mainAxisExtent: 20,
+      columnGap: 10,
+      rowGap: 6,
+    ).resolve(axis: .vertical, crossExtent: 430, itemCount: 5);
+    expect(fixed.trackCount, 4);
+    expect(fixed.cellSize, Size(100, 20));
+    expect(fixed.size, Size(430, 46));
+    final unbounded = GridLayoutGeometry(
+      itemWidth: 150,
+      crossAxisCount: 2,
+      mainAxisExtent: 20,
+      columnGap: 10,
+      rowGap: 6,
+    ).resolve(axis: .vertical, crossExtent: double.infinity, itemCount: 5);
+    expect(unbounded.cellSize, Size(150, 20));
+    expect(unbounded.size, Size(310, 72));
+
+    final empty = grid.resolve(axis: .vertical, crossExtent: double.infinity, itemCount: 0);
+    expect(empty.size, Size.zero);
+    final zero = grid.resolve(axis: .vertical, crossExtent: 0, itemCount: 1);
+    expect(zero.trackCount, 1);
+    expect(zero.size, Size.zero);
+  });
+
+  test('横向 itemWidth 按物理宽高比换算行高，间距在行数确定后扣除', () {
+    final grid = GridLayoutGeometry(
+      itemWidth: 100,
+      aspectRatio: 2,
+      rowGap: 4,
+      columnGap: 6,
+    ).resolve(axis: .horizontal, crossExtent: 104, itemCount: 5);
+    expect(grid.trackCount, 2);
+    expect(grid.cellSize, Size(100, 50));
+    expect(grid.size, Size(312, 104));
+  });
+
+  test('itemWidth 拒绝非法值和冲突的轨道尺寸声明', () {
+    for (final width in [0.0, -1.0, double.infinity, double.nan]) {
+      expect(() => ElGridView(itemWidth: width), throwsAssertionError);
+      expect(
+        () => ElGridView.builder(itemWidth: width, itemCount: 1, itemBuilder: (_, _) => ElView()),
+        throwsAssertionError,
+      );
+      expect(() => GridLayoutGeometry(itemWidth: width), throwsAssertionError);
+    }
+    expect(() => ElGridView(itemWidth: 100, minCrossAxisExtent: 80), throwsAssertionError);
+    expect(
+      () => ElGridView.builder(itemWidth: 100, maxCrossAxisExtent: 120, itemCount: 1, itemBuilder: (_, _) => ElView()),
+      throwsAssertionError,
+    );
+    expect(() => GridLayoutGeometry(itemWidth: 100, maxCrossAxisExtent: 120), throwsAssertionError);
+  });
+
+  testWidgets('itemWidth 的 dry 与固有尺寸无需探测格子，无界时按预估尺寸排成一带', (tester) async {
+    final measured = <int>[];
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      _host(
+        ElGridView(
+          key: key,
+          itemWidth: 150,
+          aspectRatio: 2,
+          rowGap: 6,
+          columnGap: 10,
+          children: List.generate(5, (index) => _Probe(index, measured)),
+        ),
+      ),
+    );
+    final render = key.currentContext!.findRenderObject()! as RenderBox;
+    measured.clear();
+    expect(render.getDryLayout(BoxConstraints(maxWidth: 400)), Size(400, 304.5));
+    expect(render.getDryLayout(BoxConstraints()), Size(790, 75));
+    expect(render.getMinIntrinsicWidth(double.infinity), 150);
+    expect(render.getMaxIntrinsicWidth(double.infinity), 150);
+    expect(measured, isEmpty);
+  });
+
   testWidgets('独立固定列表只 dry 测量首项，真实条目仍全量布局', (tester) async {
     final measured = <int>[];
     final key = GlobalKey();
