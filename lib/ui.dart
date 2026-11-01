@@ -274,8 +274,6 @@ export 'src/flutter/components/index.dart'
         ElIcon,
         ElListTile,
         ElListTileGroup,
-        ElListTileGroupItem,
-        ElListTileGroupMode,
         ElListTileType,
         ElLoadingIndicator,
         ElPagination,

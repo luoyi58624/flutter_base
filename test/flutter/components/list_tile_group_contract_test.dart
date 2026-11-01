@@ -22,17 +22,19 @@ class _Choice {
 Widget _group<D>(BuildContext context, ElListTileGroup<D> component) =>
     Column(mainAxisSize: .min, children: [Text('$D|${component.currentValue}'), ...component.children]);
 
+Widget _tile<T>(BuildContext context, ElListTile<T> component) => Text('${component.title}');
+
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(listTileGroupBuilder: _group),
+    builders: ElComponentBuilders(listTileGroupBuilder: _group, listTileBuilder: _tile),
     child: child,
   ),
 );
 
-List<ElListTileGroupItem> _preferences() => [
-  ElListTileGroupItem(value: _Preference.system, title: '跟随系统'),
-  ElListTileGroupItem(value: _Preference.dark, title: '深色'),
+List<ElListTile<_Preference>> _preferences() => [
+  ElListTile<_Preference>(value: _Preference.system, title: '跟随系统'),
+  ElListTile<_Preference>(value: _Preference.dark, title: '深色'),
 ];
 
 void main() {
@@ -41,9 +43,9 @@ void main() {
     addTearDown(model.dispose);
     final changes = <_Preference?>[];
     final group = ElListTileGroup<_Preference?>.single(
-      options: _preferences(),
       modelValue: model,
       onChanged: changes.add,
+      children: _preferences(),
     );
     await tester.pumpWidget(_host(group));
     expect(find.text('_Preference?|_Preference.system'), findsOneWidget);
@@ -70,12 +72,12 @@ void main() {
     addTearDown(model.dispose);
     final changes = <List<_Choice>>[];
     final group = ElListTileGroup<List<_Choice>>.multi(
-      options: [
-        ElListTileGroupItem(value: _Choice(1), title: '第一项'),
-        ElListTileGroupItem(value: _Choice(2), title: '第二项'),
-      ],
       modelValue: model,
       onChanged: changes.add,
+      children: [
+        ElListTile<_Choice>(value: _Choice(1), title: '第一项'),
+        ElListTile<_Choice>(value: _Choice(2), title: '第二项'),
+      ],
     );
     expect(model.value, same(initial));
     expect(initial, [_Choice(1)]);
@@ -99,12 +101,12 @@ void main() {
     expect(initial, [_Choice(1)]);
   });
 
-  testWidgets('普通自由子项和未选中的可空单选可直接挂载', (tester) async {
-    await tester.pumpWidget(_host(ElListTileGroup(children: [Text('自由内容')])));
-    expect(find.text('自由内容'), findsOneWidget);
+  testWidgets('普通列表行和未选中的可空单选可直接挂载', (tester) async {
+    await tester.pumpWidget(_host(ElListTileGroup(children: [ElListTile(title: '普通内容')])));
+    expect(find.text('普通内容'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(_host(ElListTileGroup<_Preference?>.single(options: _preferences())));
+    await tester.pumpWidget(_host(ElListTileGroup<_Preference?>.single(children: _preferences())));
     expect(find.text('_Preference?|null'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -118,7 +120,7 @@ void main() {
         StatefulBuilder(
           builder: (context, setState) {
             rebuild = setState;
-            return ElListTileGroup<_Preference?>.single(value: value, options: _preferences(), onChanged: changes.add);
+            return ElListTileGroup<_Preference?>.single(value: value, onChanged: changes.add, children: _preferences());
           },
         ),
       ),
@@ -130,16 +132,7 @@ void main() {
     expect(changes, isEmpty);
   });
 
-  test('多选在修改原列表之前拒绝不兼容的模型和选项值', () {
-    final initial = <_Choice>[];
-    expect(
-      () => ElListTileGroup<List<_Choice>>.multi(
-        value: initial,
-        options: [ElListTileGroupItem(value: '错误类型', title: '错误项')],
-      ),
-      throwsAssertionError,
-    );
-    expect(initial, isEmpty);
-    expect(() => ElListTileGroup<int>.multi(value: 0, options: []), throwsAssertionError);
+  test('多选拒绝非列表模型', () {
+    expect(() => ElListTileGroup<int>.multi(value: 0, children: []), throwsAssertionError);
   });
 }

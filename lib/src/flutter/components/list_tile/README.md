@@ -10,8 +10,8 @@
 | 普通行 | trailingText / trailing / onTap |
 | 开关行 | 使用 bool 泛型 / loading / switchStyle |
 | 弹窗单选行 | options / trailingText / trailing / popupAnchor / popupMaxHeight / popupStyle / optionStyle / closeOnSelect / popupLabel |
-| 普通列表组 | title / description / List<Widget> children / style / semanticLabel |
-| 单选、多选列表组 | value / modelValue / onChanged / options / disabled / leading / trailing / controlAffinity / itemStyle / itemBuilder / onSelect，加上分组标题、说明、样式与辅助名称 |
+| 列表组共用 | title / List<ElListTile> children / bool leading |
+| 单选、多选列表组 | 继承的 value / modelValue / onChanged |
 
 `value`、`modelValue`、`onChanged` 直接沿用基类的 `T?`、`ValueNotifier<T>?`、`ValueChanged<T>?`，不另外声明一份值通道。`value` 与 `modelValue` 互斥，外部模型更新和普通值回灌沿用 ElModelValue 的通知规则。显式非空 T 必须提供初始值或模型；允许未选择时使用 `ElListTile<String?>`，普通无绑定行可省略泛型。品牌构建和事件通过挂载后的 `currentValue` 读写同一模型，不另建绑定。
 
@@ -32,32 +32,30 @@ ElListTile<String>.popup(
 
 `ElListTileGroup<D>` 同样继承 `ElModelValue<D>`，通过泛型 `listTileGroupBuilder<D>(context, component)` 分派。D 表示完整模型类型，与按钮组一致：单选使用业务值类型（未选择时使用可空类型），多选使用 `List<业务值类型>`。业务值可用枚举、数字、字符串或自定义值对象，不限定为 String。
 
-默认构造接受自由 `children`；`.single`、`.multi` 接受 `List<ElListTileGroupItem> options`。条目含 `value`、`title`、`subtitle`、`leading`、`trailing`、`disabled`、`semanticLabel`，value 须唯一并与单值模型或多选列表元素类型一致。多选必须提供初始 List 或模型，校验时只操作副本，不修改调用方列表。品牌通过 `currentValue` 读写同一模型，不另建绑定或成员登记协议。
+三个构造统一接受 `List<ElListTile> children`，子项的 `value` 就是选择值，标题、样式、禁用及前后缀直接由子项声明。模式复用现有 `ElModelValueType`，普通组为 null。分组只额外提供标题和 `leading` 布尔值：true 将单选／多选标记放在前面，false 放在后面。品牌通过 `currentValue` 读写同一模型。
 
 ```dart
 final selection = ValueNotifier<ThemeMode?>(ThemeMode.system);
 ElListTileGroup<ThemeMode?>.single(
   modelValue: selection,
-  options: [
-    ElListTileGroupItem(value: ThemeMode.system, title: '跟随系统'),
-    ElListTileGroupItem(value: ThemeMode.dark, title: '暗色'),
+  children: [
+    ElListTile(value: ThemeMode.system, title: '跟随系统'),
+    ElListTile(value: ThemeMode.dark, title: '暗色'),
   ],
 );
 
 final selections = ValueNotifier<List<ThemeMode>>([]);
 ElListTileGroup<List<ThemeMode>>.multi(
   modelValue: selections,
-  controlAffinity: ListTileControlAffinity.trailing,
-  options: [
-    ElListTileGroupItem(value: ThemeMode.light, title: '浅色'),
-    ElListTileGroupItem(value: ThemeMode.dark, title: '暗色'),
+  leading: false,
+  children: [
+    ElListTile(value: ThemeMode.light, title: '浅色'),
+    ElListTile(value: ThemeMode.dark, title: '暗色'),
   ],
 );
 ```
 
-选择组默认生成 radio / checkbox 标记，不带普通导航行的右箭头；`controlAffinity` 默认 leading，可改为 trailing，platform 则由品牌决定位置。前后缀按“条目占位符 → 组配置 → affinity 对应的默认标记”解析；任意一层显式 `null` 都移除该侧及间距，不再回退。设置自定义内容会替换该侧标记；移除标记不改变整行选择与辅助技术语义。
-
-`itemBuilder(context, item, selected, onSelect)` 可覆盖整行，组或条目禁用时回调为 null，默认 Builder 负责标准选择行。用户激活选项时先更新模型，再调用组的 `onSelect(item)`；它与 `onChanged<D>` 区分，重复激活已选单选项仍可通知，而外部模型同步只走模型通知。单选再次点击同项保持选中，多选以新 List 增删选中值。
+选择组默认生成单选／多选标记，不生成导航右箭头；具体子项继续使用已有内容、事件和样式入口。单选再次点击同项保持选中，多选以新 List 更新选中值。不另造 Item、模式枚举、options 或行 Builder。
 
 当前接通基类模型绑定和泛型 Builder 声明，不实现品牌布局、箭头、菜单弹出或分隔线，也不安装 mobile Builder。以下已有 My* 具体入口保持原样。
 
