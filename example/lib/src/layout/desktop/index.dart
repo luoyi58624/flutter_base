@@ -1,7 +1,4 @@
 import 'package:example/src/layout/index.dart';
-import 'package:example/src/pages/custom_gestures.dart';
-import 'package:example/src/pages/view.dart';
-import 'package:example/src/pages/view/base.dart';
 import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
@@ -19,24 +16,24 @@ class DesktopLayout extends StatefulWidget {
 
 class _DesktopLayoutState extends State<DesktopLayout> {
   String _selected = 'home';
+  final _visited = <String, Widget>{};
 
   @override
   Widget build(BuildContext context) {
     return ObsBuilder(
       builder: (context) {
         final tabIndex = GlobalState.boottomTabbarIndex.value;
-        // 叶子属于当前 tab 时保留选择，外部切换 tab 则使用一级菜单 key。
+        // 叶子属于当前 tab 时保留选择，外部切换 tab 则使用首个真实叶子。
         final selected = AppLayout.menuTabs[_selected] == tabIndex ? _selected : AppLayout.tabKeyOf(tabIndex);
-        final pages = [
-          ('components', Center(child: Text('组件'))),
-          ('component-overview', Center(child: Text('组件概览'))),
-          ('examples', Center(child: Text('示例'))),
-          ('view', ElViewPage()),
-          ('gestures', CustomGesturesPage()),
-          ('base', ViewBasePage()),
-          ('settings', Center(child: Text('设置'))),
-        ];
-        final pageIndex = pages.indexWhere((page) => page.$1 == selected);
+        final page = AppLayout.pages.firstWhere((page) => page.key == selected);
+        // 只挂载访问过的页面，复用原实例保留状态，避免提前运行全部示例。
+        _visited.putIfAbsent(
+          selected,
+          () => Builder(
+            key: ValueKey('example-page-$selected'),
+            builder: page.data ?? (_) => Scaffold(appBar: AppBar(title: ElText(page.title))),
+          ),
+        );
 
         return Scaffold(
           body: ElView(
@@ -52,10 +49,12 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                   }),
                 ),
                 Expanded(
-                  // 页面顺序固定，切换菜单时复用已挂载的页面状态。
                   child: IndexedStack(
-                    index: pageIndex < 0 ? 0 : pageIndex,
-                    children: [for (final page in pages) page.$2],
+                    index: _visited.keys.toList().indexOf(selected),
+                    children: [
+                      for (final entry in _visited.entries)
+                        TickerMode(enabled: entry.key == selected, child: entry.value),
+                    ],
                   ),
                 ),
               ],

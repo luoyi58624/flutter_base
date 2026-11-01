@@ -20,7 +20,7 @@ class _MobileLayoutState extends State<MobileLayout> {
   Widget build(BuildContext context) {
     return ObsBuilder(
       builder: (context) {
-        final tabs = AppLayout.tabbars;
+        final tabs = AppLayout.menus;
         final index = GlobalState.boottomTabbarIndex.value;
         return Scaffold(
           body: IndexedStack(
@@ -28,14 +28,14 @@ class _MobileLayoutState extends State<MobileLayout> {
             children: [
               HomePage(),
               ComponentPage(),
-              Center(child: Text(tabs[2].$2)),
-              SettingPage()
+              Center(child: Text(tabs[2].title)),
+              SettingPage(),
             ],
           ),
           bottomNavigationBar: ElBottomTabbar(
             selectedIndex: index,
             onDestinationSelected: (i) => GlobalState.boottomTabbarIndex.value = i,
-            destinations: [for (final tab in tabs) NavigationDestination(icon: Icon(tab.$1), label: tab.$2)],
+            destinations: [for (final tab in tabs) NavigationDestination(icon: tab.icon!, label: tab.title)],
           ),
         );
       },

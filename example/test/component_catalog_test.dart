@@ -1,4 +1,5 @@
 import 'package:example/src/layout/mobile/pages/2.dart';
+import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/components/start/shadow/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
@@ -27,6 +28,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ShadowPage), findsNothing);
     expect(find.byKey(ValueKey('component-shadow-design')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('移动目录沿用共用的按钮页面入口', (tester) async {
+    await tester.pumpWidget(
+      ElMobileTheme(
+        child: Builder(
+          builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: ComponentPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('component-button')));
+    // 示例含持续旋转的 loading，只等待页面过渡完成。
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 500));
+    expect(find.byType(ButtonPage), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ButtonPage), findsNothing);
+    expect(find.byKey(ValueKey('component-button')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
