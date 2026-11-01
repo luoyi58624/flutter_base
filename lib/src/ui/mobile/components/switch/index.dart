@@ -40,12 +40,18 @@ class _CommonSwitch extends ElFormModelValue<bool> {
             ElView.maybeOf(context)?.getVar<Color>(Switch.$thumbBackground) ??
             (current ? theme.primaryText : const Color(0xffffffff)),
         color: current ? theme.primary : theme.textSecondary,
+        iconColor: current ? theme.primary : theme.textSecondary,
+        iconSize: thumb * .7,
         boxShadow: [
           BoxShadow(color: const Color(0xff000000).withValues(alpha: .12), offset: const Offset(0, 2), blurRadius: 5),
         ],
         transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 150), Curves.ease)],
       ),
-      child: component.loading ? const ExcludeSemantics(child: Loading(size: LoadingSize.small)) : actionContent,
+      child: component.loading
+          ? const ExcludeSemantics(child: Loading(size: LoadingSize.small))
+          : actionContent == null
+          ? null
+          : buildContent(actionContent),
     );
     return inline(
       ActionView(
@@ -71,6 +77,8 @@ class _CommonSwitch extends ElFormModelValue<bool> {
                 ? (component.activeColor ?? theme.primary)
                 : (component.inactiveColor ?? theme.gray),
             color: current ? theme.primaryText : theme.textColor,
+            iconColor: current ? theme.primaryText : theme.textColor,
+            iconSize: height * .5,
             transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)],
           ).merge(component.trackStyle),
           child: Stack(
@@ -81,13 +89,13 @@ class _CommonSwitch extends ElFormModelValue<bool> {
                   if (current && content != null)
                     ElView(
                       style: ElStyle(padding: EdgeInsets.only(right: gap)),
-                      child: content,
+                      child: buildContent(content),
                     ),
                   SizedBox(width: thumb, height: thumb),
                   if (!current && content != null)
                     ElView(
                       style: ElStyle(padding: EdgeInsets.only(left: gap)),
-                      child: content,
+                      child: buildContent(content),
                     ),
                 ],
               ),

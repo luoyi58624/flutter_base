@@ -5,6 +5,15 @@ part of 'index.dart';
 /// 每个注入点都是本类的 `static` 成员，函数体直接构造实现类：构造 [ElComponentBuilders]
 /// 时不传某项就吃这里的品牌默认，显式传 `null` 则清空该项（表格回退 el_ui 默认皮肤）。
 class ElementPlusThemeData extends ElComponentBuilders {
+  /// 字体图标沿用既有 ElView 图标实现，公共参数统一由 ElIcon 声明。
+  static Widget icon(BuildContext context, common.ElIcon component) => ElIcon(
+    component.child,
+    size: component.size,
+    color: component.color,
+    style: component.style,
+    semanticLabel: component.semanticLabel,
+  );
+
   /// Element 按钮。
   static Widget button(BuildContext context, ElButton component) => Button(component);
 
@@ -83,5 +92,6 @@ class ElementPlusThemeData extends ElComponentBuilders {
     super.tagBuilder = tag,
     super.tableStyleBuilder = tableStyle,
     super.textBuilder = text,
+    super.iconBuilder = icon,
   });
 }

@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import '../others/app/index.dart';
 import '../icon/index.dart';
 import '../../extensions/el.dart';
+import '../../extensions/content.dart';
 import '../input/metrics.dart';
 
 class _InputTagDelimiterSegment {
@@ -26,12 +27,7 @@ class _InputTagDelimiterSplit {
 }
 
 class _InputTagDragSession {
-  const _InputTagDragSession({
-    required this.index,
-    required this.value,
-    required this.snapshot,
-    required this.epoch,
-  });
+  const _InputTagDragSession({required this.index, required this.value, required this.snapshot, required this.epoch});
 
   final int index;
   final String value;
@@ -49,9 +45,7 @@ class _InputTagDragSession {
 class InputTag extends ElFormModelValue<List<String>> {
   InputTag(this.component, {super.key})
     : super(
-        value:
-            component.value ??
-            (component.modelValue == null ? const <String>[] : null),
+        value: component.value ?? (component.modelValue == null ? const <String>[] : null),
         modelValue: component.modelValue,
         onChanged: null,
       );
@@ -70,16 +64,13 @@ class InputTag extends ElFormModelValue<List<String>> {
   bool get readOnly => component.readOnly;
   String? get placeholder => component.placeholder;
   ElInputTagDuplicatePolicy get duplicatePolicy => component.duplicatePolicy;
-  String? Function(String value, List<String> current)? get validate =>
-      component.validate;
-  void Function(String value, String reason)? get onInvalid =>
-      component.onInvalid;
+  String? Function(String value, List<String> current)? get validate => component.validate;
+  void Function(String value, String reason)? get onInvalid => component.onInvalid;
   ValueChanged<String>? get onInput => component.onInput;
   ValueChanged<String>? get onAdd => component.onAdd;
   void Function(String value, int index)? get onRemove => component.onRemove;
   VoidCallback? get onClear => component.onClear;
-  void Function(int oldIndex, int newIndex, String value)? get onDragTag =>
-      component.onDragTag;
+  void Function(int oldIndex, int newIndex, String value)? get onDragTag => component.onDragTag;
   bool get autofocus => component.autofocus;
   FocusNode? get focusNode => component.focusNode;
   FocusOnKeyEventCallback? get onKeyEvent => component.onKeyEvent;
@@ -88,8 +79,7 @@ class InputTag extends ElFormModelValue<List<String>> {
   int? get maxLength => component.maxLength;
   Object? get prefix => component.prefix;
   Object? get suffix => component.suffix;
-  Widget Function(BuildContext context, String value, int index, bool selected)?
-  get tagBuilder => component.tagBuilder;
+  Widget Function(BuildContext context, String value, int index, bool selected)? get tagBuilder => component.tagBuilder;
   IconData get clearIcon => component.clearIcon ?? ElIcons.circleClose;
   bool get collapseTags => component.collapseTags;
   int get maxCollapseTags => component.maxCollapseTags;
@@ -126,10 +116,7 @@ class InputTag extends ElFormModelValue<List<String>> {
       builder: (context) {
         final form = $formState;
         final prop = $formProp;
-        final hasError =
-            form != null &&
-            prop != null &&
-            form.errorMessages.containsKey(prop);
+        final hasError = form != null && prop != null && form.errorMessages.containsKey(prop);
         return _InputTagBody(
           config: this,
           tags: $obs.value,
@@ -185,20 +172,13 @@ class _InputTagBodyState extends State<_InputTagBody> {
   bool get _canMutate => !widget.config.disabled && !widget.config.readOnly;
 
   bool get _canRequestFocus =>
-      mounted &&
-      !widget.config.disabled &&
-      _focusNode.context != null &&
-      _focusNode.canRequestFocus;
+      mounted && !widget.config.disabled && _focusNode.context != null && _focusNode.canRequestFocus;
 
   @override
   void initState() {
     super.initState();
     _ownFocusNode = FocusNode(debugLabel: 'ElInputTag');
-    widget.config.controller?.attach(
-      owner: this,
-      focus: _requestDraftFocus,
-      blur: _blurDraft,
-    );
+    widget.config.controller?.attach(owner: this, focus: _requestDraftFocus, blur: _blurDraft);
   }
 
   @override
@@ -208,27 +188,20 @@ class _InputTagBodyState extends State<_InputTagBody> {
     final nextFocusNode = _focusNode;
     if (widget.config.controller != oldWidget.config.controller) {
       oldWidget.config.controller?.detach(this);
-      widget.config.controller?.attach(
-        owner: this,
-        focus: _requestDraftFocus,
-        blur: _blurDraft,
-      );
+      widget.config.controller?.attach(owner: this, focus: _requestDraftFocus, blur: _blurDraft);
     }
     final tagsChanged = !listEquals(oldWidget.tags, widget.tags);
     if (tagsChanged) {
       _tagsEpoch++;
       if (_selectedTag != null) {
-        if (!_preserveSelectionForNextTags ||
-            _selectedTag! >= widget.tags.length) {
+        if (!_preserveSelectionForNextTags || _selectedTag! >= widget.tags.length) {
           _selectedTag = null;
         }
       }
       _preserveSelectionForNextTags = false;
     }
     if (_shouldCloseCollapsePortal(oldWidget, tagsChanged: tagsChanged)) {
-      _closeCollapsePortal(
-        retainAnchor: _collapsePortal.isOpen && !_willRenderCollapseTag(),
-      );
+      _closeCollapsePortal(retainAnchor: _collapsePortal.isOpen && !_willRenderCollapseTag());
     }
     if (!identical(oldFocusNode, nextFocusNode)) {
       _preservePointerFocus = false;
@@ -280,11 +253,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
   @override
   void activate() {
     super.activate();
-    widget.config.controller?.attach(
-      owner: this,
-      focus: _requestDraftFocus,
-      blur: _blurDraft,
-    );
+    widget.config.controller?.attach(owner: this, focus: _requestDraftFocus, blur: _blurDraft);
   }
 
   void _handleFocus() {
@@ -310,24 +279,12 @@ class _InputTagBodyState extends State<_InputTagBody> {
       scheduleMicrotask(() {
         scheduleMicrotask(() {
           if (!mounted) return;
-          _settleBlur(
-            config,
-            onBlur,
-            tags: targetTags,
-            onTagsChanged: targetOnTagsChanged,
-            draft: _draft,
-          );
+          _settleBlur(config, onBlur, tags: targetTags, onTagsChanged: targetOnTagsChanged, draft: _draft);
         });
       });
       return;
     }
-    _settleBlur(
-      config,
-      onBlur,
-      tags: targetTags,
-      onTagsChanged: targetOnTagsChanged,
-      draft: _draft,
-    );
+    _settleBlur(config, onBlur, tags: targetTags, onTagsChanged: targetOnTagsChanged, draft: _draft);
   }
 
   void _settleBlur(
@@ -338,22 +295,14 @@ class _InputTagBodyState extends State<_InputTagBody> {
     required String draft,
   }) {
     if (config._effectiveSaveOnBlur) {
-      _attemptAdd(
-        config: config,
-        tags: tags,
-        onTagsChanged: onTagsChanged,
-        draftValue: draft,
-      );
+      _attemptAdd(config: config, tags: tags, onTagsChanged: onTagsChanged, draftValue: draft);
     }
     onBlur();
   }
 
   void _handleFocusForNodeLater(FocusNode node) {
     scheduleMicrotask(() {
-      if (!mounted ||
-          widget.config.disabled ||
-          !identical(_focusNode, node) ||
-          !node.hasFocus) {
+      if (!mounted || widget.config.disabled || !identical(_focusNode, node) || !node.hasFocus) {
         return;
       }
       _handleFocus();
@@ -369,19 +318,11 @@ class _InputTagBodyState extends State<_InputTagBody> {
     required ValueChanged<List<String>> onTagsChanged,
   }) {
     scheduleMicrotask(() {
-      if (!mounted ||
-          generation != _focusBindingGeneration ||
-          !identical(_focusNode, node)) {
+      if (!mounted || generation != _focusBindingGeneration || !identical(_focusNode, node)) {
         return;
       }
       if (!widget.config.disabled && node.hasFocus) return;
-      _completeReportedBlur(
-        config,
-        onBlur,
-        tags: tags,
-        onTagsChanged: onTagsChanged,
-        deferred: true,
-      );
+      _completeReportedBlur(config, onBlur, tags: tags, onTagsChanged: onTagsChanged, deferred: true);
     });
   }
 
@@ -433,10 +374,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
 
   bool _canMutateWith(InputTag config) => !config.disabled && !config.readOnly;
 
-  bool _shouldCloseCollapsePortal(
-    _InputTagBody oldWidget, {
-    required bool tagsChanged,
-  }) {
+  bool _shouldCloseCollapsePortal(_InputTagBody oldWidget, {required bool tagsChanged}) {
     final previous = oldWidget.config;
     final current = widget.config;
     return tagsChanged ||
@@ -462,8 +400,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
 
   void _invalidateCollapseTooltip() {
     final phase = WidgetsBinding.instance.schedulerPhase;
-    if (phase == SchedulerPhase.idle ||
-        phase == SchedulerPhase.postFrameCallbacks) {
+    if (phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks) {
       _collapseTooltipRevision.value++;
       return;
     }
@@ -480,10 +417,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
     final changed = _draft != value;
     if (!changed && _selectedTag == null) {
       if (rawEditableText != null && rawEditableText != value) {
-        _syncDraftControllerLater(
-          expectedText: rawEditableText,
-          targetText: value,
-        );
+        _syncDraftControllerLater(expectedText: rawEditableText, targetText: value);
       }
       return;
     }
@@ -493,21 +427,13 @@ class _InputTagBodyState extends State<_InputTagBody> {
     });
     if (changed) widget.config.onInput?.call(value);
     if (rawEditableText != null && rawEditableText != value) {
-      _syncDraftControllerLater(
-        expectedText: rawEditableText,
-        targetText: value,
-      );
+      _syncDraftControllerLater(expectedText: rawEditableText, targetText: value);
     }
   }
 
-  void _syncDraftControllerLater({
-    required String expectedText,
-    required String targetText,
-  }) {
+  void _syncDraftControllerLater({required String expectedText, required String targetText}) {
     final controller = _fieldController();
-    if (controller == null ||
-        controller.text == targetText ||
-        controller.text != expectedText) {
+    if (controller == null || controller.text == targetText || controller.text != expectedText) {
       return;
     }
     final revision = controller.docRevision;
@@ -531,8 +457,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
   void _handleDraftChanged(String value) {
     if (_draft == value) return;
     if (_handleDelimitedDraft(value)) return;
-    if (widget.config.trigger == ElInputTagTrigger.space &&
-        value.endsWith(' ')) {
+    if (widget.config.trigger == ElInputTagTrigger.space && value.endsWith(' ')) {
       _setDraft(value.substring(0, value.length - 1));
       _attemptAdd(rawEditableText: value);
       return;
@@ -571,9 +496,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
     var start = 0;
     for (final match in delimiter.allMatches(value)) {
       if (match.start == match.end) continue;
-      segments.add(
-        _InputTagDelimiterSegment(value.substring(start, match.start), start),
-      );
+      segments.add(_InputTagDelimiterSegment(value.substring(start, match.start), start));
       start = match.end;
     }
     if (segments.isEmpty) return null;
@@ -598,11 +521,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
       return false;
     }
     final currentTags = tags ?? widget.tags;
-    final rejection = _candidateRejection(
-      value,
-      currentTags,
-      config: effectiveConfig,
-    );
+    final rejection = _candidateRejection(value, currentTags, config: effectiveConfig);
     if (rejection != null) {
       _reject(value, rejection, config: effectiveConfig);
       return false;
@@ -612,38 +531,24 @@ class _InputTagBodyState extends State<_InputTagBody> {
     if (draftValue == null || _draft == draftValue) {
       _setDraft('', rawEditableText: rawEditableText);
     }
-    _commitTags(
-      next,
-      [value],
-      config: effectiveConfig,
-      tags: currentTags,
-      onTagsChanged: onTagsChanged,
-    );
+    _commitTags(next, [value], config: effectiveConfig, tags: currentTags, onTagsChanged: onTagsChanged);
     return true;
   }
 
-  String? _candidateRejection(
-    String value,
-    List<String> current, {
-    InputTag? config,
-  }) {
+  String? _candidateRejection(String value, List<String> current, {InputTag? config}) {
     final effectiveConfig = config ?? widget.config;
     final minLength = effectiveConfig.minLength;
     if (minLength != null && value.characters.length < minLength) {
       return '至少需要 $minLength 个字符';
     }
-    if (effectiveConfig.duplicatePolicy == ElInputTagDuplicatePolicy.reject &&
-        current.contains(value)) {
+    if (effectiveConfig.duplicatePolicy == ElInputTagDuplicatePolicy.reject && current.contains(value)) {
       return '标签不能重复';
     }
     final max = effectiveConfig.max;
     if (max != null && current.length >= max) {
       return '最多只能添加 $max 个标签';
     }
-    return effectiveConfig.validate?.call(
-      value,
-      List<String>.unmodifiable(current),
-    );
+    return effectiveConfig.validate?.call(value, List<String>.unmodifiable(current));
   }
 
   void _commitTags(
@@ -693,13 +598,10 @@ class _InputTagBodyState extends State<_InputTagBody> {
   bool _canDropTag(_InputTagDragSession session, int targetIndex) {
     if (!_canMutate || !widget.config.draggable) return false;
     final oldIndex = session.index;
-    if (session.epoch != _tagsEpoch ||
-        !listEquals(session.snapshot, widget.tags)) {
+    if (session.epoch != _tagsEpoch || !listEquals(session.snapshot, widget.tags)) {
       return false;
     }
-    if (oldIndex < 0 ||
-        oldIndex >= widget.tags.length ||
-        widget.tags[oldIndex] != session.value) {
+    if (oldIndex < 0 || oldIndex >= widget.tags.length || widget.tags[oldIndex] != session.value) {
       return false;
     }
     return _finalDragIndex(oldIndex, targetIndex) != oldIndex;
@@ -742,16 +644,11 @@ class _InputTagBodyState extends State<_InputTagBody> {
         key == LogicalKeyboardKey.escape;
     if (!isBusinessKey) return KeyEventResult.ignored;
     final keyboard = HardwareKeyboard.instance;
-    if (keyboard.isControlPressed ||
-        keyboard.isMetaPressed ||
-        keyboard.isAltPressed ||
-        keyboard.isShiftPressed) {
+    if (keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed || keyboard.isShiftPressed) {
       return KeyEventResult.ignored;
     }
     final isTrigger = switch (widget.config.trigger) {
-      ElInputTagTrigger.enter =>
-        key == LogicalKeyboardKey.enter ||
-            key == LogicalKeyboardKey.numpadEnter,
+      ElInputTagTrigger.enter => key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter,
       ElInputTagTrigger.space => key == LogicalKeyboardKey.space,
     };
     if (!_canMutate) {
@@ -801,31 +698,19 @@ class _InputTagBodyState extends State<_InputTagBody> {
 
   ElEditableController? _fieldController() => _fieldControl.controller;
 
-  Widget _withDropTarget({
-    required int targetIndex,
-    required double inlineExtent,
-    required Widget child,
-  }) {
+  Widget _withDropTarget({required int targetIndex, required double inlineExtent, required Widget child}) {
     if (!_canMutate || !widget.config.draggable) return child;
     return ElDropTarget<_InputTagDragSession>(
       canAccept: (source) => _canDropTag(source, targetIndex),
       onDrop: (source, _) => _moveTag(source, targetIndex),
       builder: (context, candidate) => _inputTagInline(
-        ElView(
-          style: _inputTagDropStyle(context, candidate?.accepted == true),
-          child: child,
-        ),
+        ElView(style: _inputTagDropStyle(context, candidate?.accepted == true), child: child),
         height: inlineExtent,
       ),
     );
   }
 
-  Widget _buildTag(
-    BuildContext context,
-    int index,
-    bool compact,
-    double inlineExtent,
-  ) {
+  Widget _buildTag(BuildContext context, int index, bool compact, double inlineExtent) {
     final value = widget.tags[index];
     final selected = _selectedTag == index;
     Widget tag = ElView(
@@ -836,9 +721,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
       ),
       child: ElTag(
         key: ValueKey<(String, int)>(('el-input-tag', index)),
-        child:
-            widget.config.tagBuilder?.call(context, value, index, selected) ??
-            value,
+        child: widget.config.tagBuilder?.call(context, value, index, selected) ?? value,
         type: widget.config.tagType,
         effect: widget.config.tagEffect,
         hit: selected,
@@ -847,9 +730,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         style: _inputTagStyle(compact, widget.config.tagStyle),
         semanticLabel: '标签：$value',
         closeSemanticLabel: '移除标签：$value',
-        event: widget.config.disabled
-            ? null
-            : ElEvent(onTap: (_) => setState(() => _selectedTag = index)),
+        event: widget.config.disabled ? null : ElEvent(onTap: (_) => setState(() => _selectedTag = index)),
       ),
     );
     tag = _inputTagInline(tag, height: inlineExtent);
@@ -874,19 +755,10 @@ class _InputTagBodyState extends State<_InputTagBody> {
         child: tag,
       );
     }
-    return _withDropTarget(
-      targetIndex: index,
-      inlineExtent: inlineExtent,
-      child: tag,
-    );
+    return _withDropTarget(targetIndex: index, inlineExtent: inlineExtent, child: tag);
   }
 
-  Widget _buildCollapseTag(
-    BuildContext context,
-    List<String> hidden,
-    bool compact,
-    double inlineExtent,
-  ) {
+  Widget _buildCollapseTag(BuildContext context, List<String> hidden, bool compact, double inlineExtent) {
     final trigger = _inputTagInline(
       ElTag(
         key: const ValueKey<String>('el-input-tag-collapse'),
@@ -899,16 +771,12 @@ class _InputTagBodyState extends State<_InputTagBody> {
       height: inlineExtent,
     );
     if (Overlay.maybeOf(context) == null) return trigger;
-    final tooltipEnabled =
-        widget.config.collapseTagsTooltip && !widget.config.disabled;
+    final tooltipEnabled = widget.config.collapseTagsTooltip && !widget.config.disabled;
     return ElPortal(
       controller: _collapsePortal,
       anchor: const ElOverlayAnchor(placement: .top, offset: 6),
       hoverIntent: tooltipEnabled
-          ? const ElHoverIntent(
-              openDelay: Duration(milliseconds: 120),
-              closeDelay: Duration(milliseconds: 80),
-            )
+          ? const ElHoverIntent(openDelay: Duration(milliseconds: 120), closeDelay: Duration(milliseconds: 80))
           : null,
       overlayBuilder: _buildCollapseTooltipOverlay,
       captureFocus: false,
@@ -938,9 +806,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         : widget.tags.length;
   }
 
-  bool _willRenderCollapseTag() =>
-      widget.config.collapseTags &&
-      widget.tags.length > widget.config.maxCollapseTags;
+  bool _willRenderCollapseTag() => widget.config.collapseTags && widget.tags.length > widget.config.maxCollapseTags;
 
   List<String> _hiddenCollapseTags() {
     final visibleCount = _visibleCollapseCount();
@@ -955,10 +821,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
       builder: (context, _, _) {
         final hidden = _hiddenCollapseTags();
         final config = widget.config;
-        if (!config.collapseTags ||
-            !config.collapseTagsTooltip ||
-            config.disabled ||
-            hidden.isEmpty) {
+        if (!config.collapseTags || !config.collapseTagsTooltip || config.disabled || hidden.isEmpty) {
           return const ElView(style: ElStyle(width: 0, height: 0));
         }
         final compact = context.elComponentCompact(config.style);
@@ -982,10 +845,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
     final iconSize = config.style?.iconSize ?? elInputDefaultIconSize(compact);
     final lineBoxHeight = elInputLineBoxHeight(fontSize);
     final inlineExtent = tagHeight > lineBoxHeight ? tagHeight : lineBoxHeight;
-    final showClear =
-        config.clearable &&
-        _canMutate &&
-        (widget.tags.isNotEmpty || _draft.isNotEmpty);
+    final showClear = config.clearable && _canMutate && (widget.tags.isNotEmpty || _draft.isNotEmpty);
     final visibleCount = _visibleCollapseCount();
     final hiddenTags = _hiddenCollapseTags();
     final input = _withDropTarget(
@@ -1006,12 +866,9 @@ class _InputTagBodyState extends State<_InputTagBody> {
           onKeyEvent: _handleKeyEvent,
           onFocus: _handleFocus,
           onBlur: _handleBlur,
-          onSubmitted: config.trigger == ElInputTagTrigger.enter
-              ? (_) => _attemptAdd()
-              : null,
+          onSubmitted: config.trigger == ElInputTagTrigger.enter ? (_) => _attemptAdd() : null,
           maxLength: config.maxLength,
-          style: _inputTagDraftStyle(lineBoxHeight)
-              .copyWith(fontSize: fontSize, iconSize: iconSize),
+          style: _inputTagDraftStyle(lineBoxHeight).copyWith(fontSize: fontSize, iconSize: iconSize),
           semanticLabel: config.semanticLabel ?? config.placeholder ?? '标签输入',
         ),
       ),
@@ -1027,10 +884,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
         hasError: widget.hasError,
         compact: compact,
       ).merge(config.style),
-      event: ElEvent(
-        disabled: config.disabled,
-        onTap: (_) => _focusDraftAfterTap(),
-      ),
+      event: ElEvent(disabled: config.disabled, onTap: (_) => _focusDraftAfterTap()),
       child: Wrap(
         spacing: 6,
         runSpacing: 4,
@@ -1043,17 +897,10 @@ class _InputTagBodyState extends State<_InputTagBody> {
               extent: inlineExtent,
               iconSize: iconSize,
             ),
-          for (var index = 0; index < visibleCount; index++)
-            _buildTag(context, index, compact, inlineExtent),
-          if (hiddenTags.isNotEmpty)
-            _buildCollapseTag(context, hiddenTags, compact, inlineExtent),
-          if (hiddenTags.isEmpty && _retainCollapsePortalAnchor)
-            _buildCollapsePortalAnchor(),
-          _inputTagInline(
-            input,
-            key: const ValueKey<String>('el-input-tag-draft-inline'),
-            height: inlineExtent,
-          ),
+          for (var index = 0; index < visibleCount; index++) _buildTag(context, index, compact, inlineExtent),
+          if (hiddenTags.isNotEmpty) _buildCollapseTag(context, hiddenTags, compact, inlineExtent),
+          if (hiddenTags.isEmpty && _retainCollapsePortalAnchor) _buildCollapsePortalAnchor(),
+          _inputTagInline(input, key: const ValueKey<String>('el-input-tag-draft-inline'), height: inlineExtent),
           if (config.suffix != null)
             _InputTagAffix(
               slotKey: const ValueKey<String>('el-input-tag-suffix-slot'),
@@ -1106,12 +953,7 @@ class _InputTagField extends ElInput {
 }
 
 class _InputTagAffix extends StatelessWidget {
-  const _InputTagAffix({
-    required this.slotKey,
-    required this.content,
-    required this.extent,
-    required this.iconSize,
-  });
+  const _InputTagAffix({required this.slotKey, required this.content, required this.extent, required this.iconSize});
 
   final Key slotKey;
   final Object content;
@@ -1122,31 +964,20 @@ class _InputTagAffix extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget child;
     if (content is IconData) {
-      child = ElIcon(
-        content as IconData,
-        size: iconSize,
-        color: context.elTheme.textPlaceholder,
-      );
+      child = ElIcon(content as IconData, size: iconSize);
+    } else if (content is Icon) {
+      child = elContent(content, iconSize: iconSize) as Widget;
     } else if (content is Widget) {
       child = content as Widget;
     } else {
       child = ElView(
-        style: ElStyle(
-          color: context.elTheme.textSecondary,
-          fontSize: 13,
-          iconColor: context.elTheme.textSecondary,
-        ),
+        style: ElStyle(color: context.elTheme.textSecondary, fontSize: 13, iconColor: context.elTheme.textSecondary),
         child: content,
       );
     }
     return ElView(
       key: slotKey,
-      style: ElStyle(
-        width: extent,
-        height: extent,
-        alignment: .center,
-        clipBehavior: Clip.hardEdge,
-      ),
+      style: ElStyle(width: extent, height: extent, alignment: .center, clipBehavior: Clip.hardEdge),
       child: child,
     );
   }
@@ -1187,16 +1018,9 @@ class _InputTagClearButton extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         color: context.elTheme.textPlaceholder,
         borderRadius: const BorderRadius.all(Radius.circular(9999)),
-        onHover: ElStyle(
-          color: context.elTheme.textSecondary,
-          iconColor: context.elTheme.textSecondary,
-        ),
+        onHover: ElStyle(color: context.elTheme.textSecondary, iconColor: context.elTheme.textSecondary),
         onFocusVisible: ElStyle(
-          outline: ElOutline(
-            outlineWidth: 2,
-            outlineColor: context.elTheme.primary,
-            outlineOffset: 1,
-          ),
+          outline: ElOutline(outlineWidth: 2, outlineColor: context.elTheme.primary, outlineOffset: 1),
         ),
         iconColor: context.elTheme.textPlaceholder,
       ),
@@ -1214,12 +1038,7 @@ class _InputTagClearSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ElView(
     key: const ValueKey<String>('el-input-tag-clear-slot'),
-    style: ElStyle(
-      width: extent,
-      height: extent,
-      alignment: .center,
-      clipBehavior: Clip.hardEdge,
-    ),
+    style: ElStyle(width: extent, height: extent, alignment: .center, clipBehavior: Clip.hardEdge),
     child: child,
   );
 }
@@ -1242,17 +1061,9 @@ class _InputTagDragGhost extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElView(
-      style: const ElStyle(
-        opacity: 0.94,
-        boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 10)],
-      ),
+      style: const ElStyle(opacity: 0.94, boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 10)]),
       child: _inputTagInline(
-        ElTag(
-          type: type,
-          effect: effect,
-          style: _inputTagStyle(compact, style),
-          child: value,
-        ),
+        ElTag(type: type, effect: effect, style: _inputTagStyle(compact, style), child: value),
         height: _inputTagHeight(compact, style),
       ),
     );
@@ -1284,13 +1095,7 @@ class _InputTagCollapseTooltip extends StatelessWidget {
         backgroundColor: context.elTheme.bgColor,
         border: ElBorder.all(borderColor: context.elTheme.borderColorLighter),
         borderRadius: .all(Radius.circular(6)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 16, offset: Offset(0, 6))],
       ),
       child: Wrap(
         spacing: 6,
@@ -1298,12 +1103,7 @@ class _InputTagCollapseTooltip extends StatelessWidget {
         children: [
           for (final value in values)
             _inputTagInline(
-              ElTag(
-                type: type,
-                effect: effect,
-                style: _inputTagStyle(compact, tagStyle),
-                child: value,
-              ),
+              ElTag(type: type, effect: effect, style: _inputTagStyle(compact, tagStyle), child: value),
               height: _inputTagHeight(compact, tagStyle),
             ),
         ],
@@ -1312,21 +1112,11 @@ class _InputTagCollapseTooltip extends StatelessWidget {
   }
 }
 
-Widget _inputTagInline(Widget child, {required double height, Key? key}) =>
-    ElView(
-      key: key,
-      style: ElStyle(
-        widthFactor: 1,
-        height: height,
-        alignment: .center,
-        clipBehavior: Clip.hardEdge,
-      ),
-      child: Row(
-        mainAxisSize: .min,
-        crossAxisAlignment: .center,
-        children: [child],
-      ),
-    );
+Widget _inputTagInline(Widget child, {required double height, Key? key}) => ElView(
+  key: key,
+  style: ElStyle(widthFactor: 1, height: height, alignment: .center, clipBehavior: Clip.hardEdge),
+  child: Row(mainAxisSize: .min, crossAxisAlignment: .center, children: [child]),
+);
 
 double _inputTagHeight(bool compact, ElStyle? style) {
   final height = style?.height;
@@ -1336,9 +1126,7 @@ double _inputTagHeight(bool compact, ElStyle? style) {
 ElStyle _inputTagDropStyle(BuildContext context, bool active) => ElStyle(
   border: active ? ElBorder.all(borderColor: context.elTheme.primary) : null,
   borderRadius: .all(Radius.circular(4)),
-  outline: active
-      ? ElOutline(outlineWidth: 1, outlineColor: context.elTheme.primary, outlineOffset: 1)
-      : null,
+  outline: active ? ElOutline(outlineWidth: 1, outlineColor: context.elTheme.primary, outlineOffset: 1) : null,
 );
 
 ElStyle _inputTagDraftStyle(double height) => ElStyle(
@@ -1361,9 +1149,7 @@ ElStyle _inputTagShellStyle(
 }) {
   final height = elInputControlHeight(compact);
   final radius = BorderRadius.circular(context.elTheme.radiusSm);
-  List<BoxShadow> ring(Color color) => <BoxShadow>[
-    ElBoxShadow(color: color, spreadRadius: 1, inset: true),
-  ];
+  List<BoxShadow> ring(Color color) => <BoxShadow>[ElBoxShadow(color: color, spreadRadius: 1, inset: true)];
   if (disabled) {
     return ElStyle(
       width: '100%',
@@ -1375,6 +1161,7 @@ ElStyle _inputTagShellStyle(
       borderRadius: radius,
       boxShadow: ring(context.elTheme.disabledBorderColor),
       cursor: SystemMouseCursors.forbidden,
+      iconColor: context.elTheme.textPlaceholder,
     );
   }
 
@@ -1393,12 +1180,9 @@ ElStyle _inputTagShellStyle(
     borderRadius: radius,
     boxShadow: ring(base),
     cursor: readOnly ? SystemMouseCursors.basic : SystemMouseCursors.text,
+    iconColor: context.elTheme.textPlaceholder,
     transition: const [
-      ElTransition.field(
-        ElTransitionField.boxShadow,
-        Duration(milliseconds: 200),
-        Cubic(0.645, 0.045, 0.355, 1),
-      ),
+      ElTransition.field(ElTransitionField.boxShadow, Duration(milliseconds: 200), Cubic(0.645, 0.045, 0.355, 1)),
     ],
     onHover: ElStyle(boxShadow: ring(hover)),
     onFocusWithin: ElStyle(boxShadow: ring(focus)),
@@ -1406,8 +1190,5 @@ ElStyle _inputTagShellStyle(
 }
 
 // 输入框中的标签跟随壳密度，个别外观仍由 tagStyle 覆写。
-ElStyle _inputTagStyle(bool compact, ElStyle? override) => ElStyle(
-  height: compact ? 20 : 24,
-  fontSize: 12,
-  padding: .symmetric(horizontal: 8),
-).merge(override);
+ElStyle _inputTagStyle(bool compact, ElStyle? override) =>
+    ElStyle(height: compact ? 20 : 24, fontSize: 12, padding: .symmetric(horizontal: 8)).merge(override);

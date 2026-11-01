@@ -4,7 +4,8 @@ import 'package:flutter_base/ui.dart';
 /// 字体图标、尺寸、颜色和辅助名称的公共声明。
 class ElIcon extends StatelessWidget {
   /// 创建图标配置，字形信息继续使用 Flutter IconData。
-  const ElIcon(this.child, {super.key, this.size, this.color, this.style, this.semanticLabel});
+  const ElIcon(this.child, {super.key, this.size, this.color, this.style, this.semanticLabel})
+    : assert(size == null || (size >= 0 && size < double.infinity));
 
   /// 要展示的字体图标。
   final IconData? child;

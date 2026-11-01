@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
+import '../../cores/glyph.dart';
 
 /// 为通用标签绘制移动端外观，值切换和主入口事件由 ElTag 统一持有。
 Widget tagBuilder(BuildContext context, ElTag component) =>
@@ -106,6 +107,7 @@ class Tag extends StatelessWidget {
                 borderColor: selectable ? (selected ? t.primary : t.borderColor) : Color.lerp(t.cardColor, accent, .18),
               ),
               color: selectable ? (selected ? t.primaryText : t.textSecondary) : accent,
+              iconColor: selectable ? (selected ? t.primaryText : t.textSecondary) : accent,
               backgroundColor: selectable ? (selected ? t.primary : t.cardColor) : Color.lerp(t.cardColor, accent, .1),
               opacity: disabled ? .6 : 1,
               transform: ElTransform.scale(1),
@@ -202,6 +204,8 @@ Widget _commonTag(BuildContext context, ElTag component) {
               ? Color.lerp(background, filled ? const Color(0xff000000) : theme.press, filled ? .14 : 1)
               : background,
           color: foreground,
+          iconColor: foreground,
+          iconSize: 16,
           opacity: component.disabled ? .6 : 1,
           transform: ElTransform.scale(pressed ? .95 : 1),
           transition: reducedMotion(context)
@@ -228,9 +232,10 @@ Widget _commonTag(BuildContext context, ElTag component) {
                 width: 18,
                 height: 18,
                 alignment: .center,
+                iconSize: 14,
                 borderRadius: BorderRadius.all(Radius.circular(9)),
               ).merge(component.closeStyle),
-              child: '×',
+              child: const Glyph(name: 'x'),
             ),
         ],
       ),

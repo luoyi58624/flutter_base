@@ -38,6 +38,7 @@ void main() {
     expect(builders.tagBuilder, isNotNull);
     expect(builders.switchBuilder, isNotNull);
     expect(builders.textBuilder, isNotNull);
+    expect(builders.iconBuilder, isNotNull);
     expect(builders.cardBuilder, isNotNull);
     expect(builders.loadingIndicatorBuilder, isNotNull);
     expect(builders.progressBuilder, isNotNull);
@@ -205,7 +206,7 @@ void main() {
         ElTag.toggle(modelValue: model, disabled: true, closable: true, onClose: () => closes++, child: Text('标签禁用')),
       ),
     );
-    await tester.tap(_view((view) => view.child == '×'), warnIfMissed: false);
+    await tester.tap(find.bySemanticsLabel('关闭标签'), warnIfMissed: false);
     await tester.pump();
     expect(closes, 0);
     expect(model.value, isFalse);

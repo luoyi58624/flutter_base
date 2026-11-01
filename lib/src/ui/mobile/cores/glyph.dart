@@ -2,12 +2,13 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart' show PipelineOwner;
 import 'package:flutter_base/ui.dart';
 
-/// SVG 的绘制读取最近 ElView 已提交的文字色，主题和颜色动画不会重建图标。
+/// SVG 读取最近 ElView 的图标尺寸和颜色，样式过渡直接驱动布局与绘制。
 class Glyph extends LeafRenderObjectWidget {
   /// 内置图标或加载圆弧。
-  const Glyph({super.key, this.name = '', this.spinner = false, this.size = 24});
+  const Glyph({super.key, this.name = '', this.spinner = false});
 
   /// 与Web相同的图标名称。
   final String name;
@@ -15,28 +16,59 @@ class Glyph extends LeafRenderObjectWidget {
   /// 是否绘制加载圆弧。
   final bool spinner;
 
-  /// 目标边长（逻辑像素），实际尺寸仍受父约束限制。
-  final double size;
-
   @override
-  RenderObject createRenderObject(BuildContext context) => _GlyphRender(name, spinner, size);
+  RenderObject createRenderObject(BuildContext context) => _GlyphRender(name, spinner);
 
   @override
   void updateRenderObject(BuildContext context, covariant RenderBox renderObject) =>
-      (renderObject as _GlyphRender).configure(name, spinner, size);
+      (renderObject as _GlyphRender).configure(name, spinner);
 }
 
 class _GlyphRender extends RenderBox {
-  _GlyphRender(this._name, this._spinner, this._extent);
+  _GlyphRender(this._name, this._spinner);
   String _name;
   bool _spinner;
-  double _extent;
+  double _extent = 24;
+  Color _color = const Color(0xff909399);
+  ElRenderView? _host;
+  Listenable? _styleChanges;
 
-  void configure(String name, bool spinner, double extent) {
+  void _styleChanged() {
+    final style = _host?.committedResolvedStyle.inheritedBox;
+    final extent = style?.iconSize ?? 24;
+    final color = style?.iconColor ?? const Color(0xff909399);
     if (_extent != extent) {
       _extent = extent;
       markNeedsLayout();
     }
+    if (_color != color) {
+      _color = color;
+      markNeedsPaint();
+    }
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    for (var ancestor = parent; ancestor != null; ancestor = ancestor.parent) {
+      if (ancestor is ElRenderView) {
+        _host = ancestor;
+        _styleChanges = ancestor.ensureCascadeBridgeChanges()..addListener(_styleChanged);
+        break;
+      }
+    }
+    _styleChanged();
+  }
+
+  @override
+  void detach() {
+    _styleChanges?.removeListener(_styleChanged);
+    _styleChanges = null;
+    _host = null;
+    super.detach();
+  }
+
+  void configure(String name, bool spinner) {
     if (_name == name && _spinner == spinner) return;
     _name = name;
     _spinner = spinner;
@@ -51,15 +83,6 @@ class _GlyphRender extends RenderBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    var ancestor = parent;
-    var color = const Color(0xff17191e);
-    while (ancestor != null) {
-      if (ancestor is ElRenderView && ancestor.currentColorForBuild != null) {
-        color = ancestor.currentColorForBuild!;
-        break;
-      }
-      ancestor = ancestor.parent;
-    }
     final canvas = context.canvas;
     canvas
       ..save()
@@ -67,7 +90,7 @@ class _GlyphRender extends RenderBox {
       ..scale(size.width / 24, size.height / 24);
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = color
+      ..color = _color
       ..strokeWidth = _spinner ? 2.5 : 1.8
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;

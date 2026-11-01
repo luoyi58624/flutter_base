@@ -5,6 +5,7 @@ import 'card/index.dart';
 import 'switch/index.dart';
 import 'tag/index.dart';
 import 'text/index.dart';
+import 'icon/index.dart';
 import 'list_tile/index.dart';
 import 'loading/index.dart';
 import 'progress/index.dart';
@@ -18,6 +19,7 @@ const defaultComponentBuilders = ElComponentBuilders(
   tagBuilder: tagBuilder,
   switchBuilder: switchBuilder,
   textBuilder: textBuilder,
+  iconBuilder: iconBuilder,
   listTileBuilder: listTileBuilder,
   listTileGroupBuilder: listTileGroupBuilder,
   loadingIndicatorBuilder: loadingIndicatorBuilder,

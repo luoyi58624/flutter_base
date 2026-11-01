@@ -52,7 +52,7 @@ class Loading extends StatelessWidget {
   Widget build(BuildContext context) {
     final pixels = extent?.isFinite == true && extent! > 0 ? extent! : size.pixels;
     return ElView(
-      style: style,
+      style: ElStyle(iconSize: pixels).merge(style),
       semantics: ElSemantics(
         container: true,
         properties: SemanticsProperties(
@@ -68,8 +68,6 @@ class Loading extends StatelessWidget {
           ExcludeSemantics(
             child: ElView(
               style: ElStyle(
-                width: pixels,
-                height: pixels,
                 animation: reducedMotion(context)
                     ? const []
                     : [
@@ -84,7 +82,7 @@ class Loading extends StatelessWidget {
                         ),
                       ],
               ),
-              child: Glyph(spinner: true, size: pixels),
+              child: const Glyph(spinner: true),
             ),
           ),
           if (child != null) ElView(style: const ElStyle(fontSize: 13, lineHeight: 1.5), child: child),

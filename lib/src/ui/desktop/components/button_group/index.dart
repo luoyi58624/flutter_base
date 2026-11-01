@@ -14,11 +14,7 @@ part 'render.dart';
 /// Element 按钮组主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class ButtonGroup<D> extends ElFormModelValue<D> {
   ButtonGroup(this.component, {super.key})
-    : super(
-        value: component.value,
-        modelValue: component.modelValue,
-        onChanged: component.onChanged,
-      );
+    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
 
   final ElButtonGroup<D> component;
 
@@ -29,8 +25,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     return switch (component.mode) {
       null => false,
       ElButtonGroupMode.single => $obs.value == value,
-      ElButtonGroupMode.multi =>
-        ($obs.value as Iterable?)?.contains(value) ?? false,
+      ElButtonGroupMode.multi => ($obs.value as Iterable?)?.contains(value) ?? false,
     };
   }
 
@@ -43,23 +38,17 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         // 重复点击选中项 = 清空选择，但**只在 D 可空时**才清——绑定
         // `Obs<int>` 这类非空泛型时写 null 会当场类型崩溃，此时退化为
         // mandatory（静默保持选中）比崩溃合理。想要可清就用 `Obs<int?>`。
-        final clearing =
-            $obs.value == value && !component.mandatory && null is D;
+        final clearing = $obs.value == value && !component.mandatory && null is D;
         // Obs setter 自带相等短路：component.mandatory 下重复点击写入同值 → 静默
         $obs.value = clearing ? (null as D) : (value as D);
       case ElButtonGroupMode.multi:
         final current = $obs.value;
-        assert(
-          current is List || current is Set,
-          'ElButtonGroup.multi 的选中值必须为 List / Set 集合',
-        );
+        assert(current is List || current is Set, 'ElButtonGroup.multi 的选中值必须为 List / Set 集合');
         final has = (current as Iterable).contains(value);
         // 必选模式下不允许清掉最后一个选中项
         if (has && current.length == 1 && component.mandatory) return;
         // toList / toSet 保留调用方元素类型，绑定窄类型时回写不触发协变检查错误
-        final dynamic next = current is Set
-            ? current.toSet()
-            : (current as List).toList();
+        final dynamic next = current is Set ? current.toSet() : (current as List).toList();
         has ? next.remove(value) : next.add(value);
         $obs.value = next as D;
     }
@@ -74,9 +63,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
   /// 按背景明暗取通用对比文字色，背景暗用 textOnDark，背景亮用 textOnLight。
   Color _textOnBackground(BuildContext context, Color background) {
     final dark = background.isDark.brightness == Brightness.dark;
-    return dark
-        ? context.elTheme.textOnDark
-        : context.elTheme.textOnLight;
+    return dark ? context.elTheme.textOnDark : context.elTheme.textOnLight;
   }
 
   @override
@@ -90,23 +77,13 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         flexes: [for (final item in component.children) item.flex ?? 1],
         children: [
           for (var i = 0; i < component.children.length; i++)
-            _buildItem(
-              context,
-              index: i,
-              isFirst: i == 0,
-              isLast: i == component.children.length - 1,
-            ),
+            _buildItem(context, index: i, isFirst: i == 0, isLast: i == component.children.length - 1),
         ],
       ),
     );
   }
 
-  Widget _buildItem(
-    BuildContext context, {
-    required int index,
-    required bool isFirst,
-    required bool isLast,
-  }) {
+  Widget _buildItem(BuildContext context, {required int index, required bool isFirst, required bool isLast}) {
     final item = component.children[index];
     return ElButtonView(
       onPressed: component.disabled || item.disabled
@@ -132,13 +109,10 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
   }
 
   /// 项内容：IconData 升格为图标（尺寸跟密度、颜色继承组内样式），
-  /// Widget 原样托管，其余按文本渲染。
+  /// 图标进入样式通道，其他 Widget 原样托管。
   Widget _buildContent(BuildContext context, Object? child) {
-    if (child is Widget) return child;
-    if (child is IconData) {
-      return ElIcon(child);
-    }
-    return ElView(child: child);
+    final content = elContent(child);
+    return content is Widget ? content : ElView(child: content);
   }
 
   /// 组内按钮的完整外观（自绘，不经过 ElButton）：
@@ -184,10 +158,9 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
       // HSP 按基础主题色判断，避免 hover 变浅时突然翻转亮暗边。
       final seamColor = typeColor == null
           ? const Color(0x00000000)
-          : (typeColor.isDark
-                    ? context.elLightBorderColor(color)
-                    : context.elDarkBorderColor(color))
-                .withValues(alpha: contrast ? 1 : 0);
+          : (typeColor.isDark ? context.elLightBorderColor(color) : context.elDarkBorderColor(color)).withValues(
+              alpha: contrast ? 1 : 0,
+            );
       return _positionBorder(
         context,
         isFirst: isFirst,
@@ -205,22 +178,14 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
       final activeBg = typeColor.elLightOf(.dark, 2);
       final hoverBg = typeColor.elLightOf(.light, 3);
       final disabledBg = typeColor.elLight5(context);
-      final active = ElStyle(
-        backgroundColor: activeBg,
-        border: border(activeBg, contrast: true),
-      );
+      final active = ElStyle(backgroundColor: activeBg, border: border(activeBg, contrast: true));
       return base
           .copyWith(
             color: textColor,
             iconColor: textColor,
             backgroundColor: typeColor,
             border: border(typeColor, contrast: true),
-            onHover: (selected)
-                ? null
-                : ElStyle(
-                  backgroundColor: hoverBg,
-                  border: border(hoverBg, contrast: true),
-                ),
+            onHover: (selected) ? null : ElStyle(backgroundColor: hoverBg, border: border(hoverBg, contrast: true)),
             onTap: selected ? null : active,
 
             onDisabled: ElStyle(
@@ -252,22 +217,15 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
       border: border(borderColor),
       iconColor: context.elTheme.textPlaceholder,
     );
-    final selectedText = typeColor == null
-        ? primary
-        : _textOnBackground(context, typeColor);
+    final selectedText = typeColor == null ? primary : _textOnBackground(context, typeColor);
     ElStyle selectedColor(Color color) => ElStyle(
       color: selectedText,
       backgroundColor: color,
-      border: border(
-        typeColor == null ? primary : color,
-        contrast: typeColor != null,
-      ),
+      border: border(typeColor == null ? primary : color, contrast: typeColor != null),
       iconColor: selectedText,
     );
     final selectedBase = selectedColor(typeColor ?? primary.elLight9(context));
-    final selectedActive = selectedColor(
-      typeColor?.elLightOf(.dark, 2) ?? primary.elLight7(context),
-    );
+    final selectedActive = selectedColor(typeColor?.elLightOf(.dark, 2) ?? primary.elLight7(context));
     return base
         .copyWith(
           color: textColor,
@@ -277,11 +235,11 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
           onHover: (selected)
               ? null
               : ElStyle(
-                color: primary,
-                backgroundColor: primary.elLight9(context),
-                border: border(primary.elLight7(context)),
-                iconColor: primary,
-              ),
+                  color: primary,
+                  backgroundColor: primary.elLight9(context),
+                  border: border(primary.elLight7(context)),
+                  iconColor: primary,
+                ),
           onTap: (selected) ? null : active,
           // 选中态仅承接按压和键盘焦点反馈，悬停保持选中底色。
 
@@ -290,11 +248,7 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
         )
         .merge(
           (selected)
-              ? (selectedBase.copyWith(
-                  onTap: selectedActive,
-                  onFocusVisible: selectedActive,
-                  onDisabled: disabled,
-                ))
+              ? (selectedBase.copyWith(onTap: selectedActive, onFocusVisible: selectedActive, onDisabled: disabled))
               : null,
         );
   }
@@ -311,12 +265,8 @@ class ButtonGroup<D> extends ElFormModelValue<D> {
     if (single) return BorderRadius.all(r);
     return BorderRadius.only(
       topLeft: isFirst ? r : Radius.zero,
-      topRight: horizontal
-          ? (isLast ? r : Radius.zero)
-          : (isFirst ? r : Radius.zero),
-      bottomLeft: horizontal
-          ? (isFirst ? r : Radius.zero)
-          : (isLast ? r : Radius.zero),
+      topRight: horizontal ? (isLast ? r : Radius.zero) : (isFirst ? r : Radius.zero),
+      bottomLeft: horizontal ? (isFirst ? r : Radius.zero) : (isLast ? r : Radius.zero),
       bottomRight: isLast ? r : Radius.zero,
     );
   }

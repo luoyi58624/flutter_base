@@ -8,10 +8,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_base/ui.dart';
 
+import '../../../flutter/components/icon/content.dart';
+
 import 'theme.dart';
 
-/// 内部内容桥接，Widget 原样使用，其余交给 ElView 文本引擎。
-Widget buildContent(Object? child) => child is Widget ? child : ElView(child: child);
+/// 图标接入样式继承，自定义 Widget 原样使用，其余交给 ElView 内容引擎。
+Widget buildContent(Object? child) => buildIconContent(child);
 
 /// 当前平台是否要求减少动态效果。
 bool reducedMotion(BuildContext context) => MediaQuery.maybeOf(context)?.disableAnimations ?? false;

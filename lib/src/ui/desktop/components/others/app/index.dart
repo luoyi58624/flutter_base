@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/src/flutter/components/icon/index.dart' as common show ElIcon;
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 
 import '../../../../../flutter/theme/style.dart';

@@ -2,11 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/material.dart'
-    show
-        DropdownMenuCloseBehavior,
-        DropdownMenuEntry,
-        FilterCallback,
-        SearchCallback;
+    show DropdownMenuCloseBehavior, DropdownMenuEntry, FilterCallback, SearchCallback;
 import 'package:flutter/semantics.dart' show SemanticsProperties, SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -14,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import '../others/app/index.dart';
 import '../icon/index.dart';
 import '../../extensions/el.dart';
+import '../../extensions/content.dart';
 import '../input/metrics.dart';
 
 part 'panel.dart';
@@ -28,9 +25,7 @@ part 'panel.dart';
 class Select<T> extends ElInputModelValue<T> {
   Select(this.component, {super.key})
     : super(
-        value:
-            component.value ??
-            (component.modelValue == null ? component.initialSelection : null),
+        value: component.value ?? (component.modelValue == null ? component.initialSelection : null),
         modelValue: component.modelValue,
         onChanged: component.onChanged,
       );
@@ -55,8 +50,7 @@ class Select<T> extends ElInputModelValue<T> {
   FilterCallback<T>? get filterCallback => component.filterCallback;
   // ignore: deprecated_member_use -- 保留既有搜索回调兼容入口。
   bool get enableSearch => component.enableSearch;
-  bool Function(ElLabelModel<T> option, String query)? get optionFilter =>
-      component.optionFilter;
+  bool Function(ElLabelModel<T> option, String query)? get optionFilter => component.optionFilter;
   SearchCallback<T>? get searchCallback => component.searchCallback;
   ElStyle? get panelStyle => component.panelStyle;
   T? get initialSelection => component.initialSelection;
@@ -109,19 +103,11 @@ class Select<T> extends ElInputModelValue<T> {
 }
 
 class _ResolvedSelectOption<T> {
-  const _ResolvedSelectOption({
-    required this.source,
-    required this.index,
-    required this.label,
-    required this.value,
-  });
+  const _ResolvedSelectOption({required this.source, required this.index, required this.label, required this.value});
 
   final ElLabelModel<T> source;
-  bool get disabled =>
-      source is ElSelectOption<T> && (source as ElSelectOption<T>).disabled;
-  Object get content => source is ElSelectOption<T>
-      ? (source as ElSelectOption<T>).content
-      : label;
+  bool get disabled => source is ElSelectOption<T> && (source as ElSelectOption<T>).disabled;
+  Object get content => source is ElSelectOption<T> ? (source as ElSelectOption<T>).content : label;
   final int index;
   final String label;
   final T value;
@@ -157,20 +143,15 @@ bool _isSelectOverlayControlKey(LogicalKeyboardKey key) =>
 
 bool _hasSelectOverlayModifier() {
   final keyboard = HardwareKeyboard.instance;
-  return keyboard.isControlPressed ||
-      keyboard.isMetaPressed ||
-      keyboard.isAltPressed;
+  return keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed;
 }
 
-List<_ResolvedSelectOption<T>> _resolveSelectOptions<T>(
-  List<ElLabelModel<T>> children,
-) {
+List<_ResolvedSelectOption<T>> _resolveSelectOptions<T>(List<ElLabelModel<T>> children) {
   final result = <_ResolvedSelectOption<T>>[];
   for (var index = 0; index < children.length; index++) {
     final option = children[index];
     final label = option.label;
-    if (label == null ||
-        (label.trim().isEmpty && option is! ElSelectOption<T>)) {
+    if (label == null || (label.trim().isEmpty && option is! ElSelectOption<T>)) {
       throw FlutterError('ElSelect children[$index] 的 label 必须是非空字符串。');
     }
     final rawValue = option.value;
@@ -186,38 +167,19 @@ List<_ResolvedSelectOption<T>> _resolveSelectOptions<T>(
       );
     }
     if (result.any((item) => item.value == value)) {
-      throw FlutterError(
-        'ElSelect option value 必须唯一，children[$index] 与更早选项重复：$value。',
-      );
+      throw FlutterError('ElSelect option value 必须唯一，children[$index] 与更早选项重复：$value。');
     }
-    result.add(
-      _ResolvedSelectOption<T>(
-        source: option,
-        index: index,
-        label: label,
-        value: value,
-      ),
-    );
+    result.add(_ResolvedSelectOption<T>(source: option, index: index, label: label, value: value));
   }
   return result;
 }
 
-List<DropdownMenuEntry<T>> _materialEntries<T>(
-  List<_ResolvedSelectOption<T>> options,
-) {
-  return [
-    for (final option in options)
-      DropdownMenuEntry<T>(value: option.value, label: option.label),
-  ];
+List<DropdownMenuEntry<T>> _materialEntries<T>(List<_ResolvedSelectOption<T>> options) {
+  return [for (final option in options) DropdownMenuEntry<T>(value: option.value, label: option.label)];
 }
 
 class _ElSelectBody<T> extends StatefulWidget {
-  const _ElSelectBody({
-    required this.config,
-    required this.value,
-    required this.onSelected,
-    required this.onBlur,
-  });
+  const _ElSelectBody({required this.config, required this.value, required this.onSelected, required this.onBlur});
 
   final Select<T> config;
   final T value;
@@ -233,8 +195,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   // Portal 冻结会话入口，候选内容通过独立值通道跟随输入和键盘状态。
   final _panel = ValueNotifier<Widget>(const SizedBox.shrink());
   final ElInputController _inputControl = ElInputController();
-  final _ElSelectScrollController _ownScrollController =
-      _ElSelectScrollController();
+  final _ElSelectScrollController _ownScrollController = _ElSelectScrollController();
   final Object _semanticsIdentity = Object();
   late final FocusNode _ownFocusNode;
   ElEditableController? _listenedController;
@@ -255,19 +216,15 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   FocusNode? _nonFilterKeyNode;
   FocusOnKeyEventCallback? _previousNonFilterKeyHandler;
 
-  late final FocusOnKeyEventCallback _nonFilterKeyHandler =
-      _handleNonFilterKeyEvent;
+  late final FocusOnKeyEventCallback _nonFilterKeyHandler = _handleNonFilterKeyEvent;
 
   FocusNode get _focusNode => widget.config.focusNode ?? _ownFocusNode;
 
-  ScrollController get _scrollController =>
-      widget.config.scrollController ?? _ownScrollController;
+  ScrollController get _scrollController => widget.config.scrollController ?? _ownScrollController;
 
-  String get _panelSemanticsIdentifier =>
-      'el-select-options-${identityHashCode(_semanticsIdentity)}';
+  String get _panelSemanticsIdentifier => 'el-select-options-${identityHashCode(_semanticsIdentity)}';
 
-  List<_ResolvedSelectOption<T>> get _options =>
-      _resolveSelectOptions(widget.config.children);
+  List<_ResolvedSelectOption<T>> get _options => _resolveSelectOptions(widget.config.children);
 
   List<_ResolvedSelectOption<T>> get _filteredOptions {
     final options = _options;
@@ -311,8 +268,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   @override
   void didUpdateWidget(_ElSelectBody<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final focusNodeChanged =
-        widget.config.focusNode != oldWidget.config.focusNode;
+    final focusNodeChanged = widget.config.focusNode != oldWidget.config.focusNode;
     final focusModeChanged =
         widget.config.enableFilter != oldWidget.config.enableFilter ||
         widget.config.enabled != oldWidget.config.enabled;
@@ -349,9 +305,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     }
     if (!focusNodeChanged || _focusNode.hasFocus) {
       _correctActive(
-        preferSelected:
-            widget.value != oldWidget.value ||
-            widget.config.children != oldWidget.config.children,
+        preferSelected: widget.value != oldWidget.value || widget.config.children != oldWidget.config.children,
       );
     }
   }
@@ -400,10 +354,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   }
 
   KeyEventResult _handleNonFilterKeyEvent(FocusNode node, KeyEvent event) {
-    if (!mounted ||
-        widget.config.enableFilter ||
-        !widget.config.enabled ||
-        !identical(node, _focusNode)) {
+    if (!mounted || widget.config.enableFilter || !widget.config.enabled || !identical(node, _focusNode)) {
       return KeyEventResult.ignored;
     }
     // ElView wrapper 与自身 handler 可能互相链成环（双方都把对方记作 previous），
@@ -425,17 +376,12 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     }
     final result = _handleKeyEvent(node, event);
     if (result != KeyEventResult.ignored) return result;
-    if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
-        event.logicalKey == LogicalKeyboardKey.tab) {
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) && event.logicalKey == LogicalKeyboardKey.tab) {
       final keyboard = HardwareKeyboard.instance;
-      if (keyboard.isControlPressed ||
-          keyboard.isMetaPressed ||
-          keyboard.isAltPressed) {
+      if (keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed) {
         return KeyEventResult.ignored;
       }
-      final moved = keyboard.isShiftPressed
-          ? node.previousFocus()
-          : node.nextFocus();
+      final moved = keyboard.isShiftPressed ? node.previousFocus() : node.nextFocus();
       return moved ? KeyEventResult.handled : KeyEventResult.ignored;
     }
     return KeyEventResult.ignored;
@@ -454,8 +400,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   void _handleEditableVisualChanged() => _syncImeComposing();
 
   void _syncImeComposing() {
-    final composing =
-        _inputControl.controller?.hasActiveImeComposition ?? false;
+    final composing = _inputControl.controller?.hasActiveImeComposition ?? false;
     if (!mounted || composing == _imeComposing) return;
     setState(() => _imeComposing = composing);
   }
@@ -498,10 +443,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       // FocusManager 正在应用本次 unfocus，同步 request 会被后续状态
       // 覆盖；微任务里再交回可确保快按与慢按都保持 trigger 聚焦。
       scheduleMicrotask(() {
-        if (!mounted ||
-            session != _focusSession ||
-            !identical(focusNode, _focusNode) ||
-            !widget.config.enabled) {
+        if (!mounted || session != _focusSession || !identical(focusNode, _focusNode) || !widget.config.enabled) {
           return;
         }
         focusNode.requestFocus();
@@ -516,9 +458,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     // 状态关闭 Portal；blur 仍按每次真实边沿通知，不能被立即回焦吞掉。
     scheduleMicrotask(() {
       scheduleMicrotask(() {
-        if (!mounted ||
-            session != _focusSession ||
-            !identical(focusNode, _focusNode)) {
+        if (!mounted || session != _focusSession || !identical(focusNode, _focusNode)) {
           return;
         }
         if (!focusNode.hasFocus) {
@@ -539,27 +479,20 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   }
 
   void _correctActive({required bool preferSelected}) {
-    final filtered = _filteredOptions
-        .where((option) => !option.disabled)
-        .toList();
+    final filtered = _filteredOptions.where((option) => !option.disabled).toList();
     if (filtered.isEmpty) {
       _activeIndex = null;
       return;
     }
     final search = widget.config.searchCallback;
-    if (!preferSelected &&
-        widget.config.enableSearch &&
-        _query.isNotEmpty &&
-        search != null) {
+    if (!preferSelected && widget.config.enableSearch && _query.isNotEmpty && search != null) {
       final index = search(_materialEntries(filtered), _query);
       if (index != null && index >= 0 && index < filtered.length) {
         _activeIndex = filtered[index].index;
         return;
       }
     }
-    final selected = filtered
-        .where((option) => option.value == widget.value)
-        .firstOrNull;
+    final selected = filtered.where((option) => option.value == widget.value).firstOrNull;
     if (preferSelected && selected != null) {
       _activeIndex = selected.index;
       return;
@@ -617,15 +550,12 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   KeyEventResult _handleKeyEvent(FocusNode _, KeyEvent event) {
     final key = event.logicalKey;
     final overlayControlKey = _isSelectOverlayControlKey(key);
-    if ((_inputControl.controller?.hasActiveImeComposition ?? false) &&
-        overlayControlKey) {
+    if ((_inputControl.controller?.hasActiveImeComposition ?? false) && overlayControlKey) {
       return KeyEventResult.skipRemainingHandlers;
     }
     if (event is KeyUpEvent) return KeyEventResult.ignored;
     if (_hasSelectOverlayModifier() && overlayControlKey) {
-      return key == LogicalKeyboardKey.escape
-          ? KeyEventResult.skipRemainingHandlers
-          : KeyEventResult.ignored;
+      return key == LogicalKeyboardKey.escape ? KeyEventResult.skipRemainingHandlers : KeyEventResult.ignored;
     }
     if (key == LogicalKeyboardKey.tab) {
       _portal.close();
@@ -637,8 +567,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       return KeyEventResult.handled;
     }
 
-    if (key == LogicalKeyboardKey.arrowDown ||
-        key == LogicalKeyboardKey.arrowUp) {
+    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
       if (!_portal.isOpen) {
         _open();
       } else {
@@ -646,8 +575,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       }
       return KeyEventResult.handled;
     }
-    if (_portal.isOpen &&
-        (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
+    if (_portal.isOpen && (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
       _moveToEdge(end: key == LogicalKeyboardKey.end);
       return KeyEventResult.handled;
     }
@@ -668,33 +596,23 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   }
 
   void _moveActive(int delta) {
-    final options = _filteredOptions
-        .where((option) => !option.disabled)
-        .toList();
+    final options = _filteredOptions.where((option) => !option.disabled).toList();
     if (options.isEmpty) return;
-    final current = options.indexWhere(
-      (option) => option.index == _activeIndex,
-    );
-    final next = current < 0
-        ? (delta > 0 ? 0 : options.length - 1)
-        : (current + delta).clamp(0, options.length - 1);
+    final current = options.indexWhere((option) => option.index == _activeIndex);
+    final next = current < 0 ? (delta > 0 ? 0 : options.length - 1) : (current + delta).clamp(0, options.length - 1);
     setState(() => _activeIndex = options[next].index);
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
   }
 
   void _moveToEdge({required bool end}) {
-    final options = _filteredOptions
-        .where((option) => !option.disabled)
-        .toList();
+    final options = _filteredOptions.where((option) => !option.disabled).toList();
     if (options.isEmpty) return;
     setState(() => _activeIndex = (end ? options.last : options.first).index);
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
   }
 
   void _selectActive() {
-    final active = _filteredOptions
-        .where((option) => option.index == _activeIndex)
-        .firstOrNull;
+    final active = _filteredOptions.where((option) => option.index == _activeIndex).firstOrNull;
     if (active == null) return;
     _select(active);
   }
@@ -712,25 +630,16 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     final controller = _scrollController;
     if (!controller.hasClients) return;
     final options = _filteredOptions;
-    final position = options.indexWhere(
-      (option) => option.index == _activeIndex,
-    );
+    final position = options.indexWhere((option) => option.index == _activeIndex);
     if (position < 0) return;
     final itemHeight = _selectOptionHeight(_compact);
     final start = position * itemHeight;
     final end = start + itemHeight;
     final metrics = controller.position;
     if (start < metrics.pixels) {
-      metrics.jumpTo(
-        start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent),
-      );
+      metrics.jumpTo(start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     } else if (end > metrics.pixels + metrics.viewportDimension) {
-      metrics.jumpTo(
-        (end - metrics.viewportDimension).clamp(
-          metrics.minScrollExtent,
-          metrics.maxScrollExtent,
-        ),
-      );
+      metrics.jumpTo((end - metrics.viewportDimension).clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     }
   }
 
@@ -746,27 +655,26 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
   Widget? _trailing(double iconSize) {
     if (!widget.config.showTrailingIcon) return null;
     if (_portal.isOpen) {
-      return widget.config.selectedTrailingIcon ??
-          ElIcon(ElIcons.arrowUp, size: iconSize);
+      return elContent(
+        widget.config.selectedTrailingIcon ?? ElIcon(ElIcons.arrowUp, size: iconSize),
+        iconSize: iconSize,
+      ) as Widget;
     }
-    return widget.config.trailingIcon ??
-        ElIcon(ElIcons.arrowDown, size: iconSize);
+    return elContent(widget.config.trailingIcon ?? ElIcon(ElIcons.arrowDown, size: iconSize), iconSize: iconSize)
+        as Widget;
   }
 
   @override
   Widget build(BuildContext context) {
     final config = widget.config;
-    final inputText = config.enableFilter && _portal.isOpen
-        ? _query
-        : _selectedLabel;
+    final inputText = config.enableFilter && _portal.isOpen ? _query : _selectedLabel;
     _renderedFieldText = inputText;
     final panelOptions = _filteredOptions;
     final activeIndex = _activeIndex;
     final menuHeight = config.menuHeight;
     final scrollController = _scrollController;
     final compact = _compact;
-    final inputIconSize =
-        config.style?.iconSize ?? elInputDefaultIconSize(compact);
+    final inputIconSize = config.style?.iconSize ?? elInputDefaultIconSize(compact);
     final panelStyle = config.panelStyle;
     final optionStyle = config.optionStyle;
     final onSelected = _select;
@@ -774,14 +682,10 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       style: ElStyle(width: config.width ?? 240),
 
       event: !config.enabled
-          ? ((config.enabled
-                        ? ElEvent(onTap: (_) => _toggleFromPointer())
-                        : null) ??
-                    ElEvent())
-                .copyWith(disabled: true)
-          : (config.enabled
-                ? ElEvent(onTap: (_) => _toggleFromPointer())
-                : null),
+          ? ((config.enabled ? ElEvent(onTap: (_) => _toggleFromPointer()) : null) ?? ElEvent()).copyWith(
+              disabled: true,
+            )
+          : (config.enabled ? ElEvent(onTap: (_) => _toggleFromPointer()) : null),
       // 非筛选 trigger 自己处理 Tab（见 _handleNonFilterKeyEvent），不参与
       // ElView 默认 Tab 遍历；筛选态由输入框内部处理，不继承本开关。
       focusNode: config.enabled && !config.enableFilter ? _focusNode : null,
@@ -794,9 +698,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
           enabled: config.enabled,
           readOnly: !config.enabled || !config.enableFilter,
           controlsNodes: <String>{_panelSemanticsIdentifier},
-          onExpand: config.enabled && !_portal.isOpen
-              ? _expandFromSemantics
-              : null,
+          onExpand: config.enabled && !_portal.isOpen ? _expandFromSemantics : null,
           onCollapse: _portal.isOpen ? _collapseFromSemantics : null,
         ),
       ),
@@ -844,10 +746,7 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
       controller: _portal,
       anchor: config.anchor,
       exitDuration: _selectMenuExitDuration,
-      overlayBuilder: (_) => ValueListenableBuilder<Widget>(
-        valueListenable: _panel,
-        builder: (_, panel, _) => panel,
-      ),
+      overlayBuilder: (_) => ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
       closeOnEscape: !_imeComposing,
       hideWhenUnlinked: true,
       child: trigger,

@@ -160,6 +160,12 @@ class Button extends StatelessWidget {
         ? t.borderColor
         : const Color(0x00000000);
     final noFeedback = disabled || loading;
+    final glyphSize = switch (variant) {
+      ButtonVariant.icon || ButtonVariant.bare => 19.0,
+      ButtonVariant.round => 17.0,
+      ButtonVariant.link => 14.0,
+      _ => 16.0,
+    };
     var buttonStyle = ElStyle(
       minHeight: 44,
       widthFactor: 1,
@@ -182,6 +188,8 @@ class Button extends StatelessWidget {
       softWrap: false,
       backgroundColor: disabled && variant != ButtonVariant.bare ? t.fill : background,
       color: disabled && !(variant == ButtonVariant.icon && selected == true) ? t.textSecondary : foreground,
+      iconColor: disabled && !(variant == ButtonVariant.icon && selected == true) ? t.textSecondary : foreground,
+      iconSize: glyphSize,
       fontSize: variant == ButtonVariant.link ? 14 : 15,
       fontWeight: textWeight(t.fontWeightAction),
       border: ElBorder.all(borderWidth: variant == ButtonVariant.link ? 0 : 1, borderColor: border),
@@ -217,25 +225,13 @@ class Button extends StatelessWidget {
       // 正圆是形状约束，显式高度覆盖后仍保持宽高相同。
       buttonStyle = buttonStyle.copyWith(width: buttonStyle.height);
     }
-    final glyphSize = switch (variant) {
-      ButtonVariant.icon || ButtonVariant.bare => 19.0,
-      ButtonVariant.round => 17.0,
-      ButtonVariant.link => 14.0,
-      _ => 16.0,
-    };
     final content = component != null
         ? _commonContent(component)
         : Row(
             mainAxisSize: MainAxisSize.min,
             spacing: icon != null && child != null ? (variant == ButtonVariant.link ? 6 : 7) : 0,
             children: [
-              if (icon != null)
-                ExcludeSemantics(
-                  child: ElView(
-                    style: ElStyle(width: glyphSize, height: glyphSize),
-                    child: Glyph(name: icon!),
-                  ),
-                ),
+              if (icon != null) ExcludeSemantics(child: Glyph(name: icon!)),
               if (child != null) buildContent(child),
             ],
           );
@@ -335,6 +331,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
         ? selectedBackground
         : background,
     color: component.disabled ? theme.textSecondary : foreground,
+    iconColor: component.disabled ? theme.textSecondary : foreground,
     border: ElBorder.all(
       borderWidth: flat ? 0 : 1,
       borderColor: component.disabled

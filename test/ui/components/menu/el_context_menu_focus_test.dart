@@ -8,6 +8,43 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 上下文菜单行为基座：焦点循环、字符定位、子菜单交接与关闭归还。
 void main() {
+  testWidgets('无品牌宿主时菜单图标与子菜单箭头仍走 ElStyle 字形通道', (tester) async {
+    final icon = IconData(0x41, fontFamily: 'Ahem');
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: .ltr,
+        child: Center(
+          child: ElView(
+            style: ElStyle(iconColor: Color(0xff123456)),
+            child: Builder(
+              builder: (context) => Row(
+                mainAxisSize: .min,
+                children: [
+                  _HeadlessMenu().buildIcon(context, icon, size: 18)!,
+                  _HeadlessMenu().buildTrailing(
+                    context,
+                    ElContextMenuItem(
+                      label: '父项',
+                      children: [ElContextMenuItem(label: '子项')],
+                    ),
+                  )!,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final glyphs = find.byWidgetPredicate((widget) => widget is ElView && widget.child is IconData);
+    expect(glyphs, findsNWidgets(2));
+    expect(tester.getSize(glyphs.first), Size.square(18));
+    expect(tester.getSize(glyphs.last), Size.square(15));
+    for (final element in glyphs.evaluate()) {
+      expect((element.renderObject as ElRenderView).committedResolvedStyle.inheritedBox.iconColor, Color(0xff123456));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   const anchorKey = ValueKey<String>('anchor');
 
   Widget app(FocusNode anchorNode, {TextDirection direction = TextDirection.ltr}) {

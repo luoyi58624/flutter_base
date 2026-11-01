@@ -308,10 +308,10 @@ class _ListRadioClient with RadioClient<Object?> {
 
 Widget _content(Object? value, double size) => IgnorePointer(
   child: ExcludeFocus(
-    child: value is IconData
+    child: value is IconData || value is Icon
         ? ElView(
             style: ElStyle(iconSize: size),
-            child: value,
+            child: buildContent(value),
           )
         : buildContent(value),
   ),
@@ -339,7 +339,7 @@ Widget _selectionMark(BuildContext context, bool selected, ElModelValueType mode
         ),
         backgroundColor: selected && !radio ? theme.primary : null,
       ),
-      child: selected && !radio ? Icon(CupertinoIcons.check_mark, size: 16, color: theme.primaryText) : null,
+      child: selected && !radio ? ElIcon(CupertinoIcons.check_mark, size: 16, color: theme.primaryText) : null,
     ),
   );
 }

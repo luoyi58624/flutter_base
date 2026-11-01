@@ -29,6 +29,7 @@ ElMobileTheme(
 | ElTag | 已接入 | 公共宿主持有切换；纯视觉 Builder 提供标签和独立关闭入口 |
 | ElSwitch | 已接入 | bool / notifier / 表单字段绑定，以及尺寸、颜色、内容、加载与事件 |
 | ElText | 已接入 | 全部 Text 参数原样转交，继承 ElMobileTheme 默认字体 |
+| ElIcon | 已接入 | 字体图标的颜色、尺寸、状态和主题过渡均走 ElStyle 继承，不读取 IconTheme |
 | ElCard | 已接入 | Widget 正文、style 外观、阴影档位、整卡点击、详细事件和加载状态 |
 | ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |
 | ElListGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
@@ -37,7 +38,7 @@ ElMobileTheme(
 | ElSkeleton | 已接入 | Web 行数及头像占位、减少动画与正文实例保留 |
 | ElSlider | 已接入 | 连续跟手与离散业务值分离，触屏抬起提交、范围交叉、刻度与键盘操作 |
 | ButtonGroup / Checkbox / Radio / Input / InputNumber / InputOtp / InputTag / Select / Autocomplete / Mention | 等待实现 | 当前没有对应移动端 Flutter 实现，未登记 Builder |
-| Avatar / Icon / Empty / Alert / Steps / Segmented / Collapse / Tabs / Calendar / Slider | 等待实现 | 仅提供已收敛的共同接口，未登记占位布局 |
+| Avatar / Empty / Alert / Steps / Segmented / Collapse / Tabs / Calendar / Slider | 等待实现 | 仅提供已收敛的共同接口，未登记占位布局 |
 
 `ElMobileTheme.componentBuilders` 在内部默认配置上合并非空覆写。每个 ElMobileTheme 安装自己的完整品牌配置，未实现项不会隐式借用祖先桌面实现。
 

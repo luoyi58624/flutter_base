@@ -417,10 +417,10 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
                 width: 17,
                 height: 17,
                 child: back
-                    ? Icon(CupertinoIcons.chevron_back, size: 17, color: theme.primary)
+                    ? ElIcon(CupertinoIcons.chevron_back, size: 17, color: theme.primary)
                     : children.isNotEmpty
-                    ? const Icon(CupertinoIcons.chevron_up_chevron_down, size: 17)
-                    : Opacity(opacity: selected ? 1 : 0, child: const Icon(CupertinoIcons.check_mark, size: 17)),
+                    ? const ElIcon(CupertinoIcons.chevron_up_chevron_down, size: 17)
+                    : Opacity(opacity: selected ? 1 : 0, child: const ElIcon(CupertinoIcons.check_mark, size: 17)),
               ),
             ),
           ),

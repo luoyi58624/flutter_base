@@ -6,7 +6,7 @@ Widget _builderSuffixIcon(ValueNotifier<bool> expanded) {
     duration: ElCollapseAnimation.defaultDuration,
     curve: ElCollapseAnimation.defaultCurve,
     turns: expanded.value ? 0.5 : 0,
-    child: Icon(ElIcons.arrowDown, size: 14),
+    child: const ElIcon(ElIcons.arrowDown, size: 14),
   );
 }
 
@@ -45,11 +45,7 @@ class ElNavMenu<T> extends ElModelValue<String> {
     this.iconGap = 8.0,
     this.nestGap = 20.0,
     this.suffixIconBuilder = _builderSuffixIcon,
-  }) : super(
-         key: key,
-         value: children.isNotEmpty ? children.first.key : '',
-         onChanged: onChanged,
-       );
+  }) : super(key: key, value: children.isNotEmpty ? children.first.key : '', onChanged: onChanged);
 
   /// 菜单模型集合
   final List<ElMenuModel<T>> children;
@@ -79,15 +75,10 @@ class ElNavMenu<T> extends ElModelValue<String> {
       builder: (context) {
         // Hook 在路由代理替换、置空和卸载时自动解除旧监听。
         final delegate = useListenable(router?.routerDelegate);
-        final activeKey = delegate == null
-            ? $obs.value
-            : delegate.currentConfiguration?.uri.path as String?;
+        final activeKey = delegate == null ? $obs.value : delegate.currentConfiguration?.uri.path as String?;
         final activeKeys = activeKey == null || activeKey.isEmpty
             ? <String>{}
-            : ElNestModel.findKeyPath(
-                children,
-                activeKey,
-              ).map((e) => e.key).toSet();
+            : ElNestModel.findKeyPath(children, activeKey).map((e) => e.key).toSet();
         final theme = context.elTheme;
         final compact = context.elComponentCompact(style);
         final background = style?.backgroundColor ?? theme.bgColor;
@@ -104,11 +95,7 @@ class ElNavMenu<T> extends ElModelValue<String> {
           userSelect: .none,
           onHover: ElStyle(backgroundColor: background.deepen(8)),
           transition: const [
-            .field(
-              ElTransitionField.backgroundColor,
-              Duration(milliseconds: 50),
-              Curves.easeOut,
-            ),
+            .field(ElTransitionField.backgroundColor, Duration(milliseconds: 50), Curves.easeOut),
             .fields(
               {ElTransitionField.color, ElTransitionField.iconColor},
               Duration(milliseconds: 150),
@@ -197,31 +184,17 @@ class _MenuItem<T> extends HookWidget {
         mergeDescendants: true,
         onTap: activate,
       ),
-      // 原生 Icon 不读取 ElStyle，模型图标与默认后缀需要同步 Flutter 图标主题。
-      child: IconTheme(
-        data: IconThemeData(
-          size: itemStyle.iconSize,
-          color: itemStyle.iconColor,
-        ),
-        child: Row(
-          children: [
-            if (item.icon != null) ...[
-              item.icon!,
-              SizedBox(width: menu.iconGap),
-            ],
-            Expanded(
-              child: ElView(
-                style: const ElStyle(
-                  maxLines: 1,
-                  softWrap: false,
-                  textOverflow: .ellipsis,
-                ),
-                child: item.title,
-              ),
+      child: Row(
+        children: [
+          if (item.icon != null) ...[elContent(item.icon) as Widget, SizedBox(width: menu.iconGap)],
+          Expanded(
+            child: ElView(
+              style: const ElStyle(maxLines: 1, softWrap: false, textOverflow: .ellipsis),
+              child: item.title,
             ),
-            if (hasChildren) menu.suffixIconBuilder(expanded),
-          ],
-        ),
+          ),
+          if (hasChildren) elContent(menu.suffixIconBuilder(expanded)) as Widget,
+        ],
       ),
     );
 

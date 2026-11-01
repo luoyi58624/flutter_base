@@ -111,10 +111,8 @@ void main() {
         skin.ButtonVariant.link => 14.0,
         _ => 16.0,
       };
-      expect(
-        views(find.byType(skin.Button), (v) => v.style?.width == iconSize && v.style?.height == iconSize),
-        findsOneWidget,
-      );
+      final glyph = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == 'Glyph');
+      expect(tester.getSize(glyph), Size.square(iconSize));
       expect(tester.takeException(), null);
     });
   }
@@ -532,7 +530,7 @@ void main() {
   for (final size in skin.LoadingSize.values) {
     testWidgets('Loading ${size.name} 尺寸与status语义', (tester) async {
       await tester.pumpWidget(shell(skin.Loading(size: size)));
-      final icon = views(find.byType(skin.Loading), (v) => v.style?.width == size.pixels);
+      final icon = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == 'Glyph');
       expect(tester.getSize(icon), Size.square(size.pixels));
       final node = tester.getSemantics(find.byType(skin.Loading));
       expect(node.getSemanticsData().role, SemanticsRole.loadingSpinner);

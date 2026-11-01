@@ -17,9 +17,7 @@ ElStyle _inputShellStyle(
 }) {
   final boxSize = elInputControlHeight(compact);
   final radius = BorderRadius.circular(c.elTheme.radiusSm);
-  List<BoxShadow> ring(Color color) => [
-    ElBoxShadow(color: color, spreadRadius: 1, inset: true),
-  ];
+  List<BoxShadow> ring(Color color) => [ElBoxShadow(color: color, spreadRadius: 1, inset: true)];
 
   if (isDisabled) {
     return ElStyle(
@@ -31,6 +29,7 @@ ElStyle _inputShellStyle(
       borderRadius: radius,
       boxShadow: ring(c.elTheme.borderColorLight),
       fontSize: fontSize,
+      iconColor: c.elTheme.textPlaceholder,
       lineHeight: elInputLineHeightFactor,
       leadingDistribution: .even,
       textBaseline: .alphabetic,
@@ -40,8 +39,7 @@ ElStyle _inputShellStyle(
 
   final danger = hasError ? c.elTheme.error : null;
   final baseRing = danger ?? c.elTheme.borderColor;
-  final hoverRing =
-      danger ?? (c.isDark ? const Color(0xff8d9095) : const Color(0xffc0c4cc));
+  final hoverRing = danger ?? (c.isDark ? const Color(0xff8d9095) : const Color(0xffc0c4cc));
   final focusRing = danger ?? c.elTheme.primary;
 
   return ElStyle(
@@ -53,13 +51,11 @@ ElStyle _inputShellStyle(
     borderRadius: radius,
     boxShadow: ring(baseRing),
     transition: const [
-      ElTransition.field(
-        ElTransitionField.boxShadow,
-        Duration(milliseconds: 200),
-        Cubic(0.645, 0.045, 0.355, 1),
-      ),
+      ElTransition.field(ElTransitionField.boxShadow, Duration(milliseconds: 200), Cubic(0.645, 0.045, 0.355, 1)),
     ],
     fontSize: fontSize,
+    // 默认图标色放在壳上，前后缀继承状态样式，用户 style 与 affixStyle 仍可覆写。
+    iconColor: c.elTheme.textPlaceholder,
     lineHeight: elInputLineHeightFactor,
     leadingDistribution: .even,
     textBaseline: .alphabetic,

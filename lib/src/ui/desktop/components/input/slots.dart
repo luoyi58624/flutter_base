@@ -1,7 +1,6 @@
 part of 'index.dart';
 
-Color _placeholderColor(BuildContext c) =>
-    c.isDark ? const Color(0xff8d9095) : const Color(0xffa8abb2);
+Color _placeholderColor(BuildContext c) => c.isDark ? const Color(0xff8d9095) : const Color(0xffa8abb2);
 
 /// placeholder：垫底层（editable 盖其上接管命中），空文档才挂载。
 class _InputPlaceholder extends StatelessWidget {
@@ -40,19 +39,12 @@ class _InputPlaceholder extends StatelessWidget {
 
 /// nowrap editable 会在物理右侧预留 `caretWidth + 2`，投影层必须使用
 /// 同一排版宽度；textarea 的 wrap 行不预留该空间。
-EdgeInsetsGeometry _inputProjectionPadding(bool textarea) =>
-    textarea ? EdgeInsets.zero : EdgeInsets.only(right: 3.5);
+EdgeInsetsGeometry _inputProjectionPadding(bool textarea) => textarea ? EdgeInsets.zero : EdgeInsets.only(right: 3.5);
 
 /// 前后缀宽容输入：内容始终被固定正方形槽约束并裁剪，任意 Widget 都不能
 /// 把单行 Row 撑高；IconData 使用当前密度的图标尺寸。
 class _InputAffix extends StatelessWidget {
-  const _InputAffix(
-    this.content, {
-    required this.slotKey,
-    required this.iconSize,
-    required this.extent,
-    this.style,
-  });
+  const _InputAffix(this.content, {required this.slotKey, required this.iconSize, required this.extent, this.style});
 
   final ElStyle? style;
   final Object? content;
@@ -65,6 +57,8 @@ class _InputAffix extends StatelessWidget {
     final Widget child;
     if (content is IconData) {
       child = ElIcon(content as IconData, size: iconSize);
+    } else if (content is Icon) {
+      child = elContent(content, iconSize: iconSize) as Widget;
     } else if (content is Widget) {
       child = content as Widget;
     } else {
@@ -77,7 +71,6 @@ class _InputAffix extends StatelessWidget {
         height: extent,
         alignment: .center,
         clipBehavior: Clip.hardEdge,
-        iconColor: c.elTheme.textPlaceholder,
       ).merge(_resolveInputStyle(c, style)))(context),
       child: child,
     );
@@ -86,11 +79,7 @@ class _InputAffix extends StatelessWidget {
 
 /// 条件动作的稳定占位；显隐只替换槽内 child，不改变正文可用宽度。
 class _InputActionSlot extends StatelessWidget {
-  const _InputActionSlot({
-    required this.slotKey,
-    required this.extent,
-    required this.child,
-  });
+  const _InputActionSlot({required this.slotKey, required this.extent, required this.child});
 
   final Key slotKey;
   final double extent;
@@ -99,12 +88,7 @@ class _InputActionSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ElView(
     key: slotKey,
-    style: ElStyle(
-      width: extent,
-      height: extent,
-      alignment: .center,
-      clipBehavior: Clip.hardEdge,
-    ),
+    style: ElStyle(width: extent, height: extent, alignment: .center, clipBehavior: Clip.hardEdge),
     child: child,
   );
 }
@@ -136,16 +120,9 @@ class _InputActionIcon extends StatelessWidget {
         height: extent,
         alignment: .center,
         cursor: SystemMouseCursors.click,
-        color: active
-            ? c.elTheme.primary
-            : c.elTheme.textPlaceholder,
-        onHover: ElStyle(
-          color: c.elTheme.textSecondary,
-          iconColor: c.elTheme.textSecondary,
-        ),
-        iconColor: active
-            ? c.elTheme.primary
-            : c.elTheme.textPlaceholder,
+        color: active ? c.elTheme.primary : c.elTheme.textPlaceholder,
+        onHover: ElStyle(color: c.elTheme.textSecondary, iconColor: c.elTheme.textSecondary),
+        iconColor: active ? c.elTheme.primary : c.elTheme.textPlaceholder,
       ).merge(_resolveInputStyle(c, style)))(context),
       event: ElEvent(
         onPointerDown: (e) {
@@ -173,12 +150,7 @@ class _InputCount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElView(
-      style: ElStyle(
-        fontSize: 12,
-        color: context.elTheme.info,
-        userSelect: .none,
-        iconColor: context.elTheme.info,
-      ),
+      style: ElStyle(fontSize: 12, color: context.elTheme.info, userSelect: .none, iconColor: context.elTheme.info),
       child: '$length/$maxLength',
     );
   }

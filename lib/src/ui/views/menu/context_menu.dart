@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/src/flutter/components/icon/content.dart';
 
 import 'package:flutter_base/src/flutter/views/view/event/event.dart';
 import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
@@ -274,30 +275,27 @@ abstract class ElContextMenu {
   /// 构建分隔线。
   Widget buildDivider(BuildContext context);
 
-  /// 图标槽宽容分派：`Widget` 原样、`IconData` 经文本引擎按字形渲染（颜色
-  /// 跟随当前文字色）、其余返回 null。
+  /// 字体图标统一继承 iconSize / iconColor，自定义 Widget 原样托管。
   Widget? buildIcon(BuildContext context, dynamic icon, {double size = 16.0}) {
-    if (icon is Widget) return icon;
     if (icon is IconData) {
-      final family = icon.fontPackage == null ? icon.fontFamily : 'packages/${icon.fontPackage}/${icon.fontFamily}';
       return ElView(
-        style: ElStyle(fontSize: size, lineHeight: 1.0, fontFamily: family),
-        child: String.fromCharCode(icon.codePoint),
+        style: ElStyle(iconSize: size),
+        child: icon,
       );
     }
+    if (icon is Widget) return buildIconContent(icon, size: size);
     return null;
   }
 
   /// 行尾槽分派：[ElContextMenuItem.children] 非空渲染 › 子菜单箭头（优先），
   /// 否则渲染 [ElContextMenuItem.shortcut] 快捷键文本；两者皆无返回 null。
   ///
-  /// 次要观感经降透明度继承行文字色实现（hover 变色自动跟随）；三实现把
-  /// 返回值放进各自行尾右对齐槽即可，[size] 微调字号风格。
+  /// 箭头继承图标色，快捷键继承文字色；返回值放进各自行尾右对齐槽。
   Widget? buildTrailing(BuildContext context, ElContextMenuItem item, {double size = 12.0}) {
     if (item.hasChildren) {
       return ElView(
-        style: ElStyle(fontSize: size + 3, lineHeight: 1.0, opacity: 0.75),
-        child: '›',
+        style: ElStyle(iconSize: size + 3, opacity: 0.75),
+        child: const IconData(0x203a, matchTextDirection: true),
       );
     }
     final shortcut = item.shortcut;

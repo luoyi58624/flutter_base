@@ -53,7 +53,13 @@ void main() {
       Color groupColor() => tester.renderObject<ElRenderView>(group).committedResolvedStyle.box.backgroundColor!;
       Color barColor() => tester.renderObject<ElRenderView>(bar).committedResolvedStyle.box.backgroundColor!;
       Color pageColor() => Theme.of(tester.element(find.byType(Scaffold))).scaffoldBackgroundColor;
-      Color iconColor() => IconTheme.of(tester.element(find.byIcon(Icons.settings))).color!;
+      Color iconColor() => tester
+          .renderObject<ElRenderView>(
+            find.byWidgetPredicate((widget) => widget is ElView && widget.child == Icons.settings),
+          )
+          .committedResolvedStyle
+          .inheritedBox
+          .iconColor!;
       final row = find.byWidgetPredicate((widget) => widget is ElView && widget.style?.onTap?.backgroundColor != null);
       Color rowColor() => tester.renderObject<ElRenderView>(row).committedResolvedStyle.inheritedText.color!;
       final lightCard = ElMobileTheme.lightVars[ElTokens.$cardColor] as Color;

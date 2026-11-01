@@ -216,8 +216,8 @@ class Progress extends HookWidget {
                 (glyph == null
                     ? '$percentage%'
                     : ElView(
-                        style: ElStyle(width: circle ? size * .28 : 18, height: circle ? size * .28 : 18, color: color),
-                        child: Glyph(name: glyph, size: circle ? size * .28 : 18),
+                        style: ElStyle(iconSize: circle ? size * .28 : 18, iconColor: color),
+                        child: Glyph(name: glyph),
                       )),
           ),
         ),

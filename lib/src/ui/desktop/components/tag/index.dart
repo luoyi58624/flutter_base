@@ -17,12 +17,9 @@ class Tag extends StatelessWidget {
         final style = override;
         final compact = context.elComponentCompact(style);
         final height = compact ? 24.0 : 26.0;
-        final type = component.isToggle && !selected
-            ? ElThemeType.info
-            : component.type;
+        final type = component.isToggle && !selected ? ElThemeType.info : component.type;
         final color = type.color(context);
-        final solid =
-            component.effect == .dark && (!component.isToggle || selected);
+        final solid = component.effect == .dark && (!component.isToggle || selected);
         final bg = solid
             ? color
             : component.effect == .plain
@@ -32,15 +29,10 @@ class Tag extends StatelessWidget {
         return ElStyle(
               height: height,
               widthFactor: 1,
-              padding: .only(
-                left: 12,
-                right: component.closable ? 4 : 12,
-              ),
+              padding: .only(left: 12, right: component.closable ? 4 : 12),
               backgroundColor: bg,
               border: .all(borderColor: border),
-              borderRadius: .all(
-                Radius.circular(component.round ? 9999 : height * 0.45),
-              ),
+              borderRadius: .all(Radius.circular(component.round ? 9999 : height * 0.45)),
               color: solid ? context.elTheme.white : color,
               fontSize: compact ? 11 : 12,
               fontWeight: .w500,
@@ -48,13 +40,8 @@ class Tag extends StatelessWidget {
               alignment: .center,
               softWrap: false,
               cursor: component.isToggle ? SystemMouseCursors.click : null,
-              onDisabled: const ElStyle(
-                opacity: 0.5,
-                cursor: SystemMouseCursors.forbidden,
-              ),
-              transition: const [
-                ElTransition.all(Duration(milliseconds: 150), Curves.easeInOut),
-              ],
+              onDisabled: const ElStyle(opacity: 0.5, cursor: SystemMouseCursors.forbidden),
+              transition: const [ElTransition.all(Duration(milliseconds: 150), Curves.easeInOut)],
               iconColor: solid ? context.elTheme.white : color,
             )
             .merge(
@@ -88,11 +75,11 @@ class Tag extends StatelessWidget {
           ? Row(
               mainAxisSize: .min,
               children: [
-                if (component.child != null) ElView(child: component.child),
+                if (component.child != null) ElView(child: elContent(component.child)),
                 _TagClose(component),
               ],
             )
-          : component.child,
+          : elContent(component.child),
     );
   }
 }
@@ -112,13 +99,9 @@ class _TagClose extends StatelessWidget {
     semanticLabel: component.closeSemanticLabel,
     event: ElEvent(onTapDown: _stopPropagation, onTap: _stopPropagation),
     style: ((BuildContext context) {
-      final type = component.isToggle && !component.selected
-          ? ElThemeType.info
-          : component.type;
+      final type = component.isToggle && !component.selected ? ElThemeType.info : component.type;
       final color = type.color(context);
-      final solid =
-          component.effect == .dark &&
-          (!component.isToggle || component.selected);
+      final solid = component.effect == .dark && (!component.isToggle || component.selected);
       final foreground = solid ? context.elTheme.white : color;
       final override = component.closeStyle;
       return ElStyle(
@@ -130,20 +113,10 @@ class _TagClose extends StatelessWidget {
         iconSize: 12,
         iconColor: foreground,
         cursor: SystemMouseCursors.click,
-        onHover: ElStyle(
-          iconColor: context.elTheme.white,
-          backgroundColor: solid ? color.elLight3(context) : color,
-        ),
-        onTap: ElStyle(
-          iconColor: context.elTheme.white,
-          backgroundColor: color.mix(const Color(0xff000000), 20),
-        ),
+        onHover: ElStyle(iconColor: context.elTheme.white, backgroundColor: solid ? color.elLight3(context) : color),
+        onTap: ElStyle(iconColor: context.elTheme.white, backgroundColor: color.mix(const Color(0xff000000), 20)),
         onFocusVisible: ElStyle(
-          outline: .new(
-            outlineWidth: 2,
-            outlineColor: context.elTheme.primary,
-            outlineOffset: 2,
-          ),
+          outline: .new(outlineWidth: 2, outlineColor: context.elTheme.primary, outlineOffset: 2),
         ),
         transition: const [ElTransition.all(Duration(milliseconds: 150))],
       ).merge(override);
