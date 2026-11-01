@@ -8,11 +8,12 @@ class ShadowPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.elTheme.cardColor,
       appBar: AppBar(title: const Text('阴影')),
       body: ElScrollView(
         padding: .all(40),
         children: [
-          Text('当前主题 · 五档阴影'),
+          Text('同色背景 · 五档阴影'),
           SizedBox(height: 24),
           ElGridView(
             gap: 40,

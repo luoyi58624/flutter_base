@@ -79,12 +79,12 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
             ),
           ]),
   ),
-  ElTokens.$shadowXs: _shadow(dark, const [(1, 2, 0, .025, .10)]),
-  ElTokens.$shadowSm: _shadow(dark, const [(1, 5, 0, .035, .14)]),
-  // md 对齐 Web 原型的卡片投影，近层支撑轮廓，远层用很低的浓度柔和散开。
-  ElTokens.$shadowMd: _shadow(dark, const [(2, 10, 0, .018, .14), (10, 35, 0, .035, .24)]),
-  ElTokens.$shadowLg: _shadow(dark, const [(3, 12, -1, .04, .20), (14, 42, -3, .08, .34)]),
-  ElTokens.$shadowXl: _shadow(dark, const [(4, 16, -1, .05, .24), (20, 56, -5, .11, .42)]),
+  ElTokens.$shadowXs: _shadow(dark, const [(1, 3, 0, .055, .18)]),
+  ElTokens.$shadowSm: _shadow(dark, const [(1, 4, 0, .055, .20), (2, 7, -1, .04, .16)]),
+  // 以卡片与背景同色为基准，近层支撑轮廓，远层控制在卡片附近柔和散开。
+  ElTokens.$shadowMd: _shadow(dark, const [(1, 5, 0, .065, .24), (4, 14, -1, .065, .22)]),
+  ElTokens.$shadowLg: _shadow(dark, const [(2, 7, 0, .075, .28), (8, 22, -2, .095, .30)]),
+  ElTokens.$shadowXl: _shadow(dark, const [(3, 9, 0, .085, .32), (14, 34, -4, .12, .38)]),
   ElTokens.$overlayColor: (dark
       ? const Color(0xff000000).withValues(alpha: .62)
       : const Color(0xff0c121c).withValues(alpha: .34)),

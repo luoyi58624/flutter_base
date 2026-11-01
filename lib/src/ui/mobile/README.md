@@ -50,4 +50,4 @@ ElMobileTheme(
 
 背景颜色按用途独立：`bgColor` 为页面背景（浅色 `#EEEEEE`），`cardColor` 为卡片与列表组背景（浅色白色），`cardPressColor` 为卡片、列表行和菜单项的按压背景（浅色 `#E0E0E0`），`dividerColor` 为分隔线（浅色 `#E0E0E0`）。`borderColor` 仅控制控件边框；`press` 继续用于其他控件。各 token 均可独立级联覆写，暗色表分别声明默认值。
 
-五档阴影 `shadowXs / Sm / Md / Lg / Xl` 使用柔和漫射投影：xs 为淡淡的单层小范围阴影，sm 稍重；md 对齐 Web 原型 `reference/blue_mobile_components_v10.html` 的卡片阴影，近层 `0 2 / blur 10 / 1.8%`，远层 `0 10 / blur 35 / 3.5%`，浅色使用原型冷灰 `#314669`。lg 用于菜单和小弹窗，xl 用于模态窗口，两者逐步增加悬浮距离，外层浓度分别为 8% 和 11%，不添加描边。暗色独立使用黑色并提高不透明度。ElCard 默认无边框、无阴影，通过 `shadowLevel: .md` 使用卡片档位，用户仍可通过 style 覆写。
+五档阴影 `shadowXs / Sm / Md / Lg / Xl` 使用柔和漫射投影，以卡片和背景同色为校准基准。xs 为淡淡的单层小范围阴影，sm 稍重；md 是卡片档位，用近层 `0 1 / blur 5 / 6.5%` 支撑轮廓，远层 `0 4 / blur 14 / spread -1 / 6.5%` 柔和散开。浅色沿用原型冷灰 `#314669`，暗色独立使用黑色。lg 用于菜单和小弹窗，xl 用于模态窗口，逐步增加悬浮距离，不添加硬轮廓或白色描边。阴影示例背景跟随 cardColor，浅色为白底白卡、暗色为同色暗底暗卡。ElCard 默认无边框、无阴影，通过 `shadowLevel: .md` 使用卡片档位，用户仍可通过 style 覆写。
