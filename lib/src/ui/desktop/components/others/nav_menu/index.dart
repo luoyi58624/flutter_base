@@ -10,9 +10,9 @@ Widget _builderSuffixIcon(ValueNotifier<bool> expanded) {
   );
 }
 
-/// 支持路由激活和多层折叠的桌面导航菜单。
+/// 支持分组标题、路由激活和多层折叠的桌面导航菜单。
 class ElNavMenu<T> extends ElModelValue<String> {
-  /// 创建绑定菜单，未指定选中值时使用首项 key，空列表表示未选中。
+  /// 创建绑定菜单，未指定选中值时使用首个叶子 key，分组标题不参与选择。
   // ignore: use_super_parameters
   ElNavMenu({
     Key? key,
@@ -21,14 +21,14 @@ class ElNavMenu<T> extends ElModelValue<String> {
     ValueChanged<String>? onChanged,
     required this.children,
     this.style,
-    this.itemHeight = 56.0,
-    this.iconGap = 8.0,
+    this.itemHeight = 40.0,
+    this.iconGap = 12.0,
     this.nestGap = 20.0,
     this.suffixIconBuilder = _builderSuffixIcon,
   }) : router = null,
        super(
          key: key,
-         value: value ?? (children.isNotEmpty ? children.first.key : ''),
+         value: value ?? (modelValue == null ? _firstLeafKey(children) : null),
          modelValue: modelValue,
          onChanged: onChanged,
        );
@@ -41,13 +41,13 @@ class ElNavMenu<T> extends ElModelValue<String> {
     ValueChanged<String>? onChanged,
     required this.children,
     this.style,
-    this.itemHeight = 56.0,
-    this.iconGap = 8.0,
+    this.itemHeight = 40.0,
+    this.iconGap = 12.0,
     this.nestGap = 20.0,
     this.suffixIconBuilder = _builderSuffixIcon,
-  }) : super(key: key, value: children.isNotEmpty ? children.first.key : '', onChanged: onChanged);
+  }) : super(key: key, value: _firstLeafKey(children), onChanged: onChanged);
 
-  /// 菜单模型集合
+  /// 菜单模型集合，group 节点仅渲染弱化标题与留白。
   final List<ElMenuModel<T>> children;
 
   /// 监听的声明式路由对象，当前配置需提供 uri；为空时使用绑定的选中值。
@@ -78,56 +78,96 @@ class ElNavMenu<T> extends ElModelValue<String> {
         final activeKey = delegate == null ? $obs.value : delegate.currentConfiguration?.uri.path as String?;
         final activeKeys = activeKey == null || activeKey.isEmpty
             ? <String>{}
-            : ElNestModel.findKeyPath(children, activeKey).map((e) => e.key).toSet();
+            : ElNestModel.findKeyPath(children, activeKey).where((e) => !e.group).map((e) => e.key).toSet();
         final theme = context.elTheme;
         final compact = context.elComponentCompact(style);
-        final background = style?.backgroundColor ?? theme.bgColor;
-        final textColor = background.elTextColor(context);
+        final background = style?.backgroundColor ?? theme.cardColor;
+        final textColor = theme.textColor;
         final itemStyle = ElStyle(
           backgroundColor: background,
           color: textColor,
-          fontSize: compact ? 14 : 15,
-          fontWeight: .w500,
-          iconSize: compact ? 20 : 24,
+          fontSize: compact ? 13 : 14,
+          fontWeight: .w400,
+          iconSize: compact ? 18 : 20,
           iconColor: textColor,
           cursor: SystemMouseCursors.click,
           alignment: .centerLeft,
+          borderRadius: .circular(8),
           userSelect: .none,
-          onHover: ElStyle(backgroundColor: background.deepen(8)),
+          onHover: ElStyle(backgroundColor: Color.lerp(background, textColor, .04)),
+          onTap: ElStyle(backgroundColor: Color.lerp(background, textColor, .07)),
           transition: const [
-            .field(ElTransitionField.backgroundColor, Duration(milliseconds: 50), Curves.easeOut),
+            .field(ElTransitionField.backgroundColor, Duration(milliseconds: 150), Curves.easeOut),
             .fields(
               {ElTransitionField.color, ElTransitionField.iconColor},
               Duration(milliseconds: 150),
               Curves.easeInOut,
             ),
           ],
-        ).merge(style);
+        );
 
         void select(ElMenuModel<T> item) {
-          $obs.value = item.key;
+          // 路由拥有选中状态，点击直接通知，避免内部旧值吞掉返回上一页的操作。
+          if (router != null) {
+            onChanged?.call(item.key);
+          } else {
+            $obs.value = item.key;
+          }
         }
 
         return ElView(
           style: ElStyle(backgroundColor: background),
           child: ElScrollView(
-            children: [
-              for (final item in children)
-                _MenuItem<T>(
-                  key: ValueKey(item.key),
-                  menu: this,
-                  item: item,
-                  depth: 0,
-                  activeKeys: activeKeys,
-                  style: itemStyle,
-                  onSelected: select,
-                ),
-            ],
+            padding: const .fromLTRB(12, 8, 12, 16),
+            children: _items(context, children, 0, activeKeys, itemStyle, select),
           ),
         );
       },
     );
   }
+
+  // 分组直接展开为同级渲染项，不引入折叠状态、额外缩进或导航身份。
+  List<Widget> _items(
+    BuildContext context,
+    List<ElMenuModel<T>> items,
+    int depth,
+    Set<String> activeKeys,
+    ElStyle itemStyle,
+    ValueChanged<ElMenuModel<T>> select,
+  ) => [
+    for (final item in items)
+      if (item.group) ...[
+        ElView(
+          style: ElStyle(
+            padding: .fromLTRB(12 + nestGap * depth, 22, 12, 8),
+            color: context.elTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: .w500,
+            userSelect: .none,
+          ),
+          child: item.title,
+        ),
+        ..._items(context, item.children, depth, activeKeys, itemStyle, select),
+      ] else
+        _MenuItem<T>(
+          key: ValueKey(item.key),
+          menu: this,
+          item: item,
+          depth: depth,
+          activeKeys: activeKeys,
+          style: itemStyle,
+          onSelected: select,
+        ),
+  ];
+}
+
+String _firstLeafKey<T>(List<ElMenuModel<T>> items) {
+  for (final item in items) {
+    if (!item.group && item.children.isEmpty) return item.key;
+    final key = _firstLeafKey(item.children);
+    if (key.isNotEmpty) return key;
+  }
+  return '';
 }
 
 /// 每项独立保存折叠状态，按模型 key 复用，避免重排时状态串位。
@@ -155,16 +195,26 @@ class _MenuItem<T> extends HookWidget {
     // 与旧版一致：首次展开激活分支，后续路由变化保留手动折叠状态。
     final expanded = useState(isActive);
     final hasChildren = item.children.isNotEmpty;
-    final primary = context.elTheme.primary;
-    final itemStyle = style.merge(
-      ElStyle(
-        width: '100%',
-        height: menu.itemHeight,
-        padding: .only(left: menu.nestGap * (depth + 1), right: menu.nestGap),
-        color: isActive ? primary : null,
-        iconColor: isActive ? primary : null,
-      ),
-    );
+    final theme = context.elTheme;
+    final primary = theme.primary;
+    final selected = isActive && !hasChildren;
+    final itemStyle = style
+        .merge(
+          ElStyle(
+            width: '100%',
+            height: menu.itemHeight,
+            padding: .only(left: 12 + menu.nestGap * depth, right: 12),
+            margin: const .symmetric(vertical: 2),
+            backgroundColor: selected ? Color.lerp(style.backgroundColor, primary, context.isDark ? .16 : .09) : null,
+            onHover: selected
+                ? ElStyle(backgroundColor: Color.lerp(style.backgroundColor, primary, context.isDark ? .22 : .13))
+                : null,
+            color: isActive ? primary : null,
+            iconColor: isActive ? primary : null,
+            fontWeight: selected ? .w500 : null,
+          ),
+        )
+        .merge(menu.style);
 
     void activate() {
       if (hasChildren) {
@@ -179,7 +229,7 @@ class _MenuItem<T> extends HookWidget {
       event: ElEvent(onTap: (_) => activate()),
       semantics: ElSemantics(
         button: true,
-        selected: isActive,
+        selected: selected,
         expanded: hasChildren ? expanded.value : null,
         mergeDescendants: true,
         onTap: activate,
@@ -209,18 +259,7 @@ class _MenuItem<T> extends HookWidget {
           child: Column(
             mainAxisSize: .min,
             crossAxisAlignment: .stretch,
-            children: [
-              for (final child in item.children)
-                _MenuItem<T>(
-                  key: ValueKey(child.key),
-                  menu: menu,
-                  item: child,
-                  depth: depth + 1,
-                  activeKeys: activeKeys,
-                  style: style,
-                  onSelected: onSelected,
-                ),
-            ],
+            children: menu._items(context, item.children, depth + 1, activeKeys, style, onSelected),
           ),
         ),
       ],

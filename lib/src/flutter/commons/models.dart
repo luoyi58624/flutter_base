@@ -84,11 +84,11 @@ abstract base class ElNestModel<T extends ElNestModel<T>> with Equatable {
   /// * inherit 子级 key 是否要继承父级 key
   /// * splitChar 自定义拼接字符
   static List<T> findKeyPath<T extends ElNestModel<T>>(
-      List<T> list,
-      String targetKey, {
-        bool inherit = false,
-        String splitChar = '',
-      }) {
+    List<T> list,
+    String targetKey, {
+    bool inherit = false,
+    String splitChar = '',
+  }) {
     if (list.isEmpty) return [];
 
     // 用于记录每个节点的父节点，以及收集所有节点
@@ -148,10 +148,18 @@ abstract base class ElNestModel<T extends ElNestModel<T>> with Equatable {
   }
 }
 
-
 /// 菜单模型类
 final class ElMenuModel<T> extends ElNestModel<ElMenuModel<T>> {
-  const ElMenuModel({required super.key, required this.title, this.icon, this.data, super.children = const []});
+  /// 创建菜单项；group 只标记分组外观，分组可省略导航 key。
+  const ElMenuModel({
+    String? key,
+    required this.title,
+    this.icon,
+    this.data,
+    this.group = false,
+    super.children = const [],
+  }) : assert(group || key != null, '普通菜单项必须提供 key'),
+       super(key: key ?? '');
 
   /// 菜单名字
   final String title;
@@ -162,8 +170,11 @@ final class ElMenuModel<T> extends ElNestModel<ElMenuModel<T>> {
   /// 自定义额外数据
   final T? data;
 
+  /// 仅呈现分组标题，子项不增加层级，分组不参与选择与路由。
+  final bool group;
+
   @override
-  List<Object?> get props => [...super.props, title, icon, data];
+  List<Object?> get props => [...super.props, title, icon, data, group];
 
   @override
   String toString() {
@@ -176,11 +187,13 @@ extension ElMenuModelExt<T> on List<ElMenuModel<T>> {
   List<ElMenuModel<T>> toFullPath({String? parentPath}) {
     List<ElMenuModel<T>> buildNestPaths(List<ElMenuModel<T>> menus, String? parentPath) {
       return menus.map((menu) {
-        final currentPath = _buildFullPath(parentPath, menu.key);
+        final currentPath = menu.group ? parentPath : _buildFullPath(parentPath, menu.key);
         final newMenu = ElMenuModel<T>(
-          key: currentPath,
+          key: menu.group ? menu.key : currentPath,
           title: menu.title,
+          icon: menu.icon,
           data: menu.data,
+          group: menu.group,
           children: menu.children.isNotEmpty ? buildNestPaths(menu.children, currentPath) : [],
         );
 
