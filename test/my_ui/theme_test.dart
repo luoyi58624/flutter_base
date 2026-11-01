@@ -80,13 +80,13 @@ void main() {
   }
 
   test('默认字体未指定，变量表保持只读', () {
-    expect(ElMobileTheme.lightVars[ElTheme.$fontFamily], isEmpty);
-    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], isEmpty);
+    expect(ElMobileTheme.lightVars[ElTokens.$fontFamily], isEmpty);
+    expect(ElMobileTheme.lightVars[ElTokens.$fontFamilyFallback], isEmpty);
     expect(() => ElMobileTheme.lightVars.clear(), throwsUnsupportedError);
-    expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
-    expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
+    expect(ElMobileTheme.darkVars.containsKey(ElTokens.$fontFamily), isFalse);
+    expect(ElMobileTheme.darkVars.containsKey(ElTokens.$fontWeight), isFalse);
     expect(
-      () => (ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>).clear(),
+      () => (ElMobileTheme.lightVars[ElTokens.$fontFamilyFallback] as List<String>).clear(),
       throwsUnsupportedError,
     );
   });
@@ -100,10 +100,10 @@ void main() {
           brightness: Brightness.dark,
           style: ElStyle(
             vars: {
-              ElTheme.$fontFamily: 'Arial',
-              ElTheme.$fontFamilyFallback: ['SimSun'],
-              ElTheme.$fontWeight: 500,
-              ElTheme.$fontWeightAction: 600,
+              ElTokens.$fontFamily: 'Arial',
+              ElTokens.$fontFamilyFallback: ['SimSun'],
+              ElTokens.$fontWeight: 500,
+              ElTokens.$fontWeightAction: 600,
             },
           ),
           child: Builder(
@@ -146,8 +146,8 @@ void main() {
       ElStyle(),
       ElStyle(
         vars: {
-          ElTheme.$fontFamily: 'Arial',
-          ElTheme.$fontFamilyFallback: ['SimSun'],
+          ElTokens.$fontFamily: 'Arial',
+          ElTokens.$fontFamilyFallback: ['SimSun'],
         },
       ),
     ]) {
@@ -182,11 +182,11 @@ void main() {
       );
       final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
       expect(text.text.style!.height, kTextHeightNone);
-      expect(text.text.style!.fontFamily, data.vars?[ElTheme.$fontFamily] ?? ambientFamily);
-      expect(text.text.style!.fontFamilyFallback, data.vars?[ElTheme.$fontFamilyFallback] ?? ambientFallback);
+      expect(text.text.style!.fontFamily, data.vars?[ElTokens.$fontFamily] ?? ambientFamily);
+      expect(text.text.style!.fontFamilyFallback, data.vars?[ElTokens.$fontFamilyFallback] ?? ambientFallback);
       expect(view.committedResolvedStyle.inheritedText.lineHeight, kTextHeightNone);
-      expect(view.committedResolvedStyle.inheritedText.fontFamily, data.vars?[ElTheme.$fontFamily]);
-      expect(view.committedResolvedStyle.inheritedText.fontFamilyFallback, data.vars?[ElTheme.$fontFamilyFallback]);
+      expect(view.committedResolvedStyle.inheritedText.fontFamily, data.vars?[ElTokens.$fontFamily]);
+      expect(view.committedResolvedStyle.inheritedText.fontFamilyFallback, data.vars?[ElTokens.$fontFamilyFallback]);
       expect(
         tester.renderObject<ElRenderView>(find.byKey(explicitKey)).committedResolvedStyle.inheritedText.fontFamily,
         'Courier New',
@@ -222,7 +222,7 @@ void main() {
     );
     Widget host() => MaterialApp(
       home: ElMobileTheme(
-        style: ElStyle(vars: {ElTheme.$primary: color}),
+        style: ElStyle(vars: {ElTokens.$primary: color}),
         child: child,
       ),
     );
@@ -248,8 +248,8 @@ void main() {
             children: [
               ElView(
                 style: ElStyle(
-                  vars: {ElTheme.$primary: Color(0xff123456), skin.Card.$radius: 18},
-                  onDark: ElStyle(vars: {ElTheme.$primary: Color(0xff654321)}),
+                  vars: {ElTokens.$primary: Color(0xff123456), skin.Card.$radius: 18},
+                  onDark: ElStyle(vars: {ElTokens.$primary: Color(0xff654321)}),
                 ),
                 child: Builder(
                   builder: (context) {
@@ -271,7 +271,7 @@ void main() {
       ),
     );
     expect(local, Color(0xff654321));
-    expect(sibling, ElMobileTheme.darkVars[ElTheme.$primary]);
+    expect(sibling, ElMobileTheme.darkVars[ElTokens.$primary]);
     expect(radius, 18);
   });
 }

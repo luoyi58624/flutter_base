@@ -1,4 +1,4 @@
-import '../flutter/views/view/style/style.dart';
+import '../views/view/style/style.dart';
 
 /// 变量宿主只承载声明和条件，实际样式留给内层根应用一次。
 ElStyle? themeVarsOf(ElStyle? style) {

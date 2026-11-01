@@ -5,6 +5,41 @@ import 'package:flutter_base/desktop.dart' show ElDesktopTheme;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('AppBar 在 ElScrollView 滚动后显示阴影，回到顶部恢复：$brightness', (tester) async {
+      final controller = ScrollController();
+      await tester.pumpWidget(
+        ElMobileTheme(
+          brightness: brightness,
+          child: Builder(
+            builder: (context) => MaterialApp(
+              theme: context.elMaterialThemeData,
+              home: Scaffold(
+                appBar: AppBar(title: Text('标题')),
+                body: ElScrollView(controller: controller, children: [SizedBox(height: 2000)]),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Material appBarMaterial() =>
+          tester.widget<Material>(find.descendant(of: find.byType(AppBar), matching: find.byType(Material)).first);
+      expect(appBarMaterial().elevation, 0);
+      expect(appBarMaterial().shadowColor, Colors.black);
+      expect(appBarMaterial().surfaceTintColor, Colors.transparent);
+      controller.jumpTo(100);
+      await tester.pumpAndSettle();
+      expect(appBarMaterial().elevation, 1);
+      expect(appBarMaterial().shadowColor!.a, greaterThan(0));
+      controller.jumpTo(0);
+      await tester.pumpAndSettle();
+      expect(appBarMaterial().elevation, 0);
+      await tester.pumpWidget(SizedBox());
+      controller.dispose();
+    });
+  }
+
   testWidgets('官方文字读取级联字体并随固定祖先样式更新，移除后恢复默认', (tester) async {
     var customized = true;
     var fontSize = 18.0;
@@ -36,10 +71,10 @@ void main() {
               style: customized
                   ? ElStyle(
                       vars: {
-                        ElTheme.$fontFamily: '调用方字体',
-                        ElTheme.$fontFamilyFallback: ['调用方回退'],
-                        ElTheme.$fontWeightAction: 600,
-                        ElTheme.$fontWeightTitle: 800,
+                        ElTokens.$fontFamily: '调用方字体',
+                        ElTokens.$fontFamilyFallback: ['调用方回退'],
+                        ElTokens.$fontWeightAction: 600,
+                        ElTokens.$fontWeightTitle: 800,
                       },
                       fontSize: fontSize,
                       fontWeight: .w300,
@@ -116,14 +151,14 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElView(
-              themeMode: ElThemeMode(brightness: .light),
+            return ElMobileTheme(
+              brightness: .light,
               style: ElStyle(
-                vars: {ElTheme.$fontWeightAction: 600},
+                vars: {ElTokens.$fontWeightAction: 600},
                 fontFamily: '浅色字体',
                 fontSize: 16,
                 onDark: ElStyle(
-                  vars: {ElTheme.$fontWeightAction: 800},
+                  vars: {ElTokens.$fontWeightAction: 800},
                   fontFamily: '暗色字体',
                   fontSize: darkSize,
                   fontWeight: .w700,
@@ -203,8 +238,8 @@ void main() {
           brightness: .light,
           child: ElView(
             style: ElStyle(
-              vars: {ElTheme.$primary: Colors.purple},
-              onDark: ElStyle(vars: {ElTheme.$primary: Colors.green}),
+              vars: {ElTokens.$primary: Colors.purple},
+              onDark: ElStyle(vars: {ElTokens.$primary: Colors.green}),
             ),
             child: Builder(
               builder: (context) {
@@ -219,8 +254,8 @@ void main() {
     );
     expect(light.colorScheme.primary, Colors.purple);
     expect(dark.colorScheme.primary, Colors.green);
-    expect(light.cardTheme.color, ElMobileTheme.lightVars[ElTheme.$cardColor]);
-    expect(dark.cardTheme.color, ElMobileTheme.darkVars[ElTheme.$cardColor]);
+    expect(light.cardTheme.color, ElMobileTheme.lightVars[ElTokens.$cardColor]);
+    expect(dark.cardTheme.color, ElMobileTheme.darkVars[ElTokens.$cardColor]);
     expect(light.navigationBarTheme.indicatorColor, isNot(dark.navigationBarTheme.indicatorColor));
   });
 
@@ -244,7 +279,7 @@ void main() {
             update = setState;
             return ElMobileTheme(
               brightness: .light,
-              style: ElStyle(onDark: ElStyle(vars: {ElTheme.$primary: darkColor})),
+              style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: darkColor})),
               child: visible ? reader : SizedBox(),
             );
           },
@@ -275,10 +310,10 @@ void main() {
       MaterialApp(
         home: ElMobileTheme(
           brightness: .light,
-          style: ElStyle(onDark: ElStyle(vars: {ElTheme.$primary: Colors.orange})),
+          style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: Colors.orange})),
           child: ElView(
             themeMode: ElThemeMode(brightness: .dark),
-            style: ElStyle(onDark: ElStyle(vars: {ElTheme.$cardColor: Colors.pink})),
+            style: ElStyle(onDark: ElStyle(vars: {ElTokens.$cardColor: Colors.pink})),
             child: ElPortal(
               controller: portal,
               overlayBuilder: (context) => ElView(
@@ -301,14 +336,14 @@ void main() {
     expect(current.brightness, Brightness.dark);
     expect(current.cardTheme.color, Colors.pink);
     expect(opposite.brightness, Brightness.light);
-    expect(opposite.cardTheme.color, ElMobileTheme.lightVars[ElTheme.$cardColor]);
+    expect(opposite.cardTheme.color, ElMobileTheme.lightVars[ElTokens.$cardColor]);
     portal.close();
     await tester.pumpAndSettle();
     await tester.pumpWidget(SizedBox());
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('无 ElView 时显式两轴使用通用默认值', (tester) async {
+  testWidgets('无 ElView 时显式两轴沿用官方默认主题', (tester) async {
     late ThemeData light, dark;
     await tester.pumpWidget(
       MaterialApp(
@@ -323,8 +358,8 @@ void main() {
     );
     expect(light.brightness, Brightness.light);
     expect(dark.brightness, Brightness.dark);
-    expect(light.colorScheme.surface, ElTheme.lightVars[ElTheme.$bgColor]);
-    expect(dark.colorScheme.surface, ElTheme.darkVars[ElTheme.$bgColor]);
+    expect(light.colorScheme.surface, ThemeData(brightness: Brightness.light).colorScheme.surface);
+    expect(dark.colorScheme.surface, ThemeData(brightness: Brightness.dark).colorScheme.surface);
   });
 
   testWidgets('MaterialApp 直接消费当前主题，固定子树随明暗翻转刷新', (tester) async {
@@ -353,7 +388,7 @@ void main() {
     update(() => brightness = Brightness.dark);
     await tester.pumpAndSettle();
     expect(captured.brightness, Brightness.dark);
-    expect(captured.scaffoldBackgroundColor, ElMobileTheme.darkVars[ElTheme.$bgColor]);
+    expect(captured.scaffoldBackgroundColor, ElMobileTheme.darkVars[ElTokens.$bgColor]);
     final material = tester.widget<Material>(
       find.descendant(of: find.byType(Scaffold), matching: find.byType(Material)).first,
     );
@@ -380,17 +415,19 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return Row(
-              children: [
-                ElView(
-                  style: ElStyle(onDark: ElStyle(vars: {ElTheme.$primary: firstDark})),
-                  child: moved ? SizedBox() : reader,
-                ),
-                ElView(
-                  style: ElStyle(onDark: ElStyle(vars: {ElTheme.$primary: Colors.orange})),
-                  child: moved ? reader : SizedBox(),
-                ),
-              ],
+            return ElMobileTheme(
+              child: Row(
+                children: [
+                  ElView(
+                    style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: firstDark})),
+                    child: moved ? SizedBox() : reader,
+                  ),
+                  ElView(
+                    style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: Colors.orange})),
+                    child: moved ? reader : SizedBox(),
+                  ),
+                ],
+              ),
             );
           },
         ),

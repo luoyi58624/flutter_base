@@ -2,6 +2,8 @@
 
 `flutter/components` 声明通用组件接口，本目录安装各品牌的主题与 Builder。应用显式选择移动端或桌面入口；`flutter_base.dart` 保持通用入口，不自动选择品牌。
 
+通用主题规范位于 [flutter/theme](../flutter/theme/README.md)：ElTokens 与 context.elTheme 在 flutter 层统一声明，品牌目录只提供 token 的默认值、明暗增量及组件外观。
+
 ## 移动端
 
 ```dart
@@ -38,13 +40,13 @@ void main() {
 
 ## 组合与覆盖
 
-两端共享 `ElTheme` 的通用颜色、阴影、字体和基础度量键，以及同一个 `context.elTheme` 读取扩展。桌面密度由 `ElDesktopTheme(compact: ...)` 和桌面专用的布尔变量控制，移动端保持自己的固定尺寸。通过普通 ElView 局部覆盖，无需复制主题对象：
+两端共享 `ElTokens` 的通用颜色、阴影、字体和基础度量键，以及同一个 `context.elTheme` 读取扩展。桌面密度由 `ElDesktopTheme(compact: ...)` 和桌面专用的布尔变量控制，移动端保持自己的固定尺寸。通过普通 ElView 局部覆盖，无需复制主题对象：
 
 ```dart
 ElView(
   style: ElStyle(
-    vars: {ElTheme.$primary: Colors.blue},
-    onDark: ElStyle(vars: {ElTheme.$primary: Colors.green}),
+    vars: {ElTokens.$primary: Colors.blue},
+    onDark: ElStyle(vars: {ElTokens.$primary: Colors.green}),
   ),
   child: Builder(builder: (context) => Text('主色', style: TextStyle(color: context.elTheme.primary))),
 );

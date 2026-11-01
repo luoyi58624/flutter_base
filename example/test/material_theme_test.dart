@@ -26,7 +26,7 @@ void main() {
         expect(GlobalState.isDark.value, dark ? 1 : 0);
         final context = tester.element(find.byType(IconButton).first);
         expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
-        expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTheme.$bgColor]);
+        expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
       }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
@@ -43,7 +43,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ElMobileTheme), findsOneWidget);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.colorScheme.primary, ElMobileTheme.lightVars[ElTheme.$primary]);
+    expect(app.theme!.colorScheme.primary, ElMobileTheme.lightVars[ElTokens.$primary]);
     final context = tester.element(find.byType(AppBar));
     expect(Theme.of(context).appBarTheme.backgroundColor, context.elTheme.cardColor);
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => Scaffold(body: Text('新路由'))));

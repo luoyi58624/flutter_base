@@ -30,16 +30,13 @@ List<ElView> _cells(WidgetTester tester) => tester
     .where((v) => v.style?.width != null && v.style?.width == v.style?.height)
     .toList();
 
-ElEditableView _editable(WidgetTester tester) =>
-    tester.widget<ElEditableView>(find.byType(ElEditableView));
+ElEditableView _editable(WidgetTester tester) => tester.widget<ElEditableView>(find.byType(ElEditableView));
 
-ElEditableController _controller(WidgetTester tester) =>
-    _editable(tester).controller!;
+ElEditableController _controller(WidgetTester tester) => _editable(tester).controller!;
 
 /// 当前分格不暴露逐格语义，活动格以真实外观和控制器选区共同验证。
 bool _isActiveCell(WidgetTester tester, ElView cell) =>
-    cell.style?.border?.borderTop.borderColor ==
-    tester.element(find.byWidget(cell)).elTheme.primary;
+    cell.style?.border?.borderTop.borderColor == tester.element(find.byWidget(cell)).elTheme.primary;
 
 EditableViewTestState _editableState(WidgetTester tester) =>
     findEditableViewState(tester.element(find.byType(ElEditableView)));
@@ -58,8 +55,7 @@ Future<void> _type(WidgetTester tester, String text) async {
   await tester.pump(const Duration(milliseconds: 40));
 }
 
-Future<void> _unmount(WidgetTester tester) =>
-    tester.pumpWidget(const SizedBox());
+Future<void> _unmount(WidgetTester tester) => tester.pumpWidget(const SizedBox());
 
 Future<void> _clickCell(WidgetTester tester, int index) async {
   final gesture = await tester.startGesture(
@@ -75,10 +71,7 @@ Future<void> _dragCell(WidgetTester tester, int from, int to) async {
   final cells = _cells(tester);
   final fromPosition = tester.getCenter(find.byWidget(cells[from]));
   final toPosition = tester.getCenter(find.byWidget(cells[to]));
-  final gesture = await tester.startGesture(
-    fromPosition,
-    kind: PointerDeviceKind.mouse,
-  );
+  final gesture = await tester.startGesture(fromPosition, kind: PointerDeviceKind.mouse);
   await tester.pump();
   await gesture.moveTo(toPosition);
   await tester.pump();
@@ -97,28 +90,21 @@ List<int> _graphemeOffsets(String text) {
 }
 
 int _activeClientId(WidgetTester tester) {
-  final call = tester.testTextInput.log.lastWhere(
-    (entry) => entry.method == 'TextInput.setClient',
-  );
+  final call = tester.testTextInput.log.lastWhere((entry) => entry.method == 'TextInput.setClient');
   return (call.arguments as List<dynamic>).first as int;
 }
 
-Future<void> _sendTaggedAutofill(
-  WidgetTester tester,
-  String id,
-  TextEditingValue value,
-) async {
-  await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .handlePlatformMessage(
-        SystemChannels.textInput.name,
-        SystemChannels.textInput.codec.encodeMethodCall(
-          MethodCall('TextInputClient.updateEditingStateWithTag', [
-            _activeClientId(tester),
-            {id: value.toJSON()},
-          ]),
-        ),
-        (_) {},
-      );
+Future<void> _sendTaggedAutofill(WidgetTester tester, String id, TextEditingValue value) async {
+  await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+    SystemChannels.textInput.name,
+    SystemChannels.textInput.codec.encodeMethodCall(
+      MethodCall('TextInputClient.updateEditingStateWithTag', [
+        _activeClientId(tester),
+        {id: value.toJSON()},
+      ]),
+    ),
+    (_) {},
+  );
   await tester.pump();
 }
 
@@ -140,9 +126,7 @@ List<SemanticsNode> _semanticsNodes(WidgetTester tester) {
 }
 
 List<SemanticsNode> _textFieldNodes(WidgetTester tester) =>
-    _semanticsNodes(tester)
-        .where((node) => node.getSemanticsData().flagsCollection.isTextField)
-        .toList();
+    _semanticsNodes(tester).where((node) => node.getSemanticsData().flagsCollection.isTextField).toList();
 
 List<String> _exposedSemanticText(WidgetTester tester) => [
   for (final node in _semanticsNodes(tester))
@@ -163,51 +147,29 @@ void main() {
       expect(_cells(tester).every((c) => c.child == null), isTrue);
     });
 
-    testWidgets(
-      '运行时只挂普通 input preset 的唯一 ElEditableView，不依赖 Flutter 输入或外部 drop region',
-      (tester) async {
-        await tester.pumpWidget(
-          _host(
-            ElInputOtp(value: '', keyboardType: TextInputType.emailAddress),
-          ),
-        );
-        await tester.pump();
+    testWidgets('运行时只挂普通 input preset 的唯一 ElEditableView，不依赖 Flutter 输入或外部 drop region', (tester) async {
+      await tester.pumpWidget(_host(ElInputOtp(value: '', keyboardType: TextInputType.emailAddress)));
+      await tester.pump();
 
-        expect(find.byType(ElEditableView), findsOneWidget);
-        expect(find.byType(EditableText), findsNothing);
-        expect(_controller(tester).singleLine, isTrue);
-        expect(
-          _controller(tester).maxLength,
-          isNull,
-          reason: '格子上限由 editable 字素事务拦截器负责',
-        );
-        expect(
-          _editable(tester).style.inputConfiguration?.inputType,
-          TextInputType.emailAddress,
-        );
+      expect(find.byType(ElEditableView), findsOneWidget);
+      expect(find.byType(EditableText), findsNothing);
+      expect(_controller(tester).singleLine, isTrue);
+      expect(_controller(tester).maxLength, isNull, reason: '格子上限由 editable 字素事务拦截器负责');
+      expect(_editable(tester).style.inputConfiguration?.inputType, TextInputType.emailAddress);
 
-        expect(
-          _editable(tester)
-              .style
-              .inputConfiguration
-              ?.autofillConfiguration
-              .autofillHints,
-          const [AutofillHints.oneTimeCode],
-        );
-      },
-    );
+      expect(_editable(tester).style.inputConfiguration?.autofillConfiguration.autofillHints, const [
+        AutofillHints.oneTimeCode,
+      ]);
+    });
 
     testWidgets('非掩码 OTP 的空 caret Ctrl+C/X 不复制整串也不清空值', (tester) async {
       final clipboardWrites = <MethodCall>[];
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
         if (call.method == 'Clipboard.setData') clipboardWrites.add(call);
         return null;
       });
-      addTearDown(
-        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
-      );
+      addTearDown(() => messenger.setMockMethodCallHandler(SystemChannels.platform, null));
       await tester.pumpWidget(_host(ElInputOtp(value: '1234')));
       _editable(tester).focusNode!.requestFocus();
       _controller(tester).collapseTo(2);
@@ -232,11 +194,9 @@ void main() {
 
       expect(_editable(tester).focusNode!.hasFocus, isTrue);
       expect(tester.testTextInput.setClientArgs, isNotNull);
-      expect(
-        (tester.testTextInput.setClientArgs!['autofill']
-            as Map<dynamic, dynamic>)['hints'],
-        [AutofillHints.oneTimeCode],
-      );
+      expect((tester.testTextInput.setClientArgs!['autofill'] as Map<dynamic, dynamic>)['hints'], [
+        AutofillHints.oneTimeCode,
+      ]);
       await _unmount(tester);
     });
 
@@ -254,15 +214,7 @@ void main() {
       final obs = Obs<String>('');
       addTearDown(obs.dispose);
       String? completed;
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(
-            length: 4,
-            modelValue: obs,
-            onComplete: (v) => completed = v,
-          ),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(length: 4, modelValue: obs, onComplete: (v) => completed = v)));
       await tester.pumpAndSettle();
 
       await _type(tester, '12');
@@ -275,13 +227,8 @@ void main() {
       await _unmount(tester);
     });
 
-    testWidgets('AutofillGroup tagged 回填未聚焦 OTP，字素上限、双向值与 onComplete 只结算一次', (
-      tester,
-    ) async {
-      final triggerController = ElEditableController(
-        text: 'user',
-        singleLine: true,
-      );
+    testWidgets('AutofillGroup tagged 回填未聚焦 OTP，字素上限、双向值与 onComplete 只结算一次', (tester) async {
+      final triggerController = ElEditableController(text: 'user', singleLine: true);
       final triggerFocus = FocusNode(debugLabel: 'otp-autofill-trigger');
       final value = Obs<String>('');
       final changes = <String>[];
@@ -312,12 +259,7 @@ void main() {
                     ),
                   ),
                 ),
-                ElInputOtp(
-                  length: 4,
-                  modelValue: value,
-                  onChanged: changes.add,
-                  onComplete: completed.add,
-                ),
+                ElInputOtp(length: 4, modelValue: value, onChanged: changes.add, onComplete: completed.add),
               ],
             ),
           ),
@@ -325,26 +267,18 @@ void main() {
       );
       triggerFocus.requestFocus();
       await tester.pump();
-      final fields =
-          (tester.testTextInput.setClientArgs!['fields'] as List<dynamic>)
-              .cast<Map<dynamic, dynamic>>();
+      final fields = (tester.testTextInput.setClientArgs!['fields'] as List<dynamic>).cast<Map<dynamic, dynamic>>();
       final otp = fields.singleWhere(
-        (field) =>
-            ((field['autofill'] as Map<dynamic, dynamic>)['hints']
-                    as List<dynamic>)
-                .contains(AutofillHints.oneTimeCode),
+        (field) => ((field['autofill'] as Map<dynamic, dynamic>)['hints'] as List<dynamic>).contains(
+          AutofillHints.oneTimeCode,
+        ),
       );
-      final otpId =
-          (otp['autofill'] as Map<dynamic, dynamic>)['uniqueIdentifier']
-              as String;
+      final otpId = (otp['autofill'] as Map<dynamic, dynamic>)['uniqueIdentifier'] as String;
 
       await _sendTaggedAutofill(
         tester,
         otpId,
-        const TextEditingValue(
-          text: '12345',
-          selection: TextSelection.collapsed(offset: 5),
-        ),
+        const TextEditingValue(text: '12345', selection: TextSelection.collapsed(offset: 5)),
       );
       await tester.pump();
 
@@ -356,12 +290,9 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is ElEditableView &&
-              widget
-                      .style
-                      .inputConfiguration
-                      ?.autofillConfiguration
-                      .autofillHints
-                      .contains(AutofillHints.oneTimeCode) ==
+              widget.style.inputConfiguration?.autofillConfiguration.autofillHints.contains(
+                    AutofillHints.oneTimeCode,
+                  ) ==
                   true,
         ),
       );
@@ -398,35 +329,24 @@ void main() {
       final obs = Obs<String>('123');
       addTearDown(obs.dispose);
       final changes = <String>[];
-      await tester.pumpWidget(
-        _host(ElInputOtp(modelValue: obs, onChanged: changes.add)),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(modelValue: obs, onChanged: changes.add)));
       await tester.pumpAndSettle();
 
-      _controller(tester)
-          .setSelection(const TextSelection(baseOffset: 1, extentOffset: 2));
+      _controller(tester).setSelection(const TextSelection(baseOffset: 1, extentOffset: 2));
       obs.value = '9123';
       changes.clear();
       await tester.pumpAndSettle();
       expect(_controller(tester).text, '9123');
-      expect(
-        _controller(tester).selection,
-        const TextSelection(baseOffset: 2, extentOffset: 3),
-      );
+      expect(_controller(tester).selection, const TextSelection(baseOffset: 2, extentOffset: 3));
       expect(_cells(tester)[0].child, '9');
       expect(changes, isEmpty, reason: '外部回灌不得从 controller 再循环写回');
 
       obs.value = '9';
       await tester.pumpAndSettle();
-      expect(
-        _controller(tester).selection,
-        const TextSelection.collapsed(offset: 1),
-      );
+      expect(_controller(tester).selection, const TextSelection.collapsed(offset: 1));
     });
 
-    testWidgets('length 增大复用 controller、拦截器、焦点、viewState 与 IME client', (
-      tester,
-    ) async {
+    testWidgets('length 增大复用 controller、拦截器、焦点、viewState 与 IME client', (tester) async {
       const family = '👨‍👩‍👧‍👦';
       final obs = Obs<String>('A');
       addTearDown(obs.dispose);
@@ -450,9 +370,7 @@ void main() {
       final focusNode = _editable(tester).focusNode;
       final viewState = _editableState(tester);
       final clientId = _activeClientId(tester);
-      final setClientCount = tester.testTextInput.log
-          .where((entry) => entry.method == 'TextInput.setClient')
-          .length;
+      final setClientCount = tester.testTextInput.log.where((entry) => entry.method == 'TextInput.setClient').length;
       controller.insertText('😀');
       await tester.pump();
       expect(controller.text, 'A😀');
@@ -462,17 +380,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ElEditableView), findsOneWidget);
       expect(identical(_controller(tester), controller), isTrue);
-      expect(
-        identical(_controller(tester).inputFormatters.single, formatter),
-        isTrue,
-      );
+      expect(identical(_controller(tester).inputFormatters.single, formatter), isTrue);
       expect(identical(_editable(tester).focusNode, focusNode), isTrue);
       expect(identical(_editableState(tester), viewState), isTrue);
       expect(_activeClientId(tester), clientId);
       expect(
-        tester.testTextInput.log.where(
-          (entry) => entry.method == 'TextInput.setClient',
-        ),
+        tester.testTextInput.log.where((entry) => entry.method == 'TextInput.setClient'),
         hasLength(setClientCount),
       );
       expect(controller.text, 'A😀');
@@ -489,12 +402,7 @@ void main() {
         'A😀$family'
         'e\u0301',
       );
-      expect(_cells(tester).map((cell) => cell.child), [
-        'A',
-        '😀',
-        family,
-        'e\u0301',
-      ]);
+      expect(_cells(tester).map((cell) => cell.child), ['A', '😀', family, 'e\u0301']);
       expect(controller.undoDepth, 2, reason: '长度配置变更应断开前后 typing 合并段');
       expect(controller.undoEdit(), isTrue);
       expect(controller.text, 'A😀');
@@ -518,11 +426,7 @@ void main() {
           StatefulBuilder(
             builder: (context, setState) {
               update = setState;
-              return ElInputOtp(
-                length: length,
-                modelValue: obs,
-                onChanged: changes.add,
-              );
+              return ElInputOtp(length: length, modelValue: obs, onChanged: changes.add);
             },
           ),
         ),
@@ -530,13 +434,7 @@ void main() {
       await tester.pump();
       final controller = _controller(tester);
       final viewState = _editableState(tester);
-      controller.setSelection(
-        const TextSelection(
-          baseOffset: full.length,
-          extentOffset: 1,
-          isDirectional: true,
-        ),
-      );
+      controller.setSelection(const TextSelection(baseOffset: full.length, extentOffset: 1, isDirectional: true));
       final selectionsBefore = controller.selections;
 
       update(() => length = 3);
@@ -549,11 +447,7 @@ void main() {
       expect(controller.undoDepth, 1);
       expect(
         controller.selections.primary,
-        const EditableSelection(
-          anchor: limited.length,
-          active: 1,
-          isDirectional: true,
-        ),
+        const EditableSelection(anchor: limited.length, active: 1, isDirectional: true),
       );
       expect(controller.selections.secondary, isEmpty);
 
@@ -567,11 +461,7 @@ void main() {
       expect(controller.text, limited);
       expect(
         controller.selections.primary,
-        const EditableSelection(
-          anchor: limited.length,
-          active: 1,
-          isDirectional: true,
-        ),
+        const EditableSelection(anchor: limited.length, active: 1, isDirectional: true),
       );
       expect(controller.selections.secondary, isEmpty);
 
@@ -614,9 +504,7 @@ void main() {
       final controller = _controller(tester);
       final viewState = _editableState(tester);
       final clientId = _activeClientId(tester);
-      final setClientCount = tester.testTextInput.log
-          .where((entry) => entry.method == 'TextInput.setClient')
-          .length;
+      final setClientCount = tester.testTextInput.log.where((entry) => entry.method == 'TextInput.setClient').length;
 
       tester.testTextInput.updateEditingValue(
         const TextEditingValue(
@@ -638,16 +526,10 @@ void main() {
       expect(identical(_editableState(tester), viewState), isTrue);
       expect(_activeClientId(tester), clientId);
       expect(
-        tester.testTextInput.log.where(
-          (entry) => entry.method == 'TextInput.setClient',
-        ),
+        tester.testTextInput.log.where((entry) => entry.method == 'TextInput.setClient'),
         hasLength(setClientCount),
       );
-      expect(
-        controller.text,
-        composingText,
-        reason: '活动候选必须继续使用进入组合时的上限，配置缩短不能截断候选',
-      );
+      expect(controller.text, composingText, reason: '活动候选必须继续使用进入组合时的上限，配置缩短不能截断候选');
       expect(controller.hasActiveImeComposition, isTrue);
       expect(obs.value, isEmpty);
 
@@ -663,11 +545,7 @@ void main() {
       expect(obs.value, limited);
       expect(changes, [limited], reason: '候选正文与配置删除之间不得泄漏未截断模型值');
       expect(controller.undoDepth, 2, reason: '先提交 IME 会话，再以独立一笔删除超出的字素后缀');
-      expect(
-        tester.testTextInput.editingState?['text'],
-        limited,
-        reason: '收敛后的权威正文必须回推同一平台 client',
-      );
+      expect(tester.testTextInput.editingState?['text'], limited, reason: '收敛后的权威正文必须回推同一平台 client');
 
       expect(controller.undoEdit(), isTrue);
       expect(controller.text, composingText);
@@ -715,10 +593,7 @@ void main() {
       expect(obs.value, 'ABCD');
 
       tester.testTextInput.updateEditingValue(
-        const TextEditingValue(
-          text: 'ABCD',
-          selection: TextSelection.collapsed(offset: 4),
-        ),
+        const TextEditingValue(text: 'ABCD', selection: TextSelection.collapsed(offset: 4)),
       );
       await tester.pumpAndSettle();
       expect(controller.text, 'AB');
@@ -754,15 +629,7 @@ void main() {
     testWidgets('emoji 与组合音标各占一格且截断不劈字素', (tester) async {
       final obs = Obs<String>('😀e\u0301');
       addTearDown(obs.dispose);
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(
-            length: 2,
-            modelValue: obs,
-            keyboardType: TextInputType.text,
-          ),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(length: 2, modelValue: obs, keyboardType: TextInputType.text)));
       await tester.pumpAndSettle();
 
       expect(_cells(tester)[0].child, '😀');
@@ -775,11 +642,7 @@ void main() {
     });
 
     testWidgets('字素光标映射到下一格而不是 UTF-16 下标', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(value: '😀a', length: 3, keyboardType: TextInputType.text),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(value: '😀a', length: 3, keyboardType: TextInputType.text)));
       await tester.pumpAndSettle();
       _editable(tester).focusNode!.requestFocus();
       _controller(tester).collapseTo('😀'.length);
@@ -794,20 +657,13 @@ void main() {
     testWidgets('真实点击每个视觉格都命中对应 Unicode 字素边界并保持唯一真实焦点', (tester) async {
       const text = 'A😀e\u0301👨‍👩‍👧‍👦';
       final offsets = _graphemeOffsets(text);
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(value: text, length: 4, keyboardType: TextInputType.text),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(value: text, length: 4, keyboardType: TextInputType.text)));
       await tester.pump();
 
       for (var index = 0; index < 4; index++) {
         await _clickCell(tester, index);
         expect(_editable(tester).focusNode!.hasFocus, isTrue);
-        expect(
-          _controller(tester).selection,
-          TextSelection.collapsed(offset: offsets[index]),
-        );
+        expect(_controller(tester).selection, TextSelection.collapsed(offset: offsets[index]));
         expect(
           [for (final cell in _cells(tester)) _isActiveCell(tester, cell)],
           [for (var i = 0; i < 4; i++) i == index],
@@ -821,11 +677,7 @@ void main() {
     testWidgets('真实反向拖选与键盘移动都以视觉格中心映射字素 offset', (tester) async {
       const text = 'A😀e\u0301👨‍👩‍👧‍👦';
       final offsets = _graphemeOffsets(text);
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(value: text, length: 4, keyboardType: TextInputType.text),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(value: text, length: 4, keyboardType: TextInputType.text)));
       await tester.pump();
 
       await _dragCell(tester, 3, 1);
@@ -839,10 +691,7 @@ void main() {
       await _clickCell(tester, 1);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
-      expect(
-        _controller(tester).selection,
-        TextSelection.collapsed(offset: offsets[2]),
-      );
+      expect(_controller(tester).selection, TextSelection.collapsed(offset: offsets[2]));
       expect(_isActiveCell(tester, _cells(tester)[2]), isTrue);
       await _unmount(tester);
     });
@@ -850,19 +699,11 @@ void main() {
     testWidgets('整串粘贴按 length 截断，退格继续回写同一控制器', (tester) async {
       final obs = Obs<String>('');
       addTearDown(obs.dispose);
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (call) async {
-          if (call.method == 'Clipboard.getData') return {'text': '123456'};
-          return null;
-        },
-      );
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          null,
-        ),
-      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.getData') return {'text': '123456'};
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
       await tester.pumpWidget(_host(ElInputOtp(length: 4, modelValue: obs)));
       await tester.pump();
 
@@ -894,18 +735,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(_cells(tester).first.style?.border?.borderTop.borderColor, _borderColor, reason: 'outlined 四边描边');
 
-      await tester.pumpWidget(
-        _host(ElInputOtp(value: '', length: 1, type: ElInputOtpType.filled)),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(value: '', length: 1, type: ElInputOtpType.filled)));
       await tester.pumpAndSettle();
       expect(_cells(tester).first.style?.backgroundColor, const Color(0xffebebeb), reason: 'filled 填充底');
       expect(_cells(tester).first.style?.border, isNull);
 
-      await tester.pumpWidget(
-        _host(
-          ElInputOtp(value: '', length: 1, type: ElInputOtpType.underlined),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputOtp(value: '', length: 1, type: ElInputOtpType.underlined)));
       await tester.pumpAndSettle();
       final cell = _cells(tester).first;
       expect(cell.style?.border?.borderBottom.borderColor, _borderColor);
@@ -917,7 +752,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(vars: {ElTheme.$borderColor: custom}),
+            style: ElStyle(vars: {ElTokens.$borderColor: custom}),
             child: ElInputOtp(value: '', length: 1),
           ),
         ),
@@ -941,18 +776,8 @@ void main() {
         final first = find.byWidget(cells.first);
         final second = find.byWidget(cells.last);
         expect(tester.getSize(first), Size.square(compact ? 24 : 32));
-        expect(
-          tester.getTopLeft(second).dx - tester.getTopLeft(first).dx,
-          compact ? 30 : 40,
-        );
-        expect(
-          tester
-              .renderObject<ElRenderView>(first)
-              .targetStyleForTest
-              .inheritedText
-              .fontSize,
-          compact ? 12 : 14,
-        );
+        expect(tester.getTopLeft(second).dx - tester.getTopLeft(first).dx, compact ? 30 : 40);
+        expect(tester.renderObject<ElRenderView>(first).targetStyleForTest.inheritedText.fontSize, compact ? 12 : 14);
       }
 
       await tester.pumpWidget(
@@ -968,14 +793,7 @@ void main() {
       await tester.pumpAndSettle();
       final cell = find.byWidget(_cells(tester).first);
       expect(tester.getSize(cell), Size.square(30));
-      expect(
-        tester
-            .renderObject<ElRenderView>(cell)
-            .targetStyleForTest
-            .inheritedText
-            .fontSize,
-        18,
-      );
+      expect(tester.renderObject<ElRenderView>(cell).targetStyleForTest.inheritedText.fontSize, 18);
     });
 
     testWidgets('disabled 不挂 editable、不进焦点链且不建立 IME', (tester) async {
@@ -984,13 +802,7 @@ void main() {
           Column(
             children: [
               ElInputOtp(key: const ValueKey('first'), value: '', length: 1),
-              ElInputOtp(
-                key: const ValueKey('disabled'),
-                value: '',
-                length: 1,
-                disabled: true,
-                autofocus: true,
-              ),
+              ElInputOtp(key: const ValueKey('disabled'), value: '', length: 1, disabled: true, autofocus: true),
               ElInputOtp(key: const ValueKey('last'), value: '', length: 1),
             ],
           ),
@@ -1001,30 +813,21 @@ void main() {
       expect(find.byType(EditableText), findsNothing);
       expect(find.byType(ElEditableView), findsNWidgets(2));
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('disabled')),
-          matching: find.byType(ElEditableView),
-        ),
+        find.descendant(of: find.byKey(const ValueKey('disabled')), matching: find.byType(ElEditableView)),
         findsNothing,
       );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       final first = tester.widget<ElEditableView>(
-        find.descendant(
-          of: find.byKey(const ValueKey('first')),
-          matching: find.byType(ElEditableView),
-        ),
+        find.descendant(of: find.byKey(const ValueKey('first')), matching: find.byType(ElEditableView)),
       );
       expect(first.focusNode!.hasFocus, isTrue);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       final last = tester.widget<ElEditableView>(
-        find.descendant(
-          of: find.byKey(const ValueKey('last')),
-          matching: find.byType(ElEditableView),
-        ),
+        find.descendant(of: find.byKey(const ValueKey('last')), matching: find.byType(ElEditableView)),
       );
       expect(last.focusNode!.hasFocus, isTrue, reason: 'Tab 必须跳过 disabled OTP');
       await _unmount(tester);
@@ -1032,24 +835,12 @@ void main() {
   });
 
   group('ElInputOtp 语义', () {
-    testWidgets('自定义单 code-unit maskCharacter 同步到底层 Editable 与语义', (
-      tester,
-    ) async {
-      expect(
-        () => ElInputOtp(mask: true, maskCharacter: 'ab'),
-        throwsAssertionError,
-      );
+    testWidgets('自定义单 code-unit maskCharacter 同步到底层 Editable 与语义', (tester) async {
+      expect(() => ElInputOtp(mask: true, maskCharacter: 'ab'), throwsAssertionError);
       final semantics = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
-          _host(
-            ElInputOtp(
-              value: '12',
-              mask: true,
-              maskCharacter: '#',
-              semanticLabel: '自定义验证码',
-            ),
-          ),
+          _host(ElInputOtp(value: '12', mask: true, maskCharacter: '#', semanticLabel: '自定义验证码')),
         );
         await tester.pump();
 
@@ -1067,17 +858,11 @@ void main() {
       const secret = 'Q7X9';
       final semantics = tester.ensureSemantics();
       try {
-        await tester.pumpWidget(
-          _host(ElInputOtp(value: secret, mask: true, semanticLabel: '安全验证码')),
-        );
+        await tester.pumpWidget(_host(ElInputOtp(value: secret, mask: true, semanticLabel: '安全验证码')));
         await tester.pump();
 
         final textFields = _textFieldNodes(tester);
-        expect(
-          textFields,
-          hasLength(1),
-          reason: '外层容器和视觉分格不得复制 Editable 文本框语义',
-        );
+        expect(textFields, hasLength(1), reason: '外层容器和视觉分格不得复制 Editable 文本框语义');
         final data = textFields.single.getSemanticsData();
         expect(data.label, '安全验证码');
         expect(data.value, '••••');
@@ -1102,9 +887,7 @@ void main() {
     testWidgets('非 mask 仍由唯一文本框暴露一次完整值', (tester) async {
       final semantics = tester.ensureSemantics();
       try {
-        await tester.pumpWidget(
-          _host(ElInputOtp(value: 'A7', semanticLabel: '验证码')),
-        );
+        await tester.pumpWidget(_host(ElInputOtp(value: 'A7', semanticLabel: '验证码')));
         await tester.pump();
 
         final textFields = _textFieldNodes(tester);
@@ -1114,11 +897,7 @@ void main() {
         expect(data.value, 'A7');
         expect(data.flagsCollection.isTextField, isTrue);
         expect(data.flagsCollection.isObscured, isFalse);
-        expect(
-          _exposedSemanticText(tester),
-          unorderedEquals(const ['验证码', 'A7']),
-          reason: '可视分格不应再把 A、7 拆成独立语义节点',
-        );
+        expect(_exposedSemanticText(tester), unorderedEquals(const ['验证码', 'A7']), reason: '可视分格不应再把 A、7 拆成独立语义节点');
       } finally {
         semantics.dispose();
         await _unmount(tester);
@@ -1129,16 +908,7 @@ void main() {
       const secret = 'Z9K2';
       final semantics = tester.ensureSemantics();
       try {
-        await tester.pumpWidget(
-          _host(
-            ElInputOtp(
-              value: secret,
-              mask: true,
-              disabled: true,
-              semanticLabel: '禁用验证码',
-            ),
-          ),
-        );
+        await tester.pumpWidget(_host(ElInputOtp(value: secret, mask: true, disabled: true, semanticLabel: '禁用验证码')));
         await tester.pump();
 
         final textFields = _textFieldNodes(tester);
@@ -1150,14 +920,8 @@ void main() {
         expect(data.flagsCollection.isReadOnly, isTrue);
         expect(data.flagsCollection.isObscured, isTrue);
         expect(data.flagsCollection.isEnabled, Tristate.isFalse);
-        expect(
-          _exposedSemanticText(tester),
-          unorderedEquals(const ['禁用验证码', '••••']),
-        );
-        expect(
-          textFields.single.owner!.rootSemanticsNode!.toStringDeep(),
-          isNot(contains(secret)),
-        );
+        expect(_exposedSemanticText(tester), unorderedEquals(const ['禁用验证码', '••••']));
+        expect(textFields.single.owner!.rootSemanticsNode!.toStringDeep(), isNot(contains(secret)));
       } finally {
         semantics.dispose();
         await _unmount(tester);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart' as desktop;
 import 'package:flutter_base/mobile.dart' as mobile;
-import 'package:flutter_base/ui.dart' show ElTheme, ElThemeContextExt;
+import 'package:flutter_base/ui.dart' show ElTokens, ElThemeContextExt;
 import 'package:flutter_test/flutter_test.dart';
 
 Finder _action(String label) =>
@@ -34,7 +34,7 @@ void main() {
     final shadow = [BoxShadow(color: Color(0x22000000), blurRadius: 3)];
     final seen = <(Color, List<BoxShadow>)>[];
     Widget reader() => desktop.ElView(
-      style: desktop.ElStyle(vars: {ElTheme.$primary: primary, ElTheme.$shadowSm: shadow}),
+      style: desktop.ElStyle(vars: {ElTokens.$primary: primary, ElTokens.$shadowSm: shadow}),
       child: Builder(
         builder: (context) {
           seen.add((context.elTheme.primary, context.elTheme.shadowSm));

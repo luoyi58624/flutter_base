@@ -59,14 +59,14 @@ class ProbeState extends State<StateProbe> {
 void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
     final light = ElMobileTheme.lightVars, dark = ElMobileTheme.darkVars;
-    expect(light[ElTheme.$primary], Color(0xff2454c6));
-    expect(light[ElTheme.$bgColor], Color(0xffeeeeee));
-    expect(light[ElTheme.$textColor], Color(0xff17191e));
-    expect(dark[ElTheme.$primary], Color(0xffaac8ff));
-    expect(dark[ElTheme.$primaryText], Color(0xff000000));
-    expect(dark[ElTheme.$borderColor], Color(0xff596576));
-    final lightShadow = light[ElTheme.$shadowMd] as List<BoxShadow>;
-    final darkShadow = dark[ElTheme.$shadowMd] as List<BoxShadow>;
+    expect(light[ElTokens.$primary], Color(0xff2454c6));
+    expect(light[ElTokens.$bgColor], Color(0xffeeeeee));
+    expect(light[ElTokens.$textColor], Color(0xff17191e));
+    expect(dark[ElTokens.$primary], Color(0xffaac8ff));
+    expect(dark[ElTokens.$primaryText], Color(0xff000000));
+    expect(dark[ElTokens.$borderColor], Color(0xff596576));
+    final lightShadow = light[ElTokens.$shadowMd] as List<BoxShadow>;
+    final darkShadow = dark[ElTokens.$shadowMd] as List<BoxShadow>;
     expect(lightShadow.first.color.a, closeTo(.045, .000001));
     expect(darkShadow.first.color.a, closeTo(.16, .000001));
     expect(() => lightShadow.add(BoxShadow()), throwsUnsupportedError);
@@ -92,7 +92,7 @@ void main() {
     await tester.pumpWidget(
       shell(
         skin.Button(child: '主题'),
-        theme: ElStyle(vars: {ElTheme.$primary: Color(0xff008877)}),
+        theme: ElStyle(vars: {ElTokens.$primary: Color(0xff008877)}),
       ),
     );
     expect(tester.widget<ElView>(buttonHost()).style!.backgroundColor, Color(0xff008877));
@@ -718,17 +718,17 @@ void main() {
   testWidgets('Tag五色遵守CSS混色，disabled不回调', (tester) async {
     final theme = ElMobileTheme.lightVars;
     final accents = [
-      (theme[ElTheme.$primary] as Color),
-      (theme[ElTheme.$success] as Color),
-      (theme[ElTheme.$warning] as Color),
-      (theme[ElTheme.$error] as Color),
-      (theme[ElTheme.$textSecondary] as Color),
+      (theme[ElTokens.$primary] as Color),
+      (theme[ElTokens.$success] as Color),
+      (theme[ElTokens.$warning] as Color),
+      (theme[ElTokens.$error] as Color),
+      (theme[ElTokens.$textSecondary] as Color),
     ];
     for (var i = 0; i < skin.TagTone.values.length; i++) {
       await tester.pumpWidget(shell(skin.Tag(tone: skin.TagTone.values[i], child: '标签')));
       final view = tester.widget<ElView>(views(find.byType(skin.Tag), (v) => v.style?.minHeight == 28));
       expect(view.style!.color, accents[i]);
-      expect(view.style!.backgroundColor, Color.lerp((theme[ElTheme.$cardColor] as Color), accents[i], .1));
+      expect(view.style!.backgroundColor, Color.lerp((theme[ElTokens.$cardColor] as Color), accents[i], .1));
     }
     var calls = 0;
     await tester.pumpWidget(
@@ -865,7 +865,7 @@ void main() {
             return Column(
               children: [
                 ElMobileTheme(
-                  style: ElStyle(vars: {ElTheme.$primary: color}),
+                  style: ElStyle(vars: {ElTokens.$primary: color}),
                   child: skin.Button(key: nested, child: '局部'),
                 ),
                 skin.Button(key: sibling, child: '默认'),

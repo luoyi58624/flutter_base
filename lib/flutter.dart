@@ -1,6 +1,7 @@
 library;
 
 export 'src/flutter/commons/index.dart';
+export 'src/flutter/theme/index.dart';
 export 'src/flutter/extensions/index.dart';
 export 'src/flutter/hooks/index.dart';
 export 'src/flutter/mixins/index.dart';

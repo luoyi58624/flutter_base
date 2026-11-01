@@ -49,14 +49,14 @@ Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未
 
 ## 主题与覆盖
 
-`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTheme` 键读取实际值。桌面控件只区分普通和紧凑两种密度；局部主题或密度直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
+`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTokens` 键读取实际值。桌面控件只区分普通和紧凑两种密度；局部主题或密度直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
 
 ```dart
 ElDesktopTheme(
   compact: false,
   style: ElStyle(
-    vars: {ElTheme.$primary: Color(0xff2454c6)},
-    onDark: ElStyle(vars: {ElTheme.$primary: Color(0xffaac8ff)}),
+    vars: {ElTokens.$primary: Color(0xff2454c6)},
+    onDark: ElStyle(vars: {ElTokens.$primary: Color(0xffaac8ff)}),
   ),
   child: ElView(
     style: ElStyle(vars: {ElDesktopTheme.$compact: true}),

@@ -94,7 +94,7 @@ void main() {
             ElListTile(title: Text('最后一行'), trailing: null),
           ],
         ),
-        style: ElStyle(vars: {ElTheme.$cardColor: card}),
+        style: ElStyle(vars: {ElTokens.$cardColor: card}),
       ),
     );
     expect(_text('分组标题'), findsOneWidget);

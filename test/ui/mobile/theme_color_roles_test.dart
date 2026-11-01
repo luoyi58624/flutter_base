@@ -42,10 +42,10 @@ void main() {
               return ElMobileTheme(
                 style: ElStyle(
                   vars: {
-                    ElTheme.$cardPressColor: cardPress,
-                    ElTheme.$dividerColor: divider,
-                    ElTheme.$press: Colors.red,
-                    ElTheme.$borderColor: Colors.blue,
+                    ElTokens.$cardPressColor: cardPress,
+                    ElTokens.$dividerColor: divider,
+                    ElTokens.$press: Colors.red,
+                    ElTokens.$borderColor: Colors.blue,
                   },
                 ),
                 child: Align(
@@ -95,10 +95,10 @@ void main() {
           child: ElMobileTheme(
             style: ElStyle(
               vars: {
-                ElTheme.$cardPressColor: Colors.green,
-                ElTheme.$dividerColor: Colors.purple,
-                ElTheme.$press: Colors.red,
-                ElTheme.$borderColor: Colors.blue,
+                ElTokens.$cardPressColor: Colors.green,
+                ElTokens.$dividerColor: Colors.purple,
+                ElTokens.$press: Colors.red,
+                ElTokens.$borderColor: Colors.blue,
               },
             ),
             child: Align(

@@ -1,8 +1,6 @@
 /// flutter_base UI 公共入口：视图引擎（ElView）、事件、选中、滚动、布局、浮层与功能组件。
 library;
 
-export 'src/ui/theme.dart';
-
 export 'src/flutter/views/selection/index.dart';
 export 'src/flutter/views/view/index.dart';
 

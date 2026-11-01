@@ -6,13 +6,12 @@ import 'package:android_system_font_weight/android_system_font_weight.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../components/builders.dart';
-import '../../theme_vars.dart';
-export '../../theme.dart';
+import '../../../flutter/theme/style.dart';
 
 part 'tokens.dart';
 
-final Map<Object, Object> _lightVars = Map.unmodifiable({...ElTheme.lightVars, ..._buildVars(false)});
-final Map<Object, Object> _darkVars = Map.unmodifiable({...ElTheme.darkVars, ..._buildVars(true)});
+final Map<Object, Object> _lightVars = _buildVars(false);
+final Map<Object, Object> _darkVars = _buildVars(true);
 
 /// 系统字重采集入口，仅供无头测试替换原生调用，不从公共入口导出。
 @visibleForTesting

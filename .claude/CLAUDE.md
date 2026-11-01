@@ -34,7 +34,7 @@
 
 - lib/src/flutter/ 承担通用组件声明、视图、事件、焦点、滚动、布局等机制；lib/src/ui/desktop/ 与 lib/src/ui/mobile/ 承担各端具体外观
 - 用户通过 flutter_base.dart、desktop.dart、mobile.dart 等公共入口使用接口；具体组件、Builder 和辅助函数留在 src 内部，生产示例不依赖具体实现
-- 主题入口为 ElDesktopTheme / ElMobileTheme，两端共用通用颜色、阴影等 token，后代统一使用 context.elTheme；通过 ElView 变量表及样式级联覆写，不另建一套主题继承协议
+- flutter/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；ElDesktopTheme / ElMobileTheme 各自在品牌目录定义完整默认值和暗色增量，通过 ElView 注入及级联覆写，不另建主题继承协议
 - 变量键不限制 String 或 -- 前缀，使用能区分身份的 Object 键；暗色等变体由 ElStyle 级联覆写
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
 - 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；两端保留必要的键盘操作、外借焦点节点和辅助技术语义

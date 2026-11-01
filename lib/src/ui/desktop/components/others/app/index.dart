@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 
-import '../../../../theme_vars.dart';
+import '../../../../../flutter/theme/style.dart';
 
 import '../../button/index.dart';
 import '../../button_group/index.dart';

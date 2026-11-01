@@ -24,39 +24,41 @@ extension ElMaterialThemeExt on BuildContext {
 
     final source = _materialStyle(this, brightness);
     final vars = source.vars;
+    if (vars.isEmpty) return ThemeData(brightness: brightness);
     T read<T extends Object>(Object key) {
       final value = vars[key];
-      return value is T ? value : ElTheme.lightVars[key] as T;
+      if (value is! T) throw StateError('主题变量 $key 未注入或类型不符，期望 $T');
+      return value;
     }
 
-    final primary = read<Color>(ElTheme.$primary);
-    final error = read<Color>(ElTheme.$error);
+    final primary = read<Color>(ElTokens.$primary);
+    final error = read<Color>(ElTokens.$error);
 
-    final bgColor = read<Color>(ElTheme.$bgColor);
-    final cardColor = read<Color>(ElTheme.$cardColor);
-    final fillColorLight = brightness == Brightness.dark ? const Color(0xff262727) : const Color(0xfff5f7fa);
+    final bgColor = read<Color>(ElTokens.$bgColor);
+    final cardColor = read<Color>(ElTokens.$cardColor);
+    final fillColorLight = read<Color>(ElTokens.$disabledBgColor);
 
-    final textColor = read<Color>(ElTheme.$textColor);
-    final regularTextColor = read<Color>(ElTheme.$textRegular);
-    final secondaryTextColor = read<Color>(ElTheme.$textSecondary);
-    final placeholderColor = read<Color>(ElTheme.$textPlaceholder);
-    final disabledTextColor = placeholderColor;
+    final textColor = read<Color>(ElTokens.$textColor);
+    final regularTextColor = read<Color>(ElTokens.$textRegular);
+    final secondaryTextColor = read<Color>(ElTokens.$textSecondary);
+    final placeholderColor = read<Color>(ElTokens.$textPlaceholder);
+    final disabledTextColor = read<Color>(ElTokens.$disabledTextColor);
 
-    final borderColor = read<Color>(ElTheme.$borderColor);
-    final dividerColor = read<Color>(ElTheme.$dividerColor);
-    final borderColorLight = _shade(borderColor, brightness, 3);
-    final borderWidth = read<num>(ElTheme.$borderWidth).toDouble();
-    final borderRadius = BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble());
+    final borderColor = read<Color>(ElTokens.$borderColor);
+    final dividerColor = read<Color>(ElTokens.$dividerColor);
+    final borderColorLight = read<Color>(ElTokens.$borderColorLight);
+    final borderWidth = read<num>(ElTokens.$borderWidth).toDouble();
+    final borderRadius = BorderRadius.circular(read<num>(ElTokens.$radiusSm).toDouble());
     // 沿用旧桥的卡片预设：圆角取通用 lg 档，描边取浅边框色。
-    final cardRadius = BorderRadius.circular(read<num>(ElTheme.$radiusLg).toDouble());
-    final cardHairlineColor = _shade(borderColor, brightness, 5);
+    final cardRadius = BorderRadius.circular(read<num>(ElTokens.$radiusLg).toDouble());
+    final cardHairlineColor = read<Color>(ElTokens.$borderColorLighter);
 
     final text = source.text;
     final fontSize = text?.fontSize ?? 15.0;
     double size(double preset) => preset * fontSize / 15;
     FontWeight weight(Object key) => FontWeight.values[((read<num>(key) / 100).round() - 1).clamp(0, 8)];
-    final family = text?.fontFamily ?? read<String>(ElTheme.$fontFamily);
-    final fallback = text?.fontFamilyFallback ?? read<List<String>>(ElTheme.$fontFamilyFallback);
+    final family = text?.fontFamily ?? read<String>(ElTokens.$fontFamily);
+    final fallback = text?.fontFamilyFallback ?? read<List<String>>(ElTokens.$fontFamilyFallback);
     // 只转接实际继承的字体属性，不自行生成字体族、回退表或可变轴。
     final typography = TextStyle(
       fontStyle: text?.fontStyle,
@@ -68,10 +70,10 @@ extension ElMaterialThemeExt on BuildContext {
       fontVariations: text?.fontVariationSettings,
       textBaseline: text?.textBaseline,
     );
-    final bodyWeight = text?.fontWeight ?? weight(ElTheme.$fontWeight);
-    final actionWeight = weight(ElTheme.$fontWeightAction);
-    final subtitleWeight = weight(ElTheme.$fontWeightSubtitle);
-    final titleWeight = weight(ElTheme.$fontWeightTitle);
+    final bodyWeight = text?.fontWeight ?? weight(ElTokens.$fontWeight);
+    final actionWeight = weight(ElTokens.$fontWeightAction);
+    final subtitleWeight = weight(ElTokens.$fontWeightSubtitle);
+    final titleWeight = weight(ElTokens.$fontWeightTitle);
     TextTheme adaptTextTheme(TextTheme theme) {
       TextStyle? apply(TextStyle? style, FontWeight fontWeight) => style
           ?.merge(typography)
@@ -137,11 +139,11 @@ extension ElMaterialThemeExt on BuildContext {
     final buttonStyle = ButtonStyle(textStyle: WidgetStatePropertyAll(mediumTextStyle));
     final cardShape = RoundedRectangleBorder(borderRadius: cardRadius);
 
-    final inputRadius = BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble());
+    final inputRadius = BorderRadius.circular(read<num>(ElTokens.$radiusSm).toDouble());
     final inputBorder = OutlineInputBorder(
       borderRadius: inputRadius,
       borderSide: BorderSide(
-        color: read<Color>(ElTheme.$borderColor),
+        color: read<Color>(ElTokens.$borderColor),
         width: borderWidth,
         strokeAlign: BorderSide.strokeAlignOutside,
       ),
@@ -175,8 +177,8 @@ extension ElMaterialThemeExt on BuildContext {
         ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: read<Color>(ElTheme.$primary),
-        inactiveTrackColor: _shade(borderColor, brightness, 3),
+        activeTrackColor: read<Color>(ElTokens.$primary),
+        inactiveTrackColor: borderColorLight,
         showValueIndicator: ShowValueIndicator.onDrag,
         valueIndicatorTextStyle: normalTextStyle.copyWith(color: _onColor(primary)),
       ),
@@ -186,8 +188,8 @@ extension ElMaterialThemeExt on BuildContext {
             return fillColorLight;
           }
           return states.contains(WidgetState.selected)
-              ? read<Color>(ElTheme.$primary)
-              : read<Color>(ElTheme.$borderColor);
+              ? read<Color>(ElTokens.$primary)
+              : read<Color>(ElTokens.$borderColor);
         }),
         // M3 未选中滑块默认取 colorScheme.outline（被钉成 borderColor 浅灰）→ 与轨道同色隐形，
         // hover/focus 还会跳成 fromSeed 的浅蓝紫 primaryContainer；钉死 Element 风格滑块恒白
@@ -196,7 +198,7 @@ extension ElMaterialThemeExt on BuildContext {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: read<Color>(ElTheme.$cardColor),
+        backgroundColor: read<Color>(ElTokens.$cardColor),
         foregroundColor: textColor,
         surfaceTintColor: Colors.transparent,
         // M3 默认阴影透明，显式着色才能显示滚动后的海拔阴影。
@@ -246,7 +248,7 @@ extension ElMaterialThemeExt on BuildContext {
         ),
       ),
       drawerTheme: DrawerThemeData(
-        backgroundColor: read<Color>(ElTheme.$cardColor),
+        backgroundColor: read<Color>(ElTokens.$cardColor),
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(),
       ),
@@ -267,14 +269,14 @@ extension ElMaterialThemeExt on BuildContext {
         enabledBorder: inputBorder,
         focusedBorder: inputBorder.copyWith(
           borderSide: BorderSide(
-            color: read<Color>(ElTheme.$primary),
+            color: read<Color>(ElTokens.$primary),
             width: borderWidth,
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
         ),
         disabledBorder: inputBorder.copyWith(
           borderSide: BorderSide(
-            color: borderColorLight,
+            color: read<Color>(ElTokens.$disabledBorderColor),
             width: borderWidth,
             strokeAlign: BorderSide.strokeAlignOutside,
           ),
@@ -291,12 +293,12 @@ extension ElMaterialThemeExt on BuildContext {
         elevation: 4,
         enableFeedback: true,
         textStyle: normalTextStyle,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble())),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(read<num>(ElTokens.$radiusSm).toDouble())),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: read<Color>(ElTheme.$textColor),
-          borderRadius: BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble()),
+          color: read<Color>(ElTokens.$textColor),
+          borderRadius: BorderRadius.circular(read<num>(ElTokens.$radiusSm).toDouble()),
         ),
         textStyle: normalTextStyle.copyWith(color: isDark ? textColor : bgColor, fontSize: size(13)),
       ),
@@ -304,9 +306,9 @@ extension ElMaterialThemeExt on BuildContext {
         titleTextStyle: boldTextStyle.copyWith(fontSize: size(18)),
         contentTextStyle: normalTextStyle.copyWith(color: regularTextColor),
         elevation: 6,
-        backgroundColor: read<Color>(ElTheme.$bgColor),
+        backgroundColor: read<Color>(ElTokens.$bgColor),
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble())),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(read<num>(ElTokens.$radiusSm).toDouble())),
         actionsPadding: const .all(8),
       ),
       datePickerTheme: DatePickerThemeData(
@@ -344,7 +346,7 @@ extension ElMaterialThemeExt on BuildContext {
         shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: read<Color>(ElTheme.$textColor),
+        backgroundColor: read<Color>(ElTokens.$textColor),
         contentTextStyle: normalTextStyle.copyWith(color: isDark ? textColor : bgColor),
         shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),

@@ -74,28 +74,34 @@ void main() {
     final child = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Builder(builder: (context) {
-          primaryBuilds++;
-          seenPrimary = context.elTheme.primary;
-          return SizedBox();
-        }),
-        Builder(builder: (context) {
-          borderBuilds++;
-          context.elTheme.borderColor;
-          return SizedBox();
-        }),
+        Builder(
+          builder: (context) {
+            primaryBuilds++;
+            seenPrimary = context.elTheme.primary;
+            return SizedBox();
+          },
+        ),
+        Builder(
+          builder: (context) {
+            borderBuilds++;
+            context.elTheme.borderColor;
+            return SizedBox();
+          },
+        ),
       ],
     );
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
-        child: StatefulBuilder(builder: (context, setState) {
-          rebuild = setState;
-          return ElDesktopTheme(
-            style: ElStyle(vars: {ElTheme.$primary: primary}),
-            child: child,
-          );
-        }),
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return ElDesktopTheme(
+              style: ElStyle(vars: {ElTokens.$primary: primary}),
+              child: child,
+            );
+          },
+        ),
       ),
     );
     expect(seenPrimary, primary);
@@ -117,17 +123,16 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: ElDesktopTheme(
-          style: ElStyle(vars: {
-            ElTheme.$primary: parentPrimary,
-            ElTheme.$borderColor: border,
-          }),
+          style: ElStyle(vars: {ElTokens.$primary: parentPrimary, ElTokens.$borderColor: border}),
           child: ElView(
-            style: ElStyle(vars: {ElTheme.$primary: localPrimary}),
-            child: Builder(builder: (context) {
-              seenPrimary = context.elTheme.primary;
-              seenBorder = context.elTheme.borderColor;
-              return SizedBox();
-            }),
+            style: ElStyle(vars: {ElTokens.$primary: localPrimary}),
+            child: Builder(
+              builder: (context) {
+                seenPrimary = context.elTheme.primary;
+                seenBorder = context.elTheme.borderColor;
+                return SizedBox();
+              },
+            ),
           ),
         ),
       ),
@@ -140,10 +145,12 @@ void main() {
     final lightPrimary = Color(0xff123456);
     final darkPrimary = Color(0xffabcdef);
     Color? seenPrimary;
-    final child = Builder(builder: (context) {
-      seenPrimary = context.elTheme.primary;
-      return SizedBox();
-    });
+    final child = Builder(
+      builder: (context) {
+        seenPrimary = context.elTheme.primary;
+        return SizedBox();
+      },
+    );
     for (final brightness in [Brightness.light, Brightness.dark, Brightness.light]) {
       await tester.pumpWidget(
         Directionality(
@@ -151,8 +158,8 @@ void main() {
           child: ElDesktopTheme(
             themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
             style: ElStyle(
-              vars: {ElTheme.$primary: lightPrimary},
-              onDark: ElStyle(vars: {ElTheme.$primary: darkPrimary}),
+              vars: {ElTokens.$primary: lightPrimary},
+              onDark: ElStyle(vars: {ElTokens.$primary: darkPrimary}),
             ),
             child: child,
           ),

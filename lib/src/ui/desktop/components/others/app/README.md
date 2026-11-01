@@ -1,6 +1,6 @@
 # Desktop Theme
 
-`ElDesktopTheme` 安装桌面组件实现，并将通用默认变量注入 ElView。两端共享 `ElTheme` 键和 `context.elTheme` 读取入口，局部覆盖直接使用普通 ElView。公共用法见 [Desktop](../../../README.md)。
+`ElDesktopTheme` 安装桌面组件实现，并将通用默认变量注入 ElView。两端共享 `ElTokens` 键和 `context.elTheme` 读取入口，局部覆盖直接使用普通 ElView。公共用法见 [Desktop](../../../README.md)。
 
 | 参数或接口 | 用途 |
 | --- | --- |

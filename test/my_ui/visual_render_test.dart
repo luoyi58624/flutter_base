@@ -207,7 +207,7 @@ void main() {
           _keys.clear();
           final boundaryKey = GlobalKey();
           final data = {...ElMobileTheme.lightVars, if (brightness == Brightness.dark) ...ElMobileTheme.darkVars};
-          _labelColor = (data[ElTheme.$textSecondary] as Color);
+          _labelColor = (data[ElTokens.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
               // 沿用官方宿主的默认字体，不额外加载或指定字体。
@@ -225,7 +225,7 @@ void main() {
                   child: RepaintBoundary(
                     key: boundaryKey,
                     child: ColoredBox(
-                      color: (data[ElTheme.$bgColor] as Color),
+                      color: (data[ElTokens.$bgColor] as Color),
                       child: Padding(
                         padding: EdgeInsets.all(24),
                         child: Align(
@@ -249,7 +249,7 @@ void main() {
                                     style: TextStyle(
                                       fontSize: 12,
                                       height: 16 / 12,
-                                      color: (data[ElTheme.$textSecondary] as Color),
+                                      color: (data[ElTokens.$textSecondary] as Color),
                                     ),
                                   ),
                                 ),
@@ -278,7 +278,7 @@ void main() {
             'viewport': [width, 900],
             'dpr': 1,
             'fontFamily': DefaultTextStyle.of(_keys.values.first.currentContext!).style.fontFamily,
-            'fontFamilyFallback': (data[ElTheme.$fontFamilyFallback] as List<String>),
+            'fontFamilyFallback': (data[ElTokens.$fontFamilyFallback] as List<String>),
             'positions': positions,
             'officialTexts': find.byType(RichText).evaluate().map((element) {
               final box = element.renderObject! as RenderParagraph;
