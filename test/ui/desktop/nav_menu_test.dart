@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -184,8 +185,66 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('多层子菜单逐级缩进，分组与菜单行上下连续，折叠后也不留空隙', (tester) async {
+    await _host(
+      tester,
+      ElNavMenu<void>(
+        children: [
+          ElMenuModel<void>(
+            group: true,
+            title: '基础组件',
+            children: [
+              ElMenuModel<void>(
+                key: 'catalogue',
+                title: '组件目录',
+                children: [
+                  ElMenuModel<void>(
+                    group: true,
+                    title: '内容分组',
+                    children: [
+                      ElMenuModel<void>(
+                        key: 'container',
+                        title: '内容容器',
+                        children: [
+                          ElMenuModel<void>(key: 'card', title: '卡片'),
+                          ElMenuModel<void>(key: 'list', title: '列表'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          ElMenuModel<void>(key: 'settings', title: '设置'),
+        ],
+      ),
+    );
+    void adjacent(Finder above, Finder below) {
+      expect(tester.getRect(below).top, closeTo(tester.getRect(above).bottom, .001));
+    }
+
+    expect(tester.getTopLeft(_label('内容容器')).dx - tester.getTopLeft(_label('组件目录')).dx, 20);
+    expect(tester.getTopLeft(_label('卡片')).dx - tester.getTopLeft(_label('内容容器')).dx, 20);
+    adjacent(_label('基础组件'), _row('组件目录'));
+    adjacent(_row('组件目录'), _label('内容分组'));
+    adjacent(_label('内容分组'), _row('内容容器'));
+    adjacent(_row('内容容器'), _row('卡片'));
+    adjacent(_row('卡片'), _row('列表'));
+    adjacent(_row('列表'), _row('设置'));
+    await tester.tap(_row('内容容器'));
+    await tester.pumpAndSettle();
+    expect(_row('卡片').hitTestable(), findsNothing);
+    adjacent(_row('内容容器'), _row('设置'));
+    await tester.tap(_row('组件目录'));
+    await tester.pumpAndSettle();
+    expect(_row('内容容器').hitTestable(), findsNothing);
+    adjacent(_row('组件目录'), _row('设置'));
+    expect(tester.takeException(), isNull);
+  });
+
   for (final brightness in Brightness.values) {
-    testWidgets('菜单行采用圆角浅色选中态，分组维持弱化标题：$brightness', (tester) async {
+    testWidgets('保留圆角浅色选中态，悬停不改变选中与普通项的背景：$brightness', (tester) async {
       await _host(
         tester,
         ElNavMenu<void>(
@@ -194,7 +253,10 @@ void main() {
             ElMenuModel<void>(
               group: true,
               title: '开始使用',
-              children: [ElMenuModel<void>(key: 'leaf', title: '主题设计')],
+              children: [
+                ElMenuModel<void>(key: 'leaf', title: '主题设计'),
+                ElMenuModel<void>(key: 'other', title: '阴影设计'),
+              ],
             ),
           ],
         ),
@@ -215,6 +277,20 @@ void main() {
       );
       expect(tester.widget<ElView>(_label('开始使用')).style!.fontSize, 12);
       expect(tester.widget<ElView>(_label('开始使用')).style!.backgroundColor, isNull);
+      final selected = tester.renderObject<ElRenderView>(_row('主题设计'));
+      final ordinary = tester.renderObject<ElRenderView>(_row('阴影设计'));
+      final selectedBackground = selected.committedResolvedStyle.box.backgroundColor;
+      final ordinaryBackground = ordinary.committedResolvedStyle.box.backgroundColor;
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset(700, 500));
+      await mouse.moveTo(tester.getCenter(_row('主题设计')));
+      await tester.pumpAndSettle();
+      expect(selected.committedResolvedStyle.box.backgroundColor, selectedBackground);
+      await mouse.moveTo(tester.getCenter(_row('阴影设计')));
+      await tester.pumpAndSettle();
+      expect(ordinary.committedResolvedStyle.box.backgroundColor, ordinaryBackground);
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
     });
   }
 
@@ -223,7 +299,13 @@ void main() {
       tester,
       ElNavMenu<void>(
         value: 'leaf',
-        style: ElStyle(height: 48, color: Colors.purple, iconColor: Colors.green, borderRadius: .circular(16)),
+        style: ElStyle(
+          height: 48,
+          color: Colors.purple,
+          iconColor: Colors.green,
+          borderRadius: .circular(16),
+          onHover: ElStyle(backgroundColor: Colors.orange),
+        ),
         children: [ElMenuModel<void>(key: 'leaf', title: '自定义')],
       ),
     );
@@ -232,5 +314,11 @@ void main() {
     expect(row.borderRadius, BorderRadius.circular(16));
     expect(row.color, Colors.purple);
     expect(row.iconColor, Colors.green);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset(700, 500));
+    await mouse.moveTo(tester.getCenter(_row('自定义')));
+    await tester.pumpAndSettle();
+    expect(tester.renderObject<ElRenderView>(_row('自定义')).committedResolvedStyle.box.backgroundColor, Colors.orange);
+    await mouse.removePointer();
   });
 }

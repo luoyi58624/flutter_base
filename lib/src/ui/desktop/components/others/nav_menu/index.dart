@@ -94,7 +94,6 @@ class ElNavMenu<T> extends ElModelValue<String> {
           alignment: .centerLeft,
           borderRadius: .circular(8),
           userSelect: .none,
-          onHover: ElStyle(backgroundColor: Color.lerp(background, textColor, .04)),
           onTap: ElStyle(backgroundColor: Color.lerp(background, textColor, .07)),
           transition: const [
             .field(ElTransitionField.backgroundColor, Duration(milliseconds: 150), Curves.easeOut),
@@ -118,7 +117,7 @@ class ElNavMenu<T> extends ElModelValue<String> {
         return ElView(
           style: ElStyle(backgroundColor: background),
           child: ElScrollView(
-            padding: const .fromLTRB(12, 8, 12, 16),
+            padding: const .symmetric(horizontal: 12),
             children: _items(context, children, 0, activeKeys, itemStyle, select),
           ),
         );
@@ -139,7 +138,9 @@ class ElNavMenu<T> extends ElModelValue<String> {
       if (item.group) ...[
         ElView(
           style: ElStyle(
-            padding: .fromLTRB(12 + nestGap * depth, 22, 12, 8),
+            height: 36,
+            alignment: .centerLeft,
+            padding: .only(left: 12 + nestGap * depth, right: 12),
             color: context.elTheme.textSecondary,
             fontSize: 12,
             fontWeight: .w500,
@@ -204,11 +205,7 @@ class _MenuItem<T> extends HookWidget {
             width: '100%',
             height: menu.itemHeight,
             padding: .only(left: 12 + menu.nestGap * depth, right: 12),
-            margin: const .symmetric(vertical: 2),
             backgroundColor: selected ? Color.lerp(style.backgroundColor, primary, context.isDark ? .16 : .09) : null,
-            onHover: selected
-                ? ElStyle(backgroundColor: Color.lerp(style.backgroundColor, primary, context.isDark ? .22 : .13))
-                : null,
             color: isActive ? primary : null,
             iconColor: isActive ? primary : null,
             fontWeight: selected ? .w500 : null,

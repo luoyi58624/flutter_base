@@ -43,11 +43,17 @@ class _Sidebar extends StatelessWidget {
                   group: true,
                   title: '基础组件',
                   children: [
-                    ElMenuModel<String>(key: 'components', title: '组件目录', icon: ElIcon(Icons.widgets_outlined)),
                     ElMenuModel<String>(
-                      key: 'component-overview',
-                      title: '组件概览',
-                      icon: ElIcon(Icons.dashboard_outlined),
+                      key: 'components',
+                      title: '组件目录',
+                      icon: ElIcon(Icons.widgets_outlined),
+                      children: [
+                        ElMenuModel<String>(
+                          key: 'component-overview',
+                          title: '组件概览',
+                          icon: ElIcon(Icons.dashboard_outlined),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -55,10 +61,16 @@ class _Sidebar extends StatelessWidget {
                   group: true,
                   title: '示例',
                   children: [
-                    ElMenuModel<String>(key: 'examples', title: '示例概览', icon: ElIcon(Icons.grid_view_outlined)),
-                    ElMenuModel<String>(key: 'view', title: '视图', icon: ElIcon(Icons.web_outlined)),
-                    ElMenuModel<String>(key: 'gestures', title: '手势', icon: ElIcon(Icons.touch_app_outlined)),
-                    ElMenuModel<String>(key: 'base', title: '基础', icon: ElIcon(Icons.layers_outlined)),
+                    ElMenuModel<String>(
+                      key: 'examples',
+                      title: '示例概览',
+                      icon: ElIcon(Icons.grid_view_outlined),
+                      children: [
+                        ElMenuModel<String>(key: 'view', title: '视图', icon: ElIcon(Icons.web_outlined)),
+                        ElMenuModel<String>(key: 'gestures', title: '手势', icon: ElIcon(Icons.touch_app_outlined)),
+                        ElMenuModel<String>(key: 'base', title: '基础', icon: ElIcon(Icons.layers_outlined)),
+                      ],
+                    ),
                   ],
                 ),
                 ElMenuModel<String>(
