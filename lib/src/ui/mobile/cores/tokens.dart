@@ -2,12 +2,6 @@ part of 'theme.dart';
 
 // 默认值沿用原移动主题；暗表仅保留差异，避免覆盖基础层的通用变量。
 Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
-  if (!dark) ElTheme.$fontFamily: 'Times New Roman',
-  if (!dark)
-    ElTheme.$fontFamilyFallback: List<String>.unmodifiable([
-      'Microsoft YaHei',
-      'SimSun',
-    ]),
   ElTheme.$bgColor: Color(dark ? 0xff121419 : 0xfff2f3f5),
   ElTheme.$cardColor: Color(dark ? 0xff252931 : 0xffffffff),
   ElTheme.$fill: Color(dark ? 0xff333944 : 0xfff1f2f4),

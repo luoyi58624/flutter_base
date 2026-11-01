@@ -1,4 +1,4 @@
-/// 首批组件真实无头栅格化；画布、插槽和状态与视觉参照fixture.js一致。
+/// 默认字体下的无头栅格化，允许文本随字体度量自然换行。
 library;
 
 import 'dart:convert';
@@ -24,17 +24,21 @@ final _metrics = <String, Object?>{};
 final _keys = <String, GlobalKey>{};
 var _labelColor = Color(0xff626874);
 Widget _record(String id, Widget child) => KeyedSubtree(key: _keys.putIfAbsent(id, () => GlobalKey()), child: child);
-Widget _row(String name, List<Widget> children, {double height = 92}) => SizedBox(
-  height: height,
+Widget _row(String name, List<Widget> children, {double height = 92}) => ConstrainedBox(
+  constraints: BoxConstraints(minHeight: height),
   child: Column(
+    mainAxisSize: .min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         name,
-        style: TextStyle(fontFamily: 'Arial', fontSize: 12, height: 16 / 12, color: _labelColor),
+        style: TextStyle(fontSize: 12, height: 16 / 12, color: _labelColor),
       ),
       SizedBox(height: 8),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, spacing: 12, children: children),
+      if (children.any((child) => child is Flexible))
+        Row(crossAxisAlignment: .start, spacing: 12, children: children)
+      else
+        Wrap(spacing: 12, runSpacing: 12, children: children),
     ],
   ),
 );
@@ -170,33 +174,6 @@ List<Widget> _samples(String id) => switch (id) {
   ],
   _ => throw ArgumentError(id),
 };
-Future<void> _loadFonts() async {
-  final sdk = Platform.environment['MY_UI_SDK'] ?? 'D:/app/fvm/versions/stable';
-  for (final entry in <String, List<String>>{
-    'Arial': ['C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/arialbd.ttf'],
-    'Times New Roman': [
-      'C:/Windows/Fonts/times.ttf',
-      'C:/Windows/Fonts/timesbd.ttf',
-      'C:/Windows/Fonts/timesi.ttf',
-      'C:/Windows/Fonts/timesbi.ttf',
-    ],
-    'SimSun': ['C:/Windows/Fonts/simsun.ttc'],
-    'Microsoft YaHei': ['C:/Windows/Fonts/msyh.ttc', 'C:/Windows/Fonts/msyhbd.ttc'],
-    'Roboto': [
-      '$sdk/bin/cache/artifacts/material_fonts/roboto-regular.ttf',
-      '$sdk/bin/cache/artifacts/material_fonts/roboto-medium.ttf',
-      '$sdk/bin/cache/artifacts/material_fonts/roboto-bold.ttf',
-    ],
-  }.entries) {
-    final loader = FontLoader(entry.key);
-    for (final file in entry.value) {
-      final bytes = await File(file).readAsBytes();
-      loader.addFont(Future.value(ByteData.sublistView(bytes)));
-    }
-    await loader.load();
-  }
-}
-
 Future<void> _save(WidgetTester tester, RenderRepaintBoundary boundary, String name) async {
   await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1);
@@ -209,7 +186,6 @@ Future<void> _save(WidgetTester tester, RenderRepaintBoundary boundary, String n
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(_loadFonts);
   for (final width in [390.0, 1440.0]) {
     for (final brightness in [Brightness.light, Brightness.dark]) {
       testWidgets('真实渲染 ${width.toInt()} ${brightness.name}', (tester) async {
@@ -234,9 +210,9 @@ void main() {
           _labelColor = (data[ElTheme.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
-              // 仅提供Material宿主；字体由ElMobileTheme建立，避免宿主覆盖复验契约。
+              // 沿用官方宿主的默认字体，不额外加载或指定字体。
               builder: (context, child) => Material(type: MaterialType.transparency, child: child),
-              theme: ThemeData(platform: TargetPlatform.windows, fontFamilyFallback: ['Microsoft YaHei']),
+              theme: ThemeData(platform: TargetPlatform.windows),
               home: MediaQuery(
                 data: MediaQueryData(
                   size: Size(width, 900),
@@ -263,12 +239,7 @@ void main() {
                                   height: 32,
                                   child: Text(
                                     '${id[0].toUpperCase()}${id.substring(1)}',
-                                    style: TextStyle(
-                                      fontFamily: 'Arial',
-                                      fontSize: 20,
-                                      height: 1.6,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: TextStyle(fontSize: 20, height: 1.6, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                                 SizedBox(
@@ -276,7 +247,6 @@ void main() {
                                   child: Text(
                                     '${brightness.name} / ${width.toInt()} logical px / DPR 1',
                                     style: TextStyle(
-                                      fontFamily: 'Arial',
                                       fontSize: 12,
                                       height: 16 / 12,
                                       color: (data[ElTheme.$textSecondary] as Color),

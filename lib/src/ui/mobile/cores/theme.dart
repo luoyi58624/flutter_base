@@ -51,27 +51,26 @@ class ElMobileTheme extends StatelessWidget {
           builder: (context) {
             final theme = context.elTheme;
             final fontWeight = textWeight(theme.fontWeight);
-            final axes = [FontVariation('wght', theme.fontWeight)];
+            final family = theme.fontFamily;
+            final fallback = theme.fontFamilyFallback;
             return DefaultTextStyle.merge(
               style: TextStyle(
-                fontFamily: theme.fontFamily,
-                fontFamilyFallback: theme.fontFamilyFallback,
+                fontFamily: family.isEmpty ? null : family,
+                fontFamilyFallback: fallback.isEmpty ? null : fallback,
                 color: theme.textColor,
                 fontSize: 15,
                 height: kTextHeightNone,
                 fontWeight: fontWeight,
-                fontVariations: axes,
               ),
               child: ElView(
                 style: ElStyle(
-                  fontFamily: theme.fontFamily,
-                  fontFamilyFallback: theme.fontFamilyFallback,
+                  fontFamily: family.isEmpty ? null : family,
+                  fontFamilyFallback: fallback.isEmpty ? null : fallback,
                   color: theme.textColor,
                   iconColor: theme.textColor,
                   fontSize: 15,
                   lineHeight: kTextHeightNone,
                   fontWeight: fontWeight,
-                  fontVariationSettings: axes,
                 ).merge(style),
                 child: child,
               ),

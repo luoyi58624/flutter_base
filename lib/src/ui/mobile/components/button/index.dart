@@ -10,8 +10,7 @@ import '../../cores/theme.dart';
 import '../loading/index.dart';
 
 /// 以移动端按钮外观实现通用声明，切换模型仍由 ElButton 持有。
-Widget buttonBuilder(BuildContext context, ElButton component) =>
-    Button._fromComponent(component);
+Widget buttonBuilder(BuildContext context, ElButton component) => Button._fromComponent(component);
 
 /// Web按钮的七种视觉层级。
 enum ButtonVariant {
@@ -142,16 +141,8 @@ class Button extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.elTheme;
-    final fixed = [
-      ButtonVariant.icon,
-      ButtonVariant.bare,
-      ButtonVariant.round,
-    ].contains(variant);
-    final flat = [
-      ButtonVariant.text,
-      ButtonVariant.bare,
-      ButtonVariant.link,
-    ].contains(variant);
+    final fixed = [ButtonVariant.icon, ButtonVariant.bare, ButtonVariant.round].contains(variant);
+    final flat = [ButtonVariant.text, ButtonVariant.bare, ButtonVariant.link].contains(variant);
     final side = variant == ButtonVariant.round ? 46.0 : 44.0;
     final foreground = switch (variant) {
       ButtonVariant.primary => t.primaryText,
@@ -165,12 +156,7 @@ class Button extends StatelessWidget {
       ButtonVariant.icon || ButtonVariant.round => t.fill,
       _ => const Color(0x00000000),
     };
-    final border =
-        [
-          ButtonVariant.outline,
-          ButtonVariant.icon,
-          ButtonVariant.round,
-        ].contains(variant)
+    final border = [ButtonVariant.outline, ButtonVariant.icon, ButtonVariant.round].contains(variant)
         ? t.borderColor
         : const Color(0x00000000);
     final noFeedback = disabled || loading;
@@ -191,24 +177,14 @@ class Button extends StatelessWidget {
                       : 17) +
                   1,
       ),
-      margin: variant == ButtonVariant.link
-          ? const EdgeInsets.only(top: 24)
-          : null,
+      margin: variant == ButtonVariant.link ? const EdgeInsets.only(top: 24) : null,
       alignment: Alignment.center,
       softWrap: false,
-      backgroundColor: disabled && variant != ButtonVariant.bare
-          ? t.fill
-          : background,
-      color: disabled && !(variant == ButtonVariant.icon && selected == true)
-          ? t.textSecondary
-          : foreground,
+      backgroundColor: disabled && variant != ButtonVariant.bare ? t.fill : background,
+      color: disabled && !(variant == ButtonVariant.icon && selected == true) ? t.textSecondary : foreground,
       fontSize: variant == ButtonVariant.link ? 14 : 15,
       fontWeight: textWeight(t.fontWeightAction),
-      fontVariationSettings: [FontVariation('wght', t.fontWeightAction)],
-      border: ElBorder.all(
-        borderWidth: variant == ButtonVariant.link ? 0 : 1,
-        borderColor: border,
-      ),
+      border: ElBorder.all(borderWidth: variant == ButtonVariant.link ? 0 : 1, borderColor: border),
       borderRadius: BorderRadius.circular(
         variant == ButtonVariant.round
             ? 14
@@ -216,23 +192,11 @@ class Button extends StatelessWidget {
             ? 12
             : 13,
       ),
-      opacity:
-          disabled &&
-              ![ButtonVariant.text, ButtonVariant.bare].contains(variant)
-          ? .68
-          : 1,
+      opacity: disabled && ![ButtonVariant.text, ButtonVariant.bare].contains(variant) ? .68 : 1,
       transition: const [
         ElTransition.all(Duration(milliseconds: 150), Curves.ease),
-        ElTransition.field(
-          ElTransitionField.transform,
-          Duration(milliseconds: 160),
-          Cubic(.2, .7, .2, 1),
-        ),
-        ElTransition.field(
-          ElTransitionField.opacity,
-          Duration(milliseconds: 200),
-          Curves.ease,
-        ),
+        ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 160), Cubic(.2, .7, .2, 1)),
+        ElTransition.field(ElTransitionField.opacity, Duration(milliseconds: 200), Curves.ease),
       ],
       onTap: noFeedback
           ? null
@@ -263,9 +227,7 @@ class Button extends StatelessWidget {
         ? _commonContent(component)
         : Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: icon != null && child != null
-                ? (variant == ButtonVariant.link ? 6 : 7)
-                : 0,
+            spacing: icon != null && child != null ? (variant == ButtonVariant.link ? 6 : 7) : 0,
             children: [
               if (icon != null)
                 ExcludeSemantics(
@@ -305,11 +267,7 @@ class Button extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Opacity(
-            opacity: loading ? 0 : 1,
-            alwaysIncludeSemantics: true,
-            child: content,
-          ),
+          Opacity(opacity: loading ? 0 : 1, alwaysIncludeSemantics: true, child: content),
           if (loading)
             const Positioned.fill(
               child: ExcludeSemantics(
@@ -350,9 +308,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
   final flat = component.link || component.text;
   final outlined = !flat && (component.ghost || component.plain);
   final background = flat
-      ? (component.bg && component.text && !component.link
-            ? theme.fill
-            : const Color(0x00000000))
+      ? (component.bg && component.text && !component.link ? theme.fill : const Color(0x00000000))
       : component.ghost
       ? const Color(0x00000000)
       : component.plain
@@ -372,9 +328,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     margin: component.link ? EdgeInsets.zero : base.margin,
     width: component.circle ? 44.0 : base.width,
     height: component.circle ? 44.0 : base.height,
-    borderRadius: component.circle || component.round
-        ? BorderRadius.circular(999)
-        : base.borderRadius,
+    borderRadius: component.circle || component.round ? BorderRadius.circular(999) : base.borderRadius,
     backgroundColor: component.disabled
         ? theme.fill
         : component.selected
@@ -391,9 +345,6 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     ),
     onTap: component.disabled || component.loading
         ? null
-        : ElStyle(
-            backgroundColor: selectedBackground,
-            transform: ElTransform.scale(flat ? 1 : .95),
-          ),
+        : ElStyle(backgroundColor: selectedBackground, transform: ElTransform.scale(flat ? 1 : .95)),
   );
 }

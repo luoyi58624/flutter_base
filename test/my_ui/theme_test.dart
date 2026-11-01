@@ -28,8 +28,8 @@ void main() {
           ),
         ),
       );
-      expect(t.fontFamily, 'Times New Roman');
-      expect(t.fontFamilyFallback, ['Microsoft YaHei', 'SimSun']);
+      expect(t.fontFamily, isEmpty);
+      expect(t.fontFamilyFallback, isEmpty);
       final colors = <String, Color>{
         'background': t.bgColor,
         'card-background': t.cardColor,
@@ -76,9 +76,9 @@ void main() {
     });
   }
 
-  test('默认变量表与字体回退集合保持只读', () {
-    expect(ElMobileTheme.lightVars[ElTheme.$fontFamily], 'Times New Roman');
-    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], ['Microsoft YaHei', 'SimSun']);
+  test('默认字体未指定，变量表保持只读', () {
+    expect(ElMobileTheme.lightVars[ElTheme.$fontFamily], isEmpty);
+    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], isEmpty);
     expect(() => ElMobileTheme.lightVars.clear(), throwsUnsupportedError);
     expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
     expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
@@ -127,16 +127,18 @@ void main() {
     expect(text.text.style!.fontFamily, 'Arial');
     expect(text.text.style!.fontFamilyFallback, ['SimSun']);
     expect(text.text.style!.fontWeight, FontWeight.w500);
-    expect(text.text.style!.fontVariations, [FontVariation('wght', 500)]);
+    expect(text.text.style!.fontVariations, isNull);
     final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
     expect(view.committedResolvedStyle.inheritedText.fontFamily, 'Arial');
     expect(view.committedResolvedStyle.inheritedText.fontWeight, FontWeight.w500);
-    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, [FontVariation('wght', 500)]);
+    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, isNull);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('ElMobileTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
     final textKey = GlobalKey(), viewKey = GlobalKey(), explicitKey = GlobalKey();
+    String? ambientFamily;
+    List<String>? ambientFallback;
     for (final data in [
       ElStyle(),
       ElStyle(
@@ -148,20 +150,27 @@ void main() {
     ]) {
       await tester.pumpWidget(
         MaterialApp(
-          home: ElMobileTheme(
-            style: data,
-            child: Column(
-              children: [
-                Text('Text 默认', key: textKey),
-                ElView(key: viewKey, child: 'ElView 默认'),
-                ElView(
-                  key: explicitKey,
-                  style: ElStyle(fontFamily: 'Courier New'),
-                  child: '局部字体',
+          home: Builder(
+            builder: (context) {
+              final ambient = DefaultTextStyle.of(context).style;
+              ambientFamily = ambient.fontFamily;
+              ambientFallback = ambient.fontFamilyFallback;
+              return ElMobileTheme(
+                style: data,
+                child: Column(
+                  children: [
+                    Text('Text 默认', key: textKey),
+                    ElView(key: viewKey, child: 'ElView 默认'),
+                    ElView(
+                      key: explicitKey,
+                      style: ElStyle(fontFamily: 'Courier New'),
+                      child: '局部字体',
+                    ),
+                    Text('Text 局部', style: TextStyle(fontFamily: 'Courier New')),
+                  ],
                 ),
-                Text('Text 局部', style: TextStyle(fontFamily: 'Courier New')),
-              ],
-            ),
+              );
+            },
           ),
         ),
       );
@@ -170,23 +179,11 @@ void main() {
       );
       final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
       expect(text.text.style!.height, kTextHeightNone);
-      expect(
-        text.text.style!.fontFamily,
-        data.vars?[ElTheme.$fontFamily] ?? ElMobileTheme.lightVars[ElTheme.$fontFamily],
-      );
-      expect(
-        text.text.style!.fontFamilyFallback,
-        data.vars?[ElTheme.$fontFamilyFallback] ?? ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
-      );
+      expect(text.text.style!.fontFamily, data.vars?[ElTheme.$fontFamily] ?? ambientFamily);
+      expect(text.text.style!.fontFamilyFallback, data.vars?[ElTheme.$fontFamilyFallback] ?? ambientFallback);
       expect(view.committedResolvedStyle.inheritedText.lineHeight, kTextHeightNone);
-      expect(
-        view.committedResolvedStyle.inheritedText.fontFamily,
-        data.vars?[ElTheme.$fontFamily] ?? ElMobileTheme.lightVars[ElTheme.$fontFamily],
-      );
-      expect(
-        view.committedResolvedStyle.inheritedText.fontFamilyFallback,
-        data.vars?[ElTheme.$fontFamilyFallback] ?? ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
-      );
+      expect(view.committedResolvedStyle.inheritedText.fontFamily, data.vars?[ElTheme.$fontFamily]);
+      expect(view.committedResolvedStyle.inheritedText.fontFamilyFallback, data.vars?[ElTheme.$fontFamilyFallback]);
       expect(
         tester.renderObject<ElRenderView>(find.byKey(explicitKey)).committedResolvedStyle.inheritedText.fontFamily,
         'Courier New',

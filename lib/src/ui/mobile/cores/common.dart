@@ -19,15 +19,9 @@ bool reducedMotion(BuildContext context) => MediaQuery.maybeOf(context)?.disable
 /// CSS px 的断点基于整个 viewport，而非组件局部可用宽度。
 double viewport(BuildContext context) => MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
 
-/// 保留数值字重，兼顾静态字体与可变字体。
+/// 使用正常字重，不额外注入可变字体轴。
 ElStyle textStyle(BuildContext context, double size, double weight, {Color? color, double? height}) {
-  return ElStyle(
-    fontSize: size,
-    fontWeight: textWeight(weight),
-    fontVariationSettings: [FontVariation('wght', weight)],
-    color: color,
-    lineHeight: height,
-  );
+  return ElStyle(fontSize: size, fontWeight: textWeight(weight), color: color, lineHeight: height);
 }
 
 /// 将行内盒从父布局的横向拉伸中解除。

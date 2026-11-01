@@ -1,6 +1,6 @@
 # Mobile
 
-my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`ElMobileTheme` 提供 CSS 对应的明暗颜色、字体和阴影，并安装通用组件实现。
+my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`ElMobileTheme` 提供明暗颜色和阴影，并安装通用组件实现；字体沿用 Flutter／平台默认，不预设字体族、回退列表或可变字体轴。
 
 默认外观只提供手机按压反馈，不附带鼠标悬停、键盘焦点环或宽屏桌面尺寸。需要这些外观时可由调用方显式声明 `ElStyle` 变体；键盘动作、焦点节点与辅助技术语义仍保留。
 
