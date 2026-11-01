@@ -32,13 +32,7 @@ class Divider extends StatelessWidget {
   static const $height = 'divider.height';
 
   /// dashed保留与实线相同的厚度，变量通过MyTheme覆写。
-  const Divider({
-    super.key,
-    this.vertical = false,
-    this.align = DividerAlign.center,
-    this.dashed = false,
-    this.child,
-  });
+  const Divider({super.key, this.vertical = false, this.align = DividerAlign.center, this.dashed = false, this.child});
 
   /// 是否竖向。
   final bool vertical;
@@ -83,28 +77,17 @@ class Divider extends StatelessWidget {
           ? line()
           : LayoutBuilder(
               builder: (context, constraints) {
-                final maxLabel = math.max(
-                  0.0,
-                  constraints.maxWidth -
-                      24 -
-                      (align == DividerAlign.center ? 0 : 24),
-                );
+                final maxLabel = math.max(0.0, constraints.maxWidth - 24 - (align == DividerAlign.center ? 0 : 24));
                 return Row(
                   children: [
-                    if (align == DividerAlign.start)
-                      SizedBox(width: 24, child: line())
-                    else
-                      Expanded(child: line()),
+                    if (align == DividerAlign.start) SizedBox(width: 24, child: line()) else Expanded(child: line()),
                     const SizedBox(width: 12),
                     ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: maxLabel),
                       child: buildContent(child),
                     ),
                     const SizedBox(width: 12),
-                    if (align == DividerAlign.end)
-                      SizedBox(width: 24, child: line())
-                    else
-                      Expanded(child: line()),
+                    if (align == DividerAlign.end) SizedBox(width: 24, child: line()) else Expanded(child: line()),
                   ],
                 );
               },

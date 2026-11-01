@@ -48,11 +48,7 @@ void main() {
         'primary-text': t.primaryText,
       };
       for (final entry in colors.entries) {
-        expect(
-          entry.value.toARGB32(),
-          expected[mode][entry.key],
-          reason: entry.key,
-        );
+        expect(entry.value.toARGB32(), expected[mode][entry.key], reason: entry.key);
       }
       final shadows = <String, List<BoxShadow>>{
         'selected-shadow': t.selectedShadow,
@@ -66,10 +62,7 @@ void main() {
         expect(entry.value.length, values.length, reason: entry.key);
         for (var i = 0; i < values.length; i++) {
           final shadow = entry.value[i], value = values[i] as List;
-          expect(
-            shadow.offset,
-            Offset((value[0] as num).toDouble(), (value[1] as num).toDouble()),
-          );
+          expect(shadow.offset, Offset((value[0] as num).toDouble(), (value[1] as num).toDouble()));
           expect(shadow.blurRadius, value[2]);
           expect(shadow.spreadRadius, value[3]);
           expect(shadow.color.toARGB32() & 0xffffff, value[4]);
@@ -78,34 +71,19 @@ void main() {
       }
       expect(t.overlayBackdropBlur, 4);
       expect(t.overlayColor.a, closeTo(mode == 'dark' ? .62 : .34, .000001));
-      expect(
-        t.overlayColor.toARGB32() & 0xffffff,
-        mode == 'dark' ? 0 : 0x0c121c,
-      );
-      expect(
-        [
-          t.fontWeight,
-          t.fontWeightAction,
-          t.fontWeightSubtitle,
-          t.fontWeightTitle,
-        ],
-        [400, 500, 600, 700],
-      );
+      expect(t.overlayColor.toARGB32() & 0xffffff, mode == 'dark' ? 0 : 0x0c121c);
+      expect([t.fontWeight, t.fontWeightAction, t.fontWeightSubtitle, t.fontWeightTitle], [400, 500, 600, 700]);
     });
   }
 
   test('默认变量表与字体回退集合保持只读', () {
     expect(ElMobileTheme.lightVars[ElTheme.$fontFamily], 'Times New Roman');
-    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], [
-      'Microsoft YaHei',
-      'SimSun',
-    ]);
+    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], ['Microsoft YaHei', 'SimSun']);
     expect(() => ElMobileTheme.lightVars.clear(), throwsUnsupportedError);
     expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
     expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
     expect(
-      () => (ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>)
-          .clear(),
+      () => (ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>).clear(),
       throwsUnsupportedError,
     );
   });
@@ -152,20 +130,13 @@ void main() {
     expect(text.text.style!.fontVariations, [FontVariation('wght', 500)]);
     final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
     expect(view.committedResolvedStyle.inheritedText.fontFamily, 'Arial');
-    expect(
-      view.committedResolvedStyle.inheritedText.fontWeight,
-      FontWeight.w500,
-    );
-    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, [
-      FontVariation('wght', 500),
-    ]);
+    expect(view.committedResolvedStyle.inheritedText.fontWeight, FontWeight.w500);
+    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, [FontVariation('wght', 500)]);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('ElMobileTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
-    final textKey = GlobalKey(),
-        viewKey = GlobalKey(),
-        explicitKey = GlobalKey();
+    final textKey = GlobalKey(), viewKey = GlobalKey(), explicitKey = GlobalKey();
     for (final data in [
       ElStyle(),
       ElStyle(
@@ -195,50 +166,33 @@ void main() {
         ),
       );
       final text = tester.renderObject<RenderParagraph>(
-        find.descendant(
-          of: find.byKey(textKey),
-          matching: find.byType(RichText),
-        ),
+        find.descendant(of: find.byKey(textKey), matching: find.byType(RichText)),
       );
       final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
       expect(text.text.style!.height, kTextHeightNone);
       expect(
         text.text.style!.fontFamily,
-        data.vars?[ElTheme.$fontFamily] ??
-            ElMobileTheme.lightVars[ElTheme.$fontFamily],
+        data.vars?[ElTheme.$fontFamily] ?? ElMobileTheme.lightVars[ElTheme.$fontFamily],
       );
       expect(
         text.text.style!.fontFamilyFallback,
-        data.vars?[ElTheme.$fontFamilyFallback] ??
-            ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
+        data.vars?[ElTheme.$fontFamilyFallback] ?? ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
       );
-      expect(
-        view.committedResolvedStyle.inheritedText.lineHeight,
-        kTextHeightNone,
-      );
+      expect(view.committedResolvedStyle.inheritedText.lineHeight, kTextHeightNone);
       expect(
         view.committedResolvedStyle.inheritedText.fontFamily,
-        data.vars?[ElTheme.$fontFamily] ??
-            ElMobileTheme.lightVars[ElTheme.$fontFamily],
+        data.vars?[ElTheme.$fontFamily] ?? ElMobileTheme.lightVars[ElTheme.$fontFamily],
       );
       expect(
         view.committedResolvedStyle.inheritedText.fontFamilyFallback,
-        data.vars?[ElTheme.$fontFamilyFallback] ??
-            ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
+        data.vars?[ElTheme.$fontFamilyFallback] ?? ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
       );
       expect(
-        tester
-            .renderObject<ElRenderView>(find.byKey(explicitKey))
-            .committedResolvedStyle
-            .inheritedText
-            .fontFamily,
+        tester.renderObject<ElRenderView>(find.byKey(explicitKey)).committedResolvedStyle.inheritedText.fontFamily,
         'Courier New',
       );
       final explicitText = tester.renderObject<RenderParagraph>(
-        find.descendant(
-          of: find.text('Text 局部'),
-          matching: find.byType(RichText),
-        ),
+        find.descendant(of: find.text('Text 局部'), matching: find.byType(RichText)),
       );
       expect(explicitText.text.style!.fontFamily, 'Courier New');
       expect(tester.takeException(), isNull);
@@ -294,18 +248,13 @@ void main() {
             children: [
               ElView(
                 style: ElStyle(
-                  vars: {
-                    ElTheme.$primary: Color(0xff123456),
-                    skin.Card.$radius: 18,
-                  },
+                  vars: {ElTheme.$primary: Color(0xff123456), skin.Card.$radius: 18},
                   onDark: ElStyle(vars: {ElTheme.$primary: Color(0xff654321)}),
                 ),
                 child: Builder(
                   builder: (context) {
                     local = context.elTheme.primary;
-                    radius = ElView.of(context)
-                        .getVar<num>(skin.Card.$radius)
-                        ?.toDouble();
+                    radius = ElView.of(context).getVar<num>(skin.Card.$radius)?.toDouble();
                     return skin.Card(child: SizedBox());
                   },
                 ),

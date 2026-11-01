@@ -7,12 +7,7 @@ import 'package:flutter_base/ui.dart';
 /// SVG 的绘制读取最近 ElView 已提交的文字色，主题和颜色动画不会重建图标。
 class Glyph extends LeafRenderObjectWidget {
   /// 内置图标或加载圆弧。
-  const Glyph({
-    super.key,
-    this.name = '',
-    this.spinner = false,
-    this.size = 24,
-  });
+  const Glyph({super.key, this.name = '', this.spinner = false, this.size = 24});
 
   /// 与Web相同的图标名称。
   final String name;
@@ -24,14 +19,11 @@ class Glyph extends LeafRenderObjectWidget {
   final double size;
 
   @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _GlyphRender(name, spinner, size);
+  RenderObject createRenderObject(BuildContext context) => _GlyphRender(name, spinner, size);
 
   @override
-  void updateRenderObject(
-    BuildContext context,
-    covariant RenderBox renderObject,
-  ) => (renderObject as _GlyphRender).configure(name, spinner, size);
+  void updateRenderObject(BuildContext context, covariant RenderBox renderObject) =>
+      (renderObject as _GlyphRender).configure(name, spinner, size);
 }
 
 class _GlyphRender extends RenderBox {
@@ -52,8 +44,7 @@ class _GlyphRender extends RenderBox {
   }
 
   @override
-  Size computeDryLayout(BoxConstraints constraints) =>
-      constraints.constrain(Size.square(_extent));
+  Size computeDryLayout(BoxConstraints constraints) => constraints.constrain(Size.square(_extent));
 
   @override
   void performLayout() => size = computeDryLayout(constraints);
@@ -82,19 +73,10 @@ class _GlyphRender extends RenderBox {
       ..strokeJoin = StrokeJoin.round;
     if (_spinner) {
       // 原版 circle r=9、dasharray=42 16，首段从圆的右侧开始。
-      canvas.drawArc(
-        const Rect.fromLTWH(3, 3, 18, 18),
-        0,
-        42 / 9,
-        false,
-        paint,
-      );
+      canvas.drawArc(const Rect.fromLTWH(3, 3, 18, 18), 0, 42 / 9, false, paint);
     } else {
       final name = _iconMarkup.containsKey(_name) ? _name : 'sun';
-      for (final path in _iconPaths.putIfAbsent(
-        name,
-        () => _compileIcon(_iconMarkup[name]!),
-      )) {
+      for (final path in _iconPaths.putIfAbsent(name, () => _compileIcon(_iconMarkup[name]!))) {
         canvas.drawPath(path, paint);
       }
     }
@@ -106,37 +88,21 @@ final _iconPaths = <String, List<Path>>{};
 
 List<Path> _compileIcon(String markup) {
   final result = <Path>[];
-  for (final element in RegExp(
-    r'<(path|circle|rect)\b([^>]*)/?>',
-  ).allMatches(markup)) {
+  for (final element in RegExp(r'<(path|circle|rect)\b([^>]*)/?>').allMatches(markup)) {
     final attrs = <String, String>{
-      for (final attr in RegExp(r'([\w-]+)="([^"]*)"').allMatches(element[2]!))
-        attr[1]!: attr[2]!,
+      for (final attr in RegExp(r'([\w-]+)="([^"]*)"').allMatches(element[2]!)) attr[1]!: attr[2]!,
     };
-    double number(String name, [double fallback = 0]) =>
-        double.tryParse(attrs[name] ?? '') ?? fallback;
+    double number(String name, [double fallback = 0]) => double.tryParse(attrs[name] ?? '') ?? fallback;
     switch (element[1]) {
       case 'path':
         result.add(_svgPath(attrs['d']!));
       case 'circle':
-        result.add(
-          Path()..addOval(
-            Rect.fromCircle(
-              center: Offset(number('cx'), number('cy')),
-              radius: number('r'),
-            ),
-          ),
-        );
+        result.add(Path()..addOval(Rect.fromCircle(center: Offset(number('cx'), number('cy')), radius: number('r'))));
       case 'rect':
         result.add(
           Path()..addRRect(
             RRect.fromRectAndRadius(
-              Rect.fromLTWH(
-                number('x'),
-                number('y'),
-                number('width'),
-                number('height'),
-              ),
+              Rect.fromLTWH(number('x'), number('y'), number('width'), number('height')),
               Radius.circular(number('rx')),
             ),
           ),
@@ -189,9 +155,7 @@ Path _svgPath(String source) {
         cubic = second;
         current = end;
       case 'S':
-        final first = (previous == 'C' || previous == 'S') && cubic != null
-            ? current * 2 - cubic
-            : current;
+        final first = (previous == 'C' || previous == 'S') && cubic != null ? current * 2 - cubic : current;
         final second = point(), end = point();
         path.cubicTo(first.dx, first.dy, second.dx, second.dy, end.dx, end.dy);
         cubic = second;
@@ -200,13 +164,7 @@ Path _svgPath(String source) {
         final radius = Radius.elliptical(read(), read()), rotation = read();
         final large = read() != 0, clockwise = read() != 0;
         current = point();
-        path.arcToPoint(
-          current,
-          radius: radius,
-          rotation: rotation,
-          largeArc: large,
-          clockwise: clockwise,
-        );
+        path.arcToPoint(current, radius: radius, rotation: rotation, largeArc: large, clockwise: clockwise);
       case 'Z':
         path.close();
         current = start;
@@ -229,11 +187,10 @@ const _iconMarkup = <String, String>{
   'chevron-right': '<path d="m9 5 7 7-7 7"/>',
   'chevrons-up-down': '<path d="m8 8 4-4 4 4m-8 8 4 4 4-4"/>',
   'check': '<path d="m5 12 4.5 4.5L19 7"/>',
-  'bell':
-      '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
-  'cloud': '<path d="M7 17a5 5 0 1 1 1.3-9.8A7 7 0 0 1 21 11.5 4 4 0 0 1 19 19H7a4 4 0 0 1 0-8"/><path d="m9 14 3 3 4-5"/>',
-  'spark':
-      '<path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/>',
+  'bell': '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
+  'cloud':
+      '<path d="M7 17a5 5 0 1 1 1.3-9.8A7 7 0 0 1 21 11.5 4 4 0 0 1 19 19H7a4 4 0 0 1 0-8"/><path d="m9 14 3 3 4-5"/>',
+  'spark': '<path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/>',
   'search': '<circle cx="10.8" cy="10.8" r="7"/><path d="m16 16 5 5"/>',
   'x': '<path d="M6 6 18 18M18 6 6 18"/>',
   'heart': '<path d="M20.8 8.5c0 5-8.8 11-8.8 11s-8.8-6-8.8-11a4.6 4.6 0 0 1 8.8-1.7 4.6 4.6 0 0 1 8.8 1.7Z"/>',
@@ -244,11 +201,11 @@ const _iconMarkup = <String, String>{
   'wifi': '<path d="M2 8c6-5 14-5 20 0M5 12c4-3 10-3 14 0M9 16a5 5 0 0 1 6 0M12 20h.01"/>',
   'sliders': '<path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   'clock': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  'briefcase': '<rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',
+  'briefcase':
+      '<rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',
   'grid': '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
   'home': '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/>',
-  'user':
-      '<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
+  'user': '<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
   'message': '<path d="M20 16a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3Z"/><path d="M8 10h8m-8 4h5"/>',
   'layer': '<path d="m12 3 10 6-10 6L2 9l10-6Zm-9 11 9 5 9-5M3 18l9 5 9-5"/>',
   'inbox': '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 13 5 0 2 3h4l2-3h5"/>',

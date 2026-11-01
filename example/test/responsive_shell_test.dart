@@ -9,9 +9,7 @@ Future<void> _open(WidgetTester tester, Size size) async {
   tester.view.physicalSize = size * tester.view.devicePixelRatio;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    ElExampleApp(networkDelay: Duration.zero, replyDelay: Duration.zero),
-  );
+  await tester.pumpWidget(ElExampleApp(networkDelay: Duration.zero, replyDelay: Duration.zero));
   await tester.pumpAndSettle();
 }
 
@@ -33,18 +31,9 @@ void main() {
     expect(sidebar, findsOneWidget);
     expect(bottom, findsNothing);
     expect(find.byType(ElMobileTheme), findsOneWidget);
-    expect(
-      tester.getTopLeft(first).dx,
-      greaterThan(tester.getRect(sidebar).right),
-    );
-    expect(
-      tester.getTopLeft(first).dy,
-      closeTo(tester.getTopLeft(second).dy, 1),
-    );
-    expect(
-      tester.getTopLeft(second).dx,
-      greaterThan(tester.getRect(first).right),
-    );
+    expect(tester.getTopLeft(first).dx, greaterThan(tester.getRect(sidebar).right));
+    expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, 1));
+    expect(tester.getTopLeft(second).dx, greaterThan(tester.getRect(first).right));
     for (final tab in ['分类', '消息', '我的', '推荐']) {
       await tester.tap(find.byKey(ValueKey('tab-$tab')));
       await tester.pumpAndSettle();
@@ -57,10 +46,7 @@ void main() {
     expect(bottom, findsOneWidget);
     expect(find.byKey(ValueKey('home-grid')), findsNothing);
     expect(tester.state<ElScrollViewState>(home), same(scroll));
-    expect(
-      tester.getTopLeft(second).dy,
-      greaterThan(tester.getRect(first).bottom),
-    );
+    expect(tester.getTopLeft(second).dy, greaterThan(tester.getRect(first).bottom));
 
     await _resize(tester, Size(767, 800));
     expect(bottom, findsOneWidget);
@@ -113,9 +99,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('article-0')));
     await tester.pumpAndSettle();
     final title = find.byKey(ValueKey('detail-title'));
-    final scroll = find
-        .ancestor(of: title, matching: find.byType(ElScrollView))
-        .first;
+    final scroll = find.ancestor(of: title, matching: find.byType(ElScrollView)).first;
     expect(tester.getSize(scroll).width, lessThanOrEqualTo(960));
     await _resize(tester, Size(390, 844));
     expect(title, findsOneWidget);

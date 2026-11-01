@@ -16,13 +16,7 @@ final Map<Object, Object> _darkVars = Map.unmodifiable({...ElTheme.darkVars, ...
 /// 向 ElView 注入移动端默认变量，并同步 Flutter Text 与 ElView 的字体。
 class ElMobileTheme extends StatelessWidget {
   /// 明暗默认表按当前状态级联，用户变量与实际样式通过 style 覆盖。
-  const ElMobileTheme({
-    super.key,
-    required this.child,
-    this.style,
-    this.brightness,
-    this.componentBuilders,
-  });
+  const ElMobileTheme({super.key, required this.child, this.style, this.brightness, this.componentBuilders});
 
   /// 当前子树。
   final Widget child;
@@ -44,10 +38,7 @@ class ElMobileTheme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode =
-        brightness ??
-        MediaQuery.maybePlatformBrightnessOf(context) ??
-        Brightness.light;
+    final mode = brightness ?? MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light;
     return ElView(
       themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
       style: ElStyle(
@@ -93,5 +84,4 @@ class ElMobileTheme extends StatelessWidget {
 }
 
 /// 以最近百位字重回退静态字体，数值轴由实际样式单独保留。
-FontWeight textWeight(double value) =>
-    FontWeight.values[((value / 100).round() - 1).clamp(0, 8)];
+FontWeight textWeight(double value) => FontWeight.values[((value / 100).round() - 1).clamp(0, 8)];

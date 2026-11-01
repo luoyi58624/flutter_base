@@ -7,13 +7,7 @@ import 'package:example/state.dart';
 import '../pages/index.dart';
 
 import 'package:flutter/material.dart'
-    show
-        MaterialApp,
-        MaterialPageRoute,
-        ThemeData,
-        Scaffold,
-        ScaffoldMessengerState,
-        SnackBar;
+    show MaterialApp, MaterialPageRoute, ThemeData, Scaffold, ScaffoldMessengerState, SnackBar;
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/widgets.dart';
@@ -113,13 +107,7 @@ class _Shell extends HookWidget {
           final desktop = constraints.maxWidth >= _desktopBreakpoint;
           return Row(
             children: [
-              if (desktop)
-                _Navigation(
-                  typography,
-                  selected.value,
-                  (i) => selected.value = i,
-                  desktop: true,
-                ),
+              if (desktop) _Navigation(typography, selected.value, (i) => selected.value = i, desktop: true),
               // 保持内容分支的身份，插入侧栏时不重建页面及其 Hook 状态。
               Expanded(
                 key: ValueKey('shell-content'),
@@ -141,9 +129,7 @@ class _Shell extends HookWidget {
                       onAction: selected.value != 2
                           ? null
                           : () {
-                              _toast(
-                                unread.value.isEmpty ? '没有未读消息' : '已全部标记为已读',
-                              );
+                              _toast(unread.value.isEmpty ? '没有未读消息' : '已全部标记为已读');
                               unread.value = {};
                             },
                     ),
@@ -152,36 +138,18 @@ class _Shell extends HookWidget {
                         color: _background,
                         child: Center(
                           child: SizedBox(
-                            width: desktop
-                                ? (selected.value < 2 ? 1120 : 840)
-                                : double.infinity,
+                            width: desktop ? (selected.value < 2 ? 1120 : 840) : double.infinity,
                             height: double.infinity,
                             child: Padding(
-                              padding: desktop
-                                  ? EdgeInsets.all(24)
-                                  : EdgeInsets.zero,
+                              padding: desktop ? EdgeInsets.all(24) : EdgeInsets.zero,
                               child: IndexedStack(
                                 index: selected.value,
                                 children: [
-                                  _Home(
-                                    typography,
-                                    options.networkDelay,
-                                    desktop: desktop,
-                                  ),
+                                  _Home(typography, options.networkDelay, desktop: desktop),
                                   _CategoryPage(typography, desktop: desktop),
-                                  _MessagesPage(typography, unread.value, (
-                                    index,
-                                  ) {
-                                    unread.value = {...unread.value}
-                                      ..remove(index);
-                                    _push(
-                                      context,
-                                      _ChatPage(
-                                        _messages[index].title,
-                                        typography,
-                                        options.replyDelay,
-                                      ),
-                                    );
+                                  _MessagesPage(typography, unread.value, (index) {
+                                    unread.value = {...unread.value}..remove(index);
+                                    _push(context, _ChatPage(_messages[index].title, typography, options.replyDelay));
                                   }),
                                   _ProfilePage(typography, options),
                                 ],
@@ -191,14 +159,7 @@ class _Shell extends HookWidget {
                         ),
                       ),
                     ),
-                    if (!desktop) ...[
-                      _line(),
-                      _Navigation(
-                        typography,
-                        selected.value,
-                        (i) => selected.value = i,
-                      ),
-                    ],
+                    if (!desktop) ...[_line(), _Navigation(typography, selected.value, (i) => selected.value = i)],
                   ],
                 ),
               ),
@@ -256,14 +217,9 @@ class _TitleBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Align(
-              alignment: centered || (back && !desktop)
-                  ? Alignment.center
-                  : Alignment.centerLeft,
+              alignment: centered || (back && !desktop) ? Alignment.center : Alignment.centerLeft,
               child: Padding(
-                padding: EdgeInsets.only(
-                  left: desktop ? (back ? 56 : 24) : 12,
-                  right: 12,
-                ),
+                padding: EdgeInsets.only(left: desktop ? (back ? 56 : 24) : 12, right: 12),
                 child: _Label(
                   title,
                   typography,
@@ -282,11 +238,7 @@ class _TitleBar extends StatelessWidget {
                   semanticLabel: '返回',
                   key: ValueKey('back'),
                   onPressed: () => Navigator.of(context).pop(),
-                  style: ElStyle(
-                    width: 44,
-                    height: desktop ? 64 : 44,
-                    alignment: .center,
-                  ),
+                  style: ElStyle(width: 44, height: desktop ? 64 : 44, alignment: .center),
                   child: _Icon('arrow_back', size: 22, color: _text),
                 ),
               ),
@@ -300,19 +252,11 @@ class _TitleBar extends StatelessWidget {
                     onPressed: onAction,
                     style: ElStyle(
                       minWidth: desktop && search ? 200 : null,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: search ? 12 : 8,
-                        vertical: search ? 5 : 6,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: search ? 12 : 8, vertical: search ? 5 : 6),
                       backgroundColor: search ? Color(0xfff2f3f5) : null,
                       borderRadius: .circular(14),
                     ),
-                    child: _Label(
-                      action!,
-                      typography,
-                      size: 12,
-                      color: search ? _tertiary : _primary,
-                    ),
+                    child: _Label(action!, typography, size: 12, color: search ? _tertiary : _primary),
                   ),
                 ),
               ),
@@ -325,12 +269,7 @@ class _TitleBar extends StatelessWidget {
 }
 
 class _Page extends StatelessWidget {
-  const _Page(
-    this.title,
-    this.typography,
-    this.child, {
-    this.color = _background,
-  });
+  const _Page(this.title, this.typography, this.child, {this.color = _background});
   final String title;
   final _Typography typography;
   final Widget child;
@@ -343,9 +282,7 @@ class _Page extends StatelessWidget {
         builder: (context, constraints) {
           final desktop = constraints.maxWidth >= _desktopBreakpoint;
           return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
-            ),
+            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
             child: Column(
               children: [
                 _TitleBar(title, typography, back: true, desktop: desktop),
@@ -356,12 +293,7 @@ class _Page extends StatelessWidget {
                       child: SizedBox(
                         width: desktop ? 960 : double.infinity,
                         height: double.infinity,
-                        child: Padding(
-                          padding: desktop
-                              ? EdgeInsets.all(24)
-                              : EdgeInsets.zero,
-                          child: child,
-                        ),
+                        child: Padding(padding: desktop ? EdgeInsets.all(24) : EdgeInsets.zero, child: child),
                       ),
                     ),
                   ),
@@ -396,10 +328,7 @@ class _IconPainter extends CustomPainter {
   static final _paths = <String, Path>{};
   @override
   void paint(Canvas canvas, Size size) {
-    final path = _paths.putIfAbsent(
-      name,
-      () => parseSvgPathData(_iconPaths[name]!),
-    );
+    final path = _paths.putIfAbsent(name, () => parseSvgPathData(_iconPaths[name]!));
     canvas.save();
     canvas.scale(size.width / 24, size.height / 24);
     canvas.drawPath(path, Paint()..color = color);
@@ -407,6 +336,5 @@ class _IconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_IconPainter oldDelegate) =>
-      oldDelegate.name != name || oldDelegate.color != color;
+  bool shouldRepaint(_IconPainter oldDelegate) => oldDelegate.name != name || oldDelegate.color != color;
 }

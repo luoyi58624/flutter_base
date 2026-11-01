@@ -4,10 +4,8 @@ import 'package:flutter_base/mobile.dart' as mobile;
 import 'package:flutter_base/ui.dart' show ElTheme, ElThemeContextExt;
 import 'package:flutter_test/flutter_test.dart';
 
-Finder _action(String label) => find.byWidgetPredicate(
-  (widget) =>
-      widget is mobile.ElView && widget.semantics?.properties.label == label,
-);
+Finder _action(String label) =>
+    find.byWidgetPredicate((widget) => widget is mobile.ElView && widget.semantics?.properties.label == label);
 
 void main() {
   for (final (name, host) in <(String, Widget Function(desktop.ElStyle, Widget))>[
@@ -16,10 +14,14 @@ void main() {
   ]) {
     testWidgets('$name 主题根只应用一次用户实际样式', (tester) async {
       final childKey = GlobalKey();
-      await tester.pumpWidget(MaterialApp(home: Align(
-        alignment: Alignment.topLeft,
-        child: host(desktop.ElStyle(padding: EdgeInsets.all(8)), SizedBox(key: childKey, width: 20, height: 10)),
-      )));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: host(desktop.ElStyle(padding: EdgeInsets.all(8)), SizedBox(key: childKey, width: 20, height: 10)),
+          ),
+        ),
+      );
       final root = find.byType(name == 'desktop' ? desktop.ElDesktopTheme : mobile.ElMobileTheme);
       expect(tester.getSize(root), Size(36, 26));
       expect(tester.getTopLeft(find.byKey(childKey)) - tester.getTopLeft(root), Offset(8, 8));
@@ -33,15 +35,23 @@ void main() {
     final seen = <(Color, List<BoxShadow>)>[];
     Widget reader() => desktop.ElView(
       style: desktop.ElStyle(vars: {ElTheme.$primary: primary, ElTheme.$shadowSm: shadow}),
-      child: Builder(builder: (context) {
-        seen.add((context.elTheme.primary, context.elTheme.shadowSm));
-        return SizedBox();
-      }),
+      child: Builder(
+        builder: (context) {
+          seen.add((context.elTheme.primary, context.elTheme.shadowSm));
+          return SizedBox();
+        },
+      ),
     );
-    await tester.pumpWidget(MaterialApp(home: Column(children: [
-      desktop.ElDesktopTheme(child: reader()),
-      mobile.ElMobileTheme(child: reader()),
-    ])));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Column(
+          children: [
+            desktop.ElDesktopTheme(child: reader()),
+            mobile.ElMobileTheme(child: reader()),
+          ],
+        ),
+      ),
+    );
     expect(seen, [(primary, shadow), (primary, shadow)]);
     expect(tester.takeException(), isNull);
   });

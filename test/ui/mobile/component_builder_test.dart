@@ -5,23 +5,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child, {ElStyle? style, ElComponentBuilders? builders}) =>
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(disableAnimations: true),
-        child: ElMobileTheme(
-          style: style,
-          componentBuilders: builders,
-          child: Align(
-            alignment: .topLeft,
-            child: SizedBox(width: 320, child: child),
-          ),
-        ),
+Widget _host(Widget child, {ElStyle? style, ElComponentBuilders? builders}) => MaterialApp(
+  home: MediaQuery(
+    data: MediaQueryData(disableAnimations: true),
+    child: ElMobileTheme(
+      style: style,
+      componentBuilders: builders,
+      child: Align(
+        alignment: .topLeft,
+        child: SizedBox(width: 320, child: child),
       ),
-    );
+    ),
+  ),
+);
 
-Finder _view(bool Function(ElView view) test) =>
-    find.byWidgetPredicate((widget) => widget is ElView && test(widget));
+Finder _view(bool Function(ElView view) test) => find.byWidgetPredicate((widget) => widget is ElView && test(widget));
 
 void main() {
   testWidgets('移动端只注册已有实现，不为缺失组件填充桌面或占位实现', (tester) async {
@@ -64,27 +62,15 @@ void main() {
     );
     await tester.pumpWidget(card(false));
     final content = tester.element(find.byKey(contentKey));
-    expect(
-      _view((view) => view.semantics?.properties.label == '卡片示例'),
-      findsOneWidget,
-    );
+    expect(_view((view) => view.semantics?.properties.label == '卡片示例'), findsOneWidget);
     await tester.tap(find.byKey(cardKey));
     await tester.pump();
     expect(activations, 1);
 
     await tester.pumpWidget(card(true));
     expect(find.text('卡片正文'), findsNothing);
-    expect(
-      tester.element(find.byKey(contentKey, skipOffstage: false)),
-      same(content),
-    );
-    expect(
-      _view(
-        (view) =>
-            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
-      ),
-      findsOneWidget,
-    );
+    expect(tester.element(find.byKey(contentKey, skipOffstage: false)), same(content));
+    expect(_view((view) => view.semantics?.properties.role == SemanticsRole.loadingSpinner), findsOneWidget);
     await tester.tap(find.byKey(cardKey));
     await tester.pump();
     expect(activations, 1);
@@ -123,10 +109,7 @@ void main() {
     expect(find.text('左'), findsOneWidget);
     expect(find.text('主'), findsOneWidget);
     expect(find.text('右'), findsOneWidget);
-    expect(
-      _view((view) => view.style?.backgroundColor == Color(0xff123456)),
-      findsOneWidget,
-    );
+    expect(_view((view) => view.style?.backgroundColor == Color(0xff123456)), findsOneWidget);
     expect(tester.getSize(find.byKey(ValueKey('button'))).width, 320);
     await tester.tap(find.text('主'));
     await tester.pump();
@@ -157,22 +140,9 @@ void main() {
     await tester.pump();
     expect(model.value, isFalse);
     await tester.pumpWidget(
-      _host(
-        ElButton.toggle(
-          modelValue: model,
-          loading: true,
-          focusNode: focus,
-          child: Text('加载动作'),
-        ),
-      ),
+      _host(ElButton.toggle(modelValue: model, loading: true, focusNode: focus, child: Text('加载动作'))),
     );
-    expect(
-      _view(
-        (view) =>
-            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
-      ),
-      findsOneWidget,
-    );
+    expect(_view((view) => view.semantics?.properties.role == SemanticsRole.loadingSpinner), findsOneWidget);
     expect(focus.canRequestFocus, isTrue);
     await tester.tap(find.text('加载动作'));
     await tester.pump();
@@ -180,17 +150,8 @@ void main() {
   });
 
   testWidgets('通用正圆按钮在覆盖高度后仍保持宽高相等', (tester) async {
-    await tester.pumpWidget(
-      _host(
-        ElButton(circle: true, style: ElStyle(height: 60), child: Icons.add),
-      ),
-    );
-    expect(
-      tester.getSize(
-        _view((view) => view.style?.width == 60 && view.style?.height == 60),
-      ),
-      Size(60, 60),
-    );
+    await tester.pumpWidget(_host(ElButton(circle: true, style: ElStyle(height: 60), child: Icons.add)));
+    expect(tester.getSize(_view((view) => view.style?.width == 60 && view.style?.height == 60)), Size(60, 60));
   });
 
   testWidgets('通用标签仅由公共宿主切换，关闭不冒泡到主动作', (tester) async {
@@ -246,13 +207,7 @@ void main() {
     expect(model.value, isFalse);
     await tester.pumpWidget(
       _host(
-        ElTag.toggle(
-          modelValue: model,
-          disabled: true,
-          closable: true,
-          onClose: () => closes++,
-          child: Text('标签禁用'),
-        ),
+        ElTag.toggle(modelValue: model, disabled: true, closable: true, onClose: () => closes++, child: Text('标签禁用')),
       ),
     );
     await tester.tap(_view((view) => view.child == '×'), warnIfMissed: false);
@@ -264,20 +219,14 @@ void main() {
   testWidgets('标签的effect与round独立于选中值生效', (tester) async {
     final backgrounds = <ElTagEffect, Color?>{};
     for (final effect in ElTagEffect.values) {
-      await tester.pumpWidget(
-        _host(ElTag.toggle(value: true, effect: effect, child: Text('效果'))),
-      );
-      final skin = tester.widget<ElView>(
-        _view((view) => view.style?.minHeight == 32),
-      );
+      await tester.pumpWidget(_host(ElTag.toggle(value: true, effect: effect, child: Text('效果'))));
+      final skin = tester.widget<ElView>(_view((view) => view.style?.minHeight == 32));
       backgrounds[effect] = skin.style?.backgroundColor;
     }
     expect(backgrounds.values.toSet().length, 3);
     for (final round in [false, true]) {
       await tester.pumpWidget(_host(ElTag(round: round, child: Text('圆角'))));
-      final skin = tester.widget<ElView>(
-        _view((view) => view.style?.minHeight == 28),
-      );
+      final skin = tester.widget<ElView>(_view((view) => view.style?.minHeight == 28));
       expect(skin.style?.borderRadius, BorderRadius.circular(round ? 999 : 8));
     }
   });
@@ -288,11 +237,7 @@ void main() {
     expect(
       tester
           .getSemantics(
-            _view(
-              (view) =>
-                  view.semantics?.properties.label == '默认开关' &&
-                  view.semantics?.properties.toggled != null,
-            ),
+            _view((view) => view.semantics?.properties.label == '默认开关' && view.semantics?.properties.toggled != null),
           )
           .flagsCollection
           .isToggled,
@@ -323,24 +268,16 @@ void main() {
     await tester.pump();
     expect(find.text('开启'), findsOneWidget);
     expect(find.text('一'), findsOneWidget);
-    final track = _view(
-      (view) => view.style?.backgroundColor == Color(0xff112233),
-    );
+    final track = _view((view) => view.style?.backgroundColor == Color(0xff112233));
     expect(track, findsOneWidget);
     expect(tester.getSize(track), Size(120, 40));
-    expect(
-      tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).duration,
-      Duration.zero,
-    );
+    expect(tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).duration, Duration.zero);
     await tester.tap(find.text('开启'));
     await tester.pump();
     expect(model.value, isFalse);
     expect(find.text('关闭'), findsOneWidget);
     expect(find.text('零'), findsOneWidget);
-    expect(
-      _view((view) => view.style?.backgroundColor == Color(0xff445566)),
-      findsOneWidget,
-    );
+    expect(_view((view) => view.style?.backgroundColor == Color(0xff445566)), findsOneWidget);
     semantics.dispose();
   });
 
@@ -361,13 +298,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(
-      _view(
-        (view) =>
-            view.semantics?.properties.toggled != null &&
-            view.event?.onTap != null,
-      ),
-    );
+    await tester.tap(_view((view) => view.semantics?.properties.toggled != null && view.event?.onTap != null));
     await tester.pump();
     expect(changes, [true]);
     expect(focus.hasFocus, isTrue);
@@ -385,13 +316,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(
-      _view(
-        (view) =>
-            view.semantics?.properties.toggled != null &&
-            view.event?.onTap != null,
-      ),
-    );
+    await tester.tap(_view((view) => view.semantics?.properties.toggled != null && view.event?.onTap != null));
     await tester.pump();
     expect(changes, [true]);
     await tester.pumpWidget(
@@ -406,21 +331,9 @@ void main() {
         ),
       ),
     );
-    expect(
-      _view(
-        (view) =>
-            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
-      ),
-      findsOneWidget,
-    );
+    expect(_view((view) => view.semantics?.properties.role == SemanticsRole.loadingSpinner), findsOneWidget);
     expect(focus.canRequestFocus, isTrue);
-    await tester.tap(
-      _view(
-        (view) =>
-            view.semantics?.properties.toggled != null &&
-            view.event?.onTap != null,
-      ),
-    );
+    await tester.tap(_view((view) => view.semantics?.properties.toggled != null && view.event?.onTap != null));
     await tester.pump();
     expect(changes, [true]);
   });
@@ -437,23 +350,14 @@ void main() {
               form = ElForm.of(context);
               return ElFormItem(
                 prop: 'enabled',
-                child: ElSwitch(
-                  key: ValueKey('form-switch'),
-                  onChanged: changes.add,
-                ),
+                child: ElSwitch(key: ValueKey('form-switch'), onChanged: changes.add),
               );
             },
           ),
         ),
       ),
     );
-    await tester.tap(
-      _view(
-        (view) =>
-            view.semantics?.properties.toggled != null &&
-            view.event?.onTap != null,
-      ),
-    );
+    await tester.tap(_view((view) => view.semantics?.properties.toggled != null && view.event?.onTap != null));
     await tester.pump();
     expect(form.formData['enabled'], isTrue);
     expect(changes, [true]);
@@ -463,16 +367,7 @@ void main() {
   });
 
   testWidgets('文本参数保持原样，局部 Builder 覆写只覆盖指定组件', (tester) async {
-    await tester.pumpWidget(
-      _host(
-        ElText(
-          '内容',
-          maxLines: 2,
-          overflow: .ellipsis,
-          style: TextStyle(fontSize: 19),
-        ),
-      ),
-    );
+    await tester.pumpWidget(_host(ElText('内容', maxLines: 2, overflow: .ellipsis, style: TextStyle(fontSize: 19))));
     final text = tester.widget<Text>(find.text('内容'));
     expect(text.maxLines, 2);
     expect(text.overflow, TextOverflow.ellipsis);
@@ -485,9 +380,7 @@ void main() {
             ElButton(child: Text('按钮')),
           ],
         ),
-        builders: ElComponentBuilders(
-          textBuilder: (context, component) => Text('覆写${component.data}'),
-        ),
+        builders: ElComponentBuilders(textBuilder: (context, component) => Text('覆写${component.data}')),
       ),
     );
     expect(find.text('覆写内容'), findsOneWidget);

@@ -57,8 +57,7 @@ class _FavoritePage extends StatelessWidget {
         ElListView.builder(
           itemCount: 5,
           separatorBuilder: (_, _) => SizedBox(height: 8),
-          itemBuilder: (context, index) =>
-              _ArticleCard(_articles[index], typography, index: index),
+          itemBuilder: (context, index) => _ArticleCard(_articles[index], typography, index: index),
         ),
       ],
     ),
@@ -102,13 +101,7 @@ class _ChatPage extends HookWidget {
       input.text = '';
       messages.value = [...messages.value, (text: text, mine: true)];
       timers.value.add(
-        Timer(
-          replyDelay,
-          () => messages.value = [
-            ...messages.value,
-            (text: '收到，我这边稍后同步一下进度。', mine: false),
-          ],
-        ),
+        Timer(replyDelay, () => messages.value = [...messages.value, (text: '收到，我这边稍后同步一下进度。', mine: false)]),
       );
     }
 
@@ -127,24 +120,16 @@ class _ChatPage extends HookWidget {
                 ElListView.builder(
                   itemCount: messages.value.length,
                   itemBuilder: (context, index) {
-                    final message =
-                        messages.value[messages.value.length - 1 - index];
+                    final message = messages.value[messages.value.length - 1 - index];
                     return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       child: Align(
-                        alignment: message.mine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
+                        alignment: message.mine ? Alignment.centerRight : Alignment.centerLeft,
                         child: ElCardView(
                           style: ElStyle(
                             maxWidth: 270,
                             padding: .symmetric(horizontal: 12, vertical: 9),
-                            backgroundColor: message.mine
-                                ? _primary
-                                : Color(0xfff7f8fa),
+                            backgroundColor: message.mine ? _primary : Color(0xfff7f8fa),
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(message.mine ? 12 : 4),
                               topRight: Radius.circular(message.mine ? 4 : 12),
@@ -177,21 +162,18 @@ class _ChatPage extends HookWidget {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final style = typography.style(14, color: _text);
-                      final painter =
-                          TextPainter(
-                            text: TextSpan(
-                              text: input.text.isEmpty ? ' ' : input.text,
-                              style: TextStyle(
-                                fontSize: 14,
-                                height: style.lineHeight,
-                                fontVariations: style.fontVariationSettings,
-                              ),
-                            ),
-                            textDirection: .ltr,
-                            textScaler: MediaQuery.textScalerOf(context),
-                          )..layout(
-                            maxWidth: math.max(1, constraints.maxWidth - 24),
-                          );
+                      final painter = TextPainter(
+                        text: TextSpan(
+                          text: input.text.isEmpty ? ' ' : input.text,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: style.lineHeight,
+                            fontVariations: style.fontVariationSettings,
+                          ),
+                        ),
+                        textDirection: .ltr,
+                        textScaler: MediaQuery.textScalerOf(context),
+                      )..layout(maxWidth: math.max(1, constraints.maxWidth - 24));
                       final height = math.max(
                         40.0,
                         math.min(4, painter.computeLineMetrics().length) *
@@ -210,23 +192,13 @@ class _ChatPage extends HookWidget {
                         child: Stack(
                           children: [
                             if (input.text.isEmpty)
-                              IgnorePointer(
-                                child: _Label(
-                                  '说点什么…',
-                                  typography,
-                                  size: 14,
-                                  color: _tertiary,
-                                ),
-                              ),
+                              IgnorePointer(child: _Label('说点什么…', typography, size: 14, color: _tertiary)),
                             ElEditableView(
                               key: ValueKey('chat-input'),
                               controller: input,
                               focusNode: focus,
                               style: ElEditableStyle(
-                                view: style.copyWith(
-                                  width: '100%',
-                                  height: '100%',
-                                ),
+                                view: style.copyWith(width: '100%', height: '100%'),
                                 caretColor: _primary,
                                 scrollbar: ElNoScrollBar(),
                                 inputConfiguration: TextInputConfiguration(

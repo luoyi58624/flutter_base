@@ -10,17 +10,15 @@ import '../widgets/icons/settings_icons.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  ElListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) =>
-      ElListTile(
-        key: page is CustomGesturesPage ? ValueKey('demo-gestures') : null,
-        title: icon.label,
-        onTap: () {
-          if (page != null) {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => page));
-          }
-        },
-      );
+  ElListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) => ElListTile(
+    key: page is CustomGesturesPage ? ValueKey('demo-gestures') : null,
+    title: icon.label,
+    onTap: () {
+      if (page != null) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
+      }
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +63,7 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
                 ElListTileGroup(
-                  children: [
-                    _tile(context, .password),
-                    _tile(context, .privacy),
-                    _tile(context, .location),
-                  ],
+                  children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)],
                 ),
                 ElListTileGroup(
                   children: [

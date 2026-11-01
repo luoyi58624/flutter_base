@@ -92,38 +92,34 @@ class Tag extends StatelessWidget {
           };
       final selected = selectable && current;
       final base = textStyle(context, 13, t.fontWeightAction, height: 20 / 13)
-          .merge(ElStyle(
-            minHeight: selectable ? 32 : 28,
-            // 内容改由 Widget 承载后，仍按自然高度收紧，避免居中撑满父约束。
-            heightFactor: 1,
-            padding: const EdgeInsets.symmetric(horizontal: 13),
-            alignment: Alignment.center,
-            softWrap: false,
-            borderRadius: BorderRadius.circular(selectable ? 11 : 999),
-            border: ElBorder.all(
-              borderWidth: 1,
-              borderColor: selectable
-                  ? (selected ? t.primary : t.borderColor)
-                  : Color.lerp(t.cardColor, accent, .18),
+          .merge(
+            ElStyle(
+              minHeight: selectable ? 32 : 28,
+              // 内容改由 Widget 承载后，仍按自然高度收紧，避免居中撑满父约束。
+              heightFactor: 1,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+              alignment: Alignment.center,
+              softWrap: false,
+              borderRadius: BorderRadius.circular(selectable ? 11 : 999),
+              border: ElBorder.all(
+                borderWidth: 1,
+                borderColor: selectable ? (selected ? t.primary : t.borderColor) : Color.lerp(t.cardColor, accent, .18),
+              ),
+              color: selectable ? (selected ? t.primaryText : t.textSecondary) : accent,
+              backgroundColor: selectable ? (selected ? t.primary : t.cardColor) : Color.lerp(t.cardColor, accent, .1),
+              opacity: disabled ? .6 : 1,
+              transform: ElTransform.scale(1),
+              transition: reducedMotion(context)
+                  ? const []
+                  : const [ElTransition.all(Duration(milliseconds: 160), Curves.ease)],
+              onTap: selectable && !disabled
+                  ? ElStyle(
+                      backgroundColor: selected ? Color.lerp(t.primary, const Color(0xff000000), .14) : t.press,
+                      transform: ElTransform.scale(.95),
+                    )
+                  : null,
             ),
-            color: selectable ? (selected ? t.primaryText : t.textSecondary) : accent,
-            backgroundColor: selectable
-                ? (selected ? t.primary : t.cardColor)
-                : Color.lerp(t.cardColor, accent, .1),
-            opacity: disabled ? .6 : 1,
-            transform: ElTransform.scale(1),
-            transition: reducedMotion(context)
-                ? const []
-                : const [ElTransition.all(Duration(milliseconds: 160), Curves.ease)],
-            onTap: selectable && !disabled
-                ? ElStyle(
-                    backgroundColor: selected
-                        ? Color.lerp(t.primary, const Color(0xff000000), .14)
-                        : t.press,
-                    transform: ElTransform.scale(.95),
-                  )
-                : null,
-          ))
+          )
           .merge(style);
       // 视觉和交互共用宿主，内容仍不参与命中，全部变体统一交给 ElView 级联。
       final content = IgnorePointer(child: buildContent(child));
@@ -170,9 +166,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
         _ => theme.primary,
       };
   final selected = component.isToggle && component.selected;
-  final displayAccent = component.isToggle && !selected
-      ? theme.textSecondary
-      : accent;
+  final displayAccent = component.isToggle && !selected ? theme.textSecondary : accent;
   final filled = component.effect == ElTagEffect.dark;
   final background = filled
       ? displayAccent
@@ -180,55 +174,42 @@ Widget _commonTag(BuildContext context, ElTag component) {
       ? theme.cardColor
       : Color.lerp(theme.cardColor, displayAccent, selected ? .18 : .1)!;
   final foreground = filled
-      ? (displayAccent.computeLuminance() > .45
-            ? const Color(0xff000000)
-            : const Color(0xffffffff))
+      ? (displayAccent.computeLuminance() > .45 ? const Color(0xff000000) : const Color(0xffffffff))
       : displayAccent;
-  final border =
-      filled || component.hit || component.effect == ElTagEffect.plain
+  final border = filled || component.hit || component.effect == ElTagEffect.plain
       ? displayAccent
       : selected
       ? Color.lerp(theme.cardColor, displayAccent, .4)!
       : component.isToggle
       ? theme.borderColor
       : Color.lerp(theme.cardColor, displayAccent, .18)!;
-  final style =
-      textStyle(context, 13, theme.fontWeightAction, height: 20 / 13)
-          .merge(
-            ElStyle(
-              minHeight: component.isToggle ? 32 : 28,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
-              alignment: .center,
-              softWrap: false,
-              borderRadius: BorderRadius.circular(
-                component.round
-                    ? 999
-                    : component.isToggle
-                    ? 11
-                    : 8,
-              ),
-              border: ElBorder.all(borderWidth: 1, borderColor: border),
-              backgroundColor: pressed
-                  ? Color.lerp(
-                      background,
-                      filled ? const Color(0xff000000) : theme.press,
-                      filled ? .14 : 1,
-                    )
-                  : background,
-              color: foreground,
-              opacity: component.disabled ? .6 : 1,
-              transform: ElTransform.scale(pressed ? .95 : 1),
-              transition: reducedMotion(context)
-                  ? const []
-                  : const [
-                      ElTransition.all(
-                        Duration(milliseconds: 160),
-                        Curves.ease,
-                      ),
-                    ],
-            ),
-          )
-          .merge(component.style);
+  final style = textStyle(context, 13, theme.fontWeightAction, height: 20 / 13)
+      .merge(
+        ElStyle(
+          minHeight: component.isToggle ? 32 : 28,
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          alignment: .center,
+          softWrap: false,
+          borderRadius: BorderRadius.circular(
+            component.round
+                ? 999
+                : component.isToggle
+                ? 11
+                : 8,
+          ),
+          border: ElBorder.all(borderWidth: 1, borderColor: border),
+          backgroundColor: pressed
+              ? Color.lerp(background, filled ? const Color(0xff000000) : theme.press, filled ? .14 : 1)
+              : background,
+          color: foreground,
+          opacity: component.disabled ? .6 : 1,
+          transform: ElTransform.scale(pressed ? .95 : 1),
+          transition: reducedMotion(context)
+              ? const []
+              : const [ElTransition.all(Duration(milliseconds: 160), Curves.ease)],
+        ),
+      )
+      .merge(component.style);
   return inline(
     ElView(
       style: style,

@@ -28,12 +28,7 @@ enum LoadingSize {
 /// 本地SVG圆弧加载指示，可见说明通过child提供。
 class Loading extends StatelessWidget {
   /// label在没有默认插槽时用于播报。
-  const Loading({
-    super.key,
-    this.size = LoadingSize.medium,
-    this.label = '加载中',
-    this.child,
-  });
+  const Loading({super.key, this.size = LoadingSize.medium, this.label = '加载中', this.child});
 
   /// 图标尺寸档位。
   final LoadingSize size;
@@ -71,9 +66,7 @@ class Loading extends StatelessWidget {
                         animationIterationCount: double.infinity,
                         keyframes: {
                           0: ElStyle(transform: ElTransform.rotate(0)),
-                          100: ElStyle(
-                            transform: ElTransform.rotate(6.283185307179586),
-                          ),
+                          100: ElStyle(transform: ElTransform.rotate(6.283185307179586)),
                         },
                       ),
                     ],
@@ -81,11 +74,7 @@ class Loading extends StatelessWidget {
             child: Glyph(spinner: true, size: size.pixels),
           ),
         ),
-        if (child != null)
-          ElView(
-            style: const ElStyle(fontSize: 13, lineHeight: 1.5),
-            child: child,
-          ),
+        if (child != null) ElView(style: const ElStyle(fontSize: 13, lineHeight: 1.5), child: child),
       ],
     ),
   );

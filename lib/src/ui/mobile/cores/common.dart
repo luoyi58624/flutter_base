@@ -3,8 +3,7 @@ library;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart'
-    show BoxHitTestResult, RenderSemanticsAnnotations;
+import 'package:flutter/rendering.dart' show BoxHitTestResult, RenderSemanticsAnnotations;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_base/ui.dart';
@@ -12,25 +11,16 @@ import 'package:flutter_base/ui.dart';
 import 'theme.dart';
 
 /// 内部内容桥接，Widget 原样使用，其余交给 ElView 文本引擎。
-Widget buildContent(Object? child) =>
-    child is Widget ? child : ElView(child: child);
+Widget buildContent(Object? child) => child is Widget ? child : ElView(child: child);
 
 /// 当前平台是否要求减少动态效果。
-bool reducedMotion(BuildContext context) =>
-    MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+bool reducedMotion(BuildContext context) => MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
 /// CSS px 的断点基于整个 viewport，而非组件局部可用宽度。
-double viewport(BuildContext context) =>
-    MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
+double viewport(BuildContext context) => MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
 
 /// 保留数值字重，兼顾静态字体与可变字体。
-ElStyle textStyle(
-  BuildContext context,
-  double size,
-  double weight, {
-  Color? color,
-  double? height,
-}) {
+ElStyle textStyle(BuildContext context, double size, double weight, {Color? color, double? height}) {
   return ElStyle(
     fontSize: size,
     fontWeight: textWeight(weight),
@@ -41,11 +31,8 @@ ElStyle textStyle(
 }
 
 /// 将行内盒从父布局的横向拉伸中解除。
-Widget inline(Widget child) => UnconstrainedBox(
-  constrainedAxis: Axis.vertical,
-  alignment: Alignment.centerLeft,
-  child: child,
-);
+Widget inline(Widget child) =>
+    UnconstrainedBox(constrainedAxis: Axis.vertical, alignment: Alignment.centerLeft, child: child);
 
 /// 整卡按原命中路径跳过内部控件，禁用按钮仍保留语义但不会派发tap。
 bool _hitsNestedControl(BuildContext context, ElEventDetails event) {
@@ -178,8 +165,7 @@ class ActionView extends HookWidget {
           blocked ||
           base.disabled ||
           (ignoreDescendantAction &&
-              (_activatedControl[e.originalEvent ?? e] == true ||
-                  _hitsNestedControl(context, e)))) {
+              (_activatedControl[e.originalEvent ?? e] == true || _hitsNestedControl(context, e)))) {
         return;
       }
       base.onTap?.call(e);
@@ -191,9 +177,7 @@ class ActionView extends HookWidget {
       if (!node.hasPrimaryFocus || disabled || blocked) return;
       directInput.value = false;
       final key = e.logicalKey;
-      if (activateOnEnter &&
-          (key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.numpadEnter)) {
+      if (activateOnEnter && (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter)) {
         if (!repeat || repeatEnter) activate(e);
         e
           ..preventDefault()
@@ -223,9 +207,7 @@ class ActionView extends HookWidget {
       onPointerDown: (e) {
         final original = e.originalEvent;
         if (original is PointerEvent) {
-          directInput.value =
-              original.kind == PointerDeviceKind.touch ||
-              original.kind == PointerDeviceKind.stylus;
+          directInput.value = original.kind == PointerDeviceKind.touch || original.kind == PointerDeviceKind.stylus;
           feedbackCancelled.value = false;
           downPosition.value = e.globalPosition;
           final render = context.findRenderObject();
@@ -239,17 +221,14 @@ class ActionView extends HookWidget {
         final origin = downPosition.value;
         if (directInput.value &&
             origin != null &&
-            ((e.globalPosition - origin).distance > 10 ||
-                downBounds.value?.contains(e.globalPosition) == false)) {
+            ((e.globalPosition - origin).distance > 10 || downBounds.value?.contains(e.globalPosition) == false)) {
           feedbackCancelled.value = true;
         }
         base.onPointerMove?.call(e);
       },
       onTap: activate,
       onKeyDown: ownsKeys ? (e) => keyDown(e) : base.onKeyDown,
-      onKeyRepeat: ownsKeys
-          ? (e) => keyDown(e, repeat: true)
-          : base.onKeyRepeat,
+      onKeyRepeat: ownsKeys ? (e) => keyDown(e, repeat: true) : base.onKeyRepeat,
       onKeyUp: ownsKeys
           ? (e) {
               if (e.logicalKey != LogicalKeyboardKey.space || !space.value) {
@@ -268,37 +247,26 @@ class ActionView extends HookWidget {
       },
     );
     final reduced = reducedMotion(context);
-    final inputStyle = feedbackCancelled.value
-        ? style.copyWith(onTap: const ElStyle())
-        : style;
+    final inputStyle = feedbackCancelled.value ? style.copyWith(onTap: const ElStyle()) : style;
     final pointerStyle = quickTouchFeedback && directInput.value
         ? inputStyle.copyWith(
             onTap: inputStyle.onTap?.copyWith(
               transition: const [
                 ElTransition.all(Duration.zero),
-                ElTransition.field(
-                  ElTransitionField.transform,
-                  Duration(milliseconds: 60),
-                  Cubic(.2, .7, .2, 1),
-                ),
+                ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 60), Cubic(.2, .7, .2, 1)),
               ],
             ),
           )
         : inputStyle;
-    var resolved = space.value && !disabled && !blocked
-        ? pointerStyle.merge(pointerStyle.onTap)
-        : pointerStyle;
+    var resolved = space.value && !disabled && !blocked ? pointerStyle.merge(pointerStyle.onTap) : pointerStyle;
     if (reduced) {
       resolved = resolved.copyWith(
         transition: const <ElTransition>[],
         onTap: resolved.onTap?.copyWith(transition: const <ElTransition>[]),
-        onHover: resolved.onHover?.copyWith(
-          transition: const <ElTransition>[],
-        ),
+        onHover: resolved.onHover?.copyWith(transition: const <ElTransition>[]),
       );
     }
-    final body =
-        keyboardBuilder?.call(space.value && !disabled && !blocked) ?? child;
+    final body = keyboardBuilder?.call(space.value && !disabled && !blocked) ?? child;
     return ElView(
       focusNode: node,
       event: configured,
@@ -314,16 +282,10 @@ class ActionView extends HookWidget {
         onTap: disabled || blocked || base.disabled
             ? null
             : () => activate(
-                ElEventDetails(
-                  phase: ElEventPhase.tap,
-                  globalPosition: Offset.zero,
-                  localPosition: Offset.zero,
-                ),
+                ElEventDetails(phase: ElEventPhase.tap, globalPosition: Offset.zero, localPosition: Offset.zero),
               ),
       ),
-      child: label == null || !excludeChildSemantics
-          ? body
-          : ExcludeSemantics(child: body),
+      child: label == null || !excludeChildSemantics ? body : ExcludeSemantics(child: body),
     );
   }
 }
@@ -331,13 +293,7 @@ class ActionView extends HookWidget {
 /// 共享单值桥接，用户操作更新本地/Notifier，外部输入同步时不反射回调。
 class ValueBuilder<T> extends StatefulWidget {
   /// notifier 的生命周期属于调用方。
-  const ValueBuilder({
-    super.key,
-    required this.value,
-    this.notifier,
-    this.onChanged,
-    required this.builder,
-  });
+  const ValueBuilder({super.key, required this.value, this.notifier, this.onChanged, required this.builder});
 
   /// 外部输入。
   final T value;
@@ -349,8 +305,7 @@ class ValueBuilder<T> extends StatefulWidget {
   final ValueChanged<T>? onChanged;
 
   /// 构建当前值。
-  final Widget Function(BuildContext context, T value, ValueChanged<T> change)
-  builder;
+  final Widget Function(BuildContext context, T value, ValueChanged<T> change) builder;
   @override
   State<ValueBuilder<T>> createState() => _ValueBuilderState<T>();
 }
@@ -392,6 +347,5 @@ class _ValueBuilderState<T> extends State<ValueBuilder<T>> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, _value, _change);
+  Widget build(BuildContext context) => widget.builder(context, _value, _change);
 }

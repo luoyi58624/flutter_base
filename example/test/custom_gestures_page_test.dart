@@ -8,8 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_base/mobile.dart'
-    show ElScrollView, ElScrollViewState, ElMobileTheme;
+import 'package:flutter_base/mobile.dart' show ElScrollView, ElScrollViewState, ElMobileTheme;
 
 const _desktopSize = Size(1280, 1000);
 const _settledGesture = Duration(milliseconds: 700);
@@ -19,8 +18,7 @@ const _iconFontPath = String.fromEnvironment('GESTURE_ICON_FONT');
 
 Finder _key(String value) => find.byKey(ValueKey(value));
 
-int _count(WidgetTester tester, String name) =>
-    int.parse(tester.widget<Text>(_key('count.$name')).data!);
+int _count(WidgetTester tester, String name) => int.parse(tester.widget<Text>(_key('count.$name')).data!);
 
 Future<void> _pumpPage(
   WidgetTester tester, {
@@ -37,8 +35,7 @@ Future<void> _pumpPage(
     MaterialApp(
       theme: fontFamily == null ? null : ThemeData(fontFamily: fontFamily),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(textScale)),
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
         child: child!,
       ),
       home: page,
@@ -50,22 +47,13 @@ Future<void> _pumpPage(
 Future<Finder> _reveal(WidgetTester tester, String key) async {
   final target = _key(key);
   // 自定义视口按真实坐标定位，兼容同页的内外层滚动宿主。
-  final hosts = find
-      .ancestor(of: target, matching: find.byType(ElScrollView))
-      .evaluate()
-      .toList()
-      .reversed;
+  final hosts = find.ancestor(of: target, matching: find.byType(ElScrollView)).evaluate().toList().reversed;
   for (final host in hosts) {
     final viewport = tester.getRect(find.byWidget(host.widget));
     final box = tester.getRect(target);
-    final position = tester
-        .state<ElScrollViewState>(find.byWidget(host.widget))
-        .position;
+    final position = tester.state<ElScrollViewState>(find.byWidget(host.widget)).position;
     position.jumpTo(
-      (position.pixels + box.center.dy - viewport.center.dy).clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
-      ),
+      (position.pixels + box.center.dy - viewport.center.dy).clamp(position.minScrollExtent, position.maxScrollExtent),
     );
     await tester.pumpAndSettle();
   }
@@ -82,9 +70,7 @@ void main() {
     await _pumpPage(tester);
     final target = await _reveal(tester, 'gesture.basic.target');
     final bounds = tester.getRect(target);
-    final inside = await tester.startGesture(
-      Offset(bounds.left + 10, bounds.center.dy),
-    );
+    final inside = await tester.startGesture(Offset(bounds.left + 10, bounds.center.dy));
     await inside.moveTo(Offset(bounds.right - 10, bounds.center.dy));
     await inside.up();
     await tester.pump(_settledGesture);
@@ -316,14 +302,8 @@ void main() {
     await _tap(tester, 'gesture.logs');
     final sheet = find.byType(BottomSheet);
     expect(sheet, findsOneWidget);
-    expect(
-      find.descendant(of: sheet, matching: find.text('tap')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: sheet, matching: find.textContaining('基础点击')),
-      findsWidgets,
-    );
+    expect(find.descendant(of: sheet, matching: find.text('tap')), findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.textContaining('基础点击')), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -331,30 +311,21 @@ void main() {
     if (_iconFontPath.isNotEmpty) {
       await tester.runAsync(() async {
         final font = FontLoader('MaterialIcons');
-        font.addFont(
-          File(_iconFontPath).readAsBytes().then(ByteData.sublistView),
-        );
+        font.addFont(File(_iconFontPath).readAsBytes().then(ByteData.sublistView));
         await font.load();
       });
     }
     if (_previewFontPath.isNotEmpty) {
       await tester.runAsync(() async {
         final font = FontLoader('GesturePreview');
-        font.addFont(
-          File(_previewFontPath).readAsBytes().then(ByteData.sublistView),
-        );
+        font.addFont(File(_previewFontPath).readAsBytes().then(ByteData.sublistView));
         await font.load();
       });
     }
-    await _pumpPage(
-      tester,
-      fontFamily: _previewFontPath.isEmpty ? null : 'GesturePreview',
-    );
+    await _pumpPage(tester, fontFamily: _previewFontPath.isEmpty ? null : 'GesturePreview');
     await tester.tap(_key('gesture.basic.target'));
     await tester.pump(_settledGesture);
-    final boundary = tester.renderObject<RenderRepaintBoundary>(
-      _key('gesture.page.capture'),
-    );
+    final boundary = tester.renderObject<RenderRepaintBoundary>(_key('gesture.page.capture'));
     await tester.runAsync(() async {
       final image = await boundary.toImage(pixelRatio: 1);
       try {
@@ -362,9 +333,7 @@ void main() {
         expect(bytes, isNotNull);
         final output = File(_screenshotPath);
         await output.parent.create(recursive: true);
-        await output.writeAsBytes(
-          bytes!.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
-        );
+        await output.writeAsBytes(bytes!.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes));
       } finally {
         image.dispose();
       }

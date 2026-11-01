@@ -97,35 +97,22 @@ class Card extends StatelessWidget {
     final t = context.elTheme, width = viewport(context);
     final vars = ElView.maybeOf(context);
     final narrow = width <= 400;
-    final padding =
-        vars?.getVar<EdgeInsetsGeometry>($padding) ??
-        const EdgeInsets.fromLTRB(22, 24, 22, 25);
+    final padding = vars?.getVar<EdgeInsetsGeometry>($padding) ?? const EdgeInsets.fromLTRB(22, 24, 22, 25);
     final cardStyle = ElStyle(
       width: '100%',
       backgroundColor: t.cardColor,
-      borderRadius: BorderRadius.circular(
-        vars?.getVar<num>($radius)?.toDouble() ?? 26,
-      ),
-      border: ElBorder.all(
-        borderWidth: 1,
-        borderColor: t.borderColor.withValues(alpha: t.borderColor.a * .65),
-      ),
+      borderRadius: BorderRadius.circular(vars?.getVar<num>($radius)?.toDouble() ?? 26),
+      border: ElBorder.all(borderWidth: 1, borderColor: t.borderColor.withValues(alpha: t.borderColor.a * .65)),
       boxShadow: t.shadowMd,
       padding: padding.add(const EdgeInsets.all(1)),
       userSelect: interactive ? ElUserSelect.none : null,
       transition: reducedMotion(context)
           ? const []
-          : const [
-              ElTransition.all(Duration(milliseconds: 150), Curves.easeOut),
-            ],
+          : const [ElTransition.all(Duration(milliseconds: 150), Curves.easeOut)],
       onTap: interactive && !loading
           ? ElStyle(
-              backgroundColor:
-                  vars?.getVar<Color>($pressBackground) ??
-                  Color.lerp(t.cardColor, t.textColor, .085),
-              transform: ElTransform.scale(
-                vars?.getVar<num>($pressScale)?.toDouble() ?? .96,
-              ),
+              backgroundColor: vars?.getVar<Color>($pressBackground) ?? Color.lerp(t.cardColor, t.textColor, .085),
+              transform: ElTransform.scale(vars?.getVar<num>($pressScale)?.toDouble() ?? .96),
             )
           : null,
     ).merge(style);
@@ -135,9 +122,7 @@ class Card extends StatelessWidget {
       children: [
         if (!interactive && title?.isNotEmpty == true)
           Padding(
-            padding: EdgeInsets.only(
-              bottom: vars?.getVar<num>($headerGap)?.toDouble() ?? 23,
-            ),
+            padding: EdgeInsets.only(bottom: vars?.getVar<num>($headerGap)?.toDouble() ?? 23),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: narrow ? 10 : 18,
@@ -148,29 +133,17 @@ class Card extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ElView(
-                        style:
-                            textStyle(
-                              context,
-                              narrow ? 19 : 20,
-                              t.fontWeightSubtitle,
-                              height: 1.35,
-                            ).merge(
-                              const ElStyle(
-                                letterSpacing: -.55,
-                                margin: EdgeInsets.only(bottom: 7),
-                              ),
-                            ),
+                        style: textStyle(
+                          context,
+                          narrow ? 19 : 20,
+                          t.fontWeightSubtitle,
+                          height: 1.35,
+                        ).merge(const ElStyle(letterSpacing: -.55, margin: EdgeInsets.only(bottom: 7))),
                         child: title,
                       ),
                       if (description?.isNotEmpty == true)
                         ElView(
-                          style: textStyle(
-                            context,
-                            13,
-                            t.fontWeight,
-                            color: t.textSecondary,
-                            height: 1.55,
-                          ),
+                          style: textStyle(context, 13, t.fontWeight, color: t.textSecondary, height: 1.55),
                           child: description,
                         ),
                     ],
@@ -178,19 +151,9 @@ class Card extends StatelessWidget {
                 ),
                 if (sample?.isNotEmpty == true)
                   ElView(
-                    style:
-                        textStyle(
-                          context,
-                          narrow ? 9 : 10,
-                          t.fontWeight,
-                          color: t.textSecondary,
-                        ).merge(
-                          ElStyle(
-                            padding: const EdgeInsets.only(top: 7),
-                            letterSpacing: narrow ? 0 : .5,
-                            softWrap: false,
-                          ),
-                        ),
+                    style: textStyle(context, narrow ? 9 : 10, t.fontWeight, color: t.textSecondary).merge(
+                      ElStyle(padding: const EdgeInsets.only(top: 7), letterSpacing: narrow ? 0 : .5, softWrap: false),
+                    ),
                     child: sample,
                   ),
               ],
@@ -228,9 +191,7 @@ class Card extends StatelessWidget {
           )
         : ElView(
             style: cardStyle,
-            semantics: semanticLabel == null
-                ? null
-                : ElSemantics(container: true, label: semanticLabel),
+            semantics: semanticLabel == null ? null : ElSemantics(container: true, label: semanticLabel),
             child: content,
           );
   }

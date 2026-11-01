@@ -60,11 +60,7 @@ class Skeleton extends StatelessWidget {
           ElView(
             semantics: ElSemantics(
               container: true,
-              properties: SemanticsProperties(
-                role: SemanticsRole.loadingSpinner,
-                label: label,
-                liveRegion: true,
-              ),
+              properties: SemanticsProperties(role: SemanticsRole.loadingSpinner, label: label, liveRegion: true),
             ),
             style: ElStyle(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -109,10 +105,7 @@ class Skeleton extends StatelessWidget {
           excluding: loading,
           child: TickerMode(
             enabled: !loading,
-            child: Offstage(
-              offstage: loading,
-              child: child ?? const SizedBox.shrink(),
-            ),
+            child: Offstage(offstage: loading, child: child ?? const SizedBox.shrink()),
           ),
         ),
       ],

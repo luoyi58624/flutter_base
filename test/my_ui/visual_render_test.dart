@@ -19,78 +19,45 @@ import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as sk
 import 'package:flutter_base/src/ui/mobile/components/skeleton/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/others/divider/index.dart' as skin;
 
-final _output = Directory(
-  Platform.environment['MY_UI_VISUAL_OUT'] ?? '.claude/plan/my-ui-visual',
-);
+final _output = Directory(Platform.environment['MY_UI_VISUAL_OUT'] ?? '.claude/plan/my-ui-visual');
 final _metrics = <String, Object?>{};
 final _keys = <String, GlobalKey>{};
 var _labelColor = Color(0xff626874);
-Widget _record(String id, Widget child) =>
-    KeyedSubtree(key: _keys.putIfAbsent(id, () => GlobalKey()), child: child);
-Widget _row(String name, List<Widget> children, {double height = 92}) =>
-    SizedBox(
-      height: height,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontFamily: 'Arial',
-              fontSize: 12,
-              height: 16 / 12,
-              color: _labelColor,
-            ),
-          ),
-          SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 12,
-            children: children,
-          ),
-        ],
+Widget _record(String id, Widget child) => KeyedSubtree(key: _keys.putIfAbsent(id, () => GlobalKey()), child: child);
+Widget _row(String name, List<Widget> children, {double height = 92}) => SizedBox(
+  height: height,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        name,
+        style: TextStyle(fontFamily: 'Arial', fontSize: 12, height: 16 / 12, color: _labelColor),
       ),
-    );
+      SizedBox(height: 8),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, spacing: 12, children: children),
+    ],
+  ),
+);
 Widget _wide(String id, Widget child) => Expanded(child: _record(id, child));
 List<Widget> _samples(String id) => switch (id) {
   'button' => [
     _row('primary / outline / text', [
       _record('primary', skin.Button(child: 'Save 保存')),
-      _record(
-        'outline',
-        skin.Button(variant: skin.ButtonVariant.outline, child: 'Cancel'),
-      ),
+      _record('outline', skin.Button(variant: skin.ButtonVariant.outline, child: 'Cancel')),
       skin.Button(variant: skin.ButtonVariant.text, child: 'More'),
     ]),
     _row('icons / selected / round', [
-      skin.Button(
-        variant: skin.ButtonVariant.icon,
-        icon: 'heart',
-        selected: true,
-        label: 'Favorite',
-      ),
+      skin.Button(variant: skin.ButtonVariant.icon, icon: 'heart', selected: true, label: 'Favorite'),
       skin.Button(variant: skin.ButtonVariant.bare, icon: 'sun', label: 'Theme'),
-      skin.Button(
-        variant: skin.ButtonVariant.round,
-        icon: 'arrow-right',
-        label: 'Next',
-      ),
+      skin.Button(variant: skin.ButtonVariant.round, icon: 'arrow-right', label: 'Next'),
     ]),
     _row('disabled', [
       skin.Button(disabled: true, child: 'Disabled'),
-      skin.Button(
-        disabled: true,
-        variant: skin.ButtonVariant.outline,
-        child: 'Disabled',
-      ),
+      skin.Button(disabled: true, variant: skin.ButtonVariant.outline, child: 'Disabled'),
     ]),
     _row('loading', [
       skin.Button(loading: true, child: 'Saving'),
-      skin.Button(
-        loading: true,
-        variant: skin.ButtonVariant.outline,
-        child: 'Saving',
-      ),
+      skin.Button(loading: true, variant: skin.ButtonVariant.outline, child: 'Saving'),
     ]),
   ],
   'tag' => [
@@ -147,23 +114,12 @@ List<Widget> _samples(String id) => switch (id) {
   ],
   'divider' => [
     _row('solid', [_wide('solid', skin.Divider())], height: 100),
-    _row('center label', [
-      _wide('center', skin.Divider(child: 'Divider 分割')),
-    ], height: 100),
+    _row('center label', [_wide('center', skin.Divider(child: 'Divider 分割'))], height: 100),
     _row('start dashed', [
-      _wide(
-        'dashed',
-        skin.Divider(align: skin.DividerAlign.start, dashed: true, child: 'Start'),
-      ),
+      _wide('dashed', skin.Divider(align: skin.DividerAlign.start, dashed: true, child: 'Start')),
     ], height: 100),
-    _row('end label', [
-      _wide('end', skin.Divider(align: skin.DividerAlign.end, child: 'End')),
-    ], height: 100),
-    _row('vertical', [
-      Text('Left'),
-      skin.Divider(vertical: true),
-      Text('Right'),
-    ], height: 80),
+    _row('end label', [_wide('end', skin.Divider(align: skin.DividerAlign.end, child: 'End'))], height: 100),
+    _row('vertical', [Text('Left'), skin.Divider(vertical: true), Text('Right')], height: 80),
   ],
   'loading' => [
     _row('small 16 / medium 24 / large 32', [
@@ -174,39 +130,17 @@ List<Widget> _samples(String id) => switch (id) {
     _row('with label', [_record('label', skin.Loading(child: 'Loading 加载中'))]),
   ],
   'progress' => [
-    _row('line 40 / buffer 70', [
-      _wide('line', skin.Progress(value: 40, buffer: 70)),
-    ], height: 76),
+    _row('line 40 / buffer 70', [_wide('line', skin.Progress(value: 40, buffer: 70))], height: 76),
     _row('line success', [
-      _wide(
-        'success',
-        skin.Progress(value: 100, status: skin.ProgressStatus.success),
-      ),
+      _wide('success', skin.Progress(value: 100, status: skin.ProgressStatus.success)),
     ], height: 76),
-    _row('line warning', [
-      _wide('warning', skin.Progress(value: 60, status: skin.ProgressStatus.warning)),
-    ], height: 76),
-    _row('line error', [
-      _wide('error', skin.Progress(value: 30, status: skin.ProgressStatus.error)),
-    ], height: 76),
-    _row('line indeterminate', [
-      _wide('indeterminate', skin.Progress()),
-    ], height: 76),
+    _row('line warning', [_wide('warning', skin.Progress(value: 60, status: skin.ProgressStatus.warning))], height: 76),
+    _row('line error', [_wide('error', skin.Progress(value: 30, status: skin.ProgressStatus.error))], height: 76),
+    _row('line indeterminate', [_wide('indeterminate', skin.Progress())], height: 76),
     _row('circle 40 / success / error', [
-      _record(
-        'circle',
-        skin.Progress(value: 40, type: skin.ProgressType.circle, buffer: 70),
-      ),
-      skin.Progress(
-        value: 100,
-        type: skin.ProgressType.circle,
-        status: skin.ProgressStatus.success,
-      ),
-      skin.Progress(
-        value: 30,
-        type: skin.ProgressType.circle,
-        status: skin.ProgressStatus.error,
-      ),
+      _record('circle', skin.Progress(value: 40, type: skin.ProgressType.circle, buffer: 70)),
+      skin.Progress(value: 100, type: skin.ProgressType.circle, status: skin.ProgressStatus.success),
+      skin.Progress(value: 30, type: skin.ProgressType.circle, status: skin.ProgressStatus.error),
     ], height: 148),
     _row('circle indeterminate / hidden readout', [
       skin.Progress(type: skin.ProgressType.circle),
@@ -222,11 +156,7 @@ List<Widget> _samples(String id) => switch (id) {
             Builder(
               builder: (context) => ElMobileTheme(
                 style: ElStyle(vars: {skin.Progress.$size: size}),
-                child: skin.Progress(
-                  value: 100,
-                  type: skin.ProgressType.circle,
-                  status: status,
-                ),
+                child: skin.Progress(value: 100, type: skin.ProgressType.circle, status: status),
               ),
             ),
           ),
@@ -234,13 +164,9 @@ List<Widget> _samples(String id) => switch (id) {
   ],
   'skeleton' => [
     _row('default: 3 rows', [_wide('default', skin.Skeleton())], height: 176),
-    _row('avatar: 3 rows', [
-      _wide('avatar', skin.Skeleton(avatar: true)),
-    ], height: 176),
+    _row('avatar: 3 rows', [_wide('avatar', skin.Skeleton(avatar: true))], height: 176),
     _row('2 rows', [_wide('two', skin.Skeleton(rows: 2))], height: 152),
-    _row('loaded content', [
-      _wide('loaded', skin.Skeleton(loading: false, child: Text('Loaded 内容已就绪'))),
-    ], height: 80),
+    _row('loaded content', [_wide('loaded', skin.Skeleton(loading: false, child: Text('Loaded 内容已就绪')))], height: 80),
   ],
   _ => throw ArgumentError(id),
 };
@@ -255,10 +181,7 @@ Future<void> _loadFonts() async {
       'C:/Windows/Fonts/timesbi.ttf',
     ],
     'SimSun': ['C:/Windows/Fonts/simsun.ttc'],
-    'Microsoft YaHei': [
-      'C:/Windows/Fonts/msyh.ttc',
-      'C:/Windows/Fonts/msyhbd.ttc',
-    ],
+    'Microsoft YaHei': ['C:/Windows/Fonts/msyh.ttc', 'C:/Windows/Fonts/msyhbd.ttc'],
     'Roboto': [
       '$sdk/bin/cache/artifacts/material_fonts/roboto-regular.ttf',
       '$sdk/bin/cache/artifacts/material_fonts/roboto-medium.ttf',
@@ -274,17 +197,12 @@ Future<void> _loadFonts() async {
   }
 }
 
-Future<void> _save(
-  WidgetTester tester,
-  RenderRepaintBoundary boundary,
-  String name,
-) async {
+Future<void> _save(WidgetTester tester, RenderRepaintBoundary boundary, String name) async {
   await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     await _output.create(recursive: true);
-    await File('${_output.path}/$name.png')
-        .writeAsBytes(bytes!.buffer.asUint8List());
+    await File('${_output.path}/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
     image.dispose();
   });
 }
@@ -312,20 +230,13 @@ void main() {
         ]) {
           _keys.clear();
           final boundaryKey = GlobalKey();
-          final data = {
-            ...ElMobileTheme.lightVars,
-            if (brightness == Brightness.dark) ...ElMobileTheme.darkVars,
-          };
+          final data = {...ElMobileTheme.lightVars, if (brightness == Brightness.dark) ...ElMobileTheme.darkVars};
           _labelColor = (data[ElTheme.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
               // 仅提供Material宿主；字体由ElMobileTheme建立，避免宿主覆盖复验契约。
-              builder: (context, child) =>
-                  Material(type: MaterialType.transparency, child: child),
-              theme: ThemeData(
-                platform: TargetPlatform.windows,
-                fontFamilyFallback: ['Microsoft YaHei'],
-              ),
+              builder: (context, child) => Material(type: MaterialType.transparency, child: child),
+              theme: ThemeData(platform: TargetPlatform.windows, fontFamilyFallback: ['Microsoft YaHei']),
               home: MediaQuery(
                 data: MediaQueryData(
                   size: Size(width, 900),
@@ -368,9 +279,7 @@ void main() {
                                       fontFamily: 'Arial',
                                       fontSize: 12,
                                       height: 16 / 12,
-                                      color:
-                                          (data[ElTheme.$textSecondary]
-                                              as Color),
+                                      color: (data[ElTheme.$textSecondary] as Color),
                                     ),
                                   ),
                                 ),
@@ -393,19 +302,12 @@ void main() {
           final positions = <String, Object?>{};
           for (final entry in _keys.entries) {
             final r = tester.getRect(find.byKey(entry.value));
-            positions[entry.key] = {
-              'x': r.left,
-              'y': r.top,
-              'width': r.width,
-              'height': r.height,
-            };
+            positions[entry.key] = {'x': r.left, 'y': r.top, 'width': r.width, 'height': r.height};
           }
           _metrics[key] = {
             'viewport': [width, 900],
             'dpr': 1,
-            'fontFamily': DefaultTextStyle.of(
-              _keys.values.first.currentContext!,
-            ).style.fontFamily,
+            'fontFamily': DefaultTextStyle.of(_keys.values.first.currentContext!).style.fontFamily,
             'fontFamilyFallback': (data[ElTheme.$fontFamilyFallback] as List<String>),
             'positions': positions,
             'officialTexts': find.byType(RichText).evaluate().map((element) {
@@ -421,57 +323,36 @@ void main() {
                 'lineHeight': box.text.style?.height,
               };
             }).toList(),
-            'texts': find
-                .byWidgetPredicate((w) => w is ElView && w.child is String)
-                .evaluate()
-                .map((element) {
-                  final box = element.renderObject! as ElRenderView;
-                  final engine = box.textEngineForTest;
-                  final text = box.committedResolvedStyle.inheritedText;
-                  final point = box.localToGlobal(Offset.zero);
-                  return {
-                    'text': (element.widget as ElView).child,
-                    'x': point.dx,
-                    'y': point.dy,
-                    'width': box.size.width,
-                    'height': box.size.height,
-                    'fontFamily': text.fontFamily,
-                    'fontFamilyFallback': text.fontFamilyFallback,
-                    'fontSize': text.fontSize,
-                    'fontWeight': text.fontWeight?.value,
-                    'lineHeight': text.lineHeight,
-                    'baseline':
-                        point.dy +
-                        (engine?.computeDistanceToActualBaseline(
-                              TextBaseline.alphabetic,
-                            ) ??
-                            0),
-                    'paintY': point.dy + (engine?.textPaintOrigin.dy ?? 0),
-                  };
-                })
-                .toList(),
-            'glyphs': find
-                .byWidgetPredicate((w) => w.runtimeType.toString() == 'Glyph')
-                .evaluate()
-                .map((element) {
-                  final box = element.renderObject! as RenderBox;
-                  final point = box.localToGlobal(Offset.zero);
-                  return {
-                    'x': point.dx,
-                    'y': point.dy,
-                    'width': box.size.width,
-                    'height': box.size.height,
-                  };
-                })
-                .toList(),
+            'texts': find.byWidgetPredicate((w) => w is ElView && w.child is String).evaluate().map((element) {
+              final box = element.renderObject! as ElRenderView;
+              final engine = box.textEngineForTest;
+              final text = box.committedResolvedStyle.inheritedText;
+              final point = box.localToGlobal(Offset.zero);
+              return {
+                'text': (element.widget as ElView).child,
+                'x': point.dx,
+                'y': point.dy,
+                'width': box.size.width,
+                'height': box.size.height,
+                'fontFamily': text.fontFamily,
+                'fontFamilyFallback': text.fontFamilyFallback,
+                'fontSize': text.fontSize,
+                'fontWeight': text.fontWeight?.value,
+                'lineHeight': text.lineHeight,
+                'baseline': point.dy + (engine?.computeDistanceToActualBaseline(TextBaseline.alphabetic) ?? 0),
+                'paintY': point.dy + (engine?.textPaintOrigin.dy ?? 0),
+              };
+            }).toList(),
+            'glyphs': find.byWidgetPredicate((w) => w.runtimeType.toString() == 'Glyph').evaluate().map((element) {
+              final box = element.renderObject! as RenderBox;
+              final point = box.localToGlobal(Offset.zero);
+              return {'x': point.dx, 'y': point.dy, 'width': box.size.width, 'height': box.size.height};
+            }).toList(),
           };
-          final boundary =
-              boundaryKey.currentContext!.findRenderObject()!
-                  as RenderRepaintBoundary;
+          final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
 
           await _save(tester, boundary, 'flutter-$key');
-          if ((width == 390 && brightness == Brightness.light) ||
-              (width == 1440 && brightness == Brightness.dark)) {
+          if ((width == 390 && brightness == Brightness.light) || (width == 1440 && brightness == Brightness.dark)) {
             final target = switch (id) {
               'button' => 'primary',
               'tag' || 'switch' => 'off',
@@ -488,9 +369,7 @@ void main() {
               final focusHost = find
                   .descendant(
                     of: targetFinder,
-                    matching: find.byWidgetPredicate(
-                      (w) => w is ElView && w.focusNode != null,
-                    ),
+                    matching: find.byWidgetPredicate((w) => w is ElView && w.focusNode != null),
                   )
                   .first;
               final node = tester.widget<ElView>(focusHost).focusNode!;
@@ -504,9 +383,7 @@ void main() {
               expect(appearance(), initial);
               await _save(tester, boundary, 'flutter-state-$key-focus');
               node.unfocus();
-              final mouse = await tester.createGesture(
-                kind: ui.PointerDeviceKind.mouse,
-              );
+              final mouse = await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
               await mouse.addPointer(location: Offset(2, 2));
               final point = tester.getCenter(focusHost);
               await mouse.moveTo(point);
@@ -526,8 +403,9 @@ void main() {
           await tester.pumpAndSettle();
         }
         await tester.runAsync(
-          () => File('${_output.path}/flutter-metrics.json')
-              .writeAsString(JsonEncoder.withIndent('  ').convert(_metrics)),
+          () =>
+              File('${_output.path}/flutter-metrics.json')
+                  .writeAsString(JsonEncoder.withIndent('  ').convert(_metrics)),
         );
       });
     }

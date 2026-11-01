@@ -51,10 +51,7 @@ class ProgressValue {
 }
 
 /// 进度默认插槽，可显示任意读数。
-typedef ProgressTextBuilder = Widget Function(
-  BuildContext context,
-  ProgressValue value,
-);
+typedef ProgressTextBuilder = Widget Function(BuildContext context, ProgressValue value);
 
 /// 支持缓冲、确定/不确定值和自定义读数的进度条或圆环。
 class Progress extends HookWidget {
@@ -112,15 +109,11 @@ class Progress extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final vars = ElView.maybeOf(context);
-    final t = context.elTheme,
-        reduced = reducedMotion(context),
-        circle = type == ProgressType.circle;
+    final t = context.elTheme, reduced = reducedMotion(context), circle = type == ProgressType.circle;
     final total = max.isFinite && max > 0 ? max : 100.0;
     final amount = value?.isFinite == true ? value!.clamp(0.0, total) : null;
     final ratio = (amount ?? 0) / total;
-    final buffered = amount != null && buffer?.isFinite == true
-        ? buffer!.clamp(amount, total) / total
-        : null;
+    final buffered = amount != null && buffer?.isFinite == true ? buffer!.clamp(amount, total) / total : null;
     final indefinite = amount == null, percentage = (ratio * 100).round();
     final color =
         vars?.getVar<Color>($color) ??
@@ -132,11 +125,8 @@ class Progress extends HookWidget {
         };
     final track = vars?.getVar<Color>($track) ?? t.fill,
         bufferColor = vars?.getVar<Color>($bufferColor) ?? Color.lerp(track, color, .28)!;
-    final size = vars?.getVar<num>($size)?.toDouble() ?? 96,
-        thickness = vars?.getVar<num>($thickness)?.toDouble() ?? 6;
-    final clock = useAnimationController(
-      duration: Duration(milliseconds: circle ? 1000 : 1400),
-    );
+    final size = vars?.getVar<num>($size)?.toDouble() ?? 96, thickness = vars?.getVar<num>($thickness)?.toDouble() ?? 6;
+    final clock = useAnimationController(duration: Duration(milliseconds: circle ? 1000 : 1400));
     useEffect(() {
       if (indefinite && !reduced) {
         clock.repeat();
@@ -146,10 +136,7 @@ class Progress extends HookWidget {
       }
       return null;
     }, [indefinite, reduced, circle]);
-    final fillMotion = useAnimationController(
-      initialValue: ratio,
-      duration: const Duration(milliseconds: 200),
-    );
+    final fillMotion = useAnimationController(initialValue: ratio, duration: const Duration(milliseconds: 200));
     final bufferMotion = useAnimationController(
       initialValue: buffered ?? ratio,
       duration: const Duration(milliseconds: 200),
@@ -159,16 +146,8 @@ class Progress extends HookWidget {
         fillMotion.value = ratio;
         bufferMotion.value = buffered ?? ratio;
       } else {
-        fillMotion.animateTo(
-          ratio,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.ease,
-        );
-        bufferMotion.animateTo(
-          buffered ?? ratio,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.ease,
-        );
+        fillMotion.animateTo(ratio, duration: const Duration(milliseconds: 200), curve: Curves.ease);
+        bufferMotion.animateTo(buffered ?? ratio, duration: const Duration(milliseconds: 200), curve: Curves.ease);
       }
       return null;
     }, [ratio, buffered, reduced]);
@@ -205,15 +184,8 @@ class Progress extends HookWidget {
                 (glyph == null
                     ? '$percentage%'
                     : ElView(
-                        style: ElStyle(
-                          width: circle ? size * .28 : 18,
-                          height: circle ? size * .28 : 18,
-                          color: color,
-                        ),
-                        child: Glyph(
-                          name: glyph,
-                          size: circle ? size * .28 : 18,
-                        ),
+                        style: ElStyle(width: circle ? size * .28 : 18, height: circle ? size * .28 : 18, color: color),
+                        child: Glyph(name: glyph, size: circle ? size * .28 : 18),
                       )),
           ),
         ),
@@ -241,9 +213,7 @@ class Progress extends HookWidget {
         container: true,
         properties: SemanticsProperties(
           // TODO(parity): Flutter不确定进度使用loadingSpinner角色，Web保持progressbar；待平台读屏验收。
-          role: indefinite
-              ? SemanticsRole.loadingSpinner
-              : SemanticsRole.progressBar,
+          role: indefinite ? SemanticsRole.loadingSpinner : SemanticsRole.progressBar,
           label: label,
           minValue: indefinite ? null : '0',
           maxValue: indefinite ? null : '100',
@@ -251,10 +221,7 @@ class Progress extends HookWidget {
           hint: buffered == null ? null : '已缓冲 ${(buffered * 100).round()}%',
         ),
       ),
-      style: ElStyle(
-        width: circle ? size : '100%',
-        height: circle ? size : null,
-      ),
+      style: ElStyle(width: circle ? size : '100%', height: circle ? size : null),
       child: circle
           ? Stack(
               fit: StackFit.expand,
@@ -300,9 +267,7 @@ class _ProgressPainter extends CustomPainter {
     final paint = Paint()..isAntiAlias = true;
     if (circle) {
       // TODO(parity): CSS圆环在0值/缓冲隐藏时另有200ms opacity过渡，目前仅插值弧长。
-      final center = size.center(Offset.zero),
-          radius = size.width * .44,
-          stroke = thickness * size.width / 100;
+      final center = size.center(Offset.zero), radius = size.width * .44, stroke = thickness * size.width / 100;
       final rect = Rect.fromCircle(center: center, radius: radius);
       paint
         ..style = PaintingStyle.stroke
@@ -335,26 +300,14 @@ class _ProgressPainter extends CustomPainter {
         if (length <= 0) return;
         paint.color = color;
         canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(
-              start * size.width,
-              0,
-              length * size.width,
-              size.height,
-            ),
-            radius,
-          ),
+          RRect.fromRectAndRadius(Rect.fromLTWH(start * size.width, 0, length * size.width, size.height), radius),
           paint,
         );
       }
 
       if (buffer != null) fill(0, buffer!, bufferColor);
       fill(
-        indeterminate
-            ? (reduced
-                  ? .32
-                  : -.352 + 1.696 * Curves.easeInOut.transform(phase))
-            : 0,
+        indeterminate ? (reduced ? .32 : -.352 + 1.696 * Curves.easeInOut.transform(phase)) : 0,
         indeterminate ? .32 : ratio,
         color,
       );

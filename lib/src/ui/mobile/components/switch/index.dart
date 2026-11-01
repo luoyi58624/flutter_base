@@ -8,16 +8,11 @@ import '../../cores/common.dart';
 import '../loading/index.dart';
 
 /// 使用移动端开关皮肤实现通用值通道，并连接祖先表单字段。
-Widget switchBuilder(BuildContext context, ElSwitch component) =>
-    _CommonSwitch(component);
+Widget switchBuilder(BuildContext context, ElSwitch component) => _CommonSwitch(component);
 
 class _CommonSwitch extends ElFormModelValue<bool> {
   _CommonSwitch(this.component)
-    : super(
-        value: component.value,
-        modelValue: component.modelValue,
-        onChanged: component.onChanged,
-      );
+    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
 
   final ElSwitch component;
 
@@ -31,17 +26,10 @@ class _CommonSwitch extends ElFormModelValue<bool> {
     final height = component.height ?? 28;
     final gap = component.gap ?? 3;
     final thumb = (height - 2 * gap).clamp(0.0, double.infinity);
-    final width = (height * (component.widthAspect ?? 47 / 28)).clamp(
-      height,
-      double.infinity,
-    );
+    final width = (height * (component.widthAspect ?? 47 / 28)).clamp(height, double.infinity);
     final reduced = reducedMotion(context);
-    final content = current
-        ? component.activeContent
-        : component.inactiveContent;
-    final actionContent = current
-        ? component.activeActionContent
-        : component.inactiveActionContent;
+    final content = current ? component.activeContent : component.inactiveContent;
+    final actionContent = current ? component.activeActionContent : component.inactiveActionContent;
     final thumbVisual = ElView(
       style: ElStyle(
         width: thumb,
@@ -53,21 +41,11 @@ class _CommonSwitch extends ElFormModelValue<bool> {
             (current ? theme.primaryText : const Color(0xffffffff)),
         color: current ? theme.primary : theme.textSecondary,
         boxShadow: [
-          BoxShadow(
-            color: const Color(0xff000000).withValues(alpha: .12),
-            offset: const Offset(0, 2),
-            blurRadius: 5,
-          ),
+          BoxShadow(color: const Color(0xff000000).withValues(alpha: .12), offset: const Offset(0, 2), blurRadius: 5),
         ],
-        transition: reduced
-            ? const []
-            : const [
-                ElTransition.all(Duration(milliseconds: 150), Curves.ease),
-              ],
+        transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 150), Curves.ease)],
       ),
-      child: component.loading
-          ? const ExcludeSemantics(child: Loading(size: LoadingSize.small))
-          : actionContent,
+      child: component.loading ? const ExcludeSemantics(child: Loading(size: LoadingSize.small)) : actionContent,
     );
     return inline(
       ActionView(
@@ -93,11 +71,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
                 ? (component.activeColor ?? theme.primary)
                 : (component.inactiveColor ?? theme.gray),
             color: current ? theme.primaryText : theme.textColor,
-            transition: reduced
-                ? const []
-                : const [
-                    ElTransition.all(Duration(milliseconds: 230), Curves.ease),
-                  ],
+            transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)],
           ).merge(component.trackStyle),
           child: Stack(
             children: [
@@ -120,9 +94,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
               Positioned.fill(
                 child: AnimatedAlign(
                   alignment: current ? .centerRight : .centerLeft,
-                  duration: reduced || !component.slide
-                      ? Duration.zero
-                      : const Duration(milliseconds: 230),
+                  duration: reduced || !component.slide ? Duration.zero : const Duration(milliseconds: 230),
                   curve: Curves.ease,
                   child: thumbVisual,
                 ),
@@ -217,16 +189,8 @@ class Switch extends StatelessWidget {
               transition: reducedMotion(context)
                   ? const []
                   : const [
-                      ElTransition.field(
-                        ElTransitionField.transform,
-                        Duration(milliseconds: 230),
-                        Curves.ease,
-                      ),
-                      ElTransition.field(
-                        ElTransitionField.backgroundColor,
-                        Duration(milliseconds: 150),
-                        Curves.ease,
-                      ),
+                      ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 230), Curves.ease),
+                      ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150), Curves.ease),
                     ],
             ),
           ),

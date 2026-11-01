@@ -12,9 +12,7 @@ Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
     child: ElMobileTheme(
-      style: ElStyle(
-        vars: {skin.Progress.$size: ?progressSize},
-      ),
+      style: ElStyle(vars: {skin.Progress.$size: ?progressSize}),
       child: Align(
         alignment: Alignment.topLeft,
         child: SizedBox(width: 320, child: child),
@@ -23,12 +21,7 @@ Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   ),
 );
 
-void _expectGlyph(
-  WidgetTester tester,
-  Finder component,
-  double extent, {
-  double? circleSize,
-}) {
+void _expectGlyph(WidgetTester tester, Finder component, double extent, {double? circleSize}) {
   final glyph = find.descendant(of: component, matching: find.byType(skin.Glyph));
   expect(glyph, findsOneWidget);
   final rect = tester.getRect(glyph);
@@ -36,10 +29,7 @@ void _expectGlyph(
   expect(rect.height, closeTo(extent, .000001));
   final frame = find.descendant(
     of: component,
-    matching: find.byWidgetPredicate(
-      (w) =>
-          w is ElView && w.style?.width == extent && w.style?.height == extent,
-    ),
+    matching: find.byWidgetPredicate((w) => w is ElView && w.style?.width == extent && w.style?.height == extent),
   );
   expect(frame, findsOneWidget);
   final frameRect = tester.getRect(frame);
@@ -50,17 +40,11 @@ void _expectGlyph(
     final ring = find.descendant(
       of: component,
       matching: find.byWidgetPredicate(
-        (w) =>
-            w is ElView &&
-            w.style?.width == circleSize &&
-            w.style?.height == circleSize,
+        (w) => w is ElView && w.style?.width == circleSize && w.style?.height == circleSize,
       ),
     );
     expect(ring, findsOneWidget);
-    expect(
-      (rect.center - tester.getCenter(ring)).distance,
-      closeTo(0, .000001),
-    );
+    expect((rect.center - tester.getCenter(ring)).distance, closeTo(0, .000001));
   }
   expect(tester.takeException(), isNull);
 }
@@ -84,9 +68,7 @@ void main() {
       await tester.pumpAndSettle();
       _expectGlyph(tester, find.byType(skin.Progress), 18);
     });
-    testWidgets('Progress circle ${status.name} 在40/64/96/128切换时保持0.28比例与圆心', (
-      tester,
-    ) async {
+    testWidgets('Progress circle ${status.name} 在40/64/96/128切换时保持0.28比例与圆心', (tester) async {
       for (final size in [40.0, 64.0, 96.0, 128.0, 40.0]) {
         await tester.pumpWidget(
           _host(
@@ -95,12 +77,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        _expectGlyph(
-          tester,
-          find.byType(skin.Progress),
-          size * .28,
-          circleSize: size,
-        );
+        _expectGlyph(tester, find.byType(skin.Progress), size * .28, circleSize: size);
       }
     });
   }
