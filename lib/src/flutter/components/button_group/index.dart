@@ -26,7 +26,7 @@ class ElButtonGroupItem {
   /// 按钮内容，接受文本、图标、Widget 或任意对象。
   final Object? child;
 
-  /// 条目身份；未指定时使用下标。
+  /// 任意类型的条目身份，须兼容单选模型或多选集合的元素类型，未指定时使用下标。
   final Object? value;
 
   /// 是否禁用该条目。
@@ -42,7 +42,7 @@ class ElButtonGroupItem {
   final String? semanticLabel;
 }
 
-/// 公共按钮组配置，外观、选择和值绑定由全局组件实现提供。
+/// 公共按钮组配置，D 表示完整模型类型，外观、选择和值绑定由品牌实现提供。
 class ElButtonGroup<D> extends StatelessWidget {
   /// 创建普通按钮组，不启用选择和值绑定。
   const ElButtonGroup({
@@ -106,7 +106,7 @@ class ElButtonGroup<D> extends StatelessWidget {
   /// 选择方式；null 表示普通组。
   final ElButtonGroupMode? mode;
 
-  /// 初始模型值，组件重建时同步新的值。
+  /// 初始完整模型值，单选为条目值，多选为 List 或 Set，重建时同步新值。
   final D? value;
 
   /// 外部双向绑定，生命周期由调用方管理。

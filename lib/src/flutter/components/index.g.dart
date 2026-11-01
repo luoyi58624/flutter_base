@@ -127,7 +127,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
       listTileGroupBuilder: identical(listTileGroupBuilder, $absent)
           ? this.listTileGroupBuilder
           : listTileGroupBuilder
-                as Widget Function(BuildContext, ElListTileGroup)?,
+                as Widget Function<D>(BuildContext, ElListTileGroup<D>)?,
       anchorBuilder: identical(anchorBuilder, $absent)
           ? this.anchorBuilder
           : anchorBuilder as Widget Function(BuildContext, ElAnchor)?,

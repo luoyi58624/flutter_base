@@ -3,6 +3,20 @@ import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+enum _Period { day, week }
+
+class _Choice {
+  _Choice(this.id);
+
+  final String id;
+
+  @override
+  bool operator ==(Object other) => other is _Choice && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 /// **ElButtonGroup 单选 / 多选行为锁**：
 /// - 受控三通道（value 自持 / modelValue 双向 / prop 表单），值默认 = 子项
 ///   下标，可用 [ElButtonGroupItem.value] 自定义
@@ -30,6 +44,94 @@ void main() {
     await tester.tapAt(view.localToGlobal(view.size.center(Offset.zero)));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('单选支持枚举模型，每次选择或清空只通知一次', (tester) async {
+    final model = ValueNotifier<_Period?>(null);
+    addTearDown(model.dispose);
+    final changes = <_Period?>[];
+    await tester.pumpWidget(
+      host(
+        ElButtonGroup<_Period?>.single(
+          modelValue: model,
+          onChanged: changes.add,
+          children: [
+            ElButtonGroupItem(value: _Period.day, child: '日'),
+            ElButtonGroupItem(value: _Period.week, child: '周'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapItem(tester, 1);
+    expect(model.value, _Period.week);
+    expect(changes, [_Period.week]);
+    await tapItem(tester, 1);
+    expect(model.value, isNull);
+    expect(changes, [_Period.week, null]);
+  });
+
+  testWidgets('多选 List 保留业务对象元素类型和值相等语义，不修改原列表', (tester) async {
+    final source = [_Choice('a')];
+    final model = ValueNotifier<List<_Choice>>(source);
+    addTearDown(model.dispose);
+    final changes = <List<_Choice>>[];
+    await tester.pumpWidget(
+      host(
+        ElButtonGroup<List<_Choice>>.multi(
+          modelValue: model,
+          onChanged: changes.add,
+          children: [
+            ElButtonGroupItem(value: _Choice('a'), child: '甲'),
+            ElButtonGroupItem(value: _Choice('b'), child: '乙'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapItem(tester, 1);
+    expect(model.value, isA<List<_Choice>>());
+    expect(model.value, [_Choice('a'), _Choice('b')]);
+    expect(identical(model.value, source), isFalse);
+    expect(source, [_Choice('a')]);
+    expect(changes.length, 1);
+    await tapItem(tester, 0);
+    expect(model.value, [_Choice('b')]);
+    expect(source, [_Choice('a')]);
+    expect(changes.length, 2);
+  });
+
+  testWidgets('多选 Set 保留业务对象元素类型和值相等语义，不修改原集合', (tester) async {
+    final source = {_Choice('a')};
+    final model = ValueNotifier<Set<_Choice>>(source);
+    addTearDown(model.dispose);
+    final changes = <Set<_Choice>>[];
+    await tester.pumpWidget(
+      host(
+        ElButtonGroup<Set<_Choice>>.multi(
+          modelValue: model,
+          onChanged: changes.add,
+          children: [
+            ElButtonGroupItem(value: _Choice('a'), child: '甲'),
+            ElButtonGroupItem(value: _Choice('b'), child: '乙'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tapItem(tester, 1);
+    expect(model.value, isA<Set<_Choice>>());
+    expect(model.value, {_Choice('a'), _Choice('b')});
+    expect(identical(model.value, source), isFalse);
+    expect(source, {_Choice('a')});
+    expect(changes.length, 1);
+    await tapItem(tester, 0);
+    expect(model.value, {_Choice('b')});
+    expect(source, {_Choice('a')});
+    expect(changes.length, 2);
+  });
 
   testWidgets('组内按钮直接跟随 normal / compact 密度', (tester) async {
     for (final compact in [false, true]) {
