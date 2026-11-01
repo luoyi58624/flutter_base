@@ -1,5 +1,4 @@
 import 'package:example/src/layout/index.dart';
-import 'package:example/src/layout/home.dart';
 import 'package:example/src/pages/custom_gestures.dart';
 import 'package:example/src/pages/view.dart';
 import 'package:example/src/pages/view/base.dart';
@@ -29,7 +28,6 @@ class _DesktopLayoutState extends State<DesktopLayout> {
         // 叶子属于当前 tab 时保留选择，外部切换 tab 则使用一级菜单 key。
         final selected = AppLayout.menuTabs[_selected] == tabIndex ? _selected : AppLayout.tabKeyOf(tabIndex);
         final pages = [
-          ('home', HomePage()),
           ('components', Center(child: Text('组件'))),
           ('component-overview', Center(child: Text('组件概览'))),
           ('examples', Center(child: Text('示例'))),

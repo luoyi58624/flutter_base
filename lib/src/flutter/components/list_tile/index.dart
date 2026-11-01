@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/dart.dart' show $absent;
 import 'package:flutter_base/ui.dart';
 
 part 'group.dart';
@@ -27,7 +28,7 @@ class ElListTile<T> extends ElModelValue<T> {
     required this.title,
     this.subtitle,
     this.leading,
-    this.trailing = ElEmptyWidget.instance,
+    this.trailing = $absent,
     this.trailingText,
     this.onTap,
     this.disabled = false,
@@ -90,7 +91,7 @@ class ElListTile<T> extends ElModelValue<T> {
     required this.title,
     this.subtitle,
     this.leading,
-    this.trailing = ElEmptyWidget.instance,
+    this.trailing = $absent,
     this.trailingText,
     required this.options,
     this.popupAnchor,
@@ -131,7 +132,7 @@ class ElListTile<T> extends ElModelValue<T> {
   /// 起边内容。
   final Object? leading;
 
-  /// 后缀占位符表示品牌默认图标，普通行显示右箭头，弹窗行显示菜单提示；null 移除后缀及间距。
+  /// $absent 使用品牌默认图标，普通行显示右箭头，弹窗行显示菜单提示；null 移除后缀及间距。
   final Object? trailing;
 
   /// 右侧当前值的显示覆盖，弹窗行省略时显示选中项文案，与后缀是否显示无关。

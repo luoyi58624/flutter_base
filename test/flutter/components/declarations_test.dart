@@ -8,7 +8,7 @@ Widget _generic<D>(BuildContext context, dynamic component) => SizedBox();
 
 Widget _listTile<T>(BuildContext context, ElListTile<T> component) => SizedBox();
 
-Widget _listTileGroup<D>(BuildContext context, ElListTileGroup<D> component) => SizedBox();
+Widget _listTileGroup<D>(BuildContext context, ElListGroup<D> component) => SizedBox();
 
 void main() {
   test('card 的登记、复制、清空、合并与比较', () {

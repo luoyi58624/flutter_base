@@ -16,7 +16,7 @@ void main() {
     final content = Column(
       mainAxisSize: .min,
       children: [
-        ElListTileGroup(
+        ElListGroup(
           children: [
             ElListTile(key: rowKey, title: Text('列表行'), onTap: () {}),
             ElListTile(title: Text('最后一行')),

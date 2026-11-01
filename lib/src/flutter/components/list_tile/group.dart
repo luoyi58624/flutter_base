@@ -1,14 +1,14 @@
 part of 'index.dart';
 
 /// 列表组声明，D 表示完整模型：单选为业务值类型，多选为 List<业务值类型>。
-class ElListTileGroup<D> extends ElModelValue<D> {
+class ElListGroup<D> extends ElModelValue<D> {
   /// 创建普通列表组，不接管子项选择。
-  ElListTileGroup({super.key, this.title, required this.children, this.leading = true})
+  ElListGroup({super.key, this.title, required this.children, this.leading = true})
     : assert(null is D, '普通组不绑定值，请省略泛型或使用可空类型'),
       mode = null;
 
   /// 创建单选组，再次选择同值保持选中，未选择时使用可空模型。
-  ElListTileGroup.single({
+  ElListGroup.single({
     super.key,
     super.value,
     super.modelValue,
@@ -21,7 +21,7 @@ class ElListTileGroup<D> extends ElModelValue<D> {
        mode = .single;
 
   /// 创建多选组，D 为完整 List 类型，须提供初始列表或外部模型。
-  ElListTileGroup.multi({
+  ElListGroup.multi({
     super.key,
     super.value,
     super.modelValue,

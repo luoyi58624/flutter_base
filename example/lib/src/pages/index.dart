@@ -43,7 +43,7 @@ class HomePage extends StatelessWidget {
             child: Column(
               spacing: 16,
               children: [
-                ElListTileGroup(
+                ElListGroup(
                   children: [
                     _tile(context, .airplane, ElViewPage()),
                     _tile(context, .wifi, CustomGesturesPage()),
@@ -52,7 +52,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .connect),
                   ],
                 ),
-                ElListTileGroup(
+                ElListGroup(
                   children: [
                     _tile(context, .personalize),
                     _tile(context, .display),
@@ -60,10 +60,10 @@ class HomePage extends StatelessWidget {
                     _tile(context, .notifications),
                   ],
                 ),
-                ElListTileGroup(
+                ElListGroup(
                   children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)],
                 ),
-                ElListTileGroup(
+                ElListGroup(
                   children: [
                     _tile(context, .apps),
                     _tile(context, .battery),
@@ -71,7 +71,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .cloud),
                   ],
                 ),
-                ElListTileGroup(
+                ElListGroup(
                   children: [
                     _tile(context, .system),
                     _tile(context, .about),

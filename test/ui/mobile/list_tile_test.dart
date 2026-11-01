@@ -86,7 +86,7 @@ void main() {
     final card = Color(0xfffaf8f3);
     await tester.pumpWidget(
       _host(
-        ElListTileGroup(
+        ElListGroup(
           key: groupKey,
           title: Text('分组标题'),
           children: [
@@ -118,6 +118,13 @@ void main() {
       await tester.pumpWidget(_host(ElListTile(title: Text('默认后缀')), cupertino: cupertino));
       expect(_icon(cupertino ? CupertinoIcons.chevron_forward : Icons.chevron_right), findsOneWidget);
       expect(_icon(cupertino ? Icons.chevron_right : CupertinoIcons.chevron_forward), findsNothing);
+      await tester.pumpWidget(
+        _host(
+          ElListTile(title: Text('显式默认'), trailing: $absent),
+          cupertino: cupertino,
+        ),
+      );
+      expect(_icon(cupertino ? CupertinoIcons.chevron_forward : Icons.chevron_right), findsOneWidget);
       await tester.pumpWidget(_host(ElListTile(title: Text('无后缀'), trailing: null), cupertino: cupertino));
       expect(_icon(Icons.chevron_right), findsNothing);
       expect(_icon(CupertinoIcons.chevron_forward), findsNothing);
@@ -125,6 +132,23 @@ void main() {
     await tester.pumpWidget(_host(ElListTile(title: Text('自定义后缀'), trailing: Text('自定义'))));
     expect(_text('自定义'), findsOneWidget);
     expect(_icon(Icons.chevron_right), findsNothing);
+  });
+
+  testWidgets('弹窗后缀使用统一默认占位，null 移除，空 Widget 原样作为后缀', (tester) async {
+    for (final cupertino in [false, true]) {
+      final icon = cupertino ? CupertinoIcons.chevron_up_chevron_down : Icons.unfold_more;
+      for (final trailing in [$absent, null, ElEmptyWidget.instance]) {
+        await tester.pumpWidget(
+          _host(
+            ElListTile<int>.popup(title: Text('弹窗后缀'), value: 1, options: [ElLabelModel('选项', 1)], trailing: trailing),
+            cupertino: cupertino,
+          ),
+        );
+        expect(_icon(icon), identical(trailing, $absent) ? findsOneWidget : findsNothing);
+        if (trailing is Widget) expect(find.byWidget(trailing), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    }
   });
 
   testWidgets('标题说明与尾部当前值支持Widget和窄宽换行', (tester) async {
@@ -270,7 +294,7 @@ void main() {
       final groupKey = GlobalKey();
       await tester.pumpWidget(
         _host(
-          ElListTileGroup<_Preference?>.single(
+          ElListGroup<_Preference?>.single(
             key: groupKey,
             modelValue: model,
             onChanged: changes.add,
@@ -316,7 +340,7 @@ void main() {
     addTearDown(last.dispose);
     await tester.pumpWidget(
       _host(
-        ElListTileGroup<int?>.single(
+        ElListGroup<int?>.single(
           modelValue: model,
           onChanged: changes.add,
           children: [
@@ -391,12 +415,12 @@ void main() {
       await tester.pumpWidget(
         _host(
           multiple
-              ? ElListTileGroup<List<int>>.multi(
+              ? ElListGroup<List<int>>.multi(
                   modelValue: multiModel,
                   onChanged: multiChanges.add,
                   children: children,
                 )
-              : ElListTileGroup<int?>.single(modelValue: singleModel, onChanged: singleChanges.add, children: children),
+              : ElListGroup<int?>.single(modelValue: singleModel, onChanged: singleChanges.add, children: children),
         ),
       );
       await _tap(tester, _text('取消选择'));
@@ -445,7 +469,7 @@ void main() {
     final outline = ElOutline(outlineWidth: 2, outlineColor: Color(0xff146382));
     await tester.pumpWidget(
       _host(
-        ElListTileGroup<int?>.single(
+        ElListGroup<int?>.single(
           modelValue: model,
           onChanged: changes.add,
           children: [
@@ -485,7 +509,7 @@ void main() {
       final groupKey = GlobalKey();
       await tester.pumpWidget(
         _host(
-          ElListTileGroup<List<_Item>>.multi(
+          ElListGroup<List<_Item>>.multi(
             key: groupKey,
             modelValue: model,
             onChanged: changes.add,
@@ -560,7 +584,7 @@ void main() {
         StatefulBuilder(
           builder: (context, setState) {
             reorder = setState;
-            return ElListTileGroup(children: reversed ? [ordinary, popup] : [popup, ordinary]);
+            return ElListGroup(children: reversed ? [ordinary, popup] : [popup, ordinary]);
           },
         ),
       ),

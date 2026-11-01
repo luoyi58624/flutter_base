@@ -257,7 +257,7 @@ export 'src/flutter/components/index.dart'
         ElEmptyState,
         ElIcon,
         ElListTile,
-        ElListTileGroup,
+        ElListGroup,
         ElListTileType,
         ElMenuOption,
         ElLoadingIndicator,

@@ -15,7 +15,7 @@
 
 `value`、`modelValue`、`onChanged` 直接沿用基类的 `T?`、`ValueNotifier<T>?`、`ValueChanged<T>?`，不另外声明一份值通道。`value` 与 `modelValue` 互斥，外部模型更新和普通值回灌沿用 ElModelValue 的通知规则。显式非空 T 必须提供初始值或模型；允许未选择时使用 `ElListTile<String?>`，普通无绑定行可省略泛型。品牌构建和事件通过挂载后的 `currentValue` 读写同一模型，不另建绑定。
 
-普通行的 `trailingText` 是右侧当前值，与后缀独立。`trailing` 默认为现有的 `ElEmptyWidget.instance` 占位符，品牌实现通过 `identical` 识别并绘制默认图标；显式传 `null` 完全移除后缀与对应间距，其他值替换默认图标。移动实现复用 `ElFlutterUtil.getAncestorElement`，根据最近的 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
+普通行的 `trailingText` 是右侧当前值，与后缀独立。`trailing` 统一以 `$absent` 表示未指定，品牌实现通过 `identical` 识别并绘制默认图标；显式传 `null` 完全移除后缀与对应间距，其他值替换默认图标。移动实现复用 `ElFlutterUtil.getAncestorElement`，根据最近的 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
 
 开关行使用 `ElListTile<bool>.switcher`，不接受 `trailing` 或 `trailingText`，末端固定为开关，未提供值通道时从 false 开始。整行与内部开关共享一次激活，避免一次点击切换两次。触摸反馈延迟通过 `event.config` 配置，不重复提供行参数。
 
@@ -43,13 +43,13 @@ ElListTile<int>.popup(
 );
 ```
 
-`ElListTileGroup<D>` 同样继承 `ElModelValue<D>`，通过泛型 `listTileGroupBuilder<D>(context, component)` 分派。D 表示完整模型类型，与按钮组一致：单选使用业务值类型（未选择时使用可空类型），多选使用 `List<业务值类型>`。业务值可用枚举、数字、字符串或自定义值对象，不限定为 String。
+`ElListGroup<D>` 同样继承 `ElModelValue<D>`，通过泛型 `listTileGroupBuilder<D>(context, component)` 分派。D 表示完整模型类型，与按钮组一致：单选使用业务值类型（未选择时使用可空类型），多选使用 `List<业务值类型>`。业务值可用枚举、数字、字符串或自定义值对象，不限定为 String。
 
 三个构造统一接受 `List<ElListTile> children`，子项的 `value` 就是选择值，标题、样式、禁用及前后缀直接由子项声明。模式复用现有 `ElModelValueType`，普通组为 null。分组只额外提供标题和 `leading` 布尔值：true 将单选／多选标记放在前面，false 放在后面。品牌通过 `currentValue` 读写同一模型。
 
 ```dart
 final selection = ValueNotifier<ThemeMode?>(ThemeMode.system);
-ElListTileGroup<ThemeMode?>.single(
+ElListGroup<ThemeMode?>.single(
   modelValue: selection,
   children: [
     ElListTile(value: ThemeMode.system, title: '跟随系统'),
@@ -58,7 +58,7 @@ ElListTileGroup<ThemeMode?>.single(
 );
 
 final selections = ValueNotifier<List<ThemeMode>>([]);
-ElListTileGroup<List<ThemeMode>>.multi(
+ElListGroup<List<ThemeMode>>.multi(
   modelValue: selections,
   leading: false,
   children: [

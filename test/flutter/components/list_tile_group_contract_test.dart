@@ -19,7 +19,7 @@ class _Choice {
   String toString() => 'choice:$id';
 }
 
-Widget _group<D>(BuildContext context, ElListTileGroup<D> component) =>
+Widget _group<D>(BuildContext context, ElListGroup<D> component) =>
     Column(mainAxisSize: .min, children: [Text('$D|${component.currentValue}'), ...component.children]);
 
 Widget _tile<T>(BuildContext context, ElListTile<T> component) => Text('${component.title}');
@@ -42,7 +42,7 @@ void main() {
     final model = ValueNotifier<_Preference?>(_Preference.system);
     addTearDown(model.dispose);
     final changes = <_Preference?>[];
-    final group = ElListTileGroup<_Preference?>.single(
+    final group = ElListGroup<_Preference?>.single(
       modelValue: model,
       onChanged: changes.add,
       children: _preferences(),
@@ -71,7 +71,7 @@ void main() {
     final model = ValueNotifier<List<_Choice>>(initial);
     addTearDown(model.dispose);
     final changes = <List<_Choice>>[];
-    final group = ElListTileGroup<List<_Choice>>.multi(
+    final group = ElListGroup<List<_Choice>>.multi(
       modelValue: model,
       onChanged: changes.add,
       children: [
@@ -102,11 +102,11 @@ void main() {
   });
 
   testWidgets('普通列表行和未选中的可空单选可直接挂载', (tester) async {
-    await tester.pumpWidget(_host(ElListTileGroup(children: [ElListTile(title: '普通内容')])));
+    await tester.pumpWidget(_host(ElListGroup(children: [ElListTile(title: '普通内容')])));
     expect(find.text('普通内容'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(_host(ElListTileGroup<_Preference?>.single(children: _preferences())));
+    await tester.pumpWidget(_host(ElListGroup<_Preference?>.single(children: _preferences())));
     expect(find.text('_Preference?|null'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -120,7 +120,7 @@ void main() {
         StatefulBuilder(
           builder: (context, setState) {
             rebuild = setState;
-            return ElListTileGroup<_Preference?>.single(value: value, onChanged: changes.add, children: _preferences());
+            return ElListGroup<_Preference?>.single(value: value, onChanged: changes.add, children: _preferences());
           },
         ),
       ),
@@ -133,6 +133,6 @@ void main() {
   });
 
   test('多选拒绝非列表模型', () {
-    expect(() => ElListTileGroup<int>.multi(value: 0, children: []), throwsAssertionError);
+    expect(() => ElListGroup<int>.multi(value: 0, children: []), throwsAssertionError);
   });
 }

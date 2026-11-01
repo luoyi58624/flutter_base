@@ -6,32 +6,52 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  for (final width in [390.0, 1280.0]) {
-    testWidgets('首页 Material 图标按钮切换应用明暗主题：宽度 $width', (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = Size(width, 844);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-      GlobalState.isDark.value = 0;
-      GlobalState.boottomTabbarIndex.value = 0;
-      addTearDown(() => GlobalState.isDark.value = 0);
-      await tester.pumpWidget(App());
-      await tester.pumpAndSettle();
+  testWidgets('首页 Material 图标按钮直接切换布尔暗黑状态', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    GlobalState.isDark.value = false;
+    GlobalState.boottomTabbarIndex.value = 0;
+    addTearDown(() => GlobalState.isDark.value = false);
+    await tester.pumpWidget(App());
+    await tester.pumpAndSettle();
 
-      for (final dark in [true, false]) {
-        final button = find.widgetWithIcon(IconButton, dark ? Icons.dark_mode : Icons.light_mode);
-        expect(button, findsOneWidget);
-        await tester.tap(button);
-        await tester.pumpAndSettle();
-        expect(GlobalState.isDark.value, dark ? 1 : 0);
-        final context = tester.element(find.byType(IconButton).first);
-        expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
-        expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
-      }
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(SizedBox());
-    });
-  }
+    for (final dark in [true, false]) {
+      final button = find.widgetWithIcon(IconButton, dark ? Icons.dark_mode : Icons.light_mode);
+      expect(button, findsOneWidget);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(GlobalState.isDark.value, dark);
+      final context = tester.element(find.byType(IconButton).first);
+      expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
+      expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('桌面布局直接响应布尔暗黑状态', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(1280, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    GlobalState.isDark.value = false;
+    GlobalState.boottomTabbarIndex.value = 0;
+    addTearDown(() => GlobalState.isDark.value = false);
+    await tester.pumpWidget(App());
+    await tester.pumpAndSettle();
+
+    for (final dark in [true, false]) {
+      GlobalState.isDark.value = dark;
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(Navigator).first);
+      expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
+      expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
 
   testWidgets('当前入口使用移动主题生成 Material 样式，路由沿用主题', (tester) async {
     tester.view.devicePixelRatio = 1;

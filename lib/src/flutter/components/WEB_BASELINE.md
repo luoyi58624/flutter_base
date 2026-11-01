@@ -10,10 +10,10 @@
 | Input / Textarea | ElInput | 多行属于输入配置；表单说明不重复放进每个控件 |
 | Form / FormField | ElForm / ElFormItem | 复用现有表单，不复制 DOM 的 id/name/aria 协议 |
 | Radio / Checkbox / 各自 Group | 现有单选、多选接口及 Group | 自由 child，不增加选项注册协议 |
-| Choices | Radio、Checkbox、ElListTileGroup 组合 | 不另造同职责的综合组件 |
+| Choices | Radio、Checkbox、ElListGroup 组合 | 不另造同职责的综合组件 |
 | Stepper / Combobox | ElInputNumber / ElAutocomplete | 对齐步骤数值和搜索选择职责，保留既有桌面实现 |
 | Select / Segmented | ElSelect / ElSegmented | 保留业务泛型，不限制 String |
-| ListRow / CellGroup | ElListTile / ElListTileGroup | 保留已审定的直接 children 与完整模型绑定 |
+| ListRow / CellGroup | ElListTile / ElListGroup | 保留已审定的直接 children 与完整模型绑定 |
 | Popover | ElListTile.popup 的单选菜单 | 树选项、定位、键盘、层叠和收起时序由内部菜单承担 |
 | Menu / Floating | 菜单行为与 ElPortal / ElOverlayAnchor | 菜单模式和浮层机制分开，不为列表行加入右键、多选等参数 |
 | Card / Loading / Progress / Skeleton | 对应 El* 共用接口 | 直接复用已有 mobile 皮肤；不保留 Web 没有的空形态 |

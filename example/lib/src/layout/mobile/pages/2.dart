@@ -73,7 +73,7 @@ class ComponentPage extends StatelessWidget {
             spacing: 16,
             children: [
               for (final (title, items) in _groups)
-                ElListTileGroup(
+                ElListGroup(
                   title: title,
                   children: [
                     for (final (id, label, page) in items)

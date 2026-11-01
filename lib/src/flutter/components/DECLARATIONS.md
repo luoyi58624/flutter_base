@@ -44,7 +44,7 @@ Anchor、Affix、Backtop、Carousel、Countdown、Descriptions、Pagination、Ra
 
 ElDivider、ElBadge、ElForm 及各通用 View 已有公共接口，继续复用；不在本阶段重建它们。移动端分割线的 align / dashed 旧皮肤保留在内部，未向现有具体 ElDivider 塞入不生效的参数。
 
-ElLoading 是已有的旋转包装器，新加载指示器使用 ElLoadingIndicator；二者职责和名称独立。ElTabController 等现有模型与控制器继续复用。ElListTile<T> 与 ElListTileGroup<D> 复用 ElModelValue 持有完整泛型模型，品牌 Builder 保留泛型；移动端已实现列表布局、选择标记和弹出菜单，ElCard 也已接入移动端布局。
+ElLoading 是已有的旋转包装器，新加载指示器使用 ElLoadingIndicator；二者职责和名称独立。ElTabController 等现有模型与控制器继续复用。ElListTile<T> 与 ElListGroup<D> 复用 ElModelValue 持有完整泛型模型，品牌 Builder 保留泛型；移动端已实现列表布局、选择标记和弹出菜单，ElCard 也已接入移动端布局。
 
 平台 ContextMenu、Refresher 是现有协议的品牌实现；HTML 文本、滚动效果、过渡和内容准备属于便捷包装或机制，不作为新品牌组件登记。ElTokens 与 context.elTheme 由 flutter/theme 统一声明，具体值由 ElMobileTheme / ElDesktopTheme 注入，不新增通用主题宿主。移动端具体组件与 Builder 留在 src 内部，用户通过公共接口调用。
 

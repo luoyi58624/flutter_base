@@ -8,7 +8,7 @@ class AppLayout extends StatelessWidget {
 
   static const tabbars = [
     (Icons.home, '首页', 'home'),
-    (Icons.home, '组件', 'components'),
+    (Icons.widgets, '组件', 'components'),
     (Icons.grid_view, '示例', 'examples'),
     (Icons.settings, '设置', 'settings'),
   ];
@@ -33,9 +33,7 @@ class AppLayout extends StatelessWidget {
     return ElView(
       child: Builder(
         builder: (context) {
-          return ElView.of(context).sm
-              ? const MobileLayout()
-              : const DesktopLayout();
+          return ElView.of(context).sm ? const MobileLayout() : const DesktopLayout();
         },
       ),
     );

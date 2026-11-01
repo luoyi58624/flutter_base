@@ -1,6 +1,6 @@
 # ListTile
 
-移动列表沿用原有的简单结构，由 `ElMobileTheme` 安装内部 `listTileBuilder` 与 `listTileGroupBuilder`，用户调用 ElListTile / ElListTileGroup。
+移动列表沿用原有的简单结构，由 `ElMobileTheme` 安装内部 `listTileBuilder` 与 `listTileGroupBuilder`，用户调用 ElListTile / ElListGroup。
 
 - 行：ElView / Row，标题区 Expanded，上下 padding 16；无前侧内容时留 16，有内容时占 56。
 - 组：RepaintBoundary / ElView / Column，卡片圆角 16、硬裁剪；标题在卡片外。
@@ -14,7 +14,7 @@
 
 弹窗按 Web 的 Popover 单选模式实现，复用 ElPortal，不另写浮层宿主。默认实际按压点锚定，键盘激活使用元素锚，显式 popupAnchor 优先；宽 236、圆角 17，先移动整组利用视口，再按实际内容限高滚动。打开后当前项聚焦并滚入可见，单选尾部使用 17px 勾选占位。
 
-菜单独立处理上下方向键、Tab／Shift+Tab 循环、Home／End、500ms 字符前缀查找、Enter／Space 确认，禁用项跳过；全部禁用时保留面板焦点以响应关闭。ElListTileGroup 的 RadioGroup 导航不参与菜单。
+菜单独立处理上下方向键、Tab／Shift+Tab 循环、Home／End、500ms 字符前缀查找、Enter／Space 确认，禁用项跳过；全部禁用时保留面板焦点以响应关闭。ElListGroup 的 RadioGroup 导航不参与菜单。
 
 ElMenuOption 在简单 label/value 上只增加 children、disabled、description、leading；仅叶子回写同一个泛型模型。移动端子层从原行位置展开，父层缩至 .94 并保留可点击返回区域，暂停父内容的焦点／语义／指针操作；返回保留父层滚动位置并恢复分支焦点。可用高度不足时整体上移，各层最多保留 36px 返回区域，极短视口的标题与当前层内容一同滚动。
 

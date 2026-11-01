@@ -107,7 +107,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
           : listTileBuilder as Widget Function<T>(BuildContext, ElListTile<T>)?,
       listTileGroupBuilder: identical(listTileGroupBuilder, $absent)
           ? this.listTileGroupBuilder
-          : listTileGroupBuilder as Widget Function<D>(BuildContext, ElListTileGroup<D>)?,
+          : listTileGroupBuilder as Widget Function<D>(BuildContext, ElListGroup<D>)?,
       stepsBuilder: identical(stepsBuilder, $absent)
           ? this.stepsBuilder
           : stepsBuilder as Widget Function(BuildContext, ElSteps)?,
