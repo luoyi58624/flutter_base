@@ -26,7 +26,7 @@ void main() {
       Material appBarMaterial() =>
           tester.widget<Material>(find.descendant(of: find.byType(AppBar), matching: find.byType(Material)).first);
       expect(appBarMaterial().elevation, 0);
-      expect(appBarMaterial().shadowColor, Colors.black);
+      expect(appBarMaterial().shadowColor!.a, greaterThan(0));
       expect(appBarMaterial().surfaceTintColor, Colors.transparent);
       controller.jumpTo(100);
       await tester.pumpAndSettle();

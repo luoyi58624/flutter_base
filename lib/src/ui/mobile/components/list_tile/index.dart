@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_base/dart.dart' show $absent;
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
@@ -134,7 +135,7 @@ class _ListTile<T> extends HookWidget {
 
     Object? leading = component.leading;
     Object? trailing = component.trailing;
-    final defaultTrailing = identical(trailing, ElEmptyWidget.instance);
+    final defaultTrailing = identical(trailing, $absent);
     if (choosing) {
       final mark = _selectionMark(context, selected, selectionMode!);
       if (selectionLeading) leading ??= mark;
@@ -142,12 +143,11 @@ class _ListTile<T> extends HookWidget {
     } else if (switcher) {
       trailing = _switchVisual(context, component.currentValue as bool, component.loading, component.switchStyle);
     } else if (defaultTrailing) {
-      trailing = Icon(
-        popup
+      trailing = ElView(
+        style: ElStyle(iconSize: 20, iconColor: theme.textSecondary),
+        child: popup
             ? (_cupertino(context) ? CupertinoIcons.chevron_up_chevron_down : Icons.unfold_more)
             : (_cupertino(context) ? CupertinoIcons.chevron_forward : Icons.chevron_right),
-        size: 20,
-        color: theme.textSecondary,
       );
     }
     var trailingText = component.trailingText;
@@ -252,7 +252,7 @@ class _ListTile<T> extends HookWidget {
             left: leading == null ? 16 : 56,
             right: 16,
             bottom: 0,
-            child: ColoredBox(color: theme.dividerColor, child: const SizedBox(height: .5)),
+            child: ElView(style: ElStyle(height: .5, backgroundColor: theme.dividerColor)),
           ),
         ],
       );

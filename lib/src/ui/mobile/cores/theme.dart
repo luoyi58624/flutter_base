@@ -20,7 +20,14 @@ double? Function() readSystemFontWeight = AndroidSystemFontWeight.getWght;
 /// 注入移动端变量及 Android 系统字重，并同步 Flutter Text 与 ElView 的字体。
 class ElMobileTheme extends StatelessWidget {
   /// 明暗默认表按当前状态级联，用户变量与实际样式通过 style 覆盖。
-  const ElMobileTheme({super.key, required this.child, this.style, this.brightness, this.componentBuilders});
+  const ElMobileTheme({
+    super.key,
+    required this.child,
+    this.style,
+    this.brightness,
+    this.themeMode,
+    this.componentBuilders,
+  });
 
   /// 当前子树。
   final Widget child;
@@ -30,6 +37,9 @@ class ElMobileTheme extends StatelessWidget {
 
   /// 明确指定亮暗，省略时跟随系统。
   final Brightness? brightness;
+
+  /// 明暗模式及统一过渡参数，未声明的时长和曲线继承祖先；brightness 参数优先。
+  final ElThemeMode? themeMode;
 
   /// 在移动端默认实现上合并的通用组件覆写。
   final ElComponentBuilders? componentBuilders;
@@ -42,14 +52,15 @@ class ElMobileTheme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = brightness ?? MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light;
+    final mode =
+        brightness ?? themeMode?.brightness ?? MediaQuery.maybePlatformBrightnessOf(context) ?? Brightness.light;
     final systemWeight = readSystemFontWeight();
     final systemVariations =
         systemWeight != null && systemWeight.isFinite && systemWeight >= 100 && systemWeight <= 1000
         ? [FontVariation('wght', systemWeight)]
         : null;
     return ElView(
-      themeMode: ElThemeMode(brightness: mode, duration: Duration.zero),
+      themeMode: ElThemeMode(brightness: mode, duration: themeMode?.duration, curve: themeMode?.curve),
       style: ElStyle(
         vars: _lightVars,
         onDark: ElStyle(vars: _darkVars),

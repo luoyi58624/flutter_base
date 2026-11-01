@@ -104,6 +104,7 @@ class _TabBarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.elTheme;
     final color = selected ? t.primary : t.textSecondary;
+    final themeMode = ElView.of(context).themeMode;
     // 官方语义：选中且给了 selectedIcon 时优先用它。
     final icon = selected && destination.selectedIcon != null ? destination.selectedIcon! : destination.icon;
     return Semantics(
@@ -124,8 +125,15 @@ class _TabBarButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 与官方一致：图标颜色由 IconTheme 下发，调用方不用写 color。
-              IconTheme.merge(
-                data: IconThemeData(size: 20, color: color),
+              TweenAnimationBuilder<Color?>(
+                key: ValueKey(selected),
+                duration: reducedMotion(context) ? Duration.zero : themeMode.duration!,
+                curve: themeMode.curve!,
+                tween: ColorTween(end: color),
+                builder: (context, value, child) => IconTheme.merge(
+                  data: IconThemeData(size: 20, color: value),
+                  child: child!,
+                ),
                 child: icon,
               ),
               if (showLabel)

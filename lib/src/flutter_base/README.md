@@ -13,7 +13,8 @@ Builder(
 );
 ```
 
-- `context.elMaterialThemeData` 跟随当前 ElView 明暗，读取当前实际级联值。
+- `context.elMaterialThemeData` 跟随当前 ElView 明暗，读取目标级联值，由 Material 的主题动画负责插值，避免重复使用 ElView 的中间采样。
+- `ElView.of(context).themeMode` 提供统一的主题动画配置，默认 200ms、线性过渡；将其 `duration!`、`curve!` 分别传给 `MaterialApp.themeAnimationDuration`、`themeAnimationCurve`，让 Material 与 ElView 使用相同的时序。自定义配置只需在祖先 ElView.themeMode 或 ElMobileTheme.themeMode 声明一次。
 - `context.elMaterialTheme(Brightness.light / Brightness.dark)` 显式构建目标轴，重放已有 vars / onDark 与激活变体，可供 MaterialApp.theme / darkTheme 使用；两套组件的明暗控制源仍应保持一致。
 - 没有主题变量时使用 Flutter 官方默认主题；存在主题变量时严格读取品牌注入值，不在通用层保存默认色表。
 - 官方组件的配色、边框、圆角和字号层级沿用原实现，覆盖按钮、导航、卡片、列表、输入、菜单、弹窗、日期／时间选择器、进度及提示等主题。

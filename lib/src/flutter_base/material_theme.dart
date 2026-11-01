@@ -183,26 +183,25 @@ extension ElMaterialThemeExt on BuildContext {
         valueIndicatorTextStyle: normalTextStyle.copyWith(color: _onColor(primary)),
       ),
       switchTheme: SwitchThemeData(
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) {
-            return fillColorLight;
-          }
-          return states.contains(WidgetState.selected)
-              ? read<Color>(ElTokens.$primary)
-              : read<Color>(ElTokens.$borderColor);
+        // 值相同的状态表保持相等，避免重复构建让 AnimatedTheme 重启整份主题动画。
+        trackColor: WidgetStateProperty<Color>.fromMap({
+          WidgetState.disabled: fillColorLight,
+          WidgetState.selected: primary,
+          WidgetState.any: borderColor,
         }),
         // M3 未选中滑块默认取 colorScheme.outline（被钉成 borderColor 浅灰）→ 与轨道同色隐形，
         // hover/focus 还会跳成 fromSeed 的浅蓝紫 primaryContainer；钉死 Element 风格滑块恒白
-        thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.disabled) ? placeholderColor : Colors.white,
-        ),
+        thumbColor: WidgetStateProperty<Color>.fromMap({
+          WidgetState.disabled: placeholderColor,
+          WidgetState.any: Colors.white,
+        }),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: read<Color>(ElTokens.$cardColor),
         foregroundColor: textColor,
         surfaceTintColor: Colors.transparent,
         // M3 默认阴影透明，显式着色才能显示滚动后的海拔阴影。
-        shadowColor: Colors.black,
+        shadowColor: Colors.black54,
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 1,

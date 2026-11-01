@@ -5,10 +5,7 @@ part of 'material_theme.dart';
   if (host == null) return (vars: const {}, text: null);
   final source = _materialSources[host] ??= _MaterialSource(host);
   source.depend(context as Element);
-  if (host.internalStateHas(ViewState.dark) == (brightness == Brightness.dark)) {
-    return (vars: host.internalVars, text: host.committedResolvedStyle.inheritedText);
-  }
-  // 未激活的 onDark 不能从已提交值倒推，按相同变体顺序重放原声明。
+  // Material 自己负责插值，统一重放目标声明；读取 ElView 的中间采样会让 AnimatedTheme 反复重启。
   final dark = 1 << ViewState.dark.index;
   ResolvedStyle? resolved;
   for (final node in source.nodes.reversed) {

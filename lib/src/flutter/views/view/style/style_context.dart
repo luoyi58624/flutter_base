@@ -3,12 +3,27 @@ import 'package:flutter/widgets.dart';
 
 import '../render/render_view.dart' show ElRenderView, ViewStateRenderAccess;
 import 'state/view_state.dart';
+import 'style.dart';
 
 /// 由 `ElView.of(context)` 获取的只读样式上下文，按读取的状态与变量订阅变化。
 final class ElStyleContext {
   ElStyleContext._(this._context);
 
   final BuildContext _context;
+
+  /// 读取祖先合并后的主题声明并订阅变化；返回值补齐明暗、200ms 时长和线性曲线。
+  ElThemeMode get themeMode {
+    final host = StyleDependencyScope.maybeHostOf(_context);
+    if (host == null) {
+      return const ElThemeMode(
+        brightness: Brightness.light,
+        duration: ElThemeMode.defaultDuration,
+        curve: ElThemeMode.defaultCurve,
+      );
+    }
+    host.ensureThemeBuildDependents().register(_context as Element, ElThemeMode);
+    return host.resolvedThemeMode;
+  }
 
   /// 读取祖先样式合并变体后的变量并订阅该键，未定义或类型不符时返回 null。
   T? getVar<T extends Object>(Object key) {

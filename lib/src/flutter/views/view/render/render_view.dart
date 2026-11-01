@@ -4,8 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart' show ChangeNotifier, internal, visibleForTesting;
 import 'package:flutter/scheduler.dart';
 
-import 'dart:async' show scheduleMicrotask;
-
 import 'package:flutter/services.dart'
     show
         KeyEvent,
@@ -239,6 +237,7 @@ class ElRenderView extends RenderBox
 
   ViewStateSource? _stateSource;
   VarsBuildDependents? _varsBuildDeps;
+  VarsBuildDependents? _themeBuildDeps;
   ElView? _ownerWidget;
 
   StyleAnimationDriver? _animDriver;
@@ -566,6 +565,8 @@ class ElRenderView extends RenderBox
   /// 更新 + damage 路由，调用方应立即 return；未命中时不修改任何状态，
   /// 调用方继续走 [_reresolve]（slow path）。
   bool _applyFastPatchIfPossible(ElStyle? oldStyle) {
+    // Widget 读取变量后推回的具体颜色，也必须走本帧主题统一过渡。
+    if (_pendingDarkTransition != null) return false;
     final result = CascadeFastPatch.tryPatch(
       oldStyle: oldStyle,
       newStyle: _style,
@@ -726,10 +727,14 @@ class ElRenderView extends RenderBox
     return _cachedEffectiveThemeMode;
   }
 
-  /// dark 统一过渡 effective duration（无声明兜底 300ms）。
+  void _notifyThemeBuildDependents() {
+    _themeBuildDeps?.notifyCommit({ElThemeMode: resolvedThemeMode}, pipelineOwner: owner);
+  }
+
+  /// dark 统一过渡 effective duration（无声明兜底 200ms）。
   Duration get _effectiveThemeDuration => effectiveThemeMode?.duration ?? ElThemeMode.defaultDuration;
 
-  /// dark 统一过渡 effective curve（无声明兜底 easeOutCubic）。
+  /// dark 统一过渡 effective curve（无声明兜底 linear）。
   Curve get _effectiveThemeCurve => effectiveThemeMode?.curve ?? ElThemeMode.defaultCurve;
 
   /// 本节点声明的 [ElBreakpoint]（未合并祖先）。
@@ -836,6 +841,7 @@ class ElRenderView extends RenderBox
     if (_effectiveThemeCacheDirty) return;
     _effectiveThemeCacheDirty = true;
     _cachedEffectiveThemeMode = null;
+    _notifyThemeBuildDependents();
     // 沿子树推平 —— 复用 SubtreeWalker。
     SubtreeWalker.walk(this, (child) {
       if (child is ElRenderView) {
@@ -843,6 +849,7 @@ class ElRenderView extends RenderBox
         child._effectiveThemeCacheDirty = true;
         child._cachedEffectiveThemeMode = null;
         child._cascadeBridgeChanges?.publish();
+        child._notifyThemeBuildDependents();
       }
       return true;
     });
@@ -1081,6 +1088,7 @@ class ElRenderView extends RenderBox
     if (_transitionsEnabled) _pendingDarkTransition = effectiveThemeMode;
     _stateSet(ViewState.dark, value);
     _publishState();
+    _notifyThemeBuildDependents();
     if (propagate) _propagateDarkChange();
     // 顶层与嵌套声明使用同一份元数据，避免漏掉 onDisabled(onDark: ...) 等链。
     if ((variantStatesMaskOf(_style) & (1 << ViewState.dark.index)) != 0 || _hasActiveAnimations) {
@@ -1088,14 +1096,14 @@ class ElRenderView extends RenderBox
     }
     if (_transitionsEnabled && !_pendingDarkClearScheduled) {
       _pendingDarkClearScheduled = true;
-      scheduleMicrotask(() {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
         _pendingDarkClearScheduled = false;
         _pendingDarkTransition = null;
       });
     }
   }
 
-  /// [_pendingDarkTransition] 的微任务清空是否已排程（同帧多次 dark 翻转去重）。
+  /// 同帧 Widget 重建也使用主题过渡，绘制结束后再清理。
   bool _pendingDarkClearScheduled = false;
 
   /// 设置自身主焦点状态。由 Element 层 FocusNode listener 驱动。
@@ -2251,6 +2259,8 @@ class ElRenderView extends RenderBox
     _stateSource = null;
     _varsBuildDeps?.dispose();
     _varsBuildDeps = null;
+    _themeBuildDeps?.dispose();
+    _themeBuildDeps = null;
     _animDriver?.dispose();
     _animDriver = null;
     _keyframeRunner?.dispose();
@@ -2319,6 +2329,20 @@ class _WindowMetricsObserver with WidgetsBindingObserver {
 /// 引擎与组件渲染内部使用的状态接线，不从 el_ui 公共入口导出。
 @internal
 extension ViewStateRenderAccess on ElRenderView {
+  /// 补齐默认值后的主题读面，供 Widget 与 MaterialApp 共用。
+  ElThemeMode get resolvedThemeMode {
+    final mode = effectiveThemeMode;
+    return ElThemeMode(
+      brightness: mode?.brightness ?? (_effectiveDark ? Brightness.dark : Brightness.light),
+      duration: mode?.duration ?? ElThemeMode.defaultDuration,
+      curve: mode?.curve ?? ElThemeMode.defaultCurve,
+    );
+  }
+
+  /// 按需登记主题读者，复用变量依赖的派发与离树清理。
+  VarsBuildDependents ensureThemeBuildDependents() =>
+      _themeBuildDeps ??= VarsBuildDependents({ElThemeMode: resolvedThemeMode});
+
   /// 官方主题桥重放指定明暗轴时沿用实际级联父链，包含 Portal 的逻辑祖先。
   ElRenderView? get internalStyleParent => _styleParent ?? _findAncestor<ElRenderView>();
 

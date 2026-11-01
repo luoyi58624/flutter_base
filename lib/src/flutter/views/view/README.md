@@ -56,6 +56,8 @@ ElView(
 
 `themeMode` 控制 onDark，`locale` 提供文字语言提示；二者与样式环境沿视图链传递。
 
+`ElView.of(context).themeMode` 返回祖先逐字段合并后的主题声明，并订阅明暗、时长和曲线变化；读取结果补齐默认的 light、200ms 和 Curves.linear。主题切换统一覆盖本次变化的样式过渡，普通按压等交互仍使用组件自己的 transition。
+
 ## 响应式与状态读取
 
 ```dart
@@ -71,7 +73,7 @@ ElView(
 
 `breakpoint` 可覆写断点，inheritSize 为后代提供响应式尺寸基准。xs/sm/md/lg/xl 是上界判断，默认 320/640/1024/1920/2560，小屏可同时命中多个档位。
 
-ElView.of 读取最近祖先的只读状态，访问哪项就订阅哪项：hasHover、hasTap、hasFocus、hasFocusVisible、hasFocusWithin、isDisabled、isDark 与断点属性。无祖先时用 maybeOf；需要读取当前视图时放到它的 Builder 后代中。
+ElView.of 读取最近祖先的只读状态，访问哪项就订阅哪项：hasHover、hasTap、hasFocus、hasFocusVisible、hasFocusWithin、isDisabled、isDark、themeMode 与断点属性。无祖先时用 maybeOf；需要读取当前视图时放到它的 Builder 后代中。
 
 ## 变量继承
 
