@@ -1,0 +1,24 @@
+# 官方主题桥
+
+`material_theme.dart` 沿用旧 el 的 `ElMaterialThemeExt`，将通用主题变量转换为 Flutter Material 的 `ThemeData`，从 `package:flutter_base/flutter_base.dart` 导出，desktop.dart / mobile.dart 也可直接使用。
+
+在 ElMobileTheme、ElDesktopTheme 或局部 ElView 的后代 context 读取：
+
+```dart
+Builder(
+  builder: (context) => Theme(
+    data: context.elMaterialThemeData,
+    child: Scaffold(body: Text('官方组件')),
+  ),
+);
+```
+
+- `context.elMaterialThemeData` 跟随当前 ElView 明暗，读取当前实际级联值。
+- `context.elMaterialTheme(Brightness.light / Brightness.dark)` 显式构建目标轴，重放已有 vars / onDark 与激活变体，可供 MaterialApp.theme / darkTheme 使用；两套组件的明暗控制源仍应保持一致。
+- 没有 ElView 时使用通用默认表；不要求安装某个品牌或另一套主题 Provider。
+- 官方组件的配色、边框、圆角和旧版字号预设沿用原实现，覆盖按钮、导航、卡片、列表、输入、菜单、弹窗、日期／时间选择器、进度及提示等主题。
+- 字体族、回退列表和可变字体轴保持 Flutter 默认；不加载字体文件。
+
+旧字段按当前公共变量对应：textColorXs/Sm/Md/Lg 分别使用 textColor/textRegular/textSecondary/textPlaceholder，borderWidths 的默认档使用 borderWidth，appbarColor 使用 cardColor。特定官方组件需要额外覆写时，可直接对结果调用官方 copyWith。
+
+`material_theme_vars.dart` 复用现有变体顺序、级联通知及 Element 退订机制，处理显式反向明暗的变量读取；不修改正常 getVar 的订阅口径。迁移只提供扩展，不自动改变应用的 Theme。

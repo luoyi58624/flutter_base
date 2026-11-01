@@ -2319,6 +2319,9 @@ class _WindowMetricsObserver with WidgetsBindingObserver {
 /// 引擎与组件渲染内部使用的状态接线，不从 el_ui 公共入口导出。
 @internal
 extension ViewStateRenderAccess on ElRenderView {
+  /// 官方主题桥重放指定明暗轴时沿用实际级联父链，包含 Portal 的逻辑祖先。
+  ElRenderView? get internalStyleParent => _styleParent ?? _findAncestor<ElRenderView>();
+
   /// 继承与当前激活变体合并后的变量表，读取本身不登记依赖。
   Map<Object, Object> get internalVars => _committedResolved.inheritedVars.map;
 
