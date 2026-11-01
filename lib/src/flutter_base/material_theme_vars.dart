@@ -1,26 +1,22 @@
 part of 'material_theme.dart';
 
-Map<Object, Object> _materialVariables(BuildContext context, Brightness brightness) {
+({Map<Object, Object> vars, InheritedText? text}) _materialStyle(BuildContext context, Brightness brightness) {
   final defaults = {...ElTheme.lightVars, if (brightness == Brightness.dark) ...ElTheme.darkVars};
   final host = StyleDependencyScope.maybeHostOf(context);
-  if (host == null) return defaults;
+  if (host == null) return (vars: defaults, text: null);
   final source = _materialSources[host] ??= _MaterialSource(host);
   source.depend(context as Element);
   if (host.internalStateHas(ViewState.dark) == (brightness == Brightness.dark)) {
-    return {...defaults, ...host.internalVars};
+    return (vars: {...defaults, ...host.internalVars}, text: host.committedResolvedStyle.inheritedText);
   }
   // 未激活的 onDark 不能从已提交值倒推，按相同变体顺序重放原声明。
   final dark = 1 << ViewState.dark.index;
+  ResolvedStyle? resolved;
   for (final node in source.nodes.reversed) {
-    final style = node.style;
-    if (style == null) continue;
-    defaults.addAll(style.vars ?? const {});
     final state = (node.internalStateBits & ~dark) | (brightness == Brightness.dark ? dark : 0);
-    for (final variant in activeVariantsOf(style, state)) {
-      defaults.addAll(variant.vars ?? const {});
-    }
+    resolved = StyleResolver.resolve(style: node.style, parent: resolved, state: state);
   }
-  return defaults;
+  return (vars: {...defaults, ...?resolved?.inheritedVars.map}, text: resolved?.inheritedText);
 }
 
 final _materialSources = Expando<_MaterialSource>();

@@ -1,22 +1,10 @@
-import 'package:android_system_font_weight/android_system_font_weight.dart';
 import 'package:example/src/layout/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 
-import 'src/mobile/app.dart';
-
 void main() {
   ElWidgetsFlutterBinding.ensureInitialized();
-  final weight = AndroidSystemFontWeight.getWght();
-  runApp(
-    const App(),
-    // ElExampleApp(
-    //   systemWght:
-    //       weight != null && weight.isFinite && weight >= 100 && weight <= 1000
-    //       ? weight
-    //       : null,
-    // ),
-  );
+  runApp(App());
 }
 
 class App extends StatelessWidget {
@@ -24,6 +12,10 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: AppLayout());
+    return ElMobileTheme(
+      child: Builder(
+        builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: AppLayout()),
+      ),
+    );
   }
 }

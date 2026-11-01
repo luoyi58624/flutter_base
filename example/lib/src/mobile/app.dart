@@ -6,8 +6,7 @@ import 'package:example/state.dart';
 
 import '../pages/index.dart';
 
-import 'package:flutter/material.dart'
-    show MaterialApp, MaterialPageRoute, ThemeData, Scaffold, ScaffoldMessengerState, SnackBar;
+import 'package:flutter/material.dart' show MaterialApp, MaterialPageRoute, Scaffold, ScaffoldMessengerState, SnackBar;
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/widgets.dart';
@@ -68,22 +67,22 @@ class ElExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typography = _Typography();
-    return ObsBuilder(
-      builder: (context) => MaterialApp(
-        showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
-        scaffoldMessengerKey: _messenger,
-        title: 'Flutter 示例',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(useMaterial3: false, brightness: .light),
-        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-          value: _systemBars,
-          child: ElMobileTheme(
-            brightness: Brightness.light,
-            style: ElStyle(vars: {ElTheme.$fontWeight: ?systemWght}),
+    return ElMobileTheme(
+      brightness: Brightness.light,
+      style: ElStyle(vars: {ElTheme.$fontWeight: ?systemWght}),
+      child: ObsBuilder(
+        builder: (context) => MaterialApp(
+          showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
+          scaffoldMessengerKey: _messenger,
+          title: 'Flutter 示例',
+          debugShowCheckedModeBanner: false,
+          theme: context.elMaterialThemeData,
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: _systemBars,
             child: Scaffold(resizeToAvoidBottomInset: false, body: child),
           ),
+          home: _Shell(typography, this),
         ),
-        home: _Shell(typography, this),
       ),
     );
   }

@@ -3,7 +3,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../flutter/views/view/render/render_view.dart' show ViewStateRenderAccess;
-import '../flutter/views/view/style/cascade/style_spec.dart' show activeVariantsOf;
+import '../flutter/views/view/style/cascade/resolver.dart' show StyleResolver;
+import '../flutter/views/view/style/resolved/resolved_style.dart' show InheritedText, ResolvedStyle;
 import '../flutter/views/view/style/state/view_state.dart' show ViewState;
 import '../flutter/views/view/style/style_context.dart' show StyleDependencyScope, BuildDependencySource;
 
@@ -16,12 +17,13 @@ extension ElMaterialThemeExt on BuildContext {
 
   /// 按指定明暗轴生成主题，可同时传入 MaterialApp.theme / darkTheme。
   ///
-  /// 保留变量级联及 onDark 覆写，不依赖某个品牌；字体族沿用 Flutter 默认。
+  /// 保留变量及字体样式的级联与 onDark 覆写，未配置字体时沿用 Flutter 默认。
   ThemeData elMaterialTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final isDesktop = ElPlatform.isDesktop;
 
-    final vars = _materialVariables(this, brightness);
+    final source = _materialStyle(this, brightness);
+    final vars = source.vars;
     T read<T extends Object>(Object key) {
       final value = vars[key];
       return value is T ? value : ElTheme.lightVars[key] as T;
@@ -48,10 +50,49 @@ extension ElMaterialThemeExt on BuildContext {
     final cardRadius = BorderRadius.circular(read<num>(ElTheme.$radiusLg).toDouble());
     final cardHairlineColor = _shade(borderColor, brightness, 5);
 
-    // 沿用旧桥的 15 字号基准，字体族和字形轴仍由 Flutter 默认处理。
-    final fontSize = 15.0;
-    final fontWeight = FontWeight.w500;
-    // --el-font-family 默认未声明，走平台默认字体
+    final text = source.text;
+    final fontSize = text?.fontSize ?? 15.0;
+    double size(double preset) => preset * fontSize / 15;
+    FontWeight weight(Object key) => FontWeight.values[((read<num>(key) / 100).round() - 1).clamp(0, 8)];
+    final family = text?.fontFamily ?? read<String>(ElTheme.$fontFamily);
+    final fallback = text?.fontFamilyFallback ?? read<List<String>>(ElTheme.$fontFamilyFallback);
+    // 只转接实际继承的字体属性，不自行生成字体族、回退表或可变轴。
+    final typography = TextStyle(
+      fontStyle: text?.fontStyle,
+      height: text?.lineHeight,
+      leadingDistribution: text?.leadingDistribution,
+      letterSpacing: text?.letterSpacing,
+      wordSpacing: text?.wordSpacing,
+      fontFeatures: text?.fontFeatureSettings,
+      fontVariations: text?.fontVariationSettings,
+      textBaseline: text?.textBaseline,
+    );
+    final bodyWeight = text?.fontWeight ?? weight(ElTheme.$fontWeight);
+    final actionWeight = weight(ElTheme.$fontWeightAction);
+    final subtitleWeight = weight(ElTheme.$fontWeightSubtitle);
+    final titleWeight = weight(ElTheme.$fontWeightTitle);
+    TextTheme adaptTextTheme(TextTheme theme) {
+      TextStyle? apply(TextStyle? style, FontWeight fontWeight) => style
+          ?.merge(typography)
+          .copyWith(fontSize: style.fontSize == null ? null : size(style.fontSize!), fontWeight: fontWeight);
+      return TextTheme(
+        displayLarge: apply(theme.displayLarge, titleWeight),
+        displayMedium: apply(theme.displayMedium, titleWeight),
+        displaySmall: apply(theme.displaySmall, titleWeight),
+        headlineLarge: apply(theme.headlineLarge, titleWeight),
+        headlineMedium: apply(theme.headlineMedium, titleWeight),
+        headlineSmall: apply(theme.headlineSmall, titleWeight),
+        titleLarge: apply(theme.titleLarge, titleWeight),
+        titleMedium: apply(theme.titleMedium, subtitleWeight),
+        titleSmall: apply(theme.titleSmall, subtitleWeight),
+        bodyLarge: apply(theme.bodyLarge, bodyWeight),
+        bodyMedium: apply(theme.bodyMedium, bodyWeight),
+        bodySmall: apply(theme.bodySmall, bodyWeight),
+        labelLarge: apply(theme.labelLarge, actionWeight),
+        labelMedium: apply(theme.labelMedium, actionWeight),
+        labelSmall: apply(theme.labelSmall, actionWeight),
+      );
+    }
 
     final colorScheme = ColorScheme.fromSeed(brightness: brightness, seedColor: primary).copyWith(
       // fromSeed 会派生 M3 色调板，将主要语义槽还原为实际主题变量。
@@ -70,6 +111,8 @@ extension ElMaterialThemeExt on BuildContext {
 
     final themeData = ThemeData(
       useMaterial3: true,
+      fontFamily: family.isEmpty ? null : family,
+      fontFamilyFallback: fallback.isEmpty ? null : fallback,
       colorScheme: colorScheme,
       canvasColor: bgColor,
       scaffoldBackgroundColor: bgColor,
@@ -80,13 +123,14 @@ extension ElMaterialThemeExt on BuildContext {
       iconTheme: IconThemeData(color: secondaryTextColor),
     );
 
-    final normalTextStyle = themeData.textTheme.bodyMedium!.copyWith(
+    final textTheme = adaptTextTheme(themeData.textTheme);
+    final normalTextStyle = textTheme.bodyMedium!.copyWith(
       fontSize: fontSize,
       color: textColor,
-      fontWeight: FontWeight.normal,
+      fontWeight: bodyWeight,
     );
-    final mediumTextStyle = normalTextStyle.copyWith(fontWeight: fontWeight);
-    final boldTextStyle = normalTextStyle.copyWith(fontWeight: FontWeight.bold);
+    final mediumTextStyle = normalTextStyle.copyWith(fontWeight: actionWeight);
+    final boldTextStyle = normalTextStyle.copyWith(fontWeight: titleWeight);
 
     final buttonStyle = ButtonStyle(textStyle: WidgetStatePropertyAll(mediumTextStyle));
     final cardShape = RoundedRectangleBorder(borderRadius: cardRadius);
@@ -102,10 +146,15 @@ extension ElMaterialThemeExt on BuildContext {
     );
 
     return themeData.copyWith(
-      textTheme: themeData.textTheme.copyWith(
-        titleLarge: themeData.textTheme.titleLarge?.merge(
-          TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: textColor),
-        ),
+      // 官方按语言选择排版几何；在各语言表上缩放，避免提前固定为某种文字体系。
+      typography: themeData.typography.copyWith(
+        englishLike: themeData.typography.englishLike.apply(fontSizeFactor: fontSize / 15),
+        dense: themeData.typography.dense.apply(fontSizeFactor: fontSize / 15),
+        tall: themeData.typography.tall.apply(fontSizeFactor: fontSize / 15),
+      ),
+      primaryTextTheme: adaptTextTheme(themeData.primaryTextTheme),
+      textTheme: textTheme.copyWith(
+        titleLarge: boldTextStyle.copyWith(fontSize: size(20)),
         bodyMedium: normalTextStyle,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(style: buttonStyle),
@@ -152,7 +201,7 @@ extension ElMaterialThemeExt on BuildContext {
         elevation: 0,
         scrolledUnderElevation: 1,
         toolbarHeight: 56.0,
-        titleTextStyle: boldTextStyle.copyWith(fontSize: 18.0, color: textColor),
+        titleTextStyle: boldTextStyle.copyWith(fontSize: size(18), color: textColor),
         iconTheme: IconThemeData(color: secondaryTextColor),
       ),
       tabBarTheme: TabBarThemeData(
@@ -168,15 +217,15 @@ extension ElMaterialThemeExt on BuildContext {
         // 色阶按**目标轴**现算，不能读 context 的明暗态——本方法可能在亮色页面里
         // 构建整份暗色主题
         indicatorColor: _shade(primary, brightness, 9),
-        labelTextStyle: WidgetStatePropertyAll(mediumTextStyle.copyWith(fontSize: 12)),
+        labelTextStyle: WidgetStatePropertyAll(mediumTextStyle.copyWith(fontSize: size(12))),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         elevation: 4,
         enableFeedback: true,
         type: BottomNavigationBarType.fixed,
         backgroundColor: bgColor,
-        unselectedLabelStyle: mediumTextStyle.copyWith(fontSize: 12),
-        selectedLabelStyle: mediumTextStyle.copyWith(fontSize: 12, color: primary),
+        unselectedLabelStyle: mediumTextStyle.copyWith(fontSize: size(12)),
+        selectedLabelStyle: mediumTextStyle.copyWith(fontSize: size(12), color: primary),
         unselectedItemColor: secondaryTextColor,
         selectedItemColor: primary,
         selectedIconTheme: IconThemeData(color: primary),
@@ -200,7 +249,7 @@ extension ElMaterialThemeExt on BuildContext {
       dividerTheme: DividerThemeData(color: borderColorLight, thickness: borderWidth, space: borderWidth),
       listTileTheme: ListTileThemeData(
         titleTextStyle: mediumTextStyle,
-        subtitleTextStyle: mediumTextStyle.copyWith(color: secondaryTextColor, fontSize: fontSize - 2),
+        subtitleTextStyle: mediumTextStyle.copyWith(color: secondaryTextColor, fontSize: size(13)),
         iconColor: secondaryTextColor,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -245,10 +294,10 @@ extension ElMaterialThemeExt on BuildContext {
           color: read<Color>(ElTheme.$textColor),
           borderRadius: BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble()),
         ),
-        textStyle: normalTextStyle.copyWith(color: isDark ? textColor : bgColor, fontSize: fontSize - 2),
+        textStyle: normalTextStyle.copyWith(color: isDark ? textColor : bgColor, fontSize: size(13)),
       ),
       dialogTheme: DialogThemeData(
-        titleTextStyle: boldTextStyle.copyWith(fontSize: 18.0),
+        titleTextStyle: boldTextStyle.copyWith(fontSize: size(18)),
         contentTextStyle: normalTextStyle.copyWith(color: regularTextColor),
         elevation: 6,
         backgroundColor: read<Color>(ElTheme.$bgColor),
@@ -273,8 +322,8 @@ extension ElMaterialThemeExt on BuildContext {
         backgroundColor: bgColor,
         dayPeriodTextStyle: normalTextStyle,
         helpTextStyle: normalTextStyle,
-        dialTextStyle: normalTextStyle.copyWith(fontSize: fontSize + 3),
-        hourMinuteTextStyle: normalTextStyle.copyWith(fontSize: 48),
+        dialTextStyle: normalTextStyle.copyWith(fontSize: size(18)),
+        hourMinuteTextStyle: normalTextStyle.copyWith(fontSize: size(48)),
         cancelButtonStyle: buttonStyle,
         confirmButtonStyle: buttonStyle,
       ),
@@ -286,7 +335,7 @@ extension ElMaterialThemeExt on BuildContext {
       chipTheme: ChipThemeData(
         backgroundColor: fillColorLight,
         disabledColor: fillColorLight,
-        labelStyle: normalTextStyle.copyWith(fontSize: 14.0),
+        labelStyle: normalTextStyle.copyWith(fontSize: size(14)),
         side: BorderSide(color: borderColorLight, width: borderWidth),
         shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),
