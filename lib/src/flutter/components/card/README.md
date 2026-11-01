@@ -1,5 +1,9 @@
 # Card
 
-`ElCard` 声明正文、标题、说明、附加编号、加载状态和整卡激活配置，通过 `cardBuilder(context, component)` 分派。child 接受文本、图标或 Widget；style、semanticLabel 和外部 focusNode 保留调用方配置。
+`ElCard` 提供可选 Widget child、loading、style、event、shadowLevel 和 onTap，通过品牌 cardBuilder 分派。标题、说明等内容由调用方直接在 child 中组合。
 
-本目录仅提供公共声明，不实现布局、加载动画、事件或焦点。品牌实现负责 interactive、onActivate 与触摸反馈时序，并为内部控件保留独立操作。无品牌外观的区域基元继续使用 ElCardView。
+onTap 或 event.onTap 非空时启用整卡操作，详细识别配置通过 event.config 设置，event.preventDefault 可取消 onTap。移动端默认按压变色并缩放，用户通过 style.onTap 覆写；内部按钮、输入仍独立操作。
+
+shadowLevel 读取对应的通用阴影 token，省略时无阴影；style.boxShadow 最后覆盖，包括用空列表移除阴影。loading 显示指示器并暂停整卡与内容交互，内容实例仍保留。
+
+区域语义复用 ElCardView，品牌只负责默认外观与反馈。

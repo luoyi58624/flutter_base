@@ -12,7 +12,6 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/src/ui/mobile/components/button/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/tag/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/switch/index.dart' as skin;
-import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/loading/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/skeleton/index.dart' as skin;
@@ -187,7 +186,7 @@ void main() {
   for (final entry in <String, Widget Function(FocusNode)>{
     'Button': (focus) => skin.Button(focusNode: focus, child: '手机按钮'),
     'Tag': (focus) => skin.Tag(value: false, focusNode: focus, child: '手机标签'),
-    'Card': (focus) => skin.Card(interactive: true, focusNode: focus, child: SizedBox(height: 60)),
+    'Card': (_) => ElCard(onTap: () {}, child: SizedBox(height: 60)),
     'Switch': (focus) => skin.Switch(value: false, focusNode: focus, label: '手机开关'),
   }.entries) {
     testWidgets('${entry.key} 默认悬停和键盘聚焦保持手机外观', (tester) async {
@@ -208,6 +207,7 @@ void main() {
           .renderObjectList<ElRenderView>(find.descendant(of: target, matching: find.byType(ElView)))
           .map((render) => render.committedResolvedStyle)
           .toList();
+      final targetFocus = tester.widget<ElView>(action).focusNode!;
       final initial = appearance();
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
@@ -216,11 +216,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(appearance(), initial, reason: '鼠标进入不添加手机默认悬停外观');
       await tester.sendKeyDownEvent(LogicalKeyboardKey.tab);
-      focus.requestFocus();
+      targetFocus.requestFocus();
       await tester.pump();
       await tester.sendKeyUpEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(focus.hasPrimaryFocus, isTrue);
+      expect(targetFocus.hasPrimaryFocus, isTrue);
       expect(appearance(), initial, reason: '保留键盘聚焦能力但不添加默认焦点环');
     });
   }
@@ -228,7 +228,7 @@ void main() {
   for (final entry in <String, Widget>{
     'Button': skin.Button(child: '按压'),
     'Tag': skin.Tag(value: false, child: '按压'),
-    'Card': skin.Card(interactive: true, child: SizedBox(height: 60)),
+    'Card': ElCard(onTap: () {}, child: SizedBox(height: 60)),
   }.entries) {
     testWidgets('${entry.key} 保留触摸按压外观并在取消后恢复', (tester) async {
       final key = GlobalKey();
@@ -475,16 +475,11 @@ void main() {
       final childKey = UniqueKey();
       await tester.pumpWidget(
         shell(
-          skin.Card(
-            title: '标题',
-            description: '说明',
-            sample: '01',
-            child: SizedBox(key: childKey, height: 20),
-          ),
+          ElCard(child: SizedBox(key: childKey, height: 20)),
           viewport: width,
         ),
       );
-      final rootView = views(find.byType(skin.Card), (v) => v.style?.width == '100%').first;
+      final rootView = views(find.byType(ElCard), (v) => v.style?.width == '100%').first;
       expect(tester.widget<ElView>(rootView).style!.padding, EdgeInsets.fromLTRB(23, 25, 23, 26));
       expect(tester.getSize(rootView).width, 320);
       expect(tester.getTopLeft(find.byKey(childKey)).dx - tester.getTopLeft(rootView).dx, 23);
@@ -493,14 +488,12 @@ void main() {
     });
   }
 
-  testWidgets('交互Card隐藏标题，内部按钮只激活自身', (tester) async {
+  testWidgets('交互Card内部按钮只激活自身', (tester) async {
     var card = 0, button = 0;
     await tester.pumpWidget(
       shell(
-        skin.Card(
-          title: '只作名称',
-          interactive: true,
-          onActivate: (_) => card++,
+        ElCard(
+          onTap: () => card++,
           child: Column(
             children: [
               skin.Button(child: '内部', onClick: (_) => button++),
@@ -510,12 +503,11 @@ void main() {
         ),
       ),
     );
-    expect(textView('只作名称'), findsNothing);
     await tester.tap(buttonHost());
     expect(button, 1);
     expect(card, 0);
     await tester.pump(Duration(milliseconds: 120));
-    final cardView = views(find.byType(skin.Card), (v) => v.style?.width == '100%').first;
+    final cardView = views(find.byType(ElCard), (v) => v.style?.width == '100%').first;
     await tester.tapAt(tester.getBottomLeft(cardView) + Offset(35, -30));
     expect(card, 1);
   });
@@ -678,26 +670,21 @@ void main() {
   });
 
   testWidgets('Card键盘Enter不响应repeat，Space失焦取消', (tester) async {
-    final focus = FocusNode(), other = FocusNode();
-    addTearDown(focus.dispose);
+    late FocusNode focus;
+    final other = FocusNode();
     addTearDown(other.dispose);
     var calls = 0;
     await tester.pumpWidget(
       shell(
         Column(
           children: [
-            skin.Card(
-              interactive: true,
-              focusNode: focus,
-              title: '卡片',
-              onActivate: (_) => calls++,
-              child: SizedBox(height: 30),
-            ),
+            ElCard(onTap: () => calls++, child: SizedBox(height: 30)),
             Focus(focusNode: other, child: SizedBox(height: 20)),
           ],
         ),
       ),
     );
+    focus = tester.widget<ElView>(views(find.byType(ElCard), (view) => view.focusNode != null).first).focusNode!;
     focus.requestFocus();
     await tester.pump();
     await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
@@ -741,8 +728,6 @@ void main() {
   testWidgets('组件主题变量有真实消费者', (tester) async {
     final theme = ElStyle(
       vars: {
-        skin.Card.$padding: EdgeInsets.all(5),
-        skin.Card.$radius: 11,
         skin.Switch.$thumbBackground: Color(0xff123456),
         skin.Divider.$height: 31,
         skin.Divider.$spacing: 4,
@@ -754,7 +739,10 @@ void main() {
       shell(
         Column(
           children: [
-            skin.Card(child: SizedBox(height: 10)),
+            ElCard(
+              style: ElStyle(padding: EdgeInsets.all(6), borderRadius: .circular(11)),
+              child: SizedBox(height: 10),
+            ),
             skin.Switch(value: false, label: '开关'),
             skin.Divider(vertical: true),
             skin.Progress(value: 50, type: skin.ProgressType.circle),
@@ -764,7 +752,7 @@ void main() {
       ),
     );
     expect(
-      tester.widget<ElView>(views(find.byType(skin.Card), (v) => v.style?.width == '100%').first).style!.padding,
+      tester.widget<ElView>(views(find.byType(ElCard), (v) => v.style?.width == '100%').first).style!.padding,
       EdgeInsets.all(6),
     );
     expect(
@@ -889,9 +877,8 @@ void main() {
     var card = 0, inner = 0;
     await tester.pumpWidget(
       shell(
-        skin.Card(
-          interactive: true,
-          onActivate: (_) => card++,
+        ElCard(
+          onTap: () => card++,
           child: Column(
             children: [
               TextButton(onPressed: () => inner++, child: Text('原生子按钮')),
@@ -917,9 +904,8 @@ void main() {
       shell(
         ElView(
           event: ElEvent(onTap: (_) => ancestor++),
-          child: skin.Card(
-            interactive: true,
-            onActivate: (_) => card++,
+          child: ElCard(
+            onTap: () => card++,
             child: skin.Button(child: '操作', onClick: (_) => button++),
           ),
         ),
@@ -935,9 +921,8 @@ void main() {
     var card = 0;
     await tester.pumpWidget(
       shell(
-        skin.Card(
-          interactive: true,
-          onActivate: (_) => card++,
+        ElCard(
+          onTap: () => card++,
           child: skin.Button(disabled: true, child: '禁用'),
         ),
       ),

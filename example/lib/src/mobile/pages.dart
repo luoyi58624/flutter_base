@@ -252,7 +252,6 @@ class _WebPage extends StatelessWidget {
           padding: EdgeInsets.all(16),
           children: [
             ElCard(
-              title: title,
               child: Text(
                 asset == 'about.html'
                     ? 'Flutter Base 移动端示例\n使用移动端主题、统一组件与 ElScrollView 构建。'

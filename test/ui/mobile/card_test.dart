@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_base/mobile.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+Widget _host(ElCard card, {Brightness brightness = Brightness.light}) => MaterialApp(
+  home: MediaQuery(
+    data: MediaQueryData(disableAnimations: true),
+    child: ElMobileTheme(
+      brightness: brightness,
+      child: Align(
+        alignment: .topLeft,
+        child: SizedBox(width: 320, child: card),
+      ),
+    ),
+  ),
+);
+
+Finder _surface() => find.descendant(
+  of: find.byType(ElCard),
+  matching: find.byWidgetPredicate((widget) => widget is ElView && widget.style?.width == '100%'),
+);
+
+void main() {
+  testWidgets('卡片按压同时改变颜色与缩放，style 可逐字段覆盖，取消后恢复', (tester) async {
+    var calls = 0;
+    for (final custom in [false, true]) {
+      await tester.pumpWidget(
+        _host(
+          ElCard(
+            onTap: () => calls++,
+            style: custom
+                ? ElStyle(
+                    onTap: ElStyle(backgroundColor: Colors.purple, transform: ElTransform.scale(.9)),
+                  )
+                : null,
+            child: SizedBox(height: 60),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final render = tester.renderObject<ElRenderView>(_surface());
+      final original = render.committedResolvedStyle.box;
+      final touch = await tester.startGesture(tester.getCenter(_surface()));
+      await tester.pump(Duration(milliseconds: 100));
+      expect(
+        render.committedResolvedStyle.box.backgroundColor,
+        custom ? Colors.purple : ElMobileTheme.lightVars[ElTokens.$cardPressColor],
+      );
+      expect(render.committedResolvedStyle.box.transform, ElTransform.scale(custom ? .9 : .96));
+      await touch.cancel();
+      await tester.pumpAndSettle();
+      expect(render.committedResolvedStyle.box.backgroundColor, original.backgroundColor);
+      expect(render.committedResolvedStyle.box.transform, original.transform);
+      expect(calls, 0);
+    }
+  });
+
+  testWidgets('shadowLevel 读取品牌五档明暗阴影，style 可以覆盖和移除', (tester) async {
+    for (final brightness in Brightness.values) {
+      final tokens = {...ElMobileTheme.lightVars, if (brightness == Brightness.dark) ...ElMobileTheme.darkVars};
+      final levels = {
+        ElLevelType.xs: ElTokens.$shadowXs,
+        ElLevelType.sm: ElTokens.$shadowSm,
+        ElLevelType.md: ElTokens.$shadowMd,
+        ElLevelType.lg: ElTokens.$shadowLg,
+        ElLevelType.xl: ElTokens.$shadowXl,
+      };
+      for (final entry in levels.entries) {
+        await tester.pumpWidget(
+          _host(
+            ElCard(shadowLevel: entry.key, child: SizedBox(height: 30)),
+            brightness: brightness,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, tokens[entry.value]);
+      }
+    }
+    await tester.pumpWidget(_host(ElCard()));
+    await tester.pumpAndSettle();
+    expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, isNull);
+    for (final shadows in [
+      <BoxShadow>[],
+      [BoxShadow(color: Colors.green, blurRadius: 4)],
+    ]) {
+      await tester.pumpWidget(
+        _host(
+          ElCard(
+            shadowLevel: .md,
+            style: ElStyle(boxShadow: shadows),
+            child: SizedBox(height: 30),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, shadows);
+    }
+  });
+
+  testWidgets('event 保留识别配置与默认动作取消，禁用时不激活', (tester) async {
+    var taps = 0, events = 0;
+    await tester.pumpWidget(
+      _host(
+        ElCard(
+          onTap: () => taps++,
+          event: ElEvent(
+            config: ElEventConfig().copyWith(delayTouchDown: Duration(milliseconds: 150), delayTouchUp: Duration.zero),
+            onTap: (event) {
+              events++;
+              event.preventDefault();
+            },
+          ),
+          child: SizedBox(height: 40),
+        ),
+      ),
+    );
+    final render = tester.renderObject<ElRenderView>(_surface());
+    final touch = await tester.startGesture(tester.getCenter(_surface()));
+    await tester.pump(Duration(milliseconds: 100));
+    expect(render.committedResolvedStyle.box.backgroundColor, ElMobileTheme.lightVars[ElTokens.$cardColor]);
+    await tester.pump(Duration(milliseconds: 60));
+    expect(render.committedResolvedStyle.box.transform, ElTransform.scale(.96));
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(events, 1);
+    expect(taps, 0);
+    await tester.pumpWidget(
+      _host(ElCard(onTap: () => taps++, event: ElEvent(disabled: true), child: SizedBox(height: 40))),
+    );
+    await tester.tap(_surface());
+    await tester.pumpAndSettle();
+    expect(taps, 0);
+    expect(tester.takeException(), isNull);
+  });
+}

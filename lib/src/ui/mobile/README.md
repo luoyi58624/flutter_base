@@ -29,7 +29,7 @@ ElMobileTheme(
 | ElTag | 已接入 | 公共宿主持有切换；纯视觉 Builder 提供标签和独立关闭入口 |
 | ElSwitch | 已接入 | bool / notifier / 表单字段绑定，以及尺寸、颜色、内容、加载与事件 |
 | ElText | 已接入 | 全部 Text 参数原样转交，继承 ElMobileTheme 默认字体 |
-| ElCard | 已接入 | 标题、说明、正文、整卡交互、加载状态与辅助名称 |
+| ElCard | 已接入 | Widget 正文、style 外观、阴影档位、整卡点击、详细事件和加载状态 |
 | ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |
 | ElListTileGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
 | ElLoadingIndicator | 已接入 | 数值尺寸、可见说明、根样式与加载语义 |

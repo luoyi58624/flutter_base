@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
-import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
 
 void main() {
   final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
@@ -248,14 +247,17 @@ void main() {
             children: [
               ElView(
                 style: ElStyle(
-                  vars: {ElTokens.$primary: Color(0xff123456), skin.Card.$radius: 18},
+                  vars: {ElTokens.$primary: Color(0xff123456), ElTokens.$radiusLg: 18},
                   onDark: ElStyle(vars: {ElTokens.$primary: Color(0xff654321)}),
                 ),
                 child: Builder(
                   builder: (context) {
                     local = context.elTheme.primary;
-                    radius = ElView.of(context).getVar<num>(skin.Card.$radius)?.toDouble();
-                    return skin.Card(child: SizedBox());
+                    radius = ElView.of(context).getVar<num>(ElTokens.$radiusLg)?.toDouble();
+                    return ElCard(
+                      style: ElStyle(borderRadius: .circular(context.elTheme.radiusLg)),
+                      child: SizedBox(),
+                    );
                   },
                 ),
               ),

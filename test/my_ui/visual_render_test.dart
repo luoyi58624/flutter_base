@@ -13,7 +13,6 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/src/ui/mobile/components/button/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/tag/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/switch/index.dart' as skin;
-import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/loading/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/skeleton/index.dart' as skin;
@@ -97,20 +96,24 @@ List<Widget> _samples(String id) => switch (id) {
     _row('default card', [
       _wide(
         'default',
-        skin.Card(
-          title: 'Card 标题',
-          description: 'Description / 说明',
-          sample: '01',
-          child: SizedBox(height: 48, child: Text('Body 内容')),
+        ElCard(
+          child: Column(
+            crossAxisAlignment: .start,
+            children: [
+              Text('Card 标题'),
+              Text('Description / 说明'),
+              Text('01'),
+              SizedBox(height: 48, child: Text('Body 内容')),
+            ],
+          ),
         ),
       ),
     ], height: 242),
     _row('interactive card', [
       _wide(
         'interactive',
-        skin.Card(
-          title: 'Open',
-          interactive: true,
+        ElCard(
+          onTap: () {},
           child: SizedBox(height: 48, child: Text('Open card')),
         ),
       ),

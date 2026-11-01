@@ -53,19 +53,11 @@ void main() {
     final cardKey = ValueKey('card');
     final child = SizedBox(key: contentKey, height: 60, child: Text('卡片正文'));
     var activations = 0;
-    Widget card(bool loading) => _host(
-      ElCard(
-        key: cardKey,
-        interactive: true,
-        loading: loading,
-        semanticLabel: '卡片示例',
-        onActivate: (_) => activations++,
-        child: child,
-      ),
-    );
+    Widget card(bool loading) =>
+        _host(ElCard(key: cardKey, loading: loading, onTap: () => activations++, child: child));
     await tester.pumpWidget(card(false));
     final content = tester.element(find.byKey(contentKey));
-    expect(_view((view) => view.semantics?.properties.label == '卡片示例'), findsOneWidget);
+    expect(find.byType(ElCardView), findsOneWidget);
     await tester.tap(find.byKey(cardKey));
     await tester.pump();
     expect(activations, 1);

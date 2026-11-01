@@ -22,7 +22,7 @@ void main() {
             ElListTile(title: Text('最后一行')),
           ],
         ),
-        ElCard(key: cardKey, interactive: true, child: SizedBox(height: 20)),
+        ElCard(key: cardKey, onTap: () {}, child: SizedBox(height: 20)),
         skin.Divider(),
         Builder(
           builder: (context) {
