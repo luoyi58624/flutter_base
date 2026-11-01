@@ -23,6 +23,19 @@ Future<void> _host(WidgetTester tester, Size size) async {
 ElStyle _preview(WidgetTester tester) =>
     tester.widget<ElCardView>(find.byKey(ValueKey('shadow-preview'), skipOffstage: false)).style!;
 
+Finder _tag(String label) => find.byWidgetPredicate((widget) => widget is ElTag && widget.child == label);
+
+bool _selected(WidgetTester tester, String label) => tester
+    .widget<ElView>(
+      find.descendant(
+        of: _tag(label),
+        matching: find.byWidgetPredicate((widget) => widget is ElView && widget.semantics?.properties.toggled != null),
+      ),
+    )
+    .semantics!
+    .properties
+    .toggled!;
+
 Future<void> _slide(WidgetTester tester, String key, double value) async {
   tester.widget<ElSlider<double>>(find.byKey(ValueKey(key))).currentValue = value;
   await tester.pumpAndSettle();
@@ -34,9 +47,19 @@ void main() {
       final original = ElMobileTheme.lightVars[ElTokens.$shadowMd];
       await _host(tester, size);
       final originalShadows = _preview(tester).boxShadow;
+      expect(
+        find.byWidgetPredicate((widget) => widget is ElCardView && widget.style?.boxShadow != null),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is ElButton && ['浅色', '暗色', 'xs', 'sm', 'md', 'lg', 'xl'].contains(widget.child),
+        ),
+        findsNothing,
+      );
       expect(_preview(tester).backgroundColor, Colors.white);
       expect(tester.widget<ColoredBox>(find.byKey(ValueKey('shadow-preview-stage'))).color, Colors.white);
-      tester.widget<ElButton>(find.byWidgetPredicate((w) => w is ElButton && w.child == '暗色')).onPressed!();
+      tester.widget<ElTag>(_tag('暗色')).onChanged!(true);
       await tester.pumpAndSettle();
       final stage = tester.widget<ColoredBox>(find.byKey(ValueKey('shadow-preview-stage')));
       expect(stage.color, _preview(tester).backgroundColor);
@@ -75,14 +98,60 @@ void main() {
         softness: 1.2,
       ),
     );
+    final copiedShadows = _preview(tester).boxShadow;
     await tester.tap(find.byKey(ValueKey('shadow-copy')));
     await tester.pumpAndSettle();
     expect(copied, contains('Size(240, 120)'));
     expect(copied, contains('BorderRadius.circular(50)'));
     expect(copied, contains('strength: 1.5'));
+    expect(_preview(tester).boxShadow, same(copiedShadows));
+    await tester.tap(find.byKey(ValueKey('shadow-copy')));
+    await tester.pumpAndSettle();
+    expect(_preview(tester).boxShadow, same(copiedShadows));
     await tester.tap(find.byKey(ValueKey('shadow-reset')));
     await tester.pumpAndSettle();
     expect(_preview(tester).boxShadow, before);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('主题与级别使用单选 Tag，重复选择不能取消，结果折叠时不构建代码', (tester) async {
+    await _host(tester, Size(1280, 900));
+    final original = _preview(tester).boxShadow;
+    final code = find.byWidgetPredicate(
+      (widget) =>
+          widget is ElView &&
+          widget.child is String &&
+          (widget.child as String).startsWith('final shadows = ElShadow.resolve('),
+    );
+    expect(code, findsNothing);
+    expect(_selected(tester, '浅色'), isTrue);
+    await tester.tap(_tag('浅色'));
+    await tester.pump(Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+    expect(_selected(tester, '浅色'), isTrue);
+    expect(_preview(tester).boxShadow, same(original));
+    await tester.tap(_tag('暗色'));
+    await tester.pump(Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+    expect(_selected(tester, '暗色'), isTrue);
+    expect(_selected(tester, '浅色'), isFalse);
+    await tester.tap(_tag('xl'));
+    await tester.pump(Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+    expect(_selected(tester, 'xl'), isTrue);
+    expect(_selected(tester, 'md'), isFalse);
+    final shadows = _preview(tester).boxShadow;
+    final fold = find
+        .ancestor(
+          of: find.byWidgetPredicate((widget) => widget is ElText && widget.data == '计算结果与 Dart 用法'),
+          matching: find.byType(ElButton),
+        )
+        .first;
+    await tester.tap(fold);
+    await tester.pump(Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+    expect(code, findsOneWidget);
+    expect(_preview(tester).boxShadow, same(shadows));
     expect(tester.takeException(), isNull);
   });
 
@@ -112,16 +181,20 @@ void main() {
     final field = find.byKey(ValueKey('shadow-surface'));
     tester.widget<ElEditableView>(field).focusNode!.requestFocus();
     await tester.pumpAndSettle();
+    final beforeKeyboard = _preview(tester).boxShadow;
     tester.view.viewInsets = FakeViewPadding(bottom: 300);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, isTrue);
+    expect(_preview(tester).boxShadow, same(beforeKeyboard));
     tester.testTextInput.enterText('#AABBCC');
     await tester.pumpAndSettle();
     expect(_preview(tester).backgroundColor, Color(0xffaabbcc));
+    final editedShadows = _preview(tester).boxShadow;
     tester.view.resetViewInsets();
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('shadow-preview')).hitTestable(), findsOneWidget);
+    expect(_preview(tester).boxShadow, same(editedShadows));
     expect(tester.takeException(), isNull);
   });
 }

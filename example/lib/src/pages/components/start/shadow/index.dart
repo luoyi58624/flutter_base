@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 
-/// 独立调节算法输入并对照五档阴影，不改变应用主题或组件默认样式。
+/// 调节算法输入并展示当前级别的单个阴影，不改变应用主题或组件默认样式。
 class ShadowPage extends HookWidget {
   /// 创建阴影游乐场。
   const ShadowPage({super.key});
@@ -12,8 +12,6 @@ class ShadowPage extends HookWidget {
     // Scaffold 会移除 body 的底部 viewInsets，键盘高度在外层读取。
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
     final copied = useState(false);
-    final dragSample = useState(50.0);
-    final rangeSample = useState(<double>[20, 70]);
     final mode = useState(Theme.of(context).brightness);
     final level = useState(ElLevelType.md);
     final surfaceOverride = useState<Color?>(null);
@@ -29,18 +27,21 @@ class ShadowPage extends HookWidget {
     final size = Size(width.value, height.value);
     final actualRadius = radius.value.clamp(0.0, size.shortestSide / 2);
     final borderRadius = BorderRadius.circular(actualRadius);
-    List<BoxShadow> resolve(ElLevelType value) => ElShadow.resolve(
-      level: value,
-      brightness: mode.value,
-      surfaceColor: surface,
-      backgroundColor: background,
-      borderRadius: borderRadius,
-      size: size,
-      strength: strength.value,
-      softness: softness.value,
+    // 仅参数变化时计算当前结果，复制反馈和键盘布局变化复用同一组阴影。
+    final shadows = useMemoized(
+      () => ElShadow.resolve(
+        level: level.value,
+        brightness: mode.value,
+        surfaceColor: surface,
+        backgroundColor: background,
+        borderRadius: borderRadius,
+        size: size,
+        strength: strength.value,
+        softness: softness.value,
+      ),
+      [level.value, mode.value, surface, background, borderRadius, size, strength.value, softness.value],
     );
-    final shadows = resolve(level.value);
-    final code =
+    String code() =>
         '''final shadows = ElShadow.resolve(
   level: ElLevelType.${level.value.name},
   brightness: Brightness.${mode.value.name},
@@ -64,7 +65,7 @@ ElStyle(
     useEffect(() {
       copied.value = false;
       return null;
-    }, [code]);
+    }, [shadows]);
 
     void reset() {
       mode.value = Theme.of(context).brightness;
@@ -77,57 +78,39 @@ ElStyle(
       strength.value = softness.value = 1;
     }
 
-    final sample = _stage(
-      level.value.name,
-      size,
-      borderRadius,
-      surface,
-      background,
-      shadows,
-      sampleKey: 'shadow-preview',
-    );
-    final comparison = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        spacing: 16,
-        children: [
-          for (final value in ElLevelType.types)
-            SizedBox(
-              width: size.width + 96,
-              child: _stage(value.name, size, borderRadius, surface, background, resolve(value)),
-            ),
-        ],
-      ),
+    final sample = RepaintBoundary(
+      child: _stage(level.value.name, size, borderRadius, surface, background, shadows, sampleKey: 'shadow-preview'),
     );
     final result = _Fold(
       key: ValueKey('shadow-result'),
       title: '计算结果与 Dart 用法',
-      children: [
-        for (final (index, shadow) in shadows.indexed)
-          Padding(
-            padding: .only(bottom: 12),
-            child: ElText(
-              '${index == 0 ? '近层' : '远层'}：'
-              '浓度 ${_number(shadow.color.a * 100)}% · '
-              '偏移 ${_number(shadow.offset.dy)} · 模糊 ${_number(shadow.blurRadius)} · '
-              '扩张 ${_number(shadow.spreadRadius)}',
+      builder: (context) => Column(
+        crossAxisAlignment: .stretch,
+        children: [
+          for (final (index, shadow) in shadows.indexed)
+            Padding(
+              padding: .only(bottom: 12),
+              child: ElText(
+                '${index == 0 ? '近层' : '远层'}：'
+                '浓度 ${_number(shadow.color.a * 100)}% · '
+                '偏移 ${_number(shadow.offset.dy)} · 模糊 ${_number(shadow.blurRadius)} · '
+                '扩张 ${_number(shadow.spreadRadius)}',
+              ),
             ),
+          ElView(
+            style: ElStyle(userSelect: .text),
+            child: code(),
           ),
-        ElView(
-          style: ElStyle(userSelect: .text),
-          child: code,
-        ),
-      ],
+        ],
+      ),
     );
     final preview = Column(
       crossAxisAlignment: .stretch,
       spacing: 16,
       children: [
         ElText('阴影游乐场', style: Theme.of(context).textTheme.titleLarge),
-        ElText('调整颜色、尺寸与圆角，在相同条件下比较五档阴影。'),
+        ElText('调整颜色、尺寸、圆角与级别，查看当前阴影。'),
         sample,
-        ElText('五档对照 · 横向滑动查看'),
-        comparison,
         result,
       ],
     );
@@ -202,7 +185,7 @@ ElStyle(
             child: copied.value ? '已复制' : '复制',
             semanticLabel: '复制 Dart 用法',
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: code));
+              await Clipboard.setData(ClipboardData(text: code()));
               if (context.mounted) copied.value = true;
             },
           ),
@@ -210,44 +193,6 @@ ElStyle(
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final legacy = _Fold(
-            title: '旧版八档阴影 · 默认第 4 档',
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  spacing: 16,
-                  children: [
-                    for (var e = 1; e <= _legacyBlurRadiusList.length; e++)
-                      SizedBox(
-                        width: size.width + 96,
-                        child: _stage('$e', size, borderRadius, surface, background, _legacyShadow(e)),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          );
-          final sliderSamples = _Fold(
-            title: 'Slider 拖拽对照',
-            children: [
-              ElText('圆块连续跟手，松开后吸附。触屏抬起才提交数值。'),
-              ElSlider<double>(
-                label: '步长 10',
-                value: dragSample.value,
-                step: 10,
-                marks: true,
-                onChanged: (v) => dragSample.value = v,
-              ),
-              ElSlider<List<double>>.range(
-                label: '范围交叉',
-                value: rangeSample.value,
-                step: 5,
-                marks: true,
-                onChanged: (v) => rangeSample.value = v,
-              ),
-            ],
-          );
           if (constraints.maxWidth >= 900) {
             return ElScrollView(
               padding: .all(16),
@@ -260,12 +205,10 @@ ElStyle(
                     SizedBox(width: 340, child: controls),
                   ],
                 ),
-                sliderSamples,
-                legacy,
               ],
             );
           }
-          final inputs = [controls, sliderSamples, ElText('五档对照 · 横向滑动查看'), comparison, result, legacy];
+          final inputs = [controls, result];
           // 用键盘弹出前的高度选布局，避免切换父级导致输入框失焦。
           if (constraints.maxHeight + keyboardHeight < 600) {
             return ElScrollView(padding: .all(16), gap: 16, children: [sample, ...inputs]);
@@ -344,11 +287,19 @@ Widget _choices<T>(String label, T selected, List<(T, String)> options, ValueCha
       runSpacing: 8,
       children: [
         for (final (value, text) in options)
-          ElButton(
-            plain: value != selected,
-            selected: value == selected,
+          ElTag.toggle(
+            value: value == selected,
             child: text,
-            onPressed: () => onChanged(value),
+            semanticLabel: '$label：$text',
+            // 单选标签不能取消当前项，指针、键盘和辅助技术共用默认动作入口。
+            event: ElEvent(
+              onTap: (event) {
+                if (value == selected) event.preventDefault();
+              },
+            ),
+            onChanged: (active) {
+              if (active) onChanged(value);
+            },
           ),
       ],
     ),
@@ -489,9 +440,9 @@ class _ColorField extends HookWidget {
 }
 
 class _Fold extends HookWidget {
-  const _Fold({super.key, required this.title, required this.children});
+  const _Fold({super.key, required this.title, required this.builder});
   final String title;
-  final List<Widget> children;
+  final WidgetBuilder builder;
   @override
   Widget build(BuildContext context) {
     final open = useState(false);
@@ -515,11 +466,7 @@ class _Fold extends HookWidget {
             ),
           ),
         ),
-        if (open.value)
-          Padding(
-            padding: .all(16),
-            child: Column(crossAxisAlignment: .stretch, children: children),
-          ),
+        if (open.value) Padding(padding: .all(16), child: builder(context)),
       ],
     );
   }
@@ -534,27 +481,3 @@ Color? _parseColor(String text) {
 String _hex(Color color) => '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
 String _colorCode(Color color) => 'Color(0x${color.toARGB32().toRadixString(16).padLeft(8, '0')})';
 String _number(double value) => value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
-
-// 保留旧项目的三层透明度和八档模糊半径，用相同卡片隔离阴影本身的差异。
-final _legacyColorOpacityList = [.16, .12, .08];
-final _legacyBlurRadiusList = [
-  [.1, .2, 1.0],
-  [.8, 1.0, 2.0],
-  [1.0, 1.6, 4.0],
-  [1.6, 3.0, 6.0],
-  [2.4, 4.0, 8.0],
-  [4.0, 6.0, 10.0],
-  [5.0, 8.0, 12.0],
-  [6.0, 10.0, 16.0],
-];
-
-List<BoxShadow> _legacyShadow(int elevation) => [
-  for (final (index, blurRadius) in _legacyBlurRadiusList[elevation - 1].indexed)
-    BoxShadow(
-      blurStyle: .normal,
-      offset: .zero,
-      blurRadius: blurRadius,
-      spreadRadius: 0,
-      color: Colors.black.withValues(alpha: _legacyColorOpacityList[index]),
-    ),
-];
