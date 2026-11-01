@@ -5,7 +5,8 @@
 /// 移动端兼容参照 NavigationBar 的处理：背景铺满屏幕底、内容走 SafeArea。
 library;
 
-import 'package:flutter/material.dart' show NavigationDestination, NavigationDestinationLabelBehavior;
+import 'package:flutter/material.dart'
+    show InkResponse, InkRipple, Material, MaterialType, NavigationDestination, NavigationDestinationLabelBehavior;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
@@ -42,7 +43,7 @@ class ElBottomTabbar extends StatelessWidget {
   /// 内容区高度，不含底部安全区。style.height 给定时以 style 为准。
   final double height;
 
-  /// 底栏外观覆盖，字段值即最终值，同名字段优先于默认样式。
+  /// 底栏外观覆盖，默认顶部 1px 分隔线使用 dividerColor，同名字段优先于默认样式。
   final ElStyle? style;
 
   @override
@@ -54,30 +55,36 @@ class ElBottomTabbar extends StatelessWidget {
       style: ElStyle(
         width: '100%',
         backgroundColor: t.cardColor,
+        border: ElBorder.only(borderTop: ElBorderSide(borderColor: t.dividerColor, borderWidth: 0.5)),
       ).merge(style?.copyWith(height: null)),
       child: SafeArea(
         top: false,
         child: ElView(
           style: ElStyle(height: barHeight),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < destinations.length; i++)
-                Expanded(
-                  child: _TabBarButton(
-                    destination: destinations[i],
-                    selected: i == selectedIndex,
-                    showLabel: switch (labelBehavior) {
-                      NavigationDestinationLabelBehavior.alwaysShow => true,
-                      NavigationDestinationLabelBehavior.onlyShowSelected => i == selectedIndex,
-                      NavigationDestinationLabelBehavior.alwaysHide => false,
-                    },
-                    onPressed: destinations[i].enabled && onDestinationSelected != null
-                        ? () => onDestinationSelected!(i)
-                        : null,
+          // 所有导航项共用墨水层，只在整条底栏边缘裁剪，保留越过单项边界的圆形扩散。
+          child: Material(
+            type: MaterialType.transparency,
+            clipBehavior: Clip.hardEdge,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < destinations.length; i++)
+                  Expanded(
+                    child: _TabBarButton(
+                      destination: destinations[i],
+                      selected: i == selectedIndex,
+                      showLabel: switch (labelBehavior) {
+                        NavigationDestinationLabelBehavior.alwaysShow => true,
+                        NavigationDestinationLabelBehavior.onlyShowSelected => i == selectedIndex,
+                        NavigationDestinationLabelBehavior.alwaysHide => false,
+                      },
+                      onPressed: destinations[i].enabled && onDestinationSelected != null
+                          ? () => onDestinationSelected!(i)
+                          : null,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -86,12 +93,7 @@ class ElBottomTabbar extends StatelessWidget {
 }
 
 class _TabBarButton extends StatelessWidget {
-  const _TabBarButton({
-    required this.destination,
-    required this.selected,
-    required this.showLabel,
-    this.onPressed,
-  });
+  const _TabBarButton({required this.destination, required this.selected, required this.showLabel, this.onPressed});
 
   final NavigationDestination destination;
   final bool selected;
@@ -104,32 +106,42 @@ class _TabBarButton extends StatelessWidget {
     final color = selected ? t.primary : t.textSecondary;
     // 官方语义：选中且给了 selectedIcon 时优先用它。
     final icon = selected && destination.selectedIcon != null ? destination.selectedIcon! : destination.icon;
-    return ElFadeTap(
-      onPressed: onPressed,
-      disabled: onPressed == null,
-      semanticLabel: destination.label,
-      style: const ElStyle(alignment: Alignment.center),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 与官方一致：图标颜色由 IconTheme 下发，调用方不用写 color。
-          IconTheme.merge(
-            data: IconThemeData(size: 20, color: color),
-            child: icon,
+    return Semantics(
+      label: destination.label,
+      button: true,
+      enabled: onPressed != null,
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onPressed,
+        excludeFromSemantics: true,
+        containedInkWell: false,
+        splashFactory: InkRipple.splashFactory,
+        splashColor: color.withValues(alpha: 0.10),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 与官方一致：图标颜色由 IconTheme 下发，调用方不用写 color。
+              IconTheme.merge(
+                data: IconThemeData(size: 20, color: color),
+                child: icon,
+              ),
+              if (showLabel)
+                ElView(
+                  style: textStyle(
+                    context,
+                    12,
+                    t.fontWeight,
+                    color: color,
+                    height: 1.2,
+                  ).merge(const ElStyle(padding: EdgeInsets.only(top: 2), letterSpacing: .4, softWrap: false)),
+                  child: destination.label,
+                ),
+            ],
           ),
-          if (showLabel)
-            ElView(
-              style: textStyle(
-                context,
-                12,
-                t.fontWeight,
-                color: color,
-                height: 1.2,
-              ).merge(const ElStyle(padding: EdgeInsets.only(top: 2), letterSpacing: .4, softWrap: false)),
-              child: destination.label,
-            ),
-        ],
+        ),
       ),
     );
   }
