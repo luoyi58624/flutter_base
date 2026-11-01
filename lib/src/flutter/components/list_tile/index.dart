@@ -75,60 +75,39 @@ enum ElListTileType {
   /// 普通内容与点击动作。
   basic,
 
-  /// 页面导航入口。
-  page,
-
   /// 布尔开关入口。
   switcher,
 }
 
-/// 列表内容、页面入口或布尔开关的公共声明。
+/// 普通列表行或布尔开关行的公共声明，布局与交互由品牌实现提供。
 class ElListTile extends StatelessWidget {
-  /// 创建普通列表行。
+  /// 创建普通列表行，默认后缀由品牌实现解析为箭头。
   const ElListTile({
     super.key,
     required this.title,
     this.subtitle,
     this.leading,
-    this.trailing,
+    this.valueText,
+    this.trailing = ElEmptyWidget.instance,
     this.onTap,
     this.disabled = false,
     this.style,
+    this.event,
+    this.focusNode,
+    this.semanticLabel,
   }) : type = .basic,
-       page = null,
-       rootNavigator = false,
        value = null,
        modelValue = null,
        onChanged = null,
        loading = false,
        switchStyle = null;
 
-  /// 创建页面入口，导航行为由品牌实现提供。
-  const ElListTile.page({
-    super.key,
-    required this.title,
-    this.subtitle,
-    this.leading,
-    this.trailing,
-    this.page,
-    this.rootNavigator = false,
-    this.onTap,
-    this.disabled = false,
-    this.style,
-  }) : type = .page,
-       value = null,
-       modelValue = null,
-       onChanged = null,
-       loading = false,
-       switchStyle = null;
-
-  /// 创建开关入口，仅声明值通道，不建立绑定。
+  /// 创建整行可切换的开关入口，值与模型互斥，末端固定为开关。
   const ElListTile.switcher({
     super.key,
     required this.title,
     this.subtitle,
     this.leading,
-    this.trailing,
     this.value,
     this.modelValue,
     this.onChanged,
@@ -136,9 +115,13 @@ class ElListTile extends StatelessWidget {
     this.loading = false,
     this.style,
     this.switchStyle,
-  }) : type = .switcher,
-       page = null,
-       rootNavigator = false,
+    this.event,
+    this.focusNode,
+    this.semanticLabel,
+  }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥，二选一'),
+       type = .switcher,
+       valueText = null,
+       trailing = null,
        onTap = null;
 
   /// 当前列表行的声明模式。
@@ -153,40 +136,45 @@ class ElListTile extends StatelessWidget {
   /// 起边内容。
   final Object? leading;
 
-  /// 末边内容。
+  /// 普通行右侧的当前值，接受文本或 Widget，不受 trailing 是否显示影响。
+  final Object? valueText;
+
+  /// 普通行后缀：占位符表示品牌默认箭头，null 移除后缀及间距，其他值替换箭头。
   final Object? trailing;
 
-  /// 普通行或页面入口的点击通知。
+  /// 普通行的默认激活动作，导航由调用方处理，可由 event.preventDefault 阻止。
   final VoidCallback? onTap;
 
-  /// 是否禁用列表行。
+  /// 禁止行激活、开关切换与焦点请求。
   final bool disabled;
 
-  /// 页面入口的目标页面。
-  final Widget? page;
+  /// 开关行的初始值，重建时同步新值，未提供值通道时默认为 false。
+  final bool? value;
 
-  /// 是否由根导航器打开页面。
-  final bool rootNavigator;
+  /// 开关行的外部双向模型，生命周期由调用方管理。
+  final ValueNotifier<bool>? modelValue;
 
-  /// 开关行的普通值输入，保留原有跨类型列表行的宽容值通道。
-  final dynamic value;
+  /// 用户切换开关后的值通知，为空不等于禁用。
+  final ValueChanged<bool>? onChanged;
 
-  /// 开关行的外部双向模型。
-  final ValueNotifier<dynamic>? modelValue;
-
-  /// 开关值变化通知，开关模式的变化值为 bool。
-  final ValueChanged<dynamic>? onChanged;
-
-  /// 开关行是否处于加载状态。
+  /// 开关行显示加载状态并暂时阻止切换。
   final bool loading;
 
-  /// 列表行样式。
+  /// 在品牌默认行样式之后合并的样式。
   final ElStyle? style;
 
-  /// 开关入口样式。
+  /// 开关行末端开关的样式。
   final ElStyle? switchStyle;
 
+  /// 用户事件，沿用默认动作与 preventDefault 规则，触摸延迟通过 config 设置。
+  final ElEvent? event;
+
+  /// 外部焦点节点，生命周期由调用方管理。
+  final FocusNode? focusNode;
+
+  /// 辅助技术读取的行名称。
+  final String? semanticLabel;
+
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).listTileBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.of(context).listTileBuilder!(context, this);
 }

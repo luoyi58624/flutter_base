@@ -2,9 +2,22 @@
 
 ## 公共声明
 
-`ElListTile` 提供普通、page、switcher 三个构造，声明标题、副标题、前后槽、目标页面或开关值通道，通过 `listTileBuilder(context, component)` 分派。开关通道沿用原列表行的 dynamic 模型，开关模式的变化值为 bool。`ElListTileGroup` 声明标题、行集合和容器样式，通过 `listTileGroupBuilder` 分派。
+`ElListTile` 提供普通和 `switcher` 两个构造，通过 `listTileBuilder(context, component)` 分派。没有 `page` 构造或路由参数，导航由调用方在 `onTap` 中处理。
 
-新声明不包含品牌尺寸档位，不实现布局、导航、模型绑定或分隔线。以下已有 My* 具体入口保持原样。
+| 范围 | 参数 |
+| --- | --- |
+| 列表行共用 | title / subtitle / leading / disabled / style / event / focusNode / semanticLabel |
+| 普通行 | valueText / trailing / onTap |
+| 开关行 | bool? value / ValueNotifier<bool>? modelValue / ValueChanged<bool>? onChanged / loading / switchStyle |
+| 列表组 | title / description / List<Widget> children / style / semanticLabel |
+
+普通行的 `valueText` 是右侧当前值，与后缀独立。`trailing` 默认为现有的 `ElEmptyWidget.instance` 占位符，品牌实现通过 `identical` 识别并绘制默认箭头；显式传 `null` 完全移除后缀与对应间距，其他值替换默认箭头。移动实现应复用 `ElFlutterUtil.hasAncestorWidget`，根据 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
+
+开关行不接受 `trailing` 或 `valueText`，末端固定为开关；`value` 与 `modelValue` 互斥，均未提供时使用 false。整行与内部开关共享一次激活，避免一次点击切换两次。触摸反馈延迟通过 `event.config` 配置，不重复提供行参数。
+
+`ElListTileGroup` 通过 `listTileGroupBuilder(context, component)` 分派，只声明标题、说明、内容和样式，不接管单选或多选，也不引入 options 数据协议。
+
+当前仅整理接口，不实现布局、箭头、模型绑定或分隔线，也不安装 mobile Builder。以下已有 My* 具体入口保持原样。
 
 ## 既有入口
 
