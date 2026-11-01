@@ -2,7 +2,6 @@ part of 'theme.dart';
 
 // 页面、卡片、卡片按压与分隔线各自声明，避免控件边框或通用按压色影响列表。
 Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
-  if (!dark) ElTokens.$info: Color(0xff909399),
   if (!dark) ElTokens.$black: Color(0xff000000),
   if (!dark) ElTokens.$white: Color(0xffffffff),
   ElTokens.$textRegular: dark ? Color(0xffcfd3dc) : Color(0xff606266),
@@ -43,10 +42,13 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
   ElTokens.$hover: Color(dark ? 0xff3c4350 : 0xffe9ecf0),
   ElTokens.$press: Color(dark ? 0xff464e5b : 0xffe0e4ea),
   ElTokens.$selectedBackground: Color(dark ? 0xff414956 : 0xffffffff),
-  ElTokens.$success: Color(dark ? 0xffa4dfb4 : 0xff176b3c),
-  ElTokens.$warning: Color(dark ? 0xfff3db82 : 0xff805500),
-  ElTokens.$error: Color(dark ? 0xffffacae : 0xffb5283c),
-  ElTokens.$primary: Color(dark ? 0xffaac8ff : 0xff2454c6),
+  // 五个语义色取自设计图（light）：主色 #1076FD、成功 #56B329、警告 #F9A907、危险 #FC4646。
+  // 信息色与主色同蓝：设计图把信息动作画成「浅蓝底 + 蓝字」，浅底交给使用方按主色混合，不另设第四种蓝。
+  ElTokens.$info: Color(dark ? 0xff8fb8ff : 0xff1076fd),
+  ElTokens.$success: Color(dark ? 0xffa4dfb4 : 0xff56b329),
+  ElTokens.$warning: Color(dark ? 0xfff3db82 : 0xfff9a907),
+  ElTokens.$error: Color(dark ? 0xffffacae : 0xfffc4646),
+  ElTokens.$primary: Color(dark ? 0xffaac8ff : 0xff1076fd),
   ElTokens.$primaryText: Color(dark ? 0xff000000 : 0xffffffff),
   ElTokens.$selectedShadow: List<BoxShadow>.unmodifiable(
     (dark

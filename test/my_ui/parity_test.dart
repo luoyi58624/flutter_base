@@ -58,7 +58,8 @@ class ProbeState extends State<StateProbe> {
 void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
     final light = ElMobileTheme.lightVars, dark = ElMobileTheme.darkVars;
-    expect(light[ElTokens.$primary], Color(0xff2454c6));
+    // 移动端语义色以设计稿为准（#1076FD）；Web 原型 --primary 仍是 #2454c6，两者不再逐值对齐。
+    expect(light[ElTokens.$primary], Color(0xff1076fd));
     expect(light[ElTokens.$bgColor], Color(0xffeeeeee));
     expect(light[ElTokens.$textColor], Color(0xff17191e));
     expect(dark[ElTokens.$primary], Color(0xffaac8ff));
@@ -864,11 +865,11 @@ void main() {
     Color? background(Key key) =>
         tester.widget<ElView>(views(find.byKey(key), (v) => v.event?.onTap != null)).style!.backgroundColor;
     expect(background(nested), color);
-    expect(background(sibling), Color(0xff2454c6));
+    expect(background(sibling), Color(0xff1076fd));
     update(() => color = Color(0xff554433));
     await tester.pump();
     expect(background(nested), color);
-    expect(background(sibling), Color(0xff2454c6));
+    expect(background(sibling), Color(0xff1076fd));
   });
 
   testWidgets('Card内部Flutter按钮与输入不触发整卡', (tester) async {

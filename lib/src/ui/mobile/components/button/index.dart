@@ -225,13 +225,19 @@ class Button extends StatelessWidget {
       // 正圆是形状约束，显式高度覆盖后仍保持宽高相同。
       buttonStyle = buttonStyle.copyWith(width: buttonStyle.height);
     }
+    // 加载中时指示器顶替前导图标的位置：有图标就原位换，没有图标才排在文字前面。
+    // 这样设计图要求的「指示器 + 文字」成立，同时图标按钮在加载中不会撑宽。
+    final indicator = ExcludeSemantics(child: Loading(size: LoadingSize.small));
     final content = component != null
-        ? _commonContent(component)
+        ? _commonContent(component, loading: loading)
         : Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: icon != null && child != null ? (variant == ButtonVariant.link ? 6 : 7) : 0,
+            spacing: (loading || icon != null) && child != null ? (variant == ButtonVariant.link ? 6 : 7) : 0,
             children: [
-              if (icon != null) ExcludeSemantics(child: Glyph(name: icon!)),
+              if (loading)
+                indicator
+              else if (icon != null)
+                ExcludeSemantics(child: Glyph(name: icon!)),
               if (child != null) buildContent(child),
             ],
           );
@@ -260,30 +266,25 @@ class Button extends StatelessWidget {
             form?.reset();
         }
       },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Opacity(opacity: loading ? 0 : 1, alwaysIncludeSemantics: true, child: content),
-          if (loading)
-            const Positioned.fill(
-              child: ExcludeSemantics(
-                child: Center(child: Loading(size: LoadingSize.small)),
-              ),
-            ),
-        ],
-      ),
+      // 正圆这类锁死宽高的按钮放不下「指示器 + 图标」，加载中只留指示器，尺寸与焦点都保持不变。
+      child: loading && fixed ? indicator : content,
     );
     return component?.block == true ? result : inline(result);
   }
 }
 
-Widget _commonContent(ElButton component) {
-  if (component.child is IconData) return buildContent(component.child);
+/// 把声明层的内容拼成一行；加载中用指示器顶替前导图标，文字照常可见。
+Widget _commonContent(ElButton component, {bool loading = false}) {
+  final indicator = ExcludeSemantics(child: Loading(size: LoadingSize.small));
+  if (component.child is IconData) return loading ? indicator : buildContent(component.child);
   return Row(
     mainAxisSize: .min,
     spacing: 7,
     children: [
-      if (component.leftIcon != null) buildContent(component.leftIcon),
+      if (loading)
+        indicator
+      else if (component.leftIcon != null)
+        buildContent(component.leftIcon),
       if (component.child != null) buildContent(component.child),
       if (component.rightIcon != null) buildContent(component.rightIcon),
     ],
@@ -298,27 +299,32 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
         ElThemeType.success => theme.success,
         ElThemeType.warning => theme.warning,
         ElThemeType.error => theme.error,
-        ElThemeType.info => theme.textSecondary,
+        ElThemeType.info => theme.info,
         _ => theme.primary,
       };
   final flat = component.link || component.text;
   final outlined = !flat && (component.ghost || component.plain);
+  // 设计图的信息按钮是「浅蓝底 + 蓝字」，用主色低透明度铺底，和实心蓝的主要按钮拉开层级。
+  final tinted = !flat && !outlined && component.type == ElThemeType.info && component.bgColor == null;
   final background = flat
       ? (component.bg && component.text && !component.link ? theme.fill : const Color(0x00000000))
       : component.ghost
       ? const Color(0x00000000)
       : component.plain
       ? Color.lerp(theme.cardColor, accent, .1)!
+      : tinted
+      ? Color.lerp(theme.cardColor, accent, .12)!
       : accent;
-  final foreground = flat || outlined
+  // 实心底上统一白字（警告橙的亮度已跨过阈值，靠 primaryText 保证浅底时才翻黑）。
+  final foreground = flat || outlined || tinted
       ? accent
       : accent.computeLuminance() > .45
-      ? const Color(0xff000000)
+      ? theme.primaryText
       : const Color(0xffffffff);
   final selectedBackground = Color.lerp(
     background,
-    flat || outlined ? accent : const Color(0xff000000),
-    flat || outlined ? .18 : .14,
+    flat || outlined || tinted ? accent : const Color(0xff000000),
+    flat || outlined || tinted ? .18 : .14,
   )!;
   return base.copyWith(
     margin: component.link ? EdgeInsets.zero : base.margin,
@@ -333,7 +339,7 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     color: component.disabled ? theme.textSecondary : foreground,
     iconColor: component.disabled ? theme.textSecondary : foreground,
     border: ElBorder.all(
-      borderWidth: flat ? 0 : 1,
+      borderWidth: flat || tinted ? 0 : 1,
       borderColor: component.disabled
           ? theme.borderColor
           : outlined
