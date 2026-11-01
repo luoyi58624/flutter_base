@@ -1,5 +1,5 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.css:10-68、82-149。
-/// 快照只保存该版本根token，不依赖Web仓库或联网。
+/// Web 根 token 为基线，移动页面背景沿用原 MyListTile 的中性灰。
 library;
 
 import 'dart:convert';
@@ -12,6 +12,7 @@ import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
 
 void main() {
   final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
+  expected['light']['background'] = 0xffeeeeee;
   for (final mode in ['light', 'dark']) {
     testWidgets('$mode 全部根颜色、阴影、overlay与四档字重', (tester) async {
       late ElThemeExt t;
@@ -30,6 +31,8 @@ void main() {
       );
       expect(t.fontFamily, isEmpty);
       expect(t.fontFamilyFallback, isEmpty);
+      expect(t.cardPressColor, Color(mode == 'dark' ? 0xff464e5b : 0xffe0e0e0));
+      expect(t.dividerColor, Color(mode == 'dark' ? 0xff596576 : 0xffe0e0e0));
       final colors = <String, Color>{
         'background': t.bgColor,
         'card-background': t.cardColor,

@@ -383,7 +383,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
         fontWeight: .w500,
         opacity: disabled ? .5 : 1,
         userSelect: .none,
-        onTap: disabled ? null : ElStyle(backgroundColor: theme.press),
+        onTap: disabled ? null : ElStyle(backgroundColor: theme.cardPressColor),
       ).merge(widget.component.optionStyle),
       child: Row(
         children: [
@@ -435,7 +435,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
           left: leading == null ? 16 : 56,
           right: 16,
           bottom: 0,
-          child: ColoredBox(color: theme.borderColor, child: const SizedBox(height: .5)),
+          child: ColoredBox(color: theme.dividerColor, child: const SizedBox(height: .5)),
         ),
       ],
     );

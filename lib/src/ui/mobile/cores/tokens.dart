@@ -1,9 +1,11 @@
 part of 'theme.dart';
 
-// 默认值沿用原移动主题；暗表仅保留差异，避免覆盖基础层的通用变量。
+// 页面、卡片、卡片按压与分隔线各自声明，避免控件边框或通用按压色影响列表。
 Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
-  ElTheme.$bgColor: Color(dark ? 0xff121419 : 0xfff2f3f5),
+  ElTheme.$bgColor: Color(dark ? 0xff121419 : 0xffeeeeee),
   ElTheme.$cardColor: Color(dark ? 0xff252931 : 0xffffffff),
+  ElTheme.$cardPressColor: Color(dark ? 0xff464e5b : 0xffe0e0e0),
+  ElTheme.$dividerColor: Color(dark ? 0xff596576 : 0xffe0e0e0),
   ElTheme.$fill: Color(dark ? 0xff333944 : 0xfff1f2f4),
   ElTheme.$borderColor: Color(dark ? 0xff596576 : 0xffdde0e5),
   ElTheme.$textColor: Color(dark ? 0xfff4f6fa : 0xff17191e),

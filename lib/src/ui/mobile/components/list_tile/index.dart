@@ -173,7 +173,7 @@ class _ListTile<T> extends HookWidget {
       iconColor: selected ? theme.primary : theme.textColor,
       opacity: disabled ? .5 : 1,
       userSelect: .none,
-      onTap: disabled ? null : ElStyle(backgroundColor: theme.press),
+      onTap: disabled ? null : ElStyle(backgroundColor: theme.cardPressColor),
       transition: reducedMotion(context)
           ? const []
           : const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))],
@@ -252,7 +252,7 @@ class _ListTile<T> extends HookWidget {
             left: leading == null ? 16 : 56,
             right: 16,
             bottom: 0,
-            child: ColoredBox(color: theme.borderColor, child: const SizedBox(height: .5)),
+            child: ColoredBox(color: theme.dividerColor, child: const SizedBox(height: .5)),
           ),
         ],
       );

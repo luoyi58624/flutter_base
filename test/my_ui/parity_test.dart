@@ -60,7 +60,7 @@ void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
     final light = ElMobileTheme.lightVars, dark = ElMobileTheme.darkVars;
     expect(light[ElTheme.$primary], Color(0xff2454c6));
-    expect(light[ElTheme.$bgColor], Color(0xfff2f3f5));
+    expect(light[ElTheme.$bgColor], Color(0xffeeeeee));
     expect(light[ElTheme.$textColor], Color(0xff17191e));
     expect(dark[ElTheme.$primary], Color(0xffaac8ff));
     expect(dark[ElTheme.$primaryText], Color(0xff000000));

@@ -23,10 +23,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
         title: Text('首页'),
-        backgroundColor: Colors.white,
         actions: [
           ObsBuilder(
             builder: (context) {

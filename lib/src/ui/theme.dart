@@ -33,6 +33,12 @@ abstract final class ElTheme {
   /// 卡片背景。
   static const $cardColor = '--el-card-color';
 
+  /// 卡片及卡片内列表行的按压背景。
+  static const $cardPressColor = '--el-card-press-color';
+
+  /// 内容分隔线颜色，独立于控件边框。
+  static const $dividerColor = '--el-divider-color';
+
   /// 控件填充。
   static const $fill = '--el-fill';
 
@@ -152,6 +158,8 @@ abstract final class ElTheme {
     $white: Color(0xffffffff),
     $bgColor: Color(0xffffffff),
     $cardColor: Color(0xffffffff),
+    $cardPressColor: Color(0xffe0e4ea),
+    $dividerColor: Color(0xffe7e9ee),
     $fill: Color(0xfff1f2f4),
     $textColor: Color(0xff303133),
     $textRegular: Color(0xff606266),
@@ -194,6 +202,8 @@ abstract final class ElTheme {
   static const Map<Object, Object> darkVars = {
     $bgColor: Color.fromRGBO(30, 30, 30, 1),
     $cardColor: Color.fromRGBO(43, 43, 43, 1),
+    $cardPressColor: Color(0xff464e5b),
+    $dividerColor: Color(0xff414143),
     $textColor: Color(0xffe5eaf3),
     $textRegular: Color(0xffcfd3dc),
     $textSecondary: Color(0xffa3a6ad),
@@ -257,6 +267,12 @@ extension type const ElThemeExt(BuildContext _context) {
 
   /// 卡片背景。
   Color get cardColor => _read(ElTheme.$cardColor);
+
+  /// 卡片及卡片内列表行的按压背景。
+  Color get cardPressColor => _read(ElTheme.$cardPressColor);
+
+  /// 内容分隔线颜色，独立于控件边框。
+  Color get dividerColor => _read(ElTheme.$dividerColor);
 
   /// 控件填充。
   Color get fill => _read(ElTheme.$fill);

@@ -31,7 +31,7 @@ class Divider extends StatelessWidget {
   /// 局部竖向分隔线高度。
   static const $height = 'divider.height';
 
-  /// dashed保留与实线相同的厚度，变量通过MyTheme覆写。
+  /// 虚线保留与实线相同的厚度，颜色默认读取专用分隔线变量。
   const Divider({super.key, this.vertical = false, this.align = DividerAlign.center, this.dashed = false, this.child});
 
   /// 是否竖向。
@@ -51,7 +51,7 @@ class Divider extends StatelessWidget {
     final vars = ElView.maybeOf(context);
     final side = ElBorderSide(
       borderWidth: 1,
-      borderColor: vars?.getVar<Color>($color) ?? t.borderColor,
+      borderColor: vars?.getVar<Color>($color) ?? t.dividerColor,
       borderStyle: dashed ? ElBorderStyle.dashed : ElBorderStyle.solid,
     );
     Widget line() => ElView(

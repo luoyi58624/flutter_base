@@ -43,6 +43,7 @@ extension ElMaterialThemeExt on BuildContext {
     final disabledTextColor = placeholderColor;
 
     final borderColor = read<Color>(ElTheme.$borderColor);
+    final dividerColor = read<Color>(ElTheme.$dividerColor);
     final borderColorLight = _shade(borderColor, brightness, 3);
     final borderWidth = read<num>(ElTheme.$borderWidth).toDouble();
     final borderRadius = BorderRadius.circular(read<num>(ElTheme.$radiusSm).toDouble());
@@ -116,6 +117,7 @@ extension ElMaterialThemeExt on BuildContext {
       colorScheme: colorScheme,
       canvasColor: bgColor,
       scaffoldBackgroundColor: bgColor,
+      dividerColor: dividerColor,
       splashFactory: isDesktop ? InkRipple.splashFactory : InkSparkle.splashFactory,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: isDesktop ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
@@ -197,6 +199,8 @@ extension ElMaterialThemeExt on BuildContext {
         backgroundColor: read<Color>(ElTheme.$cardColor),
         foregroundColor: textColor,
         surfaceTintColor: Colors.transparent,
+        // M3 默认阴影透明，显式着色才能显示滚动后的海拔阴影。
+        shadowColor: Colors.black,
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 1,
@@ -210,7 +214,7 @@ extension ElMaterialThemeExt on BuildContext {
         unselectedLabelStyle: mediumTextStyle,
         unselectedLabelColor: regularTextColor,
         indicatorColor: primary,
-        dividerColor: borderColorLight,
+        dividerColor: dividerColor,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: bgColor,
@@ -246,7 +250,7 @@ extension ElMaterialThemeExt on BuildContext {
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(),
       ),
-      dividerTheme: DividerThemeData(color: borderColorLight, thickness: borderWidth, space: borderWidth),
+      dividerTheme: DividerThemeData(color: dividerColor, thickness: borderWidth, space: borderWidth),
       listTileTheme: ListTileThemeData(
         titleTextStyle: mediumTextStyle,
         subtitleTextStyle: mediumTextStyle.copyWith(color: secondaryTextColor, fontSize: size(13)),

@@ -111,7 +111,7 @@ class Card extends StatelessWidget {
           : const [ElTransition.all(Duration(milliseconds: 150), Curves.easeOut)],
       onTap: interactive && !loading
           ? ElStyle(
-              backgroundColor: vars?.getVar<Color>($pressBackground) ?? Color.lerp(t.cardColor, t.textColor, .085),
+              backgroundColor: vars?.getVar<Color>($pressBackground) ?? t.cardPressColor,
               transform: ElTransform.scale(vars?.getVar<num>($pressScale)?.toDouble() ?? .96),
             )
           : null,
