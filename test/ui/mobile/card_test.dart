@@ -21,6 +21,29 @@ Finder _surface() => find.descendant(
 );
 
 void main() {
+  test('移动端五档阴影只使用柔和投影，按层级增加范围和下移距离', () {
+    final keys = [ElTokens.$shadowXs, ElTokens.$shadowSm, ElTokens.$shadowMd, ElTokens.$shadowLg, ElTokens.$shadowXl];
+    for (final dark in [false, true]) {
+      final tokens = {...ElMobileTheme.lightVars, if (dark) ...ElMobileTheme.darkVars};
+      var previousBlur = 0.0;
+      var previousOffset = 0.0;
+      for (final key in keys) {
+        final shadows = tokens[key] as List<BoxShadow>;
+        expect(shadows, isNotEmpty);
+        for (final shadow in shadows) {
+          expect(shadow.blurRadius, greaterThan(0), reason: '零模糊轮廓会产生描边感');
+          expect(shadow.spreadRadius, lessThanOrEqualTo(0));
+          expect(shadow.offset.dx, 0);
+          expect(shadow.color.toARGB32() & 0xffffff, 0, reason: '使用中性黑投影');
+        }
+        expect(shadows.last.blurRadius, greaterThan(previousBlur));
+        expect(shadows.last.offset.dy, greaterThan(previousOffset));
+        previousBlur = shadows.last.blurRadius;
+        previousOffset = shadows.last.offset.dy;
+      }
+    }
+  });
+
   testWidgets('卡片按压同时改变颜色与缩放，style 可逐字段覆盖，取消后恢复', (tester) async {
     var calls = 0;
     for (final custom in [false, true]) {
@@ -79,6 +102,7 @@ void main() {
     await tester.pumpWidget(_host(ElCard()));
     await tester.pumpAndSettle();
     expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, isNull);
+    expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.border, isNull);
     for (final shadows in [
       <BoxShadow>[],
       [BoxShadow(color: Colors.green, blurRadius: 4)],
@@ -87,13 +111,20 @@ void main() {
         _host(
           ElCard(
             shadowLevel: .md,
-            style: ElStyle(boxShadow: shadows),
+            style: ElStyle(
+              boxShadow: shadows,
+              border: ElBorder.all(borderColor: Colors.blue),
+            ),
             child: SizedBox(height: 30),
           ),
         ),
       );
       await tester.pumpAndSettle();
       expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, shadows);
+      expect(
+        tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.border!.borderTop.borderColor,
+        Colors.blue,
+      );
     }
   });
 

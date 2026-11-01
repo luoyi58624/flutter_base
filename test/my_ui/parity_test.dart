@@ -66,8 +66,8 @@ void main() {
     expect(dark[ElTokens.$borderColor], Color(0xff596576));
     final lightShadow = light[ElTokens.$shadowMd] as List<BoxShadow>;
     final darkShadow = dark[ElTokens.$shadowMd] as List<BoxShadow>;
-    expect(lightShadow.first.color.a, closeTo(.045, .000001));
-    expect(darkShadow.first.color.a, closeTo(.16, .000001));
+    expect(lightShadow.first.color.a, closeTo(.055, .000001));
+    expect(darkShadow.first.color.a, closeTo(.24, .000001));
     expect(() => lightShadow.add(BoxShadow()), throwsUnsupportedError);
   });
 

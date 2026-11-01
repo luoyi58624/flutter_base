@@ -10,7 +10,6 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
   ElTokens.$textDisabled: dark ? Color(0xff6c6e72) : Color(0xffd4d7de),
   if (!dark) ElTokens.$textOnLight: Color(0xff303133),
   if (!dark) ElTokens.$textOnDark: Color(0xffffffff),
-  if (!dark) ElTokens.$shadowXs: const <BoxShadow>[],
   if (!dark) ElTokens.$overlayColorLight: Color(0xb3000000),
   if (!dark) ElTokens.$overlayColorLighter: Color(0x80000000),
   if (!dark) ElTokens.$borderWidth: 1.0,
@@ -80,142 +79,11 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
             ),
           ]),
   ),
-  ElTokens.$shadowSm: List<BoxShadow>.unmodifiable(
-    (dark
-        ? [
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.32),
-              offset: const Offset(0, 1),
-              blurRadius: 2,
-              spreadRadius: 0,
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.1),
-              offset: const Offset(0, 1),
-              blurRadius: 2,
-              spreadRadius: 0,
-            ),
-          ]),
-  ),
-  ElTokens.$shadowMd: List<BoxShadow>.unmodifiable(
-    (dark
-        ? [
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.16),
-              offset: const Offset(0, 1),
-              blurRadius: 3,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.12),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-              spreadRadius: 0,
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.045),
-              offset: const Offset(0, 1),
-              blurRadius: 3,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.025),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-              spreadRadius: 0,
-            ),
-          ]),
-  ),
-  ElTokens.$shadowLg: List<BoxShadow>.unmodifiable(
-    (dark
-        ? [
-            BoxShadow(
-              color: const Color(0xffffffff).withValues(alpha: 0.2),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.36),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.7),
-              offset: const Offset(0, 20),
-              blurRadius: 48,
-              spreadRadius: -8,
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.07),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.12),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.24),
-              offset: const Offset(0, 18),
-              blurRadius: 44,
-              spreadRadius: -8,
-            ),
-          ]),
-  ),
-  ElTokens.$shadowXl: List<BoxShadow>.unmodifiable(
-    (dark
-        ? [
-            BoxShadow(
-              color: const Color(0xffffffff).withValues(alpha: 0.22),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.44),
-              offset: const Offset(0, 8),
-              blurRadius: 24,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.82),
-              offset: const Offset(0, 32),
-              blurRadius: 80,
-              spreadRadius: -12,
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.08),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.14),
-              offset: const Offset(0, 8),
-              blurRadius: 24,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.3),
-              offset: const Offset(0, 32),
-              blurRadius: 80,
-              spreadRadius: -12,
-            ),
-          ]),
-  ),
+  ElTokens.$shadowXs: _shadow(dark, const [(1, 4, 0, .05, .18)]),
+  ElTokens.$shadowSm: _shadow(dark, const [(2, 8, -1, .08, .24)]),
+  ElTokens.$shadowMd: _shadow(dark, const [(2, 6, -2, .055, .24), (6, 16, -3, .12, .32)]),
+  ElTokens.$shadowLg: _shadow(dark, const [(3, 8, -2, .06, .28), (12, 28, -5, .16, .4)]),
+  ElTokens.$shadowXl: _shadow(dark, const [(4, 12, -3, .07, .32), (20, 44, -7, .2, .5)]),
   ElTokens.$overlayColor: (dark
       ? const Color(0xff000000).withValues(alpha: .62)
       : const Color(0xff0c121c).withValues(alpha: .34)),
@@ -225,3 +93,15 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
   if (!dark) ElTokens.$fontWeightSubtitle: 600,
   if (!dark) ElTokens.$fontWeightTitle: 700,
 });
+
+// 各层依次为（向下偏移、模糊、扩张、浅色透明度、暗色透明度），使用柔和投影，避免硬轮廓。
+List<BoxShadow> _shadow(bool dark, List<(double, double, double, double, double)> layers) =>
+    List<BoxShadow>.unmodifiable([
+      for (final layer in layers)
+        BoxShadow(
+          color: const Color(0xff000000).withValues(alpha: dark ? layer.$5 : layer.$4),
+          offset: Offset(0, layer.$1),
+          blurRadius: layer.$2,
+          spreadRadius: layer.$3,
+        ),
+    ]);

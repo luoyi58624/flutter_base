@@ -13,7 +13,6 @@ Widget cardBuilder(BuildContext context, ElCard component) {
     width: '100%',
     backgroundColor: theme.cardColor,
     borderRadius: .circular(26),
-    border: ElBorder.all(borderColor: theme.borderColor.withValues(alpha: theme.borderColor.a * .65)),
     boxShadow: component.shadowLevel?.shadow(context),
     padding: const .fromLTRB(23, 25, 23, 26),
     userSelect: interactive ? .none : null,

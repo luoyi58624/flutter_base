@@ -1,5 +1,5 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.css:10-68、82-149。
-/// Web 根 token 为基线，移动页面背景沿用原 MyListTile 的中性灰。
+/// 颜色以 Web 为基线，页面使用中性灰，五档阴影采用独立的移动端柔和投影。
 library;
 
 import 'dart:convert';
@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
 
 void main() {
-  final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
+  final expected = jsonDecode(_themeSnapshot) as Map<String, dynamic>;
   expected['light']['background'] = 0xffeeeeee;
   for (final mode in ['light', 'dark']) {
     testWidgets('$mode 全部根颜色、阴影、overlay与四档字重', (tester) async {
@@ -53,6 +53,7 @@ void main() {
         expect(entry.value.toARGB32(), expected[mode][entry.key], reason: entry.key);
       }
       final shadows = <String, List<BoxShadow>>{
+        'extra-small-shadow': t.shadowXs,
         'selected-shadow': t.selectedShadow,
         'small-shadow': t.shadowSm,
         'shadow': t.shadowMd,
@@ -278,5 +279,5 @@ void main() {
   });
 }
 
-final _cssSnapshot =
-    r'''{"light":{"background":4294112245,"card-background":4294967295,"fill":4294046452,"border":4292731109,"text":4279703838,"text-secondary":4284639348,"gray":4290429646,"hover":4293520624,"press":4292928746,"selected-background":4294967295,"selected-shadow":[[0,1,4,0,1186085,0.1],[0,0,0,1,1186085,0.05]],"small-shadow":[[0,1,2,0,1186085,0.1]],"shadow":[[0,1,3,0,1186085,0.045],[0,4,12,0,1186085,0.025]],"popup-shadow":[[0,0,0,1,1186085,0.07],[0,4,12,0,1186085,0.12],[0,18,44,-8,1186085,0.24]],"modal-shadow":[[0,0,0,1,1186085,0.08],[0,8,24,0,1186085,0.14],[0,32,80,-12,1186085,0.3]],"success":4279724860,"warning":4286600448,"danger":4290062396,"primary":4280571078,"primary-text":4294967295},"dark":{"background":4279374873,"card-background":4280625457,"fill":4281547076,"border":4284048758,"text":4294244090,"text-secondary":4291087318,"gray":4286351772,"hover":4282139472,"press":4282797659,"selected-background":4282468694,"selected-shadow":[[0,1,5,0,0,0.28],[0,0,0,1,6846348,1]],"small-shadow":[[0,1,2,0,0,0.32]],"shadow":[[0,1,3,0,0,0.16],[0,4,12,0,0,0.12]],"popup-shadow":[[0,0,0,1,16777215,0.2],[0,4,12,0,0,0.36],[0,20,48,-8,0,0.7]],"modal-shadow":[[0,0,0,1,16777215,0.22],[0,8,24,0,0,0.44],[0,32,80,-12,0,0.82]],"success":4288995252,"warning":4294171522,"danger":4294945966,"primary":4289382655,"primary-text":4278190080}}''';
+final _themeSnapshot =
+    r'''{"light":{"background":4294112245,"card-background":4294967295,"fill":4294046452,"border":4292731109,"text":4279703838,"text-secondary":4284639348,"gray":4290429646,"hover":4293520624,"press":4292928746,"selected-background":4294967295,"selected-shadow":[[0,1,4,0,1186085,0.1],[0,0,0,1,1186085,0.05]],"small-shadow":[[0,2,8,-1,0,0.08]],"shadow":[[0,2,6,-2,0,0.055],[0,6,16,-3,0,0.12]],"popup-shadow":[[0,3,8,-2,0,0.06],[0,12,28,-5,0,0.16]],"modal-shadow":[[0,4,12,-3,0,0.07],[0,20,44,-7,0,0.2]],"success":4279724860,"warning":4286600448,"danger":4290062396,"primary":4280571078,"primary-text":4294967295,"extra-small-shadow":[[0,1,4,0,0,0.05]]},"dark":{"background":4279374873,"card-background":4280625457,"fill":4281547076,"border":4284048758,"text":4294244090,"text-secondary":4291087318,"gray":4286351772,"hover":4282139472,"press":4282797659,"selected-background":4282468694,"selected-shadow":[[0,1,5,0,0,0.28],[0,0,0,1,6846348,1]],"small-shadow":[[0,2,8,-1,0,0.24]],"shadow":[[0,2,6,-2,0,0.24],[0,6,16,-3,0,0.32]],"popup-shadow":[[0,3,8,-2,0,0.28],[0,12,28,-5,0,0.4]],"modal-shadow":[[0,4,12,-3,0,0.32],[0,20,44,-7,0,0.5]],"success":4288995252,"warning":4294171522,"danger":4294945966,"primary":4289382655,"primary-text":4278190080,"extra-small-shadow":[[0,1,4,0,0,0.18]]}}''';
