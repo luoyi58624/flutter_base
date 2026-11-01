@@ -42,6 +42,33 @@ Future<void> _slide(WidgetTester tester, String key, double value) async {
 }
 
 void main() {
+  testWidgets('桌面参数区独立滚动，预览、页面标题和两栏宽度保持原位', (tester) async {
+    await _host(tester, Size(1280, 900));
+    final preview = find.byKey(ValueKey('shadow-preview'));
+    final left = find.byKey(ValueKey('shadow-preview-scroll'));
+    final right = find.byKey(ValueKey('shadow-controls-scroll'));
+    final previewRect = tester.getRect(preview);
+    final titleRect = tester.getRect(find.byType(AppBar));
+    final leftRect = tester.getRect(left), rightRect = tester.getRect(right);
+    final leftState = tester.state<ElScrollViewState>(left);
+    final rightState = tester.state<ElScrollViewState>(right);
+    expect(rightState.position.maxScrollExtent, greaterThan(0));
+    rightState.position.jumpTo(rightState.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(rightState.position.pixels, greaterThan(0));
+    expect(leftState.position.pixels, 0);
+    expect(preview.hitTestable(), findsOneWidget);
+    expect(tester.getRect(preview), previewRect);
+    expect(tester.getRect(find.byType(AppBar)), titleRect);
+    expect(tester.getRect(left), leftRect);
+    expect(tester.getRect(right), rightRect);
+    await _slide(tester, 'shadow-strength', 1.5);
+    expect(preview.hitTestable(), findsOneWidget);
+    expect(tester.getRect(preview), previewRect);
+    expect(leftState.position.pixels, 0);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   for (final size in [Size(320, 700), Size(1280, 900), Size(800, 400)]) {
     testWidgets('游乐场布局 $size，同色预览与局部主题不改变应用默认值', (tester) async {
       final original = ElMobileTheme.lightVars[ElTokens.$shadowMd];

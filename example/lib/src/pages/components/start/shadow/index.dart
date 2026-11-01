@@ -194,18 +194,22 @@ ElStyle(
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth >= 900) {
-            return ElScrollView(
+            // 两栏各自占满可用高度，参数区滚动不再带走预览。
+            return Padding(
               padding: .all(16),
-              children: [
-                Row(
-                  crossAxisAlignment: .start,
-                  spacing: 24,
-                  children: [
-                    Expanded(child: preview),
-                    SizedBox(width: 340, child: controls),
-                  ],
-                ),
-              ],
+              child: Row(
+                crossAxisAlignment: .stretch,
+                spacing: 24,
+                children: [
+                  Expanded(
+                    child: ElScrollView(key: ValueKey('shadow-preview-scroll'), children: [preview]),
+                  ),
+                  SizedBox(
+                    width: 340,
+                    child: ElScrollView(key: ValueKey('shadow-controls-scroll'), children: [controls]),
+                  ),
+                ],
+              ),
             );
           }
           final inputs = [controls, result];
