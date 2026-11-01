@@ -1,5 +1,5 @@
 # Loading
 
-内部 Loading 保留 16 / 24 / 32 像素尺寸、默认说明、内容槽和减少动态效果配置，用作移动端按钮、开关及卡片的加载指示。
+内部 `Loading` 保留 Web 的 16 / 24 / 32 三档圆弧，按钮和列表可直接复用。`loadingIndicatorBuilder` 将公开 `ElLoadingIndicator` 的数值尺寸、根样式、辅助名称和可见说明交给同一皮肤。
 
-公共 ElLoadingIndicator 声明已存在，移动端尚未适配对应 Builder。具体实现不从 mobile.dart 导出，现有皮肤回归显式访问内部源码。实现见 [index.dart](index.dart)。
+图形尺寸同步作用于外框与实际 glyph；可见说明存在时由内容提供语义，不重复播报默认名称。旋转由 ElStyle 动画承担，减少动画设置会停转。具体类型与 Builder 不从 mobile.dart 导出。

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart' show CupertinoApp, CupertinoIcons;
 import 'package:flutter/material.dart' show MaterialApp, Icons;
 import 'package:flutter/semantics.dart' show SemanticsProperties;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_base/ui.dart';
@@ -10,6 +13,8 @@ import '../loading/index.dart';
 
 part 'group.dart';
 part 'popup.dart';
+
+VoidCallback? _activePopup;
 
 /// 沿用原列表行的布局，由公共组件持有值绑定。
 Widget listTileBuilder<T>(BuildContext context, ElListTile<T> component) => _ListTile<T>(component);
@@ -37,7 +42,27 @@ class _ListTile<T> extends HookWidget {
     final theme = context.elTheme;
     final ownFocus = useFocusNode();
     final focus = component.focusNode ?? ownFocus;
-    final open = useState(false);
+    final portal = useMemoized(ElPortalController.new);
+    useEffect(() => portal.dispose, [portal]);
+    final opening = useRef(false);
+    final closePopup = useMemoized(
+      () => () {
+        opening.value = false;
+        portal.close();
+      },
+      [portal],
+    );
+    final menuKey = useMemoized(GlobalKey<_PopupPanelState<T>>.new);
+    final pointer = useRef<Offset?>(null);
+    final anchorPosition = useState<Offset?>(null);
+    useListenable(portal);
+    useEffect(
+      () => () {
+        opening.value = false;
+        if (_activePopup == closePopup) _activePopup = null;
+      },
+      [closePopup],
+    );
     final press = useMemoized(ElButtonViewPressController.new);
     useEffect(() => press.dispose, [press]);
     useListenable(press);
@@ -65,10 +90,13 @@ class _ListTile<T> extends HookWidget {
       return null;
     }, [autofocus, focus, disabled]);
     useEffect(() {
-      if (disabled && open.value) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) open.value = false;
-        });
+      if (disabled) {
+        opening.value = false;
+        if (portal.isOpen) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) portal.close();
+          });
+        }
       }
       return null;
     }, [disabled]);
@@ -81,7 +109,24 @@ class _ListTile<T> extends HookWidget {
       } else if (switcher) {
         component.currentValue = (!(component.currentValue as bool)) as T;
       } else if (popup) {
-        if (Overlay.maybeOf(context) != null) open.value = !open.value;
+        if (Overlay.maybeOf(context) == null) return;
+        if (portal.isOpen || opening.value) {
+          opening.value = false;
+          portal.close();
+        } else if (component.options.isNotEmpty) {
+          _activePopup?.call();
+          _activePopup = closePopup;
+          opening.value = true;
+          anchorPosition.value = component.popupAnchor == null ? pointer.value : null;
+          focus.requestFocus();
+          WidgetsBinding.instance.scheduleFrame();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted && opening.value && !disabled) {
+              opening.value = false;
+              portal.open();
+            }
+          });
+        }
       } else {
         component.onTap?.call();
       }
@@ -107,15 +152,16 @@ class _ListTile<T> extends HookWidget {
     }
     var trailingText = component.trailingText;
     if (popup && trailingText == null) {
-      for (final option in component.options) {
-        if (option.value == component.currentValue) {
-          trailingText = option.label;
-          break;
-        }
-      }
+      trailingText = _selectedLabel(component.options, component.currentValue);
     }
 
-    final base = component.event ?? const ElEvent();
+    final original = component.event ?? const ElEvent();
+    final base = original.copyWith(
+      onTap: (event) {
+        original.onTap?.call(event);
+        pointer.value = event.originalEvent is PointerEvent ? event.globalPosition : null;
+      },
+    );
     final event = ElButtonView.buildEvent(activate, disabled, base, pressController: press, activateOnEnter: !switcher);
     var style = ElStyle(
       width: '100%',
@@ -191,7 +237,7 @@ class _ListTile<T> extends HookWidget {
           inMutuallyExclusiveGroup: radio ? true : null,
           toggled: switcher ? component.currentValue as bool : null,
           enabled: !disabled,
-          expanded: popup ? open.value && !disabled : null,
+          expanded: popup ? portal.isOpen && !disabled : null,
           onTap: ElButtonView.buildSemanticsTap(activate, base, disabled),
         ),
       ),
@@ -213,13 +259,34 @@ class _ListTile<T> extends HookWidget {
     }
     if (!popup || Overlay.maybeOf(context) == null) return row;
     return ElPortal(
-      anchor: component.popupAnchor!,
+      controller: portal,
+      anchor: component.popupAnchor ?? const ElOverlayAnchor(placement: .bottomStart, offset: 4),
+      anchorPosition: anchorPosition.value,
       captureFocus: true,
       restoreFocus: true,
       closeOnBack: true,
+      onBack: () {
+        final menu = menuKey.currentState;
+        menu == null ? closePopup() : menu._back();
+      },
+      closeOnEscape: false,
+      closeOnOutsidePointerDown: true,
+      closeOnScroll: anchorPosition.value != null,
       closeWhenUnlinked: true,
-      onDismiss: () => open.value = false,
-      panel: open.value && !disabled ? _popupPanel(context, component, () => open.value = false) : null,
+      exitDuration: reducedMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
+      onDismiss: closePopup,
+      panel: _PopupPanel<T>(
+        key: menuKey,
+        component: component,
+        close: closePopup,
+        onChoose: (option) {
+          if (component.closeOnSelect) portal.close();
+          // 先让既有 Portal 终止交互并归还焦点，通知可安全地再次打开菜单。
+          scheduleMicrotask(() {
+            if (context.mounted && !disabled) component.currentValue = option.value as T;
+          });
+        },
+      ),
       child: row,
     );
   }

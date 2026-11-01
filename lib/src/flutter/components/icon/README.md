@@ -1,5 +1,7 @@
 # Icon
 
-`ElIcon` 声明 IconData、逻辑 size、color、字体可变轴、静态字重、文字方向、系统缩放和辅助名称，通过 `iconBuilder(context, component)` 分派。
+ElIcon 保留 Flutter IconData 作为 child，共同参数只有 size、color、style 和 semanticLabel。装饰图标可以省略辅助名称。
 
-本目录不绘制图标、不加载品牌字体，也不实现缩放或方向镜像。ElIcons 等品牌图标集合仍由相应品牌库提供。
+不再单独公开 fill / weight / grade / opticalSize、fontWeight、textDirection 或 applyTextScaling。字形数据、可变轴、字体与方向由 ElStyle 或既有图标机制承接，不在接口复制一份 Flutter Icon 配置。
+
+当前移动端尚未登记 Icon Builder，具体实现不公开导出。

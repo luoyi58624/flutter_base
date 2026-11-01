@@ -54,12 +54,16 @@ class ElPortal extends StatefulWidget {
     this.panel,
     this.overlayBuilder,
     this.anchor = const ElOverlayAnchor(),
+    this.anchorPosition,
     this.rootOverlay = false,
     this.exitDuration = Duration.zero,
     this.consumeOutsideTap = false,
     this.closeOnOutsideTap = true,
+    this.closeOnOutsidePointerDown = false,
+    this.closeOnScroll = false,
     this.closeOnEscape = true,
     this.closeOnBack = false,
+    this.onBack,
     this.hideWhenUnlinked = false,
     this.closeWhenUnlinked = false,
     this.onDismiss,
@@ -83,10 +87,13 @@ class ElPortal extends StatefulWidget {
   /// 定位和避让配置。
   final ElOverlayAnchor anchor;
 
+  /// 可选的全局点锚，省略时继续跟随触发元素定位。
+  final Offset? anchorPosition;
+
   /// 是否使用根 Overlay，显示期间保持挂载点不变。
   final bool rootOverlay;
 
-  /// 关闭后保留退场内容的时长。
+  /// 关闭后保留退场内容的时长，期间固定关闭时的定位和尺寸。
   final Duration exitDuration;
 
   /// 外点是否阻止背景响应。
@@ -95,11 +102,20 @@ class ElPortal extends StatefulWidget {
   /// 是否通过外点关闭。
   final bool closeOnOutsideTap;
 
+  /// 允许外点关闭时改为按下即请求，省略时保留有效抬起后关闭的行为。
+  final bool closeOnOutsidePointerDown;
+
+  /// 触发者祖先滚动或面板外滚轮滚动时请求关闭，面板内部滚动不受影响。
+  final bool closeOnScroll;
+
   /// 是否通过 Escape 关闭。
   final bool closeOnEscape;
 
   /// 是否消费页面返回以关闭面板。
   final bool closeOnBack;
+
+  /// 系统返回的自定义动作，省略时请求关闭，可用于先返回子菜单层。
+  final VoidCallback? onBack;
 
   /// 目标离开视口时隐藏，返回后恢复。
   final bool hideWhenUnlinked;
@@ -138,6 +154,8 @@ class _PortalState extends State<ElPortal> {
     directionalTraversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
   );
   final _ignoreKey = GlobalKey(), _tapKey = GlobalKey();
+  final _scrollPositions = <ScrollPosition>{};
+  bool _listeningToPointerScroll = false;
   (int, Offset)? _outsideDown;
   FocusNode? _restore;
   Widget? _content;
@@ -146,6 +164,7 @@ class _PortalState extends State<ElPortal> {
   LocalHistoryEntry? _back;
   HoverIntentMachine? _hover;
   ElOverlayAnchorGeometry? _geometry;
+  ElOverlayAnchorGeometry? _layoutGeometry, _exitGeometry;
   ElPortalPhase _phase = ElPortalPhase.entering;
   bool _open = false, _queued = false, _root = false, _lost = false;
   bool get _top => _open && ElPopupStack.isTopmost(this);
@@ -181,6 +200,8 @@ class _PortalState extends State<ElPortal> {
       } else {
         _content = widget.panel;
       }
+    } else if (_open && widget.panel != null) {
+      _content = widget.panel;
     }
     if (_open && oldWidget.captureFocus != widget.captureFocus) {
       if (widget.captureFocus) {
@@ -191,6 +212,7 @@ class _PortalState extends State<ElPortal> {
       }
     }
     _syncStack();
+    _syncScrollObservers();
     if (_open && widget.closeOnBack) {
       _attachBack();
     } else {
@@ -233,6 +255,68 @@ class _PortalState extends State<ElPortal> {
     }
   }
 
+  void _syncScrollObservers() {
+    final listening = _open && widget.closeOnScroll;
+    if (!listening && _scrollPositions.isEmpty && !_listeningToPointerScroll) return;
+    final positions = <ScrollPosition>{};
+    if (listening) {
+      context.visitAncestorElements((element) {
+        if (element is StatefulElement && element.state is ScrollableState) {
+          positions.add((element.state as ScrollableState).position);
+        }
+        return true;
+      });
+    }
+    for (final position in _scrollPositions.difference(positions)) {
+      position.removeListener(_scrollChanged);
+    }
+    for (final position in positions.difference(_scrollPositions)) {
+      position.addListener(_scrollChanged);
+    }
+    _scrollPositions
+      ..clear()
+      ..addAll(positions);
+    if (listening == _listeningToPointerScroll) return;
+    _listeningToPointerScroll = listening;
+    if (listening) {
+      GestureBinding.instance.pointerRouter.addGlobalRoute(_pointerScroll);
+    } else {
+      GestureBinding.instance.pointerRouter.removeGlobalRoute(_pointerScroll);
+    }
+  }
+
+  void _scrollChanged() => _afterBuild(_dismiss);
+
+  void _pointerScroll(PointerEvent event) {
+    if (event is! PointerScrollEvent || !_top || !ElPopupStack.isTopmostForEvent(this, event)) return;
+    final render = _panelKey.currentContext?.findRenderObject();
+    if (render is RenderBox && render.attached && render.hasSize) {
+      final rect = MatrixUtils.transformRect(render.getTransformTo(null), Offset.zero & render.size);
+      if (rect.contains(event.position)) return;
+    }
+    _dismiss();
+  }
+
+  // Overlay 的视口不能表达嵌套滚动区裁剪，需沿原触发物的绘制链求交。
+  bool _targetClipped(RenderObject overlay, Rect rect) {
+    final target = _targetKey.currentContext?.findRenderObject();
+    if (target == null) return false;
+    var child = target;
+    var parent = child.parent;
+    while (parent != null) {
+      final clip = parent.describeApproximatePaintClip(child);
+      if (clip != null) {
+        final visible = MatrixUtils.transformRect(parent.getTransformTo(overlay), clip);
+        if (rect.isEmpty ? !visible.contains(rect.topLeft) : !rect.overlaps(visible)) return true;
+        if (!rect.isEmpty) rect = rect.intersect(visible);
+      }
+      if (identical(parent, overlay)) break;
+      child = parent;
+      parent = child.parent;
+    }
+    return false;
+  }
+
   void _show() {
     if (_open) return;
     if (_closed != null) {
@@ -240,6 +324,8 @@ class _PortalState extends State<ElPortal> {
       return;
     }
     _closed = Completer<void>();
+    _layoutGeometry = null;
+    _exitGeometry = null;
     _root = widget.rootOverlay;
     _restore = FocusManager.instance.primaryFocus;
     _content = widget.panel ?? Builder(builder: widget.overlayBuilder!);
@@ -252,6 +338,7 @@ class _PortalState extends State<ElPortal> {
       _phase = ElPortalPhase.entering;
     });
     _syncStack();
+    _syncScrollObservers();
     _afterBuild(() {
       if (!mounted || !_open) return;
       _portal.show();
@@ -270,6 +357,7 @@ class _PortalState extends State<ElPortal> {
     if (_panelKey.currentContext?.findRenderObject() case final RenderObject panel) {
       EventDispatcher.terminateActivePointerSequencesIn(panel, force: true);
     }
+    _exitGeometry = _layoutGeometry;
     _detachBack();
     _releaseFocus();
     _focus
@@ -281,6 +369,7 @@ class _PortalState extends State<ElPortal> {
       _phase = ElPortalPhase.exiting;
     });
     _syncStack();
+    _syncScrollObservers();
     if (widget.exitDuration == Duration.zero) {
       _finishExit();
     } else {
@@ -344,7 +433,7 @@ class _PortalState extends State<ElPortal> {
         onRemove: () {
           if (!identical(_back, entry)) return;
           _back = null;
-          _dismiss();
+          if (_top) (widget.onBack ?? _dismiss)();
           scheduleMicrotask(() {
             if (mounted) _attachBack();
           });
@@ -381,6 +470,7 @@ class _PortalState extends State<ElPortal> {
     child: child,
   );
   void _publish(ElOverlayAnchorGeometry geometry) {
+    _layoutGeometry = geometry;
     if (geometry == _geometry) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && geometry != _geometry) setState(() => _geometry = geometry);
@@ -390,6 +480,7 @@ class _PortalState extends State<ElPortal> {
   @override
   Widget build(BuildContext context) {
     _bindController();
+    _syncScrollObservers();
     Widget buildOverlay(BuildContext context, Matrix4 targetTransform, Size targetSize, Size overlaySize) {
       if (_content == null) return const SizedBox.shrink();
       if (_open && widget.captureFocus && !_focus.hasFocus) {
@@ -397,9 +488,15 @@ class _PortalState extends State<ElPortal> {
           if (mounted && _open) _requestFocus();
         });
       }
-      final rect = MatrixUtils.transformRect(targetTransform, Offset.zero & targetSize);
+      final targetRect = MatrixUtils.transformRect(targetTransform, Offset.zero & targetSize);
+      final overlay = Overlay.of(context, rootOverlay: _root).context.findRenderObject()! as RenderBox;
+      final rect = widget.anchorPosition == null
+          ? targetRect
+          : overlay.globalToLocal(widget.anchorPosition!) & Size.zero;
       final viewport = Offset.zero & overlaySize;
-      final lost = rect.isEmpty ? !viewport.contains(rect.topLeft) : !rect.overlaps(viewport);
+      final lost =
+          (targetRect.isEmpty ? !viewport.contains(targetRect.topLeft) : !targetRect.overlaps(viewport)) ||
+          ((widget.hideWhenUnlinked || widget.closeWhenUnlinked) && _targetClipped(overlay, targetRect));
       if (lost && !_lost && widget.closeWhenUnlinked) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _dismiss();
@@ -412,7 +509,7 @@ class _PortalState extends State<ElPortal> {
         child: Offstage(
           offstage: lost && widget.hideWhenUnlinked,
           child: CustomSingleChildLayout(
-            delegate: _PopupLayout(rect, widget.anchor, _publish),
+            delegate: _PopupLayout(rect, widget.anchor, _publish, frozen: _open ? null : _exitGeometry),
             child: TapRegion(
               key: _tapKey,
               groupId: this,
@@ -421,6 +518,10 @@ class _PortalState extends State<ElPortal> {
               onTapOutside: (event) {
                 if (_top && ElPopupStack.isTopmostForEvent(this, event)) {
                   _outsideDown = (event.pointer, event.position);
+                  if (widget.closeOnOutsideTap && widget.closeOnOutsidePointerDown) {
+                    _outsideDown = null;
+                    _dismiss();
+                  }
                 }
               },
               onTapUpOutside: (event) {
@@ -484,6 +585,7 @@ class _PortalState extends State<ElPortal> {
     _exit?.cancel();
     _hover?.dispose();
     _open = false;
+    _syncScrollObservers();
     _detachBack();
     _releaseFocus();
     _focus.dispose();
@@ -504,12 +606,14 @@ class _PortalScope extends InheritedWidget {
 }
 
 class _PopupLayout extends SingleChildLayoutDelegate {
-  _PopupLayout(this.rect, this.config, this.onGeometry);
+  _PopupLayout(this.rect, this.config, this.onGeometry, {this.frozen});
   final Rect rect;
   final ElOverlayAnchor config;
   final ValueChanged<ElOverlayAnchorGeometry> onGeometry;
+  final ElOverlayAnchorGeometry? frozen;
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    if (frozen != null) return BoxConstraints.tight(frozen!.overlayRect.size);
     final width = (constraints.maxWidth - config.viewportPadding * 2).clamp(0.0, double.infinity);
     final anchorWidth = rect.width.clamp(0.0, width);
     return BoxConstraints(
@@ -521,11 +625,12 @@ class _PopupLayout extends SingleChildLayoutDelegate {
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    final geometry = config.resolve(rect, childSize, size);
+    final geometry = frozen ?? config.resolve(rect, childSize, size);
     onGeometry(geometry);
     return geometry.overlayRect.topLeft;
   }
 
   @override
-  bool shouldRelayout(_PopupLayout oldDelegate) => rect != oldDelegate.rect || config != oldDelegate.config;
+  bool shouldRelayout(_PopupLayout oldDelegate) =>
+      rect != oldDelegate.rect || config != oldDelegate.config || frozen != oldDelegate.frozen;
 }

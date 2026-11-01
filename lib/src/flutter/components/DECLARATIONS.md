@@ -1,21 +1,29 @@
-# 声明扩充范围
+# 通用组件范围
 
 ## 准入原则
 
-只有桌面端与移动端都存在合理使用场景、职责一致的组件才能定义为通用接口。不能仅因某一端已有实现，或者技术上能够在另一端绘制，就将组件加入公共层。品牌之间可以有外观差异，但不应依赖空实现、忽略参数或替换为另一种组件来满足接口。
+Web 组件的逐项对应、端专属形态与待适配缺口见 [my-ui Web 接口基准](WEB_BASELINE.md)。
 
-端专属导航、布局协议和业务综合页面由对应品牌提供；未迁入的实现继续留在源库，本次不新增品牌实现。已有品牌实现暂未适配某个通用组件，不影响它的通用语义；声明与实现接入仍分别处理。
+新增通用接口以 my-ui Web 已有组件为基准，只保留桌面端与移动端职责一致的组件。不能仅因某一端已有实现，或者技术上能够在另一端绘制，就将组件加入公共层。品牌之间可以有外观差异，但不应依赖空实现、忽略参数或替换为另一种组件来满足接口。
+
+端专属导航、布局协议和业务综合页面由对应品牌提供。没有 Web 对应且尚无真实实现或消费者的额外空声明直接移除，不为假想场景预留接口；已有桌面输入实现、模型与视图内核继续保留。
 
 ## 已覆盖
 
-通用层定义公开参数、数据模型、回调与 Builder 登记。Widget 的 build 只转交声明，不提供默认布局、绘制、状态绑定、命令、动画或手势；未登记的 Builder 为 null，各品牌主题按实际支持范围安装实现。
+通用层定义公开参数、数据模型、回调与 Builder 登记，模型与交互是否由公共宿主持有以各组件契约为准；品牌 Builder 提供具体外观。未登记的 Builder 为 null，各品牌主题按实际支持范围安装实现，不为缺失能力填充占位实现。
 
 - 基础内容：Card、LoadingIndicator、Icon、ListTile / ListTileGroup。
-- 内容定位与流程：Anchor、Affix、Steps / Step、Backtop。
-- 数据与表单：Avatar / Group、Calendar、Carousel、Collapse / Item、Countdown、Descriptions、Empty、Pagination、Progress、Rate、Segmented、Slider、Skeleton / Item、Statistic、Tabs / TabBar、Timeline / Item。
-- 展示与反馈：Alert、Result。
+- 流程：Steps / Step。
+- 数据与表单：Avatar、Calendar、Collapse / Item、Empty、Progress、Segmented、Slider、Skeleton、Tabs / TabBar。
+- 展示与反馈：Alert（对应 Web Notice）。
 
 Radio / Checkbox 的状态声明新增可空 isLast：null 明确表示当前宿主尚未提供布局信息。本阶段不推导末项、不修改叶子行为，也不启用此前跳过的品牌皮肤。
+
+Progress 仅保留 Web 的直线／圆环、value / max / buffer、状态和读数插槽；Skeleton 保留 loading / rows / avatar 及原正文实例。不保留无 Web 对应的 dashboard、色标、独立 SkeletonItem、AvatarGroup 或模板等空参数。Tabs 去掉增删页和侧栏形态；Segmented、Collapse、Tabs、Calendar、Slider 的绑定使用完整模型泛型，Steps 使用 Web 固定下标模型。
+
+## 移除的额外空声明
+
+Anchor、Affix、Backtop、Carousel、Countdown、Descriptions、Pagination、Rate、Statistic、Timeline、Result 的源码、公开导出和 Builder 登记一并移除。这些组件没有 my-ui Web 对应，当前也没有品牌实现或生产消费者；移除依据是本轮以 Web 为基准的范围，不将“Web 没有”混同为“语义上不能跨端”。
 
 ## 不进入通用接口
 

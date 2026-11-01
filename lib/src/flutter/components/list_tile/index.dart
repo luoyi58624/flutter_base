@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 part 'group.dart';
+part 'option.dart';
 
 /// 列表行的声明模式。
 enum ElListTileType {
@@ -92,7 +93,7 @@ class ElListTile<T> extends ElModelValue<T> {
     this.trailing = ElEmptyWidget.instance,
     this.trailingText,
     required this.options,
-    this.popupAnchor = const ElOverlayAnchor(placement: .bottomStart, offset: 4),
+    this.popupAnchor,
     this.popupMaxHeight,
     this.popupStyle,
     this.optionStyle,
@@ -105,7 +106,7 @@ class ElListTile<T> extends ElModelValue<T> {
     this.semanticLabel,
   }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥，二选一'),
        assert(value != null || modelValue != null || null is T, '非空 T 必须提供 value 或 modelValue，无选中值时使用可空类型'),
-       assert(options.every((option) => option.value is T), '菜单项 value 必须符合绑定类型 T'),
+       assert(_validMenuOptions<T>(options), '菜单树的 value 必须符合绑定类型 T 且唯一'),
        assert(popupMaxHeight == null || (popupMaxHeight > 0 && popupMaxHeight.isFinite), 'popupMaxHeight 必须是正的有限数'),
        type = .popup,
        onTap = null,
@@ -151,10 +152,10 @@ class ElListTile<T> extends ElModelValue<T> {
   /// 开关行末端开关的样式。
   final ElStyle? switchStyle;
 
-  /// 弹出菜单的选项，每项 value 须符合 T 并回写模型，label 用于默认展示。
+  /// 单选菜单项，简单项使用 ElLabelModel，嵌套、禁用或带说明的项使用 ElMenuOption。
   final List<ElLabelModel<T>> options;
 
-  /// 弹出菜单相对列表行的定位、间距、宽度匹配和边界避让配置。
+  /// 显式设置元素锚定；省略时由品牌按指针位置或键盘触发元素定位。
   final ElOverlayAnchor? popupAnchor;
 
   /// 弹出菜单最大高度，省略时由可用空间限制。

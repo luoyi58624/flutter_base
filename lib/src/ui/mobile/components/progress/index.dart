@@ -11,6 +11,29 @@ import 'package:flutter_base/ui.dart';
 import '../../cores/common.dart';
 import '../../cores/glyph.dart';
 
+/// 将公共完成量、状态和读数交给原移动端进度皮肤。
+Widget progressBuilder(BuildContext context, ElProgress component) => Progress(
+  value: component.value,
+  buffer: component.buffer,
+  max: component.max,
+  type: component.shape == .circle ? .circle : .line,
+  status: switch (component.status) {
+    .normal => .normal,
+    .success => .success,
+    .warning => .warning,
+    .error => .error,
+  },
+  label: component.semanticLabel,
+  showText: component.showText,
+  textBuilder: component.textBuilder == null
+      ? null
+      : (context, value) => component.textBuilder!(
+          context,
+          ElProgressValue(value: value.value, max: value.max, percentage: value.percentage),
+        ),
+  style: component.style,
+);
+
 /// 进度展示方式。
 enum ProgressType {
   /// 条形。
@@ -81,6 +104,7 @@ class Progress extends HookWidget {
     this.label = '进度',
     this.showText = true,
     this.textBuilder,
+    this.style,
   });
 
   /// 当前完成量。
@@ -99,13 +123,16 @@ class Progress extends HookWidget {
   final ProgressStatus status;
 
   /// 辅助名称。
-  final String label;
+  final String? label;
 
   /// 是否展示读数，隐藏时保留插槽实例。
   final bool showText;
 
   /// 对应带value/max/percentage的默认插槽。
   final ProgressTextBuilder? textBuilder;
+
+  /// 公共声明提供的根样式，数值宽高同步参与圆环内容的尺寸计算。
+  final ElStyle? style;
   @override
   Widget build(BuildContext context) {
     final vars = ElView.maybeOf(context);
@@ -125,7 +152,12 @@ class Progress extends HookWidget {
         };
     final track = vars?.getVar<Color>($track) ?? t.fill,
         bufferColor = vars?.getVar<Color>($bufferColor) ?? Color.lerp(track, color, .28)!;
-    final size = vars?.getVar<num>($size)?.toDouble() ?? 96, thickness = vars?.getVar<num>($thickness)?.toDouble() ?? 6;
+    double? dimension(Object? value) => value is num && value.isFinite && value > 0 ? value.toDouble() : null;
+    final width = circle ? dimension(style?.width) : null;
+    final height = circle ? dimension(style?.height) : null;
+    final fallback = vars?.getVar<num>($size)?.toDouble() ?? 96;
+    final size = math.min(width ?? height ?? fallback, height ?? width ?? fallback);
+    final thickness = vars?.getVar<num>($thickness)?.toDouble() ?? 6;
     final clock = useAnimationController(duration: Duration(milliseconds: circle ? 1000 : 1400));
     useEffect(() {
       if (indefinite && !reduced) {
@@ -221,7 +253,7 @@ class Progress extends HookWidget {
           hint: buffered == null ? null : '已缓冲 ${(buffered * 100).round()}%',
         ),
       ),
-      style: ElStyle(width: circle ? size : '100%', height: circle ? size : null),
+      style: ElStyle(width: circle ? size : '100%', height: circle ? size : null).merge(style),
       child: circle
           ? Stack(
               fit: StackFit.expand,
@@ -267,7 +299,8 @@ class _ProgressPainter extends CustomPainter {
     final paint = Paint()..isAntiAlias = true;
     if (circle) {
       // TODO(parity): CSS圆环在0值/缓冲隐藏时另有200ms opacity过渡，目前仅插值弧长。
-      final center = size.center(Offset.zero), radius = size.width * .44, stroke = thickness * size.width / 100;
+      final extent = math.min(size.width, size.height);
+      final center = size.center(Offset.zero), radius = extent * .44, stroke = thickness * extent / 100;
       final rect = Rect.fromCircle(center: center, radius: radius);
       paint
         ..style = PaintingStyle.stroke

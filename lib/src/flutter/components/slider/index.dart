@@ -1,45 +1,101 @@
-import 'package:flutter/material.dart'
-    show SemanticFormatterCallback, SliderInteraction;
 import 'package:flutter/widgets.dart';
-
 import 'package:flutter_base/ui.dart';
 
-/// 滑动数值选择公共声明。
-class ElSlider extends StatelessWidget {
-  /// 创建滑动数值选择公共声明。
-  const ElSlider({
+/// 滑块数值提示的显示方式。
+enum ElSliderValueLabelDisplay {
+  /// 交互或键盘聚焦时显示。
+  auto,
+
+  /// 始终显示。
+  on,
+
+  /// 隐藏提示。
+  off,
+}
+
+/// 使用与滑块相同单位的刻度位置和可选文字。
+class ElSliderMark {
+  /// 创建刻度。
+  const ElSliderMark({required this.value, this.label});
+
+  /// 刻度对应的数值。
+  final double value;
+
+  /// 刻度下方的文字或内容，省略时只显示刻度。
+  final Object? label;
+}
+
+/// 单值或范围滑块声明，D 为 double 或 `List<double>` 的完整模型。
+class ElSlider<D> extends ElModelValue<D> {
+  /// 创建单滑块，省略普通值时以 min 作为初始值。
+  ElSlider({
     super.key,
-    this.value,
-    this.modelValue,
-    this.onChanged,
-    this.min = 0.0,
-    this.max = 1.0,
-    this.onChangeStart,
-    this.onChangeEnd,
-    this.divisions,
+    D? value,
+    super.modelValue,
+    super.onChanged,
+    this.min = 0,
+    this.max = 100,
+    this.step = 1,
+    this.buffer,
+    this.marks = false,
     this.label,
-    this.activeColor,
-    this.inactiveColor,
-    this.secondaryActiveColor,
-    this.thumbColor,
-    this.overlayColor,
-    this.mouseCursor,
-    this.semanticFormatterCallback,
+    this.valueLabelDisplay = .auto,
+    this.valueLabelFormat,
+    this.semanticValueFormat,
+    this.disabled = false,
+    this.unit = '%',
+    this.startLabel = '柔和',
+    this.endLabel = '鲜明',
+    this.style,
     this.focusNode,
-    this.allowedInteraction,
-    this.padding,
+    this.event,
   }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥'),
+       assert(0.0 is D, '单滑块的模型类型必须兼容 double'),
+       assert(value == null || value is double, '单滑块的值必须为 double'),
+       assert(modelValue == null || modelValue.value is double, '单滑块模型必须持有 double'),
        assert(min <= max, 'min 不得大于 max'),
-       assert(divisions == null || divisions > 0, 'divisions 必须大于 0');
+       assert(step == null || (step > 0 && step < double.infinity), 'step 须为正有限数或 null'),
+       assert(marks is bool || marks is List<ElSliderMark>, 'marks 须为 bool 或 ElSliderMark 列表'),
+       isRange = false,
+       super(value: value ?? min as D);
 
-  /// 普通值输入，具体同步由品牌实现处理。
-  final double? value;
+  /// 创建范围滑块，D 为完整 `List<double>`，初始值或模型由调用方提供。
+  ElSlider.range({
+    super.key,
+    super.value,
+    super.modelValue,
+    super.onChanged,
+    this.min = 0,
+    this.max = 100,
+    this.step = 1,
+    this.buffer,
+    this.marks = false,
+    this.label,
+    this.valueLabelDisplay = .auto,
+    this.valueLabelFormat,
+    this.semanticValueFormat,
+    this.disabled = false,
+    this.unit = '%',
+    this.startLabel = '柔和',
+    this.endLabel = '鲜明',
+    this.style,
+    this.focusNode,
+    this.event,
+  }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥'),
+       assert((modelValue?.value ?? value) is List<double>, '范围滑块须提供 List<double> 初始值或模型'),
+       assert(min <= max, 'min 不得大于 max'),
+       assert(step == null || (step > 0 && step < double.infinity), 'step 须为正有限数或 null'),
+       assert(marks is bool || marks is List<ElSliderMark>, 'marks 须为 bool 或 ElSliderMark 列表'),
+       isRange = true;
 
-  /// 外部双向模型，生命周期由调用方管理。
-  final ValueNotifier<double>? modelValue;
+  /// 是否由范围构造创建。
+  final bool isRange;
 
-  /// 模型变化通知。
-  final ValueChanged<double>? onChanged;
+  /// 挂载后由公共模型持有的完整数值。
+  D get currentValue => $obs.value;
+
+  /// 写入同一模型并沿用公共通知规则。
+  set currentValue(D value) => $obs.value = value;
 
   /// 允许的最小值。
   final double min;
@@ -47,49 +103,48 @@ class ElSlider extends StatelessWidget {
   /// 允许的最大值。
   final double max;
 
-  /// 用户开始拖动时通知当前值。
-  final ValueChanged<double>? onChangeStart;
+  /// 取值步长，null 表示仅允许 marks 指定的值。
+  final double? step;
 
-  /// 用户结束拖动时通知当前值。
-  final ValueChanged<double>? onChangeEnd;
+  /// 已缓冲到的数值，与 min / max 使用相同单位。
+  final double? buffer;
 
-  /// 离散分段数量，null 表示连续选择。
-  final int? divisions;
+  /// true 按步长展示刻度，列表指定刻度位置与内容，false 隐藏刻度。
+  final Object marks;
 
-  /// 显示在滑块提示中的文字。
+  /// 滑块的可见标签及默认辅助名称。
   final String? label;
 
-  /// 已完成轨道颜色。
-  final Color? activeColor;
+  /// 数值提示的显示方式。
+  final ElSliderValueLabelDisplay valueLabelDisplay;
 
-  /// 未完成轨道颜色。
-  final Color? inactiveColor;
+  /// 自定义可见数值文案，索引区分范围的两个端点。
+  final String Function(double value, int index)? valueLabelFormat;
 
-  /// 次级活动轨道颜色。
-  final Color? secondaryActiveColor;
+  /// 自定义辅助技术数值文案，省略时沿用可见文案。
+  final String Function(double value, int index)? semanticValueFormat;
 
-  /// 滑块颜色。
-  final Color? thumbColor;
+  /// 禁止拖动与键盘调整。
+  final bool disabled;
 
-  /// 按交互状态解析的覆盖色。
-  final WidgetStateProperty<Color?>? overlayColor;
+  /// 默认数值文案追加的单位。
+  final String unit;
 
-  /// 滑块鼠标光标。
-  final MouseCursor? mouseCursor;
+  /// 轨道起点说明。
+  final String? startLabel;
 
-  /// 将数值转为辅助技术读数。
-  final SemanticFormatterCallback? semanticFormatterCallback;
+  /// 轨道终点说明。
+  final String? endLabel;
 
-  /// 调用方管理的外部焦点节点。
+  /// 在品牌默认外观之后合并的根样式。
+  final ElStyle? style;
+
+  /// 外部焦点节点，生命周期由调用方管理。
   final FocusNode? focusNode;
 
-  /// 允许的滑动与轨道点击方式。
-  final SliderInteraction? allowedInteraction;
-
-  /// 轨道周围的内边距。
-  final EdgeInsetsGeometry? padding;
+  /// 用户事件，沿用公共事件与 preventDefault 规则。
+  final ElEvent? event;
 
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).sliderBuilder!(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).sliderBuilder!<D>(context, this);
 }

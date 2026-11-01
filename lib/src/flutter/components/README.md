@@ -2,7 +2,7 @@
 
 组件按用途分目录，每个目录以 `index.dart` 为入口，`README.md` 说明当前接口和组合方式。Radio 与 Checkbox 的分组实现分别位于各自目录的 `group.dart`。
 
-只有桌面端与移动端都适用、职责一致的组件才能进入本目录；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。通用声明按品牌逐步接入，实际支持清单见各品牌目录；完整分类与服务边界见 [声明扩充范围](DECLARATIONS.md)。
+新增通用接口以 my-ui Web 已有组件为基准，只保留桌面端与移动端职责一致的组件；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。已有桌面输入实现与通用视图内核继续保留，实际支持清单见各品牌目录；完整分类与服务边界见 [通用组件范围](DECLARATIONS.md)。
 
 ## 导入与实现登记
 
@@ -44,30 +44,19 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [Tag](tag/README.md) | 展示、关闭与布尔切换标签 |
 | [Text](text/README.md) | 文本参数声明与品牌分派 |
 | [Card](card/README.md) | 卡片内容、整卡交互与加载状态，移动端已接入 |
-| [LoadingIndicator](loading_indicator/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [LoadingIndicator](loading_indicator/README.md) | 共用加载指示接口，移动端已接入 |
 | [Icon](icon/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Anchor](anchor/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Affix](affix/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Steps](steps/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Avatar](avatar/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Calendar](calendar/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Carousel](carousel/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Collapse](collapse/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Countdown](countdown/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Descriptions](descriptions/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Empty](empty/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Pagination](pagination/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Progress](progress/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Rate](rate/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Progress](progress/README.md) | Web 直线／圆环进度接口，移动端已接入 |
 | [Segmented](segmented/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Slider](slider/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Skeleton](skeleton/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Statistic](statistic/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Skeleton](skeleton/README.md) | 加载占位与正文保活接口，移动端已接入 |
 | [Tabs](tabs/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Timeline](timeline/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Alert](alert/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Result](result/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Backtop](backtop/README.md) | 参数与 Builder 契约，尚无默认实现 |
 
 ## 值绑定与生命周期
 

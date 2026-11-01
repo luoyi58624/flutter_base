@@ -19,7 +19,9 @@
 
 开关行使用 `ElListTile<bool>.switcher`，不接受 `trailing` 或 `trailingText`，末端固定为开关，未提供值通道时从 false 开始。整行与内部开关共享一次激活，避免一次点击切换两次。触摸反馈延迟通过 `event.config` 配置，不重复提供行参数。
 
-弹窗行承接 Web 列表页 `Popover + ListRow` 的单选组合：`options` 复用 `ElLabelModel<T>`，每项 value 必须符合 T，选择后通过同一个 T 模型回写；`trailingText` 省略时显示当前选中项的文案，默认后缀提示可打开菜单。`popupAnchor` 复用 `ElOverlayAnchor`，声明方位、间距、宽度匹配及边界避让，默认在行下方起边展开、间距 4；`closeOnSelect` 默认 true。不引入菜单多选或另一套选项模型。
+弹窗行承接 Web 列表页 `Popover + ListRow` 的单选组合：简单项使用 `ElLabelModel<T>`，嵌套、禁用或带说明／图标的项使用继承它的 `ElMenuOption<T>`。整棵树的 value 必须符合 T 且唯一，只有叶子提交选择；分支会反映后代的选中状态。`trailingText` 省略时显示选中叶子的文案。
+
+`popupAnchor` 省略时，移动端从实际按压点展开，键盘和辅助技术激活则跟随触发行；显式传入 `ElOverlayAnchor` 可指定元素锚的方位、间距、宽度匹配及边界避让。默认宽 236、圆角 17、视口边距 8，菜单优先整体移动以利用可用高度，确实放不下才滚动。`closeOnSelect` 默认 true，关闭交互并归还焦点后再通知模型；不把普通动作、多选或右键触发塞入列表行接口。
 
 ```dart
 ElListTile<bool>.switcher(title: '通知', modelValue: notifications);
@@ -27,6 +29,17 @@ ElListTile<String>.popup(
   title: '排序方式',
   modelValue: sort,
   options: [ElLabelModel('最新', 'latest'), ElLabelModel('最早', 'earliest')],
+);
+
+ElListTile<int>.popup(
+  title: '显示设置',
+  value: 2,
+  options: [
+    ElMenuOption('外观', 0, children: [
+      ElMenuOption('浅色', 1),
+      ElMenuOption('暗色', 2, description: '适合弱光环境'),
+    ]),
+  ],
 );
 ```
 
@@ -63,4 +76,6 @@ ElListTileGroup<List<ThemeMode>>.multi(
 
 布局沿用原代码：ElView 包 Row，内容区 Expanded；上下内边距 16，无前侧内容时留 16，有前侧内容时占 56。分组为圆角 16 的裁剪容器，通过 ElChildIndex 告知末项；分隔线用 Stack / Positioned 覆盖绘制，厚度 .5，左侧与正文对齐、右侧缩进 16。独立列表行不要求索引祖先。
 
-颜色读取 `context.elTheme`，默认只提供按压反馈。单选使用 Flutter RadioGroup，开关尾部只绘制视觉，不另外绑定表单或外部模型；弹窗使用已有 ElPortal 管理定位、外点、Escape 和焦点恢复。
+颜色读取 `context.elTheme`，默认只提供按压反馈。单选分组使用 Flutter RadioGroup，开关尾部只绘制视觉，不另外绑定表单或外部模型。弹窗复用 ElPortal 管理挂载、定位、焦点和关闭；菜单独立处理逐项 Tab／方向键、Home／End、字符查找和层级返回，不改变分组的导航语义。
+
+子菜单在移动端叠放：父列表缩至 .94 并暂停内容交互，保留返回区域及滚动位置；子层标题复用原分支的文案、图标与说明，返回恢复原行焦点。Escape／左方向键和系统返回逐层返回，根层才关闭，外点则关闭整棵树。默认展开 260ms，退出冻结当前姿态并整体淡出 200ms；减少动态效果设置会关闭默认动画。

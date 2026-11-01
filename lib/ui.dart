@@ -3,7 +3,6 @@ library;
 
 export 'src/ui/theme.dart';
 
-export 'src/flutter/components/list_tile/index.dart';
 export 'src/flutter/views/selection/index.dart';
 export 'src/flutter/views/view/index.dart';
 
@@ -69,7 +68,8 @@ export 'src/flutter/views/view/event/event.dart'
         ElFocusReason;
 
 // 滚动、虚拟化、滚动条与刷新
-export 'src/flutter/views/scroll/scroll_view.dart' show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
+export 'src/flutter/views/scroll/scroll_view.dart'
+    show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
 export 'src/flutter/views/scroll/scroll_state.dart'
     show
         ElScrollSnapshot,
@@ -248,50 +248,32 @@ export 'src/flutter/components/index.dart'
         ElTag,
         ElTagEffect,
         ElText,
-        ElAffix,
         ElAlert,
-        ElAlertEffect,
-        ElAnchor,
-        ElAnchorLink,
-        ElAnchorType,
         ElAvatar,
-        ElAvatarGroup,
         ElAvatarShape,
-        ElBacktop,
         ElCalendar,
-        ElCalendarDayType,
         ElCard,
-        ElCarousel,
-        ElCarouselArrow,
-        ElCarouselIndicator,
-        ElCarouselTrigger,
         ElCollapse,
         ElCollapseItem,
-        ElCountdown,
-        ElDescriptions,
-        ElDescriptionsItem,
         ElEmpty,
+        ElEmptyState,
         ElIcon,
         ElListTile,
         ElListTileGroup,
         ElListTileType,
+        ElMenuOption,
         ElLoadingIndicator,
-        ElPagination,
         ElProgress,
-        ElProgressColorStop,
         ElProgressShape,
         ElProgressStatus,
         ElProgressTextBuilder,
         ElProgressValue,
-        ElRate,
-        ElResult,
         ElSegmented,
         ElSegmentedOption,
         ElSkeleton,
-        ElSkeletonItem,
-        ElSkeletonVariant,
         ElSlider,
-        ElStatistic,
+        ElSliderMark,
+        ElSliderValueLabelDisplay,
         ElStep,
         ElStepStatus,
         ElSteps,
@@ -300,11 +282,5 @@ export 'src/flutter/components/index.dart'
         ElTabItem,
         ElTabPane,
         ElTabs,
-        ElTabsPosition,
-        ElTabsType,
-        ElTimeline,
-        ElTimelineItem,
-        ElTimelineNodeSize,
-        ElTimelinePlacement,
         resolveElMentionContext,
         resolveElMentionWholeContext;

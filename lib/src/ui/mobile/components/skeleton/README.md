@@ -1,5 +1,5 @@
 # Skeleton
 
-内部 Skeleton 皮肤保留加载状态、头像、行数、加载说明和正文实例；加载期间仍屏蔽正文的焦点与语义，供内部回归继续验证。
+内部 `Skeleton` 保留原 Web 皮肤的标题、正文行、头像和加载说明，`skeletonBuilder` 直接承接公共 `ElSkeleton`。
 
-公共 ElSkeleton 声明已存在，移动端尚未适配其完整参数与 Builder。具体实现不从 mobile.dart 导出。实现见 [index.dart](index.dart)。
+加载期间用 Offstage / ExcludeFocus / TickerMode 保留正文实例，同时屏蔽焦点、语义和动画；加载结束后恢复原正文。默认脉冲遵循系统减少动画设置，根样式最后合并。具体类型与 Builder 不从 mobile.dart 导出。

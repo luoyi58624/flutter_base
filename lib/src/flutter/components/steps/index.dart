@@ -1,100 +1,84 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
-/// 步骤的展示状态。
+/// 当前步骤允许声明的状态，前后步骤状态由品牌根据当前下标推导。
 enum ElStepStatus {
-  /// 尚未开始。
-  wait,
-
   /// 当前处理中。
   process,
 
-  /// 已完成。
-  finish,
-
-  /// 发生错误。
+  /// 当前步骤失败。
   error,
-
-  /// 成功完成。
-  success,
 }
 
-/// 步骤集合与当前下标的公共声明。
-class ElSteps extends StatelessWidget {
-  /// 创建步骤条配置，不派生条目状态。
-  const ElSteps({
+/// 以索引绑定当前步骤的公共声明。
+class ElSteps extends ElModelValue<int> {
+  /// 创建步骤条，默认仅展示进度。
+  ElSteps({
     super.key,
+    int? value,
+    super.modelValue,
+    super.onChanged,
     required this.children,
-    this.active = 0,
-    this.direction = Axis.horizontal,
-    this.finishStatus = ElStepStatus.finish,
-    this.processStatus = ElStepStatus.process,
+    this.status = .process,
+    this.vertical = false,
+    this.interactive = false,
+    this.disabled = false,
     this.style,
-    this.semanticLabel,
-  });
+    this.semanticLabel = '步骤',
+  }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥'),
+       super(value: value ?? 0);
 
-  /// 步骤内容，通常为 ElStep。
-  final List<Widget> children;
+  /// 挂载后由公共模型持有的当前步骤下标。
+  int get currentValue => $obs.value;
 
-  /// 当前步骤的下标。
-  final int active;
+  /// 写入同一模型并沿用公共通知规则。
+  set currentValue(int value) => $obs.value = value;
 
-  /// 步骤排列方向。
-  final Axis direction;
+  /// 直接组合的步骤内容。
+  final List<ElStep> children;
 
-  /// 当前下标之前的步骤状态配置。
-  final ElStepStatus finishStatus;
+  /// 当前步骤的进行或错误状态。
+  final ElStepStatus status;
 
-  /// 当前步骤的状态配置。
-  final ElStepStatus processStatus;
+  /// 使用纵向布局。
+  final bool vertical;
 
-  /// 步骤条样式。
+  /// 允许点击或键盘改变当前步骤。
+  final bool interactive;
+
+  /// 禁止交互模式下的所有步骤操作。
+  final bool disabled;
+
+  /// 在品牌默认外观之后合并的根样式。
   final ElStyle? style;
 
-  /// 步骤条的辅助名称。
+  /// 辅助技术读取的步骤列表名称。
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).stepsBuilder!(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).stepsBuilder!(context, this);
 }
 
-/// 单个步骤的内容与状态覆盖声明。
+/// 单个步骤的文字、说明、图标和禁用状态。
 class ElStep extends StatelessWidget {
-  /// 创建步骤配置。
-  const ElStep({
-    super.key,
-    this.title,
-    this.description,
-    this.icon,
-    this.status,
-    this.style,
-    this.titleStyle,
-    this.descriptionStyle,
-  });
+  /// 创建步骤内容，不单独绑定或覆盖派生状态。
+  const ElStep({super.key, this.title, this.description, this.icon, this.disabled = false, this.style});
 
   /// 步骤标题。
   final Object? title;
 
-  /// 步骤说明。
+  /// 补充说明。
   final Object? description;
 
   /// 自定义图标或内容。
   final Object? icon;
 
-  /// 显式状态，供实现覆盖组内推导值。
-  final ElStepStatus? status;
+  /// 交互模式下禁止选择此步骤。
+  final bool disabled;
 
-  /// 根节点样式。
+  /// 在品牌默认外观之后合并的根样式。
   final ElStyle? style;
 
-  /// 标题样式。
-  final ElStyle? titleStyle;
-
-  /// 说明样式。
-  final ElStyle? descriptionStyle;
-
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).stepBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.of(context).stepBuilder!(context, this);
 }

@@ -1,47 +1,50 @@
 import 'package:flutter/widgets.dart';
-
 import 'package:flutter_base/ui.dart';
 
-/// 空状态公共声明。
+/// 空状态内容的原因。
+enum ElEmptyState {
+  /// 当前没有内容。
+  empty,
+
+  /// 内容加载失败。
+  error,
+}
+
+/// 空内容或加载错误的共同状态声明。
 class ElEmpty extends StatelessWidget {
-  /// 创建空状态公共声明。
+  /// 创建状态内容，默认标题和图标由品牌按 state 选择。
   const ElEmpty({
     super.key,
+    this.state = .empty,
+    this.title,
     this.description,
-    this.image,
-    this.imageSize,
-    this.child,
+    this.icon,
     this.style,
-    this.imageStyle,
-    this.descriptionStyle,
     this.semanticLabel,
+    this.child,
   });
 
-  /// 空状态说明内容。
+  /// 空内容或加载错误状态。
+  final ElEmptyState state;
+
+  /// 状态标题，省略时使用对应状态的默认文字。
+  final Object? title;
+
+  /// 补充说明。
   final Object? description;
 
-  /// 自定义插画地址或 Widget。
-  final Object? image;
+  /// 自定义状态图标，省略时由品牌按状态选择。
+  final Object? icon;
 
-  /// 插画的显式逻辑边长。
-  final double? imageSize;
-
-  /// 底部操作区域内容。
-  final Object? child;
-
-  /// 组件根样式。
+  /// 在品牌默认外观之后合并的根样式。
   final ElStyle? style;
 
-  /// 插画样式。
-  final ElStyle? imageStyle;
-
-  /// 说明内容样式。
-  final ElStyle? descriptionStyle;
-
-  /// 辅助技术读取的组件名称。
+  /// 辅助技术读取的状态名称。
   final String? semanticLabel;
 
+  /// 底部操作或补充内容。
+  final Object? child;
+
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).emptyBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.of(context).emptyBuilder!(context, this);
 }

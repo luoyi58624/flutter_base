@@ -1,137 +1,70 @@
 import 'package:flutter/widgets.dart';
-
 import 'package:flutter_base/ui.dart';
 
-/// 标签页组合的外观类型。
-enum ElTabsType {
-  /// 以活动条指示选中项。
-  line,
+/// 单个页签的业务身份、标签和正文。
+class ElTabPane<T> {
+  /// 创建具有明确业务值的页签。
+  const ElTabPane({required this.value, this.label, this.child, this.disabled = false});
 
-  /// 独立卡片式标签。
-  card,
+  /// 所属页签集合内唯一的业务值。
+  final T value;
 
-  /// 卡片标签与内容共用外框。
-  borderCard,
-}
-
-/// 标签栏相对内容区域的位置。
-enum ElTabsPosition {
-  /// 标签栏位于上方。
-  top,
-
-  /// 标签栏位于下方。
-  bottom,
-
-  /// 标签栏位于左侧。
-  left,
-
-  /// 标签栏位于右侧。
-  right,
-}
-
-/// 标签页组合中的单页配置。
-class ElTabPane {
-  /// 创建标签内容、身份与关闭配置。
-  const ElTabPane({
-    this.label,
-    this.child,
-    this.name,
-    this.disabled = false,
-    this.closable = false,
-  });
-
-  /// 标签显示内容，接受文字或 Widget。
+  /// 标签内容，接受文字或 Widget。
   final Object? label;
 
-  /// 该页的正文内容。
+  /// 页签正文，品牌保留调用方的原实例。
   final Widget? child;
 
-  /// 页身份值，省略时由品牌实现采用下标。
-  final Object? name;
-
-  /// 禁止用户选择该页。
+  /// 禁止选择该页。
   final bool disabled;
-
-  /// 显示关闭操作，实际移除由调用方决定。
-  final bool closable;
 }
 
-/// 标签页组合的公共声明，底层视口仍使用 ElTabView。
-class ElTabs extends StatelessWidget {
-  /// 创建按页身份值绑定的标签页声明。
-  const ElTabs({
+/// 页签值绑定与内容组合声明，底层继续复用 ElTabController / ElTabView。
+class ElTabs<T> extends ElModelValue<T> {
+  /// 创建与 Web 相同的页签选择与可选横向手势。
+  ElTabs({
     super.key,
-    this.value,
-    this.modelValue,
-    this.onChanged,
+    super.value,
+    super.modelValue,
+    super.onChanged,
     required this.panes,
-    this.type = ElTabsType.line,
-    this.tabPosition = ElTabsPosition.top,
-    this.stretch = false,
-    this.addable = false,
-    this.onAdd,
-    this.onRemove,
+    this.disabled = false,
+    this.swipeable = true,
     this.style,
-    this.headerStyle,
     this.semanticLabel,
   }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥'),
-       assert(panes.length > 0, 'panes 不能为空');
+       assert(value != null || modelValue != null || null is T, '非空 T 必须提供 value 或 modelValue');
 
-  /// 当前页身份值。
-  final Object? value;
+  /// 挂载后由公共模型持有的当前页签值。
+  T get currentValue => $obs.value;
 
-  /// 外部页身份模型，生命周期由调用方管理。
-  final ValueNotifier<Object?>? modelValue;
+  /// 写入同一模型并沿用公共通知规则。
+  set currentValue(T value) => $obs.value = value;
 
-  /// 当前页身份变化通知。
-  final ValueChanged<Object?>? onChanged;
+  /// 以业务值标识的页签内容。
+  final List<ElTabPane<T>> panes;
 
-  /// 标签页配置列表。
-  final List<ElTabPane> panes;
+  /// 禁止用户选择或滑动切换页签。
+  final bool disabled;
 
-  /// 标签页外观类型。
-  final ElTabsType type;
+  /// 允许单指横向手势切换正文。
+  final bool swipeable;
 
-  /// 标签栏相对内容的位置。
-  final ElTabsPosition tabPosition;
-
-  /// 将标签等分整条标签栏。
-  final bool stretch;
-
-  /// 显示新增操作入口。
-  final bool addable;
-
-  /// 新增操作通知。
-  final VoidCallback? onAdd;
-
-  /// 请求移除指定身份的页，真正移除由调用方处理。
-  final void Function(Object? name)? onRemove;
-
-  /// 标签页根样式。
+  /// 在品牌默认外观之后合并的根样式。
   final ElStyle? style;
 
-  /// 标签栏样式。
-  final ElStyle? headerStyle;
-
-  /// 辅助技术读取的标签页名称。
+  /// 辅助技术读取的页签分组名称。
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).tabsBuilder!(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).tabsBuilder!<T>(context, this);
 }
 
 /// 独立标签栏中的单项内容与交互配置。
 class ElTabItem {
   /// 创建一个具有文字、图标或自定义内容的标签项。
-  const ElTabItem({
-    this.label,
-    this.icon,
-    this.badge,
-    this.child,
-    this.disabled = false,
-    this.key,
-  }) : assert(label != null || icon != null || child != null);
+  const ElTabItem({this.label, this.icon, this.badge, this.child, this.disabled = false, this.key})
+    : assert(label != null || icon != null || child != null);
 
   /// 标签文字。
   final String? label;
@@ -153,11 +86,7 @@ class ElTabItem {
 }
 
 /// 按索引与连续选中度构建自定义标签指示器。
-typedef ElTabIndicatorBuilder = Widget Function(
-  BuildContext context,
-  int index,
-  double selectedFraction,
-);
+typedef ElTabIndicatorBuilder = Widget Function(BuildContext context, int index, double selectedFraction);
 
 /// 与现有 ElTabController 联动的标签栏公共声明。
 class ElTabBar extends StatelessWidget {
@@ -225,6 +154,5 @@ class ElTabBar extends StatelessWidget {
   final double indicatorHeight;
 
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.of(context).tabBarBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.of(context).tabBarBuilder!(context, this);
 }

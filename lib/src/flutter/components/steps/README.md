@@ -1,5 +1,7 @@
 # Steps
 
-`ElSteps` 声明 children、active、direction、finishStatus、processStatus、style 和辅助名称，分派至 `stepsBuilder`。`ElStep` 声明 title、description、icon、status 和分层样式，分派至 `stepBuilder`。
+ElSteps 继承 `ElModelValue<int>`，以零基索引绑定当前步骤，省略普通值时从 0 开始。共同参数是 children / status / vertical / interactive / disabled / style / semanticLabel，与 Web Steps 的职责一致。
 
-ElStepStatus 仅是展示状态数据。本目录不派生组内状态、不绘制连线和序号，也不建立条目上下文。
+status 只声明当前步骤的 process 或 error；前后步骤的等待、完成状态由品牌根据当前索引推导。ElStep 只提供 title、description、icon、disabled、style，不另外覆盖派生状态。
+
+接口不进行索引归一化、状态推导或交互。移动端尚未登记 Steps / Step Builder；品牌必须在 interactive 开启且未禁用时处理选择。

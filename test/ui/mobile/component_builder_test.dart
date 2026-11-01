@@ -39,6 +39,9 @@ void main() {
     expect(builders.switchBuilder, isNotNull);
     expect(builders.textBuilder, isNotNull);
     expect(builders.cardBuilder, isNotNull);
+    expect(builders.loadingIndicatorBuilder, isNotNull);
+    expect(builders.progressBuilder, isNotNull);
+    expect(builders.skeletonBuilder, isNotNull);
     expect(builders.inputBuilder, isNull);
     expect(builders.checkboxBuilder, isNull);
     expect(builders.radioBuilder, isNull);

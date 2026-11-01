@@ -8,6 +8,10 @@ import 'package:flutter_base/ui.dart';
 import '../../cores/common.dart';
 import '../../cores/glyph.dart';
 
+/// 使用既有移动端圆弧承接公共加载指示声明。
+Widget loadingIndicatorBuilder(BuildContext context, ElLoadingIndicator component) =>
+    Loading(extent: component.size, label: component.semanticLabel, style: component.style, child: component.child);
+
 /// Web 的三档指示器尺寸。
 enum LoadingSize {
   /// 16px，用于按钮。
@@ -28,54 +32,64 @@ enum LoadingSize {
 /// 本地SVG圆弧加载指示，可见说明通过child提供。
 class Loading extends StatelessWidget {
   /// label在没有默认插槽时用于播报。
-  const Loading({super.key, this.size = LoadingSize.medium, this.label = '加载中', this.child});
+  const Loading({super.key, this.size = LoadingSize.medium, this.extent, this.label = '加载中', this.style, this.child});
 
   /// 图标尺寸档位。
   final LoadingSize size;
 
+  /// 数值尺寸优先于内部尺寸档位。
+  final double? extent;
+
   /// 无可见说明时的名称。
-  final String label;
+  final String? label;
+
+  /// 公共声明提供的根样式。
+  final ElStyle? style;
 
   /// 默认插槽中的可见说明。
   final Object? child;
   @override
-  Widget build(BuildContext context) => ElView(
-    semantics: ElSemantics(
-      container: true,
-      properties: SemanticsProperties(
-        role: SemanticsRole.loadingSpinner,
-        liveRegion: true,
-        label: child == null ? label : null,
-      ),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      spacing: child == null ? 0 : 9,
-      children: [
-        ExcludeSemantics(
-          child: ElView(
-            style: ElStyle(
-              width: size.pixels,
-              height: size.pixels,
-              animation: reducedMotion(context)
-                  ? const []
-                  : [
-                      ElAnimation(
-                        animationDuration: const Duration(milliseconds: 800),
-                        animationTimingFunction: Curves.linear,
-                        animationIterationCount: double.infinity,
-                        keyframes: {
-                          0: ElStyle(transform: ElTransform.rotate(0)),
-                          100: ElStyle(transform: ElTransform.rotate(6.283185307179586)),
-                        },
-                      ),
-                    ],
-            ),
-            child: Glyph(spinner: true, size: size.pixels),
-          ),
+  Widget build(BuildContext context) {
+    final pixels = extent?.isFinite == true && extent! > 0 ? extent! : size.pixels;
+    return ElView(
+      style: style,
+      semantics: ElSemantics(
+        container: true,
+        properties: SemanticsProperties(
+          role: SemanticsRole.loadingSpinner,
+          liveRegion: true,
+          label: child == null ? label : null,
         ),
-        if (child != null) ElView(style: const ElStyle(fontSize: 13, lineHeight: 1.5), child: child),
-      ],
-    ),
-  );
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: child == null ? 0 : 9,
+        children: [
+          ExcludeSemantics(
+            child: ElView(
+              style: ElStyle(
+                width: pixels,
+                height: pixels,
+                animation: reducedMotion(context)
+                    ? const []
+                    : [
+                        ElAnimation(
+                          animationDuration: const Duration(milliseconds: 800),
+                          animationTimingFunction: Curves.linear,
+                          animationIterationCount: double.infinity,
+                          keyframes: {
+                            0: ElStyle(transform: ElTransform.rotate(0)),
+                            100: ElStyle(transform: ElTransform.rotate(6.283185307179586)),
+                          },
+                        ),
+                      ],
+              ),
+              child: Glyph(spinner: true, size: pixels),
+            ),
+          ),
+          if (child != null) ElView(style: const ElStyle(fontSize: 13, lineHeight: 1.5), child: child),
+        ],
+      ),
+    );
+  }
 }

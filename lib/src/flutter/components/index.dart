@@ -22,28 +22,17 @@ import 'list_tile/index.dart';
 import 'card/index.dart';
 import 'loading_indicator/index.dart';
 import 'icon/index.dart';
-import 'anchor/index.dart';
-import 'affix/index.dart';
 import 'steps/index.dart';
 import 'avatar/index.dart';
 import 'calendar/index.dart';
-import 'carousel/index.dart';
 import 'collapse/index.dart';
-import 'countdown/index.dart';
-import 'descriptions/index.dart';
 import 'empty/index.dart';
-import 'pagination/index.dart';
 import 'progress/index.dart';
-import 'rate/index.dart';
 import 'segmented/index.dart';
 import 'slider/index.dart';
 import 'skeleton/index.dart';
-import 'statistic/index.dart';
 import 'tabs/index.dart';
-import 'timeline/index.dart';
 import 'alert/index.dart';
-import 'result/index.dart';
-import 'backtop/index.dart';
 
 export 'button/index.dart';
 export 'tag/index.dart';
@@ -63,28 +52,17 @@ export 'list_tile/index.dart';
 export 'card/index.dart';
 export 'loading_indicator/index.dart';
 export 'icon/index.dart';
-export 'anchor/index.dart';
-export 'affix/index.dart';
 export 'steps/index.dart';
 export 'avatar/index.dart';
 export 'calendar/index.dart';
-export 'carousel/index.dart';
 export 'collapse/index.dart';
-export 'countdown/index.dart';
-export 'descriptions/index.dart';
 export 'empty/index.dart';
-export 'pagination/index.dart';
 export 'progress/index.dart';
-export 'rate/index.dart';
 export 'segmented/index.dart';
 export 'slider/index.dart';
 export 'skeleton/index.dart';
-export 'statistic/index.dart';
 export 'tabs/index.dart';
-export 'timeline/index.dart';
 export 'alert/index.dart';
-export 'result/index.dart';
-export 'backtop/index.dart';
 
 part 'index.g.dart';
 
@@ -117,34 +95,20 @@ class ElComponentBuilders with Equatable {
     this.iconBuilder,
     this.listTileBuilder,
     this.listTileGroupBuilder,
-    this.anchorBuilder,
-    this.affixBuilder,
     this.stepsBuilder,
     this.stepBuilder,
     this.avatarBuilder,
-    this.avatarGroupBuilder,
     this.calendarBuilder,
-    this.carouselBuilder,
     this.collapseBuilder,
     this.collapseItemBuilder,
-    this.countdownBuilder,
-    this.descriptionsBuilder,
     this.emptyBuilder,
-    this.paginationBuilder,
     this.progressBuilder,
-    this.rateBuilder,
     this.segmentedBuilder,
     this.sliderBuilder,
     this.skeletonBuilder,
-    this.skeletonItemBuilder,
-    this.statisticBuilder,
     this.tabsBuilder,
     this.tabBarBuilder,
-    this.timelineBuilder,
-    this.timelineItemBuilder,
     this.alertBuilder,
-    this.resultBuilder,
-    this.backtopBuilder,
   });
 
   /// 根据 ElButton 声明构建品牌组件。
@@ -210,12 +174,6 @@ class ElComponentBuilders with Equatable {
   /// 根据 ElListTileGroup 声明构建品牌组件。
   final Widget Function<D>(BuildContext context, ElListTileGroup<D> component)? listTileGroupBuilder;
 
-  /// 根据 ElAnchor 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAnchor component)? anchorBuilder;
-
-  /// 根据 ElAffix 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAffix component)? affixBuilder;
-
   /// 根据 ElSteps 声明构建品牌组件。
   final Widget Function(BuildContext context, ElSteps component)? stepsBuilder;
 
@@ -225,74 +183,38 @@ class ElComponentBuilders with Equatable {
   /// 根据 ElAvatar 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAvatar component)? avatarBuilder;
 
-  /// 根据 ElAvatarGroup 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAvatarGroup component)? avatarGroupBuilder;
-
   /// 根据 ElCalendar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCalendar component)? calendarBuilder;
-
-  /// 根据 ElCarousel 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCarousel component)? carouselBuilder;
+  final Widget Function<D>(BuildContext context, ElCalendar<D> component)? calendarBuilder;
 
   /// 根据 ElCollapse 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCollapse component)? collapseBuilder;
+  final Widget Function<D>(BuildContext context, ElCollapse<D> component)? collapseBuilder;
 
   /// 根据 ElCollapseItem 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCollapseItem component)? collapseItemBuilder;
-
-  /// 根据 ElCountdown 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCountdown component)? countdownBuilder;
-
-  /// 根据 ElDescriptions 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElDescriptions component)? descriptionsBuilder;
+  final Widget Function<T>(BuildContext context, ElCollapseItem<T> component)? collapseItemBuilder;
 
   /// 根据 ElEmpty 声明构建品牌组件。
   final Widget Function(BuildContext context, ElEmpty component)? emptyBuilder;
 
-  /// 根据 ElPagination 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElPagination component)? paginationBuilder;
-
   /// 根据 ElProgress 声明构建品牌组件。
   final Widget Function(BuildContext context, ElProgress component)? progressBuilder;
 
-  /// 根据 ElRate 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElRate component)? rateBuilder;
-
   /// 根据 ElSegmented 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSegmented component)? segmentedBuilder;
+  final Widget Function<D>(BuildContext context, ElSegmented<D> component)? segmentedBuilder;
 
   /// 根据 ElSlider 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSlider component)? sliderBuilder;
+  final Widget Function<D>(BuildContext context, ElSlider<D> component)? sliderBuilder;
 
   /// 根据 ElSkeleton 声明构建品牌组件。
   final Widget Function(BuildContext context, ElSkeleton component)? skeletonBuilder;
 
-  /// 根据 ElSkeletonItem 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSkeletonItem component)? skeletonItemBuilder;
-
-  /// 根据 ElStatistic 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElStatistic component)? statisticBuilder;
-
   /// 根据 ElTabs 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElTabs component)? tabsBuilder;
+  final Widget Function<D>(BuildContext context, ElTabs<D> component)? tabsBuilder;
 
   /// 根据 ElTabBar 声明构建品牌组件。
   final Widget Function(BuildContext context, ElTabBar component)? tabBarBuilder;
 
-  /// 根据 ElTimeline 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElTimeline component)? timelineBuilder;
-
-  /// 根据 ElTimelineItem 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElTimelineItem component)? timelineItemBuilder;
-
   /// 根据 ElAlert 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAlert component)? alertBuilder;
-
-  /// 根据 ElResult 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElResult component)? resultBuilder;
-
-  /// 根据 ElBacktop 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElBacktop component)? backtopBuilder;
 
   /// 相等性与 hashCode 依据全部注入点。
   @override

@@ -32,14 +32,17 @@ ElMobileTheme(
 | ElCard | 已接入 | 标题、说明、正文、整卡交互、加载状态与辅助名称 |
 | ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |
 | ElListTileGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
-| LoadingIndicator / Progress / Skeleton | 等待适配 | 已有内部皮肤，尚未登记对应通用 Builder |
+| ElLoadingIndicator | 已接入 | 数值尺寸、可见说明、根样式与加载语义 |
+| ElProgress | 已接入 | Web 直线／圆环、完成量、缓冲量、不确定状态与读数插槽 |
+| ElSkeleton | 已接入 | Web 行数及头像占位、减少动画与正文实例保留 |
 | ButtonGroup / Checkbox / Radio / Input / InputNumber / InputOtp / InputTag / Select / Autocomplete / Mention | 等待实现 | 当前没有对应移动端 Flutter 实现，未登记 Builder |
+| Avatar / Icon / Empty / Alert / Steps / Segmented / Collapse / Tabs / Calendar / Slider | 等待实现 | 仅提供已收敛的共同接口，未登记占位布局 |
 
 `ElMobileTheme.componentBuilders` 在内部默认配置上合并非空覆写。每个 ElMobileTheme 安装自己的完整品牌配置，未实现项不会隐式借用祖先桌面实现。
 
 ## 内部实现
 
-既有皮肤留在各自目录的 `index.dart`，用于通用接口实现及内部回归。LoadingIndicator、Progress、Skeleton 尚未完成通用接口适配，不能通过移动端入口直接调用其具体实现；现有通用 ElDivider 也不增加无效参数。
+既有皮肤留在各自目录的 `index.dart`，用于通用接口实现及内部回归。LoadingIndicator、Progress、Skeleton 通过公共接口接入，具体实现不从移动端入口导出；现有通用 ElDivider 不增加无效参数。共用接口的逐项来源和待适配缺口见 [Web 接口基准](../../flutter/components/WEB_BASELINE.md)。
 
 列表由通用声明与 [mobile 列表实现](components/list_tile/README.md) 组成，示例直接使用 ElListTile / ElListTileGroup。
 
