@@ -9,6 +9,7 @@ import 'list_tile/index.dart';
 import 'loading/index.dart';
 import 'progress/index.dart';
 import 'skeleton/index.dart';
+import 'slider/index.dart';
 
 /// 已有移动端实现能够完整承接的通用组件配置。
 const defaultComponentBuilders = ElComponentBuilders(
@@ -22,4 +23,5 @@ const defaultComponentBuilders = ElComponentBuilders(
   loadingIndicatorBuilder: loadingIndicatorBuilder,
   progressBuilder: progressBuilder,
   skeletonBuilder: skeletonBuilder,
+  sliderBuilder: sliderBuilder,
 );

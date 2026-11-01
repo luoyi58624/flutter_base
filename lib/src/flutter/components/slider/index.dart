@@ -103,7 +103,7 @@ class ElSlider<D> extends ElModelValue<D> {
   /// 允许的最大值。
   final double max;
 
-  /// 取值步长，null 表示仅允许 marks 指定的值。
+  /// 业务值步长，null 仅允许 marks；拖动圆块连续跟手，松开后吸附，触屏仅抬起提交。
   final double? step;
 
   /// 已缓冲到的数值，与 min / max 使用相同单位。

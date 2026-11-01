@@ -11,6 +11,9 @@ class ShadowPage extends HookWidget {
   Widget build(BuildContext context) {
     // Scaffold 会移除 body 的底部 viewInsets，键盘高度在外层读取。
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+    final copied = useState(false);
+    final dragSample = useState(50.0);
+    final rangeSample = useState(<double>[20, 70]);
     final mode = useState(Theme.of(context).brightness);
     final level = useState(ElLevelType.md);
     final surfaceOverride = useState<Color?>(null);
@@ -58,6 +61,11 @@ ElStyle(
   boxShadow: shadows,
 );''';
 
+    useEffect(() {
+      copied.value = false;
+      return null;
+    }, [code]);
+
     void reset() {
       mode.value = Theme.of(context).brightness;
       level.value = ElLevelType.md;
@@ -91,33 +99,34 @@ ElStyle(
         ],
       ),
     );
-    final result = ExpansionTile(
+    final result = _Fold(
       key: ValueKey('shadow-result'),
-      title: Text('计算结果与 Dart 用法'),
-      childrenPadding: .all(16),
-      expandedCrossAxisAlignment: .stretch,
+      title: '计算结果与 Dart 用法',
       children: [
         for (final (index, shadow) in shadows.indexed)
           Padding(
             padding: .only(bottom: 12),
-            child: Text(
+            child: ElText(
               '${index == 0 ? '近层' : '远层'}：'
               '浓度 ${_number(shadow.color.a * 100)}% · '
               '偏移 ${_number(shadow.offset.dy)} · 模糊 ${_number(shadow.blurRadius)} · '
               '扩张 ${_number(shadow.spreadRadius)}',
             ),
           ),
-        SelectableText(code),
+        ElView(
+          style: ElStyle(userSelect: .text),
+          child: code,
+        ),
       ],
     );
     final preview = Column(
       crossAxisAlignment: .stretch,
       spacing: 16,
       children: [
-        Text('阴影游乐场', style: Theme.of(context).textTheme.titleLarge),
-        Text('调整颜色、尺寸与圆角，在相同条件下比较五档阴影。'),
+        ElText('阴影游乐场', style: Theme.of(context).textTheme.titleLarge),
+        ElText('调整颜色、尺寸与圆角，在相同条件下比较五档阴影。'),
         sample,
-        Text('五档对照 · 横向滑动查看'),
+        ElText('五档对照 · 横向滑动查看'),
         comparison,
         result,
       ],
@@ -128,15 +137,18 @@ ElStyle(
         crossAxisAlignment: .stretch,
         spacing: 16,
         children: [
-          Text('外观与层级', style: Theme.of(context).textTheme.titleMedium),
+          ElText('外观与层级', style: Theme.of(context).textTheme.titleMedium),
           _choices('预览主题', mode.value, [(Brightness.light, '浅色'), (Brightness.dark, '暗色')], (v) => mode.value = v),
           _choices('阴影级别', level.value, [for (final v in ElLevelType.types) (v, v.name)], (v) => level.value = v),
-          SwitchListTile.adaptive(
-            key: ValueKey('shadow-same-color'),
-            contentPadding: .zero,
-            title: Text('背景与组件同色'),
-            value: sameColor.value,
-            onChanged: (v) => sameColor.value = v,
+          Row(
+            children: [
+              Expanded(child: ElText('背景与组件同色')),
+              ElSwitch(
+                key: ValueKey('shadow-same-color'),
+                value: sameColor.value,
+                onChanged: (v) => sameColor.value = v,
+              ),
+            ],
           ),
           _ColorField(
             label: '组件颜色',
@@ -152,8 +164,8 @@ ElStyle(
             opaque: true,
             onChanged: (v) => backgroundOverride.value = v,
           ),
-          Divider(),
-          Text('尺寸与圆角', style: Theme.of(context).textTheme.titleMedium),
+          ElDivider(color: context.elTheme.dividerColor),
+          ElText('尺寸与圆角', style: Theme.of(context).textTheme.titleMedium),
           _slider('宽度', 'shadow-width', width.value, 80, 280, (v) => width.value = v),
           _slider('高度', 'shadow-height', height.value, 48, 240, (v) => height.value = v),
           _slider('圆角', 'shadow-radius', actualRadius, 0, size.shortestSide / 2, (v) => radius.value = v),
@@ -161,37 +173,45 @@ ElStyle(
             spacing: 8,
             children: [
               for (final (name, value) in [('直角', 0.0), ('圆角', 20.0), ('胶囊', size.shortestSide / 2)])
-                ActionChip(label: Text(name), onPressed: () => radius.value = value),
+                ElButton(plain: true, child: name, onPressed: () => radius.value = value),
             ],
           ),
-          Divider(),
-          Text('风格微调', style: Theme.of(context).textTheme.titleMedium),
+          ElDivider(color: context.elTheme.dividerColor),
+          ElText('风格微调', style: Theme.of(context).textTheme.titleMedium),
           _slider('强度', 'shadow-strength', strength.value, 0, 2, (v) => strength.value = v, step: .05),
           _slider('柔和程度', 'shadow-softness', softness.value, .5, 2, (v) => softness.value = v, step: .05),
-          Text('这里只调节预览。现有主题阴影保持原样。'),
+          ElText('这里只调节预览。现有主题阴影保持原样。'),
         ],
       ),
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text('阴影'),
+        title: ElText('阴影'),
         actions: [
-          IconButton(tooltip: '恢复默认', onPressed: reset, icon: Icon(Icons.restart_alt)),
-          IconButton(
-            tooltip: '复制 Dart 用法',
+          ElButton(
+            key: ValueKey('shadow-reset'),
+            text: true,
+            leftIcon: Icons.restart_alt,
+            semanticLabel: '恢复默认',
+            onPressed: reset,
+          ),
+          ElButton(
+            key: ValueKey('shadow-copy'),
+            text: true,
+            leftIcon: Icons.copy,
+            child: copied.value ? '已复制' : '复制',
+            semanticLabel: '复制 Dart 用法',
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: code));
-              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已复制 Dart 用法')));
+              if (context.mounted) copied.value = true;
             },
-            icon: Icon(Icons.copy),
           ),
         ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final legacy = ExpansionTile(
-            title: Text('旧版八档阴影 · 默认第 4 档'),
-            childrenPadding: .symmetric(vertical: 40),
+          final legacy = _Fold(
+            title: '旧版八档阴影 · 默认第 4 档',
             children: [
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -208,6 +228,26 @@ ElStyle(
               ),
             ],
           );
+          final sliderSamples = _Fold(
+            title: 'Slider 拖拽对照',
+            children: [
+              ElText('圆块连续跟手，松开后吸附。触屏抬起才提交数值。'),
+              ElSlider<double>(
+                label: '步长 10',
+                value: dragSample.value,
+                step: 10,
+                marks: true,
+                onChanged: (v) => dragSample.value = v,
+              ),
+              ElSlider<List<double>>.range(
+                label: '范围交叉',
+                value: rangeSample.value,
+                step: 5,
+                marks: true,
+                onChanged: (v) => rangeSample.value = v,
+              ),
+            ],
+          );
           if (constraints.maxWidth >= 900) {
             return ElScrollView(
               padding: .all(16),
@@ -220,11 +260,12 @@ ElStyle(
                     SizedBox(width: 340, child: controls),
                   ],
                 ),
+                sliderSamples,
                 legacy,
               ],
             );
           }
-          final inputs = [controls, Text('五档对照 · 横向滑动查看'), comparison, result, legacy];
+          final inputs = [controls, sliderSamples, ElText('五档对照 · 横向滑动查看'), comparison, result, legacy];
           // 用键盘弹出前的高度选布局，避免切换父级导致输入框失焦。
           if (constraints.maxHeight + keyboardHeight < 600) {
             return ElScrollView(padding: .all(16), gap: 16, children: [sample, ...inputs]);
@@ -277,7 +318,7 @@ Widget _stage(
                 boxShadow: shadows,
               ),
               child: Center(
-                child: Text(
+                child: ElText(
                   label,
                   style: TextStyle(
                     fontSize: 24,
@@ -297,13 +338,18 @@ Widget _choices<T>(String label, T selected, List<(T, String)> options, ValueCha
   crossAxisAlignment: .start,
   spacing: 8,
   children: [
-    Text(label),
+    ElText(label),
     Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         for (final (value, text) in options)
-          ChoiceChip(label: Text(text), selected: value == selected, onSelected: (_) => onChanged(value)),
+          ElButton(
+            plain: value != selected,
+            selected: value == selected,
+            child: text,
+            onPressed: () => onChanged(value),
+          ),
       ],
     ),
   ],
@@ -317,20 +363,17 @@ Widget _slider(
   double max,
   ValueChanged<double> onChanged, {
   double step = 1,
-}) => Column(
-  crossAxisAlignment: .stretch,
-  children: [
-    Text('$label · ${_number(value)}'),
-    Slider(
-      key: ValueKey(key),
-      label: _number(value),
-      value: value,
-      min: min,
-      max: max,
-      divisions: ((max - min) / step).round(),
-      onChanged: onChanged,
-    ),
-  ],
+}) => ElSlider<double>(
+  key: ValueKey(key),
+  label: label,
+  value: value,
+  min: min,
+  max: max,
+  step: step,
+  startLabel: null,
+  endLabel: null,
+  unit: '',
+  onChanged: onChanged,
 );
 
 class _ColorField extends HookWidget {
@@ -350,35 +393,72 @@ class _ColorField extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = useTextEditingController(text: _hex(value));
+    final controller = useMemoized(() => ElEditableController(text: _hex(value), singleLine: true));
+    final focus = useFocusNode();
     final invalid = useState(false);
+    final syncing = useRef(false);
+    useEffect(() => controller.dispose, [controller]);
     useEffect(() {
+      // 主题与预设回灌不再次触发用户输入，避免旧监听闭包在 build 中写回父级。
+      syncing.value = true;
       if (_parseColor(controller.text) != value) controller.text = _hex(value);
+      syncing.value = false;
       invalid.value = false;
       return null;
     }, [value]);
+    useEffect(() {
+      void changed() {
+        if (!enabled || syncing.value) return;
+        final color = _parseColor(controller.text);
+        invalid.value = color == null || opaque && color.a != 1;
+        if (!invalid.value && color != value) onChanged(color!);
+      }
+
+      controller.addListener(changed);
+      return () => controller.removeListener(changed);
+    }, [controller, value, enabled, opaque, onChanged]);
     return Column(
       crossAxisAlignment: .stretch,
       spacing: 8,
       children: [
-        TextField(
-          key: ValueKey(fieldKey),
-          controller: controller,
-          enabled: enabled,
-          decoration: InputDecoration(
-            labelText: label,
-            helperText: opaque ? '#RRGGBB' : '#RRGGBB 或 #AARRGGBB',
-            errorText: invalid.value ? '请输入有效${opaque ? '且不透明' : ''}的颜色' : null,
-            border: OutlineInputBorder(),
+        ElText(label),
+        ExcludeFocus(
+          excluding: !enabled,
+          child: IgnorePointer(
+            ignoring: !enabled,
+            child: ElEditableView(
+              key: ValueKey(fieldKey),
+              controller: controller,
+              focusNode: focus,
+              style: ElEditableStyle(
+                semanticLabel: label,
+                softWrap: false,
+                readOnly: !enabled,
+                view: ElStyle(
+                  height: 44,
+                  padding: .symmetric(horizontal: 12, vertical: 10),
+                  borderRadius: .circular(8),
+                  border: ElBorder.all(
+                    borderColor: invalid.value ? context.elTheme.error : context.elTheme.borderColor,
+                  ),
+                  opacity: enabled ? 1 : .5,
+                ),
+                inputConfiguration: TextInputConfiguration(autocorrect: false, enableSuggestions: false),
+              ),
+            ),
           ),
-          onChanged: (text) {
-            final color = _parseColor(text);
-            invalid.value = color == null || opaque && color.a != 1;
-            if (!invalid.value) onChanged(color!);
-          },
+        ),
+        ElText(
+          invalid.value
+              ? '请输入有效${opaque ? '且不透明' : ''}的颜色'
+              : opaque
+              ? '#RRGGBB'
+              : '#RRGGBB 或 #AARRGGBB',
+          style: TextStyle(color: invalid.value ? context.elTheme.error : context.elTheme.textSecondary, fontSize: 12),
         ),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: [
             for (final (name, color) in [
               ('白', Colors.white),
@@ -386,13 +466,60 @@ class _ColorField extends HookWidget {
               ('暗', Color(0xff252931)),
               ('蓝', Color(0xff2454c6)),
             ])
-              ActionChip(
-                label: Text(name),
-                avatar: CircleAvatar(backgroundColor: color, radius: 8),
-                onPressed: enabled ? () => onChanged(color) : null,
+              ElButton(
+                plain: true,
+                disabled: !enabled,
+                child: Row(
+                  mainAxisSize: .min,
+                  spacing: 6,
+                  children: [
+                    ElView(
+                      style: ElStyle(width: 12, height: 12, backgroundColor: color, borderRadius: .circular(6)),
+                    ),
+                    ElText(name),
+                  ],
+                ),
+                onPressed: () => onChanged(color),
               ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class _Fold extends HookWidget {
+  const _Fold({super.key, required this.title, required this.children});
+  final String title;
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) {
+    final open = useState(false);
+    return Column(
+      crossAxisAlignment: .stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) => ElButton(
+            text: true,
+            block: true,
+            style: ElStyle(padding: .all(12)),
+            onPressed: () => open.value = !open.value,
+            child: SizedBox(
+              width: (constraints.maxWidth - 24).clamp(0, double.infinity),
+              child: Row(
+                children: [
+                  Expanded(child: ElText(title)),
+                  ElView(child: open.value ? Icons.expand_less : Icons.expand_more),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (open.value)
+          Padding(
+            padding: .all(16),
+            child: Column(crossAxisAlignment: .stretch, children: children),
+          ),
       ],
     );
   }

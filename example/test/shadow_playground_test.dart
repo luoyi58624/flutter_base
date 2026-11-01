@@ -24,7 +24,7 @@ ElStyle _preview(WidgetTester tester) =>
     tester.widget<ElCardView>(find.byKey(ValueKey('shadow-preview'), skipOffstage: false)).style!;
 
 Future<void> _slide(WidgetTester tester, String key, double value) async {
-  tester.widget<Slider>(find.byKey(ValueKey(key))).onChanged!(value);
+  tester.widget<ElSlider<double>>(find.byKey(ValueKey(key))).currentValue = value;
   await tester.pumpAndSettle();
 }
 
@@ -36,7 +36,7 @@ void main() {
       final originalShadows = _preview(tester).boxShadow;
       expect(_preview(tester).backgroundColor, Colors.white);
       expect(tester.widget<ColoredBox>(find.byKey(ValueKey('shadow-preview-stage'))).color, Colors.white);
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '暗色')).onSelected!(true);
+      tester.widget<ElButton>(find.byWidgetPredicate((w) => w is ElButton && w.child == '暗色')).onPressed!();
       await tester.pumpAndSettle();
       final stage = tester.widget<ColoredBox>(find.byKey(ValueKey('shadow-preview-stage')));
       expect(stage.color, _preview(tester).backgroundColor);
@@ -75,12 +75,12 @@ void main() {
         softness: 1.2,
       ),
     );
-    await tester.tap(find.byTooltip('复制 Dart 用法'));
+    await tester.tap(find.byKey(ValueKey('shadow-copy')));
     await tester.pumpAndSettle();
     expect(copied, contains('Size(240, 120)'));
     expect(copied, contains('BorderRadius.circular(50)'));
     expect(copied, contains('strength: 1.5'));
-    await tester.tap(find.byTooltip('恢复默认'));
+    await tester.tap(find.byKey(ValueKey('shadow-reset')));
     await tester.pumpAndSettle();
     expect(_preview(tester).boxShadow, before);
     expect(tester.takeException(), isNull);
@@ -88,29 +88,30 @@ void main() {
 
   testWidgets('颜色输入拒绝无效值，解除同色后可以独立设置背景', (tester) async {
     await _host(tester, Size(400, 900));
-    tester.widget<TextField>(find.byKey(ValueKey('shadow-surface'))).onChanged!('bad-input');
+    tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-surface'))).controller!.text = 'bad-input';
     await tester.pumpAndSettle();
     expect(_preview(tester).backgroundColor, Colors.white);
-    expect(tester.widget<TextField>(find.byKey(ValueKey('shadow-surface'))).decoration!.errorText, isNotNull);
-    tester.widget<TextField>(find.byKey(ValueKey('shadow-surface'))).onChanged!('#2454C6');
+    expect(find.byWidgetPredicate((w) => w is ElText && w.data == '请输入有效的颜色'), findsOneWidget);
+    tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-surface'))).controller!.text = '#2454C6';
     await tester.pumpAndSettle();
     expect(_preview(tester).backgroundColor, Color(0xff2454c6));
-    tester.widget<SwitchListTile>(find.byKey(ValueKey('shadow-same-color'))).onChanged!(false);
+    tester.widget<ElSwitch>(find.byKey(ValueKey('shadow-same-color'))).onChanged!(false);
     await tester.pumpAndSettle();
-    tester.widget<TextField>(find.byKey(ValueKey('shadow-background'))).onChanged!('#FFFFFF');
+    tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-background'))).controller!.text = '#FFFFFF';
     await tester.pumpAndSettle();
     expect(tester.widget<ColoredBox>(find.byKey(ValueKey('shadow-preview-stage'))).color, Colors.white);
     expect(_preview(tester).backgroundColor, Color(0xff2454c6));
-    tester.widget<TextField>(find.byKey(ValueKey('shadow-background'))).onChanged!('#80FFFFFF');
+    tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-background'))).controller!.text = '#80FFFFFF';
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byKey(ValueKey('shadow-background'))).decoration!.errorText, isNotNull);
+    expect(find.byWidgetPredicate((w) => w is ElText && w.data == '请输入有效且不透明的颜色'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('手机弹出键盘后保留颜色输入焦点，收起键盘后恢复预览', (tester) async {
     await _host(tester, Size(400, 900));
     final field = find.byKey(ValueKey('shadow-surface'));
-    await tester.showKeyboard(field);
+    tester.widget<ElEditableView>(field).focusNode!.requestFocus();
+    await tester.pumpAndSettle();
     tester.view.viewInsets = FakeViewPadding(bottom: 300);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
