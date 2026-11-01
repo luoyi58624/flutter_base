@@ -12,19 +12,19 @@ import 'package:flutter_base/ui.dart';
 import 'theme.dart';
 
 /// 内部内容桥接，Widget 原样使用，其余交给 ElView 文本引擎。
-Widget myContent(Object? child) =>
+Widget buildContent(Object? child) =>
     child is Widget ? child : ElView(child: child);
 
 /// 当前平台是否要求减少动态效果。
-bool myReducedMotion(BuildContext context) =>
+bool reducedMotion(BuildContext context) =>
     MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
 /// CSS px 的断点基于整个 viewport，而非组件局部可用宽度。
-double myViewport(BuildContext context) =>
+double viewport(BuildContext context) =>
     MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
 
 /// 保留数值字重，兼顾静态字体与可变字体。
-ElStyle myTextStyle(
+ElStyle textStyle(
   BuildContext context,
   double size,
   double weight, {
@@ -33,7 +33,7 @@ ElStyle myTextStyle(
 }) {
   return ElStyle(
     fontSize: size,
-    fontWeight: myTextWeight(weight),
+    fontWeight: textWeight(weight),
     fontVariationSettings: [FontVariation('wght', weight)],
     color: color,
     lineHeight: height,
@@ -41,7 +41,7 @@ ElStyle myTextStyle(
 }
 
 /// 将行内盒从父布局的横向拉伸中解除。
-Widget myInline(Widget child) => UnconstrainedBox(
+Widget inline(Widget child) => UnconstrainedBox(
   constrainedAxis: Axis.vertical,
   alignment: Alignment.centerLeft,
   child: child,
@@ -77,9 +77,9 @@ bool _hitsNestedControl(BuildContext context, ElEventDetails event) {
 final _activatedControl = Expando<bool>();
 
 /// 内部统一操作宿主，计时由既有 ElEvent 内核负责，键盘只维护 Space 会话。
-class MyAction extends HookWidget {
+class ActionView extends HookWidget {
   /// blocked 保留焦点而禁止激活，用于 loading。
-  const MyAction({
+  const ActionView({
     super.key,
     required this.child,
     required this.style,
@@ -267,7 +267,7 @@ class MyAction extends HookWidget {
         base.onBlur?.call(e);
       },
     );
-    final reduced = myReducedMotion(context);
+    final reduced = reducedMotion(context);
     final inputStyle = feedbackCancelled.value
         ? style.copyWith(onTap: const ElStyle())
         : style;
@@ -329,9 +329,9 @@ class MyAction extends HookWidget {
 }
 
 /// 共享单值桥接，用户操作更新本地/Notifier，外部输入同步时不反射回调。
-class MyValueBuilder<T> extends StatefulWidget {
+class ValueBuilder<T> extends StatefulWidget {
   /// notifier 的生命周期属于调用方。
-  const MyValueBuilder({
+  const ValueBuilder({
     super.key,
     required this.value,
     this.notifier,
@@ -352,10 +352,10 @@ class MyValueBuilder<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T value, ValueChanged<T> change)
   builder;
   @override
-  State<MyValueBuilder<T>> createState() => _ValueBuilderState<T>();
+  State<ValueBuilder<T>> createState() => _ValueBuilderState<T>();
 }
 
-class _ValueBuilderState<T> extends State<MyValueBuilder<T>> {
+class _ValueBuilderState<T> extends State<ValueBuilder<T>> {
   late T _value;
   @override
   void initState() {
@@ -369,7 +369,7 @@ class _ValueBuilderState<T> extends State<MyValueBuilder<T>> {
   }
 
   @override
-  void didUpdateWidget(MyValueBuilder<T> oldWidget) {
+  void didUpdateWidget(ValueBuilder<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.notifier != widget.notifier) {
       oldWidget.notifier?.removeListener(_sync);

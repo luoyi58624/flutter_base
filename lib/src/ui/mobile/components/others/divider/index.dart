@@ -9,7 +9,7 @@ import 'package:flutter_base/ui.dart';
 import '../../../cores/common.dart';
 
 /// 带文字分割线的对齐位置。
-enum MyDividerAlign {
+enum DividerAlign {
   /// 起始侧固定24px线段。
   start,
 
@@ -21,21 +21,21 @@ enum MyDividerAlign {
 }
 
 /// 1px水平或竖向分割线，默认插槽只在水平模式显示。
-class MyDivider extends StatelessWidget {
+class Divider extends StatelessWidget {
   /// 局部分隔线颜色。
-  static const $color = 'my.divider.color';
+  static const $color = 'divider.color';
 
   /// 局部分隔线两侧间距。
-  static const $spacing = 'my.divider.spacing';
+  static const $spacing = 'divider.spacing';
 
   /// 局部竖向分隔线高度。
-  static const $height = 'my.divider.height';
+  static const $height = 'divider.height';
 
   /// dashed保留与实线相同的厚度，变量通过MyTheme覆写。
-  const MyDivider({
+  const Divider({
     super.key,
     this.vertical = false,
-    this.align = MyDividerAlign.center,
+    this.align = DividerAlign.center,
     this.dashed = false,
     this.child,
   });
@@ -44,7 +44,7 @@ class MyDivider extends StatelessWidget {
   final bool vertical;
 
   /// 插槽对齐。
-  final MyDividerAlign align;
+  final DividerAlign align;
 
   /// 是否虚线。
   final bool dashed;
@@ -70,7 +70,7 @@ class MyDivider extends StatelessWidget {
     // TODO(parity): 当前Flutter SemanticsRole无separator/orientation，用中文hint表达方向，需平台读屏验收。
     return ElView(
       semantics: ElSemantics(container: true, hint: vertical ? '垂直分隔线' : '水平分隔线'),
-      style: myTextStyle(context, 13, t.fontWeight, color: t.textSecondary, height: 1.6).merge(
+      style: textStyle(context, 13, t.fontWeight, color: t.textSecondary, height: 1.6).merge(
         ElStyle(
           width: vertical ? 1 : '100%',
           height: vertical ? vars?.getVar<num>($height)?.toDouble() ?? 13 : null,
@@ -87,21 +87,21 @@ class MyDivider extends StatelessWidget {
                   0.0,
                   constraints.maxWidth -
                       24 -
-                      (align == MyDividerAlign.center ? 0 : 24),
+                      (align == DividerAlign.center ? 0 : 24),
                 );
                 return Row(
                   children: [
-                    if (align == MyDividerAlign.start)
+                    if (align == DividerAlign.start)
                       SizedBox(width: 24, child: line())
                     else
                       Expanded(child: line()),
                     const SizedBox(width: 12),
                     ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: maxLabel),
-                      child: myContent(child),
+                      child: buildContent(child),
                     ),
                     const SizedBox(width: 12),
-                    if (align == MyDividerAlign.end)
+                    if (align == DividerAlign.end)
                       SizedBox(width: 24, child: line())
                     else
                       Expanded(child: line()),

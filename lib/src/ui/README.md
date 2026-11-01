@@ -10,14 +10,14 @@ import 'package:flutter_base/mobile.dart';
 
 void main() {
   runApp(MaterialApp(
-    home: MyTheme(
+    home: ElMobileTheme(
       child: ElButton(onPressed: () {}, child: '保存'),
     ),
   ));
 }
 ```
 
-移动端由 MyTheme 向 ElView 注入默认主题变量，并保留既有 My* 组件。已有通用实现通过 MyTheme 安装，业务代码可以使用同一套 El* 声明。品牌组件与通用接口之间的支持范围见 [Mobile](mobile/README.md)。
+移动端由 ElMobileTheme 向 ElView 注入默认主题变量并安装组件实现，业务代码使用通用 El* 声明。具体组件、Builder 和辅助函数留在 src 内部，不从移动端入口导出；独立的 ElBottomTabbar 继续公开。支持范围见 [Mobile](mobile/README.md)。
 
 ## 桌面端
 

@@ -5,9 +5,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 /// SVG 的绘制读取最近 ElView 已提交的文字色，主题和颜色动画不会重建图标。
-class MyGlyph extends LeafRenderObjectWidget {
+class Glyph extends LeafRenderObjectWidget {
   /// 内置图标或加载圆弧。
-  const MyGlyph({
+  const Glyph({
     super.key,
     this.name = '',
     this.spinner = false,

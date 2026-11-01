@@ -6,7 +6,7 @@
 
 ## 导入与实现登记
 
-使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。移动端列表由 MyTheme 安装默认实现。
+使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。移动端由 ElMobileTheme 安装默认实现，具体组件与 Builder 不从 mobile.dart 导出。
 
 ```dart
 ElComponentProvider(
@@ -43,7 +43,7 @@ Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与
 | [Switch](switch/README.md) | 布尔开关与轨道配置 |
 | [Tag](tag/README.md) | 展示、关闭与布尔切换标签 |
 | [Text](text/README.md) | 文本参数声明与品牌分派 |
-| [Card](card/README.md) | 参数与 Builder 契约，尚无默认实现 |
+| [Card](card/README.md) | 卡片内容、整卡交互与加载状态，移动端已接入 |
 | [LoadingIndicator](loading_indicator/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Icon](icon/README.md) | 参数与 Builder 契约，尚无默认实现 |
 | [Anchor](anchor/README.md) | 参数与 Builder 契约，尚无默认实现 |

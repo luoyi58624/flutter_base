@@ -1,7 +1,7 @@
 part of 'index.dart';
 
 /// 沿用原圆角容器与索引分隔线，直接组合列表子项。
-Widget myListTileGroupBuilder<D>(BuildContext context, ElListTileGroup<D> component) {
+Widget listTileGroupBuilder<D>(BuildContext context, ElListTileGroup<D> component) {
   void select(ElListTile child) {
     if (child.disabled || child.event?.disabled == true) return;
     if (component.mode == .single) {

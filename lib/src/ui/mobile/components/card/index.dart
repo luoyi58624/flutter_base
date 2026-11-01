@@ -5,30 +5,48 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../../cores/common.dart';
+import '../loading/index.dart';
+
+/// 将通用卡片声明交给移动端布局，正文仍使用调用方的原实例。
+Widget cardBuilder(BuildContext context, ElCard component) => Card(
+  title: component.title,
+  description: component.description,
+  sample: component.sample,
+  loading: component.loading,
+  interactive: component.interactive,
+  delayTouchDown: component.delayTouchDown,
+  delayTouchUp: component.delayTouchUp,
+  onActivate: component.onActivate,
+  style: component.style,
+  focusNode: component.focusNode,
+  semanticLabel: component.semanticLabel,
+  child: component.child == null ? null : buildContent(component.child),
+);
 
 /// 手机卡片，interactive 启用整卡操作且隐藏默认标题区。
-class MyCard extends StatelessWidget {
+class Card extends StatelessWidget {
   /// 局部卡片圆角。
-  static const $radius = 'my.card.radius';
+  static const $radius = 'card.radius';
 
   /// 局部卡片内边距。
-  static const $padding = 'my.card.padding';
+  static const $padding = 'card.padding';
 
   /// 标题区与正文间距。
-  static const $headerGap = 'my.card.headerGap';
+  static const $headerGap = 'card.headerGap';
 
   /// 按压缩放比例。
-  static const $pressScale = 'my.card.pressScale';
+  static const $pressScale = 'card.pressScale';
 
   /// 按压背景。
-  static const $pressBackground = 'my.card.pressBackground';
+  static const $pressBackground = 'card.pressBackground';
 
   /// 内部按钮与输入独立操作，onActivate只接收整卡激活。
-  const MyCard({
+  const Card({
     super.key,
     this.title,
     this.description,
     this.sample,
+    this.loading = false,
     this.interactive = false,
     this.delayTouchDown = Duration.zero,
     this.delayTouchUp = const Duration(milliseconds: 100),
@@ -36,6 +54,7 @@ class MyCard extends StatelessWidget {
     this.child,
     this.style,
     this.focusNode,
+    this.semanticLabel,
   });
 
   /// 标题，交互卡片中只作为辅助名称。
@@ -46,6 +65,9 @@ class MyCard extends StatelessWidget {
 
   /// 右上示例编号。
   final String? sample;
+
+  /// 加载期间保留正文实例并暂停其交互。
+  final bool loading;
 
   /// 是否整卡可激活。
   final bool interactive;
@@ -67,9 +89,12 @@ class MyCard extends StatelessWidget {
 
   /// 整卡焦点节点。
   final FocusNode? focusNode;
+
+  /// 卡片区域的辅助名称。
+  final String? semanticLabel;
   @override
   Widget build(BuildContext context) {
-    final t = context.elTheme, width = myViewport(context);
+    final t = context.elTheme, width = viewport(context);
     final vars = ElView.maybeOf(context);
     final narrow = width <= 400;
     final padding =
@@ -78,7 +103,9 @@ class MyCard extends StatelessWidget {
     final cardStyle = ElStyle(
       width: '100%',
       backgroundColor: t.cardColor,
-      borderRadius: BorderRadius.circular(vars?.getVar<num>($radius)?.toDouble() ?? 26),
+      borderRadius: BorderRadius.circular(
+        vars?.getVar<num>($radius)?.toDouble() ?? 26,
+      ),
       border: ElBorder.all(
         borderWidth: 1,
         borderColor: t.borderColor.withValues(alpha: t.borderColor.a * .65),
@@ -86,17 +113,19 @@ class MyCard extends StatelessWidget {
       boxShadow: t.shadowMd,
       padding: padding.add(const EdgeInsets.all(1)),
       userSelect: interactive ? ElUserSelect.none : null,
-      transition: myReducedMotion(context)
+      transition: reducedMotion(context)
           ? const []
           : const [
               ElTransition.all(Duration(milliseconds: 150), Curves.easeOut),
             ],
-      onTap: interactive
+      onTap: interactive && !loading
           ? ElStyle(
               backgroundColor:
                   vars?.getVar<Color>($pressBackground) ??
                   Color.lerp(t.cardColor, t.textColor, .085),
-              transform: ElTransform.scale(vars?.getVar<num>($pressScale)?.toDouble() ?? .96),
+              transform: ElTransform.scale(
+                vars?.getVar<num>($pressScale)?.toDouble() ?? .96,
+              ),
             )
           : null,
     ).merge(style);
@@ -120,7 +149,7 @@ class MyCard extends StatelessWidget {
                     children: [
                       ElView(
                         style:
-                            myTextStyle(
+                            textStyle(
                               context,
                               narrow ? 19 : 20,
                               t.fontWeightSubtitle,
@@ -135,7 +164,7 @@ class MyCard extends StatelessWidget {
                       ),
                       if (description?.isNotEmpty == true)
                         ElView(
-                          style: myTextStyle(
+                          style: textStyle(
                             context,
                             13,
                             t.fontWeight,
@@ -150,7 +179,7 @@ class MyCard extends StatelessWidget {
                 if (sample?.isNotEmpty == true)
                   ElView(
                     style:
-                        myTextStyle(
+                        textStyle(
                           context,
                           narrow ? 9 : 10,
                           t.fontWeight,
@@ -170,10 +199,24 @@ class MyCard extends StatelessWidget {
         ?child,
       ],
     );
+    final content = Stack(
+      alignment: Alignment.center,
+      children: [
+        ExcludeFocus(
+          excluding: loading,
+          child: TickerMode(
+            enabled: !loading,
+            child: Offstage(offstage: loading, child: body),
+          ),
+        ),
+        if (loading) const Loading(),
+      ],
+    );
     return interactive
-        ? MyAction(
+        ? ActionView(
             style: cardStyle,
-            label: title,
+            label: semanticLabel ?? title,
+            blocked: loading,
             excludeChildSemantics: false,
             ignoreDescendantAction: true,
             focusNode: focusNode,
@@ -181,8 +224,14 @@ class MyCard extends StatelessWidget {
             delayTouchDown: delayTouchDown,
             delayTouchUp: delayTouchUp,
             onActivate: onActivate,
-            child: body,
+            child: content,
           )
-        : ElView(style: cardStyle, child: body);
+        : ElView(
+            style: cardStyle,
+            semantics: semanticLabel == null
+                ? null
+                : ElSemantics(container: true, label: semanticLabel),
+            child: content,
+          );
   }
 }

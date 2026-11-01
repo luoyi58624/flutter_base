@@ -1,4 +1,4 @@
-import 'dart:ui' show Tristate;
+import 'dart:ui' show SemanticsRole, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +9,7 @@ Widget _host(Widget child, {ElStyle? style, ElComponentBuilders? builders}) =>
     MaterialApp(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: true),
-        child: MyTheme(
+        child: ElMobileTheme(
           style: style,
           componentBuilders: builders,
           child: Align(
@@ -24,15 +24,76 @@ Finder _view(bool Function(ElView view) test) =>
     find.byWidgetPredicate((widget) => widget is ElView && test(widget));
 
 void main() {
-  test('移动端只注册已有实现，不为缺失组件填充桌面或占位实现', () {
-    expect(myComponentBuilders.buttonBuilder, isNotNull);
-    expect(myComponentBuilders.tagBuilder, isNotNull);
-    expect(myComponentBuilders.switchBuilder, isNotNull);
-    expect(myComponentBuilders.textBuilder, isNotNull);
-    expect(myComponentBuilders.inputBuilder, isNull);
-    expect(myComponentBuilders.checkboxBuilder, isNull);
-    expect(myComponentBuilders.radioBuilder, isNull);
-    expect(myComponentBuilders.buttonGroupBuilder, isNull);
+  testWidgets('移动端只注册已有实现，不为缺失组件填充桌面或占位实现', (tester) async {
+    late ElComponentBuilders builders;
+    await tester.pumpWidget(
+      _host(
+        Builder(
+          builder: (context) {
+            builders = ElComponentProvider.of(context);
+            return SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(builders.buttonBuilder, isNotNull);
+    expect(builders.tagBuilder, isNotNull);
+    expect(builders.switchBuilder, isNotNull);
+    expect(builders.textBuilder, isNotNull);
+    expect(builders.cardBuilder, isNotNull);
+    expect(builders.inputBuilder, isNull);
+    expect(builders.checkboxBuilder, isNull);
+    expect(builders.radioBuilder, isNull);
+    expect(builders.buttonGroupBuilder, isNull);
+  });
+
+  testWidgets('通用卡片加载期间保留正文实例并阻止整卡激活', (tester) async {
+    final contentKey = GlobalKey();
+    final cardKey = ValueKey('card');
+    final child = SizedBox(key: contentKey, height: 60, child: Text('卡片正文'));
+    var activations = 0;
+    Widget card(bool loading) => _host(
+      ElCard(
+        key: cardKey,
+        interactive: true,
+        loading: loading,
+        semanticLabel: '卡片示例',
+        onActivate: (_) => activations++,
+        child: child,
+      ),
+    );
+    await tester.pumpWidget(card(false));
+    final content = tester.element(find.byKey(contentKey));
+    expect(
+      _view((view) => view.semantics?.properties.label == '卡片示例'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(cardKey));
+    await tester.pump();
+    expect(activations, 1);
+
+    await tester.pumpWidget(card(true));
+    expect(find.text('卡片正文'), findsNothing);
+    expect(
+      tester.element(find.byKey(contentKey, skipOffstage: false)),
+      same(content),
+    );
+    expect(
+      _view(
+        (view) =>
+            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(cardKey));
+    await tester.pump();
+    expect(activations, 1);
+
+    await tester.pumpWidget(card(false));
+    expect(tester.element(find.byKey(contentKey)), same(content));
+    await tester.tap(find.byKey(cardKey));
+    await tester.pump();
+    expect(activations, 2);
   });
 
   testWidgets('通用按钮保留载荷、颜色、布局、外借焦点和单次模型切换', (tester) async {
@@ -66,7 +127,7 @@ void main() {
       _view((view) => view.style?.backgroundColor == Color(0xff123456)),
       findsOneWidget,
     );
-    expect(tester.getSize(find.byType(MyButton)).width, 320);
+    expect(tester.getSize(find.byKey(ValueKey('button'))).width, 320);
     await tester.tap(find.text('主'));
     await tester.pump();
     expect(model.value, isTrue);
@@ -105,7 +166,13 @@ void main() {
         ),
       ),
     );
-    expect(find.byType(MyLoading), findsOneWidget);
+    expect(
+      _view(
+        (view) =>
+            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
+      ),
+      findsOneWidget,
+    );
     expect(focus.canRequestFocus, isTrue);
     await tester.tap(find.text('加载动作'));
     await tester.pump();
@@ -149,7 +216,6 @@ void main() {
       ),
     );
     final semantics = tester.ensureSemantics();
-    expect(find.byType(MyTag), findsNothing);
     await tester.tap(find.text('标签切换'));
     await tester.pump();
     expect(model.value, isTrue);
@@ -340,7 +406,13 @@ void main() {
         ),
       ),
     );
-    expect(find.byType(MyLoading), findsOneWidget);
+    expect(
+      _view(
+        (view) =>
+            view.semantics?.properties.role == SemanticsRole.loadingSpinner,
+      ),
+      findsOneWidget,
+    );
     expect(focus.canRequestFocus, isTrue);
     await tester.tap(
       _view(
@@ -419,6 +491,6 @@ void main() {
       ),
     );
     expect(find.text('覆写内容'), findsOneWidget);
-    expect(find.byType(MyButton), findsOneWidget);
+    expect(find.byType(ElButton), findsOneWidget);
   });
 }

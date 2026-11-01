@@ -12,7 +12,7 @@ import '../../cores/common.dart';
 import '../../cores/glyph.dart';
 
 /// 进度展示方式。
-enum MyProgressType {
+enum ProgressType {
   /// 条形。
   line,
 
@@ -21,7 +21,7 @@ enum MyProgressType {
 }
 
 /// 进度语义状态。
-enum MyProgressStatus {
+enum ProgressStatus {
   /// 主题色。
   normal,
 
@@ -37,8 +37,8 @@ enum MyProgressStatus {
 
 /// 默认插槽收到的归一化数值，对应Web的value/max/percentage。
 @immutable
-class MyProgressValue {
-  const MyProgressValue._(this.value, this.max, this.percentage);
+class ProgressValue {
+  const ProgressValue._(this.value, this.max, this.percentage);
 
   /// 合法完成量，不确定时为null。
   final double? value;
@@ -51,36 +51,36 @@ class MyProgressValue {
 }
 
 /// 进度默认插槽，可显示任意读数。
-typedef MyProgressTextBuilder = Widget Function(
+typedef ProgressTextBuilder = Widget Function(
   BuildContext context,
-  MyProgressValue value,
+  ProgressValue value,
 );
 
 /// 支持缓冲、确定/不确定值和自定义读数的进度条或圆环。
-class MyProgress extends HookWidget {
+class Progress extends HookWidget {
   /// 局部进度颜色。
-  static const $color = 'my.progress.color';
+  static const $color = 'progress.color';
 
   /// 局部轨道颜色。
-  static const $track = 'my.progress.track';
+  static const $track = 'progress.track';
 
   /// 局部缓冲颜色。
-  static const $bufferColor = 'my.progress.bufferColor';
+  static const $bufferColor = 'progress.bufferColor';
 
   /// 局部轨道粗细。
-  static const $thickness = 'my.progress.thickness';
+  static const $thickness = 'progress.thickness';
 
   /// 局部圆环尺寸。
-  static const $size = 'my.progress.size';
+  static const $size = 'progress.size';
 
   /// 非有限value进入不确定状态，非法max回退100。
-  const MyProgress({
+  const Progress({
     super.key,
     this.value,
     this.buffer,
     this.max = 100,
-    this.type = MyProgressType.line,
-    this.status = MyProgressStatus.normal,
+    this.type = ProgressType.line,
+    this.status = ProgressStatus.normal,
     this.label = '进度',
     this.showText = true,
     this.textBuilder,
@@ -96,10 +96,10 @@ class MyProgress extends HookWidget {
   final double max;
 
   /// 条形或环形。
-  final MyProgressType type;
+  final ProgressType type;
 
   /// 状态配色。
-  final MyProgressStatus status;
+  final ProgressStatus status;
 
   /// 辅助名称。
   final String label;
@@ -108,13 +108,13 @@ class MyProgress extends HookWidget {
   final bool showText;
 
   /// 对应带value/max/percentage的默认插槽。
-  final MyProgressTextBuilder? textBuilder;
+  final ProgressTextBuilder? textBuilder;
   @override
   Widget build(BuildContext context) {
     final vars = ElView.maybeOf(context);
     final t = context.elTheme,
-        reduced = myReducedMotion(context),
-        circle = type == MyProgressType.circle;
+        reduced = reducedMotion(context),
+        circle = type == ProgressType.circle;
     final total = max.isFinite && max > 0 ? max : 100.0;
     final amount = value?.isFinite == true ? value!.clamp(0.0, total) : null;
     final ratio = (amount ?? 0) / total;
@@ -125,10 +125,10 @@ class MyProgress extends HookWidget {
     final color =
         vars?.getVar<Color>($color) ??
         switch (status) {
-          MyProgressStatus.normal => t.primary,
-          MyProgressStatus.success => t.success,
-          MyProgressStatus.warning => t.warning,
-          MyProgressStatus.error => t.error,
+          ProgressStatus.normal => t.primary,
+          ProgressStatus.success => t.success,
+          ProgressStatus.warning => t.warning,
+          ProgressStatus.error => t.error,
         };
     final track = vars?.getVar<Color>($track) ?? t.fill,
         bufferColor = vars?.getVar<Color>($bufferColor) ?? Color.lerp(track, color, .28)!;
@@ -173,10 +173,10 @@ class MyProgress extends HookWidget {
       return null;
     }, [ratio, buffered, reduced]);
     final textKey = useMemoized(() => GlobalKey());
-    final data = MyProgressValue._(amount, total, ratio * 100);
-    final glyph = status == MyProgressStatus.success
+    final data = ProgressValue._(amount, total, ratio * 100);
+    final glyph = status == ProgressStatus.success
         ? 'check'
-        : status == MyProgressStatus.error
+        : status == ProgressStatus.error
         ? 'x'
         : null;
     final readout = Offstage(
@@ -186,7 +186,7 @@ class MyProgress extends HookWidget {
         child: ExcludeSemantics(
           child: ElView(
             style:
-                myTextStyle(
+                textStyle(
                   context,
                   circle ? (indefinite ? 12 : 16) : 13,
                   circle && !indefinite ? t.fontWeightAction : t.fontWeight,
@@ -210,7 +210,7 @@ class MyProgress extends HookWidget {
                           height: circle ? size * .28 : 18,
                           color: color,
                         ),
-                        child: MyGlyph(
+                        child: Glyph(
                           name: glyph,
                           size: circle ? size * .28 : 18,
                         ),
@@ -274,7 +274,7 @@ class MyProgress extends HookWidget {
               ],
             ),
     );
-    return circle ? myInline(result) : result;
+    return circle ? inline(result) : result;
   }
 }
 

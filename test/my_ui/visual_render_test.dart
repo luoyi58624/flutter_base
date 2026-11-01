@@ -10,6 +10,14 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/ui/mobile/components/button/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/tag/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/switch/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/loading/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/skeleton/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/others/divider/index.dart' as skin;
 
 final _output = Directory(
   Platform.environment['MY_UI_VISUAL_OUT'] ?? '.claude/plan/my-ui-visual',
@@ -47,78 +55,78 @@ Widget _wide(String id, Widget child) => Expanded(child: _record(id, child));
 List<Widget> _samples(String id) => switch (id) {
   'button' => [
     _row('primary / outline / text', [
-      _record('primary', MyButton(child: 'Save 保存')),
+      _record('primary', skin.Button(child: 'Save 保存')),
       _record(
         'outline',
-        MyButton(variant: MyButtonVariant.outline, child: 'Cancel'),
+        skin.Button(variant: skin.ButtonVariant.outline, child: 'Cancel'),
       ),
-      MyButton(variant: MyButtonVariant.text, child: 'More'),
+      skin.Button(variant: skin.ButtonVariant.text, child: 'More'),
     ]),
     _row('icons / selected / round', [
-      MyButton(
-        variant: MyButtonVariant.icon,
+      skin.Button(
+        variant: skin.ButtonVariant.icon,
         icon: 'heart',
         selected: true,
         label: 'Favorite',
       ),
-      MyButton(variant: MyButtonVariant.bare, icon: 'sun', label: 'Theme'),
-      MyButton(
-        variant: MyButtonVariant.round,
+      skin.Button(variant: skin.ButtonVariant.bare, icon: 'sun', label: 'Theme'),
+      skin.Button(
+        variant: skin.ButtonVariant.round,
         icon: 'arrow-right',
         label: 'Next',
       ),
     ]),
     _row('disabled', [
-      MyButton(disabled: true, child: 'Disabled'),
-      MyButton(
+      skin.Button(disabled: true, child: 'Disabled'),
+      skin.Button(
         disabled: true,
-        variant: MyButtonVariant.outline,
+        variant: skin.ButtonVariant.outline,
         child: 'Disabled',
       ),
     ]),
     _row('loading', [
-      MyButton(loading: true, child: 'Saving'),
-      MyButton(
+      skin.Button(loading: true, child: 'Saving'),
+      skin.Button(
         loading: true,
-        variant: MyButtonVariant.outline,
+        variant: skin.ButtonVariant.outline,
         child: 'Saving',
       ),
     ]),
   ],
   'tag' => [
     _row('display tones: blue / green / orange', [
-      _record('blue', MyTag(child: 'Blue 蓝')),
-      MyTag(tone: MyTagTone.green, child: 'Green'),
-      MyTag(tone: MyTagTone.orange, child: 'Orange'),
+      _record('blue', skin.Tag(child: 'Blue 蓝')),
+      skin.Tag(tone: skin.TagTone.green, child: 'Green'),
+      skin.Tag(tone: skin.TagTone.orange, child: 'Orange'),
     ]),
     _row('display tones: red / gray', [
-      MyTag(tone: MyTagTone.red, child: 'Red'),
-      MyTag(tone: MyTagTone.gray, child: 'Gray'),
+      skin.Tag(tone: skin.TagTone.red, child: 'Red'),
+      skin.Tag(tone: skin.TagTone.gray, child: 'Gray'),
     ]),
     _row('selectable: off / on', [
-      _record('off', MyTag(value: false, child: 'Option')),
-      _record('on', MyTag(value: true, child: 'Selected')),
+      _record('off', skin.Tag(value: false, child: 'Option')),
+      _record('on', skin.Tag(value: true, child: 'Selected')),
     ]),
     _row('disabled: off / on', [
-      MyTag(value: false, disabled: true, child: 'Option'),
-      MyTag(value: true, disabled: true, child: 'Selected'),
+      skin.Tag(value: false, disabled: true, child: 'Option'),
+      skin.Tag(value: true, disabled: true, child: 'Selected'),
     ]),
   ],
   'switch' => [
     _row('off / on', [
-      _record('off', MySwitch(value: false, label: 'Off')),
-      _record('on', MySwitch(value: true, label: 'On')),
+      _record('off', skin.Switch(value: false, label: 'Off')),
+      _record('on', skin.Switch(value: true, label: 'On')),
     ]),
     _row('disabled: off / on', [
-      MySwitch(value: false, label: 'Off', disabled: true),
-      MySwitch(value: true, label: 'On', disabled: true),
+      skin.Switch(value: false, label: 'Off', disabled: true),
+      skin.Switch(value: true, label: 'On', disabled: true),
     ]),
   ],
   'card' => [
     _row('default card', [
       _wide(
         'default',
-        MyCard(
+        skin.Card(
           title: 'Card 标题',
           description: 'Description / 说明',
           sample: '01',
@@ -129,7 +137,7 @@ List<Widget> _samples(String id) => switch (id) {
     _row('interactive card', [
       _wide(
         'interactive',
-        MyCard(
+        skin.Card(
           title: 'Open',
           interactive: true,
           child: SizedBox(height: 48, child: Text('Open card')),
@@ -138,85 +146,85 @@ List<Widget> _samples(String id) => switch (id) {
     ], height: 180),
   ],
   'divider' => [
-    _row('solid', [_wide('solid', MyDivider())], height: 100),
+    _row('solid', [_wide('solid', skin.Divider())], height: 100),
     _row('center label', [
-      _wide('center', MyDivider(child: 'Divider 分割')),
+      _wide('center', skin.Divider(child: 'Divider 分割')),
     ], height: 100),
     _row('start dashed', [
       _wide(
         'dashed',
-        MyDivider(align: MyDividerAlign.start, dashed: true, child: 'Start'),
+        skin.Divider(align: skin.DividerAlign.start, dashed: true, child: 'Start'),
       ),
     ], height: 100),
     _row('end label', [
-      _wide('end', MyDivider(align: MyDividerAlign.end, child: 'End')),
+      _wide('end', skin.Divider(align: skin.DividerAlign.end, child: 'End')),
     ], height: 100),
     _row('vertical', [
       Text('Left'),
-      MyDivider(vertical: true),
+      skin.Divider(vertical: true),
       Text('Right'),
     ], height: 80),
   ],
   'loading' => [
     _row('small 16 / medium 24 / large 32', [
-      _record('small', MyLoading(size: MyLoadingSize.small)),
-      _record('medium', MyLoading()),
-      _record('large', MyLoading(size: MyLoadingSize.large)),
+      _record('small', skin.Loading(size: skin.LoadingSize.small)),
+      _record('medium', skin.Loading()),
+      _record('large', skin.Loading(size: skin.LoadingSize.large)),
     ]),
-    _row('with label', [_record('label', MyLoading(child: 'Loading 加载中'))]),
+    _row('with label', [_record('label', skin.Loading(child: 'Loading 加载中'))]),
   ],
   'progress' => [
     _row('line 40 / buffer 70', [
-      _wide('line', MyProgress(value: 40, buffer: 70)),
+      _wide('line', skin.Progress(value: 40, buffer: 70)),
     ], height: 76),
     _row('line success', [
       _wide(
         'success',
-        MyProgress(value: 100, status: MyProgressStatus.success),
+        skin.Progress(value: 100, status: skin.ProgressStatus.success),
       ),
     ], height: 76),
     _row('line warning', [
-      _wide('warning', MyProgress(value: 60, status: MyProgressStatus.warning)),
+      _wide('warning', skin.Progress(value: 60, status: skin.ProgressStatus.warning)),
     ], height: 76),
     _row('line error', [
-      _wide('error', MyProgress(value: 30, status: MyProgressStatus.error)),
+      _wide('error', skin.Progress(value: 30, status: skin.ProgressStatus.error)),
     ], height: 76),
     _row('line indeterminate', [
-      _wide('indeterminate', MyProgress()),
+      _wide('indeterminate', skin.Progress()),
     ], height: 76),
     _row('circle 40 / success / error', [
       _record(
         'circle',
-        MyProgress(value: 40, type: MyProgressType.circle, buffer: 70),
+        skin.Progress(value: 40, type: skin.ProgressType.circle, buffer: 70),
       ),
-      MyProgress(
+      skin.Progress(
         value: 100,
-        type: MyProgressType.circle,
-        status: MyProgressStatus.success,
+        type: skin.ProgressType.circle,
+        status: skin.ProgressStatus.success,
       ),
-      MyProgress(
+      skin.Progress(
         value: 30,
-        type: MyProgressType.circle,
-        status: MyProgressStatus.error,
+        type: skin.ProgressType.circle,
+        status: skin.ProgressStatus.error,
       ),
     ], height: 148),
     _row('circle indeterminate / hidden readout', [
-      MyProgress(type: MyProgressType.circle),
-      MyProgress(value: 60, type: MyProgressType.circle, showText: false),
+      skin.Progress(type: skin.ProgressType.circle),
+      skin.Progress(value: 60, type: skin.ProgressType.circle, showText: false),
     ], height: 148),
   ],
   'progress-sizes' => [
     for (final size in [40.0, 64.0, 96.0, 128.0])
       _row('circle size ${size.toInt()} / success / error', [
-        for (final status in [MyProgressStatus.success, MyProgressStatus.error])
+        for (final status in [skin.ProgressStatus.success, skin.ProgressStatus.error])
           _record(
             '${size.toInt()}-${status.name}',
             Builder(
-              builder: (context) => MyTheme(
-                style: ElStyle(vars: {MyProgress.$size: size}),
-                child: MyProgress(
+              builder: (context) => ElMobileTheme(
+                style: ElStyle(vars: {skin.Progress.$size: size}),
+                child: skin.Progress(
                   value: 100,
-                  type: MyProgressType.circle,
+                  type: skin.ProgressType.circle,
                   status: status,
                 ),
               ),
@@ -225,13 +233,13 @@ List<Widget> _samples(String id) => switch (id) {
       ], height: 176),
   ],
   'skeleton' => [
-    _row('default: 3 rows', [_wide('default', MySkeleton())], height: 176),
+    _row('default: 3 rows', [_wide('default', skin.Skeleton())], height: 176),
     _row('avatar: 3 rows', [
-      _wide('avatar', MySkeleton(avatar: true)),
+      _wide('avatar', skin.Skeleton(avatar: true)),
     ], height: 176),
-    _row('2 rows', [_wide('two', MySkeleton(rows: 2))], height: 152),
+    _row('2 rows', [_wide('two', skin.Skeleton(rows: 2))], height: 152),
     _row('loaded content', [
-      _wide('loaded', MySkeleton(loading: false, child: Text('Loaded 内容已就绪'))),
+      _wide('loaded', skin.Skeleton(loading: false, child: Text('Loaded 内容已就绪'))),
     ], height: 80),
   ],
   _ => throw ArgumentError(id),
@@ -305,13 +313,13 @@ void main() {
           _keys.clear();
           final boundaryKey = GlobalKey();
           final data = {
-            ...MyTheme.lightVars,
-            if (brightness == Brightness.dark) ...MyTheme.darkVars,
+            ...ElMobileTheme.lightVars,
+            if (brightness == Brightness.dark) ...ElMobileTheme.darkVars,
           };
           _labelColor = (data[ElTheme.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
-              // 仅提供Material宿主；字体由MyTheme建立，避免宿主覆盖复验契约。
+              // 仅提供Material宿主；字体由ElMobileTheme建立，避免宿主覆盖复验契约。
               builder: (context, child) =>
                   Material(type: MaterialType.transparency, child: child),
               theme: ThemeData(
@@ -325,7 +333,7 @@ void main() {
                   disableAnimations: true,
                   platformBrightness: brightness,
                 ),
-                child: MyTheme(
+                child: ElMobileTheme(
                   brightness: brightness,
                   child: RepaintBoundary(
                     key: boundaryKey,
@@ -443,7 +451,7 @@ void main() {
                 })
                 .toList(),
             'glyphs': find
-                .byWidgetPredicate((w) => w.runtimeType.toString() == 'MyGlyph')
+                .byWidgetPredicate((w) => w.runtimeType.toString() == 'Glyph')
                 .evaluate()
                 .map((element) {
                   final box = element.renderObject! as RenderBox;

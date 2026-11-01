@@ -12,7 +12,7 @@ Finder _action(String label) => find.byWidgetPredicate(
 void main() {
   for (final (name, host) in <(String, Widget Function(desktop.ElStyle, Widget))>[
     ('desktop', (style, child) => desktop.ElDesktopTheme(style: style, child: child)),
-    ('mobile', (style, child) => mobile.MyTheme(style: style, child: child)),
+    ('mobile', (style, child) => mobile.ElMobileTheme(style: style, child: child)),
   ]) {
     testWidgets('$name 主题根只应用一次用户实际样式', (tester) async {
       final childKey = GlobalKey();
@@ -20,7 +20,7 @@ void main() {
         alignment: Alignment.topLeft,
         child: host(desktop.ElStyle(padding: EdgeInsets.all(8)), SizedBox(key: childKey, width: 20, height: 10)),
       )));
-      final root = find.byType(name == 'desktop' ? desktop.ElDesktopTheme : mobile.MyTheme);
+      final root = find.byType(name == 'desktop' ? desktop.ElDesktopTheme : mobile.ElMobileTheme);
       expect(tester.getSize(root), Size(36, 26));
       expect(tester.getTopLeft(find.byKey(childKey)) - tester.getTopLeft(root), Offset(8, 8));
       expect(tester.takeException(), isNull);
@@ -40,7 +40,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: Column(children: [
       desktop.ElDesktopTheme(child: reader()),
-      mobile.MyTheme(child: reader()),
+      mobile.ElMobileTheme(child: reader()),
     ])));
     expect(seen, [(primary, shadow), (primary, shadow)]);
     expect(tester.takeException(), isNull);
@@ -65,7 +65,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: mobile.MyTheme(
+        home: mobile.ElMobileTheme(
           child: Column(
             mainAxisSize: .min,
             children: [

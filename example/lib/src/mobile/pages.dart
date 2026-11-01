@@ -279,7 +279,7 @@ class _WebPage extends StatelessWidget {
         ElScrollView(
           padding: EdgeInsets.all(16),
           children: [
-            MyCard(
+            ElCard(
               title: title,
               child: Text(
                 asset == 'about.html'

@@ -8,9 +8,9 @@ import 'package:flutter_base/ui.dart';
 import '../../cores/common.dart';
 
 /// 保留正文实例的加载骨架，加载中退出焦点和语义树。
-class MySkeleton extends StatelessWidget {
+class Skeleton extends StatelessWidget {
   /// rows遵守Web floor(rows)||3，再限制到1..10。
-  const MySkeleton({
+  const Skeleton({
     super.key,
     this.loading = true,
     this.rows = 3,
@@ -68,7 +68,7 @@ class MySkeleton extends StatelessWidget {
             ),
             style: ElStyle(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              animation: myReducedMotion(context)
+              animation: reducedMotion(context)
                   ? const []
                   : [
                       ElAnimation(

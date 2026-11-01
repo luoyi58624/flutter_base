@@ -12,7 +12,7 @@ part 'group.dart';
 part 'popup.dart';
 
 /// 沿用原列表行的布局，由公共组件持有值绑定。
-Widget myListTileBuilder<T>(BuildContext context, ElListTile<T> component) => _ListTile<T>(component);
+Widget listTileBuilder<T>(BuildContext context, ElListTile<T> component) => _ListTile<T>(component);
 
 class _ListTile<T> extends HookWidget {
   const _ListTile(
@@ -128,7 +128,7 @@ class _ListTile<T> extends HookWidget {
       opacity: disabled ? .5 : 1,
       userSelect: .none,
       onTap: disabled ? null : ElStyle(backgroundColor: theme.press),
-      transition: myReducedMotion(context)
+      transition: reducedMotion(context)
           ? const []
           : const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))],
     ).merge(component.style);
@@ -145,7 +145,7 @@ class _ListTile<T> extends HookWidget {
               mainAxisSize: .min,
               crossAxisAlignment: .start,
               children: [
-                myContent(component.title),
+                buildContent(component.title),
                 if (component.subtitle != null)
                   ElView(
                     style: ElStyle(
@@ -246,7 +246,7 @@ Widget _content(Object? value, double size) => IgnorePointer(
             style: ElStyle(iconSize: size),
             child: value,
           )
-        : myContent(value),
+        : buildContent(value),
   ),
 );
 
@@ -303,11 +303,11 @@ Widget _switchVisual(BuildContext context, bool on, bool loading, ElStyle? style
           color: theme.primary,
           transform: ElTransform.translate(on ? width - height : 0, 0),
           boxShadow: const [BoxShadow(color: Color(0x1f000000), offset: Offset(0, 2), blurRadius: 5)],
-          transition: myReducedMotion(context)
+          transition: reducedMotion(context)
               ? const []
               : const [ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 230))],
         ),
-        child: loading ? const MyLoading(size: MyLoadingSize.small) : null,
+        child: loading ? const Loading(size: LoadingSize.small) : null,
       ),
     ),
   );

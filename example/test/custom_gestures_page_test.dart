@@ -9,7 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart'
-    show ElScrollView, ElScrollViewState, MyTheme;
+    show ElScrollView, ElScrollViewState, ElMobileTheme;
 
 const _desktopSize = Size(1280, 1000);
 const _settledGesture = Duration(milliseconds: 700);
@@ -281,7 +281,7 @@ void main() {
   });
 
   testWidgets('首页自定义手势导航打开可操作页面', (tester) async {
-    await _pumpPage(tester, page: MyTheme(child: HomePage()));
+    await _pumpPage(tester, page: ElMobileTheme(child: HomePage()));
     final navigation = _key('demo-gestures');
     await tester.ensureVisible(navigation);
     await tester.tap(navigation);

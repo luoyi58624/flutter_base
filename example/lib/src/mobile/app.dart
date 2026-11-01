@@ -83,7 +83,7 @@ class ElExampleApp extends StatelessWidget {
         theme: ThemeData(useMaterial3: false, brightness: .light),
         builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: _systemBars,
-          child: MyTheme(
+          child: ElMobileTheme(
             brightness: Brightness.light,
             style: ElStyle(vars: {ElTheme.$fontWeight: ?systemWght}),
             child: Scaffold(resizeToAvoidBottomInset: false, body: child),

@@ -7,11 +7,11 @@ import 'package:flutter_base/ui.dart';
 import '../../cores/common.dart';
 
 /// 为通用标签绘制移动端外观，值切换和主入口事件由 ElTag 统一持有。
-Widget myTagBuilder(BuildContext context, ElTag component) =>
+Widget tagBuilder(BuildContext context, ElTag component) =>
     Builder(builder: (context) => _commonTag(context, component));
 
 /// 展示标签颜色；可选择标签统一使用主题色。
-enum MyTagTone {
+enum TagTone {
   /// 主色。
   blue,
 
@@ -29,16 +29,16 @@ enum MyTagTone {
 }
 
 /// value为空时展示，为布尔值时作为独立选择按钮。
-class MyTag extends StatelessWidget {
+class Tag extends StatelessWidget {
   /// 覆盖标签默认语义颜色。
-  static const $color = 'my.tag.color';
+  static const $color = 'tag.color';
 
   /// value与modelValue互斥，onChanged先于onClick。
-  const MyTag({
+  const Tag({
     super.key,
     this.value,
     this.modelValue,
-    this.tone = MyTagTone.blue,
+    this.tone = TagTone.blue,
     this.disabled = false,
     this.onChanged,
     this.onClick,
@@ -54,7 +54,7 @@ class MyTag extends StatelessWidget {
   final ValueNotifier<bool>? modelValue;
 
   /// 展示色。
-  final MyTagTone tone;
+  final TagTone tone;
 
   /// 禁止click与切换。
   final bool disabled;
@@ -74,7 +74,7 @@ class MyTag extends StatelessWidget {
   /// 标签外观与交互变体覆盖。
   final ElStyle? style;
   @override
-  Widget build(BuildContext context) => MyValueBuilder<bool>(
+  Widget build(BuildContext context) => ValueBuilder<bool>(
     value: value ?? false,
     notifier: modelValue,
     onChanged: onChanged,
@@ -82,16 +82,16 @@ class MyTag extends StatelessWidget {
       final t = context.elTheme;
       final selectable = value != null || modelValue != null;
       final accent =
-          ElView.maybeOf(context)?.getVar<Color>(MyTag.$color) ??
+          ElView.maybeOf(context)?.getVar<Color>(Tag.$color) ??
           switch (tone) {
-            MyTagTone.blue => t.primary,
-            MyTagTone.green => t.success,
-            MyTagTone.orange => t.warning,
-            MyTagTone.red => t.error,
-            MyTagTone.gray => t.textSecondary,
+            TagTone.blue => t.primary,
+            TagTone.green => t.success,
+            TagTone.orange => t.warning,
+            TagTone.red => t.error,
+            TagTone.gray => t.textSecondary,
           };
       final selected = selectable && current;
-      final base = myTextStyle(context, 13, t.fontWeightAction, height: 20 / 13)
+      final base = textStyle(context, 13, t.fontWeightAction, height: 20 / 13)
           .merge(ElStyle(
             minHeight: selectable ? 32 : 28,
             // 内容改由 Widget 承载后，仍按自然高度收紧，避免居中撑满父约束。
@@ -112,7 +112,7 @@ class MyTag extends StatelessWidget {
                 : Color.lerp(t.cardColor, accent, .1),
             opacity: disabled ? .6 : 1,
             transform: ElTransform.scale(1),
-            transition: myReducedMotion(context)
+            transition: reducedMotion(context)
                 ? const []
                 : const [ElTransition.all(Duration(milliseconds: 160), Curves.ease)],
             onTap: selectable && !disabled
@@ -126,10 +126,10 @@ class MyTag extends StatelessWidget {
           ))
           .merge(style);
       // 视觉和交互共用宿主，内容仍不参与命中，全部变体统一交给 ElView 级联。
-      final content = IgnorePointer(child: myContent(child));
-      return myInline(
+      final content = IgnorePointer(child: buildContent(child));
+      return inline(
         selectable
-            ? MyAction(
+            ? ActionView(
                 style: base,
                 disabled: disabled,
                 focusNode: focusNode,
@@ -161,7 +161,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
   final state = ElView.of(context);
   final pressed = component.isToggle && !component.disabled && state.hasTap;
   final accent =
-      ElView.maybeOf(context)?.getVar<Color>(MyTag.$color) ??
+      ElView.maybeOf(context)?.getVar<Color>(Tag.$color) ??
       switch (component.type) {
         ElThemeType.success => theme.success,
         ElThemeType.warning => theme.warning,
@@ -193,7 +193,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
       ? theme.borderColor
       : Color.lerp(theme.cardColor, displayAccent, .18)!;
   final style =
-      myTextStyle(context, 13, theme.fontWeightAction, height: 20 / 13)
+      textStyle(context, 13, theme.fontWeightAction, height: 20 / 13)
           .merge(
             ElStyle(
               minHeight: component.isToggle ? 32 : 28,
@@ -218,7 +218,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
               color: foreground,
               opacity: component.disabled ? .6 : 1,
               transform: ElTransform.scale(pressed ? .95 : 1),
-              transition: myReducedMotion(context)
+              transition: reducedMotion(context)
                   ? const []
                   : const [
                       ElTransition.all(
@@ -229,14 +229,14 @@ Widget _commonTag(BuildContext context, ElTag component) {
             ),
           )
           .merge(component.style);
-  return myInline(
+  return inline(
     ElView(
       style: style,
       child: Row(
         mainAxisSize: .min,
         spacing: component.closable ? 7 : 0,
         children: [
-          if (component.child != null) myContent(component.child),
+          if (component.child != null) buildContent(component.child),
           if (component.closable)
             ElButtonView(
               semanticLabel: component.closeSemanticLabel ?? '关闭标签',

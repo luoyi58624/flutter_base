@@ -1,5 +1,5 @@
 # Skeleton
 
-既有 `MySkeleton` 品牌实现，保留加载状态、头像、行数、加载说明和正文实例；加载期间仍屏蔽正文的焦点与语义。
+内部 Skeleton 皮肤保留加载状态、头像、行数、加载说明和正文实例；加载期间仍屏蔽正文的焦点与语义，供内部回归继续验证。
 
-当前没有对应通用 Skeleton 声明或 Builder 插槽，本次仅迁移目录，不改造接口。实现参数见 [index.dart](index.dart)。
+公共 ElSkeleton 声明已存在，移动端尚未适配其完整参数与 Builder。具体实现不从 mobile.dart 导出。实现见 [index.dart](index.dart)。

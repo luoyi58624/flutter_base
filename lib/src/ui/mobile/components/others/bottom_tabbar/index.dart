@@ -64,7 +64,7 @@ class ElBottomTabbar extends StatelessWidget {
             children: [
               for (var i = 0; i < destinations.length; i++)
                 Expanded(
-                  child: _MyTabBarButton(
+                  child: _TabBarButton(
                     destination: destinations[i],
                     selected: i == selectedIndex,
                     showLabel: switch (labelBehavior) {
@@ -85,8 +85,8 @@ class ElBottomTabbar extends StatelessWidget {
   }
 }
 
-class _MyTabBarButton extends StatelessWidget {
-  const _MyTabBarButton({
+class _TabBarButton extends StatelessWidget {
+  const _TabBarButton({
     required this.destination,
     required this.selected,
     required this.showLabel,
@@ -120,7 +120,7 @@ class _MyTabBarButton extends StatelessWidget {
           ),
           if (showLabel)
             ElView(
-              style: myTextStyle(
+              style: textStyle(
                 context,
                 12,
                 t.fontWeight,

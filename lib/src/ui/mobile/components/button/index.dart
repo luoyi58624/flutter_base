@@ -10,11 +10,11 @@ import '../../cores/theme.dart';
 import '../loading/index.dart';
 
 /// 以移动端按钮外观实现通用声明，切换模型仍由 ElButton 持有。
-Widget myButtonBuilder(BuildContext context, ElButton component) =>
-    MyButton._fromComponent(component);
+Widget buttonBuilder(BuildContext context, ElButton component) =>
+    Button._fromComponent(component);
 
 /// Web按钮的七种视觉层级。
-enum MyButtonVariant {
+enum ButtonVariant {
   /// 主色填充。
   primary,
 
@@ -38,7 +38,7 @@ enum MyButtonVariant {
 }
 
 /// Web按钮类型到Flutter表单默认动作的映射。
-enum MyButtonType {
+enum ButtonType {
   /// 只触发click。
   button,
 
@@ -50,18 +50,18 @@ enum MyButtonType {
 }
 
 /// 与Web相同的尺寸、变体、加载覆盖层和激活事件。
-class MyButton extends StatelessWidget {
+class Button extends StatelessWidget {
   /// onClick为空仍可聚焦，loading保留焦点与内容尺寸。
-  const MyButton({
+  const Button({
     super.key,
-    this.variant = MyButtonVariant.primary,
+    this.variant = ButtonVariant.primary,
     this.icon,
     this.disabled = false,
     this.loading = false,
     this.selected,
     this.delayTouchDown = Duration.zero,
     this.delayTouchUp = const Duration(milliseconds: 100),
-    this.type = MyButtonType.button,
+    this.type = ButtonType.button,
     this.onClick,
     this.child,
     this.label,
@@ -70,7 +70,7 @@ class MyButton extends StatelessWidget {
     this.event,
   }) : _component = null;
 
-  MyButton._fromComponent(ElButton component)
+  Button._fromComponent(ElButton component)
     : _component = component,
       variant = component.link
           ? .link
@@ -98,7 +98,7 @@ class MyButton extends StatelessWidget {
   final ElButton? _component;
 
   /// 视觉层级。
-  final MyButtonVariant variant;
+  final ButtonVariant variant;
 
   /// Web同名内置图标，未知名称回退sun。
   final String? icon;
@@ -119,7 +119,7 @@ class MyButton extends StatelessWidget {
   final Duration delayTouchUp;
 
   /// 原生按钮类型。
-  final MyButtonType type;
+  final ButtonType type;
 
   /// 可用时派发，preventDefault可阻止表单默认动作。
   final ElEventHandler? onClick;
@@ -143,33 +143,33 @@ class MyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.elTheme;
     final fixed = [
-      MyButtonVariant.icon,
-      MyButtonVariant.bare,
-      MyButtonVariant.round,
+      ButtonVariant.icon,
+      ButtonVariant.bare,
+      ButtonVariant.round,
     ].contains(variant);
     final flat = [
-      MyButtonVariant.text,
-      MyButtonVariant.bare,
-      MyButtonVariant.link,
+      ButtonVariant.text,
+      ButtonVariant.bare,
+      ButtonVariant.link,
     ].contains(variant);
-    final side = variant == MyButtonVariant.round ? 46.0 : 44.0;
+    final side = variant == ButtonVariant.round ? 46.0 : 44.0;
     final foreground = switch (variant) {
-      MyButtonVariant.primary => t.primaryText,
-      MyButtonVariant.icon => selected == true ? t.primary : t.textSecondary,
-      MyButtonVariant.bare => t.textSecondary,
+      ButtonVariant.primary => t.primaryText,
+      ButtonVariant.icon => selected == true ? t.primary : t.textSecondary,
+      ButtonVariant.bare => t.textSecondary,
       _ => t.primary,
     };
     final background = switch (variant) {
-      MyButtonVariant.primary => t.primary,
-      MyButtonVariant.outline => t.cardColor,
-      MyButtonVariant.icon || MyButtonVariant.round => t.fill,
+      ButtonVariant.primary => t.primary,
+      ButtonVariant.outline => t.cardColor,
+      ButtonVariant.icon || ButtonVariant.round => t.fill,
       _ => const Color(0x00000000),
     };
     final border =
         [
-          MyButtonVariant.outline,
-          MyButtonVariant.icon,
-          MyButtonVariant.round,
+          ButtonVariant.outline,
+          ButtonVariant.icon,
+          ButtonVariant.round,
         ].contains(variant)
         ? t.borderColor
         : const Color(0x00000000);
@@ -182,35 +182,35 @@ class MyButton extends StatelessWidget {
       height: fixed ? side : null,
       // ElView边框只绘制不占布局，补入CSS border-box的横向1px。
       padding: EdgeInsets.symmetric(
-        horizontal: fixed || variant == MyButtonVariant.link
+        horizontal: fixed || variant == ButtonVariant.link
             ? 0
-            : (variant == MyButtonVariant.text
+            : (variant == ButtonVariant.text
                       ? 8
-                      : myViewport(context) <= 400
+                      : viewport(context) <= 400
                       ? 13
                       : 17) +
                   1,
       ),
-      margin: variant == MyButtonVariant.link
+      margin: variant == ButtonVariant.link
           ? const EdgeInsets.only(top: 24)
           : null,
       alignment: Alignment.center,
       softWrap: false,
-      backgroundColor: disabled && variant != MyButtonVariant.bare
+      backgroundColor: disabled && variant != ButtonVariant.bare
           ? t.fill
           : background,
-      color: disabled && !(variant == MyButtonVariant.icon && selected == true)
+      color: disabled && !(variant == ButtonVariant.icon && selected == true)
           ? t.textSecondary
           : foreground,
-      fontSize: variant == MyButtonVariant.link ? 14 : 15,
-      fontWeight: myTextWeight(t.fontWeightAction),
+      fontSize: variant == ButtonVariant.link ? 14 : 15,
+      fontWeight: textWeight(t.fontWeightAction),
       fontVariationSettings: [FontVariation('wght', t.fontWeightAction)],
       border: ElBorder.all(
-        borderWidth: variant == MyButtonVariant.link ? 0 : 1,
+        borderWidth: variant == ButtonVariant.link ? 0 : 1,
         borderColor: border,
       ),
       borderRadius: BorderRadius.circular(
-        variant == MyButtonVariant.round
+        variant == ButtonVariant.round
             ? 14
             : fixed
             ? 12
@@ -218,7 +218,7 @@ class MyButton extends StatelessWidget {
       ),
       opacity:
           disabled &&
-              ![MyButtonVariant.text, MyButtonVariant.bare].contains(variant)
+              ![ButtonVariant.text, ButtonVariant.bare].contains(variant)
           ? .68
           : 1,
       transition: const [
@@ -237,7 +237,7 @@ class MyButton extends StatelessWidget {
       onTap: noFeedback
           ? null
           : ElStyle(
-              backgroundColor: variant == MyButtonVariant.primary
+              backgroundColor: variant == ButtonVariant.primary
                   ? Color.lerp(t.primary, const Color(0xff000000), .14)
                   : t.press,
               transform: ElTransform.scale(flat ? 1 : .95),
@@ -254,9 +254,9 @@ class MyButton extends StatelessWidget {
       buttonStyle = buttonStyle.copyWith(width: buttonStyle.height);
     }
     final glyphSize = switch (variant) {
-      MyButtonVariant.icon || MyButtonVariant.bare => 19.0,
-      MyButtonVariant.round => 17.0,
-      MyButtonVariant.link => 14.0,
+      ButtonVariant.icon || ButtonVariant.bare => 19.0,
+      ButtonVariant.round => 17.0,
+      ButtonVariant.link => 14.0,
       _ => 16.0,
     };
     final content = component != null
@@ -264,20 +264,20 @@ class MyButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             spacing: icon != null && child != null
-                ? (variant == MyButtonVariant.link ? 6 : 7)
+                ? (variant == ButtonVariant.link ? 6 : 7)
                 : 0,
             children: [
               if (icon != null)
                 ExcludeSemantics(
                   child: ElView(
                     style: ElStyle(width: glyphSize, height: glyphSize),
-                    child: MyGlyph(name: icon!),
+                    child: Glyph(name: icon!),
                   ),
                 ),
-              if (child != null) myContent(child),
+              if (child != null) buildContent(child),
             ],
           );
-    final result = MyAction(
+    final result = ActionView(
       style: buttonStyle,
       quickTouchFeedback: true,
       label: label,
@@ -294,11 +294,11 @@ class MyButton extends StatelessWidget {
         if (e.defaultPrevented) return;
         final form = Form.maybeOf(context);
         switch (type) {
-          case MyButtonType.button:
+          case ButtonType.button:
             break;
-          case MyButtonType.submit:
+          case ButtonType.submit:
             if (form?.validate() == true) form!.save();
-          case MyButtonType.reset:
+          case ButtonType.reset:
             form?.reset();
         }
       },
@@ -313,25 +313,25 @@ class MyButton extends StatelessWidget {
           if (loading)
             const Positioned.fill(
               child: ExcludeSemantics(
-                child: Center(child: MyLoading(size: MyLoadingSize.small)),
+                child: Center(child: Loading(size: LoadingSize.small)),
               ),
             ),
         ],
       ),
     );
-    return component?.block == true ? result : myInline(result);
+    return component?.block == true ? result : inline(result);
   }
 }
 
 Widget _commonContent(ElButton component) {
-  if (component.child is IconData) return myContent(component.child);
+  if (component.child is IconData) return buildContent(component.child);
   return Row(
     mainAxisSize: .min,
     spacing: 7,
     children: [
-      if (component.leftIcon != null) myContent(component.leftIcon),
-      if (component.child != null) myContent(component.child),
-      if (component.rightIcon != null) myContent(component.rightIcon),
+      if (component.leftIcon != null) buildContent(component.leftIcon),
+      if (component.child != null) buildContent(component.child),
+      if (component.rightIcon != null) buildContent(component.rightIcon),
     ],
   );
 }

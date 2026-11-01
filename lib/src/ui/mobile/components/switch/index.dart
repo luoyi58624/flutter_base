@@ -8,7 +8,7 @@ import '../../cores/common.dart';
 import '../loading/index.dart';
 
 /// 使用移动端开关皮肤实现通用值通道，并连接祖先表单字段。
-Widget mySwitchBuilder(BuildContext context, ElSwitch component) =>
+Widget switchBuilder(BuildContext context, ElSwitch component) =>
     _CommonSwitch(component);
 
 class _CommonSwitch extends ElFormModelValue<bool> {
@@ -35,7 +35,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
       height,
       double.infinity,
     );
-    final reduced = myReducedMotion(context);
+    final reduced = reducedMotion(context);
     final content = current
         ? component.activeContent
         : component.inactiveContent;
@@ -49,7 +49,7 @@ class _CommonSwitch extends ElFormModelValue<bool> {
         alignment: .center,
         borderRadius: BorderRadius.circular(999),
         backgroundColor:
-            ElView.maybeOf(context)?.getVar<Color>(MySwitch.$thumbBackground) ??
+            ElView.maybeOf(context)?.getVar<Color>(Switch.$thumbBackground) ??
             (current ? theme.primaryText : const Color(0xffffffff)),
         color: current ? theme.primary : theme.textSecondary,
         boxShadow: [
@@ -66,11 +66,11 @@ class _CommonSwitch extends ElFormModelValue<bool> {
               ],
       ),
       child: component.loading
-          ? const ExcludeSemantics(child: MyLoading(size: MyLoadingSize.small))
+          ? const ExcludeSemantics(child: Loading(size: LoadingSize.small))
           : actionContent,
     );
-    return myInline(
-      MyAction(
+    return inline(
+      ActionView(
         style: component.style ?? const ElStyle(),
         label: component.semanticLabel,
         button: false,
@@ -136,12 +136,12 @@ class _CommonSwitch extends ElFormModelValue<bool> {
 }
 
 /// 47×28的开关，使用原生开关的Space与辅助技术语义。
-class MySwitch extends StatelessWidget {
+class Switch extends StatelessWidget {
   /// 局部开关滑块背景。
-  static const $thumbBackground = 'my.switch.thumbBackground';
+  static const $thumbBackground = 'switch.thumbBackground';
 
   /// value或modelValue必须提供其一，label不绘制为可见文字。
-  const MySwitch({
+  const Switch({
     super.key,
     this.value,
     this.modelValue,
@@ -170,17 +170,17 @@ class MySwitch extends StatelessWidget {
   /// 调用方拥有的焦点节点。
   final FocusNode? focusNode;
   @override
-  Widget build(BuildContext context) => MyValueBuilder<bool>(
+  Widget build(BuildContext context) => ValueBuilder<bool>(
     value: value ?? false,
     notifier: modelValue,
     onChanged: onChanged,
     builder: (context, current, change) {
       final t = context.elTheme;
-      final transitions = myReducedMotion(context)
+      final transitions = reducedMotion(context)
           ? <ElTransition>[]
           : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)];
-      return myInline(
-        MyAction(
+      return inline(
+        ActionView(
           label: label,
           button: false,
           toggled: current,
@@ -204,7 +204,7 @@ class MySwitch extends StatelessWidget {
               height: 22,
               borderRadius: BorderRadius.circular(99),
               backgroundColor:
-                  ElView.maybeOf(context)?.getVar<Color>(MySwitch.$thumbBackground) ??
+                  ElView.maybeOf(context)?.getVar<Color>(Switch.$thumbBackground) ??
                   (current ? t.primaryText : const Color(0xffffffff)),
               transform: ElTransform.translate(current ? 19 : 0, 0),
               boxShadow: [
@@ -214,7 +214,7 @@ class MySwitch extends StatelessWidget {
                   blurRadius: 5,
                 ),
               ],
-              transition: myReducedMotion(context)
+              transition: reducedMotion(context)
                   ? const []
                   : const [
                       ElTransition.field(

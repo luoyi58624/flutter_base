@@ -1,17 +1,19 @@
 import 'package:flutter_base/ui.dart';
 
 import 'button/index.dart';
+import 'card/index.dart';
 import 'switch/index.dart';
 import 'tag/index.dart';
 import 'text/index.dart';
 import 'list_tile/index.dart';
 
 /// 已有移动端实现能够完整承接的通用组件配置。
-const myComponentBuilders = ElComponentBuilders(
-  buttonBuilder: myButtonBuilder,
-  tagBuilder: myTagBuilder,
-  switchBuilder: mySwitchBuilder,
-  textBuilder: myTextBuilder,
-  listTileBuilder: myListTileBuilder,
-  listTileGroupBuilder: myListTileGroupBuilder,
+const defaultComponentBuilders = ElComponentBuilders(
+  buttonBuilder: buttonBuilder,
+  cardBuilder: cardBuilder,
+  tagBuilder: tagBuilder,
+  switchBuilder: switchBuilder,
+  textBuilder: textBuilder,
+  listTileBuilder: listTileBuilder,
+  listTileGroupBuilder: listTileGroupBuilder,
 );

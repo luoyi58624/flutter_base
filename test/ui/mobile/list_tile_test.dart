@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _host(Widget child, {bool cupertino = false, double width = 320, ElStyle? style}) {
   final body = MediaQuery(
     data: MediaQueryData(disableAnimations: true),
-    child: MyTheme(
+    child: ElMobileTheme(
       style: style,
       child: Align(
         alignment: .topLeft,

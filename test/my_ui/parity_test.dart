@@ -9,6 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/ui/mobile/components/button/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/tag/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/switch/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/loading/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/skeleton/index.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/components/others/divider/index.dart' as skin;
 
 Widget shell(
   Widget child, {
@@ -23,7 +31,7 @@ Widget shell(
       disableAnimations: reduced,
       platformBrightness: brightness,
     ),
-    child: MyTheme(
+    child: ElMobileTheme(
       style: theme,
       child: Align(
         alignment: Alignment.topLeft,
@@ -40,9 +48,9 @@ Finder views(Finder parent, bool Function(ElView) predicate) => find.descendant(
 Finder textView(String text) =>
     find.byWidgetPredicate((w) => w is ElView && w.child == text);
 Finder buttonHost() =>
-    views(find.byType(MyButton), (v) => v.event?.onTap != null);
+    views(find.byType(skin.Button), (v) => v.event?.onTap != null);
 Finder switchHost() =>
-    views(find.byType(MySwitch), (v) => v.style?.width == 47);
+    views(find.byType(skin.Switch), (v) => v.style?.width == 47);
 
 class StateProbe extends StatefulWidget {
   const StateProbe({super.key});
@@ -61,7 +69,7 @@ class ProbeState extends State<StateProbe> {
 
 void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
-    final light = MyTheme.lightVars, dark = MyTheme.darkVars;
+    final light = ElMobileTheme.lightVars, dark = ElMobileTheme.darkVars;
     expect(light[ElTheme.$primary], Color(0xff2454c6));
     expect(light[ElTheme.$bgColor], Color(0xfff2f3f5));
     expect(light[ElTheme.$textColor], Color(0xff17191e));
@@ -84,7 +92,7 @@ void main() {
           builder: (context) {
             seenBrightness = ElView.of(context).brightness;
             seenPrimary = context.elTheme.primary;
-            return MyButton(child: '主题');
+            return skin.Button(child: '主题');
           },
         ),
         brightness: Brightness.dark,
@@ -97,7 +105,7 @@ void main() {
     );
     await tester.pumpWidget(
       shell(
-        MyButton(child: '主题'),
+        skin.Button(child: '主题'),
         theme: ElStyle(vars: {ElTheme.$primary: Color(0xff008877)}),
       ),
     );
@@ -108,33 +116,33 @@ void main() {
     expect(tester.takeException(), null);
   });
 
-  for (final variant in MyButtonVariant.values) {
+  for (final variant in skin.ButtonVariant.values) {
     testWidgets('Button ${variant.name} 默认高度与图标尺寸', (tester) async {
       final fixed = [
-        MyButtonVariant.icon,
-        MyButtonVariant.bare,
-        MyButtonVariant.round,
+        skin.ButtonVariant.icon,
+        skin.ButtonVariant.bare,
+        skin.ButtonVariant.round,
       ].contains(variant);
       await tester.pumpWidget(
         shell(
-          MyButton(variant: variant, icon: 'plus', child: fixed ? null : '按钮'),
+          skin.Button(variant: variant, icon: 'plus', child: fixed ? null : '按钮'),
         ),
       );
-      final expected = variant == MyButtonVariant.round ? 46.0 : 44.0;
+      final expected = variant == skin.ButtonVariant.round ? 46.0 : 44.0;
       expect(
         tester.getSize(buttonHost()).height,
-        expected + (variant == MyButtonVariant.link ? 24 : 0),
+        expected + (variant == skin.ButtonVariant.link ? 24 : 0),
       );
       if (fixed) expect(tester.getSize(buttonHost()).width, expected);
       final iconSize = switch (variant) {
-        MyButtonVariant.icon || MyButtonVariant.bare => 19.0,
-        MyButtonVariant.round => 17.0,
-        MyButtonVariant.link => 14.0,
+        skin.ButtonVariant.icon || skin.ButtonVariant.bare => 19.0,
+        skin.ButtonVariant.round => 17.0,
+        skin.ButtonVariant.link => 14.0,
         _ => 16.0,
       };
       expect(
         views(
-          find.byType(MyButton),
+          find.byType(skin.Button),
           (v) => v.style?.width == iconSize && v.style?.height == iconSize,
         ),
         findsOneWidget,
@@ -147,7 +155,7 @@ void main() {
     var calls = 0;
     final focus = FocusNode();
     addTearDown(focus.dispose);
-    Widget button({bool loading = false, bool disabled = false}) => MyButton(
+    Widget button({bool loading = false, bool disabled = false}) => skin.Button(
       child: '保存内容',
       icon: 'check',
       loading: loading,
@@ -184,7 +192,7 @@ void main() {
       shell(
         Column(
           children: [
-            MyButton(focusNode: focus, child: '键盘', onClick: (_) => calls++),
+            skin.Button(focusNode: focus, child: '键盘', onClick: (_) => calls++),
             Focus(focusNode: other, child: SizedBox(height: 20)),
           ],
         ),
@@ -208,10 +216,10 @@ void main() {
   });
 
   for (final entry in <String, Widget Function(FocusNode)>{
-    'Button': (focus) => MyButton(focusNode: focus, child: '手机按钮'),
-    'Tag': (focus) => MyTag(value: false, focusNode: focus, child: '手机标签'),
-    'Card': (focus) => MyCard(interactive: true, focusNode: focus, child: SizedBox(height: 60)),
-    'Switch': (focus) => MySwitch(value: false, focusNode: focus, label: '手机开关'),
+    'Button': (focus) => skin.Button(focusNode: focus, child: '手机按钮'),
+    'Tag': (focus) => skin.Tag(value: false, focusNode: focus, child: '手机标签'),
+    'Card': (focus) => skin.Card(interactive: true, focusNode: focus, child: SizedBox(height: 60)),
+    'Switch': (focus) => skin.Switch(value: false, focusNode: focus, label: '手机开关'),
   }.entries) {
     testWidgets('${entry.key} 默认悬停和键盘聚焦保持手机外观', (tester) async {
       final focus = FocusNode();
@@ -245,9 +253,9 @@ void main() {
   }
 
   for (final entry in <String, Widget>{
-    'Button': MyButton(child: '按压'),
-    'Tag': MyTag(value: false, child: '按压'),
-    'Card': MyCard(interactive: true, child: SizedBox(height: 60)),
+    'Button': skin.Button(child: '按压'),
+    'Tag': skin.Tag(value: false, child: '按压'),
+    'Card': skin.Card(interactive: true, child: SizedBox(height: 60)),
   }.entries) {
     testWidgets('${entry.key} 保留触摸按压外观并在取消后恢复', (tester) async {
       final key = GlobalKey();
@@ -275,7 +283,7 @@ void main() {
     final focus = FocusNode();
     addTearDown(focus.dispose);
     final outline = ElOutline(outlineWidth: 2, outlineColor: Color(0xff123456));
-    await tester.pumpWidget(shell(MyButton(
+    await tester.pumpWidget(shell(skin.Button(
       focusNode: focus,
       style: ElStyle(
         onHover: ElStyle(backgroundColor: Color(0xff654321)),
@@ -297,11 +305,11 @@ void main() {
     expect(render.committedResolvedStyle.box.outline, outline);
   });
 
-  testWidgets('MyTag 显式悬停和焦点变体使用真实交互宿主', (tester) async {
+  testWidgets('skin.Tag 显式悬停和焦点变体使用真实交互宿主', (tester) async {
     final focus = FocusNode();
     addTearDown(focus.dispose);
     final outline = ElOutline(outlineWidth: 2, outlineColor: Color(0xff123456));
-    await tester.pumpWidget(shell(MyTag(
+    await tester.pumpWidget(shell(skin.Tag(
       value: false,
       focusNode: focus,
       style: ElStyle(
@@ -310,8 +318,8 @@ void main() {
       ),
       child: '自定义标签',
     )));
-    final action = views(find.byType(MyTag), (view) => view.focusNode == focus && view.event?.onTap != null);
-    final visual = tester.renderObject<ElRenderView>(views(find.byType(MyTag), (view) => view.style?.minHeight == 32));
+    final action = views(find.byType(skin.Tag), (view) => view.focusNode == focus && view.event?.onTap != null);
+    final visual = tester.renderObject<ElRenderView>(views(find.byType(skin.Tag), (view) => view.style?.minHeight == 32));
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
     await mouse.addPointer(location: tester.getCenter(action));
@@ -326,11 +334,11 @@ void main() {
     expect(visual.committedResolvedStyle.box.outline, outline);
   });
 
-  testWidgets('MyTag 嵌套暗色悬停与焦点变体遵循 ElView 完整级联', (tester) async {
+  testWidgets('skin.Tag 嵌套暗色悬停与焦点变体遵循 ElView 完整级联', (tester) async {
     final focus = FocusNode();
     addTearDown(focus.dispose);
     final outline = ElOutline(outlineWidth: 3, outlineColor: Color(0xff123456));
-    await tester.pumpWidget(shell(MyTag(
+    await tester.pumpWidget(shell(skin.Tag(
       value: false,
       focusNode: focus,
       style: ElStyle(
@@ -342,7 +350,7 @@ void main() {
       ),
       child: '嵌套标签',
     ), brightness: Brightness.dark));
-    final action = views(find.byType(MyTag), (view) => view.focusNode == focus && view.event?.onTap != null);
+    final action = views(find.byType(skin.Tag), (view) => view.focusNode == focus && view.event?.onTap != null);
     final render = tester.renderObject<ElRenderView>(action);
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
@@ -365,7 +373,7 @@ void main() {
 
   testWidgets('Button submit/reset与preventDefault', (tester) async {
     var clicks = 0, saved = 0, reset = 0;
-    Widget form(MyButtonType type, {bool prevent = false}) => Form(
+    Widget form(skin.ButtonType type, {bool prevent = false}) => Form(
       child: Column(
         children: [
           FormField<String>(
@@ -374,7 +382,7 @@ void main() {
             onReset: () => reset++,
             builder: (_) => SizedBox(),
           ),
-          MyButton(
+          skin.Button(
             type: type,
             child: '表单',
             onClick: (e) {
@@ -385,15 +393,15 @@ void main() {
         ],
       ),
     );
-    await tester.pumpWidget(shell(form(MyButtonType.submit)));
+    await tester.pumpWidget(shell(form(skin.ButtonType.submit)));
     await tester.tap(buttonHost());
     expect(saved, 1);
     await tester.pump(Duration(milliseconds: 120));
-    await tester.pumpWidget(shell(form(MyButtonType.reset)));
+    await tester.pumpWidget(shell(form(skin.ButtonType.reset)));
     await tester.tap(buttonHost());
     expect(reset, 1);
     await tester.pump(Duration(milliseconds: 120));
-    await tester.pumpWidget(shell(form(MyButtonType.submit, prevent: true)));
+    await tester.pumpWidget(shell(form(skin.ButtonType.submit, prevent: true)));
     await tester.tap(buttonHost());
     expect(saved, 1);
     expect(clicks, 3);
@@ -403,16 +411,16 @@ void main() {
     final model = ValueNotifier(false);
     addTearDown(model.dispose);
     final events = <String>[];
-    await tester.pumpWidget(shell(MyTag(child: '展示')));
+    await tester.pumpWidget(shell(skin.Tag(child: '展示')));
     expect(
       tester
-          .getSize(views(find.byType(MyTag), (v) => v.style?.minHeight == 28))
+          .getSize(views(find.byType(skin.Tag), (v) => v.style?.minHeight == 28))
           .height,
       28,
     );
     await tester.pumpWidget(
       shell(
-        MyTag(
+        skin.Tag(
           modelValue: model,
           child: '选择',
           onChanged: (v) => events.add('change:$v'),
@@ -422,11 +430,11 @@ void main() {
     );
     expect(
       tester
-          .getSize(views(find.byType(MyTag), (v) => v.style?.minHeight == 32))
+          .getSize(views(find.byType(skin.Tag), (v) => v.style?.minHeight == 32))
           .height,
       32,
     );
-    await tester.tap(views(find.byType(MyTag), (v) => v.event?.onTap != null));
+    await tester.tap(views(find.byType(skin.Tag), (v) => v.event?.onTap != null));
     await tester.pump();
     expect(model.value, true);
     expect(events, ['change:true', 'click']);
@@ -446,7 +454,7 @@ void main() {
     var changes = 0;
     await tester.pumpWidget(
       shell(
-        MySwitch(
+        skin.Switch(
           modelValue: model,
           label: '通知',
           focusNode: focus,
@@ -455,7 +463,7 @@ void main() {
       ),
     );
     expect(tester.getSize(switchHost()), Size(47, 28));
-    final thumb = views(find.byType(MySwitch), (v) => v.style?.width == 22);
+    final thumb = views(find.byType(skin.Switch), (v) => v.style?.width == 22);
     expect(tester.getSize(thumb), Size(22, 22));
     final before = tester.widget<ElView>(thumb).style!.transform;
     await tester.tap(switchHost());
@@ -482,7 +490,7 @@ void main() {
     var calls = 0;
     await tester.pumpWidget(
       shell(
-        MySwitch(
+        skin.Switch(
           value: true,
           label: '通知',
           disabled: true,
@@ -510,7 +518,7 @@ void main() {
       final childKey = UniqueKey();
       await tester.pumpWidget(
         shell(
-          MyCard(
+          skin.Card(
             title: '标题',
             description: '说明',
             sample: '01',
@@ -520,7 +528,7 @@ void main() {
         ),
       );
       final rootView = views(
-        find.byType(MyCard),
+        find.byType(skin.Card),
         (v) => v.style?.width == '100%',
       ).first;
       expect(
@@ -542,13 +550,13 @@ void main() {
     var card = 0, button = 0;
     await tester.pumpWidget(
       shell(
-        MyCard(
+        skin.Card(
           title: '只作名称',
           interactive: true,
           onActivate: (_) => card++,
           child: Column(
             children: [
-              MyButton(child: '内部', onClick: (_) => button++),
+              skin.Button(child: '内部', onClick: (_) => button++),
               SizedBox(height: 70),
             ],
           ),
@@ -561,7 +569,7 @@ void main() {
     expect(card, 0);
     await tester.pump(Duration(milliseconds: 120));
     final cardView = views(
-      find.byType(MyCard),
+      find.byType(skin.Card),
       (v) => v.style?.width == '100%',
     ).first;
     await tester.tapAt(tester.getBottomLeft(cardView) + Offset(35, -30));
@@ -569,22 +577,22 @@ void main() {
   });
 
   testWidgets('Divider默认水平41高，竖线13高含双侧12间距', (tester) async {
-    await tester.pumpWidget(shell(MyDivider()));
-    expect(tester.getSize(find.byType(MyDivider)), Size(320, 41));
-    await tester.pumpWidget(shell(MyDivider(vertical: true)));
-    expect(tester.getSize(find.byType(MyDivider)).height, 13);
+    await tester.pumpWidget(shell(skin.Divider()));
+    expect(tester.getSize(find.byType(skin.Divider)), Size(320, 41));
+    await tester.pumpWidget(shell(skin.Divider(vertical: true)));
+    expect(tester.getSize(find.byType(skin.Divider)).height, 13);
     final line = views(
-      find.byType(MyDivider),
+      find.byType(skin.Divider),
       (v) => v.style?.border?.borderLeft != null,
     ).last;
     expect(tester.getSize(line), Size(1, 13));
   });
 
   testWidgets('Divider长Widget插槽与start/end均无溢出', (tester) async {
-    for (final align in MyDividerAlign.values) {
+    for (final align in skin.DividerAlign.values) {
       await tester.pumpWidget(
         shell(
-          MyDivider(align: align, dashed: true, child: Text('很长的分割说明' * 8)),
+          skin.Divider(align: align, dashed: true, child: Text('很长的分割说明' * 8)),
         ),
       );
       expect(find.byType(Text), findsOneWidget);
@@ -592,28 +600,28 @@ void main() {
     }
   });
 
-  for (final size in MyLoadingSize.values) {
+  for (final size in skin.LoadingSize.values) {
     testWidgets('Loading ${size.name} 尺寸与status语义', (tester) async {
-      await tester.pumpWidget(shell(MyLoading(size: size)));
+      await tester.pumpWidget(shell(skin.Loading(size: size)));
       final icon = views(
-        find.byType(MyLoading),
+        find.byType(skin.Loading),
         (v) => v.style?.width == size.pixels,
       );
       expect(tester.getSize(icon), Size.square(size.pixels));
-      final node = tester.getSemantics(find.byType(MyLoading));
+      final node = tester.getSemantics(find.byType(skin.Loading));
       expect(node.getSemanticsData().role, SemanticsRole.loadingSpinner);
       expect(node.label, '加载中');
     });
   }
 
   testWidgets('Skeleton默认123高、42%标题、66%末行、首行gap18', (tester) async {
-    await tester.pumpWidget(shell(MySkeleton()));
-    expect(tester.getSize(find.byType(MySkeleton)), Size(320, 123));
+    await tester.pumpWidget(shell(skin.Skeleton()));
+    expect(tester.getSize(find.byType(skin.Skeleton)), Size(320, 123));
     final title = views(
-      find.byType(MySkeleton),
+      find.byType(skin.Skeleton),
       (v) => v.style?.width == '42%',
     );
-    final lines = views(find.byType(MySkeleton), (v) => v.style?.height == 13);
+    final lines = views(find.byType(skin.Skeleton), (v) => v.style?.height == 13);
     expect(tester.getSize(title).width, closeTo(134.4, .01));
     expect(tester.getSize(lines.last).width, closeTo(211.2, .01));
     expect(
@@ -631,9 +639,9 @@ void main() {
     double.infinity: 10,
   }.entries) {
     testWidgets('Skeleton rows=${entry.key} 按Web归一化', (tester) async {
-      await tester.pumpWidget(shell(MySkeleton(rows: entry.key)));
+      await tester.pumpWidget(shell(skin.Skeleton(rows: entry.key)));
       expect(
-        views(find.byType(MySkeleton), (v) => v.style?.height == 13),
+        views(find.byType(skin.Skeleton), (v) => v.style?.height == 13),
         findsNWidgets(entry.value),
       );
     });
@@ -641,7 +649,7 @@ void main() {
 
   testWidgets('Skeleton loading来回切换保留正文State及计数', (tester) async {
     final probe = GlobalKey<ProbeState>();
-    Widget skeleton(bool loading) => MySkeleton(
+    Widget skeleton(bool loading) => skin.Skeleton(
       loading: loading,
       child: StateProbe(key: probe),
     );
@@ -658,10 +666,10 @@ void main() {
   });
 
   testWidgets('Progress非法值归一化、buffer下限与辅助读数', (tester) async {
-    MyProgressValue? seen;
+    skin.ProgressValue? seen;
     await tester.pumpWidget(
       shell(
-        MyProgress(
+        skin.Progress(
           value: 120,
           max: 0,
           buffer: 2,
@@ -675,35 +683,35 @@ void main() {
     expect(seen!.value, 100);
     expect(seen!.max, 100);
     expect(seen!.percentage, 100);
-    var data = tester.getSemantics(find.byType(MyProgress)).getSemanticsData();
+    var data = tester.getSemantics(find.byType(skin.Progress)).getSemanticsData();
     expect(data.role, SemanticsRole.progressBar);
     expect(data.value, '100%');
     expect(data.hint, '已缓冲 100%');
-    await tester.pumpWidget(shell(MyProgress(value: double.nan)));
-    data = tester.getSemantics(find.byType(MyProgress)).getSemanticsData();
+    await tester.pumpWidget(shell(skin.Progress(value: double.nan)));
+    data = tester.getSemantics(find.byType(skin.Progress)).getSemanticsData();
     expect(data.value, '进行中');
     expect(textView('0%'), findsOneWidget);
   });
 
   testWidgets('Progress圆环96px，隐藏/换类型保留插槽State', (tester) async {
     final probe = GlobalKey<ProbeState>();
-    Widget progress(MyProgressType type, bool show) => MyProgress(
+    Widget progress(skin.ProgressType type, bool show) => skin.Progress(
       value: 25,
       type: type,
       showText: show,
       textBuilder: (_, value) => StateProbe(key: probe),
     );
-    await tester.pumpWidget(shell(progress(MyProgressType.line, true)));
+    await tester.pumpWidget(shell(progress(skin.ProgressType.line, true)));
     final state = probe.currentState;
-    await tester.pumpWidget(shell(progress(MyProgressType.circle, true)));
+    await tester.pumpWidget(shell(progress(skin.ProgressType.circle, true)));
     expect(
       tester.getSize(
-        views(find.byType(MyProgress), (v) => v.style?.width == 96),
+        views(find.byType(skin.Progress), (v) => v.style?.width == 96),
       ),
       Size(96, 96),
     );
     expect(probe.currentState, same(state));
-    await tester.pumpWidget(shell(progress(MyProgressType.circle, false)));
+    await tester.pumpWidget(shell(progress(skin.ProgressType.circle, false)));
     expect(probe.currentState, same(state));
     expect(find.text('count:0'), findsNothing);
     expect(tester.takeException(), null);
@@ -711,7 +719,7 @@ void main() {
 
   testWidgets('减少动画不循环调帧，普通模式卸载释放ticker', (tester) async {
     Widget group() =>
-        Column(children: [MyLoading(), MySkeleton(), MyProgress()]);
+        Column(children: [skin.Loading(), skin.Skeleton(), skin.Progress()]);
     await tester.pumpWidget(shell(group()));
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, false);
@@ -726,7 +734,7 @@ void main() {
     var clicks = 0;
     await tester.pumpWidget(
       shell(
-        MyButton(
+        skin.Button(
           child: '触摸',
           onClick: (_) => clicks++,
           delayTouchDown: Duration(milliseconds: 80),
@@ -751,7 +759,7 @@ void main() {
 
   testWidgets('Button loading保留可访问名称且selected是可选语义', (tester) async {
     await tester.pumpWidget(
-      shell(MyButton(child: '保存', loading: true, selected: true)),
+      shell(skin.Button(child: '保存', loading: true, selected: true)),
     );
     final node = tester.getSemantics(buttonHost()).getSemanticsData();
     expect(node.label, '保存');
@@ -768,7 +776,7 @@ void main() {
       shell(
         Column(
           children: [
-            MyCard(
+            skin.Card(
               interactive: true,
               focusNode: focus,
               title: '卡片',
@@ -798,7 +806,7 @@ void main() {
   });
 
   testWidgets('Tag五色遵守CSS混色，disabled不回调', (tester) async {
-    final theme = MyTheme.lightVars;
+    final theme = ElMobileTheme.lightVars;
     final accents = [
       (theme[ElTheme.$primary] as Color),
       (theme[ElTheme.$success] as Color),
@@ -806,12 +814,12 @@ void main() {
       (theme[ElTheme.$error] as Color),
       (theme[ElTheme.$textSecondary] as Color),
     ];
-    for (var i = 0; i < MyTagTone.values.length; i++) {
+    for (var i = 0; i < skin.TagTone.values.length; i++) {
       await tester.pumpWidget(
-        shell(MyTag(tone: MyTagTone.values[i], child: '标签')),
+        shell(skin.Tag(tone: skin.TagTone.values[i], child: '标签')),
       );
       final view = tester.widget<ElView>(
-        views(find.byType(MyTag), (v) => v.style?.minHeight == 28),
+        views(find.byType(skin.Tag), (v) => v.style?.minHeight == 28),
       );
       expect(view.style!.color, accents[i]);
       expect(
@@ -822,7 +830,7 @@ void main() {
     var calls = 0;
     await tester.pumpWidget(
       shell(
-        MyTag(
+        skin.Tag(
           value: false,
           disabled: true,
           child: '禁用',
@@ -831,30 +839,30 @@ void main() {
         ),
       ),
     );
-    await tester.tap(views(find.byType(MyTag), (v) => v.event?.onTap != null));
+    await tester.tap(views(find.byType(skin.Tag), (v) => v.event?.onTap != null));
     expect(calls, 0);
   });
 
   testWidgets('组件主题变量有真实消费者', (tester) async {
     final theme = ElStyle(
       vars: {
-        MyCard.$padding: EdgeInsets.all(5),
-        MyCard.$radius: 11,
-        MySwitch.$thumbBackground: Color(0xff123456),
-        MyDivider.$height: 31,
-        MyDivider.$spacing: 4,
-        MyProgress.$size: 80,
-        MyProgress.$thickness: 9,
+        skin.Card.$padding: EdgeInsets.all(5),
+        skin.Card.$radius: 11,
+        skin.Switch.$thumbBackground: Color(0xff123456),
+        skin.Divider.$height: 31,
+        skin.Divider.$spacing: 4,
+        skin.Progress.$size: 80,
+        skin.Progress.$thickness: 9,
       },
     );
     await tester.pumpWidget(
       shell(
         Column(
           children: [
-            MyCard(child: SizedBox(height: 10)),
-            MySwitch(value: false, label: '开关'),
-            MyDivider(vertical: true),
-            MyProgress(value: 50, type: MyProgressType.circle),
+            skin.Card(child: SizedBox(height: 10)),
+            skin.Switch(value: false, label: '开关'),
+            skin.Divider(vertical: true),
+            skin.Progress(value: 50, type: skin.ProgressType.circle),
           ],
         ),
         theme: theme,
@@ -863,7 +871,7 @@ void main() {
     expect(
       tester
           .widget<ElView>(
-            views(find.byType(MyCard), (v) => v.style?.width == '100%').first,
+            views(find.byType(skin.Card), (v) => v.style?.width == '100%').first,
           )
           .style!
           .padding,
@@ -872,16 +880,16 @@ void main() {
     expect(
       tester
           .widget<ElView>(
-            views(find.byType(MySwitch), (v) => v.style?.width == 22),
+            views(find.byType(skin.Switch), (v) => v.style?.width == 22),
           )
           .style!
           .backgroundColor,
       Color(0xff123456),
     );
-    expect(tester.getSize(find.byType(MyDivider)).height, 31);
+    expect(tester.getSize(find.byType(skin.Divider)).height, 31);
     expect(
       tester.getSize(
-        views(find.byType(MyProgress), (v) => v.style?.width == 80),
+        views(find.byType(skin.Progress), (v) => v.style?.width == 80),
       ),
       Size(80, 80),
     );
@@ -890,7 +898,7 @@ void main() {
   testWidgets('Skeleton隐藏正文退出焦点并保留可重新聚焦节点', (tester) async {
     final focus = FocusNode();
     addTearDown(focus.dispose);
-    Widget skeleton(bool loading) => MySkeleton(
+    Widget skeleton(bool loading) => skin.Skeleton(
       loading: loading,
       avatar: true,
       child: Focus(focusNode: focus, child: SizedBox(height: 20)),
@@ -904,7 +912,7 @@ void main() {
     expect(focus.hasFocus, false);
     expect(focus.canRequestFocus, false);
     expect(
-      views(find.byType(MySkeleton), (v) => v.style?.width == 42),
+      views(find.byType(skin.Skeleton), (v) => v.style?.width == 42),
       findsOneWidget,
     );
     await tester.pumpWidget(shell(skeleton(false)));
@@ -915,17 +923,17 @@ void main() {
 
   testWidgets('Progress确定值用200ms CSS ease过渡，语义同步目标值', (tester) async {
     Finder paint() => find.descendant(
-      of: find.byType(MyProgress),
+      of: find.byType(skin.Progress),
       matching: find.byType(CustomPaint),
     );
-    await tester.pumpWidget(shell(MyProgress(value: 20), reduced: false));
-    await tester.pumpWidget(shell(MyProgress(value: 80), reduced: false));
+    await tester.pumpWidget(shell(skin.Progress(value: 20), reduced: false));
+    await tester.pumpWidget(shell(skin.Progress(value: 80), reduced: false));
     dynamic painter = tester.widget<CustomPaint>(paint()).painter;
     expect(painter.ratio, closeTo(.2, .001));
     await tester.pump(Duration(milliseconds: 100));
     painter = tester.widget<CustomPaint>(paint()).painter;
     expect(painter.ratio, closeTo(.2 + .6 * Curves.ease.transform(.5), .001));
-    expect(tester.getSemantics(find.byType(MyProgress)).value, '80%');
+    expect(tester.getSemantics(find.byType(skin.Progress)).value, '80%');
     await tester.pump(Duration(milliseconds: 100));
     painter = tester.widget<CustomPaint>(paint()).painter;
     expect(painter.ratio, closeTo(.8, .001));
@@ -936,7 +944,7 @@ void main() {
     var pressed = false, clicks = 0;
     await tester.pumpWidget(
       shell(
-        MyButton(
+        skin.Button(
           delayTouchDown: Duration(milliseconds: 80),
           delayTouchUp: Duration(milliseconds: 160),
           onClick: (_) => clicks++,
@@ -982,11 +990,11 @@ void main() {
             update = setState;
             return Column(
               children: [
-                MyTheme(
+                ElMobileTheme(
                   style: ElStyle(vars: {ElTheme.$primary: color}),
-                  child: MyButton(key: nested, child: '局部'),
+                  child: skin.Button(key: nested, child: '局部'),
                 ),
-                MyButton(key: sibling, child: '默认'),
+                skin.Button(key: sibling, child: '默认'),
               ],
             );
           },
@@ -1009,7 +1017,7 @@ void main() {
     var card = 0, inner = 0;
     await tester.pumpWidget(
       shell(
-        MyCard(
+        skin.Card(
           interactive: true,
           onActivate: (_) => card++,
           child: Column(
@@ -1037,10 +1045,10 @@ void main() {
       shell(
         ElView(
           event: ElEvent(onTap: (_) => ancestor++),
-          child: MyCard(
+          child: skin.Card(
             interactive: true,
             onActivate: (_) => card++,
-            child: MyButton(child: '操作', onClick: (_) => button++),
+            child: skin.Button(child: '操作', onClick: (_) => button++),
           ),
         ),
       ),
@@ -1055,10 +1063,10 @@ void main() {
     var card = 0;
     await tester.pumpWidget(
       shell(
-        MyCard(
+        skin.Card(
           interactive: true,
           onActivate: (_) => card++,
-          child: MyButton(disabled: true, child: '禁用'),
+          child: skin.Button(disabled: true, child: '禁用'),
         ),
       ),
     );
@@ -1067,9 +1075,9 @@ void main() {
   });
 
   testWidgets('Progress条形默认21高，隐藏读数时仅轨道6高', (tester) async {
-    await tester.pumpWidget(shell(MyProgress(value: 40)));
-    expect(tester.getSize(find.byType(MyProgress)), Size(320, 21));
-    await tester.pumpWidget(shell(MyProgress(value: 40, showText: false)));
-    expect(tester.getSize(find.byType(MyProgress)), Size(320, 6));
+    await tester.pumpWidget(shell(skin.Progress(value: 40)));
+    expect(tester.getSize(find.byType(skin.Progress)), Size(320, 21));
+    await tester.pumpWidget(shell(skin.Progress(value: 40, showText: false)));
+    expect(tester.getSize(find.byType(skin.Progress)), Size(320, 6));
   });
 }

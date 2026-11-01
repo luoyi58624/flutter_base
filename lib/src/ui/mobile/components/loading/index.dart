@@ -9,7 +9,7 @@ import '../../cores/common.dart';
 import '../../cores/glyph.dart';
 
 /// Web 的三档指示器尺寸。
-enum MyLoadingSize {
+enum LoadingSize {
   /// 16px，用于按钮。
   small(16),
 
@@ -19,24 +19,24 @@ enum MyLoadingSize {
   /// 32px。
   large(32);
 
-  const MyLoadingSize(this.pixels);
+  const LoadingSize(this.pixels);
 
   /// CSS对应的边长。
   final double pixels;
 }
 
 /// 本地SVG圆弧加载指示，可见说明通过child提供。
-class MyLoading extends StatelessWidget {
+class Loading extends StatelessWidget {
   /// label在没有默认插槽时用于播报。
-  const MyLoading({
+  const Loading({
     super.key,
-    this.size = MyLoadingSize.medium,
+    this.size = LoadingSize.medium,
     this.label = '加载中',
     this.child,
   });
 
   /// 图标尺寸档位。
-  final MyLoadingSize size;
+  final LoadingSize size;
 
   /// 无可见说明时的名称。
   final String label;
@@ -62,7 +62,7 @@ class MyLoading extends StatelessWidget {
             style: ElStyle(
               width: size.pixels,
               height: size.pixels,
-              animation: myReducedMotion(context)
+              animation: reducedMotion(context)
                   ? const []
                   : [
                       ElAnimation(
@@ -78,7 +78,7 @@ class MyLoading extends StatelessWidget {
                       ),
                     ],
             ),
-            child: MyGlyph(spinner: true, size: size.pixels),
+            child: Glyph(spinner: true, size: size.pixels),
           ),
         ),
         if (child != null)

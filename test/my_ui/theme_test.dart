@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/ui/mobile/components/card/index.dart' as skin;
 
 void main() {
   final expected = jsonDecode(_cssSnapshot) as Map<String, dynamic>;
@@ -16,7 +17,7 @@ void main() {
       late ElThemeExt t;
       await tester.pumpWidget(
         MaterialApp(
-          home: MyTheme(
+          home: ElMobileTheme(
             brightness: mode == 'dark' ? Brightness.dark : Brightness.light,
             child: Builder(
               builder: (context) {
@@ -94,16 +95,16 @@ void main() {
   }
 
   test('默认变量表与字体回退集合保持只读', () {
-    expect(MyTheme.lightVars[ElTheme.$fontFamily], 'Times New Roman');
-    expect(MyTheme.lightVars[ElTheme.$fontFamilyFallback], [
+    expect(ElMobileTheme.lightVars[ElTheme.$fontFamily], 'Times New Roman');
+    expect(ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback], [
       'Microsoft YaHei',
       'SimSun',
     ]);
-    expect(() => MyTheme.lightVars.clear(), throwsUnsupportedError);
-    expect(MyTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
-    expect(MyTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
+    expect(() => ElMobileTheme.lightVars.clear(), throwsUnsupportedError);
+    expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontFamily), isFalse);
+    expect(ElMobileTheme.darkVars.containsKey(ElTheme.$fontWeight), isFalse);
     expect(
-      () => (MyTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>)
+      () => (ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback] as List<String>)
           .clear(),
       throwsUnsupportedError,
     );
@@ -114,7 +115,7 @@ void main() {
     late ElThemeExt theme;
     await tester.pumpWidget(
       MaterialApp(
-        home: MyTheme(
+        home: ElMobileTheme(
           brightness: Brightness.dark,
           style: ElStyle(
             vars: {
@@ -161,7 +162,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('MyTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
+  testWidgets('ElMobileTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
     final textKey = GlobalKey(),
         viewKey = GlobalKey(),
         explicitKey = GlobalKey();
@@ -176,7 +177,7 @@ void main() {
     ]) {
       await tester.pumpWidget(
         MaterialApp(
-          home: MyTheme(
+          home: ElMobileTheme(
             style: data,
             child: Column(
               children: [
@@ -204,12 +205,12 @@ void main() {
       expect(
         text.text.style!.fontFamily,
         data.vars?[ElTheme.$fontFamily] ??
-            MyTheme.lightVars[ElTheme.$fontFamily],
+            ElMobileTheme.lightVars[ElTheme.$fontFamily],
       );
       expect(
         text.text.style!.fontFamilyFallback,
         data.vars?[ElTheme.$fontFamilyFallback] ??
-            MyTheme.lightVars[ElTheme.$fontFamilyFallback],
+            ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
       );
       expect(
         view.committedResolvedStyle.inheritedText.lineHeight,
@@ -218,12 +219,12 @@ void main() {
       expect(
         view.committedResolvedStyle.inheritedText.fontFamily,
         data.vars?[ElTheme.$fontFamily] ??
-            MyTheme.lightVars[ElTheme.$fontFamily],
+            ElMobileTheme.lightVars[ElTheme.$fontFamily],
       );
       expect(
         view.committedResolvedStyle.inheritedText.fontFamilyFallback,
         data.vars?[ElTheme.$fontFamilyFallback] ??
-            MyTheme.lightVars[ElTheme.$fontFamilyFallback],
+            ElMobileTheme.lightVars[ElTheme.$fontFamilyFallback],
       );
       expect(
         tester
@@ -266,7 +267,7 @@ void main() {
       ],
     );
     Widget host() => MaterialApp(
-      home: MyTheme(
+      home: ElMobileTheme(
         style: ElStyle(vars: {ElTheme.$primary: color}),
         child: child,
       ),
@@ -287,7 +288,7 @@ void main() {
     double? radius;
     await tester.pumpWidget(
       MaterialApp(
-        home: MyTheme(
+        home: ElMobileTheme(
           brightness: Brightness.dark,
           child: Column(
             children: [
@@ -295,7 +296,7 @@ void main() {
                 style: ElStyle(
                   vars: {
                     ElTheme.$primary: Color(0xff123456),
-                    MyCard.$radius: 18,
+                    skin.Card.$radius: 18,
                   },
                   onDark: ElStyle(vars: {ElTheme.$primary: Color(0xff654321)}),
                 ),
@@ -303,9 +304,9 @@ void main() {
                   builder: (context) {
                     local = context.elTheme.primary;
                     radius = ElView.of(context)
-                        .getVar<num>(MyCard.$radius)
+                        .getVar<num>(skin.Card.$radius)
                         ?.toDouble();
-                    return MyCard(child: SizedBox());
+                    return skin.Card(child: SizedBox());
                   },
                 ),
               ),
@@ -321,7 +322,7 @@ void main() {
       ),
     );
     expect(local, Color(0xff654321));
-    expect(sibling, MyTheme.darkVars[ElTheme.$primary]);
+    expect(sibling, ElMobileTheme.darkVars[ElTheme.$primary]);
     expect(radius, 18);
   });
 }
