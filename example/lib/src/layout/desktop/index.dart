@@ -1,4 +1,5 @@
 import 'package:example/src/layout/index.dart';
+import 'package:example/src/layout/home.dart';
 import 'package:example/src/pages/custom_gestures.dart';
 import 'package:example/src/pages/view.dart';
 import 'package:example/src/pages/view/base.dart';
@@ -26,11 +27,9 @@ class _DesktopLayoutState extends State<DesktopLayout> {
       builder: (context) {
         final tabIndex = GlobalState.boottomTabbarIndex.value;
         // 叶子属于当前 tab 时保留选择，外部切换 tab 则使用一级菜单 key。
-        final selected = AppLayout.menuTabs[_selected] == tabIndex
-            ? _selected
-            : AppLayout.tabKeyOf(tabIndex);
+        final selected = AppLayout.menuTabs[_selected] == tabIndex ? _selected : AppLayout.tabKeyOf(tabIndex);
         final pages = [
-          ('home', Center(child: Text('首页'))),
+          ('home', HomePage()),
           ('components', Center(child: Text('组件'))),
           ('component-overview', Center(child: Text('组件概览'))),
           ('examples', Center(child: Text('示例'))),
@@ -51,8 +50,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
                   current: selected,
                   onChanged: (key) => setState(() {
                     _selected = key;
-                    GlobalState.boottomTabbarIndex.value =
-                        AppLayout.menuTabs[key] ?? 0;
+                    GlobalState.boottomTabbarIndex.value = AppLayout.menuTabs[key] ?? 0;
                   }),
                 ),
                 Expanded(

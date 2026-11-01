@@ -1,4 +1,5 @@
 import 'package:example/src/layout/index.dart';
+import 'package:example/src/layout/home.dart';
 import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
@@ -26,7 +27,7 @@ class _MobileLayoutState extends State<MobileLayout> {
           body: IndexedStack(
             index: index,
             children: [
-              Center(child: Text(tabs[0].$2)),
+              HomePage(),
               ElComponentCatalogPage(),
               Center(child: Text(tabs[2].$2)),
               Center(child: Text(tabs[3].$2)),
