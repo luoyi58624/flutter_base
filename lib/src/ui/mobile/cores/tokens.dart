@@ -79,11 +79,12 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
             ),
           ]),
   ),
-  ElTokens.$shadowXs: _shadow(dark, const [(1, 4, 0, .05, .18)]),
-  ElTokens.$shadowSm: _shadow(dark, const [(2, 8, -1, .08, .24)]),
-  ElTokens.$shadowMd: _shadow(dark, const [(2, 6, -2, .055, .24), (6, 16, -3, .12, .32)]),
-  ElTokens.$shadowLg: _shadow(dark, const [(3, 8, -2, .06, .28), (12, 28, -5, .16, .4)]),
-  ElTokens.$shadowXl: _shadow(dark, const [(4, 12, -3, .07, .32), (20, 44, -7, .2, .5)]),
+  ElTokens.$shadowXs: _shadow(dark, const [(1, 2, 0, .025, .10)]),
+  ElTokens.$shadowSm: _shadow(dark, const [(1, 5, 0, .035, .14)]),
+  // md 对齐 Web 原型的卡片投影，近层支撑轮廓，远层用很低的浓度柔和散开。
+  ElTokens.$shadowMd: _shadow(dark, const [(2, 10, 0, .018, .14), (10, 35, 0, .035, .24)]),
+  ElTokens.$shadowLg: _shadow(dark, const [(3, 12, -1, .04, .20), (14, 42, -3, .08, .34)]),
+  ElTokens.$shadowXl: _shadow(dark, const [(4, 16, -1, .05, .24), (20, 56, -5, .11, .42)]),
   ElTokens.$overlayColor: (dark
       ? const Color(0xff000000).withValues(alpha: .62)
       : const Color(0xff0c121c).withValues(alpha: .34)),
@@ -94,12 +95,12 @@ Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
   if (!dark) ElTokens.$fontWeightTitle: 700,
 });
 
-// 各层依次为（向下偏移、模糊、扩张、浅色透明度、暗色透明度），使用柔和投影，避免硬轮廓。
+// 各层依次为（向下偏移、模糊、扩张、浅色不透明度、暗色不透明度）；浅色沿用原型的冷灰，暗色用黑色。
 List<BoxShadow> _shadow(bool dark, List<(double, double, double, double, double)> layers) =>
     List<BoxShadow>.unmodifiable([
       for (final layer in layers)
         BoxShadow(
-          color: const Color(0xff000000).withValues(alpha: dark ? layer.$5 : layer.$4),
+          color: Color(dark ? 0xff000000 : 0xff314669).withValues(alpha: dark ? layer.$5 : layer.$4),
           offset: Offset(0, layer.$1),
           blurRadius: layer.$2,
           spreadRadius: layer.$3,

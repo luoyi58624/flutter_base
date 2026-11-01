@@ -31,7 +31,7 @@ ElMobileTheme(
 | ElText | 已接入 | 全部 Text 参数原样转交，继承 ElMobileTheme 默认字体 |
 | ElCard | 已接入 | Widget 正文、style 外观、阴影档位、整卡点击、详细事件和加载状态 |
 | ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |
-| ElListTileGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
+| ElListGroup | 已接入 | 默认、单选、多选，沿用索引分隔线与圆角容器，leading 控制标记位置 |
 | ElLoadingIndicator | 已接入 | 数值尺寸、可见说明、根样式与加载语义 |
 | ElProgress | 已接入 | Web 直线／圆环、完成量、缓冲量、不确定状态与读数插槽 |
 | ElSkeleton | 已接入 | Web 行数及头像占位、减少动画与正文实例保留 |
@@ -44,10 +44,10 @@ ElMobileTheme(
 
 既有皮肤留在各自目录的 `index.dart`，用于通用接口实现及内部回归。LoadingIndicator、Progress、Skeleton 通过公共接口接入，具体实现不从移动端入口导出；现有通用 ElDivider 不增加无效参数。共用接口的逐项来源和待适配缺口见 [Web 接口基准](../../flutter/components/WEB_BASELINE.md)。
 
-列表由通用声明与 [mobile 列表实现](components/list_tile/README.md) 组成，示例直接使用 ElListTile / ElListTileGroup。
+列表由通用声明与 [mobile 列表实现](components/list_tile/README.md) 组成，示例直接使用 ElListTile / ElListGroup。
 
 主题通过 `ElMobileTheme(style: ElStyle(vars: {ElTokens.$primary: color}))` 注入，后代通过 `context.elTheme.primary` 按键读取；局部覆写直接使用 ElView.vars。外部 notifier 与焦点节点仍按原有生命周期管理。现有颜色、几何、事件测试保留；本次验证为无头测试，不代表手机视觉和输入设备验收。
 
 背景颜色按用途独立：`bgColor` 为页面背景（浅色 `#EEEEEE`），`cardColor` 为卡片与列表组背景（浅色白色），`cardPressColor` 为卡片、列表行和菜单项的按压背景（浅色 `#E0E0E0`），`dividerColor` 为分隔线（浅色 `#E0E0E0`）。`borderColor` 仅控制控件边框；`press` 继续用于其他控件。各 token 均可独立级联覆写，暗色表分别声明默认值。
 
-五档阴影 `shadowXs / Sm / Md / Lg / Xl` 均使用中性黑柔和投影，最外层的向下偏移依次为 1 / 2 / 6 / 12 / 20，模糊半径为 4 / 8 / 16 / 28 / 44，扩张为 0 或负值；md 以上叠加一层较近的投影。暗色提高阴影不透明度以保持层次，不添加零模糊轮廓或白色描边。ElCard 默认无边框，用户可通过 style.border 单独添加。
+五档阴影 `shadowXs / Sm / Md / Lg / Xl` 使用柔和漫射投影：xs 为淡淡的单层小范围阴影，sm 稍重；md 对齐 Web 原型 `reference/blue_mobile_components_v10.html` 的卡片阴影，近层 `0 2 / blur 10 / 1.8%`，远层 `0 10 / blur 35 / 3.5%`，浅色使用原型冷灰 `#314669`。lg 用于菜单和小弹窗，xl 用于模态窗口，两者逐步增加悬浮距离，外层浓度分别为 8% 和 11%，不添加描边。暗色独立使用黑色并提高不透明度。ElCard 默认无边框、无阴影，通过 `shadowLevel: .md` 使用卡片档位，用户仍可通过 style 覆写。

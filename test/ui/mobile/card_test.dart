@@ -34,13 +34,14 @@ void main() {
           expect(shadow.blurRadius, greaterThan(0), reason: '零模糊轮廓会产生描边感');
           expect(shadow.spreadRadius, lessThanOrEqualTo(0));
           expect(shadow.offset.dx, 0);
-          expect(shadow.color.toARGB32() & 0xffffff, 0, reason: '使用中性黑投影');
+          expect(shadow.color.toARGB32() & 0xffffff, dark ? 0 : 0x314669);
         }
         expect(shadows.last.blurRadius, greaterThan(previousBlur));
-        expect(shadows.last.offset.dy, greaterThan(previousOffset));
+        expect(shadows.last.offset.dy, greaterThanOrEqualTo(previousOffset));
         previousBlur = shadows.last.blurRadius;
         previousOffset = shadows.last.offset.dy;
       }
+      expect((tokens[ElTokens.$shadowXs] as List<BoxShadow>).length, 1);
     }
   });
 
