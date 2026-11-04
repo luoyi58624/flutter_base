@@ -4,9 +4,10 @@ import 'dart:ui' as ui;
 import 'dart:ui' show Codec;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter_base/flutter_base.dart' show ElStyleTapExt;
 import 'package:flutter_base/src/flutter/views/view/style/resolved/builder.dart';
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
+import 'package:flutter_base/src/ui/testing/ui_test_api.dart' hide ElStyleTapExt;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
@@ -1526,6 +1527,33 @@ void main() {
         final merged = base.merge(other);
         expect(merged.onHover!.backgroundColor, blue);
         expect(merged.onHover!.width, 10);
+      });
+    });
+
+    group('withTapScale', () {
+      test('保留按压属性并分别补齐常态和按压过渡', () {
+        final background = ElTransition.field(.backgroundColor);
+        final opacity = ElTransition.field(.opacity);
+        final scale = ElTransition.field(.transform, Duration(milliseconds: 100), Curves.easeOut);
+        final style = ElStyle(
+          transition: [background],
+          onTap: ElStyle(backgroundColor: Colors.blue, opacity: 0.8, transition: [opacity]),
+        ).withTapScale(scale: 0.9);
+
+        expect(style.onTap?.transform, ElTransform.scale(0.9));
+        expect(style.onTap?.backgroundColor, Colors.blue);
+        expect(style.onTap?.opacity, 0.8);
+        expect(style.transition, [background, scale]);
+        expect(style.onTap?.transition, [opacity, scale]);
+      });
+
+      test('复用覆盖变换的过渡并允许按压态沿用常态过渡', () {
+        final transitions = [ElTransition.all(Duration(milliseconds: 180), Curves.linear)];
+        final style = ElStyle(transition: transitions).withTapScale();
+
+        expect(style.onTap?.transform, ElTransform.scale(0.95));
+        expect(style.transition, same(transitions));
+        expect(style.onTap?.transition, isNull);
       });
     });
 

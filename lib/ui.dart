@@ -192,7 +192,7 @@ export 'src/ui/widgets/dnd/draggable.dart' show ElDraggable;
 export 'src/ui/widgets/dnd/drop_target.dart' show ElDropCandidate, ElDropDetails, ElDropTarget;
 
 // 点击反馈
-export 'src/flutter/widgets/tap/index.dart' show ElFadeTap, ElRippleTap, ElScaleTap;
+export 'src/flutter/widgets/tap/index.dart' show ElFadeTap, ElRippleTap;
 
 // 通用表单状态、校验、字段绑定与布局。
 export 'src/flutter/widgets/form/index.dart'

@@ -12,8 +12,10 @@ import '../commons/index.dart';
 import '../state/obs/index.dart';
 import '../utils/platform/index.dart';
 import '../utils/util.dart';
+import '../views/view/style/style.dart';
 
 part 'el.dart';
 part 'navigator.dart';
 part 'flutter.dart';
 part 'color.dart';
+part 'view.dart';

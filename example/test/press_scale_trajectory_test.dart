@@ -22,19 +22,16 @@ void main() {
         Directionality(
           textDirection: .ltr,
           child: Center(
-            child: ElScaleTap(
-              style: .new(onTap: .new(transform: .scale(0.9))),
+            child: ElButtonView(
+              key: key,
               onPressed: () => activations++,
-              child: ElCardView(
-                key: key,
-                style: .new(
-                  width: 200,
-                  height: 120,
-                  backgroundColor: background,
-                  transition: [.field(.backgroundColor, Duration(milliseconds: 100), Curves.easeOut)],
-                  onTap: .new(backgroundColor: background.deepen(10)),
-                ),
-              ),
+              style: ElStyle(
+                width: 200,
+                height: 120,
+                backgroundColor: background,
+                transition: [.field(.backgroundColor, Duration(milliseconds: 100), Curves.easeOut)],
+                onTap: .new(backgroundColor: background.deepen(10)),
+              ).withTapScale(scale: 0.9),
             ),
           ),
         ),
@@ -47,9 +44,10 @@ void main() {
       TestGesture? gesture;
       for (var ms = 0; ms <= downs.last + 240; ms += 5) {
         if (ms != 0) await tester.pump(Duration(milliseconds: 5));
-        // 从卡片的绘制变换读取尺寸，布局宽度本身始终是 200。
-        final scale = card.getTransformTo(null).entry(0, 0);
-        final shade = card.committedResolvedStyle.box.backgroundColor!.toARGB32() & 0xff;
+        // 缩放由卡片自身绘制，直接读取这一帧提交的样式。
+        final box = card.committedResolvedStyle.box;
+        final scale = box.transform?.toMatrix4().entry(0, 0) ?? 1.0;
+        final shade = box.backgroundColor!.toARGB32() & 0xff;
         frames.add((ms: ms, scale: scale, shade: shade));
         if (downs.contains(ms)) gesture = await tester.startGesture(point, kind: kind);
         if (ups.contains(ms)) await gesture!.up();
@@ -64,6 +62,7 @@ void main() {
         isTrue,
       );
       expect(frames.last.scale, closeTo(1, .0001));
+      expect(frames.any((frame) => frame.shade < 255), isTrue);
       expect(frames.last.shade, 255);
       if (name == 'mouse-tap') {
         expect(minimum.ms, ups.single);

@@ -111,23 +111,6 @@ class _FadeCurve extends Curve {
   double transformInternal(double t) => t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
 }
 
-/// 按压时触发缩放效果的通用按钮
-class ElScaleTap extends ElButtonView {
-  ElScaleTap({
-    super.key,
-    ElStyle? style,
-    required super.onPressed,
-    required super.child,
-    super.disabled = false,
-    super.semanticLabel,
-  }) : super(
-         style: const ElStyle(
-           transition: [.field(ElTransitionField.transform, Duration(milliseconds: 100), Curves.easeOut)],
-           onTap: ElStyle(transform: ElTransform.scale(0.95)),
-         ).merge(style),
-       );
-}
-
 /// 悬停时浅色高亮、按下时从落点扩散 Material 2 波纹的通用按钮。
 class ElRippleTap extends StatefulWidget {
   /// 创建波纹按钮，反馈颜色跟随当前文本色，裁剪跟随 [style] 及直接子 [ElView] 的圆角和路径。
