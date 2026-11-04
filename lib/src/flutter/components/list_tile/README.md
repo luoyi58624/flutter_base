@@ -6,14 +6,17 @@
 
 | 范围 | 参数 |
 | --- | --- |
-| 列表行共用 | value / modelValue / onChanged / title / subtitle / leading / disabled / style / event / focusNode / semanticLabel |
+| 列表行共用 | value / title / subtitle / leading / disabled / style / event / focusNode / semanticLabel |
+| 开关行和弹窗单选行共用 | modelValue / onChanged |
 | 普通行 | trailingText / trailing / onTap |
 | 开关行 | 使用 bool 泛型 / loading / switchStyle |
 | 弹窗单选行 | options / trailingText / trailing / popupAnchor / popupMaxHeight / popupStyle / optionStyle / closeOnSelect / popupLabel |
 | 列表组共用 | title / List<ElListTile> children / bool leading |
 | 单选、多选列表组 | 继承的 value / modelValue / onChanged |
 
-`value`、`modelValue`、`onChanged` 直接沿用基类的 `T?`、`ValueNotifier<T>?`、`ValueChanged<T>?`，不另外声明一份值通道。`value` 与 `modelValue` 互斥，外部模型更新和普通值回灌沿用 ElModelValue 的通知规则。显式非空 T 必须提供初始值或模型；允许未选择时使用 `ElListTile<String?>`，普通无绑定行可省略泛型。品牌构建和事件通过挂载后的 `currentValue` 读写同一模型，不另建绑定。
+普通行的 `value` 是单选或多选组中的选项值。独立的普通行可省略 `value` 和泛型，点击动作由 `onTap` 处理。
+
+开关行和弹窗单选行使用 `ElModelValue` 的通知规则，`value` 与 `modelValue` 互斥。弹窗行可以用 `ElListTile<String?>.popup` 表示尚未选择。品牌实现通过挂载后的 `currentValue` 读写模型。
 
 普通行的 `trailingText` 是右侧当前值，与后缀独立。`trailing` 统一以 `$absent` 表示未指定，品牌实现通过 `identical` 识别并绘制默认图标；显式传 `null` 完全移除后缀与对应间距，其他值替换默认图标。移动实现复用 `ElFlutterUtil.getAncestorElement`，根据最近的 `MaterialApp` / `CupertinoApp` 选择右箭头，不根据设备平台选择。
 

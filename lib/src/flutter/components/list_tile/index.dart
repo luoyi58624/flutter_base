@@ -20,11 +20,11 @@ enum ElListTileType {
 /// 泛型列表行，值绑定由 ElModelValue 持有，布局与弹窗由品牌实现提供。
 class ElListTile<T> extends ElModelValue<T> {
   /// 创建普通列表行，默认后缀由品牌实现解析为箭头。
+  ///
+  /// [value] 是此行在单选或多选列表组中代表的选项值。
   ElListTile({
     super.key,
     super.value,
-    super.modelValue,
-    super.onChanged,
     required this.title,
     this.subtitle,
     this.leading,
@@ -36,8 +36,7 @@ class ElListTile<T> extends ElModelValue<T> {
     this.event,
     this.focusNode,
     this.semanticLabel,
-  }) : assert(value == null || modelValue == null, 'value 与 modelValue 互斥，二选一'),
-       assert(value != null || modelValue != null || null is T, '非空 T 必须提供 value 或 modelValue，无选中值时使用可空类型'),
+  }) : assert(value != null || null is T, '非空 T 必须提供 value，无选项值时请省略泛型或使用可空类型'),
        type = .basic,
        loading = false,
        switchStyle = null,
