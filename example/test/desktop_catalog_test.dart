@@ -127,4 +127,22 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
+
+  testWidgets('页面转场未结束时连续跨断点，导航键保持唯一并保留深度地址', (tester) async {
+    final location = '/components/button?source=resize#example';
+    await _host(tester, path: location);
+    // 每次只推进一帧，覆盖旧导航壳仍在退出时再次切回的情况。
+    for (final width in [390.0, 1280.0, 640.0, 641.0, 480.0, 1280.0, 390.0, 1280.0]) {
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 16));
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.toString(), location);
+    expect(find.byType(ButtonPage), findsOneWidget);
+    expect(find.byType(ElNavMenu<WidgetBuilder>), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
 }

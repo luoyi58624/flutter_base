@@ -46,14 +46,13 @@ class _RoutingConfigNotifier extends ChangeNotifier implements ValueListenable<R
 }
 
 final _rootKey = GlobalKey<NavigatorState>();
-final _desktopKey = GlobalKey<NavigatorState>();
 
 /// 桌面路由把现有页面放入共同侧栏布局。
 RoutingConfig get desktopRoute => RoutingConfig(
   routes: [
     GoRoute(path: '/', redirect: (context, state) => RouterUtil.home),
     ShellRoute(
-      navigatorKey: _desktopKey,
+      // 由本次配置创建导航键，避免旧壳退出时与再次进入的新壳共享 key。
       pageBuilder: (context, state, child) => NoTransitionPage(child: DesktopLayout(child: child)),
       routes: [
         GoRoute(
