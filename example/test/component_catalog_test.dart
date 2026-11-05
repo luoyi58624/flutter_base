@@ -10,6 +10,7 @@ import '../lib/src/router/index.dart';
 import '../lib/src/utils/router.dart';
 import '../lib/src/pages/components/index.dart';
 import '../lib/src/pages/components/basic/button/index.dart';
+import '../lib/src/pages/components/list/list_tile/index.dart';
 import '../lib/src/pages/components/start/shadow/index.dart';
 
 Future<void> _openCatalog(WidgetTester tester) async {
@@ -53,7 +54,9 @@ void main() {
   testWidgets('每个未实现的组件条目都能点击进入对应标题的空白页并返回目录', (tester) async {
     await _openCatalog(tester);
     final catalog = find.byKey(PageStorageKey('component-catalog'));
-    final placeholders = RouterUtil.pages.where((page) => page.key != 'button' && page.key != 'shadow-design');
+    final placeholders = RouterUtil.pages.where(
+      (page) => !['button', 'list-tile', 'shadow-design'].contains(page.key),
+    );
 
     for (final page in placeholders) {
       expect(page.data, isNotNull, reason: page.key);
@@ -77,6 +80,30 @@ void main() {
       expect(router.routeInformationProvider.value.uri.path, '/components');
       expect(tester.widget<ElBottomTabbar>(find.byType(ElBottomTabbar)).selectedIndex, 1);
       expect(tester.takeException(), isNull, reason: page.key);
+    }
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('移动目录进入列表行文档并返回后仍能再次进入', (tester) async {
+    await _openCatalog(tester);
+    final catalog = find.byKey(PageStorageKey('component-catalog'));
+    for (var index = 0; index < 2; index++) {
+      final tile = find.byKey(ValueKey('component-list-tile'));
+      final position = tester.state<ElScrollViewState>(catalog).position;
+      final delta = tester.getCenter(tile).dy - tester.getCenter(catalog).dy;
+      position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/components/list-tile');
+      expect(find.byType(ListTilePage), findsOneWidget);
+      expect(find.widgetWithText(AppBar, '组件文档'), findsOneWidget);
+      expect(find.byType(BackButton), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/components');
+      expect(find.byType(ComponentPage), findsOneWidget);
+      expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(SizedBox());
   });

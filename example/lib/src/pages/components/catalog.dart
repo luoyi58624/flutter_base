@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../example_page.dart';
 import 'basic/button/index.dart';
+import 'list/list_tile/index.dart';
 import 'start/shadow/index.dart';
 
 /// 两端共用的组件目录，每个叶子都提供实际演示或空白示例页。
@@ -60,7 +61,10 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(
     group: true,
     title: '列表组件',
-    children: [_page('list-tile', 'ListTile 列表行'), _page('list-group', 'ListTileGroup 列表组')],
+    children: [
+      _page('list-tile', 'ListTile 列表行', builder: (_) => ListTilePage()),
+      _page('list-group', 'ListTileGroup 列表组'),
+    ],
   ),
   ElMenuModel(
     group: true,
