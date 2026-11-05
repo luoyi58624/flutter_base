@@ -4,6 +4,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../state/index.dart';
+import 'example_scrollbar.dart';
 
 /// 将文档目录定位交给当前选择的滚动实现。
 class DocScrollController {
@@ -108,7 +109,7 @@ class _DocViewportState extends State<_DocViewport> {
     _keys = List.generate(widget.itemCount, (_) => GlobalKey());
     widget.controller?._state = this;
     if (widget.mode == DocScrollMode.recyclerView) {
-      _recycler = rv.RecyclerView()..setLayoutManager(rv.LinearLayoutManager(context));
+      _recycler = rv.RecyclerView(controller: _official)..setLayoutManager(rv.LinearLayoutManager(context));
       _updateAdapter();
     }
   }
@@ -196,40 +197,44 @@ class _DocViewportState extends State<_DocViewport> {
   }
 
   @override
-  Widget build(BuildContext context) => switch (widget.mode) {
-    .official => SingleChildScrollView(
-      controller: _official,
-      primary: false,
-      padding: widget.padding,
-      child: Column(
-        crossAxisAlignment: .stretch,
-        mainAxisSize: .min,
-        children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
-      ),
-    ),
-    .officialVirtual => NotificationListener<ScrollStartNotification>(
-      onNotification: (notification) {
-        if (notification.depth == 0 && notification.dragDetails != null) _locateGeneration++;
-        return false;
-      },
-      child: ListView.builder(
+  Widget build(BuildContext context) {
+    final list = switch (widget.mode) {
+      .official => SingleChildScrollView(
         controller: _official,
         primary: false,
         padding: widget.padding,
-        itemCount: widget.itemCount,
-        addAutomaticKeepAlives: false,
-        addRepaintBoundaries: false,
-        itemBuilder: _item,
+        child: Column(
+          crossAxisAlignment: .stretch,
+          mainAxisSize: .min,
+          children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
+        ),
       ),
-    ),
-    .elScrollView => ElScrollView(
-      controller: _el,
-      padding: widget.padding,
-      children: [ElListView.builder(keepAlive: false, itemCount: widget.itemCount, itemBuilder: _item)],
-    ),
-    .recyclerView =>
-      _recycler!..setPadding(widget.padding.left, widget.padding.top, widget.padding.right, widget.padding.bottom),
-  };
+      .officialVirtual => NotificationListener<ScrollStartNotification>(
+        onNotification: (notification) {
+          if (notification.depth == 0 && notification.dragDetails != null) _locateGeneration++;
+          return false;
+        },
+        child: ListView.builder(
+          controller: _official,
+          primary: false,
+          padding: widget.padding,
+          itemCount: widget.itemCount,
+          addAutomaticKeepAlives: false,
+          addRepaintBoundaries: false,
+          itemBuilder: _item,
+        ),
+      ),
+      .elScrollView => ElScrollView(
+        controller: _el,
+        scrollbar: _DocIosScrollBar(),
+        padding: widget.padding,
+        children: [ElListView.builder(keepAlive: false, itemCount: widget.itemCount, itemBuilder: _item)],
+      ),
+      .recyclerView =>
+        _recycler!..setPadding(widget.padding.left, widget.padding.top, widget.padding.right, widget.padding.bottom),
+    };
+    return widget.mode == .elScrollView ? list : RecyclerExampleScrollbar(controller: _official, child: list);
+  }
 
   @override
   void dispose() {
@@ -239,6 +244,11 @@ class _DocViewportState extends State<_DocViewport> {
     _el.dispose();
     super.dispose();
   }
+}
+
+class _DocIosScrollBar extends ElIosScrollBar {
+  @override
+  bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }
 
 class _DocItemsAdapter extends rv.Adapter<_DocItemHolder> {

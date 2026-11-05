@@ -3,6 +3,79 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('外部控制器连接真实位置并由调用方释放', (tester) async {
+    final controller = _TrackingScrollController();
+    final adapter = _RowsAdapter(count: 1000);
+    final list = rv.RecyclerView(controller: controller)
+      ..setLayoutManager(rv.LinearLayoutManager())
+      ..setAdapter(adapter);
+    await _pump(tester, list);
+    expect(controller.positions, hasLength(1));
+    final position = tester.state<ScrollableState>(find.byType(Scrollable)).position;
+    expect(controller.position, same(position));
+    controller.jumpTo(480);
+    await tester.pumpAndSettle();
+    expect((list.getLayoutManager()! as rv.LinearLayoutManager).findFirstVisibleItemPosition(), 10);
+    list.scrollBy(0, 48);
+    await tester.pumpAndSettle();
+    expect(controller.offset, 528);
+    await tester.pumpWidget(SizedBox());
+    expect(controller.hasClients, isFalse);
+    expect(controller.disposed, isFalse);
+    controller.dispose();
+    expect(controller.disposed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('保留容器 State 切换外部控制器及内部回退时位置正常转交', (tester) async {
+    final first = _TrackingScrollController();
+    final second = _TrackingScrollController();
+    final selected = ValueNotifier<ScrollController?>(null);
+    final adapter = _RowsAdapter(count: 1000);
+    final layout = rv.LinearLayoutManager()..setItemPrefetchEnabled(false);
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            height: 240,
+            child: ValueListenableBuilder<ScrollController?>(
+              valueListenable: selected,
+              builder: (context, controller, child) => rv.RecyclerView(key: key, controller: controller)
+                ..setLayoutManager(layout)
+                ..setAdapter(adapter),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final state = key.currentState;
+    for (final controller in [first, second, null, first]) {
+      selected.value = controller;
+      await tester.pumpAndSettle();
+      expect(key.currentState, same(state));
+      if (controller != null) {
+        expect(controller.positions, hasLength(1));
+        controller.jumpTo(480);
+        await tester.pumpAndSettle();
+        expect(layout.findFirstVisibleItemPosition(), 10);
+      }
+      for (final unused in [first, second].where((candidate) => candidate != controller)) {
+        expect(unused.hasClients, isFalse);
+        expect(unused.disposed, isFalse);
+      }
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(SizedBox());
+    expect(first.hasClients, isFalse);
+    expect(second.hasClients, isFalse);
+    first.dispose();
+    second.dispose();
+    selected.dispose();
+  });
+
   testWidgets('初始仅创建视口附近内容，长列表不会全量挂载', (tester) async {
     final adapter = _RowsAdapter(count: 1000);
     final list = _list(adapter);
@@ -649,6 +722,16 @@ void main() {
       await tester.pumpWidget(SizedBox());
       expect(adapter.tracker.disposals.length, adapter.tracker.initializations.length);
     });
+  }
+}
+
+class _TrackingScrollController extends ScrollController {
+  bool disposed = false;
+
+  @override
+  void dispose() {
+    disposed = true;
+    super.dispose();
   }
 }
 

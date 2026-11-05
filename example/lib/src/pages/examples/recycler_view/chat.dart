@@ -4,6 +4,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../example_page.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/example_scrollbar.dart';
 
 /// 用一万条变高消息演示历史插入、底部跟随与未读消息提示。
 class RecyclerChatPage extends StatefulWidget {
@@ -28,7 +29,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   final _officialKeys = <int, GlobalKey>{};
   RecyclerExampleScrollMode _mode = .recyclerView;
   late final _adapter = _ChatAdapter(_messages);
-  late final _list = rv.RecyclerView(key: ValueKey('recycler-chat-list'))
+  late final _list = rv.RecyclerView(key: ValueKey('recycler-chat-list'), controller: _official)
     ..setLayoutManager(rv.LinearLayoutManager()..setStackFromEnd(true))
     ..setAdapter(_adapter);
   bool _nearBottom = true;
@@ -244,9 +245,12 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
         crossAxisAlignment: .stretch,
         children: [
           Expanded(
-            child: NotificationListener<ScrollNotification>(
-              onNotification: _onScroll,
-              child: _mode == .recyclerView ? _list : _officialMessages(),
+            child: RecyclerExampleScrollbar(
+              controller: _official,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _onScroll,
+                child: _mode == .recyclerView ? _list : _officialMessages(),
+              ),
             ),
           ),
           ElCardView(

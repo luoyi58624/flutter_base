@@ -65,3 +65,39 @@ flutter test test/recycler_long_examples_test.dart test/recycler_row_reuse_test.
 本机被 Git 忽略的 `.codex-run/recycler-real-rows-20261106/` 保存旧页面快照、基线测试、`before.log`、`after.log`、`comparison.json` 和文档/路由回归日志。完整页面复用与菜单测试日志另在 `.codex-run/recycler-headless-20261106/real-row-reuse.log`、`real-rows-ui.log`。
 
 本轮没有重新测手机呈现间隔，不能仅凭子树复用修复就认定全部掉帧已经消失。真机目标约 1ms 的进展应由下一轮相同手势的 Profile 耗时及实际呈现节奏共同确认。
+
+## 复杂卡片与安卓滚动条
+
+新增「复杂卡片面板」，包含一万条独立的生态观察记录、两种离线照片、渐变图注、标签、统计、进度、调查员、阴影、按压缩放和激活状态。两种列表共用真实卡片组件和业务数据；每项独立隔离重绘。卡片按照片模板分两种 viewType，标题、地点、描述、编号等仍随不同记录重新绑定，没有将重复内容伪装成动态数据。
+
+菜单中的「更新可见卡片数据」只修改访问次数、进度和更新时间，对应三个可监听字段；图片、固定图标、标签与排版不会收到数据通知。激活状态另外通知外观与选中标记，固定内容作为 `ValueListenableBuilder.child` 保留。主题、字体大小与宽度改变仍允许必要的环境更新。
+
+AndroidX 的 payload 也由 Adapter 显式解释：开发者可以只调用某个 TextView 的 setText，系统不会自动推导哪些子 View 要更新；默认 payload bind 仍回退完整绑定，且离屏 payload 可能丢失。[AndroidX 官方源码](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/RecyclerView.java)。Flutter 的对应方法是缩小监听范围并保留固定 Widget 实例，无需修改引擎；相同 child 实例会截断后续 Widget 更新遍历。[Flutter 官方性能说明](https://docs.flutter.dev/perf/best-practices#control-build-cost)
+
+`RepaintBoundary` 仅隔离绘制，不能阻止 build 或 layout。文字内容变长、实际约束变化时，必要排版成本仍会发生；结构复用也不等于零构建，测试必须直接观察真实 build 和固定 Widget 身份。
+
+复选、聊天、卡片以及文档四种模式现在均显示 iOS 风格滚动条，在 Android 上按住滑块约 100ms 后拖动。滚动条连接列表的真实 ScrollPosition，关闭平台自动滚动条避免重复；聊天仅消息区域可拖，输入栏独立。
+
+当前 SDK 的内容拖动和 Cupertino 滑块拖动都调用 ScrollPosition.drag/update。差别包括手势入口、滑块轨道到内容位移的映射、鼠标与触摸重采样、松手后的速度处理；Windows 滑块结束使用零速度，而移动端允许继续惯性。因此「Windows 滑块顺滑、Android 触摸抖动」还不能定位到某一项原因。新增 Android 滑块有助于在同设备上比较输入路径，本次没有采集新的手机呈现数据。
+
+新增测试的实际输出如下：
+
+| 检查 | 结果 |
+| --- | --- |
+| 刷新统计：33 个固定文字、图片、图标、布局节点的实际 build 次数 | 0 |
+| 刷新统计：观察次数文本的实际 build 次数 | 1 |
+| 切换激活：上述固定节点的实际 build 次数 | 0 |
+| 照片类型 0 / 1，各 32 次真实跨 ID 绑定 | 每类 33 个不同 ID，新增 / 移除 Element 均 0，固定节点 build 均 0 |
+| 每棵真实卡片树初始 Element 数量 | 195 |
+| 主机绑定 pump 墙钟 P50 / P95，照片类型 0 | 5.765 / 9.281 ms |
+| 主机绑定 pump 墙钟 P50 / P95，照片类型 1 | 4.749 / 8.790 ms |
+
+墙钟数值只记录一次 Debug 测试运行的现场，不设依赖机器速度的通过门槛，也不代表 Android 帧耗时。测试另外覆盖实际按下/松开缩放、两种列表激活与数据保留、真正跨 holder 回收后的点击对象、反复切换后模型释放、暗色主题和 320 宽下两倍字号，以及三类独立列表和文档四模式的真实滑块触摸拖动。
+
+本次相关子集共 81 项通过：核心 29、卡片 9、滚动条 11、原长列表示例 10、真实行复用 6、文档 15、路由 1。静态分析无诊断。可分别在根目录运行核心测试，在 `example` 中运行相关示例测试：
+
+```powershell
+flutter test test/flutter/views/recycler_view/recycler_view_test.dart --no-pub --concurrency=1 --timeout 90s
+# 以下在 example 目录执行
+flutter test test/recycler_cards_test.dart test/recycler_scrollbar_test.dart test/recycler_long_examples_test.dart test/recycler_row_reuse_test.dart test/recycler_doc_page_test.dart test/deep_link_test.dart --no-pub --concurrency=1 --timeout 90s
+```

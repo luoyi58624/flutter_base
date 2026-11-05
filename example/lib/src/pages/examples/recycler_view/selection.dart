@@ -4,6 +4,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../example_page.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/example_scrollbar.dart';
 
 /// 用一万条独立记录演示回收复用与数据驱动的复选状态。
 class RecyclerSelectionPage extends StatefulWidget {
@@ -23,7 +24,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _official = ScrollController(keepScrollOffset: false);
   RecyclerExampleScrollMode _mode = .recyclerView;
   late final _adapter = _SelectionAdapter(_selectionChanged);
-  late final _list = rv.RecyclerView(key: ValueKey('recycler-selection-list'))
+  late final _list = rv.RecyclerView(key: ValueKey('recycler-selection-list'), controller: _official)
     ..setLayoutManager(rv.LinearLayoutManager())
     ..setHasFixedSize(true)
     ..setAdapter(_adapter);
@@ -132,28 +133,31 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
     ],
     child: SafeArea(
       top: false,
-      child: switch (_mode) {
-        .recyclerView => _list,
-        .listView => ListView.builder(
-          key: ValueKey('official-selection-list'),
-          controller: _official,
-          itemExtent: _selectionExtent,
-          itemCount: _adapter.getItemCount(),
-          addAutomaticKeepAlives: false,
-          addRepaintBoundaries: false,
-          itemBuilder: (context, index) {
-            final item = _adapter.items[index];
-            return RepaintBoundary(
-              child: _OfficialSelectionRow(
-                key: ValueKey(item.id),
-                item: item,
-                checked: _adapter.selectedIds.contains(item.id),
-                onSelect: _adapter.select,
-              ),
-            );
-          },
-        ),
-      },
+      child: RecyclerExampleScrollbar(
+        controller: _official,
+        child: switch (_mode) {
+          .recyclerView => _list,
+          .listView => ListView.builder(
+            key: ValueKey('official-selection-list'),
+            controller: _official,
+            itemExtent: _selectionExtent,
+            itemCount: _adapter.getItemCount(),
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: false,
+            itemBuilder: (context, index) {
+              final item = _adapter.items[index];
+              return RepaintBoundary(
+                child: _OfficialSelectionRow(
+                  key: ValueKey(item.id),
+                  item: item,
+                  checked: _adapter.selectedIds.contains(item.id),
+                  onSelect: _adapter.select,
+                ),
+              );
+            },
+          ),
+        },
+      ),
     ),
   );
 }

@@ -20,6 +20,8 @@ final recyclerView = rv.RecyclerView()
 
 在 `State` 中保存这个实例，再将它作为 Widget 放入有界的布局。不要在每次滚动通知中重新创建 RecyclerView、Adapter 或 LayoutManager；同一个 RecyclerView 实例也不能同时挂载在两个位置。
 
+需要 Flutter 滚动条时，给 `RecyclerView(controller: controller)` 和滚动条传入同一个 `ScrollController`。外部控制器由调用方释放；不传时容器继续自行创建和释放。控制器连接的就是实际 `Scrollable` 位置，无需同步两份偏移。示例中的 iOS 风格滚动条在 Android 上也可长按滑块后拖动。
+
 以下示例将结构创建与数据绑定分开：
 
 ```dart

@@ -5,7 +5,10 @@ part of 'index.dart';
 /// 通过 Adapter 创建和绑定条目、由 LayoutManager 安排布局的滚动容器。
 class RecyclerView extends StatefulWidget {
   /// 创建容器，随后可按 AndroidX 的调用顺序设置布局管理器和适配器。
-  RecyclerView({super.key});
+  RecyclerView({super.key, this.controller});
+
+  /// 连接外部滚动控制器以联动滚动条，由调用方负责释放；未传入时由容器自行管理。
+  final ScrollController? controller;
 
   /// 横向布局方向。
   static const int HORIZONTAL = 0;
@@ -200,7 +203,8 @@ class _ScrollRequest {
 }
 
 class _RecyclerViewState extends State<RecyclerView> {
-  final ScrollController _scrollController = ScrollController();
+  ScrollController? _internalScrollController;
+  ScrollController get _scrollController => widget.controller ?? (_internalScrollController ??= ScrollController());
   late final _RecyclerObserver _observer = _RecyclerObserver(this);
   _RecyclerViewportElement? _element;
   Adapter? _appliedAdapter;
@@ -229,6 +233,10 @@ class _RecyclerViewState extends State<RecyclerView> {
   @override
   void didUpdateWidget(RecyclerView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      (oldWidget.controller ?? _internalScrollController)?.removeListener(_didScroll);
+      _scrollController.addListener(_didScroll);
+    }
     if (!identical(oldWidget, widget)) {
       oldWidget._configuration.state = null;
       if (_config.state != null) throw StateError('同一个 RecyclerView 实例不能同时挂载两次。');
@@ -446,7 +454,8 @@ class _RecyclerViewState extends State<RecyclerView> {
     _appliedAdapter?.onDetachedFromRecyclerView(widget);
     _appliedManager?._state = null;
     _config.state = null;
-    _scrollController.dispose();
+    _scrollController.removeListener(_didScroll);
+    _internalScrollController?.dispose();
     super.dispose();
   }
 }

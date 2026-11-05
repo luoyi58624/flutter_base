@@ -5,6 +5,7 @@ import '../custom_gestures.dart';
 import '../view.dart';
 import '../view/base.dart';
 import 'press_feedback.dart';
+import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
 import 'recycler_view/selection.dart';
 
@@ -28,6 +29,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
 
 /// RecyclerView 长列表示例，两端共用相同目录与页面工厂。
 final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'recycler-cards',
+    title: '复杂卡片面板',
+    icon: ElIcon(Icons.dashboard_outlined),
+    data: (_) => RecyclerCardsPage(),
+  ),
   ElMenuModel(
     key: 'recycler-selection',
     title: '万条复选列表',
