@@ -74,7 +74,7 @@ void main() {
 
   for (final size in [Size(320, 700), Size(1280, 900), Size(800, 400)]) {
     testWidgets('游乐场布局 $size，同色预览与局部主题不改变应用默认值', (tester) async {
-      final original = el.mobileComponents.token!.vars![ElTokens.$shadowMd];
+      final original = el.mobileComponents.style!.vars![ElTokens.$shadowMd];
       await _host(tester, size);
       final originalShadows = _preview(tester).boxShadow;
       expect(
@@ -95,7 +95,7 @@ void main() {
       expect(stage.color, _preview(tester).backgroundColor);
       expect(_preview(tester).boxShadow, isNot(originalShadows));
       expect(Theme.of(tester.element(find.byType(ShadowPage))).brightness, Brightness.light);
-      expect(el.mobileComponents.token!.vars![ElTokens.$shadowMd], same(original));
+      expect(el.mobileComponents.style!.vars![ElTokens.$shadowMd], same(original));
       expect(tester.takeException(), isNull);
     });
   }

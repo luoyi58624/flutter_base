@@ -12,7 +12,7 @@
 - 尽可能使用 dot 简写；ElStyle.copyWith 等生成方法的参数是 Object?，无法推断目标类型时显式写构造类型，不能机械地对所有 copyWith 禁用简写
 - 对外 API 使用中文 `///` 文档注释，一句话说明用途，关键决策解释原因；私有 API 只注释重要逻辑
 - 尽可能使用 HookWidget 编写代码，代码保证简洁
-- 应用负责原生文字排版和全局字体；ElComponentProvider 仅安装组件实现与 token，调用方可用 ElView 设置 El 子树的文字样式
+- 应用负责原生文字排版和全局字体；ElComponentProvider 安装组件实现并向 ElView 转交显式提供的样式与主题模式
 - API 权威来源是当前源码；文档与源码冲突时以源码为准并同步修正文档，不引用旧项目才有的 API
 - 外观优先由 ElStyle 声明，状态变体、级联、过渡和变量交给现有引擎承担；能由引擎处理的纯样式变化，不额外触发 Widget.build
 - 样式确实决定 Widget 结构或行为，或现有引擎无法承接派生值时，才在 Widget 层订阅，并说明原因；主题变量在最近消费点通过 context.elTheme 或 ElView.of(context).getVar 按键读取，不提前订阅后层层下传

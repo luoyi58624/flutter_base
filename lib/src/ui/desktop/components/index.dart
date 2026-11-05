@@ -41,9 +41,9 @@ class ElementPlusThemeData extends ElComponents {
   static const $compact = '--el-desktop-compact';
 
   @override
-  ElStyle get token => _token;
+  ElStyle get style => _style;
 
-  static final _token = ElStyle(
+  static final _style = ElStyle(
     vars: _lightVars,
     onDark: ElStyle(vars: _darkVars),
   );

@@ -2,6 +2,10 @@ import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
+int _missingBuilders(ElComponents components) =>
+    components.props.where((value) => value == null).length -
+    [components.style, components.themeMode].where((value) => value == null).length;
+
 /// 品牌默认表除已知缺口外不得留空；缺口清单只减不增，新增组件必须两端登记实现。
 void main() {
   test('桌面默认表只缺已知项', () {
@@ -29,7 +33,7 @@ void main() {
       'alert': builders.alert,
     };
     expect(gaps.values, everyElement(isNull), reason: '已补齐的缺口请从清单移除');
-    expect(builders.props.where((builder) => builder == null).length, gaps.length);
+    expect(_missingBuilders(builders), gaps.length);
   });
 
   test('移动默认表只缺已知项', () {
@@ -60,6 +64,6 @@ void main() {
       'alert': builders.alert,
     };
     expect(gaps.values, everyElement(isNull), reason: '已补齐的缺口请从清单移除');
-    expect(builders.props.where((builder) => builder == null).length, gaps.length);
+    expect(_missingBuilders(builders), gaps.length);
   });
 }

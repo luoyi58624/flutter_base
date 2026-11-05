@@ -27,7 +27,7 @@ void main() {
       expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
       expect(
         context.elTheme.bgColor,
-        (dark ? el.mobileComponents.token!.onDark!.vars! : el.mobileComponents.token!.vars!)[ElTokens.$bgColor],
+        (dark ? el.mobileComponents.style!.onDark!.vars! : el.mobileComponents.style!.vars!)[ElTokens.$bgColor],
       );
     }
     expect(tester.takeException(), isNull);
@@ -52,7 +52,7 @@ void main() {
       expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
       expect(
         context.elTheme.bgColor,
-        (dark ? el.mobileComponents.token!.onDark!.vars! : el.mobileComponents.token!.vars!)[ElTokens.$bgColor],
+        (dark ? el.mobileComponents.style!.onDark!.vars! : el.mobileComponents.style!.vars!)[ElTokens.$bgColor],
       );
     }
     expect(tester.takeException(), isNull);
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ElComponentProvider), findsOneWidget);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.colorScheme.primary, el.mobileComponents.token!.vars![ElTokens.$primary]);
+    expect(app.theme!.colorScheme.primary, el.mobileComponents.style!.vars![ElTokens.$primary]);
     final context = tester.element(find.byType(AppBar));
     expect(Theme.of(context).appBarTheme.backgroundColor, context.elTheme.cardColor);
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => Scaffold(body: Text('新路由'))));

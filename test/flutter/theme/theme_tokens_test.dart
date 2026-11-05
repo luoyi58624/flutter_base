@@ -13,8 +13,8 @@ void main() {
       testWidgets('${mobile ? 'mobile' : 'desktop'} ${dark ? 'dark' : 'light'} 完整提供公共 token，读取不改值', (tester) async {
         final brightness = dark ? Brightness.dark : Brightness.light;
         final expected = mobile
-            ? {...el.mobileComponents.token!.vars!, if (dark) ...el.mobileComponents.token!.onDark!.vars!}
-            : {...el.desktopComponents.token.vars!, if (dark) ...el.desktopComponents.token.onDark!.vars!};
+            ? {...el.mobileComponents.style!.vars!, if (dark) ...el.mobileComponents.style!.onDark!.vars!}
+            : {...el.desktopComponents.style.vars!, if (dark) ...el.desktopComponents.style.onDark!.vars!};
         late Map<Object, Object> actual;
         final reader = Builder(
           builder: (context) {

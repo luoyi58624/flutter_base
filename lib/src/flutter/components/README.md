@@ -25,7 +25,7 @@ ElView 相当于 Web 的 div，负责盒模型、文本、样式、事件与语�
 
 ## 注入与覆写
 
-带 `token` 的 `ElComponents` 是完整预设，同时安装组件实现和变量。省略 `token` 时，Provider 只覆写传入的实现。变量通过 `ElStyle.vars` 声明，状态差量写入对应变体的 `vars`。
+带 `style` 的 `ElComponents` 是完整预设，同时安装组件实现和样式。省略 `style` 时，组件实现按项继承，`themeMode` 可以独立声明。变量通过 `ElStyle.vars` 声明，状态差量写入对应变体的 `vars`。
 
 ```dart
 ElComponentProvider(

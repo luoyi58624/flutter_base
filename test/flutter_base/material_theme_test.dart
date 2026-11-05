@@ -271,8 +271,8 @@ void main() {
     );
     expect(light.colorScheme.primary, Colors.purple);
     expect(dark.colorScheme.primary, Colors.green);
-    expect(light.cardTheme.color, el.mobileComponents.token!.vars![ElTokens.$cardColor]);
-    expect(dark.cardTheme.color, el.mobileComponents.token!.onDark!.vars![ElTokens.$cardColor]);
+    expect(light.cardTheme.color, el.mobileComponents.style!.vars![ElTokens.$cardColor]);
+    expect(dark.cardTheme.color, el.mobileComponents.style!.onDark!.vars![ElTokens.$cardColor]);
     expect(light.navigationBarTheme.indicatorColor, isNot(dark.navigationBarTheme.indicatorColor));
   });
 
@@ -363,7 +363,7 @@ void main() {
     expect(current.brightness, Brightness.dark);
     expect(current.cardTheme.color, Colors.pink);
     expect(opposite.brightness, Brightness.light);
-    expect(opposite.cardTheme.color, el.mobileComponents.token!.vars![ElTokens.$cardColor]);
+    expect(opposite.cardTheme.color, el.mobileComponents.style!.vars![ElTokens.$cardColor]);
     portal.close();
     await tester.pumpAndSettle();
     await tester.pumpWidget(SizedBox());
@@ -418,7 +418,7 @@ void main() {
     update(() => brightness = Brightness.dark);
     await tester.pumpAndSettle();
     expect(captured.brightness, Brightness.dark);
-    expect(captured.scaffoldBackgroundColor, el.mobileComponents.token!.onDark!.vars![ElTokens.$bgColor]);
+    expect(captured.scaffoldBackgroundColor, el.mobileComponents.style!.onDark!.vars![ElTokens.$bgColor]);
     final material = tester.widget<Material>(
       find.descendant(of: find.byType(Scaffold), matching: find.byType(Material)).first,
     );

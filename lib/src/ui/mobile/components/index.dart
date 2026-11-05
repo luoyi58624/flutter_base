@@ -20,7 +20,7 @@ extension ElMobileExt on El {
 }
 
 final _components = ElComponents(
-  token: ElStyle(
+  style: ElStyle(
     vars: mobileLightVars,
     onDark: ElStyle(vars: mobileDarkVars),
   ),

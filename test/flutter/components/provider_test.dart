@@ -54,21 +54,53 @@ void main() {
     expect(find.byType(ElView), findsNothing);
   });
 
-  testWidgets('预设 token 拒绝非变量样式', (tester) async {
+  testWidgets('预设样式与主题模式一起应用到子树', (tester) async {
+    final key = GlobalKey();
+    Color? primary;
     await tester.pumpWidget(
-      ElComponentProvider(
-        components: ElComponents(token: ElStyle(onDark: ElStyle(fontSize: 20))),
-        child: SizedBox(),
+      _host(
+        Center(
+          child: ElComponentProvider(
+            components: ElComponents(
+              style: ElStyle(
+                padding: EdgeInsets.all(8),
+                onDark: ElStyle(vars: {ElTokens.$primary: Color(0xff224466)}),
+              ),
+              themeMode: ElThemeMode(brightness: .dark),
+            ),
+            child: Builder(
+              builder: (context) {
+                primary = context.elTheme.primary;
+                return SizedBox(key: key, width: 20, height: 10);
+              },
+            ),
+          ),
+        ),
       ),
     );
-    expect(
-      tester.takeException(),
-      isA<AssertionError>().having(
-        (error) => error.message,
-        'message',
-        contains('ElComponents.token only supports vars'),
+    final view = find.byType(ElView);
+    expect(tester.getSize(view), Size(36, 26));
+    expect(tester.getTopLeft(find.byKey(key)) - tester.getTopLeft(view), Offset(8, 8));
+    expect(primary, Color(0xff224466));
+  });
+
+  testWidgets('仅设置主题模式时沿用外层组件实现', (tester) async {
+    Brightness? brightness;
+    await tester.pumpWidget(
+      _host(
+        ElComponentProvider(
+          components: ElComponents(themeMode: ElThemeMode(brightness: .dark)),
+          child: Builder(
+            builder: (context) {
+              brightness = context.elTheme.brightness;
+              return ElButton(child: 'button');
+            },
+          ),
+        ),
       ),
     );
+    expect(brightness, Brightness.dark);
+    expect(_texts(tester), contains('outer:button'));
   });
 
   testWidgets('仅注入变量时继承外层组件，撤销组件配置保留子树', (tester) async {

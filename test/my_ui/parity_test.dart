@@ -60,7 +60,7 @@ class ProbeState extends State<StateProbe> {
 
 void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
-    final light = el.mobileComponents.token!.vars!, dark = el.mobileComponents.token!.onDark!.vars!;
+    final light = el.mobileComponents.style!.vars!, dark = el.mobileComponents.style!.onDark!.vars!;
     // 移动端语义色以设计稿为准（#1076FD）；Web 原型 --primary 仍是 #2454c6，两者不再逐值对齐。
     expect(light[ElTokens.$primary], Color(0xff1076fd));
     expect(light[ElTokens.$bgColor], Color(0xffeeeeee));
@@ -705,7 +705,7 @@ void main() {
   });
 
   testWidgets('Tag五色遵守CSS混色，disabled不回调', (tester) async {
-    final theme = el.mobileComponents.token!.vars!;
+    final theme = el.mobileComponents.style!.vars!;
     final accents = [
       (theme[ElTokens.$primary] as Color),
       (theme[ElTokens.$success] as Color),

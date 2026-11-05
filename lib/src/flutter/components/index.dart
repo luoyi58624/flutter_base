@@ -2,10 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../dart.dart' show $absent, ElModelGenerator;
-import '../commons/theme/style.dart' show themeVarsOf;
 import '../utils/obs/index.dart' show Obs;
 import '../views/table/table.dart' show ElTableStyle;
-import '../views/view/style/style.dart' show ElStyle;
+import '../views/view/style/style.dart' show ElStyle, ElThemeMode;
 import '../views/view/view.dart' show ElView;
 import '../widgets/form/index.dart';
 import 'alert/index.dart';
@@ -74,7 +73,8 @@ part 'index.g.dart';
 class ElComponents with Equatable {
   /// 创建完整预设或局部组件覆写。
   const ElComponents({
-    this.token,
+    this.style,
+    this.themeMode,
     this.button,
     this.tag,
     this.buttonGroup,
@@ -111,8 +111,11 @@ class ElComponents with Equatable {
     this.alert,
   });
 
-  /// Tokens for a complete preset. Only `vars`, including those in variants, take effect.
-  final ElStyle? token;
+  /// 与组件预设绑定的样式和变量。
+  final ElStyle? style;
+
+  /// 当前作用域的明暗模式和主题过渡配置。
+  final ElThemeMode? themeMode;
 
   /// 根据 ElButton 声明与选中模型构建品牌组件；普通按钮的模型不参与绘制。
   final Widget Function(BuildContext context, ElButton component, Obs<bool> model)? button;
@@ -221,7 +224,7 @@ class ElComponents with Equatable {
   List<Object?> get props => _props;
 
   /// 合并局部覆写，安装完整品牌时采用该品牌的整套配置。
-  ElComponents merge([ElComponents? other]) => other?.token != null ? other! : ElComponentsExt(this).merge(other);
+  ElComponents merge([ElComponents? other]) => other?.style != null ? other! : ElComponentsExt(this).merge(other);
 }
 
 /// 在同一视图作用域内安装组件实现和主题变量。
@@ -261,15 +264,11 @@ class ElComponentProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     final parent = maybeOf(context);
     final scope = _ComponentScope(components: parent?.merge(components) ?? components, child: child);
-    final token = components?.token;
-    if (token == null) return scope;
+    final style = components?.style;
+    final themeMode = components?.themeMode;
+    if (style == null && themeMode == null) return scope;
 
-    final vars = themeVarsOf(token);
-    assert(
-      token == (vars ?? const ElStyle()),
-      'ElComponents.token only supports vars in ElStyle and its variants. Other properties have no effect.',
-    );
-    return vars == null ? scope : ElView(style: vars, child: scope);
+    return ElView(style: style, themeMode: themeMode, child: scope);
   }
 }
 

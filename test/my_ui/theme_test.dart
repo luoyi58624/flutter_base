@@ -85,13 +85,13 @@ void main() {
   }
 
   test('默认字体未指定，变量表保持只读', () {
-    expect(el.mobileComponents.token!.vars![ElTokens.$fontFamily], isEmpty);
-    expect(el.mobileComponents.token!.vars![ElTokens.$fontFamilyFallback], isEmpty);
-    expect(() => el.mobileComponents.token!.vars!.clear(), throwsUnsupportedError);
-    expect(el.mobileComponents.token!.onDark!.vars!.containsKey(ElTokens.$fontFamily), isFalse);
-    expect(el.mobileComponents.token!.onDark!.vars!.containsKey(ElTokens.$fontWeight), isFalse);
+    expect(el.mobileComponents.style!.vars![ElTokens.$fontFamily], isEmpty);
+    expect(el.mobileComponents.style!.vars![ElTokens.$fontFamilyFallback], isEmpty);
+    expect(() => el.mobileComponents.style!.vars!.clear(), throwsUnsupportedError);
+    expect(el.mobileComponents.style!.onDark!.vars!.containsKey(ElTokens.$fontFamily), isFalse);
+    expect(el.mobileComponents.style!.onDark!.vars!.containsKey(ElTokens.$fontWeight), isFalse);
     expect(
-      () => (el.mobileComponents.token!.vars![ElTokens.$fontFamilyFallback] as List<String>).clear(),
+      () => (el.mobileComponents.style!.vars![ElTokens.$fontFamilyFallback] as List<String>).clear(),
       throwsUnsupportedError,
     );
   });
@@ -273,7 +273,7 @@ void main() {
       ),
     );
     expect(local, Color(0xff654321));
-    expect(sibling, el.mobileComponents.token!.onDark!.vars![ElTokens.$primary]);
+    expect(sibling, el.mobileComponents.style!.onDark!.vars![ElTokens.$primary]);
     expect(radius, 18);
   });
 }

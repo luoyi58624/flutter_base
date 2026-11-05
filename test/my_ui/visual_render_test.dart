@@ -213,8 +213,8 @@ void main() {
           _keys.clear();
           final boundaryKey = GlobalKey();
           final data = {
-            ...el.mobileComponents.token!.vars!,
-            if (brightness == Brightness.dark) ...el.mobileComponents.token!.onDark!.vars!,
+            ...el.mobileComponents.style!.vars!,
+            if (brightness == Brightness.dark) ...el.mobileComponents.style!.onDark!.vars!,
           };
           _labelColor = (data[ElTokens.$textSecondary] as Color);
           await tester.pumpWidget(

@@ -8,7 +8,8 @@ part of 'index.dart';
 
 extension ElComponentsExt on ElComponents {
   ElComponents copyWith({
-    Object? token = $absent,
+    Object? style = $absent,
+    Object? themeMode = $absent,
     Object? button = $absent,
     Object? tag = $absent,
     Object? buttonGroup = $absent,
@@ -45,95 +46,54 @@ extension ElComponentsExt on ElComponents {
     Object? alert = $absent,
   }) {
     return ElComponents(
-      token: identical(token, $absent)
-          ? this.token
-          : (token == null
-                ? null
-                : (this.token == null
-                      ? token as ElStyle
-                      : this.token!.merge(token as ElStyle))),
-      button: identical(button, $absent)
-          ? this.button
-          : button as Widget Function(BuildContext, ElButton, Obs<bool>)?,
-      tag: identical(tag, $absent)
-          ? this.tag
-          : tag as Widget Function(BuildContext, ElTag)?,
+      style: identical(style, $absent)
+          ? this.style
+          : (style == null ? null : (this.style == null ? style as ElStyle : this.style!.merge(style as ElStyle))),
+      themeMode: identical(themeMode, $absent) ? this.themeMode : themeMode as ElThemeMode?,
+      button: identical(button, $absent) ? this.button : button as Widget Function(BuildContext, ElButton, Obs<bool>)?,
+      tag: identical(tag, $absent) ? this.tag : tag as Widget Function(BuildContext, ElTag)?,
       buttonGroup: identical(buttonGroup, $absent)
           ? this.buttonGroup
           : buttonGroup as Widget Function<T>(BuildContext, ElButtonGroup<T>)?,
       switcher: identical(switcher, $absent)
           ? this.switcher
           : switcher as Widget Function(BuildContext, ElSwitch, Obs<bool>)?,
-      input: identical(input, $absent)
-          ? this.input
-          : input as Widget Function(BuildContext, ElInput)?,
+      input: identical(input, $absent) ? this.input : input as Widget Function(BuildContext, ElInput)?,
       checkbox: identical(checkbox, $absent)
           ? this.checkbox
-          : checkbox
-                as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
+          : checkbox as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
       radio: identical(radio, $absent)
           ? this.radio
-          : radio
-                as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
-      select: identical(select, $absent)
-          ? this.select
-          : select as Widget Function<T>(BuildContext, ElSelect<T>)?,
+          : radio as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
+      select: identical(select, $absent) ? this.select : select as Widget Function<T>(BuildContext, ElSelect<T>)?,
       autocomplete: identical(autocomplete, $absent)
           ? this.autocomplete
-          : autocomplete
-                as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
+          : autocomplete as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
       inputNumber: identical(inputNumber, $absent)
           ? this.inputNumber
           : inputNumber as Widget Function(BuildContext, ElInputNumber)?,
-      mention: identical(mention, $absent)
-          ? this.mention
-          : mention as Widget Function<T>(BuildContext, ElMention<T>)?,
-      inputTag: identical(inputTag, $absent)
-          ? this.inputTag
-          : inputTag as Widget Function(BuildContext, ElInputTag)?,
-      inputOtp: identical(inputOtp, $absent)
-          ? this.inputOtp
-          : inputOtp as Widget Function(BuildContext, ElInputOtp)?,
-      formItem: identical(formItem, $absent)
-          ? this.formItem
-          : formItem as Widget Function(BuildContext, ElFormItem)?,
-      tableStyle: identical(tableStyle, $absent)
-          ? this.tableStyle
-          : tableStyle as ElTableStyle Function(BuildContext)?,
-      card: identical(card, $absent)
-          ? this.card
-          : card as Widget Function(BuildContext, ElCard)?,
+      mention: identical(mention, $absent) ? this.mention : mention as Widget Function<T>(BuildContext, ElMention<T>)?,
+      inputTag: identical(inputTag, $absent) ? this.inputTag : inputTag as Widget Function(BuildContext, ElInputTag)?,
+      inputOtp: identical(inputOtp, $absent) ? this.inputOtp : inputOtp as Widget Function(BuildContext, ElInputOtp)?,
+      formItem: identical(formItem, $absent) ? this.formItem : formItem as Widget Function(BuildContext, ElFormItem)?,
+      tableStyle: identical(tableStyle, $absent) ? this.tableStyle : tableStyle as ElTableStyle Function(BuildContext)?,
+      card: identical(card, $absent) ? this.card : card as Widget Function(BuildContext, ElCard)?,
       loadingIndicator: identical(loadingIndicator, $absent)
           ? this.loadingIndicator
-          : loadingIndicator
-                as Widget Function(BuildContext, ElLoadingIndicator)?,
-      icon: identical(icon, $absent)
-          ? this.icon
-          : icon as Widget Function(BuildContext, ElIcon)?,
+          : loadingIndicator as Widget Function(BuildContext, ElLoadingIndicator)?,
+      icon: identical(icon, $absent) ? this.icon : icon as Widget Function(BuildContext, ElIcon)?,
       listTile: identical(listTile, $absent)
           ? this.listTile
           : listTile as Widget Function<T>(BuildContext, ElListTile<T>)?,
       listTileGroup: identical(listTileGroup, $absent)
           ? this.listTileGroup
           : listTileGroup as Widget Function<D>(BuildContext, ElListGroup<D>)?,
-      progress: identical(progress, $absent)
-          ? this.progress
-          : progress as Widget Function(BuildContext, ElProgress)?,
-      slider: identical(slider, $absent)
-          ? this.slider
-          : slider as Widget Function<D>(BuildContext, ElSlider<D>)?,
-      skeleton: identical(skeleton, $absent)
-          ? this.skeleton
-          : skeleton as Widget Function(BuildContext, ElSkeleton)?,
-      steps: identical(steps, $absent)
-          ? this.steps
-          : steps as Widget Function(BuildContext, ElSteps)?,
-      step: identical(step, $absent)
-          ? this.step
-          : step as Widget Function(BuildContext, ElStep)?,
-      avatar: identical(avatar, $absent)
-          ? this.avatar
-          : avatar as Widget Function(BuildContext, ElAvatar)?,
+      progress: identical(progress, $absent) ? this.progress : progress as Widget Function(BuildContext, ElProgress)?,
+      slider: identical(slider, $absent) ? this.slider : slider as Widget Function<D>(BuildContext, ElSlider<D>)?,
+      skeleton: identical(skeleton, $absent) ? this.skeleton : skeleton as Widget Function(BuildContext, ElSkeleton)?,
+      steps: identical(steps, $absent) ? this.steps : steps as Widget Function(BuildContext, ElSteps)?,
+      step: identical(step, $absent) ? this.step : step as Widget Function(BuildContext, ElStep)?,
+      avatar: identical(avatar, $absent) ? this.avatar : avatar as Widget Function(BuildContext, ElAvatar)?,
       calendar: identical(calendar, $absent)
           ? this.calendar
           : calendar as Widget Function<D>(BuildContext, ElCalendar<D>)?,
@@ -142,30 +102,22 @@ extension ElComponentsExt on ElComponents {
           : collapse as Widget Function<D>(BuildContext, ElCollapse<D>)?,
       collapseItem: identical(collapseItem, $absent)
           ? this.collapseItem
-          : collapseItem
-                as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
-      empty: identical(empty, $absent)
-          ? this.empty
-          : empty as Widget Function(BuildContext, ElEmpty)?,
+          : collapseItem as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
+      empty: identical(empty, $absent) ? this.empty : empty as Widget Function(BuildContext, ElEmpty)?,
       segmented: identical(segmented, $absent)
           ? this.segmented
           : segmented as Widget Function<D>(BuildContext, ElSegmented<D>)?,
-      tabs: identical(tabs, $absent)
-          ? this.tabs
-          : tabs as Widget Function<D>(BuildContext, ElTabs<D>)?,
-      tabBar: identical(tabBar, $absent)
-          ? this.tabBar
-          : tabBar as Widget Function(BuildContext, ElTabBar)?,
-      alert: identical(alert, $absent)
-          ? this.alert
-          : alert as Widget Function(BuildContext, ElAlert)?,
+      tabs: identical(tabs, $absent) ? this.tabs : tabs as Widget Function<D>(BuildContext, ElTabs<D>)?,
+      tabBar: identical(tabBar, $absent) ? this.tabBar : tabBar as Widget Function(BuildContext, ElTabBar)?,
+      alert: identical(alert, $absent) ? this.alert : alert as Widget Function(BuildContext, ElAlert)?,
     );
   }
 
   ElComponents merge([ElComponents? other]) {
     if (other == null) return this;
     return ElComponents(
-      token: token == null ? other.token : token!.merge(other.token),
+      style: style == null ? other.style : style!.merge(other.style),
+      themeMode: other.themeMode ?? themeMode,
       button: other.button ?? button,
       tag: other.tag ?? tag,
       buttonGroup: other.buttonGroup ?? buttonGroup,
@@ -204,7 +156,8 @@ extension ElComponentsExt on ElComponents {
   }
 
   List<Object?> get _props => [
-    token,
+    style,
+    themeMode,
     button,
     tag,
     buttonGroup,

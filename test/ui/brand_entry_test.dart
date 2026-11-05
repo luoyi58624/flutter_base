@@ -147,8 +147,8 @@ void main() {
     expect(inner.checkbox, isNull);
     expect(outer.listTile, isNotNull);
     expect(inner.listTile, isNull);
-    expect(outerPrimary, outer.token!.vars![ElTokens.$primary]);
-    expect(innerPrimary, inner.token!.vars![ElTokens.$primary]);
+    expect(outerPrimary, outer.style!.vars![ElTokens.$primary]);
+    expect(innerPrimary, inner.style!.vars![ElTokens.$primary]);
 
     await tester.tap(_action('移动端按钮'));
     await tester.pump();
