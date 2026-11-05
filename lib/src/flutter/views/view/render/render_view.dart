@@ -1,9 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/animation.dart' show Curve;
+import 'package:flutter/foundation.dart' show ChangeNotifier, internal, visibleForTesting;
 import 'package:flutter/gestures.dart' show PointerEnterEvent, PointerExitEvent;
 import 'package:flutter/rendering.dart';
-import 'package:flutter/foundation.dart' show ChangeNotifier, internal, visibleForTesting;
 import 'package:flutter/scheduler.dart';
-
 import 'package:flutter/services.dart'
     show
         KeyEvent,
@@ -12,53 +13,41 @@ import 'package:flutter/services.dart'
         PointerEnterEventListener,
         PointerExitEventListener,
         MouseTrackerAnnotation;
-
 import 'package:flutter/widgets.dart'
     show Brightness, Element, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData;
 
-import 'dart:ui' as ui;
-
+import '../../../utils/internal/benchmark_probe.dart';
+import '../../../utils/internal/bit_mask.dart';
+import '../../../utils/internal/layout_reference.dart';
+import '../../selection/common/selection_core.dart';
+import '../event/dispatcher.dart';
+import '../event/event.dart';
+import '../semantics/render_semantics.dart';
+import '../semantics/semantics.dart';
+import '../semantics/semantics_frame.dart';
 import '../style/animation/driver.dart';
 import '../style/animation/field_animation.dart';
 import '../style/animation/keyframe_runner.dart';
-
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
-import '../event/event.dart';
-import '../event/dispatcher.dart';
-
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-
+import '../style/cascade/fast_patch.dart';
+import '../style/cascade/resolver.dart';
+import '../style/cascade/style_spec.dart';
+import '../style/cascade/tick.dart';
+import '../style/damage.dart';
+import '../style/dimension.dart';
 import '../style/inheritance/inheritable_node.dart';
 import '../style/inheritance/subtree_walker.dart';
-
-import '../style/resolved/resolved_style.dart';
-import '../style/resolved/inherited_vars.dart';
-import '../style/state/vars_dependents.dart';
-import '../style/internal/responsive.dart';
-import '../style/dimension.dart';
-import '../../selection/common/selection_core.dart';
-
-import 'package:flutter_base/src/flutter/utils/internal/layout_reference.dart';
-
-import 'scroll_cursor_freeze.dart';
-import '../style/state/view_state.dart';
-import 'box_painter.dart';
-import '../style/cascade/tick.dart';
-import '../style/cascade/resolver.dart';
-import '../style/cascade/fast_patch.dart';
-import '../style/cascade/style_spec.dart';
 import '../style/internal/field_spec.dart';
-import '../style/damage.dart';
-import 'hit_bounds.dart';
-
-import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart';
-
-import '../semantics/render_semantics.dart';
-import '../semantics/semantics_frame.dart';
-import '../semantics/semantics.dart';
+import '../style/internal/responsive.dart';
+import '../style/resolved/inherited_vars.dart';
+import '../style/resolved/resolved_style.dart';
+import '../style/state/vars_dependents.dart';
+import '../style/state/view_state.dart';
+import '../style/style.dart';
+import '../text/text_engine.dart';
 import '../view.dart';
+import 'box_painter.dart';
+import 'hit_bounds.dart';
+import 'scroll_cursor_freeze.dart';
 
 part 'box_insets.dart';
 part '_intrinsics.dart';

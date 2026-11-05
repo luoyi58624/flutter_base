@@ -8,8 +8,8 @@ import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dar
 
 import 'dart:typed_data';
 
-import 'package:flutter_base/src/ui/cores/image/image_view.dart';
-import 'package:flutter_base/src/ui/cores/image/render/render_image_view.dart';
+import 'package:flutter_base/src/flutter/views/image/image_view.dart';
+import 'package:flutter_base/src/flutter/views/image/render/render_image_view.dart';
 
 import 'package:flutter_base/src/flutter/views/view/view.dart';
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';

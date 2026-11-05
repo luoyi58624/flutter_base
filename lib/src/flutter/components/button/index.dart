@@ -1,6 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import '../../commons/models.dart' show ElThemeType;
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/view/event/event.dart' show ElEvent;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 按钮的视觉层级，两端品牌各自映射到自己的外观。
 enum ElButtonVariant {

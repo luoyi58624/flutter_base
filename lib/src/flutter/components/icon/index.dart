@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 字体图标、尺寸、颜色和辅助名称的公共声明。
 class ElIcon extends StatelessWidget {

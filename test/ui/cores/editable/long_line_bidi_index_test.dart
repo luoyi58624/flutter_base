@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_bidi_index.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/unicode_bidi_data.g.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_bidi_index.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/unicode_bidi_data.g.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<int> _ints(Iterable<int> values) => values.toList(growable: false);

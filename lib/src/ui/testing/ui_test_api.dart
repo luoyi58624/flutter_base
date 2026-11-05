@@ -2,22 +2,22 @@
 /// `package:flutter_base/ui.dart` instead.
 library;
 
-export 'package:flutter_base/ui.dart';
-export '../cores/editable/render/editable_line_view.dart' show EditableLineView, RenderEditableLine;
-export '../cores/editable/render/editable_caret_motion_overlay.dart' show RenderEditableCaretMotionOverlay;
-export '../cores/editable/render/editable_render_scope.dart'
+export '../../../ui.dart';
+export '../../flutter/views/editable/render/editable_line_view.dart' show EditableLineView, RenderEditableLine;
+export '../../flutter/views/editable/render/editable_caret_motion_overlay.dart' show RenderEditableCaretMotionOverlay;
+export '../../flutter/views/editable/render/editable_render_scope.dart'
     show EditableLineCaretPaint, EditableLinePaint, EditableRenderConfig;
 export '../../flutter/views/view/event/dispatcher.dart';
 export '../../flutter/views/view/event/press.dart' show EventDetailsAccess;
-export 'package:flutter_base/src/ui/cores/image/render/render_image_view.dart';
-export 'package:flutter_base/src/ui/cores/image/image_decode_pipeline.dart' show ImageDecodePipeline;
+export '../../flutter/views/image/render/render_image_view.dart';
+export '../../flutter/views/image/image_decode_pipeline.dart' show ImageDecodePipeline;
 export '../../flutter/views/scroll/common/pointer/scroll_touch_gate.dart';
 export '../../flutter/views/scroll/refresh/refresher.dart' show RefreshGapClip, RenderRefreshGapClip;
 export '../../flutter/views/scroll/refresh/refresh_host.dart';
 export '../../flutter/views/scroll/common/render/scroll_viewport_base.dart';
 export '../../flutter/views/scroll/virtual/virtual_pipeline.dart'
     show ElScrollViewStateTesting, ElVirtualScrollDebugCounters, ScrollMixinClientProbe, ScrollMixinClientProbeState;
-export 'package:flutter_base/src/ui/views/menu/context_menu.dart';
+export '../../flutter/widgets/popup/context_menu.dart';
 export '../../flutter/views/selection/common/selection_core.dart';
 export '../../flutter/views/selection/docs/selection_view.dart';
 export '../../flutter/views/view/style/animation/driver.dart';
@@ -34,18 +34,19 @@ export '../../flutter/views/view/style/cascade/resolver.dart';
 export '../../flutter/views/view/style/style.dart';
 export '../../flutter/views/view/style/internal/field_spec.dart';
 export '../../flutter/views/view/style/resolved/resolved_style.dart';
-export 'package:flutter_base/src/flutter/views/view/text/text_engine.dart';
+export '../../flutter/views/view/text/text_engine.dart';
 
 // 可编辑渲染的显式白盒入口，业务代码仅使用 el_ui.dart。
-export '../cores/editable/editable_view.dart' show EditableView, EditableViewTestState;
-export '../cores/editable/editable_controller.dart' show EditableController;
-export '../cores/editable/editable_style.dart' show EditableConfiguration;
-export '../cores/editable/line_height.dart' show EditableLineHeightMode, EditableLineMetrics;
-export '../cores/editable/model/text_document.dart' show DocumentEdit, LinePosition, TextDocument, TextDocumentEol;
-export '../cores/editable/model/editable_selection.dart' show EditableSelection, EditableSelectionSet;
-export '../cores/editable/model/edit_operation.dart' show EditOperation;
-export '../cores/editable/model/edit_transaction.dart' show EditableEditSource, EditTransaction;
-export '../cores/editable/model/edit_interceptor.dart'
+export '../../flutter/views/editable/editable_view.dart' show EditableView, EditableViewTestState;
+export '../../flutter/views/editable/editable_controller.dart' show EditableController;
+export '../../flutter/views/editable/editable_style.dart' show EditableConfiguration;
+export '../../flutter/views/editable/line_height.dart' show EditableLineHeightMode, EditableLineMetrics;
+export '../../flutter/views/editable/model/text_document.dart'
+    show DocumentEdit, LinePosition, TextDocument, TextDocumentEol;
+export '../../flutter/views/editable/model/editable_selection.dart' show EditableSelection, EditableSelectionSet;
+export '../../flutter/views/editable/model/edit_operation.dart' show EditOperation;
+export '../../flutter/views/editable/model/edit_transaction.dart' show EditableEditSource, EditTransaction;
+export '../../flutter/views/editable/model/edit_interceptor.dart'
     show
         EditableEditAllowed,
         EditableEditContext,
@@ -54,12 +55,14 @@ export '../cores/editable/model/edit_interceptor.dart'
         EditableEditRejected,
         EditableEditRejectedException,
         EditableEditRewritten;
-export '../cores/editable/model/document_change_set.dart' show DocumentChangeSet;
-export '../cores/editable/model/document_version.dart' show DocumentVersion;
-export '../cores/editable/composer.dart' show EditableComposer, EditableLineContext, EditableWindowedComposer;
-export '../cores/editable/projection/editable_hidden_areas_model.dart' show EditableHiddenArea, EditableLineMask;
+export '../../flutter/views/editable/model/document_change_set.dart' show DocumentChangeSet;
+export '../../flutter/views/editable/model/document_version.dart' show DocumentVersion;
+export '../../flutter/views/editable/composer.dart'
+    show EditableComposer, EditableLineContext, EditableWindowedComposer;
+export '../../flutter/views/editable/projection/editable_hidden_areas_model.dart'
+    show EditableHiddenArea, EditableLineMask;
 
 export 'editable_test_api.dart';
-export '../cores/editable/inline_content.dart' show InlineContent, InlineContentMatcher;
-export '../cores/editable/render/inline_text_painter.dart'
+export '../../flutter/views/editable/inline_content.dart' show InlineContent, InlineContentMatcher;
+export '../../flutter/views/editable/render/inline_text_painter.dart'
     show InlineTextProjection, InlineTextPainter, InlineContentWidget;

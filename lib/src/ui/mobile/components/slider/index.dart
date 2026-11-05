@@ -7,8 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
 
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/slider/index.dart' show ElSlider, ElSliderMark, ElSliderValueLabelDisplay;
+import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition;
+import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../cores/common.dart';
 import 'value.dart';
 

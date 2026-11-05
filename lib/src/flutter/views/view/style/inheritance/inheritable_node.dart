@@ -1,5 +1,4 @@
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
+import '../../../../utils/internal/bit_mask.dart';
 import '../resolved/resolved_style.dart';
 
 /// 继承传播目标的抽象接口。

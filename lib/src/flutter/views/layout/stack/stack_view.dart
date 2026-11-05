@@ -1,9 +1,9 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/views/view/style/dimension.dart';
-import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show SelectionPaintOrderChildren;
-import 'package:flutter_base/src/flutter/views/view/render/hit_bounds.dart';
+import '../../selection/common/selection_core.dart' show SelectionPaintOrderChildren;
+import '../../view/render/hit_bounds.dart';
+import '../../view/style/dimension.dart';
 
 part 'layer_order.dart';
 part 'stacking_box.dart';

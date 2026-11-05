@@ -1,5 +1,6 @@
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/material.dart';
+
+import '../internal.dart';
 
 /// 读取最近视图的明暗状态。
 extension ElDarkExt on BuildContext {

@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../utils/model_value/index.dart' show ElModelValue, ElModelValueType;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 折叠面板组声明，D 是可空单值或业务值 List 的完整模型类型。
 class ElCollapse<D> extends ElModelValue<D> {

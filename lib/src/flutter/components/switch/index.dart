@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import '../../views/view/event/event.dart' show ElEvent;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../widgets/form/index.dart' show ElFormModelValue;
+import '../index.dart' show ElComponentProvider;
 
 /// 开关声明；放在 ElFormItem 内时与表单字段双向同步。
 class ElSwitch extends ElFormModelValue<bool> {

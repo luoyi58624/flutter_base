@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart';
 
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import '../style/resolved/resolved_style.dart';
+import '../style/style.dart';
 
 /// 盒模型 paint 工具集 —— 阴影 / 背景 / 边框 / 裁剪几何辅助。
 class ViewBoxPainter {

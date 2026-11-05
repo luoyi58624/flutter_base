@@ -1,6 +1,6 @@
 import 'package:characters/characters.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_bidi_index.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_visual_index.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_bidi_index.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_visual_index.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

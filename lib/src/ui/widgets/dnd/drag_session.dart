@@ -2,7 +2,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
+import '../../../flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'ghost_follower.dart';
 
 /// drop target 的会话侧绑定（[ElDropTarget] state 经 MetaData 挂进命中路径）。

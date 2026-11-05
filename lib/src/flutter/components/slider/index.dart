@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/view/event/event.dart' show ElEvent;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 滑块数值提示的显示方式。
 enum ElSliderValueLabelDisplay {

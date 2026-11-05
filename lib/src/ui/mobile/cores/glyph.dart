@@ -1,9 +1,10 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.js:13-59、1377-1394；my-ui.css:154-163、3771-3780。
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart' show PipelineOwner;
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 
 /// SVG 读取最近 ElView 的图标尺寸和颜色，样式过渡直接驱动布局与绘制。
 class Glyph extends LeafRenderObjectWidget {

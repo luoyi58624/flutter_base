@@ -2,12 +2,11 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart' show CustomClipper;
 import 'package:flutter/services.dart' show MouseCursor;
 
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
-import 'package:flutter_base/src/flutter/views/view/style/dimension.dart';
-
-import 'resolved_style.dart';
+import '../../../../utils/internal/benchmark_probe.dart';
+import '../dimension.dart';
+import '../style.dart';
 import 'inherited_vars.dart';
+import 'resolved_style.dart';
 
 /// 可变的 ResolvedStyle 构造器。cascade 主算法内部使用。
 class ResolvedStyleBuilder {

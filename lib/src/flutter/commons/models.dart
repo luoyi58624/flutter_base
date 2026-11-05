@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter_base/dart.dart';
 import 'package:flutter/material.dart';
+
+import '../../../dart.dart';
 
 /// 跨组件库共享的语义色类型，具体色值由各风格的 token 映射决定。
 enum ElThemeType implements ElSerialize<ElThemeType> {

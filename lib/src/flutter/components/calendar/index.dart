@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 单日或范围日历声明，D 为 DateTime? 或 `List<DateTime>` 的完整模型。
 class ElCalendar<D> extends ElModelValue<D> {

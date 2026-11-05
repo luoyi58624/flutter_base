@@ -2,14 +2,13 @@ import 'package:collection/collection.dart' show IdentityEquality, IterableEqual
 import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-
-import 'event/event.dart';
-import 'style/style_context.dart';
+import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
 import 'element/view_element.dart';
+import 'event/event.dart';
 import 'render/render_view.dart';
 import 'semantics/semantics.dart';
+import 'style/style.dart';
+import 'style/style_context.dart';
 
 /// ElView：盒模型 + 样式 + 事件节点。
 class ElView extends RenderObjectWidget {

@@ -1,6 +1,6 @@
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_bidi_index.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_bidi_pipeline.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/editable_line_layout.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_bidi_index.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_bidi_pipeline.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/editable_line_layout.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_test/flutter_test.dart';
 

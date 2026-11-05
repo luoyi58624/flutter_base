@@ -1,9 +1,8 @@
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
+import '../../../../utils/internal/benchmark_probe.dart';
+import '../../../../utils/internal/bit_mask.dart';
 import '../internal/field_spec.dart';
-import '../resolved/resolved_style.dart';
 import '../resolved/builder.dart';
+import '../resolved/resolved_style.dart';
 import '../style.dart';
 import 'style_spec.dart';
 import 'tick.dart';

@@ -4,11 +4,11 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart' show CustomClipper;
 import 'package:flutter/services.dart' show MouseCursor;
 
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-import 'package:flutter_base/src/flutter/views/view/style/dimension.dart';
-import '../resolved/resolved_style.dart';
+import '../../../../utils/internal/bit_mask.dart';
+import '../dimension.dart';
 import '../resolved/builder.dart';
+import '../resolved/resolved_style.dart';
+import '../style.dart';
 
 /// 从已提交样式读取字段。
 typedef FieldReader = Object? Function(ResolvedStyle style);

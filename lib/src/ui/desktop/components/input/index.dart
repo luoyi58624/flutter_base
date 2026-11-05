@@ -1,7 +1,6 @@
 import 'dart:async' show scheduleMicrotask;
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/scheduler.dart' show SchedulerPhase;
 import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter/services.dart'
@@ -15,6 +14,7 @@ import 'package:flutter/services.dart'
         TextSelection;
 import 'package:flutter/widgets.dart';
 
+import '../../internal.dart';
 import 'metrics.dart';
 
 part 'shell.dart';

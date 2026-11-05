@@ -1,11 +1,11 @@
 import 'package:flutter/animation.dart' show Curve;
-import 'frame_clock.dart';
 
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+import '../../../../utils/internal/bit_mask.dart';
 import '../cascade/style_spec.dart';
 import '../internal/field_spec.dart';
 import '../resolved/resolved_style.dart';
+import '../style.dart';
+import 'frame_clock.dart';
 
 /// 字段轨道上的一个显式停靠点。
 typedef _TrackStop = (double offset, Object? value);

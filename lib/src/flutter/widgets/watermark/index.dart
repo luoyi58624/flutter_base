@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/ui.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
+
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/view.dart' show ElView;
 
 /// Element Plus 水印。
 ///

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/image/image_byte_source.dart';
-import 'package:flutter_base/src/ui/cores/image/image_provider_resolver_stub.dart' as stub;
+import 'package:flutter_base/src/flutter/views/image/image_byte_source.dart';
+import 'package:flutter_base/src/flutter/views/image/image_provider_resolver_stub.dart' as stub;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

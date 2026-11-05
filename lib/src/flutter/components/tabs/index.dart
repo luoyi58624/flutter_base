@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/tab/tab_controller.dart' show ElTabController;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 单个页签的业务身份、标签和正文。
 class ElTabPane<T> {

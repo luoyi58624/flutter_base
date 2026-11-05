@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 当前步骤允许声明的状态，前后步骤状态由品牌根据当前下标推导。
 enum ElStepStatus {

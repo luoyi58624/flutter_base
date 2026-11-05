@@ -1,14 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/flutter/components/icon/index.dart' as common show ElIcon;
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 
 import '../../../../../flutter/commons/theme/style.dart';
-
+import '../../../../../flutter/components/icon/index.dart' as common show ElIcon;
+import '../../../internal.dart';
+import '../../autocomplete/index.dart';
 import '../../button/index.dart';
 import '../../button_group/index.dart';
-import '../../tag/index.dart';
-import '../../table/index.dart';
-import '../../autocomplete/index.dart';
 import '../../input/index.dart';
 import '../../input_number/index.dart';
 import '../../input_otp/index.dart';
@@ -16,6 +13,8 @@ import '../../input_tag/index.dart';
 import '../../mention/index.dart';
 import '../../select/index.dart';
 import '../../switch/index.dart';
+import '../../table/index.dart';
+import '../../tag/index.dart';
 
 part 'theme.dart';
 part 'tokens.dart';

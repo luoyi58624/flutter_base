@@ -1,5 +1,9 @@
-import 'package:flutter_base/ui.dart';
 import 'package:flutter/widgets.dart';
+
+import '../../views/view/semantics/semantics.dart' show ElSemantics;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/style/style_context.dart' show ElStyleContext;
+import '../../views/view/view.dart' show ElView;
 
 part 'col.dart';
 

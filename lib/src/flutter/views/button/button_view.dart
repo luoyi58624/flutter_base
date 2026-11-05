@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'package:flutter_base/src/flutter/views/view/event/event.dart';
-import 'package:flutter_base/src/flutter/views/view/view.dart';
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
+import '../view/event/event.dart';
+import '../view/semantics/semantics.dart';
+import '../view/style/style.dart';
+import '../view/view.dart';
 
 /// 保存按钮键盘按压会话，供上层皮肤同步绘制 Space 按住状态。
 ///

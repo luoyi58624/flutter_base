@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../dimension.dart';
 import '../internal/field_spec.dart';
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
+import '../style.dart';
 
 /// 单字段动画状态机。
 ///

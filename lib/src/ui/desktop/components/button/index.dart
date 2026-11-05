@@ -1,5 +1,6 @@
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/widgets.dart';
+
+import '../../internal.dart';
 
 /// Element 按钮主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Button extends StatefulWidget {

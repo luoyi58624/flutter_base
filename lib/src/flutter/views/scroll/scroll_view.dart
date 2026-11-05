@@ -6,9 +6,17 @@ import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
-import 'virtual/virtual_pipeline.dart';
+import '../layout/stack/stack_view.dart' show ElPositioned;
+import '../view/event/event.dart' show ElEvent;
+import '../view/provider.dart' show ElViewProvider;
+import '../view/semantics/semantics.dart' show ElSemantics;
+import 'common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaInterceptor;
+import 'common/physics/platform_scroll_physics.dart' show ElScrollBehavior;
 import 'common/viewport/scroll_engine_position.dart';
+import 'refresh/refresher.dart' show ElRefreshEdge, ElRefresher;
+import 'scrollbar/scrollbar_base.dart' show ElNoScrollBar, ElScrollbar;
+import 'smooth_scroll/smooth_scroll.dart' show ElNoSmoothScroll, ElSmoothScroll;
+import 'virtual/virtual_pipeline.dart';
 
 /// 滚动视图，支持普通滚动、虚拟滚动，相当于 [SingleChildScrollView] + [CustomScrollView] 的结合体；
 ///

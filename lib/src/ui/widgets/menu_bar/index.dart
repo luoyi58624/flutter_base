@@ -1,13 +1,21 @@
 import 'dart:async' show scheduleMicrotask;
 import 'dart:ui' show SemanticsRole, TextDecoration;
 
-import 'package:flutter_base/dart.dart' show el;
-import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
+import '../../../../dart.dart' show el;
+import '../../../dart/commons/index.dart' show el;
+import '../../../flutter/commons/global.dart' show ElViewExt;
+import '../../../flutter/utils/internal/focus.dart';
+import '../../../flutter/views/view/event/event.dart' show ElEvent;
+import '../../../flutter/views/view/event/press.dart' show ElEventDetails, ElFocusReason;
+import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../flutter/views/view/style/style.dart' show ElStyle;
+import '../../../flutter/views/view/view.dart' show ElView;
+import '../../../flutter/widgets/popup/context_menu.dart'
+    show ContextMenuInitialFocus, ElContextMenu, ElContextMenuHandle, ElContextMenuItem;
 
 // 焦点已进入其他 scope 时，页面菜单栏不接管该作用域的全局按键。
 bool _focusCapturedAbove(FocusNode node) {

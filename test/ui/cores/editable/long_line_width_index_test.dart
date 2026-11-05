@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/editable/render/long_line_width_index.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/long_line_width_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

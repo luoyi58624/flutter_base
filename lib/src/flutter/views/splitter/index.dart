@@ -1,5 +1,9 @@
-import 'package:flutter_base/ui.dart';
 import 'package:flutter/widgets.dart';
+
+import '../view/event/event.dart' show ElEvent;
+import '../view/semantics/semantics.dart' show ElSemantics;
+import '../view/style/style.dart' show ElStyle;
+import '../view/view.dart' show ElView;
 
 /// 分栏面板配置。
 class ElSplitterPanel {

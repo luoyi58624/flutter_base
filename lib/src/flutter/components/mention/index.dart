@@ -1,7 +1,12 @@
 import 'dart:math' as math;
-import 'package:flutter/widgets.dart';
+
 import 'package:flutter/services.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../views/editable/controller.dart' show ElEditableController;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
+import '../input/index.dart' show ElInput;
 
 /// Mention 弹层方向，限制为 Element Plus 官方的 top / bottom 两档。
 enum ElMentionPlacement {

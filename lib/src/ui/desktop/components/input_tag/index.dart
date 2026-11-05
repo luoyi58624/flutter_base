@@ -1,16 +1,35 @@
 import 'dart:async' show scheduleMicrotask;
 
-import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/foundation.dart' show ValueNotifier, listEquals;
 import 'package:flutter/scheduler.dart' show SchedulerPhase;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../others/app/index.dart';
-import '../icon/index.dart';
-import '../../extensions/el.dart';
+import '../../../../flutter/commons/models.dart' show ElThemeType;
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
+import '../../../../flutter/components/input_tag/index.dart'
+    show ElInputTag, ElInputTagController, ElInputTagDuplicatePolicy, ElInputTagTrigger;
+import '../../../../flutter/components/tag/index.dart' show ElTag, ElTagEffect;
+import '../../../../flutter/utils/obs/index.dart' show ObsBuilder;
+import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
+import '../../../../flutter/views/editable/controller.dart' show ElEditableController;
+import '../../../../flutter/views/editable/view.dart' show ElEditableView;
+import '../../../../flutter/views/view/event/event.dart' show ElEvent;
+import '../../../../flutter/views/view/style/style.dart'
+    show ElBorder, ElBoxShadow, ElOutline, ElStyle, ElStyleExt, ElTransition, ElTransitionField;
+import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormModelValue;
+import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
+import '../../../../flutter/widgets/popup/hover_intent.dart' show ElHoverIntent;
+import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
+import '../../../widgets/dnd/draggable.dart' show ElDraggable;
+import '../../../widgets/dnd/drop_target.dart' show ElDropTarget;
 import '../../extensions/content.dart';
+import '../../extensions/el.dart';
+import '../icon/index.dart';
 import '../input/metrics.dart';
+import '../others/app/index.dart';
 
 class _InputTagDelimiterSegment {
   const _InputTagDelimiterSegment(this.text, this.start);

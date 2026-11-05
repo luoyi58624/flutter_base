@@ -1,5 +1,6 @@
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/material.dart';
+
+import '../internal.dart';
 
 /// 根据当前明暗环境从实际基色派生颜色。
 extension ElColorContextExt on Color {

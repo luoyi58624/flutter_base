@@ -1,10 +1,9 @@
 // ignore_for_file: prefer_initializing_formals
 
-/// 滚动视口的输入、指标、reveal 与样式继承基座。
-///
-/// 实际视口负责业务成员布局与统一层序呈现；公共物理、事件和几何接线
-/// 保留在同一 library，避免为内部协作暴露多余 API。
-library;
+// 滚动视口的输入、指标、reveal 与样式继承基座。
+//
+// 实际视口负责业务成员布局与统一层序呈现；公共物理、事件和几何接线
+// 保留在同一 library，避免为内部协作暴露多余 API。
 
 import 'dart:async';
 import 'dart:math' as math;
@@ -22,31 +21,30 @@ import 'package:flutter/services.dart'
         PointerExitEventListener;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-import 'package:flutter_base/src/flutter/utils/internal/layout_reference.dart';
-
-import '../../../view/event/event.dart';
-import '../../../view/event/dispatcher.dart';
+import '../../../../utils/internal/bit_mask.dart';
+import '../../../../utils/internal/layout_reference.dart';
+import '../../../layout/stack/stack_view.dart' show ElStackParentData, RenderStackingBox;
 import '../../../selection/common/selection_core.dart';
+import '../../../view/event/dispatcher.dart';
+import '../../../view/event/event.dart';
 import '../../../view/render/scroll_cursor_freeze.dart';
 import '../../../view/style/inheritance/inheritable_node.dart';
 import '../../../view/style/resolved/resolved_style.dart';
-import '../../scroll_view.dart' show ElScrollView;
 import '../../scroll_state.dart';
-import '../../../layout/stack/stack_view.dart' show ElStackParentData, RenderStackingBox;
-import '../nested/scroll_delta_interceptor.dart';
-import '../pointer/scroll_drag_controller.dart';
-import '../pointer/scroll_input_transaction.dart';
-import '../pointer/scroll_pointer_motion.dart';
-import '../pointer/scroll_pointer_chain.dart';
-import '../pointer/scroll_touch_event_latch.dart';
-import '../pointer/scroll_touch_gate.dart';
-import '../viewport/scroll_position_binding.dart';
-import '../viewport/scroll_engine_position.dart';
-import '../viewport/scroll_viewport.dart';
+import '../../scroll_view.dart' show ElScrollView;
 import '../../smooth_scroll/smooth_pointer_scroll.dart';
 import '../../smooth_scroll/smooth_scroll.dart';
 import '../../virtual/virtual_scroll_geometry.dart';
+import '../nested/scroll_delta_interceptor.dart';
+import '../pointer/scroll_drag_controller.dart';
+import '../pointer/scroll_input_transaction.dart';
+import '../pointer/scroll_pointer_chain.dart';
+import '../pointer/scroll_pointer_motion.dart';
+import '../pointer/scroll_touch_event_latch.dart';
+import '../pointer/scroll_touch_gate.dart';
+import '../viewport/scroll_engine_position.dart';
+import '../viewport/scroll_position_binding.dart';
+import '../viewport/scroll_viewport.dart';
 
 export '../../../layout/geometry/pixel_grid.dart' show snapVirtualItemExtentToPixelGrid;
 

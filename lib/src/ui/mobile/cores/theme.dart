@@ -1,12 +1,17 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.css:9-149；packages/vue/adapter.ts:68-106。
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:android_system_font_weight/android_system_font_weight.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
 
-import '../components/builders.dart';
+import '../../../dart/commons/index.dart' show el;
+import '../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../flutter/commons/theme/style.dart';
+import '../../../flutter/commons/theme/tokens.dart' show ElTokens;
+import '../../../flutter/components/index.dart' show ElComponentProvider, ElComponents, ElComponentsExt;
+import '../../../flutter/views/view/style/style.dart' show ElStyle, ElThemeMode;
+import '../../../flutter/views/view/view.dart' show ElView;
+import '../components/index.dart' show ElMobileExt;
 
 part 'tokens.dart';
 
@@ -66,7 +71,7 @@ class ElMobileTheme extends StatelessWidget {
         onDark: ElStyle(vars: _darkVars),
       ).merge(themeVarsOf(style)),
       child: ElComponentProvider(
-        builders: defaultComponentBuilders.merge(componentBuilders),
+        builders: el.mobileComponents.merge(componentBuilders),
         child: Builder(
           builder: (context) {
             final theme = context.elTheme;

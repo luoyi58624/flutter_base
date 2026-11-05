@@ -1,6 +1,6 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
-import 'package:flutter_base/src/ui/cores/editable/render/editable_render_scope.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/editable_render_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';

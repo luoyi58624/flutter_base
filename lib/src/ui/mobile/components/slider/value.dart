@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/ui.dart';
+import '../../../../flutter/components/slider/index.dart' show ElSliderMark;
 
 /// 沿用 Web sliderScale：刻度只负责展示，取整从 min 起算，中点选择后一档。
 class SliderScale {

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import '../cores/editable/controller.dart';
-import '../cores/editable/editable_controller.dart';
-import '../cores/editable/editable_view.dart';
-import '../cores/editable/model/document_change_set.dart';
-import '../cores/editable/model/editable_selection.dart';
-import '../cores/editable/model/text_document.dart';
-import '../cores/editable/render/editable_line_view.dart';
+
+import '../../flutter/views/editable/controller.dart';
+import '../../flutter/views/editable/editable_controller.dart';
+import '../../flutter/views/editable/editable_view.dart';
+import '../../flutter/views/editable/model/document_change_set.dart';
+import '../../flutter/views/editable/model/editable_selection.dart';
+import '../../flutter/views/editable/model/text_document.dart';
+import '../../flutter/views/editable/render/editable_line_view.dart';
 
 /// 从已挂载编辑器读取最终文字样式，避免把声明参数当成实际排版结果。
 TextStyle? editableTextStyleOf(BuildContext context) {

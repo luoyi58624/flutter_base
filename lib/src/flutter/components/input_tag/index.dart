@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../commons/models.dart' show ElThemeType;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
+import '../tag/index.dart' show ElTagEffect;
 
 /// InputTag 草稿提交键。
 enum ElInputTagTrigger {

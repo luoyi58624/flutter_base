@@ -1,10 +1,14 @@
 /// 参照：D:/project/html/my-ui/packages/vue/components/Skeleton.vue；packages/core/my-ui.js:2210-2237；my-ui.css:3807-3855。
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/skeleton/index.dart' show ElSkeleton;
+import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle;
+import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../cores/common.dart';
 
 /// 使用原骨架布局承接公共声明，正文树保持挂载。

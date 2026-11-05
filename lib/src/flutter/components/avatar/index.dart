@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../views/image/image_view.dart' show ImageLoadInfo;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 头像的几何形状。
 enum ElAvatarShape {

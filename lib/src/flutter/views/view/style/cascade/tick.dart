@@ -1,17 +1,15 @@
 import 'package:flutter/animation.dart' show Curve;
 
+import '../../../../utils/internal/benchmark_probe.dart';
+import '../../../../utils/internal/bit_mask.dart';
 import '../animation/driver.dart';
 import '../animation/field_animation.dart';
-
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
-import 'resolver.dart';
-import 'style_spec.dart';
 import '../internal/field_spec.dart';
 import '../resolved/builder.dart';
 import '../resolved/resolved_style.dart';
+import '../style.dart';
+import 'resolver.dart';
+import 'style_spec.dart';
 
 /// cascade tick 一帧的输出。
 typedef CascadeTickResult = ({

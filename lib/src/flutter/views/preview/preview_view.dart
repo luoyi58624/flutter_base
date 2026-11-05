@@ -8,11 +8,11 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/views/view/event/event.dart';
-import 'package:flutter_base/src/flutter/views/view/style/animation/driver.dart' show elDisableAnimations;
-import 'package:flutter_base/src/flutter/views/view/view.dart';
-import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
-import 'package:flutter_base/src/flutter/views/zoom/zoom_view.dart';
+import '../view/event/event.dart';
+import '../view/semantics/semantics.dart';
+import '../view/style/animation/driver.dart' show elDisableAnimations;
+import '../view/view.dart';
+import '../zoom/zoom_view.dart';
 
 /// 为 builder 数据集提供稳定的页面逻辑身份。
 typedef PreviewItemIdBuilder = Object Function(int index);

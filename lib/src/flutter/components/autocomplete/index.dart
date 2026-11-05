@@ -1,7 +1,13 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
+
 import 'package:flutter/services.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../commons/models.dart' show ElLabelModel;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../widgets/popup/anchor.dart' show ElOverlayAnchor;
+import '../index.dart' show ElComponentProvider;
+import '../input/index.dart' show ElInput;
 
 /// 公共 Autocomplete 声明，由全局组件主题提供具体实现。
 class ElAutocomplete<T> extends StatelessWidget {

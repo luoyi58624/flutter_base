@@ -1,5 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../views/view/render/render_view.dart' show ElRenderView;
+import '../../views/view/semantics/semantics.dart' show ElSemantics;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/view.dart' show ElView;
+import 'index.dart' show ElIcon;
 
 /// 图标槽将字体数据和普通 Icon 接入 ElStyle，自定义 Widget 保留原实例。
 Widget buildIconContent(Object? content, {double? size}) {

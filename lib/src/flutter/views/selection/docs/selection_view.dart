@@ -1,5 +1,4 @@
-/// 独立的文本和图片文档选区。
-library;
+// 独立的文本和图片文档选区。
 
 import 'dart:async';
 import 'dart:collection';
@@ -14,13 +13,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../common/selection_core.dart';
-import '../../view/event/event.dart';
-import '../../view/event/dispatcher.dart';
-import '../../view/render/scroll_cursor_freeze.dart';
+import '../../../widgets/popup/context_menu.dart';
 import '../../scroll/common/pointer/scroll_touch_gate.dart' show ScrollCatchPointers;
 import '../../scroll/common/viewport/scroll_viewport.dart';
-import '../../../../ui/views/menu/context_menu.dart';
+import '../../view/event/dispatcher.dart';
+import '../../view/event/event.dart';
+import '../../view/render/scroll_cursor_freeze.dart';
+import '../common/selection_core.dart';
 part 'selection_controller.dart';
 part 'selection_model.dart';
 part 'selection_render.dart';

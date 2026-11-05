@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter_base/src/ui/cores/image/image_view.dart';
+import 'package:flutter_base/src/flutter/views/image/image_view.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';

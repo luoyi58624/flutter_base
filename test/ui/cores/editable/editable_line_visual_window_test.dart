@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/cores/editable/render/editable_line_layout.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/editable_line_layout.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/unicode_bidi_data.g.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/unicode_bidi_data.g.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/generate_unicode_bidi_data.dart' as generator;

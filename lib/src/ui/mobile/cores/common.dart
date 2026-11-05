@@ -1,15 +1,20 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.js:1118-1395、1607-1681；packages/vue/adapter.ts:51-66。
 library;
 
-import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart' show BoxHitTestResult, RenderSemanticsAnnotations;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_base/ui.dart';
 
 import '../../../flutter/components/icon/content.dart';
-
+import '../../../flutter/views/view/event/event.dart'
+    show ElEvent, ElEventConfig, ElEventConfigExt, ElEventExt, ElEventHandler;
+import '../../../flutter/views/view/event/press.dart' show ElEventDetails, ElEventPhase;
+import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
+import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
+import '../../../flutter/views/view/view.dart' show ElView;
 import 'theme.dart';
 
 /// 图标接入样式继承，自定义 Widget 原样使用，其余交给 ElView 内容引擎。

@@ -1,15 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
-import '../../layout/stack/stack_view.dart' show ElPositioned;
-import '../common/pointer/scroll_touch_gate.dart';
 
-import 'package:flutter_base/src/flutter/views/view/event/event.dart';
-import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show DragPointerLock;
-import 'package:flutter_base/src/flutter/views/view/view.dart';
-import 'package:flutter_base/src/flutter/views/view/render/hit_bounds.dart';
-import 'package:flutter_base/src/flutter/views/view/semantics/semantics.dart';
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
     show
@@ -47,6 +39,15 @@ import 'package:flutter/rendering.dart'
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
+
+import '../../layout/stack/stack_view.dart' show ElPositioned;
+import '../../view/event/dispatcher.dart' show DragPointerLock;
+import '../../view/event/event.dart';
+import '../../view/render/hit_bounds.dart';
+import '../../view/semantics/semantics.dart';
+import '../../view/style/style.dart';
+import '../../view/view.dart';
+import '../common/pointer/scroll_touch_gate.dart';
 
 /// 覆写按住滑块时的分数与滚动像素映射。
 abstract class ScrollbarThumbDragDelegate {

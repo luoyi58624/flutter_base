@@ -1,13 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/gestures.dart'
-    show
-        PointerCancelEvent,
-        PointerDownEvent,
-        PointerMoveEvent,
-        PointerUpEvent,
-        kPrimaryButton;
+    show PointerCancelEvent, PointerDownEvent, PointerMoveEvent, PointerUpEvent, kPrimaryButton;
 import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter/services.dart'
     show
@@ -18,6 +12,8 @@ import 'package:flutter/services.dart'
         TextInputType,
         AutofillConfiguration;
 import 'package:flutter/widgets.dart';
+
+import '../../internal.dart';
 
 String _normalizeOtpText(String text) =>
     text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('\n', '');

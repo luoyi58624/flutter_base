@@ -2,17 +2,16 @@ import 'package:flutter/gestures.dart' show GestureBinding, PointerDownEvent, Po
 import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-
-import '../event/event.dart';
+import '../../../utils/internal/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
 import '../../../utils/internal/focus.dart';
-import '../style/style_context.dart';
-import '../style/state/view_state.dart';
-import '../style/cascade/style_spec.dart';
-import '../view.dart';
+import '../event/event.dart';
 import '../render/render_view.dart';
 import '../semantics/semantics_frame.dart';
+import '../style/cascade/style_spec.dart';
+import '../style/state/view_state.dart';
+import '../style/style.dart';
+import '../style/style_context.dart';
+import '../view.dart';
 
 part 'focus_indicator.dart';
 

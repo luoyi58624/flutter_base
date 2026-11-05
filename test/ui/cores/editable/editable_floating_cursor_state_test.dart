@@ -3,7 +3,7 @@ import 'dart:ui' show Offset, Rect, Size, TextPosition;
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_base/src/ui/cores/editable/ime/editable_floating_cursor_state.dart';
+import 'package:flutter_base/src/flutter/views/editable/ime/editable_floating_cursor_state.dart';
 
 const _bounds = Rect.fromLTRB(0, 0, 100, 100);
 const _caret = Rect.fromLTWH(48, 46, 4, 8);

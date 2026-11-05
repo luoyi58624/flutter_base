@@ -1,17 +1,29 @@
 import 'dart:async';
 
-import 'package:flutter_base/flutter_base.dart' hide ElIcon;
 import 'package:flutter/material.dart'
     show DropdownMenuCloseBehavior, DropdownMenuEntry, FilterCallback, SearchCallback;
 import 'package:flutter/semantics.dart' show SemanticsProperties, SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../others/app/index.dart';
-import '../icon/index.dart';
-import '../../extensions/el.dart';
+import '../../../../flutter/commons/models.dart' show ElLabelModel;
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
+import '../../../../flutter/components/select/index.dart' show ElSelect, ElSelectOption;
+import '../../../../flutter/views/editable/controller.dart' show ElEditableController;
+import '../../../../flutter/views/scroll/scroll_view.dart' show ElScrollView;
+import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventExt;
+import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../../flutter/views/view/style/style.dart' show ElStyle;
+import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormModelValue, ElInputModelValue;
+import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
+import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/content.dart';
+import '../../extensions/el.dart';
+import '../icon/index.dart';
 import '../input/metrics.dart';
+import '../others/app/index.dart';
 
 part 'panel.dart';
 

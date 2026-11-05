@@ -1,10 +1,13 @@
 /// 参照：D:/project/html/my-ui/packages/vue/components/Loading.vue；packages/core/my-ui.js:1377-1394；my-ui.css:3755-3805。
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter/semantics.dart';
-import 'package:flutter_base/ui.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../../../flutter/components/loading_indicator/index.dart' show ElLoadingIndicator;
+import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle, ElTransform;
+import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../cores/common.dart';
 import '../../cores/glyph.dart';
 

@@ -2,16 +2,16 @@
 
 import 'dart:async';
 
-import 'package:flutter_base/flutter.dart';
 import 'package:flutter/foundation.dart' show VoidCallback, precisionErrorTolerance, visibleForTesting;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import 'smooth_scroll.dart';
+import '../../../utils/platform/index.dart' show ElPlatform;
 import '../common/pointer/scroll_pointer_motion.dart';
 import '../common/viewport/scroll_engine_position.dart';
 import '../scroll_state.dart';
+import 'smooth_scroll.dart';
 
 const Duration _pointerScrollTouchpadWindow = Duration(milliseconds: 80);
 const Duration _wheelScrollBurstWindow = Duration(milliseconds: 90);

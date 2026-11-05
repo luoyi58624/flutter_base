@@ -1,10 +1,9 @@
-/// 虚拟滚动的边界判据与坐标换算的单一事实来源。
-///
-/// State（`ElScrollView`）、content render、viewport render 三处历史上
-/// 各持一份**要求逐位一致**的判据数学（贴边、thumb 分数↔边缘、分数→内容
-/// 偏移、可见窗口）；任一处漂移即出现"拖到底松手回弹"级别的错位。此处收口为
-/// 纯函数，三方全部委托，容差统一取 [precisionErrorTolerance]。
-library;
+// 虚拟滚动的边界判据与坐标换算的单一事实来源。
+//
+// State（`ElScrollView`）、content render、viewport render 三处历史上
+// 各持一份**要求逐位一致**的判据数学（贴边、thumb 分数↔边缘、分数→内容
+// 偏移、可见窗口）；任一处漂移即出现"拖到底松手回弹"级别的错位。此处收口为
+// 纯函数，三方全部委托，容差统一取 [precisionErrorTolerance]。
 
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 

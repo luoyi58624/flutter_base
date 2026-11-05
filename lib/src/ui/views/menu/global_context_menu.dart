@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform;
 import 'package:flutter/widgets.dart' show TargetPlatform, BuildContext, Offset, VoidCallback;
-import 'package:flutter_base/dart.dart' show El;
 
-import 'context_menu.dart';
+import '../../../../dart.dart' show El;
+import '../../../flutter/widgets/popup/context_menu.dart';
 
 /// el_ui 仍保留的进程级门面配置（最小门面，用于 selection 子系统）。
 ///

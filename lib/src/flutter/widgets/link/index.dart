@@ -4,8 +4,17 @@ import 'package:flutter/widgets.dart';
 import 'package:url_launcher/link.dart' as url_link show Link, LinkTarget;
 import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
-import 'package:flutter_base/dart.dart' show el;
-import 'package:flutter_base/ui.dart';
+import '../../../../dart.dart' show el;
+import '../../../dart/commons/index.dart' show el;
+import '../../commons/global.dart' show ElViewExt;
+import '../../views/button/button_view.dart' show ElButtonView;
+import '../../views/view/event/event.dart' show ElEvent, ElEventExt;
+import '../../views/view/event/press.dart' show ElEventDetails;
+import '../../views/view/semantics/semantics.dart' show ElSemantics;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/view.dart' show ElView;
+import '../popup/context_menu.dart' show ElContextMenuItem;
+import 'status_bar.dart' show ElLinkStatusBar;
 
 /// 链接打开目标，对齐 HTML `<a target>` 心智。
 enum LinkTarget {

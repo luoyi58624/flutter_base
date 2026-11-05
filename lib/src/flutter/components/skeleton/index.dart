@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 加载骨架的公共声明，加载结束后展示调用方的原正文。
 class ElSkeleton extends StatelessWidget {

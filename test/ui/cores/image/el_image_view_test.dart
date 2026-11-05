@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/cores/image/image_byte_source.dart';
-import 'package:flutter_base/src/ui/cores/image/image_decode_pipeline.dart';
-import 'package:flutter_base/src/ui/cores/image/render/render_image_view.dart';
+import 'package:flutter_base/src/flutter/views/image/image_byte_source.dart';
+import 'package:flutter_base/src/flutter/views/image/image_decode_pipeline.dart';
+import 'package:flutter_base/src/flutter/views/image/render/render_image_view.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 

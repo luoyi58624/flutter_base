@@ -1,5 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../commons/models.dart' show ElThemeType;
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../widgets/others/base.dart' show ElEmptyWidget;
+import '../index.dart' show ElComponentProvider;
 
 /// 对应 Web Notice 的通知声明，公共 bool 模型控制显示状态。
 class ElAlert extends ElModelValue<bool> {

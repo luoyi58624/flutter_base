@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import '../../views/editable/controller.dart' show ElEditableController;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 公共输入框声明，编辑、值绑定与外观由全局组件主题提供。
 class ElInput extends StatelessWidget {

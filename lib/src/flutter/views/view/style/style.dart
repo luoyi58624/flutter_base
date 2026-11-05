@@ -2,10 +2,11 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter_base/dart.dart';
 import 'package:flutter/animation.dart' show Curve, Curves;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
+
+import '../../../../../dart.dart';
 
 part 'style.g.dart';
 

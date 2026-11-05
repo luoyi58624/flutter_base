@@ -1,6 +1,8 @@
-import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/views/table/table.dart' show ElTableStyle;
+import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElBorderSide, ElStyle;
 import '../../extensions/color.dart';
 import '../../extensions/el.dart';
 

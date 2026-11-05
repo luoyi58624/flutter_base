@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_bidi_executor_web.dart';
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_cooperative_scheduler.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_bidi_executor_web.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_cooperative_scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,12 +1,9 @@
-import 'package:flutter_base/src/flutter/views/view/style/style.dart';
-
-import '../resolved/builder.dart';
-import '../resolved/resolved_style.dart';
-import '../resolved/inherited_vars.dart';
-
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
+import '../../../../utils/internal/bit_mask.dart';
 import '../internal/field_spec.dart';
+import '../resolved/builder.dart';
+import '../resolved/inherited_vars.dart';
+import '../resolved/resolved_style.dart';
+import '../style.dart';
 import 'style_spec.dart';
 
 /// 按优先级应用声明，构建本节点的样式。

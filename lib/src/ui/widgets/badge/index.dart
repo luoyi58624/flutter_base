@@ -1,6 +1,10 @@
-import 'package:flutter_base/ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+
+import '../../../flutter/views/layout/stack/stack_view.dart' show ElPositioned, ElStackView;
+import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../flutter/views/view/style/style.dart' show ElStyle;
+import '../../../flutter/views/view/view.dart' show ElView;
 
 /// 独立或附着在内容右上角的徽章，背景颜色由调用方指定。
 ///

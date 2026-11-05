@@ -1,13 +1,26 @@
 import 'dart:async';
 
-import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter/semantics.dart' show SemanticsProperties, SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../others/app/index.dart';
+import '../../../../flutter/commons/models.dart' show ElLabelModel;
+import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/autocomplete/index.dart' show ElAutocomplete;
+import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
+import '../../../../flutter/views/editable/controller.dart' show ElEditableController;
+import '../../../../flutter/views/editable/view.dart' show ElEditableView;
+import '../../../../flutter/views/scroll/scroll_view.dart' show ElScrollView;
+import '../../../../flutter/views/view/event/event.dart' show ElEvent;
+import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
+import '../../../../flutter/views/view/style/style.dart' show ElStyle;
+import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElInputModelValue;
+import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
+import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
+import '../others/app/index.dart';
 
 part 'panel.dart';
 

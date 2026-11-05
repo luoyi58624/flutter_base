@@ -1,5 +1,5 @@
 import 'package:flutter_base/desktop.dart';
-import 'package:flutter_base/src/ui/mobile/components/builders.dart';
+import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
 /// 品牌默认表除已知缺口外不得留空；缺口清单只减不增，新增组件必须两端登记实现。
@@ -33,7 +33,7 @@ void main() {
   });
 
   test('移动默认表只缺已知项', () {
-    const builders = defaultComponentBuilders;
+    final builders = el.mobileComponents;
     final gaps = {
       'buttonGroup': builders.buttonGroup,
       'input': builders.input,

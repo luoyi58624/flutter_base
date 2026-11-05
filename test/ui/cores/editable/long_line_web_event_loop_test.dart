@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/editable/render/bidi/long_line_web_event_loop.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/bidi/long_line_web_event_loop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 

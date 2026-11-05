@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 控制按钮位置：官方 `controls-position`。
 /// 缺省左右分置（减在左、加在右），`right` 是右侧竖排上下两钮。

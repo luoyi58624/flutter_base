@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter_base/ui.dart' show ElEditableController, ElEditableView, ElEditableStyle, ElStyle, ElView;
+import 'package:flutter_base/flutter.dart' show ElEditableController, ElEditableStyle, ElEditableView, ElStyle, ElView;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,14 +10,12 @@ void main() {
     var directory = Directory.current;
     File? entry;
     while (true) {
-      for (final relative in ['lib/ui.dart']) {
-        final candidate = File('${directory.path}/$relative');
-        if (candidate.existsSync()) entry = candidate;
-      }
+      final candidate = File('${directory.path}/lib/flutter.dart');
+      if (candidate.existsSync()) entry = candidate;
       if (entry != null || directory.parent.path == directory.path) break;
       directory = directory.parent;
     }
-    final exports = RegExp("export 'src/ui/cores/editable/[^']+'\\s+show\\s+([^;]+);")
+    final exports = RegExp("export 'src/flutter/views/editable/[^']+'\\s+show\\s+([^;]+);")
         .allMatches(entry!.readAsStringSync())
         .expand((match) => match.group(1)!.split(',').map((name) => name.trim()));
     expect(exports, unorderedEquals(['ElEditableView', 'ElEditableController', 'ElEditableStyle']));

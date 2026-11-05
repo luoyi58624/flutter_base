@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_base/src/ui/cores/image/image_disk_cache_io.dart';
+import 'package:flutter_base/src/flutter/views/image/image_disk_cache_io.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 磁盘 HTTP 缓存的浏览器语义回归：本地 HttpServer 数请求。

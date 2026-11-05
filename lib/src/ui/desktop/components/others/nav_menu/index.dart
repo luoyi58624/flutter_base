@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/ui/desktop/internal.dart';
+
+import '../../../internal.dart';
 
 Widget _builderSuffixIcon(ValueNotifier<bool> expanded) {
   return AnimatedRotation(

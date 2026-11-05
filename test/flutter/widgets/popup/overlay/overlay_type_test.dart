@@ -1,6 +1,6 @@
 import 'package:flutter_base/dart.dart' show el;
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/views/menu/context_menu.dart' show contextMenuItemKey;
+import 'package:flutter_base/src/flutter/widgets/popup/context_menu.dart' show contextMenuItemKey;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

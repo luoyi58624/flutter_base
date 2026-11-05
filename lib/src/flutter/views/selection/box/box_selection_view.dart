@@ -1,7 +1,6 @@
 // ignore_for_file: prefer_initializing_formals
 
-/// 实验性桌面对象框选，与文本选区独立。
-library;
+// 实验性桌面对象框选，与文本选区独立。
 
 import 'dart:async' show scheduleMicrotask;
 import 'dart:collection' show UnmodifiableSetView;

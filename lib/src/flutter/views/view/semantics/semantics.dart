@@ -1,8 +1,9 @@
 import 'dart:ui' show Locale, SemanticsRole, TextDirection;
 
-import 'package:flutter_base/dart.dart';
 import 'package:flutter/foundation.dart' show VoidCallback, immutable;
 import 'package:flutter/semantics.dart' show SemanticsProperties;
+
+import '../../../../../dart.dart';
 
 part 'semantics.g.dart';
 

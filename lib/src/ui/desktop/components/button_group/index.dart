@@ -1,13 +1,13 @@
 // 渲染协作／测试使用引擎内部状态，不扩展业务 API。
 // ignore: implementation_imports, invalid_use_of_internal_member
-import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
-
 import 'dart:math' as math;
 
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+
+import '../../../../flutter/views/view/render/render_view.dart';
+import '../../internal.dart';
 
 part 'render.dart';
 

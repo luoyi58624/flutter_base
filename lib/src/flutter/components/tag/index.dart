@@ -1,6 +1,13 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import '../../commons/models.dart' show ElThemeType;
+import '../../utils/model_value/index.dart' show ElModelValue;
+import '../../views/button/button_view.dart' show ElButtonView;
+import '../../views/view/event/event.dart' show ElEvent, ElEventExt;
+import '../../views/view/semantics/semantics.dart' show ElSemantics;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/view.dart' show ElView;
+import '../index.dart' show ElComponentProvider;
 
 /// 标签的浅色、实心与朴素外观。
 enum ElTagEffect {

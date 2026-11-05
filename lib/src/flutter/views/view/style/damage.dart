@@ -1,10 +1,10 @@
 import 'package:flutter/rendering.dart';
 
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-import 'internal/field_spec.dart';
+import '../../../utils/internal/bit_mask.dart';
 import '../render/hit_bounds.dart';
 import 'inheritance/inheritable_node.dart';
 import 'inheritance/propagator.dart';
+import 'internal/field_spec.dart';
 
 /// damage 路由：cascade 后比较 committed vs target，按字段 damage 通道
 /// 触发布局、绘制与语义更新，并向后代传播 inherit damage。

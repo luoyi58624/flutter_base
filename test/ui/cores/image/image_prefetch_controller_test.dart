@@ -1,4 +1,4 @@
-import 'package:flutter_base/src/ui/cores/image/image_prefetch_controller.dart';
+import 'package:flutter_base/src/flutter/views/image/image_prefetch_controller.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 

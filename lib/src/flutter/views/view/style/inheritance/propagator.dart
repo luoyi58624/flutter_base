@@ -1,5 +1,5 @@
-import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
+import '../../../../utils/internal/benchmark_probe.dart';
+import '../../../../utils/internal/bit_mask.dart';
 import '../resolved/resolved_style.dart';
 import 'inheritable_node.dart';
 import 'subtree_walker.dart';

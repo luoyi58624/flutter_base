@@ -1,5 +1,6 @@
-import 'package:flutter_base/src/ui/desktop/internal.dart';
 import 'package:flutter/widgets.dart';
+
+import '../../internal.dart';
 
 /// Element Plus 数字输入框。
 ///

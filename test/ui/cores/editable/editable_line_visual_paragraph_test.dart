@@ -2,9 +2,9 @@ import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter_base/src/ui/cores/editable/render/editable_line_layout.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/editable_line_layout.dart';
 
-import 'package:flutter_base/src/ui/cores/editable/render/editable_render_scope.dart';
+import 'package:flutter_base/src/flutter/views/editable/render/editable_render_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

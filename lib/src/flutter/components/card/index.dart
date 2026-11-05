@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/ui.dart';
+
+import '../../commons/models.dart' show ElLevelType;
+import '../../views/view/event/event.dart' show ElEvent;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 卡片内容、加载状态、阴影与可选点击行为的公共声明。
 class ElCard extends StatelessWidget {

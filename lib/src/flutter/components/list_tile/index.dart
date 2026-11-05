@@ -1,6 +1,13 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/dart.dart' show $absent;
-import 'package:flutter_base/ui.dart';
+
+import '../../../../dart.dart' show $absent;
+import '../../../dart/gen/index.dart' show $absent;
+import '../../commons/models.dart' show ElLabelModel;
+import '../../utils/model_value/index.dart' show ElModelValue, ElModelValueType;
+import '../../views/view/event/event.dart' show ElEvent;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../widgets/popup/anchor.dart' show ElOverlayAnchor;
+import '../index.dart' show ElComponentProvider;
 
 part 'group.dart';
 part 'option.dart';

@@ -1,8 +1,7 @@
-import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
-
+import '../../../../utils/internal/bit_mask.dart';
+import '../internal/field_spec.dart';
 import '../state/view_state.dart';
 import '../style.dart';
-import '../internal/field_spec.dart';
 
 /// 单层声明的稀疏字段表与位图，挂载和后续级联共用。
 final class StyleSpec {

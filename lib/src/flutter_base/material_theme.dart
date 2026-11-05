@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_base/ui.dart';
 
-import '../flutter/views/view/render/render_view.dart' show ViewStateRenderAccess;
+import '../flutter/commons/theme/tokens.dart' show ElTokens;
+import '../flutter/extensions/index.dart' show ElColorExt;
+import '../flutter/utils/platform/index.dart' show ElPlatform;
+import '../flutter/views/view/render/render_view.dart' show ElRenderView, ViewStateRenderAccess;
 import '../flutter/views/view/style/cascade/resolver.dart' show StyleResolver;
 import '../flutter/views/view/style/resolved/resolved_style.dart' show InheritedText, ResolvedStyle;
 import '../flutter/views/view/style/state/view_state.dart' show ViewState;
 import '../flutter/views/view/style/style_context.dart' show StyleDependencyScope, BuildDependencySource;
+import '../flutter/views/view/view.dart' show ElView;
 
 part 'material_theme_vars.dart';
 

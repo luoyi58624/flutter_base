@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter_base/src/ui/cores/image/image_byte_source.dart';
-import 'package:flutter_base/src/ui/cores/image/image_decode_pipeline.dart';
-import 'package:flutter_base/src/ui/cores/image/image_platform_bridge.dart';
-import 'package:flutter_base/src/ui/cores/image/image_view.dart';
+import 'package:flutter_base/src/flutter/views/image/image_byte_source.dart';
+import 'package:flutter_base/src/flutter/views/image/image_decode_pipeline.dart';
+import 'package:flutter_base/src/flutter/views/image/image_platform_bridge.dart';
+import 'package:flutter_base/src/flutter/views/image/image_view.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';

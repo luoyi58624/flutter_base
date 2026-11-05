@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_base/ui.dart';
+import '../../commons/models.dart' show ElThemeType;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../index.dart' show ElComponentProvider;
 
 /// 按钮组的选择方式；普通组不设置选择方式。
 enum ElButtonGroupMode {

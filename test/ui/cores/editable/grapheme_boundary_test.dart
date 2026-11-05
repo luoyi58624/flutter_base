@@ -1,7 +1,7 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:characters/characters.dart';
-import 'package:flutter_base/src/ui/cores/editable/model/grapheme_boundary.dart';
-import 'package:flutter_base/src/ui/cores/editable/model/text_document.dart';
+import 'package:flutter_base/src/flutter/views/editable/model/grapheme_boundary.dart';
+import 'package:flutter_base/src/flutter/views/editable/model/text_document.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void _expectMatchesCharacters(String text) {
