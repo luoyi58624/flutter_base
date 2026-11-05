@@ -1,9 +1,9 @@
 # Tap Feedback
 
-按压缩放通过 `ElStyle.withTapScale()` 添加。淡化和涟漪反馈可使用下面的按钮。导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
+按压淡化和缩放通过 `ElStyle.withTapFade()`、`ElStyle.withTapScale()` 添加，直接复用视图的按压态和过渡。导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
 
 ```dart
-ElFadeTap(onPressed: () {}, child: Text('淡化'));
+ElButtonView(onPressed: () {}, style: ElStyle().withTapFade(), child: '淡化');
 ElButtonView(onPressed: () {}, style: ElStyle().withTapScale(), child: '缩放');
 ElRippleTap(
   onPressed: () {},
@@ -13,15 +13,24 @@ ElRippleTap(
 );
 ```
 
-| 组件 | 反馈 |
+| 用法 | 反馈 |
 | --- | --- |
-| ElFadeTap | 对齐 RN TouchableOpacity：首次按下立即变为 0.2，移出后重新移入用 150ms 变淡，释放或取消后用 250ms 恢复 |
+| withTapFade(0.2) | 按下或重新移入立即变为 0.2，退出按压态后用 250ms 的 easeInOutQuad 恢复原透明度 |
+| withTapScale(0.95) | 按下缩小至 0.95 倍，进入和恢复均默认使用 100ms 的 easeOut |
 | ElRippleTap | 悬停高亮，按压从落点扩散涟漪，支持键盘反馈 |
 
-共同参数为 onPressed（可 null）、child、disabled、semanticLabel、style。disabled 同时关闭反馈与激活。Ripple 额外提供 focusNode，外部节点由调用方 dispose。
+淡化和缩放只负责样式，可直接用于 ElView 或组合在同一个按钮上，不额外创建 Widget 或维护按压状态：
 
-缩放默认为 0.95 倍，缺少变换过渡时使用 100ms 的 `easeOut`。可以在调用 `withTapScale()` 前配置 `transition` 和 `onTap`，合并时会保留其他按压属性及已有过渡。
+```dart
+ElButtonView(
+  onPressed: () {},
+  style: ElStyle().withTapScale(0.95).withTapFade(0.4),
+  child: '缩放与淡化',
+);
+```
 
-Fade 不保留最短触摸反馈，松手立即恢复到原有透明度，点击仍在抬手时触发。缓动使用与 RN `Easing.inOut(Easing.quad)` 相同的二次函数；通过 `style.onTap.opacity`、`style.onTap.transition` 和 `style.transition` 分别覆写按压透明度、进入过渡和恢复过渡。这里对齐的是透明度动画，命中范围、手势竞争及键盘行为仍沿用 ElButtonView。
+两个扩展保留其他按压属性，以及常态和按压态中已覆盖相应字段的过渡。淡化的常态过渡控制恢复，`onTap.transition` 控制进入；没有独立的按压过渡表时，会继承常态表的其他字段过渡，再将透明度设为立即变化。常态未设置 opacity 时，恢复到默认的不透明状态。
 
-键盘和辅助激活沿用 [ElButtonView](../../views/button/README.md)：Enter 激活，Space 按住/释放完成会话。需要 event、toggled 或 selected 等完整按钮参数时，直接组合 ElButtonView 的样式与状态。
+反馈保持时间继续由 `ElEventConfig` 管理：触摸默认至少保留 100ms，点击仍在抬手时触发；需要松手立即开始恢复时，在按钮的 `event.config` 中设置 `delayTouchUp: Duration.zero`。取消、拖拽接管和禁用沿用事件机制清理按压态，不再区分首次按下与重新移入的淡化时长。
+
+按钮参数和键盘、辅助激活沿用 [ElButtonView](../../views/button/README.md)。`disabled` 同时关闭反馈与激活；`ElRippleTap` 仍提供 onPressed（可 null）、child、disabled、semanticLabel、style 和 focusNode，外部焦点节点由调用方 dispose。

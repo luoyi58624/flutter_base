@@ -72,7 +72,7 @@ class PressFeedbackPage extends HookWidget {
                           alignment: .center,
                           borderRadius: radius,
                           padding: padding,
-                        ).withTapScale(scale: _pressScale),
+                        ).withTapScale(_pressScale),
                         child: label,
                       );
                     },
@@ -125,7 +125,7 @@ class _ShortcutCards extends StatelessWidget {
                 borderRadius: radius,
                 transition: [.field(.backgroundColor, _pressDuration, _pressCurve)],
                 onTap: .new(backgroundColor: pressedColor),
-              ).withTapScale(scale: _pressScale);
+              ).withTapScale(_pressScale);
 
         Widget label(String text, Color color, double size, [FontWeight? weight]) => useFlutter
             ? Text(text, style: _labelStyle(color, size, weight))

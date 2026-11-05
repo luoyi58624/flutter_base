@@ -1538,7 +1538,7 @@ void main() {
         final style = ElStyle(
           transition: [background],
           onTap: ElStyle(backgroundColor: Colors.blue, opacity: 0.8, transition: [opacity]),
-        ).withTapScale(scale: 0.9);
+        ).withTapScale(0.9);
 
         expect(style.onTap?.transform, ElTransform.scale(0.9));
         expect(style.onTap?.backgroundColor, Colors.blue);

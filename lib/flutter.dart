@@ -157,7 +157,7 @@ export 'src/flutter/views/image/image_view.dart' show ElImageView, ImageLoadInfo
 export 'src/flutter/views/image/image_prefetch_controller.dart' show ImagePrefetchController;
 
 // 点击反馈
-export 'src/flutter/widgets/tap/index.dart' show ElFadeTap, ElRippleTap;
+export 'src/flutter/widgets/tap/index.dart' show ElRippleTap;
 
 // 表单状态、校验、字段绑定与布局
 export 'src/flutter/widgets/form/index.dart'

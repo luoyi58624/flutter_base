@@ -31,7 +31,7 @@ void main() {
                 backgroundColor: background,
                 transition: [.field(.backgroundColor, Duration(milliseconds: 100), Curves.easeOut)],
                 onTap: .new(backgroundColor: background.deepen(10)),
-              ).withTapScale(scale: 0.9),
+              ).withTapScale(0.9),
             ),
           ),
         ),
