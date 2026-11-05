@@ -8,7 +8,7 @@ import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
 final _pages = <(String, String, int)>[
-  ('icon', 'basic/icon', 2),
+  ('icon', 'basic/icon', 3),
   ('text', 'basic/text', 2),
   ('tag', 'basic/tag', 2),
   ('input', 'form/input', 2),

@@ -110,6 +110,45 @@ abstract final class ElMobileIcons {
 
   /// 加载圆弧图标，可与 ElLoading 组合使用。
   static const Widget loading = Glyph(spinner: true);
+
+  /// 按名称枚举全部移动端 SVG 图标。
+  static const Map<String, Widget> values = {
+    'sun': sun,
+    'eye': eye,
+    'eyeOff': eyeOff,
+    'arrowRight': arrowRight,
+    'chevronRight': chevronRight,
+    'chevronsUpDown': chevronsUpDown,
+    'check': check,
+    'bell': bell,
+    'cloud': cloud,
+    'spark': spark,
+    'search': search,
+    'x': x,
+    'heart': heart,
+    'share': share,
+    'add': add,
+    'moon': moon,
+    'shield': shield,
+    'wifi': wifi,
+    'sliders': sliders,
+    'clock': clock,
+    'briefcase': briefcase,
+    'grid': grid,
+    'home': home,
+    'user': user,
+    'message': message,
+    'layer': layer,
+    'inbox': inbox,
+    'image': image,
+    'trash': trash,
+    'copy': copy,
+    'file': file,
+    'info': info,
+    'alertCircle': alertCircle,
+    'alertTriangle': alertTriangle,
+    'loading': loading,
+  };
 }
 
 /// SVG 读取最近 ElView 的图标尺寸、颜色和字重，样式过渡直接驱动布局与绘制。

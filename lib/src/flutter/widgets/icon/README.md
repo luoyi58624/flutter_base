@@ -13,6 +13,6 @@ ElView(
 
 按钮、列表、输入、选择器、菜单和底栏的图标槽会将普通 Flutter Icon 转入相同字形通道，显式 size / color 等参数转为局部样式；其他自定义 Widget 保留原实例。SVG 加载、进度及关闭图标同样读取最近 ElView 的 iconSize / iconColor，由渲染侧响应样式变化。
 
-桌面端的 `ElDesktopIcons` 提供 Element 字体的 `IconData`。移动端的 `ElMobileIcons` 提供可直接传给图标插槽的 SVG Widget。
+桌面端的 `ElDesktopIcons` 提供 Element 字体的 `IconData`。移动端的 `ElMobileIcons` 提供可直接传给图标插槽的 SVG Widget。两端均通过 `values` 按名称枚举全部图标。
 
 移动 SVG 的线宽跟随最近 ElView 的字重：优先读取 `fontVariationSettings` 中的 `wght`，其次读取 `fontWeight`，默认 400。线宽按字重与 400 的比例缩放，限制在原线宽的 0.5～2 倍；400 时普通图标保持 1.8，加载圆弧保持 2.5，字重变化只触发重绘。
