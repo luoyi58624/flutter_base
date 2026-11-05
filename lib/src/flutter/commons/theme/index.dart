@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../commons/models.dart';
-import '../views/view/view.dart';
+import '../../views/view/view.dart';
+import '../models.dart';
 import 'tokens.dart';
 
 export 'tokens.dart';

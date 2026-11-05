@@ -42,7 +42,7 @@ void main() {
               children: [
                 ElButton(key: ValueKey('off'), type: solid ? null : type, variant: variant, child: '按钮'),
                 ElButton(key: ValueKey('on'), type: type ?? .primary, child: '按钮'),
-                ElToggleButton(key: ValueKey('toggle'), modelValue: model, type: type, variant: variant, child: '按钮'),
+                ElButton.toggle(key: ValueKey('toggle'), modelValue: model, type: type, variant: variant, child: '按钮'),
               ],
             ),
             brightness,
@@ -70,7 +70,7 @@ void main() {
     final model = ValueNotifier(true);
     addTearDown(model.dispose);
     await tester.pumpWidget(
-      _host(ElToggleButton(key: ValueKey('toggle'), modelValue: model, type: .primary, child: '按钮'), .dark),
+      _host(ElButton.toggle(key: ValueKey('toggle'), modelValue: model, type: .primary, child: '按钮'), .dark),
     );
     await tester.pumpAndSettle();
     final render = _render(tester, 'toggle');
@@ -105,7 +105,7 @@ void main() {
           mainAxisSize: .min,
           children: [
             ElButton(key: ValueKey('reference'), type: .success, disabled: true, child: '按钮'),
-            ElToggleButton(
+            ElButton.toggle(
               key: ValueKey('toggle'),
               value: true,
               type: .success,
@@ -126,7 +126,7 @@ void main() {
     final custom = Color(0xff552277);
     await tester.pumpWidget(
       _host(
-        ElToggleButton(
+        ElButton.toggle(
           key: ValueKey('toggle'),
           value: true,
           type: .primary,

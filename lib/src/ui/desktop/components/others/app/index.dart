@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/flutter/components/icon/index.dart' as common show ElIcon;
 import 'package:flutter_base/src/ui/desktop/internal.dart';
 
-import '../../../../../flutter/theme/style.dart';
+import '../../../../../flutter/commons/theme/style.dart';
 
 import '../../button/index.dart';
 import '../../button_group/index.dart';
@@ -51,7 +51,7 @@ class ElDesktopTheme extends StatelessWidget {
   final Locale? locale;
 
   /// 在本品牌默认实现上合并的组件实现。
-  final ElComponentBuilders? componentBuilders;
+  final ElComponents? componentBuilders;
 
   /// 使用桌面主题的内容。
   final Widget child;

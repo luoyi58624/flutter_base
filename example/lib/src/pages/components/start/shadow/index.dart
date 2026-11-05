@@ -90,7 +90,7 @@ ElStyle(
           for (final (index, shadow) in shadows.indexed)
             Padding(
               padding: .only(bottom: 12),
-              child: ElText(
+              child: Text(
                 '${index == 0 ? '近层' : '远层'}：'
                 '浓度 ${_number(shadow.color.a * 100)}% · '
                 '偏移 ${_number(shadow.offset.dy)} · 模糊 ${_number(shadow.blurRadius)} · '
@@ -108,8 +108,8 @@ ElStyle(
       crossAxisAlignment: .stretch,
       spacing: 16,
       children: [
-        ElText('阴影游乐场', style: Theme.of(context).textTheme.titleLarge),
-        ElText('调整颜色、尺寸、圆角与级别，查看当前阴影。'),
+        Text('阴影游乐场', style: Theme.of(context).textTheme.titleLarge),
+        Text('调整颜色、尺寸、圆角与级别，查看当前阴影。'),
         sample,
         result,
       ],
@@ -120,12 +120,12 @@ ElStyle(
         crossAxisAlignment: .stretch,
         spacing: 16,
         children: [
-          ElText('外观与层级', style: Theme.of(context).textTheme.titleMedium),
+          Text('外观与层级', style: Theme.of(context).textTheme.titleMedium),
           _choices('预览主题', mode.value, [(Brightness.light, '浅色'), (Brightness.dark, '暗色')], (v) => mode.value = v),
           _choices('阴影级别', level.value, [for (final v in ElLevelType.types) (v, v.name)], (v) => level.value = v),
           Row(
             children: [
-              Expanded(child: ElText('背景与组件同色')),
+              Expanded(child: Text('背景与组件同色')),
               ElSwitch(
                 key: ValueKey('shadow-same-color'),
                 value: sameColor.value,
@@ -148,7 +148,7 @@ ElStyle(
             onChanged: (v) => backgroundOverride.value = v,
           ),
           ElDivider(color: context.elTheme.dividerColor),
-          ElText('尺寸与圆角', style: Theme.of(context).textTheme.titleMedium),
+          Text('尺寸与圆角', style: Theme.of(context).textTheme.titleMedium),
           _slider('宽度', 'shadow-width', width.value, 80, 280, (v) => width.value = v),
           _slider('高度', 'shadow-height', height.value, 48, 240, (v) => height.value = v),
           _slider('圆角', 'shadow-radius', actualRadius, 0, size.shortestSide / 2, (v) => radius.value = v),
@@ -160,16 +160,16 @@ ElStyle(
             ],
           ),
           ElDivider(color: context.elTheme.dividerColor),
-          ElText('风格微调', style: Theme.of(context).textTheme.titleMedium),
+          Text('风格微调', style: Theme.of(context).textTheme.titleMedium),
           _slider('强度', 'shadow-strength', strength.value, 0, 2, (v) => strength.value = v, step: .05),
           _slider('柔和程度', 'shadow-softness', softness.value, .5, 2, (v) => softness.value = v, step: .05),
-          ElText('这里只调节预览。现有主题阴影保持原样。'),
+          Text('这里只调节预览。现有主题阴影保持原样。'),
         ],
       ),
     );
     return Scaffold(
       appBar: AppBar(
-        title: ElText('阴影'),
+        title: Text('阴影'),
         actions: [
           ElButton(
             key: ValueKey('shadow-reset'),
@@ -265,7 +265,7 @@ Widget _stage(
                 boxShadow: shadows,
               ),
               child: Center(
-                child: ElText(
+                child: Text(
                   label,
                   style: TextStyle(
                     fontSize: 24,
@@ -285,7 +285,7 @@ Widget _choices<T>(String label, T selected, List<(T, String)> options, ValueCha
   crossAxisAlignment: .start,
   spacing: 8,
   children: [
-    ElText(label),
+    Text(label),
     Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -376,7 +376,7 @@ class _ColorField extends HookWidget {
       crossAxisAlignment: .stretch,
       spacing: 8,
       children: [
-        ElText(label),
+        Text(label),
         ExcludeFocus(
           excluding: !enabled,
           child: IgnorePointer(
@@ -403,7 +403,7 @@ class _ColorField extends HookWidget {
             ),
           ),
         ),
-        ElText(
+        Text(
           invalid.value
               ? '请输入有效${opaque ? '且不透明' : ''}的颜色'
               : opaque
@@ -431,7 +431,7 @@ class _ColorField extends HookWidget {
                     ElView(
                       style: ElStyle(width: 12, height: 12, backgroundColor: color, borderRadius: .circular(6)),
                     ),
-                    ElText(name),
+                    Text(name),
                   ],
                 ),
                 onPressed: () => onChanged(color),
@@ -462,7 +462,7 @@ class _Fold extends HookWidget {
               width: (constraints.maxWidth - 24).clamp(0, double.infinity),
               child: Row(
                 children: [
-                  Expanded(child: ElText(title)),
+                  Expanded(child: Text(title)),
                   ElView(child: open.value ? Icons.expand_less : Icons.expand_more),
                 ],
               ),

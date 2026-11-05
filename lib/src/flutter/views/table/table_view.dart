@@ -7,7 +7,7 @@ part of 'table.dart';
 /// 滚动窗口与用户交互事件全部平铺在本构造上（对齐 `ElEditableView` 的命名参数形态）；
 /// 内部再把它们合成包内的 viewport / event 对象，不对外承诺这两个类型。
 ///
-/// 外观解析顺序：显式 [style] → `ElComponentProvider` 里登记的 `tableStyleBuilder` 工厂 →
+/// 外观解析顺序：显式 [style] → `ElComponentProvider` 里登记的 `tableStyle` 工厂 →
 /// 默认皮肤（`const ElTableStyle()`）。品牌差异只走这一条样式注入通道，
 /// 上层不提供任何表格实现（渲染 / 布局 / 命中 / 排序 / 选择 / 展开全在本类内）。
 class ElTable extends StatefulWidget {
@@ -38,7 +38,7 @@ class ElTable extends StatefulWidget {
   /// 数据、列配置、运行状态与命令 API。
   final ElTableController controller;
 
-  /// 表格皮肤；不传时优先取 `ElComponentProvider` 登记的 `tableStyleBuilder`，再回落到默认皮肤。
+  /// 表格皮肤；不传时优先取 `ElComponentProvider` 登记的 `tableStyle`，再回落到默认皮肤。
   final ElTableStyle style;
 
   /// 表格根焦点节点；null 表示只展示，不进入键盘遍历。
@@ -231,13 +231,13 @@ class _TableViewState extends State<ElTable> {
   }
 
   /// 解析生效皮肤：显式 [ElTable.style] 优先，其次是 `ElComponentProvider` 登记的
-  /// `tableStyleBuilder` 工厂，最后回落到 `const ElTableStyle()`。
+  /// `tableStyle` 工厂，最后回落到 `const ElTableStyle()`。
   ///
   /// 未登记品牌主题时必须能裸用表格，所以这里读 `maybeOf`，不用会 assert 的 `of`。
   ElTableStyle _resolveStyle(BuildContext context) {
     final declared = widget.style;
     if (!identical(declared, const ElTableStyle())) return declared;
-    return ElComponentProvider.maybeOf(context)?.tableStyleBuilder?.call(context) ?? declared;
+    return ElComponentProvider.maybeOf(context)?.tableStyle?.call(context) ?? declared;
   }
 
   @override

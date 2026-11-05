@@ -1,3 +1,4 @@
+import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/view.dart';
 import 'package:example/src/pages/custom_gestures.dart';
 import 'package:example/src/pages/view/base.dart';
@@ -50,6 +51,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .bluetooth, ViewBasePage()),
                     _tile(context, .mobile),
                     _tile(context, .connect),
+                    _tile(context, .user, ButtonPage()),
                   ],
                 ),
                 ElListGroup(
@@ -60,9 +62,7 @@ class HomePage extends StatelessWidget {
                     _tile(context, .notifications),
                   ],
                 ),
-                ElListGroup(
-                  children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)],
-                ),
+                ElListGroup(children: [_tile(context, .password), _tile(context, .privacy), _tile(context, .location)]),
                 ElListGroup(
                   children: [
                     _tile(context, .apps),

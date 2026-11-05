@@ -69,9 +69,9 @@ void main() {
     addTearDown(desktopModel.dispose);
     final mobileChanges = <bool>[];
     final desktopChanges = <bool>[];
-    late mobile.ElComponentBuilders outer;
-    late desktop.ElComponentBuilders inner;
-    late mobile.ElComponentBuilders after;
+    late mobile.ElComponents outer;
+    late desktop.ElComponents inner;
+    late mobile.ElComponents after;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -82,7 +82,7 @@ void main() {
               Builder(
                 builder: (context) {
                   outer = mobile.ElComponentProvider.of(context);
-                  return mobile.ElToggleButton(
+                  return mobile.ElButton.toggle(
                     key: ValueKey('mobile'),
                     modelValue: mobileModel,
                     onChanged: mobileChanges.add,
@@ -95,7 +95,7 @@ void main() {
                 child: Builder(
                   builder: (context) {
                     inner = desktop.ElComponentProvider.of(context);
-                    return desktop.ElToggleButton(
+                    return desktop.ElButton.toggle(
                       key: ValueKey('desktop'),
                       modelValue: desktopModel,
                       onChanged: desktopChanges.add,
@@ -118,13 +118,13 @@ void main() {
     );
 
     expect(outer, same(after));
-    expect(inner.buttonBuilder, isNot(same(outer.buttonBuilder)));
-    expect(outer.buttonBuilder, isNotNull);
-    expect(inner.buttonBuilder, isNotNull);
-    expect(outer.radioBuilder, isNull);
-    expect(inner.radioBuilder, isNull);
-    expect(outer.checkboxBuilder, isNull);
-    expect(inner.checkboxBuilder, isNull);
+    expect(inner.button, isNot(same(outer.button)));
+    expect(outer.button, isNotNull);
+    expect(inner.button, isNotNull);
+    expect(outer.radio, isNull);
+    expect(inner.radio, isNull);
+    expect(outer.checkbox, isNull);
+    expect(inner.checkbox, isNull);
 
     await tester.tap(_action('移动端按钮'));
     await tester.pump();

@@ -83,5 +83,5 @@ class ElInputNumber extends StatelessWidget {
   final ValueChanged<num?>? onChanged;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputNumberBuilder)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputNumber)(context, this);
 }

@@ -52,5 +52,5 @@ class ElListGroup<D> extends ElModelValue<D> {
   final bool leading;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.listTileGroupBuilder)<D>(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.listTileGroup)<D>(context, this);
 }

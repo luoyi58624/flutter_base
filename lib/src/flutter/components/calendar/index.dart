@@ -88,5 +88,5 @@ class ElCalendar<D> extends ElModelValue<D> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.calendarBuilder)<D>(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.calendar)<D>(context, this);
 }

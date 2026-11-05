@@ -28,7 +28,7 @@ ElCheckboxGroup<String>(
 | Group.child / min / max | 自由布局与用户交互的最少、最多选择数量 |
 | Group.of / maybeOf | 获取最近分组；listen=false 时不订阅重建 |
 
-普通 ElCheckbox 必须位于 ElCheckboxGroup 内；公共宿主合并选项禁用与分组数量限制，`checkboxBuilder(context, component, state)` 提供外观。半选配置从 component.indeterminate 读取。toggle 默认 false，不接入祖先 Group 或表单。
+普通 ElCheckbox 必须位于 ElCheckboxGroup 内；公共宿主合并选项禁用与分组数量限制，`checkbox(context, component, state)` 提供外观。半选配置从 component.indeterminate 读取。toggle 默认 false，不接入祖先 Group 或表单。
 
 ## 自定义选项与 Scope
 

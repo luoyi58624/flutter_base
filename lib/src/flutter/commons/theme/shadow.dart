@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import '../commons/models.dart';
+import '../models.dart';
 
 /// 根据悬浮层级、实际表面颜色与圆角几何生成柔和投影，不读取上下文或改变组件样式。
 abstract final class ElShadow {

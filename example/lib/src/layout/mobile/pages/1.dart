@@ -46,44 +46,47 @@ class HomePage extends HookWidget {
             child: Column(
               mainAxisSize: .min,
               children: [
-                HookBuilder(
-                  builder: (context) {
-                    final count = useState(0);
-                    final label = 'count: ${count.value}';
-                    void increment() => count.value++;
+                RepaintBoundary(
+                  child: HookBuilder(
+                    builder: (context) {
+                      final count = useState(0);
+                      final label = 'count: ${count.value}';
+                      void increment() => count.value++;
 
-                    final padding = EdgeInsets.symmetric(horizontal: 16, vertical: 6);
-                    final radius = BorderRadius.circular(6);
-                    if (useFlutter.value) {
-                      return _FlutterPressButton(
+                      final padding = EdgeInsets.symmetric(horizontal: 16, vertical: 6);
+                      final radius = BorderRadius.circular(6);
+                      if (useFlutter.value) {
+                        return _FlutterPressButton(
+                          onPressed: increment,
+                          semanticLabel: label,
+                          constraints: BoxConstraints(minWidth: 64, minHeight: 40, maxHeight: 40),
+                          padding: padding,
+                          radius: radius,
+                          color: Colors.blue,
+                          child: Center(widthFactor: 1, child: Text(label, style: _labelStyle(Colors.white, 15, .w500))),
+                        );
+                      }
+                      return ElButtonView(
                         onPressed: increment,
-                        semanticLabel: label,
-                        constraints: BoxConstraints(minWidth: 64, minHeight: 40, maxHeight: 40),
-                        padding: padding,
-                        radius: radius,
-                        color: Colors.blue,
-                        child: Center(widthFactor: 1, child: Text(label, style: _labelStyle(Colors.white, 15, .w500))),
+                        style: ElStyle(
+                          minWidth: 64,
+                          height: 40,
+                          backgroundColor: Colors.blue,
+                          color: Colors.white,
+                          fontWeight: .w500,
+                          fontSize: 15,
+                          alignment: .center,
+                          borderRadius: radius,
+                          padding: padding,
+                        ).withTapScale(scale: _pressScale),
+                        child: label,
                       );
-                    }
-                    return ElButtonView(
-                      onPressed: increment,
-                      style: ElStyle(
-                        minWidth: 64,
-                        height: 40,
-                        backgroundColor: Colors.blue,
-                        color: Colors.white,
-                        fontWeight: .w500,
-                        fontSize: 15,
-                        alignment: .center,
-                        borderRadius: radius,
-                        padding: padding,
-                      ).withTapScale(scale: _pressScale),
-                      child: label,
-                    );
-                  },
+                    },
+                  ),
                 ),
                 SizedBox(height: 24),
                 _ShortcutCards(useFlutter: useFlutter.value),
+                ...ElView(child: 'item') * 100,
               ],
             ),
           ),

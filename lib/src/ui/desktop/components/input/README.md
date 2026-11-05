@@ -1,6 +1,6 @@
 # Input
 
-从 Element Plus `components/form/input/` 迁入，注册到 `ElementPlusThemeData.input`。通用参数见 [Input](../../../../flutter/components/input/README.md)，安装见 [Desktop](../../README.md)。
+从 Element Plus `components/form/input/` 迁入，注册到 `ElementPlusThemeData.inputBuilder`。通用参数见 [Input](../../../../flutter/components/input/README.md)，安装见 [Desktop](../../README.md)。
 
 保留唯一 ElEditableController 的编辑、IME、光标与选区通道，以及 value / modelValue / 表单绑定、文本回灌和通知时序。ElInputController 挂载与卸载仍由源控制桥负责。
 

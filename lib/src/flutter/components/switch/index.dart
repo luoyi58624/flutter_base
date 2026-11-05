@@ -41,5 +41,5 @@ class ElSwitch extends ElFormModelValue<bool> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.switchBuilder)(context, this, $obs);
+      ElComponentProvider.builderOf(context, this, (b) => b.switcher)(context, this, $obs);
 }

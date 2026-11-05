@@ -1,6 +1,6 @@
 # Switch
 
-`ElSwitch` 声明布尔开关，模型由 ElFormModelValue 持有，外观由 `switchBuilder(context, widget, model)` 提供。通用规范见 [Components](../README.md)。
+`ElSwitch` 声明布尔开关，模型由 ElFormModelValue 持有，外观由 `switcher(context, widget, model)` 提供。通用规范见 [Components](../README.md)。
 
 ```dart
 final enabled = ValueNotifier(false);

@@ -170,7 +170,7 @@ void main() {
     final shadows = _preview(tester).boxShadow;
     final fold = find
         .ancestor(
-          of: find.byWidgetPredicate((widget) => widget is ElText && widget.data == '计算结果与 Dart 用法'),
+          of: find.byWidgetPredicate((widget) => widget is Text && widget.data == '计算结果与 Dart 用法'),
           matching: find.byType(ElButton),
         )
         .first;
@@ -187,7 +187,7 @@ void main() {
     tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-surface'))).controller!.text = 'bad-input';
     await tester.pumpAndSettle();
     expect(_preview(tester).backgroundColor, Colors.white);
-    expect(find.byWidgetPredicate((w) => w is ElText && w.data == '请输入有效的颜色'), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is Text && w.data == '请输入有效的颜色'), findsOneWidget);
     tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-surface'))).controller!.text = '#2454C6';
     await tester.pumpAndSettle();
     expect(_preview(tester).backgroundColor, Color(0xff2454c6));
@@ -199,7 +199,7 @@ void main() {
     expect(_preview(tester).backgroundColor, Color(0xff2454c6));
     tester.widget<ElEditableView>(find.byKey(ValueKey('shadow-background'))).controller!.text = '#80FFFFFF';
     await tester.pumpAndSettle();
-    expect(find.byWidgetPredicate((w) => w is ElText && w.data == '请输入有效且不透明的颜色'), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is Text && w.data == '请输入有效且不透明的颜色'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

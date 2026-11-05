@@ -241,7 +241,7 @@ class ElSelect<T> extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.selectBuilder)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.select)(context, this);
 }
 
 /// 支持自定义呈现、禁用与无障碍名称的选择项，也兼容普通 ElLabelModel。

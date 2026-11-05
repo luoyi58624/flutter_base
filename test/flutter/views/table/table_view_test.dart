@@ -71,7 +71,7 @@ class _ThemeTableStyle extends ElTableStyle {
   double get minColumnWidth => 60;
 }
 
-/// 主题预设的工厂形态（与 `ElComponentBuilders.tableStyleBuilder` 同签名）。
+/// 主题预设的工厂形态（与 `ElComponents.tableStyle` 同签名）。
 ElTableStyle _themeTableStyleOf(BuildContext context) => const _ThemeTableStyle();
 
 /// 显式传入的皮肤：必须压过组件主题登记的品牌预设。
@@ -1572,7 +1572,7 @@ void main() {
     expect(tester.takeException(), isNull, reason: '没有 ElComponentProvider 时不得 assert。');
   });
 
-  testWidgets('ElComponentBuilders.tableStyleBuilder 登记的皮肤在裸用 ElTable 时生效', (tester) async {
+  testWidgets('ElComponents.tableStyle 登记的皮肤在裸用 ElTable 时生效', (tester) async {
     final controller = ElTableController(
       data: const [
         {'id': 1, 'name': 'Alice'},
@@ -1583,7 +1583,7 @@ void main() {
 
     await tester.pumpWidget(
       ElComponentProvider(
-        builders: const ElComponentBuilders(tableStyleBuilder: _themeTableStyleOf),
+        builders: const ElComponents(tableStyle: _themeTableStyleOf),
         child: bareHost(ElTable(controller: controller)),
       ),
     );
@@ -1608,7 +1608,7 @@ void main() {
 
     await tester.pumpWidget(
       ElComponentProvider(
-        builders: const ElComponentBuilders(tableStyleBuilder: _themeTableStyleOf),
+        builders: const ElComponents(tableStyle: _themeTableStyleOf),
         child: bareHost(ElTable(controller: controller, style: const _ExplicitTableStyle())),
       ),
     );

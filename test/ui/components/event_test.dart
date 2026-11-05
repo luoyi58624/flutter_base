@@ -31,7 +31,7 @@ void main() {
             mainAxisSize: .min,
             children: [
               ElButton(key: ValueKey('button'), event: event, onPressed: () => presses++, child: '按钮'),
-              ElToggleButton(key: ValueKey('toggle'), event: event, modelValue: toggle, child: '切换'),
+              ElButton.toggle(key: ValueKey('toggle'), event: event, modelValue: toggle, child: '切换'),
               ElSwitch(key: ValueKey('switch'), event: event, modelValue: switched),
             ],
           ),

@@ -57,7 +57,7 @@ class ElSteps extends ElModelValue<int> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.stepsBuilder)(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.steps)(context, this);
 }
 
 /// 单个步骤的文字、说明、图标和禁用状态。
@@ -82,5 +82,5 @@ class ElStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.stepBuilder)(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.step)(context, this);
 }

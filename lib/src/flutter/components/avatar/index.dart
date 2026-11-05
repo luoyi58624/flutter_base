@@ -55,5 +55,5 @@ class ElAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.avatarBuilder)(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.avatar)(context, this);
 }

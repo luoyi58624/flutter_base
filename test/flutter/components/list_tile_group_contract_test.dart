@@ -27,7 +27,7 @@ Widget _tile<T>(BuildContext context, ElListTile<T> component) => Text('${compon
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(listTileGroupBuilder: _group, listTileBuilder: _tile),
+    builders: ElComponents(listTileGroup: _group, listTile: _tile),
     child: child,
   ),
 );

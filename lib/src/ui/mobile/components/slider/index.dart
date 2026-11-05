@@ -245,9 +245,9 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
                 children: [
                   if (c.label != null)
                     Expanded(
-                      child: ElText(c.label!, style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                      child: Text(c.label!, style: TextStyle(color: theme.textSecondary, fontSize: 13)),
                     ),
-                  ElText(
+                  Text(
                     [for (var i = 0; i < model.length; i++) _format(model[i], i)].join(' – '),
                     style: TextStyle(color: theme.primary, fontSize: 13),
                   ),
@@ -488,8 +488,8 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
               Row(
                 mainAxisAlignment: .spaceBetween,
                 children: [
-                  ElText(c.startLabel ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
-                  ElText(c.endLabel ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                  Text(c.startLabel ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                  Text(c.endLabel ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                 ],
               ),
           ],

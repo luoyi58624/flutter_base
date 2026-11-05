@@ -1,6 +1,6 @@
 # ButtonGroup
 
-`ElButtonGroup` 声明一组按钮，支持普通、单选和多选三种构造，绑定、布局与交互由 `buttonGroupBuilder` 实现。导入与实现登记见 [Components](../README.md)。
+`ElButtonGroup` 声明一组按钮，支持普通、单选和多选三种构造，绑定、布局与交互由 `buttonGroup` 实现。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final layout = ValueNotifier<String?>('grid');

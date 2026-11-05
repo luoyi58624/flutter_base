@@ -2,14 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _outerButton(BuildContext context, ElButton component) => ElView(child: 'outer:${component.child}');
-Widget _innerButton(BuildContext context, ElButton component) => ElView(child: 'inner:${component.child}');
+Widget _outerButton(BuildContext context, ElButton component, Obs<bool> model) => ElView(child: 'outer:${component.child}');
+Widget _innerButton(BuildContext context, ElButton component, Obs<bool> model) => ElView(child: 'inner:${component.child}');
 Widget _tag(BuildContext context, ElTag component) => ElView(child: 'tag:${component.child}');
 
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(buttonBuilder: _outerButton, tagBuilder: _tag),
+    builders: ElComponents(button: _outerButton, tag: _tag),
     child: child,
   ),
 );
@@ -25,7 +25,7 @@ void main() {
           children: [
             ElButton(child: 'a'),
             ElComponentProvider(
-              builders: ElComponentBuilders(buttonBuilder: _innerButton),
+              builders: ElComponents(button: _innerButton),
               child: Column(
                 children: [
                   ElButton(child: 'b'),
@@ -52,7 +52,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponentBuilders(buttonBuilder: _innerButton),
+          builders: ElComponents(button: _innerButton),
           child: Builder(
             builder: (context) {
               captured = InheritedTheme.capture(from: context, to: null);

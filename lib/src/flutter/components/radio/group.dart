@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../state/obs/index.dart';
+import '../../utils/obs/index.dart';
 import '../../widgets/form/index.dart';
 
 /// 只提供单选值绑定与上下文，布局由调用方组合。

@@ -2,7 +2,7 @@
 
 `flutter/components` 声明通用组件接口，本目录安装各品牌的主题与 Builder。应用显式选择移动端或桌面入口；`flutter_base.dart` 保持通用入口，不自动选择品牌。
 
-通用主题规范位于 [flutter/theme](../flutter/theme/README.md)：ElTokens 与 context.elTheme 在 flutter 层统一声明，品牌目录只提供 token 的默认值、明暗增量及组件外观。
+通用主题规范见 [flutter/commons/theme](../flutter/commons/theme/README.md)。ElTokens 与 context.elTheme 在 flutter 层统一声明，品牌目录只提供 token 的默认值、明暗增量及组件外观。
 
 ## 移动端
 

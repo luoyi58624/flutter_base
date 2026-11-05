@@ -20,5 +20,5 @@ class ElLoadingIndicator extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.loadingIndicatorBuilder)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.loadingIndicator)(context, this);
 }

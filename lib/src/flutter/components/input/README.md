@@ -1,6 +1,6 @@
 # Input
 
-`ElInput` 声明单行、多行输入配置，通过 `inputBuilder(context, component)` 提供编辑、绑定与外观。导入与实现登记见 [Components](../README.md)。
+`ElInput` 声明单行、多行输入配置，通过 `input(context, component)` 提供编辑、绑定与外观。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final text = ValueNotifier('');

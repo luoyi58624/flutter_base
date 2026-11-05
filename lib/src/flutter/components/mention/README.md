@@ -1,6 +1,6 @@
 # Mention
 
-`ElMention<T>` 声明前缀触发的候选输入，T 表示候选附带数据，输入模型始终是 String；具体编辑和面板交互由 `mentionBuilder` 实现。导入与实现登记见 [Components](../README.md)。
+`ElMention<T>` 声明前缀触发的候选输入，T 表示候选附带数据，输入模型始终是 String；具体编辑和面板交互由 `mention` 实现。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final text = ValueNotifier('');

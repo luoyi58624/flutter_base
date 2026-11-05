@@ -11,7 +11,7 @@ Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state)
   style: ElStyle(width: 80, height: 24, backgroundColor: state.checked ? Color(0xff123456) : Color(0xffeeeeee)),
   child: component.label,
 );
-ElComponentBuilders get _builders => ElComponentBuilders(checkboxBuilder: _checkbox, radioBuilder: _radio);
+ElComponents get _builders => ElComponents(checkbox: _checkbox, radio: _radio);
 Widget _host(Widget child) => MaterialApp(
   home: Directionality(
     textDirection: .ltr,
@@ -159,9 +159,9 @@ void main() {
   });
 
   test('外观登记支持合并和清空，没有分组 Builder', () {
-    expect(_builders.merge(ElComponentBuilders()), _builders);
-    expect(_builders.copyWith(checkboxBuilder: null).checkboxBuilder, isNull);
-    expect(_builders.copyWith(radioBuilder: null).radioBuilder, isNull);
+    expect(_builders.merge(ElComponents()), _builders);
+    expect(_builders.copyWith(checkbox: null).checkbox, isNull);
+    expect(_builders.copyWith(radio: null).radio, isNull);
   });
 
   testWidgets('通用多选分组保持集合类型、数量限制和独立的外观选择', (tester) async {
@@ -183,7 +183,7 @@ void main() {
             children: [
               ElCheckbox(key: ValueKey('a'), value: 'a', label: 'A'),
               ElComponentProvider(
-                builders: _builders.copyWith(checkboxBuilder: alternate),
+                builders: _builders.copyWith(checkbox: alternate),
                 child: ElCheckbox(key: ValueKey('b'), value: 'b', label: 'B'),
               ),
               ElCheckbox(key: ValueKey('c'), value: 'c', label: 'C'),
@@ -333,7 +333,7 @@ void main() {
         ElView(style: ElStyle(width: 80, height: 24), child: state.checked ? 'checked' : 'empty');
     Widget scene(Widget Function(BuildContext, ElCheckbox, ElCheckboxState) builder) => _host(
       ElComponentProvider(
-        builders: _builders.copyWith(checkboxBuilder: builder),
+        builders: _builders.copyWith(checkbox: builder),
         child: ElCheckbox.toggle(key: ValueKey('field'), modelValue: model),
       ),
     );

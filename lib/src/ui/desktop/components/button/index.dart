@@ -3,75 +3,15 @@ import 'package:flutter/widgets.dart';
 
 /// Element 按钮主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Button extends StatefulWidget {
-  /// 普通按钮。
-  Button(ElButton component, {super.key})
-    : _spec = _ButtonSpec(
-        child: component.child,
-        icon: component.icon,
-        type: component.type,
-        variant: component.variant,
-        disabled: component.disabled,
-        loading: component.loading,
-        selected: null,
-        onPressed: component.onPressed,
-        style: component.style,
-        event: component.event,
-        focusNode: component.focusNode,
-        semanticLabel: component.semanticLabel,
-      );
+  const Button(this.component, this.model, {super.key});
 
-  /// 切换按钮，选中态读写同一模型。
-  Button.toggle(ElToggleButton component, Obs<bool> model, {super.key})
-    : _spec = _ButtonSpec(
-        child: component.child,
-        icon: component.icon,
-        type: component.type,
-        variant: component.variant,
-        disabled: component.disabled,
-        loading: false,
-        selected: model.value,
-        onPressed: () => model.value = !model.value,
-        style: component.style,
-        event: component.event,
-        focusNode: component.focusNode,
-        semanticLabel: component.semanticLabel,
-      );
+  final ElButton component;
 
-  final _ButtonSpec _spec;
+  /// 切换按钮的选中模型；普通按钮不读取。
+  final Obs<bool> model;
 
   @override
   State<Button> createState() => _ButtonState();
-}
-
-/// 普通与切换按钮共用的渲染参数；selected 为 null 表示普通按钮。
-class _ButtonSpec {
-  const _ButtonSpec({
-    required this.child,
-    required this.icon,
-    required this.type,
-    required this.variant,
-    required this.disabled,
-    required this.loading,
-    required this.selected,
-    required this.onPressed,
-    required this.style,
-    required this.event,
-    required this.focusNode,
-    required this.semanticLabel,
-  });
-
-  final Object? child;
-  final Object? icon;
-  final ElThemeType? type;
-  final ElButtonVariant variant;
-  final bool disabled;
-  final bool loading;
-  final bool? selected;
-  final VoidCallback? onPressed;
-  final ElStyle? style;
-  final ElEvent? event;
-  final FocusNode? focusNode;
-  final String? semanticLabel;
 }
 
 class _ButtonState extends State<Button> {
@@ -84,7 +24,7 @@ class _ButtonState extends State<Button> {
   @override
   void didUpdateWidget(Button oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget._spec.disabled || widget._spec.loading) _press.cancel();
+    if (widget.component.disabled || widget.component.loading) _press.cancel();
   }
 
   @override
@@ -97,38 +37,42 @@ class _ButtonState extends State<Button> {
 
   @override
   Widget build(BuildContext context) {
-    final spec = widget._spec;
-    var style = spec._styleBuilder(context);
-    if (_press.pressed && !spec.loading) style = style.merge(style.onTap);
-    style = style.merge(spec.style);
+    final component = widget.component;
+    final model = widget.model;
+    final selected = component.isToggle && model.value;
+    var style = component._styleBuilder(context, selected);
+    if (_press.pressed && !component.loading) style = style.merge(style.onTap);
+    style = style.merge(component.style);
     final button = ElButtonView(
-      onPressed: spec.loading ? null : spec.onPressed,
-      semanticLabel: spec.semanticLabel,
+      onPressed: component.isToggle
+          ? () => model.value = !model.value
+          : component.loading
+          ? null
+          : component.onPressed,
+      semanticLabel: component.semanticLabel,
       style: style,
-      event: spec.event,
-      focusNode: spec.focusNode,
+      event: component.event,
+      focusNode: component.focusNode,
       pressController: _press,
-      disabled: spec.disabled,
-      toggled: spec.selected,
-      child: spec._buttonContent(context),
+      disabled: component.disabled,
+      toggled: component.isToggle ? selected : null,
+      child: component._buttonContent(context),
     );
     // 显式宽度（如 '100%'）需要父级约束，其余按内容宽度排布。
     return style.width != null ? button : UnconstrainedBox(child: button);
   }
 }
 
-extension on _ButtonSpec {
+extension on ElButton {
   /// 图标按钮：`child` 是 [IconData] 即图标按钮（与外观无关，忽略 left/right）。
   bool get _isIcon => child is IconData;
 
   bool get _link => variant == .link;
   bool get _text => variant == .text;
   bool get _plain => variant == .outline;
-  bool get _isToggle => selected != null;
-  bool get _selected => selected ?? false;
 
   /// 按 variant 选择 Element 外观：link、text、plain（outline）与实心主题色。
-  ElStyle _styleBuilder(BuildContext context) {
+  ElStyle _styleBuilder(BuildContext context, bool selected) {
     // 紧凑密度优先读取组件自身声明，再继承祖先配置。
     final compact = context.elComponentCompact(style);
     var base = ElStyle(
@@ -174,7 +118,7 @@ extension on _ButtonSpec {
       result = _themeStyle(context, base, typeColor);
     }
 
-    if (_isToggle && !_link) {
+    if (isToggle && !_link) {
       // 实心主题色只在选中后出现；其他变体保持原来的未选中外观。
       if (typeColor != null && !_plain && !_text) {
         result = _defaultStyle(context, base);
@@ -189,7 +133,7 @@ extension on _ButtonSpec {
               onTap: _text ? theme.onTap?.copyWith(border: null) : theme.onTap,
               onDisabled: _text ? theme.onDisabled?.copyWith(border: null) : theme.onDisabled,
             );
-        if (_selected) {
+        if (selected) {
           result = result.copyWith(onHover: null, onTap: null).merge(selectedStyle);
         }
       }

@@ -49,23 +49,23 @@ void main() {
       ElInputTag(value: ['one']),
       ElInputOtp(value: '12'),
     ];
-    final builders = ElComponentBuilders(
-      inputBuilder: input,
-      selectBuilder: select,
-      autocompleteBuilder: autocomplete,
-      inputNumberBuilder: number,
-      mentionBuilder: mention,
-      inputTagBuilder: tag,
-      inputOtpBuilder: otp,
+    final builders = ElComponents(
+      input: input,
+      select: select,
+      autocomplete: autocomplete,
+      inputNumber: number,
+      mention: mention,
+      inputTag: tag,
+      inputOtp: otp,
     );
-    expect(builders.merge(ElComponentBuilders()), builders);
-    expect(builders.copyWith(inputBuilder: null).inputBuilder, isNull);
-    expect(builders.copyWith(selectBuilder: null).selectBuilder, isNull);
-    expect(builders.copyWith(autocompleteBuilder: null).autocompleteBuilder, isNull);
-    expect(builders.copyWith(inputNumberBuilder: null).inputNumberBuilder, isNull);
-    expect(builders.copyWith(mentionBuilder: null).mentionBuilder, isNull);
-    expect(builders.copyWith(inputTagBuilder: null).inputTagBuilder, isNull);
-    expect(builders.copyWith(inputOtpBuilder: null).inputOtpBuilder, isNull);
+    expect(builders.merge(ElComponents()), builders);
+    expect(builders.copyWith(input: null).input, isNull);
+    expect(builders.copyWith(select: null).select, isNull);
+    expect(builders.copyWith(autocomplete: null).autocomplete, isNull);
+    expect(builders.copyWith(inputNumber: null).inputNumber, isNull);
+    expect(builders.copyWith(mention: null).mention, isNull);
+    expect(builders.copyWith(inputTag: null).inputTag, isNull);
+    expect(builders.copyWith(inputOtp: null).inputOtp, isNull);
     await tester.pumpWidget(
       Directionality(
         textDirection: .ltr,

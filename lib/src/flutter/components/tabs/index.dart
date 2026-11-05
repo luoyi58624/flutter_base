@@ -58,7 +58,7 @@ class ElTabs<T> extends ElModelValue<T> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.tabsBuilder)<T>(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.tabs)<T>(context, this);
 }
 
 /// 独立标签栏中的单项内容与交互配置。
@@ -156,5 +156,5 @@ class ElTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.tabBarBuilder)(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.tabBar)(context, this);
 }

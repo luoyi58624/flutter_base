@@ -64,7 +64,7 @@ class ElFormItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ElComponentProvider.maybeOf(context)?.formItemBuilder?.call(context, this) ?? ElFormItemView(component: this);
+      ElComponentProvider.maybeOf(context)?.formItem?.call(context, this) ?? ElFormItemView(component: this);
 }
 
 /// 表单项通用布局与字段注册宿主，供品牌 Builder 配置外观。

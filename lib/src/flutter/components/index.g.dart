@@ -6,246 +6,181 @@ part of 'index.dart';
 // _ModelGenerator
 // **************************************************************************
 
-extension ElComponentBuildersExt on ElComponentBuilders {
-  ElComponentBuilders copyWith({
-    Object? buttonBuilder = $absent,
-    Object? toggleButtonBuilder = $absent,
-    Object? tagBuilder = $absent,
-    Object? buttonGroupBuilder = $absent,
-    Object? switchBuilder = $absent,
-    Object? inputBuilder = $absent,
-    Object? checkboxBuilder = $absent,
-    Object? radioBuilder = $absent,
-    Object? selectBuilder = $absent,
-    Object? autocompleteBuilder = $absent,
-    Object? inputNumberBuilder = $absent,
-    Object? mentionBuilder = $absent,
-    Object? inputTagBuilder = $absent,
-    Object? inputOtpBuilder = $absent,
-    Object? formItemBuilder = $absent,
-    Object? tableStyleBuilder = $absent,
-    Object? textBuilder = $absent,
-    Object? cardBuilder = $absent,
-    Object? loadingIndicatorBuilder = $absent,
-    Object? iconBuilder = $absent,
-    Object? listTileBuilder = $absent,
-    Object? listTileGroupBuilder = $absent,
-    Object? progressBuilder = $absent,
-    Object? sliderBuilder = $absent,
-    Object? skeletonBuilder = $absent,
-    Object? stepsBuilder = $absent,
-    Object? stepBuilder = $absent,
-    Object? avatarBuilder = $absent,
-    Object? calendarBuilder = $absent,
-    Object? collapseBuilder = $absent,
-    Object? collapseItemBuilder = $absent,
-    Object? emptyBuilder = $absent,
-    Object? segmentedBuilder = $absent,
-    Object? tabsBuilder = $absent,
-    Object? tabBarBuilder = $absent,
-    Object? alertBuilder = $absent,
+extension ElComponentsExt on ElComponents {
+  ElComponents copyWith({
+    Object? button = $absent,
+    Object? tag = $absent,
+    Object? buttonGroup = $absent,
+    Object? switcher = $absent,
+    Object? input = $absent,
+    Object? checkbox = $absent,
+    Object? radio = $absent,
+    Object? select = $absent,
+    Object? autocomplete = $absent,
+    Object? inputNumber = $absent,
+    Object? mention = $absent,
+    Object? inputTag = $absent,
+    Object? inputOtp = $absent,
+    Object? formItem = $absent,
+    Object? tableStyle = $absent,
+    Object? card = $absent,
+    Object? loadingIndicator = $absent,
+    Object? icon = $absent,
+    Object? listTile = $absent,
+    Object? listTileGroup = $absent,
+    Object? progress = $absent,
+    Object? slider = $absent,
+    Object? skeleton = $absent,
+    Object? steps = $absent,
+    Object? step = $absent,
+    Object? avatar = $absent,
+    Object? calendar = $absent,
+    Object? collapse = $absent,
+    Object? collapseItem = $absent,
+    Object? empty = $absent,
+    Object? segmented = $absent,
+    Object? tabs = $absent,
+    Object? tabBar = $absent,
+    Object? alert = $absent,
   }) {
-    return ElComponentBuilders(
-      buttonBuilder: identical(buttonBuilder, $absent)
-          ? this.buttonBuilder
-          : buttonBuilder as Widget Function(BuildContext, ElButton)?,
-      toggleButtonBuilder: identical(toggleButtonBuilder, $absent)
-          ? this.toggleButtonBuilder
-          : toggleButtonBuilder
-                as Widget Function(BuildContext, ElToggleButton, Obs<bool>)?,
-      tagBuilder: identical(tagBuilder, $absent)
-          ? this.tagBuilder
-          : tagBuilder as Widget Function(BuildContext, ElTag)?,
-      buttonGroupBuilder: identical(buttonGroupBuilder, $absent)
-          ? this.buttonGroupBuilder
-          : buttonGroupBuilder
-                as Widget Function<T>(BuildContext, ElButtonGroup<T>)?,
-      switchBuilder: identical(switchBuilder, $absent)
-          ? this.switchBuilder
-          : switchBuilder
-                as Widget Function(BuildContext, ElSwitch, Obs<bool>)?,
-      inputBuilder: identical(inputBuilder, $absent)
-          ? this.inputBuilder
-          : inputBuilder as Widget Function(BuildContext, ElInput)?,
-      checkboxBuilder: identical(checkboxBuilder, $absent)
-          ? this.checkboxBuilder
-          : checkboxBuilder
-                as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
-      radioBuilder: identical(radioBuilder, $absent)
-          ? this.radioBuilder
-          : radioBuilder
-                as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
-      selectBuilder: identical(selectBuilder, $absent)
-          ? this.selectBuilder
-          : selectBuilder as Widget Function<T>(BuildContext, ElSelect<T>)?,
-      autocompleteBuilder: identical(autocompleteBuilder, $absent)
-          ? this.autocompleteBuilder
-          : autocompleteBuilder
-                as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
-      inputNumberBuilder: identical(inputNumberBuilder, $absent)
-          ? this.inputNumberBuilder
-          : inputNumberBuilder as Widget Function(BuildContext, ElInputNumber)?,
-      mentionBuilder: identical(mentionBuilder, $absent)
-          ? this.mentionBuilder
-          : mentionBuilder as Widget Function<T>(BuildContext, ElMention<T>)?,
-      inputTagBuilder: identical(inputTagBuilder, $absent)
-          ? this.inputTagBuilder
-          : inputTagBuilder as Widget Function(BuildContext, ElInputTag)?,
-      inputOtpBuilder: identical(inputOtpBuilder, $absent)
-          ? this.inputOtpBuilder
-          : inputOtpBuilder as Widget Function(BuildContext, ElInputOtp)?,
-      formItemBuilder: identical(formItemBuilder, $absent)
-          ? this.formItemBuilder
-          : formItemBuilder as Widget Function(BuildContext, ElFormItem)?,
-      tableStyleBuilder: identical(tableStyleBuilder, $absent)
-          ? this.tableStyleBuilder
-          : tableStyleBuilder as ElTableStyle Function(BuildContext)?,
-      textBuilder: identical(textBuilder, $absent)
-          ? this.textBuilder
-          : textBuilder as Widget Function(BuildContext, ElText)?,
-      cardBuilder: identical(cardBuilder, $absent)
-          ? this.cardBuilder
-          : cardBuilder as Widget Function(BuildContext, ElCard)?,
-      loadingIndicatorBuilder: identical(loadingIndicatorBuilder, $absent)
-          ? this.loadingIndicatorBuilder
-          : loadingIndicatorBuilder
-                as Widget Function(BuildContext, ElLoadingIndicator)?,
-      iconBuilder: identical(iconBuilder, $absent)
-          ? this.iconBuilder
-          : iconBuilder as Widget Function(BuildContext, ElIcon)?,
-      listTileBuilder: identical(listTileBuilder, $absent)
-          ? this.listTileBuilder
-          : listTileBuilder as Widget Function<T>(BuildContext, ElListTile<T>)?,
-      listTileGroupBuilder: identical(listTileGroupBuilder, $absent)
-          ? this.listTileGroupBuilder
-          : listTileGroupBuilder
-                as Widget Function<D>(BuildContext, ElListGroup<D>)?,
-      progressBuilder: identical(progressBuilder, $absent)
-          ? this.progressBuilder
-          : progressBuilder as Widget Function(BuildContext, ElProgress)?,
-      sliderBuilder: identical(sliderBuilder, $absent)
-          ? this.sliderBuilder
-          : sliderBuilder as Widget Function<D>(BuildContext, ElSlider<D>)?,
-      skeletonBuilder: identical(skeletonBuilder, $absent)
-          ? this.skeletonBuilder
-          : skeletonBuilder as Widget Function(BuildContext, ElSkeleton)?,
-      stepsBuilder: identical(stepsBuilder, $absent)
-          ? this.stepsBuilder
-          : stepsBuilder as Widget Function(BuildContext, ElSteps)?,
-      stepBuilder: identical(stepBuilder, $absent)
-          ? this.stepBuilder
-          : stepBuilder as Widget Function(BuildContext, ElStep)?,
-      avatarBuilder: identical(avatarBuilder, $absent)
-          ? this.avatarBuilder
-          : avatarBuilder as Widget Function(BuildContext, ElAvatar)?,
-      calendarBuilder: identical(calendarBuilder, $absent)
-          ? this.calendarBuilder
-          : calendarBuilder as Widget Function<D>(BuildContext, ElCalendar<D>)?,
-      collapseBuilder: identical(collapseBuilder, $absent)
-          ? this.collapseBuilder
-          : collapseBuilder as Widget Function<D>(BuildContext, ElCollapse<D>)?,
-      collapseItemBuilder: identical(collapseItemBuilder, $absent)
-          ? this.collapseItemBuilder
-          : collapseItemBuilder
-                as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
-      emptyBuilder: identical(emptyBuilder, $absent)
-          ? this.emptyBuilder
-          : emptyBuilder as Widget Function(BuildContext, ElEmpty)?,
-      segmentedBuilder: identical(segmentedBuilder, $absent)
-          ? this.segmentedBuilder
-          : segmentedBuilder
-                as Widget Function<D>(BuildContext, ElSegmented<D>)?,
-      tabsBuilder: identical(tabsBuilder, $absent)
-          ? this.tabsBuilder
-          : tabsBuilder as Widget Function<D>(BuildContext, ElTabs<D>)?,
-      tabBarBuilder: identical(tabBarBuilder, $absent)
-          ? this.tabBarBuilder
-          : tabBarBuilder as Widget Function(BuildContext, ElTabBar)?,
-      alertBuilder: identical(alertBuilder, $absent)
-          ? this.alertBuilder
-          : alertBuilder as Widget Function(BuildContext, ElAlert)?,
+    return ElComponents(
+      button: identical(button, $absent) ? this.button : button as Widget Function(BuildContext, ElButton, Obs<bool>)?,
+      tag: identical(tag, $absent) ? this.tag : tag as Widget Function(BuildContext, ElTag)?,
+      buttonGroup: identical(buttonGroup, $absent)
+          ? this.buttonGroup
+          : buttonGroup as Widget Function<T>(BuildContext, ElButtonGroup<T>)?,
+      switcher: identical(switcher, $absent)
+          ? this.switcher
+          : switcher as Widget Function(BuildContext, ElSwitch, Obs<bool>)?,
+      input: identical(input, $absent) ? this.input : input as Widget Function(BuildContext, ElInput)?,
+      checkbox: identical(checkbox, $absent)
+          ? this.checkbox
+          : checkbox as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
+      radio: identical(radio, $absent)
+          ? this.radio
+          : radio as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
+      select: identical(select, $absent) ? this.select : select as Widget Function<T>(BuildContext, ElSelect<T>)?,
+      autocomplete: identical(autocomplete, $absent)
+          ? this.autocomplete
+          : autocomplete as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
+      inputNumber: identical(inputNumber, $absent)
+          ? this.inputNumber
+          : inputNumber as Widget Function(BuildContext, ElInputNumber)?,
+      mention: identical(mention, $absent) ? this.mention : mention as Widget Function<T>(BuildContext, ElMention<T>)?,
+      inputTag: identical(inputTag, $absent) ? this.inputTag : inputTag as Widget Function(BuildContext, ElInputTag)?,
+      inputOtp: identical(inputOtp, $absent) ? this.inputOtp : inputOtp as Widget Function(BuildContext, ElInputOtp)?,
+      formItem: identical(formItem, $absent) ? this.formItem : formItem as Widget Function(BuildContext, ElFormItem)?,
+      tableStyle: identical(tableStyle, $absent) ? this.tableStyle : tableStyle as ElTableStyle Function(BuildContext)?,
+      card: identical(card, $absent) ? this.card : card as Widget Function(BuildContext, ElCard)?,
+      loadingIndicator: identical(loadingIndicator, $absent)
+          ? this.loadingIndicator
+          : loadingIndicator as Widget Function(BuildContext, ElLoadingIndicator)?,
+      icon: identical(icon, $absent) ? this.icon : icon as Widget Function(BuildContext, ElIcon)?,
+      listTile: identical(listTile, $absent)
+          ? this.listTile
+          : listTile as Widget Function<T>(BuildContext, ElListTile<T>)?,
+      listTileGroup: identical(listTileGroup, $absent)
+          ? this.listTileGroup
+          : listTileGroup as Widget Function<D>(BuildContext, ElListGroup<D>)?,
+      progress: identical(progress, $absent) ? this.progress : progress as Widget Function(BuildContext, ElProgress)?,
+      slider: identical(slider, $absent) ? this.slider : slider as Widget Function<D>(BuildContext, ElSlider<D>)?,
+      skeleton: identical(skeleton, $absent) ? this.skeleton : skeleton as Widget Function(BuildContext, ElSkeleton)?,
+      steps: identical(steps, $absent) ? this.steps : steps as Widget Function(BuildContext, ElSteps)?,
+      step: identical(step, $absent) ? this.step : step as Widget Function(BuildContext, ElStep)?,
+      avatar: identical(avatar, $absent) ? this.avatar : avatar as Widget Function(BuildContext, ElAvatar)?,
+      calendar: identical(calendar, $absent)
+          ? this.calendar
+          : calendar as Widget Function<D>(BuildContext, ElCalendar<D>)?,
+      collapse: identical(collapse, $absent)
+          ? this.collapse
+          : collapse as Widget Function<D>(BuildContext, ElCollapse<D>)?,
+      collapseItem: identical(collapseItem, $absent)
+          ? this.collapseItem
+          : collapseItem as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
+      empty: identical(empty, $absent) ? this.empty : empty as Widget Function(BuildContext, ElEmpty)?,
+      segmented: identical(segmented, $absent)
+          ? this.segmented
+          : segmented as Widget Function<D>(BuildContext, ElSegmented<D>)?,
+      tabs: identical(tabs, $absent) ? this.tabs : tabs as Widget Function<D>(BuildContext, ElTabs<D>)?,
+      tabBar: identical(tabBar, $absent) ? this.tabBar : tabBar as Widget Function(BuildContext, ElTabBar)?,
+      alert: identical(alert, $absent) ? this.alert : alert as Widget Function(BuildContext, ElAlert)?,
     );
   }
 
-  ElComponentBuilders merge([ElComponentBuilders? other]) {
+  ElComponents merge([ElComponents? other]) {
     if (other == null) return this;
-    return ElComponentBuilders(
-      buttonBuilder: other.buttonBuilder ?? buttonBuilder,
-      toggleButtonBuilder: other.toggleButtonBuilder ?? toggleButtonBuilder,
-      tagBuilder: other.tagBuilder ?? tagBuilder,
-      buttonGroupBuilder: other.buttonGroupBuilder ?? buttonGroupBuilder,
-      switchBuilder: other.switchBuilder ?? switchBuilder,
-      inputBuilder: other.inputBuilder ?? inputBuilder,
-      checkboxBuilder: other.checkboxBuilder ?? checkboxBuilder,
-      radioBuilder: other.radioBuilder ?? radioBuilder,
-      selectBuilder: other.selectBuilder ?? selectBuilder,
-      autocompleteBuilder: other.autocompleteBuilder ?? autocompleteBuilder,
-      inputNumberBuilder: other.inputNumberBuilder ?? inputNumberBuilder,
-      mentionBuilder: other.mentionBuilder ?? mentionBuilder,
-      inputTagBuilder: other.inputTagBuilder ?? inputTagBuilder,
-      inputOtpBuilder: other.inputOtpBuilder ?? inputOtpBuilder,
-      formItemBuilder: other.formItemBuilder ?? formItemBuilder,
-      tableStyleBuilder: other.tableStyleBuilder ?? tableStyleBuilder,
-      textBuilder: other.textBuilder ?? textBuilder,
-      cardBuilder: other.cardBuilder ?? cardBuilder,
-      loadingIndicatorBuilder:
-          other.loadingIndicatorBuilder ?? loadingIndicatorBuilder,
-      iconBuilder: other.iconBuilder ?? iconBuilder,
-      listTileBuilder: other.listTileBuilder ?? listTileBuilder,
-      listTileGroupBuilder: other.listTileGroupBuilder ?? listTileGroupBuilder,
-      progressBuilder: other.progressBuilder ?? progressBuilder,
-      sliderBuilder: other.sliderBuilder ?? sliderBuilder,
-      skeletonBuilder: other.skeletonBuilder ?? skeletonBuilder,
-      stepsBuilder: other.stepsBuilder ?? stepsBuilder,
-      stepBuilder: other.stepBuilder ?? stepBuilder,
-      avatarBuilder: other.avatarBuilder ?? avatarBuilder,
-      calendarBuilder: other.calendarBuilder ?? calendarBuilder,
-      collapseBuilder: other.collapseBuilder ?? collapseBuilder,
-      collapseItemBuilder: other.collapseItemBuilder ?? collapseItemBuilder,
-      emptyBuilder: other.emptyBuilder ?? emptyBuilder,
-      segmentedBuilder: other.segmentedBuilder ?? segmentedBuilder,
-      tabsBuilder: other.tabsBuilder ?? tabsBuilder,
-      tabBarBuilder: other.tabBarBuilder ?? tabBarBuilder,
-      alertBuilder: other.alertBuilder ?? alertBuilder,
+    return ElComponents(
+      button: other.button ?? button,
+      tag: other.tag ?? tag,
+      buttonGroup: other.buttonGroup ?? buttonGroup,
+      switcher: other.switcher ?? switcher,
+      input: other.input ?? input,
+      checkbox: other.checkbox ?? checkbox,
+      radio: other.radio ?? radio,
+      select: other.select ?? select,
+      autocomplete: other.autocomplete ?? autocomplete,
+      inputNumber: other.inputNumber ?? inputNumber,
+      mention: other.mention ?? mention,
+      inputTag: other.inputTag ?? inputTag,
+      inputOtp: other.inputOtp ?? inputOtp,
+      formItem: other.formItem ?? formItem,
+      tableStyle: other.tableStyle ?? tableStyle,
+      card: other.card ?? card,
+      loadingIndicator: other.loadingIndicator ?? loadingIndicator,
+      icon: other.icon ?? icon,
+      listTile: other.listTile ?? listTile,
+      listTileGroup: other.listTileGroup ?? listTileGroup,
+      progress: other.progress ?? progress,
+      slider: other.slider ?? slider,
+      skeleton: other.skeleton ?? skeleton,
+      steps: other.steps ?? steps,
+      step: other.step ?? step,
+      avatar: other.avatar ?? avatar,
+      calendar: other.calendar ?? calendar,
+      collapse: other.collapse ?? collapse,
+      collapseItem: other.collapseItem ?? collapseItem,
+      empty: other.empty ?? empty,
+      segmented: other.segmented ?? segmented,
+      tabs: other.tabs ?? tabs,
+      tabBar: other.tabBar ?? tabBar,
+      alert: other.alert ?? alert,
     );
   }
 
   List<Object?> get _props => [
-    buttonBuilder,
-    toggleButtonBuilder,
-    tagBuilder,
-    buttonGroupBuilder,
-    switchBuilder,
-    inputBuilder,
-    checkboxBuilder,
-    radioBuilder,
-    selectBuilder,
-    autocompleteBuilder,
-    inputNumberBuilder,
-    mentionBuilder,
-    inputTagBuilder,
-    inputOtpBuilder,
-    formItemBuilder,
-    tableStyleBuilder,
-    textBuilder,
-    cardBuilder,
-    loadingIndicatorBuilder,
-    iconBuilder,
-    listTileBuilder,
-    listTileGroupBuilder,
-    progressBuilder,
-    sliderBuilder,
-    skeletonBuilder,
-    stepsBuilder,
-    stepBuilder,
-    avatarBuilder,
-    calendarBuilder,
-    collapseBuilder,
-    collapseItemBuilder,
-    emptyBuilder,
-    segmentedBuilder,
-    tabsBuilder,
-    tabBarBuilder,
-    alertBuilder,
+    button,
+    tag,
+    buttonGroup,
+    switcher,
+    input,
+    checkbox,
+    radio,
+    select,
+    autocomplete,
+    inputNumber,
+    mention,
+    inputTag,
+    inputOtp,
+    formItem,
+    tableStyle,
+    card,
+    loadingIndicator,
+    icon,
+    listTile,
+    listTileGroup,
+    progress,
+    slider,
+    skeleton,
+    steps,
+    step,
+    avatar,
+    calendar,
+    collapse,
+    collapseItem,
+    empty,
+    segmented,
+    tabs,
+    tabBar,
+    alert,
   ];
 }

@@ -27,7 +27,7 @@ class _Sidebar extends StatelessWidget {
               iconColor: context.elTheme.primary,
               iconSize: 22,
             ),
-            child: Row(spacing: 10, children: [ElIcon(Icons.layers_outlined), ElText('El UI')]),
+            child: Row(spacing: 10, children: [ElIcon(Icons.layers_outlined), Text('El UI')]),
           ),
           Expanded(
             child: ElNavMenu<WidgetBuilder>(value: current, onChanged: onChanged, children: AppLayout.menus),

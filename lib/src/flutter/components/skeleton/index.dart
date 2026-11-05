@@ -33,5 +33,5 @@ class ElSkeleton extends StatelessWidget {
   final Widget? child;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.skeletonBuilder)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.skeleton)(context, this);
 }

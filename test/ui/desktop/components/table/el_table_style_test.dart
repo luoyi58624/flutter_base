@@ -2,7 +2,7 @@ import 'package:flutter_base/desktop.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// EP 只保留一份表格皮肤：它登记在 `ElComponentBuilders.tableStyleBuilder` 上，由 el_ui 的
+/// EP 只保留一份表格皮肤：它登记在 `ElComponents.tableStyle` 上，由 el_ui 的
 /// `ElTable` 在解析生效皮肤时调用（`table_view.dart` 的 `_resolveStyle`）。渲染 / 布局 /
 /// 虚拟化 / 命中 / 排序 / 选择 / 展开全在 el_ui，这里只锁皮肤本身与它的登记通道。
 void main() {
@@ -32,7 +32,7 @@ void main() {
                 primary = context.elTheme.primary;
                 borderColor = context.elTheme.borderColorLighter;
                 currentRow = primary.elLight9(context);
-                style = ElementPlusThemeData.tableStyle(context);
+                style = ElementPlusThemeData.tableStyleBuilder(context);
                 return const ElView();
               },
             ),
@@ -50,12 +50,12 @@ void main() {
 
   test('EP 的表格通道只有一处：全局预设登记一份返回 ElTableStyle 的工厂', () {
     expect(
-      const ElementPlusThemeData().tableStyleBuilder,
-      ElementPlusThemeData.tableStyle,
+      const ElementPlusThemeData().tableStyle,
+      ElementPlusThemeData.tableStyleBuilder,
     );
     // 表格的定制通道是样式工厂，不是 Widget builder：上层不接管任何表格实现。
     expect(
-      const ElementPlusThemeData().tableStyleBuilder,
+      const ElementPlusThemeData().tableStyle,
       isA<ElTableStyle Function(BuildContext)>(),
     );
     // 同名冲突已消失：下面四个名字在只 import element_plus 时唯一解析到 el_ui 内核。

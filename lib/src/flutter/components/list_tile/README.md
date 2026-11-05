@@ -2,7 +2,7 @@
 
 ## 公共声明
 
-`ElListTile<T>` 继承 `ElModelValue<T>`，提供普通、`switcher`、`popup` 三个构造，通过泛型 `listTileBuilder<T>(context, component)` 分派。没有 `page` 构造或路由参数，导航由调用方在 `onTap` 中处理。
+`ElListTile<T>` 继承 `ElModelValue<T>`，提供普通、`switcher`、`popup` 三个构造，通过泛型 `listTile<T>(context, component)` 分派。没有 `page` 构造或路由参数，导航由调用方在 `onTap` 中处理。
 
 | 范围 | 参数 |
 | --- | --- |
@@ -46,7 +46,7 @@ ElListTile<int>.popup(
 );
 ```
 
-`ElListGroup<D>` 同样继承 `ElModelValue<D>`，通过泛型 `listTileGroupBuilder<D>(context, component)` 分派。D 表示完整模型类型，与按钮组一致：单选使用业务值类型（未选择时使用可空类型），多选使用 `List<业务值类型>`。业务值可用枚举、数字、字符串或自定义值对象，不限定为 String。
+`ElListGroup<D>` 同样继承 `ElModelValue<D>`，通过泛型 `listTileGroup<D>(context, component)` 分派。D 表示完整模型类型，与按钮组一致：单选使用业务值类型（未选择时使用可空类型），多选使用 `List<业务值类型>`。业务值可用枚举、数字、字符串或自定义值对象，不限定为 String。
 
 三个构造统一接受 `List<ElListTile> children`，子项的 `value` 就是选择值，标题、样式、禁用及前后缀直接由子项声明。模式复用现有 `ElModelValueType`，普通组为 null。分组只额外提供标题和 `leading` 布尔值：true 将单选／多选标记放在前面，false 放在后面。品牌通过 `currentValue` 读写同一模型。
 

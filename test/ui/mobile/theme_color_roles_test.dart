@@ -60,6 +60,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     final row = _views(find.byKey(rowKey), (view) => view.event?.onTap != null).first;
+    final rowDivider = _views(find.byKey(rowKey), (view) => view.style?.height == .5);
     final card = _views(find.byKey(cardKey), (view) => view.style?.onTap?.backgroundColor != null).first;
     final line = _views(find.byType(skin.Divider), (view) => view.style?.border != null).first;
     for (var phase = 0; phase < 2; phase++) {
@@ -67,7 +68,7 @@ void main() {
       expect(material.dividerTheme.color, divider);
       expect(material.tabBarTheme.dividerColor, divider);
       expect(material.inputDecorationTheme.enabledBorder!.borderSide.color, Colors.blue);
-      expect(find.byWidgetPredicate((widget) => widget is ColoredBox && widget.color == divider), findsOneWidget);
+      expect(tester.renderObject<ElRenderView>(rowDivider).committedResolvedStyle.box.backgroundColor, divider);
       expect(tester.widget<ElView>(line).style!.border!.borderTop.borderColor, divider);
       for (final host in [row, card]) {
         final touch = await tester.startGesture(tester.getCenter(host));

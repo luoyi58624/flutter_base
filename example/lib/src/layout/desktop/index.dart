@@ -31,7 +31,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
           selected,
           () => Builder(
             key: ValueKey('example-page-$selected'),
-            builder: page.data ?? (_) => Scaffold(appBar: AppBar(title: ElText(page.title))),
+            builder: page.data ?? (_) => Scaffold(appBar: AppBar(title: Text(page.title))),
           ),
         );
 

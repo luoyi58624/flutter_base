@@ -6,7 +6,7 @@ import 'package:android_system_font_weight/android_system_font_weight.dart';
 import 'package:flutter_base/ui.dart';
 
 import '../components/builders.dart';
-import '../../../flutter/theme/style.dart';
+import '../../../flutter/commons/theme/style.dart';
 
 part 'tokens.dart';
 
@@ -42,7 +42,7 @@ class ElMobileTheme extends StatelessWidget {
   final ElThemeMode? themeMode;
 
   /// 在移动端默认实现上合并的通用组件覆写。
-  final ElComponentBuilders? componentBuilders;
+  final ElComponents? componentBuilders;
 
   /// 移动端默认浅色变量，调用方用新 Map 声明覆盖。
   static Map<Object, Object> get lightVars => _lightVars;

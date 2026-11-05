@@ -40,7 +40,9 @@ class ElCheckbox extends ElModelValue<Object?> {
 
   /// 外观后代订阅焦点和按压状态的宿主组。
   static final _groupKey = UniqueKey();
+
   ElCheckboxGroupScope? get _item => $get<ElCheckboxGroupScope?>(_groupKey);
+
   bool get _inGroup => !_toggle && _item != null;
 
   @override
@@ -79,7 +81,7 @@ class ElCheckbox extends ElModelValue<Object?> {
         ),
       ),
       style: const ElStyle(widthFactor: 1, userSelect: .none),
-      child: ElComponentProvider.builderOf(context, this, (b) => b.checkboxBuilder)(context, this, state),
+      child: ElComponentProvider.builderOf(context, this, (b) => b.checkbox)(context, this, state),
     );
   }
 }

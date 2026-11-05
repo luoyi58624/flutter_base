@@ -179,7 +179,7 @@ class ButtonPage extends HookWidget {
       ),
       // 只做外观对照，包 IgnorePointer 免得点一下就和别的按钮串味。
       IgnorePointer(
-        child: ElToggleButton(
+        child: ElButton.toggle(
           value: true,
           // 保留受控开关示例，覆盖主题选中态的加深色以贴合设计稿。
           style: ElStyle(backgroundColor: context.elTheme.primary),

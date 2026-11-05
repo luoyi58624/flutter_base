@@ -1,6 +1,6 @@
 # InputTag
 
-`ElInputTag` 将草稿文本确认为 String 标签列表，通过 `inputTagBuilder(context, component)` 提供编辑、确认、删除和布局。导入与实现登记见 [Components](../README.md)。
+`ElInputTag` 将草稿文本确认为 String 标签列表，通过 `inputTag(context, component)` 提供编辑、确认、删除和布局。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final tags = ValueNotifier<List<String>>([]);

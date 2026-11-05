@@ -9,12 +9,9 @@ import '../../cores/glyph.dart';
 import '../../cores/theme.dart';
 import '../loading/index.dart';
 
-/// 以移动端按钮外观实现通用按钮声明。
-Widget buttonBuilder(BuildContext context, ElButton component) => Button._fromComponent(component);
-
-/// 以移动端按钮外观实现切换按钮，选中态读写公共模型。
-Widget toggleButtonBuilder(BuildContext context, ElToggleButton component, Obs<bool> model) =>
-    Button._fromToggle(component, model);
+/// 以移动端按钮外观实现通用按钮声明，切换按钮的选中态读写公共模型。
+Widget buttonBuilder(BuildContext context, ElButton component, Obs<bool> model) =>
+    Button._fromComponent(component, model);
 
 /// Web按钮的七种视觉层级。
 enum ButtonVariant {
@@ -73,34 +70,19 @@ class Button extends StatelessWidget {
     this.event,
   }) : _common = null;
 
-  Button._fromComponent(ElButton component)
+  Button._fromComponent(ElButton component, Obs<bool> model)
     : _common = _CommonButton(component.type, component.variant, component.icon),
       variant = _variantOf(component.variant, component.child),
       icon = null,
       disabled = component.disabled,
       loading = component.loading,
-      selected = null,
+      selected = component.isToggle ? model.value : null,
       delayTouchDown = Duration.zero,
       delayTouchUp = const Duration(milliseconds: 100),
       type = .button,
-      onClick = ((_) => component.onPressed?.call()),
-      child = component.child,
-      label = component.semanticLabel,
-      focusNode = component.focusNode,
-      style = component.style,
-      event = component.event;
-
-  Button._fromToggle(ElToggleButton component, Obs<bool> model)
-    : _common = _CommonButton(component.type, component.variant, component.icon),
-      variant = _variantOf(component.variant, component.child),
-      icon = null,
-      disabled = component.disabled,
-      loading = false,
-      selected = model.value,
-      delayTouchDown = Duration.zero,
-      delayTouchUp = const Duration(milliseconds: 100),
-      type = .button,
-      onClick = ((_) => model.value = !model.value),
+      onClick = component.isToggle
+          ? ((_) => model.value = !model.value)
+          : ((_) => component.onPressed?.call()),
       child = component.child,
       label = component.semanticLabel,
       focusNode = component.focusNode,

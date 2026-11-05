@@ -5,8 +5,8 @@ import 'package:flutter_base/ui.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _a(BuildContext context, ElButton button) => ElView(child: 'A');
-Widget _b(BuildContext context, ElButton button) => ElView(child: 'B');
+Widget _a(BuildContext context, ElButton button, Obs<bool> model) => ElView(child: 'A');
+Widget _b(BuildContext context, ElButton button, Obs<bool> model) => ElView(child: 'B');
 
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
@@ -15,7 +15,7 @@ Widget _host(Widget child) => Directionality(
 
 void main() {
   testWidgets('全局仅注入一个继承节点，没有隐式局部主题', (tester) async {
-    final data = ElComponentBuilders(buttonBuilder: _a);
+    final data = ElComponents(button: _a);
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
@@ -23,7 +23,7 @@ void main() {
           child: Builder(
             builder: (context) {
               expect(ElComponentProvider.of(context), data);
-              expect(ElComponentProvider.of(context).buttonBuilder, data.buttonBuilder);
+              expect(ElComponentProvider.of(context).button, data.button);
               return ElButton();
             },
           ),
@@ -38,15 +38,15 @@ void main() {
 
   testWidgets('相等配置不通知按钮，更新全局配置重新分派实现', (tester) async {
     var calls = 0;
-    Widget count(BuildContext context, ElButton button) {
+    Widget count(BuildContext context, ElButton button, Obs<bool> model) {
       calls++;
-      return _a(context, button);
+      return _a(context, button, model);
     }
 
     final button = ElButton();
-    Widget tree(Widget Function(BuildContext, ElButton) builder) => _host(
+    Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponentBuilders(buttonBuilder: builder),
+        builders: ElComponents(button: builder),
         child: button,
       ),
     );
@@ -64,7 +64,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponentBuilders(buttonBuilder: _a),
+          builders: ElComponents(button: _a),
           child: Builder(
             builder: (context) {
               source = context;
@@ -78,11 +78,11 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponentBuilders(buttonBuilder: _b),
+          builders: ElComponents(button: _b),
           child: captured.wrap(
             Builder(
               builder: (context) {
-                expect(ElComponentProvider.of(context).buttonBuilder, _a);
+                expect(ElComponentProvider.of(context).button, _a);
                 return ElView();
               },
             ),
@@ -92,13 +92,13 @@ void main() {
     );
   });
   test('登记表支持替换、清空、非空合并和函数等值', () {
-    final global = ElComponentBuilders(buttonBuilder: _a);
-    expect(global.copyWith(buttonBuilder: _b).buttonBuilder, _b);
+    final global = ElComponents(button: _a);
+    expect(global.copyWith(button: _b).button, _b);
     expect(global.merge(null), same(global));
-    expect(global.merge(ElComponentBuilders()), global);
+    expect(global.merge(ElComponents()), global);
     expect(global.copyWith(), global);
-    expect(global.copyWith(buttonBuilder: null).buttonBuilder, isNull);
-    expect(global.hashCode, ElComponentBuilders(buttonBuilder: _a).hashCode);
+    expect(global.copyWith(button: null).button, isNull);
+    expect(global.hashCode, ElComponents(button: _a).hashCode);
   });
 
   testWidgets('缺少主题由 of 断言，缺少实现时报出组件名', (tester) async {
@@ -107,15 +107,15 @@ void main() {
       tester.takeException(),
       isA<AssertionError>().having((e) => e.message, 'message', contains('ElComponentProvider')),
     );
-    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponentBuilders(), child: ElView())));
+    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponents(), child: ElView())));
     expect(tester.takeException(), isNull);
-    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponentBuilders(), child: ElButton())));
+    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponents(), child: ElButton())));
     expect(tester.takeException(), isA<FlutterError>().having((e) => e.message, 'message', contains('ElButton')));
   });
 
   testWidgets('内层配置与祖先合并，未传的项沿用外层', (tester) async {
-    final parent = ElComponentBuilders(buttonBuilder: _a);
-    for (final (data, expected) in [(ElComponentBuilders(), _a), (ElComponentBuilders(buttonBuilder: _b), _b)]) {
+    final parent = ElComponents(button: _a);
+    for (final (data, expected) in [(ElComponents(), _a), (ElComponents(button: _b), _b)]) {
       await tester.pumpWidget(
         _host(
           ElComponentProvider(
@@ -124,7 +124,7 @@ void main() {
               builders: data,
               child: Builder(
                 builder: (context) {
-                  expect(ElComponentProvider.of(context).buttonBuilder, expected);
+                  expect(ElComponentProvider.of(context).button, expected);
                   return ElView();
                 },
               ),
@@ -137,22 +137,22 @@ void main() {
   });
 
   testWidgets('兄弟子树主题隔离，组件直接读取最近的全局配置', (tester) async {
-    Widget Function(BuildContext, ElButton)? resolved;
+    Widget Function(BuildContext, ElButton, Obs<bool>)? resolved;
     await tester.pumpWidget(
       _host(
         Row(
           children: [
             ElComponentProvider(
-              builders: ElComponentBuilders(buttonBuilder: _a),
+              builders: ElComponents(button: _a),
               child: ElButton(),
             ),
             ElComponentProvider(
-              builders: ElComponentBuilders(buttonBuilder: _a),
+              builders: ElComponents(button: _a),
               child: ElComponentProvider(
-                builders: ElComponentBuilders(buttonBuilder: _b),
+                builders: ElComponents(button: _b),
                 child: Builder(
                   builder: (context) {
-                    resolved = ElComponentProvider.of(context).buttonBuilder;
+                    resolved = ElComponentProvider.of(context).button;
                     return ElButton();
                   },
                 ),
@@ -169,15 +169,15 @@ void main() {
 
   testWidgets('固定 child 下相等主题不通知，切换 builder 只重建依赖者', (tester) async {
     var calls = 0;
-    Widget count(BuildContext context, ElButton button) {
+    Widget count(BuildContext context, ElButton button, Obs<bool> model) {
       calls++;
-      return _a(context, button);
+      return _a(context, button, model);
     }
 
     final button = ElButton(key: GlobalKey(), child: '原始声明');
-    Widget tree(Widget Function(BuildContext, ElButton) builder) => _host(
+    Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponentBuilders(buttonBuilder: builder),
+        builders: ElComponents(button: builder),
         child: button,
       ),
     );
@@ -196,10 +196,10 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponentBuilders(
-            buttonBuilder: (context, component) {
+          builders: ElComponents(
+            button: (context, component, model) {
               received = component;
-              return _a(context, component);
+              return _a(context, component, model);
             },
           ),
           child: button,
@@ -219,13 +219,13 @@ void main() {
         return ElView();
       },
     );
-    Widget tree(Widget Function(BuildContext, ElButton) builder) => _host(
+    Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponentBuilders(buttonBuilder: _a),
+        builders: ElComponents(button: _a),
         child: ElTestOverlay(
           child: ElTestPortal(
             child: ElComponentProvider(
-              builders: ElComponentBuilders(buttonBuilder: builder),
+              builders: ElComponents(button: builder),
               child: sourceWidget,
             ),
           ),
@@ -245,14 +245,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(ElComponentProvider.of(popup).buttonBuilder, _b);
+    expect(ElComponentProvider.of(popup).button, _b);
     await tester.pumpWidget(tree(_a));
-    expect(ElComponentProvider.of(popup).buttonBuilder, _b);
+    expect(ElComponentProvider.of(popup).button, _b);
     final nested = ElTestPortal.of(popup).show(
       builder: (_) => captured.wrap(
         Builder(
           builder: (context) {
-            expect(ElComponentProvider.of(context).buttonBuilder, _b);
+            expect(ElComponentProvider.of(context).button, _b);
             return ElButton();
           },
         ),
@@ -264,7 +264,7 @@ void main() {
     await tester.pumpAndSettle();
     ElTestPortal.of(source).show(
       builder: (context) {
-        expect(ElComponentProvider.of(context).buttonBuilder, _a);
+        expect(ElComponentProvider.of(context).button, _a);
         return ElButton();
       },
     );
@@ -285,9 +285,9 @@ void main() {
         ),
       ),
     );
-    Widget tree(Widget Function(BuildContext, ElButton) builder) => _host(
+    Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponentBuilders(buttonBuilder: builder),
+        builders: ElComponents(button: builder),
         child: content,
       ),
     );
@@ -299,8 +299,8 @@ void main() {
       },
     );
     await tester.pumpAndSettle();
-    expect(ElComponentProvider.of(popup).buttonBuilder, _a);
+    expect(ElComponentProvider.of(popup).button, _a);
     await tester.pumpWidget(tree(_b));
-    expect(ElComponentProvider.of(popup).buttonBuilder, _b);
+    expect(ElComponentProvider.of(popup).button, _b);
   });
 }

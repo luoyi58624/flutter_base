@@ -24,6 +24,14 @@ class SettingPage extends StatelessWidget {
               ElListTile.switcher(modelValue: GlobalState.debugShowCheckedModeBanner, title: '显示 Debug 横幅'),
             ],
           ),
+          ElListGroup(
+            title: '工具设置',
+            children: [
+              ElListTile(onTap: (){
+                // el.popup
+              }, title: '无线调试'),
+            ],
+          ),
         ],
       ),
     );

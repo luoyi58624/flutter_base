@@ -1,6 +1,6 @@
 # InputOtp
 
-`ElInputOtp` 声明定长验证码输入，通过 `inputOtpBuilder(context, component)` 提供编辑、分格布局和完成通知。导入与实现登记见 [Components](../README.md)。
+`ElInputOtp` 声明定长验证码输入，通过 `inputOtp(context, component)` 提供编辑、分格布局和完成通知。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final code = ValueNotifier('');

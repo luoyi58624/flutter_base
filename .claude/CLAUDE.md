@@ -23,7 +23,7 @@
 - 需要区分未传入与显式 null 的参数，一律使用统一的 $absent 作为默认占位，不借用空 Widget 或另造哨兵
 - Git 提交信息必须使用中文；Conventional Commit 类型、作用域和代码标识可以保留英文
 - 写完功能、修复 bug 默认只跑本次改动覆盖的局部测试，全量测试仅在用户明确要求时执行
-- 运行代码生成直接执行 dart run build_runner build；Linux 虚拟机经 vmhgfs 共享盘运行 build_runner 会卡在编译构建脚本，代码生成交给 Windows 端执行，Linux 侧不要反复重试
+- 运行代码生成直接执行 dart run build_runner build；Linux 虚拟机经 vmhgfs 共享盘无法可靠运行 Flutter 工具链（build_runner 卡死，pub get 会把 .dart_tool 改成 Linux 路径），Linux 侧不运行 pub get、build_runner、analyze、test，改完列出命令交给用户在 Windows 端执行
 
 ## 格式化
 
@@ -35,7 +35,7 @@
 
 - lib/src/flutter/ 承担通用组件声明、视图、事件、焦点、滚动、布局等机制；lib/src/ui/desktop/ 与 lib/src/ui/mobile/ 承担各端具体外观
 - 用户通过 flutter_base.dart、desktop.dart、mobile.dart 等公共入口使用接口；具体组件、Builder 和辅助函数留在 src 内部，生产示例不依赖具体实现
-- flutter/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；ElDesktopTheme / ElMobileTheme 各自在品牌目录定义完整默认值和暗色增量，通过 ElView 注入及级联覆写，不另建主题继承协议
+- flutter/commons/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；ElDesktopTheme / ElMobileTheme 各自在品牌目录定义完整默认值和暗色增量，通过 ElView 注入及级联覆写，不另建主题继承协议
 - 变量键不限制 String 或 -- 前缀，使用能区分身份的 Object 键；暗色等变体由 ElStyle 级联覆写
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
 - 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；两端保留必要的键盘操作、外借焦点节点和辅助技术语义
@@ -48,6 +48,7 @@
 - 组件默认属于两端通用接口；只有交互形态本身只存在于一端的才放品牌目录，例如桌面菜单栏、移动底部导航栏。按钮组、列表行等不能因一端暂无实现就划为端专属
 - 不以「当前没有实现」或「旧代码未完成」作为删除组件或参数的依据，判断标准是该组件或参数是否适合出现在某一端
 - 可交互组件必须提供 event，与 style 同等重要，品牌实现合并到交互根节点，preventDefault 阻止默认动作；不能让用户为事件额外包装
+- 命名构造（如 `.toggle`、`.circle`、`.switcher`）是维护者亲自指定的 API 形态，迁移时保留，不得擅自拆成独立组件或改名
 - 用户可经 ElComponentProvider 在任意子树只注入单个 Builder，其余沿用外层；双向绑定组件经 ElModelValue 持有模型，并把 Obs 作为 Builder 参数交给品牌
 - 两端暂缺的实现登记在 test/ui/brand_completeness_test.dart 的已知缺口清单，补齐后从清单移除
 

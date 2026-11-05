@@ -1,6 +1,6 @@
 # Mention
 
-从 Element Plus `components/form/mention/` 迁入，注册到 `ElementPlusThemeData.mention`。通用参数见 [Mention](../../../../flutter/components/mention/README.md)，安装见 [Desktop](../../README.md)。
+从 Element Plus `components/form/mention/` 迁入，注册到 `ElementPlusThemeData.mentionBuilder`。通用参数见 [Mention](../../../../flutter/components/mention/README.md)，安装见 [Desktop](../../README.md)。
 
 保留前缀与光标上下文、单项或整表过滤、键盘 active 导航、候选提交与完整提及删除。输入模型仍使用 String，T 只表示候选附加数据。
 

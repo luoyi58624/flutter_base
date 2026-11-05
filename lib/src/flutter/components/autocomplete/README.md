@@ -1,6 +1,6 @@
 # Autocomplete
 
-`ElAutocomplete<T>` 绑定输入文本，并以 ElLabelModel<T> 提供同步或异步建议；具体查询、交互和外观由 `autocompleteBuilder` 实现。导入与实现登记见 [Components](../README.md)。
+`ElAutocomplete<T>` 绑定输入文本，并以 ElLabelModel<T> 提供同步或异步建议；具体查询、交互和外观由 `autocomplete` 实现。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final query = ValueNotifier('');

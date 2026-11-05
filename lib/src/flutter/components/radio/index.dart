@@ -68,7 +68,7 @@ class ElRadio<T> extends ElModelValue<Object?> {
         builder: (context, _) => ElView(
           style: ElStyle(widthFactor: 1, userSelect: .none),
           event: ElEvent(disabled: disabled, onPointerDown: (_) => $get<FocusNode>(_focusKey).requestFocus()),
-          child: ElComponentProvider.builderOf(context, this, (b) => b.radioBuilder)<T>(context, this, state),
+          child: ElComponentProvider.builderOf(context, this, (b) => b.radio)<T>(context, this, state),
         ),
       );
     }
@@ -87,7 +87,7 @@ class ElRadio<T> extends ElModelValue<Object?> {
         ),
       ),
       style: const ElStyle(widthFactor: 1, userSelect: .none),
-      child: ElComponentProvider.builderOf(context, this, (b) => b.radioBuilder)<T>(context, this, state),
+      child: ElComponentProvider.builderOf(context, this, (b) => b.radio)<T>(context, this, state),
     );
   }
 }

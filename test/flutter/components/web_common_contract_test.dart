@@ -29,14 +29,14 @@ Widget _alert(BuildContext context, ElAlert component) => Column(
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(
-      segmentedBuilder: _segmented,
-      tabsBuilder: _tabs,
-      collapseBuilder: _collapse,
-      sliderBuilder: _slider,
-      calendarBuilder: _calendar,
-      stepsBuilder: _steps,
-      alertBuilder: _alert,
+    builders: ElComponents(
+      segmented: _segmented,
+      tabs: _tabs,
+      collapse: _collapse,
+      slider: _slider,
+      calendar: _calendar,
+      steps: _steps,
+      alert: _alert,
     ),
     child: child,
   ),

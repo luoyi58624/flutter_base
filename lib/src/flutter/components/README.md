@@ -17,7 +17,7 @@ ElView 相当于 Web 的 div，负责盒模型、文本、样式、事件与语�
 按组件的交互形态决定位置，而不是按当前哪一端写了实现：
 
 - 默认进入本目录。按钮组、列表行、标签输入、提及等两端都可能用到的组件都是通用组件，外观差异由品牌各自实现。
-- 只有交互形态本身只存在于一端的组件才放在对应品牌目录，由 desktop.dart / mobile.dart 导出，不进入 ElComponentBuilders。例如桌面端的菜单栏（MenuBar），移动端的底部导航栏。
+- 只有交互形态本身只存在于一端的组件才放在对应品牌目录，由 desktop.dart / mobile.dart 导出，不进入 ElComponents。例如桌面端的菜单栏（MenuBar），移动端的底部导航栏。
 - 两端外观相同、无需品牌分派的组件（如纯文本、字体图标）做成基元层的普通 Widget，不登记 Builder。
 - 判断标准是组件是否适合出现在某一端，不以当前是否已有实现为依据。
 
@@ -25,11 +25,11 @@ ElView 相当于 Web 的 div，负责盒模型、文本、样式、事件与语�
 
 ## 注入与覆写
 
-`ElComponentBuilders` 是唯一的登记表，字段可空。`ElComponentProvider` 与祖先自动合并，只覆盖传入的非空项：
+`ElComponents` 是唯一的登记表，字段可空。`ElComponentProvider` 与祖先自动合并，只覆盖传入的非空项：
 
 ```dart
 ElComponentProvider(
-  builders: ElComponentBuilders(buttonBuilder: (context, widget) => MyButton(widget)),
+  builders: ElComponents(button: (context, widget) => MyButton(widget)),
   child: page,
 );
 ```
@@ -89,8 +89,7 @@ ElComponentProvider(
 
 ## 变体
 
-- 字段集合与值类型都相同的变体才用命名构造，例如 `ElProgress.circle`。
-- 字段或值类型不同的变体拆成独立声明，例如布尔切换按钮独立为 ElToggleButton，而不是 `ElButton.toggle`。
+- 命名构造形态（如 `.toggle`）由维护者指定，迁移时保留，不得擅自拆成独立组件；切换形态由声明上的标志（如 `isToggle`）告诉品牌。
 - 同一概念只保留一套值模型，不并存按值与按索引两种绑定。
 
 ## 文档
@@ -102,7 +101,7 @@ ElComponentProvider(
 
 1. 按「准入」确认组件应放在本目录、品牌目录还是基元层。
 2. 选择基类与 Builder 签名，参数逐项对照「参数规范」。
-3. 在 ElComponentBuilders 增加字段并运行 `dart run build_runner build`。
+3. 在 ElComponents 增加字段并运行 `dart run build_runner build`。
 4. 两端品牌登记默认实现；暂缺的一端写入完整性测试的已知缺口清单。
 5. 补组件 README 与局部测试。
 
@@ -112,9 +111,10 @@ ElComponentProvider(
 
 | 归类 | 组件 | 状态 |
 | --- | --- | --- |
-| 保留并按本规范重写 | Button / ToggleButton、Switch | 已完成 |
+| 保留并按本规范重写 | Button（含 .toggle）、Switch | 已完成 |
 | 保留并按本规范重写 | Steps、Avatar、Calendar、Collapse、Empty、Segmented、Tabs / TabBar、Alert、Tag、ButtonGroup、Checkbox / Group、Radio / Group、Input、InputNumber、InputOtp、InputTag、Select、Autocomplete、Mention、ListTile / ListGroup、Card、LoadingIndicator、Progress、Skeleton、Slider | 待迁移 |
-| 改为基元层普通组件 | Text、Icon | 待迁移 |
+| 直接使用 Flutter Text | Text | 已完成 |
+| 改为基元层普通组件 | Icon | 待迁移 |
 
 机制调整：
 

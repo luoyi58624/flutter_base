@@ -9,7 +9,7 @@ import '../../extensions/el.dart';
 // 表格的渲染 / 布局 / 虚拟化 / 命中 / 排序 / 选择 / 展开全在 el_ui 的 `ElTable` 内，
 // element_plus **不提供任何表格组件、也没有任何表格 Widget builder**：这里只有一份
 // 返回 `ElTableStyle` 的皮肤工厂，由 [ElementPlusThemeData] 登记进
-// `ElComponentBuilders.tableStyleBuilder`。用户只写 `ElTable(...)`，品牌差异全部来自这份预设。
+// `ElComponents.tableStyle`。用户只写 `ElTable(...)`，品牌差异全部来自这份预设。
 //
 // 外观开关（外框 / 网格线 / 密度 / 斑马纹 / 当前行）都由 `ElTableStyle` 承担，需要局部改写
 // 时基于预设 `copyWith` 微调：
@@ -17,7 +17,7 @@ import '../../extensions/el.dart';
 // ```dart
 // ElTable(
 //   controller: controller,
-//   style: ElementPlusThemeData.tableStyle(context).copyWith(border: false, columnDivider: null),
+//   style: ElementPlusThemeData.tableStyleBuilder(context).copyWith(border: false, columnDivider: null),
 // )
 // ```
 //

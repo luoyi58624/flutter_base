@@ -36,7 +36,7 @@ class _Label extends StatelessWidget {
   final double? letterSpacing;
   final TextAlign? align;
   @override
-  Widget build(BuildContext context) => ElText(
+  Widget build(BuildContext context) => Text(
     text,
     style: TextStyle(
       fontSize: size,

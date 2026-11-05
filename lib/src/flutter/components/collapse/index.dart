@@ -54,7 +54,7 @@ class ElCollapse<D> extends ElModelValue<D> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.collapseBuilder)<D>(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.collapse)<D>(context, this);
 }
 
 /// 折叠面板的业务身份、标题和正文声明。
@@ -79,5 +79,5 @@ class ElCollapseItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.collapseItemBuilder)<T>(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.collapseItem)<T>(context, this);
 }

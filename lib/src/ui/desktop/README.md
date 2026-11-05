@@ -42,7 +42,7 @@ ElDesktopTheme(
 | Select | [select](components/select/README.md) |
 | Autocomplete | [autocomplete](components/autocomplete/README.md) |
 | Mention | [mention](components/mention/README.md) |
-| Text / FormItem | [主题登记](components/others/app/README.md)，透传源品牌的文本和表单项实现 |
+| FormItem | [主题登记](components/others/app/README.md)，沿用源品牌的表单项实现 |
 | TableStyle | [table](components/table/README.md)，仅提供表格皮肤 |
 
 Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未安装通用 iconBuilder。图标字体 family 仍为 element，字体包归属改为 flutter_base。

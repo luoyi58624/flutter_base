@@ -16,7 +16,7 @@ ElMobileTheme(
     ElButton(child: '保存', onPressed: () {}),
     ElTag(child: '进行中'),
     ElSwitch(value: false, semanticLabel: '通知'),
-    ElText('移动端文本'),
+    Text('移动端文本'),
   ]),
 );
 ```
@@ -28,7 +28,6 @@ ElMobileTheme(
 | ElButton | 已接入 | 公共模型、动作只执行一次，内部实现提供移动端外观与反馈 |
 | ElTag | 已接入 | 公共宿主持有切换；纯视觉 Builder 提供标签和独立关闭入口 |
 | ElSwitch | 已接入 | bool / notifier / 表单字段绑定，以及尺寸、颜色、内容、加载与事件 |
-| ElText | 已接入 | 全部 Text 参数原样转交，继承 ElMobileTheme 默认字体 |
 | ElIcon | 已接入 | 字体图标的颜色、尺寸、状态和主题过渡均走 ElStyle 继承，不读取 IconTheme |
 | ElCard | 已接入 | Widget 正文、style 外观、阴影档位、整卡点击、详细事件和加载状态 |
 | ElListTile | 已接入 | 普通、开关、弹窗行，默认图标按 App 类型选择，模型只绑定一次 |

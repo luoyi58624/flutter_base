@@ -1,6 +1,6 @@
 # Tag
 
-`ElTag` 提供展示标签、关闭操作和独立布尔开关。公共宿主维护绑定与交互，`tagBuilder(context, component)` 读取配置绘制品牌外观。导入与实现登记见 [Components](../README.md)。
+`ElTag` 提供展示标签、关闭操作和独立布尔开关。公共宿主维护绑定与交互，`tag(context, component)` 读取配置绘制品牌外观。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 ElTag(

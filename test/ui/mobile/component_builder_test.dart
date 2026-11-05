@@ -5,12 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget child, {ElStyle? style, ElComponentBuilders? builders}) => MaterialApp(
+Widget _host(Widget child, {ElStyle? style}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
     child: ElMobileTheme(
       style: style,
-      componentBuilders: builders,
       child: Align(
         alignment: .topLeft,
         child: SizedBox(width: 320, child: child),
@@ -23,7 +22,7 @@ Finder _view(bool Function(ElView view) test) => find.byWidgetPredicate((widget)
 
 void main() {
   testWidgets('移动端只注册已有实现，不为缺失组件填充桌面或占位实现', (tester) async {
-    late ElComponentBuilders builders;
+    late ElComponents builders;
     await tester.pumpWidget(
       _host(
         Builder(
@@ -34,19 +33,18 @@ void main() {
         ),
       ),
     );
-    expect(builders.buttonBuilder, isNotNull);
-    expect(builders.tagBuilder, isNotNull);
-    expect(builders.switchBuilder, isNotNull);
-    expect(builders.textBuilder, isNotNull);
-    expect(builders.iconBuilder, isNotNull);
-    expect(builders.cardBuilder, isNotNull);
-    expect(builders.loadingIndicatorBuilder, isNotNull);
-    expect(builders.progressBuilder, isNotNull);
-    expect(builders.skeletonBuilder, isNotNull);
-    expect(builders.inputBuilder, isNull);
-    expect(builders.checkboxBuilder, isNull);
-    expect(builders.radioBuilder, isNull);
-    expect(builders.buttonGroupBuilder, isNull);
+    expect(builders.button, isNotNull);
+    expect(builders.tag, isNotNull);
+    expect(builders.switcher, isNotNull);
+    expect(builders.icon, isNotNull);
+    expect(builders.card, isNotNull);
+    expect(builders.loadingIndicator, isNotNull);
+    expect(builders.progress, isNotNull);
+    expect(builders.skeleton, isNotNull);
+    expect(builders.input, isNull);
+    expect(builders.checkbox, isNull);
+    expect(builders.radio, isNull);
+    expect(builders.buttonGroup, isNull);
   });
 
   testWidgets('通用卡片加载期间保留正文实例并阻止整卡激活', (tester) async {
@@ -86,7 +84,7 @@ void main() {
     final changes = <bool>[];
     await tester.pumpWidget(
       _host(
-        ElToggleButton(
+        ElButton.toggle(
           key: ValueKey('button'),
           modelValue: model,
           onChanged: changes.add,
@@ -317,26 +315,5 @@ void main() {
     form.updateFormData({'enabled': false});
     await tester.pump();
     expect(changes, [true, false]);
-  });
-
-  testWidgets('文本参数保持原样，局部 Builder 覆写只覆盖指定组件', (tester) async {
-    await tester.pumpWidget(_host(ElText('内容', maxLines: 2, overflow: .ellipsis, style: TextStyle(fontSize: 19))));
-    final text = tester.widget<Text>(find.text('内容'));
-    expect(text.maxLines, 2);
-    expect(text.overflow, TextOverflow.ellipsis);
-    expect(text.style?.fontSize, 19);
-    await tester.pumpWidget(
-      _host(
-        Column(
-          children: [
-            ElText('内容'),
-            ElButton(child: Text('按钮')),
-          ],
-        ),
-        builders: ElComponentBuilders(textBuilder: (context, component) => Text('覆写${component.data}')),
-      ),
-    );
-    expect(find.text('覆写内容'), findsOneWidget);
-    expect(find.byType(ElButton), findsOneWidget);
   });
 }

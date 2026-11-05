@@ -27,7 +27,7 @@ ElRadioGroup<String>(
 | Group.required | 默认 true；false 时再次选择当前值可取消 |
 | Group.of / maybeOf | 获取最近分组；listen=false 时不订阅重建 |
 
-普通 ElRadio 必须位于 ElRadioGroup 内，键盘分组由 Flutter RadioGroup / RawRadio 处理。公共宿主负责交互和状态，`radioBuilder<T>(context, component, state)` 绘制外观。独立 toggle 默认 false，不接入祖先 Group 或表单。
+普通 ElRadio 必须位于 ElRadioGroup 内，键盘分组由 Flutter RadioGroup / RawRadio 处理。公共宿主负责交互和状态，`radio<T>(context, component, state)` 绘制外观。独立 toggle 默认 false，不接入祖先 Group 或表单。
 
 ## 自定义选项
 

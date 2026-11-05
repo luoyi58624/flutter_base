@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/dart.dart';
+import 'package:flutter_base/flutter.dart';
 
 import '../utils/index.dart' show Obs;
 import '../views/table/table.dart' show ElTableStyle;
@@ -18,7 +18,6 @@ import 'input_number/index.dart';
 import 'mention/index.dart';
 import 'input_tag/index.dart';
 import 'input_otp/index.dart';
-import 'text/index.dart';
 import 'list_tile/index.dart';
 import 'card/index.dart';
 import 'loading_indicator/index.dart';
@@ -48,7 +47,6 @@ export 'input_number/index.dart';
 export 'mention/index.dart';
 export 'input_tag/index.dart';
 export 'input_otp/index.dart';
-export 'text/index.dart';
 export 'list_tile/index.dart';
 export 'card/index.dart';
 export 'loading_indicator/index.dart';
@@ -67,159 +65,149 @@ export 'alert/index.dart';
 
 part 'index.g.dart';
 
-/// 通用组件实现登记表；品牌主题安装完整默认表，用户经 ElComponentProvider 局部覆写。
-///
-/// copyWith、merge 与相等性由 `@ElModelGenerator.copy` 生成。
+/// 组件接口实现
 @ElModelGenerator.copy()
 @immutable
-class ElComponentBuilders with Equatable {
+class ElComponents with Equatable {
   /// 创建组件实现配置，未传的项为 null，由外层配置补齐。
-  const ElComponentBuilders({
-    this.buttonBuilder,
-    this.toggleButtonBuilder,
-    this.tagBuilder,
-    this.buttonGroupBuilder,
-    this.switchBuilder,
-    this.inputBuilder,
-    this.checkboxBuilder,
-    this.radioBuilder,
-    this.selectBuilder,
-    this.autocompleteBuilder,
-    this.inputNumberBuilder,
-    this.mentionBuilder,
-    this.inputTagBuilder,
-    this.inputOtpBuilder,
-    this.formItemBuilder,
-    this.tableStyleBuilder,
-    this.textBuilder,
-    this.cardBuilder,
-    this.loadingIndicatorBuilder,
-    this.iconBuilder,
-    this.listTileBuilder,
-    this.listTileGroupBuilder,
-    this.progressBuilder,
-    this.sliderBuilder,
-    this.skeletonBuilder,
-    this.stepsBuilder,
-    this.stepBuilder,
-    this.avatarBuilder,
-    this.calendarBuilder,
-    this.collapseBuilder,
-    this.collapseItemBuilder,
-    this.emptyBuilder,
-    this.segmentedBuilder,
-    this.tabsBuilder,
-    this.tabBarBuilder,
-    this.alertBuilder,
+  const ElComponents({
+    this.button,
+    this.tag,
+    this.buttonGroup,
+    this.switcher,
+    this.input,
+    this.checkbox,
+    this.radio,
+    this.select,
+    this.autocomplete,
+    this.inputNumber,
+    this.mention,
+    this.inputTag,
+    this.inputOtp,
+    this.formItem,
+    this.tableStyle,
+    this.card,
+    this.loadingIndicator,
+    this.icon,
+    this.listTile,
+    this.listTileGroup,
+    this.progress,
+    this.slider,
+    this.skeleton,
+    this.steps,
+    this.step,
+    this.avatar,
+    this.calendar,
+    this.collapse,
+    this.collapseItem,
+    this.empty,
+    this.segmented,
+    this.tabs,
+    this.tabBar,
+    this.alert,
   });
 
-  /// 根据 ElButton 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElButton component)? buttonBuilder;
-
-  /// 根据 ElToggleButton 声明与选中模型构建品牌组件。
-  final Widget Function(BuildContext context, ElToggleButton component, Obs<bool> model)? toggleButtonBuilder;
+  /// 根据 ElButton 声明与选中模型构建品牌组件；普通按钮的模型不参与绘制。
+  final Widget Function(BuildContext context, ElButton component, Obs<bool> model)? button;
 
   /// 根据 ElTag 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElTag component)? tagBuilder;
+  final Widget Function(BuildContext context, ElTag component)? tag;
 
   /// 根据 ElButtonGroup 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElButtonGroup<T> component)? buttonGroupBuilder;
+  final Widget Function<T>(BuildContext context, ElButtonGroup<T> component)? buttonGroup;
 
   /// 根据 ElSwitch 声明与开关模型构建品牌组件。
-  final Widget Function(BuildContext context, ElSwitch component, Obs<bool> model)? switchBuilder;
+  final Widget Function(BuildContext context, ElSwitch component, Obs<bool> model)? switcher;
 
   /// 根据 ElInput 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElInput component)? inputBuilder;
+  final Widget Function(BuildContext context, ElInput component)? input;
 
   /// 根据 ElCheckbox 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCheckbox component, ElCheckboxState state)? checkboxBuilder;
+  final Widget Function(BuildContext context, ElCheckbox component, ElCheckboxState state)? checkbox;
 
   /// 根据 ElRadio 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElRadio<T> component, ElRadioState state)? radioBuilder;
+  final Widget Function<T>(BuildContext context, ElRadio<T> component, ElRadioState state)? radio;
 
   /// 根据 ElSelect 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElSelect<T> component)? selectBuilder;
+  final Widget Function<T>(BuildContext context, ElSelect<T> component)? select;
 
   /// 根据 ElAutocomplete 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElAutocomplete<T> component)? autocompleteBuilder;
+  final Widget Function<T>(BuildContext context, ElAutocomplete<T> component)? autocomplete;
 
   /// 根据 ElInputNumber 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElInputNumber component)? inputNumberBuilder;
+  final Widget Function(BuildContext context, ElInputNumber component)? inputNumber;
 
   /// 根据 ElMention 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElMention<T> component)? mentionBuilder;
+  final Widget Function<T>(BuildContext context, ElMention<T> component)? mention;
 
   /// 根据 ElInputTag 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElInputTag component)? inputTagBuilder;
+  final Widget Function(BuildContext context, ElInputTag component)? inputTag;
 
   /// 根据 ElInputOtp 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElInputOtp component)? inputOtpBuilder;
+  final Widget Function(BuildContext context, ElInputOtp component)? inputOtp;
 
   /// 根据 ElFormItem 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElFormItem component)? formItemBuilder;
+  final Widget Function(BuildContext context, ElFormItem component)? formItem;
 
   /// 创建表格皮肤，表格行为继续由通用内核承担。
-  final ElTableStyle Function(BuildContext context)? tableStyleBuilder;
-
-  /// 根据 ElText 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElText component)? textBuilder;
+  final ElTableStyle Function(BuildContext context)? tableStyle;
 
   /// 根据 ElCard 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElCard component)? cardBuilder;
+  final Widget Function(BuildContext context, ElCard component)? card;
 
   /// 根据 ElLoadingIndicator 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElLoadingIndicator component)? loadingIndicatorBuilder;
+  final Widget Function(BuildContext context, ElLoadingIndicator component)? loadingIndicator;
 
   /// 根据 ElIcon 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElIcon component)? iconBuilder;
+  final Widget Function(BuildContext context, ElIcon component)? icon;
 
   /// 根据 ElListTile 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElListTile<T> component)? listTileBuilder;
+  final Widget Function<T>(BuildContext context, ElListTile<T> component)? listTile;
 
   /// 根据 ElListGroup 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElListGroup<D> component)? listTileGroupBuilder;
+  final Widget Function<D>(BuildContext context, ElListGroup<D> component)? listTileGroup;
 
   /// 根据 ElProgress 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElProgress component)? progressBuilder;
+  final Widget Function(BuildContext context, ElProgress component)? progress;
 
   /// 根据 ElSlider 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElSlider<D> component)? sliderBuilder;
+  final Widget Function<D>(BuildContext context, ElSlider<D> component)? slider;
 
   /// 根据 ElSkeleton 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSkeleton component)? skeletonBuilder;
+  final Widget Function(BuildContext context, ElSkeleton component)? skeleton;
 
   /// 根据 ElSteps 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSteps component)? stepsBuilder;
+  final Widget Function(BuildContext context, ElSteps component)? steps;
 
   /// 根据 ElStep 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElStep component)? stepBuilder;
+  final Widget Function(BuildContext context, ElStep component)? step;
 
   /// 根据 ElAvatar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAvatar component)? avatarBuilder;
+  final Widget Function(BuildContext context, ElAvatar component)? avatar;
 
   /// 根据 ElCalendar 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElCalendar<D> component)? calendarBuilder;
+  final Widget Function<D>(BuildContext context, ElCalendar<D> component)? calendar;
 
   /// 根据 ElCollapse 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElCollapse<D> component)? collapseBuilder;
+  final Widget Function<D>(BuildContext context, ElCollapse<D> component)? collapse;
 
   /// 根据 ElCollapseItem 声明构建品牌组件。
-  final Widget Function<T>(BuildContext context, ElCollapseItem<T> component)? collapseItemBuilder;
+  final Widget Function<T>(BuildContext context, ElCollapseItem<T> component)? collapseItem;
 
   /// 根据 ElEmpty 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElEmpty component)? emptyBuilder;
+  final Widget Function(BuildContext context, ElEmpty component)? empty;
 
   /// 根据 ElSegmented 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElSegmented<D> component)? segmentedBuilder;
+  final Widget Function<D>(BuildContext context, ElSegmented<D> component)? segmented;
 
   /// 根据 ElTabs 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElTabs<D> component)? tabsBuilder;
+  final Widget Function<D>(BuildContext context, ElTabs<D> component)? tabs;
 
   /// 根据 ElTabBar 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElTabBar component)? tabBarBuilder;
+  final Widget Function(BuildContext context, ElTabBar component)? tabBar;
 
   /// 根据 ElAlert 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElAlert component)? alertBuilder;
+  final Widget Function(BuildContext context, ElAlert component)? alert;
 
   /// 相等性与 hashCode 依据全部注入点。
   @override
@@ -227,32 +215,32 @@ class ElComponentBuilders with Equatable {
 }
 
 /// 组件实现作用域：与祖先配置合并，只覆盖传入的非空项，其余实现沿用外层直至品牌默认。
-class ElComponentProvider extends StatelessWidget {
+class ElComponentProvider extends ElView {
   /// 创建组件实现作用域，例如只传 buttonBuilder 即可替换子树内的按钮。
   const ElComponentProvider({super.key, required this.builders, required this.child});
 
   /// 本层覆写的组件实现。
-  final ElComponentBuilders builders;
+  final ElComponents builders;
 
   /// 应用覆写的子树。
   final Widget child;
 
   /// 读取合并后的组件配置，必须存在祖先组件提供器。
-  static ElComponentBuilders of(BuildContext context) {
+  static ElComponents of(BuildContext context) {
     final builders = maybeOf(context);
     assert(builders != null, '当前上下文未找到 ElComponentProvider。');
     return builders!;
   }
 
   /// 读取可选的组件配置，独立通用 Widget 可在未登记品牌时使用自身默认布局。
-  static ElComponentBuilders? maybeOf(BuildContext context) =>
+  static ElComponents? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_ComponentScope>()?.builders;
 
   /// 读取组件的实现，缺失时报出组件名，避免空断言难以定位。
   static F builderOf<F extends Function>(
     BuildContext context,
     Widget component,
-    F? Function(ElComponentBuilders builders) select,
+    F? Function(ElComponents builders) select,
   ) {
     final builder = select(of(context));
     if (builder == null) throw FlutterError('${component.runtimeType} 未在 ElComponentProvider 中登记实现。');
@@ -270,7 +258,7 @@ class ElComponentProvider extends StatelessWidget {
 class _ComponentScope extends InheritedTheme {
   const _ComponentScope({required this.builders, required super.child});
 
-  final ElComponentBuilders builders;
+  final ElComponents builders;
 
   @override
   bool updateShouldNotify(_ComponentScope oldWidget) => builders != oldWidget.builders;

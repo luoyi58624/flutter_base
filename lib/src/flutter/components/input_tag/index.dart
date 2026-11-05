@@ -230,5 +230,5 @@ class ElInputTag extends StatelessWidget {
   final ValueChanged<List<String>>? onChanged;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputTagBuilder)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputTag)(context, this);
 }

@@ -4,3 +4,4 @@ library;
 
 export 'cores/theme.dart' show ElMobileTheme;
 export 'components/index.dart';
+export 'theme/tokens.dart';

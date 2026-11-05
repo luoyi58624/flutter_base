@@ -52,5 +52,5 @@ class ElAlert extends ElModelValue<bool> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.alertBuilder)(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.alert)(context, this);
 }

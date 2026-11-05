@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../state/obs/index.dart';
+import '../../utils/obs/index.dart';
 import '../../widgets/form/index.dart';
 
 /// 只提供多选值绑定与数量限制，布局由调用方组合。

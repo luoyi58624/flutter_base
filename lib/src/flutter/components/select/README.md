@@ -1,6 +1,6 @@
 # Select
 
-`ElSelect<T>` 声明业务值及候选选项，通过 `selectBuilder(context, component)` 提供输入触发器、过滤与选择面板。导入与实现登记见 [Components](../README.md)。
+`ElSelect<T>` 声明业务值及候选选项，通过 `select(context, component)` 提供输入触发器、过滤与选择面板。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final selected = ValueNotifier<String>('grid');

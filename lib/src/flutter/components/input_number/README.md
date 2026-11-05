@@ -1,6 +1,6 @@
 # InputNumber
 
-`ElInputNumber` 声明数值输入、步进和范围配置，通过 `inputNumberBuilder(context, component)` 提供具体实现。导入与实现登记见 [Components](../README.md)。
+`ElInputNumber` 声明数值输入、步进和范围配置，通过 `inputNumber(context, component)` 提供具体实现。导入与实现登记见 [Components](../README.md)。
 
 ```dart
 final quantity = ValueNotifier<num?>(1);

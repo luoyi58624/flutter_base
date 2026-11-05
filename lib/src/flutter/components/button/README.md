@@ -1,6 +1,6 @@
 # Button
 
-`ElButton` 声明普通按钮，`ElToggleButton` 声明布尔切换按钮。外观由 `buttonBuilder(context, widget)` 与 `toggleButtonBuilder(context, widget, model)` 提供，通用规范见 [Components](../README.md)。
+`ElButton` 声明普通按钮，`ElButton.toggle` 声明布尔切换按钮。外观由 `button(context, widget, model)` 提供，`widget.isToggle` 为 true 时品牌按模型绘制选中态并在激活时翻转模型。通用规范见 [Components](../README.md)。
 
 ```dart
 ElButton(
@@ -15,16 +15,16 @@ ElButton(variant: .outline, style: ElStyle(width: '100%'), child: '通栏按钮'
 ElButton(semanticLabel: '新增', style: ElStyle(borderRadius: .circular(999)), child: Icons.add);
 
 final favorite = ValueNotifier(false);
-ElToggleButton(modelValue: favorite, child: '收藏');
+ElButton.toggle(modelValue: favorite, child: '收藏');
 ```
 
 | 参数 | 用途 |
 | --- | --- |
 | child / icon | 内容与前置图标；child 为 IconData 时渲染为方形图标按钮 |
 | onPressed | 普通按钮的激活动作，为空不等于禁用 |
-| value / modelValue / onChanged | 仅 ElToggleButton，选中态的双向绑定 |
+| value / modelValue / onChanged | 仅 toggle 构造，选中态的双向绑定，不接入表单 |
 | type / variant | 语义色与视觉层级 solid、outline、text、link |
-| disabled / loading | 禁用；loading 仅普通按钮，保留焦点但阻止激活 |
+| disabled / loading | 禁用；loading 仅普通构造，保留焦点但阻止激活 |
 | style / event | 外观与追加事件；event.preventDefault 阻止默认激活或切换 |
 | focusNode / semanticLabel | 外部焦点与辅助名称 |
 

@@ -51,5 +51,5 @@ class ElSegmented<T> extends ElModelValue<T> {
 
   @override
   Widget obsBuilder(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.segmentedBuilder)<T>(context, this);
+      ElComponentProvider.builderOf(context, this, (b) => b.segmented)<T>(context, this);
 }

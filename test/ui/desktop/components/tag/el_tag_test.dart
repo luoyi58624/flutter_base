@@ -242,8 +242,8 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponentBuilders(
-            tagBuilder: (_, tag) => ElView(child: tag.selected ? '开' : '关'),
+          builders: ElComponents(
+            tag: (_, tag) => ElView(child: tag.selected ? '开' : '关'),
           ),
           child: ElTag.toggle(modelValue: model, focusNode: focus),
         ),
@@ -313,12 +313,12 @@ void main() {
 
   test('全局登记表支持复制、清空、合并与相等比较', () {
     Widget builder(BuildContext context, ElTag tag) => ElView(child: tag.child);
-    final data = ElComponentBuilders(tagBuilder: builder);
+    final data = ElComponents(tag: builder);
     expect(data.copyWith(), data);
     expect(data.copyWith().hashCode, data.hashCode);
-    expect(data.copyWith(tagBuilder: null).tagBuilder, isNull);
-    expect(ElComponentBuilders().merge(data), data);
-    expect(data.merge(ElComponentBuilders()), data);
-    expect(const ElementPlusThemeData().tagBuilder, ElementPlusThemeData.tag);
+    expect(data.copyWith(tag: null).tag, isNull);
+    expect(ElComponents().merge(data), data);
+    expect(data.merge(ElComponents()), data);
+    expect(const ElementPlusThemeData().tag, ElementPlusThemeData.tagBuilder);
   });
 }

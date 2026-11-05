@@ -11,7 +11,7 @@ Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState sta
 Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) => ElView(
   style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)),
 );
-Widget _toggleButton(BuildContext context, ElToggleButton component, Obs<bool> model) => ElButtonView(
+Widget _button(BuildContext context, ElButton component, Obs<bool> model) => ElButtonView(
   onPressed: () => model.value = !model.value,
   focusNode: component.focusNode,
   disabled: component.disabled,
@@ -21,7 +21,7 @@ Widget _toggleButton(BuildContext context, ElToggleButton component, Obs<bool> m
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(toggleButtonBuilder: _toggleButton, checkboxBuilder: _checkbox, radioBuilder: _radio),
+    builders: ElComponents(button: _button, checkbox: _checkbox, radio: _radio),
     child: ElView(
       style: ElStyle(alignment: .topLeft),
       child: child,
@@ -36,7 +36,7 @@ class _Model extends ValueNotifier<bool> {
 
 Widget _toggle(String kind, {ValueNotifier<bool>? model, ValueChanged<bool>? onChanged, bool disabled = false}) =>
     switch (kind) {
-      'button' => ElToggleButton(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
+      'button' => ElButton.toggle(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
       'checkbox' => ElCheckbox.toggle(
         key: ValueKey('control'),
         modelValue: model,
