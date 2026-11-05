@@ -6,7 +6,7 @@ import '../view.dart';
 import '../view/base.dart';
 import 'press_feedback.dart';
 
-/// 独立高级示例的统一目录，页面由 Navigator 推入，不登记深度路由。
+/// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(key: 'view', title: 'ElView 测试', icon: ElIcon(Icons.web_outlined), data: (_) => ElViewPage()),
   ElMenuModel(

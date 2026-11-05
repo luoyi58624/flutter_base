@@ -8,7 +8,9 @@
 
 新增导航页面时，在 `pages/` 建立独立文件，用 `ExamplePage` 包裹正文，再在 `pages.dart` 或组件目录登记标题、图标和工厂。正文只写一份；间距和列数由可用宽度调整。
 
-首页的综合展示拆在 `pages/showcase/`，先保留首屏和按钮两个分区。高级示例单独在 `pages/examples/catalog.dart` 声明，两端目录都使用移动端的 `ElListGroup` / `ElListTile`，通过 `RouterUtil.push` 调用原生 `Navigator.push`，不登记 `/examples/...` 路由。设置页继续两端共用。
+首页的综合展示拆在 `pages/showcase/`，先保留首屏和按钮两个分区。高级示例单独在 `pages/examples/catalog.dart` 声明，两端目录都使用移动端的 `ElListGroup` / `ElListTile`，通过 `RouterUtil.push` 调用原生 `Navigator.push`。同一份目录同时生成 `/examples/<key>` 深度路由，直接进入时在根导航器覆盖页面壳，返回后进入示例目录。设置页继续两端共用。
+
+Android 接收 `flutter-base://example/<path>`，由 Flutter 内建深度链接处理器交给现有 GoRouter。启动默认位置只用于没有外部路径的情况。所有页面地址与启动命令见 [example README](../../../README.md)。
 
 两端壳使用同一个根页面标识，切换断点时保留其上命令式推入的示例。独立示例复用 `ExamplePage`，自动提供本页的导航头和返回入口。
 

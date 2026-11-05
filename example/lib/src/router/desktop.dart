@@ -22,6 +22,7 @@ RoutingConfig get desktopRoute => RoutingConfig(
           RouterUtil.desktopPages,
           pageBuilder: (context, state, page) =>
               NoTransitionPage(key: state.pageKey, child: RouterUtil.buildPage(context, page)),
+          routes: (page) => page.key == RouterUtil.examples ? RouterUtil.exampleRoutes() : [],
         ),
       ],
     ),

@@ -43,6 +43,7 @@ RoutingConfig get mobileRoute => RoutingConfig(
             GoRoute(
               path: RouterUtil.examples,
               builder: (context, state) => RouterUtil.buildRootPage(context, RouterUtil.examples),
+              routes: RouterUtil.exampleRoutes(),
             ),
           ],
         ),

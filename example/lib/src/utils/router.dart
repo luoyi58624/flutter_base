@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../pages/components/catalog.dart';
 import '../pages/example_page.dart';
+import '../pages/examples/catalog.dart';
 import '../router/pages.dart';
 
 /// 从现有菜单生成路由路径与页面。
@@ -46,6 +47,13 @@ abstract final class RouterUtil {
     rootNavigator: true,
   ).push<T>(MaterialPageRoute(builder: (context) => _IndependentExample(builder: builder)));
 
+  /// 独立示例复用同一份目录生成深度路由，覆盖导航壳并保留返回目录的路径。
+  static List<GoRoute> exampleRoutes() => pageToRoute(
+    advancedExamples,
+    parentNavigatorKey: rootNavigatorKey,
+    builder: (context, state, page) => _IndependentExample(builder: page.data!),
+  );
+
   /// 由同一份页面声明读取导航标题，查询参数和锚点不影响匹配。
   static String titleOf(Uri location) {
     for (final page in desktopPages) {
@@ -60,6 +68,7 @@ abstract final class RouterUtil {
     GlobalKey<NavigatorState>? parentNavigatorKey,
     Widget Function(BuildContext, GoRouterState, ElMenuModel<WidgetBuilder>)? builder,
     Page<dynamic> Function(BuildContext, GoRouterState, ElMenuModel<WidgetBuilder>)? pageBuilder,
+    List<RouteBase> Function(ElMenuModel<WidgetBuilder>)? routes,
   }) => [
     for (final menu in pages)
       for (final page in _leaves(menu))
@@ -68,6 +77,7 @@ abstract final class RouterUtil {
           parentNavigatorKey: parentNavigatorKey,
           builder: builder == null ? null : (context, state) => builder(context, state, page),
           pageBuilder: pageBuilder == null ? null : (context, state) => pageBuilder(context, state, page),
+          routes: routes?.call(page) ?? [],
         ),
   ];
 
