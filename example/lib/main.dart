@@ -6,8 +6,10 @@ import 'package:flutter_base/mobile.dart';
 import 'src/router/index.dart';
 import 'src/state/index.dart';
 
-void main() {
+Future<void> main() async {
   ElWidgetsFlutterBinding.ensureInitialized();
+  await el.initStorage(key: 'flutter_base_example', debounceTime: 0);
+  GlobalState.restoreSettings();
   // runApp(DemoTestApp());
   runApp(App(systemFontWeight: AndroidSystemFontWeight.getWght()));
 }

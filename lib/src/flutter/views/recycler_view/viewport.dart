@@ -737,9 +737,6 @@ class _RecyclerViewportRenderBox extends RenderBox
   }
 
   @override
-  bool get isRepaintBoundary => true;
-
-  @override
   void setupParentData(RenderBox child) {
     if (child.parentData is! _RecyclerParentData) child.parentData = _RecyclerParentData();
   }

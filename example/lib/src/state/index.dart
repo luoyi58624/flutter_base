@@ -27,25 +27,54 @@ class GlobalState {
   const GlobalState._();
 
   /// 是否使用暗色主题。
-  static final isDark = Obs(false);
+  static final isDark = Obs(false, cacheKey: 'example.settings.isDark');
 
   /// 是否显示 Flutter 性能图层。
-  static final showPerformanceOverlay = Obs(false);
+  static final showPerformanceOverlay = Obs(false, cacheKey: 'example.settings.showPerformanceOverlay');
 
   /// 是否显示调试横幅。
-  static final debugShowCheckedModeBanner = Obs(true);
+  static final debugShowCheckedModeBanner = Obs(true, cacheKey: 'example.settings.debugShowCheckedModeBanner');
 
   /// 是否屏蔽整个示例应用的辅助技术语义。
-  static final excludeSemantics = Obs(false);
+  static final excludeSemantics = Obs(false, cacheKey: 'example.settings.excludeSemantics');
 
   /// 所有通用文档页使用的滚动实现。
-  static final docScrollMode = Obs(DocScrollMode.elScrollView);
+  static final docScrollMode = Obs(
+    DocScrollMode.elScrollView,
+    cacheKey: 'example.settings.docScrollMode',
+    serialize: ElEnumSerialize<DocScrollMode>(DocScrollMode.values),
+  );
 
   /// 所有通用文档页正文小节的重复倍数。
-  static final docRepeatCount = Obs(1);
+  static final docRepeatCount = _createRepeatCountSetting();
 
   /// 是否启用当前应用绑定实际配置的触摸重采样。
   static final resamplingEnabled = _createResamplingSetting();
+
+  /// 在存储初始化后恢复全部设置，并通知监听器立即应用系统配置。
+  static void restoreSettings() {
+    for (final setting in [
+      isDark,
+      showPerformanceOverlay,
+      debugShowCheckedModeBanner,
+      excludeSemantics,
+      docScrollMode,
+      docRepeatCount,
+      resamplingEnabled,
+    ]) {
+      setting.notify();
+    }
+  }
+}
+
+Obs<int> _createRepeatCountSetting() {
+  final setting = Obs(1, cacheKey: 'example.settings.docRepeatCount');
+  if (![1, 2, 5, 10, 20].contains(setting.rawValue)) {
+    // 旧缓存只允许恢复设置菜单实际提供的倍率，避免异常值放大整页工作量。
+    setting.storage.removeItem(setting.cacheKey!);
+    setting.rawValue = 1;
+  }
+  return setting;
 }
 
 Obs<bool> _createResamplingSetting() {
@@ -54,9 +83,9 @@ Obs<bool> _createResamplingSetting() {
   final originalOfficialResampling = binding.resamplingEnabled;
   final originalTouchResamplingEnabled = binding is ElWidgetsFlutterBinding ? binding.touchResamplingEnabled : false;
   final originalResamplingEnabled = originalTouchResamplingEnabled || originalOfficialResampling;
-  final setting = Obs<bool>(originalResamplingEnabled);
-  setting.addListener(() {
-    final enabled = setting.value;
+  final setting = Obs<bool>(originalResamplingEnabled, cacheKey: 'example.settings.resamplingEnabled');
+  void apply() {
+    final enabled = setting.rawValue;
     if (binding is ElWidgetsFlutterBinding) {
       if (enabled) {
         binding.touchResamplingEnabled = originalResamplingEnabled ? originalTouchResamplingEnabled : true;
@@ -68,6 +97,10 @@ Obs<bool> _createResamplingSetting() {
     } else {
       binding.resamplingEnabled = enabled;
     }
-  });
+  }
+
+  setting.addListener(apply);
+  // Obs 已同步恢复缓存，启动时就应用真实输入开关，不等用户重新打开设置页。
+  apply();
   return setting;
 }

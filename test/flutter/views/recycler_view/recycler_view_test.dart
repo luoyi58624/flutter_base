@@ -35,6 +35,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('每项独立重绘边界让稳定内容在滚动平移时复用已有绘制', (tester) async {
+    final adapter = _RowsAdapter(count: 100, paintProbe: true);
+    final layout = rv.LinearLayoutManager()..setItemPrefetchEnabled(false);
+    final list = _list(adapter, layout: layout)..setItemViewCacheSize(0);
+    await _pump(tester, list);
+
+    final boundaries = <Element>{};
+    for (final holder in adapter.holders) {
+      final item = find.byWidget(holder.itemView, skipOffstage: false);
+      final boundary = find
+          .ancestor(of: item, matching: find.byType(RepaintBoundary, skipOffstage: false))
+          .evaluate()
+          .first;
+      expect(boundaries.add(boundary), isTrue, reason: '每个 holder 应有自己的最近重绘边界');
+    }
+    final stableHolders = {
+      for (final position in [1, 2, 3]) position: list.findViewHolderForAdapterPosition(position)!,
+    };
+    final paintCounts = {for (final position in stableHolders.keys) position: adapter.tracker.paintCounts[position]!};
+    final tops = {
+      for (final entry in stableHolders.entries) entry.key: tester.getTopLeft(find.byWidget(entry.value.itemView)).dy,
+    };
+    expect(paintCounts.values.every((count) => count > 0), isTrue);
+    expect(adapter.tracker.paintCounts[5] ?? 0, 0);
+
+    for (var frame = 1; frame <= 3; frame++) {
+      list.scrollBy(0, 24);
+      await tester.pump();
+      for (final entry in stableHolders.entries) {
+        expect(list.findViewHolderForAdapterPosition(entry.key), same(entry.value));
+        expect(tester.getTopLeft(find.byWidget(entry.value.itemView)).dy, closeTo(tops[entry.key]! - frame * 24, .01));
+        expect(adapter.tracker.paintCounts[entry.key], paintCounts[entry.key], reason: '仅平移的稳定条目无需重新 paint');
+      }
+    }
+    expect(adapter.tracker.paintCounts[5], greaterThan(0), reason: '新进入视口的条目仍必须实际绘制');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('不同 viewType 不会相互复用', (tester) async {
     final adapter = _RowsAdapter(count: 150, types: 3);
     final list = _list(adapter)..setItemViewCacheSize(0);
@@ -657,6 +696,7 @@ class _Tracker {
   final initializations = <int, int>{};
   final disposals = <int>{};
   final ticks = <int, int>{};
+  final paintCounts = <int, int>{};
 }
 
 class _RowHolder extends rv.ViewHolder {
@@ -675,6 +715,7 @@ class _RowsAdapter extends rv.Adapter<_RowHolder> {
     bool varyingExtent = false,
     this.horizontal = false,
     this.ticking = false,
+    this.paintProbe = false,
   }) : items = List.generate(
          count,
          (index) => _Item(firstId + index, type: index % types, extent: varyingExtent ? 40 + (index % 3) * 20.0 : 48),
@@ -683,6 +724,7 @@ class _RowsAdapter extends rv.Adapter<_RowHolder> {
   final List<_Item> items;
   final bool horizontal;
   final bool ticking;
+  final bool paintProbe;
   final tracker = _Tracker();
   final holders = <_RowHolder>[];
   final positionsByHolder = <int, Set<int>>{};
@@ -708,7 +750,14 @@ class _RowsAdapter extends rv.Adapter<_RowHolder> {
       serial,
       viewType,
       model,
-      _RowProbe(serial: serial, model: model, tracker: tracker, horizontal: horizontal, ticking: ticking),
+      _RowProbe(
+        serial: serial,
+        model: model,
+        tracker: tracker,
+        horizontal: horizontal,
+        ticking: ticking,
+        paintProbe: paintProbe,
+      ),
     );
     holders.add(holder);
     return holder;
@@ -743,6 +792,7 @@ class _RowProbe extends StatefulWidget {
     required this.tracker,
     required this.horizontal,
     this.ticking = false,
+    this.paintProbe = false,
   });
 
   final int serial;
@@ -750,6 +800,7 @@ class _RowProbe extends StatefulWidget {
   final _Tracker tracker;
   final bool horizontal;
   final bool ticking;
+  final bool paintProbe;
 
   @override
   State<_RowProbe> createState() => _RowProbeState();
@@ -779,13 +830,34 @@ class _RowProbeState extends State<_RowProbe> with SingleTickerProviderStateMixi
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<_Item>(
     valueListenable: widget.model,
-    builder: (context, item, child) => SizedBox(
-      width: widget.horizontal ? item.extent : null,
-      height: widget.horizontal ? null : item.extent,
-      child: Semantics(
+    builder: (context, item, child) {
+      final content = Semantics(
         label: 'item ${item.id}',
         child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () {}, child: Text(item.title)),
-      ),
-    ),
+      );
+      return SizedBox(
+        width: widget.horizontal ? item.extent : null,
+        height: widget.horizontal ? null : item.extent,
+        child: widget.paintProbe
+            ? CustomPaint(painter: _CountingPainter(item.id, widget.tracker), child: content)
+            : content,
+      );
+    },
   );
+}
+
+class _CountingPainter extends CustomPainter {
+  _CountingPainter(this.itemId, this.tracker);
+
+  final int itemId;
+  final _Tracker tracker;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    tracker.paintCounts.update(itemId, (count) => count + 1, ifAbsent: () => 1);
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.blue);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CountingPainter oldDelegate) => itemId != oldDelegate.itemId;
 }
