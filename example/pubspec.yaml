@@ -28,4 +28,5 @@ flutter:
         - asset: assets/fonts/Consolas-Regular.ttf
   assets:
     - lib/src/pages/components/basic/button/examples/
+    - lib/src/pages/components/basic/button_group/examples/
     - lib/src/pages/components/list/list_tile/examples/

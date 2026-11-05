@@ -55,7 +55,7 @@ void main() {
     await _openCatalog(tester);
     final catalog = find.byKey(PageStorageKey('component-catalog'));
     final placeholders = RouterUtil.pages.where(
-      (page) => !['button', 'list-tile', 'shadow-design'].contains(page.key),
+      (page) => !['button', 'button-group', 'list-tile', 'shadow-design'].contains(page.key),
     );
 
     for (final page in placeholders) {

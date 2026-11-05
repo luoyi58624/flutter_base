@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../example_page.dart';
 import 'basic/button/index.dart';
+import 'basic/button_group/index.dart';
 import 'list/list_tile/index.dart';
 import 'start/shadow/index.dart';
 
@@ -22,7 +23,7 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
     title: '基础组件',
     children: [
       _page('button', 'Button 按钮', builder: (_) => ButtonPage()),
-      _page('button-group', 'ButtonGroup 按钮组'),
+      _page('button-group', 'ButtonGroup 按钮组', builder: (_) => ButtonGroupPage()),
       _page('icon', 'Icon 图标'),
       _page('text', 'Text 文本'),
       _page('tag', 'Tag 标签'),
