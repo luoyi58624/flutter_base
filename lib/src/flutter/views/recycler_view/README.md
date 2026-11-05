@@ -146,6 +146,8 @@ class RowsAdapter extends rv.Adapter<RowHolder> {
 
 按钮文档提供相同内容的两种运行入口：
 
+正文上方的「滚动对比」开关可以随时切换：关闭使用 `ElScrollView`，开启使用 `RecyclerView`。深度链接的 `recycler` 参数与开关同步，切换保留 `repeat` 等其他参数；直接从组件目录打开也能使用开关。
+
 - RecyclerView：`flutter-base://example/components/button?recycler=true&repeat=100`
 - 原滚动容器：`flutter-base://example/components/button?repeat=100`
 

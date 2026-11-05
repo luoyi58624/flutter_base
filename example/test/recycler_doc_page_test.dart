@@ -7,9 +7,9 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-Future<GoRouter> _openButtonRoute(WidgetTester tester, String location) async {
+Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double width = 390}) async {
   tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = Size(390, 844);
+  tester.view.physicalSize = Size(width, 844);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
   final router = GoRouter(
@@ -43,6 +43,29 @@ void _expectRealExample(rv.RecyclerView recyclerView, int position) {
   final layout = recyclerView.getLayoutManager()! as rv.LinearLayoutManager;
   expect(layout.findFirstVisibleItemPosition(), lessThanOrEqualTo(position));
   expect(layout.findLastVisibleItemPosition(), greaterThanOrEqualTo(position));
+}
+
+Finder _scrollSwitch() => find.byKey(ValueKey('button-scroll-recycler-switch'));
+
+void _expectScrollMode(WidgetTester tester, {required bool recycler, required int repeat}) {
+  expect(_scrollSwitch(), findsOneWidget);
+  expect(tester.widget<Switch>(_scrollSwitch()).value, recycler);
+  expect(find.text(recycler ? 'RecyclerView' : 'ElScrollView'), findsOneWidget);
+  final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+  expect(page.useRecyclerView, recycler);
+  expect(page.repeatCount, repeat);
+  final itemCount = page.sections.length * repeat + 1;
+  if (recycler) {
+    expect(find.byType(rv.RecyclerView), findsOneWidget);
+    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+    expect(list.getAdapter()!.getItemCount(), itemCount);
+  } else {
+    expect(find.byType(rv.RecyclerView), findsNothing);
+    expect(find.byType(ElScrollView), findsOneWidget);
+    final list = tester.widget<ElListView>(find.byType(ElListView).first);
+    expect(list.itemCount, itemCount);
+    expect(list.keepAlive, isFalse);
+  }
 }
 
 void main() {
@@ -101,6 +124,90 @@ void main() {
     expect(list.keepAlive, isFalse);
     expect(list.itemCount, page.sections.length + 1);
     expect(find.byType(ElCodeExample), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('窄屏按钮页可点开关往返两条滚动管线并保留查询参数和片段', (tester) async {
+    final router = await _openButtonRoute(
+      tester,
+      '/components/button?repeat=3&source=phone&flag=yes#compare',
+      width: 320,
+    );
+    _expectScrollMode(tester, recycler: false, repeat: 3);
+    expect(_scrollSwitch().hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(_scrollSwitch());
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: true, repeat: 3);
+    var uri = router.routeInformationProvider.value.uri;
+    expect(uri.path, '/components/button');
+    expect(uri.queryParameters['recycler'], 'true');
+    expect(uri.queryParameters['repeat'], '3');
+    expect(uri.queryParameters['source'], 'phone');
+    expect(uri.queryParameters['flag'], 'yes');
+    expect(uri.fragment, 'compare');
+
+    final switchCenter = tester.getCenter(_scrollSwitch());
+    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+    list.scrollToPosition(page.sections.length * 2 + 1);
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(_scrollSwitch()), switchCenter);
+    expect(_scrollSwitch().hitTestable(), findsOneWidget);
+
+    await tester.tap(_scrollSwitch());
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: false, repeat: 3);
+    uri = router.routeInformationProvider.value.uri;
+    expect(uri.queryParameters['recycler'], isNot('true'));
+    expect(uri.queryParameters['repeat'], '3');
+    expect(uri.queryParameters['source'], 'phone');
+    expect(uri.queryParameters['flag'], 'yes');
+    expect(uri.fragment, 'compare');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('外部深链 true 和 false 同步开关与当前滚动管线', (tester) async {
+    final router = await _openButtonRoute(tester, '/components/button?repeat=2');
+    _expectScrollMode(tester, recycler: false, repeat: 2);
+
+    router.go('/components/button?recycler=true&repeat=2');
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: true, repeat: 2);
+    expect(tester.takeException(), isNull);
+
+    router.go('/components/button?recycler=false&repeat=2');
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: false, repeat: 2);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('不安装 GoRouter 时按钮页仍可在窄屏本地切换', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(320, 740);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      ElComponentProvider(
+        components: el.mobileComponents,
+        child: MaterialApp(home: ButtonPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: false, repeat: 1);
+
+    await tester.tap(_scrollSwitch());
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: true, repeat: 1);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(_scrollSwitch());
+    await tester.pumpAndSettle();
+    _expectScrollMode(tester, recycler: false, repeat: 1);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

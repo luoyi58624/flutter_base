@@ -32,6 +32,7 @@ class ComponentDocPage extends HookWidget {
     required this.description,
     required this.sections,
     this.useRecyclerView = false,
+    this.onScrollModeChanged,
     this.repeatCount = 1,
   }) : assert(repeatCount > 0);
 
@@ -46,6 +47,9 @@ class ComponentDocPage extends HookWidget {
 
   /// 使用 RecyclerView 的模板创建、绑定与回收管线展示相同内容。
   final bool useRecyclerView;
+
+  /// 提供时在正文上方显示固定的滚动实现切换开关。
+  final ValueChanged<bool>? onScrollModeChanged;
 
   /// 重复正文小节的次数，两条滚动管线使用相同的条目数量。
   final int repeatCount;
@@ -84,7 +88,7 @@ class ComponentDocPage extends HookWidget {
               final showContents = constraints.maxWidth >= 880;
               final padding = showContents ? 32.0 : 16.0;
               recyclerView?.setPadding(padding, 24, padding, 32);
-              return Row(
+              final content = Row(
                 crossAxisAlignment: .start,
                 children: [
                   Expanded(
@@ -141,6 +145,33 @@ class ComponentDocPage extends HookWidget {
                         ),
                       ),
                     ),
+                ],
+              );
+              if (onScrollModeChanged == null) return content;
+              return Column(
+                crossAxisAlignment: .stretch,
+                children: [
+                  Padding(
+                    padding: .fromLTRB(padding, 8, padding, 0),
+                    child: ElCardView(
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('滚动对比')),
+                          Text(useRecyclerView ? 'RecyclerView' : 'ElScrollView'),
+                          SizedBox(width: 8),
+                          Tooltip(
+                            message: useRecyclerView ? '切换到 ElScrollView' : '切换到 RecyclerView',
+                            child: Switch(
+                              key: ValueKey('button-scroll-recycler-switch'),
+                              value: useRecyclerView,
+                              onChanged: onScrollModeChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(child: content),
                 ],
               );
             },

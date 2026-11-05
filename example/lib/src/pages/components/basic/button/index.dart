@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/flutter_base.dart' show HookWidget, useState;
 import 'package:go_router/go_router.dart';
 
 import '../../doc_page.dart';
@@ -14,7 +15,7 @@ import 'examples/example9.dart';
 import 'examples/example10.dart';
 
 /// 桌面与移动目录共用的 Button 文档页。
-class ButtonPage extends StatelessWidget {
+class ButtonPage extends HookWidget {
   /// 创建 Button 文档页。
   const ButtonPage({super.key});
 
@@ -22,14 +23,25 @@ class ButtonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final query = GoRouter.maybeOf(context) == null
-        ? <String, String>{}
-        : GoRouterState.of(context).uri.queryParameters;
+    final router = GoRouter.maybeOf(context);
+    final uri = router == null ? null : GoRouterState.of(context).uri;
+    final query = uri?.queryParameters ?? <String, String>{};
+    final localRecyclerView = useState(false);
+    final useRecyclerView = uri == null ? localRecyclerView.value : query['recycler'] == 'true';
     final repeatCount = (int.tryParse(query['repeat'] ?? '') ?? 1).clamp(1, 1000).toInt();
     return ComponentDocPage(
       title: 'Button 按钮',
       description: '常用的操作按钮，支持实心、描边、文字、链接与图标等外观。',
-      useRecyclerView: query['recycler'] == 'true',
+      useRecyclerView: useRecyclerView,
+      onScrollModeChanged: (value) {
+        if (router == null || uri == null) {
+          localRecyclerView.value = value;
+        } else {
+          // 只替换滚动开关，保留重复数量、多值查询参数与锚点，避免比较时内容变化。
+          final parameters = <String, dynamic>{...uri.queryParametersAll, 'recycler': value.toString()};
+          router.replace(uri.replace(queryParameters: parameters).toString());
+        }
+      },
       repeatCount: repeatCount,
       sections: [
         ComponentDocSection(
