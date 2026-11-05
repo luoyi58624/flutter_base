@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/src/ui/mobile/components/loading/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/progress/index.dart' as skin;
-import 'package:flutter_base/src/ui/mobile/cores/glyph.dart' as skin;
+import 'package:flutter_base/src/ui/mobile/commons/icons.dart' as skin;
 
 Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   home: MediaQuery(
@@ -30,9 +30,10 @@ void _expectGlyph(WidgetTester tester, Finder component, double extent, {double?
   final rect = tester.getRect(glyph);
   expect(rect.width, closeTo(extent, .000001));
   expect(rect.height, closeTo(extent, .000001));
+  final icon = tester.widget<skin.Glyph>(glyph);
   final frame = find.descendant(
     of: component,
-    matching: find.byWidgetPredicate((w) => w is ElView && w.style?.width == extent && w.style?.height == extent),
+    matching: find.byWidgetPredicate((widget) => widget is ElView && identical(widget.child, icon)),
   );
   expect(frame, findsOneWidget);
   final frameRect = tester.getRect(frame);

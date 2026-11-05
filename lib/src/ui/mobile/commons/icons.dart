@@ -1,10 +1,116 @@
-/// 参照：D:/project/html/my-ui/packages/core/my-ui.js:13-59、1377-1394；my-ui.css:154-163、3771-3780。
-library;
-
+// 参照：D:/project/html/my-ui/packages/core/my-ui.js:13-59、1377-1394；my-ui.css:154-163、3771-3780。
 import 'package:flutter/rendering.dart' show PipelineOwner;
 import 'package:flutter/widgets.dart';
 
 import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
+
+/// 移动端使用的 SVG 图标。
+abstract final class ElMobileIcons {
+  /// 太阳图标。
+  static const Widget sun = Glyph(name: 'sun');
+
+  /// 眼睛图标。
+  static const Widget eye = Glyph(name: 'eye');
+
+  /// 隐藏图标。
+  static const Widget eyeOff = Glyph(name: 'eye-off');
+
+  /// 向右箭头图标。
+  static const Widget arrowRight = Glyph(name: 'arrow-right');
+
+  /// 向右折线箭头图标。
+  static const Widget chevronRight = Glyph(name: 'chevron-right');
+
+  /// 上下折线箭头图标。
+  static const Widget chevronsUpDown = Glyph(name: 'chevrons-up-down');
+
+  /// 勾选图标。
+  static const Widget check = Glyph(name: 'check');
+
+  /// 铃铛图标。
+  static const Widget bell = Glyph(name: 'bell');
+
+  /// 云图标。
+  static const Widget cloud = Glyph(name: 'cloud');
+
+  /// 闪光图标。
+  static const Widget spark = Glyph(name: 'spark');
+
+  /// 搜索图标。
+  static const Widget search = Glyph(name: 'search');
+
+  /// 关闭叉图标。
+  static const Widget x = Glyph(name: 'x');
+
+  /// 爱心图标。
+  static const Widget heart = Glyph(name: 'heart');
+
+  /// 分享图标。
+  static const Widget share = Glyph(name: 'share');
+
+  /// 添加图标。
+  static const Widget add = Glyph(name: 'add');
+
+  /// 月亮图标。
+  static const Widget moon = Glyph(name: 'moon');
+
+  /// 盾牌图标。
+  static const Widget shield = Glyph(name: 'shield');
+
+  /// 无线网络图标。
+  static const Widget wifi = Glyph(name: 'wifi');
+
+  /// 滑杆设置图标。
+  static const Widget sliders = Glyph(name: 'sliders');
+
+  /// 时钟图标。
+  static const Widget clock = Glyph(name: 'clock');
+
+  /// 公文包图标。
+  static const Widget briefcase = Glyph(name: 'briefcase');
+
+  /// 网格图标。
+  static const Widget grid = Glyph(name: 'grid');
+
+  /// 首页图标。
+  static const Widget home = Glyph(name: 'home');
+
+  /// 用户图标。
+  static const Widget user = Glyph(name: 'user');
+
+  /// 消息图标。
+  static const Widget message = Glyph(name: 'message');
+
+  /// 图层图标。
+  static const Widget layer = Glyph(name: 'layer');
+
+  /// 收件箱图标。
+  static const Widget inbox = Glyph(name: 'inbox');
+
+  /// 图片图标。
+  static const Widget image = Glyph(name: 'image');
+
+  /// 垃圾桶图标。
+  static const Widget trash = Glyph(name: 'trash');
+
+  /// 复制图标。
+  static const Widget copy = Glyph(name: 'copy');
+
+  /// 文件图标。
+  static const Widget file = Glyph(name: 'file');
+
+  /// 信息图标。
+  static const Widget info = Glyph(name: 'info');
+
+  /// 圆形警示图标。
+  static const Widget alertCircle = Glyph(name: 'alert-circle');
+
+  /// 三角警示图标。
+  static const Widget alertTriangle = Glyph(name: 'alert-triangle');
+
+  /// 加载圆弧图标，可与 ElLoading 组合使用。
+  static const Widget loading = Glyph(spinner: true);
+}
 
 /// SVG 读取最近 ElView 的图标尺寸和颜色，样式过渡直接驱动布局与绘制。
 class Glyph extends LeafRenderObjectWidget {

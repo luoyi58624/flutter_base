@@ -1,9 +1,8 @@
-import 'package:flutter_base/src/ui/desktop/components/icon/index.dart';
-import 'package:flutter_base/src/ui/testing/ui_test_api.dart' hide ElIcon;
+import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
 import 'dart:ui' show PointerDeviceKind, Tristate;
 
-import 'package:flutter_base/desktop.dart' hide ElIcon;
+import 'package:flutter_base/desktop.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -102,9 +101,9 @@ void main() {
       );
       await tester.pump();
       expect(tester.getSize(find.byType(ElInputNumber)), Size(compact ? 120 : 150, compact ? 24 : 32));
-      expect(tester.getSize(_buttonFinder(ElIcons.plus)).height, compact ? 24 : 32);
+      expect(tester.getSize(_buttonFinder(ElDesktopIcons.plus)).height, compact ? 24 : 32);
       expect(
-        tester.getSize(find.byWidgetPredicate((widget) => widget is ElIcon && widget.child == ElIcons.plus)).width,
+        tester.getSize(find.byWidgetPredicate((widget) => widget is ElIcon && widget.child == ElDesktopIcons.plus)).width,
         compact ? 11 : 12,
       );
       expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
@@ -134,11 +133,11 @@ void main() {
       final obs = Obs<num?>(3);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 4);
       expect(_displayed(tester), '4');
 
-      await _tapIcon(tester, ElIcons.minus);
+      await _tapIcon(tester, ElDesktopIcons.minus);
       expect(obs.value, 3);
     });
 
@@ -155,7 +154,7 @@ void main() {
 
       expect(_displayed(tester), '5', reason: '首帧就该是表单值');
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(model.value['count'], 6, reason: '步进要写回表单 map');
     });
 
@@ -178,19 +177,19 @@ void main() {
       final obs = Obs<num?>(9);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, max: 10)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 10);
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 10, reason: '到顶不再增长');
-      expect((_button(tester, ElIcons.plus).event?.disabled ?? false), isTrue, reason: '到顶应锁禁用，而非静默吞点击');
+      expect((_button(tester, ElDesktopIcons.plus).event?.disabled ?? false), isTrue, reason: '到顶应锁禁用，而非静默吞点击');
     });
 
     testWidgets('空值起步取 min', (tester) async {
       final obs = Obs<num?>(null);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, min: 3)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 3, reason: '空态点 + 落到最小可用值');
     });
 
@@ -198,7 +197,7 @@ void main() {
       final obs = Obs<num?>(1);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, step: 0.1, precision: 1)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 1.1, reason: '不该出 1.1000000000000001');
       expect(_displayed(tester), '1.1');
     });
@@ -207,7 +206,7 @@ void main() {
       final obs = Obs<num?>(7);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, step: 5, stepStrictly: true)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 10, reason: '7 + 5 = 12 → 吸附到最近的 5 的倍数');
     });
 
@@ -215,7 +214,7 @@ void main() {
       final obs = Obs<num?>(1);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, disabled: true)));
 
-      await _tapIcon(tester, ElIcons.plus);
+      await _tapIcon(tester, ElDesktopIcons.plus);
       expect(obs.value, 1);
     });
 
@@ -230,8 +229,8 @@ void main() {
 
     testWidgets('controlsPosition.right 出上下两钮', (tester) async {
       await tester.pumpWidget(_host(ElInputNumber(value: 1, controlsPosition: ElInputNumberControls.right)));
-      expect(_buttonFinder(ElIcons.arrowUp), findsOneWidget);
-      expect(_buttonFinder(ElIcons.arrowDown), findsOneWidget);
+      expect(_buttonFinder(ElDesktopIcons.arrowUp), findsOneWidget);
+      expect(_buttonFinder(ElDesktopIcons.arrowDown), findsOneWidget);
     });
 
     testWidgets('controls: false 不出钮', (tester) async {

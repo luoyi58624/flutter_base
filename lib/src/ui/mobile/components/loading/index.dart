@@ -8,8 +8,8 @@ import '../../../../flutter/components/loading_indicator/index.dart' show ElLoad
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle, ElTransform;
 import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../commons/icons.dart' show ElMobileIcons;
 import '../../cores/common.dart';
-import '../../cores/glyph.dart';
 
 /// 使用既有移动端圆弧承接公共加载指示声明。
 Widget loadingIndicatorBuilder(BuildContext context, ElLoadingIndicator component) =>
@@ -85,7 +85,7 @@ class Loading extends StatelessWidget {
                         ),
                       ],
               ),
-              child: const Glyph(spinner: true),
+              child: ElMobileIcons.loading,
             ),
           ),
           if (child != null) ElView(style: const ElStyle(fontSize: 13, lineHeight: 1.5), child: child),

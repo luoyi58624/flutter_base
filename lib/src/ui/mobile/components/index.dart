@@ -4,7 +4,6 @@ import '../../../../flutter.dart';
 import '../../../dart/commons/index.dart' show El;
 import 'button/index.dart';
 import 'card/index.dart';
-import 'icon/index.dart';
 import 'list_tile/index.dart';
 import 'loading/index.dart';
 import 'progress/index.dart';
@@ -30,7 +29,6 @@ final _components = ElComponents(
   card: cardBuilder,
   tag: tagBuilder,
   switcher: switchBuilder,
-  icon: iconBuilder,
   listTile: listTileBuilder,
   listTileGroup: listTileGroupBuilder,
   loadingIndicator: loadingIndicatorBuilder,

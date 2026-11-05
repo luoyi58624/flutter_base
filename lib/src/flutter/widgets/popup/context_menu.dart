@@ -6,7 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../components/icon/content.dart';
+import '../icon/content.dart';
 import '../../utils/internal/focus.dart';
 import '../../views/selection/common/selection_chrome_host.dart' show SelectionChromeMountHost, SelectionChromeSlot;
 import '../../views/view/event/event.dart';

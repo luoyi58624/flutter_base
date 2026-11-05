@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/desktop.dart' show ElDesktopExt, ElNavMenu;
-import 'package:flutter_base/src/flutter/components/icon/content.dart';
-import 'package:flutter_base/src/ui/mobile/cores/glyph.dart';
+import 'package:flutter_base/src/flutter/widgets/icon/content.dart';
+import 'package:flutter_base/src/ui/mobile/commons/icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -166,7 +166,7 @@ void main() {
     final glyph = Builder(
       builder: (_) {
         builds++;
-        return Glyph(name: 'plus');
+        return ElMobileIcons.add;
       },
     );
     await tester.pumpWidget(

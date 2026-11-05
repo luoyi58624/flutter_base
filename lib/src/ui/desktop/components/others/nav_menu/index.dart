@@ -7,7 +7,7 @@ Widget _builderSuffixIcon(ValueNotifier<bool> expanded) {
     duration: ElCollapseAnimation.defaultDuration,
     curve: ElCollapseAnimation.defaultCurve,
     turns: expanded.value ? 0.5 : 0,
-    child: const ElIcon(ElIcons.arrowDown, size: 14),
+    child: const ElIcon(ElDesktopIcons.arrowDown, size: 14),
   );
 }
 

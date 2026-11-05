@@ -10,8 +10,8 @@ import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventHandler;
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../commons/icons.dart' show ElMobileIcons;
 import '../../cores/common.dart';
-import '../../cores/glyph.dart';
 
 /// 为通用标签绘制移动端外观，值切换和主入口事件由 ElTag 统一持有。
 Widget tagBuilder(BuildContext context, ElTag component) =>
@@ -241,7 +241,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
                 iconSize: 14,
                 borderRadius: BorderRadius.all(Radius.circular(9)),
               ).merge(component.closeStyle),
-              child: const Glyph(name: 'x'),
+              child: ElMobileIcons.x,
             ),
         ],
       ),

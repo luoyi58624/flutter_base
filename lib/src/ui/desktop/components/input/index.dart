@@ -540,7 +540,7 @@ class Input extends ElInputModelValue<String> {
                   child: showClear
                       ? _InputActionIcon(
                           style: component.actionStyle,
-                          icon: ElIcons.circleClose,
+                          icon: ElDesktopIcons.circleClose,
                           size: iconSize,
                           extent: slotExtent,
                           onTap: () {
@@ -583,7 +583,7 @@ class Input extends ElInputModelValue<String> {
               child: showClear
                   ? _InputActionIcon(
                       style: component.actionStyle,
-                      icon: ElIcons.circleClose,
+                      icon: ElDesktopIcons.circleClose,
                       size: iconSize,
                       extent: slotExtent,
                       onTap: () {
@@ -609,7 +609,7 @@ class Input extends ElInputModelValue<String> {
               child: showPwd
                   ? _InputActionIcon(
                       style: component.actionStyle,
-                      icon: ElIcons.view,
+                      icon: ElDesktopIcons.view,
                       size: iconSize,
                       extent: slotExtent,
                       active: pwdVisible.value,

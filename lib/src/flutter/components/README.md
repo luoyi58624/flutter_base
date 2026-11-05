@@ -114,7 +114,7 @@ ElComponentProvider(
 | 保留并按本规范重写 | Button（含 .toggle）、Switch | 已完成 |
 | 保留并按本规范重写 | Steps、Avatar、Calendar、Collapse、Empty、Segmented、Tabs / TabBar、Alert、Tag、ButtonGroup、Checkbox / Group、Radio / Group、Input、InputNumber、InputOtp、InputTag、Select、Autocomplete、Mention、ListTile / ListGroup、Card、LoadingIndicator、Progress、Skeleton、Slider | 待迁移 |
 | 直接使用 Flutter Text | Text | 已完成 |
-| 改为基元层普通组件 | Icon | 待迁移 |
+| 改为基元层普通组件 | Icon | 已完成 |
 
 机制调整：
 

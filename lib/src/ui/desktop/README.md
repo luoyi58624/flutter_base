@@ -43,7 +43,7 @@ ElComponentProvider(
 | FormItem | [桌面预设](components/index.dart)，沿用源品牌的表单项实现 |
 | TableStyle | [table](components/table/README.md)，仅提供表格皮肤 |
 
-Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未安装通用 iconBuilder。图标字体 family 仍为 element，字体包归属改为 flutter_base。
+`ElDesktopIcons` 提供 Element 字体图标，可传给 `ElIcon` 或组件的图标插槽。
 
 ## 主题与覆盖
 

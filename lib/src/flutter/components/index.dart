@@ -17,7 +17,6 @@ import 'card/index.dart';
 import 'checkbox/index.dart';
 import 'collapse/index.dart';
 import 'empty/index.dart';
-import 'icon/index.dart';
 import 'input/index.dart';
 import 'input_number/index.dart';
 import 'input_otp/index.dart';
@@ -52,7 +51,6 @@ export 'input_otp/index.dart';
 export 'list_tile/index.dart';
 export 'card/index.dart';
 export 'loading_indicator/index.dart';
-export 'icon/index.dart';
 export 'progress/index.dart';
 export 'slider/index.dart';
 export 'skeleton/index.dart';
@@ -92,7 +90,6 @@ class ElComponents with Equatable {
     this.tableStyle,
     this.card,
     this.loadingIndicator,
-    this.icon,
     this.listTile,
     this.listTileGroup,
     this.progress,
@@ -167,9 +164,6 @@ class ElComponents with Equatable {
 
   /// 根据 ElLoadingIndicator 声明构建品牌组件。
   final Widget Function(BuildContext context, ElLoadingIndicator component)? loadingIndicator;
-
-  /// 根据 ElIcon 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElIcon component)? icon;
 
   /// 根据 ElListTile 声明构建品牌组件。
   final Widget Function<T>(BuildContext context, ElListTile<T> component)? listTile;

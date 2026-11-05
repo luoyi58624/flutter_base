@@ -39,7 +39,6 @@ void main() {
     expect(builders.button, isNotNull);
     expect(builders.tag, isNotNull);
     expect(builders.switcher, isNotNull);
-    expect(builders.icon, isNotNull);
     expect(builders.card, isNotNull);
     expect(builders.loadingIndicator, isNotNull);
     expect(builders.progress, isNotNull);

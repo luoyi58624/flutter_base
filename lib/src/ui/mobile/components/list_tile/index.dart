@@ -11,7 +11,7 @@ import '../../../../../dart.dart' show $absent;
 import '../../../../dart/gen/index.dart' show $absent;
 import '../../../../flutter/commons/models.dart' show ElLabelModel;
 import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
-import '../../../../flutter/components/icon/index.dart' show ElIcon;
+import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/components/list_tile/index.dart' show ElListGroup, ElListTile, ElMenuOption;
 import '../../../../flutter/utils/model_value/index.dart' show ElModelValueType;
 import '../../../../flutter/utils/util.dart' show ElFlutterUtil;

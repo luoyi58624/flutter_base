@@ -17,11 +17,12 @@ import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantic
 import '../../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormModelValue, ElInputModelValue;
+import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
+import '../../commons/icons.dart' show ElDesktopIcons;
 import '../../extensions/content.dart';
 import '../../extensions/el.dart';
-import '../icon/index.dart';
 import '../input/metrics.dart';
 import '../index.dart' show ElementPlusThemeData;
 
@@ -668,11 +669,11 @@ class _ElSelectBodyState<T> extends State<_ElSelectBody<T>> {
     if (!widget.config.showTrailingIcon) return null;
     if (_portal.isOpen) {
       return elContent(
-        widget.config.selectedTrailingIcon ?? ElIcon(ElIcons.arrowUp, size: iconSize),
+        widget.config.selectedTrailingIcon ?? ElIcon(ElDesktopIcons.arrowUp, size: iconSize),
         iconSize: iconSize,
       ) as Widget;
     }
-    return elContent(widget.config.trailingIcon ?? ElIcon(ElIcons.arrowDown, size: iconSize), iconSize: iconSize)
+    return elContent(widget.config.trailingIcon ?? ElIcon(ElDesktopIcons.arrowDown, size: iconSize), iconSize: iconSize)
         as Widget;
   }
 

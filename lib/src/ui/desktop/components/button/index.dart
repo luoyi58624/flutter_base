@@ -324,7 +324,7 @@ extension on ElButton {
   }
 
   /// 构建 loading 小部件
-  Widget _loadingWidget() => ElLoading(child: _iconWidget(ElIcons.loading));
+  Widget _loadingWidget() => ElLoading(child: _iconWidget(ElDesktopIcons.loading));
 
   /// 构建图标小部件
   Widget _iconWidget(Object? icon) => icon is IconData ? ElIcon(icon) : _dynamicWidget(icon);

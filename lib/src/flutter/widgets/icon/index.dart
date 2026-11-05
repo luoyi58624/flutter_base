@@ -1,46 +1,43 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/views/view/render/render_view.dart' show ElRenderView;
-import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
-import '../../../../flutter/views/view/style/style.dart' show ElStyle;
-import '../../../../flutter/views/view/view.dart' show ElView;
-import '../../../../flutter/widgets/others/loading.dart' show ElLoading;
+import '../../views/view/render/render_view.dart' show ElRenderView;
+import '../../views/view/semantics/semantics.dart' show ElSemantics;
+import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/view.dart' show ElView;
 
-part 'icons.dart';
-
-/// Element Plus 图标（官方 `<el-icon>`）。
+/// 使用 ElView 字形渲染的字体图标。
 ///
 /// 图标占用居中的正方形，尺寸和颜色通过 iconSize / iconColor 独立继承。
 /// 默认不随系统文字缩放；样式仍支持主题、状态变体、阴影与过渡。
 ///
-/// 旋转动画用 [ElLoading] 包裹（可对任意组件应用旋转）。
+/// 旋转动画可由 `ElLoading` 提供。
 class ElIcon extends StatelessWidget {
   /// 创建图标。
   const ElIcon(
-    this.child, {
-    super.key,
-    this.size,
-    this.color,
-    this.fill,
-    this.weight,
-    this.grade,
-    this.opticalSize,
-    this.fontWeight,
-    this.semanticLabel,
-    this.textDirection,
-    this.applyTextScaling = false,
-    this.style,
-  }) : assert(size == null || (size >= 0 && size < double.infinity)),
-       assert(fill == null || (fill >= 0 && fill <= 1)),
-       assert(weight == null || (weight > 0 && weight < double.infinity)),
-       assert(
-         grade == null ||
-             (grade > double.negativeInfinity && grade < double.infinity),
-       ),
-       assert(
-         opticalSize == null ||
-             (opticalSize > 0 && opticalSize < double.infinity),
-       );
+      this.child, {
+        super.key,
+        this.size,
+        this.color,
+        this.fill,
+        this.weight,
+        this.grade,
+        this.opticalSize,
+        this.fontWeight,
+        this.semanticLabel,
+        this.textDirection,
+        this.applyTextScaling = false,
+        this.style,
+      }) : assert(size == null || (size >= 0 && size < double.infinity)),
+        assert(fill == null || (fill >= 0 && fill <= 1)),
+        assert(weight == null || (weight > 0 && weight < double.infinity)),
+        assert(
+        grade == null ||
+            (grade > double.negativeInfinity && grade < double.infinity),
+        ),
+        assert(
+        opticalSize == null ||
+            (opticalSize > 0 && opticalSize < double.infinity),
+        );
 
   /// 图标字体信息；null 保留尺寸但不绘制。
   final IconData? child;

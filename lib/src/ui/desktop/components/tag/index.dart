@@ -122,6 +122,6 @@ class _TagClose extends StatelessWidget {
         transition: const [ElTransition.all(Duration(milliseconds: 150))],
       ).merge(override);
     })(context),
-    child: const ElIcon(ElIcons.close),
+    child: const ElIcon(ElDesktopIcons.close),
   );
 }

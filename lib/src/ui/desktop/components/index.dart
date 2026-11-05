@@ -3,8 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../dart/commons/index.dart' show El;
 import '../../../flutter/commons/models.dart' show ElLevelType;
 import '../../../flutter/commons/theme/index.dart' show ElThemeContextExt, ElTokens;
-import '../../../flutter/components/icon/index.dart' as common show ElIcon;
-import '../../../flutter/components/index.dart' hide ElIcon;
+import '../../../flutter/components/index.dart';
 import '../../../flutter/utils/obs/index.dart' show Obs;
 import '../../../flutter/views/table/table.dart' show ElTableStyle;
 import '../../../flutter/views/view/style/style.dart' show ElStyle;
@@ -12,7 +11,6 @@ import '../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormItemVie
 import 'autocomplete/index.dart';
 import 'button/index.dart';
 import 'button_group/index.dart';
-import 'icon/index.dart';
 import 'input/index.dart';
 import 'input_number/index.dart';
 import 'input_otp/index.dart';
@@ -46,15 +44,6 @@ class ElementPlusThemeData extends ElComponents {
   static final _style = ElStyle(
     vars: _lightVars,
     onDark: ElStyle(vars: _darkVars),
-  );
-
-  /// 字体图标沿用既有 ElView 图标实现，公共参数统一由 ElIcon 声明。
-  static Widget iconBuilder(BuildContext context, common.ElIcon component) => ElIcon(
-    component.child,
-    size: component.size,
-    color: component.color,
-    style: component.style,
-    semanticLabel: component.semanticLabel,
   );
 
   /// Element 按钮。
@@ -118,6 +107,5 @@ class ElementPlusThemeData extends ElComponents {
     super.formItem = formItemBuilder,
     super.tag = tagBuilder,
     super.tableStyle = tableStyleBuilder,
-    super.icon = iconBuilder,
   });
 }

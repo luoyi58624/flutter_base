@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../../flutter/components/icon/content.dart';
+import '../../../flutter/widgets/icon/content.dart';
 import '../../../flutter/views/view/event/event.dart'
     show ElEvent, ElEventConfig, ElEventConfigExt, ElEventExt, ElEventHandler;
 import '../../../flutter/views/view/event/press.dart' show ElEventDetails, ElEventPhase;

@@ -154,7 +154,7 @@ class InputNumber extends ElInputNumModelValue {
     key: ValueKey<String>(
       up ? 'el-input-number-increment' : 'el-input-number-decrement',
     ),
-    icon: up ? ElIcons.plus : ElIcons.minus,
+    icon: up ? ElDesktopIcons.plus : ElDesktopIcons.minus,
     semanticLabel: up ? '增加' : '减少',
     width: _height(compact),
     height: _height(compact),
@@ -175,7 +175,7 @@ class InputNumber extends ElInputNumModelValue {
       children: [
         _InputNumberButton(
           key: const ValueKey<String>('el-input-number-right-increment'),
-          icon: ElIcons.arrowUp,
+          icon: ElDesktopIcons.arrowUp,
           semanticLabel: '增加',
           width: _height(compact),
           height: half,
@@ -185,7 +185,7 @@ class InputNumber extends ElInputNumModelValue {
         ),
         _InputNumberButton(
           key: const ValueKey<String>('el-input-number-right-decrement'),
-          icon: ElIcons.arrowDown,
+          icon: ElDesktopIcons.arrowDown,
           semanticLabel: '减少',
           width: _height(compact),
           height: half,

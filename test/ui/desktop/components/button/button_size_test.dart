@@ -1,5 +1,4 @@
-import 'package:flutter_base/src/ui/desktop/components/icon/index.dart';
-import 'package:flutter_base/desktop.dart' hide ElIcon;
+import 'package:flutter_base/desktop.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -114,7 +113,7 @@ void main() {
     for (final compact in [false, true]) {
       await tester.pumpWidget(
         host(
-          ElButton(child: '按钮', icon: ElIcons.menu),
+          ElButton(child: '按钮', icon: ElDesktopIcons.menu),
           compact: compact,
         ),
       );

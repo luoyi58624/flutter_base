@@ -12,8 +12,8 @@ import '../../../../flutter/components/progress/index.dart' show ElProgress, ElP
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../../flutter/views/view/view.dart' show ElView;
+import '../../commons/icons.dart' show ElMobileIcons;
 import '../../cores/common.dart';
-import '../../cores/glyph.dart';
 
 /// 将公共完成量、状态和读数交给原移动端进度皮肤。
 Widget progressBuilder(BuildContext context, ElProgress component) => Progress(
@@ -190,9 +190,9 @@ class Progress extends HookWidget {
     final textKey = useMemoized(() => GlobalKey());
     final data = ProgressValue._(amount, total, ratio * 100);
     final glyph = status == ProgressStatus.success
-        ? 'check'
+        ? ElMobileIcons.check
         : status == ProgressStatus.error
-        ? 'x'
+        ? ElMobileIcons.x
         : null;
     final readout = Offstage(
       offstage: !showText,
@@ -221,7 +221,7 @@ class Progress extends HookWidget {
                     ? '$percentage%'
                     : ElView(
                         style: ElStyle(iconSize: circle ? size * .28 : 18, iconColor: color),
-                        child: Glyph(name: glyph),
+                        child: glyph,
                       )),
           ),
         ),

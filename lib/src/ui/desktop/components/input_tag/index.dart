@@ -20,14 +20,15 @@ import '../../../../flutter/views/view/style/style.dart'
     show ElBorder, ElBoxShadow, ElOutline, ElStyle, ElStyleExt, ElTransition, ElTransitionField;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormModelValue;
+import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/hover_intent.dart' show ElHoverIntent;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
 import '../../../widgets/dnd/draggable.dart' show ElDraggable;
 import '../../../widgets/dnd/drop_target.dart' show ElDropTarget;
+import '../../commons/icons.dart' show ElDesktopIcons;
 import '../../extensions/content.dart';
 import '../../extensions/el.dart';
-import '../icon/index.dart';
 import '../input/metrics.dart';
 import '../index.dart' show ElementPlusThemeData;
 
@@ -99,7 +100,7 @@ class InputTag extends ElFormModelValue<List<String>> {
   Object? get prefix => component.prefix;
   Object? get suffix => component.suffix;
   Widget Function(BuildContext context, String value, int index, bool selected)? get tagBuilder => component.tagBuilder;
-  IconData get clearIcon => component.clearIcon ?? ElIcons.circleClose;
+  IconData get clearIcon => component.clearIcon ?? ElDesktopIcons.circleClose;
   bool get collapseTags => component.collapseTags;
   int get maxCollapseTags => component.maxCollapseTags;
   bool get collapseTagsTooltip => component.collapseTagsTooltip;

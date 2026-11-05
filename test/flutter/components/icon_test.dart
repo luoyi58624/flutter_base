@@ -5,6 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final data = IconData(0x41, fontFamily: 'Ahem', matchTextDirection: true);
+  testWidgets('字体图标可以在未安装品牌预设的子树渲染', (tester) async {
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: .ltr,
+        child: Center(child: ElIcon(data, size: 24)),
+      ),
+    );
+    expect(tester.getSize(find.byType(ElIcon)), Size.square(24));
+    expect(tester.takeException(), isNull);
+  });
+
   for (final desktop in [false, true]) {
     Widget host(Widget child, {ElStyle? style, Brightness brightness = Brightness.light}) => Directionality(
       textDirection: .ltr,

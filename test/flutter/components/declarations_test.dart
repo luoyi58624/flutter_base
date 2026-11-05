@@ -33,17 +33,6 @@ void main() {
     expect(value, isNot(ElComponents()));
   });
 
-  test('icon 的登记、复制、清空、合并与比较', () {
-    final value = ElComponents(icon: _plain);
-    expect(value.icon, _plain);
-    expect(value.copyWith(), value);
-    expect(value.copyWith().hashCode, value.hashCode);
-    expect(value.copyWith(icon: null).icon, isNull);
-    expect(ElComponents().merge(value), value);
-    expect(value.merge(ElComponents()), value);
-    expect(value, isNot(ElComponents()));
-  });
-
   test('listTile 的登记、复制、清空、合并与比较', () {
     final value = ElComponents(listTile: _listTile);
     expect(value.listTile, _listTile);

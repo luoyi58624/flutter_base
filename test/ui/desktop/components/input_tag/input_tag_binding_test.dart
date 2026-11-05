@@ -1,4 +1,3 @@
-import 'package:flutter_base/src/ui/desktop/components/icon/index.dart' show ElIcons;
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
 import 'dart:ui' show PointerDeviceKind;
@@ -74,7 +73,7 @@ void main() {
     for (final compact in [false, true]) {
       await tester.pumpWidget(
         _host(
-          ElInputTag(value: ['Dart'], prefix: ElIcons.plus),
+          ElInputTag(value: ['Dart'], prefix: ElDesktopIcons.plus),
           compact: compact,
         ),
       );
@@ -90,7 +89,7 @@ void main() {
       _host(
         ElInputTag(
           value: ['Dart'],
-          prefix: ElIcons.plus,
+          prefix: ElDesktopIcons.plus,
           style: ElStyle(height: 52, fontSize: 18, iconSize: 17),
           tagStyle: ElStyle(height: 34),
         ),

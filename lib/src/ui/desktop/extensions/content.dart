@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../flutter/components/icon/content.dart';
 import '../../../flutter/views/view/view.dart' show ElView;
-import '../components/icon/index.dart';
+import '../../../flutter/widgets/icon/content.dart';
+import '../../../flutter/widgets/icon/index.dart' show ElIcon;
 
 /// 内容归一化（button / switch 设计体系的公共内容通道）。
 ///

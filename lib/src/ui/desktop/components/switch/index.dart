@@ -67,7 +67,7 @@ class Switch extends StatelessWidget {
             iconColor: track,
             transition: _transition,
           ),
-          child: component.loading ? ElLoading(child: ElIcon(ElIcons.loading, size: thumb * 0.7)) : null,
+          child: component.loading ? ElLoading(child: ElIcon(ElDesktopIcons.loading, size: thumb * 0.7)) : null,
         ),
       ),
     );

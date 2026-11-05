@@ -1,4 +1,3 @@
-import 'package:flutter_base/src/ui/desktop/components/icon/index.dart' show ElIcons;
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter/widgets.dart';
@@ -31,7 +30,7 @@ void main() {
     for (final compact in [false, true]) {
       await tester.pumpWidget(
         _host(
-          ElInput(value: 'density', prefix: ElIcons.plus),
+          ElInput(value: 'density', prefix: ElDesktopIcons.plus),
           compact: compact,
         ),
       );
@@ -45,7 +44,7 @@ void main() {
       _host(
         ElInput(
           value: 'override',
-          prefix: ElIcons.plus,
+          prefix: ElDesktopIcons.plus,
           style: ElStyle(height: 44, padding: .symmetric(horizontal: 19), fontSize: 18, iconSize: 17),
         ),
         compact: true,
