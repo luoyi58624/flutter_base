@@ -280,8 +280,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 }
 
 class _ChatMessage {
-  _ChatMessage({required this.id, required this.mine, required this.text, required this.time})
-    : timeLabel = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  _ChatMessage.generated(this.id, {bool? mine, String? text}) : mine = mine ?? id % 3 == 0, _suppliedText = text;
   static final _samples = [
     '收到，稍后见。',
     '今天的列表已经接好，试试快速滑动，再回来看看消息的位置。',
@@ -289,17 +288,14 @@ class _ChatMessage {
     '这条消息包含三行：\n一、结构按方向复用。\n二、内容与时间按消息 ID 重新绑定。',
     '好！',
   ];
-  factory _ChatMessage.generated(int id, {bool? mine, String? text}) => _ChatMessage(
-    id: id,
-    mine: mine ?? id % 3 == 0,
-    text: text ?? '${id >= 0 ? '消息 #${id + 1}' : '历史消息 ${-id}'}：${_samples[id.abs() % _samples.length]}',
-    time: DateTime(2026, 1, 1, 9).add(Duration(minutes: id)),
-  );
   final int id;
   final bool mine;
-  final String text;
-  final DateTime time;
-  final String timeLabel;
+  final String? _suppliedText;
+  // 索引只需要 ID 和方向，昂贵的正文与本地时间计算留到真正显示该消息时。
+  late final String text =
+      _suppliedText ?? '${id >= 0 ? '消息 #${id + 1}' : '历史消息 ${-id}'}：${_samples[id.abs() % _samples.length]}';
+  late final DateTime time = DateTime(2026, 1, 1, 9).add(Duration(minutes: id));
+  late final String timeLabel = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 }
 
 class _ChatAdapter extends rv.Adapter<_ChatHolder> {

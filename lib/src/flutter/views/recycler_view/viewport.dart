@@ -523,6 +523,37 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
   }
 
+  void _layoutInitialTail(BoxConstraints constraints, int count) {
+    final render = renderObject;
+    final wanted = <ViewHolder>{};
+    final available = math.max(0.0, render.mainExtent - render.leadingPadding - render.trailingPadding);
+    var filled = 0.0;
+    // 先实测末项并向前填满，类型估高修正不能让首屏猜错窗口后再冷挂载一轮。
+    for (var position = count - 1; position >= 0; position--) {
+      final holder = _obtainAndLayout(position, constraints, visible: true)!;
+      final box = _box(holder);
+      final extent = render.vertical ? box.size.height : box.size.width;
+      _extents.measure(position, extent);
+      (box.parentData! as _RecyclerParentData)
+        ..extent = extent
+        ..visible = true;
+      wanted.add(holder);
+      filled += extent;
+      if (filled >= available) break;
+    }
+    for (final holder in _active.values.toList(growable: false)) {
+      if (!wanted.contains(holder)) _retire(holder);
+    }
+    final maxScroll = math.max(
+      0.0,
+      _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent,
+    );
+    for (var attempt = 0; attempt < 4; attempt++) {
+      render._correctOffset(maxScroll);
+      if (render.offset.applyContentDimensions(0, maxScroll)) break;
+    }
+  }
+
   void _layoutLinear() {
     final render = renderObject;
     final adapter = _adapter;
@@ -574,8 +605,6 @@ class _RecyclerViewportElement extends RenderObjectElement {
         retainedAnchor = anchor;
       }
       _anchor = null;
-    } else if (_state._initialLayout && manager._stackFromEnd) {
-      pixels = math.max(0, _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent);
     }
     _state._initialLayout = false;
     if (clampToContent) pixels = math.max(0, pixels);
@@ -593,7 +622,8 @@ class _RecyclerViewportElement extends RenderObjectElement {
       }
     }
 
-    for (var attempt = 0; attempt < 4; attempt++) {
+    if (stackToEnd) _layoutInitialTail(constraints, count);
+    for (var attempt = 0; !stackToEnd && attempt < 4; attempt++) {
       pixels = render.offset.pixels;
       var first = _extents.indexAt(math.max(0, pixels - render.leadingPadding));
       final relative = _extents.prefix(first) + render.leadingPadding - pixels;
@@ -651,8 +681,6 @@ class _RecyclerViewportElement extends RenderObjectElement {
           request.position.clamp(0, count - 1),
           render.leadingPadding + (request.offset ?? 0),
         ).clamp(0.0, maxScroll);
-      } else if (stackToEnd) {
-        targetPixels = maxScroll;
       }
       final adjusted = (targetPixels - render.offset.pixels).abs() > .01;
       if (adjusted) {

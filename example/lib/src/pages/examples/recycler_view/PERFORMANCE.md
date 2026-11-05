@@ -1,5 +1,7 @@
 # 真实示例行的结构复用验证
 
+后续聊天首入约 200ms 的分段定位与修复，见 [聊天页面首次进入开销](CHAT_ENTRY_PERFORMANCE.md)。
+
 日期：2026-11-06。Flutter 3.47.5 / Dart 3.13.4，Windows `flutter_test` Debug。没有操作手机、启动前台应用或热重载；下述主机耗时不是手机 UI/raster FrameTiming。
 
 本轮直接使用复选和聊天页面的真实 Adapter、ViewHolder、品牌组件与业务数据，补上此前只看 holder 外壳和简化测试行的覆盖缺口。
