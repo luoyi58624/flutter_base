@@ -283,25 +283,37 @@ class _RecyclerViewportElement extends RenderObjectElement {
       available._owner = this;
     }
     final target = holder;
-    final start = _clock.elapsedMicroseconds;
     final bind = target._needsBind || !target._bound || target._position != position;
-    var bindCallbackUs = 0;
-    developer.Timeline.timeSync(created ? 'RecyclerView.mount' : 'RecyclerView.bind', () {
-      // bind 与真正的 Element 构建在同一 buildScope 中完成，成本包含延迟发生的 Widget 工作。
-      owner!.buildScope(this, () {
-        if (bind) {
-          final bindStart = _clock.elapsedMicroseconds;
-          adapter.bindViewHolder(target, position);
-          bindCallbackUs = _clock.elapsedMicroseconds - bindStart;
-        }
-        final child = updateChild(_children[target], _host(target, visible), target);
-        if (child != null) _children[target] = child;
-      });
+    if (bind || !_children.containsKey(target) || target._hostVisible != visible) {
+      final start = _clock.elapsedMicroseconds;
+      var bindCallbackUs = 0;
+      developer.Timeline.timeSync(
+        created
+            ? 'RecyclerView.mount'
+            : bind
+            ? 'RecyclerView.bind'
+            : 'RecyclerView.visibility',
+        () {
+          // 换绑与可见性变化才更新宿主，绑定产生的脏后代仍在同一构建作用域内完成。
+          owner!.buildScope(this, () {
+            if (bind) {
+              final bindStart = _clock.elapsedMicroseconds;
+              adapter.bindViewHolder(target, position);
+              bindCallbackUs = _clock.elapsedMicroseconds - bindStart;
+            }
+            final child = updateChild(_children[target], _host(target, visible), target);
+            if (child != null) _children[target] = child;
+          });
+          _box(target).layout(constraints, parentUsesSize: visible);
+        },
+      );
+      final elapsed = _clock.elapsedMicroseconds - start;
+      if (created) _pool._factorInCreateTime(type, createCallbackUs + elapsed - bindCallbackUs);
+      if (bind) _pool._factorInBindTime(type, created ? bindCallbackUs : elapsed);
+    } else {
+      // 已有正文也可能自行变脏，保留 RenderObject 的正常布局检查。
       _box(target).layout(constraints, parentUsesSize: visible);
-    });
-    final elapsed = _clock.elapsedMicroseconds - start;
-    if (created) _pool._factorInCreateTime(type, createCallbackUs + elapsed - bindCallbackUs);
-    if (bind) _pool._factorInBindTime(type, created ? bindCallbackUs : elapsed);
+    }
     if (visible) {
       _prefetched.remove(target);
       _active[position] = target;
@@ -1006,6 +1018,7 @@ class _ExtentIndex {
 
   void measure(int index, double extent) {
     if (!extent.isFinite || extent < 0) throw StateError('条目布局尺寸必须是有限的非负数。');
+    if (_sizes[index] == extent) return;
     final type = _types[index];
     final firstOfType = !_estimates.containsKey(type);
     _estimates.putIfAbsent(type, () => extent);
