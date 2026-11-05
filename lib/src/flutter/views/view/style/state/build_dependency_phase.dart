@@ -21,8 +21,8 @@ void withBuildDependencyOrigin(Element origin, VoidCallback update) {
 bool canMarkBuildDependent(Element reader) {
   if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks) return true;
   final origin = _buildOrigin;
-  // LayoutBuilder 可以在布局阶段开启独立的构建范围；捕获样式的 Overlay 也可能在另一条物理分支。
-  if (origin == null || reader.depth <= origin.depth || !identical(reader.buildScope, origin.buildScope)) return false;
+  // 物理后代可交给各自构建域在本帧调度，LayoutBuilder 会在布局阶段重建；跨 Overlay 读者仍需延期。
+  if (origin == null || reader.depth <= origin.depth) return false;
   var isDescendant = false;
   reader.visitAncestorElements((ancestor) {
     isDescendant = identical(ancestor, origin);

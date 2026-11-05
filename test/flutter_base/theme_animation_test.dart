@@ -94,6 +94,81 @@ void main() {
     });
   }
 
+  for (final nestedOrigin in [false, true]) {
+    testWidgets('LayoutBuilder 内的固定变量读者与 Material 同步主题过渡，来源独立构建范围：$nestedOrigin', (tester) async {
+      var brightness = Brightness.light;
+      late StateSetter update;
+      late Color materialCardColor;
+      final cardKey = ValueKey('layout-theme-card');
+      final lightCard = el.mobileComponents.style!.vars![ElTokens.$cardColor] as Color;
+      final darkCard = el.mobileComponents.style!.onDark!.vars![ElTokens.$cardColor] as Color;
+      // 固定载荷实例，确保变量通知负责重建独立构建范围内的读者。
+      final content = LayoutBuilder(
+        builder: (_, constraints) => Builder(
+          builder: (context) => ElView(
+            key: cardKey,
+            style: ElStyle(width: 80, height: 40, backgroundColor: context.elTheme.cardColor),
+          ),
+        ),
+      );
+      final materialReader = Builder(
+        builder: (context) {
+          materialCardColor = Theme.of(context).cardTheme.color!;
+          return content;
+        },
+      );
+      final themeReader = Builder(
+        builder: (context) {
+          final mode = ElView.of(context).themeMode;
+          return MaterialApp(
+            theme: context.elMaterialThemeData,
+            themeAnimationDuration: mode.duration!,
+            themeAnimationCurve: mode.curve!,
+            home: Scaffold(body: materialReader),
+          );
+        },
+      );
+      final source = StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return ElView(
+            themeMode: ElThemeMode(brightness: brightness, duration: Duration(milliseconds: 200), curve: Curves.linear),
+            child: ElComponentProvider(components: el.mobileComponents, child: themeReader),
+          );
+        },
+      );
+      await tester.pumpWidget(nestedOrigin ? LayoutBuilder(builder: (_, constraints) => source) : source);
+      await tester.pumpAndSettle();
+      Color cardColor() =>
+          tester.renderObject<ElRenderView>(find.byKey(cardKey)).committedResolvedStyle.box.backgroundColor!;
+      expect(cardColor(), lightCard);
+      expect(materialCardColor, lightCard);
+
+      for (final target in [Brightness.dark, Brightness.light]) {
+        final start = target == Brightness.dark ? lightCard : darkCard;
+        final end = target == Brightness.dark ? darkCard : lightCard;
+        update(() => brightness = target);
+        await tester.pump();
+        expect(cardColor(), start);
+        expect(materialCardColor, start);
+        var elapsed = Duration.zero;
+        for (final delta in [Duration(milliseconds: 16), Duration(milliseconds: 84), Duration(milliseconds: 100)]) {
+          elapsed += delta;
+          await tester.pump(delta);
+          final expected = Color.lerp(start, end, elapsed.inMilliseconds / 200)!;
+          expect(materialCardColor, isSameColorAs(expected, threshold: 1e-9));
+          expect(
+            cardColor(),
+            isSameColorAs(materialCardColor, threshold: 1e-9),
+            reason: '切换到 $target 后 ${elapsed.inMilliseconds}ms',
+          );
+        }
+        expect(cardColor(), end);
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
   testWidgets('主题读面补齐默认值，逐字段继承并响应动画参数更新', (tester) async {
     var duration = Duration(milliseconds: 400);
     var curve = Curves.easeIn;
