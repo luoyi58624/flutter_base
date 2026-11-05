@@ -1,15 +1,18 @@
-import 'package:example/src/layout/index.dart';
-import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart';
+
+import 'router.dart';
+import 'state.dart';
 
 void main() {
   ElWidgetsFlutterBinding.ensureInitialized();
   runApp(App());
 }
 
+/// 根据可用宽度安装品牌预设和路由布局的示例应用。
 class App extends StatelessWidget {
+  /// 创建示例应用。
   const App({super.key});
 
   @override
@@ -19,23 +22,24 @@ class App extends StatelessWidget {
         themeMode: ElThemeMode(brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light),
         child: Builder(
           builder: (context) {
-            return ElComponentProvider(
-              components: context.sm ? el.mobileComponents : el.desktopComponents,
+            routingConfig.isMobile = context.sm;
+            return ElView(
+              style: (context.sm ? el.mobileComponents : el.desktopComponents).style,
               child: ObsBuilder(
                 builder: (context) {
                   final theme = ElView.of(context).themeMode;
-                  return MaterialApp(
+                  return MaterialApp.router(
+                    routerConfig: router,
                     themeAnimationDuration: theme.duration!,
                     themeAnimationCurve: theme.curve!,
                     showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
                     debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
                     theme: context.elMaterialThemeData,
-                    home: AppLayout(),
                   );
                 },
               ),
             );
-          }
+          },
         ),
       ),
     );

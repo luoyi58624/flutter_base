@@ -1,3 +1,5 @@
+import 'package:example/main.dart';
+import 'package:example/router.dart';
 import 'package:example/src/layout/mobile/pages/2.dart';
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/components/start/shadow/index.dart';
@@ -5,21 +7,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Future<void> _openCatalog(WidgetTester tester) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = Size(390, 844);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPhysicalSize);
+  routingConfig.isMobile = true;
+  router.go('/components');
+  await tester.pumpWidget(App());
+  await tester.pumpAndSettle();
+}
+
 void main() {
-  testWidgets('组件目录按第三项页面跳转，返回后仍显示目录', (tester) async {
-    await tester.pumpWidget(
-      ElComponentProvider(
-        components: el.mobileComponents,
-        child: Builder(
-          builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: ComponentPage()),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets('移动目录沿用原有条目行为，通过路由打开阴影页面', (tester) async {
+    await _openCatalog(tester);
     await tester.tap(find.byKey(ValueKey('component-quick-start')));
     await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components');
     expect(find.byType(ComponentPage), findsOneWidget);
-    expect(find.byType(ShadowPage), findsNothing);
 
     await tester.tap(find.byKey(ValueKey('component-shadow-design')));
     await tester.pumpAndSettle();
@@ -30,27 +35,33 @@ void main() {
     expect(find.byType(ShadowPage), findsNothing);
     expect(find.byKey(ValueKey('component-shadow-design')), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('移动目录沿用共用的按钮页面入口', (tester) async {
-    await tester.pumpWidget(
-      ElComponentProvider(
-        components: el.mobileComponents,
-        child: Builder(
-          builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: ComponentPage()),
-        ),
-      ),
-    );
+  testWidgets('四个一级导航与组件深度路由对应，详情返回到组件目录', (tester) async {
+    await _openCatalog(tester);
+    final tabbar = find.byType(ElBottomTabbar);
+    expect(tester.widget<ElBottomTabbar>(tabbar).destinations.map((item) => item.label), ['首页', '组件', '示例', '设置']);
+    tester.widget<ElBottomTabbar>(tabbar).onDestinationSelected!(2);
     await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/examples');
+    tester.widget<ElBottomTabbar>(tabbar).onDestinationSelected!(3);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/settings');
+    tester.widget<ElBottomTabbar>(tabbar).onDestinationSelected!(1);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components');
     await tester.tap(find.byKey(ValueKey('component-button')));
-    // 示例含持续旋转的 loading，只等待页面过渡完成。
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/button');
     expect(find.byType(ButtonPage), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(tabbar, findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(ButtonPage), findsNothing);
+    expect(find.byType(ComponentPage), findsOneWidget);
     expect(find.byKey(ValueKey('component-button')), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
   });
 }

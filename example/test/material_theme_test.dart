@@ -1,8 +1,10 @@
 import 'package:example/main.dart';
+import 'package:example/router.dart';
 import 'package:example/src/mobile/app.dart';
 import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -12,7 +14,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     GlobalState.isDark.value = false;
-    GlobalState.boottomTabbarIndex.value = 0;
+    router.go(RouterUtil.home);
     addTearDown(() => GlobalState.isDark.value = false);
     await tester.pumpWidget(App());
     await tester.pumpAndSettle();
@@ -40,7 +42,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     GlobalState.isDark.value = false;
-    GlobalState.boottomTabbarIndex.value = 0;
+    router.go(RouterUtil.home);
     addTearDown(() => GlobalState.isDark.value = false);
     await tester.pumpWidget(App());
     await tester.pumpAndSettle();
@@ -52,7 +54,7 @@ void main() {
       expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
       expect(
         context.elTheme.bgColor,
-        (dark ? el.mobileComponents.style!.onDark!.vars! : el.mobileComponents.style!.vars!)[ElTokens.$bgColor],
+        (dark ? el.desktopComponents.style!.onDark!.vars! : el.desktopComponents.style!.vars!)[ElTokens.$bgColor],
       );
     }
     expect(tester.takeException(), isNull);
@@ -64,7 +66,7 @@ void main() {
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
-    GlobalState.boottomTabbarIndex.value = 0;
+    router.go(RouterUtil.home);
     await tester.pumpWidget(App());
     await tester.pumpAndSettle();
     expect(find.byType(ElComponentProvider), findsOneWidget);

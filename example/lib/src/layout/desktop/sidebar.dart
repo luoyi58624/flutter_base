@@ -1,10 +1,7 @@
 part of 'index.dart';
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.current, required this.onChanged});
-
-  final String current;
-  final ValueChanged<String> onChanged;
+  const _Sidebar();
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +27,11 @@ class _Sidebar extends StatelessWidget {
             child: Row(spacing: 10, children: [ElIcon(Icons.layers_outlined), Text('El UI')]),
           ),
           Expanded(
-            child: ElNavMenu<WidgetBuilder>(value: current, onChanged: onChanged, children: AppLayout.menus),
+            child: ElNavMenu<WidgetBuilder>.router(
+              router: GoRouter.of(context),
+              onChanged: (path) => context.go(path),
+              children: RouterUtil.desktopMenus,
+            ),
           ),
         ],
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../router.dart';
 import '../../../pages/components/catalog.dart';
 
 class ComponentPage extends StatelessWidget {
@@ -27,7 +29,7 @@ class ComponentPage extends StatelessWidget {
                         title: item.title,
                         onTap: () {
                           if (item.data != null) {
-                            Navigator.of(context).push(MaterialPageRoute<void>(builder: item.data!));
+                            context.go('${RouterUtil.component}/${item.key}');
                           }
                         },
                       ),

@@ -1,44 +1,27 @@
-import 'package:example/src/layout/index.dart';
-import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:go_router/go_router.dart';
 
-import 'pages/1.dart';
-import 'pages/2.dart';
-import 'pages/4.dart';
+import '../index.dart';
 
-/// 移动端壳：顶部标题栏 + 底部导航。
-class MobileLayout extends StatefulWidget {
-  const MobileLayout({super.key});
+/// 移动端布局，底栏选中项与分支导航栈由路由持有。
+class MobileLayout extends StatelessWidget {
+  /// 创建移动导航壳。
+  const MobileLayout({super.key, required this.navigationShell});
+
+  /// 当前导航分支。
+  final StatefulNavigationShell navigationShell;
 
   @override
-  State<MobileLayout> createState() => _MobileLayoutState();
-}
-
-class _MobileLayoutState extends State<MobileLayout> {
-  @override
-  Widget build(BuildContext context) {
-    return ObsBuilder(
-      builder: (context) {
-        final tabs = AppLayout.menus;
-        final index = GlobalState.boottomTabbarIndex.value;
-        return Scaffold(
-          body: IndexedStack(
-            index: index,
-            children: [
-              HomePage(),
-              ComponentPage(),
-              Center(child: Text(tabs[2].title)),
-              SettingPage(),
-            ],
-          ),
-          bottomNavigationBar: ElBottomTabbar(
-            selectedIndex: index,
-            onDestinationSelected: (i) => GlobalState.boottomTabbarIndex.value = i,
-            destinations: [for (final tab in tabs) NavigationDestination(icon: tab.icon!, label: tab.title)],
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => ElComponentProvider(
+    components: el.mobileComponents,
+    child: Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: ElBottomTabbar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => navigationShell.goBranch(index),
+        destinations: [for (final tab in AppLayout.menus) NavigationDestination(icon: tab.icon!, label: tab.title)],
+      ),
+    ),
+  );
 }
