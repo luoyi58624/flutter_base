@@ -42,7 +42,8 @@ Widget listTileGroupBuilder<D>(BuildContext context, ElListGroup<D> component) {
       ),
     ),
   );
-  if (component.mode == .single) {
+  if (component.mode == .single &&
+      component.children.any((child) => child.focusNode != null || hasFocusableVariantOf(child.style))) {
     body = RadioGroup<Object?>(
       groupValue: component.currentValue,
       onChanged: (value) {

@@ -166,7 +166,7 @@ void main() {
     await tester.pump();
     expect(model.value, isTrue);
     expect(changes, [true]);
-    await tester.tap(find.bySemanticsLabel('关闭测试'));
+    await tester.tap(find.bySemanticsLabel('关闭测试').last);
     await tester.pump();
     expect(closes, 1);
     expect(changes, [true]);
@@ -195,7 +195,7 @@ void main() {
         ElTag.toggle(modelValue: model, disabled: true, closable: true, onClose: () => closes++, child: Text('标签禁用')),
       ),
     );
-    await tester.tap(find.bySemanticsLabel('关闭标签'), warnIfMissed: false);
+    await tester.tap(find.bySemanticsLabel('关闭标签').last, warnIfMissed: false);
     await tester.pump();
     expect(closes, 0);
     expect(model.value, isFalse);

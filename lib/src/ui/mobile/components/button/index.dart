@@ -56,7 +56,7 @@ enum ButtonType {
 
 /// 与Web相同的尺寸、变体、加载覆盖层和激活事件。
 class Button extends StatelessWidget {
-  /// onClick为空仍可聚焦，loading保留焦点与内容尺寸。
+  /// onClick 为空仍保留按压反馈，loading 保留用户焦点与内容尺寸。
   const Button({
     super.key,
     this.variant = ButtonVariant.primary,

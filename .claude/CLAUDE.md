@@ -38,7 +38,8 @@
 - flutter/commons/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；桌面、移动预设在 ElComponents 中绑定组件实现和 token。ElComponentProvider 内部用 ElView 级联基础变量与暗色差量，完整预设按品牌整体替换，普通局部覆写继承其余实现。原生主题和文字排版由应用管理
 - 变量键不限制 String 或 -- 前缀，使用能区分身份的 Object 键；暗色等变体由 ElStyle 级联覆写
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
-- 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；两端保留必要的键盘操作、外借焦点节点和辅助技术语义
+- 移动端除输入框外，所有组件默认不创建交互焦点、不抢焦点、不参与键盘导航；用户显式提供 focusNode 或 onFocus 等焦点变体时，才沿用 ElView 的焦点入口与相应键盘操作
+- 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；移动端保留辅助技术语义与用户显式配置的焦点能力
 - 多子布局与官方机制按职责复用 Flutter Row / Column / Wrap / Stack、RadioGroup、Overlay 等，不重复实现已有能力
 
 ## 组件接口规范

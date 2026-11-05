@@ -669,6 +669,8 @@ void main() {
   });
 
   testWidgets('弹窗保留自定义样式定位与选后不关闭，外点和Escape可以关闭', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
     final model = ValueNotifier<int>(1);
     addTearDown(model.dispose);
     final rowKey = GlobalKey();
@@ -678,6 +680,7 @@ void main() {
         ElListTile<int>.popup(
           key: rowKey,
           title: Text('保持打开'),
+          focusNode: focus,
           modelValue: model,
           closeOnSelect: false,
           options: [ElLabelModel('一', 1), ElLabelModel('二', 2), ElLabelModel('三', 3)],

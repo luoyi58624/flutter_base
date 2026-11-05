@@ -15,12 +15,13 @@ import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/components/list_tile/index.dart' show ElListGroup, ElListTile, ElMenuOption;
 import '../../../../flutter/utils/model_value/index.dart' show ElModelValueType;
 import '../../../../flutter/utils/util.dart' show ElFlutterUtil;
-import '../../../../flutter/views/button/button_view.dart' show ElButtonView, ElButtonViewPressController;
+import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventExt;
 import '../../../../flutter/views/view/event/press.dart' show ElEventDetails;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart'
     show ElBorder, ElStyle, ElTransform, ElTransition, ElTransitionField;
+import '../../../../flutter/views/view/style/cascade/style_spec.dart' show hasFocusableVariantOf;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/others/base.dart' show ElChildIndex;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry;
@@ -43,7 +44,6 @@ class _ListTile<T> extends HookWidget {
     this.selected = false,
     this.selectionLeading = true,
     this.onSelect,
-    this.autofocus = false,
     super.key,
   });
 
@@ -52,12 +52,16 @@ class _ListTile<T> extends HookWidget {
   final bool selected;
   final bool selectionLeading;
   final VoidCallback? onSelect;
-  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.elTheme;
-    final ownFocus = useFocusNode();
+    final focusEnabled = component.focusNode != null || hasFocusableVariantOf(component.style);
+    final ownFocus = useMemoized(() => focusEnabled && component.focusNode == null ? FocusNode() : null, [
+      focusEnabled,
+      component.focusNode,
+    ]);
+    useEffect(() => ownFocus?.dispose, [ownFocus]);
     final focus = component.focusNode ?? ownFocus;
     final portal = useMemoized(ElPortalController.new);
     useEffect(() => portal.dispose, [portal]);
@@ -80,32 +84,21 @@ class _ListTile<T> extends HookWidget {
       },
       [closePopup],
     );
-    final press = useMemoized(ElButtonViewPressController.new);
-    useEffect(() => press.dispose, [press]);
-    useListenable(press);
     final choosing = selectionMode != null;
     final radio = selectionMode == .single;
     final switcher = !choosing && component.type == .switcher;
     final popup = !choosing && component.type == .popup;
     final disabled = component.disabled || component.event?.disabled == true || (!choosing && component.loading);
     final registry = radio ? RadioGroup.maybeOf<Object?>(context) : null;
-    final radioClient = useMemoized(() => _ListRadioClient(focus, component.value, !disabled), [
+    final radioClient = useMemoized(() => focus == null ? null : _ListRadioClient(focus, component.value, !disabled), [
       focus,
       component.value,
       disabled,
     ]);
     useEffect(() {
-      if (radio) radioClient.registry = registry;
-      return () => radioClient.registry = null;
+      if (radio) radioClient?.registry = registry;
+      return () => radioClient?.registry = null;
     }, [radio, radioClient, registry]);
-    useEffect(() {
-      if (autofocus && !disabled) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) focus.requestFocus();
-        });
-      }
-      return null;
-    }, [autofocus, focus, disabled]);
     useEffect(() {
       if (disabled) {
         opening.value = false;
@@ -135,7 +128,6 @@ class _ListTile<T> extends HookWidget {
           _activePopup = closePopup;
           opening.value = true;
           anchorPosition.value = component.popupAnchor == null ? pointer.value : null;
-          focus.requestFocus();
           WidgetsBinding.instance.scheduleFrame();
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted && opening.value && !disabled) {
@@ -178,8 +170,16 @@ class _ListTile<T> extends HookWidget {
         pointer.value = event.originalEvent is PointerEvent ? event.globalPosition : null;
       },
     );
-    final event = ElButtonView.buildEvent(activate, disabled, base, pressController: press, activateOnEnter: !switcher);
-    var style = ElStyle(
+    final event = focusEnabled
+        ? ElButtonView.buildEvent(activate, disabled, base, activateOnEnter: !switcher)
+        : base.copyWith(
+            disabled: disabled,
+            onTap: (event) {
+              base.onTap?.call(event);
+              if (!event.defaultPrevented) activate();
+            },
+          );
+    final style = ElStyle(
       width: '100%',
       heightFactor: 1,
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -194,7 +194,6 @@ class _ListTile<T> extends HookWidget {
           ? const []
           : const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))],
     ).merge(component.style);
-    if (press.pressed && !disabled) style = style.merge(style.onTap);
     final contents = LayoutBuilder(
       builder: (context, constraints) => Row(
         children: [
@@ -278,8 +277,8 @@ class _ListTile<T> extends HookWidget {
       controller: portal,
       anchor: component.popupAnchor ?? const ElOverlayAnchor(placement: .bottomStart, offset: 4),
       anchorPosition: anchorPosition.value,
-      captureFocus: true,
-      restoreFocus: true,
+      captureFocus: _menuHasFocus(component),
+      restoreFocus: _menuHasFocus(component),
       closeOnBack: true,
       onBack: () {
         final menu = menuKey.currentState;

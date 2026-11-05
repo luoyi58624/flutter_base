@@ -121,7 +121,7 @@ void main() {
     );
     await _tap(tester, find.text('长菜单'));
     final panel = _panel(color);
-    final selected = find.descendant(of: _focused(), matching: _text('候选第32项'));
+    final selected = find.descendant(of: panel, matching: _text('候选第32项'));
     expect(selected, findsOneWidget);
     final rect = tester.getRect(panel), row = tester.getRect(selected);
     expect(row.top, greaterThanOrEqualTo(rect.top));
@@ -132,6 +132,8 @@ void main() {
   });
 
   testWidgets('嵌套菜单保留父滚动、返回焦点及业务泛型，只有叶子提交', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
     final model = ValueNotifier<int>(7);
     addTearDown(model.dispose);
     final color = Color(0xfff2e5ef);
@@ -140,6 +142,7 @@ void main() {
       _host(
         ElListTile<int>.popup(
           title: Text('树菜单'),
+          focusNode: focus,
           modelValue: model,
           onChanged: changes.add,
           popupMaxHeight: 260,
@@ -229,6 +232,8 @@ void main() {
   });
 
   testWidgets('动态移除分支恢复父层姿态和有效焦点，禁用全部选项仍可Escape关闭', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
     final color = Color(0xffe2f0ec);
     final model = ValueNotifier<int>(1);
     addTearDown(model.dispose);
@@ -241,6 +246,7 @@ void main() {
             refresh = setState;
             return ElListTile<int>.popup(
               title: Text('动态菜单'),
+              focusNode: focus,
               modelValue: model,
               popupStyle: ElStyle(backgroundColor: color),
               options: mode == 0
@@ -393,6 +399,8 @@ void main() {
   });
 
   testWidgets('深树与短高度下返回标题可滚动，不挤出当前层', (tester) async {
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
     final color = Color(0xffe4e9db);
     ElMenuOption<int> branch = ElMenuOption('最终选项', 99);
     for (var i = 5; i >= 0; i--) {
@@ -402,6 +410,7 @@ void main() {
       _host(
         ElListTile<int>.popup(
           title: Text('深树入口'),
+          focusNode: focus,
           value: 99,
           popupMaxHeight: 140,
           popupStyle: ElStyle(backgroundColor: color),

@@ -2,7 +2,7 @@
 
 通过公共 `ElSlider<double>` / `ElSlider<List<double>>.range` 接入，模型由 ElModelValue 持有。
 
-行为以 Web `packages/core/my-ui.js` 的 Slider、sliderScale 和 `tests/slider-value.test.mjs` 为基线：圆块与轨道填充使用连续指针位置，业务值按步长或显式刻度的中点取整，松开后圆块吸附。触屏拖动只更新预览，有效抬起提交一次；鼠标和键盘实时提交。纵向手势、取消、第二触点、失焦、禁用、外部值更新与卸载清理预览。
+行为以 Web `packages/core/my-ui.js` 的 Slider、sliderScale 和 `tests/slider-value.test.mjs` 为基线：圆块与轨道填充使用连续指针位置，业务值按步长或显式刻度的中点取整，松开后圆块吸附。触屏拖动只更新预览，有效抬起提交一次；鼠标实时提交。默认不创建圆块焦点或在拖动时抢焦点；用户传入 focusNode 后启用圆块键盘操作，根样式中的焦点变体由 ElView 按需承接。纵向手势、取消、第二触点、显式焦点失焦、禁用、外部值更新与卸载清理预览。
 
 范围交叉切换端点职责，提交新的有序数组；`step: null` 仅选择 marks，常规 step 从 min 起算，不将不能整除的 max 当作合法值。密集刻度只抽稀绘制，不改变选值精度。
 

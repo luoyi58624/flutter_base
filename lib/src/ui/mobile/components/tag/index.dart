@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 import '../../../../flutter/commons/models.dart' show ElThemeType;
 import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../flutter/components/tag/index.dart' show ElTag, ElTagEffect;
-import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventHandler;
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
@@ -229,10 +228,10 @@ Widget _commonTag(BuildContext context, ElTag component) {
         children: [
           if (component.child != null) buildContent(component.child),
           if (component.closable)
-            ElButtonView(
-              semanticLabel: component.closeSemanticLabel ?? '关闭标签',
+            ActionView(
+              label: component.closeSemanticLabel ?? '关闭标签',
               disabled: component.disabled,
-              onPressed: component.onClose,
+              onActivate: (_) => component.onClose?.call(),
               event: ElEvent(onTap: (event) => event.stopPropagation()),
               style: const ElStyle(
                 width: 18,
@@ -241,7 +240,7 @@ Widget _commonTag(BuildContext context, ElTag component) {
                 iconSize: 14,
                 borderRadius: BorderRadius.all(Radius.circular(9)),
               ).merge(component.closeStyle),
-              child: ElMobileIcons.x,
+              child: buildContent(ElMobileIcons.x),
             ),
         ],
       ),

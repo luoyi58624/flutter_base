@@ -544,12 +544,12 @@ class ElRenderView extends RenderBox
     _cascadeBridgeChanges?.publish();
   }
 
-  /// `set style` 后清除"旧 style 有变体、新 style 没变体"的 state bit。
-  ///
-  /// hover / tap / focus / focusWithin 由交互维护，disabled 由事件声明，
-  /// 不需要随 style 自动清除。
+  /// 样式更新后清理已移除的悬停和按压变体状态，焦点状态由 Element 同步节点时维护。
   void _clearStaleVariantStates(ElStyle? oldStyle, ElStyle? newStyle) {
-    final stale = variantStatesMaskOf(oldStyle) & ~variantStatesMaskOf(newStyle) & _interactionStateGate;
+    // 焦点节点稍后由 Element 同步，保留旧焦点位才能在撤掉入口时送出失焦并清理键盘按压。
+    final focusStates =
+        (1 << ViewState.focus.index) | (1 << ViewState.focusVisible.index) | (1 << ViewState.focusWithin.index);
+    final stale = variantStatesMaskOf(oldStyle) & ~variantStatesMaskOf(newStyle) & _interactionStateGate & ~focusStates;
     _stateBits &= ~stale;
   }
 

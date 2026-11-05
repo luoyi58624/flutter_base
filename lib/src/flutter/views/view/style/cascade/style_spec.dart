@@ -80,6 +80,10 @@ _VariantScan _scan(ElStyle style) {
 /// 整棵变体树需要跟踪的状态位。
 int variantStatesMaskOf(ElStyle? style) => style == null ? 0 : _scan(style).states;
 
+/// 声明树是否通过焦点变体显式要求当前节点可聚焦。
+bool hasFocusableVariantOf(ElStyle? style) =>
+    (variantStatesMaskOf(style) & ((1 << ViewState.focus.index) | (1 << ViewState.focusVisible.index))) != 0;
+
 /// 顶层声明或状态变体是否可能配置过渡。
 bool mayDeclareTransitionsOf(ElStyle? style) => style != null && _scan(style).transitions;
 

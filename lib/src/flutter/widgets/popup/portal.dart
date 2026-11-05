@@ -127,6 +127,8 @@ class ElPortal extends StatefulWidget {
   final VoidCallback? onDismiss;
 
   /// 打开时是否聚焦面板。
+  ///
+  /// false 时跳过作用域自身的键盘遍历，后代显式配置的焦点仍可使用。
   final bool captureFocus;
 
   /// 关闭时是否归还焦点。
@@ -204,6 +206,7 @@ class _PortalState extends State<ElPortal> {
       _content = widget.panel;
     }
     if (_open && oldWidget.captureFocus != widget.captureFocus) {
+      _focus.skipTraversal = !widget.captureFocus;
       if (widget.captureFocus) {
         _restore = FocusManager.instance.primaryFocus;
         _requestFocus();
@@ -331,6 +334,7 @@ class _PortalState extends State<ElPortal> {
     _content = widget.panel ?? Builder(builder: widget.overlayBuilder!);
     _focus
       ..canRequestFocus = true
+      ..skipTraversal = !widget.captureFocus
       ..descendantsAreFocusable = true
       ..descendantsAreTraversable = true;
     setState(() {
@@ -543,6 +547,7 @@ class _PortalState extends State<ElPortal> {
                   node: _focus,
                   onKeyEvent: (_, event) => _key(event, fromScope: true),
                   canRequestFocus: _open,
+                  skipTraversal: !widget.captureFocus,
                   descendantsAreFocusable: _open,
                   descendantsAreTraversable: _open,
                   child: KeyedSubtree(key: _panelKey, child: _shortcuts(_region(_content!))),

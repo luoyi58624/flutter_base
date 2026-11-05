@@ -14,6 +14,7 @@ import '../../../flutter/views/view/event/press.dart' show ElEventDetails, ElEve
 import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
+import '../../../flutter/views/view/style/cascade/style_spec.dart' show hasFocusableVariantOf;
 import '../../../flutter/views/view/view.dart' show ElView;
 
 /// 图标接入样式继承，自定义 Widget 原样使用，其余交给 ElView 内容引擎。
@@ -66,7 +67,7 @@ bool _hitsNestedControl(BuildContext context, ElEventDetails event) {
 
 final _activatedControl = Expando<bool>();
 
-/// 内部统一操作宿主，计时由既有 ElEvent 内核负责，键盘只维护 Space 会话。
+/// 内部统一操作宿主，默认只处理指针与语义，显式焦点配置才启用键盘操作。
 class ActionView extends HookWidget {
   /// blocked 保留焦点而禁止激活，用于 loading。
   const ActionView({
@@ -151,7 +152,12 @@ class ActionView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final internalFocus = useFocusNode();
+    final focusEnabled = focusNode != null || hasFocusableVariantOf(style);
+    final internalFocus = useMemoized(() => focusEnabled && focusNode == null ? FocusNode() : null, [
+      focusEnabled,
+      focusNode,
+    ]);
+    useEffect(() => internalFocus?.dispose, [internalFocus]);
     final node = focusNode ?? internalFocus;
     final space = useState(false);
     final directInput = useState(false);
@@ -159,9 +165,9 @@ class ActionView extends HookWidget {
     final downPosition = useRef<Offset?>(null);
     final downBounds = useRef<Rect?>(null);
     useEffect(() {
-      if (disabled || blocked) space.value = false;
+      space.value = false;
       return null;
-    }, [disabled, blocked]);
+    }, [disabled, blocked, node]);
     final base = event ?? const ElEvent();
     void activate(ElEventDetails e) {
       if (disabled ||
@@ -177,7 +183,7 @@ class ActionView extends HookWidget {
     }
 
     void keyDown(ElEventDetails e, {bool repeat = false}) {
-      if (!node.hasPrimaryFocus || disabled || blocked) return;
+      if (node?.hasPrimaryFocus != true || disabled || blocked) return;
       directInput.value = false;
       final key = e.logicalKey;
       if (activateOnEnter && (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter)) {
@@ -198,7 +204,7 @@ class ActionView extends HookWidget {
       }
     }
 
-    final ownsKeys = !base.hasKeyboardCallback;
+    final ownsKeys = focusEnabled && !base.hasKeyboardCallback;
     final configured = base.copyWith(
       disabled: disabled || base.disabled,
       config: (base.config ?? const ElEventConfig()).copyWith(
@@ -238,7 +244,7 @@ class ActionView extends HookWidget {
                 return;
               }
               space.value = false;
-              if (node.hasPrimaryFocus) activate(e);
+              if (node?.hasPrimaryFocus == true) activate(e);
               e
                 ..preventDefault()
                 ..stopPropagation();

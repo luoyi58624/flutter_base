@@ -27,8 +27,7 @@ class _Slider<D> extends StatefulWidget {
 
 class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
   final _control = GlobalKey();
-  final _secondaryFocus = FocusNode();
-  final _ownFocus = FocusNode();
+  FocusNode? _secondaryFocus;
   _Drag? _drag;
   int? _focused, _dismissed, _ignoredPointer;
   bool _watchingPointers = false;
@@ -43,7 +42,11 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
     return source.map(scale.normalize).toList()..sort();
   }
 
-  FocusNode _focus(int index) => index == 0 ? c.focusNode ?? _ownFocus : _secondaryFocus;
+  FocusNode? _focus(int index) {
+    if (c.focusNode == null) return null;
+    return index == 0 ? c.focusNode : (_secondaryFocus ??= FocusNode());
+  }
+
   bool get disabled => c.disabled || c.event?.disabled == true || scale.disabled;
 
   @override
@@ -126,7 +129,7 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
     _dismissed = null;
     _focused = null;
     if (!_drag!.deferred) {
-      _focus(index).requestFocus();
+      _focus(index)?.requestFocus();
       _move(event.position);
     }
     setState(() {});
@@ -146,7 +149,7 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
     current[previousIndex] = scale.normalize(raw);
     if (current.length > 1 && (previousIndex == 0 ? raw > drag.preview[1] : raw < drag.preview[0])) {
       drag.index = 1 - previousIndex;
-      _focus(drag.index).requestFocus();
+      _focus(drag.index)?.requestFocus();
     }
     current.sort();
     drag.raw = raw;
@@ -172,7 +175,7 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
     final next = List<double>.of(drag.preview);
     _clear();
     if (drag.deferred) {
-      _focus(drag.index).requestFocus();
+      _focus(drag.index)?.requestFocus();
       _commit(next);
     }
     if (mounted) setState(() {});
@@ -187,9 +190,9 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
         : index;
     current.sort();
     _commit(current);
-    _focus(target).requestFocus();
+    _focus(target)?.requestFocus();
     setState(() {
-      _focused = target;
+      _focused = _focus(target) == null ? null : target;
       _dismissed = null;
     });
   }
@@ -220,6 +223,29 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
 
   String _format(double value, int index) =>
       c.valueLabelFormat?.call(value, index) ?? '${value.toString().replaceFirst(RegExp(r'\.0(?=$|e)'), '')}${c.unit}';
+
+  Widget _withFocus(int index, Widget child) {
+    final node = _focus(index);
+    if (node == null) return child;
+    return Focus(
+      focusNode: node,
+      canRequestFocus: !disabled,
+      onKeyEvent: (_, event) => _key(index, event),
+      onFocusChange: (focused) {
+        if (!focused && _drag?.index == index && _drag?.moved == true) _cancel();
+        if (!mounted) return;
+        setState(() {
+          if (focused && _drag == null && FocusManager.instance.highlightMode == FocusHighlightMode.traditional) {
+            _focused = index;
+            _dismissed = null;
+          } else if (_focused == index) {
+            _focused = null;
+          }
+        });
+      },
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +308,7 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
                     onHorizontalDragStart: (_) {
                       if (_drag != null) {
                         _drag!.moved = true;
-                        _focus(_drag!.index).requestFocus();
+                        _focus(_drag!.index)?.requestFocus();
                       }
                     },
                     onHorizontalDragUpdate: (e) {
@@ -375,26 +401,9 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
                                     _format(scale.adjacent(model[i], false), i),
                                 onIncrease: disabled ? null : () => _adjust(i, scale.adjacent(model[i], true)),
                                 onDecrease: disabled ? null : () => _adjust(i, scale.adjacent(model[i], false)),
-                                child: Focus(
-                                  focusNode: _focus(i),
-                                  canRequestFocus: !disabled,
-                                  onKeyEvent: (_, e) => _key(i, e),
-                                  onFocusChange: (focused) {
-                                    if (!focused && _drag?.index == i && _drag?.moved == true) _cancel();
-                                    if (mounted) {
-                                      setState(() {
-                                        if (focused &&
-                                            _drag == null &&
-                                            FocusManager.instance.highlightMode == FocusHighlightMode.traditional) {
-                                          _focused = i;
-                                          _dismissed = null;
-                                        } else if (_focused == i) {
-                                          _focused = null;
-                                        }
-                                      });
-                                    }
-                                  },
-                                  child: Stack(
+                                child: _withFocus(
+                                  i,
+                                  Stack(
                                     clipBehavior: Clip.none,
                                     children: [
                                       Positioned(
@@ -505,8 +514,7 @@ class _SliderState<D> extends State<_Slider<D>> with WidgetsBindingObserver {
   void dispose() {
     _clear();
     WidgetsBinding.instance.removeObserver(this);
-    _secondaryFocus.dispose();
-    _ownFocus.dispose();
+    _secondaryFocus?.dispose();
     super.dispose();
   }
 }

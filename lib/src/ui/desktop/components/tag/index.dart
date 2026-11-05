@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../internal.dart';
+import '../../../../flutter/views/view/style/cascade/style_spec.dart' show hasFocusableVariantOf;
 
 /// 桌面预设使用的 Element 标签实现。
 class Tag extends StatelessWidget {
@@ -11,8 +12,25 @@ class Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = component.selected;
+    final ownsKeyboard =
+        component.isToggle &&
+        component.focusNode == null &&
+        !hasFocusableVariantOf(component.style) &&
+        component.event?.hasKeyboardCallback != true;
+    final keyboard = ownsKeyboard
+        ? ElButtonView.buildEvent(
+            () => component.selected = !component.selected,
+            component.disabled,
+            (component.event ?? const ElEvent()).copyWith(
+              onTap: (event) {
+                component.event?.onTap?.call(event);
+                event.stopPropagation();
+              },
+            ),
+          )
+        : null;
     return ElView(
-      event: component.disabled ? ElEvent(disabled: true) : null,
+      event: keyboard?.copyWith(onTap: null) ?? (component.disabled ? ElEvent(disabled: true) : null),
       style: ((BuildContext context) {
         final override = component.style;
         final style = override;
@@ -27,6 +45,12 @@ class Tag extends StatelessWidget {
             ? context.elTheme.bgColor
             : color.elLight9(context);
         final border = component.hit || solid ? color : color.elLight8(context);
+        final outline = ElStyle(
+          outline: .new(outlineWidth: 2, outlineColor: context.elTheme.primary, outlineOffset: 2),
+        );
+        final pressed = ElStyle(
+          backgroundColor: solid ? color.mix(const Color(0xff000000), 20) : color.elLight8(context),
+        );
         return ElStyle(
               height: height,
               widthFactor: 1,
@@ -44,30 +68,14 @@ class Tag extends StatelessWidget {
               onDisabled: const ElStyle(opacity: 0.5, cursor: SystemMouseCursors.forbidden),
               transition: const [ElTransition.all(Duration(milliseconds: 150), Curves.easeInOut)],
               iconColor: solid ? context.elTheme.white : color,
+              onFocusVisible: ownsKeyboard ? outline : null,
+              onTap: ownsKeyboard && !component.disabled ? pressed : null,
             )
             .merge(
               component.isToggle && !component.disabled
                   ? const ElStyle()
-                        .merge(
-                          ElView.of(context).hasFocusVisible
-                              ? ElStyle(
-                                  outline: .new(
-                                    outlineWidth: 2,
-                                    outlineColor: context.elTheme.primary,
-                                    outlineOffset: 2,
-                                  ),
-                                )
-                              : null,
-                        )
-                        .merge(
-                          ElView.of(context).hasTap
-                              ? ElStyle(
-                                  backgroundColor: solid
-                                      ? color.mix(const Color(0xff000000), 20)
-                                      : color.elLight8(context),
-                                )
-                              : null,
-                        )
+                        .merge(ElView.of(context).hasFocusVisible ? outline : null)
+                        .merge(ElView.of(context).hasTap ? pressed : null)
                   : null,
             )
             .merge(style);

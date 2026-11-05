@@ -1,5 +1,11 @@
 part of 'index.dart';
 
+bool _menuHasFocus(ElListTile component) =>
+    component.focusNode != null ||
+    hasFocusableVariantOf(component.style) ||
+    hasFocusableVariantOf(component.popupStyle) ||
+    hasFocusableVariantOf(component.optionStyle);
+
 List<ElLabelModel<T>> _menuChildren<T>(ElLabelModel<T> option) =>
     option is ElMenuOption<T> ? option.children : const [];
 bool _menuDisabled<T>(ElLabelModel<T> option) => option is ElMenuOption<T> && option.disabled;
@@ -21,8 +27,9 @@ class _MenuEntry<T> {
   _MenuEntry(this.option);
   ElLabelModel<T> option;
   final key = GlobalKey();
-  final focus = FocusNode();
-  void dispose() => focus.dispose();
+  FocusNode? _focus;
+  FocusNode get focus => _focus ??= FocusNode();
+  void dispose() => _focus?.dispose();
 }
 
 // 每层只保留自己的滚动、焦点和几何，返回时不重建父列表。
@@ -37,7 +44,8 @@ class _MenuLevel<T> {
   final key = GlobalKey();
   final headerKey = GlobalKey();
   final scroll = ScrollController();
-  final backFocus = FocusNode();
+  FocusNode? _backFocus;
+  FocusNode get backFocus => _backFocus ??= FocusNode();
   final AnimationController enter;
   final AnimationController cover;
   final AnimationController leave;
@@ -58,7 +66,7 @@ class _MenuLevel<T> {
 
   void dispose() {
     scroll.dispose();
-    backFocus.dispose();
+    _backFocus?.dispose();
     enter.dispose();
     cover.dispose();
     leave.dispose();
@@ -79,7 +87,9 @@ class _PopupPanel<T> extends StatefulWidget {
 
 class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderStateMixin {
   final _stackKey = GlobalKey();
-  final _fallbackFocus = FocusNode();
+  FocusNode? _fallbackFocusNode;
+  FocusNode get _fallbackFocus => _fallbackFocusNode ??= FocusNode();
+  bool get _keyboardEnabled => _menuHasFocus(widget.component);
   final List<_MenuLevel<T>> _levels = [];
   final List<_MenuLevel<T>> _retiring = [];
   late final AnimationController _enter = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
@@ -126,7 +136,8 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
       level.update(_menuChildren(matches.first.option));
     }
     final current = FocusManager.instance.primaryFocus;
-    if (!_levels.last.entries.any((entry) => entry.focus == current && !_menuDisabled(entry.option)) &&
+    if (_keyboardEnabled &&
+        !_levels.last.entries.any((entry) => entry.focus == current && !_menuDisabled(entry.option)) &&
         current != _levels.last.backFocus) {
       _focusPending = true;
     }
@@ -174,7 +185,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
 
   void _focus(_MenuLevel<T> level, _MenuEntry<T> entry) {
     if (_closing || !_levels.contains(level) || !level.entries.contains(entry) || _menuDisabled(entry.option)) return;
-    entry.focus.requestFocus();
+    if (_keyboardEnabled) entry.focus.requestFocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final target = entry.key.currentContext;
       if (mounted && !_closing && _levels.contains(level) && level.entries.contains(entry) && target != null) {
@@ -198,7 +209,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
   void _focusInitial(_MenuLevel<T> level) {
     final available = level.entries.where((entry) => !_menuDisabled(entry.option));
     if (available.isEmpty) {
-      (level.parent != null ? level.backFocus : _fallbackFocus).requestFocus();
+      if (_keyboardEnabled) (level.parent != null ? level.backFocus : _fallbackFocus).requestFocus();
       return;
     }
     final selected = available.where((entry) => _menuSelected(entry.option, widget.component.currentValue));
@@ -343,7 +354,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
     final selected = _menuSelected(option, widget.component.currentValue);
     final theme = context.elTheme, leading = _menuLeading(option), description = _menuDescription(option);
     final back = entry == null;
-    final focus = entry?.focus ?? level.backFocus;
+    final focus = _keyboardEnabled ? entry?.focus ?? level.backFocus : null;
     void activate() {
       if (back) {
         _back();
@@ -355,11 +366,16 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
     Widget row = ElView(
       key: entry?.key ?? level.headerKey,
       focusNode: focus,
-      event: ElButtonView.buildEvent(
-        activate,
-        disabled,
-        ElEvent(onKeyDown: (event) => _key(event, level, entry), onKeyRepeat: (event) => _key(event, level, entry)),
-      ),
+      event: _keyboardEnabled
+          ? ElButtonView.buildEvent(
+              activate,
+              disabled,
+              ElEvent(
+                onKeyDown: (event) => _key(event, level, entry),
+                onKeyRepeat: (event) => _key(event, level, entry),
+              ),
+            )
+          : ElEvent(disabled: disabled, onTap: (_) => activate()),
       semantics: ElSemantics(
         mergeDescendants: true,
         properties: SemanticsProperties(
@@ -514,16 +530,8 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final geometry = ElPortal.geometryOf(context);
-    final origin = _closing ? _frozenOrigin : _originFor(geometry);
-    if (_focusPending && !_closing) {
-      _focusPending = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_closing) _focusInitial(_levels.last);
-      });
-    }
+  Widget _withKeyboardFocus(Widget child) {
+    if (!_keyboardEnabled) return child;
     return Focus(
       focusNode: _fallbackFocus,
       onKeyEvent: (node, event) {
@@ -538,7 +546,22 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
         }
         return KeyEventResult.ignored;
       },
-      child: LayoutBuilder(
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final geometry = ElPortal.geometryOf(context);
+    final origin = _closing ? _frozenOrigin : _originFor(geometry);
+    if (_focusPending && !_closing) {
+      _focusPending = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_closing) _focusInitial(_levels.last);
+      });
+    }
+    return _withKeyboardFocus(
+      LayoutBuilder(
         builder: (context, constraints) {
           final wantedWidth = widget.component.popupStyle?.width;
           final width = (wantedWidth is num ? wantedWidth.toDouble() : 236.0).clamp(
@@ -647,7 +670,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
   @override
   void dispose() {
     _searchTimer?.cancel();
-    _fallbackFocus.dispose();
+    _fallbackFocusNode?.dispose();
     _enter.dispose();
     _leave.dispose();
     for (final level in [..._levels, ..._retiring]) {

@@ -151,6 +151,19 @@ void main() {
     expect(_bg(tester), _info.mix(_white, 90));
   });
 
+  testWidgets('桌面标签默认通过 Tab 聚焦并支持 Space 与 Enter 切换', (tester) async {
+    final changes = <bool>[];
+    await tester.pumpWidget(_host(ElTag.toggle(onChanged: changes.add, child: '键盘标签')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(changes, [true]);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(changes, [true, false]);
+  });
+
   testWidgets('toggle 不读取或修改 FormItem 的值', (tester) async {
     final form = Obs<Map<String, dynamic>>({'hot': true});
     addTearDown(form.dispose);

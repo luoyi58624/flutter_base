@@ -1,6 +1,6 @@
 # Card
 
-内部 cardBuilder 直接承接公共 ElCard，复用 ElCardView 的区域语义和既有 ActionView 的点击、键盘及后代控件隔离。
+内部 cardBuilder 直接承接公共 ElCard，复用 ElCardView 的区域语义和 ActionView 的点击及后代控件隔离；默认不创建焦点，用户显式声明焦点变体后才启用键盘交互。
 
 默认使用 cardColor 背景、26 圆角和既有内边距，边框按需通过 style.border 添加。可点击时按压使用 cardPressColor，并缩放至 .96，沿用 150ms 过渡；style 最后合并，用户可自行覆写按压颜色、缩放、内边距等字段。详细事件通过 event 传递。
 

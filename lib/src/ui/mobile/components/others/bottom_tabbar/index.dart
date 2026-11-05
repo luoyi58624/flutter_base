@@ -115,6 +115,7 @@ class _TabBarButton extends StatelessWidget {
       onTap: onPressed,
       excludeSemantics: true,
       child: InkResponse(
+        canRequestFocus: false,
         onTap: onPressed,
         excludeFromSemantics: true,
         containedInkWell: false,

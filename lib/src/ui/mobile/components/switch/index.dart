@@ -75,7 +75,7 @@ class _CommonSwitch extends StatelessWidget {
   }
 }
 
-/// 47×28的开关，使用原生开关的Space与辅助技术语义。
+/// 47×28 的开关，默认支持指针和辅助技术，显式配置焦点后支持 Space。
 class Switch extends StatelessWidget {
   /// 局部开关滑块背景。
   static const $thumbBackground = 'switch.thumbBackground';

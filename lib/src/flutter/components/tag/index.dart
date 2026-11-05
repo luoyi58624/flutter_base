@@ -6,6 +6,7 @@ import '../../views/button/button_view.dart' show ElButtonView;
 import '../../views/view/event/event.dart' show ElEvent, ElEventExt;
 import '../../views/view/semantics/semantics.dart' show ElSemantics;
 import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/style/cascade/style_spec.dart' show hasFocusableVariantOf;
 import '../../views/view/view.dart' show ElView;
 import '../index.dart' show ElComponentProvider;
 
@@ -82,7 +83,7 @@ class ElTag extends ElModelValue<bool> {
   /// 使用主题本色强调描边。
   final bool hit;
 
-  /// 显示独立可聚焦的关闭按钮。
+  /// 显示独立的关闭按钮。
   final bool closable;
 
   /// 关闭通知，是否移除标签由调用方决定。
@@ -115,25 +116,43 @@ class ElTag extends ElModelValue<bool> {
   /// 当前开关状态，普通标签始终为 false。
   bool get selected => isToggle && $obs.value;
 
-  void _toggle() {
-    if (!disabled) $obs.value = !$obs.value;
+  /// 更新可用切换标签的选中态并沿公共模型通知变化。
+  set selected(bool value) {
+    if (isToggle && !disabled) $obs.value = value;
   }
 
+  void _toggle() => selected = !selected;
+
   @override
-  Widget obsBuilder(BuildContext context) => ElView(
-    focusNode: isToggle ? focusNode : null,
-    event: disabled
-        ? ((isToggle ? ElButtonView.buildEvent(_toggle, disabled, event) : event) ?? ElEvent()).copyWith(disabled: true)
-        : (isToggle ? ElButtonView.buildEvent(_toggle, disabled, event) : event),
-    semantics: ElSemantics(
-      container: true,
-      mergeDescendants: !closable,
-      label: semanticLabel,
-      enabled: isToggle ? !disabled : null,
-      toggled: isToggle ? selected : null,
-      onTap: isToggle ? ElButtonView.buildSemanticsTap(_toggle, event, disabled) : null,
-    ),
-    style: const ElStyle(widthFactor: 1, userSelect: .none),
-    child: ElComponentProvider.builderOf(context, this, (b) => b.tag)(context, this),
-  );
+  Widget obsBuilder(BuildContext context) {
+    final keyboard = focusNode != null || hasFocusableVariantOf(style);
+    final base = event ?? const ElEvent();
+    final configured = isToggle
+        ? keyboard
+              ? ElButtonView.buildEvent(_toggle, disabled, event)
+              : base.copyWith(
+                  disabled: disabled || base.disabled,
+                  onTap: (event) {
+                    base.onTap?.call(event);
+                    if (!event.defaultPrevented) _toggle();
+                  },
+                )
+        : disabled
+        ? base.copyWith(disabled: true)
+        : event;
+    return ElView(
+      focusNode: isToggle ? focusNode : null,
+      event: configured,
+      semantics: ElSemantics(
+        container: true,
+        mergeDescendants: !closable,
+        label: semanticLabel,
+        enabled: isToggle ? !disabled : null,
+        toggled: isToggle ? selected : null,
+        onTap: isToggle ? ElButtonView.buildSemanticsTap(_toggle, event, disabled) : null,
+      ),
+      style: const ElStyle(widthFactor: 1, userSelect: .none),
+      child: ElComponentProvider.builderOf(context, this, (b) => b.tag)(context, this),
+    );
+  }
 }
