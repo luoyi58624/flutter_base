@@ -1,12 +1,19 @@
 # RecyclerView 长列表示例
 
-入口为「示例 → RecyclerView」，两端使用相同页面；也可打开 `/examples/recycler-selection` 或 `/examples/recycler-chat`。
+入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片。纯文本也可通过 `/examples/recycler-text` 直接打开。
+
+## 万条纯文本列表
+
+- 共 10,000 条，内容只有 `ElView(child: 'Item - $index')`，index 从 0 开始。
+- 不添加行样式、固定高度、内边距或额外卡片，作为纯文本渲染基线。
+- 沿用三种容器和滚动条切换；官方 ListView 不传 itemExtent，ElListView 不开启 fixedSize。
 
 ## 万条复选列表
 
 - 创建 10,000 条不同编号、标题和描述的业务记录，按需挂载条目 Widget。
 - `Adapter` 提供稳定 ID，`ViewHolder` 保留结构，`onBindViewHolder` 更新本次记录和选中状态。
 - 勾选状态存在按业务 ID 索引的集合中，离屏或复用 holder 不会把旧状态带给另一条记录。
+- 标题、说明和空白处均可点击切换，复选框自身的点击不再冒泡触发第二次切换；拖动滚动不会误选。
 - 导航头显示紧凑计数，图标下拉菜单提供清空、首尾跳转和按 1 开始的序号定位；输入在定位弹窗中完成，不占列表高度。
 - holder 保留固定卡片、Row 与文字布局框架，绑定只更新文案、语义和勾选状态等叶子。Key 不跟数据 ID 改变。
 - 不同记录且选中值不同时仅重置复选叶子，避免上一条记录的过渡动画带到新行；相同选中状态的跨记录绑定保留原复选 State，同一记录的用户勾选继续正常过渡。
@@ -22,7 +29,7 @@
 
 ## 同内容容器对比
 
-两页的下拉菜单都提供 `ListView` 和 `RecyclerView`，默认使用后者。两种容器共享同一批业务数据与同一套真实行组件，官方列表同样虚拟化、关闭 keepAlive，并逐项设置重绘边界；不通过简化内容制造对比差异。
+四页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。同一示例的三种容器共享相同条目内容，按需渲染；不通过简化某一种容器的内容制造对比差异。
 
 切换容器保留勾选状态、聊天消息与输入内容，并将复选列表定位到首项、聊天定位到最新消息，从相同起点比较。复选行固定 88 高，官方列表可按真实行高精确定位；聊天的官方列表采用反向索引，顶部历史追加在远端，阅读期间收到新消息则按已挂载消息几何补偿位置。
 
@@ -34,5 +41,5 @@
 
 ```powershell
 cd example
-flutter test test/recycler_long_examples_test.dart --no-pub --concurrency=1
+flutter test test/recycler_text_test.dart test/recycler_selection_row_tap_test.dart test/recycler_long_examples_test.dart --no-pub --concurrency=1
 ```

@@ -329,7 +329,11 @@ class _SelectionRow extends StatelessWidget {
               },
             ),
           ),
-          builder: (context, item, child) => Semantics(label: '选择${item?.title ?? ''}', child: child),
+          // 复选框自己切换模型，停止冒泡以免外层整行再切换一次。
+          builder: (context, item, child) => ElView(
+            event: ElEvent(onTap: (event) => event.stopPropagation()),
+            child: Semantics(label: '选择${item?.title ?? ''}', child: child),
+          ),
         ),
         Expanded(
           child: Column(
@@ -359,6 +363,7 @@ class _SelectionRow extends StatelessWidget {
       valueListenable: model.checked,
       child: content,
       builder: (context, checked, child) => ElCardView(
+        event: ElEvent(onTap: (_) => model.checked.value = !model.checked.value),
         style: ElStyle(
           height: _selectionExtent,
           padding: .symmetric(horizontal: 16, vertical: 10),

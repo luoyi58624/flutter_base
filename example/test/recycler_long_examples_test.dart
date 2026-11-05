@@ -64,13 +64,18 @@ Future<void> _locate(WidgetTester tester, String input) async {
 }
 
 void main() {
-  testWidgets('示例目录以 RecyclerView 分组展示三个入口，两端共用深度路由', (tester) async {
+  testWidgets('示例目录以 RecyclerView 分组展示四个入口，两端共用深度路由', (tester) async {
     await _open(tester, ExamplesPage());
     expect(find.byWidgetPredicate((w) => w is ElListGroup && w.title == 'RecyclerView'), findsOneWidget);
-    expect(recyclerExamples.map((page) => page.key), ['recycler-cards', 'recycler-selection', 'recycler-chat']);
+    expect(recyclerExamples.map((page) => page.key), [
+      'recycler-text',
+      'recycler-selection',
+      'recycler-chat',
+      'recycler-cards',
+    ]);
     expect(
       RouterUtil.exampleRoutes().map((route) => route.path),
-      containsAll(['recycler-cards', 'recycler-selection', 'recycler-chat']),
+      containsAll(['recycler-text', 'recycler-selection', 'recycler-chat', 'recycler-cards']),
     );
     await tester.ensureVisible(find.byKey(ValueKey('advanced-recycler-selection')));
     await tester.tap(find.byKey(ValueKey('advanced-recycler-selection')));
@@ -121,7 +126,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('三个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
+  testWidgets('四个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);

@@ -8,6 +8,7 @@ import 'press_feedback.dart';
 import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
 import 'recycler_view/selection.dart';
+import 'recycler_view/text.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -29,12 +30,7 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
 
 /// RecyclerView 长列表示例，两端共用相同目录与页面工厂。
 final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
-  ElMenuModel(
-    key: 'recycler-cards',
-    title: '复杂卡片面板',
-    icon: ElIcon(Icons.dashboard_outlined),
-    data: (_) => RecyclerCardsPage(),
-  ),
+  ElMenuModel(key: 'recycler-text', title: '万条纯文本列表', icon: ElIcon(Icons.text_fields), data: (_) => RecyclerTextPage()),
   ElMenuModel(
     key: 'recycler-selection',
     title: '万条复选列表',
@@ -46,5 +42,11 @@ final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
     title: '聊天长列表',
     icon: ElIcon(Icons.chat_bubble_outline),
     data: (_) => RecyclerChatPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-cards',
+    title: '复杂卡片面板',
+    icon: ElIcon(Icons.dashboard_outlined),
+    data: (_) => RecyclerCardsPage(),
   ),
 ];
