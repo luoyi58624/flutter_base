@@ -256,4 +256,124 @@ void main() {
     await tester.pump();
     expect(colorOf(tester), base);
   });
+
+  testWidgets('键盘按压生命周期只送给主焦点节点，重复键不重复发送按下，也不合成点击', (tester) async {
+    final node = FocusNode();
+    addTearDown(node.dispose);
+    final phases = <ElEventPhase>[];
+    final parents = <ElEventPhase>[];
+    var taps = 0;
+    void record(ElEventDetails event) {
+      phases.add(event.phase);
+      expect(event.originalEvent, isA<KeyEvent>());
+      expect(event.logicalKey, LogicalKeyboardKey.enter);
+    }
+
+    await host(
+      tester,
+      ElView(
+        event: ElEvent(onTapDown: (event) => parents.add(event.phase), onTapUp: (event) => parents.add(event.phase)),
+        child: ElView(
+          key: key,
+          focusNode: node,
+          style: style(),
+          event: ElEvent(
+            onTapDown: record,
+            onTapUp: record,
+            onKeyDown: record,
+            onKeyRepeat: record,
+            onKeyUp: record,
+            onTap: (_) => taps++,
+          ),
+        ),
+      ),
+    );
+    await focus(tester, node);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+    expect(phases, [
+      ElEventPhase.tapDown,
+      ElEventPhase.keyDown,
+      ElEventPhase.keyRepeat,
+      ElEventPhase.tapUp,
+      ElEventPhase.keyUp,
+    ]);
+    expect(parents, isEmpty);
+    expect(taps, 0);
+  });
+
+  for (final cancel in ['escape', 'blur', 'disabled', 'unmount']) {
+    testWidgets('键盘按压在 $cancel 时只取消一次，旧按键释放不再发送 TapUp', (tester) async {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      final phases = <ElEventPhase>[];
+      final cancellations = <({Object? originalEvent, LogicalKeyboardKey? key})>[];
+      Widget view(bool disabled) => ElView(
+        key: key,
+        focusNode: node,
+        style: style(),
+        event: ElEvent(
+          disabled: disabled,
+          onTapDown: (event) => phases.add(event.phase),
+          onTapUp: (event) => phases.add(event.phase),
+          onTapCancel: (event) {
+            phases.add(event.phase);
+            cancellations.add((originalEvent: event.originalEvent, key: event.logicalKey));
+          },
+        ),
+      );
+      await host(tester, view(false));
+      await focus(tester, node);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      if (cancel == 'escape') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else if (cancel == 'blur') {
+        node.unfocus();
+        await tester.pump();
+      } else {
+        await host(tester, cancel == 'disabled' ? view(true) : SizedBox());
+      }
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapCancel]);
+      expect(cancellations.single.originalEvent, isA<KeyEvent>());
+      expect(cancellations.single.key, LogicalKeyboardKey.space);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('TapUp 同步禁用不会为已释放的键盘会话再发送取消，也不继续激活', (tester) async {
+    final node = FocusNode();
+    addTearDown(node.dispose);
+    late ElRenderView render;
+    final phases = <ElEventPhase>[];
+    var keyUps = 0;
+    await host(
+      tester,
+      ElView(
+        key: key,
+        focusNode: node,
+        style: style(),
+        event: ElEvent(
+          onTapDown: (event) => phases.add(event.phase),
+          onTapUp: (event) {
+            phases.add(event.phase);
+            render.event = ElEvent(disabled: true);
+          },
+          onTapCancel: (event) => phases.add(event.phase),
+          onKeyUp: (_) => keyUps++,
+        ),
+      ),
+    );
+    render = tester.renderObject<ElRenderView>(find.byKey(key));
+    await focus(tester, node);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapUp]);
+    expect(keyUps, 0);
+    expect(colorOf(tester), base);
+    expect(tester.takeException(), isNull);
+  });
 }

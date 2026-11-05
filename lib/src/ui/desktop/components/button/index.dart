@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../internal.dart';
 
 /// 桌面预设使用的 Element 按钮实现。
-class Button extends StatefulWidget {
+class Button extends StatelessWidget {
   const Button(this.component, this.model, {super.key});
 
   final ElButton component;
@@ -12,38 +12,9 @@ class Button extends StatefulWidget {
   final Obs<bool> model;
 
   @override
-  State<Button> createState() => _ButtonState();
-}
-
-class _ButtonState extends State<Button> {
-  late final _press = ElButtonViewPressController()..addListener(_pressedChanged);
-
-  void _pressedChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void didUpdateWidget(Button oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.component.disabled || widget.component.loading) _press.cancel();
-  }
-
-  @override
-  void dispose() {
-    _press
-      ..removeListener(_pressedChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final component = widget.component;
-    final model = widget.model;
     final selected = component.isToggle && model.value;
-    var style = component._styleBuilder(context, selected);
-    if (_press.pressed && !component.loading) style = style.merge(style.onTap);
-    style = style.merge(component.style);
+    final style = component._styleBuilder(context, selected).merge(component.style);
     final button = ElButtonView(
       onPressed: component.isToggle
           ? () => model.value = !model.value
@@ -54,7 +25,6 @@ class _ButtonState extends State<Button> {
       style: style,
       event: component.event,
       focusNode: component.focusNode,
-      pressController: _press,
       disabled: component.disabled,
       toggled: component.isToggle ? selected : null,
       child: component._buttonContent(context),

@@ -143,7 +143,7 @@ export 'src/flutter/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRow
 
 // 基础视图、链接与分隔线
 export 'src/flutter/views/card/card_view.dart' show ElCardView;
-export 'src/flutter/views/button/button_view.dart' show ElButtonView, ElButtonViewPressController;
+export 'src/flutter/views/button/button_view.dart' show ElButtonView;
 export 'src/flutter/widgets/link/index.dart' show LinkTarget, ElLink;
 export 'src/flutter/widgets/link/status_bar.dart' show ElLinkStatusBar;
 export 'src/flutter/widgets/divider/index.dart' show ElDivider;

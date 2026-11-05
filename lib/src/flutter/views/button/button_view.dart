@@ -1,30 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../view/event/event.dart';
+import '../view/event/press.dart' show EventDetailsAccess;
 import '../view/semantics/semantics.dart';
 import '../view/style/style.dart';
 import '../view/view.dart';
-
-/// 保存按钮键盘按压会话，供上层皮肤同步绘制 Space 按住状态。
-///
-/// 控制器不拥有按钮焦点和激活行为；[ElButtonView] 只在 Space 按下、释放、取消或
-/// 失焦时更新 [pressed]。调用方创建时也负责销毁。
-class ElButtonViewPressController extends ChangeNotifier {
-  bool _pressed = false;
-
-  /// Space 是否处于已按下、等待 keyup 激活的会话。
-  bool get pressed => _pressed;
-
-  void _setPressed(bool value) {
-    if (_pressed == value) return;
-    _pressed = value;
-    notifyListeners();
-  }
-
-  /// 取消当前键盘按压会话，不触发按钮激活。
-  void cancel() => _setPressed(false);
-}
 
 /// 无任何外观样式、只统一指针、键盘与辅助技术的最小按钮基元
 class ElButtonView extends ElView {
@@ -36,14 +16,13 @@ class ElButtonView extends ElView {
     ElStyle? style,
     ElEvent? event,
     super.focusNode,
-    this.pressController,
     bool disabled = false,
     bool selected = false,
     bool? toggled,
     super.child,
   }) : super(
          style: _mergeBaseStyle(style),
-         event: buildEvent(onPressed, disabled, event, pressController: pressController),
+         event: buildEvent(onPressed, disabled, event),
          semantics: ElSemantics(
            mergeDescendants: true,
            button: true,
@@ -57,9 +36,6 @@ class ElButtonView extends ElView {
            onTap: buildSemanticsTap(onPressed, event, disabled),
          ),
        );
-
-  /// 可选键盘按压会话；用于让外观层读取 Space 按住期间的物理按压状态。
-  final ElButtonViewPressController? pressController;
 
   static ElStyle _mergeBaseStyle(ElStyle? style) {
     const base = ElStyle(userSelect: .none);
@@ -76,13 +52,7 @@ class ElButtonView extends ElView {
   /// `onKeyUp` 任意一个，内建 Enter / Space 激活整组退出——只让位单个回调的话，
   /// 调用方覆盖了 keydown，按住 Enter 仍会经 keyRepeat 回退连续激活。
   /// [activateOnEnter] 为 false 时只保留 Space 会话，Enter 继续交给祖先默认动作。
-  static ElEvent? buildEvent(
-    VoidCallback? onPressed,
-    bool disabled,
-    ElEvent? event, {
-    ElButtonViewPressController? pressController,
-    bool activateOnEnter = true,
-  }) {
+  static ElEvent? buildEvent(VoidCallback? onPressed, bool disabled, ElEvent? event, {bool activateOnEnter = true}) {
     if (disabled || event?.disabled == true) return (event ?? ElEvent()).copyWith(disabled: true);
     final base = event ?? ElEvent();
 
@@ -96,18 +66,6 @@ class ElButtonView extends ElView {
       return base.copyWith(onTap: onTap);
     }
 
-    // 粘滞空格防护（web 口径）：keyup 激活要求 keydown 发生在本按钮聚焦期间
-    // ——空格按住途中焦点才移进来的 keyup 不激活；按住期间 Esc 取消本次激活。
-    // 状态存在闭包里，widget 重建会复位——失败方向是"不激活"，安全。
-    var spaceArmed = false;
-
-    bool spaceIsArmed() => pressController?.pressed ?? spaceArmed;
-
-    void setSpaceArmed(bool value) {
-      spaceArmed = value;
-      pressController?._setPressed(value);
-    }
-
     // 消费掉的按键显式 preventDefault：el 侧只在 defaultPrevented 时返回
     // handled，不阻止默认动作就等于把按键让给 Flutter 的遍历/滚动。
     void onKeyDown(ElEventDetails e) {
@@ -116,31 +74,22 @@ class ElButtonView extends ElView {
         onTap(e);
         e.preventDefault();
       } else if (key == LogicalKeyboardKey.space) {
-        setSpaceArmed(true);
         e.preventDefault();
-      } else if (key == LogicalKeyboardKey.escape) {
-        final armed = spaceIsArmed();
-        setSpaceArmed(false);
-        if (armed) e.preventDefault();
+      } else if (key == LogicalKeyboardKey.escape && e.keyboardTapMatched) {
+        e.preventDefault();
       }
     }
 
     void onKeyUp(ElEventDetails e) {
-      if (e.logicalKey == LogicalKeyboardKey.space && spaceIsArmed()) {
-        setSpaceArmed(false);
+      if (e.logicalKey == LogicalKeyboardKey.space && e.keyboardTapMatched) {
         onTap(e);
         e.preventDefault();
       }
     }
 
-    void onBlur(ElEventDetails e) {
-      base.onBlur?.call(e);
-      setSpaceArmed(false);
-    }
-
     // 不注入 onKeyRepeat：dispatcher 对 keyRepeat 回退到 onKeyDown，按住 Enter
-    // 自然连续激活，空格 repeat 只是反复置位 spaceArmed，无副作用。
-    return base.copyWith(onTap: onTap, onKeyDown: onKeyDown, onKeyUp: onKeyUp, onBlur: onBlur);
+    // 继续激活；空格是否有配对的按下由 ElView 的会话维护，重建不丢失。
+    return base.copyWith(onTap: onTap, onKeyDown: onKeyDown, onKeyUp: onKeyUp);
   }
 
   /// 辅助技术 tap 激活：先执行调用方事件，未阻止默认行为时再执行 [onPressed]。

@@ -497,40 +497,51 @@ void main() {
       expect(presses, 3);
     });
 
-    testWidgets('pressController 跨 rebuild 保留 Space 按压并在 keyup 释放', (tester) async {
-      const hostKey = ValueKey<String>('btn-key-press-controller');
+    testWidgets('内部会话跨 rebuild 保留 Space 按压并在 keyup 释放', (tester) async {
+      final hostKey = ValueKey<String>('btn-key-press-session');
       var presses = 0;
       final node = FocusNode();
-      final controller = ElButtonViewPressController();
       addTearDown(node.dispose);
-      addTearDown(controller.dispose);
 
-      Widget build(String label) => shell(
-        ElButtonView(
-          key: hostKey,
-          onPressed: () => presses++,
-          focusNode: node,
-          pressController: controller,
-          child: label,
-        ),
-      );
+      Widget build(String label) =>
+          shell(ElButtonView(key: hostKey, onPressed: () => presses++, focusNode: node, child: label));
 
       await tester.pumpWidget(build('before'));
+      final render = tester.renderObject<ElRenderView>(find.byKey(hostKey));
       node.requestFocus();
       await tester.pump();
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
-      expect(controller.pressed, isTrue);
+      expect(render.internalStateHas(ViewState.tap), isTrue);
       expect(presses, 0);
 
       await tester.pumpWidget(build('after'));
       await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
-      expect(controller.pressed, isFalse);
+      expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(presses, 1);
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.escape);
-      expect(controller.pressed, isFalse);
+      expect(render.internalStateHas(ViewState.tap), isFalse);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      expect(presses, 1);
+    });
+
+    testWidgets('Escape 仅在取消待激活的 Space 会话时消费，Enter 激活后仍可向外传递', (tester) async {
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      var presses = 0;
+      await tester.pumpWidget(shell(ElButtonView(focusNode: node, onPressed: () => presses++)));
+      node.requestFocus();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+      expect(presses, 1);
+      expect(await tester.sendKeyDownEvent(LogicalKeyboardKey.escape), isFalse);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.escape);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      expect(await tester.sendKeyDownEvent(LogicalKeyboardKey.escape), isTrue);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.escape);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
       expect(presses, 1);
     });

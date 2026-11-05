@@ -3,7 +3,6 @@ part of 'index.dart';
 class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   final _surfaceKey = GlobalKey();
   final _ripples = <_Ripple>[];
-  late final _pressController = ElButtonViewPressController()..addListener(_keyboardChanged);
   _Ripple? _pointerRipple;
   _Ripple? _returnRipple;
   _Ripple? _keyboardRipple;
@@ -25,7 +24,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   void didUpdateWidget(ElRippleTap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.disabled) {
-      _pressController.cancel();
       _hovered = false;
       _clear();
     }
@@ -69,12 +67,7 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
     _repaint();
   }
 
-  void _keyboardChanged() {
-    if (_pressController.pressed) {
-      _keyboardRipple?.cancel();
-      _keyboardRipple = _start();
-      return;
-    }
+  void _releaseKeyboardRipple() {
     // Space keyup 先清按压态再激活；等激活回调确认后，仅取消仍未被消费的会话。
     final ripple = _keyboardRipple;
     Future<void>.microtask(() {
@@ -85,6 +78,11 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   }
 
   void _tapDown(ElEventDetails event) {
+    if (event.originalEvent is KeyEvent) {
+      _keyboardRipple?.cancel();
+      _keyboardRipple = _start();
+      return;
+    }
     // 移回时的 TapDown 来自 PointerMove，同一次按压只恢复最终态。
     final returning = event.originalEvent is PointerMoveEvent;
     _pointerRipple?.cancel();
@@ -94,12 +92,21 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   }
 
   void _tapUp(ElEventDetails event) {
+    if (event.originalEvent is KeyEvent) {
+      _releaseKeyboardRipple();
+      return;
+    }
     _returnRipple = null;
     _pointerRipple?.confirm();
     _pointerRipple = null;
   }
 
   void _tapCancel(ElEventDetails event) {
+    if (event.originalEvent is KeyEvent) {
+      _keyboardRipple?.cancel();
+      _keyboardRipple = null;
+      return;
+    }
     final ripple = _pointerRipple;
     _pointerRipple = null;
     _returnRipple = event.originalEvent is PointerMoveEvent ? ripple : null;
@@ -108,7 +115,9 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
 
   void _activate(ElEventDetails event) {
     if (event.originalEvent is PointerEvent) return;
-    final ripple = event.logicalKey == LogicalKeyboardKey.space ? _keyboardRipple : _start();
+    final ripple = event.originalEvent is KeyEvent
+        ? _keyboardRipple ?? (event.logicalKey == LogicalKeyboardKey.space ? null : _start())
+        : _start();
     ripple?.confirm();
     if (identical(_keyboardRipple, ripple)) _keyboardRipple = null;
   }
@@ -126,7 +135,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
     semanticLabel: widget.semanticLabel,
     style: widget.style,
     focusNode: widget.focusNode,
-    pressController: _pressController,
     event: ElEvent(
       onPointerEnter: (_) => _hover(true),
       onPointerExit: (_) => _hover(false),
@@ -144,16 +152,9 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
 
   @override
   void deactivate() {
-    _pressController.cancel();
     _clear();
     _hovered = false;
     super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    _pressController.dispose();
-    super.dispose();
   }
 }
 

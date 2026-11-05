@@ -115,10 +115,10 @@ enum ElEventPhase {
   /// 鼠标滚轮或其他指针信号。
   pointerSignal,
 
-  /// 主指针按下。
+  /// 主指针或键盘激活键按下。
   tapDown(.press, .candidate),
 
-  /// 主指针抬起。
+  /// 主指针或键盘激活键释放。
   tapUp(.press, .release),
 
   /// 点击。
@@ -618,6 +618,7 @@ class ElEventDetails extends _MotionData<Object?> {
   void Function(ElEventDetails callback, bool cancelSelfTap, bool allowScaleUpgrade)? _eagerGestureHandler;
   VoidCallback? _preserveFocusHandler;
   bool _callbackInvoked = false;
+  bool _keyboardTapMatched = false;
 
   /// 是否处于预处理、主消费者、溢出处理共用余量的拖拽管线。
   bool dragPipelineActive = false;
@@ -665,6 +666,12 @@ class ElEventDetails extends _MotionData<Object?> {
 
 /// 包内业务回调接线，不经公共入口暴露给事件订阅方。
 extension EventDetailsAccess on ElEventDetails {
+  /// 当前键盘阶段是否配对主焦点节点的按下，供按钮判定 Space 释放激活。
+  bool get keyboardTapMatched => _keyboardTapMatched;
+
+  /// 由分发器按当前接收节点更新键盘配对事实，不进入公共事件参数。
+  void updateKeyboardTapMatched(bool value) => _keyboardTapMatched = value;
+
   /// 标记本阶段已执行业务处理器。
   void markCallbackInvoked() => _callbackInvoked = true;
 

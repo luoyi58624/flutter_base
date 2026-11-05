@@ -436,10 +436,10 @@ class ElEvent {
   /// 鼠标滚轮或其他指针信号回调。
   final ElEventHandler? onPointerSignal;
 
-  /// 主指针按下回调。
+  /// 主指针或主焦点节点的键盘激活键按下回调。
   final ElEventHandler? onTapDown;
 
-  /// 主指针抬起回调。
+  /// 主指针或已配对的键盘激活键释放回调。
   final ElEventHandler? onTapUp;
 
   /// 点击回调。

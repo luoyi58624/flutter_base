@@ -41,7 +41,7 @@ class EventDispatcher {
     ..deferPointerMoves = true
     ..deferPointerReleases = true;
   late final _press = PressRecognizer(debugOwner: this)..team = _team;
-  Set<PhysicalKeyboardKey>? _keyboardTapKeys;
+  Map<PhysicalKeyboardKey, KeyEvent>? _keyboardTapKeys;
   bool _reportedTapPressed = false;
   // 只在声明拖拽、缩放或作为后代变换链的祖先时创建，点击类节点不分配。
   TransformRecognizer? _transform;
@@ -165,9 +165,29 @@ class EventDispatcher {
   void _cancelKeyboardTap() {
     final keys = _keyboardTapKeys;
     if (keys == null || keys.isEmpty) return;
+    final events = keys.values.toList(growable: false);
     keys.clear();
     _notifyTapChanged();
+    for (final event in events) {
+      _dispatchKeyboardTap(.tapCancel, event);
+    }
   }
+
+  // 生命周期只送给本次按压的主焦点宿主，不替祖先合成按压或点击。
+  void _dispatchKeyboardTap(ElEventPhase phase, KeyEvent event) {
+    if (_disposed || _handlerFor(phase) == null) return;
+    _invoke(_handlerFor(phase), _keyboardCallback(phase, event));
+  }
+
+  ElEventDetails _keyboardCallback(ElEventPhase phase, KeyEvent event) => ElEventDetails(
+    phase: phase,
+    globalPosition: _lastPointerPosition,
+    localPosition: _localPosition(_lastPointerPosition),
+    logicalKey: event.logicalKey,
+    physicalKey: event.physicalKey,
+    character: event.character,
+    originalEvent: event,
+  );
 
   /// 是否仍有鼠标位于宿主内，禁用不会清除真实悬停位置。
   bool get isHovered => _hoverDevices.isNotEmpty;
@@ -575,30 +595,38 @@ class EventDispatcher {
       _ => null,
     };
     if (phase == null) return null;
+    final cancelMatched =
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        (_keyboardTapKeys?.values.any((down) => down.logicalKey == LogicalKeyboardKey.space) ?? false);
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
       if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter || key == LogicalKeyboardKey.space) {
-        (_keyboardTapKeys ??= {}).add(event.physicalKey);
-        _notifyTapChanged();
+        final keys = _keyboardTapKeys ??= {};
+        if (!keys.containsKey(event.physicalKey)) {
+          keys[event.physicalKey] = event;
+          _notifyTapChanged();
+          _dispatchKeyboardTap(.tapDown, event);
+        }
       } else if (key == LogicalKeyboardKey.escape) {
         _cancelKeyboardTap();
       }
       if (_disposed || disabled || !_render.attached) return null;
     }
-    final callback = ElEventDetails(
-      phase: phase,
-      globalPosition: _lastPointerPosition,
-      localPosition: _localPosition(_lastPointerPosition),
-      logicalKey: event.logicalKey,
-      physicalKey: event.physicalKey,
-      character: event.character,
-      originalEvent: event,
-    );
+    // 释放义务先结清，TapUp 中同步禁用或卸载不再为同一按键补发 TapCancel。
+    final released = event is KeyUpEvent && _keyboardTapKeys?.remove(event.physicalKey) != null;
+    final callback = _keyboardCallback(phase, event)
+      ..updateKeyboardTapMatched(
+        cancelMatched || released || (_keyboardTapKeys?.containsKey(event.physicalKey) ?? false),
+      );
     try {
+      if (released) {
+        _dispatchKeyboardTap(.tapUp, event);
+        if (_disposed || disabled || !_render.attached) return null;
+      }
       _deliverLive(callback);
     } finally {
-      // 按物理键结清，焦点迁移后的孤立 keyup 和取消后的 repeat 都不会重启反馈。
-      if (event is KeyUpEvent && (_keyboardTapKeys?.remove(event.physicalKey) ?? false)) _notifyTapChanged();
+      // 回调期间可能开始其他输入，收尾按合并后的事实同步反馈。
+      if (released) _notifyTapChanged();
     }
     return callback;
   }
@@ -609,6 +637,7 @@ class EventDispatcher {
     for (var render = _render.parent; render != null; render = render.parent) {
       final member = _registry[render];
       if (member == null || member._disposed || member.disabled || !render.attached) continue;
+      callback.updateKeyboardTapMatched(false);
       callback.localPosition = member._localPosition(callback.globalPosition, callback);
       member._invoke(member._handlerFor(callback.phase), callback);
       if (callback.propagationStopped) return;

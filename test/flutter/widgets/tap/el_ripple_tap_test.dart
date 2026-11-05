@@ -365,10 +365,7 @@ void main() {
     var taps = 0;
     final focus = FocusNode();
     addTearDown(focus.dispose);
-    Widget shell() => build(
-      onPressed: () => taps++,
-      focusNode: focus,
-    );
+    Widget shell() => build(onPressed: () => taps++, focusNode: focus);
     await tester.pumpWidget(shell());
     focus.requestFocus();
     await tester.pump();
@@ -426,6 +423,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Enter 按住与重复键每次只生成一个中心波纹，释放不再激活', (tester) async {
+    var taps = 0;
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    await tester.pumpWidget(build(onPressed: () => taps++, focusNode: focus));
+    focus.requestFocus();
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(taps, 1);
+    expect(button(tester), paintsExactlyCountTimes(#drawCircle, 1));
+    for (var index = 0; index < 3; index++) {
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
+      await tester.pump(Duration(milliseconds: 20));
+      expect(taps, index + 2);
+      expect(button(tester), paintsExactlyCountTimes(#drawCircle, index + 2));
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+    expect(taps, 4);
+    await tester.pumpAndSettle();
+    expect(button(tester), paintsExactlyCountTimes(#drawCircle, 0));
+  });
+
+  for (final cancel in ['blur', 'disabled', 'unmount']) {
+    testWidgets('Space 波纹在 $cancel 时取消，释放不点击也不遗留动画', (tester) async {
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      var taps = 0;
+      await tester.pumpWidget(build(onPressed: () => taps++, focusNode: focus));
+      focus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      expect(button(tester), paintsExactlyCountTimes(#drawCircle, 1));
+      if (cancel == 'blur') {
+        focus.unfocus();
+      } else {
+        await tester.pumpWidget(cancel == 'disabled' ? build(disabled: true, focusNode: focus) : SizedBox());
+      }
+      await tester.pumpAndSettle();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      expect(taps, 0);
+      if (cancel != 'unmount') expect(button(tester), paintsExactlyCountTimes(#drawCircle, 0));
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('变换后的点击坐标准确，逐帧反馈不重新布局内容', (tester) async {
     var layouts = 0;

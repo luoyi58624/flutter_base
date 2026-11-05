@@ -29,7 +29,6 @@ ElButtonView(
 | selected / toggled | 选择语义与布尔开关语义；外观需自己根据业务状态设置 |
 | event | 组合自定义事件；onTap 与 onPressed 会组合执行 |
 | focusNode | 可选外部焦点节点，由调用方销毁 |
-| pressController | 读取 Space 键按住期间的按压状态，供皮肤同步绘制 |
 
 ## 开关与键盘按压
 
@@ -48,4 +47,4 @@ ValueListenableBuilder<bool>(
 
 Enter 在 keydown 激活，重复按键可继续激活；Space 在 keyup 激活。自定义 onKeyDown / onKeyRepeat / onKeyUp 任一回调时，整组内建键盘激活让位，需调用方完整接管。
 
-ElButtonViewPressController 的 pressed 只表示 Space 按住会话，不是通用指针按下状态；cancel 取消该会话，不激活按钮。控制器和 notifier 在生命周期内持有并 dispose。普通按钮不依赖 ElComponentProvider；现成反馈可选 [Tap](../../widgets/tap/README.md)。
+Enter、空格的按压态及释放配对由 ElView 内部维护，直接声明 `style.onTap` 即可；重建不会丢失按压会话，Esc、失焦、禁用或卸载会取消。上层皮肤可通过现有 onTapDown / onTapUp / onTapCancel 响应键盘按压生命周期，不需要额外控制器。普通按钮不依赖 ElComponentProvider；现成反馈可选 [Tap](../../widgets/tap/README.md)。
