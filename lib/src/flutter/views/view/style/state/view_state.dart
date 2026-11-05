@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart' show Element;
 
 import '../style_context.dart';
 import '../../render/render_view.dart' show ViewStateRenderAccess;
+import 'build_dependency_phase.dart';
 
 /// 引擎内部的状态位序，不作为用户查询协议。
 @internal
@@ -63,6 +64,7 @@ final class ViewStateSource {
   /// 帧标语义（MediaQuery.sizeOf 同款心智）：同帧重复读取 OR 合并 mask，
   /// 跨帧首读**重置** mask——build 不再读取的位自动退订。
   Map<Element, (int, int)>? _buildDependents;
+  Set<Element>? _pendingBuildDependents;
 
   /// 历史上被 build 依赖读取过的位并集（sticky，不随帧标重置）。
   ///
@@ -120,6 +122,7 @@ final class ViewStateSource {
   @internal
   void removeBuildDependent(Element dependent) {
     if (_buildDependents?.remove(dependent) == null) return;
+    _pendingBuildDependents?.remove(dependent);
     if (!hasListeners) onListenerPresenceChanged?.call();
   }
 
@@ -154,43 +157,37 @@ final class ViewStateSource {
     }
   }
 
-  /// **读取即订阅**分发：changedMask 命中依赖 mask 的 Element →
-  /// markNeedsBuild。
-  ///
-  /// phase-safe 口径照抄 [VarsHost.publish]：idle / postFrame 同步；帧中
-  /// 可选 defer：布局回调内翻转等 defer 到帧末。
-  /// `!mounted` 条目懒清理。
+  /// 命中的读者按构建边界同步标脏或延期，离树读者从登记表清除。
   void _notifyBuildDependents(int changedMask) {
     final map = _buildDependents;
     if (map == null || map.isEmpty) return;
-    List<Element>? hit;
     List<Element>? dead;
     map.forEach((element, entry) {
       if (!element.mounted) {
         (dead ??= <Element>[]).add(element);
         return;
       }
-      if ((entry.$1 & changedMask) != 0) (hit ??= <Element>[]).add(element);
+      if ((entry.$1 & changedMask) == 0) return;
+      if (canMarkBuildDependent(element)) {
+        _pendingBuildDependents?.remove(element);
+        element.markNeedsBuild();
+      } else {
+        final pending = _pendingBuildDependents ??= _scheduleBuildDependentFlush();
+        pending.add(element);
+      }
     });
-    if (dead != null) {
-      dead!.forEach(map.remove);
-      if (!hasListeners) onListenerPresenceChanged?.call();
-    }
-    final targets = hit;
-    if (targets == null) return;
-    void markDependents() {
-      for (final element in targets) {
+    dead?.forEach(removeBuildDependent);
+  }
+
+  Set<Element> _scheduleBuildDependentFlush() {
+    final pending = <Element>{};
+    scheduleBuildDependencyFlush((_) {
+      _pendingBuildDependents = null;
+      for (final element in pending) {
         if (element.mounted) element.markNeedsBuild();
       }
-    }
-
-    final phase = SchedulerBinding.instance.schedulerPhase;
-    if (phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks) {
-      markDependents();
-    } else {
-      SchedulerBinding.instance.addPostFrameCallback((_) => markDependents());
-      SchedulerBinding.instance.scheduleFrame();
-    }
+    });
+    return pending;
   }
 
   bool _hasListenerForMask(int changedMask) {

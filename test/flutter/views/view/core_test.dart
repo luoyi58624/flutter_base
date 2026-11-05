@@ -250,6 +250,176 @@ void main() {
       await tester.pump();
     }
 
+    testWidgets('主题状态和变量在同一 build 帧通知各自的读者', (tester) async {
+      var isDark = false;
+      var stateBuilds = 0;
+      var varsBuilds = 0;
+      int? surface;
+      final readers = Column(
+        children: [
+          Builder(
+            builder: (context) {
+              stateBuilds++;
+              isDark = ElView.of(context).isDark;
+              return SizedBox.shrink();
+            },
+          ),
+          Builder(
+            builder: (context) {
+              varsBuilds++;
+              surface = ElView.of(context).getVar<int>('surface');
+              return SizedBox.shrink();
+            },
+          ),
+        ],
+      );
+      late StateSetter rebuild;
+      var brightness = Brightness.light;
+      await tester.pumpWidget(
+        shell(
+          StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return ElView(
+                themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
+                style: ElStyle(
+                  vars: {'surface': 1},
+                  onDark: ElStyle(vars: {'surface': 2}),
+                ),
+                child: readers,
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect((isDark, surface, stateBuilds, varsBuilds), (false, 1, 1, 1));
+
+      rebuild(() => brightness = Brightness.dark);
+      await tester.pump();
+
+      expect((isDark, surface, stateBuilds, varsBuilds), (true, 2, 2, 2));
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+
+    for (final duringLayout in [false, true]) {
+      testWidgets('变量提交同帧通知后代，延期通知 Overlay（layout=$duringLayout）', (tester) async {
+        late StateSetter rebuild;
+        late BuildContext sourceContext;
+        var width = 100.0;
+        int? localValue;
+        int? overlayValue;
+        final reader = Builder(
+          builder: (context) {
+            sourceContext = context;
+            localValue = ElView.of(context).getVar<int>('width');
+            return SizedBox.shrink();
+          },
+        );
+        Widget source(double width) => ElView(
+          style: ElStyle(vars: {'width': width.toInt()}),
+          child: reader,
+        );
+        await tester.pumpWidget(
+          shell(
+            StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return SizedBox(
+                  width: width,
+                  child: duringLayout
+                      ? LayoutBuilder(builder: (_, constraints) => source(constraints.maxWidth))
+                      : source(width),
+                );
+              },
+            ),
+          ),
+        );
+        final captured = InheritedTheme.captureAll(
+          sourceContext,
+          Builder(
+            builder: (context) {
+              overlayValue = ElView.of(context).getVar<int>('width');
+              return SizedBox.shrink();
+            },
+          ),
+        );
+        final entry = OverlayEntry(builder: (_) => captured);
+        Overlay.of(sourceContext).insert(entry);
+        addTearDown(() {
+          entry.remove();
+          entry.dispose();
+        });
+        await tester.pumpAndSettle();
+        expect((localValue, overlayValue), (100, 100));
+
+        rebuild(() => width = 200);
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect((localValue, overlayValue), (200, 100));
+        expect(tester.binding.hasScheduledFrame, isTrue);
+        await tester.pump();
+        expect(overlayValue, 200);
+      });
+    }
+
+    testWidgets('延期变量以读者在本帧重新读到的值为基准', (tester) async {
+      final key = GlobalKey();
+      late BuildContext sourceContext;
+      ElStyle style(int first, int second) => ElStyle(vars: {'first': first, 'second': second});
+      await tester.pumpWidget(
+        shell(
+          ElView(
+            key: key,
+            style: style(1, 1),
+            child: Builder(
+              builder: (context) {
+                sourceContext = context;
+                return SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      );
+      final source = tester.renderObject<ElRenderView>(find.byKey(key));
+      late StateSetter rebuild;
+      var updateDuringRead = false;
+      int? first;
+      int? second;
+      final captured = InheritedTheme.captureAll(
+        sourceContext,
+        StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            if (updateDuringRead) source.style = style(2, 2);
+            first = ElView.of(context).getVar<int>('first');
+            if (updateDuringRead) {
+              updateDuringRead = false;
+              source.style = style(1, 2);
+            }
+            second = ElView.of(context).getVar<int>('second');
+            return SizedBox.shrink();
+          },
+        ),
+      );
+      final entry = OverlayEntry(builder: (_) => captured);
+      Overlay.of(sourceContext).insert(entry);
+      addTearDown(() {
+        entry.remove();
+        entry.dispose();
+      });
+      await tester.pumpAndSettle();
+      expect((first, second), (1, 1));
+
+      rebuild(() => updateDuringRead = true);
+      await tester.pump();
+      expect((first, second), (2, 2));
+
+      await tester.pump();
+      expect((first, second), (1, 2));
+    });
+
     testWidgets('ElView.of 读取即订阅：仅被读取的状态位翻转才重建', (tester) async {
       const key = ValueKey('box');
       var hoverBuilds = 0;

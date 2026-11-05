@@ -717,7 +717,7 @@ class ElRenderView extends RenderBox
   }
 
   void _notifyThemeBuildDependents() {
-    _themeBuildDeps?.notifyCommit({ElThemeMode: resolvedThemeMode}, pipelineOwner: owner);
+    _themeBuildDeps?.notifyCommit({ElThemeMode: resolvedThemeMode});
   }
 
   /// dark 统一过渡 effective duration（无声明兜底 200ms）。
@@ -1244,7 +1244,7 @@ class ElRenderView extends RenderBox
         if (oldVars != value.inheritedVars) {
           visitInheritableChildren((child) => child.reresolveVarsFromInheritance(value));
         }
-        _varsBuildDeps?.notifyCommit(value.inheritedVars.map, pipelineOwner: owner);
+        _varsBuildDeps?.notifyCommit(value.inheritedVars.map);
       }
       if (!identical(oldInheritedText, value.inheritedText) && _hasTextPayload) {
         if (maskAnd(changedMask, textLayoutAffectingMask).isEmpty) {
@@ -2136,15 +2136,30 @@ class ElRenderView extends RenderBox
       }
       return true;
     }());
+    // 首挂时 Widget 子内容尚未插入。已有后代的自定义宿主保留原来的继承提交顺序。
+    final resolveMountOnce =
+        firstAttach && elViewDebugUseMountFastPath && firstChild == null && (_styleChildren?.isEmpty ?? true);
     // 重挂时重建动画时钟并回落目标值，不能保留摘树前的过渡采样。
-    if (!firstAttach || elViewDebugUseMountFastPath || parentChanged) _reresolve();
-    _syncEffectiveDark(_localDark ?? ancestorNode?.effectiveDarkForInheritance ?? false, propagate: true);
+    if (!resolveMountOnce && (!firstAttach || elViewDebugUseMountFastPath || parentChanged)) _reresolve();
+    final dark = _localDark ?? ancestorNode?.effectiveDarkForInheritance ?? false;
+    if (!resolveMountOnce) _syncEffectiveDark(dark, propagate: true);
     _invalidateEffectiveBreakpointCascade();
     // 判定"响应式根"：本节点 `_selfSizeBasis` 或链上无 InheritableNode 祖先
     // （暗根类）——注册进窗口观察者。
     final isResponsiveRoot = _selfSizeBasis || ancestorNode == null;
     if (isResponsiveRoot) _WindowMetricsObserver.instance.register(this);
-    _syncResponsiveBits(_computeSelfResponsiveBits(ancestorNode: ancestorNode), propagate: false);
+    final responsiveBits = _computeSelfResponsiveBits(ancestorNode: ancestorNode);
+    if (resolveMountOnce) {
+      final oldBits = _stateBits;
+      final darkChanged = _effectiveDark != dark;
+      _stateSet(ViewState.dark, dark);
+      _stateBits = (_stateBits & ~responsiveStateMask) | (responsiveBits & responsiveStateMask);
+      if (oldBits != _stateBits) _publishState();
+      if (darkChanged) _notifyThemeBuildDependents();
+      _reresolve();
+    } else {
+      _syncResponsiveBits(responsiveBits, propagate: false);
+    }
     _listenToClipper(_committedResolved.box.clipPath);
     _textPainterOrNull?.syncSelectionParticipation();
     // attach 完成后才打开 transition 闸门

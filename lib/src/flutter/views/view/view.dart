@@ -7,6 +7,7 @@ import 'element/view_element.dart';
 import 'event/event.dart';
 import 'render/render_view.dart';
 import 'semantics/semantics.dart';
+import 'style/state/build_dependency_phase.dart';
 import 'style/style.dart';
 import 'style/style_context.dart';
 
@@ -113,16 +114,19 @@ class ElView extends RenderObjectWidget {
 
   @override
   void updateRenderObject(BuildContext context, ElRenderView renderObject) {
-    renderObject.setStyleParent(StyleDependencyScope.maybeHostOf(context));
-    renderObject
-      ..style = style
-      ..systemBoldText = (context as ViewElement).resolveSystemBoldText()
-      ..event = event
-      ..semantics = semantics
-      ..themeMode = themeMode
-      ..breakpoint = breakpoint
-      ..textScaler = _resolveTextScaler(context)
-      ..locale = locale;
+    final element = context as ViewElement;
+    withBuildDependencyOrigin(element, () {
+      renderObject.setStyleParent(StyleDependencyScope.maybeHostOf(element));
+      renderObject
+        ..style = style
+        ..systemBoldText = element.resolveSystemBoldText()
+        ..event = event
+        ..semantics = semantics
+        ..themeMode = themeMode
+        ..breakpoint = breakpoint
+        ..textScaler = _resolveTextScaler(element)
+        ..locale = locale;
+    });
   }
 }
 

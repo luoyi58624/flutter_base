@@ -1488,6 +1488,104 @@ void main() {
       return captureSnapshot(tester);
     }
 
+    testWidgets('mount：继承暗色与窗口断点的 100 个子节点各级联一次', (tester) async {
+      tester.view.physicalSize = Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      ElView tree() => ElView(
+        themeMode: ElThemeMode(brightness: .dark),
+        style: ElStyle(vars: {_VariableKey.primary: Colors.blue}),
+        child: List<Widget>.generate(
+          100,
+          (_) => ElView(
+            style: ElStyle(
+              backgroundColor: Colors.white,
+              md: ElStyle(fontSize: 17),
+              lg: ElStyle(fontWeight: .w600),
+              onDark: ElStyle(
+                vars: {_VariableKey.primary: Colors.orange},
+                md: ElStyle(backgroundColor: Colors.indigo),
+              ),
+            ),
+          ),
+          growable: false,
+        ),
+      );
+
+      BenchmarkProbe.reset();
+      final fast = await pumpAndCapture(tester, tree());
+      final fastTicks = BenchmarkProbe.cascadeTickCount;
+      final children = allRenderViews(tester).skip(1).map((view) => view.committedResolvedStyle);
+      expect(children.length, 100);
+      for (final child in children) {
+        expect(child.box.backgroundColor, Colors.indigo);
+        expect(child.inheritedText.fontSize, 17);
+        expect(child.inheritedText.fontWeight, FontWeight.w600);
+        expect(child.inheritedVars.map[_VariableKey.primary], Colors.orange);
+      }
+
+      await tester.pumpWidget(wrap(SizedBox.shrink()));
+      elViewDebugUseMountFastPath = false;
+      BenchmarkProbe.reset();
+      final slow = await pumpAndCapture(tester, tree());
+      expect(fast.perNodeCommitted, slow.perNodeCommitted);
+      expect(fast.perNodeTarget, slow.perNodeTarget);
+      expect(BenchmarkProbe.cascadeTickCount, greaterThan(fastTicks));
+      expect(fastTicks, 101);
+    });
+
+    testWidgets('mount：继承变体中的入场过渡与关键帧首帧生效', (tester) async {
+      tester.view.physicalSize = Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final enterKey = ValueKey('enter');
+      final keyframeKey = ValueKey('keyframe');
+
+      await tester.pumpWidget(
+        wrap(
+          ElView(
+            themeMode: ElThemeMode(brightness: .dark),
+            child: <Widget>[
+              ElView(
+                key: enterKey,
+                style: ElStyle(
+                  starting: ElStyle(opacity: 0),
+                  onDark: ElStyle(opacity: 1, transition: [ElTransition.all(Duration(seconds: 1), Curves.linear)]),
+                ),
+              ),
+              ElView(
+                key: keyframeKey,
+                style: ElStyle(
+                  opacity: 1,
+                  md: ElStyle(
+                    animation: [
+                      ElAnimation(
+                        keyframes: {0: ElStyle(opacity: 0.25), 100: ElStyle(opacity: 0.75)},
+                        animationDuration: Duration(seconds: 1),
+                        animationTimingFunction: Curves.linear,
+                        animationFillMode: .forwards,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final enter = tester.renderObject<ElRenderView>(find.byKey(enterKey));
+      final keyframe = tester.renderObject<ElRenderView>(find.byKey(keyframeKey));
+      expect(enter.committedResolvedStyle.box.opacity, 0);
+      expect(keyframe.committedResolvedStyle.box.opacity, 0.25);
+      await tester.pumpAndSettle();
+      expect(enter.committedResolvedStyle.box.opacity, 1);
+      expect(keyframe.committedResolvedStyle.box.opacity, 0.75);
+    });
+
     testWidgets('bit-identical：base 树快慢路径 committed 逐字段相等', (tester) async {
       final tree = ElView(
         style: const ElStyle(

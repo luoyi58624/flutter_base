@@ -58,17 +58,12 @@ class ViewElement extends RenderObjectElement {
   bool _hadFocusWithin = false;
   bool _activeForFocus = false;
 
-  /// 本视图当前主焦点期间是否点亮焦点指示（CSS `:focus-visible`）。
-  ///
-  /// 只在「新获得焦点」时按本次来源决定，随后沿用：同一次聚焦期间 highlightMode
-  /// 变化、update() 重建都不会误收；指针按下（全局路由）立刻收环。
-  bool _focusIndicatorOn = false;
-
   /// 登记到全局收环路由的回调（字段级持有，保证登记/注销是同一实例）。
   late final VoidCallback _focusRingRetractor = _retractFocusRing;
 
-  /// 本视图所属 [FlutterView] 的 viewId（mount 时解析并缓存，失败为 null）。
-  int? _focusRingViewId;
+  // 焦点环实际登记的 View 桶，未亮环时为空。
+  int? _focusRingBucket;
+  bool get _focusIndicatorOn => _focusRingBucket != null;
 
   /// 外部节点的禁用兜底状态：禁用时压住 canRequestFocus，恢复时写回原值。
   bool _nodeDisabledByView = false;
@@ -83,9 +78,6 @@ class ViewElement extends RenderObjectElement {
   static int? _pointerDownPointer;
   static Duration? _pointerDownTime;
   static bool _pointerDownClaimed = false;
-
-  /// 绑定中的焦点管理器：highlightMode（鼠标/键盘形态）变化时刷新 focusVisible。
-  FocusManager? _focusManager;
 
   ElView get _view => widget as ElView;
   ElRenderView get _renderView => renderObject as ElRenderView;
@@ -135,10 +127,6 @@ class ViewElement extends RenderObjectElement {
     }
     _renderView.bindElementWidget(_view);
     _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
-    _focusManager = FocusManager.instance..addHighlightModeListener(_handleHighlightModeChanged);
-    // 焦点环按 View 隔离：mount 时取一次并缓存（unmount 时 Element 已 deactivated，
-    // 不能再做 inherited 查找）。
-    _resolveFocusRingViewId();
     // 焦点宿主先于子树建立：子节点 reparent 时才能找到本节点作为父。
     _syncFocusNode(forceStateSync: true);
     if (trace != null) {
@@ -166,6 +154,7 @@ class ViewElement extends RenderObjectElement {
     super.didChangeDependencies();
     _renderView.setStyleParent(StyleDependencyScope.maybeHostOf(this));
     _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
+    if (_focusIndicatorOn) _syncFocusRingBucket();
     _reparentFocusNode(createDependency: true);
   }
 
@@ -191,8 +180,6 @@ class ViewElement extends RenderObjectElement {
     _activeForFocus = false;
     // 卸载路径可能早已不满足视觉同步条件，环位与全局登记必须无条件释放。
     _setFocusIndicator(false);
-    _focusManager?.removeHighlightModeListener(_handleHighlightModeChanged);
-    _focusManager = null;
     _disposeFocusNode(reparentDescendants: false);
     super.unmount();
     // 外部保留旧 Element 时也应释放其内容、富文本载荷和求值样式。
@@ -516,39 +503,29 @@ class ViewElement extends RenderObjectElement {
 
   void _handleFocusChange() => _syncRenderFocus();
 
-  /// 只有切到触摸形态才需要动作（真实触摸交互发生过）；切回 traditional
-  /// 不代表发生了键盘导航，不能点亮焦点环。
-  void _handleHighlightModeChanged(FocusHighlightMode mode) {
-    if (mode != FocusHighlightMode.touch || !_focusIndicatorOn) return;
-    _retractFocusRing();
+  void _syncFocusRingBucket() {
+    assert(() {
+      BenchmarkProbe.focusViewIdResolveCount++;
+      return true;
+    }());
+    final previous = _focusRingBucket;
+    final bucket = View.maybeOf(this)?.viewId ?? _globalFocusRingViewId;
+    if (previous == bucket) return;
+    _focusRingBucket = bucket;
+    // 跨 View 重挂时先登记新桶，避免最后一个环搬迁时重新安装全局监听。
+    _registerFocusRingOwner(_focusRingRetractor, viewId: bucket);
+    if (previous != null) _unregisterFocusRingOwner(_focusRingRetractor, viewId: previous);
   }
-
-  /// 本视图所属 [FlutterView] 的 id，焦点环按它分桶。
-  ///
-  /// 在 [mount] 里解析一次并缓存：卸载路径（Element 已 deactivated）不再查
-  /// `View.of`。解析失败时回退为全局收环并留下 debug 提示，不静默改变行为。
-  void _resolveFocusRingViewId() {
-    try {
-      _focusRingViewId = View.of(this).viewId;
-    } on Object catch (error) {
-      _focusRingViewId = null;
-      assert(() {
-        debugPrint('el_ui: 无法解析 FlutterView.viewId（$error），焦点环回退为全局收环。');
-        return true;
-      }());
-    }
-  }
-
-  int get _focusRingBucket => _focusRingViewId ?? _globalFocusRingViewId;
 
   void _setFocusIndicator(bool on) {
-    if (on == _focusIndicatorOn) return;
-    _focusIndicatorOn = on;
     if (on) {
-      _registerFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
-    } else {
-      _unregisterFocusRingOwner(_focusRingRetractor, viewId: _focusRingBucket);
+      if (!_focusIndicatorOn) _syncFocusRingBucket();
+      return;
     }
+    final bucket = _focusRingBucket;
+    if (bucket == null) return;
+    _focusRingBucket = null;
+    _unregisterFocusRingOwner(_focusRingRetractor, viewId: bucket);
   }
 
   /// 指针按下（全局）或触摸形态出现时收起焦点环；焦点本身不动。

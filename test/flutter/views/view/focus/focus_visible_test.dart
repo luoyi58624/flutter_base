@@ -1,9 +1,25 @@
+import 'dart:ui' show FlutterView;
+
+import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/flutter/utils/internal/focus.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _SecondaryFlutterView extends TestFlutterView {
+  _SecondaryFlutterView({
+    required super.view,
+    required super.platformDispatcher,
+    required super.display,
+    required this.viewId,
+  });
+
+  @override
+  final int viewId;
+}
 
 /// `onFocusVisible`（CSS `:focus-visible`）——聚焦方式敏感的焦点指示变体。
 ///
@@ -20,7 +36,9 @@ void main() {
   Future<void> pump(WidgetTester tester, Widget child) {
     return tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+        home: Scaffold(
+          body: Align(alignment: Alignment.topLeft, child: child),
+        ),
       ),
     );
   }
@@ -63,6 +81,107 @@ void main() {
     await pressKey(tester, LogicalKeyboardKey.tab);
     expect(node.hasPrimaryFocus, isTrue);
     expect(bgOf(tester, key), ringBg, reason: '键盘聚焦：focusVisible 优先级 > focus');
+  });
+
+  testWidgets('普通视图不登记高亮监听，只有亮环才登记并查询 View', (tester) async {
+    final key = ValueKey('ring-listener');
+    final node = FocusNode(debugLabel: 'ring-listener');
+    addTearDown(node.dispose);
+    resetHighlightStrategy();
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    BenchmarkProbe.reset();
+
+    await pump(
+      tester,
+      Wrap(
+        children: [
+          for (var i = 0; i < 100; i++) ElView(style: ElStyle(width: 1, height: 1)),
+          focusBox(node, key: key),
+        ],
+      ),
+    );
+    expect(BenchmarkProbe.focusHighlightListenerAddCount, 0);
+    expect(BenchmarkProbe.focusViewIdResolveCount, 0);
+
+    await pressKey(tester, LogicalKeyboardKey.tab);
+    expect(bgOf(tester, key), ringBg);
+    expect(BenchmarkProbe.focusHighlightListenerAddCount, 1);
+    expect(BenchmarkProbe.focusViewIdResolveCount, 1);
+
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+    await tester.pump();
+    expect(node.hasPrimaryFocus, isTrue);
+    expect(bgOf(tester, key), focusBg);
+    expect(BenchmarkProbe.focusHighlightListenerRemoveCount, 1);
+
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    await tester.pump();
+    expect(bgOf(tester, key), focusBg);
+    expect(BenchmarkProbe.focusHighlightListenerAddCount, 1);
+
+    node.unfocus();
+    await tester.pump();
+    await pressKey(tester, LogicalKeyboardKey.tab);
+    expect(bgOf(tester, key), ringBg);
+    await pump(tester, SizedBox());
+    expect(BenchmarkProbe.focusHighlightListenerAddCount, 2);
+    expect(BenchmarkProbe.focusHighlightListenerRemoveCount, 2);
+  });
+
+  testWidgets('亮环视图跨 Flutter View 重挂后，指针只按新 View 收环', (tester) async {
+    final key = GlobalKey();
+    final node = FocusNode(debugLabel: 'ring-view-move');
+    addTearDown(node.dispose);
+    resetHighlightStrategy();
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    final firstView = tester.view;
+    final secondView = _SecondaryFlutterView(
+      view: firstView,
+      platformDispatcher: tester.platformDispatcher,
+      display: firstView.display,
+      viewId: firstView.viewId + 1,
+    );
+    final box = focusBox(node, key: key);
+
+    Widget body(Widget child) => Directionality(
+      textDirection: .ltr,
+      child: Align(alignment: Alignment.topLeft, child: child),
+    );
+
+    Future<void> pumpViews({required bool moved}) => tester.pumpWidget(
+      ViewCollection(
+        views: [
+          View(view: firstView, child: body(moved ? SizedBox() : box)),
+          View(view: secondView, child: body(moved ? box : SizedBox())),
+        ],
+      ),
+      wrapWithView: false,
+    );
+
+    final pointer = TestPointer(41, PointerDeviceKind.mouse);
+    Future<void> clickIn(FlutterView view) async {
+      await tester.sendEventToBinding(pointer.down(Offset(150, 150), view: view));
+      await tester.sendEventToBinding(pointer.up(view: view));
+      await tester.pump();
+    }
+
+    await pumpViews(moved: false);
+    final element = tester.element(find.byKey(key));
+    FocusUtil.markReason(node, ElFocusReason.keyboard);
+    node.requestFocus();
+    await tester.pump();
+    expect(bgOf(tester, key), ringBg);
+
+    await pumpViews(moved: true);
+    expect(tester.element(find.byKey(key)), same(element));
+    expect(node.hasPrimaryFocus, isTrue);
+    expect(bgOf(tester, key), ringBg);
+
+    await clickIn(firstView);
+    expect(bgOf(tester, key), ringBg);
+    await clickIn(secondView);
+    expect(node.hasPrimaryFocus, isTrue);
+    expect(bgOf(tester, key), focusBg);
   });
 
   testWidgets('桌面默认形态：鼠标按下聚焦只命中 onFocus，不出焦点环', (tester) async {

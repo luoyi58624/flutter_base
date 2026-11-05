@@ -260,6 +260,15 @@ class BenchmarkProbe {
   /// 旧焦点状态对象的分配占位计数；当前状态由 ViewElement 持有，恒为零。
   static int focusStateInstantiateCount = 0;
 
+  /// 焦点环全局高亮模式监听的登记次数。
+  static int focusHighlightListenerAddCount = 0;
+
+  /// 焦点环全局高亮模式监听的注销次数。
+  static int focusHighlightListenerRemoveCount = 0;
+
+  /// 亮环或迁桶时查询 Flutter View 的次数。
+  static int focusViewIdResolveCount = 0;
+
   /// 选中换色 overlay 的 `TextPainter.layout` 次数（= 真 shape 次数）。
   ///
   /// 非全选分支要逐 rect clip 重绘，但 overlay 与 rect 无关 —— 一帧应恒 ≤1。
@@ -313,6 +322,9 @@ class BenchmarkProbe {
     intrinsicsCacheInstantiateCount = 0;
     paintControllerInstantiateCount = 0;
     focusStateInstantiateCount = 0;
+    focusHighlightListenerAddCount = 0;
+    focusHighlightListenerRemoveCount = 0;
+    focusViewIdResolveCount = 0;
     selectionOverlayLayoutCount = 0;
     textContentParseCount = 0;
     inlineHitTestCount = 0;
@@ -339,6 +351,9 @@ class BenchmarkProbe {
       'intrinsicsCacheInstantiateCount': intrinsicsCacheInstantiateCount,
       'paintControllerInstantiateCount': paintControllerInstantiateCount,
       'focusStateInstantiateCount': focusStateInstantiateCount,
+      'focusHighlightListenerAddCount': focusHighlightListenerAddCount,
+      'focusHighlightListenerRemoveCount': focusHighlightListenerRemoveCount,
+      'focusViewIdResolveCount': focusViewIdResolveCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,
       'textContentParseCount': textContentParseCount,
       'inlineHitTestCount': inlineHitTestCount,

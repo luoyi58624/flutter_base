@@ -73,6 +73,7 @@ const int _globalFocusRingViewId = -1;
 /// 和 O(n) 重复分发。
 final Map<int, Set<VoidCallback>> _ringOwners = <int, Set<VoidCallback>>{};
 int _ringOwnerCount = 0;
+FocusManager? _ringFocusManager;
 
 /// 视图点亮焦点环时登记；同一回调重复登记无副作用（幂等）。
 void _registerFocusRingOwner(VoidCallback retract, {required int viewId}) {
@@ -80,6 +81,11 @@ void _registerFocusRingOwner(VoidCallback retract, {required int viewId}) {
   if (!owners.add(retract)) return;
   if (_ringOwnerCount++ == 0) {
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handleGlobalPointer);
+    _ringFocusManager = FocusManager.instance..addHighlightModeListener(_handleHighlightModeChanged);
+    assert(() {
+      BenchmarkProbe.focusHighlightListenerAddCount++;
+      return true;
+    }());
   }
 }
 
@@ -91,6 +97,21 @@ void _unregisterFocusRingOwner(VoidCallback retract, {required int viewId}) {
   if (--_ringOwnerCount <= 0) {
     _ringOwnerCount = 0;
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_handleGlobalPointer);
+    _ringFocusManager!.removeHighlightModeListener(_handleHighlightModeChanged);
+    _ringFocusManager = null;
+    assert(() {
+      BenchmarkProbe.focusHighlightListenerRemoveCount++;
+      return true;
+    }());
+  }
+}
+
+void _handleHighlightModeChanged(FocusHighlightMode mode) {
+  if (mode != FocusHighlightMode.touch) return;
+  // 高亮模式是全局状态，收环时回调会注销自己，先取所有桶的快照。
+  final retractors = [for (final owners in _ringOwners.values) ...owners];
+  for (final retract in retractors) {
+    retract();
   }
 }
 
