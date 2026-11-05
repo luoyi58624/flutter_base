@@ -136,11 +136,46 @@ class RowsAdapter extends rv.Adapter<RowHolder> {
 
 没有实现 `GridLayoutManager`、`StaggeredGridLayoutManager`、`ItemAnimator`、`ItemDecoration`、`DiffUtil`、`ListAdapter`、`ConcatAdapter`、Android View 系统或全部 Android 辅助能力，也没有给这些能力放置不生效的同名空壳。已经暴露的接口对照官方使用模式，不表示整个 AndroidX RecyclerView 库的 API 和运行行为已经全部实现。
 
-当前输入和惯性继续由 Flutter 的 `Scrollable` 与 `ClampingScrollPhysics` 驱动；这里实现的是视图回收和布局管线，没有把 Android `OverScroller`、HWUI、RenderThread 或 SurfaceFlinger 移植到 Dart，也没有修改 Flutter 引擎。
+当前输入和惯性继续由 Flutter 的 `Scrollable` 驱动，物理从所在环境的 `ScrollConfiguration` 读取，程序 `fling` 也使用实际物理的最小和最大速度；这里实现的是视图回收和布局管线，没有把 Android `OverScroller`、HWUI、RenderThread 或 SurfaceFlinger 移植到 Dart，也没有修改 Flutter 引擎。
+
+## 稳定滚动与数据更新
+
+同一 holder 的可见性不变时复用 `TickerMode`、`ExcludeFocus` 与 `RepaintBoundary` 包装描述，仍保留 `buildScope` 和子项布局入口。后代自身变脏、数据重新绑定、代码展开或宽度改变时仍会正确构建和测量；约束与内容稳定的 RenderBox 则使用 Flutter 自身的布局缓存。每项保留独立重绘边界，视口裁剪层通过 `oldLayer` 复用。
+
+补测反向滚动中新进入的未知高度条目时，优先以屏幕中仍存在的条目为锚点，保留它相对视口的位置；浮点误差范围内的零位移不提交 `correctBy`，避免无意义地重启惯性。
+
+高度索引采用线性建树。`notifyItemRangeChanged` 只重新读取受影响范围的类型和估算高度；插入、删除、移动仍会线性重建索引并重新核对位置相关的类型，不能假设 `getItemViewType` 只由数据 ID 决定。
+
+预取启用时，在 `setItemViewCacheSize` 的基础容量之外保留已观测到的预取数量，并优先保留下一屏准备结果。显式将容量设为 0 时继续关闭位置缓存和预取缓存，已离屏的结构仍可进入按类型回收池。池中的子树保留挂载，Ticker 和焦点被关闭，隐藏项不绘制、不命中、不输出语义；它们订阅的主题或其它环境仍可能变化，因此要计入驻留内存与依赖更新成本。
+
+无障碍更新同时涉及结构与坐标。即使可见集合不变，滚动也必须更新语义几何；本实现不会通过关闭语义更新换取性能结果。
+
+## 长列表示例与无头检测
+
+示例应用的「示例 → RecyclerView」分组提供：
+
+- 「万条复选列表」：10,000 条不同 ID、标题和文案，选择状态归数据 ID 所有，支持首末项、指定序号定位和清空；holder 被其它条目复用后返回原位置仍恢复正确状态。
+- 「聊天长列表」：10,000 条变高消息、双方向气泡与时间，支持顶部插入历史、发送和模拟接收。阅读旧消息时保留位置并显示新消息提示，位于底部时跟随最新消息。
+
+局部无头检测使用 `flutter test`，不连接设备或创建前台应用窗口：
+
+```powershell
+flutter test test/flutter/views/recycler_view --concurrency=1
+cd example
+flutter test test/recycler_long_examples_test.dart --concurrency=1
+```
+
+核心回归包含真实内容重绑、复选状态、未知高度反向锚点、小数惯性、预取保留、动态正文、环境变更、语义坐标及物理配置。`performance_test.dart` 使用相同的 10,000 条动态数据记录有界挂载、State 复用、正文实际 build/layout/paint 次数、稳定包装更新以及局部通知规模，并输出 `RECYCLER_PERF` JSON。
+
+无头测试的 `pump` 耗时是 Debug 测试进程的主机墙钟时间，包含测试框架和 JIT 等影响，不能当作手机 UI/raster FrameTiming 或实际 FPS。稳定性门槛以可重复的行为和操作次数为主，耗时用于同一环境的受控对照。
+
+[本轮无头验证记录](HEADLESS_PERFORMANCE.md)保存相同动态数据的优化前后操作次数、主机耗时及详细回归范围。
 
 ## 预取与性能验证
 
 预取需要真正执行子树挂载、构建和布局，预算应包含这些成本，而不只是 `onCreateViewHolder` 返回 Widget 描述的耗时。准备任务根据方向、可见边界和历史成本安排；池中分别记录创建和绑定成本。
+
+准备工作在可见内容布局完成后、当前视口的合法布局回调中按剩余预算执行，不在帧后直接调用子树布局。这样包含 `LayoutBuilder` 的隐藏内容也遵守 Flutter 的布局阶段约束，预取成本会计入实际 UI 帧工作；隐藏测量结果在进入可见区时再按锚点更新高度索引。
 
 预算检查决定是否开始某项准备工作，不能中断已经执行到一半的同步 Dart 函数。未知成本的首次创建仍可能超时；复用后的绑定、条目内部变化和布局本身也仍有成本。如果主 isolate 被不可拆分的长任务阻塞，这套内核无法让新的 Dart 滚动更新同时执行。
 

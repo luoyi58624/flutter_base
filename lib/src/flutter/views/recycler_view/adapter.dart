@@ -24,6 +24,8 @@ abstract class ViewHolder {
   final List<Object> _payloads = [];
   Adapter? _bindingAdapter;
   _RecyclerViewportElement? _owner;
+  Widget? _hostWidget;
+  bool? _hostVisible;
 
   /// 返回绑定适配器中的最新位置，失效、删除或回收后返回 -1。
   int getBindingAdapterPosition() => _bound && !_invalid && !_removed && _bindingAdapter != null ? _position : -1;

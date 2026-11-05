@@ -47,16 +47,17 @@ class _RecyclerViewportElement extends RenderObjectElement {
   final Map<ViewHolder, Element> _children = {};
   final Map<int, ViewHolder> _active = {};
   final List<ViewHolder> _cached = [];
+  final Set<ViewHolder> _prefetched = {};
   final Set<ViewHolder> _retained = {};
+  final Set<ViewHolder> _pendingRetire = {};
   late _ExtentIndex _extents;
   _Anchor? _anchor;
   bool _computingLayout = false;
   bool _pendingUpdates = false;
   bool _fullChange = false;
-  bool _prefetchScheduled = false;
   bool _alive = true;
   double _scrollDelta = 0;
-  int _generation = 0;
+  int _prefetchCacheExtra = 0;
 
   _RecyclerViewState get _state => (widget as _RecyclerViewport).state;
   Adapter? get _adapter => _state._adapter;
@@ -121,19 +122,26 @@ class _RecyclerViewportElement extends RenderObjectElement {
     _children.remove(holder);
     _active.removeWhere((_, value) => identical(value, holder));
     _cached.remove(holder);
+    _prefetched.remove(holder);
     _retained.remove(holder);
+    _pendingRetire.remove(holder);
     if (identical(holder._owner, this)) holder._owner = null;
     super.forgetChild(child);
   }
 
-  Widget _host(ViewHolder holder, bool visible) => TickerMode(
-    key: holder._key,
-    enabled: visible,
-    child: ExcludeFocus(
-      excluding: !visible,
-      child: RepaintBoundary(child: holder.itemView),
-    ),
-  );
+  Widget _host(ViewHolder holder, bool visible) {
+    if (holder._hostVisible == visible && holder._hostWidget != null) return holder._hostWidget!;
+    holder._hostVisible = visible;
+    // 稳定子项沿用同一个包装描述，仍由 buildScope 处理绑定或后代自身产生的脏更新。
+    return holder._hostWidget = TickerMode(
+      key: holder._key,
+      enabled: visible,
+      child: ExcludeFocus(
+        excluding: !visible,
+        child: RepaintBoundary(child: holder.itemView),
+      ),
+    );
+  }
 
   void _updateHolder(ViewHolder holder, {required bool visible, int? bindPosition}) {
     owner!.buildScope(this, () {
@@ -149,7 +157,9 @@ class _RecyclerViewportElement extends RenderObjectElement {
     renderObject.markNeedsLayout();
     _active.removeWhere((_, value) => identical(value, holder));
     _cached.remove(holder);
+    _prefetched.remove(holder);
     _retained.remove(holder);
+    _pendingRetire.remove(holder);
     owner!.buildScope(this, () {
       final child = _children.remove(holder);
       if (child != null) updateChild(child, null, holder);
@@ -169,19 +179,25 @@ class _RecyclerViewportElement extends RenderObjectElement {
   }
 
   void _putInPool(ViewHolder holder) {
+    _prefetched.remove(holder);
     holder._bindingAdapter?.onViewRecycled(holder);
     _pool.putRecycledView(holder);
   }
 
   void _retire(ViewHolder holder, {bool allowCache = true}) {
+    _pendingRetire.remove(holder);
+    _prefetched.remove(holder);
     _active.removeWhere((_, value) => identical(value, holder));
     if (holder._attached) {
       holder._bindingAdapter?.onViewDetachedFromWindow(holder);
       holder._attached = false;
     }
     if (_children.containsKey(holder)) {
-      (_box(holder).parentData! as _RecyclerParentData).visible = false;
+      final box = _box(holder);
+      (box.parentData! as _RecyclerParentData).visible = false;
       _updateHolder(holder, visible: false);
+      // 驻留离屏子树的脏布局独立清理，不能挂在本帧不再布局它的视口边界上。
+      box.layout(box.constraints, parentUsesSize: false);
     }
     if (!holder.isRecyclable()) {
       _retained.add(holder);
@@ -202,14 +218,25 @@ class _RecyclerViewportElement extends RenderObjectElement {
   }
 
   void _trimCache() {
-    while (_cached.length > _state._config.cacheSize) {
-      _putInPool(_cached.removeAt(0));
+    final base = _state._config.cacheSize;
+    final manager = _state._manager;
+    final extra = base > 0 && manager?.isItemPrefetchEnabled() == true
+        ? math.min(_prefetchCacheExtra, manager!._initialPrefetchItemCount)
+        : 0;
+    if (extra == 0) {
+      _prefetched.clear();
+      _prefetchCacheExtra = 0;
+    }
+    while (_cached.length > base + extra) {
+      // 刚退出屏幕的条目不应抢走下一屏已完成绑定和布局的准备结果。
+      final ordinary = _cached.indexWhere((holder) => !_prefetched.contains(holder));
+      _putInPool(_cached.removeAt(ordinary < 0 ? 0 : ordinary));
     }
   }
 
   ViewHolder? _obtainAndLayout(int position, BoxConstraints constraints, {required bool visible, int? deadline}) {
     final adapter = _adapter!;
-    final type = adapter.getItemViewType(position);
+    final type = _extents.typeAt(position);
     var holder = _active[position];
     if (holder != null && (holder._itemViewType != type || holder._removed || holder._invalid)) {
       _retire(holder, allowCache: false);
@@ -270,12 +297,13 @@ class _RecyclerViewportElement extends RenderObjectElement {
         final child = updateChild(_children[target], _host(target, visible), target);
         if (child != null) _children[target] = child;
       });
-      _box(target).layout(constraints, parentUsesSize: true);
+      _box(target).layout(constraints, parentUsesSize: visible);
     });
     final elapsed = _clock.elapsedMicroseconds - start;
     if (created) _pool._factorInCreateTime(type, createCallbackUs + elapsed - bindCallbackUs);
     if (bind) _pool._factorInBindTime(type, created ? bindCallbackUs : elapsed);
     if (visible) {
+      _prefetched.remove(target);
       _active[position] = target;
       if (!target._attached) {
         target._attached = true;
@@ -303,7 +331,6 @@ class _RecyclerViewportElement extends RenderObjectElement {
     if (_computingLayout) throw StateError('不能在 RecyclerView 计算布局期间发送适配器通知。');
     _captureAnchor();
     _pendingUpdates = true;
-    _generation++;
   }
 
   Iterable<ViewHolder> get _boundHolders => _children.keys.where((holder) => holder._bound);
@@ -386,7 +413,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
     final holders = _active.values.toList(growable: false);
     _active.clear();
     for (final holder in holders) {
-      if (!holder._removed) _active[holder._position] = holder;
+      if (holder._removed) {
+        // 位置映射先移除已删除项，实际退场须留到安全的布局阶段处理。
+        _pendingRetire.add(holder);
+      } else {
+        _active[holder._position] = holder;
+      }
     }
   }
 
@@ -417,7 +449,6 @@ class _RecyclerViewportElement extends RenderObjectElement {
   }
 
   void _replaceAdapter(Adapter? old, {required bool keepPool}) {
-    _generation++;
     for (final holder in _children.keys.toList(growable: false)) {
       if (keepPool) {
         if (!_pool._contains(holder)) _retire(holder, allowCache: false);
@@ -502,8 +533,11 @@ class _RecyclerViewportElement extends RenderObjectElement {
       if (_extents.length != 0) throw StateError('适配器数量改变后必须调用对应的 notify 方法。');
       _extents = _ExtentIndex(adapter);
     }
+    for (final holder in _pendingRetire.toList(growable: false)) {
+      _retire(holder, allowCache: false);
+    }
     if (count == 0 || manager == null) {
-      for (final holder in _children.keys.where((holder) => holder._attached).toList()) {
+      for (final holder in _active.values.toList(growable: false)) {
         _retire(holder, allowCache: false);
       }
       for (final holder in _cached.toList()) {
@@ -512,6 +546,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       render._correctOffset(0);
       render.offset.applyContentDimensions(0, 0);
       _pendingUpdates = false;
+      render.markNeedsSemanticsUpdate();
       return;
     }
     _resolveFullChange();
@@ -525,8 +560,10 @@ class _RecyclerViewportElement extends RenderObjectElement {
     final constraints = render.childConstraints;
     final request = _state._config.pendingScroll;
     final stackToEnd = _state._initialLayout && manager._stackFromEnd && request == null && _anchor == null;
+    final clampToContent = request != null || stackToEnd || _anchor != null || _pendingUpdates;
     _state._config.pendingScroll = null;
     var pixels = render.offset.pixels;
+    _Anchor? retainedAnchor;
     if (request != null) {
       final position = request.position.clamp(0, count - 1);
       pixels = _offsetForPosition(position, render.leadingPadding + (request.offset ?? 0));
@@ -534,20 +571,51 @@ class _RecyclerViewportElement extends RenderObjectElement {
     } else if (_anchor case final anchor?) {
       if (anchor.holder._bound && !anchor.holder._removed && anchor.holder._position >= 0) {
         pixels = _offsetForPosition(anchor.holder._position, anchor.relativeStart);
+        retainedAnchor = anchor;
       }
       _anchor = null;
     } else if (_state._initialLayout && manager._stackFromEnd) {
       pixels = math.max(0, _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent);
     }
     _state._initialLayout = false;
-    pixels = math.max(0, pixels);
+    if (clampToContent) pixels = math.max(0, pixels);
     render._correctOffset(pixels);
+
+    if (retainedAnchor == null && request == null && !stackToEnd) {
+      for (final holder in _active.values) {
+        if (holder._removed || holder._invalid || !holder._bound) continue;
+        final data = _box(holder).parentData! as _RecyclerParentData;
+        final relative = data.logicalStart - pixels;
+        if (relative + data.extent <= 0 || relative >= render.mainExtent - render.trailingPadding) continue;
+        if (retainedAnchor == null || holder._position < retainedAnchor.holder._position) {
+          retainedAnchor = _Anchor(holder, relative);
+        }
+      }
+    }
 
     for (var attempt = 0; attempt < 4; attempt++) {
       pixels = render.offset.pixels;
-      final first = _extents.indexAt(math.max(0, pixels - render.leadingPadding));
+      var first = _extents.indexAt(math.max(0, pixels - render.leadingPadding));
       final relative = _extents.prefix(first) + render.leadingPadding - pixels;
-      final oldAttached = _children.keys.where((holder) => holder._attached).toList(growable: false);
+      final anchorPosition = retainedAnchor?.holder._position ?? first;
+      final anchorRelative = retainedAnchor?.relativeStart ?? relative;
+      ViewHolder layoutPosition(int position) {
+        final holder = _obtainAndLayout(position, constraints, visible: true)!;
+        final box = _box(holder);
+        final extent = render.vertical ? box.size.height : box.size.width;
+        _extents.measure(position, extent);
+        // 补测上方未知高度时保持既有可见条目，不能改用刚进入屏幕的新条目作锚点。
+        final anchoredPixels = _extents.prefix(anchorPosition) + render.leadingPadding - anchorRelative;
+        render._correctOffset(clampToContent ? math.max(0.0, anchoredPixels) : anchoredPixels);
+        final data = box.parentData! as _RecyclerParentData;
+        data
+          ..logicalStart = _extents.prefix(position) + render.leadingPadding
+          ..extent = extent
+          ..visible = true;
+        return holder;
+      }
+
+      final oldAttached = _active.values.toList(growable: false);
       for (final holder in oldAttached) {
         final position = holder._position;
         if (holder._removed ||
@@ -559,31 +627,24 @@ class _RecyclerViewportElement extends RenderObjectElement {
       }
       final wanted = <ViewHolder>{};
       for (var position = first; position < count; position++) {
-        var start = _extents.prefix(position) + render.leadingPadding;
+        final start = _extents.prefix(position) + render.leadingPadding;
         if (position != first && start >= render.offset.pixels + render.mainExtent - render.trailingPadding) break;
-        final holder = _obtainAndLayout(position, constraints, visible: true)!;
-        final box = _box(holder);
-        final extent = render.vertical ? box.size.height : box.size.width;
-        _extents.measure(position, extent);
-        // 新测量可修正同模板的估算高度，但首个可见条目必须留在同一屏幕位置。
-        final anchoredPixels = math.max(0.0, _extents.prefix(first) + render.leadingPadding - relative);
-        render._correctOffset(anchoredPixels);
-        start = _extents.prefix(position) + render.leadingPadding;
-        final data = box.parentData! as _RecyclerParentData;
-        data
-          ..logicalStart = start
-          ..extent = extent
-          ..visible = true;
-        wanted.add(holder);
+        wanted.add(layoutPosition(position));
       }
-      for (final holder in _children.keys.where((holder) => holder._attached).toList()) {
-        if (!wanted.contains(holder)) _retire(holder);
+      // 新进入的项比估算更短时，继续向上填满空隙，不依赖固定次数的整轮重试。
+      while (first > 0 && _extents.prefix(first) + render.leadingPadding > render.offset.pixels) {
+        wanted.add(layoutPosition(--first));
+      }
+      for (final holder in _active.values.toList(growable: false)) {
+        final start = _extents.prefix(holder._position) + render.leadingPadding - render.offset.pixels;
+        final data = _box(holder).parentData! as _RecyclerParentData;
+        if (!wanted.contains(holder) || start + data.extent <= 0 || start >= render.mainExtent) _retire(holder);
       }
       final maxScroll = math.max(
         0.0,
         _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent,
       );
-      var targetPixels = render.offset.pixels.clamp(0.0, maxScroll);
+      var targetPixels = clampToContent ? render.offset.pixels.clamp(0.0, maxScroll) : render.offset.pixels;
       if (request != null) {
         // 未知高度在本轮测量后可能改变末端，重新解析定位目标并先夹紧，避免触发越界弹簧。
         targetPixels = _offsetForPosition(
@@ -594,8 +655,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
         targetPixels = maxScroll;
       }
       final adjusted = (targetPixels - render.offset.pixels).abs() > .01;
-      if (adjusted) render._correctOffset(targetPixels);
+      if (adjusted) {
+        render._correctOffset(targetPixels);
+        retainedAnchor = null;
+      }
       final accepted = render.offset.applyContentDimensions(0, maxScroll);
+      if (!accepted) retainedAnchor = null;
       if (accepted && !adjusted) break;
     }
     for (final holder in _active.values) {
@@ -610,70 +675,57 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
     _pendingUpdates = false;
     render.markNeedsSemanticsUpdate();
-    _schedulePrefetch();
+    _prefetch();
   }
 
-  void _schedulePrefetch() {
+  void _prefetch() {
     final manager = _state._manager;
-    if (_prefetchScheduled ||
-        manager == null ||
+    if (manager == null ||
         !manager.isItemPrefetchEnabled() ||
         manager._initialPrefetchItemCount == 0 ||
         _state._config.cacheSize == 0 ||
         _active.isEmpty) {
       return;
     }
-    _prefetchScheduled = true;
-    final generation = _generation;
     final rate = renderObject.refreshRate > 0 ? renderObject.refreshRate : 60.0;
     final intervalUs = (1000000 / rate).round();
     // 引擎原始帧时间和 Timeline 使用单调时钟；不匹配时只给保守的 1ms 预算。
     final age = developer.Timeline.now - SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
     final remaining = age >= 0 && age < 1000000 ? intervalUs - age - 2000 : 1000;
     final deadline = _clock.elapsedMicroseconds + math.max(0, remaining).toInt();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _prefetchScheduled = false;
-      if (!_alive ||
-          generation != _generation ||
-          !identical(manager, _state._manager) ||
-          !manager.isItemPrefetchEnabled() ||
-          _clock.elapsedMicroseconds >= deadline ||
-          _active.isEmpty) {
-        return;
-      }
-      final direction = _scrollDelta < 0 ? -1 : 1;
-      final edge = direction > 0 ? _active.keys.reduce(math.max) : _active.keys.reduce(math.min);
-      final count = math.min(manager._initialPrefetchItemCount, _state._config.cacheSize);
-      for (var distance = 1; distance <= count; distance++) {
-        final position = edge + direction * distance;
-        if (position < 0 || position >= _extents.length || _clock.elapsedMicroseconds >= deadline) break;
-        if (_active.containsKey(position) || _cached.any((holder) => holder._position == position)) continue;
-        _computingLayout = true;
-        try {
-          developer.Timeline.timeSync('RecyclerView.prefetch', () {
-            final holder = _obtainAndLayout(
-              position,
-              renderObject.childConstraints,
-              visible: false,
-              deadline: deadline,
-            );
-            if (holder != null) {
-              // 预取也完成 mount/build/layout，随后保留绑定，下一帧直接接入可见布局。
-              if (!_cached.contains(holder)) _cached.add(holder);
-              _trimCache();
-            }
-          });
-        } finally {
-          _computingLayout = false;
-        }
-      }
+    final direction = _scrollDelta < 0 ? -1 : 1;
+    final edge = direction > 0 ? _active.keys.reduce(math.max) : _active.keys.reduce(math.min);
+    final count = manager._initialPrefetchItemCount;
+    _prefetchCacheExtra = math.max(_prefetchCacheExtra, count);
+    _prefetched.removeWhere((holder) {
+      final distance = (holder._position - edge) * direction;
+      return distance <= 0 || distance > count;
     });
+    // 可见布局完成后仍在合法的布局回调中准备隐藏子树，LayoutBuilder 也需要此阶段。
+    for (var distance = 1; distance <= count; distance++) {
+      final position = edge + direction * distance;
+      if (position < 0 || position >= _extents.length || _clock.elapsedMicroseconds >= deadline) break;
+      if (_active.containsKey(position) ||
+          _cached.any(
+            (holder) => holder._position == position && !holder._needsBind && !holder._invalid && !holder._removed,
+          )) {
+        continue;
+      }
+      developer.Timeline.timeSync('RecyclerView.prefetch', () {
+        final holder = _obtainAndLayout(position, renderObject.childConstraints, visible: false, deadline: deadline);
+        if (holder != null) {
+          // 预取不提交高度索引，下一次可见布局再按既有锚点应用测量结果。
+          if (!_cached.contains(holder)) _cached.add(holder);
+          _prefetched.add(holder);
+          _trimCache();
+        }
+      });
+    }
   }
 
   @override
   void unmount() {
     _alive = false;
-    _generation++;
     for (final holder in _children.keys) {
       _pool._remove(holder);
       if (holder._attached) holder._bindingAdapter?.onViewDetachedFromWindow(holder);
@@ -697,13 +749,14 @@ class _RecyclerViewportRenderBox extends RenderBox
   AxisDirection _axisDirection;
   double refreshRate;
   double? _previousCrossExtent;
+  final LayerHandle<ClipRectLayer> _clipLayer = LayerHandle<ClipRectLayer>();
 
   ViewportOffset get offset => _offset;
 
   void _correctOffset(double pixels) {
     final correction = pixels - _offset.pixels;
     // correctBy(0) 也会触发新尺寸通知并重启惯性模拟，稳定几何不能提交空修正。
-    if (correction != 0) _offset.correctBy(correction);
+    if (correction.abs() > precisionErrorTolerance) _offset.correctBy(correction);
   }
 
   set offset(ViewportOffset value) {
@@ -770,14 +823,20 @@ class _RecyclerViewportRenderBox extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    context.pushClipRect(needsCompositing, offset, Offset.zero & size, (context, offset) {
+    _clipLayer.layer = context.pushClipRect(needsCompositing, offset, Offset.zero & size, (context, offset) {
       var child = firstChild;
       while (child != null) {
         final data = child.parentData! as _RecyclerParentData;
         if (data.visible) context.paintChild(child, offset + data.offset);
         child = data.nextSibling;
       }
-    });
+    }, oldLayer: _clipLayer.layer);
+  }
+
+  @override
+  void dispose() {
+    _clipLayer.layer = null;
+    super.dispose();
   }
 
   @override
@@ -860,17 +919,31 @@ class _ExtentIndex {
 
   int get length => _sizes.length;
   double get total => prefix(length);
+  int typeAt(int index) => _types[index];
 
   void _rebuild(Adapter? adapter) {
-    _types = List.generate(length, (index) => adapter!.getItemViewType(index));
+    final previousTypes = _types;
+    _types = List.generate(length, (index) {
+      final type = adapter!.getItemViewType(index);
+      if (index < previousTypes.length && previousTypes[index] != type) _sizes[index] = null;
+      return type;
+    });
     _values = List.generate(length, (index) => _sizes[index] ?? _estimates[_types[index]] ?? 100.0);
+    _rebuildTree();
+  }
+
+  void _rebuildTree() {
     _tree = List.filled(length + 1, 0.0);
-    for (var i = 0; i < length; i++) {
-      _add(i, _values[i]);
+    // 每个节点只向父节点累加一次，整体建树保持 O(n)。
+    for (var i = 1; i <= length; i++) {
+      _tree[i] += _values[i - 1];
+      final parent = i + (i & -i);
+      if (parent <= length) _tree[parent] += _tree[i];
     }
   }
 
   void _add(int index, double delta) {
+    if (delta == 0) return;
     for (var i = index + 1; i < _tree.length; i += i & -i) {
       _tree[i] += delta;
     }
@@ -909,37 +982,45 @@ class _ExtentIndex {
     final firstOfType = !_estimates.containsKey(type);
     _estimates.putIfAbsent(type, () => extent);
     _sizes[index] = extent;
-    _add(index, extent - _values[index]);
-    _values[index] = extent;
     if (firstOfType) {
+      _values[index] = extent;
       for (var i = 0; i < length; i++) {
         if (_sizes[i] == null && _types[i] == type) {
-          _add(i, extent - _values[i]);
           _values[i] = extent;
         }
       }
+      _rebuildTree();
+    } else if (_values[index] != extent) {
+      _add(index, extent - _values[index]);
+      _values[index] = extent;
     }
   }
 
   void invalidate(int start, int count, Adapter adapter) {
     for (var i = start; i < start + count; i++) {
       _sizes[i] = null;
+      _types[i] = adapter.getItemViewType(i);
+      final estimate = _estimates[_types[i]] ?? 100.0;
+      _add(i, estimate - _values[i]);
+      _values[i] = estimate;
     }
-    _rebuild(adapter);
   }
 
   void insert(int start, int count, Adapter adapter) {
     _sizes.insertAll(start, List<double?>.filled(count, null));
+    _types.insertAll(start, List<int>.filled(count, 0));
     _rebuild(adapter);
   }
 
   void remove(int start, int count, Adapter adapter) {
     _sizes.removeRange(start, start + count);
+    _types.removeRange(start, start + count);
     _rebuild(adapter);
   }
 
   void move(int from, int to, Adapter adapter) {
     _sizes.insert(to, _sizes.removeAt(from));
+    _types.insert(to, _types.removeAt(from));
     _rebuild(adapter);
   }
 }

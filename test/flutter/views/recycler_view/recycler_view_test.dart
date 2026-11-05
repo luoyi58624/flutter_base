@@ -132,6 +132,10 @@ void main() {
     final adapter = _RowsAdapter(count: 30);
     final list = _list(adapter);
     await _pump(tester, list);
+    final previouslyBound = adapter.holders
+        .map((holder) => holder.getBindingAdapterPosition())
+        .where((p) => p >= 0)
+        .toSet();
     adapter.bindings.clear();
 
     adapter.items[1] = _Item(1, title: '更新内容');
@@ -142,7 +146,11 @@ void main() {
     final changes = adapter.bindings.where((binding) => binding.position == 1).toList();
     expect(changes, hasLength(1));
     expect(changes.single.payloads, ['title', 'color']);
-    expect(adapter.bindings.where((binding) => binding.position != 1), isEmpty);
+    // 预算预取可以首次绑定新项，已有绑定则只能更新被通知的这一项。
+    expect(
+      adapter.bindings.where((binding) => binding.position != 1 && previouslyBound.contains(binding.position)),
+      isEmpty,
+    );
     expect(find.text('更新内容').hitTestable(), findsOneWidget);
   });
 

@@ -70,7 +70,7 @@ class RecyclerView extends StatefulWidget {
   /// 返回当前类型回收池。
   RecycledViewPool getRecycledViewPool() => _configuration.pool;
 
-  /// 设置离屏后仍保留原绑定身份的缓存条目上限。
+  /// 设置离屏绑定缓存容量，预取启用时额外保留观测到的预取数量，0 同时关闭预取缓存。
   void setItemViewCacheSize(int size) {
     if (size < 0) throw ArgumentError.value(size, 'size');
     if (_configuration.cacheSize == size) return;
@@ -391,16 +391,17 @@ class _RecyclerViewState extends State<RecyclerView> {
 
   bool _fling(double velocityX, double velocityY) {
     if (!_scrollController.hasClients) return false;
-    final direction = _axisDirection(context);
-    var velocity = axisDirectionToAxis(direction) == Axis.vertical ? velocityY : velocityX;
-    if (!velocity.isFinite || velocity.abs() < 50) return false;
-    if (axisDirectionIsReversed(direction)) velocity = -velocity;
     final position = _scrollController.position;
     if (position is! ScrollPositionWithSingleContext) return false;
+    final direction = _axisDirection(context);
+    var velocity = axisDirectionToAxis(direction) == Axis.vertical ? velocityY : velocityX;
+    if (!velocity.isFinite || velocity.abs() < position.physics.minFlingVelocity) return false;
+    if (axisDirectionIsReversed(direction)) velocity = -velocity;
     _scrollGeneration++;
     _config.pendingScroll = null;
     _setScrollState(RecyclerView.SCROLL_STATE_SETTLING);
-    position.goBallistic(velocity.clamp(-8000.0, 8000.0));
+    final maximum = position.physics.maxFlingVelocity;
+    position.goBallistic(velocity.clamp(-maximum, maximum));
     return true;
   }
 
@@ -423,7 +424,6 @@ class _RecyclerViewState extends State<RecyclerView> {
         child: Scrollable(
           controller: _scrollController,
           axisDirection: _axisDirection(context),
-          physics: const ClampingScrollPhysics(),
           viewportBuilder: (context, offset) => _RecyclerViewport(
             state: this,
             offset: offset,
