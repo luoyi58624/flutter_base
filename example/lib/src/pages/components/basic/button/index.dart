@@ -1,12 +1,15 @@
 import 'package:flutter/widgets.dart';
 
 import '../../doc_page.dart';
-import 'examples/appearance.dart';
-import 'examples/events.dart';
-import 'examples/icons.dart';
-import 'examples/sizing.dart';
-import 'examples/states.dart';
-import 'examples/toggle.dart';
+import 'examples/example1.dart';
+import 'examples/example2.dart';
+import 'examples/example3.dart';
+import 'examples/example4.dart';
+import 'examples/example5.dart';
+import 'examples/example6.dart';
+import 'examples/example7.dart';
+import 'examples/example8.dart';
+import 'examples/example9.dart';
 
 /// 桌面与移动目录共用的 Button 文档页。
 class ButtonPage extends StatelessWidget {
@@ -18,43 +21,61 @@ class ButtonPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ComponentDocPage(
     title: 'Button 按钮',
-    description: '按钮用于触发操作，也可以表示收藏等布尔状态。',
+    description: '常用的操作按钮，支持实心、描边、文字、链接与图标等外观。',
     sections: [
       ComponentDocSection(
-        title: '基础用法',
-        description: '用 type 表达操作的语义，用 variant 区分视觉层级。',
-        example: ButtonAppearanceExample(),
-        source: '$_examples/appearance.dart',
+        title: '基础使用',
+        description: '每行对照同一组主题色，依次展示实心、浅底描边、透明描边、文字和带底色的文字按钮。',
+        example: Example1(),
+        source: '$_examples/example1.dart',
+      ),
+      ComponentDocSection(
+        title: '自定义颜色',
+        description: '在按钮外层用 ElView 覆写主色 token，组件按外观使用这个颜色。',
+        example: Example2(),
+        source: '$_examples/example2.dart',
+      ),
+      ComponentDocSection(
+        title: '禁用按钮',
+        description: '拨动开关，比较不同外观的可用和禁用状态。',
+        example: Example3(),
+        source: '$_examples/example3.dart',
+      ),
+      ComponentDocSection(
+        title: '链接按钮',
+        description: '用 variant: .link 展示链接外观，两行分别是可用和禁用状态。',
+        example: Example4(),
+        source: '$_examples/example4.dart',
       ),
       ComponentDocSection(
         title: '图标按钮',
-        description: '只显示图标时，用 semanticLabel 提供辅助名称。',
-        example: ButtonIconsExample(),
-        source: '$_examples/icons.dart',
+        description: '纯图标按钮提供辅助名称。文字按钮可以用 icon 放置前置图标，也可以自行排列文字和后置图标。',
+        example: Example5(),
+        source: '$_examples/example5.dart',
       ),
       ComponentDocSection(
-        title: '尺寸与通栏',
-        description: '用 ElStyle 调整尺寸，设置 width 为 100% 可占满可用宽度。',
-        example: ButtonSizingExample(),
-        source: '$_examples/sizing.dart',
+        title: '圆形图标按钮',
+        description: '给方形图标按钮设置足够大的圆角，即可得到圆形外观。',
+        example: Example6(),
+        source: '$_examples/example6.dart',
       ),
       ComponentDocSection(
-        title: '禁用与加载',
-        description: '禁用和加载都会阻止激活，加载时会保留焦点。',
-        example: ButtonStatesExample(),
-        source: '$_examples/states.dart',
+        title: '加载状态',
+        description: '各按钮点击后独立加载两秒，期间阻止重复激活。',
+        example: Example7(),
+        source: '$_examples/example7.dart',
       ),
       ComponentDocSection(
-        title: '切换状态',
-        description: 'ElButton.toggle 可以绑定一个布尔模型，点击后更新选中状态。',
-        example: ButtonToggleExample(),
-        source: '$_examples/toggle.dart',
+        title: '块级按钮',
+        description: '将 ElStyle.width 设为 100% 即可撑满可用宽度。',
+        example: Example8(),
+        source: '$_examples/example8.dart',
       ),
       ComponentDocSection(
-        title: '点击事件',
-        description: '通过 onPressed 执行操作，event 可在默认动作前拦截点击。',
-        example: ButtonEventsExample(),
-        source: '$_examples/events.dart',
+        title: 'Toggle 切换',
+        description: '六个切换按钮共用一个布尔模型，点击任意一个都能看到它们同步变化。',
+        example: Example9(),
+        source: '$_examples/example9.dart',
       ),
     ],
   );

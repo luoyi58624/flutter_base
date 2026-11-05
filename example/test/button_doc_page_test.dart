@@ -19,15 +19,20 @@ Future<void> _openPage(WidgetTester tester, {required double width, required ElC
   await tester.pumpAndSettle();
 }
 
-Finder _button(String label) =>
-    find.byWidgetPredicate((widget) => widget is ElButton && widget.child == label).hitTestable();
+String _examplePath(int number) => 'lib/src/pages/components/basic/button/examples/example$number.dart';
+
+Finder _example(int number) => find.byKey(ValueKey(_examplePath(number)));
+
+Finder _buttons(int number, Object child) => find.descendant(
+  of: _example(number),
+  matching: find.byWidgetPredicate((widget) => widget is ElButton && widget.child == child),
+);
 
 void main() {
   testWidgets('窄屏单列布局可以展开、复制和收起演示源码', (tester) async {
-    final path = 'lib/src/pages/components/basic/button/examples/appearance.dart';
+    final path = _examplePath(1);
     final source = (await tester.runAsync(() => rootBundle.loadString(path)))!;
-    final example = find.byKey(ValueKey(path));
-    Finder action(String label) => find.descendant(of: example, matching: find.text(label));
+    Finder action(String label) => find.descendant(of: _example(1), matching: find.text(label));
     String? copied;
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -40,7 +45,14 @@ void main() {
     expect(find.text('Button 按钮'), findsOneWidget);
     expect(find.text('本页目录'), findsNothing);
     expect(find.text(source.trimRight()), findsNothing);
-    await tester.tap(action('查看源码'));
+    final sourceButton = action('查看源码');
+    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
+    final offset = tester.getCenter(sourceButton).dy - 500;
+    if (offset > 0) {
+      controller.jumpTo(controller.offset + offset);
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(sourceButton);
     await tester.pump();
     await tester.runAsync(() => rootBundle.loadString(path));
     await tester.pumpAndSettle();
@@ -58,7 +70,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('宽屏目录定位到真实示例，并保留已访问的交互状态', (tester) async {
+  testWidgets('宽屏目录按原示例顺序定位，禁用、加载和共享切换可操作', (tester) async {
     await _openPage(tester, width: 1100, components: el.desktopComponents);
     expect(find.text('本页目录'), findsOneWidget);
 
@@ -67,22 +79,46 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await openSection('点击事件');
-    expect(_button('增加'), findsOneWidget);
-    await tester.tap(_button('增加'));
-    await tester.pumpAndSettle();
-    await tester.tap(_button('拦截点击'));
-    await tester.pumpAndSettle();
-    expect(find.text('点击次数：1').hitTestable(), findsOneWidget);
+    expect(
+      tester
+          .widgetList<TextButton>(find.byType(TextButton))
+          .map((widget) => widget.child)
+          .whereType<Text>()
+          .map((text) => text.data),
+      containsAllInOrder(['基础使用', '自定义颜色', '禁用按钮', '链接按钮', '图标按钮', '圆形图标按钮', '加载状态', '块级按钮', 'Toggle 切换']),
+    );
 
-    await openSection('切换状态');
-    await tester.tap(_button('收藏'));
-    await tester.pumpAndSettle();
-    expect(find.text('已收藏').hitTestable(), findsOneWidget);
+    await openSection('自定义颜色');
+    final custom = _buttons(2, 'Hello');
+    expect(custom, findsNWidgets(24));
+    expect(tester.getCenter(custom.at(0)).dy, tester.getCenter(custom.at(1)).dy);
+    expect(ElView.of(tester.element(custom.first)).getVar<Color>(ElTokens.$primary), Colors.teal);
 
-    await openSection('基础用法');
-    await openSection('点击事件');
-    expect(find.text('点击次数：1').hitTestable(), findsOneWidget);
+    await openSection('禁用按钮');
+    final disabled = _buttons(3, 'Hello');
+    expect(tester.widgetList<ElButton>(disabled).map((button) => button.disabled), everyElement(isTrue));
+    await tester.tap(find.byType(ElSwitch).hitTestable());
+    await tester.pumpAndSettle();
+    expect(tester.widgetList<ElButton>(disabled).map((button) => button.disabled), everyElement(isFalse));
+
+    await openSection('加载状态');
+    final loaders = _buttons(7, 'loading');
+    expect(loaders, findsNWidgets(12));
+    await tester.tap(loaders.hitTestable().first);
+    await tester.pump();
+    expect(tester.widgetList<ElButton>(loaders).where((button) => button.loading), hasLength(1));
+    await tester.pump(Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(tester.widgetList<ElButton>(loaders).map((button) => button.loading), everyElement(isFalse));
+
+    await openSection('Toggle 切换');
+    expect(_buttons(9, 'false'), findsNWidgets(6));
+    await tester.tap(_buttons(9, 'false').hitTestable().first);
+    await tester.pumpAndSettle();
+    expect(_buttons(9, 'true'), findsNWidgets(6));
+    await openSection('基础使用');
+    await openSection('Toggle 切换');
+    expect(_buttons(9, 'true'), findsNWidgets(6));
     expect(tester.takeException(), isNull);
   });
 }

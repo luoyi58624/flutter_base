@@ -1,11 +1,11 @@
 # 组件文档页规范
 
-Button 是首个样板。页面组织参考旧 el 的 `examples/element_docs/lib/src/pages/ui/basic/button`，演示以本仓库的公共接口为准。
+Button 是首个样板。九个演示按旧 el 的 `examples/element_docs/lib/src/pages/ui/basic/button/examples` 逐个迁移，参数以本仓库的公共接口为准。
 
 ## 页面与示例
 
 - 一组件一目录。`index.dart` 用 `ComponentDocPage` 装配页面标题、一句概述和有序小节。用 `catalog.dart` 登记一次入口，桌面与移动目录共用页面。
-- 一个场景放一个 `examples/<场景>.dart`。从基础用法开始，再按外观、状态和交互组织。相近的变体用 `Wrap` 集中对照，小节说明只补充行为和使用边界。
+- 一个场景放一个 `examples/` 下的 Dart 文件。迁移已有文档时保留场景顺序、变体对照和交互。相近的变体用 `Wrap` 集中展示，小节说明只补充行为和使用边界。
 - 演示只使用 Flutter 与 `flutter_base` 的公共入口。组件实现和 token 由外层的 `ElComponentProvider` 提供。交互状态放在示例内部，有状态示例用 `HookWidget`。
 
 ## 排版与源码
