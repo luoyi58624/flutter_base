@@ -262,6 +262,7 @@ const _themeEnd = Color(0xFFFFFFFF);
 const _frameCount = 10;
 
 void main() {
+  _shadowAnimationTests();
   group('对齐插值', () {
     group('双侧非 null：平滑插值', () {
       test('topLeft → center → t=0.5 应为 (-0.5, -0.5)', () {
@@ -4498,7 +4499,11 @@ void main() {
         // island 翻 dark
         await tester.pumpWidget(tree(inner: Brightness.dark));
         await tester.pumpAndSettle();
-        expect(inside.committedResolvedStyle.box.backgroundColor, const Color(0xFFEEEEEE), reason: '岛内切 dark 后按 onDark.vars');
+        expect(
+          inside.committedResolvedStyle.box.backgroundColor,
+          const Color(0xFFEEEEEE),
+          reason: '岛内切 dark 后按 onDark.vars',
+        );
         expect(outside.committedResolvedStyle.box.backgroundColor, const Color(0xFF102030), reason: '岛外未受影响，仍 light 值');
       });
     });
@@ -4779,6 +4784,169 @@ void main() {
         expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF000000));
         expect(box.hasActiveAnimationsForTest, isFalse);
       });
+    });
+  });
+}
+
+void _shadowAnimationTests() {
+  Color color(BoxShadow shadow, Color? background) => (shadow as ElBoxShadow).toPaintWithBackground(background).color;
+
+  group('扩展阴影插值', () {
+    test('自适应与固定色按预乘透明度混合，retarget 不丢失颜色来源', () {
+      final adaptive = ElStyle().withShadow().boxShadow!.first;
+      final fixed = ElStyle().withShadow(color: Colors.red.withValues(alpha: .5)).boxShadow!.first;
+      final background = Colors.blue;
+      final from = color(adaptive, background);
+      final to = color(fixed, background);
+      for (final t in [0.0, .25, .5, .75, 1.0]) {
+        final mixed = color(ElBoxShadow.lerp(adaptive, fixed, t)!, background);
+        final expected = lerpColorPremul(from, to, t)!;
+        expect(mixed.a, closeTo(expected.a, .00001));
+        expect(mixed.r, closeTo(expected.r, .00001));
+        expect(mixed.g, closeTo(expected.g, .00001));
+        expect(mixed.b, closeTo(expected.b, .00001));
+      }
+      final halfway = ElBoxShadow.lerp(adaptive, fixed, .5)!;
+      final reversed = ElBoxShadow.lerp(halfway, adaptive, 0)!;
+      expect(color(reversed, background), color(halfway, background));
+      expect(color(reversed, Colors.green), isNot(color(reversed, background)));
+      expect(ElBoxShadow.lerpList([adaptive], null, .5)!.single.color.a, lessThan(adaptive.color.a));
+      expect(color(adaptive.scale(0), background).a, 0);
+    });
+
+    test('copyWith 和混合原生 BoxShadow 保留模式，指定颜色后停止自适应', () {
+      final adaptive = ElStyle().withShadow(type: .inset).boxShadow!.first as ElBoxShadow;
+      final copied = adaptive.copyWith(offset: Offset(2, 3));
+      expect(copied.inset, isTrue);
+      expect(color(copied, Colors.blue), isNot(color(copied, Colors.white)));
+      final fixed = adaptive.copyWith(color: Colors.red);
+      expect(color(fixed, Colors.blue), isSameColorAs(Colors.red));
+      expect(color(fixed, Colors.white), isSameColorAs(Colors.red));
+      final mixed = ElBoxShadow.lerp(adaptive, BoxShadow(color: Colors.red), .25)! as ElBoxShadow;
+      expect(mixed.inset, isTrue);
+      expect(color(mixed, Colors.blue), isNot(color(mixed, Colors.white)));
+      expect((ElBoxShadow.lerp(adaptive, BoxShadow(), .75)! as ElBoxShadow).inset, isFalse);
+      expect(ElStyle().withShadow().boxShadow, ElStyle().withShadow().boxShadow);
+      expect(ElStyle().withShadow().boxShadow, isNot(ElStyle().withShadow(color: null).boxShadow));
+    });
+
+    testWidgets('背景与圆角动画逐帧驱动绘制，不触发布局或内容构建', (tester) async {
+      var builds = 0;
+      final key = ValueKey('animated-adaptive-shadow');
+      final style = ElStyle(
+        width: 100,
+        height: 80,
+        backgroundColor: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        onHover: ElStyle(backgroundColor: Colors.blue, borderRadius: BorderRadius.circular(24)),
+        transition: [
+          ElTransition.field(.backgroundColor, Duration(milliseconds: 200), Curves.linear),
+          ElTransition.field(.borderRadius, Duration(milliseconds: 200), Curves.linear),
+        ],
+      ).withShadow();
+      await tester.pumpWidget(
+        _directionalApp(
+          ElView(
+            key: key,
+            style: style,
+            child: Builder(
+              builder: (_) {
+                builds++;
+                return SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      final layouts = render.debugLayoutCount;
+      final beforeBuilds = builds;
+      render.setHover(true);
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 100));
+      final box = render.committedResolvedStyle.box;
+      expect(box.backgroundColor, isNot(Colors.white));
+      expect(box.backgroundColor, isNot(Colors.blue));
+      final radius = box.borderRadius!.resolve(TextDirection.ltr).topLeft.x;
+      expect(radius, greaterThan(4));
+      expect(radius, lessThan(24));
+      final midColor = color(box.boxShadow!.first, box.backgroundColor);
+      expect(find.byKey(key), paints..rrect(color: midColor));
+      render.setHover(false);
+      await tester.pump();
+      expect(find.byKey(key), paints..rrect(color: midColor));
+      await tester.pumpAndSettle();
+      expect(render.committedResolvedStyle.box.backgroundColor, Colors.white);
+      expect(render.debugLayoutCount, layouts);
+      expect(builds, beforeBuilds);
+    });
+
+    testWidgets('阴影变体过渡在实际动画驱动器中保留自适应颜色', (tester) async {
+      final key = ValueKey('shadow-transition');
+      final style = ElStyle(
+        width: 100,
+        height: 80,
+        backgroundColor: Colors.blue,
+        onHover: ElStyle().withShadow(color: Colors.red),
+        transition: [ElTransition.field(.boxShadow, Duration(milliseconds: 200), Curves.linear)],
+      ).withShadow();
+      await tester.pumpWidget(_directionalApp(ElView(key: key, style: style)));
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      final original = color(style.boxShadow!.first, Colors.blue);
+      final target = color(style.onHover!.boxShadow!.first, Colors.blue);
+      render.setHover(true);
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 100));
+      final mid = color(render.committedResolvedStyle.box.boxShadow!.first, Colors.blue);
+      expect(mid, isNot(original));
+      expect(mid, isNot(target));
+      expect(mid.r, closeTo(lerpColorPremul(original, target, .5)!.r, .0001));
+      expect(find.byKey(key), paints..rrect(color: mid));
+      await tester.pumpAndSettle();
+      expect(find.byKey(key), paints..rrect(color: target));
+    });
+
+    testWidgets('onDark 更新当前背景与阴影，不订阅祖先背景或重建内容', (tester) async {
+      final brightness = ValueNotifier(Brightness.light);
+      addTearDown(brightness.dispose);
+      var builds = 0;
+      final key = ValueKey('dark-adaptive-shadow');
+      final style = ElStyle(
+        width: 100,
+        height: 80,
+        backgroundColor: Colors.white,
+        onDark: ElStyle(backgroundColor: Colors.blue),
+      ).withShadow();
+      await tester.pumpWidget(
+        _directionalApp(
+          ValueListenableBuilder(
+            valueListenable: brightness,
+            builder: (_, value, child) => ElView(
+              themeMode: ElThemeMode(brightness: value, duration: Duration.zero),
+              child: child,
+            ),
+            child: ElView(
+              key: key,
+              style: style,
+              child: Builder(
+                builder: (_) {
+                  builds++;
+                  return SizedBox();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      final layouts = render.debugLayoutCount;
+      final beforeBuilds = builds;
+      brightness.value = .dark;
+      await tester.pumpAndSettle();
+      expect(find.byKey(key), paints..rrect(color: color(style.boxShadow!.first, Colors.blue)));
+      expect(render.committedResolvedStyle.box.backgroundColor, Colors.blue);
+      expect(render.debugLayoutCount, layouts);
+      expect(builds, beforeBuilds);
     });
   });
 }

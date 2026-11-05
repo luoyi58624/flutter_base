@@ -302,6 +302,7 @@ class PaintController {
         outerRRect: geometry.contentRRect,
         shadows: box.boxShadow!,
         inset: false,
+        backgroundColor: box.backgroundColor,
       );
     }
     if ((bits & _opBg) != 0) {
@@ -340,6 +341,7 @@ class PaintController {
         outerRRect: geometry.contentRRect,
         shadows: box.boxShadow!,
         inset: true,
+        backgroundColor: box.backgroundColor,
       );
     }
     if ((bits & _opClip) != 0) {

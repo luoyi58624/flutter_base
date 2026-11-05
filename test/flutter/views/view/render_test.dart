@@ -1,5 +1,7 @@
 import 'paint_recording.dart';
 
+import 'package:flutter_base/dart.dart' show $absent;
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -211,6 +213,7 @@ Widget _tree(ElRenderView Function() create, {ElStyle? ancestorStyle, ElThemeMod
 ElRenderView _label(WidgetTester tester) => tester.renderObject<_RenderHost>(find.byType(_HostWidget)).label;
 
 void main() {
+  _shadowExtensionTests();
   group('组合场景', () {
     Widget shell(Widget child) => MaterialApp(
       home: Align(
@@ -3348,6 +3351,261 @@ void main() {
         expect(hitRender(render, const Offset(20, 20)), isFalse, reason: '原 base 位置不再视觉占有');
         expect(hitRender(render, const Offset(70, 20)), isTrue, reason: '视觉位置正确命中');
       });
+    });
+  });
+}
+
+void _shadowExtensionTests() {
+  List<BoxShadow> shadows({ElShadowType type = .material, Object? color = $absent}) =>
+      ElStyle().withShadow(type: type, color: color).boxShadow!;
+
+  TestRecordingCanvas record(List<BoxShadow> values, {RRect? shape, Color? background, bool inset = false}) {
+    final canvas = TestRecordingCanvas();
+    ViewBoxPainter.paintShadows(
+      canvas,
+      outerRRect: shape ?? BorderRadius.circular(12).toRRect(Rect.fromLTWH(0, 0, 100, 80)),
+      shadows: values,
+      backgroundColor: background,
+      inset: inset,
+    );
+    return canvas;
+  }
+
+  List<Color> colors(List<BoxShadow> values, Color? background) => [
+    for (final call in record(values, background: background).invocations)
+      if (call.invocation.memberName == #drawRRect) (call.invocation.positionalArguments[1] as Paint).color,
+  ];
+
+  group('withShadow 分层阴影', () {
+    test('保留其他声明、变体和过渡，只替换当前阴影', () {
+      final hover = ElStyle(opacity: .5);
+      final transition = [ElTransition.field(.backgroundColor)];
+      final style = ElStyle(
+        width: 80,
+        backgroundColor: Colors.blue,
+        borderRadius: BorderRadius.circular(8),
+        onHover: hover,
+        transition: transition,
+        boxShadow: [BoxShadow(color: Colors.red)],
+      ).withShadow();
+      expect(style.width, 80);
+      expect(style.backgroundColor, Colors.blue);
+      expect(style.borderRadius, BorderRadius.circular(8));
+      expect(style.onHover, same(hover));
+      expect(style.transition, same(transition));
+      expect(style.boxShadow, hasLength(3));
+      expect(() => style.boxShadow!.clear(), throwsUnsupportedError);
+      expect(style.withShadow(type: .inset).boxShadow!.every((s) => s is ElBoxShadow && s.inset), isTrue);
+    });
+
+    test('Material 五级使用官方参数，其余风格保持范围和方向差异', () {
+      final maxBlurs = <double>[];
+      for (final (index, level) in ElLevelType.values.indexed) {
+        final values = ElStyle().withShadow(level: level, color: null).boxShadow!;
+        final official = kElevationToShadow[[1, 2, 4, 8, 16][index]]!;
+        expect(values.map((v) => v.offset), official.map((v) => v.offset));
+        expect(values.map((v) => v.blurRadius), official.map((v) => v.blurRadius));
+        expect(values.map((v) => v.spreadRadius), official.map((v) => v.spreadRadius));
+        maxBlurs.add(values.map((v) => v.blurRadius).reduce(math.max));
+      }
+      expect(maxBlurs, orderedEquals([...maxBlurs]..sort()));
+      for (final type in ElShadowType.values) {
+        expect(shadows(type: type), hasLength(3));
+      }
+      expect(shadows(type: .uniform).every((s) => s.offset == Offset.zero), isTrue);
+      expect(shadows(type: .glow).every((s) => s.offset == Offset.zero && s.spreadRadius > 0), isTrue);
+      expect(shadows(type: .floating).last.blurRadius, greaterThan(shadows().last.blurRadius));
+      expect(shadows(type: .contact).last.blurRadius, lessThan(shadows().last.blurRadius));
+    });
+
+    test('模糊覆盖保持层间比例，偏移扩散追加到风格预设', () {
+      final base = shadows();
+      final custom = ElStyle()
+          .withShadow(blurRadius: 30, offset: Offset(-3, 7), spreadRadius: -2, color: null)
+          .boxShadow!;
+      for (var i = 0; i < base.length; i++) {
+        expect(custom[i].blurRadius, closeTo(base[i].blurRadius * 3, .0001));
+        expect(custom[i].offset, base[i].offset + Offset(-3, 7));
+        expect(custom[i].spreadRadius, base[i].spreadRadius - 2);
+      }
+      expect(ElStyle().withShadow(blurRadius: 0).boxShadow!.every((s) => s.blurRadius == 0), isTrue);
+      expect(ElStyle().withShadow(strength: 0).boxShadow, isEmpty);
+      expect(ElStyle().withShadow(color: Colors.transparent).boxShadow, isEmpty);
+      expect(record(ElStyle().withShadow(strength: 0).boxShadow!).invocations, isEmpty);
+    });
+
+    test('非法输入立即拒绝，有限的负偏移和负扩散允许使用', () {
+      for (final invalid in [double.nan, double.infinity, -double.infinity, -1.0]) {
+        expect(() => ElStyle().withShadow(strength: invalid), throwsArgumentError);
+        expect(() => ElStyle().withShadow(blurRadius: invalid), throwsArgumentError);
+      }
+      for (final invalid in [double.nan, double.infinity, -double.infinity]) {
+        expect(() => ElStyle().withShadow(offset: Offset(invalid, 0)), throwsArgumentError);
+        expect(() => ElStyle().withShadow(offset: Offset(0, invalid)), throwsArgumentError);
+        expect(() => ElStyle().withShadow(spreadRadius: invalid), throwsArgumentError);
+      }
+      expect(() => ElStyle().withShadow(color: 'red'), throwsArgumentError);
+      expect(() => ElStyle().withShadow(offset: Offset(-4, -8), spreadRadius: -3), returnsNormally);
+      expect(colors(ElStyle().withShadow(strength: 100).boxShadow!, Colors.black).every((c) => c.a <= 1), isTrue);
+    });
+
+    test('占位符自适应，null 固定黑色，指定颜色保留色值和透明度', () {
+      final adaptive = shadows();
+      final black = shadows(color: null);
+      expect(colors(adaptive, null), colors(black, Colors.red));
+      expect(colors(adaptive, Colors.transparent), colors(black, null));
+      expect(colors(adaptive, Colors.white), colors(black, null));
+      final tinted = colors(adaptive, Colors.blue);
+      expect(tinted.first.b, greaterThan(tinted.first.r));
+      expect(tinted.first.a, greaterThan(colors(black, null).first.a));
+      expect(colors(black, Colors.blue), colors(black, Colors.white));
+      final red = colors(shadows(color: Colors.red.withValues(alpha: .5)), Colors.blue).first;
+      expect(red.r, closeTo(Colors.red.r, .0001));
+      expect(red.g, closeTo(Colors.red.g, .0001));
+      expect(red.a, closeTo(black.first.color.a * .5, .0001));
+    });
+
+    test('扩散对小圆角连续修正，直角保持直角，超限圆角先归一化', () {
+      RRect painted(RRect base, double spread) =>
+          record([BoxShadow(spreadRadius: spread)], shape: base).invocations.single.invocation.positionalArguments.first
+              as RRect;
+      final small = painted(BorderRadius.circular(10).toRRect(Rect.fromLTWH(0, 0, 100, 80)), 20);
+      expect(small.tlRadiusX, 27.5);
+      expect(painted(RRect.fromRectXY(Rect.fromLTWH(0, 0, 100, 80), 0, 0), 20).tlRadiusX, 0);
+      final huge = painted(BorderRadius.circular(999).toRRect(Rect.fromLTWH(0, 0, 40, 20)), 0);
+      expect(huge, BorderRadius.circular(999).toRRect(Rect.fromLTWH(0, 0, 40, 20)).scaleRadii());
+      final ellipse = painted(
+        RRect.fromRectAndCorners(Rect.fromLTWH(0, 0, 100, 80), topLeft: Radius.elliptical(5, 10)),
+        20,
+      );
+      expect(ellipse.tlRadiusX, lessThan(ellipse.tlRadiusY));
+      expect(ellipse.brRadiusX, 0);
+    });
+
+    test('外阴影收缩为空时跳过，内阴影孔收缩为空时仍填满裁剪区域', () {
+      expect(record([BoxShadow(spreadRadius: -100)]).invocations, isEmpty);
+      final inset = record([ElBoxShadow(spreadRadius: 100, inset: true)], inset: true);
+      final path =
+          inset.invocations.firstWhere((v) => v.invocation.memberName == #drawPath).invocation.positionalArguments.first
+              as Path;
+      expect(path.contains(Offset(50, 40)), isTrue);
+      expect(inset.invocations.map((v) => v.invocation.memberName), [#save, #clipRRect, #drawPath, #restore]);
+    });
+
+    testWidgets('实际栅格：Material 下强、均匀阴影四边对称、内阴影不溢出', (tester) async {
+      Future<ByteData> raster(ElShadowType type) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        final previousShadows = debugDisableShadows;
+        try {
+          debugDisableShadows = false;
+          ViewBoxPainter.paintShadows(
+            canvas,
+            outerRRect: BorderRadius.circular(12).toRRect(Rect.fromLTWH(80, 80, 80, 80)),
+            shadows: ElStyle().withShadow(type: type, level: .lg, color: null).boxShadow!,
+            inset: type == .inset,
+          );
+        } finally {
+          debugDisableShadows = previousShadows;
+        }
+        final picture = recorder.endRecording();
+        final image = (await tester.runAsync(() => picture.toImage(240, 240)))!;
+        try {
+          return (await tester.runAsync(() => image.toByteData(format: ui.ImageByteFormat.rawRgba)))!;
+        } finally {
+          image.dispose();
+          picture.dispose();
+        }
+      }
+
+      int alpha(ByteData pixels, int x, int y) => pixels.getUint8((y * 240 + x) * 4 + 3);
+      final material = await raster(.material);
+      expect(alpha(material, 120, 165), greaterThan(alpha(material, 120, 74)));
+      final uniform = await raster(.uniform);
+      final edges = [
+        alpha(uniform, 120, 74),
+        alpha(uniform, 120, 165),
+        alpha(uniform, 74, 120),
+        alpha(uniform, 165, 120),
+      ];
+      expect(edges.first, greaterThan(0));
+      expect(edges.reduce(math.max) - edges.reduce(math.min), lessThanOrEqualTo(1));
+      final inset = await raster(.inset);
+      expect(alpha(inset, 120, 74), 0);
+      expect(alpha(inset, 120, 165), 0);
+      expect(alpha(inset, 80, 80), 0);
+      expect(alpha(inset, 120, 82), greaterThan(0));
+    });
+
+    testWidgets('背景与圆角变体在最终绘制中更新，不重建内容或重新布局', (tester) async {
+      var builds = 0;
+      final key = ValueKey('adaptive-shadow-view');
+      final style = ElStyle(
+        width: 100,
+        height: 80,
+        backgroundColor: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        onHover: ElStyle(backgroundColor: Colors.blue, borderRadius: BorderRadius.circular(24)),
+      ).withShadow();
+      await tester.pumpWidget(
+        _viewport(
+          ElView(
+            key: key,
+            style: style,
+            child: Builder(
+              builder: (_) {
+                builds++;
+                return SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      final layouts = render.debugLayoutCount;
+      final beforeBuilds = builds;
+      render.setHover(true);
+      await tester.pump();
+      final expectedColor = colors(style.boxShadow!, Colors.blue).first;
+      expect(find.byKey(key), paints..rrect(color: expectedColor));
+      expect(render.committedResolvedStyle.box.borderRadius, BorderRadius.circular(24));
+      expect(render.debugLayoutCount, layouts);
+      expect(builds, beforeBuilds);
+      render.setHover(false);
+      await tester.pump();
+      expect(find.byKey(key), paints..rrect(color: colors(style.boxShadow!, Colors.white).first));
+    });
+
+    testWidgets('RTL 按最终方向解析非对称椭圆圆角，无自身背景时使用黑色', (tester) async {
+      final key = ValueKey('rtl-shadow');
+      final style = ElStyle(
+        width: 100,
+        height: 80,
+        direction: .rtl,
+        borderRadius: BorderRadiusDirectional.only(topStart: Radius.elliptical(5, 10), bottomEnd: Radius.circular(16)),
+      ).withShadow(type: .uniform);
+      await tester.pumpWidget(
+        _viewport(
+          ElView(
+            style: ElStyle(backgroundColor: Colors.blue),
+            child: ElView(key: key, style: style),
+          ),
+        ),
+      );
+      expect(
+        find.byKey(key),
+        paints..rrect(
+          color: colors(shadows(type: .uniform, color: null), null).first,
+          rrect: RRect.fromLTRBAndCorners(
+            1,
+            1,
+            99,
+            79,
+            topRight: Radius.elliptical(4, 9),
+            bottomLeft: Radius.circular(15),
+          ),
+        ),
+      );
     });
   });
 }

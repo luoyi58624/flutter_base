@@ -4,11 +4,14 @@ import 'dart:ui';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/animation.dart' show Curve, Curves;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show kElevationToShadow;
 import 'package:flutter/rendering.dart';
 
 import '../../../../../dart.dart';
+import '../../../commons/models.dart';
 
 part 'style.g.dart';
+part 'shadow.dart';
 
 /// ElView 的声明式样式。
 @ElModelGenerator.copy(generateProps: true)
@@ -1921,6 +1924,10 @@ class ElBoxShadow extends BoxShadow {
   /// 是否按 CSS inset shadow 语义绘制。
   final bool inset;
 
+  /// 按当前背景生成画笔，供绘制器解析扩展阴影的自适应颜色。
+  @internal
+  Paint toPaintWithBackground(Color? backgroundColor) => toPaint();
+
   @override
   ElBoxShadow copyWith({
     Color? color,
@@ -1959,6 +1966,7 @@ class ElBoxShadow extends BoxShadow {
   /// 中间帧。几何分量（offset / blur / spread）沿用 Flutter 插值。
   static BoxShadow? lerp(BoxShadow? a, BoxShadow? b, double t) {
     if (identical(a, b)) return a;
+    if (a is _PresetBoxShadow || b is _PresetBoxShadow) return _PresetBoxShadow.interpolate(a, b, t);
     final shadow = BoxShadow.lerp(a, b, t);
     if (shadow == null) return null;
     // 单侧 null 时 Flutter 走 scale（几何缩放、色不变），双侧非 null 才有

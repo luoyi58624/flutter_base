@@ -2,7 +2,6 @@ library;
 
 export 'src/flutter/commons/index.dart';
 export 'src/flutter/commons/theme/index.dart';
-export 'src/flutter/commons/theme/shadow.dart' show ElShadow;
 export 'src/flutter/extensions/index.dart';
 export 'src/flutter/hooks/index.dart';
 export 'src/flutter/mixins/index.dart';

@@ -34,6 +34,30 @@ ElView(
 
 `style.merge(other)` 用后者的非空字段覆盖前者。clipPath 与 borderRadius 不应同时声明。
 
+## 分层阴影
+
+```dart
+ElStyle(
+  backgroundColor: Colors.white,
+  borderRadius: BorderRadius.circular(16),
+).withShadow(type: .uniform, level: .md, strength: 0.8);
+```
+
+`ElShadowType` 提供 material、uniform、floating、contact、glow、inset 六种风格，
+使用 xs、sm、md、lg、xl 五级参数。Material 以 Flutter 官方三层投影为基础，其他风格调整
+方向、范围和浓度；不依赖 MaterialApp、应用主题或品牌 token。
+
+不传 color 时按当前最终生效的 backgroundColor 自适应配色；没有背景或背景完全透明时
+使用黑色。显式传 `color: null` 固定为传统黑色，传入 Color 则保留指定色值，颜色透明度
+与预设浓度、strength 相乘。自适应只读取当前纯色背景，不查询祖先或分析图片、渐变。
+
+blurRadius 覆盖最宽阴影层的模糊半径，其余层按比例缩放；offset 与 spreadRadius
+追加整体偏移和扩散。strength、blurRadius 允许为零，强度与模糊不能为负，所有数值必须有限。
+扩展只替换当前 boxShadow，保留其余属性和变体，可继续声明 boxShadow 过渡。
+
+阴影绘制跟随实际尺寸和最终圆角，扩散采用 W3C 的小圆角连续修正规则；内阴影裁剪在盒内。
+背景与圆角变体、动画由现有样式引擎驱动，不需要额外 Widget 或控制器。
+
 ## 交互状态与主题
 
 ```dart

@@ -24,26 +24,30 @@ class ViewBoxPainter {
     required RRect outerRRect,
     required List<BoxShadow> shadows,
     required bool inset,
+    Color? backgroundColor,
   }) {
     var clipped = false;
+    final base = outerRRect.scaleRadii();
     for (final shadow in shadows) {
       if ((shadow is ElBoxShadow && shadow.inset) != inset) continue;
-      final shape = _shadowRRect(outerRRect, shadow, inset: inset);
+      final paint = shadow is ElBoxShadow ? shadow.toPaintWithBackground(backgroundColor) : shadow.toPaint();
+      if (paint.color.a == 0) continue;
+      final shape = _shadowRRect(base, shadow, inset: inset);
       if (!inset) {
-        canvas.drawRRect(shape, shadow.toPaint());
+        if (!shape.isEmpty) canvas.drawRRect(shape, paint);
         continue;
       }
       if (!clipped) {
         canvas.save();
-        canvas.clipRRect(outerRRect);
+        canvas.clipRRect(base);
         clipped = true;
       }
-      final bounds = outerRRect.outerRect.expandToInclude(shape.outerRect).inflate(shadow.blurRadius * 2 + 1);
+      final bounds = base.outerRect.expandToInclude(shape.outerRect).inflate(shadow.blurRadius * 2 + 1);
       final path = Path()
         ..fillType = PathFillType.evenOdd
-        ..addRect(bounds)
-        ..addRRect(shape);
-      canvas.drawPath(path, shadow.toPaint());
+        ..addRect(bounds);
+      if (!shape.isEmpty) path.addRRect(shape);
+      canvas.drawPath(path, paint);
     }
     if (clipped) canvas.restore();
   }
@@ -374,10 +378,17 @@ class ViewBoxPainter {
     final rect = base.shift(shadow.offset);
     final spread = shadow.spreadRadius;
     if (spread == 0) return rect;
-    final x = inset ? -math.min(spread, rect.width / 2) : spread;
-    final y = inset ? -math.min(spread, rect.height / 2) : spread;
-    // 负 spread 不能产生负半径；内阴影的孔不能反向穿过盒中心。
-    Radius radius(double rx, double ry) => Radius.elliptical(math.max(0, rx + x), math.max(0, ry + y));
+    final delta = inset ? -spread : spread;
+    final x = math.max(-rect.width / 2, delta);
+    final y = math.max(-rect.height / 2, delta);
+    // W3C 小圆角扩散修正：直角保持直角，逐轴连续过渡到半径直接加扩散量。
+    double grow(double radius, double distance) {
+      if (distance <= 0 || radius >= distance) return math.max(0, radius + distance);
+      final ratio = radius / distance - 1;
+      return radius + distance * (1 + ratio * ratio * ratio);
+    }
+
+    Radius radius(double rx, double ry) => Radius.elliptical(grow(rx, x), grow(ry, y));
     return RRect.fromLTRBAndCorners(
       rect.left - x,
       rect.top - y,
@@ -387,7 +398,7 @@ class ViewBoxPainter {
       topRight: radius(rect.trRadiusX, rect.trRadiusY),
       bottomLeft: radius(rect.blRadiusX, rect.blRadiusY),
       bottomRight: radius(rect.brRadiusX, rect.brRadiusY),
-    );
+    ).scaleRadii();
   }
 
   /// 将声明折算为统一的 8 位透明度，供合成判定与绘制共用。
