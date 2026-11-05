@@ -1,8 +1,3 @@
-/// 控制首次挂载是否跳过构造期样式解析，供回归测试对比快路径与完整路径。
-///
-/// 默认开启，将构造期与首次 attach 的重复解析合并；仅供 UI 内部和测试使用。
-bool elViewDebugUseMountFastPath = true;
-
 /// 挂载分段墙钟追踪开关：`--dart-define=el.mount.trace=true` 才编译进热路径。
 ///
 /// 默认 false 时所有 `if (elMountTraceEnabled)` 分支被 const 折叠删除，
@@ -170,8 +165,8 @@ abstract final class MountTrace {
 
 /// benchmark 观测探针。
 ///
-/// 用于 benchmark 场景下统计核心热路径的调用次数（cascade tick / fast patch
-/// hit 与 miss / builder.build / performLayout / inheritance propagate）。
+/// 用于 benchmark 场景下统计核心热路径的调用次数（cascade tick / builder.build /
+/// performLayout / inheritance propagate）。
 /// **所有 increment 只在 assert 内跑**，Release 构建下常量表达式全部被裁掉，
 /// 零成本。
 ///
@@ -199,22 +194,6 @@ class BenchmarkProbe {
   /// baseline-2026-07-03.md 未测本字段，对比值 ≈ `cascadeTickCount × 54`。
   static int cascadeFieldIterCount = 0;
 
-  /// [CascadeFastPatch.tryPatch] 命中（返回非 null）计数。
-  static int fastPatchHitCount = 0;
-
-  /// [CascadeFastPatch.tryPatch] 未命中（进入 diff 后 bail、或 dirty 空 bail）
-  /// 计数。identical / null 早退（bail 0 之前）不计入。
-  static int fastPatchMissCount = 0;
-
-  /// **T22** — [CascadeFastPatch.tryInheritPatch] 借用恢复（Servo Arc 式组共享）
-  /// 命中计数。
-  ///
-  /// 命中意味着子节点此前整组借用父的 inheritedText / inheritedBox，父组换新后
-  /// 直接借用父的新组对象（零 builder / buffer 分配、零字段拷贝，且 identical
-  /// 共享不变量沿子树保持）。深链 color 传播 / ThemeSwap 场景该计数应线性递增，
-  /// builderBuildCount 应显著低于旧路径。
-  static int inheritBorrowHitCount = 0;
-
   /// [ResolvedStyleBuilder.build] 入口计数。
   static int builderBuildCount = 0;
 
@@ -223,21 +202,6 @@ class BenchmarkProbe {
 
   /// [InheritancePropagator.propagate] 入口计数。
   static int propagateCount = 0;
-
-  /// **T24** — attach 期 `_reresolve` 触发次数（`_parentResolved` 变化分支）。
-  ///
-  /// 探针用于实证"attach 期双重 cascade"假设：ContainerRenderObjectMixin 在
-  /// super.attach 内先递归 attach 全部子，子 attach 时反查父 committed 走一次
-  /// cascade；父 attach 完自身 `_reresolve` 后 damage route → propagate 又让子
-  /// 走 reresolveFromInheritance/fast_patch 一次。首挂载 N 节点场景该计数应
-  /// 逼近 N（每个子 attach 触发一次），mount fast-path 命中时该值 → 0。
-  static int attachReresolveCount = 0;
-
-  /// **T24** — attach 期 `_reresolve` 走 mount fast-path（跳过 diff + damage
-  /// route）的命中次数。快路径省 oldCommitted 全字段 diff、跳过 transition 状
-  /// 态机、跳过 damage route（子未 attach 无从 propagate，且新 attach 节点整
-  /// 体 needsLayout/needsPaint）。
-  static int mountFastPathHitCount = 0;
 
   /// 状态订阅对象的实际分配次数。
   static int stateSourceInstantiateCount = 0;
@@ -308,14 +272,9 @@ class BenchmarkProbe {
     stringPainterLayoutCount = 0;
     cascadeTickCount = 0;
     cascadeFieldIterCount = 0;
-    fastPatchHitCount = 0;
-    fastPatchMissCount = 0;
-    inheritBorrowHitCount = 0;
     builderBuildCount = 0;
     performLayoutCount = 0;
     propagateCount = 0;
-    attachReresolveCount = 0;
-    mountFastPathHitCount = 0;
     stateSourceInstantiateCount = 0;
     animDriverInstantiateCount = 0;
     textLayerInstantiateCount = 0;
@@ -337,14 +296,9 @@ class BenchmarkProbe {
     return <String, int>{
       'cascadeTickCount': cascadeTickCount,
       'cascadeFieldIterCount': cascadeFieldIterCount,
-      'fastPatchHitCount': fastPatchHitCount,
-      'fastPatchMissCount': fastPatchMissCount,
-      'inheritBorrowHitCount': inheritBorrowHitCount,
       'builderBuildCount': builderBuildCount,
       'performLayoutCount': performLayoutCount,
       'propagateCount': propagateCount,
-      'attachReresolveCount': attachReresolveCount,
-      'mountFastPathHitCount': mountFastPathHitCount,
       'stateSourceInstantiateCount': stateSourceInstantiateCount,
       'animDriverInstantiateCount': animDriverInstantiateCount,
       'textLayerInstantiateCount': textLayerInstantiateCount,

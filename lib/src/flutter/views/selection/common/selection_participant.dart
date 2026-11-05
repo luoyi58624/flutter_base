@@ -883,7 +883,7 @@ class OnSelectionPaint {
 ///
 /// 层叠语义（对齐 cascade emit 的「后写覆前」）：`base.onSelection` 先合并，
 /// 再按 [selfVariantEntries] 表序对 [stateBits] 命中的变体链 AND 下钻（嵌套
-/// 判定与 `activeSelfVariantContribution` 同构），高优先级变体内的声明覆盖
+/// 判定与 `activeVariantsOf` 同构），高优先级变体内的声明覆盖
 /// 低优先级；合并走 [ElStyleExt.merge]（字段级，非整体替换）。
 ///
 /// - [stateBits]：宿主当前状态位（`ElRenderView.internalStateBits`）；无状态

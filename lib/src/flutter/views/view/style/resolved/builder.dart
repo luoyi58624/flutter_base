@@ -40,11 +40,6 @@ class ResolvedStyleBuilder {
     _inheritedVars = _inheritedVars.merge(local);
   }
 
-  /// 继承更新时从新父表重建，避免叠加旧的有效变量。
-  void adoptVars(InheritedVars vars) {
-    _inheritedVars = vars;
-  }
-
   /// 同值合并结果复用旧实例，避免无效向后代传播。
   void stabilizeVars(InheritedVars previous) {
     _inheritedVars = _inheritedVars.stabilize(previous);

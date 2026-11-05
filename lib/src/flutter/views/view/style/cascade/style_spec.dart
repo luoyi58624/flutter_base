@@ -89,20 +89,15 @@ bool mayDeclareAnimationsOf(ElStyle? style) => style != null && _scan(style).ani
 /// 变体树声明变量时，继承更新回退完整级联以保留变体贡献。
 bool hasVariantVarsOf(ElStyle? style) => style != null && _scan(style).vars;
 
-/// 当前激活变体覆写的字段与过渡声明，用于判断能否直接差量更新。
-(FieldMask, bool) activeSelfVariantContribution(ElStyle style, int stateBits) {
+/// 当前激活变体覆写的字段；祖先主题采样不能覆盖这些声明。
+FieldMask activeVariantDeclaredMask(ElStyle? style, int stateBits) {
+  if (style == null) return FieldMask.empty;
   var declared = FieldMask.empty;
-  var transitions = false;
   for (final variant in activeVariantsOf(style, stateBits)) {
     declared = maskOr(declared, specOf(variant).declaredMask);
-    transitions |= variant.transition?.isNotEmpty ?? false;
   }
-  return (declared, transitions);
+  return declared;
 }
-
-/// 祖先主题采样不能覆盖当前激活变体自己的声明。
-FieldMask activeVariantDeclaredMask(ElStyle? style, int stateBits) =>
-    style == null ? FieldMask.empty : activeSelfVariantContribution(style, stateBits).$1;
 
 /// 返回完整命中的状态组合，组合越具体优先级越高，同层遵循状态声明顺序。
 Iterable<ElStyle> activeVariantsOf(ElStyle style, int stateBits) sync* {

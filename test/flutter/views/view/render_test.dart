@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:ui' show Codec;
+
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/flutter/utils/internal/bit_mask.dart';
 import 'package:flutter_base/src/flutter/views/view/style/inheritance/inheritable_node.dart';
@@ -316,7 +317,9 @@ void main() {
               _box(
                 outlineKey,
                 const ElStyle(
-                  onHover: ElStyle(outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3)),
+                  onHover: ElStyle(
+                    outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3),
+                  ),
                 ),
               ),
             ],
@@ -954,7 +957,12 @@ void main() {
         final explicit = ElBorderSide(borderWidth: 2, borderStyle: .dashed);
         final ops = recordBorderPaints(
           rect: rect,
-          border: ElBorder.only(borderTop: implicit, borderRight: explicit, borderBottom: implicit, borderLeft: explicit),
+          border: ElBorder.only(
+            borderTop: implicit,
+            borderRight: explicit,
+            borderBottom: implicit,
+            borderLeft: explicit,
+          ),
           borderRadius: BorderRadius.circular(8),
         )!;
         expect(ops, hasLength(1));
@@ -1377,7 +1385,11 @@ void main() {
         await tester.pump();
 
         // 变体确实生效（先证明不是"没触发"）
-        expect(rv.committedResolvedStyle.box.border!.borderTop.borderWidth, 4, reason: 'onTap 变体应已 cascade 到 committed');
+        expect(
+          rv.committedResolvedStyle.box.border!.borderTop.borderWidth,
+          4,
+          reason: 'onTap 变体应已 cascade 到 committed',
+        );
         // 布局零参与
         expect(BenchmarkProbe.performLayoutCount, 0, reason: 'border 变粗是 paint-only damage，禁止任何 performLayout');
         expect(rv.size, sizeBefore, reason: '自身 size 不变');
@@ -1902,7 +1914,12 @@ void main() {
             style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFFEEEEEE)),
             event: ElEvent(onTap: (_) => parentTaps++),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
+              style: const ElStyle(
+                width: 60,
+                height: 60,
+                transform: .translate(80, 80),
+                backgroundColor: Color(0xFF2196F3),
+              ),
               event: ElEvent(onTap: (_) => childTaps++),
             ),
           ),
@@ -1934,7 +1951,12 @@ void main() {
           ElView(
             style: const ElStyle(width: 100, height: 100),
             child: ElView(
-              style: const ElStyle(width: 40, height: 40, transform: .translate(120, 120), backgroundColor: Color(0xFF4CAF50)),
+              style: const ElStyle(
+                width: 40,
+                height: 40,
+                transform: .translate(120, 120),
+                backgroundColor: Color(0xFF4CAF50),
+              ),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -1962,7 +1984,12 @@ void main() {
               // 子被父 30×30 紧约束钳成 30×30（现行布局语义），绕中心 (15,15)
               // 旋转 45°：半对角线 15√2≈21.2，菱形 |dx|+|dy|≤21.2，
               // AABB (-6.2..36.2)²——下顶点 (15,36.2) 溢出父盒。
-              style: ElStyle(width: 30, height: 30, transform: .rotate(math.pi / 4), backgroundColor: const Color(0xFFFF9800)),
+              style: ElStyle(
+                width: 30,
+                height: 30,
+                transform: .rotate(math.pi / 4),
+                backgroundColor: const Color(0xFFFF9800),
+              ),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -1990,9 +2017,19 @@ void main() {
       await tester.pumpWidget(
         _hitOverflowBoundsApp(
           ElView(
-            style: const ElStyle(width: 100, height: 100, clipBehavior: Clip.hardEdge, backgroundColor: Color(0xFFEEEEEE)),
+            style: const ElStyle(
+              width: 100,
+              height: 100,
+              clipBehavior: Clip.hardEdge,
+              backgroundColor: Color(0xFFEEEEEE),
+            ),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
+              style: const ElStyle(
+                width: 60,
+                height: 60,
+                transform: .translate(80, 80),
+                backgroundColor: Color(0xFF2196F3),
+              ),
               event: ElEvent(onTap: (_) => taps++),
             ),
           ),
@@ -2044,7 +2081,12 @@ void main() {
           ElView(
             style: const ElStyle(width: 100, height: 100),
             child: ElView(
-              style: const ElStyle(width: 60, height: 60, transform: .translate(80, 80), backgroundColor: Color(0xFF2196F3)),
+              style: const ElStyle(
+                width: 60,
+                height: 60,
+                transform: .translate(80, 80),
+                backgroundColor: Color(0xFF2196F3),
+              ),
               event: ElEvent(onPointerEnter: (e) => hovered = true),
             ),
           ),
@@ -2143,7 +2185,12 @@ void main() {
               child: [
                 'prefix ',
                 ElView(
-                  style: const ElStyle(width: 30, height: 16, transform: .translate(0, 80), backgroundColor: Color(0xFFE91E63)),
+                  style: const ElStyle(
+                    width: 30,
+                    height: 16,
+                    transform: .translate(0, 80),
+                    backgroundColor: Color(0xFFE91E63),
+                  ),
                   event: ElEvent(onTap: (_) => taps++),
                 ),
                 ' suffix',
@@ -2539,7 +2586,12 @@ void main() {
       await tester.pumpWidget(
         _viewport(
           const ElView(
-            style: ElStyle(width: 100, height: 60, backgroundColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
+            style: ElStyle(
+              width: 100,
+              height: 60,
+              backgroundColor: Color(0xFF2196F3),
+              borderRadius: .all(Radius.circular(8)),
+            ),
           ),
         ),
       );
@@ -2608,9 +2660,9 @@ void main() {
 
     group('IFC 字段（color / textShadow / textBackgroundColor）变化触发子文本 layout', () {
       // 这些字段进 paragraph (TextStyle / cache key)。ElView 自身持文本时，color
-      // fastPatch 走 paint-only，painter 在 paint 阶段 lazy refresh 重 build
+      // 走 paint-only，painter 在 paint 阶段 lazy refresh 重 build
       // painter.text；layout 不重跑（改进 vs 旧 ElView 分离节点方案）。
-      testWidgets('color 变化不触发 layout（paint-only fastPatch）', (tester) async {
+      testWidgets('color 变化不触发 layout（paint-only）', (tester) async {
         await pumpStyled(tester, const ElStyle(width: 200, height: 60, color: Color(0xFF000000), fontSize: 14));
         final box = findRender(tester);
         final before = box.debugLayoutCount;
@@ -2618,7 +2670,7 @@ void main() {
         await pumpStyled(tester, const ElStyle(width: 200, height: 60, color: Color(0xFF0000FF), fontSize: 14));
         await tester.pump();
 
-        expect(box.debugLayoutCount, before, reason: 'color 是 paint-only fastPatch，不进 layout');
+        expect(box.debugLayoutCount, before, reason: 'color 是 paint-only，不进 layout');
         expect(
           box.committedResolvedStyle.inheritedText.color,
           const Color(0xFF0000FF),
@@ -2736,7 +2788,7 @@ void main() {
     });
 
     group('hover/active 触发变体的 layout 行为', () {
-      testWidgets('hover 切换改 color：paint-only fastPatch，不触发 layout', (tester) async {
+      testWidgets('hover 切换改 color：paint-only，不触发 layout', (tester) async {
         await pumpStyled(
           tester,
           const ElStyle(
@@ -2752,7 +2804,7 @@ void main() {
         box.setHover(true);
         await tester.pump();
 
-        expect(box.debugLayoutCount, before, reason: 'color 是 paint-only fastPatch，hover 切换不 layout');
+        expect(box.debugLayoutCount, before, reason: 'color 是 paint-only，hover 切换不 layout');
         expect(box.committedResolvedStyle.inheritedText.color, const Color(0xFF0000FF));
 
         box.setHover(false);
@@ -2787,7 +2839,12 @@ void main() {
       await tester.pumpWidget(
         _viewport(
           const ElView(
-            style: ElStyle(width: 100, height: 60, backgroundColor: Color(0xFF2196F3), borderRadius: .all(Radius.circular(8))),
+            style: ElStyle(
+              width: 100,
+              height: 60,
+              backgroundColor: Color(0xFF2196F3),
+              borderRadius: .all(Radius.circular(8)),
+            ),
           ),
         ),
       );
@@ -2889,7 +2946,12 @@ void main() {
         _app(
           ElView(
             event: ElEvent(onTap: (_) => tapped++),
-            style: const ElStyle(width: 40, height: 40, transform: .translate(20, 0), backgroundColor: Color(0xFF00AA00)),
+            style: const ElStyle(
+              width: 40,
+              height: 40,
+              transform: .translate(20, 0),
+              backgroundColor: Color(0xFF00AA00),
+            ),
           ),
         ),
       );
@@ -2981,12 +3043,7 @@ void main() {
             style: ElStyle(width: 200, height: 200, transform: .scale(2), transformOrigin: Alignment.topLeft),
             child: ElView(
               // 父
-              style: ElStyle(
-                width: 50,
-                height: 50,
-                transform: .translate(20, 0),
-                transformOrigin: Alignment.topLeft,
-              ),
+              style: ElStyle(width: 50, height: 50, transform: .translate(20, 0), transformOrigin: Alignment.topLeft),
               child: ElView(
                 // 孙子
                 style: ElStyle(width: 10, height: 10, backgroundColor: Color(0xFF00AA00)),

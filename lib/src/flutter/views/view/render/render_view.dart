@@ -28,7 +28,6 @@ import '../semantics/semantics_frame.dart';
 import '../style/animation/driver.dart';
 import '../style/animation/field_animation.dart';
 import '../style/animation/keyframe_runner.dart';
-import '../style/cascade/fast_patch.dart';
 import '../style/cascade/resolver.dart';
 import '../style/cascade/style_spec.dart';
 import '../style/cascade/tick.dart';
@@ -104,9 +103,7 @@ class ElRenderView extends RenderBox
       _ensureDispatcherIfNeededForVariants();
       if (variantTrace != null) MountTrace.ctorVariantScanUs += variantTrace.elapsedMicroseconds;
     }
-    if (!elViewDebugUseMountFastPath) {
-      _reresolve();
-    }
+    // 首次级联留到 attach：届时父级样式、暗色与断点已就绪，只需算一次。
     if (trace != null) MountTrace.ctorBodyUs += trace.elapsedMicroseconds;
     // Widget 门禁与富文本原子检查共用载荷入口；Element 会在挂载子内容前绑定宿主。
     if (child != null || content != null) setTextPayload(child, content: content);
@@ -542,32 +539,9 @@ class ElRenderView extends RenderBox
       _textPainterOrNull?.syncSelectionParticipation();
       reattachSelectionParticipantsInSubtree(this);
     }
-    // **Fast path** (cascade memoization)：常见 paint-only / box-only 字段
-    // 变化场景跳过完整 cascade。详见 [CascadeFastPatch.tryPatch]；命中失败
-    // fall through 到 slow path [_reresolve]。
-    if (!_applyFastPatchIfPossible(oldStyle)) _reresolve();
+    _reresolve();
     // onSelection 不进入 committed，声明更新也须通知直接消费样式的渲染宿主。
     _cascadeBridgeChanges?.publish();
-  }
-
-  /// 尝试 set-style cascade memoization。命中时已完成 _target / _committed
-  /// 更新 + damage 路由，调用方应立即 return；未命中时不修改任何状态，
-  /// 调用方继续走 [_reresolve]（slow path）。
-  bool _applyFastPatchIfPossible(ElStyle? oldStyle) {
-    // Widget 读取变量后推回的具体颜色，也必须走本帧主题统一过渡。
-    if (_pendingDarkTransition != null) return false;
-    final result = CascadeFastPatch.tryPatch(
-      oldStyle: oldStyle,
-      newStyle: _style,
-      oldTarget: _targetResolved,
-      parent: _parentResolved,
-      state: _stateBits,
-      hasActiveAnimations: _hasActiveAnimations,
-    );
-    if (result == null) return false;
-    _targetResolved = result.newTarget;
-    _commitResolved(result.newCommitted, result.changedMask);
-    return true;
   }
 
   /// `set style` 后清除"旧 style 有变体、新 style 没变体"的 state bit。
@@ -1352,27 +1326,8 @@ class ElRenderView extends RenderBox
     final continuedThemeAnimationMask = inheritedThemeAnimationMask.isEmpty
         ? FieldMask.empty
         : maskAndNot(inheritedThemeAnimationMask, activeVariantDeclaredMask(_style, _stateBits));
-    final oldParent = _parentResolved;
     if (!identical(_parentResolved, newParentResolved)) {
       _parentResolved = newParentResolved;
-    }
-    // **Fast path** (inherit propagation memoization)：父 cascade 后传过来的
-    // changedMask 已经在 [InheritancePropagator] 内剔除了本节点
-    // `explicitlySetFields`，即这些字段的最终值就是父对应 group 的值。
-    // 直接 patch 跳过完整 cascade。详见 [CascadeFastPatch.tryInheritPatch]。
-    final fast = CascadeFastPatch.tryInheritPatch(
-      style: _style,
-      oldTarget: _targetResolved,
-      newParent: newParentResolved,
-      oldParent: oldParent,
-      state: _stateBits,
-      changedMask: changedMask,
-      hasActiveAnimations: _hasActiveAnimations,
-    );
-    if (fast != null) {
-      _targetResolved = fast.newTarget;
-      _commitResolved(fast.newCommitted, fast.changedMask, themeAnimationMask: continuedThemeAnimationMask);
-      return continuedThemeAnimationMask;
     }
     _reresolve(inheritedThemeAnimationMask: continuedThemeAnimationMask);
     return continuedThemeAnimationMask;
@@ -2125,22 +2080,12 @@ class ElRenderView extends RenderBox
       (ancestorNode is ElRenderView ? ancestorNode : _findAncestor<ElRenderView>())?._effectiveBoldText ?? false,
     );
     final ancestorResolved = ancestorNode?.committedResolvedStyle;
-    final parentChanged = !identical(_parentResolved, ancestorResolved);
     _parentResolved = ancestorResolved;
     _isFirstAttach = false;
-    assert(() {
-      if (firstAttach && elViewDebugUseMountFastPath) {
-        BenchmarkProbe.mountFastPathHitCount++;
-      } else if (parentChanged) {
-        BenchmarkProbe.attachReresolveCount++;
-      }
-      return true;
-    }());
     // 首挂时 Widget 子内容尚未插入。已有后代的自定义宿主保留原来的继承提交顺序。
-    final resolveMountOnce =
-        firstAttach && elViewDebugUseMountFastPath && firstChild == null && (_styleChildren?.isEmpty ?? true);
+    final resolveMountOnce = firstAttach && firstChild == null && (_styleChildren?.isEmpty ?? true);
     // 重挂时重建动画时钟并回落目标值，不能保留摘树前的过渡采样。
-    if (!resolveMountOnce && (!firstAttach || elViewDebugUseMountFastPath || parentChanged)) _reresolve();
+    if (!resolveMountOnce) _reresolve();
     final dark = _localDark ?? ancestorNode?.effectiveDarkForInheritance ?? false;
     if (!resolveMountOnce) _syncEffectiveDark(dark, propagate: true);
     _invalidateEffectiveBreakpointCascade();
