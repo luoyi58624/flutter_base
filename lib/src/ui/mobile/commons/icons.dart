@@ -112,7 +112,7 @@ abstract final class ElMobileIcons {
   static const Widget loading = Glyph(spinner: true);
 }
 
-/// SVG 读取最近 ElView 的图标尺寸和颜色，样式过渡直接驱动布局与绘制。
+/// SVG 读取最近 ElView 的图标尺寸、颜色和字重，样式过渡直接驱动布局与绘制。
 class Glyph extends LeafRenderObjectWidget {
   /// 内置图标或加载圆弧。
   const Glyph({super.key, this.name = '', this.spinner = false});
@@ -136,20 +136,29 @@ class _GlyphRender extends RenderBox {
   String _name;
   bool _spinner;
   double _extent = 24;
+  double _strokeScale = 1;
   Color _color = const Color(0xff909399);
   ElRenderView? _host;
   Listenable? _styleChanges;
 
   void _styleChanged() {
-    final style = _host?.committedResolvedStyle.inheritedBox;
-    final extent = style?.iconSize ?? 24;
-    final color = style?.iconColor ?? const Color(0xff909399);
+    final style = _host?.committedResolvedStyle;
+    final extent = style?.inheritedBox.iconSize ?? 24;
+    final color = style?.inheritedBox.iconColor ?? const Color(0xff909399);
+    final text = style?.inheritedText;
+    final weight =
+        text?.fontVariationSettings?.where((axis) => axis.axis == 'wght').lastOrNull?.value ??
+        text?.fontWeight?.value.toDouble() ??
+        400;
+    // 400 保持原线宽，限制缩放范围以免极端字重挤满图标内部间隙。
+    final strokeScale = (weight / 400).clamp(0.5, 2.0).toDouble();
     if (_extent != extent) {
       _extent = extent;
       markNeedsLayout();
     }
-    if (_color != color) {
+    if (_color != color || _strokeScale != strokeScale) {
       _color = color;
+      _strokeScale = strokeScale;
       markNeedsPaint();
     }
   }
@@ -198,7 +207,7 @@ class _GlyphRender extends RenderBox {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..color = _color
-      ..strokeWidth = _spinner ? 2.5 : 1.8
+      ..strokeWidth = (_spinner ? 2.5 : 1.8) * _strokeScale
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     if (_spinner) {
