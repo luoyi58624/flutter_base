@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../widgets/code_preview/index.dart';
 import '../example_page.dart';
@@ -25,7 +26,14 @@ class ComponentDocSection {
 /// 桌面和移动目录共用的组件文档布局。
 class ComponentDocPage extends HookWidget {
   /// 创建组件文档页，由外层应用提供组件预设。
-  const ComponentDocPage({super.key, required this.title, required this.description, required this.sections});
+  const ComponentDocPage({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.sections,
+    this.useRecyclerView = false,
+    this.repeatCount = 1,
+  }) : assert(repeatCount > 0);
 
   /// 正文一级标题。
   final String title;
@@ -36,10 +44,34 @@ class ComponentDocPage extends HookWidget {
   /// 按阅读顺序展示的小节。
   final List<ComponentDocSection> sections;
 
+  /// 使用 RecyclerView 的模板创建、绑定与回收管线展示相同内容。
+  final bool useRecyclerView;
+
+  /// 重复正文小节的次数，两条滚动管线使用相同的条目数量。
+  final int repeatCount;
+
   @override
   Widget build(BuildContext context) {
     final scroll = useMemoized(ElScrollController.new);
     useEffect(() => scroll.dispose, [scroll]);
+    final recyclerView = useMemoized(
+      () => useRecyclerView
+          ? (rv.RecyclerView()
+              ..setLayoutManager(rv.LinearLayoutManager(context))
+              ..setItemViewCacheSize(2))
+          : null,
+      [useRecyclerView],
+    );
+    final adapter = useMemoized(
+      () => useRecyclerView
+          ? _DocAdapter(title: title, description: description, sections: sections, repeatCount: repeatCount)
+          : null,
+      [useRecyclerView, title, description, repeatCount, ...sections],
+    );
+    useEffect(() {
+      if (recyclerView != null && adapter != null) recyclerView.setAdapter(adapter);
+      return null;
+    }, [recyclerView, adapter]);
 
     return ExamplePage(
       title: '组件文档',
@@ -51,27 +83,33 @@ class ComponentDocPage extends HookWidget {
             builder: (context, constraints) {
               final showContents = constraints.maxWidth >= 880;
               final padding = showContents ? 32.0 : 16.0;
+              recyclerView?.setPadding(padding, 24, padding, 32);
               return Row(
                 crossAxisAlignment: .start,
                 children: [
                   Expanded(
-                    child: ElScrollView(
-                      controller: scroll,
-                      padding: .fromLTRB(padding, 24, padding, 32),
-                      children: [
-                        ElListView.builder(
-                          keepAlive: true,
-                          gap: 32,
-                          itemCount: sections.length + 1,
-                          itemBuilder: (context, index) => index == 0
-                              ? _DocHeading(title: title, description: description, level: 1)
-                              : _ExampleSection(
-                                  key: ValueKey(sections[index - 1].source),
-                                  section: sections[index - 1],
-                                ),
+                    child:
+                        recyclerView ??
+                        ElScrollView(
+                          controller: scroll,
+                          padding: .fromLTRB(padding, 24, padding, 32),
+                          children: [
+                            ElListView.builder(
+                              keepAlive: false,
+                              gap: 32,
+                              itemCount: sections.length * repeatCount + 1,
+                              itemBuilder: (context, index) => index == 0
+                                  ? _DocHeading(title: title, description: description, level: 1)
+                                  : KeyedSubtree(
+                                      key: ValueKey((index, sections[(index - 1) % sections.length].source)),
+                                      child: _ExampleSection(
+                                        key: ValueKey(sections[(index - 1) % sections.length].source),
+                                        section: sections[(index - 1) % sections.length],
+                                      ),
+                                    ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   ),
                   if (showContents)
                     SizedBox(
@@ -90,7 +128,13 @@ class ComponentDocPage extends HookWidget {
                             for (final (index, section) in sections.indexed)
                               TextButton(
                                 style: TextButton.styleFrom(alignment: .centerLeft),
-                                onPressed: () => scroll.scrollToIndex(index + 1),
+                                onPressed: () {
+                                  if (recyclerView != null) {
+                                    recyclerView.scrollToPosition(index + 1);
+                                  } else {
+                                    scroll.scrollToIndex(index + 1);
+                                  }
+                                },
                                 child: Text(section.title),
                               ),
                           ],
@@ -105,6 +149,52 @@ class ComponentDocPage extends HookWidget {
       ),
     );
   }
+}
+
+class _DocAdapter extends rv.Adapter<_DocViewHolder> {
+  _DocAdapter({required this.title, required this.description, required this.sections, required this.repeatCount});
+
+  final String title;
+  final String description;
+  final List<ComponentDocSection> sections;
+  final int repeatCount;
+
+  @override
+  int getItemCount() => sections.length * repeatCount + 1;
+
+  @override
+  int getItemViewType(int position) => position == 0 ? 0 : (position - 1) % sections.length + 1;
+
+  @override
+  _DocViewHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _DocViewHolder(
+    viewType == 0
+        ? _DocHeading(title: title, description: description, level: 1)
+        : _ExampleSection(section: sections[viewType - 1]),
+  );
+
+  @override
+  void onBindViewHolder(_DocViewHolder holder, int position, [List<Object> payloads = const []]) {
+    // 只更新位置决定的间隔，固定模板子树不随绑定重新创建。
+    holder.gap.value = position == getItemCount() - 1 ? 0 : 32;
+  }
+}
+
+class _DocViewHolder extends rv.ViewHolder {
+  _DocViewHolder(Widget template) : this._(template, ValueNotifier<double>(32));
+
+  _DocViewHolder._(Widget template, this.gap)
+    : super(
+        ValueListenableBuilder<double>(
+          valueListenable: gap,
+          child: template,
+          builder: (context, value, child) => Padding(
+            padding: .only(bottom: value),
+            child: child,
+          ),
+        ),
+      );
+
+  final ValueNotifier<double> gap;
 }
 
 class _DocHeading extends StatelessWidget {

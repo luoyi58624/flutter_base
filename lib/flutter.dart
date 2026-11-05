@@ -40,6 +40,7 @@ export 'src/flutter/views/view/semantics/semantics.dart';
 export 'src/flutter/views/view/event/event.dart';
 
 // 滚动、虚拟化、滚动条与刷新
+export 'recycler_view.dart';
 export 'src/flutter/views/scroll/scroll_view.dart'
     show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
 export 'src/flutter/views/scroll/scroll_state.dart'
