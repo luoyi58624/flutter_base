@@ -54,6 +54,8 @@ ElView(
 
 状态变体还包括 onFocus、onFocusWithin、onSelection。onTap 是按压样式，点击回调写在 event.onTap。禁用由 `ElEvent(disabled: true)` 声明；切换按钮的已选外观由调用方状态决定，不要将 selected 语义当作样式开关。
 
+启用焦点后，拥有主焦点的 ElView 会在 Enter、小键盘 Enter 或空格按下时自动进入 onTap，按键释放后退出；Esc、失焦、禁用和卸载会清理键盘反馈。键盘与指针共用按压态，单个输入释放不会清掉另一输入仍保持的反馈。样式变化由视图内部处理，不需要控制器或重建内容；是否点击及何时激活仍由现有键盘回调决定，普通 ElView 不会因此合成 event.onTap。
+
 `themeMode` 控制 onDark，`locale` 提供文字语言提示；二者与样式环境沿视图链传递。
 
 `ElView.of(context).themeMode` 返回祖先逐字段合并后的主题声明，并订阅明暗、时长和曲线变化；读取结果补齐默认的 light、200ms 和 Curves.linear。主题切换统一覆盖本次变化的样式过渡，普通按压等交互仍使用组件自己的 transition。
