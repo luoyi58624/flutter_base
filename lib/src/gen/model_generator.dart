@@ -110,15 +110,12 @@ extension $className${config.extSuffix} on $className {
     final defaultModelContent = StringBuffer();
 
     for (final fieldInfo in fields) {
-      final field = fieldInfo.name!;
+      final field = _MirrorUtils.getConstructorParameterName(classInfo, fieldInfo);
       final fieldType = fieldInfo.type.toString();
 
       final fieldAnnotation = _tryGetFieldAnnotation(fieldInfo);
-      final jsonKey =
-          fieldAnnotation?.getField('jsonKey')?.toStringValue() ?? field;
-      final defaultValue = fieldAnnotation != null
-          ? _extractDefaultValue(fieldAnnotation, fieldInfo)
-          : null;
+      final jsonKey = fieldAnnotation?.getField('jsonKey')?.toStringValue() ?? field;
+      final defaultValue = fieldAnnotation != null ? _extractDefaultValue(fieldAnnotation, fieldInfo) : null;
 
       // 编译期算好驼峰 key 对应的下划线 key 直接写入生成代码，运行时不再做字符串转换
       final keyCode = _dartStringLiteral(jsonKey);
@@ -353,20 +350,15 @@ extension $className${config.extSuffix} on $className {
       final field = fieldInfo.name!;
       final fieldType = fieldInfo.type.toString();
       final jsonKey = _getJsonKey(fieldInfo);
+      final parameter = _MirrorUtils.getConstructorParameterName(classInfo, fieldInfo);
 
-      final key = _dartStringLiteral(
-        jsonKey ?? (toJsonUnderline ? field.toUnderline : field),
-      );
+      final key = _dartStringLiteral(jsonKey ?? (toJsonUnderline ? parameter.toUnderline : parameter));
       late String value;
       if (_MirrorUtils.hasSerializeModel(fieldInfo.type.element)) {
         final suffix = fieldType.endsWith('?') ? '?' : '';
         value = '$field$suffix.toJson()';
       } else if (_hasNestedCollection(fieldInfo.type)) {
-        value = _encodeNestedValue(
-          fieldInfo.type,
-          field,
-          _getCustomSerialize(fieldInfo),
-        );
+        value = _encodeNestedValue(fieldInfo.type, field, _getCustomSerialize(fieldInfo));
       } else if (fieldInfo.type.isDartCoreList) {
         final itemType = _firstTypeArgument(fieldInfo);
         final suffix = fieldType.endsWith('?') ? '?' : '';
@@ -448,7 +440,8 @@ extension $className${config.extSuffix} on $className {
 
     for (final fieldInfo in fields) {
       final fieldTypeStr = fieldInfo.type.toString();
-      final field = fieldInfo.name!;
+      final field = _MirrorUtils.getConstructorParameterName(classInfo, fieldInfo);
+      final storage = fieldInfo.name!;
 
       final isDynamic = fieldTypeStr == 'dynamic';
       final isNullable = isDynamic || fieldTypeStr.endsWith('?');
@@ -493,52 +486,42 @@ extension $className${config.extSuffix} on $className {
           // 非空 + 无 cast(Object/dynamic):null 判定两臂就是裸名与 this.，
           // 归约成 ??(三元触发 prefer_if_null_operators)。
           if (!isNullable && noCast) {
-            copyWithBody.write('$field: $field ?? this.$field,\n');
+            copyWithBody.write('$field: $field ?? this.$storage,\n');
           } else {
-            copyWithBody.write('$field: $keep ? this.$field : $castFull,\n');
+            copyWithBody.write('$field: $keep ? this.$storage : $castFull,\n');
           }
         case _MergeStyle.instance:
           if (isNullable) {
             copyWithBody.write(
-              '$field: $keep ? this.$field : '
+              '$field: $keep ? this.$storage : '
               '($field == null ? null : '
-              '(this.$field == null ? $castBase : this.$field!.merge($castBase))),',
+              '(this.$storage == null ? $castBase : this.$storage!.merge($castBase))),',
             );
           } else {
-            copyWithBody.write(
-              '$field: $keep ? this.$field : this.$field.merge($castBase),',
-            );
+            copyWithBody.write('$field: $keep ? this.$storage : this.$storage.merge($castBase),');
           }
         case _MergeStyle.static:
           if (isNullable) {
             copyWithBody.write(
-              '$field: $keep ? this.$field : '
+              '$field: $keep ? this.$storage : '
               '($field == null ? null : '
-              '(this.$field == null ? $castBase : $fieldTypeBase.merge(this.$field!, $castBase))),',
+              '(this.$storage == null ? $castBase : $fieldTypeBase.merge(this.$storage!, $castBase))),',
             );
           } else {
-            copyWithBody.write(
-              '$field: $keep ? this.$field : $fieldTypeBase.merge(this.$field, $castBase),',
-            );
+            copyWithBody.write('$field: $keep ? this.$storage : $fieldTypeBase.merge(this.$storage, $castBase),');
           }
         case _MergeStyle.mapUnion:
         case _MergeStyle.mapDeep:
-          final helperArgs = mergeStyle == _MergeStyle.mapUnion
-              ? ''
-              : ', ${_mapDeepCallback(fieldInfo)}';
-          final helper = mergeStyle == _MergeStyle.mapUnion
-              ? r'$elMergeMap'
-              : r'$elMergeMapDeep';
+          final helperArgs = mergeStyle == _MergeStyle.mapUnion ? '' : ', ${_mapDeepCallback(fieldInfo)}';
+          final helper = mergeStyle == _MergeStyle.mapUnion ? r'$elMergeMap' : r'$elMergeMapDeep';
           if (isNullable) {
             copyWithBody.write(
-              '$field: $keep ? this.$field : '
+              '$field: $keep ? this.$storage : '
               '($field == null ? null : '
-              '(this.$field == null ? $castBase : $helper(this.$field!, $castBase$helperArgs))),',
+              '(this.$storage == null ? $castBase : $helper(this.$storage!, $castBase$helperArgs))),',
             );
           } else {
-            copyWithBody.write(
-              '$field: $keep ? this.$field : $helper(this.$field, $castBase$helperArgs),',
-            );
+            copyWithBody.write('$field: $keep ? this.$storage : $helper(this.$storage, $castBase$helperArgs),');
           }
       }
     }
@@ -567,10 +550,10 @@ extension $className${config.extSuffix} on $className {
     // 生成直接构造调用，保持声明合并口径——other 侧 null = 未声明、保留本侧。
     final content = StringBuffer();
     for (final fieldInfo in fields) {
-      final field = fieldInfo.name!;
+      final field = _MirrorUtils.getConstructorParameterName(classInfo, fieldInfo);
+      final storage = fieldInfo.name!;
       final fieldTypeStr = fieldInfo.type.toString();
-      final isNullable =
-          fieldTypeStr == 'dynamic' || fieldTypeStr.endsWith('?');
+      final isNullable = fieldTypeStr == 'dynamic' || fieldTypeStr.endsWith('?');
       final fieldTypeBase = fieldTypeStr.endsWith('?')
           ? fieldTypeStr.substring(0, fieldTypeStr.length - 1)
           : fieldTypeStr;
@@ -578,51 +561,39 @@ extension $className${config.extSuffix} on $className {
       final mergeStyle = _resolveMergeStyle(fieldInfo);
       // merge 体内无同名参数遮蔽，裸名即字段（this. 触发 unnecessary_this）；
       // 唯独字段名恰为 other 时与 merge 入参撞名，保留 this. 消歧。
-      final self = field == 'other' ? 'this.$field' : field;
+      final self = storage == 'other' ? 'this.$storage' : storage;
       switch (mergeStyle) {
         case _MergeStyle.none:
           // 非空字段 other 侧必有值直取，?? 是死代码（dead_null_aware_expression）
-          content.write(
-            isNullable
-                ? '$field: other.$field ?? $self,\n'
-                : '$field: other.$field,\n',
-          );
+          content.write(isNullable ? '$field: other.$storage ?? $self,\n' : '$field: other.$storage,\n');
         case _MergeStyle.instance:
           if (isNullable) {
-            content.write(
-              '$field: $self == null ? other.$field : $self!.merge(other.$field),\n',
-            );
+            content.write('$field: $self == null ? other.$storage : $self!.merge(other.$storage),\n');
           } else {
-            content.write('$field: $self.merge(other.$field),\n');
+            content.write('$field: $self.merge(other.$storage),\n');
           }
         case _MergeStyle.static:
           if (isNullable) {
             content.write(
               '$field: $self == null '
-              '? other.$field '
-              ': (other.$field == null ? $self : $fieldTypeBase.merge($self!, other.$field!)),\n',
+              '? other.$storage '
+              ': (other.$storage == null ? $self : $fieldTypeBase.merge($self!, other.$storage!)),\n',
             );
           } else {
-            content.write(
-              '$field: $fieldTypeBase.merge($self, other.$field),\n',
-            );
+            content.write('$field: $fieldTypeBase.merge($self, other.$storage),\n');
           }
         case _MergeStyle.mapUnion:
         case _MergeStyle.mapDeep:
-          final helperArgs = mergeStyle == _MergeStyle.mapUnion
-              ? ''
-              : ', ${_mapDeepCallback(fieldInfo)}';
-          final helper = mergeStyle == _MergeStyle.mapUnion
-              ? r'$elMergeMap'
-              : r'$elMergeMapDeep';
+          final helperArgs = mergeStyle == _MergeStyle.mapUnion ? '' : ', ${_mapDeepCallback(fieldInfo)}';
+          final helper = mergeStyle == _MergeStyle.mapUnion ? r'$elMergeMap' : r'$elMergeMapDeep';
           if (isNullable) {
             content.write(
               '$field: $self == null '
-              '? other.$field '
-              ': (other.$field == null ? $self : $helper($self!, other.$field!$helperArgs)),\n',
+              '? other.$storage '
+              ': (other.$storage == null ? $self : $helper($self!, other.$storage!$helperArgs)),\n',
             );
           } else {
-            content.write('$field: $helper($self, other.$field$helperArgs),\n');
+            content.write('$field: $helper($self, other.$storage$helperArgs),\n');
           }
       }
     }

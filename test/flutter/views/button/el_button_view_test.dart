@@ -485,6 +485,7 @@ void main() {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
       expect(presses, 1);
       // 按住 repeat 连续触发。
+      await tester.pump(Duration(milliseconds: 100));
       await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
       expect(presses, 2);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
@@ -671,6 +672,7 @@ void main() {
       expect(presses, 1); // longPress 不触发 onTap；Enter 已被覆盖不激活。
       // 按住 Enter 的 keyRepeat 经 dispatcher 回退也走调用方 onKeyDown，
       // 不得经内建激活（半吊子覆盖回归防护）。
+      await tester.pump(Duration(milliseconds: 100));
       await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
       expect(customKeys, 2);
       expect(presses, 1);

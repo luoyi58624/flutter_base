@@ -58,6 +58,8 @@ ElView(
 
 键盘按压同时向当前主焦点节点发送 onTapDown / onTapUp / onTapCancel，`originalEvent` 保留 KeyEvent；这些生命周期不替祖先合成按压，原始键盘回调仍按原规则冒泡。自动重复按键只继续派发键盘回调，不重复发送 onTapDown；ElButtonView 的 Enter 默认继续激活，空格只在有效会话释放时激活一次。
 
+`ElEventConfig.keyRepeatInterval` 控制同一物理按键的重复回调最小间隔，默认 100ms，设为 `Duration.zero` 可关闭限流。首次按下和释放立即处理，间隔内的重复事件直接丢弃，不排队补发；`onKeyRepeat` 及其向 `onKeyDown` 的回退均遵循该配置。每个节点独立计时，配置不沿祖先继承，释放、Esc、失焦、禁用或卸载会清理窗口；按压样式仍实时响应并保持到释放。被跳过的重复事件保留上一阶段的消费与停止冒泡结果。
+
 `themeMode` 控制 onDark，`locale` 提供文字语言提示；二者与样式环境沿视图链传递。
 
 `ElView.of(context).themeMode` 返回祖先逐字段合并后的主题声明，并订阅明暗、时长和曲线变化；读取结果补齐默认的 light、200ms 和 Curves.linear。主题切换统一覆盖本次变化的样式过渡，普通按压等交互仍使用组件自己的 transition。

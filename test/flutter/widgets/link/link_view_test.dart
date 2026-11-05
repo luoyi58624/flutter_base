@@ -152,6 +152,7 @@ void main() {
       // Enter：keydown 即触发，按住 repeat 连续触发，每次都带默认跳转。
       await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
       expect(presses, 1);
+      await tester.pump(Duration(milliseconds: 100));
       await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
       expect(presses, 2);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);

@@ -42,6 +42,8 @@ class EventDispatcher {
     ..deferPointerReleases = true;
   late final _press = PressRecognizer(debugOwner: this)..team = _team;
   Map<PhysicalKeyboardKey, KeyEvent>? _keyboardTapKeys;
+  Map<PhysicalKeyboardKey, _KeyRepeatDispatch>? _keyRepeatDispatches;
+  Stopwatch? _keyRepeatClock;
   bool _reportedTapPressed = false;
   // 只在声明拖拽、缩放或作为后代变换链的祖先时创建，点击类节点不分配。
   TransformRecognizer? _transform;
@@ -163,6 +165,7 @@ class EventDispatcher {
   }
 
   void _cancelKeyboardTap() {
+    _keyRepeatDispatches?.clear();
     final keys = _keyboardTapKeys;
     if (keys == null || keys.isEmpty) return;
     final events = keys.values.toList(growable: false);
@@ -632,15 +635,50 @@ class EventDispatcher {
   }
 
   void _deliverLive(ElEventDetails callback) {
-    _invoke(_handlerFor(callback.phase), callback);
+    _invokeLive(callback);
     if (callback.propagationStopped) return;
     for (var render = _render.parent; render != null; render = render.parent) {
       final member = _registry[render];
       if (member == null || member._disposed || member.disabled || !render.attached) continue;
       callback.updateKeyboardTapMatched(false);
       callback.localPosition = member._localPosition(callback.globalPosition, callback);
-      member._invoke(member._handlerFor(callback.phase), callback);
+      member._invokeLive(callback);
       if (callback.propagationStopped) return;
+    }
+  }
+
+  void _invokeLive(ElEventDetails callback) {
+    final phase = callback.phase;
+    final key = callback.physicalKey;
+    if (phase == .blur || phase == .keyDown && callback.logicalKey == LogicalKeyboardKey.escape) {
+      _keyRepeatDispatches?.clear();
+    } else if (phase == .keyUp) {
+      _keyRepeatDispatches?.remove(key);
+    }
+    final handler = _handlerFor(phase);
+    final interval = config.keyRepeatInterval;
+    if (key == null || phase != .keyDown && phase != .keyRepeat || handler == null || interval == Duration.zero) {
+      if (key != null) _keyRepeatDispatches?.remove(key);
+      _invoke(handler, callback);
+      return;
+    }
+
+    // 使用框架提供的单调时钟，测试时也能随虚拟时间推进；无需计时器或延后执行。
+    final now = (_keyRepeatClock ??= GestureBinding.instance.samplingClock.stopwatch()..start()).elapsed;
+    final previous = _keyRepeatDispatches?[key];
+    if (phase == .keyRepeat && previous != null && now - previous.timeStamp < interval) {
+      if (previous.handled) callback.preventDefault();
+      if (previous.propagationStopped) callback.stopPropagation();
+      return;
+    }
+    final current = _KeyRepeatDispatch(now);
+    (_keyRepeatDispatches ??= {})[key] = current;
+    _invoke(handler, callback);
+    // 回调可能同步取消、禁用或销毁宿主，失效的窗口不再写回。
+    if (identical(_keyRepeatDispatches?[key], current)) {
+      current
+        ..handled = callback.defaultPrevented
+        ..propagationStopped = callback.propagationStopped;
     }
   }
 
@@ -653,6 +691,7 @@ class EventDispatcher {
     _team.dispose();
     _press.dispose();
     _transform?.dispose();
+    _keyRepeatClock?.stop();
     _hoverDevices.clear();
     onTapChanged = null;
     onHoverChanged = null;
@@ -660,6 +699,14 @@ class EventDispatcher {
     _event = null;
     if (identical(_registry[_render], this)) _registry[_render] = null;
   }
+}
+
+class _KeyRepeatDispatch {
+  _KeyRepeatDispatch(this.timeStamp);
+
+  final Duration timeStamp;
+  bool handled = false;
+  bool propagationStopped = false;
 }
 
 /// 将声明映射到原生识别器及业务回调，不维护另一套手势路线。

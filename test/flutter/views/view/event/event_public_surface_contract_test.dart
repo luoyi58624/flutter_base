@@ -309,6 +309,7 @@ void main() {
     expect(config.doubleTapInterval, const Duration(milliseconds: 300));
     expect(config.tripleTapInterval, const Duration(milliseconds: 300));
     expect(config.longPressDelay, const Duration(milliseconds: 500));
+    expect(config.keyRepeatInterval, Duration(milliseconds: 100));
     expect(config.tapCancelDistance, 10);
     expect(config.tapCancelByDistance, isFalse);
     expect(config.deferTap, isFalse);

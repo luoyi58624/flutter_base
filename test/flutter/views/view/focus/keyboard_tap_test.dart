@@ -290,6 +290,7 @@ void main() {
     );
     await focus(tester, node);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+    await tester.pump(Duration(milliseconds: 100));
     await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
     expect(phases, [

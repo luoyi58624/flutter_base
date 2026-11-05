@@ -39,6 +39,7 @@ final class ElEventConfig with Equatable {
     this._tapCancelByDistance,
     this._delayTouchDown,
     this._delayTouchUp,
+    this._keyRepeatInterval,
     this._deferTap,
     this.dragStartDistance,
     this.dragDevices,
@@ -49,13 +50,14 @@ final class ElEventConfig with Equatable {
   }) : assert(longPressCancelDistance == null || longPressCancelDistance >= 0, 'longPressCancelDistance 必须大于等于 0。'),
        assert(_delayTouchDown == null || _delayTouchDown >= Duration.zero, 'delayTouchDown 必须大于等于 0。'),
        assert(_delayTouchUp == null || _delayTouchUp >= Duration.zero, 'delayTouchUp 必须大于等于 0。'),
+       assert(_keyRepeatInterval == null || _keyRepeatInterval >= Duration.zero, 'keyRepeatInterval 必须大于等于 0。'),
        assert(
          _dragHorizontalAngle == null || (_dragHorizontalAngle > 0 && _dragHorizontalAngle < math.pi / 2),
          'dragHorizontalAngle 是水平捕获锥的半角（弧度），必须落在 (0, π/2) 开区间。',
        );
 
   /// Tap、连击与长按参数是否和 [other] 使用相同的局部覆盖，仅供事件状态迁移。
-  /// 不比较纯视觉参数 [delayTouchDown]、[delayTouchUp]，避免调节反馈时打断手势识别。
+  /// 不比较视觉与键盘参数，避免调节反馈或重复间隔时打断指针手势。
   @internal
   bool hasSameTapConfiguration(ElEventConfig? other) =>
       _doubleTapInterval == other?._doubleTapInterval &&
@@ -124,6 +126,13 @@ final class ElEventConfig with Equatable {
   ///
   /// 尚未激活的样式不补播，取消、拖拽接管、禁用与卸载立即清理；零值关闭保留。
   Duration get delayTouchUp => _delayTouchUp ?? const Duration(milliseconds: 100);
+
+  final Duration? _keyRepeatInterval;
+
+  /// 同一物理按键的重复回调最小间隔，默认 100ms，零值关闭限流。
+  ///
+  /// 首次按下和释放立即派发；过密的 KeyRepeat 直接跳过，不排队，也不影响按压样式。
+  Duration get keyRepeatInterval => _keyRepeatInterval ?? const Duration(milliseconds: 100);
 
   final bool? _deferTap;
 

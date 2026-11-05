@@ -71,7 +71,7 @@ class _MirrorUtils {
     bool visitSuper = false, // 是否收集 super 父类的字段
   }) {
     if (varElement is FieldFormalParameterElement) {
-      return classElement.getField(varElement.name!);
+      return varElement.field ?? classElement.getField(varElement.name!);
     } else {
       if (visitSuper) {
         if (varElement is SuperFormalParameterElement) {
@@ -86,13 +86,20 @@ class _MirrorUtils {
     return classElement.getField(varElement.name!);
   }
 
+  /// 私有命名形参对外使用公开名，生成调用参数时不能沿用存储字段名。
+  static String getConstructorParameterName(ClassElement classElement, FieldElement field) {
+    for (final parameter in getDefaultConstructor(classElement).formalParameters) {
+      if (getField(classElement, parameter, visitSuper: true) == field) return parameter.name!;
+    }
+    return field.name!;
+  }
+
   /// 字段过滤，实体类需要生成的字段代码不需要关心以下修饰符
   static bool _fieldFilter(FieldElement fieldInfo) {
     return !fieldInfo.isStatic &&
         !fieldInfo.isLate &&
         !fieldInfo.isConst &&
-        (fieldInfo.isOriginDeclaration ||
-            fieldInfo.isOriginDeclaringFormalParameter);
+        (fieldInfo.isOriginDeclaration || fieldInfo.isOriginDeclaringFormalParameter);
   }
 
   /// 过滤掉实体类中不需要生成的字段

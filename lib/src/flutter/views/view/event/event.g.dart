@@ -3,11 +3,10 @@
 part of 'event.dart';
 
 // **************************************************************************
-// ElModelCodeGenerator
+// _ModelGenerator
 // **************************************************************************
 
 extension ElEventConfigExt on ElEventConfig {
-  /// 复制声明；省略保留原值，可空字段显式传 null 时清空。
   ElEventConfig copyWith({
     Object? doubleTapInterval = $absent,
     Object? tripleTapInterval = $absent,
@@ -17,6 +16,7 @@ extension ElEventConfigExt on ElEventConfig {
     Object? tapCancelByDistance = $absent,
     Object? delayTouchDown = $absent,
     Object? delayTouchUp = $absent,
+    Object? keyRepeatInterval = $absent,
     Object? deferTap = $absent,
     Object? dragStartDistance = $absent,
     Object? dragDevices = $absent,
@@ -26,59 +26,79 @@ extension ElEventConfigExt on ElEventConfig {
     Object? dragMaxFlingVelocity = $absent,
   }) {
     return ElEventConfig(
-      doubleTapInterval: identical(doubleTapInterval, $absent) ? _doubleTapInterval : doubleTapInterval as Duration?,
-      tripleTapInterval: identical(tripleTapInterval, $absent) ? _tripleTapInterval : tripleTapInterval as Duration?,
-      longPressDelay: identical(longPressDelay, $absent) ? _longPressDelay : longPressDelay as Duration?,
+      doubleTapInterval: identical(doubleTapInterval, $absent)
+          ? this._doubleTapInterval
+          : doubleTapInterval as Duration?,
+      tripleTapInterval: identical(tripleTapInterval, $absent)
+          ? this._tripleTapInterval
+          : tripleTapInterval as Duration?,
+      longPressDelay: identical(longPressDelay, $absent)
+          ? this._longPressDelay
+          : longPressDelay as Duration?,
       longPressCancelDistance: identical(longPressCancelDistance, $absent)
           ? this.longPressCancelDistance
           : (longPressCancelDistance as num?)?.toDouble(),
       tapCancelDistance: identical(tapCancelDistance, $absent)
-          ? _tapCancelDistance
+          ? this._tapCancelDistance
           : (tapCancelDistance as num?)?.toDouble(),
       tapCancelByDistance: identical(tapCancelByDistance, $absent)
-          ? _tapCancelByDistance
+          ? this._tapCancelByDistance
           : tapCancelByDistance as bool?,
-      delayTouchDown: identical(delayTouchDown, $absent) ? _delayTouchDown : delayTouchDown as Duration?,
-      delayTouchUp: identical(delayTouchUp, $absent) ? _delayTouchUp : delayTouchUp as Duration?,
-      deferTap: identical(deferTap, $absent) ? _deferTap : deferTap as bool?,
+      delayTouchDown: identical(delayTouchDown, $absent)
+          ? this._delayTouchDown
+          : delayTouchDown as Duration?,
+      delayTouchUp: identical(delayTouchUp, $absent)
+          ? this._delayTouchUp
+          : delayTouchUp as Duration?,
+      keyRepeatInterval: identical(keyRepeatInterval, $absent)
+          ? this._keyRepeatInterval
+          : keyRepeatInterval as Duration?,
+      deferTap: identical(deferTap, $absent)
+          ? this._deferTap
+          : deferTap as bool?,
       dragStartDistance: identical(dragStartDistance, $absent)
           ? this.dragStartDistance
           : (dragStartDistance as num?)?.toDouble(),
-      dragDevices: identical(dragDevices, $absent) ? this.dragDevices : dragDevices as Set<PointerDeviceKind>?,
+      dragDevices: identical(dragDevices, $absent)
+          ? this.dragDevices
+          : dragDevices as Set<PointerDeviceKind>?,
       dragHorizontalAngle: identical(dragHorizontalAngle, $absent)
-          ? _dragHorizontalAngle
+          ? this._dragHorizontalAngle
           : (dragHorizontalAngle as num?)?.toDouble(),
       dragMinFlingDistance: identical(dragMinFlingDistance, $absent)
           ? this.dragMinFlingDistance
           : (dragMinFlingDistance as num?)?.toDouble(),
       dragMinFlingVelocity: identical(dragMinFlingVelocity, $absent)
-          ? _dragMinFlingVelocity
+          ? this._dragMinFlingVelocity
           : (dragMinFlingVelocity as num?)?.toDouble(),
       dragMaxFlingVelocity: identical(dragMaxFlingVelocity, $absent)
-          ? _dragMaxFlingVelocity
+          ? this._dragMaxFlingVelocity
           : (dragMaxFlingVelocity as num?)?.toDouble(),
     );
   }
 
-  /// 合并声明；对方的可空字段为 null 时保留当前值。
   ElEventConfig merge([ElEventConfig? other]) {
     if (other == null) return this;
     return ElEventConfig(
       doubleTapInterval: other._doubleTapInterval ?? _doubleTapInterval,
       tripleTapInterval: other._tripleTapInterval ?? _tripleTapInterval,
       longPressDelay: other._longPressDelay ?? _longPressDelay,
-      longPressCancelDistance: other.longPressCancelDistance ?? longPressCancelDistance,
+      longPressCancelDistance:
+          other.longPressCancelDistance ?? longPressCancelDistance,
       tapCancelDistance: other._tapCancelDistance ?? _tapCancelDistance,
       tapCancelByDistance: other._tapCancelByDistance ?? _tapCancelByDistance,
       delayTouchDown: other._delayTouchDown ?? _delayTouchDown,
       delayTouchUp: other._delayTouchUp ?? _delayTouchUp,
+      keyRepeatInterval: other._keyRepeatInterval ?? _keyRepeatInterval,
       deferTap: other._deferTap ?? _deferTap,
       dragStartDistance: other.dragStartDistance ?? dragStartDistance,
       dragDevices: other.dragDevices ?? dragDevices,
       dragHorizontalAngle: other._dragHorizontalAngle ?? _dragHorizontalAngle,
       dragMinFlingDistance: other.dragMinFlingDistance ?? dragMinFlingDistance,
-      dragMinFlingVelocity: other._dragMinFlingVelocity ?? _dragMinFlingVelocity,
-      dragMaxFlingVelocity: other._dragMaxFlingVelocity ?? _dragMaxFlingVelocity,
+      dragMinFlingVelocity:
+          other._dragMinFlingVelocity ?? _dragMinFlingVelocity,
+      dragMaxFlingVelocity:
+          other._dragMaxFlingVelocity ?? _dragMaxFlingVelocity,
     );
   }
 
@@ -91,6 +111,7 @@ extension ElEventConfigExt on ElEventConfig {
     _tapCancelByDistance,
     _delayTouchDown,
     _delayTouchUp,
+    _keyRepeatInterval,
     _deferTap,
     dragStartDistance,
     dragDevices,
@@ -102,7 +123,6 @@ extension ElEventConfigExt on ElEventConfig {
 }
 
 extension ElDragProxyExt on ElDragProxy {
-  /// 复制声明；省略保留原值，可空字段显式传 null 时清空。
   ElDragProxy copyWith({
     Object? axis = $absent,
     Object? onDragPreUpdate = $absent,
@@ -117,11 +137,12 @@ extension ElDragProxyExt on ElDragProxy {
       onDragOverflow: identical(onDragOverflow, $absent)
           ? this.onDragOverflow
           : onDragOverflow as void Function(ElEventDetails)?,
-      boundaryHandoff: boundaryHandoff == null ? this.boundaryHandoff : boundaryHandoff as Set<AxisDirection>,
+      boundaryHandoff: boundaryHandoff == null
+          ? this.boundaryHandoff
+          : boundaryHandoff as Set<AxisDirection>,
     );
   }
 
-  /// 合并声明；对方的可空字段为 null 时保留当前值。
   ElDragProxy merge([ElDragProxy? other]) {
     if (other == null) return this;
     return ElDragProxy(
@@ -134,7 +155,6 @@ extension ElDragProxyExt on ElDragProxy {
 }
 
 extension ElEventExt on ElEvent {
-  /// 复制声明；省略保留原值，可空字段显式传 null 时清空。
   ElEvent copyWith({
     Object? config = $absent,
     Object? dragProxy = $absent,
@@ -203,7 +223,9 @@ extension ElEventExt on ElEvent {
           ? this.config
           : (config == null
                 ? null
-                : (this.config == null ? config as ElEventConfig : this.config!.merge(config as ElEventConfig))),
+                : (this.config == null
+                      ? config as ElEventConfig
+                      : this.config!.merge(config as ElEventConfig))),
       dragProxy: identical(dragProxy, $absent)
           ? this.dragProxy
           : (dragProxy == null
@@ -214,7 +236,9 @@ extension ElEventExt on ElEvent {
       behavior: behavior == null ? this.behavior : behavior as HitTestBehavior,
       cursor: identical(cursor, $absent) ? this.cursor : cursor as MouseCursor?,
       disabled: disabled == null ? this.disabled : disabled as bool,
-      rotationStartEnabled: rotationStartEnabled == null ? this.rotationStartEnabled : rotationStartEnabled as bool,
+      rotationStartEnabled: rotationStartEnabled == null
+          ? this.rotationStartEnabled
+          : rotationStartEnabled as bool,
       onPointerEnter: identical(onPointerEnter, $absent)
           ? this.onPointerEnter
           : onPointerEnter as void Function(ElEventDetails)?,
@@ -230,7 +254,9 @@ extension ElEventExt on ElEvent {
       onPointerMove: identical(onPointerMove, $absent)
           ? this.onPointerMove
           : onPointerMove as void Function(ElEventDetails)?,
-      onPointerUp: identical(onPointerUp, $absent) ? this.onPointerUp : onPointerUp as void Function(ElEventDetails)?,
+      onPointerUp: identical(onPointerUp, $absent)
+          ? this.onPointerUp
+          : onPointerUp as void Function(ElEventDetails)?,
       onPointerCancel: identical(onPointerCancel, $absent)
           ? this.onPointerCancel
           : onPointerCancel as void Function(ElEventDetails)?,
@@ -246,14 +272,24 @@ extension ElEventExt on ElEvent {
       onPointerSignal: identical(onPointerSignal, $absent)
           ? this.onPointerSignal
           : onPointerSignal as void Function(ElEventDetails)?,
-      onTapDown: identical(onTapDown, $absent) ? this.onTapDown : onTapDown as void Function(ElEventDetails)?,
-      onTapUp: identical(onTapUp, $absent) ? this.onTapUp : onTapUp as void Function(ElEventDetails)?,
-      onTap: identical(onTap, $absent) ? this.onTap : onTap as void Function(ElEventDetails)?,
-      onDoubleTap: identical(onDoubleTap, $absent) ? this.onDoubleTap : onDoubleTap as void Function(ElEventDetails)?,
+      onTapDown: identical(onTapDown, $absent)
+          ? this.onTapDown
+          : onTapDown as void Function(ElEventDetails)?,
+      onTapUp: identical(onTapUp, $absent)
+          ? this.onTapUp
+          : onTapUp as void Function(ElEventDetails)?,
+      onTap: identical(onTap, $absent)
+          ? this.onTap
+          : onTap as void Function(ElEventDetails)?,
+      onDoubleTap: identical(onDoubleTap, $absent)
+          ? this.onDoubleTap
+          : onDoubleTap as void Function(ElEventDetails)?,
       onDoubleTapDown: identical(onDoubleTapDown, $absent)
           ? this.onDoubleTapDown
           : onDoubleTapDown as void Function(ElEventDetails)?,
-      onTripleTap: identical(onTripleTap, $absent) ? this.onTripleTap : onTripleTap as void Function(ElEventDetails)?,
+      onTripleTap: identical(onTripleTap, $absent)
+          ? this.onTripleTap
+          : onTripleTap as void Function(ElEventDetails)?,
       onTripleTapDown: identical(onTripleTapDown, $absent)
           ? this.onTripleTapDown
           : onTripleTapDown as void Function(ElEventDetails)?,
@@ -287,16 +323,30 @@ extension ElEventExt on ElEvent {
       onBackTapDown: identical(onBackTapDown, $absent)
           ? this.onBackTapDown
           : onBackTapDown as void Function(ElEventDetails)?,
-      onBackTapUp: identical(onBackTapUp, $absent) ? this.onBackTapUp : onBackTapUp as void Function(ElEventDetails)?,
-      onBackTap: identical(onBackTap, $absent) ? this.onBackTap : onBackTap as void Function(ElEventDetails)?,
-      onLongPress: identical(onLongPress, $absent) ? this.onLongPress : onLongPress as void Function(ElEventDetails)?,
-      onTapCancel: identical(onTapCancel, $absent) ? this.onTapCancel : onTapCancel as void Function(ElEventDetails)?,
-      onDragDown: identical(onDragDown, $absent) ? this.onDragDown : onDragDown as void Function(ElEventDetails)?,
-      onDragStart: identical(onDragStart, $absent) ? this.onDragStart : onDragStart as void Function(ElEventDetails)?,
+      onBackTapUp: identical(onBackTapUp, $absent)
+          ? this.onBackTapUp
+          : onBackTapUp as void Function(ElEventDetails)?,
+      onBackTap: identical(onBackTap, $absent)
+          ? this.onBackTap
+          : onBackTap as void Function(ElEventDetails)?,
+      onLongPress: identical(onLongPress, $absent)
+          ? this.onLongPress
+          : onLongPress as void Function(ElEventDetails)?,
+      onTapCancel: identical(onTapCancel, $absent)
+          ? this.onTapCancel
+          : onTapCancel as void Function(ElEventDetails)?,
+      onDragDown: identical(onDragDown, $absent)
+          ? this.onDragDown
+          : onDragDown as void Function(ElEventDetails)?,
+      onDragStart: identical(onDragStart, $absent)
+          ? this.onDragStart
+          : onDragStart as void Function(ElEventDetails)?,
       onDragUpdate: identical(onDragUpdate, $absent)
           ? this.onDragUpdate
           : onDragUpdate as void Function(ElEventDetails)?,
-      onDragEnd: identical(onDragEnd, $absent) ? this.onDragEnd : onDragEnd as void Function(ElEventDetails)?,
+      onDragEnd: identical(onDragEnd, $absent)
+          ? this.onDragEnd
+          : onDragEnd as void Function(ElEventDetails)?,
       onDragCancel: identical(onDragCancel, $absent)
           ? this.onDragCancel
           : onDragCancel as void Function(ElEventDetails)?,
@@ -330,27 +380,40 @@ extension ElEventExt on ElEvent {
       onScaleUpdate: identical(onScaleUpdate, $absent)
           ? this.onScaleUpdate
           : onScaleUpdate as void Function(ElEventDetails)?,
-      onScaleEnd: identical(onScaleEnd, $absent) ? this.onScaleEnd : onScaleEnd as void Function(ElEventDetails)?,
+      onScaleEnd: identical(onScaleEnd, $absent)
+          ? this.onScaleEnd
+          : onScaleEnd as void Function(ElEventDetails)?,
       onScaleCancel: identical(onScaleCancel, $absent)
           ? this.onScaleCancel
           : onScaleCancel as void Function(ElEventDetails)?,
       onRotationUpdate: identical(onRotationUpdate, $absent)
           ? this.onRotationUpdate
           : onRotationUpdate as void Function(ElEventDetails)?,
-      onKeyDown: identical(onKeyDown, $absent) ? this.onKeyDown : onKeyDown as void Function(ElEventDetails)?,
-      onKeyRepeat: identical(onKeyRepeat, $absent) ? this.onKeyRepeat : onKeyRepeat as void Function(ElEventDetails)?,
-      onKeyUp: identical(onKeyUp, $absent) ? this.onKeyUp : onKeyUp as void Function(ElEventDetails)?,
-      onFocus: identical(onFocus, $absent) ? this.onFocus : onFocus as void Function(ElEventDetails)?,
-      onBlur: identical(onBlur, $absent) ? this.onBlur : onBlur as void Function(ElEventDetails)?,
+      onKeyDown: identical(onKeyDown, $absent)
+          ? this.onKeyDown
+          : onKeyDown as void Function(ElEventDetails)?,
+      onKeyRepeat: identical(onKeyRepeat, $absent)
+          ? this.onKeyRepeat
+          : onKeyRepeat as void Function(ElEventDetails)?,
+      onKeyUp: identical(onKeyUp, $absent)
+          ? this.onKeyUp
+          : onKeyUp as void Function(ElEventDetails)?,
+      onFocus: identical(onFocus, $absent)
+          ? this.onFocus
+          : onFocus as void Function(ElEventDetails)?,
+      onBlur: identical(onBlur, $absent)
+          ? this.onBlur
+          : onBlur as void Function(ElEventDetails)?,
     );
   }
 
-  /// 合并声明；对方的可空字段为 null 时保留当前值。
   ElEvent merge([ElEvent? other]) {
     if (other == null) return this;
     return ElEvent(
       config: config == null ? other.config : config!.merge(other.config),
-      dragProxy: dragProxy == null ? other.dragProxy : dragProxy!.merge(other.dragProxy),
+      dragProxy: dragProxy == null
+          ? other.dragProxy
+          : dragProxy!.merge(other.dragProxy),
       behavior: other.behavior,
       cursor: other.cursor ?? cursor,
       disabled: other.disabled,
@@ -362,8 +425,10 @@ extension ElEventExt on ElEvent {
       onPointerMove: other.onPointerMove ?? onPointerMove,
       onPointerUp: other.onPointerUp ?? onPointerUp,
       onPointerCancel: other.onPointerCancel ?? onPointerCancel,
-      onPointerPanZoomStart: other.onPointerPanZoomStart ?? onPointerPanZoomStart,
-      onPointerPanZoomUpdate: other.onPointerPanZoomUpdate ?? onPointerPanZoomUpdate,
+      onPointerPanZoomStart:
+          other.onPointerPanZoomStart ?? onPointerPanZoomStart,
+      onPointerPanZoomUpdate:
+          other.onPointerPanZoomUpdate ?? onPointerPanZoomUpdate,
       onPointerPanZoomEnd: other.onPointerPanZoomEnd ?? onPointerPanZoomEnd,
       onPointerSignal: other.onPointerSignal ?? onPointerSignal,
       onTapDown: other.onTapDown ?? onTapDown,
@@ -396,10 +461,13 @@ extension ElEventExt on ElEvent {
       onVerticalDragUpdate: other.onVerticalDragUpdate ?? onVerticalDragUpdate,
       onVerticalDragEnd: other.onVerticalDragEnd ?? onVerticalDragEnd,
       onVerticalDragCancel: other.onVerticalDragCancel ?? onVerticalDragCancel,
-      onHorizontalDragStart: other.onHorizontalDragStart ?? onHorizontalDragStart,
-      onHorizontalDragUpdate: other.onHorizontalDragUpdate ?? onHorizontalDragUpdate,
+      onHorizontalDragStart:
+          other.onHorizontalDragStart ?? onHorizontalDragStart,
+      onHorizontalDragUpdate:
+          other.onHorizontalDragUpdate ?? onHorizontalDragUpdate,
       onHorizontalDragEnd: other.onHorizontalDragEnd ?? onHorizontalDragEnd,
-      onHorizontalDragCancel: other.onHorizontalDragCancel ?? onHorizontalDragCancel,
+      onHorizontalDragCancel:
+          other.onHorizontalDragCancel ?? onHorizontalDragCancel,
       onScaleStart: other.onScaleStart ?? onScaleStart,
       onScaleUpdate: other.onScaleUpdate ?? onScaleUpdate,
       onScaleEnd: other.onScaleEnd ?? onScaleEnd,

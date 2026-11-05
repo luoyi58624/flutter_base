@@ -436,8 +436,9 @@ void main() {
     expect(taps, 1);
     expect(button(tester), paintsExactlyCountTimes(#drawCircle, 1));
     for (var index = 0; index < 3; index++) {
+      await tester.pump(Duration(milliseconds: 100));
       await tester.sendKeyRepeatEvent(LogicalKeyboardKey.enter);
-      await tester.pump(Duration(milliseconds: 20));
+      await tester.pump();
       expect(taps, index + 2);
       expect(button(tester), paintsExactlyCountTimes(#drawCircle, index + 2));
     }

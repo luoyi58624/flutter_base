@@ -49,14 +49,48 @@ $declarations
     }
     return (
       succeeded: result.succeeded,
-      code: outputs.isEmpty
-          ? ''
-          : readerWriter.testing.readString(outputs.single),
+      code: outputs.isEmpty ? '' : readerWriter.testing.readString(outputs.single),
       logs: logs.join('\n'),
     );
   }
 
   group('模型生成边界', () {
+    test('私有命名形参使用真实存储字段生成复制、合并与相等性', () async {
+      final result = await generate(r'''
+@ElModelGenerator.copy()
+class PrivateConfig {
+  const PrivateConfig({this._interval});
+  final int? _interval;
+  int get interval => _interval ?? 100;
+  List<Object?> get props => _props;
+}
+''');
+      expect(result.succeeded, isTrue, reason: result.logs);
+      expect(parseString(content: result.code).errors, isEmpty);
+      expect(result.code, contains(r'Object? interval = $absent'));
+      expect(result.code, contains('this._interval'));
+      expect(result.code, contains('other._interval ?? _interval'));
+      expect(result.code, contains('[_interval]'));
+      expect(result.code, isNot(contains('Object? _interval')));
+      expect(result.code, isNot(contains('other.interval')));
+    });
+
+    test('私有命名形参的 JSON 键和重建参数使用公开名', () async {
+      final result = await generate(r'''
+@ElModelGenerator.all(generateProps: false)
+class PrivateJson {
+  const PrivateJson({this._value});
+  final int? _value;
+  int get value => _value ?? 10;
+}
+''');
+      expect(result.succeeded, isTrue, reason: result.logs);
+      expect(parseString(content: result.code).errors, isEmpty);
+      expect(result.code, contains('value:'));
+      expect(result.code, contains('"value": _value'));
+      expect(result.code, isNot(contains('"_value"')));
+    });
+
     test('jsonKey 和默认值中的引号、换行、反斜杠与插值字符正确转义', () async {
       final result = await generate(r'''
 @ElModelGenerator.all(generateProps: false)
