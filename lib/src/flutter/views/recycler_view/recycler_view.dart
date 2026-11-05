@@ -203,6 +203,7 @@ class _ScrollRequest {
 }
 
 class _RecyclerViewState extends State<RecyclerView> {
+  final _pointerScroll = _RecyclerPointerScroll();
   ScrollController? _internalScrollController;
   ScrollController get _scrollController => widget.controller ?? (_internalScrollController ??= ScrollController());
   late final _RecyclerObserver _observer = _RecyclerObserver(this);
@@ -215,6 +216,7 @@ class _RecyclerViewState extends State<RecyclerView> {
   bool _initialLayout = true;
   int _scrollGeneration = 0;
   bool _configurationScheduled = false;
+  bool _contextActive = true;
 
   _RecyclerConfiguration get _config => widget._configuration;
   Adapter? get _adapter => _appliedAdapter;
@@ -306,6 +308,7 @@ class _RecyclerViewState extends State<RecyclerView> {
   }
 
   void _didScroll() {
+    if (!_contextActive) return;
     if (!_scrollController.hasClients) return;
     final pixels = _scrollController.position.pixels;
     final delta = pixels - _lastPixels;
@@ -332,6 +335,8 @@ class _RecyclerViewState extends State<RecyclerView> {
   }
 
   bool _notification(ScrollNotification notification) {
+    // 退出树时仍需同步结束 Activity，但终态不能冒泡到已经停用的 Material 等祖先。
+    if (!_contextActive) return true;
     if (notification.depth != 0) return false;
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
@@ -423,6 +428,8 @@ class _RecyclerViewState extends State<RecyclerView> {
 
   @override
   Widget build(BuildContext context) {
+    final configuredSmoothScroll = ElViewProvider.smoothScrollOf(context);
+    final smoothScroll = configuredSmoothScroll is ElNoSmoothScroll ? null : configuredSmoothScroll;
     return Listener(
       onPointerDown: (_) => _cancelPositionRequest(),
       onPointerSignal: (_) => _cancelPositionRequest(),
@@ -432,12 +439,24 @@ class _RecyclerViewState extends State<RecyclerView> {
         child: Scrollable(
           controller: _scrollController,
           axisDirection: _axisDirection(context),
-          viewportBuilder: (context, offset) => _RecyclerViewport(
-            state: this,
-            offset: offset,
-            axisDirection: _axisDirection(context),
-            refreshRate: View.of(context).display.refreshRate,
-          ),
+          viewportBuilder: (context, offset) {
+            final direction = _axisDirection(context);
+            final configuration = ScrollConfiguration.of(context);
+            _pointerScroll.bind(offset as ScrollPosition, smoothScroll);
+            // 比本 Scrollable 更早仲裁滚轮，同时让真正嵌套的子列表保持优先权。
+            return Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (_) => _pointerScroll.reset(),
+              onPointerPanZoomStart: (_) => _pointerScroll.reset(),
+              onPointerSignal: (event) => _pointerScroll.handle(event, direction, configuration.pointerAxisModifiers),
+              child: _RecyclerViewport(
+                state: this,
+                offset: offset,
+                axisDirection: direction,
+                refreshRate: View.of(context).display.refreshRate,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -449,7 +468,24 @@ class _RecyclerViewState extends State<RecyclerView> {
   }
 
   @override
+  void deactivate() {
+    _contextActive = false;
+    _scrollState = RecyclerView.SCROLL_STATE_IDLE;
+    // 子 Scrollable 尚可保存位置，祖先终态通知则由本层截断。
+    _pointerScroll.suspend();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _contextActive = true;
+    _pointerScroll.resume();
+  }
+
+  @override
   void dispose() {
+    _pointerScroll.dispose();
     _appliedAdapter?.unregisterAdapterDataObserver(_observer);
     _appliedAdapter?.onDetachedFromRecyclerView(widget);
     _appliedManager?._state = null;

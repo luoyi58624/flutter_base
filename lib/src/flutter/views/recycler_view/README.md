@@ -138,7 +138,28 @@ class RowsAdapter extends rv.Adapter<RowHolder> {
 
 没有实现 `GridLayoutManager`、`StaggeredGridLayoutManager`、`ItemAnimator`、`ItemDecoration`、`DiffUtil`、`ListAdapter`、`ConcatAdapter`、Android View 系统或全部 Android 辅助能力，也没有给这些能力放置不生效的同名空壳。已经暴露的接口对照官方使用模式，不表示整个 AndroidX RecyclerView 库的 API 和运行行为已经全部实现。
 
-当前输入和惯性继续由 Flutter 的 `Scrollable` 驱动，物理从所在环境的 `ScrollConfiguration` 读取，程序 `fling` 也使用实际物理的最小和最大速度；这里实现的是视图回收和布局管线，没有把 Android `OverScroller`、HWUI、RenderThread 或 SurfaceFlinger 移植到 Dart，也没有修改 Flutter 引擎。
+当前触摸拖动和惯性继续由 Flutter 的 `Scrollable` 驱动，物理从所在环境的 `ScrollConfiguration` 读取，程序 `fling` 也使用实际物理的最小和最大速度；鼠标滚轮复用 El 的平滑执行器。这里实现的是视图回收和布局管线，没有把 Android `OverScroller`、HWUI、RenderThread 或 SurfaceFlinger 移植到 Dart，也没有修改 Flutter 引擎。
+
+## 鼠标平滑滚动
+
+RecyclerView 继承最近 `ElViewProvider` 的 `smoothScrollBuilder` 配置。Windows 桌面默认使用 `ElWindowsSmoothScroll`，Windows Web 默认使用 `ElChromiumSmoothScroll`；其他平台沿用 El 的默认直滚规则。现有控制器与滚动条继续关联同一个真实 ScrollPosition，无需更换调用方的 ScrollController。
+
+配置类型可从 `package:flutter_base/flutter_base.dart` 导入。
+
+```dart
+ElViewProvider(
+  smoothScrollBuilder: (_) => ElChromiumSmoothScroll(),
+  child: recyclerView,
+)
+```
+
+改为 `ElNoSmoothScroll()` 可显式关闭；与 El 一致，已开始的段沿用当前曲线，后续输入读取新配置。RecyclerView 只接入滚轮事件，目标累积、速度接续、连击加速、触控板直滚识别与活动续接均复用 `SmoothPointerScrollController`。鼠标事件保留原始设备类型和时间戳，按环境修饰键及实际轴方向处理横向、反向与 RTL。
+
+滚轮信号通过官方 PointerSignalResolver 仲裁，更深的子滚动容器保持优先。滚动活动仍运行在真实 ScrollPosition 上，触摸、滚动条拖拽和程序定位可以接管；位置换绑、暂时移出活动树及卸载会停止旧滚轮动画。每帧移动由原有视口布局响应，不触发 RecyclerView State 的逐帧重建。
+
+`pointer_scroll_test.dart` 使用真实 PointerScrollEvent 与模拟帧检查渐进、连击和反向目标、环境配置、触控板、Shift/reverse/RTL、嵌套边界、程序及拖拽接管、位置换绑、通知重入、GlobalKey 重挂与卸载清理。停用阶段在 RecyclerView 内截断滚动终态通知，避免 Material 等已停用祖先访问失效的绘制对象。
+
+本次无头回归共 102 项通过：RecyclerView 核心 78 项（含新增滚轮 23 项）、相关示例 24 项；静态分析无诊断。没有启动 Windows 前台应用或操作手机，模拟输入检查不等于实际设备手感测试。
 
 ## 稳定滚动与数据更新
 
