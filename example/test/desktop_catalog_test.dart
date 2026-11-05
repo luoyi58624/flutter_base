@@ -1,13 +1,18 @@
-import 'package:example/main.dart';
-import 'package:example/router.dart';
-import 'package:example/src/pages/components/basic/button/index.dart';
-import 'package:example/src/pages/components/catalog.dart';
-import 'package:example/src/pages/components/start/shadow/index.dart';
-import 'package:example/state.dart';
+// 测试沿用项目内部相对路径约定。
+// ignore_for_file: avoid_relative_lib_imports
+
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart' show ElBottomTabbar;
 import 'package:flutter_test/flutter_test.dart';
+
+import '../lib/main.dart';
+import '../lib/src/router/index.dart';
+import '../lib/src/utils/router.dart';
+import '../lib/src/pages/components/basic/button/index.dart';
+import '../lib/src/pages/components/catalog.dart';
+import '../lib/src/pages/components/start/shadow/index.dart';
+import '../lib/src/state/index.dart';
 
 Finder _navLabel(String label) => find.descendant(
   of: find.byType(ElNavMenu<WidgetBuilder>),
@@ -42,7 +47,8 @@ void main() {
     expect(RouterUtil.pages.every((page) => !page.group && page.children.isEmpty), isTrue);
     final paths = RouterUtil.desktopPages.map((page) => page.key);
     expect(paths.toSet().length, paths.length);
-    expect(paths, containsAll(['/components/button', '/components/shadow-design', '/examples/gestures']));
+    expect(paths, containsAll(['/components/button', '/components/shadow-design', '/examples']));
+    expect(paths, isNot(contains('/examples/gestures')));
     expect(paths, isNot(contains('/components/基础组件')));
     expect(RouterUtil.desktopMenus.map((menu) => menu.title), ['首页', '组件', '示例', '设置']);
     expect(RouterUtil.titleOf(Uri.parse('/components/button?source=test#example')), 'Button 按钮');

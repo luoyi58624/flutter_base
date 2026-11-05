@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:go_router/go_router.dart';
 
 import '../pages/components/catalog.dart';
@@ -10,6 +11,9 @@ import '../router/pages.dart';
 abstract final class RouterUtil {
   /// 移动端详情与两端配置共用的根导航键。
   static final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  /// 两端公共壳保持相同页面身份，调整宽度时不移除附着的命令式页面。
+  static const layoutPageKey = ValueKey('example-layout');
 
   /// 首页地址。
   static const home = '/home';
@@ -26,9 +30,6 @@ abstract final class RouterUtil {
   /// 组件目录中的叶子，分组只承担展示。
   static final pages = [for (final menu in componentCatalog) ..._leaves(menu)];
 
-  /// 现有示例菜单中的页面。
-  static final examplePages = navigationPages[2].children;
-
   /// 侧栏使用完整路径，菜单内容沿用原来的定义。
   static final desktopMenus = navigationPages.toFullPath(parentPath: '');
 
@@ -38,6 +39,12 @@ abstract final class RouterUtil {
   /// 按一级导航的统一声明构建页面，避免移动路由再次声明页面工厂。
   static Widget buildRootPage(BuildContext context, String path) =>
       buildPage(context, navigationPages.firstWhere((page) => '/${page.key}' == path));
+
+  /// 用原生 Navigator 打开独立示例，地址与一级导航仍停留在示例目录。
+  static Future<T?> push<T>(BuildContext context, WidgetBuilder builder) => Navigator.of(
+    context,
+    rootNavigator: true,
+  ).push<T>(MaterialPageRoute(builder: (context) => _IndependentExample(builder: builder)));
 
   /// 由同一份页面声明读取导航标题，查询参数和锚点不影响匹配。
   static String titleOf(Uri location) {
@@ -74,6 +81,18 @@ abstract final class RouterUtil {
     }
     return KeyedSubtree(key: ValueKey('example-page-$key'), child: child);
   }
+}
+
+class _IndependentExample extends StatelessWidget {
+  const _IndependentExample({required this.builder});
+
+  final WidgetBuilder builder;
+
+  @override
+  Widget build(BuildContext context) => ElComponentProvider(
+    components: MediaQuery.sizeOf(context).width <= ElBreakpoint.defaultSm ? el.mobileComponents : el.desktopComponents,
+    child: Builder(builder: builder),
+  );
 }
 
 Iterable<ElMenuModel<WidgetBuilder>> _leaves(ElMenuModel<WidgetBuilder> menu) sync* {

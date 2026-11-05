@@ -1,12 +1,12 @@
-import 'package:example/src/pages/components/basic/button/index.dart';
-import 'package:example/src/pages/view.dart';
-import 'package:example/src/pages/custom_gestures.dart';
-import 'package:example/src/pages/view/base.dart';
-import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../state/index.dart';
 import '../widgets/icons/settings_icons.dart';
+import 'components/basic/button/index.dart';
+import 'custom_gestures.dart';
+import 'view.dart';
+import 'view/base.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

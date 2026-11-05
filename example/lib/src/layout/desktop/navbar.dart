@@ -6,10 +6,13 @@ import '../navbar_menu.dart';
 /// 桌面页面共用的导航头，左侧标识和导航标题只作展示。
 class DesktopNavbar extends StatelessWidget implements PreferredSizeWidget {
   /// 创建桌面导航头，标题取自当前路由的页面声明。
-  const DesktopNavbar({super.key, required this.title});
+  const DesktopNavbar({super.key, required this.title, this.leading});
 
   /// 当前导航页面的标题。
   final String title;
+
+  /// 独立推入的页面可提供返回入口，公共壳中省略。
+  final Widget? leading;
 
   @override
   Size get preferredSize => Size.fromHeight(kToolbarHeight);
@@ -18,6 +21,7 @@ class DesktopNavbar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) => AppBar(
     key: ValueKey('desktop-navbar'),
     automaticallyImplyLeading: false,
+    leading: leading,
     centerTitle: false,
     elevation: 1,
     scrolledUnderElevation: 4,
@@ -25,7 +29,7 @@ class DesktopNavbar extends StatelessWidget implements PreferredSizeWidget {
     title: Row(
       spacing: 10,
       children: [
-        ElIcon(Icons.layers_outlined, color: context.elTheme.primary, size: 24, semanticLabel: 'El UI'),
+        ElIcon(Icons.layers_outlined, color: Theme.of(context).colorScheme.primary, size: 24, semanticLabel: 'El UI'),
         Expanded(child: Text(title, maxLines: 1, overflow: .ellipsis)),
       ],
     ),

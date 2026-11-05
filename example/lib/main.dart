@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart';
 
-import 'router.dart';
-import 'state.dart';
+import 'demo/test.dart';
+import 'src/router/index.dart';
+import 'src/state/index.dart';
 
 void main() {
   ElWidgetsFlutterBinding.ensureInitialized();
-  runApp(App());
+  runApp(DemoTestApp());
+  // runApp(App());
 }
 
 /// 根据可用宽度安装品牌预设和路由布局的示例应用。

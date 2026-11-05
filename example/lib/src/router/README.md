@@ -1,12 +1,16 @@
 # 示例导航与页面壳
 
-- `pages.dart` 只声明一级导航、页面工厂和现有示例入口；组件分组和叶子继续在 `pages/components/catalog.dart` 声明。
+- `pages.dart` 只声明综合展示、组件文档、高级示例和设置四个一级入口；组件文档的分组与深度路由继续在 `pages/components/catalog.dart` 声明。
 - `desktop.dart`、`mobile.dart` 只组装各自的导航结构，使用同一份声明和正文，不复制页面。
-- `index.dart` 持有唯一的路由实例与断点配置，`lib/router.dart` 是统一入口。
+- `src/router/index.dart` 持有唯一的路由实例与断点配置，应用直接导入这个文件。
 - `utils/router.dart` 管理路径、叶子遍历、路由生成、导航标题与页面构建。
 - `state/index.dart` 保存两端共用的主题和调试状态。
 
 新增导航页面时，在 `pages/` 建立独立文件，用 `ExamplePage` 包裹正文，再在 `pages.dart` 或组件目录登记标题、图标和工厂。正文只写一份；间距和列数由可用宽度调整。
+
+首页的综合展示拆在 `pages/showcase/`，先保留首屏和按钮两个分区。高级示例单独在 `pages/examples/catalog.dart` 声明，两端目录都使用移动端的 `ElListGroup` / `ElListTile`，通过 `RouterUtil.push` 调用原生 `Navigator.push`，不登记 `/examples/...` 路由。设置页继续两端共用。
+
+两端壳使用同一个根页面标识，切换断点时保留其上命令式推入的示例。独立示例复用 `ExamplePage`，自动提供本页的导航头和返回入口。
 
 桌面壳统一绘制 `layout/desktop/navbar.dart`，导航头横跨整个窗口，左侧 logo 与标题不响应点击，右侧使用公共 `NavbarMenu`；侧栏和正文位于头部下方。移动端由 `ExamplePage` 提供标题、返回按钮和同一组公共菜单，详情仍通过根导航器覆盖底栏。
 

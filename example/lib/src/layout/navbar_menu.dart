@@ -22,7 +22,16 @@ class NavbarMenu extends StatelessWidget {
           onPressed: () => GlobalState.isDark.value = !GlobalState.isDark.value,
         ),
       ),
-      IconButton(tooltip: '全局设置', icon: Icon(Icons.settings_outlined), onPressed: () => context.go(RouterUtil.setting)),
+      IconButton(
+        tooltip: '全局设置',
+        icon: Icon(Icons.settings_outlined),
+        onPressed: () {
+          final router = GoRouter.of(context);
+          // 独立示例不在路由表中，切换一级页面前先关闭这些页面。
+          Navigator.of(context, rootNavigator: true).popUntil((route) => route.settings is Page || route.isFirst);
+          router.go(RouterUtil.setting);
+        },
+      ),
     ],
   );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
+import '../page_scope.dart';
 import 'navbar.dart';
 import 'sidebar.dart';
 
@@ -18,18 +19,20 @@ class DesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ElComponentProvider(
     components: el.desktopComponents,
-    child: Scaffold(
-      appBar: DesktopNavbar(title: title),
-      body: ElView(
-        style: ElStyle(backgroundColor: context.elTheme.bgColor),
-        child: LayoutBuilder(
-          builder: (context, constraints) => Row(
-            crossAxisAlignment: .stretch,
-            children: [
-              // 退出中的旧壳也会收到窄屏约束，直接按本帧宽度收起侧栏。
-              if (constraints.maxWidth > ElBreakpoint.defaultSm) const DesktopSidebar(),
-              Expanded(child: child),
-            ],
+    child: DesktopPageScope(
+      child: Scaffold(
+        appBar: DesktopNavbar(title: title),
+        body: ElView(
+          style: ElStyle(backgroundColor: context.elTheme.bgColor),
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              crossAxisAlignment: .stretch,
+              children: [
+                // 退出中的旧壳也会收到窄屏约束，直接按本帧宽度收起侧栏。
+                if (constraints.maxWidth > ElBreakpoint.defaultSm) const DesktopSidebar(),
+                Expanded(child: child),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter_base/mobile.dart';
-import 'package:example/state.dart';
-
-import '../pages/index.dart';
-
 import 'package:flutter/material.dart' show MaterialApp, MaterialPageRoute, Scaffold, ScaffoldMessengerState, SnackBar;
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_base/mobile.dart';
 import 'package:path_drawing/path_drawing.dart';
+
+import '../pages/index.dart';
+import '../state/index.dart';
 
 part 'data.dart';
 part 'icon_paths.dart';

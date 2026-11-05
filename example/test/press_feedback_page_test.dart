@@ -1,12 +1,16 @@
+// 测试沿用项目内部相对路径约定。
+// ignore_for_file: avoid_relative_lib_imports
+
 import 'dart:ui' show PointerDeviceKind;
 
-import 'package:example/src/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../lib/src/pages/examples/press_feedback.dart';
+
 void main() {
-  testWidgets('首页切换实现后保留计数和卡片尺寸', (tester) async {
+  testWidgets('按压反馈页切换实现后保留计数和卡片尺寸', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetPhysicalSize);
@@ -14,7 +18,7 @@ void main() {
     await tester.pumpWidget(
       ElComponentProvider(
         components: el.mobileComponents,
-        child: MaterialApp(home: HomePage()),
+        child: MaterialApp(home: PressFeedbackPage()),
       ),
     );
     await tester.pumpAndSettle();
@@ -56,7 +60,7 @@ void main() {
     await tester.pumpWidget(
       ElComponentProvider(
         components: el.mobileComponents,
-        child: MaterialApp(home: HomePage()),
+        child: MaterialApp(home: PressFeedbackPage()),
       ),
     );
     await tester.pumpAndSettle();

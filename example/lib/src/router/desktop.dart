@@ -10,16 +10,13 @@ RoutingConfig get desktopRoute => RoutingConfig(
     ShellRoute(
       // 由本次配置创建导航键，避免旧壳退出时与再次进入的新壳共享 key。
       pageBuilder: (context, state, child) => NoTransitionPage(
+        key: RouterUtil.layoutPageKey,
         child: DesktopLayout(title: RouterUtil.titleOf(state.uri), child: child),
       ),
       routes: [
         GoRoute(
           path: RouterUtil.component,
           redirect: (context, state) => '${RouterUtil.component}/${RouterUtil.pages.first.key}',
-        ),
-        GoRoute(
-          path: RouterUtil.examples,
-          redirect: (context, state) => '${RouterUtil.examples}/${RouterUtil.examplePages.first.key}',
         ),
         ...RouterUtil.pageToRoute(
           RouterUtil.desktopPages,

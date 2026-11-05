@@ -9,7 +9,10 @@ RoutingConfig get mobileRoute => RoutingConfig(
   routes: [
     GoRoute(path: '/', redirect: (context, state) => RouterUtil.home),
     StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => MobileLayout(navigationShell: shell),
+      pageBuilder: (context, state, shell) => NoTransitionPage(
+        key: RouterUtil.layoutPageKey,
+        child: MobileLayout(navigationShell: shell),
+      ),
       branches: [
         StatefulShellBranch(
           routes: [
@@ -40,14 +43,6 @@ RoutingConfig get mobileRoute => RoutingConfig(
             GoRoute(
               path: RouterUtil.examples,
               builder: (context, state) => RouterUtil.buildRootPage(context, RouterUtil.examples),
-              routes: [
-                ...RouterUtil.pageToRoute(
-                  RouterUtil.examplePages,
-                  parentNavigatorKey: RouterUtil.rootNavigatorKey,
-                  builder: (context, state, page) =>
-                      ElComponentProvider(components: el.mobileComponents, child: RouterUtil.buildPage(context, page)),
-                ),
-              ],
             ),
           ],
         ),

@@ -1,11 +1,16 @@
-import 'package:example/main.dart';
-import 'package:example/router.dart';
-import 'package:example/src/mobile/app.dart';
-import 'package:example/state.dart';
+// 测试沿用项目内部相对路径约定。
+// ignore_for_file: avoid_relative_lib_imports
+
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_test/flutter_test.dart';
+
+import '../lib/main.dart';
+import '../lib/src/router/index.dart';
+import '../lib/src/utils/router.dart';
+import '../lib/src/mobile/app.dart';
+import '../lib/src/state/index.dart';
 
 void main() {
   testWidgets('首页 Material 图标按钮直接切换布尔暗黑状态', (tester) async {

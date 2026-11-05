@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../layout/navbar_menu.dart';
+import '../layout/desktop/navbar.dart';
+import '../layout/page_scope.dart';
 
 /// 示例页面共用的标题栏与内容区域。
 class ExamplePage extends StatelessWidget {
@@ -24,9 +26,14 @@ class ExamplePage extends StatelessWidget {
   Widget build(BuildContext context) {
     // 按应用视口切换导航；桌面侧栏压窄正文时仍沿用桌面公共头。
     final mobile = MediaQuery.sizeOf(context).width <= ElBreakpoint.defaultSm;
+    final ownNavbar = mobile || !DesktopPageScope.exists(context);
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: mobile ? AppBar(title: Text(title), actions: [...actions, NavbarMenu()]) : null,
+      appBar: mobile
+          ? AppBar(title: Text(title), actions: [...actions, NavbarMenu()])
+          : ownNavbar
+          ? DesktopNavbar(title: title, leading: Navigator.of(context).canPop() ? BackButton() : null)
+          : null,
       body: mobile || actions.isEmpty
           ? child
           : Column(
