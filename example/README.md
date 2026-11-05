@@ -4,6 +4,8 @@
 
 可用宽度不超过 640 逻辑像素时显示移动导航，更宽时显示桌面侧栏。地址与选中项同步，例如 `/components/button` 在两种布局中均定位 Button 页。移动端详情覆盖一级导航，返回后回到所属目录。设置和阴影工具的路由作用域安装其组件所需的完整移动预设。
 
+Android 系统字重由 example 自己管理：`main()` 在绑定初始化后调用 `AndroidSystemFontWeight.getWght()`，把非空结果作为 `wght` 轴注入根 `ElView`。ElView 子树与 `context.elMaterialThemeData` 生成的官方主题共用该值，局部字体轴仍可覆盖；非 Android 或插件未取得有效值时保留默认字体。首次加入此原生插件后需重新构建安装，热重载无法加载新增插件。
+
 ## Android 深度链接
 
 安装此 example 后，可以通过 `flutter-base://example` 加页面路径直接启动 App 并进入目标页。App 已经运行时，收到链接也会切换到目标页。Android 的入口配置位于 `android/app/src/main/AndroidManifest.xml`，页面路径由同一套 GoRouter 解析。
