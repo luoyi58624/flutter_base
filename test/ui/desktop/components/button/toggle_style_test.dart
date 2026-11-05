@@ -6,11 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 Widget _host(Widget child, Brightness brightness) => Directionality(
   textDirection: .ltr,
-  child: ElDesktopTheme(
+  child: ElView(
     themeMode: ElThemeMode(brightness: brightness),
-    child: ElView(
-      style: ElStyle(alignment: .center),
-      child: child,
+    child: ElComponentProvider(
+      components: el.desktopComponents,
+      child: ElView(
+        style: ElStyle(alignment: .center),
+        child: child,
+      ),
     ),
   ),
 );

@@ -15,22 +15,22 @@ Widget _host(Widget child, {bool compact = false}) {
     // 标准 Tab 行为由应用环境提供，品牌安装器只安装主题与组件。
     builder: (context, _) => Directionality(
       textDirection: TextDirection.ltr,
-      child: ElDesktopTheme(
-        compact: compact,
-        child: ElView(style: const ElStyle(width: 600), child: child),
+      child: ElComponentProvider(
+        components: el.desktopComponents,
+        child: ElView(
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+          child: ElView(style: const ElStyle(width: 600), child: child),
+        ),
       ),
     ),
   );
 }
 
 /// 显示文本的真实出口在编辑器控制器上，不在 Text widget 里
-String _displayed(WidgetTester tester) =>
-    tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!.text;
+String _displayed(WidgetTester tester) => tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!.text;
 
-Finder _editor(String semanticLabel) => find.byWidgetPredicate(
-  (widget) =>
-      widget is ElEditableView && widget.style.semanticLabel == semanticLabel,
-);
+Finder _editor(String semanticLabel) =>
+    find.byWidgetPredicate((widget) => widget is ElEditableView && widget.style.semanticLabel == semanticLabel);
 
 Future<void> _mouseTap(WidgetTester tester, Finder finder) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -48,15 +48,12 @@ Future<void> _tapIcon(WidgetTester tester, IconData icon) async {
 
 Finder _buttonFinder(IconData icon) => find
     .ancestor(
-      of: find.byWidgetPredicate(
-        (widget) => widget is ElIcon && widget.child == icon,
-      ),
+      of: find.byWidgetPredicate((widget) => widget is ElIcon && widget.child == icon),
       matching: find.byType(ElButtonView),
     )
     .first;
 
-ElButtonView _button(WidgetTester tester, IconData icon) =>
-    tester.widget<ElButtonView>(_buttonFinder(icon));
+ElButtonView _button(WidgetTester tester, IconData icon) => tester.widget<ElButtonView>(_buttonFinder(icon));
 
 List<SemanticsNode> _semanticsNodes(WidgetTester tester) {
   // ignore: deprecated_member_use
@@ -76,28 +73,21 @@ List<SemanticsNode> _semanticsNodes(WidgetTester tester) {
 }
 
 int _activeClientId(WidgetTester tester) {
-  final call = tester.testTextInput.log.lastWhere(
-    (entry) => entry.method == 'TextInput.setClient',
-  );
+  final call = tester.testTextInput.log.lastWhere((entry) => entry.method == 'TextInput.setClient');
   return (call.arguments as List<dynamic>).first as int;
 }
 
-Future<void> _sendTaggedAutofill(
-  WidgetTester tester,
-  String id,
-  TextEditingValue value,
-) async {
-  await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .handlePlatformMessage(
-        SystemChannels.textInput.name,
-        SystemChannels.textInput.codec.encodeMethodCall(
-          MethodCall('TextInputClient.updateEditingStateWithTag', [
-            _activeClientId(tester),
-            {id: value.toJSON()},
-          ]),
-        ),
-        (_) {},
-      );
+Future<void> _sendTaggedAutofill(WidgetTester tester, String id, TextEditingValue value) async {
+  await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+    SystemChannels.textInput.name,
+    SystemChannels.textInput.codec.encodeMethodCall(
+      MethodCall('TextInputClient.updateEditingStateWithTag', [
+        _activeClientId(tester),
+        {id: value.toJSON()},
+      ]),
+    ),
+    (_) {},
+  );
   await tester.pump();
 }
 
@@ -111,29 +101,13 @@ void main() {
         ),
       );
       await tester.pump();
+      expect(tester.getSize(find.byType(ElInputNumber)), Size(compact ? 120 : 150, compact ? 24 : 32));
+      expect(tester.getSize(_buttonFinder(ElIcons.plus)).height, compact ? 24 : 32);
       expect(
-        tester.getSize(find.byType(ElInputNumber)),
-        Size(compact ? 120 : 150, compact ? 24 : 32),
-      );
-      expect(
-        tester.getSize(_buttonFinder(ElIcons.plus)).height,
-        compact ? 24 : 32,
-      );
-      expect(
-        tester
-            .getSize(
-              find.byWidgetPredicate(
-                (widget) => widget is ElIcon && widget.child == ElIcons.plus,
-              ),
-            )
-            .width,
+        tester.getSize(find.byWidgetPredicate((widget) => widget is ElIcon && widget.child == ElIcons.plus)).width,
         compact ? 11 : 12,
       );
-      expect(
-        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-            ?.fontSize,
-        compact ? 13 : 14,
-      );
+      expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
     }
 
     await tester.pumpWidget(
@@ -147,11 +121,7 @@ void main() {
     );
     await tester.pump();
     expect(tester.getSize(find.byType(ElInputNumber)).width, 210);
-    expect(
-      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-          ?.fontSize,
-      18,
-    );
+    expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, 18);
   });
 
   group('ElInputNumber 值通道', () {
@@ -178,11 +148,7 @@ void main() {
         _host(
           ElForm(
             modelValue: model,
-            child: ElFormItem(
-              prop: 'count',
-              label: '数量',
-              child: ElInputNumber(),
-            ),
+            child: ElFormItem(prop: 'count', label: '数量', child: ElInputNumber()),
           ),
         ),
       );
@@ -199,11 +165,7 @@ void main() {
         _host(
           ElForm(
             modelValue: model,
-            child: ElFormItem(
-              prop: 'count',
-              label: '数量',
-              child: ElInputNumber(),
-            ),
+            child: ElFormItem(prop: 'count', label: '数量', child: ElInputNumber()),
           ),
         ),
       );
@@ -221,11 +183,7 @@ void main() {
 
       await _tapIcon(tester, ElIcons.plus);
       expect(obs.value, 10, reason: '到顶不再增长');
-      expect(
-        (_button(tester, ElIcons.plus).event?.disabled ?? false),
-        isTrue,
-        reason: '到顶应锁禁用，而非静默吞点击',
-      );
+      expect((_button(tester, ElIcons.plus).event?.disabled ?? false), isTrue, reason: '到顶应锁禁用，而非静默吞点击');
     });
 
     testWidgets('空值起步取 min', (tester) async {
@@ -238,9 +196,7 @@ void main() {
 
     testWidgets('小数 step 按 precision 收口', (tester) async {
       final obs = Obs<num?>(1);
-      await tester.pumpWidget(
-        _host(ElInputNumber(modelValue: obs, step: 0.1, precision: 1)),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, step: 0.1, precision: 1)));
 
       await _tapIcon(tester, ElIcons.plus);
       expect(obs.value, 1.1, reason: '不该出 1.1000000000000001');
@@ -249,9 +205,7 @@ void main() {
 
     testWidgets('stepStrictly 吸附到 step 整数倍', (tester) async {
       final obs = Obs<num?>(7);
-      await tester.pumpWidget(
-        _host(ElInputNumber(modelValue: obs, step: 5, stepStrictly: true)),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, step: 5, stepStrictly: true)));
 
       await _tapIcon(tester, ElIcons.plus);
       expect(obs.value, 10, reason: '7 + 5 = 12 → 吸附到最近的 5 的倍数');
@@ -259,9 +213,7 @@ void main() {
 
     testWidgets('disabled 时钮不响应', (tester) async {
       final obs = Obs<num?>(1);
-      await tester.pumpWidget(
-        _host(ElInputNumber(modelValue: obs, disabled: true)),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(modelValue: obs, disabled: true)));
 
       await _tapIcon(tester, ElIcons.plus);
       expect(obs.value, 1);
@@ -271,24 +223,13 @@ void main() {
       final obs = Obs<num?>(5);
       await tester.pumpWidget(_host(ElInputNumber(modelValue: obs)));
 
-      tester
-              .widget<ElEditableView>(find.byType(ElEditableView))
-              .controller!
-              .text =
-          '-';
+      tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!.text = '-';
       await tester.pump();
       expect(obs.value, 5, reason: "手输途中的 '-' 要保留当前值，不抛 FormatException");
     });
 
     testWidgets('controlsPosition.right 出上下两钮', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          ElInputNumber(
-            value: 1,
-            controlsPosition: ElInputNumberControls.right,
-          ),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(value: 1, controlsPosition: ElInputNumberControls.right)));
       expect(_buttonFinder(ElIcons.arrowUp), findsOneWidget);
       expect(_buttonFinder(ElIcons.arrowDown), findsOneWidget);
     });
@@ -300,9 +241,7 @@ void main() {
   });
 
   group('ElInputNumber draft 失焦收口', () {
-    testWidgets("真实 pointer blur 把 '-' 回退到模型值，保持同一 editor 与单 caret", (
-      tester,
-    ) async {
+    testWidgets("真实 pointer blur 把 '-' 回退到模型值，保持同一 editor 与单 caret", (tester) async {
       final value = Obs<num?>(5);
       final changes = <num?>[];
       final nextFocus = FocusNode(debugLabel: 'input-number-pointer-next');
@@ -312,16 +251,8 @@ void main() {
         _host(
           Column(
             children: [
-              ElInputNumber(
-                modelValue: value,
-                onChanged: changes.add,
-                semanticLabel: '数字',
-              ),
-              ElInput(
-                value: 'next',
-                focusNode: nextFocus,
-                semanticLabel: '下一个',
-              ),
+              ElInputNumber(modelValue: value, onChanged: changes.add, semanticLabel: '数字'),
+              ElInput(value: 'next', focusNode: nextFocus, semanticLabel: '下一个'),
             ],
           ),
         ),
@@ -334,10 +265,7 @@ void main() {
       expect(numberFocus.hasFocus, isTrue);
 
       tester.testTextInput.updateEditingValue(
-        const TextEditingValue(
-          text: '-',
-          selection: TextSelection.collapsed(offset: 1),
-        ),
+        const TextEditingValue(text: '-', selection: TextSelection.collapsed(offset: 1)),
       );
       await tester.pump();
       expect(controller.text, '-');
@@ -348,11 +276,7 @@ void main() {
       await tester.pump();
 
       final editorAfter = tester.widget<ElEditableView>(numberFinder);
-      expect(
-        identical(editorAfter.controller, controller),
-        isTrue,
-        reason: 'blur 只能收口同一 editable，不能换 controller',
-      );
+      expect(identical(editorAfter.controller, controller), isTrue, reason: 'blur 只能收口同一 editable，不能换 controller');
       expect(controller.text, '5');
       expect(controller.hasActiveImeComposition, isFalse);
       expect(controller.selections.single, isTrue);
@@ -373,30 +297,17 @@ void main() {
         _host(
           Column(
             children: [
-              ElInputNumber(
-                modelValue: value,
-                onChanged: changes.add,
-                semanticLabel: '数字',
-              ),
-              ElInput(
-                value: 'next',
-                focusNode: nextFocus,
-                semanticLabel: '下一个',
-              ),
+              ElInputNumber(modelValue: value, onChanged: changes.add, semanticLabel: '数字'),
+              ElInput(value: 'next', focusNode: nextFocus, semanticLabel: '下一个'),
             ],
           ),
         ),
       );
       final numberFinder = _editor('数字');
       await _mouseTap(tester, numberFinder);
-      final controller = tester
-          .widget<ElEditableView>(numberFinder)
-          .controller!;
+      final controller = tester.widget<ElEditableView>(numberFinder).controller!;
       tester.testTextInput.updateEditingValue(
-        const TextEditingValue(
-          text: '.',
-          selection: TextSelection.collapsed(offset: 1),
-        ),
+        const TextEditingValue(text: '.', selection: TextSelection.collapsed(offset: 1)),
       );
       await tester.pump();
 
@@ -411,9 +322,7 @@ void main() {
       expect(changes, isEmpty);
     });
 
-    testWidgets('活动 IME 的越界 draft 在 pointer blur 后钳制模型与正文且只 change 一次', (
-      tester,
-    ) async {
+    testWidgets('活动 IME 的越界 draft 在 pointer blur 后钳制模型与正文且只 change 一次', (tester) async {
       final value = Obs<num?>(5);
       final changes = <num?>[];
       final nextFocus = FocusNode(debugLabel: 'input-number-ime-next');
@@ -423,17 +332,8 @@ void main() {
         _host(
           Column(
             children: [
-              ElInputNumber(
-                modelValue: value,
-                max: 10,
-                onChanged: changes.add,
-                semanticLabel: '数字',
-              ),
-              ElInput(
-                value: 'next',
-                focusNode: nextFocus,
-                semanticLabel: '下一个',
-              ),
+              ElInputNumber(modelValue: value, max: 10, onChanged: changes.add, semanticLabel: '数字'),
+              ElInput(value: 'next', focusNode: nextFocus, semanticLabel: '下一个'),
             ],
           ),
         ),
@@ -472,54 +372,26 @@ void main() {
   });
 
   group('ElInputNumber 语义', () {
-    testWidgets('semanticLabel 只落在唯一 ElEditableView 文本框，步进按钮标签独立', (
-      tester,
-    ) async {
+    testWidgets('semanticLabel 只落在唯一 ElEditableView 文本框，步进按钮标签独立', (tester) async {
       final semantics = tester.ensureSemantics();
-      await tester.pumpWidget(
-        _host(
-          ElInputNumber(value: 12, semanticLabel: '数量', autofillHints: null),
-        ),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(value: 12, semanticLabel: '数量', autofillHints: null)));
 
       try {
-        final editable = tester.widget<ElEditableView>(
-          find.byType(ElEditableView),
-        );
+        final editable = tester.widget<ElEditableView>(find.byType(ElEditableView));
         expect(editable.style.semanticLabel, '数量');
-        expect(
-          editable.style.inputConfiguration?.autofillConfiguration.enabled,
-          isFalse,
-        );
+        expect(editable.style.inputConfiguration?.autofillConfiguration.enabled, isFalse);
 
         final nodes = _semanticsNodes(tester);
-        final textFields = nodes
-            .where(
-              (node) => node.getSemanticsData().flagsCollection.isTextField,
-            )
-            .toList();
+        final textFields = nodes.where((node) => node.getSemanticsData().flagsCollection.isTextField).toList();
         expect(textFields, hasLength(1), reason: '复合数字框只能暴露一个真实文本框节点');
         expect(textFields.single.label, '数量');
         expect(textFields.single.value, '12');
-        expect(
-          nodes.where((node) => node.label == '数量'),
-          hasLength(1),
-          reason: '外层不得再制造同名空壳语义节点',
-        );
+        expect(nodes.where((node) => node.label == '数量'), hasLength(1), reason: '外层不得再制造同名空壳语义节点');
 
-        final buttons = nodes
-            .where((node) => node.getSemanticsData().flagsCollection.isButton)
-            .toList();
+        final buttons = nodes.where((node) => node.getSemanticsData().flagsCollection.isButton).toList();
         expect(buttons, hasLength(2));
-        expect(
-          buttons.map((node) => node.label),
-          unorderedEquals(const ['减少', '增加']),
-        );
-        expect(
-          buttons.every((node) => !node.label.contains('数量')),
-          isTrue,
-          reason: '文本框标签不得串到加减按钮',
-        );
+        expect(buttons.map((node) => node.label), unorderedEquals(const ['减少', '增加']));
+        expect(buttons.every((node) => !node.label.contains('数量')), isTrue, reason: '文本框标签不得串到加减按钮');
       } finally {
         semantics.dispose();
       }
@@ -556,12 +428,7 @@ void main() {
                     ),
                   ),
                 ),
-                ElInputNumber(
-                  modelValue: value,
-                  max: 10,
-                  precision: 0,
-                  onChanged: changes.add,
-                ),
+                ElInputNumber(modelValue: value, max: 10, precision: 0, onChanged: changes.add),
               ],
             ),
           ),
@@ -569,26 +436,16 @@ void main() {
       );
       triggerFocus.requestFocus();
       await tester.pump();
-      final fields =
-          (tester.testTextInput.setClientArgs!['fields'] as List<dynamic>)
-              .cast<Map<dynamic, dynamic>>();
+      final fields = (tester.testTextInput.setClientArgs!['fields'] as List<dynamic>).cast<Map<dynamic, dynamic>>();
       final number = fields.singleWhere(
-        (field) =>
-            ((field['autofill'] as Map<dynamic, dynamic>)['hints']
-                    as List<dynamic>)
-                .isEmpty,
+        (field) => ((field['autofill'] as Map<dynamic, dynamic>)['hints'] as List<dynamic>).isEmpty,
       );
-      final numberId =
-          (number['autofill'] as Map<dynamic, dynamic>)['uniqueIdentifier']
-              as String;
+      final numberId = (number['autofill'] as Map<dynamic, dynamic>)['uniqueIdentifier'] as String;
 
       await _sendTaggedAutofill(
         tester,
         numberId,
-        const TextEditingValue(
-          text: '999',
-          selection: TextSelection.collapsed(offset: 3),
-        ),
+        const TextEditingValue(text: '999', selection: TextSelection.collapsed(offset: 3)),
       );
       await tester.pump();
 
@@ -599,13 +456,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is ElEditableView &&
-              widget
-                      .style
-                      .inputConfiguration
-                      ?.autofillConfiguration
-                      .autofillHints
-                      .isEmpty ==
-                  true,
+              widget.style.inputConfiguration?.autofillConfiguration.autofillHints.isEmpty == true,
         ),
       );
       expect(numberEditor.controller!.text, '10');
@@ -613,16 +464,10 @@ void main() {
 
     testWidgets('disabled 数字框仍暴露唯一禁用只读文本框语义', (tester) async {
       final semantics = tester.ensureSemantics();
-      await tester.pumpWidget(
-        _host(ElInputNumber(value: 12, disabled: true, semanticLabel: '禁用数量')),
-      );
+      await tester.pumpWidget(_host(ElInputNumber(value: 12, disabled: true, semanticLabel: '禁用数量')));
       try {
         final nodes = _semanticsNodes(tester);
-        final textFields = nodes
-            .where(
-              (node) => node.getSemanticsData().flagsCollection.isTextField,
-            )
-            .toList();
+        final textFields = nodes.where((node) => node.getSemanticsData().flagsCollection.isTextField).toList();
         expect(textFields, hasLength(1));
         final data = textFields.single.getSemanticsData();
         expect(data.label, '禁用数量');

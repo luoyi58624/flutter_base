@@ -8,10 +8,15 @@ Widget _host(Widget child) => MediaQuery(
   data: const MediaQueryData(size: Size(800, 600)),
   child: Directionality(
     textDirection: .ltr,
-    child: ElDesktopTheme(
-      child: ElView(
-        style: const ElStyle(width: 560, height: 420, alignment: .center),
-        child: ElView(style: const ElStyle(width: 280), child: child),
+    child: ElComponentProvider(
+      components: el.desktopComponents,
+      child: Overlay.wrap(
+        clipBehavior: Clip.none,
+        alwaysSizeToContent: true,
+        child: ElView(
+          style: const ElStyle(width: 560, height: 420, alignment: .center),
+          child: ElView(style: const ElStyle(width: 280), child: child),
+        ),
       ),
     ),
   ),
@@ -39,12 +44,9 @@ Future<void> _settleQuery(WidgetTester tester) async {
   await tester.pump();
 }
 
-Finder _option(int index) =>
-    find.byKey(ValueKey<(String, int)>(('el-autocomplete-option', index)));
+Finder _option(int index) => find.byKey(ValueKey<(String, int)>(('el-autocomplete-option', index)));
 
-Finder _text(String value) => find.byWidgetPredicate(
-  (widget) => widget is ElView && widget.child == value,
-);
+Finder _text(String value) => find.byWidgetPredicate((widget) => widget is ElView && widget.child == value);
 
 Widget _decoyPrefix(ElEditableController controller) => ElView(
   style: const ElStyle(width: 52, height: 24),
@@ -66,7 +68,7 @@ void main() {
             value: 'a',
             focusNode: focusNode,
             debounce: Duration.zero,
-            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
             fetchSuggestions: (_) => [ElLabelModel('Alpha', 'a')],
           ),
         ),
@@ -74,22 +76,13 @@ void main() {
       await _focus(tester, focusNode);
       await _settleQuery(tester);
       expect(tester.getSize(_option(0)).height, compact ? 32 : 36);
-      expect(
-        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-            ?.fontSize,
-        compact ? 13 : 14,
-      );
+      expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
     }
   });
 
   testWidgets('唯一后端：可编辑态只有一个 ElEditableView，禁用态不挂输入旁路', (tester) async {
     await tester.pumpWidget(
-      _host(
-        ElAutocomplete<String>(
-          value: '',
-          fetchSuggestions: (_) => [ElLabelModel('alpha', 'a')],
-        ),
-      ),
+      _host(ElAutocomplete<String>(value: '', fetchSuggestions: (_) => [ElLabelModel('alpha', 'a')])),
     );
 
     expect(find.byType(ElEditableView), findsOneWidget);
@@ -129,10 +122,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     expect(find.byType(ElEditableView), findsOneWidget);
     expect(requests, 0, reason: 'readOnly 可选择复制，但不得请求或选择候选');
-    expect(
-      find.byKey(const ValueKey<String>('el-autocomplete-panel')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey<String>('el-autocomplete-panel')), findsNothing);
   });
 
   testWidgets('受控 value：键入与选择各写回一次，item/header/footer 真实挂载', (tester) async {
@@ -150,14 +140,10 @@ void main() {
             focusNode: focusNode,
             debounce: Duration.zero,
             triggerOnFocus: false,
-            fetchSuggestions: (query) => [
-              ElLabelModel('$query-alpha', 'a'),
-              ElLabelModel('$query-beta', 'b'),
-            ],
+            fetchSuggestions: (query) => [ElLabelModel('$query-alpha', 'a'), ElLabelModel('$query-beta', 'b')],
             header: const ElView(child: '候选头'),
             footer: const ElView(child: '候选尾'),
-            itemBuilder: (context, item, active) =>
-                ElView(child: '${item.label}:${active ? 'active' : 'idle'}'),
+            itemBuilder: (context, item, active) => ElView(child: '${item.label}:${active ? 'active' : 'idle'}'),
             onChanged: (next) {
               changes.add(next);
               setState(() => value = next);
@@ -184,9 +170,7 @@ void main() {
     expect(changes, ['q', 'q-alpha']);
     expect(selected.map((item) => item.value), ['a']);
     expect(focusNode.hasFocus, isTrue);
-    final controller = tester
-        .widget<ElEditableView>(find.byType(ElEditableView))
-        .controller!;
+    final controller = tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!;
     expect(controller.selection.isCollapsed, isTrue);
     expect(controller.selection.extentOffset, 'q-alpha'.length);
   });
@@ -207,10 +191,7 @@ void main() {
           prefix: _decoyPrefix(decoy),
           debounce: Duration.zero,
           highlightFirst: true,
-          fetchSuggestions: (_) => [
-            ElLabelModel('alpha', 'a'),
-            ElLabelModel('beta', 'b'),
-          ],
+          fetchSuggestions: (_) => [ElLabelModel('alpha', 'a'), ElLabelModel('beta', 'b')],
         ),
       ),
     );
@@ -222,11 +203,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(model.value, 'beta');
-    expect(
-      decoy.text,
-      'decoy',
-      reason: '候选点击只能写 ElAutocomplete 主输入的稳定 control',
-    );
+    expect(decoy.text, 'decoy', reason: '候选点击只能写 ElAutocomplete 主输入的稳定 control');
   });
 
   testWidgets('prefix 中的 decoy Editable 不会截获 Enter 候选提交', (tester) async {
@@ -245,10 +222,7 @@ void main() {
           prefix: _decoyPrefix(decoy),
           debounce: Duration.zero,
           highlightFirst: true,
-          fetchSuggestions: (_) => [
-            ElLabelModel('alpha', 'a'),
-            ElLabelModel('beta', 'b'),
-          ],
+          fetchSuggestions: (_) => [ElLabelModel('alpha', 'a'), ElLabelModel('beta', 'b')],
         ),
       ),
     );
@@ -259,11 +233,7 @@ void main() {
     await tester.pump();
 
     expect(model.value, 'alpha');
-    expect(
-      decoy.text,
-      'decoy',
-      reason: '键盘提交不能依赖 Element DFS 的第一个 ElEditableView',
-    );
+    expect(decoy.text, 'decoy', reason: '键盘提交不能依赖 Element DFS 的第一个 ElEditableView');
   });
 
   testWidgets('modelValue 双向绑定：键入、候选提交与外部回灌均不重复通知', (tester) async {
@@ -299,19 +269,10 @@ void main() {
     model.value = 'external';
     await tester.pump();
     await tester.pump();
-    expect(
-      tester
-          .widget<ElEditableView>(find.byType(ElEditableView))
-          .controller!
-          .text,
-      'external',
-    );
+    expect(tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!.text, 'external');
     expect(changes, ['next', 'next-result', 'external']);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(
-      find.byKey(const ValueKey<String>('el-autocomplete-panel')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey<String>('el-autocomplete-panel')), findsNothing);
   });
 
   testWidgets('候选提交复用 Editable 事务：maxLength 字素截断只回写一次', (tester) async {
@@ -342,13 +303,9 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(model.value, 'A👍🏽');
-    expect(changes, [
-      'A👍🏽',
-    ], reason: '候选必须先经 Editable maxLength 策略，再向模型提交最终值一次');
+    expect(changes, ['A👍🏽'], reason: '候选必须先经 Editable maxLength 策略，再向模型提交最终值一次');
     expect(selected, ['accepted']);
-    final controller = tester
-        .widget<ElEditableView>(find.byType(ElEditableView))
-        .controller!;
+    final controller = tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!;
     expect(controller.lastChangeSet?.source, EditableEditSource.keyboard);
     expect(controller.undoDepth, 1);
     controller.undoEdit();
@@ -372,9 +329,7 @@ void main() {
           focusNode: focusNode,
           debounce: Duration.zero,
           highlightFirst: true,
-          inputFormatters: [
-            TextInputFormatter.withFunction((oldValue, newValue) => oldValue),
-          ],
+          inputFormatters: [TextInputFormatter.withFunction((oldValue, newValue) => oldValue)],
           fetchSuggestions: (_) => [ElLabelModel('blocked', 'blocked')],
           onChanged: changes.add,
           onSelected: (item) => selected.add(item.value),
@@ -390,15 +345,10 @@ void main() {
     expect(model.value, '');
     expect(changes, isEmpty);
     expect(selected, isEmpty);
-    expect(
-      find.byKey(const ValueKey<String>('el-autocomplete-panel')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey<String>('el-autocomplete-panel')), findsOneWidget);
   });
 
-  testWidgets('ElForm prop：输入值只经外层 String 通道写回并触发 change/blur 校验', (
-    tester,
-  ) async {
+  testWidgets('ElForm prop：输入值只经外层 String 通道写回并触发 change/blur 校验', (tester) async {
     final model = Obs<Map<String, dynamic>>({'name': ''});
     final focusNode = FocusNode();
     late ElFormState form;
@@ -421,9 +371,7 @@ void main() {
                   focusNode: focusNode,
                   debounce: Duration.zero,
                   triggerOnFocus: false,
-                  fetchSuggestions: (query) => [
-                    ElLabelModel('$query-user', 'u'),
-                  ],
+                  fetchSuggestions: (query) => [ElLabelModel('$query-user', 'u')],
                 ),
               );
             },

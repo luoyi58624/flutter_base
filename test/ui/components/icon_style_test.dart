@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
-import 'package:flutter_base/desktop.dart' show ElDesktopTheme, ElNavMenu;
+import 'package:flutter_base/desktop.dart' show ElDesktopExt, ElNavMenu;
 import 'package:flutter_base/src/flutter/components/icon/content.dart';
 import 'package:flutter_base/src/ui/mobile/cores/glyph.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +11,12 @@ void main() {
     home: IconTheme(
       data: IconThemeData(size: 90, color: Colors.green),
       child: desktop
-          ? ElDesktopTheme(
+          ? ElComponentProvider(
+              components: el.desktopComponents,
               child: Center(child: SizedBox(width: 300, child: child)),
             )
-          : ElMobileTheme(
+          : ElComponentProvider(
+              components: el.mobileComponents,
               child: Center(child: SizedBox(width: 300, child: child)),
             ),
     ),

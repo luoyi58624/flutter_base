@@ -39,18 +39,21 @@ void main() {
           child: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
-              return ElMobileTheme(
-                style: ElStyle(
-                  vars: {
-                    ElTokens.$cardPressColor: cardPress,
-                    ElTokens.$dividerColor: divider,
-                    ElTokens.$press: Colors.red,
-                    ElTokens.$borderColor: Colors.blue,
-                  },
-                ),
-                child: Align(
-                  alignment: .topLeft,
-                  child: SizedBox(width: 320, child: content),
+              return ElComponentProvider(
+                components: el.mobileComponents,
+                child: ElView(
+                  style: ElStyle(
+                    vars: {
+                      ElTokens.$cardPressColor: cardPress,
+                      ElTokens.$dividerColor: divider,
+                      ElTokens.$press: Colors.red,
+                      ElTokens.$borderColor: Colors.blue,
+                    },
+                  ),
+                  child: Align(
+                    alignment: .topLeft,
+                    child: SizedBox(width: 320, child: content),
+                  ),
                 ),
               );
             },
@@ -93,23 +96,26 @@ void main() {
       MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: true),
-          child: ElMobileTheme(
-            style: ElStyle(
-              vars: {
-                ElTokens.$cardPressColor: Colors.green,
-                ElTokens.$dividerColor: Colors.purple,
-                ElTokens.$press: Colors.red,
-                ElTokens.$borderColor: Colors.blue,
-              },
-            ),
-            child: Align(
-              alignment: .topLeft,
-              child: SizedBox(
-                width: 320,
-                child: ElListTile<int>.popup(
-                  title: Text('菜单'),
-                  value: 1,
-                  options: [ElLabelModel('第一项', 1), ElLabelModel('第二项', 2)],
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: ElView(
+              style: ElStyle(
+                vars: {
+                  ElTokens.$cardPressColor: Colors.green,
+                  ElTokens.$dividerColor: Colors.purple,
+                  ElTokens.$press: Colors.red,
+                  ElTokens.$borderColor: Colors.blue,
+                },
+              ),
+              child: Align(
+                alignment: .topLeft,
+                child: SizedBox(
+                  width: 320,
+                  child: ElListTile<int>.popup(
+                    title: Text('菜单'),
+                    value: 1,
+                    options: [ElLabelModel('第一项', 1), ElLabelModel('第二项', 2)],
+                  ),
                 ),
               ),
             ),

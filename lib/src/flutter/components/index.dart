@@ -2,8 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../dart.dart' show $absent, ElModelGenerator;
+import '../commons/theme/style.dart' show themeVarsOf;
 import '../utils/obs/index.dart' show Obs;
 import '../views/table/table.dart' show ElTableStyle;
+import '../views/view/style/style.dart' show ElStyle;
 import '../views/view/view.dart' show ElView;
 import '../widgets/form/index.dart';
 import 'alert/index.dart';
@@ -70,8 +72,9 @@ part 'index.g.dart';
 @ElModelGenerator.copy()
 @immutable
 class ElComponents with Equatable {
-  /// 创建组件实现配置，未传的项为 null，由外层配置补齐。
+  /// 创建完整预设或局部组件覆写。
   const ElComponents({
+    this.token,
     this.button,
     this.tag,
     this.buttonGroup,
@@ -107,6 +110,9 @@ class ElComponents with Equatable {
     this.tabBar,
     this.alert,
   });
+
+  /// Tokens for a complete preset. Only `vars`, including those in variants, take effect.
+  final ElStyle? token;
 
   /// 根据 ElButton 声明与选中模型构建品牌组件；普通按钮的模型不参与绘制。
   final Widget Function(BuildContext context, ElButton component, Obs<bool> model)? button;
@@ -213,17 +219,20 @@ class ElComponents with Equatable {
   /// 相等性与 hashCode 依据全部注入点。
   @override
   List<Object?> get props => _props;
+
+  /// 合并局部覆写，安装完整品牌时采用该品牌的整套配置。
+  ElComponents merge([ElComponents? other]) => other?.token != null ? other! : ElComponentsExt(this).merge(other);
 }
 
-/// 组件实现作用域：与祖先配置合并，只覆盖传入的非空项，其余实现沿用外层直至品牌默认。
-class ElComponentProvider extends ElView {
-  /// 创建组件实现作用域，例如只传 buttonBuilder 即可替换子树内的按钮。
-  const ElComponentProvider({super.key, required this.builders, required this.child});
+/// 在同一视图作用域内安装组件实现和主题变量。
+class ElComponentProvider extends StatelessWidget {
+  /// 创建组件和变量作用域，未提供的局部实现沿用祖先配置。
+  const ElComponentProvider({super.key, this.components, required this.child});
 
-  /// 本层覆写的组件实现。
-  final ElComponents builders;
+  /// 本层覆写的组件实现，省略时沿用祖先配置。
+  final ElComponents? components;
 
-  /// 应用覆写的子树。
+  /// 使用此作用域的子树。
   final Widget child;
 
   /// 读取合并后的组件配置，必须存在祖先组件提供器。
@@ -235,7 +244,7 @@ class ElComponentProvider extends ElView {
 
   /// 读取可选的组件配置，独立通用 Widget 可在未登记品牌时使用自身默认布局。
   static ElComponents? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_ComponentScope>()?.builders;
+      context.dependOnInheritedWidgetOfExactType<_ComponentScope>()?.components;
 
   /// 读取组件的实现，缺失时报出组件名，避免空断言难以定位。
   static F builderOf<F extends Function>(
@@ -251,19 +260,28 @@ class ElComponentProvider extends ElView {
   @override
   Widget build(BuildContext context) {
     final parent = maybeOf(context);
-    return _ComponentScope(builders: parent?.merge(builders) ?? builders, child: child);
+    final scope = _ComponentScope(components: parent?.merge(components) ?? components, child: child);
+    final token = components?.token;
+    if (token == null) return scope;
+
+    final vars = themeVarsOf(token);
+    assert(
+      token == (vars ?? const ElStyle()),
+      'ElComponents.token only supports vars in ElStyle and its variants. Other properties have no effect.',
+    );
+    return vars == null ? scope : ElView(style: vars, child: scope);
   }
 }
 
 /// 保存合并结果；弹层捕获时直接复刻最终配置，不再与新位置的祖先合并。
 class _ComponentScope extends InheritedTheme {
-  const _ComponentScope({required this.builders, required super.child});
+  const _ComponentScope({required this.components, required super.child});
 
-  final ElComponents builders;
-
-  @override
-  bool updateShouldNotify(_ComponentScope oldWidget) => builders != oldWidget.builders;
+  final ElComponents? components;
 
   @override
-  Widget wrap(BuildContext context, Widget child) => _ComponentScope(builders: builders, child: child);
+  bool updateShouldNotify(_ComponentScope oldWidget) => components != oldWidget.components;
+
+  @override
+  Widget wrap(BuildContext context, Widget child) => _ComponentScope(components: components, child: child);
 }

@@ -19,13 +19,16 @@ void main() {
       late ElThemeExt t;
       await tester.pumpWidget(
         MaterialApp(
-          home: ElMobileTheme(
-            brightness: mode == 'dark' ? Brightness.dark : Brightness.light,
-            child: Builder(
-              builder: (context) {
-                t = context.elTheme;
-                return SizedBox();
-              },
+          home: ElView(
+            themeMode: ElThemeMode(brightness: mode == 'dark' ? Brightness.dark : Brightness.light),
+            child: ElComponentProvider(
+              components: el.mobileComponents,
+              child: Builder(
+                builder: (context) {
+                  t = context.elTheme;
+                  return SizedBox();
+                },
+              ),
             ),
           ),
         ),
@@ -82,76 +85,60 @@ void main() {
   }
 
   test('默认字体未指定，变量表保持只读', () {
-    expect(ElMobileTheme.lightVars[ElTokens.$fontFamily], isEmpty);
-    expect(ElMobileTheme.lightVars[ElTokens.$fontFamilyFallback], isEmpty);
-    expect(() => ElMobileTheme.lightVars.clear(), throwsUnsupportedError);
-    expect(ElMobileTheme.darkVars.containsKey(ElTokens.$fontFamily), isFalse);
-    expect(ElMobileTheme.darkVars.containsKey(ElTokens.$fontWeight), isFalse);
+    expect(el.mobileComponents.token!.vars![ElTokens.$fontFamily], isEmpty);
+    expect(el.mobileComponents.token!.vars![ElTokens.$fontFamilyFallback], isEmpty);
+    expect(() => el.mobileComponents.token!.vars!.clear(), throwsUnsupportedError);
+    expect(el.mobileComponents.token!.onDark!.vars!.containsKey(ElTokens.$fontFamily), isFalse);
+    expect(el.mobileComponents.token!.onDark!.vars!.containsKey(ElTokens.$fontWeight), isFalse);
     expect(
-      () => (ElMobileTheme.lightVars[ElTokens.$fontFamilyFallback] as List<String>).clear(),
+      () => (el.mobileComponents.token!.vars![ElTokens.$fontFamilyFallback] as List<String>).clear(),
       throwsUnsupportedError,
     );
   });
 
-  testWidgets('暗色增量不遮蔽基础字体和字重覆写，Text 与 ElView 同步', (tester) async {
-    final textKey = GlobalKey(), viewKey = GlobalKey();
+  testWidgets('暗色差量保留基础字体和字重 token 的局部覆写', (tester) async {
     late ElThemeExt theme;
     await tester.pumpWidget(
       MaterialApp(
-        home: ElMobileTheme(
-          brightness: Brightness.dark,
-          style: ElStyle(
-            vars: {
-              ElTokens.$fontFamily: 'Arial',
-              ElTokens.$fontFamilyFallback: ['SimSun'],
-              ElTokens.$fontWeight: 500,
-              ElTokens.$fontWeightAction: 600,
-            },
-          ),
-          child: Builder(
-            builder: (context) {
-              theme = context.elTheme;
-              return Column(
-                children: [
-                  Text('暗色正文', key: textKey),
-                  ElView(key: viewKey, child: '暗色视图'),
-                ],
-              );
-            },
+        home: ElView(
+          themeMode: ElThemeMode(brightness: Brightness.dark),
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: ElView(
+              style: ElStyle(
+                vars: {
+                  ElTokens.$fontFamily: 'Arial',
+                  ElTokens.$fontFamilyFallback: ['SimSun'],
+                  ElTokens.$fontWeight: 500,
+                  ElTokens.$fontWeightAction: 600,
+                },
+              ),
+              child: Builder(
+                builder: (context) {
+                  theme = context.elTheme;
+                  return SizedBox();
+                },
+              ),
+            ),
           ),
         ),
       ),
     );
+    expect(theme.brightness, Brightness.dark);
     expect(theme.fontFamily, 'Arial');
     expect(theme.fontFamilyFallback, ['SimSun']);
     expect(theme.fontWeight, 500);
     expect(theme.fontWeightAction, 600);
-    final text = tester.renderObject<RenderParagraph>(
-      find.descendant(of: find.byKey(textKey), matching: find.byType(RichText)),
-    );
-    expect(text.text.style!.fontFamily, 'Arial');
-    expect(text.text.style!.fontFamilyFallback, ['SimSun']);
-    expect(text.text.style!.fontWeight, FontWeight.w500);
-    expect(text.text.style!.fontVariations, isNull);
-    final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
-    expect(view.committedResolvedStyle.inheritedText.fontFamily, 'Arial');
-    expect(view.committedResolvedStyle.inheritedText.fontWeight, FontWeight.w500);
-    expect(view.committedResolvedStyle.inheritedText.fontVariationSettings, isNull);
-    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ElMobileTheme 将默认和自定义字体同步给 Text 与 ElView，子级显式字体优先', (tester) async {
+  testWidgets('应用管理 Text 的排版，ElView 可独立设置并覆写字体', (tester) async {
     final textKey = GlobalKey(), viewKey = GlobalKey(), explicitKey = GlobalKey();
     String? ambientFamily;
     List<String>? ambientFallback;
+    double? ambientHeight;
     for (final data in [
       ElStyle(),
-      ElStyle(
-        vars: {
-          ElTokens.$fontFamily: 'Arial',
-          ElTokens.$fontFamilyFallback: ['SimSun'],
-        },
-      ),
+      ElStyle(fontFamily: 'Arial', fontFamilyFallback: ['SimSun'], lineHeight: 1.4),
     ]) {
       await tester.pumpWidget(
         MaterialApp(
@@ -160,19 +147,23 @@ void main() {
               final ambient = DefaultTextStyle.of(context).style;
               ambientFamily = ambient.fontFamily;
               ambientFallback = ambient.fontFamilyFallback;
-              return ElMobileTheme(
-                style: data,
-                child: Column(
-                  children: [
-                    Text('Text 默认', key: textKey),
-                    ElView(key: viewKey, child: 'ElView 默认'),
-                    ElView(
-                      key: explicitKey,
-                      style: ElStyle(fontFamily: 'Courier New'),
-                      child: '局部字体',
-                    ),
-                    Text('Text 局部', style: TextStyle(fontFamily: 'Courier New')),
-                  ],
+              ambientHeight = ambient.height;
+              return ElComponentProvider(
+                components: el.mobileComponents,
+                child: ElView(
+                  style: data,
+                  child: Column(
+                    children: [
+                      Text('Text 默认', key: textKey),
+                      ElView(key: viewKey, child: 'ElView 默认'),
+                      ElView(
+                        key: explicitKey,
+                        style: ElStyle(fontFamily: 'Courier New'),
+                        child: '局部字体',
+                      ),
+                      Text('Text 局部', style: TextStyle(fontFamily: 'Courier New')),
+                    ],
+                  ),
                 ),
               );
             },
@@ -183,12 +174,12 @@ void main() {
         find.descendant(of: find.byKey(textKey), matching: find.byType(RichText)),
       );
       final view = tester.renderObject<ElRenderView>(find.byKey(viewKey));
-      expect(text.text.style!.height, kTextHeightNone);
-      expect(text.text.style!.fontFamily, data.vars?[ElTokens.$fontFamily] ?? ambientFamily);
-      expect(text.text.style!.fontFamilyFallback, data.vars?[ElTokens.$fontFamilyFallback] ?? ambientFallback);
-      expect(view.committedResolvedStyle.inheritedText.lineHeight, kTextHeightNone);
-      expect(view.committedResolvedStyle.inheritedText.fontFamily, data.vars?[ElTokens.$fontFamily]);
-      expect(view.committedResolvedStyle.inheritedText.fontFamilyFallback, data.vars?[ElTokens.$fontFamilyFallback]);
+      expect(text.text.style!.height, ambientHeight);
+      expect(text.text.style!.fontFamily, ambientFamily);
+      expect(text.text.style!.fontFamilyFallback, ambientFallback);
+      expect(view.committedResolvedStyle.inheritedText.lineHeight, data.lineHeight ?? 1.2);
+      expect(view.committedResolvedStyle.inheritedText.fontFamily, data.fontFamily);
+      expect(view.committedResolvedStyle.inheritedText.fontFamilyFallback, data.fontFamilyFallback);
       expect(
         tester.renderObject<ElRenderView>(find.byKey(explicitKey)).committedResolvedStyle.inheritedText.fontFamily,
         'Courier New',
@@ -223,9 +214,12 @@ void main() {
       ],
     );
     Widget host() => MaterialApp(
-      home: ElMobileTheme(
-        style: ElStyle(vars: {ElTokens.$primary: color}),
-        child: child,
+      home: ElComponentProvider(
+        components: el.mobileComponents,
+        child: ElView(
+          style: ElStyle(vars: {ElTokens.$primary: color}),
+          child: child,
+        ),
       ),
     );
     await tester.pumpWidget(host());
@@ -244,39 +238,42 @@ void main() {
     double? radius;
     await tester.pumpWidget(
       MaterialApp(
-        home: ElMobileTheme(
-          brightness: Brightness.dark,
-          child: Column(
-            children: [
-              ElView(
-                style: ElStyle(
-                  vars: {ElTokens.$primary: Color(0xff123456), ElTokens.$radiusLg: 18},
-                  onDark: ElStyle(vars: {ElTokens.$primary: Color(0xff654321)}),
+        home: ElView(
+          themeMode: ElThemeMode(brightness: Brightness.dark),
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: Column(
+              children: [
+                ElView(
+                  style: ElStyle(
+                    vars: {ElTokens.$primary: Color(0xff123456), ElTokens.$radiusLg: 18},
+                    onDark: ElStyle(vars: {ElTokens.$primary: Color(0xff654321)}),
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      local = context.elTheme.primary;
+                      radius = ElView.of(context).getVar<num>(ElTokens.$radiusLg)?.toDouble();
+                      return ElCard(
+                        style: ElStyle(borderRadius: .circular(context.elTheme.radiusLg)),
+                        child: SizedBox(),
+                      );
+                    },
+                  ),
                 ),
-                child: Builder(
+                Builder(
                   builder: (context) {
-                    local = context.elTheme.primary;
-                    radius = ElView.of(context).getVar<num>(ElTokens.$radiusLg)?.toDouble();
-                    return ElCard(
-                      style: ElStyle(borderRadius: .circular(context.elTheme.radiusLg)),
-                      child: SizedBox(),
-                    );
+                    sibling = context.elTheme.primary;
+                    return SizedBox();
                   },
                 ),
-              ),
-              Builder(
-                builder: (context) {
-                  sibling = context.elTheme.primary;
-                  return SizedBox();
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
     expect(local, Color(0xff654321));
-    expect(sibling, ElMobileTheme.darkVars[ElTokens.$primary]);
+    expect(sibling, el.mobileComponents.token!.onDark!.vars![ElTokens.$primary]);
     expect(radius, 18);
   });
 }

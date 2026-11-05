@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/mobile.dart' show ElMobileTheme;
-import 'package:flutter_base/desktop.dart' show ElDesktopTheme;
+import 'package:flutter_base/mobile.dart' show ElMobileExt;
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -9,14 +9,17 @@ void main() {
     testWidgets('AppBar 在 ElScrollView 滚动后显示阴影，回到顶部恢复：$brightness', (tester) async {
       final controller = ScrollController();
       await tester.pumpWidget(
-        ElMobileTheme(
-          brightness: brightness,
-          child: Builder(
-            builder: (context) => MaterialApp(
-              theme: context.elMaterialThemeData,
-              home: Scaffold(
-                appBar: AppBar(title: Text('标题')),
-                body: ElScrollView(controller: controller, children: [SizedBox(height: 2000)]),
+        ElView(
+          themeMode: ElThemeMode(brightness: brightness),
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: Builder(
+              builder: (context) => MaterialApp(
+                theme: context.elMaterialThemeData,
+                home: Scaffold(
+                  appBar: AppBar(title: Text('标题')),
+                  body: ElScrollView(controller: controller, children: [SizedBox(height: 2000)]),
+                ),
               ),
             ),
           ),
@@ -67,26 +70,29 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElMobileTheme(
-              style: customized
-                  ? ElStyle(
-                      vars: {
-                        ElTokens.$fontFamily: '调用方字体',
-                        ElTokens.$fontFamilyFallback: ['调用方回退'],
-                        ElTokens.$fontWeightAction: 600,
-                        ElTokens.$fontWeightTitle: 800,
-                      },
-                      fontSize: fontSize,
-                      fontWeight: .w300,
-                      fontStyle: .italic,
-                      lineHeight: 1.5,
-                      letterSpacing: 1.25,
-                      wordSpacing: 2,
-                      fontFeatureSettings: [FontFeature.tabularFigures()],
-                      fontVariationSettings: [FontVariation('wght', 350)],
-                    )
-                  : null,
-              child: ElView(child: reader),
+            return ElComponentProvider(
+              components: el.mobileComponents,
+              child: ElView(
+                style: customized
+                    ? ElStyle(
+                        vars: {
+                          ElTokens.$fontFamily: '调用方字体',
+                          ElTokens.$fontFamilyFallback: ['调用方回退'],
+                          ElTokens.$fontWeightAction: 600,
+                          ElTokens.$fontWeightTitle: 800,
+                        },
+                        fontSize: fontSize,
+                        fontWeight: .w300,
+                        fontStyle: .italic,
+                        lineHeight: 1.5,
+                        letterSpacing: 1.25,
+                        wordSpacing: 2,
+                        fontFeatureSettings: [FontFeature.tabularFigures()],
+                        fontVariationSettings: [FontVariation('wght', 350)],
+                      )
+                    : null,
+                child: ElView(child: reader),
+              ),
             );
           },
         ),
@@ -151,20 +157,25 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElMobileTheme(
-              brightness: .light,
-              style: ElStyle(
-                vars: {ElTokens.$fontWeightAction: 600},
-                fontFamily: '浅色字体',
-                fontSize: 16,
-                onDark: ElStyle(
-                  vars: {ElTokens.$fontWeightAction: 800},
-                  fontFamily: '暗色字体',
-                  fontSize: darkSize,
-                  fontWeight: .w700,
+            return ElView(
+              themeMode: ElThemeMode(brightness: .light),
+              child: ElComponentProvider(
+                components: el.mobileComponents,
+                child: ElView(
+                  style: ElStyle(
+                    vars: {ElTokens.$fontWeightAction: 600},
+                    fontFamily: '浅色字体',
+                    fontSize: 16,
+                    onDark: ElStyle(
+                      vars: {ElTokens.$fontWeightAction: 800},
+                      fontFamily: '暗色字体',
+                      fontSize: darkSize,
+                      fontWeight: .w700,
+                    ),
+                  ),
+                  child: ElView(child: reader),
                 ),
               ),
-              child: ElView(child: reader),
             );
           },
         ),
@@ -202,10 +213,13 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: mobile
-                ? ElMobileTheme(brightness: brightness, child: child)
-                : ElDesktopTheme(
+                ? ElView(
                     themeMode: ElThemeMode(brightness: brightness),
-                    child: child,
+                    child: ElComponentProvider(components: el.mobileComponents, child: child),
+                  )
+                : ElView(
+                    themeMode: ElThemeMode(brightness: brightness),
+                    child: ElComponentProvider(components: el.desktopComponents, child: child),
                   ),
           ),
         );
@@ -234,19 +248,22 @@ void main() {
     late ThemeData light, dark;
     await tester.pumpWidget(
       MaterialApp(
-        home: ElMobileTheme(
-          brightness: .light,
-          child: ElView(
-            style: ElStyle(
-              vars: {ElTokens.$primary: Colors.purple},
-              onDark: ElStyle(vars: {ElTokens.$primary: Colors.green}),
-            ),
-            child: Builder(
-              builder: (context) {
-                light = context.elMaterialTheme(.light);
-                dark = context.elMaterialTheme(.dark);
-                return SizedBox();
-              },
+        home: ElView(
+          themeMode: ElThemeMode(brightness: .light),
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: ElView(
+              style: ElStyle(
+                vars: {ElTokens.$primary: Colors.purple},
+                onDark: ElStyle(vars: {ElTokens.$primary: Colors.green}),
+              ),
+              child: Builder(
+                builder: (context) {
+                  light = context.elMaterialTheme(.light);
+                  dark = context.elMaterialTheme(.dark);
+                  return SizedBox();
+                },
+              ),
             ),
           ),
         ),
@@ -254,8 +271,8 @@ void main() {
     );
     expect(light.colorScheme.primary, Colors.purple);
     expect(dark.colorScheme.primary, Colors.green);
-    expect(light.cardTheme.color, ElMobileTheme.lightVars[ElTokens.$cardColor]);
-    expect(dark.cardTheme.color, ElMobileTheme.darkVars[ElTokens.$cardColor]);
+    expect(light.cardTheme.color, el.mobileComponents.token!.vars![ElTokens.$cardColor]);
+    expect(dark.cardTheme.color, el.mobileComponents.token!.onDark!.vars![ElTokens.$cardColor]);
     expect(light.navigationBarTheme.indicatorColor, isNot(dark.navigationBarTheme.indicatorColor));
   });
 
@@ -277,10 +294,15 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElMobileTheme(
-              brightness: .light,
-              style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: darkColor})),
-              child: visible ? reader : SizedBox(),
+            return ElView(
+              themeMode: ElThemeMode(brightness: .light),
+              child: ElComponentProvider(
+                components: el.mobileComponents,
+                child: ElView(
+                  style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: darkColor})),
+                  child: visible ? reader : SizedBox(),
+                ),
+              ),
             );
           },
         ),
@@ -308,24 +330,29 @@ void main() {
     late ThemeData current, opposite;
     await tester.pumpWidget(
       MaterialApp(
-        home: ElMobileTheme(
-          brightness: .light,
-          style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: Colors.orange})),
-          child: ElView(
-            themeMode: ElThemeMode(brightness: .dark),
-            style: ElStyle(onDark: ElStyle(vars: {ElTokens.$cardColor: Colors.pink})),
-            child: ElPortal(
-              controller: portal,
-              overlayBuilder: (context) => ElView(
-                child: Builder(
-                  builder: (context) {
-                    current = context.elMaterialThemeData;
-                    opposite = context.elMaterialTheme(.light);
-                    return SizedBox(width: 40, height: 40);
-                  },
+        home: ElView(
+          themeMode: ElThemeMode(brightness: .light),
+          child: ElComponentProvider(
+            components: el.mobileComponents,
+            child: ElView(
+              style: ElStyle(onDark: ElStyle(vars: {ElTokens.$primary: Colors.orange})),
+              child: ElView(
+                themeMode: ElThemeMode(brightness: .dark),
+                style: ElStyle(onDark: ElStyle(vars: {ElTokens.$cardColor: Colors.pink})),
+                child: ElPortal(
+                  controller: portal,
+                  overlayBuilder: (context) => ElView(
+                    child: Builder(
+                      builder: (context) {
+                        current = context.elMaterialThemeData;
+                        opposite = context.elMaterialTheme(.light);
+                        return SizedBox(width: 40, height: 40);
+                      },
+                    ),
+                  ),
+                  child: SizedBox(width: 80, height: 30),
                 ),
               ),
-              child: SizedBox(width: 80, height: 30),
             ),
           ),
         ),
@@ -336,7 +363,7 @@ void main() {
     expect(current.brightness, Brightness.dark);
     expect(current.cardTheme.color, Colors.pink);
     expect(opposite.brightness, Brightness.light);
-    expect(opposite.cardTheme.color, ElMobileTheme.lightVars[ElTokens.$cardColor]);
+    expect(opposite.cardTheme.color, el.mobileComponents.token!.vars![ElTokens.$cardColor]);
     portal.close();
     await tester.pumpAndSettle();
     await tester.pumpWidget(SizedBox());
@@ -379,7 +406,10 @@ void main() {
       StatefulBuilder(
         builder: (context, setState) {
           update = setState;
-          return ElMobileTheme(brightness: brightness, child: app);
+          return ElView(
+            themeMode: ElThemeMode(brightness: brightness),
+            child: ElComponentProvider(components: el.mobileComponents, child: app),
+          );
         },
       ),
     );
@@ -388,7 +418,7 @@ void main() {
     update(() => brightness = Brightness.dark);
     await tester.pumpAndSettle();
     expect(captured.brightness, Brightness.dark);
-    expect(captured.scaffoldBackgroundColor, ElMobileTheme.darkVars[ElTokens.$bgColor]);
+    expect(captured.scaffoldBackgroundColor, el.mobileComponents.token!.onDark!.vars![ElTokens.$bgColor]);
     final material = tester.widget<Material>(
       find.descendant(of: find.byType(Scaffold), matching: find.byType(Material)).first,
     );
@@ -415,7 +445,8 @@ void main() {
         home: StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElMobileTheme(
+            return ElComponentProvider(
+              components: el.mobileComponents,
               child: Row(
                 children: [
                   ElView(

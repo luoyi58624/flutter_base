@@ -91,7 +91,7 @@ const _darkValues = <Object, Object>{
 
 final Map<Object, Object> _lightVars = Map.unmodifiable({
   ..._lightValues,
-  ElDesktopTheme.$compact: false,
+  ElementPlusThemeData.$compact: false,
   for (final entry in _shadowLevelsLight.entries)
     switch (entry.key) {
       ElLevelType.xs => ElTokens.$shadowXs,

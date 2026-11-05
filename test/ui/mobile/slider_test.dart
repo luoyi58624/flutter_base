@@ -6,7 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _host(WidgetTester tester, Widget slider) async => tester.pumpWidget(
   MaterialApp(
-    home: ElMobileTheme(
+    home: ElComponentProvider(
+      components: el.mobileComponents,
       child: Align(
         alignment: .topLeft,
         child: SizedBox(width: 300, child: slider),

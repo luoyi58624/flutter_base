@@ -7,10 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 虚拟化 / 命中 / 排序 / 选择 / 展开全在 el_ui，这里只锁皮肤本身与它的登记通道。
 void main() {
   /// 在品牌 App 内解析预设；`vars` 用来换尺寸档或覆写表格 token。
-  Future<
-    ({ElTableStyle style, Color primary, Color borderColor, Color currentRow})
-  >
-  resolve(
+  Future<({ElTableStyle style, Color primary, Color borderColor, Color currentRow})> resolve(
     WidgetTester tester, {
     Brightness brightness = .light,
     bool compact = false,
@@ -22,42 +19,36 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: .ltr,
-        child: ElDesktopTheme(
+        child: ElView(
           themeMode: ElThemeMode(brightness: brightness),
-          compact: compact,
-          child: ElView(
-            style: ElStyle(),
-            child: Builder(
-              builder: (context) {
-                primary = context.elTheme.primary;
-                borderColor = context.elTheme.borderColorLighter;
-                currentRow = primary.elLight9(context);
-                style = ElementPlusThemeData.tableStyleBuilder(context);
-                return const ElView();
-              },
+          child: ElComponentProvider(
+            components: el.desktopComponents,
+            child: ElView(
+              style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+              child: ElView(
+                style: ElStyle(),
+                child: Builder(
+                  builder: (context) {
+                    primary = context.elTheme.primary;
+                    borderColor = context.elTheme.borderColorLighter;
+                    currentRow = primary.elLight9(context);
+                    style = ElementPlusThemeData.tableStyleBuilder(context);
+                    return const ElView();
+                  },
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
-    return (
-      style: style,
-      primary: primary,
-      borderColor: borderColor,
-      currentRow: currentRow,
-    );
+    return (style: style, primary: primary, borderColor: borderColor, currentRow: currentRow);
   }
 
   test('EP 的表格通道只有一处：全局预设登记一份返回 ElTableStyle 的工厂', () {
-    expect(
-      const ElementPlusThemeData().tableStyle,
-      ElementPlusThemeData.tableStyleBuilder,
-    );
+    expect(const ElementPlusThemeData().tableStyle, ElementPlusThemeData.tableStyleBuilder);
     // 表格的定制通道是样式工厂，不是 Widget builder：上层不接管任何表格实现。
-    expect(
-      const ElementPlusThemeData().tableStyle,
-      isA<ElTableStyle Function(BuildContext)>(),
-    );
+    expect(const ElementPlusThemeData().tableStyle, isA<ElTableStyle Function(BuildContext)>());
     // 同名冲突已消失：下面四个名字在只 import element_plus 时唯一解析到 el_ui 内核。
     expect(ElTable, isNotNull);
     expect(ElTableStyle, isNotNull);

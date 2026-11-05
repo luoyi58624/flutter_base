@@ -26,11 +26,14 @@ Widget shell(
 }) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(size: Size(viewport, 900), disableAnimations: reduced, platformBrightness: brightness),
-    child: ElMobileTheme(
-      style: theme,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(width: 320, child: child),
+    child: ElComponentProvider(
+      components: el.mobileComponents,
+      child: ElView(
+        style: theme,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 320, child: child),
+        ),
       ),
     ),
   ),
@@ -57,7 +60,7 @@ class ProbeState extends State<StateProbe> {
 
 void main() {
   test('明暗默认变量保留原配色、阴影精度与只读集合', () {
-    final light = ElMobileTheme.lightVars, dark = ElMobileTheme.darkVars;
+    final light = el.mobileComponents.token!.vars!, dark = el.mobileComponents.token!.onDark!.vars!;
     // 移动端语义色以设计稿为准（#1076FD）；Web 原型 --primary 仍是 #2454c6，两者不再逐值对齐。
     expect(light[ElTokens.$primary], Color(0xff1076fd));
     expect(light[ElTokens.$bgColor], Color(0xffeeeeee));
@@ -702,7 +705,7 @@ void main() {
   });
 
   testWidgets('Tag五色遵守CSS混色，disabled不回调', (tester) async {
-    final theme = ElMobileTheme.lightVars;
+    final theme = el.mobileComponents.token!.vars!;
     final accents = [
       (theme[ElTokens.$primary] as Color),
       (theme[ElTokens.$success] as Color),
@@ -851,9 +854,12 @@ void main() {
             update = setState;
             return Column(
               children: [
-                ElMobileTheme(
-                  style: ElStyle(vars: {ElTokens.$primary: color}),
-                  child: skin.Button(key: nested, child: '局部'),
+                ElComponentProvider(
+                  components: el.mobileComponents,
+                  child: ElView(
+                    style: ElStyle(vars: {ElTokens.$primary: color}),
+                    child: skin.Button(key: nested, child: '局部'),
+                  ),
                 ),
                 skin.Button(key: sibling, child: '默认'),
               ],

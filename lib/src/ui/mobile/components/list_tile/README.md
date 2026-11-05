@@ -1,6 +1,6 @@
 # ListTile
 
-移动列表沿用原有的简单结构，由 `ElMobileTheme` 安装内部 `listTile` 与 `listTileGroup`，用户调用 ElListTile / ElListGroup。
+移动列表沿用原有的简单结构，由 `el.mobileComponents` 注册内部 `listTile` 与 `listTileGroup`，用户调用 ElListTile / ElListGroup。
 
 - 行：ElView / Row，标题区 Expanded，上下 padding 16；无前侧内容时留 16，有内容时占 56。
 - 组：RepaintBoundary / ElView / Column，卡片圆角 16、硬裁剪；标题在卡片外。

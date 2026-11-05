@@ -19,7 +19,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: data,
+          components: data,
           child: Builder(
             builder: (context) {
               expect(ElComponentProvider.of(context), data);
@@ -46,7 +46,7 @@ void main() {
     final button = ElButton();
     Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponents(button: builder),
+        components: ElComponents(button: builder),
         child: button,
       ),
     );
@@ -64,7 +64,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponents(button: _a),
+          components: ElComponents(button: _a),
           child: Builder(
             builder: (context) {
               source = context;
@@ -78,7 +78,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponents(button: _b),
+          components: ElComponents(button: _b),
           child: captured.wrap(
             Builder(
               builder: (context) {
@@ -107,9 +107,9 @@ void main() {
       tester.takeException(),
       isA<AssertionError>().having((e) => e.message, 'message', contains('ElComponentProvider')),
     );
-    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponents(), child: ElView())));
+    await tester.pumpWidget(_host(ElComponentProvider(components: ElComponents(), child: ElView())));
     expect(tester.takeException(), isNull);
-    await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponents(), child: ElButton())));
+    await tester.pumpWidget(_host(ElComponentProvider(components: ElComponents(), child: ElButton())));
     expect(tester.takeException(), isA<FlutterError>().having((e) => e.message, 'message', contains('ElButton')));
   });
 
@@ -119,9 +119,9 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElComponentProvider(
-            builders: parent,
+            components: parent,
             child: ElComponentProvider(
-              builders: data,
+              components: data,
               child: Builder(
                 builder: (context) {
                   expect(ElComponentProvider.of(context).button, expected);
@@ -143,13 +143,13 @@ void main() {
         Row(
           children: [
             ElComponentProvider(
-              builders: ElComponents(button: _a),
+              components: ElComponents(button: _a),
               child: ElButton(),
             ),
             ElComponentProvider(
-              builders: ElComponents(button: _a),
+              components: ElComponents(button: _a),
               child: ElComponentProvider(
-                builders: ElComponents(button: _b),
+                components: ElComponents(button: _b),
                 child: Builder(
                   builder: (context) {
                     resolved = ElComponentProvider.of(context).button;
@@ -177,7 +177,7 @@ void main() {
     final button = ElButton(key: GlobalKey(), child: '原始声明');
     Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponents(button: builder),
+        components: ElComponents(button: builder),
         child: button,
       ),
     );
@@ -196,7 +196,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponents(
+          components: ElComponents(
             button: (context, component, model) {
               received = component;
               return _a(context, component, model);
@@ -221,11 +221,11 @@ void main() {
     );
     Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponents(button: _a),
+        components: ElComponents(button: _a),
         child: ElTestOverlay(
           child: ElTestPortal(
             child: ElComponentProvider(
-              builders: ElComponents(button: builder),
+              components: ElComponents(button: builder),
               child: sourceWidget,
             ),
           ),
@@ -287,7 +287,7 @@ void main() {
     );
     Widget tree(Widget Function(BuildContext, ElButton, Obs<bool>) builder) => _host(
       ElComponentProvider(
-        builders: ElComponents(button: builder),
+        components: ElComponents(button: builder),
         child: content,
       ),
     );

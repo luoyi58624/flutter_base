@@ -1,4 +1,4 @@
-/// 移动端公共入口：通用组件接口、ElMobileTheme 与移动端独立组件。
+/// 移动端公共入口，提供通用接口和移动品牌预设。
 library;
 
 export 'flutter_base.dart';

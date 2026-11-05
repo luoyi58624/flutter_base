@@ -234,7 +234,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: ElComponentProvider(
-          builders: ElComponents(alert: capture, progress: capture),
+          components: ElComponents(alert: capture, progress: capture),
           child: Column(children: [alert, progress]),
         ),
       ),

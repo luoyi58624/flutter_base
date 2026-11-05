@@ -12,7 +12,6 @@ import '../../../../flutter/views/view/style/style.dart'
     show ElBorder, ElStyle, ElStyleExt, ElTransform, ElTransition, ElTransitionField;
 import '../../cores/common.dart';
 import '../../cores/glyph.dart';
-import '../../cores/theme.dart';
 import '../loading/index.dart';
 
 /// 以移动端按钮外观实现通用按钮声明，切换按钮的选中态读写公共模型。
@@ -86,9 +85,7 @@ class Button extends StatelessWidget {
       delayTouchDown = Duration.zero,
       delayTouchUp = const Duration(milliseconds: 100),
       type = .button,
-      onClick = component.isToggle
-          ? ((_) => model.value = !model.value)
-          : ((_) => component.onPressed?.call()),
+      onClick = component.isToggle ? ((_) => model.value = !model.value) : ((_) => component.onPressed?.call()),
       child = component.child,
       label = component.semanticLabel,
       focusNode = component.focusNode,

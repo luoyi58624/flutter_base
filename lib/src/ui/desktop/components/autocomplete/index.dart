@@ -20,7 +20,7 @@ import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../others/app/index.dart';
+import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 
@@ -41,25 +41,19 @@ class Autocomplete<T> extends ElInputModelValue<String> {
 
   final ElAutocomplete<T> component;
 
-  FutureOr<Iterable<ElLabelModel<T>>> Function(String query)
-  get fetchSuggestions => component.fetchSuggestions;
+  FutureOr<Iterable<ElLabelModel<T>>> Function(String query) get fetchSuggestions => component.fetchSuggestions;
   ValueChanged<ElLabelModel<T>>? get onSelected => component.onSelected;
   Duration get debounce => component.debounce;
   bool get triggerOnFocus => component.triggerOnFocus;
   bool get highlightFirst => component.highlightFirst;
   bool get loop => component.loop;
-  Widget Function(
-    BuildContext context,
-    ElLabelModel<T> suggestion,
-    bool active,
-  )?
-  get itemBuilder => component.itemBuilder;
+  Widget Function(BuildContext context, ElLabelModel<T> suggestion, bool active)? get itemBuilder =>
+      component.itemBuilder;
   Widget? get header => component.header;
   Widget? get footer => component.footer;
   WidgetBuilder? get loadingBuilder => component.loadingBuilder;
   WidgetBuilder? get emptyBuilder => component.emptyBuilder;
-  Widget Function(BuildContext context, Object error)? get errorBuilder =>
-      component.errorBuilder;
+  Widget Function(BuildContext context, Object error)? get errorBuilder => component.errorBuilder;
   String? get placeholder => component.placeholder;
   bool get clearable => component.clearable;
   bool get disabled => component.disabled;
@@ -114,32 +108,22 @@ class Autocomplete<T> extends ElInputModelValue<String> {
 }
 
 class _ResolvedSuggestion<T> {
-  const _ResolvedSuggestion({
-    required this.source,
-    required this.index,
-    required this.label,
-  });
+  const _ResolvedSuggestion({required this.source, required this.index, required this.label});
 
   final ElLabelModel<T> source;
   final int index;
   final String label;
 }
 
-List<_ResolvedSuggestion<T>> _resolveSuggestions<T>(
-  Iterable<ElLabelModel<T>> source,
-) {
+List<_ResolvedSuggestion<T>> _resolveSuggestions<T>(Iterable<ElLabelModel<T>> source) {
   final result = <_ResolvedSuggestion<T>>[];
   var index = 0;
   for (final suggestion in source) {
     final label = suggestion.label;
     if (label == null || label.trim().isEmpty) {
-      throw FlutterError(
-        'ElAutocomplete suggestions[$index] 的 label 必须是非空字符串。',
-      );
+      throw FlutterError('ElAutocomplete suggestions[$index] 的 label 必须是非空字符串。');
     }
-    result.add(
-      _ResolvedSuggestion<T>(source: suggestion, index: index, label: label),
-    );
+    result.add(_ResolvedSuggestion<T>(source: suggestion, index: index, label: label));
     index++;
   }
   return result;
@@ -175,9 +159,7 @@ bool _isAutocompleteOverlayControlKey(LogicalKeyboardKey key) =>
 
 bool _hasAutocompleteOverlayModifier() {
   final keyboard = HardwareKeyboard.instance;
-  return keyboard.isControlPressed ||
-      keyboard.isMetaPressed ||
-      keyboard.isAltPressed;
+  return keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed;
 }
 
 class _AutocompleteBody<T> extends StatefulWidget {
@@ -204,8 +186,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
   // Portal 冻结会话入口，候选内容通过独立值通道跟随输入和键盘状态。
   final _panel = ValueNotifier<Widget>(const SizedBox.shrink());
   final ElInputController _inputControl = ElInputController();
-  final _AutocompleteScrollController _ownScrollController =
-      _AutocompleteScrollController();
+  final _AutocompleteScrollController _ownScrollController = _AutocompleteScrollController();
   final Object _semanticsIdentity = Object();
   late final FocusNode _ownFocusNode;
   ElEditableController? _listenedController;
@@ -227,17 +208,11 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
 
   FocusNode get _focusNode => widget.config.focusNode ?? _ownFocusNode;
 
-  ScrollController get _scrollController =>
-      widget.config.scrollController ?? _ownScrollController;
+  ScrollController get _scrollController => widget.config.scrollController ?? _ownScrollController;
 
-  String get _panelSemanticsIdentifier =>
-      'el-autocomplete-options-${identityHashCode(_semanticsIdentity)}';
+  String get _panelSemanticsIdentifier => 'el-autocomplete-options-${identityHashCode(_semanticsIdentity)}';
 
-  bool get _canOpen =>
-      mounted &&
-      !widget.config.disabled &&
-      !widget.config.readOnly &&
-      _focusNode.hasFocus;
+  bool get _canOpen => mounted && !widget.config.disabled && !widget.config.readOnly && _focusNode.hasFocus;
 
   bool get _compact => context.elComponentCompact(widget.config.style);
 
@@ -255,9 +230,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
   void didUpdateWidget(_AutocompleteBody<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.config.focusNode != oldWidget.config.focusNode) {
-      (oldWidget.config.focusNode ?? _ownFocusNode).removeListener(
-        _handleFocusChanged,
-      );
+      (oldWidget.config.focusNode ?? _ownFocusNode).removeListener(_handleFocusChanged);
       _focusNode.addListener(_handleFocusChanged);
       final reportBlur = _focusReported;
       _focusReported = false;
@@ -291,9 +264,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       if (widget.config.disabled) _focusNode.unfocus();
     }
     if (_activeIndex != null && _activeIndex! >= _suggestions.length) {
-      _activeIndex = widget.config.highlightFirst && _suggestions.isNotEmpty
-          ? 0
-          : null;
+      _activeIndex = widget.config.highlightFirst && _suggestions.isNotEmpty ? 0 : null;
     }
   }
 
@@ -328,8 +299,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
   void _handleEditableVisualChanged() => _syncImeComposing();
 
   void _syncImeComposing() {
-    final composing =
-        _inputControl.controller?.hasActiveImeComposition ?? false;
+    final composing = _inputControl.controller?.hasActiveImeComposition ?? false;
     if (!mounted || composing == _imeComposing) return;
     setState(() => _imeComposing = composing);
   }
@@ -349,9 +319,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
           if (!mounted || !_reopenRequested || !_canOpen) return;
           _reopenRequested = false;
           _portal.open();
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _ensureActiveVisible(),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
         });
       }
     });
@@ -416,11 +384,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     _activeIndex = null;
   }
 
-  void _scheduleQuery(
-    String query, {
-    bool allowEmpty = false,
-    bool immediate = false,
-  }) {
+  void _scheduleQuery(String query, {bool allowEmpty = false, bool immediate = false}) {
     if (!_canOpen) return;
     if (query.isEmpty && !allowEmpty) {
       setState(() => _cancelPending(clear: true));
@@ -454,14 +418,10 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
         _loading = false;
         _error = null;
         _suggestions = suggestions;
-        _activeIndex = widget.config.highlightFirst && suggestions.isNotEmpty
-            ? 0
-            : null;
+        _activeIndex = widget.config.highlightFirst && suggestions.isNotEmpty ? 0 : null;
       });
       _openPanel();
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _ensureActiveVisible(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
     } catch (error) {
       if (!_requestIsCurrent(query, epoch)) return;
       setState(() {
@@ -474,8 +434,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     }
   }
 
-  bool _requestIsCurrent(String query, int epoch) =>
-      mounted && epoch == _requestEpoch && query == _query && _canOpen;
+  bool _requestIsCurrent(String query, int epoch) => mounted && epoch == _requestEpoch && query == _query && _canOpen;
 
   void _openPanel() {
     if (!_canOpen || _portal.isOpen) return;
@@ -537,15 +496,12 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     }
     final key = event.logicalKey;
     final overlayControlKey = _isAutocompleteOverlayControlKey(key);
-    if ((_inputControl.controller?.hasActiveImeComposition ?? false) &&
-        overlayControlKey) {
+    if ((_inputControl.controller?.hasActiveImeComposition ?? false) && overlayControlKey) {
       return KeyEventResult.skipRemainingHandlers;
     }
     if (event is KeyUpEvent) return KeyEventResult.ignored;
     if (_hasAutocompleteOverlayModifier() && overlayControlKey) {
-      return key == LogicalKeyboardKey.escape
-          ? KeyEventResult.skipRemainingHandlers
-          : KeyEventResult.ignored;
+      return key == LogicalKeyboardKey.escape ? KeyEventResult.skipRemainingHandlers : KeyEventResult.ignored;
     }
     if (key == LogicalKeyboardKey.tab) {
       _cancelPending(clear: false);
@@ -560,8 +516,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       _portal.close();
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowDown ||
-        key == LogicalKeyboardKey.arrowUp) {
+    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
       if (!_portal.isOpen) {
         _query = widget.value;
         _scheduleQuery(widget.value, allowEmpty: true, immediate: true);
@@ -570,8 +525,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       }
       return KeyEventResult.handled;
     }
-    if (_portal.isOpen &&
-        (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
+    if (_portal.isOpen && (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
       _moveToEdge(end: key == LogicalKeyboardKey.end);
       return KeyEventResult.handled;
     }
@@ -617,10 +571,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     final previousRevision = controller.docRevision;
     _committingSuggestion = true;
     try {
-      controller.insertText(
-        suggestion.label,
-        range: TextRange(start: 0, end: controller.length),
-      );
+      controller.insertText(suggestion.label, range: TextRange(start: 0, end: controller.length));
     } finally {
       _committingSuggestion = false;
     }
@@ -661,16 +612,9 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
     final end = start + itemHeight;
     final metrics = controller.position;
     if (start < metrics.pixels) {
-      metrics.jumpTo(
-        start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent),
-      );
+      metrics.jumpTo(start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     } else if (end > metrics.pixels + metrics.viewportDimension) {
-      metrics.jumpTo(
-        (end - metrics.viewportDimension).clamp(
-          metrics.minScrollExtent,
-          metrics.maxScrollExtent,
-        ),
-      );
+      metrics.jumpTo((end - metrics.viewportDimension).clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     }
   }
 
@@ -690,9 +634,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
           enabled: !config.disabled,
           readOnly: config.disabled || config.readOnly,
           controlsNodes: <String>{_panelSemanticsIdentifier},
-          onExpand: !config.disabled && !config.readOnly && !_portal.isOpen
-              ? _expandFromSemantics
-              : null,
+          onExpand: !config.disabled && !config.readOnly && !_portal.isOpen ? _expandFromSemantics : null,
           onCollapse: _portal.isOpen ? _collapseFromSemantics : null,
         ),
       ),
@@ -752,10 +694,7 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
       controller: _portal,
       anchor: config.anchor,
       exitDuration: _autocompletePanelExitDuration,
-      overlayBuilder: (_) => ValueListenableBuilder<Widget>(
-        valueListenable: _panel,
-        builder: (_, panel, _) => panel,
-      ),
+      overlayBuilder: (_) => ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
       closeOnEscape: !_imeComposing,
       hideWhenUnlinked: true,
       child: trigger,

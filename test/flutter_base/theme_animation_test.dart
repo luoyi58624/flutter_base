@@ -37,10 +37,13 @@ void main() {
         StatefulBuilder(
           builder: (context, setState) {
             update = setState;
-            return ElMobileTheme(
-              brightness: brightness,
-              themeMode: duration == ElThemeMode.defaultDuration ? null : ElThemeMode(duration: duration, curve: curve),
-              child: content,
+            return ElView(
+              themeMode: ElThemeMode(
+                brightness: brightness,
+                duration: duration == ElThemeMode.defaultDuration ? null : duration,
+                curve: curve,
+              ),
+              child: ElComponentProvider(components: el.mobileComponents, child: content),
             );
           },
         ),
@@ -62,14 +65,14 @@ void main() {
           .iconColor!;
       final row = find.byWidgetPredicate((widget) => widget is ElView && widget.style?.onTap?.backgroundColor != null);
       Color rowColor() => tester.renderObject<ElRenderView>(row).committedResolvedStyle.inheritedText.color!;
-      final lightCard = ElMobileTheme.lightVars[ElTokens.$cardColor] as Color;
-      final darkCard = ElMobileTheme.darkVars[ElTokens.$cardColor] as Color;
-      final lightBg = ElMobileTheme.lightVars[ElTokens.$bgColor] as Color;
-      final darkBg = ElMobileTheme.darkVars[ElTokens.$bgColor] as Color;
-      final lightText = ElMobileTheme.lightVars[ElTokens.$textColor] as Color;
-      final darkText = ElMobileTheme.darkVars[ElTokens.$textColor] as Color;
-      final lightIcon = ElMobileTheme.lightVars[ElTokens.$textSecondary] as Color;
-      final darkIcon = ElMobileTheme.darkVars[ElTokens.$textSecondary] as Color;
+      final lightCard = el.mobileComponents.token!.vars![ElTokens.$cardColor] as Color;
+      final darkCard = el.mobileComponents.token!.onDark!.vars![ElTokens.$cardColor] as Color;
+      final lightBg = el.mobileComponents.token!.vars![ElTokens.$bgColor] as Color;
+      final darkBg = el.mobileComponents.token!.onDark!.vars![ElTokens.$bgColor] as Color;
+      final lightText = el.mobileComponents.token!.vars![ElTokens.$textColor] as Color;
+      final darkText = el.mobileComponents.token!.onDark!.vars![ElTokens.$textColor] as Color;
+      final lightIcon = el.mobileComponents.token!.vars![ElTokens.$textSecondary] as Color;
+      final darkIcon = el.mobileComponents.token!.onDark!.vars![ElTokens.$textSecondary] as Color;
       expect(groupColor(), lightCard);
       expect(barColor(), lightCard);
       update(() => brightness = Brightness.dark);

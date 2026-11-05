@@ -23,7 +23,7 @@ import '../../extensions/content.dart';
 import '../../extensions/el.dart';
 import '../icon/index.dart';
 import '../input/metrics.dart';
-import '../others/app/index.dart';
+import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 

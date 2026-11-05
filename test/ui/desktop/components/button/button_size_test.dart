@@ -7,7 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   Widget host(Widget child, {bool compact = false}) => Directionality(
     textDirection: TextDirection.ltr,
-    child: ElDesktopTheme(compact: compact, child: child),
+    child: ElComponentProvider(
+      components: el.desktopComponents,
+      child: ElView(
+        style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+        child: child,
+      ),
+    ),
   );
 
   ElRenderView button(WidgetTester tester) => tester.renderObject<ElRenderView>(
@@ -46,7 +52,13 @@ void main() {
         child: StatefulBuilder(
           builder: (context, setState) {
             rebuild = setState;
-            return ElDesktopTheme(compact: compact, child: child);
+            return ElComponentProvider(
+              components: el.desktopComponents,
+              child: ElView(
+                style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+                child: child,
+              ),
+            );
           },
         ),
       ),
@@ -64,7 +76,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElView(
-          style: ElStyle(vars: {ElDesktopTheme.$compact: false}),
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: false}),
           child: ElButton(child: '按钮'),
         ),
         compact: true,
@@ -78,7 +90,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElButton(
-          style: ElStyle(vars: {ElDesktopTheme.$compact: false}),
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: false}),
           child: '按钮',
         ),
         compact: true,
@@ -89,7 +101,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElButton(
-          style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: true}),
           child: '按钮',
         ),
       ),

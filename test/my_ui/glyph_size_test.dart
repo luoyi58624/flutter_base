@@ -11,11 +11,14 @@ import 'package:flutter_base/src/ui/mobile/cores/glyph.dart' as skin;
 Widget _host(Widget child, {double? progressSize}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
-    child: ElMobileTheme(
-      style: ElStyle(vars: {skin.Progress.$size: ?progressSize}),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(width: 320, child: child),
+    child: ElComponentProvider(
+      components: el.mobileComponents,
+      child: ElView(
+        style: ElStyle(vars: {skin.Progress.$size: ?progressSize}),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 320, child: child),
+        ),
       ),
     ),
   ),

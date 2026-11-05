@@ -63,20 +63,23 @@ class ElExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final typography = _Typography();
-    return ElMobileTheme(
-      brightness: Brightness.light,
-      child: ObsBuilder(
-        builder: (context) => MaterialApp(
-          showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
-          scaffoldMessengerKey: _messenger,
-          title: 'Flutter 示例',
-          debugShowCheckedModeBanner: false,
-          theme: context.elMaterialThemeData,
-          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-            value: _systemBars,
-            child: Scaffold(resizeToAvoidBottomInset: false, body: child),
+    return ElView(
+      themeMode: ElThemeMode(brightness: Brightness.light),
+      child: ElComponentProvider(
+        components: el.mobileComponents,
+        child: ObsBuilder(
+          builder: (context) => MaterialApp(
+            showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
+            scaffoldMessengerKey: _messenger,
+            title: 'Flutter 示例',
+            debugShowCheckedModeBanner: false,
+            theme: context.elMaterialThemeData,
+            builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+              value: _systemBars,
+              child: Scaffold(resizeToAvoidBottomInset: false, body: child),
+            ),
+            home: _Shell(typography, this),
           ),
-          home: _Shell(typography, this),
         ),
       ),
     );

@@ -16,7 +16,8 @@ Widget _host(Widget child) {
       autofocus: true,
       child: Directionality(
         textDirection: TextDirection.ltr,
-        child: ElDesktopTheme(
+        child: ElComponentProvider(
+          components: el.desktopComponents,
           child: ElView(style: const ElStyle(width: 600), child: child),
         ),
       ),
@@ -766,7 +767,7 @@ void main() {
         await tester.pumpWidget(
           _host(
             ElView(
-              style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+              style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
               child: ElInputOtp(value: '12', length: 2),
             ),
           ),
@@ -785,7 +786,7 @@ void main() {
           ElInputOtp(
             value: '1',
             length: 1,
-            style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: true}),
             cellStyle: ElStyle(width: 30, height: 30, fontSize: 18),
           ),
         ),

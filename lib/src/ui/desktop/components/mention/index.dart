@@ -29,37 +29,27 @@ import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../others/app/index.dart';
+import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 
 class _ResolvedMentionOption<T> {
-  const _ResolvedMentionOption({
-    required this.source,
-    required this.index,
-    required this.label,
-  });
+  const _ResolvedMentionOption({required this.source, required this.index, required this.label});
 
   final ElMentionOption<T> source;
   final int index;
   final String label;
 }
 
-List<_ResolvedMentionOption<T>> _resolveMentionOptions<T>(
-  Iterable<ElMentionOption<T>> source,
-) {
+List<_ResolvedMentionOption<T>> _resolveMentionOptions<T>(Iterable<ElMentionOption<T>> source) {
   final result = <_ResolvedMentionOption<T>>[];
   var index = 0;
   for (final option in source) {
     if (option.value.isEmpty) {
       throw FlutterError('ElMention options[$index].value 必须是非空字符串。');
     }
-    final label = option.label == null || option.label!.isEmpty
-        ? option.value
-        : option.label!;
-    result.add(
-      _ResolvedMentionOption<T>(source: option, index: index, label: label),
-    );
+    final label = option.label == null || option.label!.isEmpty ? option.value : option.label!;
+    result.add(_ResolvedMentionOption<T>(source: option, index: index, label: label));
     index++;
   }
   return result;
@@ -85,31 +75,22 @@ class Mention<T> extends ElInputModelValue<String> {
   List<ElMentionOption<T>> get options => component.options;
   List<String> get prefix => component.prefix;
   String get split => component.split;
-  Iterable<ElMentionOption<T>> Function(
-    Iterable<ElMentionOption<T>> options,
-    String pattern,
-    String prefix,
-  )?
+  Iterable<ElMentionOption<T>> Function(Iterable<ElMentionOption<T>> options, String pattern, String prefix)?
   get filterOptions => component.filterOptions;
-  bool Function(ElMentionOption<T> option, String pattern, String prefix)?
-  get filterOption => component.filterOption;
+  bool Function(ElMentionOption<T> option, String pattern, String prefix)? get filterOption => component.filterOption;
   ElMentionPlacement get placement => component.placement;
   bool get showArrow => component.showArrow;
   double get offset => component.offset;
   bool get whole => component.whole;
-  bool Function(String pattern, String prefix)? get checkIsWhole =>
-      component.checkIsWhole;
+  bool Function(String pattern, String prefix)? get checkIsWhole => component.checkIsWhole;
   bool get loading => component.loading;
   bool get highlightFirst => component.highlightFirst;
   bool get loop => component.loop;
-  void Function(String pattern, String prefix)? get onSearch =>
-      component.onSearch;
-  void Function(ElMentionOption<T> option, String prefix)? get onSelected =>
-      component.onSelected;
-  void Function(String pattern, String prefix)? get onWholeRemove =>
-      component.onWholeRemove;
-  Widget Function(BuildContext context, ElMentionOption<T> option, bool active)?
-  get itemBuilder => component.itemBuilder;
+  void Function(String pattern, String prefix)? get onSearch => component.onSearch;
+  void Function(ElMentionOption<T> option, String prefix)? get onSelected => component.onSelected;
+  void Function(String pattern, String prefix)? get onWholeRemove => component.onWholeRemove;
+  Widget Function(BuildContext context, ElMentionOption<T> option, bool active)? get itemBuilder =>
+      component.itemBuilder;
   WidgetBuilder? get loadingBuilder => component.loadingBuilder;
   WidgetBuilder? get emptyBuilder => component.emptyBuilder;
   Widget? get header => component.header;
@@ -134,20 +115,15 @@ class Mention<T> extends ElInputModelValue<String> {
   List<TextInputFormatter> get inputFormatters => component.inputFormatters;
   ValueChanged<TextInputAction>? get onAction => component.onAction;
   VoidCallback? get onConnectionClosed => component.onConnectionClosed;
-  void Function(String action, Map<String, dynamic> data)?
-  get onPrivateCommand => component.onPrivateCommand;
-  ValueChanged<RawFloatingCursorPoint>? get onFloatingCursor =>
-      component.onFloatingCursor;
-  ValueChanged<TextRange>? get onAutocorrectionPromptRect =>
-      component.onAutocorrectionPromptRect;
+  void Function(String action, Map<String, dynamic> data)? get onPrivateCommand => component.onPrivateCommand;
+  ValueChanged<RawFloatingCursorPoint>? get onFloatingCursor => component.onFloatingCursor;
+  ValueChanged<TextRange>? get onAutocorrectionPromptRect => component.onAutocorrectionPromptRect;
   VoidCallback? get onShowToolbar => component.onShowToolbar;
-  ValueChanged<Size?>? get onTextPlaceholderChanged =>
-      component.onTextPlaceholderChanged;
+  ValueChanged<Size?>? get onTextPlaceholderChanged => component.onTextPlaceholderChanged;
   ValueChanged<String>? get onSelector => component.onSelector;
-  ValueChanged<KeyboardInsertedContent>? get onUnhandledContent =>
-      component.onUnhandledContent;
-  void Function(TextInputControl? oldControl, TextInputControl? newControl)?
-  get onInputControlChanged => component.onInputControlChanged;
+  ValueChanged<KeyboardInsertedContent>? get onUnhandledContent => component.onUnhandledContent;
+  void Function(TextInputControl? oldControl, TextInputControl? newControl)? get onInputControlChanged =>
+      component.onInputControlChanged;
   TextInputAction? get textInputAction => component.textInputAction;
   TextInputType? get keyboardType => component.keyboardType;
   String? get actionLabel => component.actionLabel;
@@ -158,8 +134,7 @@ class Mention<T> extends ElInputModelValue<String> {
   bool get autocorrect => component.autocorrect;
   bool get enableSuggestions => component.enableSuggestions;
   bool get enableInteractiveSelection => component.enableInteractiveSelection;
-  bool get enableIMEPersonalizedLearning =>
-      component.enableIMEPersonalizedLearning;
+  bool get enableIMEPersonalizedLearning => component.enableIMEPersonalizedLearning;
   List<String> get allowedMimeTypes => component.allowedMimeTypes;
   List<Locale> get hintLocales => component.hintLocales;
   bool? get enableInlinePrediction => component.enableInlinePrediction;
@@ -218,12 +193,7 @@ class _MentionScrollController extends ScrollController {
 }
 
 class _MentionBody<T> extends StatefulWidget {
-  const _MentionBody({
-    required this.config,
-    required this.value,
-    required this.onValueChanged,
-    required this.onBlur,
-  });
+  const _MentionBody({required this.config, required this.value, required this.onValueChanged, required this.onBlur});
 
   final Mention<T> config;
   final String value;
@@ -239,8 +209,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
   // Portal 冻结会话入口，候选内容通过独立值通道跟随输入和键盘状态。
   final _panel = ValueNotifier<Widget>(const SizedBox.shrink());
   final ElInputController _inputControl = ElInputController();
-  final _MentionScrollController _ownScrollController =
-      _MentionScrollController();
+  final _MentionScrollController _ownScrollController = _MentionScrollController();
   final GlobalKey _triggerKey = GlobalKey(debugLabel: 'ElMention trigger');
   late final FocusNode _ownFocusNode;
   ElEditableController? _listenedController;
@@ -265,14 +234,9 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
 
   FocusNode get _focusNode => widget.config.focusNode ?? _ownFocusNode;
 
-  ScrollController get _scrollController =>
-      widget.config.scrollController ?? _ownScrollController;
+  ScrollController get _scrollController => widget.config.scrollController ?? _ownScrollController;
 
-  bool get _canOpen =>
-      mounted &&
-      !widget.config.disabled &&
-      !widget.config.readOnly &&
-      _focusNode.hasFocus;
+  bool get _canOpen => mounted && !widget.config.disabled && !widget.config.readOnly && _focusNode.hasFocus;
 
   bool get _canRequestFocus =>
       mounted &&
@@ -308,9 +272,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
   void didUpdateWidget(_MentionBody<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.config.focusNode != oldWidget.config.focusNode) {
-      (oldWidget.config.focusNode ?? _ownFocusNode).removeListener(
-        _handleFocusChanged,
-      );
+      (oldWidget.config.focusNode ?? _ownFocusNode).removeListener(_handleFocusChanged);
       _focusNode.addListener(_handleFocusChanged);
       final reportBlur = _focusReported;
       final epoch = ++_focusBindingEpoch;
@@ -365,9 +327,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
           }
           _reopenRequested = false;
           _portal.open();
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _ensureActiveVisible(),
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
         });
       }
     });
@@ -401,8 +361,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
   }
 
   void _handleEditableVisualChanged() {
-    final composing =
-        _inputControl.controller?.hasActiveImeComposition ?? false;
+    final composing = _inputControl.controller?.hasActiveImeComposition ?? false;
     if (composing) {
       _markImeComposing();
       _closePanel(clear: true);
@@ -491,28 +450,19 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       prefix: widget.config.prefix,
       split: widget.config.split,
     );
-    if (ctx == null ||
-        ctx.splitIndex != -1 ||
-        !_updateMarkerFromCaret(closeWhenUnavailable: false)) {
+    if (ctx == null || ctx.splitIndex != -1 || !_updateMarkerFromCaret(closeWhenUnavailable: false)) {
       _closePanel(clear: true);
       return;
     }
-    final suggestions = widget.config.loading
-        ? <_ResolvedMentionOption<T>>[]
-        : _filterOptions(ctx);
-    final active = widget.config.loading
-        ? null
-        : _correctActive(_activeIndex, suggestions);
+    final suggestions = widget.config.loading ? <_ResolvedMentionOption<T>>[] : _filterOptions(ctx);
+    final active = widget.config.loading ? null : _correctActive(_activeIndex, suggestions);
     setState(() {
       _context = ctx;
       _suggestions = suggestions;
       _activeIndex = active;
     });
-    if (notifySearch &&
-        _lastSearchKey !=
-            '${ctx.prefixIndex}:${ctx.selectionEnd}:${ctx.prefix}:${ctx.pattern}') {
-      _lastSearchKey =
-          '${ctx.prefixIndex}:${ctx.selectionEnd}:${ctx.prefix}:${ctx.pattern}';
+    if (notifySearch && _lastSearchKey != '${ctx.prefixIndex}:${ctx.selectionEnd}:${ctx.prefix}:${ctx.pattern}') {
+      _lastSearchKey = '${ctx.prefixIndex}:${ctx.selectionEnd}:${ctx.prefix}:${ctx.pattern}';
       widget.config.onSearch?.call(ctx.pattern, ctx.prefix);
     }
     _openPanel();
@@ -531,22 +481,15 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
         if (ctx.pattern.isEmpty) return true;
         final query = ctx.pattern.toLowerCase();
         final label = option.label ?? option.value;
-        return label.toLowerCase().contains(query) ||
-            option.value.toLowerCase().contains(query);
+        return label.toLowerCase().contains(query) || option.value.toLowerCase().contains(query);
       });
     }
     return _resolveMentionOptions(filtered);
   }
 
-  int? _correctActive(
-    int? current,
-    List<_ResolvedMentionOption<T>> suggestions,
-  ) {
+  int? _correctActive(int? current, List<_ResolvedMentionOption<T>> suggestions) {
     if (suggestions.isEmpty) return null;
-    if (current != null &&
-        current >= 0 &&
-        current < suggestions.length &&
-        !suggestions[current].source.disabled) {
+    if (current != null && current >= 0 && current < suggestions.length && !suggestions[current].source.disabled) {
       return current;
     }
     if (!widget.config.highlightFirst) return null;
@@ -571,17 +514,11 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
     final viewState = _inputControl.controller;
     final rect = viewState?.caretRectGlobal() ?? viewState?.caretGeometry.value;
     final root = _triggerKey.currentContext?.findRenderObject();
-    if (viewState == null ||
-        rect == null ||
-        root is! RenderBox ||
-        !root.attached ||
-        !root.hasSize) {
+    if (viewState == null || rect == null || root is! RenderBox || !root.attached || !root.hasSize) {
       if (closeWhenUnavailable) _closePanel(clear: true);
       return false;
     }
-    final global = widget.config.placement == ElMentionPlacement.top
-        ? rect.topLeft
-        : rect.bottomLeft;
+    final global = widget.config.placement == ElMentionPlacement.top ? rect.topLeft : rect.bottomLeft;
     final local = root.globalToLocal(global);
     if (!local.dx.isFinite || !local.dy.isFinite) {
       if (closeWhenUnavailable) _closePanel(clear: true);
@@ -726,8 +663,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       _closePanel(clear: true);
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowDown ||
-        key == LogicalKeyboardKey.arrowUp) {
+    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
       if (_context == null) _evaluateMention(notifySearch: true);
       if (_context == null) return KeyEventResult.ignored;
       if (!_moveActive(key == LogicalKeyboardKey.arrowDown ? 1 : -1)) {
@@ -735,19 +671,12 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       }
       return KeyEventResult.handled;
     }
-    if (_portal.isOpen &&
-        (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
-      return _moveToEdge(end: key == LogicalKeyboardKey.end)
-          ? KeyEventResult.handled
-          : KeyEventResult.ignored;
+    if (_portal.isOpen && (key == LogicalKeyboardKey.home || key == LogicalKeyboardKey.end)) {
+      return _moveToEdge(end: key == LogicalKeyboardKey.end) ? KeyEventResult.handled : KeyEventResult.ignored;
     }
-    if ((key == LogicalKeyboardKey.enter ||
-            key == LogicalKeyboardKey.numpadEnter) &&
-        _portal.isOpen) {
+    if ((key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) && _portal.isOpen) {
       if (event is KeyRepeatEvent) {
-        return _canSelectActive
-            ? KeyEventResult.handled
-            : KeyEventResult.ignored;
+        return _canSelectActive ? KeyEventResult.handled : KeyEventResult.ignored;
       }
       return _selectActive() ? KeyEventResult.handled : KeyEventResult.ignored;
     }
@@ -793,9 +722,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
         : _moveEnabledIndex(enabled, current, delta);
     if (next != current) {
       setState(() => _activeIndex = next);
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _ensureActiveVisible(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
     }
     return true;
   }
@@ -809,15 +736,11 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
 
   bool _moveToEdge({required bool end}) {
     if (widget.config.loading || _suggestions.isEmpty) return false;
-    final index = end
-        ? _lastEnabledIndex(_suggestions)
-        : _firstEnabledIndex(_suggestions);
+    final index = end ? _lastEnabledIndex(_suggestions) : _firstEnabledIndex(_suggestions);
     if (index == null) return false;
     if (index != _activeIndex) {
       setState(() => _activeIndex = index);
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _ensureActiveVisible(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureActiveVisible());
     }
     return true;
   }
@@ -851,9 +774,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
     if (controller == null || ctx == null || ctx.splitIndex != -1) return false;
     final split = widget.config.split;
     final value = suggestion.source.value;
-    final hasExistingSplit =
-        ctx.end < controller.length &&
-        controller.getText(ctx.end, ctx.end + 1) == split;
+    final hasExistingSplit = ctx.end < controller.length && controller.getText(ctx.end, ctx.end + 1) == split;
     final replacement = value + (hasExistingSplit ? '' : split);
     final caretOffset = ctx.start + value.length + split.length;
     _committingSuggestion = true;
@@ -868,8 +789,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
     } finally {
       _committingSuggestion = false;
     }
-    if (controller.docRevision == previousRevision &&
-        controller.selection == previousSelection) {
+    if (controller.docRevision == previousRevision && controller.selection == previousSelection) {
       return true;
     }
     _closePanel(clear: true);
@@ -888,16 +808,9 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
     final end = start + itemHeight;
     final metrics = controller.position;
     if (start < metrics.pixels) {
-      metrics.jumpTo(
-        start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent),
-      );
+      metrics.jumpTo(start.clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     } else if (end > metrics.pixels + metrics.viewportDimension) {
-      metrics.jumpTo(
-        (end - metrics.viewportDimension).clamp(
-          metrics.minScrollExtent,
-          metrics.maxScrollExtent,
-        ),
-      );
+      metrics.jumpTo((end - metrics.viewportDimension).clamp(metrics.minScrollExtent, metrics.maxScrollExtent));
     }
   }
 
@@ -996,19 +909,12 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
                 controller: _portal,
                 anchor: _portalAnchor,
                 exitDuration: _mentionPanelExitDuration,
-                overlayBuilder: (_) => ValueListenableBuilder<Widget>(
-                  valueListenable: _panel,
-                  builder: (_, panel, _) => panel,
-                ),
+                overlayBuilder: (_) =>
+                    ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
                 hideWhenUnlinked: true,
                 onDismiss: () => _closePanel(clear: true),
                 child: const ElView(
-                  style: ElStyle(
-                    width: 0,
-                    height: 0,
-                    pointerEvents: .none,
-                    userSelect: .none,
-                  ),
+                  style: ElStyle(width: 0, height: 0, pointerEvents: .none, userSelect: .none),
                 ),
               ),
             ),

@@ -1,6 +1,6 @@
 import '../../views/view/style/style.dart';
 
-/// 变量宿主只承载声明和条件，实际样式留给内层根应用一次。
+/// 提取样式及其变体中的变量声明。
 ElStyle? themeVarsOf(ElStyle? style) {
   if (style == null) return null;
   final result = ElStyle(

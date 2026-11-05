@@ -25,7 +25,10 @@ void main() {
       expect(GlobalState.isDark.value, dark);
       final context = tester.element(find.byType(IconButton).first);
       expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
-      expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
+      expect(
+        context.elTheme.bgColor,
+        (dark ? el.mobileComponents.token!.onDark!.vars! : el.mobileComponents.token!.vars!)[ElTokens.$bgColor],
+      );
     }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
@@ -47,7 +50,10 @@ void main() {
       await tester.pumpAndSettle();
       final context = tester.element(find.byType(Navigator).first);
       expect(Theme.of(context).brightness, dark ? Brightness.dark : Brightness.light);
-      expect(context.elTheme.bgColor, (dark ? ElMobileTheme.darkVars : ElMobileTheme.lightVars)[ElTokens.$bgColor]);
+      expect(
+        context.elTheme.bgColor,
+        (dark ? el.mobileComponents.token!.onDark!.vars! : el.mobileComponents.token!.vars!)[ElTokens.$bgColor],
+      );
     }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
@@ -61,9 +67,9 @@ void main() {
     GlobalState.boottomTabbarIndex.value = 0;
     await tester.pumpWidget(App());
     await tester.pumpAndSettle();
-    expect(find.byType(ElMobileTheme), findsOneWidget);
+    expect(find.byType(ElComponentProvider), findsOneWidget);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.colorScheme.primary, ElMobileTheme.lightVars[ElTokens.$primary]);
+    expect(app.theme!.colorScheme.primary, el.mobileComponents.token!.vars![ElTokens.$primary]);
     final context = tester.element(find.byType(AppBar));
     expect(Theme.of(context).appBarTheme.backgroundColor, context.elTheme.cardColor);
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => Scaffold(body: Text('新路由'))));
@@ -77,7 +83,7 @@ void main() {
   testWidgets('旧入口的官方样式与同一份 ElView 主题保持一致', (tester) async {
     await tester.pumpWidget(ElExampleApp(networkDelay: Duration.zero, replyDelay: Duration.zero));
     await tester.pumpAndSettle();
-    expect(find.byType(ElMobileTheme), findsOneWidget);
+    expect(find.byType(ElComponentProvider), findsOneWidget);
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     final context = tester.element(find.byType(Navigator).first);
     expect(app.theme!.colorScheme.primary, context.elTheme.primary);

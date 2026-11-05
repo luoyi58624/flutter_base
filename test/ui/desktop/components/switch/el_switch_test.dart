@@ -11,11 +11,15 @@ Widget _host(Widget child, {Brightness brightness = Brightness.light, ElStyle? s
     style: const TextStyle(fontSize: 12),
     child: Directionality(
       textDirection: TextDirection.ltr,
-      child: ElDesktopTheme(
+      child: ElView(
         themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
-        style: style,
-        compact: compact,
-        child: child,
+        child: ElComponentProvider(
+          components: el.desktopComponents,
+          child: ElView(
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}).merge(style),
+            child: child,
+          ),
+        ),
       ),
     ),
   );
@@ -92,7 +96,7 @@ void main() {
     expect(render.committedResolvedStyle.box.backgroundColor, _primary);
   });
 
-  testWidgets('暗色默认 off 色跟随 ElDesktopTheme border token', (tester) async {
+  testWidgets('暗色默认 off 色跟随 桌面预设的边框 token', (tester) async {
     await tester.pumpWidget(_host(ElSwitch(value: false, onChanged: (_) {}), brightness: Brightness.dark));
     await tester.pumpAndSettle();
 

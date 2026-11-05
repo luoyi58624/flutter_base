@@ -70,7 +70,7 @@ void main() {
       Directionality(
         textDirection: .ltr,
         child: ElComponentProvider(
-          builders: builders,
+          components: builders,
           child: Column(children: declarations),
         ),
       ),

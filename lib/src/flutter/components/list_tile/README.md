@@ -75,7 +75,7 @@ ElListGroup<List<ThemeMode>>.multi(
 
 ## 移动端实现
 
-`ElMobileTheme` 已安装两个列表 Builder，导入 `package:flutter_base/mobile.dart` 即可使用。实现位于 [mobile/list_tile](../../../ui/mobile/components/list_tile/README.md)，具体组件与 Builder 留在内部。
+`el.mobileComponents` 包含两个列表 Builder，导入 `package:flutter_base/mobile.dart` 即可使用。实现位于 [mobile/list_tile](../../../ui/mobile/components/list_tile/README.md)，具体组件与 Builder 留在内部。
 
 布局沿用原代码：ElView 包 Row，内容区 Expanded；上下内边距 16，无前侧内容时留 16，有前侧内容时占 56。分组为圆角 16 的裁剪容器，通过 ElChildIndex 告知末项；分隔线用 Stack / Positioned 覆盖绘制，厚度 .5，左侧与正文对齐、右侧缩进 16。独立列表行不要求索引祖先。
 

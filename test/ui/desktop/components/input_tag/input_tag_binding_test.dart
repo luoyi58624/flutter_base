@@ -13,18 +13,24 @@ Widget _host(Widget child, {bool compact = false}) => MediaQuery(
   data: const MediaQueryData(size: Size(800, 600)),
   child: Directionality(
     textDirection: .ltr,
-    child: ElDesktopTheme(
-      compact: compact,
-      child: ElView(
-        style: const ElStyle(width: 620, height: 420, alignment: .center),
-        child: ElView(style: const ElStyle(width: 420), child: child),
+    child: ElComponentProvider(
+      components: el.desktopComponents,
+      child: Overlay.wrap(
+        clipBehavior: Clip.none,
+        alwaysSizeToContent: true,
+        child: ElView(
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+          child: ElView(
+            style: const ElStyle(width: 620, height: 420, alignment: .center),
+            child: ElView(style: const ElStyle(width: 420), child: child),
+          ),
+        ),
       ),
     ),
   ),
 );
 
-Finder _tag(int index) =>
-    find.byKey(ValueKey<(String, int)>(('el-input-tag', index)));
+Finder _tag(int index) => find.byKey(ValueKey<(String, int)>(('el-input-tag', index)));
 
 Future<void> _focus(WidgetTester tester, FocusNode node) async {
   node.requestFocus();
@@ -63,9 +69,7 @@ void main() {
     final shell = find.byKey(ValueKey<String>('el-input-tag-shell'));
     final prefixIcon = find.descendant(
       of: find.byKey(ValueKey<String>('el-input-tag-prefix-slot')),
-      matching: find.byWidgetPredicate(
-        (widget) => widget is ElView && widget.child is IconData,
-      ),
+      matching: find.byWidgetPredicate((widget) => widget is ElView && widget.child is IconData),
     );
     for (final compact in [false, true]) {
       await tester.pumpWidget(
@@ -79,11 +83,7 @@ void main() {
       expect(tester.getSize(shell).height, compact ? 32 : 36);
       expect(tester.getSize(_tag(0)).height, compact ? 20 : 24);
       expect(tester.getSize(prefixIcon).width, compact ? 13 : 14);
-      expect(
-        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-            ?.fontSize,
-        compact ? 13 : 14,
-      );
+      expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
     }
 
     await tester.pumpWidget(
@@ -102,29 +102,17 @@ void main() {
     expect(tester.getSize(shell).height, 52);
     expect(tester.getSize(_tag(0)).height, 34);
     expect(tester.getSize(prefixIcon).width, 17);
-    expect(
-      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-          ?.fontSize,
-      18,
-    );
+    expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, 18);
 
     for (final compact in [false, true]) {
-      await tester.pumpWidget(
-        _host(ElInputTag(value: ['Dart'], disabled: true), compact: compact),
-      );
+      await tester.pumpWidget(_host(ElInputTag(value: ['Dart'], disabled: true), compact: compact));
       expect(tester.takeException(), isNull, reason: '密度切换首帧不应产生布局异常');
       await tester.pumpAndSettle();
       expect(tester.getSize(shell).height, compact ? 32 : 36);
     }
 
     await tester.pumpWidget(
-      _host(
-        ElInputTag(
-          value: ['Dart', 'Flutter', 'Widget'],
-          style: ElStyle(width: 160),
-        ),
-        compact: true,
-      ),
+      _host(ElInputTag(value: ['Dart', 'Flutter', 'Widget'], style: ElStyle(width: 160)), compact: true),
     );
     await tester.pumpAndSettle();
     expect(tester.getSize(shell).height, greaterThan(32), reason: '多行标签仍应自然增高');
@@ -136,20 +124,13 @@ void main() {
     expect(find.byType(ElEditableView), findsOneWidget);
     expect(find.byType(EditableText), findsNothing);
 
-    await tester.pumpWidget(
-      _host(ElInputTag(value: const ['Dart'], readOnly: true)),
-    );
+    await tester.pumpWidget(_host(ElInputTag(value: const ['Dart'], readOnly: true)));
     await tester.pump();
     expect(find.byType(ElEditableView), findsOneWidget);
-    expect(
-      tester.widget<ElEditableView>(find.byType(ElEditableView)).style.readOnly,
-      isTrue,
-    );
+    expect(tester.widget<ElEditableView>(find.byType(ElEditableView)).style.readOnly, isTrue);
     expect(find.byType(ElButtonView), findsNothing, reason: '只读态不得保留标签关闭或清空动作');
 
-    await tester.pumpWidget(
-      _host(ElInputTag(value: const ['Dart'], disabled: true)),
-    );
+    await tester.pumpWidget(_host(ElInputTag(value: const ['Dart'], disabled: true)));
     await tester.pump();
     expect(find.byType(ElEditableView), findsNothing);
     expect(find.byType(EditableText), findsNothing);
@@ -159,42 +140,22 @@ void main() {
   testWidgets('自定义标签外壳的左右 1 DIP 边框与 padding 都能首击聚焦 editable', (tester) async {
     final focusNode = FocusNode(debugLabel: 'el-input-tag-shell-focus');
     addTearDown(focusNode.dispose);
-    await tester.pumpWidget(
-      _host(ElInputTag(value: const ['Dart'], focusNode: focusNode)),
-    );
+    await tester.pumpWidget(_host(ElInputTag(value: const ['Dart'], focusNode: focusNode)));
     await tester.pump();
 
-    final shellFinder = find.byKey(
-      const ValueKey<String>('el-input-tag-shell'),
-    );
+    final shellFinder = find.byKey(const ValueKey<String>('el-input-tag-shell'));
     expect(tester.widget<ElView>(shellFinder).event?.onTap, isNotNull);
     final shellRender = tester.renderObject<RenderBox>(shellFinder);
     final shell = tester.getRect(shellFinder);
-    expect(
-      focusNode.context,
-      isNotNull,
-      reason: '外借 focusNode 必须已经挂到内部 editable',
-    );
+    expect(focusNode.context, isNotNull, reason: '外借 focusNode 必须已经挂到内部 editable');
     expect(focusNode.canRequestFocus, isTrue);
     final leftBorder = shell.centerLeft + const Offset(0.25, 0);
     final leftHitPath = tester.hitTestOnBinding(leftBorder).path;
-    final shellHit = leftHitPath.any(
-      (entry) => identical(entry.target, shellRender),
-    );
-    final leftHits = leftHitPath
-        .map((entry) => entry.target.runtimeType)
-        .toList();
-    expect(
-      shellHit,
-      isTrue,
-      reason: 'shell 自身必须覆盖边框 hit test；hit path=$leftHits',
-    );
+    final shellHit = leftHitPath.any((entry) => identical(entry.target, shellRender));
+    final leftHits = leftHitPath.map((entry) => entry.target.runtimeType).toList();
+    expect(shellHit, isTrue, reason: 'shell 自身必须覆盖边框 hit test；hit path=$leftHits');
     await _mouseTapAt(tester, leftBorder);
-    expect(
-      focusNode.hasFocus,
-      isTrue,
-      reason: '左边框覆盖内不得成为不可点击死区；hit path=$leftHits',
-    );
+    expect(focusNode.hasFocus, isTrue, reason: '左边框覆盖内不得成为不可点击死区；hit path=$leftHits');
 
     focusNode.unfocus();
     await tester.pump();
@@ -242,13 +203,7 @@ void main() {
       ['seed', 'flutter'],
     ]);
     expect(added, ['flutter']);
-    expect(
-      tester
-          .widget<ElEditableView>(find.byType(ElEditableView))
-          .controller!
-          .text,
-      isEmpty,
-    );
+    expect(tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!.text, isEmpty);
 
     updateOutside(<String>['external']);
     await tester.pump();
@@ -287,10 +242,7 @@ void main() {
       ['a', 'b'],
     ]);
 
-    final close = find.descendant(
-      of: _tag(0),
-      matching: find.byType(ElButtonView),
-    );
+    final close = find.descendant(of: _tag(0), matching: find.byType(ElButtonView));
     await tester.tap(close);
     await tester.pump();
     await tester.pump();
@@ -321,9 +273,7 @@ void main() {
     ], reason: '外部 modelValue 回灌不应伪造成用户 onChanged');
   });
 
-  testWidgets('ElForm prop：List<String> 双向直连，change/blur 校验与动态列表回灌正确', (
-    tester,
-  ) async {
+  testWidgets('ElForm prop：List<String> 双向直连，change/blur 校验与动态列表回灌正确', (tester) async {
     final model = Obs<Map<String, dynamic>>(<String, dynamic>{
       'skills': <dynamic>['Dart'],
     });
@@ -411,9 +361,7 @@ void main() {
       StatefulBuilder(
         builder: (context, setState) {
           useSecond = true;
-          return _host(
-            ElInputTag(controller: secondController, modelValue: model),
-          );
+          return _host(ElInputTag(controller: secondController, modelValue: model));
         },
       ),
     );
@@ -423,15 +371,7 @@ void main() {
     expect(secondController.attached, isTrue);
     expect(secondController.focus(), isTrue);
 
-    await tester.pumpWidget(
-      _host(
-        ElInputTag(
-          controller: secondController,
-          modelValue: model,
-          disabled: true,
-        ),
-      ),
-    );
+    await tester.pumpWidget(_host(ElInputTag(controller: secondController, modelValue: model, disabled: true)));
     await tester.pump();
     expect(secondController.focus(), isFalse);
   });
@@ -487,11 +427,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(second.hasFocus, isTrue);
-    expect(
-      focusCount,
-      2,
-      reason: '新 focusNode 在别处已聚焦时，热接入 InputTag 也要补发 onFocus',
-    );
+    expect(focusCount, 2, reason: '新 focusNode 在别处已聚焦时，热接入 InputTag 也要补发 onFocus');
     expect(blurCount, 1);
   });
 
@@ -525,10 +461,7 @@ void main() {
 
     await tester.pumpWidget(_host(ElView(child: 'empty')));
     await tester.pump();
-    expect(
-      captured.map((details) => details.exception),
-      contains(isA<StateError>()),
-    );
+    expect(captured.map((details) => details.exception), contains(isA<StateError>()));
     expect(controller.attached, isFalse);
 
     await tester.pumpWidget(_host(ElInputTag(controller: controller)));

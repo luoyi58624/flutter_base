@@ -16,7 +16,7 @@ Widget _host(Widget child) => MaterialApp(
   home: Directionality(
     textDirection: .ltr,
     child: ElComponentProvider(
-      builders: _builders,
+      components: _builders,
       child: ElView(
         style: ElStyle(alignment: .topLeft),
         child: child,
@@ -183,7 +183,7 @@ void main() {
             children: [
               ElCheckbox(key: ValueKey('a'), value: 'a', label: 'A'),
               ElComponentProvider(
-                builders: _builders.copyWith(checkbox: alternate),
+                components: _builders.copyWith(checkbox: alternate),
                 child: ElCheckbox(key: ValueKey('b'), value: 'b', label: 'B'),
               ),
               ElCheckbox(key: ValueKey('c'), value: 'c', label: 'C'),
@@ -333,7 +333,7 @@ void main() {
         ElView(style: ElStyle(width: 80, height: 24), child: state.checked ? 'checked' : 'empty');
     Widget scene(Widget Function(BuildContext, ElCheckbox, ElCheckboxState) builder) => _host(
       ElComponentProvider(
-        builders: _builders.copyWith(checkbox: builder),
+        components: _builders.copyWith(checkbox: builder),
         child: ElCheckbox.toggle(key: ValueKey('field'), modelValue: model),
       ),
     );

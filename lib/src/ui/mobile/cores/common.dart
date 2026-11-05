@@ -15,7 +15,6 @@ import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
 import '../../../flutter/views/view/view.dart' show ElView;
-import 'theme.dart';
 
 /// 图标接入样式继承，自定义 Widget 原样使用，其余交给 ElView 内容引擎。
 Widget buildContent(Object? child) => buildIconContent(child);
@@ -30,6 +29,9 @@ double viewport(BuildContext context) => MediaQuery.maybeSizeOf(context)?.width 
 ElStyle textStyle(BuildContext context, double size, double weight, {Color? color, double? height}) {
   return ElStyle(fontSize: size, fontWeight: textWeight(weight), color: color, lineHeight: height);
 }
+
+/// 将组件字重值映射到最近的 Flutter 字重档位。
+FontWeight textWeight(double value) => FontWeight.values[((value / 100).round() - 1).clamp(0, 8)];
 
 /// 将行内盒从父布局的横向拉伸中解除。
 Widget inline(Widget child) =>

@@ -11,11 +11,14 @@ Finder _row(String value) => find
 Future<void> _host(WidgetTester tester, ElNavMenu<void> menu, {Brightness brightness = Brightness.light}) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: ElDesktopTheme(
+      home: ElView(
         themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
-        child: Align(
-          alignment: .topLeft,
-          child: SizedBox(width: 260, height: 580, child: menu),
+        child: ElComponentProvider(
+          components: el.desktopComponents,
+          child: Align(
+            alignment: .topLeft,
+            child: SizedBox(width: 260, height: 580, child: menu),
+          ),
         ),
       ),
     ),
@@ -170,7 +173,7 @@ void main() {
         onChanged: changes.add,
       ),
     );
-    final primary = ElDesktopTheme.lightVars[ElTokens.$primary];
+    final primary = el.desktopComponents.token.vars![ElTokens.$primary];
     expect(tester.widget<ElView>(_row('盒子')).style!.color, primary);
     await delegate.setNewRoutePath(RouteInformation(uri: Uri.parse('/docs/text')));
     await tester.pumpAndSettle();
@@ -262,7 +265,10 @@ void main() {
         ),
         brightness: brightness,
       );
-      final vars = {...ElDesktopTheme.lightVars, if (brightness == Brightness.dark) ...ElDesktopTheme.darkVars};
+      final vars = {
+        ...el.desktopComponents.token.vars!,
+        if (brightness == Brightness.dark) ...el.desktopComponents.token.onDark!.vars!,
+      };
       final row = tester.widget<ElView>(_row('主题设计')).style!;
       expect(row.height, 40);
       expect(row.borderRadius, BorderRadius.circular(8));

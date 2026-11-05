@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/desktop.dart' show ElDesktopTheme;
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,15 +11,25 @@ void main() {
       child: MediaQuery(
         data: MediaQueryData(textScaler: TextScaler.linear(3)),
         child: desktop
-            ? ElDesktopTheme(
+            ? ElView(
                 themeMode: ElThemeMode(brightness: brightness),
-                style: style,
-                child: Center(child: child),
+                child: ElComponentProvider(
+                  components: el.desktopComponents,
+                  child: ElView(
+                    style: style,
+                    child: Center(child: child),
+                  ),
+                ),
               )
-            : ElMobileTheme(
-                brightness: brightness,
-                style: style,
-                child: Center(child: child),
+            : ElView(
+                themeMode: ElThemeMode(brightness: brightness),
+                child: ElComponentProvider(
+                  components: el.mobileComponents,
+                  child: ElView(
+                    style: style,
+                    child: Center(child: child),
+                  ),
+                ),
               ),
       ),
     );

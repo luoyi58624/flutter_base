@@ -25,11 +25,11 @@ ElView 相当于 Web 的 div，负责盒模型、文本、样式、事件与语�
 
 ## 注入与覆写
 
-`ElComponents` 是唯一的登记表，字段可空。`ElComponentProvider` 与祖先自动合并，只覆盖传入的非空项：
+带 `token` 的 `ElComponents` 是完整预设，同时安装组件实现和变量。省略 `token` 时，Provider 只覆写传入的实现。变量通过 `ElStyle.vars` 声明，状态差量写入对应变体的 `vars`。
 
 ```dart
 ElComponentProvider(
-  builders: ElComponents(button: (context, widget) => MyButton(widget)),
+  components: ElComponents(button: (context, widget, model) => MyButton(widget)),
   child: page,
 );
 ```

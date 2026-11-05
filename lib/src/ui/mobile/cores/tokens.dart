@@ -1,110 +1,154 @@
-part of 'theme.dart';
+import 'package:flutter/widgets.dart';
 
-// 页面、卡片、卡片按压与分隔线各自声明，避免控件边框或通用按压色影响列表。
-Map<Object, Object> _buildVars(bool dark) => Map.unmodifiable({
-  if (!dark) ElTokens.$black: Color(0xff000000),
-  if (!dark) ElTokens.$white: Color(0xffffffff),
-  ElTokens.$textRegular: dark ? Color(0xffcfd3dc) : Color(0xff606266),
-  ElTokens.$textPlaceholder: dark ? Color(0xff8d9095) : Color(0xffc0c4cc),
-  ElTokens.$textDisabled: dark ? Color(0xff6c6e72) : Color(0xffd4d7de),
-  if (!dark) ElTokens.$textOnLight: Color(0xff303133),
-  if (!dark) ElTokens.$textOnDark: Color(0xffffffff),
-  if (!dark) ElTokens.$overlayColorLight: Color(0xb3000000),
-  if (!dark) ElTokens.$overlayColorLighter: Color(0x80000000),
-  if (!dark) ElTokens.$borderWidth: 1.0,
-  if (!dark) ElTokens.$radiusXs: 2.0,
-  if (!dark) ElTokens.$radiusSm: 4.0,
-  if (!dark) ElTokens.$radiusMd: 6.0,
-  if (!dark) ElTokens.$radiusLg: 8.0,
-  if (!dark) ElTokens.$radiusXl: 12.0,
-  if (!dark) ElTokens.$fontFamily: '',
-  if (!dark) ElTokens.$fontFamilyFallback: const <String>[],
-  ElTokens.$borderColorHover: Color(dark ? 0xff7a8491 : 0xffbbbec2),
-  ElTokens.$borderColorLight: Color(dark ? 0xff4a535f : 0xffe7e9ed),
-  ElTokens.$borderColorLighter: Color(dark ? 0xff404750 : 0xffeef0f2),
-  ElTokens.$borderColorExtraLight: Color(dark ? 0xff363b41 : 0xfff5f6f7),
-  ElTokens.$borderColorDark: Color(dark ? 0xff6a7484 : 0xffcccfd3),
-  ElTokens.$borderColorDarker: Color(dark ? 0xff7a8491 : 0xffbbbec2),
-  ElTokens.$disabledTextColor: Color(dark ? 0xff8d9095 : 0xffc0c4cc),
-  ElTokens.$disabledBgColor: Color(dark ? 0xff262727 : 0xfff5f7fa),
-  ElTokens.$disabledBorderColor: Color(dark ? 0xff4a535f : 0xffe7e9ed),
-  ElTokens.$selectionColor: Color(dark ? 0xff545f74 : 0xffbdccee),
+import '../../../flutter/commons/theme/tokens.dart' show ElTokens;
 
-  ElTokens.$bgColor: Color(dark ? 0xff121419 : 0xffeeeeee),
-  ElTokens.$cardColor: Color(dark ? 0xff252931 : 0xffffffff),
-  ElTokens.$cardPressColor: Color(dark ? 0xff464e5b : 0xffe0e0e0),
-  ElTokens.$dividerColor: Color(dark ? 0xff596576 : 0xffe0e0e0),
-  ElTokens.$fill: Color(dark ? 0xff333944 : 0xfff1f2f4),
-  ElTokens.$borderColor: Color(dark ? 0xff596576 : 0xffdde0e5),
-  ElTokens.$textColor: Color(dark ? 0xfff4f6fa : 0xff17191e),
-  ElTokens.$textSecondary: Color(dark ? 0xffc4cbd6 : 0xff626874),
-  ElTokens.$gray: Color(dark ? 0xff7c899c : 0xffbac2ce),
-  ElTokens.$hover: Color(dark ? 0xff3c4350 : 0xffe9ecf0),
-  ElTokens.$press: Color(dark ? 0xff464e5b : 0xffe0e4ea),
-  ElTokens.$selectedBackground: Color(dark ? 0xff414956 : 0xffffffff),
+/// 移动品牌的浅色 token 基础值。
+Map<Object, Object> get mobileLightVars => _lightVars;
+
+/// 移动品牌的暗色 token 差量。
+Map<Object, Object> get mobileDarkVars => _darkVars;
+
+// 基础值与暗色差量分别声明，变量级联由 ElView 处理。
+const _lightShadow = Color(0xff314669);
+const _darkShadow = Color(0xff000000);
+
+final Map<Object, Object> _lightVars = Map.unmodifiable({
+  ElTokens.$black: Color(0xff000000),
+  ElTokens.$white: Color(0xffffffff),
+  ElTokens.$textRegular: Color(0xff606266),
+  ElTokens.$textPlaceholder: Color(0xffc0c4cc),
+  ElTokens.$textDisabled: Color(0xffd4d7de),
+  ElTokens.$textOnLight: Color(0xff303133),
+  ElTokens.$textOnDark: Color(0xffffffff),
+  ElTokens.$overlayColorLight: Color(0xb3000000),
+  ElTokens.$overlayColorLighter: Color(0x80000000),
+  ElTokens.$borderWidth: 1.0,
+  ElTokens.$radiusXs: 2.0,
+  ElTokens.$radiusSm: 4.0,
+  ElTokens.$radiusMd: 6.0,
+  ElTokens.$radiusLg: 8.0,
+  ElTokens.$radiusXl: 12.0,
+  ElTokens.$fontFamily: '',
+  ElTokens.$fontFamilyFallback: const <String>[],
+  ElTokens.$borderColorHover: Color(0xffbbbec2),
+  ElTokens.$borderColorLight: Color(0xffe7e9ed),
+  ElTokens.$borderColorLighter: Color(0xffeef0f2),
+  ElTokens.$borderColorExtraLight: Color(0xfff5f6f7),
+  ElTokens.$borderColorDark: Color(0xffcccfd3),
+  ElTokens.$borderColorDarker: Color(0xffbbbec2),
+  ElTokens.$disabledTextColor: Color(0xffc0c4cc),
+  ElTokens.$disabledBgColor: Color(0xfff5f7fa),
+  ElTokens.$disabledBorderColor: Color(0xffe7e9ed),
+  ElTokens.$selectionColor: Color(0xffbdccee),
+
+  ElTokens.$bgColor: Color(0xffeeeeee),
+  ElTokens.$cardColor: Color(0xffffffff),
+  ElTokens.$cardPressColor: Color(0xffe0e0e0),
+  ElTokens.$dividerColor: Color(0xffe0e0e0),
+  ElTokens.$fill: Color(0xfff1f2f4),
+  ElTokens.$borderColor: Color(0xffdde0e5),
+  ElTokens.$textColor: Color(0xff17191e),
+  ElTokens.$textSecondary: Color(0xff626874),
+  ElTokens.$gray: Color(0xffbac2ce),
+  ElTokens.$hover: Color(0xffe9ecf0),
+  ElTokens.$press: Color(0xffe0e4ea),
+  ElTokens.$selectedBackground: Color(0xffffffff),
   // 五个语义色取自设计图（light）：主色 #1076FD、成功 #56B329、警告 #F9A907、危险 #FC4646。
   // 信息色与主色同蓝：设计图把信息动作画成「浅蓝底 + 蓝字」，浅底交给使用方按主色混合，不另设第四种蓝。
-  ElTokens.$info: Color(dark ? 0xff8fb8ff : 0xff1076fd),
-  ElTokens.$success: Color(dark ? 0xffa4dfb4 : 0xff56b329),
-  ElTokens.$warning: Color(dark ? 0xfff3db82 : 0xfff9a907),
-  ElTokens.$error: Color(dark ? 0xffffacae : 0xfffc4646),
-  ElTokens.$primary: Color(dark ? 0xffaac8ff : 0xff1076fd),
-  ElTokens.$primaryText: Color(dark ? 0xff000000 : 0xffffffff),
-  ElTokens.$selectedShadow: List<BoxShadow>.unmodifiable(
-    (dark
-        ? [
-            BoxShadow(
-              color: const Color(0xff000000).withValues(alpha: 0.28),
-              offset: const Offset(0, 1),
-              blurRadius: 5,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff68778c).withValues(alpha: 1),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.1),
-              offset: const Offset(0, 1),
-              blurRadius: 4,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xff121925).withValues(alpha: 0.05),
-              offset: const Offset(0, 0),
-              blurRadius: 0,
-              spreadRadius: 1,
-            ),
-          ]),
-  ),
-  ElTokens.$shadowXs: _shadow(dark, const [(1, 3, 0, .055, .18)]),
-  ElTokens.$shadowSm: _shadow(dark, const [(1, 4, 0, .055, .20), (2, 7, -1, .04, .16)]),
-  // 以卡片与背景同色为基准，近层支撑轮廓，远层控制在卡片附近柔和散开。
-  ElTokens.$shadowMd: _shadow(dark, const [(1, 5, 0, .065, .24), (4, 14, -1, .065, .22)]),
-  ElTokens.$shadowLg: _shadow(dark, const [(2, 7, 0, .075, .28), (8, 22, -2, .095, .30)]),
-  ElTokens.$shadowXl: _shadow(dark, const [(3, 9, 0, .085, .32), (14, 34, -4, .12, .38)]),
-  ElTokens.$overlayColor: (dark
-      ? const Color(0xff000000).withValues(alpha: .62)
-      : const Color(0xff0c121c).withValues(alpha: .34)),
-  if (!dark) ElTokens.$overlayBackdropBlur: 4,
-  if (!dark) ElTokens.$fontWeight: 400,
-  if (!dark) ElTokens.$fontWeightAction: 500,
-  if (!dark) ElTokens.$fontWeightSubtitle: 600,
-  if (!dark) ElTokens.$fontWeightTitle: 700,
+  ElTokens.$info: Color(0xff1076fd),
+  ElTokens.$success: Color(0xff56b329),
+  ElTokens.$warning: Color(0xfff9a907),
+  ElTokens.$error: Color(0xfffc4646),
+  ElTokens.$primary: Color(0xff1076fd),
+  ElTokens.$primaryText: Color(0xffffffff),
+  ElTokens.$selectedShadow: List<BoxShadow>.unmodifiable([
+    BoxShadow(
+      color: const Color(0xff121925).withValues(alpha: 0.1),
+      offset: const Offset(0, 1),
+      blurRadius: 4,
+      spreadRadius: 0,
+    ),
+    BoxShadow(
+      color: const Color(0xff121925).withValues(alpha: 0.05),
+      offset: const Offset(0, 0),
+      blurRadius: 0,
+      spreadRadius: 1,
+    ),
+  ]),
+  ElTokens.$shadowXs: _shadow(_lightShadow, const [(1, 3, 0, .055)]),
+  ElTokens.$shadowSm: _shadow(_lightShadow, const [(1, 4, 0, .055), (2, 7, -1, .04)]),
+  ElTokens.$shadowMd: _shadow(_lightShadow, const [(1, 5, 0, .065), (4, 14, -1, .065)]),
+  ElTokens.$shadowLg: _shadow(_lightShadow, const [(2, 7, 0, .075), (8, 22, -2, .095)]),
+  ElTokens.$shadowXl: _shadow(_lightShadow, const [(3, 9, 0, .085), (14, 34, -4, .12)]),
+  ElTokens.$overlayColor: const Color(0xff0c121c).withValues(alpha: .34),
+  ElTokens.$overlayBackdropBlur: 4,
+  ElTokens.$fontWeight: 400,
+  ElTokens.$fontWeightAction: 500,
+  ElTokens.$fontWeightSubtitle: 600,
+  ElTokens.$fontWeightTitle: 700,
 });
 
-// 各层依次为（向下偏移、模糊、扩张、浅色不透明度、暗色不透明度）；浅色沿用原型的冷灰，暗色用黑色。
-List<BoxShadow> _shadow(bool dark, List<(double, double, double, double, double)> layers) =>
-    List<BoxShadow>.unmodifiable([
-      for (final layer in layers)
-        BoxShadow(
-          color: Color(dark ? 0xff000000 : 0xff314669).withValues(alpha: dark ? layer.$5 : layer.$4),
-          offset: Offset(0, layer.$1),
-          blurRadius: layer.$2,
-          spreadRadius: layer.$3,
-        ),
-    ]);
+final Map<Object, Object> _darkVars = Map.unmodifiable({
+  ElTokens.$textRegular: Color(0xffcfd3dc),
+  ElTokens.$textPlaceholder: Color(0xff8d9095),
+  ElTokens.$textDisabled: Color(0xff6c6e72),
+  ElTokens.$borderColorHover: Color(0xff7a8491),
+  ElTokens.$borderColorLight: Color(0xff4a535f),
+  ElTokens.$borderColorLighter: Color(0xff404750),
+  ElTokens.$borderColorExtraLight: Color(0xff363b41),
+  ElTokens.$borderColorDark: Color(0xff6a7484),
+  ElTokens.$borderColorDarker: Color(0xff7a8491),
+  ElTokens.$disabledTextColor: Color(0xff8d9095),
+  ElTokens.$disabledBgColor: Color(0xff262727),
+  ElTokens.$disabledBorderColor: Color(0xff4a535f),
+  ElTokens.$selectionColor: Color(0xff545f74),
+  ElTokens.$bgColor: Color(0xff121419),
+  ElTokens.$cardColor: Color(0xff252931),
+  ElTokens.$cardPressColor: Color(0xff464e5b),
+  ElTokens.$dividerColor: Color(0xff596576),
+  ElTokens.$fill: Color(0xff333944),
+  ElTokens.$borderColor: Color(0xff596576),
+  ElTokens.$textColor: Color(0xfff4f6fa),
+  ElTokens.$textSecondary: Color(0xffc4cbd6),
+  ElTokens.$gray: Color(0xff7c899c),
+  ElTokens.$hover: Color(0xff3c4350),
+  ElTokens.$press: Color(0xff464e5b),
+  ElTokens.$selectedBackground: Color(0xff414956),
+  ElTokens.$info: Color(0xff8fb8ff),
+  ElTokens.$success: Color(0xffa4dfb4),
+  ElTokens.$warning: Color(0xfff3db82),
+  ElTokens.$error: Color(0xffffacae),
+  ElTokens.$primary: Color(0xffaac8ff),
+  ElTokens.$primaryText: Color(0xff000000),
+  ElTokens.$selectedShadow: List<BoxShadow>.unmodifiable([
+    BoxShadow(
+      color: const Color(0xff000000).withValues(alpha: 0.28),
+      offset: const Offset(0, 1),
+      blurRadius: 5,
+      spreadRadius: 0,
+    ),
+    BoxShadow(
+      color: const Color(0xff68778c).withValues(alpha: 1),
+      offset: const Offset(0, 0),
+      blurRadius: 0,
+      spreadRadius: 1,
+    ),
+  ]),
+  ElTokens.$shadowXs: _shadow(_darkShadow, const [(1, 3, 0, .18)]),
+  ElTokens.$shadowSm: _shadow(_darkShadow, const [(1, 4, 0, .20), (2, 7, -1, .16)]),
+  ElTokens.$shadowMd: _shadow(_darkShadow, const [(1, 5, 0, .24), (4, 14, -1, .22)]),
+  ElTokens.$shadowLg: _shadow(_darkShadow, const [(2, 7, 0, .28), (8, 22, -2, .30)]),
+  ElTokens.$shadowXl: _shadow(_darkShadow, const [(3, 9, 0, .32), (14, 34, -4, .38)]),
+  ElTokens.$overlayColor: const Color(0xff000000).withValues(alpha: .62),
+});
+
+// 各层依次为向下偏移、模糊、扩张和不透明度。
+List<BoxShadow> _shadow(Color color, List<(double, double, double, double)> layers) => List<BoxShadow>.unmodifiable([
+  for (final (offset, blur, spread, alpha) in layers)
+    BoxShadow(
+      color: color.withValues(alpha: alpha),
+      offset: Offset(0, offset),
+      blurRadius: blur,
+      spreadRadius: spread,
+    ),
+]);

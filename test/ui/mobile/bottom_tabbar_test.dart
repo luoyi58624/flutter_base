@@ -7,9 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Widget host({required Widget child}) => MaterialApp(
-    home: ElMobileTheme(
-      style: ElStyle(vars: {ElTokens.$cardColor: Colors.white}),
-      child: Center(child: SizedBox(width: 320, child: child)),
+    home: ElComponentProvider(
+      components: el.mobileComponents,
+      child: ElView(
+        style: ElStyle(vars: {ElTokens.$cardColor: Colors.white}),
+        child: Center(child: SizedBox(width: 320, child: child)),
+      ),
     ),
   );
 

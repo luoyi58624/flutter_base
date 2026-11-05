@@ -14,20 +14,23 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ObsBuilder(
-      builder: (context) => ElMobileTheme(
-        brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light,
-        child: ObsBuilder(
-          builder: (context) {
-            final theme = ElView.of(context).themeMode;
-            return MaterialApp(
-              themeAnimationDuration: theme.duration!,
-              themeAnimationCurve: theme.curve!,
-              showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
-              debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
-              theme: context.elMaterialThemeData,
-              home: AppLayout(),
-            );
-          },
+      builder: (context) => ElView(
+        themeMode: ElThemeMode(brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light),
+        child: ElComponentProvider(
+          components: el.mobileComponents,
+          child: ObsBuilder(
+            builder: (context) {
+              final theme = ElView.of(context).themeMode;
+              return MaterialApp(
+                themeAnimationDuration: theme.duration!,
+                themeAnimationCurve: theme.curve!,
+                showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
+                debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
+                theme: context.elMaterialThemeData,
+                home: AppLayout(),
+              );
+            },
+          ),
         ),
       ),
     );

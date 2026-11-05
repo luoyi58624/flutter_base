@@ -1,12 +1,20 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/desktop.dart';
-import 'package:flutter_base/mobile.dart' show ElMobileTheme;
+import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _host(Widget child, {required bool desktop}) => Directionality(
   textDirection: .ltr,
-  child: desktop ? ElDesktopTheme(child: Center(child: child)) : ElMobileTheme(child: Center(child: child)),
+  child: desktop
+      ? ElComponentProvider(
+          components: el.desktopComponents,
+          child: Center(child: child),
+        )
+      : ElComponentProvider(
+          components: el.mobileComponents,
+          child: Center(child: child),
+        ),
 );
 
 void main() {

@@ -28,16 +28,17 @@ void main() {
     data: const MediaQueryData(size: Size(600, 300)),
     child: Directionality(
       textDirection: TextDirection.ltr,
-      child: ElDesktopTheme(child: Center(child: group)),
+      child: ElComponentProvider(
+        components: el.desktopComponents,
+        child: Center(child: group),
+      ),
     ),
   );
 
-  ElRenderView itemAt(WidgetTester tester, int index) => tester
-      .renderObjectList<ElRenderView>(find.byType(ElButtonView))
-      .elementAt(index);
+  ElRenderView itemAt(WidgetTester tester, int index) =>
+      tester.renderObjectList<ElRenderView>(find.byType(ElButtonView)).elementAt(index);
 
-  ResolvedStyle committed(WidgetTester tester, int index) =>
-      itemAt(tester, index).committedResolvedStyle;
+  ResolvedStyle committed(WidgetTester tester, int index) => itemAt(tester, index).committedResolvedStyle;
 
   Future<void> tapItem(WidgetTester tester, int index) async {
     final view = itemAt(tester, index);
@@ -135,13 +136,19 @@ void main() {
 
   testWidgets('组内按钮直接跟随 normal / compact 密度', (tester) async {
     for (final compact in [false, true]) {
-      await tester.pumpWidget(host(ElView(
-        style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
-        child: ElButtonGroup(children: [
-          ElButtonGroupItem(child: '日'),
-          ElButtonGroupItem(child: '周'),
-        ]),
-      )));
+      await tester.pumpWidget(
+        host(
+          ElView(
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            child: ElButtonGroup(
+              children: [
+                ElButtonGroupItem(child: '日'),
+                ElButtonGroupItem(child: '周'),
+              ],
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(itemAt(tester, 0).size.height, compact ? 32 : 36);
       expect(itemAt(tester, 1).size.height, compact ? 32 : 36);
@@ -245,11 +252,7 @@ void main() {
     final selectedBox = committed(tester, 1);
     expect(selectedBox.inheritedText.color, isSameColorAs(primary));
     expect(selectedBox.box.backgroundColor, isSameColorAs(light9));
-    expect(
-      committed(tester, 0).box.backgroundColor,
-      isSameColorAs(const Color(0xffffffff)),
-      reason: '未选中项保持常态',
-    );
+    expect(committed(tester, 0).box.backgroundColor, isSameColorAs(const Color(0xffffffff)), reason: '未选中项保持常态');
 
     await tapItem(tester, 0);
     expect(changes, ['day'], reason: '自定义 value 生效');
@@ -334,34 +337,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      committed(tester, 1).box.backgroundColor,
-      isSameColorAs(light9),
-      reason: '初始 Obs 值选中周',
-    );
+    expect(committed(tester, 1).box.backgroundColor, isSameColorAs(light9), reason: '初始 Obs 值选中周');
 
     // 组内 → 外：点击月，Obs 被回写
     await tapItem(tester, 2);
     expect(period.value, 'month', reason: '组内切换必须回写外部 Obs');
     expect(committed(tester, 2).box.backgroundColor, isSameColorAs(light9));
-    expect(
-      committed(tester, 1).box.backgroundColor,
-      isSameColorAs(const Color(0xffffffff)),
-    );
+    expect(committed(tester, 1).box.backgroundColor, isSameColorAs(const Color(0xffffffff)));
 
     // 外 → 组内：程序改 Obs，组视觉自动跟随
     period.value = 'day';
     await tester.pumpAndSettle();
-    expect(
-      committed(tester, 0).box.backgroundColor,
-      isSameColorAs(light9),
-      reason: '外部改 Obs 组必须自动刷新',
-    );
+    expect(committed(tester, 0).box.backgroundColor, isSameColorAs(light9), reason: '外部改 Obs 组必须自动刷新');
     expect(committed(tester, 0).inheritedText.color, isSameColorAs(primary));
-    expect(
-      committed(tester, 2).box.backgroundColor,
-      isSameColorAs(const Color(0xffffffff)),
-    );
+    expect(committed(tester, 2).box.backgroundColor, isSameColorAs(const Color(0xffffffff)));
   });
 
   testWidgets('主题单选：未选中为默认外观，选中使用主题背景、边框及对比文字', (tester) async {
@@ -382,19 +371,10 @@ void main() {
     await tester.pumpAndSettle();
 
     const primary = Color(0xff409eff);
-    expect(
-      committed(tester, 0).box.backgroundColor,
-      isSameColorAs(const Color(0xffffffff)),
-    );
-    expect(
-      committed(tester, 0).box.border?.borderTop.borderColor,
-      isSameColorAs(const Color(0xffdcdfe6)),
-    );
+    expect(committed(tester, 0).box.backgroundColor, isSameColorAs(const Color(0xffffffff)));
+    expect(committed(tester, 0).box.border?.borderTop.borderColor, isSameColorAs(const Color(0xffdcdfe6)));
     expect(committed(tester, 1).box.backgroundColor, isSameColorAs(primary));
     expect(committed(tester, 1).box.border?.borderTop.borderColor, isSameColorAs(primary));
-    expect(
-      committed(tester, 1).inheritedText.color,
-      isSameColorAs(Color(0xffffffff)),
-    );
+    expect(committed(tester, 1).inheritedText.color, isSameColorAs(Color(0xffffffff)));
   });
 }

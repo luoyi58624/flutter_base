@@ -8,11 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _host(Widget child, {ElStyle? style}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
-    child: ElMobileTheme(
-      style: style,
-      child: Align(
-        alignment: .topLeft,
-        child: SizedBox(width: 320, child: child),
+    child: ElComponentProvider(
+      components: el.mobileComponents,
+      child: ElView(
+        style: style,
+        child: Align(
+          alignment: .topLeft,
+          child: SizedBox(width: 320, child: child),
+        ),
       ),
     ),
   ),

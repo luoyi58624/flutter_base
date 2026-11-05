@@ -12,18 +12,24 @@ Widget _host(Widget child, {Brightness brightness = Brightness.light}) => MediaQ
   data: const MediaQueryData(size: Size(800, 600)),
   child: Directionality(
     textDirection: .ltr,
-    child: ElDesktopTheme(
+    child: ElView(
       themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
-      child: ElView(
-        style: const ElStyle(width: 560, height: 420, alignment: .center),
-        child: ElView(style: const ElStyle(width: 360), child: child),
+      child: ElComponentProvider(
+        components: el.desktopComponents,
+        child: Overlay.wrap(
+          clipBehavior: Clip.none,
+          alwaysSizeToContent: true,
+          child: ElView(
+            style: const ElStyle(width: 560, height: 420, alignment: .center),
+            child: ElView(style: const ElStyle(width: 360), child: child),
+          ),
+        ),
       ),
     ),
   ),
 );
 
-Finder _option(int index) =>
-    find.byKey(ValueKey<(String, int)>(('el-mention-option', index)));
+Finder _option(int index) => find.byKey(ValueKey<(String, int)>(('el-mention-option', index)));
 
 Finder get _panel => find.byKey(const ValueKey<String>('el-mention-panel'));
 
@@ -68,24 +74,18 @@ void main() {
             key: ValueKey(compact),
             value: '@',
             focusNode: focusNode,
-            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
             options: [ElMentionOption(value: 'alice', label: 'Alice')],
           ),
         ),
       );
       await _focusAt(tester, focusNode, 1);
       expect(tester.getSize(_option(0)).height, compact ? 32 : 36);
-      expect(
-        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-            ?.fontSize,
-        compact ? 13 : 14,
-      );
+      expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
     }
   });
 
-  testWidgets('输入语义唯一，候选列表和 option 暴露 list/listItem/disabled/selected', (
-    tester,
-  ) async {
+  testWidgets('输入语义唯一，候选列表和 option 暴露 list/listItem/disabled/selected', (tester) async {
     final focusNode = FocusNode();
     final semantics = tester.ensureSemantics();
     addTearDown(focusNode.dispose);
@@ -98,11 +98,7 @@ void main() {
             semanticLabel: '提及输入',
             options: const [
               ElMentionOption<String>(value: 'alice', label: 'Alice'),
-              ElMentionOption<String>(
-                value: 'archived',
-                label: 'Archived',
-                disabled: true,
-              ),
+              ElMentionOption<String>(value: 'archived', label: 'Archived', disabled: true),
             ],
           ),
         ),
@@ -113,10 +109,7 @@ void main() {
       final input = tester.getSemantics(find.bySemanticsLabel('提及输入'));
       expect(input.getSemanticsData().flagsCollection.isTextField, isTrue);
 
-      final list = _scrollNode(
-        tester,
-        find.descendant(of: _panel, matching: find.byType(ElScrollView)),
-      );
+      final list = _scrollNode(tester, find.descendant(of: _panel, matching: find.byType(ElScrollView)));
       expect(list.getSemanticsData().role, SemanticsRole.list);
       final first = tester.getSemantics(_option(0)).getSemanticsData();
       expect(first.label, 'Alice');
@@ -134,9 +127,7 @@ void main() {
     }
   });
 
-  testWidgets('生产输入只有一个 ElEditableView、零 Flutter EditableText，普通输入禁止多光标', (
-    tester,
-  ) async {
+  testWidgets('生产输入只有一个 ElEditableView、零 Flutter EditableText，普通输入禁止多光标', (tester) async {
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);
     await tester.pumpWidget(
@@ -153,22 +144,14 @@ void main() {
     expect(find.byType(ElEditableView), findsOneWidget);
     expect(find.byType(EditableText), findsNothing);
 
-    final line = tester.renderObject<RenderEditableLine>(
-      find.byType(EditableLineView).first,
-    );
-    expect(
-      line.paintStateForTest.carets,
-      hasLength(1),
-      reason: '输入框场景任何时候都只能绘制一个真实 caret',
-    );
+    final line = tester.renderObject<RenderEditableLine>(find.byType(EditableLineView).first);
+    expect(line.paintStateForTest.carets, hasLength(1), reason: '输入框场景任何时候都只能绘制一个真实 caret');
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets(
-      '${brightness.name} 主题下文本/caret/selection 与 mention panel 颜色可见',
-      (tester) async {
-        final focusNode = FocusNode();
-        addTearDown(focusNode.dispose);
+    testWidgets('${brightness.name} 主题下文本/caret/selection 与 mention panel 颜色可见', (tester) async {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
 
       await tester.pumpWidget(
         _host(
@@ -182,25 +165,20 @@ void main() {
       );
       await _focusAt(tester, focusNode, 2);
 
-        final line = tester.renderObject<RenderEditableLine>(
-          find.byType(EditableLineView).first,
-        );
-        final config = line.scope.config;
-        final textColor = config.textStyle.color;
-        expect(textColor, isNotNull);
-        expect(textColor!.a, greaterThan(0));
-        expect(config.caretColor.a, greaterThan(0));
-        expect(config.selectionColor.a, greaterThan(0));
-        expect(config.caretColor, textColor);
+      final line = tester.renderObject<RenderEditableLine>(find.byType(EditableLineView).first);
+      final config = line.scope.config;
+      final textColor = config.textStyle.color;
+      expect(textColor, isNotNull);
+      expect(textColor!.a, greaterThan(0));
+      expect(config.caretColor.a, greaterThan(0));
+      expect(config.selectionColor.a, greaterThan(0));
+      expect(config.caretColor, textColor);
 
-        final panel = tester.renderObject<ElRenderView>(_panel);
-        expect(
-          panel.committedResolvedStyle.box.backgroundColor,
-          brightness == Brightness.dark
-              ? const Color.fromRGBO(43, 43, 43, 1)
-              : const Color(0xffffffff),
-        );
-      },
-    );
+      final panel = tester.renderObject<ElRenderView>(_panel);
+      expect(
+        panel.committedResolvedStyle.box.backgroundColor,
+        brightness == Brightness.dark ? const Color.fromRGBO(43, 43, 43, 1) : const Color(0xffffffff),
+      );
+    });
   }
 }

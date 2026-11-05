@@ -9,11 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _host(Widget child, {bool cupertino = false, double width = 320, ElStyle? style}) {
   final body = MediaQuery(
     data: MediaQueryData(disableAnimations: true),
-    child: ElMobileTheme(
-      style: style,
-      child: Align(
-        alignment: .topLeft,
-        child: SizedBox(width: width, child: child),
+    child: ElComponentProvider(
+      components: el.mobileComponents,
+      child: ElView(
+        style: style,
+        child: Align(
+          alignment: .topLeft,
+          child: SizedBox(width: width, child: child),
+        ),
       ),
     ),
   );
@@ -415,11 +418,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           multiple
-              ? ElListGroup<List<int>>.multi(
-                  modelValue: multiModel,
-                  onChanged: multiChanges.add,
-                  children: children,
-                )
+              ? ElListGroup<List<int>>.multi(modelValue: multiModel, onChanged: multiChanges.add, children: children)
               : ElListGroup<int?>.single(modelValue: singleModel, onChanged: singleChanges.add, children: children),
         ),
       );

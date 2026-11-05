@@ -12,4 +12,4 @@ ElProgress.circle(value: 80, status: ElProgressStatus.success);
 - `status` 为 normal / success / warning / error，`showText` 默认 true；`textBuilder` 接收归一化的 `ElProgressValue`，隐藏读数时仍保留其实例。
 - `semanticLabel` 默认“进度”；`style` 覆盖根样式，数值圆环宽高参与内部图形与读数尺寸计算。
 
-移动端已复用原进度皮肤。减少动画设置会停止不确定动画并直接更新完成量。用户通过 `ElMobileTheme` 安装实现，具体绘制和 Builder 不公开导出。
+移动端已复用原进度皮肤。减少动画设置会停止不确定动画并直接更新完成量。用户通过 `ElComponentProvider` 安装 `el.mobileComponents`，具体绘制和 Builder 不公开导出。

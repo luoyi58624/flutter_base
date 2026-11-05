@@ -29,7 +29,7 @@ Widget _alert(BuildContext context, ElAlert component) => Column(
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponents(
+    components: ElComponents(
       segmented: _segmented,
       tabs: _tabs,
       collapse: _collapse,

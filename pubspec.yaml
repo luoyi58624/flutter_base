@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  android_system_font_weight: ^0.4.0
   archive: ^4.0.9
   crypto: ^3.0.7
   logger: ^2.7.0

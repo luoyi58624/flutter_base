@@ -21,7 +21,7 @@ void main() {
     Widget host(Widget Function(BuildContext, ElSwitch, Obs<bool>) implementation) => Directionality(
       textDirection: .ltr,
       child: ElComponentProvider(
-        builders: ElComponents(switcher: implementation),
+        components: ElComponents(switcher: implementation),
         child: declaration,
       ),
     );

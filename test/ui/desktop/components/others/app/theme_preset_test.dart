@@ -96,9 +96,12 @@ void main() {
         child: StatefulBuilder(
           builder: (context, setState) {
             rebuild = setState;
-            return ElDesktopTheme(
-              style: ElStyle(vars: {ElTokens.$primary: primary}),
-              child: child,
+            return ElComponentProvider(
+              components: el.desktopComponents,
+              child: ElView(
+                style: ElStyle(vars: {ElTokens.$primary: primary}),
+                child: child,
+              ),
             );
           },
         ),
@@ -122,16 +125,19 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
-        child: ElDesktopTheme(
-          style: ElStyle(vars: {ElTokens.$primary: parentPrimary, ElTokens.$borderColor: border}),
+        child: ElComponentProvider(
+          components: el.desktopComponents,
           child: ElView(
-            style: ElStyle(vars: {ElTokens.$primary: localPrimary}),
-            child: Builder(
-              builder: (context) {
-                seenPrimary = context.elTheme.primary;
-                seenBorder = context.elTheme.borderColor;
-                return SizedBox();
-              },
+            style: ElStyle(vars: {ElTokens.$primary: parentPrimary, ElTokens.$borderColor: border}),
+            child: ElView(
+              style: ElStyle(vars: {ElTokens.$primary: localPrimary}),
+              child: Builder(
+                builder: (context) {
+                  seenPrimary = context.elTheme.primary;
+                  seenBorder = context.elTheme.borderColor;
+                  return SizedBox();
+                },
+              ),
             ),
           ),
         ),
@@ -155,13 +161,18 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ElDesktopTheme(
+          child: ElView(
             themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
-            style: ElStyle(
-              vars: {ElTokens.$primary: lightPrimary},
-              onDark: ElStyle(vars: {ElTokens.$primary: darkPrimary}),
+            child: ElComponentProvider(
+              components: el.desktopComponents,
+              child: ElView(
+                style: ElStyle(
+                  vars: {ElTokens.$primary: lightPrimary},
+                  onDark: ElStyle(vars: {ElTokens.$primary: darkPrimary}),
+                ),
+                child: child,
+              ),
             ),
-            child: child,
           ),
         ),
       );
@@ -169,28 +180,36 @@ void main() {
     }
   });
 
-  testWidgets('紧凑模式只缩小控件，页面正文与图标保持默认尺寸', (tester) async {
+  testWidgets('紧凑模式只缩小控件，正文与图标尺寸由应用设置', (tester) async {
     final bodyKey = GlobalKey();
     for (final compact in [false, true]) {
       await tester.pumpWidget(
-        ElDesktopTheme(
-          compact: compact,
-          child: ElView(key: bodyKey, child: '正文'),
+        ElComponentProvider(
+          components: el.desktopComponents,
+          child: ElView(
+            style: ElStyle(fontSize: 18, iconSize: 31, vars: {ElementPlusThemeData.$compact: compact}),
+            child: ElView(key: bodyKey, child: '正文'),
+          ),
         ),
       );
       final body = tester.renderObject<ElRenderView>(find.byKey(bodyKey));
-      expect(body.committedResolvedStyle.inheritedText.fontSize, 15);
-      expect(body.committedResolvedStyle.inheritedBox.iconSize, 24);
+      expect(body.committedResolvedStyle.inheritedText.fontSize, 18);
+      expect(body.committedResolvedStyle.inheritedBox.iconSize, 31);
     }
   });
 
   testWidgets('主题变体可级联覆盖 compact 并在明暗切换时恢复', (tester) async {
     for (final brightness in [Brightness.light, Brightness.dark, Brightness.light]) {
       await tester.pumpWidget(
-        ElDesktopTheme(
+        ElView(
           themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
-          style: ElStyle(onDark: ElStyle(vars: {ElDesktopTheme.$compact: true})),
-          child: ElButton(child: '按钮'),
+          child: ElComponentProvider(
+            components: el.desktopComponents,
+            child: ElView(
+              style: ElStyle(onDark: ElStyle(vars: {ElementPlusThemeData.$compact: true})),
+              child: ElButton(child: '按钮'),
+            ),
+          ),
         ),
       );
       await tester.pumpAndSettle();

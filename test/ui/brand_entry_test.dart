@@ -9,8 +9,20 @@ Finder _action(String label) =>
 
 void main() {
   for (final (name, host) in <(String, Widget Function(desktop.ElStyle, Widget))>[
-    ('desktop', (style, child) => desktop.ElDesktopTheme(style: style, child: child)),
-    ('mobile', (style, child) => mobile.ElMobileTheme(style: style, child: child)),
+    (
+      'desktop',
+      (style, child) => desktop.ElComponentProvider(
+        components: desktop.ElDesktopExt(desktop.el).desktopComponents,
+        child: desktop.ElView(style: style, child: child),
+      ),
+    ),
+    (
+      'mobile',
+      (style, child) => mobile.ElComponentProvider(
+        components: mobile.ElMobileExt(mobile.el).mobileComponents,
+        child: mobile.ElView(style: style, child: child),
+      ),
+    ),
   ]) {
     testWidgets('$name 主题根只应用一次用户实际样式', (tester) async {
       final childKey = GlobalKey();
@@ -22,7 +34,7 @@ void main() {
           ),
         ),
       );
-      final root = find.byType(name == 'desktop' ? desktop.ElDesktopTheme : mobile.ElMobileTheme);
+      final root = find.byType(mobile.ElComponentProvider);
       expect(tester.getSize(root), Size(36, 26));
       expect(tester.getTopLeft(find.byKey(childKey)) - tester.getTopLeft(root), Offset(8, 8));
       expect(tester.takeException(), isNull);
@@ -46,8 +58,11 @@ void main() {
       MaterialApp(
         home: Column(
           children: [
-            desktop.ElDesktopTheme(child: reader()),
-            mobile.ElMobileTheme(child: reader()),
+            desktop.ElComponentProvider(
+              components: desktop.ElDesktopExt(desktop.el).desktopComponents,
+              child: reader(),
+            ),
+            mobile.ElComponentProvider(components: mobile.ElMobileExt(mobile.el).mobileComponents, child: reader()),
           ],
         ),
       ),
@@ -72,16 +87,19 @@ void main() {
     late mobile.ElComponents outer;
     late desktop.ElComponents inner;
     late mobile.ElComponents after;
+    late Color outerPrimary, innerPrimary;
 
     await tester.pumpWidget(
       MaterialApp(
-        home: mobile.ElMobileTheme(
+        home: mobile.ElComponentProvider(
+          components: mobile.ElMobileExt(mobile.el).mobileComponents,
           child: Column(
             mainAxisSize: .min,
             children: [
               Builder(
                 builder: (context) {
                   outer = mobile.ElComponentProvider.of(context);
+                  outerPrimary = context.elTheme.primary;
                   return mobile.ElButton.toggle(
                     key: ValueKey('mobile'),
                     modelValue: mobileModel,
@@ -91,10 +109,12 @@ void main() {
                   );
                 },
               ),
-              desktop.ElDesktopTheme(
+              desktop.ElComponentProvider(
+                components: desktop.ElDesktopExt(desktop.el).desktopComponents,
                 child: Builder(
                   builder: (context) {
                     inner = desktop.ElComponentProvider.of(context);
+                    innerPrimary = context.elTheme.primary;
                     return desktop.ElButton.toggle(
                       key: ValueKey('desktop'),
                       modelValue: desktopModel,
@@ -125,6 +145,10 @@ void main() {
     expect(inner.radio, isNull);
     expect(outer.checkbox, isNull);
     expect(inner.checkbox, isNull);
+    expect(outer.listTile, isNotNull);
+    expect(inner.listTile, isNull);
+    expect(outerPrimary, outer.token!.vars![ElTokens.$primary]);
+    expect(innerPrimary, inner.token!.vars![ElTokens.$primary]);
 
     await tester.tap(_action('移动端按钮'));
     await tester.pump();

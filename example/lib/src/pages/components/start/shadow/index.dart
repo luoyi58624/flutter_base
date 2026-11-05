@@ -19,7 +19,9 @@ class ShadowPage extends HookWidget {
     final sameColor = useState(true);
     final width = useState(180.0), height = useState(120.0), radius = useState(26.0);
     final strength = useState(1.0), softness = useState(1.0);
-    final vars = mode.value == Brightness.light ? ElMobileTheme.lightVars : ElMobileTheme.darkVars;
+    final vars = mode.value == Brightness.light
+        ? el.mobileComponents.token!.vars!
+        : el.mobileComponents.token!.onDark!.vars!;
     final surface = surfaceOverride.value ?? vars[ElTokens.$cardColor] as Color;
     final background = sameColor.value
         ? surface.withValues(alpha: 1)

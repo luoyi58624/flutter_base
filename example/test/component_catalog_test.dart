@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('组件目录按第三项页面跳转，返回后仍显示目录', (tester) async {
     await tester.pumpWidget(
-      ElMobileTheme(
+      ElComponentProvider(
+        components: el.mobileComponents,
         child: Builder(
           builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: ComponentPage()),
         ),
@@ -33,7 +34,8 @@ void main() {
 
   testWidgets('移动目录沿用共用的按钮页面入口', (tester) async {
     await tester.pumpWidget(
-      ElMobileTheme(
+      ElComponentProvider(
+        components: el.mobileComponents,
         child: Builder(
           builder: (context) => MaterialApp(theme: context.elMaterialThemeData, home: ComponentPage()),
         ),

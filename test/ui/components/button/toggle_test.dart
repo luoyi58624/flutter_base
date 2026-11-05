@@ -21,7 +21,7 @@ Widget _button(BuildContext context, ElButton component, Obs<bool> model) => ElB
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponents(button: _button, checkbox: _checkbox, radio: _radio),
+    components: ElComponents(button: _button, checkbox: _checkbox, radio: _radio),
     child: ElView(
       style: ElStyle(alignment: .topLeft),
       child: child,
@@ -36,7 +36,12 @@ class _Model extends ValueNotifier<bool> {
 
 Widget _toggle(String kind, {ValueNotifier<bool>? model, ValueChanged<bool>? onChanged, bool disabled = false}) =>
     switch (kind) {
-      'button' => ElButton.toggle(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
+      'button' => ElButton.toggle(
+        key: ValueKey('control'),
+        modelValue: model,
+        onChanged: onChanged,
+        disabled: disabled,
+      ),
       'checkbox' => ElCheckbox.toggle(
         key: ValueKey('control'),
         modelValue: model,

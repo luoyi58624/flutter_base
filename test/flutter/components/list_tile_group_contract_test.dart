@@ -27,7 +27,7 @@ Widget _tile<T>(BuildContext context, ElListTile<T> component) => Text('${compon
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponents(listTileGroup: _group, listTile: _tile),
+    components: ElComponents(listTileGroup: _group, listTile: _tile),
     child: child,
   ),
 );
@@ -42,11 +42,7 @@ void main() {
     final model = ValueNotifier<_Preference?>(_Preference.system);
     addTearDown(model.dispose);
     final changes = <_Preference?>[];
-    final group = ElListGroup<_Preference?>.single(
-      modelValue: model,
-      onChanged: changes.add,
-      children: _preferences(),
-    );
+    final group = ElListGroup<_Preference?>.single(modelValue: model, onChanged: changes.add, children: _preferences());
     await tester.pumpWidget(_host(group));
     expect(find.text('_Preference?|_Preference.system'), findsOneWidget);
     expect(changes, isEmpty);

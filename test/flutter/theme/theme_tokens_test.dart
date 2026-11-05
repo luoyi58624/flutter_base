@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter.dart' show ElTokens, ElThemeContextExt;
-import 'package:flutter_base/ui.dart' show ElView, ElStyle, ElThemeMode;
-import 'package:flutter_base/mobile.dart' show ElMobileTheme;
-import 'package:flutter_base/desktop.dart' show ElDesktopTheme;
+import 'package:flutter_base/ui.dart' show ElComponentProvider, ElView, ElStyle, ElThemeMode;
+import 'package:flutter_base/mobile.dart' show el, ElMobileExt;
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'theme_tokens_readers.dart';
@@ -13,8 +13,8 @@ void main() {
       testWidgets('${mobile ? 'mobile' : 'desktop'} ${dark ? 'dark' : 'light'} 完整提供公共 token，读取不改值', (tester) async {
         final brightness = dark ? Brightness.dark : Brightness.light;
         final expected = mobile
-            ? {...ElMobileTheme.lightVars, if (dark) ...ElMobileTheme.darkVars}
-            : {...ElDesktopTheme.lightVars, if (dark) ...ElDesktopTheme.darkVars};
+            ? {...el.mobileComponents.token!.vars!, if (dark) ...el.mobileComponents.token!.onDark!.vars!}
+            : {...el.desktopComponents.token.vars!, if (dark) ...el.desktopComponents.token.onDark!.vars!};
         late Map<Object, Object> actual;
         final reader = Builder(
           builder: (context) {
@@ -25,10 +25,13 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: mobile
-                ? ElMobileTheme(brightness: brightness, child: reader)
-                : ElDesktopTheme(
+                ? ElView(
                     themeMode: ElThemeMode(brightness: brightness),
-                    child: reader,
+                    child: ElComponentProvider(components: el.mobileComponents, child: reader),
+                  )
+                : ElView(
+                    themeMode: ElThemeMode(brightness: brightness),
+                    child: ElComponentProvider(components: el.desktopComponents, child: reader),
                   ),
           ),
         );

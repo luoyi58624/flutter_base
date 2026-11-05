@@ -6,7 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _host(Widget child, {bool animations = false, double width = 320}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: !animations),
-    child: ElMobileTheme(
+    child: ElComponentProvider(
+      components: el.mobileComponents,
       child: Align(
         alignment: .topLeft,
         child: SizedBox(width: width, child: child),

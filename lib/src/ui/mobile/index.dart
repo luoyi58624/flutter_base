@@ -1,7 +1,7 @@
 /// 参照：D:/project/html/my-ui/packages/vue/index.ts；packages/core/my-ui.css。
-/// ElMobileTheme 安装移动端通用组件实现，具体皮肤仅在内部使用。
+/// 移动端组件预设及移动端独立组件。
 library;
 
-export 'cores/theme.dart' show ElMobileTheme;
 export 'components/index.dart';
+export 'components/others/bottom_tabbar/index.dart' show ElBottomTabbar;
 export 'theme/tokens.dart';

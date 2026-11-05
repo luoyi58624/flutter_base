@@ -6,7 +6,7 @@ Element Plus 桌面品牌实现，源码来自 `D:/project/my-project/el/ui/elem
 
 对应通用组件接口的实现直接放在 `components/<组件名>/index.dart`，不再按 basic、form、data 分类。组件内部的辅助文件与 README.md 保留在各自目录中；测试按相同组件层级组织。
 
-没有通用组件接口的品牌组件放在 `components/others/<组件名>/`，主题安装器位于 [others/app](components/others/app/README.md)。图标已有通用声明，当前内部实现仍保留在 icon，后续接入 Builder；表格皮肤实现已有 tableStyleBuilder 契约，保留在 table。
+桌面预设集中在 `components/index.dart`。端专属组件放在 `components/others/<组件名>/`。
 
 ## 安装
 
@@ -14,8 +14,8 @@ Element Plus 桌面品牌实现，源码来自 `D:/project/my-project/el/ui/elem
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
-ElDesktopTheme(
-  compact: false,
+ElComponentProvider(
+  components: el.desktopComponents,
   child: Column(children: [
     ElButton(onPressed: () {}, type: ElThemeType.primary, child: '保存'),
     ElInput(value: '', placeholder: '请输入名称'),
@@ -23,9 +23,7 @@ ElDesktopTheme(
 );
 ```
 
-`ElDesktopTheme` 安装明暗主题、根样式、通用组件 Builder 和输入候选层需要的官方 Overlay。它负责品牌安装；源 ElApp 的消息、通知、对话框、抽屉服务以及平台菜单注册没有迁入，也不通过应用根隐式创建。
-
-主题宿主放在 MaterialApp / WidgetsApp 的内容树中，由 Flutter 应用提供默认键盘遍历、输入与导航环境。
+桌面预设提供组件实现和明暗 token。应用提供键盘遍历、Overlay、输入和导航环境。
 
 ## 已接入的接口
 
@@ -42,24 +40,23 @@ ElDesktopTheme(
 | Select | [select](components/select/README.md) |
 | Autocomplete | [autocomplete](components/autocomplete/README.md) |
 | Mention | [mention](components/mention/README.md) |
-| FormItem | [主题登记](components/others/app/README.md)，沿用源品牌的表单项实现 |
+| FormItem | [桌面预设](components/index.dart)，沿用源品牌的表单项实现 |
 | TableStyle | [table](components/table/README.md)，仅提供表格皮肤 |
 
 Element 图标及内容归一化作为上述实现的内部依赖迁入，尚未安装通用 iconBuilder。图标字体 family 仍为 element，字体包归属改为 flutter_base。
 
 ## 主题与覆盖
 
-`ElDesktopTheme` 将默认浅色表和暗色增量注入 ElView；`context.elTheme` 从共享 `ElTokens` 键读取实际值。桌面控件只区分普通和紧凑两种密度；局部主题或密度直接通过 ElView.vars 覆写。`ElementPlusThemeData` 仍负责组件实现登记，组件的显式 style 沿源实现的合并顺序覆盖默认外观。
+`context.elTheme` 从 ElView 的级联变量按键读取实际值。局部可以通过 `ElStyle.vars` 覆写 token 或桌面密度。
 
 ```dart
-ElDesktopTheme(
-  compact: false,
-  style: ElStyle(
-    vars: {ElTokens.$primary: Color(0xff2454c6)},
-    onDark: ElStyle(vars: {ElTokens.$primary: Color(0xffaac8ff)}),
-  ),
+ElComponentProvider(
+  components: el.desktopComponents,
   child: ElView(
-    style: ElStyle(vars: {ElDesktopTheme.$compact: true}),
+    style: ElStyle(
+      vars: {ElTokens.$primary: Color(0xff2454c6), ElementPlusThemeData.$compact: true},
+      onDark: ElStyle(vars: {ElTokens.$primary: Color(0xffaac8ff)}),
+    ),
     child: ElButton(child: '紧凑按钮'),
   ),
 );

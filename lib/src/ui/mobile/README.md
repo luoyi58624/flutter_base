@@ -1,6 +1,6 @@
 # Mobile
 
-my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`ElMobileTheme` 提供明暗颜色和阴影，并安装通用组件实现；字体沿用 Flutter／平台默认，不预设字体族、回退列表或可变字体轴。
+my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`el.mobileComponents` 提供组件实现和明暗 token，应用自行配置原生字体及主题。
 
 默认外观只提供手机按压反馈，不附带鼠标悬停、键盘焦点环或宽屏桌面尺寸。需要这些外观时可由调用方显式声明 `ElStyle` 变体；键盘动作、焦点节点与辅助技术语义仍保留。
 
@@ -11,7 +11,8 @@ my-ui 移动端品牌实现，入口为 `package:flutter_base/mobile.dart`。`El
 没有通用品牌接口的组件放在 `components/others/<组件名>/`。独立的 ElBottomTabbar 保留公开入口；[Divider](components/others/divider/README.md) 的旧皮肤留在内部，不向独立的 ElDivider 基元添加品牌 Builder。
 
 ```dart
-ElMobileTheme(
+ElComponentProvider(
+  components: el.mobileComponents,
   child: Column(children: [
     ElButton(child: '保存', onPressed: () {}),
     ElTag(child: '进行中'),
@@ -39,7 +40,7 @@ ElMobileTheme(
 | ButtonGroup / Checkbox / Radio / Input / InputNumber / InputOtp / InputTag / Select / Autocomplete / Mention | 等待实现 | 当前没有对应移动端 Flutter 实现，未登记 Builder |
 | Avatar / Empty / Alert / Steps / Segmented / Collapse / Tabs / Calendar / Slider | 等待实现 | 仅提供已收敛的共同接口，未登记占位布局 |
 
-`ElMobileTheme.componentBuilders` 在内部默认配置上合并非空覆写。每个 ElMobileTheme 安装自己的完整品牌配置，未实现项不会隐式借用祖先桌面实现。
+完整移动预设使用同一套组件表和 token。要单独覆写一项，可以嵌套 `ElComponentProvider(components: ElComponents(...))`。
 
 ## 内部实现
 
@@ -47,7 +48,7 @@ ElMobileTheme(
 
 列表由通用声明与 [mobile 列表实现](components/list_tile/README.md) 组成，示例直接使用 ElListTile / ElListGroup。
 
-主题通过 `ElMobileTheme(style: ElStyle(vars: {ElTokens.$primary: color}))` 注入，后代通过 `context.elTheme.primary` 按键读取；局部覆写直接使用 ElView.vars。外部 notifier 与焦点节点仍按原有生命周期管理。现有颜色、几何、事件测试保留；本次验证为无头测试，不代表手机视觉和输入设备验收。
+后代通过 `context.elTheme.primary` 按键读取主色。仅局部覆写 token 时，直接使用 `ElView(style: ElStyle(vars: {ElTokens.$primary: color}))`。
 
 背景颜色按用途独立：`bgColor` 为页面背景（浅色 `#EEEEEE`），`cardColor` 为卡片与列表组背景（浅色白色），`cardPressColor` 为卡片、列表行和菜单项的按压背景（浅色 `#E0E0E0`），`dividerColor` 为分隔线（浅色 `#E0E0E0`）。`borderColor` 仅控制控件边框；`press` 继续用于其他控件。各 token 均可独立级联覆写，暗色表分别声明默认值。
 

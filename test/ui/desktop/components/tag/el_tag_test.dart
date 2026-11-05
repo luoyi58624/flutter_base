@@ -11,22 +11,17 @@ Widget _host(Widget child, {Brightness brightness = .light}) => WidgetsApp(
     autofocus: true,
     child: Directionality(
       textDirection: .ltr,
-      child: ElDesktopTheme(
+      child: ElView(
         themeMode: ElThemeMode(brightness: brightness),
-        child: child,
+        child: ElComponentProvider(components: el.desktopComponents, child: child),
       ),
     ),
   ),
 );
-Finder _body() => find
-    .descendant(of: find.byType(ElTag), matching: find.byType(ElView))
-    .at(1);
-ElRenderView _render(WidgetTester tester) =>
-    tester.renderObject<ElRenderView>(_body());
-Color? _bg(WidgetTester tester) =>
-    _render(tester).committedResolvedStyle.box.backgroundColor;
-Color? _border(WidgetTester tester) =>
-    _render(tester).committedResolvedStyle.box.border?.borderTop.borderColor;
+Finder _body() => find.descendant(of: find.byType(ElTag), matching: find.byType(ElView)).at(1);
+ElRenderView _render(WidgetTester tester) => tester.renderObject<ElRenderView>(_body());
+Color? _bg(WidgetTester tester) => _render(tester).committedResolvedStyle.box.backgroundColor;
+Color? _border(WidgetTester tester) => _render(tester).committedResolvedStyle.box.border?.borderTop.borderColor;
 const _white = Color(0xffffffff);
 const _primary = Color(0xff409eff);
 const _info = Color(0xff909399);
@@ -48,43 +43,29 @@ void main() {
     await tester.pumpWidget(_host(ElTag(effect: .dark, child: '标签')));
     expect(_bg(tester), _primary);
     expect(_render(tester).committedResolvedStyle.inheritedText.color, _white);
-    await tester.pumpWidget(
-      _host(ElTag(effect: .plain, type: .success, child: '标签')),
-    );
+    await tester.pumpWidget(_host(ElTag(effect: .plain, type: .success, child: '标签')));
     await tester.pumpAndSettle();
     expect(_bg(tester), const Color(0xffffffff));
     expect(_border(tester), _success.mix(_white, 80));
     await tester.pumpWidget(_host(ElTag(hit: true, round: true, child: '标签')));
     await tester.pumpAndSettle();
     expect(_border(tester), _primary);
-    expect(
-      _render(tester).style!.borderRadius,
-      BorderRadius.all(Radius.circular(9999)),
-    );
+    expect(_render(tester).style!.borderRadius, BorderRadius.all(Radius.circular(9999)));
   });
 
   testWidgets('normal / compact 经局部变量传递，关闭图标保持独立尺寸', (tester) async {
-    for (final (compact, height, icon) in [
-      (true, 24.0, 14.0),
-      (false, 26.0, 14.0),
-    ]) {
+    for (final (compact, height, icon) in [(true, 24.0, 14.0), (false, 26.0, 14.0)]) {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
             child: ElTag(closable: true, style: ElStyle(), child: '标签'),
           ),
         ),
       );
       await tester.pumpAndSettle();
       expect(_render(tester).style!.height, height);
-      expect(
-        tester
-            .renderObject<ElRenderView>(find.byType(ElButtonView))
-            .style!
-            .width,
-        icon,
-      );
+      expect(tester.renderObject<ElRenderView>(find.byType(ElButtonView)).style!.width, icon);
     }
   });
 
@@ -124,16 +105,7 @@ void main() {
   testWidgets('关闭按钮有独立语义与焦点', (tester) async {
     final semantics = tester.ensureSemantics();
     try {
-      await tester.pumpWidget(
-        _host(
-          ElTag(
-            closable: true,
-            closeSemanticLabel: '移除标签',
-            onClose: () {},
-            child: '标签',
-          ),
-        ),
-      );
+      await tester.pumpWidget(_host(ElTag(closable: true, closeSemanticLabel: '移除标签', onClose: () {}, child: '标签')));
       expect(
         tester.getSemantics(find.byType(ElButtonView)),
         matchesSemantics(
@@ -152,9 +124,7 @@ void main() {
 
   testWidgets('toggle 默认关闭，点击自持并使用主题色', (tester) async {
     final changes = <bool>[];
-    await tester.pumpWidget(
-      _host(ElTag.toggle(type: .success, onChanged: changes.add, child: '可选')),
-    );
+    await tester.pumpWidget(_host(ElTag.toggle(type: .success, onChanged: changes.add, child: '可选')));
     expect(_bg(tester), _info.mix(_white, 90));
     await tester.tap(_body(), kind: .mouse);
     await tester.pumpAndSettle();
@@ -167,18 +137,12 @@ void main() {
 
   testWidgets('value 回灌不产生回调，modelValue 双向同步', (tester) async {
     final changes = <bool>[];
-    await tester.pumpWidget(
-      _host(ElTag.toggle(value: false, onChanged: changes.add, child: '可选')),
-    );
-    await tester.pumpWidget(
-      _host(ElTag.toggle(value: true, onChanged: changes.add, child: '可选')),
-    );
+    await tester.pumpWidget(_host(ElTag.toggle(value: false, onChanged: changes.add, child: '可选')));
+    await tester.pumpWidget(_host(ElTag.toggle(value: true, onChanged: changes.add, child: '可选')));
     expect(changes, isEmpty);
     final model = ValueNotifier(false);
     addTearDown(model.dispose);
-    await tester.pumpWidget(
-      _host(ElTag.toggle(modelValue: model, child: '可选')),
-    );
+    await tester.pumpWidget(_host(ElTag.toggle(modelValue: model, child: '可选')));
     await tester.tap(_body(), kind: .mouse);
     await tester.pumpAndSettle();
     expect(model.value, true);
@@ -212,11 +176,7 @@ void main() {
 
   testWidgets('禁用阻止切换，preventDefault 可接管点击', (tester) async {
     var changed = 0;
-    await tester.pumpWidget(
-      _host(
-        ElTag.toggle(disabled: true, onChanged: (_) => changed++, child: '可选'),
-      ),
-    );
+    await tester.pumpWidget(_host(ElTag.toggle(disabled: true, onChanged: (_) => changed++, child: '可选')));
     await tester.tap(_body(), warnIfMissed: false);
     await tester.pump();
     expect(changed, 0);
@@ -242,9 +202,7 @@ void main() {
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
-          builders: ElComponents(
-            tag: (_, tag) => ElView(child: tag.selected ? '开' : '关'),
-          ),
+          components: ElComponents(tag: (_, tag) => ElView(child: tag.selected ? '开' : '关')),
           child: ElTag.toggle(modelValue: model, focusNode: focus),
         ),
       ),
@@ -286,10 +244,7 @@ void main() {
   testWidgets('暗色主题保持可读的浅底与主题色', (tester) async {
     await tester.pumpWidget(_host(ElTag(child: '标签'), brightness: .dark));
     expect(_bg(tester), isNot(_primary.mix(_white, 90)));
-    expect(
-      _render(tester).committedResolvedStyle.inheritedText.color,
-      _primary,
-    );
+    expect(_render(tester).committedResolvedStyle.inheritedText.color, _primary);
     expect(_border(tester), isNot(_bg(tester)));
   });
 

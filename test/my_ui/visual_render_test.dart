@@ -161,9 +161,12 @@ List<Widget> _samples(String id) => switch (id) {
           _record(
             '${size.toInt()}-${status.name}',
             Builder(
-              builder: (context) => ElMobileTheme(
-                style: ElStyle(vars: {skin.Progress.$size: size}),
-                child: skin.Progress(value: 100, type: skin.ProgressType.circle, status: status),
+              builder: (context) => ElComponentProvider(
+                components: el.mobileComponents,
+                child: ElView(
+                  style: ElStyle(vars: {skin.Progress.$size: size}),
+                  child: skin.Progress(value: 100, type: skin.ProgressType.circle, status: status),
+                ),
               ),
             ),
           ),
@@ -209,7 +212,10 @@ void main() {
         ]) {
           _keys.clear();
           final boundaryKey = GlobalKey();
-          final data = {...ElMobileTheme.lightVars, if (brightness == Brightness.dark) ...ElMobileTheme.darkVars};
+          final data = {
+            ...el.mobileComponents.token!.vars!,
+            if (brightness == Brightness.dark) ...el.mobileComponents.token!.onDark!.vars!,
+          };
           _labelColor = (data[ElTokens.$textSecondary] as Color);
           await tester.pumpWidget(
             MaterialApp(
@@ -223,42 +229,45 @@ void main() {
                   disableAnimations: true,
                   platformBrightness: brightness,
                 ),
-                child: ElMobileTheme(
-                  brightness: brightness,
-                  child: RepaintBoundary(
-                    key: boundaryKey,
-                    child: ColoredBox(
-                      color: (data[ElTokens.$bgColor] as Color),
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: SizedBox(
-                            width: 720,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  height: 32,
-                                  child: Text(
-                                    '${id[0].toUpperCase()}${id.substring(1)}',
-                                    style: TextStyle(fontSize: 20, height: 1.6, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 16,
-                                  child: Text(
-                                    '${brightness.name} / ${width.toInt()} logical px / DPR 1',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      height: 16 / 12,
-                                      color: (data[ElTokens.$textSecondary] as Color),
+                child: ElView(
+                  themeMode: ElThemeMode(brightness: brightness),
+                  child: ElComponentProvider(
+                    components: el.mobileComponents,
+                    child: RepaintBoundary(
+                      key: boundaryKey,
+                      child: ColoredBox(
+                        color: (data[ElTokens.$bgColor] as Color),
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: SizedBox(
+                              width: 720,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    height: 32,
+                                    child: Text(
+                                      '${id[0].toUpperCase()}${id.substring(1)}',
+                                      style: TextStyle(fontSize: 20, height: 1.6, fontWeight: FontWeight.w600),
                                     ),
                                   ),
-                                ),
-                                SizedBox(height: 24),
-                                ..._samples(id),
-                              ],
+                                  SizedBox(
+                                    height: 16,
+                                    child: Text(
+                                      '${brightness.name} / ${width.toInt()} logical px / DPR 1',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        height: 16 / 12,
+                                        color: (data[ElTokens.$textSecondary] as Color),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 24),
+                                  ..._samples(id),
+                                ],
+                              ),
                             ),
                           ),
                         ),

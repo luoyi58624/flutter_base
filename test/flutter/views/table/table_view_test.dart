@@ -767,7 +767,8 @@ void main() {
           title: '名称',
           prop: 'name',
           headerBuilder: (context, header) => '列级表头',
-          cellStyleBuilder: (cell) => cell.row['hot'] == true ? const ElStyle(backgroundColor: Color(0xffffcc66)) : null,
+          cellStyleBuilder: (cell) =>
+              cell.row['hot'] == true ? const ElStyle(backgroundColor: Color(0xffffcc66)) : null,
         ),
       ],
     );
@@ -1583,7 +1584,7 @@ void main() {
 
     await tester.pumpWidget(
       ElComponentProvider(
-        builders: const ElComponents(tableStyle: _themeTableStyleOf),
+        components: const ElComponents(tableStyle: _themeTableStyleOf),
         child: bareHost(ElTable(controller: controller)),
       ),
     );
@@ -1608,7 +1609,7 @@ void main() {
 
     await tester.pumpWidget(
       ElComponentProvider(
-        builders: const ElComponents(tableStyle: _themeTableStyleOf),
+        components: const ElComponents(tableStyle: _themeTableStyleOf),
         child: bareHost(ElTable(controller: controller, style: const _ExplicitTableStyle())),
       ),
     );

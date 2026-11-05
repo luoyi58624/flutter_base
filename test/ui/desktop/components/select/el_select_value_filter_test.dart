@@ -1,11 +1,7 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter/services.dart'
-    show
-        FilteringTextInputFormatter,
-        TextEditingValue,
-        TextSelection,
-        LogicalKeyboardKey;
+    show FilteringTextInputFormatter, TextEditingValue, TextSelection, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,18 +10,21 @@ Widget _host(Widget child) {
     data: const MediaQueryData(size: Size(800, 600)),
     child: Directionality(
       textDirection: .ltr,
-      child: ElDesktopTheme(
-        child: Center(
-          child: ElView(style: const ElStyle(width: 260), child: child),
+      child: ElComponentProvider(
+        components: el.desktopComponents,
+        child: Overlay.wrap(
+          clipBehavior: Clip.none,
+          alwaysSizeToContent: true,
+          child: Center(
+            child: ElView(style: const ElStyle(width: 260), child: child),
+          ),
         ),
       ),
     ),
   );
 }
 
-Finder _label(String value) => find.byWidgetPredicate(
-  (widget) => widget is ElView && widget.child == value,
-);
+Finder _label(String value) => find.byWidgetPredicate((widget) => widget is ElView && widget.child == value);
 
 Future<void> _open(WidgetTester tester) async {
   await tester.tap(find.byType(ElEditableView));
@@ -35,9 +34,7 @@ Future<void> _open(WidgetTester tester) async {
 }
 
 Future<void> _query(WidgetTester tester, String value) async {
-  final controller = tester
-      .widget<ElEditableView>(find.byType(ElEditableView))
-      .controller!;
+  final controller = tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!;
   controller.replaceRange(0, controller.document.length, value);
   expect(controller.text, value, reason: '测试输入应已写入 editable controller');
   await tester.pump();
@@ -54,18 +51,14 @@ void main() {
           ElSelect<String>(
             key: ValueKey(compact),
             value: 'a',
-            style: ElStyle(vars: {ElDesktopTheme.$compact: compact}),
+            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
             children: [ElLabelModel('Alpha', 'a')],
           ),
         ),
       );
       await _open(tester);
       expect(tester.getSize(option).height, compact ? 32 : 36);
-      expect(
-        editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-            ?.fontSize,
-        compact ? 13 : 14,
-      );
+      expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, compact ? 13 : 14);
     }
 
     await tester.pumpWidget(
@@ -73,11 +66,7 @@ void main() {
         ElSelect<String>(
           key: ValueKey('override'),
           value: 'a',
-          style: ElStyle(
-            vars: {ElDesktopTheme.$compact: true},
-            fontSize: 18,
-            iconSize: 17,
-          ),
+          style: ElStyle(vars: {ElementPlusThemeData.$compact: true}, fontSize: 18, iconSize: 17),
           optionStyle: ElStyle(height: 47),
           children: [ElLabelModel('Alpha', 'a')],
         ),
@@ -85,44 +74,18 @@ void main() {
     );
     await _open(tester);
     expect(tester.getSize(option).height, 47);
-    expect(
-      editableTextStyleOf(tester.element(find.byType(ElEditableView)))
-          ?.fontSize,
-      18,
-    );
-    expect(
-      tester
-          .getSize(
-            find.byWidgetPredicate(
-              (widget) => widget is ElView && widget.child is IconData,
-            ),
-          )
-          .width,
-      17,
-    );
+    expect(editableTextStyleOf(tester.element(find.byType(ElEditableView)))?.fontSize, 18);
+    expect(tester.getSize(find.byWidgetPredicate((widget) => widget is ElView && widget.child is IconData)).width, 17);
   });
 
   test('option 校验：label 非空、value 唯一，null 简写仅接受 label is T', () {
+    expect(() => ElSelect<int>(value: 1, children: [ElLabelModel<int>('一')]), throwsFlutterError);
     expect(
-      () => ElSelect<int>(value: 1, children: [ElLabelModel<int>('一')]),
+      () => ElSelect<int>(value: 1, children: [ElLabelModel<int>('一', 1), ElLabelModel<int>('壹', 1)]),
       throwsFlutterError,
     );
-    expect(
-      () => ElSelect<int>(
-        value: 1,
-        children: [ElLabelModel<int>('一', 1), ElLabelModel<int>('壹', 1)],
-      ),
-      throwsFlutterError,
-    );
-    expect(
-      () =>
-          ElSelect<String>(value: 'a', children: [ElLabelModel<String>('   ')]),
-      throwsFlutterError,
-    );
-    expect(
-      () => ElSelect<String>(value: 'a', children: [ElLabelModel<String>('a')]),
-      returnsNormally,
-    );
+    expect(() => ElSelect<String>(value: 'a', children: [ElLabelModel<String>('   ')]), throwsFlutterError);
+    expect(() => ElSelect<String>(value: 'a', children: [ElLabelModel<String>('a')]), returnsNormally);
   });
 
   testWidgets('共享选择项保留 Widget 内容和禁用项，键盘跳过禁用值', (tester) async {
@@ -134,12 +97,7 @@ void main() {
           onChanged: changes.add,
           children: [
             ElLabelModel('A', 'a'),
-            ElSelectOption(
-              ElView(child: '自定义禁用项'),
-              'b',
-              disabled: true,
-              semanticLabel: 'B',
-            ),
+            ElSelectOption(ElView(child: '自定义禁用项'), 'b', disabled: true, semanticLabel: 'B'),
             ElSelectOption('C', 'c'),
           ],
         ),
@@ -147,10 +105,7 @@ void main() {
     );
     await _open(tester);
     expect(_label('自定义禁用项'), findsOneWidget);
-    await tester.tap(
-      find.byKey(ValueKey<(String, int)>(('el-select-option', 1))),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.byKey(ValueKey<(String, int)>(('el-select-option', 1))), warnIfMissed: false);
     await tester.pump();
     expect(changes, isEmpty);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -159,9 +114,7 @@ void main() {
     expect(changes, ['c']);
   });
 
-  testWidgets('筛选 query 不污染 typed value 与表单字段，选择只提交 option value', (
-    tester,
-  ) async {
+  testWidgets('筛选 query 不污染 typed value 与表单字段，选择只提交 option value', (tester) async {
     final model = Obs<Map<String, dynamic>>({'city': 1});
     addTearDown(model.dispose);
     await tester.pumpWidget(
@@ -170,10 +123,7 @@ void main() {
           modelValue: model,
           child: ElFormItem(
             prop: 'city',
-            child: ElSelect<int>(
-              enableFilter: true,
-              children: [ElLabelModel('杭州', 1), ElLabelModel('上海', 2)],
-            ),
+            child: ElSelect<int>(enableFilter: true, children: [ElLabelModel('杭州', 1), ElLabelModel('上海', 2)]),
           ),
         ),
       ),
@@ -191,11 +141,7 @@ void main() {
     await _query(tester, '上');
 
     expect(model.value['city'], 1);
-    expect(
-      model.value['city'],
-      isA<int>(),
-      reason: 'query 只能筛选，不能经内层 ElInput 抢写表单 prop',
-    );
+    expect(model.value['city'], isA<int>(), reason: 'query 只能筛选，不能经内层 ElInput 抢写表单 prop');
     expect(_label('杭州'), findsNothing);
     expect(_label('上海'), findsOneWidget);
 
@@ -214,11 +160,7 @@ void main() {
           return _host(
             ElSelect<int>(
               value: value,
-              children: [
-                ElLabelModel('一', 1),
-                ElLabelModel('二', 2),
-                ElLabelModel('三', 3),
-              ],
+              children: [ElLabelModel('一', 1), ElLabelModel('二', 2), ElLabelModel('三', 3)],
               onChanged: (next) {
                 changes.add(next);
                 setState(() => value = next);
@@ -309,10 +251,7 @@ void main() {
                 prop: 'city',
                 child: ElSelect<String>(
                   enableFilter: true,
-                  children: [
-                    ElLabelModel('杭州', 'hz'),
-                    ElLabelModel('上海', 'sh'),
-                  ],
+                  children: [ElLabelModel('杭州', 'hz'), ElLabelModel('上海', 'sh')],
                 ),
               );
             },
@@ -325,11 +264,7 @@ void main() {
     final gesture = await tester.createGesture();
     await gesture.down(tester.getCenter(_label('杭州')));
     await tester.pump(const Duration(milliseconds: 120));
-    expect(
-      _label('杭州'),
-      findsOneWidget,
-      reason: 'pointer up 前菜单不得因 trigger blur 提前摘除',
-    );
+    expect(_label('杭州'), findsOneWidget, reason: 'pointer up 前菜单不得因 trigger blur 提前摘除');
     await gesture.up();
     await tester.pump();
     await gesture.removePointer();
@@ -344,10 +279,7 @@ void main() {
         ElSelect<String>(
           value: 'alpha',
           enableFilter: true,
-          children: [
-            ElLabelModel('Alpha', 'alpha'),
-            ElLabelModel('Beta', 'beta'),
-          ],
+          children: [ElLabelModel('Alpha', 'alpha'), ElLabelModel('Beta', 'beta')],
         ),
       ),
     );
@@ -366,10 +298,7 @@ void main() {
             calls.add('${option.value}:$query');
             return option.value == 'beta';
           },
-          children: [
-            ElLabelModel('Alpha', 'alpha'),
-            ElLabelModel('Beta', 'beta'),
-          ],
+          children: [ElLabelModel('Alpha', 'alpha'), ElLabelModel('Beta', 'beta')],
         ),
       ),
     );
@@ -380,36 +309,26 @@ void main() {
     expect(calls, containsAll(<String>['alpha:原样 Query', 'beta:原样 Query']));
   });
 
-  testWidgets('inputFormatters 经内部 ElInput 的 editable 事务过滤 query', (
-    tester,
-  ) async {
+  testWidgets('inputFormatters 经内部 ElInput 的 editable 事务过滤 query', (tester) async {
     await tester.pumpWidget(
       _host(
         ElSelect<String>(
           value: 'alpha',
           enableFilter: true,
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[A-Z]'))],
-          children: [
-            ElLabelModel('ALPHA', 'alpha'),
-            ElLabelModel('BETA', 'beta'),
-          ],
+          children: [ElLabelModel('ALPHA', 'alpha'), ElLabelModel('BETA', 'beta')],
         ),
       ),
     );
     await _open(tester);
 
     tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'aALP1',
-        selection: TextSelection.collapsed(offset: 5),
-      ),
+      const TextEditingValue(text: 'aALP1', selection: TextSelection.collapsed(offset: 5)),
     );
     await tester.pump(const Duration(milliseconds: 40));
     await tester.pump();
 
-    final controller = tester
-        .widget<ElEditableView>(find.byType(ElEditableView))
-        .controller!;
+    final controller = tester.widget<ElEditableView>(find.byType(ElEditableView)).controller!;
     expect(controller.text, 'ALP');
     expect(_label('ALPHA'), findsOneWidget);
     expect(_label('BETA'), findsNothing);

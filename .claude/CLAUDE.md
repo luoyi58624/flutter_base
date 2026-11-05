@@ -4,7 +4,7 @@
 
 ## 代码规范
 
-- 对外导出的类添加 El 前缀，例如：ElMobileTheme、ElButton；具体实现不从公共入口导出，内部使用普通命名，能私有的类保持私有
+- 对外导出的类添加 El 前缀，例如：ElComponentProvider、ElButton；具体实现不从公共入口导出，内部使用普通命名，能私有的类保持私有
 - 私有类正常编写，不需要任何前缀，例如：_ButtonState，禁止 _ElButtonState
 - 编写 Render 类，应该写：ElRenderBox，禁止写：RenderElBox
 - 文件命名禁止添加前缀，应该写：xxxx.dart，禁止写：el_xxxx.dart
@@ -12,7 +12,7 @@
 - 尽可能使用 dot 简写；ElStyle.copyWith 等生成方法的参数是 Object?，无法推断目标类型时显式写构造类型，不能机械地对所有 copyWith 禁用简写
 - 对外 API 使用中文 `///` 文档注释，一句话说明用途，关键决策解释原因；私有 API 只注释重要逻辑
 - 尽可能使用 HookWidget 编写代码，代码保证简洁
-- 默认沿用 Flutter／平台字体，不预设字体族或字体回退列表；ElMobileTheme 自动应用 android_system_font_weight 返回的系统字重轴，插件返回 null 时保留默认，调用方显式配置优先；不自行推算或叠加字重轴
+- 应用负责原生文字排版和全局字体；ElComponentProvider 仅安装组件实现与 token，调用方可用 ElView 设置 El 子树的文字样式
 - API 权威来源是当前源码；文档与源码冲突时以源码为准并同步修正文档，不引用旧项目才有的 API
 - 外观优先由 ElStyle 声明，状态变体、级联、过渡和变量交给现有引擎承担；能由引擎处理的纯样式变化，不额外触发 Widget.build
 - 样式确实决定 Widget 结构或行为，或现有引擎无法承接派生值时，才在 Widget 层订阅，并说明原因；主题变量在最近消费点通过 context.elTheme 或 ElView.of(context).getVar 按键读取，不提前订阅后层层下传
@@ -35,7 +35,7 @@
 
 - lib/src/flutter/ 承担通用组件声明、视图、事件、焦点、滚动、布局等机制；lib/src/ui/desktop/ 与 lib/src/ui/mobile/ 承担各端具体外观
 - 用户通过 flutter_base.dart、desktop.dart、mobile.dart 等公共入口使用接口；具体组件、Builder 和辅助函数留在 src 内部，生产示例不依赖具体实现
-- flutter/commons/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；ElDesktopTheme / ElMobileTheme 各自在品牌目录定义完整默认值和暗色增量，通过 ElView 注入及级联覆写，不另建主题继承协议
+- flutter/commons/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；桌面、移动预设在 ElComponents 中绑定组件实现和 token。ElComponentProvider 内部用 ElView 级联基础变量与暗色差量，完整预设按品牌整体替换，普通局部覆写继承其余实现。原生主题和文字排版由应用管理
 - 变量键不限制 String 或 -- 前缀，使用能区分身份的 Object 键；暗色等变体由 ElStyle 级联覆写
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
 - 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；两端保留必要的键盘操作、外借焦点节点和辅助技术语义

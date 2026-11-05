@@ -21,8 +21,8 @@ extension ElViewContextExt on BuildContext {
 extension ElThemeColorExt on BuildContext {
   /// 当前组件样式中的密度优先，其次继承祖先变量，未声明时使用普通密度。
   bool elComponentCompact([ElStyle? style]) {
-    final declared = style?.vars?[ElDesktopTheme.$compact];
-    return declared is bool ? declared : (ElView.maybeOf(this)?.getVar<bool>(ElDesktopTheme.$compact) ?? false);
+    final declared = style?.vars?[ElementPlusThemeData.$compact];
+    return declared is bool ? declared : (ElView.maybeOf(this)?.getVar<bool>(ElementPlusThemeData.$compact) ?? false);
   }
 
   /// 当前主题的默认边框。

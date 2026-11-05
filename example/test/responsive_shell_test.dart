@@ -30,7 +30,7 @@ void main() {
     final scroll = tester.state<ElScrollViewState>(home);
     expect(sidebar, findsOneWidget);
     expect(bottom, findsNothing);
-    expect(find.byType(ElMobileTheme), findsOneWidget);
+    expect(find.byType(ElComponentProvider), findsOneWidget);
     expect(tester.getTopLeft(first).dx, greaterThan(tester.getRect(sidebar).right));
     expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, 1));
     expect(tester.getTopLeft(second).dx, greaterThan(tester.getRect(first).right));

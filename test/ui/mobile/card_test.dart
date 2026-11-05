@@ -5,11 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _host(ElCard card, {Brightness brightness = Brightness.light}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
-    child: ElMobileTheme(
-      brightness: brightness,
-      child: Align(
-        alignment: .topLeft,
-        child: SizedBox(width: 320, child: card),
+    child: ElView(
+      themeMode: ElThemeMode(brightness: brightness),
+      child: ElComponentProvider(
+        components: el.mobileComponents,
+        child: Align(
+          alignment: .topLeft,
+          child: SizedBox(width: 320, child: card),
+        ),
       ),
     ),
   ),
@@ -24,7 +27,7 @@ void main() {
   test('移动端五档阴影只使用柔和投影，按层级增加范围和下移距离', () {
     final keys = [ElTokens.$shadowXs, ElTokens.$shadowSm, ElTokens.$shadowMd, ElTokens.$shadowLg, ElTokens.$shadowXl];
     for (final dark in [false, true]) {
-      final tokens = {...ElMobileTheme.lightVars, if (dark) ...ElMobileTheme.darkVars};
+      final tokens = {...el.mobileComponents.token!.vars!, if (dark) ...el.mobileComponents.token!.onDark!.vars!};
       var previousBlur = 0.0;
       var previousOffset = 0.0;
       for (final key in keys) {
@@ -68,7 +71,7 @@ void main() {
       await tester.pump(Duration(milliseconds: 100));
       expect(
         render.committedResolvedStyle.box.backgroundColor,
-        custom ? Colors.purple : ElMobileTheme.lightVars[ElTokens.$cardPressColor],
+        custom ? Colors.purple : el.mobileComponents.token!.vars![ElTokens.$cardPressColor],
       );
       expect(render.committedResolvedStyle.box.transform, ElTransform.scale(custom ? .9 : .96));
       await touch.cancel();
@@ -81,7 +84,10 @@ void main() {
 
   testWidgets('shadowLevel 读取品牌五档明暗阴影，style 可以覆盖和移除', (tester) async {
     for (final brightness in Brightness.values) {
-      final tokens = {...ElMobileTheme.lightVars, if (brightness == Brightness.dark) ...ElMobileTheme.darkVars};
+      final tokens = {
+        ...el.mobileComponents.token!.vars!,
+        if (brightness == Brightness.dark) ...el.mobileComponents.token!.onDark!.vars!,
+      };
       final levels = {
         ElLevelType.xs: ElTokens.$shadowXs,
         ElLevelType.sm: ElTokens.$shadowSm,
@@ -149,7 +155,7 @@ void main() {
     final render = tester.renderObject<ElRenderView>(_surface());
     final touch = await tester.startGesture(tester.getCenter(_surface()));
     await tester.pump(Duration(milliseconds: 100));
-    expect(render.committedResolvedStyle.box.backgroundColor, ElMobileTheme.lightVars[ElTokens.$cardColor]);
+    expect(render.committedResolvedStyle.box.backgroundColor, el.mobileComponents.token!.vars![ElTokens.$cardColor]);
     await tester.pump(Duration(milliseconds: 60));
     expect(render.committedResolvedStyle.box.transform, ElTransform.scale(.96));
     await touch.up();

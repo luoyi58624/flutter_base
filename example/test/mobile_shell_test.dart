@@ -31,7 +31,7 @@ void main() {
 
   testWidgets('四栏使用移动主题并在我的保留旧示例入口', (tester) async {
     await _open(tester);
-    expect(find.byType(ElMobileTheme), findsOneWidget);
+    expect(find.byType(ElComponentProvider), findsOneWidget);
     expect(find.byType(ElScrollView), findsWidgets);
     for (final tab in ['分类', '消息', '我的']) {
       await tester.tap(find.byKey(ValueKey('tab-$tab')));

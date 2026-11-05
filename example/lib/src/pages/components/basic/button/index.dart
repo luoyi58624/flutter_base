@@ -3,8 +3,7 @@ import 'package:flutter_base/mobile.dart';
 
 /// 按钮示例页：按设计稿的「左侧固定宽标题 + 右侧一排按钮」版式分组演示 [ElButton]。
 ///
-/// 桌面与移动目录共用此页，按钮外观由外层主题注入；当前示例入口使用 ElMobileTheme，
-/// 所以看到的是移动端品牌外观：语义色取设计稿的亮色，info 是浅蓝底配蓝字。
+/// 桌面与移动目录共用此页，按钮外观由外层组件预设注入。
 class ButtonPage extends HookWidget {
   /// 创建按钮示例页。
   const ButtonPage({super.key});
