@@ -2,6 +2,7 @@ import '../../support/overlay.dart';
 import '../../support/portal.dart';
 
 import 'package:flutter_base/ui.dart';
+import 'package:flutter_base/src/flutter/views/view/style/style_context.dart' show StyleDependencyScope;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,11 +15,13 @@ Widget _host(Widget child) => Directionality(
 );
 
 void main() {
-  testWidgets('全局仅注入一个继承节点，没有隐式局部主题', (tester) async {
+  testWidgets('组件配置仅注入一个继承节点，样式作用域由 Provider 提供', (tester) async {
     final data = ElComponents(button: _a);
+    final providerKey = GlobalKey();
     await tester.pumpWidget(
       _host(
         ElComponentProvider(
+          key: providerKey,
           components: data,
           child: Builder(
             builder: (context) {
@@ -30,8 +33,15 @@ void main() {
         ),
       ),
     );
-    // ElView 会提供样式继承节点，组件主题仍必须只注册一个。
-    expect(find.byWidgetPredicate((widget) => widget is InheritedTheme), findsNWidgets(2));
+    // 样式作用域不算组件配置节点，组件配置仍必须只注册一个。
+    expect(
+      find.byWidgetPredicate((widget) => widget is InheritedTheme && widget is! StyleDependencyScope),
+      findsOneWidget,
+    );
+    expect(
+      StyleDependencyScope.maybeHostOf(tester.element(find.byType(ElButton))),
+      same(tester.renderObject<ElRenderView>(find.byKey(providerKey))),
+    );
     expect(find.byType(ElComponentProvider), findsOneWidget);
     expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == 'A'), findsOneWidget);
   });

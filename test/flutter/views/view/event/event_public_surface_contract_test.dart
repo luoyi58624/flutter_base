@@ -9,15 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('事件模块的导出声明使用 El 前缀，内部声明不使用 El 前缀', () {
     final exportedNames = _eventExportNames().toSet();
-    final declarations = RegExp(
-      r'^\s*(?:(?:abstract|final|base|sealed|interface)\s+)*(?:class|enum|typedef|mixin|extension(?:\s+type)?)\s+([A-Za-z_$][\w$]*)',
-      multiLine: true,
-    );
     final violations = <String>[];
     for (final file in Directory('lib/src/flutter/views/view/event').listSync().whereType<File>()) {
       if (!file.path.endsWith('.dart')) continue;
-      for (final declaration in declarations.allMatches(file.readAsStringSync())) {
-        final name = declaration.group(1)!;
+      for (final name in _declarationNames(file.readAsStringSync())) {
         if (name.startsWith('_')) continue;
         if (exportedNames.contains(name) != name.startsWith('El')) {
           violations.add('${file.path}: $name');
@@ -341,20 +336,40 @@ void main() {
   });
 }
 
-/// 解析事件主入口的唯一显式导出块，供命名与导出名单合同共用。
+/// 沿当前公共入口核对事件库，收集自身声明、生成扩展和显式转导出。
 List<String> _eventExportNames() {
-  final source = File('lib/ui.dart').readAsStringSync();
-  final exports = RegExp(r"export\s+'src/flutter/views/view/event/[^']+'[^;]*;").allMatches(source).toList();
-  expect(exports, hasLength(1));
-  final names = <String>[];
-  for (final export in exports) {
-    final declaration = export.group(0)!;
-    final visible = RegExp(r'\bshow\s+([^;]+);').firstMatch(declaration);
-    expect(visible, isNotNull);
+  expect(RegExp(r"export\s+'flutter\.dart'\s*;").hasMatch(File('lib/ui.dart').readAsStringSync()), isTrue);
+  expect(
+    RegExp(r"export\s+'src/flutter/views/view/event/event\.dart'\s*;")
+        .allMatches(File('lib/flutter.dart').readAsStringSync()),
+    hasLength(1),
+  );
+
+  final eventFile = File('lib/src/flutter/views/view/event/event.dart');
+  final source = eventFile.readAsStringSync();
+  final librarySources = [
+    source,
+    for (final part in RegExp(r"\bpart\s+'([^']+)'\s*;").allMatches(source))
+      File.fromUri(eventFile.uri.resolve(part.group(1)!)).readAsStringSync(),
+  ];
+  final names = [
+    for (final librarySource in librarySources)
+      ..._declarationNames(librarySource).where((name) => !name.startsWith('_')),
+  ];
+  for (final export in RegExp(r"\bexport\s+'[^']+'([^;]*);").allMatches(source)) {
+    // 手势实现与业务声明共处一个文件，转导出必须显式限制可见名单。
+    final visible = RegExp(r'\bshow\s+(.+)', dotAll: true).firstMatch(export.group(1)!);
+    expect(visible, isNotNull, reason: '事件库的转导出必须限制业务 API');
     names.addAll(visible!.group(1)!.split(',').map((name) => name.trim()));
   }
   return names;
 }
+
+/// 提取声明名，生成的 part 与手写源码沿用相同的命名检查。
+Iterable<String> _declarationNames(String source) => RegExp(
+  r'^\s*(?:(?:abstract|final|base|sealed|interface)\s+)*(?:class|enum|typedef|mixin|extension(?:\s+type)?)\s+([A-Za-z_$][\w$]*)',
+  multiLine: true,
+).allMatches(source).map((declaration) => declaration.group(1)!);
 
 List<ElEventHandler?> _freeHandlers(ElEvent event) {
   return <ElEventHandler?>[
