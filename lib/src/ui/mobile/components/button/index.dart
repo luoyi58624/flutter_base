@@ -11,7 +11,7 @@ import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventHa
 import '../../../../flutter/views/view/style/style.dart'
     show ElBorder, ElStyle, ElStyleExt, ElTransform, ElTransition, ElTransitionField;
 import '../../commons/icons.dart' show Glyph;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 import '../loading/index.dart';
 
 /// 以移动端按钮外观实现通用按钮声明，切换按钮的选中态读写公共模型。

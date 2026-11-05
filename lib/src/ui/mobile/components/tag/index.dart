@@ -11,7 +11,7 @@ import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventHa
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../commons/icons.dart' show ElMobileIcons;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 
 /// 为通用标签绘制移动端外观，值切换和主入口事件由 ElTag 统一持有。
 Widget tagBuilder(BuildContext context, ElTag component) =>

@@ -13,7 +13,7 @@ import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantic
 import '../../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../commons/icons.dart' show ElMobileIcons;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 
 /// 将公共完成量、状态和读数交给原移动端进度皮肤。
 Widget progressBuilder(BuildContext context, ElProgress component) => Progress(

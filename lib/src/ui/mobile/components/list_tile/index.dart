@@ -25,7 +25,7 @@ import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/others/base.dart' show ElChildIndex;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 import '../loading/index.dart';
 
 part 'group.dart';

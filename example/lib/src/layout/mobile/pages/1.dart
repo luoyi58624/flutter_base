@@ -45,7 +45,9 @@ class HomePage extends HookWidget {
             constraints: .new(maxWidth: 1400),
             child: Column(
               mainAxisSize: .min,
+              spacing: 20,
               children: [
+                ElButton(child: 'hello'),
                 RepaintBoundary(
                   child: HookBuilder(
                     builder: (context) {
@@ -63,7 +65,10 @@ class HomePage extends HookWidget {
                           padding: padding,
                           radius: radius,
                           color: Colors.blue,
-                          child: Center(widthFactor: 1, child: Text(label, style: _labelStyle(Colors.white, 15, .w500))),
+                          child: Center(
+                            widthFactor: 1,
+                            child: Text(label, style: _labelStyle(Colors.white, 15, .w500)),
+                          ),
                         );
                       }
                       return ElButtonView(

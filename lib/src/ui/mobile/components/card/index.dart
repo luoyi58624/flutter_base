@@ -5,7 +5,7 @@ import '../../../../flutter/components/card/index.dart' show ElCard;
 import '../../../../flutter/views/card/card_view.dart' show ElCardView;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 import '../loading/index.dart';
 
 /// 移动端卡片保留整卡按压反馈，内容和外观由公共声明提供。

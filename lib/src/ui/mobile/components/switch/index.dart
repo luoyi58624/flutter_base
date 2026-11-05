@@ -8,7 +8,7 @@ import '../../../../flutter/components/switch/index.dart' show ElSwitch;
 import '../../../../flutter/utils/obs/index.dart' show Obs;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition, ElTransitionField;
 import '../../../../flutter/views/view/view.dart' show ElView;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 import '../loading/index.dart';
 
 /// 使用移动端开关皮肤实现通用开关声明，值由公共模型持有。

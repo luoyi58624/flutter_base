@@ -9,7 +9,7 @@ import '../../../../flutter/components/skeleton/index.dart' show ElSkeleton;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle;
 import '../../../../flutter/views/view/view.dart' show ElView;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 
 /// 使用原骨架布局承接公共声明，正文树保持挂载。
 Widget skeletonBuilder(BuildContext context, ElSkeleton component) => Skeleton(

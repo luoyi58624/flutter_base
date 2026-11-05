@@ -1,6 +1,7 @@
 import 'package:example/src/layout/index.dart';
 import 'package:example/state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart';
 
 void main() {
@@ -16,21 +17,25 @@ class App extends StatelessWidget {
     return ObsBuilder(
       builder: (context) => ElView(
         themeMode: ElThemeMode(brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light),
-        child: ElComponentProvider(
-          components: el.mobileComponents,
-          child: ObsBuilder(
-            builder: (context) {
-              final theme = ElView.of(context).themeMode;
-              return MaterialApp(
-                themeAnimationDuration: theme.duration!,
-                themeAnimationCurve: theme.curve!,
-                showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
-                debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
-                theme: context.elMaterialThemeData,
-                home: AppLayout(),
-              );
-            },
-          ),
+        child: Builder(
+          builder: (context) {
+            return ElComponentProvider(
+              components: context.sm ? el.mobileComponents : el.desktopComponents,
+              child: ObsBuilder(
+                builder: (context) {
+                  final theme = ElView.of(context).themeMode;
+                  return MaterialApp(
+                    themeAnimationDuration: theme.duration!,
+                    themeAnimationCurve: theme.curve!,
+                    showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
+                    debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
+                    theme: context.elMaterialThemeData,
+                    home: AppLayout(),
+                  );
+                },
+              ),
+            );
+          }
         ),
       ),
     );

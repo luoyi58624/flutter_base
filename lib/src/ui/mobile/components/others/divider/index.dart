@@ -9,7 +9,7 @@ import '../../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../../flutter/views/view/style/style.dart' show ElBorder, ElBorderSide, ElBorderStyle, ElStyle;
 import '../../../../../flutter/views/view/view.dart' show ElView;
-import '../../../cores/common.dart';
+import '../../../internal/common.dart';
 
 /// 带文字分割线的对齐位置。
 enum DividerAlign {

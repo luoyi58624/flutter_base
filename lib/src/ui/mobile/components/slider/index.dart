@@ -12,7 +12,7 @@ import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../flutter/components/slider/index.dart' show ElSlider, ElSliderMark, ElSliderValueLabelDisplay;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 import 'value.dart';
 
 /// 移动端滑块直接使用公共模型，拖动状态只保存尚未提交的预览。

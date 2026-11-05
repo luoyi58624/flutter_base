@@ -9,7 +9,7 @@ import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantic
 import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle, ElTransform;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../commons/icons.dart' show ElMobileIcons;
-import '../../cores/common.dart';
+import '../../internal/common.dart';
 
 /// 使用既有移动端圆弧承接公共加载指示声明。
 Widget loadingIndicatorBuilder(BuildContext context, ElLoadingIndicator component) =>

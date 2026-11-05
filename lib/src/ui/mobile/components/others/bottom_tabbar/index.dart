@@ -12,7 +12,7 @@ import 'package:flutter/widgets.dart';
 import '../../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../../flutter/views/view/style/style.dart' show ElBorder, ElBorderSide, ElStyle, ElStyleExt;
 import '../../../../../flutter/views/view/view.dart' show ElView;
-import '../../../cores/common.dart';
+import '../../../internal/common.dart';
 
 /// 移动端底部导航栏，替换 Material NavigationBar。
 ///
