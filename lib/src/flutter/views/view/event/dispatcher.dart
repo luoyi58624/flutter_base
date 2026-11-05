@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../../../utils/internal/benchmark_probe.dart';
 import 'event.dart';
 import 'press.dart';
 
@@ -16,6 +17,10 @@ class EventDispatcher {
   /// 注册宿主与事件声明；保存实例后由宿主调用 [attach]，构造期间不触发业务回调。
   EventDispatcher(this._render, {bool register = true}) : _registered = register {
     assert(!register || _registry[_render] == null || _registry[_render]!._disposing, '同一 Render 只能持有一个活动分发器');
+    assert(() {
+      BenchmarkProbe.eventDispatcherInstantiateCount++;
+      return true;
+    }());
     if (register) _registry[_render] = this;
     _hosts[_team] = this;
     _team.onPointerEvent = _handlePointer;
@@ -32,10 +37,14 @@ class EventDispatcher {
   final _moveCallbacks = Expando<ElEventDetails>('ElEvent target move');
   final _team = GestureTeam()
     ..matchParentGestures = true
+    ..transformOnDemand = true
     ..deferPointerMoves = true
     ..deferPointerReleases = true;
   late final _press = PressRecognizer(debugOwner: this)..team = _team;
-  late final _transform = TransformRecognizer(debugOwner: this)..team = _team;
+  Set<PhysicalKeyboardKey>? _keyboardTapKeys;
+  bool _reportedTapPressed = false;
+  // 只在声明拖拽、缩放或作为后代变换链的祖先时创建，点击类节点不分配。
+  TransformRecognizer? _transform;
   final _hoverDevices = <int>{};
   ElEvent? _event;
   bool _disposed = false;
@@ -114,7 +123,7 @@ class EventDispatcher {
     return views.isEmpty ? null : views.first.display.refreshRate;
   }
 
-  /// 按压反馈变化通知；未设置时仍维护 [isTapPressed]。
+  /// 指针与键盘共用的按压反馈变化通知；未设置时仍维护 [isTapPressed]。
   ValueChanged<bool>? onTapChanged;
 
   /// 真实鼠标悬停变化通知；禁用时保留位置事实，由使用方遮蔽反馈。
@@ -134,7 +143,7 @@ class EventDispatcher {
     if (_disposed || _disposing || _gestureSettings == value) return;
     _gestureSettings = value;
     _press.gestureSettings = value;
-    _transform.gestureSettings = value;
+    _transform?.gestureSettings = value;
   }
 
   /// 当前元素的局部配置声明。
@@ -144,13 +153,27 @@ class EventDispatcher {
   bool get disabled => _event?.disabled ?? false;
 
   /// 当前是否显示按压反馈。
-  bool get isTapPressed => _press.isFeedbackActive;
+  bool get isTapPressed => _press.isFeedbackActive || (_keyboardTapKeys?.isNotEmpty ?? false);
+
+  void _notifyTapChanged() {
+    final pressed = isTapPressed;
+    if (_reportedTapPressed == pressed) return;
+    _reportedTapPressed = pressed;
+    onTapChanged?.call(pressed);
+  }
+
+  void _cancelKeyboardTap() {
+    final keys = _keyboardTapKeys;
+    if (keys == null || keys.isEmpty) return;
+    keys.clear();
+    _notifyTapChanged();
+  }
 
   /// 是否仍有鼠标位于宿主内，禁用不会清除真实悬停位置。
   bool get isHovered => _hoverDevices.isNotEmpty;
 
   /// 直接读取识别器的拖拽状态。
-  bool get isDragged => _transform.isDragging;
+  bool get isDragged => _transform?.isDragging ?? false;
 
   /// 当前仍接收原始输入的指针数。
   int get activePointerCount => _team.ordinaryPointerCount;
@@ -201,7 +224,7 @@ class EventDispatcher {
       final cancelDrag = ending || !_declaresDrag(value) || isDragged && !_canPreserveActiveDrag(old, value);
       final cancelScale = ending || _declaresScale(old) && !old.hasSameScaleShape(value);
       if (cancelDrag || cancelScale) {
-        _transform.cancelMember(null, cancelDrag: cancelDrag, cancelScale: cancelScale);
+        _transform?.cancelMember(null, cancelDrag: cancelDrag, cancelScale: cancelScale);
       }
       if (_disposed || revision != _configurationRevision) return;
       if (_declaresPanZoom(old) && !_declaresPanZoom(value)) {
@@ -255,7 +278,7 @@ class EventDispatcher {
   void _connectParent(EventDispatcher? parent) {
     _parent = parent;
     _press.parent = _parent?._press;
-    _transform.parent = _parent?._transform;
+    _transform?.parent = _parent?._ensureTransform();
     _team.parent = _parent?._team;
   }
 
@@ -345,7 +368,7 @@ class EventDispatcher {
     if (!_team.observePointer(event) || disabled) return;
     if (event is PointerDownEvent) {
       if (_sameTransformShape(before, _event) && (_hasDrag || _hasScale)) {
-        _transform.addPointer(event);
+        _ensureTransform().addPointer(event);
       }
       if (before == null && _event == null || before != null && _event != null && before.hasSameNonDragShape(_event!)) {
         _press.addPointer(event);
@@ -478,9 +501,11 @@ class EventDispatcher {
     _lastPointerPosition = event.position;
     final revision = _configurationRevision;
     try {
+      _cancelKeyboardTap();
+      if (_disposed || revision != _configurationRevision) return;
       _press.cancelMember();
       if (_disposed || revision != _configurationRevision) return;
-      _transform.cancelMember(null, event: event);
+      _transform?.cancelMember(null, event: event);
       if (_disposed || revision != _configurationRevision) return;
       _team.cancel();
     } finally {
@@ -527,6 +552,7 @@ class EventDispatcher {
     Offset? localPosition,
   }) {
     if (!_render.attached || _disposed) return;
+    if (!focused) _cancelKeyboardTap();
     if (globalPosition != null) _lastPointerPosition = globalPosition;
     final position = localPosition ?? _lastFocusLocalPosition;
     if (focused) _lastFocusLocalPosition = null;
@@ -539,7 +565,7 @@ class EventDispatcher {
     _deliverLive(callback);
   }
 
-  /// 将官方焦点节点收到的按键沿当前逻辑父链派发。
+  /// 将主焦点节点收到的按键沿父链派发，激活键同时驱动自身按压样式。
   ElEventDetails? notifyKeyEvent(KeyEvent event) {
     if (!_render.attached || disabled || _disposed) return null;
     final phase = switch (event) {
@@ -549,6 +575,16 @@ class EventDispatcher {
       _ => null,
     };
     if (phase == null) return null;
+    if (event is KeyDownEvent) {
+      final key = event.logicalKey;
+      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter || key == LogicalKeyboardKey.space) {
+        (_keyboardTapKeys ??= {}).add(event.physicalKey);
+        _notifyTapChanged();
+      } else if (key == LogicalKeyboardKey.escape) {
+        _cancelKeyboardTap();
+      }
+      if (_disposed || disabled || !_render.attached) return null;
+    }
     final callback = ElEventDetails(
       phase: phase,
       globalPosition: _lastPointerPosition,
@@ -558,7 +594,12 @@ class EventDispatcher {
       character: event.character,
       originalEvent: event,
     );
-    _deliverLive(callback);
+    try {
+      _deliverLive(callback);
+    } finally {
+      // 按物理键结清，焦点迁移后的孤立 keyup 和取消后的 repeat 都不会重启反馈。
+      if (event is KeyUpEvent && (_keyboardTapKeys?.remove(event.physicalKey) ?? false)) _notifyTapChanged();
+    }
     return callback;
   }
 
@@ -582,7 +623,7 @@ class EventDispatcher {
     _disposed = true;
     _team.dispose();
     _press.dispose();
-    _transform.dispose();
+    _transform?.dispose();
     _hoverDevices.clear();
     onTapChanged = null;
     onHoverChanged = null;
@@ -640,7 +681,7 @@ extension _EventBinding on EventDispatcher {
     press
       ..onFeedbackChanged = onTapChanged == null && !(_event?.hasTapLikeCallback ?? false)
           ? null
-          : ((value) => onTapChanged?.call(value))
+          : ((_) => _notifyTapChanged())
       ..feedbackDelay = config.delayTouchDown
       ..minimumFeedbackDuration = config.delayTouchUp
       ..ancestorOriginResolver = _ancestorOrigin
@@ -649,7 +690,7 @@ extension _EventBinding on EventDispatcher {
       ..allowMultiplePointers = _hasScale
       // 动态启用 Drag 时可能仍在等待归属，接受后再补接同一指针。
       ..onAccepted = (_) {
-        if (_hasDrag || _hasScale) _transform.resumeFromTeam();
+        if (_hasDrag || _hasScale) _ensureTransform().resumeFromTeam();
       }
       ..gestureSettings = gestureSettings
       ..doubleTapInterval = config.doubleTapInterval
@@ -682,7 +723,37 @@ extension _EventBinding on EventDispatcher {
       };
     press.refreshActiveSubscription();
 
-    _transform
+    final needsTransform = _hasDrag || _hasScale;
+    if (_transform case final transform?) {
+      _configureTransform(transform);
+    } else if (needsTransform) {
+      _ensureTransform();
+    }
+    _team.acceptsPanZoom = _event?.onPointerPanZoomUpdate != null;
+    if (needsTransform) {
+      final transform = _transform!;
+      transform.resumeFromTeam();
+      transform.refreshPendingConfiguration(deferStartFor: deferStartFor);
+    }
+  }
+
+  /// 变换链须连续：竞技场分组和拖拽合作都沿祖先识别器判断，后代创建时祖先一并补齐。
+  TransformRecognizer _ensureTransform() {
+    final existing = _transform;
+    if (existing != null) return existing;
+    assert(() {
+      BenchmarkProbe.transformRecognizerInstantiateCount++;
+      return true;
+    }());
+    final transform = _transform = TransformRecognizer(debugOwner: this)..team = _team;
+    _configureTransform(transform);
+    final parent = _parent;
+    if (parent != null && !parent._disposed && !parent._disposing) transform.parent = parent._ensureTransform();
+    return transform;
+  }
+
+  void _configureTransform(TransformRecognizer transform) {
+    transform
       ..gestureSettings = gestureSettings
       ..supportedDevices = config.dragDevices ?? dragDevices
       ..multitouchDragStrategy = multitouchDragStrategy
@@ -722,11 +793,6 @@ extension _EventBinding on EventDispatcher {
         for (final phase in _scalePhases)
           if (phase == .rotationUpdate ? _event?.onRotationUpdate != null : _hasScale) phase: _handleTransform,
       };
-    _team.acceptsPanZoom = _event?.onPointerPanZoomUpdate != null;
-    if (_hasDrag || _hasScale) {
-      _transform.resumeFromTeam();
-      _transform.refreshPendingConfiguration(deferStartFor: deferStartFor);
-    }
   }
 
   ElEventDetails _gestureCallback(GestureDetails details) {
@@ -834,10 +900,10 @@ extension _EventBinding on EventDispatcher {
     });
   }
 
-  Iterable<EventDispatcher> _proxyMembers(int pointer) => _transform
-      .dragCooperationMembers(pointer)
-      .map((member) => member.team == null ? null : EventDispatcher._hosts[member.team!])
-      .whereType<EventDispatcher>();
+  Iterable<EventDispatcher> _proxyMembers(int pointer) =>
+      (_transform?.dragCooperationMembers(pointer) ?? const <TransformRecognizer>[])
+          .map((member) => member.team == null ? null : EventDispatcher._hosts[member.team!])
+          .whereType<EventDispatcher>();
 
   DragCooperation _collectDragProxies(int pointer, Axis? axis) {
     final proxies = <TransformRecognizer>[];
@@ -850,9 +916,10 @@ extension _EventBinding on EventDispatcher {
           proxy.hasAnyHandler &&
           (proxy.axis == null || proxy.axis == axis) &&
           (registered || member._team.onPointerEvent == null)) {
-        proxies.add(member._transform);
+        proxies.add(member._ensureTransform());
       } else if (registered &&
-          (member._hasPrimaryTap || member._hasDragForAxis(axis) && member._transform.canReceiveDrag(pointer, axis))) {
+          (member._hasPrimaryTap ||
+              member._hasDragForAxis(axis) && member._transform?.canReceiveDrag(pointer, axis) == true)) {
         cutoff = member._team;
         break;
       }
@@ -914,7 +981,8 @@ extension _EventBinding on EventDispatcher {
   }
 
   bool _hasAncestorDragConsumer(int pointer, Axis? axis) => _ancestors.any(
-    (member) => !member.disabled && member._transform.canReceiveDrag(pointer, axis) && member._hasDragForAxis(axis),
+    (member) =>
+        !member.disabled && member._transform?.canReceiveDrag(pointer, axis) == true && member._hasDragForAxis(axis),
   );
 
   bool _hasDragForAxis(Axis? axis) =>

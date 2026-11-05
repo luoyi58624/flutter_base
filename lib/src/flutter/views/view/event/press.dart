@@ -1300,6 +1300,9 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
   /// 根据点击意图、拖拽轴与阈值筛选自动挂接的父级，手工冒泡链默认不筛选。
   bool matchParentGestures = false;
 
+  /// 宿主只在声明拖拽或缩放时创建变换识别器；缺少变换成员按不订阅拖拽筛选父级。
+  bool transformOnDemand = false;
+
   /// 将移动观察延后到本团队的原生路由位置，允许内层起拖先决定祖先资格。
   bool deferPointerMoves = false;
 
@@ -1449,7 +1452,10 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
     }
     final transform = _members.whereType<TransformRecognizer>().firstOrNull;
     final otherTransform = other._members.whereType<TransformRecognizer>().firstOrNull;
-    return transform == null || otherTransform == null || transform._compatibleWith(otherTransform);
+    if (transform != null && otherTransform != null) return transform._compatibleWith(otherTransform);
+    // 手工组装的团队缺少变换成员时不按拖拽筛选；按需创建的团队缺少成员等同于不订阅拖拽。
+    if (transform == null && !transformOnDemand || otherTransform == null && !other.transformOnDemand) return true;
+    return !(transform?._hasOwnDrag ?? false) && !(otherTransform?._hasOwnDrag ?? false);
   }
 
   GestureTeam get _arenaRoot {

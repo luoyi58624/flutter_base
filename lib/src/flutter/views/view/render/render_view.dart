@@ -549,7 +549,7 @@ class ElRenderView extends RenderBox
   /// hover / tap / focus / focusWithin 由交互维护，disabled 由事件声明，
   /// 不需要随 style 自动清除。
   void _clearStaleVariantStates(ElStyle? oldStyle, ElStyle? newStyle) {
-    final stale = variantStatesMaskOf(oldStyle) & ~variantStatesMaskOf(newStyle) & _dispatcherStateGate;
+    final stale = variantStatesMaskOf(oldStyle) & ~variantStatesMaskOf(newStyle) & _interactionStateGate;
     _stateBits &= ~stale;
   }
 
@@ -976,7 +976,7 @@ class ElRenderView extends RenderBox
     markNeedsSemanticsUpdate();
   }
 
-  /// 仅当 [style] 含交互状态变体时构造（即使无 event）。
+  /// 仅当 [style] 含需要分发器维护的状态变体时构造（即使无 event）。
   void _ensureDispatcherIfNeededForVariants() {
     if (!_needsDispatcherForVariants()) {
       if (_eventDispatcher?.event == null) {
@@ -990,18 +990,20 @@ class ElRenderView extends RenderBox
     dispatcher.syncRecognizersForStateVariants();
   }
 
-  /// dispatcher 需要覆盖 hover/tap/focus/focusVisible/focusWithin；
-  /// disabled 与 dark 分别由事件配置和主题维护。
+  /// 需要 dispatcher 的状态：tap 来自按压反馈，focus 系列沿 dispatcher 父链通知。
+  /// hover 由 MouseTracker 的进出回调直接维护，纯悬停节点不创建 dispatcher。
   static final int _dispatcherStateGate =
-      (1 << ViewState.hover.index) |
       (1 << ViewState.tap.index) |
       (1 << ViewState.focus.index) |
       (1 << ViewState.focusVisible.index) |
       (1 << ViewState.focusWithin.index);
 
-  /// 是否有任何交互状态变体声明（需要 dispatcher 接收 pointer/focus 信号）。
+  /// 由交互维护的状态；disabled 与 dark 分别由事件配置和主题维护。
+  static final int _interactionStateGate = _dispatcherStateGate | (1 << ViewState.hover.index);
+
+  /// 是否有状态变体或订阅需要 dispatcher 接收 pointer/focus 信号。
   bool _needsDispatcherForVariants() {
-    if (_hasPointerStateListener) return true;
+    if (_hasTapStateListener) return true;
     return (variantStatesMaskOf(_style) & _dispatcherStateGate) != 0;
   }
 
@@ -1021,8 +1023,6 @@ class ElRenderView extends RenderBox
   bool get _hasHoverStateListener => _stateSource?.hasListenerFor(ViewState.hover) ?? false;
 
   bool get _hasTapStateListener => _stateSource?.hasListenerFor(ViewState.tap) ?? false;
-
-  bool get _hasPointerStateListener => _hasHoverStateListener || _hasTapStateListener;
 
   // --- 状态变体 setter -----------------------------------------------------
 
@@ -1888,6 +1888,8 @@ class ElRenderView extends RenderBox
     if (disabled) return true;
     // 显式命中行为优先；纯交互样式宿主仍按默认不透明行为参与命中。
     if (_eventDispatcher != null) return (event?.behavior ?? HitTestBehavior.opaque) == HitTestBehavior.opaque;
+    // 纯悬停宿主不创建 dispatcher，命中口径与其他交互样式保持一致。
+    if (_hasHoverVariant || _hasHoverStateListener) return true;
     // 有焦点入口时，即使没有事件或视觉内容，也应允许点击聚焦。
     if (requestFocusForEvent != null) return true;
     // 有视觉内容：bgColor 参与命中

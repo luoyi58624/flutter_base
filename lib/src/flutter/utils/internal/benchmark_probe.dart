@@ -233,6 +233,12 @@ class BenchmarkProbe {
   /// 亮环或迁桶时查询 Flutter View 的次数。
   static int focusViewIdResolveCount = 0;
 
+  /// 事件分发器（连同手势团队与按压识别器）的实际分配次数。
+  static int eventDispatcherInstantiateCount = 0;
+
+  /// 变换识别器的实际分配次数；只在声明拖拽、缩放或作为变换链祖先时创建。
+  static int transformRecognizerInstantiateCount = 0;
+
   /// 选中换色 overlay 的 `TextPainter.layout` 次数（= 真 shape 次数）。
   ///
   /// 非全选分支要逐 rect clip 重绘，但 overlay 与 rect 无关 —— 一帧应恒 ≤1。
@@ -284,6 +290,8 @@ class BenchmarkProbe {
     focusHighlightListenerAddCount = 0;
     focusHighlightListenerRemoveCount = 0;
     focusViewIdResolveCount = 0;
+    eventDispatcherInstantiateCount = 0;
+    transformRecognizerInstantiateCount = 0;
     selectionOverlayLayoutCount = 0;
     textContentParseCount = 0;
     inlineHitTestCount = 0;
@@ -308,6 +316,8 @@ class BenchmarkProbe {
       'focusHighlightListenerAddCount': focusHighlightListenerAddCount,
       'focusHighlightListenerRemoveCount': focusHighlightListenerRemoveCount,
       'focusViewIdResolveCount': focusViewIdResolveCount,
+      'eventDispatcherInstantiateCount': eventDispatcherInstantiateCount,
+      'transformRecognizerInstantiateCount': transformRecognizerInstantiateCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,
       'textContentParseCount': textContentParseCount,
       'inlineHitTestCount': inlineHitTestCount,

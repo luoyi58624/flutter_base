@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -1165,6 +1166,102 @@ void main() {
 
       expect(node.hasPrimaryFocus, isFalse);
       expect(focusCount, 0);
+    });
+  });
+
+  group('Recognizers on demand', () {
+    setUp(BenchmarkProbe.reset);
+
+    Widget column(List<Widget> children) => Directionality(
+      textDirection: TextDirection.ltr,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
+
+    testWidgets('纯悬停节点不创建分发器，命中与悬停不变', (tester) async {
+      final hoverColor = Color(0xFF0000FF);
+      await tester.pumpWidget(
+        column([
+          for (var index = 0; index < 100; index++)
+            ElView(
+              key: ValueKey(index),
+              style: ElStyle(width: 100, height: 4, onHover: ElStyle(backgroundColor: hoverColor)),
+            ),
+        ]),
+      );
+
+      expect(BenchmarkProbe.eventDispatcherInstantiateCount, 0);
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
+      final box = tester.renderObject<ElRenderView>(find.byKey(ValueKey(0)));
+      expect(EventDispatcher.of(box), isNull);
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset(-10, -10));
+      await tester.pump();
+      await mouse.moveTo(Offset(50, 2));
+      await tester.pump();
+      expect(box.committedResolvedStyle.box.backgroundColor, hoverColor, reason: '无背景的悬停节点仍须参与命中');
+      expect(tester.hitTestOnBinding(Offset(50, 2)).path.any((entry) => identical(entry.target, box)), isTrue);
+    });
+
+    testWidgets('点击节点不创建变换识别器，按下和重建也不补建', (tester) async {
+      var taps = 0;
+      Widget build() => column([
+        for (var index = 0; index < 100; index++)
+          ElView(
+            key: ValueKey(index),
+            style: ElStyle(width: 100, height: 4),
+            event: ElEvent(onTap: (_) => taps++),
+          ),
+      ]);
+
+      await tester.pumpWidget(build());
+      expect(BenchmarkProbe.eventDispatcherInstantiateCount, 100);
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
+
+      await tester.tapAt(Offset(50, 2));
+      await tester.pump();
+      await tester.pumpWidget(build());
+      expect(taps, 1);
+      expect(BenchmarkProbe.eventDispatcherInstantiateCount, 100);
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
+      // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+      await tester.pump(Duration(milliseconds: 200));
+    });
+
+    testWidgets('声明拖拽时创建变换识别器，祖先随变换链补建', (tester) async {
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onDragStart: (_) {}),
+        ),
+      );
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 1);
+
+      BenchmarkProbe.reset();
+      final phases = <String>[];
+      await pumpEventView(
+        tester,
+        ElView(
+          key: ValueKey('outer'),
+          style: ElStyle(width: 200, height: 200),
+          event: ElEvent(onTap: (_) => phases.add('outer.tap')),
+          child: ElView(
+            style: eventTestDefaultStyle,
+            event: ElEvent(onDragStart: (_) => phases.add('inner.dragStart')),
+          ),
+        ),
+      );
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 2, reason: '后代持有变换识别器时祖先一并创建，竞技场分组和拖拽合作沿该链判断');
+
+      await tester.dragFrom(Offset(50, 50), Offset(0, 40));
+      await tester.pump();
+      expect(phases, contains('inner.dragStart'));
+      await tester.pump(Duration(milliseconds: 200));
     });
   });
 }
