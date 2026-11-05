@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../../widgets/code_preview/index.dart';
 import '../example_page.dart';
 
 /// 文档页中的一个可操作示例及其源码。
@@ -144,93 +144,16 @@ class _ExampleSection extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expanded = useState(false);
-    final theme = context.elTheme;
+    final bundle = DefaultAssetBundle.of(context);
+    final source = useMemoized(() => bundle.loadString(section.source), [bundle, section.source]);
+    final snapshot = useFuture(source, preserveState: false);
     return Column(
       crossAxisAlignment: .stretch,
       mainAxisSize: .min,
-      spacing: 12,
       children: [
         _DocHeading(title: section.title, description: section.description, level: 2),
-        ElCardView(
-          style: ElStyle(
-            backgroundColor: theme.cardColor,
-            border: ElBorder.all(borderWidth: 1, borderColor: theme.borderColorLighter),
-            borderRadius: .circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: .stretch,
-            mainAxisSize: .min,
-            children: [
-              Padding(padding: .all(16), child: section.example),
-              Divider(height: 1),
-              Align(
-                alignment: .centerRight,
-                child: TextButton.icon(
-                  onPressed: () => expanded.value = !expanded.value,
-                  icon: Icon(Icons.code, size: 18),
-                  label: Text(expanded.value ? '收起源码' : '查看源码'),
-                ),
-              ),
-              if (expanded.value) _SourceCode(path: section.source),
-            ],
-          ),
-        ),
+        ElCodeExample(code: snapshot.data ?? '', children: [section.example, if (snapshot.hasError) Text('无法读取示例源码')]),
       ],
-    );
-  }
-}
-
-class _SourceCode extends HookWidget {
-  const _SourceCode({required this.path});
-
-  final String path;
-
-  @override
-  Widget build(BuildContext context) {
-    final bundle = DefaultAssetBundle.of(context);
-    final source = useMemoized(() => bundle.loadString(path), [bundle, path]);
-    final copied = useState(false);
-    return FutureBuilder<String>(
-      future: source,
-      builder: (context, snapshot) {
-        final code = snapshot.data;
-        if (code == null) {
-          return Padding(padding: .all(16), child: Text(snapshot.hasError ? '无法读取示例源码' : '正在读取源码…'));
-        }
-        return ColoredBox(
-          color: context.elTheme.fill,
-          child: Column(
-            crossAxisAlignment: .stretch,
-            mainAxisSize: .min,
-            children: [
-              Padding(
-                padding: .symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: .spaceBetween,
-                  children: [
-                    Text('Dart', style: Theme.of(context).textTheme.labelMedium),
-                    TextButton(
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: code));
-                        if (context.mounted) copied.value = true;
-                      },
-                      child: Text(copied.value ? '已复制' : '复制源码'),
-                    ),
-                  ],
-                ),
-              ),
-              SingleChildScrollView(
-                scrollDirection: .horizontal,
-                padding: .fromLTRB(16, 0, 16, 16),
-                child: SelectionArea(
-                  child: Text(code.trimRight(), style: TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.5)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

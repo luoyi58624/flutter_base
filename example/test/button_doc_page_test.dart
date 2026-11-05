@@ -1,6 +1,6 @@
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
@@ -29,44 +29,34 @@ Finder _buttons(int number, Object child) => find.descendant(
 );
 
 void main() {
-  testWidgets('窄屏单列布局可以展开、复制和收起演示源码', (tester) async {
+  testWidgets('窄屏保留现有按钮演示，使用旧版折叠条展开和收起源码', (tester) async {
     final path = _examplePath(1);
     final source = (await tester.runAsync(() => rootBundle.loadString(path)))!;
-    Finder action(String label) => find.descendant(of: _example(1), matching: find.text(label));
-    String? copied;
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String;
-      return null;
-    });
-    addTearDown(() => messenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    final toggle = find.descendant(of: _example(1), matching: find.byKey(ValueKey('el-code-example-toggle')));
 
     await _openPage(tester, width: 320, components: el.mobileComponents);
     expect(find.text('Button 按钮'), findsOneWidget);
     expect(find.text('本页目录'), findsNothing);
-    expect(find.text(source.trimRight()), findsNothing);
-    final sourceButton = action('查看源码');
+    expect(find.text(source), findsNothing);
     final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
-    final offset = tester.getCenter(sourceButton).dy - 500;
+    final offset = tester.getCenter(toggle).dy - 500;
     if (offset > 0) {
       controller.jumpTo(controller.offset + offset);
       await tester.pumpAndSettle();
     }
-    await tester.tap(sourceButton);
+    expect(tester.getSize(toggle).height, 44);
+    expect(_buttons(1, 'Hello'), findsNWidgets(30));
+    await tester.tap(toggle);
     await tester.pump();
     await tester.runAsync(() => rootBundle.loadString(path));
     await tester.pumpAndSettle();
-    expect(action('收起源码'), findsOneWidget);
-    expect(action('无法读取示例源码'), findsNothing);
-    expect(action('正在读取源码…'), findsNothing);
-    expect(find.text(source.trimRight()), findsOneWidget);
-    await tester.tap(action('复制源码'));
+    expect(tester.widget<ElButtonView>(toggle).semantics?.properties.label, '收起代码');
+    expect(find.text('无法读取示例源码'), findsNothing);
+    expect(find.text(source), findsOneWidget);
+    await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(copied, source);
-    expect(action('已复制'), findsOneWidget);
-    await tester.tap(action('收起源码'));
-    await tester.pumpAndSettle();
-    expect(find.text(source.trimRight()), findsNothing);
+    expect(find.text(source), findsNothing);
+    expect(_buttons(1, 'Hello'), findsNWidgets(30));
     expect(tester.takeException(), isNull);
   });
 

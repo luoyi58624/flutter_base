@@ -12,6 +12,7 @@ dependencies:
   flutter_base:
     path: ../
   go_router: 17.3.0
+  highlight: ^0.7.0
   path_drawing: ^1.0.1
 
 dev_dependencies:
@@ -21,5 +22,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Consolas
+      fonts:
+        - asset: assets/fonts/Consolas-Regular.ttf
   assets:
     - lib/src/pages/components/basic/button/examples/
