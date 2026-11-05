@@ -3,6 +3,7 @@ import 'package:flutter/painting.dart' show Color, BoxShadow, Offset;
 import '../../../../flutter.dart';
 import '../../../dart/commons/index.dart' show El;
 import 'button/index.dart';
+import 'button_group/index.dart';
 import 'card/index.dart';
 import 'list_tile/index.dart';
 import 'loading/index.dart';
@@ -26,6 +27,7 @@ final _components = ElComponents(
     onDark: ElStyle(vars: _darkVars),
   ),
   button: buttonBuilder,
+  buttonGroup: buttonGroupBuilder,
   card: cardBuilder,
   tag: tagBuilder,
   switcher: switchBuilder,

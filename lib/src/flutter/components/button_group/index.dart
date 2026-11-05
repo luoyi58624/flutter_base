@@ -34,7 +34,7 @@ class ElButtonGroupItem {
   /// 是否禁用该条目。
   final bool disabled;
 
-  /// block 模式下的空间份额，默认 1。
+  /// block 模式下的空间份额，默认 1；移动端暂用 Material 的等分布局。
   final int? flex;
 
   /// 条目激活回调，选择更新后调用。
@@ -142,5 +142,6 @@ class ElButtonGroup<D> extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.buttonGroup)<D>(context, this);
+  Widget build(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.buttonGroup)<D>(context, this);
 }

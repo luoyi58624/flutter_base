@@ -40,11 +40,22 @@ Future<void> _selectSection(WidgetTester tester, String title) async {
 }
 
 void main() {
-  testWidgets('移动预设缺少按钮组实现时仍可阅读文档和源码', (tester) async {
-    await _open(tester, width: 390, components: el.mobileComponents);
+  testWidgets('移动窄屏使用 Material 演示并保留源码，全部小节正常布局', (tester) async {
+    await _open(tester, width: 320, components: el.mobileComponents);
     expect(find.text('ButtonGroup 按钮组'), findsOneWidget);
-    expect(find.text('当前品牌暂未支持按钮组，可展开源码查看用法。'), findsWidgets);
-    expect(find.byWidgetPredicate((widget) => widget is ElButtonGroup), findsNothing);
+    expect(find.text('当前品牌暂未支持按钮组，可展开源码查看用法。'), findsNothing);
+    expect(find.byType(SegmentedButton<int>), findsWidgets);
+    await tester.tap(_item(1, '下一页'));
+    await tester.pumpAndSettle();
+    expect(_item(1, '最近操作：下一页'), findsOneWidget);
+    final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller! as ElScrollController;
+    for (var number = 1; number <= 8; number++) {
+      scroll.scrollToIndex(number);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '移动示例 $number');
+    }
+    scroll.scrollToIndex(1);
+    await tester.pumpAndSettle();
     final toggle = find.descendant(of: _section(1), matching: find.byKey(ValueKey('el-code-example-toggle')));
     await tester.tap(toggle);
     await tester.runAsync(() async {});

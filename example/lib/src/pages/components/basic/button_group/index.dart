@@ -27,7 +27,7 @@ class ButtonGroupPage extends StatelessWidget {
 
     return ComponentDocPage(
       title: 'ButtonGroup 按钮组',
-      description: '将相关操作组合展示，支持普通操作、单选和多选。当前默认预设提供桌面端实现。',
+      description: '将相关操作组合展示，支持普通操作、单选和多选。移动端暂用 Material 分段按钮。',
       sections: [
         ComponentDocSection(
           title: '基础使用',
@@ -73,7 +73,7 @@ class ButtonGroupPage extends StatelessWidget {
         ),
         ComponentDocSection(
           title: '方向与通栏布局',
-          description: 'block 沿排列方向撑满，条目 flex 控制空间份额。纵向通栏需要外层提供有界高度；条目省略 value 时使用下标。',
+          description: 'block 沿排列方向撑满。桌面端用条目 flex 分配空间，移动端暂按 Material 等分。纵向通栏需提供有界高度；条目省略 value 时使用下标。',
           example: preview(Example8()),
           source: '$_examples/example8.dart',
         ),

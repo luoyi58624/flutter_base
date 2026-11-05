@@ -3,8 +3,7 @@ import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
 int _missingBuilders(ElComponents components) =>
-    components.props.where((value) => value == null).length -
-    [components.style, components.themeMode].where((value) => value == null).length;
+    components.props.where((value) => value == null).length - (components.style == null ? 1 : 0);
 
 /// 品牌默认表除已知缺口外不得留空；缺口清单只减不增，新增组件必须两端登记实现。
 void main() {
@@ -39,7 +38,6 @@ void main() {
   test('移动默认表只缺已知项', () {
     final builders = el.mobileComponents;
     final gaps = {
-      'buttonGroup': builders.buttonGroup,
       'input': builders.input,
       'checkbox': builders.checkbox,
       'radio': builders.radio,

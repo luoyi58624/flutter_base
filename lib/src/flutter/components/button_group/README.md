@@ -34,6 +34,8 @@ ElButtonGroup<List<String>>.multi(
 
 普通构造不提供值绑定，`mode` 为 null。single 的泛型是整个单值模型类型，允许取消时应使用可空模型；multi 的泛型是整个 List 或 Set 类型。Builder 从 `mode` 读取模式，并在更新选择后调用条目 `onPressed`。自由布局的单选、多选上下文见 [Radio](../radio/README.md) 和 [Checkbox](../checkbox/README.md)。
 
+移动端暂以 Material `SegmentedButton` 包装实现，支持三种模式、横纵方向和通栏；通栏按官方布局等分，不使用条目 `flex` 的不同比例。默认不参与焦点和键盘遍历，内容 Widget 保持原实例。
+
 条目值不限于 String，也可使用 int、枚举或业务对象；显示内容由 `child` 单独提供。比如单选的完整模型可为 `ThemeMode?`，多选可为 `List<ThemeMode>` 或 `Set<ThemeMode>`，每个条目的 value 都是一个 `ThemeMode`。条目身份按 `==` 比较，业务对象应提供稳定的相等与 hashCode 语义。
 
 `ElButtonGroupItem.value` 保持 `Object?`，没有在编译期与 D 建立关联；调用方须确保它兼容单值模型或集合元素类型。多选更新会复制原 List / Set，保留集合元素类型后回写，不修改传入集合。
