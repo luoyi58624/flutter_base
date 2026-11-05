@@ -22,8 +22,12 @@ enum _CardsAction { refreshVisible, first, last, clear }
 
 class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   final _controller = ScrollController(keepScrollOffset: false);
+  // El 在布局期读取唯一 position，不能与切换当帧尚待卸载的官方宿主共用。
+  final _elController = ScrollController(keepScrollOffset: false);
+  ScrollController get _currentController => _mode == .elScrollView ? _elController : _controller;
   final _activeCount = ValueNotifier<int>(0);
   RecyclerExampleScrollMode _mode = .recyclerView;
+  ElVisibleRange? _elVisible;
   late final _adapter = _ObservationAdapter((count) => _activeCount.value = count);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-cards-list'), controller: _controller)
     ..setLayoutManager(rv.LinearLayoutManager())
@@ -31,13 +35,18 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
     ..setAdapter(_adapter);
 
   void _refreshVisible() {
-    if (!_controller.hasClients) return;
+    if (!_currentController.hasClients) return;
     final int first;
     final int last;
     if (_mode == .recyclerView) {
       final layout = _list.getLayoutManager()! as rv.LinearLayoutManager;
       first = layout.findFirstVisibleItemPosition();
       last = layout.findLastVisibleItemPosition();
+    } else if (_mode == .elScrollView) {
+      final range = _elVisible;
+      if (range == null) return;
+      first = range.first;
+      last = range.last - 1;
     } else {
       final extent = _cardExtent(context);
       first = (_controller.offset / extent).floor();
@@ -49,8 +58,8 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   void _scrollTo(int index) {
     if (_mode == .recyclerView) {
       _list.scrollToPosition(index);
-    } else if (_controller.hasClients) {
-      _controller.jumpTo((index * _cardExtent(context)).clamp(0, _controller.position.maxScrollExtent));
+    } else if (_currentController.hasClients) {
+      _currentController.jumpTo((index * _cardExtent(context)).clamp(0, _currentController.position.maxScrollExtent));
     }
   }
 
@@ -76,9 +85,46 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   @override
   void dispose() {
     _controller.dispose();
+    _elController.dispose();
     _activeCount.dispose();
     _adapter.disposeModels();
     super.dispose();
+  }
+
+  Widget _row(BuildContext context, int index) => RepaintBoundary(
+    child: _OfficialObservationRow(
+      key: ValueKey(_adapter.records[index].id),
+      adapter: _adapter,
+      record: _adapter.records[index],
+    ),
+  );
+
+  Widget _scrollContent(BuildContext context) {
+    if (_mode == .elScrollView) {
+      return ElScrollView(
+        key: ValueKey('el-cards-list'),
+        controller: _elController,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        onVisibleRangeChanged: (range) => _elVisible = range,
+        children: [
+          ElListView.builder(fixedSize: true, keepAlive: false, itemCount: _adapter.getItemCount(), itemBuilder: _row),
+        ],
+      );
+    }
+    return RecyclerExampleScrollbar(
+      controller: _controller,
+      child: _mode == .recyclerView
+          ? _list
+          : ListView.builder(
+              key: ValueKey('official-cards-list'),
+              controller: _controller,
+              itemExtent: _cardExtent(context),
+              itemCount: _adapter.getItemCount(),
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+              itemBuilder: _row,
+            ),
+    );
   }
 
   @override
@@ -115,30 +161,7 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
         ],
       ),
     ],
-    child: SafeArea(
-      top: false,
-      child: RecyclerExampleScrollbar(
-        controller: _controller,
-        child: switch (_mode) {
-          .recyclerView => _list,
-          .listView => ListView.builder(
-            key: ValueKey('official-cards-list'),
-            controller: _controller,
-            itemExtent: _cardExtent(context),
-            itemCount: _adapter.getItemCount(),
-            addAutomaticKeepAlives: false,
-            addRepaintBoundaries: false,
-            itemBuilder: (context, index) => RepaintBoundary(
-              child: _OfficialObservationRow(
-                key: ValueKey(_adapter.records[index].id),
-                adapter: _adapter,
-                record: _adapter.records[index],
-              ),
-            ),
-          ),
-        },
-      ),
-    ),
+    child: SafeArea(top: false, child: _scrollContent(context)),
   );
 }
 

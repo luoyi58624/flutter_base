@@ -22,6 +22,9 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _selectedCount = ValueNotifier<int>(0);
   final _indexInput = TextEditingController(text: '5000');
   final _official = ScrollController(keepScrollOffset: false);
+  // El 在布局期读取唯一 position，不能与切换当帧尚待卸载的官方宿主共用。
+  final _elController = ScrollController(keepScrollOffset: false);
+  ScrollController get _currentController => _mode == .elScrollView ? _elController : _official;
   RecyclerExampleScrollMode _mode = .recyclerView;
   late final _adapter = _SelectionAdapter(_selectionChanged);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-selection-list'), controller: _official)
@@ -31,14 +34,14 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
 
   void _selectionChanged(int count) {
     _selectedCount.value = count;
-    if (_mode == .listView) setState(() {});
+    if (_mode != .recyclerView) setState(() {});
   }
 
   void _scrollTo(int index) {
     if (_mode == .recyclerView) {
       _list.scrollToPosition(index);
-    } else if (_official.hasClients) {
-      _official.jumpTo((index * _selectionExtent).clamp(0, _official.position.maxScrollExtent));
+    } else if (_currentController.hasClients) {
+      _currentController.jumpTo((index * _selectionExtent).clamp(0, _currentController.position.maxScrollExtent));
     }
   }
 
@@ -75,7 +78,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
     if (option case final RecyclerExampleScrollMode mode) {
       if (_mode == mode) return;
       setState(() => _mode = mode);
-      // 两种容器从同一首项开始比较；数据和选择集合不随容器替换。
+      // 三种容器从同一首项开始比较；数据和选择集合不随容器替换。
       _list.scrollToPosition(0);
       return;
     }
@@ -96,7 +99,52 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
     _selectedCount.dispose();
     _indexInput.dispose();
     _official.dispose();
+    _elController.dispose();
     super.dispose();
+  }
+
+  Widget _row(BuildContext context, int index) {
+    final item = _adapter.items[index];
+    return RepaintBoundary(
+      child: _OfficialSelectionRow(
+        key: ValueKey(item.id),
+        item: item,
+        checked: _adapter.selectedIds.contains(item.id),
+        onSelect: _adapter.select,
+      ),
+    );
+  }
+
+  Widget _scrollContent() {
+    if (_mode == .elScrollView) {
+      return ElScrollView(
+        key: ValueKey('el-selection-list'),
+        controller: _elController,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        children: [
+          ElListView.builder(
+            fixedSize: true,
+            keepAlive: false,
+            itemCount: _adapter.getItemCount(),
+            itemBuilder: (context, index) => _row(context, index),
+          ),
+        ],
+      );
+    }
+    return RecyclerExampleScrollbar(
+      controller: _official,
+      child: _mode == .recyclerView
+          ? _list
+          : ListView.builder(
+              key: ValueKey('official-selection-list'),
+              controller: _official,
+              itemExtent: _selectionExtent,
+              itemCount: _adapter.getItemCount(),
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+              itemBuilder: _row,
+            ),
+    );
   }
 
   @override
@@ -131,34 +179,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
         ],
       ),
     ],
-    child: SafeArea(
-      top: false,
-      child: RecyclerExampleScrollbar(
-        controller: _official,
-        child: switch (_mode) {
-          .recyclerView => _list,
-          .listView => ListView.builder(
-            key: ValueKey('official-selection-list'),
-            controller: _official,
-            itemExtent: _selectionExtent,
-            itemCount: _adapter.getItemCount(),
-            addAutomaticKeepAlives: false,
-            addRepaintBoundaries: false,
-            itemBuilder: (context, index) {
-              final item = _adapter.items[index];
-              return RepaintBoundary(
-                child: _OfficialSelectionRow(
-                  key: ValueKey(item.id),
-                  item: item,
-                  checked: _adapter.selectedIds.contains(item.id),
-                  onSelect: _adapter.select,
-                ),
-              );
-            },
-          ),
-        },
-      ),
-    ),
+    child: SafeArea(top: false, child: _scrollContent()),
   );
 }
 

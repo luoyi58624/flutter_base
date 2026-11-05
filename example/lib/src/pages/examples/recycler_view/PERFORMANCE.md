@@ -103,3 +103,18 @@ flutter test test/flutter/views/recycler_view/recycler_view_test.dart --no-pub -
 # 以下在 example 目录执行
 flutter test test/recycler_cards_test.dart test/recycler_scrollbar_test.dart test/recycler_long_examples_test.dart test/recycler_row_reuse_test.dart test/recycler_doc_page_test.dart test/deep_link_test.dart --no-pub --concurrency=1 --timeout 90s
 ```
+
+## 三种列表容器切换
+
+复选、聊天、复杂卡片三个示例的本地下拉菜单均提供 `ListView`、`ElScrollView`、`RecyclerView`。三种模式共用同一批业务记录与实际行组件，切换后复选/卡片回到首项，聊天回到最新消息，业务状态与输入草稿保留。
+
+ElScrollView 使用 `ElListView.builder(keepAlive: false)` 真正按需挂载，每项独立隔离重绘；复选与卡片开启 `fixedSize`，聊天保留变高布局。El 的 `reverse` 仅反转滚动像素，消息数据仍按正向索引构建；稳定业务 Key、索引映射与 `preserveAnchor` 保持阅读位置，追加后按是否接近底部决定跟随或提示未读。
+
+El 模式使用独立控制器，避免切换当帧旧容器尚未卸载时多位置附着。El 自身显示常显、可拖拽的 iOS 滚动条；另外两种模式继续连接各自的 Cupertino 滚动条。
+
+新增两份无头测试共 11 项，覆盖三模式往返、实际复选框清空、序号/首末定位、卡片激活与可见刷新、窄屏大字、聊天顺序/跟随/阅读锚点、草稿与消息保留，以及三个 El 模式的真实滑块拖拽。加上原有相关 39 项回归，共 50 项通过，静态分析无诊断。本次仅增加对比入口与行为验证，未重测 Android 帧率。
+
+```powershell
+# example 目录
+flutter test test/recycler_el_examples_test.dart test/recycler_chat_el_scroll_test.dart test/recycler_long_examples_test.dart test/recycler_cards_test.dart test/recycler_scrollbar_test.dart test/recycler_chat_entry_test.dart test/recycler_row_reuse_test.dart --no-pub --concurrency=1 --timeout 90s
+```

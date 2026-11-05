@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_base/flutter_base.dart';
 
-/// 为两种列表接入可直接拖拽的 iOS 风格滚动条。
+/// 为官方与回收列表接入可直接拖拽的 iOS 风格滚动条。
 class RecyclerExampleScrollbar extends StatelessWidget {
   /// 使用列表自身的控制器关联真实滚动位置。
   // ignore: prefer_const_constructors_in_immutables
@@ -18,4 +19,10 @@ class RecyclerExampleScrollbar extends StatelessWidget {
     behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
     child: CupertinoScrollbar(controller: controller, thumbVisibility: true, child: child),
   );
+}
+
+/// 为 ElScrollView 对比列表保持同样常显、可拖拽的 iOS 风格滚动条。
+class RecyclerExampleIosScrollbar extends ElIosScrollBar {
+  @override
+  bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }

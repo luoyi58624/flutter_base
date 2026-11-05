@@ -25,6 +25,8 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   final _unread = ValueNotifier<int>(0);
   final _messages = List.generate(10000, _ChatMessage.generated);
   final _official = ScrollController(keepScrollOffset: false);
+  // 切换帧中旧容器尚未卸载，El 的布局期不能与它共用单位置控制器。
+  final _el = ScrollController(keepScrollOffset: false);
   final _officialListKey = GlobalKey();
   final _officialKeys = <int, GlobalKey>{};
   RecyclerExampleScrollMode _mode = .recyclerView;
@@ -36,6 +38,8 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   // -1 是 RecyclerView.NO_ID，历史消息从更小的稳定 ID 开始。
   int _oldestId = -1;
   int _nextId = 10000;
+
+  ScrollController get _messageController => _mode == .elScrollView ? _el : _official;
 
   int _indexOf(int id) {
     var low = 0;
@@ -53,7 +57,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return -1;
   }
 
-  _ChatAnchor? _captureOfficialAnchor() {
+  _ChatAnchor? _captureMessageAnchor() {
     final viewport = _officialListKey.currentContext?.findRenderObject();
     if (viewport is! RenderBox || !viewport.hasSize) return null;
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
@@ -69,49 +73,51 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return anchor;
   }
 
-  void _restoreOfficialAnchor(_ChatAnchor? anchor) {
+  void _restoreMessageAnchor(_ChatAnchor? anchor) {
     if (anchor == null) return;
+    final mode = _mode;
+    final controller = _messageController;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _mode != .listView || !_official.hasClients) return;
+      if (!mounted || _mode != mode || _mode == .recyclerView || !controller.hasClients) return;
       final box = _officialKeys[anchor.id]?.currentContext?.findRenderObject();
       if (box is! RenderBox || !box.attached || !box.hasSize) return;
-      // 反向 ListView 的像素增大时内容向下平移，补偿新消息插入造成的几何差。
+      // 两种反向容器的像素增大时内容都向下平移，仅补偿尚未由容器保住的几何差。
       final correction = anchor.top - box.localToGlobal(Offset.zero).dy;
       if (correction.abs() > .01) {
-        _official.jumpTo((_official.offset + correction).clamp(0, _official.position.maxScrollExtent));
+        controller.jumpTo((controller.offset + correction).clamp(0, controller.position.maxScrollExtent));
       }
     });
   }
 
   void _loadEarlier() {
-    final anchor = _mode == .listView ? _captureOfficialAnchor() : null;
+    final anchor = _mode != .recyclerView ? _captureMessageAnchor() : null;
     _oldestId -= 50;
     _messages.insertAll(0, List.generate(50, (index) => _ChatMessage.generated(_oldestId + index)));
     _adapter.notifyItemRangeInserted(0, 50);
     _count.value = _messages.length;
-    if (_mode == .listView) {
+    if (_mode != .recyclerView) {
       setState(() {});
-      _restoreOfficialAnchor(anchor);
+      _restoreMessageAnchor(anchor);
     }
   }
 
   void _append({required bool mine, String? text}) {
     final follow =
         _nearBottom &&
-        (_mode == .listView
-            ? _official.hasClients && _official.offset <= 48
+        (_mode != .recyclerView
+            ? _messageController.hasClients && _messageController.offset <= 48
             : (_list.getLayoutManager()! as rv.LinearLayoutManager).findLastVisibleItemPosition() ==
                   _messages.length - 1);
-    final anchor = _mode == .listView && !follow ? _captureOfficialAnchor() : null;
+    final anchor = _mode != .recyclerView && !follow ? _captureMessageAnchor() : null;
     _messages.add(_ChatMessage.generated(_nextId++, mine: mine, text: text));
     _adapter.notifyItemInserted(_messages.length - 1);
     _count.value = _messages.length;
-    if (_mode == .listView) setState(() {});
+    if (_mode != .recyclerView) setState(() {});
     if (follow) {
       _showLatest();
     } else {
       _unread.value++;
-      _restoreOfficialAnchor(anchor);
+      _restoreMessageAnchor(anchor);
     }
   }
 
@@ -128,8 +134,10 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     if (_mode == .recyclerView) {
       _list.scrollToPosition(_messages.length - 1);
     } else {
+      final mode = _mode;
+      final controller = _messageController;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _mode == .listView && _official.hasClients) _official.jumpTo(0);
+        if (mounted && _mode == mode && _mode != .recyclerView && controller.hasClients) controller.jumpTo(0);
       });
     }
   }
@@ -154,9 +162,30 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   bool _onScroll(ScrollNotification notification) {
     if (notification.depth != 0) return false;
-    _nearBottom = (_mode == .listView ? notification.metrics.extentBefore : notification.metrics.extentAfter) <= 48;
+    _nearBottom = (_mode == .recyclerView ? notification.metrics.extentAfter : notification.metrics.extentBefore) <= 48;
     if (_nearBottom && _unread.value != 0) _unread.value = 0;
     return false;
+  }
+
+  int? _messageIndexForKey(Key key) {
+    for (final entry in _officialKeys.entries) {
+      if (entry.value != key) continue;
+      final index = _indexOf(entry.key);
+      return index < 0 ? null : (_mode == .listView ? _messages.length - 1 - index : index);
+    }
+    return null;
+  }
+
+  Widget _messageRow(int index) {
+    final message = _messages[index];
+    final key = _officialKeys.putIfAbsent(message.id, GlobalKey.new);
+    return _OfficialChatRow(
+      key: key,
+      message: message,
+      onDisposed: () {
+        if (identical(_officialKeys[message.id], key)) _officialKeys.remove(message.id);
+      },
+    );
   }
 
   Widget _officialMessages() => KeyedSubtree(
@@ -168,26 +197,36 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
       itemCount: _messages.length,
       addAutomaticKeepAlives: false,
       addRepaintBoundaries: false,
-      findChildIndexCallback: (key) {
-        for (final entry in _officialKeys.entries) {
-          if (entry.value != key) continue;
-          final index = _indexOf(entry.key);
-          return index < 0 ? null : _messages.length - 1 - index;
-        }
-        return null;
-      },
-      itemBuilder: (context, index) {
-        final message = _messages[_messages.length - 1 - index];
-        final key = _officialKeys.putIfAbsent(message.id, GlobalKey.new);
-        return _OfficialChatRow(
-          key: key,
-          message: message,
-          onDisposed: () {
-            if (identical(_officialKeys[message.id], key)) _officialKeys.remove(message.id);
-          },
-        );
-      },
+      findChildIndexCallback: _messageIndexForKey,
+      itemBuilder: (context, index) => _messageRow(_messages.length - 1 - index),
     ),
+  );
+
+  Widget _elMessages() => KeyedSubtree(
+    key: ValueKey('el-chat-list'),
+    child: ElScrollView(
+      key: _officialListKey,
+      controller: _el,
+      reverse: true,
+      preserveAnchor: true,
+      scrollbar: RecyclerExampleIosScrollbar(),
+      children: [
+        ElListView.builder(
+          itemCount: _messages.length,
+          keepAlive: false,
+          findChildIndexCallback: _messageIndexForKey,
+          // El 的 reverse 保留内容顺序，只把像素零点放到末尾。
+          itemBuilder: (context, index) => _messageRow(index),
+        ),
+      ],
+    ),
+  );
+
+  Widget _messagesViewport() => NotificationListener<ScrollNotification>(
+    onNotification: _onScroll,
+    child: _mode == .elScrollView
+        ? _elMessages()
+        : RecyclerExampleScrollbar(controller: _official, child: _mode == .recyclerView ? _list : _officialMessages()),
   );
 
   @override
@@ -196,6 +235,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _count.dispose();
     _unread.dispose();
     _official.dispose();
+    _el.dispose();
     super.dispose();
   }
 
@@ -244,15 +284,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
       child: Column(
         crossAxisAlignment: .stretch,
         children: [
-          Expanded(
-            child: RecyclerExampleScrollbar(
-              controller: _official,
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _onScroll,
-                child: _mode == .recyclerView ? _list : _officialMessages(),
-              ),
-            ),
-          ),
+          Expanded(child: _messagesViewport()),
           ElCardView(
             style: ElStyle(padding: .all(12)),
             child: Row(
