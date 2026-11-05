@@ -2,6 +2,5 @@
 /// 移动端组件预设及移动端独立组件。
 library;
 
-export 'components/index.dart';
+export 'components/index.dart' show ElMobileExt;
 export 'components/others/bottom_tabbar/index.dart' show ElBottomTabbar;
-export 'theme/tokens.dart';

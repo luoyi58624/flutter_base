@@ -1,12 +1,4 @@
-import 'package:flutter/widgets.dart';
-
-import '../../../flutter/commons/theme/tokens.dart' show ElTokens;
-
-/// 移动品牌的浅色 token 基础值。
-Map<Object, Object> get mobileLightVars => _lightVars;
-
-/// 移动品牌的暗色 token 差量。
-Map<Object, Object> get mobileDarkVars => _darkVars;
+part of 'index.dart';
 
 // 基础值与暗色差量分别声明，变量级联由 ElView 处理。
 const _lightShadow = Color(0xff314669);

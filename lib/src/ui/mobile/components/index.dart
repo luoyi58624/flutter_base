@@ -1,7 +1,7 @@
+import 'package:flutter/painting.dart' show Color, BoxShadow, Offset;
+
+import '../../../../flutter.dart';
 import '../../../dart/commons/index.dart' show El;
-import '../../../flutter/components/index.dart' show ElComponents;
-import '../../../flutter/views/view/style/style.dart' show ElStyle;
-import '../cores/tokens.dart' show mobileDarkVars, mobileLightVars;
 import 'button/index.dart';
 import 'card/index.dart';
 import 'icon/index.dart';
@@ -13,6 +13,8 @@ import 'slider/index.dart';
 import 'switch/index.dart';
 import 'tag/index.dart';
 
+part 'tokens.dart';
+
 /// 移动品牌的组件和 token 预设。
 extension ElMobileExt on El {
   /// 移动端默认组件及样式配置。
@@ -21,8 +23,8 @@ extension ElMobileExt on El {
 
 final _components = ElComponents(
   style: ElStyle(
-    vars: mobileLightVars,
-    onDark: ElStyle(vars: mobileDarkVars),
+    vars: _lightVars,
+    onDark: ElStyle(vars: _darkVars),
   ),
   button: buttonBuilder,
   card: cardBuilder,
