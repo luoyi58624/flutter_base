@@ -1,8 +1,8 @@
 import 'dart:ui' show PointerDeviceKind;
 
-import 'package:example/src/layout/mobile/pages/1.dart';
+import 'package:example/src/pages/home.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -11,9 +11,20 @@ void main() {
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(MaterialApp(home: HomePage()));
+    await tester.pumpWidget(
+      ElComponentProvider(
+        components: el.mobileComponents,
+        child: MaterialApp(home: HomePage()),
+      ),
+    );
+    await tester.pumpAndSettle();
     final toggle = find.byType(Switch);
-    final elButtons = find.byType(ElButtonView);
+    final elButtons = find.byWidgetPredicate(
+      (widget) =>
+          widget is ElButtonView &&
+          ((widget.child is String && (widget.child as String).startsWith('count:')) ||
+              ['清理存储', '安全检查', '运行状态', '应用管理'].contains(widget.semantics?.properties.label)),
+    );
     final flutterButtons = find.byType(AnimatedContainer);
     expect(elButtons, findsNWidgets(5));
 
@@ -42,7 +53,13 @@ void main() {
   });
 
   testWidgets('Flutter 卡片按下时同时过渡缩放和背景色', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: HomePage()));
+    await tester.pumpWidget(
+      ElComponentProvider(
+        components: el.mobileComponents,
+        child: MaterialApp(home: HomePage()),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 

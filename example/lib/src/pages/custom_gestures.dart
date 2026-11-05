@@ -3,12 +3,9 @@ import 'package:flutter_base/mobile.dart' show ElScrollView, ElListView;
 // 独立识别器未由公共入口导出；此页演示内核，保留自行判断范围与取消的行为。
 // ignore: implementation_imports
 import 'package:flutter_base/src/flutter/views/view/event/press.dart'
-    show
-        ElEventPhase,
-        PressRecognizer,
-        PressGestureCallback,
-        PressGestureDetails,
-        PressCancelReason;
+    show ElEventPhase, PressRecognizer, PressGestureCallback, PressGestureDetails, PressCancelReason;
+
+import 'example_page.dart';
 
 const _ink = Color(0xff202839);
 const _muted = Color(0xff697386);
@@ -59,11 +56,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     _createRecognizers();
   }
 
-  PressRecognizer _press(
-    String source, {
-    String? tapCounter,
-    PressRecognizer? parent,
-  }) {
+  PressRecognizer _press(String source, {String? tapCounter, PressRecognizer? parent}) {
     _bounds.putIfAbsent(source, () => GlobalKey());
     return PressRecognizer()
       ..parent = parent
@@ -78,44 +71,28 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       );
   }
 
-  PressGestureCallback _handler(
-    String source, {
-    bool? pressed,
-    String? counter,
-  }) =>
-      (event) =>
-          _recordEvent(source, event, pressed: pressed, counter: counter);
+  PressGestureCallback _handler(String source, {bool? pressed, String? counter}) =>
+      (event) => _recordEvent(source, event, pressed: pressed, counter: counter);
 
   void _createRecognizers() {
     _basic = _press('basic', tapCounter: 'tap')
       ..deferTap = _deferSingle
       ..callbacks[ElEventPhase.doubleTapDown] = _handler('basic')
       ..callbacks[ElEventPhase.tripleTapDown] = _handler('basic')
-      ..callbacks[ElEventPhase.doubleTap] = _handler(
-        'basic',
-        counter: 'doubleTap',
-      )
-      ..callbacks[ElEventPhase.tripleTap] = _handler(
-        'basic',
-        counter: 'tripleTap',
-      )
-      ..callbacks[ElEventPhase.longPress] = _handler(
-        'basic',
-        counter: 'longPress',
-        pressed: true,
-      );
+      ..callbacks[ElEventPhase.doubleTap] = _handler('basic', counter: 'doubleTap')
+      ..callbacks[ElEventPhase.tripleTap] = _handler('basic', counter: 'tripleTap')
+      ..callbacks[ElEventPhase.longPress] = _handler('basic', counter: 'longPress', pressed: true);
     _wireMouseButtons();
     _bubbleParent = _press('bubbleParent', tapCounter: 'bubbleParent');
-    _bubbleChild =
-        _press('bubbleChild', tapCounter: 'bubbleChild', parent: _bubbleParent)
-          ..callbacks[ElEventPhase.tapDown] = (event) {
-            if (_stopBubble) event.stopPropagation();
-            _recordEvent('bubbleChild', event, pressed: true);
-          }
-          ..callbacks[ElEventPhase.tap] = (event) {
-            if (_stopBubble) event.stopPropagation();
-            _recordEvent('bubbleChild', event, counter: 'bubbleChild');
-          };
+    _bubbleChild = _press('bubbleChild', tapCounter: 'bubbleChild', parent: _bubbleParent)
+      ..callbacks[ElEventPhase.tapDown] = (event) {
+        if (_stopBubble) event.stopPropagation();
+        _recordEvent('bubbleChild', event, pressed: true);
+      }
+      ..callbacks[ElEventPhase.tap] = (event) {
+        if (_stopBubble) event.stopPropagation();
+        _recordEvent('bubbleChild', event, counter: 'bubbleChild');
+      };
     _elInOfficial = _press('mixedEl', tapCounter: 'mixedEl');
     _elOutsideOfficial = _press('mixedElOuter', tapCounter: 'mixedElOuter');
     _scrollPress = _press('scroll', tapCounter: 'scrollTap');
@@ -123,39 +100,15 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 
   void _wireMouseButtons() {
     _basic
-      ..callbacks[ElEventPhase.secondaryTapDown] = _handler(
-        'basic',
-        pressed: true,
-      )
-      ..callbacks[ElEventPhase.secondaryTapUp] = _handler(
-        'basic',
-        pressed: false,
-      )
-      ..callbacks[ElEventPhase.secondaryTap] = _handler(
-        'basic',
-        counter: 'secondaryTap',
-      )
-      ..callbacks[ElEventPhase.tertiaryTapDown] = _handler(
-        'basic',
-        pressed: true,
-      )
-      ..callbacks[ElEventPhase.tertiaryTapUp] = _handler(
-        'basic',
-        pressed: false,
-      )
-      ..callbacks[ElEventPhase.tertiaryTap] = _handler(
-        'basic',
-        counter: 'tertiaryTap',
-      )
-      ..callbacks[ElEventPhase.forwardTapDown] = _handler(
-        'basic',
-        pressed: true,
-      )
+      ..callbacks[ElEventPhase.secondaryTapDown] = _handler('basic', pressed: true)
+      ..callbacks[ElEventPhase.secondaryTapUp] = _handler('basic', pressed: false)
+      ..callbacks[ElEventPhase.secondaryTap] = _handler('basic', counter: 'secondaryTap')
+      ..callbacks[ElEventPhase.tertiaryTapDown] = _handler('basic', pressed: true)
+      ..callbacks[ElEventPhase.tertiaryTapUp] = _handler('basic', pressed: false)
+      ..callbacks[ElEventPhase.tertiaryTap] = _handler('basic', counter: 'tertiaryTap')
+      ..callbacks[ElEventPhase.forwardTapDown] = _handler('basic', pressed: true)
       ..callbacks[ElEventPhase.forwardTapUp] = _handler('basic', pressed: false)
-      ..callbacks[ElEventPhase.forwardTap] = _handler(
-        'basic',
-        counter: 'forwardTap',
-      )
+      ..callbacks[ElEventPhase.forwardTap] = _handler('basic', counter: 'forwardTap')
       ..callbacks[ElEventPhase.backTapDown] = _handler('basic', pressed: true)
       ..callbacks[ElEventPhase.backTapUp] = _handler('basic', pressed: false)
       ..callbacks[ElEventPhase.backTap] = _handler('basic', counter: 'backTap');
@@ -170,12 +123,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     _scrollPress,
   ];
 
-  void _recordEvent(
-    String source,
-    PressGestureDetails event, {
-    bool? pressed,
-    String? counter,
-  }) => _record(
+  void _recordEvent(String source, PressGestureDetails event, {bool? pressed, String? counter}) => _record(
     source,
     event.phase.name,
     pressed: pressed,
@@ -210,17 +158,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
         _counts.update(counter, (v) => v + 1, ifAbsent: () => 1);
       }
       // 回调对象会在冒泡时重定位，只保留此刻的值，不保存可变事件对象。
-      _entries.insert(
-        0,
-        _LogEntry(
-          ++_sequence,
-          _sourceNames[source]!,
-          phase,
-          position,
-          taps,
-          cancelReason,
-        ),
-      );
+      _entries.insert(0, _LogEntry(++_sequence, _sourceNames[source]!, phase, position, taps, cancelReason));
       if (_entries.length > 24) _entries.removeLast();
     });
     _logRevision.value++;
@@ -253,12 +191,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
         child: SafeArea(
           child: ElScrollView(
             padding: const EdgeInsets.all(16),
-            children: [
-              ValueListenableBuilder<int>(
-                valueListenable: _logRevision,
-                builder: (_, _, _) => _logCard(),
-              ),
-            ],
+            children: [ValueListenableBuilder<int>(valueListenable: _logRevision, builder: (_, _, _) => _logCard())],
           ),
         ),
       ),
@@ -279,40 +212,31 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
   @override
   Widget build(BuildContext context) => RepaintBoundary(
     key: const ValueKey('gesture.page.capture'),
-    child: Scaffold(
+    child: ExamplePage(
+      title: '自定义手势',
       backgroundColor: _background,
-      appBar: AppBar(
-        title: const Text('自定义手势'),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        actions: [
-          IconButton(
-            key: const ValueKey('gesture.logs'),
-            onPressed: _showLogs,
-            tooltip: '事件记录',
-            icon: const Icon(Icons.receipt_long_outlined, size: 21),
-          ),
-          TextButton.icon(
-            key: const ValueKey('gesture.reset'),
-            onPressed: _reset,
-            icon: const Icon(Icons.restart_alt_rounded, size: 19),
-            label: const Text('重置记录'),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: LayoutBuilder(
+      actions: [
+        IconButton(
+          key: const ValueKey('gesture.logs'),
+          onPressed: _showLogs,
+          tooltip: '事件记录',
+          icon: const Icon(Icons.receipt_long_outlined, size: 21),
+        ),
+        TextButton.icon(
+          key: const ValueKey('gesture.reset'),
+          onPressed: _reset,
+          icon: const Icon(Icons.restart_alt_rounded, size: 19),
+          label: const Text('重置记录'),
+        ),
+        const SizedBox(width: 12),
+      ],
+      child: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 1080;
           final tests = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 16,
-            children: [
-              _basicCard(),
-              _bubbleCard(),
-              _mixedCard(),
-              _scrollCard(),
-            ],
+            children: [_basicCard(), _bubbleCard(), _mixedCard(), _scrollCard()],
           );
           const heading = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -320,16 +244,9 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
             children: [
               Text(
                 '点击交互测试',
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w700,
-                  color: _ink,
-                ),
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: _ink),
               ),
-              Text(
-                '在下方区域操作，观察计数与事件顺序。蓝色为 El 测试区，橙色为官方测试区。',
-                style: TextStyle(color: _muted, height: 1.6),
-              ),
+              Text('在下方区域操作，观察计数与事件顺序。蓝色为 El 测试区，橙色为官方测试区。', style: TextStyle(color: _muted, height: 1.6)),
             ],
           );
           final narrowContent = ElScrollView(
@@ -357,13 +274,8 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               spacing: 20,
                               children: [
-                                Expanded(
-                                  child: ElScrollView(children: [tests]),
-                                ),
-                                SizedBox(
-                                  width: 340,
-                                  child: ElScrollView(children: [_logCard()]),
-                                ),
+                                Expanded(child: ElScrollView(children: [tests])),
+                                SizedBox(width: 340, child: ElScrollView(children: [_logCard()])),
                               ],
                             ),
                           ),
@@ -438,11 +350,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
                 'bubbleChild',
                 _bubbleChild,
                 targetKey: 'gesture.bubble.target',
-                child: _area(
-                  'bubbleChild',
-                  title: '点击 El 子级',
-                  description: _stopBubble ? '当前仅通知子级' : '子级 → 父级',
-                ),
+                child: _area('bubbleChild', title: '点击 El 子级', description: _stopBubble ? '当前仅通知子级' : '子级 → 父级'),
               ),
             ],
           ),
@@ -508,10 +416,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
           ),
         ),
       ),
-      _metrics(const [
-        ('mixedOfficialChild', '官方内层'),
-        ('mixedElOuter', 'El 外层'),
-      ]),
+      _metrics(const [('mixedOfficialChild', '官方内层'), ('mixedElOuter', 'El 外层')]),
     ],
   );
 
@@ -533,18 +438,11 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
                 'scroll',
                 _scrollPress,
                 targetKey: 'gesture.scroll.target',
-                child: _area(
-                  'scroll',
-                  title: '点击，或从这里向上滑动',
-                  icon: Icons.swipe_up_rounded,
-                ),
+                child: _area('scroll', title: '点击，或从这里向上滑动', icon: Icons.swipe_up_rounded),
               ),
               for (var i = 1; i <= 8; i++)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                   child: Text('滚动内容 $i', style: const TextStyle(color: _muted)),
                 ),
             ],
@@ -555,11 +453,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     ],
   );
 
-  void _cancelOutside(
-    String source,
-    PressRecognizer recognizer,
-    PointerEvent event,
-  ) {
+  void _cancelOutside(String source, PressRecognizer recognizer, PointerEvent event) {
     final render = _bounds[source]?.currentContext?.findRenderObject();
     if (render is! RenderBox ||
         !render.attached ||
@@ -569,12 +463,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
     }
   }
 
-  Widget _surface(
-    String source,
-    PressRecognizer recognizer, {
-    required Widget child,
-    String? targetKey,
-  }) => MouseRegion(
+  Widget _surface(String source, PressRecognizer recognizer, {required Widget child, String? targetKey}) => MouseRegion(
     cursor: SystemMouseCursors.click,
     child: Listener(
       key: _bounds[source],
@@ -583,35 +472,17 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       onPointerDown: recognizer.addPointer,
       onPointerMove: (event) => _cancelOutside(source, recognizer, event),
       onPointerUp: (event) => _cancelOutside(source, recognizer, event),
-      child: KeyedSubtree(
-        key: targetKey == null ? null : ValueKey(targetKey),
-        child: child,
-      ),
+      child: KeyedSubtree(key: targetKey == null ? null : ValueKey(targetKey), child: child),
     ),
   );
 
-  Widget _official(
-    String source,
-    String counter, {
-    required Widget child,
-    String? targetKey,
-  }) => MouseRegion(
+  Widget _official(String source, String counter, {required Widget child, String? targetKey}) => MouseRegion(
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       key: targetKey == null ? null : ValueKey(targetKey),
       behavior: HitTestBehavior.opaque,
-      onTapDown: (event) => _record(
-        source,
-        'tapDown',
-        pressed: true,
-        position: event.localPosition,
-      ),
-      onTapUp: (event) => _record(
-        source,
-        'tapUp',
-        pressed: false,
-        position: event.localPosition,
-      ),
+      onTapDown: (event) => _record(source, 'tapDown', pressed: true, position: event.localPosition),
+      onTapUp: (event) => _record(source, 'tapUp', pressed: false, position: event.localPosition),
       onTapCancel: () => _record(source, 'tapCancel', pressed: false),
       onTap: () => _record(source, 'tap', counter: counter),
       child: child,
@@ -621,30 +492,20 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
   BoxDecoration _frame(String source, {bool official = false}) {
     final color = official ? const Color(0xffb46c16) : _blue;
     return BoxDecoration(
-      color: _pressed.contains(source)
-          ? color.withValues(alpha: .12)
-          : color.withValues(alpha: .035),
+      color: _pressed.contains(source) ? color.withValues(alpha: .12) : color.withValues(alpha: .035),
       border: Border.all(color: color.withValues(alpha: .2)),
       borderRadius: BorderRadius.circular(12),
     );
   }
 
-  Widget _area(
-    String source, {
-    required String title,
-    String? description,
-    IconData? icon,
-    bool official = false,
-  }) {
+  Widget _area(String source, {required String title, String? description, IconData? icon, bool official = false}) {
     final color = official ? const Color(0xffb46c16) : _blue;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 100),
       constraints: const BoxConstraints(minHeight: 90),
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: _pressed.contains(source)
-            ? color.withValues(alpha: .19)
-            : color.withValues(alpha: .085),
+        color: _pressed.contains(source) ? color.withValues(alpha: .19) : color.withValues(alpha: .085),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: .28)),
       ),
@@ -656,11 +517,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 15),
           ),
           if (description != null)
             Text(
@@ -680,10 +537,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
       for (final (id, label) in counters)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-          decoration: BoxDecoration(
-            color: _background,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          decoration: BoxDecoration(color: _background, borderRadius: BorderRadius.circular(8)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             spacing: 10,
@@ -692,10 +546,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
               Text(
                 '${_counts[id] ?? 0}',
                 key: ValueKey('count.$id'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: _ink,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w700, color: _ink),
               ),
             ],
           ),
@@ -722,8 +573,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
             children: [
               ElListView.builder(
                 itemCount: _entries.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 17, color: Color(0xffedf0f5)),
+                separatorBuilder: (_, _) => const Divider(height: 17, color: Color(0xffedf0f5)),
                 itemBuilder: (_, index) {
                   final entry = _entries[index];
                   final canceled = entry.phase == 'tapCancel';
@@ -748,10 +598,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
                           style: const TextStyle(color: _muted, fontSize: 11),
                         ),
                       if (entry.cancelReason != null)
-                        Text(
-                          entry.cancelReason!,
-                          style: const TextStyle(color: _muted, fontSize: 11),
-                        ),
+                        Text(entry.cancelReason!, style: const TextStyle(color: _muted, fontSize: 11)),
                     ],
                   );
                 },
@@ -764,12 +611,7 @@ class _CustomGesturesPageState extends State<CustomGesturesPage> {
 }
 
 class _TestCard extends StatelessWidget {
-  const _TestCard({
-    required this.number,
-    required this.title,
-    required this.description,
-    required this.children,
-  });
+  const _TestCard({required this.number, required this.title, required this.description, required this.children});
 
   final String number;
   final String title;
@@ -795,28 +637,17 @@ class _TestCard extends StatelessWidget {
             children: [
               Text(
                 number,
-                style: const TextStyle(
-                  color: _blue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(color: _blue, fontWeight: FontWeight.w700, fontSize: 15),
               ),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: _ink,
-                  ),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _ink),
                 ),
               ),
             ],
           ),
-          Text(
-            description,
-            style: const TextStyle(fontSize: 13, color: _muted, height: 1.6),
-          ),
+          Text(description, style: const TextStyle(fontSize: 13, color: _muted, height: 1.6)),
           ...children,
         ],
       ),
@@ -825,14 +656,7 @@ class _TestCard extends StatelessWidget {
 }
 
 class _LogEntry {
-  const _LogEntry(
-    this.sequence,
-    this.source,
-    this.phase,
-    this.position,
-    this.taps,
-    this.cancelReason,
-  );
+  const _LogEntry(this.sequence, this.source, this.phase, this.position, this.taps, this.cancelReason);
 
   final int sequence;
   final String source;

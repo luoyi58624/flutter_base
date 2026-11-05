@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import 'example_page.dart';
+
 class ElViewPage extends StatelessWidget {
   const ElViewPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ElView 测试')),
-      body: SizedBox.expand(
+    return ExamplePage(
+      title: 'ElView 测试',
+      child: SizedBox.expand(
         child: Row(
           children: [
             Expanded(
@@ -20,10 +22,7 @@ class ElViewPage extends StatelessWidget {
                     spacing: 20,
                     children: [
                       RepaintBoundary(
-                        child: Switch(
-                          value: flag.value,
-                          onChanged: (v) => flag.value = v,
-                        ),
+                        child: Switch(value: flag.value, onChanged: (v) => flag.value = v),
                       ),
                       ElView(
                         style: ElStyle(
@@ -51,9 +50,7 @@ class ElViewPage extends StatelessWidget {
                                   style: .new(
                                     width: 100,
                                     height: 100,
-                                    backgroundColor: flag.value
-                                        ? Colors.blue
-                                        : Colors.green,
+                                    backgroundColor: flag.value ? Colors.blue : Colors.green,
                                     margin: .only(bottom: 8),
                                   ),
                                 ),
@@ -76,10 +73,7 @@ class ElViewPage extends StatelessWidget {
                     spacing: 20,
                     children: [
                       RepaintBoundary(
-                        child: Switch(
-                          value: flag.value,
-                          onChanged: (v) => flag.value = v,
-                        ),
+                        child: Switch(value: flag.value, onChanged: (v) => flag.value = v),
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 240),
@@ -107,9 +101,7 @@ class ElViewPage extends StatelessWidget {
                                 child: Padding(
                                   padding: .only(bottom: 8),
                                   child: ColoredBox(
-                                    color: flag.value
-                                        ? Colors.blue
-                                        : Colors.red,
+                                    color: flag.value ? Colors.blue : Colors.red,
                                     child: SizedBox(width: 100, height: 100),
                                   ),
                                 ),

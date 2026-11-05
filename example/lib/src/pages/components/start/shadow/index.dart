@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 
+import '../../../example_page.dart';
+
 /// 调节算法输入并展示当前级别的单个阴影，不改变应用主题或组件默认样式。
 class ShadowPage extends HookWidget {
   /// 创建阴影游乐场。
@@ -169,31 +171,29 @@ ElStyle(
         ],
       ),
     );
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('阴影'),
-        actions: [
-          ElButton(
-            key: ValueKey('shadow-reset'),
-            variant: .text,
-            child: Icons.restart_alt,
-            semanticLabel: '恢复默认',
-            onPressed: reset,
-          ),
-          ElButton(
-            key: ValueKey('shadow-copy'),
-            variant: .text,
-            icon: Icons.copy,
-            child: copied.value ? '已复制' : '复制',
-            semanticLabel: '复制 Dart 用法',
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: code()));
-              if (context.mounted) copied.value = true;
-            },
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
+    return ExamplePage(
+      title: '阴影',
+      actions: [
+        ElButton(
+          key: ValueKey('shadow-reset'),
+          variant: .text,
+          child: Icons.restart_alt,
+          semanticLabel: '恢复默认',
+          onPressed: reset,
+        ),
+        ElButton(
+          key: ValueKey('shadow-copy'),
+          variant: .text,
+          icon: Icons.copy,
+          child: copied.value ? '已复制' : '复制',
+          semanticLabel: '复制 Dart 用法',
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: code()));
+            if (context.mounted) copied.value = true;
+          },
+        ),
+      ],
+      child: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth >= 900) {
             // 两栏各自占满可用高度，参数区滚动不再带走预览。

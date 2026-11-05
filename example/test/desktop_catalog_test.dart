@@ -45,6 +45,42 @@ void main() {
     expect(paths, containsAll(['/components/button', '/components/shadow-design', '/examples/gestures']));
     expect(paths, isNot(contains('/components/基础组件')));
     expect(RouterUtil.desktopMenus.map((menu) => menu.title), ['首页', '组件', '示例', '设置']);
+    expect(RouterUtil.titleOf(Uri.parse('/components/button?source=test#example')), 'Button 按钮');
+  });
+
+  testWidgets('桌面公共头覆盖整行，标识和标题不跳转，公共菜单可切换主题和打开设置', (tester) async {
+    GlobalState.isDark.value = false;
+    addTearDown(() => GlobalState.isDark.value = false);
+    await _host(tester, path: '/components/button');
+    final navbar = find.byKey(ValueKey('desktop-navbar'));
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(tester.getRect(navbar).left, 0);
+    expect(tester.getRect(navbar).width, 1280);
+    final title = find.descendant(of: navbar, matching: find.text('Button 按钮'));
+    final logo = find.descendant(
+      of: navbar,
+      matching: find.byWidgetPredicate((widget) => widget is ElIcon && widget.semanticLabel == 'El UI'),
+    );
+    expect(title, findsOneWidget);
+    expect(logo, findsOneWidget);
+    expect(tester.getCenter(logo).dx, lessThan(tester.getCenter(title).dx));
+    await tester.tap(logo);
+    await tester.tap(title);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/button');
+    final menu = find.byKey(ValueKey('navbar-menu'));
+    expect(menu, findsOneWidget);
+    expect(tester.getCenter(menu).dx, greaterThan(tester.getCenter(title).dx));
+    await tester.tap(find.byTooltip('切换到暗黑模式'));
+    await tester.pumpAndSettle();
+    expect(GlobalState.isDark.value, isTrue);
+    await tester.tap(find.byTooltip('全局设置'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/settings');
+    expect(find.widgetWithText(AppBar, '设置'), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
   });
 
   testWidgets('桌面按路由显示侧栏和正文，菜单高亮跟随地址', (tester) async {
@@ -102,6 +138,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ElNavMenu<WidgetBuilder>), findsOneWidget);
     expect(router.routeInformationProvider.value.uri.path, '/components/quick-start');
+    expect(find.byType(AppBar), findsOneWidget);
     tester.view.physicalSize = Size(390, 900);
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '快速开始'), findsOneWidget);

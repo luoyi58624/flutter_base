@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../example_page.dart';
+
 class ViewBasePage extends HookWidget {
   const ViewBasePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ElView 基础使用')),
-      body: ElScrollView(
+    return ExamplePage(
+      title: 'ElView 基础使用',
+      child: ElScrollView(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -37,13 +39,7 @@ class ViewBasePage extends HookWidget {
                                   ? 1.5
                                   : 1.0,
                             ),
-                            transition: [
-                              .all(
-                                state.hasTap
-                                    ? .zero
-                                    : Duration(milliseconds: 250),
-                              ),
-                            ],
+                            transition: [.all(state.hasTap ? .zero : Duration(milliseconds: 250))],
                           ),
                         );
                       },

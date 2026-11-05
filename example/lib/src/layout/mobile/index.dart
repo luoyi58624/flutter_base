@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:go_router/go_router.dart';
 
-import '../index.dart';
+import '../../router/pages.dart';
 
 /// 移动端布局，底栏选中项与分支导航栈由路由持有。
 class MobileLayout extends StatelessWidget {
@@ -20,7 +20,7 @@ class MobileLayout extends StatelessWidget {
       bottomNavigationBar: ElBottomTabbar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => navigationShell.goBranch(index),
-        destinations: [for (final tab in AppLayout.menus) NavigationDestination(icon: tab.icon!, label: tab.title)],
+        destinations: [for (final tab in navigationPages) NavigationDestination(icon: tab.icon!, label: tab.title)],
       ),
     ),
   );

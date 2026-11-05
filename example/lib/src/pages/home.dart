@@ -1,7 +1,8 @@
-import 'package:example/state.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
+
+import 'example_page.dart';
 
 const _pressScale = 0.9;
 const _pressDuration = Duration(milliseconds: 100);
@@ -16,29 +17,17 @@ class HomePage extends HookWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final useFlutter = useState(false);
-    return Scaffold(
+    return ExamplePage(
+      title: '首页',
       backgroundColor: colors.brightness == .dark ? colors.surface : Color(0xFFF0F1F3),
-      appBar: AppBar(
-        title: const Text('首页'),
-        actions: [
-          Text('Flutter 官方'),
-          Semantics(
-            label: '使用 Flutter 官方组件',
-            child: Switch(value: useFlutter.value, onChanged: (value) => useFlutter.value = value),
-          ),
-          ObsBuilder(
-            builder: (context) {
-              final isDark = GlobalState.isDark.value;
-              return IconButton(
-                tooltip: isDark ? '切换到浅色模式' : '切换到暗黑模式',
-                icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-                onPressed: () => GlobalState.isDark.value = !isDark,
-              );
-            },
-          ),
-        ],
-      ),
-      body: Center(
+      actions: [
+        Text('Flutter 官方'),
+        Semantics(
+          label: '使用 Flutter 官方组件',
+          child: Switch(value: useFlutter.value, onChanged: (value) => useFlutter.value = value),
+        ),
+      ],
+      child: Center(
         child: SingleChildScrollView(
           padding: .symmetric(horizontal: 20, vertical: 24),
           child: ConstrainedBox(

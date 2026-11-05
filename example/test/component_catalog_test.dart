@@ -1,6 +1,6 @@
 import 'package:example/main.dart';
 import 'package:example/router.dart';
-import 'package:example/src/layout/mobile/pages/2.dart';
+import 'package:example/src/pages/components/index.dart';
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/components/start/shadow/index.dart';
 import 'package:flutter/material.dart';

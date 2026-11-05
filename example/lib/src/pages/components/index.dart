@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../router.dart';
-import '../../../pages/components/catalog.dart';
+import '../../utils/router.dart';
+import '../example_page.dart';
+import 'catalog.dart';
 
+/// 移动导航下的组件目录，叶子与桌面侧栏共用页面声明。
 class ComponentPage extends StatelessWidget {
+  /// 创建组件目录页。
   const ComponentPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('组件')),
-      body: ElScrollView(
+    return ExamplePage(
+      title: '组件',
+      child: ElScrollView(
         key: PageStorageKey('component-catalog'),
         padding: .fromLTRB(16, 8, 16, 24),
         children: [

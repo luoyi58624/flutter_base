@@ -45,13 +45,13 @@ Future<void> _slide(WidgetTester tester, String key, double value) async {
 }
 
 void main() {
-  testWidgets('桌面参数区独立滚动，预览、页面标题和两栏宽度保持原位', (tester) async {
+  testWidgets('桌面参数区独立滚动，预览、页面工具和两栏宽度保持原位', (tester) async {
     await _host(tester, Size(1280, 900));
     final preview = find.byKey(ValueKey('shadow-preview'));
     final left = find.byKey(ValueKey('shadow-preview-scroll'));
     final right = find.byKey(ValueKey('shadow-controls-scroll'));
     final previewRect = tester.getRect(preview);
-    final titleRect = tester.getRect(find.byType(AppBar));
+    final toolbarRect = tester.getRect(find.byKey(ValueKey('shadow-reset')));
     final leftRect = tester.getRect(left), rightRect = tester.getRect(right);
     final leftState = tester.state<ElScrollViewState>(left);
     final rightState = tester.state<ElScrollViewState>(right);
@@ -62,7 +62,7 @@ void main() {
     expect(leftState.position.pixels, 0);
     expect(preview.hitTestable(), findsOneWidget);
     expect(tester.getRect(preview), previewRect);
-    expect(tester.getRect(find.byType(AppBar)), titleRect);
+    expect(tester.getRect(find.byKey(ValueKey('shadow-reset'))), toolbarRect);
     expect(tester.getRect(left), leftRect);
     expect(tester.getRect(right), rightRect);
     await _slide(tester, 'shadow-strength', 1.5);

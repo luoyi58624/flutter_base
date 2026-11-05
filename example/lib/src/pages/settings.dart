@@ -1,15 +1,19 @@
-import 'package:example/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
+import '../state/index.dart';
+import 'example_page.dart';
+
+/// 两端共用的主题、系统和工具设置正文。
 class SettingPage extends StatelessWidget {
+  /// 创建设置页。
   const SettingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
-      body: ElScrollView(
+    return ExamplePage(
+      title: '设置',
+      child: ElScrollView(
         padding: .all(20),
         gap: 20,
         children: [
@@ -27,9 +31,12 @@ class SettingPage extends StatelessWidget {
           ElListGroup(
             title: '工具设置',
             children: [
-              ElListTile(onTap: (){
-                // el.popup
-              }, title: '无线调试'),
+              ElListTile(
+                onTap: () {
+                  // el.popup
+                },
+                title: '无线调试',
+              ),
             ],
           ),
         ],

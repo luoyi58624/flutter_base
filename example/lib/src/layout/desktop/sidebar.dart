@@ -1,7 +1,13 @@
-part of 'index.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_base/desktop.dart';
+import 'package:go_router/go_router.dart';
 
-class _Sidebar extends StatelessWidget {
-  const _Sidebar();
+import '../../utils/router.dart';
+
+/// 桌面导航头下方的路由菜单，分组只负责展示。
+class DesktopSidebar extends StatelessWidget {
+  /// 创建桌面侧栏。
+  const DesktopSidebar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,28 +18,10 @@ class _Sidebar extends StatelessWidget {
         backgroundColor: context.elTheme.cardColor,
         border: ElBorder.only(borderRight: ElBorderSide(borderColor: context.elTheme.dividerColor, borderWidth: .5)),
       ),
-      child: Column(
-        crossAxisAlignment: .stretch,
-        children: [
-          ElView(
-            style: ElStyle(
-              padding: .fromLTRB(24, 24, 24, 12),
-              fontSize: 18,
-              fontWeight: .w600,
-              color: context.elTheme.textColor,
-              iconColor: context.elTheme.primary,
-              iconSize: 22,
-            ),
-            child: Row(spacing: 10, children: [ElIcon(Icons.layers_outlined), Text('El UI')]),
-          ),
-          Expanded(
-            child: ElNavMenu<WidgetBuilder>.router(
-              router: GoRouter.of(context),
-              onChanged: (path) => context.go(path),
-              children: RouterUtil.desktopMenus,
-            ),
-          ),
-        ],
+      child: ElNavMenu<WidgetBuilder>.router(
+        router: GoRouter.of(context),
+        onChanged: (path) => context.go(path),
+        children: RouterUtil.desktopMenus,
       ),
     );
   }
