@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../example_page.dart';
+import 'scroll_mode.dart';
 
 /// 用一万条独立记录演示回收复用与数据驱动的复选状态。
 class RecyclerSelectionPage extends StatefulWidget {
@@ -14,82 +15,150 @@ class RecyclerSelectionPage extends StatefulWidget {
   State<RecyclerSelectionPage> createState() => _RecyclerSelectionPageState();
 }
 
+enum _SelectionAction { first, last, locate, clear }
+
 class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _selectedCount = ValueNotifier<int>(0);
   final _indexInput = TextEditingController(text: '5000');
-  late final _adapter = _SelectionAdapter((count) => _selectedCount.value = count);
+  final _official = ScrollController(keepScrollOffset: false);
+  RecyclerExampleScrollMode _mode = .recyclerView;
+  late final _adapter = _SelectionAdapter(_selectionChanged);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-selection-list'))
     ..setLayoutManager(rv.LinearLayoutManager())
     ..setHasFixedSize(true)
     ..setAdapter(_adapter);
 
-  void _locate() {
-    final index = int.tryParse(_indexInput.text.trim());
-    if (index == null) return;
-    _list.scrollToPosition((index - 1).clamp(0, _adapter.getItemCount() - 1));
-    FocusScope.of(context).unfocus();
+  void _selectionChanged(int count) {
+    _selectedCount.value = count;
+    if (_mode == .listView) setState(() {});
+  }
+
+  void _scrollTo(int index) {
+    if (_mode == .recyclerView) {
+      _list.scrollToPosition(index);
+    } else if (_official.hasClients) {
+      _official.jumpTo((index * _selectionExtent).clamp(0, _official.position.maxScrollExtent));
+    }
+  }
+
+  Future<void> _locate() async {
+    final index = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        void submit() {
+          final input = int.tryParse(_indexInput.text.trim());
+          if (input != null) Navigator.of(context).pop((input - 1).clamp(0, _adapter.getItemCount() - 1));
+        }
+
+        return AlertDialog(
+          title: Text('定位条目'),
+          content: TextField(
+            key: ValueKey('selection-index-input'),
+            controller: _indexInput,
+            autofocus: true,
+            keyboardType: .number,
+            decoration: InputDecoration(labelText: '第几项（1–10000）', border: OutlineInputBorder()),
+            onSubmitted: (_) => submit(),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('取消')),
+            FilledButton(key: ValueKey('selection-locate'), onPressed: submit, child: Text('定位')),
+          ],
+        );
+      },
+    );
+    if (mounted && index != null) _scrollTo(index);
+  }
+
+  void _choose(Object option) {
+    if (option case final RecyclerExampleScrollMode mode) {
+      if (_mode == mode) return;
+      setState(() => _mode = mode);
+      // 两种容器从同一首项开始比较；数据和选择集合不随容器替换。
+      _list.scrollToPosition(0);
+      return;
+    }
+    switch (option as _SelectionAction) {
+      case .first:
+        _scrollTo(0);
+      case .last:
+        _scrollTo(_adapter.getItemCount() - 1);
+      case .locate:
+        _locate();
+      case .clear:
+        _adapter.clearSelection();
+    }
   }
 
   @override
   void dispose() {
     _selectedCount.dispose();
     _indexInput.dispose();
+    _official.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ExamplePage(
     title: '万条复选列表',
-    child: SafeArea(
-      top: false,
-      child: Column(
-        crossAxisAlignment: .stretch,
-        children: [
-          ElCardView(
-            style: ElStyle(padding: .all(12), margin: .all(12), borderRadius: .circular(12)),
-            child: Column(
-              crossAxisAlignment: .start,
-              spacing: 10,
-              children: [
-                Text('10,000 条不同记录，复选状态跟随数据 ID，离屏复用后仍然保持。'),
-                ValueListenableBuilder<int>(
-                  valueListenable: _selectedCount,
-                  builder: (context, count, child) => Text('已选 $count / 10000', key: ValueKey('selection-count')),
-                ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: .center,
-                  children: [
-                    ElButton(key: ValueKey('selection-first'), onPressed: () => _list.scrollToPosition(0), child: '首项'),
-                    ElButton(
-                      key: ValueKey('selection-last'),
-                      onPressed: () => _list.scrollToPosition(_adapter.getItemCount() - 1),
-                      child: '末项',
-                    ),
-                    ElButton(key: ValueKey('selection-clear'), onPressed: _adapter.clearSelection, child: '清空'),
-                    SizedBox(
-                      width: 112,
-                      child: TextField(
-                        key: ValueKey('selection-index-input'),
-                        controller: _indexInput,
-                        keyboardType: .number,
-                        decoration: InputDecoration(labelText: '第几项', isDense: true, border: OutlineInputBorder()),
-                        onSubmitted: (_) => _locate(),
-                      ),
-                    ),
-                    ElButton(key: ValueKey('selection-locate'), onPressed: _locate, child: '定位'),
-                  ],
-                ),
-              ],
+    actions: [
+      ValueListenableBuilder<int>(
+        valueListenable: _selectedCount,
+        builder: (context, count, child) => Padding(
+          padding: .symmetric(horizontal: 4),
+          child: Text('$count / 10000', key: ValueKey('selection-count'), style: TextStyle(fontSize: 12)),
+        ),
+      ),
+      PopupMenuButton<Object>(
+        key: ValueKey('selection-menu'),
+        tooltip: '列表选项',
+        icon: Icon(Icons.more_vert),
+        onSelected: _choose,
+        itemBuilder: (context) => [
+          for (final mode in RecyclerExampleScrollMode.values)
+            CheckedPopupMenuItem(
+              key: ValueKey('selection-mode-${mode.name}'),
+              value: mode,
+              checked: _mode == mode,
+              child: Text(mode.label),
             ),
-          ),
-          Expanded(child: _list),
+          PopupMenuDivider(),
+          PopupMenuItem(key: ValueKey('selection-first'), value: _SelectionAction.first, child: Text('首项')),
+          PopupMenuItem(key: ValueKey('selection-last'), value: _SelectionAction.last, child: Text('末项')),
+          PopupMenuItem(key: ValueKey('selection-locate-menu'), value: _SelectionAction.locate, child: Text('定位条目…')),
+          PopupMenuItem(key: ValueKey('selection-clear'), value: _SelectionAction.clear, child: Text('清空选择')),
         ],
       ),
+    ],
+    child: SafeArea(
+      top: false,
+      child: switch (_mode) {
+        .recyclerView => _list,
+        .listView => ListView.builder(
+          key: ValueKey('official-selection-list'),
+          controller: _official,
+          itemExtent: _selectionExtent,
+          itemCount: _adapter.getItemCount(),
+          addAutomaticKeepAlives: false,
+          addRepaintBoundaries: false,
+          itemBuilder: (context, index) {
+            final item = _adapter.items[index];
+            return RepaintBoundary(
+              child: _OfficialSelectionRow(
+                key: ValueKey(item.id),
+                item: item,
+                checked: _adapter.selectedIds.contains(item.id),
+                onSelect: _adapter.select,
+              ),
+            );
+          },
+        ),
+      },
     ),
   );
 }
+
+final double _selectionExtent = 88;
 
 class _SelectionItem {
   _SelectionItem(this.id)
@@ -101,43 +170,38 @@ class _SelectionItem {
   final String description;
 }
 
-typedef _SelectionBinding = ({_SelectionItem item, bool checked});
-
 class _SelectionAdapter extends rv.Adapter<_SelectionHolder> {
   _SelectionAdapter(this.onCountChanged) {
     setHasStableIds(true);
   }
 
   final ValueChanged<int> onCountChanged;
-  final _items = List.generate(10000, _SelectionItem.new);
-  // 状态归业务 ID，holder 只显示本次绑定的快照，不能保存某一行的勾选状态。
-  final _selectedIds = <int>{};
+  final items = List.generate(10000, _SelectionItem.new);
+  // 状态归业务 ID，holder 的叶子模型只保存当前记录的显示快照。
+  final selectedIds = <int>{};
 
   @override
-  int getItemCount() => _items.length;
-
+  int getItemCount() => items.length;
   @override
-  int getItemId(int position) => _items[position].id;
-
+  int getItemId(int position) => items[position].id;
   @override
-  _SelectionHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _SelectionHolder(_select);
-
+  _SelectionHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _SelectionHolder(select);
   @override
   void onBindViewHolder(_SelectionHolder holder, int position, [List<Object> payloads = const []]) {
-    final item = _items[position];
-    holder.binding.value = (item: item, checked: _selectedIds.contains(item.id));
+    final item = items[position];
+    holder.model.bind(item, selectedIds.contains(item.id));
   }
 
-  void _select(int id, bool selected) {
-    final changed = selected ? _selectedIds.add(id) : _selectedIds.remove(id);
+  void select(int id, bool selected) {
+    final changed = selected ? selectedIds.add(id) : selectedIds.remove(id);
     if (!changed) return;
     notifyItemChanged(id, 'selection');
-    onCountChanged(_selectedIds.length);
+    onCountChanged(selectedIds.length);
   }
 
   void clearSelection() {
-    final changed = _selectedIds.toList(growable: false);
-    _selectedIds.clear();
+    final changed = selectedIds.toList(growable: false);
+    selectedIds.clear();
     for (final id in changed) {
       notifyItemChanged(id, 'selection');
     }
@@ -145,57 +209,139 @@ class _SelectionAdapter extends rv.Adapter<_SelectionHolder> {
   }
 }
 
+class _SelectionModel {
+  final item = ValueNotifier<_SelectionItem?>(null);
+  final checked = ValueNotifier<bool>(false);
+  final checkboxGeneration = ValueNotifier<int>(0);
+  bool receiving = false;
+
+  void bind(_SelectionItem value, bool selected) {
+    receiving = true;
+    try {
+      final previous = item.value;
+      if (previous != null && previous.id != value.id && checked.value != selected) {
+        // 换记录且勾选不同才清理叶子过渡，不能把上一条记录的动画带到新行。
+        checkboxGeneration.value++;
+      }
+      item.value = value;
+      checked.value = selected;
+    } finally {
+      receiving = false;
+    }
+  }
+
+  void dispose() {
+    item.dispose();
+    checked.dispose();
+    checkboxGeneration.dispose();
+  }
+}
+
 class _SelectionHolder extends rv.ViewHolder {
-  _SelectionHolder(void Function(int, bool) onSelect) : this._(ValueNotifier<_SelectionBinding?>(null), onSelect);
+  _SelectionHolder(void Function(int, bool) onSelect) : this._(_SelectionModel(), onSelect);
+  _SelectionHolder._(this.model, void Function(int, bool) onSelect) : super(_SelectionRow(model, onSelect));
+  final _SelectionModel model;
+}
 
-  _SelectionHolder._(this.binding, void Function(int, bool) onSelect)
-    : super(
-        ValueListenableBuilder<_SelectionBinding?>(
-          valueListenable: binding,
-          builder: (context, data, child) {
-            if (data == null) return SizedBox.shrink();
-            final colors = Theme.of(context).colorScheme;
-            return ElCardView(
-              key: ValueKey('selection-row-${data.item.id}'),
-              style: ElStyle(
-                height: 88,
-                padding: .symmetric(horizontal: 16, vertical: 10),
-                backgroundColor: data.checked ? colors.primary.withValues(alpha: .06) : colors.surface,
-                border: .only(borderBottom: .new(borderColor: colors.outlineVariant.withValues(alpha: .5))),
-              ),
-              child: Row(
-                spacing: 14,
-                children: [
-                  Semantics(
-                    label: '选择${data.item.title}',
-                    child: ElCheckbox.toggle(
-                      key: ValueKey('selection-check-${data.item.id}'),
-                      value: data.checked,
-                      onChanged: (checked) => onSelect(data.item.id, checked),
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: .start,
-                      mainAxisAlignment: .center,
-                      spacing: 4,
-                      children: [
-                        Text(data.item.title, style: TextStyle(fontWeight: .w600)),
-                        Text(
-                          data.item.description,
-                          maxLines: 1,
-                          overflow: .ellipsis,
-                          style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+class _OfficialSelectionRow extends StatefulWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _OfficialSelectionRow({super.key, required this.item, required this.checked, required this.onSelect});
+  final _SelectionItem item;
+  final bool checked;
+  final void Function(int, bool) onSelect;
+  @override
+  State<_OfficialSelectionRow> createState() => _OfficialSelectionRowState();
+}
+
+class _OfficialSelectionRowState extends State<_OfficialSelectionRow> {
+  final _model = _SelectionModel();
+  late final _row = _SelectionRow(_model, (id, checked) => widget.onSelect(id, checked));
+  @override
+  void initState() {
+    super.initState();
+    _model.bind(widget.item, widget.checked);
+  }
+
+  @override
+  void didUpdateWidget(_OfficialSelectionRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _model.bind(widget.item, widget.checked);
+  }
+
+  @override
+  void dispose() {
+    _model.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _row;
+}
+
+class _SelectionRow extends StatelessWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _SelectionRow(this.model, this.onSelect);
+  final _SelectionModel model;
+  final void Function(int, bool) onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    // 固定结构只在挂载或主题变化时建立，绑定只通知真正消费数据的叶子。
+    final content = Row(
+      spacing: 14,
+      children: [
+        ValueListenableBuilder<_SelectionItem?>(
+          valueListenable: model.item,
+          child: ValueListenableBuilder<int>(
+            valueListenable: model.checkboxGeneration,
+            builder: (context, generation, child) => ElCheckbox.toggle(
+              key: ValueKey(generation),
+              modelValue: model.checked,
+              onChanged: (checked) {
+                final item = model.item.value;
+                if (!model.receiving && item != null) onSelect(item.id, checked);
+              },
+            ),
+          ),
+          builder: (context, item, child) => Semantics(label: '选择${item?.title ?? ''}', child: child),
         ),
-      );
-
-  final ValueNotifier<_SelectionBinding?> binding;
+        Expanded(
+          child: Column(
+            crossAxisAlignment: .start,
+            mainAxisAlignment: .center,
+            spacing: 4,
+            children: [
+              ValueListenableBuilder<_SelectionItem?>(
+                valueListenable: model.item,
+                builder: (context, item, child) => Text(item?.title ?? '', style: TextStyle(fontWeight: .w600)),
+              ),
+              ValueListenableBuilder<_SelectionItem?>(
+                valueListenable: model.item,
+                builder: (context, item, child) => Text(
+                  item?.description ?? '',
+                  maxLines: 1,
+                  overflow: .ellipsis,
+                  style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    return ValueListenableBuilder<bool>(
+      valueListenable: model.checked,
+      child: content,
+      builder: (context, checked, child) => ElCardView(
+        style: ElStyle(
+          height: _selectionExtent,
+          padding: .symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: checked ? colors.primary.withValues(alpha: .06) : colors.surface,
+          border: .only(borderBottom: .new(borderColor: colors.outlineVariant.withValues(alpha: .5))),
+        ),
+        child: child,
+      ),
+    );
+  }
 }

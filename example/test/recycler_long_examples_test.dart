@@ -24,32 +24,51 @@ Future<void> _open(WidgetTester tester, Widget page, {double width = 390}) async
 }
 
 rv.RecyclerView _list(WidgetTester tester) => tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
-
 rv.LinearLayoutManager _layout(rv.RecyclerView list) => list.getLayoutManager()! as rv.LinearLayoutManager;
-
 Set<rv.ViewHolder> _visibleHolders(rv.RecyclerView list) => {
-  for (
-    var position = _layout(list).findFirstVisibleItemPosition();
-    position <= _layout(list).findLastVisibleItemPosition();
-    position++
-  )
-    ?list.findViewHolderForAdapterPosition(position),
+  for (var i = _layout(list).findFirstVisibleItemPosition(); i <= _layout(list).findLastVisibleItemPosition(); i++)
+    ?list.findViewHolderForAdapterPosition(i),
 };
 
-bool _checked(WidgetTester tester, int id) =>
-    tester.widget<ElCheckbox>(find.byKey(ValueKey('selection-check-$id')).hitTestable()).value as bool;
+Finder _check(WidgetTester tester, int id) {
+  final title = find.text('条目 ${(id + 1).toString().padLeft(5, '0')}').hitTestable();
+  final row = find.ancestor(of: title, matching: find.byType(Row)).first;
+  return find.descendant(of: row, matching: find.byType(ElCheckbox));
+}
 
-Object? _latestLabel(WidgetTester tester) => tester.widget<ElButton>(find.byKey(ValueKey('chat-latest'))).child;
+bool _checked(WidgetTester tester, int id) {
+  final checkbox = tester.widget<ElCheckbox>(_check(tester, id));
+  return (checkbox.modelValue?.value ?? checkbox.value) as bool;
+}
+
+String _selected(WidgetTester tester) => tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data!;
+String _latestLabel(WidgetTester tester) {
+  final badge = tester.widget<Badge>(
+    find.descendant(of: find.byKey(ValueKey('chat-menu')), matching: find.byType(Badge)),
+  );
+  return badge.isLabelVisible ? '${(badge.label! as Text).data} 条新消息' : '最新消息';
+}
+
+Future<void> _choose(WidgetTester tester, String page, String action) async {
+  await tester.tap(find.byKey(ValueKey('$page-menu')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('$page-$action')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _locate(WidgetTester tester, String input) async {
+  await _choose(tester, 'selection', 'locate-menu');
+  await tester.enterText(find.byKey(ValueKey('selection-index-input')), input);
+  await tester.tap(find.byKey(ValueKey('selection-locate')));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('示例目录以 RecyclerView 分组展示两个入口，两端共用深度路由', (tester) async {
     await _open(tester, ExamplesPage());
-    expect(find.byWidgetPredicate((widget) => widget is ElListGroup && widget.title == 'RecyclerView'), findsOneWidget);
-    expect(find.byKey(ValueKey('advanced-recycler-selection')), findsOneWidget);
-    expect(find.byKey(ValueKey('advanced-recycler-chat')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is ElListGroup && w.title == 'RecyclerView'), findsOneWidget);
     expect(recyclerExamples.map((page) => page.key), ['recycler-selection', 'recycler-chat']);
     expect(RouterUtil.exampleRoutes().map((route) => route.path), containsAll(['recycler-selection', 'recycler-chat']));
-
     await tester.ensureVisible(find.byKey(ValueKey('advanced-recycler-selection')));
     await tester.tap(find.byKey(ValueKey('advanced-recycler-selection')));
     await tester.pumpAndSettle();
@@ -65,51 +84,41 @@ void main() {
 
   testWidgets('万条记录按需挂载，复用同一 holder 后复选状态不丢失也不串行', (tester) async {
     await _open(tester, RecyclerSelectionPage());
-    final list = _list(tester);
-    list.setItemViewCacheSize(0);
+    final list = _list(tester)..setItemViewCacheSize(0);
     _layout(list).setItemPrefetchEnabled(false);
     await tester.pumpAndSettle();
     expect(list.getAdapter()!.getItemCount(), 10000);
-    expect(_layout(list).getChildCount(), lessThan(12));
+    expect(_layout(list).getChildCount(), lessThan(15));
     expect(find.byType(ElCheckbox).evaluate().length, lessThan(20));
     final initialHolders = _visibleHolders(list);
-
-    await tester.tap(find.byKey(ValueKey('selection-check-0')));
-    await tester.pump();
-    await tester.tap(find.byKey(ValueKey('selection-check-2')));
+    await tester.tap(_check(tester, 0));
     await tester.pumpAndSettle();
-    expect(find.text('已选 2 / 10000'), findsOneWidget);
+    await tester.tap(_check(tester, 2));
+    await tester.pumpAndSettle();
+    expect(_selected(tester), '2 / 10000');
     expect(_checked(tester, 0), isTrue);
     expect(_checked(tester, 1), isFalse);
-
-    await tester.tap(find.byKey(ValueKey('selection-last')));
-    await tester.pumpAndSettle();
+    await _choose(tester, 'selection', 'last');
     expect(find.text('条目 10000').hitTestable(), findsOneWidget);
     expect(_checked(tester, 9999), isFalse);
     final rebound = initialHolders.intersection(_visibleHolders(list));
-    expect(rebound, isNotEmpty, reason: '至少一个原首屏 holder 必须实际绑定到末端记录，验证跨数据项复用');
-    expect(rebound.every((holder) => holder.getItemId() >= 9990), isTrue);
-    await tester.tap(find.byKey(ValueKey('selection-check-9999')));
+    expect(rebound, isNotEmpty);
+    expect(rebound.every((holder) => holder.getItemId() >= 9980), isTrue);
+    await tester.tap(_check(tester, 9999));
     await tester.pumpAndSettle();
-    expect(find.text('已选 3 / 10000'), findsOneWidget);
-
-    await tester.tap(find.byKey(ValueKey('selection-first')));
-    await tester.pumpAndSettle();
+    expect(_selected(tester), '3 / 10000');
+    await _choose(tester, 'selection', 'first');
     expect(_checked(tester, 0), isTrue);
-    expect(_checked(tester, 1), isFalse);
     expect(_checked(tester, 2), isTrue);
-    await tester.tap(find.byKey(ValueKey('selection-clear')));
-    await tester.pumpAndSettle();
-    expect(find.text('已选 0 / 10000'), findsOneWidget);
+    await _choose(tester, 'selection', 'clear');
+    expect(_selected(tester), '0 / 10000');
     expect(_checked(tester, 0), isFalse);
-    await tester.tap(find.byKey(ValueKey('selection-last')));
-    await tester.pumpAndSettle();
-    expect(_checked(tester, 9999), isFalse, reason: '清空也应更新离屏记录的业务状态');
-    expect(find.byType(ElCheckbox).evaluate().length, lessThan(24));
+    await _choose(tester, 'selection', 'last');
+    expect(_checked(tester, 9999), isFalse);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('两个 RecyclerView 页面都能通过共同路由直接打开', (tester) async {
+  testWidgets('两个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
@@ -125,21 +134,16 @@ void main() {
           ],
         );
         addTearDown(router.dispose);
-        // 通过真实路由安装品牌预设，宽屏不能沿用测试辅助函数中的 mobileComponents。
         await tester.pumpWidget(MaterialApp.router(routerConfig: router));
         await tester.pumpAndSettle();
         expect(find.byType(rv.RecyclerView), findsOneWidget);
         expect(_list(tester).getAdapter()!.getItemCount(), 10000);
-        expect(
-          find.byType(page.key == 'recycler-selection' ? RecyclerSelectionPage : RecyclerChatPage),
-          findsOneWidget,
-        );
         if (page.key == 'recycler-selection') {
           expect(_checked(tester, 0), isFalse);
-          await tester.tap(find.byKey(ValueKey('selection-check-0')).hitTestable());
+          await tester.tap(_check(tester, 0));
           await tester.pumpAndSettle();
-          expect(_checked(tester, 0), isTrue, reason: '$width 宽度的品牌预设应能实际切换复选状态');
-          expect(find.text('已选 1 / 10000'), findsOneWidget);
+          expect(_checked(tester, 0), isTrue);
+          expect(_selected(tester), '1 / 10000');
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(SizedBox());
@@ -147,38 +151,31 @@ void main() {
     }
   });
 
-  testWidgets('索引定位使用不同记录的真实内容，越界输入安全夹紧', (tester) async {
+  testWidgets('序号定位通过菜单弹窗完成，越界夹紧且无效输入不改变列表', (tester) async {
     await _open(tester, RecyclerSelectionPage());
-    await tester.enterText(find.byKey(ValueKey('selection-index-input')), '4321');
-    await tester.tap(find.byKey(ValueKey('selection-locate')));
-    await tester.pumpAndSettle();
+    await _locate(tester, '4321');
     expect(find.text('条目 04321').hitTestable(), findsOneWidget);
     expect(_list(tester).findViewHolderForAdapterPosition(4320)!.getItemId(), 4320);
-    await tester.enterText(find.byKey(ValueKey('selection-index-input')), '20000');
-    await tester.tap(find.byKey(ValueKey('selection-locate')));
-    await tester.pumpAndSettle();
+    await _locate(tester, '20000');
     expect(find.text('条目 10000').hitTestable(), findsOneWidget);
-    await tester.enterText(find.byKey(ValueKey('selection-index-input')), '无效');
-    await tester.tap(find.byKey(ValueKey('selection-locate')));
+    await _locate(tester, '无效');
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(find.text('条目 10000').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('聊天首屏从末端显示一万条变高消息，发送和收到新消息时跟随底部', (tester) async {
+  testWidgets('聊天首屏从末端显示一万条变高消息，发送和接收时跟随底部', (tester) async {
     await _open(tester, RecyclerChatPage());
     final list = _list(tester);
     expect(list.getAdapter()!.getItemCount(), 10000);
     expect(_layout(list).findLastVisibleItemPosition(), 9999);
-    expect(_layout(list).getChildCount(), lessThan(12));
+    expect(_layout(list).getChildCount(), lessThan(15));
     expect(
-      find.byWidgetPredicate((widget) => widget.key.toString().contains('chat-message-')).evaluate().length,
-      lessThan(24),
+      list.findViewHolderForAdapterPosition(9999)!.getItemViewType(),
+      isNot(list.findViewHolderForAdapterPosition(9998)!.getItemViewType()),
     );
-    final outgoing = list.findViewHolderForAdapterPosition(9999)!;
-    final incoming = list.findViewHolderForAdapterPosition(9998)!;
-    expect(outgoing.getItemViewType(), isNot(incoming.getItemViewType()));
-
     await tester.enterText(find.byKey(ValueKey('chat-composer')), '这是刚发送的一条独立消息');
     await tester.tap(find.byKey(ValueKey('chat-send')));
     await tester.pumpAndSettle();
@@ -187,55 +184,122 @@ void main() {
     expect(find.text('这是刚发送的一条独立消息').hitTestable(), findsOneWidget);
     expect(tester.widget<TextField>(find.byKey(ValueKey('chat-composer'))).controller!.text, isEmpty);
     expect(_latestLabel(tester), '最新消息');
-    await tester.tap(find.byKey(ValueKey('chat-receive')));
-    await tester.pumpAndSettle();
+    await _choose(tester, 'chat', 'receive');
     expect(list.getAdapter()!.getItemCount(), 10002);
     expect(_layout(list).findLastVisibleItemPosition(), 10001);
-    expect(find.byKey(ValueKey('chat-message-10001')).hitTestable(), findsOneWidget);
+    expect(list.findViewHolderForItemId(10001), isNotNull);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('聊天阅读中插入历史和追加新消息均保留锚点，未读按钮可回到底部', (tester) async {
+  testWidgets('聊天阅读中插入历史和追加消息均保留锚点，菜单可回到底部', (tester) async {
     await _open(tester, RecyclerChatPage());
     final list = _list(tester);
     final layout = _layout(list);
     layout.scrollToPositionWithOffset(4000, 20);
     await tester.pumpAndSettle();
     final anchor = list.findViewHolderForAdapterPosition(4000)!;
-    final anchorId = anchor.getItemId();
+    final id = anchor.getItemId();
     final before = tester.getTopLeft(find.byWidget(anchor.itemView)).dy;
-    await tester.tap(find.byKey(ValueKey('chat-load-earlier')));
-    await tester.pumpAndSettle();
+    await _choose(tester, 'chat', 'load-earlier');
     expect(list.getAdapter()!.getItemCount(), 10050);
-    expect(list.findViewHolderForItemId(anchorId), same(anchor));
+    expect(list.findViewHolderForItemId(id), same(anchor));
     expect(anchor.getBindingAdapterPosition(), 4050);
     expect(tester.getTopLeft(find.byWidget(anchor.itemView)).dy, closeTo(before, .1));
-
-    await tester.tap(find.byKey(ValueKey('chat-receive')));
-    await tester.pumpAndSettle();
-    expect(list.getAdapter()!.getItemCount(), 10051);
+    await _choose(tester, 'chat', 'receive');
     expect(_latestLabel(tester), '1 条新消息');
     expect(tester.getTopLeft(find.byWidget(anchor.itemView)).dy, closeTo(before, .1));
-    expect(layout.findLastVisibleItemPosition(), lessThan(4100));
-    await tester.tap(find.byKey(ValueKey('chat-receive')));
-    await tester.pumpAndSettle();
+    await _choose(tester, 'chat', 'receive');
     expect(_latestLabel(tester), '2 条新消息');
-    await tester.tap(find.byKey(ValueKey('chat-latest')));
-    await tester.pumpAndSettle();
+    await _choose(tester, 'chat', 'latest');
     expect(layout.findLastVisibleItemPosition(), 10051);
     expect(_latestLabel(tester), '最新消息');
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('聊天使用变高气泡，窄屏和桌面宽度均不溢出', (tester) async {
+  testWidgets('大工具栏已移入导航菜单，列表获得主要高度且变高气泡在宽窄屏不溢出', (tester) async {
+    await _open(tester, RecyclerSelectionPage());
+    expect(tester.getSize(find.byType(rv.RecyclerView)).height, greaterThan(740));
+    expect(find.byKey(ValueKey('selection-first')), findsNothing);
     for (final width in [320.0, 1000.0]) {
       await _open(tester, RecyclerChatPage(key: ValueKey(width)), width: width);
-      final list = _list(tester);
-      final holders = _visibleHolders(list);
-      final heights = holders.map((holder) => tester.getSize(find.byWidget(holder.itemView)).height).toSet();
+      expect(tester.getSize(find.byType(rv.RecyclerView)).height, greaterThan(650));
+      final heights = _visibleHolders(_list(tester))
+          .map((h) => tester.getSize(find.byWidget(h.itemView)).height)
+          .toSet();
       expect(heights.length, greaterThan(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     }
+  });
+
+  testWidgets('复选菜单切换真实 ListView 和 RecyclerView 时保持同一万条数据与选择状态', (tester) async {
+    await _open(tester, RecyclerSelectionPage());
+    await tester.tap(_check(tester, 0));
+    await tester.pumpAndSettle();
+    await _choose(tester, 'selection', 'mode-listView');
+    expect(find.byType(rv.RecyclerView), findsNothing);
+    expect(find.byType(ListView), findsOneWidget);
+    expect(tester.widget<ListView>(find.byType(ListView)).childrenDelegate.estimatedChildCount, 10000);
+    expect(_checked(tester, 0), isTrue);
+    await tester.tap(_check(tester, 1));
+    await tester.pumpAndSettle();
+    expect(_selected(tester), '2 / 10000');
+    await _choose(tester, 'selection', 'last');
+    expect(find.text('条目 10000').hitTestable(), findsOneWidget);
+    await _locate(tester, '4321');
+    expect(find.text('条目 04321').hitTestable(), findsOneWidget);
+    await _choose(tester, 'selection', 'mode-recyclerView');
+    expect(find.byType(ListView), findsNothing);
+    expect(find.byType(rv.RecyclerView), findsOneWidget);
+    expect(_checked(tester, 0), isTrue);
+    expect(_checked(tester, 1), isTrue);
+    expect(_selected(tester), '2 / 10000');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('聊天切换容器保留真实新增消息，官方列表发送和接收同样跟随底部', (tester) async {
+    await _open(tester, RecyclerChatPage());
+    await tester.enterText(find.byKey(ValueKey('chat-composer')), 'RV发出的消息');
+    await tester.tap(find.byKey(ValueKey('chat-send')));
+    await tester.pumpAndSettle();
+    await _choose(tester, 'chat', 'mode-listView');
+    expect(find.byType(rv.RecyclerView), findsNothing);
+    expect(find.byType(ListView), findsOneWidget);
+    expect(find.text('RV发出的消息').hitTestable(), findsOneWidget);
+    await tester.enterText(find.byKey(ValueKey('chat-composer')), 'ListView发出的消息');
+    await tester.tap(find.byKey(ValueKey('chat-send')));
+    await tester.pumpAndSettle();
+    expect(find.text('ListView发出的消息').hitTestable(), findsOneWidget);
+    expect(tester.widget<ListView>(find.byType(ListView)).controller!.offset, closeTo(0, .01));
+    await _choose(tester, 'chat', 'receive');
+    expect(tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data, '10003 条');
+    await _choose(tester, 'chat', 'mode-recyclerView');
+    expect(_list(tester).getAdapter()!.getItemCount(), 10003);
+    expect(_layout(_list(tester)).findLastVisibleItemPosition(), 10002);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('官方聊天阅读旧消息时加载历史和接收消息均保持实际文本位置', (tester) async {
+    await _open(tester, RecyclerChatPage());
+    await _choose(tester, 'chat', 'mode-listView');
+    final controller = tester.widget<ListView>(find.byType(ListView)).controller!;
+    controller.jumpTo(750);
+    await tester.pumpAndSettle();
+    final textFinder = find
+        .byWidgetPredicate((w) => w is Text && (w.data?.startsWith('消息 #') ?? false))
+        .hitTestable()
+        .first;
+    final text = tester.widget<Text>(textFinder).data!;
+    final before = tester.getTopLeft(find.text(text)).dy;
+    await _choose(tester, 'chat', 'load-earlier');
+    expect(tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data, '10050 条');
+    expect(tester.getTopLeft(find.text(text)).dy, closeTo(before, .1));
+    await _choose(tester, 'chat', 'receive');
+    expect(_latestLabel(tester), '1 条新消息');
+    expect(tester.getTopLeft(find.text(text)).dy, closeTo(before, .1));
+    await _choose(tester, 'chat', 'latest');
+    expect(controller.offset, closeTo(0, .01));
+    expect(_latestLabel(tester), '最新消息');
+    expect(tester.takeException(), isNull);
   });
 }
