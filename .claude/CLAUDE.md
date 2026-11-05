@@ -23,7 +23,7 @@
 - 需要区分未传入与显式 null 的参数，一律使用统一的 $absent 作为默认占位，不借用空 Widget 或另造哨兵
 - Git 提交信息必须使用中文；Conventional Commit 类型、作用域和代码标识可以保留英文
 - 写完功能、修复 bug 默认只跑本次改动覆盖的局部测试，全量测试仅在用户明确要求时执行
-- 运行代码生成直接执行 dart run build_runner build
+- 运行代码生成直接执行 dart run build_runner build；Linux 虚拟机经 vmhgfs 共享盘运行 build_runner 会卡在编译构建脚本，代码生成交给 Windows 端执行，Linux 侧不要反复重试
 
 ## 格式化
 
@@ -40,6 +40,16 @@
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
 - 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；两端保留必要的键盘操作、外借焦点节点和辅助技术语义
 - 多子布局与官方机制按职责复用 Flutter Row / Column / Wrap / Stack、RadioGroup、Overlay 等，不重复实现已有能力
+
+## 组件接口规范
+
+完整规范见 lib/src/flutter/components/README.md，以下为红线：
+
+- 组件默认属于两端通用接口；只有交互形态本身只存在于一端的才放品牌目录，例如桌面菜单栏、移动底部导航栏。按钮组、列表行等不能因一端暂无实现就划为端专属
+- 不以「当前没有实现」或「旧代码未完成」作为删除组件或参数的依据，判断标准是该组件或参数是否适合出现在某一端
+- 可交互组件必须提供 event，与 style 同等重要，品牌实现合并到交互根节点，preventDefault 阻止默认动作；不能让用户为事件额外包装
+- 用户可经 ElComponentProvider 在任意子树只注入单个 Builder，其余沿用外层；双向绑定组件经 ElModelValue 持有模型，并把 Obs 作为 Builder 参数交给品牌
+- 两端暂缺的实现登记在 test/ui/brand_completeness_test.dart 的已知缺口清单，补齐后从清单移除
 
 ## 文本编辑 API 边界
 

@@ -5,23 +5,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState state) =>
-    ElView(style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
-Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) =>
-    ElView(style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)));
-Widget _button(BuildContext context, ElButton component) => ElButtonView(
-  onPressed: component.onPressed,
-  event: component.event,
+Widget _checkbox(BuildContext context, ElCheckbox component, ElCheckboxState state) => ElView(
+  style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)),
+);
+Widget _radio<T>(BuildContext context, ElRadio<T> component, ElRadioState state) => ElView(
+  style: ElStyle(width: 100, height: 32, backgroundColor: state.checked ? Color(0xff336699) : Color(0xffeeeeee)),
+);
+Widget _toggleButton(BuildContext context, ElToggleButton component, Obs<bool> model) => ElButtonView(
+  onPressed: () => model.value = !model.value,
   focusNode: component.focusNode,
   disabled: component.disabled,
-  selected: component.selected,
-  toggled: component.isToggle ? component.selected : null,
+  toggled: model.value,
   style: ElStyle(width: 100, height: 32),
 );
 Widget _host(Widget child) => Directionality(
   textDirection: .ltr,
   child: ElComponentProvider(
-    builders: ElComponentBuilders(buttonBuilder: _button, checkboxBuilder: _checkbox, radioBuilder: _radio),
+    builders: ElComponentBuilders(toggleButtonBuilder: _toggleButton, checkboxBuilder: _checkbox, radioBuilder: _radio),
     child: ElView(
       style: ElStyle(alignment: .topLeft),
       child: child,
@@ -34,32 +34,21 @@ class _Model extends ValueNotifier<bool> {
   bool get listening => hasListeners;
 }
 
-Widget _toggle(
-  String kind, {
-  ValueNotifier<bool>? model,
-  ValueChanged<bool>? onChanged,
-  bool disabled = false,
-  ElEvent? event,
-}) => switch (kind) {
-  'button' => ElButton.toggle(
-    key: ValueKey('control'),
-    modelValue: model,
-    onChanged: onChanged,
-    disabled: disabled,
-    event: event,
-  ),
-  'checkbox' => ElCheckbox.toggle(
-    key: ValueKey('control'),
-    modelValue: model,
-    onChanged: onChanged,
-    disabled: disabled,
-  ),
-  _ => ElRadio.toggle(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
-};
+Widget _toggle(String kind, {ValueNotifier<bool>? model, ValueChanged<bool>? onChanged, bool disabled = false}) =>
+    switch (kind) {
+      'button' => ElToggleButton(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
+      'checkbox' => ElCheckbox.toggle(
+        key: ValueKey('control'),
+        modelValue: model,
+        onChanged: onChanged,
+        disabled: disabled,
+      ),
+      _ => ElRadio.toggle(key: ValueKey('control'), modelValue: model, onChanged: onChanged, disabled: disabled),
+    };
 
 void main() {
   for (final kind in ['button', 'checkbox', 'radio']) {
-    testWidgets('$kind.toggle 统一开关语义、点击和 Space 双向切换', (tester) async {
+    testWidgets('$kind 切换形态统一开关语义、点击和 Space 双向切换', (tester) async {
       final model = _Model(false);
       final changes = <bool>[];
       addTearDown(model.dispose);
@@ -90,7 +79,7 @@ void main() {
       }
     });
 
-    testWidgets('$kind.toggle 不接入 FormItem，换绑和外部回灌保持 bool', (tester) async {
+    testWidgets('$kind 切换形态不接入 FormItem，换绑和外部回灌保持 bool', (tester) async {
       final first = _Model(false);
       final second = _Model(true);
       final form = ValueNotifier<Map<String, dynamic>>({'choice': '原始字段'});
@@ -122,27 +111,11 @@ void main() {
       expect(form.value['choice'], '原始字段');
     });
 
-    testWidgets('$kind.toggle 禁用不可激活，Button 保留事件拦截', (tester) async {
+    testWidgets('$kind 切换形态禁用后不可激活', (tester) async {
       final model = _Model(false);
       addTearDown(model.dispose);
-      var taps = 0;
-      final event = ElEvent(
-        onTap: (event) {
-          taps++;
-          event.preventDefault();
-        },
-      );
-      await tester.pumpWidget(_host(_toggle(kind, model: model, event: event)));
       final semantics = tester.ensureSemantics();
       try {
-        if (kind == 'button') {
-          await tester.tap(find.byKey(ValueKey('control')));
-          final node = tester.getSemantics(find.byKey(ValueKey('control')));
-          node.owner!.performAction(node.id, SemanticsAction.tap);
-          await tester.pump();
-          expect(taps, 2);
-          expect(model.value, isFalse);
-        }
         await tester.pumpWidget(_host(_toggle(kind, model: model, disabled: true)));
         await tester.tap(find.byKey(ValueKey('control')), warnIfMissed: false);
         await tester.pump();

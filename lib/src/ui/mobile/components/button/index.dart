@@ -9,8 +9,12 @@ import '../../cores/glyph.dart';
 import '../../cores/theme.dart';
 import '../loading/index.dart';
 
-/// 以移动端按钮外观实现通用声明，切换模型仍由 ElButton 持有。
+/// 以移动端按钮外观实现通用按钮声明。
 Widget buttonBuilder(BuildContext context, ElButton component) => Button._fromComponent(component);
+
+/// 以移动端按钮外观实现切换按钮，选中态读写公共模型。
+Widget toggleButtonBuilder(BuildContext context, ElToggleButton component, Obs<bool> model) =>
+    Button._fromToggle(component, model);
 
 /// Web按钮的七种视觉层级。
 enum ButtonVariant {
@@ -67,23 +71,15 @@ class Button extends StatelessWidget {
     this.focusNode,
     this.style,
     this.event,
-  }) : _component = null;
+  }) : _common = null;
 
   Button._fromComponent(ElButton component)
-    : _component = component,
-      variant = component.link
-          ? .link
-          : component.text
-          ? .text
-          : component.ghost || component.plain
-          ? .outline
-          : component.circle || component.child is IconData
-          ? .icon
-          : .primary,
+    : _common = _CommonButton(component.type, component.variant, component.icon),
+      variant = _variantOf(component.variant, component.child),
       icon = null,
       disabled = component.disabled,
       loading = component.loading,
-      selected = component.selected,
+      selected = null,
       delayTouchDown = Duration.zero,
       delayTouchUp = const Duration(milliseconds: 100),
       type = .button,
@@ -94,7 +90,32 @@ class Button extends StatelessWidget {
       style = component.style,
       event = component.event;
 
-  final ElButton? _component;
+  Button._fromToggle(ElToggleButton component, Obs<bool> model)
+    : _common = _CommonButton(component.type, component.variant, component.icon),
+      variant = _variantOf(component.variant, component.child),
+      icon = null,
+      disabled = component.disabled,
+      loading = false,
+      selected = model.value,
+      delayTouchDown = Duration.zero,
+      delayTouchUp = const Duration(milliseconds: 100),
+      type = .button,
+      onClick = ((_) => model.value = !model.value),
+      child = component.child,
+      label = component.semanticLabel,
+      focusNode = component.focusNode,
+      style = component.style,
+      event = component.event;
+
+  static ButtonVariant _variantOf(ElButtonVariant variant, Object? child) => switch (variant) {
+    .link => .link,
+    .text => .text,
+    .outline => .outline,
+    .solid => child is IconData ? .icon : .primary,
+  };
+
+  /// 来自通用声明时的语义色与前置图标；直接使用内部按钮时为 null。
+  final _CommonButton? _common;
 
   /// 视觉层级。
   final ButtonVariant variant;
@@ -216,28 +237,28 @@ class Button extends StatelessWidget {
               transition: flat ? const [] : null,
             ),
     );
-    final component = _component;
-    if (component != null) {
-      buttonStyle = _commonStyle(context, component, buttonStyle);
+    final common = _common;
+    if (common != null) {
+      buttonStyle = _commonStyle(
+        context,
+        common,
+        buttonStyle,
+        disabled: disabled,
+        loading: loading,
+        selected: selected,
+      );
     }
     buttonStyle = buttonStyle.merge(style);
-    if (component?.circle == true) {
-      // 正圆是形状约束，显式高度覆盖后仍保持宽高相同。
-      buttonStyle = buttonStyle.copyWith(width: buttonStyle.height);
-    }
     // 加载中时指示器顶替前导图标的位置：有图标就原位换，没有图标才排在文字前面。
     // 这样设计图要求的「指示器 + 文字」成立，同时图标按钮在加载中不会撑宽。
     final indicator = ExcludeSemantics(child: Loading(size: LoadingSize.small));
-    final content = component != null
-        ? _commonContent(component, loading: loading)
+    final content = common != null
+        ? _commonContent(common, child, loading: loading)
         : Row(
             mainAxisSize: MainAxisSize.min,
             spacing: (loading || icon != null) && child != null ? (variant == ButtonVariant.link ? 6 : 7) : 0,
             children: [
-              if (loading)
-                indicator
-              else if (icon != null)
-                ExcludeSemantics(child: Glyph(name: icon!)),
+              if (loading) indicator else if (icon != null) ExcludeSemantics(child: Glyph(name: icon!)),
               if (child != null) buildContent(child),
             ],
           );
@@ -249,8 +270,7 @@ class Button extends StatelessWidget {
       event: event,
       disabled: disabled,
       blocked: loading,
-      toggled: component == null || component.isToggle ? selected : null,
-      selected: component?.isToggle == false && selected == true ? true : null,
+      toggled: selected,
       delayTouchDown: delayTouchDown,
       delayTouchUp: delayTouchUp,
       onActivate: (e) {
@@ -269,48 +289,57 @@ class Button extends StatelessWidget {
       // 正圆这类锁死宽高的按钮放不下「指示器 + 图标」，加载中只留指示器，尺寸与焦点都保持不变。
       child: loading && fixed ? indicator : content,
     );
-    return component?.block == true ? result : inline(result);
+    // 显式宽度（如 '100%'）需要父级约束，其余按内容宽度排布。
+    return buttonStyle.width != null && !fixed ? result : inline(result);
   }
 }
 
+/// 通用声明中移动端按钮没有直接对应的部分。
+class _CommonButton {
+  const _CommonButton(this.type, this.variant, this.icon);
+
+  final ElThemeType? type;
+  final ElButtonVariant variant;
+  final Object? icon;
+}
+
 /// 把声明层的内容拼成一行；加载中用指示器顶替前导图标，文字照常可见。
-Widget _commonContent(ElButton component, {bool loading = false}) {
+Widget _commonContent(_CommonButton common, Object? child, {bool loading = false}) {
   final indicator = ExcludeSemantics(child: Loading(size: LoadingSize.small));
-  if (component.child is IconData) return loading ? indicator : buildContent(component.child);
+  if (child is IconData) return loading ? indicator : buildContent(child);
   return Row(
     mainAxisSize: .min,
     spacing: 7,
     children: [
-      if (loading)
-        indicator
-      else if (component.leftIcon != null)
-        buildContent(component.leftIcon),
-      if (component.child != null) buildContent(component.child),
-      if (component.rightIcon != null) buildContent(component.rightIcon),
+      if (loading) indicator else if (common.icon != null) buildContent(common.icon),
+      if (child != null) buildContent(child),
     ],
   );
 }
 
-ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
+ElStyle _commonStyle(
+  BuildContext context,
+  _CommonButton common,
+  ElStyle base, {
+  required bool disabled,
+  required bool loading,
+  required bool? selected,
+}) {
   final theme = context.elTheme;
-  final accent =
-      component.bgColor ??
-      switch (component.type) {
-        ElThemeType.success => theme.success,
-        ElThemeType.warning => theme.warning,
-        ElThemeType.error => theme.error,
-        ElThemeType.info => theme.info,
-        _ => theme.primary,
-      };
-  final flat = component.link || component.text;
-  final outlined = !flat && (component.ghost || component.plain);
+  final accent = switch (common.type) {
+    ElThemeType.success => theme.success,
+    ElThemeType.warning => theme.warning,
+    ElThemeType.error => theme.error,
+    ElThemeType.info => theme.info,
+    _ => theme.primary,
+  };
+  final flat = common.variant == .link || common.variant == .text;
+  final outlined = common.variant == .outline;
   // 设计图的信息按钮是「浅蓝底 + 蓝字」，用主色低透明度铺底，和实心蓝的主要按钮拉开层级。
-  final tinted = !flat && !outlined && component.type == ElThemeType.info && component.bgColor == null;
+  final tinted = !flat && !outlined && common.type == ElThemeType.info;
   final background = flat
-      ? (component.bg && component.text && !component.link ? theme.fill : const Color(0x00000000))
-      : component.ghost
       ? const Color(0x00000000)
-      : component.plain
+      : outlined
       ? Color.lerp(theme.cardColor, accent, .1)!
       : tinted
       ? Color.lerp(theme.cardColor, accent, .12)!
@@ -327,26 +356,23 @@ ElStyle _commonStyle(BuildContext context, ElButton component, ElStyle base) {
     flat || outlined || tinted ? .18 : .14,
   )!;
   return base.copyWith(
-    margin: component.link ? EdgeInsets.zero : base.margin,
-    width: component.circle ? 44.0 : base.width,
-    height: component.circle ? 44.0 : base.height,
-    borderRadius: component.circle || component.round ? BorderRadius.circular(999) : base.borderRadius,
-    backgroundColor: component.disabled
+    margin: common.variant == .link ? EdgeInsets.zero : base.margin,
+    backgroundColor: disabled
         ? theme.fill
-        : component.selected
+        : selected == true
         ? selectedBackground
         : background,
-    color: component.disabled ? theme.textSecondary : foreground,
-    iconColor: component.disabled ? theme.textSecondary : foreground,
+    color: disabled ? theme.textSecondary : foreground,
+    iconColor: disabled ? theme.textSecondary : foreground,
     border: ElBorder.all(
       borderWidth: flat || tinted ? 0 : 1,
-      borderColor: component.disabled
+      borderColor: disabled
           ? theme.borderColor
           : outlined
           ? accent
           : background,
     ),
-    onTap: component.disabled || component.loading
+    onTap: disabled || loading
         ? null
         : ElStyle(backgroundColor: selectedBackground, transform: ElTransform.scale(flat ? 1 : .95)),
   );

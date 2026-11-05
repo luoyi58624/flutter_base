@@ -101,7 +101,7 @@ void main() {
     expect(global.hashCode, ElComponentBuilders(buttonBuilder: _a).hashCode);
   });
 
-  testWidgets('缺少主题由 of 断言，缺少实现由 builder 非空操作报错', (tester) async {
+  testWidgets('缺少主题由 of 断言，缺少实现时报出组件名', (tester) async {
     await tester.pumpWidget(_host(ElButton()));
     expect(
       tester.takeException(),
@@ -110,13 +110,12 @@ void main() {
     await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponentBuilders(), child: ElView())));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(_host(ElComponentProvider(builders: ElComponentBuilders(), child: ElButton())));
-    expect(tester.takeException(), isA<TypeError>());
+    expect(tester.takeException(), isA<FlutterError>().having((e) => e.message, 'message', contains('ElButton')));
   });
 
-  testWidgets('最近节点直接提供配置，需要继承时显式合并', (tester) async {
+  testWidgets('内层配置与祖先合并，未传的项沿用外层', (tester) async {
     final parent = ElComponentBuilders(buttonBuilder: _a);
-    final empty = ElComponentBuilders();
-    for (final data in [empty, parent.merge(empty)]) {
+    for (final (data, expected) in [(ElComponentBuilders(), _a), (ElComponentBuilders(buttonBuilder: _b), _b)]) {
       await tester.pumpWidget(
         _host(
           ElComponentProvider(
@@ -125,7 +124,7 @@ void main() {
               builders: data,
               child: Builder(
                 builder: (context) {
-                  expect(ElComponentProvider.of(context), same(data));
+                  expect(ElComponentProvider.of(context).buttonBuilder, expected);
                   return ElView();
                 },
               ),
@@ -192,7 +191,7 @@ void main() {
   });
 
   testWidgets('分派传入原始声明，GlobalKey 只挂载一次', (tester) async {
-    final button = ElButton(key: GlobalKey(), selected: true, loading: true, child: '原始内容');
+    final button = ElButton(key: GlobalKey(), loading: true, child: '原始内容');
     ElButton? received;
     await tester.pumpWidget(
       _host(

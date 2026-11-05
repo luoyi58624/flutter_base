@@ -78,7 +78,7 @@ void main() {
     expect(activations, 2);
   });
 
-  testWidgets('通用按钮保留载荷、颜色、布局、外借焦点和单次模型切换', (tester) async {
+  testWidgets('通用切换按钮保留载荷、样式宽度、外借焦点和单次模型切换', (tester) async {
     final model = ValueNotifier(false);
     final focus = FocusNode();
     addTearDown(model.dispose);
@@ -86,25 +86,20 @@ void main() {
     final changes = <bool>[];
     await tester.pumpWidget(
       _host(
-        ElButton.toggle(
+        ElToggleButton(
           key: ValueKey('button'),
           modelValue: model,
           onChanged: changes.add,
-          leftIcon: Text('左'),
-          rightIcon: Text('右'),
-          bgColor: Color(0xff123456),
-          block: true,
-          round: true,
+          icon: Text('左'),
           focusNode: focus,
           semanticLabel: '保存',
-          style: ElStyle(minHeight: 50),
+          style: ElStyle(minHeight: 50, width: '100%', backgroundColor: Color(0xff123456)),
           child: Text('主'),
         ),
       ),
     );
     expect(find.text('左'), findsOneWidget);
     expect(find.text('主'), findsOneWidget);
-    expect(find.text('右'), findsOneWidget);
     expect(_view((view) => view.style?.backgroundColor == Color(0xff123456)), findsOneWidget);
     expect(tester.getSize(find.byKey(ValueKey('button'))).width, 320);
     await tester.tap(find.text('主'));
@@ -118,36 +113,30 @@ void main() {
     expect(changes, [true, false]);
   });
 
-  testWidgets('按钮事件可以取消默认切换，加载保留焦点而禁用动作', (tester) async {
-    final model = ValueNotifier(false);
+  testWidgets('按钮加载保留焦点而禁用动作', (tester) async {
     final focus = FocusNode();
-    addTearDown(model.dispose);
     addTearDown(focus.dispose);
+    var presses = 0;
     await tester.pumpWidget(
-      _host(
-        ElButton.toggle(
-          modelValue: model,
-          event: ElEvent(onTap: (event) => event.preventDefault()),
-          child: Text('取消动作'),
-        ),
-      ),
-    );
-    await tester.tap(find.text('取消动作'));
-    await tester.pump();
-    expect(model.value, isFalse);
-    await tester.pumpWidget(
-      _host(ElButton.toggle(modelValue: model, loading: true, focusNode: focus, child: Text('加载动作'))),
+      _host(ElButton(onPressed: () => presses++, loading: true, focusNode: focus, child: Text('加载动作'))),
     );
     expect(_view((view) => view.semantics?.properties.role == SemanticsRole.loadingSpinner), findsOneWidget);
     expect(focus.canRequestFocus, isTrue);
     await tester.tap(find.text('加载动作'));
     await tester.pump();
-    expect(model.value, isFalse);
+    expect(presses, 0);
   });
 
-  testWidgets('通用正圆按钮在覆盖高度后仍保持宽高相等', (tester) async {
-    await tester.pumpWidget(_host(ElButton(circle: true, style: ElStyle(height: 60), child: Icons.add)));
-    expect(tester.getSize(_view((view) => view.style?.width == 60 && view.style?.height == 60)), Size(60, 60));
+  testWidgets('通用图标按钮是方形，正圆由样式圆角表达', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        ElButton(
+          style: ElStyle(borderRadius: .circular(999)),
+          child: Icons.add,
+        ),
+      ),
+    );
+    expect(tester.getSize(_view((view) => view.style?.width == 44 && view.style?.height == 44)), Size(44, 44));
   });
 
   testWidgets('通用标签仅由公共宿主切换，关闭不冒泡到主动作', (tester) async {
@@ -227,7 +216,7 @@ void main() {
     }
   });
 
-  testWidgets('通用开关默认关闭，内容、尺寸、颜色、样式和无滑动配置生效', (tester) async {
+  testWidgets('通用开关默认关闭，用户样式合并在默认样式之后', (tester) async {
     await tester.pumpWidget(_host(ElSwitch(semanticLabel: '默认开关')));
     final semantics = tester.ensureSemantics();
     expect(
@@ -246,38 +235,20 @@ void main() {
         ElSwitch(
           modelValue: model,
           semanticLabel: '配置开关',
-          activeColor: Color(0xff112233),
-          inactiveColor: Color(0xff445566),
-          activeContent: Text('开启'),
-          inactiveContent: Text('关闭'),
-          activeActionContent: Text('一'),
-          inactiveActionContent: Text('零'),
-          height: 40,
-          gap: 4,
-          widthAspect: 3,
-          slide: false,
-          style: ElStyle(margin: EdgeInsets.only(left: 5)),
-          trackStyle: ElStyle(borderRadius: BorderRadius.circular(8)),
+          style: ElStyle(width: 60, backgroundColor: Color(0xff112233)),
         ),
       ),
     );
     await tester.pump();
-    expect(find.text('开启'), findsOneWidget);
-    expect(find.text('一'), findsOneWidget);
     final track = _view((view) => view.style?.backgroundColor == Color(0xff112233));
-    expect(track, findsOneWidget);
-    expect(tester.getSize(track), Size(120, 40));
-    expect(tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).duration, Duration.zero);
-    await tester.tap(find.text('开启'));
+    expect(tester.getSize(track), Size(60, 28));
+    await tester.tap(track);
     await tester.pump();
     expect(model.value, isFalse);
-    expect(find.text('关闭'), findsOneWidget);
-    expect(find.text('零'), findsOneWidget);
-    expect(_view((view) => view.style?.backgroundColor == Color(0xff445566)), findsOneWidget);
     semantics.dispose();
   });
 
-  testWidgets('开关单次通知、外借焦点、取消事件与加载阻止激活', (tester) async {
+  testWidgets('开关单次通知、外借焦点与加载阻止激活', (tester) async {
     final model = ValueNotifier(false);
     final focus = FocusNode();
     addTearDown(model.dispose);
@@ -300,20 +271,6 @@ void main() {
     expect(focus.hasFocus, isTrue);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
-    expect(changes, [true]);
-    await tester.pumpWidget(
-      _host(
-        ElSwitch(
-          key: ValueKey('switch'),
-          modelValue: model,
-          onChanged: changes.add,
-          event: ElEvent(onTap: (event) => event.preventDefault()),
-          semanticLabel: '通知开关',
-        ),
-      ),
-    );
-    await tester.tap(_view((view) => view.semantics?.properties.toggled != null && view.event?.onTap != null));
-    await tester.pump();
     expect(changes, [true]);
     await tester.pumpWidget(
       _host(

@@ -156,7 +156,7 @@ ElStyle(
             spacing: 8,
             children: [
               for (final (name, value) in [('直角', 0.0), ('圆角', 20.0), ('胶囊', size.shortestSide / 2)])
-                ElButton(plain: true, child: name, onPressed: () => radius.value = value),
+                ElButton(variant: .outline, child: name, onPressed: () => radius.value = value),
             ],
           ),
           ElDivider(color: context.elTheme.dividerColor),
@@ -173,15 +173,15 @@ ElStyle(
         actions: [
           ElButton(
             key: ValueKey('shadow-reset'),
-            text: true,
-            leftIcon: Icons.restart_alt,
+            variant: .text,
+            child: Icons.restart_alt,
             semanticLabel: '恢复默认',
             onPressed: reset,
           ),
           ElButton(
             key: ValueKey('shadow-copy'),
-            text: true,
-            leftIcon: Icons.copy,
+            variant: .text,
+            icon: Icons.copy,
             child: copied.value ? '已复制' : '复制',
             semanticLabel: '复制 Dart 用法',
             onPressed: () async {
@@ -422,7 +422,7 @@ class _ColorField extends HookWidget {
               ('蓝', Color(0xff2454c6)),
             ])
               ElButton(
-                plain: true,
+                variant: .outline,
                 disabled: !enabled,
                 child: Row(
                   mainAxisSize: .min,
@@ -455,9 +455,8 @@ class _Fold extends HookWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) => ElButton(
-            text: true,
-            block: true,
-            style: ElStyle(padding: .all(12)),
+            variant: .text,
+            style: ElStyle(width: '100%', padding: .all(12)),
             onPressed: () => open.value = !open.value,
             child: SizedBox(
               width: (constraints.maxWidth - 24).clamp(0, double.infinity),

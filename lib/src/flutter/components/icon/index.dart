@@ -23,5 +23,5 @@ class ElIcon extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).iconBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.iconBuilder)(context, this);
 }

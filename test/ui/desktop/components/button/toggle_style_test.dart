@@ -14,13 +14,9 @@ Widget _host(Widget child, Brightness brightness) => Directionality(
     ),
   ),
 );
-ElRenderView _render(WidgetTester tester, String key) =>
-    tester.renderObject<ElRenderView>(
-      find.descendant(
-        of: find.byKey(ValueKey(key)),
-        matching: find.byType(ElButtonView),
-      ),
-    );
+ElRenderView _render(WidgetTester tester, String key) => tester.renderObject<ElRenderView>(
+  find.descendant(of: find.byKey(ValueKey(key)), matching: find.byType(ElButtonView)),
+);
 List<Object?> _colors(ElRenderView render) => [
   render.committedResolvedStyle.box.backgroundColor,
   render.committedResolvedStyle.inheritedText.color,
@@ -29,45 +25,24 @@ List<Object?> _colors(ElRenderView render) => [
 void main() {
   for (final brightness in [Brightness.light, Brightness.dark]) {
     testWidgets('$brightness toggle 未选中保持默认变体，选中使用实心主题基色', (tester) async {
-      for (final (type, bg, plain, ghost, text) in <(ElThemeType?, Color?, bool, bool, bool)>[
-        (.primary, null, false, false, false),
-        (.success, null, false, false, false),
-        (null, Color(0xff009688), false, false, false),
-        (null, Color(0xffffe08a), false, false, false),
-        (null, null, true, false, false),
-        (.success, null, true, false, false),
-        (null, null, false, true, false),
-        (.warning, null, false, true, false),
-        (null, null, false, false, true),
-        (.error, null, false, false, true),
+      for (final (type, variant) in <(ElThemeType?, ElButtonVariant)>[
+        (.primary, .solid),
+        (.success, .solid),
+        (null, .outline),
+        (.success, .outline),
+        (null, .text),
+        (.error, .text),
       ]) {
         final model = ValueNotifier(false);
-        final solid = !plain && !ghost && !text;
+        final solid = variant == .solid;
         await tester.pumpWidget(
           _host(
             Column(
               mainAxisSize: .min,
               children: [
-                ElButton(
-                  key: ValueKey('off'),
-                  type: solid ? null : type,
-                  bgColor: solid ? null : bg,
-                  plain: plain,
-                  ghost: ghost,
-                  text: text,
-                  child: '按钮',
-                ),
-                ElButton(key: ValueKey('on'), type: type ?? .primary, bgColor: bg, child: '按钮'),
-                ElButton.toggle(
-                  key: ValueKey('toggle'),
-                  modelValue: model,
-                  type: type,
-                  bgColor: bg,
-                  plain: plain,
-                  ghost: ghost,
-                  text: text,
-                  child: '按钮',
-                ),
+                ElButton(key: ValueKey('off'), type: solid ? null : type, variant: variant, child: '按钮'),
+                ElButton(key: ValueKey('on'), type: type ?? .primary, child: '按钮'),
+                ElToggleButton(key: ValueKey('toggle'), modelValue: model, type: type, variant: variant, child: '按钮'),
               ],
             ),
             brightness,
@@ -95,15 +70,7 @@ void main() {
     final model = ValueNotifier(true);
     addTearDown(model.dispose);
     await tester.pumpWidget(
-      _host(
-        ElButton.toggle(
-          key: ValueKey('toggle'),
-          modelValue: model,
-          type: .primary,
-          child: '按钮',
-        ),
-        .dark,
-      ),
+      _host(ElToggleButton(key: ValueKey('toggle'), modelValue: model, type: .primary, child: '按钮'), .dark),
     );
     await tester.pumpAndSettle();
     final render = _render(tester, 'toggle');
@@ -131,57 +98,35 @@ void main() {
     await pointer.removePointer();
   }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
-  testWidgets('选中后禁用使用主题禁用色，加载期间不响应按压配色', (tester) async {
-    Widget scene({bool disabled = false, bool loading = false}) => _host(
-      Column(
-        mainAxisSize: .min,
-        children: [
-          ElButton(
-            key: ValueKey('reference'),
-            type: .success,
-            disabled: disabled,
-            child: '按钮',
-          ),
-          ElButton.toggle(
-            key: ValueKey('toggle'),
-            value: true,
-            type: .success,
-            ghost: true,
-            disabled: disabled,
-            loading: loading,
-            child: '按钮',
-          ),
-        ],
+  testWidgets('选中后禁用使用主题禁用色', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        Column(
+          mainAxisSize: .min,
+          children: [
+            ElButton(key: ValueKey('reference'), type: .success, disabled: true, child: '按钮'),
+            ElToggleButton(
+              key: ValueKey('toggle'),
+              value: true,
+              type: .success,
+              variant: .outline,
+              disabled: true,
+              child: '按钮',
+            ),
+          ],
+        ),
+        .light,
       ),
-      .light,
     );
-    await tester.pumpWidget(scene(disabled: true));
     await tester.pumpAndSettle();
-    expect(
-      _colors(_render(tester, 'toggle')),
-      _colors(_render(tester, 'reference')),
-    );
-    await tester.pumpWidget(scene(loading: true));
-    await tester.pump(Duration(milliseconds: 300));
-    final before = _colors(_render(tester, 'toggle'));
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byKey(ValueKey('toggle'))),
-    );
-    await tester.pump(Duration(milliseconds: 300));
-    expect(_colors(_render(tester, 'toggle')), before);
-    await gesture.up();
-    await tester.pump(Duration(milliseconds: 300));
-    expect(
-      tester.widget<ElButton>(find.byKey(ValueKey('toggle'))).selected,
-      isTrue,
-    );
+    expect(_colors(_render(tester, 'toggle')), _colors(_render(tester, 'reference')));
   }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
   testWidgets('用户选中样式仍优先于 toggle 默认主题色', (tester) async {
     final custom = Color(0xff552277);
     await tester.pumpWidget(
       _host(
-        ElButton.toggle(
+        ElToggleButton(
           key: ValueKey('toggle'),
           value: true,
           type: .primary,
@@ -192,9 +137,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      _render(tester, 'toggle').committedResolvedStyle.box.backgroundColor,
-      custom,
-    );
+    expect(_render(tester, 'toggle').committedResolvedStyle.box.backgroundColor, custom);
   });
 }

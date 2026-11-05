@@ -546,5 +546,5 @@ class ElMention<T> extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).mentionBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.mentionBuilder)(context, this);
 }

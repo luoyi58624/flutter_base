@@ -3,11 +3,75 @@ import 'package:flutter/widgets.dart';
 
 /// Element 按钮主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
 class Button extends StatefulWidget {
-  const Button(this.component, {super.key});
-  final ElButton component;
+  /// 普通按钮。
+  Button(ElButton component, {super.key})
+    : _spec = _ButtonSpec(
+        child: component.child,
+        icon: component.icon,
+        type: component.type,
+        variant: component.variant,
+        disabled: component.disabled,
+        loading: component.loading,
+        selected: null,
+        onPressed: component.onPressed,
+        style: component.style,
+        event: component.event,
+        focusNode: component.focusNode,
+        semanticLabel: component.semanticLabel,
+      );
+
+  /// 切换按钮，选中态读写同一模型。
+  Button.toggle(ElToggleButton component, Obs<bool> model, {super.key})
+    : _spec = _ButtonSpec(
+        child: component.child,
+        icon: component.icon,
+        type: component.type,
+        variant: component.variant,
+        disabled: component.disabled,
+        loading: false,
+        selected: model.value,
+        onPressed: () => model.value = !model.value,
+        style: component.style,
+        event: component.event,
+        focusNode: component.focusNode,
+        semanticLabel: component.semanticLabel,
+      );
+
+  final _ButtonSpec _spec;
 
   @override
   State<Button> createState() => _ButtonState();
+}
+
+/// 普通与切换按钮共用的渲染参数；selected 为 null 表示普通按钮。
+class _ButtonSpec {
+  const _ButtonSpec({
+    required this.child,
+    required this.icon,
+    required this.type,
+    required this.variant,
+    required this.disabled,
+    required this.loading,
+    required this.selected,
+    required this.onPressed,
+    required this.style,
+    required this.event,
+    required this.focusNode,
+    required this.semanticLabel,
+  });
+
+  final Object? child;
+  final Object? icon;
+  final ElThemeType? type;
+  final ElButtonVariant variant;
+  final bool disabled;
+  final bool loading;
+  final bool? selected;
+  final VoidCallback? onPressed;
+  final ElStyle? style;
+  final ElEvent? event;
+  final FocusNode? focusNode;
+  final String? semanticLabel;
 }
 
 class _ButtonState extends State<Button> {
@@ -20,7 +84,7 @@ class _ButtonState extends State<Button> {
   @override
   void didUpdateWidget(Button oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.component.disabled || widget.component.loading) _press.cancel();
+    if (widget._spec.disabled || widget._spec.loading) _press.cancel();
   }
 
   @override
@@ -31,47 +95,39 @@ class _ButtonState extends State<Button> {
     super.dispose();
   }
 
-  ElStyle _style(BuildContext context, ElButton component, bool pressed) {
-    var base = component._styleBuilder(context);
-    if (pressed && !component.loading) base = base.merge(base.onTap);
-    final user = component.style;
-    final merged = base.merge(user);
-    return component.circle && !component.link ? merged.copyWith(width: merged.height) : merged;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final component = widget.component;
+    final spec = widget._spec;
+    var style = spec._styleBuilder(context);
+    if (_press.pressed && !spec.loading) style = style.merge(style.onTap);
+    style = style.merge(spec.style);
     final button = ElButtonView(
-      onPressed: component.loading ? null : component.onPressed,
-      semanticLabel: component.semanticLabel,
-      style: _style(context, component, _press.pressed),
-      event: component.event,
-      focusNode: component.focusNode,
+      onPressed: spec.loading ? null : spec.onPressed,
+      semanticLabel: spec.semanticLabel,
+      style: style,
+      event: spec.event,
+      focusNode: spec.focusNode,
       pressController: _press,
-      disabled: component.disabled,
-      selected: component.selected,
-      toggled: component.isToggle ? component.selected : null,
-      child: component._buttonContent(context),
+      disabled: spec.disabled,
+      toggled: spec.selected,
+      child: spec._buttonContent(context),
     );
-    return component.block ? button : UnconstrainedBox(child: button);
+    // 显式宽度（如 '100%'）需要父级约束，其余按内容宽度排布。
+    return style.width != null ? button : UnconstrainedBox(child: button);
   }
 }
 
-extension _ButtonAppearance on ElButton {
+extension on _ButtonSpec {
   /// 图标按钮：`child` 是 [IconData] 即图标按钮（与外观无关，忽略 left/right）。
   bool get _isIcon => child is IconData;
 
-  /// 主题色源：bgColor 显式覆盖 > type token（祖先主题色）。
-  Color? _resolvedTypeColor(BuildContext context) {
-    if (bgColor != null) return bgColor;
-    return type?.color(context);
-  }
+  bool get _link => variant == .link;
+  bool get _text => variant == .text;
+  bool get _plain => variant == .outline;
+  bool get _isToggle => selected != null;
+  bool get _selected => selected ?? false;
 
-  /// 图标按钮宽度：无 [circle] 固定 = 高度 × 1.2；[circle] 跟随高度（正方）。
-  double? _iconButtonWidth(double boxSize) => _isIcon ? (circle ? null : boxSize * 1.2) : null;
-
-  /// 变体优先级同官方组件：link > text > ghost > plain。
+  /// 按 variant 选择 Element 外观：link、text、plain（outline）与实心主题色。
   ElStyle _styleBuilder(BuildContext context) {
     // 紧凑密度优先读取组件自身声明，再继承祖先配置。
     final compact = context.elComponentCompact(style);
@@ -89,63 +145,52 @@ extension _ButtonAppearance on ElButton {
     // link 是纯文字形态，其他外观共享 normal / compact 盒尺寸；
     // circle 固定方盒（宽 = 高）
     final boxSize = compact ? 32.0 : 36.0;
-    if (link) {
+    if (_link) {
       base = base.copyWith(padding: const EdgeInsets.all(2));
-    } else if (circle) {
-      // 官方 is-circle：宽 = 高的正方盒 + 50% 圆角。内容区 = 整盒（无内边距），
-      // 图标/文字居中即与按钮盒同心——加 padding 反而会在紧凑密度下压缩内容区
-      // 导致 glyph 超盒绘制右偏下。
-      base = base.copyWith(
-        width: boxSize,
-        height: boxSize,
-        borderRadius: BorderRadius.all(Radius.circular(boxSize / 2)),
-      );
     } else {
       base = base.copyWith(
-        // 图标按钮：内边距归零 + 宽度固定 = 高度 × 1.2（不受 padding 撑宽）；
+        // 图标按钮是无内边距的正方盒，正圆由用户 style 的圆角表达；
         // 普通按钮按 normal / compact 设置高度和水平内边距。
         minHeight: boxSize,
-        width: _iconButtonWidth(boxSize),
+        width: _isIcon ? boxSize : null,
+        height: _isIcon ? boxSize : null,
         padding: _isIcon ? EdgeInsets.zero : EdgeInsets.symmetric(vertical: 4, horizontal: compact ? 14 : 16),
-        // round 胶囊 = 半高全圆，padding 与同密度普通按钮一致。
-        borderRadius: BorderRadius.circular(round ? boxSize / 2 : 4),
+        borderRadius: BorderRadius.circular(4),
       );
     }
 
-    final typeColor = _resolvedTypeColor(context);
+    final typeColor = type?.color(context);
     base = base.copyWith(onFocusVisible: _focusRingStyle(context, typeColor));
     ElStyle result;
-    if (link) {
+    if (_link) {
       result = _linkStyle(context, base, typeColor);
-    } else if (text) {
+    } else if (_text) {
       result = _textStyle(context, base, typeColor);
-    } else if (ghost) {
-      result = _ghostStyle(context, base, typeColor);
     } else if (typeColor == null) {
       result = _defaultStyle(context, base);
-    } else if (plain) {
+    } else if (_plain) {
       result = _plainStyle(context, base, typeColor);
     } else {
       result = _themeStyle(context, base, typeColor);
     }
 
-    if (isToggle && !link) {
+    if (_isToggle && !_link) {
       // 实心主题色只在选中后出现；其他变体保持原来的未选中外观。
-      if (typeColor != null && !plain && !ghost && !text) {
+      if (typeColor != null && !_plain && !_text) {
         result = _defaultStyle(context, base);
       }
-      if (typeColor != null || plain || ghost || text) {
+      if (typeColor != null || _plain || _text) {
         final color = typeColor ?? context.elTheme.primary;
         final theme = _themeStyle(context, const ElStyle(), color);
         // 文本按钮没有描边占位，填色时也不新增边框宽度，避免选中导致尺寸跳动。
-        final selected = theme
-            .copyWith(border: text ? null : theme.border, onHover: null, onTap: null, onDisabled: null)
+        final selectedStyle = theme
+            .copyWith(border: _text ? null : theme.border, onHover: null, onTap: null, onDisabled: null)
             .copyWith(
-              onTap: text ? theme.onTap?.copyWith(border: null) : theme.onTap,
-              onDisabled: text ? theme.onDisabled?.copyWith(border: null) : theme.onDisabled,
+              onTap: _text ? theme.onTap?.copyWith(border: null) : theme.onTap,
+              onDisabled: _text ? theme.onDisabled?.copyWith(border: null) : theme.onDisabled,
             );
-        if (this.selected) {
-          result = result.copyWith(onHover: null, onTap: null).merge(selected);
+        if (_selected) {
+          result = result.copyWith(onHover: null, onTap: null).merge(selectedStyle);
         }
       }
     }
@@ -173,7 +218,7 @@ extension _ButtonAppearance on ElButton {
     final bgColor = context.elTheme.bgColor;
     final textColor = context.elTheme.textRegular;
     final borderColor = context.elTheme.borderColor;
-    final plainAppearance = plain;
+    final plainAppearance = _plain;
     final hoverTextColor = primary;
     final hoverBgColor = plainAppearance ? bgColor : primary.elLight9(context);
     final hoverBorderColor = plainAppearance ? primary : primary.elLight7(context);
@@ -183,31 +228,27 @@ extension _ButtonAppearance on ElButton {
       border: _border(context, color: primary),
       iconColor: primary,
     );
-    return base
-        .copyWith(
-          color: textColor,
-          backgroundColor: bgColor,
-          border: _border(context, color: borderColor),
-          onHover: (selected && !isToggle)
-              ? null
-              : ElStyle(
-                  color: hoverTextColor,
-                  backgroundColor: hoverBgColor,
-                  border: _border(context, color: hoverBorderColor),
-                  iconColor: hoverTextColor,
-                ),
-          onTap: (selected && !isToggle) ? null : active,
+    return base.copyWith(
+      color: textColor,
+      backgroundColor: bgColor,
+      border: _border(context, color: borderColor),
+      onHover: ElStyle(
+        color: hoverTextColor,
+        backgroundColor: hoverBgColor,
+        border: _border(context, color: hoverBorderColor),
+        iconColor: hoverTextColor,
+      ),
+      onTap: active,
 
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: context.elTheme.textPlaceholder,
-            backgroundColor: bgColor,
-            border: _border(context, color: borderColor),
-            iconColor: context.elTheme.textPlaceholder,
-          ),
-          iconColor: textColor,
-        )
-        .merge((selected && !isToggle) ? (active) : null);
+      onDisabled: ElStyle(
+        cursor: SystemMouseCursors.forbidden,
+        color: context.elTheme.textPlaceholder,
+        backgroundColor: bgColor,
+        border: _border(context, color: borderColor),
+        iconColor: context.elTheme.textPlaceholder,
+      ),
+      iconColor: textColor,
+    );
   }
 
   /// 构建主题按钮样式
@@ -226,31 +267,27 @@ extension _ButtonAppearance on ElButton {
       iconColor: textColor,
     );
     final hoverBg = typeColor.elLightOf(.light, 3);
-    return base
-        .copyWith(
-          color: textColor,
-          backgroundColor: typeColor,
-          border: _border(context, color: typeColor),
-          onHover: (selected && !isToggle)
-              ? null
-              : ElStyle(
-                  color: textColor,
-                  backgroundColor: hoverBg,
-                  border: _border(context, color: hoverBg),
-                  iconColor: textColor,
-                ),
-          onTap: (selected && !isToggle) ? null : active,
+    return base.copyWith(
+      color: textColor,
+      backgroundColor: typeColor,
+      border: _border(context, color: typeColor),
+      onHover: ElStyle(
+        color: textColor,
+        backgroundColor: hoverBg,
+        border: _border(context, color: hoverBg),
+        iconColor: textColor,
+      ),
+      onTap: active,
 
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: const Color(0xffffffff),
-            backgroundColor: typeColor.elLight5(context),
-            border: _border(context, color: typeColor.elLight5(context)),
-            iconColor: const Color(0xffffffff),
-          ),
-          iconColor: textColor,
-        )
-        .merge((selected && !isToggle) ? (active) : null);
+      onDisabled: ElStyle(
+        cursor: SystemMouseCursors.forbidden,
+        color: const Color(0xffffffff),
+        backgroundColor: typeColor.elLight5(context),
+        border: _border(context, color: typeColor.elLight5(context)),
+        iconColor: const Color(0xffffffff),
+      ),
+      iconColor: textColor,
+    );
   }
 
   /// 构建朴素按钮（浅底描边，hover 反转为实心）
@@ -264,70 +301,27 @@ extension _ButtonAppearance on ElButton {
       border: _border(context, color: dark2),
       iconColor: textColor,
     );
-    return base
-        .copyWith(
-          color: typeColor,
-          backgroundColor: typeColor.elLight9(context),
-          border: _border(context, color: typeColor.elLight5(context)),
-          onHover: (selected && !isToggle)
-              ? null
-              : ElStyle(
-                  color: textColor,
-                  backgroundColor: typeColor,
-                  border: _border(context, color: typeColor),
-                  iconColor: textColor,
-                ),
-          onTap: (selected && !isToggle) ? null : active,
+    return base.copyWith(
+      color: typeColor,
+      backgroundColor: typeColor.elLight9(context),
+      border: _border(context, color: typeColor.elLight5(context)),
+      onHover: ElStyle(
+        color: textColor,
+        backgroundColor: typeColor,
+        border: _border(context, color: typeColor),
+        iconColor: textColor,
+      ),
+      onTap: active,
 
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: typeColor.elLight5(context),
-            backgroundColor: typeColor.elLight9(context),
-            border: _border(context, color: typeColor.elLight8(context)),
-            iconColor: typeColor.elLight5(context),
-          ),
-          iconColor: typeColor,
-        )
-        .merge((selected && !isToggle) ? (active) : null);
-  }
-
-  /// 构建幽灵按钮样式，背景恒透明，鼠标悬停边框高亮
-  ElStyle _ghostStyle(BuildContext context, ElStyle base, Color? typeColor) {
-    final primary = typeColor ?? context.elTheme.primary;
-    final textColor = primary;
-    // 幽灵形态边框：默认级别与 plain 一致（light-5）
-    final borderColor = primary.elLight5(context);
-    final active = ElStyle(
-      color: primary,
-      backgroundColor: const Color(0x00000000),
-      border: _border(context, color: primary),
-      iconColor: primary,
+      onDisabled: ElStyle(
+        cursor: SystemMouseCursors.forbidden,
+        color: typeColor.elLight5(context),
+        backgroundColor: typeColor.elLight9(context),
+        border: _border(context, color: typeColor.elLight8(context)),
+        iconColor: typeColor.elLight5(context),
+      ),
+      iconColor: typeColor,
     );
-    return base
-        .copyWith(
-          color: textColor,
-          backgroundColor: const Color(0x00000000),
-          border: _border(context, color: borderColor),
-          onHover: (selected && !isToggle)
-              ? null
-              : ElStyle(
-                  color: primary,
-                  backgroundColor: const Color(0x00000000),
-                  border: _border(context, color: primary),
-                  iconColor: primary,
-                ),
-          onTap: (selected && !isToggle) ? null : active,
-
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: context.elTheme.textPlaceholder,
-            backgroundColor: const Color(0x00000000),
-            border: _border(context, color: borderColor),
-            iconColor: context.elTheme.textPlaceholder,
-          ),
-          iconColor: textColor,
-        )
-        .merge((selected && !isToggle) ? (active) : null);
   }
 
   /// 构建文本按钮样式，透明背景，悬停加深
@@ -338,22 +332,20 @@ extension _ButtonAppearance on ElButton {
     final background = context.elTheme.bgColor;
     final activeColor = background.elLight1(context, reverse: true);
     final active = ElStyle(color: textColor, backgroundColor: activeColor, iconColor: textColor);
-    return base
-        .copyWith(
-          color: textColor,
-          backgroundColor: bg ? background.deepen(5) : null,
-          onHover: (selected && !isToggle) ? null : active,
-          onTap: null,
+    return base.copyWith(
+      color: textColor,
+      backgroundColor: null,
+      onHover: active,
+      onTap: null,
 
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
-            backgroundColor: bg ? background.deepen(5) : const Color(0x00000000),
-            iconColor: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
-          ),
-          iconColor: textColor,
-        )
-        .merge((selected && !isToggle) ? (ElStyle(backgroundColor: activeColor)) : null);
+      onDisabled: ElStyle(
+        cursor: SystemMouseCursors.forbidden,
+        color: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
+        backgroundColor: const Color(0x00000000),
+        iconColor: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
+      ),
+      iconColor: textColor,
+    );
   }
 
   /// 构建链接按钮样式，纯文本
@@ -363,25 +355,21 @@ extension _ButtonAppearance on ElButton {
       color: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
       iconColor: typeColor != null ? typeColor.elLightOf(.dark, 2) : textColor,
     );
-    return base
-        .copyWith(
-          color: textColor,
-          onHover: (selected && !isToggle)
-              ? null
-              : ElStyle(
-                  color: typeColor?.elLightOf(.light, 5) ?? context.elTheme.textSecondary,
-                  iconColor: typeColor?.elLightOf(.light, 5) ?? context.elTheme.textSecondary,
-                ),
-          onTap: (selected && !isToggle) ? null : active,
+    return base.copyWith(
+      color: textColor,
+      onHover: ElStyle(
+        color: typeColor?.elLightOf(.light, 5) ?? context.elTheme.textSecondary,
+        iconColor: typeColor?.elLightOf(.light, 5) ?? context.elTheme.textSecondary,
+      ),
+      onTap: active,
 
-          onDisabled: ElStyle(
-            cursor: SystemMouseCursors.forbidden,
-            color: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
-            iconColor: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
-          ),
-          iconColor: textColor,
-        )
-        .merge((selected && !isToggle) ? (active) : null);
+      onDisabled: ElStyle(
+        cursor: SystemMouseCursors.forbidden,
+        color: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
+        iconColor: typeColor?.elLight5(context) ?? context.elTheme.textPlaceholder,
+      ),
+      iconColor: textColor,
+    );
   }
 
   /// 构建聚焦环样式
@@ -408,14 +396,14 @@ extension _ButtonAppearance on ElButton {
       if (loading) return _loadingWidget();
       return _iconWidget(child);
     }
-    if (!loading && leftIcon == null && rightIcon == null) {
+    if (!loading && icon == null) {
       return _dynamicWidget(child);
     }
     final leftWidget = loading
         ? _loadingWidget()
-        : leftIcon == null
+        : icon == null
         ? null
-        : _iconWidget(leftIcon);
+        : _iconWidget(icon);
     return Row(
       mainAxisSize: .min,
       mainAxisAlignment: .center,
@@ -424,8 +412,6 @@ extension _ButtonAppearance on ElButton {
         ?leftWidget,
         if (leftWidget != null && child != null) ElView(style: const ElStyle(width: 6)),
         if (child != null) _dynamicWidget(child),
-        if (rightIcon != null && (leftWidget != null || child != null)) ElView(style: const ElStyle(width: 6)),
-        if (rightIcon != null) _iconWidget(rightIcon),
       ],
     );
   }

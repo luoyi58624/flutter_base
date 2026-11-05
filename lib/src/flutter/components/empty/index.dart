@@ -46,5 +46,6 @@ class ElEmpty extends StatelessWidget {
   final Object? child;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).emptyBuilder!(context, this);
+  Widget build(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.emptyBuilder)(context, this);
 }

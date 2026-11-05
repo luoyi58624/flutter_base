@@ -127,6 +127,6 @@ class ElTag extends ElModelValue<bool> {
       onTap: isToggle ? ElButtonView.buildSemanticsTap(_toggle, event, disabled) : null,
     ),
     style: const ElStyle(widthFactor: 1, userSelect: .none),
-    child: ElComponentProvider.of(context).tagBuilder!(context, this),
+    child: ElComponentProvider.builderOf(context, this, (b) => b.tagBuilder)(context, this),
   );
 }

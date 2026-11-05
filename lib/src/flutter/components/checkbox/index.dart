@@ -79,7 +79,7 @@ class ElCheckbox extends ElModelValue<Object?> {
         ),
       ),
       style: const ElStyle(widthFactor: 1, userSelect: .none),
-      child: ElComponentProvider.of(context).checkboxBuilder!(context, this, state),
+      child: ElComponentProvider.builderOf(context, this, (b) => b.checkboxBuilder)(context, this, state),
     );
   }
 }

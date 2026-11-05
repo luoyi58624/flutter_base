@@ -82,25 +82,24 @@ class ButtonPage extends HookWidget {
   Widget _types(BuildContext context) =>
       _section(context, '语义颜色', _wrap([for (final type in ElThemeType.types) _typeItem(type)]));
 
-  Widget _typeItem(ElThemeType type) => ElButton(type: type, round: true, child: _typeLabel(type));
+  Widget _typeItem(ElThemeType type) => ElButton(
+    type: type,
+    style: ElStyle(borderRadius: .circular(999)),
+    child: _typeLabel(type),
+  );
 
-  /// 第二行：plain / text / link / ghost 四个布尔变体。
+  /// 第二行：outline / text / link 三种视觉层级。
   Widget _variants(BuildContext context) => _section(
     context,
     '按钮变体',
     _wrap([
-      ElButton(plain: true, style: _plainStyle(context), child: '朴素按钮'),
+      ElButton(variant: .outline, style: _plainStyle(context), child: '描边按钮'),
       ElButton(
-        text: true,
+        variant: .text,
         style: ElStyle(color: context.elTheme.textColor),
         child: '文字按钮',
       ),
-      ElButton(link: true, child: '链接按钮'),
-      ElButton(
-        ghost: true,
-        style: ElStyle(borderRadius: .circular(6)),
-        child: '幽灵按钮',
-      ),
+      ElButton(variant: .link, child: '链接按钮'),
     ]),
   );
 
@@ -109,9 +108,16 @@ class ButtonPage extends HookWidget {
     context,
     '按钮形状',
     _wrap([
-      ElButton(round: true, child: '胶囊按钮'),
-      ElButton(circle: true, semanticLabel: '新增', child: Icon(Icons.add)),
-      ElButton(plain: true, leftIcon: Icon(Icons.add), style: _plainStyle(context), child: '添加'),
+      ElButton(
+        style: ElStyle(borderRadius: .circular(999)),
+        child: '胶囊按钮',
+      ),
+      ElButton(
+        style: ElStyle(borderRadius: .circular(999)),
+        semanticLabel: '新增',
+        child: Icons.add,
+      ),
+      ElButton(variant: .outline, icon: Icon(Icons.add), style: _plainStyle(context), child: '添加'),
     ]),
   );
 
@@ -125,7 +131,7 @@ class ButtonPage extends HookWidget {
       children: [
         _wrap([
           ElButton(
-            plain: true,
+            variant: .outline,
             style: _plainStyle(context)
                 .merge(ElStyle(minHeight: 32, fontSize: 13, padding: .symmetric(horizontal: 12))),
             child: '小按钮',
@@ -146,8 +152,7 @@ class ButtonPage extends HookWidget {
         ]),
         // 块级按钮单独占一行，撑满右侧剩余宽度。
         ElButton(
-          block: true,
-          style: ElStyle(borderRadius: .circular(6)),
+          style: ElStyle(width: '100%', borderRadius: .circular(6)),
           child: '块级按钮',
         ),
       ],
@@ -160,13 +165,11 @@ class ButtonPage extends HookWidget {
     '按钮状态',
     _wrap([
       ElButton(
-        plain: true,
+        variant: .outline,
         disabled: true,
-        style: _plainStyle(context).copyWith(
-          color: context.elTheme.disabledTextColor,
-          iconColor: context.elTheme.disabledTextColor,
-          opacity: 1,
-        ),
+        style: _plainStyle(
+          context,
+        ).copyWith(color: context.elTheme.disabledTextColor, iconColor: context.elTheme.disabledTextColor, opacity: 1),
         child: '禁用按钮',
       ),
       ElButton(
@@ -176,7 +179,7 @@ class ButtonPage extends HookWidget {
       ),
       // 只做外观对照，包 IgnorePointer 免得点一下就和别的按钮串味。
       IgnorePointer(
-        child: ElButton.toggle(
+        child: ElToggleButton(
           value: true,
           // 保留受控开关示例，覆盖主题选中态的加深色以贴合设计稿。
           style: ElStyle(backgroundColor: context.elTheme.primary),
@@ -192,7 +195,7 @@ class ButtonPage extends HookWidget {
     '点击反馈',
     _wrap([
       ElButton(
-        plain: true,
+        variant: .outline,
         onPressed: () => clicks.value++,
         style: _plainStyle(context),
         child: Row(

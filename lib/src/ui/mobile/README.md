@@ -44,7 +44,7 @@ ElMobileTheme(
 
 ## 内部实现
 
-既有皮肤留在各自目录的 `index.dart`，用于通用接口实现及内部回归。LoadingIndicator、Progress、Skeleton 通过公共接口接入，具体实现不从移动端入口导出；现有通用 ElDivider 不增加无效参数。共用接口的逐项来源和待适配缺口见 [Web 接口基准](../../flutter/components/WEB_BASELINE.md)。
+既有皮肤留在各自目录的 `index.dart`，用于通用接口实现及内部回归。LoadingIndicator、Progress、Skeleton 通过公共接口接入，具体实现不从移动端入口导出；现有通用 ElDivider 不增加无效参数。共用接口的准入与参数规范见[组件接口规范](../../flutter/components/README.md)。
 
 列表由通用声明与 [mobile 列表实现](components/list_tile/README.md) 组成，示例直接使用 ElListTile / ElListGroup。
 

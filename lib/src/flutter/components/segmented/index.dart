@@ -50,5 +50,6 @@ class ElSegmented<T> extends ElModelValue<T> {
   final String? semanticLabel;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).segmentedBuilder!<T>(context, this);
+  Widget obsBuilder(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.segmentedBuilder)<T>(context, this);
 }

@@ -146,5 +146,5 @@ class ElSlider<D> extends ElModelValue<D> {
   final ElEvent? event;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).sliderBuilder!<D>(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.sliderBuilder)<D>(context, this);
 }

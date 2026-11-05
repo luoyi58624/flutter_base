@@ -9,6 +9,7 @@ part of 'index.dart';
 extension ElComponentBuildersExt on ElComponentBuilders {
   ElComponentBuilders copyWith({
     Object? buttonBuilder = $absent,
+    Object? toggleButtonBuilder = $absent,
     Object? tagBuilder = $absent,
     Object? buttonGroupBuilder = $absent,
     Object? switchBuilder = $absent,
@@ -29,6 +30,9 @@ extension ElComponentBuildersExt on ElComponentBuilders {
     Object? iconBuilder = $absent,
     Object? listTileBuilder = $absent,
     Object? listTileGroupBuilder = $absent,
+    Object? progressBuilder = $absent,
+    Object? sliderBuilder = $absent,
+    Object? skeletonBuilder = $absent,
     Object? stepsBuilder = $absent,
     Object? stepBuilder = $absent,
     Object? avatarBuilder = $absent,
@@ -36,10 +40,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
     Object? collapseBuilder = $absent,
     Object? collapseItemBuilder = $absent,
     Object? emptyBuilder = $absent,
-    Object? progressBuilder = $absent,
     Object? segmentedBuilder = $absent,
-    Object? sliderBuilder = $absent,
-    Object? skeletonBuilder = $absent,
     Object? tabsBuilder = $absent,
     Object? tabBarBuilder = $absent,
     Object? alertBuilder = $absent,
@@ -48,30 +49,39 @@ extension ElComponentBuildersExt on ElComponentBuilders {
       buttonBuilder: identical(buttonBuilder, $absent)
           ? this.buttonBuilder
           : buttonBuilder as Widget Function(BuildContext, ElButton)?,
+      toggleButtonBuilder: identical(toggleButtonBuilder, $absent)
+          ? this.toggleButtonBuilder
+          : toggleButtonBuilder
+                as Widget Function(BuildContext, ElToggleButton, Obs<bool>)?,
       tagBuilder: identical(tagBuilder, $absent)
           ? this.tagBuilder
           : tagBuilder as Widget Function(BuildContext, ElTag)?,
       buttonGroupBuilder: identical(buttonGroupBuilder, $absent)
           ? this.buttonGroupBuilder
-          : buttonGroupBuilder as Widget Function<T>(BuildContext, ElButtonGroup<T>)?,
+          : buttonGroupBuilder
+                as Widget Function<T>(BuildContext, ElButtonGroup<T>)?,
       switchBuilder: identical(switchBuilder, $absent)
           ? this.switchBuilder
-          : switchBuilder as Widget Function(BuildContext, ElSwitch)?,
+          : switchBuilder
+                as Widget Function(BuildContext, ElSwitch, Obs<bool>)?,
       inputBuilder: identical(inputBuilder, $absent)
           ? this.inputBuilder
           : inputBuilder as Widget Function(BuildContext, ElInput)?,
       checkboxBuilder: identical(checkboxBuilder, $absent)
           ? this.checkboxBuilder
-          : checkboxBuilder as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
+          : checkboxBuilder
+                as Widget Function(BuildContext, ElCheckbox, ElCheckboxState)?,
       radioBuilder: identical(radioBuilder, $absent)
           ? this.radioBuilder
-          : radioBuilder as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
+          : radioBuilder
+                as Widget Function<T>(BuildContext, ElRadio<T>, ElRadioState)?,
       selectBuilder: identical(selectBuilder, $absent)
           ? this.selectBuilder
           : selectBuilder as Widget Function<T>(BuildContext, ElSelect<T>)?,
       autocompleteBuilder: identical(autocompleteBuilder, $absent)
           ? this.autocompleteBuilder
-          : autocompleteBuilder as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
+          : autocompleteBuilder
+                as Widget Function<T>(BuildContext, ElAutocomplete<T>)?,
       inputNumberBuilder: identical(inputNumberBuilder, $absent)
           ? this.inputNumberBuilder
           : inputNumberBuilder as Widget Function(BuildContext, ElInputNumber)?,
@@ -98,7 +108,8 @@ extension ElComponentBuildersExt on ElComponentBuilders {
           : cardBuilder as Widget Function(BuildContext, ElCard)?,
       loadingIndicatorBuilder: identical(loadingIndicatorBuilder, $absent)
           ? this.loadingIndicatorBuilder
-          : loadingIndicatorBuilder as Widget Function(BuildContext, ElLoadingIndicator)?,
+          : loadingIndicatorBuilder
+                as Widget Function(BuildContext, ElLoadingIndicator)?,
       iconBuilder: identical(iconBuilder, $absent)
           ? this.iconBuilder
           : iconBuilder as Widget Function(BuildContext, ElIcon)?,
@@ -107,7 +118,17 @@ extension ElComponentBuildersExt on ElComponentBuilders {
           : listTileBuilder as Widget Function<T>(BuildContext, ElListTile<T>)?,
       listTileGroupBuilder: identical(listTileGroupBuilder, $absent)
           ? this.listTileGroupBuilder
-          : listTileGroupBuilder as Widget Function<D>(BuildContext, ElListGroup<D>)?,
+          : listTileGroupBuilder
+                as Widget Function<D>(BuildContext, ElListGroup<D>)?,
+      progressBuilder: identical(progressBuilder, $absent)
+          ? this.progressBuilder
+          : progressBuilder as Widget Function(BuildContext, ElProgress)?,
+      sliderBuilder: identical(sliderBuilder, $absent)
+          ? this.sliderBuilder
+          : sliderBuilder as Widget Function<D>(BuildContext, ElSlider<D>)?,
+      skeletonBuilder: identical(skeletonBuilder, $absent)
+          ? this.skeletonBuilder
+          : skeletonBuilder as Widget Function(BuildContext, ElSkeleton)?,
       stepsBuilder: identical(stepsBuilder, $absent)
           ? this.stepsBuilder
           : stepsBuilder as Widget Function(BuildContext, ElSteps)?,
@@ -125,22 +146,15 @@ extension ElComponentBuildersExt on ElComponentBuilders {
           : collapseBuilder as Widget Function<D>(BuildContext, ElCollapse<D>)?,
       collapseItemBuilder: identical(collapseItemBuilder, $absent)
           ? this.collapseItemBuilder
-          : collapseItemBuilder as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
+          : collapseItemBuilder
+                as Widget Function<T>(BuildContext, ElCollapseItem<T>)?,
       emptyBuilder: identical(emptyBuilder, $absent)
           ? this.emptyBuilder
           : emptyBuilder as Widget Function(BuildContext, ElEmpty)?,
-      progressBuilder: identical(progressBuilder, $absent)
-          ? this.progressBuilder
-          : progressBuilder as Widget Function(BuildContext, ElProgress)?,
       segmentedBuilder: identical(segmentedBuilder, $absent)
           ? this.segmentedBuilder
-          : segmentedBuilder as Widget Function<D>(BuildContext, ElSegmented<D>)?,
-      sliderBuilder: identical(sliderBuilder, $absent)
-          ? this.sliderBuilder
-          : sliderBuilder as Widget Function<D>(BuildContext, ElSlider<D>)?,
-      skeletonBuilder: identical(skeletonBuilder, $absent)
-          ? this.skeletonBuilder
-          : skeletonBuilder as Widget Function(BuildContext, ElSkeleton)?,
+          : segmentedBuilder
+                as Widget Function<D>(BuildContext, ElSegmented<D>)?,
       tabsBuilder: identical(tabsBuilder, $absent)
           ? this.tabsBuilder
           : tabsBuilder as Widget Function<D>(BuildContext, ElTabs<D>)?,
@@ -157,6 +171,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
     if (other == null) return this;
     return ElComponentBuilders(
       buttonBuilder: other.buttonBuilder ?? buttonBuilder,
+      toggleButtonBuilder: other.toggleButtonBuilder ?? toggleButtonBuilder,
       tagBuilder: other.tagBuilder ?? tagBuilder,
       buttonGroupBuilder: other.buttonGroupBuilder ?? buttonGroupBuilder,
       switchBuilder: other.switchBuilder ?? switchBuilder,
@@ -173,10 +188,14 @@ extension ElComponentBuildersExt on ElComponentBuilders {
       tableStyleBuilder: other.tableStyleBuilder ?? tableStyleBuilder,
       textBuilder: other.textBuilder ?? textBuilder,
       cardBuilder: other.cardBuilder ?? cardBuilder,
-      loadingIndicatorBuilder: other.loadingIndicatorBuilder ?? loadingIndicatorBuilder,
+      loadingIndicatorBuilder:
+          other.loadingIndicatorBuilder ?? loadingIndicatorBuilder,
       iconBuilder: other.iconBuilder ?? iconBuilder,
       listTileBuilder: other.listTileBuilder ?? listTileBuilder,
       listTileGroupBuilder: other.listTileGroupBuilder ?? listTileGroupBuilder,
+      progressBuilder: other.progressBuilder ?? progressBuilder,
+      sliderBuilder: other.sliderBuilder ?? sliderBuilder,
+      skeletonBuilder: other.skeletonBuilder ?? skeletonBuilder,
       stepsBuilder: other.stepsBuilder ?? stepsBuilder,
       stepBuilder: other.stepBuilder ?? stepBuilder,
       avatarBuilder: other.avatarBuilder ?? avatarBuilder,
@@ -184,10 +203,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
       collapseBuilder: other.collapseBuilder ?? collapseBuilder,
       collapseItemBuilder: other.collapseItemBuilder ?? collapseItemBuilder,
       emptyBuilder: other.emptyBuilder ?? emptyBuilder,
-      progressBuilder: other.progressBuilder ?? progressBuilder,
       segmentedBuilder: other.segmentedBuilder ?? segmentedBuilder,
-      sliderBuilder: other.sliderBuilder ?? sliderBuilder,
-      skeletonBuilder: other.skeletonBuilder ?? skeletonBuilder,
       tabsBuilder: other.tabsBuilder ?? tabsBuilder,
       tabBarBuilder: other.tabBarBuilder ?? tabBarBuilder,
       alertBuilder: other.alertBuilder ?? alertBuilder,
@@ -196,6 +212,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
 
   List<Object?> get _props => [
     buttonBuilder,
+    toggleButtonBuilder,
     tagBuilder,
     buttonGroupBuilder,
     switchBuilder,
@@ -216,6 +233,9 @@ extension ElComponentBuildersExt on ElComponentBuilders {
     iconBuilder,
     listTileBuilder,
     listTileGroupBuilder,
+    progressBuilder,
+    sliderBuilder,
+    skeletonBuilder,
     stepsBuilder,
     stepBuilder,
     avatarBuilder,
@@ -223,10 +243,7 @@ extension ElComponentBuildersExt on ElComponentBuilders {
     collapseBuilder,
     collapseItemBuilder,
     emptyBuilder,
-    progressBuilder,
     segmentedBuilder,
-    sliderBuilder,
-    skeletonBuilder,
     tabsBuilder,
     tabBarBuilder,
     alertBuilder,

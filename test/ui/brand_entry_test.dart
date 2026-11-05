@@ -82,7 +82,7 @@ void main() {
               Builder(
                 builder: (context) {
                   outer = mobile.ElComponentProvider.of(context);
-                  return mobile.ElButton.toggle(
+                  return mobile.ElToggleButton(
                     key: ValueKey('mobile'),
                     modelValue: mobileModel,
                     onChanged: mobileChanges.add,
@@ -95,7 +95,7 @@ void main() {
                 child: Builder(
                   builder: (context) {
                     inner = desktop.ElComponentProvider.of(context);
-                    return desktop.ElButton.toggle(
+                    return desktop.ElToggleButton(
                       key: ValueKey('desktop'),
                       modelValue: desktopModel,
                       onChanged: desktopChanges.add,

@@ -25,5 +25,5 @@ class ElCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).cardBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.cardBuilder)(context, this);
 }

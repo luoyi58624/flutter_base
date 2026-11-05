@@ -140,5 +140,5 @@ class ElButtonGroup<D> extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).buttonGroupBuilder!<D>(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.buttonGroupBuilder)<D>(context, this);
 }

@@ -66,5 +66,5 @@ class ElText extends StatelessWidget {
   final Color? selectionColor;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).textBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.textBuilder)(context, this);
 }

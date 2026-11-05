@@ -87,5 +87,6 @@ class ElCalendar<D> extends ElModelValue<D> {
   final String? semanticLabel;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).calendarBuilder!<D>(context, this);
+  Widget obsBuilder(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.calendarBuilder)<D>(context, this);
 }

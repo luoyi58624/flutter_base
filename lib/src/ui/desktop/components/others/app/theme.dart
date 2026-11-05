@@ -17,6 +17,10 @@ class ElementPlusThemeData extends ElComponentBuilders {
   /// Element 按钮。
   static Widget button(BuildContext context, ElButton component) => Button(component);
 
+  /// Element 切换按钮，选中态读写公共模型。
+  static Widget toggleButton(BuildContext context, ElToggleButton component, Obs<bool> model) =>
+      Button.toggle(component, model);
+
   /// Element 标签。
   static Widget tag(BuildContext context, ElTag component) => Tag(component);
 
@@ -24,7 +28,7 @@ class ElementPlusThemeData extends ElComponentBuilders {
   static Widget buttonGroup<D>(BuildContext context, ElButtonGroup<D> component) => ButtonGroup<D>(component);
 
   /// Element 开关。
-  static Widget switchButton(BuildContext context, ElSwitch component) => Switch(component);
+  static Widget switchButton(BuildContext context, ElSwitch component, Obs<bool> model) => Switch(component, model);
 
   /// Element 输入框；[style] 是组件外观的基线，组件自身 `style` 仍优先。
   static Widget input(BuildContext context, ElInput component, {ElStyle? style}) => Input(component, style);
@@ -77,6 +81,7 @@ class ElementPlusThemeData extends ElComponentBuilders {
   /// 默认使用已接入的品牌实现；Radio、Checkbox 默认留空，可显式注入自定义实现。
   const ElementPlusThemeData({
     super.buttonBuilder = button,
+    super.toggleButtonBuilder = toggleButton,
     super.buttonGroupBuilder = buttonGroup,
     super.switchBuilder = switchButton,
     super.inputBuilder = input,

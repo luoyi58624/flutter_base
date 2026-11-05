@@ -9,6 +9,7 @@ void main() {
     const preset = ElementPlusThemeData();
     expect(preset, isA<ElComponentBuilders>());
     expect(preset.buttonBuilder, ElementPlusThemeData.button);
+    expect(preset.toggleButtonBuilder, ElementPlusThemeData.toggleButton);
     expect(preset.tagBuilder, ElementPlusThemeData.tag);
     expect(preset.buttonGroupBuilder, ElementPlusThemeData.buttonGroup);
     expect(preset.switchBuilder, ElementPlusThemeData.switchButton);

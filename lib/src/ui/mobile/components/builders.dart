@@ -15,6 +15,7 @@ import 'slider/index.dart';
 /// 已有移动端实现能够完整承接的通用组件配置。
 const defaultComponentBuilders = ElComponentBuilders(
   buttonBuilder: buttonBuilder,
+  toggleButtonBuilder: toggleButtonBuilder,
   cardBuilder: cardBuilder,
   tagBuilder: tagBuilder,
   switchBuilder: switchBuilder,

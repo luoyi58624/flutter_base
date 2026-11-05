@@ -51,5 +51,6 @@ class ElAlert extends ElModelValue<bool> {
   final VoidCallback? onClose;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).alertBuilder!(context, this);
+  Widget obsBuilder(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.alertBuilder)(context, this);
 }

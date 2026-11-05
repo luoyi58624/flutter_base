@@ -183,5 +183,5 @@ class ElListTile<T> extends ElModelValue<T> {
   final String? semanticLabel;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).listTileBuilder!<T>(context, this);
+  Widget obsBuilder(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.listTileBuilder)<T>(context, this);
 }

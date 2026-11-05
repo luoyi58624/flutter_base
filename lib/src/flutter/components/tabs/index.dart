@@ -57,7 +57,8 @@ class ElTabs<T> extends ElModelValue<T> {
   final String? semanticLabel;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).tabsBuilder!<T>(context, this);
+  Widget obsBuilder(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.tabsBuilder)<T>(context, this);
 }
 
 /// 独立标签栏中的单项内容与交互配置。
@@ -154,5 +155,6 @@ class ElTabBar extends StatelessWidget {
   final double indicatorHeight;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).tabBarBuilder!(context, this);
+  Widget build(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.tabBarBuilder)(context, this);
 }

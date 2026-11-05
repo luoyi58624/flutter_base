@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/dart.dart';
 
+import '../utils/index.dart' show Obs;
 import '../views/table/table.dart' show ElTableStyle;
 import '../widgets/form/index.dart';
 import 'button/index.dart';
@@ -22,15 +23,15 @@ import 'list_tile/index.dart';
 import 'card/index.dart';
 import 'loading_indicator/index.dart';
 import 'icon/index.dart';
+import 'progress/index.dart';
+import 'slider/index.dart';
+import 'skeleton/index.dart';
 import 'steps/index.dart';
 import 'avatar/index.dart';
 import 'calendar/index.dart';
 import 'collapse/index.dart';
 import 'empty/index.dart';
-import 'progress/index.dart';
 import 'segmented/index.dart';
-import 'slider/index.dart';
-import 'skeleton/index.dart';
 import 'tabs/index.dart';
 import 'alert/index.dart';
 
@@ -52,29 +53,30 @@ export 'list_tile/index.dart';
 export 'card/index.dart';
 export 'loading_indicator/index.dart';
 export 'icon/index.dart';
+export 'progress/index.dart';
+export 'slider/index.dart';
+export 'skeleton/index.dart';
 export 'steps/index.dart';
 export 'avatar/index.dart';
 export 'calendar/index.dart';
 export 'collapse/index.dart';
 export 'empty/index.dart';
-export 'progress/index.dart';
 export 'segmented/index.dart';
-export 'slider/index.dart';
-export 'skeleton/index.dart';
 export 'tabs/index.dart';
 export 'alert/index.dart';
 
 part 'index.g.dart';
 
-/// 通用组件实现登记表；新增声明的默认 Builder 为空，品牌实现另行安装。
+/// 通用组件实现登记表；品牌主题安装完整默认表，用户经 ElComponentProvider 局部覆写。
 ///
 /// copyWith、merge 与相等性由 `@ElModelGenerator.copy` 生成。
 @ElModelGenerator.copy()
 @immutable
 class ElComponentBuilders with Equatable {
-  /// 创建完整组件配置，不包含默认品牌实现。
+  /// 创建组件实现配置，未传的项为 null，由外层配置补齐。
   const ElComponentBuilders({
     this.buttonBuilder,
+    this.toggleButtonBuilder,
     this.tagBuilder,
     this.buttonGroupBuilder,
     this.switchBuilder,
@@ -95,6 +97,9 @@ class ElComponentBuilders with Equatable {
     this.iconBuilder,
     this.listTileBuilder,
     this.listTileGroupBuilder,
+    this.progressBuilder,
+    this.sliderBuilder,
+    this.skeletonBuilder,
     this.stepsBuilder,
     this.stepBuilder,
     this.avatarBuilder,
@@ -102,10 +107,7 @@ class ElComponentBuilders with Equatable {
     this.collapseBuilder,
     this.collapseItemBuilder,
     this.emptyBuilder,
-    this.progressBuilder,
     this.segmentedBuilder,
-    this.sliderBuilder,
-    this.skeletonBuilder,
     this.tabsBuilder,
     this.tabBarBuilder,
     this.alertBuilder,
@@ -114,14 +116,17 @@ class ElComponentBuilders with Equatable {
   /// 根据 ElButton 声明构建品牌组件。
   final Widget Function(BuildContext context, ElButton component)? buttonBuilder;
 
+  /// 根据 ElToggleButton 声明与选中模型构建品牌组件。
+  final Widget Function(BuildContext context, ElToggleButton component, Obs<bool> model)? toggleButtonBuilder;
+
   /// 根据 ElTag 声明构建品牌组件。
   final Widget Function(BuildContext context, ElTag component)? tagBuilder;
 
   /// 根据 ElButtonGroup 声明构建品牌组件。
   final Widget Function<T>(BuildContext context, ElButtonGroup<T> component)? buttonGroupBuilder;
 
-  /// 根据 ElSwitch 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSwitch component)? switchBuilder;
+  /// 根据 ElSwitch 声明与开关模型构建品牌组件。
+  final Widget Function(BuildContext context, ElSwitch component, Obs<bool> model)? switchBuilder;
 
   /// 根据 ElInput 声明构建品牌组件。
   final Widget Function(BuildContext context, ElInput component)? inputBuilder;
@@ -174,6 +179,15 @@ class ElComponentBuilders with Equatable {
   /// 根据 ElListGroup 声明构建品牌组件。
   final Widget Function<D>(BuildContext context, ElListGroup<D> component)? listTileGroupBuilder;
 
+  /// 根据 ElProgress 声明构建品牌组件。
+  final Widget Function(BuildContext context, ElProgress component)? progressBuilder;
+
+  /// 根据 ElSlider 声明构建品牌组件。
+  final Widget Function<D>(BuildContext context, ElSlider<D> component)? sliderBuilder;
+
+  /// 根据 ElSkeleton 声明构建品牌组件。
+  final Widget Function(BuildContext context, ElSkeleton component)? skeletonBuilder;
+
   /// 根据 ElSteps 声明构建品牌组件。
   final Widget Function(BuildContext context, ElSteps component)? stepsBuilder;
 
@@ -195,17 +209,8 @@ class ElComponentBuilders with Equatable {
   /// 根据 ElEmpty 声明构建品牌组件。
   final Widget Function(BuildContext context, ElEmpty component)? emptyBuilder;
 
-  /// 根据 ElProgress 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElProgress component)? progressBuilder;
-
   /// 根据 ElSegmented 声明构建品牌组件。
   final Widget Function<D>(BuildContext context, ElSegmented<D> component)? segmentedBuilder;
-
-  /// 根据 ElSlider 声明构建品牌组件。
-  final Widget Function<D>(BuildContext context, ElSlider<D> component)? sliderBuilder;
-
-  /// 根据 ElSkeleton 声明构建品牌组件。
-  final Widget Function(BuildContext context, ElSkeleton component)? skeletonBuilder;
 
   /// 根据 ElTabs 声明构建品牌组件。
   final Widget Function<D>(BuildContext context, ElTabs<D> component)? tabsBuilder;
@@ -221,15 +226,18 @@ class ElComponentBuilders with Equatable {
   List<Object?> get props => _props;
 }
 
-/// 提供最近的完整组件实现配置，可随弹层捕获快照。
-class ElComponentProvider extends InheritedTheme {
-  /// 创建组件实现作用域；需要继承时在传入前显式合并。
-  const ElComponentProvider({super.key, required this.builders, required super.child});
+/// 组件实现作用域：与祖先配置合并，只覆盖传入的非空项，其余实现沿用外层直至品牌默认。
+class ElComponentProvider extends StatelessWidget {
+  /// 创建组件实现作用域，例如只传 buttonBuilder 即可替换子树内的按钮。
+  const ElComponentProvider({super.key, required this.builders, required this.child});
 
-  /// 当前作用域的组件实现配置。
+  /// 本层覆写的组件实现。
   final ElComponentBuilders builders;
 
-  /// 读取最近的组件配置，必须存在祖先组件提供器。
+  /// 应用覆写的子树。
+  final Widget child;
+
+  /// 读取合并后的组件配置，必须存在祖先组件提供器。
   static ElComponentBuilders of(BuildContext context) {
     final builders = maybeOf(context);
     assert(builders != null, '当前上下文未找到 ElComponentProvider。');
@@ -238,11 +246,35 @@ class ElComponentProvider extends InheritedTheme {
 
   /// 读取可选的组件配置，独立通用 Widget 可在未登记品牌时使用自身默认布局。
   static ElComponentBuilders? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<ElComponentProvider>()?.builders;
+      context.dependOnInheritedWidgetOfExactType<_ComponentScope>()?.builders;
+
+  /// 读取组件的实现，缺失时报出组件名，避免空断言难以定位。
+  static F builderOf<F extends Function>(
+    BuildContext context,
+    Widget component,
+    F? Function(ElComponentBuilders builders) select,
+  ) {
+    final builder = select(of(context));
+    if (builder == null) throw FlutterError('${component.runtimeType} 未在 ElComponentProvider 中登记实现。');
+    return builder;
+  }
 
   @override
-  bool updateShouldNotify(ElComponentProvider oldWidget) => builders != oldWidget.builders;
+  Widget build(BuildContext context) {
+    final parent = maybeOf(context);
+    return _ComponentScope(builders: parent?.merge(builders) ?? builders, child: child);
+  }
+}
+
+/// 保存合并结果；弹层捕获时直接复刻最终配置，不再与新位置的祖先合并。
+class _ComponentScope extends InheritedTheme {
+  const _ComponentScope({required this.builders, required super.child});
+
+  final ElComponentBuilders builders;
 
   @override
-  Widget wrap(BuildContext context, Widget child) => ElComponentProvider(builders: builders, child: child);
+  bool updateShouldNotify(_ComponentScope oldWidget) => builders != oldWidget.builders;
+
+  @override
+  Widget wrap(BuildContext context, Widget child) => _ComponentScope(builders: builders, child: child);
 }

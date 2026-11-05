@@ -56,7 +56,8 @@ class ElSteps extends ElModelValue<int> {
   final String? semanticLabel;
 
   @override
-  Widget obsBuilder(BuildContext context) => ElComponentProvider.of(context).stepsBuilder!(context, this);
+  Widget obsBuilder(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.stepsBuilder)(context, this);
 }
 
 /// 单个步骤的文字、说明、图标和禁用状态。
@@ -80,5 +81,6 @@ class ElStep extends StatelessWidget {
   final ElStyle? style;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).stepBuilder!(context, this);
+  Widget build(BuildContext context) =>
+      ElComponentProvider.builderOf(context, this, (b) => b.stepBuilder)(context, this);
 }

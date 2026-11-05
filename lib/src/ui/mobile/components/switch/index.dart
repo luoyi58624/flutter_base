@@ -7,29 +7,23 @@ import 'package:flutter_base/ui.dart';
 import '../../cores/common.dart';
 import '../loading/index.dart';
 
-/// 使用移动端开关皮肤实现通用值通道，并连接祖先表单字段。
-Widget switchBuilder(BuildContext context, ElSwitch component) => _CommonSwitch(component);
+/// 使用移动端开关皮肤实现通用开关声明，值由公共模型持有。
+Widget switchBuilder(BuildContext context, ElSwitch component, Obs<bool> model) => _CommonSwitch(component, model);
 
-class _CommonSwitch extends ElFormModelValue<bool> {
-  _CommonSwitch(this.component)
-    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
+class _CommonSwitch extends StatelessWidget {
+  const _CommonSwitch(this.component, this.model);
 
   final ElSwitch component;
+  final Obs<bool> model;
 
   @override
-  bool? get value => super.value ?? false;
-
-  @override
-  Widget obsBuilder(BuildContext context) {
-    final current = $obs.value;
+  Widget build(BuildContext context) {
+    final current = model.value;
     final theme = context.elTheme;
-    final height = component.height ?? 28;
-    final gap = component.gap ?? 3;
-    final thumb = (height - 2 * gap).clamp(0.0, double.infinity);
-    final width = (height * (component.widthAspect ?? 47 / 28)).clamp(height, double.infinity);
+    const height = 28.0;
+    const gap = 3.0;
+    const thumb = height - 2 * gap;
     final reduced = reducedMotion(context);
-    final content = current ? component.activeContent : component.inactiveContent;
-    final actionContent = current ? component.activeActionContent : component.inactiveActionContent;
     final thumbVisual = ElView(
       style: ElStyle(
         width: thumb,
@@ -39,23 +33,23 @@ class _CommonSwitch extends ElFormModelValue<bool> {
         backgroundColor:
             ElView.maybeOf(context)?.getVar<Color>(Switch.$thumbBackground) ??
             (current ? theme.primaryText : const Color(0xffffffff)),
-        color: current ? theme.primary : theme.textSecondary,
-        iconColor: current ? theme.primary : theme.textSecondary,
-        iconSize: thumb * .7,
         boxShadow: [
           BoxShadow(color: const Color(0xff000000).withValues(alpha: .12), offset: const Offset(0, 2), blurRadius: 5),
         ],
         transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 150), Curves.ease)],
       ),
-      child: component.loading
-          ? const ExcludeSemantics(child: Loading(size: LoadingSize.small))
-          : actionContent == null
-          ? null
-          : buildContent(actionContent),
+      child: component.loading ? const ExcludeSemantics(child: Loading(size: LoadingSize.small)) : null,
     );
     return inline(
       ActionView(
-        style: component.style ?? const ElStyle(),
+        style: ElStyle(
+          width: height * 47 / 28,
+          height: height,
+          padding: const EdgeInsets.all(gap),
+          borderRadius: BorderRadius.circular(999),
+          backgroundColor: current ? theme.primary : theme.gray,
+          transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)],
+        ).merge(component.style),
         label: component.semanticLabel,
         button: false,
         toggled: current,
@@ -65,50 +59,12 @@ class _CommonSwitch extends ElFormModelValue<bool> {
         blocked: component.loading,
         activateOnEnter: false,
         delayTouchUp: Duration.zero,
-        onActivate: (_) => $obs.value = !current,
-        child: ElView(
-          style: ElStyle(
-            minWidth: width,
-            height: height,
-            padding: EdgeInsets.all(gap),
-            alignment: .centerLeft,
-            borderRadius: BorderRadius.circular(999),
-            backgroundColor: current
-                ? (component.activeColor ?? theme.primary)
-                : (component.inactiveColor ?? theme.gray),
-            color: current ? theme.primaryText : theme.textColor,
-            iconColor: current ? theme.primaryText : theme.textColor,
-            iconSize: height * .5,
-            transition: reduced ? const [] : const [ElTransition.all(Duration(milliseconds: 230), Curves.ease)],
-          ).merge(component.trackStyle),
-          child: Stack(
-            children: [
-              Row(
-                mainAxisSize: .min,
-                children: [
-                  if (current && content != null)
-                    ElView(
-                      style: ElStyle(padding: EdgeInsets.only(right: gap)),
-                      child: buildContent(content),
-                    ),
-                  SizedBox(width: thumb, height: thumb),
-                  if (!current && content != null)
-                    ElView(
-                      style: ElStyle(padding: EdgeInsets.only(left: gap)),
-                      child: buildContent(content),
-                    ),
-                ],
-              ),
-              Positioned.fill(
-                child: AnimatedAlign(
-                  alignment: current ? .centerRight : .centerLeft,
-                  duration: reduced || !component.slide ? Duration.zero : const Duration(milliseconds: 230),
-                  curve: Curves.ease,
-                  child: thumbVisual,
-                ),
-              ),
-            ],
-          ),
+        onActivate: (_) => model.value = !current,
+        child: AnimatedAlign(
+          alignment: current ? .centerRight : .centerLeft,
+          duration: reduced ? Duration.zero : const Duration(milliseconds: 230),
+          curve: Curves.ease,
+          child: thumbVisual,
         ),
       ),
     );

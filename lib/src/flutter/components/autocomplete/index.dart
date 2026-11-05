@@ -183,5 +183,5 @@ class ElAutocomplete<T> extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).autocompleteBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.autocompleteBuilder)(context, this);
 }

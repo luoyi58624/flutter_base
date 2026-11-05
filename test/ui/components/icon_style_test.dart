@@ -22,17 +22,8 @@ void main() {
   Finder glyphs() => find.byWidgetPredicate((widget) => widget is ElView && widget.child == data);
 
   for (final desktop in [false, true]) {
-    testWidgets('开关拇指的标准 Icon 继承样式：desktop=$desktop', (tester) async {
-      await tester.pumpWidget(host(ElSwitch(value: true, activeActionContent: Icon(data)), desktop: desktop));
-      await tester.pumpAndSettle();
-      expect(find.byType(Icon), findsNothing);
-      final render = tester.renderObject<ElRenderView>(glyphs());
-      final primary = (desktop ? ElDesktopTheme.lightVars : ElMobileTheme.lightVars)[ElTokens.$primary];
-      expect(render.committedResolvedStyle.inheritedBox.iconColor, primary);
-      expect(render.committedResolvedStyle.inheritedBox.iconSize, lessThan(30));
-    });
     for (final (name, component) in <(String, Widget Function(Widget, ElStyle))>[
-      ('按钮', (icon, style) => ElButton(leftIcon: icon, style: style, onPressed: () {}, child: '按钮')),
+      ('按钮', (icon, style) => ElButton(icon: icon, style: style, onPressed: () {}, child: '按钮')),
       ('标签', (icon, style) => ElTag(style: style, child: icon)),
       if (desktop) ...[
         ('输入框', (icon, style) => ElInput(value: '', prefix: icon, style: style)),
@@ -152,12 +143,12 @@ void main() {
 
   testWidgets('自定义 Widget 保留原实例及已挂载 Element', (tester) async {
     final custom = SizedBox(key: GlobalKey(), width: 9, height: 11);
-    await tester.pumpWidget(host(ElButton(leftIcon: custom, child: '按钮')));
+    await tester.pumpWidget(host(ElButton(icon: custom, child: '按钮')));
     final element = tester.element(find.byWidget(custom));
     await tester.pumpWidget(
       host(
         ElButton(
-          leftIcon: custom,
+          icon: custom,
           style: ElStyle(iconColor: Colors.red),
           child: '按钮',
         ),

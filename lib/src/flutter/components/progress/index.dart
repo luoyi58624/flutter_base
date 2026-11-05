@@ -99,5 +99,5 @@ class ElProgress extends StatelessWidget {
   final ElStyle? style;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).progressBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.progressBuilder)(context, this);
 }

@@ -83,5 +83,5 @@ class ElInputOtp extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).inputOtpBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputOtpBuilder)(context, this);
 }

@@ -1,65 +1,123 @@
 # Components
 
-组件按用途分目录，每个目录以 `index.dart` 为入口，`README.md` 说明当前接口和组合方式。Radio 与 Checkbox 的分组实现分别位于各自目录的 `group.dart`。
+本目录是桌面端、移动端共用的组件接口层：只声明组件的语义参数与值模型，外观与结构由各品牌登记的 Builder 实现。本文是组件接口的设计规范，新增或修改组件前先对照本文；与源码不一致的地方见末尾「迁移清单」。
 
-新增通用接口以 my-ui Web 已有组件为基准，只保留桌面端与移动端职责一致的组件；端专属组件由对应品牌目录提供，不在通用登记表中预留空实现。已有桌面输入实现与通用视图内核继续保留，实际支持清单见各品牌目录；完整分类与服务边界见 [通用组件范围](DECLARATIONS.md)。
+## 分层
 
-## 导入与实现登记
+| 层 | 位置 | 职责 |
+| --- | --- | --- |
+| 基元 | `flutter/views`、`flutter/widgets`、`flutter/utils` | ElView、ElButtonView、ElCardView、ElModelValue、ElFormModelValue、弹层、焦点、事件 |
+| 组件接口 | `flutter/components` | 公共声明 `ElXxx`：语义参数 + 值模型，通过 ElComponentProvider 分派到 Builder |
+| 品牌实现 | `ui/desktop`、`ui/mobile` | 用基元搭结构、用 ElStyle 定外观，登记为默认 Builder |
 
-使用组件时导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。本目录组件通过祖先 `ElComponentProvider` 中对应的 Builder 提供品牌实现；下列示例均假定已经登记所需实现。移动端由 ElMobileTheme 安装默认实现，具体组件与 Builder 不从 mobile.dart 导出。
+ElView 相当于 Web 的 div，负责盒模型、文本、样式、事件与语义；多子布局直接用 Flutter 的 Row / Column / Stack / Wrap 等官方 Widget。组件接口和品牌实现都不自造同职责的协议。
+
+## 准入
+
+按组件的交互形态决定位置，而不是按当前哪一端写了实现：
+
+- 默认进入本目录。按钮组、列表行、标签输入、提及等两端都可能用到的组件都是通用组件，外观差异由品牌各自实现。
+- 只有交互形态本身只存在于一端的组件才放在对应品牌目录，由 desktop.dart / mobile.dart 导出，不进入 ElComponentBuilders。例如桌面端的菜单栏（MenuBar），移动端的底部导航栏。
+- 两端外观相同、无需品牌分派的组件（如纯文本、字体图标）做成基元层的普通 Widget，不登记 Builder。
+- 判断标准是组件是否适合出现在某一端，不以当前是否已有实现为依据。
+
+公共组件暂时缺少某一端实现时，必须登记在该品牌完整性测试的已知缺口清单中，清单只减不增。
+
+## 注入与覆写
+
+`ElComponentBuilders` 是唯一的登记表，字段可空。`ElComponentProvider` 与祖先自动合并，只覆盖传入的非空项：
 
 ```dart
 ElComponentProvider(
-  builders: ElComponentBuilders(
-    textBuilder: (context, component) => Text(
-      component.data,
-      style: component.style,
-    ),
-  ),
-  child: ElText('你好'),
+  builders: ElComponentBuilders(buttonBuilder: (context, widget) => MyButton(widget)),
+  child: page,
 );
 ```
 
-Builder 的职责依组件而定：Input、Switch、Select 等把具体绑定与交互交给实现；Button 在公共层提供模型与激活动作；Tag、Radio、Checkbox 在公共层组织交互，Builder 提供外观。Radio、Checkbox 的 Builder 还接收各自的有效状态快照。
+- 解析顺序：最近的 Provider → 外层 Provider → 品牌主题在根部安装的完整默认表。
+- 用户只注入想替换的那一项，可作用于任意子树，其余组件不受影响。
+- 品牌默认表的完整性由测试保证：遍历默认表，除已知缺口外不允许出现 null。
+- 组件读取到 null 时抛出带组件名的错误，例如「ElSwitch 未登记实现」。
+- Builder 以顶层函数或静态方法登记；不要在 build 中创建闭包，否则每次重建都会通知全部组件。
 
-`ElComponentBuilders.merge` 用非空实现覆盖已有实现；`copyWith` 省略参数时保留原值，显式传 null 清空该项。`ElComponentProvider` 使用传入的完整配置，需要继承时先显式合并。
+## 声明结构
 
-## 组件目录
+| 组件类型 | 基类 | Builder 签名 |
+| --- | --- | --- |
+| 无值组件 | StatelessWidget | `Widget Function(BuildContext context, ElButton widget)` |
+| 双向绑定组件 | ElModelValue\<D\> | `Widget Function(BuildContext context, ElSwitch widget, Obs<bool> model)` |
+| 可接入表单的双向绑定组件 | ElFormModelValue\<D\> | 同上 |
 
-| 组件 | 说明 |
-| --- | --- |
-| [Autocomplete](autocomplete/README.md) | 输入文本并获取异步建议 |
-| [Button](button/README.md) | 普通按钮与独立布尔按钮 |
-| [ButtonGroup](button_group/README.md) | 普通、单选、多选按钮组 |
-| [Checkbox](checkbox/README.md) | 多选项、独立开关与多选分组 |
-| [Input](input/README.md) | 单行、多行与输入连接配置 |
-| [InputNumber](input_number/README.md) | 步进、范围和精度配置 |
-| [InputOtp](input_otp/README.md) | 定长验证码输入 |
-| [InputTag](input_tag/README.md) | 将文本确认为标签列表 |
-| [ListTile](list_tile/README.md) | 普通、开关、弹窗列表行及单选、多选分组 |
-| [Mention](mention/README.md) | 前缀匹配、候选项与完整提及 |
-| [Radio](radio/README.md) | 单选项、独立开关与单选分组 |
-| [Select](select/README.md) | 业务值与候选选项选择 |
-| [Switch](switch/README.md) | 布尔开关与轨道配置 |
-| [Tag](tag/README.md) | 展示、关闭与布尔切换标签 |
-| [Text](text/README.md) | 文本参数声明与品牌分派 |
-| [Card](card/README.md) | 卡片内容、整卡交互与加载状态，移动端已接入 |
-| [LoadingIndicator](loading_indicator/README.md) | 共用加载指示接口，移动端已接入 |
-| [Icon](icon/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Steps](steps/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Avatar](avatar/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Calendar](calendar/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Collapse](collapse/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Empty](empty/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Progress](progress/README.md) | Web 直线／圆环进度接口，移动端已接入 |
-| [Segmented](segmented/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Slider](slider/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Skeleton](skeleton/README.md) | 加载占位与正文保活接口，移动端已接入 |
-| [Tabs](tabs/README.md) | 参数与 Builder 契约，尚无默认实现 |
-| [Alert](alert/README.md) | 参数与 Builder 契约，尚无默认实现 |
+- 双向绑定一律由 ElModelValue 持有，模型以 `Obs<D>` 交给 Builder，品牌直接读写，不另建绑定。
+- 声明只保存参数，不暴露可写状态，不在声明层包裹事件、语义或布局；交互由品牌用 ElButtonView 等基元实现，两端一致性由基元保证。
+- 跨组件协调属于模型逻辑，留在接口层，例如 Radio / Checkbox 的 Group。
+- 业务值使用泛型，不限制为 String；多选使用完整 List 模型。
 
-## 值绑定与生命周期
+## 参数规范
 
-提供 `value` / `modelValue` 的构造通常要求二选一；`onChanged` 用于接收变化，是否禁用由显式禁用配置决定。`ValueNotifier`、焦点节点和控制器由调用方在 State / Hook 生命周期内持有并按各自契约释放，不要在每次 build 中重新创建。
+参数在精不在多，每个参数都要两端生效、含义相同；不为单端或单一品牌的特性增设参数。
 
-Radio / Checkbox 的普通构造声明组内业务值，模型放在 Group；`.toggle` 使用独立 bool 模型，不接入祖先 Group 或表单。Group 也支持任意自定义 Flutter 子树，无需登记选项或继承内置组件。表单组合见 [Form](../widgets/form/README.md)。
+**外观只用 style**
+
+- 每个组件只有一个 `style: ElStyle?`，在品牌默认样式之后合并。
+- 不声明颜色、尺寸、间距、圆角、阴影、形状字段；圆角、通栏宽度等由 style 表达，悬停、按压、焦点、禁用、暗色等变化交给 ElStyle 的状态变体。
+- 子部位样式默认不开放；两端都存在且确有调整需求的部位，才增加一个 `xxxStyle`。
+
+**语义参数**
+
+- 语义色统一为 `type: ElThemeType?`，只用于语义色有意义的组件。
+- 形态枚举只保留两端能一一对应的取值；一端专属的形态放进品牌扩展组件。
+
+**通用参数表**
+
+| 类别 | 参数 | 规则 |
+| --- | --- | --- |
+| 值 | `value`、`modelValue`、`onChanged` | 由 ElModelValue 提供，`value` 与 `modelValue` 互斥 |
+| 动作 | `onPressed` 等 | 回调为空不等于禁用 |
+| 状态 | `disabled`、`loading` | 仅在有意义的组件上声明；loading 不等于禁用 |
+| 内容 | `child` 及具名插槽 | `Object?`，交给 ElView 内容桥接：String、IconData、Widget、行内 Iterable |
+| 外观 | `style` | 见上 |
+| 事件 | `event` | 可交互组件必备，品牌合并到交互根节点；与默认动作组合执行，preventDefault 可阻止默认动作 |
+| 无障碍 | `semanticLabel` | `String?`；默认文案由品牌按 locale 提供，接口层不写死文字 |
+| 焦点 | `focusNode` | 仅可聚焦组件，节点由调用方持有并释放 |
+
+**类型与占位**
+
+- `Object?` 只用于交给 ElView 渲染的内容插槽，其他参数使用具体类型。
+- 需要区分「未传入」与显式 null 时统一用 `$absent`，不借用空 Widget 或其他哨兵。
+- 平台输入法回调等一端专属的细节留在编辑内核，不进入公共参数。
+
+## 变体
+
+- 字段集合与值类型都相同的变体才用命名构造，例如 `ElProgress.circle`。
+- 字段或值类型不同的变体拆成独立声明，例如布尔切换按钮独立为 ElToggleButton，而不是 `ElButton.toggle`。
+- 同一概念只保留一套值模型，不并存按值与按索引两种绑定。
+
+## 文档
+
+- 公共 API 用中文 `///`，一句话说明用途；关键决策说明原因，不写实现细节。
+- 每个组件目录的 README 只记录用法与参数边界，不重复本文的通用规则。
+
+## 新增组件检查清单
+
+1. 按「准入」确认组件应放在本目录、品牌目录还是基元层。
+2. 选择基类与 Builder 签名，参数逐项对照「参数规范」。
+3. 在 ElComponentBuilders 增加字段并运行 `dart run build_runner build`。
+4. 两端品牌登记默认实现；暂缺的一端写入完整性测试的已知缺口清单。
+5. 补组件 README 与局部测试。
+
+## 迁移清单
+
+当前源码尚未完全符合本规范，按以下归类逐步迁移：
+
+| 归类 | 组件 | 状态 |
+| --- | --- | --- |
+| 保留并按本规范重写 | Button / ToggleButton、Switch | 已完成 |
+| 保留并按本规范重写 | Steps、Avatar、Calendar、Collapse、Empty、Segmented、Tabs / TabBar、Alert、Tag、ButtonGroup、Checkbox / Group、Radio / Group、Input、InputNumber、InputOtp、InputTag、Select、Autocomplete、Mention、ListTile / ListGroup、Card、LoadingIndicator、Progress、Skeleton、Slider | 待迁移 |
+| 改为基元层普通组件 | Text、Icon | 待迁移 |
+
+机制调整：
+
+- ElComponentProvider 与祖先自动合并，缺实现时抛出带组件名的错误：已完成。
+- 两端品牌默认表完整性测试见 `test/ui/brand_completeness_test.dart`：已完成，已知缺口清单随迁移缩减。
+- 双向绑定组件在 `obsBuilder` 中把 `$obs` 作为模型参数传给 Builder；ElModelValue 本身不改签名。待迁移组件声明上的 `currentValue` setter 随迁移删除。

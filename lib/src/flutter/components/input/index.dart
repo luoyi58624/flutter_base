@@ -254,7 +254,7 @@ class ElInput extends StatelessWidget {
   final int? maxLine;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider.of(context).inputBuilder!(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.inputBuilder)(context, this);
 }
 
 /// 输入框控制门面：只引用已挂载的 ElInput，不创建或销毁底层编辑对象。
