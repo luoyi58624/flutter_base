@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../internal.dart';
 
-/// Element 开关主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 开关实现。
 class Switch extends StatelessWidget {
   const Switch(this.component, this.model, {super.key});
 

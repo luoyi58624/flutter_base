@@ -1,6 +1,6 @@
 # Button
 
-从 Element Plus `components/basic/button/index.dart` 迁入，注册到 `ElementPlusThemeData.buttonBuilder`。通用参数见 [Button](../../../../flutter/components/button/README.md)，安装见 [Desktop](../../README.md)。
+从 Element Plus `components/basic/button/index.dart` 迁入，由桌面预设注册。通用参数见 [Button](../../../../flutter/components/button/README.md)，安装见 [Desktop](../../README.md)。
 
 保留 link、text、ghost、plain、实心按钮的外观优先级，normal / compact 两态尺寸、左右内容槽、图标按钮、胶囊和正圆几何。密度读取自身 style.vars、祖先变量，再回退 normal；显式 style 尺寸优先。disabled 与 loading 分开处理；loading 替换左侧内容并阻止默认激活，保留原尺寸与加载配色。
 

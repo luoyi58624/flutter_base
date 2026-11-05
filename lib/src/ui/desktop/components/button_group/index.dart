@@ -11,7 +11,7 @@ import '../../internal.dart';
 
 part 'render.dart';
 
-/// Element 按钮组主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 按钮组实现。
 class ButtonGroup<D> extends ElFormModelValue<D> {
   ButtonGroup(this.component, {super.key})
     : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);

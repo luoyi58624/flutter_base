@@ -136,7 +136,7 @@ final class _OtpGeometryComposer {
 /// 只有一个真实焦点：整个组件是一个隐形的单行编辑区，分格只是把这串字符
 /// 逐个画出来——这样退格、粘贴、输入法都不用逐格转发。
 ///
-/// Element 一次性验证码输入框主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 一次性验证码输入框实现。
 class InputOtp extends ElFormModelValue<String> {
   InputOtp(this.component, {super.key})
     : super(

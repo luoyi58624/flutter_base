@@ -74,7 +74,7 @@ void main() {
             key: ValueKey(compact),
             value: '@',
             focusNode: focusNode,
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
             options: [ElMentionOption(value: 'alice', label: 'Alice')],
           ),
         ),

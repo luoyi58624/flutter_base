@@ -68,7 +68,7 @@ void main() {
             value: 'a',
             focusNode: focusNode,
             debounce: Duration.zero,
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
             fetchSuggestions: (_) => [ElLabelModel('Alpha', 'a')],
           ),
         ),

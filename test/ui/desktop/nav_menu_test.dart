@@ -173,7 +173,7 @@ void main() {
         onChanged: changes.add,
       ),
     );
-    final primary = el.desktopComponents.style.vars![ElTokens.$primary];
+    final primary = el.desktopComponents.style!.vars![ElTokens.$primary];
     expect(tester.widget<ElView>(_row('盒子')).style!.color, primary);
     await delegate.setNewRoutePath(RouteInformation(uri: Uri.parse('/docs/text')));
     await tester.pumpAndSettle();
@@ -266,8 +266,8 @@ void main() {
         brightness: brightness,
       );
       final vars = {
-        ...el.desktopComponents.style.vars!,
-        if (brightness == Brightness.dark) ...el.desktopComponents.style.onDark!.vars!,
+        ...el.desktopComponents.style!.vars!,
+        if (brightness == Brightness.dark) ...el.desktopComponents.style!.onDark!.vars!,
       };
       final row = tester.widget<ElView>(_row('主题设计')).style!;
       expect(row.height, 40);

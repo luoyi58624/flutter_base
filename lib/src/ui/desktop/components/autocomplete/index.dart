@@ -20,7 +20,6 @@ import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 
@@ -30,7 +29,7 @@ part 'panel.dart';
 /// 本组件只负责任务防抖、候选请求、弹层和键盘 active 状态。值通道支持受控
 /// [value]、双向 [modelValue] 与 [ElFormItem] 的 `prop` 绑定。
 ///
-/// Element 自动补全主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 自动补全实现。
 class Autocomplete<T> extends ElInputModelValue<String> {
   Autocomplete(this.component, {super.key})
     : super(

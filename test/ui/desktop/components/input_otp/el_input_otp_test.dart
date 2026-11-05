@@ -767,7 +767,7 @@ void main() {
         await tester.pumpWidget(
           _host(
             ElView(
-              style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+              style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
               child: ElInputOtp(value: '12', length: 2),
             ),
           ),
@@ -786,7 +786,7 @@ void main() {
           ElInputOtp(
             value: '1',
             length: 1,
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: true}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: true}),
             cellStyle: ElStyle(width: 30, height: 30, fontSize: 18),
           ),
         ),

@@ -9,7 +9,7 @@ import '../../internal.dart';
 ///
 /// 文本编辑复用 [ElInput]，本组件只管步进按钮、边界钳制与精度——不重造编辑器内核。
 ///
-/// Element 数字输入框主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 数字输入框实现。
 class InputNumber extends ElInputNumModelValue {
   InputNumber(this.component, {super.key})
     : super(

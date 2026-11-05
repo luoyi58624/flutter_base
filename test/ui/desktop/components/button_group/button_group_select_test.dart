@@ -139,7 +139,7 @@ void main() {
       await tester.pumpWidget(
         host(
           ElView(
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
             child: ElButtonGroup(
               children: [
                 ElButtonGroupItem(child: '日'),

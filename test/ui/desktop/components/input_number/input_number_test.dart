@@ -17,7 +17,7 @@ Widget _host(Widget child, {bool compact = false}) {
       child: ElComponentProvider(
         components: el.desktopComponents,
         child: ElView(
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+          style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
           child: ElView(style: const ElStyle(width: 600), child: child),
         ),
       ),

@@ -23,7 +23,7 @@ ElComponentProvider(
 );
 ```
 
-桌面预设提供组件实现和明暗 token。应用提供键盘遍历、Overlay、输入和导航环境。
+桌面预设以 `ElComponents` 提供组件实现和明暗 token。可通过 `el.desktopComponents.copyWith(...)` 调整预设。应用提供键盘遍历、Overlay、输入和导航环境。
 
 ## 已接入的接口
 
@@ -54,7 +54,7 @@ ElComponentProvider(
   components: el.desktopComponents,
   child: ElView(
     style: ElStyle(
-      vars: {ElTokens.$primary: Color(0xff2454c6), ElementPlusThemeData.$compact: true},
+      vars: {ElTokens.$primary: Color(0xff2454c6), ElDesktopExt.$compact: true},
       onDark: ElStyle(vars: {ElTokens.$primary: Color(0xffaac8ff)}),
     ),
     child: ElButton(child: '紧凑按钮'),

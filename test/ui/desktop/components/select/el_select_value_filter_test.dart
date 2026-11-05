@@ -51,7 +51,7 @@ void main() {
           ElSelect<String>(
             key: ValueKey(compact),
             value: 'a',
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
             children: [ElLabelModel('Alpha', 'a')],
           ),
         ),
@@ -66,7 +66,7 @@ void main() {
         ElSelect<String>(
           key: ValueKey('override'),
           value: 'a',
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: true}, fontSize: 18, iconSize: 17),
+          style: ElStyle(vars: {ElDesktopExt.$compact: true}, fontSize: 18, iconSize: 17),
           optionStyle: ElStyle(height: 47),
           children: [ElLabelModel('Alpha', 'a')],
         ),

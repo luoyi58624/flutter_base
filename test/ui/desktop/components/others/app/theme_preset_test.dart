@@ -2,31 +2,18 @@ import 'package:flutter_base/desktop.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// [ElementPlusThemeData] 的构造默认值契约：
-/// 每个注入点是本类的 `static` 成员 —— 不传某项就吃 Element 预设，显式传 `null` 清空该注入点。
 void main() {
-  test('不传 = 吃 Element 预设的 static 成员', () {
-    const preset = ElementPlusThemeData();
-    expect(preset, isA<ElComponents>());
-    expect(preset.button, ElementPlusThemeData.buttonBuilder);
-    expect(preset.tag, ElementPlusThemeData.tagBuilder);
-    expect(preset.buttonGroup, ElementPlusThemeData.buttonGroupBuilder);
-    expect(preset.switcher, ElementPlusThemeData.switchButtonBuilder);
-    expect(preset.input, ElementPlusThemeData.inputBuilder);
-    expect(preset.checkbox, isNull);
-    expect(preset.radio, isNull);
-    expect(preset.select, ElementPlusThemeData.selectBuilder);
-    expect(preset.autocomplete, ElementPlusThemeData.autocompleteBuilder);
-    expect(preset.inputNumber, ElementPlusThemeData.inputNumberBuilder);
-    expect(preset.mention, ElementPlusThemeData.mentionBuilder);
-    expect(preset.inputTag, ElementPlusThemeData.inputTagBuilder);
-    expect(preset.inputOtp, ElementPlusThemeData.inputOtpBuilder);
-    expect(preset.formItem, ElementPlusThemeData.formItemBuilder);
-    expect(preset.tableStyle, ElementPlusThemeData.tableStyleBuilder);
+  test('桌面入口复用绑定了明暗 token 的 ElComponents 预设', () {
+    final preset = el.desktopComponents;
+    expect(preset.runtimeType, ElComponents);
+    expect(el.desktopComponents, same(preset));
+    expect(preset.style!.vars![ElTokens.$primary], isA<Color>());
+    expect(preset.style!.onDark!.vars![ElTokens.$bgColor], isA<Color>());
   });
 
-  test('显式传 null = 清空该注入点；表格通道随之回退 el_ui 默认皮肤', () {
-    const cleared = ElementPlusThemeData(
+  test('复制预设时可显式清空注入点并保留桌面 token', () {
+    final preset = el.desktopComponents;
+    final cleared = preset.copyWith(
       button: null,
       tag: null,
       buttonGroup: null,
@@ -62,7 +49,8 @@ void main() {
     expect(cleared.tableStyle, isNull);
     expect(const ElTableStyle().border, isFalse);
     expect(const ElTableStyle().highlightCurrentRow, isTrue);
-    expect(const ElementPlusThemeData().tableStyle, isNotNull);
+    expect(cleared.style, same(preset.style));
+    expect(preset.tableStyle, isNotNull);
   });
 
   testWidgets('主题变量按读取键更新，同一子树中的其他颜色读者不重建', (tester) async {
@@ -187,7 +175,7 @@ void main() {
         ElComponentProvider(
           components: el.desktopComponents,
           child: ElView(
-            style: ElStyle(fontSize: 18, iconSize: 31, vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(fontSize: 18, iconSize: 31, vars: {ElDesktopExt.$compact: compact}),
             child: ElView(key: bodyKey, child: '正文'),
           ),
         ),
@@ -206,7 +194,7 @@ void main() {
           child: ElComponentProvider(
             components: el.desktopComponents,
             child: ElView(
-              style: ElStyle(onDark: ElStyle(vars: {ElementPlusThemeData.$compact: true})),
+              style: ElStyle(onDark: ElStyle(vars: {ElDesktopExt.$compact: true})),
               child: ElButton(child: '按钮'),
             ),
           ),

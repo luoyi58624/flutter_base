@@ -30,7 +30,6 @@ import '../../commons/icons.dart' show ElDesktopIcons;
 import '../../extensions/content.dart';
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../index.dart' show ElementPlusThemeData;
 
 class _InputTagDelimiterSegment {
   const _InputTagDelimiterSegment(this.text, this.start);
@@ -61,7 +60,7 @@ class _InputTagDragSession {
 /// 绑定。草稿文本、IME、选区、粘贴和 Unicode 字素边界全部由内部唯一的
 /// [ElInput] → [ElEditableView] 通道处理；禁用态不挂载 Editable。
 ///
-/// Element 标签输入框主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 标签输入框实现。
 class InputTag extends ElFormModelValue<List<String>> {
   InputTag(this.component, {super.key})
     : super(

@@ -24,7 +24,7 @@ void main() {
           child: ElComponentProvider(
             components: el.desktopComponents,
             child: ElView(
-              style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+              style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
               child: ElView(
                 style: ElStyle(),
                 child: Builder(
@@ -32,7 +32,7 @@ void main() {
                     primary = context.elTheme.primary;
                     borderColor = context.elTheme.borderColorLighter;
                     currentRow = primary.elLight9(context);
-                    style = ElementPlusThemeData.tableStyleBuilder(context);
+                    style = ElComponentProvider.of(context).tableStyle!(context);
                     return const ElView();
                   },
                 ),
@@ -46,9 +46,8 @@ void main() {
   }
 
   test('EP 的表格通道只有一处：全局预设登记一份返回 ElTableStyle 的工厂', () {
-    expect(const ElementPlusThemeData().tableStyle, ElementPlusThemeData.tableStyleBuilder);
     // 表格的定制通道是样式工厂，不是 Widget builder：上层不接管任何表格实现。
-    expect(const ElementPlusThemeData().tableStyle, isA<ElTableStyle Function(BuildContext)>());
+    expect(el.desktopComponents.tableStyle, isA<ElTableStyle Function(BuildContext)>());
     // 同名冲突已消失：下面四个名字在只 import element_plus 时唯一解析到 el_ui 内核。
     expect(ElTable, isNotNull);
     expect(ElTableStyle, isNotNull);

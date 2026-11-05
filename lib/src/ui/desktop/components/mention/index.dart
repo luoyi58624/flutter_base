@@ -29,7 +29,6 @@ import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 
@@ -61,7 +60,7 @@ List<_ResolvedMentionOption<T>> _resolveMentionOptions<T>(Iterable<ElMentionOpti
 /// [ElEditableView] 承接；本组件只读取 editable 光标上下文，在光标处锚定候选
 /// 面板，并用 command 事务替换当前 Mention pattern。
 ///
-/// Element 提及输入框主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 提及输入框实现。
 class Mention<T> extends ElInputModelValue<String> {
   Mention(this.component, {super.key})
     : super(

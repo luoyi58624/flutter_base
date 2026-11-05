@@ -24,7 +24,6 @@ import '../../commons/icons.dart' show ElDesktopIcons;
 import '../../extensions/content.dart';
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
-import '../index.dart' show ElementPlusThemeData;
 
 part 'panel.dart';
 
@@ -34,7 +33,7 @@ part 'panel.dart';
 /// `prop` 的 [ElFormItem] 中。组件只会提交 [children] 中解析出的 option 值，
 /// 筛选 query 永远不会被强转成 `T` 或写入表单。
 ///
-/// Element 选择器主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 选择器实现。
 class Select<T> extends ElInputModelValue<T> {
   Select(this.component, {super.key})
     : super(

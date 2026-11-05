@@ -18,7 +18,7 @@ Widget _host(Widget child, {bool compact = false}) => MediaQuery(
         clipBehavior: Clip.none,
         alwaysSizeToContent: true,
         child: ElView(
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+          style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
           child: ElView(
             style: const ElStyle(width: 620, height: 420, alignment: .center),
             child: ElView(style: const ElStyle(width: 420), child: child),

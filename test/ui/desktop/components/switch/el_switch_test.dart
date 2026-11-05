@@ -16,7 +16,7 @@ Widget _host(Widget child, {Brightness brightness = Brightness.light, ElStyle? s
         child: ElComponentProvider(
           components: el.desktopComponents,
           child: ElView(
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}).merge(style),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}).merge(style),
             child: child,
           ),
         ),

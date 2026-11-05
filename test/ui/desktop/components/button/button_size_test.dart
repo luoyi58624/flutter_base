@@ -9,7 +9,7 @@ void main() {
     child: ElComponentProvider(
       components: el.desktopComponents,
       child: ElView(
-        style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+        style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
         child: child,
       ),
     ),
@@ -54,7 +54,7 @@ void main() {
             return ElComponentProvider(
               components: el.desktopComponents,
               child: ElView(
-                style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+                style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
                 child: child,
               ),
             );
@@ -75,7 +75,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElView(
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: false}),
+          style: ElStyle(vars: {ElDesktopExt.$compact: false}),
           child: ElButton(child: '按钮'),
         ),
         compact: true,
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElButton(
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: false}),
+          style: ElStyle(vars: {ElDesktopExt.$compact: false}),
           child: '按钮',
         ),
         compact: true,
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpWidget(
       host(
         ElButton(
-          style: ElStyle(vars: {ElementPlusThemeData.$compact: true}),
+          style: ElStyle(vars: {ElDesktopExt.$compact: true}),
           child: '按钮',
         ),
       ),

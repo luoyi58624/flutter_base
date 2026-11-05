@@ -58,7 +58,7 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElView(
-            style: ElStyle(vars: {ElementPlusThemeData.$compact: compact}),
+            style: ElStyle(vars: {ElDesktopExt.$compact: compact}),
             child: ElTag(closable: true, style: ElStyle(), child: '标签'),
           ),
         ),
@@ -274,6 +274,6 @@ void main() {
     expect(data.copyWith(tag: null).tag, isNull);
     expect(ElComponents().merge(data), data);
     expect(data.merge(ElComponents()), data);
-    expect(const ElementPlusThemeData().tag, ElementPlusThemeData.tagBuilder);
+    expect(el.desktopComponents.tag, isNotNull);
   });
 }

@@ -9,7 +9,7 @@ int _missingBuilders(ElComponents components) =>
 /// 品牌默认表除已知缺口外不得留空；缺口清单只减不增，新增组件必须两端登记实现。
 void main() {
   test('桌面默认表只缺已知项', () {
-    const builders = ElementPlusThemeData();
+    final builders = el.desktopComponents;
     final gaps = {
       'checkbox': builders.checkbox,
       'radio': builders.radio,

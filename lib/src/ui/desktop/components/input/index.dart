@@ -103,7 +103,7 @@ final _bindingKey = UniqueKey();
 final _controlOwnerKey = UniqueKey();
 final _controlBridgeKey = UniqueKey();
 
-/// Element 输入框主题实现：只服务 [ElementPlusThemeData]，由 barrel 挡住、不经 `element_plus.dart` 导出。
+/// 桌面预设使用的 Element 输入框实现。
 class Input extends ElInputModelValue<String> {
   Input(this.component, this.themeStyle, {super.key})
     : super(

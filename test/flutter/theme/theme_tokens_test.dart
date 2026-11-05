@@ -14,7 +14,7 @@ void main() {
         final brightness = dark ? Brightness.dark : Brightness.light;
         final expected = mobile
             ? {...el.mobileComponents.style!.vars!, if (dark) ...el.mobileComponents.style!.onDark!.vars!}
-            : {...el.desktopComponents.style.vars!, if (dark) ...el.desktopComponents.style.onDark!.vars!};
+            : {...el.desktopComponents.style!.vars!, if (dark) ...el.desktopComponents.style!.onDark!.vars!};
         late Map<Object, Object> actual;
         final reader = Builder(
           builder: (context) {
