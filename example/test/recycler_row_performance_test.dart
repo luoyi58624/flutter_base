@@ -99,10 +99,10 @@ void main() {
         expect(paragraphPreserved, previousParagraphCount, reason: '文本数据更新应保留已有 RenderParagraph');
       }
       expect(tester.takeException(), isNull);
-      final sorted = [...timings]..sort();
+      final sorted = timings.skip((timings.length * .2).ceil()).toList()..sort();
       double p(double q) => sorted[((sorted.length - 1) * q).floor()] / 1000;
       debugPrint(
-        'RECYCLER_REAL_ROW_PERF ${jsonEncode({'scenario': scenario, 'label': const String.fromEnvironment('RECYCLER_BENCH_LABEL', defaultValue: 'current'), 'source': 'actual page Adapter/ViewHolder and actual row widgets', 'environment': 'flutter_test/debug; host pump wall time, not phone FrameTiming/FPS', 'binds': timings.length, 'different_data_ids': ids.length, 'initial_elements': initialElements, 'added_elements': added, 'removed_elements': removed, 'root_render_preserved_binds': rootPreserved, 'retained_paragraphs': paragraphPreserved, 'previous_paragraphs': previousParagraphCount, 'pump_p50_ms': p(.5), 'pump_p95_ms': p(.95), 'pump_max_ms': p(1)})}',
+        'RECYCLER_REAL_ROW_PERF ${jsonEncode({'scenario': scenario, 'label': const String.fromEnvironment('RECYCLER_BENCH_LABEL', defaultValue: 'current'), 'source': 'actual page Adapter/ViewHolder and actual row widgets', 'environment': 'flutter_test/debug; host pump wall time, not phone FrameTiming/FPS', 'round': const int.fromEnvironment('RECYCLER_BENCH_ROUND', defaultValue: 0), 'warmup_dropped': .2, 'binds': timings.length, 'different_data_ids': ids.length, 'initial_elements': initialElements, 'added_elements': added, 'removed_elements': removed, 'root_render_preserved_binds': rootPreserved, 'retained_paragraphs': paragraphPreserved, 'previous_paragraphs': previousParagraphCount, 'pump_p50_ms': p(.5), 'pump_p95_ms': p(.95), 'pump_max_ms': p(1)})}',
       );
       await tester.pumpWidget(SizedBox());
       content.dispose();

@@ -32,8 +32,10 @@ void main() {
       final data = tester.getSemantics(find.byKey(key)).getSemanticsData();
       expect(data.role, SemanticsRole.loadingSpinner);
       expect(data.label, '同步中');
-      final frame = _views((view) => view.style?.width == 30 && view.style?.height == 30);
-      expect(tester.getSize(frame), Size.square(30));
+      final frame = _views((view) => view.style?.iconSize == 30);
+      expect(frame, findsOneWidget);
+      final icon = find.descendant(of: frame, matching: find.byWidget(ElMobileIcons.loading));
+      expect(tester.getSize(icon), Size.square(30));
       expect(_views((view) => view.style?.opacity == .4), findsOneWidget);
 
       await tester.pumpWidget(_host(ElLoadingIndicator(child: Text('正在处理'))));
@@ -60,7 +62,11 @@ void main() {
           semanticLabel: '下载进度',
           textBuilder: (context, current) {
             snapshot = current;
-            return Text('${current.value}/${current.max}');
+            // 给自定义读数明确宽度，避免测试字体把文案挤出默认的最小读数宽度。
+            return SizedBox(
+              width: 120,
+              child: Text('${current.value}/${current.max}', maxLines: 1, overflow: .ellipsis),
+            );
           },
         ),
       );

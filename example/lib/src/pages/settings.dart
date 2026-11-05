@@ -3,6 +3,7 @@ import 'package:flutter_base/desktop.dart';
 
 import '../state/index.dart';
 import 'example_page.dart';
+import 'frame_recording.dart';
 
 /// 两端共用的主题、系统和工具设置正文。
 class SettingPage extends StatelessWidget {
@@ -25,6 +26,11 @@ class SettingPage extends StatelessWidget {
             title: '系统设置',
             children: [
               ElListTile.switcher(modelValue: GlobalState.showPerformanceOverlay, title: '性能监控'),
+              ElListTile(
+                key: ValueKey('settings-frame-recording'),
+                title: '帧耗时记录',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => FrameRecordingPage())),
+              ),
               ElListTile.switcher(modelValue: GlobalState.debugShowCheckedModeBanner, title: '显示 Debug 横幅'),
               ElListTile<bool>.switcher(
                 key: ValueKey('settings-exclude-semantics'),

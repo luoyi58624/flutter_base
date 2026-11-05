@@ -29,7 +29,8 @@ void main() {
     await tester.pump();
     initialClock.stop();
     final initialCreated = adapter.holders.length;
-    expect(initialCreated, lessThan(20), reason: '一万条业务数据不能变成一万棵挂载子树');
+    final visibleBound = (480 / 64).ceil() + 1;
+    expect(initialCreated, lessThanOrEqualTo(visibleBound), reason: '关闭预取时初始驻留量由视口与最小项高限定');
 
     final stable = [for (var position = 1; position <= 4; position++) list.findViewHolderForAdapterPosition(position)!];
     final initialBuilds = counters.builds;
@@ -64,7 +65,7 @@ void main() {
       movingFrameUs.add(clock.elapsedMicroseconds);
     }
     expect(adapter.positionsPerHolder.values.any((positions) => positions.length > 2), isTrue);
-    expect(adapter.holders.length, lessThan(40));
+    expect(adapter.holders.length, lessThanOrEqualTo(visibleBound + 4 * 5));
     expect(counters.initializations, adapter.holders.length, reason: '复用应保留 State，而不是反复挂载');
     expect(counters.disposals, 0);
     final reboundPositions = adapter.positionsPerHolder.values.fold<int>(
@@ -91,7 +92,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     debugPrint(
-      'RECYCLER_PERF ${jsonEncode({'label': const String.fromEnvironment('RECYCLER_BENCH_LABEL', defaultValue: 'current'), 'environment': 'flutter_test/debug; host wall time, not device frame timing', 'items': 10000, 'initial_mount_us': initialClock.elapsedMicroseconds, 'initial_holders': initialCreated, 'stable_frames': stableFrameUs.length, 'stable_body_builds': stableBuilds, 'stable_body_layouts': stableLayouts, 'stable_body_paints': stablePaints, 'stable_observed_host_changes': hostChanges, 'stable_pump': _timings(stableFrameUs), 'moving_frames': movingFrameUs.length, 'moving_pump': _timings(movingFrameUs), 'holders_after_scroll': adapter.holders.length, 'distinct_holder_position_bindings': reboundPositions, 'bind_calls': adapter.bindCalls, 'content_notifications': 16, 'affected_items_per_notification': 4, 'notification_type_queries': notificationQueries, 'notification_total_us': notifyClock.elapsedMicroseconds})}',
+      'RECYCLER_PERF ${jsonEncode({'label': const String.fromEnvironment('RECYCLER_BENCH_LABEL', defaultValue: 'current'), 'environment': 'flutter_test/debug; host wall time, not device frame timing', 'round': const int.fromEnvironment('RECYCLER_BENCH_ROUND', defaultValue: 0), 'warmup_dropped': .2, 'items': 10000, 'initial_mount_us': initialClock.elapsedMicroseconds, 'initial_holders': initialCreated, 'stable_frames': stableFrameUs.length, 'stable_body_builds': stableBuilds, 'stable_body_layouts': stableLayouts, 'stable_body_paints': stablePaints, 'stable_observed_host_changes': hostChanges, 'stable_pump': _timings(stableFrameUs), 'moving_frames': movingFrameUs.length, 'moving_pump': _timings(movingFrameUs), 'holders_after_scroll': adapter.holders.length, 'distinct_holder_position_bindings': reboundPositions, 'bind_calls': adapter.bindCalls, 'content_notifications': 16, 'affected_items_per_notification': 4, 'notification_type_queries': notificationQueries, 'notification_total_us': notifyClock.elapsedMicroseconds})}',
     );
     await tester.pumpWidget(SizedBox());
     expect(counters.disposals, counters.initializations);
@@ -105,7 +106,7 @@ Widget _hostWidget(rv.ViewHolder holder) =>
     find.ancestor(of: find.byWidget(holder.itemView), matching: find.byType(TickerMode)).evaluate().first.widget;
 
 Map<String, num> _timings(List<int> values) {
-  final sorted = [...values]..sort();
+  final sorted = values.skip((values.length * .2).ceil()).toList()..sort();
   double percentile(double q) => sorted[((sorted.length - 1) * q).floor()] / 1000;
   return {'p50_ms': percentile(.5), 'p95_ms': percentile(.95), 'max_ms': percentile(1)};
 }

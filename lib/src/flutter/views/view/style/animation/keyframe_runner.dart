@@ -1,4 +1,5 @@
 import 'package:flutter/animation.dart' show Curve;
+import 'package:flutter/widgets.dart' show TickerModeData;
 
 import '../../../../utils/internal/bit_mask.dart';
 import '../cascade/style_spec.dart';
@@ -102,7 +103,8 @@ class _KeyframeClock {
 /// per-node 关键帧动画运行时（[ElRenderView] 持有，CSS animations 等价）。
 class KeyframeRunner {
   /// 创建。[onTick] 在每帧推进后触发（宿主在回调里采样 + patch committed）。
-  KeyframeRunner({required this.onTick});
+  KeyframeRunner({required this.onTick, TickerModeData tickerMode = TickerModeData.fallback})
+    : _tickerMode = tickerMode;
 
   /// 每帧回调。
   final void Function() onTick;
@@ -114,7 +116,14 @@ class KeyframeRunner {
   FieldMask _lastAppliedMask = FieldMask.empty;
 
   ElAnimationClock? _clock;
+  TickerModeData _tickerMode;
   bool _disposed = false;
+
+  /// 同步宿主的 TickerMode，隐藏时保留关键帧相位而不请求新帧。
+  set tickerMode(TickerModeData value) {
+    _tickerMode = value;
+    _clock?.tickerMode = value;
+  }
 
   /// 当前全部时钟覆盖的字段位图 ∪ 上次施加位图（cascade 钉住掩码：正在动或
   /// 刚摘除还没回写的字段都不许被普通 cascade 接管）。
@@ -235,7 +244,7 @@ class KeyframeRunner {
 
   void _syncTicking() {
     if (_clocks.any((clock) => clock.needsTicking)) {
-      (_clock ??= ElAnimationClock(_tick)).start();
+      (_clock ??= ElAnimationClock(_tick, tickerMode: _tickerMode)).start();
     } else {
       _clock?.stop();
     }

@@ -161,6 +161,7 @@ class ViewElement extends RenderObjectElement {
   @override
   void deactivate() {
     _activeForFocus = false;
+    _renderView.refreshTickerMode(active: false);
     super.deactivate();
   }
 
@@ -168,6 +169,7 @@ class ViewElement extends RenderObjectElement {
   void activate() {
     _isBoldTextRoot = null;
     super.activate();
+    _renderView.refreshTickerMode();
     _renderView.setStyleParent(StyleDependencyScope.maybeHostOf(this));
     markNeedsBuild();
     _activeForFocus = true;

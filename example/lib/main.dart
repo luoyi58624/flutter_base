@@ -5,6 +5,7 @@ import 'package:flutter_base/mobile.dart';
 
 import 'src/router/index.dart';
 import 'src/state/index.dart';
+import 'src/widgets/frame_recording_scope.dart';
 
 Future<void> main() async {
   ElWidgetsFlutterBinding.ensureInitialized();
@@ -24,39 +25,41 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ObsBuilder(
-      builder: (context) => ElView(
-        themeMode: ElThemeMode(brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light),
-        style: systemFontWeight == null
-            ? null
-            : ElStyle(fontVariationSettings: [FontVariation('wght', systemFontWeight!)]),
-        child: Builder(
-          builder: (context) {
-            routingConfig.isMobile = context.sm;
-            return ElView(
-              style: (context.sm ? el.mobileComponents : el.desktopComponents).style,
-              child: ObsBuilder(
-                builder: (context) {
-                  final theme = ElView.of(context).themeMode;
-                  return MaterialApp.router(
-                    routerConfig: router,
-                    builder: (context, child) => ObsBuilder(
-                      builder: (context) => ExcludeSemantics(
-                        key: ValueKey('app-exclude-semantics'),
-                        excluding: GlobalState.excludeSemantics.value,
-                        child: child,
+    return FrameRecordingScope(
+      child: ObsBuilder(
+        builder: (context) => ElView(
+          themeMode: ElThemeMode(brightness: GlobalState.isDark.value ? Brightness.dark : Brightness.light),
+          style: systemFontWeight == null
+              ? null
+              : ElStyle(fontVariationSettings: [FontVariation('wght', systemFontWeight!)]),
+          child: Builder(
+            builder: (context) {
+              routingConfig.isMobile = context.sm;
+              return ElView(
+                style: (context.sm ? el.mobileComponents : el.desktopComponents).style,
+                child: ObsBuilder(
+                  builder: (context) {
+                    final theme = ElView.of(context).themeMode;
+                    return MaterialApp.router(
+                      routerConfig: router,
+                      builder: (context, child) => ObsBuilder(
+                        builder: (context) => ExcludeSemantics(
+                          key: ValueKey('app-exclude-semantics'),
+                          excluding: GlobalState.excludeSemantics.value,
+                          child: child,
+                        ),
                       ),
-                    ),
-                    themeAnimationDuration: theme.duration!,
-                    themeAnimationCurve: theme.curve!,
-                    showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
-                    debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
-                    theme: context.elMaterialThemeData,
-                  );
-                },
-              ),
-            );
-          },
+                      themeAnimationDuration: theme.duration!,
+                      themeAnimationCurve: theme.curve!,
+                      showPerformanceOverlay: GlobalState.showPerformanceOverlay.value,
+                      debugShowCheckedModeBanner: GlobalState.debugShowCheckedModeBanner.value,
+                      theme: context.elMaterialThemeData,
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

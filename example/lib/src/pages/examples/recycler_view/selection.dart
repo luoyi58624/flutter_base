@@ -237,17 +237,11 @@ class _SelectionAdapter extends rv.Adapter<_SelectionHolder> {
 class _SelectionModel {
   final item = ValueNotifier<_SelectionItem?>(null);
   final checked = ValueNotifier<bool>(false);
-  final checkboxGeneration = ValueNotifier<int>(0);
   bool receiving = false;
 
   void bind(_SelectionItem value, bool selected) {
     receiving = true;
     try {
-      final previous = item.value;
-      if (previous != null && previous.id != value.id && checked.value != selected) {
-        // 换记录且勾选不同才清理叶子过渡，不能把上一条记录的动画带到新行。
-        checkboxGeneration.value++;
-      }
       item.value = value;
       checked.value = selected;
     } finally {
@@ -258,7 +252,6 @@ class _SelectionModel {
   void dispose() {
     item.dispose();
     checked.dispose();
-    checkboxGeneration.dispose();
   }
 }
 
@@ -312,27 +305,24 @@ class _SelectionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final rowEvent = ElEvent(onTap: (_) => model.checked.value = !model.checked.value);
     // 固定结构只在挂载或主题变化时建立，绑定只通知真正消费数据的叶子。
     final content = Row(
       spacing: 14,
       children: [
-        ValueListenableBuilder<_SelectionItem?>(
-          valueListenable: model.item,
-          child: ValueListenableBuilder<int>(
-            valueListenable: model.checkboxGeneration,
-            builder: (context, generation, child) => ElCheckbox.toggle(
-              key: ValueKey(generation),
+        // 阻止冒泡的包装与记录无关，只有语义文案随绑定更新。
+        ElView(
+          event: ElEvent(onTap: (event) => event.stopPropagation()),
+          child: ValueListenableBuilder<_SelectionItem?>(
+            valueListenable: model.item,
+            child: ElCheckbox.toggle(
               modelValue: model.checked,
               onChanged: (checked) {
                 final item = model.item.value;
                 if (!model.receiving && item != null) onSelect(item.id, checked);
               },
             ),
-          ),
-          // 复选框自己切换模型，停止冒泡以免外层整行再切换一次。
-          builder: (context, item, child) => ElView(
-            event: ElEvent(onTap: (event) => event.stopPropagation()),
-            child: Semantics(label: '选择${item?.title ?? ''}', child: child),
+            builder: (context, item, child) => Semantics(label: '选择${item?.title ?? ''}', child: child),
           ),
         ),
         Expanded(
@@ -363,7 +353,7 @@ class _SelectionRow extends StatelessWidget {
       valueListenable: model.checked,
       child: content,
       builder: (context, checked, child) => ElCardView(
-        event: ElEvent(onTap: (_) => model.checked.value = !model.checked.value),
+        event: rowEvent,
         style: ElStyle(
           height: _selectionExtent,
           padding: .symmetric(horizontal: 16, vertical: 10),

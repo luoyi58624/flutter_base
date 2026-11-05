@@ -20,7 +20,7 @@ enum ElModelValueType {
 abstract class ElModelValue<D> extends HookWidget with ElWidgetMixin {
   ElModelValue({super.key, this.value, this.modelValue, this.onChanged});
 
-  /// 普通值输入，重建回灌时只同步内部状态，不触发 onChanged。
+  /// 普通值输入，重建回灌同帧显示新值，帧后通知其他观察者且不触发 onChanged。
   final D? value;
   final ValueNotifier<D>? modelValue;
 
@@ -36,11 +36,9 @@ abstract class ElModelValue<D> extends HookWidget with ElWidgetMixin {
   @override
   @mustCallSuper
   Widget build(BuildContext context) {
-    final obs = $set(obsKey, _useModelValue<D>(value, modelValue, onChanged));
-    return ListenableBuilder(
-      listenable: obs,
-      builder: (context, child) => obsBuilder(context),
-    );
+    final binding = _useModelValue<D>(value, modelValue, onChanged);
+    $set(obsKey, binding.obs);
+    return ListenableBuilder(listenable: binding.changes, builder: (context, child) => obsBuilder(context));
   }
 
   /// 构建响应式组件

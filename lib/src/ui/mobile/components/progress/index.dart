@@ -9,6 +9,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../flutter/components/progress/index.dart' show ElProgress, ElProgressValue;
+import '../../../../flutter/utils/internal/reuse_animation.dart';
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../../flutter/views/view/view.dart' show ElView;
@@ -141,6 +142,7 @@ class Progress extends HookWidget {
   Widget build(BuildContext context) {
     final vars = ElView.maybeOf(context);
     final t = context.elTheme, reduced = reducedMotion(context), circle = type == ProgressType.circle;
+    final skipTransition = ReuseAnimationScope.skippingTransitionsOf(context);
     final total = max.isFinite && max > 0 ? max : 100.0;
     final amount = value?.isFinite == true ? value!.clamp(0.0, total) : null;
     final ratio = (amount ?? 0) / total;
@@ -178,7 +180,7 @@ class Progress extends HookWidget {
       duration: const Duration(milliseconds: 200),
     );
     useEffect(() {
-      if (reduced) {
+      if (reduced || skipTransition) {
         fillMotion.value = ratio;
         bufferMotion.value = buffered ?? ratio;
       } else {
@@ -186,7 +188,7 @@ class Progress extends HookWidget {
         bufferMotion.animateTo(buffered ?? ratio, duration: const Duration(milliseconds: 200), curve: Curves.ease);
       }
       return null;
-    }, [ratio, buffered, reduced]);
+    }, [ratio, buffered, reduced, skipTransition]);
     final textKey = useMemoized(() => GlobalKey());
     final data = ProgressValue._(amount, total, ratio * 100);
     final glyph = status == ProgressStatus.success

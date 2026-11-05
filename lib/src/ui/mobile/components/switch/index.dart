@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../flutter/components/switch/index.dart' show ElSwitch;
 import '../../../../flutter/utils/obs/index.dart' show Obs;
+import '../../../../flutter/utils/internal/reuse_animation.dart';
 import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition, ElTransitionField;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../internal/common.dart';
@@ -66,7 +67,9 @@ class _CommonSwitch extends StatelessWidget {
         onActivate: (_) => model.value = !current,
         child: AnimatedAlign(
           alignment: current ? .centerRight : .centerLeft,
-          duration: reduced ? Duration.zero : const Duration(milliseconds: 230),
+          duration: reduced || ReuseAnimationScope.skippingTransitionsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 230),
           curve: Curves.ease,
           child: thumbVisual,
         ),

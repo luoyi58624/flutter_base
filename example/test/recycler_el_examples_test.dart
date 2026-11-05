@@ -190,8 +190,7 @@ Finder _checkbox(int id) {
   return find.descendant(of: row, matching: find.byType(ElCheckbox));
 }
 
-bool _checked(WidgetTester tester, int id) =>
-    tester.widget<Checkbox>(find.descendant(of: _checkbox(id), matching: find.byType(Checkbox))).value!;
+bool _checked(WidgetTester tester, int id) => tester.widget<ElCheckbox>(_checkbox(id)).modelValue!.value as bool;
 
 Finder _card(String number) => find
     .ancestor(of: find.textContaining('观测 #$number'), matching: find.byKey(ValueKey('cards-activate')))

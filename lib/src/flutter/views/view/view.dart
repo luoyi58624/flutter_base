@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
+import '../../utils/internal/reuse_animation.dart';
 import 'element/view_element.dart';
 import 'event/event.dart';
 import 'render/render_view.dart';
@@ -107,6 +108,8 @@ class ElView extends RenderObjectWidget {
       locale: locale,
     );
     render.systemBoldText = (context as ViewElement).resolveSystemBoldText();
+    render.bindTickerModeSource(() => TickerMode.getValuesNotifier(context));
+    render.skipReuseTransitions = () => ReuseAnimationScope.skippingTransitionsOf(context);
     render.setStyleParent(StyleDependencyScope.maybeHostOf(context));
     if (trace != null) MountTrace.createRenderObjectUs += trace.elapsedMicroseconds;
     return render;

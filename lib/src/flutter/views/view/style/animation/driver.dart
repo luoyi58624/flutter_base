@@ -1,4 +1,5 @@
 import 'package:flutter/semantics.dart' show SemanticsBinding;
+import 'package:flutter/widgets.dart' show TickerModeData;
 
 import '../dimension.dart';
 import '../style.dart';
@@ -14,7 +15,11 @@ bool get elDisableAnimations => SemanticsBinding.instance.accessibilityFeatures.
 /// 单个节点的字段过渡，仅保存正在运行的动画。
 class StyleAnimationDriver {
   /// 创建驱动器，动画实际开始后才创建帧时钟。
-  StyleAnimationDriver({required this.onTick, this.lengthSnapshotResolver});
+  StyleAnimationDriver({
+    required this.onTick,
+    this.lengthSnapshotResolver,
+    TickerModeData tickerMode = TickerModeData.fallback,
+  }) : _tickerMode = tickerMode;
 
   /// 字段推进后通知宿主提交当前采样。
   final void Function() onTick;
@@ -24,7 +29,14 @@ class StyleAnimationDriver {
   final _activeAnimations = <ElTransitionField, FieldAnimation>{};
   List<ElTransitionField>? _fieldsSnapshot;
   ElAnimationClock? _clock;
+  TickerModeData _tickerMode;
   bool _disposed = false;
+
+  /// 同步宿主的 TickerMode，尚未开始动画时保留给后续懒建时钟。
+  set tickerMode(TickerModeData value) {
+    _tickerMode = value;
+    _clock?.tickerMode = value;
+  }
 
   /// 活跃字段的稳定快照，集合改变后才重建，旧快照不会被后续修改。
   Iterable<ElTransitionField> get activeFields {
@@ -59,7 +71,7 @@ class StyleAnimationDriver {
     assert(!_disposed, 'startAnimation after dispose');
     if (!_activeAnimations.containsKey(field)) _fieldsSnapshot = null;
     _activeAnimations[field] = animation;
-    (_clock ??= ElAnimationClock(_tick)).start();
+    (_clock ??= ElAnimationClock(_tick, tickerMode: _tickerMode)).start();
   }
 
   /// 取消指定字段，最后一个字段结束时停止时钟。

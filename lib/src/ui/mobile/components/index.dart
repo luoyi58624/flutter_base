@@ -6,9 +6,11 @@ import '../../material/index.dart' show materialComponents;
 import 'button/index.dart';
 import 'button_group/index.dart';
 import 'card/index.dart';
+import 'checkbox/index.dart';
 import 'list_tile/index.dart';
 import 'loading/index.dart';
 import 'progress/index.dart';
+import 'radio/index.dart';
 import 'skeleton/index.dart';
 import 'slider/index.dart';
 import 'switch/index.dart';
@@ -29,6 +31,8 @@ final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
       onDark: ElStyle(vars: _darkVars),
     ),
     button: buttonBuilder,
+    checkbox: checkboxBuilder,
+    radio: radioBuilder,
     buttonGroup: buttonGroupBuilder,
     card: cardBuilder,
     tag: tagBuilder,

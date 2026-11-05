@@ -13,7 +13,7 @@ void main() {
     final list = _list(tester);
     await _controlledReuse(tester, list);
     final original = list.findViewHolderForAdapterPosition(0)!;
-    expect(tester.widget<Checkbox>(_inside(original, find.byType(Checkbox))).value, isFalse);
+    expect(_checked(tester, original), isFalse);
     final before = _SelectionTree.capture(tester, original);
 
     list.scrollToPosition(9000);
@@ -26,28 +26,28 @@ void main() {
     after.expectSameStructure(before);
     expect(_frameworkWidgets(original, chat: false), before.frameworkWidgets, reason: '同状态换绑只更新数据叶子，不更新整行框架');
     expect(_inside(original, find.text(_selectionTitle(reboundId))), findsOneWidget);
-    expect(tester.widget<Checkbox>(_inside(original, find.byType(Checkbox))).value, isFalse);
+    expect(_checked(tester, original), isFalse);
 
     await tester.tap(_inside(original, find.byType(ElCheckbox)));
     await tester.pumpAndSettle();
-    expect(tester.widget<Checkbox>(_inside(original, find.byType(Checkbox))).value, isTrue);
+    expect(_checked(tester, original), isTrue);
     _SelectionTree.capture(tester, original).expectSameStructure(after);
 
     list.scrollToPosition(0);
     await tester.pumpAndSettle();
     final first = list.findViewHolderForItemId(0)!;
-    expect(tester.widget<Checkbox>(_inside(first, find.byType(Checkbox))).value, isFalse);
+    expect(_checked(tester, first), isFalse);
     final untouched = list.findViewHolderForItemId(1)!;
-    expect(tester.widget<Checkbox>(_inside(untouched, find.byType(Checkbox))).value, isFalse);
+    expect(_checked(tester, untouched), isFalse);
 
     list.scrollToPosition(reboundId);
     await tester.pumpAndSettle();
     final selected = list.findViewHolderForItemId(reboundId)!;
-    expect(tester.widget<Checkbox>(_inside(selected, find.byType(Checkbox))).value, isTrue);
+    expect(_checked(tester, selected), isTrue);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('跨数据从选中变未选中只重置复选动画叶子，不重建整行或回写旧 ID', (tester) async {
+  testWidgets('跨数据从选中变未选中保留全部复选结构且不回写旧 ID', (tester) async {
     await _open(tester, RecyclerSelectionPage());
     final list = _list(tester);
     await _controlledReuse(tester, list);
@@ -55,6 +55,7 @@ void main() {
     await tester.tap(_inside(original, find.byType(ElCheckbox)));
     await tester.pumpAndSettle();
     final before = _SelectionTree.capture(tester, original);
+    final beforeElements = _elements(original);
 
     list.scrollToPosition(7000);
     await tester.pump();
@@ -62,14 +63,71 @@ void main() {
     expect(_visible(list), contains(original));
     expect(original.getItemId(), inInclusiveRange(7000, 7020));
     final after = _SelectionTree.capture(tester, original);
-    after.expectSameFrame(before);
-    expect(after.checkboxState, isNot(same(before.checkboxState)), reason: '另一条数据不能接着播放旧记录的选中动画');
-    expect(tester.widget<Checkbox>(_inside(original, find.byType(Checkbox))).value, isFalse);
+    final afterElements = _elements(original);
+    final added = afterElements.difference(beforeElements).length;
+    final removed = beforeElements.difference(afterElements).length;
+    debugPrint(
+      'RECYCLER_SELECTION_REBIND ${jsonEncode({'checked_changed': true, 'added': added, 'removed': removed})}',
+    );
+    after.expectSameStructure(before);
+    expect(added, 0);
+    expect(removed, 0);
+    final rowRenders = afterElements
+        .whereType<RenderObjectElement>()
+        .map((element) => element.renderObject)
+        .whereType<ElRenderView>();
+    expect(rowRenders, isNotEmpty);
+    expect(
+      rowRenders.every((render) => !render.hasActiveAnimationsForTest),
+      isTrue,
+      reason: '另一条数据直接提交目标状态，不能播放旧记录的选中动画；页面滚动条淡出不属于行内过渡',
+    );
+    expect(_checked(tester, original), isFalse);
 
     list.scrollToPosition(0);
     await tester.pumpAndSettle();
     final first = list.findViewHolderForItemId(0)!;
-    expect(tester.widget<Checkbox>(_inside(first, find.byType(Checkbox))).value, isTrue);
+    expect(_checked(tester, first), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('真实复选换绑只构建三个记录消费点，复选控件与固定布局不构建', (tester) async {
+    await _open(tester, RecyclerSelectionPage());
+    final list = _list(tester);
+    await _controlledReuse(tester, list);
+    final original = list.findViewHolderForAdapterPosition(0)!;
+    final elements = _elements(original);
+    final consumers = elements.where((element) {
+      final widget = element.widget;
+      // 同一个记录通知驱动语义、标题和描述三个消费点，不能按字段数误判为一次构建。
+      return widget is ValueListenableBuilder && widget.valueListenable.value is! bool;
+    }).toSet();
+    expect(consumers.length, 3);
+    final checkbox = _inside(original, find.byType(ElCheckbox)).evaluate().single;
+    final row = _inside(original, find.byType(Row)).evaluate().first;
+    final builds = <Element, int>{};
+    final previous = debugOnRebuildDirtyWidget;
+    debugOnRebuildDirtyWidget = (element, builtOnce) {
+      previous?.call(element, builtOnce);
+      if (consumers.contains(element) || identical(element, checkbox) || identical(element, row)) {
+        builds.update(element, (count) => count + 1, ifAbsent: () => 1);
+      }
+    };
+    try {
+      list.scrollToPosition(9000);
+      await tester.pump();
+      await tester.pump();
+    } finally {
+      debugOnRebuildDirtyWidget = previous;
+    }
+    expect(_visible(list), contains(original));
+    expect(original.getItemId(), inInclusiveRange(9000, 9020));
+    expect([for (final element in consumers) builds[element] ?? 0], everyElement(1));
+    expect(builds[checkbox] ?? 0, 0);
+    expect(builds[row] ?? 0, 0);
+    debugPrint(
+      'RECYCLER_SELECTION_LEAVES ${jsonEncode({'record_consumers': 3, 'consumer_builds': 3, 'checkbox_builds': 0, 'fixed_row_builds': 0})}',
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -118,8 +176,8 @@ void main() {
     final after = _SelectionTree.capture(tester, visible);
     after.expectSameStructure(before);
     expect(tester.getSize(find.byWidget(visible.itemView)).width, closeTo(280, .01));
-    expect(Theme.of(tester.element(_inside(visible, find.byType(Checkbox)))).brightness, Brightness.dark);
-    expect(tester.widget<Checkbox>(_inside(visible, find.byType(Checkbox))).value, isTrue);
+    expect(Theme.of(tester.element(_inside(visible, find.byType(ElCheckbox)))).brightness, Brightness.dark);
+    expect(_checked(tester, visible), isTrue);
     expect(_inside(visible, find.text(_selectionTitle(0))), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -247,8 +305,15 @@ Finder _inside(rv.ViewHolder holder, Finder matching) =>
 
 String _selectionTitle(int id) => '条目 ${(id + 1).toString().padLeft(5, '0')}';
 
+bool _checked(WidgetTester tester, rv.ViewHolder holder) =>
+    tester.widget<ElCheckbox>(_inside(holder, find.byType(ElCheckbox))).modelValue!.value as bool;
+
 Set<Element> _elements(rv.ViewHolder holder) {
   final root = find.byWidget(holder.itemView, skipOffstage: false).evaluate().single;
+  return _elementTree(root);
+}
+
+Set<Element> _elementTree(Element root) {
   final result = <Element>{};
   void visit(Element element) {
     result.add(element);
@@ -277,16 +342,27 @@ List<Widget> _frameworkWidgets(rv.ViewHolder holder, {required bool chat}) => [
 ];
 
 class _SelectionTree {
-  _SelectionTree(this.card, this.cardRenderObject, this.row, this.checkbox, this.checkboxState, this.frameworkWidgets);
+  _SelectionTree(
+    this.card,
+    this.cardRenderObject,
+    this.row,
+    this.checkbox,
+    this.visualElements,
+    this.visualRenders,
+    this.frameworkWidgets,
+  );
 
   factory _SelectionTree.capture(WidgetTester tester, rv.ViewHolder holder) {
     final card = _inside(holder, find.byType(ElCardView)).evaluate().first;
+    final checkbox = _inside(holder, find.byType(ElCheckbox)).evaluate().single;
+    final visualElements = _elementTree(checkbox);
     return _SelectionTree(
       card,
       card.renderObject!,
       _inside(holder, find.byType(Row)).evaluate().first,
-      _inside(holder, find.byType(ElCheckbox)).evaluate().single,
-      tester.state(_inside(holder, find.byType(Checkbox))),
+      checkbox,
+      visualElements,
+      {for (final element in visualElements.whereType<RenderObjectElement>()) element.renderObject},
       _frameworkWidgets(holder, chat: false),
     );
   }
@@ -295,13 +371,15 @@ class _SelectionTree {
   final RenderObject cardRenderObject;
   final Element row;
   final Element checkbox;
-  final State checkboxState;
+  final Set<Element> visualElements;
+  final Set<RenderObject> visualRenders;
   final List<Widget> frameworkWidgets;
 
   void expectSameStructure(_SelectionTree previous) {
     expectSameFrame(previous);
     expect(checkbox, same(previous.checkbox));
-    expect(checkboxState, same(previous.checkboxState), reason: '等选中值换绑与同 ID 用户切换都应保留复选 State');
+    expect(visualElements, unorderedEquals(previous.visualElements), reason: '换绑与同 ID 用户切换都应保留全部复选视觉 Element');
+    expect(visualRenders, unorderedEquals(previous.visualRenders), reason: '选中值变化只提交样式，保留复选视觉 RenderObject');
   }
 
   void expectSameFrame(_SelectionTree previous) {

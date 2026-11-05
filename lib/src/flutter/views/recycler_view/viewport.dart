@@ -41,6 +41,9 @@ class _Anchor {
   final double relativeStart;
 }
 
+// 类型 → 原位置 → 条目，只在当前布局中暂存。
+typedef _LayoutScrap = Map<int, Map<int, ViewHolder>>;
+
 class _RecyclerViewportElement extends RenderObjectElement {
   _RecyclerViewportElement(_RecyclerViewport super.widget);
 
@@ -136,9 +139,15 @@ class _RecyclerViewportElement extends RenderObjectElement {
     return holder._hostWidget = TickerMode(
       key: holder._key,
       enabled: visible,
-      child: ExcludeFocus(
-        excluding: !visible,
-        child: RepaintBoundary(child: holder.itemView),
+      child: HeroMode(
+        enabled: visible,
+        child: ExcludeFocus(
+          excluding: !visible,
+          child: ReuseAnimationScope(
+            state: holder._reuseAnimation,
+            child: RepaintBoundary(child: holder.itemView),
+          ),
+        ),
       ),
     );
   }
@@ -184,13 +193,25 @@ class _RecyclerViewportElement extends RenderObjectElement {
     _pool.putRecycledView(holder);
   }
 
-  void _retire(ViewHolder holder, {bool allowCache = true}) {
+  void _retire(ViewHolder holder, {bool allowCache = true, _LayoutScrap? scrap}) {
     _pendingRetire.remove(holder);
     _prefetched.remove(holder);
     _active.removeWhere((_, value) => identical(value, holder));
     if (holder._attached) {
       holder._bindingAdapter?.onViewDetachedFromWindow(holder);
       holder._attached = false;
+    }
+    if (scrap != null &&
+        allowCache &&
+        holder.isRecyclable() &&
+        holder._bound &&
+        !holder._invalid &&
+        !holder._removed &&
+        !holder._needsBind) {
+      // 本轮仍可能立即复用，先暂存而不切换包装或挤入有容量上限的长期池。
+      (_box(holder).parentData! as _RecyclerParentData).visible = false;
+      (scrap[holder._itemViewType] ??= {})[holder._position] = holder;
+      return;
     }
     if (_children.containsKey(holder)) {
       final box = _box(holder);
@@ -217,6 +238,15 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
   }
 
+  void _flushScrap(_LayoutScrap scrap) {
+    if (scrap.isEmpty) return;
+    final remaining = scrap.values.expand((holders) => holders.values).toList(growable: false);
+    scrap.clear();
+    for (final holder in remaining) {
+      _retire(holder);
+    }
+  }
+
   void _trimCache() {
     final base = _state._config.cacheSize;
     final manager = _state._manager;
@@ -234,7 +264,13 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
   }
 
-  ViewHolder? _obtainAndLayout(int position, BoxConstraints constraints, {required bool visible, int? deadline}) {
+  ViewHolder? _obtainAndLayout(
+    int position,
+    BoxConstraints constraints, {
+    required bool visible,
+    int? deadline,
+    _LayoutScrap? scrap,
+  }) {
     final adapter = _adapter!;
     final type = _extents.typeAt(position);
     var holder = _active[position];
@@ -252,8 +288,19 @@ class _RecyclerViewportElement extends RenderObjectElement {
       );
       if (index >= 0) holder = _cached.removeAt(index);
     }
+    if (holder == null) {
+      final candidates = scrap?[type];
+      if (candidates != null && candidates.isNotEmpty) {
+        holder = candidates.remove(position);
+        if (holder == null) {
+          holder = candidates.remove(candidates.keys.first)!;
+          holder._bindingAdapter?.onViewRecycled(holder);
+          holder._resetInternal();
+        }
+      }
+    }
     final needsBinding = holder == null || holder._needsBind || !holder._bound;
-    if (deadline != null && needsBinding && !_pool._willBindInTime(type, _clock.elapsedMicroseconds, deadline)) {
+    if (deadline != null && needsBinding && !_pool._willBindInTime(type, _nowUs, deadline)) {
       if (holder != null && !_cached.contains(holder)) _cached.add(holder);
       return null;
     }
@@ -262,18 +309,17 @@ class _RecyclerViewportElement extends RenderObjectElement {
     if (holder == null) {
       holder = _pool.getRecycledView(type);
       if (holder == null) {
-        if (deadline != null && !_pool._willCreateInTime(type, _clock.elapsedMicroseconds, deadline)) return null;
+        if (deadline != null && !_pool._willCreateInTime(type, _nowUs, deadline)) return null;
         final costs = _pool._dataForType(type);
-        if (deadline != null &&
-            _clock.elapsedMicroseconds + costs.createRunningAverageUs + costs.bindRunningAverageUs >= deadline) {
+        if (deadline != null && _nowUs + costs.createRunningAverageUs + costs.bindRunningAverageUs >= deadline) {
           return null;
         }
-        final start = _clock.elapsedMicroseconds;
+        final start = _nowUs;
         holder = developer.Timeline.timeSync(
           'RecyclerView.create',
           () => adapter.createViewHolder(_state.widget, type),
         );
-        createCallbackUs = _clock.elapsedMicroseconds - start;
+        createCallbackUs = _nowUs - start;
         created = true;
       }
       final available = holder!;
@@ -284,8 +330,16 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
     final target = holder;
     final bind = target._needsBind || !target._bound || target._position != position;
+    final rebind =
+        bind &&
+        _children.containsKey(target) &&
+        (!target._bound ||
+            !identical(target._bindingAdapter, adapter) ||
+            (adapter.hasStableIds()
+                ? target._itemId != adapter.getItemId(position)
+                : target._position != position || target._invalid));
     if (bind || !_children.containsKey(target) || target._hostVisible != visible) {
-      final start = _clock.elapsedMicroseconds;
+      final start = _nowUs;
       var bindCallbackUs = 0;
       developer.Timeline.timeSync(
         created
@@ -294,20 +348,28 @@ class _RecyclerViewportElement extends RenderObjectElement {
             ? 'RecyclerView.bind'
             : 'RecyclerView.visibility',
         () {
-          // 换绑与可见性变化才更新宿主，绑定产生的脏后代仍在同一构建作用域内完成。
-          owner!.buildScope(this, () {
-            if (bind) {
-              final bindStart = _clock.elapsedMicroseconds;
-              adapter.bindViewHolder(target, position);
-              bindCallbackUs = _clock.elapsedMicroseconds - bindStart;
-            }
-            final child = updateChild(_children[target], _host(target, visible), target);
-            if (child != null) _children[target] = child;
-          });
-          _box(target).layout(constraints, parentUsesSize: visible);
+          void updateAndLayout() {
+            // 换绑与可见性变化才更新宿主，绑定产生的脏后代仍在同一构建作用域内完成。
+            owner!.buildScope(this, () {
+              if (bind) {
+                final bindStart = _nowUs;
+                adapter.bindViewHolder(target, position);
+                bindCallbackUs = _nowUs - bindStart;
+              }
+              final child = updateChild(_children[target], _host(target, visible), target);
+              if (child != null) _children[target] = child;
+            });
+            _box(target).layout(constraints, parentUsesSize: visible);
+          }
+
+          if (rebind) {
+            target._reuseAnimation.runRebind(updateAndLayout);
+          } else {
+            updateAndLayout();
+          }
         },
       );
-      final elapsed = _clock.elapsedMicroseconds - start;
+      final elapsed = _nowUs - start;
       if (created) _pool._factorInCreateTime(type, createCallbackUs + elapsed - bindCallbackUs);
       if (bind) _pool._factorInBindTime(type, created ? bindCallbackUs : elapsed);
     } else {
@@ -528,11 +590,29 @@ class _RecyclerViewportElement extends RenderObjectElement {
 
   void _layoutContents() {
     _computingLayout = true;
+    final scrap = <int, Map<int, ViewHolder>>{};
     try {
-      developer.Timeline.timeSync('RecyclerView.layout', _layoutLinear);
+      developer.Timeline.timeSync('RecyclerView.layout', () => _layoutLinear(scrap));
     } finally {
-      _computingLayout = false;
+      try {
+        _flushScrap(scrap);
+      } finally {
+        _computingLayout = false;
+      }
     }
+  }
+
+  ViewHolder? _focusedHolder() {
+    ViewHolder? holder;
+    FocusManager.instance.primaryFocus?.context?.visitAncestorElements((element) {
+      final slot = element.slot;
+      if (slot is ViewHolder && identical(slot._owner, this)) {
+        holder = slot;
+        return false;
+      }
+      return true;
+    });
+    return holder;
   }
 
   void _layoutInitialTail(BoxConstraints constraints, int count) {
@@ -566,7 +646,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
   }
 
-  void _layoutLinear() {
+  void _layoutLinear(_LayoutScrap scrap) {
     final render = renderObject;
     final adapter = _adapter;
     final manager = _state._manager;
@@ -603,7 +683,13 @@ class _RecyclerViewportElement extends RenderObjectElement {
     final constraints = render.childConstraints;
     final request = _state._config.pendingScroll;
     final stackToEnd = _state._initialLayout && manager._stackFromEnd && request == null && _anchor == null;
-    final clampToContent = request != null || stackToEnd || _anchor != null || _pendingUpdates;
+    final preserveOverscroll =
+        request == null &&
+        !stackToEnd &&
+        render.offset is ScrollPosition &&
+        (render.offset as ScrollPosition).hasContentDimensions &&
+        (render.offset as ScrollPosition).outOfRange;
+    final clampToContent = !preserveOverscroll && (request != null || stackToEnd || _anchor != null || _pendingUpdates);
     _state._config.pendingScroll = null;
     var pixels = render.offset.pixels;
     _Anchor? retainedAnchor;
@@ -635,6 +721,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
 
     if (stackToEnd) _layoutInitialTail(constraints, count);
+    final focusedHolder = _focusedHolder();
+    void retire(ViewHolder holder, {bool allowCache = true}) {
+      // 焦点行必须先经过 ExcludeFocus，避免换绑后键盘焦点跟到另一条数据。
+      _retire(holder, allowCache: allowCache, scrap: identical(holder, focusedHolder) ? null : scrap);
+    }
+
     for (var attempt = 0; !stackToEnd && attempt < 4; attempt++) {
       pixels = render.offset.pixels;
       var first = _extents.indexAt(math.max(0, pixels - render.leadingPadding));
@@ -642,7 +734,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       final anchorPosition = retainedAnchor?.holder._position ?? first;
       final anchorRelative = retainedAnchor?.relativeStart ?? relative;
       ViewHolder layoutPosition(int position) {
-        final holder = _obtainAndLayout(position, constraints, visible: true)!;
+        final holder = _obtainAndLayout(position, constraints, visible: true, scrap: scrap)!;
         final box = _box(holder);
         final extent = render.vertical ? box.size.height : box.size.width;
         _extents.measure(position, extent);
@@ -664,7 +756,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
             position < first ||
             position >= count ||
             _extents.prefix(position) + render.leadingPadding >= pixels + render.mainExtent) {
-          _retire(holder, allowCache: !holder._removed && !holder._invalid);
+          retire(holder, allowCache: !holder._removed && !holder._invalid);
         }
       }
       final wanted = <ViewHolder>{};
@@ -680,7 +772,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       for (final holder in _active.values.toList(growable: false)) {
         final start = _extents.prefix(holder._position) + render.leadingPadding - render.offset.pixels;
         final data = _box(holder).parentData! as _RecyclerParentData;
-        if (!wanted.contains(holder) || start + data.extent <= 0 || start >= render.mainExtent) _retire(holder);
+        if (!wanted.contains(holder) || start + data.extent <= 0 || start >= render.mainExtent) retire(holder);
       }
       final maxScroll = math.max(
         0.0,
@@ -715,6 +807,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
     _pendingUpdates = false;
     render.markNeedsSemanticsUpdate();
+    _flushScrap(scrap);
     _prefetch();
   }
 
@@ -731,8 +824,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
     final intervalUs = (1000000 / rate).round();
     // 引擎原始帧时间和 Timeline 使用单调时钟；不匹配时只给保守的 1ms 预算。
     final age = developer.Timeline.now - SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
-    final remaining = age >= 0 && age < 1000000 ? intervalUs - age - 2000 : 1000;
-    final deadline = _clock.elapsedMicroseconds + math.max(0, remaining).toInt();
+    var remaining = age >= 0 && age < 1000000 ? intervalUs - age - 2000 : 1000;
+    assert(() {
+      remaining = RecyclerTestClock.remainingBudgetMicroseconds?.call(intervalUs) ?? remaining;
+      return true;
+    }());
+    final deadline = _nowUs + math.max(0, remaining).toInt();
     final direction = _scrollDelta < 0 ? -1 : 1;
     final edge = direction > 0 ? _active.keys.reduce(math.max) : _active.keys.reduce(math.min);
     final count = manager._initialPrefetchItemCount;
@@ -744,7 +841,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
     // 可见布局完成后仍在合法的布局回调中准备隐藏子树，LayoutBuilder 也需要此阶段。
     for (var distance = 1; distance <= count; distance++) {
       final position = edge + direction * distance;
-      if (position < 0 || position >= _extents.length || _clock.elapsedMicroseconds >= deadline) break;
+      if (position < 0 || position >= _extents.length || _nowUs >= deadline) break;
       if (_active.containsKey(position) ||
           _cached.any(
             (holder) => holder._position == position && !holder._needsBind && !holder._invalid && !holder._removed,
@@ -956,12 +1053,22 @@ class _ExtentIndex {
   List<double> _values = [];
   List<double> _tree = [];
   final Map<int, double> _estimates = {};
+  Adapter? _pendingAdapter;
 
   int get length => _sizes.length;
   double get total => prefix(length);
-  int typeAt(int index) => _types[index];
+  int typeAt(int index) {
+    _ensureTypes();
+    return _types[index];
+  }
+
+  void _ensureTypes() {
+    final adapter = _pendingAdapter;
+    if (adapter != null) _rebuild(adapter);
+  }
 
   void _rebuild(Adapter? adapter) {
+    _pendingAdapter = null;
     final previousTypes = _types;
     _types = List.generate(length, (index) {
       final type = adapter!.getItemViewType(index);
@@ -990,6 +1097,7 @@ class _ExtentIndex {
   }
 
   double prefix(int end) {
+    _ensureTypes();
     var sum = 0.0;
     for (var i = end; i > 0; i -= i & -i) {
       sum += _tree[i];
@@ -998,6 +1106,7 @@ class _ExtentIndex {
   }
 
   int indexAt(double offset) {
+    _ensureTypes();
     if (length == 0) return 0;
     var index = 0;
     var sum = 0.0;
@@ -1017,6 +1126,7 @@ class _ExtentIndex {
   }
 
   void measure(int index, double extent) {
+    _ensureTypes();
     if (!extent.isFinite || extent < 0) throw StateError('条目布局尺寸必须是有限的非负数。');
     if (_sizes[index] == extent) return;
     final type = _types[index];
@@ -1038,6 +1148,7 @@ class _ExtentIndex {
   }
 
   void invalidate(int start, int count, Adapter adapter) {
+    _ensureTypes();
     for (var i = start; i < start + count; i++) {
       _sizes[i] = null;
       _types[i] = adapter.getItemViewType(i);
@@ -1050,18 +1161,19 @@ class _ExtentIndex {
   void insert(int start, int count, Adapter adapter) {
     _sizes.insertAll(start, List<double?>.filled(count, null));
     _types.insertAll(start, List<int>.filled(count, 0));
-    _rebuild(adapter);
+    // 类型可以依赖位置乃至总数量，不能假定旧记录的类型不变；同批通知到真正读取几何时只扫描一次。
+    _pendingAdapter = adapter;
   }
 
   void remove(int start, int count, Adapter adapter) {
     _sizes.removeRange(start, start + count);
     _types.removeRange(start, start + count);
-    _rebuild(adapter);
+    _pendingAdapter = adapter;
   }
 
   void move(int from, int to, Adapter adapter) {
     _sizes.insert(to, _sizes.removeAt(from));
     _types.insert(to, _types.removeAt(from));
-    _rebuild(adapter);
+    _pendingAdapter = adapter;
   }
 }

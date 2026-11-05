@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/animation.dart' show Curve;
-import 'package:flutter/foundation.dart' show ChangeNotifier, internal, visibleForTesting;
+import 'package:flutter/foundation.dart' show ChangeNotifier, ValueListenable, internal, visibleForTesting;
 import 'package:flutter/gestures.dart' show PointerEnterEvent, PointerExitEvent;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -14,7 +14,7 @@ import 'package:flutter/services.dart'
         PointerExitEventListener,
         MouseTrackerAnnotation;
 import 'package:flutter/widgets.dart'
-    show Brightness, Element, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData;
+    show Brightness, Element, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData, TickerModeData;
 
 import '../../../utils/internal/benchmark_probe.dart';
 import '../../../utils/internal/bit_mask.dart';
@@ -152,6 +152,10 @@ class ElRenderView extends RenderBox
   /// 构造 + attach 期间 false（CSS：首次出现不过渡）；attach 末置 true，detach 置回 false。
   bool _transitionsEnabled = false;
 
+  /// 消费该节点所在条目的局部换绑状态，只跳过状态过渡，持续关键帧照常运行。
+  @internal
+  bool Function()? skipReuseTransitions;
+
   /// dark 切换进行中的强制过渡参数载体。
   ElThemeMode? _pendingDarkTransition;
 
@@ -227,6 +231,41 @@ class ElRenderView extends RenderBox
   ElView? _ownerWidget;
 
   StyleAnimationDriver? _animDriver;
+  ValueListenable<TickerModeData> Function()? _tickerModeSource;
+  ValueListenable<TickerModeData>? _tickerModeNotifier;
+  bool _tickerModeActive = true;
+
+  /// 绑定 Element 的环境入口，仅动画节点懒订阅，普通盒子不增加继承依赖。
+  @internal
+  void bindTickerModeSource(ValueListenable<TickerModeData> Function() source) => _tickerModeSource = source;
+
+  /// 换父后重新寻找环境，摘树期间立即静音现有时钟。
+  @internal
+  void refreshTickerMode({bool active = true}) {
+    _tickerModeActive = active;
+    if (active && _tickerModeNotifier != null) _subscribeTickerMode();
+    _updateTickerMode();
+  }
+
+  TickerModeData get _effectiveTickerMode => _tickerModeActive
+      ? (_tickerModeNotifier?.value ?? TickerModeData.fallback)
+      : const TickerModeData(enabled: false, forceFrames: false);
+
+  TickerModeData _subscribeTickerMode() {
+    final source = _tickerModeSource?.call();
+    if (!identical(source, _tickerModeNotifier)) {
+      _tickerModeNotifier?.removeListener(_updateTickerMode);
+      _tickerModeNotifier = source;
+      source?.addListener(_updateTickerMode);
+    }
+    return _effectiveTickerMode;
+  }
+
+  void _updateTickerMode() {
+    final value = _effectiveTickerMode;
+    _animDriver?.tickerMode = value;
+    _keyframeRunner?.tickerMode = value;
+  }
 
   /// `to:auto` 必须等新 child 与父约束进入真实 layout 后再测量；这里只记待测轴。
   FieldMask _pendingAutoLengthSnapshotMask = FieldMask.empty;
@@ -239,7 +278,11 @@ class ElRenderView extends RenderBox
       BenchmarkProbe.animDriverInstantiateCount++;
       return true;
     }());
-    return _animDriver = StyleAnimationDriver(onTick: _onAnimTick, lengthSnapshotResolver: _resolveLengthSnapshot);
+    return _animDriver = StyleAnimationDriver(
+      onTick: _onAnimTick,
+      lengthSnapshotResolver: _resolveLengthSnapshot,
+      tickerMode: _subscribeTickerMode(),
+    );
   }
 
   /// 只读查询空守卫：driver 未 alloc = 从未启动过动画 = 无活跃动画。
@@ -259,7 +302,7 @@ class ElRenderView extends RenderBox
     final anims = CascadeTick.effectiveAnimations(style: _style, state: _stateBits);
     if (runner == null) {
       if (anims.isEmpty) return FieldMask.empty;
-      runner = _keyframeRunner = KeyframeRunner(onTick: _applyKeyframeSample);
+      runner = _keyframeRunner = KeyframeRunner(onTick: _applyKeyframeSample, tickerMode: _subscribeTickerMode());
     }
     runner.sync(anims);
     return runner.activeFieldsMask;
@@ -1145,15 +1188,14 @@ class ElRenderView extends RenderBox
   void _reresolve({FieldMask inheritedThemeAnimationMask = FieldMask.empty}) {
     if (_isDisposing) return;
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
-    // reduced-motion（系统禁用动画）：不再启动新过渡，存量动画立即收敛到
-    // target（cancelAll 后 tick diff 直写新值）。
-    final reducedMotion = elDisableAnimations;
-    if (reducedMotion && _hasActiveAnimations) _animDriver!.cancelAll();
+    // 系统禁用或本条目换绑时只直写状态过渡目标，持续关键帧仍走独立通道。
+    final skipTransitions = elDisableAnimations || (skipReuseTransitions?.call() ?? false);
+    if (skipTransitions && _hasActiveAnimations) _animDriver!.cancelAll();
     // driver 只在「闸门已开 且（声明了 transitions / dark 强制过渡 / 已有活跃
     // 动画）」时 ensure —— 裸行与无过渡声明的节点永不分配。
     final driver =
         _transitionsEnabled &&
-            !reducedMotion &&
+            !skipTransitions &&
             (mayDeclareTransitionsOf(_style) || _pendingDarkTransition != null || _hasActiveAnimations)
         ? _ensureAnimDriver()
         : null;
@@ -2123,7 +2165,7 @@ class ElRenderView extends RenderBox
   /// 字段生效；reduced-motion 下整体跳过；保留节点重挂不重播。
   void _maybeStartEnterTransitions() {
     final starting = _style?.starting;
-    if (starting == null || elDisableAnimations) return;
+    if (starting == null || elDisableAnimations || (skipReuseTransitions?.call() ?? false)) return;
     final startingValues = specOf(starting).values;
     if (startingValues.isEmpty) return;
 
@@ -2212,6 +2254,10 @@ class ElRenderView extends RenderBox
     _varsBuildDeps = null;
     _themeBuildDeps?.dispose();
     _themeBuildDeps = null;
+    _tickerModeNotifier?.removeListener(_updateTickerMode);
+    _tickerModeNotifier = null;
+    _tickerModeSource = null;
+    skipReuseTransitions = null;
     _animDriver?.dispose();
     _animDriver = null;
     _keyframeRunner?.dispose();
