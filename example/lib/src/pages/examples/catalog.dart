@@ -5,6 +5,8 @@ import '../custom_gestures.dart';
 import '../view.dart';
 import '../view/base.dart';
 import 'press_feedback.dart';
+import 'recycler_view/chat.dart';
+import 'recycler_view/selection.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -21,5 +23,21 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: '按压反馈',
     icon: ElIcon(Icons.ads_click_outlined),
     data: (_) => PressFeedbackPage(),
+  ),
+];
+
+/// RecyclerView 长列表示例，两端共用相同目录与页面工厂。
+final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'recycler-selection',
+    title: '万条复选列表',
+    icon: ElIcon(Icons.checklist_outlined),
+    data: (_) => RecyclerSelectionPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-chat',
+    title: '聊天长列表',
+    icon: ElIcon(Icons.chat_bubble_outline),
+    data: (_) => RecyclerChatPage(),
   ),
 ];

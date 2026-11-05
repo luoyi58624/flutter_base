@@ -48,6 +48,18 @@ class ExamplesPage extends StatelessWidget {
                         ),
                     ],
                   ),
+                  ElListGroup(
+                    title: 'RecyclerView',
+                    children: [
+                      for (final page in recyclerExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(context, page.data!),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
