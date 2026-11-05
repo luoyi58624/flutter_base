@@ -509,7 +509,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       for (final holder in _cached.toList()) {
         _retire(holder, allowCache: false);
       }
-      render.offset.correctBy(-render.offset.pixels);
+      render._correctOffset(0);
       render.offset.applyContentDimensions(0, 0);
       _pendingUpdates = false;
       return;
@@ -541,7 +541,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
     }
     _state._initialLayout = false;
     pixels = math.max(0, pixels);
-    render.offset.correctBy(pixels - render.offset.pixels);
+    render._correctOffset(pixels);
 
     for (var attempt = 0; attempt < 4; attempt++) {
       pixels = render.offset.pixels;
@@ -566,8 +566,8 @@ class _RecyclerViewportElement extends RenderObjectElement {
         final extent = render.vertical ? box.size.height : box.size.width;
         _extents.measure(position, extent);
         // 新测量可修正同模板的估算高度，但首个可见条目必须留在同一屏幕位置。
-        final anchoredPixels = math.max(0, _extents.prefix(first) + render.leadingPadding - relative);
-        render.offset.correctBy(anchoredPixels - render.offset.pixels);
+        final anchoredPixels = math.max(0.0, _extents.prefix(first) + render.leadingPadding - relative);
+        render._correctOffset(anchoredPixels);
         start = _extents.prefix(position) + render.leadingPadding;
         final data = box.parentData! as _RecyclerParentData;
         data
@@ -583,10 +583,20 @@ class _RecyclerViewportElement extends RenderObjectElement {
         0.0,
         _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent,
       );
-      final adjustEnd = stackToEnd && (maxScroll - render.offset.pixels).abs() > .01;
-      if (adjustEnd) render.offset.correctBy(maxScroll - render.offset.pixels);
+      var targetPixels = render.offset.pixels.clamp(0.0, maxScroll);
+      if (request != null) {
+        // 未知高度在本轮测量后可能改变末端，重新解析定位目标并先夹紧，避免触发越界弹簧。
+        targetPixels = _offsetForPosition(
+          request.position.clamp(0, count - 1),
+          render.leadingPadding + (request.offset ?? 0),
+        ).clamp(0.0, maxScroll);
+      } else if (stackToEnd) {
+        targetPixels = maxScroll;
+      }
+      final adjusted = (targetPixels - render.offset.pixels).abs() > .01;
+      if (adjusted) render._correctOffset(targetPixels);
       final accepted = render.offset.applyContentDimensions(0, maxScroll);
-      if (accepted && !adjustEnd) break;
+      if (accepted && !adjusted) break;
     }
     for (final holder in _active.values) {
       final data = _box(holder).parentData! as _RecyclerParentData;
@@ -689,6 +699,13 @@ class _RecyclerViewportRenderBox extends RenderBox
   double? _previousCrossExtent;
 
   ViewportOffset get offset => _offset;
+
+  void _correctOffset(double pixels) {
+    final correction = pixels - _offset.pixels;
+    // correctBy(0) 也会触发新尺寸通知并重启惯性模拟，稳定几何不能提交空修正。
+    if (correction != 0) _offset.correctBy(correction);
+  }
+
   set offset(ViewportOffset value) {
     if (identical(value, _offset)) return;
     if (attached) _offset.removeListener(markNeedsLayout);

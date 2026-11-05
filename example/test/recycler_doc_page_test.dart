@@ -1,6 +1,11 @@
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/components/doc_page.dart';
+import 'package:example/src/pages/components/list/list_tile/index.dart';
+import 'package:example/src/pages/components/start/shadow/index.dart';
+import 'package:example/src/state/index.dart';
 import 'package:example/src/widgets/code_preview/index.dart';
+import 'package:example/src/widgets/doc_scroll_view.dart';
+import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
@@ -16,6 +21,8 @@ Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double 
     initialLocation: location,
     routes: [
       GoRoute(path: '/components/button', builder: (context, state) => ButtonPage()),
+      GoRoute(path: '/components/list-tile', builder: (context, state) => ListTilePage()),
+      GoRoute(path: '/components/shadow-design', builder: (context, state) => ShadowPage()),
       GoRoute(
         path: '/empty',
         builder: (context, state) => Scaffold(body: Text('空页面')),
@@ -33,66 +40,145 @@ Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double 
   return router;
 }
 
-void _expectRealExample(rv.RecyclerView recyclerView, int position) {
+void _expectRealExample(WidgetTester tester, rv.RecyclerView recyclerView, int position, {String phase = ''}) {
   final holder = recyclerView.findViewHolderForAdapterPosition(position);
-  expect(holder, isNotNull, reason: '目标位置 $position 应已进入可见布局');
+  final layout = recyclerView.getLayoutManager()! as rv.LinearLayoutManager;
+  final scrollable = find.descendant(of: find.byWidget(recyclerView), matching: find.byType(Scrollable)).first;
+  final metrics = tester.state<ScrollableState>(scrollable).position;
+  expect(
+    holder,
+    isNotNull,
+    reason:
+        '$phase 目标位置 $position 应已进入可见布局，实际为 '
+        '${layout.findFirstVisibleItemPosition()}..${layout.findLastVisibleItemPosition()}，'
+        'offset=${metrics.pixels}, max=${metrics.maxScrollExtent}, viewport=${metrics.viewportDimension}',
+  );
   final item = find.byWidget(holder!.itemView);
   expect(item, findsOneWidget);
   expect(find.descendant(of: item, matching: find.byType(ElCodeExample)), findsOneWidget);
-  expect(find.descendant(of: item, matching: find.byType(ElButton)), findsWidgets);
-  final layout = recyclerView.getLayoutManager()! as rv.LinearLayoutManager;
+  final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+  expect(
+    find.descendant(of: item, matching: find.byWidget(page.sections[(position - 1) % page.sections.length].example)),
+    findsOneWidget,
+  );
   expect(layout.findFirstVisibleItemPosition(), lessThanOrEqualTo(position));
   expect(layout.findLastVisibleItemPosition(), greaterThanOrEqualTo(position));
 }
 
-Finder _scrollSwitch() => find.byKey(ValueKey('button-scroll-recycler-switch'));
-
-void _expectScrollMode(WidgetTester tester, {required bool recycler, required int repeat}) {
-  expect(_scrollSwitch(), findsOneWidget);
-  expect(tester.widget<Switch>(_scrollSwitch()).value, recycler);
-  expect(find.text(recycler ? 'RecyclerView' : 'ElScrollView'), findsOneWidget);
+void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
   final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
-  expect(page.useRecyclerView, recycler);
-  expect(page.repeatCount, repeat);
+  if (sections != null) expect(page.sections, hasLength(sections));
+  final repeat = GlobalState.docRepeatCount.value;
   final itemCount = page.sections.length * repeat + 1;
-  if (recycler) {
-    expect(find.byType(rv.RecyclerView), findsOneWidget);
-    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
-    expect(list.getAdapter()!.getItemCount(), itemCount);
-  } else {
-    expect(find.byType(rv.RecyclerView), findsNothing);
-    expect(find.byType(ElScrollView), findsOneWidget);
-    final list = tester.widget<ElListView>(find.byType(ElListView).first);
-    expect(list.itemCount, itemCount);
-    expect(list.keepAlive, isFalse);
+  expect(find.text(page.title), findsOneWidget);
+  switch (mode) {
+    case DocScrollMode.official:
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(rv.RecyclerView), findsNothing);
+      expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
+    case DocScrollMode.officialVirtual:
+      expect(find.byType(ListView), findsOneWidget);
+      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(rv.RecyclerView), findsNothing);
+      final list = tester.widget<ListView>(find.byType(ListView));
+      final delegate = list.childrenDelegate as SliverChildBuilderDelegate;
+      expect(delegate.estimatedChildCount, itemCount);
+      expect(delegate.addAutomaticKeepAlives, isFalse);
+      expect(find.byType(ElCodeExample), findsWidgets);
+    case DocScrollMode.elScrollView:
+      expect(find.byType(ElScrollView), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(find.byType(rv.RecyclerView), findsNothing);
+      final list = tester.widget<ElListView>(find.byType(ElListView).first);
+      expect(list.itemCount, itemCount);
+      expect(list.keepAlive, isFalse);
+      expect(find.byType(ElCodeExample), findsWidgets);
+    case DocScrollMode.recyclerView:
+      expect(find.byType(rv.RecyclerView), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(find.byType(ElScrollView), findsNothing);
+      final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+      expect(list.getAdapter()!.getItemCount(), itemCount);
+      expect(find.byType(ElCodeExample), findsWidgets);
   }
+
+  final itemBoundaries = <Element>{};
+  final headingBoundary = find
+      .ancestor(of: find.text(page.title), matching: find.byType(RepaintBoundary))
+      .evaluate()
+      .first;
+  itemBoundaries.add(headingBoundary);
+  for (final example in find.byType(ElCodeExample).evaluate()) {
+    final item = find.byElementPredicate((element) => identical(element, example));
+    final boundaries = find.ancestor(of: item, matching: find.byType(RepaintBoundary)).evaluate().toList();
+    expect(boundaries, isNotEmpty);
+    expect(itemBoundaries.add(boundaries.first), isTrue, reason: '标题和每个已挂载文档条目应有独立的重绘边界');
+  }
+  expect(find.byKey(ValueKey('button-scroll-recycler-switch')), findsNothing);
+  expect(tester.takeException(), isNull);
 }
 
 void main() {
-  testWidgets('Button 查询参数用 RecyclerView 重复真实文档并支持远处定位和回滑', (tester) async {
-    await _openButtonRoute(tester, '/components/button?recycler=true&repeat=3');
-    expect(find.byType(ButtonPage), findsOneWidget);
-    expect(find.byType(rv.RecyclerView), findsOneWidget);
+  late DocScrollMode previousMode;
+  late bool previousExcludeSemantics;
+  late int previousRepeatCount;
+  late bool previousResampling;
+  late bool previousBindingResampling;
+  setUp(() {
+    previousMode = GlobalState.docScrollMode.value;
+    previousExcludeSemantics = GlobalState.excludeSemantics.value;
+    previousRepeatCount = GlobalState.docRepeatCount.value;
+    previousBindingResampling = GestureBinding.instance.resamplingEnabled;
+    previousResampling = GlobalState.resamplingEnabled.value;
+    GlobalState.docScrollMode.value = DocScrollMode.elScrollView;
+    GlobalState.excludeSemantics.value = false;
+    GlobalState.docRepeatCount.value = 1;
+    GlobalState.resamplingEnabled.value = false;
+    GestureBinding.instance.resamplingEnabled = false;
+  });
+  tearDown(() {
+    GlobalState.docScrollMode.value = previousMode;
+    GlobalState.excludeSemantics.value = previousExcludeSemantics;
+    GlobalState.docRepeatCount.value = previousRepeatCount;
+    GlobalState.resamplingEnabled.value = previousResampling;
+    GestureBinding.instance.resamplingEnabled = previousBindingResampling;
+  });
+
+  for (final mode in DocScrollMode.values) {
+    testWidgets('全局 ${mode.name} 使用对应真实管线展示相同的 Button 文档', (tester) async {
+      GlobalState.docScrollMode.value = mode;
+      await _openButtonRoute(tester, '/components/button');
+      expect(find.byType(ButtonPage), findsOneWidget);
+      _expectDocMode(tester, mode, sections: 11);
+      final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+      expect(page.sections.first.title, '基础使用');
+      expect(page.sections.last.title, '通用点击');
+      await tester.pumpWidget(SizedBox());
+    });
+  }
+
+  testWidgets('RecyclerView 能定位真实按钮模板并回滑', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    await _openButtonRoute(tester, '/components/button');
     final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
     final recyclerView = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
-    expect(page.useRecyclerView, isTrue);
-    expect(page.repeatCount, 3);
-    expect(recyclerView.getAdapter()!.getItemCount(), page.sections.length * 3 + 1);
+    expect(recyclerView.getAdapter()!.getItemCount(), page.sections.length + 1);
 
-    // 三轮中的同一真实按钮模板都必须经过位置绑定，而不是只验证首屏。
-    final thirdRound = page.sections.length * 2 + 1;
-    for (final position in [thirdRound, 1, page.sections.length + 1, thirdRound, 1]) {
+    for (final (attempt, position) in [page.sections.length, 1, 5, page.sections.length, 1].indexed) {
       recyclerView.scrollToPosition(position);
       await tester.pumpAndSettle();
-      _expectRealExample(recyclerView, position);
+      _expectRealExample(tester, recyclerView, position, phase: '第 ${attempt + 1} 次定位');
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(SizedBox());
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('RecyclerView 文档反复离开和重新进入会重新连接模板且没有遗留异常', (tester) async {
-    final router = await _openButtonRoute(tester, '/components/button?recycler=true&repeat=3');
+  testWidgets('RecyclerView 文档反复离开和重新进入没有遗留异常', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    final router = await _openButtonRoute(tester, '/components/button');
     for (var attempt = 0; attempt < 2; attempt++) {
       final previous = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
       router.go('/empty');
@@ -100,115 +186,194 @@ void main() {
       expect(find.byType(rv.RecyclerView), findsNothing);
       expect(tester.takeException(), isNull);
 
-      router.go('/components/button?recycler=true&repeat=3');
+      router.go('/components/button');
       await tester.pumpAndSettle();
       final current = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
       expect(identical(current, previous), isFalse);
       current.scrollToPosition(1);
       await tester.pumpAndSettle();
-      _expectRealExample(current, 1);
+      _expectRealExample(tester, current, 1);
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(SizedBox());
-    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Button 无查询参数保留 ElScrollView 与关闭 keepAlive 的原文档分支', (tester) async {
+  testWidgets('修改全局模式会立即切换当前文档且不改变地址', (tester) async {
+    final router = await _openButtonRoute(tester, '/components/button');
+    final originalUri = router.routeInformationProvider.value.uri;
+    for (final mode in [
+      DocScrollMode.officialVirtual,
+      DocScrollMode.official,
+      DocScrollMode.recyclerView,
+      DocScrollMode.elScrollView,
+    ]) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      _expectDocMode(tester, mode, sections: 11);
+      expect(router.routeInformationProvider.value.uri, originalUri);
+    }
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('全局滚动模式在 Button 和 ListTile 真实文档之间沿用', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    final router = await _openButtonRoute(tester, '/components/button');
+    _expectDocMode(tester, DocScrollMode.recyclerView, sections: 11);
+
+    router.go('/components/list-tile');
+    await tester.pumpAndSettle();
+    expect(find.byType(ListTilePage), findsOneWidget);
+    _expectDocMode(tester, DocScrollMode.recyclerView, sections: 8);
+
+    GlobalState.docScrollMode.value = DocScrollMode.officialVirtual;
+    await tester.pumpAndSettle();
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 8);
+    router.go('/components/button');
+    await tester.pumpAndSettle();
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 11);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('旧 recycler 和 repeat 查询参数不覆盖全局模式或复制文档', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.officialVirtual;
+    final router = await _openButtonRoute(tester, '/components/button?recycler=true&repeat=100#compare');
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 11);
+    expect(GlobalState.docScrollMode.value, DocScrollMode.officialVirtual);
+
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    router.go('/components/button?recycler=false&repeat=3');
+    await tester.pumpAndSettle();
+    _expectDocMode(tester, DocScrollMode.recyclerView, sections: 11);
+    expect(GlobalState.docScrollMode.value, DocScrollMode.recyclerView);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('宽屏目录在四种滚动模式都能定位最后一个真实小节', (tester) async {
+    await _openButtonRoute(tester, '/components/list-tile', width: 1200);
+    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+    final lastTitle = page.sections.last.title;
+    expect(page.sections, hasLength(8));
+    for (final mode in DocScrollMode.values) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      final directoryEntry = find.widgetWithText(TextButton, lastTitle);
+      expect(directoryEntry.hitTestable(), findsOneWidget);
+      await tester.tap(directoryEntry);
+      await tester.pumpAndSettle();
+
+      final body = find.byType(DocScrollView);
+      final heading = find.descendant(of: body, matching: find.text(lastTitle)).hitTestable();
+      expect(heading, findsOneWidget, reason: '${mode.label} 的目录应使最后小节标题进入视口');
+      final viewport = tester.getRect(body);
+      final center = tester.getCenter(heading);
+      expect(center.dx, inInclusiveRange(viewport.left, viewport.right));
+      expect(center.dy, inInclusiveRange(viewport.top, viewport.bottom));
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('阴影页沿用四种滚动模式且保留五级卡片和风格选择', (tester) async {
+    await _openButtonRoute(tester, '/components/shadow-design', width: 1200);
+    final choices = [
+      (ElShadowType.uniform, '四周均匀'),
+      (ElShadowType.floating, '轻盈悬浮'),
+      (ElShadowType.glow, '彩色光晕'),
+      (ElShadowType.inset, '内凹阴影'),
+    ];
+    for (final (index, mode) in DocScrollMode.values.indexed) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      final body = find.byType(DocScrollView);
+      expect(body, findsOneWidget);
+      for (final level in ElLevelType.values) {
+        expect(find.byKey(ValueKey('shadow-${level.name}')).hitTestable(), findsOneWidget);
+      }
+
+      final dropdown = find.byKey(ValueKey('shadow-type'));
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      final (type, label) = choices[index];
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+      expect(tester.widget<DropdownButton<ElShadowType>>(dropdown).value, type);
+      for (final level in ElLevelType.values) {
+        final card = tester.widget<ElCardView>(find.byKey(ValueKey('shadow-${level.name}')));
+        expect(card.style!.boxShadow, isNotEmpty);
+        if (type == ElShadowType.uniform) {
+          expect(card.style!.boxShadow!.every((shadow) => shadow.offset == Offset.zero), isTrue);
+        }
+        if (type == ElShadowType.inset) {
+          expect(card.style!.boxShadow!.every((shadow) => (shadow as ElBoxShadow).inset), isTrue);
+        }
+      }
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('两倍压力在四种模式重复相同正文且页首标题只保留一次', (tester) async {
+    GlobalState.docRepeatCount.value = 2;
     await _openButtonRoute(tester, '/components/button');
-    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
-    expect(page.useRecyclerView, isFalse);
-    expect(page.repeatCount, 1);
-    expect(find.byType(rv.RecyclerView), findsNothing);
-    expect(find.byType(ElScrollView), findsOneWidget);
-    final list = tester.widget<ElListView>(find.byType(ElListView).first);
-    expect(list.keepAlive, isFalse);
-    expect(list.itemCount, page.sections.length + 1);
-    expect(find.byType(ElCodeExample), findsWidgets);
+    for (final mode in DocScrollMode.values) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      _expectDocMode(tester, mode, sections: 11);
+      if (mode == DocScrollMode.recyclerView) {
+        final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+        final adapter = list.getAdapter()!;
+        expect(adapter.getItemViewType(1), adapter.getItemViewType(12));
+        list.scrollToPosition(12);
+        await tester.pumpAndSettle();
+        _expectRealExample(tester, list, 12);
+      }
+    }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('窄屏按钮页可点开关往返两条滚动管线并保留查询参数和片段', (tester) async {
-    final router = await _openButtonRoute(
-      tester,
-      '/components/button?repeat=3&source=phone&flag=yes#compare',
-      width: 320,
-    );
-    _expectScrollMode(tester, recycler: false, repeat: 3);
-    expect(_scrollSwitch().hitTestable(), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(_scrollSwitch());
-    await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: true, repeat: 3);
-    var uri = router.routeInformationProvider.value.uri;
-    expect(uri.path, '/components/button');
-    expect(uri.queryParameters['recycler'], 'true');
-    expect(uri.queryParameters['repeat'], '3');
-    expect(uri.queryParameters['source'], 'phone');
-    expect(uri.queryParameters['flag'], 'yes');
-    expect(uri.fragment, 'compare');
-
-    final switchCenter = tester.getCenter(_scrollSwitch());
-    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
-    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
-    list.scrollToPosition(page.sections.length * 2 + 1);
-    await tester.pumpAndSettle();
-    expect(tester.getCenter(_scrollSwitch()), switchCenter);
-    expect(_scrollSwitch().hitTestable(), findsOneWidget);
-
-    await tester.tap(_scrollSwitch());
-    await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: false, repeat: 3);
-    uri = router.routeInformationProvider.value.uri;
-    expect(uri.queryParameters['recycler'], isNot('true'));
-    expect(uri.queryParameters['repeat'], '3');
-    expect(uri.queryParameters['source'], 'phone');
-    expect(uri.queryParameters['flag'], 'yes');
-    expect(uri.fragment, 'compare');
-    expect(tester.takeException(), isNull);
+  testWidgets('二十倍虚拟压力保留完整计数并只挂载视口附近正文', (tester) async {
+    GlobalState.docRepeatCount.value = 20;
+    GlobalState.docScrollMode.value = DocScrollMode.officialVirtual;
+    await _openButtonRoute(tester, '/components/button');
+    for (final mode in [DocScrollMode.officialVirtual, DocScrollMode.elScrollView, DocScrollMode.recyclerView]) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      _expectDocMode(tester, mode, sections: 11);
+      expect(find.byType(ElCodeExample, skipOffstage: false).evaluate().length, lessThan(22));
+    }
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('外部深链 true 和 false 同步开关与当前滚动管线', (tester) async {
-    final router = await _openButtonRoute(tester, '/components/button?repeat=2');
-    _expectScrollMode(tester, recycler: false, repeat: 2);
-
-    router.go('/components/button?recycler=true&repeat=2');
+  testWidgets('当前压力变化立即更新数量并在其他文档沿用', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.officialVirtual;
+    final router = await _openButtonRoute(tester, '/components/button');
+    GlobalState.docRepeatCount.value = 2;
     await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: true, repeat: 2);
-    expect(tester.takeException(), isNull);
-
-    router.go('/components/button?recycler=false&repeat=2');
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 11);
+    GlobalState.docRepeatCount.value = 5;
     await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: false, repeat: 2);
-    expect(tester.takeException(), isNull);
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 11);
+
+    router.go('/components/list-tile');
+    await tester.pumpAndSettle();
+    _expectDocMode(tester, DocScrollMode.officialVirtual, sections: 8);
+    expect(GlobalState.docRepeatCount.value, 5);
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('不安装 GoRouter 时按钮页仍可在窄屏本地切换', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = Size(320, 740);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    await tester.pumpWidget(
-      ElComponentProvider(
-        components: el.mobileComponents,
-        child: MaterialApp(home: ButtonPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: false, repeat: 1);
-
-    await tester.tap(_scrollSwitch());
-    await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: true, repeat: 1);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(_scrollSwitch());
-    await tester.pumpAndSettle();
-    _expectScrollMode(tester, recycler: false, repeat: 1);
-    expect(tester.takeException(), isNull);
+  testWidgets('阴影页在四种模式按两倍压力重复完整五级卡片', (tester) async {
+    GlobalState.docRepeatCount.value = 2;
+    await _openButtonRoute(tester, '/components/shadow-design', width: 1200);
+    for (final mode in DocScrollMode.values) {
+      GlobalState.docScrollMode.value = mode;
+      await tester.pumpAndSettle();
+      for (final level in ElLevelType.values) {
+        expect(find.byKey(ValueKey('shadow-${level.name}')), findsNWidgets(2));
+      }
+      expect(find.byKey(ValueKey('shadow-type')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
     await tester.pumpWidget(SizedBox());
   });
 }

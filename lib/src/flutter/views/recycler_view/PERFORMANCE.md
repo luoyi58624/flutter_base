@@ -2,6 +2,8 @@
 
 日期：2026-11-05。
 
+本文保留首轮实现的历史采样结果。后续已取消该版本专用的 `recycler`、`repeat` 查询入口，改为「设置 → 系统设置 → 文档滚动」统一选择四种模式；当前页面不再通过参数重复生成 1101 项。以下数字对应当时的重复模板场景，不代表当前四模式入口已重新获得相同结果。
+
 本轮相同按钮文档内容的快速滑动对照中，Dart RecyclerView 的 UI 帧耗时 P95 和较长的帧生产间隔减少；尖峰仍然存在。UI 最大耗时略高，raster P95 也没有改善。这组数据支持继续验证结构复用的效果，不能证明已经达到原生流畅度或根治滚动卡顿。
 
 ## 环境与操作
@@ -11,7 +13,7 @@
 | 设备 | PLJ110，Android 17 |
 | Flutter | 3.47.5，Profile |
 | 渲染 | Impeller / Vulkan |
-| 页面 | 实际 Button 文档，11 种示例小节各重复 100 次，另加页首，共 1101 项 |
+| 页面 | 历史采样版本的实际 Button 文档，11 种示例小节各重复 100 次，另加页首，共 1101 项 |
 | 基线 | 原文档滚动容器，keepAlive 为 false |
 | 对照 | 本目录实现的 Dart RecyclerView，使用相同文档视图 |
 | 计帧 | 导航后等待 800ms 开始，采样窗口 12 秒 |
@@ -63,12 +65,16 @@ UI 指标来自 `FrameTiming.buildDuration`，表示 UI 线程的帧阶段耗时
 - 单组有限样本无法排除顺序、热身、系统调度等因素，也不能推广到任意 Widget、不同数据分布或持续的 20ms 同步工作。
 - 本轮没有修改 Flutter 引擎，没有测量 Android 原生列表的同期结果，不能据此声称原生般流畅、全部卡顿已经解决或问题只来自某一个调度环节。
 
-## 复查入口与数据
+## 历史入口与数据
 
-页面入口：
+当前入口为「设置 → 系统设置 → 文档滚动」，可选择官方普通滚动、官方虚拟滚动、ElScrollView 或 RecyclerView。系统设置中的「全局屏蔽语义」用于统一控制辅助技术语义输出；新的对照应保持该开关一致，并另行记录设置与采样数据。
 
-- RecyclerView：`flutter-base://example/components/button?recycler=true&repeat=100`
-- 原滚动容器：`flutter-base://example/components/button?repeat=100`
+以下链接仅标记当时的采样配置，**当前版本已取消其滚动选择与重复参数功能，不能再用它们恢复本文的 1101 项场景**：
+
+- 已取消的历史 RecyclerView 入口：`flutter-base://example/components/button?recycler=true&repeat=100`
+- 已取消的历史基线入口：`flutter-base://example/components/button?repeat=100`
+
+按钮页上的局部滚动对比开关也已移除，页面统一服从系统设置。
 
 本机原始产物保存在仓库内被 Git 忽略的 `.codex-run/recycler-diag-20261105/`，不随组件发布：
 
@@ -77,6 +83,6 @@ UI 指标来自 `FrameTiming.buildDuration`，表示 UI 线程的帧阶段耗时
 | `baseline2.json` | 基线逐帧记录与 6 次手势的时间信息 |
 | `recycler2.json` | RecyclerView 逐帧记录与手势信息 |
 | `summary.json` | 本文表格对应的统计摘要 |
-| `compare.py` | 深链、手势与统计过程 |
+| `compare.py` | 历史版本的深链、手势与统计过程，不是当前入口的复现脚本 |
 
 分位数使用排序后的 `floor((n-1) × q)` 对应样本，再从微秒换算为毫秒。采样顺序和阈值可从 `compare.py` 复核；不要将本报告中的样本数替代实际创建、绑定或成功预取次数。

@@ -26,6 +26,30 @@ class SettingPage extends StatelessWidget {
             children: [
               ElListTile.switcher(modelValue: GlobalState.showPerformanceOverlay, title: '性能监控'),
               ElListTile.switcher(modelValue: GlobalState.debugShowCheckedModeBanner, title: '显示 Debug 横幅'),
+              ElListTile<bool>.switcher(
+                key: ValueKey('settings-exclude-semantics'),
+                title: '屏蔽语义',
+                modelValue: GlobalState.excludeSemantics,
+              ),
+              ElListTile<DocScrollMode>.popup(
+                key: ValueKey('settings-doc-scroll-mode'),
+                title: '文档滚动',
+                modelValue: GlobalState.docScrollMode,
+                options: [for (final mode in DocScrollMode.values) ElLabelModel(mode.label, mode)],
+              ),
+              ElListTile<int>.popup(
+                key: ValueKey('settings-doc-repeat-count'),
+                title: '性能压力',
+                modelValue: GlobalState.docRepeatCount,
+                options: [
+                  for (final count in [1, 2, 5, 10, 20]) ElLabelModel('$count 倍', count),
+                ],
+              ),
+              ElListTile<bool>.switcher(
+                key: ValueKey('settings-resampling-enabled'),
+                title: '触摸重采样',
+                modelValue: GlobalState.resamplingEnabled,
+              ),
             ],
           ),
           ElListGroup(

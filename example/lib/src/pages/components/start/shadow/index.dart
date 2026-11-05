@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 
 import '../../../example_page.dart';
+import '../../../../widgets/doc_scroll_view.dart';
 
 /// 对照五级阴影，并通过导航栏切换视觉风格。
 class ShadowPage extends HookWidget {
@@ -32,28 +33,27 @@ class ShadowPage extends HookWidget {
           ),
         ),
       ],
-      child: ElScrollView(
+      child: DocScrollView(
         padding: .all(40),
-        children: [
-          Wrap(
-            alignment: .center,
-            spacing: 48,
-            runSpacing: 48,
-            children: [
-              for (final level in ElLevelType.values)
-                ElCardView(
-                  key: ValueKey('shadow-${level.name}'),
-                  style: ElStyle(
-                    width: 180,
-                    height: 120,
-                    backgroundColor: surface,
-                    borderRadius: .circular(16),
-                  ).withShadow(type: type.value, level: level),
-                  child: Center(child: Text(level.name)),
-                ),
-            ],
-          ),
-        ],
+        itemCount: 1,
+        itemBuilder: (context, index) => Wrap(
+          alignment: .center,
+          spacing: 48,
+          runSpacing: 48,
+          children: [
+            for (final level in ElLevelType.values)
+              ElCardView(
+                key: ValueKey('shadow-${level.name}'),
+                style: ElStyle(
+                  width: 180,
+                  height: 120,
+                  backgroundColor: surface,
+                  borderRadius: .circular(16),
+                ).withShadow(type: type.value, level: level),
+                child: Center(child: Text(level.name)),
+              ),
+          ],
+        ),
       ),
     );
   }

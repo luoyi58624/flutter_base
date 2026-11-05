@@ -159,6 +159,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('未知高度短列表定位较短末项后保持可见且不越过滚动边界', (tester) async {
+    final adapter = _RowsAdapter(count: 12, types: 12, varyingExtent: true);
+    final layout = rv.LinearLayoutManager();
+    final list = _list(adapter, layout: layout);
+    await _pump(tester, list);
+
+    list.scrollToPosition(11);
+    await tester.pumpAndSettle();
+
+    expect(list.findViewHolderForAdapterPosition(11), isNotNull);
+    expect(layout.findLastVisibleItemPosition(), 11);
+    expect(find.text('row 11').hitTestable(), findsOneWidget);
+    final scrollable = find.descendant(of: find.byWidget(list), matching: find.byType(Scrollable)).first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    expect(position.pixels, inInclusiveRange(position.minScrollExtent, position.maxScrollExtent));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('未知高度列表在首个可见条目前插入数据时保持锚点', (tester) async {
     final adapter = _RowsAdapter(count: 100, varyingExtent: true)..setHasStableIds(true);
     final layout = rv.LinearLayoutManager();
@@ -405,6 +423,44 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     }
+  });
+
+  testWidgets('尺寸稳定的连续布局不会每帧重新创建惯性滚动活动', (tester) async {
+    final adapter = _RowsAdapter(count: 1000);
+    final layout = rv.LinearLayoutManager();
+    final list = _list(adapter, layout: layout);
+    await _pump(tester, list);
+    list.scrollToPosition(100);
+    await tester.pumpAndSettle();
+    layout.setItemPrefetchEnabled(false);
+    await tester.pumpAndSettle();
+
+    final scrollable = find.descendant(of: find.byWidget(list), matching: find.byType(Scrollable)).first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    final viewport = position.viewportDimension;
+    final maxExtent = position.maxScrollExtent;
+    ScrollActivity? currentActivity() {
+      // 活动对象身份用于识别布局是否错误地重启同一段惯性滚动。
+      // ignore: invalid_use_of_protected_member
+      return position.activity;
+    }
+
+    expect(list.fling(0, 3000), isTrue);
+    await tester.pump();
+    final activity = currentActivity();
+    expect(activity, isA<BallisticScrollActivity>());
+    var previousPixels = position.pixels;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position.viewportDimension, viewport);
+      expect(position.maxScrollExtent, maxExtent);
+      expect(currentActivity(), same(activity), reason: '第 $frame 帧尺寸稳定时应继续同一个惯性活动');
+      expect(position.pixels, greaterThan(previousPixels));
+      previousPixels = position.pixels;
+    }
+    list.stopScroll();
+    await tester.pumpWidget(SizedBox());
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('stopScroll 取消平滑定位后不会延迟跳回旧目标', (tester) async {
