@@ -19,12 +19,19 @@ Future<void> _openCatalog(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('移动目录沿用原有条目行为，通过路由打开阴影页面', (tester) async {
+  testWidgets('移动目录通过路由打开占位页和阴影页面，返回后仍能再次进入', (tester) async {
     await _openCatalog(tester);
-    await tester.tap(find.byKey(ValueKey('component-quick-start')));
-    await tester.pumpAndSettle();
-    expect(router.routeInformationProvider.value.uri.path, '/components');
-    expect(find.byType(ComponentPage), findsOneWidget);
+    for (final (key, title) in [('quick-start', '快速开始'), ('theme-design', '主题设计'), ('quick-start', '快速开始')]) {
+      await tester.tap(find.byKey(ValueKey('component-$key')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/components/$key');
+      expect(find.widgetWithText(AppBar, title), findsOneWidget);
+      expect(find.byType(BackButton), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/components');
+      expect(find.byType(ComponentPage), findsOneWidget);
+    }
 
     await tester.tap(find.byKey(ValueKey('component-shadow-design')));
     await tester.pumpAndSettle();

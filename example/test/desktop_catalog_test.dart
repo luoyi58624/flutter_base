@@ -104,6 +104,13 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, '/components/quick-start');
     tester.view.physicalSize = Size(390, 900);
     await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '快速开始'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('component-quick-start')));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/quick-start');
+    expect(find.widgetWithText(AppBar, '快速开始'), findsOneWidget);
     router.go('/settings');
     await tester.pumpAndSettle();
     tester.view.physicalSize = Size(1280, 900);

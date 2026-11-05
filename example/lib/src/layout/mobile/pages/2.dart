@@ -27,11 +27,7 @@ class ComponentPage extends StatelessWidget {
                       ElListTile(
                         key: ValueKey('component-${item.key}'),
                         title: item.title,
-                        onTap: () {
-                          if (item.data != null) {
-                            context.go('${RouterUtil.component}/${item.key}');
-                          }
-                        },
+                        onTap: () => context.go('${RouterUtil.component}/${item.key}'),
                       ),
                   ],
                 ),
