@@ -1,6 +1,8 @@
 # 组件文档页规范
 
-Button 是首个样板。九个演示按旧 el 的 `examples/element_docs/lib/src/pages/ui/basic/button/examples` 逐个迁移，参数以本仓库的公共接口为准。
+Button 是首个样板，参数以本仓库的公共接口为准；其余组件沿用同样的分节、交互舞台和独立源码结构。
+
+当前目录中的组件均已接入已有实现或基础 Material 替代；没有对应实现的预设返回原来的空白页。Empty 两端暂留空；移动端数字输入、验证码输入、标签输入和提及，以及桌面端骨架屏继续等待对应实现。Icon、Text、Divider 和 Badge 使用当前公共入口，不新增组件接口。
 
 ## 页面与示例
 

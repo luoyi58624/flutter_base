@@ -2,6 +2,7 @@ import 'package:flutter/painting.dart' show Color, BoxShadow, Offset;
 
 import '../../../../flutter.dart';
 import '../../../dart/commons/index.dart' show El;
+import '../../material/index.dart' show materialComponents;
 import 'button/index.dart';
 import 'button_group/index.dart';
 import 'card/index.dart';
@@ -21,20 +22,22 @@ extension ElMobileExt on El {
   ElComponents get mobileComponents => _components;
 }
 
-final _components = ElComponents(
-  style: ElStyle(
-    vars: _lightVars,
-    onDark: ElStyle(vars: _darkVars),
+final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
+  ElComponents(
+    style: ElStyle(
+      vars: _lightVars,
+      onDark: ElStyle(vars: _darkVars),
+    ),
+    button: buttonBuilder,
+    buttonGroup: buttonGroupBuilder,
+    card: cardBuilder,
+    tag: tagBuilder,
+    switcher: switchBuilder,
+    listTile: listTileBuilder,
+    listTileGroup: listTileGroupBuilder,
+    loadingIndicator: loadingIndicatorBuilder,
+    progress: progressBuilder,
+    skeleton: skeletonBuilder,
+    slider: sliderBuilder,
   ),
-  button: buttonBuilder,
-  buttonGroup: buttonGroupBuilder,
-  card: cardBuilder,
-  tag: tagBuilder,
-  switcher: switchBuilder,
-  listTile: listTileBuilder,
-  listTileGroup: listTileGroupBuilder,
-  loadingIndicator: loadingIndicatorBuilder,
-  progress: progressBuilder,
-  skeleton: skeletonBuilder,
-  slider: sliderBuilder,
 );

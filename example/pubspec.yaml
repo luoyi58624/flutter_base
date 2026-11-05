@@ -30,3 +30,32 @@ flutter:
     - lib/src/pages/components/basic/button/examples/
     - lib/src/pages/components/basic/button_group/examples/
     - lib/src/pages/components/list/list_tile/examples/
+    - lib/src/pages/components/basic/icon/examples/
+    - lib/src/pages/components/basic/text/examples/
+    - lib/src/pages/components/basic/tag/examples/
+    - lib/src/pages/components/form/input/examples/
+    - lib/src/pages/components/form/input_number/examples/
+    - lib/src/pages/components/form/input_otp/examples/
+    - lib/src/pages/components/form/input_tag/examples/
+    - lib/src/pages/components/form/autocomplete/examples/
+    - lib/src/pages/components/form/mention/examples/
+    - lib/src/pages/components/form/select/examples/
+    - lib/src/pages/components/form/switch/examples/
+    - lib/src/pages/components/form/radio/examples/
+    - lib/src/pages/components/form/checkbox/examples/
+    - lib/src/pages/components/form/segmented/examples/
+    - lib/src/pages/components/form/slider/examples/
+    - lib/src/pages/components/form/calendar/examples/
+    - lib/src/pages/components/form/form/examples/
+    - lib/src/pages/components/layout/card/examples/
+    - lib/src/pages/components/layout/divider/examples/
+    - lib/src/pages/components/layout/collapse/examples/
+    - lib/src/pages/components/layout/tabs/examples/
+    - lib/src/pages/components/list/list_group/examples/
+    - lib/src/pages/components/data/avatar/examples/
+    - lib/src/pages/components/data/badge/examples/
+    - lib/src/pages/components/data/progress/examples/
+    - lib/src/pages/components/data/skeleton/examples/
+    - lib/src/pages/components/data/steps/examples/
+    - lib/src/pages/components/feedback/alert/examples/
+    - lib/src/pages/components/feedback/loading/examples/

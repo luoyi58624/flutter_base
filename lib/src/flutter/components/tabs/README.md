@@ -4,4 +4,4 @@
 
 模型由 ElModelValue 持有，品牌通过 currentValue 读写，不在接口层执行选项回退、键盘或滑动算法。非空 T 须提供初值或模型，业务值可用枚举、数字或值对象。
 
-已有 ElTabController、ElTabView、ElTabBar、ElTabItem 和 ElTabIndicatorBuilder 继续承担 Flutter 的标签栏与正文组合。当前移动端尚未登记 Tabs / TabBar Builder，本目录只声明共同接口。
+已有 ElTabController、ElTabView、ElTabBar、ElTabItem 和 ElTabIndicatorBuilder 继续承担 Flutter 的标签栏与正文组合。两端暂用官方 TabBar / TabBarView 承接，独立标签栏适配现有控制器；自定义指示器等边界见 [Material 替代](../../../ui/material/README.md)。

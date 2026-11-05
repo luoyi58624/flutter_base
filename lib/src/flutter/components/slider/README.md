@@ -7,4 +7,4 @@
 - 文案：label、unit、startLabel、endLabel，valueLabelDisplay 使用 auto / on / off；valueLabelFormat 和 semanticValueFormat 以端点索引区分范围文案。
 - 行为与外观：disabled、style、focusNode、event，复用公共事件及焦点通道。
 
-公共接口移除 Material 的 SliderInteraction、WidgetStateProperty、divisions 和专属颜色字段。吸附、交叉端点排序、触屏预览抬起提交和辅助技术操作由品牌实现，接口不修改传入集合或计算选择。移动端尚未登记对应 Builder。
+公共接口移除 Material 的 SliderInteraction、WidgetStateProperty、divisions 和专属颜色字段。吸附、交叉端点排序、触屏预览抬起提交和辅助技术操作由品牌实现，接口不修改传入集合或计算选择。移动端已有品牌实现，桌面端暂用官方 Slider / RangeSlider 承接基础行为；临时边界见 [Material 替代](../../../ui/material/README.md)。

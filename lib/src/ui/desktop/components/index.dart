@@ -1,9 +1,10 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../dart/commons/index.dart' show El;
+import '../../material/index.dart' show materialComponents;
 import '../../../flutter/commons/models.dart' show ElLevelType;
 import '../../../flutter/commons/theme/index.dart' show ElThemeContextExt, ElTokens;
-import '../../../flutter/components/index.dart' show ElComponents;
+import '../../../flutter/components/index.dart' show ElComponents, ElComponentsExt;
 import '../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../flutter/widgets/form/index.dart' show ElFormItemView;
 import 'autocomplete/index.dart';
@@ -31,26 +32,28 @@ extension ElDesktopExt on El {
   ElComponents get desktopComponents => _components;
 }
 
-final _components = ElComponents(
-  style: ElStyle(
-    vars: _lightVars,
-    onDark: ElStyle(vars: _darkVars),
+final _components = ElComponentsExt(materialComponents()).merge(
+  ElComponents(
+    style: ElStyle(
+      vars: _lightVars,
+      onDark: ElStyle(vars: _darkVars),
+    ),
+    button: (context, component, model) => Button(component, model),
+    tag: (context, component) => Tag(component),
+    buttonGroup: <T>(context, component) => ButtonGroup<T>(component),
+    switcher: (context, component, model) => Switch(component, model),
+    input: (context, component) => Input(component, null),
+    select: <T>(context, component) => Select<T>(component),
+    autocomplete: <T>(context, component) => Autocomplete<T>(component),
+    inputNumber: (context, component) => InputNumber(component),
+    mention: <T>(context, component) => Mention<T>(component),
+    inputTag: (context, component) => InputTag(component),
+    inputOtp: (context, component) => InputOtp(component),
+    formItem: (context, component) => ElFormItemView(
+      component: component,
+      labelStyle: ElStyle(color: context.elTheme.textRegular, iconColor: context.elTheme.textRegular),
+      errorStyle: ElStyle(color: context.elTheme.error, iconColor: context.elTheme.error),
+    ),
+    tableStyle: ElTableTheme.style,
   ),
-  button: (context, component, model) => Button(component, model),
-  tag: (context, component) => Tag(component),
-  buttonGroup: <T>(context, component) => ButtonGroup<T>(component),
-  switcher: (context, component, model) => Switch(component, model),
-  input: (context, component) => Input(component, null),
-  select: <T>(context, component) => Select<T>(component),
-  autocomplete: <T>(context, component) => Autocomplete<T>(component),
-  inputNumber: (context, component) => InputNumber(component),
-  mention: <T>(context, component) => Mention<T>(component),
-  inputTag: (context, component) => InputTag(component),
-  inputOtp: (context, component) => InputOtp(component),
-  formItem: (context, component) => ElFormItemView(
-    component: component,
-    labelStyle: ElStyle(color: context.elTheme.textRegular, iconColor: context.elTheme.textRegular),
-    errorStyle: ElStyle(color: context.elTheme.error, iconColor: context.elTheme.error),
-  ),
-  tableStyle: ElTableTheme.style,
 );

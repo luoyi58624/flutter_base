@@ -9,28 +9,7 @@ int _missingBuilders(ElComponents components) =>
 void main() {
   test('桌面默认表只缺已知项', () {
     final builders = el.desktopComponents;
-    final gaps = {
-      'checkbox': builders.checkbox,
-      'radio': builders.radio,
-      'card': builders.card,
-      'loadingIndicator': builders.loadingIndicator,
-      'listTile': builders.listTile,
-      'listTileGroup': builders.listTileGroup,
-      'progress': builders.progress,
-      'slider': builders.slider,
-      'skeleton': builders.skeleton,
-      'steps': builders.steps,
-      'step': builders.step,
-      'avatar': builders.avatar,
-      'calendar': builders.calendar,
-      'collapse': builders.collapse,
-      'collapseItem': builders.collapseItem,
-      'empty': builders.empty,
-      'segmented': builders.segmented,
-      'tabs': builders.tabs,
-      'tabBar': builders.tabBar,
-      'alert': builders.alert,
-    };
+    final gaps = {'skeleton': builders.skeleton, 'empty': builders.empty};
     expect(gaps.values, everyElement(isNull), reason: '已补齐的缺口请从清单移除');
     expect(_missingBuilders(builders), gaps.length);
   });
@@ -38,28 +17,13 @@ void main() {
   test('移动默认表只缺已知项', () {
     final builders = el.mobileComponents;
     final gaps = {
-      'input': builders.input,
-      'checkbox': builders.checkbox,
-      'radio': builders.radio,
-      'select': builders.select,
-      'autocomplete': builders.autocomplete,
       'inputNumber': builders.inputNumber,
       'mention': builders.mention,
       'inputTag': builders.inputTag,
       'inputOtp': builders.inputOtp,
       'formItem': builders.formItem,
       'tableStyle': builders.tableStyle,
-      'steps': builders.steps,
-      'step': builders.step,
-      'avatar': builders.avatar,
-      'calendar': builders.calendar,
-      'collapse': builders.collapse,
-      'collapseItem': builders.collapseItem,
       'empty': builders.empty,
-      'segmented': builders.segmented,
-      'tabs': builders.tabs,
-      'tabBar': builders.tabBar,
-      'alert': builders.alert,
     };
     expect(gaps.values, everyElement(isNull), reason: '已补齐的缺口请从清单移除');
     expect(_missingBuilders(builders), gaps.length);

@@ -24,7 +24,7 @@ Widget _host(Widget child, {ElStyle? style}) => MaterialApp(
 Finder _view(bool Function(ElView view) test) => find.byWidgetPredicate((widget) => widget is ElView && test(widget));
 
 void main() {
-  testWidgets('移动端只注册已有实现，不为缺失组件填充桌面或占位实现', (tester) async {
+  testWidgets('移动端保留品牌实现并注册基础官方替代，无官方对应的组件仍留空', (tester) async {
     late ElComponents builders;
     await tester.pumpWidget(
       _host(
@@ -43,10 +43,13 @@ void main() {
     expect(builders.loadingIndicator, isNotNull);
     expect(builders.progress, isNotNull);
     expect(builders.skeleton, isNotNull);
-    expect(builders.input, isNull);
-    expect(builders.checkbox, isNull);
-    expect(builders.radio, isNull);
-    expect(builders.buttonGroup, isNull);
+    expect(builders.input, isNotNull);
+    expect(builders.checkbox, isNotNull);
+    expect(builders.radio, isNotNull);
+    expect(builders.buttonGroup, isNotNull);
+    expect(builders.mention, isNull);
+    expect(builders.inputTag, isNull);
+    expect(builders.empty, isNull);
   });
 
   testWidgets('通用卡片加载期间保留正文实例并阻止整卡激活', (tester) async {

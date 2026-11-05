@@ -141,12 +141,14 @@ void main() {
     expect(inner.button, isNot(same(outer.button)));
     expect(outer.button, isNotNull);
     expect(inner.button, isNotNull);
-    expect(outer.radio, isNull);
-    expect(inner.radio, isNull);
-    expect(outer.checkbox, isNull);
-    expect(inner.checkbox, isNull);
+    expect(outer.radio, isNotNull);
+    expect(inner.radio, isNotNull);
+    expect(outer.checkbox, isNotNull);
+    expect(inner.checkbox, isNotNull);
     expect(outer.listTile, isNotNull);
-    expect(inner.listTile, isNull);
+    expect(inner.listTile, isNotNull);
+    expect(outer.empty, isNull);
+    expect(inner.empty, isNull);
     expect(outerPrimary, outer.style!.vars![ElTokens.$primary]);
     expect(innerPrimary, inner.style!.vars![ElTokens.$primary]);
 

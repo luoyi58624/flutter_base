@@ -4,6 +4,35 @@ import 'package:flutter_base/flutter_base.dart';
 import '../example_page.dart';
 import 'basic/button/index.dart';
 import 'basic/button_group/index.dart';
+import 'basic/icon/index.dart';
+import 'basic/text/index.dart';
+import 'basic/tag/index.dart';
+import 'form/input/index.dart';
+import 'form/input_number/index.dart';
+import 'form/input_otp/index.dart';
+import 'form/input_tag/index.dart';
+import 'form/autocomplete/index.dart';
+import 'form/mention/index.dart';
+import 'form/select/index.dart';
+import 'form/switch/index.dart';
+import 'form/radio/index.dart';
+import 'form/checkbox/index.dart';
+import 'form/segmented/index.dart';
+import 'form/slider/index.dart';
+import 'form/calendar/index.dart';
+import 'form/form/index.dart';
+import 'layout/card/index.dart';
+import 'layout/divider/index.dart';
+import 'layout/collapse/index.dart';
+import 'layout/tabs/index.dart';
+import 'list/list_group/index.dart';
+import 'data/avatar/index.dart';
+import 'data/badge/index.dart';
+import 'data/progress/index.dart';
+import 'data/skeleton/index.dart';
+import 'data/steps/index.dart';
+import 'feedback/alert/index.dart';
+import 'feedback/loading/index.dart';
 import 'list/list_tile/index.dart';
 import 'start/shadow/index.dart';
 
@@ -24,39 +53,39 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
     children: [
       _page('button', 'Button 按钮', builder: (_) => ButtonPage()),
       _page('button-group', 'ButtonGroup 按钮组', builder: (_) => ButtonGroupPage()),
-      _page('icon', 'Icon 图标'),
-      _page('text', 'Text 文本'),
-      _page('tag', 'Tag 标签'),
+      _page('icon', 'Icon 图标', builder: (_) => IconPage()),
+      _page('text', 'Text 文本', builder: (_) => TextPage()),
+      _page('tag', 'Tag 标签', builder: (_) => TagPage()),
     ],
   ),
   ElMenuModel(
     group: true,
     title: '表单组件',
     children: [
-      _page('input', 'Input 输入框'),
-      _page('input-number', 'InputNumber 数字输入框'),
-      _page('input-otp', 'InputOtp 验证码输入'),
-      _page('input-tag', 'InputTag 标签输入'),
-      _page('autocomplete', 'Autocomplete 自动补全'),
-      _page('mention', 'Mention 提及'),
-      _page('select', 'Select 选择器'),
-      _page('switch', 'Switch 开关'),
-      _page('radio', 'Radio 单选框'),
-      _page('checkbox', 'Checkbox 多选框'),
-      _page('segmented', 'Segmented 分段选择'),
-      _page('slider', 'Slider 滑块'),
-      _page('calendar', 'Calendar 日历'),
-      _page('form', 'Form 表单'),
+      _page('input', 'Input 输入框', builder: (_) => InputPage()),
+      _page('input-number', 'InputNumber 数字输入框', builder: (_) => InputNumberPage()),
+      _page('input-otp', 'InputOtp 验证码输入', builder: (_) => InputOtpPage()),
+      _page('input-tag', 'InputTag 标签输入', builder: (_) => InputTagPage()),
+      _page('autocomplete', 'Autocomplete 自动补全', builder: (_) => AutocompletePage()),
+      _page('mention', 'Mention 提及', builder: (_) => MentionPage()),
+      _page('select', 'Select 选择器', builder: (_) => SelectPage()),
+      _page('switch', 'Switch 开关', builder: (_) => SwitchPage()),
+      _page('radio', 'Radio 单选框', builder: (_) => RadioPage()),
+      _page('checkbox', 'Checkbox 多选框', builder: (_) => CheckboxPage()),
+      _page('segmented', 'Segmented 分段选择', builder: (_) => SegmentedPage()),
+      _page('slider', 'Slider 滑块', builder: (_) => SliderPage()),
+      _page('calendar', 'Calendar 日历', builder: (_) => CalendarPage()),
+      _page('form', 'Form 表单', builder: (_) => FormPage()),
     ],
   ),
   ElMenuModel(
     group: true,
     title: '布局与容器',
     children: [
-      _page('card', 'Card 卡片'),
-      _page('divider', 'Divider 分割线'),
-      _page('collapse', 'Collapse 折叠面板'),
-      _page('tabs', 'Tabs 标签页'),
+      _page('card', 'Card 卡片', builder: (_) => CardPage()),
+      _page('divider', 'Divider 分割线', builder: (_) => DividerPage()),
+      _page('collapse', 'Collapse 折叠面板', builder: (_) => CollapsePage()),
+      _page('tabs', 'Tabs 标签页', builder: (_) => TabsPage()),
     ],
   ),
   ElMenuModel(
@@ -64,25 +93,28 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
     title: '列表组件',
     children: [
       _page('list-tile', 'ListTile 列表行', builder: (_) => ListTilePage()),
-      _page('list-group', 'ListTileGroup 列表组'),
+      _page('list-group', 'ListTileGroup 列表组', builder: (_) => ListGroupPage()),
     ],
   ),
   ElMenuModel(
     group: true,
     title: '数据展示',
     children: [
-      _page('avatar', 'Avatar 头像'),
-      _page('badge', 'Badge 徽标'),
-      _page('progress', 'Progress 进度'),
-      _page('skeleton', 'Skeleton 骨架屏'),
+      _page('avatar', 'Avatar 头像', builder: (_) => AvatarPage()),
+      _page('badge', 'Badge 徽标', builder: (_) => BadgePage()),
+      _page('progress', 'Progress 进度', builder: (_) => ProgressPage()),
+      _page('skeleton', 'Skeleton 骨架屏', builder: (_) => SkeletonPage()),
       _page('empty', 'Empty 空态'),
-      _page('steps', 'Steps 步骤条'),
+      _page('steps', 'Steps 步骤条', builder: (_) => StepsPage()),
     ],
   ),
   ElMenuModel(
     group: true,
     title: '反馈组件',
-    children: [_page('alert', 'Alert 提示'), _page('loading', 'LoadingIndicator 加载指示')],
+    children: [
+      _page('alert', 'Alert 提示', builder: (_) => AlertPage()),
+      _page('loading', 'LoadingIndicator 加载指示', builder: (_) => LoadingPage()),
+    ],
   ),
 ];
 
