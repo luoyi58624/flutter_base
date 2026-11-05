@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../../../dart.dart' show $absent, ElModelGenerator;
 import '../utils/obs/index.dart' show Obs;
 import '../views/table/table.dart' show ElTableStyle;
-import '../views/view/style/style.dart' show ElStyle, ElThemeMode;
+import '../views/view/style/style.dart' show ElStyle;
 import '../views/view/view.dart' show ElView;
 import '../widgets/form/index.dart';
 import 'alert/index.dart';
@@ -72,7 +72,6 @@ class ElComponents with Equatable {
   /// 创建完整预设或局部组件覆写。
   const ElComponents({
     this.style,
-    this.themeMode,
     this.button,
     this.tag,
     this.buttonGroup,
@@ -110,9 +109,6 @@ class ElComponents with Equatable {
 
   /// 与组件预设绑定的样式和变量。
   final ElStyle? style;
-
-  /// 当前作用域的明暗模式和主题过渡配置。
-  final ElThemeMode? themeMode;
 
   /// 根据 ElButton 声明与选中模型构建品牌组件；普通按钮的模型不参与绘制。
   final Widget Function(BuildContext context, ElButton component, Obs<bool> model)? button;
@@ -222,15 +218,32 @@ class ElComponents with Equatable {
 }
 
 /// 在同一视图作用域内安装组件实现和主题变量。
-class ElComponentProvider extends StatelessWidget {
-  /// 创建组件和变量作用域，未提供的局部实现沿用祖先配置。
-  const ElComponentProvider({super.key, this.components, required this.child});
+class ElComponentProvider extends ElView {
+  /// 安装组件与预设样式，调用方样式优先，主题及其他视图配置沿用 ElView。
+  ElComponentProvider({
+    super.key,
+    this.components,
+    ElStyle? style,
+    super.event,
+    super.focusNode,
+    super.semantics,
+    super.themeMode,
+    super.breakpoint,
+    super.inheritSize,
+    super.locale,
+    required Widget child,
+  }) : super(
+         style: components?.style?.merge(style) ?? style,
+         child: Builder(
+           builder: (context) {
+             final parent = maybeOf(context);
+             return _ComponentScope(components: parent?.merge(components) ?? components, child: child);
+           },
+         ),
+       );
 
   /// 本层覆写的组件实现，省略时沿用祖先配置。
   final ElComponents? components;
-
-  /// 使用此作用域的子树。
-  final Widget child;
 
   /// 读取合并后的组件配置，必须存在祖先组件提供器。
   static ElComponents of(BuildContext context) {
@@ -252,17 +265,6 @@ class ElComponentProvider extends StatelessWidget {
     final builder = select(of(context));
     if (builder == null) throw FlutterError('${component.runtimeType} 未在 ElComponentProvider 中登记实现。');
     return builder;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final parent = maybeOf(context);
-    final scope = _ComponentScope(components: parent?.merge(components) ?? components, child: child);
-    final style = components?.style;
-    final themeMode = components?.themeMode;
-    if (style == null && themeMode == null) return scope;
-
-    return ElView(style: style, themeMode: themeMode, child: scope);
   }
 }
 

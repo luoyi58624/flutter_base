@@ -9,7 +9,6 @@ part of 'index.dart';
 extension ElComponentsExt on ElComponents {
   ElComponents copyWith({
     Object? style = $absent,
-    Object? themeMode = $absent,
     Object? button = $absent,
     Object? tag = $absent,
     Object? buttonGroup = $absent,
@@ -52,9 +51,6 @@ extension ElComponentsExt on ElComponents {
                 : (this.style == null
                       ? style as ElStyle
                       : this.style!.merge(style as ElStyle))),
-      themeMode: identical(themeMode, $absent)
-          ? this.themeMode
-          : themeMode as ElThemeMode?,
       button: identical(button, $absent)
           ? this.button
           : button as Widget Function(BuildContext, ElButton, Obs<bool>)?,
@@ -166,7 +162,6 @@ extension ElComponentsExt on ElComponents {
     if (other == null) return this;
     return ElComponents(
       style: style == null ? other.style : style!.merge(other.style),
-      themeMode: other.themeMode ?? themeMode,
       button: other.button ?? button,
       tag: other.tag ?? tag,
       buttonGroup: other.buttonGroup ?? buttonGroup,
@@ -205,7 +200,6 @@ extension ElComponentsExt on ElComponents {
 
   List<Object?> get _props => [
     style,
-    themeMode,
     button,
     tag,
     buttonGroup,
