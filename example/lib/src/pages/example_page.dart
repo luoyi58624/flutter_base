@@ -8,7 +8,14 @@ import '../layout/page_scope.dart';
 /// 示例页面共用的标题栏与内容区域。
 class ExamplePage extends StatelessWidget {
   /// 创建示例页，未提供内容时显示空白区域。
-  const ExamplePage({super.key, required this.title, this.child, this.actions = const [], this.backgroundColor});
+  const ExamplePage({
+    super.key,
+    required this.title,
+    this.child,
+    this.actions = const [],
+    this.backgroundColor,
+    this.showThemeToggle = false,
+  });
 
   /// 导航栏标题。
   final String title;
@@ -16,11 +23,14 @@ class ExamplePage extends StatelessWidget {
   /// 页面正文。
   final Widget? child;
 
-  /// 页面专用操作，移动端放在导航头，桌面端放在正文工具区。
+  /// 页面专用操作，独立页面放在导航头，桌面公共壳中放在正文工具区。
   final List<Widget> actions;
 
   /// 页面正文的背景色。
   final Color? backgroundColor;
+
+  /// 首页显式开启的主题切换，其它页面默认不显示。
+  final bool showThemeToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +40,16 @@ class ExamplePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: mobile
-          ? AppBar(title: Text(title), actions: [...actions, NavbarMenu()])
+          ? AppBar(title: Text(title), actions: [...actions, if (showThemeToggle) NavbarMenu()])
           : ownNavbar
-          ? DesktopNavbar(title: title, leading: Navigator.of(context).canPop() ? BackButton() : null)
+          ? DesktopNavbar(
+              title: title,
+              leading: Navigator.of(context).canPop() ? BackButton() : null,
+              showThemeToggle: showThemeToggle,
+              actions: actions,
+            )
           : null,
-      body: mobile || actions.isEmpty
+      body: ownNavbar || actions.isEmpty
           ? child
           : Column(
               crossAxisAlignment: .stretch,

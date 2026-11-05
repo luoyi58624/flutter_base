@@ -153,13 +153,28 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('独立示例的公共设置菜单先关闭示例再进入设置', (tester) async {
+  testWidgets('独立示例不重复显示全局菜单，返回目录后仍可由侧栏进入设置', (tester) async {
     await _host(tester, path: '/examples');
     await tester.tap(find.byKey(ValueKey('advanced-gestures')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('全局设置'));
+    expect(find.byTooltip('全局设置'), findsNothing);
+    expect(find.byKey(ValueKey('navbar-menu')), findsNothing);
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.byType(CustomGesturesPage), findsNothing);
+    expect(find.byType(ExamplesPage), findsOneWidget);
+    final label = find.descendant(
+      of: find.byType(ElNavMenu<WidgetBuilder>),
+      matching: find.byWidgetPredicate((widget) => widget is ElView && widget.child == '设置'),
+    );
+    final row = find
+        .ancestor(
+          of: label,
+          matching: find.byWidgetPredicate((widget) => widget is ElView && widget.event?.onTap != null),
+        )
+        .first;
+    await tester.tap(row);
+    await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/settings');
     expect(find.widgetWithText(AppBar, '设置'), findsOneWidget);
     expect(tester.takeException(), isNull);

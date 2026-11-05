@@ -11,7 +11,11 @@ RoutingConfig get desktopRoute => RoutingConfig(
       // 由本次配置创建导航键，避免旧壳退出时与再次进入的新壳共享 key。
       pageBuilder: (context, state, child) => NoTransitionPage(
         key: RouterUtil.layoutPageKey,
-        child: DesktopLayout(title: RouterUtil.titleOf(state.uri), child: child),
+        child: DesktopLayout(
+          title: RouterUtil.titleOf(state.uri),
+          showThemeToggle: state.uri.path == RouterUtil.home,
+          child: child,
+        ),
       ),
       routes: [
         GoRoute(

@@ -1,37 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:go_router/go_router.dart';
 
 import '../state/index.dart';
-import '../utils/router.dart';
 
-/// 所有页面导航头共用的主题切换与设置入口。
+/// 首页导航头使用的主题切换入口。
 class NavbarMenu extends StatelessWidget {
-  /// 创建公共导航菜单。
+  /// 创建首页主题切换按钮。
   const NavbarMenu({super.key});
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => ObsBuilder(
     key: ValueKey('navbar-menu'),
-    mainAxisSize: .min,
-    children: [
-      ObsBuilder(
-        builder: (context) => IconButton(
-          tooltip: GlobalState.isDark.value ? '切换到浅色模式' : '切换到暗黑模式',
-          icon: Icon(GlobalState.isDark.value ? Icons.light_mode : Icons.dark_mode),
-          onPressed: () => GlobalState.isDark.value = !GlobalState.isDark.value,
-        ),
-      ),
-      IconButton(
-        tooltip: '全局设置',
-        icon: Icon(Icons.settings_outlined),
-        onPressed: () {
-          final router = GoRouter.of(context);
-          // 独立示例不在路由表中，切换一级页面前先关闭这些页面。
-          Navigator.of(context, rootNavigator: true).popUntil((route) => route.settings is Page || route.isFirst);
-          router.go(RouterUtil.setting);
-        },
-      ),
-    ],
+    builder: (context) => IconButton(
+      tooltip: GlobalState.isDark.value ? '切换到浅色模式' : '切换到暗黑模式',
+      icon: Icon(GlobalState.isDark.value ? Icons.light_mode : Icons.dark_mode),
+      onPressed: () => GlobalState.isDark.value = !GlobalState.isDark.value,
+    ),
   );
 }

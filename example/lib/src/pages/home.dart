@@ -16,6 +16,7 @@ class HomePage extends HookWidget {
     useEffect(() => scroll.dispose, [scroll]);
     return ExamplePage(
       title: '首页',
+      showThemeToggle: true,
       child: LayoutBuilder(
         builder: (context, constraints) => Align(
           alignment: .topCenter,

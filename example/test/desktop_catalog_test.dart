@@ -37,6 +37,13 @@ Future<void> _select(WidgetTester tester, String label) async {
         matching: find.byWidgetPredicate((widget) => widget is ElView && widget.event?.onTap != null),
       )
       .first;
+  final scrollFinder = find.ancestor(of: row, matching: find.byType(ElScrollView)).first;
+  final scroll = tester.state<ElScrollViewState>(scrollFinder);
+  final delta = tester.getCenter(row).dy - tester.getCenter(scrollFinder).dy;
+  scroll.position.jumpTo(
+    (scroll.position.pixels + delta).clamp(scroll.position.minScrollExtent, scroll.position.maxScrollExtent).toDouble(),
+  );
+  await tester.pumpAndSettle();
   await tester.tap(row);
   await tester.pumpAndSettle();
 }
@@ -54,7 +61,7 @@ void main() {
     expect(RouterUtil.titleOf(Uri.parse('/components/button?source=test#example')), 'Button 按钮');
   });
 
-  testWidgets('桌面公共头覆盖整行，标识和标题不跳转，公共菜单可切换主题和打开设置', (tester) async {
+  testWidgets('桌面公共头覆盖整行，标识和标题不跳转，主题入口仅在首页', (tester) async {
     GlobalState.isDark.value = false;
     addTearDown(() => GlobalState.isDark.value = false);
     await _host(tester, path: '/components/button');
@@ -75,15 +82,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/components/button');
     final menu = find.byKey(ValueKey('navbar-menu'));
+    expect(menu, findsNothing);
+    expect(find.byTooltip('全局设置'), findsNothing);
+    router.go('/home');
+    await tester.pumpAndSettle();
     expect(menu, findsOneWidget);
-    expect(tester.getCenter(menu).dx, greaterThan(tester.getCenter(title).dx));
     await tester.tap(find.byTooltip('切换到暗黑模式'));
     await tester.pumpAndSettle();
     expect(GlobalState.isDark.value, isTrue);
-    await tester.tap(find.byTooltip('全局设置'));
-    await tester.pumpAndSettle();
+    await _select(tester, '设置');
     expect(router.routeInformationProvider.value.uri.path, '/settings');
     expect(find.widgetWithText(AppBar, '设置'), findsOneWidget);
+    expect(menu, findsNothing);
     expect(find.byType(AppBar), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
