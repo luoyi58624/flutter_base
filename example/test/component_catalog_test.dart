@@ -45,6 +45,37 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
+  testWidgets('每个未实现的组件条目都能点击进入对应标题的空白页并返回目录', (tester) async {
+    await _openCatalog(tester);
+    final catalog = find.byKey(PageStorageKey('component-catalog'));
+    final placeholders = RouterUtil.pages.where((page) => page.key != 'button' && page.key != 'shadow-design');
+
+    for (final page in placeholders) {
+      expect(page.data, isNotNull, reason: page.key);
+      final tile = find.byKey(ValueKey('component-${page.key}'));
+      final position = tester.state<ElScrollViewState>(catalog).position;
+      final delta = tester.getCenter(tile).dy - tester.getCenter(catalog).dy;
+      position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/components/${page.key}');
+      final header = find.widgetWithText(AppBar, page.title);
+      expect(header, findsOneWidget);
+      expect(find.byType(BackButton), findsOneWidget);
+      final scaffold = find.ancestor(of: header, matching: find.byType(Scaffold)).first;
+      expect(tester.widget<Scaffold>(scaffold).body, isNull);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/components');
+      expect(tester.widget<ElBottomTabbar>(find.byType(ElBottomTabbar)).selectedIndex, 1);
+      expect(tester.takeException(), isNull, reason: page.key);
+    }
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('四个一级导航与组件深度路由对应，详情返回到组件目录', (tester) async {
     await _openCatalog(tester);
     final tabbar = find.byType(ElBottomTabbar);

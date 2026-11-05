@@ -10,6 +10,7 @@ import 'src/layout/mobile/pages/1.dart';
 import 'src/layout/mobile/pages/2.dart';
 import 'src/layout/mobile/pages/4.dart';
 import 'src/pages/components/catalog.dart';
+import 'src/pages/example_page.dart';
 
 /// 随可用宽度切换的路由配置。
 final routingConfig = _RoutingConfigNotifier();
@@ -159,7 +160,7 @@ abstract final class RouterUtil {
   /// 将路由绑定到原有页面，未实现的条目沿用空页面。
   static Widget buildPage(BuildContext context, ElMenuModel<WidgetBuilder> page) {
     final key = page.key.split('/').last;
-    Widget child = page.data?.call(context) ?? Scaffold(appBar: AppBar(title: Text(page.title)));
+    Widget child = page.data?.call(context) ?? ExamplePage(title: page.title);
     // 这两个现有页面使用移动端专有实现，按路由安装完整预设。
     if (key == 'shadow-design' || key == 'settings') {
       child = ElComponentProvider(components: el.mobileComponents, child: child);

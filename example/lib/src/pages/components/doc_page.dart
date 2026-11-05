@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../example_page.dart';
+
 /// 文档页中的一个可操作示例及其源码。
 class ComponentDocSection {
   /// 创建包含标题、简述、示例和源码资源路径的小节。
@@ -39,9 +41,9 @@ class ComponentDocPage extends HookWidget {
     final scroll = useMemoized(ElScrollController.new);
     useEffect(() => scroll.dispose, [scroll]);
 
-    return Scaffold(
-      appBar: AppBar(title: Text('组件文档')),
-      body: Align(
+    return ExamplePage(
+      title: '组件文档',
+      child: Align(
         alignment: .topCenter,
         child: ConstrainedBox(
           constraints: .new(maxWidth: 1080),
