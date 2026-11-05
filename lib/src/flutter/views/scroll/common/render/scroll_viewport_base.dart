@@ -360,6 +360,8 @@ abstract class RenderScrollViewportBase extends RenderStackingBox<ScrollChildPar
     if (_clipBehavior == value) return;
     _clipBehavior = value;
     markNeedsPaint();
+    markHitBoundsDirty();
+    markNeedsSemanticsUpdate();
   }
 
   EdgeInsets get padding => _padding;

@@ -1603,19 +1603,18 @@ void main() {
         ),
       );
 
-        // 视口内的行内溢出块：命中（行自身 hitBounds 扩张 + 滚动 render 子循环）。
-        // y=80 恰好是后续 row 4 的起点，后绘制行会按正常层序先命中；
-        // 取溢出块内部且不与后续行重叠的点。
-        await tester.tapAt(const Offset(20, 75));
-        await tester.pump();
-        expect(inViewportTaps, 1, reason: '视口内行溢出块必须命中');
+      // 视口内的行内溢出块：命中（行自身 hitBounds 扩张 + 滚动 render 子循环）。
+      // y=80 恰好是后续 row 4 的起点，后绘制行会按正常层序先命中；
+      // 取溢出块内部且不与后续行重叠的点。
+      await tester.tapAt(const Offset(20, 75));
+      await tester.pump();
+      expect(inViewportTaps, 1, reason: '视口内行溢出块必须命中');
 
-        // 视口外（内容超视口 → _shouldClip 封口）：不可点。
-        await tester.tapAt(const Offset(20, 120));
-        await tester.pump();
-        expect(sealedTaps, 0, reason: '默认裁剪封口，视口外溢出不得命中');
-      },
-    );
+      // 视口外（内容超视口 → _shouldClip 封口）：不可点。
+      await tester.tapAt(const Offset(20, 120));
+      await tester.pump();
+      expect(sealedTaps, 0, reason: '默认裁剪封口，视口外溢出不得命中');
+    });
 
     testWidgets('虚拟滚动默认裁剪封口：视口外不可点、视口内 item 照常', (tester) async {
       var taps = 0;
@@ -1761,6 +1760,29 @@ void main() {
       final listener = tester.renderObject(find.byKey(const ValueKey('overflow-listener')));
       expect(result.path.any((entry) => identical(entry.target, target)), isTrue);
       expect(result.path.any((entry) => identical(entry.target, listener)), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('切换 clipBehavior 后视口命中边界立即按新裁剪生效', (tester) async {
+      final controller = ElScrollController();
+      addTearDown(controller.dispose);
+      final row = GlobalKey<_OverflowRowState>();
+      await tester.pumpWidget(_overflowScroll(row, <String>[], controller, Clip.none));
+      await tester.pumpAndSettle();
+      controller.jumpTo(20);
+      row.currentState!.moveTo(Offset(80, 180));
+      await tester.pump();
+      final viewport = tester.renderObject(find.byKey(ValueKey('overflow-row'))).parent! as RenderVirtualScrollView;
+      final overflow = Offset(100, 180);
+      expect(viewport.hitBoundsContains(overflow), isTrue, reason: '未封口视口包含溢出代理，同时写入命中边界缓存');
+
+      // setter 只改裁剪，不重新布局，命中边界缓存必须由 setter 自己失效。
+      viewport.clipBehavior = Clip.hardEdge;
+      expect(viewport.clipsHitBounds, isTrue);
+      expect(viewport.hitBoundsContains(overflow), isFalse, reason: '开启裁剪后不能沿用旧的溢出边界');
+
+      viewport.clipBehavior = Clip.none;
+      expect(viewport.hitBoundsContains(overflow), isTrue, reason: '关闭裁剪后露出的溢出区必须重新可点');
       expect(tester.takeException(), isNull);
     });
   });

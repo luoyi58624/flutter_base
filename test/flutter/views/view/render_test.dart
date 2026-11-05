@@ -2047,6 +2047,51 @@ void main() {
       expect(taps, 1, reason: '裁剪节点封口，溢出区不得命中');
     });
 
+    testWidgets('切换 clipBehavior 后命中边界立即按新裁剪生效', (tester) async {
+      var taps = 0;
+      var clip = Clip.none;
+      late StateSetter setClip;
+      await tester.pumpWidget(
+        _hitOverflowBoundsApp(
+          StatefulBuilder(
+            builder: (context, setState) {
+              setClip = setState;
+              return ElView(
+                style: ElStyle(width: 100, height: 100, clipBehavior: clip, backgroundColor: Color(0xFFEEEEEE)),
+                child: ElView(
+                  style: ElStyle(
+                    width: 60,
+                    height: 60,
+                    transform: .translate(80, 80),
+                    backgroundColor: Color(0xFF2196F3),
+                  ),
+                  event: ElEvent(onTap: (_) => taps++),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      // 未裁剪时溢出区可点，同时写入命中边界缓存。
+      await tester.tapAt(Offset(120, 120));
+      await tester.pump();
+      expect(taps, 1);
+
+      // 只切换裁剪是纯绘制变化，不会重新布局，缓存必须由样式变化本身失效。
+      setClip(() => clip = Clip.hardEdge);
+      await tester.pump();
+      await tester.tapAt(Offset(120, 120));
+      await tester.pump();
+      expect(taps, 1, reason: '开启裁剪后不能沿用旧的溢出边界');
+
+      setClip(() => clip = Clip.none);
+      await tester.pump();
+      await tester.tapAt(Offset(120, 120));
+      await tester.pump();
+      expect(taps, 2, reason: '关闭裁剪后露出的溢出区必须重新可点');
+    });
+
     testWidgets('多级溢出传播：孙溢出穿两层无溢出父仍可点', (tester) async {
       var taps = 0;
       await tester.pumpWidget(

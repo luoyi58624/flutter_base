@@ -674,11 +674,12 @@ final FieldMask paintAffectingMask = _fieldsMaskWhere((s) => s.affectsPaint);
 /// 影响溢出命中边界（ElOverflowHitBounds）的 **paint-only** 字段位图。
 ///
 /// transform / transformOrigin 变化不触发 relayout（paintOnlyDamage），但
-/// 会改变节点暴露给父级的命中边界映射——[DamageRouter.route] 命中此 mask 时
+/// 会改变节点暴露给父级的命中边界映射；clipBehavior / clipPath 决定子树溢出
+/// 是否外传，切换后缓存的聚合边界同样失效——[DamageRouter.route] 命中此 mask 时
 /// 额外走 `markHitBoundsDirty`（layout 字段无需入位：performLayout 入口已标脏）。
 final FieldMask hitBoundsAffectingPaintOnlyMask = maskOr(
-  maskBit(ElTransitionField.transform.index),
-  maskBit(ElTransitionField.transformOrigin.index),
+  maskOr(maskBit(ElTransitionField.transform.index), maskBit(ElTransitionField.transformOrigin.index)),
+  maskOr(maskBit(ElTransitionField.clipBehavior.index), maskBit(ElTransitionField.clipPath.index)),
 );
 
 /// 影响「文本排版」的字段位图（inheritedText / inheritedBox 两组内 damage

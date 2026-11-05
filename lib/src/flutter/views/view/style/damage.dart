@@ -21,7 +21,7 @@ abstract final class DamageRouter {
     if (maskAnd(changedMask, layoutAffectingMask).isNotEmpty) host.markNeedsLayout();
     if (maskAnd(changedMask, paintAffectingMask).isNotEmpty) host.markNeedsPaint();
     if (maskAnd(changedMask, hitBoundsAffectingPaintOnlyMask).isNotEmpty) {
-      // 变换不会重新布局，必须主动刷新子树语义，避免保留动画起始坐标。
+      // 变换与裁剪不会重新布局，必须主动刷新子树语义，避免保留旧坐标或旧裁剪区。
       host.markNeedsSemanticsUpdate();
       final h = host;
       if (h is ElOverflowHitBounds) h.markHitBoundsDirty();
