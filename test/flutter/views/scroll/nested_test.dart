@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter_base/src/flutter/views/scroll/common/pointer/scroll_pointer_chain.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
@@ -1052,7 +1053,7 @@ class _WheelNestedHandoffNestedPage {
       outerController?.dispose();
       innerController?.dispose();
     });
-    final algorithm = smooth ? _LinearWheel(duration) : const ElNoSmoothScroll();
+    final algorithm = smooth ? _LinearWheel(duration) : null;
     final scrollbar = bars ? const ElWindowScrollBar() : const ElNoScrollBar();
     await tester.pumpWidget(
       Directionality(
@@ -1860,7 +1861,7 @@ void main() {
                     controller: controller,
                     physics: const ElBouncingScrollPhysics(),
                     scrollbar: const ElNoScrollBar(),
-                    smoothScroll: smooth ? const _LinearSmooth() : const ElNoSmoothScroll(),
+                    smoothScroll: smooth ? const _LinearSmooth() : null,
                     children: [
                       _PointerHeader(key: header),
                       const ElView(style: ElStyle(height: 2000)),
@@ -1921,7 +1922,7 @@ void main() {
                   controller: outer,
                   physics: const ElClampingScrollPhysics(),
                   scrollbar: const ElNoScrollBar(),
-                  smoothScroll: smooth ? const _LinearSmooth() : const ElNoSmoothScroll(),
+                  smoothScroll: smooth ? const _LinearSmooth() : null,
                   children: [
                     _PointerHeader(
                       key: outerHeader,
@@ -1931,7 +1932,7 @@ void main() {
                           controller: inner,
                           physics: const ElClampingScrollPhysics(),
                           scrollbar: const ElNoScrollBar(),
-                          smoothScroll: smooth ? const _LinearSmooth() : const ElNoSmoothScroll(),
+                          smoothScroll: smooth ? const _LinearSmooth() : null,
                           children: [
                             _PointerHeader(key: innerHeader),
                             const ElView(style: ElStyle(height: 180)),
@@ -2050,7 +2051,7 @@ void main() {
                         controller: controller,
                         physics: const ElClampingScrollPhysics(),
                         scrollbar: const ElNoScrollBar(),
-                        smoothScroll: smooth ? const _LinearSmooth() : const ElNoSmoothScroll(),
+                        smoothScroll: smooth ? const _LinearSmooth() : null,
                         children: [
                           _PointerHeader(key: header),
                           ElView(
@@ -2124,7 +2125,7 @@ void main() {
                   controller: controller,
                   physics: const ElClampingScrollPhysics(),
                   scrollbar: const ElNoScrollBar(),
-                  smoothScroll: smooth ? const _LinearSmooth() : const ElNoSmoothScroll(),
+                  smoothScroll: smooth ? const _LinearSmooth() : null,
                   children: [_PointerHeader(key: header)],
                 ),
               ),
@@ -4632,7 +4633,7 @@ void main() {
               return ElScrollView(
                 key: key,
                 scrollbar: const ElNoScrollBar(),
-                smoothScroll: const ElNoSmoothScroll(),
+                smoothScroll: null,
                 physics: const ClampingScrollPhysics(),
                 inputOrder: const {
                   Axis.vertical: [#a, #b, #c],
@@ -4689,7 +4690,7 @@ void main() {
           ElScrollView(
             key: key,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             children: [
               _Compound(log),
               const ElView(style: ElStyle(height: 1000)),
@@ -4712,7 +4713,7 @@ void main() {
           ElScrollView(
             key: key,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             inputOrder: const {
               Axis.vertical: [#header, #filters],
             },
@@ -4808,7 +4809,7 @@ void main() {
                   axis: axis,
                   reverse: reverse,
                   scrollbar: const ElNoScrollBar(),
-                  smoothScroll: const ElNoSmoothScroll(),
+                  smoothScroll: null,
                   children: [
                     _InputSlotsParticipant(slot: #header, factor: .5, log: log, inputs: inputs),
                     ElView(
@@ -4898,7 +4899,7 @@ void main() {
           ElScrollView(
             key: key,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             inputOrder: const {
               Axis.vertical: [#header, #filters],
             },
@@ -5000,7 +5001,7 @@ void main() {
             ElScrollView(
               key: key,
               scrollbar: const ElNoScrollBar(),
-              smoothScroll: const ElNoSmoothScroll(),
+              smoothScroll: null,
               inputOrder: const {
                 Axis.vertical: [#first, #bad, #last],
               },
@@ -5034,7 +5035,7 @@ void main() {
           ElScrollView(
             key: key,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             inputOrder: const {
               Axis.vertical: [#header, #filters],
             },
@@ -5080,7 +5081,7 @@ void main() {
               update = setState;
               return ElScrollView(
                 scrollbar: const ElNoScrollBar(),
-                smoothScroll: const ElNoSmoothScroll(),
+                smoothScroll: null,
                 inputOrder: declaration,
                 children: [
                   _InputSlotsParticipant(slot: #header, factor: .5, log: log, inputs: inputs),

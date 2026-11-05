@@ -15,6 +15,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
+import '../../../../dart/gen/index.dart' show $absent;
 import '../../layout/layout_view.dart';
 import '../../selection/common/selection_core.dart';
 import '../../view/event/event.dart';

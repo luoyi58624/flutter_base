@@ -17,10 +17,10 @@ import '../../../utils/platform/index.dart' show ElPlatform;
 ///
 /// 配置口：最近 [ElViewProvider] 的环境默认，或滚动容器 `smoothScroll:`
 /// 直配（优先级更高）。
-/// null 由 [resolveDefaultSmoothScroll] 按平台解析（Windows 客户端
+/// 未传入或使用 `$absent` 时继承环境，祖先未配置则由
+/// [resolveDefaultSmoothScroll] 按平台解析（Windows 客户端
 /// [ElWindowsSmoothScroll]、Windows Web [ElChromiumSmoothScroll]，其余直滚）；
-/// [ElNoSmoothScroll] 显式关闭。对进行中的动画段不生效，
-/// 下一段生效。
+/// 显式 null 关闭。配置变化对进行中的动画段不生效，下一段生效。
 ///
 /// 内置算法：
 /// - [ElWindowsSmoothScroll]：Windows 10 口径，长尾 ease-out + 速度接续 +
@@ -62,20 +62,6 @@ ElSmoothScroll? resolveDefaultSmoothScroll() {
   if (ElPlatform.isDesktopClient) return const ElWindowsSmoothScroll();
   if (ElPlatform.isDesktopWeb) return const ElChromiumSmoothScroll();
   return null;
-}
-
-/// 显式关闭鼠标滚轮平滑滚动。
-class ElNoSmoothScroll extends ElSmoothScroll {
-  const ElNoSmoothScroll();
-
-  @override
-  double stepForEvent(double rawDelta, int burstTicks) => rawDelta;
-
-  @override
-  Duration segmentDuration(double delta, double velocity) => Duration.zero;
-
-  @override
-  Curve curveFor(double initialSlope) => Curves.linear;
 }
 
 /// Windows 10 口径的鼠标滚轮平滑滚动（Windows 默认）。

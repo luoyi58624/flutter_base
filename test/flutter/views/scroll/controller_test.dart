@@ -2,6 +2,7 @@ import 'package:flutter_base/ui.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/virtual_test_host.dart';
 
 /// 常驻散 child 载具：10 行 × 100（视口 600 → max 400），可追加行 / 指定行长高。
@@ -157,7 +158,7 @@ Widget _list(ElScrollController controller) => Directionality(
       child: ElScrollView(
         controller: controller,
         physics: const ClampingScrollPhysics(),
-        smoothScroll: const ElNoSmoothScroll(),
+        smoothScroll: null,
         scrollbar: const ElNoScrollBar(),
         children: [
           ElListView.builder(

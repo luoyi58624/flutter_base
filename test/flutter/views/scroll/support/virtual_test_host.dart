@@ -1,3 +1,4 @@
+import 'package:flutter_base/dart.dart' show $absent;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/widgets.dart';
 
@@ -8,7 +9,7 @@ Widget buildVirtualTestView({
   ScrollController? controller,
   ScrollController? horizontalController,
   ScrollPhysics? physics,
-  ElSmoothScroll? smoothScroll,
+  Object? smoothScroll = $absent,
   ElScrollbar? scrollbar,
   Axis? axis = Axis.vertical,
   bool reverse = false,
@@ -68,7 +69,7 @@ Widget buildVirtualTestViewBuilder({
   ScrollController? controller,
   ScrollController? horizontalController,
   ScrollPhysics? physics,
-  ElSmoothScroll? smoothScroll,
+  Object? smoothScroll = $absent,
   ElScrollbar? scrollbar,
   Axis? axis = Axis.vertical,
   bool reverse = false,

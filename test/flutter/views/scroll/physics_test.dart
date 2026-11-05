@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+
+import 'package:flutter_base/dart.dart' show $absent;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/flutter/views/scroll/common/pointer/scroll_pointer_chain.dart';
 import 'package:flutter_base/src/flutter/views/scroll/common/viewport/scroll_engine_position.dart';
@@ -11,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/virtual_test_host.dart';
 
 FixedScrollMetrics _metrics({required double pixels, double min = 0.0, double max = 1000.0, double viewport = 600.0}) {
@@ -2207,9 +2210,9 @@ void main() {
 
     Widget shell(
       ScrollController controller, {
-      ElSmoothScroll? smoothScroll,
+      Object? smoothScroll = $absent,
       ElScrollbar? scrollbar,
-      ElSmoothScroll? providerSmoothScroll,
+      Object? providerSmoothScroll = $absent,
     }) {
       final child = ElScrollView(
         key: scrollKey,
@@ -2300,7 +2303,7 @@ void main() {
       expect(controller.offset - before, closeTo(200.0, 0.5), reason: '容器 smoothScroll 直配恒压过 Provider');
     });
 
-    testWidgets('SMOOTH-3: 组件按平台选择默认算法，ElNoSmoothScroll 可关闭', (tester) async {
+    testWidgets('SMOOTH-3: 组件按平台选择默认算法，显式 null 可关闭', (tester) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
       addTearDown(() => debugDefaultTargetPlatformOverride = null);
@@ -2323,10 +2326,10 @@ void main() {
       expect(controller.offset - before, closeTo(53.0, 0.5), reason: '非 Windows 平台默认直滚');
 
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-      await tester.pumpWidget(shell(controller, smoothScroll: const ElNoSmoothScroll()));
+      await tester.pumpWidget(shell(controller, smoothScroll: null));
       before = controller.offset;
       await wheel(tester);
-      expect(controller.offset - before, closeTo(53.0, 0.5), reason: 'ElNoSmoothScroll 显式关闭 Windows 平滑滚动');
+      expect(controller.offset - before, closeTo(53.0, 0.5), reason: 'null 显式关闭 Windows 平滑滚动');
       debugDefaultTargetPlatformOverride = null;
     });
 

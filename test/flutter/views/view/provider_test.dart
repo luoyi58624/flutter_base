@@ -158,7 +158,7 @@ void main() {
         child: ElViewProvider(
           scrollbarBuilder: (_) => const ElNoScrollBar(),
           refresherBuilder: (_) => const ElNoRefresher(),
-          smoothScrollBuilder: (_) => const ElNoSmoothScroll(),
+          smoothScrollBuilder: (_) => null,
           child: Builder(
             builder: (context) {
               scrollbar = ElViewProvider.scrollbarOf(context);
@@ -173,7 +173,7 @@ void main() {
 
     expect(scrollbar, isA<ElNoScrollBar>());
     expect(refresher, isA<ElNoRefresher>());
-    expect(smoothScroll, isA<ElNoSmoothScroll>());
+    expect(smoothScroll, isNull);
   });
 }
 

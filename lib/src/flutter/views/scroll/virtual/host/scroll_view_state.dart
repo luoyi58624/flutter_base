@@ -841,7 +841,7 @@ final class ElScrollViewState extends State<ElScrollView> with TickerProviderSta
     _appliedPhysics = _wrapMainPhysics(_effectiveWidgetPhysics);
     _appliedHorizontalPhysics = _wrapHorizontalPhysics(_effectiveWidgetPhysics);
     final initialSmoothScroll = widget.smoothScroll;
-    _selectedSmoothScroll = initialSmoothScroll is ElNoSmoothScroll ? null : initialSmoothScroll;
+    _selectedSmoothScroll = identical(initialSmoothScroll, $absent) ? null : initialSmoothScroll as ElSmoothScroll?;
     _appliedAxis = widget.axis;
     _appliedReverse = widget.reverse;
     _baseEffectiveInterceptor = widget.deltaInterceptor;
@@ -1095,10 +1095,8 @@ final class ElScrollViewState extends State<ElScrollView> with TickerProviderSta
   }
 
   ElSmoothScroll? _resolveSmoothScroll() {
-    final configured = widget.smoothScroll ?? ElViewProvider.smoothScrollOf(context);
-    if (configured is ElNoSmoothScroll) return null;
-    if (configured != null) return configured;
-    return resolveDefaultSmoothScroll();
+    final configured = widget.smoothScroll;
+    return identical(configured, $absent) ? ElViewProvider.smoothScrollOf(context) : configured as ElSmoothScroll?;
   }
 
   bool get _hasPendingStructuralScrollUpdate {

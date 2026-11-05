@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 
+import '../../../dart/gen/index.dart' show $absent;
 import '../scroll/refresh/android_refresher.dart';
 import '../scroll/refresh/ios_refresher.dart';
 import '../scroll/refresh/refresher.dart';
@@ -18,7 +19,7 @@ class ElViewProvider extends StatelessWidget {
     super.key,
     this.scrollbarBuilder,
     this.refresherBuilder,
-    this.smoothScrollBuilder,
+    this.smoothScrollBuilder = _adaptiveSmoothScrollBuilder,
     required this.child,
   });
 
@@ -28,10 +29,10 @@ class ElViewProvider extends StatelessWidget {
   /// 覆写当前子树的下拉刷新实现；null 表示继承祖先或使用 el_ui 默认。
   final ElRefresher? Function(BuildContext context)? refresherBuilder;
 
-  /// 覆写当前子树的平滑滚动算法；null 表示继承祖先或使用 el_ui 默认。
+  /// 覆写平滑算法；不传或回调返回 [$absent] 时继承祖先或平台默认。
   ///
-  /// 需要显式关闭时返回 [ElNoSmoothScroll]。
-  final ElSmoothScroll? Function(BuildContext context)? smoothScrollBuilder;
+  /// 显式传 null 或回调返回 null 时关闭，返回 [ElSmoothScroll] 时使用指定算法。
+  final Object? Function(BuildContext context)? smoothScrollBuilder;
 
   /// 子树。
   final Widget child;
@@ -82,13 +83,19 @@ class ElViewProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     final scrollbar = scrollbarBuilder?.call(context) ?? scrollbarOf(context);
     final refresher = refresherBuilder?.call(context) ?? refresherOf(context);
-    final smoothScroll = smoothScrollBuilder?.call(context) ?? smoothScrollOf(context);
+    final configuredSmoothScroll = smoothScrollBuilder?.call(context);
+    final smoothScroll = identical(configuredSmoothScroll, $absent)
+        ? smoothScrollOf(context)
+        : configuredSmoothScroll as ElSmoothScroll?;
 
     // Scope 结构固定；builder 在运行时从具体值切回 null 时只改变继承结果，
     // 不插拔节点。InheritedModel 让三类消费者只订阅自己关心的配置。
     return _ElViewProviderScope(scrollbar: scrollbar, refresher: refresher, smoothScroll: smoothScroll, child: child);
   }
 }
+
+// 默认回调保留 Builder 的上下文类型推断，真正的自适应值仍是统一占位符。
+Object? _adaptiveSmoothScrollBuilder(BuildContext _) => $absent;
 
 enum _ElViewProviderAspect { scrollbar, refresher, smoothScroll }
 

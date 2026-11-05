@@ -11,6 +11,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
+
 import 'support/virtual_test_host.dart';
 
 ElEventDetails _dragCallback({
@@ -584,7 +585,7 @@ Widget _host(ScrollController controller, {Clip clipBehavior = Clip.hardEdge}) {
         style: const ElStyle(width: 300, height: 300),
         child: ElScrollView(
           controller: controller,
-          smoothScroll: const ElNoSmoothScroll(),
+          smoothScroll: null,
           scrollbar: const ElNoScrollBar(),
           clipBehavior: clipBehavior,
           children: const <Widget>[ElView(style: ElStyle(width: 300, height: 1200))],
@@ -1998,11 +1999,15 @@ void main() {
               controller: controller,
               horizontalController: horizontalController,
               physics: const ClampingScrollPhysics(),
-              smoothScroll: const ElNoSmoothScroll(),
+              smoothScroll: null,
               event: event,
               children: [
                 ElView(
-                  style: ElStyle(width: axis == null ? 900 : 240, height: 1200, backgroundColor: const Color(0xff334155)),
+                  style: ElStyle(
+                    width: axis == null ? 900 : 240,
+                    height: 1200,
+                    backgroundColor: const Color(0xff334155),
+                  ),
                 ),
               ],
             ),
@@ -3278,7 +3283,6 @@ void main() {
         expect(controller.offset, 50);
         expect(_focusVisible(node), isFalse);
       });
-
     }
 
     testWidgets('普通滚动容器不处理后代键盘事件，祖先收到未消费的事件', (tester) async {
@@ -3300,12 +3304,7 @@ void main() {
           child: ElScrollView(
             controller: controller,
             scrollbar: ElNoScrollBar(),
-            children: [
-              ElView(
-                focusNode: node,
-                style: ElStyle(height: 900),
-              ),
-            ],
+            children: [ElView(focusNode: node, style: ElStyle(height: 900))],
           ),
         ),
       );
@@ -3344,12 +3343,7 @@ void main() {
                 controller: controller,
                 scrollbar: ElNoScrollBar(),
                 event: ElEvent(onKeyDown: (_) => calls++),
-                children: [
-                  ElView(
-                    focusNode: child,
-                    style: ElStyle(width: 900),
-                  ),
-                ],
+                children: [ElView(focusNode: child, style: ElStyle(width: 900))],
               ),
             );
           },
@@ -3374,7 +3368,6 @@ void main() {
       expect(controller.offset, 50);
       expect(calls, 3, reason: '子控件事件只经过视口一次，不因焦点外壳再调用');
     });
-
   });
 
   group('鼠标拖动热路径', () {

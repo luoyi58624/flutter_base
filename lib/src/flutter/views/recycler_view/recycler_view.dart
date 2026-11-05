@@ -428,8 +428,7 @@ class _RecyclerViewState extends State<RecyclerView> {
 
   @override
   Widget build(BuildContext context) {
-    final configuredSmoothScroll = ElViewProvider.smoothScrollOf(context);
-    final smoothScroll = configuredSmoothScroll is ElNoSmoothScroll ? null : configuredSmoothScroll;
+    final smoothScroll = ElViewProvider.smoothScrollOf(context);
     return Listener(
       onPointerDown: (_) => _cancelPositionRequest(),
       onPointerSignal: (_) => _cancelPositionRequest(),

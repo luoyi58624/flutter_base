@@ -54,7 +54,7 @@ void main() {
     await _open(tester, fixture);
     await _wheel(tester, fixture, delta: Offset(0, 120));
     await _advance(tester);
-    fixture.algorithm.value = ElNoSmoothScroll();
+    fixture.algorithm.value = null;
     await tester.pump();
     final before = fixture.controller.offset;
     await _wheel(tester, fixture, delta: Offset(0, 60));
@@ -428,7 +428,7 @@ class _Fixture {
     this.horizontal = false,
     this.reverse = false,
     this.rtl = false,
-    ElSmoothScroll? algorithm,
+    Object? algorithm = $absent,
     Widget? firstChild,
   }) : algorithm = ValueNotifier(algorithm),
        rows = _Rows(firstChild),
@@ -445,7 +445,7 @@ class _Fixture {
   final bool rtl;
   final viewportKey = GlobalKey();
   final listKey = GlobalKey();
-  final ValueNotifier<ElSmoothScroll?> algorithm;
+  final ValueNotifier<Object?> algorithm;
   final physics = ValueNotifier<ScrollPhysics>(ClampingScrollPhysics());
   final _Rows rows;
   final controllers = <ScrollController>{};
@@ -492,7 +492,7 @@ class _Viewport extends StatelessWidget {
 
 Future<void> _open(WidgetTester tester, _Fixture fixture, {Widget? body}) async {
   await tester.pumpWidget(
-    ValueListenableBuilder<ElSmoothScroll?>(
+    ValueListenableBuilder<Object?>(
       valueListenable: fixture.algorithm,
       builder: (context, algorithm, child) => ElViewProvider(smoothScrollBuilder: (_) => algorithm, child: child!),
       child: MaterialApp(

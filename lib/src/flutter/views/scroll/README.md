@@ -160,11 +160,13 @@ ElViewProvider(
 | 入口 | 选择 |
 | --- | --- |
 | `scrollbar` | ElWindowScrollBar / ElMacScrollBar / ElIosScrollBar / ElAndroidScrollBar；ElNoScrollBar 关闭 |
-| `smoothScroll` | ElWindowsSmoothScroll / ElChromiumSmoothScroll；ElNoSmoothScroll 关闭 |
+| `smoothScroll` | 默认 `$absent` 继承环境并按平台自适应；`null` 关闭；ElWindowsSmoothScroll / ElChromiumSmoothScroll 指定算法 |
 | `physics` | ElBouncingScrollPhysics / ElClampingScrollPhysics / ElBrowserScrollPhysics，或官方 ScrollPhysics |
 | `ElScrollBehavior` | 通过官方 ScrollConfiguration 提供本库平台物理；也可用于 MaterialApp.scrollBehavior |
 
 单个宿主显式配置覆盖环境配置；scrollbar / smoothScroll / refresher 从 ElViewProvider 继承，physics 从 ScrollConfiguration 继承。刷新宿主绑定的物理策略优先于普通物理配置。自定义滚动条继承 ElScrollbar，通过 ElScrollbarDetails 读两轴指标和派发交互，不必另建滚动控制器。
+
+平滑滚动严格区分未配置和关闭：`ElScrollView` 不传 `smoothScroll` 或传 `$absent` 时继承；传 `null` 关闭。`ElViewProvider` 不传 `smoothScrollBuilder` 时自适应，回调返回 `$absent` 时继承；显式把 Builder 设为 `null`，或让回调返回 `null`，都会关闭当前子树。祖先已关闭时，后代自适应仍继承关闭；需要重新开启可显式返回算法实例。运行时由算法切换到 `null` 不会重挂子树。
 
 ## 可视范围与滚动观察
 

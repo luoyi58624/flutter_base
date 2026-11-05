@@ -68,7 +68,7 @@ Widget _scroll({Key? key, ScrollController? controller, required List<Widget> ch
     controller: controller,
     scrollbar: const ElNoScrollBar(),
     physics: const ClampingScrollPhysics(),
-    smoothScroll: const ElNoSmoothScroll(),
+    smoothScroll: null,
     cacheExtent: 0,
     children: children,
   );
@@ -185,7 +185,7 @@ Widget _mixinScroll({
     axis: axis,
     reverse: reverse,
     scrollbar: const ElNoScrollBar(),
-    smoothScroll: const ElNoSmoothScroll(),
+    smoothScroll: null,
     physics: physics,
     children: children,
   );
@@ -402,7 +402,7 @@ Widget _verticalScroll({Key? key, ScrollController? controller, required List<Wi
     controller: controller,
     scrollbar: const ElNoScrollBar(),
     physics: const ClampingScrollPhysics(),
-    smoothScroll: const ElNoSmoothScroll(),
+    smoothScroll: null,
     children: children,
   );
 }
@@ -757,7 +757,7 @@ Widget _app(ElScrollController controller, List<Widget> probes) => Directionalit
         controller: controller,
         physics: const ElClampingScrollPhysics(),
         scrollbar: const ElNoScrollBar(),
-        smoothScroll: const ElNoSmoothScroll(),
+        smoothScroll: null,
         children: [
           ...probes,
           const ElView(style: ElStyle(height: 3000)),
@@ -1998,7 +1998,7 @@ void main() {
             axis: axis,
             reverse: reverse,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             physics: physics,
             children: [SizedBox(width: 1200, height: 1200, child: _ScopeProbe(key: probeKey))],
           ),
@@ -2333,7 +2333,7 @@ void main() {
           ElScrollView(
             key: key,
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             inputOrder: const {
               Axis.vertical: [#a, #b],
             },
@@ -3015,7 +3015,7 @@ void main() {
               final scroll = ElScrollView(
                 key: hostKey,
                 controller: controller,
-                smoothScroll: const ElNoSmoothScroll(),
+                smoothScroll: null,
                 scrollbar: const ElNoScrollBar(),
                 children: [
                   _Probe(key: probeKey),

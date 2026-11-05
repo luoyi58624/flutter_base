@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElScrollViewStateTesting;
 import 'package:flutter/gestures.dart';
@@ -72,7 +73,7 @@ Future<void> _mount(
                 controller: controller,
                 physics: const ElClampingScrollPhysics(),
                 scrollbar: const ElWindowScrollBar(),
-                smoothScroll: const ElNoSmoothScroll(),
+                smoothScroll: null,
                 children: [
                   _Navbar(key: key, snap: snap, fade: fade, border: border, padding: padding),
                   body ?? const ElView(key: ValueKey('body'), style: ElStyle(height: 2400)),
@@ -282,7 +283,7 @@ Future<void> _largeTitleNavbarMount(
                 physics: const ElClampingScrollPhysics(),
                 scrollbar: thumb ? const ElWindowScrollBar() : const ElNoScrollBar(),
                 dragOptimize: optimize,
-                smoothScroll: const ElNoSmoothScroll(),
+                smoothScroll: null,
                 children: [
                   _LargeTitleNavbarNavbar(
                     key: navbar,
@@ -410,7 +411,7 @@ Future<void> _collapseLayoutMount(
             preserveAnchor: preserveAnchor,
             physics: const ElClampingScrollPhysics(),
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             children: [
               _Header(key: header, expanded: expanded, collapsed: collapsed, snap: snap),
               ElView(style: ElStyle(height: imageHeight)),
@@ -470,7 +471,7 @@ Future<void> _collapseMixinMount(
   WidgetTester tester,
   GlobalKey<_ToolbarState> key, {
   ElScrollController? controller,
-  ElSmoothScroll smooth = const ElNoSmoothScroll(),
+  ElSmoothScroll? smooth,
   bool optimize = true,
   bool commands = false,
   ElScrollCollapseMode mode = .direction,
@@ -681,7 +682,7 @@ Future<({ElScrollController controller, GlobalKey<_FollowFilterHeaderState> head
         key: UniqueKey(),
         controller: controller,
         physics: physics,
-        smoothScroll: const ElNoSmoothScroll(),
+        smoothScroll: null,
         scrollbar: const ElWindowScrollBar(),
         children: [
           const ElView(style: ElStyle(height: 5000)),
@@ -921,7 +922,7 @@ Future<void> _presetNestedMount(
             controller: outer,
             physics: const ElClampingScrollPhysics(),
             scrollbar: const ElNoScrollBar(),
-            smoothScroll: const ElNoSmoothScroll(),
+            smoothScroll: null,
             children: [
               _PresetNestedNavbar(key: navbar, events: events),
               ElView(
@@ -931,7 +932,7 @@ Future<void> _presetNestedMount(
                   controller: inner,
                   physics: const ElClampingScrollPhysics(),
                   scrollbar: const ElNoScrollBar(),
-                  smoothScroll: const ElNoSmoothScroll(),
+                  smoothScroll: null,
                   refresher: onRefresh == null ? null : const _Refresh(),
                   onRefresh: onRefresh,
                   children: const [ElView(style: ElStyle(height: 2000))],
@@ -1874,7 +1875,7 @@ void main() {
           tester,
           key,
           optimize: source != 'thumbNoOptimize',
-          smooth: source == 'smooth' ? const ElWindowsSmoothScroll() : const ElNoSmoothScroll(),
+          smooth: source == 'smooth' ? const ElWindowsSmoothScroll() : null,
           focus: source == 'keyboard',
         );
         expect(key.currentState!.scrollItemSnapshot.layoutSize!.height, 43.25);

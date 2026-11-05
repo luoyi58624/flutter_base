@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
+import '../../../dart/gen/index.dart' show $absent;
 import '../layout/stack/stack_view.dart' show ElPositioned;
 import '../view/event/event.dart' show ElEvent;
 import '../view/provider.dart' show ElViewProvider;
@@ -15,7 +16,7 @@ import 'common/physics/platform_scroll_physics.dart' show ElScrollBehavior;
 import 'common/viewport/scroll_engine_position.dart';
 import 'refresh/refresher.dart' show ElRefreshEdge, ElRefresher;
 import 'scrollbar/scrollbar_base.dart' show ElNoScrollBar, ElScrollbar;
-import 'smooth_scroll/smooth_scroll.dart' show ElNoSmoothScroll, ElSmoothScroll;
+import 'smooth_scroll/smooth_scroll.dart' show ElSmoothScroll;
 import 'virtual/virtual_pipeline.dart';
 
 /// 滚动视图，支持普通滚动、虚拟滚动，相当于 [SingleChildScrollView] + [CustomScrollView] 的结合体；
@@ -87,7 +88,7 @@ class ElScrollView extends StatefulWidget {
     this.controller,
     this.horizontalController,
     this.physics,
-    this.smoothScroll,
+    this.smoothScroll = $absent,
     this.mouseWheelHorizontalModifiers = defaultMouseWheelHorizontalModifiers,
     this.scrollbar,
     this.axis = Axis.vertical,
@@ -155,9 +156,10 @@ class ElScrollView extends StatefulWidget {
   /// 想改在子树包一层 `ScrollConfiguration`。刷新器绑定物理恒最优先。
   final ScrollPhysics? physics;
 
-  /// 当前滚动容器使用的滚轮平滑滚动算法（个体覆写，优先级高于最近
-  /// [ElViewProvider] 的环境默认）。传 [ElNoSmoothScroll] 显式关闭。
-  final ElSmoothScroll? smoothScroll;
+  /// 滚轮平滑算法，默认 [$absent] 继承最近 [ElViewProvider] 的解析结果。
+  ///
+  /// 未配置环境时按平台自适应；显式 null 关闭，传入 [ElSmoothScroll] 实例覆写当前容器。
+  final Object? smoothScroll;
 
   /// 鼠标纵向滚轮驱动横向滚动所需的修饰键。
   ///

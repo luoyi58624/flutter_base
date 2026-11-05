@@ -87,7 +87,7 @@ export 'src/flutter/views/scroll/scrollbar/scrollbar.dart'
         ElScrollbarDetails,
         ElWindowScrollBar;
 export 'src/flutter/views/scroll/smooth_scroll/smooth_scroll.dart'
-    show ElChromiumSmoothScroll, ElNoSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
+    show ElChromiumSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
 export 'src/flutter/views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
 export 'src/flutter/views/scroll/common/nested/scroll_delta_interceptor.dart'
     show ElScrollDeltaInterceptor, ElScrollDeltaSource;

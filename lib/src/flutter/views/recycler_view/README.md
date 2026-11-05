@@ -153,13 +153,13 @@ ElViewProvider(
 )
 ```
 
-改为 `ElNoSmoothScroll()` 可显式关闭；与 El 一致，已开始的段沿用当前曲线，后续输入读取新配置。RecyclerView 只接入滚轮事件，目标累积、速度接续、连击加速、触控板直滚识别与活动续接均复用 `SmoothPointerScrollController`。鼠标事件保留原始设备类型和时间戳，按环境修饰键及实际轴方向处理横向、反向与 RTL。
+Provider 不传配置或让回调返回 `$absent` 时自适应；显式传 `smoothScrollBuilder: null`，或让回调返回 `null` 时关闭。祖先的关闭状态可以继续继承。与 El 一致，已开始的段沿用当前曲线，后续输入读取新配置。RecyclerView 只接入滚轮事件，目标累积、速度接续、连击加速、触控板直滚识别与活动续接均复用 `SmoothPointerScrollController`。鼠标事件保留原始设备类型和时间戳，按环境修饰键及实际轴方向处理横向、反向与 RTL。
 
 滚轮信号通过官方 PointerSignalResolver 仲裁，更深的子滚动容器保持优先。滚动活动仍运行在真实 ScrollPosition 上，触摸、滚动条拖拽和程序定位可以接管；位置换绑、暂时移出活动树及卸载会停止旧滚轮动画。每帧移动由原有视口布局响应，不触发 RecyclerView State 的逐帧重建。
 
 `pointer_scroll_test.dart` 使用真实 PointerScrollEvent 与模拟帧检查渐进、连击和反向目标、环境配置、触控板、Shift/reverse/RTL、嵌套边界、程序及拖拽接管、位置换绑、通知重入、GlobalKey 重挂与卸载清理。停用阶段在 RecyclerView 内截断滚动终态通知，避免 Material 等已停用祖先访问失效的绘制对象。
 
-本次无头回归共 102 项通过：RecyclerView 核心 78 项（含新增滚轮 23 项）、相关示例 24 项；静态分析无诊断。没有启动 Windows 前台应用或操作手机，模拟输入检查不等于实际设备手感测试。
+滚轮接入与平滑配置语义通过无头测试中的模拟 Windows 输入核验，静态分析无诊断。没有启动 Windows 前台应用或操作手机，模拟输入检查不等于实际设备手感测试。
 
 ## 稳定滚动与数据更新
 
@@ -224,6 +224,8 @@ flutter test test/recycler_long_examples_test.dart --concurrency=1
 使用同一台设备、同一构建模式、相同内容和快速甩动方式对照。分别观察首次进入和已经复用后的表现，并同时检查条目创建/绑定次数、UI/raster 帧耗时、实际呈现间隔与输入延迟。回收次数增加或平均构建耗时降低，都不能单独证明用户感受到的抖动已经解决。
 
 本实现用于验证 RecyclerView 的结构复用和准备机制能减少多少 Flutter 滚动开销，尚不承诺解决当前手机上的卡顿问题。
+
+[结构复用优化方案](REUSE_OPTIMIZATION.md)整理了双向绑定同步时机、换绑与隐藏状态的动画治理、内核剩余优化和组件复用合格性；[性能验收](PERFORMANCE_ACCEPTANCE.md)评估现有测试数字的可信度，并给出结构门禁、主机相对基准和真机验收三层方法。
 
 [首轮真机性能记录](PERFORMANCE.md)保存了旧版本重复按钮文档快速滑动的采样条件、结果和限制：当时 UI P95 与较长帧生产间隔减少，但 UI 最大值略变差、raster P95 没有改善；没有测得 SurfaceFlinger 的实际呈现间隔，不能据此宣称卡顿已根治。1101 项是已取消重复入口的历史采样场景，不是当前四模式页面的条目数量，也不是当前版本的重新实测结果。
 
