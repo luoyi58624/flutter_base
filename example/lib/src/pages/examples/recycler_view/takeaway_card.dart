@@ -317,12 +317,20 @@ class _MenuStripState extends State<_MenuStrip> {
     if (oldWidget.store.id == widget.store.id) return;
     // 保留滚动宿主和餐品槽位；换店时停止旧活动，再恢复新店自己的位置。
     _restoring = true;
-    if (_controller.hasClients) {
-      _controller.jumpTo(widget.store.menuOffset);
-      final position = _controller.position;
-      if (position is ScrollPositionWithSingleContext) position.goIdle();
+    try {
+      if (_controller.hasClients) {
+        final position = _controller.position;
+        if (position.hasContentDimensions) {
+          position.jumpTo(widget.store.menuOffset);
+        } else {
+          // 已 attach 但尚未布局时只校正初始偏移，jumpTo 的弹性计算会读取空滚动范围。
+          position.correctPixels(widget.store.menuOffset);
+        }
+        if (position is ScrollPositionWithSingleContext) position.goIdle();
+      }
+    } finally {
+      _restoring = false;
     }
-    _restoring = false;
     _store.value = widget.store;
   }
 
