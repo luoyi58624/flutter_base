@@ -6,8 +6,10 @@ Widget _card(ElCard c) => ElButtonView(
   onPressed: c.onTap,
   disabled: c.loading,
   child: Card(
+    // 显式内边距已由 ElButtonView 承接，不再叠加官方 Card 的默认留白。
+    margin: c.style?.padding == null ? null : EdgeInsets.zero,
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: c.style?.padding == null ? const EdgeInsets.all(16) : EdgeInsets.zero,
       child: Stack(
         alignment: .center,
         children: [

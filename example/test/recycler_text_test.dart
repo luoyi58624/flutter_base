@@ -23,6 +23,7 @@ void main() {
       'recycler-selection',
       'recycler-chat',
       'recycler-cards',
+      'recycler-takeaway',
     ]);
   });
 
@@ -78,5 +79,43 @@ void main() {
     expect(_rows().evaluate().length, lessThan(250));
     await tester.pumpWidget(SizedBox());
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('真实无样式文本快速往返不反复创建整屏 holder', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(400, 622);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      ElComponentProvider(
+        components: el.mobileComponents,
+        child: MaterialApp(home: RecyclerTextPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+    final layout = list.getLayoutManager()! as rv.LinearLayoutManager;
+    // 单独约束可见窗口的结构复用，不让实时预取预算影响断言。
+    layout.setItemPrefetchEnabled(false);
+    for (var frame = 0; frame < 2; frame++) {
+      list.scrollBy(0, 960);
+      await tester.pump();
+    }
+    Set<rv.ViewHolder> visible() => {
+      for (var index = layout.findFirstVisibleItemPosition(); index <= layout.findLastVisibleItemPosition(); index++)
+        list.findViewHolderForAdapterPosition(index)!,
+    };
+    final seen = visible();
+    final initial = seen.length;
+    for (final distance in [960.0, 960.0, 960.0, 960.0, -960.0, -960.0, -960.0, -960.0]) {
+      list.scrollBy(0, distance);
+      await tester.pump(Duration(milliseconds: 16));
+      seen.addAll(visible());
+      expect(tester.widgetList<ElView>(_rows()).every((row) => row.style == null), isTrue);
+      expect(tester.takeException(), isNull);
+    }
+    expect(seen.length, lessThanOrEqualTo(initial + 4), reason: '窗口边界和既有缓存允许少量差异，不能每帧换掉整屏结构');
+    expect(list.getRecycledViewPool().getRecycledViewCount(0), lessThanOrEqualTo(5));
+    await tester.pumpWidget(SizedBox());
   });
 }

@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   android_system_font_weight: ^0.4.0
+  faker: ^2.2.0
   flutter_base:
     path: ../
   go_router: 17.3.0

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,6 +13,32 @@ Widget _host(Widget child) => ElComponentProvider(
 );
 
 void main() {
+  testWidgets('桌面卡片显式内边距不叠加官方默认留白', (tester) async {
+    for (final padding in <EdgeInsets?>[null, EdgeInsets.zero, EdgeInsets.all(8)]) {
+      await tester.pumpWidget(
+        ElComponentProvider(
+          components: el.desktopComponents,
+          child: MaterialApp(
+            home: Center(
+              child: SizedBox(
+                width: 94,
+                height: 184,
+                child: ElCard(
+                  style: padding == null ? null : ElStyle(padding: padding),
+                  child: SizedBox.expand(key: ValueKey('card-content')),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final inset = padding?.left ?? 20;
+      expect(tester.getSize(find.byKey(ValueKey('card-content'))), Size(94 - inset * 2, 184 - inset * 2));
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('官方输入替代接入原表单模型、校验、清空和外部回灌', (tester) async {
     final data = ValueNotifier<Map<String, dynamic>>({'name': ''});
     addTearDown(data.dispose);

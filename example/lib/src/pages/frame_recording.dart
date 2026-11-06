@@ -117,6 +117,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
                     '万条复选列表',
                     '聊天长列表',
                     '复杂卡片面板',
+                    '外卖商家列表',
                     '文档页 1 倍',
                     '文档页 20 倍',
                   ], disabled: active),

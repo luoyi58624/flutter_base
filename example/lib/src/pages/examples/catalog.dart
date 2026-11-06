@@ -9,6 +9,7 @@ import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
 import 'recycler_view/selection.dart';
 import 'recycler_view/text.dart';
+import 'recycler_view/takeaway.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -48,5 +49,11 @@ final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
     title: '复杂卡片面板',
     icon: ElIcon(Icons.dashboard_outlined),
     data: (_) => RecyclerCardsPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-takeaway',
+    title: '外卖商家列表',
+    icon: ElIcon(Icons.delivery_dining_outlined),
+    data: (_) => RecyclerTakeawayPage(),
   ),
 ];

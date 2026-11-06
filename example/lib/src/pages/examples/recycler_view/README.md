@@ -1,6 +1,6 @@
 # RecyclerView 长列表示例
 
-入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片。纯文本也可通过 `/examples/recycler-text` 直接打开。
+入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片、外卖商家。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
 
 ## 万条纯文本列表
 
@@ -27,9 +27,19 @@
 - 消息按方向使用两种结构类型，同类型重新绑定时更新正文与时间。
 - 两种方向各保留气泡、LayoutBuilder、Align 和卡片结构；绑定只通知正文和时间叶子。
 
+## 外卖商家列表
+
+- 共 10,000 家商家，信息与每店 10–12 道餐品在访问时生成；Faker 固定种子生成数据与 Lorem Picsum 网络随机图片，复用或切换容器不换图。
+- 店标和固定红包位于左列，店铺信息、配送与店内横向菜单位于右列；评分、销量、起送价、地址、标签、优惠、描述和评价共同形成密集文本场景。
+- 商家与餐品使用 `ElCard`，底色交给品牌组件；只覆写紧凑内边距和圆角。店名 14px，主体文字 9.5–12px，卡片内边距 8px、内容间距 4px，商品列宽 94px。
+- 三种外层容器共享相同商家和餐品内容，不指定整行高度；字号放大时横向菜单同步增加宽高，菜单本身按需创建餐品。
+- 店内菜单位置按商家身份保存；换绑时只重置内层菜单的滚动生命周期，卡片根结构继续复用，旧店铺的滚动活动不会带入另一家店。
+- 支持分类筛选、添加餐品和清空购物车；图片加载中或失败时保留同尺寸占位。Android 与 macOS 示例已配置网络访问权限。
+- 性能采样页增加「外卖商家列表」选项；真实帧耗时须使用目标设备的 Profile 构建，网络请求和首次图片解码也会影响首次滚动。
+
 ## 同内容容器对比
 
-四页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。同一示例的三种容器共享相同条目内容，按需渲染；不通过简化某一种容器的内容制造对比差异。
+五页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。同一示例的三种容器共享相同条目内容，按需渲染；不通过简化某一种容器的内容制造对比差异。
 
 切换容器保留勾选状态、聊天消息与输入内容，并将复选列表定位到首项、聊天定位到最新消息，从相同起点比较。复选行固定 88 高，官方列表可按真实行高精确定位；聊天的官方列表采用反向索引，顶部历史追加在远端，阅读期间收到新消息则按已挂载消息几何补偿位置。
 
@@ -41,5 +51,5 @@
 
 ```powershell
 cd example
-flutter test test/recycler_text_test.dart test/recycler_selection_row_tap_test.dart test/recycler_long_examples_test.dart --no-pub --concurrency=1
+flutter test test/recycler_takeaway_test.dart test/recycler_text_test.dart test/recycler_selection_row_tap_test.dart test/recycler_long_examples_test.dart --no-pub --concurrency=1
 ```
