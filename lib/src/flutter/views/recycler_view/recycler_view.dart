@@ -53,8 +53,8 @@ class RecyclerView extends StatefulWidget {
   /// 设置条目布局管理器，同一管理器只能连接一个容器。
   void setLayoutManager(LayoutManager? layout) {
     if (identical(_configuration.layout, layout)) return;
-    if (layout != null && layout is! LinearLayoutManager) {
-      throw ArgumentError('当前内核支持 LinearLayoutManager。');
+    if (layout != null && layout is! _AxisLayoutManager) {
+      throw ArgumentError('当前内核支持 Linear、Grid 与 StaggeredGridLayoutManager。');
     }
     _configuration.layout = layout;
     _configuration.changed();
@@ -220,7 +220,7 @@ class _RecyclerViewState extends State<RecyclerView> {
 
   _RecyclerConfiguration get _config => widget._configuration;
   Adapter? get _adapter => _appliedAdapter;
-  LinearLayoutManager? get _manager => _appliedManager as LinearLayoutManager?;
+  _AxisLayoutManager? get _manager => _appliedManager as _AxisLayoutManager?;
   RecycledViewPool get _pool => _appliedPool ?? _config.pool;
 
   @override
@@ -315,6 +315,7 @@ class _RecyclerViewState extends State<RecyclerView> {
     _lastPixels = pixels;
     if (delta == 0) return;
     _element?._scrollDelta = delta;
+    if (_config.listeners.isEmpty) return;
     final direction = _axisDirection(context);
     final physical = axisDirectionIsReversed(direction) ? -delta : delta;
     for (final listener in List<OnScrollListener>.of(_config.listeners)) {
@@ -329,6 +330,7 @@ class _RecyclerViewState extends State<RecyclerView> {
   void _setScrollState(int value) {
     if (_scrollState == value) return;
     _scrollState = value;
+    if (_config.listeners.isEmpty) return;
     for (final listener in List<OnScrollListener>.of(_config.listeners)) {
       listener.onScrollStateChanged(widget, value);
     }
@@ -452,6 +454,8 @@ class _RecyclerViewState extends State<RecyclerView> {
                 state: this,
                 offset: offset,
                 axisDirection: direction,
+                crossAxisReversed:
+                    axisDirectionToAxis(direction) == Axis.vertical && Directionality.of(context) == TextDirection.rtl,
                 refreshRate: View.of(context).display.refreshRate,
               ),
             );

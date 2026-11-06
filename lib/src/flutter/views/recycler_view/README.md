@@ -82,6 +82,29 @@ class RowsAdapter extends rv.Adapter<RowHolder> {
 
 `onCreateViewHolder` 创建固定结构，`onBindViewHolder` 更新该结构实际消费的数据。示例使用 `ValueNotifier` 和 `ValueListenableBuilder`，业务也可以使用已有的可监听模型；容器没有额外发明一套数据绑定协议。绑定时应完整覆盖可能从上一条数据遗留的交互状态。点击回调需要位置时调用 `holder.getBindingAdapterPosition()`，并处理 `RecyclerView.NO_POSITION`，不要长期保存某次绑定传入的 position。
 
+## 网格与瀑布流
+
+同一个 RecyclerView 可改用以下布局管理器，格子仍各自拥有 holder、稳定 ID 和回收生命周期：
+
+```dart
+recyclerView.setLayoutManager(rv.GridLayoutManager(context, 3));
+recyclerView.setLayoutManager(rv.StaggeredGridLayoutManager(2, rv.RecyclerView.VERTICAL));
+```
+
+`GridLayoutManager` 按 `spanCount` 分组，同组先测量自然尺寸，再以最大主轴尺寸统一行高；水平布局时跨度表示行数。`SpanSizeLookup.getSpanSize` 允许横幅等条目跨列，`getSpanIndex` 和 `getSpanGroupIndex` 沿用 AndroidX 的分组规则。支持方向、反向、RTL、修改列数及带偏移定位；与 AndroidX 一样，不支持 `stackFromEnd`。
+
+滚动范围按行高索引计算。相同条目类型、相同跨度的行共用测量样本，横幅和普通格子分别估算；等高普通网格采样后，完整范围等于实际行数乘以行高，再加独立横幅与内边距。最后不足一整行仍只占一行。初始完全被横幅遮住、尚未测到的普通行仍使用估值，进入普通行后校正；任意变高内容也需要逐步实测，不能在不读取内容的情况下保证未知高度精确。
+
+分组只在数据或布局规则变化时建立，滚动期间二分行高索引，不反复扫描所有条目。每轮布局冻结锚点的位置和相对偏移，holder 被回收换绑后不会影响本轮几何校正。原生 ScrollController 与滚动条共用这份行高指标，拖拽不再套用单列条目累加的位置。
+
+`StaggeredGridLayoutManager` 将新条目放入当前最短列，以列内有序区间查询可见项；高卡片旁边的短卡片会连续填充，不按整行补齐。提供列数、方向、反向、指定位置偏移、列分配失效和四类逐列可见位置查询。目前未移植 Android 的 full-span LayoutParams、gap strategy 和预测动画接口。
+
+网格局部回归包含一万项往返滚动、跨列横幅的独立估高、真实鼠标拖拽 Cupertino 滑块、不同类型行高、动态增删、RTL、水平和反向布局，以及瀑布流极高首项与短列并存。测试同时检查远跳后仍按需挂载，并且拖拽期间不重建全表分组：
+
+```powershell
+flutter test --no-pub --concurrency=1 test/flutter/views/recycler_view/grid_layout_test.dart
+```
+
 ## 官方 API 对照
 
 已经提供的接口保持官方的方法名、参数职责和调用方向：
@@ -98,6 +121,9 @@ class RowsAdapter extends rv.Adapter<RowHolder> {
 | 位置与回收保护 | `ViewHolder` 的绑定/绝对/布局/旧位置查询、`getBindingAdapter`、`setIsRecyclable`、`isRecyclable` |
 | 同位置缓存与类型回收池 | `setItemViewCacheSize`、`setRecycledViewPool`、`getRecycledViewPool`、池的容量和存取接口 |
 | 线性布局配置 | `setOrientation`、`setReverseLayout`、`setStackFromEnd` 及对应查询 |
+| 网格跨度 | `GridLayoutManager`、`setSpanCount`、`getSpanCount`、`setSpanSizeLookup`、`getSpanSizeLookup` |
+| 跨列与分组 | `SpanSizeLookup.getSpanSize`、`getSpanIndex`、`getSpanGroupIndex` |
+| 瀑布流配置与逐列查询 | `StaggeredGridLayoutManager`、`invalidateSpanAssignments`、`findFirstVisibleItemPositions` 等 |
 | 可见条目查询 | `findFirstVisibleItemPosition` 等四种可见/完全可见位置查询 |
 | 定位与滚动 | `scrollToPosition`、`scrollToPositionWithOffset`、`smoothScrollToPosition`、`scrollBy`、`smoothScrollBy`、`fling`、`stopScroll` |
 | 滚动监听 | `OnScrollListener`、`addOnScrollListener`、`removeOnScrollListener`、`getScrollState` |
@@ -165,7 +191,9 @@ Provider 不传配置或让回调返回 `$absent` 时自适应；显式传 `smoo
 
 ## 稳定滚动与数据更新
 
-同一 holder 不需要换绑且可见性不变时，跳过重复宿主更新与 `buildScope`；后代自身的脏构建仍由框架处理，子项保留布局检查入口。数据重新绑定、代码展开或宽度改变时仍会正确构建和测量；约束与内容稳定的 RenderBox 则使用 Flutter 自身的布局缓存。每项保留独立重绘边界，视口裁剪层通过 `oldLayer` 复用。
+同一 holder 不需要换绑且可见性不变时，跳过重复宿主更新与 `buildScope`。约束和内容均未失效、可见窗口也没变化时，只更新已有项的偏移，不再逐项进入布局检查或查询高度索引；预取、语义和 ScrollPosition 指标仍正常更新。条目跨过窗口边界、数据通知、代码展开或尺寸改变时回到完整布局，后代自身的脏构建仍由框架处理。每项保留独立重绘边界，视口裁剪层通过 `oldLayer` 复用。
+
+完整布局沿已测条目累加位置；估高命中且索引数值没变化时，不重复求锚点或逐项求前缀和。非空普通文本换字保留选区内容通知，省掉未变化的归属扫描；文字真正改变后仍需要排版。文本创建/更新、三组滚动对照和一次布局阶段诊断见 [TEXT_UPDATE_RESULTS.md](TEXT_UPDATE_RESULTS.md)，其中包含未稳定改善的结果，不能将这些主机测试耗时等同于 Android 帧率。
 
 跨记录换绑期间，holder 的局部作用域让 ElStyle 状态过渡直接提交目标值，并让移动开关与确定进度跳过旧记录的过渡；不修改系统 reduced-motion，不停掉可见的加载关键帧，也不影响其他 holder。同一记录的 `notifyItemChanged` 保留正常业务动画。两端复选和单选采用固定的轻量品牌视觉，复选示例不再靠更换 Key 清除旧动画。
 
@@ -246,4 +274,6 @@ flutter test test/recycler_long_examples_test.dart --concurrency=1
 - [RecyclerView 源码](https://raw.githubusercontent.com/androidx/androidx/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/RecyclerView.java)
 - [LinearLayoutManager 源码](https://raw.githubusercontent.com/androidx/androidx/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/LinearLayoutManager.java)
 - [GapWorker 源码](https://raw.githubusercontent.com/androidx/androidx/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/GapWorker.java)
+- [GridLayoutManager 源码](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/GridLayoutManager.java)
+- [StaggeredGridLayoutManager 源码](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/recyclerview/src/main/java/androidx/recyclerview/widget/StaggeredGridLayoutManager.java)
 - [Flutter scheduleTask 调度说明](https://api.flutter.dev/flutter/scheduler/SchedulerBinding/scheduleTask.html)

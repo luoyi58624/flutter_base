@@ -6,11 +6,13 @@ class _RecyclerViewport extends RenderObjectWidget {
     required this.offset,
     required this.axisDirection,
     required this.refreshRate,
+    this.crossAxisReversed = false,
   });
   final _RecyclerViewState state;
   final ViewportOffset offset;
   final AxisDirection axisDirection;
   final double refreshRate;
+  final bool crossAxisReversed;
 
   @override
   _RecyclerViewportElement createElement() => _RecyclerViewportElement(this);
@@ -33,6 +35,9 @@ class _RecyclerParentData extends ContainerBoxParentData<RenderBox> {
   double logicalStart = 0;
   double extent = 0;
   bool visible = false;
+  double crossStart = 0;
+  int spanIndex = 0;
+  int spanSize = 1;
 }
 
 class _ItemRepaintBoundary extends RepaintBoundary {
@@ -75,12 +80,15 @@ class _RecyclerViewportElement extends RenderObjectElement {
   _RecyclerViewportElement(_RecyclerViewport super.widget);
 
   final Map<ViewHolder, Element> _children = {};
+  final Map<ViewHolder, RenderBox> _boxes = {};
   final Map<int, ViewHolder> _active = {};
   final List<ViewHolder> _cached = [];
   final Set<ViewHolder> _prefetched = {};
   final Set<ViewHolder> _retained = {};
   final Set<ViewHolder> _pendingRetire = {};
   late _ExtentIndex _extents;
+  _GridRows? _gridRows;
+  _StaggeredSpans? _staggeredSpans;
   _Anchor? _anchor;
   bool _computingLayout = false;
   bool _pendingUpdates = false;
@@ -88,6 +96,8 @@ class _RecyclerViewportElement extends RenderObjectElement {
   bool _alive = true;
   double _scrollDelta = 0;
   int _prefetchCacheExtra = 0;
+  ViewHolder? _firstVisible;
+  ViewHolder? _lastVisible;
 
   _RecyclerViewState get _state => (widget as _RecyclerViewport).state;
   Adapter? get _adapter => _state._adapter;
@@ -138,19 +148,30 @@ class _RecyclerViewportElement extends RenderObjectElement {
   void insertRenderObjectChild(RenderBox child, ViewHolder slot) {
     renderObject.insert(child, after: renderObject.lastChild);
     (child.parentData! as _RecyclerParentData).holder = slot;
+    _boxes[slot] = child;
   }
 
   @override
-  void moveRenderObjectChild(RenderBox child, Object? oldSlot, Object? newSlot) {}
+  void moveRenderObjectChild(RenderBox child, Object? oldSlot, Object? newSlot) {
+    if (identical(_boxes[oldSlot], child)) _boxes.remove(oldSlot);
+    if (newSlot is ViewHolder) {
+      _boxes[newSlot] = child;
+      (child.parentData! as _RecyclerParentData).holder = newSlot;
+    }
+  }
 
   @override
-  void removeRenderObjectChild(RenderBox child, Object? slot) => renderObject.remove(child);
+  void removeRenderObjectChild(RenderBox child, Object? slot) {
+    if (identical(_boxes[slot], child)) _boxes.remove(slot);
+    renderObject.remove(child);
+  }
 
   @override
   void forgetChild(Element child) {
     final holder = child.slot! as ViewHolder;
     _children.remove(holder);
-    _active.removeWhere((_, value) => identical(value, holder));
+    _boxes.remove(holder);
+    _removeActive(holder);
     _cached.remove(holder);
     _prefetched.remove(holder);
     _retained.remove(holder);
@@ -187,11 +208,21 @@ class _RecyclerViewportElement extends RenderObjectElement {
     });
   }
 
-  RenderBox _box(ViewHolder holder) => _children[holder]!.renderObject! as RenderBox;
+  // Element.renderObject 会穿过宿主包装链；实际挂载/移除时维护一次即可。
+  RenderBox _box(ViewHolder holder) => _boxes[holder]!;
+
+  void _removeActive(ViewHolder holder) {
+    if (identical(_active[holder._position], holder)) {
+      _active.remove(holder._position);
+    } else {
+      // 全量稳定 ID 重映射可先改 holder 位置，暂时仍需按旧键查找。
+      _active.removeWhere((_, value) => identical(value, holder));
+    }
+  }
 
   void _detachForTransfer(ViewHolder holder) {
     renderObject.markNeedsLayout();
-    _active.removeWhere((_, value) => identical(value, holder));
+    _removeActive(holder);
     _cached.remove(holder);
     _prefetched.remove(holder);
     _retained.remove(holder);
@@ -223,7 +254,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
   void _retire(ViewHolder holder, {bool allowCache = true, _LayoutScrap? scrap}) {
     _pendingRetire.remove(holder);
     _prefetched.remove(holder);
-    _active.removeWhere((_, value) => identical(value, holder));
+    _removeActive(holder);
     if (holder._attached) {
       holder._bindingAdapter?.onViewDetachedFromWindow(holder);
       holder._attached = false;
@@ -298,6 +329,10 @@ class _RecyclerViewportElement extends RenderObjectElement {
     int? deadline,
     _LayoutScrap? scrap,
   }) {
+    assert(() {
+      RecyclerWorkProbe.itemLayoutVisits++;
+      return true;
+    }());
     final adapter = _adapter!;
     final type = _extents.typeAt(position);
     var holder = _active[position];
@@ -414,6 +449,10 @@ class _RecyclerViewportElement extends RenderObjectElement {
         .._layoutPosition = position
         .._oldPosition = RecyclerView.NO_POSITION;
     }
+    (_box(target).parentData! as _RecyclerParentData)
+      ..crossStart = 0
+      ..spanIndex = 0
+      ..spanSize = 1;
     return target;
   }
 
@@ -446,6 +485,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
         .._fullUpdate = true;
     }
     _extents = _ExtentIndex(_adapter);
+    _matrixDataChanged(0, 0, full: true);
     renderObject.markNeedsLayout();
   }
 
@@ -456,6 +496,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       if (holder._position >= start && holder._position < start + count) holder._addChangePayload(payload);
     }
     _extents.invalidate(start, count, _adapter!);
+    _matrixDataChanged(start, count);
     renderObject.markNeedsLayout();
   }
 
@@ -470,6 +511,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       }
     }
     _extents.insert(start, count, _adapter!);
+    _matrixDataChanged(start, count, structural: true);
     _rekeyActive();
     renderObject.markNeedsLayout();
   }
@@ -486,6 +528,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       }
     }
     _extents.remove(start, count, _adapter!);
+    _matrixDataChanged(start, count, structural: true);
     _rekeyActive();
     renderObject.markNeedsLayout();
   }
@@ -506,6 +549,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
       if (old != holder._position && holder._oldPosition == -1) holder._oldPosition = holder._layoutPosition;
     }
     _extents.move(from, to, _adapter!);
+    _matrixDataChanged(math.min(from, to), (from - to).abs() + 1, structural: true);
     _rekeyActive();
     renderObject.markNeedsLayout();
   }
@@ -568,6 +612,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
     _fullChange = false;
     _pendingUpdates = false;
     _extents = _ExtentIndex(_adapter);
+    _matrixDataChanged(0, 0, full: true);
     renderObject.markNeedsLayout();
   }
 
@@ -582,11 +627,17 @@ class _RecyclerViewportElement extends RenderObjectElement {
     if (!_alive) return;
     _captureAnchor();
     _extents = _ExtentIndex(_adapter);
+    _matrixDataChanged(0, 0, full: true);
     renderObject.markNeedsLayout();
   }
 
-  double _offsetForPosition(int position, double relative) =>
-      _extents.prefix(position.clamp(0, _extents.length)) + renderObject.leadingPadding - relative;
+  double _offsetForPosition(int position, double relative) {
+    final target = position.clamp(0, _extents.length);
+    final start = _state._manager is GridLayoutManager || _state._manager is StaggeredGridLayoutManager
+        ? _matrixStart(target)
+        : _extents.prefix(target);
+    return start + renderObject.leadingPadding - relative;
+  }
 
   ViewHolder? _holderForAdapterPosition(int position) =>
       _findHolder((holder) => holder.getBindingAdapterPosition() == position);
@@ -615,18 +666,83 @@ class _RecyclerViewportElement extends RenderObjectElement {
     return first ? positions.reduce(math.min) : positions.reduce(math.max);
   }
 
-  void _layoutContents() {
+  void _layoutContents({bool allowTranslation = false}) {
+    Stopwatch? watch;
+    assert(() {
+      watch = Stopwatch()..start();
+      return true;
+    }());
     _computingLayout = true;
-    final scrap = <int, Map<int, ViewHolder>>{};
+    Map<int, Map<int, ViewHolder>>? scrap;
     try {
-      developer.Timeline.timeSync('RecyclerView.layout', () => _layoutLinear(scrap));
+      developer.Timeline.timeSync('RecyclerView.layout', () {
+        if (allowTranslation && _translateVisibleWindow()) return;
+        final current = scrap = <int, Map<int, ViewHolder>>{};
+        if (_state._manager is GridLayoutManager || _state._manager is StaggeredGridLayoutManager) {
+          _layoutMatrix(current);
+        } else {
+          _layoutLinear(current);
+        }
+      });
     } finally {
       try {
-        _flushScrap(scrap);
+        if (scrap != null) _flushScrap(scrap!);
       } finally {
         _computingLayout = false;
+        assert(() {
+          RecyclerWorkProbe.layoutMicroseconds += (watch!..stop()).elapsedMicroseconds;
+          return true;
+        }());
       }
     }
+  }
+
+  bool _translateVisibleWindow() {
+    final first = _firstVisible, last = _lastVisible;
+    final manager = _state._manager;
+    final count = _adapter?.getItemCount() ?? 0;
+    if (first == null ||
+        last == null ||
+        _active.isEmpty ||
+        manager == null ||
+        manager is StaggeredGridLayoutManager ||
+        manager._stackFromEnd ||
+        _pendingUpdates ||
+        _fullChange ||
+        _anchor != null ||
+        _state._config.pendingScroll != null ||
+        _retained.isNotEmpty ||
+        _pendingRetire.isNotEmpty ||
+        count != _extents.length) {
+      return false;
+    }
+    final render = renderObject;
+    final firstData = _box(first).parentData! as _RecyclerParentData;
+    final lastData = _box(last).parentData! as _RecyclerParentData;
+    // 保留最新滚动指标，后续尺寸变化的物理修正仍须基于上一帧的像素位置。
+    final offset = render.offset;
+    if (offset is! ScrollPosition ||
+        !offset.hasContentDimensions ||
+        !offset.applyContentDimensions(offset.minScrollExtent, offset.maxScrollExtent)) {
+      return false;
+    }
+    final pixels = render.offset.pixels;
+    final end = pixels + render.mainExtent - render.trailingPadding;
+    // 首末项既不能退出，也不能让相邻项进入；采用实际测量边界，不猜测固定行高。
+    if (firstData.extent <= 0 ||
+        lastData.extent <= 0 ||
+        (first._position > 0 && pixels <= firstData.logicalStart + precisionErrorTolerance) ||
+        pixels >= firstData.logicalStart + firstData.extent - precisionErrorTolerance ||
+        lastData.logicalStart >= end - precisionErrorTolerance ||
+        (last._position < count - 1 && end >= lastData.logicalStart + lastData.extent - precisionErrorTolerance)) {
+      return false;
+    }
+    assert(() {
+      RecyclerWorkProbe.translatedLayouts++;
+      return true;
+    }());
+    _prefetch();
+    return true;
   }
 
   ViewHolder? _focusedHolder() {
@@ -674,7 +790,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
   }
 
   void _layoutLinear(_LayoutScrap scrap) {
+    assert(() {
+      RecyclerWorkProbe.fullLayouts++;
+      return true;
+    }());
     final render = renderObject;
+    _firstVisible = _lastVisible = null;
     final adapter = _adapter;
     final manager = _state._manager;
     final count = adapter?.getItemCount() ?? 0;
@@ -696,7 +817,6 @@ class _RecyclerViewportElement extends RenderObjectElement {
       render._correctOffset(0);
       render.offset.applyContentDimensions(0, 0);
       _pendingUpdates = false;
-      render.markNeedsSemanticsUpdate();
       return;
     }
     _resolveFullChange();
@@ -754,23 +874,31 @@ class _RecyclerViewportElement extends RenderObjectElement {
       _retire(holder, allowCache: allowCache, scrap: identical(holder, focusedHolder) ? null : scrap);
     }
 
+    var refreshFinalStarts = stackToEnd;
     for (var attempt = 0; !stackToEnd && attempt < 4; attempt++) {
       pixels = render.offset.pixels;
       var first = _extents.indexAt(math.max(0, pixels - render.leadingPadding));
-      final relative = _extents.prefix(first) + render.leadingPadding - pixels;
+      var nextStart = _extents.prefix(first) + render.leadingPadding;
+      final relative = nextStart - pixels;
       final anchorPosition = retainedAnchor?.holder._position ?? first;
       final anchorRelative = retainedAnchor?.relativeStart ?? relative;
-      ViewHolder layoutPosition(int position) {
+      var geometryChanged = false;
+      ViewHolder layoutPosition(int position, [double? knownStart]) {
         final holder = _obtainAndLayout(position, constraints, visible: true, scrap: scrap)!;
         final box = _box(holder);
         final extent = render.vertical ? box.size.height : box.size.width;
-        _extents.measure(position, extent);
-        // 补测上方未知高度时保持既有可见条目，不能改用刚进入屏幕的新条目作锚点。
-        final anchoredPixels = _extents.prefix(anchorPosition) + render.leadingPadding - anchorRelative;
-        render._correctOffset(clampToContent ? math.max(0.0, anchoredPixels) : anchoredPixels);
+        final changed = _extents.measure(position, extent);
+        geometryChanged |= changed;
+        if (changed) {
+          // 只有真实改高才重新求锚点；估高命中时沿实测条目连续累加位置。
+          final anchoredPixels = _extents.prefix(anchorPosition) + render.leadingPadding - anchorRelative;
+          render._correctOffset(clampToContent ? math.max(0.0, anchoredPixels) : anchoredPixels);
+        }
         final data = box.parentData! as _RecyclerParentData;
         data
-          ..logicalStart = _extents.prefix(position) + render.leadingPadding
+          ..logicalStart = !changed && knownStart != null
+              ? knownStart
+              : _extents.prefix(position) + render.leadingPadding
           ..extent = extent
           ..visible = true;
         return holder;
@@ -788,19 +916,28 @@ class _RecyclerViewportElement extends RenderObjectElement {
       }
       final wanted = <ViewHolder>{};
       for (var position = first; position < count; position++) {
-        final start = _extents.prefix(position) + render.leadingPadding;
-        if (position != first && start >= render.offset.pixels + render.mainExtent - render.trailingPadding) break;
-        wanted.add(layoutPosition(position));
+        if (position != first && nextStart >= render.offset.pixels + render.mainExtent - render.trailingPadding) break;
+        final holder = layoutPosition(position, nextStart);
+        wanted.add(holder);
+        final data = _box(holder).parentData! as _RecyclerParentData;
+        nextStart = data.logicalStart + data.extent;
       }
       // 新进入的项比估算更短时，继续向上填满空隙，不依赖固定次数的整轮重试。
       while (first > 0 && _extents.prefix(first) + render.leadingPadding > render.offset.pixels) {
         wanted.add(layoutPosition(--first));
       }
       for (final holder in _active.values.toList(growable: false)) {
-        final start = _extents.prefix(holder._position) + render.leadingPadding - render.offset.pixels;
+        if (!wanted.contains(holder)) {
+          retire(holder);
+          continue;
+        }
         final data = _box(holder).parentData! as _RecyclerParentData;
-        if (!wanted.contains(holder) || start + data.extent <= 0 || start >= render.mainExtent) retire(holder);
+        final start =
+            (geometryChanged ? _extents.prefix(holder._position) + render.leadingPadding : data.logicalStart) -
+            render.offset.pixels;
+        if (start + data.extent <= 0 || start >= render.mainExtent) retire(holder);
       }
+      refreshFinalStarts = geometryChanged;
       final maxScroll = math.max(
         0.0,
         _extents.total + render.leadingPadding + render.trailingPadding - render.mainExtent,
@@ -822,18 +959,17 @@ class _RecyclerViewportElement extends RenderObjectElement {
       if (!accepted) retainedAnchor = null;
       if (accepted && !adjusted) break;
     }
+    final shift = manager._stackFromEnd
+        ? math.max(0.0, render.mainExtent - render.leadingPadding - render.trailingPadding - _extents.total)
+        : 0.0;
     for (final holder in _active.values) {
+      if (_firstVisible == null || holder._position < _firstVisible!._position) _firstVisible = holder;
+      if (_lastVisible == null || holder._position > _lastVisible!._position) _lastVisible = holder;
       final data = _box(holder).parentData! as _RecyclerParentData;
-      final shift = manager._stackFromEnd
-          ? math.max(0.0, render.mainExtent - render.leadingPadding - render.trailingPadding - _extents.total)
-          : 0.0;
-      data.logicalStart = _extents.prefix(holder._position) + render.leadingPadding + shift;
-      final logical = data.logicalStart - render.offset.pixels;
-      final main = render.reversed ? render.mainExtent - logical - data.extent : logical;
-      data.offset = render.vertical ? Offset(render.crossPadding, main) : Offset(main, render.crossPadding);
+      if (refreshFinalStarts) data.logicalStart = _extents.prefix(holder._position) + render.leadingPadding;
+      data.logicalStart += shift;
     }
     _pendingUpdates = false;
-    render.markNeedsSemanticsUpdate();
     _flushScrap(scrap);
     _prefetch();
   }
@@ -853,12 +989,13 @@ class _RecyclerViewportElement extends RenderObjectElement {
     final age = developer.Timeline.now - SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
     var remaining = age >= 0 && age < 1000000 ? intervalUs - age - 2000 : 1000;
     assert(() {
+      // ignore: invalid_use_of_visible_for_testing_member
       remaining = RecyclerTestClock.remainingBudgetMicroseconds?.call(intervalUs) ?? remaining;
       return true;
     }());
     final deadline = _nowUs + math.max(0, remaining).toInt();
     final direction = _scrollDelta < 0 ? -1 : 1;
-    final edge = direction > 0 ? _active.keys.reduce(math.max) : _active.keys.reduce(math.min);
+    final edge = (direction > 0 ? _lastVisible! : _firstVisible!)._position;
     final count = manager._initialPrefetchItemCount;
     _prefetchCacheExtra = math.max(_prefetchCacheExtra, count);
     _prefetched.removeWhere((holder) {
@@ -876,7 +1013,12 @@ class _RecyclerViewportElement extends RenderObjectElement {
         continue;
       }
       developer.Timeline.timeSync('RecyclerView.prefetch', () {
-        final holder = _obtainAndLayout(position, renderObject.childConstraints, visible: false, deadline: deadline);
+        final holder = _obtainAndLayout(
+          position,
+          _matrixChildConstraints(position),
+          visible: false,
+          deadline: deadline,
+        );
         if (holder != null) {
           // 预取不提交高度索引，下一次可见布局再按既有锚点应用测量结果。
           if (!_cached.contains(holder)) _cached.add(holder);
@@ -913,7 +1055,17 @@ class _RecyclerViewportRenderBox extends RenderBox
   AxisDirection _axisDirection;
   double refreshRate;
   double? _previousCrossExtent;
+  BoxConstraints? _lastLayoutConstraints;
+  bool _translationValid = false;
+  int _layoutInvalidations = 0;
+  double _paintPixels = 0;
+  double _paintCrossPadding = 0;
+  AxisDirection _paintAxisDirection = AxisDirection.down;
   final LayerHandle<ClipRectLayer> _clipLayer = LayerHandle<ClipRectLayer>();
+
+  // 与官方视口一样隔离滚动重画，每个条目的独立绘制缓存仍由子边界保留。
+  @override
+  bool get isRepaintBoundary => true;
 
   ViewportOffset get offset => _offset;
 
@@ -925,9 +1077,9 @@ class _RecyclerViewportRenderBox extends RenderBox
 
   set offset(ViewportOffset value) {
     if (identical(value, _offset)) return;
-    if (attached) _offset.removeListener(markNeedsLayout);
+    if (attached) _offset.removeListener(_offsetChanged);
     _offset = value;
-    if (attached) _offset.addListener(markNeedsLayout);
+    if (attached) _offset.addListener(_offsetChanged);
     markNeedsLayout();
   }
 
@@ -961,13 +1113,23 @@ class _RecyclerViewportRenderBox extends RenderBox
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _offset.addListener(markNeedsLayout);
+    _offset.addListener(_offsetChanged);
   }
 
   @override
   void detach() {
-    _offset.removeListener(markNeedsLayout);
+    _offset.removeListener(_offsetChanged);
     super.detach();
+  }
+
+  void _offsetChanged() => super.markNeedsLayout();
+
+  @override
+  void markNeedsLayout() {
+    // 数据、子项和环境失效必须盖过同帧稍后到来的滚动通知。
+    _translationValid = false;
+    _layoutInvalidations++;
+    super.markNeedsLayout();
   }
 
   @override
@@ -976,13 +1138,33 @@ class _RecyclerViewportRenderBox extends RenderBox
       throw FlutterError('RecyclerView 需要父级提供有限的宽度和高度。');
     }
     size = constraints.biggest;
+    final translate = _translationValid && _lastLayoutConstraints == constraints;
+    _translationValid = false;
+    _lastLayoutConstraints = constraints;
+    final invalidations = _layoutInvalidations;
     _offset.applyViewportDimension(mainExtent);
     final cross = vertical ? size.width : size.height;
     invokeLayoutCallback((BoxConstraints _) {
       if (_previousCrossExtent != null && _previousCrossExtent != cross) element._resetGeometry();
       _previousCrossExtent = cross;
-      element._layoutContents();
+      element._layoutContents(allowTranslation: translate);
     });
+    _paintPixels = _offset.pixels;
+    _paintCrossPadding = crossPadding;
+    _paintAxisDirection = _axisDirection;
+    _translationValid = _layoutInvalidations == invalidations;
+  }
+
+  Offset _childOffset(_RecyclerParentData data, [Offset origin = Offset.zero]) {
+    // 变换与命中始终使用已完成布局的快照，不能跟随尚未绘制的输入位置提前跳动。
+    final vertical = axisDirectionToAxis(_paintAxisDirection) == Axis.vertical;
+    final logical = data.logicalStart - _paintPixels;
+    final main = axisDirectionIsReversed(_paintAxisDirection)
+        ? (vertical ? size.height : size.width) - logical - data.extent
+        : logical;
+    return vertical
+        ? Offset(origin.dx + _paintCrossPadding + data.crossStart, origin.dy + main)
+        : Offset(origin.dx + main, origin.dy + _paintCrossPadding + data.crossStart);
   }
 
   @override
@@ -991,7 +1173,7 @@ class _RecyclerViewportRenderBox extends RenderBox
       var child = firstChild;
       while (child != null) {
         final data = child.parentData! as _RecyclerParentData;
-        if (data.visible) context.paintChild(child, offset + data.offset);
+        if (data.visible) context.paintChild(child, _childOffset(data, offset));
         child = data.nextSibling;
       }
     }, oldLayer: _clipLayer.layer);
@@ -1011,7 +1193,7 @@ class _RecyclerViewportRenderBox extends RenderBox
       final data = child.parentData! as _RecyclerParentData;
       if (data.visible &&
           result.addWithPaintOffset(
-            offset: data.offset,
+            offset: _childOffset(data),
             position: position,
             hitTest: (result, transformed) => target.hitTest(result, position: transformed),
           )) {
@@ -1025,7 +1207,8 @@ class _RecyclerViewportRenderBox extends RenderBox
   @override
   void applyPaintTransform(RenderBox child, Matrix4 transform) {
     final data = child.parentData! as _RecyclerParentData;
-    transform.translateByDouble(data.offset.dx, data.offset.dy, 0, 1);
+    final offset = _childOffset(data);
+    transform.translateByDouble(offset.dx, offset.dy, 0, 1);
   }
 
   @override
@@ -1075,6 +1258,23 @@ class _ExtentIndex {
     _sizes = List<double?>.filled(adapter?.getItemCount() ?? 0, null, growable: true);
     _rebuild(adapter);
   }
+  _ExtentIndex.groups(List<int> types) {
+    _sizes = List<double?>.filled(types.length, null, growable: true);
+    _types = types;
+    _values = List.filled(types.length, 100.0);
+    _rebuildTree();
+  }
+
+  void invalidateGroups(int start, int count) {
+    final end = math.min(length, start + count);
+    for (var index = start; index < end; index++) {
+      _sizes[index] = null;
+      final estimate = _estimates[_types[index]] ?? 100.0;
+      _add(index, estimate - _values[index]);
+      _values[index] = estimate;
+    }
+  }
+
   late List<double?> _sizes;
   List<int> _types = [];
   List<double> _values = [];
@@ -1124,6 +1324,10 @@ class _ExtentIndex {
   }
 
   double prefix(int end) {
+    assert(() {
+      RecyclerWorkProbe.prefixQueries++;
+      return true;
+    }());
     _ensureTypes();
     var sum = 0.0;
     for (var i = end; i > 0; i -= i & -i) {
@@ -1152,26 +1356,31 @@ class _ExtentIndex {
     return math.min(index, length - 1);
   }
 
-  void measure(int index, double extent) {
+  bool measure(int index, double extent) {
     _ensureTypes();
     if (!extent.isFinite || extent < 0) throw StateError('条目布局尺寸必须是有限的非负数。');
-    if (_sizes[index] == extent) return;
+    if (_sizes[index] == extent) return false;
     final type = _types[index];
     final firstOfType = !_estimates.containsKey(type);
     _estimates.putIfAbsent(type, () => extent);
     _sizes[index] = extent;
     if (firstOfType) {
+      var changed = _values[index] != extent;
       _values[index] = extent;
       for (var i = 0; i < length; i++) {
         if (_sizes[i] == null && _types[i] == type) {
+          changed |= _values[i] != extent;
           _values[i] = extent;
         }
       }
-      _rebuildTree();
+      if (changed) _rebuildTree();
+      return changed;
     } else if (_values[index] != extent) {
       _add(index, extent - _values[index]);
       _values[index] = extent;
+      return true;
     }
+    return false;
   }
 
   void invalidate(int start, int count, Adapter adapter) {

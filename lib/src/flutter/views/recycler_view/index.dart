@@ -1,4 +1,4 @@
-/// 按 AndroidX RecyclerView 契约组织的 Dart 视图回收与线性布局内核。
+/// 按 AndroidX RecyclerView 契约组织的 Dart 视图回收、线性、网格与瀑布流布局内核。
 library;
 
 import 'dart:async';
@@ -14,6 +14,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/reuse_animation.dart';
 import 'test_clock.dart';
+import 'work_probe.dart';
 import '../scroll/smooth_scroll/smooth_pointer_scroll.dart';
 import '../scroll/smooth_scroll/smooth_scroll.dart';
 import '../view/provider.dart';
@@ -21,6 +22,9 @@ import '../view/provider.dart';
 part 'adapter.dart';
 part 'pool.dart';
 part 'layout_manager.dart';
+part 'grid_layout_manager.dart';
+part 'grid_geometry.dart';
+part 'grid_viewport.dart';
 part 'pointer_scroll.dart';
 part 'recycler_view.dart';
 part 'viewport.dart';
@@ -30,6 +34,7 @@ final _clock = Stopwatch()..start();
 int get _nowUs {
   var value = _clock.elapsedMicroseconds;
   assert(() {
+    // ignore: invalid_use_of_visible_for_testing_member
     value = RecyclerTestClock.nowMicroseconds?.call() ?? value;
     return true;
   }());

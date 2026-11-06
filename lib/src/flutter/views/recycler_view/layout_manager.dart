@@ -56,10 +56,8 @@ abstract class LayoutManager {
   bool isItemPrefetchEnabled() => _itemPrefetchEnabled;
 }
 
-/// 按单一方向排列并回收复用条目的线性布局管理器。
-class LinearLayoutManager extends LayoutManager {
-  /// 创建线性布局，保留官方的 context、方向和反向布局参数顺序。
-  LinearLayoutManager([BuildContext? context, int orientation = RecyclerView.VERTICAL, bool reverseLayout = false]) {
+abstract class _AxisLayoutManager extends LayoutManager {
+  _AxisLayoutManager(int orientation, bool reverseLayout) {
     setOrientation(orientation);
     _reverseLayout = reverseLayout;
   }
@@ -91,6 +89,18 @@ class LinearLayoutManager extends LayoutManager {
     _reverseLayout = reverseLayout;
     _state?._layoutManagerChanged();
   }
+
+  @override
+  bool canScrollHorizontally() => _orientation == RecyclerView.HORIZONTAL;
+
+  @override
+  bool canScrollVertically() => _orientation == RecyclerView.VERTICAL;
+}
+
+/// 按单一方向排列并回收复用条目的线性布局管理器。
+class LinearLayoutManager extends _AxisLayoutManager {
+  /// 创建线性布局，保留官方的 context、方向和反向布局参数顺序。
+  LinearLayoutManager([BuildContext? context, super.orientation = RecyclerView.VERTICAL, super.reverseLayout = false]);
 
   /// 返回初始布局是否从内容末端对齐。
   bool getStackFromEnd() => _stackFromEnd;
@@ -141,12 +151,4 @@ class LinearLayoutManager extends LayoutManager {
   /// 返回当前布局中最后一个完全可见条目的适配器位置。
   int findLastCompletelyVisibleItemPosition() =>
       _state?._element?._findVisiblePosition(first: false, complete: true) ?? RecyclerView.NO_POSITION;
-
-  /// 返回当前方向是否为水平布局。
-  @override
-  bool canScrollHorizontally() => _orientation == RecyclerView.HORIZONTAL;
-
-  /// 返回当前方向是否为垂直布局。
-  @override
-  bool canScrollVertically() => _orientation == RecyclerView.VERTICAL;
 }
