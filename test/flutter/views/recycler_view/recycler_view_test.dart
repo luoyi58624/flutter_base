@@ -118,7 +118,10 @@ void main() {
     for (final holder in adapter.holders) {
       final item = find.byWidget(holder.itemView, skipOffstage: false);
       final boundary = find
-          .ancestor(of: item, matching: find.byType(RepaintBoundary, skipOffstage: false))
+          .ancestor(
+            of: item,
+            matching: find.byWidgetPredicate((widget) => widget is RepaintBoundary, skipOffstage: false),
+          )
           .evaluate()
           .first;
       expect(boundaries.add(boundary), isTrue, reason: '每个 holder 应有自己的最近重绘边界');

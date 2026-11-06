@@ -35,6 +35,33 @@ class _RecyclerParentData extends ContainerBoxParentData<RenderBox> {
   bool visible = false;
 }
 
+class _ItemRepaintBoundary extends RepaintBoundary {
+  const _ItemRepaintBoundary({required this.visible, required super.child});
+
+  final bool visible;
+
+  @override
+  _RenderItemRepaintBoundary createRenderObject(BuildContext context) => _RenderItemRepaintBoundary(visible);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderItemRepaintBoundary renderObject) {
+    renderObject.visible = visible;
+  }
+}
+
+class _RenderItemRepaintBoundary extends RenderRepaintBoundary {
+  _RenderItemRepaintBoundary(this._visible);
+
+  bool _visible;
+
+  set visible(bool value) {
+    if (_visible == value) return;
+    _visible = value;
+    // flushPaint 会先画仍挂在图层树上的脏边界；离屏时只摘图层，保留整棵渲染树及绘制缓存。
+    if (!value) layer?.remove();
+  }
+}
+
 class _Anchor {
   _Anchor(this.holder, this.relativeStart);
   final ViewHolder holder;
@@ -145,7 +172,7 @@ class _RecyclerViewportElement extends RenderObjectElement {
           excluding: !visible,
           child: ReuseAnimationScope(
             state: holder._reuseAnimation,
-            child: RepaintBoundary(child: holder.itemView),
+            child: _ItemRepaintBoundary(visible: visible, child: holder.itemView),
           ),
         ),
       ),
