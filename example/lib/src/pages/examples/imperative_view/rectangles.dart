@@ -10,7 +10,7 @@ import '../recycler_view/scroll_mode.dart';
 final _colors = [Colors.blue, Colors.teal, Colors.orange, Colors.purple, Colors.pink, Colors.indigo];
 final _backgrounds = [for (final color in _colors) color.withValues(alpha: .12)];
 
-/// 用同一棵命令式矩形行对比三个按需滚动容器。
+/// 在三个滚动容器中对比命令式 View 与官方组件构建的相同矩形行。
 class ImperativeRectanglesPage extends StatefulWidget {
   /// 创建一万条颜色矩形的示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -24,15 +24,30 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
   final _official = ScrollController(keepScrollOffset: false);
   final _elController = ScrollController(keepScrollOffset: false);
   RecyclerExampleScrollMode _mode = .recyclerView;
-  late final _list = rv.RecyclerView(key: ValueKey('imperative-recycler-list'), controller: _official)
+  bool _useFlutter = false;
+  late rv.RecyclerView _list = _createList();
+
+  rv.RecyclerView _createList() => rv.RecyclerView(key: ValueKey('imperative-recycler-list'), controller: _official)
     ..setLayoutManager(rv.LinearLayoutManager())
-    ..setAdapter(_RectangleAdapter());
+    ..setAdapter(_useFlutter ? _FlutterRectangleAdapter() : _RectangleAdapter());
 
   void _choose(RecyclerExampleScrollMode mode) {
     if (_mode == mode) return;
     setState(() => _mode = mode);
     _list.scrollToPosition(0);
   }
+
+  void _toggleItems(bool value) {
+    if (_useFlutter == value) return;
+    setState(() {
+      _useFlutter = value;
+      // 新配置由 Flutter 更新阶段接管，避免指针回调中同步拆卸回收子树。
+      _list = _createList();
+    });
+  }
+
+  Widget _buildItem(BuildContext context, int index) =>
+      _useFlutter ? _FlutterRectangleRow(index) : _RectangleRow(index);
 
   @override
   void dispose() {
@@ -48,7 +63,7 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
         controller: _elController,
         scrollbar: RecyclerExampleIosScrollbar(),
         children: [
-          ElListView.builder(keepAlive: false, itemCount: 10000, itemBuilder: (context, index) => _RectangleRow(index)),
+          ElListView.builder(key: ValueKey(_useFlutter), keepAlive: false, itemCount: 10000, itemBuilder: _buildItem),
         ],
       );
     }
@@ -62,7 +77,7 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
               itemCount: 10000,
               addAutomaticKeepAlives: false,
               addRepaintBoundaries: false,
-              itemBuilder: (context, index) => _RectangleRow(index),
+              itemBuilder: _buildItem,
             ),
     );
   }
@@ -71,6 +86,13 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
   Widget build(BuildContext context) => ExamplePage(
     title: '命令式颜色矩形',
     actions: [
+      Row(
+        mainAxisSize: .min,
+        children: [
+          Text('官方组件'),
+          Switch(key: ValueKey('imperative-flutter-items'), value: _useFlutter, onChanged: _toggleItems),
+        ],
+      ),
       PopupMenuButton<RecyclerExampleScrollMode>(
         key: ValueKey('imperative-menu'),
         tooltip: '列表选项',
@@ -145,5 +167,70 @@ class _RectangleRow extends HookWidget {
   Widget build(BuildContext context) {
     final tree = useMemoized(_RectangleTree.new)..bind(index);
     return view.ElRootView(root: tree.root);
+  }
+}
+
+class _FlutterRectangleRow extends StatelessWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _FlutterRectangleRow(this.index);
+  final int index;
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    key: ValueKey('imperative-flutter-row-$index'),
+    child: Container(
+      margin: .symmetric(horizontal: 16, vertical: 6),
+      padding: .all(12),
+      color: _backgrounds[index % _colors.length],
+      child: Column(
+        mainAxisSize: .min,
+        crossAxisAlignment: .start,
+        children: [
+          Container(
+            width: 72 + index % 5 * 14,
+            height: 24,
+            margin: .only(bottom: 8),
+            color: _colors[index % _colors.length],
+          ),
+          Container(
+            width: 120 + index % 4 * 18,
+            height: 32,
+            margin: .only(bottom: 8),
+            color: _colors[(index + 2) % _colors.length],
+          ),
+          Container(width: double.infinity, height: 16, color: _colors[(index + 4) % _colors.length]),
+        ],
+      ),
+    ),
+  );
+}
+
+class _FlutterRectangleAdapter extends rv.Adapter<_FlutterRectangleHolder> {
+  @override
+  int getItemCount() => 10000;
+
+  @override
+  _FlutterRectangleHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _FlutterRectangleHolder();
+
+  @override
+  void onBindViewHolder(_FlutterRectangleHolder holder, int position, [List<Object> payloads = const []]) =>
+      holder.index.value = position;
+}
+
+class _FlutterRectangleHolder extends rv.ViewHolder {
+  _FlutterRectangleHolder() : this._(ValueNotifier<int>(0));
+  _FlutterRectangleHolder._(this.index) : super(_FlutterRectangleBinding(index));
+  final ValueNotifier<int> index;
+}
+
+class _FlutterRectangleBinding extends HookWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _FlutterRectangleBinding(this.index);
+  final ValueNotifier<int> index;
+
+  @override
+  Widget build(BuildContext context) {
+    useEffect(() => index.dispose, [index]);
+    return _FlutterRectangleRow(useValueListenable(index));
   }
 }

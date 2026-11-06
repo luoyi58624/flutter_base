@@ -38,3 +38,6 @@ margin 和 padding 只接受有限的非负 EdgeInsets。固定尺寸容器中�
 
 示例目录的“命令式View → 颜色矩形”提供一万条记录，支持 ListView、ElScrollView 和 RecyclerView。
 RecyclerView 换绑只修改已有 View 字段。
+
+页面右上角的“官方组件”开关默认关闭；打开后，三个容器的子项都改用 Flutter 的 Container 和
+Column 构建相同颜色、尺寸和间距的矩形行。容器选择与子项实现独立切换。

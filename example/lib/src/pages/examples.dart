@@ -49,9 +49,9 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
-                    title: '命令式View',
+                    title: 'RecyclerView',
                     children: [
-                      for (final page in imperativeExamples)
+                      for (final page in recyclerExamples)
                         ElListTile(
                           key: ValueKey('advanced-${page.key}'),
                           title: page.title,
@@ -61,9 +61,9 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
-                    title: 'RecyclerView',
+                    title: '命令式View',
                     children: [
-                      for (final page in recyclerExamples)
+                      for (final page in imperativeExamples)
                         ElListTile(
                           key: ValueKey('advanced-${page.key}'),
                           title: page.title,

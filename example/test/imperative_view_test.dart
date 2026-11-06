@@ -24,9 +24,14 @@ Future<void> _open(WidgetTester tester, Widget page) async {
 void main() {
   testWidgets('示例目录有命令式View分组，点击打开颜色矩形，深度路由也登记', (tester) async {
     await _open(tester, ExamplesPage());
-    expect(find.byWidgetPredicate((widget) => widget is ElListGroup && widget.title == '命令式View'), findsOneWidget);
+    expect(tester.widgetList<ElListGroup>(find.byType(ElListGroup)).map((group) => group.title), [
+      '交互与视图',
+      'RecyclerView',
+      '命令式View',
+    ]);
     final entry = find.byKey(ValueKey('advanced-imperative-rectangles'));
-    await tester.ensureVisible(entry);
+    await tester.drag(find.byKey(PageStorageKey('advanced-examples')), Offset(0, -600));
+    await tester.pumpAndSettle();
     await tester.tap(entry);
     await tester.pumpAndSettle();
     expect(find.byType(ImperativeRectanglesPage), findsOneWidget);
@@ -72,6 +77,55 @@ void main() {
         expect(last.children.first.bgColor, Colors.purple);
       }
       expect(rows.evaluate().length, lessThan(50));
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(SizedBox());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('官方组件开关在三个容器中切换子项，保留矩形颜色、尺寸和间距', (tester) async {
+    await _open(tester, ImperativeRectanglesPage());
+    final toggle = find.byKey(ValueKey('imperative-flutter-items'));
+    for (final mode in ['recyclerView', 'listView', 'elScrollView']) {
+      await tester.tap(find.byKey(ValueKey('imperative-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('imperative-mode-$mode')));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Switch>(toggle).value, isFalse);
+      final rows = find.byType(view.ElRootView);
+      final root = tester.widget<view.ElRootView>(rows.first).root;
+      final outerRect = tester.getRect(rows.first);
+      final first = root.children.first;
+      final firstRect = (outerRect.topLeft + root.offset + first.offset) & first.size;
+      final firstColor = first.bgColor;
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Switch>(toggle).value, isTrue);
+      expect(rows, findsNothing);
+      final official = find.byKey(ValueKey('imperative-flutter-row-0'));
+      expect(tester.getRect(official), outerRect);
+      final boxes = find.descendant(of: official, matching: find.byType(ColoredBox));
+      expect(boxes, findsNWidgets(4));
+      expect(tester.getRect(boxes.at(1)), firstRect);
+      expect(tester.widget<ColoredBox>(boxes.at(1)).color, firstColor);
+
+      if (mode == 'recyclerView') {
+        final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+        list.scrollToPosition(9999);
+        await tester.pumpAndSettle();
+        final last = find.byKey(ValueKey('imperative-flutter-row-9999'));
+        expect(last, findsOneWidget);
+        final lastBoxes = find.descendant(of: last, matching: find.byType(ColoredBox));
+        expect(tester.getSize(lastBoxes.at(1)).width, 128);
+        expect(tester.widget<ColoredBox>(lastBoxes.at(1)).color, Colors.purple);
+      }
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Switch>(toggle).value, isFalse);
+      expect(rows.evaluate().length, inExclusiveRange(0, 50));
+      expect(find.byType(ColoredBox).evaluate().length, lessThan(50));
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(SizedBox());
