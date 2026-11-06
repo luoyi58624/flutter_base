@@ -283,7 +283,8 @@ class ViewElement extends RenderObjectElement {
     }
     final engine = _renderView.setTextPayload(child);
     if (_child != null) _child = updateChild(_child, null, null);
-    final widgets = engine?.structure.spans.map((span) => span.child).toList() ?? const <Widget>[];
+    final spans = engine?.structure.spans;
+    final widgets = spans == null || spans.isEmpty ? const <Widget>[] : spans.map((span) => span.child).toList();
     if (_children.isNotEmpty || widgets.isNotEmpty) {
       _children = updateChildren(_children, [
         for (final widget in widgets)

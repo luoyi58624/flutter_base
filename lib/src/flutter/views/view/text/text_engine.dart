@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
 import 'package:flutter/gestures.dart' show HitTestEntry, HitTestTarget;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' show IconData, Widget, WidgetSpan;
+
 import '../../../utils/internal/benchmark_probe.dart';
 import '../../selection/common/selection_core.dart';
 import '../style/style.dart';
@@ -43,6 +45,7 @@ class TextContent {
 
   /// 挂载与排版共用占位顺序，只在内容变化时转换。
   factory TextContent.parse(Object? value) {
+    if (value is String) return TextContent._(TextSpan(text: value), const []);
     InlineSpan convert(Object? item) => switch (item) {
       InlineSpan span => span,
       // 内联文本按真实基线对齐，bottom 会把子行盒再叠加一次父行 descent。
@@ -77,7 +80,7 @@ class TextEngine extends SelectionContent {
   List<RenderBox> _children() => _content!.spans.isEmpty ? const [] : _host!.getChildrenAsList();
   BoundSelectionParticipant? _participant;
   TextPaintInput? _input;
-  TextStyle? _style;
+  Object? _configuredFor;
   String _plain = '';
   Size _size = Size.zero;
   Offset _alignment = Offset.zero;
@@ -138,14 +141,18 @@ class TextEngine extends SelectionContent {
   void syncSelectionParticipation() =>
       (_host?.attached ?? false) ? _participant?.reattachSelectionRoot() : _participant?.detachFromSelectionRoot();
 
-  /// 等价 rebuild 保留结构、排版和选区缓存。
+  /// 等价内容保留缓存；非空换字沿用已解析样式和旧配置键，下一次布局仍校验新环境。
   void setPayload(Object? value, {TextContent? content, bool contentEquivalent = false}) {
+    final sameOwner = rawChild is String && (rawChild as String).isNotEmpty && value is String && value.isNotEmpty;
+    final configured = sameOwner ? _configuredFor : null;
     rawChild = value;
     if (contentEquivalent) return;
     _content = content ?? TextContent.parse(value);
-    _plain = _content!.span.toPlainText(includeSemanticsLabels: false);
+    _plain = value is String ? value : _content!.span.toPlainText(includeSemanticsLabels: false);
     invalidateLayout();
-    syncSelectionParticipation();
+    if (configured != null) _painter.text = TextSpan(text: _plain, style: _painter.text!.style);
+    _configuredFor = configured;
+    sameOwner ? _participant?.updateSelectionGeometry() : syncSelectionParticipation();
     _participant?.notifySelectionContentChanged();
   }
 
@@ -156,9 +163,9 @@ class TextEngine extends SelectionContent {
     _rects = null;
   }
 
-  /// 重新装配继承样式；实际布局缓存交由 TextPainter 管理。
+  /// 作废主 painter 的独立配置键，它不随绘制原点的 input 提前更新。
   void invalidatePaint() {
-    _style = null;
+    _configuredFor = null;
     _clearPaintCache();
   }
 
@@ -170,9 +177,8 @@ class TextEngine extends SelectionContent {
   }
 
   bool invalidateForBoldText() {
-    if (_icon) return false;
-    invalidateLayout();
-    return true;
+    if (!_icon) invalidateLayout();
+    return !_icon;
   }
 
   TextStyle _baseStyle(TextPaintInput input) {
@@ -193,30 +199,31 @@ class TextEngine extends SelectionContent {
     );
   }
 
-  InlineSpan _buildSpan(TextPaintInput input) => _icon
-      ? TextSpan(text: String.fromCharCode((rawChild as IconData).codePoint), style: _baseStyle(input))
-      : resolveTextSpan(_content!.span, _baseStyle(input), bold: input.boldText);
-  InlineSpan _resolvedSpan(TextPaintInput input) {
+  Object _keyFor(TextPaintInput i) => (i.style.inheritedText, i.style.inheritedBox, i.textScaler, i.locale, i.boldText);
+
+  TextPainter _configure(TextPainter painter, TextPaintInput input) {
+    assert(!identical(painter, _painter) || ++BenchmarkProbe.textPainterConfigureCount > 0);
     final style = _baseStyle(input);
-    if (_style == style && _input?.boldText == input.boldText) return _painter.text!;
-    _style = style;
-    return _buildSpan(input);
+    if (identical(painter, _painter)) _configuredFor = _keyFor(input);
+    return painter
+      ..text = _icon
+          ? TextSpan(text: String.fromCharCode((rawChild as IconData).codePoint), style: style)
+          : resolveTextSpan(_content!.span, style, bold: input.boldText)
+      ..textAlign = _icon ? TextAlign.center : input.style.inheritedText.textAlign ?? TextAlign.start
+      ..textDirection = input.textDirection
+      ..textScaler = input.textScaler
+      ..locale = input.locale
+      ..maxLines = _icon ? 1 : input.style.inheritedText.maxLines
+      ..ellipsis = input.style.inheritedText.textOverflow == TextOverflow.ellipsis ? '…' : null;
   }
 
-  TextPainter _configure(TextPainter painter, TextPaintInput input, {bool dry = false}) => painter
-    ..text = dry ? _buildSpan(input) : _resolvedSpan(input)
-    ..textAlign = _icon ? TextAlign.center : input.style.inheritedText.textAlign ?? TextAlign.start
-    ..textDirection = input.textDirection
-    ..textScaler = input.textScaler
-    ..locale = input.locale
-    ..maxLines = _icon ? 1 : input.style.inheritedText.maxLines
-    ..ellipsis = input.style.inheritedText.textOverflow == TextOverflow.ellipsis ? '…' : null;
-  double _maxWidth(TextPaintInput input, double width) =>
-      !_icon &&
-          (input.style.inheritedText.softWrap != false || input.style.inheritedText.textOverflow == TextOverflow.ellipsis)
-      ? width
-      : double.infinity;
+  double _maxWidth(TextPaintInput input, double width) {
+    final text = input.style.inheritedText;
+    return !_icon && (text.softWrap != false || text.textOverflow == TextOverflow.ellipsis) ? width : double.infinity;
+  }
+
   List<PlaceholderDimensions> _placeholders(TextPainter painter, BoxConstraints available, {required bool dry}) {
+    if (_content!.spans.isEmpty) return const [];
     final children = _children();
     final fonts = <double>[];
     painter.text!.visitChildren((span) {
@@ -229,14 +236,8 @@ class TextEngine extends SelectionContent {
       final child = children[i];
       final scale = fonts[i] == 0 ? 0.0 : painter.textScaler.scale(fonts[i]) / fonts[i];
       final constraints = available.loosen() / (scale == 0 ? 1 : scale);
-      final Size size;
-      if (dry) {
-        size = child.getDryLayout(constraints);
-      } else {
-        child.layout(constraints, parentUsesSize: true);
-        size = child.size;
-        (child.parentData! as ElTextParentData).scale = scale;
-      }
+      final size = dry ? child.getDryLayout(constraints) : (child..layout(constraints, parentUsesSize: true)).size;
+      if (!dry) (child.parentData! as ElTextParentData).scale = scale;
       final baseline = span.alignment == PlaceholderAlignment.baseline
           ? (dry ? child.getDryBaseline(constraints, span.baseline!) : child.getDistanceToBaseline(span.baseline!)) ??
                 size.height
@@ -255,7 +256,7 @@ class TextEngine extends SelectionContent {
 
   /// 普通文本和富文本使用同一条真实布局路径。
   Size layoutContent(BoxConstraints constraints, TextPaintInput input, {bool fillWidth = false}) {
-    _configure(_painter, input);
+    if (_configuredFor != _keyFor(input)) _configure(_painter, input);
     _dimensions = _placeholders(_painter, constraints, dry: false);
     _painter.setPlaceholderDimensions(_dimensions);
     _minWidth = fillWidth && input.style.box.alignment == null && constraints.hasBoundedWidth
@@ -266,7 +267,7 @@ class TextEngine extends SelectionContent {
     _input = input;
     _size = constraints.loosen().constrain(_icon ? Size.square(_iconExtent(input)) : _painter.size);
     _clearPaintCache();
-    final boxes = _painter.inlinePlaceholderBoxes ?? <TextBox>[];
+    final boxes = _painter.inlinePlaceholderBoxes ?? const <TextBox>[];
     final children = _children();
     for (var i = 0; i < children.length; i++) {
       final data = children[i].parentData! as ElTextParentData;
@@ -279,7 +280,7 @@ class TextEngine extends SelectionContent {
 
   /// dry/intrinsic 使用短生命周期 painter，不改主排版及子项位置。
   TextPainter _probe(TextPaintInput input, BoxConstraints constraints, {bool fillWidth = false}) {
-    final painter = _configure(TextPainter(), input, dry: true);
+    final painter = _configure(TextPainter(), input);
     painter.setPlaceholderDimensions(_placeholders(painter, constraints, dry: true));
     final tight = fillWidth && input.style.box.alignment == null && constraints.hasBoundedWidth;
     return painter
@@ -326,18 +327,17 @@ class TextEngine extends SelectionContent {
       textPaintOrigin.dy + _painter.computeDistanceToActualBaseline(baseline);
   void _refresh(TextPaintInput input) {
     if (_constraints == null) return;
-    final previous = _painter.text;
-    _configure(_painter, input);
     _input = input;
-    _painter.layout(minWidth: _minWidth, maxWidth: _maxWidth(input, _constraints!.maxWidth));
-    if (!identical(previous, _painter.text)) _clearPaintCache();
+    if (_configuredFor == _keyFor(input)) return;
+    _configure(_painter, input).layout(minWidth: _minWidth, maxWidth: _maxWidth(input, _constraints!.maxWidth));
+    _clearPaintCache();
   }
 
   void _updateFade(TextPaintInput input) {
     overflowShader = null;
     if (_overflow != TextOverflow.fade || !textOverflows) return;
     final probe = TextPainter(
-      text: TextSpan(text: '…', style: _style),
+      text: TextSpan(text: '…', style: _baseStyle(input)),
       textDirection: input.textDirection,
       textScaler: input.textScaler,
       locale: input.locale,
@@ -402,12 +402,8 @@ class TextEngine extends SelectionContent {
       _paintBackground(canvas, offset, _paintRects(selection), selectionColor);
       selection = null;
     }
-    final rects = selection == null ? <Rect>[] : _paintRects(selection);
+    final rects = selection == null ? const <Rect>[] : _paintRects(selection);
     final full = selection?.start == 0 && selection?.end == _plain.length;
-    final path = Path();
-    for (final rect in rects) {
-      path.addRect(rect.shift(offset));
-    }
     final mirror = _icon && (rawChild as IconData).matchTextDirection && input.textDirection == TextDirection.rtl;
     if (mirror) {
       canvas.save();
@@ -436,6 +432,10 @@ class TextEngine extends SelectionContent {
         assert(++BenchmarkProbe.selectionOverlayLayoutCount > 0);
       }
       if (!full) {
+        final path = Path();
+        for (final rect in rects) {
+          path.addRect(rect.shift(offset));
+        }
         canvas.save();
         canvas.clipPath(path, doAntiAlias: false);
       }

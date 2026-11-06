@@ -251,6 +251,9 @@ class BenchmarkProbe {
   /// 一律不得触发 —— 那些只重跑样式阶段（见 richTextContextBuildCount）。
   static int textContentParseCount = 0;
 
+  /// 主 TextPainter 的实际配置次数，不包含独立 dry 或选区覆盖层 painter。
+  static int textPainterConfigureCount = 0;
+
   /// 富文本 inline 命中测试次数（`RichInlineHitTester.hitAt` 调用）。
   ///
   /// 每个指针事件应恰 ≤1；曾经一个 hover 事件做 3 次（hover span / hover owner
@@ -294,6 +297,7 @@ class BenchmarkProbe {
     transformRecognizerInstantiateCount = 0;
     selectionOverlayLayoutCount = 0;
     textContentParseCount = 0;
+    textPainterConfigureCount = 0;
     inlineHitTestCount = 0;
     forgottenChildrenAllocCount = 0;
     richTextContextBuildCount = 0;
@@ -320,6 +324,7 @@ class BenchmarkProbe {
       'transformRecognizerInstantiateCount': transformRecognizerInstantiateCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,
       'textContentParseCount': textContentParseCount,
+      'textPainterConfigureCount': textPainterConfigureCount,
       'inlineHitTestCount': inlineHitTestCount,
       'forgottenChildrenAllocCount': forgottenChildrenAllocCount,
       'richTextContextBuildCount': richTextContextBuildCount,
