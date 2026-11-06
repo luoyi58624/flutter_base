@@ -28,7 +28,10 @@ Future<void> _open(WidgetTester tester, {double width = 390, double scale = 1, b
 
 rv.RecyclerView _recycler(WidgetTester tester) => tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
 
-Finder _menu(int id) => find.byKey(ValueKey('takeaway-menu-list-$id'));
+Finder _menu(int id) => find.descendant(
+  of: find.byWidgetPredicate((widget) => widget is Semantics && widget.properties.identifier == 'takeaway-menu-$id'),
+  matching: find.byType(ListView),
+);
 
 ScrollPosition _menuPosition(WidgetTester tester, int id) =>
     tester.state<ScrollableState>(find.descendant(of: _menu(id), matching: find.byType(Scrollable))).position;
@@ -169,6 +172,14 @@ void main() {
     expect(_title(tester, first), isNot(originalTitle));
     expect(_menuPosition(tester, first.getItemId()).pixels, 0);
     expect(_urls(tester, _row(first)).intersection(savedUrls), isEmpty);
+    final dish = find.descendant(of: _row(first), matching: find.byKey(ValueKey('takeaway-dish-card'))).first;
+    final price = tester
+        .widgetList<ElView>(find.descendant(of: dish, matching: find.byType(ElView)))
+        .firstWhere((view) => view.style?.fontSize == 16)
+        .child;
+    await tester.tap(find.descendant(of: dish, matching: find.byType(IconButton)));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElView>(find.byKey(ValueKey('takeaway-cart-total'))).child, price);
 
     list.scrollToPosition(0);
     await tester.pumpAndSettle();
@@ -180,6 +191,58 @@ void main() {
     expect(_menuPosition(tester, 0).pixels, closeTo(savedOffset, .1));
     await _choose(tester, 'elScrollView');
     expect(_menuPosition(tester, 0).pixels, closeTo(savedOffset, .1));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('菜单惯性中换绑立即停止旧活动，不覆盖另一家店的位置', (tester) async {
+    await _open(tester);
+    final list = _recycler(tester)..setItemViewCacheSize(0);
+    (list.getLayoutManager()! as rv.LinearLayoutManager).setItemPrefetchEnabled(false);
+    list.getRecycledViewPool().setMaxRecycledViews(0, 20);
+    await tester.pumpAndSettle();
+    final first = list.findViewHolderForItemId(0)!;
+    final position = _menuPosition(tester, 0);
+    await tester.fling(_menu(0), Offset(-160, 0), 900);
+    await tester.pump(Duration(milliseconds: 16));
+    expect(position.isScrollingNotifier.value, isTrue);
+    final saved = position.pixels;
+    list.scrollToPosition(5000);
+    await tester.pump();
+    expect(first.getItemId(), isNot(0));
+    final rebound = _menuPosition(tester, first.getItemId());
+    expect(rebound, same(position), reason: '跨店换绑复用同一个内层滚动宿主');
+    expect(rebound.isScrollingNotifier.value, isFalse);
+    expect(rebound.pixels, 0);
+    await tester.pump(Duration(milliseconds: 200));
+    expect(rebound.pixels, 0);
+    list.scrollToPosition(0);
+    await tester.pumpAndSettle();
+    expect(_menuPosition(tester, 0).pixels, closeTo(saved, .1));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('长菜单末端经过短菜单复用后，仍恢复原来的末端位置', (tester) async {
+    await _open(tester);
+    final list = _recycler(tester)..setItemViewCacheSize(0);
+    (list.getLayoutManager()! as rv.LinearLayoutManager).setItemPrefetchEnabled(false);
+    list.getRecycledViewPool().setMaxRecycledViews(0, 20);
+    list.scrollToPosition(2);
+    await tester.pumpAndSettle();
+    final long = _menuPosition(tester, 2);
+    expect(tester.widget<ListView>(_menu(2)).childrenDelegate.estimatedChildCount, 12);
+    expect(long.maxScrollExtent, closeTo(1200 - long.viewportDimension, .1), reason: '餐品数量变化必须更新滚动范围');
+    long.jumpTo(long.maxScrollExtent);
+    await tester.pumpAndSettle();
+    final saved = long.pixels;
+    list.scrollToPosition(4800);
+    await tester.pumpAndSettle();
+    expect(_menuPosition(tester, 4800).maxScrollExtent, lessThan(saved));
+    list.scrollToPosition(2);
+    await tester.pumpAndSettle();
+    expect(_menuPosition(tester, 2).pixels, closeTo(saved, .1));
+    expect(_menuPosition(tester, 2).isScrollingNotifier.value, isFalse);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

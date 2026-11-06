@@ -33,9 +33,11 @@
 - 店标和固定红包位于左列，店铺信息、配送与店内横向菜单位于右列；评分、销量、起送价、地址、标签、优惠、描述和评价共同形成密集文本场景。
 - 商家与餐品使用 `ElCard`，底色交给品牌组件；只覆写紧凑内边距和圆角。店名 14px，主体文字 9.5–12px，卡片内边距 8px、内容间距 4px，商品列宽 94px。
 - 三种外层容器共享相同商家和餐品内容，不指定整行高度；字号放大时横向菜单同步增加宽高，菜单本身按需创建餐品。
-- 店内菜单位置按商家身份保存；换绑时只重置内层菜单的滚动生命周期，卡片根结构继续复用，旧店铺的滚动活动不会带入另一家店。
+- 店内菜单位置按商家身份保存；换绑保留滚动宿主、卡片、图片与餐品槽位，只更新实际变化的叶子，停止旧活动并恢复新店的位置。内层按已知餐品宽度布局，仅挂载当前横向可见项。
 - 支持分类筛选、添加餐品和清空购物车；图片加载中或失败时保留同尺寸占位。Android 与 macOS 示例已配置网络访问权限。
 - 性能采样页增加「外卖商家列表」选项；真实帧耗时须使用目标设备的 Profile 构建，网络请求和首次图片解码也会影响首次滚动。
+
+[外卖性能记录](TAKEAWAY_PERFORMANCE.md)包含旧源码同条件对照、实际图片缓存命中和快速滚动的无头测试，区分结构复用结论与尚未验收的生产 8ms 目标。
 
 ## 同内容容器对比
 
@@ -47,9 +49,9 @@
 
 [真实示例行性能记录](PERFORMANCE.md)保存修复前后的内部结构复用与实际绑定工作量，不再用简化测试行代替这两个页面。
 
-无头回归测试：
+外卖相关无头回归测试：
 
 ```powershell
 cd example
-flutter test test/recycler_takeaway_test.dart test/recycler_text_test.dart test/recycler_selection_row_tap_test.dart test/recycler_long_examples_test.dart --no-pub --concurrency=1
+flutter test test/recycler_takeaway_test.dart test/recycler_takeaway_performance_test.dart --no-pub --concurrency=1 --timeout 60s
 ```
