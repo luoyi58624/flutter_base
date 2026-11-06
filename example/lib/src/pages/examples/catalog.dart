@@ -4,6 +4,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../custom_gestures.dart';
 import '../view.dart';
 import '../view/base.dart';
+import 'imperative_view/rectangles.dart';
 import 'press_feedback.dart';
 import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
@@ -27,6 +28,16 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: '按压反馈',
     icon: ElIcon(Icons.ads_click_outlined),
     data: (_) => PressFeedbackPage(),
+  ),
+];
+
+/// 命令式 View 示例，两端共用相同分组和页面工厂。
+final imperativeExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'imperative-rectangles',
+    title: '颜色矩形',
+    icon: ElIcon(Icons.rectangle_outlined),
+    data: (_) => ImperativeRectanglesPage(),
   ),
 ];
 

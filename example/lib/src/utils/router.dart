@@ -49,7 +49,7 @@ abstract final class RouterUtil {
 
   /// 独立示例复用同一份目录生成深度路由，覆盖导航壳并保留返回目录的路径。
   static List<GoRoute> exampleRoutes() => pageToRoute(
-    [...advancedExamples, ...recyclerExamples],
+    [...advancedExamples, ...imperativeExamples, ...recyclerExamples],
     parentNavigatorKey: rootNavigatorKey,
     builder: (context, state, page) => _IndependentExample(builder: page.data!),
   );

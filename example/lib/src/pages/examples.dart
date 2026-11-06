@@ -49,6 +49,18 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
+                    title: '命令式View',
+                    children: [
+                      for (final page in imperativeExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(context, page.data!),
+                        ),
+                    ],
+                  ),
+                  ElListGroup(
                     title: 'RecyclerView',
                     children: [
                       for (final page in recyclerExamples)
