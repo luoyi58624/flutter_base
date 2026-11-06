@@ -1,6 +1,6 @@
 # RecyclerView 长列表示例
 
-入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片、外卖商家。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
+入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片、外卖商家、Grid 视频流卡片、Grid 本机相册、瀑布流。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
 
 ## 万条纯文本列表
 
@@ -41,7 +41,7 @@
 
 ## 同内容容器对比
 
-五页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。同一示例的三种容器共享相同条目内容，按需渲染；不通过简化某一种容器的内容制造对比差异。
+前五页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。两个 Grid 页面对应为官方 GridView、ElScrollView 内的 ElGridView、RecyclerView 的 GridLayoutManager；只有瀑布流没有其它滚动容器菜单。同一示例的三种容器共享相同条目内容，按需渲染。
 
 切换容器保留勾选状态、聊天消息与输入内容，并将复选列表定位到首项、聊天定位到最新消息，从相同起点比较。复选行固定 88 高，官方列表可按真实行高精确定位；聊天的官方列表采用反向索引，顶部历史追加在远端，阅读期间收到新消息则按已挂载消息几何补偿位置。
 
@@ -55,3 +55,27 @@
 cd example
 flutter test test/recycler_takeaway_test.dart test/recycler_takeaway_performance_test.dart --no-pub --concurrency=1 --timeout 60s
 ```
+
+## Grid 视频流卡片与本机相册
+
+- 路由为 `/examples/recycler-video-grid` 和 `/examples/recycler-gallery-grid`。视频流使用本机照片和文件名构成紧凑卡片，顶部横幅横跨全部列，点击卡片以 Hero 进入图文详情。
+- 相册显示图片与视频；图片进入支持双指缩放和拖动的 Hero 预览，视频进入带控制栏的本地播放器，离开页面释放播放器，应用转到后台时暂停。
+- Android / iOS 使用 [photo_manager](https://pub.dev/packages/photo_manager) 查询系统相册，并处理拒绝和部分授权。桌面使用 [file_selector](https://pub.dev/packages/file_selector) 选择文件夹，递归收集子目录里的图片与视频，跳过链接和无权访问的子目录；整个根目录不可读时显示错误。
+- 所有媒体记录在首次读取时一次进入列表，滚动期间不分页、不追加、不重新枚举目录。桌面按路径排序，不逐张预读原图尺寸和文件属性；系统相册沿用媒体数据库的日期、方向与尺寸。缩略图按可见范围解码并交给 Flutter ImageCache，文件缩略图限制在 320 × 320 内，长截图也有高度上限。
+- 图片原图只在详情或预览中请求，预览解码也有宽高上限。桌面视频缩略图使用 [fc_native_video_thumbnail](https://pub.dev/packages/fc_native_video_thumbnail)，播放使用 [media_kit](https://pub.dev/packages/media_kit)，缩略图失败仍保留视频入口。
+- 卡片使用 ElCard，保留品牌底色；标题 13px，来源 10.5px。窄屏使用双列视频卡片和约五列相册，宽屏增加列数，字体放大后卡片页脚同步增高。
+
+新增原生插件后需要重新构建应用，热重载无法安装这些插件。Android 已声明图片、视频与部分相册授权，iOS 已提供照片使用说明，macOS 使用所选文件夹的只读授权。
+
+## 瀑布流
+
+路由为 `/examples/recycler-waterfall`，使用 StaggeredGridLayoutManager。默认提供 10,000 条包内离线图片与长短文案，只挂载可见卡片；也可从文件夹切换到本机图片。本地图片沿用缩略图解码后的自然比例排版，并限制过长图片的卡片高度，不额外预读整目录原图尺寸。该页只使用 RecyclerView，图文详情和 Hero 转场与视频流共用。
+
+媒体示例的无头检测覆盖真实临时文件、子目录、超过 64 项的一次读取、首尾定位、照片预览、正确的本地视频 URI、三种网格容器、Hero 路由、暗色和窄屏大字号：
+
+```powershell
+cd example
+flutter test --no-pub --concurrency=1 test/recycler_media_test.dart test/recycler_long_examples_test.dart test/recycler_takeaway_initial_rebind_test.dart
+```
+
+原生系统授权弹窗、视频解码和实际设备帧率尚未进行前台验收；无头测试使用可替换播放器验证视频路由与 URI，不把它当作真实解码性能结果。

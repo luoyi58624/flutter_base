@@ -64,7 +64,7 @@ Future<void> _locate(WidgetTester tester, String input) async {
 }
 
 void main() {
-  testWidgets('示例目录以 RecyclerView 分组展示五个入口，两端共用深度路由', (tester) async {
+  testWidgets('示例目录以 RecyclerView 分组展示八个入口，两端共用深度路由', (tester) async {
     await _open(tester, ExamplesPage());
     expect(find.byWidgetPredicate((w) => w is ElListGroup && w.title == 'RecyclerView'), findsOneWidget);
     expect(recyclerExamples.map((page) => page.key), [
@@ -73,6 +73,9 @@ void main() {
       'recycler-chat',
       'recycler-cards',
       'recycler-takeaway',
+      'recycler-video-grid',
+      'recycler-gallery-grid',
+      'recycler-waterfall',
     ]);
     expect(
       RouterUtil.exampleRoutes().map((route) => route.path),
@@ -127,7 +130,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('五个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
+  testWidgets('八个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
@@ -145,8 +148,12 @@ void main() {
         addTearDown(router.dispose);
         await tester.pumpWidget(MaterialApp.router(routerConfig: router));
         await tester.pumpAndSettle();
-        expect(find.byType(rv.RecyclerView), findsOneWidget);
-        expect(_list(tester).getAdapter()!.getItemCount(), 10000);
+        if (page.key == 'recycler-video-grid' || page.key == 'recycler-gallery-grid') {
+          expect(find.byKey(ValueKey('media-open-source')), findsOneWidget);
+        } else {
+          expect(find.byType(rv.RecyclerView), findsOneWidget);
+          expect(_list(tester).getAdapter()!.getItemCount(), 10000);
+        }
         if (page.key == 'recycler-selection') {
           expect(_checked(tester, 0), isFalse);
           await tester.tap(_check(tester, 0));

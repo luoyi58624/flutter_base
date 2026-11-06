@@ -10,6 +10,7 @@ import 'recycler_view/chat.dart';
 import 'recycler_view/selection.dart';
 import 'recycler_view/text.dart';
 import 'recycler_view/takeaway.dart';
+import 'recycler_view/media.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -55,5 +56,23 @@ final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
     title: '外卖商家列表',
     icon: ElIcon(Icons.delivery_dining_outlined),
     data: (_) => RecyclerTakeawayPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-video-grid',
+    title: 'Grid 视频流卡片',
+    icon: ElIcon(Icons.video_library_outlined),
+    data: (_) => RecyclerVideoGridPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-gallery-grid',
+    title: 'Grid 本机相册',
+    icon: ElIcon(Icons.photo_library_outlined),
+    data: (_) => RecyclerGalleryPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-waterfall',
+    title: '瀑布流',
+    icon: ElIcon(Icons.view_quilt_outlined),
+    data: (_) => RecyclerWaterfallPage(),
   ),
 ];

@@ -1,0 +1,447 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
+import 'package:file_selector/file_selector.dart' as selector;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/recycler_view.dart' as rv;
+import 'package:media_kit/media_kit.dart' as player;
+import 'package:media_kit_video/media_kit_video.dart' as video;
+import 'package:path/path.dart' as path;
+import 'package:photo_manager/photo_manager.dart' as photos;
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
+
+import '../../../widgets/example_scrollbar.dart';
+import '../../example_page.dart';
+import 'scroll_mode.dart';
+
+part 'media_source.dart';
+part 'media_cards.dart';
+part 'media_preview.dart';
+
+/// 用本机照片作为封面，展示网格卡片、Hero 转场和图文详情。
+class RecyclerVideoGridPage extends StatelessWidget {
+  /// 创建视频流卡片示例；directory 递归包含本地图片目录及其子目录。
+  // ignore: prefer_const_constructors_in_immutables
+  RecyclerVideoGridPage({super.key, this.directory});
+
+  /// 初始目录，未提供时移动端请求相册访问，桌面显示目录选择入口。
+  final String? directory;
+
+  @override
+  Widget build(BuildContext context) => _MediaPage(kind: .feed, directory: directory);
+}
+
+/// 浏览本机照片与视频，点击后分别进入图片预览或视频播放页。
+class RecyclerGalleryPage extends StatelessWidget {
+  /// 创建相册示例；播放器构建器用于替换原生播放界面或进行无头测试。
+  // ignore: prefer_const_constructors_in_immutables
+  RecyclerGalleryPage({super.key, this.directory, this.videoPlayerBuilder});
+
+  /// 递归读取的初始目录，移动端未提供时读取系统相册。
+  final String? directory;
+
+  /// 自定义本地视频播放界面，默认使用 media_kit 并随页面退出释放播放器。
+  final Widget Function(BuildContext context, Uri source)? videoPlayerBuilder;
+
+  @override
+  Widget build(BuildContext context) =>
+      _MediaPage(kind: .album, directory: directory, videoPlayerBuilder: videoPlayerBuilder);
+}
+
+/// 单独验证 RecyclerView 最短列填充和变高卡片回收的瀑布流示例。
+class RecyclerWaterfallPage extends StatelessWidget {
+  /// 创建万条离线瀑布流，也可指定目录改用本机照片。
+  // ignore: prefer_const_constructors_in_immutables
+  RecyclerWaterfallPage({super.key, this.directory});
+
+  /// 指定本机图片目录；未提供时使用包内离线图片与变长文案。
+  final String? directory;
+
+  @override
+  Widget build(BuildContext context) => _MediaPage(kind: .waterfall, directory: directory);
+}
+
+enum _MediaKind { feed, album, waterfall }
+
+class _MediaPage extends StatefulWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _MediaPage({required this.kind, this.directory, this.videoPlayerBuilder});
+  final _MediaKind kind;
+  final String? directory;
+  final Widget Function(BuildContext, Uri)? videoPlayerBuilder;
+
+  @override
+  State<_MediaPage> createState() => _MediaPageState();
+}
+
+class _MediaPageState extends State<_MediaPage> {
+  final _controller = ScrollController(keepScrollOffset: false);
+  final _elController = ScrollController(keepScrollOffset: false);
+  final _heroScope = Object();
+  final _demoItems = <int, _MediaEntry>{};
+  late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
+  late final rv.LayoutManager _manager = widget.kind == .waterfall
+      ? rv.StaggeredGridLayoutManager(2, rv.RecyclerView.VERTICAL)
+      : rv.GridLayoutManager(null, 2);
+  late final _adapter = _MediaAdapter(this);
+  late final _list = rv.RecyclerView(key: ValueKey('media-recycler-${widget.kind.name}'), controller: _controller)
+    ..setLayoutManager(_manager)
+    ..setAdapter(_adapter);
+  late bool _demo = widget.kind == .waterfall && widget.directory == null;
+  RecyclerExampleScrollMode _mode = .recyclerView;
+  var _knownCount = 0;
+
+  bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
+  int get _itemCount => _demo ? 10000 : _library.items.length;
+  int get _adapterCount => _itemCount + (_featured ? 1 : 0);
+  String get _title => switch (widget.kind) {
+    .feed => '视频流卡片',
+    .album => '本机相册',
+    .waterfall => '瀑布流',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    if (_manager case final rv.GridLayoutManager grid) {
+      if (widget.kind == .feed) grid.setSpanSizeLookup(_FeedSpans(grid));
+    }
+    _list.setPadding(widget.kind == .album ? 0 : 6, widget.kind == .album ? 0 : 6, 0, 0);
+    _knownCount = _adapterCount;
+    _library.addListener(_changed);
+    if (!_demo) unawaited(_library.open(directory: widget.directory));
+  }
+
+  void _changed() {
+    if (!mounted) return;
+    final next = _adapterCount;
+    if (next > _knownCount && _knownCount > 0) {
+      _adapter.notifyItemRangeInserted(_knownCount, next - _knownCount);
+    } else if (next != _knownCount) {
+      _adapter.notifyDataSetChanged();
+    }
+    _knownCount = next;
+    setState(() {});
+  }
+
+  _MediaEntry _entryAt(int index) =>
+      _demo ? _demoItems.putIfAbsent(index, () => _MediaEntry.demo(index)) : _library.items[index];
+  Object _tag(_MediaEntry entry, bool featured) => (_heroScope, entry.key, featured);
+
+  void _open(_MediaEntry entry, bool featured) {
+    final tag = _tag(entry, featured);
+    final Widget page;
+    if (widget.kind != .album) {
+      page = _MediaDetailsPage(entry: entry, tag: tag);
+    } else if (entry.isVideo) {
+      page = _MediaVideoPage(entry: entry, playerBuilder: widget.videoPlayerBuilder);
+    } else {
+      page = _MediaPhotoPage(entry: entry, tag: tag);
+    }
+    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => page));
+  }
+
+  Future<void> _chooseSource() async {
+    if (_library.systemAlbums) {
+      _demo = false;
+      await _library.open();
+    } else {
+      final directory = await selector.getDirectoryPath(
+        initialDirectory: _library.directory,
+        confirmButtonText: '使用此文件夹',
+      );
+      if (directory == null || !mounted) return;
+      _demo = false;
+      await _library.open(directory: directory);
+    }
+  }
+
+  void _chooseMode(RecyclerExampleScrollMode mode) {
+    if (_mode == mode) return;
+    setState(() => _mode = mode);
+    _list.scrollToPosition(0);
+  }
+
+  Widget _officialTile(int index, {bool featured = false}) => _OwnedMediaTile(
+    key: ValueKey((featured, _entryAt(index).key)),
+    entry: _entryAt(index),
+    kind: widget.kind,
+    featured: featured,
+    tag: _tag(_entryAt(index), featured),
+    onOpen: (entry) => _open(entry, featured),
+  );
+
+  Widget _grid(BuildContext context, BoxConstraints constraints) {
+    final album = widget.kind == .album;
+    final columns = album
+        ? math.max(3, (constraints.maxWidth / 76).floor())
+        : constraints.maxWidth < 300
+        ? 1
+        : math.max(2, (constraints.maxWidth / 230).floor());
+    if (_manager case final rv.GridLayoutManager grid) {
+      grid.setSpanCount(columns);
+    } else {
+      (_manager as rv.StaggeredGridLayoutManager).setSpanCount(columns);
+    }
+    if (widget.kind == .waterfall || _mode == .recyclerView) {
+      return RecyclerExampleScrollbar(controller: _controller, child: _list);
+    }
+    final padding = album ? EdgeInsets.zero : EdgeInsets.only(left: 6, top: 6);
+    final width = (constraints.maxWidth - padding.horizontal) / columns;
+    final extent = album ? width : _feedExtent(context, width);
+    if (_mode == .elScrollView) {
+      return ElScrollView(
+        key: ValueKey('media-el-grid'),
+        controller: _elController,
+        padding: padding,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        children: [
+          if (_featured) _officialTile(0, featured: true),
+          ElGridView.builder(
+            keepAlive: false,
+            crossAxisCount: columns,
+            mainAxisExtent: extent,
+            itemCount: _itemCount,
+            itemBuilder: (_, index) => _officialTile(index),
+          ),
+        ],
+      );
+    }
+    return RecyclerExampleScrollbar(
+      controller: _controller,
+      child: CustomScrollView(
+        key: ValueKey('media-official-grid'),
+        controller: _controller,
+        slivers: [
+          if (_featured)
+            SliverPadding(
+              padding: padding,
+              sliver: SliverToBoxAdapter(child: _officialTile(0, featured: true)),
+            ),
+          SliverPadding(
+            padding: _featured ? EdgeInsets.only(left: padding.left) : padding,
+            sliver: SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, mainAxisExtent: extent),
+              itemCount: _itemCount,
+              addAutomaticKeepAlives: false,
+              itemBuilder: (_, index) => _officialTile(index),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _body() {
+    if (!_demo && _itemCount == 0) {
+      return Center(
+        child: Padding(
+          padding: .all(24),
+          child: Column(
+            mainAxisSize: .min,
+            spacing: 12,
+            children: [
+              if (_library.busy)
+                CircularProgressIndicator()
+              else
+                Icon(widget.kind == .album ? Icons.photo_library_outlined : Icons.video_library_outlined, size: 42),
+              Text(
+                _library.busy
+                    ? '正在读取本机媒体…'
+                    : _library.denied
+                    ? '需要相册访问权限'
+                    : _library.error ?? (_library.needsDirectory ? '选择一个照片或视频文件夹' : '这里还没有可显示的影像'),
+                textAlign: .center,
+              ),
+              if (!_library.busy)
+                FilledButton(
+                  key: ValueKey('media-open-source'),
+                  onPressed: _library.denied ? photos.PhotoManager.openSetting : _chooseSource,
+                  child: Text(
+                    _library.denied
+                        ? '前往设置'
+                        : _library.systemAlbums
+                        ? '访问本机相册'
+                        : '选择文件夹',
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        ElCard(
+          style: ElStyle(padding: .symmetric(horizontal: 12, vertical: 7), borderRadius: BorderRadius.zero),
+          child: Row(
+            children: [
+              Expanded(
+                child: _library.albums.isEmpty || _demo
+                    ? Text(
+                        _demo ? '离线影像集' : _library.label,
+                        maxLines: 1,
+                        overflow: .ellipsis,
+                        style: TextStyle(fontSize: 12),
+                      )
+                    : PopupMenuButton<photos.AssetPathEntity>(
+                        key: ValueKey('media-albums'),
+                        onSelected: (album) => _library.open(album: album),
+                        itemBuilder: (_) => [
+                          for (final album in _library.albums) PopupMenuItem(value: album, child: Text(album.name)),
+                        ],
+                        child: Row(
+                          mainAxisSize: .min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _library.label,
+                                maxLines: 1,
+                                overflow: .ellipsis,
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Icon(Icons.expand_more, size: 16),
+                          ],
+                        ),
+                      ),
+              ),
+              Text(
+                '${_demo ? 10000 : _library.total} 项',
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              if (_library.limited)
+                TextButton(
+                  onPressed: () async {
+                    await photos.PhotoManager.presentLimited(
+                      type: widget.kind == .album ? photos.RequestType.common : photos.RequestType.image,
+                    );
+                    if (mounted) await _library.open();
+                  },
+                  child: Text('管理可访问照片', style: TextStyle(fontSize: 11)),
+                ),
+            ],
+          ),
+        ),
+        Expanded(child: LayoutBuilder(builder: _grid)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => ExamplePage(
+    title: _title,
+    actions: [
+      IconButton(
+        key: ValueKey('media-folder'),
+        tooltip: '选择本机媒体',
+        onPressed: _library.busy ? null : _chooseSource,
+        icon: Icon(Icons.folder_open_outlined),
+      ),
+      if (!_demo)
+        IconButton(
+          tooltip: '刷新',
+          onPressed: _library.busy ? null : () => _library.open(directory: _library.directory),
+          icon: Icon(Icons.refresh),
+        ),
+      if (widget.kind != .waterfall)
+        PopupMenuButton<RecyclerExampleScrollMode>(
+          key: ValueKey('media-scroll-menu'),
+          tooltip: '网格容器',
+          onSelected: _chooseMode,
+          itemBuilder: (_) => [
+            for (final mode in RecyclerExampleScrollMode.values)
+              CheckedPopupMenuItem(
+                key: ValueKey('media-mode-${mode.name}'),
+                value: mode,
+                checked: _mode == mode,
+                child: Text(mode == .listView ? 'GridView' : mode.label),
+              ),
+          ],
+        ),
+    ],
+    child: SafeArea(top: false, child: _body()),
+  );
+
+  @override
+  void dispose() {
+    _library.removeListener(_changed);
+    _library.dispose();
+    _controller.dispose();
+    _elController.dispose();
+    super.dispose();
+  }
+}
+
+class _FeedSpans extends rv.SpanSizeLookup {
+  _FeedSpans(this.manager);
+  final rv.GridLayoutManager manager;
+  @override
+  int getSpanSize(int position) => position == 0 ? manager.getSpanCount() : 1;
+}
+
+class _MediaAdapter extends rv.Adapter<_MediaHolder> {
+  _MediaAdapter(this.page) {
+    setHasStableIds(true);
+  }
+  final _MediaPageState page;
+  bool _featured(int position) => page._featured && position == 0;
+  int _index(int position) => page._featured ? math.max(0, position - 1) : position;
+  @override
+  int getItemCount() => page._adapterCount;
+  @override
+  int getItemId(int position) => page._entryAt(_index(position)).id * 2 + (_featured(position) ? 1 : 0);
+  @override
+  int getItemViewType(int position) => _featured(position) ? 1 : 0;
+  @override
+  _MediaHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _MediaHolder(page, viewType == 1);
+  @override
+  void onBindViewHolder(_MediaHolder holder, int position, [List<Object> payloads = const []]) =>
+      holder.model.value = page._entryAt(_index(position));
+}
+
+class _MediaHolder extends rv.ViewHolder {
+  _MediaHolder(_MediaPageState page, bool featured) : this._(ValueNotifier<_MediaEntry?>(null), page, featured);
+  _MediaHolder._(this.model, _MediaPageState page, bool featured)
+    : super(
+        _MediaTile(
+          model: model,
+          kind: page.widget.kind,
+          featured: featured,
+          tag: (entry) => page._tag(entry, featured),
+          onOpen: (entry) => page._open(entry, featured),
+        ),
+      );
+  final ValueNotifier<_MediaEntry?> model;
+}
+
+class _OwnedMediaTile extends HookWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _OwnedMediaTile({
+    super.key,
+    required this.entry,
+    required this.kind,
+    required this.featured,
+    required this.tag,
+    required this.onOpen,
+  });
+  final _MediaEntry entry;
+  final _MediaKind kind;
+  final bool featured;
+  final Object tag;
+  final ValueChanged<_MediaEntry> onOpen;
+  @override
+  Widget build(BuildContext context) {
+    final model = useMemoized(() => ValueNotifier<_MediaEntry?>(entry));
+    useEffect(() {
+      model.value = entry;
+      return null;
+    }, [entry]);
+    return _MediaTile(model: model, kind: kind, featured: featured, tag: (_) => tag, onOpen: onOpen);
+  }
+}
