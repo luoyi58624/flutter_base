@@ -8,10 +8,15 @@ import 'imperative_view/rectangles.dart';
 import 'press_feedback.dart';
 import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
-import 'recycler_view/selection.dart';
-import 'recycler_view/text.dart';
-import 'recycler_view/takeaway.dart';
 import 'recycler_view/media.dart';
+import 'recycler_view/orders.dart';
+import 'recycler_view/product_waterfall.dart';
+import 'recycler_view/rich_document.dart';
+import 'recycler_view/selection.dart';
+import 'recycler_view/social_feed.dart';
+import 'recycler_view/spike.dart';
+import 'recycler_view/takeaway.dart';
+import 'recycler_view/text.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -85,5 +90,41 @@ final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
     title: '瀑布流',
     icon: ElIcon(Icons.view_quilt_outlined),
     data: (_) => RecyclerWaterfallPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-social-feed',
+    title: '社交动态流',
+    icon: ElIcon(Icons.dynamic_feed_outlined),
+    data: (_) => RecyclerSocialFeedPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-live-chat',
+    title: '实时群聊',
+    icon: ElIcon(Icons.forum_outlined),
+    data: (_) => RecyclerLiveChatPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-orders',
+    title: '订单管理台',
+    icon: ElIcon(Icons.receipt_long_outlined),
+    data: (_) => RecyclerOrdersPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-product-waterfall',
+    title: '商品瀑布流',
+    icon: ElIcon(Icons.storefront_outlined),
+    data: (_) => RecyclerProductWaterfallPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-rich-document',
+    title: '富文本文档',
+    icon: ElIcon(Icons.article_outlined),
+    data: (_) => RecyclerRichDocumentPage(),
+  ),
+  ElMenuModel(
+    key: 'recycler-spike',
+    title: '单帧尖峰压力',
+    icon: ElIcon(Icons.speed_outlined),
+    data: (_) => RecyclerSpikePage(),
   ),
 ];

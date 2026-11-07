@@ -1,6 +1,21 @@
 # RecyclerView 长列表示例
 
-入口为「示例 → RecyclerView」，两端使用相同页面；顺序为纯文本、复选、聊天、复杂卡片、外卖商家、Grid 视频流卡片、Grid 本机相册、瀑布流。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
+入口为「示例 → RecyclerView」，两端共用目录和页面。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
+
+## 复杂滚动对照
+
+| 示例 | 路由后缀 | 可重复的操作 |
+| --- | --- | --- |
+| 社交动态流 | `recycler-social-feed` | 快滑穿过长文、九宫格、转发与投票，展开正文后反向滚动 |
+| 实时群聊 | `recycler-live-chat` | 先滚离底部，再播放或单步执行八拍脚本，同时插入历史、收消息和增长气泡 |
+| 订单管理台 | `recycler-orders` | 勾选订单，播放八秒压力脚本，同时滚动并增删头部订单 |
+| 商品瀑布流 | `recycler-product-waterfall` | 延迟释放 12 张图的尺寸，拖动滑块，再打开详情并返回 |
+| 富文本文档 | `recycler-rich-document` | 展开源码，切换示例状态，再用目录从首节跳到第 240 节 |
+| 单帧尖峰压力 | `recycler-spike` | 选择 4、8、12、20 ms，在拖动、惯性或 600 ms 等速脚本中注入一次 |
+
+路由后缀拼到 `/examples/` 后即可打开。线性示例共用同一份业务内容，菜单切换 `ListView`、`ElScrollView` 和 `RecyclerView`。商品瀑布流使用两列 `SliverGrid` 与 `StaggeredGridLayoutManager`，初始列布局可对照，图片补测后分别沿用各自的列分配策略。
+
+「帧耗时记录」中可选这六个页面。单帧尖峰在 Timeline 标记 `RecyclerSpike.work`，可按容器、阶段和注入时长关联轨迹。屏幕呈现间隔从系统轨迹读取，应用的 UI、Raster 耗时由记录器采集。
 
 ## 万条纯文本列表
 

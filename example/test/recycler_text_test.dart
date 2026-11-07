@@ -18,7 +18,7 @@ Future<void> _choose(WidgetTester tester, String mode) async {
 
 void main() {
   test('纯文本位于第一项，复杂卡片位于第四项', () {
-    expect(recyclerExamples.map((page) => page.key), [
+    expect(recyclerExamples.take(5).map((page) => page.key), [
       'recycler-text',
       'recycler-selection',
       'recycler-chat',

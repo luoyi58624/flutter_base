@@ -64,7 +64,7 @@ Future<void> _locate(WidgetTester tester, String input) async {
 }
 
 void main() {
-  testWidgets('示例目录以 RecyclerView 分组展示八个入口，两端共用深度路由', (tester) async {
+  testWidgets('示例目录在 RecyclerView 分组展示原有和六个复杂对照入口', (tester) async {
     await _open(tester, ExamplesPage());
     expect(find.byWidgetPredicate((w) => w is ElListGroup && w.title == 'RecyclerView'), findsOneWidget);
     expect(recyclerExamples.map((page) => page.key), [
@@ -76,10 +76,16 @@ void main() {
       'recycler-video-grid',
       'recycler-gallery-grid',
       'recycler-waterfall',
+      'recycler-social-feed',
+      'recycler-live-chat',
+      'recycler-orders',
+      'recycler-product-waterfall',
+      'recycler-rich-document',
+      'recycler-spike',
     ]);
     expect(
       RouterUtil.exampleRoutes().map((route) => route.path),
-      containsAll(['recycler-text', 'recycler-selection', 'recycler-chat', 'recycler-cards', 'recycler-takeaway']),
+      containsAll(recyclerExamples.map((entry) => entry.key)),
     );
     await tester.ensureVisible(find.byKey(ValueKey('advanced-recycler-selection')));
     await tester.tap(find.byKey(ValueKey('advanced-recycler-selection')));
@@ -130,7 +136,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('八个页面通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
+  testWidgets('RecyclerView 示例通过真实两端品牌路由打开，窄屏选框可交互', (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
@@ -152,7 +158,12 @@ void main() {
           expect(find.byKey(ValueKey('media-open-source')), findsOneWidget);
         } else {
           expect(find.byType(rv.RecyclerView), findsOneWidget);
-          expect(_list(tester).getAdapter()!.getItemCount(), 10000);
+          final itemCount = switch (page.key) {
+            'recycler-product-waterfall' => 1000,
+            'recycler-rich-document' => 240,
+            _ => 10000,
+          };
+          expect(_list(tester).getAdapter()!.getItemCount(), itemCount);
         }
         if (page.key == 'recycler-selection') {
           expect(_checked(tester, 0), isFalse);

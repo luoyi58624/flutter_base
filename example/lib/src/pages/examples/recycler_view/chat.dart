@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
@@ -10,9 +12,20 @@ import '../../../widgets/example_scrollbar.dart';
 class RecyclerChatPage extends StatefulWidget {
   /// 创建聊天长列表示例。
   // ignore: prefer_const_constructors_in_immutables
-  RecyclerChatPage({super.key});
+  RecyclerChatPage({super.key}) : _live = false;
+  // ignore: prefer_const_constructors_in_immutables
+  RecyclerChatPage._realtime({super.key}) : _live = true;
+
+  final bool _live;
+
   @override
   State<RecyclerChatPage> createState() => _RecyclerChatPageState();
+}
+
+/// 在相同聊天列表上对照同时前插、收消息和流式变高。
+class RecyclerLiveChatPage extends RecyclerChatPage {
+  /// 创建可播放、单步和复位的实时聊天示例。
+  RecyclerLiveChatPage({super.key}) : super._realtime();
 }
 
 enum _ChatAction { earlier, receive, latest }
@@ -20,6 +33,17 @@ enum _ChatAction { earlier, receive, latest }
 typedef _ChatAnchor = ({int id, double top});
 
 class _RecyclerChatPageState extends State<RecyclerChatPage> {
+  static final _liveParts = [
+    '小林的滚动记录正在整理。',
+    '第 1 段：在同一条消息里追加正文，气泡会随文字重新排版。',
+    '第 2 段：与此同时，另一个人发来一条普通消息。',
+    '第 3 段：阅读旧消息时，先记住当前可见消息在屏幕上的位置。',
+    '第 4 段：第二批历史记录插入，时间线仍按原来的方向排列。',
+    '第 5 段：又收到一条新消息，未读数只增加收到的消息数。',
+    '第 6 段：回到末尾后，再继续追加正文，列表跟随新内容。',
+    '记录结束。',
+  ];
+
   final _composer = TextEditingController();
   final _count = ValueNotifier<int>(10000);
   final _unread = ValueNotifier<int>(0);
@@ -29,6 +53,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   final _el = ScrollController(keepScrollOffset: false);
   final _officialListKey = GlobalKey();
   final _officialKeys = <int, GlobalKey>{};
+  late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
   RecyclerExampleScrollMode _mode = .recyclerView;
   late final _adapter = _ChatAdapter(_messages);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-chat-list'), controller: _official)
@@ -38,6 +63,8 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   // -1 是 RecyclerView.NO_ID，历史消息从更小的稳定 ID 开始。
   int _oldestId = -1;
   int _nextId = 10000;
+  int? _streamId;
+  Timer? _liveTimer;
 
   ScrollController get _messageController => _mode == .elScrollView ? _el : _official;
 
@@ -91,9 +118,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   void _loadEarlier() {
     final anchor = _mode != .recyclerView ? _captureMessageAnchor() : null;
-    _oldestId -= 50;
-    _messages.insertAll(0, List.generate(50, (index) => _ChatMessage.generated(_oldestId + index)));
-    _adapter.notifyItemRangeInserted(0, 50);
+    _insertEarlier();
     _count.value = _messages.length;
     if (_mode != .recyclerView) {
       setState(() {});
@@ -101,24 +126,98 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     }
   }
 
+  void _insertEarlier() {
+    _oldestId -= 50;
+    _messages.insertAll(0, List.generate(50, (index) => _ChatMessage.generated(_oldestId + index)));
+    _adapter.notifyItemRangeInserted(0, 50);
+  }
+
+  bool _shouldFollow() =>
+      _nearBottom &&
+      (_mode != .recyclerView
+          ? _messageController.hasClients && _messageController.offset <= 48
+          : (_list.getLayoutManager()! as rv.LinearLayoutManager).findLastVisibleItemPosition() ==
+                _messages.length - 1);
+
   void _append({required bool mine, String? text}) {
-    final follow =
-        _nearBottom &&
-        (_mode != .recyclerView
-            ? _messageController.hasClients && _messageController.offset <= 48
-            : (_list.getLayoutManager()! as rv.LinearLayoutManager).findLastVisibleItemPosition() ==
-                  _messages.length - 1);
+    final follow = _shouldFollow();
     final anchor = _mode != .recyclerView && !follow ? _captureMessageAnchor() : null;
+    _insertMessage(mine: mine, text: text);
+    _finishIncoming(follow, anchor, 1);
+  }
+
+  void _insertMessage({required bool mine, String? text}) {
     _messages.add(_ChatMessage.generated(_nextId++, mine: mine, text: text));
     _adapter.notifyItemInserted(_messages.length - 1);
+  }
+
+  void _finishIncoming(bool follow, _ChatAnchor? anchor, int arrivals) {
     _count.value = _messages.length;
     if (_mode != .recyclerView) setState(() {});
     if (follow) {
       _showLatest();
     } else {
-      _unread.value++;
+      _unread.value += arrivals;
       _restoreMessageAnchor(anchor);
     }
+  }
+
+  void _liveStep() {
+    final (step, _) = _liveProgress.value;
+    if (step == _liveParts.length) return;
+    final follow = _shouldFollow();
+    final anchor = _mode != .recyclerView && !follow ? _captureMessageAnchor() : null;
+    // 同一拍的前插、增长和新消息共用一次阅读锚点，避免分次恢复位置。
+    if (step == 0 || step == 4) _insertEarlier();
+    final text = _liveParts.take(step + 1).join('\n');
+    var arrivals = 0;
+    if (_streamId case final id?) {
+      final index = _indexOf(id);
+      _messages[index] = _ChatMessage.generated(id, mine: false, text: text);
+      _adapter.notifyItemChanged(index);
+    } else {
+      _streamId = _nextId;
+      _insertMessage(mine: false, text: text);
+      arrivals++;
+    }
+    if (step == 2 || step == 5) {
+      _insertMessage(mine: false, text: step == 2 ? '我在这边也看到最新进度了。' : '等记录发完我们再一起核对。');
+      arrivals++;
+    }
+    _finishIncoming(follow, anchor, arrivals);
+    if (step + 1 == _liveParts.length) {
+      _liveTimer?.cancel();
+      _liveTimer = null;
+    }
+    _liveProgress.value = (step + 1, _liveTimer != null);
+  }
+
+  void _toggleLive() {
+    final (step, running) = _liveProgress.value;
+    if (step == _liveParts.length) return;
+    if (running) {
+      _liveTimer?.cancel();
+      _liveTimer = null;
+    } else {
+      _liveTimer = Timer.periodic(Duration(milliseconds: 450), (_) => _liveStep());
+    }
+    _liveProgress.value = (step, !running);
+  }
+
+  void _resetLive() {
+    _liveTimer?.cancel();
+    _liveTimer = null;
+    _streamId = null;
+    _oldestId = -1;
+    _nextId = 10000;
+    _messages
+      ..clear()
+      ..addAll(List.generate(10000, _ChatMessage.generated));
+    _adapter.notifyDataSetChanged();
+    _count.value = _messages.length;
+    _liveProgress.value = (0, false);
+    if (_mode != .recyclerView) setState(() {});
+    _showLatest();
   }
 
   void _send() {
@@ -231,6 +330,8 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   @override
   void dispose() {
+    _liveTimer?.cancel();
+    if (widget._live) _liveProgress.dispose();
     _composer.dispose();
     _count.dispose();
     _unread.dispose();
@@ -241,7 +342,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   @override
   Widget build(BuildContext context) => ExamplePage(
-    title: '聊天长列表',
+    title: widget._live ? '实时群聊' : '聊天长列表',
     actions: [
       ValueListenableBuilder<int>(
         valueListenable: _count,
@@ -284,6 +385,36 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
       child: Column(
         crossAxisAlignment: .stretch,
         children: [
+          if (widget._live)
+            ValueListenableBuilder<(int, bool)>(
+              valueListenable: _liveProgress,
+              builder: (context, progress, child) {
+                final (step, running) = progress;
+                final complete = step == _liveParts.length;
+                return Padding(
+                  padding: .symmetric(horizontal: 12, vertical: 4),
+                  child: Wrap(
+                    crossAxisAlignment: .center,
+                    spacing: 8,
+                    children: [
+                      Text('并发脚本 $step / ${_liveParts.length}', key: ValueKey('chat-live-progress')),
+                      IconButton(
+                        key: ValueKey('chat-live-play'),
+                        tooltip: running ? '暂停' : '播放',
+                        onPressed: complete ? null : _toggleLive,
+                        icon: Icon(running ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                      ),
+                      TextButton(
+                        key: ValueKey('chat-live-step'),
+                        onPressed: running || complete ? null : _liveStep,
+                        child: Text('单步'),
+                      ),
+                      TextButton(key: ValueKey('chat-live-reset'), onPressed: _resetLive, child: Text('复位')),
+                    ],
+                  ),
+                );
+              },
+            ),
           Expanded(child: _messagesViewport()),
           ElCardView(
             style: ElStyle(padding: .all(12)),
