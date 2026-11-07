@@ -32,7 +32,7 @@ extension ElShadowStyleExt on ElStyle {
   /// 数值必须有限，强度与模糊不能为负；非法参数抛出 [ArgumentError]。
   ElStyle withShadow({
     ElShadowType type = .material,
-    ElLevelType level = .md,
+    ElLevelType level = .xs,
     Object? color = $absent,
     double strength = 1,
     double? blurRadius,
