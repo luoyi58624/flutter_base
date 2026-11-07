@@ -127,7 +127,8 @@ class _DocViewportState extends State<_DocViewport> {
       _keys = List.generate(widget.itemCount, (index) => index < _keys.length ? _keys[index] : GlobalKey());
     }
     if (widget.itemCount != oldWidget.itemCount ||
-        widget.itemBuilder != oldWidget.itemBuilder ||
+        widget.templateCount != oldWidget.templateCount ||
+        widget.headerCount != oldWidget.headerCount ||
         widget.gap != oldWidget.gap) {
       _updateAdapter();
     }
@@ -139,7 +140,6 @@ class _DocViewportState extends State<_DocViewport> {
       templateCount: widget.templateCount,
       headerCount: widget.headerCount,
       gap: widget.gap,
-      itemBuilder: widget.itemBuilder,
     ),
   );
 
@@ -230,8 +230,11 @@ class _DocViewportState extends State<_DocViewport> {
         padding: widget.padding,
         children: [ElListView.builder(keepAlive: false, itemCount: widget.itemCount, itemBuilder: _item)],
       ),
-      .recyclerView =>
-        _recycler!..setPadding(widget.padding.left, widget.padding.top, widget.padding.right, widget.padding.bottom),
+      .recyclerView => _DocItemBuilderScope(
+        itemBuilder: widget.itemBuilder,
+        child: _recycler!
+          ..setPadding(widget.padding.left, widget.padding.top, widget.padding.right, widget.padding.bottom),
+      ),
     };
     return widget.mode == .elScrollView ? list : RecyclerExampleScrollbar(controller: _official, child: list);
   }
@@ -251,19 +254,22 @@ class _DocIosScrollBar extends ElIosScrollBar {
   bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }
 
+// 路由重挂时更新构建闭包，继续使用同一适配器和已测量的条目高度。
+class _DocItemBuilderScope extends InheritedWidget {
+  const _DocItemBuilderScope({required this.itemBuilder, required super.child});
+
+  final IndexedWidgetBuilder itemBuilder;
+
+  @override
+  bool updateShouldNotify(_DocItemBuilderScope oldWidget) => itemBuilder != oldWidget.itemBuilder;
+}
+
 class _DocItemsAdapter extends rv.Adapter<_DocItemHolder> {
-  _DocItemsAdapter({
-    required this.count,
-    required this.templateCount,
-    required this.headerCount,
-    required this.gap,
-    required this.itemBuilder,
-  });
+  _DocItemsAdapter({required this.count, required this.templateCount, required this.headerCount, required this.gap});
   final int count;
   final int templateCount;
   final int headerCount;
   final double gap;
-  final IndexedWidgetBuilder itemBuilder;
 
   @override
   int getItemCount() => count;
@@ -273,8 +279,12 @@ class _DocItemsAdapter extends rv.Adapter<_DocItemHolder> {
       position < headerCount ? position : headerCount + (position - headerCount) % (templateCount - headerCount);
 
   @override
-  _DocItemHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) =>
-      _DocItemHolder(Builder(builder: (context) => itemBuilder(context, viewType)));
+  _DocItemHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _DocItemHolder(
+    Builder(
+      builder: (context) =>
+          context.dependOnInheritedWidgetOfExactType<_DocItemBuilderScope>()!.itemBuilder(context, viewType),
+    ),
+  );
 
   @override
   void onBindViewHolder(_DocItemHolder holder, int position, [List<Object> payloads = const []]) {

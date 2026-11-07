@@ -325,6 +325,48 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
+  testWidgets('瀑布流滑块往返跳过未测量条目时，布局保留拖拽给出的像素位置', (tester) async {
+    final manager = rv.StaggeredGridLayoutManager(2, rv.RecyclerView.VERTICAL);
+    final adapter = _Cells(List.generate(10000, (index) => index.isEven ? 100.0 : 50.0));
+    final list = await _open(tester, adapter, manager, scrollbar: true);
+    final position = list.controller!.position;
+    final gesture = await tester.startGesture(Offset(295, 21));
+    await tester.pump(Duration(milliseconds: 150));
+    for (final y in [180.0, 80.0, 150.0, 50.0]) {
+      final before = position.pixels;
+      await gesture.moveTo(Offset(295, y));
+      final requested = position.pixels;
+      expect((requested - before).abs(), greaterThan(position.viewportDimension));
+      await tester.pump(Duration(milliseconds: 16));
+      expect(position.pixels, closeTo(requested, .01));
+      expect(manager.findFirstVisibleItemPositions(), everyElement(greaterThanOrEqualTo(0)));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('瀑布流补测前面的条目时保留已呈现条目的列', (tester) async {
+    final manager = rv.StaggeredGridLayoutManager(2, rv.RecyclerView.VERTICAL);
+    final adapter = _Cells(List.generate(1000, (index) => 50.0 + index % 5 * 20));
+    final list = await _open(tester, adapter, manager);
+    list.scrollToPosition(100);
+    await tester.pumpAndSettle();
+    for (final delta in [40, 70]) {
+      list.controller!.jumpTo(list.controller!.offset - delta);
+      await tester.pumpAndSettle();
+    }
+    expect(manager.findViewByPosition(96), isNotNull);
+    final column = _rect(tester, 96).left;
+    list.controller!.jumpTo(list.controller!.offset - 120);
+    await tester.pumpAndSettle();
+    expect(manager.findViewByPosition(96), isNotNull);
+    expect(_rect(tester, 96).left, column);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('瀑布流远跳、反向、改列数和全量清空均保持有效布局', (tester) async {
     final adapter = _Cells(List.generate(10000, (index) => 50.0 + index % 5 * 20));
     final manager = rv.StaggeredGridLayoutManager(3, rv.RecyclerView.VERTICAL);

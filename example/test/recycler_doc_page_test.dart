@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:example/src/pages/components/basic/button/index.dart';
+import 'package:example/src/pages/components/data/steps/index.dart';
 import 'package:example/src/pages/components/doc_page.dart';
 import 'package:example/src/pages/components/list/list_tile/index.dart';
 import 'package:example/src/pages/components/start/shadow/index.dart';
@@ -7,6 +10,7 @@ import 'package:example/src/widgets/code_preview/index.dart';
 import 'package:example/src/widgets/doc_scroll_view.dart';
 import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +25,7 @@ Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double 
     initialLocation: location,
     routes: [
       GoRoute(path: '/components/button', builder: (context, state) => ButtonPage()),
+      GoRoute(path: '/components/steps', builder: (context, state) => StepsPage()),
       GoRoute(path: '/components/list-tile', builder: (context, state) => ListTilePage()),
       GoRoute(path: '/components/shadow-design', builder: (context, state) => ShadowPage()),
       GoRoute(
@@ -38,6 +43,21 @@ Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double 
   );
   await tester.pumpAndSettle();
   return router;
+}
+
+Future<void> _predictiveBack(WidgetTester tester, String method, [double progress = 0]) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/backgesture',
+    StandardMethodCodec().encodeMethodCall(
+      MethodCall(method, {
+        'touchOffset': [388.0 - progress * 140, 400.0 + progress * 9],
+        'progress': progress,
+        'swipeEdge': 1,
+      }),
+    ),
+    (_) {},
+  );
+  await tester.pump(Duration(milliseconds: 16));
 }
 
 void _expectRealExample(WidgetTester tester, rv.RecyclerView recyclerView, int position, {String phase = ''}) {
@@ -105,14 +125,12 @@ void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
   }
 
   final itemBoundaries = <Element>{};
-  final headingBoundary = find
-      .ancestor(of: find.text(page.title), matching: find.byType(RepaintBoundary))
-      .evaluate()
-      .first;
+  final repaintBoundary = find.byWidgetPredicate((widget) => widget is RepaintBoundary);
+  final headingBoundary = find.ancestor(of: find.text(page.title), matching: repaintBoundary).evaluate().first;
   itemBoundaries.add(headingBoundary);
   for (final example in find.byType(ElCodeExample).evaluate()) {
     final item = find.byElementPredicate((element) => identical(element, example));
-    final boundaries = find.ancestor(of: item, matching: find.byType(RepaintBoundary)).evaluate().toList();
+    final boundaries = find.ancestor(of: item, matching: repaintBoundary).evaluate().toList();
     expect(boundaries, isNotEmpty);
     expect(itemBoundaries.add(boundaries.first), isTrue, reason: '标题和每个已挂载文档条目应有独立的重绘边界');
   }
@@ -195,6 +213,74 @@ void main() {
       _expectRealExample(tester, current, 1);
       expect(tester.takeException(), isNull);
     }
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('Steps 文档预测性返回期间保留 RecyclerView 的阅读位置', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    GlobalState.docRepeatCount.value = 20;
+    final router = await _openButtonRoute(tester, '/empty');
+    unawaited(router.push<void>('/components/steps'));
+    await tester.pumpAndSettle();
+    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+    final adapter = list.getAdapter();
+    final controller = list.controller!;
+    controller.jumpTo(4000);
+    await tester.pumpAndSettle();
+    final pixels = controller.position.pixels;
+    final manager = list.getLayoutManager()! as rv.LinearLayoutManager;
+    final firstVisible = manager.findFirstVisibleItemPosition();
+    expect(firstVisible, greaterThan(1));
+
+    await _predictiveBack(tester, 'startBackGesture');
+    final route = ModalRoute.of(tester.element(find.byType(StepsPage)))!;
+    expect(route.popGestureInProgress, isTrue);
+    for (final progress in [.12, .45, .38, .66, .20]) {
+      await _predictiveBack(tester, 'updateBackGestureProgress', progress);
+      expect(controller.position.pixels, closeTo(pixels, .01), reason: '返回进度 $progress');
+      expect(manager.findFirstVisibleItemPosition(), firstVisible);
+      expect(list.getAdapter(), same(adapter));
+      expect(tester.takeException(), isNull);
+    }
+    await _predictiveBack(tester, 'cancelBackGesture');
+    await tester.pumpAndSettle();
+    expect(controller.position.pixels, closeTo(pixels, .01));
+    expect(manager.findFirstVisibleItemPosition(), firstVisible);
+
+    await _predictiveBack(tester, 'startBackGesture');
+    await _predictiveBack(tester, 'updateBackGestureProgress', .6);
+    await _predictiveBack(tester, 'commitBackGesture');
+    await tester.pumpAndSettle();
+    expect(find.text('空页面'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  }, variant: TargetPlatformVariant({TargetPlatform.android}));
+
+  testWidgets('文档构建闭包更新已挂载条目并保留适配器', (tester) async {
+    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    final label = ValueNotifier('旧内容');
+    addTearDown(label.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ValueListenableBuilder(
+            valueListenable: label,
+            builder: (context, value, child) => DocScrollView(
+              itemCount: 3,
+              itemBuilder: (context, index) => SizedBox(height: 60, child: Text('$value $index')),
+            ),
+          ),
+        ),
+      ),
+    );
+    final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
+    final adapter = list.getAdapter();
+    expect(find.text('旧内容 0'), findsOneWidget);
+    label.value = '新内容';
+    await tester.pumpAndSettle();
+    expect(find.text('新内容 0'), findsOneWidget);
+    expect(find.text('旧内容 0'), findsNothing);
+    expect(list.getAdapter(), same(adapter));
     await tester.pumpWidget(SizedBox());
   });
 

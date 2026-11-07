@@ -13,7 +13,7 @@ extension _MatrixViewport on _RecyclerViewportElement {
     } else {
       _gridRows?.invalidate(start, count);
     }
-    _staggeredSpans?.invalidateFrom(start);
+    _staggeredSpans?.invalidateFrom(start, discardAssignments: structural);
   }
 
   void _ensureMatrix() {
@@ -121,9 +121,16 @@ extension _MatrixViewport on _RecyclerViewportElement {
     } else {
       anchor = null;
     }
-    if (anchor == null && target == null && _active.isNotEmpty) {
-      final first = _active.values.reduce((a, b) => a._position < b._position ? a : b);
-      anchor = _Anchor(first, (_box(first).parentData! as _RecyclerParentData).logicalStart - render.offset.pixels);
+    if (anchor == null && target == null && !preserveOverscroll) {
+      // 远跳后旧条目已经离开视口，补测高度不能借它改写输入给出的像素位置。
+      final pixels = render.offset.pixels;
+      for (final holder in _active.values) {
+        if (holder._removed || holder._invalid || !holder._bound) continue;
+        final data = _box(holder).parentData! as _RecyclerParentData;
+        final relative = data.logicalStart - pixels;
+        if (relative + data.extent <= 0 || relative >= render.mainExtent - render.trailingPadding) continue;
+        if (anchor == null || holder._position < anchor.holder._position) anchor = _Anchor(holder, relative);
+      }
     }
     // 同轮布局会把锚点 holder 换绑给别的位置，几何校正只读取回收前的位置快照。
     final anchorPosition = anchor?.holder._position;
@@ -265,6 +272,7 @@ extension _MatrixViewport on _RecyclerViewportElement {
         retire(holder);
         continue;
       }
+      _staggeredSpans?.retainSpan(position, data.spanIndex);
       if (_firstVisible == null || position < _firstVisible!._position) _firstVisible = holder;
       if (_lastVisible == null || position > _lastVisible!._position) _lastVisible = holder;
     }

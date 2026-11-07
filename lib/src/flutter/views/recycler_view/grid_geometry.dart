@@ -87,6 +87,8 @@ class _StaggeredSpans {
   final _starts = <double>[];
   final _ends = <double>[];
   final _spans = <int>[];
+  // 只保留呈现过的列，远跳时推算出的未显示条目仍可重新分配。
+  final _committedSpans = <int, int>{};
   final List<List<int>> _lanes;
   final List<double> _lines;
   int get count => extents.length;
@@ -95,9 +97,12 @@ class _StaggeredSpans {
   void _append() {
     extents._ensureTypes();
     final position = _starts.length;
-    var lane = 0;
-    for (var index = 1; index < spanCount; index++) {
-      if (_lines[index] < _lines[lane]) lane = index;
+    final committedSpan = _committedSpans[position];
+    var lane = committedSpan ?? 0;
+    if (committedSpan == null) {
+      for (var index = 1; index < spanCount; index++) {
+        if (_lines[index] < _lines[lane]) lane = index;
+      }
     }
     final start = _lines[lane];
     final end = start + extents._values[position];
@@ -160,7 +165,10 @@ class _StaggeredSpans {
     return changed;
   }
 
-  void invalidateFrom(int position) {
+  void retainSpan(int position, int span) => _committedSpans[position] = span;
+
+  void invalidateFrom(int position, {bool discardAssignments = false}) {
+    if (discardAssignments) _committedSpans.removeWhere((index, _) => index >= position);
     if (position >= _starts.length) return;
     _starts.removeRange(position, _starts.length);
     _ends.removeRange(position, _ends.length);
