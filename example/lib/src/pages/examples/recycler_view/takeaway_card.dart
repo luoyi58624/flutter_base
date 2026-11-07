@@ -193,7 +193,7 @@ class _DiscoveryHeader extends StatelessWidget {
   );
 }
 
-class _StoreCard extends HookWidget {
+class _StoreCard extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _StoreCard({required this.store, required this.photos, required this.onAdd});
   final ValueNotifier<_Store?> store;
@@ -202,8 +202,6 @@ class _StoreCard extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 池中保持订阅与已挂载结构，真正卸载时才释放此 holder 的模型。
-    useEffect(() => store.dispose, [store]);
     final colors = Theme.of(context).colorScheme;
     final muted = colors.onSurfaceVariant;
     return Padding(
@@ -637,23 +635,16 @@ class _NetworkStorePhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = ColoredBox(
-      color: _orange.withValues(alpha: .07),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Icon(Icons.restaurant_rounded, color: _orange.withValues(alpha: .6), size: size * .35),
-      ),
-    );
+    final emptyArea = SizedBox.square(dimension: size);
     final cacheWidth = (size * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(1, 600);
     return ClipRRect(
       borderRadius: .circular(8),
       child: ValueListenableBuilder<_Store?>(
         valueListenable: store,
-        child: placeholder,
-        builder: (context, record, fallback) {
+        child: emptyArea,
+        builder: (context, record, blank) {
           final source = record == null ? '' : url(record);
-          if (source.isEmpty) return fallback!;
+          if (source.isEmpty) return blank!;
           return Image.network(
             source,
             width: size,
@@ -661,8 +652,8 @@ class _NetworkStorePhoto extends StatelessWidget {
             fit: .cover,
             cacheWidth: cacheWidth,
             excludeFromSemantics: true,
-            frameBuilder: (context, child, frame, synchronous) => frame == null ? fallback! : child,
-            errorBuilder: (context, error, stack) => fallback!,
+            frameBuilder: exampleImageFrame,
+            errorBuilder: (_, _, _) => blank!,
           );
         },
       ),

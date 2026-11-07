@@ -79,8 +79,9 @@ void main() {
     expect(recyclerExamples[4].key, 'recycler-takeaway');
   });
 
-  testWidgets('一万家商家只挂载可见图文，网络图各不相同且断网有占位', (tester) async {
+  testWidgets('一万家商家只挂载可见图文，网络图各不相同且断网留白', (tester) async {
     await _open(tester);
+    final logoSize = tester.getSize(find.byKey(ValueKey('takeaway-atlas-logo')).first);
     await tester.tap(find.byKey(ValueKey('takeaway-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('takeaway-network-photos')));
@@ -96,7 +97,19 @@ void main() {
     expect(find.byType(Image).evaluate().length, lessThan(60));
     expect(_paragraphs(tester, _row(holder)).length, greaterThan(25));
     // flutter_test 默认拒绝网络，此处实际覆盖图片失败后的可用布局。
-    expect(find.byIcon(Icons.restaurant_rounded), findsWidgets);
+    expect(find.byIcon(Icons.restaurant_rounded), findsNothing);
+    expect(tester.getSize(find.descendant(of: _row(holder), matching: find.byType(Image)).first), logoSize);
+    Future<void> toggleCard() async {
+      await tester.tap(find.byKey(ValueKey('takeaway-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('takeaway-render-card-mode')));
+      await tester.pumpAndSettle();
+    }
+
+    await toggleCard();
+    expect(_urls(tester, _row(holder)), isEmpty);
+    await toggleCard();
+    expect(_urls(tester, _row(holder)), urls);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -119,7 +132,7 @@ void main() {
         stream.removeListener(listener);
       }
     });
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     Finder inRow(rv.ViewHolder holder, String key) =>
         find.descendant(of: _row(holder), matching: find.byKey(ValueKey(key)));

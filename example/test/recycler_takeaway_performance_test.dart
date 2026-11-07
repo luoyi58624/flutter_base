@@ -341,4 +341,55 @@ void main() {
     );
     await tester.pumpWidget(SizedBox());
   });
+
+  for (final pure in [false, true]) {
+    testWidgets('离线外卖卡片快滚对照：${pure ? '单个 RenderBox' : '组件树'}', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = Size(390, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        ElComponentProvider(
+          components: el.mobileComponents,
+          child: MaterialApp(home: RecyclerTakeawayPage()),
+        ),
+      );
+      await tester.runAsync(
+        () => precacheImage(
+          AssetImage('assets/recycler_cards/takeaway-food.webp'),
+          tester.element(find.byType(RecyclerTakeawayPage)),
+          onError: (error, _) => fail('离线图集解码失败：$error'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      if (pure) {
+        await tester.tap(find.byKey(ValueKey('takeaway-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('takeaway-render-card-mode')));
+        await tester.pumpAndSettle();
+      }
+      final root = find.byType(rv.RecyclerView);
+      final list = tester.widget<rv.RecyclerView>(root);
+      final first = find.byWidget(list.findViewHolderForItemId(0)!.itemView);
+      final rowElements = _elements(first).length;
+      if (pure) {
+        final card = find.descendant(of: first, matching: find.byKey(ValueKey('takeaway-render-card')));
+        expect(tester.widget(card), isA<LeafRenderObjectWidget>());
+        expect(_elements(card), hasLength(1));
+      }
+
+      final samples = <int>[];
+      for (var step = 1; step <= 12; step++) {
+        final clock = Stopwatch()..start();
+        list.controller!.jumpTo(step * 480.0);
+        await tester.pump(Duration(microseconds: 8333));
+        samples.add(clock.elapsedMicroseconds);
+        expect(tester.takeException(), isNull);
+      }
+      debugPrint(
+        'TAKEAWAY_OFFLINE_CARD ${jsonEncode({'card': pure ? 'render_box' : 'widgets', 'environment': 'flutter_test/debug; same decoded atlas, host pump wall time', 'pixels_per_frame': 480, 'row_elements': rowElements, 'mounted_elements': _elements(root).length, 'pump_wall': _timings(samples)})}',
+      );
+      await tester.pumpWidget(SizedBox());
+    });
+  }
 }

@@ -6,10 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'
-    show BoxConstraints, PaintingContext, PipelineOwner, RenderBox, RenderParagraph, ScrollCacheExtent;
+    show BoxConstraints, BoxHitTestEntry, PaintingContext, PipelineOwner, RenderBox, RenderParagraph, ScrollCacheExtent;
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
+import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
@@ -17,6 +20,11 @@ import 'scroll_mode.dart';
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';
 part 'takeaway_photo.dart';
+part 'takeaway_render_card.dart';
+part 'takeaway_render_canvas.dart';
+part 'takeaway_render_interaction.dart';
+
+enum _TakeawayCardMode { widgets, renderObject }
 
 /// 用密集商家信息、餐品图片和店内横向菜单对比三种长列表。
 class RecyclerTakeawayPage extends StatefulWidget {
@@ -31,12 +39,13 @@ class RecyclerTakeawayPage extends StatefulWidget {
   State<RecyclerTakeawayPage> createState() => _RecyclerTakeawayPageState();
 }
 
-class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
+class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> with SingleTickerProviderStateMixin {
   final _controller = ScrollController(keepScrollOffset: false);
   final _elController = ScrollController(keepScrollOffset: false);
   final _cart = ValueNotifier<(int, int)>((0, 0));
+  final _cardMode = ValueNotifier(_TakeawayCardMode.widgets);
   final _stores = <int, _Store>{};
-  late final _photos = _TakeawayPhotos(widget.networkPhotos);
+  late final _photos = _TakeawayPhotos(widget.networkPhotos, this);
   var _indices = List<int>.generate(10000, (index) => index);
   var _category = -1;
   RecyclerExampleScrollMode _mode = .recyclerView;
@@ -49,7 +58,7 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_photos.network.value) _photos.atlas.resolve(createLocalImageConfiguration(context));
+    if (!_photos.network.value || _cardMode.value == .renderObject) _photos.atlas.resolve(context);
   }
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
@@ -85,14 +94,22 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
     switch (option) {
       case RecyclerExampleScrollMode mode:
         _choose(mode);
+      case _TakeawayCardMode mode:
+        if (mode == .renderObject) _photos.atlas.resolve(context);
+        _cardMode.value = mode;
       case bool network:
-        if (!network) _photos.atlas.resolve(createLocalImageConfiguration(context));
+        if (!network) _photos.atlas.resolve(context);
         _photos.network.value = network;
     }
   }
 
-  Widget _row(BuildContext context, int index) =>
-      _OfficialStoreRow(key: ValueKey(_indices[index]), store: _storeAt(index), photos: _photos, onAdd: _add);
+  Widget _row(BuildContext context, int index) => _OfficialStoreRow(
+    key: ValueKey(_indices[index]),
+    store: _storeAt(index),
+    photos: _photos,
+    mode: _cardMode,
+    onAdd: _add,
+  );
 
   Widget _content() {
     if (_mode == .elScrollView) {
@@ -122,6 +139,7 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
     _controller.dispose();
     _elController.dispose();
     _cart.dispose();
+    _cardMode.dispose();
     _photos.dispose();
     super.dispose();
   }
@@ -145,8 +163,15 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
               ),
             PopupMenuDivider(),
             CheckedPopupMenuItem<Object>(
+              key: ValueKey('takeaway-render-card-mode'),
+              checked: _cardMode.value == .renderObject,
+              value: _cardMode.value == .renderObject ? _TakeawayCardMode.widgets : _TakeawayCardMode.renderObject,
+              child: Text('纯 RenderObject 卡片'),
+            ),
+            CheckedPopupMenuItem<Object>(
               key: ValueKey('takeaway-network-photos'),
-              checked: _photos.network.value,
+              checked: _cardMode.value == .widgets && _photos.network.value,
+              enabled: _cardMode.value == .widgets,
               value: !_photos.network.value,
               child: Text('网络图片'),
             ),
@@ -222,7 +247,8 @@ class _StoreAdapter extends rv.Adapter<_StoreHolder> {
   int getItemId(int position) => page._indices[position];
 
   @override
-  _StoreHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _StoreHolder(page._photos, page._add);
+  _StoreHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) =>
+      _StoreHolder(page._photos, page._cardMode, page._add);
 
   @override
   void onBindViewHolder(_StoreHolder holder, int position, [List<Object> payloads = const []]) =>
@@ -230,17 +256,19 @@ class _StoreAdapter extends rv.Adapter<_StoreHolder> {
 }
 
 class _StoreHolder extends rv.ViewHolder {
-  _StoreHolder(_TakeawayPhotos photos, ValueChanged<_Dish> onAdd) : this._(ValueNotifier<_Store?>(null), photos, onAdd);
-  _StoreHolder._(this.store, _TakeawayPhotos photos, ValueChanged<_Dish> onAdd)
-    : super(_StoreCard(store: store, photos: photos, onAdd: onAdd));
+  _StoreHolder(_TakeawayPhotos photos, ValueListenable<_TakeawayCardMode> mode, ValueChanged<_Dish> onAdd)
+    : this._(ValueNotifier<_Store?>(null), photos, mode, onAdd);
+  _StoreHolder._(this.store, _TakeawayPhotos photos, ValueListenable<_TakeawayCardMode> mode, ValueChanged<_Dish> onAdd)
+    : super(_TakeawayCardHost(store: store, photos: photos, mode: mode, onAdd: onAdd));
   final ValueNotifier<_Store?> store;
 }
 
 class _OfficialStoreRow extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _OfficialStoreRow({super.key, required this.store, required this.photos, required this.onAdd});
+  _OfficialStoreRow({super.key, required this.store, required this.photos, required this.mode, required this.onAdd});
   final _Store store;
   final _TakeawayPhotos photos;
+  final ValueListenable<_TakeawayCardMode> mode;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -257,14 +285,38 @@ class _OfficialStoreRowState extends State<_OfficialStoreRow> {
   }
 
   @override
-  Widget build(BuildContext context) => _StoreCard(store: _store, photos: widget.photos, onAdd: widget.onAdd);
+  Widget build(BuildContext context) =>
+      _TakeawayCardHost(store: _store, photos: widget.photos, mode: widget.mode, onAdd: widget.onAdd);
+}
+
+class _TakeawayCardHost extends HookWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _TakeawayCardHost({required this.store, required this.photos, required this.mode, required this.onAdd});
+
+  final ValueNotifier<_Store?> store;
+  final _TakeawayPhotos photos;
+  final ValueListenable<_TakeawayCardMode> mode;
+  final ValueChanged<_Dish> onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    // 切换卡片时保留 holder 和数据，只在条目离开元素树时释放绑定。
+    useEffect(() => store.dispose, [store]);
+    return ValueListenableBuilder<_TakeawayCardMode>(
+      valueListenable: mode,
+      child: _StoreCard(store: store, photos: photos, onAdd: onAdd),
+      builder: (context, mode, widgetCard) => mode == .widgets
+          ? widgetCard!
+          : _TakeawayRenderCard(key: ValueKey('takeaway-render-card'), store: store, atlas: photos.atlas, onAdd: onAdd),
+    );
+  }
 }
 
 class _TakeawayPhotos {
-  _TakeawayPhotos(bool network) : network = ValueNotifier(network);
+  _TakeawayPhotos(bool network, TickerProvider vsync) : network = ValueNotifier(network), atlas = _FoodAtlas(vsync);
 
   final ValueNotifier<bool> network;
-  final atlas = _FoodAtlas();
+  final _FoodAtlas atlas;
 
   void dispose() {
     network.dispose();
