@@ -104,6 +104,7 @@ class _MediaPageState extends State<_MediaPage> {
   int _albumDirection = 1;
   (int, int, int)? _thumbnailWindow;
   bool _thumbnailUpdateScheduled = false;
+  double? _demoWaterfallFooter;
 
   bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
   int get _itemCount => _demo ? 10000 : _library.items.length;
@@ -246,11 +247,22 @@ class _MediaPageState extends State<_MediaPage> {
     }
     if (_manager case final rv.GridLayoutManager grid) {
       grid.setSpanCount(columns);
-    } else {
-      (_manager as rv.StaggeredGridLayoutManager).setSpanCount(columns);
+    } else if (_manager case final rv.StaggeredGridLayoutManager waterfall) {
+      waterfall.setSpanCount(columns);
+      final footer = _demo ? _waterfallFooterExtent(context) : null;
+      if (_demoWaterfallFooter != footer) {
+        _demoWaterfallFooter = footer;
+        waterfall.setItemExtentBuilder(
+          footer == null ? null : (index, width) => _demoWaterfallExtent(index, width, footer),
+        );
+      }
     }
     if (widget.kind == .waterfall || _mode == .recyclerView) {
-      return RecyclerExampleScrollbar(controller: _controller, child: _list);
+      return RecyclerExampleScrollbar(
+        controller: _controller,
+        stopOnThumbRelease: widget.kind == .waterfall,
+        child: _list,
+      );
     }
     final padding = album ? EdgeInsets.zero : EdgeInsets.only(left: 6, top: 6);
     final width = (constraints.maxWidth - padding.horizontal) / columns;

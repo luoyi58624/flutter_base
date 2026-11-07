@@ -79,11 +79,13 @@ class _GridRows {
 
 // 每列维护单调的结束位置，窗口查询只二分各列，不扫描已访问的整段数据。
 class _StaggeredSpans {
-  _StaggeredSpans(this.extents, this.spanCount)
+  _StaggeredSpans(this.extents, this.spanCount, {this.itemCrossExtent, this.itemExtentBuilder})
     : _lanes = List.generate(spanCount, (_) => <int>[]),
       _lines = List.filled(spanCount, 0.0);
   final _ExtentIndex extents;
   final int spanCount;
+  final double? itemCrossExtent;
+  final double Function(int, double)? itemExtentBuilder;
   final _starts = <double>[];
   final _ends = <double>[];
   final _spans = <int>[];
@@ -92,11 +94,30 @@ class _StaggeredSpans {
   final List<List<int>> _lanes;
   final List<double> _lines;
   int get count => extents.length;
-  double get total => math.max(_lines.reduce(math.max), extents.total / spanCount);
+  bool get hasExactExtents => itemExtentBuilder != null;
+
+  double get total {
+    // 已知尺寸时一次算出最末列的真实位置，滑块比例随后不随经过的条目变化。
+    if (hasExactExtents) {
+      ensurePosition(count - 1);
+      return _lines.reduce(math.max);
+    }
+    return math.max(_lines.reduce(math.max), extents.total / spanCount);
+  }
 
   void _append() {
-    extents._ensureTypes();
     final position = _starts.length;
+    final builder = itemExtentBuilder;
+    double extent;
+    if (builder == null) {
+      extents._ensureTypes();
+      extent = extents._values[position];
+    } else {
+      extent = builder(position, itemCrossExtent!);
+      if (!extent.isFinite || extent < 0) {
+        throw StateError('位置 $position 的精确主轴尺寸必须是有限的非负数。');
+      }
+    }
     final committedSpan = _committedSpans[position];
     var lane = committedSpan ?? 0;
     if (committedSpan == null) {
@@ -105,7 +126,7 @@ class _StaggeredSpans {
       }
     }
     final start = _lines[lane];
-    final end = start + extents._values[position];
+    final end = start + extent;
     _starts.add(start);
     _ends.add(end);
     _spans.add(lane);
@@ -136,6 +157,12 @@ class _StaggeredSpans {
     return _spans[position];
   }
 
+  double? exactExtentAt(int position) {
+    if (!hasExactExtents) return null;
+    ensurePosition(position);
+    return _ends[position] - _starts[position];
+  }
+
   List<int> visible(double start, double end) {
     _ensurePixels(end);
     final result = <int>[];
@@ -159,13 +186,16 @@ class _StaggeredSpans {
   }
 
   bool measure(int position, double extent) {
+    if (hasExactExtents) return false;
     final firstOfType = !extents._estimates.containsKey(extents.typeAt(position));
     final changed = extents.measure(position, extent);
     if (changed) invalidateFrom(firstOfType ? 0 : position);
     return changed;
   }
 
-  void retainSpan(int position, int span) => _committedSpans[position] = span;
+  void retainSpan(int position, int span) {
+    if (!hasExactExtents) _committedSpans[position] = span;
+  }
 
   void invalidateFrom(int position, {bool discardAssignments = false}) {
     if (discardAssignments) _committedSpans.removeWhere((index, _) => index >= position);

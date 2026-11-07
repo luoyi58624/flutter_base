@@ -1,5 +1,7 @@
 part of 'media.dart';
 
+const _demoWaterfallRatios = [.7, 1.25, .9, 1.6, .8];
+
 class _MediaEntry {
   _MediaEntry({
     required this.id,
@@ -46,7 +48,7 @@ class _MediaEntry {
       source: '自然影像集',
       thumbnail: ResizeImage(image, width: 320, height: 320, policy: .fit),
       original: image,
-      coverRatio: [.7, 1.25, .9, 1.6, .8][index % 5],
+      coverRatio: _demoWaterfallRatios[index % _demoWaterfallRatios.length],
       description: [for (var i = 0; i <= index % 4; i++) sentences[(index + i) % sentences.length]].join(),
     );
   }

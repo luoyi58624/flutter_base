@@ -75,6 +75,7 @@ Future<rv.RecyclerView> _open(
   bool rtl = false,
   Size? size,
   bool scrollbar = false,
+  EdgeInsets padding = EdgeInsets.zero,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size ?? Size(300, 260);
@@ -84,7 +85,8 @@ Future<rv.RecyclerView> _open(
   manager.setItemPrefetchEnabled(false);
   final list = rv.RecyclerView(controller: ScrollController(keepScrollOffset: false))
     ..setLayoutManager(manager)
-    ..setAdapter(adapter);
+    ..setAdapter(adapter)
+    ..setPadding(padding.left, padding.top, padding.right, padding.bottom);
   addTearDown(list.controller!.dispose);
   await tester.pumpWidget(
     MaterialApp(
@@ -343,6 +345,81 @@ void main() {
     }
     await gesture.up();
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('精确瀑布流远跳和重叠回拖保留两列坐标，尺寸变化时只重建一次几何', (tester) async {
+    final extents = List<double>.generate(10000, (index) => 45.0 + index % 9 * 18);
+    final widths = <double>{};
+    var calculations = 0;
+    final manager = rv.StaggeredGridLayoutManager(2, rv.RecyclerView.VERTICAL)
+      ..setItemExtentBuilder((index, width) {
+        calculations++;
+        widths.add(width);
+        return extents[index] + width / 5;
+      });
+    final adapter = _Cells(List.filled(extents.length, 14));
+    final list = await _open(tester, adapter, manager, padding: EdgeInsets.fromLTRB(12, 6, 8, 4));
+    final position = list.controller!.position;
+
+    List<Rect> reference(double width) {
+      final lines = [6.0, 6.0];
+      final rects = <Rect>[];
+      for (final extent in extents) {
+        final lane = lines[1] < lines[0] ? 1 : 0;
+        final height = extent + width / 5;
+        rects.add(Rect.fromLTWH(12 + lane * width, lines[lane], width, height));
+        lines[lane] += height;
+      }
+      return rects;
+    }
+
+    void expectGeometry(List<Rect> rects) {
+      final pixels = position.pixels;
+      final expectedMax = rects.fold(0.0, (max, rect) => rect.bottom > max ? rect.bottom : max) + 4 - 260;
+      expect(position.maxScrollExtent, closeTo(expectedMax, .01));
+      final firstInEachLane = manager.findFirstVisibleItemPositions();
+      expect(firstInEachLane, everyElement(greaterThanOrEqualTo(0)));
+      for (final index in firstInEachLane) {
+        final expected = rects[index].shift(Offset(0, -pixels));
+        final actual = _rect(tester, index);
+        expect(actual.left, closeTo(expected.left, .01));
+        expect(actual.top, closeTo(expected.top, .01));
+        expect(actual.height, closeTo(expected.height, .01));
+      }
+    }
+
+    expect(calculations, extents.length);
+    expect(widths, {140.0});
+    final initial = reference(140);
+    final far = position.maxScrollExtent * .82;
+    final back = position.maxScrollExtent * .25;
+    for (final target in [far, far - 83, back, back + 105, back - 17, 0.0]) {
+      position.jumpTo(target);
+      await tester.pump();
+      expect(position.pixels, closeTo(target, .01));
+      expectGeometry(initial);
+    }
+    expect(calculations, extents.length);
+    expect(adapter.holders.length, lessThan(20));
+
+    extents[0] += 90;
+    adapter.notifyItemChanged(0);
+    await tester.pump();
+    expect(calculations, 2 * extents.length);
+    expectGeometry(reference(140));
+
+    tester.view.physicalSize = Size(340, 260);
+    await tester.pumpAndSettle();
+    expect(calculations, 3 * extents.length);
+    expect(widths, {140.0, 160.0});
+    expectGeometry(reference(160));
+
+    manager.setItemExtentBuilder(null);
+    await tester.pumpAndSettle();
+    expect(_rect(tester, 0).height, 14);
+    expect(calculations, 3 * extents.length);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

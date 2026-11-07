@@ -7,6 +7,27 @@ double _footerExtent(BuildContext context) {
 
 double _feedExtent(BuildContext context, double width) => (width - 6) * .75 + _footerExtent(context) + 6;
 
+const _waterfallGap = 6.0;
+
+({double title, double description, double source}) _waterfallCaptionSlots(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  return (
+    title: (scaler.scale(13) * 1.3).ceilToDouble() * 2,
+    description: (scaler.scale(11) * 1.3).ceilToDouble() * 3,
+    source: math.max(12, (scaler.scale(10.5) * 1.3).ceilToDouble()),
+  );
+}
+
+double _waterfallFooterExtent(BuildContext context) {
+  final slots = _waterfallCaptionSlots(context);
+  return slots.title + slots.description + slots.source + 26;
+}
+
+double _demoWaterfallExtent(int index, double width, double footer) =>
+    math.max(0, width - _waterfallGap) / _demoWaterfallRatios[index % _demoWaterfallRatios.length] +
+    footer +
+    _waterfallGap;
+
 Widget _caption(String value, {double size = 13, Color? color, int lines = 1, bool bold = false}) => ElView(
   style: ElStyle(
     fontSize: size,
@@ -110,32 +131,47 @@ class _MediaTile extends HookWidget {
     } else if (kind == .album) {
       contents = image;
     } else {
-      final footer = Padding(
-        padding: .all(8),
-        child: Column(
-          mainAxisSize: .min,
-          crossAxisAlignment: .stretch,
-          spacing: 5,
-          children: [
-            if (kind == .feed)
-              SizedBox(
-                height: MediaQuery.textScalerOf(context).scale(13) * 1.3 * 2,
-                child: _entryCaption(model, (entry) => entry.title, lines: 2, bold: true),
-              )
-            else
-              _entryCaption(model, (entry) => entry.title, lines: 2, bold: true),
-            if (kind == .waterfall)
-              _entryCaption(model, (entry) => entry.description, size: 11, color: muted, lines: 3),
-            Row(
-              spacing: 4,
-              children: [
-                Icon(Icons.photo_camera_outlined, size: 12, color: muted),
-                Expanded(child: _entryCaption(model, (entry) => entry.source, size: 10.5, color: muted)),
-              ],
-            ),
-          ],
-        ),
+      final waterfallSlots = kind == .waterfall ? _waterfallCaptionSlots(context) : null;
+      final title = _entryCaption(model, (entry) => entry.title, lines: 2, bold: true);
+      final description = kind == .waterfall
+          ? _entryCaption(model, (entry) => entry.description, size: 11, color: muted, lines: 3)
+          : null;
+      final source = Row(
+        spacing: 4,
+        children: [
+          Icon(Icons.photo_camera_outlined, size: 12, color: muted),
+          Expanded(child: _entryCaption(model, (entry) => entry.source, size: 10.5, color: muted)),
+        ],
       );
+      Widget buildFooter({bool reserveCaptionHeight = false}) {
+        final slots = reserveCaptionHeight ? waterfallSlots : null;
+        return Padding(
+          padding: .all(8),
+          child: Column(
+            mainAxisSize: .min,
+            crossAxisAlignment: .stretch,
+            spacing: 5,
+            children: [
+              if (kind == .feed || slots != null)
+                SizedBox(height: slots?.title ?? MediaQuery.textScalerOf(context).scale(13) * 1.3 * 2, child: title)
+              else
+                title,
+              if (description != null)
+                if (slots != null) SizedBox(height: slots.description, child: description) else description,
+              if (slots != null) SizedBox(height: slots.source, child: source) else source,
+            ],
+          ),
+        );
+      }
+
+      final naturalFooter = buildFooter();
+      final fixedFooter = waterfallSlots == null ? null : buildFooter(reserveCaptionHeight: true);
+      final footer = fixedFooter == null
+          ? naturalFooter
+          : ValueListenableBuilder<_MediaEntry?>(
+              valueListenable: model,
+              builder: (_, entry, _) => entry?.coverRatio == null ? naturalFooter : fixedFooter,
+            );
       contents = Column(
         mainAxisSize: .min,
         crossAxisAlignment: .stretch,
@@ -147,7 +183,7 @@ class _MediaTile extends HookWidget {
     }
     final body = LayoutBuilder(
       builder: (context, constraints) {
-        final gap = kind == .album ? 1.5 : 6.0;
+        final gap = kind == .album ? 1.5 : _waterfallGap;
         final card = Padding(
           padding: .only(right: gap, bottom: gap),
           child: ClipRRect(

@@ -13,7 +13,11 @@ extension _MatrixViewport on _RecyclerViewportElement {
     } else {
       _gridRows?.invalidate(start, count);
     }
-    _staggeredSpans?.invalidateFrom(start, discardAssignments: structural);
+    if (_staggeredSpans?.hasExactExtents == true) {
+      _staggeredSpans = null;
+    } else {
+      _staggeredSpans?.invalidateFrom(start, discardAssignments: structural);
+    }
   }
 
   void _ensureMatrix() {
@@ -23,10 +27,20 @@ extension _MatrixViewport on _RecyclerViewportElement {
         _gridRows = _GridRows(_extents, manager._spanCount, manager._spanSizeLookup);
       }
     } else if (manager is StaggeredGridLayoutManager) {
-      if (_staggeredSpans == null ||
-          !identical(_staggeredSpans!.extents, _extents) ||
-          _staggeredSpans!.spanCount != manager._spanCount) {
-        _staggeredSpans = _StaggeredSpans(_extents, manager._spanCount);
+      final geometry = _staggeredSpans;
+      final builder = manager._itemExtentBuilder;
+      final cross = builder != null && renderObject.hasSize ? _matrixCrossExtent / manager._spanCount : null;
+      if (geometry == null ||
+          !identical(geometry.extents, _extents) ||
+          geometry.spanCount != manager._spanCount ||
+          geometry.itemCrossExtent != cross) {
+        if (geometry != null && geometry.itemCrossExtent != cross) _captureAnchor();
+        _staggeredSpans = _StaggeredSpans(
+          _extents,
+          manager._spanCount,
+          itemCrossExtent: cross,
+          itemExtentBuilder: cross == null ? null : builder,
+        );
       }
     }
   }
@@ -34,6 +48,12 @@ extension _MatrixViewport on _RecyclerViewportElement {
   double _matrixStart(int position) {
     _ensureMatrix();
     return _state._manager is GridLayoutManager ? _gridRows!.startAt(position) : _staggeredSpans!.startAt(position);
+  }
+
+  double get _matrixCrossExtent {
+    final render = renderObject;
+    final available = render.childConstraints;
+    return render.vertical ? available.maxWidth : available.maxHeight;
   }
 
   BoxConstraints _matrixChildConstraints(int position, {double? mainExtent}) {
@@ -44,11 +64,12 @@ extension _MatrixViewport on _RecyclerViewportElement {
         ? manager._spanCount
         : (manager as StaggeredGridLayoutManager)._spanCount;
     final size = manager is GridLayoutManager ? _gridRows!.sizeFor(position) : 1;
-    final available = renderObject.childConstraints;
-    final cross = (renderObject.vertical ? available.maxWidth : available.maxHeight) * size / spans;
+    final cross = _matrixCrossExtent * size / spans;
+    final extent =
+        mainExtent ?? (manager is StaggeredGridLayoutManager ? _staggeredSpans!.exactExtentAt(position) : null);
     return renderObject.vertical
-        ? BoxConstraints.tightFor(width: cross, height: mainExtent)
-        : BoxConstraints.tightFor(width: mainExtent, height: cross);
+        ? BoxConstraints.tightFor(width: cross, height: extent)
+        : BoxConstraints.tightFor(width: extent, height: cross);
   }
 
   void _matrixParentData(ViewHolder holder, double start, double extent, int span, int spanSize, int spanCount) {
@@ -230,6 +251,7 @@ extension _MatrixViewport on _RecyclerViewportElement {
               geometry.spanCount,
             );
           }
+          if (geometry.hasExactExtents) break;
         }
       }
       for (final holder in _active.values.toList()) {

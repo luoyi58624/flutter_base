@@ -101,6 +101,7 @@ class StaggeredGridLayoutManager extends _AxisLayoutManager {
   }
 
   int _spanCount = 1;
+  double Function(int position, double crossAxisExtent)? _itemExtentBuilder;
 
   /// 返回垂直布局的列数或水平布局的行数。
   int getSpanCount() => _spanCount;
@@ -110,6 +111,16 @@ class StaggeredGridLayoutManager extends _AxisLayoutManager {
     if (spanCount < 1) throw ArgumentError.value(spanCount, 'spanCount', '跨度数至少为 1。');
     if (_spanCount == spanCount) return;
     _spanCount = spanCount;
+    _state?._layoutManagerChanged();
+  }
+
+  /// 提供条目含内外边距的精确主轴尺寸，传入 null 恢复按可见条目实测。
+  ///
+  /// 回调接收适配器位置和单个跨度的实际交叉轴尺寸，返回有限非负值。
+  /// 布局会约束条目使用返回的尺寸。回调应只计算尺寸，条目变更后通过适配器通知更新。
+  void setItemExtentBuilder(double Function(int position, double crossAxisExtent)? builder) {
+    if (identical(_itemExtentBuilder, builder)) return;
+    _itemExtentBuilder = builder;
     _state?._layoutManagerChanged();
   }
 

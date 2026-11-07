@@ -91,11 +91,13 @@ flutter test test/recycler_takeaway_test.dart test/recycler_takeaway_performance
 
 路由为 `/examples/recycler-waterfall`，使用 StaggeredGridLayoutManager。默认提供 10,000 条包内离线图片与长短文案，只挂载可见卡片；也可从文件夹切换到本机图片。本地图片沿用缩略图解码后的自然比例排版，并限制过长图片的卡片高度，不额外预读整目录原图尺寸。该页只使用 RecyclerView，图文详情和 Hero 转场与视频流共用。
 
+离线数据按已知图片比例与预留文字行高计算完整条目尺寸。列坐标和滚动范围不随滑块经过的区域重新估算。滑块松手即停，正文触摸滚动仍使用惯性。回归测试在两种 Android 屏幕密度下检查快速往返、反向微调和松手后各帧的卡片位置。
+
 媒体示例的无头检测覆盖真实临时文件、子目录、超过 64 项的一次读取、首尾定位、照片预览、正确的本地视频 URI、三种网格容器、Hero 路由、暗色和窄屏大字号：
 
 ```powershell
 cd example
-flutter test --no-pub --concurrency=1 test/recycler_media_test.dart test/recycler_long_examples_test.dart test/recycler_takeaway_initial_rebind_test.dart
+flutter test --no-pub --concurrency=1 test/recycler_media_test.dart test/recycler_waterfall_scrollbar_test.dart test/recycler_long_examples_test.dart test/recycler_takeaway_initial_rebind_test.dart
 ```
 
 原生系统授权弹窗、视频解码和实际设备帧率尚未进行前台验收；无头测试使用可替换播放器验证视频路由与 URI，不把它当作真实解码性能结果。
