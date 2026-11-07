@@ -11,6 +11,7 @@ import 'recycler_view/chat.dart';
 import 'recycler_view/media.dart';
 import 'recycler_view/orders.dart';
 import 'recycler_view/product_waterfall.dart';
+import 'recycler_view/rectangles.dart';
 import 'recycler_view/rich_document.dart';
 import 'recycler_view/selection.dart';
 import 'recycler_view/social_feed.dart';
@@ -48,6 +49,12 @@ final imperativeExamples = <ElMenuModel<WidgetBuilder>>[
 
 /// RecyclerView 长列表示例，两端共用相同目录与页面工厂。
 final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'recycler-rectangles',
+    title: '万条纯色矩形',
+    icon: ElIcon(Icons.rectangle_outlined),
+    data: (_) => ElRecyclerRectanglesPage(),
+  ),
   ElMenuModel(key: 'recycler-text', title: '万条纯文本列表', icon: ElIcon(Icons.text_fields), data: (_) => RecyclerTextPage()),
   ElMenuModel(
     key: 'recycler-selection',

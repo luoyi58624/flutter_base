@@ -50,7 +50,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('settings-frame-recording')));
     await tester.pumpAndSettle();
     expect(find.byType(FrameRecordingPage), findsOneWidget);
-    await _choose(tester, 'frame-recording-page', '复杂卡片面板');
+    await _choose(tester, 'frame-recording-page', '万条纯色矩形');
     await _choose(tester, 'frame-recording-container', 'ListView');
     await _choose(tester, 'frame-recording-stage', 'E 静止');
     await _choose(tester, 'frame-recording-delay', '5');
@@ -73,7 +73,7 @@ void main() {
     expect(clipboard, isNotNull);
     final report = jsonDecode(clipboard!) as Map<String, dynamic>;
     final metadata = report['metadata'] as Map<String, dynamic>;
-    expect(metadata['page'], '复杂卡片面板');
+    expect(metadata['page'], '万条纯色矩形');
     expect(metadata['container'], 'ListView');
     expect(metadata['stage'], 'E 静止');
     expect(metadata['device_and_os'], '测试手机 / Android 17');

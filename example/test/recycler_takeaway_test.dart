@@ -74,9 +74,9 @@ Future<void> _choose(WidgetTester tester, String mode) async {
 }
 
 void main() {
-  test('外卖页在第五项，复杂卡片仍在第四项', () {
-    expect(recyclerExamples[3].key, 'recycler-cards');
-    expect(recyclerExamples[4].key, 'recycler-takeaway');
+  test('复杂卡片紧接在外卖页之前', () {
+    expect(recyclerExamples[4].key, 'recycler-cards');
+    expect(recyclerExamples[5].key, 'recycler-takeaway');
   });
 
   testWidgets('一万家商家只挂载可见图文，网络图各不相同且断网留白', (tester) async {

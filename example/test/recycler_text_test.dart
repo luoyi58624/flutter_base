@@ -17,8 +17,9 @@ Future<void> _choose(WidgetTester tester, String mode) async {
 }
 
 void main() {
-  test('纯文本位于第一项，复杂卡片位于第四项', () {
-    expect(recyclerExamples.take(5).map((page) => page.key), [
+  test('纯色矩形与纯文本位于前两项，其他示例保持原有顺序', () {
+    expect(recyclerExamples.take(6).map((page) => page.key), [
+      'recycler-rectangles',
       'recycler-text',
       'recycler-selection',
       'recycler-chat',

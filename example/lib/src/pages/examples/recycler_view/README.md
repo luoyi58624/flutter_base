@@ -2,6 +2,10 @@
 
 入口为「示例 → RecyclerView」，两端共用目录和页面。纯文本可通过 `/examples/recycler-text` 直接打开，外卖页为 `/examples/recycler-takeaway`。
 
+## 万条纯色矩形
+
+第一项为 `/examples/recycler-rectangles`。三种滚动容器都使用一万条高 64 的双色交替矩形，每条仅由一个叶子 RenderBox 绘制。RecyclerView 按颜色回收，换绑没有数据更新。可在「帧耗时记录」选择「万条纯色矩形」采集 UI 和 Raster 耗时，作为轻量内容的滚动基线。
+
 ## 复杂滚动对照
 
 | 示例 | 路由后缀 | 可重复的操作 |
@@ -57,7 +61,7 @@
 
 ## 同内容容器对比
 
-前五页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。两个 Grid 页面对应为官方 GridView、ElScrollView 内的 ElGridView、RecyclerView 的 GridLayoutManager；只有瀑布流没有其它滚动容器菜单。同一示例的三种容器共享相同条目内容，按需渲染。
+前六页的下拉菜单都提供 `ListView`、`ElScrollView` 和 `RecyclerView`，默认使用后者。两个 Grid 页面对应为官方 GridView、ElScrollView 内的 ElGridView、RecyclerView 的 GridLayoutManager；只有瀑布流没有其它滚动容器菜单。同一示例的三种容器共享相同条目内容，按需渲染。
 
 切换容器保留勾选状态、聊天消息与输入内容，并将复选列表定位到首项、聊天定位到最新消息，从相同起点比较。复选行固定 88 高，官方列表可按真实行高精确定位；聊天的官方列表采用反向索引，顶部历史追加在远端，阅读期间收到新消息则按已挂载消息几何补偿位置。
 

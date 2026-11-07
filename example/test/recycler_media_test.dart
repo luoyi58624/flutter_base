@@ -102,7 +102,7 @@ Future<void> _mode(WidgetTester tester, String mode) async {
 
 void main() {
   test('视频 Grid、相册 Grid、瀑布流追加为三个独立入口', () {
-    expect(recyclerExamples.skip(5).take(3).map((entry) => entry.key), [
+    expect(recyclerExamples.skip(6).take(3).map((entry) => entry.key), [
       'recycler-video-grid',
       'recycler-gallery-grid',
       'recycler-waterfall',

@@ -68,6 +68,7 @@ void main() {
     await _open(tester, ExamplesPage());
     expect(find.byWidgetPredicate((w) => w is ElListGroup && w.title == 'RecyclerView'), findsOneWidget);
     expect(recyclerExamples.map((page) => page.key), [
+      'recycler-rectangles',
       'recycler-text',
       'recycler-selection',
       'recycler-chat',

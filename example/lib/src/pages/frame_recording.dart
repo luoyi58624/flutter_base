@@ -113,6 +113,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
                 title: '采样配置',
                 children: [
                   _popup<String>('frame-recording-page', '页面', _page, [
+                    '万条纯色矩形',
                     '万条纯文本列表',
                     '万条复选列表',
                     '聊天长列表',
