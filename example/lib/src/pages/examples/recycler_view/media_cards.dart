@@ -200,18 +200,13 @@ class _MediaCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final fallback = ColoredBox(
-      color: colors.surfaceContainerHighest,
-      child: Center(child: Icon(Icons.image_outlined, size: 26, color: colors.onSurfaceVariant)),
-    );
     if (naturalHeight) {
       return LayoutBuilder(
         builder: (_, constraints) => ValueListenableBuilder<_MediaEntry?>(
           valueListenable: model,
-          child: fallback,
-          builder: (_, entry, placeholder) {
-            if (entry == null) return AspectRatio(aspectRatio: 1, child: placeholder);
+          builder: (_, entry, _) {
+            final emptyArea = AspectRatio(aspectRatio: entry?.aspectRatio ?? 1);
+            if (entry == null) return emptyArea;
             final image = Hero(
               tag: tag(entry),
               child: Image(
@@ -219,9 +214,9 @@ class _MediaCover extends StatelessWidget {
                 width: constraints.maxWidth,
                 fit: .cover,
                 excludeFromSemantics: true,
-                frameBuilder: (_, child, frame, _) =>
-                    frame == null ? AspectRatio(aspectRatio: entry.aspectRatio, child: placeholder) : child,
-                errorBuilder: (_, _, _) => AspectRatio(aspectRatio: entry.aspectRatio, child: placeholder),
+                frameBuilder: (context, child, frame, synchronous) =>
+                    exampleImageFrame(context, frame == null ? emptyArea : child, frame, synchronous),
+                errorBuilder: (_, _, _) => emptyArea,
               ),
             );
             // 有数据库尺寸时预先定高，本地文件直接沿用缩略图自身的布局比例，省掉另一轮尺寸读取。
@@ -238,33 +233,21 @@ class _MediaCover extends StatelessWidget {
     }
     return ValueListenableBuilder<_MediaEntry?>(
       valueListenable: model,
-      child: fallback,
-      builder: (_, entry, placeholder) {
-        if (entry == null) return placeholder!;
+      builder: (_, entry, _) {
+        if (entry == null) return SizedBox.shrink();
         return Stack(
           fit: .expand,
           children: [
             Hero(
               tag: tag(entry),
               child: metadata
-                  ? ValueListenableBuilder<ImageInfo?>(
-                      valueListenable: entry.albumThumbnail,
-                      child: placeholder,
-                      builder: (context, info, placeholder) => info == null
-                          ? placeholder!
-                          : RawImage(
-                              image: info.image,
-                              scale: info.scale,
-                              fit: .cover,
-                              invertColors: MediaQuery.invertColorsOf(context),
-                            ),
-                    )
+                  ? _AlbumCover(entry.albumThumbnail)
                   : Image(
                       image: entry.thumbnail,
                       fit: .cover,
                       excludeFromSemantics: true,
-                      frameBuilder: (_, child, frame, _) => frame == null ? placeholder! : child,
-                      errorBuilder: (_, _, _) => placeholder!,
+                      frameBuilder: exampleImageFrame,
+                      errorBuilder: exampleImageError,
                     ),
             ),
             if (metadata && entry.isVideo)
@@ -292,6 +275,43 @@ class _MediaCover extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _AlbumCover extends HookWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _AlbumCover(this.thumbnail);
+
+  final AlbumThumbnail thumbnail;
+
+  @override
+  Widget build(BuildContext context) {
+    final info = useValueListenable(thumbnail);
+    final fade = useAnimationController(duration: exampleImageFadeDuration, initialValue: 1);
+    final opacity = useCurvedAnimation(parent: fade, curve: Curves.easeOut);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    useEffect(() {
+      fade.value = 1;
+      if (reduceMotion) return null;
+      // 复用格子时只播放当前缩略图的首帧，不让上一张的透明度影响新图。
+      void reveal() {
+        if (thumbnail.value == null) {
+          fade.value = 1;
+        } else {
+          fade.forward(from: 0);
+        }
+      }
+
+      thumbnail.addListener(reveal);
+      return () => thumbnail.removeListener(reveal);
+    }, [thumbnail, reduceMotion]);
+    return RawImage(
+      image: info?.image,
+      scale: info?.scale ?? 1,
+      opacity: opacity,
+      fit: .cover,
+      invertColors: MediaQuery.invertColorsOf(context),
     );
   }
 }

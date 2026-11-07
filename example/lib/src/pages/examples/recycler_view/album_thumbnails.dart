@@ -103,7 +103,7 @@ class AlbumThumbnailQueue {
         stream.removeListener(listener);
       }
     } catch (_) {
-      // 损坏的媒体保留占位，离开再进入窗口后可以重试。
+      // 损坏的媒体保持空白，离开再进入窗口后可以重试。
     }
     _inFlight.remove(thumbnail);
     if (identical(_speculative, thumbnail)) _speculative = null;

@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../../widgets/code_preview/index.dart';
+import '../../../widgets/example_image.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
@@ -292,6 +293,8 @@ class _SectionCard extends StatelessWidget {
                       height: 156,
                       fit: .cover,
                       semanticLabel: '样本插图 ${index + 1}',
+                      frameBuilder: exampleImageFrame,
+                      errorBuilder: (_, _, _) => SizedBox(height: 156),
                     ),
                   ),
                   Text('图 ${index + 1}　同一张离线图片用于对比解码后的滚动。', style: theme.textTheme.bodySmall),

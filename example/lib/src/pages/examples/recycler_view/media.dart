@@ -15,6 +15,7 @@ import 'package:path/path.dart' as path;
 import 'package:photo_manager/photo_manager.dart' as photos;
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
+import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
 import 'album_thumbnails.dart';

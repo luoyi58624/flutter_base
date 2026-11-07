@@ -1,5 +1,14 @@
 part of 'media.dart';
 
+// 转场沿用网格里的实际图片，详情页原图按自己的解码时机淡入。
+Widget _mediaHeroFlight(
+  BuildContext context,
+  Animation<double> animation,
+  HeroFlightDirection direction,
+  BuildContext from,
+  BuildContext to,
+) => ((direction == .push ? from : to).widget as Hero).child;
+
 class _FullMediaImage extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _FullMediaImage(this.entry, {this.fit = BoxFit.contain});
@@ -9,18 +18,12 @@ class _FullMediaImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(320, 4096);
     final height = (MediaQuery.sizeOf(context).height * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(320, 4096);
-    final thumbnail = Image(
-      image: entry.thumbnail,
-      fit: fit,
-      excludeFromSemantics: true,
-      errorBuilder: (_, _, _) => Center(child: Icon(Icons.broken_image_outlined)),
-    );
     return Image(
       image: ResizeImage(entry.original, width: width, height: height, policy: .fit, allowUpscaling: false),
       fit: fit,
       excludeFromSemantics: true,
-      frameBuilder: (_, child, frame, _) => frame == null ? thumbnail : child,
-      errorBuilder: (_, _, _) => thumbnail,
+      frameBuilder: exampleImageFrame,
+      errorBuilder: exampleImageError,
     );
   }
 }
@@ -42,6 +45,7 @@ class _MediaDetailsPage extends StatelessWidget {
             aspectRatio: 4 / 3,
             child: Hero(
               tag: tag,
+              flightShuttleBuilder: _mediaHeroFlight,
               child: _FullMediaImage(entry, fit: .cover),
             ),
           ),
@@ -102,7 +106,7 @@ class _MediaPhotoPage extends StatelessWidget {
         minScale: 1,
         maxScale: 6,
         child: SizedBox.expand(
-          child: Hero(tag: tag, child: _FullMediaImage(entry)),
+          child: Hero(tag: tag, flightShuttleBuilder: _mediaHeroFlight, child: _FullMediaImage(entry)),
         ),
       ),
     ),

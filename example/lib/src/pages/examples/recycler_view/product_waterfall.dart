@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
+import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
 
@@ -144,7 +145,13 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
                 children: [
                   AspectRatio(
                     aspectRatio: product.sourceRatio,
-                    child: Image.asset(product.asset, fit: .cover, excludeFromSemantics: true),
+                    child: Image.asset(
+                      product.asset,
+                      fit: .cover,
+                      excludeFromSemantics: true,
+                      frameBuilder: exampleImageFrame,
+                      errorBuilder: exampleImageError,
+                    ),
                   ),
                   SizedBox(height: 20),
                   Text(product.name, style: Theme.of(context).textTheme.headlineSmall),
@@ -340,6 +347,8 @@ class _ProductTile extends StatelessWidget {
                     cacheWidth: decodedWidth,
                     fit: .cover,
                     excludeFromSemantics: true,
+                    frameBuilder: exampleImageFrame,
+                    errorBuilder: (_, _, _) => SizedBox(height: imageHeight),
                   ),
                 ),
                 SizedBox(

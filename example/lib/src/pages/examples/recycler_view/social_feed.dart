@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
+import '../../../widgets/example_image.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
@@ -294,6 +295,8 @@ class _Gallery extends StatelessWidget {
                           : 'assets/recycler_cards/owl-2.jpg',
                       cacheWidth: 360,
                       fit: .cover,
+                      frameBuilder: exampleImageFrame,
+                      errorBuilder: exampleImageError,
                       semanticLabel: '猫头鹰观察照片 ${row * 3 + col + 1}',
                     ),
                   ),

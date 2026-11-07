@@ -5,6 +5,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../example_page.dart';
+import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
 
@@ -406,6 +407,8 @@ class _ObservationRowState extends State<_ObservationRow> {
                   alignment: photo == 0 ? Alignment(0, -.15) : Alignment.center,
                   cacheWidth: 960,
                   excludeFromSemantics: true,
+                  frameBuilder: exampleImageFrame,
+                  errorBuilder: exampleImageError,
                 ),
                 DecoratedBox(
                   decoration: BoxDecoration(
