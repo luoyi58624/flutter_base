@@ -2,7 +2,19 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_base/flutter_base.dart' show ElCardView, ElTabController, ElTabView;
+import 'package:flutter_base/flutter_base.dart'
+    show
+        ElButtonView,
+        ElCardView,
+        ElContextMenu,
+        ElContextMenuItem,
+        ElEvent,
+        ElEventConfig,
+        ElStyle,
+        ElStyleTapExt,
+        ElTabController,
+        ElTabView,
+        ElView;
 
 /// 原生示例同款离线推荐流，每行两张卡片。
 const int bibiVideoRowCount = 180;
@@ -41,8 +53,8 @@ Widget buildBibiVideoRow(BuildContext context, int rowIndex, int generation) => 
     crossAxisAlignment: .start,
     spacing: 8,
     children: [
-      Expanded(child: buildBibiVideoCard(rowIndex * 2, generation)),
-      Expanded(child: buildBibiVideoCard(rowIndex * 2 + 1, generation)),
+      Expanded(child: RepaintBoundary(child: buildBibiVideoCard(rowIndex * 2, generation))),
+      Expanded(child: RepaintBoundary(child: buildBibiVideoCard(rowIndex * 2 + 1, generation))),
     ],
   ),
 );
@@ -296,7 +308,15 @@ class _AtlasCover extends StatelessWidget {
   );
 }
 
-enum _VideoAction { details, copy }
+final _videoCardStyle = ElStyle(
+  backgroundColor: Colors.white,
+  borderRadius: .circular(7),
+  clipBehavior: .hardEdge,
+).withTapScale(.98);
+
+final _videoMoreStyle = ElStyle(width: 22, height: 22, alignment: .center);
+final _videoTapConfig = ElEventConfig(tapCancelByDistance: true);
+final _videoMenu = _BibiVideoMenu();
 
 class _VideoCard extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
@@ -304,24 +324,37 @@ class _VideoCard extends StatelessWidget {
 
   final _Video video;
 
-  Future<void> _onAction(BuildContext context, _VideoAction action) async {
-    switch (action) {
-      case .details:
-        await _showDetails(context, video.title, video.summary);
-      case .copy:
-        await Clipboard.setData(ClipboardData(text: video.title));
-        if (context.mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('已复制标题')));
-    }
+  Future<void> _copyTitle(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: video.title));
+    if (context.mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('已复制标题')));
+  }
+
+  void _openMenu(BuildContext context) {
+    final anchor = context.findRenderObject();
+    if (anchor is! RenderBox || !anchor.hasSize) return;
+    _videoMenu.open(
+      context,
+      position: anchor.localToGlobal(anchor.size.bottomLeft(Offset.zero)),
+      items: [
+        ElContextMenuItem(
+          label: '视频详情',
+          onSelect: () {
+            if (context.mounted) _showDetails(context, video.title, video.summary);
+          },
+        ),
+        ElContextMenuItem(label: '复制标题', onSelect: () => _copyTitle(context)),
+      ],
+    );
   }
 
   @override
-  Widget build(BuildContext context) => ElCardView(
-    child: Material(
-      color: Colors.white,
-      borderRadius: .circular(7),
-      clipBehavior: .hardEdge,
-      child: InkWell(
-        onTap: () => _showDetails(context, video.title, video.summary),
+  Widget build(BuildContext context) {
+    void openDetails() => _showDetails(context, video.title, video.summary);
+    return Semantics(
+      onTap: openDetails,
+      child: ElCardView(
+        style: _videoCardStyle,
+        event: ElEvent(config: _videoTapConfig, onTap: (_) => openDetails()),
         child: Column(
           crossAxisAlignment: .stretch,
           mainAxisSize: .min,
@@ -404,16 +437,18 @@ class _VideoCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      PopupMenuButton<_VideoAction>(
-                        tooltip: '更多选项',
-                        padding: .zero,
-                        icon: Icon(Icons.more_vert, color: _muted, size: 16),
-                        style: IconButton.styleFrom(minimumSize: Size(22, 22), tapTargetSize: .shrinkWrap),
-                        onSelected: (action) => _onAction(context, action),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(value: .details, child: Text('视频详情')),
-                          PopupMenuItem(value: .copy, child: Text('复制标题')),
-                        ],
+                      Builder(
+                        builder: (context) => ElButtonView(
+                          semanticLabel: '更多选项',
+                          style: _videoMoreStyle,
+                          event: ElEvent(
+                            config: _videoTapConfig,
+                            onTapDown: (event) => event.stopPropagation(),
+                            onTap: (event) => event.stopPropagation(),
+                          ),
+                          onPressed: () => _openMenu(context),
+                          child: Icon(Icons.more_vert, color: _muted, size: 16),
+                        ),
                       ),
                     ],
                   ),
@@ -423,8 +458,8 @@ class _VideoCard extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _coverText(String value) => Text(
     value,
@@ -432,6 +467,31 @@ class _VideoCard extends StatelessWidget {
     overflow: .ellipsis,
     style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: .w600),
   );
+}
+
+class _BibiVideoMenu extends ElContextMenu {
+  @override
+  Widget buildPanel(BuildContext context, List<Widget> children) => ElView(
+    style: ElStyle(
+      width: 124,
+      padding: .symmetric(vertical: 4),
+      backgroundColor: Colors.white,
+      borderRadius: .circular(8),
+      boxShadow: [BoxShadow(color: Color(0x22000000), blurRadius: 12, offset: Offset(0, 3))],
+    ),
+    child: Column(mainAxisSize: .min, crossAxisAlignment: .stretch, children: children),
+  );
+
+  @override
+  ElStyle buildItemStyle(BuildContext context, ElContextMenuItem item) => ElStyle(
+    padding: .symmetric(horizontal: 12, vertical: 9),
+    color: _ink,
+    fontSize: 14,
+    onHover: ElStyle(backgroundColor: Color(0xfff1f2f4)),
+  );
+
+  @override
+  Widget buildDivider(BuildContext context) => SizedBox.shrink();
 }
 
 Future<void> _showDetails(BuildContext context, String title, String summary) async {

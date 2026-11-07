@@ -365,7 +365,9 @@ class _MediaPageState extends State<_MediaPage> {
             rowGap: rowGap,
             mainAxisExtent: extent,
             itemCount: count,
-            itemBuilder: itemBuilder,
+            itemBuilder: _bibiCards
+                ? (context, index) => RepaintBoundary(child: itemBuilder(context, index))
+                : itemBuilder,
           ),
         ],
       );

@@ -223,9 +223,39 @@ void main() {
       expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, .01));
       expect(tester.getTopLeft(second).dx, greaterThan(tester.getTopLeft(first).dx));
       expect(find.byKey(ValueKey('media-card')), findsNothing);
+      final boundaries = find.descendant(
+        of: host,
+        matching: find.byWidgetPredicate((widget) => widget is RepaintBoundary),
+      );
+      final firstCard = find.ancestor(of: first, matching: find.byType(ElCardView));
+      final secondCard = find.ancestor(of: second, matching: find.byType(ElCardView));
+      final firstBoundary = find.ancestor(of: firstCard, matching: boundaries);
+      final secondBoundary = find.ancestor(of: secondCard, matching: boundaries);
+      expect(firstBoundary, findsOneWidget, reason: '$mode 每卡只需一层重绘边界');
+      expect(secondBoundary, findsOneWidget);
+      expect(tester.element(firstBoundary), isNot(same(tester.element(secondBoundary))));
 
       if (mode == 'listView') {
-        await tester.tap(first);
+        final cardRender = tester.renderObject<ElRenderView>(firstCard);
+        final press = await tester.startGesture(tester.getCenter(first));
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 120));
+        expect(cardRender.committedResolvedStyle.box.transform, ElTransform.scale(.98));
+        expect(find.byType(AlertDialog), findsNothing);
+        await press.up();
+        await tester.pumpAndSettle();
+        expect(cardRender.committedResolvedStyle.box.transform, isNull);
+        expect(find.descendant(of: find.byType(AlertDialog), matching: find.text(firstTitle)), findsOneWidget);
+        await tester.tap(find.text('关闭'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.descendant(of: firstCard, matching: find.byType(ElButtonView)));
+        await tester.pumpAndSettle();
+        final details = find.byWidgetPredicate((widget) => widget is ElView && widget.child == '视频详情');
+        expect(details, findsOneWidget);
+        expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == '复制标题'), findsOneWidget);
+        expect(find.byType(AlertDialog), findsNothing);
+        await tester.tap(details);
         await tester.pumpAndSettle();
         expect(find.descendant(of: find.byType(AlertDialog), matching: find.text(firstTitle)), findsOneWidget);
         await tester.tap(find.text('关闭'));

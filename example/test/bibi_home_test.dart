@@ -191,6 +191,19 @@ void main() {
 
   testWidgets('卡片区跟手横移并在换频道后保持纵向位置', (tester) async {
     await _open(tester);
+    final host = _inFeed(find.byType(ElScrollView));
+    final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ElCardView));
+    expect(cards, findsNWidgets(2));
+    final boundaries = find.descendant(
+      of: host,
+      matching: find.byWidgetPredicate((widget) => widget is RepaintBoundary),
+    );
+    final firstBoundary = find.ancestor(of: cards.at(0), matching: boundaries);
+    final secondBoundary = find.ancestor(of: cards.at(1), matching: boundaries);
+    expect(firstBoundary, findsOneWidget);
+    expect(secondBoundary, findsOneWidget);
+    expect(tester.element(firstBoundary), isNot(same(tester.element(secondBoundary))));
+
     final expanded = _tabsY(tester);
     await tester.flingFrom(Offset(195, 600), Offset(0, -240), 800);
     await tester.pumpAndSettle();
