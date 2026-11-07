@@ -194,7 +194,10 @@ class _MediaPageState extends State<_MediaPage> {
     } else {
       page = _MediaPhotoPage(entry: entry, tag: tag);
     }
-    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => page));
+    final navigator = Navigator.of(context);
+    // 独立示例的组件主题位于来源路由内，详情路由需要继承它。
+    final themes = InheritedTheme.capture(from: context, to: navigator.context);
+    navigator.push<void>(MaterialPageRoute(builder: (_) => themes.wrap(page)));
   }
 
   Future<void> _chooseSource() async {

@@ -75,16 +75,13 @@ Future<void> _open(WidgetTester tester, Widget page, {double width = 390, double
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
   await tester.pumpWidget(
-    ElComponentProvider(
-      components: el.mobileComponents,
-      child: MaterialApp(
-        theme: ThemeData(brightness: dark ? .dark : .light),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
-        ),
-        home: page,
+    MaterialApp(
+      theme: ThemeData(brightness: dark ? .dark : .light),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
       ),
+      home: ElComponentProvider(components: el.mobileComponents, child: page),
     ),
   );
   await _wait(tester, () => find.byKey(ValueKey('media-card')).evaluate().isNotEmpty);
@@ -159,6 +156,14 @@ void main() {
     final list = tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView));
     expect(list.getAdapter()!.getItemCount(), 4);
     expect(find.byKey(ValueKey('media-scroll-menu')), findsNothing);
+    await tester.tap(_photo('横图 空格').hitTestable().first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(ValueKey('media-details')), findsOneWidget);
+    expect(find.byType(ElCard), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(rv.RecyclerView), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -176,6 +181,7 @@ void main() {
     final photo = _photo('竖图 中文').hitTestable().first;
     await tester.tap(photo);
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     expect(find.byKey(ValueKey('media-details')), findsOneWidget);
     expect(find.byType(Hero), findsWidgets);
     expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == '从细节看见故事'), findsOneWidget);
