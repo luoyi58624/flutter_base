@@ -7,6 +7,9 @@ import 'package:flutter_base/flutter_base.dart' show ElCardView, ElTabController
 /// 原生示例同款离线推荐流，每行两张卡片。
 const int bibiVideoRowCount = 180;
 
+/// 推荐流中的视频卡片总数。
+const int bibiVideoCount = bibiVideoRowCount * 2;
+
 const _ink = Color(0xff18191c);
 const _muted = Color(0xff868b94);
 const _pink = Color(0xfffb7299);
@@ -38,11 +41,14 @@ Widget buildBibiVideoRow(BuildContext context, int rowIndex, int generation) => 
     crossAxisAlignment: .start,
     spacing: 8,
     children: [
-      Expanded(child: _VideoCard(_videoAt(rowIndex * 2, generation))),
-      Expanded(child: _VideoCard(_videoAt(rowIndex * 2 + 1, generation))),
+      Expanded(child: buildBibiVideoCard(rowIndex * 2, generation)),
+      Expanded(child: buildBibiVideoCard(rowIndex * 2 + 1, generation)),
     ],
   ),
 );
+
+/// 构建首页与 Grid 对照共用的视频卡片。
+Widget buildBibiVideoCard(int index, int generation) => _VideoCard(_videoAt(index, generation));
 
 /// 从当前一批本地推荐按标题或 UP 主搜索。
 Future<void> showBibiSearch(BuildContext context, int generation) async {
@@ -85,7 +91,7 @@ Future<void> showBibiSearch(BuildContext context, int generation) async {
 
   final matches = <_Video>[];
   final seen = <String>{};
-  for (var index = 0; index < bibiVideoRowCount * 2 && matches.length < 12; index++) {
+  for (var index = 0; index < bibiVideoCount && matches.length < 12; index++) {
     final video = _videoAt(index, generation);
     if ((video.title.toLowerCase().contains(query) || video.creator.toLowerCase().contains(query)) &&
         seen.add(video.title)) {
@@ -133,7 +139,7 @@ class _Video {
 
 _Video _videoAt(int index, int generation) {
   // 跟原生示例使用同一组序号与种子，刷新只轮换本地推荐。
-  final source = (generation * 17 + index) % (bibiVideoRowCount * 2);
+  final source = (generation * 17 + index) % bibiVideoCount;
   final group = source ~/ _titles.length;
   final scene = (source + 1 + group) % _titles.length;
   final titles = _titles[scene];

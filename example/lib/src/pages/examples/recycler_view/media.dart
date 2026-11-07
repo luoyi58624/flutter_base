@@ -18,8 +18,8 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
+import '../bibi/feed.dart' show bibiVideoCount, buildBibiVideoCard;
 import 'album_thumbnails.dart';
-import 'scroll_mode.dart';
 
 part 'media_source.dart';
 part 'media_cards.dart';
@@ -70,6 +70,17 @@ class RecyclerWaterfallPage extends StatelessWidget {
 
 enum _MediaKind { feed, album, waterfall }
 
+enum _MediaGridMode {
+  listView('GridView'),
+  elScrollView('ElScrollView'),
+  recyclerView('RecyclerView'),
+  bibiCards('ElScrollView · Bibi 卡片');
+
+  const _MediaGridMode(this.label);
+
+  final String label;
+}
+
 class _MediaPage extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
   _MediaPage({required this.kind, this.directory, this.videoPlayerBuilder});
@@ -95,7 +106,7 @@ class _MediaPageState extends State<_MediaPage> {
     ..setLayoutManager(_manager)
     ..setAdapter(_adapter);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
-  RecyclerExampleScrollMode _mode = .recyclerView;
+  _MediaGridMode _mode = .recyclerView;
   var _knownCount = 0;
   late final _albumThumbnails = AlbumThumbnailQueue();
   int _albumColumns = 0;
@@ -106,6 +117,7 @@ class _MediaPageState extends State<_MediaPage> {
   bool _thumbnailUpdateScheduled = false;
   double? _demoWaterfallFooter;
 
+  bool get _bibiCards => _mode == .bibiCards;
   bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
   int get _itemCount => _demo ? 10000 : _library.items.length;
   int get _adapterCount => _itemCount + (_featured ? 1 : 0);
@@ -217,7 +229,7 @@ class _MediaPageState extends State<_MediaPage> {
     }
   }
 
-  void _chooseMode(RecyclerExampleScrollMode mode) {
+  void _chooseMode(_MediaGridMode mode) {
     if (_mode == mode) return;
     _thumbnailWindow = null;
     setState(() => _mode = mode);
@@ -232,6 +244,41 @@ class _MediaPageState extends State<_MediaPage> {
     tag: _tag(_entryAt(index), featured),
     onOpen: (entry) => _open(entry, featured),
   );
+
+  Widget _bibiGrid(BuildContext context, BoxConstraints constraints) {
+    final padding = EdgeInsets.fromLTRB(8, 4, 8, 9);
+    final columnGap = 8.0;
+    final cardWidth = math.max(0.0, (constraints.maxWidth - padding.horizontal - columnGap) / 2);
+    final pixelRatio = View.of(context).devicePixelRatio;
+    // 用同一张卡片实测格高，让字号或主题变化时仍与 Bibi 首页对齐。
+    return ElChildSizeBuilder(
+      constraints: BoxConstraints.tightFor(width: cardWidth),
+      child: buildBibiVideoCard(0, 0),
+      builder: (size, _) {
+        // 首页的虚拟列表把整行向上对齐到物理像素，差值加到间距以保留卡片原高。
+        final rowExtent = ((size.height + 9) * pixelRatio - precisionErrorTolerance).ceilToDouble() / pixelRatio;
+        return SizedBox.expand(
+          child: ElScrollView(
+            key: ValueKey('media-bibi-grid'),
+            controller: _elController,
+            physics: ClampingScrollPhysics(),
+            scrollbar: ElNoScrollBar(),
+            padding: padding,
+            children: [
+              ElGridView.builder(
+                crossAxisCount: 2,
+                columnGap: columnGap,
+                rowGap: rowExtent - size.height,
+                mainAxisExtent: size.height,
+                itemCount: bibiVideoCount,
+                itemBuilder: (_, index) => buildBibiVideoCard(index, 0),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _grid(BuildContext context, BoxConstraints constraints) {
     final album = widget.kind == .album;
@@ -409,36 +456,39 @@ class _MediaPageState extends State<_MediaPage> {
   @override
   Widget build(BuildContext context) => ExamplePage(
     title: _title,
+    backgroundColor: _bibiCards ? Color(0xfff1f2f4) : null,
     actions: [
-      IconButton(
-        key: ValueKey('media-folder'),
-        tooltip: '选择本机媒体',
-        onPressed: _library.busy ? null : _chooseSource,
-        icon: Icon(Icons.folder_open_outlined),
-      ),
-      if (!_demo)
+      if (!_bibiCards)
+        IconButton(
+          key: ValueKey('media-folder'),
+          tooltip: '选择本机媒体',
+          onPressed: _library.busy ? null : _chooseSource,
+          icon: Icon(Icons.folder_open_outlined),
+        ),
+      if (!_bibiCards && !_demo)
         IconButton(
           tooltip: '刷新',
           onPressed: _library.busy ? null : () => _library.open(directory: _library.directory),
           icon: Icon(Icons.refresh),
         ),
       if (widget.kind != .waterfall)
-        PopupMenuButton<RecyclerExampleScrollMode>(
+        PopupMenuButton<_MediaGridMode>(
           key: ValueKey('media-scroll-menu'),
           tooltip: '网格容器',
           onSelected: _chooseMode,
           itemBuilder: (_) => [
-            for (final mode in RecyclerExampleScrollMode.values)
-              CheckedPopupMenuItem(
-                key: ValueKey('media-mode-${mode.name}'),
-                value: mode,
-                checked: _mode == mode,
-                child: Text(mode == .listView ? 'GridView' : mode.label),
-              ),
+            for (final mode in _MediaGridMode.values)
+              if (mode != .bibiCards || widget.kind == .feed)
+                CheckedPopupMenuItem(
+                  key: ValueKey('media-mode-${mode.name}'),
+                  value: mode,
+                  checked: _mode == mode,
+                  child: Text(mode.label),
+                ),
           ],
         ),
     ],
-    child: SafeArea(top: false, child: _body()),
+    child: SafeArea(top: false, child: _bibiCards ? LayoutBuilder(builder: _bibiGrid) : _body()),
   );
 
   @override
