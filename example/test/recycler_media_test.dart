@@ -192,33 +192,63 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('视频流可切换到 Bibi 双列卡片并打开详情，再切回本机媒体', (tester) async {
+  testWidgets('视频流的卡片来源与三种网格容器可以独立切换', (tester) async {
     final files = await _Files.create(tester);
     await _open(tester, RecyclerVideoGridPage(directory: files.directory.path));
 
+    final context = tester.element(find.byType(RecyclerVideoGridPage));
+    await tester.runAsync(() => precacheImage(AssetImage('assets/recycler_cards/bili_home.webp'), context));
+    await tester.pumpAndSettle();
+    await _mode(tester, 'listView');
+    expect(find.byKey(ValueKey('media-official-grid')), findsOneWidget);
     await _mode(tester, 'bibiCards');
 
-    final scroll = find.byKey(ValueKey('media-bibi-grid'));
-    final grid = tester.widget<ElGridView>(find.descendant(of: scroll, matching: find.byType(ElGridView)));
-    expect(grid.crossAxisCount, 2);
-    expect(grid.itemCount, 360);
     final firstTitle = '职业选手的极限反打，第一视角复盘';
-    final first = find.descendant(of: scroll, matching: find.text(firstTitle)).hitTestable();
-    final second = find.descendant(of: scroll, matching: find.text('你是否也记得，夏天结束前的那场风')).hitTestable();
-    expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, .01));
-    expect(tester.getTopLeft(second).dx, greaterThan(tester.getTopLeft(first).dx));
-    expect(find.byKey(ValueKey('media-card')), findsNothing);
+    for (final (mode, key) in [
+      ('listView', 'media-bibi-official'),
+      ('elScrollView', 'media-bibi-grid'),
+      ('recyclerView', 'media-bibi-recycler'),
+    ]) {
+      if (mode != 'listView') await _mode(tester, mode);
+      final host = find.byKey(ValueKey(key));
+      final scroll = tester.widget(host);
+      final controller = switch (scroll) {
+        CustomScrollView(:final controller) => controller!,
+        ElScrollView(:final controller) => controller!,
+        rv.RecyclerView(:final controller) => controller!,
+        _ => throw StateError('未知网格容器 $key'),
+      };
+      final first = find.descendant(of: host, matching: find.text(firstTitle)).hitTestable();
+      final second = find.descendant(of: host, matching: find.text('你是否也记得，夏天结束前的那场风')).hitTestable();
+      expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, .01));
+      expect(tester.getTopLeft(second).dx, greaterThan(tester.getTopLeft(first).dx));
+      expect(find.byKey(ValueKey('media-card')), findsNothing);
 
-    await tester.tap(first);
-    await tester.pumpAndSettle();
-    expect(find.descendant(of: find.byType(AlertDialog), matching: find.text(firstTitle)), findsOneWidget);
-    await tester.tap(find.text('关闭'));
-    await tester.pumpAndSettle();
+      if (mode == 'listView') {
+        await tester.tap(first);
+        await tester.pumpAndSettle();
+        expect(find.descendant(of: find.byType(AlertDialog), matching: find.text(firstTitle)), findsOneWidget);
+        await tester.tap(find.text('关闭'));
+        await tester.pumpAndSettle();
+      }
 
-    await _mode(tester, 'recyclerView');
-    expect(scroll, findsNothing);
+      final before = controller.offset;
+      await tester.drag(host, Offset(0, -420));
+      await tester.pumpAndSettle();
+      expect(controller.offset, greaterThan(before + 250));
+      if (scroll is ElScrollView) {
+        expect(tester.widget(host), same(scroll), reason: '滚动中新挂载卡片不应触发重新测高和重建容器');
+      }
+      expect(first, findsNothing);
+      controller.jumpTo(before);
+      await tester.pumpAndSettle();
+      expect(first, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+
+    await _mode(tester, 'localCards');
     expect(find.byKey(ValueKey('media-card')), findsWidgets);
-    expect(find.byType(rv.RecyclerView), findsOneWidget);
+    expect(find.byKey(ValueKey('media-recycler-feed')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

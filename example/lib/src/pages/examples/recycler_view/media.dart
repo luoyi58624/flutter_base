@@ -74,7 +74,8 @@ enum _MediaGridMode {
   listView('GridView'),
   elScrollView('ElScrollView'),
   recyclerView('RecyclerView'),
-  bibiCards('ElScrollView · Bibi 卡片');
+  localCards('本机卡片'),
+  bibiCards('Bibi 卡片');
 
   const _MediaGridMode(this.label);
 
@@ -95,6 +96,7 @@ class _MediaPage extends StatefulWidget {
 class _MediaPageState extends State<_MediaPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   final _elController = ScrollController(keepScrollOffset: false);
+  final _bibiElController = ElScrollController(keepScrollOffset: false);
   final _heroScope = Object();
   final _demoItems = <int, _MediaEntry>{};
   late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
@@ -107,6 +109,7 @@ class _MediaPageState extends State<_MediaPage> {
     ..setAdapter(_adapter);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
   _MediaGridMode _mode = .recyclerView;
+  bool _bibiCards = false;
   var _knownCount = 0;
   late final _albumThumbnails = AlbumThumbnailQueue();
   int _albumColumns = 0;
@@ -117,7 +120,6 @@ class _MediaPageState extends State<_MediaPage> {
   bool _thumbnailUpdateScheduled = false;
   double? _demoWaterfallFooter;
 
-  bool get _bibiCards => _mode == .bibiCards;
   bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
   int get _itemCount => _demo ? 10000 : _library.items.length;
   int get _adapterCount => _itemCount + (_featured ? 1 : 0);
@@ -154,7 +156,7 @@ class _MediaPageState extends State<_MediaPage> {
     _knownCount = next;
     _thumbnailWindow = null;
     _scheduleThumbnails();
-    setState(() {});
+    if (!_bibiCards) setState(() {});
   }
 
   void _scheduleThumbnails() {
@@ -230,6 +232,11 @@ class _MediaPageState extends State<_MediaPage> {
   }
 
   void _chooseMode(_MediaGridMode mode) {
+    if (mode case .localCards || .bibiCards) {
+      final bibiCards = mode == .bibiCards;
+      if (_bibiCards != bibiCards) setState(() => _bibiCards = bibiCards);
+      return;
+    }
     if (_mode == mode) return;
     _thumbnailWindow = null;
     setState(() => _mode = mode);
@@ -257,28 +264,36 @@ class _MediaPageState extends State<_MediaPage> {
       builder: (size, _) {
         // 首页的虚拟列表把整行向上对齐到物理像素，差值加到间距以保留卡片原高。
         final rowExtent = ((size.height + 9) * pixelRatio - precisionErrorTolerance).ceilToDouble() / pixelRatio;
+        final rowGap = rowExtent - size.height;
         return SizedBox.expand(
-          child: ElScrollView(
-            key: ValueKey('media-bibi-grid'),
-            controller: _elController,
-            physics: ClampingScrollPhysics(),
-            scrollbar: ElNoScrollBar(),
-            padding: padding,
-            children: [
-              ElGridView.builder(
-                crossAxisCount: 2,
-                columnGap: columnGap,
-                rowGap: rowExtent - size.height,
-                mainAxisExtent: size.height,
-                itemCount: bibiVideoCount,
-                itemBuilder: (_, index) => buildBibiVideoCard(index, 0),
-              ),
-            ],
+          // 给滚动子树独立的构建作用域，卡片更新不会反过来触发测高。
+          child: LayoutBuilder(
+            builder: (_, _) => _mode == .recyclerView
+                ? _bibiRecyclerGrid(rowGap)
+                : _virtualGrid(
+                    columns: 2,
+                    padding: padding,
+                    extent: size.height,
+                    count: bibiVideoCount,
+                    columnGap: columnGap,
+                    rowGap: rowGap,
+                    itemBuilder: (_, index) => buildBibiVideoCard(index, 0),
+                  ),
           ),
         );
       },
     );
   }
+
+  Widget _bibiRecyclerGrid(double rowGap) => HookBuilder(
+    key: ValueKey(rowGap),
+    builder: (_) => useMemoized(
+      () => rv.RecyclerView(key: ValueKey('media-bibi-recycler'), controller: _controller)
+        ..setLayoutManager(rv.GridLayoutManager(null, 2))
+        ..setAdapter(_BibiGridAdapter(rowGap))
+        ..setPadding(8, 4, 8, 9),
+    ),
+  );
 
   Widget _grid(BuildContext context, BoxConstraints constraints) {
     final album = widget.kind == .album;
@@ -314,47 +329,74 @@ class _MediaPageState extends State<_MediaPage> {
     final padding = album ? EdgeInsets.zero : EdgeInsets.only(left: 6, top: 6);
     final width = (constraints.maxWidth - padding.horizontal) / columns;
     final extent = album ? width : _feedExtent(context, width);
+    return _virtualGrid(
+      columns: columns,
+      padding: padding,
+      extent: extent,
+      count: _itemCount,
+      featured: _featured ? _officialTile(0, featured: true) : null,
+      itemBuilder: (_, index) => _officialTile(index),
+    );
+  }
+
+  Widget _virtualGrid({
+    required int columns,
+    required EdgeInsets padding,
+    required double extent,
+    required int count,
+    required IndexedWidgetBuilder itemBuilder,
+    Widget? featured,
+    double columnGap = 0,
+    double rowGap = 0,
+  }) {
     if (_mode == .elScrollView) {
       return ElScrollView(
-        key: ValueKey('media-el-grid'),
-        controller: _elController,
+        key: ValueKey(_bibiCards ? 'media-bibi-grid' : 'media-el-grid'),
+        controller: _bibiCards ? _bibiElController : _elController,
+        physics: _bibiCards ? ClampingScrollPhysics() : null,
         padding: padding,
-        scrollbar: RecyclerExampleIosScrollbar(),
+        scrollbar: _bibiCards ? ElNoScrollBar() : RecyclerExampleIosScrollbar(),
         children: [
-          if (_featured) _officialTile(0, featured: true),
+          ?featured,
           ElGridView.builder(
             keepAlive: false,
             crossAxisCount: columns,
+            columnGap: columnGap,
+            rowGap: rowGap,
             mainAxisExtent: extent,
-            itemCount: _itemCount,
-            itemBuilder: (_, index) => _officialTile(index),
+            itemCount: count,
+            itemBuilder: itemBuilder,
           ),
         ],
       );
     }
-    return RecyclerExampleScrollbar(
+    final scroll = CustomScrollView(
+      key: ValueKey(_bibiCards ? 'media-bibi-official' : 'media-official-grid'),
       controller: _controller,
-      child: CustomScrollView(
-        key: ValueKey('media-official-grid'),
-        controller: _controller,
-        slivers: [
-          if (_featured)
-            SliverPadding(
-              padding: padding,
-              sliver: SliverToBoxAdapter(child: _officialTile(0, featured: true)),
-            ),
+      physics: _bibiCards ? ClampingScrollPhysics() : null,
+      slivers: [
+        if (featured != null)
           SliverPadding(
-            padding: _featured ? EdgeInsets.only(left: padding.left) : padding,
-            sliver: SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, mainAxisExtent: extent),
-              itemCount: _itemCount,
-              addAutomaticKeepAlives: false,
-              itemBuilder: (_, index) => _officialTile(index),
-            ),
+            padding: padding,
+            sliver: SliverToBoxAdapter(child: featured),
           ),
-        ],
-      ),
+        SliverPadding(
+          padding: featured == null ? padding : EdgeInsets.only(left: padding.left),
+          sliver: SliverGrid.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: columnGap,
+              mainAxisSpacing: rowGap,
+              mainAxisExtent: extent,
+            ),
+            itemCount: count,
+            addAutomaticKeepAlives: false,
+            itemBuilder: itemBuilder,
+          ),
+        ),
+      ],
     );
+    return _bibiCards ? scroll : RecyclerExampleScrollbar(controller: _controller, child: scroll);
   }
 
   Widget _body() {
@@ -477,14 +519,23 @@ class _MediaPageState extends State<_MediaPage> {
           tooltip: '网格容器',
           onSelected: _chooseMode,
           itemBuilder: (_) => [
-            for (final mode in _MediaGridMode.values)
-              if (mode != .bibiCards || widget.kind == .feed)
+            for (final mode in <_MediaGridMode>[.listView, .elScrollView, .recyclerView])
+              CheckedPopupMenuItem(
+                key: ValueKey('media-mode-${mode.name}'),
+                value: mode,
+                checked: _mode == mode,
+                child: Text(mode.label),
+              ),
+            if (widget.kind == .feed) ...[
+              PopupMenuDivider(),
+              for (final source in <_MediaGridMode>[.localCards, .bibiCards])
                 CheckedPopupMenuItem(
-                  key: ValueKey('media-mode-${mode.name}'),
-                  value: mode,
-                  checked: _mode == mode,
-                  child: Text(mode.label),
+                  key: ValueKey('media-mode-${source.name}'),
+                  value: source,
+                  checked: _bibiCards == (source == .bibiCards),
+                  child: Text(source.label),
                 ),
+            ],
           ],
         ),
     ],
@@ -498,6 +549,7 @@ class _MediaPageState extends State<_MediaPage> {
     if (widget.kind == .album) _albumThumbnails.dispose();
     _controller.dispose();
     _elController.dispose();
+    _bibiElController.dispose();
     super.dispose();
   }
 }
@@ -548,6 +600,46 @@ class _MediaHolder extends rv.ViewHolder {
         ),
       );
   final ValueNotifier<_MediaEntry?> model;
+}
+
+class _BibiGridAdapter extends rv.Adapter<_BibiGridHolder> {
+  _BibiGridAdapter(this.rowGap);
+
+  final double rowGap;
+
+  @override
+  int getItemCount() => bibiVideoCount;
+
+  @override
+  _BibiGridHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _BibiGridHolder(rowGap);
+
+  @override
+  void onBindViewHolder(_BibiGridHolder holder, int position, [List<Object> payloads = const []]) =>
+      holder.index.value = position;
+}
+
+class _BibiGridHolder extends rv.ViewHolder {
+  _BibiGridHolder(double rowGap) : this._(ValueNotifier(0), rowGap);
+
+  _BibiGridHolder._(this.index, double rowGap)
+    : super(
+        HookBuilder(
+          builder: (_) {
+            useEffect(() => index.dispose, [index]);
+            final position = useValueListenable(index);
+            return Padding(
+              padding: EdgeInsets.only(
+                left: position.isOdd ? 4 : 0,
+                right: position.isEven ? 4 : 0,
+                bottom: position < bibiVideoCount - 2 ? rowGap : 0,
+              ),
+              child: buildBibiVideoCard(position, 0),
+            );
+          },
+        ),
+      );
+
+  final ValueNotifier<int> index;
 }
 
 class _OwnedMediaTile extends HookWidget {

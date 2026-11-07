@@ -21,7 +21,7 @@ enum _Scenario { home, grid }
 
 void main() {
   // flutter test test/bibi_grid_performance_test.dart --dart-define=BIBI_GRID_PERFORMANCE=true
-  testWidgets('Bibi 首页与同卡片 Grid 的纵向滚动耗时', skip: !_enabled, (tester) async {
+  testWidgets('Bibi 首页与同卡片 Grid 的整页滚动耗时', skip: !_enabled, (tester) async {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
@@ -60,10 +60,9 @@ void main() {
 
       // 对齐正文坐标，去掉 Bibi 首页在首行上方的轮播偏移。
       final bodyOrigin = first.top - tester.getTopLeft(host).dy + controller.offset;
-      for (var frame = 1; frame <= 8; frame++) {
-        controller.jumpTo(bodyOrigin + frame * _step);
-        await tester.pump(_frame);
-      }
+      controller.jumpTo(bodyOrigin);
+      await tester.pumpAndSettle();
+      await _measure(tester, controller, bodyOrigin, _step, sampleCount: 8);
       final start = bodyOrigin + rowExtent * 25;
       final end = start + _samples * _step;
       expect(end, lessThan(controller.position.maxScrollExtent));
@@ -79,7 +78,7 @@ void main() {
     }
     debugPrint(
       'BIBI_GRID_PERFORMANCE ${jsonEncode({
-        'scope': 'headless widget-test wall time for jumpTo + pump, no gesture physics or device presentation',
+        'scope': 'whole-page headless widget-test pump wall time during one linear animateTo per leg',
         'viewport_width': _width,
         'viewport_height': viewport,
         'row_extent': rowExtent,
@@ -137,6 +136,10 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('media-mode-bibiCards')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('media-scroll-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('media-mode-elScrollView')));
+    await tester.pumpAndSettle();
     host = find.byKey(ValueKey('media-bibi-grid'));
   }
   final scrollView = tester.widget<ElScrollView>(host);
@@ -147,17 +150,32 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
   return (host, controller);
 }
 
-Future<List<int>> _measure(WidgetTester tester, ScrollController controller, double origin, double step) async {
+Future<List<int>> _measure(
+  WidgetTester tester,
+  ScrollController controller,
+  double origin,
+  double step, {
+  int sampleCount = _samples,
+}) async {
+  // 最后一帧仍在同一次动画内，取消与换向的开销留在采样区间外。
+  final animation = controller.animateTo(
+    origin + (sampleCount + 1) * step,
+    duration: _frame * (sampleCount + 1),
+    curve: Curves.linear,
+  );
+  await tester.pump();
+  expect(controller.offset, closeTo(origin, .01));
   final samples = <int>[];
-  for (var frame = 1; frame <= _samples; frame++) {
-    final offset = origin + frame * step;
+  for (var frame = 1; frame <= sampleCount; frame++) {
     final watch = Stopwatch()..start();
-    controller.jumpTo(offset);
     await tester.pump(_frame);
     watch.stop();
     samples.add(watch.elapsedMicroseconds);
-    expect(controller.offset, closeTo(offset, .01));
+    expect(controller.offset, closeTo(origin + frame * step, .01));
   }
+  controller.jumpTo(origin + sampleCount * step);
+  await animation;
+  await tester.pumpAndSettle();
   return samples;
 }
 
