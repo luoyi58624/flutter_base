@@ -195,8 +195,9 @@ class _DiscoveryHeader extends StatelessWidget {
 
 class _StoreCard extends HookWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _StoreCard({required this.store, required this.onAdd});
+  _StoreCard({required this.store, required this.photos, required this.onAdd});
   final ValueNotifier<_Store?> store;
+  final _TakeawayPhotos photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -228,7 +229,7 @@ class _StoreCard extends HookWidget {
                       child: Column(
                         spacing: 2,
                         children: [
-                          _RandomPhoto(store: store, url: (record) => record.photo, size: 52),
+                          _StorePhoto(store: store, photos: photos, size: 52),
                           _words('品牌好店', size: 9, color: _orange),
                         ],
                       ),
@@ -333,7 +334,7 @@ class _StoreCard extends HookWidget {
                 ValueListenableBuilder<_Store?>(
                   valueListenable: store,
                   builder: (context, record, _) =>
-                      record == null ? SizedBox.shrink() : _MenuStrip(store: record, onAdd: onAdd),
+                      record == null ? SizedBox.shrink() : _MenuStrip(store: record, photos: photos, onAdd: onAdd),
                 ),
                 Row(
                   spacing: 4,
@@ -372,8 +373,9 @@ class _StoreTag extends StatelessWidget {
 
 class _MenuStrip extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _MenuStrip({required this.store, required this.onAdd});
+  _MenuStrip({required this.store, required this.photos, required this.onAdd});
   final _Store store;
+  final _TakeawayPhotos photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -383,10 +385,11 @@ class _MenuStrip extends StatefulWidget {
 class _MenuStripState extends State<_MenuStrip> {
   late final _controller = ScrollController(initialScrollOffset: widget.store.menuOffset, keepScrollOffset: false);
   late final _store = ValueNotifier<_Store?>(widget.store);
+  late final _dishCount = ValueNotifier(widget.store.dishes.length);
   late final _coupon = _CouponTile(store: _store, width: 52);
   final _tiles = <int, Widget>{};
   double? _tileWidth;
-  (double, int, ScrollBehavior)? _configuration;
+  (double, ScrollBehavior)? _configuration;
   Widget? _frame;
   var _restoring = false;
 
@@ -413,12 +416,14 @@ class _MenuStripState extends State<_MenuStrip> {
       _restoring = false;
     }
     _store.value = widget.store;
+    _dishCount.value = widget.store.dishes.length;
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _store.dispose();
+    _dishCount.dispose();
     super.dispose();
   }
 
@@ -427,8 +432,7 @@ class _MenuStripState extends State<_MenuStrip> {
     final fontDelta = math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14);
     final width = 94 + fontDelta * 3;
     final behavior = ScrollConfiguration.of(context);
-    final count = widget.store.dishes.length;
-    final configuration = (fontDelta, count, behavior);
+    final configuration = (fontDelta, behavior);
     if (_configuration == configuration && _frame != null) return _frame!;
     _configuration = configuration;
     if (_tileWidth != width) {
@@ -455,23 +459,27 @@ class _MenuStripState extends State<_MenuStrip> {
                   valueListenable: _store,
                   builder: (context, record, child) =>
                       Semantics(identifier: 'takeaway-menu-${record!.id}', child: child),
-                  child: ListView.builder(
-                    controller: _controller,
-                    scrollDirection: .horizontal,
-                    itemCount: count,
-                    // 数量变化时更新尺寸回调，让复用的列表刷新最大滚动范围。
-                    itemExtentBuilder: (index, dimensions) => index < count ? width + 6 : null,
-                    scrollCacheExtent: ScrollCacheExtent.pixels(0),
-                    addAutomaticKeepAlives: false,
-                    itemBuilder: (context, index) => _tiles.putIfAbsent(
-                      index,
-                      () => Padding(
-                        padding: .only(right: 6),
-                        child: _DishTile(
-                          store: _store,
-                          index: index,
-                          width: width,
-                          onAdd: (dish) => widget.onAdd(dish),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _dishCount,
+                    builder: (context, count, _) => ListView.builder(
+                      controller: _controller,
+                      scrollDirection: .horizontal,
+                      itemCount: count,
+                      // 只刷新列表范围，保留红包、手势宿主和菜单外框。
+                      itemExtentBuilder: (index, dimensions) => index < count ? width + 6 : null,
+                      scrollCacheExtent: ScrollCacheExtent.pixels(0),
+                      addAutomaticKeepAlives: false,
+                      itemBuilder: (context, index) => _tiles.putIfAbsent(
+                        index,
+                        () => Padding(
+                          padding: .only(right: 6),
+                          child: _DishTile(
+                            store: _store,
+                            photos: widget.photos,
+                            index: index,
+                            width: width,
+                            onAdd: (dish) => widget.onAdd(dish),
+                          ),
                         ),
                       ),
                     ),
@@ -488,8 +496,9 @@ class _MenuStripState extends State<_MenuStrip> {
 
 class _DishTile extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _DishTile({required this.store, required this.index, required this.width, required this.onAdd});
+  _DishTile({required this.store, required this.photos, required this.index, required this.width, required this.onAdd});
   final ValueListenable<_Store?> store;
+  final _TakeawayPhotos photos;
   final int index;
   final double width;
   final ValueChanged<_Dish> onAdd;
@@ -507,7 +516,7 @@ class _DishTile extends StatelessWidget {
         crossAxisAlignment: .stretch,
         spacing: 3,
         children: [
-          _RandomPhoto(store: store, url: (record) => _dish(record)?.photo ?? '', size: width),
+          _StorePhoto(store: store, photos: photos, dishIndex: index, size: width),
           _storeWords(store, (record) => _dish(record)?.name ?? '', lines: 2),
           _storeWords(store, (record) => _dish(record)?.subtitle ?? '', size: 9.5, color: muted),
           _storeWords(
@@ -580,9 +589,48 @@ class _CouponTile extends StatelessWidget {
   );
 }
 
-class _RandomPhoto extends StatelessWidget {
+class _StorePhoto extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _RandomPhoto({required this.store, required this.url, required this.size});
+  _StorePhoto({required this.store, required this.photos, required this.size, this.dishIndex});
+  final ValueListenable<_Store?> store;
+  final _TakeawayPhotos photos;
+  final double size;
+  final int? dishIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final index = dishIndex;
+    return ValueListenableBuilder<bool>(
+      valueListenable: photos.network,
+      builder: (context, network, offline) {
+        if (!network) return offline!;
+        return _NetworkStorePhoto(
+          store: store,
+          url: (record) {
+            if (index == null) return 'https://picsum.photos/seed/takeaway-shop-${record.id}/160/160';
+            if (index >= record.dishes.length) return '';
+            return 'https://picsum.photos/seed/takeaway-dish-${record.id}-$index/360/360';
+          },
+          size: size,
+        );
+      },
+      child: _AtlasPhoto(
+        key: ValueKey(index == null ? 'takeaway-atlas-logo' : 'takeaway-atlas-dish-$index'),
+        atlas: photos.atlas,
+        store: store,
+        tile: (record) {
+          final tiles = _cuisinePhotoTiles[record.id % _cuisinePhotoTiles.length];
+          return tiles[(index ?? 0) % tiles.length];
+        },
+        size: size,
+      ),
+    );
+  }
+}
+
+class _NetworkStorePhoto extends StatelessWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _NetworkStorePhoto({required this.store, required this.url, required this.size});
   final ValueListenable<_Store?> store;
   final String Function(_Store) url;
   final double size;

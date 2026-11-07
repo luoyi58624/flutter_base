@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:faker/faker.dart' as fake;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show PipelineOwner, RenderParagraph, ScrollCacheExtent;
+import 'package:flutter/rendering.dart'
+    show BoxConstraints, PaintingContext, PipelineOwner, RenderBox, RenderParagraph, ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
@@ -14,12 +16,16 @@ import 'scroll_mode.dart';
 
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';
+part 'takeaway_photo.dart';
 
-/// 用密集商家信息、随机图片和店内横向菜单对比三种长列表。
+/// 用密集商家信息、餐品图片和店内横向菜单对比三种长列表。
 class RecyclerTakeawayPage extends StatefulWidget {
-  /// 创建一万家商家的外卖示例，数据和图片按商家身份稳定生成。
+  /// 创建一万家商家的外卖示例，可指定初始使用网络图片。
   // ignore: prefer_const_constructors_in_immutables
-  RecyclerTakeawayPage({super.key});
+  RecyclerTakeawayPage({super.key, this.networkPhotos = false});
+
+  /// 初次进入页面时是否直接测试网络图片加载。
+  final bool networkPhotos;
 
   @override
   State<RecyclerTakeawayPage> createState() => _RecyclerTakeawayPageState();
@@ -30,13 +36,21 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
   final _elController = ScrollController(keepScrollOffset: false);
   final _cart = ValueNotifier<(int, int)>((0, 0));
   final _stores = <int, _Store>{};
+  late final _photos = _TakeawayPhotos(widget.networkPhotos);
   var _indices = List<int>.generate(10000, (index) => index);
   var _category = -1;
   RecyclerExampleScrollMode _mode = .recyclerView;
   late final _adapter = _StoreAdapter(this);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-takeaway-list'), controller: _controller)
-    ..setLayoutManager(rv.LinearLayoutManager())
+    // 商家卡片的同步预取曾占用近 5ms，纵向帧先只处理当前视口。
+    ..setLayoutManager(rv.LinearLayoutManager()..setItemPrefetchEnabled(false))
     ..setAdapter(_adapter);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_photos.network.value) _photos.atlas.resolve(createLocalImageConfiguration(context));
+  }
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -67,8 +81,18 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
     _list.scrollToPosition(0);
   }
 
+  void _selectOption(Object option) {
+    switch (option) {
+      case RecyclerExampleScrollMode mode:
+        _choose(mode);
+      case bool network:
+        if (!network) _photos.atlas.resolve(createLocalImageConfiguration(context));
+        _photos.network.value = network;
+    }
+  }
+
   Widget _row(BuildContext context, int index) =>
-      _OfficialStoreRow(key: ValueKey(_indices[index]), store: _storeAt(index), onAdd: _add);
+      _OfficialStoreRow(key: ValueKey(_indices[index]), store: _storeAt(index), photos: _photos, onAdd: _add);
 
   Widget _content() {
     if (_mode == .elScrollView) {
@@ -98,6 +122,7 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
     _controller.dispose();
     _elController.dispose();
     _cart.dispose();
+    _photos.dispose();
     super.dispose();
   }
 
@@ -106,18 +131,25 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> {
     return ExamplePage(
       title: '外卖商家列表',
       actions: [
-        PopupMenuButton<RecyclerExampleScrollMode>(
+        PopupMenuButton<Object>(
           key: ValueKey('takeaway-menu'),
           tooltip: '列表选项',
-          onSelected: _choose,
+          onSelected: _selectOption,
           itemBuilder: (context) => [
             for (final mode in RecyclerExampleScrollMode.values)
-              CheckedPopupMenuItem(
+              CheckedPopupMenuItem<Object>(
                 key: ValueKey('takeaway-mode-${mode.name}'),
                 checked: _mode == mode,
                 value: mode,
                 child: Text(mode.label),
               ),
+            PopupMenuDivider(),
+            CheckedPopupMenuItem<Object>(
+              key: ValueKey('takeaway-network-photos'),
+              checked: _photos.network.value,
+              value: !_photos.network.value,
+              child: Text('网络图片'),
+            ),
           ],
         ),
       ],
@@ -190,7 +222,7 @@ class _StoreAdapter extends rv.Adapter<_StoreHolder> {
   int getItemId(int position) => page._indices[position];
 
   @override
-  _StoreHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _StoreHolder(page._add);
+  _StoreHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _StoreHolder(page._photos, page._add);
 
   @override
   void onBindViewHolder(_StoreHolder holder, int position, [List<Object> payloads = const []]) =>
@@ -198,15 +230,17 @@ class _StoreAdapter extends rv.Adapter<_StoreHolder> {
 }
 
 class _StoreHolder extends rv.ViewHolder {
-  _StoreHolder(ValueChanged<_Dish> onAdd) : this._(ValueNotifier<_Store?>(null), onAdd);
-  _StoreHolder._(this.store, ValueChanged<_Dish> onAdd) : super(_StoreCard(store: store, onAdd: onAdd));
+  _StoreHolder(_TakeawayPhotos photos, ValueChanged<_Dish> onAdd) : this._(ValueNotifier<_Store?>(null), photos, onAdd);
+  _StoreHolder._(this.store, _TakeawayPhotos photos, ValueChanged<_Dish> onAdd)
+    : super(_StoreCard(store: store, photos: photos, onAdd: onAdd));
   final ValueNotifier<_Store?> store;
 }
 
 class _OfficialStoreRow extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _OfficialStoreRow({super.key, required this.store, required this.onAdd});
+  _OfficialStoreRow({super.key, required this.store, required this.photos, required this.onAdd});
   final _Store store;
+  final _TakeawayPhotos photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -223,5 +257,17 @@ class _OfficialStoreRowState extends State<_OfficialStoreRow> {
   }
 
   @override
-  Widget build(BuildContext context) => _StoreCard(store: _store, onAdd: widget.onAdd);
+  Widget build(BuildContext context) => _StoreCard(store: _store, photos: widget.photos, onAdd: widget.onAdd);
+}
+
+class _TakeawayPhotos {
+  _TakeawayPhotos(bool network) : network = ValueNotifier(network);
+
+  final ValueNotifier<bool> network;
+  final atlas = _FoodAtlas();
+
+  void dispose() {
+    network.dispose();
+    atlas.dispose();
+  }
 }

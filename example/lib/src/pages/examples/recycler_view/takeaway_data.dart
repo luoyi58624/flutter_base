@@ -3,6 +3,17 @@ part of 'takeaway.dart';
 const _orange = Color(0xfff26718);
 const _green = Color(0xff119865);
 const _cuisines = ['盖码饭', '粉面', '轻食', '汉堡', '麻辣烫', '烤肉', '咖啡', '地方菜'];
+// 与 Web 外卖示例使用同一张四列三行图集和菜系顺序。
+const _cuisinePhotoTiles = [
+  [11, 0, 1, 0, 1, 11],
+  [2, 3, 2, 2, 3, 3],
+  [5, 4],
+  [6, 7],
+  [8],
+  [9, 0, 1],
+  [10],
+  [11, 0, 1],
+];
 
 String _money(int cents) => (cents / 100).toStringAsFixed(1);
 
@@ -10,7 +21,6 @@ class _Store {
   _Store({
     required this.id,
     required this.name,
-    required this.photo,
     required this.rating,
     required this.sales,
     required this.minutes,
@@ -26,15 +36,13 @@ class _Store {
 
   factory _Store.generate(int id) {
     // 每家店独立使用固定种子，惰性生成的先后顺序不会改变图片或文案。
-    final faker = fake.Faker.withGenerator(fake.RandomGenerator(seed: 20261106 + id));
-    final random = faker.randomGenerator;
+    final random = fake.RandomGenerator(seed: 20261106 + id);
     final cuisine = id % _cuisines.length;
     final brand = random.element(['饭点到了', '小巷食堂', '阿婆小灶', '一碗好饭', '街角厨房', '食里香', '四季鲜食', '大口吃饭']);
     final ingredients = ['每日清晨采购新鲜食材', '坚持现点现做，拒绝隔夜复热', '米饭选用东北当季大米', '荤素搭配，分量扎实', '独立封签，打包整洁安心'];
     return _Store(
       id: id,
       name: '$brand · ${_cuisines[cuisine]}（${random.element(['科技园', '南山', '大学城', '万象城', '花园路'])}${id + 1}店）',
-      photo: faker.image.loremPicsum(width: 160, height: 160, seed: 'takeaway-shop-$id'),
       rating: (4.5 + random.integer(5) / 10).toStringAsFixed(1),
       sales: random.integer(9800, min: 300),
       minutes: random.integer(40, min: 15),
@@ -51,7 +59,6 @@ class _Store {
           _Dish(
             name: _dishNames[cuisine][index % _dishNames[cuisine].length],
             subtitle: random.element(['招牌推荐 · 现点现做', '人气热卖 · 分量十足', '荤素搭配 · 一人吃好', '当季新品 · 值得一试']),
-            photo: faker.image.loremPicsum(width: 360, height: 360, seed: 'takeaway-dish-$id-$index'),
             cents: random.integer(350, min: 99) * 10,
             sales: random.integer(999, min: 50),
             praise: random.integer(100, min: 96),
@@ -62,7 +69,6 @@ class _Store {
 
   final int id;
   final String name;
-  final String photo;
   final String rating;
   final int sales;
   final int minutes;
@@ -78,17 +84,9 @@ class _Store {
 }
 
 class _Dish {
-  _Dish({
-    required this.name,
-    required this.subtitle,
-    required this.photo,
-    required this.cents,
-    required this.sales,
-    required this.praise,
-  });
+  _Dish({required this.name, required this.subtitle, required this.cents, required this.sales, required this.praise});
   final String name;
   final String subtitle;
-  final String photo;
   final int cents;
   final int sales;
   final int praise;

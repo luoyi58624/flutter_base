@@ -63,7 +63,10 @@ void main() {
       expect(controller.position.hasContentDimensions, isFalse);
       expect(controller.position.pixels, id == 24 ? 240 : 0);
     }
+    // 截断在 build 的帧已被消耗；离线图没有逐项网络通知来额外触发布局帧。
+    tester.binding.scheduleFrame();
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     expect(controller.position.hasContentDimensions, isTrue);
     expect(controller.position.pixels, closeTo(240, .1));
     final title = tester.renderObject<RenderParagraph>(

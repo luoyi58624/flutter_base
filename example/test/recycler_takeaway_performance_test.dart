@@ -162,7 +162,7 @@ void main() {
             home: Scaffold(
               body: Stack(
                 children: [
-                  Offstage(child: TickerMode(enabled: false, child: RecyclerTakeawayPage())),
+                  Offstage(child: TickerMode(enabled: false, child: RecyclerTakeawayPage(networkPhotos: true))),
                   ValueListenableBuilder<Widget>(
                     valueListenable: content,
                     builder: (context, child, _) => SingleChildScrollView(
@@ -295,7 +295,7 @@ void main() {
     await tester.pumpWidget(
       ElComponentProvider(
         components: el.mobileComponents,
-        child: MaterialApp(home: RecyclerTakeawayPage()),
+        child: MaterialApp(home: RecyclerTakeawayPage(networkPhotos: true)),
       ),
     );
     await tester.pumpAndSettle();

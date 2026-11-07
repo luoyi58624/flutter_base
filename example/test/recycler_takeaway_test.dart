@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:example/src/pages/examples/catalog.dart';
 import 'package:example/src/pages/examples/recycler_view/takeaway.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +8,13 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> _open(WidgetTester tester, {double width = 390, double scale = 1, bool dark = false}) async {
+Future<void> _open(
+  WidgetTester tester, {
+  double width = 390,
+  double scale = 1,
+  bool dark = false,
+  bool networkPhotos = false,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, 900);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -20,7 +28,7 @@ Future<void> _open(WidgetTester tester, {double width = 390, double scale = 1, b
           data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
           child: child!,
         ),
-        home: RecyclerTakeawayPage(),
+        home: RecyclerTakeawayPage(networkPhotos: networkPhotos),
       ),
     ),
   );
@@ -71,8 +79,12 @@ void main() {
     expect(recyclerExamples[4].key, 'recycler-takeaway');
   });
 
-  testWidgets('一万家商家只挂载可见图文，Faker 图片各不相同且断网有占位', (tester) async {
+  testWidgets('一万家商家只挂载可见图文，网络图各不相同且断网有占位', (tester) async {
     await _open(tester);
+    await tester.tap(find.byKey(ValueKey('takeaway-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('takeaway-network-photos')));
+    await tester.pumpAndSettle();
     final list = _recycler(tester);
     expect(list.getAdapter()!.getItemCount(), 10000);
     expect(list.getLayoutManager()!.getChildCount(), lessThan(8));
@@ -85,6 +97,56 @@ void main() {
     expect(_paragraphs(tester, _row(holder)).length, greaterThan(25));
     // flutter_test 默认拒绝网络，此处实际覆盖图片失败后的可用布局。
     expect(find.byIcon(Icons.restaurant_rounded), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('离线图集在快跳和切换容器后仍绘制当前商家的图块', (tester) async {
+    await _open(tester);
+    await tester.runAsync(() async {
+      final context = tester.element(find.byType(RecyclerTakeawayPage));
+      final stream = AssetImage('assets/recycler_cards/takeaway-food.webp')
+          .resolve(createLocalImageConfiguration(context));
+      final ready = Completer<void>();
+      final listener = ImageStreamListener((info, _) {
+        info.dispose();
+        ready.complete();
+      }, onError: (error, stack) => ready.completeError(error, stack));
+      stream.addListener(listener);
+      try {
+        await ready.future;
+      } finally {
+        stream.removeListener(listener);
+      }
+    });
+    await tester.pump();
+
+    Finder inRow(rv.ViewHolder holder, String key) =>
+        find.descendant(of: _row(holder), matching: find.byKey(ValueKey(key)));
+
+    final list = _recycler(tester);
+    expect(list.getLayoutManager()!.isItemPrefetchEnabled(), isFalse);
+    final first = list.findViewHolderForItemId(0)!;
+    expect(inRow(first, 'takeaway-atlas-logo'), paints..drawImageRect(source: Rect.fromLTWH(1086.5, 724.5, 361, 361)));
+    expect(inRow(first, 'takeaway-atlas-dish-1'), paints..drawImageRect(source: Rect.fromLTWH(.5, .5, 361, 361)));
+
+    for (final (position, logoTile, dishTile) in [(5001, 2, 3), (9301, 9, 0), (65, 2, 3)]) {
+      list.scrollToPosition(position);
+      await tester.pump(Duration(microseconds: 8333));
+      final holder = list.findViewHolderForItemId(position)!;
+      Rect tileRect(int tile) => Rect.fromLTWH(tile % 4 * 362 + .5, tile ~/ 4 * 362 + .5, 361, 361);
+      expect(inRow(holder, 'takeaway-atlas-logo'), paints..drawImageRect(source: tileRect(logoTile)));
+      expect(inRow(holder, 'takeaway-atlas-dish-1'), paints..drawImageRect(source: tileRect(dishTile)));
+      expect(find.byType(Image), findsNothing);
+    }
+    for (final mode in ['listView', 'elScrollView']) {
+      await _choose(tester, mode);
+      expect(
+        find.byKey(ValueKey('takeaway-atlas-logo')).first,
+        paints..drawImageRect(source: Rect.fromLTWH(1086.5, 724.5, 361, 361)),
+      );
+      expect(find.byType(Image), findsNothing);
+    }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -164,7 +226,7 @@ void main() {
   }
 
   testWidgets('holder 换绑保持卡片结构，菜单按商家保存且不会带入另一家店', (tester) async {
-    await _open(tester);
+    await _open(tester, networkPhotos: true);
     final list = _recycler(tester)..setItemViewCacheSize(0);
     (list.getLayoutManager()! as rv.LinearLayoutManager).setItemPrefetchEnabled(false);
     list.getRecycledViewPool().setMaxRecycledViews(0, 20);
@@ -280,8 +342,8 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('分类筛选保持数据身份和同一批 Faker 图片', (tester) async {
-    await _open(tester);
+  testWidgets('分类筛选保持数据身份和同一批网络图片', (tester) async {
+    await _open(tester, networkPhotos: true);
     final original = _urls(tester, _row(_recycler(tester).findViewHolderForItemId(0)!));
     await tester.tap(find.byKey(ValueKey('takeaway-category-0')));
     await tester.pumpAndSettle();
