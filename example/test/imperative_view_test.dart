@@ -15,7 +15,7 @@ Future<void> _open(WidgetTester tester, Widget page) async {
   await tester.pumpWidget(
     ElComponentProvider(
       components: el.mobileComponents,
-      child: MaterialApp(home: page),
+      child: MaterialApp(navigatorKey: el.navigatorKey, home: page),
     ),
   );
   await tester.pumpAndSettle();

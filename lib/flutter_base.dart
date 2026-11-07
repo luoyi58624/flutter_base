@@ -2,6 +2,7 @@ library;
 
 export 'dart.dart';
 export 'ui.dart';
+export 'src/flutter_base/extensions/router.dart' show ElRouterServiceExt, ElRouterContextExt, ElRouterService;
 export 'src/flutter_base/sdk/binding/binding.dart' show ElWidgetsFlutterBinding;
 export 'src/flutter_base/material_theme.dart' show ElMaterialThemeExt;
 

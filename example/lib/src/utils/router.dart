@@ -11,7 +11,7 @@ import '../router/pages.dart';
 /// 从现有菜单生成路由路径与页面。
 abstract final class RouterUtil {
   /// 移动端详情与两端配置共用的根导航键。
-  static final rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final rootNavigatorKey = el.navigatorKey;
 
   /// 两端公共壳保持相同页面身份，调整宽度时不移除附着的命令式页面。
   static const layoutPageKey = ValueKey('example-layout');
@@ -42,10 +42,7 @@ abstract final class RouterUtil {
       buildPage(context, navigationPages.firstWhere((page) => '/${page.key}' == path));
 
   /// 用原生 Navigator 打开独立示例，地址与一级导航仍停留在示例目录。
-  static Future<T?> push<T>(BuildContext context, WidgetBuilder builder) => Navigator.of(
-    context,
-    rootNavigator: true,
-  ).push<T>(MaterialPageRoute(builder: (context) => _IndependentExample(builder: builder)));
+  static Future<T?> push<T>(WidgetBuilder builder) => el.router.pushPage<T>(_IndependentExample(builder: builder));
 
   /// 独立示例复用同一份目录生成深度路由，覆盖导航壳并保留返回目录的路径。
   static List<GoRoute> exampleRoutes() => pageToRoute(
