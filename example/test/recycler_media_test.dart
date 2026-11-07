@@ -133,6 +133,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(manager.findLastVisibleItemPosition(), 132);
     expect(list.controller!.position.pixels, closeTo(maximum, .01));
+    await _wait(tester, () => find.byType(RawImage).hitTestable().evaluate().isNotEmpty);
     list.scrollToPosition(0);
     await tester.pumpAndSettle();
     expect(manager.findFirstVisibleItemPosition(), 0);
@@ -238,15 +239,25 @@ void main() {
             ? RecyclerGalleryPage(directory: files.directory.path)
             : RecyclerVideoGridPage(directory: files.directory.path),
       );
+      Future<void> checkAlbumCover() async {
+        if (!album) return;
+        final image = find.descendant(of: _photo('竖图 中文'), matching: find.byType(RawImage));
+        await _wait(tester, () => tester.widgetList<RawImage>(image).any((raw) => raw.image?.width == 32));
+      }
+
+      await checkAlbumCover();
       await _mode(tester, 'listView');
       expect(find.byType(SliverGrid), findsOneWidget);
       expect(find.byType(rv.RecyclerView), findsNothing);
       expect(_photo('竖图 中文'), findsWidgets);
+      await checkAlbumCover();
       await _mode(tester, 'elScrollView');
       expect(find.byType(ElGridView), findsOneWidget);
       expect(_photo('竖图 中文'), findsWidgets);
+      await checkAlbumCover();
       await _mode(tester, 'recyclerView');
       expect(find.byType(rv.RecyclerView), findsOneWidget);
+      await checkAlbumCover();
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     });

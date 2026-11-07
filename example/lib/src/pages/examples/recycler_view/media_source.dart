@@ -23,6 +23,7 @@ class _MediaEntry {
   final DateTime? date;
   final String source;
   final ImageProvider thumbnail;
+  late final albumThumbnail = AlbumThumbnail(thumbnail);
   final ImageProvider original;
   final bool isVideo;
   final int duration;

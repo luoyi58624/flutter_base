@@ -17,6 +17,7 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
+import 'album_thumbnails.dart';
 import 'scroll_mode.dart';
 
 part 'media_source.dart';
@@ -95,6 +96,13 @@ class _MediaPageState extends State<_MediaPage> {
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
   RecyclerExampleScrollMode _mode = .recyclerView;
   var _knownCount = 0;
+  late final _albumThumbnails = AlbumThumbnailQueue();
+  int _albumColumns = 0;
+  double _albumCellExtent = 0;
+  double _albumPixels = 0;
+  int _albumDirection = 1;
+  (int, int, int)? _thumbnailWindow;
+  bool _thumbnailUpdateScheduled = false;
 
   bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
   int get _itemCount => _demo ? 10000 : _library.items.length;
@@ -112,6 +120,10 @@ class _MediaPageState extends State<_MediaPage> {
       if (widget.kind == .feed) grid.setSpanSizeLookup(_FeedSpans(grid));
     }
     _list.setPadding(widget.kind == .album ? 0 : 6, widget.kind == .album ? 0 : 6, 0, 0);
+    if (widget.kind == .album) {
+      _controller.addListener(_scheduleThumbnails);
+      _elController.addListener(_scheduleThumbnails);
+    }
     _knownCount = _adapterCount;
     _library.addListener(_changed);
     if (!_demo) unawaited(_library.open(directory: widget.directory));
@@ -126,7 +138,46 @@ class _MediaPageState extends State<_MediaPage> {
       _adapter.notifyDataSetChanged();
     }
     _knownCount = next;
+    _thumbnailWindow = null;
+    _scheduleThumbnails();
     setState(() {});
+  }
+
+  void _scheduleThumbnails() {
+    if (widget.kind != .album || _thumbnailUpdateScheduled) return;
+    _thumbnailUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _thumbnailUpdateScheduled = false;
+      if (mounted) _updateThumbnails();
+    });
+  }
+
+  void _updateThumbnails() {
+    final controller = _mode == .elScrollView ? _elController : _controller;
+    if (_itemCount == 0 || _albumCellExtent <= 0 || !controller.hasClients || !controller.position.haveDimensions) {
+      _thumbnailWindow = null;
+      _albumThumbnails.update([], []);
+      return;
+    }
+    final position = controller.position;
+    final pixels = position.pixels.clamp(0.0, position.maxScrollExtent);
+    if (pixels != _albumPixels) _albumDirection = pixels > _albumPixels ? 1 : -1;
+    _albumPixels = pixels;
+    // 三种相册容器都是无间距的正方形网格，使用完成布局后的同一组坐标。
+    final first = math.min(_itemCount, (pixels / _albumCellExtent).floor() * _albumColumns);
+    final last = math.min(
+      _itemCount,
+      ((pixels + position.viewportDimension) / _albumCellExtent).ceil() * _albumColumns,
+    );
+    final window = (first, last, _albumDirection);
+    if (window == _thumbnailWindow) return;
+    _thumbnailWindow = window;
+    final ahead = _albumDirection > 0
+        ? [for (var index = last; index < math.min(_itemCount, last + _albumColumns * 2); index++) index]
+        : [for (var index = first - 1; index >= math.max(0, first - _albumColumns * 2); index--) index];
+    _albumThumbnails.update([
+      for (var index = first; index < last; index++) _entryAt(index).albumThumbnail,
+    ], ahead.map((index) => _entryAt(index).albumThumbnail));
   }
 
   _MediaEntry _entryAt(int index) =>
@@ -163,6 +214,7 @@ class _MediaPageState extends State<_MediaPage> {
 
   void _chooseMode(RecyclerExampleScrollMode mode) {
     if (_mode == mode) return;
+    _thumbnailWindow = null;
     setState(() => _mode = mode);
     _list.scrollToPosition(0);
   }
@@ -183,6 +235,11 @@ class _MediaPageState extends State<_MediaPage> {
         : constraints.maxWidth < 300
         ? 1
         : math.max(2, (constraints.maxWidth / 230).floor());
+    if (album) {
+      _albumColumns = columns;
+      _albumCellExtent = constraints.maxWidth / columns;
+      _scheduleThumbnails();
+    }
     if (_manager case final rv.GridLayoutManager grid) {
       grid.setSpanCount(columns);
     } else {
@@ -372,6 +429,7 @@ class _MediaPageState extends State<_MediaPage> {
   void dispose() {
     _library.removeListener(_changed);
     _library.dispose();
+    if (widget.kind == .album) _albumThumbnails.dispose();
     _controller.dispose();
     _elController.dispose();
     super.dispose();
@@ -403,6 +461,12 @@ class _MediaAdapter extends rv.Adapter<_MediaHolder> {
   @override
   void onBindViewHolder(_MediaHolder holder, int position, [List<Object> payloads = const []]) =>
       holder.model.value = page._entryAt(_index(position));
+
+  @override
+  void onViewAttachedToWindow(_MediaHolder holder) {
+    // 按索引跳转可能在布局中校正偏移，不经过 ScrollController 的监听器。
+    page._scheduleThumbnails();
+  }
 }
 
 class _MediaHolder extends rv.ViewHolder {

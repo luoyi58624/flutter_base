@@ -246,13 +246,26 @@ class _MediaCover extends StatelessWidget {
           children: [
             Hero(
               tag: tag(entry),
-              child: Image(
-                image: entry.thumbnail,
-                fit: .cover,
-                excludeFromSemantics: true,
-                frameBuilder: (_, child, frame, _) => frame == null ? placeholder! : child,
-                errorBuilder: (_, _, _) => placeholder!,
-              ),
+              child: metadata
+                  ? ValueListenableBuilder<ImageInfo?>(
+                      valueListenable: entry.albumThumbnail,
+                      child: placeholder,
+                      builder: (context, info, placeholder) => info == null
+                          ? placeholder!
+                          : RawImage(
+                              image: info.image,
+                              scale: info.scale,
+                              fit: .cover,
+                              invertColors: MediaQuery.invertColorsOf(context),
+                            ),
+                    )
+                  : Image(
+                      image: entry.thumbnail,
+                      fit: .cover,
+                      excludeFromSemantics: true,
+                      frameBuilder: (_, child, frame, _) => frame == null ? placeholder! : child,
+                      errorBuilder: (_, _, _) => placeholder!,
+                    ),
             ),
             if (metadata && entry.isVideo)
               Positioned(
