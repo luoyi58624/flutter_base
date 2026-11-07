@@ -4,6 +4,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../custom_gestures.dart';
 import '../view.dart';
 import '../view/base.dart';
+import 'bibi/bibi.dart';
 import 'imperative_view/rectangles.dart';
 import 'press_feedback.dart';
 import 'recycler_view/cards.dart';
@@ -21,6 +22,7 @@ import 'recycler_view/text.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(key: 'bibi-home', title: 'Bibi 首页', icon: ElIcon(Icons.video_library_outlined), data: (_) => BibiPage()),
   ElMenuModel(key: 'view', title: 'ElView 测试', icon: ElIcon(Icons.web_outlined), data: (_) => ElViewPage()),
   ElMenuModel(
     key: 'gestures',

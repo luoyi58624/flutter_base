@@ -10,6 +10,7 @@ import '../lib/main.dart';
 import '../lib/src/router/index.dart';
 import '../lib/src/pages/custom_gestures.dart';
 import '../lib/src/pages/examples.dart';
+import '../lib/src/pages/examples/bibi/bibi.dart';
 import '../lib/src/pages/examples/catalog.dart';
 
 Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/home'}) async {
@@ -115,10 +116,16 @@ void main() {
         await tester.tap(tile);
         await tester.pumpAndSettle();
         expect(router.routeInformationProvider.value.uri.path, '/examples');
-        expect(find.widgetWithText(AppBar, page.title), findsOneWidget);
-        expect(find.byType(BackButton), findsOneWidget);
         expect(find.byType(ElBottomTabbar), findsNothing);
-        await tester.pageBack();
+        if (page.key == 'bibi-home') {
+          expect(find.byType(BibiPage), findsOneWidget);
+          expect(find.byKey(ValueKey('bibi-search-row')), findsOneWidget);
+          await tester.tap(find.text('我的').hitTestable());
+        } else {
+          expect(find.widgetWithText(AppBar, page.title), findsOneWidget);
+          expect(find.byType(BackButton), findsOneWidget);
+          await tester.pageBack();
+        }
         await tester.pumpAndSettle();
         expect(find.byType(ExamplesPage), findsOneWidget);
         expect(tile, findsOneWidget);

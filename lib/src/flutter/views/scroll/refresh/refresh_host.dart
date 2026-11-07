@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
+import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
@@ -521,6 +522,19 @@ class _RefreshHostState extends State<RefreshHost> with SingleTickerProviderStat
     if (_status != RefreshIndicatorStatus.drag && _status != RefreshIndicatorStatus.armed) return;
     _dragging = false;
     _status = RefreshIndicatorStatus.canceled;
+    final scheduler = SchedulerBinding.instance;
+    if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      // 摘挂时先撤掉输入和停靠，等构建结束再通知仍存活的指示器。
+      _syncDock();
+      scheduler.addPostFrameCallback((_) {
+        if (mounted && _status == RefreshIndicatorStatus.canceled) _settleCanceledPull();
+      });
+      return;
+    }
+    _settleCanceledPull();
+  }
+
+  void _settleCanceledPull() {
     if (!_dockable || _lastOut <= precisionErrorTolerance) _animatePulledTo(0);
     _publish();
   }
