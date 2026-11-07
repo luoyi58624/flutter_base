@@ -1,5 +1,6 @@
 import 'package:example/src/pages/examples/recycler_view/takeaway.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
@@ -65,8 +66,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.position.hasContentDimensions, isTrue);
     expect(controller.position.pixels, closeTo(240, .1));
-    final title = tester.widget<ElView>(find.descendant(of: root, matching: find.byKey(ValueKey('takeaway-title'))));
-    expect(title.child, contains('25店'));
+    final title = tester.renderObject<RenderParagraph>(
+      find.descendant(of: root, matching: find.byKey(ValueKey('takeaway-title'))),
+    );
+    expect(title.text.toPlainText(), contains('25店'));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

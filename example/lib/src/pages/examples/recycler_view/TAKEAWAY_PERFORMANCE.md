@@ -69,3 +69,20 @@ flutter test test/recycler_takeaway_test.dart test/recycler_takeaway_performance
 `TAKEAWAY_BIND_WORK`、`TAKEAWAY_FAST_SCROLL`、`TAKEAWAY_SMALL_SCROLL` 输出实际工作量、计时环境和墙钟统计。未跟踪的 `.codex-run/takeaway-before-1f3d3cf/` 保留旧源码快照；`.codex-run/takeaway-final-before.log`、`takeaway-final-after.log` 与 `takeaway-core-before.json` / `takeaway-core-after.json` 保留本次原始对照。
 
 **生产环境 8ms 目标尚未验收。** 本轮已经证明重复挂载与框架更新被消除，仍需用相同尺寸、输入速度和图片状态的 Profile 构建采集 UI / Raster P50、P95 与长帧。首次图片下载、解码、GPU 绘制及真实屏幕呈现均不在本次墙钟测试的结论内。示例已有「帧耗时记录 → 外卖商家列表」入口，区分首次和稳定滚动；采样时关闭性能浮层，并分别记录纵向快滚和横向菜单。
+
+## 2026-11-07 换绑文字复测
+
+此前的 Android Profile 轨迹里，16.071 ms 尖峰的 `LAYOUT` 为 13.001 ms，内层 `RecyclerView.bind` 占 9.330 ms，其中 3.971 ms 在 `BUILD`。另一帧的 `RecyclerView.prefetch` 占 4.975 ms。两条路径都计入当帧 UI 开销。
+
+本轮将变化文字直接更新到已挂载的 `RenderParagraph`，保留字号、行高、字距、图片 URL、卡片和横向菜单。菜单换绑跳过静止菜单的同偏移 `jumpTo`，仍会结束上家店的滚动或按住活动。已复用的标题排版对象在 12 次换绑中身份相同，单卡少 27 个 Element。
+
+Windows 无头 Debug，仍使用上面的真实外卖页面和固定输入。前后各独立运行三轮，每轮记录 12 次，前 2 次预热。下表取三轮 P50、P95 的各自中位数，单位为毫秒。
+
+| 场景 | 基线 P50 / P95 | 本轮 P50 / P95 |
+| --- | ---: | ---: |
+| 单卡换绑，断网占位 | 14.572 / 20.147 | 12.221 / 16.780 |
+| 单卡换绑，图片缓存命中 | 12.402 / 19.940 | 9.679 / 17.456 |
+| 整页纵向滚动，每帧 480 px | 17.283 / 26.180 | 14.680 / 21.410 |
+| 整页纵向滚动，每帧 1 px | 3.967 / 4.609 | 3.603 / 4.828 |
+
+480 px 快滚三轮 P95 分别为 27.722、26.131、26.180 → 21.410、21.390、21.981 ms。末帧挂载 Element 为 1455 → 1374，图片数量均为 12。热图换绑的同步绑定 P50 从 0.248 ms 变成 0.486 ms，文字更新提前到了通知阶段，整次换绑与 pump 的 P50 仍降低约 22%。小幅滚动 P95 有波动。手机尚未连接，本轮数据只覆盖无头主机耗时，8 ms 真机尖峰目标待 Profile 复测。

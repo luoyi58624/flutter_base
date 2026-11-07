@@ -1,6 +1,7 @@
 import 'package:example/src/pages/examples/catalog.dart';
 import 'package:example/src/pages/examples/recycler_view/takeaway.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_test/flutter_test.dart';
@@ -38,9 +39,19 @@ ScrollPosition _menuPosition(WidgetTester tester, int id) =>
 
 Finder _row(rv.ViewHolder holder) => find.byWidget(holder.itemView);
 
-String _title(WidgetTester tester, rv.ViewHolder holder) =>
-    tester.widget<ElView>(find.descendant(of: _row(holder), matching: find.byKey(ValueKey('takeaway-title')))).child
-        as String;
+String _title(WidgetTester tester, rv.ViewHolder holder) => tester
+    .renderObject<RenderParagraph>(find.descendant(of: _row(holder), matching: find.byKey(ValueKey('takeaway-title'))))
+    .text
+    .toPlainText();
+
+Iterable<RenderParagraph> _paragraphs(WidgetTester tester, Finder row) => tester.renderObjectList<RenderParagraph>(
+  find.descendant(
+    of: row,
+    matching: find.byElementPredicate(
+      (element) => element is RenderObjectElement && element.renderObject is RenderParagraph,
+    ),
+  ),
+);
 
 Set<String> _urls(WidgetTester tester, Finder scope) => {
   for (final image in tester.widgetList<Image>(find.descendant(of: scope, matching: find.byType(Image))))
@@ -71,7 +82,7 @@ void main() {
     expect(urls.every((url) => url.startsWith('https://picsum.photos/seed/takeaway-')), isTrue);
     expect(urls, contains('https://picsum.photos/seed/takeaway-shop-0/160/160'));
     expect(find.byType(Image).evaluate().length, lessThan(60));
-    expect(find.descendant(of: _row(holder), matching: find.byType(ElView)).evaluate().length, greaterThan(25));
+    expect(_paragraphs(tester, _row(holder)).length, greaterThan(25));
     // flutter_test 默认拒绝网络，此处实际覆盖图片失败后的可用布局。
     expect(find.byIcon(Icons.restaurant_rounded), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -81,15 +92,17 @@ void main() {
   testWidgets('移动密度以小字为主，首家完整卡片不超过 400 像素', (tester) async {
     await _open(tester);
     final holder = _recycler(tester).findViewHolderForItemId(0)!;
-    final words = tester
-        .widgetList<ElView>(find.descendant(of: _row(holder), matching: find.byType(ElView)))
-        .where((view) => view.child is String && view.style?.fontSize != null)
-        .toList();
-    expect(words.where((view) => view.style!.fontSize! <= 12).length / words.length, greaterThan(.75));
-    final title = tester.widget<ElView>(
+    final sizes = [
+      for (final paragraph in _paragraphs(tester, _row(holder)))
+        if (paragraph.text.style?.fontFamily != 'MaterialIcons') ?paragraph.text.style?.fontSize,
+      for (final view in tester.widgetList<ElView>(find.descendant(of: _row(holder), matching: find.byType(ElView))))
+        if (view.child is String) ?view.style?.fontSize,
+    ];
+    expect(sizes.where((size) => size <= 12).length / sizes.length, greaterThan(.75));
+    final title = tester.renderObject<RenderParagraph>(
       find.descendant(of: _row(holder), matching: find.byKey(ValueKey('takeaway-title'))),
     );
-    expect(title.style!.fontSize, 14);
+    expect(title.text.style?.fontSize, 14);
     expect(tester.getSize(_row(holder)).height, lessThan(400));
     await tester.pumpWidget(SizedBox());
   });
@@ -174,9 +187,9 @@ void main() {
     expect(_urls(tester, _row(first)).intersection(savedUrls), isEmpty);
     final dish = find.descendant(of: _row(first), matching: find.byKey(ValueKey('takeaway-dish-card'))).first;
     final price = tester
-        .widgetList<ElView>(find.descendant(of: dish, matching: find.byType(ElView)))
-        .firstWhere((view) => view.style?.fontSize == 16)
-        .child;
+        .renderObject<RenderParagraph>(find.descendant(of: dish, matching: find.byKey(ValueKey('takeaway-dish-price'))))
+        .text
+        .toPlainText();
     await tester.tap(find.descendant(of: dish, matching: find.byType(IconButton)));
     await tester.pumpAndSettle();
     expect(tester.widget<ElView>(find.byKey(ValueKey('takeaway-cart-total'))).child, price);
@@ -220,6 +233,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(_menuPosition(tester, 0).pixels, closeTo(saved, .1));
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('横向菜单按住但未移动时换店也结束旧手势', (tester) async {
+    await _open(tester);
+    final list = _recycler(tester)..setItemViewCacheSize(0);
+    (list.getLayoutManager()! as rv.LinearLayoutManager).setItemPrefetchEnabled(false);
+    await tester.pumpAndSettle();
+    final first = list.findViewHolderForItemId(0)!;
+    final position = _menuPosition(tester, 0);
+    var cancelled = false;
+    position.hold(() => cancelled = true);
+    expect(position.isScrollingNotifier.value, isFalse);
+
+    list.scrollToPosition(5000);
+    await tester.pumpAndSettle();
+    expect(first.getItemId(), isNot(0));
+    expect(_menuPosition(tester, first.getItemId()), same(position));
+    expect(cancelled, isTrue);
+    expect(position.pixels, 0);
     await tester.pumpWidget(SizedBox());
   });
 

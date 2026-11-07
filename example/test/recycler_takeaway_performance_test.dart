@@ -208,6 +208,8 @@ void main() {
       var retainedMenus = 0;
       Object menuState() => tester.state(find.descendant(of: root, matching: find.byType(Scrollable)));
       var menu = menuState();
+      final titleFinder = find.descendant(of: root, matching: find.byKey(ValueKey('takeaway-title')));
+      final title = tester.renderObject<RenderParagraph>(titleFinder);
       for (var step = 1; step <= 12; step++) {
         layout.microseconds = 0;
         final clock = Stopwatch()..start();
@@ -233,10 +235,8 @@ void main() {
         previous = next;
         frame = {for (final element in nextFrame) element: element.widget};
         expect(holder.getItemId(), step * 24);
-        final title = tester.widget<ElView>(
-          find.descendant(of: root, matching: find.byKey(ValueKey('takeaway-title'))),
-        );
-        expect(title.child, contains('${step * 24 + 1}店'));
+        expect(tester.renderObject(titleFinder), same(title));
+        expect(title.text.toPlainText(), contains('${step * 24 + 1}店'));
         for (final image in tester.widgetList<Image>(find.descendant(of: root, matching: find.byType(Image)))) {
           final source = (image.image as ResizeImage).imageProvider as NetworkImage;
           expect(

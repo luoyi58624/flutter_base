@@ -22,29 +22,108 @@ Widget _storeWords(
   bool bold = false,
   int lines = 1,
 }) {
-  // 样式与布局属于 holder；换商家只通知真正消费文案的叶子。
-  final style = ElStyle(
-    fontSize: size,
-    color: color,
-    fontWeight: bold ? .w700 : .w400,
-    lineHeight: 1.22,
+  return _StoreText(
+    key: key,
+    store: store,
+    select: select,
+    style: TextStyle(
+      fontSize: size,
+      color: color,
+      fontWeight: bold ? .w700 : .w400,
+      height: 1.22,
+      letterSpacing: 0,
+      leadingDistribution: .even,
+    ),
+    lines: lines,
+  );
+}
+
+class _StoreText extends LeafRenderObjectWidget {
+  const _StoreText({super.key, required this.store, required this.select, required this.style, required this.lines});
+
+  final ValueListenable<_Store?> store;
+  final String Function(_Store) select;
+  final TextStyle style;
+  final int lines;
+
+  TextStyle _resolveStyle(BuildContext context) {
+    var resolved = DefaultTextStyle.of(context).style.merge(style);
+    if (MediaQuery.boldTextOf(context)) resolved = resolved.merge(TextStyle(fontWeight: .bold));
+    return resolved;
+  }
+
+  @override
+  _RenderStoreText createRenderObject(BuildContext context) => _RenderStoreText(
+    store,
+    select,
+    _resolveStyle(context),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    locale: Localizations.maybeLocaleOf(context),
     maxLines: lines,
-    textOverflow: .ellipsis,
   );
-  String? previous;
-  Widget? view;
-  return ValueListenableBuilder<_Store?>(
-    valueListenable: store,
-    builder: (context, record, _) {
-      final value = record == null ? '' : select(record);
-      // 相同标签或菜名保留原实例，不重复进入文字和样式更新。
-      if (view == null || previous != value) {
-        previous = value;
-        view = ElView(key: key, style: style, child: value);
-      }
-      return view!;
-    },
-  );
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderStoreText renderObject) {
+    renderObject
+      ..textDirection = Directionality.of(context)
+      ..textScaler = MediaQuery.textScalerOf(context)
+      ..locale = Localizations.maybeLocaleOf(context)
+      ..maxLines = lines
+      ..bind(store, select, _resolveStyle(context));
+  }
+}
+
+// 换店时直接更新仍挂载的文字排版对象，静态字段不排入构建或布局队列。
+class _RenderStoreText extends RenderParagraph {
+  _RenderStoreText(
+    this._store,
+    this._select,
+    TextStyle style, {
+    required super.textDirection,
+    required super.textScaler,
+    required super.locale,
+    required super.maxLines,
+  }) : _style = style,
+       super(
+         TextSpan(text: _store.value == null ? '' : _select(_store.value!), style: style),
+         overflow: .ellipsis,
+       );
+
+  ValueListenable<_Store?> _store;
+  String Function(_Store) _select;
+  TextStyle _style;
+
+  void bind(ValueListenable<_Store?> store, String Function(_Store) select, TextStyle style) {
+    if (!identical(_store, store)) {
+      if (attached) _store.removeListener(_update);
+      _store = store;
+      if (attached) _store.addListener(_update);
+    }
+    _select = select;
+    _style = style;
+    _update();
+  }
+
+  void _update() {
+    final record = _store.value;
+    final value = record == null ? '' : _select(record);
+    final current = text as TextSpan;
+    if (current.text != value || current.style != _style) text = TextSpan(text: value, style: _style);
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _store.addListener(_update);
+    _update();
+  }
+
+  @override
+  void detach() {
+    _store.removeListener(_update);
+    super.detach();
+  }
 }
 
 class _DiscoveryHeader extends StatelessWidget {
@@ -320,12 +399,14 @@ class _MenuStripState extends State<_MenuStrip> {
     try {
       if (_controller.hasClients) {
         final position = _controller.position;
-        if (position.hasContentDimensions) {
-          position.jumpTo(widget.store.menuOffset);
-        } else {
+        final offset = widget.store.menuOffset;
+        if (!position.hasContentDimensions) {
           // 已 attach 但尚未布局时只校正初始偏移，jumpTo 的弹性计算会读取空滚动范围。
-          position.correctPixels(widget.store.menuOffset);
+          if (position.pixels != offset) position.correctPixels(offset);
+        } else if (position.pixels != offset || position.isScrollingNotifier.value) {
+          position.jumpTo(offset);
         }
+        // 按住但未拖动时也有活动，换店必须结束上一家的手势。
         if (position is ScrollPositionWithSingleContext) position.goIdle();
       }
     } finally {
@@ -378,7 +459,7 @@ class _MenuStripState extends State<_MenuStrip> {
                     controller: _controller,
                     scrollDirection: .horizontal,
                     itemCount: count,
-                    // 已知餐品宽度；数量变化时更新尺寸回调，让保留子树同步刷新滚动范围。
+                    // 数量变化时更新尺寸回调，让复用的列表刷新最大滚动范围。
                     itemExtentBuilder: (index, dimensions) => index < count ? width + 6 : null,
                     scrollCacheExtent: ScrollCacheExtent.pixels(0),
                     addAutomaticKeepAlives: false,
@@ -444,6 +525,7 @@ class _DishTile extends StatelessWidget {
                 child: _storeWords(
                   store,
                   (record) => '¥${_money(_dish(record)?.cents ?? 0)}',
+                  key: ValueKey('takeaway-dish-price'),
                   size: 16,
                   color: _orange,
                   bold: true,
