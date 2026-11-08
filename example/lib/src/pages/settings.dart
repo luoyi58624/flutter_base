@@ -5,6 +5,7 @@ import '../state/index.dart';
 import 'example_page.dart';
 import 'frame_recording.dart';
 import 'setting/scroll_test.dart';
+import 'setting/scroll_test2.dart';
 
 /// 两端共用的主题、系统和工具设置正文。
 class SettingPage extends StatelessWidget {
@@ -73,6 +74,12 @@ class SettingPage extends StatelessWidget {
                   el.router.pushPage(ScrollTestPage());
                 },
                 title: '滚动测试',
+              ),
+              ElListTile(
+                onTap: () {
+                  el.router.pushPage(ScrollTest2());
+                },
+                title: 'RecyclerView 色块',
               ),
             ],
           ),
