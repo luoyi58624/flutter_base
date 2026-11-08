@@ -4,6 +4,7 @@ import 'package:flutter_base/desktop.dart';
 import '../state/index.dart';
 import 'example_page.dart';
 import 'frame_recording.dart';
+import 'setting/create_vs_update.dart';
 import 'setting/scroll_test.dart';
 import 'setting/scroll_test2.dart';
 
@@ -80,6 +81,12 @@ class SettingPage extends StatelessWidget {
                   el.router.pushPage(ScrollTest2());
                 },
                 title: 'RecyclerView 色块',
+              ),
+              ElListTile(
+                onTap: () {
+                  el.router.pushPage(CreateVsUpdatePage());
+                },
+                title: '创建与更新',
               ),
             ],
           ),
