@@ -6,73 +6,69 @@ import 'package:flutter_base/flutter_base.dart';
 import '../example_page.dart';
 import 'bibi/feed.dart';
 
-/// 三种 Sliver 共用的固定高度负载，也供性能测试使用。
+/// Sliver 对照与性能测试共用的自然尺寸负载。
 enum ElSliverRecyclerExampleContent {
   /// 高密度纯色矩形。
-  rectangles('矩形色块', 32),
+  rectangles('矩形色块'),
 
   /// 单行纯文本。
-  text('纯文本', 32),
+  text('纯文本'),
 
   /// Bibi 首页使用的视频卡片。
-  videoCards('Bibi 视频卡片', 270),
+  videoCards('Bibi 视频卡片'),
 
   /// 包含图片、标签、元数据和操作的观察记录卡片。
-  complex('复杂子项', 322);
+  complex('复杂子项');
 
-  const ElSliverRecyclerExampleContent(this.label, this.itemExtent);
+  const ElSliverRecyclerExampleContent(this.label);
 
   /// 用于下拉菜单与测试报告的负载名称。
   final String label;
 
-  /// 各容器统一使用的子项固定高度。
-  final double itemExtent;
-
   /// 创建一个可复用子项，[index] 会随回收重绑变化。
   ///
   /// 构建器只负责创建结构；变化的内容监听 [index]，事件回调执行时读取它的当前值。
-  Widget buildItem(BuildContext context, ValueListenable<int> index) => SizedBox(
-    height: itemExtent,
-    child: switch (this) {
-      .rectangles => ValueListenableBuilder<int>(
+  Widget buildItem(BuildContext context, ValueListenable<int> index) => switch (this) {
+    .rectangles => SizedBox(
+      height: 32,
+      child: ValueListenableBuilder<int>(
         valueListenable: index,
         builder: (_, position, _) => ColoredBox(color: _rectangleColors[position % _rectangleColors.length]),
       ),
-      .text => Align(
-        alignment: .centerLeft,
-        child: ValueListenableBuilder<int>(
-          valueListenable: index,
-          builder: (_, position, _) => Text('Item - ${position + 1}', maxLines: 1, overflow: .ellipsis),
-        ),
+    ),
+    .text => Align(
+      alignment: .centerLeft,
+      child: ValueListenableBuilder<int>(
+        valueListenable: index,
+        builder: (_, position, _) => Text('Item - ${position + 1}', maxLines: 1, overflow: .ellipsis),
       ),
-      .videoCards => Padding(
-        padding: .symmetric(horizontal: 10, vertical: 4),
-        child: Center(
-          child: SizedBox(
-            width: 244,
-            child: ValueListenableBuilder<int>(
-              valueListenable: index,
-              builder: (_, position, _) => buildBibiVideoCard(position, 0),
-            ),
+    ),
+    .videoCards => Padding(
+      padding: .symmetric(horizontal: 10, vertical: 4),
+      child: Center(
+        child: SizedBox(
+          width: 244,
+          child: ValueListenableBuilder<int>(
+            valueListenable: index,
+            builder: (_, position, _) => buildBibiVideoCard(position, 0),
           ),
         ),
       ),
-      .complex => _ObservationCard(index),
-    },
-  );
+    ),
+    .complex => _ObservationCard(index),
+  };
 }
 
 enum _SliverMode {
   recycler('ElSliverRecycler'),
-  list('SliverList'),
-  fixed('SliverFixedExtentList');
+  list('SliverList');
 
   const _SliverMode(this.label);
 
   final String label;
 }
 
-/// 用同一组固定高度子项对照三种 Sliver 的滚动示例。
+/// 用同一组自然尺寸子项对照复用列表与原生 Sliver 列表。
 class ElSliverRecyclerExamplePage extends HookWidget {
   /// 创建可切换容器与负载的万条列表。
   // ignore: prefer_const_constructors_in_immutables
@@ -94,7 +90,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
     );
 
     return ExamplePage(
-      title: 'SliverRecycler 定高对照',
+      title: 'SliverRecycler 滚动对照',
       actions: [
         PopupMenuButton<Enum>(
           tooltip: '${mode.value.label} · ${workload.label}',
@@ -126,13 +122,8 @@ class ElSliverRecyclerExamplePage extends HookWidget {
           KeyedSubtree(
             key: ValueKey(workload),
             child: switch (mode.value) {
-              .recycler => ElSliverRecycler(
-                itemCount: _itemCount,
-                itemExtent: workload.itemExtent,
-                itemBuilder: workload.buildItem,
-              ),
+              .recycler => ElSliverRecycler(itemCount: _itemCount, itemBuilder: workload.buildItem),
               .list => SliverList(delegate: delegate),
-              .fixed => SliverFixedExtentList(itemExtent: workload.itemExtent, delegate: delegate),
             },
           ),
         ],

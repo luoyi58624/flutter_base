@@ -17,7 +17,7 @@ const _step = 64.0;
 const _warmupFrames = 10;
 const _framesPerDirection = 20;
 
-enum _Sliver { recycler, list, fixedExtentList }
+enum _Sliver { recycler, list }
 
 typedef _Frame = ({int micros, int mounts, int disposals, int rebinds, int factoryCalls});
 
@@ -31,7 +31,7 @@ void main() {
           'scope': 'flutter_tester debug pump wall time, excludes device raster and presentation',
           'lifecycle_scope': 'outer item probe; inner subtree builds are not counted',
           'content': content.name,
-          'item_extent': content.itemExtent,
+          'item_sizing': 'natural',
           'viewport': [_width, _height],
           'device_pixel_ratio': 1,
           'cache_px': _cacheExtent,
@@ -54,7 +54,7 @@ void main() {
       for (final entry in runs.entries) {
         final frames = entry.value.expand((run) => run).toList();
         debugPrintSynchronously(
-          'SLIVER_RECYCLER_RESULT ${jsonEncode({'content': content.name, 'sliver': entry.key.name, 'item_extent': content.itemExtent, 'all': _summary(frames), 'passes': entry.value.map(_summary).toList(), 'mount_frames': _summary(frames.where((frame) => frame.mounts > 0)), 'rebind_only_frames': _summary(frames.where((frame) => frame.rebinds > 0 && frame.mounts == 0)), 'unchanged_frames': _summary(frames.where((frame) => frame.mounts == 0 && frame.rebinds == 0))})}',
+          'SLIVER_RECYCLER_RESULT ${jsonEncode({'content': content.name, 'sliver': entry.key.name, 'item_sizing': 'natural', 'all': _summary(frames), 'passes': entry.value.map(_summary).toList(), 'mount_frames': _summary(frames.where((frame) => frame.mounts > 0)), 'rebind_only_frames': _summary(frames.where((frame) => frame.rebinds > 0 && frame.mounts == 0)), 'unchanged_frames': _summary(frames.where((frame) => frame.mounts == 0 && frame.rebinds == 0))})}',
         );
       }
     });
@@ -98,14 +98,10 @@ Widget _app(Widget body) => MaterialApp(
 Future<List<_Frame>> _measure(WidgetTester tester, ElSliverRecyclerExampleContent content, _Sliver sliver) async {
   final controller = ScrollController(keepScrollOffset: false);
   final counts = _Counts();
-  final extent = content.itemExtent;
 
   Widget buildItem(BuildContext context, ValueListenable<int> index) {
     counts.factoryCalls++;
-    return SizedBox(
-      height: extent,
-      child: _Probe(index: index, counts: counts, child: content.buildItem(context, index)),
-    );
+    return _Probe(index: index, counts: counts, child: content.buildItem(context, index));
   }
 
   final delegate = SliverChildBuilderDelegate(
@@ -125,9 +121,8 @@ Future<List<_Frame>> _measure(WidgetTester tester, ElSliverRecyclerExampleConten
           scrollCacheExtent: ScrollCacheExtent.pixels(_cacheExtent),
           slivers: [
             switch (sliver) {
-              .recycler => ElSliverRecycler(itemCount: _itemCount, itemExtent: extent, itemBuilder: buildItem),
+              .recycler => ElSliverRecycler(itemCount: _itemCount, itemBuilder: buildItem),
               .list => SliverList(delegate: delegate),
-              .fixedExtentList => SliverFixedExtentList(itemExtent: extent, delegate: delegate),
             },
           ],
         ),
@@ -135,6 +130,7 @@ Future<List<_Frame>> _measure(WidgetTester tester, ElSliverRecyclerExampleConten
     );
     await tester.pumpAndSettle();
     expect(controller.position.viewportDimension, _height);
+    final initialMounts = counts.mounts;
 
     final start = _warmupFrames * _step;
     final end = start + _framesPerDirection * _step;
@@ -144,9 +140,10 @@ Future<List<_Frame>> _measure(WidgetTester tester, ElSliverRecyclerExampleConten
     final frames = [...forward, ...backward];
     if (sliver == .recycler) {
       expect(frames.any((frame) => frame.rebinds > 0), isTrue, reason: '测量区间必须实际发生换绑。');
-      final windowCapacity = ((_height + _cacheExtent * 2) / extent).ceil() + 4;
-      expect(counts.factoryCalls, lessThanOrEqualTo(windowCapacity), reason: '单类型条目的创建量应受窗口与缓存范围约束。');
-      expect(counts.mounts, lessThanOrEqualTo(windowCapacity), reason: '持续滚动不应持续挂载新的条目 State。');
+      // 以实际首屏挂载量给当前负载留出异高和缓存窗口变化的余量，不预设条目高度。
+      final creationLimit = initialMounts * 2 + 4;
+      expect(counts.factoryCalls, lessThanOrEqualTo(creationLimit), reason: '单类型条目的创建量应受实际窗口规模约束。');
+      expect(counts.mounts, lessThanOrEqualTo(creationLimit), reason: '持续滚动不应持续挂载新的条目 State。');
     }
     expect(tester.takeException(), isNull);
     return frames;

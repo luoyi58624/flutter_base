@@ -259,17 +259,24 @@ class _Fixture {
             slivers: [
               ElSliverRecycler(
                 itemCount: data.rawValue.length,
-                itemExtent: 240,
                 maxRecycledItems: 0,
                 itemBuilder: (_, index) {
                   log.factories++;
                   final trace = _Trace(index, log);
                   log.traces.add(trace);
-                  if (localTitle) return _Card(trace: trace, data: data, localTitle: true);
+                  if (localTitle) {
+                    return SizedBox(
+                      height: 240,
+                      child: _Card(trace: trace, data: data, localTitle: true),
+                    );
+                  }
                   // 对照保留同一回收池，仅把监听范围扩大到整张卡片。
-                  return ObsBuilder(
-                    listenables: [index],
-                    builder: (_) => _Card(trace: trace, data: data, localTitle: false),
+                  return SizedBox(
+                    height: 240,
+                    child: ObsBuilder(
+                      listenables: [index],
+                      builder: (_) => _Card(trace: trace, data: data, localTitle: false),
+                    ),
                   );
                 },
               ),

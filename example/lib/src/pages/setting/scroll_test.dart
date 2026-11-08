@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/desktop.dart';
 
 enum _ScrollMode {
-  fixed('SliverFixedExtentList'),
+  list('SliverList'),
   recycler('ElSliverRecycler'),
   eager('非虚拟滚动'),
   el('ElScrollView');
@@ -13,18 +14,17 @@ enum _ScrollMode {
   final String label;
 }
 
-/// 使用固定 ElView 实例，对照四种滚动容器的性能。
+/// 使用相同的 ElView 子项，对照四种滚动容器的性能。
 class ScrollTestPage extends HookWidget {
-  /// 创建固定子项的滚动对照页。
+  /// 创建可切换四种滚动容器的对照页。
   const ScrollTestPage({super.key});
 
   static const _itemCount = 1000;
-  static const _itemGap = 8.0;
   static const _cacheExtent = 250.0;
 
   @override
   Widget build(BuildContext context) {
-    final mode = useState(_ScrollMode.fixed);
+    final mode = useState(_ScrollMode.list);
     final controller = useScrollController(keepScrollOffset: false);
     final elController = useScrollController(keepScrollOffset: false);
     final physics = ClampingScrollPhysics();
@@ -35,7 +35,7 @@ class ScrollTestPage extends HookWidget {
         physics: physics,
         padding: .all(16),
         child: RepaintBoundary(
-          child: Column(crossAxisAlignment: .stretch, children: List<Widget>.generate(_itemCount, (index) => _Child())),
+          child: Column(crossAxisAlignment: .stretch, children: List<Widget>.generate(_itemCount, (i) => _Child(i))),
         ),
       ),
       .el => ElScrollView(
@@ -45,10 +45,15 @@ class ScrollTestPage extends HookWidget {
         cacheExtent: _cacheExtent,
         padding: .all(16),
         children: [
-          ElListView.builder(itemCount: _itemCount, fixedSize: true, keepAlive: false, itemBuilder: (_, _) => _Child()),
+          ElListView.builder(
+            itemCount: _itemCount,
+            fixedSize: true,
+            keepAlive: false,
+            itemBuilder: (c, i) => _Child(i),
+          ),
         ],
       ),
-      .fixed || .recycler => CustomScrollView(
+      .list || .recycler => CustomScrollView(
         controller: controller,
         physics: physics,
         scrollCacheExtent: ScrollCacheExtent.pixels(_cacheExtent),
@@ -57,10 +62,10 @@ class ScrollTestPage extends HookWidget {
           SliverPadding(
             padding: .all(16),
             sliver: mode.value == _ScrollMode.recycler
-                ? ElSliverRecycler(itemCount: _itemCount, itemBuilder: (_, _) => _Child())
-                : SliverFixedExtentList(
+                ? ElSliverRecycler(itemCount: _itemCount, itemBuilder: (c, i) => _Child.model(i))
+                : SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (_, _) => _Child(),
+                      (_, i) => _Child(i),
                       childCount: _itemCount,
                       addAutomaticKeepAlives: false,
                     ),
@@ -72,7 +77,7 @@ class ScrollTestPage extends HookWidget {
 
     return Scaffold(
       backgroundColor: context.elTheme.fill,
-      appBar: AppBar(title: Text('滚动测试 · 固定 ElView')),
+      appBar: AppBar(title: Text('滚动测试 · ElView')),
       body: Column(
         children: [
           Padding(
@@ -108,7 +113,12 @@ class ScrollTestPage extends HookWidget {
 }
 
 class _Child extends StatefulWidget {
-  const _Child();
+  const _Child(this.index) : modelValue = null;
+
+  const _Child.model(this.modelValue) : index = null;
+
+  final int? index;
+  final ValueListenable<int>? modelValue;
 
   @override
   State<_Child> createState() => _ChildState();
@@ -125,6 +135,7 @@ class _ChildState extends State<_Child> {
   Widget build(BuildContext context) {
     return ElView(
       style: .new(width: 200, height: 50, margin: .only(bottom: 8), backgroundColor: Colors.grey),
+      child: widget.index ?? ObsBuilder(builder: (c) => Text(widget.modelValue!.value.toString())),
     );
   }
 }

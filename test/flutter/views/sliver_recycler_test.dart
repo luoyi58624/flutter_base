@@ -38,8 +38,10 @@ class _RecycledItem extends StatelessWidget {
   final ValueListenable<int> index;
 
   @override
-  Widget build(BuildContext context) =>
-      ValueListenableBuilder<int>(valueListenable: index, builder: (_, value, _) => Text('条目 $value'));
+  Widget build(BuildContext context) => SizedBox(
+    height: 40,
+    child: ValueListenableBuilder<int>(valueListenable: index, builder: (_, value, _) => Text('条目 $value')),
+  );
 }
 
 class _ReuseLog {
@@ -98,12 +100,15 @@ class _StatefulItemState extends State<_StatefulItem> {
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<int>(
-    valueListenable: widget.index,
-    builder: (_, value, _) => GestureDetector(
-      behavior: .opaque,
-      onTap: () => widget.log.taps.add((identity, widget.index.value)),
-      child: Text('${widget.prefix} $value'),
+  Widget build(BuildContext context) => SizedBox(
+    height: 40,
+    child: ValueListenableBuilder<int>(
+      valueListenable: widget.index,
+      builder: (_, value, _) => GestureDetector(
+        behavior: .opaque,
+        onTap: () => widget.log.taps.add((identity, widget.index.value)),
+        child: Text('${widget.prefix} $value'),
+      ),
     ),
   );
 }
@@ -164,18 +169,21 @@ class _LifecycleItemState extends State<_LifecycleItem> with SingleTickerProvide
   }
 
   @override
-  Widget build(BuildContext context) => Focus(
-    focusNode: focus,
-    child: ValueListenableBuilder<int>(
-      valueListenable: widget.index,
-      builder: (_, value, _) => Semantics(
-        label: '生命周期 $value',
-        button: true,
-        excludeSemantics: true,
-        child: GestureDetector(
-          behavior: .opaque,
-          onTap: () => widget.log.taps.add(widget.index.value),
-          child: Text('生命周期 $value'),
+  Widget build(BuildContext context) => SizedBox(
+    height: 240,
+    child: Focus(
+      focusNode: focus,
+      child: ValueListenableBuilder<int>(
+        valueListenable: widget.index,
+        builder: (_, value, _) => Semantics(
+          label: '生命周期 $value',
+          button: true,
+          excludeSemantics: true,
+          child: GestureDetector(
+            behavior: .opaque,
+            onTap: () => widget.log.taps.add(widget.index.value),
+            child: Text('生命周期 $value'),
+          ),
         ),
       ),
     ),
@@ -211,7 +219,6 @@ void main() {
       _app(controller, [
         ElSliverRecycler(
           itemCount: 10000,
-          itemExtent: 40,
           itemType: (index) => index % 2,
           itemBuilder: (_, index) {
             creations++;
@@ -254,13 +261,15 @@ void main() {
         SliverToBoxAdapter(child: SizedBox(height: 60, child: Text('列表上方'))),
         ElSliverRecycler(
           itemCount: 20,
-          itemExtent: 40,
           itemBuilder: (_, index) => ValueListenableBuilder<int>(
             valueListenable: index,
-            builder: (_, value, _) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => taps.add(value),
-              child: Text('条目 $value'),
+            builder: (_, value, _) => SizedBox(
+              height: 40,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps.add(value),
+                child: Text('条目 $value'),
+              ),
             ),
           ),
         ),
@@ -288,13 +297,15 @@ void main() {
       _app(controller, axis: Axis.horizontal, reverse: true, [
         ElSliverRecycler(
           itemCount: 200,
-          itemExtent: 80,
           itemBuilder: (_, index) => ValueListenableBuilder<int>(
             valueListenable: index,
-            builder: (_, value, _) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => taps.add(value),
-              child: Center(child: Text('横向 $value')),
+            builder: (_, value, _) => SizedBox(
+              width: 80,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps.add(value),
+                child: Center(child: Text('横向 $value')),
+              ),
             ),
           ),
         ),
@@ -314,9 +325,10 @@ void main() {
     Widget page(int count, double extent, String prefix) => _app(controller, [
       ElSliverRecycler(
         itemCount: count,
-        itemExtent: extent,
-        itemBuilder: (_, index) =>
-            ValueListenableBuilder<int>(valueListenable: index, builder: (_, value, _) => Text('$prefix $value')),
+        itemBuilder: (_, index) => SizedBox(
+          height: extent,
+          child: ValueListenableBuilder<int>(valueListenable: index, builder: (_, value, _) => Text('$prefix $value')),
+        ),
       ),
     ]);
 
@@ -341,7 +353,6 @@ void main() {
       _app(controller, [
         ElSliverRecycler(
           itemCount: 10000,
-          itemExtent: 40,
           itemBuilder: (_, index) => _StatefulItem(index: index, log: log),
         ),
       ]),
@@ -382,7 +393,6 @@ void main() {
       _app(controller, cache: 80, [
         ElSliverRecycler(
           itemCount: 10000,
-          itemExtent: 40,
           maxRecycledItems: 0,
           itemBuilder: (_, index) => _StatefulItem(index: index, log: log),
         ),
@@ -416,7 +426,6 @@ void main() {
       _app(controller, [
         ElSliverRecycler(
           itemCount: 1000,
-          itemExtent: 40,
           maxRecycledItems: 4,
           itemType: typeFor,
           itemBuilder: (_, index) => _StatefulItem(index: index, log: log, type: typeFor(index.value)),
@@ -450,7 +459,7 @@ void main() {
     Widget builder(BuildContext context, ValueListenable<int> index) =>
         _StatefulItem(index: index, log: log, type: typeFor(index.value));
     Widget page() => _app(controller, [
-      ElSliverRecycler(itemCount: 100, itemExtent: 40, maxRecycledItems: 4, itemType: typeFor, itemBuilder: builder),
+      ElSliverRecycler(itemCount: 100, maxRecycledItems: 4, itemType: typeFor, itemBuilder: builder),
     ]);
 
     await tester.pumpWidget(page());
@@ -473,8 +482,7 @@ void main() {
     final controller = _setup(tester);
     final log = _ReuseLog();
     Widget builder(BuildContext context, ValueListenable<int> index) => _StatefulItem(index: index, log: log);
-    Widget page(int count) =>
-        _app(controller, [ElSliverRecycler(itemCount: count, itemExtent: 40, itemBuilder: builder)]);
+    Widget page(int count) => _app(controller, [ElSliverRecycler(itemCount: count, itemBuilder: builder)]);
 
     await tester.pumpWidget(page(0));
     expect(controller.position.maxScrollExtent, 0);
@@ -520,7 +528,7 @@ void main() {
     Widget newBuilder(BuildContext context, ValueListenable<int> index) =>
         _StatefulItem(index: index, log: log, prefix: '新');
     Widget page(Widget Function(BuildContext, ValueListenable<int>) builder) =>
-        _app(controller, [ElSliverRecycler(itemCount: 100, itemExtent: 40, itemBuilder: builder)]);
+        _app(controller, [ElSliverRecycler(itemCount: 100, itemBuilder: builder)]);
 
     await tester.pumpWidget(page(oldBuilder));
     controller.jumpTo(800);
@@ -551,7 +559,6 @@ void main() {
       _app(controller, [
         ElSliverRecycler(
           itemCount: 1,
-          itemExtent: 40,
           itemBuilder: (_, _) {
             factoryCalls++;
             return StatefulBuilder(
@@ -559,7 +566,7 @@ void main() {
                 updateLocal = setState;
                 return ValueListenableBuilder<int>(
                   valueListenable: signal,
-                  builder: (_, value, _) => Text('局部 $local · 信号 $value'),
+                  builder: (_, value, _) => SizedBox(height: 40, child: Text('局部 $local · 信号 $value')),
                 );
               },
             );
@@ -592,7 +599,6 @@ void main() {
         _app(controller, [
           ElSliverRecycler(
             itemCount: 20,
-            itemExtent: 240,
             maxRecycledItems: 2,
             itemType: (index) => index ~/ 2,
             itemBuilder: (_, index) => _LifecycleItem(index: index, log: log),
@@ -644,7 +650,6 @@ void main() {
       _app(controller, [
         ElSliverRecycler(
           itemCount: 20,
-          itemExtent: 240,
           maxRecycledItems: 2,
           itemType: (index) => index % 2,
           itemBuilder: (_, index) => _LifecycleItem(index: index, log: log, animate: true),

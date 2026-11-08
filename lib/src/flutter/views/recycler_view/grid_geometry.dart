@@ -29,11 +29,10 @@ class _GridRows {
       }
       _starts.add(count);
     }
-    extents._ensureTypes();
-    rows = _ExtentIndex.groups(List.generate(rowCount, _typeForRow));
+    rows = RecyclerExtentIndex.groups(List.generate(rowCount, _typeForRow));
   }
 
-  final _ExtentIndex extents;
+  final RecyclerExtentIndex extents;
   int get count => extents.length;
   final int spanCount;
   final SpanSizeLookup lookup;
@@ -42,7 +41,7 @@ class _GridRows {
   final _spanFor = <int>[];
   final _sizes = <int>[];
   final _rowTypes = <String, int>{};
-  late final _ExtentIndex rows;
+  late final RecyclerExtentIndex rows;
   bool get uniform => lookup is _DefaultSpanSizeLookup;
   int get rowCount => count == 0
       ? 0
@@ -60,7 +59,7 @@ class _GridRows {
     // 行高只向相同条目类型、相同跨度的行传播，横幅不能充当普通格子的样本。
     final cells = <(int, int)>{
       for (var position = firstInRow(row); position < endInRow(row); position++)
-        (extents._types[position], sizeFor(position)),
+        (extents.typeAt(position), sizeFor(position)),
     }.toList()..sort((a, b) => a.$1 == b.$1 ? a.$2.compareTo(b.$2) : a.$1.compareTo(b.$1));
     final signature = cells.map((cell) => '${cell.$1}:${cell.$2}').join(',');
     return _rowTypes.putIfAbsent(signature, () => _rowTypes.length);
@@ -70,10 +69,7 @@ class _GridRows {
     if (count == 0 || this.count == 0) return;
     final first = rowFor(start);
     final last = rowFor(math.min(this.count - 1, start + count - 1));
-    for (var row = first; row <= last; row++) {
-      rows._types[row] = _typeForRow(row);
-    }
-    rows.invalidateGroups(first, last - first + 1);
+    rows.invalidate(first, last - first + 1, _typeForRow);
   }
 }
 
@@ -82,7 +78,7 @@ class _StaggeredSpans {
   _StaggeredSpans(this.extents, this.spanCount, {this.itemCrossExtent, this.itemExtentBuilder})
     : _lanes = List.generate(spanCount, (_) => <int>[]),
       _lines = List.filled(spanCount, 0.0);
-  final _ExtentIndex extents;
+  final RecyclerExtentIndex extents;
   final int spanCount;
   final double? itemCrossExtent;
   final double Function(int, double)? itemExtentBuilder;
@@ -110,8 +106,7 @@ class _StaggeredSpans {
     final builder = itemExtentBuilder;
     double extent;
     if (builder == null) {
-      extents._ensureTypes();
-      extent = extents._values[position];
+      extent = extents.extentAt(position);
     } else {
       extent = builder(position, itemCrossExtent!);
       if (!extent.isFinite || extent < 0) {
@@ -187,7 +182,7 @@ class _StaggeredSpans {
 
   bool measure(int position, double extent) {
     if (hasExactExtents) return false;
-    final firstOfType = !extents._estimates.containsKey(extents.typeAt(position));
+    final firstOfType = !extents.hasTypeEstimate(extents.typeAt(position));
     final changed = extents.measure(position, extent);
     if (changed) invalidateFrom(firstOfType ? 0 : position);
     return changed;

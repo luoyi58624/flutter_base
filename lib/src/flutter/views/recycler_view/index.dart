@@ -13,6 +13,7 @@ import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey
 import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/reuse_animation.dart';
+import 'extent_index.dart';
 import 'test_clock.dart';
 import 'work_probe.dart';
 import '../scroll/smooth_scroll/smooth_pointer_scroll.dart';

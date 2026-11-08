@@ -96,7 +96,7 @@ extension _MatrixViewport on _RecyclerViewportElement {
     _firstVisible = _lastVisible = null;
     if (count != _extents.length) {
       if (_extents.length != 0) throw StateError('适配器数量改变后必须调用对应的 notify 方法。');
-      _extents = _ExtentIndex(_adapter);
+      _extents = RecyclerExtentIndex(count, _adapter?.getItemViewType);
     }
     for (final holder in _pendingRetire.toList()) {
       _retire(holder, allowCache: false);
@@ -272,7 +272,7 @@ extension _MatrixViewport on _RecyclerViewportElement {
         _matrixParentData(
           holder,
           geometry.startAt(position),
-          geometry.rows._values[geometry.rowFor(position)],
+          geometry.rows.extentAt(geometry.rowFor(position)),
           geometry.spanFor(position),
           geometry.sizeFor(position),
           manager._spanCount,
