@@ -124,4 +124,48 @@ void main() {
     expect(log.disposals, greaterThan(0));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('同一窗口内滚动不再构建条目，移出后只换绑新序号', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(320, 240);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    final log = _Log();
+    var builds = 0;
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: ElRecyclerView2(
+          controller: controller,
+          itemCount: 20,
+          cacheExtent: 0,
+          itemBuilder: (context, index) {
+            builds++;
+            return _Row(index, log, 100);
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final built = builds;
+    final mounted = log.mounts;
+
+    controller.jumpTo(8);
+    await tester.pump();
+    expect(builds, built);
+    expect(log.mounts, mounted);
+    expect(find.text('项 0'), findsOneWidget);
+
+    controller.jumpTo(100);
+    await tester.pump();
+    expect(builds - built, lessThan(log.mounts));
+    expect(log.mounts, mounted);
+    expect(log.disposals, 0);
+    expect(find.text('项 0'), findsNothing);
+    expect(find.text('项 3'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -11,7 +11,8 @@ import '../recycler_view/extent_index.dart';
 ///
 /// 滚动到新序号时会再次调用 [itemBuilder]，并用返回的控件更新原来的 [Element]。
 /// 根控件的类型和 [Key] 不变时，[State] 与渲染对象继续复用，只走
-/// [State.didUpdateWidget] 和 [build]。根控件不要使用随序号变化的 [Key]，
+/// [State.didUpdateWidget] 和 [build]。同一批序号仍在缓存里时，滚动只移动绘制偏移，
+/// 不再构建或 layout 这些条目。根控件不要使用随序号变化的 [Key]，
 /// 否则 Flutter 会拆掉旧元素并重新挂载。条目自己放在 [State] 里的临时数据，
 /// 需要在 [State.didUpdateWidget] 中按新的 [Widget] 重置。
 class ElRecyclerView2 extends StatelessWidget {
@@ -422,6 +423,7 @@ class _RenderRecyclerSliver extends RenderSliver
       _needsFirstMeasurement = count > 0;
     }
     final extents = _extents!;
+    if (!reset && !_needsFirstMeasurement && _translateWindow(extents, count)) return;
     var anchor = _visibleAnchor();
     if (count == 0) {
       _element.owner!.buildScope(_element, () => _element._finishLayout({}));
@@ -466,6 +468,25 @@ class _RenderRecyclerSliver extends RenderSliver
     double cacheStart() => math.max(0.0, pixels + constraints.cacheOrigin);
     double cacheEnd() => cacheStart() + constraints.remainingCacheExtent;
     final wanted = <int>{};
+    // 还挂在原序号上的子项只做 RenderObject 的布局检查，不再进构建作用域。
+    void ensure(int index) {
+      wanted.add(index);
+      if (reset || !_bound(index)) {
+        layoutPosition(index);
+        return;
+      }
+      final child = _element._active[index]!.box!;
+      child.layout(childConstraints, parentUsesSize: true);
+      final extent = constraints.axis == Axis.vertical ? child.size.height : child.size.width;
+      final changed = extents.measure(index, extent);
+      if (changed && anchor != null) {
+        pixels = math.max(0.0, extents.prefix(anchor.index) - anchor.relativeStart);
+      }
+      (child.parentData! as _RecyclerParentData)
+        ..layoutOffset = extents.prefix(index)
+        ..extent = extent;
+    }
+
     if (constraints.remainingCacheExtent > 0 && (cacheStart() < extents.total || extents.total == 0)) {
       var first = extents.total == 0 ? 0 : extents.indexAt(cacheStart());
       final last = extents.indexAt(cacheEnd() - precisionErrorTolerance);
@@ -474,13 +495,11 @@ class _RenderRecyclerSliver extends RenderSliver
       var next = first;
       while (true) {
         if (first > 0 && extents.prefix(first) > cacheStart() + precisionErrorTolerance) {
-          layoutPosition(--first);
-          wanted.add(first);
+          ensure(--first);
           continue;
         }
         if (next >= count || (wanted.isNotEmpty && extents.prefix(next) >= cacheEnd() - precisionErrorTolerance)) break;
-        layoutPosition(next);
-        wanted.add(next++);
+        ensure(next++);
       }
       wanted.removeWhere((index) {
         final data = _element._active[index]!.box!.parentData! as _RecyclerParentData;
@@ -496,8 +515,49 @@ class _RenderRecyclerSliver extends RenderSliver
       geometry = SliverGeometry(scrollOffsetCorrection: correction);
       return;
     }
-    _lastScrollOffset = constraints.scrollOffset;
+    _emitGeometry(extents);
+  }
 
+  /// 序号窗口没变、子项也不脏时，只改绘制偏移。
+  ///
+  /// 和原版 RecyclerView 一样，屏上这批条目只跟着滚动偏移移动。
+  bool _translateWindow(RecyclerExtentIndex extents, int count) {
+    if (count != extents.length || extents.total <= 0 || constraints.remainingCacheExtent <= 0) return false;
+    final pixels = constraints.scrollOffset;
+    if (pixels < 0 || pixels > math.max(0.0, extents.total - constraints.remainingPaintExtent)) return false;
+    final cacheStart = math.max(0.0, pixels + constraints.cacheOrigin);
+    final cacheEnd = cacheStart + constraints.remainingCacheExtent;
+    final first = extents.indexAt(cacheStart);
+    final last = math.max(first, extents.indexAt(cacheEnd - precisionErrorTolerance));
+    if (first != _element._firstIndex || last != _element._lastIndex) return false;
+    if (_element._active.length != last - first + 1) return false;
+    final childConstraints = constraints.asBoxConstraints();
+    for (var index = first; index <= last; index++) {
+      final box = _boundBox(index);
+      if (box == null) return false;
+      final data = box.parentData! as _RecyclerParentData;
+      box.layout(childConstraints, parentUsesSize: true);
+      final extent = constraints.axis == Axis.vertical ? box.size.height : box.size.width;
+      if ((extent - data.extent).abs() > precisionErrorTolerance || extents.measure(index, extent)) return false;
+    }
+    _emitGeometry(extents);
+    return true;
+  }
+
+  /// 这个序号上已经有测过高度的子项。滚动不会把它从槽位上拿掉。
+  bool _bound(int index) => _boundBox(index) != null;
+
+  RenderBox? _boundBox(int index) {
+    final slot = _element._active[index];
+    final box = slot?.box;
+    if (slot == null || box == null || !slot.active || slot.index != index) return null;
+    final data = box.parentData;
+    if (data is! _RecyclerParentData || data.extent <= 0) return null;
+    return box;
+  }
+
+  void _emitGeometry(RecyclerExtentIndex extents) {
+    _lastScrollOffset = constraints.scrollOffset;
     final total = extents.total;
     final paintExtent = calculatePaintOffset(constraints, from: 0, to: total);
     geometry = SliverGeometry(
