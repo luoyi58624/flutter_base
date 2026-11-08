@@ -19,10 +19,17 @@ import 'recycler_view/social_feed.dart';
 import 'recycler_view/spike.dart';
 import 'recycler_view/takeaway.dart';
 import 'recycler_view/text.dart';
+import 'sliver_recycler.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(key: 'bibi-home', title: 'Bibi 首页', icon: ElIcon(Icons.video_library_outlined), data: (_) => BibiPage()),
+  ElMenuModel(
+    key: 'sliver-recycler',
+    title: 'SliverRecycler 性能对照',
+    icon: ElIcon(Icons.view_list_outlined),
+    data: (_) => ElSliverRecyclerExamplePage(),
+  ),
   ElMenuModel(key: 'view', title: 'ElView 测试', icon: ElIcon(Icons.web_outlined), data: (_) => ElViewPage()),
   ElMenuModel(
     key: 'gestures',
