@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
@@ -85,14 +86,34 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   }
 
   _ChatAnchor? _captureMessageAnchor() {
-    final viewport = _officialListKey.currentContext?.findRenderObject();
+    final viewport =
+        (_mode == .recyclerView2 && _messageController.hasClients
+                ? _messageController.position.context.notificationContext
+                : _officialListKey.currentContext)
+            ?.findRenderObject();
     if (viewport is! RenderBox || !viewport.hasSize) return null;
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
     final viewportBottom = viewportTop + viewport.size.height;
     _ChatAnchor? anchor;
+    if (_mode == .recyclerView2) {
+      void visit(Element element) {
+        final key = element.widget.key;
+        final box = element.renderObject;
+        if (key is ValueKey<int> && box is RenderBox && box.attached && box.hasSize && _laidOutInSliver(box)) {
+          final top = box.localToGlobal(Offset.zero).dy;
+          if (top + box.size.height > viewportTop && top < viewportBottom && (anchor == null || top < anchor!.top)) {
+            anchor = (id: key.value, top: top);
+          }
+        }
+        element.visitChildren(visit);
+      }
+
+      (context as Element).visitChildren(visit);
+      return anchor;
+    }
     for (final entry in _officialKeys.entries) {
-      final box = entry.value.currentContext?.findRenderObject();
-      if (box is! RenderBox || !box.attached || !box.hasSize) continue;
+      final box = _messageBox(entry.key);
+      if (box == null) continue;
       final top = box.localToGlobal(Offset.zero).dy;
       if (top + box.size.height <= viewportTop || top >= viewportBottom) continue;
       if (anchor == null || top < anchor.top) anchor = (id: entry.key, top: top);
@@ -100,20 +121,60 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return anchor;
   }
 
+  /// 回收槽会保留旧序号的元素，只读取仍参与当前布局的消息。
+  RenderBox? _messageBox(int id) {
+    if (_mode != .recyclerView2) {
+      final box = _officialKeys[id]?.currentContext?.findRenderObject();
+      return box is RenderBox && box.attached && box.hasSize ? box : null;
+    }
+    RenderBox? found;
+    void visit(Element element) {
+      if (found != null) return;
+      final box = element.renderObject;
+      if (element.widget.key == ValueKey(id) &&
+          box is RenderBox &&
+          box.attached &&
+          box.hasSize &&
+          _laidOutInSliver(box)) {
+        found = box;
+      }
+      if (found == null) element.visitChildren(visit);
+    }
+
+    (context as Element).visitChildren(visit);
+    return found;
+  }
+
+  bool _laidOutInSliver(RenderBox box) {
+    RenderObject? current = box;
+    while (current != null) {
+      final parent = current.parent;
+      if (parent is RenderSliver) return parent.childScrollOffset(current) != null;
+      current = parent;
+    }
+    return false;
+  }
+
   void _restoreMessageAnchor(_ChatAnchor? anchor) {
     if (anchor == null) return;
     final mode = _mode;
     final controller = _messageController;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    var attempts = 0;
+    void correct() {
       if (!mounted || _mode != mode || _mode == .recyclerView || !controller.hasClients) return;
-      final box = _officialKeys[anchor.id]?.currentContext?.findRenderObject();
-      if (box is! RenderBox || !box.attached || !box.hasSize) return;
-      // 两种反向容器的像素增大时内容都向下平移，仅补偿尚未由容器保住的几何差。
+      final box = _messageBox(anchor.id);
+      if (box == null) return;
+      // 反向容器的像素增大时内容向下平移，只补容器还没保住的几何差。
       final correction = anchor.top - box.localToGlobal(Offset.zero).dy;
-      if (correction.abs() > .01) {
-        controller.jumpTo((controller.offset + correction).clamp(0, controller.position.maxScrollExtent));
+      if (correction.abs() <= .01) return;
+      controller.jumpTo((controller.offset + correction).clamp(0, controller.position.maxScrollExtent));
+      // 不定高列表会在跳转后按实测尺寸再校正一次，跟着再对齐阅读位置。
+      if (_mode == .recyclerView2 && ++attempts < 4) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => correct());
       }
-    });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => correct());
   }
 
   void _loadEarlier() {
@@ -275,8 +336,9 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return null;
   }
 
-  Widget _messageRow(int index) {
+  Widget _messageRow(int index, {bool track = true}) {
     final message = _messages[index];
+    if (!track) return _OfficialChatRow(key: ValueKey(message.id), message: message, onDisposed: () {});
     final key = _officialKeys.putIfAbsent(message.id, GlobalKey.new);
     return _OfficialChatRow(
       key: key,
@@ -321,11 +383,22 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     ),
   );
 
+  Widget _recycler2Messages() => ElRecyclerView2(
+    key: ValueKey('recycler2-chat-list'),
+    controller: _official,
+    reverse: true,
+    itemCount: _messages.length,
+    itemBuilder: (context, index) => _messageRow(_messages.length - 1 - index, track: false),
+  );
+
   Widget _messagesViewport() => NotificationListener<ScrollNotification>(
     onNotification: _onScroll,
-    child: _mode == .elScrollView
-        ? _elMessages()
-        : RecyclerExampleScrollbar(controller: _official, child: _mode == .recyclerView ? _list : _officialMessages()),
+    child: switch (_mode) {
+      .elScrollView => _elMessages(),
+      .recyclerView => RecyclerExampleScrollbar(controller: _official, child: _list),
+      .recyclerView2 => RecyclerExampleScrollbar(controller: _official, child: _recycler2Messages()),
+      .listView => RecyclerExampleScrollbar(controller: _official, child: _officialMessages()),
+    },
   );
 
   @override

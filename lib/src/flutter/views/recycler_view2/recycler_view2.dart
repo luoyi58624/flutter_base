@@ -379,7 +379,15 @@ class _RenderRecyclerSliver extends RenderSliver
     if (child.parentData is! _RecyclerParentData) child.parentData = _RecyclerParentData();
   }
 
+  double? _lastScrollOffset;
+
+  /// 滚动位置没变时，用上一帧仍在视口里的条目做锚点。
+  ///
+  /// 跳转或惯性会换一批坐标；缓存里的旧坐标可能刚好落进新视口，不能当成还可见。
   _RecyclerAnchor? _visibleAnchor() {
+    if (_lastScrollOffset == null || (constraints.scrollOffset - _lastScrollOffset!).abs() > precisionErrorTolerance) {
+      return null;
+    }
     if (constraints.remainingPaintExtent <= 0) return null;
     _RecyclerAnchor? result;
     final start = constraints.scrollOffset;
@@ -399,7 +407,6 @@ class _RenderRecyclerSliver extends RenderSliver
   void layoutCallback() {
     final widget = _element._widget;
     final count = widget.itemCount;
-    var anchor = _visibleAnchor();
     final reset =
         _geometryGeneration != _element._generation ||
         _axis != constraints.axis ||
@@ -415,6 +422,7 @@ class _RenderRecyclerSliver extends RenderSliver
       _needsFirstMeasurement = count > 0;
     }
     final extents = _extents!;
+    var anchor = _visibleAnchor();
     if (count == 0) {
       _element.owner!.buildScope(_element, () => _element._finishLayout({}));
       geometry = SliverGeometry.zero;
@@ -488,6 +496,7 @@ class _RenderRecyclerSliver extends RenderSliver
       geometry = SliverGeometry(scrollOffsetCorrection: correction);
       return;
     }
+    _lastScrollOffset = constraints.scrollOffset;
 
     final total = extents.total;
     final paintExtent = calculatePaintOffset(constraints, from: 0, to: total);

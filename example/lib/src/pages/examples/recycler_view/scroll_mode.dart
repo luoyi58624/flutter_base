@@ -1,4 +1,4 @@
-/// 四个长列表示例共用的本地滚动容器选项。
+/// 长列表示例共用的本地滚动容器选项。
 enum RecyclerExampleScrollMode {
   /// 使用 Flutter 按需创建条目的列表。
   listView('ListView'),
@@ -7,7 +7,10 @@ enum RecyclerExampleScrollMode {
   elScrollView('ElScrollView'),
 
   /// 使用按类型复用结构的回收列表。
-  recyclerView('RecyclerView');
+  recyclerView('RecyclerView'),
+
+  /// 使用构建器换绑、按子项实测高度回收的列表。
+  recyclerView2('RecyclerView2');
 
   const RecyclerExampleScrollMode(this.label);
 

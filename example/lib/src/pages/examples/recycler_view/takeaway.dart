@@ -26,7 +26,7 @@ part 'takeaway_render_interaction.dart';
 
 enum _TakeawayCardMode { widgets, renderObject }
 
-/// 用密集商家信息、餐品图片和店内横向菜单对比三种长列表。
+/// 用密集商家信息、餐品图片和店内横向菜单对比长列表。
 class RecyclerTakeawayPage extends StatefulWidget {
   /// 创建一万家商家的外卖示例，可指定初始使用网络图片。
   // ignore: prefer_const_constructors_in_immutables
@@ -118,6 +118,17 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> with Single
         controller: _elController,
         scrollbar: RecyclerExampleIosScrollbar(),
         children: [ElListView.builder(keepAlive: false, itemCount: _indices.length, itemBuilder: _row)],
+      );
+    }
+    if (_mode == .recyclerView2) {
+      return RecyclerExampleScrollbar(
+        controller: _controller,
+        child: ElRecyclerView2(
+          key: ValueKey('recycler2-takeaway-list'),
+          controller: _controller,
+          itemCount: _indices.length,
+          itemBuilder: _row,
+        ),
       );
     }
     return RecyclerExampleScrollbar(

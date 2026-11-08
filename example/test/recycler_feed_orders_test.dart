@@ -109,14 +109,19 @@ void main() {
     expect(tester.widget<LinearProgressIndicator>(progress).value, closeTo(initialProgress + .11, .001));
     expect(tester.element(first), same(firstElement));
 
+    var current = RecyclerExampleScrollMode.recyclerView;
     for (final mode in RecyclerExampleScrollMode.values.reversed) {
-      if (mode != .recyclerView) await _mode(tester, mode);
+      if (mode != current) {
+        await _mode(tester, mode);
+        current = mode;
+      }
       expect(tester.widget<Checkbox>(_within(first, _key('orders-select'))).value, isTrue);
       expect(tester.widget<LinearProgressIndicator>(progress).value, closeTo(initialProgress + .11, .001));
       final controller = switch (mode) {
         .recyclerView => list.controller!,
         .listView => tester.widget<ListView>(_key('comparison-official-list')).controller!,
         .elScrollView => tester.widget<ElScrollView>(_key('comparison-el-list')).controller!,
+        .recyclerView2 => tester.widget<ElRecyclerView2>(_key('comparison-recycler2-list')).controller!,
       };
       controller.jumpTo(64 * 128 + 24.0);
       await tester.pumpAndSettle();

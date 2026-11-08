@@ -78,7 +78,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
     if (option case final RecyclerExampleScrollMode mode) {
       if (_mode == mode) return;
       setState(() => _mode = mode);
-      // 三种容器从同一首项开始比较；数据和选择集合不随容器替换。
+      // 各容器从同一首项开始比较；数据和选择集合不随容器替换。
       _list.scrollToPosition(0);
       return;
     }
@@ -129,6 +129,17 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
             itemBuilder: (context, index) => _row(context, index),
           ),
         ],
+      );
+    }
+    if (_mode == .recyclerView2) {
+      return RecyclerExampleScrollbar(
+        controller: _official,
+        child: ElRecyclerView2(
+          key: ValueKey('recycler2-selection-list'),
+          controller: _official,
+          itemCount: _adapter.getItemCount(),
+          itemBuilder: _row,
+        ),
       );
     }
     return RecyclerExampleScrollbar(

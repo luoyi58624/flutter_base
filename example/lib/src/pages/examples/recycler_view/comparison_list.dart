@@ -5,7 +5,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
 
-/// 在同一视口和内容工厂下切换三种线性滚动容器。
+/// 在同一视口和内容工厂下切换线性滚动容器。
 class RecyclerComparisonList extends StatelessWidget {
   /// 传入已安装适配器的回收列表，其他模式共用按需构建的行。
   const RecyclerComparisonList({
@@ -70,6 +70,18 @@ class RecyclerComparisonList extends StatelessWidget {
             itemBuilder: _item,
           ),
         ],
+      );
+    }
+    if (mode == .recyclerView2) {
+      return RecyclerExampleScrollbar(
+        controller: controller,
+        child: ElRecyclerView2(
+          key: ValueKey('comparison-recycler2-list'),
+          controller: controller,
+          reverse: reverse,
+          itemCount: itemCount,
+          itemBuilder: itemBuilder,
+        ),
       );
     }
     return RecyclerExampleScrollbar(

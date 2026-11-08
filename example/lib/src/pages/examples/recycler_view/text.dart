@@ -6,7 +6,7 @@ import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 
-/// 用无样式的 ElView 文本对比三种长列表容器。
+/// 用无样式的 ElView 文本对比长列表容器。
 class RecyclerTextPage extends StatefulWidget {
   /// 创建一万条纯文本的滚动示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -50,6 +50,17 @@ class _RecyclerTextPageState extends State<RecyclerTextPage> {
             itemBuilder: (context, index) => ElView(child: 'Item - $index'),
           ),
         ],
+      );
+    }
+    if (_mode == .recyclerView2) {
+      return RecyclerExampleScrollbar(
+        controller: _official,
+        child: ElRecyclerView2(
+          key: ValueKey('recycler2-text-list'),
+          controller: _official,
+          itemCount: 10000,
+          itemBuilder: (context, index) => ElView(child: 'Item - $index'),
+        ),
       );
     }
     return RecyclerExampleScrollbar(

@@ -34,6 +34,7 @@ ScrollPosition _chatPosition(WidgetTester tester, RecyclerExampleScrollMode mode
   .listView => tester.widget<ListView>(find.byType(ListView)).controller!.position,
   .elScrollView => tester.state<ElScrollViewState>(find.byType(ElScrollView)).position,
   .recyclerView => tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView)).controller!.position,
+  .recyclerView2 => tester.widget<ElRecyclerView2>(find.byKey(ValueKey('recycler2-chat-list'))).controller!.position,
 };
 
 Future<void> _locate(WidgetTester tester, int section) async {
@@ -118,6 +119,7 @@ void main() {
     await _open(tester, RecyclerRichDocumentPage());
     final last = find.byKey(ValueKey('rich-document-title-239'));
     final code = find.byKey(ValueKey('rich-document-code-239'));
+    var primed = false;
     for (final mode in RecyclerExampleScrollMode.values.reversed) {
       if (mode != .recyclerView) {
         await _tap(tester, 'comparison-mode-menu');
@@ -126,10 +128,11 @@ void main() {
       expect(last, findsNothing);
       await _locate(tester, 240);
       expect(last.hitTestable(), findsOneWidget);
-      if (mode == .recyclerView) {
+      if (!primed) {
         await _tap(tester, 'rich-document-code-toggle-239');
         expect(code, findsOneWidget);
         await _tap(tester, 'rich-document-check-239');
+        primed = true;
       }
       expect(code, findsOneWidget);
       expect(tester.widget<Switch>(find.byKey(ValueKey('rich-document-check-239'))).value, isTrue);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
@@ -8,7 +9,7 @@ import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
 
-/// 让三种滚动容器共用带长文、表格、插图和可展开源码的文档。
+/// 让各滚动容器共用带长文、表格、插图和可展开源码的文档。
 class RecyclerRichDocumentPage extends StatefulWidget {
   /// 创建带小节目录的富文本文档对照页。
   // ignore: prefer_const_constructors_in_immutables
@@ -81,6 +82,67 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
         await _el.scrollToIndex(target);
       case .listView:
         await _locateOfficial(target, generation);
+      case .recyclerView2:
+        await _locateRecycler2(target, generation);
+    }
+  }
+
+  /// 回收槽会留下旧序号的元素，只把仍参与当前布局的标题交给目录定位。
+  ({int index, BuildContext context})? _nearestLaidOutTitle() {
+    if (!_official.hasClients) return null;
+    final viewport = _official.position.context.notificationContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.hasSize) return null;
+    final bounds = viewport.localToGlobal(Offset.zero) & viewport.size;
+    ({int index, BuildContext context})? nearest;
+    void visit(Element element) {
+      final key = element.widget.key;
+      if (key is ValueKey<String> && key.value.startsWith('rich-document-title-')) {
+        final index = int.tryParse(key.value.substring('rich-document-title-'.length));
+        final box = element.renderObject;
+        if (index != null &&
+            box is RenderBox &&
+            box.attached &&
+            box.hasSize &&
+            _laidOutInSliver(box) &&
+            (box.localToGlobal(Offset.zero) & box.size).overlaps(bounds) &&
+            (nearest == null || index < nearest!.index)) {
+          nearest = (index: index, context: element);
+        }
+      }
+      element.visitChildren(visit);
+    }
+
+    (context as Element).visitChildren(visit);
+    return nearest;
+  }
+
+  bool _laidOutInSliver(RenderBox box) {
+    RenderObject? current = box;
+    while (current != null) {
+      final parent = current.parent;
+      if (parent is RenderSliver) return parent.childScrollOffset(current) != null;
+      current = parent;
+    }
+    return false;
+  }
+
+  Future<void> _locateRecycler2(int index, int generation) async {
+    for (var attempt = 0; attempt <= _sectionCount; attempt++) {
+      if (!mounted || generation != _locateGeneration || !_official.hasClients) return;
+      final nearest = _nearestLaidOutTitle();
+      if (nearest?.index == index) {
+        await Scrollable.ensureVisible(nearest!.context);
+        return;
+      }
+      final position = _official.position;
+      final direction = nearest != null && index < nearest.index ? -1 : 1;
+      final next = attempt == 0
+          ? position.maxScrollExtent * index / (_sectionCount - 1)
+          : position.pixels + direction * position.viewportDimension * .8;
+      final offset = next.clamp(0.0, position.maxScrollExtent);
+      if (attempt > 0 && (position.pixels - offset).abs() < .01) return;
+      _official.jumpTo(offset);
+      await WidgetsBinding.instance.endOfFrame;
     }
   }
 

@@ -7,7 +7,7 @@ import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
 
-/// 混排长文、照片、转发和投票，比较三种容器的异构条目滚动。
+/// 混排长文、照片、转发和投票，比较各容器的异构条目滚动。
 class RecyclerSocialFeedPage extends StatefulWidget {
   /// 创建社交动态流对照页。
   // ignore: prefer_const_constructors_in_immutables

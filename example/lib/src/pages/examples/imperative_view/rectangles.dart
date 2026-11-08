@@ -10,7 +10,7 @@ import '../recycler_view/scroll_mode.dart';
 final _colors = [Colors.blue, Colors.teal, Colors.orange, Colors.purple, Colors.pink, Colors.indigo];
 final _backgrounds = [for (final color in _colors) color.withValues(alpha: .12)];
 
-/// 在三个滚动容器中对比命令式 View 与官方组件构建的相同矩形行。
+/// 在多个滚动容器中对比命令式 View 与官方组件构建的相同矩形行。
 class ImperativeRectanglesPage extends StatefulWidget {
   /// 创建一万条颜色矩形的示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -65,6 +65,17 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
         children: [
           ElListView.builder(key: ValueKey(_useFlutter), keepAlive: false, itemCount: 10000, itemBuilder: _buildItem),
         ],
+      );
+    }
+    if (_mode == .recyclerView2) {
+      return RecyclerExampleScrollbar(
+        controller: _official,
+        child: ElRecyclerView2(
+          key: ValueKey('recycler2-imperative-list'),
+          controller: _official,
+          itemCount: 10000,
+          itemBuilder: _buildItem,
+        ),
       );
     }
     return RecyclerExampleScrollbar(

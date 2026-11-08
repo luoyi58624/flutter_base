@@ -11,7 +11,7 @@ final _colors = [Color(0xff5178d9), Color(0xff32998b)];
 
 /// 用一万条等高的纯色叶子 RenderBox 测量滚动开销基线。
 class ElRecyclerRectanglesPage extends StatefulWidget {
-  /// 创建可切换三种滚动容器的纯色矩形示例。
+  /// 创建可切换滚动容器的纯色矩形示例。
   // ignore: prefer_const_constructors_in_immutables
   ElRecyclerRectanglesPage({super.key});
 
