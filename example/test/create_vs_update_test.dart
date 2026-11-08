@@ -20,17 +20,17 @@ void main() {
 
     final createBefore = _stat(tester, 'create-stat');
     final updateBefore = _stat(tester, 'update-stat');
-    expect(createBefore.created, greaterThan(0));
+    expect(createBefore.created, 1);
     expect(createBefore.disposed, 0);
-    expect(updateBefore.created, greaterThan(0));
+    expect(updateBefore.created, 1);
     expect(updateBefore.disposed, 0);
 
     await tester.tap(find.byKey(ValueKey('create-switch')));
     await tester.pumpAndSettle();
     final created = _stat(tester, 'create-stat');
     final updateAfterCreate = _stat(tester, 'update-stat');
-    expect(created.lastCreated, greaterThan(0));
-    expect(created.lastDisposed, greaterThan(0));
+    expect(created.lastCreated, 1);
+    expect(created.lastDisposed, 1);
     expect(created.lastUpdated, 0);
     expect(updateAfterCreate.created, updateBefore.created);
     expect(updateAfterCreate.disposed, 0);
@@ -41,7 +41,7 @@ void main() {
     final createAfterUpdate = _stat(tester, 'create-stat');
     expect(updated.lastCreated, 0);
     expect(updated.lastDisposed, 0);
-    expect(updated.lastUpdated, greaterThan(0));
+    expect(updated.lastUpdated, 1);
     expect(updated.created, updateBefore.created);
     expect(createAfterUpdate.disposed, created.disposed);
     expect(tester.takeException(), isNull);
