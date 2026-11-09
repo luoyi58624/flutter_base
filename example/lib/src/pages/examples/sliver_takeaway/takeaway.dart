@@ -101,16 +101,8 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
     }
   }
 
-  Widget _row(BuildContext context, int index) => _OfficialStoreRow(
-    key: ValueKey(_indices[index]),
-    store: _storeAt(index),
-    photos: _photos,
-    mode: _cardMode,
-    onAdd: _add,
-  );
-
   Widget _sliverItem(BuildContext context, ValueListenable<int> index) =>
-      ValueListenableBuilder<int>(valueListenable: index, builder: (context, value, _) => _row(context, value));
+      _TakeawayCardHost(index: index, storeAt: _storeAt, photos: _photos, mode: _cardMode, onAdd: _add);
 
   Widget _content() {
     final sliver = _kind == .list
@@ -127,7 +119,8 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
       child: CustomScrollView(
         key: ValueKey('takeaway-sliver'),
         controller: _controller,
-        scrollCacheExtent: ScrollCacheExtent.pixels(250),
+        // 与旧外卖示例关闭同步预取一致，滚动帧先只处理当前视口的复杂卡片。
+        scrollCacheExtent: ScrollCacheExtent.pixels(0),
         slivers: [SliverPadding(padding: .all(_kind == .grid ? 8 : 0), sliver: sliver)],
       ),
     );
@@ -232,45 +225,35 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
   }
 }
 
-class _OfficialStoreRow extends StatefulWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _OfficialStoreRow({super.key, required this.store, required this.photos, required this.mode, required this.onAdd});
-  final _Store store;
-  final _TakeawayPhotos photos;
-  final ValueListenable<_TakeawayCardMode> mode;
-  final ValueChanged<_Dish> onAdd;
-
-  @override
-  State<_OfficialStoreRow> createState() => _OfficialStoreRowState();
-}
-
-class _OfficialStoreRowState extends State<_OfficialStoreRow> {
-  late final _store = ValueNotifier<_Store?>(widget.store);
-
-  @override
-  void didUpdateWidget(_OfficialStoreRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _store.value = widget.store;
-  }
-
-  @override
-  Widget build(BuildContext context) =>
-      _TakeawayCardHost(store: _store, photos: widget.photos, mode: widget.mode, onAdd: widget.onAdd);
-}
-
 class _TakeawayCardHost extends HookWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _TakeawayCardHost({required this.store, required this.photos, required this.mode, required this.onAdd});
+  _TakeawayCardHost({
+    required this.index,
+    required this.storeAt,
+    required this.photos,
+    required this.mode,
+    required this.onAdd,
+  });
 
-  final ValueNotifier<_Store?> store;
+  final ValueListenable<int> index;
+  final _Store Function(int) storeAt;
   final _TakeawayPhotos photos;
   final ValueListenable<_TakeawayCardMode> mode;
   final ValueChanged<_Dish> onAdd;
 
   @override
   Widget build(BuildContext context) {
-    // 切换卡片时保留 holder 和数据，只在条目离开元素树时释放绑定。
+    // 卡片属于可复用槽位；换店只更新数据，不重建整卡或按商家 ID 更换 Key。
+    final store = useMemoized(() => ValueNotifier<_Store?>(null));
     useEffect(() => store.dispose, [store]);
+    useEffect(() {
+      // 分类重排可以保留相同序号，每次通知都必须重新取当前记录。
+      void bind() => store.value = storeAt(index.value);
+      bind();
+      index.addListener(bind);
+      return () => index.removeListener(bind);
+    }, [index, storeAt, store]);
+
     return ValueListenableBuilder<_TakeawayCardMode>(
       valueListenable: mode,
       child: _StoreCard(store: store, photos: photos, onAdd: onAdd),

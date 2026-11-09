@@ -46,6 +46,10 @@ ElSliverRecyclerGrid.masonry(
 
 `itemBuilder` 创建槽位的固定业务结构。滚动换绑通过同一个 ValueListenable<int> 通知新序号，固定 Widget、Element、State 和 RenderObject 保留。动态区域使用官方 ListenableBuilder / ValueListenableBuilder，固定内容放在监听范围外或通过 child 参数传入。ElView 可以继续接收标准 ValueListenable 文本来源并使用文本快路径。
 
+上面的 Text 示例只重建一个动态叶子。复杂卡片应保留固定宿主，监听 index 后把当前记录写入卡片持有的 ValueNotifier，再由文字、图片等消费点订阅。不要把整张卡片放进 index 的 ValueListenableBuilder，也不要用随记录 ID 变化的 Key 标识可复用卡片：前者仍会重建并更新整棵业务树，后者会直接卸载旧子树，丢失 Element、State 和 RenderObject 的复用。实际接法见 example/lib/src/pages/examples/sliver_takeaway/takeaway.dart。
+
+索引通知也可能表示父配置刷新，此时 index.value 不一定改变，但该位置对应的记录可能已经变化。映射监听器收到通知就重新读取当前记录，不能只凭序号相等跳过；其订阅和自建数据通知器随槽位宿主释放。
+
 监听对象由容器释放。事件回调应在触发时读取 index.value；输入内容、展开状态和异步任务应按业务记录保存或校验身份。父组件更换配置、条目数量或继承环境变化时，现有结构仍遵守正常配置更新规则。
 
 `itemType` 区分不能交换业务结构的类型；记录类型改变后，失效的旧绑定会在刷新子树前移除，避免旧结构读取新类型数据。`maxRecycledItems` 限制所有类型合计的空闲槽位，不含当前缓存窗口。列表、网格和瀑布流共用同一套槽位生命周期。
