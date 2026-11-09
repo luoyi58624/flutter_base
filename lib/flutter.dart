@@ -42,7 +42,6 @@ export 'src/flutter/views/view/event/event.dart';
 // 滚动、虚拟化、滚动条与刷新
 export 'recycler_view.dart';
 export 'src/flutter/views/sliver_recycler/sliver_recycler.dart' show ElSliverRecycler;
-export 'src/flutter/views/recycler_view2/recycler_view2.dart' show ElRecyclerView2;
 export 'src/flutter/views/scroll/scroll_view.dart'
     show ElScrollController, ElScrollView, ElVisibilityInfo, ElVisibleRange;
 export 'src/flutter/views/scroll/scroll_state.dart'

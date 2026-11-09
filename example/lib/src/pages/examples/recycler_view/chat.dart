@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
@@ -88,31 +87,11 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   }
 
   _ChatAnchor? _captureMessageAnchor() {
-    final viewport =
-        (_mode == .recyclerView2 && _messageController.hasClients
-                ? _messageController.position.context.notificationContext
-                : _officialListKey.currentContext)
-            ?.findRenderObject();
+    final viewport = _officialListKey.currentContext?.findRenderObject();
     if (viewport is! RenderBox || !viewport.hasSize) return null;
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
     final viewportBottom = viewportTop + viewport.size.height;
     _ChatAnchor? anchor;
-    if (_mode == .recyclerView2) {
-      void visit(Element element) {
-        final key = element.widget.key;
-        final box = element.renderObject;
-        if (key is ValueKey<int> && box is RenderBox && box.attached && box.hasSize && _laidOutInSliver(box)) {
-          final top = box.localToGlobal(Offset.zero).dy;
-          if (top + box.size.height > viewportTop && top < viewportBottom && (anchor == null || top < anchor!.top)) {
-            anchor = (id: key.value, top: top);
-          }
-        }
-        element.visitChildren(visit);
-      }
-
-      (context as Element).visitChildren(visit);
-      return anchor;
-    }
     for (final entry in _officialKeys.entries) {
       final box = _messageBox(entry.key);
       if (box == null) continue;
@@ -123,45 +102,15 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return anchor;
   }
 
-  /// 回收槽会保留旧序号的元素，只读取仍参与当前布局的消息。
   RenderBox? _messageBox(int id) {
-    if (_mode != .recyclerView2) {
-      final box = _officialKeys[id]?.currentContext?.findRenderObject();
-      return box is RenderBox && box.attached && box.hasSize ? box : null;
-    }
-    RenderBox? found;
-    void visit(Element element) {
-      if (found != null) return;
-      final box = element.renderObject;
-      if (element.widget.key == ValueKey(id) &&
-          box is RenderBox &&
-          box.attached &&
-          box.hasSize &&
-          _laidOutInSliver(box)) {
-        found = box;
-      }
-      if (found == null) element.visitChildren(visit);
-    }
-
-    (context as Element).visitChildren(visit);
-    return found;
-  }
-
-  bool _laidOutInSliver(RenderBox box) {
-    RenderObject? current = box;
-    while (current != null) {
-      final parent = current.parent;
-      if (parent is RenderSliver) return parent.childScrollOffset(current) != null;
-      current = parent;
-    }
-    return false;
+    final box = _officialKeys[id]?.currentContext?.findRenderObject();
+    return box is RenderBox && box.attached && box.hasSize ? box : null;
   }
 
   void _restoreMessageAnchor(_ChatAnchor? anchor) {
     if (anchor == null) return;
     final mode = _mode;
     final controller = _messageController;
-    var attempts = 0;
     void correct() {
       if (!mounted || _mode != mode || _mode == .recyclerView || !controller.hasClients) return;
       final box = _messageBox(anchor.id);
@@ -170,10 +119,6 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
       final correction = anchor.top - box.localToGlobal(Offset.zero).dy;
       if (correction.abs() <= .01) return;
       controller.jumpTo((controller.offset + correction).clamp(0, controller.position.maxScrollExtent));
-      // 不定高列表会在跳转后按实测尺寸再校正一次，跟着再对齐阅读位置。
-      if (_mode == .recyclerView2 && ++attempts < 4) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => correct());
-      }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => correct());
@@ -385,14 +330,6 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     ),
   );
 
-  Widget _recycler2Messages() => ElRecyclerView2(
-    key: ValueKey('recycler2-chat-list'),
-    controller: _official,
-    reverse: true,
-    itemCount: _messages.length,
-    itemBuilder: (context, index) => _messageRow(_messages.length - 1 - index, track: false),
-  );
-
   Widget _messagesViewport() => NotificationListener<ScrollNotification>(
     onNotification: _onScroll,
     child: switch (_mode) {
@@ -407,7 +344,6 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
         itemBuilder: (context, index) => _messageRow(index),
       ),
       .recyclerView => RecyclerExampleScrollbar(controller: _official, child: _list),
-      .recyclerView2 => RecyclerExampleScrollbar(controller: _official, child: _recycler2Messages()),
       .listView => RecyclerExampleScrollbar(controller: _official, child: _officialMessages()),
     },
   );

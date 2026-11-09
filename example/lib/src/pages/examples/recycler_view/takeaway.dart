@@ -131,17 +131,6 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> with Single
         children: [ElListView.builder(keepAlive: false, itemCount: _indices.length, itemBuilder: _row)],
       );
     }
-    if (_mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: _controller,
-        child: ElRecyclerView2(
-          key: ValueKey('recycler2-takeaway-list'),
-          controller: _controller,
-          itemCount: _indices.length,
-          itemBuilder: _row,
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: _controller,
       child: _mode == .recyclerView

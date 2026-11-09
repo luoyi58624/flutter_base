@@ -93,18 +93,6 @@ class RecyclerComparisonList extends StatelessWidget {
         ],
       );
     }
-    if (mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: controller,
-        child: ElRecyclerView2(
-          key: ValueKey('comparison-recycler2-list'),
-          controller: controller,
-          reverse: reverse,
-          itemCount: itemCount,
-          itemBuilder: itemBuilder,
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: controller,
       child: mode == .recyclerView

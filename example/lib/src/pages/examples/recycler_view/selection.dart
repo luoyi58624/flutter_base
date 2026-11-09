@@ -147,17 +147,6 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
         ],
       );
     }
-    if (_mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: _official,
-        child: ElRecyclerView2(
-          key: ValueKey('recycler2-selection-list'),
-          controller: _official,
-          itemCount: _adapter.getItemCount(),
-          itemBuilder: _row,
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: _official,
       child: _mode == .recyclerView

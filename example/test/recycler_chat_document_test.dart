@@ -34,7 +34,6 @@ ScrollPosition _chatPosition(WidgetTester tester, RecyclerExampleScrollMode mode
   .listView => tester.widget<ListView>(find.byType(ListView)).controller!.position,
   .elScrollView => tester.state<ElScrollViewState>(find.byType(ElScrollView)).position,
   .recyclerView => tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView)).controller!.position,
-  .recyclerView2 => tester.widget<ElRecyclerView2>(find.byKey(ValueKey('recycler2-chat-list'))).controller!.position,
   .plain => tester.widget<ElScrollView>(find.byKey(ValueKey('chat-plain-list'))).controller!.position,
 };
 

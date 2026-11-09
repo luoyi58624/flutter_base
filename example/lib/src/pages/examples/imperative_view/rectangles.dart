@@ -78,17 +78,6 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
         ],
       );
     }
-    if (_mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: _official,
-        child: ElRecyclerView2(
-          key: ValueKey('recycler2-imperative-list'),
-          controller: _official,
-          itemCount: 10000,
-          itemBuilder: _buildItem,
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: _official,
       child: _mode == .recyclerView

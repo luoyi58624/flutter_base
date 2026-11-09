@@ -126,17 +126,6 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
         ],
       );
     }
-    if (_mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: _controller,
-        child: ElRecyclerView2(
-          key: ValueKey('recycler2-cards-list'),
-          controller: _controller,
-          itemCount: _adapter.getItemCount(),
-          itemBuilder: _row,
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: _controller,
       child: _mode == .recyclerView

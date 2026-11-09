@@ -62,17 +62,6 @@ class _RecyclerTextPageState extends State<RecyclerTextPage> {
         ],
       );
     }
-    if (_mode == .recyclerView2) {
-      return RecyclerExampleScrollbar(
-        controller: _official,
-        child: ElRecyclerView2(
-          key: ValueKey('recycler2-text-list'),
-          controller: _official,
-          itemCount: 10000,
-          itemBuilder: (context, index) => ElView(child: 'Item - $index'),
-        ),
-      );
-    }
     return RecyclerExampleScrollbar(
       controller: _official,
       child: _mode == .recyclerView

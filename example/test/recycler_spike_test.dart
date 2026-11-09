@@ -42,7 +42,6 @@ Finder _list(RecyclerExampleScrollMode mode) => find.byKey(
     .listView => 'comparison-official-list',
     .elScrollView => 'comparison-el-list',
     .recyclerView => 'spike-recycler-list',
-    .recyclerView2 => 'comparison-recycler2-list',
     .plain => 'comparison-plain-list',
   }),
 );
