@@ -10,6 +10,8 @@ import 'chrome.dart';
 import 'feed.dart';
 import 'header_motion.dart';
 
+part 'plain.dart';
+
 const _pink = Color(0xfffb7299);
 const _background = Color(0xfff1f2f4);
 const _searchHeight = 58.0;

@@ -25,6 +25,12 @@ import 'sliver_recycler.dart';
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(key: 'bibi-home', title: 'Bibi 首页', icon: ElIcon(Icons.video_library_outlined), data: (_) => BibiPage()),
   ElMenuModel(
+    key: 'bibi-plain',
+    title: 'Bibi 非虚拟',
+    icon: ElIcon(Icons.view_stream_outlined),
+    data: (_) => BibiPlainPage(),
+  ),
+  ElMenuModel(
     key: 'sliver-recycler',
     title: 'SliverRecycler 性能对照',
     icon: ElIcon(Icons.view_list_outlined),

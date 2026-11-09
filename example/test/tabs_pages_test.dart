@@ -117,8 +117,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(router.routeInformationProvider.value.uri.path, '/examples');
         expect(find.byType(ElBottomTabbar), findsNothing);
-        if (page.key == 'bibi-home') {
-          expect(find.byType(BibiPage), findsOneWidget);
+        if (page.key == 'bibi-home' || page.key == 'bibi-plain') {
+          expect(find.byType(page.key == 'bibi-home' ? BibiPage : BibiPlainPage), findsOneWidget);
           expect(find.byKey(ValueKey('bibi-search-row')), findsOneWidget);
           await tester.tap(find.text('我的').hitTestable());
         } else {
