@@ -110,7 +110,7 @@ void main() {
     expect(tester.element(first), same(firstElement));
 
     var current = RecyclerExampleScrollMode.recyclerView;
-    for (final mode in RecyclerExampleScrollMode.values.reversed) {
+    for (final mode in RecyclerExampleScrollMode.values.reversed.where((mode) => mode != .plain)) {
       if (mode != current) {
         await _mode(tester, mode);
         current = mode;
@@ -122,6 +122,7 @@ void main() {
         .listView => tester.widget<ListView>(_key('comparison-official-list')).controller!,
         .elScrollView => tester.widget<ElScrollView>(_key('comparison-el-list')).controller!,
         .recyclerView2 => tester.widget<ElRecyclerView2>(_key('comparison-recycler2-list')).controller!,
+        .plain => tester.widget<ElScrollView>(_key('comparison-plain-list')).controller!,
       };
       controller.jumpTo(64 * 128 + 24.0);
       await tester.pumpAndSettle();

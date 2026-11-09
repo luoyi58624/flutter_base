@@ -17,6 +17,7 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 import '../../example_page.dart';
 import '../bibi/feed.dart' show bibiVideoCount, buildBibiVideoCard;
 import 'album_thumbnails.dart';
@@ -74,6 +75,7 @@ enum _MediaGridMode {
   listView('GridView'),
   elScrollView('ElScrollView'),
   recyclerView('RecyclerView'),
+  plain('普通滚动'),
   localCards('本机卡片'),
   bibiCards('Bibi 卡片');
 
@@ -349,6 +351,18 @@ class _MediaPageState extends State<_MediaPage> {
     double columnGap = 0,
     double rowGap = 0,
   }) {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('media-plain'),
+        controller: _bibiCards ? _bibiElController : _elController,
+        maxCount: count,
+        physics: _bibiCards ? ClampingScrollPhysics() : null,
+        padding: padding,
+        scrollbar: _bibiCards ? ElNoScrollBar() : RecyclerExampleIosScrollbar(),
+        leading: [?featured],
+        itemBuilder: itemBuilder,
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey(_bibiCards ? 'media-bibi-grid' : 'media-el-grid'),
@@ -521,7 +535,7 @@ class _MediaPageState extends State<_MediaPage> {
           tooltip: '网格容器',
           onSelected: _chooseMode,
           itemBuilder: (_) => [
-            for (final mode in <_MediaGridMode>[.listView, .elScrollView, .recyclerView])
+            for (final mode in <_MediaGridMode>[.listView, .elScrollView, .recyclerView, .plain])
               CheckedPopupMenuItem(
                 key: ValueKey('media-mode-${mode.name}'),
                 value: mode,

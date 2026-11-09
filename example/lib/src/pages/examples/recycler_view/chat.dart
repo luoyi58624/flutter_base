@@ -8,6 +8,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 
 /// 用一万条变高消息演示历史插入、底部跟随与未读消息提示。
 class RecyclerChatPage extends StatefulWidget {
@@ -61,13 +62,14 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     ..setLayoutManager(rv.LinearLayoutManager()..setStackFromEnd(true))
     ..setAdapter(_adapter);
   bool _nearBottom = true;
+  var _listRevision = 0;
   // -1 是 RecyclerView.NO_ID，历史消息从更小的稳定 ID 开始。
   int _oldestId = -1;
   int _nextId = 10000;
   int? _streamId;
   Timer? _liveTimer;
 
-  ScrollController get _messageController => _mode == .elScrollView ? _el : _official;
+  ScrollController get _messageController => _mode == .elScrollView || _mode == .plain ? _el : _official;
 
   int _indexOf(int id) {
     var low = 0;
@@ -182,7 +184,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _insertEarlier();
     _count.value = _messages.length;
     if (_mode != .recyclerView) {
-      setState(() {});
+      setState(() => _listRevision++);
       _restoreMessageAnchor(anchor);
     }
   }
@@ -214,7 +216,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   void _finishIncoming(bool follow, _ChatAnchor? anchor, int arrivals) {
     _count.value = _messages.length;
-    if (_mode != .recyclerView) setState(() {});
+    if (_mode != .recyclerView) setState(() => _listRevision++);
     if (follow) {
       _showLatest();
     } else {
@@ -277,7 +279,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _adapter.notifyDataSetChanged();
     _count.value = _messages.length;
     _liveProgress.value = (0, false);
-    if (_mode != .recyclerView) setState(() {});
+    if (_mode != .recyclerView) setState(() => _listRevision++);
     _showLatest();
   }
 
@@ -395,6 +397,15 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     onNotification: _onScroll,
     child: switch (_mode) {
       .elScrollView => _elMessages(),
+      .plain => ExamplePlainScroll(
+        key: ValueKey('chat-plain-list'),
+        controller: _el,
+        reverse: true,
+        maxCount: _messages.length,
+        revision: _listRevision,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: (context, index) => _messageRow(index),
+      ),
       .recyclerView => RecyclerExampleScrollbar(controller: _official, child: _list),
       .recyclerView2 => RecyclerExampleScrollbar(controller: _official, child: _recycler2Messages()),
       .listView => RecyclerExampleScrollbar(controller: _official, child: _officialMessages()),

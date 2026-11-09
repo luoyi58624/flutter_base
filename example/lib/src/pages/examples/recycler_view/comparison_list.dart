@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 import 'scroll_mode.dart';
 
 /// 在同一视口和内容工厂下切换线性滚动容器。
@@ -19,6 +20,8 @@ class RecyclerComparisonList extends StatelessWidget {
     this.reverse = false,
     this.itemExtent,
     this.findChildIndexCallback,
+    this.plainHandle,
+    this.revision,
   });
 
   /// 当前实际使用的滚动容器。
@@ -48,6 +51,12 @@ class RecyclerComparisonList extends StatelessWidget {
   /// 按需构建的列表在数据重排后根据行 Key 找到新的位置。
   final int? Function(Key)? findChildIndexCallback;
 
+  /// 普通滚动定位到尚未挂上的条目。
+  final ExamplePlainHandle? plainHandle;
+
+  /// 条目内容变化时让普通滚动丢掉已缓存的批次。
+  final Object? revision;
+
   Widget _item(BuildContext context, int index) {
     final item = itemBuilder(context, index);
     return RepaintBoundary(key: item.key is LocalKey ? item.key : null, child: item);
@@ -55,6 +64,18 @@ class RecyclerComparisonList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('comparison-plain-list'),
+        controller: elController,
+        reverse: reverse,
+        maxCount: itemCount,
+        revision: revision ?? itemCount,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        handle: plainHandle,
+        itemBuilder: itemBuilder,
+      );
+    }
     if (mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('comparison-el-list'),

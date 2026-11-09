@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/desktop.dart';
 
+import '../../widgets/plain_scroll.dart';
+
 enum _ScrollMode {
   list('SliverList'),
-  recycler('ElSliverRecycler'),
+  recycler('ElSliverRecyclerList'),
   eager('非虚拟滚动'),
   el('ElScrollView');
 
@@ -30,13 +32,13 @@ class ScrollTestPage extends HookWidget {
     final physics = ClampingScrollPhysics();
 
     final scrollView = switch (mode.value) {
-      .eager => SingleChildScrollView(
+      .eager => ExamplePlainScroll(
         controller: controller,
+        maxCount: _itemCount,
+        pageSize: 100,
         physics: physics,
         padding: .all(16),
-        child: RepaintBoundary(
-          child: Column(crossAxisAlignment: .stretch, children: List<Widget>.generate(_itemCount, (i) => _Child(i))),
-        ),
+        itemBuilder: (context, index) => _Child(index),
       ),
       .el => ElScrollView(
         controller: elController,
@@ -62,7 +64,7 @@ class ScrollTestPage extends HookWidget {
           SliverPadding(
             padding: .all(16),
             sliver: mode.value == _ScrollMode.recycler
-                ? ElSliverRecycler(itemCount: _itemCount, itemBuilder: (c, i) => _Child.model(i))
+                ? ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: (c, i) => _Child.model(i))
                 : SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (_, i) => _Child(i),
@@ -89,7 +91,11 @@ class ScrollTestPage extends HookWidget {
                 for (final option in _ScrollMode.values)
                   DropdownMenuItem(
                     value: option,
-                    child: Text('${option.label} · $_itemCount 项', maxLines: 1, overflow: .ellipsis),
+                    child: Text(
+                      option == .eager ? '${option.label} · 每批 100' : '${option.label} · $_itemCount 项',
+                      maxLines: 1,
+                      overflow: .ellipsis,
+                    ),
                   ),
               ],
               onChanged: (value) {

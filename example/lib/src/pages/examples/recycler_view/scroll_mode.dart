@@ -10,7 +10,10 @@ enum RecyclerExampleScrollMode {
   recyclerView('RecyclerView'),
 
   /// 使用构建器换绑、按子项实测高度回收的列表。
-  recyclerView2('RecyclerView2');
+  recyclerView2('RecyclerView2'),
+
+  /// 每批挂上 100 条并留在树上，接近末端再追加。
+  plain('普通滚动');
 
   const RecyclerExampleScrollMode(this.label);
 

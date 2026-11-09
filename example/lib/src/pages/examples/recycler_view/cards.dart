@@ -7,6 +7,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import '../../example_page.dart';
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 import 'scroll_mode.dart';
 
 /// 用一万张生态观察卡片对比复杂内容的回收复用与局部更新。
@@ -25,8 +26,9 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   // El 在布局期读取唯一 position，不能与切换当帧尚待卸载的官方宿主共用。
   final _elController = ScrollController(keepScrollOffset: false);
-  ScrollController get _currentController => _mode == .elScrollView ? _elController : _controller;
+  ScrollController get _currentController => _mode == .elScrollView || _mode == .plain ? _elController : _controller;
   final _activeCount = ValueNotifier<int>(0);
+  final _plain = ExamplePlainHandle();
   RecyclerExampleScrollMode _mode = .recyclerView;
   ElVisibleRange? _elVisible;
   late final _adapter = _ObservationAdapter((count) => _activeCount.value = count);
@@ -59,6 +61,8 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   void _scrollTo(int index) {
     if (_mode == .recyclerView) {
       _list.scrollToPosition(index);
+    } else if (_mode == .plain) {
+      _plain.ensure(index);
     } else if (_currentController.hasClients) {
       _currentController.jumpTo((index * _cardExtent(context)).clamp(0, _currentController.position.maxScrollExtent));
     }
@@ -101,6 +105,16 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   );
 
   Widget _scrollContent(BuildContext context) {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('cards-plain-list'),
+        controller: _elController,
+        maxCount: _adapter.getItemCount(),
+        handle: _plain,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: _row,
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('el-cards-list'),

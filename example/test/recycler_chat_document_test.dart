@@ -35,6 +35,7 @@ ScrollPosition _chatPosition(WidgetTester tester, RecyclerExampleScrollMode mode
   .elScrollView => tester.state<ElScrollViewState>(find.byType(ElScrollView)).position,
   .recyclerView => tester.widget<rv.RecyclerView>(find.byType(rv.RecyclerView)).controller!.position,
   .recyclerView2 => tester.widget<ElRecyclerView2>(find.byKey(ValueKey('recycler2-chat-list'))).controller!.position,
+  .plain => tester.widget<ElScrollView>(find.byKey(ValueKey('chat-plain-list'))).controller!.position,
 };
 
 Future<void> _locate(WidgetTester tester, int section) async {
@@ -45,7 +46,7 @@ Future<void> _locate(WidgetTester tester, int section) async {
 }
 
 void main() {
-  for (final mode in RecyclerExampleScrollMode.values) {
+  for (final mode in RecyclerExampleScrollMode.values.where((mode) => mode != .plain)) {
     testWidgets('实时群聊 ${mode.label} 保留阅读锚点，并在末尾跟随同一条流式消息', (tester) async {
       await _open(tester, RecyclerLiveChatPage());
       if (mode != .recyclerView) {

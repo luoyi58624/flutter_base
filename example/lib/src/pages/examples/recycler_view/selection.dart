@@ -5,6 +5,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 
 /// 用一万条独立记录演示回收复用与数据驱动的复选状态。
 class RecyclerSelectionPage extends StatefulWidget {
@@ -24,8 +25,10 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _official = ScrollController(keepScrollOffset: false);
   // El 在布局期读取唯一 position，不能与切换当帧尚待卸载的官方宿主共用。
   final _elController = ScrollController(keepScrollOffset: false);
-  ScrollController get _currentController => _mode == .elScrollView ? _elController : _official;
+  ScrollController get _currentController => _mode == .elScrollView || _mode == .plain ? _elController : _official;
   RecyclerExampleScrollMode _mode = .recyclerView;
+  var _listRevision = 0;
+  final _plain = ExamplePlainHandle();
   late final _adapter = _SelectionAdapter(_selectionChanged);
   late final _list = rv.RecyclerView(key: ValueKey('recycler-selection-list'), controller: _official)
     ..setLayoutManager(rv.LinearLayoutManager())
@@ -34,12 +37,14 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
 
   void _selectionChanged(int count) {
     _selectedCount.value = count;
-    if (_mode != .recyclerView) setState(() {});
+    if (_mode != .recyclerView) setState(() => _listRevision++);
   }
 
   void _scrollTo(int index) {
     if (_mode == .recyclerView) {
       _list.scrollToPosition(index);
+    } else if (_mode == .plain) {
+      _plain.ensure(index);
     } else if (_currentController.hasClients) {
       _currentController.jumpTo((index * _selectionExtent).clamp(0, _currentController.position.maxScrollExtent));
     }
@@ -116,6 +121,17 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   }
 
   Widget _scrollContent() {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('selection-plain-list'),
+        controller: _elController,
+        maxCount: _adapter.getItemCount(),
+        revision: _listRevision,
+        handle: _plain,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: _row,
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('el-selection-list'),

@@ -8,6 +8,7 @@ import '../../../widgets/example_image.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/plain_scroll.dart';
 
 /// 让各滚动容器共用带长文、表格、插图和可展开源码的文档。
 class RecyclerRichDocumentPage extends StatefulWidget {
@@ -38,6 +39,8 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
     ..setLayoutManager(_layout)
     ..setAdapter(_adapter);
   var _mode = RecyclerExampleScrollMode.recyclerView;
+  final _plain = ExamplePlainHandle();
+  var _contentRevision = 0;
   var _locateGeneration = 0;
 
   _Section _section(int index) =>
@@ -54,7 +57,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
 
   void _updateSection(int index) {
     _adapter.notifyItemChanged(index);
-    if (_mode != .recyclerView) setState(() {});
+    if (_mode != .recyclerView) setState(() => _contentRevision++);
   }
 
   void _changeMode(RecyclerExampleScrollMode mode) {
@@ -84,6 +87,8 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
         await _locateOfficial(target, generation);
       case .recyclerView2:
         await _locateRecycler2(target, generation);
+      case .plain:
+        await _plain.ensure(target);
     }
   }
 
@@ -203,6 +208,8 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
               elController: _el,
               recyclerView: _recycler,
               itemCount: _sectionCount,
+              plainHandle: _plain,
+              revision: _contentRevision,
               itemBuilder: (context, index) => _SectionCard(
                 key: _mode == .listView ? _officialKeys[index] : ValueKey(index),
                 section: _section(index),

@@ -4,6 +4,7 @@ import 'package:flutter_base/recycler_view.dart' as rv;
 import 'package:flutter_base/view.dart' as view;
 
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 import '../../example_page.dart';
 import '../recycler_view/scroll_mode.dart';
 
@@ -57,6 +58,16 @@ class _ImperativeRectanglesPageState extends State<ImperativeRectanglesPage> {
   }
 
   Widget _content() {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('imperative-plain-list'),
+        controller: _elController,
+        maxCount: 10000,
+        revision: _useFlutter,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: _buildItem,
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('imperative-el-list'),

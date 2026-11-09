@@ -13,6 +13,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../../widgets/example_image.dart';
+import '../../../widgets/plain_scroll.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
@@ -80,7 +81,7 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> with Single
 
   void _resetScroll() {
     _list.scrollToPosition(0);
-    final controller = _mode == .elScrollView ? _elController : _controller;
+    final controller = _mode == .elScrollView || _mode == .plain ? _elController : _controller;
     if (controller.hasClients) controller.jumpTo(0);
   }
 
@@ -112,6 +113,16 @@ class _RecyclerTakeawayPageState extends State<RecyclerTakeawayPage> with Single
   );
 
   Widget _content() {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('takeaway-plain-list'),
+        controller: _elController,
+        maxCount: _indices.length,
+        revision: (_category, _indices.length),
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: _row,
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('el-takeaway-list'),

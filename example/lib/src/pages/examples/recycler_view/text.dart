@@ -3,6 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/plain_scroll.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 
@@ -38,6 +39,15 @@ class _RecyclerTextPageState extends State<RecyclerTextPage> {
   }
 
   Widget _content() {
+    if (_mode == .plain) {
+      return ExamplePlainScroll(
+        key: ValueKey('text-plain-list'),
+        controller: _elController,
+        maxCount: 10000,
+        scrollbar: RecyclerExampleIosScrollbar(),
+        itemBuilder: (context, index) => ElView(child: 'Item - $index'),
+      );
+    }
     if (_mode == .elScrollView) {
       return ElScrollView(
         key: ValueKey('el-text-list'),
