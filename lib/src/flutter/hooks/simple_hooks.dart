@@ -17,6 +17,13 @@ void useMounted(VoidCallback fun) {
   }, const []);
 }
 
+/// 在 hook 卸载时执行（只触发一次）
+void useDispose(VoidCallback fun) {
+  useEffect(() {
+    return fun;
+  }, const []);
+}
+
 /// 与 [useEffect] 完全一样，只不过此 hook 的回调函数不会在初始化时执行
 void useUpdateEffect(VoidCallback? Function() effect, [List<Object?>? keys]) {
   final isInit = useRef(false);

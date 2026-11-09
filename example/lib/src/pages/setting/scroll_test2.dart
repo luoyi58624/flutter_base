@@ -53,14 +53,18 @@ class _BlockHolder extends rv.ViewHolder {
 }
 
 class _ColorBlock extends HookWidget {
-  _ColorBlock(this.index);
+  const _ColorBlock(this.index);
 
   final ValueNotifier<int> index;
 
   @override
   Widget build(BuildContext context) {
     useEffect(() => index.dispose, [index]);
+
     final value = useValueListenable(index);
+
+    useDispose(() => ElLog.e('dispose - ${index.value}'));
+
     return Padding(
       padding: EdgeInsets.only(bottom: 8),
       child: SizedBox(

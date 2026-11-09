@@ -134,7 +134,14 @@ class _ChildState extends State<_Child> {
   @override
   Widget build(BuildContext context) {
     return ElView(
-      style: .new(width: 200, height: 50, margin: .only(bottom: 8), backgroundColor: Colors.grey),
+      style: ElStyle(
+        width: 200,
+        height: 50,
+        fontSize: 16,
+        margin: .only(bottom: 8),
+        backgroundColor: Colors.grey,
+        onTap: ElStyle(fontSize: 20),
+      ),
       child: widget.index ?? ObsBuilder(builder: (c) => Text(widget.modelValue!.value.toString())),
     );
   }
