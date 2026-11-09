@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart' show IdentityEquality, IterableEquality;
-import 'package:flutter/foundation.dart' show internal;
+import 'package:flutter/foundation.dart' show ValueListenable, internal;
 import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
@@ -29,6 +29,10 @@ class ElView extends RenderObjectWidget {
   });
 
   /// 子内容。Widget 原样渲染；Iterable 默认走 rich inline；其他值渲染为文本。
+  ///
+  /// 传入 [ValueListenable] 时订阅其当前值；普通文本通知直接更新渲染层，
+  /// 不重建本节点。Widget、富文本等结构型内容仍由 Element 协调子树；
+  /// 独立图标与文字之间切换会重新同步缩放。只监听顶层来源，销毁由调用方负责。
   ///
   /// 不能把 Flutter [ParentDataWidget] 直接作为本节点的 child 或 Iterable
   /// 元素，例如 [Positioned]、[Expanded]、[Flexible]、[Spacer]。这些组件只
@@ -90,8 +94,15 @@ class ElView extends RenderObjectWidget {
   // 独立 IconData 默认不缩放；ElIcon 的可选缩放由组件推送到既有 render 接口。
   bool get _needsTextScaler => child != null && child is! Widget && child is! IconData;
 
-  TextScaler _resolveTextScaler(BuildContext context) =>
-      _needsTextScaler ? (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling) : TextScaler.noScaling;
+  TextScaler _resolveTextScaler(BuildContext context) {
+    // 动态来源即使暂时为空或为图标，也保留缩放依赖，后续文字使用最新环境。
+    final scaler = _needsTextScaler
+        ? (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
+        : TextScaler.noScaling;
+    final source = child;
+    final value = source is ValueListenable<Object?> ? source.value : source;
+    return value is IconData ? TextScaler.noScaling : scaler;
+  }
 
   @override
   ElRenderView createRenderObject(BuildContext context) {

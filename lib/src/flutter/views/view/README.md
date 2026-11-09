@@ -21,6 +21,34 @@ ElView(
 
 `child` 为 Widget 时直接承载；Iterable 作为行内混排；其他值作为文本。多行布局请显式用 Column/List，不能把内容数组当成纵向布局。Expanded / Flexible / Spacer 放在 Flex 的直接槽内，Positioned 放在 Stack 的直接槽内，不能直接作为 ElView.child。
 
+### 动态文本
+
+将 `ValueListenable` 直接作为 `child`，ElView 会显示它的当前值并管理订阅：
+
+```dart
+final title = ValueNotifier<String>('原来的标题');
+final view = ElView(
+  style: ElStyle(fontSize: 16),
+  child: title,
+);
+
+// view 可以保持同一个实例；换字直接更新现有渲染对象。
+title.value = '更新后的标题';
+```
+
+字符串、数字等普通值之间的通知直接调用现有文本更新入口，不触发
+`ViewElement.update`、`performRebuild` 或 `updateRenderObject`；
+内容相等时沿用既有排版缓存。文字改变仍按需进行布局、绘制和语义更新。
+
+值为 Widget、Iterable 或 InlineSpan 时，沿用原有内容分派并在构建阶段协调子树，
+因此包含 WidgetSpan 的富文本也能正确挂载和移除。独立 IconData 保持不随文字缩放，
+在图标与普通文字之间切换时会重新同步环境参数。这些结构或类别切换不承诺跳过构建。
+
+替换来源会移除旧监听并立即读取新值；临时移出树时暂停监听，重新挂载时读取最新值，
+卸载时移除监听。ElView 不销毁外部来源，调用方在不再使用时负责 `dispose()`。
+只订阅顶层 `child`，不会递归订阅 Iterable 或其他载荷中的 notifier。
+
+
 | ElStyle 字段 | 用途 |
 | --- | --- |
 | width / height、minWidth / maxWidth、minHeight / maxHeight | 尺寸和约束，尺寸支持数字、百分比及 ElDimension |

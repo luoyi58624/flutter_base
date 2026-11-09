@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart' show GestureBinding, PointerDownEvent, PointerEvent;
 import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
@@ -43,6 +44,9 @@ class ViewElement extends RenderObjectElement {
 
   Element? _child;
   List<Element> _children = const <Element>[];
+  ValueListenable<Object?>? _childListenable;
+  bool _childNeedsUpdate = false;
+  bool _updatingContent = false;
 
   /// 懒建：只有富文本多子路径（`forgetChild` 命中 `_children`）才需要。
   /// 单 child / 纯文本 / 裸行恒为 null —— 虚拟滚动每行都白付一个 Set 是不可接受的。
@@ -133,7 +137,7 @@ class ViewElement extends RenderObjectElement {
       MountTrace.focusUs += trace.elapsedMicroseconds;
       trace.reset();
     }
-    _rebuildChildrenAndPayload(_view.child);
+    _updateContent(_syncChildListenable(_view.child));
     if (trace != null) {
       MountTrace.payloadUs += trace.elapsedMicroseconds;
       MountTrace.mountCount++;
@@ -142,11 +146,20 @@ class ViewElement extends RenderObjectElement {
 
   @override
   void update(covariant ElView newWidget) {
+    _childNeedsUpdate = false;
     super.update(newWidget);
     _renderView.bindElementWidget(newWidget);
     _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
     _syncFocusNode(forceStateSync: true);
-    _rebuildChildrenAndPayload(newWidget.child);
+    _updateContent(_syncChildListenable(newWidget.child));
+  }
+
+  @override
+  void performRebuild() {
+    super.performRebuild();
+    if (_childNeedsUpdate) {
+      _updateContent(_syncChildListenable(_view.child));
+    }
   }
 
   @override
@@ -160,6 +173,8 @@ class ViewElement extends RenderObjectElement {
 
   @override
   void deactivate() {
+    _unsubscribeChildListenable();
+    _childNeedsUpdate = false;
     _activeForFocus = false;
     _renderView.refreshTickerMode(active: false);
     super.deactivate();
@@ -171,6 +186,8 @@ class ViewElement extends RenderObjectElement {
     super.activate();
     _renderView.refreshTickerMode();
     _renderView.setStyleParent(StyleDependencyScope.maybeHostOf(this));
+    _syncChildListenable(_view.child);
+    _childNeedsUpdate = _childListenable != null;
     markNeedsBuild();
     _activeForFocus = true;
     _reparentFocusNode();
@@ -179,6 +196,8 @@ class ViewElement extends RenderObjectElement {
   @override
   void unmount() {
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
+    _unsubscribeChildListenable();
+    _childNeedsUpdate = false;
     _activeForFocus = false;
     // 卸载路径可能早已不满足视觉同步条件，环位与全局登记必须无条件释放。
     _setFocusIndicator(false);
@@ -248,6 +267,52 @@ class ViewElement extends RenderObjectElement {
     assert(child == _child);
     _child = null;
     super.forgetChild(child);
+  }
+
+  Object? _syncChildListenable(Object? child) {
+    final listenable = child is ValueListenable<Object?> ? child : null;
+    if (!identical(_childListenable, listenable)) {
+      _unsubscribeChildListenable();
+      _childListenable = listenable;
+      listenable?.addListener(_handleChildChanged);
+    }
+    return listenable == null ? child : listenable.value;
+  }
+
+  void _unsubscribeChildListenable() {
+    _childListenable?.removeListener(_handleChildChanged);
+    _childListenable = null;
+  }
+
+  void _handleChildChanged() {
+    final listenable = _childListenable;
+    if (listenable == null) return;
+    final value = listenable.value;
+    // 普通文本没有 Element 子树变化，直接复用现有引擎；结构变化交回构建阶段。
+    // 独立图标与文字的缩放规则不同，类别切换时也需要重新推送环境参数。
+    if (!_updatingContent &&
+        !_childNeedsUpdate &&
+        _child == null &&
+        _children.isEmpty &&
+        value is! Widget &&
+        value is! Iterable &&
+        value is! InlineSpan &&
+        (_renderView.rawChild is IconData) == (value is IconData)) {
+      _renderView.setTextPayload(value);
+      return;
+    }
+    _childNeedsUpdate = true;
+    markNeedsBuild();
+  }
+
+  void _updateContent(Object? child) {
+    _childNeedsUpdate = false;
+    _updatingContent = true;
+    try {
+      _rebuildChildrenAndPayload(child);
+    } finally {
+      _updatingContent = false;
+    }
   }
 
   void _rebuildChildrenAndPayload(Object? child) {
