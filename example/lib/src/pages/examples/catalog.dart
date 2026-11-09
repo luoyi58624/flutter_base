@@ -20,6 +20,7 @@ import 'recycler_view/spike.dart';
 import 'recycler_view/takeaway.dart';
 import 'recycler_view/text.dart';
 import 'sliver_recycler.dart';
+import 'sliver_recycler_grid.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -35,6 +36,18 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: 'SliverRecycler 性能对照',
     icon: ElIcon(Icons.view_list_outlined),
     data: (_) => ElSliverRecyclerExamplePage(),
+  ),
+  ElMenuModel(
+    key: 'sliver-recycler-grid',
+    title: 'Sliver 网格示例',
+    icon: ElIcon(Icons.grid_view_outlined),
+    data: (_) => ElSliverRecyclerGridExamplePage(),
+  ),
+  ElMenuModel(
+    key: 'sliver-recycler-masonry',
+    title: 'Sliver 瀑布流示例',
+    icon: ElIcon(Icons.view_quilt_outlined),
+    data: (_) => ElSliverRecyclerGridExamplePage.masonry(),
   ),
   ElMenuModel(key: 'view', title: 'ElView 测试', icon: ElIcon(Icons.web_outlined), data: (_) => ElViewPage()),
   ElMenuModel(

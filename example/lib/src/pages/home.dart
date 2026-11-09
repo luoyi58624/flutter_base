@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../utils/router.dart';
 import 'example_page.dart';
+import 'examples/catalog.dart';
 import 'showcase/buttons.dart';
 import 'showcase/hero.dart';
 
-/// 组件综合展示首页，首批展示响应式布局与按钮交互。
+/// 组件综合展示首页，提供回收滚动入口、响应式布局与按钮交互。
 class HomePage extends HookWidget {
   /// 创建综合展示页。
   const HomePage({super.key});
@@ -30,13 +32,49 @@ class HomePage extends HookWidget {
                 ElListView.builder(
                   keepAlive: true,
                   gap: 36,
-                  itemCount: 2,
-                  itemBuilder: (context, index) =>
-                      index == 0 ? ShowcaseHero(onExplore: () => scroll.scrollToIndex(1)) : ButtonShowcase(),
+                  itemCount: 3,
+                  itemBuilder: (context, index) => switch (index) {
+                    0 => _RecyclerEntries(),
+                    1 => ShowcaseHero(onExplore: () => scroll.scrollToIndex(2)),
+                    _ => ButtonShowcase(),
+                  },
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecyclerEntries extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ElCardView(
+      style: ElStyle(
+        backgroundColor:
+            theme.cardTheme.color ?? (theme.useMaterial3 ? theme.colorScheme.surfaceContainerLow : theme.cardColor),
+        borderRadius: .circular(theme.useMaterial3 ? 12 : 4),
+        clipBehavior: .antiAlias,
+      ),
+      // ListTile 的墨水效果绘制在卡片内，避免被外层背景遮住。
+      child: Material(
+        type: .transparency,
+        child: Column(
+          children: [
+            for (final page in advancedExamples.where(
+              (page) => const {'sliver-recycler', 'sliver-recycler-grid', 'sliver-recycler-masonry'}.contains(page.key),
+            ))
+              ListTile(
+                key: ValueKey('home-${page.key}'),
+                leading: page.icon,
+                title: Text(page.title),
+                trailing: Icon(Icons.chevron_right),
+                onTap: () => RouterUtil.push(page.data!),
+              ),
+          ],
         ),
       ),
     );

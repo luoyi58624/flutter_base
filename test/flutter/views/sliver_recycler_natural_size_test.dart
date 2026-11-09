@@ -106,7 +106,7 @@ class _Fixture {
       scrollCacheExtent: ScrollCacheExtent.pixels(0),
       slivers: [
         ...?before,
-        ElSliverRecycler(
+        ElSliverRecyclerList(
           itemCount: count ?? extents.value.length,
           itemType: typeFor,
           maxRecycledItems: 4,
@@ -383,7 +383,7 @@ void main() {
         physics: ClampingScrollPhysics(),
         scrollCacheExtent: ScrollCacheExtent.pixels(0),
         slivers: [
-          ElSliverRecycler(
+          ElSliverRecyclerList(
             itemCount: data.rawValue.length,
             itemType: typeFor,
             maxRecycledItems: 4,
@@ -431,6 +431,80 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+
+  for (final layout in ['List', 'Grid', 'Masonry']) {
+    testWidgets('$layout 共享 Obs 已标脏时同帧改变结构类型，不构建旧类型绑定', (tester) async {
+      final controller = _configure(tester);
+      final data = Obs<List<Object>>(['原文字', 1]);
+      addTearDown(data.dispose);
+      Object typeFor(int index) => data.rawValue[index].runtimeType;
+      Widget builder(BuildContext context, ValueListenable<int> index) {
+        final type = typeFor(index.value);
+        return ObsBuilder(
+          listenables: [index],
+          builder: (_) {
+            final value = data.value[index.value];
+            return SizedBox(height: 40, child: Text(type == String ? value as String : '数字 ${value as int}'));
+          },
+        );
+      }
+
+      Widget page() => MaterialApp(
+        home: CustomScrollView(
+          controller: controller,
+          scrollCacheExtent: ScrollCacheExtent.pixels(0),
+          slivers: [
+            switch (layout) {
+              'Grid' => ElSliverRecyclerGrid(
+                itemCount: data.rawValue.length,
+                itemType: typeFor,
+                maxRecycledItems: 4,
+                itemBuilder: builder,
+                crossAxisCount: 2,
+              ),
+              'Masonry' => ElSliverRecyclerGrid.masonry(
+                itemCount: data.rawValue.length,
+                itemType: typeFor,
+                maxRecycledItems: 4,
+                itemBuilder: builder,
+                crossAxisCount: 2,
+              ),
+              _ => ElSliverRecyclerList(
+                itemCount: data.rawValue.length,
+                itemType: typeFor,
+                maxRecycledItems: 4,
+                itemBuilder: builder,
+              ),
+            },
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(page());
+      await _settle(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('原文字').hitTestable(), findsOneWidget);
+      expect(find.text('数字 1').hitTestable(), findsOneWidget);
+
+      // 旧类型子树已进入脏队列；数量不变，但两个位置的数据结构互换。
+      data.rawValue[0] = 2;
+      data.rawValue[1] = '新文字';
+      data.notify();
+      await tester.pumpWidget(page());
+      expect(tester.takeException(), isNull);
+      await _settle(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('数字 2').hitTestable(), findsOneWidget);
+      expect(find.text('新文字').hitTestable(), findsOneWidget);
+      expect(find.text('原文字', skipOffstage: false), findsNothing);
+      expect(find.text('数字 1', skipOffstage: false), findsNothing);
+
+      await tester.pumpWidget(SizedBox.shrink());
+      data.notify();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   for (final reverse in [false, true]) {
     testWidgets('横向自然宽度 reverse=$reverse 连续排布、命中和回退', (tester) async {
@@ -488,7 +562,7 @@ void main() {
           physics: ClampingScrollPhysics(),
           scrollCacheExtent: ScrollCacheExtent.pixels(500),
           slivers: [
-            ElSliverRecycler(
+            ElSliverRecyclerList(
               itemCount: sizes.length,
               itemType: (index) => index == 0 ? 'A' : 'B',
               itemBuilder: (_, index) => ValueListenableBuilder<int>(
@@ -535,7 +609,7 @@ void main() {
           controller: controller,
           scrollCacheExtent: ScrollCacheExtent.pixels(0),
           slivers: [
-            ElSliverRecycler(
+            ElSliverRecyclerList(
               itemCount: texts.length,
               itemBuilder: (_, index) => ValueListenableBuilder<int>(
                 valueListenable: index,

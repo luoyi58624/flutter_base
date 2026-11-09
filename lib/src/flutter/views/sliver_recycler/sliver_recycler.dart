@@ -7,15 +7,76 @@ import 'package:flutter/widgets.dart';
 
 import '../recycler_view/extent_index.dart';
 
-/// 在官方滚动视口中自然测量子项，并按类型回收条目结构的 Sliver。
+part 'grid_geometry.dart';
+part 'grid_layout.dart';
+
+/// 在官方滚动视口中自然测量子项，并按类型回收固定业务结构的列表。
 ///
-/// [itemBuilder] 接收槽位持有的活序号；内容通过 ValueListenableBuilder 等方式
-/// 监听序号，事件执行时读取最新 value，滚动换绑不会重新调用外层构建器。
-/// 同一槽位保留 Element、State 和 RenderObject，业务状态应存放在数据模型中；
-/// 条目自己的临时状态、异步任务和订阅需要在序号变化时自行重置。
-class ElSliverRecycler extends RenderObjectWidget {
-  /// 创建可放入 CustomScrollView.slivers 的回收列表。
-  const ElSliverRecycler({
+/// itemBuilder 接收槽位持有的活序号，数据变化通过标准 ValueListenable 监听。
+/// 滚动换绑保留业务 Widget、Element、State 和 RenderObject。
+class ElSliverRecyclerList extends _RecyclerSliverWidget {
+  /// 创建可放入 CustomScrollView.slivers 的自然高度回收列表。
+  const ElSliverRecyclerList({
+    super.key,
+    required super.itemCount,
+    required super.itemBuilder,
+    super.itemType,
+    super.maxRecycledItems,
+  });
+}
+
+/// 按列数排列自然尺寸条目，并复用固定业务结构的网格。
+///
+/// 默认按行排列，每行由最高条目决定下一行的位置；较短条目保持自然高度。
+/// 使用 [ElSliverRecyclerGrid.masonry] 将条目放入当前最短列。
+/// 横向滚动时，crossAxisCount 表示行数，主轴尺寸由条目自身决定。
+class ElSliverRecyclerGrid extends _RecyclerSliverWidget {
+  /// 创建按行对齐的自然尺寸网格。
+  const ElSliverRecyclerGrid({
+    super.key,
+    required super.itemCount,
+    required super.itemBuilder,
+    required this.crossAxisCount,
+    this.mainAxisSpacing = 0,
+    this.crossAxisSpacing = 0,
+    super.itemType,
+    super.maxRecycledItems,
+  }) : _masonry = false,
+       assert(crossAxisCount > 0),
+       assert(mainAxisSpacing >= 0 && mainAxisSpacing < double.infinity),
+       assert(crossAxisSpacing >= 0 && crossAxisSpacing < double.infinity);
+
+  /// 创建按最短列填充的自然尺寸瀑布流。
+  ///
+  /// 未测量内容使用尺寸估值，测量后修正位置；已显示条目保持所在列。
+  const ElSliverRecyclerGrid.masonry({
+    super.key,
+    required super.itemCount,
+    required super.itemBuilder,
+    required this.crossAxisCount,
+    this.mainAxisSpacing = 0,
+    this.crossAxisSpacing = 0,
+    super.itemType,
+    super.maxRecycledItems,
+  }) : _masonry = true,
+       assert(crossAxisCount > 0),
+       assert(mainAxisSpacing >= 0 && mainAxisSpacing < double.infinity),
+       assert(crossAxisSpacing >= 0 && crossAxisSpacing < double.infinity);
+
+  /// 交叉轴上的条目数量。
+  final int crossAxisCount;
+
+  /// 同一列中相邻条目或相邻网格行之间的间距。
+  final double mainAxisSpacing;
+
+  /// 相邻列之间的间距。
+  final double crossAxisSpacing;
+
+  final bool _masonry;
+}
+
+abstract class _RecyclerSliverWidget extends RenderObjectWidget {
+  const _RecyclerSliverWidget({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
@@ -30,14 +91,14 @@ class ElSliverRecycler extends RenderObjectWidget {
   /// 创建槽位内容，序号改变时由内容自己的监听器更新数据。
   ///
   /// 父组件更新配置或构建上下文依赖变化时可以重新调用此构建器。
+  /// 监听对象由容器持有；事件执行时读取最新 value。
   final Widget Function(BuildContext context, ValueListenable<int> index) itemBuilder;
 
   /// 返回可相互复用的结构类型，未指定时所有条目属于同一类型。
   final Object? Function(int index)? itemType;
 
-  /// 所有类型合计最多保留的空闲槽位数，不包含当前缓存窗口中的条目。
-  ///
-  /// 设为零仍允许同一轮布局先回收再复用，但不会留下额外空闲条目。
+  /// 所有类型合计最多保留的空闲槽位数，不包含当前缓存窗口。
+  /// 设为零仍允许同一轮布局先回收再复用。
   final int maxRecycledItems;
 
   @override
@@ -86,7 +147,7 @@ class _Slot {
 }
 
 class _RecyclerElement extends RenderObjectElement {
-  _RecyclerElement(ElSliverRecycler super.widget);
+  _RecyclerElement(_RecyclerSliverWidget super.widget);
 
   final Set<_Slot> _slots = {};
   final Map<int, _Slot> _active = {};
@@ -94,11 +155,10 @@ class _RecyclerElement extends RenderObjectElement {
   late final BuildScope _scope = BuildScope(scheduleRebuild: _scheduleRebuild);
   int _generation = 0;
   int _laidOutGeneration = -1;
-  int _firstIndex = 0;
-  int _lastIndex = -1;
+  List<int> _visibleIndices = [];
   bool _deferredRebuild = false;
 
-  ElSliverRecycler get _widget => widget as ElSliverRecycler;
+  _RecyclerSliverWidget get _widget => widget as _RecyclerSliverWidget;
 
   @override
   BuildScope get buildScope => _scope;
@@ -127,7 +187,7 @@ class _RecyclerElement extends RenderObjectElement {
   }
 
   @override
-  void update(covariant ElSliverRecycler newWidget) {
+  void update(covariant _RecyclerSliverWidget newWidget) {
     _generation++;
     super.update(newWidget);
   }
@@ -148,7 +208,7 @@ class _RecyclerElement extends RenderObjectElement {
 
   @override
   void debugVisitOnstageChildren(ElementVisitor visitor) {
-    for (var index = _firstIndex; index <= _lastIndex; index++) {
+    for (final index in _visibleIndices) {
       if (_active[index]?.child case final child?) visitor(child);
     }
   }
@@ -238,6 +298,16 @@ class _RecyclerElement extends RenderObjectElement {
     }
   }
 
+  void _recycleExcept(Set<int> wanted) {
+    for (final entry in _active.entries.toList(growable: false)) {
+      if (!wanted.contains(entry.key) ||
+          entry.key >= _widget.itemCount ||
+          entry.value.type != _widget.itemType?.call(entry.key)) {
+        _retire(entry.value);
+      }
+    }
+  }
+
   _Slot _obtain(int index) {
     final type = _widget.itemType?.call(index);
     var slot = _active[index];
@@ -263,9 +333,10 @@ class _RecyclerElement extends RenderObjectElement {
   void _discardInvalidSpares() {
     for (final type in _pool.keys.toList(growable: false)) {
       final candidates = _pool[type]!;
-      // 必须在 buildScope 刷新脏子树前丢弃失效绑定，避免缩短后的数组越界。
+      // 必须在 buildScope 刷新脏子树前丢弃失效绑定，避免越界或旧结构读取新类型的数据。
       candidates.removeWhere((slot) {
-        if (slot.index.value < _widget.itemCount) return false;
+        final index = slot.index.value;
+        if (index < _widget.itemCount && slot.type == _widget.itemType?.call(index)) return false;
         _discard(slot);
         return true;
       });
@@ -291,11 +362,10 @@ class _RecyclerElement extends RenderObjectElement {
         _updateSlot(slot, active: false);
       }
     }
-    final first = wanted.isEmpty ? 0 : wanted.reduce(math.min);
-    final last = wanted.isEmpty ? -1 : wanted.reduce(math.max);
-    final changed = first != _firstIndex || last != _lastIndex || _laidOutGeneration != _generation;
-    _firstIndex = first;
-    _lastIndex = last;
+    final indicesChanged =
+        wanted.length != _visibleIndices.length || _visibleIndices.any((index) => !wanted.contains(index));
+    final changed = indicesChanged || _laidOutGeneration != _generation;
+    if (indicesChanged) _visibleIndices = wanted.toList()..sort();
     _laidOutGeneration = _generation;
     if (changed) renderObject.markNeedsSemanticsUpdate();
   }
@@ -304,6 +374,7 @@ class _RecyclerElement extends RenderObjectElement {
 class _RecyclerParentData extends ContainerBoxParentData<RenderBox> {
   late _Slot slot;
   double layoutOffset = 0;
+  double crossAxisOffset = 0;
   double extent = 0;
 }
 
@@ -324,6 +395,8 @@ class ElRenderSliverRecycler extends RenderSliver
 
   final _RecyclerElement _element;
   RecyclerExtentIndex? _extents;
+  _RecyclerGridRows? _gridRows;
+  _RecyclerMasonry? _masonry;
   int _geometryGeneration = -1;
   Axis? _axis;
   double? _crossExtent;
@@ -365,6 +438,15 @@ class ElRenderSliverRecycler extends RenderSliver
       _extents = RecyclerExtentIndex.groups(
         List.generate(count, (index) => types.putIfAbsent(widget.itemType?.call(index), () => types.length)),
       );
+      if (widget is ElSliverRecyclerGrid) {
+        _gridRows = widget._masonry
+            ? null
+            : _RecyclerGridRows(_extents!, widget.crossAxisCount, widget.mainAxisSpacing);
+        _masonry = widget._masonry ? _RecyclerMasonry(_extents!, widget.crossAxisCount, widget.mainAxisSpacing) : null;
+      } else {
+        _gridRows = null;
+        _masonry = null;
+      }
       _geometryGeneration = _element._generation;
       _axis = constraints.axis;
       _crossExtent = constraints.crossAxisExtent;
@@ -374,6 +456,11 @@ class ElRenderSliverRecycler extends RenderSliver
     if (count == 0) {
       _element.owner!.buildScope(_element, () => _element._finishLayout({}));
       geometry = SliverGeometry.zero;
+      return;
+    }
+
+    if (widget is ElSliverRecyclerGrid) {
+      _layoutGrid(widget, anchor);
       return;
     }
 
@@ -444,13 +531,21 @@ class ElRenderSliverRecycler extends RenderSliver
     }
     _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
 
+    for (final slot in _element._active.values) {
+      (slot.box!.parentData! as _RecyclerParentData)
+        ..layoutOffset = extents.prefix(slot.index.value)
+        ..crossAxisOffset = 0;
+    }
+    _completeGeometry(extents.total, pixels);
+  }
+
+  void _completeGeometry(double total, double pixels) {
     final correction = pixels - constraints.scrollOffset;
     if (correction.abs() > precisionErrorTolerance) {
       geometry = SliverGeometry(scrollOffsetCorrection: correction);
       return;
     }
 
-    final total = extents.total;
     final paintExtent = calculatePaintOffset(constraints, from: 0, to: total);
     geometry = SliverGeometry(
       scrollExtent: total,
@@ -464,10 +559,11 @@ class ElRenderSliverRecycler extends RenderSliver
     for (final slot in _element._active.values) {
       final child = slot.box!;
       final data = child.parentData! as _RecyclerParentData;
-      data.layoutOffset = extents.prefix(slot.index.value);
       final logical = data.layoutOffset - constraints.scrollOffset;
       final position = reversed ? paintExtent - logical - data.extent : logical;
-      data.offset = constraints.axis == Axis.vertical ? Offset(0, position) : Offset(position, 0);
+      data.offset = constraints.axis == Axis.vertical
+          ? Offset(data.crossAxisOffset, position)
+          : Offset(position, data.crossAxisOffset);
       (child as _ItemRenderBoundary).visible = logical < paintExtent && logical + data.extent > 0;
     }
   }
@@ -480,7 +576,7 @@ class ElRenderSliverRecycler extends RenderSliver
       (child.parentData! as _RecyclerParentData).layoutOffset - constraints.scrollOffset;
 
   @override
-  double childCrossAxisPosition(RenderBox child) => 0;
+  double childCrossAxisPosition(RenderBox child) => (child.parentData! as _RecyclerParentData).crossAxisOffset;
 
   @override
   double? childScrollOffset(RenderObject child) {
@@ -497,7 +593,7 @@ class ElRenderSliverRecycler extends RenderSliver
   @override
   void paint(PaintingContext context, Offset offset) {
     if (!geometry!.visible) return;
-    for (var index = _element._firstIndex; index <= _element._lastIndex; index++) {
+    for (final index in _element._visibleIndices) {
       final child = _element._active[index]?.box;
       if (child != null && paintsChild(child)) {
         context.paintChild(child, offset + (child.parentData! as _RecyclerParentData).offset);
@@ -513,6 +609,22 @@ class ElRenderSliverRecycler extends RenderSliver
   }) {
     final extents = _extents;
     if (extents == null || extents.length == 0) return false;
+    if (_element._widget is ElSliverRecyclerGrid) {
+      for (final index in _element._visibleIndices.reversed) {
+        final child = _element._active[index]?.box;
+        if (child != null &&
+            paintsChild(child) &&
+            hitTestBoxChild(
+              BoxHitTestResult.wrap(result),
+              child,
+              mainAxisPosition: mainAxisPosition,
+              crossAxisPosition: crossAxisPosition,
+            )) {
+          return true;
+        }
+      }
+      return false;
+    }
     final index = extents.indexAt(mainAxisPosition + constraints.scrollOffset);
     final child = _element._active[index]?.box;
     return child != null &&
@@ -537,7 +649,7 @@ class ElRenderSliverRecycler extends RenderSliver
 
   @override
   void visitChildrenForSemantics(RenderObjectVisitor visitor) {
-    for (var index = _element._firstIndex; index <= _element._lastIndex; index++) {
+    for (final index in _element._visibleIndices) {
       if (_element._active[index]?.box case final child?) visitor(child);
     }
   }

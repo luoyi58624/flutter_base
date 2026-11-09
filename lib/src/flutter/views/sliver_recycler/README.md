@@ -1,0 +1,81 @@
+# Sliver 回收列表、网格与瀑布流
+
+公开入口为 `ElSliverRecyclerList` 和 `ElSliverRecyclerGrid`，可直接放进 `CustomScrollView.slivers`，与标题、固定导航、页脚等其他 Sliver 共用滚动。
+
+```dart
+Widget buildItem(BuildContext context, ValueListenable<int> index) {
+  return ValueListenableBuilder<int>(
+    valueListenable: index,
+    builder: (context, value, child) => Text(records[value].title),
+  );
+}
+
+ElSliverRecyclerList(
+  itemCount: records.length,
+  itemBuilder: buildItem,
+);
+
+ElSliverRecyclerGrid(
+  crossAxisCount: 2,
+  mainAxisSpacing: 12,
+  crossAxisSpacing: 12,
+  itemCount: records.length,
+  itemBuilder: buildItem,
+);
+
+ElSliverRecyclerGrid.masonry(
+  crossAxisCount: 2,
+  mainAxisSpacing: 12,
+  crossAxisSpacing: 12,
+  itemCount: records.length,
+  itemBuilder: buildItem,
+);
+```
+
+示例中的 `records` 是业务数据。需要显式声明 ValueListenable 类型时，引入 `package:flutter/foundation.dart`；组件通过 `package:flutter_base/flutter_base.dart` 导入。
+
+## 尺寸与布局
+
+- 三种布局都自然测量条目，不要求固定高度或 itemExtent。方向、反向、滚动物理与缓存范围由外层 CustomScrollView 配置，内容边距使用 SliverPadding。
+- 普通网格按行排列，每行的最大自然高度决定下一行起点；较短卡片保留自身高度。横向滚动时行列角色随主轴交换。
+- 瀑布流将下一项放入当前最短列。已显示条目记录所在列，后续补测优先保持其列位置稳定，避免左右跳动。
+- 未测尺寸使用类型估值；真实尺寸揭晓、宽度或列数变化时重新计算受影响的位置，并通过 Sliver 的偏移修正保持可见锚点。总滚动长度在测量过程中可能变化。
+- 瀑布流远距定位只推算几何元数据，不创建前面所有 Widget；未知位置仍需要顺序推算前置列状态，不承诺常数时间或未测尺寸下的绝对精确偏移。
+
+## 复用与状态
+
+`itemBuilder` 创建槽位的固定业务结构。滚动换绑通过同一个 ValueListenable<int> 通知新序号，固定 Widget、Element、State 和 RenderObject 保留。动态区域使用官方 ListenableBuilder / ValueListenableBuilder，固定内容放在监听范围外或通过 child 参数传入。ElView 可以继续接收标准 ValueListenable 文本来源并使用文本快路径。
+
+监听对象由容器释放。事件回调应在触发时读取 index.value；输入内容、展开状态和异步任务应按业务记录保存或校验身份。父组件更换配置、条目数量或继承环境变化时，现有结构仍遵守正常配置更新规则。
+
+`itemType` 区分不能交换业务结构的类型；记录类型改变后，失效的旧绑定会在刷新子树前移除，避免旧结构读取新类型数据。`maxRecycledItems` 限制所有类型合计的空闲槽位，不含当前缓存窗口。列表、网格和瀑布流共用同一套槽位生命周期。
+
+## ElView 文本快路径
+
+把稳定的 ValueListenable 直接作为 ElView.child，纯文本通知即可更新渲染层。例如下面直接显示槽位的当前序号：
+
+```dart
+ElSliverRecyclerList(
+  itemCount: records.length,
+  itemBuilder: (_, index) => ElView(
+    style: ElStyle(fontSize: 16, padding: .all(12)),
+    child: index,
+  ),
+);
+```
+
+业务标题同样可以传入 ValueListenable<String>：其当前值应反映 index.value 对应的记录，并在序号或业务数据变化时通知；映射来源的订阅随条目生命周期释放。不要在固定外壳的构建器里只取一次 index.value 再生成普通字符串，否则后续换绑不会更新这段文字。
+
+文本快路径保留 ElView 的 Widget、Element 和 RenderObject，不经过整份视图配置更新；文字换行导致自然高度改变时，仍会触发布局并修正后续条目位置。三种布局的集成验证见 test/flutter/views/sliver_recycler_text_test.dart。
+
+## 文件分工
+
+| 文件 | 职责 |
+| --- | --- |
+| sliver_recycler.dart | 两个公开组件、固定槽位、单列布局、Sliver 绘制与命中 |
+| grid_geometry.dart | 网格行高索引、瀑布流列分配与窗口查询 |
+| grid_layout.dart | 自然测量、多列可见集合、间距及锚点修正 |
+
+首页提供列表对照、网格和瀑布流三个 ListTile 入口。网格和瀑布流示例各展示 1,000 条自然高度记录，右上角可切换 2 / 3 / 4 列。
+
+本轮验证使用无头 Widget 测试，不将测试运行时间解释为真机帧耗时。

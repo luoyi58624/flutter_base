@@ -69,17 +69,32 @@ class _Child extends StatelessWidget {
     final source = index;
     final label = source is ValueListenable<int> ? source.value : source;
     ElLog.i('build - $label');
-    return ElView(
-      style: ElStyle(
-        width: 200,
-        height: 50,
-        fontSize: 16,
-        margin: .only(bottom: 8),
-        backgroundColor: Colors.grey,
-        alignment: .center,
-        onTap: ElStyle(fontSize: 20),
+    return RepaintBoundary(
+      child: ElView(
+        style: ElStyle(
+          width: 200,
+          fontSize: 16,
+          padding: .all(8),
+          margin: .only(bottom: 8),
+          backgroundColor: Colors.grey,
+          alignment: .center,
+        ),
+        child: ExcludeSemantics(
+          child: Column(
+            spacing: 8,
+            children: [
+              ElView(child: index),
+              SingleChildScrollView(
+                scrollDirection: .horizontal,
+                child: Row(
+                  spacing: 8,
+                  children: [...ElevatedButton(onPressed: () {}, child: Text('hello')) * 10],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      child: index,
     );
   }
 }
