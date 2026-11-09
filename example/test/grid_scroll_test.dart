@@ -27,6 +27,11 @@ void main() {
       find.byWidgetPredicate((widget) => widget is ElView && widget.child == '酱油神小子'),
       findsWidgets,
     );
+    final image = find.byType(ElImageView).first;
+    final card = find.ancestor(of: image, matching: find.byType(ElView)).first;
+    final imageSize = tester.getSize(image);
+    expect(imageSize.width, tester.getSize(card).width);
+    expect(imageSize.height, greaterThan(0));
 
     await tester.pumpWidget(SizedBox.shrink());
     await tester.pump(Duration(milliseconds: 100));

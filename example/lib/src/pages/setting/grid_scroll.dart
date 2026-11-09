@@ -78,15 +78,17 @@ class _GridScrollPageState extends State<GridScrollPage> {
             ElRebuildWidget(
               child: ObsBuilder(
                 builder: (context) {
-                  return ElGridView(
-                    itemWidth: 150,
-                    rowGap: 6,
-                    columnGap: 6,
-                    // 旧 ElGrid 用宽乘 1.2 得到高度；这里的 aspectRatio 是宽/高。
-                    aspectRatio: 1 / 1.2,
-                    children: List.generate(
-                      _pageSize,
-                      (index) => _Card(data: _items[page * _pageSize + index]),
+                  return RepaintBoundary(
+                    child: ElGridView(
+                      itemWidth: 150,
+                      rowGap: 6,
+                      columnGap: 6,
+                      // 旧 ElGrid 用宽乘 1.2 得到高度；这里的 aspectRatio 是宽/高。
+                      aspectRatio: 1 / 1.2,
+                      children: List.generate(
+                        _pageSize,
+                        (index) => _Card(data: _items[page * _pageSize + index]),
+                      ),
                     ),
                   );
                 },
@@ -118,7 +120,16 @@ class _Card extends StatelessWidget {
         crossAxisAlignment: .start,
         children: [
           Expanded(
-            child: ElImageView(data['image']!, fit: BoxFit.cover),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return ElImageView(
+                  data['image']!,
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
           ),
           Padding(
             padding: .symmetric(vertical: 8, horizontal: 6),
