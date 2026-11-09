@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/recycler_view.dart' as rv;
 
 import '../state/index.dart';
 import 'example_scrollbar.dart';
@@ -99,7 +98,6 @@ class _DocViewport extends StatefulWidget {
 class _DocViewportState extends State<_DocViewport> {
   final _official = ScrollController();
   final _el = ElScrollController();
-  rv.RecyclerView? _recycler;
   late List<GlobalKey> _keys;
   int _locateGeneration = 0;
 
@@ -108,10 +106,6 @@ class _DocViewportState extends State<_DocViewport> {
     super.initState();
     _keys = List.generate(widget.itemCount, (_) => GlobalKey());
     widget.controller?._state = this;
-    if (widget.mode == DocScrollMode.recyclerView) {
-      _recycler = rv.RecyclerView(controller: _official)..setLayoutManager(rv.LinearLayoutManager(context));
-      _updateAdapter();
-    }
   }
 
   @override
@@ -126,22 +120,7 @@ class _DocViewportState extends State<_DocViewport> {
       _locateGeneration++;
       _keys = List.generate(widget.itemCount, (index) => index < _keys.length ? _keys[index] : GlobalKey());
     }
-    if (widget.itemCount != oldWidget.itemCount ||
-        widget.templateCount != oldWidget.templateCount ||
-        widget.headerCount != oldWidget.headerCount ||
-        widget.gap != oldWidget.gap) {
-      _updateAdapter();
-    }
   }
-
-  void _updateAdapter() => _recycler?.setAdapter(
-    _DocItemsAdapter(
-      count: widget.itemCount,
-      templateCount: widget.templateCount,
-      headerCount: widget.headerCount,
-      gap: widget.gap,
-    ),
-  );
 
   Widget _item(BuildContext context, int index) {
     final sourceIndex = index < widget.headerCount
@@ -154,7 +133,7 @@ class _DocViewportState extends State<_DocViewport> {
         child: widget.itemBuilder(context, sourceIndex),
       ),
     );
-    // RecyclerView 由内核提供每项边界，其他实现统一在这里隔离重绘。
+    // 各个小节独立隔离重绘，状态与目录 Key 归逻辑小节持有。
     return RepaintBoundary(child: child);
   }
 
@@ -163,10 +142,6 @@ class _DocViewportState extends State<_DocViewport> {
     final generation = ++_locateGeneration;
     if (widget.mode == DocScrollMode.elScrollView) {
       _el.scrollToIndex(index);
-      return;
-    }
-    if (widget.mode == DocScrollMode.recyclerView) {
-      _recycler?.scrollToPosition(index);
       return;
     }
     // 官方虚拟列表没有未知高度的索引定位，目录点击时逐屏接近，挂载后再精确对齐。
@@ -230,10 +205,15 @@ class _DocViewportState extends State<_DocViewport> {
         padding: widget.padding,
         children: [ElListView.builder(keepAlive: false, itemCount: widget.itemCount, itemBuilder: _item)],
       ),
-      .recyclerView => _DocItemBuilderScope(
-        itemBuilder: widget.itemBuilder,
-        child: _recycler!
-          ..setPadding(widget.padding.left, widget.padding.top, widget.padding.right, widget.padding.bottom),
+      .sliverList => CustomScrollView(
+        controller: _official,
+        primary: false,
+        slivers: [
+          SliverPadding(
+            padding: widget.padding,
+            sliver: ElSliverList(children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)]),
+          ),
+        ],
       ),
     };
     return widget.mode == .elScrollView ? list : RecyclerExampleScrollbar(controller: _official, child: list);
@@ -252,61 +232,4 @@ class _DocViewportState extends State<_DocViewport> {
 class _DocIosScrollBar extends ElIosScrollBar {
   @override
   bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
-}
-
-// 路由重挂时更新构建闭包，继续使用同一适配器和已测量的条目高度。
-class _DocItemBuilderScope extends InheritedWidget {
-  const _DocItemBuilderScope({required this.itemBuilder, required super.child});
-
-  final IndexedWidgetBuilder itemBuilder;
-
-  @override
-  bool updateShouldNotify(_DocItemBuilderScope oldWidget) => itemBuilder != oldWidget.itemBuilder;
-}
-
-class _DocItemsAdapter extends rv.Adapter<_DocItemHolder> {
-  _DocItemsAdapter({required this.count, required this.templateCount, required this.headerCount, required this.gap});
-  final int count;
-  final int templateCount;
-  final int headerCount;
-  final double gap;
-
-  @override
-  int getItemCount() => count;
-
-  @override
-  int getItemViewType(int position) =>
-      position < headerCount ? position : headerCount + (position - headerCount) % (templateCount - headerCount);
-
-  @override
-  _DocItemHolder onCreateViewHolder(rv.RecyclerView parent, int viewType) => _DocItemHolder(
-    Builder(
-      builder: (context) =>
-          context.dependOnInheritedWidgetOfExactType<_DocItemBuilderScope>()!.itemBuilder(context, viewType),
-    ),
-  );
-
-  @override
-  void onBindViewHolder(_DocItemHolder holder, int position, [List<Object> payloads = const []]) {
-    // 重复项共享结构类型，各 holder 保留独立子树，绑定只更新位置决定的间隔。
-    holder.gap.value = position == count - 1 ? 0 : gap;
-  }
-}
-
-class _DocItemHolder extends rv.ViewHolder {
-  _DocItemHolder(Widget template) : this._(template, ValueNotifier<double>(0));
-
-  _DocItemHolder._(Widget template, this.gap)
-    : super(
-        ValueListenableBuilder<double>(
-          valueListenable: gap,
-          child: template,
-          builder: (context, value, child) => Padding(
-            padding: .only(bottom: value),
-            child: child,
-          ),
-        ),
-      );
-
-  final ValueNotifier<double> gap;
 }

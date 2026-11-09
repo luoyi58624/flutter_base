@@ -6,18 +6,15 @@ import '../view.dart';
 import '../view/base.dart';
 import 'bibi/bibi.dart';
 import 'press_feedback.dart';
-import 'recycler_view/cards.dart';
-import 'recycler_view/chat.dart';
-import 'recycler_view/media.dart';
-import 'recycler_view/orders.dart';
-import 'recycler_view/product_waterfall.dart';
-import 'recycler_view/rectangles.dart';
-import 'recycler_view/rich_document.dart';
-import 'recycler_view/selection.dart';
-import 'recycler_view/social_feed.dart';
-import 'recycler_view/spike.dart';
-import 'recycler_view/takeaway.dart';
-import 'recycler_view/text.dart';
+import 'scroll_examples/cards.dart';
+import 'scroll_examples/chat.dart';
+import 'scroll_examples/media.dart';
+import 'scroll_examples/orders.dart';
+import 'scroll_examples/product_waterfall.dart';
+import 'scroll_examples/rich_document.dart';
+import 'scroll_examples/selection.dart';
+import 'scroll_examples/social_feed.dart';
+import 'scroll_examples/spike.dart';
 import 'sliver_list.dart';
 import 'sliver_recycler.dart';
 import 'sliver_recycler_grid.dart';
@@ -82,15 +79,20 @@ final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
   ),
 ];
 
-/// RecyclerView 长列表示例，两端共用相同目录与页面工厂。
-final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
+/// Sliver 业务场景，两端共用相同目录与页面工厂。
+final scrollBusinessExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(
     key: 'recycler-rectangles',
     title: '万条纯色矩形',
     icon: ElIcon(Icons.rectangle_outlined),
-    data: (_) => ElRecyclerRectanglesPage(),
+    data: (_) => ElSliverRecyclerExamplePage(),
   ),
-  ElMenuModel(key: 'recycler-text', title: '万条纯文本列表', icon: ElIcon(Icons.text_fields), data: (_) => RecyclerTextPage()),
+  ElMenuModel(
+    key: 'recycler-text',
+    title: '万条纯文本列表',
+    icon: ElIcon(Icons.text_fields),
+    data: (_) => ElSliverRecyclerExamplePage(initialContent: .text),
+  ),
   ElMenuModel(
     key: 'recycler-selection',
     title: '万条复选列表',
@@ -113,7 +115,7 @@ final recyclerExamples = <ElMenuModel<WidgetBuilder>>[
     key: 'recycler-takeaway',
     title: '外卖商家列表',
     icon: ElIcon(Icons.delivery_dining_outlined),
-    data: (_) => RecyclerTakeawayPage(),
+    data: (_) => TakeawaySliverPage(),
   ),
   ElMenuModel(
     key: 'recycler-video-grid',

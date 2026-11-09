@@ -81,7 +81,7 @@ class SettingPage extends StatelessWidget {
                 onTap: () {
                   el.router.pushPage(ScrollTest2());
                 },
-                title: 'RecyclerView 色块',
+                title: 'Sliver 色块',
               ),
               ElListTile(
                 onTap: () {

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../widgets/plain_scroll.dart';
 import '../example_page.dart';
 import 'bibi/feed.dart';
 
@@ -62,8 +61,7 @@ enum ElSliverRecyclerExampleContent {
 
 enum _SliverMode {
   recycler('ElSliverRecyclerList'),
-  list('SliverList'),
-  plain('普通滚动');
+  list('SliverList');
 
   const _SliverMode(this.label);
 
@@ -74,16 +72,18 @@ enum _SliverMode {
 class ElSliverRecyclerExamplePage extends HookWidget {
   /// 创建可切换容器与负载的万条列表。
   // ignore: prefer_const_constructors_in_immutables
-  ElSliverRecyclerExamplePage({super.key});
+  ElSliverRecyclerExamplePage({super.key, this.initialContent = .rectangles});
+
+  /// 初次进入时显示的负载。
+  final ElSliverRecyclerExampleContent initialContent;
 
   static const _itemCount = 10000;
 
   @override
   Widget build(BuildContext context) {
     final mode = useState(_SliverMode.recycler);
-    final content = useState(ElSliverRecyclerExampleContent.rectangles);
+    final content = useState(initialContent);
     final controller = useScrollController(keepScrollOffset: false);
-    final plainController = useScrollController(keepScrollOffset: false);
     final workload = content.value;
 
     final delegate = SliverChildBuilderDelegate(
@@ -99,7 +99,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
           tooltip: '${mode.value.label} · ${workload.label}',
           onSelected: (selection) {
             if (selection == mode.value || selection == content.value) return;
-            final active = mode.value == .plain ? plainController : controller;
+            final active = controller;
             if (active.hasClients) active.jumpTo(0);
             switch (selection) {
               case final _SliverMode value:
@@ -117,31 +117,21 @@ class ElSliverRecyclerExamplePage extends HookWidget {
           ],
         ),
       ],
-      child: switch (mode.value) {
-        .plain => ExamplePlainScroll(
-          key: ValueKey(workload),
-          controller: plainController,
-          maxCount: _itemCount,
-          revision: workload,
-          itemBuilder: (context, index) => workload.buildItem(context, AlwaysStoppedAnimation(index)),
-        ),
-        .recycler || .list => CustomScrollView(
-          controller: controller,
-          physics: ClampingScrollPhysics(),
-          semanticChildCount: _itemCount,
-          scrollCacheExtent: ScrollCacheExtent.pixels(250),
-          slivers: [
-            KeyedSubtree(
-              key: ValueKey(workload),
-              child: switch (mode.value) {
-                .recycler => ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: workload.buildItem),
-                .list => SliverList(delegate: delegate),
-                .plain => SliverToBoxAdapter(child: SizedBox.shrink()),
-              },
-            ),
-          ],
-        ),
-      },
+      child: CustomScrollView(
+        controller: controller,
+        physics: ClampingScrollPhysics(),
+        semanticChildCount: _itemCount,
+        scrollCacheExtent: ScrollCacheExtent.pixels(250),
+        slivers: [
+          KeyedSubtree(
+            key: ValueKey(workload),
+            child: switch (mode.value) {
+              .recycler => ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: workload.buildItem),
+              .list => SliverList(delegate: delegate),
+            },
+          ),
+        ],
+      ),
     );
   }
 }

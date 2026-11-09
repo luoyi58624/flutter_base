@@ -4,7 +4,7 @@ part of 'sliver_recycler.dart';
 class _RecyclerGridRows {
   _RecyclerGridRows(this.itemExtents, this.crossAxisCount, this.mainAxisSpacing) {
     final types = <String, int>{};
-    _rows = RecyclerExtentIndex.groups(
+    _rows = _ExtentIndex.groups(
       List.generate(rowCount, (row) {
         final cells = [for (var index = firstInRow(row); index < endInRow(row); index++) itemExtents.typeAt(index)]
           ..sort();
@@ -14,10 +14,10 @@ class _RecyclerGridRows {
     );
   }
 
-  final RecyclerExtentIndex itemExtents;
+  final _ExtentIndex itemExtents;
   final int crossAxisCount;
   final double mainAxisSpacing;
-  late final RecyclerExtentIndex _rows;
+  late final _ExtentIndex _rows;
 
   int get count => itemExtents.length;
   int get rowCount => (count + crossAxisCount - 1) ~/ crossAxisCount;
@@ -56,7 +56,7 @@ class _RecyclerMasonry {
     : _lanes = List.generate(crossAxisCount, (_) => <int>[]),
       _lines = List.filled(crossAxisCount, 0.0);
 
-  final RecyclerExtentIndex itemExtents;
+  final _ExtentIndex itemExtents;
   final int crossAxisCount;
   final double mainAxisSpacing;
   final _starts = <double>[];

@@ -347,7 +347,7 @@ void main() {
     await _open(tester, ExamplesPage());
     expect(tester.widgetList<ElListGroup>(find.byType(ElListGroup)).map((group) => group.title), [
       '交互与视图',
-      'RecyclerView',
+      'Sliver 业务示例',
       'ElSliver 滚动',
     ]);
     await tester.drag(find.byKey(PageStorageKey('advanced-examples')), Offset(0, -1000));

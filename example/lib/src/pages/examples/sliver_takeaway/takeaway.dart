@@ -37,8 +37,8 @@ part 'takeaway_render_interaction.dart';
 enum _TakeawayCardMode { widgets, renderObject }
 
 enum _SliverKind {
-  list('ElSliverRecyclerList'),
-  grid('ElSliverRecyclerGrid');
+  list('列表布局'),
+  grid('网格布局');
 
   const _SliverKind(this.label);
 
@@ -67,6 +67,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
   var _indices = List<int>.generate(10000, (index) => index);
   var _category = -1;
   var _kind = _SliverKind.list;
+  var _official = false;
 
   @override
   void didChangeDependencies() {
@@ -102,6 +103,9 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
 
   void _selectOption(Object option) {
     switch (option) {
+      case String mode when mode == 'official' || mode == 'recycler':
+        setState(() => _official = mode == 'official');
+        _resetScroll();
       case _SliverKind kind:
         _choose(kind);
       case _TakeawayCardMode mode:
@@ -117,7 +121,22 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
       _TakeawayCardHost(index: index, storeAt: _storeAt, photos: _photos, mode: _cardMode, onAdd: _add);
 
   Widget _content() {
-    final sliver = _kind == .list
+    Widget officialItem(BuildContext context, int index) => _sliverItem(context, AlwaysStoppedAnimation(index));
+    final sliver = _official
+        ? (_kind == .list
+              ? SliverList.builder(itemCount: _indices.length, itemBuilder: officialItem)
+              : SliverGrid.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    // 官方等高格为标签换行和店内菜单预留大字号空间。
+                    mainAxisExtent: 600 + math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14) * 40,
+                  ),
+                  itemCount: _indices.length,
+                  itemBuilder: officialItem,
+                ))
+        : _kind == .list
         ? ElSliverRecyclerList(itemCount: _indices.length, itemBuilder: _sliverItem)
         : ElSliverRecyclerGrid(
             crossAxisCount: 2,
@@ -157,6 +176,19 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
           tooltip: '列表选项',
           onSelected: _selectOption,
           itemBuilder: (context) => [
+            CheckedPopupMenuItem<Object>(
+              key: ValueKey('takeaway-mode-recycler'),
+              checked: !_official,
+              value: 'recycler',
+              child: Text(_kind == .list ? 'ElSliverRecyclerList' : 'ElSliverRecyclerGrid'),
+            ),
+            CheckedPopupMenuItem<Object>(
+              key: ValueKey('takeaway-mode-official'),
+              checked: _official,
+              value: 'official',
+              child: Text(_kind == .list ? 'SliverList' : 'SliverGrid'),
+            ),
+            PopupMenuDivider(),
             for (final kind in _SliverKind.values)
               CheckedPopupMenuItem<Object>(
                 key: ValueKey('takeaway-sliver-${kind.name}'),

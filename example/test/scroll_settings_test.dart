@@ -89,7 +89,7 @@ void main() {
     final options = <DocScrollMode, String>{
       DocScrollMode.official: '官方普通滚动',
       DocScrollMode.officialVirtual: '官方虚拟列表',
-      DocScrollMode.recyclerView: 'RecyclerView',
+      DocScrollMode.sliverList: 'ElSliverList',
       DocScrollMode.elScrollView: 'ElScrollView',
     };
     for (final entry in options.entries) {

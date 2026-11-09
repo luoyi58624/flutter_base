@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:example/src/pages/examples/bibi/bibi.dart';
-import 'package:example/src/pages/examples/recycler_view/media.dart';
+import 'package:example/src/pages/examples/scroll_examples/media.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -138,14 +138,16 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('media-scroll-menu')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('media-mode-elScrollView')));
+    await tester.tap(find.byKey(ValueKey('media-mode-official')));
     await tester.pumpAndSettle();
-    host = find.byKey(ValueKey('media-bibi-grid'));
+    host = find.byKey(ValueKey('media-bibi-official'));
   }
-  final scrollView = tester.widget<ElScrollView>(host);
-  expect(scrollView.physics, isA<ClampingScrollPhysics>());
-  expect(scrollView.cacheExtent, 250);
-  final controller = scrollView.controller!;
+  final scrollView = tester.widget(host);
+  final controller = switch (scrollView) {
+    ElScrollView(:final controller) => controller!,
+    CustomScrollView(:final controller) => controller!,
+    _ => throw StateError('缺少滚动宿主'),
+  };
   expect(controller.offset, 0);
   return (host, controller);
 }

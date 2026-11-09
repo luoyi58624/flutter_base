@@ -20,6 +20,39 @@ Widget _app(Widget page) => ElComponentProvider(
 );
 
 void main() {
+  testWidgets('网格两种模式共用位置控制，大字四列仍可布局', (tester) async {
+    _viewport(tester);
+    await tester.pumpWidget(
+      _app(
+        MediaQuery(
+          data: MediaQueryData(size: Size(390, 844), textScaler: TextScaler.linear(1.6)),
+          child: ElSliverRecyclerGridExamplePage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller;
+    await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CheckedPopupMenuItem<bool>), findsNWidgets(2));
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<bool>, 'SliverGrid'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SliverGrid), findsOneWidget);
+    expect(find.byType(ElSliverRecyclerGrid), findsNothing);
+    await tester.tap(find.byTooltip('选择列数'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byWidgetPredicate((widget) => widget is CheckedPopupMenuItem<int> && widget.value == 4));
+    await tester.pumpAndSettle();
+    expect(tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller, same(controller));
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<bool>, 'ElSliverRecyclerGrid'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid)).crossAxisCount, 4);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('首页 ListTile 能打开列表、网格和瀑布流并返回', (tester) async {
     _viewport(tester);
     await tester.pumpWidget(_app(HomePage()));

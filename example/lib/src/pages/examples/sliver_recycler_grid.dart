@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
@@ -22,6 +24,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final columns = useState(2);
+    final official = useState(false);
     final controller = useScrollController();
     final colors = Theme.of(context).colorScheme;
     final title = masonry ? '瀑布流示例' : '网格示例';
@@ -32,6 +35,15 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
       title: title,
       backgroundColor: colors.surfaceContainerLowest,
       actions: [
+        PopupMenuButton<bool>(
+          key: ValueKey('grid-mode-menu'),
+          tooltip: '切换内容 Sliver',
+          onSelected: (value) => official.value = value,
+          itemBuilder: (_) => [
+            CheckedPopupMenuItem(value: false, checked: !official.value, child: Text('ElSliverRecyclerGrid')),
+            CheckedPopupMenuItem(value: true, checked: official.value, child: Text('SliverGrid')),
+          ],
+        ),
         PopupMenuButton<int>(
           tooltip: '选择列数',
           onSelected: (value) => columns.value = value,
@@ -73,7 +85,23 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
             ),
             SliverPadding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              sliver: masonry
+              sliver: official.value
+                  ? SliverLayoutBuilder(
+                      builder: (context, constraints) => SliverGrid.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns.value,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: _officialCardExtent(
+                            context,
+                            (constraints.crossAxisExtent - 12 * (columns.value - 1)) / columns.value,
+                          ),
+                        ),
+                        itemCount: _itemCount,
+                        itemBuilder: (context, index) => buildItem(context, AlwaysStoppedAnimation(index)),
+                      ),
+                    )
+                  : masonry
                   ? ElSliverRecyclerGrid.masonry(
                       crossAxisCount: columns.value,
                       mainAxisSpacing: 12,
@@ -100,6 +128,39 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
       ),
     );
   }
+}
+
+// 官方等高网格按这组有限文案预留完整高度，回收分支仍直接测量自然尺寸。
+double _officialCardExtent(BuildContext context, double width) {
+  final typography = Theme.of(context).textTheme;
+  final defaults = DefaultTextStyle.of(context);
+  double height(String text, TextStyle? style) {
+    var resolved = defaults.style.merge(style);
+    if (MediaQuery.boldTextOf(context)) resolved = resolved.merge(TextStyle(fontWeight: .bold));
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: resolved),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      locale: Localizations.maybeLocaleOf(context),
+      textHeightBehavior: defaults.textHeightBehavior,
+    )..layout(maxWidth: math.max(1, width - 24));
+    final result = painter.height.ceilToDouble();
+    painter.dispose();
+    return result;
+  }
+
+  return 72 +
+      24 +
+      8 +
+      12 +
+      _records
+          .map(
+            (record) =>
+                height('${record.title} #1000', typography.titleSmall) +
+                height(record.description, typography.bodyMedium?.copyWith(height: 1.5)) +
+                height('观察记录 1000', typography.labelSmall),
+          )
+          .reduce(math.max);
 }
 
 // 卡片外壳跟随槽位保留，换绑时由官方 Builder 读取最新记录。

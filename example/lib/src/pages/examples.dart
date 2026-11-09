@@ -49,9 +49,9 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
-                    title: 'RecyclerView',
+                    title: 'Sliver 业务示例',
                     children: [
-                      for (final page in recyclerExamples)
+                      for (final page in scrollBusinessExamples)
                         ElListTile(
                           key: ValueKey('advanced-${page.key}'),
                           title: page.title,

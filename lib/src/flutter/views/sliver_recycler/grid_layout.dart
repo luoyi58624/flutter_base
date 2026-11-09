@@ -27,13 +27,7 @@ extension _RecyclerGridLayout on ElRenderSliverRecycler {
     }
 
     RenderBox layoutChild(int index) {
-      late _Slot slot;
-      _element.owner!.buildScope(_element, () {
-        slot = _element._obtain(index);
-        _element._discardInvalidSpares();
-      });
-      final child = slot.box!;
-      child.layout(childConstraints, parentUsesSize: true);
+      final child = _element._layoutItem(index, childConstraints);
       (child.parentData! as _RecyclerParentData).extent = constraints.axis == Axis.vertical
           ? child.size.height
           : child.size.width;

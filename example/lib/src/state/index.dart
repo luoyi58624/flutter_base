@@ -12,8 +12,8 @@ enum DocScrollMode {
   /// 使用 ElScrollView 的虚拟滚动管线。
   elScrollView('ElScrollView'),
 
-  /// 使用可按模板回收复用条目的 Dart RecyclerView。
-  recyclerView('RecyclerView');
+  /// 使用常驻自然尺寸的 ElSliverList 文档。
+  sliverList('ElSliverList');
 
   /// 创建滚动实现及其在设置中显示的名称。
   const DocScrollMode(this.label);
@@ -39,11 +39,7 @@ class GlobalState {
   static final excludeSemantics = Obs(false, cacheKey: 'example.settings.excludeSemantics');
 
   /// 所有通用文档页使用的滚动实现。
-  static final docScrollMode = Obs(
-    DocScrollMode.elScrollView,
-    cacheKey: 'example.settings.docScrollMode',
-    serialize: ElEnumSerialize<DocScrollMode>(DocScrollMode.values),
-  );
+  static final docScrollMode = _createDocScrollSetting();
 
   /// 所有通用文档页正文小节的重复倍数。
   static final docRepeatCount = _createRepeatCountSetting();
@@ -65,6 +61,18 @@ class GlobalState {
       setting.notify();
     }
   }
+}
+
+Obs<DocScrollMode> _createDocScrollSetting() {
+  final storage = Obs.localStorage;
+  const key = 'example.settings.docScrollMode';
+  // 只迁移旧组件的精确名称，其它模式和未知值继续沿用既有反序列化规则。
+  if (storage.getItem<Object>(key) == 'recyclerView') storage.setItem(key, 'sliverList');
+  return Obs(
+    DocScrollMode.elScrollView,
+    cacheKey: key,
+    serialize: ElEnumSerialize<DocScrollMode>(DocScrollMode.values),
+  );
 }
 
 Obs<int> _createRepeatCountSetting() {

@@ -1,0 +1,60 @@
+import 'package:example/src/pages/examples/scroll_examples/selection.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_base/mobile.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+Finder _key(String key) => find.byKey(ValueKey(key));
+
+Future<void> _tap(WidgetTester tester, String key) async {
+  await tester.tap(_key(key));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _locate(WidgetTester tester, String input) async {
+  await _tap(tester, 'selection-menu');
+  await _tap(tester, 'selection-locate-menu');
+  await tester.enterText(_key('selection-index-input'), input);
+  await _tap(tester, 'selection-locate');
+}
+
+void main() {
+  for (final mode in ['recycler', 'official']) {
+    testWidgets('$mode 定位 5000 后目标可见，滚走返回和布局切换保留业务选择', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = Size(390, 844);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        ElComponentProvider(
+          components: el.mobileComponents,
+          child: MaterialApp(home: RecyclerSelectionPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _tap(tester, 'selection-menu');
+      expect(find.byType(CheckedPopupMenuItem<Object>), findsNWidgets(2));
+      await _tap(tester, 'selection-mode-$mode');
+      await _locate(tester, '5000');
+      final target = find.text('条目 05000').hitTestable();
+      expect(target, findsOneWidget);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Text>(_key('selection-count')).data, '1 / 10000');
+      await _locate(tester, '20000');
+      expect(find.text('条目 10000').hitTestable(), findsOneWidget);
+      await _locate(tester, '无效');
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      await _locate(tester, '5000');
+      final row = find.ancestor(of: target, matching: find.byType(ElCardView)).first;
+      final checkbox = find.descendant(of: row, matching: find.byType(ElCheckbox));
+      expect(tester.widget<ElCheckbox>(checkbox).modelValue!.value, isTrue);
+      await _tap(tester, 'selection-menu');
+      await _tap(tester, 'selection-mode-${mode == 'recycler' ? 'official' : 'recycler'}');
+      await _locate(tester, '5000');
+      expect(tester.widget<ElCheckbox>(checkbox).modelValue!.value, isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  }
+}

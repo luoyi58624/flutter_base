@@ -5,8 +5,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../recycler_view/extent_index.dart';
+import '../../utils/internal/reuse_animation.dart';
 
+part 'extent_index.dart';
 part 'grid_geometry.dart';
 part 'grid_layout.dart';
 
@@ -133,6 +134,7 @@ class _Slot {
 
   final Object? type;
   final _IndexBinding index;
+  final ReuseAnimationState animation = ReuseAnimationState();
   final FocusNode focusNode = FocusNode(canRequestFocus: false, skipTraversal: true);
   Element? child;
   RenderBox? box;
@@ -269,7 +271,10 @@ class _RecyclerElement extends RenderObjectElement {
               skipTraversal: true,
               descendantsAreFocusable: active,
               descendantsAreTraversable: active,
-              child: IndexedSemantics(index: slot.index.value, child: slot.content!),
+              child: ReuseAnimationScope(
+                state: slot.animation,
+                child: IndexedSemantics(index: slot.index.value, child: slot.content!),
+              ),
             ),
           ),
         ),
@@ -326,8 +331,26 @@ class _RecyclerElement extends RenderObjectElement {
       }
       _active[index] = slot;
     }
-    _updateSlot(slot, active: true, index: index);
     return slot;
+  }
+
+  RenderBox _layoutItem(int index, BoxConstraints constraints) {
+    final slot = _obtain(index);
+    void updateAndLayout() {
+      owner!.buildScope(this, () {
+        _updateSlot(slot, active: true, index: index);
+        _discardInvalidSpares();
+      });
+      slot.box!.layout(constraints, parentUsesSize: true);
+    }
+
+    // 换记录时让构建与布局共享局部作用域，同一记录的状态更新继续正常过渡。
+    if (slot.index.value != index) {
+      slot.animation.runRebind(updateAndLayout);
+    } else {
+      updateAndLayout();
+    }
+    return slot.box!;
   }
 
   void _discardInvalidSpares() {
@@ -385,7 +408,7 @@ class _RecyclerAnchor {
   final double relativeStart;
 }
 
-/// 将 RecyclerView 的实测尺寸索引接入官方 Sliver 布局、绘制和命中协议。
+/// 将自然尺寸回收内容接入官方 Sliver 布局、绘制和命中协议。
 class ElRenderSliverRecycler extends RenderSliver
     with
         ContainerRenderObjectMixin<RenderBox, _RecyclerParentData>,
@@ -394,7 +417,7 @@ class ElRenderSliverRecycler extends RenderSliver
   ElRenderSliverRecycler._(this._element);
 
   final _RecyclerElement _element;
-  RecyclerExtentIndex? _extents;
+  _ExtentIndex? _extents;
   _RecyclerGridRows? _gridRows;
   _RecyclerMasonry? _masonry;
   int _geometryGeneration = -1;
@@ -452,8 +475,8 @@ class ElRenderSliverRecycler extends RenderSliver
     }
     if (reset) {
       final groups = <Object?, int>{};
-      // 直接复用原 RecyclerView 的索引；估值、前缀和与 offset 反查只有一份实现。
-      _extents = RecyclerExtentIndex.groups(
+      // 尺寸、类型估值和偏移反查使用同一份 Sliver 内部索引。
+      _extents = _ExtentIndex.groups(
         _geometryTypes.isEmpty
             ? List<int>.filled(count, 0)
             : [for (final type in _geometryTypes) groups.putIfAbsent(type, () => groups.length)],
@@ -484,18 +507,14 @@ class ElRenderSliverRecycler extends RenderSliver
       return;
     }
 
-    // 与原 RecyclerView 相同：只约束交叉轴，主轴尺寸交给条目自身。
+    // 只约束交叉轴，主轴尺寸交给条目自身。
     final childConstraints = constraints.asBoxConstraints();
     var pixels = constraints.scrollOffset;
+    // 起点没有待保留的离屏内容；结构变化不能把旧索引锚点带到起点之后。
+    if (pixels <= precisionErrorTolerance) anchor = _RecyclerAnchor(0, 0);
     void layoutPosition(int index) {
-      late _Slot slot;
-      _element.owner!.buildScope(_element, () {
-        slot = _element._obtain(index);
-        _element._discardInvalidSpares();
-      });
       // 绑定通知必须先完成 build，再读取新条目的真实尺寸。
-      final child = slot.box!;
-      child.layout(childConstraints, parentUsesSize: true);
+      final child = _element._layoutItem(index, childConstraints);
       final extent = constraints.axis == Axis.vertical ? child.size.height : child.size.width;
       final changed = extents.measure(index, extent);
       if (changed && anchor != null) {

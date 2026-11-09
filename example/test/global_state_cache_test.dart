@@ -15,7 +15,7 @@ void main() {
       'example.settings.showPerformanceOverlay': true,
       'example.settings.debugShowCheckedModeBanner': false,
       'example.settings.excludeSemantics': true,
-      'example.settings.docScrollMode': 'officialVirtual',
+      'example.settings.docScrollMode': 'recyclerView',
       'example.settings.docRepeatCount': 20,
       'example.settings.resamplingEnabled': false,
     };
@@ -28,7 +28,8 @@ void main() {
     expect(GlobalState.showPerformanceOverlay.value, isTrue);
     expect(GlobalState.debugShowCheckedModeBanner.value, isFalse);
     expect(GlobalState.excludeSemantics.value, isTrue);
-    expect(GlobalState.docScrollMode.value, DocScrollMode.officialVirtual);
+    expect(GlobalState.docScrollMode.value, DocScrollMode.sliverList);
+    expect(storage.getItem<Object>('example.settings.docScrollMode'), 'sliverList');
     expect(GlobalState.docRepeatCount.value, 20);
     expect(GlobalState.resamplingEnabled.value, isFalse);
     expect(binding.resamplingEnabled, isFalse, reason: '缓存恢复时就要应用实际输入开关');
@@ -37,7 +38,7 @@ void main() {
     GlobalState.showPerformanceOverlay.value = false;
     GlobalState.debugShowCheckedModeBanner.value = true;
     GlobalState.excludeSemantics.value = false;
-    GlobalState.docScrollMode.value = DocScrollMode.recyclerView;
+    GlobalState.docScrollMode.value = DocScrollMode.sliverList;
     GlobalState.docRepeatCount.value = 5;
     GlobalState.resamplingEnabled.value = true;
     expect(binding.resamplingEnabled, isTrue);
@@ -47,7 +48,7 @@ void main() {
       'example.settings.showPerformanceOverlay': false,
       'example.settings.debugShowCheckedModeBanner': true,
       'example.settings.excludeSemantics': false,
-      'example.settings.docScrollMode': 'recyclerView',
+      'example.settings.docScrollMode': 'sliverList',
       'example.settings.docRepeatCount': 5,
       'example.settings.resamplingEnabled': true,
     };
@@ -78,7 +79,7 @@ void main() {
       serialize: GlobalState.docScrollMode.serialize,
     );
     final pressure = Obs(1, cacheKey: GlobalState.docRepeatCount.cacheKey);
-    expect(mode.value, DocScrollMode.recyclerView);
+    expect(mode.value, DocScrollMode.sliverList);
     expect(pressure.value, 5);
     mode.dispose();
     pressure.dispose();
