@@ -22,8 +22,8 @@ const _recommended = 1;
 
 /// 使用官方 CustomScrollView / SliverList 复刻 Bibi 首页，不依赖 ElScrollView。
 ///
-/// 每个频道只有一份纵向 ScrollPosition：最前面的 58px Sliver 是搜索栏的折叠行程，
-/// 因而拖拽、惯性、正文始终使用一个坐标，不靠修改视口尺寸或手动跳转来移交惯性。
+/// 每个频道只有一份正文 ScrollPosition；页头是独立的有限行程，
+/// 先消费拖拽与惯性，再将剩余量交给正文，Viewport 始终保持原有布局尺寸。
 class SliverBibiPage extends StatefulWidget {
   const SliverBibiPage({super.key});
 
@@ -32,9 +32,9 @@ class SliverBibiPage extends StatefulWidget {
 }
 
 /// Bibi 对照页的状态；测试入口暴露真实 Sliver 位置与刷新行程。
-class SliverBibiPageState extends State<SliverBibiPage> {
+class SliverBibiPageState extends State<SliverBibiPage> with SingleTickerProviderStateMixin {
   final _pager = ElTabController(length: _channels.length, initialIndex: _recommended);
-  final _headerOffset = ValueNotifier<double>(0);
+  late final _headerOffset = AnimationController(vsync: this, upperBound: _searchHeight);
   late final List<_SliverFeedController> _feeds;
   final _velocities = List<double>.filled(_channels.length, 0);
   final _refreshMotions = <int, _SliverPullMotion>{};
@@ -49,7 +49,7 @@ class SliverBibiPageState extends State<SliverBibiPage> {
   int _snapGeneration = 0;
   int _downPointers = 0;
 
-  /// 当前频道已经消费的总滚动距离（前 58px 为搜索栏）。
+  /// 当前频道的真实正文像素偏移，不包含搜索栏的独立行程。
   @visibleForTesting
   double get debugScrollPixels => _feedPixels(_active);
 
@@ -72,7 +72,11 @@ class SliverBibiPageState extends State<SliverBibiPage> {
     super.initState();
     _feeds = List.generate(_channels.length, (index) {
       final controller = _SliverFeedController(
-        onBallistic: (velocity) => _velocities[index] = velocity,
+        onBallistic: (velocity) {
+          // 弹道自然结束时框架会再调用 goBallistic(0)，不能抹掉真实甩动方向。
+          if (velocity != 0) _velocities[index] = velocity;
+        },
+        readMotion: () => _refreshMotions[index],
         onAttach: (position) => position.isScrollingNotifier.addListener(_checkRefreshApply),
         onDetach: (position) => position.isScrollingNotifier.removeListener(_checkRefreshApply),
       );
@@ -80,13 +84,12 @@ class SliverBibiPageState extends State<SliverBibiPage> {
       return controller;
     });
     _pager.addListener(_checkRefreshApply);
+    _headerOffset.addListener(_checkRefreshApply);
   }
 
   void _onFeedMoved(int index) {
     if (index != _active) return;
-    final pixels = _feedPixels(index);
-    final next = pixels.clamp(0.0, _searchHeight).toDouble();
-    if (_headerOffset.value != next) _headerOffset.value = next;
+    // 正文像素不再决定页头折叠量；深处拖拽也必须能够单独推动搜索栏。
     _checkRefreshApply();
   }
 
@@ -116,6 +119,10 @@ class SliverBibiPageState extends State<SliverBibiPage> {
   void _pageChanged(int index) {
     if (_active == index) return;
     _refreshMotions[_active]?.onPageDeactivated();
+    final previous = _feeds[_active];
+    if (previous.hasClients && previous.position is ScrollPositionWithSingleContext) {
+      (previous.position as ScrollPositionWithSingleContext).goIdle();
+    }
     _snapGeneration++;
     _snapTarget = null;
     _active = index;
@@ -126,6 +133,7 @@ class SliverBibiPageState extends State<SliverBibiPage> {
   void _returnToTop() {
     _snapGeneration++;
     _snapTarget = null;
+    _headerOffset.stop();
     _moveFeedsTo(0);
     _headerOffset.value = 0;
     _checkRefreshApply();
@@ -186,9 +194,11 @@ class SliverBibiPageState extends State<SliverBibiPage> {
   bool _onScrollNotification(int index, ScrollNotification notification) {
     if (index != _active || notification.depth != 0 || notification.metrics.axis != Axis.vertical) return false;
     if (notification is ScrollStartNotification && notification.dragDetails != null) {
-      // 新的真实拖拽接管未完成的吸附，轻点不会丢掉原目标。
+      // 只有正式开始拖拽才取消吸附，轻点不会打断动画。
       _snapGeneration++;
       _snapTarget = null;
+      _headerOffset.stop();
+      _velocities[index] = 0;
     } else if (notification is ScrollEndNotification) {
       _scheduleHeaderSnap(index);
     }
@@ -203,7 +213,7 @@ class SliverBibiPageState extends State<SliverBibiPage> {
       if (!mounted || _active != index || _downPointers > 0 || _pager.isDragging || _pager.isAnimating) return;
       final feed = _feeds[index];
       if (!feed.hasClients || !feed.position.hasContentDimensions || feed.position.isScrollingNotifier.value) return;
-      final pixels = feed.position.pixels;
+      final pixels = _headerOffset.value;
       if (pixels <= 0 || pixels >= _searchHeight) {
         _snapTarget = null;
         return;
@@ -220,14 +230,26 @@ class SliverBibiPageState extends State<SliverBibiPage> {
       }
       _snapTarget = target;
       final generation = ++_snapGeneration;
-      unawaited(
-        feed.animateTo(target, duration: Duration(milliseconds: 180), curve: Curves.easeInOutSine).then((_) {
-          if (!mounted || generation != _snapGeneration) return;
-          if ((feed.position.pixels - target).abs() < 0.1) _snapTarget = null;
-        }),
-      );
+      unawaited(_animateHeaderSnap(target, generation));
     });
     WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  Future<void> _animateHeaderSnap(double target, int generation) async {
+    try {
+      await _headerOffset
+          .animateTo(target, duration: Duration(milliseconds: 180), curve: Curves.easeInOutSine)
+          .orCancel;
+    } on TickerCanceled {
+      return;
+    }
+    if (mounted && generation == _snapGeneration) _snapTarget = null;
+  }
+
+  void _onWheelSettled(int index, double direction) {
+    if (index != _active) return;
+    _velocities[index] = direction * 100;
+    _scheduleHeaderSnap(index);
   }
 
   void _registerMotion(int index, _SliverPullMotion motion) => _refreshMotions[index] = motion;
@@ -241,6 +263,7 @@ class SliverBibiPageState extends State<SliverBibiPage> {
     _refreshTimer?.cancel();
     _refreshRequest?.complete();
     _pager.removeListener(_checkRefreshApply);
+    _headerOffset.removeListener(_checkRefreshApply);
     _pager.dispose();
     _headerOffset.dispose();
     for (final feed in _feeds) {
@@ -276,36 +299,42 @@ class SliverBibiPageState extends State<SliverBibiPage> {
                 top: insets.top + _tabsHeight,
                 bottom: insets.bottom + _bottomHeight,
                 child: ClipRect(
-                  // 注意这里没有 Transform.translate：Viewport 始终占用相同的布局区域。
-                  child: ElTabView(
-                    key: ValueKey('sliver-bibi-pager'),
-                    controller: _pager,
-                    physics: ClampingScrollPhysics(),
-                    lazy: true,
-                    maxCacheCount: 3,
-                    onIndexChanged: _pageChanged,
-                    onDragStateChanged: (dragging) {
-                      if (dragging) _syncFeeds();
-                    },
-                    children: [
-                      for (var index = 0; index < _channels.length; index++)
-                        _SliverBibiFeed(
-                          key: ValueKey('sliver-bibi-feed-$index'),
-                          index: index,
-                          generation: _generation,
-                          controller: _feeds[index],
-                          activeIndex: () => _active,
-                          headerOffset: _headerOffset,
-                          pager: _pager,
-                          onRefresh: _refresh,
-                          onScrollNotification: (notification) => _onScrollNotification(index, notification),
-                          onPointerDown: () => _onPointerDown(index),
-                          onPointerUp: () => _onPointerUp(index),
-                          onPointerCancel: () => _onPointerCancel(index),
-                          registerMotion: (motion) => _registerMotion(index, motion),
-                          unregisterMotion: (motion) => _unregisterMotion(index, motion),
-                        ),
-                    ],
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _headerOffset,
+                    // 只平移完整视口，不改变布局尺寸或正文像素；保留原版 Bibi 的几何行为。
+                    builder: (context, offset, child) =>
+                        Transform.translate(offset: Offset(0, _searchHeight - offset), child: child),
+                    child: ElTabView(
+                      key: ValueKey('sliver-bibi-pager'),
+                      controller: _pager,
+                      physics: ClampingScrollPhysics(),
+                      lazy: true,
+                      maxCacheCount: 3,
+                      onIndexChanged: _pageChanged,
+                      onDragStateChanged: (dragging) {
+                        if (dragging) _syncFeeds();
+                      },
+                      children: [
+                        for (var index = 0; index < _channels.length; index++)
+                          _SliverBibiFeed(
+                            key: ValueKey('sliver-bibi-feed-$index'),
+                            index: index,
+                            generation: _generation,
+                            controller: _feeds[index],
+                            activeIndex: () => _active,
+                            headerOffset: _headerOffset,
+                            pager: _pager,
+                            onRefresh: _refresh,
+                            onScrollNotification: (notification) => _onScrollNotification(index, notification),
+                            onPointerDown: () => _onPointerDown(index),
+                            onPointerUp: () => _onPointerUp(index),
+                            onPointerCancel: () => _onPointerCancel(index),
+                            onWheelSettled: (direction) => _onWheelSettled(index, direction),
+                            registerMotion: (motion) => _registerMotion(index, motion),
+                            unregisterMotion: (motion) => _unregisterMotion(index, motion),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -345,9 +374,11 @@ class SliverBibiPageState extends State<SliverBibiPage> {
 }
 
 class _SliverFeedController extends ScrollController {
-  _SliverFeedController({required this.onBallistic, super.onAttach, super.onDetach}) : super(keepScrollOffset: false);
+  _SliverFeedController({required this.onBallistic, required this.readMotion, super.onAttach, super.onDetach})
+    : super(keepScrollOffset: false);
 
   final ValueChanged<double> onBallistic;
+  final _SliverPullMotion? Function() readMotion;
   double restoreOffset = 0;
 
   @override
@@ -361,6 +392,7 @@ class _SliverFeedController extends ScrollController {
         oldPosition: oldPosition,
         initialPixels: initialScrollOffset,
         onBallistic: onBallistic,
+        readMotion: readMotion,
       );
 }
 
@@ -371,14 +403,37 @@ class _SliverFeedPosition extends ScrollPositionWithSingleContext {
     required super.oldPosition,
     required super.initialPixels,
     required this.onBallistic,
+    required this.readMotion,
   }) : super(keepScrollOffset: false);
 
   final ValueChanged<double> onBallistic;
+  final _SliverPullMotion? Function() readMotion;
+  double? _lastBallisticSample;
 
   @override
   void goBallistic(double velocity) {
+    _lastBallisticSample = pixels;
     onBallistic(velocity);
     super.goBallistic(velocity);
+  }
+
+  @override
+  double setPixels(double newPixels) {
+    if (activity is BallisticScrollActivity) {
+      // 官方仿真仍提供完整位移曲线，但先让页头消费每帧增量。
+      // 仿真采样值与真实正文 pixels 不相等，因此必须单独保存上次采样。
+      final previousSample = _lastBallisticSample ?? pixels;
+      _lastBallisticSample = newPixels;
+      final remaining = readMotion()?.consumeHeaderDelta(newPixels - previousSample) ?? (newPixels - previousSample);
+      return super.setPixels(pixels + remaining);
+    }
+    return super.setPixels(newPixels);
+  }
+
+  @override
+  void pointerScroll(double delta) {
+    final remaining = readMotion()?.consumeWheelDelta(delta) ?? delta;
+    if (remaining != 0) super.pointerScroll(remaining);
   }
 }
 
@@ -396,6 +451,7 @@ class _SliverBibiFeed extends StatefulWidget {
     required this.onPointerDown,
     required this.onPointerUp,
     required this.onPointerCancel,
+    required this.onWheelSettled,
     required this.registerMotion,
     required this.unregisterMotion,
   });
@@ -404,13 +460,14 @@ class _SliverBibiFeed extends StatefulWidget {
   final int generation;
   final ScrollController controller;
   final int Function() activeIndex;
-  final ValueListenable<double> headerOffset;
+  final AnimationController headerOffset;
   final ElTabController pager;
   final Future<void> Function() onRefresh;
   final bool Function(ScrollNotification) onScrollNotification;
   final VoidCallback onPointerDown;
   final VoidCallback onPointerUp;
   final VoidCallback onPointerCancel;
+  final ValueChanged<double> onWheelSettled;
   final ValueChanged<_SliverPullMotion> registerMotion;
   final ValueChanged<_SliverPullMotion> unregisterMotion;
 
@@ -419,7 +476,13 @@ class _SliverBibiFeed extends StatefulWidget {
 }
 
 class _SliverBibiFeedState extends State<_SliverBibiFeed> with SingleTickerProviderStateMixin {
-  late final _motion = _SliverPullMotion(vsync: this, canStart: _canReceivePull, onRefresh: () => widget.onRefresh());
+  late final _motion = _SliverPullMotion(
+    vsync: this,
+    header: widget.headerOffset,
+    canStart: _canReceivePull,
+    onWheelSettled: widget.onWheelSettled,
+    onRefresh: () => widget.onRefresh(),
+  );
   late final _physics = _SliverPullPhysics(_motion);
   late final _refreshDetails = _SliverRefreshDetails(_motion, _physics);
   final _indicatorVisible = ValueNotifier<bool>(false);
@@ -492,10 +555,7 @@ class _SliverBibiFeedState extends State<_SliverBibiFeed> with SingleTickerProvi
             controller: widget.controller,
             physics: _physics,
             slivers: [
-              // 搜索栏行程就是第一段 Sliver：一次 drag/fling 直接跨越 58px，没有双 position 移交。
-              SliverToBoxAdapter(
-                child: SizedBox(key: ValueKey('sliver-bibi-header-space-${widget.index}'), height: _searchHeight),
-              ),
+              // 正文依然是标准 Sliver；搜索栏通过统一输入分账，不占据正文的滚动区间。
               SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
               SliverPadding(
                 padding: EdgeInsets.only(bottom: 4),
@@ -510,7 +570,7 @@ class _SliverBibiFeedState extends State<_SliverBibiFeed> with SingleTickerProvi
         ),
       ),
       Positioned.fill(
-        top: _searchHeight,
+        // 外层已经按搜索栏行程平移整个正文视口；刷新层与视口共用顶部坐标。
         child: ValueListenableBuilder<bool>(
           valueListenable: _indicatorVisible,
           builder: (context, visible, _) => AnimatedOpacity(
