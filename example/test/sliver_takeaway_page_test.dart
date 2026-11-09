@@ -1,6 +1,8 @@
 import 'package:example/src/pages/examples.dart';
 import 'package:example/src/pages/examples/sliver_takeaway/takeaway.dart';
 import 'package:example/src/utils/router.dart';
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_base/mobile.dart';
@@ -138,6 +140,73 @@ Future<String> _addVisibleDish(WidgetTester tester, _ShopSnapshot shop) async {
 }
 
 void main() {
+  testWidgets('Sliver 外卖页 Windows 鼠标渐进滚动只消费一次，横向菜单独立且卸载停止动画', (tester) async {
+    final previousPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await _open(tester, TakeawaySliverPage());
+      final vertical = _vertical(tester);
+      Offset verticalPoint() => tester.getCenter(find.byKey(ValueKey('takeaway-title')).hitTestable().first);
+
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          kind: PointerDeviceKind.mouse,
+          timeStamp: Duration(seconds: 1),
+          position: verticalPoint(),
+          scrollDelta: Offset(0, 120),
+        ),
+      );
+      expect(vertical.offset, 0, reason: '滚轮应交给现有平滑器，不能同时由官方 Scrollable 立即直跳。');
+      // Ticker 首帧建立 elapsed=0，再验证下一帧真实推进而未直接抵达终点。
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 16));
+      expect(vertical.offset, greaterThan(0));
+      expect(vertical.offset, lessThan(120));
+      await tester.pumpAndSettle();
+      expect(vertical.offset, closeTo(120, .01), reason: '同一个 wheel 事件只能消费一次 120 像素。');
+
+      final shop = _shops(tester).firstWhere(
+        (shop) =>
+            find.descendant(of: _scope(shop.card), matching: find.byType(ListView)).hitTestable().evaluate().isNotEmpty,
+      );
+      final menu = find.descendant(of: _scope(shop.card), matching: find.byType(ListView));
+      final horizontal = shop.menu.position;
+      final horizontalBefore = horizontal.pixels;
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          kind: PointerDeviceKind.mouse,
+          timeStamp: Duration(seconds: 2),
+          position: tester.getCenter(menu),
+          scrollDelta: Offset(120, 0),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(horizontal.pixels, closeTo(horizontalBefore + 120, .01));
+      expect(vertical.offset, closeTo(120, .01), reason: '菜单的横向滚轮不得再推动外层纵向视口。');
+
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          kind: PointerDeviceKind.mouse,
+          timeStamp: Duration(seconds: 3),
+          position: verticalPoint(),
+          scrollDelta: Offset(0, 120),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 16));
+      expect(vertical.offset, greaterThan(120));
+      expect(vertical.offset, lessThan(240));
+      expect(vertical.position.isScrollingNotifier.value, isTrue);
+
+      await tester.pumpWidget(SizedBox.shrink());
+      await tester.pump(Duration(milliseconds: 500));
+      expect(tester.takeException(), isNull);
+      expect(tester.binding.transientCallbackCount, 0, reason: '退出页面必须释放仍在活动的平滑滚动 ticker。');
+    } finally {
+      debugDefaultTargetPlatformOverride = previousPlatform;
+    }
+  });
+
   testWidgets('Sliver 外卖页换店与同序号分类筛选更新图文和加购数据', (tester) async {
     await _open(tester, TakeawaySliverPage(networkPhotos: true));
     final initial = _shops(tester).singleWhere((shop) => shop.id == 0);

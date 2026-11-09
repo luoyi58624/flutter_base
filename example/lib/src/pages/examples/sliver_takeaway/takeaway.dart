@@ -6,10 +6,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'
-    show BoxConstraints, BoxHitTestEntry, PaintingContext, PipelineOwner, RenderBox, RenderParagraph, ScrollCacheExtent;
+    show
+        BoxConstraints,
+        BoxHitTestEntry,
+        PaintingContext,
+        PipelineOwner,
+        RenderBox,
+        RenderParagraph,
+        ScrollCacheExtent,
+        ViewportOffset;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter_base/flutter_base.dart';
+// 临时连接官方视口；滚动壳替换后移除，直接复用现有平滑执行器。
+// ignore: implementation_imports
+import 'package:flutter_base/src/flutter/views/scroll/smooth_scroll/smooth_pointer_scroll.dart';
 
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
@@ -116,7 +128,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
           );
     return RecyclerExampleScrollbar(
       controller: _controller,
-      child: CustomScrollView(
+      child: _TakeawayScrollView(
         key: ValueKey('takeaway-sliver'),
         controller: _controller,
         // 与旧外卖示例关闭同步预取一致，滚动帧先只处理当前视口的复杂卡片。
@@ -221,6 +233,68 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
           ],
         ),
       ),
+    );
+  }
+}
+
+// 仅给当前示例接滚轮；监听放在官方 Scrollable 内部，避免默认直滚先消费事件。
+class _TakeawayScrollView extends CustomScrollView {
+  // ignore: prefer_const_constructors_in_immutables
+  _TakeawayScrollView({super.key, required super.controller, required super.slivers, super.scrollCacheExtent});
+
+  @override
+  Widget buildViewport(BuildContext context, ViewportOffset offset, AxisDirection axisDirection, List<Widget> slivers) {
+    final position = offset as ScrollPosition;
+    final viewport = super.buildViewport(context, offset, axisDirection, slivers);
+    return HookBuilder(
+      builder: (context) {
+        final smooth = useMemoized(
+          () => SmoothPointerScrollController(
+            position: () => position,
+            targetOffsetForDelta: (delta, {from}) =>
+                ((from ?? position.pixels) + delta).clamp(position.minScrollExtent, position.maxScrollExtent),
+          ),
+          [position],
+        );
+        // 结束活动会派发滚动通知；等宿主完成卸载或位置换绑后再释放。
+        useEffect(
+          () =>
+              () => SchedulerBinding.instance.addPostFrameCallback((_) => smooth.dispose()),
+          [smooth],
+        );
+        smooth.algorithm = ElViewProvider.smoothScrollOf(context);
+        final modifiers = ScrollConfiguration.of(context).pointerAxisModifiers;
+        return Listener(
+          behavior: hitTestBehavior,
+          onPointerDown: (_) => smooth.reset(),
+          onPointerPanZoomStart: (_) => smooth.reset(),
+          onPointerSignal: (event) {
+            if (event is PointerScrollInertiaCancelEvent) {
+              smooth.reset();
+              return;
+            }
+            if (event is! PointerScrollEvent ||
+                smooth.algorithm == null ||
+                !position.hasPixels ||
+                !position.hasContentDimensions ||
+                !position.physics.shouldAcceptUserOffset(position)) {
+              return;
+            }
+            final flip =
+                event.kind == PointerDeviceKind.mouse &&
+                HardwareKeyboard.instance.logicalKeysPressed.any(modifiers.contains);
+            var delta = flip ? event.scrollDelta.dx : event.scrollDelta.dy;
+            if (axisDirectionIsReversed(axisDirection)) delta = -delta;
+            if (delta == 0 || !smooth.canConsumeDelta(delta)) return;
+            GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+              if (!context.mounted || !smooth.canConsumeDelta(delta)) return;
+              smooth.applyPointerScroll(event, delta);
+              event.respond(allowPlatformDefault: false);
+            });
+          },
+          child: viewport,
+        );
+      },
     );
   }
 }
