@@ -18,6 +18,7 @@ import 'recycler_view/social_feed.dart';
 import 'recycler_view/spike.dart';
 import 'recycler_view/takeaway.dart';
 import 'recycler_view/text.dart';
+import 'sliver_list.dart';
 import 'sliver_recycler.dart';
 import 'sliver_recycler_grid.dart';
 import 'sliver_takeaway/takeaway.dart';
@@ -48,6 +49,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: 'Sliver 瀑布流示例',
     icon: ElIcon(Icons.view_quilt_outlined),
     data: (_) => ElSliverRecyclerGridExamplePage.masonry(),
+  ),
+  ElMenuModel(
+    key: 'sliver-list',
+    title: '文档滚动（全量常驻）',
+    icon: ElIcon(Icons.description_outlined),
+    data: (_) => ElSliverListExamplePage(),
   ),
   ElMenuModel(key: 'view', title: 'ElView 测试', icon: ElIcon(Icons.web_outlined), data: (_) => ElViewPage()),
   ElMenuModel(

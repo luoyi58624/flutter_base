@@ -7,7 +7,7 @@ import 'examples/catalog.dart';
 import 'showcase/buttons.dart';
 import 'showcase/hero.dart';
 
-/// 组件综合展示首页，提供回收滚动入口、响应式布局与按钮交互。
+/// 组件综合展示首页，提供滚动示例入口、响应式布局与按钮交互。
 class HomePage extends HookWidget {
   /// 创建综合展示页。
   const HomePage({super.key});
@@ -34,7 +34,7 @@ class HomePage extends HookWidget {
                   gap: 36,
                   itemCount: 3,
                   itemBuilder: (context, index) => switch (index) {
-                    0 => _RecyclerEntries(),
+                    0 => _ScrollEntries(),
                     1 => ShowcaseHero(onExplore: () => scroll.scrollToIndex(2)),
                     _ => ButtonShowcase(),
                   },
@@ -48,7 +48,7 @@ class HomePage extends HookWidget {
   }
 }
 
-class _RecyclerEntries extends StatelessWidget {
+class _ScrollEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -65,7 +65,12 @@ class _RecyclerEntries extends StatelessWidget {
         child: Column(
           children: [
             for (final page in advancedExamples.where(
-              (page) => const {'sliver-recycler', 'sliver-recycler-grid', 'sliver-recycler-masonry'}.contains(page.key),
+              (page) => {
+                'sliver-recycler',
+                'sliver-recycler-grid',
+                'sliver-recycler-masonry',
+                'sliver-list',
+              }.contains(page.key),
             ))
               ListTile(
                 key: ValueKey('home-${page.key}'),
