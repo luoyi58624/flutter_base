@@ -5,7 +5,6 @@ import '../custom_gestures.dart';
 import '../view.dart';
 import '../view/base.dart';
 import 'bibi/bibi.dart';
-import 'imperative_view/rectangles.dart';
 import 'press_feedback.dart';
 import 'recycler_view/cards.dart';
 import 'recycler_view/chat.dart';
@@ -21,6 +20,7 @@ import 'recycler_view/takeaway.dart';
 import 'recycler_view/text.dart';
 import 'sliver_recycler.dart';
 import 'sliver_recycler_grid.dart';
+import 'sliver_takeaway/takeaway.dart';
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -65,13 +65,13 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ),
 ];
 
-/// 命令式 View 示例，两端共用相同分组和页面工厂。
-final imperativeExamples = <ElMenuModel<WidgetBuilder>>[
+/// ElSliver 滚动示例，两端共用相同分组和页面工厂。
+final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(
-    key: 'imperative-rectangles',
-    title: '颜色矩形',
-    icon: ElIcon(Icons.rectangle_outlined),
-    data: (_) => ImperativeRectanglesPage(),
+    key: 'sliver-takeaway',
+    title: '外卖商家列表',
+    icon: ElIcon(Icons.delivery_dining_outlined),
+    data: (_) => TakeawaySliverPage(),
   ),
 ];
 

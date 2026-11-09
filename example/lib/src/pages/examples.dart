@@ -61,9 +61,9 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
-                    title: '命令式View',
+                    title: 'ElSliver 滚动',
                     children: [
-                      for (final page in imperativeExamples)
+                      for (final page in sliverScrollExamples)
                         ElListTile(
                           key: ValueKey('advanced-${page.key}'),
                           title: page.title,
