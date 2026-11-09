@@ -15,6 +15,7 @@ import 'scroll_examples/rich_document.dart';
 import 'scroll_examples/selection.dart';
 import 'scroll_examples/social_feed.dart';
 import 'scroll_examples/spike.dart';
+import 'sliver_bibi/sliver_bibi.dart';
 import 'sliver_list.dart';
 import 'sliver_recycler.dart';
 import 'sliver_recycler_grid.dart';
@@ -23,6 +24,12 @@ import 'sliver_takeaway/takeaway.dart';
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ElMenuModel(key: 'bibi-home', title: 'Bibi 首页', icon: ElIcon(Icons.video_library_outlined), data: (_) => BibiPage()),
+  ElMenuModel(
+    key: 'sliver-bibi',
+    title: 'Bibi Sliver 对照',
+    icon: ElIcon(Icons.view_day_outlined),
+    data: (_) => SliverBibiPage(),
+  ),
   ElMenuModel(
     key: 'bibi-plain',
     title: 'Bibi 非虚拟',
