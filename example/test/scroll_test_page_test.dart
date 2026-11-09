@@ -35,6 +35,13 @@ void main() {
 
     expect(_item(999), findsOneWidget);
     expect(_item(0), findsNothing);
+
+    await tester.tap(find.byKey(ValueKey('scroll-test-official-switch')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byType(SliverList), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == 0), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/desktop.dart';
 
-/// 用 ElSliverRecyclerList 滚动一列可复用的 ElView。
+/// 用同一列 ElView 对照 ElSliverRecyclerList 与官方 SliverList。
 class ScrollTestPage extends HookWidget {
-  /// 创建纵向回收列表。
+  /// 创建可切换官方列表的纵向滚动页。
   ScrollTestPage({super.key});
 
   static const _itemCount = 1000;
@@ -13,10 +13,29 @@ class ScrollTestPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final official = useState(false);
     final controller = useScrollController(keepScrollOffset: false);
     return Scaffold(
       backgroundColor: context.elTheme.fill,
-      appBar: AppBar(title: Text('滚动测试')),
+      appBar: AppBar(
+        title: Text('滚动测试'),
+        actions: [
+          Row(
+            mainAxisSize: .min,
+            children: [
+              Text('SliverList'),
+              Switch(
+                key: ValueKey('scroll-test-official-switch'),
+                value: official.value,
+                onChanged: (value) {
+                  if (controller.hasClients) controller.jumpTo(0);
+                  official.value = value;
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
       body: CustomScrollView(
         controller: controller,
         physics: ClampingScrollPhysics(),
@@ -25,7 +44,13 @@ class ScrollTestPage extends HookWidget {
         slivers: [
           SliverPadding(
             padding: .all(16),
-            sliver: ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: (context, index) => _Child(index)),
+            sliver: official.value
+                ? SliverList.builder(
+                    itemCount: _itemCount,
+                    addAutomaticKeepAlives: false,
+                    itemBuilder: (context, index) => _Child(index),
+                  )
+                : ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: (context, index) => _Child(index)),
           ),
         ],
       ),
@@ -36,11 +61,14 @@ class ScrollTestPage extends HookWidget {
 class _Child extends StatelessWidget {
   _Child(this.index);
 
-  /// 槽位序号。滚动换绑时由列表通知，ElView 直接订阅并更新文本。
-  final ValueListenable<int> index;
+  /// 回收列表传入序号监听；SliverList 传入整数。
+  final Object index;
 
   @override
   Widget build(BuildContext context) {
+    final source = index;
+    final label = source is ValueListenable<int> ? source.value : source;
+    ElLog.i('build - $label');
     return ElView(
       style: ElStyle(
         width: 200,
@@ -48,6 +76,7 @@ class _Child extends StatelessWidget {
         fontSize: 16,
         margin: .only(bottom: 8),
         backgroundColor: Colors.grey,
+        alignment: .center,
         onTap: ElStyle(fontSize: 20),
       ),
       child: index,
