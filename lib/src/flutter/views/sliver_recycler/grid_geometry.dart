@@ -72,8 +72,11 @@ class _RecyclerMasonry {
     if (count == 0) return 0;
     final knownEnd = math.max(0.0, _lines.reduce(math.max) - mainAxisSpacing);
     if (_starts.length == count) return knownEnd;
+    // 已生成前缀沿用现有几何，尚未生成后缀才使用最新估值，避免到尾部时范围突变。
+    final placedExtent = _lines.fold(0.0, (sum, line) => sum + line) - _starts.length * mainAxisSpacing;
+    final estimatedExtent = placedExtent + itemExtents.total - itemExtents.prefix(_starts.length);
     final estimatedGaps = math.max(0.0, (count - crossAxisCount) / crossAxisCount);
-    return math.max(knownEnd, itemExtents.total / crossAxisCount + estimatedGaps * mainAxisSpacing);
+    return math.max(knownEnd, estimatedExtent / crossAxisCount + estimatedGaps * mainAxisSpacing);
   }
 
   void _append() {
@@ -144,11 +147,12 @@ class _RecyclerMasonry {
   }
 
   bool measure(int index, double extent) {
-    // 首个正尺寸样本会改变此前所有同类型估值，需一起重新推算。
-    final changesEstimate = extent > 0 && !itemExtents.hasTypeEstimate(itemExtents.typeAt(index));
     final changed = itemExtents.measure(index, extent);
-    if (changed) _invalidateFrom(changesEstimate ? 0 : index);
-    return changed;
+    // 类型估值更新供后续推算使用，不回溯改写此前已建立的几何。
+    // 索引中的估值可能已变，仍须比对本条缓存尺寸，实际补测时再更新它之后的位置。
+    final placementChanged = index < _starts.length ? _ends[index] != _starts[index] + extent : changed;
+    if (placementChanged) _invalidateFrom(index);
+    return placementChanged;
   }
 
   void retainLane(int index, int lane) => _committedLanes[index] = lane;

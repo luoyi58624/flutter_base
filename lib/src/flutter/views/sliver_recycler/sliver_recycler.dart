@@ -398,6 +398,8 @@ class ElRenderSliverRecycler extends RenderSliver
   _RecyclerGridRows? _gridRows;
   _RecyclerMasonry? _masonry;
   int _geometryGeneration = -1;
+  List<Object?> _geometryTypes = const [];
+  ({bool masonry, int crossAxisCount, double mainAxisSpacing, double crossAxisSpacing})? _gridConfiguration;
   Axis? _axis;
   double? _crossExtent;
   bool _needsFirstMeasurement = true;
@@ -428,15 +430,33 @@ class ElRenderSliverRecycler extends RenderSliver
     final widget = _element._widget;
     final count = widget.itemCount;
     var anchor = _visibleAnchor();
-    final reset =
-        _geometryGeneration != _element._generation ||
+    final gridConfiguration = widget is ElSliverRecyclerGrid
+        ? (
+            masonry: widget._masonry,
+            crossAxisCount: widget.crossAxisCount,
+            mainAxisSpacing: widget.mainAxisSpacing,
+            crossAxisSpacing: widget.crossAxisSpacing,
+          )
+        : null;
+    var reset =
+        _extents?.length != count ||
         _axis != constraints.axis ||
-        _crossExtent != constraints.crossAxisExtent;
+        _crossExtent != constraints.crossAxisExtent ||
+        _gridConfiguration != gridConfiguration;
+    if (reset || _geometryGeneration != _element._generation) {
+      // 路由或父级重建只刷新业务绑定；真实类型与几何配置未变时保留实测尺寸和列分配。
+      final types = widget.itemType == null ? const <Object?>[] : List<Object?>.generate(count, widget.itemType!);
+      reset |= !listEquals(_geometryTypes, types);
+      _geometryTypes = types;
+      _geometryGeneration = _element._generation;
+    }
     if (reset) {
-      final types = <Object?, int>{};
+      final groups = <Object?, int>{};
       // 直接复用原 RecyclerView 的索引；估值、前缀和与 offset 反查只有一份实现。
       _extents = RecyclerExtentIndex.groups(
-        List.generate(count, (index) => types.putIfAbsent(widget.itemType?.call(index), () => types.length)),
+        _geometryTypes.isEmpty
+            ? List<int>.filled(count, 0)
+            : [for (final type in _geometryTypes) groups.putIfAbsent(type, () => groups.length)],
       );
       if (widget is ElSliverRecyclerGrid) {
         _gridRows = widget._masonry
@@ -447,7 +467,7 @@ class ElRenderSliverRecycler extends RenderSliver
         _gridRows = null;
         _masonry = null;
       }
-      _geometryGeneration = _element._generation;
+      _gridConfiguration = gridConfiguration;
       _axis = constraints.axis;
       _crossExtent = constraints.crossAxisExtent;
       _needsFirstMeasurement = count > 0;

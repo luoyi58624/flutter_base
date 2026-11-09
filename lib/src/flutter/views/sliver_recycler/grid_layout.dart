@@ -82,13 +82,7 @@ extension _RecyclerGridLayout on ElRenderSliverRecycler {
       keepAnchor();
     }
 
-    if (anchor == null && pixels < total() && constraints.remainingPaintExtent > 0) {
-      final index = rows != null
-          ? rows.firstInRow(rows.rowAt(pixels))
-          : masonry!.visible(pixels, pixels + constraints.remainingPaintExtent).firstOrNull;
-      if (index != null) anchor = _RecyclerAnchor(index, startAt(index) - pixels);
-    }
-
+    // 远跳后没有真实可见旧条目时，保持输入像素；未知尺寸推算出的条目不能充当锚点。
     final wanted = <int>{};
     if (constraints.remainingCacheExtent > 0 && (cacheStart() < total() || total() == 0)) {
       if (rows != null) {

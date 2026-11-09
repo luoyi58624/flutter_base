@@ -1,6 +1,8 @@
 import 'package:example/src/pages/examples/sliver_recycler_grid.dart';
 import 'package:example/src/pages/home.dart';
 import 'package:example/src/utils/router.dart';
+import 'package:example/src/widgets/example_scrollbar.dart';
+import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,6 +72,13 @@ void main() {
       expect(find.text('1000 条记录 · 3 列'), findsOneWidget);
 
       final scroll = find.byKey(ValueKey(masonry ? 'sliver-masonry-scroll' : 'sliver-grid-scroll'));
+      final scrollbar = find.ancestor(of: scroll, matching: find.byType(CupertinoScrollbar));
+      expect(scrollbar, findsOneWidget);
+      final bar = tester.widget<CupertinoScrollbar>(scrollbar);
+      expect(bar.controller, same(tester.widget<CustomScrollView>(scroll).controller));
+      expect(bar.thumbVisibility, isTrue);
+      final wrapper = find.ancestor(of: scroll, matching: find.byType(RecyclerExampleScrollbar));
+      expect(tester.widget<RecyclerExampleScrollbar>(wrapper).stopOnThumbRelease, isFalse);
       await tester.drag(scroll, Offset(0, -1000));
       await tester.pumpAndSettle();
       expect(cards, findsWidgets);

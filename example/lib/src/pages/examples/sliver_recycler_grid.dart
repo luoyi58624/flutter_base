@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
+import '../../widgets/example_scrollbar.dart';
 import '../example_page.dart';
 
 /// 用相同的自然高度卡片展示网格与瀑布流。
@@ -41,58 +42,61 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
           icon: Icon(Icons.view_column_outlined),
         ),
       ],
-      child: CustomScrollView(
-        key: ValueKey(masonry ? 'sliver-masonry-scroll' : 'sliver-grid-scroll'),
+      child: RecyclerExampleScrollbar(
         controller: controller,
-        semanticChildCount: _itemCount,
-        scrollCacheExtent: ScrollCacheExtent.pixels(240),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('日常观察', style: Theme.of(context).textTheme.headlineSmall),
-                  SizedBox(height: 8),
-                  Text(
-                    masonry ? '不同长度的记录，沿每列自然接续。' : '每行从同一个位置开始，卡片保留各自的内容高度。',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '$_itemCount 条记录 · ${columns.value} 列',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.primary),
-                  ),
-                ],
+        child: CustomScrollView(
+          key: ValueKey(masonry ? 'sliver-masonry-scroll' : 'sliver-grid-scroll'),
+          controller: controller,
+          semanticChildCount: _itemCount,
+          scrollCacheExtent: ScrollCacheExtent.pixels(240),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('日常观察', style: Theme.of(context).textTheme.headlineSmall),
+                    SizedBox(height: 8),
+                    Text(
+                      masonry ? '不同长度的记录，沿每列自然接续。' : '每行从同一个位置开始，卡片保留各自的内容高度。',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '$_itemCount 条记录 · ${columns.value} 列',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.primary),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            sliver: masonry
-                ? ElSliverRecyclerGrid.masonry(
-                    crossAxisCount: columns.value,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    itemCount: _itemCount,
-                    itemBuilder: buildItem,
-                  )
-                : ElSliverRecyclerGrid(
-                    crossAxisCount: columns.value,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    itemCount: _itemCount,
-                    itemBuilder: buildItem,
-                  ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: Text('所有记录已展示', style: Theme.of(context).textTheme.bodySmall)),
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              sliver: masonry
+                  ? ElSliverRecyclerGrid.masonry(
+                      crossAxisCount: columns.value,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      itemCount: _itemCount,
+                      itemBuilder: buildItem,
+                    )
+                  : ElSliverRecyclerGrid(
+                      crossAxisCount: columns.value,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      itemCount: _itemCount,
+                      itemBuilder: buildItem,
+                    ),
             ),
-          ),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: Text('所有记录已展示', style: Theme.of(context).textTheme.bodySmall)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
