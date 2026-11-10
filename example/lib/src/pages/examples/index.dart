@@ -9,6 +9,7 @@ import 'bibi/bibi.dart';
 import 'press_feedback.dart';
 import 'new_scroll_nested.dart';
 import 'new_scroll_refresh.dart';
+import 'new_scroll_navigation.dart';
 import 'scroll_examples/cards.dart';
 import 'scroll_examples/chat.dart';
 import 'scroll_examples/media.dart';
@@ -81,6 +82,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
 
 /// 新版滚动示例，两端共用相同分组和页面工厂。
 final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'new-scroll-navigation',
+    title: '导航特效（LargeTitle / Collapse）',
+    icon: ElIcon(Icons.auto_awesome_outlined),
+    data: (_) => NewScrollNavigationPage(),
+  ),
   ElMenuModel(
     key: 'new-scroll-nested',
     title: '嵌套滚动与 shrinkWrap',

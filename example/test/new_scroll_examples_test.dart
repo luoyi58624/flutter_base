@@ -1,4 +1,5 @@
 import 'package:example/src/pages/examples/new_scroll_nested.dart';
+import 'package:example/src/pages/examples/new_scroll_navigation.dart';
 import 'package:example/src/pages/examples/new_scroll_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
@@ -7,6 +8,27 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _app(Widget page) => MaterialApp(scrollBehavior: ElScrollBehavior(), home: page);
 
 void main() {
+  testWidgets('导航特效：LargeTitle 与三种折叠构造可以切换', (tester) async {
+    await tester.pumpWidget(_app(NewScrollNavigationPage()));
+    await tester.pumpAndSettle();
+    expect(find.byType(ElSliverLargeTitle), findsOneWidget);
+
+    await tester.tap(find.text('位置折叠'));
+    await tester.pumpAndSettle();
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverCollapse), findsOneWidget);
+    expect(find.byType(SliverPersistentHeader), findsOneWidget);
+
+    await tester.tap(find.text('方向浮现'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SliverFloatingHeader), findsOneWidget);
+
+    await tester.tap(find.text('Bibi 吸收'));
+    await tester.pumpAndSettle();
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverCollapse), findsOneWidget);
+    expect(find.text('搜索视频、话题与用户'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('新版滚动：纵横嵌套与 shrinkWrap 页面可以正常挂载', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);

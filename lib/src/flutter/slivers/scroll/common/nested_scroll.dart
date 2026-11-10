@@ -36,6 +36,11 @@ abstract class ElNestedScrollParent {
   /// pixels 空间(正 = 内容前进)。
   double onNestedPreScroll(double delta, ElScrollDeltaSource source) => 0.0;
 
+  /// 不修改状态，判断当前方向是否能够在 pre 阶段消费滚轮。
+  ///
+  /// 用于正文已到边界时的接收者选择；默认不拦截滚轮，刷新器等不受影响。
+  bool canConsumeNestedPreScroll(double delta, ElScrollDeltaSource source) => false;
+
   /// post 段:内层滚到边界后,没消费掉的剩余量上交。返回消费量;
   /// 本级没吃完的部分继续交给更外层,全链吃不完才回落为内层 overscroll。
   double onNestedPostScroll(double unconsumed, ElScrollDeltaSource source) => 0.0;
@@ -129,6 +134,16 @@ final class NestedScrollChain {
     for (final n in _nodes) {
       if (!n.detached) n.parent.onNestedScrollEnd();
     }
+  }
+
+  /// 仅探测是否有协作方可以消费这笔输入，不改变折叠进度。
+  bool canPreScroll(double delta, ElScrollDeltaSource source) {
+    if (delta == 0) return false;
+    for (var i = _nodes.length - 1; i >= 0; i--) {
+      final n = _nodes[i];
+      if (!n.detached && n.parent.canConsumeNestedPreScroll(delta, source)) return true;
+    }
+    return false;
   }
 
   /// pre 段(外→内),返回全链消费总量。

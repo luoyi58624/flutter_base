@@ -92,6 +92,8 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
 
   bool _canConsumePointerScroll(double delta) {
     if (_disposed || !hasPixels || !hasContentDimensions || !physics.shouldAcceptUserOffset(this)) return false;
+    // 某些页头（Bibi）在正文边界仍有独立的折叠行程，必须先于正文认领滚轮。
+    if (_buildChain()?.canPreScroll(delta, .pointerScroll) ?? false) return true;
     return _smooth?.canConsumeDelta(delta) ??
         ((pixels + delta).clamp(minScrollExtent, maxScrollExtent) - pixels).abs() > precisionErrorTolerance;
   }
@@ -119,6 +121,12 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   void pointerScroll(double delta) {
     final event = _wheelEvent;
     final smooth = _smooth;
+    if (event != null && !_dispatchingSmooth) {
+      // 一笔原始滚轮事件先让协作页头抽走行程，余量再使用平滑滚轮；
+      // 平滑器内部的同步直滚不会第二次调用协作链。
+      delta -= _buildChain()?.preScroll(delta, .pointerScroll) ?? 0.0;
+      if (delta.abs() <= precisionErrorTolerance) return;
+    }
     if (event != null && smooth != null && !_dispatchingSmooth) {
       // 触控板的直滚会再调用 pointerScroll；避免再次进入平滑编排。
       _dispatchingSmooth = true;
