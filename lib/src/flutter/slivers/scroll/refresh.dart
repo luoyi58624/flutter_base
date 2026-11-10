@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import '../../views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
-import '../../views/scroll/common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaSource;
-import '../../views/scroll/refresh/refresh_host.dart' show RefreshHost, RefreshScrollLink;
-import '../../views/scroll/refresh/refresher.dart' show ElRefreshEdge, ElRefresher;
+import 'common/nested_scroll.dart' show ElNestedScrollParent;
+import 'common/scroll_delta_source.dart' show ElScrollDeltaSource;
+import 'refresh/refresh_host.dart' show RefreshHost, RefreshScrollLink;
+import 'refresh/refresher.dart' show ElRefreshEdge, ElRefresher;
 import '../../views/view/provider.dart' show ElViewProvider;
 import 'nested_scroll.dart' show ElNestedScroll;
 
@@ -85,7 +85,7 @@ class _RefreshParticipant extends ElNestedScrollParent {
   double onNestedPreFling(double velocity) => link.releaseInput(velocity * _orientation) * _orientation;
 
   @override
-  void onNestedScrollCancel() => link.cancelCoordinatedInput();
+  void onNestedScrollCancel() => link.cancelInput();
 }
 
 /// 向 ElScroll 提供最近一层刷新输入接线；null 会遮断更外层刷新作用域。

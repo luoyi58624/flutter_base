@@ -9,9 +9,9 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
-import '../../views/scroll/common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaSource;
-import '../../views/scroll/refresh/refresher.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
+import 'common/nested_scroll.dart' show ElNestedScrollParent;
+import 'common/scroll_delta_source.dart' show ElScrollDeltaSource;
+import 'refresh/refresher.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
 import '../../views/view/provider.dart' show ElViewProvider;
 import 'scroll_position.dart' show ScrollHostPosition;
 

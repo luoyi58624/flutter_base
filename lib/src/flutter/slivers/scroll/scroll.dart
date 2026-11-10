@@ -3,10 +3,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
 import '../list/sliver_list.dart' show ElSliverList;
-import '../../views/scroll/smooth_scroll/smooth_scroll.dart' show ElSmoothScroll;
-import '../../views/scroll/scroll_view.dart' show ElScrollController;
+import 'common/smooth_scroll.dart' show ElSmoothScroll;
 import '../../views/view/provider.dart' show ElViewProvider;
-import '../../views/scroll/refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
+import 'refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
 import 'refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 
@@ -61,8 +60,7 @@ class ElScroll extends HookWidget {
 
   /// 观察与驱动滚动位置的控制器。
   ///
-  /// 传入 ElScrollController 时由它直接创建新版滚动位置；普通 ScrollController
-  /// 经内部适配器共享同一位置，保留初始偏移、滚动命令及位置保存配置。
+  /// 外部控制器经内部适配器共享同一个真实位置，保留初始偏移、滚动命令及位置保存配置。
   final ScrollController? controller;
 
   /// 滚动物理，默认读取环境 [ScrollConfiguration]。
@@ -93,22 +91,21 @@ class ElScroll extends HookWidget {
   Widget build(BuildContext context) {
     final host = useMemoized(_HostController.new);
     final pointers = useMemoized(_RawPointers.new);
-    // 新 ElScrollController 是实际 Scrollable 控制器；普通 ScrollController 仍由兼容适配器共享位置。
-    final activeController = controller is ElScrollController ? controller! : host;
+    final activeController = host;
     final refreshLink = ElRefreshScope.maybeOf(context);
     final configuredSmooth = identical(smoothScroll, $absent)
         ? ElViewProvider.smoothScrollOf(context)
         : smoothScroll as ElSmoothScroll?;
     useEffect(() {
       host
-        ..bind(controller is ElScrollController ? null : controller)
+        ..bind(controller)
         ..bindRefresh(refreshLink);
       return host.dispose;
     }, const []);
     useValueChanged<ScrollController?, void>(controller, (_, _) {
       // useEffect(keys) 会在新 effect 挂载之后才 dispose 旧 effect，
       // 若旧清理执行 bind(null)，会把刚换上的 controller 再摘掉。
-      host.bind(controller is ElScrollController ? null : controller);
+      host.bind(controller);
     });
     useValueChanged<RefreshScrollLink?, void>(refreshLink, (_, _) => host.bindRefresh(refreshLink));
 
@@ -193,7 +190,7 @@ final class _RawPointers {
   }
 }
 
-/// 普通 ScrollController 的兼容适配器；ElScrollController 直接由官方 Scrollable 使用。
+/// 将外部 ScrollController 连接到官方 Scrollable 的同一个真实位置。
 final class _HostController extends ScrollController {
   ScrollController? _user;
   RefreshScrollLink? _refreshLink;

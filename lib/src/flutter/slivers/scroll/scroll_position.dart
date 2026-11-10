@@ -7,11 +7,10 @@ import 'package:flutter/gestures.dart'
 import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
-import '../../views/scroll/common/nested/nested_scroll.dart'
-    show ElNestedScrollParent, NestedScrollChain, NestedScrollNode;
-import '../../views/scroll/common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaSource;
-import '../../views/scroll/smooth_scroll/smooth_pointer_scroll.dart' show SmoothPointerScrollController;
-import '../../views/scroll/smooth_scroll/smooth_scroll.dart' show ElSmoothScroll;
+import 'common/nested_scroll.dart' show ElNestedScrollParent, NestedScrollChain, NestedScrollNode;
+import 'common/scroll_delta_source.dart' show ElScrollDeltaSource;
+import 'common/smooth_pointer_scroll.dart' show SmoothPointerScrollController;
+import 'common/smooth_scroll.dart' show ElSmoothScroll;
 import 'nested_scroll.dart' show nestedScrollNodeOf;
 
 /// ElScroll 的滚动位置：只在官方的拖动、松手、惯性三个入口上加逻辑，其余沿用官方实现。

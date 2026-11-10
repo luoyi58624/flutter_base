@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-import '../../views/scroll/scrollbar/mac_scroll_bar.dart' show ElMacScrollBar;
-import '../../views/scroll/scrollbar/window_scroll_bar.dart' show ElWindowScrollBar;
+import 'scrollbar/mac_scroll_bar.dart' show ElMacScrollBar;
+import 'scrollbar/window_scroll_bar.dart' show ElWindowScrollBar;
 import 'scrollbar.dart' show buildElDesktopScrollbar;
 
-/// 桌面滚动条 Widget：在官方 Scrollable 外复用 ElScrollView 的交互与平台外观。
+/// 在官方 Scrollable 外安装桌面滚动条的交互与平台外观。
 ///
 /// 轨道按下即跳转到对应位置并可继续拖动，滑块按下立即接管滚动；
 /// Windows 使用常驻轨道、步进按钮和布局占位，macOS 使用悬浮、自动隐藏条带。

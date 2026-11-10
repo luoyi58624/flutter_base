@@ -43,6 +43,8 @@ export 'src/flutter/views/view/event/event.dart';
 export 'src/flutter/slivers/list/sliver_list.dart' show ElSliverList;
 export 'src/flutter/slivers/recycler/sliver_recycler.dart' show ElSliverRecyclerList, ElSliverRecyclerGrid;
 export 'src/flutter/slivers/scroll/nested_scroll.dart' show ElNestedScroll;
+export 'src/flutter/slivers/scroll/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
+export 'src/flutter/slivers/scroll/large_title.dart' show ElSliverLargeTitle;
 export 'src/flutter/slivers/scroll/desktop_scrollbar.dart' show ElDesktopScrollbar;
 export 'src/flutter/slivers/scroll/refresh.dart' show ElRefresh;
 export 'src/flutter/slivers/scroll/scroll.dart' show ElScroll;
@@ -92,17 +94,17 @@ export 'src/flutter/views/scroll/scrollbar/scrollbar.dart'
         ElScrollbarAxisDetails,
         ElScrollbarDetails,
         ElWindowScrollBar;
-export 'src/flutter/views/scroll/smooth_scroll/smooth_scroll.dart'
+export 'src/flutter/slivers/scroll/common/smooth_scroll.dart'
     show ElChromiumSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
-export 'src/flutter/views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent;
+export 'src/flutter/slivers/scroll/common/nested_scroll.dart' show ElNestedScrollParent;
 export 'src/flutter/views/scroll/common/nested/scroll_delta_interceptor.dart'
     show ElScrollDeltaInterceptor, ElScrollDeltaSource;
-export 'src/flutter/views/scroll/common/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
+export 'src/flutter/slivers/scroll/common/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
 export 'src/flutter/views/scroll/common/physics/browser_scroll_physics.dart'
     show ElBrowserScrollPhysics, ElFlingBoostSpec, elBrowserMaxFlingDuration, elBrowserMaxFlingVelocity;
-export 'src/flutter/views/scroll/common/physics/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
-export 'src/flutter/views/scroll/common/physics/platform_scroll_physics.dart' show ElScrollBehavior, elScrollPhysicsFor;
-export 'src/flutter/views/scroll/refresh/refresh.dart'
+export 'src/flutter/slivers/scroll/common/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
+export 'src/flutter/slivers/scroll/common/platform_scroll_physics.dart' show ElScrollBehavior, elScrollPhysicsFor;
+export 'src/flutter/slivers/scroll/refresh/refresh.dart'
     show
         ElAndroidRefresher,
         ElCustomRefresher,

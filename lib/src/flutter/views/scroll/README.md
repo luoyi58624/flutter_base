@@ -1,5 +1,7 @@
 # Scroll
 
+旧版 `ElScrollView` 及其专属控制器、输入事务、运动引擎和滚动条暂时保留；新版宿主见 [slivers/scroll](../../slivers/scroll/README.md)。共用的刷新配置与外观、平台物理、嵌套协议和平滑算法由新版目录维护，本目录相应入口继续转导出。
+
 `ElScrollView` 同时承载普通内容、虚拟 List/Grid，配套索引定位、刷新、滚动条及滚动效果。
 
 本文示例导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。控制器和 FocusNode 在 State / Hook 生命周期内创建，卸载时 dispose；不要在每次 build 中重建。

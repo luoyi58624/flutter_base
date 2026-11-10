@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../views/scroll/common/nested/nested_scroll.dart' show ElNestedScrollParent, NestedScrollNode;
+import 'common/nested_scroll.dart' show ElNestedScrollParent, NestedScrollNode;
 
 /// 让 [parent] 参与子树内 ElScroll 的拖动与惯性分配，用于折叠头、联动页头等效果。
 ///

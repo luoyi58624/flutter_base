@@ -2,12 +2,12 @@ import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEve
 import 'package:flutter/widgets.dart';
 
 import '../../views/layout/stack/stack_view.dart' show ElStackView;
-import '../../views/scroll/scrollbar/scrollbar_base.dart' show ElNoScrollBar, ElScrollbar;
-import '../../views/scroll/scrollbar/scrollbar_controller.dart' show ScrollbarController;
+import 'scrollbar/scrollbar_base.dart' show ElNoScrollBar, ElScrollbar;
+import 'scrollbar/scrollbar_controller.dart' show ScrollbarController;
 
 /// 将桌面端现有 ElScrollbar 条带安装到官方 Scrollable 之外。
 ///
-/// 沿用旧滚动条的轨道、滑块、步进按钮与手势，实现只依赖标准 ScrollPosition。
+/// 轨道、滑块、步进按钮与手势由同目录的滚动条模块提供，只依赖标准 ScrollPosition。
 Widget buildElDesktopScrollbar({
   required Widget child,
   required ScrollController controller,
