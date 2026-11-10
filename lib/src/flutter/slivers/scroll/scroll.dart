@@ -18,6 +18,7 @@ import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 /// 同轴嵌套时自动接力：一次拖动只属于一层，起手时本层在拖动方向已经贴边，
 /// 就交给最近的可滚动同轴祖先；本层一旦开始消费，途中撞到边界也不换层，
 /// 释放后的惯性同样留在本层。整条链都贴边时由最外层按自身物理处理。
+/// 鼠标滚轮连续输入时保留接收者，停顿满 500ms 才重新命中；移出接收区域立即交接。
 /// 需要折叠头这类先于正文消费位移的效果时，用 ElNestedScroll 包住本组件。
 /// 下拉刷新有两个入口：ElRefresh 包住本组件，或把 ElSliverRefresh 放进 [ElScroll.sliver]。
 class ElScroll extends HookWidget {

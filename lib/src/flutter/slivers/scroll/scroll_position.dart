@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
-import 'package:flutter/gestures.dart' show Drag, GestureBinding, PointerScrollEvent, PointerSignalEvent;
+import 'package:flutter/gestures.dart'
+    show Drag, GestureBinding, PointerDeviceKind, PointerScrollEvent, PointerSignalEvent;
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart';
 
 import '../../views/scroll/common/nested/nested_scroll.dart'
@@ -53,21 +56,64 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
     )).algorithm = algorithm;
   }
 
-  /// 在官方 Scrollable 注册滚轮信号后，由本位置决定是否使用平滑滚动。
+  /// 在官方 Scrollable 前选择滚轮接收者，连续输入停顿满 500ms 才允许换层。
   void handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || !hasPixels || !hasContentDimensions) return;
-    final delta = axis == Axis.vertical ? event.scrollDelta.dy : event.scrollDelta.dx;
-    final amount = axisDirectionIsReversed(axisDirection) ? -delta : delta;
-    if (amount == 0 || !(_smooth?.canConsumeDelta(amount) ?? false)) return;
+    final input = _pointerScrollInput(event);
+    if (input.delta == 0) return;
+    final owner = _WheelScrollChain.ownerAt(this, event, input.axis);
+    final target = owner ?? this;
+    final amount = axisDirectionIsReversed(target.axisDirection) ? -input.delta : input.delta;
+    if (owner == null && !target._canConsumePointerScroll(amount)) return;
     GestureBinding.instance.pointerSignalResolver.register(event, (signal) {
-      if (signal is! PointerScrollEvent || _disposed) return;
-      _wheelEvent = signal;
+      if (signal is! PointerScrollEvent || target._disposed) return;
+      // 边界处也接住本格并续期，防止持续滚轮被官方 Scrollable 逐格交给外层。
+      _WheelScrollChain.claim(target, signal, input.axis);
+      signal.respond(allowPlatformDefault: false);
+      if (!target._canConsumePointerScroll(amount)) return;
+      target._wheelEvent = signal;
       try {
-        pointerScroll(amount);
+        target.pointerScroll(amount);
       } finally {
-        _wheelEvent = null;
+        target._wheelEvent = null;
       }
     });
+  }
+
+  ({Axis axis, double delta}) _pointerScrollInput(PointerScrollEvent event) {
+    final host = _hostContext;
+    final modifiers = host == null ? null : ScrollConfiguration.of(host).pointerAxisModifiers;
+    final flip =
+        event.kind == PointerDeviceKind.mouse &&
+        (modifiers?.any(HardwareKeyboard.instance.logicalKeysPressed.contains) ?? false);
+    final inputAxis = flip ? flipAxis(axis) : axis;
+    final delta = inputAxis == Axis.vertical ? event.scrollDelta.dy : event.scrollDelta.dx;
+    return (axis: inputAxis, delta: delta);
+  }
+
+  bool _canConsumePointerScroll(double delta) {
+    if (_disposed || !hasPixels || !hasContentDimensions || !physics.shouldAcceptUserOffset(this)) return false;
+    return _smooth?.canConsumeDelta(delta) ??
+        ((pixels + delta).clamp(minScrollExtent, maxScrollExtent) - pixels).abs() > precisionErrorTolerance;
+  }
+
+  bool _containsPointer(Offset point) {
+    final host = context;
+    if (_disposed || host is! ScrollableState || !host.mounted || !identical(host.position, this)) return false;
+    final box = host.notificationContext?.findRenderObject();
+    return box is RenderBox &&
+        box.attached &&
+        box.hasSize &&
+        (Offset.zero & box.size).contains(box.globalToLocal(point));
+  }
+
+  bool _isAncestorOf(ScrollHostPosition other) {
+    var ancestor = other._hostContext?.findAncestorStateOfType<ScrollableState>();
+    while (ancestor != null) {
+      if (identical(ancestor, context)) return true;
+      ancestor = ancestor.context.findAncestorStateOfType<ScrollableState>();
+    }
+    return false;
   }
 
   @override
@@ -229,7 +275,11 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
     if (simulation == null && velocity.abs() > physics.toleranceFor(this).velocity && !outOfRange) {
       // 正文在边界时官方 Clamping 不会启动弹道，但折叠头等协作方可能仍有行程。
       // 只在协作链存在且有有效速度时使用虚拟位置采样，实际像素仍服从正文边界。
-      simulation = ClampingScrollSimulation(position: pixels, velocity: velocity, tolerance: physics.toleranceFor(this));
+      simulation = ClampingScrollSimulation(
+        position: pixels,
+        velocity: velocity,
+        tolerance: physics.toleranceFor(this),
+      );
     }
     if (simulation == null) {
       goIdle();
@@ -251,15 +301,75 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   @override
   void absorb(ScrollPosition other) {
     super.absorb(other);
-    if (other is ScrollHostPosition) _chain = other._chain;
+    if (other is ScrollHostPosition) {
+      _chain = other._chain;
+      _WheelScrollChain.replace(other, this);
+    }
   }
 
   @override
   void dispose() {
+    _WheelScrollChain.release(this);
     _disposed = true;
     _smooth?.dispose();
     super.dispose();
   }
+}
+
+// 新版位置不持有旧版 RenderBox 视口，按相同的原始输入轴维护滚轮归属。
+final class _WheelScrollChain {
+  static final _states = <Axis, _WheelScrollClaim>{};
+
+  static ScrollHostPosition? ownerAt(ScrollHostPosition querier, PointerScrollEvent event, Axis axis) {
+    final state = _states[axis];
+    if (state == null || state.timer == null) return null;
+    final owner = state.owner;
+    final related = identical(owner, querier) || owner._isAncestorOf(querier) || querier._isAncestorOf(owner);
+    if (!owner._containsPointer(event.position) ||
+        !owner.physics.shouldAcceptUserOffset(owner) ||
+        (!related && (event.position - state.startPosition).distanceSquared >= 100)) {
+      release(owner, axis: axis);
+      owner._smooth?.reset();
+      return null;
+    }
+    return owner;
+  }
+
+  static void claim(ScrollHostPosition owner, PointerScrollEvent event, Axis axis) {
+    final state = _states.putIfAbsent(axis, () => _WheelScrollClaim(owner, event.position));
+    if (!identical(state.owner, owner)) {
+      state.owner._smooth?.reset();
+      state
+        ..owner = owner
+        ..startPosition = event.position;
+    }
+    state.timer?.cancel();
+    // 到期只解除命中锁，真正更换接收者时才停止旧接收者的长动画。
+    state.timer = Timer(const Duration(milliseconds: 500), () => state.timer = null);
+  }
+
+  static void replace(ScrollHostPosition previous, ScrollHostPosition next) {
+    for (final state in _states.values) {
+      if (identical(state.owner, previous)) state.owner = next;
+    }
+  }
+
+  static void release(ScrollHostPosition owner, {Axis? axis}) {
+    for (final inputAxis in axis == null ? Axis.values : [axis]) {
+      final state = _states[inputAxis];
+      if (state == null || !identical(state.owner, owner)) continue;
+      state.timer?.cancel();
+      _states.remove(inputAxis);
+    }
+  }
+}
+
+final class _WheelScrollClaim {
+  _WheelScrollClaim(this.owner, this.startPosition);
+
+  ScrollHostPosition owner;
+  Offset startPosition;
+  Timer? timer;
 }
 
 /// ElScroll 固定叠在调用方物理之上的一层：有边界协作方时，内容不足一屏也接受拖动。
@@ -293,12 +403,8 @@ final class ScrollHostPhysics extends ScrollPhysics {
 /// 模拟由物理在起飞时按真实位置创建；协作方消费位移后，真实像素会落后于模拟位置，
 /// 所以这里按帧差推进。Bouncing 这类自带边界的模拟在这种情况下仍按起飞时的位置判断边界。
 final class _ChainBallisticActivity extends BallisticScrollActivity {
-  _ChainBallisticActivity(
-    ScrollHostPosition super.delegate,
-    super.simulation,
-    super.vsync,
-    super.shouldIgnorePointer,
-  ) : _last = delegate.pixels;
+  _ChainBallisticActivity(ScrollHostPosition super.delegate, super.simulation, super.vsync, super.shouldIgnorePointer)
+    : _last = delegate.pixels;
 
   double _last;
 
