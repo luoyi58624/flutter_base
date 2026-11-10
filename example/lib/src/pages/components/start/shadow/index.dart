@@ -3,6 +3,7 @@ import 'package:flutter_base/mobile.dart';
 
 import '../../../example_page.dart';
 import '../../../../widgets/doc_scroll_view.dart';
+import '../../../../widgets/panel.dart';
 
 /// 对照五级阴影，并通过导航栏切换视觉风格。
 class ShadowPage extends HookWidget {
@@ -42,7 +43,7 @@ class ShadowPage extends HookWidget {
           runSpacing: 48,
           children: [
             for (final level in ElLevelType.values)
-              ElCardView(
+              ExamplePanel(
                 key: ValueKey('shadow-${level.name}'),
                 style: ElStyle(
                   width: 180,

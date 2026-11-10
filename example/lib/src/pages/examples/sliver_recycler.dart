@@ -5,6 +5,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../example_page.dart';
 import 'bibi/feed.dart';
+import '../../widgets/panel.dart';
 
 /// Sliver 对照与性能测试共用的自然尺寸负载。
 enum ElSliverRecyclerExampleContent {
@@ -157,7 +158,7 @@ class _ObservationCard extends StatelessWidget {
         alignment: .topCenter,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 440),
-          child: ElCardView(
+          child: ExamplePanel(
             style: ElStyle(
               backgroundColor: colors.surface,
               borderRadius: .circular(16),

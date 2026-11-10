@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Future<void> _open(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
@@ -25,7 +26,7 @@ Future<void> _chooseFlutter(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder _card(String title) => find.ancestor(of: find.text(title), matching: find.byType(ElCardView));
+Finder _card(String title) => find.ancestor(of: find.text(title), matching: find.byType(ExamplePanel));
 
 ScrollPosition _position(WidgetTester tester) =>
     tester.widget<CupertinoScrollbar>(find.byType(CupertinoScrollbar)).controller!.position;

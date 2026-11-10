@@ -6,7 +6,7 @@
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| 基元 | `flutter/views`、`flutter/widgets`、`flutter/utils` | ElView、ElButtonView、ElCardView、ElModelValue、ElFormModelValue、弹层、焦点、事件 |
+| 基元 | `flutter/views`、`flutter/widgets`、`flutter/utils` | ElView、ElButtonView、ElModelValue、ElFormModelValue、弹层、焦点、事件 |
 | 组件接口 | `flutter/components` | 公共声明 `ElXxx`：语义参数 + 值模型，通过 ElComponentProvider 分派到 Builder |
 | 品牌实现 | `ui/desktop`、`ui/mobile` | 用基元搭结构、用 ElStyle 定外观，登记为默认 Builder |
 

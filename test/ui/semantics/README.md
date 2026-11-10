@@ -14,7 +14,7 @@
 
 ## 三层检查
 
-`ElCardView` 是无默认样式的区域基元，直接继承 `ElView`，通过 `semanticLabel` 可选命名；自动建立容器并保留子节点，事件与焦点由调用方显式声明。测试不再手动补容器配置，也不能用合并后代凑出区域尺寸。
+区域容器用 `ElView(semantics: ElSemantics(container: true, explicitChildNodes: true))` 建立，事件与焦点由调用方显式声明。测试不再手动补容器配置，也不能用合并后代凑出区域尺寸。
 
 1. **语义行为**：断言角色、名称、状态、可执行动作；调用 `SemanticsOwner.performAction` 后检查真实业务结果和更新后的语义，不能只检查回调非空。
 2. **引擎输入**：Widget 测试入口创建 `ElSemanticsTestBinding`，每个用例清空记录。公共绑定在每一批提交时检查树关系；几何用 `expectGeometry` 与独立绘制矩形对照。`hitTestSemantics` 使用命中树及 `hitTestTransform`；`hitTestWindowsSemantics` 使用遍历树及 `transform`，模拟当前 Windows MSAA 的先到先得规则。两者都不借用 RenderObject 命中结果，也不模拟全部平台行为。

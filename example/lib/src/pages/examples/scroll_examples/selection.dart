@@ -4,6 +4,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 import 'comparison_list.dart';
+import '../../../widgets/panel.dart';
 
 /// 用一万条独立记录演示回收复用与数据驱动的复选状态。
 class RecyclerSelectionPage extends StatefulWidget {
@@ -318,7 +319,7 @@ class _SelectionRow extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: model.checked,
       child: content,
-      builder: (context, checked, child) => ElCardView(
+      builder: (context, checked, child) => ExamplePanel(
         event: rowEvent,
         style: ElStyle(
           height: _selectionExtent,

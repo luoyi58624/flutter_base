@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../flutter/commons/theme/index.dart' show ElLevelTypeExt, ElThemeContextExt;
 import '../../../../flutter/components/card/index.dart' show ElCard;
-import '../../../../flutter/views/card/card_view.dart' show ElCardView;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../internal/common.dart';
@@ -41,20 +40,18 @@ Widget cardBuilder(BuildContext context, ElCard component) {
       if (component.loading) const Loading(),
     ],
   );
-  return ElCardView(
-    child: interactive
-        ? ActionView(
-            style: style,
-            event: component.event,
-            blocked: component.loading,
-            excludeChildSemantics: false,
-            ignoreDescendantAction: true,
-            repeatEnter: false,
-            delayTouchDown: component.event?.config?.delayTouchDown ?? Duration.zero,
-            delayTouchUp: component.event?.config?.delayTouchUp ?? const Duration(milliseconds: 100),
-            onActivate: (_) => component.onTap?.call(),
-            child: content,
-          )
-        : ElView(style: style, event: component.event, child: content),
-  );
+  return interactive
+      ? ActionView(
+          style: style,
+          event: component.event,
+          blocked: component.loading,
+          excludeChildSemantics: false,
+          ignoreDescendantAction: true,
+          repeatEnter: false,
+          delayTouchDown: component.event?.config?.delayTouchDown ?? Duration.zero,
+          delayTouchUp: component.event?.config?.delayTouchUp ?? const Duration(milliseconds: 100),
+          onActivate: (_) => component.onTap?.call(),
+          child: content,
+        )
+      : ElView(style: style, event: component.event, child: content);
 }

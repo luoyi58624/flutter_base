@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
+import 'package:example/src/widgets/panel.dart';
 
 class _Files {
   _Files(this.directory);
@@ -225,8 +226,8 @@ void main() {
           (element) => element is RenderObjectElement && element.renderObject is RenderRepaintBoundary,
         ),
       );
-      final firstCard = find.ancestor(of: first, matching: find.byType(ElCardView));
-      final secondCard = find.ancestor(of: second, matching: find.byType(ElCardView));
+      final firstCard = find.ancestor(of: first, matching: find.byType(ExamplePanel));
+      final secondCard = find.ancestor(of: second, matching: find.byType(ExamplePanel));
       final firstBoundary = find.ancestor(of: firstCard, matching: boundaries);
       final secondBoundary = find.ancestor(of: secondCard, matching: boundaries);
       expect(firstBoundary, findsOneWidget, reason: '$mode 每卡只需一层重绘边界');

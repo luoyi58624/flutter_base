@@ -125,7 +125,7 @@ class _ChatPage extends HookWidget {
                       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       child: Align(
                         alignment: message.mine ? Alignment.centerRight : Alignment.centerLeft,
-                        child: ElCardView(
+                        child: ExamplePanel(
                           style: ElStyle(
                             maxWidth: 270,
                             padding: .symmetric(horizontal: 12, vertical: 9),
@@ -153,7 +153,7 @@ class _ChatPage extends HookWidget {
             ),
           ),
           _line(),
-          ElCardView(
+          ExamplePanel(
             style: ElStyle(backgroundColor: _surface, padding: .all(8)),
             child: Row(
               crossAxisAlignment: .end,

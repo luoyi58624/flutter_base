@@ -6,6 +6,7 @@ import '../../../widgets/example_image.dart';
 import '../../example_page.dart';
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/panel.dart';
 
 /// 让各滚动容器共用带长文、表格、插图和可展开源码的文档。
 class RecyclerRichDocumentPage extends StatefulWidget {
@@ -223,7 +224,7 @@ class _SectionCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: .fromLTRB(14, 8, 14, 8),
-      child: ElCardView(
+      child: ExamplePanel(
         style: ElStyle(
           padding: .all(16),
           borderRadius: .circular(16),

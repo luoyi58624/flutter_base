@@ -82,6 +82,14 @@ void main() {
     }
   });
 
+  testWidgets('移动端卡片默认不创建焦点，也不建立区域语义容器', (tester) async {
+    for (final onTap in <VoidCallback?>[null, () {}]) {
+      await tester.pumpWidget(_host(ElCard(semanticLabel: '区域', onTap: onTap, child: Text('正文'))));
+      expect(FocusManager.instance.rootScope.traversalDescendants.where((node) => node is! FocusScopeNode), isEmpty);
+      expect(find.bySemanticsLabel('区域'), findsNothing);
+    }
+  });
+
   testWidgets('shadowLevel 读取品牌五档明暗阴影，style 可以覆盖和移除', (tester) async {
     for (final brightness in Brightness.values) {
       final tokens = {

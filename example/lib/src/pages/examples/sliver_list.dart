@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../example_page.dart';
+import '../../widgets/panel.dart';
 
 /// 展示全量常驻文档的自然布局与跨段落文本选择。
 class ElSliverListExamplePage extends HookWidget {
@@ -50,7 +51,7 @@ class ElSliverListExamplePage extends HookWidget {
                     sliver: ElSliverList(
                       spacing: 24,
                       children: [
-                        ElCardView(
+                        ExamplePanel(
                           style: ElStyle(
                             padding: .all(20),
                             backgroundColor: colors.surfaceContainerLow,
@@ -120,7 +121,7 @@ class _DocumentParagraph extends StatelessWidget {
     );
 
     if (index % 16 != 7) return content;
-    return ElCardView(
+    return ExamplePanel(
       style: ElStyle(
         padding: .all(16),
         backgroundColor: theme.colorScheme.surfaceContainerLow,

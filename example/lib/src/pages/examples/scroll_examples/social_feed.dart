@@ -5,6 +5,7 @@ import '../../../widgets/example_image.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/panel.dart';
 
 /// 混排长文、照片、转发和投票，比较各容器的异构条目滚动。
 class RecyclerSocialFeedPage extends StatefulWidget {
@@ -128,7 +129,7 @@ class _SocialCard extends StatelessWidget {
     final kind = record.kind;
     return Padding(
       padding: .fromLTRB(12, 4, 12, 8),
-      child: ElCardView(
+      child: ExamplePanel(
         key: ValueKey('social-post-card'),
         style: ElStyle(padding: .all(14), backgroundColor: colors.surfaceContainerLow, borderRadius: .circular(16)),
         child: Column(
@@ -284,7 +285,7 @@ class _Repost extends StatelessWidget {
     spacing: 7,
     children: [
       Text('这条关于夜间观察的提醒值得收藏。'),
-      ElCardView(
+      ExamplePanel(
         style: ElStyle(
           padding: .all(10),
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,

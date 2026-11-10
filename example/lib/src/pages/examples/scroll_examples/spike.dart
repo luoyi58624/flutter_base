@@ -9,6 +9,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/panel.dart';
 
 /// 在相同内容和滚动轨迹上比较一次 UI 线程尖峰的影响。
 class RecyclerSpikePage extends StatefulWidget {
@@ -315,7 +316,7 @@ class _SpikeRow extends StatelessWidget {
       height: _rowExtent(context),
       child: Padding(
         padding: .fromLTRB(12, 3, 12, 3),
-        child: ElCardView(
+        child: ExamplePanel(
           style: ElStyle(borderRadius: .circular(12), backgroundColor: colors.surfaceContainer, padding: .all(8)),
           child: Row(
             children: [

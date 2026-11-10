@@ -75,7 +75,7 @@ class _Card extends StatelessWidget {
     // 每次 build 都真实创建配置，不用 const 或手动缓存掩盖额外重建。
     return _FrameProbe(
       log: trace.log,
-      child: ElCardView(
+      child: ElView(
         style: ElStyle(
           padding: .all(12),
           backgroundColor: Color(0xfff5f7fa),

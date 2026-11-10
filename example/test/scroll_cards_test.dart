@@ -2,6 +2,7 @@ import 'package:example/src/pages/examples/scroll_examples/cards.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Finder _key(String key) => find.byKey(ValueKey(key));
 Finder _card() => _key('cards-activate').hitTestable().first;
@@ -40,7 +41,7 @@ void main() {
       final imageFinder = _within(first, find.byType(Image));
       final image = tester.widget(imageFinder);
       final imageElement = tester.element(imageFinder);
-      final card = _within(first, find.byType(ElCardView)).first;
+      final card = _within(first, find.byType(ExamplePanel)).first;
       final render = tester.renderObject<ElRenderView>(card);
       final gesture = await tester.startGesture(tester.getCenter(first));
       await tester.pump();

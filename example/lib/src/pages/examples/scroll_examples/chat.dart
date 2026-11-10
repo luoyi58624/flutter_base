@@ -6,6 +6,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../../example_page.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
+import '../../../widgets/panel.dart';
 
 /// 用一万条变高消息演示历史插入、底部跟随与未读消息提示。
 class RecyclerChatPage extends StatefulWidget {
@@ -381,7 +382,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
               },
             ),
           Expanded(child: _messagesViewport()),
-          ElCardView(
+          ExamplePanel(
             style: ElStyle(padding: .all(12)),
             child: Row(
               crossAxisAlignment: .end,
@@ -475,7 +476,7 @@ class _ChatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     // 气泡的方向、布局与样式由类型固定，绑定只更新正文和时间两个叶子。
-    final bubble = ElCardView(
+    final bubble = ExamplePanel(
       style: ElStyle(
         padding: .all(12),
         borderRadius: .circular(16),

@@ -7,6 +7,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../../widgets/example_scrollbar.dart';
 import '../example_page.dart';
+import '../../widgets/panel.dart';
 
 /// 用相同的自然高度卡片展示网格与瀑布流。
 class ElSliverRecyclerGridExamplePage extends HookWidget {
@@ -173,7 +174,7 @@ class _RecordCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final typography = Theme.of(context).textTheme;
-    return ElCardView(
+    return ExamplePanel(
       style: ElStyle(
         backgroundColor: colors.surface,
         borderRadius: .circular(16),

@@ -68,12 +68,12 @@ class _CategoryPage extends HookWidget {
       locked.value = false;
     }
 
-    return ElCardView(
+    return ExamplePanel(
       key: ValueKey('page-分类'),
       style: ElStyle(backgroundColor: _background),
       child: Row(
         children: [
-          ElCardView(
+          ExamplePanel(
             style: ElStyle(
               width: desktop ? 144 : 92,
               backgroundColor: Color(0xfff7f8fa),
@@ -138,7 +138,7 @@ class _CategoryPage extends HookWidget {
                   Column(
                     children: [
                       for (var i = 0; i < _categories.length; i++)
-                        ElCardView(
+                        ExamplePanel(
                           key: keys[i],
                           child: Column(
                             children: [
@@ -168,7 +168,7 @@ class _CategoryPage extends HookWidget {
                                       Expanded(
                                         child: Padding(
                                           padding: EdgeInsets.all(8),
-                                          child: ElCardView(
+                                          child: ExamplePanel(
                                             style: ElStyle(
                                               backgroundColor: _surface,
                                               borderRadius: .circular(8),

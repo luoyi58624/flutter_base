@@ -196,7 +196,7 @@ ElView(
 
 ElEventDetails 提供事件上下文与 stopPropagation / preventDefault；前者停止传播，后者阻止默认动作。ElEventConfig 配置点击、双击和拖动识别参数；高级拖动协作使用 ElDragProxy。
 
-focusNode 传入后由调用方持有并 dispose；未传时，焦点样式或键盘回调可触发内部节点创建。需要标准按钮键盘行为优先用 [ElButtonView](../button/README.md)。ElSemantics 声明 label、role、状态和动作；ElCardView 可建立保留后代节点的区域容器。
+focusNode 传入后由调用方持有并 dispose；未传时，焦点样式或键盘回调可触发内部节点创建。需要标准按钮键盘行为优先用 [ElButtonView](../button/README.md)。ElSemantics 声明 label、role、状态和动作；`ElSemantics(container: true, explicitChildNodes: true)` 可建立保留后代节点的区域容器。
 
 ## 子树默认策略
 

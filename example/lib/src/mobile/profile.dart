@@ -7,14 +7,14 @@ class _ProfilePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final push = useState(true), update = useState(false);
-    return ElCardView(
+    return ExamplePanel(
       key: ValueKey('page-我的'),
       style: ElStyle(backgroundColor: _background),
       child: ElScrollView(
         key: PageStorageKey('profile-list'),
         padding: EdgeInsets.only(bottom: 12),
         children: [
-          ElCardView(
+          ExamplePanel(
             style: ElStyle(
               margin: .all(12),
               padding: .all(16),
@@ -182,7 +182,7 @@ class _Setting extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
   final VoidCallback? onPressed;
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     style: ElStyle(backgroundColor: _surface),
     child: Column(
       children: [

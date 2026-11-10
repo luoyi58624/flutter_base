@@ -2,6 +2,7 @@ import 'package:example/src/pages/examples/scroll_examples/selection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 void main() {
   for (final mode in ['recycler', 'official']) {
@@ -22,7 +23,7 @@ void main() {
       await tester.tap(find.byKey(ValueKey('selection-mode-$mode')));
       await tester.pumpAndSettle();
       final title = find.text('条目 00001');
-      final row = find.ancestor(of: title, matching: find.byType(ElCardView)).first;
+      final row = find.ancestor(of: title, matching: find.byType(ExamplePanel)).first;
       final checkbox = find.descendant(of: row, matching: find.byType(ElCheckbox));
       void selected(bool value) {
         expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, value ? '1 / 10000' : '0 / 10000');

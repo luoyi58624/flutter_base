@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import 'code_preview.dart';
+import '../panel.dart';
 
 /// 卡片圆角（与站点卡片语言一致）。
 const _kCardRadius = 12.0;
@@ -151,14 +152,14 @@ class _CodeExampleState extends State<ElCodeExample> {
   Widget build(BuildContext context) {
     assert(ElCodeExample._debugValidateFiles(widget.files));
     return RepaintBoundary(
-      child: ElCardView(
+      child: ExamplePanel(
         style: _cardStyle,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             RepaintBoundary(
-              child: ElCardView(
+              child: ExamplePanel(
                 key: ValueKey('el-code-example-stage'),
                 style: ElStyle(padding: widget.padding),
                 child: Column(

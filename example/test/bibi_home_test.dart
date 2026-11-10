@@ -3,6 +3,7 @@ import 'package:example/src/pages/examples/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Finder _key(String key) => find.byKey(ValueKey(key));
 Finder _inFeed(Finder matching, {int index = 1}) => find.descendant(of: _key('bibi-feed-$index'), matching: matching);
@@ -192,7 +193,7 @@ void main() {
   testWidgets('卡片区跟手横移并在换频道后保持纵向位置', (tester) async {
     await _open(tester);
     final host = _inFeed(find.byType(ElScrollView));
-    final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ElCardView));
+    final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ExamplePanel));
     expect(cards, findsNWidgets(2));
     final boundaries = find.descendant(
       of: host,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../../widgets/panel.dart';
+
 /// 综合展示中的独立演示卡片，统一标题、说明和内容留白。
 class ShowcasePanel extends StatelessWidget {
   /// 创建一个演示区域。
@@ -16,7 +18,7 @@ class ShowcasePanel extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     style: ElStyle(
       width: '100%',
       minHeight: 272,

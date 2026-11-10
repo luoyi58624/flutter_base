@@ -8,7 +8,19 @@ import '../index.dart' show ElComponentProvider;
 /// 卡片内容、加载状态、阴影与可选点击行为的公共声明。
 class ElCard extends StatelessWidget {
   /// 创建卡片，品牌提供默认外观及按压反馈，用户 style 最后覆盖。
-  const ElCard({super.key, this.child, this.loading = false, this.style, this.event, this.shadowLevel, this.onTap});
+  const ElCard({
+    super.key,
+    this.semanticLabel,
+    this.child,
+    this.loading = false,
+    this.style,
+    this.event,
+    this.shadowLevel,
+    this.onTap,
+  });
+
+  /// 区域语义名称，仅命名容器，不替换后代内容。
+  final String? semanticLabel;
 
   /// 可选卡片内容，标题和其他布局由调用方自行组合。
   final Widget? child;

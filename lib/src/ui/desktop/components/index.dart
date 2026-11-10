@@ -10,6 +10,7 @@ import '../../../flutter/widgets/form/index.dart' show ElFormItemView;
 import 'autocomplete/index.dart';
 import 'button/index.dart';
 import 'button_group/index.dart';
+import 'card/index.dart';
 import 'checkbox/index.dart';
 import 'input/index.dart';
 import 'input_number/index.dart';
@@ -41,6 +42,7 @@ final _components = ElComponentsExt(materialComponents()).merge(
       onDark: ElStyle(vars: _darkVars),
     ),
     button: (context, component, model) => Button(component, model),
+    card: cardBuilder,
     checkbox: checkboxBuilder,
     radio: radioBuilder,
     tag: (context, component) => Tag(component),

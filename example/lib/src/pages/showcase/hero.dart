@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
+import '../../widgets/panel.dart';
 
 /// 综合展示首屏，宽屏并排介绍与场景卡片，窄屏自然堆叠。
 class ShowcaseHero extends StatelessWidget {
@@ -50,7 +51,7 @@ class ShowcaseHero extends StatelessWidget {
           ],
         );
         final art = ExcludeSemantics(child: _PreviewScene());
-        return ElCardView(
+        return ExamplePanel(
           key: ValueKey('showcase-hero'),
           style: ElStyle(
             padding: .all(wide ? 36 : 24),
@@ -92,7 +93,7 @@ class _PreviewScene extends StatelessWidget {
               right: 16,
               top: 0,
               bottom: 28,
-              child: ElCardView(
+              child: ExamplePanel(
                 style: ElStyle(
                   padding: .all(24),
                   borderRadius: .circular(24),
@@ -157,7 +158,7 @@ class _PreviewScene extends StatelessWidget {
               bottom: 0,
               right: 0,
               width: math.min(224, constraints.maxWidth),
-              child: ElCardView(
+              child: ExamplePanel(
                 style: ElStyle(
                   padding: .all(16),
                   backgroundColor: theme.cardColor,

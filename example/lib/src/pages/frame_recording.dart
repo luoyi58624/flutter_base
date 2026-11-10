@@ -9,6 +9,7 @@ import '../state/index.dart';
 import '../utils/frame_timing_recorder.dart';
 import '../widgets/frame_recording_scope.dart';
 import 'example_page.dart';
+import '../widgets/panel.dart';
 
 /// 配置一段跨页面的性能采样并复制原始数据与统计结果。
 class FrameRecordingPage extends StatefulWidget {
@@ -97,7 +98,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
             padding: .all(20),
             gap: 20,
             children: [
-              ElCardView(
+              ExamplePanel(
                 style: ElStyle(padding: .all(16)),
                 child: Column(
                   crossAxisAlignment: .start,
@@ -146,7 +147,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
                   _popup<int>('frame-recording-duration', '采样秒数', _duration, [2, 10, 20, 30], disabled: active),
                 ],
               ),
-              ElCardView(
+              ExamplePanel(
                 style: ElStyle(padding: .all(16)),
                 child: Column(
                   crossAxisAlignment: .stretch,

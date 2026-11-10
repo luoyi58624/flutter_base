@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 void _viewport(WidgetTester tester) {
   tester.view.devicePixelRatio = 1;
@@ -91,7 +92,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       final grid = find.byType(ElSliverRecyclerGrid);
-      final cards = find.descendant(of: grid, matching: find.byType(ElCardView));
+      final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
       expect(tester.widget<ElSliverRecyclerGrid>(grid).crossAxisCount, 2);
       final first = find.ancestor(of: find.text('观察记录 1'), matching: cards);
       final second = find.ancestor(of: find.text('观察记录 2'), matching: cards);

@@ -7,6 +7,7 @@ import '../../example_page.dart';
 import '../../../widgets/example_image.dart';
 import 'scroll_mode.dart';
 import 'comparison_list.dart';
+import '../../../widgets/panel.dart';
 
 /// 用一万张生态观察卡片对比复杂内容的回收复用与局部更新。
 class RecyclerCardsPage extends StatefulWidget {
@@ -553,7 +554,7 @@ class _ObservationRowState extends State<_ObservationRow> {
                 selected: active,
                 label: '激活或取消激活观察卡片',
                 onTap: _activate,
-                child: ElCardView(
+                child: ExamplePanel(
                   event: ElEvent(onTap: (_) => _activate()),
                   style: ElStyle(
                     width: '100%',

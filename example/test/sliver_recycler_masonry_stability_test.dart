@@ -8,6 +8,7 @@ import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
 import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 typedef _Scene = ({Finder scroll, Finder bar, ScrollPosition position, ScrollbarPainter painter, RenderBox viewport});
 
@@ -54,7 +55,7 @@ _Scene _scene(WidgetTester tester, {required bool masonry}) {
 
 _Frame _readFrame(WidgetTester tester, _Scene scene) {
   final grid = find.descendant(of: scene.scroll, matching: find.byType(ElSliverRecyclerGrid));
-  final cards = find.descendant(of: grid, matching: find.byType(ElCardView));
+  final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
   final bounds = Offset.zero & scene.viewport.size;
   final visible = <int, Rect>{};
   for (final element in cards.evaluate()) {

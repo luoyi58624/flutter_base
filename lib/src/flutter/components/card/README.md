@@ -6,4 +6,4 @@ onTap 或 event.onTap 非空时启用整卡操作，详细识别配置通过 eve
 
 shadowLevel 读取对应的通用阴影 token，省略时无阴影；style.boxShadow 最后覆盖，包括用空列表移除阴影。loading 显示指示器并暂停整卡与内容交互，内容实例仍保留。
 
-区域语义复用 ElCardView，品牌只负责默认外观与反馈。
+区域语义由品牌实现建立（可用 semanticLabel 命名），品牌只负责默认外观与反馈。桌面实现无默认外观，移动实现带默认外观。

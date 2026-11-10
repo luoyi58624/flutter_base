@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 // 测试沿用项目内部文件的相对路径约定。
 // ignore: avoid_relative_lib_imports
 import '../lib/src/widgets/code_preview/index.dart';
+import '../lib/src/widgets/panel.dart';
 
 Future<void> _host(WidgetTester tester, Widget child, {double width = 480, bool dark = false}) async {
   tester.view.devicePixelRatio = 1;
@@ -138,8 +139,8 @@ void main() {
     final source = "// 注释\nfinal text = '${'宽源码' * 60}';\n" * 8;
     for (final dark in [false, true]) {
       await _host(tester, ElCodePreview(code: source, maxHeight: 160, showToolbar: false), width: 320, dark: dark);
-      final shell = tester.widget<ElCardView>(
-        find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ElCardView)).first,
+      final shell = tester.widget<ExamplePanel>(
+        find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ExamplePanel)).first,
       );
       expect(shell.style?.backgroundColor, Color(0xff282c34));
       expect(shell.themeMode?.brightness, Brightness.dark);

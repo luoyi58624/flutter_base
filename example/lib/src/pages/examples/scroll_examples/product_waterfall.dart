@@ -8,6 +8,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../example_page.dart';
+import '../../../widgets/panel.dart';
 
 /// 在相同的商品卡片上比较两列瀑布流与延迟的图片尺寸更新。
 /// 两种内容 Sliver 都由 CustomScrollView 承载，图片尺寸在业务层延迟揭晓。
@@ -340,7 +341,7 @@ class _ProductTile extends StatelessWidget {
         final decodedWidth = (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(96, 520);
         return Padding(
           padding: .all(_tilePadding),
-          child: ElCardView(
+          child: ExamplePanel(
             style: ElStyle(backgroundColor: colors.surfaceContainer, borderRadius: .circular(14)),
             child: InkWell(
               onTap: () => onOpen(product),

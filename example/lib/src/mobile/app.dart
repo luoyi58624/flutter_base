@@ -10,6 +10,7 @@ import 'package:path_drawing/path_drawing.dart';
 
 import '../pages/index.dart';
 import '../state/index.dart';
+import '../widgets/panel.dart';
 
 part 'data.dart';
 part 'icon_paths.dart';
@@ -206,7 +207,7 @@ class _TitleBar extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     mainAxisSize: .min,
     children: [
-      ElCardView(
+      ExamplePanel(
         key: ValueKey('title-bar'),
         style: ElStyle(height: desktop ? 64 : 44, backgroundColor: _surface),
         child: Stack(
@@ -271,7 +272,7 @@ class _Page extends StatelessWidget {
   final Widget child;
   final Color color;
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     style: ElStyle(backgroundColor: _surface),
     child: SafeArea(
       child: LayoutBuilder(

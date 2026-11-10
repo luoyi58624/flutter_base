@@ -6,7 +6,7 @@ class _MessagesPage extends StatelessWidget {
   final Set<int> unread;
   final ValueChanged<int> onOpen;
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     key: ValueKey('page-消息'),
     style: ElStyle(backgroundColor: _surface),
     child: ElScrollView(
@@ -28,7 +28,7 @@ class _MessagesPage extends StatelessWidget {
                 color: _tertiary,
               ),
             ),
-          ElCardView(
+          ExamplePanel(
             key: ValueKey('message-$i'),
             event: ElEvent(onTap: (_) => onOpen(i)),
             child: Column(

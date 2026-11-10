@@ -45,7 +45,7 @@ class _Home extends HookWidget {
         scroll.removeListener(onScroll);
       };
     }, [scroll]);
-    return ElCardView(
+    return ExamplePanel(
       key: ValueKey('page-推荐'),
       style: ElStyle(backgroundColor: _background),
       child: ElScrollView(
@@ -125,7 +125,7 @@ class _ArticleCard extends StatelessWidget {
   final int index;
   final bool desktop;
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     key: ValueKey('article-$index'),
     event: ElEvent(
       onTap: (_) => _push(context, _DetailPage(article, typography)),

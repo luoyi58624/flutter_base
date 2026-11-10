@@ -27,14 +27,14 @@ class _Navigation extends StatelessWidget {
         ),
     ];
     if (!desktop) {
-      return ElCardView(
+      return ExamplePanel(
         key: ValueKey('bottom-nav'),
         semanticLabel: '底部导航',
         style: ElStyle(height: 56, backgroundColor: _surface),
         child: Row(children: [for (final item in items) Expanded(child: item)]),
       );
     }
-    return ElCardView(
+    return ExamplePanel(
       key: ValueKey('desktop-nav'),
       semanticLabel: '桌面导航',
       style: ElStyle(width: 208, backgroundColor: _surface),

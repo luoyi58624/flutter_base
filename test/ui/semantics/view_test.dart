@@ -2,8 +2,11 @@ import 'package:flutter_base/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'dart:ui' show SemanticsInputType, Tristate;
+
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
+
 import 'common.dart';
 
 void main() {
@@ -42,7 +45,9 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
             textDirection: .ltr,
             child: ElView(
               style: ElStyle(alignment: .topLeft, padding: .all(80)),
-              child: container ? ElCardView(style: style, child: leaf) : ElView(style: style, child: leaf),
+              child: container
+                  ? ElView(semantics: ElSemantics(container: true, explicitChildNodes: true), style: style, child: leaf)
+                  : ElView(style: style, child: leaf),
             ),
           );
         }
@@ -83,7 +88,8 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
           textDirection: .ltr,
           child: ElView(
             style: ElStyle(alignment: .topLeft, padding: .all(80)),
-            child: ElCardView(
+            child: ElView(
+              semantics: ElSemantics(container: true, explicitChildNodes: true),
               style: ElStyle(
                 width: 240,
                 height: 180,
@@ -131,7 +137,8 @@ void _registerTransformGeometryTests(ElSemanticsTestBinding binding) {
     final child = ElView(child: '固定内容');
     Widget host(Color color) => Directionality(
       textDirection: .ltr,
-      child: ElCardView(
+      child: ElView(
+        semantics: ElSemantics(container: true, explicitChildNodes: true),
         style: ElStyle(backgroundColor: color),
         child: child,
       ),
@@ -234,12 +241,7 @@ void _registerGeometryTests(ElSemanticsTestBinding binding) {
               style: ElStyle(width: 100, height: 50),
               semantics: ElSemantics(label: 'first', button: true, onTap: () => taps++),
             ),
-          ElView(
-            key: ValueKey('second'),
-            focusNode: second,
-            style: ElStyle(width: 100, height: 50),
-            child: 'second',
-          ),
+          ElView(key: ValueKey('second'), focusNode: second, style: ElStyle(width: 100, height: 50), child: 'second'),
         ],
       ),
     );
@@ -522,11 +524,7 @@ void _registerTreeTests() {
     var excluded = false;
     late StateSetter update;
     // 壳节点：自身不可聚焦、不暴露焦点语义，按 excluded 动态挡住后代焦点。
-    final blocker = FocusNode(
-      canRequestFocus: false,
-      descendantsAreFocusable: true,
-      descendantsAreTraversable: true,
-    );
+    final blocker = FocusNode(canRequestFocus: false, descendantsAreFocusable: true, descendantsAreTraversable: true);
     addTearDown(blocker.dispose);
     await tester.pumpWidget(
       shell(

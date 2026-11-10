@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart'
     show
         ElButtonView,
-        ElCardView,
+        ExamplePanel,
         ElContextMenu,
         ElContextMenuItem,
         ElEvent,
@@ -15,6 +15,7 @@ import 'package:flutter_base/flutter_base.dart'
         ElTabController,
         ElTabView,
         ElView;
+import '../../../widgets/panel.dart';
 
 /// 原生示例同款离线推荐流，每行两张卡片。
 const int bibiVideoRowCount = 180;
@@ -352,7 +353,7 @@ class _VideoCard extends StatelessWidget {
     void openDetails() => _showDetails(context, video.title, video.summary);
     return Semantics(
       onTap: openDetails,
-      child: ElCardView(
+      child: ExamplePanel(
         style: _videoCardStyle,
         event: ElEvent(config: _videoTapConfig, onTap: (_) => openDetails()),
         child: Column(

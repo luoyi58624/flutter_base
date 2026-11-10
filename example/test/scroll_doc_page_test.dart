@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Future<GoRouter> _openButtonRoute(WidgetTester tester, String location, {double width = 390}) async {
   tester.view.devicePixelRatio = 1;
@@ -374,7 +375,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<DropdownButton<ElShadowType>>(dropdown).value, type);
       for (final level in ElLevelType.values) {
-        final card = tester.widget<ElCardView>(find.byKey(ValueKey('shadow-${level.name}')));
+        final card = tester.widget<ExamplePanel>(find.byKey(ValueKey('shadow-${level.name}')));
         expect(card.style!.boxShadow, isNotEmpty);
         if (type == ElShadowType.uniform) {
           expect(card.style!.boxShadow!.every((shadow) => shadow.offset == Offset.zero), isTrue);

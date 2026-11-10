@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
+import '../panel.dart';
 import 'atom_theme.dart';
 
 /// 旧文档的恒暗代码预览，保留高亮、选择、复制与双轴滚动。
@@ -49,7 +50,7 @@ class ElCodePreview extends StatelessWidget {
   final String copiedLabel;
 
   @override
-  Widget build(BuildContext context) => ElCardView(
+  Widget build(BuildContext context) => ExamplePanel(
     themeMode: ElThemeMode(brightness: .dark, duration: .zero),
     style: ElStyle(
       width: '100%',

@@ -2,6 +2,7 @@ import 'package:example/src/pages/examples/scroll_examples/selection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Finder _key(String key) => find.byKey(ValueKey(key));
 
@@ -47,7 +48,7 @@ void main() {
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       await _locate(tester, '5000');
-      final row = find.ancestor(of: target, matching: find.byType(ElCardView)).first;
+      final row = find.ancestor(of: target, matching: find.byType(ExamplePanel)).first;
       final checkbox = find.descendant(of: row, matching: find.byType(ElCheckbox));
       expect(tester.widget<ElCheckbox>(checkbox).modelValue!.value, isTrue);
       await _tap(tester, 'selection-menu');

@@ -7,6 +7,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../../example_page.dart';
 import 'comparison_list.dart';
 import 'scroll_mode.dart';
+import '../../../widgets/panel.dart';
 
 /// 用万条订单对比滚动中的批量状态更新、结构变动和多选状态。
 class RecyclerOrdersPage extends StatefulWidget {
@@ -114,7 +115,7 @@ class _RecyclerOrdersPageState extends State<RecyclerOrdersPage> {
               children: [
                 Padding(
                   padding: .fromLTRB(12, 8, 12, 10),
-                  child: ElCardView(
+                  child: ExamplePanel(
                     style: ElStyle(
                       padding: .all(10),
                       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -293,7 +294,7 @@ class _OrderRow extends StatelessWidget {
       height: _orderExtent(context),
       child: Padding(
         padding: .fromLTRB(12, 3, 12, 5),
-        child: ElCardView(
+        child: ExamplePanel(
           key: ValueKey('orders-card'),
           style: ElStyle(
             padding: .fromLTRB(9, 8, 11, 8),

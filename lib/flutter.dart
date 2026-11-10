@@ -150,7 +150,6 @@ export 'src/flutter/views/table/table.dart' show ElTable, ElTableStyle, ElTableC
 export 'src/flutter/widgets/row/index.dart' show ElCol, ElRow, ElRowAlign, ElRowJustify;
 
 // 基础视图、链接与分隔线
-export 'src/flutter/views/card/card_view.dart' show ElCardView;
 export 'src/flutter/views/button/button_view.dart' show ElButtonView;
 export 'src/flutter/widgets/link/index.dart' show LinkTarget, ElLink;
 export 'src/flutter/widgets/link/status_bar.dart' show ElLinkStatusBar;

@@ -6,6 +6,7 @@ import 'example_page.dart';
 import 'examples/index.dart';
 import 'showcase/buttons.dart';
 import 'showcase/hero.dart';
+import '../widgets/panel.dart';
 
 /// 组件综合展示首页，提供滚动示例入口、响应式布局与按钮交互。
 class HomePage extends HookWidget {
@@ -52,7 +53,7 @@ class _ScrollEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ElCardView(
+    return ExamplePanel(
       style: ElStyle(
         backgroundColor:
             theme.cardTheme.color ?? (theme.useMaterial3 ? theme.colorScheme.surfaceContainerLow : theme.cardColor),

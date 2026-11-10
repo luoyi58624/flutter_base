@@ -61,7 +61,7 @@ void main() {
         _host(ElCard(key: cardKey, loading: loading, onTap: () => activations++, child: child));
     await tester.pumpWidget(card(false));
     final content = tester.element(find.byKey(contentKey));
-    expect(find.byType(ElCardView), findsOneWidget);
+    expect(find.byType(ElCard), findsOneWidget);
     await tester.tap(find.byKey(cardKey));
     await tester.pump();
     expect(activations, 1);

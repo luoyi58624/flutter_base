@@ -3,6 +3,7 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:example/src/pages/components/start/shadow/index.dart';
+import 'package:example/src/widgets/panel.dart';
 
 Future<void> _host(WidgetTester tester, Size size) async {
   tester.view.physicalSize = size;
@@ -21,7 +22,7 @@ Future<void> _host(WidgetTester tester, Size size) async {
 }
 
 ElStyle _card(WidgetTester tester, ElLevelType level) =>
-    tester.widget<ElCardView>(find.byKey(ValueKey('shadow-${level.name}'), skipOffstage: false)).style!;
+    tester.widget<ExamplePanel>(find.byKey(ValueKey('shadow-${level.name}'), skipOffstage: false)).style!;
 
 void main() {
   for (final size in [Size(320, 700), Size(800, 400), Size(1280, 900)]) {
