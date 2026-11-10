@@ -1,10 +1,11 @@
 import '../../support/overlay.dart';
+
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/widgets/dnd/drag_session.dart' show DndSession;
-import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'package:flutter_base/src/ui/widgets/dnd/ghost_follower.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderViewport;
 import 'package:flutter_test/flutter_test.dart';
 
 /// DnD 数据拖放：ElDraggable / ElDropTarget / ghost 预览。
@@ -261,7 +262,12 @@ void main() {
                     child: ElDropTarget<String>(
                       onEnter: (_) => outerEntered++,
                       builder: (c, _) => ElView(
-                        style: const ElStyle(width: 200, height: 200, backgroundColor: Color(0xFF333333), alignment: .center),
+                        style: const ElStyle(
+                          width: 200,
+                          height: 200,
+                          backgroundColor: Color(0xFF333333),
+                          alignment: .center,
+                        ),
                         child: ElDropTarget<String>(
                           onEnter: (_) => innerEntered++,
                           builder: (c, _) => const ElView(
@@ -398,14 +404,12 @@ void main() {
           onDragEnded: ended.add,
           onDrop: (_, _) => throw StateError('drop boom'),
           ghostBuilder: (_) => const ElView(key: ghostKey, style: ElStyle(width: 40, height: 40)),
-          targetChild: ElScrollView(
+          targetChild: ElScroll(
             children: [for (var i = 0; i < 40; i++) ElView(style: const ElStyle(width: 100, height: 40), child: 'row')],
           ),
         ),
       );
-      final viewport = tester.allRenderObjects.whereType<RenderVirtualScrollView>().firstWhere(
-        (v) => v.size.width == 120,
-      );
+      final viewport = tester.allRenderObjects.whereType<RenderViewport>().firstWhere((v) => v.size.width == 120);
       final targetRect = tester.getRect(find.byKey(targetKey));
 
       final first = await tester.startGesture(tester.getCenter(find.byKey(dragKey)));
@@ -415,18 +419,18 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(viewport.position.pixels, greaterThan(0), reason: '前置条件：drop 前 auto-scroll ticker 已启动');
+      expect(viewport.offset.pixels, greaterThan(0), reason: '前置条件：drop 前 auto-scroll ticker 已启动');
       await first.up();
       await tester.pump(const Duration(milliseconds: 20));
       expect(tester.takeException(), isA<StateError>());
       await tester.pumpAndSettle();
 
-      final stoppedAt = viewport.position.pixels;
+      final stoppedAt = viewport.offset.pixels;
       expect(DndSession.instance.isActive, isFalse);
       expect(find.byKey(ghostKey), findsNothing);
       expect(ended, <bool>[false]);
       await tester.pump(const Duration(milliseconds: 200));
-      expect(viewport.position.pixels, stoppedAt, reason: '异常 terminal 后 auto-scroll ticker 必须停止');
+      expect(viewport.offset.pixels, stoppedAt, reason: '异常 terminal 后 auto-scroll ticker 必须停止');
 
       final second = await tester.startGesture(tester.getCenter(find.byKey(dragKey)));
       await second.moveBy(const Offset(50, 0));

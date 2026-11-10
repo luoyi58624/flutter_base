@@ -24,9 +24,7 @@ ElStyle _mentionOptionBaseStyle(BuildContext context, bool isSelected) =>
       alignment: .centerLeft,
       cursor: SystemMouseCursors.click,
       userSelect: .none,
-      onHover: (isSelected)
-          ? null
-          : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
+      onHover: (isSelected) ? null : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
@@ -78,12 +76,7 @@ class _MentionPanel<T> extends StatelessWidget {
   final bool compact;
   final ElStyle? panelStyle;
   final ElStyle? optionStyle;
-  final Widget Function(
-    BuildContext context,
-    ElMentionOption<T> option,
-    bool active,
-  )?
-  itemBuilder;
+  final Widget Function(BuildContext context, ElMentionOption<T> option, bool active)? itemBuilder;
   final Widget? header;
   final Widget? footer;
   final WidgetBuilder? loadingBuilder;
@@ -98,23 +91,12 @@ class _MentionPanel<T> extends StatelessWidget {
     final geometry = ElPortal.geometryOf(context);
     final exiting = phase == ElPortalPhase.exiting;
     var style = _mentionPanelBaseStyle(context).merge(
-      ElStyle(
-        width: width,
-        maxHeight: maxHeight,
-        opacity: exiting ? 0 : 1,
-        transform: .translateY(exiting ? -4 : 0),
-      ),
+      ElStyle(width: width, maxHeight: maxHeight, opacity: exiting ? 0 : 1, transform: .translateY(exiting ? -4 : 0)),
     );
     if (panelStyle != null) style = style.merge(panelStyle);
     final optionHeight = _mentionOptionHeight(compact);
 
-    final list = ElScrollView(
-      controller: scrollController,
-      shrinkWrap: true,
-      crossAxisAlignment: .stretch,
-      semanticsRole: SemanticsRole.list,
-      children: _children(context, optionHeight),
-    );
+    final list = buildListScroll(controller: scrollController, children: _children(context, optionHeight));
     final content = header == null && footer == null
         ? list
         : Column(
@@ -135,16 +117,9 @@ class _MentionPanel<T> extends StatelessWidget {
     if (!showArrow) return panel;
 
     final actualSide =
-        geometry?.placement.side ??
-        (placement == ElMentionPlacement.top
-            ? AxisDirection.up
-            : AxisDirection.down);
-    final arrowTarget =
-        geometry?.arrowTarget ??
-        Offset(width / 2, actualSide == AxisDirection.up ? maxHeight : 0);
-    final arrowLeft = (arrowTarget.dx - 4)
-        .clamp(0, math.max(0, width - 8))
-        .toDouble();
+        geometry?.placement.side ?? (placement == ElMentionPlacement.top ? AxisDirection.up : AxisDirection.down);
+    final arrowTarget = geometry?.arrowTarget ?? Offset(width / 2, actualSide == AxisDirection.up ? maxHeight : 0);
+    final arrowLeft = (arrowTarget.dx - 4).clamp(0, math.max(0, width - 8)).toDouble();
     final arrowTop = actualSide == AxisDirection.up ? null : -4.0;
     final arrowBottom = actualSide == AxisDirection.up ? -4.0 : null;
     return ElStackView(
@@ -173,20 +148,10 @@ class _MentionPanel<T> extends StatelessWidget {
 
   List<Widget> _children(BuildContext context, double optionHeight) {
     if (loading) {
-      return [
-        _MentionMessage(
-          height: optionHeight,
-          child: loadingBuilder?.call(context) ?? '加载中…',
-        ),
-      ];
+      return [_MentionMessage(height: optionHeight, child: loadingBuilder?.call(context) ?? '加载中…')];
     }
     if (suggestions.isEmpty) {
-      return [
-        _MentionMessage(
-          height: optionHeight,
-          child: emptyBuilder?.call(context) ?? '暂无匹配',
-        ),
-      ];
+      return [_MentionMessage(height: optionHeight, child: emptyBuilder?.call(context) ?? '暂无匹配')];
     }
     return [
       for (var index = 0; index < suggestions.length; index++)
@@ -242,12 +207,7 @@ class _MentionOption<T> extends StatelessWidget {
   final bool active;
   final double height;
   final ElStyle? style;
-  final Widget Function(
-    BuildContext context,
-    ElMentionOption<T> option,
-    bool active,
-  )?
-  itemBuilder;
+  final Widget Function(BuildContext context, ElMentionOption<T> option, bool active)? itemBuilder;
   final VoidCallback onPointerDown;
   final VoidCallback onPointerEnd;
   final ValueChanged<_ResolvedMentionOption<T>> onSelected;
@@ -255,10 +215,7 @@ class _MentionOption<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = suggestion.source.disabled;
-    var resolvedStyle = _mentionOptionBaseStyle(
-      context,
-      active,
-    ).merge(ElStyle(height: height));
+    var resolvedStyle = _mentionOptionBaseStyle(context, active).merge(ElStyle(height: height));
     if (disabled) {
       resolvedStyle = resolvedStyle.merge(_mentionDisabledOptionStyle(context));
     }
@@ -288,9 +245,7 @@ class _MentionOption<T> extends StatelessWidget {
         selected: active,
         onTap: disabled ? null : select,
       ),
-      child:
-          itemBuilder?.call(context, suggestion.source, active) ??
-          suggestion.label,
+      child: itemBuilder?.call(context, suggestion.source, active) ?? suggestion.label,
     );
   }
 }

@@ -11,7 +11,6 @@ import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
 import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
 import '../../../../flutter/components/select/index.dart' show ElSelect, ElSelectOption;
 import '../../../../flutter/views/editable/controller.dart' show ElEditableController;
-import '../../../../flutter/views/scroll/scroll_view.dart' show ElScrollView;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventExt;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElStyle;
@@ -24,6 +23,7 @@ import '../../commons/icons.dart' show ElDesktopIcons;
 import '../../extensions/content.dart';
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
+import '../list_scroll.dart' show buildListScroll;
 
 part 'panel.dart';
 

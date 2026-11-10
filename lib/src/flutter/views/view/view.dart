@@ -120,7 +120,8 @@ class ElView extends RenderObjectWidget {
     );
     render.systemBoldText = (context as ViewElement).resolveSystemBoldText();
     render.bindTickerModeSource(() => TickerMode.getValuesNotifier(context));
-    render.skipReuseTransitions = () => ReuseAnimationScope.skippingTransitionsOf(context);
+    // 祖先失活时的按压反馈复位会回调这里，此时不可能处于换绑，直接返回 false。
+    render.skipReuseTransitions = () => context.isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(context);
     render.setStyleParent(StyleDependencyScope.maybeHostOf(context));
     if (trace != null) MountTrace.createRenderObjectUs += trace.elapsedMicroseconds;
     return render;

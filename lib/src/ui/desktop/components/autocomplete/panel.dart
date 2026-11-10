@@ -24,9 +24,7 @@ ElStyle _autocompleteOptionBaseStyle(BuildContext context, bool isSelected) =>
       alignment: .centerLeft,
       cursor: SystemMouseCursors.click,
       userSelect: .none,
-      onHover: (isSelected)
-          ? null
-          : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
+      onHover: (isSelected) ? null : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
@@ -70,12 +68,7 @@ class _AutocompletePanel<T> extends StatelessWidget {
   final bool compact;
   final ElStyle? panelStyle;
   final ElStyle? optionStyle;
-  final Widget Function(
-    BuildContext context,
-    ElLabelModel<T> suggestion,
-    bool active,
-  )?
-  itemBuilder;
+  final Widget Function(BuildContext context, ElLabelModel<T> suggestion, bool active)? itemBuilder;
   final Widget? header;
   final Widget? footer;
   final WidgetBuilder? loadingBuilder;
@@ -89,23 +82,12 @@ class _AutocompletePanel<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final phase = ElPortal.phaseOf(context);
     final exiting = phase == ElPortalPhase.exiting;
-    var style = _autocompletePanelBaseStyle(context).merge(
-      ElStyle(
-        maxHeight: maxHeight,
-        opacity: exiting ? 0 : 1,
-        transform: .translateY(exiting ? -4 : 0),
-      ),
-    );
+    var style = _autocompletePanelBaseStyle(context)
+        .merge(ElStyle(maxHeight: maxHeight, opacity: exiting ? 0 : 1, transform: .translateY(exiting ? -4 : 0)));
     if (panelStyle != null) style = style.merge(panelStyle);
     final optionHeight = _autocompleteOptionHeight(compact);
 
-    final list = ElScrollView(
-      controller: scrollController,
-      shrinkWrap: true,
-      crossAxisAlignment: .stretch,
-      semanticsRole: SemanticsRole.list,
-      children: _children(context, optionHeight),
-    );
+    final list = buildListScroll(controller: scrollController, children: _children(context, optionHeight));
     return ElView(
       key: const ValueKey<String>('el-autocomplete-panel'),
       style: style,
@@ -130,28 +112,13 @@ class _AutocompletePanel<T> extends StatelessWidget {
 
   List<Widget> _children(BuildContext context, double optionHeight) {
     if (loading) {
-      return [
-        _AutocompleteMessage(
-          height: optionHeight,
-          child: loadingBuilder?.call(context) ?? '加载中…',
-        ),
-      ];
+      return [_AutocompleteMessage(height: optionHeight, child: loadingBuilder?.call(context) ?? '加载中…')];
     }
     if (error != null) {
-      return [
-        _AutocompleteMessage(
-          height: optionHeight,
-          child: errorBuilder?.call(context, error!) ?? '加载失败',
-        ),
-      ];
+      return [_AutocompleteMessage(height: optionHeight, child: errorBuilder?.call(context, error!) ?? '加载失败')];
     }
     if (suggestions.isEmpty) {
-      return [
-        _AutocompleteMessage(
-          height: optionHeight,
-          child: emptyBuilder?.call(context) ?? '暂无匹配',
-        ),
-      ];
+      return [_AutocompleteMessage(height: optionHeight, child: emptyBuilder?.call(context) ?? '暂无匹配')];
     }
     return [
       for (var index = 0; index < suggestions.length; index++)
@@ -207,29 +174,18 @@ class _AutocompleteOption<T> extends StatelessWidget {
   final bool active;
   final double height;
   final ElStyle? style;
-  final Widget Function(
-    BuildContext context,
-    ElLabelModel<T> suggestion,
-    bool active,
-  )?
-  itemBuilder;
+  final Widget Function(BuildContext context, ElLabelModel<T> suggestion, bool active)? itemBuilder;
   final VoidCallback onPointerDown;
   final VoidCallback onPointerEnd;
   final ValueChanged<_ResolvedSuggestion<T>> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    var resolvedStyle = _autocompleteOptionBaseStyle(
-      context,
-      active,
-    ).merge(ElStyle(height: height));
+    var resolvedStyle = _autocompleteOptionBaseStyle(context, active).merge(ElStyle(height: height));
     if (style != null) resolvedStyle = resolvedStyle.merge(style);
     void select() => onSelected(suggestion);
     return ElView(
-      key: ValueKey<(String, int)>((
-        'el-autocomplete-option',
-        suggestion.index,
-      )),
+      key: ValueKey<(String, int)>(('el-autocomplete-option', suggestion.index)),
       style: resolvedStyle,
 
       event: ElEvent(
@@ -248,9 +204,7 @@ class _AutocompleteOption<T> extends StatelessWidget {
         selected: active,
         onTap: select,
       ),
-      child:
-          itemBuilder?.call(context, suggestion.source, active) ??
-          suggestion.label,
+      child: itemBuilder?.call(context, suggestion.source, active) ?? suggestion.label,
     );
   }
 }

@@ -29,8 +29,6 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
     required ImageProvider imageProvider,
     required ImageConfiguration imageConfiguration,
     ImageByteSource? byteSource,
-    bool Function()? decodeVisible,
-    int Function()? decodePriority,
     ImageLoadPhaseCallback? onLoadPhase,
     bool reportReady = false,
     bool reportError = false,
@@ -56,8 +54,6 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
   }) : _imageProvider = imageProvider,
        _imageConfiguration = imageConfiguration,
        _byteSource = byteSource,
-       _decodeVisible = decodeVisible,
-       _decodePriority = decodePriority,
        _onLoadPhase = onLoadPhase,
        _reportReady = reportReady,
        _reportError = reportError,
@@ -220,7 +216,6 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
       _byteSource != null && !_pipelineFellBack && repeat == ImageRepeat.noRepeat && centerSlice == null;
 
   bool _pipelineFellBack = false;
-  int Function()? _decodePriority;
   ImageDescriptorInfo? _descriptorInfo;
 
   // 只记录当前真正交给 RenderImage 绘制的位图所满足的目标桶。请求发出时
@@ -240,21 +235,10 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
   bool _reportedReady = false;
 
   bool _isCurrentlyVisible = false;
-  bool Function()? _decodeVisible;
 
   /// 当前节点是否被解码调度视为可见，仅供优先级回归测试。
   @visibleForTesting
   bool get debugDecodeIsVisible => _decodeIsVisible();
-
-  /// 更新虚拟窗口提供的实时可见性查询。
-  set decodeVisible(bool Function()? value) => _decodeVisible = value;
-
-  /// 更新虚拟窗口提供的方向解码优先级查询。
-  set decodePriority(int Function()? value) => _decodePriority = value;
-
-  /// 当前虚拟项的动态解码优先级，仅供滚动方向回归测试。
-  @visibleForTesting
-  int? get debugDecodePriority => _decodePriority?.call();
 
   void _markCurrentlyVisible() {
     // paint 过的 cell 保持高优先级直到 detach；cacheExtent 外节点不会 paint，
@@ -262,7 +246,15 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
     _isCurrentlyVisible = true;
   }
 
-  bool _decodeIsVisible() => _decodeVisible?.call() ?? _isCurrentlyVisible;
+  // 处在官方视口内时按当前位置实时判断：缓存区条目已绘制过也不再算可见，
+  // 避免滚出视口后继续与真正可见的图片争抢解码槽。
+  bool _decodeIsVisible() {
+    if (!_isCurrentlyVisible || !attached || !hasSize) return false;
+    final viewport = RenderAbstractViewport.maybeOf(this) as RenderObject?;
+    if (viewport is! RenderBox || !viewport.hasSize) return true;
+    final rect = MatrixUtils.transformRect(getTransformTo(viewport), Offset.zero & size);
+    return rect.overlaps(Offset.zero & viewport.size);
+  }
 
   @override
   void attach(PipelineOwner owner) {
@@ -352,12 +344,7 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
     if (_descriptorInfo != null) return;
     final generation = _generation;
     ImageDecodePipeline.instance
-        .descriptorFor(
-          source,
-          isCanceled: () => generation != _generation || !attached,
-          isVisible: _decodeIsVisible,
-          priority: _decodePriority,
-        )
+        .descriptorFor(source, isCanceled: () => generation != _generation || !attached, isVisible: _decodeIsVisible)
         .then((info) {
           if (generation != _generation || !attached) return;
           _descriptorInfo = info;
@@ -398,13 +385,7 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
     _pendingDecodeBucket = bucket;
     final generation = _generation;
     ImageDecodePipeline.instance
-        .decode(
-          source,
-          bucket,
-          isCanceled: () => generation != _generation || !attached,
-          isVisible: _decodeIsVisible,
-          priority: _decodePriority,
-        )
+        .decode(source, bucket, isCanceled: () => generation != _generation || !attached, isVisible: _decodeIsVisible)
         .then((decoded) {
           if (generation != _generation || !attached) return;
           if (decoded == null) {
@@ -464,7 +445,6 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
           fit ?? BoxFit.scaleDown,
           isCanceled: () => generation != _generation || !attached,
           isVisible: _decodeIsVisible,
-          priority: _decodePriority,
         )
         .then((decoded) {
           if (generation != _generation || !attached) return;
@@ -659,5 +639,4 @@ class RenderImageView extends RenderImage implements SelectionParticipantHost {
     super.handleEvent(event, entry);
     _eventDispatcher?.handleEvent(event, entry);
   }
-
 }

@@ -45,11 +45,12 @@ Future<void> _focusAt(WidgetTester tester, FocusNode node, int offset) async {
   await tester.pump();
 }
 
-SemanticsNode _scrollNode(WidgetTester tester, Finder finder) {
+/// 候选滚动区内承载 list 角色的语义节点。
+SemanticsNode _listNode(WidgetTester tester, Finder finder) {
   SemanticsNode? result;
   void visit(SemanticsNode node) {
     final data = node.getSemanticsData();
-    if (data.scrollExtentMin != null && data.scrollExtentMax != null) {
+    if (data.role == SemanticsRole.list) {
       result = node;
       return;
     }
@@ -109,7 +110,7 @@ void main() {
       final input = tester.getSemantics(find.bySemanticsLabel('提及输入'));
       expect(input.getSemanticsData().flagsCollection.isTextField, isTrue);
 
-      final list = _scrollNode(tester, find.descendant(of: _panel, matching: find.byType(ElScrollView)));
+      final list = _listNode(tester, find.descendant(of: _panel, matching: find.byType(ElScroll)));
       expect(list.getSemanticsData().role, SemanticsRole.list);
       final first = tester.getSemantics(_option(0)).getSemanticsData();
       expect(first.label, 'Alice');

@@ -62,6 +62,9 @@ class ViewElement extends RenderObjectElement {
   bool _hadFocusWithin = false;
   bool _activeForFocus = false;
 
+  /// 元素是否处于活动树；失活后不能再做祖先查找，延迟回调须先检查。
+  bool get isActiveInTree => _activeForFocus;
+
   /// 登记到全局收环路由的回调（字段级持有，保证登记/注销是同一实例）。
   late final VoidCallback _focusRingRetractor = _retractFocusRing;
 

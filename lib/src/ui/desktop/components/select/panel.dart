@@ -30,9 +30,7 @@ ElStyle _selectOptionBaseStyle(BuildContext context, bool isSelected) =>
         cursor: SystemMouseCursors.forbidden,
         iconColor: context.elTheme.textPlaceholder,
       ),
-      onHover: (isSelected)
-          ? null
-          : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
+      onHover: (isSelected) ? null : (ElStyle(backgroundColor: context.elTheme.overlayColorLighter)),
     ).merge(
       (isSelected)
           ? (ElStyle(
@@ -74,13 +72,8 @@ class _ElSelectPanel<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final phase = ElPortal.phaseOf(context);
     final exiting = phase == ElPortalPhase.exiting;
-    var style = _selectMenuBaseStyle(context).merge(
-      ElStyle(
-        maxHeight: menuHeight,
-        opacity: exiting ? 0 : 1,
-        transform: .translateY(exiting ? -4 : 0),
-      ),
-    );
+    var style = _selectMenuBaseStyle(context)
+        .merge(ElStyle(maxHeight: menuHeight, opacity: exiting ? 0 : 1, transform: .translateY(exiting ? -4 : 0)));
     if (menuStyle != null) style = style.merge(menuStyle);
     final optionHeight = _selectOptionHeight(compact);
 
@@ -94,11 +87,8 @@ class _ElSelectPanel<T> extends StatelessWidget {
         explicitChildNodes: true,
         properties: SemanticsProperties(identifier: semanticsIdentifier),
       ),
-      child: ElScrollView(
+      child: buildListScroll(
         controller: scrollController,
-        shrinkWrap: true,
-        crossAxisAlignment: .stretch,
-        semanticsRole: SemanticsRole.list,
         children: options.isEmpty
             ? [
                 ElView(
@@ -151,10 +141,7 @@ class _ElSelectOption<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var resolvedStyle = _selectOptionBaseStyle(
-      context,
-      active,
-    ).merge(ElStyle(height: height));
+    var resolvedStyle = _selectOptionBaseStyle(context, active).merge(ElStyle(height: height));
     if (style != null) resolvedStyle = resolvedStyle.merge(style);
     void select() {
       if (!option.disabled) onSelected(option);

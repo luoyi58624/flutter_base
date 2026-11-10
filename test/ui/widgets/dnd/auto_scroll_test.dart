@@ -1,7 +1,8 @@
 import '../../support/overlay.dart';
+
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderViewport;
 import 'package:flutter_test/flutter_test.dart';
 
 /// DnD 边缘自动滚动：拖拽指针进入滚动视口底部边缘带 → 内容持续滚动；
@@ -22,7 +23,10 @@ void main() {
                   top: 20,
                   child: ElDraggable<String>(
                     data: 'x',
-                    child: const ElView(key: dragKey, style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF2266AA))),
+                    child: const ElView(
+                      key: dragKey,
+                      style: ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF2266AA)),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -31,10 +35,9 @@ void main() {
                   child: ElView(
                     key: scrollKey,
                     style: const ElStyle(width: 200, height: 200, backgroundColor: Color(0xFF222222)),
-                    child: ElScrollView(
+                    child: ElScroll(
                       children: [
-                        for (var i = 0; i < 40; i++)
-                          ElView(style: const ElStyle(width: 180, height: 40), child: 'row'),
+                        for (var i = 0; i < 40; i++) ElView(style: const ElStyle(width: 180, height: 40), child: 'row'),
                       ],
                     ),
                   ),
@@ -45,8 +48,8 @@ void main() {
         ),
       ),
     );
-    final viewport = tester.allRenderObjects.whereType<RenderVirtualScrollView>().firstWhere((v) => v.size.width == 200);
-    expect(viewport.position.pixels, 0);
+    final viewport = tester.allRenderObjects.whereType<RenderViewport>().firstWhere((v) => v.size.width == 200);
+    expect(viewport.offset.pixels, 0);
 
     final gesture = await tester.startGesture(tester.getCenter(find.byKey(dragKey)));
     await gesture.moveBy(const Offset(50, 0));
@@ -58,15 +61,15 @@ void main() {
     // 持续几帧：位置应持续增长。
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 100));
-    final scrolled = viewport.position.pixels;
+    final scrolled = viewport.offset.pixels;
     expect(scrolled, greaterThan(20));
 
     // 移出边缘带（视口中心）：停止增长。
     await gesture.moveTo(scrollRect.center);
     await tester.pump();
-    final atCenter = viewport.position.pixels;
+    final atCenter = viewport.offset.pixels;
     await tester.pump(const Duration(milliseconds: 200));
-    expect(viewport.position.pixels, atCenter);
+    expect(viewport.offset.pixels, atCenter);
 
     await gesture.up();
     await tester.pump();

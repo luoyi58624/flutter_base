@@ -2,7 +2,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'ghost_follower.dart';
 
 /// drop target 的会话侧绑定（[ElDropTarget] state 经 MetaData 挂进命中路径）。
@@ -196,20 +195,19 @@ class DndSession {
   /// 曲线加速手感）。
   static const double _autoScrollMaxSpeed = 800.0;
 
-  RenderScrollViewportBase? _autoScrollViewport;
+  RenderViewportBase? _autoScrollViewport;
   Offset _lastGlobalPosition = Offset.zero;
   Ticker? _autoScrollTicker;
   Duration _lastAutoScrollTick = Duration.zero;
 
   void _syncAutoScroll(HitTestResult result, Offset globalPosition) {
     _lastGlobalPosition = globalPosition;
-    RenderScrollViewportBase? viewport;
+    RenderViewportBase? viewport;
     for (final entry in result.path) {
       final target = entry.target;
-      if (target is RenderScrollViewportBase) {
-        viewport = target;
-        break;
-      }
+      if (target is! RenderObject) continue;
+      viewport = _scrollViewportOf(target);
+      if (viewport != null) break;
     }
     _autoScrollViewport = viewport;
     // 只在指针落进边缘带时起表：带外/无视口不空转（拖住不动时不逼帧）。
@@ -224,8 +222,22 @@ class DndSession {
     }
   }
 
+  /// 命中目标所在的纵向滚动视口；横向自动滚暂无真实场景。
+  ///
+  /// 官方视口自身不参与命中，指针落在内容上时沿父链查找；落在空白处时最深命中是
+  /// 直接包住视口的代理节点（如 ElScroll 的指针监听层），需要检查它的子节点。
+  static RenderViewportBase? _scrollViewportOf(RenderObject target) {
+    RenderObject? node = target is RenderProxyBox ? target.child : null;
+    if (node is! RenderViewportBase) node = target;
+    while (node != null) {
+      if (node is RenderViewportBase && node.axis == Axis.vertical && node.offset is ScrollPosition) return node;
+      node = node.parent;
+    }
+    return null;
+  }
+
   /// 指针在 [viewport] 主轴边缘带内的深入比例（-1..1，负 = 顶边带；0 = 带外）。
-  double _edgeRatio(RenderScrollViewportBase viewport) {
+  double _edgeRatio(RenderViewportBase viewport) {
     if (!viewport.attached || !viewport.hasSize) return 0;
     final rect = MatrixUtils.transformRect(viewport.getTransformTo(null), Offset.zero & viewport.size);
     final y = _lastGlobalPosition.dy;
@@ -243,9 +255,8 @@ class DndSession {
     _lastAutoScrollTick = Duration.zero;
   }
 
-  /// 每帧：指针在视口主轴（垂直）边缘带内 → 按深入比例平方施加滚动增量。
-  /// 复用 [RenderScrollViewportBase.applySelectionAutoScrollDelta]（钳制 /
-  /// 平滑滚动复位口径与选区自动滚一致）。水平轴自动滚暂不做（无真实场景）。
+  /// 每帧：指针在视口主轴（垂直）边缘带内 → 按深入比例平方施加滚动增量，
+  /// 直接驱动官方视口的 [ScrollPosition] 并钳制在正文范围内。
   void _autoScrollTick(Duration elapsed) {
     final viewport = _autoScrollViewport;
     if (!_active || viewport == null || !viewport.attached || !viewport.hasSize) {
@@ -263,14 +274,24 @@ class DndSession {
     }
     final delta = _autoScrollMaxSpeed * ratio * ratio.abs() * dt.inMicroseconds / 1e6;
     if (delta.abs() < 0.01) return;
-    final applied = viewport.applySelectionAutoScrollDelta(delta);
-    if (applied == 0) {
+    if (_applyAutoScroll(viewport, delta) == 0) {
       // 滚到头：停表（指针再动会经 update → sync 重新起表）。
       _stopAutoScroll();
       return;
     }
     // 滚动改变了 target 与指针的相对位置：立即重派发命中（enter/leave 跟手）。
     _dispatchHit(_lastGlobalPosition);
+  }
+
+  /// 按屏幕方向的增量滚动 [viewport]，返回实际移动的像素。
+  double _applyAutoScroll(RenderViewportBase viewport, double delta) {
+    final position = viewport.offset as ScrollPosition;
+    if (!position.hasPixels || !position.hasContentDimensions) return 0;
+    final pixelDelta = axisDirectionIsReversed(viewport.axisDirection) ? -delta : delta;
+    final target = (position.pixels + pixelDelta).clamp(position.minScrollExtent, position.maxScrollExtent);
+    final applied = target - position.pixels;
+    if (applied != 0) position.jumpTo(target);
+    return applied;
   }
 
   /// 命中派发：hitTest 路径由深到浅找首个类型匹配的 target 标记，翻转时

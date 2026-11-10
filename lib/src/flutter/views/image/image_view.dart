@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
-import '../scroll/virtual/virtual_pipeline.dart' show ElScrollMixin;
 import '../view/event/event.dart';
 import '../view/style/style.dart';
 import 'image_byte_source.dart';
@@ -205,7 +204,7 @@ class ElImageView extends StatefulWidget {
 
 enum _ImagePhase { loading, ready, error }
 
-class _ImageViewState extends State<ElImageView> with ElScrollMixin<ElImageView> {
+class _ImageViewState extends State<ElImageView> {
   _ImagePhase _phase = _ImagePhase.loading;
 
   bool get _tracksReady => widget.placeholder != null || widget.onLoad != null;
@@ -214,12 +213,6 @@ class _ImageViewState extends State<ElImageView> with ElScrollMixin<ElImageView>
 
   /// 占位/错误/回调任一配置时才需要相位驱动 rebuild。
   bool get _tracksPhase => _tracksReady || _tracksError;
-
-  @override
-  bool get observesScrollUpdates => false;
-
-  @override
-  bool get observesScrollMetrics => false;
 
   @override
   void didUpdateWidget(ElImageView oldWidget) {
@@ -250,8 +243,6 @@ class _ImageViewState extends State<ElImageView> with ElScrollMixin<ElImageView>
   Widget build(BuildContext context) {
     final raw = _RawImageView(
       view: widget,
-      decodeVisible: hasScrollItem ? () => scrollItemDecodeVisible : null,
-      decodePriority: hasScrollItem ? () => scrollItemDecodePriority : null,
       onLoadPhase: _tracksPhase ? _handlePhase : null,
       reportReady: _tracksReady,
       reportError: _tracksError,
@@ -281,18 +272,9 @@ class _ImageViewState extends State<ElImageView> with ElScrollMixin<ElImageView>
 
 /// 裸图片 render 挂载层：承接 ElImageView 的全部绘制参数。
 class _RawImageView extends LeafRenderObjectWidget {
-  const _RawImageView({
-    required this.view,
-    required this.decodeVisible,
-    required this.decodePriority,
-    required this.reportReady,
-    required this.reportError,
-    this.onLoadPhase,
-  });
+  const _RawImageView({required this.view, required this.reportReady, required this.reportError, this.onLoadPhase});
 
   final ElImageView view;
-  final bool Function()? decodeVisible;
-  final int Function()? decodePriority;
   final ImageLoadPhaseCallback? onLoadPhase;
   final bool reportReady;
   final bool reportError;
@@ -303,8 +285,6 @@ class _RawImageView extends LeafRenderObjectWidget {
       imageProvider: view.image,
       imageConfiguration: createLocalImageConfiguration(context),
       byteSource: view.byteSource,
-      decodeVisible: decodeVisible,
-      decodePriority: decodePriority,
       onLoadPhase: onLoadPhase,
       reportReady: reportReady,
       reportError: reportError,
@@ -338,8 +318,6 @@ class _RawImageView extends LeafRenderObjectWidget {
       ..imageProvider = view.image
       ..imageConfiguration = createLocalImageConfiguration(context)
       ..byteSource = view.byteSource
-      ..decodeVisible = decodeVisible
-      ..decodePriority = decodePriority
       ..onLoadPhase = onLoadPhase
       ..reportReady = reportReady
       ..reportError = reportError

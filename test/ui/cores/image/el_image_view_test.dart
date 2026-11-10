@@ -327,20 +327,22 @@ void main() {
               return SizedBox(
                 width: hostWidth,
                 height: 300,
-                child: ElScrollView(
-                  children: [
-                    ElGridView.builder(
+                child: ElScroll.sliver(
+                  slivers: [
+                    ElSliverRecyclerGrid(
                       crossAxisCount: columns,
-                      mainAxisExtent: extent,
-                      rowGap: gap,
-                      columnGap: gap,
+                      mainAxisSpacing: gap,
+                      crossAxisSpacing: gap,
                       itemCount: 20,
-                      itemBuilder: (_, index) => ElImageView.memory(
-                        bytes!,
-                        key: ValueKey('resize-image-$index'),
-                        width: extent,
-                        height: extent,
-                        fit: .cover,
+                      itemBuilder: (_, index) => ValueListenableBuilder<int>(
+                        valueListenable: index,
+                        builder: (_, index, _) => ElImageView.memory(
+                          bytes!,
+                          key: ValueKey('resize-image-$index'),
+                          width: extent,
+                          height: extent,
+                          fit: .cover,
+                        ),
                       ),
                     ),
                   ],
@@ -392,22 +394,23 @@ void main() {
               return SizedBox(
                 width: hostWidth,
                 height: 180,
-                child: ElScrollView(
+                child: ElScroll.sliver(
                   controller: controller,
-                  cacheExtent: 300,
-                  children: [
-                    ElGridView.builder(
+                  slivers: [
+                    ElSliverRecyclerGrid(
                       crossAxisCount: columns,
-                      mainAxisExtent: extent,
-                      rowGap: gap,
-                      columnGap: gap,
+                      mainAxisSpacing: gap,
+                      crossAxisSpacing: gap,
                       itemCount: 30,
-                      itemBuilder: (_, index) => ElImageView.memory(
-                        bytes!,
-                        key: ValueKey('priority-resize-image-$index'),
-                        width: extent,
-                        height: extent,
-                        fit: .cover,
+                      itemBuilder: (_, index) => ValueListenableBuilder<int>(
+                        valueListenable: index,
+                        builder: (_, index, _) => ElImageView.memory(
+                          bytes!,
+                          key: ValueKey('priority-resize-image-$index'),
+                          width: extent,
+                          height: extent,
+                          fit: .cover,
+                        ),
                       ),
                     ),
                   ],
@@ -426,7 +429,6 @@ void main() {
     await tester.pump();
     expect(firstFinder, findsOneWidget, reason: '首项应留在 cacheExtent 内，才能复现陈旧可见优先级');
     expect(tester.getBottomLeft(firstFinder).dy, lessThanOrEqualTo(0));
-    expect(tester.renderObject<RenderImageView>(firstFinder).debugDecodePriority, 0);
     expect(tester.renderObject<RenderImageView>(firstFinder).debugDecodeIsVisible, isFalse);
 
     resize(() => hostWidth = 608);
