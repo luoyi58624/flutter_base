@@ -4,35 +4,27 @@ import 'dart:io';
 import 'package:flutter_base/src/flutter/views/image/image_disk_cache_io.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 磁盘 HTTP 缓存的浏览器语义回归：本地 HttpServer 数请求。
+/// 磁盘缓存回归：本地 HttpServer 统计请求数。
 void main() {
   late HttpServer server;
   late Directory cacheDir;
   late ImageDiskCache cache;
   var requestCount = 0;
-  var send304 = false;
-  String cacheControl = 'max-age=3600';
+  var cacheControl = '';
 
   setUp(() async {
     requestCount = 0;
-    send304 = false;
-    cacheControl = 'max-age=3600';
+    cacheControl = '';
     cacheDir = Directory.systemTemp.createTempSync('el_img_cache_test');
     cache = ImageDiskCache.instance..debugReset(dir: cacheDir);
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    server.listen((request) {
+    server.listen((request) async {
       requestCount++;
       final response = request.response;
-      if (send304 && request.headers.value(HttpHeaders.ifNoneMatchHeader) == '"v1"') {
-        response.statusCode = HttpStatus.notModified;
-        response.close();
-        return;
-      }
       response.statusCode = HttpStatus.ok;
-      response.headers.set(HttpHeaders.cacheControlHeader, cacheControl);
-      response.headers.set(HttpHeaders.etagHeader, '"v1"');
+      if (cacheControl.isNotEmpty) response.headers.set(HttpHeaders.cacheControlHeader, cacheControl);
       response.add(utf8.encode('IMAGE_BYTES'));
-      response.close();
+      await response.close();
     });
   });
 
@@ -46,42 +38,58 @@ void main() {
 
   String url(String path) => 'http://${server.address.host}:${server.port}$path';
 
-  test('新鲜期直读磁盘：第二次 load 零网络请求', () async {
+  /// 落盘是异步且不阻塞返回，等文件出现。
+  Future<File?> waitForCached() async {
+    for (var i = 0; i < 40; i++) {
+      final files = cacheDir.listSync().whereType<File>().where((f) => f.path.endsWith('.bin')).toList();
+      if (files.isNotEmpty) return files.single;
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+    }
+    return null;
+  }
+
+  test('有效期内直读磁盘：第二次 load 零网络请求', () async {
     final a = await cache.load(url('/a.png'));
-    expect(utf8.decode(a), 'IMAGE_BYTES');
-    expect(requestCount, 1);
+    expect(a.length, 11);
+    await waitForCached();
     final b = await cache.load(url('/a.png'));
-    expect(utf8.decode(b), 'IMAGE_BYTES');
-    expect(requestCount, 1, reason: 'max-age 内直读磁盘，不发请求');
+    expect(b.length, 11);
+    expect(requestCount, 1);
   });
 
-  test('过期后条件请求：304 续用磁盘字节', () async {
-    cacheControl = 'max-age=0'; // 立即过期
+  test('过期后重新下载', () async {
     await cache.load(url('/b.png'));
-    expect(requestCount, 1);
-    send304 = true;
-    final again = await cache.load(url('/b.png'));
-    expect(utf8.decode(again), 'IMAGE_BYTES');
-    expect(requestCount, 2, reason: '过期后发条件请求（If-None-Match），304 续用');
+    final file = await waitForCached();
+    file!.setLastModifiedSync(DateTime.now().subtract(ImageDiskCache.ttl + const Duration(hours: 1)));
+    await cache.load(url('/b.png'));
+    expect(requestCount, 2);
   });
 
-  test('no-store 不落盘：每次都真实请求', () async {
+  test('同 URL 并发请求共用一次下载', () async {
+    final buffers = await Future.wait([
+      cache.load(url('/c.png')),
+      cache.load(url('/c.png')),
+      cache.load(url('/c.png')),
+    ]);
+    expect(buffers.every((b) => b.length == 11), isTrue);
+    expect(requestCount, 1);
+  });
+
+  test('no-store 不落盘', () async {
     cacheControl = 'no-store';
-    await cache.load(url('/c.png'));
-    await cache.load(url('/c.png'));
-    expect(requestCount, 2, reason: 'no-store 禁止缓存');
+    await cache.load(url('/d.png'));
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(cacheDir.listSync().whereType<File>(), isEmpty);
   });
 
-  test('网络失败回退 stale 缓存（浏览器离线行为）', () async {
-    cacheControl = 'max-age=0';
-    await cache.load(url('/d.png'));
-    expect(requestCount, 1);
-    final port = server.port;
-    final host = server.address.host;
+  test('网络失败回退过期缓存，没有缓存时抛错', () async {
+    final target = url('/e.png');
+    await cache.load(target);
+    final file = await waitForCached();
+    file!.setLastModifiedSync(DateTime.now().subtract(ImageDiskCache.ttl + const Duration(hours: 1)));
     await server.close(force: true);
-    final stale = await cache.load('http://$host:$port/d.png');
-    expect(utf8.decode(stale), 'IMAGE_BYTES', reason: '服务器不可达时返回 stale 缓存');
-    // tearDown 会再 close 一次，重建避免报错。
+    expect((await cache.load(target)).length, 11);
+    await expectLater(cache.load(target.replaceFirst('/e.png', '/none.png')), throwsA(anything));
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   });
 }

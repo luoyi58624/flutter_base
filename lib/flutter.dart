@@ -162,7 +162,6 @@ export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterV
 export 'src/flutter/views/zoom/zoom_view.dart' show ElZoomController, ElZoomTransform, ElZoomView;
 export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, PreviewItemIdBuilder, ElPreviewView;
 export 'src/flutter/views/image/image_view.dart' show ElImageView, ImageLoadInfo;
-export 'src/flutter/views/image/image_prefetch_controller.dart' show ImagePrefetchController;
 
 // 点击反馈
 export 'src/flutter/widgets/tap/index.dart' show ElRippleTap;

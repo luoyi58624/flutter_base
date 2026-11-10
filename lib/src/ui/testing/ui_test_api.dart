@@ -10,7 +10,6 @@ export '../../flutter/views/editable/render/editable_render_scope.dart'
 export '../../flutter/views/view/event/dispatcher.dart';
 export '../../flutter/views/view/event/press.dart' show EventDetailsAccess;
 export '../../flutter/views/image/render/render_image_view.dart';
-export '../../flutter/views/image/image_decode_pipeline.dart' show ImageDecodePipeline;
 export '../../flutter/views/scroll/common/pointer/scroll_touch_gate.dart';
 export '../../flutter/views/scroll/refresh/refresher.dart' show RefreshGapClip, RenderRefreshGapClip;
 export '../../flutter/views/scroll/refresh/refresh_host.dart';

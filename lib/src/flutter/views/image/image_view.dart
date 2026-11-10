@@ -1,16 +1,15 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
 import '../view/event/event.dart';
 import '../view/style/style.dart';
-import 'image_byte_source.dart';
-import 'image_decode_pipeline.dart';
-import 'image_platform_bridge.dart';
 import 'image_provider_resolver_stub.dart'
     if (dart.library.io) 'image_provider_resolver_io.dart'
     as image_provider_resolver;
 import 'render/render_image_view.dart';
+import 'sized_image.dart';
 
 /// 图片加载完成信息（[ElImageView.onLoad] 入参）。
 @immutable
@@ -68,7 +67,6 @@ class ElImageView extends StatefulWidget {
     this.onLoad,
     this.onError,
   }) : image = image_provider_resolver.imageProviderForSource(src, scale: scale, headers: headers),
-       byteSource = image_provider_resolver.byteSourceForSource(src, headers: headers),
        scale = scale;
 
   /// 内存图片。
@@ -97,43 +95,43 @@ class ElImageView extends StatefulWidget {
     this.onLoad,
     this.onError,
   }) : image = MemoryImage(bytes, scale: scale),
-       byteSource = MemoryByteSource(bytes),
        scale = scale;
 
-  /// 返回 Android 系统相册中按修改时间倒序排列的图片路径；其他平台返回空列表。
-  static Future<List<String>> systemImagePaths({bool refresh = false}) =>
-      ImagePlatformBridge.listMediaImages(refresh: refresh);
-
-  /// 预解即将进入视口的图片；只写入 ElImageView 自身缓存，不创建独立缩略图缓存。
+  /// 预解即将进入视口的图片，写入官方 [ImageCache]；[size] 是逻辑布局尺寸，需与实际展示尺寸一致才能命中。
   static Future<void> preload(
     String src, {
     required Size size,
     required double devicePixelRatio,
     BoxFit fit = BoxFit.cover,
     Map<String, String>? headers,
-  }) async {
-    final source = image_provider_resolver.byteSourceForSource(src, headers: headers);
-    if (source == null || size.isEmpty) return;
-    final pipeline = ImageDecodePipeline.instance;
-    await pipeline.ensurePlatformTuning();
-    final cached = pipeline.findCached(source);
-    if (cached != null) {
-      final info = ImageDescriptorInfo(width: cached.originalWidth, height: cached.originalHeight);
-      final needed = ImageDecodePipeline.bucketForLayout(info, size, devicePixelRatio, fit);
-      if (cached.bucketWidth >= needed) return;
+  }) {
+    final provider = SizedImage(
+      image_provider_resolver.imageProviderForSource(src, headers: headers),
+      boxWidth: SizedImage.bucketOf(size.width, devicePixelRatio),
+      boxHeight: SizedImage.bucketOf(size.height, devicePixelRatio),
+      fit: fit,
+    );
+    final completer = Completer<void>();
+    final stream = provider.resolve(ImageConfiguration(devicePixelRatio: devicePixelRatio));
+    late final ImageStreamListener listener;
+    void done() {
+      if (!completer.isCompleted) completer.complete();
+      stream.removeListener(listener);
     }
-    final media = await pipeline.decodeMediaThumbnail(source, size, devicePixelRatio, fit);
-    if (media != null) return;
-    final info = await pipeline.descriptorFor(source);
-    final bucket = ImageDecodePipeline.bucketForLayout(info, size, devicePixelRatio, fit);
-    await pipeline.decode(source, bucket);
+
+    listener = ImageStreamListener((_, _) => done(), onError: (_, _) => done());
+    stream.addListener(listener);
+    return completer.future;
   }
 
-  /// 图片源（[src] 解析产物 / memory provider）。用于图片加载回退管线。
-  final ImageProvider image;
+  /// 清空图片的内存缓存与网络磁盘缓存。
+  static Future<void> clearCache() {
+    PaintingBinding.instance.imageCache.clear();
+    return image_provider_resolver.clearDiskCache();
+  }
 
-  /// 两段式解码管线的字节源；null = 平台/来源不支持，走官方 provider 管线。
-  final ImageByteSource? byteSource;
+  /// 图片源（[src] 解析产物 / memory provider）。
+  final ImageProvider image;
 
   /// 图片 URL / 资源标识。
   final String? src;
@@ -284,7 +282,6 @@ class _RawImageView extends LeafRenderObjectWidget {
     final render = RenderImageView(
       imageProvider: view.image,
       imageConfiguration: createLocalImageConfiguration(context),
-      byteSource: view.byteSource,
       onLoadPhase: onLoadPhase,
       reportReady: reportReady,
       reportError: reportError,
@@ -317,7 +314,6 @@ class _RawImageView extends LeafRenderObjectWidget {
     renderObject
       ..imageProvider = view.image
       ..imageConfiguration = createLocalImageConfiguration(context)
-      ..byteSource = view.byteSource
       ..onLoadPhase = onLoadPhase
       ..reportReady = reportReady
       ..reportError = reportError
