@@ -4,20 +4,18 @@ import 'package:flutter/widgets.dart';
 import '../../views/layout/stack/stack_view.dart' show ElStackView;
 import '../../views/scroll/scrollbar/scrollbar_base.dart' show ElNoScrollBar, ElScrollbar;
 import '../../views/scroll/scrollbar/scrollbar_controller.dart' show ScrollbarController;
-import '../../views/view/provider.dart' show ElViewProvider;
 
 /// 将桌面端现有 ElScrollbar 条带安装到官方 Scrollable 之外。
 ///
 /// 沿用旧滚动条的轨道、滑块、步进按钮与手势，实现只依赖标准 ScrollPosition。
-Widget buildElDesktopScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
-  final scrollbar = ElViewProvider.scrollbarOf(context);
-  if (scrollbar is ElNoScrollBar || details.controller == null) return child;
-  return _DesktopScrollbarHost(
-    controller: details.controller!,
-    axisDirection: details.direction,
-    scrollbar: scrollbar,
-    child: child,
-  );
+Widget buildElDesktopScrollbar({
+  required Widget child,
+  required ScrollController controller,
+  required AxisDirection direction,
+  required ElScrollbar scrollbar,
+}) {
+  if (scrollbar is ElNoScrollBar) return child;
+  return _DesktopScrollbarHost(controller: controller, axisDirection: direction, scrollbar: scrollbar, child: child);
 }
 
 class _DesktopScrollbarHost extends StatefulWidget {
@@ -118,13 +116,8 @@ class _DesktopScrollbarHostState extends State<_DesktopScrollbarHost> {
       child: ListenableBuilder(
         listenable: _details,
         child: Padding(padding: padding, child: widget.child),
-        builder: (context, child) => ElStackView(
-          fit: StackFit.expand,
-          children: [
-            child!,
-            ...widget.scrollbar.buildChildren(context, _details),
-          ],
-        ),
+        builder: (context, child) =>
+            ElStackView(fit: StackFit.expand, children: [child!, ...widget.scrollbar.buildChildren(context, _details)]),
       ),
     );
   }
