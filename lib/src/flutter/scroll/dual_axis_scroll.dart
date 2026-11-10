@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show precisionErrorTolerance;
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import 'scroll.dart' show ElScroll;
 import 'scroll_behavior.dart' show buildElScrollbar;
@@ -18,8 +20,10 @@ class DualAxisScroll extends StatelessWidget {
     required this.verticalController,
     required this.contentWidth,
     required this.slivers,
+    this.widthListenable,
     this.physics,
     this.scrollCacheExtent,
+    this.scrollbars = true,
   });
 
   /// 横向滚动位置。
@@ -33,6 +37,11 @@ class DualAxisScroll extends StatelessWidget {
   /// 在布局期求值，列宽等由同帧前序布局得出的几何可以直接读取。
   final double Function(double viewportWidth) contentWidth;
 
+  /// [contentWidth] 依赖的值变化时通知重新求宽，例如编辑器在行布局后更新最长行宽。
+  ///
+  /// 帧内的通知推迟到帧尾重新布局，不在布局期间改动祖先。
+  final Listenable? widthListenable;
+
   /// 纵向滚动的 Sliver。
   final List<Widget> slivers;
 
@@ -41,6 +50,9 @@ class DualAxisScroll extends StatelessWidget {
 
   /// 两个方向视口的预布局范围，含义同 [ElScroll.scrollCacheExtent]。
   final ScrollCacheExtent? scrollCacheExtent;
+
+  /// 是否在视口边缘安装两条平台滚动条。
+  final bool scrollbars;
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +67,10 @@ class DualAxisScroll extends StatelessWidget {
           physics: physics,
           scrollCacheExtent: scrollCacheExtent,
           children: [
-            SizedBox(
-              width: math.max(contentWidth(constraints.maxWidth), constraints.maxWidth),
+            _ContentWidth(
+              viewportWidth: constraints.maxWidth,
+              contentWidth: contentWidth,
+              listenable: widthListenable,
               child: ElScroll.sliver(
                 controller: verticalController,
                 physics: physics,
@@ -68,6 +82,7 @@ class DualAxisScroll extends StatelessWidget {
         ),
       ),
     );
+    if (!scrollbars) return scroll;
     final vertical = buildElScrollbar(
       context,
       scroll,
@@ -81,5 +96,103 @@ class DualAxisScroll extends StatelessWidget {
       ScrollableDetails.horizontal(controller: horizontalController),
       platform: platform,
     );
+  }
+}
+
+class _ContentWidth extends SingleChildRenderObjectWidget {
+  const _ContentWidth({required this.viewportWidth, required this.contentWidth, this.listenable, super.child});
+
+  final double viewportWidth;
+  final double Function(double viewportWidth) contentWidth;
+  final Listenable? listenable;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderContentWidth(viewportWidth, contentWidth, listenable);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderContentWidth renderObject) {
+    renderObject
+      ..viewportWidth = viewportWidth
+      ..contentWidth = contentWidth
+      ..listenable = listenable;
+  }
+}
+
+/// 布局时求内容宽度；子树布局中得出的新宽度本轮复核，其余帧内通知推迟到帧尾布局。
+class _RenderContentWidth extends RenderProxyBox {
+  _RenderContentWidth(this._viewportWidth, this._contentWidth, this._listenable);
+
+  double _viewportWidth;
+  set viewportWidth(double value) {
+    if (value == _viewportWidth) return;
+    _viewportWidth = value;
+    markNeedsLayout();
+  }
+
+  double Function(double viewportWidth) _contentWidth;
+  set contentWidth(double Function(double viewportWidth) value) {
+    if (identical(value, _contentWidth)) return;
+    _contentWidth = value;
+    markNeedsLayout();
+  }
+
+  Listenable? _listenable;
+  set listenable(Listenable? value) {
+    if (identical(value, _listenable)) return;
+    if (attached) _listenable?.removeListener(_widthChanged);
+    _listenable = value;
+    if (attached) value?.addListener(_widthChanged);
+    markNeedsLayout();
+  }
+
+  bool _relayoutScheduled = false;
+  bool _layingOut = false;
+
+  void _widthChanged() {
+    // 子树布局中得出的新宽度由本轮 performLayout 复核，不需要另排布局。
+    if (_layingOut) return;
+    if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks) {
+      markNeedsLayout();
+      return;
+    }
+    if (_relayoutScheduled) return;
+    _relayoutScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _relayoutScheduled = false;
+      if (attached) markNeedsLayout();
+    });
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _listenable?.addListener(_widthChanged);
+  }
+
+  @override
+  void detach() {
+    _listenable?.removeListener(_widthChanged);
+    super.detach();
+  }
+
+  double _resolveWidth() => math.max(_contentWidth(_viewportWidth), _viewportWidth);
+
+  @override
+  void performLayout() {
+    final child = this.child!;
+    _layingOut = true;
+    try {
+      // 内容宽度可能在子树布局中才测出（例如编辑器的最长行），同一轮按新宽度再排，最多补两次。
+      var width = _resolveWidth();
+      for (var pass = 0; pass < 3; pass++) {
+        child.layout(constraints.tighten(width: width), parentUsesSize: true);
+        final next = _resolveWidth();
+        if ((next - width).abs() <= precisionErrorTolerance) break;
+        width = next;
+      }
+    } finally {
+      _layingOut = false;
+    }
+    size = constraints.constrain(child.size);
   }
 }

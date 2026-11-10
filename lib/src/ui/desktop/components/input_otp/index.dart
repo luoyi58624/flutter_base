@@ -657,7 +657,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
                               ),
                       ),
                       enableInteractiveSelection: false,
-                      scrollbar: const ElNoScrollBar(),
+                      scrollbars: false,
                     ),
                   ),
                 ),

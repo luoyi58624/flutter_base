@@ -22,7 +22,7 @@ void main() {
               style: EditableConfiguration(
                 softWrap: false,
                 cacheExtent: 0,
-                scrollbar: ElNoScrollBar(),
+                scrollbars: false,
                 textStyle: TextStyle(fontFamily: 'Ahem', fontSize: 10, height: 1),
               ),
             ),

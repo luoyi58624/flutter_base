@@ -467,7 +467,7 @@ class Input extends ElInputModelValue<String> {
                       component.semanticLabel ?? component.placeholder,
                   enableInteractiveSelection:
                       component.enableInteractiveSelection,
-                  scrollbar: component.textarea ? null : const ElNoScrollBar(),
+                  scrollbars: component.textarea,
                   inputConfiguration: TextInputConfiguration(
                     inputAction:
                         (component.textInputAction ??

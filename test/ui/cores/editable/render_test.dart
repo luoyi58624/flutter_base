@@ -33,9 +33,9 @@ Future<void> _mouseTapAt(WidgetTester tester, Offset position) async {
 
 String _bigDoc(int lines) => List.generate(lines, (i) => 'line $i lorem ipsum').join('\n');
 
-/// [scrollToIndex] 经 post-frame 收敛；必须先发起 Future 再 [pump]，否则 await 永不到达。
-Future<void> _jumpToIndex(WidgetTester tester, ElScrollController controller, int index) async {
-  final done = controller.scrollToIndex(index);
+/// 行跳转在下一帧布局中完成；必须先发起 Future 再 [pump]，否则 await 永不到达。
+Future<void> _jumpToIndex(WidgetTester tester, ScrollController controller, int index) async {
+  final done = tester.state<EditableViewTestState>(find.byType(EditableView)).debugJumpToRow(index);
   for (var i = 0; i < 16; i++) {
     await tester.pump(const Duration(milliseconds: 16));
   }
@@ -181,7 +181,7 @@ void main() {
   testWidgets('大文档远距跳转：增量挂载 ~窗口大小', (tester) async {
     final controller = EditableController(text: _bigDoc(_docLines));
     addTearDown(controller.dispose);
-    final scrollController = ElScrollController();
+    final scrollController = ScrollController();
     addTearDown(scrollController.dispose);
 
     await tester.pumpWidget(

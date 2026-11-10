@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../layout/geometry/pixel_grid.dart';
-import '../../scroll/common/viewport/scroll_viewport.dart';
+import '../../../scroll/viewport.dart' show ScrollViewport;
 import '../composer.dart';
 import 'editable_line_view.dart';
 import 'editable_render_scope.dart';
@@ -43,7 +44,8 @@ final class RenderEditableSelectionLayer extends RenderProxyBox {
   }
 
   EditableRenderScope _scope;
-  ScrollViewport? _viewport;
+  // 行到本层之间的全部滚动视口，由近到远；不换行时纵向视口外还有横向视口。
+  List<ScrollViewport> _viewports = const [];
   final _foregroundClip = LayerHandle<ClipRectLayer>();
 
   /// 当前编辑器协调器；换绑时迁移监听与行绘制所有权。
@@ -68,8 +70,10 @@ final class RenderEditableSelectionLayer extends RenderProxyBox {
   void _unbind() {
     if (_scope.repaintSelectionLayer == markNeedsPaint) _scope.repaintSelectionLayer = null;
     _scope.removeListener(markNeedsPaint);
-    _viewport?.scrollOffsetListenable.removeListener(markNeedsPaint);
-    _viewport = null;
+    for (final viewport in _viewports) {
+      viewport.scrollOffsetListenable.removeListener(markNeedsPaint);
+    }
+    _viewports = const [];
   }
 
   @override
@@ -97,21 +101,22 @@ final class RenderEditableSelectionLayer extends RenderProxyBox {
   }
 
   void _syncViewport() {
-    ScrollViewport? next;
+    final next = <ScrollViewport>[];
     for (final line in _scope.mountedLines.values) {
       if (!line.attached) continue;
       for (RenderObject? node = line.parent; node != null && node != this; node = node.parent) {
-        if (node is ScrollViewport) {
-          next = node;
-          break;
-        }
+        if (node is ScrollViewport) next.add(node);
       }
-      if (next != null) break;
+      break;
     }
-    if (identical(next, _viewport)) return;
-    _viewport?.scrollOffsetListenable.removeListener(markNeedsPaint);
-    _viewport = next;
-    next?.scrollOffsetListenable.addListener(markNeedsPaint);
+    if (listEquals(next, _viewports)) return;
+    for (final viewport in _viewports) {
+      viewport.scrollOffsetListenable.removeListener(markNeedsPaint);
+    }
+    _viewports = next;
+    for (final viewport in next) {
+      viewport.scrollOffsetListenable.addListener(markNeedsPaint);
+    }
   }
 
   @override
@@ -124,17 +129,16 @@ final class RenderEditableSelectionLayer extends RenderProxyBox {
       _syncingSelection = false;
     }
     _syncViewport();
-    final viewport = _viewport;
-    final clip = viewport == null
-        ? Offset.zero & size
-        : MatrixUtils.transformRect(
-            viewport.getTransformTo(this),
-            viewport.contentViewportRect,
-          ).intersect(Offset.zero & size);
+    final viewport = _viewports.firstOrNull;
+    var clip = Offset.zero & size;
+    for (final ancestor in _viewports) {
+      clip = clip.intersect(MatrixUtils.transformRect(ancestor.getTransformTo(this), ancestor.contentViewportRect));
+    }
     final visible = <({RenderEditableLine line, Offset origin, Rect rect, bool fillsLine, double height})>[];
     for (final line in _scope.mountedLines.values) {
       if (!line.attached || !line.hasSize || !line.paintsEditingInLayer) continue;
       final origin = MatrixUtils.transformPoint(line.getTransformTo(this), Offset.zero);
+      if (!origin.isFinite) continue;
       final fillsLine = line.selectionFillsLine;
       final height = _scope.usesFixedLineHeight && viewport != null
           ? snapVirtualItemExtentToPixelGrid(line.size.height, viewport.position.context.devicePixelRatio)

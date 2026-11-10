@@ -200,7 +200,7 @@ class _ChatPage extends HookWidget {
                               style: ElEditableStyle(
                                 view: style.copyWith(width: '100%', height: '100%'),
                                 caretColor: _primary,
-                                scrollbar: ElNoScrollBar(),
+                                scrollbars: false,
                                 inputConfiguration: TextInputConfiguration(
                                   inputType: TextInputType.multiline,
                                   inputAction: TextInputAction.newline,

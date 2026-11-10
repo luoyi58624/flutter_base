@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../scroll/common/render/scroll_viewport_base.dart';
+import '../../../scroll/viewport.dart' show ScrollViewport;
 import '../../selection/common/selection_core.dart';
 import '../../view/text/text_style_adapter.dart';
 import '../composer.dart';
@@ -59,7 +59,8 @@ class EditableLineView extends RenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    final render = RenderEditableLine(scope: scope, index: index, identity: identity);
+    final render = RenderEditableLine(scope: scope, index: index, identity: identity)
+      ..active = TickerMode.valuesOf(context).enabled;
     render.selectionParticipant?.bindSelectionRegistrar(SelectionContainer.maybeOf(context));
     return render;
   }
@@ -69,7 +70,8 @@ class EditableLineView extends RenderObjectWidget {
     renderObject
       ..scope = scope
       ..index = index
-      ..identity = identity;
+      ..identity = identity
+      ..active = TickerMode.valuesOf(context).enabled;
     renderObject.selectionParticipant?.bindSelectionRegistrar(SelectionContainer.maybeOf(context));
   }
 }
@@ -156,6 +158,9 @@ final class _EditableLineSelectionParticipant extends SelectionParticipant {
 
   @override
   RenderBox get box => line;
+
+  @override
+  bool get participatesInSelection => line._active;
 
   @override
   SelectionContent get selectionContent => line._selectionContent;
@@ -380,7 +385,7 @@ class RenderEditableLine extends RenderBox
     if (attached) {
       _scope.unregisterLine(_index, this);
       _scope.removeListener(_onScopeChanged);
-      value.registerLine(_index, this);
+      if (_active) value.registerLine(_index, this);
       value.addListener(_onScopeChanged);
     }
     _scope = value;
@@ -398,9 +403,28 @@ class RenderEditableLine extends RenderBox
     if (_index == value) return;
     if (attached) _scope.unregisterLine(_index, this);
     _index = value;
-    if (attached) _scope.registerLine(_index, this);
+    if (attached && _active) _scope.registerLine(_index, this);
     _contentLoaded = false;
     _refresh();
+  }
+
+  bool _active = true;
+
+  /// 是否处于显示中的槽位。回收列表关闭空闲槽位的 TickerMode，停放的行退出挂载表与文档选区，
+  /// 避免编辑器几何、光标定位和选区把不再绘制的旧行当成当前行。
+  bool get active => _active;
+  set active(bool value) {
+    if (_active == value) return;
+    _active = value;
+    if (!attached) return;
+    if (value) {
+      _scope.registerLine(_index, this);
+      _selectionParticipant.reattachSelectionRoot();
+      _refresh();
+    } else {
+      _selectionParticipant.detachFromSelectionRoot();
+      _scope.unregisterLine(_index, this);
+    }
   }
 
   /// 当前逻辑行稳定身份。
@@ -491,9 +515,11 @@ class RenderEditableLine extends RenderBox
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _scope.registerLine(_index, this);
     _scope.addListener(_onScopeChanged);
-    _selectionParticipant.reattachSelectionRoot();
+    if (_active) {
+      _scope.registerLine(_index, this);
+      _selectionParticipant.reattachSelectionRoot();
+    }
     _refresh();
   }
 
@@ -837,21 +863,35 @@ class RenderEditableLine extends RenderBox
   }
 
   Rect _inlineVisibleRect() {
-    // 最近的滚动裁剪区即本行的窗口；首次布局退回有限视口估计。
+    // 最近的滚动裁剪区即本行的纵向窗口；首次布局退回有限视口估计。
+    // 不换行时纵向视口铺满整段内容宽，横向可见区取 scope 记录的横向偏移与视口宽：
+    // 布局期间外层横向视口尚未定尺寸，不能沿父链求变换。
+    Rect? visible;
     RenderObject child = this;
     RenderObject? ancestor = parent;
     while (ancestor != null) {
-      final clip = ancestor is RenderScrollViewportBase
+      final clip = ancestor is ScrollViewport
           ? (ancestor.hasSize ? ancestor.contentViewportRect : Offset.zero & ancestor.constraints.biggest)
           : ancestor.describeApproximatePaintClip(child);
       if (clip != null) {
         final transform = getTransformTo(ancestor);
-        if (transform.invert() != 0) return MatrixUtils.transformRect(transform, clip).inflate(100);
+        if (transform.invert() != 0) {
+          visible = MatrixUtils.transformRect(transform, clip);
+          break;
+        }
       }
       child = ancestor;
       ancestor = ancestor.parent;
     }
-    return Rect.fromLTWH(_scope.horizontalPixels, 0, math.max(1, _scope.viewportWidth), 600).inflate(100);
+    final horizontal = Rect.fromLTWH(_scope.horizontalPixels, 0, math.max(1, _scope.viewportWidth), 600);
+    if (visible == null) return horizontal.inflate(100);
+    if (_config.softWrap) return visible.inflate(100);
+    return Rect.fromLTRB(
+      math.max(visible.left, horizontal.left),
+      visible.top,
+      math.max(math.max(visible.left, horizontal.left), math.min(visible.right, horizontal.right)),
+      visible.bottom,
+    ).inflate(100);
   }
 
   List<int> _visibleInlineIndices(Rect visible) {

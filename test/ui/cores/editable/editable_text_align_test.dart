@@ -1,6 +1,7 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
 import 'package:flutter_base/src/flutter/views/editable/render/editable_render_scope.dart';
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -94,7 +95,7 @@ void main() {
                   softWrap: softWrap,
                   textAlign: align,
                   textStyle: _style,
-                  scrollbar: const ElNoScrollBar(),
+                  scrollbars: false,
                 ),
               ),
               textDirection: direction,
@@ -136,7 +137,7 @@ void main() {
             softWrap: false,
             textAlign: .right,
             textStyle: _style,
-            scrollbar: const ElNoScrollBar(),
+            scrollbars: false,
           ),
         ),
       ),
@@ -168,7 +169,7 @@ void main() {
               softWrap: false,
               textAlign: align,
               textStyle: _style,
-              scrollbar: const ElNoScrollBar(),
+              scrollbars: false,
             ),
           ),
         ),
@@ -200,7 +201,7 @@ void main() {
               autofocus: true,
               textAlign: align,
               textStyle: _style,
-              scrollbar: const ElNoScrollBar(),
+              scrollbars: false,
             ),
           ),
           width: 60,
@@ -237,7 +238,7 @@ void main() {
           softWrap: false,
           textAlign: .right,
           textStyle: _style,
-          scrollbar: const ElNoScrollBar(),
+          scrollbars: false,
         ),
       ),
       width: width,
@@ -272,7 +273,7 @@ void main() {
             softWrap: false,
             textAlign: .right,
             textStyle: _style,
-            scrollbar: const ElNoScrollBar(),
+            scrollbars: false,
           ),
         ),
         width: 80,
@@ -313,7 +314,7 @@ void main() {
             softWrap: false,
             textAlign: .center,
             textStyle: _style,
-            scrollbar: const ElNoScrollBar(),
+            scrollbars: false,
           ),
         ),
       ),
@@ -406,7 +407,7 @@ void main() {
           softWrap: false,
           textAlign: align,
           textStyle: _style,
-          scrollbar: const ElNoScrollBar(),
+          scrollbars: false,
         ),
       ),
     );
@@ -438,6 +439,7 @@ void main() {
   });
 
   testWidgets('Windows inset scrollbar 使用真实 305px viewport，并正确扣除非对称 padding', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     final text = <String>['ab', 'x' * 80, ...List<String>.generate(30, (index) => 'row $index')].join('\n');
     final controller = EditableController(text: text);
     final horizontal = ScrollController();
@@ -451,7 +453,6 @@ void main() {
             textAlign: .right,
             textStyle: _style,
             contentPadding: const EdgeInsets.only(left: 10, right: 20),
-            scrollbar: const ElWindowScrollBar(),
             cacheExtent: 0,
           ),
         ),
@@ -474,5 +475,6 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     horizontal.dispose();
     controller.dispose();
+    debugDefaultTargetPlatformOverride = null;
   });
 }

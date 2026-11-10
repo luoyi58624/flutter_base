@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../scroll/scroll_view.dart';
 import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
 import '../view/view.dart';
@@ -60,7 +59,7 @@ class ElEditableView extends StatefulWidget {
   final ElEditableStyle style;
 
   /// 垂直滚动控制器。
-  final ElScrollController? scrollController;
+  final ScrollController? scrollController;
 
   /// 不换行时的水平滚动控制器。
   final ScrollController? horizontalScrollController;
@@ -257,7 +256,7 @@ class _EditableHostState extends State<ElEditableView> {
       composingUnderline: widget.style.composingUnderline,
       lineHeightMode: widget.style.fixedLineHeight ? .fixed : .content,
       scrollPhysics: widget.style.scrollPhysics,
-      scrollbar: widget.style.scrollbar,
+      scrollbars: widget.style.scrollbars,
       cacheExtent: widget.style.cacheExtent,
       keyboardType: input?.inputType,
       textInputAction: input?.inputAction,

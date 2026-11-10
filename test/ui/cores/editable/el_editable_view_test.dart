@@ -448,7 +448,7 @@ void main() {
   testWidgets('caret 移出视口自动滚动跟随', (tester) async {
     final controller = EditableController(text: List.generate(300, (i) => 'line $i').join('\n'));
     addTearDown(controller.dispose);
-    final scrollController = ElScrollController();
+    final scrollController = ScrollController();
     addTearDown(scrollController.dispose);
 
     await tester.pumpWidget(
@@ -577,8 +577,8 @@ void main() {
 
   testWidgets('单行输入底边拖选只允许水平自动滚动，纵向始终钉在起点', (tester) async {
     final controller = EditableController(text: 'a' * 200, singleLine: true);
-    final vertical = ElScrollController();
-    final horizontal = ElScrollController();
+    final vertical = ScrollController();
+    final horizontal = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
     addTearDown(horizontal.dispose);
@@ -593,7 +593,7 @@ void main() {
             softWrap: false,
             contentPadding: const EdgeInsets.symmetric(vertical: 10),
             textStyle: const TextStyle(fontFamily: 'Ahem', fontSize: 20, height: 1),
-            scrollbar: const ElNoScrollBar(),
+            scrollbars: false,
           ),
         ),
         width: 100,

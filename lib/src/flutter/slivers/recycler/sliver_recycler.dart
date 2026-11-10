@@ -46,6 +46,27 @@ class ElSliverRecyclerController {
     if (render == null || !render.attached) return Future.value(false);
     return render._requestReveal(index, alignment);
   }
+
+  /// 通知 [index] 处插入了 [count] 个条目。
+  ///
+  /// 下一次布局把视口内首个条目的序号随之后移，正文保持原位，不被插在上方的内容推走。
+  void notifyItemsInserted(int index, int count) {
+    if (count > 0) _render?._shiftItems(index, count);
+  }
+
+  /// 通知从 [index] 起移除了 [count] 个条目。
+  ///
+  /// 下一次布局把视口内首个条目的序号随之前移；它本身被移除时由紧随其后的条目接替原位置。
+  void notifyItemsRemoved(int index, int count) {
+    if (count > 0) _render?._shiftItems(index, -count);
+  }
+
+  /// 撤销尚未执行的定位，等待中的 [jumpToIndex] 返回 false。
+  void cancel() {
+    final render = _render;
+    render?._reveal?.complete(false);
+    render?._reveal = null;
+  }
 }
 
 /// 按列数排列自然尺寸条目，并复用固定业务结构的网格。
@@ -469,6 +490,26 @@ class ElRenderSliverRecycler extends RenderSliver
   bool _needsFirstMeasurement = true;
   ElSliverRecyclerController? _controller;
   _RevealRequest? _reveal;
+  // 上次布局后的条目增删，按通知顺序记录 (起点, 增量)；负增量表示移除。
+  final List<(int, int)> _shifts = [];
+
+  void _shiftItems(int index, int delta) {
+    _shifts.add((index, delta));
+    scheduleLayoutCallback();
+  }
+
+  int _shiftedIndex(int index) {
+    for (final (start, delta) in _shifts) {
+      if (delta > 0) {
+        if (index >= start) index += delta;
+      } else if (index >= start - delta) {
+        index += delta;
+      } else if (index >= start) {
+        index = start;
+      }
+    }
+    return index;
+  }
 
   set controller(ElSliverRecyclerController? value) {
     if (identical(_controller, value)) return;
@@ -523,6 +564,10 @@ class ElRenderSliverRecycler extends RenderSliver
     final widget = _element._widget;
     final count = widget.itemCount;
     var anchor = _visibleAnchor();
+    if (_shifts.isNotEmpty) {
+      if (anchor != null) anchor = _RecyclerAnchor(_shiftedIndex(anchor.index), anchor.relativeStart);
+      _shifts.clear();
+    }
     final gridConfiguration = widget is ElSliverRecyclerGrid
         ? (
             masonry: widget._masonry,

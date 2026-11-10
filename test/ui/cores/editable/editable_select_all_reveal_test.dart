@@ -25,7 +25,7 @@ Future<void> _pumpFrames(WidgetTester tester, [int count = 24]) async {
 void main() {
   testWidgets('selectAllRevealsCaret=false：全选后视口停留在原地', (tester) async {
     final controller = EditableController(text: _document(200))..collapseTo(0);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final focusNode = FocusNode();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
@@ -64,7 +64,7 @@ void main() {
 
   testWidgets('selectAllRevealsCaret=false：全选后光标留在全选前的位置且保持可见', (tester) async {
     final controller = EditableController(text: _document(200))..collapseTo(10);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final focusNode = FocusNode();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
@@ -102,7 +102,7 @@ void main() {
 
   testWidgets('默认 style：全选后视口 reveal 到文档末尾', (tester) async {
     final controller = EditableController(text: _document(200))..collapseTo(0);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final focusNode = FocusNode();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);

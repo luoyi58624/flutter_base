@@ -206,29 +206,6 @@ void main() {
     expect(horizontal.activeListenerCount, 0);
   });
 
-  testWidgets('固定行高 nowrap input 不创建可变行高失效通道', (tester) async {
-    final key = GlobalKey<EditableViewTestState>();
-    final controller = EditableController(text: 'abc', singleLine: true);
-    addTearDown(controller.dispose);
-
-    await tester.pumpWidget(
-      _host(
-        EditableView(
-          key: key,
-          controller: controller,
-          style: const EditableConfiguration(
-            textStyle: TextStyle(fontSize: 14),
-            lineHeightMode: EditableLineHeightMode.fixed,
-            softWrap: false,
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(key.currentState!.debugLineExtentInvalidationInitialized, isFalse);
-  });
-
   testWidgets('卸载前未读取 caretGeometry 时，释放后不能复活 notifier', (tester) async {
     final key = GlobalKey<EditableViewTestState>();
     final controller = EditableController(text: 'abc');

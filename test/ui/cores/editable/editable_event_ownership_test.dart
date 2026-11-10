@@ -9,7 +9,7 @@ const _textStyle = TextStyle(fontSize: 10, height: 1, color: Color(0xff000000));
 Widget _host({
   required EditableController controller,
   required ElEvent ancestorEvent,
-  ElScrollController? scrollController,
+  ScrollController? scrollController,
   double editorHeight = 200,
 }) {
   return MaterialApp(
@@ -46,7 +46,7 @@ void main() {
       (tester) async {
         final controller = EditableController(text: List.generate(80, (index) => 'line $index').join('\n'));
         addTearDown(controller.dispose);
-        final scrollController = ElScrollController();
+        final scrollController = ScrollController();
         addTearDown(scrollController.dispose);
         addTearDown(() => _unmount(tester));
         final trace = <String>[];

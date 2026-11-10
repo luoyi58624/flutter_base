@@ -1,6 +1,7 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
-import 'package:flutter_base/src/flutter/views/scroll/common/viewport/scroll_viewport.dart';
+import 'package:flutter_base/src/flutter/scroll/viewport.dart' show ScrollViewport;
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show MatrixUtils, RenderAbstractViewport, RenderBox;
 import 'package:flutter_test/flutter_test.dart';
@@ -77,28 +78,10 @@ final class _VariableHeightComposer extends EditableComposer {
   );
 }
 
-final class _ThrowingIndexScrollController extends ElScrollController {
-  @override
-  Future<bool> scrollToIndexWithResult(
-    int index, {
-    double alignment = 0,
-    Duration? duration,
-    Curve curve = Curves.easeInOut,
-  }) => throw StateError('sync scroll failure');
-}
-
-final class _LeadingWindowScrollBar extends ElWindowScrollBar {
-  const _LeadingWindowScrollBar();
-
-  @override
-  ScrollbarOrientation resolveOrientation(BuildContext context, Axis axis) =>
-      axis == Axis.vertical ? ScrollbarOrientation.left : ScrollbarOrientation.top;
-}
-
 void main() {
   testWidgets('失焦真取消 far index 迭代且陈旧自动意图不复活，显式失焦调用仍允许', (tester) async {
     final controller = EditableController(text: _document(20000))..collapseTo(0);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final focusNode = FocusNode();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
@@ -137,32 +120,6 @@ void main() {
     final viewport = _viewportRectInEditor(tester, key, controller)!;
     expect(_containsRect(viewport, key.currentState!.caretRectInEditor()!), isTrue);
   }, timeout: _timeout);
-
-  testWidgets('scrollToIndex 同步异常结清且不会毒化后续同目标请求', (tester) async {
-    final controller = EditableController(text: _document(5000))..collapseTo(0);
-    final vertical = _ThrowingIndexScrollController();
-    final key = GlobalKey<EditableViewTestState>();
-    addTearDown(controller.dispose);
-    addTearDown(vertical.dispose);
-
-    await tester.pumpWidget(
-      _host(
-        EditableView(
-          key: key,
-          controller: controller,
-          scrollController: vertical,
-          style: EditableConfiguration(textStyle: _style, cacheExtent: 0),
-        ),
-      ),
-    );
-    await tester.pump();
-    controller.collapseTo(controller.document.lineStart(4500));
-
-    expect(await _pumpReveal(tester, key.currentState!.revealCaret()), isFalse);
-    expect(await _pumpReveal(tester, key.currentState!.revealCaret()), isFalse);
-    expect(key.currentState!.ensureCaretVisible, returnsNormally);
-    await tester.pump();
-  });
 
   testWidgets('IME teardown visual 重入不能在最终取消点后留下 reveal', (tester) async {
     final controller = EditableController(text: 'abc');
@@ -205,7 +162,7 @@ void main() {
     final controller = EditableController(text: _document(10000))
       ..collapseTo(0)
       ..collapseTo(18000);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     Future<bool>? reveal;
     addTearDown(controller.dispose);
@@ -252,7 +209,7 @@ void main() {
 
   testWidgets('transactionChanges 中的新 revision reveal 等待 view-model 同步后完成', (tester) async {
     final controller = EditableController(text: _document(6000))..collapseTo(0);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     Future<bool>? reveal;
     addTearDown(controller.dispose);
@@ -290,7 +247,7 @@ void main() {
 
   testWidgets('祖先同帧缩小不能用旧 layout 提前完成 true', (tester) async {
     final controller = EditableController(text: _document(30))..collapseTo(30);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     late StateSetter rebuild;
     var height = 180.0;
@@ -359,7 +316,7 @@ void main() {
 
   testWidgets('持续 viewport 抖动会在全局预算内明确返回 false', (tester) async {
     final controller = EditableController(text: _document(30))..collapseTo(30);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     late StateSetter rebuild;
     var height = 180.0;
@@ -396,15 +353,13 @@ void main() {
     expect(result, isFalse, reason: 'resize/restart 不得靠重置 refinement 形成无限会话');
   });
 
-  testWidgets('Window 双轴 trailing/leading inset 以真实 viewport 判定完成', (tester) async {
-    for (final entry in <({ElScrollbar scrollbar, Offset origin})>[
-      (scrollbar: const ElWindowScrollBar(), origin: Offset.zero),
-      (scrollbar: const _LeadingWindowScrollBar(), origin: const Offset(15, 15)),
-    ]) {
+  testWidgets('Window 双轴滚动条 gutter 以真实 viewport 判定完成', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    for (final entry in [(origin: Offset.zero)]) {
       final controller = EditableController(text: _document(300, columns: 120))
         ..collapseTo(0)
         ..collapseTo(_document(300, columns: 120).length);
-      final vertical = ElScrollController();
+      final vertical = ScrollController();
       final horizontal = ScrollController();
       final key = GlobalKey<EditableViewTestState>();
 
@@ -416,7 +371,6 @@ void main() {
             scrollController: vertical,
             horizontalScrollController: horizontal,
             style: EditableConfiguration(
-              scrollbar: entry.scrollbar,
               cacheExtent: 0,
               softWrap: false,
               textStyle: _style,
@@ -447,12 +401,13 @@ void main() {
       vertical.dispose();
       horizontal.dispose();
     }
+    debugDefaultTargetPlatformOverride = null;
   }, timeout: _timeout);
 
   testWidgets('仅垂直 controller 换绑会取消旧 reveal', (tester) async {
     final controller = EditableController(text: _document(5000, columns: 200))..collapseTo(0);
-    final verticalA = ElScrollController();
-    final verticalB = ElScrollController();
+    final verticalA = ScrollController();
+    final verticalB = ScrollController();
     final horizontal = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
@@ -460,7 +415,7 @@ void main() {
     addTearDown(verticalB.dispose);
     addTearDown(horizontal.dispose);
 
-    Widget editor(ElScrollController vertical) => _host(
+    Widget editor(ScrollController vertical) => _host(
       EditableView(
         key: key,
         controller: controller,
@@ -480,7 +435,7 @@ void main() {
 
   testWidgets('仅水平 controller 换绑会取消旧 reveal', (tester) async {
     final controller = EditableController(text: _document(5000, columns: 200))..collapseTo(0);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final horizontalA = ScrollController();
     final horizontalB = ScrollController();
     final key = GlobalKey<EditableViewTestState>();

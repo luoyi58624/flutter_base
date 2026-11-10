@@ -34,7 +34,7 @@ Widget _host(
           softWrap: softWrap,
           contentPadding: padding,
           textStyle: textStyle,
-          scrollbar: const ElNoScrollBar(),
+          scrollbars: false,
         ),
       ),
     ),
@@ -47,14 +47,10 @@ List<RenderEditableLine> _lines(WidgetTester tester) {
   return result;
 }
 
-ElScrollView _scrollView(WidgetTester tester) =>
-    tester.widget<ElScrollView>(find.descendant(of: find.byType(EditableView), matching: find.byType(ElScrollView)));
-
-ElListView _lineListItem(WidgetTester tester) {
-  final scrollView = _scrollView(tester);
-  expect(scrollView.children, hasLength(1));
-  return scrollView.children.single as ElListView;
-}
+ScrollPosition _verticalPosition(WidgetTester tester) => tester
+    .stateList<ScrollableState>(find.descendant(of: find.byType(EditableView), matching: find.byType(Scrollable)))
+    .firstWhere((state) => state.axisDirection == AxisDirection.down)
+    .position;
 
 void _expectPhysicalNear(double actual, double expected, double dpr, {String? reason}) {
   expect((actual - expected).abs() * dpr, lessThanOrEqualTo(1), reason: reason);
@@ -109,12 +105,6 @@ void main() {
         _expectPhysicalNear(metric.descent, firstMetric.descent, dpr);
       }
 
-      final item = _lineListItem(tester);
-      expect(
-        item,
-        isA<ElListView>().having((value) => value.fixedSize, 'fixedSize', isTrue),
-        reason: 'DPR=$dpr 时 fixed 必须使用显式定高的虚拟列表快路径',
-      );
 
       await tester.pumpWidget(const SizedBox());
       controller.dispose();
@@ -161,12 +151,6 @@ void main() {
       dpr,
       reason: '逻辑 Render 行高必须等于视觉行数 × fixedLineHeight',
     );
-    final item = _lineListItem(tester);
-    expect(
-      item,
-      isA<ElListView>().having((value) => value.fixedSize, 'fixedSize', isFalse),
-      reason: 'softWrap 后每个逻辑行的视觉行数不同，禁止冒充 统一尺寸列表',
-    );
   });
 
   testWidgets('fixed + nowrap 的总内容高度精确，换色与继续输入后不退回变高列表', (tester) async {
@@ -192,8 +176,7 @@ void main() {
     );
 
     void expectFixedScrollGeometry(String phase) {
-      final scrollView = _scrollView(tester);
-      final position = scrollView.controller!.position;
+      final position = _verticalPosition(tester);
       final fixedLineHeight = _lines(tester).first.preferredLineHeight;
       final expectedContentHeight = lineCount * fixedLineHeight + padding.vertical;
       final expectedRange = (expectedContentHeight - position.viewportDimension).clamp(0.0, double.infinity);
@@ -208,12 +191,6 @@ void main() {
         expectedContentHeight,
         dpr,
         reason: '$phase：滚动内容总高度必须精确包含上下 padding',
-      );
-      final item = _lineListItem(tester);
-      expect(
-        item,
-        isA<ElListView>().having((value) => value.fixedSize, 'fixedSize', isTrue),
-        reason: '$phase：fixed nowrap 不得退回变高 列表配置',
       );
     }
 
@@ -246,8 +223,6 @@ void main() {
     var lines = _lines(tester);
     expect(lines, hasLength(2));
     expect(lines[1].size.height, lines[0].size.height);
-    var item = _lineListItem(tester);
-    expect(item, isA<ElListView>().having((value) => value.fixedSize, 'fixedSize', isTrue));
 
     await tester.pumpWidget(_host(controller, lineHeightMode: EditableLineHeightMode.content, composer: composer));
     await tester.pump();
@@ -260,12 +235,6 @@ void main() {
       tester.widget<EditableView>(find.byType(EditableView)).controller,
       same(controller),
       reason: '行高模式热切只能重排，不能替换文档模型',
-    );
-    item = _lineListItem(tester);
-    expect(
-      item,
-      isA<ElListView>().having((value) => value.fixedSize, 'fixedSize', isFalse),
-      reason: 'content 变高行不得冒充定高虚拟列表',
     );
   });
 }

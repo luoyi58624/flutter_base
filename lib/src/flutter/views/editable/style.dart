@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../scroll/scrollbar/scrollbar_base.dart';
 import '../selection/common/selection_core.dart';
 import '../view/style/style.dart';
 
@@ -30,7 +29,7 @@ class ElEditableStyle {
     this.composingUnderline = true,
     this.fixedLineHeight = false,
     this.scrollPhysics,
-    this.scrollbar,
+    this.scrollbars = true,
     this.cacheExtent = 500,
     this.inputConfiguration,
     @internal this.selectionControls,
@@ -94,8 +93,8 @@ class ElEditableStyle {
   /// 滚动物理规则。
   final ScrollPhysics? scrollPhysics;
 
-  /// 滚动条样式。
-  final ElScrollbar? scrollbar;
+  /// 是否显示平台滚动条；单行输入等不需要滚动条的场景关闭。
+  final bool scrollbars;
 
   /// 视口外预排版距离。
   final double cacheExtent;

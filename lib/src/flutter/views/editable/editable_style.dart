@@ -14,7 +14,6 @@ import 'package:flutter/services.dart'
 import 'package:flutter/widgets.dart'
     show Brightness, Color, EdgeInsets, FocusOnKeyEventCallback, Locale, ScrollPhysics, Size, TextAlign, TextStyle;
 
-import '../scroll/scrollbar/scrollbar_base.dart' show ElScrollbar;
 import '../selection/common/selection_core.dart' show SelectionControls;
 import 'composer.dart' show EditableComposer;
 import 'line_height.dart' show EditableLineHeightMode;
@@ -50,7 +49,7 @@ final class EditableConfiguration {
     this.onKeyEvent,
     this.onAction,
     this.scrollPhysics,
-    this.scrollbar,
+    this.scrollbars = true,
     this.cacheExtent = 500,
     this.keyboardType,
     this.textInputAction,
@@ -158,8 +157,8 @@ final class EditableConfiguration {
   /// 主轴滚动物理；null 表示使用滚动视图的平台默认。
   final ScrollPhysics? scrollPhysics;
 
-  /// 滚动条形制；null 表示由滚动视图解析平台默认。
-  final ElScrollbar? scrollbar;
+  /// 是否显示平台滚动条，形制由环境 ScrollBehavior 决定。
+  final bool scrollbars;
 
   /// 虚拟视口在可见区前后保留的逻辑像素范围。
   final double cacheExtent;

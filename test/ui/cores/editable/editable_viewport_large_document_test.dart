@@ -64,7 +64,7 @@ void main() {
     const latestTarget = 123456;
     const longLine = 750000;
     final controller = EditableController(text: _largeDocument(lineCount, longLine: longLine, longLineLength: 12000));
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final horizontal = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
@@ -116,7 +116,7 @@ void main() {
   testWidgets('百万行变量高度远跳在有限帧内收敛到真实 caret', (tester) async {
     const target = 876543;
     final controller = EditableController(text: _largeDocument(1000000));
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
@@ -147,7 +147,7 @@ void main() {
 
   testWidgets('soft-wrap 超高行末端经真实几何二次精调可见', (tester) async {
     final controller = EditableController(text: 'wrap ' * 10000);
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
@@ -180,7 +180,7 @@ void main() {
   testWidgets('可等待 reveal 在结构变化、controller 换绑与卸载时明确取消', (tester) async {
     final first = EditableController(text: _largeDocument(10000));
     final second = EditableController(text: _largeDocument(10000));
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final key = GlobalKey<EditableViewTestState>();
     addTearDown(first.dispose);
     addTearDown(second.dispose);
@@ -218,7 +218,7 @@ void main() {
     final longest = 'W' * 600;
     final second = 'W' * 300;
     final controller = EditableController(text: <String>[longest, second, ...List<String>.filled(800, 'x')].join('\n'));
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     final horizontal = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
@@ -238,7 +238,7 @@ void main() {
     final longestExtent = horizontal.position.maxScrollExtent;
     expect(longestExtent, greaterThan(1000));
 
-    final jump = vertical.scrollToIndex(500);
+    final jump = tester.state<EditableViewTestState>(find.byType(EditableView)).debugJumpToRow(500);
     await _pumpFrames(tester, 16);
     await jump;
     expect(horizontal.position.maxScrollExtent, closeTo(longestExtent, 1));
@@ -257,7 +257,7 @@ void main() {
 
   testWidgets('头部插删与删除当前 anchor 保持幸存正文及行内像素位置，API 编辑不拉回 caret', (tester) async {
     final controller = EditableController(text: List<String>.generate(1200, (i) => 'row-$i').join('\n'));
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
 
@@ -271,7 +271,7 @@ void main() {
       ),
     );
     await tester.pump();
-    final jump = vertical.scrollToIndex(600, alignment: 0.35);
+    final jump = tester.state<EditableViewTestState>(find.byType(EditableView)).debugJumpToRow(600, alignment: 0.35);
     await _pumpFrames(tester, 16);
     await jump;
     final before = _firstVisibleLine(tester);
@@ -308,7 +308,7 @@ void main() {
     final controller = EditableController(
       text: <String>['wide ' * 120, ...List<String>.generate(500, (i) => 'row-$i')].join('\n'),
     );
-    final vertical = ElScrollController();
+    final vertical = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(vertical.dispose);
 
@@ -324,28 +324,19 @@ void main() {
       ),
     );
     await _pumpFrames(tester, 4);
-    final state = tester.state<ElScrollViewState>(find.byType(ElScrollView));
-    expect(state.debugCounters.debugMeasuredItemCount, greaterThan(0));
-
-    final jump = vertical.scrollToIndex(250);
+    final jump = tester.state<EditableViewTestState>(find.byType(EditableView)).debugJumpToRow(250);
     await _pumpFrames(tester, 16);
     await jump;
     final anchorBefore = _firstVisibleLine(tester);
     final anchorText = controller.document.lineAt(anchorBefore.line.index);
-    final measuredBeforeEdit = state.debugCounters.debugMeasuredItemCount;
 
     controller.replaceRange(0, controller.document.lineEnd(0), 'short');
     await _pumpFrames(tester, 5);
     final anchorAfter = _firstVisibleLine(tester);
     expect(controller.document.lineAt(anchorAfter.line.index), anchorText);
     expect(anchorAfter.delta, closeTo(anchorBefore.delta, 0.75));
-    expect(
-      state.debugCounters.debugMeasuredItemCount,
-      lessThan(measuredBeforeEdit),
-      reason: '离屏第 0 行必须退回 estimate，不能把旧超高 extent 永久标成 measured',
-    );
 
-    final back = vertical.scrollToIndex(0);
+    final back = tester.state<EditableViewTestState>(find.byType(EditableView)).debugJumpToRow(0);
     await _pumpFrames(tester, 16);
     await back;
     expect(_mountedLines(tester).firstWhere((line) => line.index == 0).size.height, lessThan(20));

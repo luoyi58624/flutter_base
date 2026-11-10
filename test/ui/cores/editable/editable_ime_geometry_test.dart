@@ -237,6 +237,8 @@ void main() {
         lineHeightMode: .fixed,
         textStyle: TextStyle(fontFamily: 'Ahem', fontSize: 14, height: 20 / 14),
         contentPadding: .fromLTRB(12, 10, 12, 10),
+        // 与单行输入组件一致关闭滚动条：Windows 条带的固定 gutter 会让 40px 宿主变成可纵向滚动。
+        scrollbars: false,
       ),
     );
     await tester.pumpWidget(
@@ -438,7 +440,7 @@ void main() {
                         leadingDistribution: TextLeadingDistribution.even,
                         color: Color(0xff0f172a),
                       ),
-                      scrollbar: const ElNoScrollBar(),
+                      scrollbars: false,
                     ),
                   ),
                 ),

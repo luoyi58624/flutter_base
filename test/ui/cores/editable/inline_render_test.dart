@@ -9,7 +9,7 @@ Widget _scene(
   double width = 200,
   TextDirection direction = .ltr,
   bool wrap = true,
-  ElScrollController? scroll,
+  ScrollController? scroll,
   Color color = const Color(0xff000000),
 }) => Directionality(
   textDirection: direction,
@@ -172,7 +172,7 @@ void main() {
 
   testWidgets('一条长换行文本只挂载可见表情，移动光标不重建', (tester) async {
     var builds = 0;
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     final controller = ElEditableController(
       text: '[x] ' * 3000,
       inlineContent: {

@@ -25,9 +25,10 @@ import 'package:flutter/widgets.dart';
 import '../../utils/internal/focus.dart';
 import '../../widgets/popup/context_menu.dart' show ElContextMenuHandle;
 import '../layout/geometry/pixel_grid.dart';
-import '../layout/list/list_view.dart';
-import '../scroll/common/viewport/scroll_viewport.dart';
-import '../scroll/scroll_view.dart';
+import '../../scroll/dual_axis_scroll.dart' show DualAxisScroll;
+import '../../scroll/scroll.dart' show ElScroll;
+import '../../scroll/viewport.dart' show ScrollViewport;
+import '../../slivers/recycler/sliver_recycler.dart' show ElSliverRecyclerController, ElSliverRecyclerList;
 import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
 import '../view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
@@ -106,8 +107,8 @@ bool _editableImeConfigChanged(EditableConfiguration current, EditableConfigurat
 /// - **viewModel**：渲染协调器承担坐标转换（doc offset ↔ 视觉几何，wrap 投影
 ///   经 TextPainter），mounted 行注册表做指针命中；
 /// - **cursor / commands**：编辑操作层把键盘 / 指针意图翻译成编辑原语；
-/// - **view**：一行一个 [RenderEditableLine]，行列表由 [ElScrollView] 虚拟段
-///   （ElListView 壳）虚拟化，文档规模不影响帧成本；
+/// - **view**：一行一个 [RenderEditableLine]，行列表由 [ElScroll] 中的回收列表
+///   （ElSliverRecyclerList）虚拟化，文档规模不影响帧成本；
 /// - **tokens / decorations**：[EditableComposer] 行装配器——上层凭它做语法
 ///   高亮与富文本呈现，内核只认纯文本坐标。
 ///
@@ -182,7 +183,7 @@ class EditableView extends StatefulWidget {
   final EditableConfiguration style;
 
   /// 垂直滚动控制器；null 时内部自建（index 定位能力编辑器自身依赖）。
-  final ElScrollController? scrollController;
+  final ScrollController? scrollController;
 
   /// 双轴（[EditableConfiguration.softWrap] false）下的水平滚动控制器。
   final ScrollController? horizontalScrollController;
@@ -275,7 +276,7 @@ class _EditableViewState extends State<EditableView>
     implements EditableViewport {
   EditableController? _ownController;
   FocusNode? _ownFocusNode;
-  ElScrollController? _ownScrollController;
+  ScrollController? _ownScrollController;
   ScrollController? _ownHorizontalController;
 
   /// style.autofocus 的首帧聚焦是否已排程。
@@ -313,6 +314,10 @@ class _EditableViewState extends State<EditableView>
       _boxQueryAnchorX = previousX;
     }
   }
+
+  /// 测试探针：按视图行号跳转行列表，完成定位的那一帧后返回 true。
+  @visibleForTesting
+  Future<bool> debugJumpToRow(int row, {double alignment = 0}) => _rowJump.jumpToIndex(row, alignment: alignment);
 
   /// 白盒几何查询直接指定视觉行，不创建或修改光标。
   @visibleForTesting
@@ -434,10 +439,6 @@ class _EditableViewState extends State<EditableView>
   @visibleForTesting
   bool get debugSelectionToolbarActionsInitialized => _selectionToolbarActionsInstance != null;
 
-  /// 测试探针：首挂后是否已经按需创建可变行高失效通道。
-  @visibleForTesting
-  bool get debugLineExtentInvalidationInitialized => _lineExtentInvalidationInstance != null;
-
   /// 测试探针：当前是否存在恒等投影不需要的选区修复任务。
   @visibleForTesting
   bool get debugLineProjectionSelectionRepairScheduled => _lineProjectionRepairScheduled;
@@ -468,8 +469,7 @@ class _EditableViewState extends State<EditableView>
     });
   }
 
-  ElScrollController get _scrollController =>
-      widget.scrollController ?? (_ownScrollController ??= ElScrollController());
+  ScrollController get _scrollController => widget.scrollController ?? (_ownScrollController ??= ScrollController());
 
   ScrollController get _horizontalController =>
       widget.horizontalScrollController ?? (_ownHorizontalController ??= ScrollController());
@@ -500,7 +500,7 @@ class _EditableViewState extends State<EditableView>
   FocusOnKeyEventCallback? _installedFocusKeyHandler;
   int _focusRebindGeneration = 0;
   int? _pendingFocusRebindGeneration;
-  ElScrollController? _listenedScrollController;
+  ScrollController? _listenedScrollController;
   ScrollController? _listenedHorizontalController;
 
   bool _focused = false;
@@ -513,7 +513,7 @@ class _EditableViewState extends State<EditableView>
   int _lineProjectionMappingRevision = -1;
   int _debugLineProjectionStructureResetCount = 0;
   int _lineProjectionAnchorEpoch = 0;
-  ElScrollController? _lineProjectionAnchorScrollController;
+  ScrollController? _lineProjectionAnchorScrollController;
   bool _pendingDocumentProjectionStructureChange = false;
   bool _updatingLineProjectionBinding = false;
   int _lineProjectionRepairEpoch = 0;
@@ -529,8 +529,8 @@ class _EditableViewState extends State<EditableView>
   final Map<int, _EditableLineIdentity> _lineIdentitiesByIndex = <int, _EditableLineIdentity>{};
   final Map<_EditableLineKey, _EditableLineIdentity> _lineIdentitiesByKey = <_EditableLineKey, _EditableLineIdentity>{};
   int _lineIdentityUseTick = 0;
-  ValueNotifier<ElScrollExtentInvalidation>? _lineExtentInvalidationInstance;
-  int _lineExtentInvalidationRevision = 0;
+  // 按序号跳转行列表：定位远处行时由回收列表先实测目标行，再修正一次偏移。
+  final _rowJump = ElSliverRecyclerController();
   EditableRenderConfig? _appliedRenderConfig;
   double? _fixedLogicalLineExtent;
   bool _fixedLogicalLineExtentRebuildScheduled = false;
@@ -644,9 +644,6 @@ class _EditableViewState extends State<EditableView>
 
   ValueNotifier<SelectionActions> get _selectionToolbarActions =>
       _selectionToolbarActionsInstance ??= ValueNotifier(_selectionActions());
-
-  ValueNotifier<ElScrollExtentInvalidation> get _lineExtentInvalidation =>
-      _lineExtentInvalidationInstance ??= ValueNotifier(ElScrollExtentInvalidation(revision: 0));
 
   // 拖选边缘自动滚动 ticker。
   Ticker? _dragScrollTicker;
@@ -1197,7 +1194,6 @@ class _EditableViewState extends State<EditableView>
       _lineIdentitiesByKey.clear();
       _initPipeline(attachFocus: !preserveFocusBinding);
       _appliedRenderConfig = null;
-      _publishLineExtentInvalidation(resetAll: true);
       _refreshSelectionActions();
       _handleFocusChanged();
       _scheduleLineProjectionSelectionRepair();
@@ -1286,7 +1282,6 @@ class _EditableViewState extends State<EditableView>
     _selectionScrollActivity.dispose();
     _selectionChromeVisibility.dispose();
     _selectionToolbarActionsInstance?.dispose();
-    _lineExtentInvalidationInstance?.dispose();
     _caretMotionController?.dispose();
     _caretMotionController = null;
     _caretMotionRect.dispose();
@@ -1590,7 +1585,6 @@ class _EditableViewState extends State<EditableView>
     }
     _endpointDirectionCache.clear();
     _invalidateHiddenLineWidths();
-    _publishLineExtentInvalidation(resetAll: true);
     if (mounted && !_updatingLineProjectionBinding) {
       setState(() => _visibleLineCount = _lineProjection.visibleLineCount);
     } else {
@@ -1724,11 +1718,7 @@ class _EditableViewState extends State<EditableView>
     final controller = _lineProjectionAnchorScrollController;
     _lineProjectionAnchorScrollController = null;
     if (controller == null) return;
-    try {
-      controller.cancelScrollToIndex();
-    } catch (_) {
-      // host 换绑或释放过程中，旧虚拟定位操作只需作废。
-    }
+    _rowJump.cancel();
   }
 
   void _restoreLineProjectionScrollAnchor(({int modelLine, double top}) anchor) {
@@ -1759,7 +1749,7 @@ class _EditableViewState extends State<EditableView>
       }
       late final Future<bool> positioning;
       try {
-        positioning = scrollController.scrollToIndexWithResult(viewRow, alignment: 0);
+        positioning = _rowJump.jumpToIndex(viewRow, alignment: 0);
       } catch (_) {
         _completeLineProjectionAnchorRestore(scrollController, epoch);
         return;
@@ -1817,7 +1807,7 @@ class _EditableViewState extends State<EditableView>
     SchedulerBinding.instance.ensureVisualUpdate();
   }
 
-  void _completeLineProjectionAnchorRestore(ElScrollController controller, int epoch) {
+  void _completeLineProjectionAnchorRestore(ScrollController controller, int epoch) {
     if (epoch == _lineProjectionAnchorEpoch && identical(_lineProjectionAnchorScrollController, controller)) {
       _lineProjectionAnchorScrollController = null;
     }
@@ -1829,7 +1819,7 @@ class _EditableViewState extends State<EditableView>
     required int projectionRevision,
     required EditableController controller,
     required DocumentVersion documentVersion,
-    required ElScrollController scrollController,
+    required ScrollController scrollController,
   }) =>
       mounted &&
       _elementActive &&
@@ -1862,27 +1852,31 @@ class _EditableViewState extends State<EditableView>
       _selectionUsesMobileChrome = preserveMobileIntent;
     }
     final changeSet = _controller.lastChangeSet;
-    Set<int>? invalidatedLines;
     if (changeSet != null && changeSet.documentChanged) {
-      invalidatedLines = _remapLineIdentities(changeSet);
-      for (var i = 0; i < changeSet.edits.length; i++) {
-        final edit = changeSet.edits[i];
-        final resultOffset = changeSet.resultStartFor(i) + edit.inserted.length;
-        invalidatedLines.add(_controller.document.lineIndexOf(resultOffset));
-      }
+      _remapLineIdentities(changeSet);
+      _notifyRowShifts(changeSet);
       _suppressNextAutomaticCaretReveal = changeSet.source == EditableEditSource.api;
     }
     if (_pendingDocumentProjectionStructureChange) {
       _pendingDocumentProjectionStructureChange = false;
       _debugLineProjectionStructureResetCount++;
       _invalidateHiddenLineWidths();
-      _publishLineExtentInvalidation(resetAll: true);
-    } else if (invalidatedLines != null) {
-      _publishLineExtentInvalidation(indices: invalidatedLines);
     }
     final visibleLineCount = _lineProjection.visibleLineCount;
     if (mounted) setState(() => _visibleLineCount = visibleLineCount);
     _scheduleCaretGeometryUpdate();
+  }
+
+  // 视口上方增删行时保住正在看的正文：把行号变化告诉回收列表，由它平移可见首行锚点。
+  // 折叠投影下视图行与模型行不一一对应，交给投影自己的锚点恢复。
+  void _notifyRowShifts(DocumentChangeSet changeSet) {
+    if (!(_lineProjection.hiddenAreas?.isEmpty ?? true)) return;
+    // 编辑按原文坐标给出，从后往前通知，前面的行号不受后面编辑影响。
+    for (final edit in changeSet.edits.reversed) {
+      final after = edit.firstDirtyLine + 1;
+      _rowJump.notifyItemsRemoved(after, edit.removedLineCount - 1);
+      _rowJump.notifyItemsInserted(after, edit.insertedLineCount - 1);
+    }
   }
 
   Set<int> _remapLineIdentities(DocumentChangeSet changeSet) {
@@ -1966,18 +1960,6 @@ class _EditableViewState extends State<EditableView>
     };
   }
 
-  void _publishLineExtentInvalidation({Iterable<int> indices = const <int>[], bool resetAll = false}) {
-    if (widget.style.lineHeightMode == EditableLineHeightMode.fixed && !widget.style.softWrap) return;
-    final viewRows = resetAll
-        ? const <int>[]
-        : <int>[for (final modelLine in indices) ?_lineProjection.viewRowForModelLine(modelLine)];
-    _lineExtentInvalidation.value = ElScrollExtentInvalidation(
-      revision: ++_lineExtentInvalidationRevision,
-      indices: viewRows,
-      resetAll: resetAll,
-    );
-  }
-
   ({int offset, bool deleted}) _transformLineIdentityOffset(DocumentChangeSet changeSet, int oldOffset) {
     var delta = 0;
     for (var i = 0; i < changeSet.edits.length; i++) {
@@ -2010,13 +1992,6 @@ class _EditableViewState extends State<EditableView>
     _lineIdentitiesByKey[key] = identity;
     _pruneLineIdentities();
     return key;
-  }
-
-  int? _findLineIndexByKey(Key key) {
-    if (key is! _EditableLineKey || !identical(key.owner, _lineIdentityOwner)) return null;
-    final identity = _lineIdentitiesByKey[key];
-    if (identity == null || !identical(_lineIdentitiesByIndex[identity.index], identity)) return null;
-    return _lineProjection.viewRowForModelLine(identity.index);
   }
 
   void _pruneLineIdentities() {
@@ -2052,7 +2027,6 @@ class _EditableViewState extends State<EditableView>
       // 同一 composer identity 也能在 invalidatePresentation 后换字号/行高；
       // 旧 floating prototype 无法靠 config identity 发现，必须结束本次会话。
       _cancelFloatingCursor();
-      _publishLineExtentInvalidation(resetAll: true);
     }
     _selectionGeometryDocRevision = _controller.docRevision;
     _selectionGeometryPresentationRevision = _controller.presentationRevision;
@@ -2996,7 +2970,7 @@ class _EditableViewState extends State<EditableView>
         forward: forward,
       );
       final positioning = _scrollController.hasClients
-          ? _scrollController.scrollToIndexWithResult(targetViewRow, alignment: forward ? 1.0 : 0.0)
+          ? _rowJump.jumpToIndex(targetViewRow, alignment: forward ? 1.0 : 0.0)
           : Future<bool>.value(false);
       unawaited(
         positioning.then<void>((_) {
@@ -5355,7 +5329,7 @@ class _EditableViewState extends State<EditableView>
     request.coarsePositioning = true;
     late final Future<bool> positioning;
     try {
-      positioning = request.scrollController.scrollToIndexWithResult(viewRow, alignment: 0.5);
+      positioning = _rowJump.jumpToIndex(viewRow, alignment: 0.5);
     } catch (_) {
       request.coarsePositioning = false;
       _completeCaretReveal(request, completed: false);
@@ -5451,11 +5425,7 @@ class _EditableViewState extends State<EditableView>
     if (active == null) return;
     if (active.coarsePositioning) {
       active.coarsePositioning = false;
-      try {
-        active.scrollController.cancelScrollToIndex();
-      } catch (_) {
-        // controller 正在解绑时取消仍必须结清公开 Future。
-      }
+      _rowJump.cancel();
     }
     if (!active.completion.isCompleted) active.completion.complete(false);
   }
@@ -5606,19 +5576,21 @@ class _EditableViewState extends State<EditableView>
     final line = document.lineIndexOf(math.max(0, offset));
     final render = _scope.mountedLineAt(line);
     if (render == null || !render.attached || !render.hasSize) return null;
-    final viewport = RenderAbstractViewport.maybeOf(render);
-    if (viewport == null || viewport is! RenderBox) return null;
-    final viewportBox = viewport as RenderBox;
-    if (!viewportBox.attached || !viewportBox.hasSize) return null;
+    // 不换行时纵向视口铺满整段内容宽度，可见区是编辑器内各层滚动视口的交集。
+    Rect? visible;
     try {
-      final bounds = viewport is ScrollViewport
-          ? (viewport as ScrollViewport).contentViewportRect
-          : Offset.zero & viewportBox.size;
-      final rect = MatrixUtils.transformRect(viewportBox.getTransformTo(editor), bounds);
-      return rect.isFinite && !rect.isEmpty ? rect : null;
+      for (RenderObject? node = render.parent; node != null && !identical(node, editor); node = node.parent) {
+        if (node is! RenderAbstractViewport || node is! RenderBox) continue;
+        final box = node as RenderBox;
+        if (!box.attached || !box.hasSize) return null;
+        final bounds = box is ScrollViewport ? box.contentViewportRect : Offset.zero & box.size;
+        final rect = MatrixUtils.transformRect(box.getTransformTo(editor), bounds);
+        visible = visible == null ? rect : visible.intersect(rect);
+      }
     } catch (_) {
       return null;
     }
+    return visible != null && visible.isFinite && !visible.isEmpty ? visible : null;
   }
 
   bool _caretRevealGeometryStable(
@@ -5769,9 +5741,6 @@ class _EditableViewState extends State<EditableView>
     _bindInheritedPaint();
     final renderConfig = _buildConfig();
     final renderConfigChanged = _appliedRenderConfig != null && _appliedRenderConfig != renderConfig;
-    if (renderConfigChanged && !renderConfig.hasSameLayout(_appliedRenderConfig!)) {
-      _publishLineExtentInvalidation(resetAll: true);
-    }
     _appliedRenderConfig = renderConfig;
     _scope.pump(
       config: renderConfig,
@@ -5788,11 +5757,28 @@ class _EditableViewState extends State<EditableView>
         renderConfig.lineHeightMode == EditableLineHeightMode.fixed && !renderConfig.softWrap;
     final fixedLineHeight = fixedLogicalLineExtent ? _scope.fixedLineHeight : null;
     _fixedLogicalLineExtent = fixedLineHeight;
-    final lineList = ElListView.builder(
-      itemCount: _visibleLineCount,
-      itemBuilder: _buildLine,
-      findChildIndexCallback: _findLineIndexByKey,
-      fixedSize: fixedLineHeight != null,
+    final lines = SliverPadding(
+      padding: widget.style.contentPadding,
+      sliver: ElSliverRecyclerList(
+        controller: _rowJump,
+        itemCount: _visibleLineCount,
+        itemBuilder: (context, row) {
+          final line = ValueListenableBuilder<int>(
+            valueListenable: row,
+            builder: (context, viewRow, _) => _buildLine(context, viewRow),
+          );
+          // 不换行时 Sliver 按整段内容宽度紧约束行；行需要不受限宽度，才能按自身文本宽度开窗和对齐视口。
+          return widget.style.softWrap
+              ? line
+              : OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: 0,
+                  maxWidth: double.infinity,
+                  fit: OverflowBoxFit.deferToChild,
+                  child: line,
+                );
+        },
+      ),
     );
     if (renderConfigChanged && _imeInstance?.attached == true) _scheduleFrameSync();
     _scheduleCaretGeometryUpdate();
@@ -5900,21 +5886,7 @@ class _EditableViewState extends State<EditableView>
                     child: EditableSelectionLayer(
                       scope: _scope,
                       beforePaint: _syncDragSelectionBeforePaint,
-                      child: ElScrollView(
-                        controller: _scrollController,
-                        horizontalController: dualAxis ? _horizontalController : null,
-                        axis: dualAxis ? null : Axis.vertical,
-                        physics: widget.style.scrollPhysics,
-                        scrollbar: widget.style.scrollbar,
-                        cacheExtent: widget.style.cacheExtent,
-                        padding: widget.style.contentPadding,
-                        // 文档增删行时保住当前可见正文：不保位的话，在视口上方插入
-                        // 内容会把正文整体往下推，用户正在看的那一行被顶走。
-                        preserveAnchor: true,
-                        minimumCrossAxisExtentListenable: dualAxis ? _scope.minimumCrossAxisExtent : null,
-                        itemExtentInvalidationListenable: fixedLogicalLineExtent ? null : _lineExtentInvalidation,
-                        children: [lineList],
-                      ),
+                      child: _buildScroll(lines, dualAxis: dualAxis),
                     ),
                   ),
                 ),
@@ -5926,6 +5898,45 @@ class _EditableViewState extends State<EditableView>
     );
     // 复用外部页面/弹层宿主，句柄不随编辑器的裁剪和缩放。
     return SelectionChromeSlot.maybeOf(context) == null ? SelectionChromeSlotHost(child: content) : content;
+  }
+
+  // 回收列表按可见首行保位：行高变化不推动正文。不换行时外层横向滚动按最长行展开内容宽度。
+  Widget _buildScroll(Widget lines, {required bool dualAxis}) {
+    final cache = ScrollCacheExtent.pixels(widget.style.cacheExtent);
+    final Widget scroll;
+    if (dualAxis) {
+      final padding = widget.style.contentPadding.horizontal;
+      scroll = DualAxisScroll(
+        horizontalController: _horizontalController,
+        verticalController: _scrollController,
+        // 最长行宽在行布局后写入，横向内容宽度在外层布局时读取最新值。
+        contentWidth: (_) => _scope.minimumCrossAxisExtent.value + padding,
+        widthListenable: _scope.minimumCrossAxisExtent,
+        physics: widget.style.scrollPhysics,
+        scrollCacheExtent: cache,
+        scrollbars: widget.style.scrollbars,
+        slivers: [lines],
+      );
+    } else {
+      scroll = ElScroll.sliver(
+        controller: _scrollController,
+        physics: widget.style.scrollPhysics,
+        scrollCacheExtent: cache,
+        slivers: [lines],
+      );
+    }
+    // 笔与鼠标一样在正文上拖选文字，不拖动滚动；触摸仍按平台拖动滚动。
+    final behavior = ScrollConfiguration.of(context);
+    return ScrollConfiguration(
+      behavior: behavior.copyWith(
+        scrollbars: widget.style.scrollbars ? null : false,
+        dragDevices: behavior.dragDevices.difference(const {
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+        }),
+      ),
+      child: scroll,
+    );
   }
 
   Widget _buildSelectionChrome(BuildContext context, Offset Function(Offset global) globalToLocal) {
@@ -5951,7 +5962,8 @@ class _EditableViewState extends State<EditableView>
   Widget _buildLine(BuildContext context, int viewRow) {
     final modelLine = _lineProjection.modelLineForViewRow(viewRow);
     final key = _lineKeyFor(modelLine);
-    return EditableLineView(key: key, scope: _scope, index: modelLine, identity: key);
+    // 不以身份作 Widget key：回收槽位换绑到另一行时原地更新序号与身份，不重建行节点。
+    return EditableLineView(scope: _scope, index: modelLine, identity: key);
   }
 }
 
@@ -6023,7 +6035,7 @@ final class _CaretRevealRequest {
   final EditableLineProjection projection;
   final int projectionRevision;
   final EditableController controller;
-  final ElScrollController scrollController;
+  final ScrollController scrollController;
   final ScrollController? horizontalController;
   final int docRevision;
   final Object selections;
@@ -6050,7 +6062,7 @@ final class _AutomaticCaretRevealIntent {
 
   final int epoch;
   final EditableController controller;
-  final ElScrollController scrollController;
+  final ScrollController scrollController;
   final ScrollController? horizontalController;
   final int docRevision;
   final Object selections;

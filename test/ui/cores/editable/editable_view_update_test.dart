@@ -74,7 +74,7 @@ void main() {
   testWidgets('运行期换 scrollController：监听随迁，滚动仍驱动 IME 几何同步', (tester) async {
     final controller = EditableController(text: List.generate(300, (i) => 'line $i').join('\n'));
     addTearDown(controller.dispose);
-    final external = ElScrollController();
+    final external = ScrollController();
     addTearDown(external.dispose);
 
     await tester.pumpWidget(
