@@ -8,8 +8,8 @@ import 'package:flutter/widgets.dart';
 
 import '../view/event/event.dart';
 import '../view/event/dispatcher.dart';
-import '../scroll/common/physics/bouncing_scroll_physics.dart';
-import '../scroll/common/physics/platform_scroll_physics.dart';
+import '../../scroll/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
+import '../../scroll/scroll_behavior.dart' show elScrollPhysicsFor;
 import '../view/render/hit_bounds.dart';
 import 'tab_controller.dart';
 
@@ -220,7 +220,7 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
     _dragDevices = widget.dragDevices ?? ScrollConfiguration.of(context).dragDevices;
   }
 
-  /// 与 `ElScrollView` 同一条解析链（替换语义，非
+  /// 与 `ElScroll` 同一条解析链（替换语义，非
   /// applyTo 合成）：widget 直参 > 环境默认（官方 `ScrollConfiguration` 通道，
   /// 挂 `ElScrollBehavior` 即 el 平台口径）；头部的官方 bouncing 统一升级成
   /// [ElBouncingScrollPhysics] 拿动量修正。tab 无刷新器，链上没有 refresher 一环。
@@ -228,7 +228,7 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
   /// 只在 [didChangeDependencies] / [didUpdateWidget] 调用——两条路径都有
   /// context，查 inherited 安全。
   void _resolvePhysics() {
-    // 与 ElScrollView 同口径：直读而非 [ScrollConfiguration.of]——后者的兜底会让
+    // 与 ElScroll 同口径：直读而非 [ScrollConfiguration.of]——后者的兜底会让
     // 「没人包 ScrollConfiguration」和「祖先就是官方基类」不可区分，el 平台口径
     // 就永远轮不到。
     final base =
