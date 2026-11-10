@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _Fixture {
   _Fixture({this.axis = .vertical, this.reverse = false, this.smoothScroll})
-    : outer = reverse ? ElScrollController() : ScrollController(),
-      inner = reverse ? ElScrollController() : ScrollController();
+    : outer = ScrollController(),
+      inner = ScrollController();
 
   final Axis axis;
   final bool reverse;

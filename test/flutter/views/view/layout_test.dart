@@ -1464,76 +1464,6 @@ void main() {
 
     ElRenderView renderViewOf(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
 
-    testWidgets('百分比宽在双轴无界约束下爬链拿到视口宽参照', (tester) async {
-      const targetKey = ValueKey('percent-target');
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: 300,
-              height: 200,
-              child: ElScrollView(
-                axis: null,
-                scrollbar: const ElNoScrollBar(),
-                physics: const ClampingScrollPhysics(),
-                children: [
-                  ElView(
-                    key: targetKey,
-                    style: ElStyle(width: '100%', height: 40),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      final render = renderViewOf(tester, targetKey);
-      expect(render.size.width, 300.0, reason: '双轴外层 content box 宽 300 → 内层 100% 折算到 300');
-      expect(render.size.height, 40.0);
-    });
-
-    testWidgets('宿主 300→350 唤醒子树：ElView 百分比宽跟到 350', (tester) async {
-      const targetKey = ValueKey('percent-wake');
-
-      Widget build(double outerWidth) {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: outerWidth,
-              height: 200,
-              child: ElScrollView(
-                axis: null,
-                scrollbar: const ElNoScrollBar(),
-                physics: const ClampingScrollPhysics(),
-                children: [
-                  ElView(
-                    key: targetKey,
-                    style: ElStyle(width: '100%', height: 40),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-
-      await tester.pumpWidget(build(300.0));
-      expect(renderViewOf(tester, targetKey).size.width, 300.0);
-
-      await tester.pumpWidget(build(350.0));
-      expect(
-        renderViewOf(tester, targetKey).size.width,
-        350.0,
-        reason: '参照 300→350 递归 mark 唤醒 ElView，突破 constraints 未变的 layout 短路',
-      );
-    });
-
     testWidgets('链上无提供者时百分比退回 auto：UnconstrainedBox 直接包 100% 宽 ElView', (tester) async {
       const targetKey = ValueKey('no-reference');
 
@@ -1557,57 +1487,6 @@ void main() {
       // width 约束打成 ∞ → percent 折回 null → 退 auto，宽 = 内容宽（含 padding）。
       final render = renderViewOf(tester, targetKey);
       expect(render.size.width, 80.0);
-    });
-
-    testWidgets('nest_scroll 最小复刻：双轴外层 > ElView(width 100%, height 200) > 内层单轴滚动', (tester) async {
-      const targetKey = ValueKey('nest-mid');
-      final innerController = ScrollController();
-      addTearDown(innerController.dispose);
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: 300,
-              height: 400,
-              child: ElScrollView(
-                axis: null,
-                scrollbar: const ElNoScrollBar(),
-                physics: const ClampingScrollPhysics(),
-                children: [
-                  ElView(
-                    key: targetKey,
-                    style: ElStyle(width: '100%', height: 200),
-                    child: ElScrollView(
-                      controller: innerController,
-                      scrollbar: const ElNoScrollBar(),
-                      physics: const ClampingScrollPhysics(),
-                      children: List<Widget>.generate(10, (index) => const SizedBox(width: 100, height: 50)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // 断言未触发 → 内层滚动在双轴无界宽下存活。
-      final mid = renderViewOf(tester, targetKey);
-      expect(mid.size, const Size(300, 200), reason: '中间 ElView 100% 宽拿到外层视口宽');
-
-      // 内层滚动尺寸 = 中间 ElView 尺寸（唯一一个 300×200 的 ElScrollView render）。
-      final renders = tester.allRenderObjects.whereType<RenderVirtualScrollView>().toSet().toList();
-      final innerRender = renders.singleWhere((r) => r.size == const Size(300, 200));
-      expect(innerRender.size.width, 300.0, reason: '内层视口宽 = 外层视口宽');
-
-      // 内层内容 10 × 50 = 500，视口高 200 → maxScrollExtent = 300。
-      expect(innerController.position.maxScrollExtent, 300.0);
-      innerController.jumpTo(120);
-      await tester.pump();
-      expect(innerController.offset, 120.0);
     });
   });
 

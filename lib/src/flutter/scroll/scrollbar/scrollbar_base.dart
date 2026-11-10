@@ -449,33 +449,6 @@ abstract class ElScrollbar {
   }
 }
 
-/// Explicitly disables scrollbar chrome.
-class ElNoScrollBar extends ElScrollbar {
-  const ElNoScrollBar();
-
-  @override
-  List<Widget> buildChildren(BuildContext context, ElScrollbarDetails details) => const [];
-
-  @override
-  double resolveThumbThickness(
-    BuildContext context,
-    ElScrollbarAxisDetails axis, {
-    required bool hovered,
-    required bool dragging,
-  }) {
-    return 0.0;
-  }
-
-  @override
-  Widget buildThumb(
-    BuildContext context,
-    ElScrollbarAxisDetails axis, {
-    required bool visible,
-    required bool hovered,
-    required bool dragging,
-  }) => const SizedBox.shrink();
-}
-
 class _ScrollbarScrollableGate extends SingleChildRenderObjectWidget {
   const _ScrollbarScrollableGate({required this.active, required super.child});
 

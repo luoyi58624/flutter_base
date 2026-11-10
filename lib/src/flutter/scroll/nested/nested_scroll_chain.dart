@@ -17,7 +17,7 @@ import 'scroll_delta_source.dart';
 /// 触摸、触控板、实际滚轮帧与惯性统一经过宿主路线；业务回调不进入物理轨迹查询。
 /// 本底层接口返回消费量，公开 Mixin 的 remaining 协议在声明入口适配。
 ///
-/// 消费契约(与 `ElScrollDeltaInterceptor` 相同):返回值与 delta 同号且
+/// 消费契约:返回值与 delta 同号且
 /// |consumed| ≤ |delta|;越界返回视为全消费(clamp),反号视为不消费。
 abstract class ElNestedScrollParent {
   /// 创建底层嵌套滚动协商参与者。
@@ -31,7 +31,7 @@ abstract class ElNestedScrollParent {
 
   /// pre 段:内层消费**之前**先抽税。返回消费量(0 = 不吃)。
   ///
-  /// delta 空间与 [ElScrollDeltaInterceptor.interceptScrollDelta] 一致:
+  /// delta 空间:
   /// touchDrag / fling 在用户空间(正 = 下拉/展开方向),pointerScroll 在
   /// pixels 空间(正 = 内容前进)。
   double onNestedPreScroll(double delta, ElScrollDeltaSource source) => 0.0;

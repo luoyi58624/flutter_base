@@ -267,7 +267,7 @@ void main() {
     expect(host.leafDispatcher.isTapPressed, isFalse);
   });
 
-  testWidgets('ElScrollView 内纯样式节点延迟变色，实际滚动会取消反馈', (tester) async {
+  testWidgets('ElScroll 内纯样式节点延迟变色，实际滚动会取消反馈', (tester) async {
     final key = UniqueKey();
     final controller = ScrollController();
     addTearDown(controller.dispose);
@@ -275,9 +275,8 @@ void main() {
       tester,
       ElView(
         style: ElStyle(width: 200, height: 200),
-        child: ElScrollView(
+        child: ElScroll(
           controller: controller,
-          scrollbar: ElAndroidScrollBar(),
           children: [
             ElView(
               key: key,

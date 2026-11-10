@@ -2,7 +2,7 @@
 // 页面滚动到底部后展开示例卡代码区（ElCodeExample 的 ElCollapseAnimation 口径）：
 // 默认（pinToEnd: false）与 web/CSS 一致——保留 scrollTop，可见内容原地不动，
 // 展开发生在视口下方、可继续下滚；页面中段展开同口径（位置保留、下方内容被推下去）。
-// 贴底跟随（钉回新 max）是 ElScrollView.pinToEnd 显式 opt-in（2026-08-09 用户裁决，
+// 贴底跟随（钉回新 max）是 ElScroll.pinToEnd 显式 opt-in（2026-08-09 用户裁决，
 // 引擎回归见 el_ui/test/scroll/el_scroll_pin_to_end_test.dart）。
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
@@ -57,7 +57,7 @@ class _CodeExampleCardState extends State<_CodeExampleCard> {
 Widget _host(ScrollController controller) {
   return Directionality(
     textDirection: TextDirection.ltr,
-    child: ElScrollView(
+    child: ElScroll(
       controller: controller,
       children: [
         for (var i = 0; i < 10; i++)

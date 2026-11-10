@@ -1,11 +1,10 @@
 import 'package:flutter_base/src/flutter/views/layout/stack/stack_view.dart';
-import 'package:flutter_base/src/flutter/views/scroll/common/render/scroll_viewport_base.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('共享基座接受 ScrollChildParentData 与官方和 El 定位声明', (tester) async {
+  testWidgets('共享基座接受官方和 El 定位声明', (tester) async {
     await tester.pumpWidget(
       const Directionality(
         textDirection: TextDirection.ltr,
@@ -26,7 +25,6 @@ void main() {
     final render = tester.renderObject<_RenderHost>(find.byType(_Host));
     final child = tester.renderObject<RenderBox>(find.byKey(const ValueKey('el')));
     expect(child.parent, same(render));
-    expect(child.parentData, isA<ScrollChildParentData>());
     expect(child.parentData, isA<ElStackParentData>());
     expect(tester.getTopLeft(find.byKey(const ValueKey('el'))), const Offset(200, 12));
     expect(tester.getBottomRight(find.byKey(const ValueKey('official'))), const Offset(792, 590));
@@ -71,11 +69,11 @@ class _Host extends MultiChildRenderObjectWidget {
   RenderObject createRenderObject(BuildContext context) => _RenderHost();
 }
 
-class _RenderHost extends RenderStackingBox<ScrollChildParentData> {
+class _RenderHost extends RenderStackingBox<ElStackParentData> {
   int layouts = 0;
   @override
   void setupParentData(RenderBox child) {
-    if (child.parentData is! ScrollChildParentData) child.parentData = ScrollChildParentData();
+    if (child.parentData is! ElStackParentData) child.parentData = ElStackParentData();
   }
 
   @override
@@ -84,7 +82,7 @@ class _RenderHost extends RenderStackingBox<ScrollChildParentData> {
     size = constraints.biggest;
     var child = firstChild;
     while (child != null) {
-      final data = child.parentData! as ScrollChildParentData;
+      final data = child.parentData! as ElStackParentData;
       data.resolveDimensions(size);
       if (data.isPositionedForLayout) {
         RenderStack.layoutPositionedChild(child, data, size, Alignment.topLeft);

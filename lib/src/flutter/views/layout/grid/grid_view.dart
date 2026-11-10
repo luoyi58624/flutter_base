@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../geometry/grid_geometry.dart';
 import '../layout_view.dart';
 
-/// Grid 排列布局；普通构造全量挂载，builder 仅能直接接入 ElScrollView。
+/// Grid 排列布局；全量挂载，虚拟网格使用 ElScroll 中的 Sliver。
 class ElGridView extends LayoutView {
   /// 创建全量布局，方向跟随所属滚动容器，独立使用时默认垂直。
   const ElGridView({
@@ -17,55 +17,8 @@ class ElGridView extends LayoutView {
     double? gap,
     double? rowGap,
     double? columnGap,
-    List<Widget> this.children = const <Widget>[],
-  }) : itemCount = null,
-       keepAlive = false,
-       itemBuilder = null,
-       findChildIndexCallback = null,
-       assert(gap == null || rowGap == null && columnGap == null, 'gap 与 rowGap/columnGap 不能同时设置。'),
-       rowGap = rowGap ?? gap ?? 0,
-       columnGap = columnGap ?? gap ?? 0,
-       assert(crossAxisCount == null || crossAxisCount > 0),
-       assert(itemWidth == null || itemWidth > 0 && itemWidth < double.infinity),
-       assert(
-         itemWidth == null || minCrossAxisExtent == null && maxCrossAxisExtent == null,
-         'itemWidth 与 minCrossAxisExtent/maxCrossAxisExtent 不能同时设置。',
-       ),
-       assert(minCrossAxisExtent == null || minCrossAxisExtent > 0 && minCrossAxisExtent < double.infinity),
-       assert(maxCrossAxisExtent == null || maxCrossAxisExtent > 0 && maxCrossAxisExtent < double.infinity),
-       assert(mainAxisExtent == null || mainAxisExtent >= 0 && mainAxisExtent < double.infinity),
-       assert(aspectRatio > 0 && aspectRatio < double.infinity),
-       assert(gap == null || gap >= 0 && gap < double.infinity),
-       assert(rowGap == null || rowGap >= 0 && rowGap < double.infinity),
-       assert(columnGap == null || columnGap >= 0 && columnGap < double.infinity),
-       assert(
-         (crossAxisCount == null ? 0 : 1) +
-                 (minCrossAxisExtent == null ? 0 : 1) +
-                 (maxCrossAxisExtent == null ? 0 : 1) <=
-             1,
-         'crossAxisCount、minCrossAxisExtent、maxCrossAxisExtent 三选一。',
-       );
-
-  /// 创建虚拟布局，上级必须为 ElScrollView 的直接内容槽。
-  const ElGridView.builder({
-    super.key,
-    required int this.itemCount,
-    required IndexedWidgetBuilder this.itemBuilder,
-    this.keepAlive = false,
-    this.findChildIndexCallback,
-    this.crossAxisCount,
-    this.itemWidth,
-    this.minCrossAxisExtent,
-    this.maxCrossAxisExtent,
-    this.mainAxisExtent,
-    this.aspectRatio = 1,
-    double? gap,
-    double? rowGap,
-    double? columnGap,
-  }) : children = null,
-       assert(itemCount >= 0),
-
-       assert(gap == null || rowGap == null && columnGap == null, 'gap 与 rowGap/columnGap 不能同时设置。'),
+    super.children,
+  }) : assert(gap == null || rowGap == null && columnGap == null, 'gap 与 rowGap/columnGap 不能同时设置。'),
        rowGap = rowGap ?? gap ?? 0,
        columnGap = columnGap ?? gap ?? 0,
        assert(crossAxisCount == null || crossAxisCount > 0),
@@ -120,30 +73,6 @@ class ElGridView extends LayoutView {
   /// 行列间距相同时返回共同值。
   double? get gap => rowGap == columnGap ? rowGap : null;
 
-  /// 普通构造的全部条目，builder 模式为 null。
-  final List<Widget>? children;
-
-  /// builder 的业务条目数量，不包含分隔项。
-  final int? itemCount;
-
-  /// 按业务索引构建条目。
-  final IndexedWidgetBuilder? itemBuilder;
-
-  /// 根据业务 key 返回重排后的业务索引。
-  final ChildIndexGetter? findChildIndexCallback;
-
-  /// 保留已构建条目的状态，默认关闭；不会提前构建未访问条目。
-  final bool keepAlive;
-  @override
-  bool get layoutKeepAlive => keepAlive;
-  @override
-  List<Widget>? get layoutChildren => children;
-  @override
-  int get layoutItemCount => children?.length ?? itemCount!;
-  @override
-  IndexedWidgetBuilder? get layoutItemBuilder => itemBuilder;
-  @override
-  ChildIndexGetter? get layoutFindChildIndex => findChildIndexCallback;
   @override
   GridLayoutGeometry get gridGeometry => GridLayoutGeometry(
     crossAxisCount: crossAxisCount,

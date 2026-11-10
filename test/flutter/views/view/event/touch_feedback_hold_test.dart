@@ -186,7 +186,7 @@ void main() {
       tester,
       ElView(
         style: ElStyle(width: 200, height: 200),
-        child: ElScrollView(
+        child: ElScroll(
           children: [
             ElView(
               key: key,

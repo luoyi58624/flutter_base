@@ -33,9 +33,9 @@ Future<void> _wheel(WidgetTester tester, double delta, {int ms = 0}) => tester.s
 );
 
 void main() {
-  testWidgets('旧视口外的官方子列表不误用新版 ScrollHostPosition', (tester) async {
+  testWidgets('嵌套的官方子列表不误用 ScrollHostPosition', (tester) async {
     final outer = ScrollController();
-    final inner = ElScrollController();
+    final inner = ScrollController();
     addTearDown(outer.dispose);
     addTearDown(inner.dispose);
     await tester.pumpWidget(
@@ -64,8 +64,8 @@ void main() {
     expect(outer.position, isA<ScrollHostPosition>());
   });
 
-  testWidgets('ElScrollController 创建新版 ScrollHostPosition，鼠标滚轮由位置层处理', (tester) async {
-    final controller = ElScrollController(initialScrollOffset: 140);
+  testWidgets('外部 ScrollController 创建 ScrollHostPosition，鼠标滚轮由位置层处理', (tester) async {
+    final controller = ScrollController(initialScrollOffset: 140);
     addTearDown(controller.dispose);
     await tester.pumpWidget(_app(controller, smoothScroll: ElWindowsSmoothScroll()));
     expect(controller.position, isA<ScrollHostPosition>());

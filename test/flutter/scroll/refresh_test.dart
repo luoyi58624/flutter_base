@@ -13,7 +13,7 @@ Widget _body(Widget child) => Directionality(
 );
 
 class _Fixture {
-  _Fixture({bool useElController = false}) : controller = useElController ? ElScrollController() : ScrollController();
+  _Fixture() : controller = ScrollController();
 
   final ScrollController controller;
   final refreshed = <int>[];
@@ -60,8 +60,8 @@ Future<TestGesture> _drag(WidgetTester tester, List<double> motions) async {
 }
 
 void main() {
-  testWidgets('ElScrollController 直接挂载时 Widget 刷新正常分账', (tester) async {
-    final fixture = _Fixture(useElController: true);
+  testWidgets('外部 ScrollController 挂载时 Widget 刷新正常分账', (tester) async {
+    final fixture = _Fixture();
     addTearDown(fixture.dispose);
     await tester.pumpWidget(fixture.build());
     final gesture = await _drag(tester, [35, 65]);
@@ -93,7 +93,11 @@ void main() {
     final second = await _drag(tester, [35, 65]);
     expect(fixture.details!.snapshot.value.status, RefreshIndicatorStatus.armed);
     await second.cancel();
-    expect(fixture.details!.snapshot.value.status, anyOf(isNull, RefreshIndicatorStatus.canceled), reason: '真实取消不能触发 refresh');
+    expect(
+      fixture.details!.snapshot.value.status,
+      anyOf(isNull, RefreshIndicatorStatus.canceled),
+      reason: '真实取消不能触发 refresh',
+    );
     await tester.pumpAndSettle();
     expect(fixture.refreshed, isEmpty);
     expect(fixture.details!.snapshot.value.status, isNull);
@@ -120,23 +124,35 @@ void main() {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     final future = Completer<void>();
-    addTearDown(() { if (!future.isCompleted) future.complete(); });
+    addTearDown(() {
+      if (!future.isCompleted) future.complete();
+    });
     ElRefreshDetails? details;
     var count = 0;
-    await tester.pumpWidget(_body(ElRefresh(
-      refresher: ElCustomRefresher(
-        triggerExtent: 60,
-        movesContent: true,
-        builder: (context, value) {
-          details = value;
-          return SizedBox.expand();
-        },
+    await tester.pumpWidget(
+      _body(
+        ElRefresh(
+          refresher: ElCustomRefresher(
+            triggerExtent: 60,
+            movesContent: true,
+            builder: (context, value) {
+              details = value;
+              return SizedBox.expand();
+            },
+          ),
+          onRefresh: () {
+            count++;
+            return future.future;
+          },
+          child: ElScroll.sliver(
+            key: ValueKey('scroll'),
+            controller: controller,
+            physics: ClampingScrollPhysics(),
+            slivers: [SliverToBoxAdapter(child: SizedBox(height: 1200))],
+          ),
+        ),
       ),
-      onRefresh: () { count++; return future.future; },
-      child: ElScroll.sliver(key: ValueKey('scroll'), controller: controller, physics: ClampingScrollPhysics(), slivers: [
-        SliverToBoxAdapter(child: SizedBox(height: 1200)),
-      ]),
-    )));
+    );
     final drag = await _drag(tester, [40, 60]);
     expect(controller.offset, lessThan(0));
     expect(details!.snapshot.value.pulledExtent, greaterThan(60));
@@ -154,18 +170,27 @@ void main() {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     ElRefreshDetails? details;
-    await tester.pumpWidget(_body(ElRefresh(
-      refresher: ElCustomRefresher(
-        triggerExtent: 60,
-        movesContent: false,
-        builder: (context, value) { details = value; return SizedBox.expand(); },
+    await tester.pumpWidget(
+      _body(
+        ElRefresh(
+          refresher: ElCustomRefresher(
+            triggerExtent: 60,
+            movesContent: false,
+            builder: (context, value) {
+              details = value;
+              return SizedBox.expand();
+            },
+          ),
+          onRefresh: () async {},
+          child: ElScroll.sliver(
+            key: ValueKey('scroll'),
+            controller: controller,
+            physics: ClampingScrollPhysics(),
+            slivers: [SliverToBoxAdapter(child: SizedBox(height: 40))],
+          ),
+        ),
       ),
-      onRefresh: () async {},
-      child: ElScroll.sliver(
-        key: ValueKey('scroll'), controller: controller, physics: ClampingScrollPhysics(),
-        slivers: [SliverToBoxAdapter(child: SizedBox(height: 40))],
-      ),
-    )));
+    );
     expect(controller.position.maxScrollExtent, 0);
     final gesture = await _drag(tester, [35, 65]);
     expect(details!.snapshot.value.status, RefreshIndicatorStatus.armed);
@@ -178,20 +203,29 @@ void main() {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     ElRefreshDetails? details;
-    await tester.pumpWidget(_body(ElRefresh(
-      axisDirection: AxisDirection.up,
-      refresher: ElCustomRefresher(
-        triggerExtent: 60,
-        movesContent: false,
-        builder: (context, value) { details = value; return SizedBox.expand(); },
+    await tester.pumpWidget(
+      _body(
+        ElRefresh(
+          axisDirection: AxisDirection.up,
+          refresher: ElCustomRefresher(
+            triggerExtent: 60,
+            movesContent: false,
+            builder: (context, value) {
+              details = value;
+              return SizedBox.expand();
+            },
+          ),
+          onRefresh: () async {},
+          child: ElScroll.sliver(
+            key: ValueKey('scroll'),
+            reverse: true,
+            controller: controller,
+            physics: ClampingScrollPhysics(),
+            slivers: [SliverToBoxAdapter(child: SizedBox(height: 1200))],
+          ),
+        ),
       ),
-      onRefresh: () async {},
-      child: ElScroll.sliver(
-        key: ValueKey('scroll'), reverse: true, controller: controller,
-        physics: ClampingScrollPhysics(),
-        slivers: [SliverToBoxAdapter(child: SizedBox(height: 1200))],
-      ),
-    )));
+    );
     final drag = await _drag(tester, [-35, -65]);
     expect(details!.snapshot.value.status, RefreshIndicatorStatus.armed);
     expect(controller.offset, 0);
@@ -204,18 +238,28 @@ void main() {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     ElRefreshDetails? details;
-    await tester.pumpWidget(_body(ElRefresh(
-      edge: ElRefreshEdge.trailing,
-      refresher: ElCustomRefresher(
-        triggerExtent: 60, movesContent: false,
-        builder: (context, value) { details = value; return SizedBox.expand(); },
+    await tester.pumpWidget(
+      _body(
+        ElRefresh(
+          edge: ElRefreshEdge.trailing,
+          refresher: ElCustomRefresher(
+            triggerExtent: 60,
+            movesContent: false,
+            builder: (context, value) {
+              details = value;
+              return SizedBox.expand();
+            },
+          ),
+          onRefresh: () async {},
+          child: ElScroll.sliver(
+            key: ValueKey('scroll'),
+            controller: controller,
+            physics: ClampingScrollPhysics(),
+            slivers: [SliverToBoxAdapter(child: SizedBox(height: 1200))],
+          ),
+        ),
       ),
-      onRefresh: () async {},
-      child: ElScroll.sliver(
-        key: ValueKey('scroll'), controller: controller, physics: ClampingScrollPhysics(),
-        slivers: [SliverToBoxAdapter(child: SizedBox(height: 1200))],
-      ),
-    )));
+    );
     controller.jumpTo(controller.position.maxScrollExtent);
     await tester.pump();
     final drag = await _drag(tester, [-35, -65]);

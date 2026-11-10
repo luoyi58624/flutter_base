@@ -30,13 +30,11 @@ mixin LayoutReferenceBox on RenderBox {
   /// - ElRenderView：提供者资格 = tight 约束或显式尺寸；Flex 等夹层仍可能
   ///   给后代传入不变的无界约束，因此参照变化需要唤醒后代；首次布局没有
   ///   历史几何时可跳过这次遍历；
-  /// - ElScrollView 单轴：child 约束交叉轴上界 = size.axis - padding，参照
-  ///   跟着 size 变，Flutter 约束不等自然重排；
-  /// - ElScrollView 双轴：child 约束恒为 (0, ∞)，视口任何变化约束都不变，
-  ///   参照变化**必须**唤醒（Flutter `layout()` 的
-  ///   `!_needsLayout && constraints == _constraints` 短路会冻结子树）。
+  /// - 无界约束的夹层：child 约束不随参照变化，参照变化**必须**唤醒
+  ///   （Flutter `layout()` 的 `!_needsLayout && constraints == _constraints`
+  ///   短路会冻结子树）。
   ///
-  /// 精确判据在滚动 render 里表达为「参照变化 && childConstraints 与上次一致」；
+  /// 精确判据为「参照变化 && childConstraints 与上次一致」；
   /// 消费者登记式唤醒留作 v2 优化。
   @protected
   bool setLayoutReference(double? width, double? height) {

@@ -62,17 +62,9 @@ void main() {
   test('itemWidth 拒绝非法值和冲突的轨道尺寸声明', () {
     for (final width in [0.0, -1.0, double.infinity, double.nan]) {
       expect(() => ElGridView(itemWidth: width), throwsAssertionError);
-      expect(
-        () => ElGridView.builder(itemWidth: width, itemCount: 1, itemBuilder: (_, _) => ElView()),
-        throwsAssertionError,
-      );
       expect(() => GridLayoutGeometry(itemWidth: width), throwsAssertionError);
     }
     expect(() => ElGridView(itemWidth: 100, minCrossAxisExtent: 80), throwsAssertionError);
-    expect(
-      () => ElGridView.builder(itemWidth: 100, maxCrossAxisExtent: 120, itemCount: 1, itemBuilder: (_, _) => ElView()),
-      throwsAssertionError,
-    );
     expect(() => GridLayoutGeometry(itemWidth: 100, maxCrossAxisExtent: 120), throwsAssertionError);
   });
 
@@ -166,19 +158,7 @@ void main() {
     expect(horizontal.size, Size(200, 104));
     expect(GridLayoutGeometry().resolve(axis: .vertical, crossExtent: double.infinity, itemCount: 0).size, Size.zero);
     expect(() => ElGridView(crossAxisCount: 3, minCrossAxisExtent: 80), throwsAssertionError);
-    expect(
-      () => ElGridView.builder(itemCount: 1, itemBuilder: (_, _) => ElView(), gap: 4, rowGap: 4),
-      throwsAssertionError,
-    );
-    expect(
-      () => ElListView.builder(
-        itemCount: 1,
-        itemBuilder: (_, _) => ElView(),
-        separatorBuilder: (_, _) => ElView(),
-        gap: 4,
-      ),
-      throwsAssertionError,
-    );
+    expect(() => ElGridView(gap: 4, rowGap: 4), throwsAssertionError);
   });
 }
 

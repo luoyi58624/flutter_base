@@ -12,7 +12,6 @@ void main() {
   testWidgets('未配置时按平台回退 el_ui 内置实现', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
 
-    late ElScrollbar scrollbar;
     late ElRefresher refresher;
     late SelectionControls controls;
     ElSmoothScroll? smoothScroll;
@@ -22,61 +21,59 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Builder(
           builder: (context) {
-            scrollbar = ElViewProvider.scrollbarOf(context);
             refresher = ElViewProvider.refresherOf(context);
             controls = SelectionControlsScope.of(context);
             smoothScroll = ElViewProvider.smoothScrollOf(context);
-            return const SizedBox();
+            return SizedBox();
           },
         ),
       ),
     );
 
     debugDefaultTargetPlatformOverride = null;
-    expect(scrollbar, isA<ElAndroidScrollBar>());
     expect(refresher, isA<ElAndroidRefresher>());
     expect(controls, isA<AndroidSelectionControls>());
     expect(smoothScroll, isNull);
   });
 
   testWidgets('builder 覆写当前子树，返回 null 时继续继承祖先', (tester) async {
-    late ElScrollbar inheritedFromBuilderContext;
-    late ElScrollbar innerResolved;
-    late ElScrollbar nullResolved;
-    late ElScrollbar siblingResolved;
+    late ElRefresher inheritedFromBuilderContext;
+    late ElRefresher innerResolved;
+    late ElRefresher nullResolved;
+    late ElRefresher siblingResolved;
 
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
         child: ElViewProvider(
-          scrollbarBuilder: (_) => const ElNoScrollBar(),
+          refresherBuilder: (_) => ElNoRefresher(),
           child: Column(
             children: [
               ElViewProvider(
-                scrollbarBuilder: (context) {
-                  inheritedFromBuilderContext = ElViewProvider.scrollbarOf(context);
-                  return const ElWindowScrollBar();
+                refresherBuilder: (context) {
+                  inheritedFromBuilderContext = ElViewProvider.refresherOf(context);
+                  return ElIosRefresher();
                 },
                 child: Builder(
                   builder: (context) {
-                    innerResolved = ElViewProvider.scrollbarOf(context);
-                    return const SizedBox();
+                    innerResolved = ElViewProvider.refresherOf(context);
+                    return SizedBox();
                   },
                 ),
               ),
               ElViewProvider(
-                scrollbarBuilder: (_) => null,
+                refresherBuilder: (_) => null,
                 child: Builder(
                   builder: (context) {
-                    nullResolved = ElViewProvider.scrollbarOf(context);
-                    return const SizedBox();
+                    nullResolved = ElViewProvider.refresherOf(context);
+                    return SizedBox();
                   },
                 ),
               ),
               Builder(
                 builder: (context) {
-                  siblingResolved = ElViewProvider.scrollbarOf(context);
-                  return const SizedBox();
+                  siblingResolved = ElViewProvider.refresherOf(context);
+                  return SizedBox();
                 },
               ),
             ],
@@ -85,10 +82,10 @@ void main() {
       ),
     );
 
-    expect(inheritedFromBuilderContext, isA<ElNoScrollBar>());
-    expect(innerResolved, isA<ElWindowScrollBar>());
-    expect(nullResolved, isA<ElNoScrollBar>());
-    expect(siblingResolved, isA<ElNoScrollBar>());
+    expect(inheritedFromBuilderContext, isA<ElNoRefresher>());
+    expect(innerResolved, isA<ElIosRefresher>());
+    expect(nullResolved, isA<ElNoRefresher>());
+    expect(siblingResolved, isA<ElNoRefresher>());
   });
 
   testWidgets('builder 从具体值切回 null 不会重挂子树', (tester) async {
@@ -102,10 +99,7 @@ void main() {
           setHostState = setState;
           return Directionality(
             textDirection: TextDirection.ltr,
-            child: ElViewProvider(
-              scrollbarBuilder: (_) => override ? const ElNoScrollBar() : null,
-              child: const _MountProbe(),
-            ),
+            child: ElViewProvider(refresherBuilder: (_) => override ? ElNoRefresher() : null, child: _MountProbe()),
           );
         },
       ),
@@ -121,10 +115,10 @@ void main() {
   });
 
   testWidgets('InheritedModel 只通知发生变化的 aspect', (tester) async {
-    var useWindowsScrollbar = false;
-    var selectionBuildCount = 0;
+    var smooth = false;
+    var refresherBuildCount = 0;
     late StateSetter setHostState;
-    final selectionProbe = _RefresherAspectProbe(onBuild: () => selectionBuildCount++);
+    final refresherProbe = _RefresherAspectProbe(onBuild: () => refresherBuildCount++);
 
     await tester.pumpWidget(
       StatefulBuilder(
@@ -133,22 +127,21 @@ void main() {
           return Directionality(
             textDirection: TextDirection.ltr,
             child: ElViewProvider(
-              scrollbarBuilder: (_) => useWindowsScrollbar ? const ElWindowScrollBar() : const ElNoScrollBar(),
-              child: selectionProbe,
+              smoothScrollBuilder: (_) => smooth ? ElChromiumSmoothScroll() : null,
+              child: refresherProbe,
             ),
           );
         },
       ),
     );
 
-    expect(selectionBuildCount, 1);
-    setHostState(() => useWindowsScrollbar = true);
+    expect(refresherBuildCount, 1);
+    setHostState(() => smooth = true);
     await tester.pump();
-    expect(selectionBuildCount, 1);
+    expect(refresherBuildCount, 1);
   });
 
-  testWidgets('三类滚动环境实现均支持局部覆写', (tester) async {
-    late ElScrollbar scrollbar;
+  testWidgets('刷新器与平滑滚动均支持局部覆写', (tester) async {
     late ElRefresher refresher;
     late ElSmoothScroll? smoothScroll;
 
@@ -156,22 +149,19 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: ElViewProvider(
-          scrollbarBuilder: (_) => const ElNoScrollBar(),
-          refresherBuilder: (_) => const ElNoRefresher(),
+          refresherBuilder: (_) => ElNoRefresher(),
           smoothScrollBuilder: (_) => null,
           child: Builder(
             builder: (context) {
-              scrollbar = ElViewProvider.scrollbarOf(context);
               refresher = ElViewProvider.refresherOf(context);
               smoothScroll = ElViewProvider.smoothScrollOf(context);
-              return const SizedBox();
+              return SizedBox();
             },
           ),
         ),
       ),
     );
 
-    expect(scrollbar, isA<ElNoScrollBar>());
     expect(refresher, isA<ElNoRefresher>());
     expect(smoothScroll, isNull);
   });
@@ -186,7 +176,7 @@ class _RefresherAspectProbe extends StatelessWidget {
   Widget build(BuildContext context) {
     ElViewProvider.refresherOf(context);
     onBuild();
-    return const SizedBox();
+    return SizedBox();
   }
 }
 
@@ -199,5 +189,5 @@ class _MountProbe extends StatefulWidget {
 
 class _MountProbeState extends State<_MountProbe> {
   @override
-  Widget build(BuildContext context) => const SizedBox();
+  Widget build(BuildContext context) => SizedBox();
 }

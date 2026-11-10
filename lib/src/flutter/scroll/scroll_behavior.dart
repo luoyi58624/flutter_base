@@ -33,7 +33,7 @@ ScrollPhysics elScrollPhysicsFor(TargetPlatform platform) => switch (platform) {
 /// // 那套滚动条 / overscroll 指示器时改用 MaterialScrollBehavior 子类，
 /// // 只覆盖 getScrollPhysics 调 elScrollPhysicsFor（见 docs_app）。
 /// ```
-/// 之后子树里每一个滚动容器（ElScrollView / ElTabView / 官方 Scrollable）都从
+/// 之后子树里每一个滚动容器（ElScroll / ElTabView / 官方 Scrollable）都从
 /// `ScrollConfiguration.of(context).getScrollPhysics(context)` 取默认物理；想改
 /// 就在更靠内的子树再包一层 `ScrollConfiguration`，一条通道管到所有内核。
 ///

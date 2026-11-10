@@ -17,7 +17,7 @@
 
 Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar`，两者不迁移旧自绘实现。桌面条带仅向标准 `ScrollPosition` 发送命令，不包含旧虚拟行的分数映射和位置引擎分支。
 
-旧 `ElScrollView` 的控制器、完整滚动快照、输入事务、运动引擎、虚拟管线、旧滚动条及其专属适配继续留在 `views/scroll/`。仅共用的刷新配置与外观、平台物理、嵌套协议和平滑算法保留旧路径转导出。新版刷新宿主和平滑滚轮移除了旧输入协作分支，`ElScroll` 通过标准 `ScrollController` 适配器共享真实位置。
+旧 `ElScrollView` 体系已移除。滚动统一建立在官方 Scrollable / Viewport / Sliver 之上，`ElScroll` 通过标准 `ScrollController` 适配器共享真实位置；虚拟列表与网格使用 `slivers/` 下的 Sliver，双轴内容使用纵向 Sliver 加外层横向 `ElScroll`。
 
 ## 刷新距离
 

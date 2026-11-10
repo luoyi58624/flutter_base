@@ -11,7 +11,7 @@ import 'window_scroll_bar.dart' show ElWindowScrollBar;
 ///
 /// 轨道按下即跳转到对应位置并可继续拖动，滑块按下立即接管滚动；
 /// Windows 使用常驻轨道、步进按钮和布局占位，macOS 使用悬浮、自动隐藏条带。
-/// 滚动位置来自官方 ScrollController，不依赖旧 ElScrollView 的视口实现。
+/// 滚动位置来自官方 ScrollController。
 class ElDesktopScrollbar extends StatelessWidget {
   /// 创建 Windows 风格的桌面滚动条。
   const ElDesktopScrollbar.windows({

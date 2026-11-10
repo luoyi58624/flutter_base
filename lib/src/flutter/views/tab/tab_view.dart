@@ -101,14 +101,14 @@ class ElTabView extends StatefulWidget {
   /// 分页使用的滚动物理（个体覆写，优先级高于环境）。
   ///
   /// null 时读环境 `ScrollConfiguration.of(context).getScrollPhysics(context)`
-  /// ——与 ElScrollView 完全同口径：挂 `ElScrollBehavior` 的应用按 el 平台口径
+  /// ——与 ElScroll 完全同口径：挂 `ElScrollBehavior` 的应用按 el 平台口径
   /// 拿默认物理（iOS / Linux / Windows bouncing、macOS bouncing-fast、Android /
   /// Fuchsia clamping），想改在子树包一层 `ScrollConfiguration`。
   final ScrollPhysics? physics;
 
   /// 允许拖拽翻页的设备。null（默认）= 跟随环境
-  /// `ScrollConfiguration.of(context).dragDevices`，与 ElScrollView /
-  /// ElScrollView 完全同口径（官方 touch-like 那套：touch / stylus /
+  /// `ScrollConfiguration.of(context).dragDevices`，与 ElScroll
+  /// 完全同口径（官方 touch-like 那套：touch / stylus /
   /// trackpad / unknown，**不含 mouse**）。
   ///
   /// 桌面想用鼠标拖着翻页就显式给，例如
@@ -170,14 +170,14 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
   /// 增长不收敛。
   bool _sentScrollStart = false;
 
-  /// 生效的滚动物理，解析链与 ElScrollView 单源一致：widget 直参 >
+  /// 生效的滚动物理，解析链与 ElScroll 单源一致：widget 直参 >
   /// `ScrollConfiguration.of(context).getScrollPhysics(context)`（环境默认）。
   /// 越界拉伸 / 到边硬止 / 回弹弹道全部由它决定，tab 自己不再造物理。
   late ScrollPhysics _physics;
 
   /// 允许拖拽翻页的设备集合，与 [_physics] 同一条"先读环境、widget 覆写"的链：
   /// 默认取 `ScrollConfiguration.of(context).dragDevices`（官方 touch-like 那套，
-  /// **不含 mouse**），与 ElScrollView 完全同口径。
+  /// **不含 mouse**），与 ElScroll 完全同口径。
   ///
   /// 桌面要鼠标拖页就显式给 [ElTabView.dragDevices]（或全局在 behavior 里加
   /// mouse，一处生效）。曾经这里是 `null 即不过滤`，鼠标能拖是漏出来的——
@@ -934,7 +934,7 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
       ),
       dragDevices: _dragDevices,
       gestureSettings: MediaQuery.maybeGestureSettingsOf(context),
-      // 越界视效交环境 ScrollConfiguration 收口（与 ElScrollView 同源）：
+      // 越界视效交环境 ScrollConfiguration 收口（与 ElScroll 同源）：
       // Android M3 出 stretch、旧主题出 glow、iOS / 桌面不建 indicator
       // （iOS 的越界视效由 bouncing 物理本身承担）。indicator 的
       // NotificationListener 直接罩住 viewport，收到的 tab 通知 depth 恒 0。

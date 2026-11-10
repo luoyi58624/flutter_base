@@ -8,34 +8,21 @@
 | ElGridView | 固定列数或按格尺寸自适应排列 |
 | ElStackView | 层叠、定位、zIndex 与溢出命中 |
 
-List/Grid 普通构造可独立使用，全量挂载；`.builder` 必须直接放在 ElScrollView.children 中，由滚动宿主负责虚拟化。方向跟随宿主，独立使用默认纵向。
+List/Grid 全量挂载，方向跟随最近的 Scrollable，独立使用默认纵向。大量条目的虚拟列表与网格使用 `ElScroll.sliver` 配合 `ElSliverList`、`ElSliverRecyclerList`、`ElSliverRecyclerGrid` 或官方 Sliver。
 
-## List：间距、分隔与统一尺寸
+## List：间距与统一尺寸
 
 ```dart
 ElListView(gap: 8, children: [Text('第一项'), Text('第二项')]);
 
-SizedBox(
-  height: 320,
-  child: ElScrollView(children: [
-    ElListView.builder(
-      itemCount: 1000,
-      fixedSize: true,
-      itemBuilder: (_, i) => SizedBox(height: 48, child: Text('第 $i 项')),
-      separatorBuilder: (_, i) => SizedBox(height: 1, child: ColoredBox(color: Colors.grey)),
-    ),
-  ]),
-);
+ElListView(fixedSize: true, children: [for (final item in items) SizedBox(height: 48, child: Text(item))]);
 ```
 
 | 参数 | 说明 |
 | --- | --- |
-| gap | 条目间距，与 separatorBuilder 互斥 |
-| fixedSize | 默认 false；true 时分别实测首个正文、首个分隔项，再复用尺寸，适合等高条目 |
+| gap | 条目间距 |
+| fixedSize | 默认 false；true 时实测首条后复用尺寸，适合等高条目 |
 | crossAxisAlignment | 默认 stretch；baseline 不支持 |
-| separatorBuilder | 业务条目之间构建分隔项，不构建尾部分隔项 |
-| keepAlive | builder 默认 false；true 保留已访问条目 State，内存随访问增长 |
-| findChildIndexCallback | 重排时由稳定 Key 查回新的业务索引 |
 
 ## Grid：列数与自适应尺寸
 
@@ -47,44 +34,13 @@ ElGridView(
   columnGap: 12,
   children: [Text('A'), Text('B'), Text('C')],
 );
-
-SizedBox(
-  height: 320,
-  child: ElScrollView(children: [
-    ElGridView.builder(
-      itemCount: 1000,
-      itemWidth: 120,
-      aspectRatio: 1.5,
-      gap: 12,
-      itemBuilder: (_, i) => Text('卡片 $i'),
-    ),
-  ]),
-);
 ```
 
 itemWidth 是预估物理格宽：纵向按 `max(1, floor(可用宽度 / itemWidth))` 取列数，再扣除列间距并均分剩余宽度。例如可用宽度 400、itemWidth 为 150 时排 2 列；columnGap 为 10 时每格宽 195。横向先按 `itemWidth / aspectRatio` 换算预估格高，再按可用高度取行数。独立布局的交叉轴无界且未指定固定数量时，按预估尺寸排成一带。
 
 crossAxisCount 优先于 itemWidth，在纵向为列数、横向为行数；itemWidth 与 minCrossAxisExtent / maxCrossAxisExtent 互斥。原有 `crossAxisCount / minCrossAxisExtent / maxCrossAxisExtent` 三选一规则不变。mainAxisExtent 在纵向为格高、横向为格宽，优先于 aspectRatio 推导的主轴尺寸。gap 与 rowGap / columnGap 互斥，后两者始终是物理纵/横间距。
 
-普通布局与 ElScrollView 使用同一套几何算法，轨道数、单格尺寸与完整滚动范围通过常数次计算得到，无需预先构建或测量条目；builder 仍只挂载视口及缓存范围。
-
-builder 支持 keepAlive 和 findChildIndexCallback，语义与 List 相同。重排时两边一起提供：
-
-```dart
-final ids = ['a', 'b', 'c'];
-SizedBox(
-  height: 240,
-  child: ElScrollView(children: [ElListView.builder(
-    itemCount: ids.length,
-    itemBuilder: (_, i) => Text(ids[i], key: ValueKey(ids[i])),
-    findChildIndexCallback: (key) {
-      if (key is! ValueKey<String>) return null;
-      final index = ids.indexOf(key.value);
-      return index < 0 ? null : index;
-    },
-  )]),
-);
-```
+轨道数、单格尺寸与完整范围通过常数次计算得到，无需预先测量条目。
 
 ## Stack：自然占位与绝对定位
 

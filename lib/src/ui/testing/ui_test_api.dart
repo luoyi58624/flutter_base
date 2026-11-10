@@ -10,12 +10,6 @@ export '../../flutter/views/editable/render/editable_render_scope.dart'
 export '../../flutter/views/view/event/dispatcher.dart';
 export '../../flutter/views/view/event/press.dart' show EventDetailsAccess;
 export '../../flutter/views/image/render/render_image_view.dart';
-export '../../flutter/views/scroll/common/pointer/scroll_touch_gate.dart';
-export '../../flutter/views/scroll/refresh/refresher.dart' show RefreshGapClip, RenderRefreshGapClip;
-export '../../flutter/views/scroll/refresh/refresh_host.dart';
-export '../../flutter/views/scroll/common/render/scroll_viewport_base.dart';
-export '../../flutter/views/scroll/virtual/virtual_pipeline.dart'
-    show ElScrollViewStateTesting, ElVirtualScrollDebugCounters, ScrollMixinClientProbe, ScrollMixinClientProbeState;
 export '../../flutter/widgets/popup/context_menu.dart';
 export '../../flutter/views/selection/common/selection_core.dart';
 export '../../flutter/views/selection/docs/selection_view.dart';
