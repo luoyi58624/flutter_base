@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/virtual_test_host.dart';
 
 class _Refresh extends ElRefresher {
@@ -1366,7 +1368,7 @@ void main() {
       await dragFromCenter(tester, const Offset(0, 120));
       await tester.pump();
       expect(refreshCount, 1);
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
       expect(probe.lastSnapshot!.status, null);
     });
   });

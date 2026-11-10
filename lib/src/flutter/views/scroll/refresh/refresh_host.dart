@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
-import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
+import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase, TickerCanceled, TickerFuture;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
@@ -120,8 +120,7 @@ final class RefreshScrollLink extends ElScrollDeltaInterceptor
       : 0;
 
   /// 新刷新接收本层正文与效果处理后的触摸余量，优先于更外层正文。
-  double consumeBoundaryPull(double delta, ElScrollDeltaSource source) =>
-      source == ElScrollDeltaSource.touchDrag
+  double consumeBoundaryPull(double delta, ElScrollDeltaSource source) => source == ElScrollDeltaSource.touchDrag
       ? (_host?._handleRefreshDragDelta(delta, allowRecovery: false, boundaryRemainder: true) ?? 0)
       : 0;
 
@@ -661,13 +660,13 @@ class _RefreshHostState extends State<RefreshHost> with SingleTickerProviderStat
     _publish();
   }
 
-  void _animatePulledTo(double target, {Duration? duration}) {
+  TickerFuture _animatePulledTo(double target, {Duration? duration}) {
     _settleFrom = _pulled;
     _settleTo = target;
     _settle
       ..stop()
-      ..duration = duration ?? widget.refresher.settleDuration
-      ..forward(from: 0.0);
+      ..duration = duration ?? widget.refresher.settleDuration;
+    return _settle.forward(from: 0.0);
   }
 
   void _startRefresh({bool byGesture = true}) {
@@ -681,12 +680,22 @@ class _RefreshHostState extends State<RefreshHost> with SingleTickerProviderStat
     // bouncing 且内容在停靠位外：停靠段 pulled 由通知跟随驱动（与内容同速
     // 塌缩），不启动补间抢跑；展开场景（requestRefresh / 越界不足）才用
     // 补间把 pulled 送到停靠位。
+    TickerFuture? docking;
     if (!_dockable || _lastOut <= widget.refresher.refreshingExtent + precisionErrorTolerance) {
-      _animatePulledTo(widget.refresher.refreshingExtent);
+      docking = _animatePulledTo(widget.refresher.refreshingExtent);
     }
     _publish();
     _settleContentToDock(byGesture: byGesture);
-    Future<void>(() => widget.onRefresh()).whenComplete(() {
+    Future<void>(() => widget.onRefresh()).whenComplete(() async {
+      if (!mounted) return;
+      // 悬浮圆盘必须先完整停靠，快速完成的刷新不能跳过位移动画直接进入原地缩小。
+      if (!_dockable && docking != null) {
+        try {
+          await docking.orCancel;
+        } on TickerCanceled {
+          return;
+        }
+      }
       if (!mounted) return;
       _status = RefreshIndicatorStatus.done;
       final pos = _dockable ? widget.link?.position?.call() : null;
