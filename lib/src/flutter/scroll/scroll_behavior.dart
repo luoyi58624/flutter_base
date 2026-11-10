@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
@@ -53,28 +52,12 @@ class ElScrollBehavior extends ScrollBehavior {
 
   /// 在官方 Scrollable 外安装各平台滚动条，桌面采用独立 Widget。
   @override
-  Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
-    final controller = details.controller;
-    if (controller == null) return child;
-    return switch (getPlatform(context)) {
-      TargetPlatform.iOS => CupertinoScrollbar(controller: controller, child: child),
-      TargetPlatform.android || TargetPlatform.fuchsia => Scrollbar(controller: controller, child: child),
-      TargetPlatform.windows => ElDesktopScrollbar.windows(
-        controller: controller,
-        direction: details.direction,
-        child: child,
-      ),
-      TargetPlatform.macOS || TargetPlatform.linux => ElDesktopScrollbar.mac(
-        controller: controller,
-        direction: details.direction,
-        child: child,
-      ),
-    };
-  }
+  Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) =>
+      buildElScrollbar(context, child, details, platform: getPlatform(context));
 
   @override
   Widget buildOverscrollIndicator(context, child, details) {
-    switch (defaultTargetPlatform) {
+    switch (getPlatform(context)) {
       case TargetPlatform.iOS:
       case TargetPlatform.linux:
       case TargetPlatform.macOS:
@@ -85,4 +68,37 @@ class ElScrollBehavior extends ScrollBehavior {
         return StretchingOverscrollIndicator(axisDirection: details.direction, clipBehavior: .hardEdge, child: child);
     }
   }
+}
+
+/// 按平台为 [details] 描述的滚动位置安装滚动条。
+///
+/// [depth] 是被监听的 Scrollable 相对 [child] 的嵌套层数：双轴滚动把纵向内容放在横向滚动里，
+/// 纵向滚动条钉在外层视口边缘时需要监听第 1 层的滚动通知。
+Widget buildElScrollbar(
+  BuildContext context,
+  Widget child,
+  ScrollableDetails details, {
+  required TargetPlatform platform,
+  int depth = 0,
+}) {
+  final controller = details.controller;
+  if (controller == null) return child;
+  bool atDepth(ScrollNotification notification) => notification.depth == depth;
+  return switch (platform) {
+    TargetPlatform.iOS => CupertinoScrollbar(controller: controller, notificationPredicate: atDepth, child: child),
+    TargetPlatform.android ||
+    TargetPlatform.fuchsia => Scrollbar(controller: controller, notificationPredicate: atDepth, child: child),
+    TargetPlatform.windows => ElDesktopScrollbar.windows(
+      controller: controller,
+      direction: details.direction,
+      notificationDepth: depth,
+      child: child,
+    ),
+    TargetPlatform.macOS || TargetPlatform.linux => ElDesktopScrollbar.mac(
+      controller: controller,
+      direction: details.direction,
+      notificationDepth: depth,
+      child: child,
+    ),
+  };
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -23,7 +24,28 @@ class ElSliverRecyclerList extends _RecyclerSliverWidget {
     required super.itemBuilder,
     super.itemType,
     super.maxRecycledItems,
+    super.controller,
   });
+}
+
+/// 驱动 [ElSliverRecyclerList] 按序号定位的控制器，可在挂载前创建、随列表更换。
+///
+/// 远处条目不需要预先构建：下一次布局先实测目标条目，再用官方偏移修正一次移动视口。
+class ElSliverRecyclerController {
+  ElRenderSliverRecycler? _render;
+
+  /// 是否已关联到正在显示的列表。
+  bool get isAttached => _render?.attached ?? false;
+
+  /// 将 [index] 对齐到视口的 [alignment] 位置：0 顶端、0.5 居中、1 底端。
+  ///
+  /// 完成定位的那一帧布局结束后返回 true；未挂载、列表为空或期间列表被移除时返回 false。
+  /// 内容不足以滚到目标位置时停在可滚动范围的边界。
+  Future<bool> jumpToIndex(int index, {double alignment = 0}) {
+    final render = _render;
+    if (render == null || !render.attached) return Future.value(false);
+    return render._requestReveal(index, alignment);
+  }
 }
 
 /// 按列数排列自然尺寸条目，并复用固定业务结构的网格。
@@ -83,6 +105,7 @@ abstract class _RecyclerSliverWidget extends RenderObjectWidget {
     required this.itemBuilder,
     this.itemType,
     this.maxRecycledItems = 32,
+    this.controller,
   }) : assert(itemCount >= 0),
        assert(maxRecycledItems >= 0);
 
@@ -102,15 +125,21 @@ abstract class _RecyclerSliverWidget extends RenderObjectWidget {
   /// 设为零仍允许同一轮布局先回收再复用。
   final int maxRecycledItems;
 
+  /// 按序号定位的控制器，仅列表开放。
+  final ElSliverRecyclerController? controller;
+
   @override
   RenderObjectElement createElement() => _RecyclerElement(this);
 
   @override
-  RenderSliver createRenderObject(BuildContext context) => ElRenderSliverRecycler._(context as _RecyclerElement);
+  RenderSliver createRenderObject(BuildContext context) =>
+      ElRenderSliverRecycler._(context as _RecyclerElement)..controller = controller;
 
   @override
   void updateRenderObject(BuildContext context, covariant ElRenderSliverRecycler renderObject) {
-    renderObject.scheduleLayoutCallback();
+    renderObject
+      ..controller = controller
+      ..scheduleLayoutCallback();
   }
 }
 
@@ -401,6 +430,18 @@ class _RecyclerParentData extends ContainerBoxParentData<RenderBox> {
   double extent = 0;
 }
 
+class _RevealRequest {
+  _RevealRequest(this.index, this.alignment);
+
+  final int index;
+  final double alignment;
+  final completer = Completer<bool>();
+
+  void complete(bool value) {
+    if (!completer.isCompleted) completer.complete(value);
+  }
+}
+
 class _RecyclerAnchor {
   _RecyclerAnchor(this.index, this.relativeStart);
 
@@ -426,6 +467,35 @@ class ElRenderSliverRecycler extends RenderSliver
   Axis? _axis;
   double? _crossExtent;
   bool _needsFirstMeasurement = true;
+  ElSliverRecyclerController? _controller;
+  _RevealRequest? _reveal;
+
+  set controller(ElSliverRecyclerController? value) {
+    if (identical(_controller, value)) return;
+    if (identical(_controller?._render, this)) _controller!._render = null;
+    _controller = value;
+    value?._render = this;
+  }
+
+  Future<bool> _requestReveal(int index, double alignment) {
+    // 新请求覆盖尚未执行的旧请求，旧请求按未完成返回。
+    _reveal?.complete(false);
+    final request = _reveal = _RevealRequest(index, alignment);
+    // 定位是一次跳转：先停下惯性、平滑滚轮等进行中的活动。
+    if (parent case RenderViewportBase(:final ScrollPosition offset) when offset.hasPixels) {
+      offset.jumpTo(offset.pixels);
+    }
+    scheduleLayoutCallback();
+    return request.completer.future;
+  }
+
+  @override
+  void dispose() {
+    controller = null;
+    _reveal?.complete(false);
+    _reveal = null;
+    super.dispose();
+  }
 
   @override
   void setupParentData(RenderBox child) {
@@ -499,6 +569,8 @@ class ElRenderSliverRecycler extends RenderSliver
     if (count == 0) {
       _element.owner!.buildScope(_element, () => _element._finishLayout({}));
       geometry = SliverGeometry.zero;
+      _reveal?.complete(false);
+      _reveal = null;
       return;
     }
 
@@ -534,6 +606,28 @@ class ElRenderSliverRecycler extends RenderSliver
       layoutPosition(anchor?.index ?? 0);
       _needsFirstMeasurement = false;
       if (anchor != null) pixels = math.max(0.0, extents.prefix(anchor.index) - anchor.relativeStart);
+    }
+    if (_reveal case final reveal?) {
+      _reveal = null;
+      final index = reveal.index.clamp(0, count - 1);
+      layoutPosition(index);
+      final viewportExtent = constraints.viewportMainAxisExtent;
+      final start = extents.prefix(index);
+      final lowest = -constraints.precedingScrollExtent;
+      final target = (start - reveal.alignment * (viewportExtent - extents.extentAt(index)))
+          .clamp(lowest, math.max(lowest, extents.total - viewportExtent))
+          .toDouble();
+      // 列表起点之前还有其他 Sliver 时 scrollOffset 恒为 0，需要按视口位置换算当前偏移。
+      final current = switch (parent) {
+        RenderViewportBase(:final offset) when offset.hasPixels => offset.pixels - constraints.precedingScrollExtent,
+        _ => constraints.scrollOffset,
+      };
+      SchedulerBinding.instance.addPostFrameCallback((_) => reveal.complete(attached));
+      if ((target - current).abs() > precisionErrorTolerance) {
+        _element.owner!.buildScope(_element, () => _element._finishLayout({index}));
+        geometry = SliverGeometry(scrollOffsetCorrection: target - current);
+        return;
+      }
     }
     if (anchor == null && pixels < extents.total && constraints.remainingPaintExtent > 0) {
       final index = extents.indexAt(pixels);

@@ -142,7 +142,8 @@ class _TableViewState extends State<ElTable> {
   ElTableEvent? _event;
 
   final _TableGridCoordinator _grid = _TableGridCoordinator();
-  final ElScrollController _verticalController = ElScrollController();
+  final ScrollController _verticalController = ScrollController();
+  final _rowJump = ElSliverRecyclerController();
   ScrollController? _horizontalController;
 
   bool _autoScrollX = false;
@@ -912,15 +913,13 @@ class _TableViewState extends State<ElTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _TableGridRow(key: const ValueKey('el-table-ruler'), coordinator: _grid, mode: _TableGridRowMode.ruler),
-        ElScrollView(
-          axis: Axis.horizontal,
-          shrinkWrap: true,
-          controller: _horizontalController,
-          // 表格不做窗口外预挂载：大跨度滚动不整窗创建额外列。
-          cacheExtent: 0,
+        // 自然高度表格放在纵向无界的 Column 里，官方视口不接受无界交叉轴，横向外壳使用 SingleChildScrollView。
+        ElView(
           event: _rowInteractionEvent,
-          children: [
-            Column(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _horizontalController,
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -962,7 +961,7 @@ class _TableViewState extends State<ElTable> {
                   _summaryRow(style, plans, visual, _TableGridRowMode.shell, rowHeight ?? minRowHeight, columnVirtual),
               ],
             ),
-          ],
+          ),
         ),
         if (widget.controller._data.isEmpty) _empty(style, minRowHeight),
       ],
@@ -1017,11 +1016,13 @@ class _TableViewState extends State<ElTable> {
     bool columnVirtual,
   ) {
     final mode = horizontalShell ? _TableGridRowMode.shell : _TableGridRowMode.plain;
-    // 行虚拟化恒开：数据行一律按行窗口惰性挂载。
-    final children = <Widget>[
-      ElListView.builder(
-        itemCount: rows.length,
-        itemBuilder: (context, index) => _dataRow(
+    // 行虚拟化恒开：数据行按窗口回收复用，换绑时整行按新序号重建。
+    final list = ElSliverRecyclerList(
+      controller: _rowJump,
+      itemCount: rows.length,
+      itemBuilder: (context, index) => ValueListenableBuilder<int>(
+        valueListenable: index,
+        builder: (context, index, _) => _dataRow(
           style,
           rows[index],
           _pinnedRows.length + index,
@@ -1033,15 +1034,20 @@ class _TableViewState extends State<ElTable> {
           columnVirtual,
         ),
       ),
-    ];
-    return ElScrollView(
-      axis: horizontalShell ? null : Axis.vertical,
-      controller: _verticalController,
-      horizontalController: horizontalShell ? _horizontalController : null,
-      // 表格不做窗口外预挂载：大跨度滚动不整窗创建额外行。
-      cacheExtent: 0,
+    );
+    return ElView(
       event: _rowInteractionEvent,
-      children: children,
+      child: horizontalShell
+          ? DualAxisScroll(
+              horizontalController: _horizontalController!,
+              verticalController: _verticalController,
+              // 表头 ruler 先于正文布局，列总宽在这里已经解析。
+              contentWidth: (viewportWidth) => _grid.layout?.totalW ?? viewportWidth,
+              // 表格不做窗口外预挂载：大跨度滚动不整窗创建额外行列。
+              scrollCacheExtent: const .pixels(0),
+              slivers: [list],
+            )
+          : ElScroll.sliver(controller: _verticalController, scrollCacheExtent: const .pixels(0), slivers: [list]),
     );
   }
 
@@ -2082,8 +2088,7 @@ class _TableViewState extends State<ElTable> {
       if (!mounted || !_verticalController.hasClients) return false;
     }
     // 行虚拟化恒开，按行窗口定位即可。
-    await _verticalController.scrollToIndex(index);
-    return true;
+    return _rowJump.jumpToIndex(index);
   }
 
   void _scheduleCurrentRowReveal(Object? rowKey) {

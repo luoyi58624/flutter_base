@@ -14,18 +14,31 @@ import 'window_scroll_bar.dart' show ElWindowScrollBar;
 /// 滚动位置来自官方 ScrollController，不依赖旧 ElScrollView 的视口实现。
 class ElDesktopScrollbar extends StatelessWidget {
   /// 创建 Windows 风格的桌面滚动条。
-  const ElDesktopScrollbar.windows({super.key, required this.controller, required this.direction, required this.child})
-    : _style = _ScrollbarStyle.windows;
+  const ElDesktopScrollbar.windows({
+    super.key,
+    required this.controller,
+    required this.direction,
+    this.notificationDepth = 0,
+    required this.child,
+  }) : _style = _ScrollbarStyle.windows;
 
   /// 创建 macOS 风格的桌面滚动条。
-  const ElDesktopScrollbar.mac({super.key, required this.controller, required this.direction, required this.child})
-    : _style = _ScrollbarStyle.mac;
+  const ElDesktopScrollbar.mac({
+    super.key,
+    required this.controller,
+    required this.direction,
+    this.notificationDepth = 0,
+    required this.child,
+  }) : _style = _ScrollbarStyle.mac;
 
   /// 关联当前 Scrollable 的真实滚动位置。
   final ScrollController controller;
 
   /// 当前滚动轴方向。
   final AxisDirection direction;
+
+  /// 所跟随 Scrollable 相对 [child] 的嵌套层数；滚动条钉在外层视口边缘时大于 0。
+  final int notificationDepth;
 
   /// 被滚动条包裹的 Scrollable。
   final Widget child;
@@ -36,6 +49,7 @@ class ElDesktopScrollbar extends StatelessWidget {
   Widget build(BuildContext context) => _DesktopScrollbarHost(
     controller: controller,
     axisDirection: direction,
+    notificationDepth: notificationDepth,
     scrollbar: switch (_style) {
       _ScrollbarStyle.windows => const ElWindowScrollBar(),
       _ScrollbarStyle.mac => const ElMacScrollBar(),
@@ -51,12 +65,14 @@ class _DesktopScrollbarHost extends StatefulWidget {
   const _DesktopScrollbarHost({
     required this.controller,
     required this.axisDirection,
+    required this.notificationDepth,
     required this.scrollbar,
     required this.child,
   });
 
   final ScrollController controller;
   final AxisDirection axisDirection;
+  final int notificationDepth;
   final ElScrollbar scrollbar;
   final Widget child;
 
@@ -139,7 +155,7 @@ class _DesktopScrollbarHostState extends State<_DesktopScrollbarHost> {
         : (leading ? EdgeInsets.only(top: inset) : EdgeInsets.only(bottom: inset));
     return NotificationListener<ScrollMetricsNotification>(
       onNotification: (notification) {
-        if (notification.depth == 0) _details.refresh();
+        if (notification.depth == widget.notificationDepth) _details.refresh();
         return false;
       },
       child: ListenableBuilder(

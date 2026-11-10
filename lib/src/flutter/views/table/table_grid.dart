@@ -798,8 +798,7 @@ class _RenderTableOrdinalCell extends RenderProxyBox {
 
   @override
   void dispose() {
-    child = null;
-    box.remove(gutter);
+    // 销毁时子树已离树，摘除子节点会向失效的布局边界标脏，直接释放即可。
     gutter.dispose();
     box.dispose();
     super.dispose();
@@ -1404,10 +1403,11 @@ class _RenderTableGridRow extends RenderBox
     _hostedChildren = children;
   }
 
-  void _clearHostedChildren() {
+  // 销毁本行时整棵子树已经离树，摘除子节点会向失效的布局边界标脏，直接释放即可。
+  void _clearHostedChildren({bool disposing = false}) {
     if (_hostedChildren.isEmpty) return;
     for (final child in _hostedChildren) {
-      remove(child);
+      if (!disposing) remove(child);
       child.dispose();
     }
     _hostedChildren = const [];
@@ -1543,12 +1543,12 @@ class _RenderTableGridRow extends RenderBox
     }
   }
 
-  void _clearSparseHostedChildren() {
+  void _clearSparseHostedChildren({bool disposing = false}) {
     if (_sparseHostedChildren.isEmpty && (_sparseHostedCache?.isEmpty ?? true)) return;
     final children = _sparseHostedChildren.values.toList(growable: false);
     _sparseHostedChildren.clear();
     for (final entry in children) {
-      remove(entry.render);
+      if (!disposing) remove(entry.render);
       entry.render.dispose();
     }
     _clearSparseHostedCache();
@@ -2242,8 +2242,8 @@ class _RenderTableGridRow extends RenderBox
 
   @override
   void dispose() {
-    _clearHostedChildren();
-    _clearSparseHostedChildren();
+    _clearHostedChildren(disposing: true);
+    _clearSparseHostedChildren(disposing: true);
     _midClipHandle.layer = null;
     _plainClipHandle.layer = null;
     super.dispose();

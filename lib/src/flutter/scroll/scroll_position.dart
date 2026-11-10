@@ -56,14 +56,16 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   }
 
   /// 在官方 Scrollable 前选择滚轮接收者，连续输入停顿满 500ms 才允许换层。
-  void handlePointerSignal(PointerSignalEvent event) {
-    if (event is! PointerScrollEvent || !hasPixels || !hasContentDimensions) return;
+  ///
+  /// 返回本次信号是否已登记给某个滚动位置处理。
+  bool handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !hasPixels || !hasContentDimensions) return false;
     final input = _pointerScrollInput(event);
-    if (input.delta == 0) return;
+    if (input.delta == 0) return false;
     final owner = _WheelScrollChain.ownerAt(this, event, input.axis);
     final target = owner ?? this;
     final amount = axisDirectionIsReversed(target.axisDirection) ? -input.delta : input.delta;
-    if (owner == null && !target._canConsumePointerScroll(amount)) return;
+    if (owner == null && !target._canConsumePointerScroll(amount)) return false;
     GestureBinding.instance.pointerSignalResolver.register(event, (signal) {
       if (signal is! PointerScrollEvent || target._disposed) return;
       // 边界处也接住本格并续期，防止持续滚轮被官方 Scrollable 逐格交给外层。
@@ -77,6 +79,13 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
         target._wheelEvent = null;
       }
     });
+    return true;
+  }
+
+  /// 停止进行中的平滑滚轮动画，例如收到触控板惯性取消信号。
+  void cancelPointerScroll() {
+    _smooth?.reset();
+    if (hasPixels) pointerScroll(0);
   }
 
   ({Axis axis, double delta}) _pointerScrollInput(PointerScrollEvent event) {

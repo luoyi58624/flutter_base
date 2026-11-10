@@ -1,8 +1,8 @@
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show RenderSelectionView, RenderScrollViewportBase;
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind, kPrimaryButton;
+import 'package:flutter/rendering.dart' show RenderViewportBase;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,49 +12,46 @@ const _tableMenuKey = ValueKey<String>('repro-menu-table');
 const _otherMenuKey = ValueKey<String>('repro-menu-other');
 
 void main() {
-  testWidgets(
-    '切页再回表格后可重新选择和滚动当前挂载内容',
-    (tester) async {
-      tester.view
-        ..devicePixelRatio = 1.75
-        ..physicalSize = const Size(2100, 1225);
-      addTearDown(tester.view.reset);
+  testWidgets('切页再回表格后可重新选择和滚动当前挂载内容', (tester) async {
+    tester.view
+      ..devicePixelRatio = 1.75
+      ..physicalSize = const Size(2100, 1225);
+    addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(const _SelectionSwitchHarness());
+    await tester.pumpWidget(const _SelectionSwitchHarness());
+    await tester.pumpAndSettle();
+
+    for (var cycle = 0; cycle < 3; cycle++) {
+      final selected = await _dragSelect(tester);
+      expect(selected, isTrue, reason: '第 ${cycle + 1} 轮必须先建立跨行跨列选区');
+      debugPrint(_selectionSummary(tester, 'before-switch'));
+
+      await tester.tap(find.byKey(_otherMenuKey));
       await tester.pumpAndSettle();
+      expect(find.byKey(_tableKey), findsNothing);
+      expect(find.byKey(_otherPageKey), findsOneWidget);
 
-      for (var cycle = 0; cycle < 3; cycle++) {
-        final selected = await _dragSelect(tester);
-        expect(selected, isTrue, reason: '第 ${cycle + 1} 轮必须先建立跨行跨列选区');
-        debugPrint(_selectionSummary(tester, 'before-switch'));
+      await tester.tap(find.byKey(_tableMenuKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_tableKey), findsOneWidget);
+      debugPrint(_selectionSummary(tester, 'after-return'));
 
-        await tester.tap(find.byKey(_otherMenuKey));
-        await tester.pumpAndSettle();
-        expect(find.byKey(_tableKey), findsNothing);
-        expect(find.byKey(_otherPageKey), findsOneWidget);
+      final participants = selectionParticipantsOf(tester.allRenderObjects).toList();
+      final ranges = participants.map((participant) => participant.currentSelectionRange).toList();
+      expect(
+        participants.map((participant) => participant.currentSelectionRange).toList(),
+        ranges,
+        reason: '绘制前读取参与者范围不应改变选区',
+      );
+      await _scrollTable(tester, pointerId: 20 + cycle * 2);
 
-        await tester.tap(find.byKey(_tableMenuKey));
-        await tester.pumpAndSettle();
-        expect(find.byKey(_tableKey), findsOneWidget);
-        debugPrint(_selectionSummary(tester, 'after-return'));
+      final reselected = await _dragSelect(tester);
+      expect(reselected, isTrue, reason: '第 ${cycle + 1} 轮重新选中必须重建活的端点');
+      await _scrollTable(tester, pointerId: 21 + cycle * 2);
+    }
 
-        final participants = selectionParticipantsOf(tester.allRenderObjects).toList();
-        final ranges = participants.map((participant) => participant.currentSelectionRange).toList();
-        expect(
-          participants.map((participant) => participant.currentSelectionRange).toList(),
-          ranges,
-          reason: '绘制前读取参与者范围不应改变选区',
-        );
-        await _scrollTable(tester, pointerId: 20 + cycle * 2);
-
-        final reselected = await _dragSelect(tester);
-        expect(reselected, isTrue, reason: '第 ${cycle + 1} 轮重新选中必须重建活的端点');
-        await _scrollTable(tester, pointerId: 21 + cycle * 2);
-      }
-
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 List<RenderSelectionView> _selectionRoots(WidgetTester tester) =>
@@ -113,9 +110,9 @@ Future<bool> _dragSelect(WidgetTester tester) async {
 Future<void> _scrollTable(WidgetTester tester, {required int pointerId}) async {
   final point = tester.getRect(find.byKey(_tableKey)).center;
   double scrollPixels() => tester.allRenderObjects
-      .whereType<RenderScrollViewportBase>()
+      .whereType<RenderViewportBase>()
       .where((viewport) => viewport.axis == Axis.vertical)
-      .fold<double>(0, (total, viewport) => total + viewport.position.pixels);
+      .fold<double>(0, (total, viewport) => total + viewport.offset.pixels);
   final initialPixels = scrollPixels();
   final pointer = TestPointer(pointerId, PointerDeviceKind.mouse);
   await tester.sendEventToBinding(pointer.addPointer(location: point));

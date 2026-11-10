@@ -62,8 +62,10 @@ class ViewElement extends RenderObjectElement {
   bool _hadFocusWithin = false;
   bool _activeForFocus = false;
 
-  /// 元素是否处于活动树；失活后不能再做祖先查找，延迟回调须先检查。
-  bool get isActiveInTree => _activeForFocus;
+  bool _deactivated = false;
+
+  /// 元素是否处于活动树；失活后不能再做祖先查找，延迟回调须先检查。挂载过程中视为活动。
+  bool get isActiveInTree => !_deactivated;
 
   /// 登记到全局收环路由的回调（字段级持有，保证登记/注销是同一实例）。
   late final VoidCallback _focusRingRetractor = _retractFocusRing;
@@ -179,6 +181,7 @@ class ViewElement extends RenderObjectElement {
     _unsubscribeChildListenable();
     _childNeedsUpdate = false;
     _activeForFocus = false;
+    _deactivated = true;
     _renderView.refreshTickerMode(active: false);
     super.deactivate();
   }
@@ -186,6 +189,7 @@ class ViewElement extends RenderObjectElement {
   @override
   void activate() {
     _isBoldTextRoot = null;
+    _deactivated = false;
     super.activate();
     _renderView.refreshTickerMode();
     _renderView.setStyleParent(StyleDependencyScope.maybeHostOf(this));

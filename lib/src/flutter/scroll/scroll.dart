@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../dart/gen/index.dart' show $absent;
@@ -8,6 +9,7 @@ import '../views/view/provider.dart' show ElViewProvider;
 import 'refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
 import 'refresh/refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
+import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport;
 
 /// 基于官方 [Scrollable] 与 [Viewport] 的滚动容器。
 ///
@@ -33,6 +35,7 @@ class ElScroll extends HookWidget {
     this.padding = .zero,
     this.gap = 0,
     this.shrinkWrap = false,
+    this.scrollCacheExtent,
     this.clipBehavior = .hardEdge,
   }) : slivers = null,
        assert(gap >= 0);
@@ -47,6 +50,7 @@ class ElScroll extends HookWidget {
     this.axis = .vertical,
     this.reverse = false,
     this.shrinkWrap = false,
+    this.scrollCacheExtent,
     this.clipBehavior = .hardEdge,
   }) : children = null,
        padding = .zero,
@@ -83,6 +87,9 @@ class ElScroll extends HookWidget {
 
   /// 是否按内容尺寸收缩主轴；适用于父布局在滚动方向没有给出有限尺寸的嵌套场景。
   final bool shrinkWrap;
+
+  /// 视口前后预先布局的范围，缺省沿用官方 Viewport 的默认值；`ScrollCacheExtent.pixels(0)` 只挂载可见内容。
+  final ScrollCacheExtent? scrollCacheExtent;
 
   /// 视口裁剪行为。
   final Clip clipBehavior;
@@ -145,13 +152,19 @@ class ElScroll extends HookWidget {
               }
             }
             final viewport = shrinkWrap
-                ? ShrinkWrappingViewport(
+                ? ElShrinkWrappingViewport(
                     axisDirection: direction,
                     offset: offset,
                     clipBehavior: clipBehavior,
                     slivers: slivers,
                   )
-                : Viewport(axisDirection: direction, offset: offset, clipBehavior: clipBehavior, slivers: slivers);
+                : ElViewport(
+                    axisDirection: direction,
+                    offset: offset,
+                    scrollCacheExtent: scrollCacheExtent,
+                    clipBehavior: clipBehavior,
+                    slivers: slivers,
+                  );
             return Listener(
               behavior: HitTestBehavior.opaque,
               onPointerSignal: (event) {

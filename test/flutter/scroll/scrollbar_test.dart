@@ -47,7 +47,7 @@ void main() {
     expect(find.byType(Scrollbar), findsNothing);
     expect(find.byKey(ValueKey('el-scrollbar-win-strip-vertical')), findsOneWidget);
     expect(find.byKey(ValueKey('el-scrollbar-thumb-vertical')), findsOneWidget);
-    final viewport = find.byType(Viewport);
+    final viewport = find.byWidgetPredicate((widget) => widget is Viewport);
     expect(tester.getSize(viewport).width, closeTo(285, 0.01));
     expect(controller.position.viewportDimension, closeTo(400, 0.01));
     controller.jumpTo(400);
@@ -117,7 +117,7 @@ void main() {
     expect(find.byType(ElDesktopScrollbar), findsOneWidget);
     expect(find.byType(CupertinoScrollbar), findsNothing);
     expect(find.byKey(ValueKey('el-scrollbar-strip-vertical')), findsOneWidget);
-    expect(tester.getSize(find.byType(Viewport)).width, closeTo(300, 0.01));
+    expect(tester.getSize(find.byWidgetPredicate((widget) => widget is Viewport)).width, closeTo(300, 0.01));
     final strip = tester.getRect(find.byKey(ValueKey('el-scrollbar-strip-vertical')));
     final pointer = await tester.startGesture(Offset(strip.center.dx, strip.top + 290), kind: PointerDeviceKind.mouse);
     expect(controller.offset, inExclusiveRange(900, 1350), reason: 'Mac 悬浮滑块未显示时，首击也须定位到轨道目标');

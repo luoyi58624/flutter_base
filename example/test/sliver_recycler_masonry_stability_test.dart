@@ -42,7 +42,7 @@ _Scene _scene(WidgetTester tester, {required bool masonry}) {
   // 命中真实绘制的滑块，不能用内容拖动代替滚动条交互。
   // ignore: invalid_use_of_protected_member
   final painter = state.scrollbarPainter;
-  final viewport = find.descendant(of: scroll, matching: find.byType(Viewport));
+  final viewport = find.descendant(of: scroll, matching: find.byWidgetPredicate((widget) => widget is Viewport));
   return (
     scroll: scroll,
     bar: bar,
