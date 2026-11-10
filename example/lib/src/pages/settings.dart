@@ -5,9 +5,9 @@ import '../state/index.dart';
 import 'example_page.dart';
 import 'frame_recording.dart';
 import 'setting/create_vs_update.dart';
+import 'setting/el_scroll.dart';
 import 'setting/grid_scroll.dart';
 import 'setting/scroll_test.dart';
-import 'setting/scroll_test2.dart';
 
 /// 两端共用的主题、系统和工具设置正文。
 class SettingPage extends StatelessWidget {
@@ -79,9 +79,9 @@ class SettingPage extends StatelessWidget {
               ),
               ElListTile(
                 onTap: () {
-                  el.router.pushPage(ScrollTest2());
+                  el.router.pushPage(ElScrollPage());
                 },
-                title: 'Sliver 色块',
+                title: 'ElScroll 测试',
               ),
               ElListTile(
                 onTap: () {
