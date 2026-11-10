@@ -11,7 +11,7 @@ import '../lib/src/router/index.dart';
 import '../lib/src/pages/custom_gestures.dart';
 import '../lib/src/pages/examples.dart';
 import '../lib/src/pages/examples/bibi/bibi.dart';
-import '../lib/src/pages/examples/catalog.dart';
+import '../lib/src/pages/examples/index.dart';
 
 Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/home'}) async {
   tester.view.devicePixelRatio = 1;

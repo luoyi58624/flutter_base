@@ -3,7 +3,7 @@ import 'package:flutter_base/mobile.dart';
 
 import '../utils/router.dart';
 import 'example_page.dart';
-import 'examples/catalog.dart';
+import 'examples/index.dart';
 
 /// 两端共用的高级示例目录，列表统一使用移动端预设。
 class ExamplesPage extends StatelessWidget {

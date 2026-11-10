@@ -3,7 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../utils/router.dart';
 import 'example_page.dart';
-import 'examples/catalog.dart';
+import 'examples/index.dart';
 import 'showcase/buttons.dart';
 import 'showcase/hero.dart';
 

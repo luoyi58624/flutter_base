@@ -1,5 +1,5 @@
 import 'package:example/src/pages/examples/bibi/bibi.dart';
-import 'package:example/src/pages/examples/catalog.dart';
+import 'package:example/src/pages/examples/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';

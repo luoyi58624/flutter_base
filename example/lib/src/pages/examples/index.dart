@@ -1,3 +1,4 @@
+import 'package:example/src/pages/examples/scroll_examples/nest_scroll.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -171,6 +172,12 @@ final scrollBusinessExamples = <ElMenuModel<WidgetBuilder>>[
     title: '富文本文档',
     icon: ElIcon(Icons.article_outlined),
     data: (_) => RecyclerRichDocumentPage(),
+  ),
+  ElMenuModel(
+    key: 'nest-scroll',
+    title: '嵌套滚动',
+    icon: ElIcon(Icons.article_outlined),
+    data: (_) => NestScrollPage(),
   ),
   ElMenuModel(
     key: 'recycler-spike',

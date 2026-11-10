@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../pages/components/catalog.dart';
 import '../pages/example_page.dart';
-import '../pages/examples/catalog.dart';
+import '../pages/examples/index.dart';
 import '../router/pages.dart';
 
 /// 从现有菜单生成路由路径与页面。

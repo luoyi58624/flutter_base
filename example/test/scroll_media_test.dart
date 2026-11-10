@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:example/src/pages/examples/catalog.dart';
+import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/pages/examples/scroll_examples/media.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
