@@ -56,7 +56,7 @@ Widget _nested(
   ),
 );
 
-// 第一段位移只用于越过触摸阈值，之后每段都会完整进入滚动位置。
+// 每笔 moveBy 都产生更新；同样的事件在官方 CustomScrollView 下也会消费第一笔 30px。
 Future<TestGesture> _drag(WidgetTester tester, List<double> steps, {Axis axis = Axis.vertical, Finder? on}) async {
   final gesture = await tester.startGesture(tester.getCenter(on ?? find.byKey(_innerKey)));
   for (final step in steps) {
@@ -117,6 +117,16 @@ Widget _withHeader(_Header header, ScrollController controller) => _app(
 );
 
 void main() {
+  group('官方滚动基线', () {
+    testWidgets('官方 CustomScrollView 对同一组拖拽事件的起始位移', (tester) async {
+      final controller = _controller();
+      await tester.pumpWidget(_app(CustomScrollView(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])));
+      final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(CustomScrollView));
+      expect(controller.offset, closeTo(70, 0.01));
+      await _release(tester, gesture);
+    });
+  });
+
   group('默认构造', () {
     testWidgets('直接排列 children，撑满交叉轴并应用内边距与间距', (tester) async {
       final controller = _controller();
@@ -144,7 +154,7 @@ void main() {
       expect(controller.position.maxScrollExtent, 560);
 
       final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(ElScroll));
-      expect(controller.offset, closeTo(40, 0.01));
+      expect(controller.offset, closeTo(70, 0.01));
       await _release(tester, gesture);
     });
   });
@@ -157,7 +167,7 @@ void main() {
 
       final gesture = await _drag(tester, [-30, -20, -20, -20], on: find.byType(ElScroll));
       expect(header.collapsed, 50);
-      expect(controller.offset, closeTo(10, 0.01));
+      expect(controller.offset, closeTo(40, 0.01));
       await _release(tester, gesture);
     });
 
@@ -170,7 +180,7 @@ void main() {
 
       final gesture = await _drag(tester, [30, 20, 20, 20], on: find.byType(ElScroll));
       expect(controller.offset, 0);
-      expect(header.collapsed, closeTo(20, 0.01));
+      expect(header.collapsed, closeTo(0, 0.01));
       await _release(tester, gesture);
     });
 
@@ -191,15 +201,57 @@ void main() {
       final controller = _controller();
       await tester.pumpWidget(_withHeader(header, controller));
 
-      // 拖动段不足以收完 50 的行程，剩余部分只能由释放后的惯性完成。
-      await tester.fling(find.byType(ElScroll), Offset(0, -40), 2000);
+      // 真实采样的短甩：前段小于 50px，必须由释放后继续运行的惯性补足。
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      for (var i = 1; i <= 6; i++) {
+        await drag.moveBy(Offset(0, -7), timeStamp: Duration(milliseconds: i * 6));
+        await tester.pump(Duration(milliseconds: 6));
+      }
       expect(header.collapsed, lessThan(50));
+      await drag.up(timeStamp: Duration(milliseconds: 40));
+      await tester.pump();
+      expect(header.releaseVelocity, lessThan(0), reason: '短甩释放时应该传递真实速度');
       await tester.pumpAndSettle();
 
       expect(header.releaseVelocity, lessThan(0), reason: '协作方收到的是手指方向的速度');
       expect(header.collapsed, closeTo(50, 0.001));
       expect(controller.offset, greaterThan(0), reason: '协作方收满后惯性继续推动正文');
       expect(header.log, ['start', 'fling', 'end']);
+    });
+
+    testWidgets('正文已经在顶部时，向下短甩仍可用同一次惯性展开页头', (tester) async {
+      final header = _Header()..collapsed = 50;
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      for (var i = 1; i <= 6; i++) {
+        await drag.moveBy(Offset(0, 7), timeStamp: Duration(milliseconds: i * 6));
+        await tester.pump(Duration(milliseconds: 6));
+      }
+      expect(header.collapsed, inExclusiveRange(0, 50));
+      expect(controller.offset, 0);
+      await drag.up(timeStamp: Duration(milliseconds: 40));
+      await tester.pumpAndSettle();
+      expect(header.releaseVelocity, greaterThan(0));
+      expect(header.collapsed, closeTo(0, 0.001));
+      expect(controller.offset, 0);
+    });
+
+    testWidgets('页头惯性运行中执行 jumpTo 必须接管活动，旧弹道不得回写正文', (tester) async {
+      final header = _Header();
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      for (var i = 1; i <= 6; i++) {
+        await drag.moveBy(Offset(0, -7), timeStamp: Duration(milliseconds: i * 6));
+        await tester.pump(Duration(milliseconds: 6));
+      }
+      await drag.up(timeStamp: Duration(milliseconds: 40));
+      await tester.pump(Duration(milliseconds: 16));
+      controller.jumpTo(200);
+      await tester.pumpAndSettle();
+      expect(controller.offset, closeTo(200, 0.001));
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('内层把手势交给外层后，内外层之间的协作方不参与', (tester) async {

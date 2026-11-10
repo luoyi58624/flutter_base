@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
+import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
+import '../../../../slivers/scroll/scrollbar.dart' show buildElDesktopScrollbar;
 import 'bouncing_scroll_physics.dart';
 import 'clamping_scroll_physics.dart';
 
@@ -46,4 +49,17 @@ class ElScrollBehavior extends ScrollBehavior {
   // 那个副本只覆盖 getPlatform，硬编码就读不到覆盖了。
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) => elScrollPhysicsFor(getPlatform(context));
+
+  /// 给官方 Scrollable 接入移动平台原生滚动条，桌面保留现有行为直至宿主迁移。
+  @override
+  Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
+    final controller = details.controller;
+    if (controller == null) return child;
+    return switch (getPlatform(context)) {
+      TargetPlatform.iOS => CupertinoScrollbar(controller: controller, child: child),
+      TargetPlatform.android || TargetPlatform.fuchsia => Scrollbar(controller: controller, child: child),
+      TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux =>
+        buildElDesktopScrollbar(context, child, details),
+    };
+  }
 }

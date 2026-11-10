@@ -23,12 +23,14 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| lib/src/flutter/slivers/scroll/ | scroll.dart（ElScroll，默认构造接收 children，`ElScroll.sliver` 接收 Sliver）、scroll_position.dart（嵌套接力与协作链）、nested_scroll.dart（ElNestedScroll），合计约 415 行 |
-| test/flutter/views/sliver_scroll_test.dart | 19 个无头用例，**尚未在 Windows 端跑过** |
+| lib/src/flutter/slivers/scroll/ | scroll.dart（ElScroll，默认构造接收 children，`ElScroll.sliver` 接收 Sliver）、scroll_position.dart（嵌套接力与协作链）、nested_scroll.dart（ElNestedScroll）、refresh.dart（ElRefresh）、sliver_refresh.dart（ElSliverRefresh）、scrollbar.dart（桌面滚动条宿主），合计约 1240 行 |
+| test/flutter/views/sliver_scroll_test.dart | 22 个无头用例，已在 Windows 端通过（2026-11-10） |
+| test/flutter/views/sliver_refresh_test.dart、sliver_scrollbar_test.dart、sliver_smooth_scroll_test.dart | Widget 入口刷新、桌面滚动条宿主、平滑滚轮的无头用例 |
+| test/flutter/views/sliver_sliver_refresh_test.dart | Sliver 入口刷新的 10 个无头用例，**尚未在 Windows 端跑过** |
 | ElSliverList、ElSliverRecyclerList / Grid | 已是官方 RenderSliver，可直接放进 ElScroll |
 | lib/src/flutter/views/scroll/ | 旧实现约 2.9 万行，其中 virtual/ 1.2 万行；本计划完成前保持可用 |
 
-阶段 0 的唯一任务是让这组测试通过。阶段 1 的拖动、松手、惯性三部分已随 2026-11-10 的实现写入（见 3.3），同样等这组测试验证；它不过，阶段 2 及之后都不开始。
+阶段 0 与阶段 1 的拖动、松手、惯性三部分已通过原型测试。刷新的两个入口、桌面滚动条宿主和平滑滚轮已有实现，各阶段的完成情况见第 7 节。
 
 ## 3. 位置层：统一输入账本
 
@@ -52,10 +54,12 @@
 - **普通嵌套不走账本**：ElScroll 之间的同轴接力继续由 `drag()` 入口的整段归属决定（起手贴边才交给外层，途中撞边界锁定）。账本只服务显式协作的参与者。
 - **参与者经作用域登记**：ElScroll 在自身子树提供登记入口，并遮断上层作用域，避免内层 ElScroll 误绑外层的参与者。排序沿用现有 `inputOrder` 的语义：pre 按声明顺序，post 反序，多参与者必须列全。
 
-### 3.3 已实现的形态（2026-11-10，未验证）
+### 3.3 已实现的形态（2026-11-10）
 
 - 协作方协议直接复用已导出的 `ElNestedScrollParent`，链的排序与钳制复用 `NestedScrollChain`，没有新增协议。
-- 登记入口是 `ElNestedScroll(parent:, child:)`，采用安卓式语义：ElScroll 上方的所有协作方都参与，不做作用域遮断。3.2 中「遮断上层作用域」一条因此不再适用。
+- 登记入口是 `ElNestedScroll(parent:, child:)`，采用安卓式语义：ElScroll 上方的所有协作方都参与，不做作用域遮断。3.2 中「遮断上层作用域」一条因此不再适用。刷新是例外：ElScroll 会在自身子树遮断 `ElRefreshScope`，内层 ElScroll 不会绑到外层的 ElRefresh。
+- 视口内部的协作方经 `ScrollHostPosition.addEdgeParticipant` 登记，目前只有 ElSliverRefresh。它排在链的最外侧：pre 最先、post 最后，所以折叠头先展开完才轮到刷新拉出，反向移动时刷新先收回。
+- 有边界协作方时，`ScrollHostPhysics` 让内容不足一屏的 ElScroll 也接受拖动；调用方传入 NeverScrollableScrollPhysics 时仍然不接受。
 - 只有真正持有本次拖动的 ElScroll 驱动协作链；内层贴边把手势交给外层后，包在内外层之间的协作方不参与。
 - 惯性帧按帧差经过 pre 与 post。协作方消费后真实像素落后于模拟位置；Clamping 的模拟不含边界，不受影响，Bouncing 的模拟仍按起飞位置判断边界，这一偏差尚未处理。
 - 正文在该方向无法起惯性时（例如贴边），协作方收不到惯性位移，需要在 `onNestedPreFling` 里自行收尾。
@@ -130,9 +134,25 @@ ElScroll(slivers: [
 
 ### 4.5 风险
 
-- trailing 边的悬浮式 Sliver：RenderViewport 中靠后的 Sliver 先绘制，指示器可能被正文盖住。阶段 3 先验证，不行则 trailing 悬浮式只提供 Widget 入口。
 - Widget 入口的让位式依赖越界：外层是 Clamping 物理时由 `RefreshDockPhysics` 放开刷新边，需要确认这段逻辑脱离旧输入事务后仍成立。
-- 是否让 Widget 入口的让位式改为内部插入 Sliver、从而删掉 `RefreshDockPhysics`，等阶段 3 证明两者表现一致后再决定。
+- 是否让 Widget 入口的让位式改为内部插入 Sliver、从而删掉 `RefreshDockPhysics`，等 Sliver 入口在 Windows 端验证通过后再决定。
+
+### 4.6 Sliver 入口的实现结论（2026-11-10，未验证）
+
+实现在 sliver_refresh.dart，没有复用 `RefreshHost`：旧状态机靠滚动通知反推越界量，Sliver 入口直接从协作链拿位移，状态机只剩拉出、取消、刷新、完成四个转移，单独写更短。刷新器、快照、details 三个模型原样复用。
+
+- **让位式**：间隙是本 Sliver 的 scrollExtent 与 layoutExtent，后面的 Sliver 被真实推开，滚动位置停在 0 不越界，因此不需要 `RefreshDockPhysics`，Clamping 与 Bouncing 物理表现一致。拉出阻尼沿用官方 Bouncing 的系数，受 `maxPullExtent` 约束。
+- **悬浮式**：零占位，指示器铺满视口并钉在本 Sliver 的可见起点；首个 Sliver 最后绘制，天然盖在正文之上。
+- **正文之下的指示器**：本 Sliver 自己把指示器裁到正文让出的间隙，不使用 `RefreshGapClip`。
+- **间隙在已滚过的位置变化**（刷新完成时正文已上滚、滚动途中程序触发刷新）：用 scrollOffsetCorrection 同步修正偏移，屏幕上的正文不跳。
+- **trailing 边不提供 Sliver 入口**：靠后的 Sliver 先绘制，悬浮式会被正文盖住；让位式要在内容末尾占位，内容不足一屏时间隙不贴视口底边。trailing 边继续使用 ElRefresh。
+- **只用刷新器的 buildIndicator 与策略参数**；覆写 `ElRefresher.build` 接管层级的刷新器用 ElRefresh。指示器不参与命中。
+
+已知缺口：
+
+- 完成停留（finishDelay）期间拖动不会提前收起。
+- 带刷新的 ElScroll 嵌在同轴的外层 ElScroll 里时，贴边起手的拖动按接力规则交给外层，内层刷新拉不出来。
+- 内容不足一屏且 ElSliverRefresh 是后来才插入的，要等内容尺寸下一次变化才开始接受拖动（官方只在尺寸变化时重新决定是否可拖）。
 
 ## 5. 滚动条
 
@@ -195,18 +215,18 @@ RawScrollbar 的 ScrollbarPainter 只能画一个滑块和一条轨道，做不�
 
 每个阶段单独提交，阶段之间旧 ElScrollView 始终可用。测试只跑本阶段涉及的无头用例。
 
-| 阶段 | 内容 | 完成条件 |
-| --- | --- | --- |
-| 0 | 原型基线 | sliver_scroll_test.dart 全部通过 |
-| 1 | 位置账本：拖拽 pre / post、释放交接、参与者作用域与排序 | 输入量守恒；新手势、程序命令接管后旧活动不回写；回答 3.3 的两个问题 |
-| 2 | 刷新 Widget 入口：抽出状态机，替换三处耦合 | 4.4 的行为在 ElScroll 上通过；旧 ElScrollView 的刷新测试不回退 |
-| 3 | 刷新 Sliver 入口 | 让位式用真实占位；悬浮式 leading 通过；trailing 给出结论 |
-| 4 | 滚动条：移动端换官方，桌面换宿主 | 真实滑块拖动、轨道点击、步进、滚轮转发、Windows inset 首帧；删除两个移动端滚动条类 |
-| 5 | 滚轮与设备：平滑滚轮、500 ms 交接、惯性帧过账本、键盘 | 平滑配置继承与关闭语义不变；各入口互相接管后旧目标不恢复 |
-| 6 | 观察与效果：ElScrollMixin、sticky、折叠、大标题及其余效果 | effects_test.dart 对应行为迁移通过，只更新相关局部 |
-| 7 | 内容几何：scrollToIndex、可见范围、pinToEnd、preserveAnchor、视口固定内容 | 聊天加载历史与贴尾两个场景通过 |
-| 8 | bibi 整页迁到 ElScroll | 前置文档第 4 节全部场景；删除 sliver_bibi 里的物理分账和指针计数 |
-| 9 | 依赖方迁移与旧实现退役 | 见第 8 节 |
+| 阶段 | 内容 | 完成条件 | 状态（2026-11-10） |
+| --- | --- | --- | --- |
+| 0 | 原型基线 | sliver_scroll_test.dart 全部通过 | 已通过 |
+| 1 | 位置账本：拖拽 pre / post、释放交接、参与者作用域与排序 | 输入量守恒；新手势、程序命令接管后旧活动不回写；回答 3.3 的两个问题 | 拖动、松手、惯性已通过；滚轮未接入协作链 |
+| 2 | 刷新 Widget 入口：抽出状态机，替换三处耦合 | 4.4 的行为在 ElScroll 上通过；旧 ElScrollView 的刷新测试不回退 | ElRefresh 已实现，复用 `RefreshHost`，状态机未抽出；4.4 尚未逐条对照 |
+| 3 | 刷新 Sliver 入口 | 让位式用真实占位；悬浮式 leading 通过；trailing 给出结论 | ElSliverRefresh 已实现，待 Windows 端验证；结论见 4.6 |
+| 4 | 滚动条：移动端换官方，桌面换宿主 | 真实滑块拖动、轨道点击、步进、滚轮转发、Windows inset 首帧；删除两个移动端滚动条类 | 桌面宿主已有（scrollbar.dart）；移动端替换与旧类删除未做 |
+| 5 | 滚轮与设备：平滑滚轮、500 ms 交接、惯性帧过账本、键盘 | 平滑配置继承与关闭语义不变；各入口互相接管后旧目标不恢复 | 平滑滚轮与惯性帧过账本已有；500 ms 交接、键盘未做 |
+| 6 | 观察与效果：ElScrollMixin、sticky、折叠、大标题及其余效果 | effects_test.dart 对应行为迁移通过，只更新相关局部 | 未开始 |
+| 7 | 内容几何：scrollToIndex、可见范围、pinToEnd、preserveAnchor、视口固定内容 | 聊天加载历史与贴尾两个场景通过 | 未开始 |
+| 8 | bibi 整页迁到 ElScroll | 前置文档第 4 节全部场景；删除 sliver_bibi 里的物理分账和指针计数 | 未开始 |
+| 9 | 依赖方迁移与旧实现退役 | 见第 8 节 | 未开始 |
 
 阶段 2 到 4 是用户指定的重点，排在通用能力之前；它们只依赖阶段 1。
 

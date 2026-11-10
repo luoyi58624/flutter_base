@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/gestures.dart' show Drag;
 import 'package:flutter/widgets.dart';
 
-import '../../views/scroll/common/nested/nested_scroll.dart' show NestedScrollChain;
+import '../../views/scroll/common/nested/nested_scroll.dart'
+    show ElNestedScrollParent, NestedScrollChain, NestedScrollNode;
 import '../../views/scroll/common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaSource;
 import 'nested_scroll.dart' show nestedScrollNodeOf;
 
@@ -29,6 +30,47 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   /// 当前拖动及其惯性使用的协作链；没有协作方时为 null，全部走官方路径。
   NestedScrollChain? _chain;
   bool _disposed = false;
+  bool _endingByRelease = false;
+  bool _rawPointerCanceled = false;
+
+  /// 新的物理按压开始，重置上一序列的取消标记。
+  void resetRawPointerCancellation() => _rawPointerCanceled = false;
+
+  /// 原始 PointerCancel 会先于官方识别器合成的零速 onEnd 到达。
+  void markRawPointerCanceled() {
+    _rawPointerCanceled = true;
+    _chain?.cancel();
+  }
+
+  /// 当前是否由官方真实 Drag 活动驱动，供刷新物理检查输入来源。
+  bool get isDirectDrag => activity is DragScrollActivity;
+
+  /// 视口内部登记的边界协作方（ElSliverRefresh）。
+  final _edgeParticipants = <NestedScrollNode>[];
+
+  /// 是否有边界协作方；有的话内容不足一屏也要接受拖动。
+  bool get hasEdgeParticipants => _edgeParticipants.isNotEmpty;
+
+  /// 登记一个边界协作方，下一次拖动开始时生效。
+  ///
+  /// 它排在协作链最外侧：折叠头等其他协作方都走不动了才轮到它消费越界位移，
+  /// 反向移动时它最先回收。
+  void addEdgeParticipant(ElNestedScrollParent parent) => _edgeParticipants.add(NestedScrollNode(parent: parent));
+
+  /// 注销边界协作方；进行中的手势不再回调它。
+  void removeEdgeParticipant(ElNestedScrollParent parent) {
+    final index = _edgeParticipants.indexWhere((node) => identical(node.parent, parent));
+    if (index >= 0) _edgeParticipants.removeAt(index).detached = true;
+  }
+
+  NestedScrollChain? _buildChain() {
+    final host = _hostContext;
+    return NestedScrollChain.fromNode(
+      host == null ? null : nestedScrollNodeOf(host),
+      axis: axis,
+      outermost: _edgeParticipants,
+    );
+  }
 
   BuildContext? get _hostContext {
     final host = context;
@@ -53,8 +95,7 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
       }
     }
     final drag = super.drag(start, onCancelled);
-    final host = _hostContext;
-    _chain = host == null ? null : NestedScrollChain.fromNode(nestedScrollNodeOf(host), axis: axis);
+    _chain = _buildChain();
     _chain?.start(axis, .touchDrag);
     return drag;
   }
@@ -112,9 +153,21 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
       super.goBallistic(velocity);
       return;
     }
-    // 拖动刚结束：协作方先分走速度，零速也通知，供吸附等收尾使用。
-    if (activity is DragScrollActivity) velocity = -chain.preFling(-velocity);
-    final simulation = physics.createBallisticSimulation(this, velocity);
+    // DragScrollController.cancel 同样会调用 goBallistic(0)，只有真实 Drag.end
+    // 才能触发 armed 刷新；取消必须撤销协作输入而不是当作零速松手。
+    if (activity is DragScrollActivity) {
+      if (_endingByRelease && !_rawPointerCanceled) {
+        velocity = -chain.preFling(-velocity);
+      } else {
+        chain.cancel();
+      }
+    }
+    var simulation = physics.createBallisticSimulation(this, velocity);
+    if (simulation == null && velocity.abs() > physics.toleranceFor(this).velocity && !outOfRange) {
+      // 正文在边界时官方 Clamping 不会启动弹道，但折叠头等协作方可能仍有行程。
+      // 只在协作链存在且有有效速度时使用虚拟位置采样，实际像素仍服从正文边界。
+      simulation = ClampingScrollSimulation(position: pixels, velocity: velocity, tolerance: physics.toleranceFor(this));
+    }
     if (simulation == null) {
       goIdle();
     } else {
@@ -142,6 +195,32 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   void dispose() {
     _disposed = true;
     super.dispose();
+  }
+}
+
+/// ElScroll 固定叠在调用方物理之上的一层：有边界协作方时，内容不足一屏也接受拖动。
+///
+/// 官方物理在内容不足一屏时会关闭拖动识别，刷新就无法从短列表拉出；
+/// 调用方显式禁止用户滚动（NeverScrollableScrollPhysics）时仍然尊重。
+final class ScrollHostPhysics extends ScrollPhysics {
+  /// 创建叠加层，[parent] 是调用方或环境提供的物理。
+  const ScrollHostPhysics({super.parent});
+
+  @override
+  ScrollHostPhysics applyTo(ScrollPhysics? ancestor) => ScrollHostPhysics(parent: buildParent(ancestor));
+
+  // allowUserScrolling 不会沿 parent 传递，需要自己走一遍物理链。
+  bool get _userCanScroll {
+    for (var physics = parent; physics != null; physics = physics.parent) {
+      if (!physics.allowUserScrolling) return false;
+    }
+    return true;
+  }
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) {
+    if (position is ScrollHostPosition && position.hasEdgeParticipants && _userCanScroll) return true;
+    return super.shouldAcceptUserOffset(position);
   }
 }
 
@@ -208,7 +287,12 @@ final class _RelayDrag implements Drag {
     if (target == null) {
       _origin._releaseHold();
     } else {
-      target.end(details);
+      _origin._endingByRelease = true;
+      try {
+        target.end(details);
+      } finally {
+        _origin._endingByRelease = false;
+      }
     }
     _close();
   }
@@ -219,6 +303,9 @@ final class _RelayDrag implements Drag {
     if (target == null) {
       _origin._releaseHold();
     } else {
+      // Cancel 与 Drag.end 不同：先让刷新等参与者撤销 armed，
+      // 否则官方 cancel -> goBallistic(0) 会被错当成松手触发刷新。
+      _origin._chain?.cancel();
       target.cancel();
     }
     _close();

@@ -44,6 +44,9 @@ abstract class ElNestedScrollParent {
   /// 慢拖松手同样是手势收尾信号(snap 动画启动等依赖它)。
   double onNestedPreFling(double velocity) => velocity;
 
+  /// 手势被取消时提前结清已拉出的状态，不能将取消误判为正常松手。
+  void onNestedScrollCancel() {}
+
   /// 触摸滚动会话结束(dragEnd / dragCancel)。
   void onNestedScrollEnd() {}
 }
@@ -78,14 +81,25 @@ final class NestedScrollChain {
   final List<NestedScrollNode> _nodes;
 
   /// 从最近的 outer 节点向外组链;无参与者返回 null(热路径零开销短路)。
-  static NestedScrollChain? fromNode(NestedScrollNode? node, {required Axis axis}) {
-    List<NestedScrollNode>? nodes;
-    for (var n = node; n != null; n = n.outer) {
+  ///
+  /// [outermost] 追加在链的最外侧:pre 段最先、post 段最后轮到,供刷新这类
+  /// 「别人都走不动了才接手、回收时最先让出」的越界消费者使用。
+  static NestedScrollChain? fromNode(
+    NestedScrollNode? node, {
+    required Axis axis,
+    Iterable<NestedScrollNode> outermost = const [],
+  }) {
+    final nodes = <NestedScrollNode>[];
+    void add(NestedScrollNode n) {
       final interestedAxis = n.axis ?? n.parent.nestedScrollAxis;
-      if (n.detached || (interestedAxis != null && interestedAxis != axis)) continue;
-      (nodes ??= <NestedScrollNode>[]).add(n);
+      if (!n.detached && (interestedAxis == null || interestedAxis == axis)) nodes.add(n);
     }
-    return nodes == null ? null : NestedScrollChain._(nodes);
+
+    for (var n = node; n != null; n = n.outer) {
+      add(n);
+    }
+    outermost.forEach(add);
+    return nodes.isEmpty ? null : NestedScrollChain._(nodes);
   }
 
   /// 消费契约钳制:反号 = 不消费,越量 = 全消费(与拦截器语义一致)。
@@ -100,6 +114,13 @@ final class NestedScrollChain {
   void start(Axis axis, ElScrollDeltaSource source) {
     for (final n in _nodes) {
       if (!n.detached) n.parent.onNestedScrollStart(axis, source);
+    }
+  }
+
+  /// 先通知真实取消，再由活动切换统一触发 end。
+  void cancel() {
+    for (final n in _nodes) {
+      if (!n.detached) n.parent.onNestedScrollCancel();
     }
   }
 

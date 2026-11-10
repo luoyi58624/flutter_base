@@ -43,6 +43,9 @@ final class RefreshScrollLink extends ElScrollDeltaInterceptor
   /// 宿主滚动视图注入的 position 源；拉出余量判定、bouncing 停靠收口都经它。
   ScrollPosition Function()? position;
 
+  /// 新官方 Scrollable 宿主对当前拖拽活动的只读判断，避免访问受保护的 activity。
+  bool Function()? directDragActive;
+
   /// 实际正文可用区域，头部未声明时为 null。
   Rect? Function()? contentViewportRectOf;
 
@@ -118,7 +121,9 @@ final class RefreshScrollLink extends ElScrollDeltaInterceptor
 
   /// 新刷新接收本层正文与效果处理后的触摸余量，优先于更外层正文。
   double consumeBoundaryPull(double delta, ElScrollDeltaSource source) =>
-      source == ElScrollDeltaSource.touchDrag ? (_host?._handleRefreshDragDelta(delta, allowRecovery: false) ?? 0) : 0;
+      source == ElScrollDeltaSource.touchDrag
+      ? (_host?._handleRefreshDragDelta(delta, allowRecovery: false, boundaryRemainder: true) ?? 0)
+      : 0;
 
   /// 只结算本刷新器的释放，不重复调用旧链中的其他参与者。
   double releaseInput(double velocity) => _host?._handleRefreshFlingVelocity(velocity) ?? velocity;
@@ -181,6 +186,9 @@ final class RefreshDockPhysics extends ScrollPhysics {
   }
 
   bool get _directDrag {
+    // 新 ElScroll 使用官方 Scrollable，没有旧 ScrollInputTransaction；
+    // 由真实 ScrollPosition 的 DragScrollActivity 判断当前是否为直接拖动。
+    if (getLink()?.directDragActive?.call() == true) return true;
     final input = ScrollInputTransaction.current;
     if (input == null ||
         input.rawEvent is PointerUpEvent ||
@@ -492,7 +500,12 @@ class _RefreshHostState extends State<RefreshHost> with SingleTickerProviderStat
   ///   不派发越界 → stretch 与刷新指示器互斥（官方拉出期无 EdgeEffect）；
   /// - 回收方向（onNestedPreScroll）：先喂指示器回位，完全回位前列表不动。
   /// 返回消费量（与 delta 同号）。
-  double _handleRefreshDragDelta(double delta, {bool allowPull = true, bool allowRecovery = true}) {
+  double _handleRefreshDragDelta(
+    double delta, {
+    bool allowPull = true,
+    bool allowRecovery = true,
+    bool boundaryRemainder = false,
+  }) {
     if (allowPull) widget.link?.preservesInwardMomentum = false;
     if (_status == RefreshIndicatorStatus.refresh || _status == RefreshIndicatorStatus.done) return 0.0;
     final toward = delta * _pullSign;
@@ -500,7 +513,8 @@ class _RefreshHostState extends State<RefreshHost> with SingleTickerProviderStat
       if (!allowPull) return 0;
       // 内容让位式刷新器（内容跟手位移）不拦拉出，物理与 metrics 路径负责。
       if (_dockable) return 0.0;
-      final beyond = toward - _pullRoom;
+      // post 阶段传入的已经是正文无法消费的余量，不能再次扣掉正文行程。
+      final beyond = boundaryRemainder ? toward : toward - _pullRoom;
       if (beyond <= precisionErrorTolerance) return 0.0;
       _settle.stop();
       _resumeDraggingIfCanceling();
