@@ -255,8 +255,8 @@ void main() {
             child: SelectionView(
               controller: controller,
               controls: const DesktopSelectionControls(longPressDelay: delay, longPressHaptics: false),
-              child: ElScrollView(
-                physics: const NeverScrollableScrollPhysics(),
+              child: ElScroll(
+                physics: NeverScrollableScrollPhysics(),
                 children: const [
                   ElView(key: textKey, style: ElStyle(width: 260, height: 60, fontSize: 18), child: 'alpha beta gamma'),
                 ],
@@ -338,7 +338,7 @@ void main() {
           child: SelectionView(
             controller: controller,
             controls: const DesktopSelectionControls(longPressDelay: delay, longPressHaptics: false),
-            child: ElScrollView(
+            child: ElScroll(
               children: [
                 ElView(
                   key: textKey,

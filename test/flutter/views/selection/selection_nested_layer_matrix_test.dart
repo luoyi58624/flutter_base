@@ -275,19 +275,18 @@ ElPortalController _showVirtualPopover(
       height: 120,
       child: ElSelectionView(
         controller: popoverController,
-        child: ElScrollView(
+        child: ElScroll.sliver(
           controller: scrollController,
-          cacheExtent: 0,
-          physics: const ClampingScrollPhysics(),
-          children: [
-            ElListView.builder(
+          scrollCacheExtent: .pixels(0),
+          physics: ClampingScrollPhysics(),
+          slivers: [
+            SliverList.builder(
               itemCount: 40,
               itemBuilder: (context, index) => ElView(
                 key: _virtualRowKey(index),
                 style: const ElStyle(width: 260, height: 32),
                 child: 'virtual row $index',
               ),
-              fixedSize: true,
             ),
           ],
         ),
@@ -452,55 +451,52 @@ void main() {
     expect(pageController.text, isNull);
   });
 
-  testWidgets(
-    '四层嵌套：selection 中删除/插入 participant 后范围按现存文档序更新',
-    (tester) async {
-      final pageController = ElSelectionController();
-      final popoverController = ElSelectionController();
-      final mutableKey = GlobalKey<_MutablePopoverContentState>();
-      addTearDown(pageController.dispose);
-      addTearDown(popoverController.dispose);
-      await tester.pumpWidget(_app(pageController));
-      _showDialog(tester);
-      await tester.pump();
-      await tester.pump();
-      _showMutablePopover(tester, key: mutableKey, controller: popoverController);
-      await tester.pump();
-      await tester.pump();
+  testWidgets('四层嵌套：selection 中删除/插入 participant 后范围按现存文档序更新', (tester) async {
+    final pageController = ElSelectionController();
+    final popoverController = ElSelectionController();
+    final mutableKey = GlobalKey<_MutablePopoverContentState>();
+    addTearDown(pageController.dispose);
+    addTearDown(popoverController.dispose);
+    await tester.pumpWidget(_app(pageController));
+    _showDialog(tester);
+    await tester.pump();
+    await tester.pump();
+    _showMutablePopover(tester, key: mutableKey, controller: popoverController);
+    await tester.pump();
+    await tester.pump();
 
-      final root = _rootOf(tester, _mutableFirstKey);
-      final from = tester.getRect(find.byKey(_mutableFirstKey)).centerLeft + const Offset(1, 0);
-      final to = tester.getRect(find.byKey(_mutableLastKey)).centerRight - const Offset(1, 0);
-      await _mouseDrag(tester, from, to);
-      expect(popoverController.text, 'alpha item\nbravo item\ncharlie item');
-      expect(root.selectionInfo, 'alpha item\nbravo item\ncharlie item');
-      expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
-      expect(_rangeOf(tester, _mutableMiddleKey), const TextRange(start: 0, end: 10));
-      expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
-      expect(pageController.text, isNull);
+    final root = _rootOf(tester, _mutableFirstKey);
+    final from = tester.getRect(find.byKey(_mutableFirstKey)).centerLeft + const Offset(1, 0);
+    final to = tester.getRect(find.byKey(_mutableLastKey)).centerRight - const Offset(1, 0);
+    await _mouseDrag(tester, from, to);
+    expect(popoverController.text, 'alpha item\nbravo item\ncharlie item');
+    expect(root.selectionInfo, 'alpha item\nbravo item\ncharlie item');
+    expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
+    expect(_rangeOf(tester, _mutableMiddleKey), const TextRange(start: 0, end: 10));
+    expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
+    expect(pageController.text, isNull);
 
-      mutableKey.currentState!.setMiddleVisible(false);
-      await tester.pump();
-      expect(find.byKey(_mutableMiddleKey), findsNothing);
-      expect(popoverController.text, 'alpha item\ncharlie item');
-      expect(root.selectionInfo, 'alpha item\ncharlie item');
-      expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
-      expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
-      expect(_rangeOf(tester, _dialogTextKey), isNull);
-      expect(pageController.text, isNull);
+    mutableKey.currentState!.setMiddleVisible(false);
+    await tester.pump();
+    expect(find.byKey(_mutableMiddleKey), findsNothing);
+    expect(popoverController.text, 'alpha item\ncharlie item');
+    expect(root.selectionInfo, 'alpha item\ncharlie item');
+    expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
+    expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
+    expect(_rangeOf(tester, _dialogTextKey), isNull);
+    expect(pageController.text, isNull);
 
-      mutableKey.currentState!.setMiddleVisible(true);
-      await tester.pump();
-      await tester.pump();
-      expect(_rootOf(tester, _mutableMiddleKey), same(root));
-      expect(popoverController.text, 'alpha item\nbravo item\ncharlie item');
-      expect(root.selectionInfo, 'alpha item\nbravo item\ncharlie item');
-      expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
-      expect(_rangeOf(tester, _mutableMiddleKey), const TextRange(start: 0, end: 10));
-      expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
-      expect(pageController.text, isNull);
-    },
-  );
+    mutableKey.currentState!.setMiddleVisible(true);
+    await tester.pump();
+    await tester.pump();
+    expect(_rootOf(tester, _mutableMiddleKey), same(root));
+    expect(popoverController.text, 'alpha item\nbravo item\ncharlie item');
+    expect(root.selectionInfo, 'alpha item\nbravo item\ncharlie item');
+    expect(_rangeOf(tester, _mutableFirstKey), const TextRange(start: 0, end: 10));
+    expect(_rangeOf(tester, _mutableMiddleKey), const TextRange(start: 0, end: 10));
+    expect(_rangeOf(tester, _mutableLastKey), const TextRange(start: 0, end: 12));
+    expect(pageController.text, isNull);
+  });
 
   testWidgets('四层嵌套：popover 富文本 inline/atomic 只写入自身 root', (tester) async {
     final pageController = ElSelectionController();

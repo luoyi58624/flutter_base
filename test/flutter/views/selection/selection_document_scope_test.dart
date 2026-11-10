@@ -353,7 +353,7 @@ void main() {
 
   testWidgets('鼠标拖选到滚动边缘会推进视口，抬手结束自动滚动', (tester) async {
     final controller = ElSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(scroll.dispose);
     final first = GlobalKey();
@@ -361,7 +361,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: controller,
-          child: ElScrollView(
+          child: ElScroll(
             controller: scroll,
             children: [for (var i = 0; i < 40; i++) _line('row $i', key: i == 0 ? first : null)],
           ),

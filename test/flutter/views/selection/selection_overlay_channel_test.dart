@@ -176,7 +176,7 @@ void main() {
             height: 200,
             child: ElSelectionView(
               controller: controller,
-              child: ElScrollView(
+              child: ElScroll(
                 controller: scrollController,
                 children: const [
                   ElView(child: 'row 0 selectable text content'),

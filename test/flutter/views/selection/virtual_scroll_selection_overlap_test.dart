@@ -63,10 +63,10 @@ void main() {
           height: 400,
           child: ElSelectionView(
             controller: selectionController,
-            child: ElScrollView(
+            child: ElScroll.sliver(
               controller: scrollController,
-              physics: const ClampingScrollPhysics(),
-              children: [_listItems(rows)],
+              physics: ClampingScrollPhysics(),
+              slivers: [_listItems(rows)],
             ),
           ),
         ),
@@ -202,56 +202,52 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets(
-    '富文本 inline 项（多 box 行）全选无重叠',
-    (tester) async {
-      // 真机上 demo 字符串里的 "none"/"text" 走 latin 字体、与 CJK metrics
-      // 不同，一行拆多个 box——测试字体全字符同 metrics 会合并成单 box，
-      // 必须用不同 fontSize 的 inline 子节点才能在测试环境拆出多 box 行，
-      // 打中"行缝只裁首个 box"的老路径（用户虚拟滚动页截图问题）。
-      final selectionController = ElSelectionController();
-      final scrollController = ScrollController();
-      addTearDown(scrollController.dispose);
+  testWidgets('富文本 inline 项（多 box 行）全选无重叠', (tester) async {
+    // 真机上 demo 字符串里的 "none"/"text" 走 latin 字体、与 CJK metrics
+    // 不同，一行拆多个 box——测试字体全字符同 metrics 会合并成单 box，
+    // 必须用不同 fontSize 的 inline 子节点才能在测试环境拆出多 box 行，
+    // 打中"行缝只裁首个 box"的老路径（用户虚拟滚动页截图问题）。
+    final selectionController = ElSelectionController();
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
 
-      final rows = List<Widget>.generate(
-        40,
-        (index) => ElView(
-          style: const ElStyle(fontSize: 17, lineHeight: 1.7),
-          child: [
-            // 前导文本长过一行：inline 子节点必须折到第 2 行（带行缝的行），
-            // 否则落在首行（无行缝可裁）打不中老路径。
-            '黄金法则：让可交互的元素不可选，让可阅读的内容保持可选，选区表现要与浏览器一致。',
-            const ElView(style: ElStyle(fontSize: 13), child: '不可选（none）'),
-            '，让可阅读的内容可选（text）。 - ${index + 1}',
-          ],
-        ),
-      );
+    final rows = List<Widget>.generate(
+      40,
+      (index) => ElView(
+        style: const ElStyle(fontSize: 17, lineHeight: 1.7),
+        child: [
+          // 前导文本长过一行：inline 子节点必须折到第 2 行（带行缝的行），
+          // 否则落在首行（无行缝可裁）打不中老路径。
+          '黄金法则：让可交互的元素不可选，让可阅读的内容保持可选，选区表现要与浏览器一致。',
+          const ElView(style: ElStyle(fontSize: 13), child: '不可选（none）'),
+          '，让可阅读的内容可选（text）。 - ${index + 1}',
+        ],
+      ),
+    );
 
-      await tester.pumpWidget(
-        host(selectionController: selectionController, scrollController: scrollController, rows: rows),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      host(selectionController: selectionController, scrollController: scrollController, rows: rows),
+    );
+    await tester.pumpAndSettle();
 
-      selectionController.selectAll();
-      await tester.pump();
+    selectionController.selectAll();
+    await tester.pump();
 
-      final rects = collectGlobalSelectionRects(tester);
-      expect(rects.length, greaterThan(5));
-      expectNoAreaOverlap(rects, label: '富文本 inline 项');
+    final rects = collectGlobalSelectionRects(tester);
+    expect(rects.length, greaterThan(5));
+    expectNoAreaOverlap(rects, label: '富文本 inline 项');
 
-      selectionController.clear();
-      await tester.pump();
-    },
-  );
+    selectionController.clear();
+    await tester.pump();
+  });
 }
 
 // 将已构造的测试条目接入列表配置，并保留按 key 重排的索引回查。
-ElListView _listItems(List<Widget> children, {bool fixedSize = false}) {
+Widget _listItems(List<Widget> children) {
   final indices = <Key, int>{for (var index = 0; index < children.length; index++) ?children[index].key: index};
-  return ElListView.builder(
+  return SliverList.builder(
     itemCount: children.length,
     itemBuilder: (context, index) => children[index],
-    fixedSize: fixedSize,
     findChildIndexCallback: (key) => indices[key],
   );
 }

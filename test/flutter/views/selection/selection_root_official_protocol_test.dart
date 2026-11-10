@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+
 import 'dart:convert';
 
 import 'package:flutter_base/ui.dart';
@@ -238,14 +239,14 @@ void main() {
 
   testWidgets('官方 Text 随普通滚动更新手柄与裁剪，不改变仍挂载的选中内容', (tester) async {
     final controller = ElSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(scroll.dispose);
     await tester.pumpWidget(
       _host(
         SelectionView(
           controller: controller,
-          child: ElScrollView(
+          child: ElScroll(
             controller: scroll,
             children: List.generate(
               20,

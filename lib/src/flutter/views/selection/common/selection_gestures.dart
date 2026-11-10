@@ -35,7 +35,7 @@ bool isTouchSelectionPointerKind(PointerDeviceKind kind) {
 
 /// 最近滚动祖先是否认领 [kind] 的内容区拖拽滚动。
 ///
-/// 从 [start] 沿父链向上找 [ScrollViewport]；未找到时回退 [kViewportDragDevices]。
+/// 从 [start] 沿父链向上找 [ScrollViewport]；未找到时回退触摸类设备：鼠标拖拽留给选择。
 /// [selectionRoot] 为选区根 render，遍历在其之前停止。
 bool scrollClaimsContentDrag(RenderObject? start, RenderObject selectionRoot, PointerDeviceKind kind) {
   RenderObject? node = start;
@@ -45,8 +45,15 @@ bool scrollClaimsContentDrag(RenderObject? start, RenderObject selectionRoot, Po
     }
     node = node.parent;
   }
-  return kViewportDragDevices.contains(kind);
+  return _contentDragDevices.contains(kind);
 }
+
+const _contentDragDevices = {
+  PointerDeviceKind.touch,
+  PointerDeviceKind.stylus,
+  PointerDeviceKind.invertedStylus,
+  PointerDeviceKind.unknown,
+};
 
 /// 是否为"主键 down"事件：触摸类恒 true；鼠标看 `kPrimaryButton` 是否置位。
 bool isPrimaryPointerDown(PointerDownEvent event) {

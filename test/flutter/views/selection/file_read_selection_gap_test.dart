@@ -51,10 +51,13 @@ Widget _fileReadPage({int rowCount = 32}) {
 
 Widget _fileReadContent({required int rowCount}) {
   return ElSelectionView(
-    child: ElScrollView(
-      axis: null,
-      padding: .symmetric(vertical: 8),
-      children: [ElListView.builder(itemCount: rowCount, itemBuilder: (_, index) => _fileReadLine(index))],
+    child: ElScroll.sliver(
+      slivers: [
+        SliverPadding(
+          padding: .symmetric(vertical: 8),
+          sliver: SliverList.builder(itemCount: rowCount, itemBuilder: (_, index) => _fileReadLine(index)),
+        ),
+      ],
     ),
   );
 }
@@ -136,37 +139,35 @@ ui.Rect _firstGlyphRect(ElRenderView render) {
 }
 
 void main() {
-  testWidgets(
-    'FileRead 虚拟富文本行：行间 leading 和行界始终保持 text 光标',
-    (tester) async {
-      await tester.pumpWidget(_fileReadPage(rowCount: 12));
-      await tester.pumpAndSettle();
+  testWidgets('FileRead 虚拟富文本行：行间 leading 和行界始终保持 text 光标', (tester) async {
+    await tester.pumpWidget(_fileReadPage(rowCount: 12));
+    await tester.pumpAndSettle();
 
-      final renders = [
-        for (var index = 0; index < 6; index++) _renderForKey(tester, ValueKey<String>('file-read-line-text-$index')),
-      ];
-      final points = <Offset>[];
-      for (final render in renders) {
-        final band = _selectionRect(render);
-        final glyph = _firstGlyphRect(render);
-        expect(glyph.top - band.top, greaterThan(1), reason: '判别前置：行顶必须存在 leading 空隙');
-        expect(band.bottom - glyph.bottom, greaterThan(1), reason: '判别前置：行底必须存在 leading 空隙');
-        points.add(render.localToGlobal(Offset(glyph.center.dx, (band.top + glyph.top) / 2)));
-        points.add(render.localToGlobal(glyph.center));
-        points.add(render.localToGlobal(Offset(glyph.center.dx, (glyph.bottom + band.bottom) / 2)));
-      }
+    final renders = [
+      for (var index = 0; index < 6; index++) _renderForKey(tester, ValueKey<String>('file-read-line-text-$index')),
+    ];
+    final points = <Offset>[];
+    for (final render in renders) {
+      final band = _selectionRect(render);
+      final glyph = _firstGlyphRect(render);
+      expect(glyph.top - band.top, greaterThan(1), reason: '判别前置：行顶必须存在 leading 空隙');
+      expect(band.bottom - glyph.bottom, greaterThan(1), reason: '判别前置：行底必须存在 leading 空隙');
+      points.add(render.localToGlobal(Offset(glyph.center.dx, (band.top + glyph.top) / 2)));
+      points.add(render.localToGlobal(glyph.center));
+      points.add(render.localToGlobal(Offset(glyph.center.dx, (glyph.bottom + band.bottom) / 2)));
+    }
 
-      for (var index = 0; index + 1 < renders.length; index++) {
-        final upper = renders[index];
-        final lower = renders[index + 1];
-        final upperBand = _selectionRect(upper);
-        final lowerBand = _selectionRect(lower);
-        final upperBottom = upper.localToGlobal(Offset(0, upperBand.bottom)).dy;
-        final lowerTop = lower.localToGlobal(Offset(0, lowerBand.top)).dy;
-        final seamY = (upperBottom + lowerTop) / 2;
-        final codeX = lower.localToGlobal(Offset(_firstGlyphRect(lower).center.dx, 0)).dx;
-        points.add(Offset(codeX, seamY));
-      }
+    for (var index = 0; index + 1 < renders.length; index++) {
+      final upper = renders[index];
+      final lower = renders[index + 1];
+      final upperBand = _selectionRect(upper);
+      final lowerBand = _selectionRect(lower);
+      final upperBottom = upper.localToGlobal(Offset(0, upperBand.bottom)).dy;
+      final lowerTop = lower.localToGlobal(Offset(0, lowerBand.top)).dy;
+      final seamY = (upperBottom + lowerTop) / 2;
+      final codeX = lower.localToGlobal(Offset(_firstGlyphRect(lower).center.dx, 0)).dx;
+      points.add(Offset(codeX, seamY));
+    }
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
     addTearDown(mouse.removePointer);
@@ -188,44 +189,41 @@ void main() {
     }
   });
 
-  testWidgets(
-    'FileRead 虚拟滚动：拖过正文行间空隙不得反向溢出到导航和工具栏',
-    (tester) async {
-      await tester.pumpWidget(_fileReadPage(rowCount: 64));
-      await tester.pumpAndSettle();
+  testWidgets('FileRead 虚拟滚动：拖过正文行间空隙不得反向溢出到导航和工具栏', (tester) async {
+    await tester.pumpWidget(_fileReadPage(rowCount: 64));
+    await tester.pumpAndSettle();
 
-      final anchor = _renderForKey(tester, const ValueKey<String>('file-read-line-text-2'));
-      final anchorCenter = anchor.localToGlobal(anchor.size.center(Offset.zero));
-      final first = _renderForKey(tester, const ValueKey<String>('file-read-line-text-0'));
-      final firstBand = _selectionRect(first);
-      final firstGlyph = _firstGlyphRect(first);
-      expect(firstGlyph.top - firstBand.top, greaterThan(1), reason: '判别前置：首行字形上方必须有 leading 空隙');
-      final gapPoint = first.localToGlobal(Offset(firstGlyph.center.dx, (firstBand.top + firstGlyph.top) / 2));
+    final anchor = _renderForKey(tester, const ValueKey<String>('file-read-line-text-2'));
+    final anchorCenter = anchor.localToGlobal(anchor.size.center(Offset.zero));
+    final first = _renderForKey(tester, const ValueKey<String>('file-read-line-text-0'));
+    final firstBand = _selectionRect(first);
+    final firstGlyph = _firstGlyphRect(first);
+    expect(firstGlyph.top - firstBand.top, greaterThan(1), reason: '判别前置：首行字形上方必须有 leading 空隙');
+    final gapPoint = first.localToGlobal(Offset(firstGlyph.center.dx, (firstBand.top + firstGlyph.top) / 2));
 
-      final navRect = tester.getRect(find.byKey(_navTitleKey));
-      final toolbarRect = tester.getRect(find.byKey(_toolbarTextKey));
-      expect(gapPoint.dy, greaterThan(toolbarRect.bottom));
-      expect(gapPoint.dy, greaterThan(navRect.bottom));
+    final navRect = tester.getRect(find.byKey(_navTitleKey));
+    final toolbarRect = tester.getRect(find.byKey(_toolbarTextKey));
+    expect(gapPoint.dy, greaterThan(toolbarRect.bottom));
+    expect(gapPoint.dy, greaterThan(navRect.bottom));
 
-      final gesture = await tester.startGesture(anchorCenter, kind: PointerDeviceKind.mouse);
-      await tester.pump();
-      final middle = _renderForKey(tester, const ValueKey<String>('file-read-line-text-1'));
-      await gesture.moveTo(middle.localToGlobal(middle.size.center(Offset.zero)));
-      await tester.pump();
-      await gesture.moveTo(gapPoint);
-      await tester.pump();
+    final gesture = await tester.startGesture(anchorCenter, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+    final middle = _renderForKey(tester, const ValueKey<String>('file-read-line-text-1'));
+    await gesture.moveTo(middle.localToGlobal(middle.size.center(Offset.zero)));
+    await tester.pump();
+    await gesture.moveTo(gapPoint);
+    await tester.pump();
 
-      final navSelectedAtGap = _isSelected(tester, _navTitleKey);
-      final toolbarSelectedAtGap = _isSelected(tester, _toolbarTextKey);
-      final firstSelectedAtGap = _isSelected(tester, const ValueKey<String>('file-read-line-text-0'));
-      final belowAnchorSelectedAtGap = _isSelected(tester, const ValueKey<String>('file-read-line-text-3'));
-      await gesture.up();
-      await tester.pump();
+    final navSelectedAtGap = _isSelected(tester, _navTitleKey);
+    final toolbarSelectedAtGap = _isSelected(tester, _toolbarTextKey);
+    final firstSelectedAtGap = _isSelected(tester, const ValueKey<String>('file-read-line-text-0'));
+    final belowAnchorSelectedAtGap = _isSelected(tester, const ValueKey<String>('file-read-line-text-3'));
+    await gesture.up();
+    await tester.pump();
 
-      expect(navSelectedAtGap, isFalse, reason: '鼠标仍在正文行间空隙时，导航标题不得被反向带入选区');
-      expect(toolbarSelectedAtGap, isFalse, reason: '鼠标仍在正文行间空隙时，工具栏不得被反向带入选区');
-      expect(belowAnchorSelectedAtGap, isFalse, reason: '锚点下方的正文行不得因空隙命中错误而反向溢出');
-      expect(firstSelectedAtGap, isTrue, reason: '拖选停在首行顶部 leading 时，首行正文应正常进入选区');
-    },
-  );
+    expect(navSelectedAtGap, isFalse, reason: '鼠标仍在正文行间空隙时，导航标题不得被反向带入选区');
+    expect(toolbarSelectedAtGap, isFalse, reason: '鼠标仍在正文行间空隙时，工具栏不得被反向带入选区');
+    expect(belowAnchorSelectedAtGap, isFalse, reason: '锚点下方的正文行不得因空隙命中错误而反向溢出');
+    expect(firstSelectedAtGap, isTrue, reason: '拖选停在首行顶部 leading 时，首行正文应正常进入选区');
+  });
 }

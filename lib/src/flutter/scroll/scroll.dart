@@ -9,7 +9,7 @@ import '../views/view/provider.dart' show ElViewProvider;
 import 'refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
 import 'refresh/refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
-import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport;
+import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTransparentSelectionRegistrar;
 
 /// 基于官方 [Scrollable] 与 [Viewport] 的滚动容器。
 ///
@@ -126,54 +126,62 @@ class ElScroll extends HookWidget {
           ),
         ];
     final effectivePhysics = refreshLink == null ? physics : AlwaysScrollableScrollPhysics(parent: physics);
+    final selection = switch (SelectionContainer.maybeOf(context)) {
+      final ScrollTransparentSelectionRegistrar registrar => registrar,
+      _ => null,
+    };
+    Widget scrollable = Scrollable(
+      controller: activeController,
+      physics: ScrollHostPhysics(
+        parent: refreshLink?.movesContent == true
+            ? RefreshDockPhysics(getLink: () => refreshLink, parent: effectivePhysics)
+            : effectivePhysics,
+      ),
+      axisDirection: direction,
+      clipBehavior: clipBehavior,
+      viewportBuilder: (context, offset) {
+        // viewportBuilder 的 context 就是 Scrollable 自身，不能用 Scrollable.of 向祖先查找。
+        final position = activeController.position;
+        if (position is ScrollHostPosition) {
+          position.configureSmooth(configuredSmooth);
+          if (refreshLink != null) {
+            refreshLink.position = () => position;
+            refreshLink.directDragActive = () => position.isDirectDrag;
+          }
+        }
+        final viewport = shrinkWrap
+            ? ElShrinkWrappingViewport(
+                axisDirection: direction,
+                offset: offset,
+                clipBehavior: clipBehavior,
+                slivers: slivers,
+              )
+            : ElViewport(
+                axisDirection: direction,
+                offset: offset,
+                scrollCacheExtent: scrollCacheExtent,
+                clipBehavior: clipBehavior,
+                slivers: slivers,
+              );
+        final content = Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerSignal: (event) {
+            if (position is ScrollHostPosition) position.handlePointerSignal(event);
+          },
+          child: viewport,
+        );
+        return selection == null ? content : SelectionRegistrarScope(registrar: selection, child: content);
+      },
+    );
+    // 自管选区的注册器不需要官方 Scrollable 的选区处理层，视口内容直接登记到它。
+    if (selection != null) scrollable = SelectionContainer.disabled(child: scrollable);
     return Listener(
       onPointerDown: (event) => pointers.down(event.pointer, activeController),
       onPointerUp: (event) => pointers.up(event.pointer),
       onPointerCancel: (event) => pointers.cancel(event.pointer, activeController),
       child: ElRefreshScope(
         link: null, // 内层 ElScroll 不能误占用外层绑定的刷新器。
-        child: Scrollable(
-          controller: activeController,
-          physics: ScrollHostPhysics(
-            parent: refreshLink?.movesContent == true
-                ? RefreshDockPhysics(getLink: () => refreshLink, parent: effectivePhysics)
-                : effectivePhysics,
-          ),
-          axisDirection: direction,
-          clipBehavior: clipBehavior,
-          viewportBuilder: (context, offset) {
-            // viewportBuilder 的 context 就是 Scrollable 自身，不能用 Scrollable.of 向祖先查找。
-            final position = activeController.position;
-            if (position is ScrollHostPosition) {
-              position.configureSmooth(configuredSmooth);
-              if (refreshLink != null) {
-                refreshLink.position = () => position;
-                refreshLink.directDragActive = () => position.isDirectDrag;
-              }
-            }
-            final viewport = shrinkWrap
-                ? ElShrinkWrappingViewport(
-                    axisDirection: direction,
-                    offset: offset,
-                    clipBehavior: clipBehavior,
-                    slivers: slivers,
-                  )
-                : ElViewport(
-                    axisDirection: direction,
-                    offset: offset,
-                    scrollCacheExtent: scrollCacheExtent,
-                    clipBehavior: clipBehavior,
-                    slivers: slivers,
-                  );
-            return Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerSignal: (event) {
-                if (position is ScrollHostPosition) position.handlePointerSignal(event);
-              },
-              child: viewport,
-            );
-          },
-        ),
+        child: scrollable,
       ),
     );
   }

@@ -132,23 +132,21 @@ void main() {
   for (final reverse in [false, true]) {
     testWidgets('横向框选 reverse=$reverse 随自动滚动延伸', (tester) async {
       final selection = ElBoxSelectionController();
-      final scroll = ElScrollController();
+      final scroll = ScrollController();
       addTearDown(selection.dispose);
       addTearDown(scroll.dispose);
       await tester.pumpWidget(
         _host(
           ElBoxSelectionView(
             controller: selection,
-            child: ElScrollView(
+            child: ElScroll.sliver(
               controller: scroll,
               axis: .horizontal,
               reverse: reverse,
-              cacheExtent: 0,
-              scrollbar: ElNoScrollBar(),
-              children: [
-                ElListView.builder(
+              scrollCacheExtent: .pixels(0),
+              slivers: [
+                SliverList.builder(
                   itemCount: 1000,
-                  fixedSize: true,
                   itemBuilder: (_, i) => ElBoxSelectable(value: i, style: ElStyle(width: 40, height: 100)),
                 ),
               ],
@@ -166,14 +164,15 @@ void main() {
       }
       expect(scroll.offset, greaterThan(200));
       expect(selection.selectedCount, greaterThan(10));
-      expect(selection.isSelected(reverse ? 999 : 0), isTrue);
+      // 官方 reverse 让 0 号贴在起始的右缘，按下点正落在 0 号。
+      expect(selection.isSelected(0), isTrue);
       await mouse.up();
     });
   }
 
   testWidgets('十万虚拟对象全选只取可见项，不包含缓存且不额外调用 builder', (tester) async {
     final controller = ElBoxSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(scroll.dispose);
     var builds = 0;
@@ -181,14 +180,12 @@ void main() {
       _host(
         ElBoxSelectionView(
           controller: controller,
-          child: ElScrollView(
+          child: ElScroll.sliver(
             controller: scroll,
-            cacheExtent: 800,
-            scrollbar: ElNoScrollBar(),
-            children: [
-              ElListView.builder(
+            scrollCacheExtent: .pixels(800),
+            slivers: [
+              SliverList.builder(
                 itemCount: 100000,
-                fixedSize: true,
                 itemBuilder: (_, i) {
                   builds++;
                   return ElBoxSelectable(key: ValueKey(i), value: i, style: ElStyle(height: 40, width: 200));
@@ -217,7 +214,7 @@ void main() {
 
   testWidgets('虚拟拖选滚动新挂载项首次绘制就选中，释放指针立即停滚', (tester) async {
     final controller = ElBoxSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(controller.dispose);
     addTearDown(scroll.dispose);
     final painted = <int, bool>{};
@@ -225,14 +222,12 @@ void main() {
       _host(
         ElBoxSelectionView(
           controller: controller,
-          child: ElScrollView(
+          child: ElScroll.sliver(
             controller: scroll,
-            cacheExtent: 0,
-            scrollbar: ElNoScrollBar(),
-            children: [
-              ElListView.builder(
+            scrollCacheExtent: .pixels(0),
+            slivers: [
+              SliverList.builder(
                 itemCount: 10000,
-                fixedSize: true,
                 itemBuilder: (_, i) => ElBoxSelectable(
                   key: ValueKey(i),
                   value: i,

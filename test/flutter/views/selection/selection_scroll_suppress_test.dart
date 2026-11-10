@@ -48,7 +48,7 @@ Future<void> _pumpHost(
         height: 240,
         child: ElSelectionView(
           controller: host.selection,
-          child: ElScrollView(controller: host.scroll, physics: const ClampingScrollPhysics(), children: rows),
+          child: ElScroll(controller: host.scroll, physics: ClampingScrollPhysics(), children: rows),
         ),
       ),
     ),

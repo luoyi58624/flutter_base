@@ -12,7 +12,7 @@ Widget _host(Widget child) => MaterialApp(
 );
 
 Set<String> _mountedLabels(WidgetTester tester) => tester
-    .widgetList<ElView>(find.byType(ElView))
+    .widgetList<ElView>(find.byType(ElView, skipOffstage: false))
     .map((view) => view.child)
     .whereType<String>()
     .where((text) => text.startsWith('row-'))
@@ -29,13 +29,8 @@ void main() {
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScrollView(
-            scrollbar: ElNoScrollBar(),
-            children: [
-              ElListView(
-                children: List.generate(20, (index) => ElView(style: ElStyle(height: 40), child: 'row-$index')),
-              ),
-            ],
+          child: ElScroll(
+            children: List.generate(20, (index) => ElView(style: ElStyle(height: 40), child: 'row-$index')),
           ),
         ),
       ),
@@ -46,67 +41,62 @@ void main() {
   });
 
   for (final cache in [0.0, 400.0]) {
-    testWidgets(
-      'cache=$cache：全选仅当前挂载内容，不构建或保活其他虚拟行',
-      (tester) async {
-        final selection = ElSelectionController();
-        final scroll = ElScrollController();
-        addTearDown(selection.dispose);
-        addTearDown(scroll.dispose);
-        var builds = 0;
-        await tester.pumpWidget(
-          _host(
-            ElSelectionView(
-              controller: selection,
-              child: ElScrollView(
-                controller: scroll,
-                scrollbar: ElNoScrollBar(),
-                cacheExtent: cache,
-                children: [
-                  ElListView.builder(
-                    itemCount: 120,
-                    fixedSize: true,
-                    itemBuilder: (_, index) {
-                      builds++;
-                      return ElView(key: ValueKey(index), style: ElStyle(height: 40), child: 'row-$index');
-                    },
-                  ),
-                ],
-              ),
+    testWidgets('cache=$cache：全选仅当前挂载内容，不构建或保活其他虚拟行', (tester) async {
+      final selection = ElSelectionController();
+      final scroll = ScrollController();
+      addTearDown(selection.dispose);
+      addTearDown(scroll.dispose);
+      var builds = 0;
+      await tester.pumpWidget(
+        _host(
+          ElSelectionView(
+            controller: selection,
+            child: ElScroll.sliver(
+              controller: scroll,
+              scrollCacheExtent: .pixels(cache),
+              slivers: [
+                SliverList.builder(
+                  itemCount: 120,
+                  itemBuilder: (_, index) {
+                    builds++;
+                    return ElView(key: ValueKey(index), style: ElStyle(height: 40), child: 'row-$index');
+                  },
+                ),
+              ],
             ),
           ),
-        );
-        await tester.pumpAndSettle();
-        final initial = _mountedLabels(tester);
-        final before = builds;
-        selection.selectAll();
-        await tester.pump();
-        expect(_selectedLabels(selection), initial);
-        expect(builds, before);
+        ),
+      );
+      await tester.pumpAndSettle();
+      final initial = _mountedLabels(tester);
+      final before = builds;
+      selection.selectAll();
+      await tester.pump();
+      expect(_selectedLabels(selection), initial);
+      expect(builds, before);
 
-        scroll.jumpTo(2400);
-        await tester.pumpAndSettle();
-        final current = _mountedLabels(tester);
-        expect(initial.difference(current), isNotEmpty, reason: '离屏旧窗口确实发生回收');
-        expect(_selectedLabels(selection), initial.intersection(current), reason: '只保留仍挂载的原选中项');
-        selection.selectAll();
-        await tester.pump();
-        expect(_selectedLabels(selection), current);
+      scroll.jumpTo(2400);
+      await tester.pumpAndSettle();
+      final current = _mountedLabels(tester);
+      expect(initial.difference(current), isNotEmpty, reason: '离屏旧窗口确实发生回收');
+      expect(_selectedLabels(selection), initial.intersection(current), reason: '只保留仍挂载的原选中项');
+      selection.selectAll();
+      await tester.pump();
+      expect(_selectedLabels(selection), current);
 
-        // 固定尺寸列表可能正常保留测量样本；对照未选中滚动，证明没有额外的选区保活。
-        selection.clear();
-        scroll.jumpTo(0);
-        await tester.pumpAndSettle();
-        scroll.jumpTo(2400);
-        await tester.pumpAndSettle();
-        expect(_mountedLabels(tester), current);
-      },
-    );
+      // 固定尺寸列表可能正常保留测量样本；对照未选中滚动，证明没有额外的选区保活。
+      selection.clear();
+      scroll.jumpTo(0);
+      await tester.pumpAndSettle();
+      scroll.jumpTo(2400);
+      await tester.pumpAndSettle();
+      expect(_mountedLabels(tester), current);
+    });
   }
 
   testWidgets('复制不补齐已销毁行，普通组件不需要静态选区接口', (tester) async {
     final selection = ElSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(selection.dispose);
     addTearDown(scroll.dispose);
     String? copied;
@@ -119,14 +109,12 @@ void main() {
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScrollView(
+          child: ElScroll.sliver(
             controller: scroll,
-            scrollbar: ElNoScrollBar(),
-            cacheExtent: 0,
-            children: [
-              ElListView.builder(
+            scrollCacheExtent: .pixels(0),
+            slivers: [
+              SliverList.builder(
                 itemCount: 120,
-                fixedSize: true,
                 itemBuilder: (_, index) => Padding(
                   padding: EdgeInsets.zero,
                   child: ElView(key: ValueKey(index), style: ElStyle(height: 40), child: 'row-$index'),
@@ -154,21 +142,19 @@ void main() {
 
   testWidgets('拖选触发自动滚动时回收旧行，选区仅引用当前有效宿主', (tester) async {
     final selection = ElSelectionController();
-    final scroll = ElScrollController();
+    final scroll = ScrollController();
     addTearDown(selection.dispose);
     addTearDown(scroll.dispose);
     await tester.pumpWidget(
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScrollView(
+          child: ElScroll.sliver(
             controller: scroll,
-            scrollbar: ElNoScrollBar(),
-            cacheExtent: 0,
-            children: [
-              ElListView.builder(
+            scrollCacheExtent: .pixels(0),
+            slivers: [
+              SliverList.builder(
                 itemCount: 120,
-                fixedSize: true,
                 itemBuilder: (_, index) =>
                     ElView(key: ValueKey(index), style: ElStyle(height: 40), child: 'row-$index'),
               ),

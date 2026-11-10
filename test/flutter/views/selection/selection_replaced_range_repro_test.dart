@@ -9,49 +9,46 @@ const _headerUpperKey = ValueKey<String>('selection-boundary-header-upper');
 const _anchorKey = ValueKey<String>('selection-boundary-anchor');
 
 void main() {
-  testWidgets(
-    '层叠视觉层级变化不改变文档全选顺序',
-    (tester) async {
-      final controller = ElSelectionController();
-      final layer = ValueNotifier<int>(11);
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: .ltr,
-          child: ElSelectionView(
-            controller: controller,
-            child: ValueListenableBuilder<int>(
-              valueListenable: layer,
-              builder: (context, zIndex, _) => ElStackView(
-                children: [
-                  ElPositioned(
-                    top: 0,
-                    left: 0,
-                    zIndex: zIndex,
-                    child: ElView(child: 'first'),
-                  ),
-                  ElPositioned(top: 0, left: 0, zIndex: 5, child: ElView(child: 'second')),
-                ],
-              ),
+  testWidgets('层叠视觉层级变化不改变文档全选顺序', (tester) async {
+    final controller = ElSelectionController();
+    final layer = ValueNotifier<int>(11);
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: .ltr,
+        child: ElSelectionView(
+          controller: controller,
+          child: ValueListenableBuilder<int>(
+            valueListenable: layer,
+            builder: (context, zIndex, _) => ElStackView(
+              children: [
+                ElPositioned(
+                  top: 0,
+                  left: 0,
+                  zIndex: zIndex,
+                  child: ElView(child: 'first'),
+                ),
+                ElPositioned(top: 0, left: 0, zIndex: 5, child: ElView(child: 'second')),
+              ],
             ),
           ),
         ),
-      );
-      controller.selectAll();
-      await tester.pump();
-      final original = controller.text!;
-      expect(original, contains('first'));
-      expect(original, contains('second'));
-      expect(original.indexOf('first'), lessThan(original.indexOf('second')));
-      layer.value = 0;
-      await tester.pump();
-      controller.selectAll();
-      await tester.pump();
-      expect(controller.text, original);
-      await tester.pumpWidget(SizedBox.shrink());
-      controller.dispose();
-      layer.dispose();
-    },
-  );
+      ),
+    );
+    controller.selectAll();
+    await tester.pump();
+    final original = controller.text!;
+    expect(original, contains('first'));
+    expect(original, contains('second'));
+    expect(original.indexOf('first'), lessThan(original.indexOf('second')));
+    layer.value = 0;
+    await tester.pump();
+    controller.selectAll();
+    await tester.pump();
+    expect(controller.text, original);
+    await tester.pumpWidget(SizedBox.shrink());
+    controller.dispose();
+    layer.dispose();
+  });
 
   for (final nativeStack in [false, true]) {
     testWidgets('正文拖出上边缘保持当前范围，导航不加入文档，原生 Stack=$nativeStack', (tester) async {
@@ -155,8 +152,8 @@ class _BoundaryHarness extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 80),
             child: ElSelectionView(
-              child: ElScrollView(
-                cacheExtent: 0,
+              child: ElScroll(
+                scrollCacheExtent: .pixels(0),
                 children: [
                   for (var index = 0; index < 12; index++)
                     SizedBox(

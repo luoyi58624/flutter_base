@@ -118,7 +118,7 @@ void main() {
             height: 240,
             child: ElSelectionView(
               controller: controller,
-              child: ElScrollView(controller: scroll, physics: const ClampingScrollPhysics(), children: rows),
+              child: ElScroll(controller: scroll, physics: ClampingScrollPhysics(), children: rows),
             ),
           ),
         ),

@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// vp_layout.dart 的 [ElSelectionView] 包住整站（含 AppBar/NavBar + 内容区），
 /// ScrollPage 内结构：
-///   ElSelectionView(全局根) → Scaffold(appBar: ElView('ScrollPage'), body: ElScrollView(...))
+///   ElSelectionView(全局根) → Scaffold(appBar: ElView('ScrollPage'), body: ElScroll(...))
 ///
 /// ## Bug 表现（三张截图）
 ///
@@ -95,10 +95,10 @@ void main() {
           body: SizedBox(
             width: 400,
             height: viewportHeight,
-            child: ElScrollView(
+            child: ElScroll(
               controller: scrollController,
-              physics: const ClampingScrollPhysics(),
-              cacheExtent: 0, // 关掉预加载：精确控制挂载窗口
+              physics: ClampingScrollPhysics(),
+              scrollCacheExtent: .pixels(0), // 关掉预加载：精确控制挂载窗口
               children: [
                 for (var i = 0; i < rowCount; i++)
                   SizedBox(height: 24, child: ElView(child: '黄金法则：让可交互的元素不可选（none） - ${i + 1}')),

@@ -258,31 +258,28 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-      await _showMobileChrome(tester, _dialogTextKey);
+    await _showMobileChrome(tester, _dialogTextKey);
 
-      expect(dialog.isOpen, isTrue);
-      expect(find.byKey(_dialogPanelKey), findsOneWidget);
-      expect(_handleIsHit(tester), isTrue, reason: 'dialog 正文不得遮挡本内容宿主的句柄');
-      expect(
-        find.ancestor(of: find.byKey(selectionHandleVisualKey).first, matching: find.byType(SelectionView)),
-        findsNothing,
-        reason: '句柄提升到内容宿主，不留在文档子树中',
-      );
+    expect(dialog.isOpen, isTrue);
+    expect(find.byKey(_dialogPanelKey), findsOneWidget);
+    expect(_handleIsHit(tester), isTrue, reason: 'dialog 正文不得遮挡本内容宿主的句柄');
+    expect(
+      find.ancestor(of: find.byKey(selectionHandleVisualKey).first, matching: find.byType(SelectionView)),
+      findsNothing,
+      reason: '句柄提升到内容宿主，不留在文档子树中',
+    );
 
-      final overlay = Overlay.of(pageContext);
-      final peer = OverlayEntry(
-        builder: (_) => Positioned(left: 600, top: 400, child: SizedBox(width: 20, height: 20)),
-      );
-      overlay.insert(peer);
-      await tester.pump();
-      expect(_handleIsHit(tester), isTrue);
-      peer.remove();
-      peer.dispose();
-      await tester.pump();
-      expect(find.byKey(_dialogPanelKey), findsOneWidget);
-      expect(_handleIsHit(tester), isTrue, reason: '层序变化后句柄继续随 dialog 内容命中');
-    },
-  );
+    final overlay = Overlay.of(pageContext);
+    final peer = OverlayEntry(builder: (_) => Positioned(left: 600, top: 400, child: SizedBox(width: 20, height: 20)));
+    overlay.insert(peer);
+    await tester.pump();
+    expect(_handleIsHit(tester), isTrue);
+    peer.remove();
+    peer.dispose();
+    await tester.pump();
+    expect(find.byKey(_dialogPanelKey), findsOneWidget);
+    expect(_handleIsHit(tester), isTrue, reason: '层序变化后句柄继续随 dialog 内容命中');
+  });
 
   testWidgets('独立工具条保留 dialog 上下文，dialog 关闭时子弹层一并摘除', (tester) async {
     await tester.pumpWidget(_app(child: const ElView(child: 'page')));
@@ -305,30 +302,29 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-      await _showMobileChrome(tester, _dialogTextKey);
-      expect(find.byKey(selectionToolbarKey), findsOneWidget);
-      await tester.tap(find.byKey(_toolbarButtonKey));
-      await tester.pump();
-      await tester.pump();
+    await _showMobileChrome(tester, _dialogTextKey);
+    expect(find.byKey(selectionToolbarKey), findsOneWidget);
+    await tester.tap(find.byKey(_toolbarButtonKey));
+    await tester.pump();
+    await tester.pump();
 
-      expect(find.byKey(_toolbarChildOverlayKey), findsOneWidget);
-      expect(find.byKey(_toolbarChildOverlayKey).hitTestable(), findsOneWidget);
-      expect(
-        find.ancestor(of: find.byKey(_toolbarChildOverlayKey), matching: find.byKey(_dialogPanelKey)),
-        findsOneWidget,
-        reason: '工具条子浮层仍属于 dialog 的声明式子树',
-      );
+    expect(find.byKey(_toolbarChildOverlayKey), findsOneWidget);
+    expect(find.byKey(_toolbarChildOverlayKey).hitTestable(), findsOneWidget);
+    expect(
+      find.ancestor(of: find.byKey(_toolbarChildOverlayKey), matching: find.byKey(_dialogPanelKey)),
+      findsOneWidget,
+      reason: '工具条子浮层仍属于 dialog 的声明式子树',
+    );
 
-      dialog.close();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 1));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 1));
-      expect(find.byKey(_dialogPanelKey), findsNothing, reason: 'dialog 关闭必须级联关闭工具条子弹层');
-      expect(find.byKey(selectionToolbarKey), findsNothing);
-      expect(find.byKey(_toolbarChildOverlayKey), findsNothing);
-    },
-  );
+    dialog.close();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(find.byKey(_dialogPanelKey), findsNothing, reason: 'dialog 关闭必须级联关闭工具条子弹层');
+    expect(find.byKey(selectionToolbarKey), findsNothing);
+    expect(find.byKey(_toolbarChildOverlayKey), findsNothing);
+  });
 
   testWidgets('dialog 隐藏和退场时关闭独立句柄，恢复可见后重新挂载', (tester) async {
     await tester.pumpWidget(_app(child: const ElView(child: 'page')));
@@ -520,7 +516,7 @@ void main() {
           height: 120,
           child: SelectionView(
             controls: const _ChromeControls(),
-            child: ElScrollView(
+            child: ElScroll(
               controller: scrollController,
               children: const [
                 ElView(
@@ -733,47 +729,46 @@ void main() {
       ),
     );
 
-      await _showMobileChrome(tester, _pageTextKey);
-      final beforeHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
-      final beforeToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
+    await _showMobileChrome(tester, _pageTextKey);
+    final beforeHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
+    final beforeToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
 
-      update(() => scale = 2.0);
-      await tester.pump();
+    update(() => scale = 2.0);
+    await tester.pump();
 
-      final afterHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
-      final afterToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
-      expect(afterHandle.size, equals(beforeHandle.size), reason: 'handle 不得被 follower 的 scale 再放大');
-      expect(afterToolbar.size, equals(beforeToolbar.size), reason: 'toolbar 保持平台逻辑尺寸而非随正文 scale');
-      expect(afterToolbar.width, closeTo(220, 0.1));
-      await tester.tapAt(afterToolbar.center);
-      await tester.pump();
-      expect(taps, 1, reason: 'unit-space counter transform 后命中矩阵必须与视觉一致');
-      final render = _selectionRenderOf(tester, _pageTextKey);
-      final handleGesture = await tester.createGesture(kind: PointerDeviceKind.touch);
-      addTearDown(handleGesture.removePointer);
-      await handleGesture.down(afterHandle.center);
-      await tester.pump();
-      expect(
-        (render.isHandleDragInProgress || render.isSelectionDragging),
-        isTrue,
-        reason: 'scale 后 handle 命中也必须使用 counter-linear 矩阵',
-      );
-      await handleGesture.up();
-      await tester.pump();
+    final afterHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
+    final afterToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
+    expect(afterHandle.size, equals(beforeHandle.size), reason: 'handle 不得被 follower 的 scale 再放大');
+    expect(afterToolbar.size, equals(beforeToolbar.size), reason: 'toolbar 保持平台逻辑尺寸而非随正文 scale');
+    expect(afterToolbar.width, closeTo(220, 0.1));
+    await tester.tapAt(afterToolbar.center);
+    await tester.pump();
+    expect(taps, 1, reason: 'unit-space counter transform 后命中矩阵必须与视觉一致');
+    final render = _selectionRenderOf(tester, _pageTextKey);
+    final handleGesture = await tester.createGesture(kind: PointerDeviceKind.touch);
+    addTearDown(handleGesture.removePointer);
+    await handleGesture.down(afterHandle.center);
+    await tester.pump();
+    expect(
+      (render.isHandleDragInProgress || render.isSelectionDragging),
+      isTrue,
+      reason: 'scale 后 handle 命中也必须使用 counter-linear 矩阵',
+    );
+    await handleGesture.up();
+    await tester.pump();
 
-      update(() {
-        scale = 1.0;
-        angle = 0.3;
-      });
-      await tester.pump();
-      final rotatedHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
-      final rotatedToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
-      expect(rotatedHandle.width, closeTo(beforeHandle.width, 0.1));
-      expect(rotatedHandle.height, closeTo(beforeHandle.height, 0.1));
-      expect(rotatedToolbar.width, closeTo(beforeToolbar.width, 0.1));
-      expect(rotatedToolbar.height, closeTo(beforeToolbar.height, 0.1));
-    },
-  );
+    update(() {
+      scale = 1.0;
+      angle = 0.3;
+    });
+    await tester.pump();
+    final rotatedHandle = tester.getRect(find.byKey(selectionHandleVisualKey).first);
+    final rotatedToolbar = tester.getRect(find.byKey(_toolbarButtonKey));
+    expect(rotatedHandle.width, closeTo(beforeHandle.width, 0.1));
+    expect(rotatedHandle.height, closeTo(beforeHandle.height, 0.1));
+    expect(rotatedToolbar.width, closeTo(beforeToolbar.width, 0.1));
+    expect(rotatedToolbar.height, closeTo(beforeToolbar.height, 0.1));
+  });
 
   testWidgets('右对齐窄 editor 的宽 toolbar 可越过 follower 盒左缘并钳在屏幕内', (tester) async {
     var taps = 0;
@@ -794,16 +789,15 @@ void main() {
       ),
     );
 
-      await _showMobileChrome(tester, _pageTextKey);
-      final toolbar = tester.getRect(find.byKey(_toolbarButtonKey));
-      expect(toolbar.left, greaterThanOrEqualTo(0));
-      expect(toolbar.right, lessThanOrEqualTo(800));
-      expect(toolbar.width, closeTo(220, 0.1));
-      await tester.tapAt(toolbar.topRight - const Offset(4, -4));
-      await tester.pump();
-      expect(taps, 1, reason: '超出窄 editor 自身盒的右侧动作仍必须可命中');
-    },
-  );
+    await _showMobileChrome(tester, _pageTextKey);
+    final toolbar = tester.getRect(find.byKey(_toolbarButtonKey));
+    expect(toolbar.left, greaterThanOrEqualTo(0));
+    expect(toolbar.right, lessThanOrEqualTo(800));
+    expect(toolbar.width, closeTo(220, 0.1));
+    await tester.tapAt(toolbar.topRight - const Offset(4, -4));
+    await tester.pump();
+    expect(taps, 1, reason: '超出窄 editor 自身盒的右侧动作仍必须可命中');
+  });
 
   testWidgets('toolbar 本体宽于安全视口时按视口收缩而不是继续越屏', (tester) async {
     tester.view.devicePixelRatio = 1;
@@ -855,22 +849,21 @@ void main() {
       ),
     );
 
-      await _showMobileChrome(tester, _pageTextKey);
-      final render = _selectionRenderOf(tester, _pageTextKey);
-      render.beginHandleDrag(
-        SelectionHandleSide.end,
-        render.endpoints!.end.globalBottom + const Offset(0, 10),
-        pointer: 811,
-        kind: PointerDeviceKind.touch,
-      );
-      await tester.pump();
+    await _showMobileChrome(tester, _pageTextKey);
+    final render = _selectionRenderOf(tester, _pageTextKey);
+    render.beginHandleDrag(
+      SelectionHandleSide.end,
+      render.endpoints!.end.globalBottom + const Offset(0, 10),
+      pointer: 811,
+      kind: PointerDeviceKind.touch,
+    );
+    await tester.pump();
 
-      final magnifier = tester.getRect(find.byKey(_magnifierKey));
-      expect(magnifier.size, const Size(50, 30));
-      expect(magnifier.center.dx, closeTo(180, 0.1));
-      expect(magnifier.center.dy, closeTo(100, 0.1));
-    },
-  );
+    final magnifier = tester.getRect(find.byKey(_magnifierKey));
+    expect(magnifier.size, const Size(50, 30));
+    expect(magnifier.center.dx, closeTo(180, 0.1));
+    expect(magnifier.center.dy, closeTo(100, 0.1));
+  });
 
   testWidgets('magnifier 使用独立选区宿主和全局坐标，随页面内容留在 dialog 下方', (tester) async {
     await tester.pumpWidget(

@@ -11,8 +11,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../scroll/common/render/scroll_viewport_base.dart';
-import '../../scroll/common/viewport/scroll_viewport.dart';
+import '../../../scroll/viewport.dart' show ScrollViewport;
 import '../../view/event/event.dart';
 import '../../view/render/render_view.dart';
 import '../../view/style/style.dart';
@@ -432,10 +431,8 @@ class _BoxGeometryGroup {
         ? position.maxScrollExtent - position.pixels
         : position.pixels;
     final main = pixels(viewport.position, viewport.axisDirection);
-    final cross = viewport is RenderScrollViewportBase && viewport.horizontalPosition != null
-        ? pixels(viewport.horizontalPosition!, viewport.horizontalAxisDirection)
-        : 0.0;
-    return viewport.axis == Axis.vertical ? Offset(-cross, -main) : Offset(-main, 0);
+    // 官方视口只有单一主轴，双轴滚动由内外两层视口各自贡献偏移。
+    return viewport.axis == Axis.vertical ? Offset(0, -main) : Offset(-main, 0);
   }
 
   void add(Object value, Rect rect) {

@@ -14,8 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../widgets/popup/context_menu.dart';
-import '../../scroll/common/pointer/scroll_touch_gate.dart' show ScrollCatchPointers;
-import '../../scroll/common/viewport/scroll_viewport.dart';
+import '../../../scroll/viewport.dart' show ScrollTransparentSelectionRegistrar, ScrollViewport;
 import '../../view/event/dispatcher.dart';
 import '../../view/event/event.dart';
 import '../../view/render/scroll_cursor_freeze.dart';

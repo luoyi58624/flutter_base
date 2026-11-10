@@ -347,13 +347,21 @@ class RenderSelectionView extends RenderProxyBox
     return true;
   }
 
+  bool _catchesScroll(RenderObject? source) {
+    for (RenderObject? node = source ?? this; node != null; node = node.parent) {
+      if (node is ScrollViewport && node.position.isScrollingNotifier.value) return true;
+    }
+    return false;
+  }
+
   void _tapDown(ElEventDetails callback) {
     final event = callback.originalEvent;
     if (!attached || !_enabled || event is! PointerDownEvent || _pointer != null || !isPrimaryPointerDown(event)) {
       return;
     }
-    if (ScrollCatchPointers.contains(event.pointer)) return;
     final source = _hitSource(event.position);
+    // 按下时祖先视口仍在滚动，这一下是接住滚动，不开始选择。
+    if (_catchesScroll(source)) return;
     if (!_canStart(event.position, source)) {
       for (RenderObject? node = source; node != null && !identical(node, this); node = node.parent) {
         if (node is RenderSelectionIsland && node.enabled) {
@@ -838,7 +846,9 @@ class RenderSelectionView extends RenderProxyBox
         SchedulerBinding.instance.schedulerPhase == SchedulerPhase.transientCallbacks) {
       _scheduleSync();
     } else {
+      // 视口按待生效偏移先行变换，立即同步让句柄同帧跟随；布局后再校准一次吸顶等布局才确定的位置。
       _syncDocument();
+      _scheduleSync();
     }
   }
 

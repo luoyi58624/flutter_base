@@ -1,7 +1,7 @@
 part of 'selection_view.dart';
 
 /// 当前文档唯一的官方注册中心，不合并其他显式文档根。
-class SelectionDocument extends StaticSelectionContainerDelegate {
+class SelectionDocument extends StaticSelectionContainerDelegate implements ScrollTransparentSelectionRegistrar {
   VoidCallback? onMembersChanged;
 
   bool _mountedSelectAll = false;
