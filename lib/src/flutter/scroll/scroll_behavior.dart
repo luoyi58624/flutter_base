@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
-import '../desktop_scrollbar.dart' show ElDesktopScrollbar;
-import 'bouncing_scroll_physics.dart';
-import 'clamping_scroll_physics.dart';
+import 'scrollbar/desktop_scrollbar.dart' show ElDesktopScrollbar;
+import 'physics/bouncing_scroll_physics.dart';
+import 'physics/clamping_scroll_physics.dart';
 
 /// el 的平台默认滚动物理口径。
 ///

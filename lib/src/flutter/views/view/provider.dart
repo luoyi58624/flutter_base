@@ -2,15 +2,15 @@ import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatf
 import 'package:flutter/widgets.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
-import '../../slivers/scroll/refresh/android_refresher.dart';
-import '../../slivers/scroll/refresh/ios_refresher.dart';
-import '../../slivers/scroll/refresh/refresher.dart';
+import '../../scroll/refresh/android_refresher.dart';
+import '../../scroll/refresh/ios_refresher.dart';
+import '../../scroll/refresh/refresher.dart';
 import '../scroll/scrollbar/android_scroll_bar.dart';
 import '../scroll/scrollbar/ios_scroll_bar.dart';
 import '../scroll/scrollbar/mac_scroll_bar.dart';
 import '../scroll/scrollbar/scrollbar_base.dart';
 import '../scroll/scrollbar/window_scroll_bar.dart';
-import '../../slivers/scroll/common/smooth_scroll.dart';
+import '../../scroll/smooth/smooth_scroll.dart';
 
 /// el_ui 核心 View 系统的环境级默认实现提供器。
 class ElViewProvider extends StatelessWidget {

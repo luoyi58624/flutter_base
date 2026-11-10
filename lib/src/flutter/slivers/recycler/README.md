@@ -73,7 +73,7 @@ ElSliverRecyclerList(
 
 业务标题同样可以传入 ValueListenable<String>：其当前值应反映 index.value 对应的记录，并在序号或业务数据变化时通知；映射来源的订阅随条目生命周期释放。不要在固定外壳的构建器里只取一次 index.value 再生成普通字符串，否则后续换绑不会更新这段文字。
 
-文本快路径保留 ElView 的 Widget、Element 和 RenderObject，不经过整份视图配置更新；文字换行导致自然高度改变时，仍会触发布局并修正后续条目位置。三种布局的集成验证见 test/flutter/views/sliver_recycler_text_test.dart。
+文本快路径保留 ElView 的 Widget、Element 和 RenderObject，不经过整份视图配置更新；文字换行导致自然高度改变时，仍会触发布局并修正后续条目位置。三种布局的集成验证见 test/flutter/slivers/sliver_recycler_text_test.dart。
 
 ## 文件分工
 

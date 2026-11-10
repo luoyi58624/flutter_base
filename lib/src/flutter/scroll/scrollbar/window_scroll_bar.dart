@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../views/view/view.dart';
-import '../../../views/view/style/style.dart';
+import '../../views/view/view.dart';
+import '../../views/view/style/style.dart';
 import 'scrollbar_base.dart';
 
 /// 用于 Windows 的 Chromium Fluent 内嵌滚动条。

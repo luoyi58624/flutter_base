@@ -5,8 +5,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
 import 'package:flutter/widgets.dart';
 
-import '../../../views/view/view.dart';
-import '../../../views/view/style/style.dart';
+import '../../views/view/view.dart';
+import '../../views/view/style/style.dart';
 import 'refresher.dart';
 
 // ---- 官方 CupertinoSliverRefreshControl / CupertinoActivityIndicator 常量 ----

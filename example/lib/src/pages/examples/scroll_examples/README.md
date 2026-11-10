@@ -20,6 +20,6 @@
 
 文档设置中的旧 recyclerView 存储值定向迁移为 sliverList，使用 CustomScrollView + ElSliverList；原有官方普通、官方虚拟和 ElScrollView 文档模式保留。常驻文档通过已挂载小节进行 ensureVisible，不能将该能力用于尚未挂载的回收项。
 
-旧公共入口 lib/recycler_view.dart、lib/flutter.dart 中的旧导出、旧内核、旧例页副本及专属诊断报告已移除。仍有效的业务回归迁到 example/test/scroll_*.dart，新 Sliver 的换绑过渡回归位于 test/flutter/views/sliver_recycler_rebind_transition_test.dart；旧 Adapter/Holder 成本诊断下线。
+旧公共入口 lib/recycler_view.dart、lib/flutter.dart 中的旧导出、旧内核、旧例页副本及专属诊断报告已移除。仍有效的业务回归迁到 example/test/scroll_*.dart，新 Sliver 的换绑过渡回归位于 test/flutter/slivers/sliver_recycler_rebind_transition_test.dart；旧 Adapter/Holder 成本诊断下线。
 
 共享 example_image、example_scrollbar、plain_scroll、Bibi、外卖与 recycler_cards 资产保留。ElScrollable 实现和 ElScrollView 内核迁移留待后续；本轮只使用局部无头测试，不将其耗时视为设备帧耗时。

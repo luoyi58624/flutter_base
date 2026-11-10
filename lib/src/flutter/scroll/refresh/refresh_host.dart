@@ -8,8 +8,8 @@ import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase, T
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
-import '../common/bouncing_scroll_physics.dart';
-import '../common/scroll_delta_source.dart';
+import '../physics/bouncing_scroll_physics.dart';
+import '../nested/scroll_delta_source.dart';
 import 'refresher.dart';
 
 /// 连接 ElScroll 的输入协作、真实滚动位置与刷新停靠物理。

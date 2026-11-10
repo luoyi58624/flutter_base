@@ -1,6 +1,6 @@
-import '../../../../slivers/scroll/common/scroll_delta_source.dart';
+import '../../../../scroll/nested/scroll_delta_source.dart';
 
-export '../../../../slivers/scroll/common/scroll_delta_source.dart';
+export '../../../../scroll/nested/scroll_delta_source.dart';
 
 /// 滚动输入拦截器：注册到 [ElScrollView] 后，
 /// 用户手势 / 滚轮 / 惯性产生的主轴 delta 先经拦截器消费一层，

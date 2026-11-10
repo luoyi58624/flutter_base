@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../views/view/view.dart';
-import '../../../views/view/style/style.dart';
+import '../../views/view/view.dart';
+import '../../views/view/style/style.dart';
 import 'scrollbar_base.dart';
 
 /// 用于 macOS 与 Linux 的 Chromium 风格悬浮滚动条。

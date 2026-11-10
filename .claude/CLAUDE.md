@@ -1,6 +1,6 @@
 # flutter_base 开发指南
 
-当前为单个 Flutter 包，`example/` 是独立示例应用；依赖与包边界以各自 `pubspec.yaml` 为准。通用规范沿用 el，旧项目的包路径和已移除 API 不直接套用。
+当前为单个 Flutter 包，`example/` 是独立示例应用；依赖与包边界以各自 `pubspec.yaml` 为准。
 
 ## 代码规范
 
@@ -13,21 +13,22 @@
 - 对外 API 使用中文 `///` 文档注释，一句话说明用途，关键决策解释原因；私有 API 只注释重要逻辑
 - 尽可能使用 HookWidget 编写代码，代码保证简洁
 - 应用负责原生文字排版和全局字体；ElComponentProvider 安装组件实现并向 ElView 转交显式提供的样式与主题模式
-- API 权威来源是当前源码；文档与源码冲突时以源码为准并同步修正文档，不引用旧项目才有的 API
+- API 权威来源是当前源码；文档与源码冲突时以源码为准并同步修正文档，不引用源码中不存在的 API
 - 外观优先由 ElStyle 声明，状态变体、级联、过渡和变量交给现有引擎承担；能由引擎处理的纯样式变化，不额外触发 Widget.build
 - 样式确实决定 Widget 结构或行为，或现有引擎无法承接派生值时，才在 Widget 层订阅，并说明原因；主题变量在最近消费点通过 context.elTheme 或 ElView.of(context).getVar 按键读取，不提前订阅后层层下传
-- 当前 ElStyle 没有 builder，ElView 没有 copyWith，不为照搬旧规范增设不存在的接口或兼容层；若以后提供样式计算回调，依赖须在回调自己的 context 读取
+- 当前 ElStyle 没有 builder，ElView 没有 copyWith，不为此增设接口或兼容层；若以后提供样式计算回调，依赖须在回调自己的 context 读取
 - 上层页面与示例中的独立局部区域（内容分组、面板、示例舞台、卡片）使用 ElCardView 建立容器语义；ElCard 负责品牌外观并复用它，文字、装饰和布局辅助仍按职责使用 ElView，交互叶子保留按钮、链接等行为基元
 - 组件保持公共接口与品牌实现分离，复用已有模型、事件、焦点和弹层机制，不额外设计同职责的协议、选项类型或状态通道
 - 用户 style 在默认样式之后合并；载荷中的 Widget 保留原实例，其他内容交给现有内容桥接；保留各组件既有的 disabled、loading 和空回调语义，避免迁移时把空回调或加载状态机械地等同禁用
 - 需要区分未传入与显式 null 的参数，一律使用统一的 $absent 作为默认占位，不借用空 Widget 或另造哨兵
 - Git 提交信息必须使用中文；Conventional Commit 类型、作用域和代码标识可以保留英文
+- 每完成一项修改并通过对应验证后自动提交，不等用户再次确认；只暂存本次涉及的文件，工作区仅换行符不同的文件不提交
 - 写完功能、修复 bug 默认只跑本次改动覆盖的局部测试，全量测试仅在用户明确要求时执行
-- 运行代码生成直接执行 dart run build_runner build；Linux 虚拟机经 vmhgfs 共享盘无法可靠运行 Flutter 工具链（build_runner 卡死，pub get 会把 .dart_tool 改成 Linux 路径），Linux 侧不运行 pub get、build_runner、analyze、test，改完列出命令交给用户在 Windows 端执行
+- 运行代码生成直接执行 dart run build_runner build；Linux 侧的 Flutter 命令一律经 SSH 在 Windows 端执行，规则见全局规范，本项目 Windows 路径为 `D:\project\flutter\flutter_base`
 
 ## 格式化
 
-- 根目录与 example/ 的 analysis_options.yaml 均配置 formatter.page_width: 120，沿用 el 的 Dart formatter；不要混用默认 80 列或临时指定其他行宽
+- 根目录与 example/ 的 analysis_options.yaml 均配置 formatter.page_width: 120；不要混用默认 80 列或临时指定其他行宽
 - 使用 dart format <本次涉及的 Dart 文件>，让 formatter 自动读取最近的项目配置；不手动压行，也不为单次修改格式化无关文件或生成产物
 - 格式调整保留文件中的在途业务修改，只提交本次确实修改的文件
 
@@ -61,4 +62,4 @@ flutter_base 导出 ElEditableView、ElEditableController、ElEditableStyle，�
 
 - **严厉禁止编写或运行前台窗口测试**：不得写、不得跑会弹出真实窗口、抢占前台焦点或依赖人工操作的应用测试——包括 `flutter run`、`flutter drive`、以 Windows/真机设备运行的 `integration_test`、依赖截图比对的真机脚本。验证一律走无头 `flutter test`（flutter_tester），不弹窗、不抢焦点。
 - **严厉禁止占用用户操作电脑**：不得为了验证而长时间吃满 CPU/内存（全量 benchmark、批量重复跑、无人值守长跑），不得与用户正在操作的会话抢资源；重负载验证先说明代价、取得同意，并放后台 + 降优先级 + 设超时兜底。
-- 用户正在运行的应用实例（element_docs / flutter run 等）不得擅自 kill、重启、附加调试或注入代码；先报告现场与结论，等用户决定。
+- 用户正在运行的应用实例（flutter run、example 等）不得擅自 kill、重启、附加调试或注入代码；先报告现场与结论，等用户决定。

@@ -55,6 +55,6 @@ SelectionArea(
 
 ## 验证与示例
 
-组件测试位于 `test/flutter/views/sliver_list_test.dart`，包含全量挂载、滚动期间的构建/布局计数、可见绘制、尺寸变化、增删重排、坐标与命中、离屏定位及官方文本选择。
+组件测试位于 `test/flutter/slivers/sliver_list_test.dart`，包含全量挂载、滚动期间的构建/布局计数、可见绘制、尺寸变化、增删重排、坐标与命中、离屏定位及官方文本选择。
 
 首页提供“文档滚动（全量常驻）”入口，示例包含 80 个自然高度段落，可以切换阅读宽度、展开或收起段落，并选择文字。对应交互测试位于 `example/test/sliver_list_example_test.dart`。验证使用无头 Widget 测试。

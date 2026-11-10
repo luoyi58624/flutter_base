@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter/slivers/scroll/scroll_position.dart' show ScrollHostPosition;
+import 'package:flutter_base/src/flutter/scroll/scroll_position.dart' show ScrollHostPosition;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _app(ScrollController controller, {Object? smoothScroll}) => Directionality(
@@ -38,26 +38,28 @@ void main() {
     final inner = ElScrollController();
     addTearDown(outer.dispose);
     addTearDown(inner.dispose);
-    await tester.pumpWidget(Directionality(
-      textDirection: TextDirection.ltr,
-      child: SizedBox(
-        height: 400,
-        child: ElScroll(
-          controller: outer,
-          children: [
-            SizedBox(
-              height: 240,
-              child: ListView.builder(
-                controller: inner,
-                itemCount: 50,
-                itemBuilder: (context, index) => SizedBox(height: 36, child: Text('Row $index')),
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(
+          height: 400,
+          child: ElScroll(
+            controller: outer,
+            children: [
+              SizedBox(
+                height: 240,
+                child: ListView.builder(
+                  controller: inner,
+                  itemCount: 50,
+                  itemBuilder: (context, index) => SizedBox(height: 36, child: Text('Row $index')),
+                ),
               ),
-            ),
-            SizedBox(height: 500),
-          ],
+              SizedBox(height: 500),
+            ],
+          ),
         ),
       ),
-    ));
+    );
     expect(inner.position, isNot(isA<ScrollHostPosition>()));
     expect(outer.position, isA<ScrollHostPosition>());
   });

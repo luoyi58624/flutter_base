@@ -2,9 +2,9 @@
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 
 import 'scroll_delta_interceptor.dart';
-import '../../../../slivers/scroll/common/nested_scroll.dart';
+import '../../../../scroll/nested/nested_scroll_chain.dart';
 
-export '../../../../slivers/scroll/common/nested_scroll.dart';
+export '../../../../scroll/nested/nested_scroll_chain.dart';
 
 /// 链获取器:render / physics 经 getter 闭包动态读取(state 字段随 build
 /// 刷新,identity 不参与 position 重建)。

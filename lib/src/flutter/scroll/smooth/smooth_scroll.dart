@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 
-import '../../../utils/platform/index.dart' show ElPlatform;
+import '../../utils/platform/index.dart' show ElPlatform;
 
 /// 鼠标滚轮平滑滚动算法（独立可配置类，形态对齐滚动条 / 下拉刷新）。
 ///

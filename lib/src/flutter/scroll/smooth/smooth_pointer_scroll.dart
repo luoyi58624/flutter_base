@@ -7,7 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../utils/platform/index.dart' show ElPlatform;
+import '../../utils/platform/index.dart' show ElPlatform;
 import 'smooth_scroll.dart';
 
 const Duration _pointerScrollTouchpadWindow = Duration(milliseconds: 80);

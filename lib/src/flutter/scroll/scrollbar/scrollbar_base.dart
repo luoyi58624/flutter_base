@@ -40,13 +40,13 @@ import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
-import '../../../views/layout/stack/stack_view.dart' show ElPositioned;
-import '../../../views/view/event/dispatcher.dart' show DragPointerLock;
-import '../../../views/view/event/event.dart';
-import '../../../views/view/render/hit_bounds.dart';
-import '../../../views/view/semantics/semantics.dart';
-import '../../../views/view/style/style.dart';
-import '../../../views/view/view.dart';
+import '../../views/layout/stack/stack_view.dart' show ElPositioned;
+import '../../views/view/event/dispatcher.dart' show DragPointerLock;
+import '../../views/view/event/event.dart';
+import '../../views/view/render/hit_bounds.dart';
+import '../../views/view/semantics/semantics.dart';
+import '../../views/view/style/style.dart';
+import '../../views/view/view.dart';
 
 /// 单轴滚动条读取的指标及发送给宿主的交互命令。
 abstract class ElScrollbarAxisDetails {
