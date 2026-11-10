@@ -152,6 +152,21 @@ class _LargeTitleState extends State<ElSliverLargeTitle> {
           final full = _measuredMax ?? constraints.maxHeight;
           final range = (full - compactExtent).clamp(0.0, double.infinity);
           final progress = range <= 0 ? 0.0 : ((full - constraints.maxHeight) / range).clamp(0.0, 1.0).toDouble();
+          // 缩放型标题沿一条连续路径进入固定导航，不在原位置缩小、提前淡出。
+          // 非缩放型沿用两份标题的交叉渐变。
+          final scale = (compactStyle.fontSize ?? 18) / (largeStyle.fontSize ?? 34);
+          final compactTextHeight = (compactStyle.fontSize ?? 18) * (compactStyle.height ?? 1.2);
+          final largeTop = compactExtent + widget.largeTitlePadding.top;
+          final compactTop = top + (widget.toolbarExtent - compactTextHeight) / 2;
+          final dx = (widget.leading == null ? 16.0 : 72.0) - widget.largeTitlePadding.left;
+          final direction = Directionality.of(context);
+          final endFade = ((progress - .9) / .1).clamp(0.0, 1.0).toDouble();
+          // 搜索区先淡出内容，之后才逐步裁掉背景占位；避免文字被高度裁剪切断。
+          final titleTravel = (range - _bottomHeight).clamp(0.0, double.infinity);
+          final bottomFadeEnd = titleTravel / 4;
+          final bottomOpacity = bottomFadeEnd <= 0
+              ? 1 - progress
+              : (1 - progress * range / bottomFadeEnd).clamp(0.0, 1.0).toDouble();
 
           // 只有导航头内部随约束变化，正文 slivers 不重建。
           return ColoredBox(
@@ -169,7 +184,7 @@ class _LargeTitleState extends State<ElSliverLargeTitle> {
                     centerMiddle: widget.centerTitle,
                     leading: widget.leading,
                     middle: Opacity(
-                      opacity: progress,
+                      opacity: widget.fade ? progress : endFade,
                       child: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: compactStyle),
                     ),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: widget.actions),
@@ -184,19 +199,27 @@ class _LargeTitleState extends State<ElSliverLargeTitle> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Opacity(
-                        opacity: widget.bottom == null ? 1 - progress : (1 - progress * 2).clamp(0.0, 1.0),
+                        opacity: widget.fade ? 1 - progress : 1 - endFade,
                         child: Padding(
                           padding: widget.largeTitlePadding,
-                          child: Transform.scale(
-                            alignment: Alignment.topLeft,
-                            scale: widget.fade ? 1 : 1 - 0.2 * progress,
-                            child: Text(widget.title, style: largeStyle),
+                          child: Transform.translate(
+                            offset: widget.fade
+                                ? Offset.zero
+                                : Offset(
+                                    (direction == TextDirection.rtl ? -dx : dx) * progress,
+                                    (compactTop - largeTop) * progress,
+                                  ),
+                            child: Transform.scale(
+                              alignment: direction == TextDirection.rtl ? Alignment.topRight : Alignment.topLeft,
+                              scale: widget.fade ? 1 : 1 + (scale - 1) * progress,
+                              child: Text(widget.title, style: largeStyle),
+                            ),
                           ),
                         ),
                       ),
                       if (widget.bottom != null)
                         Opacity(
-                          opacity: (2 - progress * 2).clamp(0.0, 1.0),
+                          opacity: bottomOpacity,
                           child: _NaturalExtentReporter(
                             onMeasured: _recordBottom,
                             child: Padding(padding: widget.bottomPadding, child: widget.bottom),

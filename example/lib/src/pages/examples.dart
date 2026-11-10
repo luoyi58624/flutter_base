@@ -72,6 +72,18 @@ class ExamplesPage extends StatelessWidget {
                         ),
                     ],
                   ),
+                  ElListGroup(
+                    title: '导航特效 · 旧版 15 个示例迁移',
+                    children: [
+                      for (final page in navigationEffectExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(page.data!),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),

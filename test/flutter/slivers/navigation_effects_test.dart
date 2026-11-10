@@ -62,6 +62,44 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Bibi 搜索区始终在频道栏上方，折叠时频道栏向上移动并吸顶', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        ElScroll.sliver(
+          controller: controller,
+          physics: ClampingScrollPhysics(),
+          slivers: [
+            ElSliverCollapse.bibi(
+              compact: Text('固定频道'),
+              content: Text('搜索内容'),
+              compactExtent: 43,
+              contentExtent: 58,
+              holdSnapDelay: Duration(milliseconds: 200),
+            ),
+            SliverToBoxAdapter(child: SizedBox(height: 1800)),
+          ],
+        ),
+      ),
+    );
+    controller.jumpTo(500);
+    await tester.pump();
+    final search = find.text('搜索内容');
+    final tabs = find.text('固定频道');
+    final before = tester.getTopLeft(tabs).dy;
+    expect(tester.getTopLeft(search).dy, lessThan(before));
+
+    final gesture = await tester.startGesture(Offset(140, 200));
+    await gesture.moveBy(Offset(0, -59));
+    await tester.pump();
+    expect(tester.getTopLeft(tabs).dy, closeTo(before - 58, 1));
+    expect(controller.offset, closeTo(501, .01), reason: '页头消耗 58px 后，仅剩余 1px 才能进入正文');
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Bibi 在正文中段优先吸收拖拽，按住停止移动后按 50% 自动吸附', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
@@ -267,6 +305,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('LargeTitle 缩放型文字朝紧凑导航移动，而不是在原地渐隐', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        ElScroll.sliver(
+          controller: controller,
+          slivers: [
+            ElSliverLargeTitle(title: '收藏', leading: Icon(Icons.arrow_back)),
+            SliverToBoxAdapter(child: SizedBox(height: 1400)),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+    final header = tester.renderObject(find.byType(SliverResizingHeader)) as RenderSliver;
+    final range = header.geometry!.scrollExtent - 56;
+    final title = find.text('收藏');
+    final large = find.ancestor(of: title.last, matching: find.byType(Transform)).last;
+    final initialTransform = tester.widget<Transform>(large);
+    expect(initialTransform.transform.storage[13], closeTo(0, .01));
+    controller.jumpTo(range / 2);
+    await tester.pump();
+    final translated = tester.widget<Transform>(large);
+    expect(translated.transform.storage[13], lessThan(-10), reason: '标题必须向紧凑导航的实际位置上移');
+    controller.jumpTo(range);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('LargeTitle 使用官方自然测高，缩入固定导航，不指定展开高度', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
@@ -291,7 +359,7 @@ void main() {
     controller.jumpTo(150);
     await tester.pump();
     final compact = tester.widgetList<Opacity>(find.byType(Opacity)).map((opacity) => opacity.opacity);
-    expect(compact, contains(1.0));
+    expect(compact.any((opacity) => opacity > .999), isTrue);
     expect(tester.takeException(), isNull);
   });
 }

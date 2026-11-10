@@ -1,4 +1,5 @@
 import 'package:example/src/pages/examples/new_scroll_nested.dart';
+import 'package:example/src/pages/examples/new_bibi_collapse.dart';
 import 'package:example/src/pages/examples/new_scroll_navigation.dart';
 import 'package:example/src/pages/examples/new_scroll_refresh.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,25 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _app(Widget page) => MaterialApp(scrollBehavior: ElScrollBehavior(), home: page);
 
 void main() {
+  testWidgets('Bibi 新版：真实频道、搜索栏、双列视频和 Sliver 刷新可正常挂载', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(_app(NewBibiCollapsePage()));
+    await tester.pump(Duration(milliseconds: 120));
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverCollapse, skipOffstage: false), findsOneWidget);
+    expect(find.byType(ElSliverRefresh, skipOffstage: false), findsOneWidget);
+    expect(find.text('发现好看的视频', skipOffstage: false), findsOneWidget);
+    expect(find.text('推荐', skipOffstage: false), findsOneWidget);
+    expect(find.text('热门', skipOffstage: false), findsOneWidget);
+    expect(tester.getSize(find.byType(ElScroll)).height, greaterThan(400), reason: 'Bibi 底栏只能占 56px，不能吃掉正文的整个视口');
+    await tester.tap(find.text('热门'));
+    await tester.pump(Duration(milliseconds: 80));
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverCollapse, skipOffstage: false), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('导航特效：LargeTitle 与三种折叠构造可以切换', (tester) async {
     await tester.pumpWidget(_app(NewScrollNavigationPage()));
     await tester.pumpAndSettle();

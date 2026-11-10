@@ -351,14 +351,15 @@ class _ActiveHeader extends SliverPersistentHeaderDelegate {
       fit: StackFit.expand,
       clipBehavior: Clip.hardEdge,
       children: [
-        Positioned(top: 0, left: 0, right: 0, height: compactExtent, child: compact),
+        // Bibi 的搜索区在频道栏上方：折叠时搜索区向上离场，频道栏同步上移并吸顶。
         Positioned(
-          top: compactExtent,
+          top: -contentExtent * progress,
           left: 0,
           right: 0,
           height: contentExtent,
           child: Opacity(opacity: 1 - progress, child: content),
         ),
+        Positioned(top: contentExtent * (1 - progress), left: 0, right: 0, height: compactExtent, child: compact),
       ],
     ),
   );

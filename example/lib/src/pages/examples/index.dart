@@ -10,6 +10,8 @@ import 'press_feedback.dart';
 import 'new_scroll_nested.dart';
 import 'new_scroll_refresh.dart';
 import 'new_scroll_navigation.dart';
+import 'new_bibi_collapse.dart';
+export 'navigation_effects/routes.dart' show navigationEffectExamples;
 import 'scroll_examples/cards.dart';
 import 'scroll_examples/chat.dart';
 import 'scroll_examples/media.dart';
@@ -82,6 +84,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
 
 /// 新版滚动示例，两端共用相同分组和页面工厂。
 final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'new-bibi-collapse',
+    title: 'Bibi · 新版折叠导航与真实视频流',
+    icon: ElIcon(Icons.video_library_outlined),
+    data: (_) => NewBibiCollapsePage(),
+  ),
   ElMenuModel(
     key: 'new-scroll-navigation',
     title: '导航特效（LargeTitle / Collapse）',
@@ -194,12 +202,7 @@ final scrollBusinessExamples = <ElMenuModel<WidgetBuilder>>[
     icon: ElIcon(Icons.article_outlined),
     data: (_) => RecyclerRichDocumentPage(),
   ),
-  ElMenuModel(
-    key: 'nest-scroll',
-    title: '嵌套滚动',
-    icon: ElIcon(Icons.article_outlined),
-    data: (_) => NestScrollPage(),
-  ),
+  ElMenuModel(key: 'nest-scroll', title: '嵌套滚动', icon: ElIcon(Icons.article_outlined), data: (_) => NestScrollPage()),
   ElMenuModel(
     key: 'recycler-spike',
     title: '单帧尖峰压力',
