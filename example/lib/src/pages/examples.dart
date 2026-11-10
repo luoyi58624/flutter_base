@@ -61,7 +61,7 @@ class ExamplesPage extends StatelessWidget {
                     ],
                   ),
                   ElListGroup(
-                    title: 'ElSliver 滚动',
+                    title: '新版滚动',
                     children: [
                       for (final page in sliverScrollExamples)
                         ElListTile(

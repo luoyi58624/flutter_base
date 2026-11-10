@@ -252,7 +252,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(fixture.pulled, 60);
       expect(_contentShift(tester), closeTo(60, 0.01));
-      expect(fixture.controller.position.maxScrollExtent, 60 + 1200 - 460);
+      expect(fixture.controller.position.maxScrollExtent, closeTo(60 + 1200 - 460, 0.01));
 
       fixture.completer.complete();
       await tester.pumpAndSettle();

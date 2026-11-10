@@ -7,6 +7,8 @@ import '../view.dart';
 import '../view/base.dart';
 import 'bibi/bibi.dart';
 import 'press_feedback.dart';
+import 'new_scroll_nested.dart';
+import 'new_scroll_refresh.dart';
 import 'scroll_examples/cards.dart';
 import 'scroll_examples/chat.dart';
 import 'scroll_examples/media.dart';
@@ -77,8 +79,20 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
   ),
 ];
 
-/// ElSliver 滚动示例，两端共用相同分组和页面工厂。
+/// 新版滚动示例，两端共用相同分组和页面工厂。
 final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
+  ElMenuModel(
+    key: 'new-scroll-nested',
+    title: '嵌套滚动与 shrinkWrap',
+    icon: ElIcon(Icons.swap_vert_outlined),
+    data: (_) => NewScrollNestedPage(),
+  ),
+  ElMenuModel(
+    key: 'new-scroll-refresh',
+    title: '下拉刷新（Widget / Sliver）',
+    icon: ElIcon(Icons.refresh_outlined),
+    data: (_) => NewScrollRefreshPage(),
+  ),
   ElMenuModel(
     key: 'sliver-takeaway',
     title: '外卖商家列表',

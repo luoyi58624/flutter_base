@@ -13,7 +13,9 @@ Widget _body(Widget child) => Directionality(
 );
 
 class _Fixture {
-  final controller = ScrollController();
+  _Fixture({bool useElController = false}) : controller = useElController ? ElScrollController() : ScrollController();
+
+  final ScrollController controller;
   final refreshed = <int>[];
   final completer = Completer<void>();
   ElRefreshDetails? details;
@@ -58,6 +60,20 @@ Future<TestGesture> _drag(WidgetTester tester, List<double> motions) async {
 }
 
 void main() {
+  testWidgets('ElScrollController 直接挂载时 Widget 刷新正常分账', (tester) async {
+    final fixture = _Fixture(useElController: true);
+    addTearDown(fixture.dispose);
+    await tester.pumpWidget(fixture.build());
+    final gesture = await _drag(tester, [35, 65]);
+    expect(fixture.details!.snapshot.value.status, RefreshIndicatorStatus.armed);
+    await gesture.up();
+    await tester.pump(Duration(milliseconds: 1));
+    expect(fixture.refreshed, [1]);
+    fixture.completer.complete();
+    await tester.pumpAndSettle();
+    expect(fixture.controller.offset, 0);
+  });
+
   testWidgets('Widget 刷新器接入官方拖拽；未达阈值、反向撤销及取消不触发', (tester) async {
     final fixture = _Fixture();
     addTearDown(fixture.dispose);

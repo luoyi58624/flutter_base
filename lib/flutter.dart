@@ -43,6 +43,7 @@ export 'src/flutter/views/view/event/event.dart';
 export 'src/flutter/slivers/list/sliver_list.dart' show ElSliverList;
 export 'src/flutter/slivers/recycler/sliver_recycler.dart' show ElSliverRecyclerList, ElSliverRecyclerGrid;
 export 'src/flutter/slivers/scroll/nested_scroll.dart' show ElNestedScroll;
+export 'src/flutter/slivers/scroll/desktop_scrollbar.dart' show ElDesktopScrollbar;
 export 'src/flutter/slivers/scroll/refresh.dart' show ElRefresh;
 export 'src/flutter/slivers/scroll/scroll.dart' show ElScroll;
 export 'src/flutter/slivers/scroll/sliver_refresh.dart' show ElSliverRefresh;

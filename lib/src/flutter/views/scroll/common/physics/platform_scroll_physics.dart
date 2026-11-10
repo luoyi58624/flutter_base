@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
-import '../../../../slivers/scroll/scrollbar.dart' show buildElDesktopScrollbar;
+import '../../../../slivers/scroll/desktop_scrollbar.dart' show ElDesktopScrollbar;
 import 'bouncing_scroll_physics.dart';
 import 'clamping_scroll_physics.dart';
 
@@ -50,7 +51,7 @@ class ElScrollBehavior extends ScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) => elScrollPhysicsFor(getPlatform(context));
 
-  /// 给官方 Scrollable 接入移动平台原生滚动条，桌面保留现有行为直至宿主迁移。
+  /// 在官方 Scrollable 外安装各平台滚动条，桌面采用独立 Widget。
   @override
   Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
     final controller = details.controller;
@@ -58,8 +59,30 @@ class ElScrollBehavior extends ScrollBehavior {
     return switch (getPlatform(context)) {
       TargetPlatform.iOS => CupertinoScrollbar(controller: controller, child: child),
       TargetPlatform.android || TargetPlatform.fuchsia => Scrollbar(controller: controller, child: child),
-      TargetPlatform.windows || TargetPlatform.macOS || TargetPlatform.linux =>
-        buildElDesktopScrollbar(context, child, details),
+      TargetPlatform.windows => ElDesktopScrollbar.windows(
+        controller: controller,
+        direction: details.direction,
+        child: child,
+      ),
+      TargetPlatform.macOS || TargetPlatform.linux => ElDesktopScrollbar.mac(
+        controller: controller,
+        direction: details.direction,
+        child: child,
+      ),
     };
+  }
+
+  @override
+  Widget buildOverscrollIndicator(context, child, details) {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        return child;
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+        return StretchingOverscrollIndicator(axisDirection: details.direction, clipBehavior: .hardEdge, child: child);
+    }
   }
 }

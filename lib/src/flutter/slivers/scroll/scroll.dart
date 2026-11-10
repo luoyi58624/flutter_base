@@ -1,11 +1,10 @@
-import 'package:flutter/gestures.dart' show GestureBinding, PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
 import '../list/sliver_list.dart' show ElSliverList;
-import '../../views/scroll/smooth_scroll/smooth_pointer_scroll.dart' show SmoothPointerScrollController;
 import '../../views/scroll/smooth_scroll/smooth_scroll.dart' show ElSmoothScroll;
+import '../../views/scroll/scroll_view.dart' show ElScrollController;
 import '../../views/view/provider.dart' show ElViewProvider;
 import '../../views/scroll/refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
 import 'refresh.dart' show ElRefreshScope;
@@ -33,6 +32,7 @@ class ElScroll extends HookWidget {
     this.reverse = false,
     this.padding = .zero,
     this.gap = 0,
+    this.shrinkWrap = false,
     this.clipBehavior = .hardEdge,
   }) : slivers = null,
        assert(gap >= 0);
@@ -46,6 +46,7 @@ class ElScroll extends HookWidget {
     this.smoothScroll = $absent,
     this.axis = .vertical,
     this.reverse = false,
+    this.shrinkWrap = false,
     this.clipBehavior = .hardEdge,
   }) : children = null,
        padding = .zero,
@@ -59,8 +60,8 @@ class ElScroll extends HookWidget {
 
   /// 观察与驱动滚动位置的控制器。
   ///
-  /// 位置由本组件创建，才能承担嵌套接力；控制器自定义的 createScrollPosition 不会被调用，
-  /// 初始偏移与偏移保存配置仍然生效。
+  /// 传入 ElScrollController 时由它直接创建新版滚动位置；普通 ScrollController
+  /// 经内部适配器共享同一位置，保留初始偏移、滚动命令及位置保存配置。
   final ScrollController? controller;
 
   /// 滚动物理，默认读取环境 [ScrollConfiguration]。
@@ -81,30 +82,34 @@ class ElScroll extends HookWidget {
   /// 相邻 [children] 之间的主轴间距。
   final double gap;
 
+  /// 是否按内容尺寸收缩主轴；适用于父布局在滚动方向没有给出有限尺寸的嵌套场景。
+  final bool shrinkWrap;
+
   /// 视口裁剪行为。
   final Clip clipBehavior;
 
   @override
   Widget build(BuildContext context) {
     final host = useMemoized(_HostController.new);
+    final pointers = useMemoized(_RawPointers.new);
+    // 新 ElScrollController 是实际 Scrollable 控制器；普通 ScrollController 仍由兼容适配器共享位置。
+    final activeController = controller is ElScrollController ? controller! : host;
     final refreshLink = ElRefreshScope.maybeOf(context);
     final configuredSmooth = identical(smoothScroll, $absent)
         ? ElViewProvider.smoothScrollOf(context)
         : smoothScroll as ElSmoothScroll?;
     useEffect(() {
       host
-        ..bind(controller)
-        ..bindRefresh(refreshLink)
-        ..configureSmooth(configuredSmooth);
+        ..bind(controller is ElScrollController ? null : controller)
+        ..bindRefresh(refreshLink);
       return host.dispose;
     }, const []);
     useValueChanged<ScrollController?, void>(controller, (_, _) {
       // useEffect(keys) 会在新 effect 挂载之后才 dispose 旧 effect，
       // 若旧清理执行 bind(null)，会把刚换上的 controller 再摘掉。
-      host.bind(controller);
+      host.bind(controller is ElScrollController ? null : controller);
     });
     useValueChanged<RefreshScrollLink?, void>(refreshLink, (_, _) => host.bindRefresh(refreshLink));
-    useValueChanged<ElSmoothScroll?, void>(configuredSmooth, (_, _) => host.configureSmooth(configuredSmooth));
 
     final direction = getAxisDirectionFromAxisReverseAndDirectionality(context, axis, reverse);
     final slivers =
@@ -117,84 +122,81 @@ class ElScroll extends HookWidget {
         ];
     final effectivePhysics = refreshLink == null ? physics : AlwaysScrollableScrollPhysics(parent: physics);
     return Listener(
-      onPointerDown: (event) => host.rawPointerDown(event.pointer),
-      onPointerUp: (event) => host.rawPointerUp(event.pointer),
-      onPointerCancel: (event) => host.rawPointerCancel(event.pointer),
+      onPointerDown: (event) => pointers.down(event.pointer, activeController),
+      onPointerUp: (event) => pointers.up(event.pointer),
+      onPointerCancel: (event) => pointers.cancel(event.pointer, activeController),
       child: ElRefreshScope(
-      link: null, // 内层 ElScroll 不能误占用外层绑定的刷新器。
-      child: Scrollable(
-      controller: host,
-      physics: ScrollHostPhysics(
-        parent: refreshLink?.movesContent == true
-            ? RefreshDockPhysics(getLink: () => refreshLink, parent: effectivePhysics)
-            : effectivePhysics,
-      ),
-      axisDirection: direction,
-      clipBehavior: clipBehavior,
-      viewportBuilder: (context, offset) => Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerSignal: (event) => host.handlePointerSignal(event, axisDirection: direction),
-        child: Viewport(axisDirection: direction, offset: offset, clipBehavior: clipBehavior, slivers: slivers),
-      ),
-      ),
+        link: null, // 内层 ElScroll 不能误占用外层绑定的刷新器。
+        child: Scrollable(
+          controller: activeController,
+          physics: ScrollHostPhysics(
+            parent: refreshLink?.movesContent == true
+                ? RefreshDockPhysics(getLink: () => refreshLink, parent: effectivePhysics)
+                : effectivePhysics,
+          ),
+          axisDirection: direction,
+          clipBehavior: clipBehavior,
+          viewportBuilder: (context, offset) {
+            // viewportBuilder 的 context 就是 Scrollable 自身，不能用 Scrollable.of 向祖先查找。
+            final position = activeController.position;
+            if (position is ScrollHostPosition) {
+              position.configureSmooth(configuredSmooth);
+              if (refreshLink != null) {
+                refreshLink.position = () => position;
+                refreshLink.directDragActive = () => position.isDirectDrag;
+              }
+            }
+            final viewport = shrinkWrap
+                ? ShrinkWrappingViewport(
+                    axisDirection: direction,
+                    offset: offset,
+                    clipBehavior: clipBehavior,
+                    slivers: slivers,
+                  )
+                : Viewport(axisDirection: direction, offset: offset, clipBehavior: clipBehavior, slivers: slivers);
+            return Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerSignal: (event) {
+                if (position is ScrollHostPosition) position.handlePointerSignal(event);
+              },
+              child: viewport,
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/// 始终交给 [Scrollable] 的内部控制器，保证位置类型不受调用方控制器影响。
+/// 跟踪一次触摸序列，保证 PointerCancel 不会被误当成下拉刷新松手。
+final class _RawPointers {
+  final _pointers = <int>{};
+
+  void down(int pointer, ScrollController controller) {
+    if (_pointers.isEmpty) {
+      for (final position in controller.positions) {
+        if (position is ScrollHostPosition) position.resetRawPointerCancellation();
+      }
+    }
+    _pointers.add(pointer);
+  }
+
+  void up(int pointer) => _pointers.remove(pointer);
+
+  void cancel(int pointer, ScrollController controller) {
+    _pointers.remove(pointer);
+    if (_pointers.isNotEmpty) return;
+    for (final position in controller.positions) {
+      if (position is ScrollHostPosition) position.markRawPointerCanceled();
+    }
+  }
+}
+
+/// 普通 ScrollController 的兼容适配器；ElScrollController 直接由官方 Scrollable 使用。
 final class _HostController extends ScrollController {
   ScrollController? _user;
   RefreshScrollLink? _refreshLink;
   ScrollPosition? _refreshPosition;
-  final Set<int> _activePointers = <int>{};
-  SmoothPointerScrollController? _smooth;
-
-  void configureSmooth(ElSmoothScroll? algorithm) {
-    (_smooth ??= SmoothPointerScrollController(
-      position: () => position,
-      targetOffsetForDelta: (delta, {from}) {
-        final position = this.position;
-        return ((from ?? position.pixels) + delta)
-            .clamp(position.minScrollExtent, position.maxScrollExtent)
-            .toDouble();
-      },
-    )).algorithm = algorithm;
-  }
-
-  void handlePointerSignal(PointerSignalEvent event, {required AxisDirection axisDirection}) {
-    if (event is! PointerScrollEvent || !hasClients) return;
-    final position = this.position;
-    if (!position.hasPixels || !position.hasContentDimensions) return;
-    final delta = axisDirectionToAxis(axisDirection) == Axis.vertical ? event.scrollDelta.dy : event.scrollDelta.dx;
-    final amount = axisDirectionIsReversed(axisDirection) ? -delta : delta;
-    if (amount == 0.0 || !(_smooth?.canConsumeDelta(amount) ?? false)) return;
-    // Viewport 内部监听器比官方 Scrollable 先收到信号，resolver 只执行一次处理。
-    GestureBinding.instance.pointerSignalResolver.register(event, (signal) {
-      if (signal is PointerScrollEvent && hasClients) _smooth?.applyPointerScroll(signal, amount);
-    });
-  }
-
-  /// 原始终态先于识别器收到取消，标记后不再将合成 onEnd 当作真实松手。
-  void rawPointerDown(int pointer) {
-    if (_activePointers.isEmpty) {
-      _smooth?.reset();
-      for (final position in positions) {
-        if (position is ScrollHostPosition) position.resetRawPointerCancellation();
-      }
-    }
-    _activePointers.add(pointer);
-  }
-
-  void rawPointerUp(int pointer) => _activePointers.remove(pointer);
-
-  void rawPointerCancel(int pointer) {
-    _activePointers.remove(pointer);
-    if (_activePointers.isNotEmpty) return;
-    for (final position in positions) {
-      if (position is ScrollHostPosition) position.markRawPointerCanceled();
-    }
-  }
 
   /// 把已创建的位置同步挂到调用方控制器，更换控制器不重建位置。
   void bind(ScrollController? next) {
@@ -252,7 +254,6 @@ final class _HostController extends ScrollController {
 
   @override
   void detach(ScrollPosition position) {
-    _smooth?.reset();
     if (identical(_refreshPosition, position)) _bindRefreshPosition(null);
     _user?.detach(position);
     super.detach(position);
@@ -261,7 +262,6 @@ final class _HostController extends ScrollController {
   @override
   void dispose() {
     bindRefresh(null);
-    _smooth?.dispose();
     super.dispose();
   }
 }

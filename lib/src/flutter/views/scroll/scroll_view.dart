@@ -7,6 +7,8 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
+import '../../slivers/scroll/scroll.dart' show ElScroll;
+import '../../slivers/scroll/scroll_position.dart' show ScrollHostPosition;
 import '../layout/stack/stack_view.dart' show ElPositioned;
 import '../view/event/event.dart' show ElEvent;
 import '../view/provider.dart' show ElViewProvider;
@@ -337,10 +339,19 @@ class ElScrollController extends ScrollController {
     super.attach(position);
   }
 
-  /// 通过标准工厂创建唯一的可观测 position，保留初始偏移及恢复配置。
+  /// 创建当前滚动宿主使用的位置：新版 ElScroll 走官方 Sliver 位置，其余保持旧管线。
   @override
   ScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext context, ScrollPosition? oldPosition) =>
-      ScrollEnginePosition(
+      _isNewScrollHost(context)
+      ? ScrollHostPosition(
+          physics: physics,
+          context: context,
+          initialPixels: initialScrollOffset,
+          keepScrollOffset: keepScrollOffset,
+          oldPosition: oldPosition,
+          debugLabel: debugLabel,
+        )
+      : ScrollEnginePosition(
         physics: physics,
         context: context,
         initialPixels: initialScrollOffset,
@@ -413,6 +424,25 @@ class ElScrollController extends ScrollController {
   /// 只终止由 [scrollToIndex] / [scrollToIndexWithResult] 发起的定位，不会打断
   /// 普通 pixel 动画或用户滚动。
   bool cancelScrollToIndex() => _bridge?.cancelScrollToIndex() ?? false;
+}
+
+// 仅在最近的滚动宿主确实是新版 ElScroll 时创建 Sliver Position。
+// 外层 ElScroll 中嵌套的旧 ElScrollView / 官方 ScrollView 仍应使用各自原本的位置工厂。
+bool _isNewScrollHost(ScrollContext context) {
+  if (context is! ScrollableState) return false;
+  var result = false;
+  context.context.visitAncestorElements((element) {
+    final widget = element.widget;
+    if (widget is ElScroll) {
+      result = true;
+      return false;
+    }
+    if (widget is ElScrollView || widget is ScrollView || widget is SingleChildScrollView || widget is Scrollable) {
+      return false;
+    }
+    return true;
+  });
+  return result;
 }
 
 /// Widget State 侧实现的 index 定位通道。

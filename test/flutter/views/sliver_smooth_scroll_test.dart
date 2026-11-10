@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/src/flutter/slivers/scroll/scroll_position.dart' show ScrollHostPosition;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _app(ScrollController controller, {Object? smoothScroll}) => Directionality(
@@ -32,6 +33,50 @@ Future<void> _wheel(WidgetTester tester, double delta, {int ms = 0}) => tester.s
 );
 
 void main() {
+  testWidgets('旧视口外的官方子列表不误用新版 ScrollHostPosition', (tester) async {
+    final outer = ScrollController();
+    final inner = ElScrollController();
+    addTearDown(outer.dispose);
+    addTearDown(inner.dispose);
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: SizedBox(
+        height: 400,
+        child: ElScroll(
+          controller: outer,
+          children: [
+            SizedBox(
+              height: 240,
+              child: ListView.builder(
+                controller: inner,
+                itemCount: 50,
+                itemBuilder: (context, index) => SizedBox(height: 36, child: Text('Row $index')),
+              ),
+            ),
+            SizedBox(height: 500),
+          ],
+        ),
+      ),
+    ));
+    expect(inner.position, isNot(isA<ScrollHostPosition>()));
+    expect(outer.position, isA<ScrollHostPosition>());
+  });
+
+  testWidgets('ElScrollController 创建新版 ScrollHostPosition，鼠标滚轮由位置层处理', (tester) async {
+    final controller = ElScrollController(initialScrollOffset: 140);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(controller, smoothScroll: ElWindowsSmoothScroll()));
+    expect(controller.position, isA<ScrollHostPosition>());
+    expect(controller.offset, closeTo(140, 0.01));
+    await _wheel(tester, 120);
+    await tester.pump(Duration(milliseconds: 16));
+    await tester.pump(Duration(milliseconds: 16));
+    expect(controller.offset, greaterThan(140));
+    expect(controller.offset, lessThan(260));
+    await tester.pumpAndSettle();
+    expect(controller.offset, greaterThanOrEqualTo(260));
+  });
+
   testWidgets('平滑滚轮在真实位置上逐帧变化，连滚追加目标', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);

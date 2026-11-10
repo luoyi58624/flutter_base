@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
-import 'package:flutter/gestures.dart' show Drag;
+import 'package:flutter/gestures.dart' show Drag, GestureBinding, PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/widgets.dart';
 
 import '../../views/scroll/common/nested/nested_scroll.dart'
     show ElNestedScrollParent, NestedScrollChain, NestedScrollNode;
 import '../../views/scroll/common/nested/scroll_delta_interceptor.dart' show ElScrollDeltaSource;
+import '../../views/scroll/smooth_scroll/smooth_pointer_scroll.dart' show SmoothPointerScrollController;
+import '../../views/scroll/smooth_scroll/smooth_scroll.dart' show ElSmoothScroll;
 import 'nested_scroll.dart' show nestedScrollNodeOf;
 
 /// ElScroll 的滚动位置：只在官方的拖动、松手、惯性三个入口上加逻辑，其余沿用官方实现。
@@ -33,8 +35,64 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   bool _endingByRelease = false;
   bool _rawPointerCanceled = false;
 
+  SmoothPointerScrollController? _smooth;
+  PointerScrollEvent? _wheelEvent;
+  bool _dispatchingSmooth = false;
+
+  /// 设置当前 Scrollable 的平滑滚轮策略；null 表示交给官方直接滚动。
+  void configureSmooth(ElSmoothScroll? algorithm) {
+    if (algorithm == null) {
+      _smooth?.reset();
+      if (_smooth != null) _smooth!.algorithm = null;
+      return;
+    }
+    (_smooth ??= SmoothPointerScrollController(
+      position: () => this,
+      targetOffsetForDelta: (delta, {from}) =>
+          ((from ?? pixels) + delta).clamp(minScrollExtent, maxScrollExtent).toDouble(),
+    )).algorithm = algorithm;
+  }
+
+  /// 在官方 Scrollable 注册滚轮信号后，由本位置决定是否使用平滑滚动。
+  void handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !hasPixels || !hasContentDimensions) return;
+    final delta = axis == Axis.vertical ? event.scrollDelta.dy : event.scrollDelta.dx;
+    final amount = axisDirectionIsReversed(axisDirection) ? -delta : delta;
+    if (amount == 0 || !(_smooth?.canConsumeDelta(amount) ?? false)) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (signal) {
+      if (signal is! PointerScrollEvent || _disposed) return;
+      _wheelEvent = signal;
+      try {
+        pointerScroll(amount);
+      } finally {
+        _wheelEvent = null;
+      }
+    });
+  }
+
+  @override
+  void pointerScroll(double delta) {
+    final event = _wheelEvent;
+    final smooth = _smooth;
+    if (event != null && smooth != null && !_dispatchingSmooth) {
+      // 触控板的直滚会再调用 pointerScroll；避免再次进入平滑编排。
+      _dispatchingSmooth = true;
+      try {
+        smooth.applyPointerScroll(event, delta);
+      } finally {
+        _dispatchingSmooth = false;
+      }
+      return;
+    }
+    if (!_dispatchingSmooth) smooth?.reset();
+    super.pointerScroll(delta);
+  }
+
   /// 新的物理按压开始，重置上一序列的取消标记。
-  void resetRawPointerCancellation() => _rawPointerCanceled = false;
+  void resetRawPointerCancellation() {
+    _rawPointerCanceled = false;
+    _smooth?.reset();
+  }
 
   /// 原始 PointerCancel 会先于官方识别器合成的零速 onEnd 到达。
   void markRawPointerCanceled() {
@@ -81,7 +139,12 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
 
   // 官方 drag 入口没有方向信息，先返回代理，等第一段位移再决定由谁真正开始拖动。
   @override
-  Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) => _RelayDrag(this, details, dragCancelCallback);
+  Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
+    // 官方 RawScrollbar 在 drag() 返回前要求已释放 ThumbPress 时取得的 hold。
+    // 内容拖动仍待第一段 delta 判定接力归属，但不能让 HoldScrollActivity 一直占着位置。
+    if (activity is HoldScrollActivity) goIdle();
+    return _RelayDrag(this, details, dragCancelCallback);
+  }
 
   Drag _startDrag(DragUpdateDetails first, DragStartDetails start, VoidCallback onCancelled) {
     final delta = first.primaryDelta ?? 0;
@@ -194,6 +257,7 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   @override
   void dispose() {
     _disposed = true;
+    _smooth?.dispose();
     super.dispose();
   }
 }

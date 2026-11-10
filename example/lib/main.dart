@@ -42,6 +42,7 @@ class App extends StatelessWidget {
                     final theme = ElView.of(context).themeMode;
                     return MaterialApp.router(
                       routerConfig: router,
+                      scrollBehavior: ElScrollBehavior(),
                       builder: (context, child) => ObsBuilder(
                         builder: (context) => ExcludeSemantics(
                           key: ValueKey('app-exclude-semantics'),
