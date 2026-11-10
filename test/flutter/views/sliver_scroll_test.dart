@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,14 +36,14 @@ Widget _nested(
   ScrollPhysics? outerPhysics,
   bool innerReverse = false,
 }) => _app(
-  ElScroll(
+  ElScroll.sliver(
     controller: outer,
     physics: outerPhysics ?? ClampingScrollPhysics(),
     slivers: [
       _box(200),
       _box(
         300,
-        child: ElScroll(
+        child: ElScroll.sliver(
           key: _innerKey,
           controller: inner,
           reverse: innerReverse,
@@ -55,8 +57,8 @@ Widget _nested(
 );
 
 // 第一段位移只用于越过触摸阈值，之后每段都会完整进入滚动位置。
-Future<TestGesture> _drag(WidgetTester tester, List<double> steps, {Axis axis = Axis.vertical}) async {
-  final gesture = await tester.startGesture(tester.getCenter(find.byKey(_innerKey)));
+Future<TestGesture> _drag(WidgetTester tester, List<double> steps, {Axis axis = Axis.vertical, Finder? on}) async {
+  final gesture = await tester.startGesture(tester.getCenter(on ?? find.byKey(_innerKey)));
   for (final step in steps) {
     await gesture.moveBy(axis == Axis.vertical ? Offset(0, step) : Offset(step, 0));
     await tester.pump();
@@ -70,7 +72,176 @@ Future<void> _release(WidgetTester tester, TestGesture gesture) async {
   expect(tester.takeException(), isNull);
 }
 
+// 行程 50 的折叠头：手指上推先收起，正文回到顶部后的下拉余量再展开。
+class _Header extends ElNestedScrollParent {
+  double collapsed = 0;
+  double? releaseVelocity;
+  final log = <String>[];
+
+  @override
+  void onNestedScrollStart(Axis axis, ElScrollDeltaSource source) => log.add('start');
+
+  @override
+  double onNestedPreScroll(double delta, ElScrollDeltaSource source) {
+    if (delta >= 0) return 0;
+    final taken = math.min(-delta, 50 - collapsed);
+    collapsed += taken;
+    return -taken;
+  }
+
+  @override
+  double onNestedPostScroll(double unconsumed, ElScrollDeltaSource source) {
+    if (unconsumed <= 0) return 0;
+    final taken = math.min(unconsumed, collapsed);
+    collapsed -= taken;
+    return taken;
+  }
+
+  @override
+  double onNestedPreFling(double velocity) {
+    log.add('fling');
+    releaseVelocity = velocity;
+    return velocity;
+  }
+
+  @override
+  void onNestedScrollEnd() => log.add('end');
+}
+
+// 视口 400、可滚 800 的单层滚动，外面包一个折叠头协作方。
+Widget _withHeader(_Header header, ScrollController controller) => _app(
+  ElNestedScroll(
+    parent: header,
+    child: ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]),
+  ),
+);
+
 void main() {
+  group('默认构造', () {
+    testWidgets('直接排列 children，撑满交叉轴并应用内边距与间距', (tester) async {
+      final controller = _controller();
+      final first = ValueKey('first');
+      final second = ValueKey('second');
+      await tester.pumpWidget(
+        _app(
+          ElScroll(
+            controller: controller,
+            physics: ClampingScrollPhysics(),
+            padding: EdgeInsets.all(10),
+            gap: 20,
+            children: [
+              SizedBox(key: first, height: 300),
+              SizedBox(key: second, height: 300),
+              SizedBox(height: 300),
+            ],
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byKey(first)).width, 280);
+      expect(tester.getTopLeft(find.byKey(second)).dy - tester.getBottomLeft(find.byKey(first)).dy, 20);
+      // 内容总长 10 + 300 + 20 + 300 + 20 + 300 + 10，视口 400。
+      expect(controller.position.maxScrollExtent, 560);
+
+      final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(ElScroll));
+      expect(controller.offset, closeTo(40, 0.01));
+      await _release(tester, gesture);
+    });
+  });
+
+  group('协作方', () {
+    testWidgets('拖动先由协作方消费，余量进入正文', (tester) async {
+      final header = _Header();
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+
+      final gesture = await _drag(tester, [-30, -20, -20, -20], on: find.byType(ElScroll));
+      expect(header.collapsed, 50);
+      expect(controller.offset, closeTo(10, 0.01));
+      await _release(tester, gesture);
+    });
+
+    testWidgets('正文到边界后的余量交给协作方', (tester) async {
+      final header = _Header()..collapsed = 50;
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+      controller.jumpTo(30);
+      await tester.pump();
+
+      final gesture = await _drag(tester, [30, 20, 20, 20], on: find.byType(ElScroll));
+      expect(controller.offset, 0);
+      expect(header.collapsed, closeTo(20, 0.01));
+      await _release(tester, gesture);
+    });
+
+    testWidgets('开始、松手速度、结束依次通知，慢拖松手也交接', (tester) async {
+      final header = _Header();
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+
+      final gesture = await _drag(tester, [-30, -20], on: find.byType(ElScroll));
+      expect(header.log, ['start']);
+      await _release(tester, gesture);
+      expect(header.log, ['start', 'fling', 'end']);
+      expect(header.releaseVelocity, isNotNull);
+    });
+
+    testWidgets('惯性位移继续先经过协作方', (tester) async {
+      final header = _Header();
+      final controller = _controller();
+      await tester.pumpWidget(_withHeader(header, controller));
+
+      // 拖动段不足以收完 50 的行程，剩余部分只能由释放后的惯性完成。
+      await tester.fling(find.byType(ElScroll), Offset(0, -40), 2000);
+      expect(header.collapsed, lessThan(50));
+      await tester.pumpAndSettle();
+
+      expect(header.releaseVelocity, lessThan(0), reason: '协作方收到的是手指方向的速度');
+      expect(header.collapsed, closeTo(50, 0.001));
+      expect(controller.offset, greaterThan(0), reason: '协作方收满后惯性继续推动正文');
+      expect(header.log, ['start', 'fling', 'end']);
+    });
+
+    testWidgets('内层把手势交给外层后，内外层之间的协作方不参与', (tester) async {
+      final header = _Header();
+      final outer = _controller();
+      final inner = _controller();
+      await tester.pumpWidget(
+        _app(
+          ElScroll.sliver(
+            controller: outer,
+            physics: ClampingScrollPhysics(),
+            slivers: [
+              _box(200),
+              _box(
+                300,
+                child: ElNestedScroll(
+                  parent: header,
+                  child: ElScroll.sliver(
+                    key: _innerKey,
+                    controller: inner,
+                    physics: ClampingScrollPhysics(),
+                    slivers: [_box(900)],
+                  ),
+                ),
+              ),
+              _box(1200),
+            ],
+          ),
+        ),
+      );
+      outer.jumpTo(120);
+      inner.jumpTo(inner.position.maxScrollExtent);
+      await tester.pump();
+
+      final gesture = await _drag(tester, [-30, -20, -20]);
+      expect(outer.offset, closeTo(160, 0.01));
+      expect(header.log, isEmpty);
+      expect(header.collapsed, 0);
+      await _release(tester, gesture);
+    });
+  });
+
   group('同轴嵌套接力', () {
     testWidgets('内层起手贴尾部边界，拖动由外层接力', (tester) async {
       final outer = _controller();
@@ -224,7 +395,7 @@ void main() {
       final inner = _controller();
       await tester.pumpWidget(
         _app(
-          ElScroll(
+          ElScroll.sliver(
             controller: outer,
             axis: Axis.horizontal,
             physics: ClampingScrollPhysics(),
@@ -232,7 +403,7 @@ void main() {
               _box(
                 300,
                 axis: Axis.horizontal,
-                child: ElScroll(
+                child: ElScroll.sliver(
                   key: _innerKey,
                   controller: inner,
                   physics: ClampingScrollPhysics(),
@@ -256,21 +427,21 @@ void main() {
 
     // 中层视口 350、可滚 550，内层排在中层末尾；外层可滚 1250。
     Widget threeLevels(ScrollController outer, ScrollController middle, ScrollController inner) => _app(
-      ElScroll(
+      ElScroll.sliver(
         controller: outer,
         physics: ClampingScrollPhysics(),
         slivers: [
           _box(100),
           _box(
             350,
-            child: ElScroll(
+            child: ElScroll.sliver(
               controller: middle,
               physics: ClampingScrollPhysics(),
               slivers: [
                 _box(600),
                 _box(
                   300,
-                  child: ElScroll(
+                  child: ElScroll.sliver(
                     key: _innerKey,
                     controller: inner,
                     physics: ClampingScrollPhysics(),
@@ -325,7 +496,7 @@ void main() {
       final first = _controller();
       final second = _controller();
       Widget page(ScrollController controller) =>
-          _app(ElScroll(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]));
+          _app(ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]));
 
       await tester.pumpWidget(page(first));
       first.jumpTo(80);
@@ -340,7 +511,7 @@ void main() {
       final controller = ScrollController(initialScrollOffset: 150);
       addTearDown(controller.dispose);
       await tester.pumpWidget(
-        _app(ElScroll(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])),
+        _app(ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])),
       );
       expect(controller.offset, 150);
     });

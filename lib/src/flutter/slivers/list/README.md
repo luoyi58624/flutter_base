@@ -39,6 +39,7 @@ SelectionArea(
 | children | 按文档顺序排列的全部 Widget；元素与状态常驻，正常增删和 key 规则仍生效 |
 | spacing | 相邻条目的主轴间距，默认 0，末项后无间隔 |
 | center | 将自然尺寸较小的条目沿交叉轴居中，默认按交叉轴起点排列 |
+| stretch | 让条目撑满交叉轴，默认保留自然尺寸；开启后 center 不再产生效果 |
 
 方向、reverse、控制器、滚动物理、键盘收起行为和窗口裁剪沿用外层 `CustomScrollView`；内边距使用 `SliverPadding`。纵向只限制子项最大宽度，横向只限制最大高度，主轴尺寸由内容决定。
 

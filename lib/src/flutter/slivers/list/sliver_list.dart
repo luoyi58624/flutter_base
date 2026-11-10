@@ -11,8 +11,13 @@ import 'package:flutter/widgets.dart';
 /// 内边距使用 [SliverPadding]。
 class ElSliverList extends MultiChildRenderObjectWidget {
   /// 创建按文档顺序排列、全量常驻的自然尺寸列表。
-  const ElSliverList({super.key, required super.children, this.spacing = 0, this.center = false})
-    : assert(spacing >= 0 && spacing < double.infinity);
+  const ElSliverList({
+    super.key,
+    required super.children,
+    this.spacing = 0,
+    this.center = false,
+    this.stretch = false,
+  }) : assert(spacing >= 0 && spacing < double.infinity);
 
   /// 相邻条目之间的主轴间距，末项之后不添加间隔。
   final double spacing;
@@ -22,14 +27,20 @@ class ElSliverList extends MultiChildRenderObjectWidget {
   /// 子项只受交叉轴最大尺寸约束，可以保留比内容区更窄的自然尺寸。
   final bool center;
 
+  /// 是否让子项撑满交叉轴，默认保留子项的自然尺寸。
+  ///
+  /// 开启后子项在交叉轴上没有余量，[center] 不再产生效果。
+  final bool stretch;
+
   @override
-  ElRenderSliverList createRenderObject(BuildContext context) => ElRenderSliverList._(spacing, center);
+  ElRenderSliverList createRenderObject(BuildContext context) => ElRenderSliverList._(spacing, center, stretch);
 
   @override
   void updateRenderObject(BuildContext context, ElRenderSliverList renderObject) {
     renderObject
       ..spacing = spacing
-      ..center = center;
+      ..center = center
+      ..stretch = stretch;
   }
 }
 
@@ -41,10 +52,11 @@ class _ListParentData extends ContainerBoxParentData<RenderBox> {
 /// 缓存完整文档的自然尺寸，并将可见部分接入官方 Sliver 协议。
 class ElRenderSliverList extends RenderSliver
     with ContainerRenderObjectMixin<RenderBox, _ListParentData>, RenderSliverHelpers {
-  ElRenderSliverList._(this._spacing, this._center);
+  ElRenderSliverList._(this._spacing, this._center, this._stretch);
 
   double _spacing;
   bool _center;
+  bool _stretch;
   bool _contentNeedsLayout = true;
   Axis? _contentAxis;
   BoxConstraints? _contentConstraints;
@@ -70,6 +82,14 @@ class ElRenderSliverList extends RenderSliver
     // 交叉轴位置按当前配置计算，居中变化不影响内容尺寸。
     markNeedsPaint();
     markNeedsSemanticsUpdate();
+  }
+
+  /// 是否让子项撑满交叉轴。
+  bool get stretch => _stretch;
+  set stretch(bool value) {
+    if (_stretch == value) return;
+    _stretch = value;
+    markNeedsLayout();
   }
 
   @override
@@ -116,9 +136,11 @@ class ElRenderSliverList extends RenderSliver
 
   @override
   void performLayout() {
+    final cross = constraints.crossAxisExtent;
+    final minCross = _stretch ? cross : 0.0;
     final childConstraints = constraints.axis == Axis.vertical
-        ? BoxConstraints(maxWidth: constraints.crossAxisExtent)
-        : BoxConstraints(maxHeight: constraints.crossAxisExtent);
+        ? BoxConstraints(minWidth: minCross, maxWidth: cross)
+        : BoxConstraints(minHeight: minCross, maxHeight: cross);
     if (_contentNeedsLayout || _contentAxis != constraints.axis || _contentConstraints != childConstraints) {
       _layoutContent(childConstraints);
     }

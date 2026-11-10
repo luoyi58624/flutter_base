@@ -9,22 +9,13 @@ class NestScrollPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('嵌套滚动示例')),
       body: ElScroll(
-        slivers: [
-          ElSliverList(children: [...List.generate(50, (i) => ElView(child: 'Item - ${i + 1}'))]),
-          SliverToBoxAdapter(
-            child: ElView(
-              style: .new(
-                height: 300,
-                backgroundColor: Colors.grey
-              ),
-              child: ElScroll(
-                slivers: [
-                  ElSliverList(children: [...List.generate(50, (i) => ElView(child: 'Item - ${i + 1}'))]),
-                ],
-              ),
-            ),
+        children: [
+          ...List.generate(500, (i) => ElView(child: 'Item - ${i + 1}')),
+          ElView(
+            style: .new(height: 300, backgroundColor: Colors.grey),
+            child: ElScroll(children: [...List.generate(50, (i) => ElView(child: 'Item - ${i + 1}'))]),
           ),
-          ElSliverList(children: [...List.generate(50, (i) => ElView(child: 'Item - ${i + 1}'))]),
+          ...List.generate(500, (i) => ElView(child: 'Item - ${i + 1}')),
         ],
       ),
     );

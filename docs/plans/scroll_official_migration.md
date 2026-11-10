@@ -23,12 +23,12 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| lib/src/flutter/slivers/scroll/scroll.dart | ElScroll 原型：官方 Scrollable + Viewport，自建位置在 `drag()` 入口做同轴嵌套接力 |
-| test/flutter/views/sliver_scroll_test.dart | 13 个无头用例，**尚未在 Windows 端跑过** |
+| lib/src/flutter/slivers/scroll/ | scroll.dart（ElScroll，默认构造接收 children，`ElScroll.sliver` 接收 Sliver）、scroll_position.dart（嵌套接力与协作链）、nested_scroll.dart（ElNestedScroll），合计约 415 行 |
+| test/flutter/views/sliver_scroll_test.dart | 19 个无头用例，**尚未在 Windows 端跑过** |
 | ElSliverList、ElSliverRecyclerList / Grid | 已是官方 RenderSliver，可直接放进 ElScroll |
 | lib/src/flutter/views/scroll/ | 旧实现约 2.9 万行，其中 virtual/ 1.2 万行；本计划完成前保持可用 |
 
-阶段 0 的唯一任务是让原型测试通过。它不过，后面的阶段都不开始。
+阶段 0 的唯一任务是让这组测试通过。阶段 1 的拖动、松手、惯性三部分已随 2026-11-10 的实现写入（见 3.3），同样等这组测试验证；它不过，阶段 2 及之后都不开始。
 
 ## 3. 位置层：统一输入账本
 
@@ -52,7 +52,16 @@
 - **普通嵌套不走账本**：ElScroll 之间的同轴接力继续由 `drag()` 入口的整段归属决定（起手贴边才交给外层，途中撞边界锁定）。账本只服务显式协作的参与者。
 - **参与者经作用域登记**：ElScroll 在自身子树提供登记入口，并遮断上层作用域，避免内层 ElScroll 误绑外层的参与者。排序沿用现有 `inputOrder` 的语义：pre 按声明顺序，post 反序，多参与者必须列全。
 
-### 3.3 本阶段要回答的问题
+### 3.3 已实现的形态（2026-11-10，未验证）
+
+- 协作方协议直接复用已导出的 `ElNestedScrollParent`，链的排序与钳制复用 `NestedScrollChain`，没有新增协议。
+- 登记入口是 `ElNestedScroll(parent:, child:)`，采用安卓式语义：ElScroll 上方的所有协作方都参与，不做作用域遮断。3.2 中「遮断上层作用域」一条因此不再适用。
+- 只有真正持有本次拖动的 ElScroll 驱动协作链；内层贴边把手势交给外层后，包在内外层之间的协作方不参与。
+- 惯性帧按帧差经过 pre 与 post。协作方消费后真实像素落后于模拟位置；Clamping 的模拟不含边界，不受影响，Bouncing 的模拟仍按起飞位置判断边界，这一偏差尚未处理。
+- 正文在该方向无法起惯性时（例如贴边），协作方收不到惯性位移，需要在 `onNestedPreFling` 里自行收尾。
+- 滚轮尚未接入协作链：官方 Scrollable 在正文贴边时不会调用 `pointerScroll`，需要阶段 5 自己监听指针信号。
+
+### 3.4 本阶段要回答的问题
 
 1. `applyUserOffset` 拿到的 delta 已经过 ScrollDragController 的起动阈值（iOS 物理为 3.5 px）。旧实现为此自建了不带阈值的拖拽控制器，新实现是否需要同样处理，由阶段 1 的测试决定。
 2. 官方 `ScrollDragController.end` 把速度直接交给 `goBallistic`，中间没有钩子；速度交接必须在 `goBallistic` 重写里区分「拖拽释放」与「程序调用」。
@@ -220,15 +229,15 @@ lib 内直接依赖 ElScrollView 的位置：
 
 ## 9. 需要你决定的事项
 
-已定：Android 滚动条用 Material Scrollbar。
+已定：
 
-待定：
+- Android 滚动条用 Material Scrollbar。
+- 协作约定统一为消费量（用户交由实现方决定，2026-11-10）。ElScroll 直接使用 `ElNestedScrollParent`，它本来就是消费量约定；旧 `ElNestedScrollMixin` 的剩余量钩子不迁移。
 
-1. Mixin 层是否接受统一为消费量约定（会改动 `onNestedPreScroll` 等钩子的返回值含义）。
-2. 双轴走官方二维滚动还是保留精简旧视口。
-3. 最终名称沿用 ElScroll，还是在退役时接管 ElScrollView 这个名字。
+待定，可以等到阶段 9：
 
-第 1 项在阶段 1 开始前需要答复；第 2、3 项可以等到阶段 9。
+1. 双轴走官方二维滚动还是保留精简旧视口。
+2. 最终名称沿用 ElScroll，还是在退役时接管 ElScrollView 这个名字。
 
 ## 10. 验证约束
 
