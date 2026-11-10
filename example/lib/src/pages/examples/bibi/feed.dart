@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart'
     show
         ElButtonView,
-        ExamplePanel,
         ElContextMenu,
         ElContextMenuItem,
         ElEvent,
@@ -15,6 +14,7 @@ import 'package:flutter_base/flutter_base.dart'
         ElTabController,
         ElTabView,
         ElView;
+
 import '../../../widgets/panel.dart';
 
 /// 原生示例同款离线推荐流，每行两张卡片。

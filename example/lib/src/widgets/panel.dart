@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 /// 示例中的独立局部区域：无默认外观，只建立保留后代节点的容器语义。

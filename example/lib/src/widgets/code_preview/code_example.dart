@@ -253,9 +253,8 @@ class _CodeFileBar extends StatelessWidget {
         backgroundColor: Color(0xff282c34),
         border: .only(borderBottom: ElBorderSide(borderColor: Color(0x1fabb2bf))),
       ),
-      child: ElScrollView(
+      child: ElScroll(
         axis: .horizontal,
-        scrollbar: ElNoScrollBar(),
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,

@@ -97,7 +97,6 @@ class _DocViewport extends StatefulWidget {
 
 class _DocViewportState extends State<_DocViewport> {
   final _official = ScrollController();
-  final _el = ElScrollController();
   late List<GlobalKey> _keys;
   int _locateGeneration = 0;
 
@@ -140,10 +139,6 @@ class _DocViewportState extends State<_DocViewport> {
   Future<void> _scrollToIndex(int index) async {
     if (index < 0 || index >= widget.itemCount) return;
     final generation = ++_locateGeneration;
-    if (widget.mode == DocScrollMode.elScrollView) {
-      _el.scrollToIndex(index);
-      return;
-    }
     // 官方虚拟列表没有未知高度的索引定位，目录点击时逐屏接近，挂载后再精确对齐。
     for (var attempt = 0; attempt < widget.itemCount * 4 + 4; attempt++) {
       if (!mounted || generation != _locateGeneration || !_official.hasClients) return;
@@ -199,11 +194,10 @@ class _DocViewportState extends State<_DocViewport> {
           itemBuilder: _item,
         ),
       ),
-      .elScrollView => ElScrollView(
-        controller: _el,
-        scrollbar: _DocIosScrollBar(),
+      .elScroll => ElScroll(
+        controller: _official,
         padding: widget.padding,
-        children: [ElListView.builder(keepAlive: false, itemCount: widget.itemCount, itemBuilder: _item)],
+        children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
       ),
       .sliverList => CustomScrollView(
         controller: _official,
@@ -216,7 +210,7 @@ class _DocViewportState extends State<_DocViewport> {
         ],
       ),
     };
-    return widget.mode == .elScrollView ? list : RecyclerExampleScrollbar(controller: _official, child: list);
+    return RecyclerExampleScrollbar(controller: _official, child: list);
   }
 
   @override
@@ -224,12 +218,6 @@ class _DocViewportState extends State<_DocViewport> {
     _locateGeneration++;
     if (identical(widget.controller?._state, this)) widget.controller?._state = null;
     _official.dispose();
-    _el.dispose();
     super.dispose();
   }
-}
-
-class _DocIosScrollBar extends ElIosScrollBar {
-  @override
-  bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }

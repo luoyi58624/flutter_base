@@ -10,7 +10,7 @@ class ViewBasePage extends HookWidget {
   Widget build(BuildContext context) {
     return ExamplePage(
       title: 'ElView 基础使用',
-      child: ElScrollView(
+      child: ElScroll(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),

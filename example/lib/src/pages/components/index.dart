@@ -15,7 +15,7 @@ class ComponentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExamplePage(
       title: '组件',
-      child: ElScrollView(
+      child: ElScroll(
         key: PageStorageKey('component-catalog'),
         padding: .fromLTRB(16, 8, 16, 24),
         children: [

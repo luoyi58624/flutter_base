@@ -2,12 +2,7 @@ part of 'app.dart';
 
 /// 示例自身的导航组合，不向组件库添加端专属接口。
 class _Navigation extends StatelessWidget {
-  const _Navigation(
-    this.typography,
-    this.selected,
-    this.onSelected, {
-    this.desktop = false,
-  });
+  const _Navigation(this.typography, this.selected, this.onSelected, {this.desktop = false});
 
   final _Typography typography;
   final int selected;
@@ -18,13 +13,7 @@ class _Navigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       for (var i = 0; i < _tabs.length; i++)
-        _NavigationItem(
-          typography,
-          i,
-          selected == i,
-          () => onSelected(i),
-          desktop: desktop,
-        ),
+        _NavigationItem(typography, i, selected == i, () => onSelected(i), desktop: desktop),
     ];
     if (!desktop) {
       return ExamplePanel(
@@ -46,20 +35,13 @@ class _Navigation extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                 alignment: .centerLeft,
-                child: _Label(
-                  'Flutter Base',
-                  typography,
-                  size: 20,
-                  weight: .w700,
-                  color: _primary,
-                  maxLines: 1,
-                ),
+                child: _Label('Flutter Base', typography, size: 20, weight: .w700, color: _primary, maxLines: 1),
               ),
             ),
           ),
           _line(),
           Expanded(
-            child: ElScrollView(
+            child: ElScroll(
               padding: EdgeInsets.all(12),
               children: [Column(spacing: 8, children: items)],
             ),
@@ -78,11 +60,7 @@ class _Navigation extends StatelessWidget {
                 onHover: ElStyle(backgroundColor: _background),
               ),
               child: Row(
-                children: [
-                  _Icon('info', size: 20),
-                  SizedBox(width: 12),
-                  _Label('组件示例', typography, size: 14),
-                ],
+                children: [_Icon('info', size: 20), SizedBox(width: 12), _Label('组件示例', typography, size: 14)],
               ),
             ),
           ),
@@ -93,13 +71,7 @@ class _Navigation extends StatelessWidget {
 }
 
 class _NavigationItem extends StatelessWidget {
-  const _NavigationItem(
-    this.typography,
-    this.index,
-    this.selected,
-    this.onPressed, {
-    required this.desktop,
-  });
+  const _NavigationItem(this.typography, this.index, this.selected, this.onPressed, {required this.desktop});
 
   final _Typography typography;
   final int index;
@@ -109,10 +81,7 @@ class _NavigationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? _primary : (desktop ? _secondary : _tertiary);
-    final icon = _Icon(
-      'tab_${['home', 'category', 'message', 'profile'][index]}',
-      color: color,
-    );
+    final icon = _Icon('tab_${['home', 'category', 'message', 'profile'][index]}', color: color);
     final label = _Label(
       _tabs[index],
       typography,
@@ -128,21 +97,14 @@ class _NavigationItem extends StatelessWidget {
       style: ElStyle(
         height: desktop ? 44 : 56,
         alignment: .center,
-        padding: desktop
-            ? EdgeInsets.symmetric(horizontal: 12)
-            : EdgeInsets.zero,
+        padding: desktop ? EdgeInsets.symmetric(horizontal: 12) : EdgeInsets.zero,
         borderRadius: desktop ? BorderRadius.circular(8) : null,
         backgroundColor: desktop && selected ? _primary.withValues(alpha: 0.08) : null,
-        onHover: desktop
-            ? ElStyle(backgroundColor: _primary.withValues(alpha: 0.05))
-            : null,
+        onHover: desktop ? ElStyle(backgroundColor: _primary.withValues(alpha: 0.05)) : null,
       ),
       child: desktop
           ? Row(children: [icon, SizedBox(width: 12), label])
-          : Column(
-              mainAxisAlignment: .center,
-              children: [icon, SizedBox(height: 2), label],
-            ),
+          : Column(mainAxisAlignment: .center, children: [icon, SizedBox(height: 2), label]),
     );
   }
 }

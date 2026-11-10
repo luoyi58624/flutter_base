@@ -38,7 +38,7 @@ void main() {
     expect(find.text('Button 按钮'), findsOneWidget);
     expect(find.text('本页目录'), findsNothing);
     expect(find.text(source), findsNothing);
-    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
+    final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
     final offset = tester.getCenter(toggle).dy - 500;
     if (offset > 0) {
       controller.jumpTo(controller.offset + offset);
@@ -65,7 +65,9 @@ void main() {
     expect(find.text('本页目录'), findsOneWidget);
 
     Future<void> openSection(String title) async {
-      await tester.tap(find.widgetWithText(TextButton, title));
+      // 目录位于右侧独立滚动区，正文示例中同名的按钮不参与匹配。
+      final contents = find.byType(SingleChildScrollView);
+      await tester.tap(find.descendant(of: contents, matching: find.widgetWithText(TextButton, title)));
       await tester.pumpAndSettle();
     }
 

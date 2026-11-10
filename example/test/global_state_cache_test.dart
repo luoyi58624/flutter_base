@@ -74,7 +74,7 @@ void main() {
       restored.dispose();
     }
     final mode = Obs(
-      DocScrollMode.elScrollView,
+      DocScrollMode.elScroll,
       cacheKey: GlobalState.docScrollMode.cacheKey,
       serialize: GlobalState.docScrollMode.serialize,
     );

@@ -10,17 +10,12 @@ class _ProfilePage extends HookWidget {
     return ExamplePanel(
       key: ValueKey('page-我的'),
       style: ElStyle(backgroundColor: _background),
-      child: ElScrollView(
+      child: ElScroll(
         key: PageStorageKey('profile-list'),
         padding: EdgeInsets.only(bottom: 12),
         children: [
           ExamplePanel(
-            style: ElStyle(
-              margin: .all(12),
-              padding: .all(16),
-              backgroundColor: _surface,
-              borderRadius: .circular(8),
-            ),
+            style: ElStyle(margin: .all(12), padding: .all(16), backgroundColor: _surface, borderRadius: .circular(8)),
             child: Row(
               children: [
                 ElView(
@@ -31,35 +26,16 @@ class _ProfilePage extends HookWidget {
                     borderRadius: .circular(16),
                     alignment: .center,
                   ),
-                  child: _Label(
-                    '牛',
-                    typography,
-                    size: 20,
-                    weight: .w700,
-                    color: _surface,
-                  ),
+                  child: _Label('牛', typography, size: 20, weight: .w700, color: _surface),
                 ),
                 SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [
-                      _Label(
-                        '牛马老铁',
-                        typography,
-                        size: 17,
-                        weight: .w700,
-                        color: _text,
-                        maxLines: 1,
-                      ),
+                      _Label('牛马老铁', typography, size: 17, weight: .w700, color: _text, maxLines: 1),
                       SizedBox(height: 4),
-                      _Label(
-                        'ID: 10086 · 已用 128 天',
-                        typography,
-                        size: 12,
-                        color: _tertiary,
-                        maxLines: 1,
-                      ),
+                      _Label('ID: 10086 · 已用 128 天', typography, size: 12, color: _tertiary, maxLines: 1),
                     ],
                   ),
                 ),
@@ -68,19 +44,9 @@ class _ProfilePage extends HookWidget {
             ),
           ),
           _Section('示例', typography),
-          _Setting(
-            '组件示例',
-            'info',
-            typography,
-            onPressed: () => _push(context, HomePage()),
-          ),
+          _Setting('组件示例', 'info', typography, onPressed: () => _push(context, HomePage())),
           _Section('账号', typography),
-          _Setting(
-            '账号与安全',
-            'shield',
-            typography,
-            onPressed: () => _push(context, _AccountPage(typography)),
-          ),
+          _Setting('账号与安全', 'shield', typography, onPressed: () => _push(context, _AccountPage(typography))),
           _Setting(
             '我的收藏',
             'star',
@@ -116,15 +82,8 @@ class _ProfilePage extends HookWidget {
             '帮助与反馈',
             'help',
             typography,
-            onPressed: () => _push(
-              context,
-              _WebPage(
-                '帮助与反馈',
-                'demo_page.html',
-                typography,
-                options.pageContentBuilder,
-              ),
-            ),
+            onPressed: () =>
+                _push(context, _WebPage('帮助与反馈', 'demo_page.html', typography, options.pageContentBuilder)),
           ),
           _Setting(
             '关于我们',
@@ -132,15 +91,7 @@ class _ProfilePage extends HookWidget {
             typography,
             value: 'v1.0.0',
             divider: false,
-            onPressed: () => _push(
-              context,
-              _WebPage(
-                '关于我们',
-                'about.html',
-                typography,
-                options.pageContentBuilder,
-              ),
-            ),
+            onPressed: () => _push(context, _WebPage('关于我们', 'about.html', typography, options.pageContentBuilder)),
           ),
         ],
       ),
@@ -154,12 +105,7 @@ class _Section extends StatelessWidget {
   final _Typography typography;
   @override
   Widget build(BuildContext context) => ElView(
-    style: ElStyle(
-      height: 40,
-      width: '100%',
-      padding: .only(left: 12, bottom: 6),
-      alignment: .bottomLeft,
-    ),
+    style: ElStyle(height: 40, width: '100%', padding: .only(left: 12, bottom: 6), alignment: .bottomLeft),
     child: _Label(title, typography, size: 12, color: _tertiary),
   );
 }
@@ -190,24 +136,12 @@ class _Setting extends StatelessWidget {
           key: ValueKey('setting-$title'),
           semanticLabel: title,
           onPressed: onPressed,
-          style: ElStyle(
-            height: 52,
-            padding: .only(left: 16, right: 12),
-            alignment: .center,
-          ),
+          style: ElStyle(height: 52, padding: .only(left: 16, right: 12), alignment: .center),
           child: Row(
             children: [
               _Icon(icon, size: 20),
               SizedBox(width: 10),
-              Expanded(
-                child: _Label(
-                  title,
-                  typography,
-                  size: 15,
-                  color: _text,
-                  maxLines: 1,
-                ),
-              ),
+              Expanded(child: _Label(title, typography, size: 15, color: _text, maxLines: 1)),
               if (value.isNotEmpty)
                 Padding(
                   padding: EdgeInsets.only(left: 8),
@@ -233,12 +167,8 @@ class _Switch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
   @override
-  Widget build(BuildContext context) => ElSwitch(
-    key: ValueKey('switch-$label'),
-    value: value,
-    onChanged: onChanged,
-    semanticLabel: label,
-  );
+  Widget build(BuildContext context) =>
+      ElSwitch(key: ValueKey('switch-$label'), value: value, onChanged: onChanged, semanticLabel: label);
 }
 
 class _AccountPage extends HookWidget {
@@ -250,17 +180,11 @@ class _AccountPage extends HookWidget {
     return _Page(
       '账号与安全',
       typography,
-      ElScrollView(
+      ElScroll(
         padding: EdgeInsets.only(bottom: 12),
         children: [
           _Section('登录与安全', typography),
-          _Setting(
-            '登录密码',
-            'shield',
-            typography,
-            value: '已设置',
-            onPressed: () => _toast('点击了：登录密码'),
-          ),
+          _Setting('登录密码', 'shield', typography, value: '已设置', onPressed: () => _toast('点击了：登录密码')),
           _Setting(
             '手机绑定',
             'info',

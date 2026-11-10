@@ -8,7 +8,7 @@ class _DetailPage extends StatelessWidget {
   Widget build(BuildContext context) => _Page(
     '详情',
     typography,
-    ElScrollView(
+    ElScroll(
       padding: EdgeInsets.all(16),
       children: [
         Column(
@@ -51,15 +51,10 @@ class _FavoritePage extends StatelessWidget {
   Widget build(BuildContext context) => _Page(
     '我的收藏',
     typography,
-    ElScrollView(
+    ElScroll(
       padding: EdgeInsets.all(12),
-      children: [
-        ElListView.builder(
-          itemCount: 5,
-          separatorBuilder: (_, _) => SizedBox(height: 8),
-          itemBuilder: (context, index) => _ArticleCard(_articles[index], typography, index: index),
-        ),
-      ],
+      gap: 8,
+      children: [for (var index = 0; index < 5; index++) _ArticleCard(_articles[index], typography, index: index)],
     ),
   );
 }
@@ -111,43 +106,45 @@ class _ChatPage extends HookWidget {
       Column(
         children: [
           Expanded(
-            child: ElScrollView(
+            child: ElScroll.sliver(
               key: ValueKey('chat-list'),
               controller: scroll,
               reverse: true,
-              padding: EdgeInsets.symmetric(vertical: 8),
-              children: [
-                ElListView.builder(
-                  itemCount: messages.value.length,
-                  itemBuilder: (context, index) {
-                    final message = messages.value[messages.value.length - 1 - index];
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Align(
-                        alignment: message.mine ? Alignment.centerRight : Alignment.centerLeft,
-                        child: ExamplePanel(
-                          style: ElStyle(
-                            maxWidth: 270,
-                            padding: .symmetric(horizontal: 12, vertical: 9),
-                            backgroundColor: message.mine ? _primary : Color(0xfff7f8fa),
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(message.mine ? 12 : 4),
-                              topRight: Radius.circular(message.mine ? 4 : 12),
-                              bottomLeft: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  sliver: SliverList.builder(
+                    itemCount: messages.value.length,
+                    itemBuilder: (context, index) {
+                      final message = messages.value[messages.value.length - 1 - index];
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: Align(
+                          alignment: message.mine ? Alignment.centerRight : Alignment.centerLeft,
+                          child: ExamplePanel(
+                            style: ElStyle(
+                              maxWidth: 270,
+                              padding: .symmetric(horizontal: 12, vertical: 9),
+                              backgroundColor: message.mine ? _primary : Color(0xfff7f8fa),
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(message.mine ? 12 : 4),
+                                topRight: Radius.circular(message.mine ? 4 : 12),
+                                bottomLeft: Radius.circular(12),
+                                bottomRight: Radius.circular(12),
+                              ),
+                            ),
+                            child: _Label(
+                              message.text,
+                              typography,
+                              size: 14,
+                              color: message.mine ? _surface : _text,
+                              extraLeading: 3,
                             ),
                           ),
-                          child: _Label(
-                            message.text,
-                            typography,
-                            size: 14,
-                            color: message.mine ? _surface : _text,
-                            extraLeading: 3,
-                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -248,13 +245,13 @@ class _WebPage extends StatelessWidget {
     title,
     typography,
     builder?.call(asset) ??
-        ElScrollView(
+        ElScroll(
           padding: EdgeInsets.all(16),
           children: [
             ElCard(
               child: Text(
                 asset == 'about.html'
-                    ? 'Flutter Base 移动端示例\n使用移动端主题、统一组件与 ElScrollView 构建。'
+                    ? 'Flutter Base 移动端示例\n使用移动端主题、统一组件与 ElScroll 构建。'
                     : '在推荐页浏览内容，在分类页选择条目，在消息页体验聊天。组件示例入口位于“我的”页面。',
               ),
             ),

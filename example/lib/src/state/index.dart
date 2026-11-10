@@ -9,8 +9,8 @@ enum DocScrollMode {
   /// 使用 ListView.builder 按需创建文档条目。
   officialVirtual('官方虚拟列表'),
 
-  /// 使用 ElScrollView 的虚拟滚动管线。
-  elScrollView('ElScrollView'),
+  /// 使用 ElScroll 常驻挂载全部文档条目。
+  elScroll('ElScroll'),
 
   /// 使用常驻自然尺寸的 ElSliverList 文档。
   sliverList('ElSliverList');
@@ -67,12 +67,13 @@ Obs<DocScrollMode> _createDocScrollSetting() {
   final storage = Obs.localStorage;
   const key = 'example.settings.docScrollMode';
   // 只迁移旧组件的精确名称，其它模式和未知值继续沿用既有反序列化规则。
-  if (storage.getItem<Object>(key) == 'recyclerView') storage.setItem(key, 'sliverList');
-  return Obs(
-    DocScrollMode.elScrollView,
-    cacheKey: key,
-    serialize: ElEnumSerialize<DocScrollMode>(DocScrollMode.values),
-  );
+  switch (storage.getItem<Object>(key)) {
+    case 'recyclerView':
+      storage.setItem(key, 'sliverList');
+    case 'elScrollView':
+      storage.setItem(key, 'elScroll');
+  }
+  return Obs(DocScrollMode.elScroll, cacheKey: key, serialize: ElEnumSerialize<DocScrollMode>(DocScrollMode.values));
 }
 
 Obs<int> _createRepeatCountSetting() {

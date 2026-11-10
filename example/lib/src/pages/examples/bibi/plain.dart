@@ -240,7 +240,7 @@ class _BibiPlainFeed extends StatefulWidget {
 
   final int index;
   final int generation;
-  final ElScrollController controller;
+  final ScrollController controller;
   final BibiHeaderMotion header;
   final ElTabController pager;
   final Future<void> Function() onRefresh;
@@ -337,7 +337,9 @@ class _BibiPlainFeedState extends State<_BibiPlainFeed> {
           child: RepaintBoundary(
             child: Column(
               mainAxisSize: .min,
-              children: [for (var index = 0; index < rows; index++) buildBibiVideoRow(context, start + index, widget.generation)],
+              children: [
+                for (var index = 0; index < rows; index++) buildBibiVideoRow(context, start + index, widget.generation),
+              ],
             ),
           ),
         ),
@@ -346,15 +348,18 @@ class _BibiPlainFeedState extends State<_BibiPlainFeed> {
       placed += count;
       chunk++;
     }
-    return ElScrollView(
-      controller: widget.controller,
-      physics: _physics,
-      scrollbar: ElNoScrollBar(),
-      deltaInterceptor: widget.header.forPage(widget.index),
-      refresher: _refresher,
-      onRefresh: widget.onRefresh,
-      padding: EdgeInsets.only(bottom: 4),
-      children: [widget.header.bindPage(widget.index, child: buildBibiBanner(context, widget.generation)), ...chunks],
+    return widget.header.bindPage(
+      widget.index,
+      child: ElRefresh(
+        refresher: _refresher,
+        onRefresh: widget.onRefresh,
+        child: ElScroll(
+          controller: widget.controller,
+          physics: _physics,
+          padding: EdgeInsets.only(bottom: 4),
+          children: [buildBibiBanner(context, widget.generation), ...chunks],
+        ),
+      ),
     );
   }
 }

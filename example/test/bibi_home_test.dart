@@ -24,8 +24,10 @@ Future<void> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
-    tester.widget<ElScrollView>(_inFeed(find.byType(ElScrollView), index: index));
+ElScroll _feed(WidgetTester tester, {int index = 1}) =>
+    tester.widget<ElScroll>(_inFeed(find.byType(ElScroll), index: index));
+
+Key? _rowsKey(WidgetTester tester) => tester.widget<SliverList>(_inFeed(find.byType(SliverList))).key;
 
 double _body(WidgetTester tester, {int index = 1}) => _feed(tester, index: index).controller!.offset;
 double _tabsY(WidgetTester tester) => tester.getTopLeft(_key('bibi-tabs')).dy;
@@ -123,19 +125,19 @@ void main() {
     final first = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
     expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     expect(_body(tester), 0);
-    await first.moveBy(Offset(0, -70), timeStamp: Duration(milliseconds: 230));
+    await first.moveBy(Offset(0, -200), timeStamp: Duration(milliseconds: 230));
     await tester.pump();
     expect(_refreshStatus(tester), RefreshIndicatorStatus.drag);
     await first.up(timeStamp: Duration(milliseconds: 440));
     await tester.pumpAndSettle();
-    expect(_feed(tester).children.last.key, ValueKey('bibi-rows-0'));
+    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
     expect(_refreshStatus(tester), isNull);
 
     final canceled = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
     expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     await canceled.cancel();
     await tester.pumpAndSettle();
-    expect(_feed(tester).children.last.key, ValueKey('bibi-rows-0'));
+    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
     expect(_refreshStatus(tester), isNull);
   });
 
@@ -151,11 +153,11 @@ void main() {
     expect(indicator.opacity, 0);
     await tester.pumpAndSettle();
     expect(_body(tester), greaterThan(0));
-    expect(_feed(tester).children.last.key, ValueKey('bibi-rows-0'));
+    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
     await tester.tap(find.text('首页').hitTestable());
     await tester.pumpAndSettle();
     expect(_body(tester), 0);
-    expect(_feed(tester).children.last.key, ValueKey('bibi-rows-1'));
+    expect(_rowsKey(tester), ValueKey('bibi-rows-1'));
     expect(tester.takeException(), isNull);
   });
 
@@ -192,7 +194,7 @@ void main() {
 
   testWidgets('卡片区跟手横移并在换频道后保持纵向位置', (tester) async {
     await _open(tester);
-    final host = _inFeed(find.byType(ElScrollView));
+    final host = _inFeed(find.byType(ElScroll));
     final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ExamplePanel));
     expect(cards, findsNWidgets(2));
     final boundaries = find.descendant(

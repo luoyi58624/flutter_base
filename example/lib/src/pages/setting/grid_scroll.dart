@@ -69,10 +69,9 @@ class _GridScrollPageState extends State<GridScrollPage> {
     return Scaffold(
       backgroundColor: dark ? Colors.grey.shade900 : Colors.grey.shade200,
       appBar: AppBar(title: Text('网格滚动')),
-      body: ElScrollView(
+      body: ElScroll(
         controller: _controller,
         padding: .all(6),
-        excludeSemantics: true,
         children: [
           for (var page = 0; page < pages; page++)
             ElRebuildWidget(
@@ -85,10 +84,7 @@ class _GridScrollPageState extends State<GridScrollPage> {
                       columnGap: 6,
                       // 旧 ElGrid 用宽乘 1.2 得到高度；这里的 aspectRatio 是宽/高。
                       aspectRatio: 1 / 1.2,
-                      children: List.generate(
-                        _pageSize,
-                        (index) => _Card(data: _items[page * _pageSize + index]),
-                      ),
+                      children: List.generate(_pageSize, (index) => _Card(data: _items[page * _pageSize + index])),
                     ),
                   );
                 },
@@ -164,10 +160,7 @@ class _Card extends StatelessWidget {
                     ),
                     ElView(
                       event: ElEvent(onTap: (event) => event.stopPropagation()),
-                      style: ElStyle(
-                        padding: .fromLTRB(24, 2, 0, 2),
-                        onTap: ElStyle(opacity: 0.6),
-                      ),
+                      style: ElStyle(padding: .fromLTRB(24, 2, 0, 2), onTap: ElStyle(opacity: 0.6)),
                       child: ElIcon(Icons.more_vert, size: 16, color: secondary),
                     ),
                   ],

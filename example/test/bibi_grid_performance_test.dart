@@ -112,7 +112,7 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
   if (scenario == _Scenario.home) {
     await tester.pumpWidget(_app(BibiPage()));
     await tester.pumpAndSettle();
-    host = find.descendant(of: find.byKey(ValueKey('bibi-feed-1')), matching: find.byType(ElScrollView));
+    host = find.descendant(of: find.byKey(ValueKey('bibi-feed-1')), matching: find.byType(ElScroll));
     final tabs = find.byKey(ValueKey('bibi-tabs'));
     final expanded = tester.getTopLeft(tabs).dy;
     final drag = await tester.startGesture(tester.getCenter(host));
@@ -144,7 +144,7 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
   }
   final scrollView = tester.widget(host);
   final controller = switch (scrollView) {
-    ElScrollView(:final controller) => controller!,
+    ElScroll(:final controller) => controller!,
     CustomScrollView(:final controller) => controller!,
     _ => throw StateError('缺少滚动宿主'),
   };

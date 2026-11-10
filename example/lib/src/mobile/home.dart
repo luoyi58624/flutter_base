@@ -33,8 +33,7 @@ class _Home extends HookWidget {
       // 首屏和追加均沿用原生的 800ms 模拟请求，不在卸载后更新状态。
       scheduleMicrotask(() => load());
       void onScroll() {
-        if (scroll.position.userScrollDirection == ScrollDirection.reverse &&
-            scroll.position.extentAfter < 330) {
+        if (scroll.position.userScrollDirection == ScrollDirection.reverse && scroll.position.extentAfter < 330) {
           unawaited(load());
         }
       }
@@ -48,78 +47,76 @@ class _Home extends HookWidget {
     return ExamplePanel(
       key: ValueKey('page-推荐'),
       style: ElStyle(backgroundColor: _background),
-      child: ElScrollView(
+      child: ElRefresh(
         onRefresh: () => load(refresh: true),
         refresher: ElAndroidRefresher(color: _primary),
-        key: PageStorageKey('home-list'),
-        controller: scroll,
-        physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
-        padding: desktop ? EdgeInsets.zero : EdgeInsets.all(12),
-        children: [
-          if (desktop) ...[
-            ElGridView.builder(
-              key: ValueKey('home-grid'),
-              itemCount: count.value,
-              minCrossAxisExtent: 360,
-              mainAxisExtent:
-                  216 * MediaQuery.textScalerOf(context).scale(14) / 14,
-              gap: 16,
-              itemBuilder: (context, index) => _ArticleCard(
-                _articles[index],
-                typography,
-                index: index,
-                desktop: true,
-              ),
-            ),
-            if (ended.value || busy.value)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: _Label(
-                  ended.value ? '没有更多了' : '加载中…',
-                  typography,
-                  size: 12,
-                  color: _tertiary,
-                  align: .center,
+        child: ElScroll.sliver(
+          key: PageStorageKey('home-list'),
+          controller: scroll,
+          physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+          slivers: [
+            if (desktop) ...[
+              SliverLayoutBuilder(
+                key: ValueKey('home-grid'),
+                builder: (context, constraints) => SliverGrid.builder(
+                  itemCount: count.value,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    // 每列至少 360 宽，列数随视口宽度增加。
+                    crossAxisCount: math.max(1, (constraints.crossAxisExtent + 16) ~/ (360 + 16)),
+                    mainAxisExtent: 216 * MediaQuery.textScalerOf(context).scale(14) / 14,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                  ),
+                  itemBuilder: (context, index) =>
+                      _ArticleCard(_articles[index], typography, index: index, desktop: true),
                 ),
               ),
-          ] else
-            ElListView.builder(
-              itemCount: count.value + 1,
-              itemBuilder: (context, index) => index < count.value
-                  ? Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: _ArticleCard(
-                        _articles[index],
-                        typography,
-                        index: index,
-                      ),
-                    )
-                  : (!ended.value && !(busy.value && count.value > 0))
-                  ? SizedBox.shrink()
-                  : Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: _Label(
-                        ended.value ? '没有更多了' : '加载中…',
-                        typography,
-                        size: 12,
-                        color: _tertiary,
-                        align: .center,
-                      ),
+              if (ended.value || busy.value)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: _Label(
+                      ended.value ? '没有更多了' : '加载中…',
+                      typography,
+                      size: 12,
+                      color: _tertiary,
+                      align: .center,
                     ),
-            ),
-        ],
+                  ),
+                ),
+            ] else
+              SliverPadding(
+                padding: EdgeInsets.all(12),
+                sliver: SliverList.builder(
+                  itemCount: count.value + 1,
+                  itemBuilder: (context, index) => index < count.value
+                      ? Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: _ArticleCard(_articles[index], typography, index: index),
+                        )
+                      : (!ended.value && !(busy.value && count.value > 0))
+                      ? SizedBox.shrink()
+                      : Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: _Label(
+                            ended.value ? '没有更多了' : '加载中…',
+                            typography,
+                            size: 12,
+                            color: _tertiary,
+                            align: .center,
+                          ),
+                        ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _ArticleCard extends StatelessWidget {
-  const _ArticleCard(
-    this.article,
-    this.typography, {
-    required this.index,
-    this.desktop = false,
-  });
+  const _ArticleCard(this.article, this.typography, {required this.index, this.desktop = false});
   final _Article article;
   final _Typography typography;
   final int index;
@@ -127,14 +124,8 @@ class _ArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ExamplePanel(
     key: ValueKey('article-$index'),
-    event: ElEvent(
-      onTap: (_) => _push(context, _DetailPage(article, typography)),
-    ),
-    style: ElStyle(
-      backgroundColor: _surface,
-      borderRadius: .circular(8),
-      padding: .all(desktop ? 16 : 12),
-    ),
+    event: ElEvent(onTap: (_) => _push(context, _DetailPage(article, typography))),
+    style: ElStyle(backgroundColor: _surface, borderRadius: .circular(8), padding: .all(desktop ? 16 : 12)),
     child: Row(
       crossAxisAlignment: .start,
       children: [

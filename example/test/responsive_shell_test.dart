@@ -27,7 +27,7 @@ void main() {
     final first = find.byKey(ValueKey('article-0'));
     final second = find.byKey(ValueKey('article-1'));
     final home = find.byKey(PageStorageKey('home-list'));
-    final scroll = tester.state<ElScrollViewState>(home);
+    final scroll = _scrollable(tester, home);
     expect(sidebar, findsOneWidget);
     expect(bottom, findsNothing);
     expect(find.byType(ElComponentProvider), findsOneWidget);
@@ -45,7 +45,7 @@ void main() {
     expect(sidebar, findsNothing);
     expect(bottom, findsOneWidget);
     expect(find.byKey(ValueKey('home-grid')), findsNothing);
-    expect(tester.state<ElScrollViewState>(home), same(scroll));
+    expect(_scrollable(tester, home), same(scroll));
     expect(tester.getTopLeft(second).dy, greaterThan(tester.getRect(first).bottom));
 
     await _resize(tester, Size(767, 800));
@@ -55,7 +55,7 @@ void main() {
     expect(bottom, findsNothing);
     await _resize(tester, Size(1920, 1080));
     expect(tester.getSize(home).width, lessThanOrEqualTo(1120));
-    expect(tester.state<ElScrollViewState>(home), same(scroll));
+    expect(_scrollable(tester, home), same(scroll));
     await tester.pumpWidget(SizedBox());
   });
 
@@ -99,7 +99,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('article-0')));
     await tester.pumpAndSettle();
     final title = find.byKey(ValueKey('detail-title'));
-    final scroll = find.ancestor(of: title, matching: find.byType(ElScrollView)).first;
+    final scroll = find.ancestor(of: title, matching: find.byType(ElScroll)).first;
     expect(tester.getSize(scroll).width, lessThanOrEqualTo(960));
     await _resize(tester, Size(390, 844));
     expect(title, findsOneWidget);
@@ -109,3 +109,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 }
+
+/// 读取 [host] 内最近的官方滚动状态。
+ScrollableState _scrollable(WidgetTester tester, Finder host) =>
+    tester.state<ScrollableState>(find.descendant(of: host, matching: find.byType(Scrollable)).first);

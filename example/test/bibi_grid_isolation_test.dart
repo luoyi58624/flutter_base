@@ -2,10 +2,9 @@ import 'dart:convert';
 
 import 'package:example/src/pages/examples/bibi/feed.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
-import 'package:flutter_base/src/ui/testing/ui_test_api.dart'
-    show ElScrollViewStateTesting, ElVirtualScrollDebugCounters;
 import 'package:flutter_test/flutter_test.dart';
 
 const _enabled = bool.fromEnvironment('BIBI_GRID_ISOLATION');
@@ -124,8 +123,7 @@ Future<Map<String, Object?>> _measure(
   double cardHeight,
   double rowExtent,
 ) async {
-  final controller = ElScrollController(keepScrollOffset: false);
-  final host = GlobalKey<ElScrollViewState>();
+  final controller = ScrollController(keepScrollOffset: false);
   var built = 0;
   var mounted = 0;
   var unmounted = 0;
@@ -148,39 +146,39 @@ Future<Map<String, Object?>> _measure(
 
   Widget viewport(double extent) {
     final rowGap = rowExtent - extent;
-    return ElScrollView(
-      key: host,
+    return ElScroll.sliver(
       controller: controller,
-      padding: .symmetric(horizontal: _side),
-      cacheExtent: 250,
+      scrollCacheExtent: ScrollCacheExtent.pixels(250),
       physics: ClampingScrollPhysics(),
-      scrollbar: ElNoScrollBar(),
-      children: [
-        if (layout != .rows)
-          ElGridView.builder(
-            crossAxisCount: 2,
-            columnGap: _columnGap,
-            rowGap: rowGap,
-            mainAxisExtent: extent,
-            itemCount: bibiVideoCount,
-            itemBuilder: (_, index) => cell(index),
-          )
-        else
-          ElListView.builder(
-            fixedSize: true,
-            itemCount: bibiVideoRowCount,
-            itemBuilder: (_, index) => Padding(
-              padding: .only(bottom: rowGap),
-              child: Row(
-                spacing: _columnGap,
-                crossAxisAlignment: .start,
-                children: [
-                  Expanded(child: cell(index * 2)),
-                  Expanded(child: cell(index * 2 + 1)),
-                ],
-              ),
-            ),
-          ),
+      slivers: [
+        SliverPadding(
+          padding: .symmetric(horizontal: _side),
+          sliver: layout != .rows
+              ? SliverGrid.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: _columnGap,
+                    mainAxisSpacing: rowGap,
+                    mainAxisExtent: extent,
+                  ),
+                  itemCount: bibiVideoCount,
+                  itemBuilder: (_, index) => cell(index),
+                )
+              : SliverList.builder(
+                  itemCount: bibiVideoRowCount,
+                  itemBuilder: (_, index) => Padding(
+                    padding: .only(bottom: rowGap),
+                    child: Row(
+                      spacing: _columnGap,
+                      crossAxisAlignment: .start,
+                      children: [
+                        Expanded(child: cell(index * 2)),
+                        Expanded(child: cell(index * 2 + 1)),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
       ],
     );
   }
@@ -219,12 +217,9 @@ Future<Map<String, Object?>> _measure(
   await tester.pumpAndSettle();
   await _sweep(tester, controller, start, 16, cardCounts);
 
-  final counters = host.currentState!.debugCounters;
-  final before = _counts(counters);
   final initialMeasurementBuilds = measurementBuilds;
   final forward = await _sweep(tester, controller, end, _samples, cardCounts);
   final reverse = await _sweep(tester, controller, start, _samples, cardCounts);
-  final after = _counts(counters);
   final frames = [...forward, ...reverse];
   final result = <String, Object?>{
     'cards': cards.name,
@@ -234,7 +229,6 @@ Future<Map<String, Object?>> _measure(
     'all': _summary(frames),
     'mount_frames': _summary(frames.where((frame) => frame.cards.mounted > 0)),
     'steady_frames': _summary(frames.where((frame) => frame.cards.mounted == 0 && frame.cards.unmounted == 0)),
-    'counters': {for (final key in before.keys) key: after[key]! - before[key]!},
   };
   expect(tester.takeException(), isNull);
   await tester.pumpWidget(SizedBox.shrink());
@@ -276,14 +270,6 @@ Future<List<_FrameSample>> _sweep(
   await animation;
   return results;
 }
-
-Map<String, int> _counts(ElVirtualScrollDebugCounters counters) => {
-  'reconcile': counters.debugContentReconcileCount,
-  'incremental_reconcile': counters.debugContentIncrementalReconcileCount,
-  'layout_item_visits': counters.debugLayoutChildVisitCount,
-  'paint_candidate_visits': counters.debugPaintCandidateVisitCount,
-  'host_builds': counters.debugBuildCount,
-};
 
 Map<String, num> _summary(Iterable<_FrameSample> frames) {
   final ordered = frames.map((frame) => frame.elapsed).toList()..sort();

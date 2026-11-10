@@ -9,7 +9,7 @@ class _MessagesPage extends StatelessWidget {
   Widget build(BuildContext context) => ExamplePanel(
     key: ValueKey('page-消息'),
     style: ElStyle(backgroundColor: _surface),
-    child: ElScrollView(
+    child: ElScroll(
       key: PageStorageKey('messages-list'),
       children: [
         for (var i = 0; i < _messages.length; i++) ...[
@@ -21,12 +21,7 @@ class _MessagesPage extends StatelessWidget {
                 padding: .symmetric(horizontal: 12),
                 alignment: .centerLeft,
               ),
-              child: _Label(
-                _messages[i].group,
-                typography,
-                size: 12,
-                color: _tertiary,
-              ),
+              child: _Label(_messages[i].group, typography, size: 12, color: _tertiary),
             ),
           ExamplePanel(
             key: ValueKey('message-$i'),
@@ -73,20 +68,11 @@ class _MessagesPage extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(width: 8),
-                                _Label(
-                                  _messages[i].time,
-                                  typography,
-                                  size: 11,
-                                  color: _tertiary,
-                                ),
+                                _Label(_messages[i].time, typography, size: 11, color: _tertiary),
                               ],
                             ),
                             SizedBox(height: 4),
-                            _Label(
-                              _messages[i].content,
-                              typography,
-                              maxLines: 1,
-                            ),
+                            _Label(_messages[i].content, typography, maxLines: 1),
                           ],
                         ),
                       ),

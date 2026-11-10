@@ -37,8 +37,8 @@ Future<void> _select(WidgetTester tester, String label) async {
         matching: find.byWidgetPredicate((widget) => widget is ElView && widget.event?.onTap != null),
       )
       .first;
-  final scrollFinder = find.ancestor(of: row, matching: find.byType(ElScrollView)).first;
-  final scroll = tester.state<ElScrollViewState>(scrollFinder);
+  final scrollFinder = find.ancestor(of: row, matching: find.byType(ElScroll)).first;
+  final scroll = _scrollable(tester, scrollFinder);
   final delta = tester.getCenter(row).dy - tester.getCenter(scrollFinder).dy;
   scroll.position.jumpTo(
     (scroll.position.pixels + delta).clamp(scroll.position.minScrollExtent, scroll.position.maxScrollExtent).toDouble(),
@@ -206,3 +206,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 }
+
+/// 读取 [host] 内最近的官方滚动状态。
+ScrollableState _scrollable(WidgetTester tester, Finder host) =>
+    tester.state<ScrollableState>(find.descendant(of: host, matching: find.byType(Scrollable)).first);

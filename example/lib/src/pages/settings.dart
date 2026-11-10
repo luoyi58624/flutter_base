@@ -18,7 +18,7 @@ class SettingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExamplePage(
       title: '设置',
-      child: ElScrollView(
+      child: ElScroll(
         padding: .all(20),
         gap: 20,
         children: [

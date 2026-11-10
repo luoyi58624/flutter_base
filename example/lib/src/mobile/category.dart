@@ -11,9 +11,7 @@ class _CategoryPage extends HookWidget {
     final right = useScrollController();
     final left = useScrollController();
     final viewport = useMemoized(GlobalKey.new);
-    final keys = useMemoized(
-      () => List.generate(_categories.length, (_) => GlobalKey()),
-    );
+    final keys = useMemoized(() => List.generate(_categories.length, (_) => GlobalKey()));
     final locked = useRef(false);
     useEffect(() {
       void sync() {
@@ -23,10 +21,8 @@ class _CategoryPage extends HookWidget {
         final top = box.localToGlobal(Offset.zero).dy;
         var index = 0;
         for (var i = 0; i < keys.length; i++) {
-          final render =
-              keys[i].currentContext?.findRenderObject() as RenderBox?;
-          if (render != null &&
-              render.localToGlobal(Offset.zero).dy <= top + 1) {
+          final render = keys[i].currentContext?.findRenderObject() as RenderBox?;
+          if (render != null && render.localToGlobal(Offset.zero).dy <= top + 1) {
             index = i;
           }
         }
@@ -56,10 +52,10 @@ class _CategoryPage extends HookWidget {
         final host = viewport.currentContext?.findRenderObject() as RenderBox?;
         if (item != null && host != null && right.hasClients) {
           await right.animateTo(
-            (right.offset +
-                    item.localToGlobal(Offset.zero).dy -
-                    host.localToGlobal(Offset.zero).dy)
-                .clamp(0, right.position.maxScrollExtent),
+            (right.offset + item.localToGlobal(Offset.zero).dy - host.localToGlobal(Offset.zero).dy).clamp(
+              0,
+              right.position.maxScrollExtent,
+            ),
             duration: Duration(milliseconds: 300),
             curve: Curves.easeOut,
           );
@@ -74,24 +70,17 @@ class _CategoryPage extends HookWidget {
       child: Row(
         children: [
           ExamplePanel(
-            style: ElStyle(
-              width: desktop ? 144 : 92,
-              backgroundColor: Color(0xfff7f8fa),
-            ),
-            child: ElScrollView(
+            style: ElStyle(width: desktop ? 144 : 92, backgroundColor: Color(0xfff7f8fa)),
+            child: ElScroll(
               controller: left,
               children: [
-                ElListView.builder(
-                  itemCount: _categories.length,
-                  itemBuilder: (context, i) => ElButtonView(
+                for (var i = 0; i < _categories.length; i++)
+                  ElButtonView(
                     key: ValueKey('category-$i'),
                     semanticLabel: _categories[i].name,
                     selected: selected.value == i,
                     onPressed: () => unawaited(select(i)),
-                    style: ElStyle(
-                      height: 48,
-                      backgroundColor: selected.value == i ? _surface : null,
-                    ),
+                    style: ElStyle(height: 48, backgroundColor: selected.value == i ? _surface : null),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -108,18 +97,11 @@ class _CategoryPage extends HookWidget {
                         if (selected.value == i)
                           Align(
                             alignment: .centerLeft,
-                            child: ElView(
-                              style: ElStyle(
-                                width: 3,
-                                height: 18,
-                                backgroundColor: _primary,
-                              ),
-                            ),
+                            child: ElView(style: ElStyle(width: 3, height: 18, backgroundColor: _primary)),
                           ),
                       ],
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -130,7 +112,7 @@ class _CategoryPage extends HookWidget {
                 if (event.dragDetails != null) locked.value = false;
                 return false;
               },
-              child: ElScrollView(
+              child: ElScroll(
                 key: ValueKey('category-list'),
                 controller: right,
                 padding: EdgeInsets.all(8),
@@ -149,22 +131,12 @@ class _CategoryPage extends HookWidget {
                                   padding: .symmetric(horizontal: 4),
                                   alignment: .centerLeft,
                                 ),
-                                child: _Label(
-                                  _categories[i].name,
-                                  typography,
-                                  size: 14,
-                                  weight: .w700,
-                                  color: _text,
-                                ),
+                                child: _Label(_categories[i].name, typography, size: 14, weight: .w700, color: _text),
                               ),
                               for (var row = 0; row < 6 ~/ columns; row++)
                                 Row(
                                   children: [
-                                    for (
-                                      var column = 0;
-                                      column < columns;
-                                      column++
-                                    )
+                                    for (var column = 0; column < columns; column++)
                                       Expanded(
                                         child: Padding(
                                           padding: EdgeInsets.all(8),
@@ -181,18 +153,12 @@ class _CategoryPage extends HookWidget {
                                                     width: 48,
                                                     height: 48,
                                                     borderRadius: .circular(10),
-                                                    backgroundColor: _categories[i]
-                                                        .items[row * columns +
-                                                            column]
-                                                        .color,
+                                                    backgroundColor: _categories[i].items[row * columns + column].color,
                                                   ),
                                                 ),
                                                 SizedBox(height: 6),
                                                 _Label(
-                                                  _categories[i]
-                                                      .items[row * columns +
-                                                          column]
-                                                      .name,
+                                                  _categories[i].items[row * columns + column].name,
                                                   typography,
                                                   size: 12,
                                                   color: _text,

@@ -48,13 +48,12 @@ void main() {
     await tester.tap(_item(1, '下一页'));
     await tester.pumpAndSettle();
     expect(_item(1, '最近操作：下一页'), findsOneWidget);
-    final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller! as ElScrollController;
     for (var number = 1; number <= 8; number++) {
-      scroll.scrollToIndex(number);
+      await Scrollable.ensureVisible(tester.element(_section(number)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '移动示例 $number');
     }
-    scroll.scrollToIndex(1);
+    await Scrollable.ensureVisible(tester.element(_section(1)));
     await tester.pumpAndSettle();
     final toggle = find.descendant(of: _section(1), matching: find.byKey(ValueKey('el-code-example-toggle')));
     await tester.tap(toggle);
@@ -134,9 +133,9 @@ void main() {
     final source = (await tester.runAsync(() => rootBundle.loadString(_source(1))))!;
     await _open(tester, width: 320);
     expect(find.text('本页目录'), findsNothing);
-    final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller! as ElScrollController;
+    final scroll = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
     for (var number = 1; number <= 8; number++) {
-      scroll.scrollToIndex(number);
+      await Scrollable.ensureVisible(tester.element(_section(number)));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '示例 $number');
     }
@@ -148,7 +147,7 @@ void main() {
     expect(confirm, closeTo(back * 2, 0.01));
     expect(tester.getSize(groups.at(2)).height, 156);
 
-    scroll.scrollToIndex(1);
+    await Scrollable.ensureVisible(tester.element(_section(1)));
     await tester.pumpAndSettle();
     final toggle = find.descendant(of: _section(1), matching: find.byKey(ValueKey('el-code-example-toggle')));
     final delta = tester.getCenter(toggle).dy - 600;

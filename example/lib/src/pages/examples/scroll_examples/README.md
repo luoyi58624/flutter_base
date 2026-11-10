@@ -18,7 +18,7 @@
 
 媒体布局与卡片来源分别切换，Bibi 卡片来源不构成第三种滚动实现。官方网格按自身协议提供格子几何，回收网格和瀑布流继续自然测量。selection、cards、orders 的定向定位只沿用各页已有的业务等高几何，没有增加组件 itemExtent 参数。
 
-文档设置中的旧 recyclerView 存储值定向迁移为 sliverList，使用 CustomScrollView + ElSliverList；原有官方普通、官方虚拟和 ElScrollView 文档模式保留。常驻文档通过已挂载小节进行 ensureVisible，不能将该能力用于尚未挂载的回收项。
+文档设置中的旧 recyclerView 存储值定向迁移为 sliverList，使用 CustomScrollView + ElSliverList；原有官方普通、官方虚拟文档模式保留，旧 ElScrollView 模式改为 ElScroll 常驻文档，旧存储值 elScrollView 定向迁移为 elScroll。常驻文档通过已挂载小节进行 ensureVisible，不能将该能力用于尚未挂载的回收项。
 
 旧公共入口 lib/recycler_view.dart、lib/flutter.dart 中的旧导出、旧内核、旧例页副本及专属诊断报告已移除。仍有效的业务回归迁到 example/test/scroll_*.dart，新 Sliver 的换绑过渡回归位于 test/flutter/slivers/sliver_recycler_rebind_transition_test.dart；旧 Adapter/Holder 成本诊断下线。
 

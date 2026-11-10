@@ -134,25 +134,8 @@ void main() {
           ),
         ),
       );
-      if (mode == .elScrollView) {
-        final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView));
-        expect(scroll.scrollbar, isA<ElIosScrollBar>());
-        final state = tester.state<ElScrollViewState>(find.byType(ElScrollView));
-        final thumb = find.byKey(ValueKey('el-scrollbar-thumb-vertical'));
-        expect(thumb, findsOneWidget);
-        final before = state.position.pixels;
-        final gesture = await tester.startGesture(tester.getCenter(thumb));
-        await tester.pump(Duration(milliseconds: 130));
-        await gesture.moveBy(Offset(0, 150));
-        await tester.pump(Duration(milliseconds: 16));
-        expect(state.position.pixels - before, greaterThan(500));
-        await tester.pump(Duration(milliseconds: 120));
-        await gesture.up();
-        await tester.pumpAndSettle();
-      } else {
-        expect(find.byType(CupertinoScrollbar), findsOneWidget);
-        expect(await _dragCupertinoThumb(tester), greaterThan(500));
-      }
+      expect(find.byType(CupertinoScrollbar), findsOneWidget);
+      expect(await _dragCupertinoThumb(tester), greaterThan(500));
       expect(tester.takeException(), isNull);
     });
   }

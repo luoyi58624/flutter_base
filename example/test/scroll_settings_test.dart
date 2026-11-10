@@ -66,7 +66,7 @@ void main() {
     previousRepeatCount = GlobalState.docRepeatCount.value;
     previousBindingResampling = GestureBinding.instance.resamplingEnabled;
     previousResampling = GlobalState.resamplingEnabled.value;
-    GlobalState.docScrollMode.value = DocScrollMode.elScrollView;
+    GlobalState.docScrollMode.value = DocScrollMode.elScroll;
     GlobalState.excludeSemantics.value = false;
     GlobalState.docRepeatCount.value = 1;
     GlobalState.resamplingEnabled.value = false;
@@ -84,13 +84,13 @@ void main() {
     await _openSettings(tester);
     expect(_modeRow(), findsOneWidget);
     expect(tester.widget<ElListTile<DocScrollMode>>(_modeRow()).title, '文档滚动');
-    expect(find.descendant(of: _modeRow(), matching: _text('ElScrollView')), findsOneWidget);
+    expect(find.descendant(of: _modeRow(), matching: _text('ElScroll')), findsOneWidget);
 
     final options = <DocScrollMode, String>{
       DocScrollMode.official: '官方普通滚动',
       DocScrollMode.officialVirtual: '官方虚拟列表',
       DocScrollMode.sliverList: 'ElSliverList',
-      DocScrollMode.elScrollView: 'ElScrollView',
+      DocScrollMode.elScroll: 'ElScroll',
     };
     for (final entry in options.entries) {
       await tester.tap(_modeRow());

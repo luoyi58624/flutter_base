@@ -15,8 +15,7 @@ class HomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scroll = useMemoized(ElScrollController.new);
-    useEffect(() => scroll.dispose, [scroll]);
+    final buttons = useMemoized(GlobalKey.new);
     return ExamplePage(
       title: '首页',
       showThemeToggle: true,
@@ -25,21 +24,20 @@ class HomePage extends HookWidget {
           alignment: .topCenter,
           child: ConstrainedBox(
             constraints: .new(maxWidth: 1200),
-            child: ElScrollView(
+            child: ElScroll(
               key: PageStorageKey('showcase-scroll'),
-              controller: scroll,
               padding: .all(constraints.maxWidth < 600 ? 16 : 32),
+              gap: 36,
               children: [
-                ElListView.builder(
-                  keepAlive: true,
-                  gap: 36,
-                  itemCount: 3,
-                  itemBuilder: (context, index) => switch (index) {
-                    0 => _ScrollEntries(),
-                    1 => ShowcaseHero(onExplore: () => scroll.scrollToIndex(2)),
-                    _ => ButtonShowcase(),
-                  },
+                _ScrollEntries(),
+                ShowcaseHero(
+                  onExplore: () => Scrollable.ensureVisible(
+                    buttons.currentContext!,
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                  ),
                 ),
+                ButtonShowcase(key: buttons),
               ],
             ),
           ),

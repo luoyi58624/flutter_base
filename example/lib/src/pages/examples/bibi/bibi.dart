@@ -245,7 +245,7 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
   }
 }
 
-class _FeedController extends ElScrollController {
+class _FeedController extends ScrollController {
   _FeedController({super.onAttach, super.onDetach}) : super(keepScrollOffset: false);
 
   double restoreOffset = 0;
@@ -267,7 +267,7 @@ class _BibiFeed extends StatefulWidget {
 
   final int index;
   final int generation;
-  final ElScrollController controller;
+  final ScrollController controller;
   final BibiHeaderMotion header;
   final ElTabController pager;
   final Future<void> Function() onRefresh;
@@ -311,23 +311,29 @@ class _BibiFeedState extends State<_BibiFeed> {
   }
 
   @override
-  Widget build(BuildContext context) => ElScrollView(
-    controller: widget.controller,
-    physics: _physics,
-    scrollbar: ElNoScrollBar(),
-    deltaInterceptor: widget.header.forPage(widget.index),
-    refresher: _refresher,
-    onRefresh: widget.onRefresh,
-    padding: EdgeInsets.only(bottom: 4),
-    children: [
-      widget.header.bindPage(widget.index, child: buildBibiBanner(context, widget.generation)),
-      ElListView.builder(
-        key: ValueKey('bibi-rows-${widget.generation}'),
-        itemCount: bibiVideoRowCount,
-        fixedSize: true,
-        itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
+  Widget build(BuildContext context) => widget.header.bindPage(
+    widget.index,
+    child: ElRefresh(
+      refresher: _refresher,
+      onRefresh: widget.onRefresh,
+      child: ElScroll.sliver(
+        controller: widget.controller,
+        physics: _physics,
+        slivers: [
+          SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
+          SliverPadding(
+            padding: EdgeInsets.only(bottom: 4),
+            sliver: SliverList.builder(
+              key: ValueKey('bibi-rows-${widget.generation}'),
+              itemCount: bibiVideoRowCount,
+              // 每行自带重绘边界，不再叠加官方列表的默认边界。
+              addRepaintBoundaries: false,
+              itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
+            ),
+          ),
+        ],
       ),
-    ],
+    ),
   );
 }
 

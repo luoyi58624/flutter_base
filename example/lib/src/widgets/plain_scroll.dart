@@ -27,7 +27,6 @@ class ExamplePlainScroll extends StatefulWidget {
     this.pageSize = 100,
     this.physics,
     this.padding = EdgeInsets.zero,
-    this.scrollbar,
     this.leading = const [],
     this.revision,
     this.handle,
@@ -53,9 +52,6 @@ class ExamplePlainScroll extends StatefulWidget {
 
   /// 列表内边距。
   final EdgeInsets padding;
-
-  /// 滚动条；不传则使用容器默认滚动条。
-  final ElScrollbar? scrollbar;
 
   /// 放在分批内容之前的固定头部。
   final List<Widget> leading;
@@ -205,12 +201,11 @@ class _ExamplePlainScrollState extends State<ExamplePlainScroll> {
       );
       offset += count;
     }
-    return ElScrollView(
+    return ElScroll(
       controller: _controller,
       reverse: widget.reverse,
       physics: widget.physics,
       padding: widget.padding,
-      scrollbar: widget.scrollbar,
       children: [...widget.leading, ...chunks],
     );
   }

@@ -69,7 +69,7 @@ void main() {
     for (final page in placeholders) {
       expect(page.data, isNotNull, reason: page.key);
       final tile = find.byKey(ValueKey('component-${page.key}'));
-      final position = tester.state<ElScrollViewState>(catalog).position;
+      final position = _scrollable(tester, catalog).position;
       final delta = tester.getCenter(tile).dy - tester.getCenter(catalog).dy;
       position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
       await tester.pumpAndSettle();
@@ -97,7 +97,7 @@ void main() {
     final catalog = find.byKey(PageStorageKey('component-catalog'));
     for (var index = 0; index < 2; index++) {
       final tile = find.byKey(ValueKey('component-list-tile'));
-      final position = tester.state<ElScrollViewState>(catalog).position;
+      final position = _scrollable(tester, catalog).position;
       final delta = tester.getCenter(tile).dy - tester.getCenter(catalog).dy;
       position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
       await tester.pumpAndSettle();
@@ -143,3 +143,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 }
+
+/// 读取 [host] 内最近的官方滚动状态。
+ScrollableState _scrollable(WidgetTester tester, Finder host) =>
+    tester.state<ScrollableState>(find.descendant(of: host, matching: find.byType(Scrollable)).first);

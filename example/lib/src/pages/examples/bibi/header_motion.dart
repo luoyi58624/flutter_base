@@ -16,7 +16,7 @@ final class BibiHeaderMotion {
   final AnimationController _offset;
   final _interceptors = <int, _BibiPageInterceptor>{};
   int _activePage = 0;
-  int? _motionId;
+  bool _inMotion = false;
   double _lastDirection = 0;
   double _flingDirection = 0;
   Timer? _wheelIdle;
@@ -25,12 +25,18 @@ final class BibiHeaderMotion {
   /// 展开为零，收起为 [extent]。
   ValueListenable<double> get offset => _offset.view;
 
-  /// 为每个频道提供稳定的位移拦截器。
-  ElScrollDeltaInterceptor forPage(int index) =>
-      _interceptors.putIfAbsent(index, () => _BibiPageInterceptor(this, index));
-
-  /// 将惯性行程和运动终态绑定到频道内的常驻成员。
-  Widget bindPage(int index, {required Widget child}) => _BibiMotionBinding(motion: this, index: index, child: child);
+  /// 让频道 [index] 内的 ElScroll 先把位移交给页头，并在滚动停稳后吸附。
+  Widget bindPage(int index, {required Widget child}) => ElNestedScroll(
+    parent: _interceptors.putIfAbsent(index, () => _BibiPageInterceptor(this, index)),
+    child: NotificationListener<ScrollEndNotification>(
+      onNotification: (notification) {
+        // 惯性跑完才结算，页头跟随整段惯性后再吸附到最近的端点。
+        if (notification.depth == 0) _motionSettled(index)?.ignore();
+        return false;
+      },
+      child: child,
+    ),
+  );
 
   /// 切页时退役旧频道的输入，防止它继续带动共享页头。
   void setActivePage(int index) {
@@ -55,21 +61,27 @@ final class BibiHeaderMotion {
   bool _isActive(int index) => !_disposed && index == _activePage;
 
   void _clearMotion() {
-    _motionId = null;
+    _inMotion = false;
     _lastDirection = 0;
     _flingDirection = 0;
     _wheelIdle?.cancel();
     _wheelIdle = null;
   }
 
-  void _beginMotion(int index, int motionId) {
+  void _beginMotion(int index) {
     if (!_isActive(index)) return;
     _clearMotion();
-    _motionId = motionId;
+    _inMotion = true;
+  }
+
+  bool _canConsume(int index, double delta) {
+    if (!_isActive(index)) return false;
+    final value = _offset.value;
+    return delta > 0 ? value < extent : value > 0;
   }
 
   double _consume(int index, double delta, ElScrollDeltaSource source) {
-    if (!_isActive(index) || (source != .pointerScroll && _motionId == null)) return 0;
+    if (!_isActive(index) || (source != .pointerScroll && !_inMotion)) return 0;
     // 滚轮使用像素方向，手指拖拽和惯性使用手指方向。
     final scale = source == .pointerScroll ? 1.0 : -1.0;
     final previous = _offset.value;
@@ -87,11 +99,16 @@ final class BibiHeaderMotion {
     return movement * scale;
   }
 
-  Future<void>? _motionSettled(int index, ElScrollSessionDetails details) {
-    if (!_isActive(index) || details.motionId != _motionId) return null;
+  void _release(int index, double velocity) {
+    // 松手速度是手指方向，页头方向与之相反；惯性帧未推动页头时按它决定吸附方向。
+    if (_isActive(index) && _inMotion && _flingDirection == 0) _flingDirection = -velocity.sign;
+  }
+
+  Future<void>? _motionSettled(int index) {
+    if (!_isActive(index) || !_inMotion) return null;
     final moved = _lastDirection != 0;
-    final direction = _flingDirection != 0 ? _flingDirection : (details.releaseVelocity ?? 0.0).sign;
-    _motionId = null;
+    final direction = _flingDirection;
+    _inMotion = false;
     _lastDirection = 0;
     _flingDirection = 0;
     // 速度为零的真实拖拽按中点吸附，短甩则沿惯性原方向补足未完成的行程。
@@ -118,69 +135,32 @@ final class BibiHeaderMotion {
   }
 }
 
-final class _BibiPageInterceptor extends ElScrollDeltaInterceptor {
+final class _BibiPageInterceptor extends ElNestedScrollParent {
   const _BibiPageInterceptor(this.motion, this.index);
 
   final BibiHeaderMotion motion;
   final int index;
 
   @override
-  double interceptScrollDelta(double delta, ElScrollDeltaSource source) => motion._consume(index, delta, source);
-}
-
-class _BibiMotionBinding extends StatefulWidget {
-  const _BibiMotionBinding({required this.motion, required this.index, required this.child});
-
-  final BibiHeaderMotion motion;
-  final int index;
-  final Widget child;
+  Axis? get nestedScrollAxis => .vertical;
 
   @override
-  State<_BibiMotionBinding> createState() => _BibiMotionBindingState();
-}
-
-class _BibiMotionBindingState extends State<_BibiMotionBinding> with ElScrollMixin<_BibiMotionBinding> {
-  @override
-  bool get observesScrollUpdates => false;
+  void onNestedScrollStart(Axis axis, ElScrollDeltaSource source) => motion._beginMotion(index);
 
   @override
-  bool get observesScrollMetrics => false;
+  double onNestedPreScroll(double delta, ElScrollDeltaSource source) => motion._consume(index, delta, source);
 
   @override
-  Object get scrollInputSlot => #bibiHeader;
-
-  // 宿主惯性用页头与正文的总行程，正文到边界时仍可继续推进页头。
-  late final _track = ElScrollEffectTrack(
-    effectId: #bibiHeader,
-    minValue: 0,
-    maxValue: widget.motion.extent,
-    pixelsPerUnit: 1,
-    readValue: () => widget.motion.offset.value,
-    updateValue: (value) => widget.motion._offset.value = value,
-  );
+  bool canConsumeNestedPreScroll(double delta, ElScrollDeltaSource source) => motion._canConsume(index, delta);
 
   @override
-  Iterable<ElScrollEffectTrack> get scrollEffectTracks => [_track];
-
-  @override
-  void onInputStart(ElScrollSessionDetails details) {
-    super.onInputStart(details);
-    widget.motion._beginMotion(widget.index, details.motionId);
+  double onNestedPreFling(double velocity) {
+    motion._release(index, velocity);
+    return velocity;
   }
 
   @override
-  Future<void>? onScrollSettle(ElScrollSessionDetails details) {
-    final previous = super.onScrollSettle(details);
-    return widget.motion._motionSettled(widget.index, details) ?? previous;
+  void onNestedScrollCancel() {
+    if (motion._isActive(index) && motion._inMotion) motion._cancelMotion();
   }
-
-  @override
-  void onMotionCancelled(ElScrollSessionDetails details) {
-    super.onMotionCancelled(details);
-    final motion = widget.motion;
-    if (motion._isActive(widget.index) && details.motionId == motion._motionId) motion._cancelMotion();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }

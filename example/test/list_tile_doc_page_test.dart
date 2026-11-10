@@ -38,7 +38,7 @@ Future<void> _openPage(WidgetTester tester, {required double width, required ElC
 }
 
 Future<void> _reveal(WidgetTester tester, Finder target) async {
-  final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
+  final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
   final offset = controller.offset + tester.getCenter(target).dy - 420;
   controller.jumpTo(offset.clamp(controller.position.minScrollExtent, controller.position.maxScrollExtent).toDouble());
   await tester.pumpAndSettle();
@@ -67,9 +67,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(source), findsNothing);
 
-    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller! as ElScrollController;
     for (var number = 1; number <= 8; number++) {
-      controller.scrollToIndex(number);
+      await Scrollable.ensureVisible(tester.element(_example(number)));
       await tester.pumpAndSettle();
       expect(_example(number), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '示例 $number');

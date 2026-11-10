@@ -41,9 +41,9 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ElScrollView(
-                          children: [
-                            ElListView.builder(
+                        child: ElScroll.sliver(
+                          slivers: [
+                            SliverList.builder(
                               itemCount: 1000,
                               itemBuilder: (c, i) => Center(
                                 child: ElView(
@@ -93,9 +93,9 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ElScrollView(
-                          children: [
-                            ElListView.builder(
+                        child: ElScroll.sliver(
+                          slivers: [
+                            SliverList.builder(
                               itemCount: 1000,
                               itemBuilder: (c, i) => Center(
                                 child: Padding(

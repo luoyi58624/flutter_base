@@ -53,7 +53,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(entry.type), findsOneWidget);
       expect(find.byType(ElSliverRecyclerList), findsOneWidget);
-      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(ElScroll), findsNothing);
       if (entry.key == 'recycler-text') {
         expect(
           tester.widget<ElSliverRecyclerExamplePage>(find.byType(ElSliverRecyclerExamplePage)).initialContent,

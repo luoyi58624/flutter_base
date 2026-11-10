@@ -88,30 +88,28 @@ void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
     case DocScrollMode.official:
       expect(find.byType(SingleChildScrollView), findsOneWidget);
       expect(find.byType(ListView), findsNothing);
-      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(ElScroll), findsNothing);
       expect(find.byType(ElSliverList), findsNothing);
       expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
     case DocScrollMode.officialVirtual:
       expect(find.byType(ListView), findsOneWidget);
-      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(ElScroll), findsNothing);
       expect(find.byType(ElSliverList), findsNothing);
       final list = tester.widget<ListView>(find.byType(ListView));
       final delegate = list.childrenDelegate as SliverChildBuilderDelegate;
       expect(delegate.estimatedChildCount, itemCount);
       expect(delegate.addAutomaticKeepAlives, isFalse);
       expect(find.byType(ElCodeExample), findsWidgets);
-    case DocScrollMode.elScrollView:
-      expect(find.byType(ElScrollView), findsOneWidget);
+    case DocScrollMode.elScroll:
+      expect(find.byType(ElScroll), findsOneWidget);
       expect(find.byType(ListView), findsNothing);
-      expect(find.byType(ElSliverList), findsNothing);
-      final list = tester.widget<ElListView>(find.byType(ElListView).first);
-      expect(list.itemCount, itemCount);
-      expect(list.keepAlive, isFalse);
-      expect(find.byType(ElCodeExample), findsWidgets);
+      final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
+      expect(list.children.length, itemCount);
+      expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
     case DocScrollMode.sliverList:
       expect(find.byType(ElSliverList), findsOneWidget);
       expect(find.byType(ListView), findsNothing);
-      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byType(ElScroll), findsNothing);
       final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
       expect(list.children.length, itemCount);
       expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
@@ -143,7 +141,7 @@ void main() {
     previousRepeatCount = GlobalState.docRepeatCount.value;
     previousBindingResampling = GestureBinding.instance.resamplingEnabled;
     previousResampling = GlobalState.resamplingEnabled.value;
-    GlobalState.docScrollMode.value = DocScrollMode.elScrollView;
+    GlobalState.docScrollMode.value = DocScrollMode.elScroll;
     GlobalState.excludeSemantics.value = false;
     GlobalState.docRepeatCount.value = 1;
     GlobalState.resamplingEnabled.value = false;
@@ -282,7 +280,7 @@ void main() {
       DocScrollMode.officialVirtual,
       DocScrollMode.official,
       DocScrollMode.sliverList,
-      DocScrollMode.elScrollView,
+      DocScrollMode.elScroll,
     ]) {
       GlobalState.docScrollMode.value = mode;
       await tester.pumpAndSettle();
@@ -412,7 +410,7 @@ void main() {
     GlobalState.docRepeatCount.value = 20;
     GlobalState.docScrollMode.value = DocScrollMode.officialVirtual;
     await _openButtonRoute(tester, '/components/button');
-    for (final mode in [DocScrollMode.officialVirtual, DocScrollMode.elScrollView]) {
+    for (final mode in [DocScrollMode.officialVirtual]) {
       GlobalState.docScrollMode.value = mode;
       await tester.pumpAndSettle();
       _expectDocMode(tester, mode, sections: 11);

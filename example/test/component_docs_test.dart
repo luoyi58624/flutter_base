@@ -68,9 +68,8 @@ void main() {
           expect(find.widgetWithText(AppBar, page.title), findsOneWidget);
         } else {
           expect(find.byType(ComponentDocPage), findsOneWidget);
-          final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView).first).controller! as ElScrollController;
           for (var i = 0; i < count; i++) {
-            scroll.scrollToIndex(i + 1);
+            await Scrollable.ensureVisible(tester.element(find.byKey(ValueKey(sources[i]))));
             await tester.pump();
             await tester.runAsync(() async {});
             await tester.pump(Duration(milliseconds: 400));

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
-import 'package:flutter_base/flutter_base.dart';
 
 /// 为官方与回收列表接入可直接拖拽的 iOS 风格滚动条。
 class RecyclerExampleScrollbar extends StatelessWidget {
@@ -103,10 +102,4 @@ class _DirectThumbScrollbarState extends RawScrollbarState<CupertinoScrollbar> {
     _resize.dispose();
     super.dispose();
   }
-}
-
-/// 为 ElScrollView 对比列表保持同样常显、可拖拽的 iOS 风格滚动条。
-class RecyclerExampleIosScrollbar extends ElIosScrollBar {
-  @override
-  bool resolveAlwaysVisible(BuildContext context, ElScrollbarAxisDetails axis) => true;
 }

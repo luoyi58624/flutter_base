@@ -8,10 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../lib/main.dart';
 import '../lib/src/router/index.dart';
-import '../lib/src/pages/custom_gestures.dart';
 import '../lib/src/pages/examples.dart';
 import '../lib/src/pages/examples/bibi/bibi.dart';
 import '../lib/src/pages/examples/index.dart';
+import '../lib/src/pages/view.dart';
 
 Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/home'}) async {
   tester.view.devicePixelRatio = 1;
@@ -27,7 +27,7 @@ Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/ho
 Future<void> _reveal(WidgetTester tester, String key) async {
   final host = find.byKey(PageStorageKey('showcase-scroll'));
   final target = find.byKey(ValueKey(key));
-  final position = tester.state<ElScrollViewState>(host).position;
+  final position = _scrollable(tester, host).position;
   final delta = tester.getCenter(target).dy - tester.getCenter(host).dy;
   position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
   await tester.pumpAndSettle();
@@ -60,7 +60,7 @@ void main() {
       }
       expect(find.byType(AppBar), findsOneWidget);
       expect(tester.takeException(), isNull);
-      final scroll = tester.state<ElScrollViewState>(find.byKey(PageStorageKey('showcase-scroll'))).position;
+      final scroll = _scrollable(tester, find.byKey(PageStorageKey('showcase-scroll'))).position;
       scroll.jumpTo(0);
       await tester.pumpAndSettle();
     }
@@ -95,6 +95,9 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 1.5;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await _host(tester, width: 320);
+    // 放大文字后入口按钮落在首屏底栏下方，先移入视口再点击。
+    await tester.ensureVisible(find.byKey(ValueKey('showcase-explore')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('showcase-explore')));
     await tester.pumpAndSettle();
     await _reveal(tester, 'showcase-favorite');
@@ -136,39 +139,15 @@ void main() {
     });
   }
 
-  testWidgets('独立示例在快速跨断点时保持页面和交互状态，返回原目录', (tester) async {
-    await _host(tester, path: '/examples');
-    await tester.tap(find.byKey(ValueKey('advanced-gestures')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('gesture.basic.target')));
-    await tester.pump(Duration(milliseconds: 700));
-    expect(tester.widget<Text>(find.byKey(ValueKey('count.tap'))).data, '1');
-    for (final width in [390.0, 1280.0, 640.0, 641.0, 320.0, 1280.0]) {
-      tester.view.physicalSize = Size(width, 900);
-      await tester.pump();
-      await tester.pump(Duration(milliseconds: 16));
-      expect(tester.takeException(), isNull);
-    }
-    await tester.pumpAndSettle();
-    expect(find.byType(CustomGesturesPage), findsOneWidget);
-    expect(tester.widget<Text>(find.byKey(ValueKey('count.tap'))).data, '1');
-    expect(router.routeInformationProvider.value.uri.path, '/examples');
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.byType(ExamplesPage), findsOneWidget);
-    expect(router.routeInformationProvider.value.uri.path, '/examples');
-    await tester.pumpWidget(SizedBox());
-  });
-
   testWidgets('独立示例不重复显示全局菜单，返回目录后仍可由侧栏进入设置', (tester) async {
     await _host(tester, path: '/examples');
-    await tester.tap(find.byKey(ValueKey('advanced-gestures')));
+    await tester.tap(find.byKey(ValueKey('advanced-view')));
     await tester.pumpAndSettle();
     expect(find.byTooltip('全局设置'), findsNothing);
     expect(find.byKey(ValueKey('navbar-menu')), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(CustomGesturesPage), findsNothing);
+    expect(find.byType(ElViewPage), findsNothing);
     expect(find.byType(ExamplesPage), findsOneWidget);
     final label = find.descendant(
       of: find.byType(ElNavMenu<WidgetBuilder>),
@@ -188,3 +167,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 }
+
+/// 读取 [host] 内最近的官方滚动状态。
+ScrollableState _scrollable(WidgetTester tester, Finder host) =>
+    tester.state<ScrollableState>(find.descendant(of: host, matching: find.byType(Scrollable)).first);

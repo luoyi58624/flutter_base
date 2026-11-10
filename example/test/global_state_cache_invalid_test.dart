@@ -28,7 +28,7 @@ void main() {
     expect(GlobalState.showPerformanceOverlay.value, isFalse);
     expect(GlobalState.debugShowCheckedModeBanner.value, isTrue);
     expect(GlobalState.excludeSemantics.value, isFalse);
-    expect(GlobalState.docScrollMode.value, DocScrollMode.elScrollView);
+    expect(GlobalState.docScrollMode.value, DocScrollMode.elScroll);
     expect(GlobalState.docRepeatCount.value, 1);
     expect(GlobalState.resamplingEnabled.value, isTrue);
     expect(binding.resamplingEnabled, isTrue);
@@ -37,7 +37,7 @@ void main() {
       'example.settings.showPerformanceOverlay': false,
       'example.settings.debugShowCheckedModeBanner': true,
       'example.settings.excludeSemantics': false,
-      'example.settings.docScrollMode': 'elScrollView',
+      'example.settings.docScrollMode': 'elScroll',
       'example.settings.docRepeatCount': 1,
       'example.settings.resamplingEnabled': true,
     };
