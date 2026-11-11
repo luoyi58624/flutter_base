@@ -18,7 +18,11 @@ class TextElementBinding implements ContentElementBinding {
 
   @override
   void update() {
-    _environment = _host.updateContentChild(_environment, _TextEnvironment(_engine, _host), null);
+    final previous = _environment?.widget as _TextEnvironment?;
+    // 普通换字不改变继承环境；图标切换才需要重新选择缩放和无障碍参数。
+    if (previous == null || previous.isIcon != _engine.isIcon) {
+      _environment = _host.updateContentChild(_environment, _TextEnvironment(_engine, _host), null);
+    }
     final spans = _engine.structure.spans;
     if (_children.isNotEmpty || spans.isNotEmpty) {
       _children = _host.updateContentChildren(_children, [
@@ -83,10 +87,11 @@ class TextElementBinding implements ContentElementBinding {
 
 // 独立 Element 才能在退出文本时撤掉 Flutter 的继承依赖；不增加布局或绘制节点。
 class _TextEnvironment extends Widget {
-  _TextEnvironment(this.engine, this.host) : super(key: ObjectKey(engine));
+  _TextEnvironment(this.engine, this.host) : isIcon = engine.isIcon, super(key: ObjectKey(engine));
 
   final TextEngine engine;
   final ContentElementHost host;
+  final bool isIcon;
 
   @override
   Element createElement() => _TextEnvironmentElement(this);

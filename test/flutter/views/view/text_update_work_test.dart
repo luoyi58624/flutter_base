@@ -6,6 +6,70 @@ import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('普通换字保留文本环境，继承变化与图标切换仍同步', (tester) async {
+    final key = GlobalKey();
+    var environmentBuilds = 0;
+    final previous = debugOnRebuildDirtyWidget;
+    debugOnRebuildDirtyWidget = (element, builtOnce) {
+      previous?.call(element, builtOnce);
+      if (element.widget.runtimeType.toString() == '_TextEnvironment') environmentBuilds++;
+    };
+    addTearDown(() => debugOnRebuildDirtyWidget = previous);
+    await tester.pumpWidget(_scene(key, text: 'first'));
+    final render = tester.renderObject<ElRenderView>(find.byKey(key));
+    final engine = render.content as TextEngine;
+    final painter = engine.painterForTest;
+    final environment = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_TextEnvironment');
+    final configuration = tester.widget(environment);
+    environmentBuilds = 0;
+    for (final text in ['first', 'second', 'third']) {
+      await tester.pumpWidget(_scene(key, text: text));
+      expect(painter.text!.toPlainText(), text);
+      expect(tester.widget(environment), same(configuration));
+    }
+    expect(environmentBuilds, 0, reason: '文字和相同样式更新不需要重新读取媒体参数及选区注册中心。');
+    await tester.pumpWidget(_scene(key, text: 'scaled', scale: 2, bold: true));
+    expect(engine.painterForTest, same(painter));
+    expect(painter.textScaler.scale(10), 20);
+    expect(painter.text!.style!.fontWeight, FontWeight.bold);
+    expect(environmentBuilds, greaterThan(0), reason: '环境节点自身仍正常订阅 InheritedWidget。');
+    await tester.pumpWidget(_scene(key, text: IconData(0x41), scale: 2, bold: true));
+    expect(tester.widget(environment), isNot(same(configuration)));
+    expect(painter.textScaler.scale(10), 10, reason: '图标不能沿用普通文字的缩放。');
+    await tester.pumpWidget(_scene(key, text: 'restored', scale: 2, bold: true));
+    expect(painter.textScaler.scale(10), 20);
+    expect(painter.text!.style!.fontWeight, FontWeight.bold);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('稳定文本环境在 GlobalKey 换父后使用新缩放与粗体', (tester) async {
+    final key = GlobalKey();
+    final view = ElView(key: key, style: ElStyle(fontSize: 10), child: 'reparent');
+    Widget scene(bool moved) => Directionality(
+      textDirection: .ltr,
+      child: Row(
+        children: [
+          MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(1)),
+            child: moved ? SizedBox() : view,
+          ),
+          MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(2), boldText: true),
+            child: moved ? view : SizedBox(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpWidget(scene(false));
+    final render = tester.renderObject<ElRenderView>(find.byKey(key));
+    final engine = render.content as TextEngine;
+    await tester.pumpWidget(scene(true));
+    expect(tester.renderObject(find.byKey(key)), same(render));
+    expect(engine.painterForTest.textScaler.scale(10), 20);
+    expect(engine.painterForTest.text!.style!.fontWeight, FontWeight.bold);
+    expect(tester.takeException(), isNull);
+  });
+
   test('纯字符串共用无占位结构，富文本仍提取真实 WidgetSpan', () {
     final first = TextContent.parse('Item - 999');
     final second = TextContent.parse('Item - 1000');
