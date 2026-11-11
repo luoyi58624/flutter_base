@@ -159,6 +159,51 @@ class _DesktopRawScrollbar extends RawScrollbar {
 class _DesktopRawScrollbarState extends RawScrollbarState<_DesktopRawScrollbar> {
   bool _hovered = false;
   bool _dragging = false;
+  int? _trackPointer;
+  Offset? _trackPoint;
+  ScrollController? _trackController;
+  ScrollPosition? _trackPosition;
+  late final _trackDrag = _TrackDragRecognizer()
+    ..dragStartBehavior = DragStartBehavior.down
+    ..onStart = (details) {
+      _trackPoint = _localPoint(details.globalPosition);
+      handleThumbPress();
+      handleThumbPressStart(_trackPoint!);
+    }
+    ..onUpdate = (details) {
+      _trackPoint = _localPoint(details.globalPosition);
+      handleThumbPressUpdate(_trackPoint!);
+    }
+    ..onEnd = (_) {
+      _endTrackDrag();
+    }
+    ..onCancel = _endTrackDrag;
+
+  Offset _localPoint(Offset global) => (context.findRenderObject()! as RenderBox).globalToLocal(global);
+
+  void _endTrackDrag() {
+    final point = _trackPoint;
+    _trackPoint = null;
+    _trackPointer = null;
+    if (point != null) handleThumbPressEnd(point, Velocity.zero);
+    _trackController = null;
+    _trackPosition = null;
+  }
+
+  @override
+  void dispose() {
+    // dispose 时不能再经官方松手回调读取祖先；仍挂载的位置直接取消拖动活动。
+    final position = _trackPosition;
+    if (position != null &&
+        position.context.notificationContext?.mounted == true &&
+        (_trackController?.positions.contains(position) ?? false)) {
+      position.hold(() {}).cancel();
+    }
+    _trackPoint = null;
+    _trackPointer = null;
+    _trackDrag.dispose();
+    super.dispose();
+  }
 
   @override
   void updateScrollbarPainter() {
@@ -204,7 +249,9 @@ class _DesktopRawScrollbarState extends RawScrollbarState<_DesktopRawScrollbar> 
   void handleTrackTapDown(TapDownDetails details) {}
 
   void _trackDown(PointerDownEvent event) {
-    if (event.buttons != kPrimaryButton || !isPointerOverTrack(event.position, event.kind)) return;
+    if (_trackPointer != null || event.buttons != kPrimaryButton || !isPointerOverTrack(event.position, event.kind)) {
+      return;
+    }
     final controller = widget.controller ?? PrimaryScrollController.maybeOf(context);
     if (controller == null || controller.positions.length != 1) return;
     final position = controller.position;
@@ -225,10 +272,25 @@ class _DesktopRawScrollbarState extends RawScrollbarState<_DesktopRawScrollbar> 
           ? position.maxScrollExtent - visual
           : position.minScrollExtent + visual,
     );
+    // 本次 down 已被官方归为轨道点击，主动认领同一指针并接入官方滑块拖动。
+    // 同步新指标，保证不等下一帧移动时也以跳转后的位置为起点。
+    scrollbarPainter.update(position, position.axisDirection);
+    _trackPointer = event.pointer;
+    _trackController = controller;
+    _trackPosition = position;
+    _trackDrag.addPointer(event);
   }
 
   @override
   Widget build(BuildContext context) => Listener(onPointerDown: _trackDown, child: super.build(context));
+}
+
+class _TrackDragRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
 }
 
 class _ArrowButton extends StatefulWidget {

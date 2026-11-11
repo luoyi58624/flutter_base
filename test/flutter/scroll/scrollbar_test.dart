@@ -128,6 +128,52 @@ void main() {
   }
 
   for (final axis in Axis.values) {
+    for (final reverse in [false, true]) {
+      testWidgets('Windows $axis reverse=$reverse 轨道定位后同一指针立即继续拖动', (tester) async {
+        final controller = ScrollController();
+        addTearDown(controller.dispose);
+        await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, reverse: reverse));
+        await tester.pumpAndSettle();
+        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final origin = axis == Axis.vertical
+            ? Offset(rect.right - 7.5, rect.top + 260)
+            : Offset(rect.left + 200, rect.bottom - 7.5);
+        final pointer = await tester.startGesture(origin, kind: PointerDeviceKind.mouse);
+        final jumped = controller.offset;
+        // 不抬手、不等下一帧，直接移动同一指针。
+        await pointer.moveBy(axis == Axis.vertical ? Offset(0, -40) : Offset(-40, 0));
+        await tester.pump();
+        expect(reverse ? controller.offset > jumped : controller.offset < jumped, isTrue);
+        final moved = controller.offset;
+        await pointer.moveBy(axis == Axis.vertical ? Offset(0, 20) : Offset(20, 0));
+        await tester.pump();
+        expect(reverse ? controller.offset < moved : controller.offset > moved, isTrue);
+        await pointer.cancel();
+        await tester.pumpAndSettle();
+        final stopped = controller.offset;
+        await tester.pump(Duration(milliseconds: 500));
+        expect(controller.offset, stopped);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  testWidgets('轨道转拖动后卸载，不遗留活动指针或滚动状态', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(controller, TargetPlatform.windows));
+    await tester.pumpAndSettle();
+    final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+    final pointer = await tester.startGesture(Offset(rect.right - 7.5, rect.top + 260), kind: PointerDeviceKind.mouse);
+    await pointer.moveBy(Offset(0, -40));
+    await tester.pump();
+    await tester.pumpWidget(SizedBox());
+    await pointer.cancel();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final axis in Axis.values) {
     testWidgets('Windows $axis 箭头点击步进、长按连续滚动、取消后停止', (tester) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
