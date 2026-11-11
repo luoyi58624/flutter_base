@@ -40,7 +40,7 @@ class RecyclerVideoGridPage extends StatelessWidget {
   Widget build(BuildContext context) => _MediaPage(kind: .feed, directory: directory);
 }
 
-/// 浏览本机照片与视频，点击后分别打开图片覆盖层或视频播放页。
+/// 浏览本机照片与视频，点击任一媒体进入可连续切换的画廊。
 class RecyclerGalleryPage extends StatelessWidget {
   /// 创建相册示例；播放器构建器用于替换原生播放界面或进行无头测试。
   // ignore: prefer_const_constructors_in_immutables
@@ -176,13 +176,53 @@ class _MediaPageState extends State<_MediaPage> {
   Object _tag(_MediaEntry entry, bool featured) => (_heroScope, entry.key, featured);
 
   void _open(_MediaEntry entry, bool featured) {
-    final page = widget.kind == .album
-        ? _MediaVideoPage(entry: entry, playerBuilder: widget.videoPlayerBuilder)
-        : _MediaDetailsPage(entry: entry, tag: _tag(entry, featured));
     final navigator = Navigator.of(context);
     // 独立示例的组件主题位于来源路由内，详情路由需要继承它。
     final themes = InheritedTheme.capture(from: context, to: navigator.context);
-    navigator.push<void>(MaterialPageRoute(builder: (_) => themes.wrap(page)));
+    if (widget.kind == .album) {
+      final entries = List<_MediaEntry>.of(_library.items, growable: false);
+      final index = entries.indexOf(entry);
+      if (index < 0) return;
+      navigator.push<void>(
+        PageRouteBuilder(
+          // 画廊覆盖时保留底层网格的布局，切换即可挂载目标缩略图。
+          opaque: false,
+          transitionDuration: Duration(milliseconds: 280),
+          reverseTransitionDuration: Duration(milliseconds: 280),
+          pageBuilder: (_, _, _) => themes.wrap(
+            _MediaGalleryPage(
+              entries: entries,
+              initialIndex: index,
+              tag: (entry) => _tag(entry, false),
+              reveal: (index) => _revealAlbumItem(index, entries[index]),
+              playerBuilder: widget.videoPlayerBuilder,
+            ),
+          ),
+          transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
+        ),
+      );
+      return;
+    }
+    navigator.push<void>(
+      MaterialPageRoute(
+        builder: (_) => themes.wrap(_MediaDetailsPage(entry: entry, tag: _tag(entry, featured))),
+      ),
+    );
+  }
+
+  void _revealAlbumItem(int index, _MediaEntry entry) {
+    if (!mounted || !_controller.hasClients || _albumColumns == 0 || _albumCellExtent <= 0) return;
+    if (index >= _library.items.length || !identical(_library.items[index], entry)) return;
+    final position = _controller.position;
+    if (!position.haveDimensions) return;
+    final top = (index ~/ _albumColumns) * _albumCellExtent;
+    final bottom = top + _albumCellExtent;
+    final target =
+        (position.viewportDimension < _albumCellExtent || top < position.pixels
+                ? top
+                : math.max(position.pixels, bottom - position.viewportDimension))
+            .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((target - position.pixels).abs() > precisionErrorTolerance) position.jumpTo(target);
   }
 
   Future<void> _chooseSource() async {

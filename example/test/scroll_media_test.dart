@@ -282,7 +282,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('相册显示图片和视频，分别进入缩放预览与正确的本地视频 URI', (tester) async {
+  testWidgets('相册画廊可切换照片与视频，并使用正确的本地视频 URI', (tester) async {
     final files = await _Files.create(tester);
     Uri? played;
     await _open(
@@ -320,11 +320,17 @@ void main() {
     await openPhoto('横图 空格');
     expect(preview, findsOneWidget);
     expect(tester.getSize(preview).width, 390);
-    final image = tester.widget<Image>(find.descendant(of: preview, matching: find.byType(Image)));
+    final activeHero = find.descendant(of: preview, matching: find.byType(Hero));
+    final image = tester.widget<Image>(find.descendant(of: activeHero, matching: find.byType(Image)));
     final provider = (image.image as ResizeImage).imageProvider as FileImage;
     expect(path.basename(provider.file.path), '横图 空格.png');
     expect(played, isNull);
-    await tester.tap(find.byTooltip('关闭'));
+    await tester.tap(find.byTooltip('上一项'));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 340));
+    await _wait(tester, () => find.text('播放本地视频').evaluate().isNotEmpty);
+    expect(path.basename(path.fromUri(played!)), '本机 视频.mp4');
+    await tester.tap(find.byType(CloseButton));
     await tester.pumpAndSettle();
     expect(preview, findsNothing);
     await _mode(tester, 'official');
@@ -334,15 +340,70 @@ void main() {
     await tester.pumpAndSettle();
     expect(preview, findsNothing);
     expect(find.byType(RecyclerGalleryPage), findsOneWidget);
+    played = null;
     await tester.tap(_video('本机 视频'));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 300));
     await _wait(tester, () => find.text('播放本地视频').evaluate().isNotEmpty);
     expect(find.byKey(ValueKey('media-video-preview')), findsOneWidget);
     expect(played!.scheme, 'file');
     expect(path.basename(path.fromUri(played!)), '本机 视频.mp4');
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('下一项'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('media-video-preview')), findsNothing);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(_photo('竖图 中文'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
+  testWidgets('远距离切图后两种网格都挂载当前缩略图，并由当前 Hero 退场', (tester) async {
+    final files = await _Files.create(tester);
+    await tester.runAsync(() async {
+      final bytes = await files.files.first.readAsBytes();
+      for (var index = 0; index < 90; index++) {
+        final file = File(path.join(files.directory.path, '末尾 ${index.toString().padLeft(2, '0')}.png'));
+        await file.writeAsBytes(bytes);
+        files.files.add(file);
+      }
+    });
+    await _open(tester, RecyclerGalleryPage(directory: files.directory.path));
+    for (final mode in ['recycler', 'official']) {
+      if (mode == 'official') await _mode(tester, mode);
+      final grid = find.byType(CustomScrollView);
+      final viewport = tester.getRect(grid);
+      final first = _photo('子目录影像');
+      expect(first.hitTestable(), findsOneWidget);
+      await tester.tap(first);
+      await tester.pumpAndSettle();
+      final view = find.byType(ElPreviewView);
+      final preview = tester.widget<ElPreviewView>(view);
+      final selected = preview.controller!;
+      expect(preview.itemCount, 95);
+      selected.jumpToPage(preview.itemCount - 1);
+      await tester.pumpAndSettle();
+      final current = tester.widget<AppBar>(find.widgetWithText(AppBar, '竖图 中文'));
+      expect((current.title as Text).data, '竖图 中文');
+      expect(_controller(tester).offset, greaterThan(0));
+      final destination = find.descendant(of: _photo('竖图 中文'), matching: find.byType(Hero));
+      final currentHero = find.descendant(of: view, matching: find.byType(Hero));
+      final thumbnailHero = tester.widget<Hero>(destination);
+      expect(tester.widget<Hero>(currentHero).tag, thumbnailHero.tag);
+      expect(viewport.contains(tester.getCenter(destination)), isTrue);
+
+      await tester.tap(find.byType(CloseButton));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 80));
+      final shuttle = find.byKey(ValueKey(('media-gallery-flight', thumbnailHero.tag)));
+      expect(shuttle, findsOneWidget);
+      expect(find.descendant(of: _photo('竖图 中文'), matching: shuttle), findsNothing);
+      await tester.pumpAndSettle();
+      expect(view, findsNothing);
+      expect(_photo('竖图 中文').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
     await tester.pumpWidget(SizedBox());
   });
 

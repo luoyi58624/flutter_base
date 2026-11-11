@@ -90,39 +90,170 @@ class _MediaDetailsPage extends StatelessWidget {
   );
 }
 
-class _MediaVideoPage extends StatefulWidget {
+class _MediaGalleryPage extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _MediaVideoPage({required this.entry, this.playerBuilder});
+  _MediaGalleryPage({
+    required this.entries,
+    required this.initialIndex,
+    required this.tag,
+    required this.reveal,
+    this.playerBuilder,
+  });
+
+  final List<_MediaEntry> entries;
+  final int initialIndex;
+  final Object Function(_MediaEntry) tag;
+  final ValueChanged<int> reveal;
+  final Widget Function(BuildContext, Uri)? playerBuilder;
+
+  @override
+  State<_MediaGalleryPage> createState() => _MediaGalleryPageState();
+}
+
+class _MediaGalleryPageState extends State<_MediaGalleryPage> {
+  late final _preview = ElPreviewController(initialIndex: widget.initialIndex);
+  Animation<double>? _routeAnimation;
+  bool _closing = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (identical(animation, _routeAnimation)) return;
+    _routeAnimation?.removeStatusListener(_onTransition);
+    _routeAnimation = animation;
+    animation?.addStatusListener(_onTransition);
+  }
+
+  void _onTransition(AnimationStatus status) {
+    if (status == .completed) setState(() {});
+  }
+
+  Future<void> _close() async {
+    if (_closing) return;
+    final index = _preview.index;
+    if ((_preview.page.value - index).abs() > precisionErrorTolerance) _preview.jumpToPage(index);
+    setState(() => _closing = true);
+    widget.reveal(index);
+    // 让网格先完成回收换绑，同时让视频切回封面，随后 Hero 才能读取正确的缩略图。
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Widget _item(BuildContext context, int index) {
+    final entry = widget.entries[index];
+    final active = index == _preview.index;
+    final playing = entry.isVideo && active && !_closing && (_routeAnimation?.isCompleted ?? true);
+    final image = entry.albumThumbnail.value?.image;
+    final ratio = entry.width > 0 && entry.height > 0
+        ? entry.width / entry.height
+        : image != null
+        ? image.width / image.height
+        : null;
+    final content = playing
+        ? _MediaVideoContent(key: ValueKey(entry.key), entry: entry, playerBuilder: widget.playerBuilder)
+        : _FullMediaImage(entry);
+    final media = ratio == null ? SizedBox.expand(child: content) : AspectRatio(aspectRatio: ratio, child: content);
+    return Center(
+      child: active
+          ? Hero(
+              tag: widget.tag(entry),
+              flightShuttleBuilder: (context, animation, direction, from, to) {
+                // 远距离切换后格子已布局时，缩略图仍可能在等解码。
+                final shuttle = entry.albumThumbnail.value == null
+                    ? _FullMediaImage(entry, fit: .cover)
+                    : _mediaHeroFlight(context, animation, direction, from, to);
+                return KeyedSubtree(key: ValueKey(('media-gallery-flight', widget.tag(entry))), child: shuttle);
+              },
+              child: media,
+            )
+          : media,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final index = _preview.index;
+    final entry = widget.entries[index];
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_close());
+      },
+      child: Scaffold(
+        key: ValueKey('media-gallery-preview'),
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          leading: CloseButton(onPressed: _close),
+          title: Text(entry.title, maxLines: 1, overflow: .ellipsis),
+          actions: [
+            IconButton(
+              tooltip: '上一项',
+              onPressed: _closing || index == 0 ? null : () => _preview.animateToPage(index - 1),
+              icon: Icon(Icons.chevron_left),
+            ),
+            IconButton(
+              tooltip: '下一项',
+              onPressed: _closing || index == widget.entries.length - 1
+                  ? null
+                  : () => _preview.animateToPage(index + 1),
+              icon: Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        body: ElPreviewView(
+          controller: _preview,
+          itemCount: widget.entries.length,
+          itemBuilder: _item,
+          maxScale: entry.isVideo ? 1 : 4,
+          enableRotation: !entry.isVideo,
+          enableDoubleTap: !entry.isVideo,
+          enableWheelZoom: !entry.isVideo,
+          onIndexChanged: (index) {
+            if (_closing) return;
+            widget.reveal(index);
+            setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _routeAnimation?.removeStatusListener(_onTransition);
+    _preview.dispose();
+    super.dispose();
+  }
+}
+
+class _MediaVideoContent extends StatefulWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _MediaVideoContent({super.key, required this.entry, this.playerBuilder});
   final _MediaEntry entry;
   final Widget Function(BuildContext, Uri)? playerBuilder;
   @override
-  State<_MediaVideoPage> createState() => _MediaVideoPageState();
+  State<_MediaVideoContent> createState() => _MediaVideoContentState();
 }
 
-class _MediaVideoPageState extends State<_MediaVideoPage> {
+class _MediaVideoContentState extends State<_MediaVideoContent> {
   late final _file = widget.entry.loadFile?.call() ?? Future<File?>.value();
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => FutureBuilder<File?>(
     key: ValueKey('media-video-preview'),
-    backgroundColor: Colors.black,
-    appBar: AppBar(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      title: Text(widget.entry.title, maxLines: 1, overflow: .ellipsis),
-    ),
-    body: FutureBuilder<File?>(
-      future: _file,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != .done) return Center(child: CircularProgressIndicator());
-        final file = snapshot.data;
-        if (file == null || snapshot.hasError) {
-          return Center(
-            child: Text('此视频暂不可用，请返回相册重试', style: TextStyle(color: Colors.white)),
-          );
-        }
-        return widget.playerBuilder?.call(context, file.uri) ?? _NativeMediaVideo(source: file.uri);
-      },
-    ),
+    future: _file,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != .done) return Center(child: CircularProgressIndicator());
+      final file = snapshot.data;
+      if (file == null || snapshot.hasError) {
+        return Center(
+          child: Text('此视频暂不可用，请返回相册重试', style: TextStyle(color: Colors.white)),
+        );
+      }
+      return widget.playerBuilder?.call(context, file.uri) ?? _NativeMediaVideo(source: file.uri);
+    },
   );
 }
 
