@@ -22,7 +22,7 @@
 - 用户 style 在默认样式之后合并；载荷中的 Widget 保留原实例，其他内容交给现有内容桥接；保留各组件既有的 disabled、loading 和空回调语义，避免迁移时把空回调或加载状态机械地等同禁用
 - 需要区分未传入与显式 null 的参数，一律使用统一的 $absent 作为默认占位，不借用空 Widget 或另造哨兵
 - Git 提交信息必须使用中文；Conventional Commit 类型、作用域和代码标识可以保留英文
-- 每完成一项修改并通过对应验证后自动提交，不等用户再次确认；只暂存本次涉及的文件，工作区仅换行符不同的文件不提交
+- 每完成一项修改并通过对应验证后自动提交，不等用户再次确认；只暂存本次涉及的文件；仓库经 .gitattributes 统一为 LF，不提交 CRLF
 - 写完功能、修复 bug 默认只跑本次改动覆盖的局部测试，全量测试仅在用户明确要求时执行
 - 运行代码生成直接执行 dart run build_runner build；Linux 侧的 Flutter 命令一律经 SSH 在 Windows 端执行，规则见全局规范，本项目 Windows 路径为 `D:\project\flutter\flutter_base`
 
