@@ -57,7 +57,7 @@ void main() {
       addTearDown(controller.dispose);
       await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis));
       expect(tester.getSize(find.byType(ElViewport)), axis == Axis.vertical ? Size(285, 400) : Size(300, 385));
-      expect(find.byType(RawScrollbar), findsOneWidget);
+      expect(find.byWidgetPredicate((widget) => widget is RawScrollbar), findsOneWidget);
       await tester.pumpAndSettle();
       final thumb = elThumbRect(tester, controller.position)!;
       final gesture = await tester.startGesture(thumb.center, kind: PointerDeviceKind.mouse);
@@ -99,17 +99,64 @@ void main() {
     }
   }
 
-  testWidgets('Windows 轨道点击采用官方翻页', (tester) async {
-    final controller = ScrollController();
-    addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(controller, TargetPlatform.windows));
-    await tester.pumpAndSettle();
-    final rect = tester.getRect(find.byType(ElDesktopScrollbar));
-    await tester.tapAt(Offset(rect.right - 7.5, rect.top + 300), kind: PointerDeviceKind.mouse);
-    await tester.pumpAndSettle();
-    expect(controller.offset, greaterThan(0));
-    expect(controller.offset, lessThanOrEqualTo(controller.position.viewportDimension));
-  });
+  for (final axis in Axis.values) {
+    for (final reverse in [false, true]) {
+      testWidgets('Windows $axis reverse=$reverse 轨道按下立即定位到滑块中心', (tester) async {
+        final controller = ScrollController();
+        addTearDown(controller.dispose);
+        await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, reverse: reverse));
+        await tester.pumpAndSettle();
+        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final point = axis == Axis.vertical
+            ? Offset(rect.right - 7.5, rect.top + 260)
+            : Offset(rect.left + 200, rect.bottom - 7.5);
+        final pointer = await tester.startGesture(point, kind: PointerDeviceKind.mouse);
+        expect(controller.offset, greaterThan(controller.position.viewportDimension));
+        final jumped = controller.offset;
+        await tester.pump();
+        final thumb = elThumbRect(tester, controller.position)!;
+        expect(
+          axis == Axis.vertical ? thumb.center.dy : thumb.center.dx,
+          closeTo(axis == Axis.vertical ? point.dy : point.dx, 1),
+        );
+        await tester.pump(Duration(milliseconds: 200));
+        expect(controller.offset, jumped, reason: '不能在直接定位后又执行官方轨道翻页');
+        await pointer.up();
+        await tester.pumpAndSettle();
+      });
+    }
+  }
+
+  for (final axis in Axis.values) {
+    testWidgets('Windows $axis 箭头点击步进、长按连续滚动、取消后停止', (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis));
+      await tester.pumpAndSettle();
+      final forwardLabel = axis == Axis.vertical ? '向下滚动' : '向右滚动';
+      final backwardLabel = axis == Axis.vertical ? '向上滚动' : '向左滚动';
+      Finder button(String label) =>
+          find.byWidgetPredicate((widget) => widget is Semantics && widget.properties.label == label);
+      expect(tester.getSize(button(forwardLabel)), axis == Axis.vertical ? Size(15, 18) : Size(18, 15));
+      await tester.tap(button(forwardLabel));
+      await tester.pumpAndSettle();
+      expect(controller.offset, inInclusiveRange(16, 48));
+      await tester.tap(button(backwardLabel));
+      await tester.pumpAndSettle();
+      expect(controller.offset, 0);
+      final hold = await tester.startGesture(tester.getCenter(button(forwardLabel)), kind: PointerDeviceKind.mouse);
+      await tester.pump(Duration(milliseconds: 150));
+      final singleStep = controller.offset;
+      await tester.pump(Duration(milliseconds: 500));
+      expect(controller.offset, greaterThan(singleStep * 2));
+      await hold.cancel();
+      await tester.pumpAndSettle();
+      final stopped = controller.offset;
+      await tester.pump(Duration(seconds: 1));
+      expect(controller.offset, stopped);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('反向列表滑块从末端拖向首端仍更新真实位置', (tester) async {
     final controller = ScrollController();
