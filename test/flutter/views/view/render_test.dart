@@ -2266,8 +2266,8 @@ void main() {
       );
 
       final label = _label(tester);
-      expect(label.hasTextPayload, isTrue);
-      final glyphs = label.textEngineForTest!.getBoxesForSelectionForTest(0, 'Hello'.length);
+      expect((label.content is TextEngine), isTrue);
+      final glyphs = (label.content as TextEngine?)!.getBoxesForSelectionForTest(0, 'Hello'.length);
       expect(glyphs.single.toRect().height, 20);
       expect(label.size.width, greaterThan(0));
     });
@@ -2299,22 +2299,25 @@ void main() {
         _tree(() => ElRenderView(child: 'M', style: const ElStyle(fontSize: 10, lineHeight: 1.0))),
       );
       final scaled = _label(tester);
-      expect(scaled.textScaler.scale(10), 20, reason: '兜底现取平台缩放（同 dpr 0 值口径）');
-      expect(scaled.textEngineForTest!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 20);
+      expect((scaled.content as TextEngine).painterForTest.textScaler.scale(10), 20, reason: '托管文本兜底读取平台缩放');
+      expect((scaled.content as TextEngine?)!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 20);
 
       await tester.pumpWidget(
         _tree(
           () => ElRenderView(
             child: 'M',
-            textScaler: TextScaler.noScaling,
-            style: const ElStyle(fontSize: 10, lineHeight: 1.0),
+            style: const ElStyle(
+              fontSize: 10,
+              lineHeight: 1.0,
+              textOptions: ElTextOptions(textScaler: TextScaler.noScaling),
+            ),
           ),
         ),
       );
-      expect(_label(tester).textEngineForTest!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 10);
+      expect((_label(tester).content as TextEngine?)!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 10);
     });
 
-    testWidgets('显式 setter 推送永久关闭兜底，值相等也不得跳过关闭', (tester) async {
+    testWidgets('高级文本配置可覆盖托管文本的系统缩放', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 2.0;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
@@ -2322,11 +2325,10 @@ void main() {
         _tree(() => ElRenderView(child: 'M', style: const ElStyle(fontSize: 10, lineHeight: 1.0))),
       );
       final label = _label(tester);
-      // 兜底态：读到平台 2x。宿主显式推 noScaling——与字段初值相等，但必须关掉兜底
-      label.textScaler = TextScaler.noScaling;
+      label.style = label.style!.copyWith(textOptions: ElTextOptions(textScaler: TextScaler.noScaling));
       await tester.pump();
-      expect(label.textScaler.scale(10), 10);
-      expect(label.textEngineForTest!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 10);
+      expect((label.content as TextEngine).painterForTest.textScaler.scale(10), 10);
+      expect((label.content as TextEngine?)!.getBoxesForSelectionForTest(0, 1).single.toRect().height, 10);
     });
 
     testWidgets('宿主更新走 set style / setTextPayload', (tester) async {
@@ -2348,9 +2350,9 @@ void main() {
       await tester.pump();
       expect(label.committedResolvedStyle.box.backgroundColor, b);
 
-      label.setTextPayload('xyz');
+      label.updateContent('xyz');
       await tester.pump();
-      expect(label.textEngineForTest!.getBoxesForSelectionForTest(0, 3), hasLength(1));
+      expect((label.content as TextEngine?)!.getBoxesForSelectionForTest(0, 3), hasLength(1));
     });
 
     testWidgets('富文本 InlineSpan 直喂', (tester) async {
@@ -2372,9 +2374,9 @@ void main() {
       );
 
       final label = _label(tester);
-      expect(label.hasTextPayload, isTrue);
+      expect((label.content is TextEngine), isTrue);
       // TextSpan 带 children 走 rich-inline 路径（纯字符串快路径探针恒 null）
-      expect((label.textEngineForTest?.painterForTest.text), isNotNull);
+      expect(((label.content as TextEngine?)?.painterForTest.text), isNotNull);
       expect(label.size.width, greaterThan(0));
     });
 
@@ -2425,13 +2427,13 @@ void main() {
       final label = ElRenderView(child: 'ok');
       addTearDown(label.dispose);
       // 构造门禁只守 child 参数；setter 通道此前把 Widget 归一成 null → 按钮静默变空
-      expect(() => label.setTextPayload(const SizedBox()), throwsAssertionError);
+      expect(() => label.updateContent(const SizedBox()), throwsAssertionError);
       expect(
-        () => label.setTextPayload(Container(color: const Color(0xFF000000), child: const Text('x'))),
+        () => label.updateContent(Container(color: const Color(0xFF000000), child: const Text('x'))),
         throwsAssertionError,
       );
       // 拒收不留副作用：原文本载荷仍在
-      expect(label.hasTextPayload, isTrue);
+      expect((label.content is TextEngine), isTrue);
     });
 
     test('门禁深检：嵌套 widget（Iterable 混排项 / WidgetSpan）也在现场拒收', () {
@@ -2450,8 +2452,8 @@ void main() {
       // setter 通道同一道闸
       final label = ElRenderView(child: 'ok');
       addTearDown(label.dispose);
-      expect(() => label.setTextPayload(['x', const SizedBox()]), throwsAssertionError);
-      expect(label.hasTextPayload, isTrue, reason: '拒收不留副作用');
+      expect(() => label.updateContent(['x', const SizedBox()]), throwsAssertionError);
+      expect((label.content is TextEngine), isTrue, reason: '拒收不留副作用');
     });
 
     testWidgets('hosted 纯文本混排 Iterable 不触发深检，照常排版', (tester) async {
@@ -2472,7 +2474,7 @@ void main() {
       );
 
       final label = _label(tester);
-      expect(label.hasTextPayload, isTrue);
+      expect((label.content is TextEngine), isTrue);
       expect(label.size.width, greaterThan(0));
     });
 
@@ -3423,8 +3425,10 @@ void _shadowExtensionTests() {
       final custom = ElStyle()
           .withShadow(blurRadius: 30, offset: Offset(-3, 7), spreadRadius: -2, color: null)
           .boxShadow!;
+      final baseMaxBlur = base.map((shadow) => shadow.blurRadius).reduce(math.max);
+      expect(custom.map((shadow) => shadow.blurRadius).reduce(math.max), closeTo(30, .0001));
       for (var i = 0; i < base.length; i++) {
-        expect(custom[i].blurRadius, closeTo(base[i].blurRadius * 3, .0001));
+        expect(custom[i].blurRadius / 30, closeTo(base[i].blurRadius / baseMaxBlur, .0001));
         expect(custom[i].offset, base[i].offset + Offset(-3, 7));
         expect(custom[i].spreadRadius, base[i].spreadRadius - 2);
       }

@@ -7,7 +7,7 @@ import '../view/style/style.dart';
 
 /// 可编辑视图的组合样式与编辑配置，文字外观统一由 view 级联。
 ///
-/// 未声明的文字字段继承祖先 ElView；不持有第二套 Flutter TextStyle。
+/// 常用文字字段继承祖先 ElView；view.textOptions 仅应用于当前编辑内容。
 @immutable
 class ElEditableStyle {
   /// 创建编辑配置；view 的 padding 属于外壳，contentPadding 随正文滚动。

@@ -14,10 +14,20 @@ SemanticsConfiguration _configuration(
   bool focused = false,
 }) {
   final config = SemanticsConfiguration();
+  // 模拟宿主先调用内容模块；排除语义时连内容描述也跳过。
+  final properties = semantics?.properties;
+  if (!shouldExcludeViewSemanticsChildren(semantics) &&
+      label != null &&
+      properties?.label == null &&
+      properties?.attributedLabel == null) {
+    config
+      ..label = label
+      ..textDirection = properties?.textDirection ?? direction
+      ..isSemanticBoundary = true;
+  }
   applyViewSemanticsConfiguration(
     config,
     semantics: semantics,
-    textLabel: label,
     textDirection: direction,
     includeFocusSemantics: includeFocus,
     focusableForSemantics: focusable,

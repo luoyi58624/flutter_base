@@ -99,7 +99,7 @@ void main() {
     final nodes = <RenderObject>[root];
     while (nodes.isNotEmpty) {
       final node = nodes.removeLast();
-      if (node is ElRenderView && matches(node.rawChild)) yield node;
+      if (node is ElRenderView && matches((node.content as TextEngine?)?.rawChild)) yield node;
       node.visitChildren(nodes.add);
     }
   }
@@ -1651,9 +1651,7 @@ void main() {
     expect(contentRenders(tester, (value) => value == '暂无记录'), hasLength(1));
 
     final empty = contentRender(tester, '暂无记录');
-    final glyphs =
-        (empty.selectionParticipant?.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4)) ??
-        const <Rect>[]);
+    final glyphs = (empty.content as TextEngine).selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4));
     final glyphBounds = glyphs.reduce((a, b) => a.expandToInclude(b));
     final table = tester.renderObject<RenderBox>(find.byType(ElTable));
     expect(

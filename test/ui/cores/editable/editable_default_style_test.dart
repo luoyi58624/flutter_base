@@ -211,6 +211,72 @@ void main() {
     expect(actualMetric.height, closeTo(referenceMetric.height, 0.001));
   });
 
+  testWidgets('公共编辑器继承全局字体，低频排版选项仅本地生效并可清除', (tester) async {
+    final controller = ElEditableController(text: 'local text options');
+    final key = GlobalKey();
+    final axes = [FontVariation('wght', 590.5), FontVariation('wdth', 90)];
+    final fallback = ['Ahem', 'Roboto'];
+    final features = [FontFeature.tabularFigures()];
+    addTearDown(controller.dispose);
+
+    Widget scene(ElTextOptions? options) => _host(
+      ElView(
+        style: ElStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          fontVariationSettings: axes,
+          fontFamilyFallback: fallback,
+          fontFeatureSettings: features,
+          wordSpacing: 2.5,
+          textOptions: ElTextOptions(
+            leadingDistribution: TextLeadingDistribution.proportional,
+            textBaseline: TextBaseline.ideographic,
+          ),
+        ),
+        child: ElEditableView(
+          key: key,
+          controller: controller,
+          style: ElEditableStyle(view: ElStyle(textOptions: options)),
+        ),
+      ),
+    );
+
+    void expectTextStyle(TextLeadingDistribution distribution, TextBaseline? baseline) {
+      final line = _line(tester);
+      for (final style in [line.scope.config.textStyle, line.layoutedPainter!.text!.style!]) {
+        expect(style.fontVariations, axes);
+        expect(style.fontVariations!.first.value, 590.5);
+        expect(style.fontFamilyFallback, fallback);
+        expect(style.fontFeatures, features);
+        expect(style.wordSpacing, 2.5);
+        expect(style.fontWeight, FontWeight.w500);
+        expect(style.leadingDistribution, distribution);
+        expect(style.textBaseline, baseline);
+      }
+    }
+
+    await tester.pumpWidget(scene(null));
+    await tester.pump();
+    final scope = _line(tester).scope;
+    expectTextStyle(TextLeadingDistribution.even, null);
+
+    await tester.pumpWidget(
+      scene(
+        ElTextOptions(leadingDistribution: TextLeadingDistribution.proportional, textBaseline: TextBaseline.alphabetic),
+      ),
+    );
+    await tester.pump();
+    expect(_line(tester).scope, same(scope));
+    expectTextStyle(TextLeadingDistribution.proportional, TextBaseline.alphabetic);
+
+    await tester.pumpWidget(scene(null));
+    await tester.pump();
+    expect(_line(tester).scope, same(scope));
+    expectTextStyle(TextLeadingDistribution.even, null);
+    await tester.pumpWidget(SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('祖先 currentColor 可热更新，显式文本与交互色拥有最终优先级', (tester) async {
     final controller = EditableController(text: 'inherit');
     final key = GlobalKey<EditableViewTestState>();

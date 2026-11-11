@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../utils/internal/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
 import '../../../utils/internal/focus.dart';
+import '../content.dart';
 import '../event/event.dart';
 import '../render/render_view.dart';
 import '../semantics/semantics_frame.dart';
@@ -12,8 +13,8 @@ import '../style/cascade/style_spec.dart';
 import '../style/state/view_state.dart';
 import '../style/style.dart';
 import '../style/style_context.dart';
-import '../text/text_engine.dart' show TextAccessibility;
 import '../view.dart';
+import 'content_binding.dart';
 
 part 'focus_indicator.dart';
 
@@ -22,43 +23,14 @@ part 'focus_indicator.dart';
 /// 焦点只做三件事：把节点挂到最近的 Flutter [Focus]（无则根 scope）、把
 /// 三态（focus / focusWithin / focusVisible）同步给渲染层、转发指针聚焦与
 /// 键盘回调。Tab/方向键遍历、焦点恢复、区域归属一律交给 Flutter。
-class ViewElement extends RenderObjectElement {
+class ViewElement extends RenderObjectElement implements ContentElementHost {
   ViewElement(ElView super.widget);
 
-  bool? _isTextAccessibilityRoot;
-
-  /// 同一 MediaQuery 中仅由继承根订阅文本无障碍设置。
-  TextAccessibility? resolveTextAccessibility() {
-    if (_isTextAccessibilityRoot == null) {
-      final mediaQuery = getElementForInheritedWidgetOfExactType<MediaQuery>();
-      var isRoot = true;
-      visitAncestorElements((ancestor) {
-        if (ancestor is ViewElement) {
-          isRoot = !identical(mediaQuery, ancestor.getElementForInheritedWidgetOfExactType<MediaQuery>());
-          return false;
-        }
-        return true;
-      });
-      _isTextAccessibilityRoot = isRoot;
-    }
-    if (!_isTextAccessibilityRoot!) return null;
-    return (
-      bold: MediaQuery.boldTextOf(this),
-      lineHeight: MediaQuery.maybeLineHeightScaleFactorOverrideOf(this),
-      letterSpacing: MediaQuery.maybeLetterSpacingOverrideOf(this),
-      wordSpacing: MediaQuery.maybeWordSpacingOverrideOf(this),
-    );
-  }
-
   Element? _child;
-  List<Element> _children = const <Element>[];
+  ContentElementBinding? _contentBinding;
   ValueListenable<Object?>? _childListenable;
   bool _childNeedsUpdate = false;
   bool _updatingContent = false;
-
-  /// 懒建：只有富文本多子路径（`forgetChild` 命中 `_children`）才需要。
-  /// 单 child / 纯文本 / 裸行恒为 null —— 虚拟滚动每行都白付一个 Set 是不可接受的。
-  Set<Element>? _forgottenChildren;
 
   FocusNode? _node;
   FocusAttachment? _attachment;
@@ -98,6 +70,19 @@ class ViewElement extends RenderObjectElement {
 
   ElView get _view => widget as ElView;
   ElRenderView get _renderView => renderObject as ElRenderView;
+
+  @override
+  BuildContext get context => this;
+
+  @override
+  ElRenderView get renderView => _renderView;
+
+  @override
+  Element? updateContentChild(Element? child, Widget? widget, Object? slot) => updateChild(child, widget, slot);
+
+  @override
+  List<Element> updateContentChildren(List<Element> children, List<Widget> widgets, Set<Element>? forgottenChildren) =>
+      updateChildren(children, widgets, forgottenChildren: forgottenChildren);
 
   ElStyle? get _effectiveStyle => _view.style;
 
@@ -143,7 +128,6 @@ class ViewElement extends RenderObjectElement {
       trace.reset();
     }
     _renderView.bindElementWidget(_view);
-    _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
     // 焦点宿主先于子树建立：子节点 reparent 时才能找到本节点作为父。
     _syncFocusNode(forceStateSync: true);
     if (trace != null) {
@@ -162,7 +146,6 @@ class ViewElement extends RenderObjectElement {
     _childNeedsUpdate = false;
     super.update(newWidget);
     _renderView.bindElementWidget(newWidget);
-    _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
     _syncFocusNode(forceStateSync: true);
     _updateContent(_syncChildListenable(newWidget.child));
   }
@@ -179,7 +162,6 @@ class ViewElement extends RenderObjectElement {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _renderView.setStyleParent(StyleDependencyScope.maybeHostOf(this));
-    _renderView.selectionRegistrar = SelectionContainer.maybeOf(this);
     if (_focusIndicatorOn) _syncFocusRingBucket();
     _reparentFocusNode(createDependency: true);
   }
@@ -196,7 +178,6 @@ class ViewElement extends RenderObjectElement {
 
   @override
   void activate() {
-    _isTextAccessibilityRoot = null;
     _deactivated = false;
     super.activate();
     _renderView.refreshTickerMode();
@@ -218,10 +199,10 @@ class ViewElement extends RenderObjectElement {
     _setFocusIndicator(false);
     _disposeFocusNode(reparentDescendants: false);
     super.unmount();
-    // 外部保留旧 Element 时也应释放其内容、富文本载荷和求值样式。
+    // 外部保留旧 Element 时也应释放内容模块持有的子树引用。
     _child = null;
-    _children = const <Element>[];
-    _forgottenChildren = null;
+    _contentBinding?.dispose(unmounting: true);
+    _contentBinding = null;
     if (trace != null) MountTrace.unmountUs += trace.elapsedMicroseconds;
   }
 
@@ -252,35 +233,19 @@ class ViewElement extends RenderObjectElement {
 
   @override
   void visitChildren(ElementVisitor visitor) {
-    if (_children.isNotEmpty) {
-      final forgotten = _forgottenChildren;
-      for (final child in _children) {
-        if (forgotten == null || !forgotten.contains(child)) visitor(child);
-      }
-      return;
-    }
     final child = _child;
     if (child != null) visitor(child);
+    _contentBinding?.visitChildren(visitor);
   }
 
   @override
   void forgetChild(Element child) {
-    if (_children.contains(child)) {
-      var forgotten = _forgottenChildren;
-      if (forgotten == null) {
-        assert(() {
-          BenchmarkProbe.forgottenChildrenAllocCount++;
-          return true;
-        }());
-        forgotten = _forgottenChildren = <Element>{};
-      }
-      forgotten.add(child);
-      _children = List<Element>.of(_children)..remove(child);
-      super.forgetChild(child);
-      return;
+    if (child == _child) {
+      _child = null;
+    } else {
+      final forgotten = _contentBinding?.forgetChild(child) ?? false;
+      assert(forgotten);
     }
-    assert(child == _child);
-    _child = null;
     super.forgetChild(child);
   }
 
@@ -303,17 +268,11 @@ class ViewElement extends RenderObjectElement {
     final listenable = _childListenable;
     if (listenable == null) return;
     final value = listenable.value;
-    // 普通文本没有 Element 子树变化，直接复用现有引擎；结构变化交回构建阶段。
-    // 独立图标与文字的缩放规则不同，类别切换时也需要重新推送环境参数。
+    // 内容模块自行判断能否原地更新，结构变化统一交回构建阶段。
     if (!_updatingContent &&
         !_childNeedsUpdate &&
         _child == null &&
-        _children.isEmpty &&
-        value is! Widget &&
-        value is! Iterable &&
-        value is! InlineSpan &&
-        (_renderView.rawChild is IconData) == (value is IconData)) {
-      _renderView.setTextPayload(value);
+        (_renderView.content?.tryUpdatePayload(value) ?? false)) {
       return;
     }
     _childNeedsUpdate = true;
@@ -332,19 +291,15 @@ class ViewElement extends RenderObjectElement {
 
   void _rebuildChildrenAndPayload(Object? child) {
     // 独立语义边界从可见盒起算，不能把 margin 重复计入后代坐标。
-    if (_view.semantics?.container == true && (child is Widget || child is Iterable || child is InlineSpan)) {
-      child = ViewSemanticsFrame(
-        host: _renderView,
-        child: child is Widget ? child : ElView(locale: _view.locale, child: child),
-      );
+    if (_view.semantics?.container == true && child != null) {
+      final boundaryChild = child is Widget ? child : contentSemanticsChild(child, _view.style);
+      if (boundaryChild != null) child = ViewSemanticsFrame(host: _renderView, child: boundaryChild);
     }
     if (child == null || child is Widget) {
       if (child != null) assert(_debugAssertNoFlutterParentDataWidget(child));
-      _renderView.setTextPayload(null);
-      if (_children.isNotEmpty) {
-        _children = updateChildren(_children, const [], forgottenChildren: _forgottenChildren);
-        _forgottenChildren?.clear();
-      }
+      _contentBinding?.dispose();
+      _contentBinding = null;
+      _renderView.updateContent(null);
       _child = updateChild(
         _child,
         child == null ? null : StyleDependencyScope(host: _renderView, child: child as Widget),
@@ -352,26 +307,10 @@ class ViewElement extends RenderObjectElement {
       );
       return;
     }
-    if (child is Iterable) {
-      final items = <Object?>[];
-      for (final item in child) {
-        if (item == null) continue;
-        assert(_debugAssertNoFlutterParentDataWidget(item));
-        items.add(item);
-      }
-      child = items;
-    }
-    final engine = _renderView.setTextPayload(child);
     if (_child != null) _child = updateChild(_child, null, null);
-    final spans = engine?.structure.spans;
-    final widgets = spans == null || spans.isEmpty ? const <Widget>[] : spans.map((span) => span.child).toList();
-    if (_children.isNotEmpty || widgets.isNotEmpty) {
-      _children = updateChildren(_children, [
-        for (final widget in widgets)
-          StyleDependencyScope(key: widget.key == null ? null : ValueKey(widget.key), host: _renderView, child: widget),
-      ], forgottenChildren: _forgottenChildren);
-    }
-    _forgottenChildren?.clear();
+    _renderView.updateContent(child);
+    _contentBinding ??= _renderView.content!.createElementBinding(this);
+    _contentBinding!.update();
   }
 
   // --- 焦点节点同步 -----------------------------------------------------

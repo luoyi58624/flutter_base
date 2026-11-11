@@ -46,7 +46,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(_scene(key, text: 'Item - 998'));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     final style = painter.text!.style;
     var width = painter.maxIntrinsicWidth;
@@ -55,7 +55,7 @@ void main() {
       final previousSpan = painter.text;
       BenchmarkProbe.reset();
       await tester.pumpWidget(_scene(key, text: value));
-      expect(render.textEngineForTest, same(engine));
+      expect((render.content as TextEngine?), same(engine));
       expect(engine.painterForTest, same(painter));
       expect(painter.text, isNot(same(previousSpan)));
       expect(painter.text!.style, same(style));
@@ -86,7 +86,7 @@ void main() {
       final key = GlobalKey();
       await tester.pumpWidget(_scene(key, text: 'original'));
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
-      final engine = render.textEngineForTest!;
+      final engine = (render.content as TextEngine?)!;
       final painter = engine.painterForTest;
       final layouts = render.debugLayoutCount;
       BenchmarkProbe.reset();
@@ -146,7 +146,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(_scene(key, text: 'first'));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     for (final value in <Object>[
       '',
@@ -165,7 +165,7 @@ void main() {
     ]) {
       BenchmarkProbe.reset();
       await tester.pumpWidget(_scene(key, text: value));
-      expect(render.textEngineForTest, same(engine));
+      expect((render.content as TextEngine?), same(engine));
       expect(engine.painterForTest, same(painter));
       if (value is String) {
         expect(painter.text!.toPlainText(), value);
@@ -201,7 +201,7 @@ void main() {
     BenchmarkProbe.reset();
     await tester.pumpWidget(_scene(key, text: 'Item - 999'));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     final initial = _count('textPainterConfigureCount');
     if (initial != null) expect(initial, 1);
@@ -209,7 +209,7 @@ void main() {
     final span = painter.text;
     render.markNeedsPaint();
     await tester.pump();
-    expect(render.textEngineForTest, same(engine));
+    expect((render.content as TextEngine?), same(engine));
     expect(engine.painterForTest, same(painter));
     expect(painter.text, same(span));
     expect(render.debugLayoutCount, layouts);
@@ -220,7 +220,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(_scene(key, text: 'unchanged', color: Color(0xffaa1100)));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final layouts = render.debugLayoutCount;
     BenchmarkProbe.reset();
     await tester.pumpWidget(_scene(key, text: 'unchanged', color: Color(0xff0055aa)));
@@ -237,7 +237,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(_scene(key, text: 'locale changes'));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     await tester.pumpWidget(_scene(key, text: 'locale changes', fontSize: 21, scale: 1.5, rtl: true, bold: true));
     expect(engine.painterForTest, same(painter));
@@ -259,7 +259,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(_scene(key, text: 'Item - 1000'));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     final span = painter.text;
     final size = painter.size;
@@ -315,7 +315,7 @@ void main() {
     controller.selectAll();
     await tester.pump();
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     expect(painter.text!.style!.color, Color(0xff333333));
     expect(BenchmarkProbe.selectionOverlayLayoutCount, greaterThan(0));
@@ -324,7 +324,7 @@ void main() {
     await tester.pump();
     expect(controller.text, 'bbbb');
     expect(changes.last, 'bbbb');
-    expect(render.textEngineForTest, same(engine));
+    expect((render.content as TextEngine?), same(engine));
     expect(engine.painterForTest, same(painter));
     expect(painter.text!.style!.color, Color(0xff333333));
     final sameWidthConfigurations = _count('textPainterConfigureCount');
@@ -334,7 +334,7 @@ void main() {
     await tester.pump();
     expect(controller.text, 'z');
     expect(changes.last, 'z');
-    expect(render.currentSelectionRange, TextRange(start: 0, end: 1));
+    expect(selectionParticipantOf(render)?.currentSelectionRange, TextRange(start: 0, end: 1));
     final shorterConfigurations = _count('textPainterConfigureCount');
     if (shorterConfigurations != null) expect(shorterConfigurations, 0);
     expect(tester.takeException(), isNull);
@@ -371,8 +371,14 @@ Widget _scene(
       alignment: .topLeft,
       child: ElView(
         key: key,
-        locale: locale ?? (rtl ? Locale('zh', 'CN') : Locale('en', 'US')),
-        style: ElStyle(width: 240, height: 60, color: color, fontSize: fontSize, direction: rtl ? .rtl : .ltr),
+        style: ElStyle(
+          width: 240,
+          height: 60,
+          color: color,
+          fontSize: fontSize,
+          direction: rtl ? .rtl : .ltr,
+          textOptions: ElTextOptions(locale: locale ?? (rtl ? Locale('zh', 'CN') : Locale('en', 'US'))),
+        ),
         child: text,
       ),
     ),

@@ -1,19 +1,60 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart' show HitTestEntry, HitTestTarget;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' show IconData, Widget, WidgetSpan;
 
 import '../../../utils/internal/benchmark_probe.dart';
+import '../../../utils/internal/bit_mask.dart';
 import '../../selection/common/selection_core.dart';
+import '../content.dart';
+import '../element/content_binding.dart';
+import '../style/internal/field_spec.dart';
 import '../style/style.dart';
 import '../style/resolved/resolved_style.dart';
 import '../render/content_sizes.dart';
-import '../render/render_view.dart' show ElRenderView;
+import '../render/render_view.dart' show ElRenderView, ViewStateRenderAccess;
 import '../view.dart' show ElView;
+import 'text_binding.dart';
 import 'text_style_adapter.dart';
 export 'text_style_adapter.dart';
+
+/// 只为自绘载荷创建文本内核，Widget 子树始终交给 Element。
+TextEngine? createTextEngine(ElRenderView host, Object? payload) {
+  if (payload == null) return null;
+  assert(host.ownerNode != null || payload is! Widget, 'ElRenderView 无 Element，不能直接接收 Widget 内容。');
+  if (payload is Widget) return null;
+  assert(() {
+    BenchmarkProbe.textLayerInstantiateCount++;
+    return true;
+  }());
+  final engine = TextEngine()..bindHost(host: host);
+  try {
+    engine.setPayload(payload);
+    return engine;
+  } catch (_) {
+    engine.dispose();
+    rethrow;
+  }
+}
+
+/// 复合文本的语义边界使用等价子视图，段落参数仍来自本地声明。
+Widget? textSemanticsChild(Object payload, ElStyle? style) => payload is Iterable || payload is InlineSpan
+    ? ElView(
+        style: ElStyle(textOptions: style?.textOptions),
+        child: payload,
+      )
+    : null;
+
+bool _samePayload(Object? first, Object? second) {
+  if (identical(first, second)) return true;
+  if (first is Iterable && second is Iterable) {
+    return const IterableEquality<Object?>(IdentityEquality()).equals(first, second);
+  }
+  return first is! InlineSpan && second is! InlineSpan && first == second;
+}
 
 /// 内联子项的位置、缩放和省略状态，供宿主绘制变换共用。
 class ElTextParentData extends ContainerBoxParentData<RenderBox> {
@@ -85,11 +126,17 @@ class TextContent {
 typedef _TextLine = ({ui.LineMetrics line, double top, double bottom});
 
 /// 自持 TextPainter 的文本内核，仅扩展样式继承与现有选区协议。
-class TextEngine extends SelectionContent {
+class TextEngine extends SelectionContent implements ViewContent, SelectionParticipantHost {
   final _painter = TextPainter();
   TextPainter? _overlay;
   TextContent? _content;
   Object? rawChild;
+  bool _elementManaged = false;
+  TextScaler _environmentScaler = TextScaler.noScaling;
+  TextAccessibility _accessibility = defaultTextAccessibility;
+  SelectionRegistrar? _selectionRegistrar;
+  bool _lastHitIncludedTextContent = false;
+  Expando<OnSelectionPaintMemo>? _selectionPaintMemos;
   ElRenderView? _host;
   List<RenderBox> _children() => _content!.spans.isEmpty ? const [] : _host!.getChildrenAsList();
   BoundSelectionParticipant? _participant;
@@ -108,8 +155,14 @@ class TextEngine extends SelectionContent {
   int debugSelectionUnclippedOverlayCount = 0;
   int debugSelectionClipRectOverlayCount = 0;
   bool get _icon => rawChild is IconData;
+
+  /// 当前载荷是否为独立字体图标。
+  bool get isIcon => _icon;
+  @override
+  Object? get payload => rawChild;
   double _iconExtent(TextPaintInput input) => input.textScaler.scale(input.style.inheritedBox.iconSize ?? 24);
   TextContent get structure => _content!;
+  @override
   SelectionParticipant? get selectionParticipant => _participant;
   int get stringPainterLayoutCountForTest => _host!.debugLayoutCount;
   TextPainter get painterForTest => _painter;
@@ -129,21 +182,107 @@ class TextEngine extends SelectionContent {
   bool get overflowNeedsClipping => _overflow != TextOverflow.visible && textOverflows;
 
   /// 绑定原有选区参与者，文本内核不维护另一套注册系统。
-  void bindHost({required ElRenderView host, Object? Function()? nodeOf, bool Function()? lastHitCursorOf}) {
+  void bindHost({required ElRenderView host}) {
     _host = host;
-    _participant = BoundSelectionParticipant(
+    _elementManaged = host.ownerNode != null;
+    PaintingBinding.instance.systemFonts.addListener(_fontsChanged);
+  }
+
+  BoundSelectionParticipant _ensureParticipant() {
+    final host = _host!;
+    return _participant ??= BoundSelectionParticipant(
       box: host,
       contentOf: () => this,
       styleOf: () => host.style,
-      nodeOf: nodeOf,
+      nodeOf: () => host.ownerNode,
       participatesOf: () => rawChild != null && host.style?.userSelect != ElUserSelect.none,
-      lastHitCursorOf: lastHitCursorOf,
+      lastHitCursorOf: () => _showsSelectableTextCursor && _lastHitIncludedTextContent,
       textDirectionOf: () => host.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr,
       fallbackWidthOf: () => host.boxSize.width,
-      selectionPaintOf: () => host.inheritedSelectionPaint,
+      selectionPaintOf: _resolveSelectionPaint,
     );
-    _participant!.bindSelectionRegistrar(host.selectionRegistrar);
-    PaintingBinding.instance.systemFonts.addListener(_fontsChanged);
+  }
+
+  @override
+  ContentElementBinding createElementBinding(ContentElementHost host) {
+    _elementManaged = true;
+    return TextElementBinding(host, this);
+  }
+
+  /// 推送文本专属环境，普通视图不持有这些依赖与状态。
+  void updateEnvironment({
+    required TextScaler textScaler,
+    required TextAccessibility accessibility,
+    required SelectionRegistrar? selectionRegistrar,
+  }) {
+    final changed = _environmentScaler != textScaler || (!_icon && _accessibility != accessibility);
+    _environmentScaler = textScaler;
+    _accessibility = accessibility;
+    bindSelectionRegistrar(selectionRegistrar);
+    if (changed) {
+      invalidateLayout();
+      _host!.markNeedsLayout();
+    }
+  }
+
+  /// 自定义渲染宿主只需推送其官方选区注册中心。
+  void bindSelectionRegistrar(SelectionRegistrar? value) {
+    if (identical(_selectionRegistrar, value)) return;
+    _selectionRegistrar = value;
+    if (value == null) {
+      _selectionPaintMemos = null;
+      _participant?.detachFromSelectionRoot();
+      _participant?.dispose();
+      _participant = null;
+      _host?.markNeedsCompositingBitsUpdate();
+      _host?.markNeedsPaint();
+    } else {
+      _ensureParticipant().bindSelectionRegistrar(value);
+    }
+  }
+
+  ui.FlutterView? _attachedView() {
+    for (RenderObject? node = _host?.parent; node != null; node = node.parent) {
+      if (node is RenderView) return node.flutterView;
+    }
+    return null;
+  }
+
+  TextPaintInput _paintInput({ResolvedStyle? style, Offset? origin}) {
+    final resolved = style ?? _host!.committedResolvedStyle;
+    final options = _host?.style?.textOptions;
+    final view = _elementManaged ? null : _attachedView();
+    final factor = view?.platformDispatcher.textScaleFactor ?? 1;
+    return (
+      style: resolved,
+      textScaler:
+          options?.textScaler ??
+          (_elementManaged
+              ? _environmentScaler
+              : _icon || factor == 1
+              ? TextScaler.noScaling
+              : TextScaler.linear(factor)),
+      locale: options?.locale ?? view?.platformDispatcher.locale,
+      accessibility: _accessibility,
+      strutStyle: options?.strutStyle,
+      textWidthBasis: options?.textWidthBasis ?? TextWidthBasis.parent,
+      textHeightBehavior: options?.textHeightBehavior,
+      contentOrigin: origin ?? _host!.contentOrigin,
+    );
+  }
+
+  @override
+  bool tryUpdatePayload(Object? value) {
+    if (value == null ||
+        value is Widget ||
+        value is Iterable ||
+        value is InlineSpan ||
+        structure.spans.isNotEmpty ||
+        _icon != (value is IconData)) {
+      return false;
+    }
+    setPayload(value);
+    return true;
   }
 
   void _fontsChanged() {
@@ -156,7 +295,21 @@ class TextEngine extends SelectionContent {
       (_host?.attached ?? false) ? _participant?.reattachSelectionRoot() : _participant?.detachFromSelectionRoot();
 
   /// 等价内容保留缓存；非空换字沿用已解析样式和旧配置键，下一次布局仍校验新环境。
+  @override
   void setPayload(Object? value, {TextContent? content, bool contentEquivalent = false}) {
+    assert(value is! Widget, '文本内核只接收自绘载荷，Widget 子树应由 Element 管理。');
+    if (value is Iterable) value = value.where((item) => item != null).toList(growable: false);
+    if (identical(rawChild, value)) return;
+    contentEquivalent = contentEquivalent || _samePayload(rawChild, value);
+    if (!_elementManaged) {
+      assert(() {
+        final parsed = content ?? TextContent.parse(value);
+        if (parsed.spans.isNotEmpty) {
+          throw FlutterError('ElRenderView 无 Element，不能接收需要挂载 WidgetSpan 的混排内容。');
+        }
+        return true;
+      }());
+    }
     final sameOwner = rawChild is String && (rawChild as String).isNotEmpty && value is String && value.isNotEmpty;
     final configured = sameOwner ? _configuredFor : null;
     rawChild = value;
@@ -168,6 +321,8 @@ class TextEngine extends SelectionContent {
     _configuredFor = configured;
     sameOwner ? _participant?.updateSelectionGeometry() : syncSelectionParticipation();
     _participant?.notifySelectionContentChanged();
+    _host?.markNeedsLayout();
+    _host?.markNeedsSemanticsUpdate();
   }
 
   void _clearPaintCache() {
@@ -197,7 +352,7 @@ class TextEngine extends SelectionContent {
   }
 
   TextStyle _baseStyle(TextPaintInput input) {
-    if (!_icon) return inheritedTextToTextStyle(input.style.inheritedText);
+    if (!_icon) return inheritedTextToTextStyle(input.style.inheritedText, options: _host?.style?.textOptions);
     final icon = rawChild as IconData;
     return TextStyle(
       inherit: false,
@@ -217,6 +372,7 @@ class TextEngine extends SelectionContent {
   Object _keyFor(TextPaintInput input) => (
     input.style.inheritedText,
     input.style.inheritedBox,
+    _host?.style?.textOptions,
     input.textScaler,
     input.locale,
     _icon ? defaultTextAccessibility : input.accessibility,
@@ -345,7 +501,7 @@ class TextEngine extends SelectionContent {
     return sizes;
   }
 
-  double intrinsicHeight(TextPaintInput input, double width) =>
+  double _intrinsicHeight(TextPaintInput input, double width) =>
       computeDryMetrics(BoxConstraints(maxWidth: width), input).size.height;
 
   /// 最终盒尺寸确定后统一更新文本原点。
@@ -716,8 +872,181 @@ class TextEngine extends SelectionContent {
   void paintSelectionRange(Canvas canvas, Offset offset, TextRange range, Color color, {required Size nodeSize}) =>
       _paintBackground(canvas, offset, adjustedSelectionPaintRectsForRange(range, nodeSize: nodeSize), color);
 
+  @override
+  void setupParentData(RenderObject child) {
+    if (child.parentData is! ElTextParentData) child.parentData = ElTextParentData();
+  }
+
+  @override
+  Size layout(
+    BoxConstraints constraints,
+    Offset origin, {
+    required ResolvedStyle style,
+    bool fillWidth = false,
+    bool dry = false,
+  }) {
+    final input = _paintInput(style: style, origin: origin);
+    return dry
+        ? computeDryMetrics(constraints, input, fillWidth: fillWidth).size
+        : layoutContent(constraints, input, fillWidth: fillWidth);
+  }
+
+  @override
+  void finishLayout(Size contentSize) {
+    repositionAlignedText(_paintInput(), contentW: contentSize.width, contentH: contentSize.height);
+    _participant?.updateSelectionGeometry();
+  }
+
+  @override
+  double intrinsicWidth({required bool isMin}) {
+    final sizes = computeIntrinsicSizes(double.infinity, _paintInput());
+    return isMin ? sizes.minContent : sizes.maxContent;
+  }
+
+  @override
+  double intrinsicHeight(double width, {required bool isMin}) => _intrinsicHeight(_paintInput(), width);
+
+  @override
+  double? actualBaseline(TextBaseline baseline) => computeDistanceToActualBaseline(baseline);
+
+  @override
+  double? dryBaseline(
+    BoxConstraints constraints,
+    Size contentSize,
+    Offset origin,
+    TextBaseline baseline, {
+    bool fillWidth = false,
+  }) {
+    final input = _paintInput(origin: origin);
+    final metrics = computeDryMetrics(constraints, input, baseline: baseline, fillWidth: fillWidth);
+    final alignment = input.style.box.alignment
+        ?.resolve(input.textDirection)
+        .alongOffset(Offset(contentSize.width - metrics.size.width, contentSize.height - metrics.size.height));
+    return origin.dy + (alignment?.dy ?? 0) + metrics.baseline;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final participant = _participant;
+    final range = participant?.currentSelectionRange;
+    paintContent(
+      context,
+      offset,
+      _paintInput(),
+      selection: range,
+      selectionColor: range == null ? null : participant!.effectiveSelectionBgColor,
+      selectionTextColor: range == null ? null : participant!.effectiveSelectionTextColor,
+    );
+    participant?.paintSelectionHandleLayers(context, offset);
+  }
+
+  @override
+  void beginHitTest() => _lastHitIncludedTextContent = false;
+
+  @override
+  bool hitTest(BoxHitTestResult result, Offset position) =>
+      _lastHitIncludedTextContent = hitTestContent(result, position);
+
+  bool get _showsSelectableTextCursor =>
+      (_participant?.hasEnabledSelectionRoot ?? false) &&
+      _host!.style?.userSelect != ElUserSelect.none &&
+      selectionTextLength > 0;
+
+  @override
+  MouseCursor get cursor =>
+      _showsSelectableTextCursor && _lastHitIncludedTextContent ? SystemMouseCursors.text : MouseCursor.defer;
+
+  @override
+  bool get needsCompositing => _participant?.hasSelectionHandleLayers ?? false;
+
+  @override
+  bool get clipsHitBounds => _constraints != null && overflowNeedsClipping;
+
+  @override
+  void visitHitBoundsChildren(void Function(RenderBox child, Offset offset) visitor) {
+    for (final child in _children()) {
+      final data = child.parentData! as ElTextParentData;
+      if (data.visible && data.scale != 0) visitor(child, textPaintOrigin + data.offset);
+    }
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    final data = child.parentData! as ElTextParentData;
+    final origin = textPaintOrigin + data.offset;
+    transform.translateByDouble(origin.dx, origin.dy, 0.0, 1.0);
+    transform.scaleByDouble(data.scale, data.scale, 1.0, 1.0);
+  }
+
+  @override
+  void describeSemantics(SemanticsConfiguration config) {
+    final label = semanticsTextLabel;
+    final properties = _host!.semantics?.properties;
+    if (label == null || properties?.label != null || properties?.attributedLabel != null) return;
+    config.label = label;
+    config.textDirection =
+        properties?.textDirection ?? _host!.committedResolvedStyle.inheritedBox.direction ?? TextDirection.ltr;
+    config.isSemanticBoundary = true;
+  }
+
+  @override
+  void styleCommit(ResolvedStyle previous, ResolvedStyle current, FieldMask changedMask) {
+    if (!identical(previous.inheritedText, current.inheritedText)) {
+      if (maskAnd(changedMask, textLayoutAffectingMask).isNotEmpty) {
+        invalidateLayout();
+        _host!.markNeedsLayout();
+      } else {
+        invalidatePaint();
+      }
+    }
+    if (previous.inheritedBox.direction != current.inheritedBox.direction) {
+      invalidateLayout();
+      _host!.markNeedsLayout();
+      _host!.markNeedsSemanticsUpdate();
+    }
+  }
+
+  @override
+  void declarationChanged(ElStyle? previous, ElStyle? current) {
+    if (previous?.textOptions == current?.textOptions) return;
+    invalidateLayout();
+    _host!.markNeedsLayout();
+  }
+
+  OnSelectionPaint _resolveSelectionPaint() {
+    final memos = _selectionPaintMemos ??= Expando<OnSelectionPaintMemo>();
+    for (ElRenderView? source = _host; source != null; source = source.internalStyleParent) {
+      final paint = (memos[source] ??= OnSelectionPaintMemo()).resolve(
+        source.style,
+        stateBits: source.internalStateBits,
+      );
+      if (!paint.isEmpty) return paint;
+    }
+    return OnSelectionPaint.empty;
+  }
+
+  @override
+  void attach() {
+    _selectionPaintMemos = null;
+    syncSelectionParticipation();
+  }
+
+  @override
+  void detach() {
+    _selectionPaintMemos = null;
+    syncSelectionParticipation();
+  }
+
+  /// 测试读取选中文字前景色覆盖后的文本树。
+  InlineSpan? selectedTextOverlaySpanForTest() {
+    final span = _painter.text;
+    return span == null ? null : buildSelectionOverlaySpan(span, textColor: _participant?.effectiveSelectionTextColor);
+  }
+
   /// 卸载时归还选区、字体监听和两个 painter。
+  @override
   void dispose() {
+    _selectionPaintMemos = null;
     _participant?.detachFromSelectionRoot();
     _participant?.dispose();
     _participant = null;

@@ -20,7 +20,7 @@ void main() {
     await tester.pumpWidget(_scene(view));
     final element = tester.element(find.byKey(key));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final painter = engine.painterForTest;
     expect(painter.text!.toPlainText(), '初始文本');
     expect(tester.getSemantics(find.byKey(key)).label, '初始文本');
@@ -32,7 +32,7 @@ void main() {
 
     expect(tester.element(find.byKey(key)), same(element));
     expect(tester.renderObject(find.byKey(key)), same(render));
-    expect(render.textEngineForTest, same(engine));
+    expect((render.content as TextEngine?), same(engine));
     expect(engine.painterForTest, same(painter));
     expect(painter.text!.toPlainText(), '更新后的文本');
     expect(tester.getSemantics(find.byKey(key)).label, '更新后的文本');
@@ -69,23 +69,23 @@ void main() {
     expect(first.listenerCount, 0);
     expect(second.listenerCount, 1);
     expect(tester.renderObject(find.byKey(key)), same(render));
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '第二来源');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '第二来源');
     first.value = '旧来源不得覆盖新值';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '第二来源');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '第二来源');
 
     second.value = '新来源仍能更新';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '新来源仍能更新');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '新来源仍能更新');
     await tester.pumpWidget(scene('普通文本'));
     expect(second.listenerCount, 0);
     second.value = '已退订';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '普通文本');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '普通文本');
 
     await tester.pumpWidget(scene(second));
     expect(second.listenerCount, 1);
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '已退订');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '已退订');
     await tester.pumpWidget(SizedBox.shrink());
     expect(first.listenerCount, 0);
     expect(second.listenerCount, 0);
@@ -104,25 +104,27 @@ void main() {
     final view = _ObservedView(key: key, counts: counts, style: ElStyle(width: 240, fontSize: 14), child: source);
     await tester.pumpWidget(_scene(view));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    expect(render.textEngineForTest, isNull);
+    expect((render.content as TextEngine?), isNull);
     await tester.pumpWidget(_scene(view, scale: 2));
     counts.reset();
 
     source.value = 42;
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '42');
-    expect(render.textEngineForTest!.painterForTest.textScaler.scale(10), 20);
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '42');
+    expect((render.content as TextEngine?)!.painterForTest.textScaler.scale(10), 20);
+    counts.reset();
     source.value = true;
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), 'true');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), 'true');
+    expect(counts.work, (0, 0, 0), reason: '文本模式内普通值换字仍应直接更新引擎');
     source.value = null;
     await tester.pump();
-    expect(render.textEngineForTest, isNull);
+    expect((render.content as TextEngine?), isNull);
     source.value = '恢复文本';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '恢复文本');
-    expect(render.textEngineForTest!.painterForTest.textScaler.scale(10), 20);
-    expect(counts.work, (0, 0, 0));
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '恢复文本');
+    expect((render.content as TextEngine?)!.painterForTest.textScaler.scale(10), 20);
+    expect(tester.renderObject(find.byKey(key)), same(render));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox.shrink());
   });
@@ -150,28 +152,25 @@ void main() {
     );
     final reference = tester.renderObject<ElRenderView>(find.byKey(staticKey));
     final render = tester.renderObject<ElRenderView>(find.byKey(dynamicKey));
-    expect(reference.textScaler.scale(10), 10);
-    expect(render.textScaler.scale(10), 10);
-    expect(render.textEngineForTest!.painterForTest.textScaler.scale(10), 10);
+    expect((reference.content as TextEngine).painterForTest.textScaler.scale(10), 10);
+    expect((render.content as TextEngine).painterForTest.textScaler.scale(10), 10);
     expect(render.size, reference.size);
     expect(render.size, Size.square(24));
 
     source.value = '文字';
     await tester.pump();
-    expect(render.textScaler.scale(10), 20);
-    expect(render.textEngineForTest!.painterForTest.textScaler.scale(10), 20);
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '文字');
+    expect((render.content as TextEngine).painterForTest.textScaler.scale(10), 20);
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '文字');
     counts.reset();
     source.value = '后续文字仍直接更新';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '后续文字仍直接更新');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '后续文字仍直接更新');
     expect(counts.work, (0, 0, 0));
 
     source.value = icon;
     await tester.pump();
     expect(tester.renderObject(find.byKey(dynamicKey)), same(render));
-    expect(render.textScaler.scale(10), 10);
-    expect(render.textEngineForTest!.painterForTest.textScaler.scale(10), 10);
+    expect((render.content as TextEngine).painterForTest.textScaler.scale(10), 10);
     expect(render.size, reference.size);
     expect(source.listenerCount, 1);
     expect(tester.takeException(), isNull);
@@ -191,7 +190,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(boxKey), findsOneWidget);
     expect(render.childCount, 1);
-    expect(render.textEngineForTest, isNull);
+    expect((render.content as TextEngine?), isNull);
 
     source.value = TextSpan(
       children: [
@@ -204,15 +203,15 @@ void main() {
     expect(find.byKey(boxKey), findsNothing);
     expect(find.byKey(inlineKey), findsOneWidget);
     expect(render.childCount, 1);
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), contains('前'));
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), contains('后'));
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), contains('前'));
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), contains('后'));
 
     source.value = '恢复纯文字';
     await tester.pump();
     expect(tester.renderObject(find.byKey(key)), same(render));
     expect(find.byKey(inlineKey), findsNothing);
     expect(render.childCount, 0);
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '恢复纯文字');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '恢复纯文字');
     expect(source.listenerCount, 1);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox.shrink());
@@ -242,23 +241,83 @@ void main() {
 
     expect(tester.element(find.byKey(key)), same(element));
     expect(tester.renderObject(find.byKey(key)), same(render));
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '停用期间的新值');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '停用期间的新值');
     expect(source.listenerCount, 1);
     counts.reset();
     source.value = '移动后仍直接更新';
     await tester.pump();
-    expect(render.textEngineForTest!.painterForTest.text!.toPlainText(), '移动后仍直接更新');
+    expect((render.content as TextEngine?)!.painterForTest.text!.toPlainText(), '移动后仍直接更新');
     expect(counts.work, (0, 0, 0));
     await tester.pumpWidget(SizedBox.shrink());
     expect(source.listenerCount, 0);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('纯盒即使声明高级文本样式也不订阅文本环境', (tester) async {
+    final key = GlobalKey();
+    final counts = _UpdateCounts();
+    final view = _ObservedView(
+      key: key,
+      counts: counts,
+      style: ElStyle(width: 80, height: 40, textOptions: ElTextOptions(locale: Locale('ja')), wordSpacing: 2),
+      child: SizedBox(width: 20, height: 20),
+    );
+    await tester.pumpWidget(_scene(view));
+    final render = tester.renderObject<ElRenderView>(find.byKey(key));
+    final layouts = render.debugLayoutCount;
+    counts.reset();
+    await tester.pumpWidget(_scene(view, scale: 2, bold: true));
+    await tester.binding.handleSystemMessage({'type': 'fontsChange'});
+    await tester.pump();
+    expect(render.content, isNull);
+    expect(selectionParticipantOf(render), isNull);
+    expect(render.debugLayoutCount, layouts);
+    expect(counts.work, (0, 0, 0));
+  });
+
+  for (final widgetChild in [false, true]) {
+    testWidgets('文本退出到 ${widgetChild ? 'Widget' : 'null'} 后释放环境，恢复使用当前设置', (tester) async {
+      final source = _TrackedNotifier<Object?>('before');
+      addTearDown(source.dispose);
+      final key = GlobalKey();
+      final counts = _UpdateCounts();
+      final view = _ObservedView(
+        key: key,
+        counts: counts,
+        style: ElStyle(width: 160, height: 40, fontSize: 10),
+        child: source,
+      );
+      await tester.pumpWidget(_scene(view));
+      final render = tester.renderObject<ElRenderView>(find.byKey(key));
+      final previous = render.content;
+      expect(previous, isA<TextEngine>());
+      source.value = widgetChild ? SizedBox(width: 12, height: 12) : null;
+      await tester.pump();
+      expect(render.content, isNull);
+      expect(selectionParticipantOf(render), isNull);
+      final layouts = render.debugLayoutCount;
+      counts.reset();
+      await tester.pumpWidget(_scene(view, scale: 2, bold: true));
+      await tester.binding.handleSystemMessage({'type': 'fontsChange'});
+      await tester.pump();
+      expect(render.content, isNull);
+      expect(render.debugLayoutCount, layouts);
+      expect(counts.work, (0, 0, 0), reason: '退出文本后不能留下 MediaQuery 或字体监听');
+      source.value = 'restored';
+      await tester.pump();
+      final engine = render.content as TextEngine;
+      expect(engine, isNot(same(previous)));
+      expect(engine.painterForTest.textScaler.scale(10), 20);
+      expect(engine.painterForTest.text!.style!.fontWeight, FontWeight.bold);
+      expect(tester.renderObject(find.byKey(key)), same(render));
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
 
-Widget _scene(Widget child, {double scale = 1}) => Directionality(
+Widget _scene(Widget child, {double scale = 1, bool bold = false}) => Directionality(
   textDirection: .ltr,
   child: MediaQuery(
-    data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+    data: MediaQueryData(textScaler: TextScaler.linear(scale), boldText: bold),
     child: Align(alignment: .topLeft, child: child),
   ),
 );

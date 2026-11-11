@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter_base/src/flutter/views/view/view.dart';
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
@@ -36,14 +37,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    return tester.allRenderObjects.whereType<ElRenderView>().firstWhere((r) => r.textEngineForTest != null);
+    return tester.allRenderObjects.whereType<ElRenderView>().firstWhere((r) => (r.content as TextEngine?) != null);
   }
 
   testWidgets('lineHeight 0.8（墨迹出行盒）：带 = 行盒 ∪ 内容区，垂直盖住墨迹且放行出节点盒', (tester) async {
     // 单行文本（5 字 ×56px < 800 视口）：出节点盒断言只对首/末行成立，
     // 默认 16 字文本会折两行，'py' 落在第一行测不到末行带底。
     final render = await pumpText(tester, lineHeight: 0.8, child: 'My py');
-    final painter = render.textEngineForTest!;
+    final painter = (render.content as TextEngine?)!;
     const range = TextRange(start: 3, end: 5); // 'py'，含下伸部
 
     final tight = painter.getBoxesForSelectionForTest(range.start, range.end).single.toRect();
@@ -69,7 +70,7 @@ void main() {
 
   testWidgets('lineHeight 1.5（行盒宽裕）：内容区 ⊂ 行盒，带垂直即行盒 strip 零扩张', (tester) async {
     final render = await pumpText(tester, lineHeight: 1.5);
-    final painter = render.textEngineForTest!;
+    final painter = (render.content as TextEngine?)!;
     const range = TextRange(start: 3, end: 5);
 
     final band = painter.adjustedSelectionPaintRectsForRange(range, nodeSize: render.size).single;
@@ -82,7 +83,7 @@ void main() {
     // 13 × 1.55 = 20.15px 时首行 rawTop=-0.15，floor 会凭取整多探出
     // 1px；tight 内容区仍完整落在 painter 盒内，不能把它误判成墨迹溢出。
     final render = await pumpText(tester, fontSize: 13, lineHeight: 1.55, child: 'normal');
-    final painter = render.textEngineForTest!;
+    final painter = (render.content as TextEngine?)!;
     final tight = painter.getBoxesForSelectionForTest(0, 6).single.toRect();
     final band = painter
         .adjustedSelectionPaintRectsForRange(const TextRange(start: 0, end: 6), nodeSize: render.size)
@@ -94,7 +95,7 @@ void main() {
 
   testWidgets('首行 top limit：压缩行高仍保留真实内容区溢出', (tester) async {
     final render = await pumpText(tester, fontSize: 14, lineHeight: 0.8, child: 'My py');
-    final painter = render.textEngineForTest!;
+    final painter = (render.content as TextEngine?)!;
     const range = TextRange(start: 3, end: 5);
     final tight = painter.getBoxesForSelectionForTest(range.start, range.end).single.toRect();
     final band = painter.adjustedSelectionPaintRectsForRange(range, nodeSize: render.size).single;
@@ -117,7 +118,7 @@ void main() {
         ' Components',
       ],
     );
-    final painter = render.textEngineForTest!;
+    final painter = (render.content as TextEngine?)!;
     const range = TextRange(start: 3, end: 5); // inline span 'py'
 
     final boxes = painter.getBoxesForSelectionForTest(range.start, range.end);

@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../views/view/render/render_view.dart' show ElRenderView;
 import '../../views/view/semantics/semantics.dart' show ElSemantics;
-import '../../views/view/style/style.dart' show ElStyle;
+import '../../views/view/style/style.dart' show ElStyle, ElTextOptions;
 import '../../views/view/view.dart' show ElView;
 
 /// 使用 ElView 字形渲染的字体图标。
@@ -14,30 +13,24 @@ import '../../views/view/view.dart' show ElView;
 class ElIcon extends StatelessWidget {
   /// 创建图标。
   const ElIcon(
-      this.child, {
-        super.key,
-        this.size,
-        this.color,
-        this.fill,
-        this.weight,
-        this.grade,
-        this.opticalSize,
-        this.fontWeight,
-        this.semanticLabel,
-        this.textDirection,
-        this.applyTextScaling = false,
-        this.style,
-      }) : assert(size == null || (size >= 0 && size < double.infinity)),
-        assert(fill == null || (fill >= 0 && fill <= 1)),
-        assert(weight == null || (weight > 0 && weight < double.infinity)),
-        assert(
-        grade == null ||
-            (grade > double.negativeInfinity && grade < double.infinity),
-        ),
-        assert(
-        opticalSize == null ||
-            (opticalSize > 0 && opticalSize < double.infinity),
-        );
+    this.child, {
+    super.key,
+    this.size,
+    this.color,
+    this.fill,
+    this.weight,
+    this.grade,
+    this.opticalSize,
+    this.fontWeight,
+    this.semanticLabel,
+    this.textDirection,
+    this.applyTextScaling = false,
+    this.style,
+  }) : assert(size == null || (size >= 0 && size < double.infinity)),
+       assert(fill == null || (fill >= 0 && fill <= 1)),
+       assert(weight == null || (weight > 0 && weight < double.infinity)),
+       assert(grade == null || (grade > double.negativeInfinity && grade < double.infinity)),
+       assert(opticalSize == null || (opticalSize > 0 && opticalSize < double.infinity));
 
   /// 图标字体信息；null 保留尺寸但不绘制。
   final IconData? child;
@@ -77,17 +70,19 @@ class ElIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _IconView(
-      applyTextScaling: applyTextScaling,
-      semantics: semanticLabel == null
-          ? null
-          : ElSemantics(label: semanticLabel, textDirection: textDirection),
+    return ElView(
+      semantics: semanticLabel == null ? null : ElSemantics(label: semanticLabel, textDirection: textDirection),
       style: ElStyle(
         iconSize: size,
         iconColor: color,
         alignment: .center,
         direction: textDirection,
         fontWeight: fontWeight ?? .normal,
+        textOptions: ElTextOptions(
+          textScaler: applyTextScaling
+              ? (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
+              : TextScaler.noScaling,
+        ),
         fontVariationSettings: [
           if (fill != null) FontVariation('FILL', fill!),
           if (weight != null) FontVariation('wght', weight!),
@@ -97,31 +92,5 @@ class ElIcon extends StatelessWidget {
       ).merge(style),
       child: child ?? const IconData(0x20),
     );
-  }
-}
-
-/// 缩放使用既有渲染接口；空图标用空格字形保留同一套占位规则。
-class _IconView extends ElView {
-  const _IconView({
-    required this.applyTextScaling,
-    super.style,
-    super.semantics,
-    required IconData super.child,
-  });
-
-  final bool applyTextScaling;
-
-  TextScaler _scaler(BuildContext context) => applyTextScaling
-      ? (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
-      : TextScaler.noScaling;
-
-  @override
-  ElRenderView createRenderObject(BuildContext context) =>
-      super.createRenderObject(context)..textScaler = _scaler(context);
-
-  @override
-  void updateRenderObject(BuildContext context, ElRenderView renderObject) {
-    super.updateRenderObject(context, renderObject);
-    renderObject.textScaler = _scaler(context);
   }
 }

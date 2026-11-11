@@ -13,7 +13,7 @@ Widget _host(Widget child, {bool bold = false, Size size = Size.zero}) => Direct
 );
 
 TextSpan _plain(WidgetTester tester, Key key) =>
-    ((tester.renderObject<ElRenderView>(find.byKey(key)).textEngineForTest?.painterForTest.text) as TextSpan);
+    (((tester.renderObject<ElRenderView>(find.byKey(key)).content as TextEngine?)?.painterForTest.text) as TextSpan);
 
 List<TextSpan> _runs(InlineSpan span) {
   final result = <TextSpan>[];
@@ -25,7 +25,7 @@ List<TextSpan> _runs(InlineSpan span) {
 }
 
 void main() {
-  testWidgets('仅根监听粗体，后代不重建，切换只覆盖 fontWeight 并保留可变字体轴', (tester) async {
+  testWidgets('文本环境监听粗体，父级不重建，切换只覆盖 fontWeight 并保留局部字体轴', (tester) async {
     final key = UniqueKey();
     var leafBuilds = 0;
     final tree = ElView(
@@ -35,7 +35,10 @@ void main() {
           leafBuilds++;
           return ElView(
             key: key,
-            style: ElStyle(fontWeight: .w300, fontVariationSettings: [FontVariation('wght', 320), FontVariation('wdth', 90)]),
+            style: ElStyle(
+              fontWeight: .w300,
+              fontVariationSettings: [FontVariation('wght', 320), FontVariation('wdth', 90)],
+            ),
             child: '系统粗体',
           );
         },
@@ -123,7 +126,7 @@ void main() {
     );
     await tester.pumpWidget(_host(tree, bold: true));
     final render = tester.renderObject<ElRenderView>(find.byKey(richKey));
-    final runs = _runs((render.textEngineForTest?.painterForTest.text)!);
+    final runs = _runs(((render.content as TextEngine?)?.painterForTest.text)!);
     expect(runs.singleWhere((span) => span.text == '普通').style!.fontWeight, FontWeight.bold);
     expect(runs.singleWhere((span) => span.text == '内联').style!.fontWeight, FontWeight.w100);
     expect(runs.singleWhere((span) => span.text == '交互').style!.fontWeight, FontWeight.w200);
@@ -132,7 +135,7 @@ void main() {
     final paragraph = tester.renderObject<RenderParagraph>(find.byKey(nativeKey));
     expect((paragraph.text as TextSpan).style!.fontWeight, FontWeight.w200);
     await tester.pumpWidget(_host(tree));
-    final restored = _runs((render.textEngineForTest?.painterForTest.text)!);
+    final restored = _runs(((render.content as TextEngine?)?.painterForTest.text)!);
     expect(restored.singleWhere((span) => span.text == '内联').style!.fontWeight, FontWeight.w100);
     expect(restored.singleWhere((span) => span.text == '交互').style!.fontWeight, FontWeight.w200);
   });
@@ -144,9 +147,9 @@ void main() {
     );
     await tester.pumpWidget(_host(tree));
     final render = tester.renderObject<ElRenderView>(find.byKey(key));
-    final layouts = ((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+    final layouts = (((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
     await tester.pumpWidget(_host(tree, bold: true));
-    expect(((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0), layouts);
+    expect((((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0), layouts);
   });
 
   testWidgets('GlobalKey 从继承节点变为根后开始监听系统粗体', (tester) async {

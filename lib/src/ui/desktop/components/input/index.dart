@@ -30,48 +30,28 @@ Object? _resolveInputObjectSlot(BuildContext context, Object? value) => value;
 ///
 /// 完整声明排版，避免 ElView 与 editable 的 TextPainter 默认值分叉；
 /// 正文、placeholder 和禁用色交给 ElStyle 级联，不得各自拼字号或行高。
-TextStyle _inputTextStyle(
-  BuildContext context, {
-  required double fontSize,
-  ElStyle? style,
-}) {
+TextStyle _inputTextStyle(BuildContext context, {required double fontSize, ElStyle? style}) {
   final declared = style == null
       ? const TextStyle()
       : TextStyle(
           fontSize: _resolveInputDoubleSlot(context, style.fontSize),
           fontWeight: style.fontWeight,
           fontStyle: style.fontStyle,
-          fontFamily:
-              _resolveInputObjectSlot(context, style.fontFamily) as String?,
-          fontFamilyFallback: _resolveInputObjectSlot(
-            context,
-            style.fontFamilyFallback,
-          ) as List<String>?,
+          fontFamily: _resolveInputObjectSlot(context, style.fontFamily) as String?,
+          fontFamilyFallback: _resolveInputObjectSlot(context, style.fontFamilyFallback) as List<String>?,
           height: _resolveInputDoubleSlot(context, style.lineHeight),
-          leadingDistribution: style.leadingDistribution,
+          leadingDistribution: style.textOptions?.leadingDistribution,
           letterSpacing: _resolveInputDoubleSlot(context, style.letterSpacing),
           wordSpacing: _resolveInputDoubleSlot(context, style.wordSpacing),
-          textBaseline: style.textBaseline,
+          textBaseline: style.textOptions?.textBaseline,
           fontFeatures: style.fontFeatureSettings,
           fontVariations: style.fontVariationSettings,
           decoration: style.textDecorationLine,
-          decorationColor: _resolveInputColorSlot(
-            context,
-            style.textDecorationColor,
-          ),
+          decorationColor: _resolveInputColorSlot(context, style.textDecorationColor),
           decorationStyle: style.textDecorationStyle,
-          decorationThickness: _resolveInputDoubleSlot(
-            context,
-            style.textDecorationThickness,
-          ),
-          backgroundColor: _resolveInputColorSlot(
-            context,
-            style.textBackgroundColor,
-          ),
-          shadows: _resolveInputObjectSlot(
-            context,
-            style.textShadow,
-          ) as List<Shadow>?,
+          decorationThickness: _resolveInputDoubleSlot(context, style.textDecorationThickness),
+          backgroundColor: _resolveInputColorSlot(context, style.textBackgroundColor),
+          shadows: _resolveInputObjectSlot(context, style.textShadow) as List<Shadow>?,
         );
   return const TextStyle(
         inherit: false,
@@ -106,11 +86,7 @@ final _controlBridgeKey = UniqueKey();
 /// 桌面预设使用的 Element 输入框实现。
 class Input extends ElInputModelValue<String> {
   Input(this.component, this.themeStyle, {super.key})
-    : super(
-        value: component.value,
-        modelValue: component.modelValue,
-        onChanged: component.onChanged,
-      );
+    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
 
   final ElInput component;
   final ElStyle? themeStyle;
@@ -155,31 +131,20 @@ class Input extends ElInputModelValue<String> {
     );
     useEffect(() => controller.dispose, [controller]);
 
-    final ownFocus = useMemoized(
-      () =>
-          component.focusNode == null ? FocusNode(debugLabel: 'ElInput') : null,
-      [component.focusNode == null],
-    );
+    final ownFocus = useMemoized(() => component.focusNode == null ? FocusNode(debugLabel: 'ElInput') : null, [
+      component.focusNode == null,
+    ]);
     useEffect(() => ownFocus?.dispose, [ownFocus]);
-    final node = $set<FocusNode>(
-      _focusNodeKey,
-      component.focusNode ?? ownFocus!,
-    );
-    final controlOwner = $set<Object>(
-      _controlOwnerKey,
-      useMemoized(Object.new, const []),
-    );
-    final controlBridge =
-        $set<_InputControlBridge>(
-          _controlBridgeKey,
-          useMemoized(_InputControlBridge.new, const []),
-        )..update(
-          control: component.control,
-          owner: controlOwner,
-          controller: controller,
-          focusNode: node,
-          enabled: !component.disabled,
-        );
+    final node = $set<FocusNode>(_focusNodeKey, component.focusNode ?? ownFocus!);
+    final controlOwner = $set<Object>(_controlOwnerKey, useMemoized(Object.new, const []));
+    final controlBridge = $set<_InputControlBridge>(_controlBridgeKey, useMemoized(_InputControlBridge.new, const []))
+      ..update(
+        control: component.control,
+        owner: controlOwner,
+        controller: controller,
+        focusNode: node,
+        enabled: !component.disabled,
+      );
 
     $set(_hoverKey, useState(false));
     final focused = $set(_focusedKey, useState(false));
@@ -196,8 +161,7 @@ class Input extends ElInputModelValue<String> {
       var renderedEmpty = (controller.length == 0);
 
       void rebuildVisualState() {
-        if (WidgetsBinding.instance.schedulerPhase !=
-            SchedulerPhase.persistentCallbacks) {
+        if (WidgetsBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks) {
           visualRev.value++;
           return;
         }
@@ -218,8 +182,7 @@ class Input extends ElInputModelValue<String> {
         // 普通 caret/selection 移动不改变这两项，不重建外壳。
         final nextCommittedLength = controller.committedTextLength;
         final nextEmpty = (controller.length == 0);
-        if (nextCommittedLength != renderedCommittedLength ||
-            nextEmpty != renderedEmpty) {
+        if (nextCommittedLength != renderedCommittedLength || nextEmpty != renderedEmpty) {
           renderedCommittedLength = nextCommittedLength;
           renderedEmpty = nextEmpty;
           rebuildVisualState();
@@ -289,16 +252,8 @@ class Input extends ElInputModelValue<String> {
 
     // ObsBuilder 收集 errorMessages 依赖：表单错误态（danger 环）自动跟随
     return ObsBuilder(
-      builder: (context) => _buildShell(
-        context,
-        controller,
-        node,
-        controlBridge,
-        hovered,
-        focused,
-        pwdVisible,
-        binding,
-      ),
+      builder: (context) =>
+          _buildShell(context, controller, node, controlBridge, hovered, focused, pwdVisible, binding),
     );
   }
 
@@ -315,38 +270,21 @@ class Input extends ElInputModelValue<String> {
     final form = $formState;
     final effProp = $formProp;
     final isDisabled = component.disabled;
-    final hasError =
-        form != null &&
-        effProp != null &&
-        form.errorMessages.containsKey(effProp);
+    final hasError = form != null && effProp != null && form.errorMessages.containsKey(effProp);
 
     final compact = _compact(context);
     // 字号与行高决定编辑器和槽位几何，必须在构建布局时解析；颜色仍走样式级联。
     final declaredStyle = _style;
     final style = declaredStyle;
     final fontSize = elInputDefaultFontSize(compact);
-    final iconSize =
-        _resolveInputDoubleSlot(context, style?.iconSize) ??
-        elInputDefaultIconSize(compact);
-    final padding = EdgeInsets.symmetric(
-      vertical: component.textarea ? 5 : 1,
-      horizontal: compact ? 9 : 11,
-    );
-    final valueTextStyle = _inputTextStyle(
-      context,
-      fontSize: fontSize,
-      style: style,
-    );
+    final iconSize = _resolveInputDoubleSlot(context, style?.iconSize) ?? elInputDefaultIconSize(compact);
+    final padding = EdgeInsets.symmetric(vertical: component.textarea ? 5 : 1, horizontal: compact ? 9 : 11);
+    final valueTextStyle = _inputTextStyle(context, fontSize: fontSize, style: style);
     final effectiveFontSize = valueTextStyle.fontSize ?? fontSize;
-    final lineHeight =
-        effectiveFontSize * (valueTextStyle.height ?? elInputLineHeightFactor);
+    final lineHeight = effectiveFontSize * (valueTextStyle.height ?? elInputLineHeightFactor);
     final slotExtent = math.max(lineHeight, iconSize);
-    final resolvedTextAlign =
-        component.textAlign ?? style?.textAlign ?? TextAlign.start;
-    final resolvedTextDirection =
-        style?.direction ??
-        Directionality.maybeOf(context) ??
-        TextDirection.ltr;
+    final resolvedTextAlign = component.textAlign ?? style?.textAlign ?? TextAlign.start;
+    final resolvedTextDirection = style?.direction ?? Directionality.maybeOf(context) ?? TextDirection.ltr;
 
     final doc = controller;
     final committedTextLength = controller.committedTextLength;
@@ -354,18 +292,11 @@ class Input extends ElInputModelValue<String> {
     final masked = component.showPassword && !pwdVisible.value;
 
     // component.textarea 自动增高：内容行数夹在 [component.minLine, component.maxLine]，超出内滚动
-    final visibleLines = component.textarea
-        ? doc.lineCount.clamp(component.minLine, component.maxLine ?? 1 << 30)
-        : 1;
+    final visibleLines = component.textarea ? doc.lineCount.clamp(component.minLine, component.maxLine ?? 1 << 30) : 1;
 
     final showClear =
-        component.clearable &&
-        !isDisabled &&
-        !component.readOnly &&
-        !empty &&
-        (focused.value || hovered.value);
-    final showPwd =
-        component.showPassword && !isDisabled && !empty && !component.textarea;
+        component.clearable && !isDisabled && !component.readOnly && !empty && (focused.value || hovered.value);
+    final showPwd = component.showPassword && !isDisabled && !empty && !component.textarea;
     final showCount =
         component.showWordLimit &&
         component.maxLength != null &&
@@ -376,9 +307,7 @@ class Input extends ElInputModelValue<String> {
     Widget editArea;
     if (isDisabled) {
       // 禁用态不挂 editable：不可聚焦（Tab 链自动跳过）、无 IME、纯文本呈现
-      final text = empty
-          ? (component.placeholder ?? '')
-          : (masked ? '•' * doc.length : controller.text);
+      final text = empty ? (component.placeholder ?? '') : (masked ? '•' * doc.length : controller.text);
       editArea = ElView(
         key: const ValueKey<String>('el-input-edit-area'),
         semantics: ElSemantics(exclude: true),
@@ -387,14 +316,12 @@ class Input extends ElInputModelValue<String> {
           height: component.textarea ? visibleLines * lineHeight : lineHeight,
           padding: _inputProjectionPadding(component.textarea),
           textAlign: resolvedTextAlign,
+          textOptions: style?.textOptions,
           direction: resolvedTextDirection,
           userSelect: ElUserSelect.none,
           iconColor: c.elTheme.textPlaceholder,
         ))(context),
-        child: TextSpan(
-          text: text,
-          style: valueTextStyle.copyWith(inherit: true),
-        ),
+        child: TextSpan(text: text, style: valueTextStyle.copyWith(inherit: true)),
       );
     } else {
       editArea = ElView(
@@ -404,20 +331,10 @@ class Input extends ElInputModelValue<String> {
           final resolved = declared;
           return ElStyle(
             height: component.textarea ? visibleLines * lineHeight : lineHeight,
-            color:
-                _resolveInputColorSlot(c, resolved?.color) ??
-                c.elTheme.textRegular,
-            onSelection: ElStyle(
-              backgroundColor: c.elTheme.primary.withValues(alpha: 0.25),
-            ),
-            iconColor:
-                _resolveInputColorSlot(c, resolved?.color) ??
-                c.elTheme.textRegular,
-          ).merge(
-            resolved?.onSelection == null
-                ? null
-                : ElStyle(onSelection: resolved!.onSelection),
-          );
+            color: _resolveInputColorSlot(c, resolved?.color) ?? c.elTheme.textRegular,
+            onSelection: ElStyle(backgroundColor: c.elTheme.primary.withValues(alpha: 0.25)),
+            iconColor: _resolveInputColorSlot(c, resolved?.color) ?? c.elTheme.textRegular,
+          ).merge(resolved?.onSelection == null ? null : ElStyle(onSelection: resolved!.onSelection));
         })(context),
         child: ElStackView(
           fit: .expand,
@@ -429,7 +346,7 @@ class Input extends ElInputModelValue<String> {
                 textStyle: valueTextStyle.copyWith(inherit: true),
                 textAlign: resolvedTextAlign,
                 textDirection: resolvedTextDirection,
-                style: component.placeholderStyle,
+                style: ElStyle(textOptions: style?.textOptions).merge(component.placeholderStyle),
               ),
             Directionality(
               textDirection: resolvedTextDirection,
@@ -448,62 +365,47 @@ class Input extends ElInputModelValue<String> {
                 onConnectionClosed: component.onConnectionClosed,
                 onPrivateCommand: component.onPrivateCommand,
                 onFloatingCursor: component.onFloatingCursor,
-                onAutocorrectionPromptRect:
-                    component.onAutocorrectionPromptRect,
+                onAutocorrectionPromptRect: component.onAutocorrectionPromptRect,
                 onShowToolbar: component.onShowToolbar,
                 onTextPlaceholderChanged: component.onTextPlaceholderChanged,
                 onSelector: component.onSelector,
                 onUnhandledContent: component.onUnhandledContent,
                 onInputControlChanged: component.onInputControlChanged,
                 style: ElEditableStyle(
-                  view: ElStyle(textAlign: resolvedTextAlign),
+                  view: ElStyle(
+                    textAlign: resolvedTextAlign,
+                    textOptions: const ElTextOptions(
+                      leadingDistribution: .even,
+                      textBaseline: .alphabetic,
+                    ).merge(style?.textOptions),
+                  ),
                   fixedLineHeight: true,
                   caretColor: component.caretColor,
                   softWrap: component.textarea,
                   readOnly: component.readOnly,
                   autofocus: component.autofocus,
                   obscureText: masked,
-                  semanticLabel:
-                      component.semanticLabel ?? component.placeholder,
-                  enableInteractiveSelection:
-                      component.enableInteractiveSelection,
+                  semanticLabel: component.semanticLabel ?? component.placeholder,
+                  enableInteractiveSelection: component.enableInteractiveSelection,
                   scrollbars: component.textarea,
                   inputConfiguration: TextInputConfiguration(
                     inputAction:
-                        (component.textInputAction ??
-                            (component.textarea
-                                ? null
-                                : TextInputAction.done)) ??
-                        (component.textarea
-                            ? TextInputAction.newline
-                            : TextInputAction.done),
+                        (component.textInputAction ?? (component.textarea ? null : TextInputAction.done)) ??
+                        (component.textarea ? TextInputAction.newline : TextInputAction.done),
                     inputType:
-                        (component.keyboardType ??
-                            (component.textarea ? null : TextInputType.text)) ??
-                        (component.textarea
-                            ? TextInputType.multiline
-                            : TextInputType.text),
+                        (component.keyboardType ?? (component.textarea ? null : TextInputType.text)) ??
+                        (component.textarea ? TextInputType.multiline : TextInputType.text),
                     actionLabel: component.actionLabel,
                     keyboardAppearance: component.keyboardAppearance,
                     textCapitalization: component.textCapitalization,
-                    smartDashesType: component.showPassword
-                        ? SmartDashesType.disabled
-                        : component.smartDashesType,
-                    smartQuotesType: component.showPassword
-                        ? SmartQuotesType.disabled
-                        : component.smartQuotesType,
-                    autocorrect:
-                        component.autocorrect && !component.showPassword,
-                    enableSuggestions:
-                        component.enableSuggestions && !component.showPassword,
-                    enableIMEPersonalizedLearning:
-                        component.enableIMEPersonalizedLearning &&
-                        !component.showPassword,
+                    smartDashesType: component.showPassword ? SmartDashesType.disabled : component.smartDashesType,
+                    smartQuotesType: component.showPassword ? SmartQuotesType.disabled : component.smartQuotesType,
+                    autocorrect: component.autocorrect && !component.showPassword,
+                    enableSuggestions: component.enableSuggestions && !component.showPassword,
+                    enableIMEPersonalizedLearning: component.enableIMEPersonalizedLearning && !component.showPassword,
                     allowedMimeTypes: component.allowedMimeTypes,
                     hintLocales: component.hintLocales,
-                    enableInlinePrediction: component.showPassword
-                        ? false
-                        : component.enableInlinePrediction,
+                    enableInlinePrediction: component.showPassword ? false : component.enableInlinePrediction,
                     autofillConfiguration: component.autofillHints == null
                         ? AutofillConfiguration.disabled
                         : AutofillConfiguration(
@@ -556,10 +458,7 @@ class Input extends ElInputModelValue<String> {
           if (showCount)
             ElView(
               style: const ElStyle(alignment: .centerRight),
-              child: _InputCount(
-                length: committedTextLength,
-                maxLength: component.maxLength!,
-              ),
+              child: _InputCount(length: committedTextLength, maxLength: component.maxLength!),
             ),
         ],
       );
@@ -617,11 +516,7 @@ class Input extends ElInputModelValue<String> {
                     )
                   : null,
             ),
-          if (showCount)
-            _InputCount(
-              length: committedTextLength,
-              maxLength: component.maxLength!,
-            ),
+          if (showCount) _InputCount(length: committedTextLength, maxLength: component.maxLength!),
         ],
       );
     }
@@ -637,13 +532,9 @@ class Input extends ElInputModelValue<String> {
                 obscured: masked,
                 multiline: component.textarea,
                 label: component.semanticLabel ?? component.placeholder,
-                value: empty
-                    ? ''
-                    : (masked ? '•' * doc.length : controller.text),
+                value: empty ? '' : (masked ? '•' * doc.length : controller.text),
                 maxValueLength: component.maxLength,
-                currentValueLength: component.maxLength == null
-                    ? null
-                    : doc.length,
+                currentValueLength: component.maxLength == null ? null : doc.length,
               ),
             )
           : null,
@@ -657,9 +548,7 @@ class Input extends ElInputModelValue<String> {
           fontSize: effectiveFontSize,
           padding: padding,
         );
-        return base
-            .merge(ElStyle(width: component.width))
-            .merge(_resolveInputStyle(c, _style));
+        return base.merge(ElStyle(width: component.width)).merge(_resolveInputStyle(c, _style));
       })(context),
       event: isDisabled
           ? null
@@ -688,8 +577,7 @@ class Input extends ElInputModelValue<String> {
 // InputControlBridge 保持稳定 callback identity，避免 ElEditableView 每次
 // build 都把旧回调当卸载处理；真正的 control/controller/focus 走字段热更新。
 class _InputControlBridge {
-  late final ValueChanged<ElEditableController?> onStateChanged =
-      _handleStateChanged;
+  late final ValueChanged<ElEditableController?> onStateChanged = _handleStateChanged;
   final GlobalKey editableKey = GlobalKey(debugLabel: 'ElInput ElEditableView');
 
   ElInputController? _control;
@@ -728,11 +616,7 @@ class _InputControlBridge {
     if (!_active) return;
     final owner = _owner;
     if (owner == null) return;
-    _control?.attach(
-      owner: owner,
-      controller: _enabled ? _controller : null,
-      focusNode: _enabled ? _focusNode : null,
-    );
+    _control?.attach(owner: owner, controller: _enabled ? _controller : null, focusNode: _enabled ? _focusNode : null);
   }
 
   void _handleStateChanged(ElEditableController? state) {
@@ -783,10 +667,7 @@ class _InputBinding {
     _invalidateScheduledFlush(clearDirty: true);
   }
 
-  void handleControllerDocumentChange(
-    ElEditableController controller,
-    int generation,
-  ) {
+  void handleControllerDocumentChange(ElEditableController controller, int generation) {
     if (!_isCurrentController(controller, generation) || syncingIn) return;
     _flushDirty = true;
     final composing = controller.composing;
@@ -799,10 +680,7 @@ class _InputBinding {
     _flushWhenSafe(controller, generation);
   }
 
-  void handleControllerVisualChange(
-    ElEditableController controller,
-    int generation,
-  ) {
+  void handleControllerVisualChange(ElEditableController controller, int generation) {
     if (!_isCurrentController(controller, generation) || syncingIn) return;
     final composing = controller.composing;
     if (composing.isValid && !composing.isCollapsed) {
@@ -820,23 +698,11 @@ class _InputBinding {
     final docRevision = controller.docRevision;
     final composingAtSchedule = controller.composing;
     if (_canFlushNow) {
-      _completeScheduledFlush(
-        controller,
-        generation,
-        taskGeneration,
-        docRevision,
-        composingAtSchedule,
-      );
+      _completeScheduledFlush(controller, generation, taskGeneration, docRevision, composingAtSchedule);
       return;
     }
     scheduleMicrotask(
-      () => _completeScheduledFlush(
-        controller,
-        generation,
-        taskGeneration,
-        docRevision,
-        composingAtSchedule,
-      ),
+      () => _completeScheduledFlush(controller, generation, taskGeneration, docRevision, composingAtSchedule),
     );
   }
 
@@ -847,13 +713,10 @@ class _InputBinding {
     int docRevision,
     TextRange composingAtSchedule,
   ) {
-    if (!_isCurrentController(controller, generation) ||
-        taskGeneration != _flushGeneration ||
-        !_flushDirty) {
+    if (!_isCurrentController(controller, generation) || taskGeneration != _flushGeneration || !_flushDirty) {
       return;
     }
-    if (controller.docRevision != docRevision ||
-        controller.composing != composingAtSchedule) {
+    if (controller.docRevision != docRevision || controller.composing != composingAtSchedule) {
       _flushWhenSafe(controller, generation);
       return;
     }
@@ -867,14 +730,11 @@ class _InputBinding {
   }
 
   bool _isCurrentController(ElEditableController controller, int generation) =>
-      _listenerAlive &&
-      identical(_listenedController, controller) &&
-      _controllerGeneration == generation;
+      _listenerAlive && identical(_listenedController, controller) && _controllerGeneration == generation;
 
   bool get _canFlushNow {
     final phase = WidgetsBinding.instance.schedulerPhase;
-    return phase == SchedulerPhase.idle ||
-        phase == SchedulerPhase.postFrameCallbacks;
+    return phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks;
   }
 
   void _invalidateScheduledFlush({required bool clearDirty}) {
@@ -933,9 +793,7 @@ class _InputBinding {
     }
     var endPrev = prev.length;
     var endNext = next.length;
-    while (endPrev > start &&
-        endNext > start &&
-        prev.codeUnitAt(endPrev - 1) == next.codeUnitAt(endNext - 1)) {
+    while (endPrev > start && endNext > start && prev.codeUnitAt(endPrev - 1) == next.codeUnitAt(endNext - 1)) {
       endPrev--;
       endNext--;
     }

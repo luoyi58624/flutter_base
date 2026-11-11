@@ -41,10 +41,12 @@ void main() {
         final rows = tester.allRenderObjects
             .whereType<ElRenderView>()
             .toSet()
-            .where((row) => row.hasTextPayload && row.hasEnabledSelectionRoot)
+            .where(
+              (row) => (row.content is TextEngine) && (selectionParticipantOf(row)?.hasEnabledSelectionRoot ?? false),
+            )
             .toList();
-        String text(ElRenderView row) =>
-            row.selectionParticipant!.selectionTextForRange(TextRange(start: 0, end: row.selectionTextLength));
+        String text(ElRenderView row) => selectionParticipantOf(row)!
+            .selectionTextForRange(TextRange(start: 0, end: (selectionParticipantOf(row)?.selectionTextLength ?? 0)));
         int order(ElRenderView row) => text(row) == 'outside' ? -1 : int.parse(text(row).substring(4));
         rows.sort((a, b) => order(a).compareTo(order(b)));
         return rows;
@@ -53,8 +55,9 @@ void main() {
       String? textOf(Iterable<ElRenderView> rows) {
         final content = rows
             .map(
-              (row) =>
-                  row.selectionParticipant!.selectionTextForRange(TextRange(start: 0, end: row.selectionTextLength)),
+              (row) => selectionParticipantOf(row)!.selectionTextForRange(
+                TextRange(start: 0, end: (selectionParticipantOf(row)?.selectionTextLength ?? 0)),
+              ),
             )
             .toList();
         return content.isEmpty ? null : content.join('\n');
@@ -70,8 +73,10 @@ void main() {
         expect(rows.length, lessThan(50), reason: '选区不能迫使整份列表一直挂载');
         for (final row in rows) {
           expect(
-            row.currentSelectionRange,
-            selected.contains(row) ? TextRange(start: 0, end: row.selectionTextLength) : null,
+            selectionParticipantOf(row)?.currentSelectionRange,
+            selected.contains(row)
+                ? TextRange(start: 0, end: (selectionParticipantOf(row)?.selectionTextLength ?? 0))
+                : null,
           );
         }
         selection.selectAll();

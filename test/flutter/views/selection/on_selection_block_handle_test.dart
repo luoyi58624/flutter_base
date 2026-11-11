@@ -60,7 +60,7 @@ void main() {
 
     final block = tester.renderObject<RenderImageView>(find.byKey(blockKey));
     expect(block.currentSelectionRange, isNotNull);
-    expect(block.selectionParticipant!.effectiveSelectionBgColor, const Color(0x33FF8800));
+    expect(selectionParticipantOf(block)!.effectiveSelectionBgColor, const Color(0x33FF8800));
   });
 
   testWidgets('端点 handle 各用各 participant 色（不透明版），未声明端用 root 色', (tester) async {

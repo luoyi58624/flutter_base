@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 // autoRowHeight（动态行高）与列虚拟化的互斥契约。
 //
 // 列虚拟化按横向窗口挂载列，行高必须由外部给定；动态行高靠全列实测得出 ——
@@ -40,7 +41,7 @@ List<ElRenderView> _contentRenders(WidgetTester tester, Object value) {
   final found = <ElRenderView>[];
   while (nodes.isNotEmpty) {
     final node = nodes.removeLast();
-    if (node is ElRenderView && node.rawChild == value) found.add(node);
+    if (node is ElRenderView && (node.content as TextEngine?)?.rawChild == value) found.add(node);
     node.visitChildren(nodes.add);
   }
   found.sort((a, b) => a.localToGlobal(Offset.zero).dy.compareTo(b.localToGlobal(Offset.zero).dy));
@@ -62,7 +63,11 @@ int _slotCellCount(WidgetTester tester) {
   var count = 0;
   while (nodes.isNotEmpty) {
     final node = nodes.removeLast();
-    if (node is ElRenderView && node.rawChild is String && (node.rawChild! as String).startsWith('slot-')) count++;
+    if (node is ElRenderView &&
+        (node.content as TextEngine?)?.rawChild is String &&
+        ((node.content as TextEngine?)?.rawChild! as String).startsWith('slot-')) {
+      count++;
+    }
     node.visitChildren(nodes.add);
   }
   return count;

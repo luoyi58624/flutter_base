@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show BoxHitTestResult, BoxParentData;
@@ -1302,7 +1303,7 @@ void main() {
     ElRenderView renderOf(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byKey(hostKey));
 
     Rect glyphBounds(ElRenderView render, int length) {
-      final engine = render.textEngineForTest!;
+      final engine = (render.content as TextEngine?)!;
       return engine
           .getBoxesForSelectionForTest(0, length)
           .map((box) => box.toRect().shift(engine.textPaintOrigin))
@@ -1327,9 +1328,9 @@ void main() {
         final host = renderOf(tester);
         expect(host.contentOrigin, const Offset(11, 7));
 
-        final rects =
-            (host.selectionParticipant?.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4)) ??
-            const <Rect>[]);
+        final engine = host.content as TextEngine;
+        final rects = engine.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4));
+        expect(engine.selectionParticipant, isNull, reason: '独立文字几何查询不启用选区参与者');
         expect(rects, isNotEmpty);
         final bounds = rects.reduce((a, b) => a.expandToInclude(b));
         expect(bounds.left, greaterThanOrEqualTo(11 - 0.5));
@@ -1356,9 +1357,7 @@ void main() {
         );
 
         final host = renderOf(tester);
-        final rects =
-            (host.selectionParticipant?.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 3)) ??
-            const <Rect>[]);
+        final rects = (host.content as TextEngine).selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 3));
         final bounds = rects.reduce((a, b) => a.expandToInclude(b));
         final contentOrigin = host.contentOrigin;
         final contentSize = Size(host.boxSize.width - 10 - 18, host.boxSize.height - 6 - 14);
@@ -1380,9 +1379,7 @@ void main() {
 
         final host = renderOf(tester);
         expect(host.contentOrigin, const Offset(9, 5));
-        final rects =
-            (host.selectionParticipant?.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 2)) ??
-            const <Rect>[]);
+        final rects = (host.content as TextEngine).selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 2));
         expect(rects, isNotEmpty);
         final bounds = rects.reduce((a, b) => a.expandToInclude(b));
         expect(bounds.left, closeTo(host.contentOrigin.dx, 1.0));
@@ -1591,7 +1588,7 @@ void main() {
           ..layout(maxWidth: double.infinity);
         addTearDown(expectedPainter.dispose);
 
-        expect(r.textEngineForTest?.painterForTest.text?.toPlainText().isNotEmpty ?? false, isTrue);
+        expect((r.content as TextEngine?)?.painterForTest.text?.toPlainText().isNotEmpty ?? false, isTrue);
         expect(r.getMaxIntrinsicWidth(double.infinity), closeTo(expectedPainter.maxIntrinsicWidth, 0.01));
       });
     });

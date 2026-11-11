@@ -1,4 +1,7 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;
@@ -25,7 +28,7 @@ void main() {
 
   ElRenderView textRender(WidgetTester tester, Finder finder) {
     final host = tester.renderObject<ElRenderView>(finder);
-    expect(host.hasTextPayload, isTrue);
+    expect((host.content is TextEngine), isTrue);
     return host;
   }
 
@@ -58,8 +61,8 @@ void main() {
 
     final render = textRender(tester, find.byKey(key));
     final rects =
-        (render.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-          ui.TextRange(start: 0, end: render.selectionTextLength),
+        (selectionParticipantOf(render)?.adjustedSelectionPaintRectsForRange(
+          ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
         ) ??
         const <Rect>[]);
 
@@ -107,8 +110,8 @@ void main() {
 
     final render = textRender(tester, find.byKey(key));
     final rects =
-        (render.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-          ui.TextRange(start: 0, end: render.selectionTextLength),
+        (selectionParticipantOf(render)?.adjustedSelectionPaintRectsForRange(
+          ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
         ) ??
         const <Rect>[]);
 
@@ -140,8 +143,8 @@ void main() {
 
     final render = textRender(tester, find.byKey(key));
     final rects =
-        (render.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-          ui.TextRange(start: 0, end: render.selectionTextLength),
+        (selectionParticipantOf(render)?.adjustedSelectionPaintRectsForRange(
+          ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
         ) ??
         const <Rect>[]);
 

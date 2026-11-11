@@ -135,8 +135,6 @@ class _GhostCascadeState extends State<_GhostCascade> {
         fontFeatureSettings: needText ? at.fontFeatureSettings : null,
         fontVariationSettings: needText ? at.fontVariationSettings : null,
         textAlign: needText ? at.textAlign : null,
-        textBaseline: needText ? at.textBaseline : null,
-        leadingDistribution: needText ? at.leadingDistribution : null,
         textShadow: needText ? at.textShadow : null,
         textGradient: needText ? at.textGradient : null,
         textDecorationColor: needText ? at.textDecorationColor : null,

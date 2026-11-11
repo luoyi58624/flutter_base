@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // onSelection 伪类 per-participant 着色接线（Phase 2a）：
 //
@@ -80,11 +81,15 @@ void main() {
 
     final styled = tester.renderObject<ElRenderView>(find.byKey(_styledKey));
     final plain = tester.renderObject<ElRenderView>(find.byKey(_plainKey));
-    expect(styled.selectionColor, const Color(0xFF123456));
-    expect(styled.selectionTextColor, const Color(0xFFFEDCBA));
+    expect(selectionParticipantOf(styled)!.effectiveSelectionBgColor, const Color(0xFF123456));
+    expect(selectionParticipantOf(styled)!.effectiveSelectionTextColor, const Color(0xFFFEDCBA));
     // 未声明邻段回退 root 兜底（与声明节点不同色 = 混排双色语义）。
-    expect(plain.selectionColor, isNot(const Color(0xFF123456)));
-    expect(plain.selectionColor, styled.selectionParticipant!.selectionColor, reason: '回退值即 root 推送色');
+    expect(selectionParticipantOf(plain)!.effectiveSelectionBgColor, isNot(const Color(0xFF123456)));
+    expect(
+      selectionParticipantOf(plain)!.effectiveSelectionBgColor,
+      selectionParticipantOf(styled)!.selectionColor,
+      reason: '回退值即 root 推送色',
+    );
   });
 
   testWidgets('onSelection 只声明 backgroundColor 时 color=null（整对脱离 root，不继承兜底字色）', (tester) async {
@@ -108,9 +113,13 @@ void main() {
       final rect = tester.getRect(find.byKey(_styledKey));
       await _dragSelectAll(tester, rect, rect);
       final styled = tester.renderObject<ElRenderView>(find.byKey(_styledKey));
-      expect(styled.selectionColor, const Color(0xFF123456));
-      expect(styled.selectionTextColor, isNull, reason: '声明 bgColor 即脱离 root 对，字色保留原色');
-      expect(styled.selectionParticipant!.selectionTextColor, const Color(0xFFFFFFFF), reason: 'root 兜底字色仍是白');
+      expect(selectionParticipantOf(styled)!.effectiveSelectionBgColor, const Color(0xFF123456));
+      expect(
+        selectionParticipantOf(styled)!.effectiveSelectionTextColor,
+        isNull,
+        reason: '声明 bgColor 即脱离 root 对，字色保留原色',
+      );
+      expect(selectionParticipantOf(styled)!.selectionTextColor, const Color(0xFFFFFFFF), reason: 'root 兜底字色仍是白');
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -144,17 +153,25 @@ void main() {
     await drag.removePointer();
     await tester.pump();
     final styled = tester.renderObject<ElRenderView>(find.byKey(_styledKey));
-    expect(styled.selectionColor, const Color(0xFF111111));
+    expect(selectionParticipantOf(styled)!.effectiveSelectionBgColor, const Color(0xFF111111));
 
     final hover = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 9);
     addTearDown(hover.removePointer);
     await hover.addPointer(location: rect.center);
     await tester.pump();
-    expect(styled.selectionColor, const Color(0xFF999999), reason: 'hover 位流入 extract');
+    expect(
+      selectionParticipantOf(styled)!.effectiveSelectionBgColor,
+      const Color(0xFF999999),
+      reason: 'hover 位流入 extract',
+    );
 
     await hover.moveTo(rect.bottomRight + const Offset(100, 100));
     await tester.pump();
-    expect(styled.selectionColor, const Color(0xFF111111), reason: '退出 hover 恢复 base 声明');
+    expect(
+      selectionParticipantOf(styled)!.effectiveSelectionBgColor,
+      const Color(0xFF111111),
+      reason: '退出 hover 恢复 base 声明',
+    );
   });
 
   testWidgets('ElImageView.style.onSelection.backgroundColor 生效', (tester) async {
@@ -189,6 +206,6 @@ void main() {
 
     final image = tester.renderObject<RenderImageView>(find.byKey(imageKey));
     expect(image.currentSelectionRange, isNotNull, reason: '图片被扫进选区');
-    expect(image.selectionParticipant!.effectiveSelectionBgColor, const Color(0x55336699));
+    expect(selectionParticipantOf(image)!.effectiveSelectionBgColor, const Color(0x55336699));
   });
 }

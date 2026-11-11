@@ -1,6 +1,8 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
-import 'dart:ui' as ui;
 
+import 'dart:ui' as ui;
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;
 import 'package:flutter_base/src/flutter/views/view/view.dart';
@@ -47,10 +49,10 @@ void main() {
     for (var i = 0; i < languageLines.length; i++) {
       final key = ValueKey<String>('locale-line-$i');
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
-      expect(render.hasTextPayload, isTrue);
+      expect((render.content is TextEngine), isTrue);
       final rects =
-          (render.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-            ui.TextRange(start: 0, end: render.selectionTextLength),
+          (selectionParticipantOf(render)?.adjustedSelectionPaintRectsForRange(
+            ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
           ) ??
           const <Rect>[]);
       expect(rects, isNotEmpty, reason: 'line#$i 全选后应有绘制用选区 rect');
@@ -120,11 +122,11 @@ void main() {
                 for (var i = 0; i < languageLines.length; i++)
                   ElView(
                     key: ValueKey<String>('locale-line-$i'),
-                    locale: null,
                     style: ElStyle(
                       color: const Color(0xff111827),
                       lineHeight: 1.25,
                       direction: languageLines[i].$2,
+                      textOptions: ElTextOptions(locale: null),
                     ),
                     child: languageLines[i].$1,
                   ),
@@ -184,11 +186,11 @@ void main() {
                       for (var i = 0; i < languageLines.length; i++)
                         ElView(
                           key: ValueKey<String>('locale-line-$i'),
-                          locale: const Locale('zh', 'CN'),
                           style: ElStyle(
                             color: const Color(0xff111827),
                             lineHeight: 1.25,
                             direction: languageLines[i].$2,
+                            textOptions: ElTextOptions(locale: const Locale('zh', 'CN')),
                           ),
                           child: languageLines[i].$1,
                         ),

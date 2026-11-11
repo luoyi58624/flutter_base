@@ -513,16 +513,16 @@ void main() {
 
     final root = _rootOf(tester, _richPopoverKey);
     final render = tester.renderObject<ElRenderView>(find.byKey(_richPopoverKey));
-    final engine = render.textEngineForTest!;
+    final engine = (render.content as TextEngine?)!;
     final text = engine.painterForTest.text!.toPlainText();
     expect(text, 'rich inline span ￼ atom');
 
     expect(engine.structure.spans, hasLength(1));
     expect(find.byKey(_richAtomKey), findsOneWidget);
 
-    final firstBox = render.textEngineForTest!.getBoxesForSelectionForTest(0, 1).first.toRect();
+    final firstBox = (render.content as TextEngine?)!.getBoxesForSelectionForTest(0, 1).first.toRect();
     final atomEnd = text.indexOf('atom') + 'atom'.length;
-    final lastBox = render.textEngineForTest!.getBoxesForSelectionForTest(atomEnd - 1, atomEnd).last.toRect();
+    final lastBox = (render.content as TextEngine?)!.getBoxesForSelectionForTest(atomEnd - 1, atomEnd).last.toRect();
     await _mouseDrag(
       tester,
       render.localToGlobal(render.contentOrigin + firstBox.centerLeft + const Offset(1, 0)),
@@ -552,7 +552,7 @@ void main() {
 
     final root = _rootOf(tester, _editableHeadKey);
     final line = tester.renderObject<RenderEditableLine>(find.byType(EditableLineView).first);
-    expect(line.selectionParticipant!.selectionAppearance!, same(root));
+    expect(selectionParticipantOf(line)!.selectionAppearance!, same(root));
 
     final from = tester.getRect(find.byKey(_editableHeadKey)).centerLeft + const Offset(1, 0);
     final editor = tester.getRect(find.byKey(_editableFrameKey));
@@ -560,7 +560,7 @@ void main() {
     expect(popoverController.text, 'edit head\nfirst editable');
     expect(root.selectionInfo, 'edit head\nfirst editable');
     expect(_rangeOf(tester, _editableHeadKey), const TextRange(start: 0, end: 9));
-    expect(line.selectionParticipant!.currentSelectionRange, const TextRange(start: 0, end: 14));
+    expect(selectionParticipantOf(line)!.currentSelectionRange, const TextRange(start: 0, end: 14));
     expect(_rangeOf(tester, _dialogTextKey), isNull);
     expect(pageController.text, isNull);
   });

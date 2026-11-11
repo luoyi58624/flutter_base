@@ -236,10 +236,14 @@ class _EditableHostState extends State<ElEditableView> {
   @override
   Widget build(BuildContext context) {
     final input = widget.style.inputConfiguration;
+    final textOptions = widget.style.view?.textOptions;
     if (_composer?.builder != widget.textSpanBuilder || _composer?.painter != widget.foregroundPainter) {
       _composer = _SpanBuilder(widget.textSpanBuilder, widget.foregroundPainter);
     }
     final config = EditableConfiguration(
+      textStyle: textOptions == null
+          ? null
+          : TextStyle(leadingDistribution: textOptions.leadingDistribution, textBaseline: textOptions.textBaseline),
       softWrap: widget.style.softWrap,
       contentPadding: widget.style.contentPadding,
       readOnly: widget.style.readOnly,

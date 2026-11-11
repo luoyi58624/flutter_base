@@ -46,10 +46,13 @@ void main() {
         ),
       );
 
-      final participant = tester.allRenderObjects.whereType<ElRenderView>().where((r) => r.hasTextPayload).first;
+      final participant = tester.allRenderObjects
+          .whereType<ElRenderView>()
+          .where((r) => (r.content is TextEngine))
+          .first;
       Offset caretQueryPos(int offset) {
-        final line = participant.selectionLineGeometryAt(offset)!;
-        final caret = participant.selectionCaretGeometryAt(offset)!;
+        final line = selectionParticipantOf(participant)!.selectionLineGeometryAt(offset)!;
+        final caret = selectionParticipantOf(participant)!.selectionCaretGeometryAt(offset)!;
         return participant.localToGlobal(Offset(caret.position.dx + 1, line.lineTop + line.lineHeight / 2));
       }
 

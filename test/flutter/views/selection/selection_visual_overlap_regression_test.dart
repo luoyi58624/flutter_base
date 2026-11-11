@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,9 +31,8 @@ void main() {
     await tester.pump();
 
     final render = tester.renderObject(find.byKey(key));
-    final rects = (render as ElRenderView).selectionParticipant!.adjustedSelectionPaintRectsForRange(
-      const TextRange(start: 0, end: 1000),
-    );
+    final rects = selectionParticipantOf((render as ElRenderView))!
+        .adjustedSelectionPaintRectsForRange(const TextRange(start: 0, end: 1000));
 
     expect(rects.length, greaterThan(2), reason: '多行文本应该产生多个选区 rect');
 
@@ -96,9 +96,8 @@ void main() {
     await tester.pump();
 
     final render = tester.renderObject(find.byKey(key));
-    final rects = (render as ElRenderView).selectionParticipant!.adjustedSelectionPaintRectsForRange(
-      const TextRange(start: 0, end: 1000),
-    );
+    final rects = selectionParticipantOf((render as ElRenderView))!
+        .adjustedSelectionPaintRectsForRange(const TextRange(start: 0, end: 1000));
 
     expect(rects.length, greaterThan(4), reason: '富文本应该产生多个选区 rect');
 

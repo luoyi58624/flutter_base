@@ -9,7 +9,7 @@ Widget _host(Widget child, MediaQueryData data) => Directionality(
 );
 
 TextPainter _painter(WidgetTester tester, Key key) =>
-    tester.renderObject<ElRenderView>(find.byKey(key)).textEngineForTest!.painterForTest;
+    (tester.renderObject<ElRenderView>(find.byKey(key)).content as TextEngine?)!.painterForTest;
 
 (double?, double?, double?) _spacing(TextSpan span) =>
     (span.style?.height, span.style?.letterSpacing, span.style?.wordSpacing);
@@ -127,8 +127,11 @@ void main() {
       children: [
         ElView(
           key: viewKey,
-          style: ElStyle(fontFamily: 'Ahem', fontSize: 10),
-          strutStyle: strutStyle,
+          style: ElStyle(
+            fontFamily: 'Ahem',
+            fontSize: 10,
+            textOptions: ElTextOptions(strutStyle: strutStyle),
+          ),
           child: 'first\nsecond',
         ),
         ElText(

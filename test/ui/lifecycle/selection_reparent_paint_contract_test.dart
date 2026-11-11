@@ -55,11 +55,12 @@ void main() {
   /// 把正文 offset 换算成屏幕坐标（从正文自己的 key 取 render，不全局扫文本节点——
   /// 壳里还有标题、提示两个带文字的 render）。
   Offset Function(int) textPosGetter(WidgetTester tester) {
-    final participant = tester.renderObject<ElRenderView>(find.byKey(textKey));
+    final render = tester.renderObject<ElRenderView>(find.byKey(textKey));
     return (int offset) {
+      final participant = selectionParticipantOf(render)!;
       final line = participant.selectionLineGeometryAt(offset)!;
       final caret = participant.selectionCaretGeometryAt(offset)!;
-      return participant.localToGlobal(Offset(caret.position.dx + 1, line.lineTop + line.lineHeight / 2));
+      return render.localToGlobal(Offset(caret.position.dx + 1, line.lineTop + line.lineHeight / 2));
     };
   }
 
@@ -72,8 +73,9 @@ void main() {
     return () {
       if (selectionRoot(tester).resolveSelectionInfo() == null) return paintedFrames;
       final render = tester.renderObject<ElRenderView>(find.byKey(textKey));
-      expect(render.currentSelectionRange?.isCollapsed, isFalse, reason: '当前帧必须保有正文的官方范围');
-      expect(render, paints..rect(color: render.selectionColor), reason: '当前帧正文必须实际画出选中背景');
+      final participant = selectionParticipantOf(render)!;
+      expect(participant.currentSelectionRange?.isCollapsed, isFalse, reason: '当前帧必须保有正文的官方范围');
+      expect(render, paints..rect(color: participant.effectiveSelectionBgColor), reason: '当前帧正文必须实际画出选中背景');
       return ++paintedFrames;
     };
   }

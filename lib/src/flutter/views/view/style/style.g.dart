@@ -9,6 +9,7 @@ part of 'style.dart';
 extension ElStyleExt on ElStyle {
   ElStyle copyWith({
     Object? vars = $absent,
+    Object? textOptions = $absent,
     Object? color = $absent,
     Object? fontSize = $absent,
     Object? fontWeight = $absent,
@@ -28,8 +29,6 @@ extension ElStyleExt on ElStyle {
     Object? textDecorationThickness = $absent,
     Object? textBackgroundColor = $absent,
     Object? fontVariationSettings = $absent,
-    Object? leadingDistribution = $absent,
-    Object? textBaseline = $absent,
     Object? softWrap = $absent,
     Object? textOverflow = $absent,
     Object? maxLines = $absent,
@@ -90,6 +89,13 @@ extension ElStyleExt on ElStyle {
                 : (this.vars == null
                       ? vars as Map<Object, Object>
                       : $elMergeMap(this.vars!, vars as Map<Object, Object>))),
+      textOptions: identical(textOptions, $absent)
+          ? this.textOptions
+          : (textOptions == null
+                ? null
+                : (this.textOptions == null
+                      ? textOptions as ElTextOptions
+                      : this.textOptions!.merge(textOptions as ElTextOptions))),
       color: identical(color, $absent) ? this.color : color as Color?,
       fontSize: identical(fontSize, $absent)
           ? this.fontSize
@@ -145,12 +151,6 @@ extension ElStyleExt on ElStyle {
       fontVariationSettings: identical(fontVariationSettings, $absent)
           ? this.fontVariationSettings
           : fontVariationSettings as List<FontVariation>?,
-      leadingDistribution: identical(leadingDistribution, $absent)
-          ? this.leadingDistribution
-          : leadingDistribution as TextLeadingDistribution?,
-      textBaseline: identical(textBaseline, $absent)
-          ? this.textBaseline
-          : textBaseline as TextBaseline?,
       softWrap: identical(softWrap, $absent)
           ? this.softWrap
           : softWrap as bool?,
@@ -349,6 +349,9 @@ extension ElStyleExt on ElStyle {
       vars: vars == null
           ? other.vars
           : (other.vars == null ? vars : $elMergeMap(vars!, other.vars!)),
+      textOptions: textOptions == null
+          ? other.textOptions
+          : textOptions!.merge(other.textOptions),
       color: other.color ?? color,
       fontSize: other.fontSize ?? fontSize,
       fontWeight: other.fontWeight ?? fontWeight,
@@ -370,8 +373,6 @@ extension ElStyleExt on ElStyle {
       textBackgroundColor: other.textBackgroundColor ?? textBackgroundColor,
       fontVariationSettings:
           other.fontVariationSettings ?? fontVariationSettings,
-      leadingDistribution: other.leadingDistribution ?? leadingDistribution,
-      textBaseline: other.textBaseline ?? textBaseline,
       softWrap: other.softWrap ?? softWrap,
       textOverflow: other.textOverflow ?? textOverflow,
       maxLines: other.maxLines ?? maxLines,
@@ -438,6 +439,7 @@ extension ElStyleExt on ElStyle {
 
   List<Object?> get _props => [
     vars,
+    textOptions,
     color,
     fontSize,
     fontWeight,
@@ -457,8 +459,6 @@ extension ElStyleExt on ElStyle {
     textDecorationThickness,
     textBackgroundColor,
     fontVariationSettings,
-    leadingDistribution,
-    textBaseline,
     softWrap,
     textOverflow,
     maxLines,
@@ -510,5 +510,68 @@ extension ElStyleExt on ElStyle {
     transition,
     animation,
     starting,
+  ];
+}
+
+extension ElTextOptionsExt on ElTextOptions {
+  ElTextOptions copyWith({
+    Object? locale = $absent,
+    Object? textScaler = $absent,
+    Object? strutStyle = $absent,
+    Object? textWidthBasis = $absent,
+    Object? textHeightBehavior = $absent,
+    Object? leadingDistribution = $absent,
+    Object? textBaseline = $absent,
+  }) {
+    return ElTextOptions(
+      locale: identical(locale, $absent) ? this.locale : locale as Locale?,
+      textScaler: identical(textScaler, $absent)
+          ? this.textScaler
+          : textScaler as TextScaler?,
+      strutStyle: identical(strutStyle, $absent)
+          ? this.strutStyle
+          : (strutStyle == null
+                ? null
+                : (this.strutStyle == null
+                      ? strutStyle as StrutStyle
+                      : this.strutStyle!.merge(strutStyle as StrutStyle))),
+      textWidthBasis: identical(textWidthBasis, $absent)
+          ? this.textWidthBasis
+          : textWidthBasis as TextWidthBasis?,
+      textHeightBehavior: identical(textHeightBehavior, $absent)
+          ? this.textHeightBehavior
+          : textHeightBehavior as TextHeightBehavior?,
+      leadingDistribution: identical(leadingDistribution, $absent)
+          ? this.leadingDistribution
+          : leadingDistribution as TextLeadingDistribution?,
+      textBaseline: identical(textBaseline, $absent)
+          ? this.textBaseline
+          : textBaseline as TextBaseline?,
+    );
+  }
+
+  ElTextOptions merge([ElTextOptions? other]) {
+    if (other == null) return this;
+    return ElTextOptions(
+      locale: other.locale ?? locale,
+      textScaler: other.textScaler ?? textScaler,
+      strutStyle: strutStyle == null
+          ? other.strutStyle
+          : strutStyle!.merge(other.strutStyle),
+      textWidthBasis: other.textWidthBasis ?? textWidthBasis,
+      textHeightBehavior: other.textHeightBehavior ?? textHeightBehavior,
+      leadingDistribution: other.leadingDistribution ?? leadingDistribution,
+      textBaseline: other.textBaseline ?? textBaseline,
+    );
+  }
+
+  List<Object?> get _props => [
+    locale,
+    textScaler,
+    strutStyle,
+    textWidthBasis,
+    textHeightBehavior,
+    leadingDistribution,
+    textBaseline,
   ];
 }

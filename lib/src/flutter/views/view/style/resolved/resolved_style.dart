@@ -8,7 +8,7 @@ import '../style.dart';
 import '../dimension.dart';
 import 'inherited_vars.dart';
 
-/// 文本相关继承字段组（25 个字段）。
+/// 参与级联的常用文本样式。
 @immutable
 class InheritedText with Equatable {
   /// 创建实例。
@@ -25,8 +25,6 @@ class InheritedText with Equatable {
     this.fontFeatureSettings,
     this.fontVariationSettings,
     this.textAlign,
-    this.textBaseline,
-    this.leadingDistribution,
     this.textShadow,
     this.textGradient,
     this.textDecorationLine,
@@ -39,18 +37,8 @@ class InheritedText with Equatable {
     this.maxLines,
   });
 
-  /// CSS 文本初值。
-  ///
-  /// leadingDistribution 初值取 `even`：CSS line-height 的多余空间按半行距
-  /// 均分到字形上下（half-leading），Flutter 默认的 proportional 会把大头
-  /// 压在字形上方，字形在行盒里偏下——选区带/文本背景等铺满行盒的绘制
-  /// 看起来整体偏上。可被 `ElStyle(leadingDistribution: .proportional)` 覆盖。
-  static const InheritedText initial = InheritedText(
-    color: Color(0xff000000),
-    fontSize: 15,
-    lineHeight: 1.2,
-    leadingDistribution: TextLeadingDistribution.even,
-  );
+  /// 常用文本初值，高级排版默认值由文本引擎消费时补齐。
+  static const InheritedText initial = InheritedText(color: Color(0xff000000), fontSize: 15, lineHeight: 1.2);
 
   /// 从父节点文本组构造子节点的继承起点。
   ///
@@ -74,8 +62,6 @@ class InheritedText with Equatable {
       fontFeatureSettings: parent.fontFeatureSettings,
       fontVariationSettings: parent.fontVariationSettings,
       textAlign: parent.textAlign,
-      textBaseline: parent.textBaseline,
-      leadingDistribution: parent.leadingDistribution,
       textShadow: parent.textShadow,
       textGradient: parent.textGradient,
       textDecorationColor: parent.textDecorationColor,
@@ -133,12 +119,6 @@ class InheritedText with Equatable {
   /// 文本对齐。CSS 继承。
   final TextAlign? textAlign;
 
-  /// 文本基线（alphabetic / ideographic）。CSS 继承。
-  final TextBaseline? textBaseline;
-
-  /// 行高 leading 上下分布策略。CSS 继承。
-  final TextLeadingDistribution? leadingDistribution;
-
   /// 文本阴影列表。CSS 继承。
   final List<Shadow>? textShadow;
 
@@ -186,8 +166,6 @@ class InheritedText with Equatable {
     fontFeatureSettings,
     fontVariationSettings,
     textAlign,
-    textBaseline,
-    leadingDistribution,
     textShadow,
     textGradient,
     textDecorationLine,
@@ -415,6 +393,15 @@ class ResolvedStyle {
 
   /// 后代共享的有效变量表。
   final InheritedVars inheritedVars;
+
+  /// 当前节点可供通用绘制与构建使用的颜色。
+  Color? get currentColor => inheritedText.color;
+
+  /// 判断供后代共享的字段组引用是否变化。
+  bool inheritedValuesDiffer(ResolvedStyle other) =>
+      !identical(inheritedText, other.inheritedText) ||
+      !identical(inheritedBox, other.inheritedBox) ||
+      !identical(inheritedVars, other.inheritedVars);
 
   /// 替换已发生变化的字段组。
   ResolvedStyle copyWith({

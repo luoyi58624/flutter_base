@@ -36,7 +36,7 @@ void main() {
       expect(render.size, Size.square(extent));
       expect(render.getDryLayout(BoxConstraints()), Size.square(extent));
       expect(render.getMinIntrinsicHeight(100), extent);
-      final style = ((render.textEngineForTest?.painterForTest.text) as TextSpan).style!;
+      final style = (((render.content as TextEngine?)?.painterForTest.text) as TextSpan).style!;
       expect(style.letterSpacing, isNull);
       expect(style.height, 1);
     }
@@ -59,7 +59,9 @@ void main() {
       await tester.pumpAndSettle();
       final render = tester.renderObject<ElRenderView>(find.byKey(iconKey));
       expect(render.size, Size.square(selected ? 32 : 20));
-      if (selected) expect(((render.textEngineForTest?.painterForTest.text) as TextSpan).style!.color, Color(0xff12ac75));
+      if (selected) {
+        expect((((render.content as TextEngine?)?.painterForTest.text) as TextSpan).style!.color, Color(0xff12ac75));
+      }
     }
     await tester.pumpWidget(
       _host(

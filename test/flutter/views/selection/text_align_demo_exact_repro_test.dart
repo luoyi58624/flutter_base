@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
 /// 精确复现 _textAlignDemo 的选区重叠问题
@@ -83,9 +82,8 @@ void main() {
     await tester.pump();
 
     final render = tester.renderObject(find.byKey(key));
-    final rects = (render as ElRenderView).selectionParticipant!.adjustedSelectionPaintRectsForRange(
-      const ui.TextRange(start: 0, end: 1000),
-    );
+    final rects = selectionParticipantOf((render as ElRenderView))!
+        .adjustedSelectionPaintRectsForRange(const ui.TextRange(start: 0, end: 1000));
 
     debugPrint('\n=== _textAlignDemo exact repro (TextAlign.center) ===');
     debugPrint('Total rects: ${rects.length}');
@@ -177,9 +175,8 @@ void main() {
       await tester.pump();
 
       final render = tester.renderObject(find.byKey(key));
-      final rects = (render as ElRenderView).selectionParticipant!.adjustedSelectionPaintRectsForRange(
-        const ui.TextRange(start: 0, end: 1000),
-      );
+      final rects = selectionParticipantOf((render as ElRenderView))!
+          .adjustedSelectionPaintRectsForRange(const ui.TextRange(start: 0, end: 1000));
 
       expectNoAreaOverlap(rects, label: name);
     });

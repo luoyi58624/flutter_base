@@ -1,4 +1,7 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+
 // 选区覆盖文本背景（CSS highlight painting 对齐）—— 集成侧。
 //
 // 不变量：
@@ -29,14 +32,14 @@ Widget _app(Widget child) {
 List<ElRenderView> _textRenders(WidgetTester tester) {
   return tester.allRenderObjects
       .whereType<ElRenderView>()
-      .where((r) => r.hasTextPayload && r.selectionTextLength > 0)
+      .where((r) => (r.content is TextEngine) && (selectionParticipantOf(r)?.selectionTextLength ?? 0) > 0)
       .toSet()
       .toList();
 }
 
 int _overlayPaintCount(ElRenderView render) =>
-    ((render.textEngineForTest?.debugSelectionUnclippedOverlayCount) ?? 0) +
-    ((render.textEngineForTest?.debugSelectionClipRectOverlayCount) ?? 0);
+    (((render.content as TextEngine?)?.debugSelectionUnclippedOverlayCount) ?? 0) +
+    (((render.content as TextEngine?)?.debugSelectionClipRectOverlayCount) ?? 0);
 
 void main() {
   group('选区覆盖文本背景（覆盖序 / 快路径分派）', () {
@@ -66,7 +69,7 @@ void main() {
       controller.selectAll();
       await tester.pump();
 
-      expect(render.currentSelectionRange, isNotNull);
+      expect(selectionParticipantOf(render)?.currentSelectionRange, isNotNull);
       expect(_overlayPaintCount(render), greaterThan(0), reason: '内容带文本背景 → 选区带盖上内容后必须原色重绘字形（覆盖序）');
     });
 
@@ -88,7 +91,7 @@ void main() {
       controller.selectAll();
       await tester.pump();
 
-      expect(render.currentSelectionRange, const ui.TextRange(start: 0, end: 5));
+      expect(selectionParticipantOf(render)?.currentSelectionRange, const ui.TextRange(start: 0, end: 5));
       expect(_overlayPaintCount(render), greaterThan(0));
     });
 
@@ -116,7 +119,7 @@ void main() {
       controller.selectAll();
       await tester.pump();
 
-      expect(render.currentSelectionRange, isNotNull);
+      expect(selectionParticipantOf(render)?.currentSelectionRange, isNotNull);
       expect(_overlayPaintCount(render), 0, reason: '无背景不换字色 → 旧快路径，不付 overlay 成本');
     });
 

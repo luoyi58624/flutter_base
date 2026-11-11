@@ -14,7 +14,7 @@ Widget _host(Widget child) => Directionality(
 ElRenderView _render(WidgetTester tester, Key key) => tester.renderObject<ElRenderView>(find.byKey(key));
 
 TextStyle _plainStyle(WidgetTester tester, Key key) =>
-    (_render(tester, key).textEngineForTest?.painterForTest.text)!.style!;
+    ((_render(tester, key).content as TextEngine?)?.painterForTest.text)!.style!;
 
 double? _wght(TextStyle style) => style.fontVariations?.where((axis) => axis.axis == 'wght').firstOrNull?.value;
 
@@ -113,6 +113,8 @@ void main() {
     expect(_wght(_plainStyle(tester, normal)), 590.5);
     expect(_wght(_plainStyle(tester, title)), 590.5);
     expect(_wght(_plainStyle(tester, deep)), 590.5);
+    expect(_plainStyle(tester, title).fontWeight, FontWeight.w500);
+    expect(_plainStyle(tester, deep).fontWeight, FontWeight.w600);
   });
 
   testWidgets('继承轴可动态更新与清除，字重变体不修改轴值或重建后代', (tester) async {
@@ -212,7 +214,7 @@ void main() {
         ),
       ),
     );
-    final styles = _styles(_render(tester, key).textEngineForTest!.painterForTest.text!);
+    final styles = _styles((_render(tester, key).content as TextEngine?)!.painterForTest.text!);
     for (final text in ['根', '细', '粗', '父段', '子段']) {
       expect(_wght(styles[text]!), 590);
     }
@@ -241,7 +243,7 @@ void main() {
         ),
       ),
     );
-    final span = _render(tester, key).textEngineForTest!.painterForTest.text! as TextSpan;
+    final span = (_render(tester, key).content as TextEngine?)!.painterForTest.text! as TextSpan;
     expect(_wght(span.style!), 590);
     expect(span.recognizer, same(recognizer));
     expect(span.semanticsLabel, '点击标题');
@@ -262,7 +264,7 @@ void main() {
         ),
       ),
     );
-    final span = _render(tester, key).textEngineForTest!.painterForTest.text! as TextSpan;
+    final span = (_render(tester, key).content as TextEngine?)!.painterForTest.text! as TextSpan;
     expect(_wght(span.style!), 590);
     await tester.tap(find.byKey(key));
     expect(downs, 1);

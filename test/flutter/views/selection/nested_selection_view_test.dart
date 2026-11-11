@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 
 import 'package:flutter_base/src/flutter/views/view/view.dart';
@@ -48,7 +49,7 @@ List<RenderSelectionView> _roots(WidgetTester tester) {
 /// 按 key 取文本参与者的当前选区 range。
 TextRange? _rangeOf(WidgetTester tester, Key key) {
   final render = tester.renderObject<ElRenderView>(find.byKey(key));
-  return render.selectionParticipant?.currentSelectionRange;
+  return selectionParticipantOf(render)?.currentSelectionRange;
 }
 
 Future<void> _mouseDrag(WidgetTester tester, Offset from, Offset to) async {

@@ -124,12 +124,6 @@ class ResolvedStyleBuilder {
   /// 写入 textAlign 的样式值。
   void writeTextAlign(TextAlign? v) => _inheritedTextBuffer.writeTextAlign(v);
 
-  /// 写入 textBaseline 的样式值。
-  void writeTextBaseline(TextBaseline? v) => _inheritedTextBuffer.writeTextBaseline(v);
-
-  /// 写入 leadingDistribution 的样式值。
-  void writeLeadingDistribution(TextLeadingDistribution? v) => _inheritedTextBuffer.writeLeadingDistribution(v);
-
   /// 写入 textShadow 的样式值。
   void writeTextShadow(List<Shadow>? v) => _inheritedTextBuffer.writeTextShadow(v);
 
@@ -270,8 +264,6 @@ class InheritedTextStyleBuffer {
   Object? _fontFeatureSettings = _unset;
   Object? _fontVariationSettings = _unset;
   Object? _textAlign = _unset;
-  Object? _textBaseline = _unset;
-  Object? _leadingDistribution = _unset;
   Object? _textShadow = _unset;
   Object? _textGradient = _unset;
   Object? _textDecorationLine = _unset;
@@ -358,18 +350,6 @@ class InheritedTextStyleBuffer {
     isDirty = true;
   }
 
-  /// 暂存 textBaseline 的覆盖值。
-  void writeTextBaseline(Object? v) {
-    _textBaseline = v as TextBaseline?;
-    isDirty = true;
-  }
-
-  /// 暂存 leadingDistribution 的覆盖值。
-  void writeLeadingDistribution(Object? v) {
-    _leadingDistribution = v as TextLeadingDistribution?;
-    isDirty = true;
-  }
-
   /// 暂存 textShadow 的覆盖值。
   void writeTextShadow(Object? v) {
     _textShadow = v as List<Shadow>?;
@@ -446,8 +426,6 @@ class InheritedTextStyleBuffer {
         (identical(_fontFeatureSettings, _unset) || _fontFeatureSettings == base.fontFeatureSettings) &&
         (identical(_fontVariationSettings, _unset) || _fontVariationSettings == base.fontVariationSettings) &&
         (identical(_textAlign, _unset) || _textAlign == base.textAlign) &&
-        (identical(_textBaseline, _unset) || _textBaseline == base.textBaseline) &&
-        (identical(_leadingDistribution, _unset) || _leadingDistribution == base.leadingDistribution) &&
         (identical(_textShadow, _unset) || _textShadow == base.textShadow) &&
         (identical(_textGradient, _unset) || _textGradient == base.textGradient) &&
         (identical(_textDecorationLine, _unset) || _textDecorationLine == base.textDecorationLine) &&
@@ -479,10 +457,6 @@ class InheritedTextStyleBuffer {
           ? base.fontVariationSettings
           : _fontVariationSettings as List<FontVariation>?,
       textAlign: identical(_textAlign, _unset) ? base.textAlign : _textAlign as TextAlign?,
-      textBaseline: identical(_textBaseline, _unset) ? base.textBaseline : _textBaseline as TextBaseline?,
-      leadingDistribution: identical(_leadingDistribution, _unset)
-          ? base.leadingDistribution
-          : _leadingDistribution as TextLeadingDistribution?,
       textShadow: identical(_textShadow, _unset) ? base.textShadow : _textShadow as List<Shadow>?,
       textGradient: identical(_textGradient, _unset) ? base.textGradient : _textGradient as Gradient?,
       textDecorationLine: identical(_textDecorationLine, _unset)

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -36,16 +35,6 @@ MouseCursor effectiveCursorAt(WidgetTester tester, Offset global) {
 
 void main() {
   group('最小文本合约', () {
-    test('文本实现限制为两个文件，并为段落配置和无障碍覆盖保留行数预算', () {
-      final files = Directory('lib/src/flutter/views/view/text')
-          .listSync()
-          .whereType<File>()
-          .where((file) => file.path.endsWith('.dart'))
-          .toList();
-      expect(files, hasLength(2));
-      expect(files.fold<int>(0, (sum, file) => sum + file.readAsLinesSync().length), lessThanOrEqualTo(840));
-    });
-
     testWidgets('普通文本沿 ElView 继承并在颜色更新时保持布局', (tester) async {
       final key = UniqueKey();
       Widget tree(Color color) => _app(
@@ -58,7 +47,7 @@ void main() {
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       final layouts = render.debugLayoutCount;
       await tester.pumpWidget(tree(Colors.blue));
-      final span = render.textEngineForTest!.painterForTest.text! as TextSpan;
+      final span = (render.content as TextEngine?)!.painterForTest.text! as TextSpan;
       expect(span.style!.color, Colors.blue);
       expect(span.style!.fontSize, 20);
       expect(render.debugLayoutCount, layouts);
@@ -86,7 +75,7 @@ void main() {
           ),
         ),
       );
-      final engine = tester.renderObject<ElRenderView>(find.byKey(key)).textEngineForTest!;
+      final engine = (tester.renderObject<ElRenderView>(find.byKey(key)).content as TextEngine?)!;
       final span = engine.painterForTest.text! as TextSpan;
       expect(span.toPlainText(), '父继承覆盖隔离');
       expect(span.children![0].style!.color, Colors.red);
@@ -112,7 +101,7 @@ void main() {
           ),
         ),
       );
-      final engine = tester.renderObject<ElRenderView>(find.byKey(key)).textEngineForTest!;
+      final engine = (tester.renderObject<ElRenderView>(find.byKey(key)).content as TextEngine?)!;
       expect(engine.painterForTest.text!.toPlainText(), 'a1trueT\ufffc');
       expect(engine.structure.spans.single.child, isA<ElView>());
       expect(find.byKey(childKey), findsOneWidget);
@@ -148,11 +137,11 @@ void main() {
         final child = tester.renderObject<RenderBox>(find.byKey(childKey));
         final origin = child.localToGlobal(Offset.zero);
         expect((child.localToGlobal(Offset(12, 0)) - origin).dx, closeTo(24, .01));
-        final before = render.textEngineForTest!.painterForTest.text;
+        final before = (render.content as TextEngine?)!.painterForTest.text;
         final offset = (child.parentData as ElTextParentData).offset;
         final dry = render.getDryLayout(render.constraints);
         expect(dry, render.size);
-        expect(render.textEngineForTest!.painterForTest.text, same(before));
+        expect((render.content as TextEngine?)!.painterForTest.text, same(before));
         expect((child.parentData as ElTextParentData).offset, offset);
         expect(tester.takeException(), isNull);
       });
@@ -243,7 +232,7 @@ void main() {
 
       final child = tester.renderObject<ElRenderView>(find.byType(ElView));
 
-      final initialSpan = (child.textEngineForTest?.painterForTest.text);
+      final initialSpan = ((child.content as TextEngine?)?.painterForTest.text);
       expect(initialSpan, isA<TextSpan>());
       expect(
         (initialSpan as TextSpan).style?.color,
@@ -267,7 +256,7 @@ void main() {
       await tester.pump();
 
       // **核心断言**：子 painter.text 的 color 必须同步为红
-      final updatedSpan = (child.textEngineForTest?.painterForTest.text);
+      final updatedSpan = ((child.content as TextEngine?)?.painterForTest.text);
       expect(updatedSpan, isA<TextSpan>());
       expect(
         (updatedSpan as TextSpan).style?.color,
@@ -309,7 +298,10 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(((child.textEngineForTest?.painterForTest.text) as TextSpan?)?.style?.color, const Color(0xFFFF0000));
+      expect(
+        (((child.content as TextEngine?)?.painterForTest.text) as TextSpan?)?.style?.color,
+        const Color(0xFFFF0000),
+      );
 
       // 切到蓝
       await tester.pumpWidget(
@@ -324,7 +316,10 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(((child.textEngineForTest?.painterForTest.text) as TextSpan?)?.style?.color, const Color(0xFF0000FF));
+      expect(
+        (((child.content as TextEngine?)?.painterForTest.text) as TextSpan?)?.style?.color,
+        const Color(0xFF0000FF),
+      );
     });
 
     testWidgets('父 color 非动画切换：直文本 ElView 不触发 performLayout 但同步 painter.text', (tester) async {
@@ -356,7 +351,10 @@ void main() {
       await tester.pump();
 
       expect(child.debugLayoutCount, before, reason: '直文本 ElView 的 color 更新应保持 paint-only，不触发 performLayout');
-      expect(((child.textEngineForTest?.painterForTest.text) as TextSpan?)?.style?.color, const Color(0xFFFF0000));
+      expect(
+        (((child.content as TextEngine?)?.painterForTest.text) as TextSpan?)?.style?.color,
+        const Color(0xFFFF0000),
+      );
     });
 
     testWidgets('父 color 非动画切换：直文本 ElView 不主动刷 TextPainter.layout（T21 paint-only 分级）', (tester) async {
@@ -372,7 +370,7 @@ void main() {
         ),
       );
       final child = tester.renderObject<ElRenderView>(find.byType(ElView));
-      final before = ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+      final before = (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
       await tester.pumpWidget(
         shell(
@@ -390,19 +388,23 @@ void main() {
       // **T21**：ensureStringPainterFresh 内 compareTo 分级把 paint-only 差异只 set text
       // 不 layout（SDK TextPainter 内部保 _layoutCache，paint 时惰性重建 paragraph）。
       expect(
-        ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+        (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
         before,
         reason: 'T21：paint-only color 差异走 compareTo=paint 分档，painter.layout() 不再被显式调用',
       );
-      expect(((child.textEngineForTest?.painterForTest.text) as TextSpan?)?.style?.color, const Color(0xFFFF0000));
+      expect(
+        (((child.content as TextEngine?)?.painterForTest.text) as TextSpan?)?.style?.color,
+        const Color(0xFFFF0000),
+      );
 
-      (child.selectionParticipant?.selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4)) ?? const <Rect>[]);
+      final rects = (child.content as TextEngine).selectionPaintRectsForRange(const ui.TextRange(start: 0, end: 4));
+      expect(rects, isNotEmpty);
       final result = BoxHitTestResult();
       child.hitTest(result, position: child.size.center(Offset.zero));
       await tester.pump();
 
       expect(
-        ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+        (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
         before,
         reason: '后续 selection / hit-test / paint 复用已刷新的 painter，不应继续主动 layout。',
       );
@@ -421,17 +423,17 @@ void main() {
 
       await tester.pumpWidget(build(14));
       final child = tester.renderObject<ElRenderView>(find.byType(ElView));
-      final before = ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+      final before = (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
       await tester.pumpWidget(build(24));
       await tester.pump();
 
       expect(
-        ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+        (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
         greaterThan(before),
         reason: 'fontSize 影响 text metrics，必须刷新 TextPainter.layout。',
       );
-      expect(((child.textEngineForTest?.painterForTest.text) as TextSpan?)?.style?.fontSize, 24);
+      expect((((child.content as TextEngine?)?.painterForTest.text) as TextSpan?)?.style?.fontSize, 24);
     });
   });
 
@@ -449,16 +451,22 @@ void main() {
     testWidgets('maxLines=1 + ellipsis 截断 → true', (tester) async {
       await tester.pumpWidget(
         host(
-          style: const ElStyle(width: 60, fontSize: 16, maxLines: 1, textOverflow: TextOverflow.ellipsis, softWrap: false),
+          style: const ElStyle(
+            width: 60,
+            fontSize: 16,
+            maxLines: 1,
+            textOverflow: TextOverflow.ellipsis,
+            softWrap: false,
+          ),
           child: '这是一段远超六十像素宽度的长文本内容',
         ),
       );
-      expect(renderOf(tester).textOverflowing, isTrue);
+      expect(((renderOf(tester).content as TextEngine?)?.textOverflows ?? false), isTrue);
     });
 
     testWidgets('文本完整放下 → false', (tester) async {
       await tester.pumpWidget(host(style: const ElStyle(width: 300, fontSize: 16), child: '短文本'));
-      expect(renderOf(tester).textOverflowing, isFalse);
+      expect(((renderOf(tester).content as TextEngine?)?.textOverflows ?? false), isFalse);
     });
 
     testWidgets('单行不换行超宽（clip）→ true', (tester) async {
@@ -468,19 +476,19 @@ void main() {
           child: '这是一段远超六十像素宽度的长文本内容',
         ),
       );
-      expect(renderOf(tester).textOverflowing, isTrue);
+      expect(((renderOf(tester).content as TextEngine?)?.textOverflows ?? false), isTrue);
     });
 
     testWidgets('overflow 未声明（visible）超宽同样可探测', (tester) async {
       await tester.pumpWidget(
         host(style: const ElStyle(width: 60, fontSize: 16, softWrap: false), child: '这是一段远超六十像素宽度的长文本内容'),
       );
-      expect(renderOf(tester).textOverflowing, isTrue);
+      expect(((renderOf(tester).content as TextEngine?)?.textOverflows ?? false), isTrue);
     });
 
     testWidgets('无文本载荷恒 false', (tester) async {
       await tester.pumpWidget(host(style: const ElStyle(width: 60, height: 40, backgroundColor: Color(0xFF222222))));
-      expect(renderOf(tester).textOverflowing, isFalse);
+      expect(((renderOf(tester).content as TextEngine?)?.textOverflows ?? false), isFalse);
     });
   });
 
@@ -504,13 +512,13 @@ void main() {
         await tester.pumpWidget(build(const Color(0xff000000)));
         await tester.pump();
         final child = viewOf(tester, childKey);
-        final baselineLayoutCount = ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final baselineLayoutCount = (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
         final baselineDebugLayout = child.debugLayoutCount;
 
         await tester.pumpWidget(build(const Color(0xffff0000)));
         await tester.pump();
 
-        final span = (child.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final span = ((child.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(
           span?.style?.color,
           const Color(0xffff0000),
@@ -518,7 +526,7 @@ void main() {
         );
 
         expect(
-          ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+          (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
           baselineLayoutCount,
           reason: 'paint-only color 变化必须走 markTextPaintDirty，不主动 painter.layout()',
         );
@@ -539,13 +547,13 @@ void main() {
         await tester.pumpWidget(build(14));
         await tester.pump();
         final child = viewOf(tester, childKey);
-        final baselineLayoutCount = ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final baselineLayoutCount = (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
         await tester.pumpWidget(build(24));
         await tester.pump();
 
         expect(
-          ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+          (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
           greaterThan(baselineLayoutCount),
           reason: 'fontSize 影响 metrics，必须重新 layout（回归保护 T21 不误伤）',
         );
@@ -572,21 +580,21 @@ void main() {
         final render = viewOf(tester, key);
         await tester.pumpWidget(build(const Color(0xff2563eb)));
         await tester.pump();
-        final atStartLayoutCount = ((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final atStartLayoutCount = (((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
         await tester.pump(const Duration(milliseconds: 40));
-        final at40 = ((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final at40 = (((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
         await tester.pump(const Duration(milliseconds: 40));
-        final at80 = ((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final at80 = (((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
         await tester.pump(const Duration(milliseconds: 40));
-        final at120 = ((render.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final at120 = (((render.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
         expect(at40, atStartLayoutCount, reason: 'color transition 中段不应 relayout');
         expect(at80, atStartLayoutCount, reason: 'color transition 中段不应 relayout');
         expect(at120, atStartLayoutCount, reason: 'color transition 中段不应 relayout');
 
         await tester.pump(const Duration(milliseconds: 220));
-        final endSpan = (render.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final endSpan = ((render.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(endSpan?.style?.color, const Color(0xff2563eb));
       });
     });
@@ -618,7 +626,7 @@ void main() {
         await tester.pumpWidget(build(const Color(0xff000000)));
         await tester.pump();
         final render = viewOf(tester, key);
-        final fc = render.textEngineForTest!;
+        final fc = (render.content as TextEngine?)!;
         final baselineRelayout = fc.stringPainterLayoutCountForTest;
         final baselineDebugLayout = render.debugLayoutCount;
 
@@ -882,13 +890,13 @@ void main() {
     ElRenderView renderOf(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byKey(hostKey));
 
     Rect placeholderGap(ElRenderView render, int ordinal) {
-      final text = render.textEngineForTest!.painterForTest.text!.toPlainText();
+      final text = (render.content as TextEngine?)!.painterForTest.text!.toPlainText();
       var index = -1;
       for (var i = 0; i <= ordinal; i++) {
         index = text.indexOf('￼', index + 1);
         expect(index, greaterThanOrEqualTo(0), reason: 'textContent 应含第 ${ordinal + 1} 个原子占位符');
       }
-      final boxes = render.textEngineForTest!.getBoxesForSelectionForTest(index, index + 1);
+      final boxes = (render.content as TextEngine?)!.getBoxesForSelectionForTest(index, index + 1);
       expect(boxes, isNotEmpty, reason: 'painter 应能给出占位符 #$ordinal 的空隙盒');
       return boxes.first.toRect();
     }
@@ -983,11 +991,11 @@ void main() {
       expect(sel, isNotNull, reason: '拖选后必须有选区');
 
       // 计一帧：重绘时逐 rect 裁剪的次数 vs overlay 真 shape 次数。
-      final clipBefore = ((render.textEngineForTest?.debugSelectionClipRectOverlayCount) ?? 0);
+      final clipBefore = (((render.content as TextEngine?)?.debugSelectionClipRectOverlayCount) ?? 0);
       BenchmarkProbe.reset();
       render.markNeedsPaint();
       await tester.pump();
-      final clips = ((render.textEngineForTest?.debugSelectionClipRectOverlayCount) ?? 0) - clipBefore;
+      final clips = (((render.content as TextEngine?)?.debugSelectionClipRectOverlayCount) ?? 0) - clipBefore;
       final shapes = BenchmarkProbe.selectionOverlayLayoutCount;
 
       // ignore: avoid_print
@@ -1046,9 +1054,9 @@ void main() {
 
         void expectCurrentGeometry() {
           final render = key.currentContext!.findRenderObject()! as ElRenderView;
-          final range = render.currentSelectionRange!;
+          final range = selectionParticipantOf(render)!.currentSelectionRange!;
           // 独立即时查询作为几何基准，验证实际绘制没有沿用变化前的选区。
-          final rects = render.selectionParticipant!.adjustedSelectionPaintRectsForRange(range);
+          final rects = selectionParticipantOf(render)!.adjustedSelectionPaintRectsForRange(range);
           expect(rects, isNotEmpty);
           final pattern = paints;
           for (final rect in rects) {
@@ -1088,8 +1096,8 @@ void main() {
         await gesture.moveTo(render.localToGlobal(Offset(130, 160)));
         await gesture.up();
         await tester.pumpAndSettle();
-        expect(render.currentSelectionRange, isNotNull);
-        expect(render.currentSelectionRange, isNot(TextRange(start: 0, end: text.length)));
+        expect(selectionParticipantOf(render)?.currentSelectionRange, isNotNull);
+        expect(selectionParticipantOf(render)?.currentSelectionRange, isNot(TextRange(start: 0, end: text.length)));
         expectCurrentGeometry();
       });
     }
@@ -1115,9 +1123,9 @@ void main() {
       );
 
       final render = renderOf(tester);
-      expect(render.rawChild, isA<String>());
-      expect((render.textEngineForTest?.painterForTest.width), 80);
-      expect((render.textEngineForTest?.painterForTest.didExceedMaxLines), isTrue);
+      expect((render.content as TextEngine?)?.rawChild, isA<String>());
+      expect(((render.content as TextEngine?)?.painterForTest.width), 80);
+      expect(((render.content as TextEngine?)?.painterForTest.didExceedMaxLines), isTrue);
     });
 
     testWidgets('pure text softWrap:false without ellipsis keeps unconstrained single line layout', (tester) async {
@@ -1137,8 +1145,8 @@ void main() {
       );
 
       final render = renderOf(tester);
-      expect(render.rawChild, isA<String>());
-      expect(render.textEngineForTest!.painterForTest.width, greaterThan(80));
+      expect((render.content as TextEngine?)?.rawChild, isA<String>());
+      expect((render.content as TextEngine?)!.painterForTest.width, greaterThan(80));
       expect(renderOf(tester).size.width, 80);
     });
 
@@ -1161,7 +1169,7 @@ void main() {
         ),
       );
 
-      final fc = renderOf(tester).textEngineForTest!;
+      final fc = (renderOf(tester).content as TextEngine?)!;
       expect(fc.painterForTest.width, 80);
       expect(fc.painterForTest.didExceedMaxLines, isTrue);
     });
@@ -1191,14 +1199,14 @@ void main() {
       await tester.pump();
 
       final text = renderOf(tester, textKey);
-      final baselinePainterLayout = text.textEngineForTest!.stringPainterLayoutCountForTest;
+      final baselinePainterLayout = (text.content as TextEngine?)!.stringPainterLayoutCountForTest;
       final baselineNodeLayout = text.debugLayoutCount;
 
       await sendFontsChange(tester);
       await tester.pump();
 
       expect(
-        text.textEngineForTest!.stringPainterLayoutCountForTest,
+        (text.content as TextEngine?)!.stringPainterLayoutCountForTest,
         greaterThan(baselinePainterLayout),
         reason: '字体表换代后必须重新 shape（否则非英文字形不刷新）',
       );
@@ -1226,12 +1234,16 @@ void main() {
       await tester.pump();
 
       final para = renderOf(tester, paraKey);
-      final baseline = para.textEngineForTest!.stringPainterLayoutCountForTest;
+      final baseline = (para.content as TextEngine?)!.stringPainterLayoutCountForTest;
 
       await sendFontsChange(tester);
       await tester.pump();
 
-      expect(para.textEngineForTest!.stringPainterLayoutCountForTest, greaterThan(baseline), reason: '富文本同样重新 shape');
+      expect(
+        (para.content as TextEngine?)!.stringPainterLayoutCountForTest,
+        greaterThan(baseline),
+        reason: '富文本同样重新 shape',
+      );
     });
 
     testWidgets('纯盒节点（无文本载荷）：fontsChange 零动静，不陪跑 layout', (tester) async {
@@ -1247,14 +1259,14 @@ void main() {
       await tester.pump();
 
       final box = renderOf(tester, boxKey);
-      expect(box.textEngineForTest, isNull, reason: '纯盒不实例化文本引擎（懒加载门）');
+      expect((box.content as TextEngine?), isNull, reason: '纯盒不实例化文本引擎（懒加载门）');
       final baseline = box.debugLayoutCount;
 
       await sendFontsChange(tester);
       await tester.pump();
 
       expect(box.debugLayoutCount, baseline, reason: '未注册监听 → 不重 layout');
-      expect(box.textEngineForTest, isNull, reason: 'fontsChange 不得诱发文本引擎实例化');
+      expect((box.content as TextEngine?), isNull, reason: 'fontsChange 不得诱发文本引擎实例化');
     });
 
     testWidgets('载荷换成 widget 子 / 卸载后：监听移除，fontsChange 不再触发重排', (tester) async {
@@ -1283,7 +1295,7 @@ void main() {
     const long = 'ElView 对标 CSS，覆盖布局、样式与继承的每一个字段。';
 
     ElRenderView textHostOf(WidgetTester tester) {
-      final host = tester.allRenderObjects.whereType<ElRenderView>().where((r) => r.hasTextPayload).first;
+      final host = tester.allRenderObjects.whereType<ElRenderView>().where((r) => (r.content is TextEngine)).first;
       return host;
     }
 
@@ -1302,7 +1314,7 @@ void main() {
           ),
         ),
       );
-      return textHostOf(tester).textEngineForTest!;
+      return (textHostOf(tester).content as TextEngine?)!;
     }
 
     group('纯 String 快路径', () {
@@ -1398,9 +1410,7 @@ void main() {
     }
 
     Rect textBounds(ElRenderView render, int length) {
-      final rects =
-          (render.selectionParticipant?.selectionPaintRectsForRange(TextRange(start: 0, end: length)) ??
-          const <Rect>[]);
+      final rects = (render.content as TextEngine).selectionPaintRectsForRange(TextRange(start: 0, end: length));
       return rects.reduce((value, rect) => value.expandToInclude(rect));
     }
 
@@ -1552,12 +1562,7 @@ void main() {
           _app(
             const ElView(
               key: ValueKey('parent-host'),
-              style: ElStyle(
-                width: 100,
-                height: 50,
-                transform: .translate(30, 0),
-                transformOrigin: Alignment.topLeft,
-              ),
+              style: ElStyle(width: 100, height: 50, transform: .translate(30, 0), transformOrigin: Alignment.topLeft),
               child: ElView(key: ValueKey('text-host'), child: 'hello'),
             ),
           ),

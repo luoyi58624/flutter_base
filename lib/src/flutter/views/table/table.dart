@@ -24,6 +24,7 @@ import '../view/render/render_view.dart';
 import '../view/semantics/semantics.dart';
 import '../view/style/resolved/resolved_style.dart';
 import '../view/style/style.dart';
+import '../view/text/text_engine.dart' show TextEngine;
 import '../view/text/text_style_adapter.dart' show inheritedTextToTextStyle, elStyleToTextStyle;
 import '../view/view.dart';
 import 'table_column.dart';

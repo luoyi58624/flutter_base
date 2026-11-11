@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter_base/src/flutter/scroll/scroll.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
@@ -22,8 +23,10 @@ RenderSelectionView _selectionRender(WidgetTester tester) {
 }
 
 int _selectedTextParticipantCount(WidgetTester tester) {
-  return tester.allRenderObjects.whereType<ElRenderView>().where((render) => render.hasTextPayload).where((render) {
-    final range = render.currentSelectionRange;
+  return tester.allRenderObjects.whereType<ElRenderView>().where((render) => (render.content is TextEngine)).where((
+    render,
+  ) {
+    final range = selectionParticipantOf(render)?.currentSelectionRange;
     return range != null && !range.isCollapsed;
   }).length;
 }
@@ -41,15 +44,15 @@ void main() {
       await tester.pumpWidget(build('short'));
       final render = tester.allRenderObjects
           .whereType<ElRenderView>()
-          .where((item) => item.hasTextPayload)
+          .where((item) => (item.content is TextEngine))
           .toSet()
           .single;
-      expect(render.selectionTextLength, 'short'.length);
+      expect((selectionParticipantOf(render)?.selectionTextLength ?? 0), 'short'.length);
 
       await tester.pumpWidget(build('a much longer replacement text content'));
 
       expect(
-        render.selectionTextLength,
+        (selectionParticipantOf(render)?.selectionTextLength ?? 0),
         'a much longer replacement text content'.length,
         reason: '文本 payload 更新后长度必须立即反映新内容',
       );
@@ -235,8 +238,8 @@ void main() {
       await tester.pump();
 
       final textRender = tester.renderObject<ElRenderView>(find.byKey(const ValueKey('continuous-text-contract')));
-      expect(textRender.currentSelectionRange, isNotNull);
-      expect(textRender.currentSelectionRange!.isCollapsed, isFalse);
+      expect(selectionParticipantOf(textRender)?.currentSelectionRange, isNotNull);
+      expect(selectionParticipantOf(textRender)?.currentSelectionRange!.isCollapsed, isFalse);
       expect(controller.offset, 0, reason: '指针远离边缘时连续文本拖选不应启动自动滚动');
 
       await gesture.up();

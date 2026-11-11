@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -185,8 +186,10 @@ void main() {
     expect(_selectedLabels(selection), isNotEmpty, reason: '旧节点回收后仍能选择当前有效范围');
     expect(_selectedLabels(selection).difference(live), isEmpty);
     for (final render in tester.allRenderObjects.whereType<ElRenderView>()) {
-      final range = render.currentSelectionRange;
-      if (range != null) expect(range.end, lessThanOrEqualTo(render.selectionTextLength));
+      final range = selectionParticipantOf(render)?.currentSelectionRange;
+      if (range != null) {
+        expect(range.end, lessThanOrEqualTo((selectionParticipantOf(render)?.selectionTextLength ?? 0)));
+      }
     }
     expect(tester.takeException(), isNull);
   });

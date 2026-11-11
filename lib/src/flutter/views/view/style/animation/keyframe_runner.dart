@@ -92,6 +92,7 @@ class _KeyframeClock {
     final tracks = <ElTransitionField, List<_TrackStop>>{};
     for (final percent in percents) {
       assert(percent >= 0 && percent <= 100, 'keyframe offset 百分比必须在 0..100：$percent');
+      validateStyleConfiguration(keyframes[percent]!, variant: true);
       for (final entry in specOf(keyframes[percent]!).values.entries) {
         (tracks[entry.key] ??= <_TrackStop>[]).add((percent / 100, entry.value));
       }

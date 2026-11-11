@@ -1,3 +1,5 @@
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
+
 import 'dart:ui' as ui;
 
 import 'package:flutter_base/ui.dart';
@@ -116,8 +118,8 @@ bool _isSelected(WidgetTester tester, Key key) {
 
 ui.Rect _selectionRect(ElRenderView render) {
   final rects =
-      (render.selectionParticipant?.selectionPaintRectsForRange(
-        ui.TextRange(start: 0, end: render.selectionTextLength),
+      (selectionParticipantOf(render)?.selectionPaintRectsForRange(
+        ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
       ) ??
       const <Rect>[]);
   expect(rects, isNotEmpty, reason: '文本行必须有可探测的选区带');
@@ -125,13 +127,13 @@ ui.Rect _selectionRect(ElRenderView render) {
 }
 
 ui.Rect _firstGlyphRect(ElRenderView render) {
-  final boxes = render.textEngineForTest!.getBoxesForSelectionForTest(0, 1);
+  final boxes = (render.content as TextEngine?)!.getBoxesForSelectionForTest(0, 1);
   expect(boxes, isNotEmpty, reason: '富文本首字符必须有 tight glyph box');
   // 首字符是 WidgetSpan 时，占位盒含完整行距；探针应读取子文本的真实字形。
-  final placeholders = render.textEngineForTest!.painterForTest.inlinePlaceholderBoxes;
+  final placeholders = (render.content as TextEngine?)!.painterForTest.inlinePlaceholderBoxes;
   if (placeholders != null && placeholders.isNotEmpty && boxes.first.toRect() == placeholders.first.toRect()) {
     final child = render.getChildrenAsList().first;
-    if (child is ElRenderView && child.textEngineForTest != null) {
+    if (child is ElRenderView && (child.content as TextEngine?) != null) {
       return MatrixUtils.transformRect(child.getTransformTo(render), _firstGlyphRect(child));
     }
   }

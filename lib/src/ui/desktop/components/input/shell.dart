@@ -31,8 +31,6 @@ ElStyle _inputShellStyle(
       fontSize: fontSize,
       iconColor: c.elTheme.textPlaceholder,
       lineHeight: elInputLineHeightFactor,
-      leadingDistribution: .even,
-      textBaseline: .alphabetic,
       padding: padding,
     );
   }
@@ -57,8 +55,6 @@ ElStyle _inputShellStyle(
     // 默认图标色放在壳上，前后缀继承状态样式，用户 style 与 affixStyle 仍可覆写。
     iconColor: c.elTheme.textPlaceholder,
     lineHeight: elInputLineHeightFactor,
-    leadingDistribution: .even,
-    textBaseline: .alphabetic,
     padding: padding,
     // focus 用 onFocusWithin，因为焦点在内部 editable 节点上；
     // 官方 `.is-focus` 是任意焦点来源（非 focus-visible），无键盘专属环

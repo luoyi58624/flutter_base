@@ -108,8 +108,8 @@ void main() {
     }
     expect(identical(tester.renderObject(find.byKey(key)), render), isTrue);
     expect(render.debugLayoutCount, layouts);
-    expect(render.currentSelectionRange?.isCollapsed, isFalse);
-    expect(render.selectionColor, Colors.blue);
-    expect(render.selectionTextColor, Colors.white);
+    expect(selectionParticipantOf(render)?.currentSelectionRange?.isCollapsed, isFalse);
+    expect(selectionParticipantOf(render)!.effectiveSelectionBgColor, Colors.blue);
+    expect(selectionParticipantOf(render)!.effectiveSelectionTextColor, Colors.white);
   });
 }

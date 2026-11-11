@@ -38,24 +38,19 @@ extension _ViewIntrinsics on ElRenderView {
 
   // ---- 内容 intrinsic ----------------------------------------------------
 
-  /// 内容 min/max intrinsic width：文本走 TextView / inlineFC；否则
-  /// 走 content FC。
+  /// 按需内容模块负责固有宽度，其余情况读取普通子项。
   double _intrinsicContentWidth({required bool isMin}) {
-    if (_hasTextPayload) {
-      final sizes = _textPainter.computeIntrinsicSizes(double.infinity, _textPaintInput());
-      return isMin ? sizes.minContent : sizes.maxContent;
-    }
+    final content = _content;
+    if (content != null) return content.intrinsicWidth(isMin: isMin);
     final child = _singleWidgetChild;
     if (child == null) return 0;
     return isMin ? child.getMinIntrinsicWidth(double.infinity) : child.getMaxIntrinsicWidth(double.infinity);
   }
 
-  /// 内容 height 估算 —— FC.computeIntrinsicSizes 只回 min/max width。
-  /// 单 [Widget] child 直接取其 RenderBox intrinsic；无 child 为 0。
+  /// 内容模块负责固有高度；普通子项直接查询 RenderBox，无子项为零。
   double _intrinsicChildHeight(double width, {required bool isMin}) {
-    if (_hasTextPayload) {
-      return _textPainter.intrinsicHeight(_textPaintInput(), width);
-    }
+    final content = _content;
+    if (content != null) return content.intrinsicHeight(width, isMin: isMin);
     final c = _singleWidgetChild;
     if (c == null) return 0;
     return isMin ? c.getMinIntrinsicHeight(width) : c.getMaxIntrinsicHeight(width);

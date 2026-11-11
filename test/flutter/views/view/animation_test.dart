@@ -1904,21 +1904,21 @@ void main() {
       await tester.pumpWidget(host(120, 10));
       await tester.pump();
       final box = tester.renderObject<ElRenderView>(find.byKey(key));
-      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, 10);
+      expect(((box.content as TextEngine?)!.painterForTest.text as TextSpan).style!.fontSize, 10);
 
       await tester.pumpWidget(host(null, 30));
       expect(box.size.width, 120);
       expect(box.targetStyleForTest.inheritedText.fontSize, 30);
       expect(box.committedResolvedStyle.inheritedText.fontSize, 10);
       expect(
-        (box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize,
+        ((box.content as TextEngine?)!.painterForTest.text as TextSpan).style!.fontSize,
         10,
         reason: 'target auto 探测使用 30px 后，正式首帧必须按 committed 10px 重建 rich context',
       );
 
       await tester.pump(const Duration(milliseconds: 99));
       final beforeComplete = box.size.width;
-      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, closeTo(29.8, 0.01));
+      expect(((box.content as TextEngine?)!.painterForTest.text as TextSpan).style!.fontSize, closeTo(29.8, 0.01));
 
       await tester.pump(const Duration(milliseconds: 1));
       final completed = box.size.width;
@@ -1928,7 +1928,7 @@ void main() {
         closeTo(120 + (completed - 120) * 0.99, 0.01),
         reason: '99ms 应沿冻结的 rich auto 终点连续逼近，完成帧不能重新测量后跳变',
       );
-      expect((box.textEngineForTest!.painterForTest.text as TextSpan).style!.fontSize, 30);
+      expect(((box.content as TextEngine?)!.painterForTest.text as TextSpan).style!.fontSize, 30);
     });
 
     testWidgets('无界轴 host 切到 auto 时清旧参照并让百分比 child 向外取参照', (tester) async {
@@ -3942,7 +3942,7 @@ void main() {
         );
 
         TextStyle? codeSpanStyle() =>
-            (renderOf(tester, codeKey).textEngineForTest!.painterForTest.text! as TextSpan).style;
+            ((renderOf(tester, codeKey).content as TextEngine?)!.painterForTest.text! as TextSpan).style;
 
         await tester.pumpWidget(build(Brightness.light));
         await tester.pump();

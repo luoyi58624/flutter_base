@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+
 import 'dart:ui' as ui;
 
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
@@ -68,8 +69,8 @@ void main() {
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       final participant = participantOf(tester, render);
       final rects =
-          (render.selectionParticipant?.selectionPaintRectsForRange(
-            ui.TextRange(start: 0, end: render.selectionTextLength),
+          (selectionParticipantOf(render)?.selectionPaintRectsForRange(
+            ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
           ) ??
           const <Rect>[]);
       expect(rects.length, greaterThan(1), reason: '前置：必须折成多行');
@@ -167,7 +168,7 @@ void main() {
 
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       final participant = participantOf(tester, render);
-      final total = render.selectionTextLength;
+      final total = (selectionParticipantOf(render)?.selectionTextLength ?? 0);
       final full = participant.adjustedSelectionPaintRectsForRange(TextRange(start: 0, end: total));
       expect(full.length, greaterThan(2), reason: '前置：必须多行');
 
@@ -228,7 +229,7 @@ void main() {
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       final participant = participantOf(tester, render);
       final rects = participant.adjustedSelectionPaintRectsForRange(
-        TextRange(start: 0, end: render.selectionTextLength),
+        TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
       );
       expect(rects.length, greaterThan(1), reason: '前置：混排应拆出多个 box');
 
@@ -276,8 +277,8 @@ void main() {
       for (var i = 0; i < texts.length; i++) {
         final r = tester.renderObject<ElRenderView>(find.byKey(ValueKey<String>('row-$i')));
         final rects =
-            (r.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-              ui.TextRange(start: 0, end: r.selectionTextLength),
+            (selectionParticipantOf(r)?.adjustedSelectionPaintRectsForRange(
+              ui.TextRange(start: 0, end: (selectionParticipantOf(r)?.selectionTextLength ?? 0)),
             ) ??
             const <Rect>[]);
         expect(rects, isNotEmpty, reason: 'row-$i 全选后应有带');
@@ -337,8 +338,8 @@ void main() {
 
       final render = tester.renderObject<ElRenderView>(find.byKey(key));
       final rects =
-          (render.selectionParticipant?.adjustedSelectionPaintRectsForRange(
-            ui.TextRange(start: 0, end: render.selectionTextLength),
+          (selectionParticipantOf(render)?.adjustedSelectionPaintRectsForRange(
+            ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
           ) ??
           const <Rect>[]);
       expect(rects, isNotEmpty);

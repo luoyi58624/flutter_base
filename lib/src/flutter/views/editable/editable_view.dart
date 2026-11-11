@@ -33,7 +33,6 @@ import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
 import '../view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
 import '../view/semantics/semantics.dart';
-import '../view/style/state/view_state.dart' show ViewStateSource;
 import '../view/style/style.dart';
 import '../view/view.dart';
 import 'composer.dart';
@@ -246,6 +245,8 @@ enum _MacOSSelectorAction {
 
 final class _EditablePointerSelectionCandidate {
   const _EditablePointerSelectionCandidate({
+    required this.pointer,
+    required this.buttons,
     required this.controller,
     required this.docRevision,
     required this.visualRevision,
@@ -257,6 +258,8 @@ final class _EditablePointerSelectionCandidate {
     required this.obscureText,
   });
 
+  final int pointer;
+  final int buttons;
   final EditableController controller;
   final int docRevision;
   final int visualRevision;
@@ -1301,12 +1304,11 @@ class _EditableViewState extends State<EditableView>
   static const Color _defaultSelectionColor = Color(0x553B82F6);
 
   ElRenderView? _paintStyleSource;
-  final _inheritedPaintBindings = <({ElRenderView source, CascadeBridgeChanges changes, ViewStateSource states})>[];
+  final _inheritedPaintBindings = <({ElRenderView source, CascadeBridgeChanges changes, OnSelectionPaintMemo memo})>[];
 
   void _unbindInheritedPaint() {
     for (final binding in _inheritedPaintBindings) {
       binding.changes.removeListener(_updateInheritedPaint);
-      binding.states.removeListener(_updateInheritedPaint);
     }
     _inheritedPaintBindings.clear();
     _paintStyleSource = null;
@@ -1327,10 +1329,8 @@ class _EditableViewState extends State<EditableView>
     _paintStyleSource = source;
     for (final ancestor in sources) {
       final changes = ancestor.ensureCascadeBridgeChanges();
-      final states = ancestor.stateSource;
       changes.addListener(_updateInheritedPaint);
-      states.addListener(_updateInheritedPaint);
-      _inheritedPaintBindings.add((source: ancestor, changes: changes, states: states));
+      _inheritedPaintBindings.add((source: ancestor, changes: changes, memo: OnSelectionPaintMemo()));
     }
   }
 
@@ -1348,7 +1348,7 @@ class _EditableViewState extends State<EditableView>
     Color? inheritedSelectionTextColor;
     if (useContext) {
       for (final binding in _inheritedPaintBindings) {
-        final paint = binding.source.inheritedSelectionPaint;
+        final paint = binding.memo.resolve(binding.source.style, stateBits: binding.source.internalStateBits);
         inheritedSelectionColor ??= paint.bgColor;
         inheritedSelectionTextColor ??= paint.color;
         if (inheritedSelectionColor != null && inheritedSelectionTextColor != null) break;
@@ -3222,7 +3222,7 @@ class _EditableViewState extends State<EditableView>
     } else {
       _controller.setSelection(TextSelection.collapsed(offset: position.offset, affinity: position.affinity));
     }
-    _capturePointerSelectionCandidate();
+    _capturePointerSelectionCandidate(e);
   }
 
   void _handleTapUp(ElEventDetails e) {
@@ -3230,10 +3230,33 @@ class _EditableViewState extends State<EditableView>
   }
 
   void _handleTapCancel(ElEventDetails e) {
-    // dragStart / longPress 已成立时，tap cancel 只是同一 winner 的配对终态；
-    // 其余取消（含 tapRejected 和祖先认领）必须丢弃未成立的粒度与列选意图。
+    // 点击超出距离会先于 dragStart 取消，但同一鼠标或手写笔仍可继续拖选。
     if (_dragSelecting || _longPressPointer != null) return;
+    final original = e.originalEvent;
+    final candidate = _pointerSelectionCandidate;
+    if (e.cancelReason == ElEventCancelReason.tapRejected &&
+        original is PointerMoveEvent &&
+        _selectableKind(e) &&
+        candidate != null &&
+        original.pointer == candidate.pointer &&
+        original.buttons == candidate.buttons) {
+      return;
+    }
     _resetDragSelectionGranularity();
+  }
+
+  void _handlePointerSelectionEnd(ElEventDetails e) {
+    final original = e.originalEvent;
+    final candidate = _pointerSelectionCandidate;
+    if (candidate == null || original is! PointerEvent || original.pointer != candidate.pointer) return;
+    if (e.phase == ElEventPhase.pointerCancel) {
+      _resetDragSelectionGranularity();
+    } else {
+      // 等本次 Up 内的短快划救援及双/三击收尾完成，再清理没有被消费的候选。
+      scheduleMicrotask(() {
+        if (identical(_pointerSelectionCandidate, candidate)) _resetDragSelectionGranularity();
+      });
+    }
   }
 
   static bool _isPrimaryMouseDown(ElEventDetails e) {
@@ -3321,7 +3344,7 @@ class _EditableViewState extends State<EditableView>
     if (!_interactiveSelectionEnabled) return;
     if (!_isPrimaryMouseDown(e)) return;
     _applyMultiClickSelection(e, _EditableDragSelectionGranularity.word);
-    _capturePointerSelectionCandidate();
+    _capturePointerSelectionCandidate(e);
     _multiClickSelectionAppliedOnDown = true;
   }
 
@@ -3329,7 +3352,7 @@ class _EditableViewState extends State<EditableView>
     if (!_interactiveSelectionEnabled) return;
     if (!_isPrimaryMouseDown(e)) return;
     _applyMultiClickSelection(e, _EditableDragSelectionGranularity.line);
-    _capturePointerSelectionCandidate();
+    _capturePointerSelectionCandidate(e);
     _multiClickSelectionAppliedOnDown = true;
   }
 
@@ -3556,8 +3579,12 @@ class _EditableViewState extends State<EditableView>
     if (!_interactiveSelectionEnabled) return;
     if (_longPressPointer != null) return;
     if (!_selectableKind(e)) return;
+    final original = e.originalEvent;
     final selectionCandidate = _pointerSelectionCandidate;
-    if (selectionCandidate == null || !_pointerSelectionCandidateIsCurrent(selectionCandidate)) {
+    if (selectionCandidate == null ||
+        original is! PointerEvent ||
+        original.pointer != selectionCandidate.pointer ||
+        !_pointerSelectionCandidateIsCurrent(selectionCandidate)) {
       _resetDragSelectionGranularity();
       return;
     }
@@ -3672,10 +3699,14 @@ class _EditableViewState extends State<EditableView>
     _multiClickSelectionAppliedOnDown = false;
   }
 
-  void _capturePointerSelectionCandidate() {
+  void _capturePointerSelectionCandidate(ElEventDetails e) {
+    final original = e.originalEvent;
+    if (original is! PointerEvent) return;
     final controller = _controller;
     final lineProjection = _lineProjection;
     _pointerSelectionCandidate = _EditablePointerSelectionCandidate(
+      pointer: original.pointer,
+      buttons: original.buttons,
       controller: controller,
       docRevision: controller.docRevision,
       visualRevision: controller.visualRevision,
@@ -5858,6 +5889,8 @@ class _EditableViewState extends State<EditableView>
                             longPressDelay: _selectionControls.resolveLongPressDelay(context),
                             tapCancelDistance: 10,
                             onPointerDown: _handlePointerDownFocus,
+                            onPointerUp: interactiveSelectionEnabled ? _handlePointerSelectionEnd : null,
+                            onPointerCancel: interactiveSelectionEnabled ? _handlePointerSelectionEnd : null,
                             // 收起软键盘可能保留焦点与连接；只在点击成立后重新 show，避免滑动误弹。
                             onTap: (_) => _requestKeyboard(),
                             onTapDown: interactiveSelectionEnabled || _selectionTextBlocked ? _handleTapDown : null,
@@ -6116,7 +6149,7 @@ class _RenderEditableSelectionPaintGeometryObserver extends RenderProxyBox
   EdgeInsets _viewportPadding;
   Matrix4? _lastGlobalTransform;
   Rect? _lastGlobalClip;
-  List<Listenable> _ancestorScrollListenables = const <Listenable>[];
+  List<Listenable> _ancestorVisualListenables = const <Listenable>[];
   bool _callbackScheduled = false;
   bool _viewportCallbackScheduled = false;
 
@@ -6138,7 +6171,7 @@ class _RenderEditableSelectionPaintGeometryObserver extends RenderProxyBox
       _onViewportWidthChanged(math.max(0.0, constraints.maxWidth - _viewportPadding.horizontal));
     }
     super.performLayout();
-    _syncAncestorScrollListenables();
+    _syncAncestorVisualListenables();
     if (_viewportCallbackScheduled) return;
     _viewportCallbackScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -6155,19 +6188,19 @@ class _RenderEditableSelectionPaintGeometryObserver extends RenderProxyBox
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _syncAncestorScrollListenables();
+    _syncAncestorVisualListenables();
   }
 
   @override
   void detach() {
-    _replaceAncestorScrollListenables(const <Listenable>[]);
+    _replaceAncestorVisualListenables(const <Listenable>[]);
     super.detach();
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
-    _syncAncestorScrollListenables();
+    _syncAncestorVisualListenables();
     Matrix4 next;
     try {
       next = getTransformTo(null);
@@ -6191,40 +6224,41 @@ class _RenderEditableSelectionPaintGeometryObserver extends RenderProxyBox
     });
   }
 
-  void _syncAncestorScrollListenables() {
+  void _syncAncestorVisualListenables() {
     if (!attached) return;
     final next = <Listenable>[];
     RenderObject? ancestor = parent;
     while (ancestor != null) {
-      final Listenable? scrollListenable = switch (ancestor) {
+      final Listenable? visualListenable = switch (ancestor) {
         ScrollViewport viewport => viewport.scrollOffsetListenable,
         RenderViewportBase viewport => viewport.offset,
+        ElRenderView view => view.ensureCascadeBridgeChanges(),
         _ => null,
       };
-      if (scrollListenable != null && !next.any((candidate) => identical(candidate, scrollListenable))) {
-        next.add(scrollListenable);
+      if (visualListenable != null && !next.any((candidate) => identical(candidate, visualListenable))) {
+        next.add(visualListenable);
       }
       ancestor = ancestor.parent;
     }
-    if (_sameScrollListenables(_ancestorScrollListenables, next)) return;
-    _replaceAncestorScrollListenables(next);
+    if (_sameVisualListenables(_ancestorVisualListenables, next)) return;
+    _replaceAncestorVisualListenables(next);
   }
 
-  void _replaceAncestorScrollListenables(List<Listenable> next) {
-    for (final scrollListenable in _ancestorScrollListenables) {
-      scrollListenable.removeListener(_handleAncestorScrollOffsetChanged);
+  void _replaceAncestorVisualListenables(List<Listenable> next) {
+    for (final visualListenable in _ancestorVisualListenables) {
+      visualListenable.removeListener(_handleAncestorVisualChanged);
     }
-    _ancestorScrollListenables = List<Listenable>.unmodifiable(next);
-    for (final scrollListenable in _ancestorScrollListenables) {
-      scrollListenable.addListener(_handleAncestorScrollOffsetChanged);
+    _ancestorVisualListenables = List<Listenable>.unmodifiable(next);
+    for (final visualListenable in _ancestorVisualListenables) {
+      visualListenable.addListener(_handleAncestorVisualChanged);
     }
   }
 
-  void _handleAncestorScrollOffsetChanged() {
+  void _handleAncestorVisualChanged() {
     if (attached) _scheduleGeometryChanged();
   }
 
-  static bool _sameScrollListenables(List<Listenable> left, List<Listenable> right) {
+  static bool _sameVisualListenables(List<Listenable> left, List<Listenable> right) {
     if (left.length != right.length) return false;
     for (var i = 0; i < left.length; i++) {
       if (!identical(left[i], right[i])) return false;

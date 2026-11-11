@@ -7,6 +7,7 @@ import '../style.dart';
 final class StyleSpec {
   /// 编译当前层非空声明。
   StyleSpec(ElStyle style) {
+    validateStyleConfiguration(style);
     for (final entry in fieldSpecs.entries) {
       final value = entry.value.declaration(style);
       if (value == null) continue;
@@ -24,6 +25,32 @@ final class StyleSpec {
 
 final _specs = Expando<StyleSpec>();
 StyleSpec specOf(ElStyle style) => _specs[style] ??= StyleSpec(style);
+
+final _validatedConfigurations = Expando<bool>('elStyleConfiguration');
+final _validatedVariants = Expando<bool>('elStyleVariantConfiguration');
+
+/// 校验高级配置只出现在基础声明，所有变体分支在使用前统一检查。
+void validateStyleConfiguration(ElStyle style, {bool variant = false}) {
+  if (variant && style.textOptions != null) {
+    throw ArgumentError('ElStyle.textOptions 只能配置在基础样式，不能用于状态、断点、选区、starting 或关键帧变体。');
+  }
+  final cache = variant ? _validatedVariants : _validatedConfigurations;
+  if (cache[style] == true) return;
+  for (final (read, _) in selfVariantEntries) {
+    final nested = read(style);
+    if (nested != null) validateStyleConfiguration(nested, variant: true);
+  }
+  final selection = style.onSelection;
+  if (selection != null) validateStyleConfiguration(selection, variant: true);
+  final starting = style.starting;
+  if (starting != null) validateStyleConfiguration(starting, variant: true);
+  for (final animation in style.animation ?? const <ElAnimation>[]) {
+    for (final frame in animation.keyframes.values) {
+      validateStyleConfiguration(frame, variant: true);
+    }
+  }
+  cache[style] = true;
+}
 
 /// 状态优先级从低到高；所有变体扫描与属性级联共用此表。
 final List<(ElStyle? Function(ElStyle), ViewState)> selfVariantEntries = [
@@ -52,6 +79,7 @@ class _VariantScan {
 }
 
 _VariantScan _scan(ElStyle style) {
+  validateStyleConfiguration(style);
   final cached = _scans[style];
   if (cached != null) return cached;
   final result = _VariantScan()

@@ -80,19 +80,19 @@ void main() {
           await tester.pump();
           debugPrint(
             '[selection-boundary-repro] point=$point '
-            'header=${tester.renderObject<ElRenderView>(find.byKey(_headerKey)).selectionParticipant?.currentSelectionRange} '
-            'anchor=${tester.renderObject<ElRenderView>(find.byKey(_anchorKey)).selectionParticipant?.currentSelectionRange}',
+            'header=${selectionParticipantOf(tester.renderObject<ElRenderView>(find.byKey(_headerKey)))?.currentSelectionRange} '
+            'anchor=${selectionParticipantOf(tester.renderObject<ElRenderView>(find.byKey(_anchorKey)))?.currentSelectionRange}',
           );
           headerSelected.add(_selected(tester, _headerKey));
           ranges.add(
-            tester.renderObject<ElRenderView>(find.byKey(_headerKey)).selectionParticipant?.currentSelectionRange,
+            selectionParticipantOf(tester.renderObject<ElRenderView>(find.byKey(_headerKey)))?.currentSelectionRange,
           );
           anchorSelected.add(_selected(tester, _anchorKey));
         }
         await gesture.moveTo(Offset(40, header.center.dy));
         await tester.pump();
         expect(
-          tester.renderObject<ElRenderView>(find.byKey(_headerKey)).selectionParticipant?.currentSelectionRange,
+          selectionParticipantOf(tester.renderObject<ElRenderView>(find.byKey(_headerKey)))?.currentSelectionRange,
           ranges.first,
           reason: '反向回到同一点必须恢复相同范围，不能用保留旧范围掩盖错误',
         );
@@ -121,7 +121,7 @@ bool _selected(WidgetTester tester, Key key) {
 
 TextRange? _range(WidgetTester tester, Key key) {
   final render = tester.renderObject<ElRenderView>(find.byKey(key));
-  return render.selectionParticipant?.currentSelectionRange;
+  return selectionParticipantOf(render)?.currentSelectionRange;
 }
 
 Offset _centerOfText(WidgetTester tester, String needle) {

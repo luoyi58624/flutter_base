@@ -296,6 +296,10 @@ abstract interface class SelectionParticipantHost {
 
 /// 从 render 节点取选区参与者。
 SelectionParticipant? selectionParticipantOf(RenderObject node) {
+  if (node is ElRenderView) {
+    final content = node.content;
+    if (content is SelectionParticipantHost) return (content as SelectionParticipantHost).selectionParticipant;
+  }
   if (node is SelectionParticipantHost) {
     return (node as SelectionParticipantHost).selectionParticipant;
   }
@@ -353,6 +357,62 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   SelectionGeometry _geometry = const SelectionGeometry(status: SelectionStatus.none, hasContent: false);
   bool _notificationScheduled = false;
   bool _disposed = false;
+  List<({ElRenderView source, CascadeBridgeChanges changes, VoidCallback listener})>? _viewSources;
+
+  void _unbindViewSources() {
+    for (final binding in _viewSources ?? const []) {
+      binding.changes.removeListener(binding.listener);
+    }
+    _viewSources = null;
+  }
+
+  // 由真实参与者订阅祖先，纯容器只发布通用变化，不保存或遍历选区状态。
+  void _syncViewSources() {
+    if (_scopeRegistrar == null) {
+      _unbindViewSources();
+      return;
+    }
+    final sources = <ElRenderView>{};
+    for (RenderObject? node = box; node != null; node = node.parent) {
+      if (node is ElRenderView) sources.add(node);
+    }
+    if (box is ElRenderView) {
+      for (ElRenderView? node = box as ElRenderView; node != null; node = node.internalStyleParent) {
+        sources.add(node);
+      }
+    }
+    final current = _viewSources;
+    if (current != null &&
+        current.length == sources.length &&
+        current.every((binding) => sources.contains(binding.source))) {
+      return;
+    }
+    _unbindViewSources();
+    final bindings = _viewSources = [];
+    for (final source in sources) {
+      final changes = source.ensureCascadeBridgeChanges();
+      var geometryRevision = changes.geometryRevision;
+      void listener() {
+        if (_disposed || !box.attached) return;
+        if (geometryRevision != changes.geometryRevision) {
+          geometryRevision = changes.geometryRevision;
+          for (RenderObject? node = box; node != null; node = node.parent) {
+            if (node is SelectionVisualGeometryDependency) {
+              (node as SelectionVisualGeometryDependency).descendantSelectionVisualGeometryChanged(source);
+              break;
+            }
+          }
+          updateSelectionGeometry();
+        } else {
+          reattachSelectionRoot();
+          box.markNeedsPaint();
+        }
+      }
+
+      changes.addListener(listener);
+      bindings.add((source: source, changes: changes, listener: listener));
+    }
+  }
 
   void _notifySelectionChanged() {
     if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks) {
@@ -371,6 +431,7 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   @override
   void dispose() {
     _disposed = true;
+    _unbindViewSources();
     super.dispose();
   }
 
@@ -738,6 +799,7 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   /// 更新本地外观归属，并通过官方注册中心参与当前文档。
   void reattachSelectionRoot() {
     if (!box.attached) return;
+    _syncViewSources();
     _selectionRoot = _findSelectionRoot();
     final root = _selectionRoot;
     final eligible =
@@ -751,6 +813,7 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
 
   /// 注销当前挂载；同一实例临时重挂保留本地范围，换文档时由绑定入口清空。
   void detachFromSelectionRoot() {
+    _unbindViewSources();
     registrar = null;
     final appearance = _selectionRoot;
     // 整个文档同帧重挂时保留活体范围；单个内容退出文档时立即清空。

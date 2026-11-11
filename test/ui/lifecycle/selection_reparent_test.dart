@@ -1,4 +1,3 @@
-import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -28,14 +27,15 @@ void main() {
   );
 
   ElRenderView textParticipant(WidgetTester tester) =>
-      tester.allRenderObjects.whereType<ElRenderView>().firstWhere((r) => r.hasTextPayload);
+      tester.allRenderObjects.whereType<ElRenderView>().firstWhere((r) => r.content is TextEngine);
 
   /// 某字符偏移处的全局坐标（落在该字内部）。
   Offset posAt(WidgetTester tester, int offset) {
-    final participant = textParticipant(tester);
+    final render = textParticipant(tester);
+    final participant = selectionParticipantOf(render)!;
     final line = participant.selectionLineGeometryAt(offset)!;
     final caret = participant.selectionCaretGeometryAt(offset)!;
-    return participant.localToGlobal(Offset(caret.position.dx + 1, line.lineTop + line.lineHeight / 2));
+    return render.localToGlobal(Offset(caret.position.dx + 1, line.lineTop + line.lineHeight / 2));
   }
 
   Future<void> pumpFrames(WidgetTester tester, int frames) async {
@@ -54,7 +54,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final gesture = await tester.startGesture(posAt(tester, 0), kind: PointerDeviceKind.mouse);
@@ -90,7 +97,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // 先建立一段选区，再在别处按下（pendingTap）后重挂、抬起：
@@ -120,7 +134,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // 长按选词（触摸 450ms）。
@@ -148,11 +169,7 @@ void main() {
       await gesture.moveBy(const Offset(22, 0));
       await tester.pump(const Duration(milliseconds: 16));
     }
-    expect(
-      selection.text!.length,
-      greaterThan(lengthBefore),
-      reason: '重挂后同一条触摸手势必须继续扩展选区',
-    );
+    expect(selection.text!.length, greaterThan(lengthBefore), reason: '重挂后同一条触摸手势必须继续扩展选区');
 
     await gesture.up();
     await tester.pumpAndSettle();
@@ -164,7 +181,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final gesture = await tester.startGesture(posAt(tester, 7), kind: PointerDeviceKind.touch);
@@ -192,7 +216,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tapAt(posAt(tester, 7), kind: PointerDeviceKind.mouse);
@@ -213,7 +244,14 @@ void main() {
     final selection = ElSelectionController();
     addTearDown(selection.dispose);
 
-    await tester.pumpWidget(host(ReparentHarness(key: move, child: selectable(key: key, controller: selection, body: text))));
+    await tester.pumpWidget(
+      host(
+        ReparentHarness(
+          key: move,
+          child: selectable(key: key, controller: selection, body: text),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     selection.selectAll();

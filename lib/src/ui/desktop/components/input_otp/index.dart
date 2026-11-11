@@ -15,11 +15,9 @@ import 'package:flutter/widgets.dart';
 
 import '../../internal.dart';
 
-String _normalizeOtpText(String text) =>
-    text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('\n', '');
+String _normalizeOtpText(String text) => text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('\n', '');
 
-String _truncateOtpText(String text, int limit) =>
-    _normalizeOtpText(text).characters.take(limit).join();
+String _truncateOtpText(String text, int limit) => _normalizeOtpText(text).characters.take(limit).join();
 
 int _otpOffsetAtGraphemeIndex(String text, int index) {
   var offset = 0;
@@ -32,21 +30,17 @@ int _otpOffsetAtGraphemeIndex(String text, int index) {
   return offset;
 }
 
-TextSelection _clampOtpSelection(TextSelection selection, int length) =>
-    selection.copyWith(
-      baseOffset: selection.baseOffset.clamp(0, length),
-      extentOffset: selection.extentOffset.clamp(0, length),
-    );
+TextSelection _clampOtpSelection(TextSelection selection, int length) => selection.copyWith(
+  baseOffset: selection.baseOffset.clamp(0, length),
+  extentOffset: selection.extentOffset.clamp(0, length),
+);
 
 /// 格子数按 Unicode 字素计算，组合输入结束后才执行截断。
 final class _OtpGraphemeLimitPolicy extends TextInputFormatter {
   _OtpGraphemeLimitPolicy(this.limit);
   int limit;
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
       return newValue;
     }
@@ -97,9 +91,7 @@ final class _OtpGeometryComposer {
   }) {
     if (text.isEmpty) return TextSpan(text: text, style: style);
     final sourceGraphemes = controller.text.characters.toList(growable: false);
-    if (sourceGraphemes.isEmpty ||
-        sourceGraphemes.fold<int>(0, (sum, value) => sum + value.length) !=
-            text.length) {
+    if (sourceGraphemes.isEmpty || sourceGraphemes.fold<int>(0, (sum, value) => sum + value.length) != text.length) {
       return TextSpan(text: text, style: style);
     }
     final full = sourceGraphemes.length >= capacity;
@@ -109,9 +101,7 @@ final class _OtpGeometryComposer {
       final end = offset + sourceGraphemes[index].length;
       final segment = text.substring(offset, end);
       final targetAdvance = full && index == capacity - 1 ? 0.0 : pitch;
-      children.add(
-        TextSpan(text: segment, style: _styleForAdvance(style, targetAdvance)),
-      );
+      children.add(TextSpan(text: segment, style: _styleForAdvance(style, targetAdvance)));
       offset = end;
     }
     return TextSpan(style: style, children: children);
@@ -139,11 +129,7 @@ final class _OtpGeometryComposer {
 /// 桌面预设使用的 Element 一次性验证码输入框实现。
 class InputOtp extends ElFormModelValue<String> {
   InputOtp(this.component, {super.key})
-    : super(
-        value: component.value,
-        modelValue: component.modelValue,
-        onChanged: component.onChanged,
-      );
+    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
 
   final ElInputOtp component;
 
@@ -177,12 +163,7 @@ class InputOtp extends ElFormModelValue<String> {
 
 /// 视觉层：一个 editable 实例承接整串输入，分格只负责呈现。
 class _ElInputOtpBody extends StatefulWidget {
-  const _ElInputOtpBody({
-    required this.config,
-    required this.compact,
-    required this.value,
-    required this.onInput,
-  });
+  const _ElInputOtpBody({required this.config, required this.compact, required this.value, required this.onInput});
 
   final InputOtp config;
 
@@ -318,13 +299,10 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     _flushUserEdit();
   }
 
-  bool get _exceedsConfiguredLength =>
-      _controller.text.characters.length > widget.config.length;
+  bool get _exceedsConfiguredLength => _controller.text.characters.length > widget.config.length;
 
   bool get _needsSettlement =>
-      _pendingExternalValue != null ||
-      _lengthPolicy.limit != widget.config.length ||
-      _lengthConvergencePending;
+      _pendingExternalValue != null || _lengthPolicy.limit != widget.config.length || _lengthConvergencePending;
 
   /// 组合结束后先切换新上限，再把配置收敛压成一笔独立、可撤销的后缀删除。
   void _scheduleSettlement() {
@@ -351,10 +329,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
 
   void _convergeConfiguredLength() {
     final end = _controller.text.length;
-    final start = _otpOffsetAtGraphemeIndex(
-      _controller.text,
-      widget.config.length,
-    );
+    final start = _otpOffsetAtGraphemeIndex(_controller.text, widget.config.length);
     if (start >= end) return;
     final selection = _clampOtpSelection(_controller.selection, start);
     _convergingLength = true;
@@ -368,9 +343,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
   void _flushUserEdit() {
     final text = _controller.text;
     if (text == _lastOutput) return;
-    final onComplete = text.characters.length == widget.config.length
-        ? widget.config.onComplete
-        : null;
+    final onComplete = text.characters.length == widget.config.length ? widget.config.onComplete : null;
     _lastOutput = text;
     widget.onInput(text);
     onComplete?.call(text);
@@ -409,15 +382,12 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     final prev = controller.text;
     var start = 0;
     final minLength = math.min(prev.length, next.length);
-    while (start < minLength &&
-        prev.codeUnitAt(start) == next.codeUnitAt(start)) {
+    while (start < minLength && prev.codeUnitAt(start) == next.codeUnitAt(start)) {
       start++;
     }
     var endPrev = prev.length;
     var endNext = next.length;
-    while (endPrev > start &&
-        endNext > start &&
-        prev.codeUnitAt(endPrev - 1) == next.codeUnitAt(endNext - 1)) {
+    while (endPrev > start && endNext > start && prev.codeUnitAt(endPrev - 1) == next.codeUnitAt(endNext - 1)) {
       endPrev--;
       endNext--;
     }
@@ -427,18 +397,8 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
       endPrev,
       next.substring(start, endNext),
       selection: TextSelection(
-        baseOffset: _mapOffset(
-          selection.baseOffset,
-          start,
-          endPrev,
-          endNext,
-        ).clamp(0, next.length),
-        extentOffset: _mapOffset(
-          selection.extentOffset,
-          start,
-          endPrev,
-          endNext,
-        ).clamp(0, next.length),
+        baseOffset: _mapOffset(selection.baseOffset, start, endPrev, endNext).clamp(0, next.length),
+        extentOffset: _mapOffset(selection.extentOffset, start, endPrev, endNext).clamp(0, next.length),
         affinity: selection.affinity,
         isDirectional: selection.isDirectional,
       ),
@@ -454,31 +414,23 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
   int _offsetAtCellX(double x) {
     final side = _ElInputOtpCell._side(widget.compact);
     final pitch = side + _gap(widget.compact);
-    final index = ((x - side / 2) / pitch).round().clamp(
-      0,
-      widget.config.length - 1,
-    );
+    final index = ((x - side / 2) / pitch).round().clamp(0, widget.config.length - 1);
     return _otpOffsetAtGraphemeIndex(_controller.text, index);
   }
 
   void _handleSelectionPointerDown(ElEventDetails event) {
     final original = event.originalEvent;
-    if (original is! PointerDownEvent ||
-        (original.buttons & kPrimaryButton) == 0) {
+    if (original is! PointerDownEvent || (original.buttons & kPrimaryButton) == 0) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
     final offset = _offsetAtCellX(event.localX);
-    final anchor = HardwareKeyboard.instance.isShiftPressed
-        ? _controller.selection.baseOffset
-        : offset;
+    final anchor = HardwareKeyboard.instance.isShiftPressed ? _controller.selection.baseOffset : offset;
     _selectionPointer = original.pointer;
     _selectionAnchor = anchor;
-    _controller.setSelection(
-      TextSelection(baseOffset: anchor, extentOffset: offset),
-    );
+    _controller.setSelection(TextSelection(baseOffset: anchor, extentOffset: offset));
   }
 
   void _handleSelectionPointerMove(ElEventDetails event) {
@@ -490,12 +442,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     }
     final anchor = _selectionAnchor;
     if (anchor == null) return;
-    _controller.setSelection(
-      TextSelection(
-        baseOffset: anchor,
-        extentOffset: _offsetAtCellX(event.localX),
-      ),
-    );
+    _controller.setSelection(TextSelection(baseOffset: anchor, extentOffset: _offsetAtCellX(event.localX)));
   }
 
   void _handleSelectionPointerTerminal(ElEventDetails event) {
@@ -511,10 +458,8 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
   }
 
   /// 光标所在格：未满时可落到下一待输入位，满了钳在末格。
-  int get _activeIndex => _graphemeIndexAtOffset(
-    _controller.text,
-    _controller.selection.extentOffset,
-  ).clamp(0, widget.config.length - 1);
+  int get _activeIndex =>
+      _graphemeIndexAtOffset(_controller.text, _controller.selection.extentOffset).clamp(0, widget.config.length - 1);
 
   void _scheduleGeometryCorrection(double side, double pitch) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -536,22 +481,15 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     final side = _ElInputOtpCell._side(widget.compact);
     final pitch = side + _gap(widget.compact);
     const caretWidth = 1.0;
-    final textScaler =
-        MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling;
-    final semanticValue = config.mask
-        ? config.maskCharacter * graphemes.length
-        : text;
+    final textScaler = MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling;
+    final semanticValue = config.mask ? config.maskCharacter * graphemes.length : text;
     final declaredColor = config.style?.color;
-    final hiddenTextColor =
-        (declaredColor is Color
-                ? declaredColor
-                : context.elTheme.textRegular)
-            .withValues(alpha: 0);
+    final hiddenTextColor = (declaredColor is Color ? declaredColor : context.elTheme.textRegular).withValues(alpha: 0);
     const geometryFontSize = 0.001;
     final baseTextStyle = ElStyle(
       fontSize: geometryFontSize,
       lineHeight: side / textScaler.scale(geometryFontSize),
-      leadingDistribution: TextLeadingDistribution.even,
+      textOptions: const ElTextOptions(leadingDistribution: .even),
       color: hiddenTextColor,
       iconColor: hiddenTextColor,
     );
@@ -592,9 +530,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
             children: [
               for (var i = 0; i < config.length; i++)
                 _ElInputOtpCell(
-                  character: i < graphemes.length
-                      ? _display(graphemes[i])
-                      : null,
+                  character: i < graphemes.length ? _display(graphemes[i]) : null,
                   active: _focused && i == _activeIndex,
                   compact: widget.compact,
                   config: config,
@@ -614,12 +550,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
                 child: ElView(
                   // rectAtOffset 是最终 Paragraph 的权威几何；上层逐帧读取当前
                   // caret 后只平移透明输入层，不复制 OTP 业务进 core。
-                  style: ElStyle(
-                    transform: ElTransform.translate(
-                      _geometryCorrection.dx,
-                      _geometryCorrection.dy,
-                    ),
-                  ),
+                  style: ElStyle(transform: ElTransform.translate(_geometryCorrection.dx, _geometryCorrection.dy)),
                   child: ElEditableView(
                     controller: _controller,
                     focusNode: _focusNode,
@@ -629,9 +560,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
                       fixedLineHeight: true,
                       softWrap: false,
                       caretWidth: caretWidth,
-                      contentPadding: EdgeInsets.only(
-                        left: side / 2 - caretWidth / 2,
-                      ),
+                      contentPadding: EdgeInsets.only(left: side / 2 - caretWidth / 2),
                       caretColor: const Color(0x00000000),
                       selectionColor: const Color(0x00000000),
                       selectionTextColor: hiddenTextColor,
@@ -646,8 +575,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
                         autofillConfiguration: config.autofillHints == null
                             ? AutofillConfiguration.disabled
                             : AutofillConfiguration(
-                                uniqueIdentifier: _controller.hashCode
-                                    .toString(),
+                                uniqueIdentifier: _controller.hashCode.toString(),
                                 autofillHints: config.autofillHints!.toList(),
                                 currentEditingValue: TextEditingValue(
                                   text: _controller.text,
@@ -668,20 +596,14 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
     );
   }
 
-  String _display(String raw) =>
-      widget.config.mask ? widget.config.maskCharacter : raw;
+  String _display(String raw) => widget.config.mask ? widget.config.maskCharacter : raw;
 
   static double _gap(bool compact) => compact ? 6 : 8;
 }
 
 /// 单格：三种外观 + 激活态描主色
 class _ElInputOtpCell extends StatelessWidget {
-  const _ElInputOtpCell({
-    required this.character,
-    required this.active,
-    required this.compact,
-    required this.config,
-  });
+  const _ElInputOtpCell({required this.character, required this.active, required this.compact, required this.config});
 
   final String? character;
   final bool active;
@@ -704,21 +626,21 @@ class _ElInputOtpCell extends StatelessWidget {
   ElStyle _cellStyle(BuildContext context, double side) {
     final activeColor = context.elTheme.primary;
     final fontSize = config.style?.fontSize ?? _fontSize(compact);
-    final textColor =
-        config.style?.color ?? context.elTheme.textRegular;
+    final textOptions = config.style?.textOptions;
+    final textColor = config.style?.color ?? context.elTheme.textRegular;
     final bgColor = context.elTheme.bgColor;
     final borderColor = context.elTheme.borderColor;
     return switch (config.type) {
-      ElInputOtpType.outlined =>
-        ElStyle(
-          width: side,
-          height: side,
-          alignment: .center,
-          fontSize: fontSize,
-          color: textColor,
-          backgroundColor: bgColor,
-          border: ElBorder.all(borderWidth: 1, borderColor: borderColor),
-          borderRadius: BorderRadius.circular(context.elTheme.radiusSm),
+      ElInputOtpType.outlined => ElStyle(
+        width: side,
+        height: side,
+        alignment: .center,
+        fontSize: fontSize,
+        textOptions: textOptions,
+        color: textColor,
+        backgroundColor: bgColor,
+        border: ElBorder.all(borderWidth: 1, borderColor: borderColor),
+        borderRadius: BorderRadius.circular(context.elTheme.radiusSm),
 
         onDisabled: ElStyle(
           backgroundColor: context.isDark ? const Color(0xff262727) : const Color(0xfff5f7fa),
@@ -733,10 +655,10 @@ class _ElInputOtpCell extends StatelessWidget {
         height: side,
         alignment: .center,
         fontSize: fontSize,
+        textOptions: textOptions,
         color: textColor,
         // filled 填充底从 $bgColor 派生加深 1 级
-        backgroundColor: context.elTheme.bgColor
-            .elLight1(context, reverse: !context.elTheme.bgColor.isDark),
+        backgroundColor: context.elTheme.bgColor.elLight1(context, reverse: !context.elTheme.bgColor.isDark),
         borderRadius: BorderRadius.circular(context.elTheme.radiusSm),
 
         onDisabled: ElStyle(
@@ -753,23 +675,17 @@ class _ElInputOtpCell extends StatelessWidget {
           height: side,
           alignment: .center,
           fontSize: fontSize,
+          textOptions: textOptions,
           color: textColor,
-          border: ElBorder.only(
-            borderBottom: ElBorderSide(borderWidth: 1, borderColor: borderColor),
-          ),
+          border: ElBorder.only(borderBottom: ElBorderSide(borderWidth: 1, borderColor: borderColor)),
 
-          onDisabled: ElStyle(
-            color: context.elTheme.textPlaceholder,
-            iconColor: context.elTheme.textPlaceholder,
-          ),
+          onDisabled: ElStyle(color: context.elTheme.textPlaceholder, iconColor: context.elTheme.textPlaceholder),
           transition: const [ElTransition.all(Duration(milliseconds: 150))],
           iconColor: textColor,
         ).merge(
           (active)
               ? (ElStyle(
-                  border: ElBorder.only(
-                    borderBottom: ElBorderSide(borderWidth: 2, borderColor: activeColor),
-                  ),
+                  border: ElBorder.only(borderBottom: ElBorderSide(borderWidth: 2, borderColor: activeColor)),
                 ))
               : null,
         ),

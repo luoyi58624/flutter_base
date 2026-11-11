@@ -1108,10 +1108,16 @@ void main() {
       test('.all const 可用（uniform 双存储形态）', () {
         const b = ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed);
         expect(b.isUniform, isTrue);
-        expect(b.borderTop, const ElBorderSide(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed));
+        expect(
+          b.borderTop,
+          const ElBorderSide(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed),
+        );
         // const 规范化：同参数 const 实例 identical
         expect(
-          identical(b, const ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed)),
+          identical(
+            b,
+            const ElBorder.all(borderWidth: 2, borderColor: Color(0xFF112233), borderStyle: ElBorderStyle.dashed),
+          ),
           isTrue,
         );
         // 默认值与旧 factory 口径一致
@@ -1455,17 +1461,10 @@ void main() {
       test('对象键逐项合并，同名键以后声明为准，空表保留原声明', () {
         final objectKey = Object();
         final symbolKey = Symbol('spacing');
-        final base = ElStyle(
-          vars: {'primary': red, objectKey: '原值', symbolKey: 8},
-        );
+        final base = ElStyle(vars: {'primary': red, objectKey: '原值', symbolKey: 8});
         final other = ElStyle(vars: {'primary': blue, 1: '新增'});
 
-        expect(base.merge(other).vars, {
-          'primary': blue,
-          objectKey: '原值',
-          symbolKey: 8,
-          1: '新增',
-        });
+        expect(base.merge(other).vars, {'primary': blue, objectKey: '原值', symbolKey: 8, 1: '新增'});
         expect(base.copyWith(vars: other.vars).vars, base.merge(other).vars);
         expect(base.merge(ElStyle(vars: {})).vars, base.vars);
         expect(base.copyWith().vars, same(base.vars));
@@ -1476,13 +1475,8 @@ void main() {
       test('copyWith 保留 / 合并 / 置空 vars', () {
         final s = ElStyle(vars: {'x': 1});
         expect(s.copyWith(width: 10).vars, {'x': 1});
-        expect(s.copyWith(vars: {'y': 2}).vars, {
-          'x': 1,
-          'y': 2,
-        }, reason: '逐 key 并集,非整表替换');
-        expect(s.copyWith(vars: {'x': 9}).vars, {
-          'x': 9,
-        }, reason: '同名 key 后表覆前表');
+        expect(s.copyWith(vars: {'y': 2}).vars, {'x': 1, 'y': 2}, reason: '逐 key 并集,非整表替换');
+        expect(s.copyWith(vars: {'x': 9}).vars, {'x': 9}, reason: '同名 key 后表覆前表');
         expect(s.copyWith(vars: null).vars, isNull, reason: '显式 null 清表');
       });
 
@@ -1492,9 +1486,7 @@ void main() {
           'x': 1,
           'y': 2,
         }, reason: 'CSS custom properties 口径:逐 key 并集,同名 key other 胜出');
-        expect(base.merge(ElStyle(width: 10)).vars, {
-          'x': 1,
-        }, reason: 'other 未声明 → 保留 this');
+        expect(base.merge(ElStyle(width: 10)).vars, {'x': 1}, reason: 'other 未声明 → 保留 this');
       });
 
       test('props 含 vars（等值判定）', () {
@@ -1652,7 +1644,7 @@ void main() {
           ),
         );
         final r = findFirstRender(tester);
-        final span = (r.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final span = ((r.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(span!.style!.fontSize, 24, reason: 'InheritedBox.initial.iconSize 默认');
         expect(span.style!.color, const Color(0xff909399), reason: 'InheritedBox.initial.iconColor 默认');
         expect(span.style!.fontFamily, 'MaterialIcons');
@@ -1700,7 +1692,7 @@ void main() {
           ),
         );
         final r = findFirstRender(tester);
-        final span = (r.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final span = ((r.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(span, isNotNull);
         expect(span!.text, String.fromCharCode(0xe716));
         expect(span.style!.fontSize, 24);
@@ -1730,7 +1722,7 @@ void main() {
         await mouse.addPointer(location: Offset.zero);
         await mouse.moveTo(tester.getCenter(find.byType(ElView)));
         await tester.pumpAndSettle();
-        expect(((r.textEngineForTest?.painterForTest.text) as TextSpan).style!.color, Color(0xffff0000));
+        expect((((r.content as TextEngine?)?.painterForTest.text) as TextSpan).style!.color, Color(0xffff0000));
         await mouse.removePointer();
       });
 
@@ -1760,13 +1752,13 @@ void main() {
         await mouse.moveTo(tester.getCenter(find.byKey(hostKey)));
         await tester.pump();
         await tester.pump(Duration(milliseconds: 100));
-        final middle = ((r.textEngineForTest?.painterForTest.text) as TextSpan).style!.color!;
+        final middle = (((r.content as TextEngine?)?.painterForTest.text) as TextSpan).style!.color!;
         expect(middle.r, inExclusiveRange(0, 1));
         await tester.pumpAndSettle();
-        expect(((r.textEngineForTest?.painterForTest.text) as TextSpan).style!.color, Color(0xffffffff));
+        expect((((r.content as TextEngine?)?.painterForTest.text) as TextSpan).style!.color, Color(0xffffffff));
         await mouse.moveTo(Offset.zero);
         await tester.pumpAndSettle();
-        expect(((r.textEngineForTest?.painterForTest.text) as TextSpan).style!.color, Color(0xff000000));
+        expect((((r.content as TextEngine?)?.painterForTest.text) as TextSpan).style!.color, Color(0xff000000));
         await mouse.removePointer();
       });
     });
@@ -1782,14 +1774,14 @@ void main() {
           ),
         );
         final r = findFirstRender(tester);
-        final span = (r.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final span = ((r.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(span, isNotNull);
         final children = span!.children!;
         expect(children, hasLength(2));
         expect(children[1], isA<WidgetSpan>());
         // 图标 run 现在由 WidgetSpan 内的独立 ElView 绘制，仍校验实际 glyph 的全部样式。
         final icon = tester.renderObject<ElRenderView>(find.byWidget((children[1] as WidgetSpan).child));
-        final iconSpan = icon.textEngineForTest!.painterForTest.text! as TextSpan;
+        final iconSpan = (icon.content as TextEngine?)!.painterForTest.text! as TextSpan;
         expect(iconSpan.text, String.fromCharCode(0xe716));
         expect(iconSpan.style!.fontSize, 22);
         expect(iconSpan.style!.color, const Color(0xff67c23a));
@@ -1906,7 +1898,7 @@ void main() {
     ElRenderView findFirstRender(WidgetTester tester) => tester.renderObject<ElRenderView>(find.byType(ElView));
 
     group('fontVariationSettings 字段', () {
-      testWidgets('cascade 出的可变轴列表保留顺序', (tester) async {
+      testWidgets('本地可变轴列表保留顺序', (tester) async {
         const variations = <ui.FontVariation>[ui.FontVariation('wght', 600), ui.FontVariation('wdth', 110)];
         await tester.pumpWidget(
           _semanticsFreeApp(
@@ -1926,32 +1918,36 @@ void main() {
     });
 
     group('leadingDistribution 字段', () {
-      testWidgets('cascade 出的 leadingDistribution 写入 inheritedText', (tester) async {
+      testWidgets('本地 leadingDistribution 保持声明值', (tester) async {
         await tester.pumpWidget(
           _semanticsFreeApp(
             const ElView(
-              style: ElStyle(fontSize: 14, lineHeight: 2.0, leadingDistribution: TextLeadingDistribution.even),
+              style: ElStyle(
+                fontSize: 14,
+                lineHeight: 2.0,
+                textOptions: ElTextOptions(leadingDistribution: TextLeadingDistribution.even),
+              ),
               child: 'leading even',
             ),
           ),
         );
         final r = findFirstRender(tester);
-        expect(r.committedResolvedStyle.inheritedText.leadingDistribution, TextLeadingDistribution.even);
+        expect(r.style?.textOptions?.leadingDistribution, TextLeadingDistribution.even);
       });
     });
 
     group('textBaseline 字段', () {
-      testWidgets('cascade 出的 textBaseline 写入 inheritedText', (tester) async {
+      testWidgets('本地 textBaseline 保持声明值', (tester) async {
         await tester.pumpWidget(
           _semanticsFreeApp(
             const ElView(
-              style: ElStyle(fontSize: 14, textBaseline: TextBaseline.ideographic),
+              style: ElStyle(fontSize: 14, textOptions: ElTextOptions(textBaseline: TextBaseline.ideographic)),
               child: 'baseline 中',
             ),
           ),
         );
         final r = findFirstRender(tester);
-        expect(r.committedResolvedStyle.inheritedText.textBaseline, TextBaseline.ideographic);
+        expect(r.style?.textOptions?.textBaseline, TextBaseline.ideographic);
       });
     });
   });
@@ -1995,9 +1991,21 @@ void main() {
       });
 
       test('== / hashCode', () {
-        const a = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
-        const b = Box(width: ElDimension.pixels(100), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
-        const c = Box(width: ElDimension.pixels(101), height: ElDimension.pixels(50), backgroundColor: Color(0xFFFF0000));
+        const a = Box(
+          width: ElDimension.pixels(100),
+          height: ElDimension.pixels(50),
+          backgroundColor: Color(0xFFFF0000),
+        );
+        const b = Box(
+          width: ElDimension.pixels(100),
+          height: ElDimension.pixels(50),
+          backgroundColor: Color(0xFFFF0000),
+        );
+        const c = Box(
+          width: ElDimension.pixels(101),
+          height: ElDimension.pixels(50),
+          backgroundColor: Color(0xFFFF0000),
+        );
         expect(a, b);
         expect(a.hashCode, b.hashCode);
         expect(a, isNot(c));
@@ -2232,7 +2240,7 @@ void main() {
         expect(a, isNot(c));
       });
 
-      test('全 15 字段都可通过 buffer 独立写入', () {
+      test('常用字段可通过 buffer 独立写入', () {
         final buf = InheritedTextStyleBuffer()
           ..writeColor(const Color(0xFF000000))
           ..writeFontSize(16.0)
@@ -2490,7 +2498,12 @@ void main() {
               child: RepaintBoundary(
                 child: ElView(
                   key: ValueKey('grad'),
-                  style: ElStyle(backgroundColor: Color(0xffffffff), fontSize: 40, fontWeight: .w800, textGradient: gradient),
+                  style: ElStyle(
+                    backgroundColor: Color(0xffffffff),
+                    fontSize: 40,
+                    fontWeight: .w800,
+                    textGradient: gradient,
+                  ),
                   child: 'Element',
                 ),
               ),

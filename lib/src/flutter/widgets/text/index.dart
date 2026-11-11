@@ -58,13 +58,15 @@ class ElText extends Text {
     final direction = textDirection ?? Directionality.of(context);
     final background = selectionColor ?? DefaultSelectionStyle.of(context).selectionColor;
     return ElView(
-      locale: locale ?? Localizations.maybeLocaleOf(context),
-      textScaler: textScaler ?? (scaleFactor == null ? null : TextScaler.linear(scaleFactor)),
-      strutStyle: strutStyle,
-      textWidthBasis: textWidthBasis ?? defaults.textWidthBasis,
-      textHeightBehavior:
-          textHeightBehavior ?? defaults.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
       style: ElStyle(
+        textOptions: ElTextOptions(
+          locale: locale ?? Localizations.maybeLocaleOf(context),
+          textScaler: textScaler ?? (scaleFactor == null ? null : TextScaler.linear(scaleFactor)),
+          strutStyle: strutStyle,
+          textWidthBasis: textWidthBasis ?? defaults.textWidthBasis,
+          textHeightBehavior:
+              textHeightBehavior ?? defaults.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
+        ),
         direction: direction,
         textAlign: textAlign ?? defaults.textAlign ?? TextAlign.start,
         textOverflow: overflow ?? effectiveStyle.overflow ?? defaults.overflow,

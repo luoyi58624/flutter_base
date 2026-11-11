@@ -1,3 +1,5 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -49,9 +51,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final textRender = tester.allRenderObjects.whereType<ElRenderView>().firstWhere(
-        (r) => r.textEngineForTest != null,
+        (r) => (r.content as TextEngine?) != null,
       );
-      final painter = textRender.textEngineForTest!;
+      final painter = (textRender.content as TextEngine?)!;
 
       // 斜向拖选跨约 16 行（与性能 probe 同路径），逐 move 采样 partial 绘制增量。
       final gesture = await tester.startGesture(const Offset(30, 40), kind: PointerDeviceKind.mouse);
@@ -68,7 +70,7 @@ void main() {
       await gesture.up();
       await tester.pump();
 
-      final range = textRender.currentSelectionRange;
+      final range = selectionParticipantOf(textRender)?.currentSelectionRange;
       expect(range != null && !range.isCollapsed, isTrue, reason: '拖选未建立');
       // 契约：每帧至多 1 遍 partial 绘制（不随选中行数放大）。
       expect(maxPerMove, lessThanOrEqualTo(1), reason: '每 move 不得重绘全文 N 遍');

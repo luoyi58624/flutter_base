@@ -66,12 +66,10 @@ extension ElMaterialThemeExt on BuildContext {
     final typography = TextStyle(
       fontStyle: text?.fontStyle,
       height: text?.lineHeight,
-      leadingDistribution: text?.leadingDistribution,
       letterSpacing: text?.letterSpacing,
       wordSpacing: text?.wordSpacing,
       fontFeatures: text?.fontFeatureSettings,
       fontVariations: text?.fontVariationSettings,
-      textBaseline: text?.textBaseline,
     );
     final bodyWeight = text?.fontWeight ?? weight(ElTokens.$fontWeight);
     final actionWeight = weight(ElTokens.$fontWeightAction);

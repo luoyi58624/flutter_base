@@ -10,6 +10,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/ui/mobile/components/button/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/tag/index.dart' as skin;
 import 'package:flutter_base/src/ui/mobile/components/switch/index.dart' as skin;
@@ -307,7 +308,7 @@ void main() {
             }).toList(),
             'texts': find.byWidgetPredicate((w) => w is ElView && w.child is String).evaluate().map((element) {
               final box = element.renderObject! as ElRenderView;
-              final engine = box.textEngineForTest;
+              final engine = box.content as TextEngine?;
               final text = box.committedResolvedStyle.inheritedText;
               final point = box.localToGlobal(Offset.zero);
               return {

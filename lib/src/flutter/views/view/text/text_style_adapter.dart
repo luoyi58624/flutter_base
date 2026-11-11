@@ -5,32 +5,30 @@ import '../style/style.dart';
 import '../style/resolved/resolved_style.dart';
 
 /// 将组件实际声明转换为稀疏文本样式。
-TextStyle elStyleToTextStyle(ElStyle? s) => inheritedTextToTextStyle(
-  InheritedText(
-    color: s?.color,
-    fontSize: s?.fontSize,
-    fontWeight: s?.fontWeight,
-    fontStyle: s?.fontStyle,
-    fontFamily: s?.fontFamily,
-    fontFamilyFallback: s?.fontFamilyFallback,
-    lineHeight: s?.lineHeight,
-    leadingDistribution: s?.leadingDistribution,
-    letterSpacing: s?.letterSpacing,
-    wordSpacing: s?.wordSpacing,
-    fontFeatureSettings: s?.fontFeatureSettings,
-    fontVariationSettings: s?.fontVariationSettings,
-    textBaseline: s?.textBaseline,
-    textDecorationLine: s?.textDecorationLine,
-    textDecorationColor: s?.textDecorationColor,
-    textDecorationStyle: s?.textDecorationStyle,
-    textDecorationThickness: s?.textDecorationThickness,
-    textBackgroundColor: s?.textBackgroundColor,
-    textShadow: s?.textShadow,
-  ),
+TextStyle elStyleToTextStyle(ElStyle? s) => TextStyle(
+  color: s?.color,
+  fontSize: s?.fontSize,
+  fontWeight: s?.fontWeight,
+  fontStyle: s?.fontStyle,
+  fontFamily: s?.fontFamily,
+  fontFamilyFallback: s?.fontFamilyFallback,
+  height: s?.lineHeight,
+  leadingDistribution: s?.textOptions?.leadingDistribution,
+  letterSpacing: s?.letterSpacing,
+  wordSpacing: s?.wordSpacing,
+  fontFeatures: s?.fontFeatureSettings,
+  fontVariations: s?.fontVariationSettings,
+  textBaseline: s?.textOptions?.textBaseline,
+  decoration: s?.textDecorationLine,
+  decorationColor: s?.textDecorationColor,
+  decorationStyle: s?.textDecorationStyle,
+  decorationThickness: s?.textDecorationThickness,
+  backgroundColor: s?.textBackgroundColor,
+  shadows: s?.textShadow,
 );
 
-/// ElView、表格与编辑器共用继承样式映射。
-TextStyle inheritedTextToTextStyle(InheritedText s) => TextStyle(
+/// 合并常用继承样式与当前文本的局部配置。
+TextStyle inheritedTextToTextStyle(InheritedText s, {ElTextOptions? options}) => TextStyle(
   color: s.color,
   fontSize: s.fontSize,
   fontWeight: s.fontWeight,
@@ -38,12 +36,12 @@ TextStyle inheritedTextToTextStyle(InheritedText s) => TextStyle(
   fontFamily: s.fontFamily,
   fontFamilyFallback: s.fontFamilyFallback,
   height: s.lineHeight,
-  leadingDistribution: s.leadingDistribution,
+  leadingDistribution: options?.leadingDistribution ?? TextLeadingDistribution.even,
   letterSpacing: s.letterSpacing,
   wordSpacing: s.wordSpacing,
   fontFeatures: s.fontFeatureSettings,
   fontVariations: s.fontVariationSettings,
-  textBaseline: s.textBaseline,
+  textBaseline: options?.textBaseline,
   decoration: s.textDecorationLine,
   decorationColor: s.textDecorationColor,
   decorationStyle: s.textDecorationStyle,

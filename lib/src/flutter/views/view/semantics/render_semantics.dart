@@ -10,11 +10,10 @@ final _annotations = Expando<RenderSemanticsAnnotations>('ElView semantics');
 /// 排除语义时，同时停止读取自身文本和遍历后代。
 bool shouldExcludeViewSemanticsChildren(ElSemantics? semantics) => semantics?.exclude ?? false;
 
-/// 复用官方属性/动作映射，并补充视图文本、焦点和语义树策略。
+/// 复用官方属性与动作映射，在内容语义上叠加焦点和语义树策略。
 void applyViewSemanticsConfiguration(
   SemanticsConfiguration config, {
   required ElSemantics? semantics,
-  required String? textLabel,
   required TextDirection? textDirection,
   required bool includeFocusSemantics,
   required bool focusableForSemantics,
@@ -31,7 +30,6 @@ void applyViewSemanticsConfiguration(
     );
     // 共享声明可用于方向不同的视图；方向随当前宿主，动作仍读取不可变的原声明。
     final hasText =
-        textLabel != null ||
         props.label != null ||
         props.attributedLabel != null ||
         props.value != null ||
@@ -48,18 +46,13 @@ void applyViewSemanticsConfiguration(
     if (semantics.blockPreviousSemantics) config.isBlockingSemanticsOfPreviouslyPaintedNodes = true;
     if (semantics.indexInParent case final index?) config.indexInParent = index;
   }
-  // 显式 label（含空字符串及富属性文本）和 focused 优先于宿主兜底。
-  if (props?.label == null && props?.attributedLabel == null && textLabel != null) {
-    config.label = textLabel;
-    config.textDirection = props?.textDirection ?? textDirection ?? TextDirection.ltr;
-  }
+  // 内容已写入自身语义，显式声明由官方适配器覆盖；焦点仅补齐缺省值。
   if (props?.focused == null && includeFocusSemantics) {
     config.isFocused = focusableForSemantics ? focusedForSemantics : null;
   }
   final needsBoundary =
       (semantics?.container ?? false) ||
       (semantics?.mergeDescendants ?? false) ||
-      textLabel != null ||
       includeFocusSemantics ||
       config.hasBeenAnnotated;
   if (needsBoundary) config.isSemanticBoundary = true;

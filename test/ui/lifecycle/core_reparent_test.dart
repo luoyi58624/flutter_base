@@ -1,4 +1,3 @@
-import 'package:flutter_base/ui.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -187,10 +186,11 @@ void main() {
       final nodes = <RenderObject>[tester.renderObject(find.byType(ElTable))];
       while (nodes.isNotEmpty) {
         final node = nodes.removeLast();
-        if (node is ElRenderView &&
-            (node.rawChild == value ||
-                prefix && node.rawChild is String && (node.rawChild as String).startsWith(value))) {
-          yield node;
+        if (node is ElRenderView) {
+          final content = (node.content as TextEngine?)?.rawChild;
+          if (content == value || prefix && content is String && content.startsWith(value)) {
+            yield node;
+          }
         }
         node.visitChildren(nodes.add);
       }
@@ -210,7 +210,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.sortState, isNot(beforeSort));
       final visible = cells('updated-$i-', prefix: true).first;
-      final visibleText = visible.rawChild as String;
+      final visibleText = (visible.content as TextEngine).rawChild as String;
       final beforeY = visible.localToGlobal(Offset.zero).dy;
       await tester.drag(find.byType(ElTable), Offset(0, -150));
       await tester.pumpAndSettle();

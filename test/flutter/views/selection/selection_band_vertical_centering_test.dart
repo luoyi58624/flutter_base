@@ -1,3 +1,5 @@
+import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart' show selectionParticipantOf;
+import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 
 import 'dart:ui' as ui;
@@ -32,7 +34,7 @@ void main() {
 
   ElRenderView textRender(WidgetTester tester, Key key) {
     final host = tester.renderObject<ElRenderView>(find.byKey(key));
-    expect(host.hasTextPayload, isTrue);
+    expect((host.content is TextEngine), isTrue);
     return host;
   }
 
@@ -56,8 +58,8 @@ void main() {
   ({Rect band, double gapAbove, double gapBelow}) measure(WidgetTester tester, Key key, String text, double fontSize) {
     final render = textRender(tester, key);
     final rects =
-        (render.selectionParticipant?.selectionPaintRectsForRange(
-          ui.TextRange(start: 0, end: render.selectionTextLength),
+        (selectionParticipantOf(render)?.selectionPaintRectsForRange(
+          ui.TextRange(start: 0, end: (selectionParticipantOf(render)?.selectionTextLength ?? 0)),
         ) ??
         const <Rect>[]);
     expect(rects, isNotEmpty);
@@ -130,38 +132,35 @@ void main() {
       );
     });
 
-    testWidgets(
-      'rich inline 路径（嵌套 inline ElView）：上下留白对称',
-      (tester) async {
-        const key = Key('rich');
-        await tester.pumpWidget(
-          app(
-            const ElSelectionView(
-              child: ElView(
-                key: key,
-                style: ElStyle(fontSize: 16, lineHeight: 1.5),
-                child: [
-                  'pre ',
-                  ElView(
-                    style: ElStyle(fontWeight: .w700),
-                    child: 'bold',
-                  ),
-                  ' post',
-                ],
-              ),
+    testWidgets('rich inline 路径（嵌套 inline ElView）：上下留白对称', (tester) async {
+      const key = Key('rich');
+      await tester.pumpWidget(
+        app(
+          const ElSelectionView(
+            child: ElView(
+              key: key,
+              style: ElStyle(fontSize: 16, lineHeight: 1.5),
+              child: [
+                'pre ',
+                ElView(
+                  style: ElStyle(fontWeight: .w700),
+                  child: 'bold',
+                ),
+                ' post',
+              ],
             ),
           ),
-        );
+        ),
+      );
 
-        final m = measure(tester, key, 'pre bold post', 16);
-        expect(m.band.height, moreOrLessEquals(24, epsilon: 1.5));
-        expect(
-          (m.gapAbove - m.gapBelow).abs(),
-          lessThanOrEqualTo(1.5),
-          reason: '实际 above=${m.gapAbove.toStringAsFixed(2)} below=${m.gapBelow.toStringAsFixed(2)}',
-        );
-      },
-    );
+      final m = measure(tester, key, 'pre bold post', 16);
+      expect(m.band.height, moreOrLessEquals(24, epsilon: 1.5));
+      expect(
+        (m.gapAbove - m.gapBelow).abs(),
+        lessThanOrEqualTo(1.5),
+        reason: '实际 above=${m.gapAbove.toStringAsFixed(2)} below=${m.gapBelow.toStringAsFixed(2)}',
+      );
+    });
 
     testWidgets('显式 leadingDistribution.proportional 覆盖仍被尊重', (tester) async {
       const key = Key('prop');
@@ -170,7 +169,11 @@ void main() {
           const ElSelectionView(
             child: ElView(
               key: key,
-              style: ElStyle(fontSize: 16, lineHeight: 2.0, leadingDistribution: .proportional),
+              style: ElStyle(
+                fontSize: 16,
+                lineHeight: 2.0,
+                textOptions: ElTextOptions(leadingDistribution: .proportional),
+              ),
               child: 'opt-out',
             ),
           ),

@@ -1349,11 +1349,11 @@ class _RenderTableGridRow extends RenderBox
     if (identical(value, _selectionRegistrar)) return;
     _selectionRegistrar = value;
     for (final child in _hostedChildren) {
-      if (child is ElRenderView) child.selectionRegistrar = value;
+      if (child is ElRenderView) (child.content as TextEngine?)?.bindSelectionRegistrar(value);
     }
     for (final entry in _sparseHostedChildren.values.followedBy(_sparseHostedCache?.values ?? const [])) {
       final child = entry.render;
-      if (child is ElRenderView) child.selectionRegistrar = value;
+      if (child is ElRenderView) (child.content as TextEngine?)?.bindSelectionRegistrar(value);
     }
   }
 
@@ -1466,7 +1466,9 @@ class _RenderTableGridRow extends RenderBox
   RenderBox _createHostedRender(_TableHostedCell cell) {
     final ordinal = cell.value;
     if (ordinal is _TableHostedOrdinal) return _RenderTableOrdinalCell(cell.style, _createOrdinalRender(ordinal));
-    return ElRenderView(style: cell.style, child: ordinal)..selectionRegistrar = _selectionRegistrar;
+    final render = ElRenderView(style: cell.style)..updateContent(ordinal);
+    (render.content as TextEngine?)?.bindSelectionRegistrar(_selectionRegistrar);
+    return render;
   }
 
   bool _updateHostedRender(RenderBox render, _TableHostedCell cell) {
@@ -1479,7 +1481,8 @@ class _RenderTableGridRow extends RenderBox
     if (render is ElRenderView && ordinal is! _TableHostedOrdinal) {
       render
         ..style = cell.style
-        ..setTextPayload(ordinal);
+        ..updateContent(ordinal);
+      (render.content as TextEngine?)?.bindSelectionRegistrar(_selectionRegistrar);
       return true;
     }
     return false;
