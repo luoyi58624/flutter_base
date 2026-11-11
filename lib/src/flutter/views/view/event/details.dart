@@ -119,7 +119,7 @@ class ElEventDetails({
   /// 释放速度。
   final Velocity velocity = Velocity.zero,
 
-  /// Flutter 识别器的主轴释放速度。
+  /// 轴向拖拽的主轴释放速度。
   final double? primaryVelocity,
 
   /// 当前触点数量。
@@ -128,7 +128,7 @@ class ElEventDetails({
   /// 指针按键位。
   final int buttons = 0,
 
-  /// Flutter 连击计数。
+  /// 连击计数。
   final int tapCount = 0,
 
   /// 本段缩放比例。
@@ -188,38 +188,25 @@ class ElEventDetails({
   /// 当前全局纵坐标。
   double get globalY => globalPosition.dy;
 
-  ElEventDetails? _control;
   bool _stopped = false, _prevented = false, _focusPreserved = false, _keyboardTapMatched = false;
   Offset Function(Offset)? _toLocalDelta;
 
   /// 当前阶段是否已停止传播。
-  bool get propagationStopped => (_control ?? this)._stopped;
+  bool get propagationStopped => _stopped;
 
   /// 当前阶段是否已拒绝默认动作。
-  bool get defaultPrevented => (_control ?? this)._prevented;
+  bool get defaultPrevented => _prevented;
 
-  /// 停止当前阶段的后续 ElEvent 派发。
-  void stopPropagation() => (_control ?? this)._stopped = true;
+  /// 停止向外层节点传播；在按下阶段调用时，外层不再参与本次点击或拖拽。
+  void stopPropagation() => _stopped = true;
 
   /// 拒绝当前阶段的组件默认动作。
-  void preventDefault() => (_control ?? this)._prevented = true;
+  void preventDefault() => _prevented = true;
 
   /// 指针按下时保留现有焦点。
-  void preserveFocus() => (_control ?? this)._focusPreserved = true;
+  void preserveFocus() => _focusPreserved = true;
 
-  /// 旧组件的传播截断入口，两个旧参数不再影响手势归属。
-  void eagerGesture({bool cancelSelfTap = false, bool allowScaleUpgrade = false}) => stopPropagation();
-
-  /// 旧版组件的拖拽代理状态。
-  bool get dragPipelineActive => false;
-
-  /// 旧版组件的边界交接状态。
-  bool get dragBoundaryHandoff => false;
-
-  /// 旧版组件的祖先余量消费状态。
-  bool get hasAncestorDragConsumer => false;
-
-  /// 消费同方向的位移，最多消耗当前余量。
+  /// 消费同方向的位移，最多消耗当前余量，外层收到剩余部分。
   void consumeDelta(Offset requested) {
     final consumed = Offset(_consumed(remainingDelta.dx, requested.dx), _consumed(remainingDelta.dy, requested.dy));
     if (consumed == Offset.zero) return;
@@ -241,11 +228,10 @@ class ElEventDetails({
   double remainingPrimaryDelta(Axis axis) => axis == .horizontal ? remainingDelta.dx : remainingDelta.dy;
 }
 
-/// 供包内宿主转接传播、坐标和键盘按压状态。
+/// 供包内宿主读取焦点保留、键盘按压和局部位移换算。
 extension EventDetailsAccess on ElEventDetails {
-  bool get focusPreserved => (_control ?? this)._focusPreserved;
+  bool get focusPreserved => _focusPreserved;
   bool get keyboardTapMatched => _keyboardTapMatched;
   set keyboardTapMatched(bool value) => _keyboardTapMatched = value;
-  void shareControl(ElEventDetails source) => _control = source._control ?? source;
   void resolveLocalDelta(Offset Function(Offset) resolver) => _toLocalDelta = resolver;
 }

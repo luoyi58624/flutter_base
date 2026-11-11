@@ -153,7 +153,7 @@ class _DraggableState<T extends Object> extends State<ElDraggable<T>> {
   }
 
   void _onStart(ElEventDetails e) {
-    e.eagerGesture(cancelSelfTap: true);
+    e.stopPropagation();
     final snapshot = _ensureSnapshot();
     final customGhost = widget.ghostBuilder;
     final WidgetBuilder? ghostBuilder = !widget.showGhost

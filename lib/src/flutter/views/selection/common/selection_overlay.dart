@@ -619,7 +619,7 @@ class _HandlesLayerState extends State<_HandlesLayer> {
             if (event is! PointerDownEvent || !widget.controls.acceptsHandlePointer(event.kind)) {
               return;
             }
-            callback.eagerGesture(cancelSelfTap: true);
+            callback.stopPropagation();
             callback.stopPropagation();
             widget.onHandleDragBegin(endpoint.side, event.position, pointer: event.pointer, kind: event.kind);
           },

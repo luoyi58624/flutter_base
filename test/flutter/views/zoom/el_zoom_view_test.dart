@@ -8,7 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   Future<void> pumpZoom(
     WidgetTester tester, {

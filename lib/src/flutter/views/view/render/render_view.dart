@@ -21,6 +21,7 @@ import '../../../utils/internal/bit_mask.dart';
 import '../../../utils/internal/layout_reference.dart';
 import '../../selection/common/selection_core.dart';
 import '../event/dispatcher.dart';
+import '../event/drag_pointer_lock.dart';
 import '../event/event.dart';
 import '../semantics/render_semantics.dart';
 import '../semantics/semantics.dart';
@@ -926,6 +927,7 @@ class ElRenderView extends RenderBox
     final d = EventDispatcher(this);
     d.onTapChanged = setTap;
     d.localPositionResolver = _resolveEventLocalPosition;
+    d.hitBoundsContainsGlobal = _tapBoundsContainsGlobal;
     _eventDispatcher = d;
     _markPaintForDispatcherPresenceChange();
     return d;
@@ -937,6 +939,27 @@ class ElRenderView extends RenderBox
   /// 本身不影响 layer 结构，不做合成位失效。
   void _markPaintForDispatcherPresenceChange() {
     markNeedsPaint();
+  }
+
+  /// 边界口径 tap 判定用：全局坐标是否落在本节点的视觉盒内。
+  bool _tapBoundsContainsGlobal(Offset globalPosition) {
+    if (!hasSize) return true;
+    // globalToLocal 只走到父寻址空间，变换后的口径再补一次自身反变换，与 hitTest 的落点对齐。
+    final parentSpace = globalToLocal(globalPosition);
+    if (_tapBoundsContainsLocal(parentSpace)) return true;
+    final transform = _effectivePaintTransform();
+    if (transform == null) return false;
+    final inverted = Matrix4.tryInvert(transform);
+    // 矩阵退化时无从判定，按在范围内放行，宁可不熄按压态也不误杀点击。
+    if (inverted == null) return true;
+    return _tapBoundsContainsLocal(MatrixUtils.transformPoint(inverted, parentSpace));
+  }
+
+  bool _tapBoundsContainsLocal(Offset local) {
+    if (!_boxRect.contains(local)) return false;
+    final clipper = _committedResolved.box.clipPath;
+    if (clipper != null) return clipper.getClip(_boxSize).contains(local - _boxOrigin);
+    return _containsClipRRectForHitTest(local);
   }
 
   Offset _resolveEventLocalPosition(RenderBox target, Offset globalPosition, ElEventDetails? callback) {

@@ -41,7 +41,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
 import '../../views/layout/stack/stack_view.dart' show ElPositioned;
-import '../../views/view/event/dispatcher.dart' show DragPointerLock;
+import '../../views/view/event/drag_pointer_lock.dart';
 import '../../views/view/event/event.dart';
 import '../../views/view/render/hit_bounds.dart';
 import '../../views/view/semantics/semantics.dart';
@@ -891,7 +891,7 @@ class _ScrollbarAxisState extends State<_ScrollbarAxis> {
     if (geometry == null) return;
     final onThumb = _onThumbMainSpan(localPosition, geometry);
     if (!onThumb && !widget.scrollbar.resolveTrackTapJumps(context, widget.axis)) return;
-    callback.eagerGesture(cancelSelfTap: true);
+    callback.stopPropagation();
 
     final pressDuration = widget.scrollbar.resolvePressDuration(context, widget.axis);
     if (pressDuration <= Duration.zero) {
@@ -1270,7 +1270,7 @@ class _ScrollbarButtonState extends State<_ScrollbarButton> with SingleTickerPro
   void _handleDown(ElEventDetails callback) {
     callback.stopPropagation();
     if (!_enabled || _pressed) return;
-    callback.eagerGesture(cancelSelfTap: true);
+    callback.stopPropagation();
     setState(() => _pressed = true);
     if (!_canScroll) return;
     _reportedPress = true;

@@ -9,7 +9,7 @@ import 'support/dispatcher_test_host.dart';
 import 'support/event_widget_test_host.dart';
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   group('ElView wires event to render dispatcher', () {
     testWidgets('without event the dispatcher is not allocated', (tester) async {
@@ -338,13 +338,152 @@ void main() {
       expect(starts, 1);
     });
 
+    testWidgets('updating event cancels pending deferred tap', (tester) async {
+      var oldTaps = 0;
+      var newTaps = 0;
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: .new(deferTap: true, onTap: (_) => oldTaps++, onDoubleTap: (_) {}),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+      expect(oldTaps, 0);
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: .new(onTap: (_) => newTaps++),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(oldTaps, 0);
+      expect(newTaps, 0, reason: '旧 event 排队的 deferred tap 不能在 rebuild 后打到新 event。');
+    });
+
+    testWidgets('rebuilding equivalent event keeps deferred tap pending', (tester) async {
+      var taps = 0;
+      void tap(ElEventDetails event) => taps++;
+      void doubleTap(ElEventDetails event) {}
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(deferTap: true, onTap: tap, onDoubleTap: doubleTap),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+      expect(taps, 0);
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(deferTap: true, onTap: tap, onDoubleTap: doubleTap),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(taps, 1);
+    });
+
+    testWidgets('shape-equal event replacement keeps consecutive tap window', (tester) async {
+      var doubleTaps = 0;
+      void oldTap(ElEventDetails event) {}
+      void newTap(ElEventDetails event) {}
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTap: oldTap, onDoubleTap: (_) => doubleTaps++),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump(const Duration(milliseconds: 40));
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTap: newTap, onDoubleTap: (_) => doubleTaps++),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+
+      // shape 相等的替换（典型：rebuild 传新内联闭包）是热替换：连击窗口
+      // 完整保留，第二击构成双击——修复旧实现 rebuild 杀双击窗口的缺陷。
+      expect(doubleTaps, 1);
+    });
+
+    testWidgets('structural event replacement resets consecutive tap window', (tester) async {
+      var doubleTaps = 0;
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTap: (_) {}, onDoubleTap: (_) => doubleTaps++),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump(const Duration(milliseconds: 40));
+
+      // onTapDown 从无到有 → shape 变化 → 结构替换丢弃离散 pending（连击窗口）。
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTapDown: (_) {}, onTap: (_) {}, onDoubleTap: (_) => doubleTaps++),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+
+      expect(doubleTaps, 0);
+    });
+
+    testWidgets('drag-only event replacement keeps consecutive tap window', (tester) async {
+      var doubleTaps = 0;
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTap: (_) {}, onDoubleTap: (_) => doubleTaps++),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump(const Duration(milliseconds: 40));
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onTap: (_) {}, onDoubleTap: (_) => doubleTaps++, onDragStart: (_) {}),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+
+      expect(doubleTaps, 1, reason: '仅挂载 Drag 不应破坏与它无关的连击状态');
+    });
+
     testWidgets('event replacement after accepted long press does not turn release into tap', (tester) async {
       final host = DispatcherTestHost.chain();
       addTearDown(host.dispose);
       final phases = <String>[];
       final dispatcher = host.leafDispatcher
         ..event = ElEvent(
-          config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+          longPressDelay: Duration(milliseconds: 20),
           onLongPress: (event) {
             phases.add('old:${event.phase.name}');
           },
@@ -361,17 +500,17 @@ void main() {
       expect(phases, <String>['old:longPress']);
     });
 
-    testWidgets('长按后挂载的拖拽从下一次 PointerDown 开始识别', (tester) async {
+    testWidgets('长按回调动态挂载 Drag 后当前指针继续完成拖拽生命周期', (tester) async {
       final host = DispatcherTestHost.chain();
       addTearDown(host.dispose);
       final phases = <ElEventPhase>[];
       final dispatcher = host.leafDispatcher;
       dispatcher.event = ElEvent(
-        config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+        longPressDelay: Duration(milliseconds: 20),
         onLongPress: (event) {
           phases.add(event.phase);
           dispatcher.event = ElEvent(
-            config: const ElEventConfig(dragStartDistance: 4),
+            dragStartDistance: 4,
             onDragStart: (event) => phases.add(event.phase),
             onDragUpdate: (event) => phases.add(event.phase),
             onDragEnd: (event) => phases.add(event.phase),
@@ -420,13 +559,136 @@ void main() {
         ),
       );
 
-      expect(phases, <ElEventPhase>[ElEventPhase.longPress]);
+      expect(phases, <ElEventPhase>[
+        ElEventPhase.longPress,
+        ElEventPhase.dragStart,
+        ElEventPhase.dragUpdate,
+        ElEventPhase.dragEnd,
+      ]);
+    });
 
-      final next = TestPointer(2);
-      host.dispatch(next.down(Offset.zero));
-      host.dispatch(next.move(Offset(0, 20)));
-      host.dispatch(next.up());
-      expect(phases, <ElEventPhase>[ElEventPhase.longPress, ElEventPhase.dragStart, ElEventPhase.dragEnd]);
+    testWidgets('长按未认领时取消激活且下一次仍可动态挂载 Drag', (tester) async {
+      final host = DispatcherTestHost.chain();
+      addTearDown(host.dispose);
+      final phases = <ElEventPhase>[];
+      final dispatcher = host.leafDispatcher;
+      var canActivate = false;
+      dispatcher.event = ElEvent(
+        longPressDelay: Duration(milliseconds: 20),
+        onLongPress: (event) {
+          phases.add(event.phase);
+          if (!canActivate) {
+            event.preventDefault();
+            return;
+          }
+          dispatcher.event = ElEvent(
+            dragStartDistance: 4,
+            onDragStart: (event) => phases.add(event.phase),
+            onDragUpdate: (event) => phases.add(event.phase),
+            onDragEnd: (event) => phases.add(event.phase),
+            onDragCancel: (event) => phases.add(event.phase),
+          );
+        },
+      );
+
+      host.dispatch(
+        const PointerDownEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset.zero,
+          timeStamp: Duration.zero,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 21));
+
+      expect(phases, <ElEventPhase>[ElEventPhase.longPress]);
+      expect(dispatcher.event?.onDragStart, isNull, reason: '未命中文本时不认领长按，也不挂载 Drag');
+
+      host.dispatch(
+        const PointerMoveEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset(0, 24),
+          delta: Offset(0, 24),
+          timeStamp: Duration(milliseconds: 30),
+        ),
+      );
+      host.dispatch(
+        const PointerUpEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset(0, 24),
+          timeStamp: Duration(milliseconds: 40),
+        ),
+      );
+      await tester.pump();
+
+      expect(phases, <ElEventPhase>[ElEventPhase.longPress], reason: '拒绝长按后移动不得产生任何 Drag 生命周期');
+
+      canActivate = true;
+      host.dispatch(
+        const PointerDownEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset.zero,
+          timeStamp: Duration(milliseconds: 100),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 21));
+      host.dispatch(
+        const PointerMoveEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(0, 12),
+          delta: Offset(0, 12),
+          timeStamp: Duration(milliseconds: 130),
+        ),
+      );
+      host.dispatch(
+        const PointerMoveEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(0, 24),
+          delta: Offset(0, 12),
+          timeStamp: Duration(milliseconds: 140),
+        ),
+      );
+      host.dispatch(
+        const PointerUpEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(0, 24),
+          timeStamp: Duration(milliseconds: 150),
+        ),
+      );
+
+      expect(phases, <ElEventPhase>[
+        ElEventPhase.longPress,
+        ElEventPhase.longPress,
+        ElEventPhase.dragStart,
+        ElEventPhase.dragUpdate,
+        ElEventPhase.dragEnd,
+      ]);
+    });
+
+    testWidgets('removing event cancels pending deferred tap', (tester) async {
+      var taps = 0;
+
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: .new(deferTap: true, onTap: (_) => taps++, onDoubleTap: (_) {}),
+        ),
+      );
+      await tester.tap(find.byType(ElView));
+      await tester.pump();
+      expect(taps, 0);
+
+      await pumpEventView(tester, ElView(style: eventTestDefaultStyle));
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(taps, 0);
     });
 
     testWidgets('replacing event cancels active scale before rewiring callbacks', (_) async {
@@ -482,11 +744,11 @@ void main() {
       final dispatcher = host.leafDispatcher;
       var longPresses = 0;
       dispatcher.event = ElEvent(
-        config: const ElEventConfig(),
+        
         onScaleStart: (_) {},
         onScaleCancel: (_) {
           dispatcher.event = ElEvent(
-            config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+            longPressDelay: Duration(milliseconds: 20),
             onLongPress: (_) => longPresses++,
           );
         },
@@ -526,7 +788,7 @@ void main() {
       scale.moveTo(const Offset(12, 16));
       scale.end();
 
-      expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleUpdate, ElEventPhase.scaleCancel]);
+      expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleCancel]);
     });
 
     testWidgets('replacing active scale with non scale event preserves scaleCancel reentrant replacement', (_) async {
@@ -554,32 +816,26 @@ void main() {
       expect(dispatcher.event, same(replacement));
     });
 
-    testWidgets('replacing active drag with non drag event dispatches dragCancel', (tester) async {
+    testWidgets('replacing active pointerPanZoom preserves end reentrant replacement', (_) async {
       final host = DispatcherTestHost.chain();
       addTearDown(host.dispose);
       final dispatcher = host.leafDispatcher;
+      final replacement = ElEvent(onTap: (_) {});
       final phases = <ElEventPhase>[];
       dispatcher.event = .new(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) => phases.add(event.phase),
-        onDragCancel: (event) => phases.add(event.phase),
+        onPointerPanZoomStart: (event) => phases.add(event.phase),
+        onPointerPanZoomEnd: (event) {
+          phases.add(event.phase);
+          dispatcher.event = replacement;
+        },
       );
 
-      const down = PointerDownEvent(pointer: 1, position: Offset.zero, buttons: kPrimaryButton);
-      host.dispatch(down);
-      expect(dispatcher.activePointerCount, 1);
-      const move = PointerMoveEvent(pointer: 1, position: Offset(0, 4), delta: Offset(0, 4), buttons: kPrimaryButton);
-      host.dispatch(move);
-      expect(dispatcher.isTapPressed, isFalse);
-      expect(dispatcher.activePointerCount, 1);
-
+      const start = PointerPanZoomStartEvent(pointer: 4, position: Offset(5, 6));
+      host.dispatch(start);
       dispatcher.event = .new(onTap: (_) {});
 
-      expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-      // 手势取消后，原始按压仍沿 Flutter 命中链走到抬手。
-      expect(dispatcher.activePointerCount, 1);
-      host.dispatch(const PointerUpEvent(pointer: 1, position: Offset(0, 4), buttons: kPrimaryButton));
-      expect(dispatcher.activePointerCount, 0);
+      expect(phases, <ElEventPhase>[ElEventPhase.pointerPanZoomStart, ElEventPhase.pointerPanZoomEnd]);
+      expect(dispatcher.event, same(replacement));
     });
 
     testWidgets('disposing dispatcher cancels active scale', (_) async {
@@ -622,6 +878,36 @@ void main() {
 
       expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleEnd]);
     });
+
+    testWidgets('event removal does not overwrite event set by terminal callback', (tester) async {
+      final host = DispatcherTestHost.chain();
+      addTearDown(host.dispose);
+      final dispatcher = host.leafDispatcher;
+      final replacement = ElEvent(onTap: (_) {});
+      final phases = <ElEventPhase>[];
+      dispatcher.event = .new(
+        dragStartDistance: 0,
+        onDragStart: (event) => phases.add(event.phase),
+        onDragCancel: (_) {
+          phases.add(ElEventPhase.dragCancel);
+          dispatcher.event = replacement;
+        },
+      );
+      host.dispatch(const PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero));
+      host.dispatch(
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(0, 20),
+          delta: Offset(0, 20),
+          timeStamp: Duration(milliseconds: 16),
+        ),
+      );
+
+      dispatcher.event = null;
+
+      expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragCancel]);
+      expect(dispatcher.event, same(replacement));
+    });
   });
 
   group('ElView interaction-state wiring', () {
@@ -645,7 +931,11 @@ void main() {
       expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFF0000FF));
       await gesture.up();
       await tester.pump();
+      expect(box.committedResolvedStyle.box.backgroundColor, Color(0xFF0000FF));
+      await tester.pump(Duration(milliseconds: 100));
       expect(box.committedResolvedStyle.box.backgroundColor, const Color(0xFFFF0000));
+      // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+      await tester.pump(Duration(milliseconds: 100));
     });
 
     testWidgets('selecting another tab clears the previous tab hover state', (tester) async {
@@ -799,6 +1089,40 @@ void main() {
       expect(taps, 1);
       expect(BenchmarkProbe.eventDispatcherInstantiateCount, 100);
       expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
+      // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+      await tester.pump(Duration(milliseconds: 200));
+    });
+
+    testWidgets('声明拖拽时创建变换识别器，祖先随变换链补建', (tester) async {
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: ElEvent(onDragStart: (_) {}),
+        ),
+      );
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 1);
+
+      BenchmarkProbe.reset();
+      final phases = <String>[];
+      await pumpEventView(
+        tester,
+        ElView(
+          key: ValueKey('outer'),
+          style: ElStyle(width: 200, height: 200),
+          event: ElEvent(onTap: (_) => phases.add('outer.tap')),
+          child: ElView(
+            style: eventTestDefaultStyle,
+            event: ElEvent(onDragStart: (_) => phases.add('inner.dragStart')),
+          ),
+        ),
+      );
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 2, reason: '后代持有变换识别器时祖先一并创建，竞技场分组和拖拽合作沿该链判断');
+
+      await tester.dragFrom(Offset(50, 50), Offset(0, 40));
+      await tester.pump();
+      expect(phases, contains('inner.dragStart'));
+      await tester.pump(Duration(milliseconds: 200));
     });
   });
 }

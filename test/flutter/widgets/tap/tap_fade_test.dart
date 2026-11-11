@@ -12,7 +12,7 @@ void main() {
     bool disabled = false,
     ElStyle? style,
     double opacity = 0.2,
-    ElEventConfig? config,
+    Duration delayTouchUp = Duration.zero,
   }) => Directionality(
     textDirection: .ltr,
     child: Center(
@@ -20,7 +20,7 @@ void main() {
         onPressed: onPressed,
         disabled: disabled,
         style: ElStyle(width: 100, height: 60).merge(style).withTapFade(opacity),
-        event: ElEvent(config: config),
+        event: ElEvent(delayTouchUp: delayTouchUp),
         child: '淡化',
       ),
     ),
@@ -66,7 +66,7 @@ void main() {
     });
   });
 
-  testWidgets('轻触松手立即开始 250ms 恢复', (tester) async {
+  testWidgets('关闭反馈保持后，轻触松手立即开始 250ms 恢复', (tester) async {
     var taps = 0;
     var builds = 0;
     await tester.pumpWidget(
@@ -99,28 +99,23 @@ void main() {
     expect(builds, 1, reason: '淡化帧由样式引擎处理，不触发 Widget 重建');
   });
 
-  testWidgets('旧版触摸延迟配置不改变按压和释放反馈时机', (tester) async {
+  testWidgets('默认触摸保持仍由事件机制管理，不延迟点击', (tester) async {
     var taps = 0;
-    await tester.pumpWidget(
-      build(
-        onPressed: () => taps++,
-        config: ElEventConfig(delayTouchDown: Duration(seconds: 1), delayTouchUp: Duration(seconds: 1)),
-      ),
-    );
+    await tester.pumpWidget(build(onPressed: () => taps++, delayTouchUp: Duration(milliseconds: 100)));
     final render = renderOf(tester);
     final gesture = await tester.startGesture(tester.getCenter(button));
     await tester.pump();
-    expect(render.committedResolvedStyle.box.opacity, 0.2);
     await gesture.up();
     await tester.pump();
     expect(taps, 1);
     await tester.pump(Duration(milliseconds: 50));
-    expect(render.committedResolvedStyle.box.opacity, closeTo(recovered(0.2, 1, 0.2), 0.00001));
-    await tester.pump(Duration(milliseconds: 200));
+    expect(render.committedResolvedStyle.box.opacity, 0.2);
+    await tester.pump(Duration(milliseconds: 50));
+    await tester.pump(Duration(milliseconds: 250));
     expect(render.committedResolvedStyle.box.opacity, isNull);
   });
 
-  testWidgets('移出超出容差后，移回保持常态', (tester) async {
+  testWidgets('移出恢复，重新移入立即变淡，松手后恢复', (tester) async {
     var taps = 0;
     await tester.pumpWidget(build(onPressed: () => taps++));
     final render = renderOf(tester);
@@ -134,10 +129,13 @@ void main() {
 
     await gesture.moveTo(center);
     await tester.pump();
-    expect(render.committedResolvedStyle.box.opacity, isNull);
+    expect(render.committedResolvedStyle.box.opacity, 0.2);
     await gesture.up();
     await tester.pump();
-    expect(taps, 0);
+    expect(taps, 1);
+    await tester.pump(Duration(milliseconds: 125));
+    expect(render.committedResolvedStyle.box.opacity, closeTo(recovered(0.2, 1, 0.5), 0.00001));
+    await tester.pump(Duration(milliseconds: 125));
     expect(render.committedResolvedStyle.box.opacity, isNull);
   });
 
@@ -232,7 +230,7 @@ void main() {
           child: Center(
             child: ElButtonView(
               style: style,
-              event: ElEvent(config: ElEventConfig(delayTouchUp: Duration.zero)),
+              event: ElEvent(delayTouchUp: Duration.zero),
             ),
           ),
         ),

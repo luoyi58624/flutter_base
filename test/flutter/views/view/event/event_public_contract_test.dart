@@ -9,82 +9,9 @@ import 'support/dispatcher_test_host.dart';
 import 'support/event_widget_test_host.dart';
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   group('ElEvent flags', () {
-    test('生成配置保留未声明值，显式 null 恢复默认或设备自适应', () {
-      final empty = ElEventConfig();
-      expect(empty.copyWith(), empty);
-      final configured = empty.copyWith(
-        delayTouchUp: Duration(milliseconds: 250),
-        tapCancelByDistance: true,
-        dragStartDistance: 12,
-      );
-      expect(configured.delayTouchUp, Duration(milliseconds: 250));
-      expect(configured.dragStartDistance, 12);
-      expect(configured.copyWith(delayTouchUp: null, tapCancelByDistance: null, dragStartDistance: null), empty);
-      expect(configured.merge(empty), configured);
-      expect(configured.merge(ElEventConfig(delayTouchUp: Duration.zero)).delayTouchUp, Duration.zero);
-    });
-
-    test('生成事件合并保留不同回调并合并嵌套声明', () {
-      void tap(ElEventDetails event) {}
-      void down(ElEventDetails event) {}
-      final base = ElEvent(
-        config: ElEventConfig(dragStartDistance: 12),
-        dragProxy: ElDragProxy(onDragPreUpdate: tap),
-        onTap: tap,
-      );
-      final merged = base.merge(
-        ElEvent(
-          config: ElEventConfig(delayTouchUp: Duration.zero),
-          dragProxy: ElDragProxy(onDragOverflow: down),
-          onPointerDown: down,
-        ),
-      );
-      expect(merged.onTap, same(tap));
-      expect(merged.onPointerDown, same(down));
-      expect(merged.config?.dragStartDistance, 12);
-      expect(merged.config?.delayTouchUp, Duration.zero);
-      expect(merged.dragProxy?.onDragPreUpdate, same(tap));
-      expect(merged.dragProxy?.onDragOverflow, same(down));
-      expect(merged.dragProxy!.copyWith(onDragPreUpdate: null).onDragPreUpdate, isNull);
-      final cleared = merged.copyWith(config: null, dragProxy: null, onTap: null);
-      expect(cleared.config, isNull);
-      expect(cleared.dragProxy, isNull);
-      expect(cleared.onTap, isNull);
-      expect(cleared.onPointerDown, same(down));
-    });
-
-    test('cursor 与 disabled 参与复制、清除与等值，识别结构保持不变', () {
-      final event = ElEvent(cursor: SystemMouseCursors.click, disabled: true, onTap: (_) {});
-      expect(event.copyWith().cursor, SystemMouseCursors.click);
-      expect(event.copyWith().disabled, isTrue);
-      expect(event.copyWith(cursor: null).cursor, isNull);
-      final changed = event.copyWith(cursor: SystemMouseCursors.text, disabled: false);
-      expect(changed.cursor, SystemMouseCursors.text);
-      expect(changed.disabled, isFalse);
-      expect(changed, isNot(event));
-      expect(changed.hasSameGestureShape(event), isTrue);
-      final cleared = event.copyWith(cursor: null);
-      expect(cleared.cursor, isNull);
-      expect(cleared.disabled, isTrue);
-      expect(cleared.onTap, same(event.onTap));
-    });
-
-    test('命中行为参与复制与等值，但不打断既有 Tap 配置', () {
-      void tap(ElEventDetails e) {}
-      final event = ElEvent(onTap: tap);
-      expect(event.behavior, HitTestBehavior.opaque);
-      final changed = event.copyWith(behavior: HitTestBehavior.translucent);
-      expect(changed.behavior, HitTestBehavior.translucent);
-      expect(changed.onTap, same(tap));
-      expect(changed, isNot(event));
-      expect(changed, event.copyWith(behavior: HitTestBehavior.translucent));
-      expect(changed.hashCode, event.copyWith(behavior: HitTestBehavior.translucent).hashCode);
-      expect(changed.hasSameGestureShape(event), isTrue);
-    });
-
     test('hasAnyCallback is false on empty event, true with any handler', () {
       expect(const ElEvent().hasAnyCallback, isFalse);
       expect(ElEvent(onTap: (_) {}).hasAnyCallback, isTrue);
@@ -107,53 +34,6 @@ void main() {
       expect(ElEvent(onFocus: (_) {}).hasTapLikeCallback, isFalse);
     });
 
-    test('copyWith/merge/equality include drag tuning fields', () {
-      const event = ElEvent(config: ElEventConfig(dragMinFlingDistance: 12));
-
-      expect(event.copyWith(config: const ElEventConfig(dragMinFlingDistance: 24)).config?.dragMinFlingDistance, 24);
-      expect(
-        event.merge(const ElEvent(config: ElEventConfig(dragMinFlingDistance: 36))).config?.dragMinFlingDistance,
-        36,
-      );
-      expect(event, const ElEvent(config: ElEventConfig(dragMinFlingDistance: 12)));
-      expect(event, isNot(const ElEvent(config: ElEventConfig(dragMinFlingDistance: 13))));
-      expect(
-        ElEvent(config: ElEventConfig(dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse})),
-        ElEvent(config: ElEventConfig(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch})),
-      );
-    });
-
-    test('copyWith null removes nullable handlers', () {
-      void tap(ElEventDetails event) {}
-      void dragStart(ElEventDetails event) {}
-      void pointerSignal(ElEventDetails event) {}
-      final event = ElEvent(onTap: tap, onVerticalDragStart: dragStart, onPointerSignal: pointerSignal);
-
-      final kept = event.copyWith();
-      expect(kept.onTap, same(tap));
-      expect(kept.onVerticalDragStart, same(dragStart));
-      expect(kept.onPointerSignal, same(pointerSignal));
-
-      final cleared = event.copyWith(onTap: null, onVerticalDragStart: null, onPointerSignal: null);
-      expect(cleared.onTap, isNull);
-      expect(cleared.onVerticalDragStart, isNull);
-      expect(cleared.onPointerSignal, isNull);
-      expect(cleared.config, event.config);
-    });
-
-    test('merge preserves nullable fields when other config has nulls', () {
-      void tap(ElEventDetails event) {}
-      void pointerDown(ElEventDetails event) {}
-      final base = ElEvent(onHorizontalDragStart: (_) {}, onTap: tap, onPointerDown: pointerDown);
-      final merged = base.merge(
-        ElEvent(config: const ElEventConfig(dragStartDistance: 24), onPointerDown: pointerDown),
-      );
-
-      expect(merged.onTap, same(tap));
-      expect(merged.onHorizontalDragStart, same(base.onHorizontalDragStart));
-      expect(merged.onPointerDown, same(pointerDown));
-      expect(merged.config?.dragStartDistance, 24);
-    });
   });
 
   testWidgets('只更新 cursor 不打断已按下的鼠标侧键', (tester) async {
@@ -204,7 +84,7 @@ void main() {
       ElView(
         style: eventTestDefaultStyle,
         event: .new(
-          config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+          longPressDelay: Duration(milliseconds: 20),
           onLongPress: (event) {
             originalEvent = event.originalEvent;
             buttons = event.buttons;
@@ -279,6 +159,68 @@ void main() {
       await tester.tap(find.byType(ElView));
       await tester.pump();
       expect(captured, 1);
+    });
+
+    testWidgets('onDoubleTap reports tapCount 2', (tester) async {
+      int? captured;
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: .new(onDoubleTap: (event) => captured = event.tapCount),
+        ),
+      );
+      await tester.tapAt(const Offset(30, 30));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(const Offset(30, 30));
+      await tester.pumpAndSettle();
+      expect(captured, 2);
+    });
+
+    testWidgets('onDoubleTap preserves second-down metadata', (tester) async {
+      Object? originalEvent;
+      int? buttons;
+      int? tapCount;
+      await pumpEventView(
+        tester,
+        ElView(
+          style: eventTestDefaultStyle,
+          event: .new(
+            onDoubleTap: (event) {
+              originalEvent = event.originalEvent;
+              buttons = event.buttons;
+              tapCount = event.tapCount;
+            },
+          ),
+        ),
+      );
+
+      await tester.tapAt(const Offset(30, 30), pointer: 31, buttons: kPrimaryButton);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(const Offset(30, 30), pointer: 32, buttons: kPrimaryButton);
+      await tester.pumpAndSettle();
+
+      expect(originalEvent, isA<PointerDownEvent>());
+      expect((originalEvent! as PointerDownEvent).pointer, 32);
+      expect(buttons, kPrimaryButton);
+      expect(tapCount, 2);
+    });
+
+    test('onTripleTap reports tapCount 3', () {
+      int? captured;
+      final host = DispatcherTestHost.chain();
+      addTearDown(host.dispose);
+      host.leafDispatcher.event = ElEvent(onTripleTap: (event) => captured = event.tapCount);
+
+      void sendTap(Duration at) {
+        host.dispatch(PointerDownEvent(position: const Offset(3, 4), timeStamp: at));
+        host.dispatch(PointerUpEvent(position: const Offset(3, 4), timeStamp: at));
+      }
+
+      sendTap(Duration.zero);
+      sendTap(const Duration(milliseconds: 50));
+      sendTap(const Duration(milliseconds: 100));
+      expect(captured, 3);
     });
 
     testWidgets('TapDown and TapUp always report tapCount 0', (tester) async {
@@ -399,10 +341,22 @@ void main() {
               alignment: Alignment.topLeft,
               child: Row(
                 children: <Widget>[
-                  ElView(style: eventTestDefaultStyle, focusNode: first),
-                  ElView(style: eventTestDefaultStyle, focusNode: skipped),
-                  ElView(style: eventTestDefaultStyle, focusNode: second),
-                  ElView(style: eventTestDefaultStyle, focusNode: third),
+                  ElView(
+                    style: eventTestDefaultStyle,
+                    focusNode: first,
+                  ),
+                  ElView(
+                    style: eventTestDefaultStyle,
+                    focusNode: skipped,
+                  ),
+                  ElView(
+                    style: eventTestDefaultStyle,
+                    focusNode: second,
+                  ),
+                  ElView(
+                    style: eventTestDefaultStyle,
+                    focusNode: third,
+                  ),
                 ],
               ),
             ),

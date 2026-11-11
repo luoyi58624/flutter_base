@@ -628,15 +628,16 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
       // 贴边继续外拉：位移全被边界物理吃掉。三态裁决照 scroll_drag_controller：
       // 有外层拖拽消费者且本手势尚未接管 → 让渡（嵌套 tab / 外层横滑接管）；
       // 自己是顶层 → 接管手势（停动画、屏蔽页内命中、按帧记账）并报越界。
-      if (event != null && event.hasAncestorDragConsumer && !_dragConsumedInGesture) return 0.0;
-      event?.eagerGesture(cancelSelfTap: true);
+      // 本手势尚未消费过位移：不截断，余量交给外层横滑（嵌套 tab）；已接管才报越界。
+      if (event != null && !_dragConsumedInGesture) return 0.0;
+      event?.stopPropagation();
       _takeOverDrag();
       _ensureScrollStart();
       _dispatchOverscroll(overscroll, event: event);
       return 0.0;
     }
     // 先接管（停动画 + 以当刻位置为基准），再写入本次位移。
-    event?.eagerGesture(cancelSelfTap: true);
+    event?.stopPropagation();
     _takeOverDrag();
     _ensureScrollStart();
     final adjusted = newPixels / extent;
@@ -923,7 +924,8 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
     );
     return _TabEventSurface(
       event: ElEvent(
-        config: ElEventConfig(dragStartDistance: widget.dragStartDistance),
+        dragStartDistance: widget.dragStartDistance ?? MediaQuery.maybeGestureSettingsOf(context)?.touchSlop,
+        dragDevices: _dragDevices,
         onHorizontalDragStart: _handleDragStart,
         onHorizontalDragUpdate: _handleDragUpdate,
         onHorizontalDragEnd: _handleDragEnd,
@@ -932,8 +934,6 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
         onPointerPanZoomUpdate: _handlePanZoomUpdate,
         onPointerPanZoomEnd: _handlePanZoomEnd,
       ),
-      dragDevices: _dragDevices,
-      gestureSettings: MediaQuery.maybeGestureSettingsOf(context),
       // 越界视效交环境 ScrollConfiguration 收口（与 ElScroll 同源）：
       // Android M3 出 stretch、旧主题出 glow、iOS / 桌面不建 indicator
       // （iOS 的越界视效由 bouncing 物理本身承担）。indicator 的
@@ -1233,57 +1233,29 @@ final class _RenderTabPage extends RenderProxyBox {
 }
 
 class _TabEventSurface extends SingleChildRenderObjectWidget {
-  const _TabEventSurface({
-    required this.event,
-    required this.dragDevices,
-    required this.gestureSettings,
-    required super.child,
-  });
+  const _TabEventSurface({required this.event, required super.child});
 
   final ElEvent event;
-  final Set<PointerDeviceKind>? dragDevices;
-  final DeviceGestureSettings? gestureSettings;
 
   @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderTabEventSurface(event: event, dragDevices: dragDevices, gestureSettings: gestureSettings);
-  }
+  RenderObject createRenderObject(BuildContext context) => _RenderTabEventSurface(event: event);
 
   @override
   void updateRenderObject(BuildContext context, covariant _RenderTabEventSurface renderObject) {
-    renderObject
-      ..event = event
-      ..dragDevices = dragDevices
-      ..gestureSettings = gestureSettings;
+    renderObject.event = event;
   }
 }
 
 class _RenderTabEventSurface extends RenderProxyBox with ElOverflowHitBounds {
-  _RenderTabEventSurface({
-    required ElEvent event,
-    Set<PointerDeviceKind>? dragDevices,
-    DeviceGestureSettings? gestureSettings,
-  }) {
+  _RenderTabEventSurface({required ElEvent event}) {
     _dispatcher = EventDispatcher(this);
     _dispatcher.event = event;
-    _dispatcher.dragDevices = dragDevices;
-    _dispatcher.gestureSettings = gestureSettings;
   }
 
   late EventDispatcher _dispatcher;
 
   set event(ElEvent value) {
     _dispatcher.event = value;
-  }
-
-  set dragDevices(Set<PointerDeviceKind>? value) {
-    if (setEquals(_dispatcher.dragDevices, value)) return;
-    _dispatcher.dragDevices = value;
-  }
-
-  set gestureSettings(DeviceGestureSettings? value) {
-    if (_dispatcher.gestureSettings == value) return;
-    _dispatcher.gestureSettings = value;
   }
 
   // --- 溢出命中边界协议（ElOverflowHitBounds） --------------------------------

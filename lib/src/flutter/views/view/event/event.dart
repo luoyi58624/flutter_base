@@ -1,8 +1,5 @@
-import 'dart:math' as math;
-
-import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' show internal, setEquals;
-import 'package:flutter/gestures.dart' show PointerDeviceKind, kMaxFlingVelocity, kMinFlingVelocity;
+import 'package:flutter/foundation.dart' show internal, listEquals, setEquals;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 
 import '../../../../../dart.dart';
@@ -15,166 +12,35 @@ part 'event.g.dart';
 /// 事件回调签名。
 typedef ElEventHandler = void Function(ElEventDetails event);
 
-/// 当前宿主的点击、反馈和拖拽配置。
-@ElModelGenerator.copy()
-final class ElEventConfig with Equatable {
-  /// 创建事件配置。传 `null`（缺省）的字段回落 getter 内部默认/自适应值。
-  const ElEventConfig({
-    this._doubleTapInterval,
-    this._tripleTapInterval,
-    this._longPressDelay,
-    this.longPressCancelDistance,
-    this._tapCancelDistance,
-    this._tapCancelByDistance,
-    this._delayTouchDown,
-    this._delayTouchUp,
-    this._keyRepeatInterval,
-    this._deferTap,
-    this.dragStartDistance,
-    this.dragDevices,
-    this._dragHorizontalAngle,
-    this.dragMinFlingDistance,
-    this._dragMinFlingVelocity,
-    this._dragMaxFlingVelocity,
-  }) : assert(longPressCancelDistance == null || longPressCancelDistance >= 0, 'longPressCancelDistance 必须大于等于 0。'),
-       assert(_delayTouchDown == null || _delayTouchDown >= Duration.zero, 'delayTouchDown 必须大于等于 0。'),
-       assert(_delayTouchUp == null || _delayTouchUp >= Duration.zero, 'delayTouchUp 必须大于等于 0。'),
-       assert(_keyRepeatInterval == null || _keyRepeatInterval >= Duration.zero, 'keyRepeatInterval 必须大于等于 0。'),
-       assert(
-         _dragHorizontalAngle == null || (_dragHorizontalAngle > 0 && _dragHorizontalAngle < math.pi / 2),
-         'dragHorizontalAngle 是水平捕获锥的半角（弧度），必须落在 (0, π/2) 开区间。',
-       );
-
-  final Duration? _doubleTapInterval;
-
-  /// 旧版双击间隔配置，连击采用 Flutter 的识别窗口。
-  Duration get doubleTapInterval => _doubleTapInterval ?? const Duration(milliseconds: 300);
-
-  final Duration? _tripleTapInterval;
-
-  /// 旧版三击间隔配置，连击采用 Flutter 的识别窗口。
-  Duration get tripleTapInterval => _tripleTapInterval ?? const Duration(milliseconds: 300);
-
-  final Duration? _longPressDelay;
-
-  /// 长按识别等待时间。默认 500ms。
-  Duration get longPressDelay => _longPressDelay ?? const Duration(milliseconds: 500);
-
-  /// 旧版长按移动容差，Flutter 按设备计算长按容差。
-  final double? longPressCancelDistance;
-
-  final double? _tapCancelDistance;
-
-  /// 普通 Tap 的自定义移动容差。
-  double get tapCancelDistance => _tapCancelDistance ?? 10.0;
-
-  final bool? _tapCancelByDistance;
-
-  /// 普通 Tap 是否覆盖 Flutter 默认移动容差。
-  bool get tapCancelByDistance => _tapCancelByDistance ?? false;
-
-  final Duration? _delayTouchDown;
-
-  /// 旧版触摸反馈延迟配置，ElView 随输入直接更新样式。
-  Duration get delayTouchDown => _delayTouchDown ?? Duration.zero;
-
-  final Duration? _delayTouchUp;
-
-  /// 旧版触摸反馈保留时间，ElView 随释放和取消直接更新样式。
-  Duration get delayTouchUp => _delayTouchUp ?? const Duration(milliseconds: 100);
-
-  final Duration? _keyRepeatInterval;
-
-  /// 旧版键盘重复间隔配置，ElView 按 Flutter 的节奏转发。
-  Duration get keyRepeatInterval => _keyRepeatInterval ?? const Duration(milliseconds: 100);
-
-  final bool? _deferTap;
-
-  /// 旧版延期点击配置，Flutter 连击按每次成功点击派发。
-  bool get deferTap => _deferTap ?? false;
-
-  /// Flutter 拖拽的触摸起手容差。
-  final double? dragStartDistance;
-
-  /// 允许参与拖拽和缩放的设备，null 表示允许所有设备。
-  final Set<PointerDeviceKind>? dragDevices;
-
-  final double? _dragHorizontalAngle;
-
-  /// 自由拖拽的方向分类使用的水平半角。
-  double get dragHorizontalAngle => _dragHorizontalAngle ?? math.pi / 4;
-
-  /// Flutter 判定甩动的最小距离。
-  final double? dragMinFlingDistance;
-
-  final double? _dragMinFlingVelocity;
-
-  /// 拖拽结束速度的最小阈值。默认 [kMinFlingVelocity]（50）。
-  double get dragMinFlingVelocity => _dragMinFlingVelocity ?? kMinFlingVelocity;
-
-  final double? _dragMaxFlingVelocity;
-
-  /// 拖拽结束速度的最大幅度。默认 [kMaxFlingVelocity]（8000）。
-  double get dragMaxFlingVelocity => _dragMaxFlingVelocity ?? kMaxFlingVelocity;
-
-  /// 以 base 为底叠加本配置，未设置字段沿用 base。
-  ElEventConfig withFallback(ElEventConfig base) => base.merge(this);
-
-  @override
-  List<Object?> get props => _props;
-}
-
-/// 旧版预览等组件使用的拖拽代理声明。
-///
-/// Flutter 拖拽的更新直接送给获胜宿主。跨组件的位移分配需要由组件接入。
-@ElModelGenerator.copy(generateProps: false)
-final class ElDragProxy {
-  /// 创建拖拽代理配置。
-  const ElDragProxy({this.axis, this.onDragPreUpdate, this.onDragOverflow, this.boundaryHandoff = const {}});
-
-  /// 代理声明可接收的轴向，null 表示任意轴。
-  final Axis? axis;
-
-  /// 主消费者应用位移前的回调。
-  final ElEventHandler? onDragPreUpdate;
-
-  /// 主消费者用完位移后的余量回调。
-  final ElEventHandler? onDragOverflow;
-
-  /// 声明代理需要接管滚动边界余量的方向。
-  final Set<AxisDirection> boundaryHandoff;
-
-  /// 是否包含任意 proxy handler。
-  bool get hasAnyHandler => onDragPreUpdate != null || onDragOverflow != null;
-
-  int get _handlerShapeMask => (onDragPreUpdate != null ? 1 : 0) | (onDragOverflow != null ? 2 : 0);
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is ElDragProxy &&
-        other.axis == axis &&
-        other._handlerShapeMask == _handlerShapeMask &&
-        setEquals(other.boundaryHandoff, boundaryHandoff);
-  }
-
-  @override
-  int get hashCode => Object.hash(axis, _handlerShapeMask, Object.hashAllUnordered(boundaryHandoff));
-
-  /// 两份代理的 handler 是否为同一批闭包实例（shape 相等之上的强判定）。
-  bool identicalHandlers(ElDragProxy other) {
-    return identical(other.onDragPreUpdate, onDragPreUpdate) && identical(other.onDragOverflow, onDragOverflow);
-  }
-}
-
 /// ElView 声明的事件回调，等值比较使用回调空性。
 @ElModelGenerator.copy(generateProps: false)
 class const ElEvent({
-  /// 当前节点的手势配置。
-  final ElEventConfig? config,
+  /// 双击、三击中相邻两次点击的最大间隔。
+  final Duration doubleTapInterval = const Duration(milliseconds: 300),
 
-  /// 为现有组件保留的拖拽代理声明。
-  final ElDragProxy? dragProxy,
+  /// 声明连击时，单击等连击窗口结束才派发，避免双击同时触发单击。
+  final bool deferTap = false,
+
+  /// 长按识别等待时间。
+  final Duration longPressDelay = const Duration(milliseconds: 500),
+
+  /// 点击取消距离；null 时主键移出节点取消、移回恢复，与桌面按钮一致，侧键按 10 取消。
+  final double? tapCancelDistance,
+
+  /// 触摸按压反馈的延迟，滚动列表中可避免划过时闪烁。
+  final Duration delayTouchDown = Duration.zero,
+
+  /// 按压反馈的最短保持时间，快速轻点也能看到反馈。
+  final Duration delayTouchUp = const Duration(milliseconds: 100),
+
+  /// 同一按键重复事件的最小间隔，零表示不限流。
+  final Duration keyRepeatInterval = const Duration(milliseconds: 100),
+
+  /// 起拖距离，null 使用设备默认容差。
+  final double? dragStartDistance,
+
+  /// 允许拖拽和缩放的设备，null 表示全部设备。
+  final Set<PointerDeviceKind>? dragDevices,
 
   /// 事件宿主的命中行为，默认覆盖布局盒。
   final HitTestBehavior behavior = HitTestBehavior.opaque,
@@ -184,9 +50,6 @@ class const ElEvent({
 
   /// 是否禁用事件宿主的交互。
   final bool disabled = false,
-
-  /// 为现有缩放组件保留的旋转起手配置。
-  @internal final bool rotationStartEnabled = false,
 
   /// 指针进入回调。
   final ElEventHandler? onPointerEnter,
@@ -284,7 +147,7 @@ class const ElEvent({
   /// 主键点击候选或激活键取消时的回调。
   final ElEventHandler? onTapCancel,
 
-  /// 拖拽候选按下时回调，可截断外层拖拽报名。
+  /// 拖拽候选按下时回调，停止传播后外层不再参与本次拖拽。
   final ElEventHandler? onDragDown,
 
   /// 自由拖拽开始回调。
@@ -323,13 +186,13 @@ class const ElEvent({
   /// 水平拖拽取消回调。
   final ElEventHandler? onHorizontalDragCancel,
 
-  /// Flutter 缩放开始回调，包含识别器接受的单指平移。
+  /// 缩放开始回调；未声明拖拽时，单指平移也按缩放派发。
   final ElEventHandler? onScaleStart,
 
   /// 缩放更新回调。
   final ElEventHandler? onScaleUpdate,
 
-  /// Flutter 结清当前缩放段时回调，增减触点也会结清当前段。
+  /// 缩放结束回调，增减触点会结束当前段并开始新段。
   final ElEventHandler? onScaleEnd,
 
   /// 缩放取消回调。
@@ -385,82 +248,128 @@ class const ElEvent({
   /// 是否声明了业务回调。
   bool get hasAnyCallback => _handlers.any((handler) => handler != null);
 
+  /// 是否声明了拖拽回调。
+  bool get hasDragCallback => _drag(null) || _drag(.horizontal) || _drag(.vertical);
+
+  /// 是否声明了缩放回调。
+  bool get hasScaleCallback =>
+      onScaleStart != null ||
+      onScaleUpdate != null ||
+      onScaleEnd != null ||
+      onScaleCancel != null ||
+      onRotationUpdate != null;
+
+  bool _drag(Axis? axis) => ElEventPhase.dragPhases.any((phase) => handlerFor(phase, axis) != null);
+
+  /// 是否声明了自由拖拽回调。
+  @internal
+  bool get hasPanCallback => _drag(null);
+
+  /// 声明了对应拖拽组的轴向；同时声明横纵时由起拖方向决定。
+  @internal
+  bool acceptsDrag(Axis axis) => _drag(null) || _drag(axis);
+
   static final _handlerCache = Expando<List<ElEventHandler?>>('ElEvent handlers');
 
-  // 按 ElEventPhase 的顺序排列，轴向拖拽组接在末尾。
   List<ElEventHandler?> get _handlers => _handlerCache[this] ??= [
-    onPointerEnter,
-    onPointerHover,
-    onPointerExit,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
-    onPointerPanZoomStart,
-    onPointerPanZoomUpdate,
-    onPointerPanZoomEnd,
-    onPointerSignal,
-    onTapDown,
-    onTapUp,
-    onTap,
-    onDoubleTap,
-    onDoubleTapDown,
-    onTripleTap,
-    onTripleTapDown,
-    onSecondaryTapDown,
-    onSecondaryTapUp,
-    onSecondaryTap,
-    onTertiaryTapDown,
-    onTertiaryTapUp,
-    onTertiaryTap,
-    onForwardTapDown,
-    onForwardTapUp,
-    onForwardTap,
-    onBackTapDown,
-    onBackTapUp,
-    onBackTap,
-    onLongPress,
-    onTapCancel,
-    onDragDown,
-    onDragStart,
-    onDragUpdate,
-    onDragEnd,
-    onDragCancel,
-    onScaleStart,
-    onScaleUpdate,
-    onScaleEnd,
-    onScaleCancel,
-    onRotationUpdate,
-    onKeyDown,
-    onKeyRepeat,
-    onKeyUp,
-    onFocus,
-    onBlur,
-    onHorizontalDragStart,
-    onHorizontalDragUpdate,
-    onHorizontalDragEnd,
-    onHorizontalDragCancel,
-    onVerticalDragStart,
-    onVerticalDragUpdate,
-    onVerticalDragEnd,
-    onVerticalDragCancel,
+    for (final phase in ElEventPhase.values) handlerFor(phase),
+    for (final phase in ElEventPhase.dragPhases) ...[handlerFor(phase, .horizontal), handlerFor(phase, .vertical)],
   ];
 
-  /// 查找当前阶段声明的回调。
+  /// 查找当前阶段声明的回调，[axis] 选择拖拽阶段的轴向组。
   @internal
-  ElEventHandler? handlerFor(ElEventPhase phase, [Axis? axis]) {
-    if (axis != null && phase.index >= ElEventPhase.dragStart.index && phase.index <= ElEventPhase.dragCancel.index) {
-      final start = ElEventPhase.values.length + (axis == .horizontal ? 0 : 4);
-      return _handlers[start + phase.index - ElEventPhase.dragStart.index];
-    }
-    return _handlers[phase.index];
+  ElEventHandler? handlerFor(ElEventPhase phase, [Axis? axis]) => switch (phase) {
+    .pointerEnter => onPointerEnter,
+    .pointerHover => onPointerHover,
+    .pointerExit => onPointerExit,
+    .pointerDown => onPointerDown,
+    .pointerMove => onPointerMove,
+    .pointerUp => onPointerUp,
+    .pointerCancel => onPointerCancel,
+    .pointerPanZoomStart => onPointerPanZoomStart,
+    .pointerPanZoomUpdate => onPointerPanZoomUpdate,
+    .pointerPanZoomEnd => onPointerPanZoomEnd,
+    .pointerSignal => onPointerSignal,
+    .tapDown => onTapDown,
+    .tapUp => onTapUp,
+    .tap => onTap,
+    .doubleTap => onDoubleTap,
+    .doubleTapDown => onDoubleTapDown,
+    .tripleTap => onTripleTap,
+    .tripleTapDown => onTripleTapDown,
+    .secondaryTapDown => onSecondaryTapDown,
+    .secondaryTapUp => onSecondaryTapUp,
+    .secondaryTap => onSecondaryTap,
+    .tertiaryTapDown => onTertiaryTapDown,
+    .tertiaryTapUp => onTertiaryTapUp,
+    .tertiaryTap => onTertiaryTap,
+    .forwardTapDown => onForwardTapDown,
+    .forwardTapUp => onForwardTapUp,
+    .forwardTap => onForwardTap,
+    .backTapDown => onBackTapDown,
+    .backTapUp => onBackTapUp,
+    .backTap => onBackTap,
+    .longPress => onLongPress,
+    .tapCancel => onTapCancel,
+    .dragDown => onDragDown,
+    .dragStart => switch (axis) {
+      null => onDragStart,
+      .horizontal => onHorizontalDragStart,
+      .vertical => onVerticalDragStart,
+    },
+    .dragUpdate => switch (axis) {
+      null => onDragUpdate,
+      .horizontal => onHorizontalDragUpdate,
+      .vertical => onVerticalDragUpdate,
+    },
+    .dragEnd => switch (axis) {
+      null => onDragEnd,
+      .horizontal => onHorizontalDragEnd,
+      .vertical => onVerticalDragEnd,
+    },
+    .dragCancel => switch (axis) {
+      null => onDragCancel,
+      .horizontal => onHorizontalDragCancel,
+      .vertical => onVerticalDragCancel,
+    },
+    .scaleStart => onScaleStart,
+    .scaleUpdate => onScaleUpdate,
+    .scaleEnd => onScaleEnd,
+    .scaleCancel => onScaleCancel,
+    .rotationUpdate => onRotationUpdate,
+    .keyDown => onKeyDown,
+    .keyRepeat => onKeyRepeat,
+    .keyUp => onKeyUp,
+    .focus => onFocus,
+    .blur => onBlur,
+  };
+
+  List<Object?> get _settings => [
+    behavior,
+    cursor,
+    disabled,
+    doubleTapInterval,
+    deferTap,
+    longPressDelay,
+    tapCancelDistance,
+    delayTouchDown,
+    delayTouchUp,
+    keyRepeatInterval,
+    dragStartDistance,
+  ];
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ElEvent &&
+        listEquals(_settings, other._settings) &&
+        setEquals(dragDevices, other.dragDevices) &&
+        sameShape(other);
   }
 
-  /// 识别配置和回调结构相同的重建可沿用已报名的识别器。
+  /// 两者声明的回调集合相同；只换闭包或配置不影响进行中的手势。
   @internal
-  bool hasSameGestureShape(ElEvent other) {
-    if (identical(this, other)) return true;
-    if (config != other.config) return false;
+  bool sameShape(ElEvent other) {
     for (var i = 0; i < _handlers.length; i++) {
       if ((_handlers[i] == null) != (other._handlers[i] == null)) return false;
     }
@@ -468,23 +377,9 @@ class const ElEvent({
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is ElEvent &&
-      behavior == other.behavior &&
-      cursor == other.cursor &&
-      disabled == other.disabled &&
-      dragProxy == other.dragProxy &&
-      rotationStartEnabled == other.rotationStartEnabled &&
-      hasSameGestureShape(other);
-
-  @override
   int get hashCode => Object.hash(
-    behavior,
-    cursor,
-    disabled,
-    config,
-    dragProxy,
-    rotationStartEnabled,
+    Object.hashAll(_settings),
+    Object.hashAllUnordered(dragDevices ?? const {}),
     Object.hashAll(_handlers.map((handler) => handler != null)),
   );
 }

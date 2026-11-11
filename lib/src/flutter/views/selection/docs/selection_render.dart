@@ -285,11 +285,8 @@ class RenderSelectionView extends RenderProxyBox
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) => _dispatcher.handleEvent(event, entry);
 
   ElEvent get _events => ElEvent(
-    config: ElEventConfig(
-      longPressDelay: _longPressDelay,
-      longPressCancelDistance: kTouchSlop,
-      dragStartDistance: _dragThreshold,
-    ),
+    longPressDelay: _longPressDelay,
+    dragStartDistance: _dragThreshold,
     onTapDown: _tapDown,
     onTapUp: _tapUp,
     onTapCancel: _tapCancel,
@@ -427,7 +424,7 @@ class RenderSelectionView extends RenderProxyBox
       callback.preventDefault();
       return;
     }
-    callback.eagerGesture(cancelSelfTap: true);
+    callback.stopPropagation();
     callback.stopPropagation();
     _mobileChrome.value = true;
     _dispatch(
@@ -448,7 +445,7 @@ class RenderSelectionView extends RenderProxyBox
   void _dragStart(ElEventDetails callback) {
     final down = _down;
     if (!attached || !_enabled || _pointer == null || _mobileGesture || down == null) return;
-    callback.eagerGesture(cancelSelfTap: true);
+    callback.stopPropagation();
     callback.stopPropagation();
     _dragging = true;
     _mobileChrome.value = false;

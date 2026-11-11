@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   // 暂跳过：ElScroll 已改用官方 Scrollable 手势，不再作为 ElView 拖拽台账的 driver；
   // 待 ElView 拖拽识别器迁移到官方实现后，按新的手势归属重写本用例。
@@ -60,82 +60,6 @@ void main() {
     await next.removePointer(timeStamp: const Duration(milliseconds: 336));
     await _finishPageMotion(tester);
     expect(tester.getTopLeft(find.byKey(_nextPageKey)).dx, closeTo(nextBaseX, 1e-6));
-    expect(tester.binding.hasScheduledFrame, isFalse);
-  }, skip: true);
-
-  // 暂跳过：ElScroll 已改用官方 Scrollable 手势，不再作为 ElView 拖拽台账的 driver；
-  // 待 ElView 拖拽识别器迁移到官方实现后，按新的手势归属重写本用例。
-  testWidgets('PREVIEW-T2: 活动 roster 宿主卸载只 cancel 一次并释放下一手', (tester) async {
-    const initialTransform = ElZoomTransform(scale: 2, offset: Offset(-150, 0));
-    final preview = ElPreviewController()..jumpToTransform(initialTransform);
-    final scroll = ScrollController();
-    addTearDown(preview.dispose);
-    addTearDown(scroll.dispose);
-    var showPreview = true;
-    var rosterCancels = 0;
-    late StateSetter rebuild;
-    const nextKey = ValueKey<String>('terminal-config-next-page');
-
-    await tester.pumpWidget(
-      _shell(
-        StatefulBuilder(
-          builder: (context, setState) {
-            rebuild = setState;
-            if (!showPreview) return const SizedBox.expand();
-            return ElPreviewView(
-              controller: preview,
-              panInertia: false,
-              scaleInertia: false,
-              children: [
-                ElView(
-                  event: ElEvent(
-                    dragProxy: ElDragProxy(axis: Axis.horizontal, onDragOverflow: (_) {}),
-                    onHorizontalDragCancel: (_) => rosterCancels++,
-                  ),
-                  child: _horizontalScroll(scroll),
-                ),
-                const SizedBox.expand(key: nextKey),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-    scroll.jumpTo(scroll.position.maxScrollExtent);
-    await tester.pump();
-    final nextBaseX = tester.getTopLeft(find.byKey(nextKey)).dx;
-
-    final interrupted = await _dragPageGap(tester, pointer: 601, delta: -70);
-    expect(nextBaseX - tester.getTopLeft(find.byKey(nextKey)).dx, closeTo(70, 1e-6));
-    expect(rosterCancels, 0);
-
-    rebuild(() => showPreview = false);
-    await tester.pump();
-    expect(rosterCancels, 1, reason: '同一复合事务的 roster cancel 必须恰好一次');
-    expect(preview.currentTransform, initialTransform);
-
-    await interrupted.up(timeStamp: const Duration(milliseconds: 336));
-    await tester.pump();
-    expect(rosterCancels, 1);
-
-    rebuild(() => showPreview = true);
-    await tester.pump();
-    expect(tester.getTopLeft(find.byKey(nextKey)).dx, closeTo(nextBaseX, 1e-6), reason: '重挂后不得恢复旧 page gap');
-    scroll.jumpTo(scroll.position.maxScrollExtent);
-    final recovered = await _dragPageGap(tester, pointer: 602, delta: -40);
-    expect(
-      nextBaseX - tester.getTopLeft(find.byKey(nextKey)).dx,
-      closeTo(40, 1e-6),
-      reason: '卸载必须完整解散旧 pipeline，重挂后下一手可重建',
-    );
-
-    await recovered.cancel(timeStamp: const Duration(milliseconds: 320));
-    await _finishPageMotion(tester);
-    expect(rosterCancels, 2);
-    expect(tester.getTopLeft(find.byKey(nextKey)).dx, closeTo(nextBaseX, 1e-6));
-    await recovered.removePointer(timeStamp: const Duration(milliseconds: 336));
-    await tester.pump();
-    expect(rosterCancels, 2);
     expect(tester.binding.hasScheduledFrame, isFalse);
   }, skip: true);
 

@@ -407,7 +407,7 @@ void _bindingTests(_InputTestBinding binding) {
           onPointerMove: rawMoves.add,
           child: ElView(
             event: ElEvent(
-              config: const ElEventConfig(dragStartDistance: 0),
+              dragStartDistance: 0,
               onDragStart: (_) {},
               onDragUpdate: updates.add,
               onDragEnd: (_) => ends++,

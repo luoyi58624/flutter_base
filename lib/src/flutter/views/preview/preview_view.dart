@@ -711,12 +711,7 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
   void _handlePageDragStart(ElEventDetails event) {
     _pointerCount = event.pointerCount;
     if (_ids.length < 2 || _pointerCount > 1) return;
-    if (event.dragPipelineActive) {
-      _takeOverPageAnimation();
-      _proxyPageDrag = true;
-      return;
-    }
-    event.eagerGesture(cancelSelfTap: true, allowScaleUpgrade: true);
+    event.stopPropagation();
     _takeOverPageAnimation();
     if (_handoffActive) return;
     _directPageDrag = true;
@@ -793,32 +788,6 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
     if (!_panZoomPageDrag) return;
     _panZoomPageDrag = false;
     _settlePage(0);
-  }
-
-  void _handleProxyPreUpdate(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_takeOverPageAnimation()) _proxyPageDrag = true;
-    if (_handoffActive || _pageOffset == 0) return;
-    final delta = event.remainingLocalDelta.dx;
-    if (delta == 0 || delta.sign == _pageOffset.sign) return;
-    final consumed = delta.sign * math.min(delta.abs(), _pageOffset.abs());
-    _setPageOffset(_pageOffset + consumed);
-    if (_pageOffset.abs() <= precisionErrorTolerance) {
-      _proxyPageDrag = false;
-      _clearPageTarget();
-    }
-    _consumeLocalHorizontal(event, consumed);
-  }
-
-  void _handleProxyOverflow(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_ids.length < 2 || _pointerCount > 1) return;
-    if (_takeOverPageAnimation()) _proxyPageDrag = true;
-    if (_handoffActive) return;
-    final consumed = _applyPageDelta(event.remainingLocalDelta.dx, allowRollover: false);
-    if (consumed == 0) return;
-    _proxyPageDrag = true;
-    _consumeLocalHorizontal(event, consumed);
   }
 
   bool _handleProxyDragEnd(Velocity velocity) {
@@ -1203,8 +1172,7 @@ class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderSt
       0 => null,
       1 => ElEvent(onPointerDown: _handleSinglePointerDown),
       _ => ElEvent(
-        config: widget.mouseDragPan ? null : const ElEventConfig(dragDevices: _nonMouseDragDevices),
-        dragProxy: ElDragProxy(onDragPreUpdate: _handleProxyPreUpdate, onDragOverflow: _handleProxyOverflow),
+        dragDevices: widget.mouseDragPan ? null : _nonMouseDragDevices,
         onPointerDown: _handlePointerDown,
         onPointerUp: _handlePointerTerminal,
         onPointerCancel: _handlePointerCancel,

@@ -8,6 +8,7 @@ export '../../flutter/views/editable/render/editable_caret_motion_overlay.dart' 
 export '../../flutter/views/editable/render/editable_render_scope.dart'
     show EditableLineCaretPaint, EditableLinePaint, EditableRenderConfig;
 export '../../flutter/views/view/event/dispatcher.dart';
+export '../../flutter/views/view/event/drag_pointer_lock.dart';
 export '../../flutter/views/view/event/details.dart' show EventDetailsAccess;
 export '../../flutter/views/image/render/render_image_view.dart';
 export '../../flutter/widgets/popup/context_menu.dart';

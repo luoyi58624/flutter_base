@@ -8,7 +8,6 @@ import 'package:flutter_base/flutter_base.dart'
         ElContextMenu,
         ElContextMenuItem,
         ElEvent,
-        ElEventConfig,
         ElStyle,
         ElStyleTapExt,
         ElTabController,
@@ -316,7 +315,6 @@ final _videoCardStyle = ElStyle(
 ).withTapScale(.98);
 
 final _videoMoreStyle = ElStyle(width: 22, height: 22, alignment: .center);
-final _videoTapConfig = ElEventConfig(tapCancelByDistance: true);
 final _videoMenu = _BibiVideoMenu();
 
 class _VideoCard extends StatelessWidget {
@@ -355,7 +353,7 @@ class _VideoCard extends StatelessWidget {
       onTap: openDetails,
       child: ExamplePanel(
         style: _videoCardStyle,
-        event: ElEvent(config: _videoTapConfig, onTap: (_) => openDetails()),
+        event: ElEvent(tapCancelDistance: 10, onTap: (_) => openDetails()),
         child: Column(
           crossAxisAlignment: .stretch,
           mainAxisSize: .min,
@@ -443,7 +441,7 @@ class _VideoCard extends StatelessWidget {
                           semanticLabel: '更多选项',
                           style: _videoMoreStyle,
                           event: ElEvent(
-                            config: _videoTapConfig,
+                            tapCancelDistance: 10,
                             onTapDown: (event) => event.stopPropagation(),
                             onTap: (event) => event.stopPropagation(),
                           ),

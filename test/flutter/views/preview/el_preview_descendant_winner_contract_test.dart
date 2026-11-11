@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   for (final box in [false, true]) {
     testWidgets('Preview 后代 ${box ? '对象' : '字符'} 拖选独占页面与第二指缩放', (tester) async {

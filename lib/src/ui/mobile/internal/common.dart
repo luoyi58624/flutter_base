@@ -9,7 +9,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../flutter/widgets/icon/content.dart';
 import '../../../flutter/views/view/event/event.dart'
-    show ElEvent, ElEventConfig, ElEventConfigExt, ElEventDetails, ElEventExt, ElEventHandler, ElEventPhase;
+    show ElEvent, ElEventDetails, ElEventExt, ElEventHandler, ElEventPhase;
 import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
@@ -206,12 +206,8 @@ class ActionView extends HookWidget {
     final ownsKeys = focusEnabled && !base.hasKeyboardCallback;
     final configured = base.copyWith(
       disabled: disabled || base.disabled,
-      config: (base.config ?? const ElEventConfig()).copyWith(
-        delayTouchDown: delayTouchDown,
-        delayTouchUp: delayTouchUp,
-        // Web移动阈值只取消视觉，真正滚动/失权仍由既有手势竞技场取消点击。
-        tapCancelByDistance: false,
-      ),
+      delayTouchDown: delayTouchDown,
+      delayTouchUp: delayTouchUp,
       onPointerDown: (e) {
         final original = e.originalEvent;
         if (original is PointerEvent) {

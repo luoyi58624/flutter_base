@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show immutable, internal, precisionErrorTolerance;
-import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerRemovedEvent;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/physics.dart' show FrictionSimulation, SpringDescription, SpringSimulation, Tolerance;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../view/event/dispatcher.dart';
 import '../view/event/event.dart';
 import '../view/style/animation/driver.dart' show elDisableAnimations;
 import '../view/view.dart';
@@ -367,7 +366,6 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
 
   /// 当前 drag 是否实际改变过 offset，防止后代 Scroll 的终速误启动本层惯性。
   bool _dragApplied = false;
-  late final ElDragProxy _dragProxy = ElDragProxy(onDragOverflow: _onDragUpdate);
 
   // --- 触控板基线 -----------------------------------------------------------
   double _panZoomBaseScale = 1.0;
@@ -415,16 +413,6 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
   ElZoomTransform get _transform => ElZoomTransform(scale: _scale, rotation: _rotation, offset: _offset);
 
   bool get _zoomed => _scale > widget.minScale + precisionErrorTolerance;
-
-  ElEventConfig? get _eventConfig {
-    if (!widget.enablePan) return null;
-    if (widget.mouseDragPan) {
-      return _eventHasPanExtent ? const ElEventConfig(dragStartDistance: 8.0) : null;
-    }
-    return _eventHasPanExtent
-        ? const ElEventConfig(dragStartDistance: 8.0, dragDevices: _nonMouseDragDevices)
-        : const ElEventConfig(dragDevices: _nonMouseDragDevices);
-  }
 
   bool get _hasPanExtent {
     if (_viewSize.isEmpty || _childSize.isEmpty) return _zoomed;
@@ -882,7 +870,7 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
     // 双指捏合事件层已整体独占；单指只有已缩放才归本组件（eager 阻断祖先
     // 滚动），未缩放时让给祖先。
     _consuming = e.pointerCount >= 2 || _hasPanExtent;
-    if (_consuming) e.eagerGesture(cancelSelfTap: true);
+    if (_consuming) e.stopPropagation();
     // 独占会取消分页祖先的 raw 输入，随后用真实 Scale 触点数恢复门禁。
     widget.onPointerCountChanged?.call(e.pointerCount);
   }
@@ -931,7 +919,7 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
     _gestureFocal = focal;
     if (!_consuming && e.pointerCount >= 2) {
       _consuming = true;
-      e.eagerGesture(cancelSelfTap: true);
+      e.stopPropagation();
     }
     if (!_consuming) return;
     if (e.pointerCount >= 2) _multiPointerTransformSeen = true;
@@ -1060,11 +1048,6 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
     }
   }
 
-  void _handleRoutedPointerRemoved(PointerRemovedEvent event) {
-    _cancelDirectScale();
-    widget.onPointerCountChanged?.call(_render?._eventDispatcher?.activePointerCount ?? 0);
-  }
-
   double _gestureScale(double rawScale) {
     if (!rawScale.isFinite || rawScale <= 0) return _scale;
     if (!widget.elasticScaleBounds) return rawScale.clamp(widget.minScale, widget.maxScale);
@@ -1139,13 +1122,11 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
   // --- 已缩放单指平移（drag 通道：与滚动同阈值起手、同源 velocity） -------------
 
   void _onDragStart(ElEventDetails e) {
-    // 未缩放：不消费、不独占——本 dragStart 空转，祖先滚动在同一 move 里
-    // 照常接受并 latch。
+    // 未缩放或已贴边：不消费，位移原样冒泡给外层翻页或滚动。
     _dragApplied = false;
-    if (!widget.enablePan || (e.dragPipelineActive ? !_hasPanExtent : !_canPanToward(e))) return;
+    if (!widget.enablePan || !_canPanToward(e)) return;
     _stopAnimation();
     _dragConsuming = true;
-    if (!e.dragPipelineActive) e.eagerGesture(cancelSelfTap: true, allowScaleUpgrade: true);
   }
 
   void _onDragUpdate(ElEventDetails e) {
@@ -1158,7 +1139,8 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
     final before = _offset;
     _apply(_scale, _offset + e.remainingLocalDelta);
     if (_offset != before) _dragApplied = true;
-    if (e.dragPipelineActive) _consumeLocalDelta(e, _offset - before);
+    // 只消费实际平移的部分，贴边余量冒泡给外层翻页。
+    _consumeLocalDelta(e, _offset - before);
   }
 
   void _onDragEnd(ElEventDetails e) {
@@ -1397,10 +1379,8 @@ class _ZoomViewState extends State<ElZoomView> with TickerProviderStateMixin {
               // 起手竞争按 move 逐帧判定、内层先喂——只要内层先越阈就先
               // eager 独占；若仍用自由拖拽默认的 pan slop(36)，慢速平移会在
               // 8~36px 区间被外层滚动抢走。未缩放态保持默认，继续让祖先翻页。
-              config: _eventConfig,
-              dragProxy: widget.enablePan ? _dragProxy : null,
-              rotationStartEnabled:
-                  widget.lockScaleRotationIntent && (_gestureActive ? _gestureRotationEnabled : widget.enableRotation),
+              dragStartDistance: widget.enablePan && _eventHasPanExtent ? 8.0 : null,
+              dragDevices: widget.enablePan && !widget.mouseDragPan ? _nonMouseDragDevices : null,
               onPointerDown: _onPointerDown,
               onPointerUp: _onPointerTerminal,
               onPointerCancel: _onPointerTerminal,
@@ -1488,30 +1468,14 @@ class _RenderZoomTransform extends RenderBox with RenderObjectWithChildMixin<Ren
   late final PaintingContextCallback _paintChildCallback = _paintChild;
   Rect _viewportRect = Rect.zero;
   bool _isIdentity = true;
-  EventDispatcher? _eventDispatcher;
-
-  void _syncEventDispatcher() {
-    if (!attached) return;
-    final host = parent;
-    final next = host is RenderBox ? EventDispatcher.of(host) : null;
-    if (!identical(next, _eventDispatcher)) {
-      _eventDispatcher?.onRoutedPointerRemoved = null;
-      _eventDispatcher = next;
-    }
-    next?.onRoutedPointerRemoved = state._handleRoutedPointerRemoved;
-  }
-
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     state._render = this;
-    _syncEventDispatcher();
   }
 
   @override
   void detach() {
-    _eventDispatcher?.onRoutedPointerRemoved = null;
-    _eventDispatcher = null;
     if (identical(state._render, this)) state._render = null;
     state._cancelDirectScale();
     super.detach();

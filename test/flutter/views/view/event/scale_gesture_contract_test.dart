@@ -7,7 +7,7 @@ import 'support/dispatcher_test_host.dart';
 import 'support/event_widget_test_host.dart';
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   group('Pointer pan zoom', () {
     testWidgets('start / update / end each fire', (tester) async {
@@ -111,7 +111,7 @@ void main() {
     });
   });
 
-  testWidgets('ROUTE-5B: Scale 的开始、更新和结束只投递到竞技场赢家', (_) async {
+  testWidgets('ROUTE-5B: ScaleStart stop keeps update and end on the same route', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final childPhases = <ElEventPhase>[];
@@ -124,7 +124,10 @@ void main() {
       onScaleEnd: recordParent,
     );
     host.leafDispatcher.event = ElEvent(
-      onScaleStart: (event) => childPhases.add(event.phase),
+      onScaleStart: (event) {
+        childPhases.add(event.phase);
+        event.stopPropagation();
+      },
       onScaleUpdate: (event) => childPhases.add(event.phase),
       onScaleEnd: (event) => childPhases.add(event.phase),
     );
@@ -148,13 +151,39 @@ void main() {
     );
     host.dispatch(const PointerUpEvent(pointer: 32, position: Offset(180, 100), kind: PointerDeviceKind.touch));
 
-    expect(childPhases, <ElEventPhase>[
-      ElEventPhase.scaleStart,
-      ElEventPhase.scaleUpdate,
-      ElEventPhase.scaleUpdate,
-      ElEventPhase.scaleEnd,
-    ]);
+    expect(childPhases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleUpdate, ElEventPhase.scaleEnd]);
     expect(parentPhases, isEmpty, reason: '祖先不能收到没有配对 Start 的 Scale update/terminal');
+  });
+
+  testWidgets('SCALE-CANCEL-1: 双指 Scale 只把宿主标为自身接受，祖先 loser 标为其他手势接受', (_) async {
+    final host = DispatcherTestHost.chain(depth: 2);
+    addTearDown(host.dispose);
+    ElEventCancelReason? childReason;
+    ElEventCancelReason? parentReason;
+    var scaleStarts = 0;
+
+    host.rootDispatcher.event = ElEvent(onTapDown: (_) {}, onTapCancel: (event) => parentReason = event.cancelReason);
+    host.leafDispatcher.event = ElEvent(
+      onTapDown: (_) {},
+      onTapCancel: (event) => childReason = event.cancelReason,
+      onScaleStart: (_) => scaleStarts++,
+      onScaleUpdate: (_) {},
+    );
+
+    host.dispatch(const PointerDownEvent(pointer: 41, position: Offset(70, 100), kind: PointerDeviceKind.touch));
+    host.dispatch(const PointerDownEvent(pointer: 42, position: Offset(130, 100), kind: PointerDeviceKind.touch));
+    host.dispatch(
+      const PointerMoveEvent(
+        pointer: 42,
+        position: Offset(170, 100),
+        delta: Offset(40, 0),
+        kind: PointerDeviceKind.touch,
+      ),
+    );
+
+    expect(scaleStarts, 1);
+    expect(childReason, ElEventCancelReason.selfGestureAccepted);
+    expect(parentReason, ElEventCancelReason.otherGestureAccepted);
   });
 
   testWidgets('SCALE-META-1: Scale 回调保留真实触点输入实例', (_) async {
@@ -184,18 +213,45 @@ void main() {
       delta: Offset(20, 40),
       timeStamp: Duration(milliseconds: 36),
     );
-    const end = PointerUpEvent(pointer: 7001, position: Offset(60, 100), timeStamp: Duration(milliseconds: 52));
+    const end = PointerUpEvent(pointer: 7002, position: Offset(220, 140), timeStamp: Duration(milliseconds: 68));
     host.dispatch(start);
     host.dispatch(update);
-    host.dispatch(end);
     host.dispatch(
-      const PointerUpEvent(pointer: 7002, position: Offset(220, 140), timeStamp: Duration(milliseconds: 68)),
+      const PointerUpEvent(pointer: 7001, position: Offset(60, 100), timeStamp: Duration(milliseconds: 52)),
     );
+    host.dispatch(end);
 
     expect(originalEvents[ElEventPhase.scaleStart], same(start));
     expect(originalEvents[ElEventPhase.scaleUpdate], same(update));
     expect(originalEvents[ElEventPhase.rotationUpdate], same(update));
     expect(originalEvents[ElEventPhase.scaleEnd], same(end));
+  });
+
+  testWidgets('SCALE-META-2: 缩放接管时 DragCancel 与 ScaleStart 保留同一真实触点输入', (tester) async {
+    final host = DispatcherTestHost.chain();
+    addTearDown(host.dispose);
+    final originalEvents = <ElEventPhase, Object?>{};
+    void record(ElEventDetails event) => originalEvents[event.phase] = event.originalEvent;
+    host.leafDispatcher.event = ElEvent(
+      dragStartDistance: 3,
+      onDragStart: record,
+      onDragCancel: record,
+      onScaleStart: record,
+    );
+    const down = PointerDownEvent(pointer: 23, position: Offset.zero);
+    const move = PointerMoveEvent(pointer: 23, position: Offset(4, 0), delta: Offset(4, 0));
+    const secondDown = PointerDownEvent(pointer: 24, position: Offset(100, 0));
+    const secondMove = PointerMoveEvent(pointer: 24, position: Offset(160, 0), delta: Offset(60, 0));
+    host.dispatch(down);
+    host.dispatch(move);
+    host.dispatch(secondDown);
+    await tester.pump();
+    host.dispatch(secondMove);
+
+    expect(originalEvents[ElEventPhase.dragStart], same(move));
+    final scaleInput = originalEvents[ElEventPhase.scaleStart];
+    expect([secondDown, secondMove].any((input) => identical(input, scaleInput)), isTrue);
+    expect(originalEvents[ElEventPhase.dragCancel], same(scaleInput));
   });
 
   testWidgets('SCALE-7: high phase ScaleStart does not collide with pointerMove in one cycle', (_) async {

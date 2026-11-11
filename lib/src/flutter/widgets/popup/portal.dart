@@ -359,7 +359,7 @@ class _PortalState extends State<ElPortal> {
     _queued = false;
     if (!_open) return;
     if (_panelKey.currentContext?.findRenderObject() case final RenderObject panel) {
-      EventDispatcher.terminateActivePointerSequencesIn(panel, force: true);
+      EventDispatcher.terminateActivePointerSequencesIn(panel);
     }
     _exitGeometry = _layoutGeometry;
     _detachBack();

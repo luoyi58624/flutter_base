@@ -6,162 +6,20 @@ part of 'event.dart';
 // _ModelGenerator
 // **************************************************************************
 
-extension ElEventConfigExt on ElEventConfig {
-  ElEventConfig copyWith({
-    Object? doubleTapInterval = $absent,
-    Object? tripleTapInterval = $absent,
-    Object? longPressDelay = $absent,
-    Object? longPressCancelDistance = $absent,
-    Object? tapCancelDistance = $absent,
-    Object? tapCancelByDistance = $absent,
-    Object? delayTouchDown = $absent,
-    Object? delayTouchUp = $absent,
-    Object? keyRepeatInterval = $absent,
-    Object? deferTap = $absent,
-    Object? dragStartDistance = $absent,
-    Object? dragDevices = $absent,
-    Object? dragHorizontalAngle = $absent,
-    Object? dragMinFlingDistance = $absent,
-    Object? dragMinFlingVelocity = $absent,
-    Object? dragMaxFlingVelocity = $absent,
-  }) {
-    return ElEventConfig(
-      doubleTapInterval: identical(doubleTapInterval, $absent)
-          ? this._doubleTapInterval
-          : doubleTapInterval as Duration?,
-      tripleTapInterval: identical(tripleTapInterval, $absent)
-          ? this._tripleTapInterval
-          : tripleTapInterval as Duration?,
-      longPressDelay: identical(longPressDelay, $absent)
-          ? this._longPressDelay
-          : longPressDelay as Duration?,
-      longPressCancelDistance: identical(longPressCancelDistance, $absent)
-          ? this.longPressCancelDistance
-          : (longPressCancelDistance as num?)?.toDouble(),
-      tapCancelDistance: identical(tapCancelDistance, $absent)
-          ? this._tapCancelDistance
-          : (tapCancelDistance as num?)?.toDouble(),
-      tapCancelByDistance: identical(tapCancelByDistance, $absent)
-          ? this._tapCancelByDistance
-          : tapCancelByDistance as bool?,
-      delayTouchDown: identical(delayTouchDown, $absent)
-          ? this._delayTouchDown
-          : delayTouchDown as Duration?,
-      delayTouchUp: identical(delayTouchUp, $absent)
-          ? this._delayTouchUp
-          : delayTouchUp as Duration?,
-      keyRepeatInterval: identical(keyRepeatInterval, $absent)
-          ? this._keyRepeatInterval
-          : keyRepeatInterval as Duration?,
-      deferTap: identical(deferTap, $absent)
-          ? this._deferTap
-          : deferTap as bool?,
-      dragStartDistance: identical(dragStartDistance, $absent)
-          ? this.dragStartDistance
-          : (dragStartDistance as num?)?.toDouble(),
-      dragDevices: identical(dragDevices, $absent)
-          ? this.dragDevices
-          : dragDevices as Set<PointerDeviceKind>?,
-      dragHorizontalAngle: identical(dragHorizontalAngle, $absent)
-          ? this._dragHorizontalAngle
-          : (dragHorizontalAngle as num?)?.toDouble(),
-      dragMinFlingDistance: identical(dragMinFlingDistance, $absent)
-          ? this.dragMinFlingDistance
-          : (dragMinFlingDistance as num?)?.toDouble(),
-      dragMinFlingVelocity: identical(dragMinFlingVelocity, $absent)
-          ? this._dragMinFlingVelocity
-          : (dragMinFlingVelocity as num?)?.toDouble(),
-      dragMaxFlingVelocity: identical(dragMaxFlingVelocity, $absent)
-          ? this._dragMaxFlingVelocity
-          : (dragMaxFlingVelocity as num?)?.toDouble(),
-    );
-  }
-
-  ElEventConfig merge([ElEventConfig? other]) {
-    if (other == null) return this;
-    return ElEventConfig(
-      doubleTapInterval: other._doubleTapInterval ?? _doubleTapInterval,
-      tripleTapInterval: other._tripleTapInterval ?? _tripleTapInterval,
-      longPressDelay: other._longPressDelay ?? _longPressDelay,
-      longPressCancelDistance:
-          other.longPressCancelDistance ?? longPressCancelDistance,
-      tapCancelDistance: other._tapCancelDistance ?? _tapCancelDistance,
-      tapCancelByDistance: other._tapCancelByDistance ?? _tapCancelByDistance,
-      delayTouchDown: other._delayTouchDown ?? _delayTouchDown,
-      delayTouchUp: other._delayTouchUp ?? _delayTouchUp,
-      keyRepeatInterval: other._keyRepeatInterval ?? _keyRepeatInterval,
-      deferTap: other._deferTap ?? _deferTap,
-      dragStartDistance: other.dragStartDistance ?? dragStartDistance,
-      dragDevices: other.dragDevices ?? dragDevices,
-      dragHorizontalAngle: other._dragHorizontalAngle ?? _dragHorizontalAngle,
-      dragMinFlingDistance: other.dragMinFlingDistance ?? dragMinFlingDistance,
-      dragMinFlingVelocity:
-          other._dragMinFlingVelocity ?? _dragMinFlingVelocity,
-      dragMaxFlingVelocity:
-          other._dragMaxFlingVelocity ?? _dragMaxFlingVelocity,
-    );
-  }
-
-  List<Object?> get _props => [
-    _doubleTapInterval,
-    _tripleTapInterval,
-    _longPressDelay,
-    longPressCancelDistance,
-    _tapCancelDistance,
-    _tapCancelByDistance,
-    _delayTouchDown,
-    _delayTouchUp,
-    _keyRepeatInterval,
-    _deferTap,
-    dragStartDistance,
-    dragDevices,
-    _dragHorizontalAngle,
-    dragMinFlingDistance,
-    _dragMinFlingVelocity,
-    _dragMaxFlingVelocity,
-  ];
-}
-
-extension ElDragProxyExt on ElDragProxy {
-  ElDragProxy copyWith({
-    Object? axis = $absent,
-    Object? onDragPreUpdate = $absent,
-    Object? onDragOverflow = $absent,
-    Object? boundaryHandoff,
-  }) {
-    return ElDragProxy(
-      axis: identical(axis, $absent) ? this.axis : axis as Axis?,
-      onDragPreUpdate: identical(onDragPreUpdate, $absent)
-          ? this.onDragPreUpdate
-          : onDragPreUpdate as void Function(ElEventDetails)?,
-      onDragOverflow: identical(onDragOverflow, $absent)
-          ? this.onDragOverflow
-          : onDragOverflow as void Function(ElEventDetails)?,
-      boundaryHandoff: boundaryHandoff == null
-          ? this.boundaryHandoff
-          : boundaryHandoff as Set<AxisDirection>,
-    );
-  }
-
-  ElDragProxy merge([ElDragProxy? other]) {
-    if (other == null) return this;
-    return ElDragProxy(
-      axis: other.axis ?? axis,
-      onDragPreUpdate: other.onDragPreUpdate ?? onDragPreUpdate,
-      onDragOverflow: other.onDragOverflow ?? onDragOverflow,
-      boundaryHandoff: other.boundaryHandoff,
-    );
-  }
-}
-
 extension ElEventExt on ElEvent {
   ElEvent copyWith({
-    Object? config = $absent,
-    Object? dragProxy = $absent,
+    Object? doubleTapInterval,
+    Object? deferTap,
+    Object? longPressDelay,
+    Object? tapCancelDistance = $absent,
+    Object? delayTouchDown,
+    Object? delayTouchUp,
+    Object? keyRepeatInterval,
+    Object? dragStartDistance = $absent,
+    Object? dragDevices = $absent,
     Object? behavior,
     Object? cursor = $absent,
     Object? disabled,
-    Object? rotationStartEnabled,
     Object? onPointerEnter = $absent,
     Object? onPointerHover = $absent,
     Object? onPointerExit = $absent,
@@ -219,26 +77,34 @@ extension ElEventExt on ElEvent {
     Object? onBlur = $absent,
   }) {
     return ElEvent(
-      config: identical(config, $absent)
-          ? this.config
-          : (config == null
-                ? null
-                : (this.config == null
-                      ? config as ElEventConfig
-                      : this.config!.merge(config as ElEventConfig))),
-      dragProxy: identical(dragProxy, $absent)
-          ? this.dragProxy
-          : (dragProxy == null
-                ? null
-                : (this.dragProxy == null
-                      ? dragProxy as ElDragProxy
-                      : this.dragProxy!.merge(dragProxy as ElDragProxy))),
+      doubleTapInterval: doubleTapInterval == null
+          ? this.doubleTapInterval
+          : doubleTapInterval as Duration,
+      deferTap: deferTap == null ? this.deferTap : deferTap as bool,
+      longPressDelay: longPressDelay == null
+          ? this.longPressDelay
+          : longPressDelay as Duration,
+      tapCancelDistance: identical(tapCancelDistance, $absent)
+          ? this.tapCancelDistance
+          : (tapCancelDistance as num?)?.toDouble(),
+      delayTouchDown: delayTouchDown == null
+          ? this.delayTouchDown
+          : delayTouchDown as Duration,
+      delayTouchUp: delayTouchUp == null
+          ? this.delayTouchUp
+          : delayTouchUp as Duration,
+      keyRepeatInterval: keyRepeatInterval == null
+          ? this.keyRepeatInterval
+          : keyRepeatInterval as Duration,
+      dragStartDistance: identical(dragStartDistance, $absent)
+          ? this.dragStartDistance
+          : (dragStartDistance as num?)?.toDouble(),
+      dragDevices: identical(dragDevices, $absent)
+          ? this.dragDevices
+          : dragDevices as Set<PointerDeviceKind>?,
       behavior: behavior == null ? this.behavior : behavior as HitTestBehavior,
       cursor: identical(cursor, $absent) ? this.cursor : cursor as MouseCursor?,
       disabled: disabled == null ? this.disabled : disabled as bool,
-      rotationStartEnabled: rotationStartEnabled == null
-          ? this.rotationStartEnabled
-          : rotationStartEnabled as bool,
       onPointerEnter: identical(onPointerEnter, $absent)
           ? this.onPointerEnter
           : onPointerEnter as void Function(ElEventDetails)?,
@@ -410,14 +276,18 @@ extension ElEventExt on ElEvent {
   ElEvent merge([ElEvent? other]) {
     if (other == null) return this;
     return ElEvent(
-      config: config == null ? other.config : config!.merge(other.config),
-      dragProxy: dragProxy == null
-          ? other.dragProxy
-          : dragProxy!.merge(other.dragProxy),
+      doubleTapInterval: other.doubleTapInterval,
+      deferTap: other.deferTap,
+      longPressDelay: other.longPressDelay,
+      tapCancelDistance: other.tapCancelDistance ?? tapCancelDistance,
+      delayTouchDown: other.delayTouchDown,
+      delayTouchUp: other.delayTouchUp,
+      keyRepeatInterval: other.keyRepeatInterval,
+      dragStartDistance: other.dragStartDistance ?? dragStartDistance,
+      dragDevices: other.dragDevices ?? dragDevices,
       behavior: other.behavior,
       cursor: other.cursor ?? cursor,
       disabled: other.disabled,
-      rotationStartEnabled: other.rotationStartEnabled,
       onPointerEnter: other.onPointerEnter ?? onPointerEnter,
       onPointerHover: other.onPointerHover ?? onPointerHover,
       onPointerExit: other.onPointerExit ?? onPointerExit,

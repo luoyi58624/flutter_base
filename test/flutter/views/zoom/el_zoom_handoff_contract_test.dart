@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   // 暂跳过：ElScroll 已改用官方 Scrollable 手势，不再作为 ElView 拖拽台账的 driver；
   // 待 ElView 拖拽识别器迁移到官方实现后，按新的手势归属重写本用例。
@@ -118,73 +118,6 @@ void main() {
     expect(farOuterScaleUpdates, 0, reason: '仅剩 shadow 指针后不得切到 live chain 冒泡 update');
     expect(farOuterScaleEnds, 0, reason: '未收到 start 的外层不得单独收到 end');
   }, skip: true);
-
-  testWidgets('ZOOM-H2: 水平边界只消费实际位移，余量同帧交给 proxy 且反向帧立即收回', (tester) async {
-    final zoomController = ElZoomController(initialValue: const ElZoomTransform(scale: 2, offset: Offset(90, 0)));
-    addTearDown(zoomController.dispose);
-
-    var innerTaps = 0;
-    var outerTaps = 0;
-    final overflowFrames = <({double offset, double remaining})>[];
-
-    await tester.pumpWidget(
-      _testShell(
-        SizedBox(
-          width: 200,
-          height: 200,
-          child: ElView(
-            event: ElEvent(
-              onTap: (_) => outerTaps++,
-              dragProxy: ElDragProxy(
-                onDragOverflow: (event) {
-                  overflowFrames.add((
-                    offset: zoomController.value.offset.dx,
-                    remaining: event.remainingPrimaryDelta(Axis.horizontal),
-                  ));
-                  event.consumeAllDelta();
-                },
-              ),
-            ),
-            child: ElZoomView(
-              controller: zoomController,
-              enableDoubleTapZoom: false,
-              panInertia: false,
-              child: ElView(
-                event: ElEvent(onTap: (_) => innerTaps++),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(zoomController.value.offset.dx, closeTo(90, 1e-6));
-
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.touch);
-    addTearDown(gesture.removePointer);
-    await gesture.down(const Offset(100, 100));
-    await tester.pump();
-    await gesture.moveBy(const Offset(12, 0));
-    await tester.pump();
-    expect(overflowFrames, isEmpty, reason: 'dragStart 是零位移生命周期信号，不应提前走 overflow');
-
-    await gesture.moveBy(const Offset(20, 0));
-    await tester.pump();
-    expect(zoomController.value.offset.dx, closeTo(100, 1e-6), reason: 'Zoom 到右边界只能实际消费 10px');
-    expect(overflowFrames, hasLength(1));
-    expect(overflowFrames.single.offset, closeTo(100, 1e-6), reason: 'overflow 必须发生在 Zoom 当帧消费之后');
-    expect(overflowFrames.single.remaining, closeTo(10, 1e-6), reason: '20px 原始位移减去 Zoom 实际消费 10px，余量必须精确守恒');
-
-    await gesture.moveBy(const Offset(-15, 0));
-    await tester.pump();
-    expect(zoomController.value.offset.dx, closeTo(85, 1e-6), reason: '边界后的首个反向帧必须立即重新由 Zoom 消费');
-    expect(overflowFrames, hasLength(1), reason: '反向 15px 已被 Zoom 全吃，不得再产生 overflow');
-
-    await gesture.up();
-    await tester.pump();
-    expect(innerTaps, 0, reason: '边界拖拽成立后最内层 Tap 不得触发');
-    expect(outerTaps, 0, reason: '边界拖拽成立后祖先 Tap 不得触发');
-  });
 
   testWidgets('ZOOM-H3: 已消费的内容 drag 在第二指 down 后用 4px 立即升级 Scale', (tester) async {
     final controller = ElZoomController(initialValue: const ElZoomTransform(scale: 2));

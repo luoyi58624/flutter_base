@@ -1,6 +1,7 @@
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
@@ -17,12 +18,12 @@ void main() {
     final phases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(tapCancelDistance: 30, dragStartDistance: 3),
+        tapCancelDistance: 30, dragStartDistance: 3,
         onTap: (_) => taps++,
         onLongPress: (_) => longPresses++,
         onDragStart: (event) {
           phases.add(event.phase);
-          event.eagerGesture(cancelSelfTap: true);
+          event.stopPropagation();
         },
         onDragUpdate: (event) => phases.add(event.phase),
         onDragEnd: (event) => phases.add(event.phase),
@@ -49,6 +50,145 @@ void main() {
     expect(longPresses, 0);
   });
 
+  testWidgets('accepted drag emits tap cancel and clears active immediately', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    final phases = <ElEventPhase>[];
+    final activeStates = <bool>[];
+    final dispatcher = EventDispatcher(box)
+      ..onTapChanged = activeStates.add
+      ..event = ElEvent(
+        tapCancelDistance: 80, dragStartDistance: 3,
+        onTapDown: (event) => phases.add(event.phase),
+        onTapCancel: (event) => phases.add(event.phase),
+        onDragStart: (event) {
+          phases.add(event.phase);
+          event.stopPropagation();
+        },
+        onDragEnd: (event) => phases.add(event.phase),
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(
+        pointer: 1,
+        position: Offset.zero,
+        kind: PointerDeviceKind.touch,
+        timeStamp: Duration.zero,
+      ),
+      entry,
+    );
+    expect(dispatcher.isTapPressed, isTrue);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(dispatcher.isTapPressed, isTrue);
+
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        kind: PointerDeviceKind.touch,
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+
+    expect(dispatcher.isTapPressed, isFalse);
+    expect(activeStates, <bool>[true, false]);
+
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        kind: PointerDeviceKind.touch,
+        timeStamp: Duration(milliseconds: 32),
+      ),
+      entry,
+    );
+
+    expect(phases, <ElEventPhase>[
+      ElEventPhase.tapDown,
+      ElEventPhase.dragStart,
+      ElEventPhase.tapCancel,
+      ElEventPhase.dragEnd,
+    ]);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
+  });
+
+  testWidgets('additional primary pointer during active drag does not rebuild tap candidates', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    var tapDowns = 0;
+    var tapUps = 0;
+    var taps = 0;
+    var longPresses = 0;
+    final phases = <ElEventPhase>[];
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        tapCancelDistance: 30, longPressDelay: Duration(milliseconds: 20), dragStartDistance: 3,
+        onTapDown: (_) => tapDowns++,
+        onTapUp: (_) => tapUps++,
+        onTap: (_) => taps++,
+        onLongPress: (_) => longPresses++,
+        onDragStart: (event) {
+          phases.add(event.phase);
+          event.stopPropagation();
+        },
+        onDragUpdate: (event) => phases.add(event.phase),
+        onDragEnd: (event) => phases.add(event.phase),
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 2, position: Offset(100, 0), timeStamp: Duration(milliseconds: 20)),
+      entry,
+    );
+    await tester.pump(const Duration(milliseconds: 40));
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(pointer: 2, position: Offset(100, 0), timeStamp: Duration(milliseconds: 60)),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(8, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 76),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(pointer: 1, position: Offset(8, 0), timeStamp: Duration(milliseconds: 90)),
+      entry,
+    );
+
+    expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragUpdate, ElEventPhase.dragEnd]);
+    expect(tapDowns, 1);
+    expect(tapUps, 1, reason: '第一指仍由 winner 持有，取消最终 tap 不影响它的 tapUp');
+    expect(taps, 0);
+    expect(longPresses, 0);
+  });
+
   testWidgets('dragStart is a pure lifecycle signal — delta / remaining / dragOffset all zero', (tester) async {
     // 契约：dragStart 帧只承载"拖拽已越阈"这一信号，delta / remainingDelta /
     // dragOffset 一律归零；下一个 dragUpdate 帧才带来 frame delta 与
@@ -68,7 +208,7 @@ void main() {
     Offset? updateOffset;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 10),
+        dragStartDistance: 10,
         onVerticalDragStart: (event) {
           startDelta = event.delta;
           startRemainingDelta = event.remainingDelta;
@@ -203,6 +343,82 @@ void main() {
     expect(axisStartDelta, Offset.zero);
   });
 
+  testWidgets('up position contributes to dragEnd dragOffset and original event', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    Offset? endOffset;
+    Object? originalEvent;
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        dragStartDistance: 3,
+        onDragStart: (_) {},
+        onDragEnd: (event) {
+          endOffset = event.dragOffset;
+          originalEvent = event.originalEvent;
+        },
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(const PointerDownEvent(position: Offset.zero, timeStamp: Duration.zero), entry);
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(position: Offset(4, 0), delta: Offset(4, 0), timeStamp: Duration(milliseconds: 16)),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(position: Offset(8, 0), timeStamp: Duration(milliseconds: 32)),
+      entry,
+    );
+
+    // 零基台账：accept 段 4px 不进账，up 段 4px 计入 dragEnd。
+    expect(endOffset, const Offset(4, 0));
+    expect(originalEvent, isA<PointerUpEvent>());
+  });
+
+  testWidgets('replacing event during active drag keeps the gesture alive for the new event', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    final oldPhases = <ElEventPhase>[];
+    final newPhases = <ElEventPhase>[];
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        tapCancelDistance: 30, dragStartDistance: 3,
+        onDragStart: (event) {
+          oldPhases.add(event.phase);
+          event.stopPropagation();
+        },
+        onDragUpdate: (event) => oldPhases.add(event.phase),
+        onDragCancel: (event) => oldPhases.add(event.phase),
+        onTap: (event) => oldPhases.add(event.phase),
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(const PointerDownEvent(position: Offset.zero, timeStamp: Duration.zero), entry);
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(position: Offset(4, 0), delta: Offset(4, 0), timeStamp: Duration(milliseconds: 16)),
+      entry,
+    );
+
+    dispatcher.event = ElEvent(
+      onDragEnd: (event) => newPhases.add(event.phase),
+      onDragCancel: (event) => newPhases.add(event.phase),
+      onTap: (event) => newPhases.add(event.phase),
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(position: Offset(4, 0), timeStamp: Duration(milliseconds: 32)),
+      entry,
+    );
+
+    expect(oldPhases, <ElEventPhase>[ElEventPhase.dragStart]);
+    expect(newPhases, <ElEventPhase>[ElEventPhase.dragEnd]);
+    expect(dispatcher.isTapPressed, isFalse);
+  });
+
   testWidgets('replacing equivalent drag event during active drag keeps the gesture alive', (tester) async {
     final pipelineOwner = PipelineOwner();
     final box = _EventTestBox();
@@ -212,10 +428,9 @@ void main() {
     final newPhases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => oldPhases.add(event.phase),
         onDragUpdate: (event) => oldPhases.add(event.phase),
-        onDragEnd: (event) => oldPhases.add(event.phase),
         onDragCancel: (event) => oldPhases.add(event.phase),
       );
     addTearDown(dispatcher.dispose);
@@ -228,7 +443,7 @@ void main() {
     );
 
     dispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3),
+      dragStartDistance: 3,
       onDragStart: (event) => newPhases.add(event.phase),
       onDragUpdate: (event) => newPhases.add(event.phase),
       onDragEnd: (event) => newPhases.add(event.phase),
@@ -256,7 +471,7 @@ void main() {
     final phases = <String>[];
     ElEvent replacementEvent(String prefix) {
       return ElEvent(
-        config: const ElEventConfig(dragStartDistance: 12),
+        dragStartDistance: 12,
         onDragStart: (event) => phases.add('$prefix:${event.phase.name}:${event.dragOffset.dy}'),
         onDragUpdate: (event) => phases.add('$prefix:${event.phase.name}:${event.dragOffset.dy}'),
         onDragEnd: (event) => phases.add('$prefix:${event.phase.name}'),
@@ -323,7 +538,7 @@ void main() {
     final phases = <String>[];
     ElEvent replacementEvent() {
       return ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => phases.add('new:${event.phase.name}'),
         onDragUpdate: (event) => phases.add('new:${event.phase.name}'),
         onDragEnd: (event) => phases.add('new:${event.phase.name}'),
@@ -333,7 +548,7 @@ void main() {
 
     dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => phases.add('old:${event.phase.name}'),
         onDragUpdate: (event) => phases.add('old:${event.phase.name}'),
         onDragEnd: (event) {
@@ -394,7 +609,7 @@ void main() {
     final phases = <ElEventPhase>[];
     dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => phases.add(event.phase),
         onDragEnd: (event) {
           phases.add(event.phase);
@@ -436,7 +651,7 @@ void main() {
     final phases = <String>[];
     dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => phases.add('old:${event.phase.name}'),
         onDragCancel: (event) {
           phases.add('old:${event.phase.name}');
@@ -515,7 +730,11 @@ void main() {
     );
 
     expect(phases, <String>['old:pointerDown', 'new:tapDown', 'new:tapUp', 'new:tap']);
+    expect(dispatcher.isTapPressed, isTrue);
+    await tester.pump(Duration(milliseconds: 100));
     expect(dispatcher.isTapPressed, isFalse);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('removing event during pointerDown does not leave active state set', (tester) async {
@@ -551,6 +770,61 @@ void main() {
     expect(activeChanges, isEmpty);
   });
 
+  testWidgets('replacing event during forward tap down does not retarget pointerDown to new event', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    late final EventDispatcher dispatcher;
+    final phases = <String>[];
+    ElEvent replacementEvent() {
+      return ElEvent(
+        onPointerDown: (event) => phases.add('new:${event.phase.name}'),
+        onForwardTapUp: (event) => phases.add('new:${event.phase.name}'),
+        onForwardTap: (event) => phases.add('new:${event.phase.name}'),
+      );
+    }
+
+    dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        onPointerDown: (event) => phases.add('old:${event.phase.name}'),
+        onForwardTapDown: (event) {
+          phases.add('old:${event.phase.name}');
+          dispatcher.event = replacementEvent();
+        },
+        onForwardTapUp: (event) => phases.add('old:${event.phase.name}'),
+        onForwardTap: (event) => phases.add('old:${event.phase.name}'),
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(
+        pointer: 1,
+        kind: PointerDeviceKind.mouse,
+        buttons: kForwardMouseButton,
+        position: Offset.zero,
+        timeStamp: Duration.zero,
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(
+        pointer: 1,
+        kind: PointerDeviceKind.mouse,
+        position: Offset.zero,
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+
+    // 分发顺序对称化：raw pointerDown 先于侧键语义 down（对齐 DOM
+    // pointerdown -> 派生语义 的恒定顺序）。forwardTapDown handler 内的结构
+    // 替换仍然保证本事件不再 retarget 到新配置（后续无任何 new:* fire）。
+    expect(phases, <String>['old:pointerDown', 'old:forwardTapDown']);
+    expect(dispatcher.isTapPressed, isFalse);
+  });
+
   testWidgets('removing event reports current multitouch drag offset when cancelling', (tester) async {
     final pipelineOwner = PipelineOwner();
     final box = _EventTestBox();
@@ -559,7 +833,7 @@ void main() {
     Offset? cancelOffset;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (_) {},
         onDragUpdate: (_) {},
         onDragCancel: (event) => cancelOffset = event.dragOffset,
@@ -608,7 +882,7 @@ void main() {
     final phases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) => phases.add(event.phase),
         onDragCancel: (event) => phases.add(event.phase),
       );
@@ -626,6 +900,133 @@ void main() {
     expect(EventDispatcher.of(box), isNull);
   });
 
+  testWidgets('scale start cancels active drag and leaves no pressed state', (tester) async {
+    {
+      final pipelineOwner = PipelineOwner();
+      final box = _EventTestBox();
+      pipelineOwner.rootNode = box;
+
+      final phases = <ElEventPhase>[];
+      final dispatcher = EventDispatcher(box)
+        ..event = ElEvent(
+          dragStartDistance: 3,
+          onDragStart: (event) => phases.add(event.phase),
+          onDragCancel: (event) => phases.add(event.phase),
+          onDragEnd: (event) => phases.add(event.phase),
+          onScaleStart: (event) => phases.add(event.phase),
+        );
+      addTearDown(dispatcher.dispose);
+
+      final entry = BoxHitTestEntry(box, Offset.zero);
+      dispatcher.dispatchTestPointer(const PointerDownEvent(position: Offset.zero, timeStamp: Duration.zero), entry);
+      dispatcher.dispatchTestPointer(
+        const PointerMoveEvent(position: Offset(4, 0), delta: Offset(4, 0), timeStamp: Duration(milliseconds: 16)),
+        entry,
+      );
+
+      final scale = DispatcherScaleGesture.start(dispatcher, entry);
+      await tester.pump();
+      scale.end();
+
+      expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragCancel, ElEventPhase.scaleStart]);
+      expect(dispatcher.isTapPressed, isFalse);
+    }
+  });
+
+  testWidgets('scale start tap cancel replacing event does not leak new gesture phases', (tester) async {
+    {
+      final pipelineOwner = PipelineOwner();
+      final box = _EventTestBox();
+      pipelineOwner.rootNode = box;
+
+      late final EventDispatcher dispatcher;
+      final phases = <String>[];
+      dispatcher = EventDispatcher(box)
+        ..event = ElEvent(
+          dragStartDistance: 1000,
+          onTapCancel: (event) {
+            phases.add('old:${event.phase.name}');
+            dispatcher.event = ElEvent(
+              onDragCancel: (event) => phases.add('new:${event.phase.name}'),
+              onScaleStart: (event) => phases.add('new:${event.phase.name}'),
+            );
+          },
+          onDragStart: (event) => phases.add('old:${event.phase.name}'),
+          onDragCancel: (event) => phases.add('old:${event.phase.name}'),
+          onScaleStart: (event) => phases.add('old:${event.phase.name}'),
+        );
+      addTearDown(dispatcher.dispose);
+
+      final entry = BoxHitTestEntry(box, Offset.zero);
+      dispatcher.dispatchTestPointer(
+        const PointerDownEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset.zero,
+          timeStamp: Duration.zero,
+        ),
+        entry,
+      );
+
+      DispatcherScaleGesture.start(
+        dispatcher,
+        entry,
+        existingDown: const PointerDownEvent(pointer: 1, position: Offset.zero),
+      );
+
+      expect(phases, <String>['old:tapCancel']);
+      expect(dispatcher.event, isNotNull);
+    }
+  });
+
+  testWidgets('scale start reports current multitouch drag offset when cancelling', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    Offset? cancelOffset;
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        dragStartDistance: 3,
+        onDragStart: (_) {},
+        onDragUpdate: (_) {},
+        onDragCancel: (event) => cancelOffset = event.dragOffset,
+        onScaleStart: (_) {},
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(14, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 20),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 2, position: Offset(100, 0), timeStamp: Duration(milliseconds: 24)),
+      entry,
+    );
+    await tester.pump();
+
+    expect(cancelOffset, const Offset(10, 0));
+  });
+
   testWidgets('pointer cancel reports current multitouch drag offset', (tester) async {
     final pipelineOwner = PipelineOwner();
     final box = _EventTestBox();
@@ -634,7 +1035,7 @@ void main() {
     Offset? cancelOffset;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (_) {},
         onDragUpdate: (_) {},
         onDragCancel: (event) => cancelOffset = event.dragOffset,
@@ -690,7 +1091,7 @@ void main() {
     final offsets = <Offset>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (_) {},
         onDragUpdate: (event) {
           deltas.add(event.delta);
@@ -750,7 +1151,7 @@ void main() {
     final buttons = <int>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) {
           phases.add(event.phase);
           buttons.add(event.buttons);
@@ -829,6 +1230,209 @@ void main() {
     expect(buttons, <int>[kPrimaryButton, 0]);
   });
 
+  testWidgets('latest pointer drag falls back to the newest accepted remaining pointer', (tester) async {
+    final pipelineOwner = PipelineOwner();
+    final box = _EventTestBox();
+    pipelineOwner.rootNode = box;
+
+    final deltas = <Offset>[];
+    final offsets = <Offset>[];
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        dragStartDistance: 3,
+        onDragStart: (_) {},
+        onDragUpdate: (event) {
+          deltas.add(event.delta);
+          offsets.add(event.dragOffset);
+        },
+      );
+    addTearDown(dispatcher.dispose);
+
+    final entry = BoxHitTestEntry(box, Offset.zero);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 8),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 2, position: Offset(100, 0), timeStamp: Duration(milliseconds: 12)),
+      entry,
+    );
+    await tester.pump();
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 2,
+        position: Offset(110, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 3, position: Offset(200, 0), timeStamp: Duration(milliseconds: 20)),
+      entry,
+    );
+    await tester.pump();
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 3,
+        position: Offset(210, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 24),
+      ),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(pointer: 3, position: Offset(210, 0), timeStamp: Duration(milliseconds: 28)),
+      entry,
+    );
+    final updateCountAfterNewestLift = deltas.length;
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 2,
+        position: Offset(120, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 32),
+      ),
+      entry,
+    );
+    expect(deltas.length, updateCountAfterNewestLift + 1);
+    expect(deltas.last, const Offset(10, 0));
+
+    final offsetBeforeFirstPointerMove = offsets.last;
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(14, 0),
+        delta: Offset(10, 0),
+        timeStamp: Duration(milliseconds: 48),
+      ),
+      entry,
+    );
+
+    expect(deltas.length, updateCountAfterNewestLift + 1);
+    expect(offsets.last, offsetBeforeFirstPointerMove);
+  });
+
+  testWidgets('latest touch drag falls back after newest pointer removed and keeps raw accounting', (tester) async {
+    {
+      final pipelineOwner = PipelineOwner();
+      final box = _EventTestBox();
+      pipelineOwner.rootNode = box;
+
+      final phases = <ElEventPhase>[];
+      final offsets = <Offset>[];
+      final dispatcher = EventDispatcher(box)
+        ..event = ElEvent(
+          dragStartDistance: 3,
+          onDragStart: (event) {
+            phases.add(event.phase);
+            offsets.add(event.dragOffset);
+          },
+          onDragUpdate: (event) {
+            phases.add(event.phase);
+            offsets.add(event.dragOffset);
+          },
+          onDragEnd: (event) {
+            phases.add(event.phase);
+            offsets.add(event.dragOffset);
+          },
+          onDragCancel: (event) => phases.add(event.phase),
+        );
+      addTearDown(dispatcher.dispose);
+
+      final entry = BoxHitTestEntry(box, Offset.zero);
+      dispatcher.dispatchTestPointer(
+        const PointerDownEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset.zero,
+          timeStamp: Duration.zero,
+        ),
+        entry,
+      );
+      dispatcher.dispatchTestPointer(
+        const PointerMoveEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset(4, 0),
+          delta: Offset(4, 0),
+          timeStamp: Duration(milliseconds: 16),
+        ),
+        entry,
+      );
+      dispatcher.dispatchTestPointer(
+        const PointerDownEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(100, 0),
+          timeStamp: Duration(milliseconds: 24),
+        ),
+        entry,
+      );
+      await tester.pump();
+      dispatcher.dispatchTestPointer(
+        const PointerMoveEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(112, 0),
+          delta: Offset(12, 0),
+          timeStamp: Duration(milliseconds: 40),
+        ),
+        entry,
+      );
+
+      expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragUpdate]);
+
+      GestureBinding.instance.pointerRouter.route(
+        const PointerRemovedEvent(
+          pointer: 2,
+          kind: PointerDeviceKind.touch,
+          position: Offset(112, 0),
+          timeStamp: Duration(milliseconds: 48),
+        ),
+      );
+
+      expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragUpdate]);
+
+      dispatcher.dispatchTestPointer(
+        const PointerMoveEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset(10, 0),
+          delta: Offset(6, 0),
+          timeStamp: Duration(milliseconds: 64),
+        ),
+        entry,
+      );
+      dispatcher.dispatchTestPointer(
+        const PointerUpEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.touch,
+          position: Offset(10, 0),
+          timeStamp: Duration(milliseconds: 80),
+        ),
+        entry,
+      );
+
+      expect(phases, <ElEventPhase>[
+        ElEventPhase.dragStart,
+        ElEventPhase.dragUpdate,
+        ElEventPhase.dragUpdate,
+        ElEventPhase.dragEnd,
+      ]);
+      expect(offsets.last, const Offset(18, 0));
+    }
+  });
+
   testWidgets('shape-equal replacement keeps pending long press and fires the new handler', (tester) async {
     final pipelineOwner = PipelineOwner();
     final box = _EventTestBox();
@@ -838,7 +1442,7 @@ void main() {
     var newLongPresses = 0;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+        longPressDelay: Duration(milliseconds: 20),
         onLongPress: (_) => oldLongPresses++,
       );
     addTearDown(dispatcher.dispose);
@@ -846,7 +1450,7 @@ void main() {
     final entry = BoxHitTestEntry(box, Offset.zero);
     dispatcher.dispatchTestPointer(const PointerDownEvent(position: Offset.zero, timeStamp: Duration.zero), entry);
     dispatcher.event = ElEvent(
-      config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+      longPressDelay: Duration(milliseconds: 20),
       onLongPress: (_) => newLongPresses++,
     );
 
@@ -868,14 +1472,14 @@ void main() {
     var longPresses = 0;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(longPressDelay: Duration(milliseconds: 200)),
+        longPressDelay: Duration(milliseconds: 200),
         onLongPress: (_) => longPresses++,
       );
     addTearDown(dispatcher.dispose);
     final entry = BoxHitTestEntry(box, Offset.zero);
 
     dispatcher.event = ElEvent(
-      config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+      longPressDelay: Duration(milliseconds: 20),
       onLongPress: (_) => longPresses++,
     );
     const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero, buttons: kPrimaryButton);
@@ -886,15 +1490,29 @@ void main() {
 
     expect(longPresses, 1);
   });
+
 }
 
 final class _EventTestBox extends RenderBox {
   _EventTestBox() {
+    // 裸 Render 宿主也必须完成布局，边界资格不能依赖未布局盒子的回退行为。
     layout(BoxConstraints.tight(Size(100, 100)));
   }
 
   @override
   void performLayout() {
     size = constraints.constrain(const Size(100, 100));
+  }
+}
+
+final class _RecordingVelocityTracker extends VelocityTracker {
+  _RecordingVelocityTracker(super.kind) : super.withKind();
+
+  final List<Offset> positions = <Offset>[];
+
+  @override
+  void addPosition(Duration time, Offset position) {
+    positions.add(position);
+    super.addPosition(time, position);
   }
 }

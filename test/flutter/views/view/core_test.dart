@@ -1044,7 +1044,7 @@ void main() {
             style: const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF111111)),
             event: ElEvent(
               disabled: disabled,
-              config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+              longPressDelay: Duration(milliseconds: 20),
               onTap: (_) => taps++,
               onTapCancel: (_) => cancels++,
               onLongPress: (_) => longPresses++,

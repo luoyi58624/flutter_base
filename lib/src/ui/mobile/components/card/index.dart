@@ -48,8 +48,8 @@ Widget cardBuilder(BuildContext context, ElCard component) {
           excludeChildSemantics: false,
           ignoreDescendantAction: true,
           repeatEnter: false,
-          delayTouchDown: component.event?.config?.delayTouchDown ?? Duration.zero,
-          delayTouchUp: component.event?.config?.delayTouchUp ?? const Duration(milliseconds: 100),
+          delayTouchDown: component.event?.delayTouchDown ?? Duration.zero,
+          delayTouchUp: component.event?.delayTouchUp ?? const Duration(milliseconds: 100),
           onActivate: (_) => component.onTap?.call(),
           child: content,
         )

@@ -82,7 +82,7 @@ void main() {
             key: targetKey,
             style: const ElStyle(width: 280, height: 64, fontSize: 18),
             event: ElEvent(
-              config: const ElEventConfig(dragStartDistance: 24),
+              dragStartDistance: 24,
               onDragStart: (event) {
                 descendantDragStarts++;
                 event.stopPropagation();
@@ -111,41 +111,6 @@ void main() {
     await gesture.up();
     await tester.pump();
     expect(descendantTaps, 1, reason: 'DragStart.stop 只建立 Drag 家族边界，不得取消后代自身 Tap');
-  });
-
-  testWidgets('祖先 DragProxy 先取消 Tap 时，Selection 仍在同周期 DragStart 建立选区', (tester) async {
-    final controller = ElSelectionController();
-    addTearDown(controller.dispose);
-    const textKey = ValueKey<String>('selection-inside-drag-proxy');
-
-    await tester.pumpWidget(
-      _app(
-        ElView(
-          event: ElEvent(
-            dragProxy: ElDragProxy(onDragPreUpdate: (_) {}, onDragOverflow: (_) {}),
-          ),
-          child: SelectionView(
-            controller: controller,
-            child: const ElView(
-              key: textKey,
-              style: ElStyle(width: 280, height: 64, fontSize: 18),
-              child: 'alpha beta gamma delta',
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final rect = tester.getRect(find.byKey(textKey));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    addTearDown(gesture.removePointer);
-    await gesture.down(rect.centerLeft + const Offset(4, 0));
-    await gesture.moveTo(rect.centerRight - const Offset(4, 0));
-    await tester.pump();
-    expect(_selectionRender(tester).isSelectionDragging, isTrue);
-    expect(controller.text, isNotNull, reason: 'DragProxy 的 Tap 取消是当前 Drag 接受的前置结算，不是 Selection 失权');
-    await gesture.up();
-    await tester.pump();
   });
 
   testWidgets('桌面字符拖选同步 eager：祖先后续 raw 终止，winner 自身拖选到 up', (tester) async {

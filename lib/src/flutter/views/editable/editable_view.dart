@@ -3367,7 +3367,7 @@ class _EditableViewState extends State<EditableView>
     }
     // 触摸长按建立选区后直接走 pointer route：同一根指头后续
     // move/up 不再依赖祖先滚动的 Drag recognizer 是否还在场。
-    e.eagerGesture(cancelSelfTap: true);
+    e.stopPropagation();
     e.stopPropagation();
     final hadFocus = _focusNode.hasFocus;
     _focusNode.requestFocus();
@@ -3561,7 +3561,7 @@ class _EditableViewState extends State<EditableView>
       _resetDragSelectionGranularity();
       return;
     }
-    e.eagerGesture(cancelSelfTap: true);
+    e.stopPropagation();
     e.stopPropagation();
     // eager 会同步结清祖先手势，祖先回调可能改写文档或选区；认领后必须
     // 再验一次，绝不能把 down 时的词、行或列选锚点套到外部新状态上。
@@ -5855,10 +5855,8 @@ class _EditableViewState extends State<EditableView>
                     readOnly
                         ? const ElEvent()
                         : ElEvent(
-                            config: ElEventConfig(
-                              longPressDelay: _selectionControls.resolveLongPressDelay(context),
-                              tapCancelByDistance: true,
-                            ),
+                            longPressDelay: _selectionControls.resolveLongPressDelay(context),
+                            tapCancelDistance: 10,
                             onPointerDown: _handlePointerDownFocus,
                             // 收起软键盘可能保留焦点与连接；只在点击成立后重新 show，避免滑动误弹。
                             onTap: (_) => _requestKeyboard(),

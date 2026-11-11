@@ -1,4 +1,5 @@
-// 普通拖拽期间 MouseTracker 继续处理悬停，全局指针锁由组件显式开启。
+// 拖拽指针锁（DragPointerLock）：普通 eager / passive / stop-only Drag 不锁，
+// hover 始终按真实指针位置翻转；只有复合 DragProxy 等框架内部强排他操作上锁。
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
@@ -6,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
   setUp(() {
-    EventDispatcher.debugResetEagerGestureOwners();
+    EventDispatcher.debugReset();
     DragPointerLock.debugReset();
   });
   tearDown(DragPointerLock.debugReset);
@@ -30,7 +31,7 @@ void main() {
               key: leftKey,
               style: const ElStyle(width: 200, height: 200, onHover: ElStyle(backgroundColor: Color(0xFF654321))),
               event: ElEvent(
-                config: const ElEventConfig(dragStartDistance: 6.0),
+                dragStartDistance: 6.0,
                 onDragStart: (event) => event.stopPropagation(),
                 onDragUpdate: (_) {},
               ),
@@ -69,7 +70,7 @@ void main() {
     await mouse.up();
   });
 
-  testWidgets('LOCK-1: 鼠标拖拽调用旧 eagerGesture 时，悬停与其他指针照常派发', (tester) async {
+  testWidgets('LOCK-1: 鼠标 Drag eager 只独占当前 pointer，真实 hover 与其他 pointer 不受影响', (tester) async {
     const leftKey = ValueKey('lock-drag-source');
     const rightKey = ValueKey('lock-hover-target');
     var rightTaps = 0;
@@ -84,8 +85,8 @@ void main() {
               key: leftKey,
               style: const ElStyle(width: 200, height: 200),
               event: ElEvent(
-                config: const ElEventConfig(dragStartDistance: 6.0),
-                onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
+                dragStartDistance: 6.0,
+                onDragStart: (event) => event.stopPropagation(),
                 onDragUpdate: (_) {},
               ),
             ),
@@ -115,14 +116,14 @@ void main() {
     await tester.pump();
     expect(rightRender.internalStateHas(ViewState.hover), isTrue, reason: '探针自证：hover 正常可翻转');
 
-    // 移到左侧按下并越过起拖阈值。
+    // 起手：移到左侧按下并越阈，Drag 回调明确 eager，但只收缩当前 pointer 序列。
     await mouse.moveTo(leftCenter);
     await tester.pump();
     await mouse.down(leftCenter);
     await tester.pump();
     await mouse.moveBy(const Offset(0, 20));
     await tester.pump();
-    expect(DragPointerLock.isActive, isFalse);
+    expect(DragPointerLock.isActive, isFalse, reason: 'eager 只独占当前 pointer，不得升级成全局指针锁');
 
     // 按住拖过右侧：MouseTracker 仍按当前位置产生 enter 与 hover 样式。
     await mouse.moveTo(rightCenter);
@@ -140,7 +141,7 @@ void main() {
     expect(rightEnters, 3);
     expect(rightRender.internalStateHas(ViewState.hover), isTrue);
 
-    // 新触点继续走自己的命中路径。
+    // eager 归属仅限原 pointer，新的 pointer 仍可独立命中。
     final touch = await tester.createGesture(kind: PointerDeviceKind.touch, pointer: 77);
     await touch.down(rightCenter);
     await touch.up();
@@ -162,8 +163,8 @@ void main() {
           key: key,
           style: const ElStyle(width: 200, height: 200),
           event: ElEvent(
-            config: const ElEventConfig(dragStartDistance: 6.0),
-            onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
+            dragStartDistance: 6.0,
+            onDragStart: (event) => event.stopPropagation(),
             onDragUpdate: (_) {},
           ),
         ),
@@ -187,8 +188,8 @@ void main() {
           key: key,
           style: const ElStyle(width: 200, height: 200),
           event: ElEvent(
-            config: const ElEventConfig(dragStartDistance: 6.0),
-            onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
+            dragStartDistance: 6.0,
+            onDragStart: (event) => event.stopPropagation(),
             onDragUpdate: (_) {},
             onDragCancel: (_) {},
           ),
@@ -219,4 +220,5 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+
 }

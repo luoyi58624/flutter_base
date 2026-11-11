@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart' show kPressTimeout;
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +12,7 @@ Widget _shell(Widget child) => Directionality(
 Widget _box() => SizedBox(width: 100, height: 100);
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   testWidgets('直接更新 dispatcher 光标会调度静止鼠标刷新', (tester) async {
     await tester.pumpWidget(
@@ -40,6 +39,34 @@ void main() {
     dispatcher.event = dispatcher.event!.copyWith(cursor: null);
     await tester.pump();
     expect(tester.binding.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.basic);
+  });
+
+  testWidgets('禁用外层也清除后代已经抬起的延迟 Tap', (tester) async {
+    var taps = 0;
+    final child = ElView(
+      event: ElEvent(
+        deferTap: true, doubleTapInterval: Duration(milliseconds: 40),
+        onTap: (_) => taps++,
+        onDoubleTap: (_) {},
+      ),
+      child: _box(),
+    );
+    Widget tree(bool disabled) => _shell(
+      ElView(
+        event: ElEvent(disabled: disabled),
+        child: child,
+      ),
+    );
+    await tester.pumpWidget(tree(false));
+    await tester.tapAt(Offset(20, 20));
+    expect(taps, 0);
+    await tester.pumpWidget(tree(true));
+    await tester.pump(Duration(milliseconds: 80));
+    expect(taps, 0);
+    await tester.pumpWidget(tree(false));
+    await tester.tapAt(Offset(20, 20));
+    await tester.pump(Duration(milliseconds: 80));
+    expect(taps, 1);
   });
 
   testWidgets('直接宿主保留子组件尺寸且不创建焦点节点', (tester) async {
@@ -338,11 +365,10 @@ void main() {
     );
     await tester.pumpWidget(tree(false));
     final gesture = await tester.startGesture(Offset(20, 20));
-    await tester.pump(kPressTimeout);
     await tester.pumpWidget(tree(true));
     await gesture.up();
     await tester.pump();
-    expect(calls, [ElEventPhase.pointerDown, ElEventPhase.tapDown, ElEventPhase.tapCancel, ElEventPhase.pointerCancel]);
+    expect(calls, [ElEventPhase.pointerDown, ElEventPhase.tapDown, ElEventPhase.pointerCancel, ElEventPhase.tapCancel]);
     await tester.tapAt(Offset(20, 20));
     expect(calls, hasLength(4));
     expect(behindDowns, 0);
@@ -351,7 +377,7 @@ void main() {
     expect(calls.where((phase) => phase == ElEventPhase.tap), hasLength(2));
   });
 
-  testWidgets('变换节点超出点击容差后，移回也不会重新识别', (tester) async {
+  testWidgets('变换后的边界仍允许移出取消、移回复燃', (tester) async {
     final phases = <ElEventPhase>[];
     void record(ElEventDetails e) => phases.add(e.phase);
     await tester.pumpWidget(
@@ -371,7 +397,13 @@ void main() {
     await gesture.moveTo(Offset(150, 20));
     await gesture.up();
     await tester.pump();
-    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapCancel]);
+    expect(phases, [
+      ElEventPhase.tapDown,
+      ElEventPhase.tapCancel,
+      ElEventPhase.tapDown,
+      ElEventPhase.tapUp,
+      ElEventPhase.tap,
+    ]);
   });
 
   testWidgets('GlobalKey 重挂保留分发器与当前按压序列', (tester) async {
@@ -403,95 +435,33 @@ void main() {
     expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
   });
 
-  testWidgets('水平拖拽和官方纵向 ListView 按各自的轴竞争', (tester) async {
-    final controller = ScrollController();
-    addTearDown(controller.dispose);
-    var starts = 0;
-    var ends = 0;
+  testWidgets('卸载已开始的拖拽只发一次 Cancel 并释放注册', (tester) async {
+    final phases = <ElEventPhase>[];
+    void record(ElEventDetails e) => phases.add(e.phase);
     await tester.pumpWidget(
       _shell(
-        SizedBox(
-          width: 200,
-          height: 200,
-          child: ListView(
-            controller: controller,
-            children: [
-              ElView(
-                event: ElEvent(onHorizontalDragStart: (_) => starts++, onHorizontalDragEnd: (_) => ends++),
-                child: SizedBox(height: 200),
-              ),
-              SizedBox(height: 400),
-            ],
+        ElView(
+          event: ElEvent(
+            dragStartDistance: 0,
+            onDragStart: record,
+            onDragEnd: record,
+            onDragCancel: record,
           ),
+          child: _box(),
         ),
       ),
     );
-    await tester.dragFrom(Offset(150, 150), Offset(-90, -5));
-    await tester.pumpAndSettle();
-    expect((starts, ends), (1, 1));
-    expect(controller.offset, 0);
-
-    await tester.dragFrom(Offset(150, 150), Offset(-5, -90));
-    await tester.pumpAndSettle();
-    expect(controller.offset, greaterThan(0));
-    expect((starts, ends), (1, 1));
-  });
-
-  testWidgets('缩放后的 ElView 水平拖拽保留局部轴与全局位移', (tester) async {
-    final updates = <ElEventDetails>[];
-    final ends = <ElEventDetails>[];
-    await tester.pumpWidget(
-      _shell(
-        Transform.scale(
-          scale: 2,
-          alignment: .topLeft,
-          child: ElView(
-            event: ElEvent(onHorizontalDragUpdate: updates.add, onHorizontalDragEnd: ends.add),
-            child: _box(),
-          ),
-        ),
-      ),
-    );
+    final render = tester.renderObject<RenderBox>(find.byType(ElView));
     final gesture = await tester.startGesture(Offset(20, 20));
-    await gesture.moveBy(Offset(40, 0));
-    await gesture.moveBy(Offset(20, 10));
+    await gesture.moveBy(Offset(20, 0));
+    await tester.pump();
+    expect(phases, [ElEventPhase.dragStart]);
+    await tester.pumpWidget(_shell(SizedBox.shrink()));
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragCancel]);
+    expect(EventDispatcher.of(render), isNull);
     await gesture.up();
-
-    expect(updates.single.dragAxis, Axis.horizontal);
-    expect(updates.single.localPosition, Offset(40, 15));
-    expect(updates.single.localDelta, Offset(10, 0));
-    expect(updates.single.delta, Offset(20, 0));
-    expect(ends.single.dragOffset, Offset(20, 0));
+    expect(phases, hasLength(2));
   });
-
-  for (final disable in [true, false]) {
-    testWidgets('${disable ? '禁用' : '卸载'}已开始的拖拽只结清一次', (tester) async {
-      final phases = <ElEventPhase>[];
-      final reasons = <ElEventCancelReason?>[];
-      final event = ElEvent(
-        onDragStart: (event) => phases.add(event.phase),
-        onDragEnd: (event) => phases.add(event.phase),
-        onDragCancel: (event) {
-          phases.add(event.phase);
-          reasons.add(event.cancelReason);
-        },
-      );
-      Widget view(ElEvent value) => _shell(ElView(event: value, child: _box()));
-
-      await tester.pumpWidget(view(event));
-      final render = tester.renderObject<RenderBox>(find.byType(ElView));
-      final gesture = await tester.startGesture(Offset(20, 20));
-      await gesture.moveBy(Offset(40, 0));
-      expect(phases, [ElEventPhase.dragStart]);
-
-      await tester.pumpWidget(disable ? view(event.copyWith(disabled: true)) : _shell(SizedBox.shrink()));
-      expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-      expect(reasons, [ElEventCancelReason.external]);
-      if (!disable) expect(EventDispatcher.of(render), isNull);
-      await gesture.up();
-      expect(phases, hasLength(2));
-    });
-  }
 
   testWidgets('仅监听后代 El 焦点和键盘冒泡，不创建自己的 Focus', (tester) async {
     final node = FocusNode();

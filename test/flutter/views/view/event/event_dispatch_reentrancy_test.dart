@@ -27,6 +27,8 @@ void main() {
     dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 1, position: Offset(20, 20)), entry);
 
     expect(phases, <String>['old:tapUp']);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('pointerUp replacing event does not fire tap into replacement', (tester) async {
@@ -64,11 +66,11 @@ void main() {
     final phases = <String>[];
     dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onPointerMove: (event) {
           phases.add('old:${event.phase.name}');
           dispatcher.event = ElEvent(
-            config: const ElEventConfig(dragStartDistance: 3),
+            dragStartDistance: 3,
             onDragStart: (event) => phases.add('new:${event.phase.name}'),
             onTap: (event) => phases.add('new:${event.phase.name}'),
           );
@@ -117,6 +119,69 @@ void main() {
     expect(dispatcher.isTapPressed, isFalse);
   });
 
+  testWidgets('event removal cancel replacement does not emit panZoomEnd into replacement', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+
+    late final EventDispatcher dispatcher;
+    final phases = <String>[];
+    dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        onTapCancel: (event) {
+          phases.add('old:${event.phase.name}');
+          dispatcher.event = ElEvent(onPointerPanZoomEnd: (event) => phases.add('new:${event.phase.name}'));
+        },
+        onPointerPanZoomStart: (event) => phases.add('old:${event.phase.name}'),
+        onPointerPanZoomEnd: (event) => phases.add('old:${event.phase.name}'),
+      );
+    addTearDown(dispatcher.dispose);
+
+    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset.zero), entry);
+    dispatcher.dispatchTestPointer(const PointerPanZoomStartEvent(pointer: 2, position: Offset(20, 20)), entry);
+
+    dispatcher.event = null;
+
+    expect(phases, <String>['old:pointerPanZoomStart', 'old:tapCancel']);
+    expect(dispatcher.event, isNotNull);
+  });
+
+  testWidgets('passive drag acceptance does not invoke tap cancel replacement', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+
+    late final EventDispatcher dispatcher;
+    final phases = <String>[];
+    dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        dragStartDistance: 3,
+        onTapCancel: (event) {
+          phases.add('old:${event.phase.name}');
+          dispatcher.event = ElEvent(
+            dragStartDistance: 3,
+            onDragStart: (event) => phases.add('new:${event.phase.name}'),
+          );
+        },
+        onDragStart: (event) => phases.add('old:${event.phase.name}'),
+      );
+    addTearDown(dispatcher.dispose);
+
+    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset.zero), entry);
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+
+    expect(phases, <String>['old:dragStart']);
+    dispatcher.dispatchTestPointer(PointerUpEvent(pointer: 1, position: Offset(4, 0)), entry);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
+  });
+
   testWidgets('pointerDown replacing event rejects the pending longPress callback', (tester) async {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
@@ -125,11 +190,11 @@ void main() {
     final phases = <String>[];
     dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+        longPressDelay: Duration(milliseconds: 20),
         onPointerDown: (event) {
           phases.add('old:${event.phase.name}');
           dispatcher.event = ElEvent(
-            config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
+            longPressDelay: Duration(milliseconds: 20),
             onLongPress: (event) => phases.add('new:${event.phase.name}'),
           );
         },
@@ -141,6 +206,45 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
 
     expect(phases, <String>['old:pointerDown']);
+  });
+
+  testWidgets('drag cancel replacing event during scale takeover does not emit scaleStart', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+
+    late final EventDispatcher dispatcher;
+    final phases = <String>[];
+    dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        dragStartDistance: 3,
+        onDragStart: (event) => phases.add('old:${event.phase.name}'),
+        onDragCancel: (event) {
+          phases.add('old:${event.phase.name}');
+          dispatcher.event = ElEvent(onScaleStart: (event) => phases.add('new:${event.phase.name}'));
+        },
+        onScaleStart: (event) => phases.add('old:${event.phase.name}'),
+      );
+    addTearDown(dispatcher.dispose);
+
+    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset.zero), entry);
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(
+        pointer: 1,
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
+        timeStamp: Duration(milliseconds: 16),
+      ),
+      entry,
+    );
+
+    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 2, position: Offset(100, 0)), entry);
+    await tester.pump();
+    dispatcher.dispatchTestPointer(
+      const PointerMoveEvent(pointer: 2, position: Offset(160, 0), delta: Offset(60, 0)),
+      entry,
+    );
+
+    expect(phases, <String>['old:dragStart', 'old:dragCancel']);
   });
 
   testWidgets('forward tapUp replacing event does not fire forwardTap into replacement', (tester) async {

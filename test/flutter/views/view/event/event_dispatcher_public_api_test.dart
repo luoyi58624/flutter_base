@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/view/event/event.dart';
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter/rendering.dart' show RenderConstrainedBox;
 import 'package:flutter/widgets.dart';
@@ -10,4 +11,5 @@ void main() {
     addTearDown(dispatcher.dispose);
     expect(EventDispatcher.of(render), same(dispatcher));
   });
+
 }

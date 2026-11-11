@@ -575,7 +575,7 @@ void main() {
                 ElView(
                   style: const ElStyle(width: 300, height: 200),
                   event: ElEvent(
-                    config: const ElEventConfig(dragStartDistance: 1),
+                    dragStartDistance: 1,
                     onHorizontalDragStart: (event) {
                       event.consumePrimaryDelta(Axis.horizontal, event.remainingPrimaryDelta(Axis.horizontal));
                       event.stopPropagation();

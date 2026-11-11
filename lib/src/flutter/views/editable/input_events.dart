@@ -12,8 +12,6 @@ ElEvent combineEditableEvents(ElEvent defaults, ElEvent? custom) {
   }
 
   return defaults.copyWith(
-    config: custom.config ?? defaults.config,
-    dragProxy: custom.dragProxy ?? defaults.dragProxy,
     onPointerEnter: combine(custom.onPointerEnter, defaults.onPointerEnter),
     onPointerHover: combine(custom.onPointerHover, defaults.onPointerHover),
     onPointerExit: combine(custom.onPointerExit, defaults.onPointerExit),

@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 const _contentKey = ValueKey<String>('zoom-transform-contract-content');
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   test('ElZoomTransform 提供稳定的 identity、值相等、hashCode 与 copyWith', () {
     const identity = ElZoomTransform();

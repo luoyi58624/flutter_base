@@ -8,24 +8,26 @@ class DemoTestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ObsBuilder(
-      builder: (context) {
-        return ElComponentProvider(
-          components: el.desktopComponents,
-          themeMode: ElThemeMode(brightness: _isDark.value ? .dark : .light),
-          child: ObsBuilder(
-            builder: (context) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                themeMode: _isDark.value ? ThemeMode.dark : ThemeMode.light,
-                theme: ThemeData(scaffoldBackgroundColor: context.elTheme.bgColor),
-                darkTheme: ThemeData(brightness: .dark, scaffoldBackgroundColor: context.elTheme.bgColor),
-                home: _Home(),
-              );
-            },
-          ),
-        );
-      },
+    return MouseRegion(
+      child: ObsBuilder(
+        builder: (context) {
+          return ElComponentProvider(
+            components: el.desktopComponents,
+            themeMode: ElThemeMode(brightness: _isDark.value ? .dark : .light),
+            child: ObsBuilder(
+              builder: (context) {
+                return MaterialApp(
+                  debugShowCheckedModeBanner: false,
+                  themeMode: _isDark.value ? ThemeMode.dark : ThemeMode.light,
+                  theme: ThemeData(scaffoldBackgroundColor: context.elTheme.bgColor),
+                  darkTheme: ThemeData(brightness: .dark, scaffoldBackgroundColor: context.elTheme.bgColor),
+                  home: _Home(),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -9,7 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   testWidgets('PREVIEW-G0: 同一预览连续四次触摸按下立即触发两组双击', (tester) async {
     final controller = ElPreviewController();
@@ -2305,10 +2305,10 @@ void main() {
       _shell(
         ElView(
           event: ElEvent(
-            config: const ElEventConfig(dragStartDistance: 8),
+            dragStartDistance: 8,
             onVerticalDragStart: (event) {
               parentVerticalStarts++;
-              event.eagerGesture(cancelSelfTap: true);
+              event.stopPropagation();
             },
             onVerticalDragUpdate: (_) => parentVerticalUpdates++,
           ),

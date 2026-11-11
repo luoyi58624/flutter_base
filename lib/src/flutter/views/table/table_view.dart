@@ -1650,7 +1650,7 @@ class _TableViewState extends State<ElTable> {
     onHorizontalDragStart: (event) {
       final session = _createColumnReorderSession(plan, event.globalPosition);
       if (session == null || !_grid.beginColumnReorder(session.sourceVisualStart, session.sourceVisualEnd)) return;
-      event.eagerGesture(cancelSelfTap: true);
+      event.stopPropagation();
       setState(() => _columnReorder = session);
       _updateColumnReorder(event.globalPosition);
     },
@@ -1804,7 +1804,7 @@ class _TableViewState extends State<ElTable> {
         onTap: (event) => event.stopPropagation(),
         onHorizontalDragStart: (event) {
           event.stopPropagation();
-          event.eagerGesture(cancelSelfTap: true);
+          event.stopPropagation();
           _columnResizeBase = _grid.beginColumnResize(visualIndex);
           _columnResizeFloor = widget.controller.columnMinWidthOf(column) ?? 40;
         },
@@ -1828,7 +1828,7 @@ class _TableViewState extends State<ElTable> {
         onTapDown: (event) => event.stopPropagation(),
         onTap: (event) => event.stopPropagation(),
         onVerticalDragStart: (event) {
-          event.eagerGesture(cancelSelfTap: true);
+          event.stopPropagation();
           _rowResizeBase = _grid.rowById(rowKey)?.size.height;
         },
         onVerticalDragUpdate: (event) {

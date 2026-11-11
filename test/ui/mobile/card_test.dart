@@ -150,7 +150,8 @@ void main() {
         ElCard(
           onTap: () => taps++,
           event: ElEvent(
-            config: ElEventConfig().copyWith(delayTouchDown: Duration(milliseconds: 150), delayTouchUp: Duration.zero),
+            delayTouchDown: Duration(milliseconds: 150),
+            delayTouchUp: Duration.zero,
             onTap: (event) {
               events++;
               event.preventDefault();

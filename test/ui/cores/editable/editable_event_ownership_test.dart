@@ -38,7 +38,7 @@ Widget _host({
 Future<void> _unmount(WidgetTester tester) => tester.pumpWidget(const SizedBox());
 
 void main() {
-  setUp(EventDispatcher.debugResetEagerGestureOwners);
+  setUp(EventDispatcher.debugReset);
 
   for (final kind in <PointerDeviceKind>[PointerDeviceKind.mouse, PointerDeviceKind.stylus]) {
     testWidgets(

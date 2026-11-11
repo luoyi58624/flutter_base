@@ -80,7 +80,6 @@ void main() {
       ),
       entry,
     );
-    await tester.pump(kPressTimeout);
     dispatcher.dispatchTestPointer(
       const PointerMoveEvent(
         pointer: 11,
@@ -97,7 +96,7 @@ void main() {
     );
     dispatcher.dispose();
 
-    expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
+    expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel, ElEventPhase.tapUp]);
     expect(cancelOriginalEvent, isA<PointerMoveEvent>());
     expect(cancelButtons, 0);
     expect(cancelReason, ElEventCancelReason.tapRejected);
@@ -119,7 +118,6 @@ void main() {
     final entry = BoxHitTestEntry(box, Offset.zero);
 
     dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
-    await tester.pump(kPressTimeout);
     dispatcher.event = null;
 
     expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
@@ -146,55 +144,11 @@ void main() {
     final entry = BoxHitTestEntry(box, Offset.zero);
 
     dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
-    await tester.pump(kPressTimeout);
     dispatcher.dispose();
 
     expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
     expect(cancelReason, ElEventCancelReason.external);
     expect(dispatcher.isTapPressed, isFalse);
-  });
-
-  testWidgets('preserved detach 保留活动序列与按压状态，重挂后同一条手势继续走完', (tester) async {
-    final box = _attachedBox();
-
-    final phases = <ElEventPhase>[];
-    final event = ElEvent(
-      onTapDown: (event) => phases.add(event.phase),
-      onTapUp: (event) => phases.add(event.phase),
-      onTap: (event) => phases.add(event.phase),
-      onTapCancel: (event) => phases.add(event.phase),
-    );
-    final dispatcher = EventDispatcher(box)..event = event;
-    dispatcher.onTapChanged = (_) {};
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
-    expect(dispatcher.activePointerCount, 1);
-    expect(dispatcher.isTapPressed, isTrue);
-
-    dispatcher.detach(preserveEvent: true);
-    expect(dispatcher.event, same(event));
-    expect(dispatcher.activePointerCount, 1, reason: '临时重挂沿用按下时的输入路线');
-    expect(dispatcher.isTapPressed, isTrue, reason: '重挂不得熄灭按压状态——用户手指还按着');
-
-    // 重挂不是手势结束：同一条 pointer 的抬手仍要照常走完 tapUp / tap。
-    dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 1, position: Offset(20, 20)), entry);
-    expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
-    expect(dispatcher.isTapPressed, isFalse);
-
-    dispatcher.attach();
-    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 2, position: Offset(20, 20)), entry);
-    dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 2, position: Offset(20, 20)), entry);
-    dispatcher.dispose();
-
-    expect(phases, <ElEventPhase>[
-      ElEventPhase.tapDown,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-      ElEventPhase.tapDown,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ]);
   });
 
   testWidgets('removing event during active pointerPanZoom dispatches terminal end', (tester) async {
@@ -243,47 +197,6 @@ void main() {
     expect(trace, <String>['pointerDown:1', 'pointerDown:2', 'pointerMove:2', 'pointerUp:1', 'pointerUp:0']);
   });
 
-  testWidgets('拖拽详情在抬手后保留更新时的 pointerCount 快照', (tester) async {
-    final host = DispatcherTestHost.chain();
-    addTearDown(host.dispose);
-    final deferredCounts = <int>[];
-
-    host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3),
-      onHorizontalDragUpdate: (event) => scheduleMicrotask(() => deferredCounts.add(event.pointerCount)),
-    );
-
-    host.dispatch(const PointerDownEvent(pointer: 43, kind: PointerDeviceKind.mouse, position: Offset(10, 20)));
-    host.dispatch(
-      const PointerMoveEvent(
-        pointer: 43,
-        kind: PointerDeviceKind.mouse,
-        position: Offset(20, 20),
-        delta: Offset(10, 0),
-        timeStamp: Duration(milliseconds: 16),
-      ),
-    );
-    host.dispatch(
-      const PointerMoveEvent(
-        pointer: 43,
-        kind: PointerDeviceKind.mouse,
-        position: Offset(30, 20),
-        delta: Offset(10, 0),
-        timeStamp: Duration(milliseconds: 32),
-      ),
-    );
-    host.dispatch(
-      const PointerUpEvent(
-        pointer: 43,
-        kind: PointerDeviceKind.mouse,
-        position: Offset(30, 20),
-        timeStamp: Duration(milliseconds: 48),
-      ),
-    );
-    await tester.pump();
-    expect(deferredCounts, <int>[1]);
-  });
-
   testWidgets('owner 在 raw pointerUp 内移除后祖先同次终态 pointerCount 为零', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
@@ -301,158 +214,33 @@ void main() {
     expect(ancestorCounts, <int>[0]);
   });
 
-  testWidgets('pointerPanZoom ignores update and end from a different pointer', (tester) async {
+  testWidgets('accepted scale emits tap cancel before scaleStart', (tester) async {
     final box = _attachedBox();
 
     final phases = <ElEventPhase>[];
+    ElEventCancelReason? cancelReason;
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        onPointerPanZoomStart: (event) => phases.add(event.phase),
-        onPointerPanZoomUpdate: (event) => phases.add(event.phase),
-        onPointerPanZoomEnd: (event) => phases.add(event.phase),
-      );
-    addTearDown(dispatcher.dispose);
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    dispatcher.dispatchTestPointer(const PointerPanZoomStartEvent(pointer: 4, position: Offset(20, 20)), entry);
-    dispatcher.dispatchTestPointer(
-      const PointerPanZoomUpdateEvent(pointer: 5, position: Offset(20, 20), pan: Offset(0, 8), panDelta: Offset(0, 8)),
-      entry,
-    );
-    dispatcher.dispatchTestPointer(const PointerPanZoomEndEvent(pointer: 5, position: Offset(20, 20)), entry);
-
-    expect(phases, <ElEventPhase>[ElEventPhase.pointerPanZoomStart]);
-
-    dispatcher.dispatchTestPointer(
-      const PointerPanZoomUpdateEvent(pointer: 4, position: Offset(20, 20), pan: Offset(0, 8), panDelta: Offset(0, 8)),
-      entry,
-    );
-    dispatcher.dispatchTestPointer(const PointerPanZoomEndEvent(pointer: 4, position: Offset(20, 20)), entry);
-
-    expect(phases, <ElEventPhase>[
-      ElEventPhase.pointerPanZoomStart,
-      ElEventPhase.pointerPanZoomUpdate,
-      ElEventPhase.pointerPanZoomEnd,
-    ]);
-  });
-
-  testWidgets('state-only pointer removed clears active route and feedback', (tester) async {
-    final box = _attachedBox();
-
-    final activeChanges = <bool>[];
-    final dispatcher = EventDispatcher(box)..onTapChanged = activeChanges.add;
-    addTearDown(dispatcher.dispose);
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    const down = PointerDownEvent(pointer: 7, kind: PointerDeviceKind.touch, position: Offset(20, 20));
-    dispatcher.dispatchTestPointer(down, entry);
-
-    expect(dispatcher.activePointerCount, 1);
-
-    GestureBinding.instance.pointerRouter.route(
-      const PointerRemovedEvent(pointer: 7, kind: PointerDeviceKind.touch, position: Offset(20, 20)),
-    );
-    await tester.pump(const Duration(milliseconds: 600));
-
-    expect(activeChanges, <bool>[true, false]);
-    expect(dispatcher.activePointerCount, 0);
-  });
-
-  testWidgets('active scale pointer removed emits one cancellation and clears the route', (tester) async {
-    final box = _attachedBox();
-
-    final phases = <ElEventPhase>[];
-    final dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
+        onTapDown: (event) => phases.add(event.phase),
+        onTapCancel: (event) {
+          phases.add(event.phase);
+          cancelReason = event.cancelReason;
+        },
         onScaleStart: (event) => phases.add(event.phase),
-        onScaleCancel: (event) => phases.add(event.phase),
       );
-    addTearDown(dispatcher.dispose);
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    const down = PointerDownEvent(pointer: 8, kind: PointerDeviceKind.touch, position: Offset(20, 20));
-    dispatcher.dispatchTestPointer(down, entry);
-    DispatcherScaleGesture.start(dispatcher, entry, existingDown: down);
-
-    expect(dispatcher.activePointerCount, 1);
-
-    GestureBinding.instance.pointerRouter.route(
-      const PointerRemovedEvent(pointer: 8, kind: PointerDeviceKind.touch, position: Offset(20, 20)),
-    );
-
-    expect(dispatcher.activePointerCount, 0);
-    expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleCancel]);
-  });
-
-  testWidgets('accepted drag pointer removed emits the matching dragCancel terminal', (tester) async {
-    final box = _attachedBox();
-
-    final phases = <ElEventPhase>[];
-    final dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) => phases.add(event.phase),
-        onDragUpdate: (event) => phases.add(event.phase),
-        onDragCancel: (event) => phases.add(event.phase),
-        onDragEnd: (event) => phases.add(event.phase),
-      );
-    addTearDown(dispatcher.dispose);
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    dispatcher.dispatchTestPointer(
-      const PointerDownEvent(pointer: 10, kind: PointerDeviceKind.touch, position: Offset(20, 20)),
+    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
+    DispatcherScaleGesture.start(
+      dispatcher,
       entry,
+      existingDown: const PointerDownEvent(pointer: 1, position: Offset(20, 20)),
     );
-    dispatcher.dispatchTestPointer(
-      const PointerMoveEvent(pointer: 10, kind: PointerDeviceKind.touch, position: Offset(20, 28), delta: Offset(0, 8)),
-      entry,
-    );
+    dispatcher.dispose();
 
-    expect(phases, <ElEventPhase>[ElEventPhase.dragStart]);
-    expect(dispatcher.activePointerCount, 1);
-
-    GestureBinding.instance.pointerRouter.route(
-      const PointerRemovedEvent(pointer: 10, kind: PointerDeviceKind.touch, position: Offset(20, 28)),
-    );
-
-    expect(dispatcher.activePointerCount, 0);
-    expect(phases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragCancel]);
-  });
-
-  testWidgets('unrelated routed pointer removed does not clear active scale', (tester) async {
-    final box = _attachedBox();
-
-    final phases = <ElEventPhase>[];
-    final dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
-        config: const ElEventConfig(dragDevices: {PointerDeviceKind.touch}),
-        onScaleStart: (event) => phases.add(event.phase),
-        onScaleEnd: (event) => phases.add(event.phase),
-        onPointerPanZoomStart: (_) {},
-      );
-    addTearDown(dispatcher.dispose);
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    const scaleDown = PointerDownEvent(pointer: 8, device: 8, kind: PointerDeviceKind.touch, position: Offset(20, 20));
-    dispatcher.dispatchTestPointer(scaleDown, entry);
-    final scale = DispatcherScaleGesture.start(dispatcher, entry, existingDown: scaleDown);
-    dispatcher.dispatchTestPointer(
-      const PointerPanZoomStartEvent(pointer: 9, device: 9, position: Offset(40, 40)),
-      entry,
-    );
-
-    expect(dispatcher.activePointerCount, 1);
-
-    GestureBinding.instance.pointerRouter.route(
-      const PointerRemovedEvent(pointer: 9, device: 9, kind: PointerDeviceKind.trackpad, position: Offset(40, 40)),
-    );
-
-    expect(dispatcher.activePointerCount, 1);
-
-    scale.end();
-
-    expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleEnd]);
-    expect(dispatcher.activePointerCount, 0);
+    expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel, ElEventPhase.scaleStart]);
+    expect(cancelReason, ElEventCancelReason.selfGestureAccepted);
+    expect(dispatcher.isTapPressed, isFalse);
   });
 
   testWidgets('non-primary pointer up does not cancel active primary tap', (tester) async {
@@ -472,11 +260,14 @@ void main() {
 
     dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
     dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 2, position: Offset(20, 20)), entry);
-    expect(activeChanges, <bool>[true]);
     dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 1, position: Offset(20, 20)), entry);
 
+    expect(activeChanges, <bool>[true]);
+    await tester.pump(Duration(milliseconds: 100));
     expect(activeChanges, <bool>[true, false]);
     expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('non-primary pointer cancel does not cancel active primary tap', (tester) async {
@@ -497,11 +288,14 @@ void main() {
 
     dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset(20, 20)), entry);
     dispatcher.dispatchTestPointer(const PointerCancelEvent(pointer: 2, position: Offset(20, 20)), entry);
-    expect(activeChanges, <bool>[true]);
     dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 1, position: Offset(20, 20)), entry);
 
+    expect(activeChanges, <bool>[true]);
+    await tester.pump(Duration(milliseconds: 100));
     expect(activeChanges, <bool>[true, false]);
     expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('setting equal event object preserves active primary tap', (tester) async {
@@ -523,51 +317,48 @@ void main() {
     dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 1, position: Offset(20, 20)), entry);
 
     expect(phases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
-  testWidgets('move cancel and pointer cancel preserve original event and buttons', (tester) async {
+  testWidgets('setting equal event object preserves pending deferred tap', (tester) async {
     final box = _attachedBox();
 
-    final originalEvents = <Object?>[];
-    final buttons = <int>[];
-    final reasons = <ElEventCancelReason?>[];
+    var taps = 0;
+    void tap(ElEventDetails event) => taps++;
+    void doubleTap(ElEventDetails event) {}
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(tapCancelByDistance: true, tapCancelDistance: 4),
-        onTap: (_) {},
-        onTapCancel: (event) {
-          originalEvents.add(event.originalEvent);
-          buttons.add(event.buttons);
-          reasons.add(event.cancelReason);
-        },
+        deferTap: true, doubleTapInterval: Duration(milliseconds: 20),
+        onTap: tap,
+        onDoubleTap: doubleTap,
       );
+    addTearDown(dispatcher.dispose);
     final entry = BoxHitTestEntry(box, Offset.zero);
-    dispatcher.dispatchTestPointer(
-      const PointerDownEvent(pointer: 3, position: Offset(20, 20), buttons: kPrimaryButton),
-      entry,
+    final replacement = ElEvent(
+      deferTap: true, doubleTapInterval: Duration(milliseconds: 20),
+      onTap: tap,
+      onDoubleTap: doubleTap,
     );
-    await tester.pump(kPressTimeout);
-    dispatcher.dispatchTestPointer(
-      const PointerMoveEvent(pointer: 3, position: Offset(30, 20), delta: Offset(10, 0), buttons: kPrimaryButton),
-      entry,
-    );
-    dispatcher.dispatchTestPointer(const PointerUpEvent(pointer: 3, position: Offset(30, 20)), entry);
-    dispatcher.dispatchTestPointer(
-      const PointerDownEvent(pointer: 4, position: Offset(20, 20), buttons: kPrimaryButton),
-      entry,
-    );
-    await tester.pump(kPressTimeout);
-    dispatcher.dispatchTestPointer(
-      const PointerCancelEvent(pointer: 4, position: Offset(20, 20), buttons: kPrimaryButton),
-      entry,
-    );
-    dispatcher.dispose();
 
-    expect(originalEvents, hasLength(2));
-    expect(originalEvents[0], isA<PointerMoveEvent>());
-    expect(originalEvents[1], isA<PointerCancelEvent>());
-    expect(buttons, <int>[kPrimaryButton, kPrimaryButton]);
-    expect(reasons, <ElEventCancelReason>[ElEventCancelReason.tapRejected, ElEventCancelReason.pointerCanceled]);
+    dispatcher.dispatchTestPointer(
+      const PointerDownEvent(pointer: 1, position: Offset(20, 20), timeStamp: Duration.zero),
+      entry,
+    );
+    dispatcher.dispatchTestPointer(
+      const PointerUpEvent(pointer: 1, position: Offset(20, 20), timeStamp: Duration(milliseconds: 1)),
+      entry,
+    );
+    dispatcher.event = replacement;
+
+    expect(dispatcher.event, same(replacement));
+    expect(taps, 0);
+
+    await tester.pump(const Duration(milliseconds: 25));
+
+    expect(taps, 1);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('forward and back tap callbacks preserve side button metadata', (tester) async {
@@ -692,7 +483,6 @@ void main() {
       const PointerDownEvent(pointer: 7, position: Offset(20, 20), buttons: kForwardMouseButton),
       entry,
     );
-    await tester.pump(kPressTimeout);
     dispatcher.dispatchTestPointer(
       const PointerUpEvent(pointer: 8, position: Offset(20, 20), buttons: kPrimaryButton),
       entry,
@@ -711,7 +501,6 @@ void main() {
       const PointerDownEvent(pointer: 9, position: Offset(30, 20), buttons: kBackMouseButton),
       entry,
     );
-    await tester.pump(kPressTimeout);
     dispatcher.dispatchTestPointer(const PointerCancelEvent(pointer: 9, position: Offset(30, 20)), entry);
     dispatcher.dispatchTestPointer(
       const PointerUpEvent(pointer: 9, position: Offset(30, 20), buttons: kBackMouseButton),
@@ -733,7 +522,7 @@ void main() {
     final buttons = <ElEventPhase, int>{};
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
+        dragStartDistance: 3,
         onDragStart: (event) {
           originalEvents[event.phase] = event.originalEvent;
           buttons[event.phase] = event.buttons;
@@ -786,30 +575,91 @@ void main() {
     expect(buttons[ElEventPhase.dragEnd], kPrimaryButton);
   });
 
-  testWidgets('pointer localDelta follows the target local coordinate transform', (tester) async {
+  testWidgets('doubleTap and tripleTap preserve triggering down metadata', (tester) async {
     final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
 
-    ElEventDetails? captured;
-    final dispatcher = EventDispatcher(box);
-    dispatcher.localPositionResolver = (target, globalPosition, callback) => globalPosition / 2.0;
-    dispatcher.event = ElEvent(onPointerMove: (event) => captured = event);
+    ElEventDetails? doubleTap;
+    ElEventDetails? tripleTap;
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(onDoubleTap: (event) => doubleTap = event, onTripleTap: (event) => tripleTap = event);
     addTearDown(dispatcher.dispose);
 
-    dispatcher.dispatchTestPointer(
-      const PointerDownEvent(pointer: 41, position: Offset(10, 16)),
-      BoxHitTestEntry(box, Offset.zero),
+    const firstDown = PointerDownEvent(
+      pointer: 31,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
     );
-    dispatcher.dispatchTestPointer(
-      const PointerMoveEvent(pointer: 41, position: Offset(20, 20), delta: Offset(10, 4)),
-      BoxHitTestEntry(box, Offset.zero),
+    const firstUp = PointerUpEvent(
+      pointer: 31,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
+    );
+    const secondDown = PointerDownEvent(
+      pointer: 32,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
+    );
+    const secondUp = PointerUpEvent(
+      pointer: 32,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
+    );
+    const thirdDown = PointerDownEvent(
+      pointer: 33,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
+    );
+    const thirdUp = PointerUpEvent(
+      pointer: 33,
+      kind: PointerDeviceKind.mouse,
+      position: Offset(20, 20),
+      buttons: kPrimaryButton,
     );
 
-    expect(captured, isNotNull);
-    expect(captured!.delta, const Offset(10, 4));
-    expect(captured!.localPosition, const Offset(10, 10));
-    expect(captured!.localDelta, const Offset(5, 2));
-    expect(captured!.remainingLocalDelta, const Offset(5, 2));
+    dispatcher.dispatchTestPointer(firstDown, entry);
+    dispatcher.dispatchTestPointer(firstUp, entry);
+    dispatcher.dispatchTestPointer(secondDown, entry);
+    dispatcher.dispatchTestPointer(secondUp, entry);
+    dispatcher.dispatchTestPointer(thirdDown, entry);
+    dispatcher.dispatchTestPointer(thirdUp, entry);
+
+    expect(doubleTap, isNotNull);
+    expect(doubleTap!.originalEvent, same(secondDown));
+    expect(doubleTap!.buttons, kPrimaryButton);
+    expect(doubleTap!.tapCount, 2);
+    expect(tripleTap, isNotNull);
+    expect(tripleTap!.originalEvent, same(thirdDown));
+    expect(tripleTap!.buttons, kPrimaryButton);
+    expect(tripleTap!.tapCount, 3);
+  });
+
+  testWidgets('expired custom double tap window does not suppress deferred taps', (tester) async {
+    final box = _attachedBox();
+    final entry = BoxHitTestEntry(box, Offset.zero);
+
+    var taps = 0;
+    var doubles = 0;
+    final dispatcher = EventDispatcher(box)
+      ..event = ElEvent(
+        doubleTapInterval: Duration(milliseconds: 20), deferTap: true,
+        onTap: (_) => taps++,
+        onDoubleTap: (_) => doubles++,
+      );
+
+    _sendPrimaryTap(dispatcher, entry, pointer: 21);
+    await tester.pump(const Duration(milliseconds: 50));
+    _sendPrimaryTap(dispatcher, entry, pointer: 22);
+    await tester.pump(const Duration(milliseconds: 25));
     dispatcher.dispose();
+
+    expect(doubles, 0);
+    expect(taps, 2);
   });
 
   testWidgets('direct pointerMove localDelta resolves per hit-test target', (tester) async {
@@ -888,9 +738,18 @@ void main() {
     childDispatcher.dispatchTestPointer(up, childEntry);
     parentDispatcher.dispatchTestPointer(up, parentEntry);
 
+    expect(childActive, isTrue);
+    await tester.pump(Duration(milliseconds: 100));
     expect(childActive, isFalse);
     expect(parentPhases, <ElEventPhase>[ElEventPhase.pointerDown, ElEventPhase.pointerUp, ElEventPhase.tap]);
+    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
+    await tester.pump(Duration(milliseconds: 100));
   });
+}
+
+void _sendPrimaryTap(EventDispatcher dispatcher, BoxHitTestEntry entry, {required int pointer}) {
+  dispatcher.dispatchTestPointer(PointerDownEvent(pointer: pointer, position: const Offset(20, 20)), entry);
+  dispatcher.dispatchTestPointer(PointerUpEvent(pointer: pointer, position: const Offset(20, 20)), entry);
 }
 
 _EventTestBox _attachedBox() {

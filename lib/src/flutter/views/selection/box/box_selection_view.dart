@@ -237,7 +237,7 @@ class _BoxSelectionState extends State<ElBoxSelectionView>
 
   void _dragStart(ElEventDetails event) {
     if (!_owns(event) || _dragging || !widget.enabled) return;
-    event.eagerGesture(cancelSelfTap: true);
+    event.stopPropagation();
     _base = _toggle || _additive ? _controller.selectedValues.toSet() : const {};
     _lastHits = <Object>{};
     _dragging = true;
@@ -348,10 +348,8 @@ class _BoxSelectionState extends State<ElBoxSelectionView>
               style: const ElStyle(backgroundColor: Color(0x00000000)),
               focusNode: _focus,
               event: ElEvent(
-                config: ElEventConfig(
-                  dragStartDistance: widget.dragThreshold,
-                  dragDevices: const {PointerDeviceKind.mouse},
-                ),
+                dragStartDistance: widget.dragThreshold,
+                dragDevices: const {PointerDeviceKind.mouse},
                 onTapDown: _down,
                 onTapUp: _tapUp,
                 onTapCancel: (event) {
