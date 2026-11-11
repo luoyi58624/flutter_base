@@ -28,11 +28,54 @@ void main() {
   ];
 
   for (final (label, example, areaKey, blockKey, resetKey) in examples) {
-    testWidgets('$label 越过右下边界后立即反向跟手，松手末段不跳回且取消可复位', (tester) async {
+    testWidgets('$label 保留四边越界偏移，双轴独立夹持且新拖拽清理旧偏移', (tester) async {
       await _show(tester, example());
       final block = _key(blockKey);
       final bounds = tester.getRect(_key(areaKey));
       final initial = tester.getTopLeft(block);
+      final size = tester.getSize(block);
+
+      // 沿用旧 el_docs：累计位移不截断，只有显示位置受边界限制。
+      for (final direction in [Offset(1, 0), Offset(-1, 0), Offset(0, 1), Offset(0, -1)]) {
+        await tester.tap(_key(resetKey));
+        await tester.pumpAndSettle();
+        final edge = Offset(
+          direction.dx > 0 ? bounds.right - size.width : (direction.dx < 0 ? bounds.left : initial.dx),
+          direction.dy > 0 ? bounds.bottom - size.height : (direction.dy < 0 ? bounds.top : initial.dy),
+        );
+        final drag = await tester.startGesture(tester.getCenter(block));
+        await drag.moveBy(direction * 8);
+        await drag.moveBy(direction * 300);
+        await tester.pump();
+        expect(tester.getTopLeft(block), edge);
+
+        await drag.moveBy(direction * -5);
+        await tester.pump();
+        expect(tester.getTopLeft(block), edge, reason: '指针累计偏移仍在范围外时，卡片继续显示在边界');
+        await drag.moveBy(direction * -275);
+        await tester.pump();
+        expect(tester.getTopLeft(block), initial + direction * 20, reason: '回到有效范围后恢复完整累计位移对应的位置');
+
+        await drag.moveBy(direction * 300);
+        await drag.up();
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(block), edge);
+        expect(find.text('onDragEnd'), findsOneWidget);
+
+        final next = await tester.startGesture(tester.getCenter(block));
+        await next.moveBy(direction * -8);
+        await tester.pump();
+        expect(tester.getTopLeft(block), edge);
+        await next.moveBy(direction * -4);
+        await tester.pump();
+        expect(tester.getTopLeft(block), edge - direction * 4, reason: '新拖拽从当前显示位置开始，不继承上次越界偏移');
+        await next.up();
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(block), edge - direction * 4);
+      }
+
+      await tester.tap(_key(resetKey));
+      await tester.pumpAndSettle();
       final start = tester.getCenter(block);
       final drag = await tester.startGesture(start, pointer: 1);
       await drag.moveBy(Offset(8, 8));
@@ -42,15 +85,20 @@ void main() {
       expect(atEdge.right, closeTo(bounds.right, 0.001));
       expect(atEdge.bottom, closeTo(bounds.bottom, 0.001));
 
-      await drag.moveBy(Offset(-3, -4));
+      await drag.moveBy(Offset(-5, -6));
       await tester.pump();
-      final reversed = tester.getTopLeft(block);
-      expect(reversed, atEdge.topLeft + Offset(-3, -4), reason: '越界余量不能阻挡下一次反向位移');
+      expect(tester.getTopLeft(block), atEdge.topLeft);
+      await drag.moveBy(Offset(-275, 0));
+      await tester.pump();
+      expect(tester.getTopLeft(block), Offset(initial.dx + 20, atEdge.top), reason: 'X 先回到有效区，Y 继续停在下边界');
+      await drag.moveBy(Offset(0, -270));
+      await tester.pump();
+      expect(tester.getTopLeft(block), initial + Offset(20, 24));
 
       // 抬手点与最后一个 Move 相差 2/1px，验证 End 只补最终增量。
-      await tester.sendEventToBinding(PointerUpEvent(pointer: 1, position: start + Offset(303, 303)));
+      await tester.sendEventToBinding(PointerUpEvent(pointer: 1, position: start + Offset(30, 31)));
       await tester.pumpAndSettle();
-      expect(tester.getTopLeft(block), reversed + Offset(-2, -1));
+      expect(tester.getTopLeft(block), initial + Offset(22, 23));
       expect(find.text('onDragEnd'), findsOneWidget);
 
       await tester.tap(_key(resetKey));
@@ -73,7 +121,7 @@ void main() {
     });
   }
 
-  testWidgets('水平和垂直拖拽保持单轴限制，越界反向与松手都不影响另一轴', (tester) async {
+  testWidgets('水平和垂直拖拽保持单轴限制，回到边界内和松手都不影响另一轴', (tester) async {
     await _show(tester, ElDragEventExample());
     final block = _key('event-basic-drag-block');
     for (final horizontal in [true, false]) {
@@ -95,11 +143,14 @@ void main() {
       }
       await drag.moveBy(Offset(-4, -4));
       await tester.pump();
-      final reversed = tester.getTopLeft(block);
-      expect(reversed, atEdge.topLeft + (horizontal ? Offset(-4, 0) : Offset(0, -4)));
+      expect(tester.getTopLeft(block), atEdge.topLeft);
+      await drag.moveBy(horizontal ? Offset(-275, 13) : Offset(13, -275));
+      await tester.pump();
+      final returned = tester.getTopLeft(block);
+      expect(returned, initial + (horizontal ? Offset(21, 0) : Offset(0, 21)));
       await drag.up();
       await tester.pumpAndSettle();
-      expect(tester.getTopLeft(block), reversed);
+      expect(tester.getTopLeft(block), returned);
       expect(find.text(horizontal ? 'onHorizontalDragEnd' : 'onVerticalDragEnd'), findsOneWidget);
     }
     await tester.pumpWidget(SizedBox());

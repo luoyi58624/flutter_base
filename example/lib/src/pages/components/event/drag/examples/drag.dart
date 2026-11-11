@@ -38,10 +38,10 @@ class ElEventDragExample extends HookWidget {
               Offset(value.dx.clamp(-center.dx, center.dx), value.dy.clamp(-center.dy, center.dy));
 
           void move(ElEventDetails event) {
-            // 丢弃越界余量，回拖立即跟手；松手时也补上最后一段位移。
+            // 保留完整位移，只在显示时限位，往返越界时才能保持与指针的位置关系。
             final delta = event.dragOffset - lastOffset.value;
             lastOffset.value = event.dragOffset;
-            position.value = clampPosition(clampPosition(position.value) + delta);
+            position.value += delta;
           }
 
           return Stack(
@@ -76,6 +76,7 @@ class ElEventDragExample extends HookWidget {
                         currentEvent.value = 'onDragDown';
                       },
                       onDragStart: (event) {
+                        position.value = clampPosition(position.value);
                         lastOffset.value = event.dragOffset;
                         dragging.value = true;
                         currentEvent.value = 'onDragStart';
