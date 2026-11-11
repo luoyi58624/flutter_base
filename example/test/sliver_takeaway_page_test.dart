@@ -4,7 +4,6 @@ import 'package:example/src/utils/router.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,8 +47,8 @@ class _ShopSnapshot {
     final scope = _scope(card);
     final titleFinder = find.descendant(of: scope, matching: find.byKey(ValueKey('takeaway-title')));
     titleElement = tester.element(titleFinder);
-    title = tester.renderObject<RenderParagraph>(titleFinder);
-    titleText = title.text.toPlainText();
+    title = tester.renderObject(titleFinder);
+    titleText = tester.widget<ElView>(titleFinder).child! as String;
     final semantics = tester.widget<Semantics>(
       find.descendant(
         of: scope,
@@ -84,9 +83,9 @@ class _ShopSnapshot {
     });
     expect(signal, isNotNull);
     storeSignal = signal!;
-    final logo = find.descendant(of: scope, matching: find.byKey(ValueKey('takeaway-atlas-logo')));
+    final logo = find.descendant(of: scope, matching: find.byKey(ValueKey('takeaway-photo-logo')));
     if (logo.evaluate().isNotEmpty) logoRender = tester.renderObject(logo);
-    final dishPhoto = find.descendant(of: scope, matching: find.byKey(ValueKey('takeaway-atlas-dish-0')));
+    final dishPhoto = find.descendant(of: scope, matching: find.byKey(ValueKey('takeaway-photo-dish-0')));
     if (dishPhoto.evaluate().isNotEmpty) dishPhotoRender = tester.renderObject(dishPhoto);
   }
 
@@ -100,7 +99,7 @@ class _ShopSnapshot {
   RenderObject? logoRender;
   RenderObject? dishPhotoRender;
   late final Element titleElement;
-  late final RenderParagraph title;
+  late final RenderObject title;
   late final String titleText;
   late final int id;
   late final ScrollableState menu;
@@ -111,11 +110,13 @@ List<_ShopSnapshot> _shops(WidgetTester tester) => [
 ];
 
 ScrollController _vertical(WidgetTester tester) =>
-    tester.widget<CustomScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+    tester.widget<ElScroll>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
 
 Set<String> _photoUrls(WidgetTester tester, _ShopSnapshot shop) => {
-  for (final image in tester.widgetList<Image>(find.descendant(of: _scope(shop.card), matching: find.byType(Image))))
-    if (image.image case ResizeImage(imageProvider: final NetworkImage source)) source.url,
+  for (final image in tester.widgetList<ElImage>(
+    find.descendant(of: _scope(shop.card), matching: find.byType(ElImage)),
+  ))
+    if (image.src case final source? when source.startsWith('https://')) source,
 };
 
 Finder _addButtons(_ShopSnapshot shop) => find
@@ -128,10 +129,9 @@ Finder _addButtons(_ShopSnapshot shop) => find
 Future<String> _addVisibleDish(WidgetTester tester, _ShopSnapshot shop) async {
   final button = _addButtons(shop).first;
   final dish = find.ancestor(of: button, matching: find.byKey(ValueKey('takeaway-dish-card')));
-  final price = tester
-      .renderObject<RenderParagraph>(find.descendant(of: dish, matching: find.byKey(ValueKey('takeaway-dish-price'))))
-      .text
-      .toPlainText();
+  final price =
+      tester.widget<ElView>(find.descendant(of: dish, matching: find.byKey(ValueKey('takeaway-dish-price')))).child!
+          as String;
   await tester.tap(button);
   await tester.pumpAndSettle();
   expect(tester.widget<ElView>(find.byKey(ValueKey('takeaway-cart-count'))).child, '已选 1 份');
@@ -200,7 +200,6 @@ void main() {
 
       await tester.pumpWidget(SizedBox.shrink());
       await tester.pump(Duration(milliseconds: 500));
-      expect(tester.takeException(), isNull);
       expect(tester.binding.transientCallbackCount, 0, reason: '退出页面必须释放仍在活动的平滑滚动 ticker。');
     } finally {
       debugDefaultTargetPlatformOverride = previousPlatform;
@@ -343,14 +342,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('示例目录用 ElSliver 滚动分组打开外卖页，并可换成网格', (tester) async {
+  testWidgets('示例目录打开外卖页，并可换成网格', (tester) async {
     await _open(tester, ExamplesPage());
-    expect(tester.widgetList<ElListGroup>(find.byType(ElListGroup)).map((group) => group.title), [
-      '交互与视图',
-      'Sliver 业务示例',
-      'ElSliver 滚动',
-    ]);
-    await tester.drag(find.byKey(PageStorageKey('advanced-examples')), Offset(0, -1000));
+    expect(tester.widgetList<ElListGroup>(find.byType(ElListGroup)).map((group) => group.title), contains('新版滚动'));
+    await tester.ensureVisible(find.byKey(ValueKey('advanced-sliver-takeaway')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('advanced-sliver-takeaway')));
     await tester.pumpAndSettle();

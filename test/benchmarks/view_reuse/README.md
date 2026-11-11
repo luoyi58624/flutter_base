@@ -2,13 +2,15 @@
 
 本目录记录创建、配置更新、业务 builder、自身 Element 重建和真实布局的性能基准；不能仅凭 RenderObject 保留或 builder 没执行，就认为整个更新过程没有工作。
 
-最新测试分析见 [ANALYSIS.md](ANALYSIS.md)，重点区分条目内筛选、列表外层筛选与滚动换绑时的“零重建”边界。
+分层测试分析见 [ANALYSIS.md](ANALYSIS.md)，重点区分条目内筛选、列表外层筛选与滚动换绑时的“零重建”边界。
 
 初始结果见 [BASELINE.md](BASELINE.md)，完整采样摘要见 [baseline-2026-11-12.jsonl](baseline-2026-11-12.jsonl)。历史结果保留当时版本，不与后续实现混称现状。JSONL 包含生产版本、源文件 SHA256、每轮原始微秒样本和累计工作量，缺失的计数字段按零理解。
 
 底层实现优化后的工作量、时间与语义验证见 [CORE_OPTIMIZATION.md](CORE_OPTIMIZATION.md)，原基线作为历史对照保留。
 
-真实 example 测试入口为 `example/test/sliver_business_performance_test.dart`，现有 18 个场景。保留 [11 页初始基线](BUSINESS_BASELINE.md)；[业务补充测量](BUSINESS_SUPPLEMENT.md) 记录后来新增的网格、媒体、商品与局部更新，以及真实几何、缓存和预览功能的比较边界。本阶段只补测试与分析，等待用户确定后续优化目标。
+真实 example 测试入口为 `example/test/sliver_business_performance_test.dart`，现有 18 个场景。保留 [11 页初始基线](BUSINESS_BASELINE.md)；[业务补充测量](BUSINESS_SUPPLEMENT.md) 记录后来新增的网格、媒体、商品与局部更新，以及真实几何、缓存和预览功能的比较边界。
+
+用户确认实施后的最新结果见 [复用优化实施结果](IMPLEMENTATION_RESULTS.md)：外卖普通布局与 ElImage、商品字段更新、媒体文案及几何缓存、recycler 索引语义更新，以及相同数据零重建的边界。
 
 ## 运行
 

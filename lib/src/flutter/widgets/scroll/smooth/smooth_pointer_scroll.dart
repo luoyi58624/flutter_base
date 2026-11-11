@@ -315,10 +315,13 @@ final class SmoothPointerScrollController {
     final activity = _activity;
     _activity = null;
     if (activity == null || activity.disposed) return;
+    final delegate = activity.delegate;
+    // 卸载时通知宿主已解除，活动会由 ScrollPosition.dispose 释放，不能再派发结束通知。
+    if (delegate is ScrollPosition && (delegate as ScrollPosition).context.notificationContext == null) return;
     if (settle) {
-      activity.delegate.goBallistic(0.0);
+      delegate.goBallistic(0.0);
     } else {
-      activity.delegate.goIdle();
+      delegate.goIdle();
     }
   }
 

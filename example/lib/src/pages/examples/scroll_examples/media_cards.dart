@@ -51,18 +51,11 @@ Widget _entryCaption(
     maxLines: lines,
     textOverflow: .ellipsis,
   );
-  String? previous;
-  Widget? view;
-  return ValueListenableBuilder<_MediaEntry?>(
-    valueListenable: model,
-    builder: (_, entry, _) {
-      final value = entry == null ? '' : select(entry);
-      if (view == null || value != previous) {
-        previous = value;
-        view = ElView(style: style, child: value);
-      }
-      return view!;
-    },
+  String value() => model.value == null ? '' : select(model.value!);
+  return ElListenableBuilder<ValueListenable<_MediaEntry?>, String>(
+    listenable: model,
+    select: (_) => value(),
+    builder: (_, _) => ElView(style: style, child: value()),
   );
 }
 
@@ -171,9 +164,10 @@ class _MediaTile extends HookWidget {
       final fixedFooter = waterfallSlots == null ? null : buildFooter(reserveCaptionHeight: true);
       final footer = fixedFooter == null
           ? naturalFooter
-          : ValueListenableBuilder<_MediaEntry?>(
-              valueListenable: model,
-              builder: (_, entry, _) => entry?.coverRatio == null ? naturalFooter : fixedFooter,
+          : ElListenableBuilder<ValueListenable<_MediaEntry?>, bool>(
+              listenable: model,
+              select: (source) => source.value?.coverRatio != null,
+              builder: (_, _) => model.value?.coverRatio == null ? naturalFooter : fixedFooter,
             );
       contents = Column(
         mainAxisSize: .min,

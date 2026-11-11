@@ -142,7 +142,7 @@ extension _RecyclerGridLayout on ElRenderSliverRecycler {
         }
       }
     }
-    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
+    _finishLayout(wanted);
 
     final crossReversed = axisDirectionIsReversed(constraints.crossAxisDirection);
     for (final index in _element._visibleIndices) {

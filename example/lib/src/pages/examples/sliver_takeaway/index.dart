@@ -1,28 +1,18 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:faker/faker.dart' as fake;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'
-    show BoxConstraints, BoxHitTestEntry, PaintingContext, PipelineOwner, RenderBox, RenderParagraph, ScrollCacheExtent;
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
 
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';
 part 'takeaway_photo.dart';
-part 'takeaway_render_card.dart';
-part 'takeaway_render_canvas.dart';
-part 'takeaway_render_interaction.dart';
-
-enum _TakeawayCardMode { widgets, renderObject }
 
 enum _SliverKind {
   list('列表布局'),
@@ -46,22 +36,15 @@ class TakeawaySliverPage extends StatefulWidget {
   State<TakeawaySliverPage> createState() => _TakeawaySliverPageState();
 }
 
-class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTickerProviderStateMixin {
+class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   final _cart = ValueNotifier<(int, int)>((0, 0));
-  final _cardMode = ValueNotifier(_TakeawayCardMode.widgets);
   final _stores = <int, _Store>{};
-  late final _photos = _TakeawayPhotos(widget.networkPhotos, this);
+  late final _photos = ValueNotifier(widget.networkPhotos);
   var _indices = List<int>.generate(10000, (index) => index);
   var _category = -1;
   var _kind = _SliverKind.list;
   var _official = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_photos.network.value || _cardMode.value == .renderObject) _photos.atlas.resolve(context);
-  }
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -96,17 +79,13 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
         _resetScroll();
       case _SliverKind kind:
         _choose(kind);
-      case _TakeawayCardMode mode:
-        if (mode == .renderObject) _photos.atlas.resolve(context);
-        _cardMode.value = mode;
       case bool network:
-        if (!network) _photos.atlas.resolve(context);
-        _photos.network.value = network;
+        _photos.value = network;
     }
   }
 
   Widget _sliverItem(BuildContext context, ValueListenable<int> index) =>
-      _TakeawayCardHost(index: index, storeAt: _storeAt, photos: _photos, mode: _cardMode, onAdd: _add);
+      _TakeawayCardHost(index: index, storeAt: _storeAt, photos: _photos, onAdd: _add);
 
   Widget _content() {
     Widget officialItem(BuildContext context, int index) => _sliverItem(context, AlwaysStoppedAnimation(index));
@@ -118,8 +97,8 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
                     crossAxisCount: 2,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    // 官方等高格为标签换行和店内菜单预留大字号空间。
-                    mainAxisExtent: 600 + math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14) * 40,
+                    // 窄格的店铺资料纵向排列，商品仍使用统一的一行名称和等高槽位。
+                    mainAxisExtent: 360 + math.max(0.0, MediaQuery.textScalerOf(context).scale(16) - 16) * 10,
                   ),
                   itemCount: _indices.length,
                   itemBuilder: officialItem,
@@ -149,7 +128,6 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
   void dispose() {
     _controller.dispose();
     _cart.dispose();
-    _cardMode.dispose();
     _photos.dispose();
     super.dispose();
   }
@@ -186,16 +164,9 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
               ),
             PopupMenuDivider(),
             CheckedPopupMenuItem<Object>(
-              key: ValueKey('takeaway-render-card-mode'),
-              checked: _cardMode.value == .renderObject,
-              value: _cardMode.value == .renderObject ? _TakeawayCardMode.widgets : _TakeawayCardMode.renderObject,
-              child: Text('纯 RenderObject 卡片'),
-            ),
-            CheckedPopupMenuItem<Object>(
               key: ValueKey('takeaway-network-photos'),
-              checked: _cardMode.value == .widgets && _photos.network.value,
-              enabled: _cardMode.value == .widgets,
-              value: !_photos.network.value,
+              checked: _photos.value,
+              value: !_photos.value,
               child: Text('网络图片'),
             ),
           ],
@@ -206,7 +177,12 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
         child: Column(
           children: [
             _DiscoveryHeader(category: _category, count: _indices.length, onCategory: _filter),
-            Expanded(child: _content()),
+            Expanded(
+              child: ColoredBox(
+                color: Theme.of(context).brightness == .dark ? Color(0xff17191c) : Color(0xfff3f5f7),
+                child: _content(),
+              ),
+            ),
             ValueListenableBuilder<(int, int)>(
               valueListenable: _cart,
               builder: (context, cart, child) => ElCard(
@@ -259,18 +235,11 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> with SingleTick
 
 class _TakeawayCardHost extends HookWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _TakeawayCardHost({
-    required this.index,
-    required this.storeAt,
-    required this.photos,
-    required this.mode,
-    required this.onAdd,
-  });
+  _TakeawayCardHost({required this.index, required this.storeAt, required this.photos, required this.onAdd});
 
   final ValueListenable<int> index;
   final _Store Function(int) storeAt;
-  final _TakeawayPhotos photos;
-  final ValueListenable<_TakeawayCardMode> mode;
+  final ValueListenable<bool> photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -286,24 +255,6 @@ class _TakeawayCardHost extends HookWidget {
       return () => index.removeListener(bind);
     }, [index, storeAt, store]);
 
-    return ValueListenableBuilder<_TakeawayCardMode>(
-      valueListenable: mode,
-      child: _StoreCard(store: store, photos: photos, onAdd: onAdd),
-      builder: (context, mode, widgetCard) => mode == .widgets
-          ? widgetCard!
-          : _TakeawayRenderCard(key: ValueKey('takeaway-render-card'), store: store, atlas: photos.atlas, onAdd: onAdd),
-    );
-  }
-}
-
-class _TakeawayPhotos {
-  _TakeawayPhotos(bool network, TickerProvider vsync) : network = ValueNotifier(network), atlas = _FoodAtlas(vsync);
-
-  final ValueNotifier<bool> network;
-  final _FoodAtlas atlas;
-
-  void dispose() {
-    network.dispose();
-    atlas.dispose();
+    return useMemoized(() => _StoreCard(store: store, photos: photos, onAdd: onAdd), [store, photos, onAdd]);
   }
 }

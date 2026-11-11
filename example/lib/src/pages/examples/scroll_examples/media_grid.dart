@@ -8,13 +8,21 @@ class _MediaMasonryDelegate extends SliverGridDelegate {
   final double footer;
   final double Function(int) ratio;
   final bool rtl;
+  double? _crossAxisExtent;
+  _MediaMasonryLayout? _layout;
 
   @override
-  SliverGridLayout getLayout(SliverConstraints constraints) =>
-      _MediaMasonryLayout(columns, constraints.crossAxisExtent / columns, footer, count, ratio, rtl);
+  SliverGridLayout getLayout(SliverConstraints constraints) {
+    // 滚动位置不改变业务几何；只保留当前宽度，避免每帧遍历整份媒体列表。
+    if (_layout == null || _crossAxisExtent != constraints.crossAxisExtent) {
+      _crossAxisExtent = constraints.crossAxisExtent;
+      _layout = _MediaMasonryLayout(columns, constraints.crossAxisExtent / columns, footer, count, ratio, rtl);
+    }
+    return _layout!;
+  }
 
   @override
-  bool shouldRelayout(_MediaMasonryDelegate oldDelegate) => true;
+  bool shouldRelayout(_MediaMasonryDelegate oldDelegate) => !identical(this, oldDelegate);
 }
 
 class _MediaMasonryLayout extends SliverGridLayout {

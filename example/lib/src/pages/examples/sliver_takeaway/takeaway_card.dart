@@ -1,13 +1,13 @@
 part of 'index.dart';
 
-Widget _words(String value, {Key? key, double size = 12, Color? color, bool bold = false, int lines = 1}) => ElView(
+Widget _words(String value, {Key? key, double size = 12, Color? color, bool bold = false}) => ElView(
   key: key,
   style: ElStyle(
     fontSize: size,
     color: color,
     fontWeight: bold ? .w700 : .w400,
     lineHeight: 1.22,
-    maxLines: lines,
+    maxLines: 1,
     textOverflow: .ellipsis,
   ),
   child: value,
@@ -20,111 +20,12 @@ Widget _storeWords(
   double size = 12,
   Color? color,
   bool bold = false,
-  int lines = 1,
-}) {
-  return _StoreText(
-    key: key,
-    store: store,
-    select: select,
-    style: TextStyle(
-      fontSize: size,
-      color: color,
-      fontWeight: bold ? .w700 : .w400,
-      height: 1.22,
-      letterSpacing: 0,
-      leadingDistribution: .even,
-    ),
-    lines: lines,
-  );
-}
-
-class _StoreText extends LeafRenderObjectWidget {
-  const _StoreText({super.key, required this.store, required this.select, required this.style, required this.lines});
-
-  final ValueListenable<_Store?> store;
-  final String Function(_Store) select;
-  final TextStyle style;
-  final int lines;
-
-  TextStyle _resolveStyle(BuildContext context) {
-    var resolved = DefaultTextStyle.of(context).style.merge(style);
-    if (MediaQuery.boldTextOf(context)) resolved = resolved.merge(TextStyle(fontWeight: .bold));
-    return resolved;
-  }
-
-  @override
-  _RenderStoreText createRenderObject(BuildContext context) => _RenderStoreText(
-    store,
-    select,
-    _resolveStyle(context),
-    textDirection: Directionality.of(context),
-    textScaler: MediaQuery.textScalerOf(context),
-    locale: Localizations.maybeLocaleOf(context),
-    maxLines: lines,
-  );
-
-  @override
-  void updateRenderObject(BuildContext context, _RenderStoreText renderObject) {
-    renderObject
-      ..textDirection = Directionality.of(context)
-      ..textScaler = MediaQuery.textScalerOf(context)
-      ..locale = Localizations.maybeLocaleOf(context)
-      ..maxLines = lines
-      ..bind(store, select, _resolveStyle(context));
-  }
-}
-
-// 换店时直接更新仍挂载的文字排版对象，静态字段不排入构建或布局队列。
-class _RenderStoreText extends RenderParagraph {
-  _RenderStoreText(
-    this._store,
-    this._select,
-    TextStyle style, {
-    required super.textDirection,
-    required super.textScaler,
-    required super.locale,
-    required super.maxLines,
-  }) : _style = style,
-       super(
-         TextSpan(text: _store.value == null ? '' : _select(_store.value!), style: style),
-         overflow: .ellipsis,
-       );
-
-  ValueListenable<_Store?> _store;
-  String Function(_Store) _select;
-  TextStyle _style;
-
-  void bind(ValueListenable<_Store?> store, String Function(_Store) select, TextStyle style) {
-    if (!identical(_store, store)) {
-      if (attached) _store.removeListener(_update);
-      _store = store;
-      if (attached) _store.addListener(_update);
-    }
-    _select = select;
-    _style = style;
-    _update();
-  }
-
-  void _update() {
-    final record = _store.value;
-    final value = record == null ? '' : _select(record);
-    final current = text as TextSpan;
-    if (current.text != value || current.style != _style) text = TextSpan(text: value, style: _style);
-  }
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _store.addListener(_update);
-    _update();
-  }
-
-  @override
-  void detach() {
-    _store.removeListener(_update);
-    super.detach();
-  }
-}
+}) => ElListenableBuilder<ValueListenable<_Store?>, String>(
+  listenable: store,
+  select: (source) => source.value == null ? '' : select(source.value!),
+  builder: (_, _) =>
+      _words(store.value == null ? '' : select(store.value!), key: key, size: size, color: color, bold: bold),
+);
 
 class _DiscoveryHeader extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
@@ -135,18 +36,17 @@ class _DiscoveryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ElCard(
-    style: ElStyle(padding: .symmetric(horizontal: 12, vertical: 6), borderRadius: BorderRadius.zero),
+    style: ElStyle(padding: .symmetric(horizontal: 12, vertical: 8), borderRadius: BorderRadius.zero),
     child: Column(
       crossAxisAlignment: .stretch,
-      spacing: 6,
+      spacing: 8,
       children: [
         Row(
           spacing: 6,
           children: [
-            _words('送至', size: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            Icon(Icons.location_on_rounded, color: _orange, size: 14),
-            Expanded(child: _words('科技园 · 美食街', size: 12, bold: true)),
-            _words('$count 家', size: 10, color: _orange),
+            Icon(Icons.location_on_rounded, color: _orange, size: 16),
+            Expanded(child: _words('科技园 · 美食街', size: 13, bold: true)),
+            _words('$count 家', size: 11, color: _orange),
           ],
         ),
         SingleChildScrollView(
@@ -157,13 +57,13 @@ class _DiscoveryHeader extends StatelessWidget {
               for (var index = -1; index < _cuisines.length; index++)
                 ChoiceChip(
                   key: ValueKey('takeaway-category-$index'),
-                  label: Text(index < 0 ? '全部' : _cuisines[index]),
-                  avatar: index < 0 ? Icon(Icons.rice_bowl_rounded, size: 14, color: _orange) : null,
+                  label: Text(index < 0 ? '全部' : _cuisines[index], maxLines: 1, softWrap: false),
+                  avatar: index < 0 ? Icon(Icons.rice_bowl_rounded, size: 16, color: _orange) : null,
                   visualDensity: .compact,
                   materialTapTargetSize: .shrinkWrap,
-                  padding: .symmetric(horizontal: 4, vertical: 0),
+                  padding: .symmetric(horizontal: 6, vertical: 2),
                   labelPadding: .symmetric(horizontal: 5),
-                  shape: RoundedRectangleBorder(borderRadius: .circular(6)),
+                  shape: RoundedRectangleBorder(borderRadius: .circular(8)),
                   selected: category == index,
                   showCheckmark: false,
                   selectedColor: _orange.withValues(alpha: .12),
@@ -179,13 +79,11 @@ class _DiscoveryHeader extends StatelessWidget {
             ],
           ),
         ),
-        Wrap(
-          spacing: 12,
-          runSpacing: 2,
+        Row(
           children: [
-            _words('红包天天领', size: 10, color: _orange),
-            _words('附近门店 · 现点现做', size: 10, color: _green),
-            _words('免配送费', size: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Expanded(child: _words('红包天天领', size: 10, color: _orange)),
+            Expanded(child: _words('附近好店', size: 10, color: _green)),
+            Expanded(child: _words('免配送费', size: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ],
@@ -197,150 +95,108 @@ class _StoreCard extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _StoreCard({required this.store, required this.photos, required this.onAdd});
   final ValueNotifier<_Store?> store;
-  final _TakeawayPhotos photos;
+  final ValueListenable<bool> photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final muted = colors.onSurfaceVariant;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
-      padding: .fromLTRB(8, 6, 8, 0),
+      padding: .fromLTRB(8, 8, 8, 0),
       child: Align(
         alignment: .topCenter,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 840),
           child: ElCard(
             key: ValueKey('takeaway-shop-card'),
-            style: ElStyle(padding: .all(8), borderRadius: .circular(10)),
+            style: ElStyle(padding: .all(10), borderRadius: .circular(12)),
             child: Column(
               crossAxisAlignment: .stretch,
-              spacing: 4,
+              spacing: 10,
               children: [
-                Row(
-                  crossAxisAlignment: .start,
-                  spacing: 8,
-                  children: [
-                    SizedBox(
-                      key: ValueKey('takeaway-shop-logo'),
-                      width: 52,
-                      child: Column(
-                        spacing: 2,
-                        children: [
-                          _StorePhoto(store: store, photos: photos, size: 52),
-                          _words('品牌好店', size: 9, color: _orange),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: .stretch,
-                        spacing: 2,
-                        children: [
-                          Row(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 220;
+                    final title = _storeWords(
+                      store,
+                      (record) => record.name,
+                      key: ValueKey('takeaway-title'),
+                      size: 15,
+                      bold: true,
+                    );
+                    final details = Column(
+                      crossAxisAlignment: .stretch,
+                      spacing: 5,
+                      children: [
+                        if (!compact) title,
+                        _storeWords(
+                          store,
+                          (record) => '月售${record.sales}+  起送¥${record.minimum}',
+                          size: 11,
+                          color: muted,
+                        ),
+                        Row(
+                          spacing: 6,
+                          children: [
+                            _words('免配送费', size: 11, color: _orange, bold: true),
+                            Expanded(
+                              child: _storeWords(
+                                store,
+                                (record) => '${record.minutes}–${record.minutes + 10}分钟  ${record.distance}km',
+                                size: 10,
+                                color: muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        _StoreTag(
+                          _storeWords(store, (record) => '${record.rating}分  ·  ${record.tags.first}', color: _orange),
+                        ),
+                      ],
+                    );
+                    final logo = _StorePhoto(store: store, photos: photos, size: compact ? 44 : 64);
+                    return compact
+                        ? Column(
+                            crossAxisAlignment: .stretch,
                             spacing: 6,
                             children: [
-                              Expanded(
-                                child: _storeWords(
-                                  store,
-                                  (record) => record.name,
-                                  key: ValueKey('takeaway-title'),
-                                  size: 14,
-                                  bold: true,
-                                ),
-                              ),
-                              _StoreTag(_words('准时达', size: 9.5, color: _orange), outlined: true),
-                            ],
-                          ),
-                          Wrap(
-                            alignment: .spaceBetween,
-                            spacing: 8,
-                            runSpacing: 2,
-                            children: [
-                              Wrap(
+                              Row(
                                 spacing: 6,
-                                runSpacing: 2,
                                 children: [
-                                  _storeWords(store, (record) => '${record.rating} 分', color: _orange, bold: true),
-                                  _storeWords(store, (record) => '月售 ${record.sales}+', size: 10, color: muted),
-                                  _storeWords(store, (record) => '起送 ¥${record.minimum}', size: 10, color: muted),
+                                  logo,
+                                  Expanded(child: title),
                                 ],
                               ),
-                              Wrap(
-                                spacing: 4,
-                                runSpacing: 2,
-                                children: [
-                                  _storeWords(
-                                    store,
-                                    (record) => '${record.minutes}–${record.minutes + 10}分钟',
-                                    size: 11,
-                                    color: _green,
-                                  ),
-                                  _storeWords(store, (record) => '${record.distance}km', size: 10, color: muted),
-                                ],
-                              ),
+                              details,
                             ],
-                          ),
-                          Row(
-                            spacing: 6,
+                          )
+                        : Row(
+                            crossAxisAlignment: .start,
+                            spacing: 10,
                             children: [
-                              _words('免配送费', size: 10, color: _orange),
-                              Expanded(
-                                child: Align(
-                                  alignment: .centerRight,
-                                  child: _storeWords(store, (record) => record.address, size: 9.5, color: muted),
-                                ),
-                              ),
+                              logo,
+                              Expanded(child: details),
                             ],
-                          ),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 3,
-                            children: [
-                              for (var index = 0; index < 3; index++)
-                                _StoreTag(
-                                  _storeWords(store, (record) => record.tags[index], size: 9.5, color: _orange),
-                                ),
-                            ],
-                          ),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 3,
-                            children: [
-                              _StoreTag(
-                                _storeWords(store, (record) => '${record.coupon}元店铺红包', size: 9.5, color: _orange),
-                                outlined: true,
-                              ),
-                              _StoreTag(_words('满35减5', size: 9.5, color: _orange), outlined: true),
-                              _StoreTag(_words('支持自取', size: 9.5, color: _orange), outlined: true),
-                            ],
-                          ),
-                        ],
+                          );
+                  },
+                ),
+                Row(
+                  spacing: 5,
+                  children: [
+                    Expanded(child: _StoreTag(_words('堂食店', size: 10, color: _green), outlined: true)),
+                    Expanded(child: _StoreTag(_words('明厨亮灶', size: 10, color: muted), outlined: true)),
+                    Expanded(
+                      flex: 2,
+                      child: _StoreTag(
+                        _storeWords(store, (record) => '${record.coupon}元店铺红包', size: 10, color: _orange),
                       ),
                     ),
-                  ],
-                ),
-                _storeWords(store, (record) => record.description, size: 11, color: muted, lines: 3),
-                Row(
-                  crossAxisAlignment: .start,
-                  spacing: 4,
-                  children: [
-                    Icon(Icons.format_quote_rounded, size: 12, color: _orange),
-                    Expanded(child: _storeWords(store, (record) => record.review, size: 10, color: muted, lines: 2)),
                   ],
                 ),
                 ValueListenableBuilder<_Store?>(
                   valueListenable: store,
                   builder: (context, record, _) =>
                       record == null ? SizedBox.shrink() : _MenuStrip(store: record, photos: photos, onAdd: onAdd),
-                ),
-                Row(
-                  spacing: 4,
-                  children: [
-                    Icon(Icons.verified_user_outlined, size: 11, color: _green),
-                    Expanded(child: _words('明厨亮灶 · 独立封签 · 售后有保障', size: 9.5, color: muted)),
-                    _storeWords(store, (record) => '门店 #${record.id + 1}', size: 9.5, color: muted),
-                  ],
                 ),
               ],
             ),
@@ -360,20 +216,22 @@ class _StoreTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ElView(
     style: ElStyle(
-      padding: .symmetric(horizontal: 4, vertical: 1),
-      borderRadius: .circular(4),
-      backgroundColor: _orange.withValues(alpha: outlined ? .025 : .09),
-      border: outlined ? ElBorder.all(borderWidth: 1, borderColor: _orange.withValues(alpha: .25)) : null,
+      padding: .symmetric(horizontal: 4, vertical: 2),
+      borderRadius: .circular(3),
+      backgroundColor: _orange.withValues(alpha: outlined ? 0 : .08),
+      border: outlined ? ElBorder.all(borderWidth: 1, borderColor: Theme.of(context).dividerColor) : null,
     ),
     child: child,
   );
 }
 
+double _menuHeight(BuildContext context) => 172 + math.max(0.0, MediaQuery.textScalerOf(context).scale(16) - 16) * 4;
+
 class _MenuStrip extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
   _MenuStrip({required this.store, required this.photos, required this.onAdd});
   final _Store store;
-  final _TakeawayPhotos photos;
+  final ValueListenable<bool> photos;
   final ValueChanged<_Dish> onAdd;
 
   @override
@@ -384,9 +242,8 @@ class _MenuStripState extends State<_MenuStrip> {
   late final _controller = ScrollController(initialScrollOffset: widget.store.menuOffset, keepScrollOffset: false);
   late final _store = ValueNotifier<_Store?>(widget.store);
   late final _dishCount = ValueNotifier(widget.store.dishes.length);
-  late final _coupon = _CouponTile(store: _store, width: 52);
+  late final _coupon = _CouponTile(store: _store);
   final _tiles = <int, Widget>{};
-  double? _tileWidth;
   (double, ScrollBehavior)? _configuration;
   Widget? _frame;
   var _restoring = false;
@@ -395,19 +252,17 @@ class _MenuStripState extends State<_MenuStrip> {
   void didUpdateWidget(_MenuStrip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.store.id == widget.store.id) return;
-    // 保留滚动宿主和餐品槽位；换店时停止旧活动，再恢复新店自己的位置。
+    // 店铺换绑时保留菜单宿主，结束旧手势后恢复当前店铺的横向位置。
     _restoring = true;
     try {
       if (_controller.hasClients) {
         final position = _controller.position;
         final offset = widget.store.menuOffset;
         if (!position.hasContentDimensions) {
-          // 已 attach 但尚未布局时只校正初始偏移，jumpTo 的弹性计算会读取空滚动范围。
           if (position.pixels != offset) position.correctPixels(offset);
         } else if (position.pixels != offset || position.isScrollingNotifier.value) {
           position.jumpTo(offset);
         }
-        // 按住但未拖动时也有活动，换店必须结束上一家的手势。
         if (position is ScrollPositionWithSingleContext) position.goIdle();
       }
     } finally {
@@ -427,18 +282,15 @@ class _MenuStripState extends State<_MenuStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final fontDelta = math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14);
-    final width = 94 + fontDelta * 3;
+    final height = _menuHeight(context);
     final behavior = ScrollConfiguration.of(context);
-    final configuration = (fontDelta, behavior);
+    final configuration = (height, behavior);
     if (_configuration == configuration && _frame != null) return _frame!;
     _configuration = configuration;
-    if (_tileWidth != width) {
-      _tileWidth = width;
-      _tiles.clear();
-    }
+    // 每个商品共享一个高度约束，字号改变时统一增加空间，文案长短不影响高度。
     return _frame = SizedBox(
-      height: 184 + fontDelta * 8,
+      key: ValueKey('takeaway-menu-frame'),
+      height: height,
       child: Row(
         crossAxisAlignment: .stretch,
         children: [
@@ -448,34 +300,31 @@ class _MenuStripState extends State<_MenuStrip> {
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (!_restoring && notification.depth == 0) widget.store.menuOffset = notification.metrics.pixels;
-                // 店内横向通知不交给外层纵向滚动条和 AppBar。
                 return true;
               },
               child: ScrollConfiguration(
                 behavior: behavior.copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()),
-                child: ValueListenableBuilder<_Store?>(
-                  valueListenable: _store,
-                  builder: (context, record, child) =>
-                      Semantics(identifier: 'takeaway-menu-${record!.id}', child: child),
+                child: ElListenableBuilder<ValueListenable<_Store?>, int?>(
+                  listenable: _store,
+                  select: (source) => source.value?.id,
+                  builder: (context, child) => Semantics(identifier: 'takeaway-menu-${_store.value!.id}', child: child),
                   child: ValueListenableBuilder<int>(
                     valueListenable: _dishCount,
                     builder: (context, count, _) => ListView.builder(
                       controller: _controller,
                       scrollDirection: .horizontal,
                       itemCount: count,
-                      // 只刷新列表范围，保留红包、手势宿主和菜单外框。
-                      itemExtentBuilder: (index, dimensions) => index < count ? width + 6 : null,
+                      itemExtent: 112,
                       scrollCacheExtent: ScrollCacheExtent.pixels(0),
                       addAutomaticKeepAlives: false,
                       itemBuilder: (context, index) => _tiles.putIfAbsent(
                         index,
                         () => Padding(
-                          padding: .only(right: 6),
+                          padding: .only(right: 8),
                           child: _DishTile(
                             store: _store,
                             photos: widget.photos,
                             index: index,
-                            width: width,
                             onAdd: (dish) => widget.onAdd(dish),
                           ),
                         ),
@@ -494,14 +343,12 @@ class _MenuStripState extends State<_MenuStrip> {
 
 class _DishTile extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _DishTile({required this.store, required this.photos, required this.index, required this.width, required this.onAdd});
+  _DishTile({required this.store, required this.photos, required this.index, required this.onAdd});
   final ValueListenable<_Store?> store;
-  final _TakeawayPhotos photos;
+  final ValueListenable<bool> photos;
   final int index;
-  final double width;
   final ValueChanged<_Dish> onAdd;
 
-  // 菜单数量变少时，旧尾项会在本次布局移除，通知叶子时先容忍这个过渡。
   _Dish? _dish(_Store? record) => record != null && index < record.dishes.length ? record.dishes[index] : null;
 
   @override
@@ -509,50 +356,46 @@ class _DishTile extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return ElCard(
       key: ValueKey('takeaway-dish-card'),
-      style: ElStyle(padding: EdgeInsets.zero, borderRadius: .circular(6)),
-      child: Column(
-        crossAxisAlignment: .stretch,
-        spacing: 3,
-        children: [
-          _StorePhoto(store: store, photos: photos, dishIndex: index, size: width),
-          _storeWords(store, (record) => _dish(record)?.name ?? '', lines: 2),
-          _storeWords(store, (record) => _dish(record)?.subtitle ?? '', size: 9.5, color: muted),
-          _storeWords(
-            store,
-            (record) {
-              final dish = _dish(record);
-              return dish == null ? '' : '月售${dish.sales} · 好评${dish.praise}%';
-            },
-            size: 9.5,
-            color: muted,
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: _storeWords(
-                  store,
-                  (record) => '¥${_money(_dish(record)?.cents ?? 0)}',
-                  key: ValueKey('takeaway-dish-price'),
-                  size: 16,
-                  color: _orange,
-                  bold: true,
+      style: ElStyle(padding: .zero, borderRadius: .circular(6)),
+      // ElCard 的内容槽按自然高度排列，显式约束正文才能让底部价格对齐。
+      child: SizedBox(
+        height: _menuHeight(context),
+        child: Column(
+          crossAxisAlignment: .stretch,
+          children: [
+            _StorePhoto(store: store, photos: photos, dishIndex: index, size: 104),
+            SizedBox(height: 6),
+            _storeWords(store, (record) => _dish(record)?.name ?? '', key: ValueKey('takeaway-dish-name')),
+            Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: _storeWords(
+                    store,
+                    (record) => '¥${_money(_dish(record)?.cents ?? 0)}',
+                    key: ValueKey('takeaway-dish-price'),
+                    size: 16,
+                    color: _orange,
+                    bold: true,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: '加入购物车',
-                visualDensity: .compact,
-                padding: .zero,
-                style: IconButton.styleFrom(tapTargetSize: .shrinkWrap, minimumSize: Size(26, 26), padding: .zero),
-                constraints: BoxConstraints.tightFor(width: 28, height: 26),
-                onPressed: () {
-                  final dish = _dish(store.value);
-                  if (dish != null) onAdd(dish);
-                },
-                icon: Icon(Icons.add_circle_rounded, color: _orange, size: 22),
-              ),
-            ],
-          ),
-        ],
+                IconButton(
+                  tooltip: '加入购物车',
+                  visualDensity: .compact,
+                  padding: .zero,
+                  style: IconButton.styleFrom(tapTargetSize: .shrinkWrap, minimumSize: Size(28, 28), padding: .zero),
+                  constraints: BoxConstraints.tightFor(width: 28, height: 28),
+                  onPressed: () {
+                    final dish = _dish(store.value);
+                    if (dish != null) onAdd(dish);
+                  },
+                  icon: Icon(Icons.add_circle_rounded, color: _orange, size: 25),
+                ),
+              ],
+            ),
+            _storeWords(store, (record) => '门店价 ¥${_money((_dish(record)?.cents ?? 0) + 400)}', size: 10, color: muted),
+          ],
+        ),
       ),
     );
   }
@@ -560,103 +403,34 @@ class _DishTile extends StatelessWidget {
 
 class _CouponTile extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _CouponTile({required this.store, required this.width});
+  _CouponTile({required this.store});
   final ValueListenable<_Store?> store;
-  final double width;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: width,
+    width: 56,
     child: ElCard(
       key: ValueKey('takeaway-coupon'),
-      style: ElStyle(padding: .all(4), borderRadius: .circular(6)),
-      child: Column(
-        mainAxisAlignment: .center,
-        spacing: 6,
-        children: [
-          Icon(Icons.local_activity_rounded, color: _orange, size: 20),
-          _words('店铺红包', size: 10, color: _orange, lines: 2),
-          FittedBox(
-            fit: .scaleDown,
-            child: _storeWords(store, (record) => '¥${record.coupon}', size: 22, color: _orange, bold: true),
-          ),
-          _words('进店领好价', size: 9, color: _orange, lines: 2),
-        ],
+      style: ElStyle(
+        padding: .symmetric(horizontal: 4, vertical: 8),
+        borderRadius: .circular(8),
+        backgroundColor: _orange.withValues(alpha: .12),
+      ),
+      child: SizedBox(
+        height: _menuHeight(context) - 16,
+        child: Column(
+          mainAxisAlignment: .spaceBetween,
+          children: [
+            Icon(Icons.local_activity_rounded, color: _orange, size: 20),
+            _words('店铺红包', size: 10, color: _orange),
+            FittedBox(
+              fit: .scaleDown,
+              child: _storeWords(store, (record) => '¥${record.coupon}', size: 24, color: _orange, bold: true),
+            ),
+            _words('进店领券', size: 10, color: _orange),
+          ],
+        ),
       ),
     ),
   );
-}
-
-class _StorePhoto extends StatelessWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _StorePhoto({required this.store, required this.photos, required this.size, this.dishIndex});
-  final ValueListenable<_Store?> store;
-  final _TakeawayPhotos photos;
-  final double size;
-  final int? dishIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final index = dishIndex;
-    return ValueListenableBuilder<bool>(
-      valueListenable: photos.network,
-      builder: (context, network, offline) {
-        if (!network) return offline!;
-        return _NetworkStorePhoto(
-          store: store,
-          url: (record) {
-            if (index == null) return 'https://picsum.photos/seed/takeaway-shop-${record.id}/160/160';
-            if (index >= record.dishes.length) return '';
-            return 'https://picsum.photos/seed/takeaway-dish-${record.id}-$index/360/360';
-          },
-          size: size,
-        );
-      },
-      child: _AtlasPhoto(
-        key: ValueKey(index == null ? 'takeaway-atlas-logo' : 'takeaway-atlas-dish-$index'),
-        atlas: photos.atlas,
-        store: store,
-        tile: (record) {
-          final tiles = _cuisinePhotoTiles[record.id % _cuisinePhotoTiles.length];
-          return tiles[(index ?? 0) % tiles.length];
-        },
-        size: size,
-      ),
-    );
-  }
-}
-
-class _NetworkStorePhoto extends StatelessWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _NetworkStorePhoto({required this.store, required this.url, required this.size});
-  final ValueListenable<_Store?> store;
-  final String Function(_Store) url;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final emptyArea = SizedBox.square(dimension: size);
-    final cacheWidth = (size * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(1, 600);
-    return ClipRRect(
-      borderRadius: .circular(8),
-      child: ValueListenableBuilder<_Store?>(
-        valueListenable: store,
-        child: emptyArea,
-        builder: (context, record, blank) {
-          final source = record == null ? '' : url(record);
-          if (source.isEmpty) return blank!;
-          return Image.network(
-            source,
-            width: size,
-            height: size,
-            fit: .cover,
-            cacheWidth: cacheWidth,
-            excludeFromSemantics: true,
-            frameBuilder: exampleImageFrame,
-            errorBuilder: (_, _, _) => blank!,
-          );
-        },
-      ),
-    );
-  }
 }

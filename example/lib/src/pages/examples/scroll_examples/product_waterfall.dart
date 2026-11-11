@@ -235,7 +235,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
                                     product: _products[value],
                                     geometry: _geometryFor(value),
                                     onOpen: _open,
-                                    onBuild: (context) => _productContexts[value] = context,
+                                    contexts: _productContexts,
                                   ),
                                 ),
                               ),
@@ -321,83 +321,139 @@ double _captionExtent(BuildContext context) => 70 + math.max(0.0, MediaQuery.tex
 double _imageExtent(double slotWidth, _ProductGeometry geometry) =>
     math.max(0.0, slotWidth - 2 * _tilePadding) / geometry.ratio;
 
-class _ProductTile extends StatelessWidget {
+typedef _ProductData = ({_Product product, _ProductGeometry geometry});
+
+class _ProductTile extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _ProductTile({super.key, required this.product, required this.geometry, required this.onOpen, this.onBuild});
+  _ProductTile({super.key, required this.product, required this.geometry, required this.onOpen, this.contexts});
 
   final _Product product;
   final _ProductGeometry geometry;
   final ValueChanged<_Product> onOpen;
-  final ValueChanged<BuildContext>? onBuild;
+  final Map<int, BuildContext>? contexts;
 
   @override
-  Widget build(BuildContext context) {
-    onBuild?.call(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final colors = Theme.of(context).colorScheme;
-        final caption = _captionExtent(context);
-        final imageHeight = _imageExtent(constraints.maxWidth, geometry);
-        final decodedWidth = (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(96, 520);
-        return Padding(
-          padding: .all(_tilePadding),
-          child: ExamplePanel(
-            style: ElStyle(backgroundColor: colors.surfaceContainer, borderRadius: .circular(14)),
-            child: InkWell(
-              onTap: () => onOpen(product),
-              borderRadius: .circular(14),
-              child: Column(
-                crossAxisAlignment: .stretch,
-                mainAxisSize: .min,
-                children: [
-                  ClipRRect(
-                    borderRadius: .vertical(top: .circular(14)),
-                    clipBehavior: .hardEdge,
-                    child: Image.asset(
-                      product.asset,
-                      height: imageHeight,
-                      cacheWidth: decodedWidth,
-                      fit: .cover,
-                      excludeFromSemantics: true,
-                      frameBuilder: exampleImageFrame,
-                      errorBuilder: (_, _, _) => SizedBox(height: imageHeight),
-                    ),
-                  ),
-                  SizedBox(
-                    height: caption,
-                    child: Padding(
-                      padding: .symmetric(horizontal: 9),
-                      child: Column(
-                        mainAxisAlignment: .center,
-                        crossAxisAlignment: .start,
-                        children: [
-                          Text(
-                            product.name,
-                            maxLines: 1,
-                            overflow: .ellipsis,
-                            style: TextStyle(fontWeight: .w600),
-                          ),
-                          Text(
-                            '自然影像 · 无酸艺术纸',
-                            maxLines: 1,
-                            overflow: .ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                          Text(
-                            product.price,
-                            style: TextStyle(color: colors.primary, fontWeight: .w700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+  State<_ProductTile> createState() => _ProductTileState();
+}
+
+class _ProductTileState extends State<_ProductTile> {
+  late final _data = ValueNotifier<_ProductData>((product: widget.product, geometry: widget.geometry));
+  // 换商品只更新字段，宽度和像素比变化仍交给布局上下文重新配置图片。
+  late final _card = LayoutBuilder(builder: _layout);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.contexts?[widget.product.id] = context;
+  }
+
+  void _unregister(_ProductTile tile) {
+    final contexts = tile.contexts;
+    // 同一记录可能已交给新槽位，销毁旧槽位不能撤掉新的锚点登记。
+    if (identical(contexts?[tile.product.id], context)) contexts!.remove(tile.product.id);
+  }
+
+  @override
+  void didUpdateWidget(_ProductTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.product.id != widget.product.id || !identical(oldWidget.contexts, widget.contexts)) {
+      _unregister(oldWidget);
+      widget.contexts?[widget.product.id] = context;
+    }
+    _data.value = (product: widget.product, geometry: widget.geometry);
+  }
+
+  Widget _field<T>(T Function(_ProductData) select, TransitionBuilder builder, {Widget? child}) =>
+      ElListenableBuilder<ValueNotifier<_ProductData>, T>(
+        listenable: _data,
+        select: (data) => select(data.value),
+        builder: builder,
+        child: child,
+      );
+
+  Widget _layout(BuildContext context, BoxConstraints constraints) {
+    final decodedWidth = (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(96, 520);
+    final caption = Padding(
+      padding: .symmetric(horizontal: 9),
+      child: Column(
+        mainAxisAlignment: .center,
+        crossAxisAlignment: .start,
+        children: [
+          _field(
+            (data) => data.product.name,
+            (context, _) => Text(
+              _data.value.product.name,
+              maxLines: 1,
+              overflow: .ellipsis,
+              style: TextStyle(fontWeight: .w600),
+            ),
+          ),
+          Builder(
+            builder: (context) =>
+                Text('自然影像 · 无酸艺术纸', maxLines: 1, overflow: .ellipsis, style: Theme.of(context).textTheme.labelSmall),
+          ),
+          _field(
+            (data) => data.product.price,
+            (context, _) => Text(
+              _data.value.product.price,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: .w700),
+            ),
+          ),
+        ],
+      ),
+    );
+    final content = InkWell(
+      onTap: () => widget.onOpen(_data.value.product),
+      borderRadius: .circular(14),
+      child: Column(
+        crossAxisAlignment: .stretch,
+        mainAxisSize: .min,
+        children: [
+          ClipRRect(
+            borderRadius: .vertical(top: .circular(14)),
+            clipBehavior: .hardEdge,
+            child: _field(
+              (data) => data.geometry,
+              (context, child) =>
+                  SizedBox(height: _imageExtent(constraints.maxWidth, _data.value.geometry), child: child),
+              child: _field(
+                (data) => data.product.asset,
+                (context, _) => Image.asset(
+                  _data.value.product.asset,
+                  cacheWidth: decodedWidth,
+                  fit: .cover,
+                  excludeFromSemantics: true,
+                  frameBuilder: exampleImageFrame,
+                  errorBuilder: (_, _, _) => SizedBox.expand(),
+                ),
               ),
             ),
           ),
-        );
-      },
+          Builder(
+            builder: (context) => SizedBox(height: _captionExtent(context), child: caption),
+          ),
+        ],
+      ),
     );
+    return Padding(
+      padding: .all(_tilePadding),
+      child: Builder(
+        builder: (context) => ExamplePanel(
+          style: ElStyle(backgroundColor: Theme.of(context).colorScheme.surfaceContainer, borderRadius: .circular(14)),
+          child: content,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => _card;
+
+  @override
+  void dispose() {
+    _unregister(widget);
+    _data.dispose();
+    super.dispose();
   }
 }
 

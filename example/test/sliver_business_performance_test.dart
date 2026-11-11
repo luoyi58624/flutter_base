@@ -15,6 +15,7 @@ import 'package:example/src/pages/examples/sliver_recycler_grid/index.dart';
 import 'package:example/src/pages/examples/sliver_takeaway/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderImage;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -137,7 +138,6 @@ enum _Scene {
       ResizeImage.resizeIfNeeded(195, null, AssetImage('assets/recycler_cards/owl.jpg')),
       ResizeImage.resizeIfNeeded(195, null, AssetImage('assets/recycler_cards/owl-2.jpg')),
     ],
-    .takeaway => [AssetImage('assets/recycler_cards/takeaway-food.webp')],
     _ => [],
   };
 
@@ -197,6 +197,19 @@ void main() {
       try {
         final mediaFiles = scene.hasMediaFiles ? await _MediaFiles.create(tester) : null;
         await _precache(tester, [...scene.assets, ...?mediaFiles?.providers]);
+        if (scene == .takeaway) {
+          await tester.runAsync(() async {
+            // ElImage 按布局尺寸解码，分别预热店标和商品使用的完整图集尺寸。
+            for (final size in [Size(256, 192), Size(416, 312)]) {
+              await ElImage.preload(
+                'assets/recycler_cards/takeaway-food.webp',
+                size: size,
+                devicePixelRatio: 1,
+                fit: .fill,
+              ).timeout(Duration(seconds: 15));
+            }
+          });
+        }
 
         debugPrintSynchronously(
           'BUSINESS_PERF_CONFIG ${jsonEncode({
@@ -274,6 +287,11 @@ void main() {
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);
             if (scene.isMedia) _assertVisibleMediaImages(tester);
+            if (scene == .takeaway) {
+              final images = _TreeSnapshot(root).renders.whereType<RenderImage>().toList();
+              expect(images, isNotEmpty);
+              expect(images.every((image) => image.image != null), isTrue, reason: '外卖 ElImage 必须已显示真实图集。');
+            }
             if (scene == .productWaterfall) _assertUnrevealedProducts(tester);
             final metadata = {
               'item_count': itemCount,
@@ -722,6 +740,14 @@ void _assertOffline(_TreeSnapshot tree) {
     tree.elements.values.whereType<Image>().any((widget) => network(widget.image)),
     isFalse,
     reason: '业务滚动基准只用真实本地资源，不发网络图片请求。',
+  );
+  expect(
+    tree.elements.values.whereType<ElImage>().any((widget) {
+      final uri = Uri.tryParse(widget.src ?? '');
+      return uri?.scheme == 'http' || uri?.scheme == 'https';
+    }),
+    isFalse,
+    reason: 'ElImage 同样只能使用本地图片，不能遗漏新的图片入口。',
   );
 }
 

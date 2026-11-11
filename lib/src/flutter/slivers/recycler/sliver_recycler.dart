@@ -303,9 +303,14 @@ class _RecyclerElement extends RenderObjectElement {
     if (index != null) slot.index.bind(index, refresh: refresh);
     if (refresh) {
       slot.generation = _generation;
-      slot.content = Builder(builder: (context) => _widget.itemBuilder(context, slot.index));
+      // 索引语义独立更新，child 保留业务结构，单纯换绑无需重新配置外层状态包装。
+      slot.content = ValueListenableBuilder<int>(
+        valueListenable: slot.index,
+        child: Builder(builder: (context) => _widget.itemBuilder(context, slot.index)),
+        builder: (_, value, child) => IndexedSemantics(index: value, child: child!),
+      );
     }
-    if (slot.child != null && slot.active == active && !rebound && !refresh) return;
+    if (slot.child != null && slot.active == active && !refresh) return;
     slot.active = active;
     slot.child = updateChild(
       slot.child,
@@ -321,10 +326,7 @@ class _RecyclerElement extends RenderObjectElement {
               skipTraversal: true,
               descendantsAreFocusable: active,
               descendantsAreTraversable: active,
-              child: ReuseAnimationScope(
-                state: slot.animation,
-                child: IndexedSemantics(index: slot.index.value, child: slot.content!),
-              ),
+              child: ReuseAnimationScope(state: slot.animation, child: slot.content!),
             ),
           ),
         ),
@@ -612,7 +614,7 @@ class ElRenderSliverRecycler extends RenderSliver
     }
     final extents = _extents!;
     if (count == 0) {
-      _element.owner!.buildScope(_element, () => _element._finishLayout({}));
+      _finishLayout({});
       geometry = SliverGeometry.zero;
       _reveal?.complete(false);
       _reveal = null;
@@ -669,7 +671,7 @@ class ElRenderSliverRecycler extends RenderSliver
       };
       SchedulerBinding.instance.addPostFrameCallback((_) => reveal.complete(attached));
       if ((target - current).abs() > precisionErrorTolerance) {
-        _element.owner!.buildScope(_element, () => _element._finishLayout({index}));
+        _finishLayout({index});
         geometry = SliverGeometry(scrollOffsetCorrection: target - current);
         return;
       }
@@ -707,7 +709,7 @@ class ElRenderSliverRecycler extends RenderSliver
             (data.extent > 0 ? start + data.extent <= cacheStart() + precisionErrorTolerance : start < cacheStart());
       });
     }
-    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
+    _finishLayout(wanted);
 
     for (final slot in _element._active.values) {
       (slot.box!.parentData! as _RecyclerParentData)
@@ -715,6 +717,18 @@ class ElRenderSliverRecycler extends RenderSliver
         ..crossAxisOffset = 0;
     }
     _completeGeometry(extents.total, pixels);
+  }
+
+  void _finishLayout(Set<int> wanted) {
+    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
+    // 留池子树仍挂载：独立布局边界让嵌套 LayoutBuilder 的补建不经过已完成布局的 Sliver。
+    // 先刷新停用 TickerMode 产生的构建，再清理脏布局链；复用时 _layoutItem 恢复尺寸依赖。
+    for (final candidates in _element._pool.values) {
+      for (final slot in candidates) {
+        final box = slot.box;
+        if (box != null && box.hasSize) box.layout(box.constraints, parentUsesSize: false);
+      }
+    }
   }
 
   void _completeGeometry(double total, double pixels) {

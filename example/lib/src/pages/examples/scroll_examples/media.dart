@@ -98,6 +98,7 @@ class _MediaPageState extends State<_MediaPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   final _heroScope = Object();
   final _demoItems = <int, _MediaEntry>{};
+  _MediaMasonryDelegate? _masonryDelegate;
   late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
   _MediaGridMode _mode = .recycler;
@@ -130,6 +131,8 @@ class _MediaPageState extends State<_MediaPage> {
 
   void _changed() {
     if (!mounted) return;
+    // 媒体集合可能在数量不变时被替换，刷新来源后重新计算官方瀑布流几何。
+    _masonryDelegate = null;
     _thumbnailWindow = null;
     _scheduleThumbnails();
     if (!_bibiCards) setState(() {});
@@ -381,7 +384,7 @@ class _MediaPageState extends State<_MediaPage> {
     } else {
       content = SliverGrid.builder(
         gridDelegate: masonry
-            ? _MediaMasonryDelegate(
+            ? _masonryFor(
                 columns,
                 count,
                 _waterfallFooterExtent(context),
@@ -565,6 +568,18 @@ class _MediaPageState extends State<_MediaPage> {
     ],
     child: SafeArea(top: false, child: _bibiCards ? LayoutBuilder(builder: _bibiGrid) : _body()),
   );
+
+  _MediaMasonryDelegate _masonryFor(int columns, int count, double footer, double Function(int) ratio, bool rtl) {
+    final previous = _masonryDelegate;
+    if (previous != null &&
+        previous.columns == columns &&
+        previous.count == count &&
+        previous.footer == footer &&
+        previous.rtl == rtl) {
+      return previous;
+    }
+    return _masonryDelegate = _MediaMasonryDelegate(columns, count, footer, ratio, rtl);
+  }
 
   @override
   void dispose() {
