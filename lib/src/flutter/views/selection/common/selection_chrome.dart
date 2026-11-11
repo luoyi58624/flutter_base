@@ -1,8 +1,10 @@
 part of 'selection_core.dart';
 
 /// 根据生效选区宿主构建附属层的回调。
-typedef SelectionChromePortalBuilder =
-    Widget Function(BuildContext context, Offset Function(Offset global) globalToLocal);
+typedef SelectionChromePortalBuilder = Widget Function(
+  BuildContext context,
+  Offset Function(Offset global) globalToLocal,
+);
 
 /// 选区附属层的共享 portal：提升到页面宿主，缺失时回退树内兄弟层。
 ///
@@ -484,14 +486,14 @@ final class SelectionChromeProjection {
   /// 把 fallback chrome 本地坐标还原为正文 leader 本地坐标。
   Offset leaderLocalFromChromeLocal(Offset chromeLocal) => chromeLocal - chromeCoordinateOrigin;
 
-  /// 把全局矩形换算成 overlay host 本地 AABB。
-  Rect hostRectFromGlobal(Rect globalRect) {
-    final points = <Offset>[
-      hostGlobalToLocal(globalRect.topLeft) ?? globalRect.topLeft,
-      hostGlobalToLocal(globalRect.topRight) ?? globalRect.topRight,
-      hostGlobalToLocal(globalRect.bottomLeft) ?? globalRect.bottomLeft,
-      hostGlobalToLocal(globalRect.bottomRight) ?? globalRect.bottomRight,
-    ];
+  /// 把全局矩形换算成 overlay host 本地 AABB；宿主尚未完成布局时返回 null。
+  Rect? hostRectFromGlobal(Rect globalRect) {
+    final points = <Offset>[];
+    for (final global in [globalRect.topLeft, globalRect.topRight, globalRect.bottomLeft, globalRect.bottomRight]) {
+      final local = hostGlobalToLocal(global);
+      if (local == null) return null;
+      points.add(local);
+    }
     return Rect.fromLTRB(
       points.map((point) => point.dx).reduce((a, b) => a < b ? a : b),
       points.map((point) => point.dy).reduce((a, b) => a < b ? a : b),

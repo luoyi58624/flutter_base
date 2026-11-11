@@ -197,6 +197,7 @@ class ElEventDetails({
 
   bool _stopped = false, _prevented = false, _focusPreserved = false, _keyboardTapMatched = false;
   Offset Function(Offset)? _toLocalDelta;
+  double? _dragStartDistance;
 
   /// 当前阶段是否已停止传播。
   bool get propagationStopped => _stopped;
@@ -241,4 +242,13 @@ extension EventDetailsAccess on ElEventDetails {
   bool get keyboardTapMatched => _keyboardTapMatched;
   set keyboardTapMatched(bool value) => _keyboardTapMatched = value;
   void resolveLocalDelta(Offset Function(Offset) resolver) => _toLocalDelta = resolver;
+
+  /// 读取组件为本次拖拽指定的设备容差，不覆盖显式事件配置。
+  double? get dragStartDistance => _dragStartDistance;
+
+  /// 组件在拖拽按下阶段按输入设备确定本次起拖容差。
+  void setDragStartDistance(double distance) {
+    assert(phase == ElEventPhase.dragDown && distance.isFinite && distance >= 0);
+    _dragStartDistance = distance;
+  }
 }

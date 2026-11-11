@@ -809,6 +809,7 @@ final class _Route extends GestureArenaMember {
   var pressed = <EventDispatcher>[];
   var taps = <EventDispatcher>[];
   var drags = <EventDispatcher>[];
+  final _dragStartDistances = <EventDispatcher, double>{};
   var scales = <EventDispatcher>[];
   final _deferredDrags = <EventDispatcher, (PointerEvent, Axis?)>{};
   final _deferMoves = <EventDispatcher, PointerEvent>{};
@@ -872,7 +873,11 @@ final class _Route extends GestureArenaMember {
     final input = down;
     final transform = live.where((host) => host._canTransform(input)).toList();
     drags = transform.where((host) => host._e.hasDragCallback || host._e.onDragDown != null).toList();
-    final stop = _bubble(drags, .dragDown, (host) => host._pointer(.dragDown, input));
+    final downDetails = <EventDispatcher, ElEventDetails>{};
+    final stop = _bubble(drags, .dragDown, (host) => downDetails[host] = host._pointer(.dragDown, input));
+    for (final MapEntry(key: host, value: details) in downDetails.entries) {
+      if (details.dragStartDistance case final distance?) _dragStartDistances[host] = distance;
+    }
     if (stop >= 0) drags = drags.sublist(0, stop + 1);
     drags.removeWhere((host) => !host._e.hasDragCallback);
     // 拖拽中落下新手指：与 Flutter 一致，由最新的手指继续驱动。
@@ -997,16 +1002,17 @@ final class _Route extends GestureArenaMember {
     final dominant = moved.dx.abs() >= moved.dy.abs() ? Axis.horizontal : Axis.vertical;
     drags.removeWhere((host) => !host._live || host._scaling || host._drag != null);
     Axis? axisFor(ElEvent e) => e.hasPanCallback ? null : _axis ?? dominant;
-    bool ready(ElEvent e) {
+    bool ready(EventDispatcher host) {
+      final e = host._e;
       final axis = axisFor(e);
       final both = e.acceptsDrag(.horizontal) && e.acceptsDrag(.vertical);
       final pan = axis == null || both && axis == .horizontal;
-      final start = e.dragStartDistance ?? (pan ? computePanSlop(down.kind, null) : slop);
+      final start = e.dragStartDistance ?? _dragStartDistances[host] ?? (pan ? computePanSlop(down.kind, null) : slop);
       return (axis == null || e.acceptsDrag(axis)) && (distance > start || axis != null && _axis != null);
     }
 
     final candidates = drags.toList();
-    final proposal = candidates.indexWhere((host) => ready(host._e));
+    final proposal = candidates.indexWhere(ready);
     if (proposal < 0) return;
     // 外层先达到阈值时，先让兼容的内层响应，内层停止传播后外层不能抢先起拖。
     for (final (index, host) in candidates.indexed) {
@@ -1018,7 +1024,7 @@ final class _Route extends GestureArenaMember {
       final e = host._e;
       final axis = axisFor(e);
       if (axis != null && !e.acceptsDrag(axis)) continue;
-      if (index > proposal && !ready(e)) continue;
+      if (index > proposal && !ready(host)) continue;
       drags.remove(host);
       _axis ??= axis;
       _longPress?.cancel();
@@ -1243,6 +1249,7 @@ final class _Route extends GestureArenaMember {
     }
     pressed.remove(host);
     drags.remove(host);
+    _dragStartDistances.remove(host);
     _deferredDrags.remove(host);
     _deferMoves.remove(host);
     if (host._drag?.route == this) {

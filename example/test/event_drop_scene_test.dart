@@ -1,4 +1,5 @@
 import 'package:example/src/pages/components/event/advanced/examples/drop.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,61 @@ Future<void> _show(WidgetTester tester) async {
 String _text(WidgetTester tester, String key) => tester.widget<Text>(_key(key)).data!;
 
 void main() {
+  for (final slop in [12.0, 18.0]) {
+    testWidgets('滚动页内缓慢纵向拖放使用设备容差 $slop，源外仍能正常滚动', (tester) async {
+      final scroll = ScrollController(initialScrollOffset: 100);
+      addTearDown(scroll.dispose);
+      addTearDown(() => tester.pumpWidget(SizedBox()));
+      await tester.pumpWidget(
+        ElComponentProvider(
+          components: el.mobileComponents,
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(gestureSettings: DeviceGestureSettings(touchSlop: slop)),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: SizedBox(
+                width: 320,
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  physics: ClampingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 180),
+                      SizedBox(width: 248, child: ElDropInteractionExample()),
+                      SizedBox(height: 800),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(tester.getCenter(_key('file')));
+      await gesture.moveBy(Offset(0, slop * .5));
+      await tester.pump();
+      expect(_text(tester, 'phase'), '就绪');
+      await gesture.moveBy(Offset(0, slop * .6));
+      await tester.pump();
+      expect(_text(tester, 'phase'), '拖放中', reason: '不能等到双倍 pan 容差才起拖，此时外层滚动已抢走指针');
+      expect(scroll.offset, 100);
+      await gesture.moveTo(tester.getCenter(_key('inbox')));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.text('收件箱 1'), findsOneWidget);
+      expect(_text(tester, 'opened'), '打开 0');
+      expect(scroll.offset, 100);
+
+      await tester.dragFrom(Offset(305, 400), Offset(0, -100));
+      await tester.pumpAndSettle();
+      expect(scroll.offset, greaterThan(100));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('文件可以点击打开，真实拖放接收后不误打开且按压结束', (tester) async {
     await _show(tester);
     await tester.tap(_key('file'));

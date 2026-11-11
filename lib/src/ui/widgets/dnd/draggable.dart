@@ -1,11 +1,13 @@
 import 'dart:async' show unawaited;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../flutter/views/view/event/event.dart';
+import '../../../flutter/views/view/event/details.dart' show EventDetailsAccess;
 import '../../../flutter/views/view/style/style.dart';
 import '../../../flutter/views/view/view.dart';
 import 'drag_session.dart';
@@ -143,7 +145,13 @@ class _DraggableState<T extends Object> extends State<ElDraggable<T>> {
     }
   }
 
-  void _prepareSnapshot(ElEventDetails _) => _ensureSnapshot();
+  void _prepareSnapshot(ElEventDetails event) {
+    // 数据拖放与外层轴向滚动使用相同的设备容差，避免自由拖拽的双倍容差先输掉竞争。
+    if (event.pointerEvent case PointerDownEvent(:final kind)) {
+      event.setDragStartDistance(computeHitSlop(kind, MediaQuery.maybeGestureSettingsOf(context)));
+    }
+    _ensureSnapshot();
+  }
 
   void _releaseUnusedSnapshot(ElEventDetails _) {
     if (_sessionMine) return;

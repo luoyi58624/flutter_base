@@ -356,6 +356,7 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   LayerLink? _endHandleLayer;
   SelectionGeometry _geometry = const SelectionGeometry(status: SelectionStatus.none, hasContent: false);
   bool _notificationScheduled = false;
+  bool _detachScheduled = false;
   bool _disposed = false;
   List<({ElRenderView source, CascadeBridgeChanges changes, VoidCallback listener})>? _viewSources;
 
@@ -432,6 +433,7 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   void dispose() {
     _disposed = true;
     _unbindViewSources();
+    registrar = null;
     super.dispose();
   }
 
@@ -814,10 +816,22 @@ abstract class SelectionParticipant extends ChangeNotifier with Selectable, Sele
   /// 注销当前挂载；同一实例临时重挂保留本地范围，换文档时由绑定入口清空。
   void detachFromSelectionRoot() {
     _unbindViewSources();
-    registrar = null;
     final appearance = _selectionRoot;
-    // 整个文档同帧重挂时保留活体范围；单个内容退出文档时立即清空。
-    if (appearance is! RenderObject || (appearance as RenderObject).attached) _setProtocolSelection(null, null);
+    if (appearance is RenderObject && !(appearance as RenderObject).attached) {
+      // 整个文档同帧重挂时保留注册，避免 SDK 按变换前的全局坐标回放选区。
+      if (!_detachScheduled) {
+        _detachScheduled = true;
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          _detachScheduled = false;
+          if (_disposed || box.attached) return;
+          registrar = null;
+          _setProtocolSelection(null, null);
+        });
+      }
+    } else {
+      registrar = null;
+      _setProtocolSelection(null, null);
+    }
     _selectionRoot = null;
     _userSelectAllScopeRoot = null;
   }

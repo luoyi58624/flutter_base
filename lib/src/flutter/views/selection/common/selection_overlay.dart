@@ -236,6 +236,9 @@ class _ToolbarLayerState extends State<_ToolbarLayer> {
                     ))
         : media.padding.deflateRect(Offset.zero & media.size);
     final projection = SelectionChromeProjectionScope.maybeOf(context);
+    final projectedViewport = projection?.hostRectFromGlobal(globalViewport);
+    // 宿主会在布局就绪后重建，不能把暂不可用的 host 坐标伪装成全局坐标。
+    if (projection != null && projectedViewport == null) return const SizedBox.shrink();
     final viewportCorners = <Offset>[
       widget.globalToLocal(globalViewport.topLeft),
       widget.globalToLocal(globalViewport.topRight),
@@ -243,7 +246,7 @@ class _ToolbarLayerState extends State<_ToolbarLayer> {
       widget.globalToLocal(globalViewport.bottomRight),
     ];
     final localViewport =
-        projection?.hostRectFromGlobal(globalViewport) ??
+        projectedViewport ??
         Rect.fromLTRB(
           viewportCorners.map((point) => point.dx).reduce(math.min),
           viewportCorners.map((point) => point.dy).reduce(math.min),

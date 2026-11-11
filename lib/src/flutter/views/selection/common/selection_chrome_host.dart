@@ -94,6 +94,7 @@ class _SelectionHostState extends State<SelectionChromeSlotHost> implements Sele
   late final ValueNotifier<bool> _changes = ValueNotifier(widget.enabled);
   SelectionChromeMountHost? _parentHost;
   bool _rebuildScheduled = false;
+  bool _geometryRetryScheduled = false;
 
   @override
   bool get canMount => mounted && widget.enabled && (_parentHost?.canMount ?? true);
@@ -151,9 +152,32 @@ class _SelectionHostState extends State<SelectionChromeSlotHost> implements Sele
 
   @override
   Offset? globalToLocal(Offset global) {
-    final render = context.findRenderObject();
-    if (render is RenderBox && render.attached && render.hasSize) return render.globalToLocal(global);
+    if (!canMount) return null;
+    final render = _laidOutRender();
+    if (render != null) return render.globalToLocal(global);
+    _retryGeometryAfterLayout();
     return null;
+  }
+
+  RenderBox? _laidOutRender() {
+    final render = context.findRenderObject();
+    if (render is! RenderBox || !render.attached) return null;
+    // 预测返回可保留宿主尺寸却换入未布局的 Transform，坐标换算还会读取这些祖先的尺寸。
+    for (RenderObject? node = render; node != null; node = node.parent) {
+      if (!node.attached || node is RenderBox && !node.hasSize) return null;
+    }
+    return render;
+  }
+
+  void _retryGeometryAfterLayout() {
+    if (_geometryRetryScheduled) return;
+    _geometryRetryScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _geometryRetryScheduled = false;
+      // 仍未布局的隐藏分支不自行续帧；恢复布局的外部更新会再次请求投影。
+      if (canMount && _laidOutRender() != null) _rebuild();
+    });
+    SchedulerBinding.instance.ensureVisualUpdate();
   }
 
   @override
