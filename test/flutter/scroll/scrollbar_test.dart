@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
-import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/src/flutter/scroll/dual_axis_scroll.dart';
@@ -16,7 +16,13 @@ class _Behavior extends ElScrollBehavior {
   TargetPlatform getPlatform(BuildContext context) => platform;
 }
 
-Widget _app(ScrollController controller, TargetPlatform platform, {Axis axis = Axis.vertical, bool reverse = false}) {
+Widget _app(
+  ScrollController controller,
+  TargetPlatform platform, {
+  Axis axis = Axis.vertical,
+  bool reverse = false,
+  bool smooth = false,
+}) {
   return MaterialApp(
     home: ScrollConfiguration(
       behavior: _Behavior(platform),
@@ -26,6 +32,7 @@ Widget _app(ScrollController controller, TargetPlatform platform, {Axis axis = A
           height: 400,
           child: ElScroll.sliver(
             controller: controller,
+            smoothScroll: smooth ? ElWindowsSmoothScroll() : null,
             axis: axis,
             reverse: reverse,
             physics: ClampingScrollPhysics(),
@@ -191,9 +198,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.offset, 0);
       final hold = await tester.startGesture(tester.getCenter(button(forwardLabel)), kind: PointerDeviceKind.mouse);
+      await tester.pump();
       await tester.pump(Duration(milliseconds: 150));
       final singleStep = controller.offset;
-      await tester.pump(Duration(milliseconds: 500));
+      await tester.pump(Duration(milliseconds: 250));
+      await tester.pump();
+      var previous = controller.offset;
+      final deltas = <double>[];
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(Duration(milliseconds: 16));
+        deltas.add(controller.offset - previous);
+        previous = controller.offset;
+      }
+      for (final delta in deltas) {
+        expect(delta, greaterThan(0), reason: '每帧都应滚动，不能每 50ms 才跳一次');
+        expect(delta, lessThan(singleStep));
+        expect(delta, closeTo(deltas.first, .001), reason: '连续滚动速度不应忽快忽慢');
+      }
       expect(controller.offset, greaterThan(singleStep * 2));
       await hold.cancel();
       await tester.pumpAndSettle();
@@ -203,6 +224,66 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  for (final axis in Axis.values) {
+    for (final region in ['track', 'thumb', 'arrow']) {
+      testWidgets('Windows $axis $region 滚轮复用正文平滑动画且只消费一次', (tester) async {
+        final controller = ScrollController();
+        addTearDown(controller.dispose);
+        await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, smooth: true));
+        await tester.pumpAndSettle();
+        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final point = switch (region) {
+          'thumb' => elThumbRect(tester, controller.position)!.center,
+          'arrow' =>
+            axis == Axis.vertical
+                ? Offset(rect.right - 7.5, rect.bottom - 9)
+                : Offset(rect.right - 9, rect.bottom - 7.5),
+          _ =>
+            axis == Axis.vertical
+                ? Offset(rect.right - 7.5, rect.top + 250)
+                : Offset(rect.left + 200, rect.bottom - 7.5),
+        };
+        await tester.sendEventToBinding(
+          PointerScrollEvent(position: point, scrollDelta: axis == Axis.vertical ? Offset(0, 100) : Offset(100, 0)),
+        );
+        expect(controller.offset, 0, reason: '滚轮事件不能直接跳完');
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 16));
+        final first = controller.offset;
+        expect(first, inExclusiveRange(0, 100));
+        await tester.pump(Duration(milliseconds: 16));
+        expect(controller.offset, inExclusiveRange(first, 100));
+        await tester.pumpAndSettle();
+        expect(controller.offset, closeTo(100, .001), reason: '轨道和正文不能重复消费同一个滚轮事件');
+      });
+    }
+  }
+
+  testWidgets('箭头长按松手立即停止，卸载后不保留帧回调', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(controller, TargetPlatform.windows));
+    await tester.pumpAndSettle();
+    final arrow = find.byWidgetPredicate((widget) => widget is Semantics && widget.properties.label == '向下滚动');
+    final hold = await tester.startGesture(tester.getCenter(arrow), kind: PointerDeviceKind.mouse);
+    await tester.pump(Duration(milliseconds: 400));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 16));
+    await hold.up();
+    final stopped = controller.offset;
+    await tester.pump(Duration(milliseconds: 100));
+    expect(controller.offset, stopped);
+    final next = await tester.startGesture(tester.getCenter(arrow), kind: PointerDeviceKind.mouse);
+    await tester.pump(Duration(milliseconds: 400));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 16));
+    await tester.pumpWidget(SizedBox());
+    await next.cancel();
+    await tester.pump(Duration(seconds: 1));
+    expect(tester.takeException(), isNull);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
 
   testWidgets('反向列表滑块从末端拖向首端仍更新真实位置', (tester) async {
     final controller = ScrollController();

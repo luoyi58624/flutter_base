@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
+import '../scroll_position.dart' show ScrollHostPosition;
+
 /// 复用官方 [RawScrollbar] 的桌面滚动条，Windows 占位，macOS/Linux 悬浮。
 ///
 /// 与子树共享 [ScrollController]；不传时使用 [PrimaryScrollController]。
@@ -78,7 +80,11 @@ class ElDesktopScrollbar extends StatelessWidget {
       trackBorderColor: const Color(0x00000000),
       child: content,
     );
-    if (!_occupiesSpace) return scrollbar;
+    final wheel = Listener(
+      // 透明命中层先登记滚轮，点击和拖动仍落到下层官方滚动条。
+      behavior: HitTestBehavior.translucent,
+      onPointerSignal: (event) => _routeWheel(context, controller, event),
+    );
     Widget arrow(bool forward) => _ArrowButton(
       controller: controller,
       axis: axisDirectionToAxis(direction),
@@ -88,16 +94,28 @@ class ElDesktopScrollbar extends StatelessWidget {
     return Stack(
       children: [
         scrollbar,
-        if (vertical) ...[
+        if (vertical)
+          Positioned(right: 0, top: 0, bottom: 0, width: _occupiesSpace ? 15 : 10, child: wheel)
+        else
+          Positioned(left: 0, right: 0, bottom: 0, height: _occupiesSpace ? 15 : 10, child: wheel),
+        if (_occupiesSpace && vertical) ...[
           Positioned(right: 0, top: 0, width: 15, height: 18, child: arrow(false)),
           Positioned(right: 0, bottom: 0, width: 15, height: 18, child: arrow(true)),
-        ] else ...[
+        ] else if (_occupiesSpace) ...[
           Positioned(left: 0, bottom: 0, width: 18, height: 15, child: arrow(false)),
           Positioned(right: 0, bottom: 0, width: 18, height: 15, child: arrow(true)),
         ],
       ],
     );
   }
+}
+
+// 复用正文滚动位置的平滑滚轮与嵌套协商，普通官方位置继续由 RawScrollbar 处理。
+void _routeWheel(BuildContext context, ScrollController? controller, PointerSignalEvent event) {
+  final effective = controller ?? PrimaryScrollController.maybeOf(context);
+  if (effective == null || effective.positions.length != 1) return;
+  final position = effective.position;
+  if (position is ScrollHostPosition) position.handlePointerSignal(event);
 }
 
 // 官方 Painter 用完整 thumbRect 命中；仅通过形状缩小视觉宽度，不缩小拖动区域。
@@ -304,17 +322,26 @@ class _ArrowButton extends StatefulWidget {
   State<_ArrowButton> createState() => _ArrowButtonState();
 }
 
-class _ArrowButtonState extends State<_ArrowButton> {
+class _ArrowButtonState extends State<_ArrowButton> with SingleTickerProviderStateMixin {
   Timer? _timer;
   int? _pointer;
+  late final _ticker = createTicker(_tick);
+  Duration _lastTick = Duration.zero;
 
-  void _step({bool animate = false}) {
+  void _tick(Duration elapsed) {
+    final delta = elapsed - _lastTick;
+    _lastTick = elapsed;
+    // 保留原来每 50ms 一个步长的速度，但按实际帧间隔连续推进。
+    if (delta > Duration.zero) _step(steps: delta.inMicroseconds / 50000);
+  }
+
+  void _step({bool animate = false, double steps = 1}) {
     final controller = widget.controller ?? PrimaryScrollController.maybeOf(context);
     if (controller == null || controller.positions.length != 1) return;
     final position = controller.position;
     if (!position.hasContentDimensions || !position.physics.shouldAcceptUserOffset(position)) return;
     final direction = (widget.forward ? 1.0 : -1.0) * (axisDirectionIsReversed(position.axisDirection) ? -1 : 1);
-    final target = (position.pixels + position.viewportDimension.clamp(160.0, 480.0) * 0.1 * direction).clamp(
+    final target = (position.pixels + position.viewportDimension.clamp(160.0, 480.0) * 0.1 * direction * steps).clamp(
       position.minScrollExtent,
       position.maxScrollExtent,
     );
@@ -330,12 +357,14 @@ class _ArrowButtonState extends State<_ArrowButton> {
     setState(() => _pointer = event.pointer);
     _step(animate: true);
     _timer = Timer(const Duration(milliseconds: 400), () {
-      _step();
-      _timer = Timer.periodic(const Duration(milliseconds: 50), (_) => _step());
+      _timer = null;
+      _lastTick = Duration.zero;
+      _ticker.start();
     });
   }
 
   void _stop() {
+    _ticker.stop();
     _timer?.cancel();
     _timer = null;
     if (_pointer != null) setState(() => _pointer = null);
@@ -343,6 +372,7 @@ class _ArrowButtonState extends State<_ArrowButton> {
 
   @override
   void deactivate() {
+    _ticker.stop();
     _timer?.cancel();
     _timer = null;
     _pointer = null;
@@ -351,6 +381,7 @@ class _ArrowButtonState extends State<_ArrowButton> {
 
   @override
   void dispose() {
+    _ticker.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -369,6 +400,7 @@ class _ArrowButtonState extends State<_ArrowButton> {
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: _down,
+        onPointerSignal: (event) => _routeWheel(context, widget.controller, event),
         onPointerUp: (event) {
           if (event.pointer == _pointer) _stop();
         },
