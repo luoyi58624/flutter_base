@@ -50,7 +50,8 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   final _messages = List.generate(10000, _ChatMessage.generated);
   final _official = ScrollController(keepScrollOffset: false);
   final _officialListKey = GlobalKey();
-  final _messageContexts = <int, BuildContext>{};
+  // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
+  final _messageRows = <int, _OfficialChatRowState>{};
   late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
   SliverExampleMode _mode = .recycler;
   bool _nearBottom = true;
@@ -84,7 +85,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
     final viewportBottom = viewportTop + viewport.size.height;
     _ChatAnchor? anchor;
-    for (final entry in _messageContexts.entries) {
+    for (final entry in _messageRows.entries) {
       final box = _messageBox(entry.key);
       if (box == null) continue;
       final top = box.localToGlobal(Offset.zero).dy;
@@ -95,7 +96,9 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   }
 
   RenderBox? _messageBox(int id) {
-    final box = _messageContexts[id]?.findRenderObject();
+    final row = _messageRows[id];
+    if (row == null || !row.mounted) return null;
+    final box = row.context.findRenderObject();
     return box is RenderBox && box.attached && box.hasSize ? box : null;
   }
 
@@ -143,8 +146,10 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   }
 
   void _finishIncoming(bool follow, _ChatAnchor? anchor, int arrivals) {
-    _count.value = _messages.length;
-    setState(() {});
+    if (_count.value != _messages.length) {
+      _count.value = _messages.length;
+      setState(() {});
+    }
     if (follow) {
       _showLatest();
     } else {
@@ -164,7 +169,9 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     var arrivals = 0;
     if (_streamId case final id?) {
       final index = _indexOf(id);
-      _messages[index] = _ChatMessage.generated(id, mine: false, text: text);
+      final message = _ChatMessage.generated(id, mine: false, text: text);
+      _messages[index] = message;
+      _messageRows[id]?._updateMessage(message);
     } else {
       _streamId = _nextId;
       _insertMessage(mine: false, text: text);
@@ -259,7 +266,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   Widget _messageRow(int index, {bool trackedKey = true}) => _OfficialChatRow(
     key: trackedKey ? ValueKey(_messages[index].id) : null,
     message: _messages[index],
-    contexts: _messageContexts,
+    rows: _messageRows,
   );
 
   Widget _messagesViewport() => NotificationListener<ScrollNotification>(
@@ -429,9 +436,9 @@ class _ChatMessage {
 
 class _OfficialChatRow extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _OfficialChatRow({super.key, required this.message, required this.contexts});
+  _OfficialChatRow({super.key, required this.message, required this.rows});
   final _ChatMessage message;
-  final Map<int, BuildContext> contexts;
+  final Map<int, _OfficialChatRowState> rows;
   @override
   State<_OfficialChatRow> createState() => _OfficialChatRowState();
 }
@@ -442,22 +449,28 @@ class _OfficialChatRowState extends State<_OfficialChatRow> {
   @override
   void initState() {
     super.initState();
-    widget.contexts[widget.message.id] = context;
+    widget.rows[widget.message.id] = this;
   }
 
   @override
   void didUpdateWidget(_OfficialChatRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.message.id != widget.message.id && identical(oldWidget.contexts[oldWidget.message.id], context)) {
-      oldWidget.contexts.remove(oldWidget.message.id);
+    if ((oldWidget.message.id != widget.message.id || !identical(oldWidget.rows, widget.rows)) &&
+        identical(oldWidget.rows[oldWidget.message.id], this)) {
+      oldWidget.rows.remove(oldWidget.message.id);
     }
-    widget.contexts[widget.message.id] = context;
+    widget.rows[widget.message.id] = this;
     _message.value = widget.message;
+  }
+
+  void _updateMessage(_ChatMessage message) {
+    if (!mounted || widget.message.id != message.id) return;
+    _message.value = message;
   }
 
   @override
   void dispose() {
-    if (identical(widget.contexts[widget.message.id], context)) widget.contexts.remove(widget.message.id);
+    if (identical(widget.rows[widget.message.id], this)) widget.rows.remove(widget.message.id);
     _message.dispose();
     super.dispose();
   }
@@ -488,14 +501,16 @@ class _ChatRow extends StatelessWidget {
         spacing: 5,
         children: [
           Text(mine ? '我' : '小林', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
-          ValueListenableBuilder<_ChatMessage?>(
-            valueListenable: message,
-            builder: (context, value, child) => Text(value?.text ?? '', style: TextStyle(height: 1.5)),
+          ElListenableBuilder<ValueNotifier<_ChatMessage?>, String>(
+            listenable: message,
+            select: (value) => value.value?.text ?? '',
+            builder: (context, child) => Text(message.value?.text ?? '', style: TextStyle(height: 1.5)),
           ),
-          ValueListenableBuilder<_ChatMessage?>(
-            valueListenable: message,
-            builder: (context, value, child) =>
-                Text(value?.timeLabel ?? '', style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant)),
+          ElListenableBuilder<ValueNotifier<_ChatMessage?>, String>(
+            listenable: message,
+            select: (value) => value.value?.timeLabel ?? '',
+            builder: (context, child) =>
+                Text(message.value?.timeLabel ?? '', style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant)),
           ),
         ],
       ),
