@@ -50,8 +50,7 @@ export 'src/flutter/slivers/recycler/sliver_recycler.dart'
 export 'src/flutter/slivers/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
 export 'src/flutter/slivers/large_title.dart' show ElSliverLargeTitle;
 export 'src/flutter/slivers/sliver_refresh.dart' show ElSliverRefresh;
-export 'src/flutter/scroll/scrollbar/scrollbar_base.dart'
-    show ElScrollbar, ElScrollbarAxisDetails, ElScrollbarDetails;
+export 'src/flutter/scroll/scrollbar/scrollbar_base.dart' show ElScrollbar, ElScrollbarAxisDetails, ElScrollbarDetails;
 export 'src/flutter/scroll/scrollbar/mac_scroll_bar.dart' show ElMacScrollBar;
 export 'src/flutter/scroll/scrollbar/window_scroll_bar.dart' show ElWindowScrollBar;
 export 'src/flutter/scroll/smooth/smooth_scroll.dart'
@@ -117,6 +116,8 @@ export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterV
 // 缩放与预览
 export 'src/flutter/views/zoom/zoom_view.dart' show ElZoomController, ElZoomTransform, ElZoomView;
 export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, PreviewItemIdBuilder, ElPreviewView;
+export 'src/flutter/views/preview2/preview2_view.dart'
+    show ElPreview2Controller, ElPreview2TransitionBuilder, ElPreview2View;
 export 'src/flutter/views/image/image_view.dart' show ElImageView, ImageLoadInfo;
 
 // 点击反馈

@@ -10,6 +10,7 @@ import 'new_scroll_nested/index.dart';
 import 'new_scroll_refresh/index.dart';
 import 'official_gesture/index.dart';
 import 'press_feedback/index.dart';
+import 'preview2/index.dart';
 import 'scroll_examples/index.dart';
 import 'sliver_bibi/index.dart';
 import 'sliver_list/index.dart';
@@ -165,6 +166,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: '官方手势 · 缩放翻页交接',
     icon: ElIcon(Icons.zoom_out_map_outlined),
     data: (_) => OfficialZoomPagerPage(),
+  ),
+  ElMenuModel(
+    key: 'preview2',
+    title: 'Preview2 · 图片画廊',
+    icon: ElIcon(Icons.photo_library_outlined),
+    data: (_) => Preview2Page(),
   ),
 ];
 
