@@ -1,4 +1,4 @@
-import 'package:example/src/pages/examples/navigation_effects/routes.dart';
+import 'package:example/src/pages/examples/navigation_effects/index.dart';
 import 'package:example/src/pages/examples/navigation_effects/layout_pages.dart';
 import 'package:example/src/pages/examples/navigation_effects/collapse_pages.dart';
 import 'package:example/src/pages/examples/navigation_effects/large_title_pages.dart';

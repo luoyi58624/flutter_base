@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 const _orange = Color(0xfff26718);
 const _green = Color(0xff119865);

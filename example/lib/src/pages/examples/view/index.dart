@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import 'example_page.dart';
+import '../../../layout/example_page.dart';
 
 class ElViewPage extends StatelessWidget {
   const ElViewPage({super.key});

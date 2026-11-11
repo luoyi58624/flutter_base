@@ -7,7 +7,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 import '../../../widgets/panel.dart';
 
 /// 在相同的商品卡片上比较两列瀑布流与延迟的图片尺寸更新。

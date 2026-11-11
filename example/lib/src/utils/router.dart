@@ -3,8 +3,8 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/desktop.dart' show ElDesktopExt;
 import 'package:go_router/go_router.dart';
 
-import '../pages/components/catalog.dart';
-import '../pages/example_page.dart';
+import '../pages/components/index.dart';
+import '../layout/example_page.dart';
 import '../pages/examples/index.dart';
 import '../router/pages.dart';
 

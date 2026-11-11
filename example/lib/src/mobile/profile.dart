@@ -44,7 +44,7 @@ class _ProfilePage extends HookWidget {
             ),
           ),
           _Section('示例', typography),
-          _Setting('组件示例', 'info', typography, onPressed: () => _push(context, HomePage())),
+          _Setting('组件示例', 'info', typography, onPressed: () => _push(context, DemoListPage())),
           _Section('账号', typography),
           _Setting('账号与安全', 'shield', typography, onPressed: () => _push(context, _AccountPage(typography))),
           _Setting(

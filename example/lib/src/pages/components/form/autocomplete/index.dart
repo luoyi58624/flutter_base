@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../doc_page.dart';
-import '../../../example_page.dart';
+import '../../../../layout/example_page.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
 

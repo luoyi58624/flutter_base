@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../example_page.dart';
-import '../../widgets/panel.dart';
+import '../../../layout/example_page.dart';
+import '../../../widgets/panel.dart';
 
 /// 展示全量常驻文档的自然布局与跨段落文本选择。
 class ElSliverListExamplePage extends HookWidget {

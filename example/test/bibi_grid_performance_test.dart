@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:example/src/pages/examples/bibi/bibi.dart';
+import 'package:example/src/pages/examples/bibi/index.dart';
 import 'package:example/src/pages/examples/scroll_examples/media.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';

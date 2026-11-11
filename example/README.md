@@ -62,7 +62,7 @@ adb -s "设备ID" shell am start -W -a android.intent.action.VIEW -d "flutter-ba
 | ElView 基础使用 | `/examples/base` | `flutter-base://example/examples/base` |
 | 按压反馈 | `/examples/press-feedback` | `flutter-base://example/examples/press-feedback` |
 
-目录中的普通点击通过原生 Navigator 打开独立示例。直接使用上述地址时，路由会同时建立示例目录与详情页，返回后进入示例目录。新增高级示例只需在 `lib/src/pages/examples/catalog.dart` 登记，深度路由随目录自动生成。
+目录中的普通点击通过原生 Navigator 打开独立示例。直接使用上述地址时，路由会同时建立示例目录与详情页，返回后进入示例目录。新增高级示例只需在 `lib/src/pages/examples/index.dart` 登记，深度路由随目录自动生成。
 
 ## 独立的应用演示
 

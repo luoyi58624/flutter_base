@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 class _TakeawayRenderCard extends LeafRenderObjectWidget {
   const _TakeawayRenderCard({super.key, required this.store, required this.atlas, required this.onAdd});

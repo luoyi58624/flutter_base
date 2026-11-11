@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 typedef _TakeawayInk = ({
   TextStyle text,

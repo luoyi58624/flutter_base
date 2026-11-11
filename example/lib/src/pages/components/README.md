@@ -6,7 +6,7 @@ Button 是首个样板，参数以本仓库的公共接口为准；其余组件�
 
 ## 页面与示例
 
-- 一组件一目录。`index.dart` 用 `ComponentDocPage` 装配页面标题、一句概述和有序小节。用 `catalog.dart` 登记一次入口，桌面与移动目录共用页面。
+- 一组件一目录。`index.dart` 用 `ComponentDocPage` 装配页面标题、一句概述和有序小节。在组件标签入口 `index.dart` 的 `componentCatalog` 登记一次，桌面与移动目录共用页面。
 - 一个场景放一个 `examples/` 下的 Dart 文件。迁移已有文档时保留场景顺序、变体对照和交互。相近的变体用 `Wrap` 集中展示，小节说明只补充行为和使用边界。
 - 演示只使用 Flutter 与 `flutter_base` 的公共入口。组件实现和 token 由外层的 `ElComponentProvider` 提供。交互状态放在示例内部，有状态示例用 `HookWidget`。
 

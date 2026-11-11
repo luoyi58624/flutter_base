@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 
-import '../../../example_page.dart';
+import '../../../../layout/example_page.dart';
 import '../../../../widgets/doc_scroll_view.dart';
 import '../../../../widgets/panel.dart';
 

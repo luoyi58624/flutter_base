@@ -33,7 +33,7 @@
 ```shell
 cd example
 flutter test --no-pub --concurrency=1 test/navigation_effects_migration_test.dart test/new_scroll_examples_test.dart
-dart analyze lib/src/pages/examples/navigation_effects lib/src/pages/examples/new_bibi_collapse.dart
+dart analyze lib/src/pages/examples/navigation_effects lib/src/pages/examples/new_bibi_collapse
 
 cd ..
 flutter test --no-pub --concurrency=1 test/flutter/slivers/navigation_effects_test.dart

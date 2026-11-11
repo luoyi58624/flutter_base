@@ -3,7 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../../widgets/code_preview/index.dart';
 import '../../widgets/doc_scroll_view.dart';
-import '../example_page.dart';
+import '../../layout/example_page.dart';
 
 /// 文档页中的一个可操作示例及其源码。
 class ComponentDocSection {

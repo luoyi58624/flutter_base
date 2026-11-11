@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 class _FoodAtlas extends ChangeNotifier implements ValueListenable<ui.Image?> {
   _FoodAtlas(TickerProvider vsync)

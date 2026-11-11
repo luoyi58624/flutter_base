@@ -1,5 +1,5 @@
 import 'package:example/src/widgets/plain_scroll.dart';
-import 'package:example/src/pages/examples/sliver_recycler.dart';
+import 'package:example/src/pages/examples/sliver_recycler/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';

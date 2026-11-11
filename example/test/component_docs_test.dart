@@ -1,4 +1,4 @@
-import 'package:example/src/pages/components/catalog.dart';
+import 'package:example/src/pages/components/index.dart';
 import 'package:example/src/pages/components/doc_page.dart';
 import 'package:example/src/widgets/code_preview/index.dart';
 import 'package:flutter/material.dart';

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../state/index.dart';
-import '../widgets/icons/settings_icons.dart';
-import 'components/basic/button/index.dart';
-import 'view.dart';
-import 'view/base.dart';
+import '../../../state/index.dart';
+import '../../../widgets/icons/settings_icons.dart';
+import '../../components/basic/button/index.dart';
+import '../view/index.dart';
+import '../view_base/index.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+/// 移动应用「我的 → 组件示例」进入的演示列表。
+class DemoListPage extends StatelessWidget {
+  const DemoListPage({super.key});
 
   ElListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) => ElListTile(
     title: icon.label,

@@ -17,8 +17,7 @@ class NewScrollNestedPage extends StatelessWidget {
         children: [
           _info(colors),
           for (final outer in [Axis.vertical, Axis.horizontal])
-            for (final inner in [Axis.vertical, Axis.horizontal])
-              _case(colors, outer: outer, inner: inner),
+            for (final inner in [Axis.vertical, Axis.horizontal]) _case(colors, outer: outer, inner: inner),
           _shrinkWrapCase(colors),
           Padding(
             padding: EdgeInsets.only(bottom: 24),
@@ -93,10 +92,7 @@ class NewScrollNestedPage extends StatelessWidget {
     width: vertical ? double.infinity : 150,
     height: vertical ? 88 : 190,
     alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: colors.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-    ),
+    decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
     child: Text(label),
   );
 
@@ -144,7 +140,10 @@ class NewScrollNestedPage extends StatelessWidget {
           ConstrainedBox(
             constraints: BoxConstraints(maxHeight: 180),
             child: DecoratedBox(
-              decoration: BoxDecoration(border: Border.all(color: colors.outline), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                border: Border.all(color: colors.outline),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: ElScroll(
                 shrinkWrap: true,
                 gap: 6,
@@ -154,7 +153,10 @@ class NewScrollNestedPage extends StatelessWidget {
                     Container(
                       height: 44,
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(color: colors.secondaryContainer, borderRadius: BorderRadius.circular(6)),
+                      decoration: BoxDecoration(
+                        color: colors.secondaryContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text('自然高度子项 ${i + 1}'),
                     ),
                 ],

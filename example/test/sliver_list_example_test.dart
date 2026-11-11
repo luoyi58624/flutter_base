@@ -1,5 +1,5 @@
-import 'package:example/src/pages/examples/sliver_list.dart';
-import 'package:example/src/pages/home.dart';
+import 'package:example/src/pages/examples/sliver_list/index.dart';
+import 'package:example/src/pages/home/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';

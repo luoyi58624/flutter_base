@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../widgets/example_scrollbar.dart';
-import '../example_page.dart';
-import '../../widgets/panel.dart';
+import '../../../widgets/example_scrollbar.dart';
+import '../../../layout/example_page.dart';
+import '../../../widgets/panel.dart';
 
 /// 用相同的自然高度卡片展示网格与瀑布流。
 class ElSliverRecyclerGridExamplePage extends HookWidget {

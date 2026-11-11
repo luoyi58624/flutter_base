@@ -1,31 +1,117 @@
-import 'package:example/src/pages/examples/scroll_examples/nest_scroll.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/mobile.dart';
 
-import '../view.dart';
-import '../view/base.dart';
-import 'bibi/bibi.dart';
-import 'press_feedback.dart';
-import 'new_scroll_nested.dart';
-import 'new_scroll_refresh.dart';
-import 'new_scroll_navigation.dart';
-import 'new_bibi_collapse.dart';
-import 'official_gesture/zoom_pager.dart';
-export 'navigation_effects/routes.dart' show navigationEffectExamples;
-import 'scroll_examples/cards.dart';
-import 'scroll_examples/chat.dart';
-import 'scroll_examples/media.dart';
-import 'scroll_examples/orders.dart';
-import 'scroll_examples/product_waterfall.dart';
-import 'scroll_examples/rich_document.dart';
-import 'scroll_examples/selection.dart';
-import 'scroll_examples/social_feed.dart';
-import 'scroll_examples/spike.dart';
-import 'sliver_bibi/sliver_bibi.dart';
-import 'sliver_list.dart';
-import 'sliver_recycler.dart';
-import 'sliver_recycler_grid.dart';
-import 'sliver_takeaway/takeaway.dart';
+import '../../layout/example_page.dart';
+import '../../utils/router.dart';
+import 'bibi/index.dart';
+import 'new_bibi_collapse/index.dart';
+import 'new_scroll_navigation/index.dart';
+import 'new_scroll_nested/index.dart';
+import 'new_scroll_refresh/index.dart';
+import 'official_gesture/index.dart';
+import 'press_feedback/index.dart';
+import 'scroll_examples/index.dart';
+import 'sliver_bibi/index.dart';
+import 'sliver_list/index.dart';
+import 'sliver_recycler/index.dart';
+import 'sliver_recycler_grid/index.dart';
+import 'sliver_takeaway/index.dart';
+import 'view/index.dart';
+import 'view_base/index.dart';
+
+import 'navigation_effects/index.dart';
+
+export 'navigation_effects/index.dart' show navigationEffectExamples;
+export 'scroll_examples/index.dart' show scrollBusinessExamples;
+
+/// 两端共用的高级示例目录，列表统一使用移动端预设。
+class ExamplesPage extends StatelessWidget {
+  /// 创建示例一级页。
+  const ExamplesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => ExamplePage(
+    title: '示例',
+    child: ElComponentProvider(
+      components: el.mobileComponents,
+      child: Builder(
+        builder: (context) => ElView(
+          style: ElStyle(backgroundColor: context.elTheme.bgColor),
+          child: Align(
+            alignment: .topCenter,
+            child: ConstrainedBox(
+              constraints: .new(maxWidth: 880),
+              child: ElScroll(
+                key: PageStorageKey('advanced-examples'),
+                padding: .all(24),
+                gap: 24,
+                children: [
+                  Column(
+                    crossAxisAlignment: .start,
+                    mainAxisSize: .min,
+                    spacing: 8,
+                    children: [
+                      Text('高级示例', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: .w700)),
+                      Text('独立体验视图、手势与交互细节。', style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ),
+                  ElListGroup(
+                    title: '交互与视图',
+                    children: [
+                      for (final page in advancedExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(page.data!),
+                        ),
+                    ],
+                  ),
+                  ElListGroup(
+                    title: 'Sliver 业务示例',
+                    children: [
+                      for (final page in scrollBusinessExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(page.data!),
+                        ),
+                    ],
+                  ),
+                  ElListGroup(
+                    title: '新版滚动',
+                    children: [
+                      for (final page in sliverScrollExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(page.data!),
+                        ),
+                    ],
+                  ),
+                  ElListGroup(
+                    title: '导航特效 · 旧版 15 个示例迁移',
+                    children: [
+                      for (final page in navigationEffectExamples)
+                        ElListTile(
+                          key: ValueKey('advanced-${page.key}'),
+                          title: page.title,
+                          leading: page.icon,
+                          onTap: () => RouterUtil.push(page.data!),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
 /// 独立高级示例的统一目录，同时供目录点击与深度路由读取页面工厂。
 final advancedExamples = <ElMenuModel<WidgetBuilder>>[
@@ -113,100 +199,5 @@ final sliverScrollExamples = <ElMenuModel<WidgetBuilder>>[
     title: '外卖商家列表',
     icon: ElIcon(Icons.delivery_dining_outlined),
     data: (_) => TakeawaySliverPage(),
-  ),
-];
-
-/// Sliver 业务场景，两端共用相同目录与页面工厂。
-final scrollBusinessExamples = <ElMenuModel<WidgetBuilder>>[
-  ElMenuModel(
-    key: 'recycler-rectangles',
-    title: '万条纯色矩形',
-    icon: ElIcon(Icons.rectangle_outlined),
-    data: (_) => ElSliverRecyclerExamplePage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-text',
-    title: '万条纯文本列表',
-    icon: ElIcon(Icons.text_fields),
-    data: (_) => ElSliverRecyclerExamplePage(initialContent: .text),
-  ),
-  ElMenuModel(
-    key: 'recycler-selection',
-    title: '万条复选列表',
-    icon: ElIcon(Icons.checklist_outlined),
-    data: (_) => RecyclerSelectionPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-chat',
-    title: '聊天长列表',
-    icon: ElIcon(Icons.chat_bubble_outline),
-    data: (_) => RecyclerChatPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-cards',
-    title: '复杂卡片面板',
-    icon: ElIcon(Icons.dashboard_outlined),
-    data: (_) => RecyclerCardsPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-takeaway',
-    title: '外卖商家列表',
-    icon: ElIcon(Icons.delivery_dining_outlined),
-    data: (_) => TakeawaySliverPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-video-grid',
-    title: 'Grid 视频流卡片',
-    icon: ElIcon(Icons.video_library_outlined),
-    data: (_) => RecyclerVideoGridPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-gallery-grid',
-    title: 'Grid 本机相册',
-    icon: ElIcon(Icons.photo_library_outlined),
-    data: (_) => RecyclerGalleryPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-waterfall',
-    title: '瀑布流',
-    icon: ElIcon(Icons.view_quilt_outlined),
-    data: (_) => RecyclerWaterfallPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-social-feed',
-    title: '社交动态流',
-    icon: ElIcon(Icons.dynamic_feed_outlined),
-    data: (_) => RecyclerSocialFeedPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-live-chat',
-    title: '实时群聊',
-    icon: ElIcon(Icons.forum_outlined),
-    data: (_) => RecyclerLiveChatPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-orders',
-    title: '订单管理台',
-    icon: ElIcon(Icons.receipt_long_outlined),
-    data: (_) => RecyclerOrdersPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-product-waterfall',
-    title: '商品瀑布流',
-    icon: ElIcon(Icons.storefront_outlined),
-    data: (_) => RecyclerProductWaterfallPage(),
-  ),
-  ElMenuModel(
-    key: 'recycler-rich-document',
-    title: '富文本文档',
-    icon: ElIcon(Icons.article_outlined),
-    data: (_) => RecyclerRichDocumentPage(),
-  ),
-  ElMenuModel(key: 'nest-scroll', title: '嵌套滚动', icon: ElIcon(Icons.article_outlined), data: (_) => NestScrollPage()),
-  ElMenuModel(
-    key: 'recycler-spike',
-    title: '单帧尖峰压力',
-    icon: ElIcon(Icons.speed_outlined),
-    data: (_) => RecyclerSpikePage(),
   ),
 ];

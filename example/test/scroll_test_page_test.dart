@@ -1,4 +1,4 @@
-import 'package:example/src/pages/setting/scroll_test.dart';
+import 'package:example/src/pages/settings/scroll_test/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../widgets/panel.dart';
+import '../../../widgets/panel.dart';
 
 /// 综合展示中的独立演示卡片，统一标题、说明和内容留白。
 class ShowcasePanel extends StatelessWidget {

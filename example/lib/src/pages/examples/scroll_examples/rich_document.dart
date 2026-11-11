@@ -3,7 +3,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../../../widgets/code_preview/index.dart';
 import '../../../widgets/example_image.dart';
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/panel.dart';

@@ -1,4 +1,4 @@
-part of 'sliver_bibi.dart';
+part of 'index.dart';
 
 // 这里不修改 ScrollPosition 的 pixels，也不借助 Notification 在滚动后纠偏：
 // 先在官方 ScrollPhysics 的用户位移入口分账，未消费的部分才进入 Viewport。

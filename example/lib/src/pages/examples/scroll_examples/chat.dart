@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../widgets/panel.dart';

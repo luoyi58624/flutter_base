@@ -1,5 +1,5 @@
 import 'package:example/src/mobile/app.dart';
-import 'package:example/src/pages/index.dart';
+import 'package:example/src/pages/examples/demo_list/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +41,7 @@ void main() {
     }
     await tester.tap(find.byKey(ValueKey('setting-组件示例')));
     await tester.pumpAndSettle();
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(DemoListPage), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('tab-我的')), findsOneWidget);

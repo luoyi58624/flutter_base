@@ -35,10 +35,7 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
           itemBuilder: (context, index) => Card(
             margin: EdgeInsets.only(bottom: 10),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: colors.primaryContainer,
-                child: Text('${index + 1}'),
-              ),
+              leading: CircleAvatar(backgroundColor: colors.primaryContainer, child: Text('${index + 1}')),
               title: Text('第 ${index + 1} 条动态'),
               subtitle: Text('已刷新 $_refreshes 次 · 拖动边缘，松手后触发刷新'),
               trailing: Icon(Icons.chevron_right),

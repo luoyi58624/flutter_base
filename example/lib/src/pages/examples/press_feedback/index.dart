@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../example_page.dart';
+import '../../../layout/example_page.dart';
 
 const _pressScale = 0.9;
 const _pressDuration = Duration(milliseconds: 100);

@@ -1,5 +1,5 @@
 import 'package:example/main.dart' as application;
-import 'package:example/src/pages/settings.dart';
+import 'package:example/src/pages/settings/index.dart';
 import 'package:example/src/router/index.dart' as app_router;
 import 'package:example/src/state/index.dart';
 import 'package:flutter/gestures.dart' show GestureBinding;

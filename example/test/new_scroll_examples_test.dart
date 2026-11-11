@@ -1,7 +1,7 @@
-import 'package:example/src/pages/examples/new_scroll_nested.dart';
-import 'package:example/src/pages/examples/new_bibi_collapse.dart';
-import 'package:example/src/pages/examples/new_scroll_navigation.dart';
-import 'package:example/src/pages/examples/new_scroll_refresh.dart';
+import 'package:example/src/pages/examples/new_scroll_nested/index.dart';
+import 'package:example/src/pages/examples/new_bibi_collapse/index.dart';
+import 'package:example/src/pages/examples/new_scroll_navigation/index.dart';
+import 'package:example/src/pages/examples/new_scroll_refresh/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';

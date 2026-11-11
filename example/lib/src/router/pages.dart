@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../pages/components/catalog.dart';
 import '../pages/components/index.dart';
-import '../pages/examples.dart';
-import '../pages/home.dart';
-import '../pages/settings.dart';
+import '../pages/examples/index.dart';
+import '../pages/home/index.dart';
+import '../pages/settings/index.dart';
 
 /// 统一声明导航标题、图标与页面工厂，两端据此生成菜单和路由。
 final navigationPages = <ElMenuModel<WidgetBuilder>>[

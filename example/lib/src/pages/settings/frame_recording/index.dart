@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/mobile.dart';
 
-import '../state/index.dart';
-import '../utils/frame_timing_recorder.dart';
-import '../widgets/frame_recording_scope.dart';
-import 'example_page.dart';
-import '../widgets/panel.dart';
+import '../../../state/index.dart';
+import '../../../utils/frame_timing_recorder.dart';
+import '../../../widgets/frame_recording_scope.dart';
+import '../../../layout/example_page.dart';
+import '../../../widgets/panel.dart';
 
 /// 配置一段跨页面的性能采样并复制原始数据与统计结果。
 class FrameRecordingPage extends StatefulWidget {

@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 Widget _words(String value, {Key? key, double size = 12, Color? color, bool bold = false, int lines = 1}) => ElView(
   key: key,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../layout/navbar_menu.dart';
-import '../layout/desktop/navbar.dart';
-import '../layout/page_scope.dart';
+import 'navbar_menu.dart';
+import 'desktop/navbar.dart';
+import 'page_scope.dart';
 
 /// 示例页面共用的标题栏与内容区域。
 class ExamplePage extends StatelessWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 import 'zoom_view.dart';
 
 /// 体验用图片，与列表示例共用打包资源。

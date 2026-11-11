@@ -1,5 +1,5 @@
 import 'package:example/src/pages/examples/index.dart';
-import 'package:example/src/pages/examples/sliver_bibi/sliver_bibi.dart';
+import 'package:example/src/pages/examples/sliver_bibi/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart' show ElScroll, ElTabController, ElTabView;
 import 'package:flutter_test/flutter_test.dart';

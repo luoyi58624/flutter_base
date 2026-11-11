@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 import '../../../widgets/example_image.dart';
 import 'scroll_mode.dart';
 import 'comparison_list.dart';

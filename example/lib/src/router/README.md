@@ -1,14 +1,14 @@
 # 示例导航与页面壳
 
-- `pages.dart` 只声明综合展示、组件文档、高级示例和设置四个一级入口；组件文档的分组与深度路由继续在 `pages/components/catalog.dart` 声明。
+- `pages.dart` 只声明综合展示、组件文档、高级示例和设置四个一级入口；组件文档的分组与深度路由继续在 `pages/components/index.dart` 声明。
 - `desktop.dart`、`mobile.dart` 只组装各自的导航结构，使用同一份声明和正文，不复制页面。
 - `src/router/index.dart` 持有唯一的路由实例与断点配置，应用直接导入这个文件。
 - `utils/router.dart` 管理路径、叶子遍历、路由生成、导航标题与页面构建。
 - `state/index.dart` 保存两端共用的主题和调试状态。
 
-新增导航页面时，在 `pages/` 建立独立文件，用 `ExamplePage` 包裹正文，再在 `pages.dart` 或组件目录登记标题、图标和工厂。正文只写一份；间距和列数由可用宽度调整。
+新增导航页面时，在对应标签目录下建立 `<名称>/index.dart`，用 `layout/example_page.dart` 的 `ExamplePage` 包裹正文，再在该标签的 `index.dart` 登记标题、图标和工厂。正文只写一份；间距和列数由可用宽度调整。
 
-首页的综合展示拆在 `pages/showcase/`，先保留首屏和按钮两个分区。高级示例单独在 `pages/examples/catalog.dart` 声明，两端目录都使用移动端的 `ElListGroup` / `ElListTile`。`RouterUtil.push` 通过 `el.router.pushPage` 打开独立示例，GoRouter 共用 `el.navigatorKey`。同一份目录同时生成 `/examples/<key>` 深度路由，直接进入时在根导航器覆盖页面壳，返回后进入示例目录。设置页继续两端共用。
+首页的综合展示拆在 `pages/home/showcase/`，先保留首屏和按钮两个分区。高级示例单独在 `pages/examples/index.dart` 声明，两端目录都使用移动端的 `ElListGroup` / `ElListTile`。`RouterUtil.push` 通过 `el.router.pushPage` 打开独立示例，GoRouter 共用 `el.navigatorKey`。同一份目录同时生成 `/examples/<key>` 深度路由，直接进入时在根导航器覆盖页面壳，返回后进入示例目录。设置页继续两端共用。
 
 Android 接收 `flutter-base://example/<path>`，由 Flutter 内建深度链接处理器交给现有 GoRouter。启动默认位置只用于没有外部路径的情况。所有页面地址与启动命令见 [example README](../../../README.md)。
 

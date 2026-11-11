@@ -8,7 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:path_drawing/path_drawing.dart';
 
-import '../pages/index.dart';
+import '../pages/examples/demo_list/index.dart';
 import '../state/index.dart';
 import '../widgets/panel.dart';
 

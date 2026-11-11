@@ -13,7 +13,7 @@ import 'package:flutter_base/flutter_base.dart';
 
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
-import '../../example_page.dart';
+import '../../../layout/example_page.dart';
 
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';

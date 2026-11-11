@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import '../../widgets/panel.dart';
+
+import '../../../widgets/panel.dart';
 
 /// 综合展示首屏，宽屏并排介绍与场景卡片，窄屏自然堆叠。
 class ShowcaseHero extends StatelessWidget {

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
-import '../state/index.dart';
-import 'example_page.dart';
-import 'frame_recording.dart';
-import 'setting/create_vs_update.dart';
-import 'setting/el_scroll.dart';
-import 'setting/grid_scroll.dart';
-import 'setting/scroll_test.dart';
+import '../../state/index.dart';
+import '../../layout/example_page.dart';
+import 'frame_recording/index.dart';
+import 'create_vs_update/index.dart';
+import 'el_scroll/index.dart';
+import 'grid_scroll/index.dart';
+import 'scroll_test/index.dart';
 
 /// 两端共用的主题、系统和工具设置正文。
 class SettingPage extends StatelessWidget {

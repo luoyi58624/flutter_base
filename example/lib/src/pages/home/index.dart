@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../utils/router.dart';
-import 'example_page.dart';
-import 'examples/index.dart';
+import '../../utils/router.dart';
+import '../../layout/example_page.dart';
+import '../examples/index.dart';
 import 'showcase/buttons.dart';
 import 'showcase/hero.dart';
-import '../widgets/panel.dart';
+import '../../widgets/panel.dart';
 
 /// 组件综合展示首页，提供滚动示例入口、响应式布局与按钮交互。
 class HomePage extends HookWidget {

@@ -8,10 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../lib/main.dart';
 import '../lib/src/router/index.dart';
-import '../lib/src/pages/examples.dart';
-import '../lib/src/pages/examples/bibi/bibi.dart';
 import '../lib/src/pages/examples/index.dart';
-import '../lib/src/pages/view.dart';
+import '../lib/src/pages/examples/bibi/index.dart';
+import '../lib/src/pages/examples/view/index.dart';
 
 Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/home'}) async {
   tester.view.devicePixelRatio = 1;

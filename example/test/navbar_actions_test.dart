@@ -1,7 +1,7 @@
 import 'package:example/main.dart';
 import 'package:example/src/layout/desktop/navbar.dart';
 import 'package:example/src/layout/page_scope.dart';
-import 'package:example/src/pages/example_page.dart';
+import 'package:example/src/layout/example_page.dart';
 import 'package:example/src/router/index.dart';
 import 'package:example/src/state/index.dart';
 import 'package:flutter/material.dart';

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:example/src/pages/examples/sliver_takeaway/takeaway.dart';
+import 'package:example/src/pages/examples/sliver_takeaway/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show MatrixUtils, RenderParagraph;
 import 'package:flutter/semantics.dart' show SemanticsAction, SemanticsNode;

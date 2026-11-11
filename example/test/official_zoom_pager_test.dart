@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/src/pages/examples/official_gesture/zoom_pager.dart';
+import '../lib/src/pages/examples/official_gesture/index.dart';
 import '../lib/src/pages/examples/official_gesture/zoom_view.dart';
 
 const _pageWidth = 400.0;

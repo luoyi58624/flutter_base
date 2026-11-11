@@ -43,6 +43,13 @@
 - 桌面默认焦点环使用 onFocusVisible，避免指针点击出现键盘焦点环；移动端保留辅助技术语义与用户显式配置的焦点能力
 - 多子布局与官方机制按职责复用 Flutter Row / Column / Wrap / Stack、RadioGroup、Overlay 等，不重复实现已有能力
 
+## 示例组织
+
+- 一律用「文件夹 + index.dart」组织页面：一个页面一个目录，`index.dart` 是该页入口，拆出的部件、数据和 part 文件放在同一目录；不在目录外散放单文件页面
+- 每个一级标签只有一个入口文件：`example/lib/src/pages/{home,components,examples,settings}/index.dart`，同时声明标签页与本标签的目录（`componentCatalog`、`advancedExamples` 等）；`router/pages.dart` 只引用这四个入口
+- 独立体验示例（交互与视图、第三方或官方方案对照、原型验证、业务场景）放第三个标签「示例」：写在 `pages/examples/<主题>/index.dart`，在 `examples/index.dart` 按分组登记 `ElMenuModel`，key 同时生成 `/examples/<key>` 深度路由；含多个页面的分组目录由其 `index.dart` 声明本组目录
+- 页面壳 `ExamplePage` 在 `layout/example_page.dart`，对照开关等页面操作放 `actions`；原型与示例共用的实现只写在 example 内，对应测试放 `example/test/`
+
 ## 组件接口规范
 
 完整规范见 lib/src/flutter/components/README.md，以下为红线：

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:example/src/pages/examples/sliver_recycler.dart';
+import 'package:example/src/pages/examples/sliver_recycler/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;

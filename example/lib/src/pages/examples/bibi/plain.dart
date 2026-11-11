@@ -1,4 +1,4 @@
-part of 'bibi.dart';
+part of 'index.dart';
 
 const _plainInitialCards = 20;
 const _plainPageCards = 10;

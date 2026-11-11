@@ -10,7 +10,7 @@ import '../lib/main.dart';
 import '../lib/src/router/index.dart';
 import '../lib/src/utils/router.dart';
 import '../lib/src/pages/components/basic/button/index.dart';
-import '../lib/src/pages/components/catalog.dart';
+import '../lib/src/pages/components/index.dart';
 import '../lib/src/pages/components/start/shadow/index.dart';
 import '../lib/src/state/index.dart';
 

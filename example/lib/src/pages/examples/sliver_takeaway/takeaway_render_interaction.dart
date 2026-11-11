@@ -1,4 +1,4 @@
-part of 'takeaway.dart';
+part of 'index.dart';
 
 mixin _TakeawayMenuInteraction on RenderBox {
   _Store? get menuStore;

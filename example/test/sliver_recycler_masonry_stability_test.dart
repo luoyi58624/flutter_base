@@ -1,5 +1,5 @@
-import 'package:example/src/pages/examples/sliver_recycler_grid.dart';
-import 'package:example/src/pages/home.dart';
+import 'package:example/src/pages/examples/sliver_recycler_grid/index.dart';
+import 'package:example/src/pages/home/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:example/src/widgets/example_scrollbar.dart';
 import 'package:flutter/cupertino.dart';

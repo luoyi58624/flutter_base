@@ -1,8 +1,7 @@
-import 'package:example/src/pages/examples.dart';
 import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/pages/examples/scroll_examples/selection.dart';
-import 'package:example/src/pages/examples/sliver_recycler.dart';
-import 'package:example/src/pages/examples/sliver_takeaway/takeaway.dart';
+import 'package:example/src/pages/examples/sliver_recycler/index.dart';
+import 'package:example/src/pages/examples/sliver_takeaway/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';

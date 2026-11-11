@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/src/pages/examples/press_feedback.dart';
+import '../lib/src/pages/examples/press_feedback/index.dart';
 
 void main() {
   testWidgets('按压反馈页切换实现后保留计数和卡片尺寸', (tester) async {

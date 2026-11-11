@@ -52,7 +52,7 @@ class _Navigation extends StatelessWidget {
             child: ElButtonView(
               key: ValueKey('desktop-demos'),
               semanticLabel: '组件示例',
-              onPressed: () => _push(context, HomePage()),
+              onPressed: () => _push(context, DemoListPage()),
               style: ElStyle(
                 height: 44,
                 padding: .symmetric(horizontal: 12),

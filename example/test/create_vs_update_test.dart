@@ -1,4 +1,4 @@
-import 'package:example/src/pages/setting/create_vs_update.dart';
+import 'package:example/src/pages/settings/create_vs_update/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';

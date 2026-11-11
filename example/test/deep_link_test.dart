@@ -7,9 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../lib/main.dart';
 import '../lib/src/pages/components/basic/button/index.dart';
-import '../lib/src/pages/examples.dart';
 import '../lib/src/pages/examples/index.dart';
-import '../lib/src/pages/view/base.dart';
+import '../lib/src/pages/examples/view_base/index.dart';
 import '../lib/src/router/index.dart';
 import '../lib/src/router/pages.dart';
 import '../lib/src/utils/router.dart';

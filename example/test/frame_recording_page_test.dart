@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:example/src/pages/frame_recording.dart';
-import 'package:example/src/pages/settings.dart';
+import 'package:example/src/pages/settings/frame_recording/index.dart';
+import 'package:example/src/pages/settings/index.dart';
 import 'package:example/src/state/index.dart';
 import 'package:example/src/utils/frame_timing_recorder.dart';
 import 'package:example/src/widgets/frame_recording_scope.dart';

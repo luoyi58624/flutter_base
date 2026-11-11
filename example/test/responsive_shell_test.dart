@@ -1,5 +1,5 @@
 import 'package:example/src/mobile/app.dart';
-import 'package:example/src/pages/index.dart';
+import 'package:example/src/pages/examples/demo_list/index.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,7 +75,7 @@ void main() {
 
     await tester.tap(find.byKey(ValueKey('desktop-demos')));
     await tester.pumpAndSettle();
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(DemoListPage), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('tab-消息')));
