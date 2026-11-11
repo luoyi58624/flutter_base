@@ -33,18 +33,23 @@ class EventDispatcher {
   final RenderBox _render;
   ElEvent? _event;
   bool _disposed = false;
+  bool _disposing = false;
+  int _revision = 0;
+  ElEventDetails? _activeCallback;
+  PointerEvent? _lastInput;
   Offset _position = Offset.zero;
   Offset? _focusPosition;
 
   // 连击：计数、上次点击位置、连击窗口与等待窗口结束的延后单击。
   int _tapCount = 0;
   Offset? _tapPosition;
+  Duration _tapTime = Duration.zero;
   Timer? _tapWindow;
   VoidCallback? _deferred;
 
   // 按压反馈：_pressed 为按下的指针，_shown 为当前是否显示反馈。
   int? _pressed;
-  bool _shown = false, _pressTouch = false;
+  bool _shown = false;
   Timer? _pressTimer, _holdTimer;
   final _keys = <PhysicalKeyboardKey, KeyDownEvent>{};
   // 键盘重复限流：本节点每个物理键上次实际回调的时刻，以及当时的消费与停止冒泡结果。
@@ -95,8 +100,16 @@ class EventDispatcher {
   ElEvent? get event => _event;
   set event(ElEvent? value) {
     final old = _event;
-    if (_disposed || identical(old, value)) return;
+    if (_disposed || _disposing || identical(old, value)) return;
+    final revision = ++_revision;
     final reshaped = old != null && value != null && !old.sameShape(value);
+    final routes = _myRoutes;
+    if (old != null && value != null && !_sameDiscrete(old, value)) {
+      _resetTaps();
+      for (final route in routes) {
+        route._longPressTargets.remove(this);
+      }
+    }
     if (value?.disabled == true && old?.disabled != true) {
       terminateActivePointerSequencesIn(_render);
     } else if (value == null) {
@@ -104,7 +117,28 @@ class EventDispatcher {
     } else if (_drag case final drag? when reshaped) {
       // 回调结构变化：新声明接得住的拖拽继续；接不住或指针已在结束时，由旧回调取消。
       final accepted = drag.axis == null ? value.hasPanCallback : value.acceptsDrag(drag.axis!);
-      if (!accepted || drag.route._ended) _endDrag(drag.route.last, null, .external);
+      if (!accepted || drag.route._ended) _endDrag(drag.route.last, null);
+    }
+    if (revision != _revision || _disposed) return;
+    if (reshaped) {
+      for (final route in routes) {
+        if (route._ended) {
+          route.taps.remove(this);
+          route.pressed.remove(this);
+        }
+        if (!_sameHandlers(old, value, ElEventPhase.scalePhases) && route.scales.remove(this)) {
+          _points.remove(route.pointer);
+          _endScale(route.last, null);
+        }
+        if (revision != _revision) return;
+        if (route.down is PointerPanZoomStartEvent &&
+            value.onPointerPanZoomStart == null &&
+            value.onPointerPanZoomUpdate == null &&
+            value.onPointerPanZoomEnd == null) {
+          route.leave(this);
+        }
+        if (revision != _revision) return;
+      }
     }
     _event = value;
     if (reshaped) {
@@ -121,6 +155,23 @@ class EventDispatcher {
       RendererBinding.instance.ensureVisualUpdate();
     }
   }
+
+  static bool _sameHandlers(ElEvent a, ElEvent b, Iterable<ElEventPhase> phases) =>
+      phases.every((phase) => (a.handlerFor(phase) == null) == (b.handlerFor(phase) == null));
+
+  // 拖拽订阅独立更新，不清除点击历史；点击识别条件改变才让旧连击和延迟回调失效。
+  static bool _sameDiscrete(ElEvent a, ElEvent b) =>
+      a.doubleTapInterval == b.doubleTapInterval &&
+      a.deferTap == b.deferTap &&
+      a.longPressDelay == b.longPressDelay &&
+      a.tapCancelDistance == b.tapCancelDistance &&
+      _sameHandlers(
+        a,
+        b,
+        ElEventPhase.values.where(
+          (phase) => phase.index < ElEventPhase.dragDown.index || phase.index > ElEventPhase.dragCancel.index,
+        ),
+      );
 
   /// 当前是否禁用。
   bool get disabled => _event?.disabled == true;
@@ -176,17 +227,26 @@ class EventDispatcher {
       if (route == null || !route.hosts.contains(this)) return;
       route.last = input;
     }
+    _lastInput = original;
     _position = _pointerPosition(input);
     final details = _pointer(phase, input, position: _position);
     if (previous != null) {
+      if (previous.defaultPrevented) details.preventDefault();
       if (previous.focusPreserved) details.preserveFocus();
-      details.remainingDelta = previous.remainingDelta;
-      details.remainingLocalDelta = _localDelta(_position, previous.remainingDelta, input);
+      if (input is! PointerMoveEvent) {
+        details.remainingDelta = previous.remainingDelta;
+        details.remainingLocalDelta = _localDelta(_position, previous.remainingDelta);
+      }
     }
     _raw[original] = details;
     _invoke(details);
     // 原始回调可能已移除或替换事件，仍在路线上才点亮按压反馈。
-    if (input is PointerDownEvent && _live && _routes[input.pointer]?.hosts.contains(this) == true) _press(input);
+    if (input is PointerDownEvent &&
+        _live &&
+        _routes[input.pointer]?.hosts.contains(this) == true &&
+        (onTapChanged != null || _wantsTap(input.buttons))) {
+      _press(input);
+    }
     if (input is PointerSignalEvent &&
         (details.defaultPrevented || details.delta != Offset.zero && details.remainingDelta == Offset.zero)) {
       GestureBinding.instance.pointerSignalResolver.register(
@@ -250,7 +310,10 @@ class EventDispatcher {
 
   /// 主键按下时累计连击：窗口内且距离足够近才递增，远处按下先结算延后的单击。
   void _countTap(PointerDownEvent down) {
-    final close = _tapWindow?.isActive == true && (down.position - _tapPosition!).distance <= kDoubleTapSlop;
+    final close =
+        _tapWindow?.isActive == true &&
+        down.timeStamp - _tapTime <= _e.doubleTapInterval &&
+        (down.position - _tapPosition!).distance <= kDoubleTapSlop;
     _tapWindow?.cancel();
     final pending = _deferred;
     _deferred = null;
@@ -261,7 +324,8 @@ class EventDispatcher {
   /// 确认点击后打开连击窗口，窗口结束时派发延后的单击。
   void _confirmTap(PointerUpEvent up) {
     _tapPosition = up.position;
-    if (_tapCount >= _maxTaps) return _resetTaps();
+    _tapTime = up.timeStamp;
+    if (_maxTaps == 1 || _tapCount >= _maxTaps) return _resetTaps();
     _tapWindow = Timer(_e.doubleTapInterval, () {
       _tapCount = 0;
       final pending = _deferred;
@@ -286,13 +350,13 @@ class EventDispatcher {
   void _press(PointerDownEvent down) {
     if (_pressed != null || down.buttons != kPrimaryButton) return;
     _pressed = down.pointer;
-    _pressTouch = down.kind == PointerDeviceKind.touch;
+    final touch = down.kind == PointerDeviceKind.touch;
     _pressTimer?.cancel();
     _holdTimer?.cancel();
-    final delay = _pressTouch ? _e.delayTouchDown : Duration.zero;
+    final delay = touch ? _e.delayTouchDown : Duration.zero;
     _pressTimer = delay > Duration.zero ? Timer(delay, () => _show(true)) : null;
     if (_pressTimer == null) _show(true);
-    final hold = _pressTouch ? _e.delayTouchUp : Duration.zero;
+    final hold = touch ? _e.delayTouchUp : Duration.zero;
     _holdTimer = hold > Duration.zero ? Timer(hold, () => _pressed == null ? _show(false) : null) : null;
   }
 
@@ -335,7 +399,7 @@ class EventDispatcher {
   }
 
   /// 结束拖拽；velocity 为 null 表示取消。
-  void _endDrag(PointerEvent input, Offset? velocity, [ElEventCancelReason? reason]) {
+  void _endDrag(PointerEvent input, Offset? velocity) {
     final drag = _drag;
     if (drag == null) return;
     _drag = null;
@@ -345,7 +409,7 @@ class EventDispatcher {
       drag.position = input.position;
     }
     final phase = velocity == null ? ElEventPhase.dragCancel : ElEventPhase.dragEnd;
-    final details = _dragDetails(phase, input, drag: drag, velocity: velocity ?? Offset.zero, reason: reason);
+    final details = _dragDetails(phase, input, drag: drag, velocity: velocity ?? Offset.zero);
     _invoke(details, drag: drag);
   }
 
@@ -356,7 +420,6 @@ class EventDispatcher {
     Offset delta = Offset.zero,
     Offset? remaining,
     Offset velocity = Offset.zero,
-    ElEventCancelReason? reason,
   }) {
     drag ??= _drag!;
     final position = drag.position;
@@ -367,11 +430,11 @@ class EventDispatcher {
       phase: phase,
       originalEvent: input,
       globalPosition: position,
-      localPosition: _local(position, input),
+      localPosition: _local(position),
       delta: own,
-      localDelta: _localDelta(position, own, input),
+      localDelta: _localDelta(position, own),
       remainingDelta: rest,
-      remainingLocalDelta: _localDelta(position, rest, input),
+      remainingLocalDelta: _localDelta(position, rest),
       dragOffset: drag.offset,
       dragAxis: drag.axis,
       dragDirection: drag.direction,
@@ -379,8 +442,7 @@ class EventDispatcher {
       primaryVelocity: drag.axis == null ? null : (drag.axis == Axis.horizontal ? v.dx : v.dy),
       buttons: input.buttons,
       pointerCount: activePointerCount,
-      cancelReason: reason,
-    )..resolveLocalDelta((value) => _localDelta(position, value, input));
+    )..resolveLocalDelta((value) => _localDelta(position, value));
   }
 
   /// 触点的焦点、平均半径与前两指连线角度。
@@ -403,27 +465,42 @@ class EventDispatcher {
 
   /// 开始缩放：认领参与的指针并取消其上的点击；双指捏合或停止传播时独占这些指针。
   void _startScale(PointerEvent input) {
+    final declaration = _e;
+    _endDrag(input, null);
+    if (!_canStartScale(declaration)) return;
+    _release();
+    if (!_canStartScale(declaration)) return;
+    final routes = _routes.values.where((route) => route.scales.contains(this)).toList();
+    for (final route in routes) {
+      if (!route.scales.contains(this)) continue;
+      route.claim();
+      if (!_canStartScale(declaration)) return;
+      if (route.scales.contains(this)) route._cancelTaps(.selfGestureAccepted, owner: this);
+      if (!_canStartScale(declaration)) return;
+    }
     _scaling = true;
     _scale = 1;
     _rotation = 0;
     _logScale = null;
     _scaleTime = input.timeStamp;
     _rebase();
-    _endDrag(input, null);
-    _release();
-    final routes = _routes.values.where((route) => route.scales.contains(this)).toList();
-    for (final route in routes) {
-      route
-        ..claim()
-        .._cancelTaps(.selfGestureAccepted);
-    }
     final details = _scaleDetails(.scaleStart, input);
     _invoke(details);
+    if (!_live || !_scaling || _points.isEmpty) return;
     if (details.propagationStopped || _points.length > 1) {
       for (final route in routes) {
         route.exclusive(this);
       }
     }
+  }
+
+  bool _canStartScale(ElEvent declaration) {
+    if (_live && declaration.sameShape(_e) && _points.isNotEmpty) return true;
+    for (final route in _myRoutes) {
+      route.scales.remove(this);
+    }
+    _points.clear();
+    return false;
   }
 
   /// 触点移动：未开始时跨度或焦点越过阈值才起步；silent 时只更新状态。返回是否停止传播。
@@ -432,10 +509,14 @@ class EventDispatcher {
     if (!_scaling) {
       final kind = input.kind;
       final moved = (focal - _focal0).distance;
+      // 纯旋转不会改变焦点或跨度，以触点沿圆周的位移判断起手。
+      final turned = ((angle - _angle0 + math.pi) % (2 * math.pi) - math.pi).abs() * span;
       if (input is PointerPanZoomUpdateEvent ||
           (_points.length == 1
-              ? !_e.hasDragCallback && moved > slop
-              : (span - _span0).abs() > computeScaleSlop(kind) || moved > computePanSlop(kind, null))) {
+              ? _drag == null && moved > (_e.hasDragCallback ? computePanSlop(kind, null) : slop)
+              : (span - _span0).abs() > computeScaleSlop(kind) ||
+                    turned > computeScaleSlop(kind) ||
+                    moved > computePanSlop(kind, null))) {
         _startScale(input);
       }
       return false;
@@ -458,14 +539,14 @@ class EventDispatcher {
     if (silent) return true;
     final details = _scaleDetails(.scaleUpdate, input, delta: _focal - last);
     _invoke(details);
-    if (_rotation != rotation && !details.propagationStopped) {
+    if (_scaling && _rotation != rotation && !details.propagationStopped) {
       _invoke(_scaleDetails(.rotationUpdate, input, delta: _focal - last));
     }
     return details.propagationStopped;
   }
 
   /// 结束缩放；velocity 为 null 表示取消。最近 80ms 内的双指段提供对数缩放速度与其焦点。
-  void _endScale(PointerEvent input, Offset? velocity, [ElEventCancelReason? reason]) {
+  void _endScale(PointerEvent input, Offset? velocity) {
     if (!_scaling) return;
     _scaling = false;
     final log = _logScale;
@@ -473,9 +554,7 @@ class EventDispatcher {
     final fresh = velocity != null && log != null && input.timeStamp - log.$1 <= const Duration(milliseconds: 80);
     if (fresh) _focal = log.$3;
     final phase = velocity == null ? ElEventPhase.scaleCancel : ElEventPhase.scaleEnd;
-    _invoke(
-      _scaleDetails(phase, input, velocity: velocity ?? Offset.zero, logScale: fresh ? log.$2 : 0, reason: reason),
-    );
+    _invoke(_scaleDetails(phase, input, velocity: velocity ?? Offset.zero, logScale: fresh ? log.$2 : 0));
   }
 
   ElEventDetails _scaleDetails(
@@ -484,25 +563,26 @@ class EventDispatcher {
     Offset delta = Offset.zero,
     Offset velocity = Offset.zero,
     double logScale = 0,
-    ElEventCancelReason? reason,
   }) => ElEventDetails(
     phase: phase,
     originalEvent: input,
     globalPosition: _focal,
-    localPosition: _local(_focal, input),
+    localPosition: _local(_focal),
     delta: delta,
-    localDelta: _localDelta(_focal, delta, input),
+    localDelta: _localDelta(_focal, delta),
     pointerCount: _points.length,
     scale: _scale,
     rotation: _rotation,
     buttons: input.buttons,
     velocity: Velocity(pixelsPerSecond: velocity),
     logScaleVelocity: logScale,
-    cancelReason: reason,
   );
 
-  static Offset _pointerPosition(PointerEvent input) =>
-      input is PointerPanZoomUpdateEvent ? input.position + input.pan : input.position;
+  static Offset _pointerPosition(PointerEvent input) => switch (input) {
+    PointerPanZoomUpdateEvent() => input.position + input.pan,
+    PointerPanZoomEndEvent() => _routes[input.pointer]?._lastPosition ?? input.position,
+    _ => input.position,
+  };
 
   ElEventDetails _pointer(
     ElEventPhase phase,
@@ -522,26 +602,25 @@ class EventDispatcher {
       phase: phase,
       originalEvent: input,
       globalPosition: global,
-      localPosition: _local(global, input),
+      localPosition: _local(global),
       delta: delta,
-      localDelta: _localDelta(global, delta, input),
+      localDelta: _localDelta(global, delta),
       buttons: buttons ?? input.buttons,
       tapCount: count,
       pointerCount: activePointerCount,
-      cancelReason: reason,
+      cancelReason: phase == .tapCancel || phase == .pointerCancel ? reason : null,
       scale: input is PointerPanZoomUpdateEvent ? input.scale : 1,
       rotation: input is PointerPanZoomUpdateEvent ? input.rotation : 0,
-    )..resolveLocalDelta((value) => _localDelta(global, value, input));
+    )..resolveLocalDelta((value) => _localDelta(global, value));
   }
 
-  Offset _local(Offset position, [PointerEvent? input, ElEventDetails? details]) {
+  Offset _local(Offset position, [ElEventDetails? details]) {
     if (!_render.attached) return details?.localPosition ?? position;
-    return localPositionResolver?.call(_render, position, details) ??
-        (input == null ? _render.globalToLocal(position) : PointerEvent.transformPosition(input.transform, position));
+    return localPositionResolver?.call(_render, position, details) ?? _render.globalToLocal(position);
   }
 
-  Offset _localDelta(Offset end, Offset delta, PointerEvent input) =>
-      delta == Offset.zero ? Offset.zero : _local(end, input) - _local(end - delta, input);
+  Offset _localDelta(Offset end, Offset delta) =>
+      delta == Offset.zero ? Offset.zero : _local(end) - _local(end - delta);
 
   void _invoke(ElEventDetails details, {_Drag? drag}) {
     if (_disposed) return;
@@ -549,10 +628,14 @@ class EventDispatcher {
     final axis = ElEventPhase.dragPhases.contains(phase) ? (drag ?? _drag)?.axis : null;
     final handler = _handler(phase, axis);
     if (handler == null) return;
+    final previous = _activeCallback;
+    _activeCallback = details;
     try {
       handler(details);
     } catch (error, stack) {
       FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack, library: 'ElEvent'));
+    } finally {
+      _activeCallback = previous;
     }
   }
 
@@ -587,7 +670,7 @@ class EventDispatcher {
       final target = _hosts[render];
       if (target == null || !render.attached || !target._live) continue;
       details.keyboardTapMatched = false;
-      details.localPosition = target._local(details.globalPosition, null, details);
+      details.localPosition = target._local(details.globalPosition, details);
       target._deliver(details);
     }
   }
@@ -672,20 +755,23 @@ class EventDispatcher {
 
   /// 结束宿主跟踪的输入和反馈。
   void cancelAllPendingAtLastPosition() {
-    for (final route in _myRoutes) {
-      route.leave(this);
-    }
+    final routes = _myRoutes;
+    final revision = _revision;
     _resetTaps();
     _release();
     _holdTimer?.cancel();
     _show(false);
     _releaseKeys();
     DragPointerLock.release(_render);
+    for (final route in routes) {
+      route.leave(this, notify: revision == _revision);
+    }
   }
 
   /// 释放宿主注册。
   void dispose() {
-    if (_disposed) return;
+    if (_disposed || _disposing) return;
+    _disposing = true;
     cancelAllPendingAtLastPosition();
     _disposed = true;
     if (identical(_hosts[_render], this)) _hosts[_render] = null;
@@ -717,14 +803,17 @@ final class _Route extends GestureArenaMember {
   final PointerEvent down;
   PointerEvent last;
   Offset _lastPosition;
-  late final tracker = VelocityTracker.withKind(down.kind);
+  late final _velocitySamples = <(Duration, Offset)>[];
   final hosts = <EventDispatcher>[];
   // pressed 收到 tapDown、松手时收到 tapUp；taps 仍有资格触发 tap；_outside 暂时移出点击边界。
   var pressed = <EventDispatcher>[];
   var taps = <EventDispatcher>[];
   var drags = <EventDispatcher>[];
   var scales = <EventDispatcher>[];
+  final _deferredDrags = <EventDispatcher, (PointerEvent, Axis?)>{};
+  final _deferMoves = <EventDispatcher, PointerEvent>{};
   final _outside = <EventDispatcher>{};
+  final _longPressTargets = <EventDispatcher>{};
   GestureArenaEntry? _entry;
   bool _accepted = false, _rejected = false, _closed = false, _begun = false;
   PointerUpEvent? _pendingUp;
@@ -735,7 +824,11 @@ final class _Route extends GestureArenaMember {
   Offset get position => EventDispatcher._pointerPosition(last);
   Offset get moved => position - EventDispatcher._pointerPosition(down);
   bool get _primary => down is PointerDownEvent && down.buttons == kPrimaryButton;
-  bool get _ended => last is PointerUpEvent || last is PointerCancelEvent || last is PointerPanZoomEndEvent;
+  bool get _ended =>
+      last is PointerUpEvent ||
+      last is PointerCancelEvent ||
+      last is PointerRemovedEvent ||
+      last is PointerPanZoomEndEvent;
   Iterable<EventDispatcher> get _dragging => hosts.where((host) => host._drag?.route == this);
   (ElEventPhase, ElEventPhase, ElEventPhase) get _phases => EventDispatcher._tapPhases(down.buttons)!;
 
@@ -768,6 +861,7 @@ final class _Route extends GestureArenaMember {
         _end(event);
         close();
       case PointerCancelEvent() || PointerRemovedEvent():
+        _handoffDrags();
         cancel(.pointerCanceled);
         close();
     }
@@ -784,7 +878,9 @@ final class _Route extends GestureArenaMember {
     // 拖拽中落下新手指：与 Flutter 一致，由最新的手指继续驱动。
     for (final host in drags.where((host) => host._drag != null && !host._e.hasScaleCallback).toList()) {
       drags.remove(host);
-      host._drag!.route = this;
+      host._drag!
+        ..route = this
+        ..position = position;
       claim();
     }
     if (input is PointerDownEvent && EventDispatcher._tapPhases(input.buttons) != null) {
@@ -803,14 +899,21 @@ final class _Route extends GestureArenaMember {
           final hosts = taps.where((host) => host._tapCount == count).toList();
           _bubble(hosts, phase, (host) => host._pointer(phase, input, count: count));
         }
-        final owner = taps.where((host) => host._e.onLongPress != null).firstOrNull;
-        if (owner != null) _longPress = Timer(owner._e.longPressDelay, _fireLongPress);
+        _longPressTargets.addAll(taps.where((host) => host._e.onLongPress != null));
+        final owner = _longPressTargets.firstOrNull;
+        if (owner != null) {
+          owner._e.longPressDelay == Duration.zero
+              ? _fireLongPress()
+              : _longPress = Timer(owner._e.longPressDelay, _fireLongPress);
+        }
       }
     }
     scales = transform.where((host) => host._e.hasScaleCallback).toList();
-    for (final host in scales) {
+    for (final host in scales.toList()) {
+      if (!scales.contains(host)) continue;
       host._points[pointer] = position;
       host._rebase();
+      if (host._drag != null && host._points.length > 1) host._startScale(input);
       if (host._scaling) claim();
     }
     _track(down);
@@ -819,10 +922,15 @@ final class _Route extends GestureArenaMember {
 
   void _move(PointerEvent event) {
     // 鼠标按键组合变化时结束本次点击与拖拽。
-    if (down is PointerDownEvent && event.buttons != down.buttons) return cancel(.tapRejected);
+    if (down is PointerDownEvent && event.buttons != down.buttons) {
+      final releases = List.of(pressed);
+      cancel(.tapRejected);
+      pressed = releases;
+      return;
+    }
     final slop = computeHitSlop(down.kind, null);
     final distance = moved.distance;
-    if (distance > slop) {
+    if (distance > kTouchSlop) {
       _longPress?.cancel();
       // 只声明长按的候选随长按一起退出。
       taps.removeWhere((host) => host._longPressOnly);
@@ -849,14 +957,19 @@ final class _Route extends GestureArenaMember {
     // 已开始的拖拽先收到本次位移，内层消费后余量传给外层。
     final delta = position - _lastPosition;
     ElEventDetails? previous;
+    for (final host in _deferredDrags.keys.toList()) {
+      final pending = _deferredDrags.remove(host);
+      if (pending != null && host._live && hosts.contains(host)) host._startDrag(this, pending.$2, event);
+    }
     for (final host in _dragging.toList()) {
+      if (host._drag?.route != this || !identical(host._lastInput, event.original ?? event)) continue;
       previous = host._updateDrag(event, delta, previous);
       if (previous.propagationStopped) break;
     }
 
     var stopped = false;
     for (final host in scales.toList()) {
-      if (!host._live) continue;
+      if (!scales.contains(host) || !host._live) continue;
       host._points[pointer] = position;
       stopped = host._moveScale(event, stopped, slop) || stopped;
     }
@@ -869,57 +982,65 @@ final class _Route extends GestureArenaMember {
   /// 同轴其余候选随即开始；同时声明两轴时横向需越过更长的 pan slop，避免误触横滚。
   void _startDrags(PointerEvent event, double distance, double slop) {
     final dominant = moved.dx.abs() >= moved.dy.abs() ? Axis.horizontal : Axis.vertical;
-    final locked = _axis;
-    for (final host in drags.toList()) {
+    drags.removeWhere((host) => !host._live || host._scaling || host._drag != null);
+    Axis? axisFor(ElEvent e) => e.hasPanCallback ? null : _axis ?? dominant;
+    bool ready(ElEvent e) {
+      final axis = axisFor(e);
+      final both = e.acceptsDrag(.horizontal) && e.acceptsDrag(.vertical);
+      final pan = axis == null || both && axis == .horizontal;
+      final start = e.dragStartDistance ?? (pan ? computePanSlop(down.kind, null) : slop);
+      return (axis == null || e.acceptsDrag(axis)) && (distance > start || axis != null && _axis != null);
+    }
+
+    final candidates = drags.toList();
+    final proposal = candidates.indexWhere((host) => ready(host._e));
+    if (proposal < 0) return;
+    // 外层先达到阈值时，先让兼容的内层响应，内层停止传播后外层不能抢先起拖。
+    for (final (index, host) in candidates.indexed) {
       if (!drags.contains(host)) continue;
       if (!host._live || host._scaling || host._drag != null) {
         drags.remove(host);
         continue;
       }
       final e = host._e;
-      final axis = e.hasPanCallback ? null : locked ?? dominant;
+      final axis = axisFor(e);
       if (axis != null && !e.acceptsDrag(axis)) continue;
-      final both = e.acceptsDrag(.horizontal) && e.acceptsDrag(.vertical);
-      final pan = axis == null || both && axis == .horizontal;
-      final start = e.dragStartDistance ?? (pan ? computePanSlop(down.kind, null) : slop);
-      if (distance <= start && (axis == null || locked == null)) continue;
+      if (index > proposal && !ready(e)) continue;
       drags.remove(host);
       _axis ??= axis;
       _longPress?.cancel();
       claim();
+      if (identical(_deferMoves.remove(host), event.original ?? event)) {
+        _deferredDrags[host] = (event, axis);
+        taps.remove(host);
+        if (host._pressed == pointer) host._release();
+        continue;
+      }
       host._startDrag(this, axis, event);
     }
-    if (locked == null && _axis != null) _startDrags(event, distance, slop);
   }
 
   void _end(PointerEvent event) {
     _longPress?.cancel();
+    _deferredDrags.clear();
     final velocity = _velocity(sparse: true);
+    _handoffDrags();
     for (final host in _dragging.toList()) {
-      // 其他手指仍按在该节点上时由最新的一根接管拖拽，不结束。
-      final next = EventDispatcher._routes.values
-          .where((route) => route != this && !route._ended && route.hosts.contains(host))
-          .lastOrNull;
-      if (next != null && host._canTransform(next.down) && !host._e.hasScaleCallback) {
-        host._drag!.route = next;
-        next.drags.remove(host);
-        next.claim();
-      } else {
-        host._endDrag(event, velocity);
-      }
+      host._endDrag(event, velocity);
     }
     for (final host in hosts.toList()) {
       // 点击候选与纯样式宿主原地松手时保留触摸反馈，被取消的点击已在取消时结束反馈。
       final tapped =
-          event is PointerUpEvent && !_outside.contains(host) && (taps.contains(host) || !host._wantsGesture);
+          event is PointerUpEvent && !_outside.contains(host) && (pressed.contains(host) || !host._wantsGesture);
       if (host._pressed == pointer) host._release(tapped: tapped);
     }
+    final flung = event is PointerUpEvent && _flung(event, velocity);
     if (event is PointerUpEvent && pressed.isNotEmpty) {
       // tapUp 对应真实松手；tap 还要求点击资格仍在。
       final stop = _bubble(pressed, _phases.$2, (host) => host._pointer(_phases.$2, event, buttons: down.buttons));
       if (stop >= 0) taps.removeWhere((host) => pressed.indexOf(host) > stop);
       taps.removeWhere(_outside.contains);
-      if (!_flung(event, velocity) && taps.isNotEmpty) {
+      if (!flung && taps.isNotEmpty) {
         _entry == null || _accepted ? _fireTap(event) : _pendingUp = event;
       }
     }
@@ -930,19 +1051,58 @@ final class _Route extends GestureArenaMember {
     scales = [];
   }
 
+  /// 驱动指针离开时沿用已有拖拽，将坐标基线移到最近仍接受输入的触点。
+  void _handoffDrags() {
+    for (final host in _dragging.toList()) {
+      final next = EventDispatcher._routes.values
+          .where(
+            (route) =>
+                route != this &&
+                !route._ended &&
+                !route._closed &&
+                !route._rejected &&
+                route._accepted &&
+                route.hosts.contains(host) &&
+                host._canTransform(route.down),
+          )
+          .lastOrNull;
+      if (next != null && !host._e.hasScaleCallback) {
+        host._drag!
+          ..route = next
+          ..position = next.position;
+        next.drags.remove(host);
+      }
+    }
+  }
+
   /// 只有拖拽与缩放需要速度，纯点击路线不采样。
-  bool get _tracking => drags.isNotEmpty || scales.isNotEmpty || _dragging.isNotEmpty;
+  bool get _tracking => drags.isNotEmpty || _deferredDrags.isNotEmpty || scales.isNotEmpty || _dragging.isNotEmpty;
 
   void _track(PointerEvent event) {
-    if (_tracking) tracker.addPosition(event.timeStamp, position);
+    if (!_tracking || event.synthesized) return;
+    _velocitySamples.add((event.timeStamp, EventDispatcher._pointerPosition(event)));
+    if (_velocitySamples.length > 20) _velocitySamples.removeAt(0);
   }
 
   /// 采样不足的稀疏拖拽按按下到松手的两倍均速估计末速度，避免短促轻扫丢失。
   Offset _velocity({bool sparse = false}) {
     if (!_tracking) return Offset.zero;
+    final samples = _velocitySamples;
+    if (samples.length < 2 || last.timeStamp - samples.last.$1 > const Duration(milliseconds: 80)) {
+      return Offset.zero;
+    }
+    // 释放时拟合真实输入，避免合成位置和 UI 线程排队时间污染速度。
+    final tracker = VelocityTracker.withKind(down.kind);
+    for (final (time, position) in samples) {
+      tracker.addPosition(time, position);
+    }
     var speed = tracker.getVelocityEstimate()?.pixelsPerSecond ?? Offset.zero;
     final elapsed = (last.timeStamp - down.timeStamp).inMicroseconds;
-    if (sparse && speed == Offset.zero && elapsed > 0) speed = moved * (2 * Duration.microsecondsPerSecond / elapsed);
+    if (sparse && speed == Offset.zero && elapsed > 0) {
+      var end = samples.last.$2;
+      if (last is PointerUpEvent && (position - end).distance <= kTouchSlop * 4) end = position;
+      speed = (end - EventDispatcher._pointerPosition(down)) * (2 * Duration.microsecondsPerSecond / elapsed);
+    }
     if (speed.distance < kMinFlingVelocity) return Offset.zero;
     return Velocity(pixelsPerSecond: speed).clampMagnitude(0, kMaxFlingVelocity).pixelsPerSecond;
   }
@@ -991,13 +1151,15 @@ final class _Route extends GestureArenaMember {
     }
     for (final (count, phase) in [(2, ElEventPhase.doubleTap), (3, ElEventPhase.tripleTap)]) {
       final hosts = counts.keys.where((host) => counts[host] == count).toList();
-      _bubble(hosts, phase, (host) => host._pointer(phase, up, buttons: down.buttons, count: count));
+      _bubble(hosts, phase, (host) => host._pointer(phase, down, buttons: down.buttons, count: count));
     }
   }
 
   void _fireLongPress() {
     _longPress = null;
-    final owners = taps.where((host) => host._live && host._e.onLongPress != null && !_outside.contains(host)).toList();
+    final owners = taps
+        .where((host) => host._live && _longPressTargets.contains(host) && !_outside.contains(host))
+        .toList();
     if (owners.isEmpty || _rejected) return;
     final details = <ElEventDetails>[];
     final stop = _bubble(owners, .longPress, (host) => (details..add(host._pointer(.longPress, down))).last);
@@ -1015,23 +1177,25 @@ final class _Route extends GestureArenaMember {
     if (_primary && !_outside.contains(host)) host._invoke(host._pointer(.tapCancel, last, reason: reason));
   }
 
-  void _cancelTaps(ElEventCancelReason reason) {
+  void _cancelTaps(ElEventCancelReason reason, {EventDispatcher? owner}) {
     _longPress?.cancel();
     for (final host in taps.toList()) {
-      _cancelTap(host, reason);
+      _cancelTap(host, owner != null && host != owner ? .otherGestureAccepted : reason);
     }
   }
 
   /// 节点在起拖、缩放或长按时停止了传播：独占本路线，其余节点退出，自身点击取消但保留 tapUp。
   void exclusive(EventDispatcher owner) {
     claim();
-    _cancelTaps(.selfGestureAccepted);
-    drags.removeWhere((host) => host != owner);
-    for (final host in hosts.where((host) => host != owner).toList()) {
+    _cancelTaps(.selfGestureAccepted, owner: owner);
+    final outside = hosts.skip(hosts.indexOf(owner) + 1).toList();
+    drags.removeWhere(outside.contains);
+    for (final host in outside) {
+      _deferredDrags.remove(host);
       pressed.remove(host);
-      if (host._drag?.route == this) host._endDrag(last, null, .otherGestureAccepted);
+      if (host._drag?.route == this) host._endDrag(last, null);
       if (scales.remove(host) && host._points.remove(pointer) != null) {
-        host._endScale(last, null, .otherGestureAccepted);
+        host._endScale(last, null);
       }
     }
   }
@@ -1039,12 +1203,14 @@ final class _Route extends GestureArenaMember {
   /// 取消本路线的全部派生手势，宿主仍接收原始事件。
   void cancel(ElEventCancelReason reason) {
     _pendingUp = null;
+    _deferredDrags.clear();
+    _deferMoves.clear();
     drags.clear();
     for (final host in hosts.toList()) {
-      if (host._drag?.route == this) host._endDrag(last, null, reason);
+      if (host._drag?.route == this) host._endDrag(last, null);
     }
     for (final host in scales.toList()) {
-      if (host._points.remove(pointer) != null) host._endScale(last, null, reason);
+      if (host._points.remove(pointer) != null) host._endScale(last, null);
     }
     scales = [];
     _cancelTaps(reason);
@@ -1055,12 +1221,31 @@ final class _Route extends GestureArenaMember {
   }
 
   /// 宿主不再参与本路线的派生手势，仍接收原始事件。
-  void drop(EventDispatcher host) {
-    _cancelTap(host, .external);
+  void drop(EventDispatcher host, {bool notify = true}) {
+    final revision = host._revision;
+    if (notify) {
+      _cancelTap(host, .external);
+    } else {
+      taps.remove(host);
+    }
     pressed.remove(host);
     drags.remove(host);
-    if (host._drag?.route == this) host._endDrag(last, null, .external);
-    if (scales.remove(host) && host._points.remove(pointer) != null) host._endScale(last, null, .external);
+    _deferredDrags.remove(host);
+    _deferMoves.remove(host);
+    if (host._drag?.route == this) {
+      if (notify && revision == host._revision) {
+        host._endDrag(last, null);
+      } else {
+        host._drag = null;
+      }
+    }
+    if (scales.remove(host) && host._points.remove(pointer) != null) {
+      if (notify && revision == host._revision) {
+        host._endScale(last, null);
+      } else {
+        host._scaling = false;
+      }
+    }
     if (host._pressed == pointer) host._release();
   }
 
@@ -1080,7 +1265,13 @@ final class _Route extends GestureArenaMember {
     }
     List<EventDispatcher> sync(List<EventDispatcher> list, bool wanted) =>
         hosts.where((item) => item == host ? wanted : list.contains(item)).toList();
+    _deferredDrags.remove(host);
+    _deferMoves.remove(host);
     drags = sync(drags, host._drag == null && host._canTransform(input) && host._e.hasDragCallback);
+    if (host._activeCallback case final callback? when callback.phase == ElEventPhase.pointerMove) {
+      final move = callback.originalEvent! as PointerEvent;
+      _deferMoves[host] = move.original ?? move;
+    }
     if (_rejected || EventDispatcher._tapPhases(input.buttons) == null) return;
     final tap = host._wantsTap(input.buttons);
     if (!tap) taps.remove(host);
@@ -1091,16 +1282,17 @@ final class _Route extends GestureArenaMember {
   }
 
   /// 宿主中途退出（卸载、禁用）。
-  void leave(EventDispatcher host) {
-    drop(host);
-    if (!_ended && down is PointerPanZoomStartEvent) {
+  void leave(EventDispatcher host, {bool notify = true}) {
+    if (!hosts.remove(host)) return;
+    final revision = host._revision;
+    if (notify && !_ended && down is PointerPanZoomStartEvent) {
       final end = PointerPanZoomEndEvent(pointer: pointer, device: down.device, position: position);
       host._invoke(host._pointer(.pointerPanZoomEnd, end));
-    } else if (!_ended) {
+    } else if (notify && !_ended) {
       final cancel = PointerCancelEvent(pointer: pointer, kind: down.kind, device: down.device, position: position);
       host._invoke(host._pointer(.pointerCancel, cancel, reason: .external));
     }
-    hosts.remove(host);
+    drop(host, notify: notify && revision == host._revision);
     if (hosts.isEmpty) {
       _resolve(.rejected);
       close();
@@ -1139,11 +1331,15 @@ final class _Route extends GestureArenaMember {
 
   /// 由内向外派发，返回停止传播的宿主下标，未停止返回 -1。
   static int _bubble(List<EventDispatcher> hosts, ElEventPhase phase, ElEventDetails Function(EventDispatcher) make) {
+    ElEventDetails? previous;
     for (var i = 0; i < hosts.length; i++) {
       final host = hosts[i];
       if (!host._live || host._e.handlerFor(phase) == null) continue;
       final details = make(host);
+      if (previous?.defaultPrevented == true) details.preventDefault();
+      if (previous?.focusPreserved == true) details.preserveFocus();
       host._invoke(details);
+      previous = details;
       if (details.propagationStopped) return i;
     }
     return -1;

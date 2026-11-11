@@ -143,18 +143,25 @@ class ElEventDetails({
   /// 焦点变化来源。
   final ElFocusReason? focusReason,
 
+  /// 取消原因，仅 tapCancel 与 pointerCancel 可传入。
   ElEventCancelReason? cancelReason,
 }) {
+  this
+    : assert(
+        phase == ElEventPhase.tapCancel || phase == ElEventPhase.pointerCancel || cancelReason == null,
+        'cancelReason 只能用于 ElEventPhase.tapCancel 或 ElEventPhase.pointerCancel。',
+      );
+
   /// 尚未消费的全局位移。
   Offset remainingDelta = remainingDelta ?? delta;
 
   /// 尚未消费的局部位移。
   Offset remainingLocalDelta = remainingLocalDelta ?? localDelta;
 
-  /// 当前阶段的取消原因。
+  /// 业务取消原因，仅 tapCancel 与 pointerCancel 有值。
   final ElEventCancelReason? cancelReason = switch (phase) {
     .pointerCancel => cancelReason ?? .pointerCanceled,
-    .tapCancel || .dragCancel || .scaleCancel => cancelReason ?? .external,
+    .tapCancel => cancelReason ?? .external,
     _ => null,
   };
 

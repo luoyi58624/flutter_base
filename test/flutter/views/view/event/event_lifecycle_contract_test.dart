@@ -744,13 +744,9 @@ void main() {
       final dispatcher = host.leafDispatcher;
       var longPresses = 0;
       dispatcher.event = ElEvent(
-        
         onScaleStart: (_) {},
         onScaleCancel: (_) {
-          dispatcher.event = ElEvent(
-            longPressDelay: Duration(milliseconds: 20),
-            onLongPress: (_) => longPresses++,
-          );
+          dispatcher.event = ElEvent(longPressDelay: Duration(milliseconds: 20), onLongPress: (_) => longPresses++);
         },
       );
       DispatcherScaleGesture.start(
@@ -1030,7 +1026,7 @@ void main() {
     });
   });
 
-  group('Recognizers on demand', () {
+  group('Event allocation and nested gestures', () {
     setUp(BenchmarkProbe.reset);
 
     Widget column(List<Widget> children) => Directionality(
@@ -1054,7 +1050,6 @@ void main() {
       );
 
       expect(BenchmarkProbe.eventDispatcherInstantiateCount, 0);
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
       final box = tester.renderObject<ElRenderView>(find.byKey(ValueKey(0)));
       expect(EventDispatcher.of(box), isNull);
 
@@ -1068,7 +1063,7 @@ void main() {
       expect(tester.hitTestOnBinding(Offset(50, 2)).path.any((entry) => identical(entry.target, box)), isTrue);
     });
 
-    testWidgets('点击节点不创建变换识别器，按下和重建也不补建', (tester) async {
+    testWidgets('点击节点重建复用分发器并保留点击响应', (tester) async {
       var taps = 0;
       Widget build() => column([
         for (var index = 0; index < 100; index++)
@@ -1081,29 +1076,17 @@ void main() {
 
       await tester.pumpWidget(build());
       expect(BenchmarkProbe.eventDispatcherInstantiateCount, 100);
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
 
       await tester.tapAt(Offset(50, 2));
       await tester.pump();
       await tester.pumpWidget(build());
       expect(taps, 1);
       expect(BenchmarkProbe.eventDispatcherInstantiateCount, 100);
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
       // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
       await tester.pump(Duration(milliseconds: 200));
     });
 
-    testWidgets('声明拖拽时创建变换识别器，祖先随变换链补建', (tester) async {
-      await pumpEventView(
-        tester,
-        ElView(
-          style: eventTestDefaultStyle,
-          event: ElEvent(onDragStart: (_) {}),
-        ),
-      );
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 1);
-
-      BenchmarkProbe.reset();
+    testWidgets('仅监听点击的祖先不阻止后代开始拖拽', (tester) async {
       final phases = <String>[];
       await pumpEventView(
         tester,
@@ -1117,8 +1100,6 @@ void main() {
           ),
         ),
       );
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 2, reason: '后代持有变换识别器时祖先一并创建，竞技场分组和拖拽合作沿该链判断');
-
       await tester.dragFrom(Offset(50, 50), Offset(0, 40));
       await tester.pump();
       expect(phases, contains('inner.dragStart'));

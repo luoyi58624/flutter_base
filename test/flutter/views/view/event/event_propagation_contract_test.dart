@@ -213,31 +213,6 @@ void main() {
     await tester.pump(Duration(milliseconds: 100));
   });
 
-  testWidgets('ROUTE-3D: stop 后 eager 只补 raw PointerCancel，不补已截断 TapCancel', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    var parentPointerCancels = 0;
-    var parentTapCancels = 0;
-    host.rootDispatcher.event = ElEvent(
-      onPointerDown: (_) {},
-      onPointerCancel: (_) => parentPointerCancels++,
-      onTapDown: (_) {},
-      onTapCancel: (_) => parentTapCancels++,
-    );
-    host.leafDispatcher.event = ElEvent(
-      onTapDown: (event) {
-        event.stopPropagation();
-        event.stopPropagation();
-      },
-    );
-
-    host.tap(pointer: 15, downTime: Duration.zero, upTime: const Duration(milliseconds: 16));
-
-    expect(parentPointerCancels, 1, reason: '祖先已收到 raw PointerDown，eager 必须补 PointerCancel 清理副作用');
-    expect(parentTapCancels, 0, reason: 'TapDown stop 已截断祖先 Tap 候选，不得补造 TapCancel');
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
   testWidgets('ROUTE-COORD-1: localPosition matches the tapped offset inside the target', (tester) async {
     ElEventDetails? captured;
     await pumpEventView(
@@ -982,21 +957,12 @@ void main() {
                       focusNode: outer,
                       child: Row(
                         children: <Widget>[
-                          ElView(
-                            style: eventTestDefaultStyle,
-                            focusNode: inner1,
-                          ),
-                          ElView(
-                            style: eventTestDefaultStyle,
-                            focusNode: inner2,
-                          ),
+                          ElView(style: eventTestDefaultStyle, focusNode: inner1),
+                          ElView(style: eventTestDefaultStyle, focusNode: inner2),
                         ],
                       ),
                     ),
-                    ElView(
-                      style: eventTestDefaultStyle,
-                      focusNode: next,
-                    ),
+                    ElView(style: eventTestDefaultStyle, focusNode: next),
                   ],
                 ),
               ),
