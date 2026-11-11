@@ -129,7 +129,10 @@ void main() {
       textScaler: TextScaler.linear(2),
       locale: Locale('ja'),
       contentOrigin: Offset(20, 30),
-      boldText: true,
+      accessibility: (bold: true, lineHeight: null, letterSpacing: null, wordSpacing: null),
+      strutStyle: null,
+      textWidthBasis: TextWidthBasis.parent,
+      textHeightBehavior: null,
     ));
     expect(engine.painterForTest.text!.toPlainText(), 'second');
     expect(engine.painterForTest.textScaler.scale(10), 20);
@@ -266,7 +269,10 @@ void main() {
       textScaler: TextScaler.linear(2),
       locale: Locale('ja'),
       contentOrigin: Offset(20, 30),
-      boldText: true,
+      accessibility: (bold: true, lineHeight: null, letterSpacing: null, wordSpacing: null),
+      strutStyle: null,
+      textWidthBasis: TextWidthBasis.parent,
+      textHeightBehavior: null,
     ));
     expect(painter.text, same(span));
     expect(painter.size, size);
@@ -342,7 +348,10 @@ TextPaintInput _input(ElRenderView host) => (
   textScaler: TextScaler.noScaling,
   locale: null,
   contentOrigin: Offset.zero,
-  boldText: false,
+  accessibility: defaultTextAccessibility,
+  strutStyle: null,
+  textWidthBasis: TextWidthBasis.parent,
+  textHeightBehavior: null,
 );
 
 Widget _scene(

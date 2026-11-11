@@ -25,6 +25,10 @@ class ElView extends RenderObjectWidget {
     this.breakpoint,
     this.inheritSize,
     this.locale,
+    this.textScaler,
+    this.strutStyle,
+    this.textWidthBasis = TextWidthBasis.parent,
+    this.textHeightBehavior,
     this.child,
   });
 
@@ -70,6 +74,18 @@ class ElView extends RenderObjectWidget {
   /// 需要精确语言字形时显式传入（如 `Locale('ja', 'JP')`）。
   final Locale? locale;
 
+  /// 文本缩放规则，省略时使用当前 [MediaQuery] 的设置。
+  final TextScaler? textScaler;
+
+  /// 当前段落的最小行高与基线度量。
+  final StrutStyle? strutStyle;
+
+  /// 当前段落计算宽度时使用的基准。
+  final TextWidthBasis textWidthBasis;
+
+  /// 当前段落首行上方和末行下方的行高度量规则。
+  final TextHeightBehavior? textHeightBehavior;
+
   /// 最近 ElView 的只读样式上下文，读取状态或变量时自动订阅对应变化。
   static ElStyleContext of(BuildContext context) {
     assert(hasViewStateAccess(context), 'No ElView found in context.');
@@ -97,7 +113,7 @@ class ElView extends RenderObjectWidget {
   TextScaler _resolveTextScaler(BuildContext context) {
     // 动态来源即使暂时为空或为图标，也保留缩放依赖，后续文字使用最新环境。
     final scaler = _needsTextScaler
-        ? (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
+        ? (textScaler ?? MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
         : TextScaler.noScaling;
     final source = child;
     final value = source is ValueListenable<Object?> ? source.value : source;
@@ -106,6 +122,7 @@ class ElView extends RenderObjectWidget {
 
   @override
   ElRenderView createRenderObject(BuildContext context) {
+    final element = context as ViewElement;
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
     // Element 挂载文本前认领宿主，环境参数由 Widget 持续推送。
     final render = ElRenderView(
@@ -117,8 +134,11 @@ class ElView extends RenderObjectWidget {
       inheritSize: inheritSize,
       textScaler: _resolveTextScaler(context),
       locale: locale,
+      strutStyle: strutStyle,
+      textWidthBasis: textWidthBasis,
+      textHeightBehavior: textHeightBehavior,
     );
-    render.systemBoldText = (context as ViewElement).resolveSystemBoldText();
+    render.textAccessibility = element.resolveTextAccessibility();
     render.bindTickerModeSource(() => TickerMode.getValuesNotifier(context));
     // 祖先失活时的按压反馈复位会回调这里，此时不可能处于换绑，直接返回 false。
     render.skipReuseTransitions = () => context.isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(context);
@@ -134,13 +154,18 @@ class ElView extends RenderObjectWidget {
       renderObject.setStyleParent(StyleDependencyScope.maybeHostOf(element));
       renderObject
         ..style = style
-        ..systemBoldText = element.resolveSystemBoldText()
+        ..textAccessibility = element.resolveTextAccessibility()
         ..event = event
         ..semantics = semantics
         ..themeMode = themeMode
         ..breakpoint = breakpoint
         ..textScaler = _resolveTextScaler(element)
-        ..locale = locale;
+        ..locale = locale
+        ..updateParagraphStyle(
+          strutStyle: strutStyle,
+          textWidthBasis: textWidthBasis,
+          textHeightBehavior: textHeightBehavior,
+        );
     });
   }
 }

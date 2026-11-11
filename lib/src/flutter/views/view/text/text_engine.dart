@@ -24,13 +24,27 @@ class ElTextParentData extends ContainerBoxParentData<RenderBox> {
   bool visible = true;
 }
 
+/// 文本布局使用的系统无障碍设置。
+typedef TextAccessibility = ({bool bold, double? lineHeight, double? letterSpacing, double? wordSpacing});
+
+/// 宿主未提供系统无障碍覆盖时使用的默认设置。
+const TextAccessibility defaultTextAccessibility = (
+  bold: false,
+  lineHeight: null,
+  letterSpacing: null,
+  wordSpacing: null,
+);
+
 /// 宿主提供已提交样式和本次布局环境。
 typedef TextPaintInput = ({
   ResolvedStyle style,
   TextScaler textScaler,
   ui.Locale? locale,
   Offset contentOrigin,
-  bool boldText,
+  TextAccessibility accessibility,
+  StrutStyle? strutStyle,
+  TextWidthBasis textWidthBasis,
+  TextHeightBehavior? textHeightBehavior,
 });
 
 extension on TextPaintInput {
@@ -176,7 +190,8 @@ class TextEngine extends SelectionContent {
     _painter.markNeedsLayout();
   }
 
-  bool invalidateForBoldText() {
+  /// 无障碍设置只使文字排版失效。
+  bool invalidateForTextAccessibility() {
     if (!_icon) invalidateLayout();
     return !_icon;
   }
@@ -199,20 +214,40 @@ class TextEngine extends SelectionContent {
     );
   }
 
-  Object _keyFor(TextPaintInput i) => (i.style.inheritedText, i.style.inheritedBox, i.textScaler, i.locale, i.boldText);
+  Object _keyFor(TextPaintInput input) => (
+    input.style.inheritedText,
+    input.style.inheritedBox,
+    input.textScaler,
+    input.locale,
+    _icon ? defaultTextAccessibility : input.accessibility,
+    _icon ? null : input.strutStyle,
+    _icon ? TextWidthBasis.parent : input.textWidthBasis,
+    _icon ? null : input.textHeightBehavior,
+  );
 
   TextPainter _configure(TextPainter painter, TextPaintInput input) {
     assert(!identical(painter, _painter) || ++BenchmarkProbe.textPainterConfigureCount > 0);
     final style = _baseStyle(input);
+    final accessibility = _icon ? defaultTextAccessibility : input.accessibility;
+    final lineHeight = accessibility.lineHeight;
+    final letterSpacing = accessibility.letterSpacing;
+    final wordSpacing = accessibility.wordSpacing;
+    final spacing = lineHeight == null && letterSpacing == null && wordSpacing == null
+        ? null
+        : TextStyle(height: lineHeight, letterSpacing: letterSpacing, wordSpacing: wordSpacing);
+    final strut = _icon ? null : input.strutStyle;
     if (identical(painter, _painter)) _configuredFor = _keyFor(input);
     return painter
       ..text = _icon
           ? TextSpan(text: String.fromCharCode((rawChild as IconData).codePoint), style: style)
-          : resolveTextSpan(_content!.span, style, bold: input.boldText)
+          : resolveTextSpan(_content!.span, style, bold: accessibility.bold, spacing: spacing)
       ..textAlign = _icon ? TextAlign.center : input.style.inheritedText.textAlign ?? TextAlign.start
       ..textDirection = input.textDirection
       ..textScaler = input.textScaler
       ..locale = input.locale
+      ..strutStyle = lineHeight == null ? strut : strut?.merge(StrutStyle(height: lineHeight))
+      ..textWidthBasis = _icon ? TextWidthBasis.parent : input.textWidthBasis
+      ..textHeightBehavior = _icon ? null : input.textHeightBehavior
       ..maxLines = _icon ? 1 : input.style.inheritedText.maxLines
       ..ellipsis = input.style.inheritedText.textOverflow == TextOverflow.ellipsis ? '…' : null;
   }
@@ -337,7 +372,7 @@ class TextEngine extends SelectionContent {
     overflowShader = null;
     if (_overflow != TextOverflow.fade || !textOverflows) return;
     final probe = TextPainter(
-      text: TextSpan(text: '…', style: _baseStyle(input)),
+      text: TextSpan(text: '…', style: _painter.text!.style),
       textDirection: input.textDirection,
       textScaler: input.textScaler,
       locale: input.locale,

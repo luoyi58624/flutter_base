@@ -12,14 +12,19 @@ class ElText extends Text {
     super.data, {
     super.key,
     super.style,
+    super.strutStyle,
     super.textAlign,
     super.textDirection,
     super.locale,
     super.softWrap,
     super.overflow,
+    @Deprecated('请使用 textScaler。') super.textScaleFactor,
+    super.textScaler,
     super.maxLines,
     super.semanticsLabel,
     super.semanticsIdentifier,
+    super.textWidthBasis,
+    super.textHeightBehavior,
     super.selectionColor,
   });
 
@@ -28,34 +33,37 @@ class ElText extends Text {
     super.textSpan, {
     super.key,
     super.style,
+    super.strutStyle,
     super.textAlign,
     super.textDirection,
     super.locale,
     super.softWrap,
     super.overflow,
+    @Deprecated('请使用 textScaler。') super.textScaleFactor,
+    super.textScaler,
     super.maxLines,
     super.semanticsLabel,
     super.semanticsIdentifier,
+    super.textWidthBasis,
+    super.textHeightBehavior,
     super.selectionColor,
   }) : super.rich();
 
   @override
   Widget build(BuildContext context) {
     final defaults = DefaultTextStyle.of(context);
-    var effectiveStyle = style?.inherit == false ? style! : defaults.style.merge(style);
-    if (MediaQuery.boldTextOf(context)) {
-      effectiveStyle = effectiveStyle.merge(const TextStyle(fontWeight: FontWeight.bold));
-    }
-    final height = MediaQuery.maybeLineHeightScaleFactorOverrideOf(context);
-    final letterSpacing = MediaQuery.maybeLetterSpacingOverrideOf(context);
-    final wordSpacing = MediaQuery.maybeWordSpacingOverrideOf(context);
-    if (height != null || letterSpacing != null || wordSpacing != null) {
-      effectiveStyle = effectiveStyle.copyWith(height: height, letterSpacing: letterSpacing, wordSpacing: wordSpacing);
-    }
+    final effectiveStyle = defaults.style.merge(style);
+    // ignore: deprecated_member_use
+    final scaleFactor = textScaleFactor;
     final direction = textDirection ?? Directionality.of(context);
-    final background = selectionColor;
+    final background = selectionColor ?? DefaultSelectionStyle.of(context).selectionColor;
     return ElView(
       locale: locale ?? Localizations.maybeLocaleOf(context),
+      textScaler: textScaler ?? (scaleFactor == null ? null : TextScaler.linear(scaleFactor)),
+      strutStyle: strutStyle,
+      textWidthBasis: textWidthBasis ?? defaults.textWidthBasis,
+      textHeightBehavior:
+          textHeightBehavior ?? defaults.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
       style: ElStyle(
         direction: direction,
         textAlign: textAlign ?? defaults.textAlign ?? TextAlign.start,

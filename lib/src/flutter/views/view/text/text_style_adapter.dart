@@ -1,5 +1,6 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart' show WidgetSpan;
+
 import '../style/style.dart';
 import '../style/resolved/resolved_style.dart';
 
@@ -51,16 +52,19 @@ TextStyle inheritedTextToTextStyle(InheritedText s) => TextStyle(
   shadows: s.textShadow,
 );
 
-/// span 按 Flutter 规则合并样式；系统粗体作用于根样式，显式轴值保持原样。
+/// span 按 Flutter 规则合并样式，粗体覆盖根字重，间距覆盖普通文本节点。
 InlineSpan resolveTextSpan(
   InlineSpan span,
   TextStyle parent, {
   bool bold = false,
+  TextStyle? spacing,
   Color? selected,
   bool overlay = false,
 }) {
-  final base = bold ? parent.merge(const TextStyle(fontWeight: FontWeight.bold)) : parent;
-  final style = base.merge(span.style);
+  var style = parent.merge(span.style);
+  if (bold) style = style.copyWith(fontWeight: FontWeight.bold);
+  final textSpacing = spacing != null && span.runtimeType == TextSpan ? spacing : null;
+  if (textSpacing != null) style = style.merge(textSpacing);
   final output = overlay ? selectedTextStyleForColor(style, selected) : style;
   if (span is WidgetSpan) {
     return WidgetSpan(child: span.child, alignment: span.alignment, baseline: span.baseline, style: output);
@@ -70,7 +74,7 @@ InlineSpan resolveTextSpan(
     text: span.text,
     style: output,
     children: span.children
-        ?.map((child) => resolveTextSpan(child, style, selected: selected, overlay: overlay))
+        ?.map((child) => resolveTextSpan(child, style, spacing: textSpacing, selected: selected, overlay: overlay))
         .toList(),
     recognizer: span.recognizer,
     mouseCursor: span.mouseCursor,

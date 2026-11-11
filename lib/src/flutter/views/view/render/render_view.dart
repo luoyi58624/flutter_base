@@ -83,7 +83,15 @@ class ElRenderView extends RenderBox
     bool? inheritSize,
     TextScaler? textScaler,
     ui.Locale? locale,
+    StrutStyle? strutStyle,
+    TextWidthBasis textWidthBasis = TextWidthBasis.parent,
+    TextHeightBehavior? textHeightBehavior,
   }) : _locale = locale,
+       _paragraphStyle = (
+         strutStyle: strutStyle,
+         textWidthBasis: textWidthBasis,
+         textHeightBehavior: textHeightBehavior,
+       ),
        _localThemeMode = themeMode,
        _localBreakpoint = breakpoint,
        _selfSizeBasis = inheritSize == false,
@@ -179,6 +187,7 @@ class ElRenderView extends RenderBox
 
   TextScaler _textScaler = TextScaler.noScaling;
   ui.Locale? _locale;
+  ({StrutStyle? strutStyle, TextWidthBasis textWidthBasis, TextHeightBehavior? textHeightBehavior}) _paragraphStyle;
 
   /// 尚未绑定 Element 时，由自定义 RenderObject 宿主直接持有。
   ///
@@ -368,25 +377,26 @@ class ElRenderView extends RenderBox
     painter?.dispose();
   }
 
-  bool? _systemBoldText;
-  bool _effectiveBoldText = false;
+  TextAccessibility? _localTextAccessibility;
+  TextAccessibility _effectiveTextAccessibility = defaultTextAccessibility;
 
-  /// 设置继承根的系统粗体状态；null 表示继承最近的 ElRenderView。
-  set systemBoldText(bool? value) {
-    if (_systemBoldText == value) return;
-    _systemBoldText = value;
-    _inheritBoldText(_findAncestor<ElRenderView>()?._effectiveBoldText ?? false);
+  /// 设置当前 MediaQuery 的文本无障碍配置，空值时继承最近的渲染宿主。
+  @internal
+  set textAccessibility(TextAccessibility? value) {
+    if (_localTextAccessibility == value) return;
+    _localTextAccessibility = value;
+    _inheritTextAccessibility(_findAncestor<ElRenderView>()?._effectiveTextAccessibility ?? defaultTextAccessibility);
   }
 
-  void _inheritBoldText(bool inherited) {
-    final value = _systemBoldText ?? inherited;
-    if (_effectiveBoldText == value) return;
-    _effectiveBoldText = value;
+  void _inheritTextAccessibility(TextAccessibility inherited) {
+    final value = _localTextAccessibility ?? inherited;
+    if (_effectiveTextAccessibility == value) return;
+    _effectiveTextAccessibility = value;
     final painter = _textPainterOrNull;
-    if (painter?.invalidateForBoldText() ?? false) {
+    if (painter?.invalidateForTextAccessibility() ?? false) {
       markNeedsLayout();
     }
-    _visitNearestDescendants<ElRenderView>((child) => child._inheritBoldText(value));
+    _visitNearestDescendants<ElRenderView>((child) => child._inheritTextAccessibility(value));
   }
 
   /// 布局与绘制共用已提交样式；auto 终点探测可显式覆盖。
@@ -396,9 +406,28 @@ class ElRenderView extends RenderBox
       // 经公开 getter：hosted 兜底（platformDispatcher 现取）在此生效
       textScaler: textScaler,
       locale: locale,
-      boldText: _effectiveBoldText,
+      accessibility: _effectiveTextAccessibility,
+      strutStyle: _paragraphStyle.strutStyle,
+      textWidthBasis: _paragraphStyle.textWidthBasis,
+      textHeightBehavior: _paragraphStyle.textHeightBehavior,
       contentOrigin: contentOriginOverride ?? _contentOrigin,
     );
+  }
+
+  /// 更新段落度量参数并在文本布局受影响时重新排版。
+  @internal
+  void updateParagraphStyle({
+    required StrutStyle? strutStyle,
+    required TextWidthBasis textWidthBasis,
+    required TextHeightBehavior? textHeightBehavior,
+  }) {
+    final value = (strutStyle: strutStyle, textWidthBasis: textWidthBasis, textHeightBehavior: textHeightBehavior);
+    if (_paragraphStyle == value) return;
+    _paragraphStyle = value;
+    final painter = _textPainterOrNull;
+    if (painter == null) return;
+    painter.invalidateLayout();
+    markNeedsLayout();
   }
 
   // --- internal API（给 [PaintController] 等协作体反向访问 host 状态） -----
@@ -2112,8 +2141,9 @@ class ElRenderView extends RenderBox
       (source._styleChildren ??= {}).add(this);
     }
     final ancestorNode = _inheritedParent;
-    _inheritBoldText(
-      (ancestorNode is ElRenderView ? ancestorNode : _findAncestor<ElRenderView>())?._effectiveBoldText ?? false,
+    _inheritTextAccessibility(
+      (ancestorNode is ElRenderView ? ancestorNode : _findAncestor<ElRenderView>())?._effectiveTextAccessibility ??
+          defaultTextAccessibility,
     );
     final ancestorResolved = ancestorNode?.committedResolvedStyle;
     _parentResolved = ancestorResolved;

@@ -12,6 +12,7 @@ import '../style/cascade/style_spec.dart';
 import '../style/state/view_state.dart';
 import '../style/style.dart';
 import '../style/style_context.dart';
+import '../text/text_engine.dart' show TextAccessibility;
 import '../view.dart';
 
 part 'focus_indicator.dart';
@@ -24,22 +25,29 @@ part 'focus_indicator.dart';
 class ViewElement extends RenderObjectElement {
   ViewElement(ElView super.widget);
 
-  bool? _isBoldTextRoot;
+  bool? _isTextAccessibilityRoot;
 
-  /// 仅继承根登记粗体 aspect；祖先查找每次挂载只做一次。
-  bool? resolveSystemBoldText() {
-    if (_isBoldTextRoot == null) {
+  /// 同一 MediaQuery 中仅由继承根订阅文本无障碍设置。
+  TextAccessibility? resolveTextAccessibility() {
+    if (_isTextAccessibilityRoot == null) {
+      final mediaQuery = getElementForInheritedWidgetOfExactType<MediaQuery>();
       var isRoot = true;
       visitAncestorElements((ancestor) {
         if (ancestor is ViewElement) {
-          isRoot = false;
+          isRoot = !identical(mediaQuery, ancestor.getElementForInheritedWidgetOfExactType<MediaQuery>());
           return false;
         }
         return true;
       });
-      _isBoldTextRoot = isRoot;
+      _isTextAccessibilityRoot = isRoot;
     }
-    return _isBoldTextRoot! ? (MediaQuery.maybeBoldTextOf(this) ?? false) : null;
+    if (!_isTextAccessibilityRoot!) return null;
+    return (
+      bold: MediaQuery.boldTextOf(this),
+      lineHeight: MediaQuery.maybeLineHeightScaleFactorOverrideOf(this),
+      letterSpacing: MediaQuery.maybeLetterSpacingOverrideOf(this),
+      wordSpacing: MediaQuery.maybeWordSpacingOverrideOf(this),
+    );
   }
 
   Element? _child;
@@ -188,7 +196,7 @@ class ViewElement extends RenderObjectElement {
 
   @override
   void activate() {
-    _isBoldTextRoot = null;
+    _isTextAccessibilityRoot = null;
     _deactivated = false;
     super.activate();
     _renderView.refreshTickerMode();

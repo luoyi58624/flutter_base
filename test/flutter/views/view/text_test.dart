@@ -36,14 +36,14 @@ MouseCursor effectiveCursorAt(WidgetTester tester, Offset global) {
 
 void main() {
   group('最小文本合约', () {
-    test('文本实现严格限制为两个文件、八百总行', () {
+    test('文本实现限制为两个文件，并为段落配置和无障碍覆盖保留行数预算', () {
       final files = Directory('lib/src/flutter/views/view/text')
           .listSync()
           .whereType<File>()
           .where((file) => file.path.endsWith('.dart'))
           .toList();
       expect(files, hasLength(2));
-      expect(files.fold<int>(0, (sum, file) => sum + file.readAsLinesSync().length), lessThanOrEqualTo(800));
+      expect(files.fold<int>(0, (sum, file) => sum + file.readAsLinesSync().length), lessThanOrEqualTo(840));
     });
 
     testWidgets('普通文本沿 ElView 继承并在颜色更新时保持布局', (tester) async {
