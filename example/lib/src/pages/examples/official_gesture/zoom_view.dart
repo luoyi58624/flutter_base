@@ -239,6 +239,8 @@ class _ZoomRecognizer extends ScaleGestureRecognizer {
   void addAllowedPointer(PointerDownEvent event) {
     super.addAllowedPointer(event);
     _downs[event.pointer] = event.position;
+    // 两指很难同时落下：第二指一落下就接受为捏合，避免第一指的少量横移先让翻页越过起手阈值。
+    if (!_accepted && _downs.length >= 2) resolve(GestureDisposition.accepted);
   }
 
   @override

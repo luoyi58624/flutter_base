@@ -152,6 +152,26 @@ void main() {
     expect(controller.position.pixels, 0);
   });
 
+  testWidgets('两指先后落下：第一指已有少量横移，第二指落下仍接手为捏合', (tester) async {
+    final (controller, keys) = await _pump(tester);
+    final center = tester.getCenter(find.byKey(keys[0]));
+    final a = await tester.startGesture(center - Offset(50, 0), pointer: 1);
+    await a.moveBy(Offset(-8, 0));
+    await a.moveBy(Offset(-8, 0));
+    await tester.pump();
+    final b = await tester.startGesture(center + Offset(50, 0), pointer: 2);
+    for (var i = 0; i < 5; i++) {
+      await a.moveBy(Offset(-10, 0));
+      await b.moveBy(Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+    expect(keys[0].currentState!.scale, greaterThan(1.5));
+    expect(controller.position.pixels, 0);
+  });
+
   testWidgets('已知降级：翻页先接住第一指后，第二指落下无法再接管为捏合', (tester) async {
     final (controller, keys) = await _pump(tester);
     final center = tester.getCenter(find.byKey(keys[0]));
