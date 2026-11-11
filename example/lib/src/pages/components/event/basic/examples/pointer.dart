@@ -1,49 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 演示指针与悬停的事件回调。
+import '../../demo_surface.dart';
+
+/// 用圆点标记按下、移动和抬起时的指针位置。
 class ElPointerEventExample extends HookWidget {
-  /// 创建指针与悬停示例。
+  /// 创建原始指针示例。
   // ignore: prefer_const_constructors_in_immutables
   ElPointerEventExample({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final pointerEvent = useState('按下并移动');
-    final hoverEvent = useState('移入、悬停、移出');
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      spacing: 8,
-      crossAxisAlignment: .stretch,
-      children: [
-        ElView(
-          style: .new(backgroundColor: colors.primaryContainer, alignment: .center, padding: .all(12), height: 72),
-          event: ElEvent(
-            onPointerDown: (_) => pointerEvent.value = 'onPointerDown',
-            onPointerMove: (_) => pointerEvent.value = 'onPointerMove',
-            onPointerUp: (_) => pointerEvent.value = 'onPointerUp',
-            onPointerCancel: (_) => pointerEvent.value = 'onPointerCancel',
-          ),
-          child: Text(
-            pointerEvent.value,
-            textAlign: .center,
-            style: TextStyle(color: colors.onPrimaryContainer),
+    final position = useState<Offset?>(null);
+    final active = useState(false);
+    final callback = useState('等待指针');
+
+    void track(ElEventDetails event, String name, {required bool pressed}) {
+      position.value = event.localPosition;
+      active.value = pressed;
+      callback.value = name;
+    }
+
+    final point = position.value;
+    return ElEventDemoSurface(
+      footer: Text(point == null ? callback.value : '${callback.value} · ${point.dx.round()}, ${point.dy.round()}'),
+      child: ElView(
+        key: ValueKey('event-basic-pointer'),
+        event: ElEvent(
+          onPointerDown: (event) => track(event, 'onPointerDown', pressed: true),
+          onPointerMove: (event) => track(event, 'onPointerMove', pressed: true),
+          onPointerUp: (event) => track(event, 'onPointerUp', pressed: false),
+          onPointerCancel: (event) => track(event, 'onPointerCancel', pressed: false),
+        ),
+        child: SizedBox.expand(
+          child: LayoutBuilder(
+            builder: (context, constraints) => Stack(
+              fit: .expand,
+              children: [
+                if (point == null)
+                  Center(
+                    child: Column(
+                      mainAxisSize: .min,
+                      spacing: 8,
+                      children: [
+                        Icon(Icons.my_location, size: 48, color: colors.primary),
+                        Text('按下并移动', style: Theme.of(context).textTheme.titleLarge),
+                      ],
+                    ),
+                  )
+                else
+                  Positioned(
+                    left: (point.dx.clamp(12.0, constraints.maxWidth - 12) - 12).toDouble(),
+                    top: (point.dy.clamp(12.0, constraints.maxHeight - 12) - 12).toDouble(),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 120),
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: .circle,
+                        color: active.value ? colors.primary : colors.surface,
+                        border: Border.all(color: colors.primary, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        ElView(
-          style: .new(backgroundColor: colors.tertiaryContainer, alignment: .center, padding: .all(12), height: 72),
-          event: ElEvent(
-            onPointerEnter: (_) => hoverEvent.value = 'onPointerEnter',
-            onPointerHover: (_) => hoverEvent.value = 'onPointerHover',
-            onPointerExit: (_) => hoverEvent.value = 'onPointerExit',
-          ),
-          child: Text(
-            hoverEvent.value,
-            textAlign: .center,
-            style: TextStyle(color: colors.onTertiaryContainer),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

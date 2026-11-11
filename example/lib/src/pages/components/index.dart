@@ -34,6 +34,7 @@ import 'data/progress/index.dart';
 import 'data/skeleton/index.dart';
 import 'data/steps/index.dart';
 import 'event/basic/index.dart';
+import 'event/advanced/index.dart';
 import 'event/drag/index.dart';
 import 'event/propagation/index.dart';
 import 'feedback/alert/index.dart';
@@ -173,6 +174,7 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
       _page('event-basic', '基础使用', builder: (_) => ElEventBasicPage()),
       _page('event-propagation', '阻止冒泡', builder: (_) => ElEventPropagationPage()),
       _page('event-drag', '拖拽交互', builder: (_) => ElEventDragPage()),
+      _page('event-advanced', '高级示例', builder: (_) => ElEventAdvancedPage()),
     ],
   ),
 ];

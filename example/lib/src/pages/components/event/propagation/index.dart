@@ -12,11 +12,9 @@ class ElEventPropagationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DocsPage(
     title: '阻止冒泡',
-    description: '嵌套 ElView 的主键点击默认从内层向外层派发。内层可调用 event.stopPropagation()，截断当前点击的传播。',
     sections: [
       DocsSection(
-        title: '对照点击顺序',
-        description: '点击上方内层可看到内层、外层的回调顺序。点击下方内层时，外层保持等待状态。',
+        title: '点击冒泡',
         source: 'lib/src/pages/components/event/propagation/examples/propagation.dart',
         child: ElEventPropagationExample(),
       ),

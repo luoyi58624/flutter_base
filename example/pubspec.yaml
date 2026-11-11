@@ -74,6 +74,7 @@ flutter:
     - lib/src/pages/components/event/basic/examples/
     - lib/src/pages/components/event/propagation/examples/
     - lib/src/pages/components/event/drag/examples/
+    - lib/src/pages/components/event/advanced/examples/
     - lib/src/pages/components/desktop/anchor/examples/
     - lib/src/pages/components/desktop/nav_menu/examples/
     - lib/src/pages/components/mobile/bottom_tabbar/examples/

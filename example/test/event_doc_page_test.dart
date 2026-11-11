@@ -15,7 +15,7 @@ void main() {
 
     final eventGroup = componentCatalog.last;
     expect(eventGroup.title, 'Event 事件');
-    expect(eventGroup.children.map((item) => item.title), ['基础使用', '阻止冒泡', '拖拽交互']);
+    expect(eventGroup.children.map((item) => item.title), ['基础使用', '阻止冒泡', '拖拽交互', '高级示例']);
 
     routingConfig.isMobile = true;
     router.go('/components');
@@ -50,48 +50,52 @@ void main() {
     }
 
     final basic = await openPage('event-basic', '基础使用');
+    expect(basic.description, isNull);
+    expect(basic.sections.map((section) => section.title).take(7), ['原始指针', '按压', '悬停', '连击', '拖拽', '缩放', '旋转']);
     for (final section in basic.sections) {
+      expect(section.description, isNull);
       await loadSource(section);
     }
-    final tapExample = find.byKey(ValueKey('event-basic-tap'));
+    final tapExample = find.byKey(ValueKey('event-basic-press'));
     await tester.ensureVisible(tapExample);
     await tester.pumpAndSettle();
     expect(tapExample.hitTestable(), findsOneWidget);
-    expect(find.descendant(of: tapExample, matching: find.text('点击或连击')), findsOneWidget);
     final tap = await tester.startGesture(tester.getCenter(tapExample));
     await tester.pump();
-    expect(find.descendant(of: tapExample, matching: find.text('onTapDown')), findsOneWidget);
+    expect(find.text('onTapDown'), findsOneWidget);
     await tap.up();
     await tester.pump(Duration(milliseconds: 350));
-    expect(find.descendant(of: tapExample, matching: find.text('onTap')), findsOneWidget);
+    expect(find.text('onTap'), findsOneWidget);
 
-    final longPressExample = find.byKey(ValueKey('event-basic-long-press'));
+    final longPressExample = find.byKey(ValueKey('event-basic-press'));
     await tester.ensureVisible(longPressExample);
     await tester.pumpAndSettle();
     final longPress = await tester.startGesture(tester.getCenter(longPressExample));
     await tester.pump(Duration(milliseconds: 550));
-    expect(find.descendant(of: longPressExample, matching: find.text('onLongPress')), findsOneWidget);
+    expect(find.text('onLongPress'), findsOneWidget);
     await longPress.up();
     await backToCatalog();
 
     final propagation = await openPage('event-propagation', '阻止冒泡');
     final source = await loadSource(propagation.sections.single);
-    Finder inner(bool stop) => find.byKey(ValueKey(('event-propagation-inner', stop)));
-    Finder outer(bool stop) => find.byKey(ValueKey(('event-propagation-outer', stop)));
-
-    await tester.tap(inner(false));
+    final inner = find.byKey(ValueKey('event-propagation-inner'));
+    final outer = find.byKey(ValueKey('event-propagation-outer'));
+    String count(String target) => tester.widget<Text>(find.byKey(ValueKey('event-propagation-$target-count'))).data!;
+    await tester.tap(inner);
     await tester.pump();
-    expect(find.descendant(of: inner(false), matching: find.text('1. 内层 onTap')), findsOneWidget);
-    expect(tester.widget<Text>(outer(false)).data, '2. 外层 onTap');
-    await tester.tap(inner(true));
+    expect((count('inner'), count('outer')), ('1', '1'));
+    await tester.tap(find.byKey(ValueKey('event-propagation-toggle')));
+    await tester.pumpAndSettle();
+    expect((count('inner'), count('outer')), ('1', '1'), reason: '切换开关不应触发内外层点击');
+    await tester.tap(inner);
+    await tester.pumpAndSettle();
+    expect((count('inner'), count('outer')), ('2', '1'));
+    await tester.tapAt(tester.getTopLeft(outer) + Offset(12, 12));
     await tester.pump();
-    expect(find.descendant(of: inner(true), matching: find.text('1. 内层 onTap')), findsOneWidget);
-    expect(tester.widget<Text>(outer(true)).data, '外层等待点击');
-    expect(tester.widget<Text>(outer(false)).data, '2. 外层 onTap');
-    await tester.tap(outer(false));
-    await tester.pump();
-    expect(find.descendant(of: inner(false), matching: find.text('点击内层')), findsOneWidget);
-    expect(tester.widget<Text>(outer(false)).data, '1. 外层 onTap');
+    expect((count('inner'), count('outer')), ('2', '2'));
+    await tester.tap(find.byKey(ValueKey('event-propagation-reset')));
+    await tester.pumpAndSettle();
+    expect((count('inner'), count('outer')), ('0', '0'));
 
     await tester.tap(find.byKey(ValueKey('el-code-example-toggle')));
     await tester.pumpAndSettle();
@@ -110,7 +114,7 @@ void main() {
     expect(scrollPosition.maxScrollExtent, greaterThan(0));
     final initialArea = tester.getTopLeft(area);
     final initial = tester.getTopLeft(block);
-    expect(find.text('等待拖动'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
     final gesture = await tester.startGesture(tester.getCenter(block));
     await gesture.moveBy(Offset(0, 8));
     await gesture.moveBy(Offset(0, 32));

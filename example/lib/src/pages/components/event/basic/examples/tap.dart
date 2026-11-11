@@ -1,52 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 演示点击、连击与长按的事件回调。
+import '../../demo_surface.dart';
+
+/// 单独观察双击与三击的按下和完成阶段。
 class ElTapEventExample extends HookWidget {
-  /// 创建点击、连击与长按示例。
+  /// 创建连击示例。
   // ignore: prefer_const_constructors_in_immutables
   ElTapEventExample({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final tapEvent = useState('点击或连击');
-    final longPressEvent = useState('按住色块');
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      spacing: 8,
-      crossAxisAlignment: .stretch,
-      children: [
-        ElView(
+    final count = useState(0);
+    final pulse = useState(0);
+    final callback = useState('连续点击两次或三次');
+
+    void complete(int taps, String name) {
+      count.value = taps;
+      pulse.value++;
+      callback.value = name;
+    }
+
+    final background = count.value == 3 ? colors.tertiaryContainer : colors.primaryContainer;
+    final foreground = count.value == 3 ? colors.onTertiaryContainer : colors.onPrimaryContainer;
+    return ElEventDemoSurface(
+      footer: Text(callback.value),
+      child: Center(
+        child: ElView(
           key: ValueKey('event-basic-tap'),
-          style: .new(backgroundColor: colors.primaryContainer, alignment: .center, padding: .all(12), height: 72),
           event: ElEvent(
+            cursor: SystemMouseCursors.click,
             deferTap: true,
-            onTapDown: (_) => tapEvent.value = 'onTapDown',
-            onTapUp: (_) => tapEvent.value = 'onTapUp',
-            onTap: (_) => tapEvent.value = 'onTap',
-            onTapCancel: (_) => tapEvent.value = 'onTapCancel',
-            onDoubleTapDown: (_) => tapEvent.value = 'onDoubleTapDown',
-            onDoubleTap: (_) => tapEvent.value = 'onDoubleTap',
-            onTripleTapDown: (_) => tapEvent.value = 'onTripleTapDown',
-            onTripleTap: (_) => tapEvent.value = 'onTripleTap',
+            onDoubleTapDown: (_) => callback.value = 'onDoubleTapDown',
+            onDoubleTap: (_) => complete(2, 'onDoubleTap'),
+            onTripleTapDown: (_) => callback.value = 'onTripleTapDown',
+            onTripleTap: (_) => complete(3, 'onTripleTap'),
           ),
-          child: Text(
-            tapEvent.value,
-            textAlign: .center,
-            style: TextStyle(color: colors.onPrimaryContainer),
+          child: SizedBox(
+            width: 144,
+            height: 120,
+            child: Center(
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(pulse.value),
+                tween: Tween(begin: count.value == 0 ? 1 : .78, end: 1),
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeOutBack,
+                builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                child: Container(
+                  width: 112,
+                  height: 112,
+                  alignment: .center,
+                  decoration: BoxDecoration(color: background, shape: .circle),
+                  child: count.value == 0
+                      ? Icon(Icons.bolt, size: 48, color: foreground)
+                      : Text(
+                          '${count.value} 连击',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: foreground),
+                        ),
+                ),
+              ),
+            ),
           ),
         ),
-        ElView(
-          key: ValueKey('event-basic-long-press'),
-          style: .new(backgroundColor: colors.tertiaryContainer, alignment: .center, padding: .all(12), height: 72),
-          event: ElEvent(onLongPress: (_) => longPressEvent.value = 'onLongPress'),
-          child: Text(
-            longPressEvent.value,
-            textAlign: .center,
-            style: TextStyle(color: colors.onTertiaryContainer),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
