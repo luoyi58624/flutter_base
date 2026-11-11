@@ -200,7 +200,7 @@ void main() {
         if (scene == .takeaway) {
           await tester.runAsync(() async {
             // ElImage 按布局尺寸解码，分别预热店标和商品使用的完整图集尺寸。
-            for (final size in [Size(256, 192), Size(416, 312)]) {
+            for (final size in [Size(288, 216), Size(384, 288)]) {
               await ElImage.preload(
                 'assets/recycler_cards/takeaway-food.webp',
                 size: size,

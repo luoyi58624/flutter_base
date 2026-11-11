@@ -95,7 +95,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   }
 
   Widget _row(BuildContext context, int index) {
-    final item = _adapter.items[index];
+    final item = _adapter.itemAt(index);
     return RepaintBoundary(
       child: _OfficialSelectionRow(key: ValueKey(item.id), item: item, records: _adapter),
     );
@@ -110,7 +110,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
       builder: (context) {
         final model = useMemoized(_SelectionModel.new);
         useEffect(() {
-          void bind() => _adapter.bind(model, _adapter.items[index.value]);
+          void bind() => _adapter.bind(model, _adapter.itemAt(index.value));
 
           bind();
           index.addListener(bind);
@@ -177,13 +177,16 @@ class _SelectionRecords {
   _SelectionRecords(this.onCountChanged);
 
   final ValueChanged<int> onCountChanged;
-  final items = List.generate(10000, _SelectionItem.new);
+  // 选择集合不依赖文案是否已创建，远距离定位只生成实际绑定的记录。
+  final items = <int, _SelectionItem>{};
   // 状态归业务 ID，holder 的叶子模型只保存当前记录的显示快照。
   final selectedIds = <int>{};
   // 只登记已绑定的行，兼容容器切换时同一业务记录短暂对应多个模型。
   final _models = <int, Set<_SelectionModel>>{};
 
-  int getItemCount() => items.length;
+  int getItemCount() => 10000;
+
+  _SelectionItem itemAt(int index) => items.putIfAbsent(index, () => _SelectionItem(index));
 
   void bind(_SelectionModel model, _SelectionItem item) {
     if (model.item.value?.id != item.id) unbind(model);
@@ -224,7 +227,10 @@ class _SelectionRecords {
     onCountChanged(0);
   }
 
-  void dispose() => _models.clear();
+  void dispose() {
+    _models.clear();
+    items.clear();
+  }
 }
 
 class _SelectionModel {

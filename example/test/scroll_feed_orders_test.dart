@@ -97,6 +97,59 @@ Future<int> _rebindCard(WidgetTester tester, Element element, int previous, {boo
 }
 
 void main() {
+  for (final mode in SliverExampleMode.values) {
+    testWidgets('订单 ${mode.label} 进度更新复用行节点与同阶段文字，边界仍切换状态', (tester) async {
+      await _open(tester, RecyclerOrdersPage());
+      if (mode != .recycler) await _mode(tester, mode);
+      final card = _orderCard(10000);
+      final indicator = _within(card, find.byType(LinearProgressIndicator));
+      final progress = _sourceOf<int>(tester, indicator);
+      final row = find.ancestor(of: indicator, matching: find.byType(Row)).first;
+      final rowElement = tester.element(row);
+      final rowRender = tester.renderObject(row);
+      progress.value = 0;
+      await tester.pumpAndSettle();
+      expect(_within(card, find.text('待处理')), findsOneWidget);
+      expect(_within(card, find.text('0%')), findsOneWidget);
+
+      progress.value = 11;
+      await tester.pumpAndSettle();
+      final processing = _within(card, find.text('处理中'));
+      final status = tester.widget(processing);
+      final statusElement = tester.element(processing);
+      var statusBuilds = 0;
+      final previous = debugOnRebuildDirtyWidget;
+      debugOnRebuildDirtyWidget = (element, builtOnce) {
+        previous?.call(element, builtOnce);
+        if (identical(element, statusElement)) statusBuilds++;
+      };
+      try {
+        progress.value = 22;
+        await tester.pumpAndSettle();
+      } finally {
+        debugOnRebuildDirtyWidget = previous;
+      }
+      expect(tester.widget(processing), same(status));
+      expect(statusBuilds, 0);
+      expect(tester.element(row), same(rowElement));
+      expect(tester.renderObject(row), same(rowRender));
+      expect(tester.widget<LinearProgressIndicator>(indicator).value, .22);
+      expect(tester.widget<LinearProgressIndicator>(indicator).semanticsLabel, '订单进度');
+      expect(_within(card, find.text('22%')), findsOneWidget);
+
+      progress.value = 100;
+      await tester.pumpAndSettle();
+      expect(_within(card, find.text('已完成')), findsOneWidget);
+      expect(_within(card, find.text('100%')), findsOneWidget);
+      progress.value = 0;
+      await tester.pumpAndSettle();
+      expect(_within(card, find.text('待处理')), findsOneWidget);
+      expect(tester.element(row), same(rowElement));
+      expect(tester.renderObject(row), same(rowRender));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('订单跨记录保留卡片结构，旧回调读取当前订单并切换状态来源', (tester) async {
     await _open(tester, RecyclerOrdersPage());
     final original = _orderCard(10000);

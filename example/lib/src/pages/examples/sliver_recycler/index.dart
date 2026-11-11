@@ -32,9 +32,10 @@ enum ElSliverRecyclerExampleContent {
   Widget buildItem(BuildContext context, ValueListenable<int> index) => switch (this) {
     .rectangles => SizedBox(
       height: 32,
-      child: ValueListenableBuilder<int>(
-        valueListenable: index,
-        builder: (_, position, _) => ColoredBox(color: _rectangleColors[position % _rectangleColors.length]),
+      child: ElListenableBuilder<ValueListenable<int>, Color>(
+        listenable: index,
+        select: (source) => _rectangleColors[source.value % _rectangleColors.length],
+        builder: (_, _) => ColoredBox(color: _rectangleColors[index.value % _rectangleColors.length]),
       ),
     ),
     .text => Align(
@@ -185,10 +186,11 @@ class _ObservationCard extends StatelessWidget {
                     borderRadius: .circular(10),
                     child: SizedBox(
                       height: 116,
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: index,
-                        builder: (_, position, _) => Image.asset(
-                          _photoPaths[position % _photoPaths.length],
+                      child: ElListenableBuilder<ValueListenable<int>, String>(
+                        listenable: index,
+                        select: (source) => _photoPaths[source.value % _photoPaths.length],
+                        builder: (_, _) => Image.asset(
+                          _photoPaths[index.value % _photoPaths.length],
                           cacheWidth: 960,
                           fit: .cover,
                           excludeFromSemantics: true,
@@ -197,39 +199,48 @@ class _ObservationCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8),
-                  ValueListenableBuilder<int>(
-                    valueListenable: index,
-                    builder: (_, position, _) => Column(
-                      crossAxisAlignment: .start,
-                      mainAxisSize: .min,
-                      children: [
-                        Text(
+                  Column(
+                    crossAxisAlignment: .start,
+                    mainAxisSize: .min,
+                    children: [
+                      ValueListenableBuilder<int>(
+                        valueListenable: index,
+                        builder: (_, position, _) => Text(
                           '${position.isEven ? '林缘的猫头鹰' : '树梢的夜行者'} · #${position + 1}',
                           style: typography.titleMedium,
                           maxLines: 1,
                           overflow: .ellipsis,
                         ),
-                        Text('暮色里记录到一次短暂的停栖，随后飞入林间。', style: typography.bodySmall, maxLines: 2, overflow: .ellipsis),
-                        SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(Icons.place_outlined, size: 15, color: colors.primary),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                _locations[position % _locations.length],
+                      ),
+                      Text('暮色里记录到一次短暂的停栖，随后飞入林间。', style: typography.bodySmall, maxLines: 2, overflow: .ellipsis),
+                      SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.place_outlined, size: 15, color: colors.primary),
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: ElListenableBuilder<ValueListenable<int>, String>(
+                              listenable: index,
+                              select: (source) => _locations[source.value % _locations.length],
+                              builder: (_, _) => Text(
+                                _locations[index.value % _locations.length],
                                 style: typography.labelMedium,
                                 maxLines: 1,
                                 overflow: .ellipsis,
                               ),
                             ),
-                            Icon(Icons.schedule, size: 15, color: colors.onSurfaceVariant),
-                            SizedBox(width: 4),
-                            Text('${6 + position % 24} 分钟', style: typography.labelMedium, maxLines: 1),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          Icon(Icons.schedule, size: 15, color: colors.onSurfaceVariant),
+                          SizedBox(width: 4),
+                          ElListenableBuilder<ValueListenable<int>, int>(
+                            listenable: index,
+                            select: (source) => source.value % 24,
+                            builder: (_, _) =>
+                                Text('${6 + index.value % 24} 分钟', style: typography.labelMedium, maxLines: 1),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   SizedBox(height: 8),
                   Row(

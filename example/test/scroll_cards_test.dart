@@ -1,4 +1,5 @@
 import 'package:example/src/pages/examples/scroll_examples/cards.dart';
+import 'package:example/src/pages/examples/scroll_examples/comparison_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,57 @@ Future<void> _choose(WidgetTester tester, String action) async {
 
 void main() {
   for (final mode in ['recycler', 'official']) {
+    final access = mode == 'recycler' ? '远跳只生成目标窗口' : '近跳和回访保留记录';
+    testWidgets('$mode 首屏按需创建，类型查询不分配，$access', (tester) async {
+      await _open(tester);
+      if (mode == 'official') await _choose(tester, 'mode-official');
+      final listFinder = find.byType(SliverComparisonList);
+      final list = tester.widget<SliverComparisonList>(listFinder);
+      final frame = list.itemBuilder(tester.element(listFinder), 0) as RepaintBoundary;
+      // 观察已有记录仓库，不给生产代码增加测试探针。
+      final dynamic row = frame.child;
+      final dynamic adapter = row.adapter;
+      final Map records = adapter.records;
+      expect(list.itemCount, 10000);
+      expect(records.length, inInclusiveRange(1, 40));
+      final firstRecord = records[0];
+      final firstCount = records.length;
+      expect(list.itemType!(9998), 0);
+      expect(list.itemType!(9999), 1);
+      expect(records.length, firstCount, reason: '判断复用类型不应创建离屏业务记录。');
+
+      final targetIndex = mode == 'recycler' ? 4000 : 10;
+      adapter.refreshRange(targetIndex, targetIndex);
+      final dynamic distantRecord = records[targetIndex];
+      expect(distantRecord.visits, 1200 + targetIndex * 13 + 7 + targetIndex % 5);
+      expect(distantRecord.revision, 1);
+      expect(records.length, firstCount + 1);
+      // 官方自然高度列表需要布局中间行，使用近跳验证数据，远跳工作量只约束回收容器。
+      list.controller.jumpTo(targetIndex * 540.0);
+      await tester.pumpAndSettle();
+      final distantTitle = find.textContaining('观测 #${(targetIndex + 1).toString().padLeft(5, '0')}').hitTestable();
+      expect(distantTitle, findsOneWidget);
+      final distantCard = find.ancestor(of: distantTitle, matching: _key('cards-activate'));
+      expect(_text(tester, distantCard, 'cards-visits'), '${distantRecord.visits}');
+      expect(records[targetIndex], same(distantRecord));
+      expect(records.length, lessThan(80));
+      if (mode == 'recycler') expect(records.containsKey(2000), isFalse);
+      await _choose(tester, 'first');
+      expect(records[0], same(firstRecord));
+      list.controller.jumpTo(targetIndex * 540.0);
+      await tester.pumpAndSettle();
+      expect(records[targetIndex], same(distantRecord));
+      expect(_text(tester, distantCard, 'cards-visits'), '${distantRecord.visits}');
+      final countBeforeRemoteUpdate = records.length;
+      adapter.refreshRange(9000, 9000);
+      expect(records.length, countBeforeRemoteUpdate + 1);
+      expect((records[9000] as dynamic).revision, 1);
+      expect(records.containsKey(8000), isFalse, reason: '直接更新未访问记录不应生成到该编号之间的全部记录。');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(SizedBox.shrink());
+      expect(records, isEmpty);
+    });
+
     testWidgets('$mode 卡片保留按压、统计叶子更新、滚动和跨模式选择状态', (tester) async {
       await _open(tester);
       if (mode == 'official') await _choose(tester, 'mode-official');

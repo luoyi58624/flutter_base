@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -53,6 +54,23 @@ class _RecyclerSpikePageState extends State<RecyclerSpikePage> {
   bool _scriptRunning = false;
   ({double origin, double triggerDistance})? _script;
   _SpikeResult? _result;
+  SliverExampleMode? _listMode;
+  Widget? _list;
+
+  Widget _listForMode() {
+    // 参数和结果面板更新不改变条目配置；列表本身继续接收主题与字号依赖。
+    if (_list == null || _listMode != _mode) {
+      _listMode = _mode;
+      _list = SliverComparisonList(
+        mode: _mode,
+        controller: _controller,
+        itemCount: _itemCount,
+        itemBuilder: (_, index) => _SpikeRow(AlwaysStoppedAnimation(index)),
+        recycledItemBuilder: (_, index) => _SpikeRow(index),
+      );
+    }
+    return _list!;
+  }
 
   ScrollPosition? get _position {
     final controller = _controller;
@@ -286,14 +304,7 @@ class _RecyclerSpikePageState extends State<RecyclerSpikePage> {
                 onPointerUp: _up,
                 onPointerCancel: _cancelPointer,
                 onPointerSignal: (_) => _cancelInertiaWindow(),
-                child: SliverComparisonList(
-                  mode: _mode,
-                  controller: _controller,
-
-                  itemCount: _itemCount,
-
-                  itemBuilder: (_, index) => _SpikeRow(index),
-                ),
+                child: _listForMode(),
               ),
             ),
           ],
@@ -306,12 +317,11 @@ class _RecyclerSpikePageState extends State<RecyclerSpikePage> {
 class _SpikeRow extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _SpikeRow(this.index);
-  final int index;
+  final ValueListenable<int> index;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final id = (index + 1).toString().padLeft(5, '0');
     return SizedBox(
       height: _rowExtent(context),
       child: Padding(
@@ -327,7 +337,11 @@ class _SpikeRow extends StatelessWidget {
                   mainAxisAlignment: .center,
                   crossAxisAlignment: .start,
                   children: [
-                    Text('滚动采样 $id', maxLines: 1, overflow: .ellipsis),
+                    ValueListenableBuilder<int>(
+                      valueListenable: index,
+                      builder: (_, value, _) =>
+                          Text('滚动采样 ${(value + 1).toString().padLeft(5, '0')}', maxLines: 1, overflow: .ellipsis),
+                    ),
                     Text('统一行高 · 逻辑像素', maxLines: 1, style: Theme.of(context).textTheme.labelSmall),
                   ],
                 ),

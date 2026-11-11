@@ -188,10 +188,20 @@ void main() {
     await tester.pumpAndSettle();
     await _official(tester);
     final first = _officialExtent(tester);
+    final firstGrid = tester.widget<SliverGrid>(find.byType(SliverGrid));
+    final firstCards = {
+      for (final element
+          in find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_RecordCard').evaluate())
+        element: element.widget,
+    };
     final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!;
     controller.jumpTo(1);
     await tester.pumpAndSettle();
     expect(_officialExtent(tester), first);
+    expect(tester.widget<SliverGrid>(find.byType(SliverGrid)), same(firstGrid));
+    for (final entry in firstCards.entries.where((entry) => entry.key.mounted)) {
+      expect(entry.key.widget, same(entry.value), reason: '纯滚动保留 delegate，不刷新仍在窗口内的记录。');
+    }
 
     for (final change in <VoidCallback>[
       () => width = 320,

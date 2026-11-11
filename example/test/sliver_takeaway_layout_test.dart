@@ -60,15 +60,16 @@ void _expectMenuGeometry(WidgetTester tester, double scale) {
     final card = find.byElementPredicate((candidate) => identical(candidate, element));
     final rect = tester.getRect(card);
     heights.add(rect.height);
-    expect(rect.width, closeTo(104, .01));
+    expect(rect.width, closeTo(96, .01));
     final title = find.descendant(of: card, matching: find.byKey(ValueKey('takeaway-dish-name')));
     expect(tester.widget<ElView>(title).style!.maxLines, 1);
     expect(tester.widget<ElView>(title).style!.textOverflow, TextOverflow.ellipsis);
-    expect(tester.getSize(title).height, lessThanOrEqualTo(12 * scale * 1.4 + 2));
+    expect(tester.widget<ElView>(title).style!.fontSize, 14);
+    expect(tester.getSize(title).height, lessThanOrEqualTo(14 * scale * 1.4 + 2));
     final image = find.descendant(of: card, matching: find.byType(ElImage));
     expect(image, findsOneWidget);
     final viewport = find.ancestor(of: image, matching: find.byType(ClipRRect)).first;
-    expect(tester.getSize(viewport), Size.square(104));
+    expect(tester.getSize(viewport), Size.square(96));
     final button = find.descendant(of: card, matching: find.byTooltip('加入购物车'));
     expect(tester.getRect(button).bottom, lessThanOrEqualTo(rect.bottom + .01));
     expect(find.descendant(of: card, matching: find.byType(Image)), findsNothing);
@@ -83,7 +84,7 @@ void _expectMenuGeometry(WidgetTester tester, double scale) {
 Future<void> _capture(WidgetTester tester) async {
   if (_capturePath.isEmpty) return;
   await tester.runAsync(() async {
-    for (final size in [Size(256, 192), Size(416, 312)]) {
+    for (final size in [Size(288, 216), Size(384, 288)]) {
       await ElImage.preload('assets/recycler_cards/takeaway-food.webp', size: size, devicePixelRatio: 1, fit: .fill);
     }
   });

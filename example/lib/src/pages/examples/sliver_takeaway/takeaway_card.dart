@@ -1,6 +1,6 @@
 part of 'index.dart';
 
-Widget _words(String value, {Key? key, double size = 12, Color? color, bool bold = false}) => ElView(
+Widget _words(String value, {Key? key, double size = 14, Color? color, bool bold = false}) => ElView(
   key: key,
   style: ElStyle(
     fontSize: size,
@@ -17,7 +17,7 @@ Widget _storeWords(
   ValueListenable<_Store?> store,
   String Function(_Store) select, {
   Key? key,
-  double size = 12,
+  double size = 14,
   Color? color,
   bool bold = false,
 }) => ElListenableBuilder<ValueListenable<_Store?>, String>(
@@ -45,8 +45,8 @@ class _DiscoveryHeader extends StatelessWidget {
           spacing: 6,
           children: [
             Icon(Icons.location_on_rounded, color: _orange, size: 16),
-            Expanded(child: _words('科技园 · 美食街', size: 13, bold: true)),
-            _words('$count 家', size: 11, color: _orange),
+            Expanded(child: _words('科技园 · 美食街', size: 15, bold: true)),
+            _words('$count 家', size: 12, color: _orange),
           ],
         ),
         SingleChildScrollView(
@@ -68,7 +68,7 @@ class _DiscoveryHeader extends StatelessWidget {
                   showCheckmark: false,
                   selectedColor: _orange.withValues(alpha: .12),
                   labelStyle: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     height: 1.1,
                     color: category == index ? _orange : null,
                     fontWeight: category == index ? .w700 : .w400,
@@ -81,9 +81,9 @@ class _DiscoveryHeader extends StatelessWidget {
         ),
         Row(
           children: [
-            Expanded(child: _words('红包天天领', size: 10, color: _orange)),
-            Expanded(child: _words('附近好店', size: 10, color: _green)),
-            Expanded(child: _words('免配送费', size: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Expanded(child: _words('红包天天领', size: 13, color: _orange)),
+            Expanded(child: _words('附近好店', size: 13, color: _green)),
+            Expanded(child: _words('免配送费', size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ],
@@ -121,7 +121,7 @@ class _StoreCard extends StatelessWidget {
                       store,
                       (record) => record.name,
                       key: ValueKey('takeaway-title'),
-                      size: 15,
+                      size: 17,
                       bold: true,
                     );
                     final details = Column(
@@ -129,32 +129,46 @@ class _StoreCard extends StatelessWidget {
                       spacing: 5,
                       children: [
                         if (!compact) title,
-                        _storeWords(
-                          store,
-                          (record) => '月售${record.sales}+  起送¥${record.minimum}',
-                          size: 11,
-                          color: muted,
-                        ),
                         Row(
-                          spacing: 6,
+                          spacing: 8,
                           children: [
-                            _words('免配送费', size: 11, color: _orange, bold: true),
+                            _storeWords(store, (record) => '${record.rating}分', size: 16, color: _orange, bold: true),
                             Expanded(
                               child: _storeWords(
                                 store,
-                                (record) => '${record.minutes}–${record.minutes + 10}分钟  ${record.distance}km',
-                                size: 10,
+                                (record) => '月售${record.sales}+  起送¥${record.minimum}',
+                                size: 13,
                                 color: muted,
                               ),
                             ),
                           ],
                         ),
-                        _StoreTag(
-                          _storeWords(store, (record) => '${record.rating}分  ·  ${record.tags.first}', color: _orange),
+                        Row(
+                          spacing: 6,
+                          children: [
+                            _words('免配送费', size: 13, color: _orange),
+                            Expanded(
+                              child: _storeWords(
+                                store,
+                                (record) => '${record.minutes}–${record.minutes + 10}分钟  ${record.distance}km',
+                                size: 13,
+                                color: muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: 5,
+                          runSpacing: 4,
+                          children: [
+                            _StoreTag(_words('堂食店', size: 12, color: _green), outlined: true),
+                            _StoreTag(_words('明厨亮灶', size: 12, color: muted), outlined: true),
+                            _StoreTag(_storeWords(store, (record) => '${record.coupon}元红包', size: 12, color: _orange)),
+                          ],
                         ),
                       ],
                     );
-                    final logo = _StorePhoto(store: store, photos: photos, size: compact ? 44 : 64);
+                    final logo = _StorePhoto(store: store, photos: photos, size: compact ? 44 : 72);
                     return compact
                         ? Column(
                             crossAxisAlignment: .stretch,
@@ -179,19 +193,6 @@ class _StoreCard extends StatelessWidget {
                             ],
                           );
                   },
-                ),
-                Row(
-                  spacing: 5,
-                  children: [
-                    Expanded(child: _StoreTag(_words('堂食店', size: 10, color: _green), outlined: true)),
-                    Expanded(child: _StoreTag(_words('明厨亮灶', size: 10, color: muted), outlined: true)),
-                    Expanded(
-                      flex: 2,
-                      child: _StoreTag(
-                        _storeWords(store, (record) => '${record.coupon}元店铺红包', size: 10, color: _orange),
-                      ),
-                    ),
-                  ],
                 ),
                 ValueListenableBuilder<_Store?>(
                   valueListenable: store,
@@ -225,7 +226,10 @@ class _StoreTag extends StatelessWidget {
   );
 }
 
-double _menuHeight(BuildContext context) => 172 + math.max(0.0, MediaQuery.textScalerOf(context).scale(16) - 16) * 4;
+double _menuHeight(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  return 96 + 10 + scaler.scale(14) * 1.22 + math.max(28, scaler.scale(18) * 1.22) + scaler.scale(11) * 1.22 + 4;
+}
 
 class _MenuStrip extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
@@ -291,41 +295,43 @@ class _MenuStripState extends State<_MenuStrip> {
     return _frame = SizedBox(
       key: ValueKey('takeaway-menu-frame'),
       height: height,
-      child: Row(
-        crossAxisAlignment: .stretch,
-        children: [
-          _coupon,
-          SizedBox(width: 8),
-          Expanded(
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                if (!_restoring && notification.depth == 0) widget.store.menuOffset = notification.metrics.pixels;
-                return true;
-              },
-              child: ScrollConfiguration(
-                behavior: behavior.copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()),
-                child: ElListenableBuilder<ValueListenable<_Store?>, int?>(
-                  listenable: _store,
-                  select: (source) => source.value?.id,
-                  builder: (context, child) => Semantics(identifier: 'takeaway-menu-${_store.value!.id}', child: child),
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _dishCount,
-                    builder: (context, count, _) => ListView.builder(
-                      controller: _controller,
-                      scrollDirection: .horizontal,
-                      itemCount: count,
-                      itemExtent: 112,
-                      scrollCacheExtent: ScrollCacheExtent.pixels(0),
-                      addAutomaticKeepAlives: false,
-                      itemBuilder: (context, index) => _tiles.putIfAbsent(
-                        index,
-                        () => Padding(
-                          padding: .only(right: 8),
-                          child: _DishTile(
-                            store: _store,
-                            photos: widget.photos,
-                            index: index,
-                            onAdd: (dish) => widget.onAdd(dish),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          crossAxisAlignment: .stretch,
+          children: [
+            if (constraints.maxWidth >= 240) ...[_coupon, SizedBox(width: 8)],
+            Expanded(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (!_restoring && notification.depth == 0) widget.store.menuOffset = notification.metrics.pixels;
+                  return true;
+                },
+                child: ScrollConfiguration(
+                  behavior: behavior.copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()),
+                  child: ElListenableBuilder<ValueListenable<_Store?>, int?>(
+                    listenable: _store,
+                    select: (source) => source.value?.id,
+                    builder: (context, child) =>
+                        Semantics(identifier: 'takeaway-menu-${_store.value!.id}', child: child),
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _dishCount,
+                      builder: (context, count, _) => ListView.builder(
+                        controller: _controller,
+                        scrollDirection: .horizontal,
+                        itemCount: count,
+                        itemExtent: 104,
+                        scrollCacheExtent: ScrollCacheExtent.pixels(0),
+                        addAutomaticKeepAlives: false,
+                        itemBuilder: (context, index) => _tiles.putIfAbsent(
+                          index,
+                          () => Padding(
+                            padding: .only(right: 8),
+                            child: _DishTile(
+                              store: _store,
+                              photos: widget.photos,
+                              index: index,
+                              onAdd: (dish) => widget.onAdd(dish),
+                            ),
                           ),
                         ),
                       ),
@@ -334,8 +340,8 @@ class _MenuStripState extends State<_MenuStrip> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -363,7 +369,7 @@ class _DishTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: .stretch,
           children: [
-            _StorePhoto(store: store, photos: photos, dishIndex: index, size: 104),
+            _StorePhoto(store: store, photos: photos, dishIndex: index, size: 96),
             SizedBox(height: 6),
             _storeWords(store, (record) => _dish(record)?.name ?? '', key: ValueKey('takeaway-dish-name')),
             Spacer(),
@@ -374,7 +380,7 @@ class _DishTile extends StatelessWidget {
                     store,
                     (record) => '¥${_money(_dish(record)?.cents ?? 0)}',
                     key: ValueKey('takeaway-dish-price'),
-                    size: 16,
+                    size: 18,
                     color: _orange,
                     bold: true,
                   ),
@@ -393,7 +399,7 @@ class _DishTile extends StatelessWidget {
                 ),
               ],
             ),
-            _storeWords(store, (record) => '门店价 ¥${_money((_dish(record)?.cents ?? 0) + 400)}', size: 10, color: muted),
+            _storeWords(store, (record) => '门店价 ¥${_money((_dish(record)?.cents ?? 0) + 400)}', size: 11, color: muted),
           ],
         ),
       ),
@@ -407,30 +413,42 @@ class _CouponTile extends StatelessWidget {
   final ValueListenable<_Store?> store;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 56,
-    child: ElCard(
-      key: ValueKey('takeaway-coupon'),
-      style: ElStyle(
-        padding: .symmetric(horizontal: 4, vertical: 8),
-        borderRadius: .circular(8),
-        backgroundColor: _orange.withValues(alpha: .12),
-      ),
-      child: SizedBox(
-        height: _menuHeight(context) - 16,
-        child: Column(
-          mainAxisAlignment: .spaceBetween,
-          children: [
-            Icon(Icons.local_activity_rounded, color: _orange, size: 20),
-            _words('店铺红包', size: 10, color: _orange),
-            FittedBox(
-              fit: .scaleDown,
-              child: _storeWords(store, (record) => '¥${record.coupon}', size: 24, color: _orange, bold: true),
-            ),
-            _words('进店领券', size: 10, color: _orange),
-          ],
+  Widget build(BuildContext context) {
+    final ink = Theme.of(context).brightness == .dark ? Color(0xffffbd7b) : Color(0xffa65112);
+    return SizedBox(
+      width: 72,
+      child: ElCard(
+        key: ValueKey('takeaway-coupon'),
+        style: ElStyle(
+          padding: .symmetric(horizontal: 4, vertical: 8),
+          borderRadius: .circular(8),
+          backgroundColor: _orange.withValues(alpha: .12),
+        ),
+        child: SizedBox(
+          height: _menuHeight(context) - 16,
+          child: Column(
+            children: [
+              _words('店铺红包', size: 12, color: _orange, bold: true),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: .min,
+                    children: [
+                      FittedBox(
+                        fit: .scaleDown,
+                        child: _storeWords(store, (record) => '¥${record.coupon}', size: 32, color: ink, bold: true),
+                      ),
+                      SizedBox(height: 6),
+                      _words('进店可用', size: 11, color: ink),
+                    ],
+                  ),
+                ),
+              ),
+              _words('立即领取 ›', size: 12, color: _orange, bold: true),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

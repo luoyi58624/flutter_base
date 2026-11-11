@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -28,6 +29,10 @@ typedef _Section = ({int index, bool expanded, bool checked});
 class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
   final _official = ScrollController(keepScrollOffset: false);
   final _officialKeys = List.generate(_sectionCount, (_) => GlobalKey());
+  final _sections = List.generate(
+    _sectionCount,
+    (index) => ValueNotifier<_Section>((index: index, expanded: false, checked: false)),
+  );
   final _expanded = <int>{};
   final _checked = <int>{};
   var _mode = SliverExampleMode.recycler;
@@ -46,7 +51,8 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
   }
 
   void _updateSection(int index) {
-    setState(() {});
+    // 常驻文档也只通知当前小节，不能让一次勾选重新配置整份文档。
+    _sections[index].value = _section(index);
   }
 
   void _changeMode(SliverExampleMode mode) {
@@ -93,7 +99,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
 
   Widget _sectionItem(BuildContext context, int index) => _SectionCard(
     key: _officialKeys[index],
-    section: _section(index),
+    section: _sections[index],
     onToggleCode: _toggleCode,
     onCheck: _checkSection,
   );
@@ -101,6 +107,9 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
   @override
   void dispose() {
     _official.dispose();
+    for (final section in _sections) {
+      section.dispose();
+    }
     super.dispose();
   }
 
@@ -213,13 +222,13 @@ class _SectionCard extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _SectionCard({super.key, required this.section, required this.onToggleCode, required this.onCheck});
 
-  final _Section section;
+  final ValueListenable<_Section> section;
   final ValueChanged<int> onToggleCode;
   final void Function(int, bool) onCheck;
 
   @override
   Widget build(BuildContext context) {
-    final (index: index, expanded: expanded, checked: checked) = section;
+    final index = section.value.index;
     final type = index % _titles.length;
     final theme = Theme.of(context);
     return Padding(
@@ -262,24 +271,41 @@ class _SectionCard extends StatelessWidget {
               _ => Row(
                 children: [
                   Expanded(child: Text('核对同一条记录的滚动位置与展开状态')),
-                  Switch(
-                    key: ValueKey('rich-document-check-$index'),
-                    value: checked,
-                    onChanged: (value) => onCheck(index, value),
+                  ElListenableBuilder<ValueListenable<_Section>, bool>(
+                    listenable: section,
+                    select: (source) => source.value.checked,
+                    builder: (_, _) => Switch(
+                      key: ValueKey('rich-document-check-$index'),
+                      value: section.value.checked,
+                      onChanged: (value) => onCheck(index, value),
+                    ),
                   ),
                 ],
               ),
             },
-            Align(
-              alignment: .centerLeft,
-              child: TextButton.icon(
-                key: ValueKey('rich-document-code-toggle-$index'),
-                onPressed: () => onToggleCode(index),
-                icon: Icon(expanded ? Icons.expand_less : Icons.code_rounded, size: 18),
-                label: Text(expanded ? '收起源码' : '展开源码'),
-              ),
+            ElListenableBuilder<ValueListenable<_Section>, bool>(
+              listenable: section,
+              select: (source) => source.value.expanded,
+              builder: (_, _) {
+                final expanded = section.value.expanded;
+                return Column(
+                  crossAxisAlignment: .stretch,
+                  spacing: 12,
+                  children: [
+                    Align(
+                      alignment: .centerLeft,
+                      child: TextButton.icon(
+                        key: ValueKey('rich-document-code-toggle-$index'),
+                        onPressed: () => onToggleCode(index),
+                        icon: Icon(expanded ? Icons.expand_less : Icons.code_rounded, size: 18),
+                        label: Text(expanded ? '收起源码' : '展开源码'),
+                      ),
+                    ),
+                    if (expanded) ElCodePreview(key: ValueKey('rich-document-code-$index'), code: _source(type)),
+                  ],
+                );
+              },
             ),
-            if (expanded) ElCodePreview(key: ValueKey('rich-document-code-$index'), code: _source(type)),
           ],
         ),
       ),

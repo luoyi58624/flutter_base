@@ -10,7 +10,7 @@
 
 真实 example 测试入口为 `example/test/sliver_business_performance_test.dart`，现有 18 个场景。保留 [11 页初始基线](BUSINESS_BASELINE.md)；[业务补充测量](BUSINESS_SUPPLEMENT.md) 记录后来新增的网格、媒体、商品与局部更新，以及真实几何、缓存和预览功能的比较边界。
 
-用户确认实施后的最新结果见 [复用优化实施结果](IMPLEMENTATION_RESULTS.md)：外卖普通布局与 ElImage、商品字段更新、媒体文案及几何缓存、recycler 索引语义更新，以及相同数据零重建的边界。
+第一批实施结果见 [复用优化实施结果](IMPLEMENTATION_RESULTS.md)。其余业务优化及外卖视觉修正见 [后续完整优化](FOLLOWUP_RESULTS.md)，覆盖聊天、订单、按需记录、官方网格、复杂卡片、文档与尖峰示例。
 
 ## 运行
 

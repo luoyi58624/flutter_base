@@ -211,6 +211,8 @@ const _orderDestinations = ['青棠路 · 前台', '北岸创意园 · A 座', '
 
 double _orderExtent(BuildContext context) => 128 + math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14) * 6;
 
+String _orderStatus(int progress) => progress == 100 ? '已完成' : (progress == 0 ? '待处理' : '处理中');
+
 class _OrderRecords {
   final _ids = List.generate(10000, (index) => 10000 - index);
   final _records = <int, _OrderRecord>{};
@@ -397,26 +399,39 @@ class _OrderRow extends StatelessWidget {
                 child: _field(
                   context,
                   select: (source) => source.value.progress,
-                  builder: (context, child) => ValueListenableBuilder(
-                    valueListenable: record.value.progress,
-                    builder: (context, progress, child) => Row(
-                      spacing: 9,
-                      children: [
-                        Text(
-                          progress == 100 ? '已完成' : (progress == 0 ? '待处理' : '处理中'),
-                          style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
-                        ),
-                        Expanded(
-                          child: LinearProgressIndicator(
-                            value: progress / 100,
-                            borderRadius: .circular(4),
-                            semanticsLabel: '订单进度',
-                          ),
-                        ),
-                        Text('$progress%', style: theme.textTheme.labelSmall),
-                      ],
-                    ),
-                  ),
+                  builder: (context, child) {
+                    final progress = record.value.progress;
+                    String? status;
+                    Text? statusText;
+                    // 同阶段复用文案，不增加通知节点；换来源或主题重建会重新创建这份缓存。
+                    return ValueListenableBuilder<int>(
+                      valueListenable: progress,
+                      builder: (context, value, child) {
+                        final nextStatus = _orderStatus(value);
+                        if (statusText == null || status != nextStatus) {
+                          status = nextStatus;
+                          statusText = Text(
+                            nextStatus,
+                            style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
+                          );
+                        }
+                        return Row(
+                          spacing: 9,
+                          children: [
+                            statusText!,
+                            Expanded(
+                              child: LinearProgressIndicator(
+                                value: value / 100,
+                                borderRadius: .circular(4),
+                                semanticsLabel: '订单进度',
+                              ),
+                            ),
+                            Text('$value%', style: theme.textTheme.labelSmall),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],

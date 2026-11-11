@@ -1,11 +1,16 @@
+import 'dart:convert';
+
 import 'package:example/src/pages/examples/scroll_examples/scroll_mode.dart';
 import 'package:example/src/pages/examples/scroll_examples/spike.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 typedef _Injection = (Duration, SchedulerPhase);
+
+const _baseline = bool.fromEnvironment('SPECIAL_REUSE_BASELINE');
 
 Future<List<_Injection>> _open(WidgetTester tester, [SliverExampleMode mode = .recycler]) async {
   tester.view.devicePixelRatio = 1;
@@ -40,6 +45,68 @@ Future<void> _move(WidgetTester tester, TestGesture gesture, double dy, int time
 Finder _list(SliverExampleMode mode) => find.byKey(ValueKey('comparison-${mode.name}-list'));
 
 void main() {
+  testWidgets('尖峰参数操作保留列表，换绑只更新编号', (tester) async {
+    final work = await _open(tester);
+    final rows = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_SpikeRow');
+    final original = {for (final element in rows.evaluate()) element: element.widget};
+    final originalList = tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList));
+    var builds = 0;
+    final previous = debugOnRebuildDirtyWidget;
+    debugOnRebuildDirtyWidget = (element, builtOnce) {
+      previous?.call(element, builtOnce);
+      if (element.widget.runtimeType.toString() == '_SpikeRow') builds++;
+    };
+    try {
+      tester.widget<ChoiceChip>(find.byKey(ValueKey('spike-budget-12'))).onSelected!(true);
+      await tester.pumpAndSettle();
+      debugPrintSynchronously(
+        'SPECIAL_REUSE_RESULT ${jsonEncode({'scene': 'spike', 'phase': 'budget', 'row_rebuilds': builds, 'changed_row_widgets': original.entries.where((entry) => entry.key.mounted && !identical(entry.key.widget, entry.value)).length})}',
+      );
+      if (!_baseline) {
+        expect(builds, 0);
+        expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)), same(originalList));
+        for (final entry in original.entries) {
+          expect(entry.key.widget, same(entry.value));
+        }
+      }
+      expect(work, isEmpty, reason: '调整参数不能触发真实尖峰工作。');
+      final factory = tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemBuilder;
+      final index = ValueNotifier(0);
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ElComponentProvider(
+              components: el.mobileComponents,
+              child: Scaffold(body: Builder(builder: (context) => factory(context, index))),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final row = tester.element(rows);
+        final rowWidget = row.widget;
+        final caption = tester.widget<Text>(find.text('统一行高 · 逻辑像素'));
+        builds = 0;
+        index.value = 4;
+        await tester.pumpAndSettle();
+        expect(find.text('滚动采样 00005'), findsOneWidget);
+        debugPrintSynchronously(
+          'SPECIAL_REUSE_RESULT ${jsonEncode({'scene': 'spike', 'phase': 'rebind', 'row_rebuilds': builds, 'changed_row_widgets': identical(row.widget, rowWidget) ? 0 : 1})}',
+        );
+        if (!_baseline) {
+          expect(builds, 0);
+          expect(row.widget, same(rowWidget));
+          expect(tester.widget<Text>(find.text('统一行高 · 逻辑像素')), same(caption));
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(SizedBox.shrink());
+      } finally {
+        index.dispose();
+      }
+    } finally {
+      debugOnRebuildDirtyWidget = previous;
+    }
+  });
+
   for (final mode in SliverExampleMode.values) {
     testWidgets('${mode.label} 脚本跨越相同距离并在 transient 阶段只执行一次 12ms 任务', (tester) async {
       final work = await _open(tester, mode);

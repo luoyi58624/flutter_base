@@ -59,6 +59,14 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   final rowElement = tester.element(row);
   final bodySelector = selectorFor(body);
   final timeSelector = selectorFor(time);
+  final play = find.byKey(ValueKey('chat-live-play'));
+  final advance = find.byKey(ValueKey('chat-live-step'));
+  final reset = find.byKey(ValueKey('chat-live-reset'));
+  final playWidget = tester.widget(play);
+  final advanceWidget = tester.widget(advance);
+  final resetWidget = tester.widget(reset);
+  final playSelector = selectorFor(play);
+  final advanceSelector = selectorFor(advance);
   final viewportWidget = tester.widget(find.byType(CustomScrollView));
   final sliver = mode == .official ? find.byType(SliverList) : find.byType(ElSliverRecyclerList);
   final sliverWidget = tester.widget(sliver);
@@ -71,12 +79,16 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   var rowBuilds = 0;
   var bodyBuilds = 0;
   var timeBuilds = 0;
+  var playBuilds = 0;
+  var advanceBuilds = 0;
   final previous = debugOnRebuildDirtyWidget;
   debugOnRebuildDirtyWidget = (element, builtOnce) {
     previous?.call(element, builtOnce);
     if (identical(element, rowElement)) rowBuilds++;
     if (identical(element, bodySelector)) bodyBuilds++;
     if (identical(element, timeSelector)) timeBuilds++;
+    if (identical(element, playSelector)) playBuilds++;
+    if (identical(element, advanceSelector)) advanceBuilds++;
   };
   try {
     await _tap(tester, 'chat-live-step');
@@ -95,6 +107,18 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   expect(rowBuilds, 0, reason: '纯正文变化不重新构建已绑定消息行。');
   expect(bodyBuilds, greaterThan(0));
   expect(timeBuilds, 0, reason: '消息时间未变，不应调度时间选择器。');
+  expect(tester.widget(reset), same(resetWidget), reason: '正文增长不改变复位动作。');
+  if (step == 7) {
+    expect(playBuilds, 1);
+    expect(advanceBuilds, 1);
+    expect(tester.widget<IconButton>(play).onPressed, isNull);
+    expect(tester.widget<TextButton>(advance).onPressed, isNull);
+  } else {
+    expect(tester.widget(play), same(playWidget));
+    expect(tester.widget(advance), same(advanceWidget));
+    expect(playBuilds, 0, reason: '播放状态未变，不应因正文增长重新构建按钮配置。');
+    expect(advanceBuilds, 0);
+  }
   expect(_chatCount(tester), count);
   expect(_chatPosition(tester, mode).extentBefore, closeTo(0, .5));
   expect(tester.takeException(), isNull);
@@ -193,7 +217,10 @@ void main() {
     expect(find.text('并发脚本 8 / 8'), findsOneWidget);
     expect(_chatCount(tester), '10103 条');
     expect(tester.widget<IconButton>(playback).onPressed, isNull);
+    expect(tester.widget<TextButton>(find.byKey(ValueKey('chat-live-step'))).onPressed, isNull);
     await _tap(tester, 'chat-live-reset');
+    expect(tester.widget<IconButton>(playback).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(find.byKey(ValueKey('chat-live-step'))).onPressed, isNotNull);
     await tester.tap(playback);
     await tester.pump();
     await tester.pumpWidget(SizedBox());

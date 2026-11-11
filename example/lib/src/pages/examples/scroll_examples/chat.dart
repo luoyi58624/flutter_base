@@ -359,34 +359,48 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
         crossAxisAlignment: .stretch,
         children: [
           if (widget._live)
-            ValueListenableBuilder<(int, bool)>(
-              valueListenable: _liveProgress,
-              builder: (context, progress, child) {
-                final (step, running) = progress;
-                final complete = step == _liveParts.length;
-                return Padding(
-                  padding: .symmetric(horizontal: 12, vertical: 4),
-                  child: Wrap(
-                    crossAxisAlignment: .center,
-                    spacing: 8,
-                    children: [
-                      Text('并发脚本 $step / ${_liveParts.length}', key: ValueKey('chat-live-progress')),
-                      IconButton(
+            Padding(
+              padding: .symmetric(horizontal: 12, vertical: 4),
+              child: Wrap(
+                crossAxisAlignment: .center,
+                spacing: 8,
+                children: [
+                  ElListenableBuilder<ValueNotifier<(int, bool)>, int>(
+                    listenable: _liveProgress,
+                    select: (source) => source.value.$1,
+                    builder: (context, child) => Text(
+                      '并发脚本 ${_liveProgress.value.$1} / ${_liveParts.length}',
+                      key: ValueKey('chat-live-progress'),
+                    ),
+                  ),
+                  // 正文每拍增长只更新进度文字，按钮仅在播放或完成状态改变时更新。
+                  ElListenableBuilder<ValueNotifier<(int, bool)>, (bool, bool)>(
+                    listenable: _liveProgress,
+                    select: (source) => (source.value.$2, source.value.$1 == _liveParts.length),
+                    builder: (context, child) {
+                      final (step, running) = _liveProgress.value;
+                      return IconButton(
                         key: ValueKey('chat-live-play'),
                         tooltip: running ? '暂停' : '播放',
-                        onPressed: complete ? null : _toggleLive,
+                        onPressed: step == _liveParts.length ? null : _toggleLive,
                         icon: Icon(running ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                      ),
-                      TextButton(
-                        key: ValueKey('chat-live-step'),
-                        onPressed: running || complete ? null : _liveStep,
-                        child: Text('单步'),
-                      ),
-                      TextButton(key: ValueKey('chat-live-reset'), onPressed: _resetLive, child: Text('复位')),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
+                  ElListenableBuilder<ValueNotifier<(int, bool)>, bool>(
+                    listenable: _liveProgress,
+                    select: (source) => source.value.$2 || source.value.$1 == _liveParts.length,
+                    builder: (context, child) => TextButton(
+                      key: ValueKey('chat-live-step'),
+                      onPressed: _liveProgress.value.$2 || _liveProgress.value.$1 == _liveParts.length
+                          ? null
+                          : _liveStep,
+                      child: Text('单步'),
+                    ),
+                  ),
+                  TextButton(key: ValueKey('chat-live-reset'), onPressed: _resetLive, child: Text('复位')),
+                ],
+              ),
             ),
           Expanded(child: _messagesViewport()),
           ExamplePanel(

@@ -89,20 +89,8 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
               padding: EdgeInsets.symmetric(horizontal: 16),
               sliver: official.value
                   ? SliverLayoutBuilder(
-                      builder: (context, constraints) => SliverGrid.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns.value,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          mainAxisExtent: officialExtent.measure(
-                            context,
-                            (constraints.crossAxisExtent - 12 * (columns.value - 1)) / columns.value,
-                            columns.value,
-                          ),
-                        ),
-                        itemCount: _itemCount,
-                        itemBuilder: (context, index) => buildItem(context, AlwaysStoppedAnimation(index)),
-                      ),
+                      builder: (context, constraints) =>
+                          officialExtent.build(context, constraints.crossAxisExtent, columns.value),
                     )
                   : masonry
                   ? ElSliverRecyclerGrid.masonry(
@@ -136,6 +124,28 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
 class _OfficialCardExtentCache {
   Object? _environment;
   double _extent = 0;
+  Object? _geometry;
+  Widget? _grid;
+
+  Widget build(BuildContext context, double crossExtent, int columns) {
+    final extent = measure(context, (crossExtent - 12 * (columns - 1)) / columns, columns);
+    final geometry = (crossExtent, columns, extent, Directionality.of(context));
+    // 滚动只改变视口约束；保留 delegate 避免重新配置仍可见的全部卡片。
+    if (_geometry != geometry) {
+      _geometry = geometry;
+      _grid = SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: extent,
+        ),
+        itemCount: ElSliverRecyclerGridExamplePage._itemCount,
+        itemBuilder: (_, index) => _RecordCard(AlwaysStoppedAnimation(index)),
+      );
+    }
+    return _grid!;
+  }
 
   double measure(BuildContext context, double width, int columns) {
     final defaults = DefaultTextStyle.of(context);

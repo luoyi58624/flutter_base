@@ -71,11 +71,7 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   }
 
   Widget _row(BuildContext context, int index) => RepaintBoundary(
-    child: _OfficialObservationRow(
-      key: ValueKey(_adapter.records[index].id),
-      adapter: _adapter,
-      record: _adapter.records[index],
-    ),
+    child: _OfficialObservationRow(key: ValueKey(index), adapter: _adapter, record: _adapter.recordAt(index)),
   );
 
   Widget _scrollContent(BuildContext context) => SliverComparisonList(
@@ -83,13 +79,13 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
     controller: _controller,
     itemCount: _adapter.getItemCount(),
     itemBuilder: _row,
-    itemType: (index) => _adapter.records[index].photo,
+    itemType: (index) => index % 2,
     recycledItemBuilder: (context, index) => HookBuilder(
       builder: (context) {
         final model = useMemoized(_adapter.createModel);
         useEffect(() {
           void bind() {
-            final record = _adapter.records[index.value];
+            final record = _adapter.recordAt(index.value);
             model.bind(record, _adapter.activeIds.contains(record.id));
           }
 
@@ -98,12 +94,7 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
           return () => index.removeListener(bind);
         }, [index]);
         return useMemoized(
-          () => _ObservationRow(
-            model,
-            _adapter.records[index.value].photo,
-            _adapter.toggleActive,
-            () => _adapter.releaseModel(model),
-          ),
+          () => _ObservationRow(model, index.value % 2, _adapter.toggleActive, () => _adapter.releaseModel(model)),
           [model],
         );
       },
@@ -216,9 +207,12 @@ class _ObservationRecords {
   _ObservationRecords(this.onCountChanged);
 
   final ValueChanged<int> onCountChanged;
-  final records = List.generate(10000, _Observation.new);
+  // 记录随首次访问创建，复访继续使用已更新的业务数据；类型查询不触发创建。
+  final records = <int, _Observation>{};
   final activeIds = <int>{};
   final _models = <_ObservationModel>{};
+
+  _Observation recordAt(int index) => records.putIfAbsent(index, () => _Observation(index));
 
   _ObservationModel createModel() {
     final model = _ObservationModel();
@@ -235,9 +229,10 @@ class _ObservationRecords {
       model.dispose();
     }
     _models.clear();
+    records.clear();
   }
 
-  int getItemCount() => records.length;
+  int getItemCount() => 10000;
 
   void toggleActive(int id) {
     final selected = activeIds.add(id);
@@ -259,10 +254,10 @@ class _ObservationRecords {
   }
 
   void refreshRange(int first, int last) {
-    first = first.clamp(0, records.length - 1);
-    last = last.clamp(first, records.length - 1);
+    first = first.clamp(0, getItemCount() - 1);
+    last = last.clamp(first, getItemCount() - 1);
     for (var index = first; index <= last; index++) {
-      final record = records[index];
+      final record = recordAt(index);
       record.visits += 7 + index % 5;
       record.progress = record.progress >= .98 ? .42 : math.min(1.0, record.progress + .07);
       record.revision++;
