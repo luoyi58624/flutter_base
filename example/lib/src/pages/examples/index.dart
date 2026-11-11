@@ -10,6 +10,7 @@ import 'new_scroll_nested.dart';
 import 'new_scroll_refresh.dart';
 import 'new_scroll_navigation.dart';
 import 'new_bibi_collapse.dart';
+import 'official_gesture/zoom_pager.dart';
 export 'navigation_effects/routes.dart' show navigationEffectExamples;
 import 'scroll_examples/cards.dart';
 import 'scroll_examples/chat.dart';
@@ -72,6 +73,12 @@ final advancedExamples = <ElMenuModel<WidgetBuilder>>[
     title: '按压反馈',
     icon: ElIcon(Icons.ads_click_outlined),
     data: (_) => PressFeedbackPage(),
+  ),
+  ElMenuModel(
+    key: 'official-zoom-pager',
+    title: '官方手势 · 缩放翻页交接',
+    icon: ElIcon(Icons.zoom_out_map_outlined),
+    data: (_) => OfficialZoomPagerPage(),
   ),
 ];
 
