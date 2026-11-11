@@ -28,7 +28,6 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
 
   void _selectionChanged(int count) {
     _selectedCount.value = count;
-    if (_mode == .official) setState(() {});
   }
 
   void _scrollTo(int index) {
@@ -98,12 +97,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   Widget _row(BuildContext context, int index) {
     final item = _adapter.items[index];
     return RepaintBoundary(
-      child: _OfficialSelectionRow(
-        key: ValueKey(item.id),
-        item: item,
-        checked: _adapter.selectedIds.contains(item.id),
-        onSelect: _adapter.select,
-      ),
+      child: _OfficialSelectionRow(key: ValueKey(item.id), item: item, records: _adapter),
     );
   }
 
@@ -116,20 +110,16 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
       builder: (context) {
         final model = useMemoized(_SelectionModel.new);
         useEffect(() {
-          void bind() {
-            final item = _adapter.items[index.value];
-            model.bind(item, _adapter.selectedIds.contains(item.id));
-          }
+          void bind() => _adapter.bind(model, _adapter.items[index.value]);
 
           bind();
           index.addListener(bind);
-          _adapter.addListener(bind);
           return () {
             index.removeListener(bind);
-            _adapter.removeListener(bind);
-            model.dispose();
+            _adapter.unbind(model);
           };
-        }, [index]);
+        }, [index, model]);
+        useEffect(() => model.dispose, [model]);
         return useMemoized(() => _SelectionRow(model, _adapter.select), [model]);
       },
     ),
@@ -183,28 +173,58 @@ class _SelectionItem {
   final String description;
 }
 
-class _SelectionRecords extends ChangeNotifier {
+class _SelectionRecords {
   _SelectionRecords(this.onCountChanged);
 
   final ValueChanged<int> onCountChanged;
   final items = List.generate(10000, _SelectionItem.new);
   // 状态归业务 ID，holder 的叶子模型只保存当前记录的显示快照。
   final selectedIds = <int>{};
+  // 只登记已绑定的行，兼容容器切换时同一业务记录短暂对应多个模型。
+  final _models = <int, Set<_SelectionModel>>{};
 
   int getItemCount() => items.length;
+
+  void bind(_SelectionModel model, _SelectionItem item) {
+    if (model.item.value?.id != item.id) unbind(model);
+    (_models[item.id] ??= {}).add(model);
+    model.bind(item, selectedIds.contains(item.id));
+  }
+
+  void unbind(_SelectionModel model) {
+    final id = model.item.value?.id;
+    final models = _models[id];
+    if (models == null) return;
+    models.remove(model);
+    if (models.isEmpty) _models.remove(id);
+  }
 
   void select(int id, bool selected) {
     final changed = selected ? selectedIds.add(id) : selectedIds.remove(id);
     if (!changed) return;
-    notifyListeners();
+    final models = _models[id];
+    if (models != null) {
+      for (final model in models) {
+        model.updateChecked(selected);
+      }
+    }
     onCountChanged(selectedIds.length);
   }
 
   void clearSelection() {
+    if (selectedIds.isEmpty) return;
+    final selectedModels = [
+      for (final entry in _models.entries)
+        if (selectedIds.contains(entry.key)) ...entry.value,
+    ];
     selectedIds.clear();
-    notifyListeners();
+    for (final model in selectedModels) {
+      model.updateChecked(false);
+    }
     onCountChanged(0);
   }
+
+  void dispose() => _models.clear();
 }
 
 class _SelectionModel {
@@ -213,9 +233,14 @@ class _SelectionModel {
   bool receiving = false;
 
   void bind(_SelectionItem value, bool selected) {
+    item.value = value;
+    updateChecked(selected);
+  }
+
+  void updateChecked(bool selected) {
+    // 业务回灌不能经复选框的双向绑定再次修改选择集合。
     receiving = true;
     try {
-      item.value = value;
       checked.value = selected;
     } finally {
       receiving = false;
@@ -230,31 +255,32 @@ class _SelectionModel {
 
 class _OfficialSelectionRow extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _OfficialSelectionRow({super.key, required this.item, required this.checked, required this.onSelect});
+  _OfficialSelectionRow({super.key, required this.item, required this.records});
   final _SelectionItem item;
-  final bool checked;
-  final void Function(int, bool) onSelect;
+  final _SelectionRecords records;
   @override
   State<_OfficialSelectionRow> createState() => _OfficialSelectionRowState();
 }
 
 class _OfficialSelectionRowState extends State<_OfficialSelectionRow> {
   final _model = _SelectionModel();
-  late final _row = _SelectionRow(_model, (id, checked) => widget.onSelect(id, checked));
+  late final _row = _SelectionRow(_model, (id, checked) => widget.records.select(id, checked));
   @override
   void initState() {
     super.initState();
-    _model.bind(widget.item, widget.checked);
+    widget.records.bind(_model, widget.item);
   }
 
   @override
   void didUpdateWidget(_OfficialSelectionRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _model.bind(widget.item, widget.checked);
+    if (!identical(oldWidget.records, widget.records)) oldWidget.records.unbind(_model);
+    widget.records.bind(_model, widget.item);
   }
 
   @override
   void dispose() {
+    widget.records.unbind(_model);
     _model.dispose();
     super.dispose();
   }
