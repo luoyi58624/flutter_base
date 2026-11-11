@@ -82,6 +82,72 @@ void main() {
       expect(ElEvent(onTap: (_) {}), isNot(ElEvent(disabled: true, onTap: (_) {})));
     });
 
+    test('共享声明复用位图，修改副本不会影响另一宿主', () {
+      final host = DispatcherTestHost.chain(depth: 2);
+      addTearDown(host.dispose);
+      final event = ElEvent(onTap: (_) {});
+      final shape = event.shape;
+      final hash = event.hashCode;
+      for (final dispatcher in host.dispatchers) {
+        dispatcher.event = event;
+        expect(dispatcher.hitTestSelf(Offset.zero), isTrue);
+      }
+      for (var index = 0; index < 3; index++) {
+        expect(event.hasAnyCallback, isTrue);
+        expect(event.hasDragCallback, isFalse);
+        expect(event, ElEvent(onTap: (_) {}));
+        expect(event.hashCode, hash);
+        expect(identical(event.shape, shape), isTrue);
+      }
+
+      host.rootDispatcher.event = event.copyWith(onTap: null, onVerticalDragUpdate: (_) {});
+      expect(host.rootDispatcher.event!.shape.has(ElEventPhase.tap), isFalse);
+      expect(host.rootDispatcher.event!.hasDragCallback, isTrue);
+      expect(host.leafDispatcher.event!.hasDragCallback, isFalse);
+      expect(host.leafDispatcher.event!.shape.has(ElEventPhase.tap), isTrue);
+      expect(identical(host.leafDispatcher.event!.shape, shape), isTrue);
+    });
+
+    test('子类覆盖的回调来源变化后，能力查询仍实时生效', () {
+      final event = _DynamicCallbackEvent();
+      expect(event.hasAnyCallback, isFalse);
+      event.tap = (_) {};
+      expect(event.hasAnyCallback, isTrue);
+      expect(event.shape.has(ElEventPhase.tap), isTrue);
+      expect(event, ElEvent(onTap: (_) {}));
+      expect(event.hashCode, ElEvent(onTap: (_) {}).hashCode);
+      event.tap = null;
+      expect(event.hasAnyCallback, isFalse);
+      expect(event.shape.has(ElEventPhase.tap), isFalse);
+      expect(event, ElEvent());
+    });
+
+    test('每项识别配置都影响相等性，设备集合忽略顺序', () {
+      final event = ElEvent(onTap: (_) {});
+      final variants = <String, ElEvent>{
+        'behavior': event.copyWith(behavior: HitTestBehavior.translucent),
+        'cursor': event.copyWith(cursor: SystemMouseCursors.click),
+        'disabled': event.copyWith(disabled: true),
+        'doubleTapInterval': event.copyWith(doubleTapInterval: Duration(milliseconds: 400)),
+        'deferTap': event.copyWith(deferTap: true),
+        'longPressDelay': event.copyWith(longPressDelay: Duration(milliseconds: 600)),
+        'tapCancelDistance': event.copyWith(tapCancelDistance: 20),
+        'delayTouchDown': event.copyWith(delayTouchDown: Duration(milliseconds: 50)),
+        'delayTouchUp': event.copyWith(delayTouchUp: Duration(milliseconds: 200)),
+        'keyRepeatInterval': event.copyWith(keyRepeatInterval: Duration(milliseconds: 200)),
+        'dragStartDistance': event.copyWith(dragStartDistance: 10),
+        'dragDevices': event.copyWith(dragDevices: {PointerDeviceKind.mouse}),
+      };
+      for (final entry in variants.entries) {
+        expect(event == entry.value, isFalse, reason: entry.key);
+        expect(entry.value == event, isFalse, reason: entry.key);
+      }
+      final first = event.copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch});
+      final reordered = event.copyWith(dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse});
+      expect(first, reordered);
+      expect(first.hashCode, reordered.hashCode);
+    });
+
     test('点击候选按按键分组，长按与连击从位图派生', () {
       final empty = ElEvent().shape;
       expect(empty.isNotEmpty, isFalse);
@@ -480,4 +546,12 @@ void main() {
     await tester.pump();
     expect(skipped.hasPrimaryFocus, isTrue, reason: 'skipTraversal 仅影响遍历，不禁止程序聚焦');
   });
+}
+
+class _DynamicCallbackEvent extends ElEvent {
+  ElEventHandler? tap;
+
+  @override
+  ElEventHandler? handlerFor(ElEventPhase phase, [Axis? axis]) =>
+      phase == ElEventPhase.tap ? tap : super.handlerFor(phase, axis);
 }

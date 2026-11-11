@@ -9,7 +9,7 @@ import 'details.dart';
 ///
 /// 分发器在设置声明时编译一次；手势候选、换形比较和命中判定都读这份位图，
 /// 不再逐个回调现查，也不为声明对象另存回调列表。
-extension type const EventShape._(FieldMask _mask) {
+extension type const EventShape._(FieldMask _mask) implements Object {
   /// 没有任何回调的声明。
   static const none = EventShape._(FieldMask.empty);
 
@@ -70,9 +70,11 @@ extension type const EventShape._(FieldMask _mask) {
   /// 两份声明的缩放与旋转回调集合是否相同。
   bool sameScale(EventShape other) => _same(other, _scale);
 
-  bool _any(FieldMask group) => maskAnd(_mask, group).isNotEmpty;
+  bool _any(FieldMask group) => (_mask.low & group.low) != 0 || (_mask.high & group.high) != 0;
 
-  bool _same(EventShape other, FieldMask group) => maskAnd(_mask, group) == maskAnd(other._mask, group);
+  bool _same(EventShape other, FieldMask group) =>
+      (_mask.low & group.low) == (other._mask.low & group.low) &&
+      (_mask.high & group.high) == (other._mask.high & group.high);
 }
 
 final int _axisBase = ElEventPhase.values.length;

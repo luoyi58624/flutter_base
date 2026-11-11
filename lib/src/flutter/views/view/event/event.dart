@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show internal, listEquals, setEquals;
+import 'package:flutter/foundation.dart' show internal, setEquals;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 
@@ -260,9 +260,12 @@ class const ElEvent({
       onScaleCancel != null ||
       onRotationUpdate != null;
 
-  /// 已声明回调的位图；每次读取现算，分发器在设置声明时读取一次并自行保存。
+  static final _shapeCache = Expando<EventShape>('ElEvent shape');
+
+  /// 已声明回调的位图；普通不可变声明弱缓存复用，子类保留实时回调查询。
   @internal
-  EventShape get shape => EventShape.compile(handlerFor);
+  EventShape get shape =>
+      runtimeType == ElEvent ? (_shapeCache[this] ??= EventShape.compile(handlerFor)) : EventShape.compile(handlerFor);
 
   /// 查找当前阶段声明的回调，[axis] 选择拖拽阶段的轴向组。
   @internal
@@ -332,7 +335,28 @@ class const ElEvent({
     .blur => onBlur,
   };
 
-  List<Object?> get _settings => [
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    // 只换闭包不改变相等性，回调只比较声明了哪些。
+    return other is ElEvent &&
+        behavior == other.behavior &&
+        cursor == other.cursor &&
+        disabled == other.disabled &&
+        doubleTapInterval == other.doubleTapInterval &&
+        deferTap == other.deferTap &&
+        longPressDelay == other.longPressDelay &&
+        tapCancelDistance == other.tapCancelDistance &&
+        delayTouchDown == other.delayTouchDown &&
+        delayTouchUp == other.delayTouchUp &&
+        keyRepeatInterval == other.keyRepeatInterval &&
+        dragStartDistance == other.dragStartDistance &&
+        setEquals(dragDevices, other.dragDevices) &&
+        shape == other.shape;
+  }
+
+  @override
+  int get hashCode => Object.hash(
     behavior,
     cursor,
     disabled,
@@ -344,18 +368,7 @@ class const ElEvent({
     delayTouchUp,
     keyRepeatInterval,
     dragStartDistance,
-  ];
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    // 只换闭包不改变相等性，回调只比较声明了哪些。
-    return other is ElEvent &&
-        listEquals(_settings, other._settings) &&
-        setEquals(dragDevices, other.dragDevices) &&
-        shape == other.shape;
-  }
-
-  @override
-  int get hashCode => Object.hash(Object.hashAll(_settings), Object.hashAllUnordered(dragDevices ?? const {}), shape);
+    Object.hashAllUnordered(dragDevices ?? const {}),
+    shape,
+  );
 }
