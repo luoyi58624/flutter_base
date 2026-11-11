@@ -1,12 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 通用文档页使用的滚动实现。
+/// 通用文档页使用的正文布局。
 enum DocScrollMode {
-  /// 使用 SingleChildScrollView 和 Column 一次布局全部内容。
+  /// 使用 Column 一次布局全部内容。
   official('官方普通滚动'),
 
-  /// 使用 ListView.builder 按需创建文档条目。
+  /// 使用 SliverList.builder 按需创建文档条目。
   officialVirtual('官方虚拟列表'),
 
   /// 使用 ElScroll 常驻挂载全部文档条目。

@@ -52,6 +52,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/components/$key');
       expect(find.widgetWithText(AppBar, title), findsOneWidget);
+      if (key == 'quick-start') {
+        expect(find.text('安装依赖'), findsOneWidget);
+        expect(find.text('快速入门'), findsOneWidget);
+        expect(find.text('flutter pub get'), findsOneWidget);
+      }
       expect(find.byType(BackButton), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -75,15 +80,7 @@ void main() {
     await _openCatalog(tester);
     final catalog = find.byKey(PageStorageKey('component-catalog'));
     final placeholders = RouterUtil.pages.where(
-      (page) => [
-        'quick-start',
-        'theme-design',
-        'input-number',
-        'input-otp',
-        'input-tag',
-        'mention',
-        'empty',
-      ].contains(page.key),
+      (page) => ['theme-design', 'input-number', 'input-otp', 'input-tag', 'mention', 'empty'].contains(page.key),
     );
 
     for (final page in placeholders) {

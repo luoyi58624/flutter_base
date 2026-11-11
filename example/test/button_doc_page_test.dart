@@ -1,13 +1,20 @@
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/state/index.dart';
+import 'package:example/src/widgets/docs_page/index.dart';
 import 'package:example/src/widgets/docs_page/scroll_view.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_base/desktop.dart';
 import 'package:flutter_base/mobile.dart' show ElMobileExt;
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> _openPage(WidgetTester tester, {required double width, required ElComponents components}) async {
+Future<void> _openPage(
+  WidgetTester tester, {
+  required double width,
+  required ElComponents components,
+  Widget? page,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, 720);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -15,7 +22,7 @@ Future<void> _openPage(WidgetTester tester, {required double width, required ElC
   await tester.pumpWidget(
     ElComponentProvider(
       components: components,
-      child: MaterialApp(home: ButtonPage()),
+      child: MaterialApp(home: page ?? ButtonPage()),
     ),
   );
   await tester.pumpAndSettle();
@@ -36,6 +43,29 @@ Finder _anchorItem(String title) => find.descendant(
 );
 
 void main() {
+  testWidgets('文档滚动视口铺到右边缘，目录项上滚轮驱动正文', (tester) async {
+    await _openPage(
+      tester,
+      width: 1440,
+      components: el.desktopComponents,
+      page: DocsPage(
+        title: '文档',
+        sections: [DocsSection(title: '基础使用', child: SizedBox(height: 1000))],
+      ),
+    );
+    final body = find.byType(DocScrollView);
+    expect(tester.getRect(body).right, 1440);
+    final scroll = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final row = _anchorItem('基础使用');
+    final top = tester.getTopLeft(row).dy;
+    await tester.sendEventToBinding(
+      PointerScrollEvent(kind: PointerDeviceKind.mouse, position: tester.getCenter(row), scrollDelta: Offset(0, 140)),
+    );
+    await tester.pumpAndSettle();
+    expect(scroll.offset, greaterThan(0));
+    expect(tester.getTopLeft(row).dy, top);
+  });
+
   testWidgets('窄屏保留现有按钮演示，使用旧版折叠条展开和收起源码', (tester) async {
     final path = _examplePath(1);
     final source = (await tester.runAsync(() => rootBundle.loadString(path)))!;

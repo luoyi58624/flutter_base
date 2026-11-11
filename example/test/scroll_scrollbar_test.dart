@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> _open(WidgetTester tester, Widget page) async {
+Future<void> _open(WidgetTester tester, Widget page, {ScrollBehavior? scrollBehavior}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(390, 844);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -19,6 +19,7 @@ Future<void> _open(WidgetTester tester, Widget page) async {
       components: el.mobileComponents,
       child: MaterialApp(
         theme: ThemeData(platform: .android),
+        scrollBehavior: scrollBehavior,
         home: page,
       ),
     ),
@@ -116,7 +117,7 @@ void main() {
   });
 
   for (final mode in DocScrollMode.values) {
-    testWidgets('通用文档 ${mode.label} 支持安卓 iOS 风格滑块拖动', (tester) async {
+    testWidgets('通用文档 ${mode.label} 使用安卓默认滚动条', (tester) async {
       final oldMode = GlobalState.docScrollMode.value;
       final oldRepeat = GlobalState.docRepeatCount.value;
       GlobalState.docScrollMode.value = mode;
@@ -133,9 +134,12 @@ void main() {
             itemBuilder: (context, index) => SizedBox(height: 100, child: Text('文档 $index')),
           ),
         ),
+        scrollBehavior: ElScrollBehavior().copyWith(platform: .android),
       );
-      expect(find.byType(CupertinoScrollbar), findsOneWidget);
-      expect(await _dragCupertinoThumb(tester), greaterThan(500));
+      expect(find.byType(CupertinoScrollbar), findsNothing);
+      final bar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+      final scroll = tester.widget<ElScroll>(find.byType(ElScroll));
+      expect(bar.controller!.position, same(scroll.controller!.position));
       expect(tester.takeException(), isNull);
     });
   }

@@ -116,35 +116,49 @@ class _CodeArea extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final span = useMemoized(() => codeSpan(code, lang), [code, lang]);
-    final scaledFontSize = MediaQuery.textScalerOf(context).scale(14);
-    final text = Text.rich(
-      span,
-      style: codeTextStyle,
-      softWrap: false,
-      strutStyle: StrutStyle(
-        fontFamily: codeTextStyle.fontFamily,
-        fontFamilyFallback: codeTextStyle.fontFamilyFallback,
-        fontSize: 14,
-        height: (scaledFontSize * 1.7).roundToDouble() / scaledFontSize,
-        forceStrutHeight: true,
-      ),
+    final scaler = MediaQuery.textScalerOf(context);
+    final scaledFontSize = scaler.scale(14);
+    final strut = StrutStyle(
+      fontFamily: codeTextStyle.fontFamily,
+      fontFamilyFallback: codeTextStyle.fontFamilyFallback,
+      fontSize: 14,
+      height: (scaledFontSize * 1.7).roundToDouble() / scaledFontSize,
+      forceStrutHeight: true,
     );
+    final direction = Directionality.of(context);
+    final textHeight = useMemoized(() {
+      final painter = TextPainter(
+        text: TextSpan(style: codeTextStyle, children: [span]),
+        textScaler: scaler,
+        textDirection: direction,
+        strutStyle: strut,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }, [span, scaler, direction, strut]);
+    final text = Text.rich(span, style: codeTextStyle, softWrap: false, strutStyle: strut);
+    // 横向 ElScroll 需要有限的交叉轴高度，按原有源码行高测量。
     final content = LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        primary: false,
-        scrollDirection: .horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: Padding(padding: .symmetric(vertical: 20, horizontal: 24), child: text),
+      builder: (context, constraints) => SizedBox(
+        height: textHeight + 40,
+        child: ElScroll(
+          axis: .horizontal,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: Padding(padding: .symmetric(vertical: 20, horizontal: 24), child: text),
+            ),
+          ],
         ),
       ),
     );
     // 默认纵向完全展开，只有显式限高时才创建内部纵向视口。
-    final area = maxHeight == null
+    final area = maxHeight == null || textHeight + 40 <= maxHeight!
         ? content
-        : ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight!),
-            child: SingleChildScrollView(primary: false, child: content),
+        : SizedBox(
+            height: maxHeight,
+            child: ElScroll(children: [content]),
           );
     return SelectionArea(child: area);
   }

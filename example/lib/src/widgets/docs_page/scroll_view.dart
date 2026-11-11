@@ -6,7 +6,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../state/index.dart';
-import '../example_scrollbar.dart';
 
 /// 将文档目录定位交给当前选择的滚动实现。
 class DocScrollController {
@@ -35,6 +34,7 @@ class DocScrollView extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.gap = 0,
     this.headerCount = 0,
+    this.outline,
   }) : assert(itemCount >= 0),
        assert(headerCount >= 0 && headerCount <= itemCount),
        assert(gap >= 0 && gap.isFinite);
@@ -57,6 +57,9 @@ class DocScrollView extends StatelessWidget {
   /// 压力重复时只保留一份的页首条目数量。
   final int headerCount;
 
+  /// 随正文共用同一视口的宽屏目录。
+  final Widget? outline;
+
   @override
   Widget build(BuildContext context) => ObsBuilder(
     builder: (context) {
@@ -72,6 +75,7 @@ class DocScrollView extends StatelessWidget {
         controller: controller,
         padding: padding,
         gap: gap,
+        outline: outline,
       );
     },
   );
@@ -89,6 +93,7 @@ class _DocViewport extends StatefulWidget {
     required this.controller,
     required this.padding,
     required this.gap,
+    required this.outline,
   });
 
   final DocScrollMode mode;
@@ -99,6 +104,7 @@ class _DocViewport extends StatefulWidget {
   final DocScrollController? controller;
   final EdgeInsets padding;
   final double gap;
+  final Widget? outline;
 
   @override
   State<_DocViewport> createState() => _DocViewportState();
@@ -297,43 +303,7 @@ class _DocViewportState extends State<_DocViewport> {
 
   @override
   Widget build(BuildContext context) {
-    final list = switch (widget.mode) {
-      .official => SingleChildScrollView(
-        controller: _official,
-        primary: false,
-        padding: widget.padding,
-        child: Column(
-          crossAxisAlignment: .stretch,
-          mainAxisSize: .min,
-          children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
-        ),
-      ),
-      .officialVirtual => ListView.builder(
-        controller: _official,
-        primary: false,
-        padding: widget.padding,
-        itemCount: widget.itemCount,
-        addAutomaticKeepAlives: false,
-        addRepaintBoundaries: false,
-        itemBuilder: _item,
-      ),
-      .elScroll => ElScroll(
-        controller: _official,
-        padding: widget.padding,
-        children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
-      ),
-      .sliverList => CustomScrollView(
-        controller: _official,
-        primary: false,
-        slivers: [
-          SliverPadding(
-            padding: widget.padding,
-            sliver: ElSliverList(children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)]),
-          ),
-        ],
-      ),
-    };
-    final viewport = RecyclerExampleScrollbar(controller: _official, child: list);
+    final viewport = _pageScroll(context);
     return NotificationListener<ScrollNotification>(
       onNotification: _onScrollNotification,
       child: NotificationListener<ScrollMetricsNotification>(
@@ -350,6 +320,47 @@ class _DocViewportState extends State<_DocViewport> {
           child: viewport,
         ),
       ),
+    );
+  }
+
+  Widget _pageScroll(BuildContext context) {
+    final body = SliverPadding(
+      padding: widget.padding,
+      sliver: switch (widget.mode) {
+        .official => SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: .stretch,
+            mainAxisSize: .min,
+            children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
+          ),
+        ),
+        .officialVirtual => SliverList.builder(
+          itemCount: widget.itemCount,
+          addAutomaticKeepAlives: false,
+          addRepaintBoundaries: false,
+          itemBuilder: _item,
+        ),
+        .elScroll || .sliverList => ElSliverList(
+          stretch: widget.mode == .elScroll,
+          children: [for (var i = 0; i < widget.itemCount; i++) _item(context, i)],
+        ),
+      },
+    );
+    final outline = widget.outline;
+    return ElScroll.sliver(
+      controller: _official,
+      slivers: [
+        if (outline == null)
+          body
+        else
+          // 目录与正文共用视口，目录上的滚轮也走同一个 ElScroll。
+          SliverCrossAxisGroup(
+            slivers: [
+              SliverCrossAxisExpanded(flex: 1, sliver: body),
+              SliverConstrainedCrossAxis(maxExtent: 168, sliver: PinnedHeaderSliver(child: outline)),
+            ],
+          ),
+      ],
     );
   }
 

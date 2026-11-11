@@ -152,7 +152,11 @@ void main() {
           .widgetList<Scrollable>(find.byType(Scrollable))
           .where((widget) => widget.axisDirection == AxisDirection.right)
           .single;
-      expect(scroll.controller, isNull);
+      final scrolls = tester.widgetList<ElScroll>(
+        find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ElScroll)),
+      );
+      expect(scrolls.map((widget) => widget.axis), [Axis.vertical, Axis.horizontal]);
+      expect(scrolls.every((widget) => widget.controller == null), isTrue);
       final horizontal = find.byWidget(scroll);
       await tester.dragFrom(tester.getTopLeft(find.byType(ElCodePreview)) + Offset(160, 60), Offset(-120, 0));
       await tester.pumpAndSettle();

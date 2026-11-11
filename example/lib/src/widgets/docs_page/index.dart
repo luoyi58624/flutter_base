@@ -30,55 +30,39 @@ class DocsPage extends HookWidget {
     useEffect(() => scroll.dispose, [scroll]);
     return ExamplePage(
       title: navTitle,
-      child: Align(
-        alignment: .topCenter,
-        child: ConstrainedBox(
-          constraints: .new(maxWidth: 1080),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final showContents = constraints.maxWidth >= 880 && sections.isNotEmpty;
-              final padding = showContents ? 32.0 : 16.0;
-              return Row(
-                crossAxisAlignment: .start,
-                children: [
-                  Expanded(
-                    child: DocScrollView(
-                      controller: showContents ? scroll : null,
-                      padding: .fromLTRB(padding, 24, padding, 32),
-                      gap: 32,
-                      headerCount: 1,
-                      itemCount: sections.length + 1,
-                      itemBuilder: (context, index) =>
-                          index == 0 ? _Heading(title: title, description: description, level: 1) : sections[index - 1],
-                    ),
-                  ),
-                  if (showContents)
-                    SizedBox(
-                      width: 168,
-                      child: SingleChildScrollView(
-                        primary: false,
-                        padding: .fromLTRB(0, 24, 16, 16),
-                        child: Column(
-                          mainAxisSize: .min,
-                          crossAxisAlignment: .stretch,
-                          children: [
-                            Padding(
-                              padding: .only(left: 12, bottom: 6),
-                              child: Text('目录', style: Theme.of(context).textTheme.labelLarge),
-                            ),
-                            ElAnchor(
-                              links: [for (final section in sections) section.title],
-                              modelValue: scroll.activeSection,
-                            ),
-                          ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showContents = constraints.maxWidth >= 880 && sections.isNotEmpty;
+          final padding = showContents ? 32.0 : 16.0;
+          return DocScrollView(
+            controller: showContents ? scroll : null,
+            padding: .fromLTRB(padding, 24, padding, 32),
+            gap: 32,
+            headerCount: 1,
+            itemCount: sections.length + 1,
+            itemBuilder: (context, index) =>
+                index == 0 ? _Heading(title: title, description: description, level: 1) : sections[index - 1],
+            outline: showContents
+                ? Padding(
+                    padding: .fromLTRB(0, 24, 16, 16),
+                    child: Column(
+                      mainAxisSize: .min,
+                      crossAxisAlignment: .stretch,
+                      children: [
+                        Padding(
+                          padding: .only(left: 12, bottom: 6),
+                          child: Text('目录', style: Theme.of(context).textTheme.labelLarge),
                         ),
-                      ),
+                        ElAnchor(
+                          links: [for (final section in sections) section.title],
+                          modelValue: scroll.activeSection,
+                        ),
+                      ],
                     ),
-                ],
-              );
-            },
-          ),
-        ),
+                  )
+                : null,
+          );
+        },
       ),
     );
   }

@@ -40,6 +40,7 @@ import 'event/propagation/index.dart';
 import 'feedback/alert/index.dart';
 import 'feedback/loading/index.dart';
 import 'list/list_tile/index.dart';
+import 'start/quick_start/index.dart';
 import 'start/shadow/index.dart';
 import 'desktop/anchor/index.dart';
 import 'desktop/nav_menu/index.dart';
@@ -88,7 +89,7 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
     group: true,
     title: '开始使用',
     children: [
-      _page('quick-start', '快速开始'),
+      _page('quick-start', '快速开始', builder: (_) => QuickStartPage()),
       _page('theme-design', '主题设计'),
       _page('shadow-design', '阴影设计', builder: (_) => ShadowPage()),
     ],
