@@ -15,9 +15,8 @@ import '../../utils/platform/index.dart' show ElPlatform;
 /// 2. [segmentDuration]：新目标段走多久（速度接续的时长收缩在此）；
 /// 3. [curveFor]：段内缓动形状（retarget 速度连续性在此）。
 ///
-/// 配置口：最近 [ElViewProvider] 的环境默认，或滚动容器 `smoothScroll:`
-/// 直配（优先级更高）。
-/// 未传入或使用 `$absent` 时继承环境，祖先未配置则由
+/// 滚动容器默认自动接入，无需额外配置；也可通过 `smoothScroll:` 单独指定。
+/// 未传入或使用 `$absent` 时由
 /// [resolveDefaultSmoothScroll] 按平台解析（Windows 客户端
 /// [ElWindowsSmoothScroll]、Windows Web [ElChromiumSmoothScroll]，其余直滚）；
 /// 显式 null 关闭。配置变化对进行中的动画段不生效，下一段生效。
@@ -28,7 +27,7 @@ import '../../utils/platform/index.dart' show ElPlatform;
 /// - [ElChromiumSmoothScroll]：Chromium 口径，原始步长、动态时长和速度接续曲线。
 ///
 /// 两者的步长/增量类手感参数均为构造参数，可通过
-/// `ElViewProvider(smoothScrollBuilder: ...)` 在任意子树覆写。
+/// 滚动容器的 `smoothScroll:` 参数覆写。
 /// 默认解析见 [resolveDefaultSmoothScroll]。
 abstract class ElSmoothScroll {
   const ElSmoothScroll();
@@ -53,7 +52,7 @@ abstract class ElSmoothScroll {
   Curve curveFor(double initialSlope);
 }
 
-/// 滚动容器与祖先 [ElViewProvider] 均未覆写时使用的默认算法。
+/// 滚动容器未覆写时使用的平台默认算法。
 ///
 /// Windows 桌面客户端 → [ElWindowsSmoothScroll]；Windows Web →
 /// [ElChromiumSmoothScroll]（Chromium/Google 口径）；其余平台 → null（直滚）。
@@ -85,20 +84,20 @@ ElSmoothScroll? resolveDefaultSmoothScroll() {
 /// ### 调手感速查
 ///
 /// ```dart
-/// ElViewProvider(
-///   smoothScrollBuilder: (_) => const ElWindowsSmoothScroll(
+/// ElScroll(
+///   smoothScroll: const ElWindowsSmoothScroll(
 ///     duration: Duration(milliseconds: 200),
 ///     accelerationPerTick: 0.5,
 ///     maxAcceleration: 4.0,
 ///   ),
-///   child: app,
+///   children: [],
 /// );
 /// ```
 ///
 /// - 嫌单格太冲/太肉 → 调 [duration]；
 /// - 嫌连滚提速突兀 → 调小 [accelerationPerTick]；
 /// - 嫌长滚太快 → 调低 [maxAcceleration]；
-/// - 单容器覆盖：滚动容器 `smoothScroll:` 直配，优先级高于 Provider。
+/// - 单容器覆盖：通过滚动容器 `smoothScroll:` 直接配置。
 class ElWindowsSmoothScroll extends ElSmoothScroll {
   /// 创建 Windows 10 口径的平滑滚动算法；参数不传使用内置默认手感。
   const ElWindowsSmoothScroll({

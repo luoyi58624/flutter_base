@@ -6,8 +6,7 @@ import '../../../flutter/widgets/popup/context_menu.dart';
 
 /// el_ui 仍保留的进程级门面配置（最小门面，用于 selection 子系统）。
 ///
-/// 滚动条、下拉刷新、平滑滚动和选区 controls 已迁移到 `ElViewProvider` 的
-/// Widget 树作用域；这里仅保留目前没有 el_ui 内置兜底的上下文菜单注册表。
+/// 这里仅保留目前没有 el_ui 内置兜底的上下文菜单注册表。
 extension ElViewExt on El {
   static Map<TargetPlatform, ElContextMenu> _contextMenus = const {};
 

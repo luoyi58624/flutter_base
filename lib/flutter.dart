@@ -31,7 +31,6 @@ export 'src/flutter/commons/models.dart'
 
 // 核心视图、样式、状态与语义
 export 'src/flutter/views/view/view.dart';
-export 'src/flutter/views/view/provider.dart' show ElViewProvider;
 export 'src/flutter/views/view/style/style.dart';
 export 'src/flutter/views/view/style/style_context.dart' show ElStyleContext;
 export 'src/flutter/views/view/style/linear_gradient.dart' show ElLinearGradient;

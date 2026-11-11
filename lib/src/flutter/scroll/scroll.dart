@@ -4,8 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../dart/gen/index.dart' show $absent;
 import '../slivers/list/sliver_list.dart' show ElSliverList;
-import 'smooth/smooth_scroll.dart' show ElSmoothScroll;
-import '../views/view/provider.dart' show ElViewProvider;
+import 'smooth/smooth_scroll.dart' show ElSmoothScroll, resolveDefaultSmoothScroll;
 import 'refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
 import 'refresh/refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
@@ -70,7 +69,7 @@ class ElScroll extends HookWidget {
   /// 滚动物理，默认读取环境 [ScrollConfiguration]。
   final ScrollPhysics? physics;
 
-  /// 鼠标滚轮平滑算法；缺省继承 ElViewProvider，显式 null 关闭。
+  /// 鼠标滚轮平滑算法；缺省按平台自动启用，显式 null 关闭。
   final Object? smoothScroll;
 
   /// 滚动主轴。
@@ -101,7 +100,7 @@ class ElScroll extends HookWidget {
     final activeController = host;
     final refreshLink = ElRefreshScope.maybeOf(context);
     final configuredSmooth = identical(smoothScroll, $absent)
-        ? ElViewProvider.smoothScrollOf(context)
+        ? resolveDefaultSmoothScroll()
         : smoothScroll as ElSmoothScroll?;
     useEffect(() {
       host

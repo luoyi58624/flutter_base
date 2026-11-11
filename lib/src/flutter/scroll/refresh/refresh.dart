@@ -4,7 +4,7 @@ import '../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import 'refresh_host.dart' show RefreshHost, RefreshScrollLink;
 import 'refresher.dart' show ElRefreshEdge, ElRefresher;
-import '../../views/view/provider.dart' show ElViewProvider;
+import 'default_refresher.dart' show resolveDefaultRefresher;
 import '../nested/nested_scroll.dart' show ElNestedScroll;
 
 /// 在标准 Scrollable 外添加刷新状态和指示器，不更换子树的 Sliver 与拖拽识别器。
@@ -28,7 +28,7 @@ class ElRefresh extends StatefulWidget {
   /// 需要刷新的 ElScroll 子树。
   final Widget child;
 
-  /// 刷新器的外观与物理策略；null 继承 ElViewProvider。
+  /// 刷新器的外观与物理策略；null 使用平台默认实现。
   final ElRefresher? refresher;
 
   /// 绑定的刷新边缘。
@@ -47,7 +47,7 @@ class _RefreshState extends State<ElRefresh> {
 
   @override
   Widget build(BuildContext context) {
-    final refresher = widget.refresher ?? ElViewProvider.refresherOf(context);
+    final refresher = widget.refresher ?? resolveDefaultRefresher();
     _participant.axisDirection = widget.axisDirection;
     return RefreshHost(
       refresher: refresher,

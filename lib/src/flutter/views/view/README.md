@@ -228,6 +228,6 @@ ElView(
 
 focusNode 传入后由调用方持有并 dispose；未传时，焦点样式或键盘回调可触发内部节点创建。需要标准按钮键盘行为优先用 [ElButtonView](../button/README.md)。ElSemantics 声明 label、role、状态和动作；`ElSemantics(container: true, explicitChildNodes: true)` 可建立保留后代节点的区域容器。
 
-## 子树默认策略
+## 滚动默认策略
 
-ElViewProvider 的 scrollbarBuilder、refresherBuilder、smoothScrollBuilder 为滚动子树提供默认配置，示例见 [Scroll](../scroll/README.md)。普通业务无需直接使用 element / render / resolved 等内部实现。
+刷新器和平滑滚动由滚动组件按平台提供默认实现。普通业务无需直接使用 element / render / resolved 等内部实现。

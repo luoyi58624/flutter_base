@@ -12,7 +12,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import '../scroll/refresh/refresher.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
-import '../views/view/provider.dart' show ElViewProvider;
+import '../scroll/refresh/default_refresher.dart' show resolveDefaultRefresher;
 import '../scroll/scroll_position.dart' show ScrollHostPosition;
 
 /// Sliver 形式的下拉刷新，放在 ElScroll.sliver 的 slivers 里，通常是第一个。
@@ -31,7 +31,7 @@ class ElSliverRefresh extends HookWidget {
   /// 刷新回调，返回的 Future 完成后指示器收起。
   final Future<void> Function() onRefresh;
 
-  /// 刷新器的外观与策略；null 继承 ElViewProvider。
+  /// 刷新器的外观与策略；null 使用平台默认实现。
   final ElRefresher? refresher;
 
   @override
@@ -39,7 +39,7 @@ class ElSliverRefresh extends HookWidget {
     final scrollable = Scrollable.of(context);
     final position = scrollable.position;
     assert(position is ScrollHostPosition, 'ElSliverRefresh 需要放在 ElScroll.sliver 的 slivers 中');
-    final refresher = this.refresher ?? ElViewProvider.refresherOf(context);
+    final refresher = this.refresher ?? resolveDefaultRefresher();
 
     final vsync = useSingleTickerProvider();
     final motion = useMemoized(() => _RefreshMotion(vsync));
