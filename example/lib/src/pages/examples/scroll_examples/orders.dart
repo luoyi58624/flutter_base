@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -173,8 +174,27 @@ class _RecyclerOrdersPageState extends State<RecyclerOrdersPage> {
                     findChildIndexCallback: _adapter.indexForKey,
                     itemBuilder: (context, index) {
                       final record = _adapter.recordAt(index);
-                      return _OrderRow(key: ValueKey(record.id), record: record, onSelect: _adapter.select);
+                      return _OrderRow(
+                        key: ValueKey(record.id),
+                        record: AlwaysStoppedAnimation(record),
+                        onSelect: _adapter.select,
+                      );
                     },
+                    recycledItemBuilder: (context, index) => HookBuilder(
+                      builder: (context) {
+                        final record = useMemoized(() => ValueNotifier(_adapter.recordAt(index.value)), [index]);
+                        useEffect(() {
+                          // 结构更新可能保持索引不变，仍须读取该位置当前的订单。
+                          void bind() => record.value = _adapter.recordAt(index.value);
+                          index.addListener(bind);
+                          return () {
+                            index.removeListener(bind);
+                            record.dispose();
+                          };
+                        }, [index]);
+                        return useMemoized(() => _OrderRow(record: record, onSelect: _adapter.select), [record]);
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -283,8 +303,18 @@ class _OrderRow extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _OrderRow({super.key, required this.record, required this.onSelect});
 
-  final _OrderRecord record;
+  final ValueListenable<_OrderRecord> record;
   final void Function(_OrderRecord, bool) onSelect;
+
+  Widget _field<T>(
+    BuildContext context, {
+    required T Function(ValueListenable<_OrderRecord>) select,
+    required TransitionBuilder builder,
+  }) {
+    // 官方行的记录不会换绑，直接构建叶子，不增加无效监听节点。
+    if (record is AlwaysStoppedAnimation<_OrderRecord>) return builder(context, null);
+    return ElListenableBuilder(listenable: record, select: select, builder: builder);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -308,55 +338,84 @@ class _OrderRow extends StatelessWidget {
               Row(
                 spacing: 6,
                 children: [
-                  ValueListenableBuilder(
-                    valueListenable: record.selected,
-                    builder: (context, checked, child) => Semantics(
-                      label: '选择${record.title}',
-                      child: Checkbox(
-                        key: ValueKey('orders-select'),
-                        value: checked,
-                        onChanged: (checked) => onSelect(record, checked ?? false),
-                        visualDensity: .compact,
-                        materialTapTargetSize: .shrinkWrap,
+                  _field(
+                    context,
+                    select: (source) => source.value,
+                    builder: (context, child) => ValueListenableBuilder(
+                      valueListenable: record.value.selected,
+                      builder: (context, checked, child) => Semantics(
+                        label: '选择${record.value.title}',
+                        child: Checkbox(
+                          key: ValueKey('orders-select'),
+                          value: checked,
+                          onChanged: (checked) => onSelect(record.value, checked ?? false),
+                          visualDensity: .compact,
+                          materialTapTargetSize: .shrinkWrap,
+                        ),
                       ),
                     ),
                   ),
-                  Icon(record.id.isEven ? Icons.local_shipping_outlined : Icons.storefront_outlined, size: 19),
-                  Expanded(
-                    child: Text(record.title, maxLines: 1, overflow: .ellipsis, style: theme.textTheme.titleSmall),
+                  _field(
+                    context,
+                    select: (source) => source.value.id.isEven,
+                    builder: (context, child) => Icon(
+                      record.value.id.isEven ? Icons.local_shipping_outlined : Icons.storefront_outlined,
+                      size: 19,
+                    ),
                   ),
-                  Text(record.amount, style: theme.textTheme.labelLarge?.copyWith(color: colors.primary)),
+                  Expanded(
+                    child: _field(
+                      context,
+                      select: (source) => source.value.title,
+                      builder: (context, child) =>
+                          Text(record.value.title, maxLines: 1, overflow: .ellipsis, style: theme.textTheme.titleSmall),
+                    ),
+                  ),
+                  _field(
+                    context,
+                    select: (source) => source.value.amount,
+                    builder: (context, child) =>
+                        Text(record.value.amount, style: theme.textTheme.labelLarge?.copyWith(color: colors.primary)),
+                  ),
                 ],
               ),
               Padding(
                 padding: .symmetric(horizontal: 6),
-                child: Text(
-                  record.details,
-                  maxLines: 1,
-                  overflow: .ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                child: _field(
+                  context,
+                  select: (source) => source.value.details,
+                  builder: (context, child) => Text(
+                    record.value.details,
+                    maxLines: 1,
+                    overflow: .ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                  ),
                 ),
               ),
               Padding(
                 padding: .symmetric(horizontal: 6),
-                child: ValueListenableBuilder(
-                  valueListenable: record.progress,
-                  builder: (context, progress, child) => Row(
-                    spacing: 9,
-                    children: [
-                      Text(
-                        progress == 100 ? '已完成' : (progress == 0 ? '待处理' : '处理中'),
-                        style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
-                      ),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: progress / 100,
-                          borderRadius: .circular(4),
-                          semanticsLabel: '订单进度',
+                child: _field(
+                  context,
+                  select: (source) => source.value.progress,
+                  builder: (context, child) => ValueListenableBuilder(
+                    valueListenable: record.value.progress,
+                    builder: (context, progress, child) => Row(
+                      spacing: 9,
+                      children: [
+                        Text(
+                          progress == 100 ? '已完成' : (progress == 0 ? '待处理' : '处理中'),
+                          style: theme.textTheme.labelSmall?.copyWith(color: colors.primary),
                         ),
-                      ),
-                      Text('$progress%', style: theme.textTheme.labelSmall),
-                    ],
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: progress / 100,
+                            borderRadius: .circular(4),
+                            semanticsLabel: '订单进度',
+                          ),
+                        ),
+                        Text('$progress%', style: theme.textTheme.labelSmall),
+                      ],
+                    ),
                   ),
                 ),
               ),

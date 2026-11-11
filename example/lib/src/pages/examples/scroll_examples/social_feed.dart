@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
@@ -60,7 +61,21 @@ class _RecyclerSocialFeedPageState extends State<RecyclerSocialFeedPage> {
 
                   itemCount: _adapter.getItemCount(),
                   itemType: (index) => index % _PostKind.values.length,
-                  itemBuilder: (context, index) => _SocialCard(record: _adapter.postAt(index)),
+                  itemBuilder: (context, index) => _SocialCard(record: AlwaysStoppedAnimation(_adapter.postAt(index))),
+                  recycledItemBuilder: (context, index) => HookBuilder(
+                    builder: (context) {
+                      final record = useMemoized(() => ValueNotifier(_adapter.postAt(index.value)), [index]);
+                      useEffect(() {
+                        void bind() => record.value = _adapter.postAt(index.value);
+                        index.addListener(bind);
+                        return () {
+                          index.removeListener(bind);
+                          record.dispose();
+                        };
+                      }, [index]);
+                      return useMemoized(() => _SocialCard(record: record), [record]);
+                    },
+                  ),
                 ),
               ),
             ],
@@ -116,17 +131,28 @@ class _SocialRecords {
   int getItemCount() => 10000;
 }
 
+Widget _postField<T>(
+  BuildContext context,
+  ValueListenable<_SocialPost> post, {
+  required T Function(ValueListenable<_SocialPost>) select,
+  required TransitionBuilder builder,
+}) {
+  // 官方行的记录不会换绑，直接构建叶子，不增加无效监听节点。
+  if (post is AlwaysStoppedAnimation<_SocialPost>) return builder(context, null);
+  return ElListenableBuilder(listenable: post, select: select, builder: builder);
+}
+
 class _SocialCard extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _SocialCard({required this.record});
 
-  final _SocialPost record;
+  final ValueListenable<_SocialPost> record;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final kind = record.kind;
+    final kind = record.value.kind;
     return Padding(
       padding: .fromLTRB(12, 4, 12, 8),
       child: ExamplePanel(
@@ -149,8 +175,21 @@ class _SocialCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: .start,
                     children: [
-                      Text(record.author, style: theme.textTheme.titleSmall),
-                      Text('${2 + record.id % 49} 分钟前 · 动态 #${record.id + 1}', style: theme.textTheme.bodySmall),
+                      _postField(
+                        context,
+                        record,
+                        select: (source) => source.value.author,
+                        builder: (context, child) => Text(record.value.author, style: theme.textTheme.titleSmall),
+                      ),
+                      _postField(
+                        context,
+                        record,
+                        select: (source) => source.value.id,
+                        builder: (context, child) => Text(
+                          '${2 + record.value.id % 49} 分钟前 · 动态 #${record.value.id + 1}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -165,22 +204,32 @@ class _SocialCard extends StatelessWidget {
             },
             Row(
               children: [
-                ValueListenableBuilder(
-                  valueListenable: record.liked,
-                  builder: (context, liked, child) => TextButton.icon(
-                    key: ValueKey('social-like'),
-                    onPressed: () => record.liked.value = !liked,
-                    icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16),
-                    label: Text('${record.likes + (liked ? 1 : 0)}'),
+                _postField(
+                  context,
+                  record,
+                  select: (source) => source.value,
+                  builder: (context, child) => ValueListenableBuilder(
+                    valueListenable: record.value.liked,
+                    builder: (context, liked, child) => TextButton.icon(
+                      key: ValueKey('social-like'),
+                      onPressed: () => record.value.liked.value = !record.value.liked.value,
+                      icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16),
+                      label: Text('${record.value.likes + (liked ? 1 : 0)}'),
+                    ),
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    '${record.id % 13 + 2} 条讨论 · #城市自然观察',
-                    maxLines: 1,
-                    overflow: .ellipsis,
-                    textAlign: .end,
-                    style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                  child: _postField(
+                    context,
+                    record,
+                    select: (source) => source.value.id % 13,
+                    builder: (context, child) => Text(
+                      '${record.value.id % 13 + 2} 条讨论 · #城市自然观察',
+                      maxLines: 1,
+                      overflow: .ellipsis,
+                      textAlign: .end,
+                      style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                    ),
                   ),
                 ),
               ],
@@ -195,56 +244,74 @@ class _SocialCard extends StatelessWidget {
 class _Article extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _Article({required this.post});
-  final _SocialPost post;
+  final ValueListenable<_SocialPost> post;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-    valueListenable: post.expanded,
-    builder: (context, expanded, child) => Column(
-      crossAxisAlignment: .start,
-      spacing: 4,
-      children: [
-        Text('写在天亮之前', style: Theme.of(context).textTheme.titleMedium),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: '第 ${post.id + 1} 次晨间记录。',
-                style: TextStyle(fontWeight: .w700),
-              ),
-              TextSpan(
-                text:
-                    '清晨的沿江步道只有零星行人。雨停后，麻雀沿着屋檐排成一列，树林里的声响逐渐清晰。'
-                    '\n\n我把这段路分成四个观察点，每站停留三分钟，记录鸟叫的方向和变化。'
-                    '到第三站时，风从水面转向，原本安静的灌木丛突然有了动静。'
-                    '\n\n下次想沿原路反向走一遍，看看声音与光线变化会不会让同一个地方显得完全不同。',
-              ),
-            ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: .start,
+    spacing: 4,
+    children: [
+      Text('写在天亮之前', style: Theme.of(context).textTheme.titleMedium),
+      _postField(
+        context,
+        post,
+        select: (source) => source.value,
+        builder: (context, child) => ValueListenableBuilder(
+          valueListenable: post.value.expanded,
+          builder: (context, expanded, child) => Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '第 ${post.value.id + 1} 次晨间记录。',
+                  style: TextStyle(fontWeight: .w700),
+                ),
+                TextSpan(
+                  text:
+                      '清晨的沿江步道只有零星行人。雨停后，麻雀沿着屋檐排成一列，树林里的声响逐渐清晰。'
+                      '\n\n我把这段路分成四个观察点，每站停留三分钟，记录鸟叫的方向和变化。'
+                      '到第三站时，风从水面转向，原本安静的灌木丛突然有了动静。'
+                      '\n\n下次想沿原路反向走一遍，看看声音与光线变化会不会让同一个地方显得完全不同。',
+                ),
+              ],
+            ),
+            maxLines: expanded ? null : 2,
+            overflow: expanded ? .clip : .ellipsis,
           ),
-          maxLines: expanded ? null : 2,
-          overflow: expanded ? .clip : .ellipsis,
         ),
-        TextButton(
-          key: ValueKey('social-expand'),
-          onPressed: () => post.expanded.value = !expanded,
-          child: Text(expanded ? '收起长文' : '展开长文'),
+      ),
+      _postField(
+        context,
+        post,
+        select: (source) => source.value.expanded,
+        builder: (context, child) => ValueListenableBuilder(
+          valueListenable: post.value.expanded,
+          builder: (context, expanded, child) => TextButton(
+            key: ValueKey('social-expand'),
+            onPressed: () => post.value.expanded.value = !post.value.expanded.value,
+            child: Text(expanded ? '收起长文' : '展开长文'),
+          ),
         ),
-      ],
-    ),
+      ),
+    ],
   );
 }
 
 class _Gallery extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _Gallery({required this.post});
-  final _SocialPost post;
+  final ValueListenable<_SocialPost> post;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: .stretch,
     spacing: 5,
     children: [
-      Text('保护区的九个镜头 · 路线 ${post.id % 9 + 1}'),
+      _postField(
+        context,
+        post,
+        select: (source) => source.value.id % 9,
+        builder: (context, child) => Text('保护区的九个镜头 · 路线 ${post.value.id % 9 + 1}'),
+      ),
       for (var row = 0; row < 3; row++)
         Row(
           spacing: 5,
@@ -255,8 +322,9 @@ class _Gallery extends StatelessWidget {
                   aspectRatio: 1.6,
                   child: ClipRRect(
                     borderRadius: .circular(7),
+                    // 同 kind 的记录 id 相差 4，图片奇偶排列不变，可以保留整组图片。
                     child: Image.asset(
-                      (post.id + row + col).isEven
+                      (post.value.id + row + col).isEven
                           ? 'assets/recycler_cards/owl.jpg'
                           : 'assets/recycler_cards/owl-2.jpg',
                       cacheWidth: 360,
@@ -277,7 +345,7 @@ class _Gallery extends StatelessWidget {
 class _Repost extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _Repost({required this.post});
-  final _SocialPost post;
+  final ValueListenable<_SocialPost> post;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -295,7 +363,14 @@ class _Repost extends StatelessWidget {
           spacing: 10,
           children: [
             Icon(Icons.format_quote_rounded),
-            Expanded(child: Text('自然笔记 #${post.id + 101}\n给动物留下距离，观察结束后把器材和垃圾一起带走。')),
+            Expanded(
+              child: _postField(
+                context,
+                post,
+                select: (source) => source.value.id,
+                builder: (context, child) => Text('自然笔记 #${post.value.id + 101}\n给动物留下距离，观察结束后把器材和垃圾一起带走。'),
+              ),
+            ),
           ],
         ),
       ),
@@ -306,24 +381,29 @@ class _Repost extends StatelessWidget {
 class _Poll extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _Poll({required this.post});
-  final _SocialPost post;
+  final ValueListenable<_SocialPost> post;
   static final _options = ['河边慢走', '清晨观鸟', '绘制街区地图'];
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-    valueListenable: post.vote,
-    builder: (context, selected, child) => Column(
-      crossAxisAlignment: .stretch,
-      children: [
-        Text('本周末想参加哪场活动？', style: Theme.of(context).textTheme.titleMedium),
-        for (final (index, option) in _options.indexed)
-          OutlinedButton.icon(
-            key: ValueKey('social-vote-$index'),
-            onPressed: () => post.vote.value = index,
-            icon: Icon(selected == index ? Icons.check_circle_outline : Icons.radio_button_unchecked, size: 17),
-            label: Text(selected == null ? option : '$option · ${38 - index * 8 + (selected == index ? 1 : 0)} 票'),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: .stretch,
+    children: [
+      Text('本周末想参加哪场活动？', style: Theme.of(context).textTheme.titleMedium),
+      for (final (index, option) in _options.indexed)
+        _postField(
+          context,
+          post,
+          select: (source) => source.value.vote,
+          builder: (context, child) => ValueListenableBuilder(
+            valueListenable: post.value.vote,
+            builder: (context, selected, child) => OutlinedButton.icon(
+              key: ValueKey('social-vote-$index'),
+              onPressed: () => post.value.vote.value = index,
+              icon: Icon(selected == index ? Icons.check_circle_outline : Icons.radio_button_unchecked, size: 17),
+              label: Text(selected == null ? option : '$option · ${38 - index * 8 + (selected == index ? 1 : 0)} 票'),
+            ),
           ),
-      ],
-    ),
+        ),
+    ],
   );
 }
