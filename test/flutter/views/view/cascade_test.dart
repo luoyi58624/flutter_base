@@ -865,7 +865,7 @@ void main() {
         final inner = views.last;
         final outerBefore = outer.debugLayoutCount;
         final innerBefore = inner.debugLayoutCount;
-        final textBefore = ((inner.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final textBefore = (((inner.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
         await tester.pumpWidget(
           const MaterialApp(
@@ -884,7 +884,7 @@ void main() {
         expect(outer.debugLayoutCount, outerBefore, reason: '父 ElView color 是 paint-only，不重 layout');
         expect(inner.debugLayoutCount, innerBefore, reason: '子 ElView color 是 paint-only，不重 performLayout');
         expect(
-          ((inner.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+          (((inner.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
           textBefore,
           reason: 'T21：子文本 color paint-only 分级，不再触发 painter.layout()',
         );
@@ -1691,6 +1691,76 @@ void main() {
       expect(lastMd, isFalse, reason: 'resize 到 1300 > md(1024)，md 位关闭并重建读取者');
     });
 
+    testWidgets('ElBreakpoint.inheritSize 切换时复用节点并更新后代基准', (tester) async {
+      setWindow(tester, 1920);
+      final containerKey = UniqueKey();
+      final childKey = UniqueKey();
+      final inheritedChildKey = UniqueKey();
+      final bg = Color(0xFF000000);
+      final bgSm = Color(0xFF00FF00);
+      final style = ElStyle(
+        backgroundColor: bg,
+        sm: ElStyle(backgroundColor: bgSm),
+      );
+
+      Widget build(bool? inheritSize, double width) => _directionalHost(
+        SizedBox(
+          width: width,
+          height: 300,
+          child: ElView(
+            key: containerKey,
+            breakpoint: inheritSize == null ? null : ElBreakpoint(inheritSize: inheritSize),
+            style: style,
+            child: Column(
+              children: [
+                ElView(key: inheritedChildKey, style: style, child: SizedBox(width: 200, height: 50)),
+                ElView(
+                  key: childKey,
+                  breakpoint: ElBreakpoint(inheritSize: true, sm: 500),
+                  style: style,
+                  child: SizedBox(width: 200, height: 50),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(build(false, 600));
+      await tester.pump();
+      final render = findByKey(tester, containerKey);
+      expect(render.committedResolvedStyle.box.backgroundColor, bgSm);
+      expect(findByKey(tester, inheritedChildKey).committedResolvedStyle.box.backgroundColor, bgSm);
+      expect(
+        findByKey(tester, childKey).committedResolvedStyle.box.backgroundColor,
+        bg,
+        reason: '后代以容器 600 宽判断自定义 sm=500，不取自己的 200 宽',
+      );
+
+      await tester.pumpWidget(build(false, 400));
+      await tester.pump();
+      expect(findByKey(tester, childKey).committedResolvedStyle.box.backgroundColor, bgSm);
+
+      for (final inheritSize in <bool?>[true, false, null]) {
+        await tester.pumpWidget(build(inheritSize, 400));
+        await tester.pump();
+        expect(findByKey(tester, containerKey), same(render));
+        final expected = inheritSize == false ? bgSm : bg;
+        expect(render.committedResolvedStyle.box.backgroundColor, expected);
+        expect(findByKey(tester, inheritedChildKey).committedResolvedStyle.box.backgroundColor, expected);
+        expect(findByKey(tester, childKey).committedResolvedStyle.box.backgroundColor, expected);
+      }
+    });
+
+    test('ElBreakpoint 尺寸声明参与复制、合并与相等判断', () {
+      final breakpoint = ElBreakpoint(sm: 700, inheritSize: false);
+      expect(breakpoint.copyWith(md: 1000), ElBreakpoint(sm: 700, md: 1000, inheritSize: false));
+      expect(breakpoint.copyWith(inheritSize: true), ElBreakpoint(sm: 700, inheritSize: true));
+      expect(ElBreakpoint(inheritSize: true).mergeAncestor(breakpoint), ElBreakpoint(sm: 700, inheritSize: true));
+      expect(ElBreakpoint(md: 1000).mergeAncestor(breakpoint), ElBreakpoint(sm: 700, md: 1000, inheritSize: false));
+      expect(breakpoint, isNot(ElBreakpoint(sm: 700, inheritSize: true)));
+    });
+
     testWidgets('inheritSize:false 容器基准：自宽 600 命中 sm，不按窗口 1920 断档', (tester) async {
       setWindow(tester, 1920);
       const bg = Color(0xFF000000);
@@ -1703,7 +1773,7 @@ void main() {
             height: 300,
             child: ElView(
               key: key,
-              inheritSize: false,
+              breakpoint: ElBreakpoint(inheritSize: false),
               style: ElStyle(
                 backgroundColor: bg,
                 sm: ElStyle(backgroundColor: bgSm),
@@ -2170,15 +2240,9 @@ void main() {
           fontWeight: FontWeight.w600,
           fontStyle: FontStyle.italic,
           fontFamily: 'Roboto',
-          fontFamilyFallback: const <String>['Arial'],
           lineHeight: 1.5,
           letterSpacing: 0.5,
-          wordSpacing: 1,
-          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
-          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
           textAlign: TextAlign.center,
-          textBaseline: TextBaseline.ideographic,
-          leadingDistribution: TextLeadingDistribution.even,
           textShadow: const <Shadow>[Shadow(blurRadius: 1)],
           textGradient: const ElLinearGradient(angle: 90, colors: [Color(0xFF030303), Color(0xFF040404)]),
           textDecorationColor: const Color(0xFF020202),
@@ -2190,6 +2254,14 @@ void main() {
           pointerEvents: ElPointerEvents.none,
           iconSize: 18,
           iconColor: const Color(0xFF050505),
+          textOptions: ElTextOptions(
+            textBaseline: TextBaseline.ideographic,
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          fontFamilyFallback: const <String>['Arial'],
+          wordSpacing: 1,
+          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
+          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
         );
         final result = StyleResolver.explicitInheritedMask(style).fields.toSet();
         expect(
@@ -2202,14 +2274,16 @@ void main() {
 
       test('回归：曾被手写清单漏掉的继承字段都被收进', () {
         final style = ElStyle(
-          fontFamilyFallback: const <String>['A'],
-          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
-          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
-          textBaseline: TextBaseline.ideographic,
-          leadingDistribution: TextLeadingDistribution.even,
           textDecorationColor: const Color(0xFF112233),
           textDecorationStyle: TextDecorationStyle.dashed,
           textDecorationThickness: 2,
+          textOptions: ElTextOptions(
+            textBaseline: TextBaseline.ideographic,
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          fontFamilyFallback: const <String>['A'],
+          fontFeatureSettings: <FontFeature>[const FontFeature.enable('smcp')],
+          fontVariationSettings: const <FontVariation>[FontVariation('wght', 700)],
         );
         expect(
           StyleResolver.explicitInheritedMask(style).fields.toSet(),
@@ -2217,8 +2291,6 @@ void main() {
             ElTransitionField.fontFamilyFallback,
             ElTransitionField.fontFeatureSettings,
             ElTransitionField.fontVariationSettings,
-            ElTransitionField.textBaseline,
-            ElTransitionField.leadingDistribution,
             ElTransitionField.textDecorationColor,
             ElTransitionField.textDecorationStyle,
             ElTransitionField.textDecorationThickness,
@@ -2240,7 +2312,7 @@ void main() {
       await tester.pumpWidget(page(18, Colors.red));
       await tester.pumpWidget(page(30, Colors.blue));
       final render = tester.renderObject<ElRenderView>(find.byType(ElView));
-      final text = (render.textEngineForTest?.painterForTest.text) as TextSpan;
+      final text = ((render.content as TextEngine?)?.painterForTest.text) as TextSpan;
       expect(text.style!.fontSize, 30);
       expect(text.style!.color, Colors.blue);
     });
@@ -2265,7 +2337,7 @@ void main() {
       await tester.pumpWidget(page(18, Colors.red));
       await tester.pumpWidget(page(30, Colors.blue));
       final render = tester.renderObject<ElRenderView>(find.byKey(childKey));
-      final text = (render.textEngineForTest?.painterForTest.text) as TextSpan;
+      final text = ((render.content as TextEngine?)?.painterForTest.text) as TextSpan;
       expect(text.style!.fontSize, 30);
       expect(text.style!.color, Colors.blue);
       expect(render.committedResolvedStyle.inheritedBox.cursor, SystemMouseCursors.click);
@@ -2596,18 +2668,18 @@ void main() {
         await tester.pump();
 
         final child = viewOf(tester, childKey);
-        final baselineLayout = ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0);
+        final baselineLayout = (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0);
 
         await tester.pumpWidget(build(const Color(0xffff0000)));
         await tester.pump();
 
         expect(
-          ((child.textEngineForTest?.stringPainterLayoutCountForTest) ?? 0),
+          (((child.content as TextEngine?)?.stringPainterLayoutCountForTest) ?? 0),
           baselineLayout,
           reason: '借用路径下 changedFields={color} 仍走 paint-only 分级，painter 不 relayout',
         );
 
-        final span = (child.textEngineForTest?.painterForTest.text) as TextSpan?;
+        final span = ((child.content as TextEngine?)?.painterForTest.text) as TextSpan?;
         expect(span?.style?.color, const Color(0xffff0000));
       });
     });

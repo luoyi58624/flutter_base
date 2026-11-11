@@ -1,5 +1,4 @@
-import 'package:collection/collection.dart' show IdentityEquality, IterableEquality;
-import 'package:flutter/foundation.dart' show ValueListenable, internal;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
@@ -23,12 +22,6 @@ class ElView extends RenderObjectWidget {
     this.semantics,
     this.themeMode,
     this.breakpoint,
-    this.inheritSize,
-    this.locale,
-    this.textScaler,
-    this.strutStyle,
-    this.textWidthBasis = TextWidthBasis.parent,
-    this.textHeightBehavior,
     this.child,
   });
 
@@ -43,6 +36,7 @@ class ElView extends RenderObjectWidget {
   /// 能由对应的 Flutter `Stack` / `Flex` 消费。开发模式会对此类错误抛出断言。
   final Object? child;
 
+  /// 基础样式与状态变体，非常用文本配置通过 [ElStyle.textOptions] 声明。
   final ElStyle? style;
 
   /// 事件配置（pointer / tap / longPress / drag / scale / keyboard / focus）。
@@ -62,29 +56,10 @@ class ElView extends RenderObjectWidget {
   /// 更新主题时，会根据配置的 duration / curve 统一后代的动画时长、曲线，从 Render 底层解决过渡不一致问题。
   final ElThemeMode? themeMode;
 
-  /// 响应式断点声明。五字段全部可空，沿 render 链继承合并；
+  /// 响应式断点与尺寸基准声明；五档上界可空，沿 render 链继承合并；
   /// 整条链未声明时消费端 fallback 到 [ElBreakpoint.defaultXs] .. `defaultXl`
   /// （320/640/1024/1920/2560，对齐 `ElResponsiveData`）。
   final ElBreakpoint? breakpoint;
-
-  /// 定义后代的响应式基准尺寸。
-  final bool? inheritSize;
-
-  /// 文本语言环境提示。默认 null，让平台/引擎按字体 fallback 规则处理；
-  /// 需要精确语言字形时显式传入（如 `Locale('ja', 'JP')`）。
-  final Locale? locale;
-
-  /// 文本缩放规则，省略时使用当前 [MediaQuery] 的设置。
-  final TextScaler? textScaler;
-
-  /// 当前段落的最小行高与基线度量。
-  final StrutStyle? strutStyle;
-
-  /// 当前段落计算宽度时使用的基准。
-  final TextWidthBasis textWidthBasis;
-
-  /// 当前段落首行上方和末行下方的行高度量规则。
-  final TextHeightBehavior? textHeightBehavior;
 
   /// 最近 ElView 的只读样式上下文，读取状态或变量时自动订阅对应变化。
   static ElStyleContext of(BuildContext context) {
@@ -101,47 +76,20 @@ class ElView extends RenderObjectWidget {
   @override
   RenderObjectElement createElement() => ViewElement(this);
 
-  /// textScaler 只有文本链消费（[ElRenderView.textScaler] → 文本子失效 +
-  /// TextView 排版 `owner?.textScaler`）：child 为 null / 纯 Widget 的节点
-  /// （布局容器的大多数）没有消费者——不读 MediaQuery、不建 aspect 依赖，
-  /// 挂载突发少一次 InheritedModel 注册。inline Widget 混排即使路由 TextView，
-  /// payload 里也只有 atomic widget、无可缩放文本；其内部文本由自己的 ElView
-  /// 宿主提供 scaler。String / InlineSpan / Iterable（可能混文本）保守读取。
-  // 独立 IconData 默认不缩放；ElIcon 的可选缩放由组件推送到既有 render 接口。
-  bool get _needsTextScaler => child != null && child is! Widget && child is! IconData;
-
-  TextScaler _resolveTextScaler(BuildContext context) {
-    // 动态来源即使暂时为空或为图标，也保留缩放依赖，后续文字使用最新环境。
-    final scaler = _needsTextScaler
-        ? (textScaler ?? MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling)
-        : TextScaler.noScaling;
-    final source = child;
-    final value = source is ValueListenable<Object?> ? source.value : source;
-    return value is IconData ? TextScaler.noScaling : scaler;
-  }
-
   @override
   ElRenderView createRenderObject(BuildContext context) {
     final element = context as ViewElement;
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
-    // Element 挂载文本前认领宿主，环境参数由 Widget 持续推送。
     final render = ElRenderView(
       style: style,
       event: event,
       semantics: semantics,
       themeMode: themeMode,
       breakpoint: breakpoint,
-      inheritSize: inheritSize,
-      textScaler: _resolveTextScaler(context),
-      locale: locale,
-      strutStyle: strutStyle,
-      textWidthBasis: textWidthBasis,
-      textHeightBehavior: textHeightBehavior,
     );
-    render.textAccessibility = element.resolveTextAccessibility();
     render.bindTickerModeSource(() => TickerMode.getValuesNotifier(context));
     // 祖先失活时的按压反馈复位会回调这里，此时不可能处于换绑，直接返回 false。
-    render.skipReuseTransitions = () => context.isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(context);
+    render.skipReuseTransitions = () => element.isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(element);
     render.setStyleParent(StyleDependencyScope.maybeHostOf(context));
     if (trace != null) MountTrace.createRenderObjectUs += trace.elapsedMicroseconds;
     return render;
@@ -154,28 +102,10 @@ class ElView extends RenderObjectWidget {
       renderObject.setStyleParent(StyleDependencyScope.maybeHostOf(element));
       renderObject
         ..style = style
-        ..textAccessibility = element.resolveTextAccessibility()
         ..event = event
         ..semantics = semantics
         ..themeMode = themeMode
-        ..breakpoint = breakpoint
-        ..textScaler = _resolveTextScaler(element)
-        ..locale = locale
-        ..updateParagraphStyle(
-          strutStyle: strutStyle,
-          textWidthBasis: textWidthBasis,
-          textHeightBehavior: textHeightBehavior,
-        );
+        ..breakpoint = breakpoint;
     });
   }
-}
-
-/// 比较文本载荷；富文本按节点身份比较，普通文本按值比较。
-@internal
-bool sameViewTextPayload(Object? first, Object? second) {
-  if (identical(first, second)) return true;
-  if (first is Iterable && second is Iterable) {
-    return const IterableEquality<Object?>(IdentityEquality()).equals(first, second);
-  }
-  return first is! InlineSpan && second is! InlineSpan && first == second;
 }

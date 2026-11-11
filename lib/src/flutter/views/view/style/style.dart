@@ -12,6 +12,7 @@ import '../../../commons/models.dart';
 
 part 'style.g.dart';
 part 'shadow.dart';
+part '../text/text_options.dart';
 
 /// ElView 的声明式样式。
 @ElModelGenerator.copy(generateProps: true)
@@ -20,7 +21,8 @@ class ElStyle with Equatable {
   /// 创建样式。
   const ElStyle({
     this.vars,
-    // InheritedText (24)
+    this.textOptions,
+    // 常用文本样式
     this.color,
     this.fontSize,
     this.fontWeight,
@@ -40,8 +42,6 @@ class ElStyle with Equatable {
     this.textDecorationThickness,
     this.textBackgroundColor,
     this.fontVariationSettings,
-    this.leadingDistribution,
-    this.textBaseline,
     this.softWrap,
     this.textOverflow,
     this.maxLines,
@@ -113,6 +113,9 @@ class ElStyle with Equatable {
   @ElFieldGenerator(useMerge: true)
   final Map<Object, Object>? vars;
 
+  /// 仅作用于当前文本的高级配置，不继承且不接受状态、断点、入场或关键帧变体。
+  final ElTextOptions? textOptions;
+
   /// 文本色。继承字段。
   final Color? color;
 
@@ -149,12 +152,6 @@ class ElStyle with Equatable {
   /// 可变字体轴设置（CSS `font-variation-settings`，如 `wght` / `wdth` / `slnt`）。继承字段。
   /// 按 Flutter 规则原样传递，显式 wght 覆盖 fontWeight；空列表清除继承轴。
   final List<FontVariation>? fontVariationSettings;
-
-  /// 行高 leading 在上下半行的分布策略。继承字段。
-  final TextLeadingDistribution? leadingDistribution;
-
-  /// 文本基线（alphabetic / ideographic）。继承字段。
-  final TextBaseline? textBaseline;
 
   /// 行高倍数。继承字段。
   final double? lineHeight;
@@ -737,7 +734,7 @@ final class ElTransform {
 
 /// 所有可动画字段的 ID 枚举。
 enum ElTransitionField {
-  // ===== Group: InheritedText (24) =====
+  // ===== Group: 常用文本样式 =====
 
   /// 文本色。
   color,
@@ -803,12 +800,6 @@ enum ElTransitionField {
 
   /// Variable Font 的可变轴（`wght` / `wdth` 等）。继承字段。
   fontVariationSettings,
-
-  /// 行高 leading 在上下半行的分布策略。继承字段。
-  leadingDistribution,
-
-  /// 文本基线（alphabetic / ideographic）。继承字段。
-  textBaseline,
 
   // ===== Group: InheritedBox (5) =====
 
@@ -2030,8 +2021,11 @@ const Object _sentinel = Object();
 
 /// ElView 响应式断点声明。
 class ElBreakpoint {
-  /// 创建断点声明。五字段全部可空，交给消费端按祖先合并 + 兜底默认解析。
-  const ElBreakpoint({this.xs, this.sm, this.md, this.lg, this.xl});
+  /// 创建响应式断点及尺寸基准声明。
+  const ElBreakpoint({this.xs, this.sm, this.md, this.lg, this.xl, this.inheritSize});
+
+  /// 是否继承祖先的响应式尺寸基准；false 以当前视图宽度供自身及后代使用，true 或 null 沿用祖先或窗口。
+  final bool? inheritSize;
 
   /// xs 档最大宽度上界。null = 继承祖先声明；整条链未声明 → [defaultXs]。
   final double? xs;
@@ -2086,29 +2080,47 @@ class ElBreakpoint {
     final c = md ?? ancestor.md;
     final d = lg ?? ancestor.lg;
     final e = xl ?? ancestor.xl;
-    if (identical(a, xs) && identical(b, sm) && identical(c, md) && identical(d, lg) && identical(e, xl)) {
+    final inherit = inheritSize ?? ancestor.inheritSize;
+    if (identical(a, xs) &&
+        identical(b, sm) &&
+        identical(c, md) &&
+        identical(d, lg) &&
+        identical(e, xl) &&
+        inherit == inheritSize) {
       return this;
     }
-    if (xs == null && sm == null && md == null && lg == null && xl == null) return ancestor;
-    return ElBreakpoint(xs: a, sm: b, md: c, lg: d, xl: e);
+    if (xs == null && sm == null && md == null && lg == null && xl == null && inheritSize == null) return ancestor;
+    return ElBreakpoint(xs: a, sm: b, md: c, lg: d, xl: e, inheritSize: inherit);
   }
 
   /// 拷贝并覆盖指定字段。传 null 保持原值（想清空需另行显式构造）。
-  ElBreakpoint copyWith({double? xs, double? sm, double? md, double? lg, double? xl}) =>
-      ElBreakpoint(xs: xs ?? this.xs, sm: sm ?? this.sm, md: md ?? this.md, lg: lg ?? this.lg, xl: xl ?? this.xl);
+  ElBreakpoint copyWith({double? xs, double? sm, double? md, double? lg, double? xl, bool? inheritSize}) =>
+      ElBreakpoint(
+        xs: xs ?? this.xs,
+        sm: sm ?? this.sm,
+        md: md ?? this.md,
+        lg: lg ?? this.lg,
+        xl: xl ?? this.xl,
+        inheritSize: inheritSize ?? this.inheritSize,
+      );
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! ElBreakpoint) return false;
-    return xs == other.xs && sm == other.sm && md == other.md && lg == other.lg && xl == other.xl;
+    return xs == other.xs &&
+        sm == other.sm &&
+        md == other.md &&
+        lg == other.lg &&
+        xl == other.xl &&
+        inheritSize == other.inheritSize;
   }
 
   @override
-  int get hashCode => Object.hash(xs, sm, md, lg, xl);
+  int get hashCode => Object.hash(xs, sm, md, lg, xl, inheritSize);
 
   @override
-  String toString() => 'ElBreakpoint(xs: $xs, sm: $sm, md: $md, lg: $lg, xl: $xl)';
+  String toString() => 'ElBreakpoint(xs: $xs, sm: $sm, md: $md, lg: $lg, xl: $xl, inheritSize: $inheritSize)';
 }
 
 // ============================================================================

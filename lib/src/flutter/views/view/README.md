@@ -48,6 +48,36 @@ title.value = '更新后的标题';
 卸载时移除监听。ElView 不销毁外部来源，调用方在不再使用时负责 `dispose()`。
 只订阅顶层 `child`，不会递归订阅 Iterable 或其他载荷中的 notifier。
 
+### 高级文本配置
+
+低频字体和段落参数统一放在 `ElStyle.textOptions`：
+
+```dart
+ElView(
+  style: ElStyle(
+    fontSize: 16,
+    textOptions: ElTextOptions(
+      locale: Locale('zh', 'CN'),
+      strutStyle: StrutStyle(fontSize: 16),
+      textWidthBasis: TextWidthBasis.longestLine,
+    ),
+  ),
+  child: '高级排版配置',
+);
+```
+
+`ElTextOptions` 收纳 `locale`、`textScaler`、`strutStyle`、`textWidthBasis`、`textHeightBehavior`、
+`leadingDistribution`、`textBaseline`。所有属性只影响当前文本，不向后代继承；未声明的值由文本引擎
+在消费时补齐。字体轴、字体回退、字体特性和单词间距保留在 ElStyle，沿用原来的继承和变体规则。
+
+这组配置只允许放在基础样式。状态、断点、`onSelection`、`starting` 和关键帧中的 `textOptions`
+会被拒绝，也不属于 `ElTransitionField`。常用的颜色、字号、字重、行高、字距等仍支持变体和过渡。
+`ElText` 保留 Flutter `Text` 的参数形式，内部统一转换到这组配置。
+
+文本引擎按实际内容启用，管理自己的排版、字体监听、选区与内联子树。纯 Widget 或空内容不会创建
+文本引擎或订阅文本环境；文本切回这些内容时会移除环境绑定并释放资源。仅声明可继承的文本样式也
+不会让纯容器启用文本引擎。
+
 
 | ElStyle 字段 | 用途 |
 | --- | --- |
@@ -110,7 +140,7 @@ ElView(
 
 键盘回调沿当前渲染祖先链冒泡，`originalEvent` 保留 Flutter `KeyEvent`。重复按键按 Flutter 的节奏派发，未声明 `onKeyRepeat` 时回退到 `onKeyDown`。主焦点节点的激活键仍可通过 `onTapDown`、`onTapUp` 和 `onTapCancel` 驱动反馈。
 
-`themeMode` 控制 onDark，`locale` 提供文字语言提示；二者与样式环境沿视图链传递。
+`themeMode` 控制 onDark；当前段落的文字语言提示通过 `style.textOptions.locale` 声明。
 
 `ElView.of(context).themeMode` 返回祖先逐字段合并后的主题声明，并订阅明暗、时长和曲线变化；读取结果补齐默认的 light、200ms 和 Curves.linear。主题切换统一覆盖本次变化的样式过渡，普通按压等交互仍使用组件自己的 transition。
 
@@ -118,7 +148,7 @@ ElView(
 
 ```dart
 ElView(
-  inheritSize: true,
+  breakpoint: ElBreakpoint(inheritSize: true),
   style: ElStyle(padding: EdgeInsets.all(24), sm: ElStyle(padding: EdgeInsets.all(8))),
   child: Builder(builder: (context) {
     final state = ElView.of(context);
@@ -127,7 +157,7 @@ ElView(
 );
 ```
 
-`breakpoint` 可覆写断点，inheritSize 为后代提供响应式尺寸基准。xs/sm/md/lg/xl 是上界判断，默认 320/640/1024/1920/2560，小屏可同时命中多个档位。
+`breakpoint` 统一配置断点与尺寸基准：`ElBreakpoint(inheritSize: false)` 使用当前视图宽度供自身及后代判断，`true` 或未设置时继承祖先基准，无祖先则使用窗口宽度。xs/sm/md/lg/xl 是上界判断，默认 320/640/1024/1920/2560，小屏可同时命中多个档位。
 
 ElView.of 读取最近祖先的只读状态，访问哪项就订阅哪项：hasHover、hasTap、hasFocus、hasFocusVisible、hasFocusWithin、isDisabled、isDark、themeMode 与断点属性。无祖先时用 maybeOf；需要读取当前视图时放到它的 Builder 后代中。
 

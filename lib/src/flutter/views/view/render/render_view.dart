@@ -13,13 +13,11 @@ import 'package:flutter/services.dart'
         PointerEnterEventListener,
         PointerExitEventListener,
         MouseTrackerAnnotation;
-import 'package:flutter/widgets.dart'
-    show Brightness, Element, Widget, WidgetsBinding, WidgetsBindingObserver, InlineSpan, IconData, TickerModeData;
+import 'package:flutter/widgets.dart' show Brightness, Element, WidgetsBinding, WidgetsBindingObserver, TickerModeData;
 
 import '../../../utils/internal/benchmark_probe.dart';
 import '../../../utils/internal/bit_mask.dart';
 import '../../../utils/internal/layout_reference.dart';
-import '../../selection/common/selection_core.dart';
 import '../event/dispatcher.dart';
 import '../event/drag_pointer_lock.dart';
 import '../event/event.dart';
@@ -43,7 +41,7 @@ import '../style/resolved/resolved_style.dart';
 import '../style/state/vars_dependents.dart';
 import '../style/state/view_state.dart';
 import '../style/style.dart';
-import '../text/text_engine.dart';
+import '../content.dart';
 import '../view.dart';
 import 'box_painter.dart';
 import 'hit_bounds.dart';
@@ -59,48 +57,40 @@ class CascadeBridgeChanges extends ChangeNotifier {
   /// 发布源级联变化。
   @internal
   void publish() => notifyListeners();
+
+  /// 最近一次视觉几何变化的版本，供按需消费者区分更新来源。
+  int geometryRevision = 0;
+
+  /// 发布变换或裁剪变化，不为无消费者的节点创建通知器。
+  void publishGeometry() {
+    geometryRevision++;
+    notifyListeners();
+  }
 }
 
-class _ViewParentData extends ElTextParentData {}
+class _ViewParentData extends ContainerBoxParentData<RenderBox> {}
 
 /// ElView 的渲染对象 —— 盒模型 + 样式 cascade + 事件。
 class ElRenderView extends RenderBox
     with
-        ContainerRenderObjectMixin<RenderBox, _ViewParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _ViewParentData>,
+        ContainerRenderObjectMixin<RenderBox, ContainerBoxParentData<RenderBox>>,
+        RenderBoxContainerDefaultsMixin<RenderBox, ContainerBoxParentData<RenderBox>>,
         LayoutReferenceBox,
         ElOverflowHitBounds
-    implements InheritableNode, MouseTrackerAnnotation, SelectionParticipantHost {
+    implements InheritableNode, MouseTrackerAnnotation {
   /// 创建供**自定义 RenderObject 宿主**直接持有的节点（render 层正门）。
   ElRenderView({
     ElStyle? style,
     ElEvent? event,
     this._semantics,
     Object? child,
-    TextContent? content,
     ElThemeMode? themeMode,
     ElBreakpoint? breakpoint,
-    bool? inheritSize,
-    TextScaler? textScaler,
-    ui.Locale? locale,
-    StrutStyle? strutStyle,
-    TextWidthBasis textWidthBasis = TextWidthBasis.parent,
-    TextHeightBehavior? textHeightBehavior,
-  }) : _locale = locale,
-       _paragraphStyle = (
-         strutStyle: strutStyle,
-         textWidthBasis: textWidthBasis,
-         textHeightBehavior: textHeightBehavior,
-       ),
-       _localThemeMode = themeMode,
+  }) : _localThemeMode = themeMode,
        _localBreakpoint = breakpoint,
-       _selfSizeBasis = inheritSize == false,
        super() {
     _style = style;
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
-    _textScaler = textScaler ?? TextScaler.noScaling;
-    _textScalerFallback = textScaler == null;
-    _localeFallback = locale == null;
     // 禁用配置只来自事件；构造期写入样式状态位，首帧直接命中 onDisabled。
     _stateSet(ViewState.disabled, event?.disabled ?? false);
     _stateSet(ViewState.dark, themeMode?.brightness == Brightness.dark);
@@ -114,8 +104,7 @@ class ElRenderView extends RenderBox
     }
     // 首次级联留到 attach：届时父级样式、暗色与断点已就绪，只需算一次。
     if (trace != null) MountTrace.ctorBodyUs += trace.elapsedMicroseconds;
-    // Widget 门禁与富文本原子检查共用载荷入口；Element 会在挂载子内容前绑定宿主。
-    if (child != null || content != null) setTextPayload(child, content: content);
+    if (child != null) updateContent(child);
   }
 
   // 级联快照与副作用由宿主持有，避免每个节点分配只作转发的 Engine/Host。
@@ -156,6 +145,7 @@ class ElRenderView extends RenderBox
     _syncEffectiveDark(_localDark ?? _findAncestorEffectiveDark(), propagate: true);
     _syncResponsiveBits(_computeSelfResponsiveBits(), propagate: true);
     _reresolve();
+    _cascadeBridgeChanges?.publish();
   }
 
   /// 构造 + attach 期间 false（CSS：首次出现不过渡）；attach 末置 true，detach 置回 false。
@@ -167,8 +157,6 @@ class ElRenderView extends RenderBox
 
   /// dark 切换进行中的强制过渡参数载体。
   ElThemeMode? _pendingDarkTransition;
-
-  // 只保留当前输入，避免同一轮绘制与文本读取重复解析颜色。
 
   // --- 状态 -----------------------------------------------------------------
 
@@ -183,25 +171,6 @@ class ElRenderView extends RenderBox
   }
 
   CustomClipper<Path>? _listenedClipper;
-  Object? get _rawChild => _textPainterOrNull?.rawChild;
-
-  TextScaler _textScaler = TextScaler.noScaling;
-  ui.Locale? _locale;
-  ({StrutStyle? strutStyle, TextWidthBasis textWidthBasis, TextHeightBehavior? textHeightBehavior}) _paragraphStyle;
-
-  /// 尚未绑定 Element 时，由自定义 RenderObject 宿主直接持有。
-  ///
-  /// 只用于门禁：hosted 节点无 element，[setTextPayload] 收到 Widget 时 assert
-  /// 报错而非静默丢弃。与环境兜底位独立——宿主显式传 textScaler 不该顺带关掉
-  /// Widget 门禁，两件事不能共用一位。
-  bool get _hosted => _ownerWidget == null;
-
-  /// hosted（默认构造）未显式传 textScaler / locale 时为 true：对应 getter 从
-  /// attach 所在 FlutterView 的 platformDispatcher 现取兜底（消费期读新值，
-  /// 零依赖注册零挂载税）。
-  /// 显式 setter 一经调用即永久关闭，转为宿主推送；element 路径恒 false。
-  bool _textScalerFallback = false;
-  bool _localeFallback = false;
   bool get _effectiveDark => _stateHas(ViewState.dark);
 
   ElThemeMode? _localThemeMode;
@@ -212,13 +181,17 @@ class ElRenderView extends RenderBox
   ElBreakpoint? _cachedEffectiveBreakpoint;
   bool _effectiveBreakpointCacheDirty = true;
 
-  /// 是否以自身宽度为响应式基准（`ElView(inheritSize: false)`）。true = 本节点
+  /// 是否以自身宽度为响应式基准（`ElBreakpoint(inheritSize: false)`）。true = 本节点
   /// 及后代按本节点 `_boxSize.width` 断档，直到更深的 selfSizeBasis 节点再次
   /// 接管；false = 继承祖先/窗口基准。
-  late final bool _selfSizeBasis;
+  // 只读本地声明，避免把祖先的容器基准误当成每个后代各自的尺寸。
+  bool get _selfSizeBasis => _localBreakpoint?.inheritSize == false;
 
   /// `_selfSizeBasis` 节点 layout 尾钩 post-frame 单挂起守卫（防同帧重复挂）。
   bool _selfSizeBasisPostFrameScheduled = false;
+
+  // 容器自身未跨档时，宽度变化仍可能使后代覆写的断点跨档。
+  double? _lastResponsiveWidth;
 
   /// 级联变化通知器；只有 overlay 桥接或编辑器绘制消费者存在时才创建。
   CascadeBridgeChanges? _cascadeBridgeChanges;
@@ -227,8 +200,8 @@ class ElRenderView extends RenderBox
   @internal
   CascadeBridgeChanges ensureCascadeBridgeChanges() => _cascadeBridgeChanges ??= CascadeBridgeChanges();
 
-  /// 当前继承的文字色，供自绘子节点使用。
-  Color? get currentColorForBuild => _committedResolved.inheritedText.color;
+  /// 当前级联颜色，供自绘子节点使用。
+  Color? get currentColorForBuild => _committedResolved.currentColor;
 
   /// ：首次 attach 标志。构造完成后初值 true；attach 里
   /// 首次触发时被置 false（无论是否走快路径都翻），确保 detach + re-attach
@@ -351,114 +324,36 @@ class ElRenderView extends RenderBox
 
   PaintController get _paintController => _paintControllerOrNull ??= PaintController(this);
 
-  /// 自持文本协作体（engine / IFC / 选区 / overflow / inline 派发）。
-  TextEngine? _textPainterOrNull;
+  ViewContent? _content;
 
-  TextEngine get _textPainter => _textPainterOrNull!;
+  /// 当前按需内容模块；空盒与普通 Widget 子树不创建模块。
+  ViewContent? get content => _content;
 
-  TextEngine _ensureTextPainter() {
-    final existing = _textPainterOrNull;
-    if (existing != null) return existing;
-    assert(() {
-      BenchmarkProbe.textLayerInstantiateCount++;
-      return true;
-    }());
-    return _textPainterOrNull = TextEngine()
-      ..bindHost(
-        host: this,
-        nodeOf: () => _ownerWidget,
-        lastHitCursorOf: () => _showsSelectableTextCursor && _lastHitIncludedTextContent,
-      );
-  }
+  /// 当前 Element 声明，供内容和事件模块关联来源节点。
+  Object? get ownerNode => _ownerWidget;
 
-  void _disposeTextPainter() {
-    final painter = _textPainterOrNull;
-    _textPainterOrNull = null;
-    painter?.dispose();
-  }
-
-  TextAccessibility? _localTextAccessibility;
-  TextAccessibility _effectiveTextAccessibility = defaultTextAccessibility;
-
-  /// 设置当前 MediaQuery 的文本无障碍配置，空值时继承最近的渲染宿主。
-  @internal
-  set textAccessibility(TextAccessibility? value) {
-    if (_localTextAccessibility == value) return;
-    _localTextAccessibility = value;
-    _inheritTextAccessibility(_findAncestor<ElRenderView>()?._effectiveTextAccessibility ?? defaultTextAccessibility);
-  }
-
-  void _inheritTextAccessibility(TextAccessibility inherited) {
-    final value = _localTextAccessibility ?? inherited;
-    if (_effectiveTextAccessibility == value) return;
-    _effectiveTextAccessibility = value;
-    final painter = _textPainterOrNull;
-    if (painter?.invalidateForTextAccessibility() ?? false) {
+  /// 更新独立内容载荷，结构切换前由 Element 撤下旧子树。
+  void updateContent(Object? payload) {
+    if (payload == null) {
+      final previous = _content;
+      if (previous == null) return;
+      _content = null;
+      previous.dispose();
       markNeedsLayout();
+      markNeedsSemanticsUpdate();
+      markNeedsCompositingBitsUpdate();
+      return;
     }
-    _visitNearestDescendants<ElRenderView>((child) => child._inheritTextAccessibility(value));
-  }
-
-  /// 布局与绘制共用已提交样式；auto 终点探测可显式覆盖。
-  TextPaintInput _textPaintInput({ResolvedStyle? resolvedOverride, Offset? contentOriginOverride}) {
-    return (
-      style: resolvedOverride ?? _committedResolved,
-      // 经公开 getter：hosted 兜底（platformDispatcher 现取）在此生效
-      textScaler: textScaler,
-      locale: locale,
-      accessibility: _effectiveTextAccessibility,
-      strutStyle: _paragraphStyle.strutStyle,
-      textWidthBasis: _paragraphStyle.textWidthBasis,
-      textHeightBehavior: _paragraphStyle.textHeightBehavior,
-      contentOrigin: contentOriginOverride ?? _contentOrigin,
-    );
-  }
-
-  /// 更新段落度量参数并在文本布局受影响时重新排版。
-  @internal
-  void updateParagraphStyle({
-    required StrutStyle? strutStyle,
-    required TextWidthBasis textWidthBasis,
-    required TextHeightBehavior? textHeightBehavior,
-  }) {
-    final value = (strutStyle: strutStyle, textWidthBasis: textWidthBasis, textHeightBehavior: textHeightBehavior);
-    if (_paragraphStyle == value) return;
-    _paragraphStyle = value;
-    final painter = _textPainterOrNull;
-    if (painter == null) return;
-    painter.invalidateLayout();
-    markNeedsLayout();
-  }
-
-  // --- internal API（给 [PaintController] 等协作体反向访问 host 状态） -----
-
-  /// 文本语言环境（字形选择用）。hosted 未显式传时从所挂 FlutterView 的
-  /// platformDispatcher 现取兜底。
-  ui.Locale? get locale {
-    if (_localeFallback) {
-      final view = _findAttachedFlutterView();
-      if (view != null) return view.platformDispatcher.locale;
+    final current = _content;
+    if (current != null) {
+      current.setPayload(payload);
+      return;
     }
-    return _locale;
-  }
-
-  /// 语言环境推送通道（element / 宿主共用）：显式推送永久关闭 hosted 兜底，
-  /// 变更失效文本字形并重排。
-  set locale(ui.Locale? value) {
-    // 同 textScaler：显式推送永久关闭兜底
-    final fallbackWasOn = _localeFallback;
-    _localeFallback = false;
-    if (!fallbackWasOn && _locale == value) return;
-    _locale = value;
-    _textPainterOrNull?.invalidateLayout();
+    _content = createViewContent(this, payload);
+    if (_content == null) return;
     markNeedsLayout();
+    markNeedsSemanticsUpdate();
   }
-
-  /// 当前文本载荷原值（Widget 子在 element 层已归一为 null，恒非 Widget）。
-  Object? get rawChild => _rawChild;
-
-  /// 是否自持文本载荷（String / InlineSpan / 富文本）；false = 空盒或 widget 子。
-  bool get hasTextPayload => _hasTextPayload;
 
   @override
   bool get effectiveDarkForInheritance => _effectiveDark;
@@ -483,7 +378,7 @@ class ElRenderView extends RenderBox
   /// 内容区原点 = margin + padding 内缩，节点局部坐标（文本与单子摆位基准）。
   Offset get contentOrigin => _contentOrigin;
 
-  RenderBox? get _singleWidgetChild => _hasWidgetPayload ? firstChild : null;
+  RenderBox? get _singleWidgetChild => _content == null ? firstChild : null;
 
   /// margin 内侧真实视觉盒的起点。背景、边框、子内容命中都从这里开始。
   Offset get boxOrigin => _boxOrigin;
@@ -491,27 +386,18 @@ class ElRenderView extends RenderBox
   /// margin 内侧真实视觉盒尺寸，不含 margin。
   Size get boxSize => _boxSize;
 
-  bool get _hasTextPayload => _textPainterOrNull != null;
-
-  /// widget 子存在判据：非文本载荷且有 render 子。不依赖 widget 实例 identity
-  /// （`_rawChild` 只承载文本载荷，Widget 子在 element 层归一为 null——否则父级
-  /// rebuild 的新实例会让 setTextPayload 误标 layout，见 T21 回退修复）。
-  bool get _hasWidgetPayload => !_hasTextPayload && firstChild != null;
-
   /// dry 只查询几何；真实布局才写 child offset 和文本上下文。
   Size _layoutContent(
     BoxConstraints constraints,
     Offset contentOrigin, {
     ResolvedStyle? resolvedOverride,
-    bool textWidthIsDefinite = false,
+    bool widthIsDefinite = false,
     bool dry = false,
   }) {
     final resolved = resolvedOverride ?? _committedResolved;
-    if (_hasTextPayload) {
-      final input = _textPaintInput(resolvedOverride: resolved, contentOriginOverride: contentOrigin);
-      return dry
-          ? _textPainter.computeDryMetrics(constraints, input, fillWidth: textWidthIsDefinite).size
-          : _textPainter.layoutContent(constraints, input, fillWidth: textWidthIsDefinite);
+    final content = _content;
+    if (content != null) {
+      return content.layout(constraints, contentOrigin, style: resolved, fillWidth: widthIsDefinite, dry: dry);
     }
     final child = _singleWidgetChild;
     if (child == null) return Size.zero;
@@ -545,36 +431,23 @@ class ElRenderView extends RenderBox
     return alignment == null ? contentSize : constraints.constrain(contentSize);
   }
 
-  /// 内容层绘制入口（paint 编排器调用）：文本自绘（含选区覆盖层）或子项直派。
+  /// 绘制按需内容模块或普通子项。
   void paintContent(PaintingContext context, Offset offset) {
-    if (_hasTextPayload) {
-      final participant = _textPainter.selectionParticipant;
-      final range = participant?.currentSelectionRange;
-      _textPainter.paintContent(
-        context,
-        offset,
-        _textPaintInput(),
-        selection: range,
-        selectionColor: range == null ? null : participant!.effectiveSelectionBgColor,
-        selectionTextColor: range == null ? null : participant!.effectiveSelectionTextColor,
-      );
-      participant?.paintSelectionHandleLayers(context, offset);
-      return;
+    final content = _content;
+    if (content != null) {
+      content.paint(context, offset);
+    } else {
+      defaultPaint(context, offset);
     }
-    defaultPaint(context, offset);
   }
 
-  bool _hitTestContent(BoxHitTestResult result, Offset position) => _hasTextPayload
-      ? _textPainter.hitTestContent(result, position)
-      : defaultHitTestChildren(result, position: position);
+  bool _hitTestContent(BoxHitTestResult result, Offset position) =>
+      _content?.hitTest(result, position) ?? defaultHitTestChildren(result, position: position);
 
   /// 事件分发器。仅当 [event] 非 null 或 [style] 含交互状态变体时 lazy 构造
   /// （零开销 fast path）。
   EventDispatcher? _eventDispatcher;
   Rect? _hoverEntryBounds;
-
-  /// 最近一次 hitTest 是否命中文本字形（用于可选文本光标：padding/空白不显示 I-beam）。
-  bool _lastHitIncludedTextContent = false;
 
   /// Element 层注入的点击聚焦入口。RenderObject 不持有 FocusNode。
   void Function(PointerDownEvent event, Offset localPosition)? requestFocusForEvent;
@@ -603,17 +476,14 @@ class ElRenderView extends RenderBox
     }
     final oldStyle = _style;
     _style = value;
+    _content?.declarationChanged(oldStyle, value);
     _ensureDispatcherIfNeededForVariants();
     // 失效变体清理：旧 style 有 onX 变体且 _state 持有对应 bit，新 style 没了
     // → 强清 bit。否则 cascade 用旧 state 值，新 style 一旦恢复变体会复用旧 hover
     // 残留。
     _clearStaleVariantStates(oldStyle, value);
-    if (oldStyle?.userSelect != value?.userSelect) {
-      _textPainterOrNull?.syncSelectionParticipation();
-      reattachSelectionParticipantsInSubtree(this);
-    }
     _reresolve();
-    // onSelection 不进入 committed，声明更新也须通知直接消费样式的渲染宿主。
+    // 声明变化也通知直接消费者，不限于已解析字段的变化。
     _cascadeBridgeChanges?.publish();
   }
 
@@ -626,18 +496,6 @@ class ElRenderView extends RenderBox
     _stateBits &= ~stale;
   }
 
-  /// 宿主文本是否发生截断/溢出：didExceedMaxLines（maxLines / ellipsis 截断）
-  /// 或内容自然尺寸超出文本盒任一轴（单行不换行超宽等）。
-  ///
-  /// 对齐 DOM `scrollWidth > clientWidth` 的探测用途（`overflow: visible`
-  /// 不裁剪也能测）；layout 末尾更新，post-layout 读取有效；无文本载荷恒
-  /// false。「单元格截断才出 tooltip」类组件按此判定。
-  bool get textOverflowing => _hasTextPayload && (_textPainterOrNull?.textOverflows ?? false);
-
-  /// 文本引擎的无头测试诊断入口，读取本身不创建引擎。
-  @visibleForTesting
-  TextEngine? get textEngineForTest => _textPainterOrNull;
-
   /// 绘制控制器的无头测试诊断入口，读取本身不创建控制器。
   @visibleForTesting
   PaintController? get paintControllerForTest => _paintControllerOrNull;
@@ -649,86 +507,9 @@ class ElRenderView extends RenderBox
   /// （4b paint-lerp 已拆），本钩子对一切字段过渡有效。
   bool get hasActiveAnimationsForTest => _hasActiveAnimations;
 
-  /// 测试观察：selected overlay 应该 paint 的 InlineSpan。
-  @visibleForTesting
-  InlineSpan? selectedTextOverlaySpanForTest() =>
-      buildSelectionOverlaySpan(_textPainter.painterForTest.text!, textColor: selectionTextColor);
-
-  /// Element 认领宿主，环境改由 Widget 持续推送。
+  /// 将当前 Element 声明关联到渲染宿主。
   @internal
-  void bindElementWidget(ElView widget) {
-    _ownerWidget = widget;
-    _textScalerFallback = false;
-    _localeFallback = false;
-  }
-
-  /// 推送文本载荷并返回引擎，供 Element 复用结构编译产物。
-  TextEngine? setTextPayload(Object? rawChild, {TextContent? content}) {
-    assert(() {
-      if (!_hosted) return true;
-      if (rawChild is Widget) {
-        throw FlutterError(
-          'ElRenderView.setTextPayload 不接受 Widget（收到 ${rawChild.runtimeType}）。\n'
-          'render 层无 element，Widget 无法充气成渲染物——传进来只会被静默丢弃。\n'
-          '文本类载荷（String / num / InlineSpan / Iterable）直接传；要混排官方 '
-          'widget 请把宿主改成 MultiChildRenderObjectWidget / Slotted，由 element 充气。',
-        );
-      }
-      // 深检：只有 Iterable / InlineSpan 可能携带待充气原子。debug 期多 parse
-      // 一次（产物即弃、无副作用），release 整段剥除。
-      final produced =
-          content ?? ((rawChild is InlineSpan || rawChild is Iterable) ? TextContent.parse(rawChild) : null);
-      if (produced != null && produced.spans.isNotEmpty) {
-        throw FlutterError(
-          'render 宿主的富文本载荷里含 ${produced.spans.length} 个需要 element 充气的 '
-          'widget 原子（Iterable 混排里的 widget 项 / InlineSpan 里的 WidgetSpan）。\n'
-          'hosted 形态没有 element，这些原子洞位不会有 render 子，排版会在 TextPainter '
-          '深处报洞数不匹配。\n'
-          '纯文本 runs（String / 样式 TextSpan）可以照常混排；要内嵌 widget 请回 '
-          'ElView(child: [...]) 由 element 充气。',
-        );
-      }
-      return true;
-    }());
-    final normalizedRawChild = rawChild is Widget ? null : rawChild;
-    final wasText = _hasTextPayload;
-    final willBeText = normalizedRawChild != null;
-    final rawChanged = !identical(_rawChild, normalizedRawChild);
-    if (!rawChanged) return _textPainterOrNull;
-    if (wasText && willBeText && sameViewTextPayload(_rawChild, normalizedRawChild)) {
-      // 内容等价时只认领新引用，保留现有 span 和排版缓存。
-      _textPainterOrNull?.setPayload(normalizedRawChild, content: content, contentEquivalent: true);
-      return _textPainterOrNull;
-    }
-    if (wasText != willBeText) _disposeTextPainter();
-    if (willBeText) _ensureTextPainter().setPayload(normalizedRawChild, content: content);
-    // 首次载荷由 setPayload 同步选区，清空由 dispose 清理，避免重复查找祖先。
-    markNeedsLayout();
-    markNeedsSemanticsUpdate();
-    return _textPainterOrNull;
-  }
-
-  /// 文本缩放。hosted 未显式传时从所挂 FlutterView 的 platformDispatcher
-  /// 现取兜底；element 路径恒读字段。
-  TextScaler get textScaler {
-    if (_textScalerFallback) {
-      if (_rawChild is IconData) return TextScaler.noScaling;
-      final factor = _findAttachedFlutterView()?.platformDispatcher.textScaleFactor;
-      if (factor != null) return factor == 1.0 ? TextScaler.noScaling : TextScaler.linear(factor);
-    }
-    return _textScaler;
-  }
-
-  /// 缩放推送通道：显式推送永久关闭 hosted 兜底（关闭即语义变化，不吃值相等早退）。
-  set textScaler(TextScaler value) {
-    // 显式推送永久关闭兜底；关闭本身即取值语义变化，不得被值相等早退跳过
-    final fallbackWasOn = _textScalerFallback;
-    _textScalerFallback = false;
-    if (!fallbackWasOn && _textScaler == value) return;
-    _textScaler = value;
-    _textPainterOrNull?.invalidateLayout();
-    markNeedsLayout();
-  }
+  void bindElementWidget(ElView widget) => _ownerWidget = widget;
 
   ui.FlutterView? _findAttachedFlutterView() => _findAncestor<RenderView>()?.flutterView;
 
@@ -784,6 +565,11 @@ class ElRenderView extends RenderBox
     _cascadeBridgeChanges?.publish();
     _invalidateEffectiveBreakpointCascade();
     if (!attached) return;
+    if (_selfSizeBasis || _inheritedParent == null) {
+      _WindowMetricsObserver.instance.register(this);
+    } else {
+      _WindowMetricsObserver.instance.unregister(this);
+    }
     // 声明变化 → 本节点若是基准持有者（暗根或 selfSizeBasis）按新断点重算位；
     // 子节点若命中同类也重算。简化口径：本节点重算 + propagate（透明子递归下推
     // 到下一个 InheritableNode，selfSizeBasis 后代自己收敛）。
@@ -822,7 +608,12 @@ class ElRenderView extends RenderBox
       return computeResponsiveBits(_boxSize.width, effectiveBreakpoint);
     }
     if (_localBreakpoint != null) {
-      final width = _WindowMetricsObserver.instance.windowWidth();
+      // 覆写断点或显式继承尺寸时，仍使用最近容器提供的宽度。
+      var ancestor = _styleParent ?? _findAncestor<ElRenderView>();
+      while (ancestor != null && !ancestor._selfSizeBasis) {
+        ancestor = ancestor._styleParent ?? ancestor._findAncestor<ElRenderView>();
+      }
+      final width = ancestor?._boxSize.width ?? _WindowMetricsObserver.instance.windowWidth();
       return computeResponsiveBits(width, effectiveBreakpoint);
     }
     // attach 已爬过一次链时直接复用其结果，其余入口（窗口回调等）自爬。
@@ -1235,7 +1026,7 @@ class ElRenderView extends RenderBox
       forceTransitionCurve: _pendingDarkTransition != null ? _effectiveThemeCurve : null,
       inheritedThemeAnimationMask: inheritedThemeAnimationMask,
       keyframeAnimationMask: keyframeMask,
-      hostHasInheritanceConsumers: firstChild != null || _rawChild != null,
+      hostHasInheritanceConsumers: firstChild != null || _content != null,
     );
     _targetResolved = result.newTarget;
     _commitResolved(result.newCommitted, result.changedMask, themeAnimationMask: inheritedThemeAnimationMask);
@@ -1268,16 +1059,13 @@ class ElRenderView extends RenderBox
   void _commitResolved(ResolvedStyle value, FieldMask changedMask, {FieldMask themeAnimationMask = FieldMask.empty}) {
     if (!identical(_committedResolved, value)) {
       final oldCommitted = _committedResolved;
-      final oldInheritedText = oldCommitted.inheritedText;
       final oldInheritedBox = oldCommitted.inheritedBox;
       final oldVars = oldCommitted.inheritedVars;
       _committedResolved = value;
       _syncCompositedOpacity(oldCommitted, value);
       // cursor 只继承、不改变像素；静止鼠标仍需在下一帧读取新的样式光标。
       if (oldInheritedBox.cursor != value.inheritedBox.cursor) owner?.requestVisualUpdate();
-      if (!identical(oldInheritedText, value.inheritedText) ||
-          !identical(oldInheritedBox, value.inheritedBox) ||
-          !identical(oldVars, value.inheritedVars)) {
+      if (oldCommitted.inheritedValuesDiffer(value)) {
         _cascadeBridgeChanges?.publish();
       }
       if (!identical(oldVars, value.inheritedVars)) {
@@ -1286,17 +1074,7 @@ class ElRenderView extends RenderBox
         }
         _varsBuildDeps?.notifyCommit(value.inheritedVars.map);
       }
-      if (!identical(oldInheritedText, value.inheritedText) && _hasTextPayload) {
-        if (maskAnd(changedMask, textLayoutAffectingMask).isEmpty) {
-          _textPainter.invalidatePaint();
-        } else {
-          _textPainter.invalidateLayout();
-          markNeedsLayout();
-        }
-      }
-      if (_hasTextPayload && oldInheritedBox.direction != value.inheritedBox.direction) {
-        markNeedsSemanticsUpdate();
-      }
+      _content?.styleCommit(oldCommitted, value, changedMask);
       _listenToClipper(attached ? _committedResolved.box.clipPath : null);
     }
     _markCompositingBitsIfBackdropChanged(changedMask);
@@ -1317,7 +1095,7 @@ class ElRenderView extends RenderBox
 
   void _handleClipperReclip() {
     markNeedsPaint();
-    _notifySelectionVisualGeometryChanged();
+    _publishVisualGeometryChanged();
   }
 
   /// backdropFilter 会创建 `BackdropFilterLayer`、filter 会创建
@@ -1327,7 +1105,7 @@ class ElRenderView extends RenderBox
         maskHas(changedMask, ElTransitionField.transformOrigin.index) ||
         maskHas(changedMask, ElTransitionField.clipPath.index) ||
         maskHas(changedMask, ElTransitionField.clipBehavior.index)) {
-      _notifySelectionVisualGeometryChanged();
+      _publishVisualGeometryChanged();
     }
     if (maskHas(changedMask, ElTransitionField.backdropFilter.index) ||
         maskHas(changedMask, ElTransitionField.filter.index)) {
@@ -1335,12 +1113,7 @@ class ElRenderView extends RenderBox
     }
   }
 
-  void _notifySelectionVisualGeometryChanged() {
-    _findAncestor<SelectionVisualGeometryDependency>()?.descendantSelectionVisualGeometryChanged(this);
-    _visitNearestDescendants<SelectionVisualGeometryDependency>(
-      (child) => child.descendantSelectionVisualGeometryChanged(this),
-    );
-  }
+  void _publishVisualGeometryChanged() => _cascadeBridgeChanges?.publishGeometry();
 
   // --- InheritableNode -----------------------------------------------------
 
@@ -1410,7 +1183,10 @@ class ElRenderView extends RenderBox
 
   @override
   void setupParentData(RenderObject child) {
-    if (child.parentData is! _ViewParentData) {
+    final content = _content;
+    if (content != null) {
+      content.setupParentData(child);
+    } else if (child.parentData is! _ViewParentData) {
       child.parentData = _ViewParentData();
     }
   }
@@ -1424,14 +1200,6 @@ class ElRenderView extends RenderBox
   // Flutter `RenderBox` 默认实现返回 0；不 override 的话 `IntrinsicWidth` /
   // `IntrinsicHeight` widget 拿不到正确尺寸。这里把 4 个 API 接到 FC：
   //
-  // - inline_fc / mixed_fc 委托 Skia ICU LineBreaker（TextPainter.min/maxIntrinsicWidth）
-  //   —— 精度与 Chrome 一致，不是简化
-  // - single_block FC 转发给唯一 child 取 max
-  //
-  // 显式 width/height 覆盖 intrinsic（CSS 标准：声明优先）。
-  // intrinsic 对外暴露 RenderBox size，需包含 margin；width/height 动画的
-  // used-size snapshot 仍只返回真实视觉盒尺寸，不包含 margin。
-
   @override
   double computeMinIntrinsicWidth(double height) => _measureIntrinsic(height, width: true, isMin: true);
 
@@ -1508,7 +1276,7 @@ class ElRenderView extends RenderBox
         metrics.inner,
         metrics.contentOrigin,
         resolvedOverride: resolved,
-        textWidthIsDefinite: metrics.used.hasTightWidth,
+        widthIsDefinite: metrics.used.hasTightWidth,
       );
       return metrics.resolveSize(content);
     } finally {
@@ -1522,7 +1290,7 @@ class ElRenderView extends RenderBox
     final content = _layoutContent(
       metrics.inner,
       metrics.contentOrigin,
-      textWidthIsDefinite: metrics.used.hasTightWidth,
+      widthIsDefinite: metrics.used.hasTightWidth,
       dry: true,
     );
     return constraints.constrain(metrics.addMargin(metrics.resolveSize(content)));
@@ -1534,7 +1302,7 @@ class ElRenderView extends RenderBox
     final content = _layoutContent(
       metrics.inner,
       metrics.contentOrigin,
-      textWidthIsDefinite: metrics.used.hasTightWidth,
+      widthIsDefinite: metrics.used.hasTightWidth,
       dry: true,
     );
     final box = metrics.resolveSize(content);
@@ -1542,17 +1310,15 @@ class ElRenderView extends RenderBox
       (box.width - metrics.padding.horizontal).clamp(0.0, double.infinity),
       (box.height - metrics.padding.vertical).clamp(0.0, double.infinity),
     );
-    if (_hasTextPayload) {
-      final text = _textPainter.computeDryMetrics(
+    final current = _content;
+    if (current != null) {
+      return current.dryBaseline(
         metrics.inner,
-        _textPaintInput(contentOriginOverride: metrics.contentOrigin),
-        baseline: baseline,
+        contentSize,
+        metrics.contentOrigin,
+        baseline,
         fillWidth: metrics.used.hasTightWidth,
       );
-      final alignment = _committedResolved.box.alignment
-          ?.resolve(_committedResolved.inheritedBox.direction ?? TextDirection.ltr)
-          .alongOffset(Offset(contentSize.width - text.size.width, contentSize.height - text.size.height));
-      return metrics.contentOrigin.dy + (alignment?.dy ?? 0) + text.baseline;
     }
     final child = _singleWidgetChild;
     if (child == null) return null;
@@ -1582,7 +1348,7 @@ class ElRenderView extends RenderBox
     _boxOrigin = metrics.margin.topLeft;
     _contentOrigin = metrics.contentOrigin;
     _applyLayoutReference(metrics.referenceWidth, metrics.referenceHeight, notify: hasSize);
-    final content = _layoutContent(metrics.inner, _contentOrigin, textWidthIsDefinite: metrics.used.hasTightWidth);
+    final content = _layoutContent(metrics.inner, _contentOrigin, widthIsDefinite: metrics.used.hasTightWidth);
     _boxSize = metrics.resolveSize(content);
     final contentWidth = (_boxSize.width - metrics.padding.horizontal).clamp(0.0, double.infinity);
     final contentHeight = (_boxSize.height - metrics.padding.vertical).clamp(0.0, double.infinity);
@@ -1595,11 +1361,8 @@ class ElRenderView extends RenderBox
           _contentOrigin +
           alignment.resolve(_committedResolved.inheritedBox.direction ?? TextDirection.ltr).alongOffset(slack);
     }
-    if (_hasTextPayload) {
-      _textPainter.repositionAlignedText(_textPaintInput(), contentW: contentWidth, contentH: contentHeight);
-    }
     size = constraints.constrain(metrics.addMargin(_boxSize));
-    selectionParticipant?.updateSelectionGeometry();
+    _content?.finishLayout(Size(contentWidth, contentHeight));
     _maybeScheduleSelfSizeBasisRecompute();
     final frame = firstChild;
     if (frame is RenderViewSemanticsFrame) {
@@ -1617,22 +1380,27 @@ class ElRenderView extends RenderBox
     if (!_selfSizeBasis) return;
     if (_selfSizeBasisPostFrameScheduled) return;
     final targetBits = computeResponsiveBits(_boxSize.width, effectiveBreakpoint);
-    if ((_stateBits & responsiveStateMask) == (targetBits & responsiveStateMask)) return;
+    if (_lastResponsiveWidth == _boxSize.width &&
+        (_stateBits & responsiveStateMask) == (targetBits & responsiveStateMask)) {
+      return;
+    }
     _selfSizeBasisPostFrameScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _selfSizeBasisPostFrameScheduled = false;
-      if (!attached) return;
+      if (!attached || !_selfSizeBasis) return;
       final now = computeResponsiveBits(_boxSize.width, effectiveBreakpoint);
-      if ((_stateBits & responsiveStateMask) == (now & responsiveStateMask)) return;
+      if (_lastResponsiveWidth == _boxSize.width && (_stateBits & responsiveStateMask) == (now & responsiveStateMask)) {
+        return;
+      }
+      _lastResponsiveWidth = _boxSize.width;
       _syncResponsiveBits(now, propagate: true);
     });
   }
 
   @override
   double? computeDistanceToActualBaseline(TextBaseline baseline) {
-    if (_hasTextPayload) {
-      return _textPainter.computeDistanceToActualBaseline(baseline);
-    }
+    final content = _content;
+    if (content != null) return content.actualBaseline(baseline);
     final c = _singleWidgetChild;
     if (c == null || !c.hasSize) return null;
     final childBaseline = c.getDistanceToActualBaseline(baseline);
@@ -1665,77 +1433,6 @@ class ElRenderView extends RenderBox
   /// paint / hit-test 都要相对它偏移子内容。
   Offset _contentOrigin = Offset.zero;
 
-  // --- selection（转发 TextEngine 内的 binder；本类不实例化）-------------
-
-  @override
-  SelectionParticipant? get selectionParticipant => _textPainterOrNull?.selectionParticipant;
-
-  SelectionRegistrar? _selectionRegistrar;
-
-  /// 文本参与者使用 Widget 作用域提供的官方注册中心。
-  SelectionRegistrar? get selectionRegistrar => _selectionRegistrar;
-
-  set selectionRegistrar(SelectionRegistrar? value) {
-    if (identical(_selectionRegistrar, value)) return;
-    _selectionRegistrar = value;
-    selectionParticipant?.bindSelectionRegistrar(value);
-  }
-
-  /// onSelection 伪类提取的宿主侧 memo（惰性：仅接入选区 paint 的文本节点分配）。
-  OnSelectionPaintMemo? _onSelectionPaintMemo;
-
-  /// 文本宿主的 onSelection 伪类提取（memo 化）。
-  ///
-  /// 选区 paint 期经 participant 的 `selectionPaintOf` 回调读取：声明取自
-  /// **declared** [_style]（onSelection 独立于普通级联，不进 committed），
-  /// 激活链跟随 [_stateBits]，颜色直接来自样式声明。
-  OnSelectionPaint _resolveOnSelectionPaint() {
-    final memo = _onSelectionPaintMemo ??= OnSelectionPaintMemo();
-    return memo.resolve(_style, stateBits: _stateBits);
-  }
-
-  /// 包内编辑器读取最近样式宿主的选区外观，不注册 Widget 依赖。
-  @internal
-  OnSelectionPaint get inheritedSelectionPaint => _resolveOnSelectionPaint();
-
-  // 测试与少量调用点仍经 RenderView 读选区状态（转发 binder）。
-  /// 选区委托：可选文本长度（无参与者恒 0）。
-  int get selectionTextLength => selectionParticipant?.selectionTextLength ?? 0;
-
-  /// 选区委托：高亮底色（onSelection 有效色；无参与者用内置兜底色）。
-  Color get selectionColor => selectionParticipant?.effectiveSelectionBgColor ?? const Color(0x553B82F6);
-
-  /// 选区委托：选中文字前景色（onSelection 有效色；null = 不改字色）。
-  Color? get selectionTextColor => selectionParticipant?.effectiveSelectionTextColor;
-
-  /// 选区委托：当前选中范围（无选区 null）。
-  TextRange? get currentSelectionRange => selectionParticipant?.currentSelectionRange;
-
-  /// 选区委托：是否处于启用选区的 root 之下。
-  bool get hasEnabledSelectionRoot => selectionParticipant?.hasEnabledSelectionRoot ?? false;
-
-  /// 选区委托：选区命中扩展范围（null = 按内容盒）。
-  Rect? get selectionHitTestBounds => selectionParticipant?.selectionHitTestBounds;
-
-  /// 选区委托：局部坐标是否落在当前选区内。
-  bool selectionContainsLocalPosition(Offset localPosition) =>
-      selectionParticipant?.selectionContainsLocalPosition(localPosition) ?? false;
-
-  /// 选区委托：局部坐标映射到文本 offset。
-  int selectionOffsetForLocalPosition(Offset localPosition) =>
-      selectionParticipant?.selectionOffsetForLocalPosition(localPosition) ?? 0;
-
-  /// 选区委托：offset 处的词边界（双击选词用）。
-  TextRange selectionWordBoundaryAt(int offset) =>
-      selectionParticipant?.selectionWordBoundaryAt(offset) ?? TextRange.collapsed(offset);
-
-  /// 选区委托：offset 处 caret 几何。
-  SelectionCaretGeometry? selectionCaretGeometryAt(int offset) =>
-      selectionParticipant?.selectionCaretGeometryAt(offset);
-
-  /// 选区委托：offset 所在行几何。
-  SelectionLineGeometry? selectionLineGeometryAt(int offset) => selectionParticipant?.selectionLineGeometryAt(offset);
-
   // --- Paint ---------------------------------------------------------------
 
   /// 当前节点是否需要合成层。
@@ -1746,7 +1443,7 @@ class ElRenderView extends RenderBox
   /// 路径之间出现不一致。
   @override
   bool get alwaysNeedsCompositing =>
-      (selectionParticipant?.hasSelectionHandleLayers ?? false) ||
+      (_content?.needsCompositing ?? false) ||
       _usesCompositedOpacity ||
       _committedResolved.box.backdropFilter != null ||
       _committedResolved.box.filter != null;
@@ -1840,7 +1537,7 @@ class ElRenderView extends RenderBox
 
   @override
   bool get clipsHitBounds {
-    if (_hasTextPayload && _textPainter.overflowNeedsClipping) return true;
+    if (_content?.clipsHitBounds ?? false) return true;
     final box = _committedResolved.box;
     if (box.clipPath != null) return true;
     final clip = box.clipBehavior;
@@ -1867,18 +1564,19 @@ class ElRenderView extends RenderBox
 
   @override
   void visitHitBoundsChildren(void Function(RenderBox child, Offset offset) visitor) {
-    final origin = _hasTextPayload ? _textPainter.textPaintOrigin : Offset.zero;
+    final content = _content;
+    if (content != null) {
+      content.visitHitBoundsChildren(visitor);
+      return;
+    }
     visitChildren((child) {
-      if (child is! RenderBox) return;
-      final pd = child.parentData;
-      if (pd is ElTextParentData && (!pd.visible || pd.scale == 0)) return;
-      final local = pd is BoxParentData ? pd.offset : Offset.zero;
-      visitor(child, origin + local);
+      if (child is RenderBox) visitor(child, (child.parentData! as BoxParentData).offset);
     });
   }
 
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    _content?.beginHitTest();
     // 拖拽指针锁：整树吞命中 + 锁光标（见 [DragPointerLock] 类注）；进行
     // 中的拖拽走 down 捕获路由投递，不经过本分支。
     if (DragPointerLock.isActive) {
@@ -1905,7 +1603,6 @@ class ElRenderView extends RenderBox
           return false;
         }
         final hitContent = _hitTestChildrenGated(result, transformed);
-        if (_hasTextPayload) _lastHitIncludedTextContent = hitContent;
         // 半透明空白只加入路径，不阻断背后兄弟；盒外仍仅由溢出后代命中。
         final hitTarget = hitContent || (inside && hitTestSelf(transformed));
         final translucent = inside && !_pointerEventsNone && event?.behavior == HitTestBehavior.translucent;
@@ -2001,17 +1698,12 @@ class ElRenderView extends RenderBox
     if (effectiveTransform != null) {
       transform.multiply(effectiveTransform);
     }
-    final data = child.parentData! as BoxParentData;
-    var dx = data.offset.dx;
-    var dy = data.offset.dy;
-    if (_hasTextPayload) {
-      dx += _textPainter.textPaintOrigin.dx;
-      dy += _textPainter.textPaintOrigin.dy;
-    }
-    transform.translateByDouble(dx, dy, 0.0, 1.0);
-    if (_hasTextPayload) {
-      final scale = (data as ElTextParentData).scale;
-      transform.scaleByDouble(scale, scale, 1, 1);
+    final content = _content;
+    if (content != null) {
+      content.applyPaintTransform(child, transform);
+    } else {
+      final offset = (child.parentData! as BoxParentData).offset;
+      transform.translateByDouble(offset.dx, offset.dy, 0.0, 1.0);
     }
   }
 
@@ -2056,22 +1748,12 @@ class ElRenderView extends RenderBox
   MouseCursor get cursor {
     if (ScrollCursorFreeze.contains(this)) return MouseCursor.defer;
     if (disabled) return SystemMouseCursors.forbidden;
-    // inline span 的 `mouseCursor` 由 `MouseTracker` 直接消费 —— 命中的
-    // `TextSpan` 本身是 `MouseTrackerAnnotation` 且在命中路径里排在本 render
-    // 之前（cursor first-in-path-wins），不需要本 getter 再转一手。
     final inheritedCursor = _committedResolved.inheritedBox.cursor;
     if (inheritedCursor != null) return inheritedCursor;
     final eventCursor = event?.cursor;
     if (eventCursor != null) return eventCursor;
-    // 仅字形命中时出 I-beam；padding / bg 空白保持 defer（由下层决定 basic）。
-    if (_showsSelectableTextCursor && _lastHitIncludedTextContent) {
-      return SystemMouseCursors.text;
-    }
-    return MouseCursor.defer;
+    return _content?.cursor ?? MouseCursor.defer;
   }
-
-  bool get _showsSelectableTextCursor =>
-      hasEnabledSelectionRoot && _hasTextPayload && _style?.userSelect != ElUserSelect.none && selectionTextLength > 0;
 
   @override
   bool get validForMouseTracker =>
@@ -2094,14 +1776,11 @@ class ElRenderView extends RenderBox
   /// 内部容器坐标宿主复用本视图的语义、动作与焦点配置。
   @internal
   void describeContainerSemantics(SemanticsConfiguration config) {
-    // exclude 时不贡献自身文本语义（与 children 一起整体排除）。
-    final excluded = shouldExcludeViewSemanticsChildren(_semantics);
-    final textLabel = excluded ? null : (_hasTextPayload ? _textPainter.semanticsTextLabel : null);
+    if (!shouldExcludeViewSemanticsChildren(_semantics)) _content?.describeSemantics(config);
     applyViewSemanticsConfiguration(
       config,
       semantics: _semantics,
-      textLabel: textLabel,
-      textDirection: textLabel == null ? null : _committedResolved.inheritedBox.direction ?? TextDirection.ltr,
+      textDirection: _committedResolved.inheritedBox.direction,
       includeFocusSemantics: _includeFocusSemantics,
       focusableForSemantics: _focusableForSemantics,
       focusedForSemantics: _focusedGetterForSemantics?.call() ?? _focusedForSemantics,
@@ -2141,10 +1820,6 @@ class ElRenderView extends RenderBox
       (source._styleChildren ??= {}).add(this);
     }
     final ancestorNode = _inheritedParent;
-    _inheritTextAccessibility(
-      (ancestorNode is ElRenderView ? ancestorNode : _findAncestor<ElRenderView>())?._effectiveTextAccessibility ??
-          defaultTextAccessibility,
-    );
     final ancestorResolved = ancestorNode?.committedResolvedStyle;
     _parentResolved = ancestorResolved;
     _isFirstAttach = false;
@@ -2172,7 +1847,7 @@ class ElRenderView extends RenderBox
       _syncResponsiveBits(responsiveBits, propagate: false);
     }
     _listenToClipper(_committedResolved.box.clipPath);
-    _textPainterOrNull?.syncSelectionParticipation();
+    _content?.attach();
     // attach 完成后才打开 transition 闸门
     _transitionsEnabled = true;
     // 路由返回和 GlobalKey 换父会重挂保留节点，入场只属于节点首次出现。
@@ -2239,8 +1914,7 @@ class ElRenderView extends RenderBox
     _styleParent?._styleChildren?.remove(this);
     _eventDispatcher?.detach(preserveEvent: true);
     super.detach();
-    // detach 后 sync：host.attached == false → 拆除选区 binder，保留 TextPainter。
-    _textPainterOrNull?.syncSelectionParticipation();
+    _content?.detach();
     _animDriver?.cancelAll();
     _pendingAutoLengthSnapshotMask = FieldMask.empty;
     // keyframe 时钟清零（CSS 元素移出文档口径：重挂载后从头播）。
@@ -2264,6 +1938,7 @@ class ElRenderView extends RenderBox
 
   void _publishState() {
     _stateSource?.updateNodeStateBits(_stateBits);
+    _cascadeBridgeChanges?.publish();
   }
 
   @override
@@ -2290,9 +1965,8 @@ class ElRenderView extends RenderBox
     _cascadeBridgeChanges?.dispose();
     _cascadeBridgeChanges = null;
     _listenToClipper(null);
-    // 文本层 / paint 协作体：dispose 后置 null，销毁路径平坦、便于 GC。
-    _textPainterOrNull?.dispose();
-    _textPainterOrNull = null;
+    _content?.dispose();
+    _content = null;
     _paintControllerOrNull?.dispose();
     _paintControllerOrNull = null;
     _zeroPaintOpsFor = null;

@@ -4,7 +4,7 @@
 
 ```dart
 ElView(
-  inheritSize: true,
+  breakpoint: ElBreakpoint(inheritSize: true),
   style: ElStyle(width: 600),
   child: ElRow(
     gutter: 16,
@@ -29,6 +29,6 @@ ElView(
 | Col.xs / sm / md / lg / xl | 对应断点覆写 span |
 | Col.style / child | 列外观与内容 |
 
-断点为**上界语义**：默认 xs≤320、sm≤640、md≤1024、lg≤1920、xl≤2560，取已声明且命中的最小档；都未命中则用 span。上例 300 宽用 24，800 宽用 12，更宽用原 span。通过祖先 ElView 的 breakpoint / inheritSize 设置断点和尺寸基准。
+断点为**上界语义**：默认 xs≤320、sm≤640、md≤1024、lg≤1920、xl≤2560，取已声明且命中的最小档；都未命中则用 span。上例 300 宽用 24，800 宽用 12，更宽用原 span。通过祖先 ElView 的 breakpoint 设置断点，尺寸基准由 ElBreakpoint.inheritSize 配置。
 
 没有 push / pull 参数；任意比例分隔面板用 Splitter，等距格子用 Grid。

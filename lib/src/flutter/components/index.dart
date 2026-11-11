@@ -229,8 +229,6 @@ class ElComponentProvider extends ElView {
     super.semantics,
     super.themeMode,
     super.breakpoint,
-    super.inheritSize,
-    super.locale,
     required Widget child,
   }) : super(
          style: components?.style?.merge(style) ?? style,
