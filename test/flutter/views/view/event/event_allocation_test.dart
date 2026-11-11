@@ -300,6 +300,102 @@ void main() {
     expect(BenchmarkProbe.eventScaleStateInstantiateCount, 0);
     await tester.pump(Duration(milliseconds: 200));
   });
+
+  testWidgets('路线只为宿主声明的手势创建点击、拖拽、缩放参与对象', (tester) async {
+    final host = DispatcherTestHost.chain();
+    addTearDown(host.dispose);
+    final dispatcher = host.leafDispatcher;
+    final phases = <ElEventPhase>[];
+    void record(ElEventDetails event) => phases.add(event.phase);
+    var pointer = 0;
+    // 每次走完一条越过起拖距离的完整路线，返回点击、拖拽、缩放参与对象的创建次数。
+    List<int> stroke(ElEvent event) {
+      dispatcher.event = event;
+      BenchmarkProbe.reset();
+      phases.clear();
+      pointer++;
+      host.dispatch(PointerDownEvent(pointer: pointer, position: Offset(20, 20)));
+      for (var index = 1; index <= 3; index++) {
+        host.dispatch(
+          PointerMoveEvent(
+            pointer: pointer,
+            position: Offset(20.0 + index * 20, 20),
+            delta: Offset(20, 0),
+            timeStamp: Duration(milliseconds: index * 16),
+          ),
+        );
+      }
+      host.dispatch(PointerUpEvent(pointer: pointer, position: Offset(80, 20), timeStamp: Duration(milliseconds: 50)));
+      return [
+        BenchmarkProbe.eventRouteTapsInstantiateCount,
+        BenchmarkProbe.eventRouteDragsInstantiateCount,
+        BenchmarkProbe.eventRouteScalesInstantiateCount,
+      ];
+    }
+
+    expect(stroke(ElEvent(onPointerDown: record, onPointerMove: record, onPointerUp: record)), [0, 0, 0]);
+    expect(phases, [
+      ElEventPhase.pointerDown,
+      ElEventPhase.pointerMove,
+      ElEventPhase.pointerMove,
+      ElEventPhase.pointerMove,
+      ElEventPhase.pointerUp,
+    ]);
+    expect(BenchmarkProbe.eventVelocityBufferInstantiateCount, 0);
+
+    expect(stroke(ElEvent(onTapDown: record, onTapUp: record, onTap: record, tapCancelDistance: 100)), [1, 0, 0]);
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+    expect(BenchmarkProbe.eventVelocityBufferInstantiateCount, 0);
+
+    expect(stroke(ElEvent(onHorizontalDragStart: record, onHorizontalDragEnd: record)), [0, 1, 0]);
+    expect(phases, [ElEventPhase.dragStart, ElEventPhase.dragEnd]);
+
+    expect(stroke(ElEvent(onScaleStart: record, onScaleEnd: record)), [0, 0, 1]);
+    expect(phases, [ElEventPhase.scaleStart, ElEventPhase.scaleEnd]);
+
+    expect(stroke(ElEvent(onTap: record, onHorizontalDragStart: record, onScaleStart: record)), [1, 1, 1]);
+    await tester.pump(Duration(milliseconds: 200));
+    expect(dispatcher.debugRetainedStates, isEmpty);
+  });
+
+  testWidgets('按住途中补上拖拽声明时才为路线创建拖拽参与对象', (tester) async {
+    final host = DispatcherTestHost.chain();
+    addTearDown(host.dispose);
+    final dispatcher = host.leafDispatcher;
+    final phases = <ElEventPhase>[];
+    void record(ElEventDetails event) => phases.add(event.phase);
+    dispatcher.event = ElEvent(onTapDown: record, onTapCancel: record, tapCancelDistance: 100);
+    host.dispatch(PointerDownEvent(pointer: 1, position: Offset(20, 20)));
+    expect(BenchmarkProbe.eventRouteTapsInstantiateCount, 1);
+    expect(BenchmarkProbe.eventRouteDragsInstantiateCount, 0);
+
+    dispatcher.event = ElEvent(
+      onTapDown: record,
+      onTapCancel: record,
+      tapCancelDistance: 100,
+      onHorizontalDragStart: record,
+      onHorizontalDragEnd: record,
+    );
+    expect(BenchmarkProbe.eventRouteDragsInstantiateCount, 1);
+    for (var index = 1; index <= 3; index++) {
+      host.dispatch(
+        PointerMoveEvent(
+          pointer: 1,
+          position: Offset(20.0 + index * 20, 20),
+          delta: Offset(20, 0),
+          timeStamp: Duration(milliseconds: index * 16),
+        ),
+      );
+    }
+    host.dispatch(PointerUpEvent(pointer: 1, position: Offset(80, 20), timeStamp: Duration(milliseconds: 50)));
+
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.dragStart, ElEventPhase.dragEnd]);
+    expect(BenchmarkProbe.eventRouteTapsInstantiateCount, 1);
+    expect(BenchmarkProbe.eventRouteDragsInstantiateCount, 1);
+    expect(BenchmarkProbe.eventRouteScalesInstantiateCount, 0);
+    await tester.pump(Duration(milliseconds: 200));
+    expect(dispatcher.debugRetainedStates, isEmpty);
+  });
 }
 
 void _expectNoOptionalAllocations() {

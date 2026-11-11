@@ -39,12 +39,12 @@ extension _ScaleEvents on EventDispatcher {
     if (!_canStartScale(declaration, state)) return;
     _release();
     if (!_canStartScale(declaration, state)) return;
-    final routes = EventDispatcher._routes.values.where((route) => route.scales.contains(this)).toList();
+    final routes = EventDispatcher._routes.values.where((route) => route._inScale(this)).toList();
     for (final route in routes) {
-      if (!route.scales.contains(this)) continue;
+      if (!route._inScale(this)) continue;
       route.claim();
       if (!_canStartScale(declaration, state)) return;
-      if (route.scales.contains(this)) route._cancelTaps(.selfGestureAccepted, owner: this);
+      if (route._inScale(this)) route._cancelTaps(.selfGestureAccepted, owner: this);
       if (!_canStartScale(declaration, state)) return;
     }
     state.active = true;
@@ -67,7 +67,7 @@ extension _ScaleEvents on EventDispatcher {
     if (!identical(_scaleState, state)) return false;
     if (_live && declaration == _shape && state.points.isNotEmpty) return true;
     for (final route in _myRoutes) {
-      route.scales.remove(this);
+      route._scales?.members.remove(this);
     }
     state.points.clear();
     _pruneScale();
@@ -158,6 +158,99 @@ extension _ScaleEvents on EventDispatcher {
       velocity: Velocity(pixelsPerSecond: velocity),
       logScaleVelocity: logScale,
     );
+  }
+}
+
+/// 一条路线上参与缩放的宿主：登记与撤回本指针的触点，几何与阶段由宿主的缩放状态累计。
+///
+/// 路线上有宿主声明缩放或旋转时才创建。
+final class _RouteScales {
+  _RouteScales(this.route) {
+    assert(() {
+      BenchmarkProbe.eventRouteScalesInstantiateCount++;
+      return true;
+    }());
+  }
+
+  final _Route route;
+
+  /// 把本指针计入触点的宿主，由内向外。
+  var members = <EventDispatcher>[];
+
+  /// 仍有宿主持有本指针的触点。
+  bool get engaged => members.isNotEmpty;
+
+  /// 登记按下的触点；凑齐双指的宿主预留这些指针，拖拽中落下第二指时直接转入缩放。
+  void begin(List<EventDispatcher> hosts) {
+    members = hosts;
+    for (final host in hosts.toList()) {
+      if (!members.contains(host)) continue;
+      host._ensureScale().points[route.pointer] = route.position;
+      host._rebase();
+      if (host._drag != null && (host._scaleState?.points.length ?? 0) > 1) host._startScale(route.down);
+      if (host._scaling) route.claim();
+      final points = host._scaleState?.points;
+      if (points != null && points.length > 1) {
+        // 双指先保留仍有效的触点，避免慢捏合被外层滚动抢走；越过缩放阈值才发 Start、取消点击。
+        final routes = points.keys.map((pointer) => EventDispatcher._routes[pointer]).toList();
+        if (routes.any(
+          (other) => other == null || other._rejected || other._closed || other._ended || !other._inScale(host),
+        )) {
+          continue;
+        }
+        for (final other in routes) {
+          if (!host._live || !other!._inScale(host)) break;
+          other.claim();
+        }
+      }
+    }
+  }
+
+  /// 认领失权后仍获准升级缩放的宿主补登本指针的触点。
+  void admit(EventDispatcher host) {
+    if (members.contains(host)) return;
+    members.add(host);
+    host._ensureScale().points[route.pointer] = route.position;
+    host._rebase();
+  }
+
+  /// 触点移动；[silent] 表示内层已停止传播，返回传播是否已停止。
+  bool move(EventDispatcher host, PointerEvent event, bool silent) {
+    final points = host._scaleState?.points;
+    if (points == null) return silent;
+    points[route.pointer] = route.position;
+    return host._moveScale(event, silent) || silent;
+  }
+
+  /// 松手：撤回本指针的触点，最后一个触点离开时结束缩放。
+  void end(PointerEvent event) {
+    for (final host in members.toList()) {
+      final points = host._scaleState?.points;
+      if (points?.remove(route.pointer) == null) continue;
+      points!.isEmpty ? host._endScale(event, route._velocity()) : host._rebase();
+      host._pruneScale();
+    }
+    members = [];
+  }
+
+  /// 取消本路线的全部缩放参与。
+  void cancel() {
+    for (final host in members.toList()) {
+      if (host._scaleState?.points.remove(route.pointer) != null) host._endScale(route.last, null);
+      host._pruneScale();
+    }
+    members = [];
+  }
+
+  /// 宿主撤回本指针的触点并取消缩放；[notify] 为 false 时静默结束。
+  void release(EventDispatcher host, {bool notify = true}) {
+    if (!members.remove(host) || host._scaleState?.points.remove(route.pointer) == null) return;
+    if (notify) {
+      host._endScale(route.last, null);
+    } else {
+      host._scaleState?.active = false;
+    }
+    host._pruneScale();
   }
 }
 

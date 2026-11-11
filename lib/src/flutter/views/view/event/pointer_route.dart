@@ -1,6 +1,8 @@
 part of 'dispatcher.dart';
 
-/// 一个指针从按下到抬起的路线：命中宿主由内向外排列，统一处理派生手势并作为竞技场成员。
+/// 一个指针从按下到抬起的路线：命中宿主由内向外排列，作为竞技场成员协调成员进出、原始输入与认领。
+///
+/// 点击、拖拽、缩放各由路线内的独立对象承担，路线上有宿主声明对应能力时才创建。
 final class _Route extends GestureArenaMember {
   _Route(this.down) : last = down, _lastPosition = EventDispatcher._pointerPosition(down);
 
@@ -9,35 +11,26 @@ final class _Route extends GestureArenaMember {
   Offset _lastPosition;
   List<(Duration, Offset)>? _velocitySamples;
   final hosts = <EventDispatcher>[];
-  // pressed 收到 tapDown、松手时收到 tapUp；taps 仍有资格触发 tap；_outside 暂时移出点击边界。
-  var pressed = <EventDispatcher>[];
-  var taps = <EventDispatcher>[];
-  var drags = <EventDispatcher>[];
-  _RouteDragConfiguration? _dragConfiguration;
+  _RouteTaps? _taps;
+  _RouteDrags? _drags;
+  _RouteScales? _scales;
   _PointerOwnership? _ownership;
   List<(EventDispatcher, ElEventPhase, PointerEvent)>? _pendingRaw;
-  var scales = <EventDispatcher>[];
-  Set<EventDispatcher>? _outside;
-  Set<EventDispatcher>? _longPressTargets;
   GestureArenaEntry? _entry;
   bool _accepted = false, _rejected = false, _closed = false, _begun = false;
-  PointerUpEvent? _pendingUp;
-  Axis? _axis;
-  Timer? _longPress;
 
   int get pointer => down.pointer;
   Offset get position => EventDispatcher._pointerPosition(last);
   Offset get moved => position - EventDispatcher._pointerPosition(down);
-  bool get _primary => down is PointerDownEvent && down.buttons == kPrimaryButton;
   bool get _ended =>
       last is PointerUpEvent ||
       last is PointerCancelEvent ||
       last is PointerRemovedEvent ||
       last is PointerPanZoomEndEvent;
-  Iterable<EventDispatcher> get _dragging => hosts.where((host) => host._drag?.route == this);
-  (ElEventPhase, ElEventPhase, ElEventPhase) get _phases => EventDispatcher._tapPhases(down.buttons)!;
 
-  _RouteDragConfiguration _ensureDragConfiguration() => _dragConfiguration ??= _RouteDragConfiguration();
+  _RouteDrags _ensureDrags() => _drags ??= _RouteDrags(this);
+
+  bool _inScale(EventDispatcher host) => _scales?.members.contains(host) ?? false;
 
   /// 宿主按命中顺序加入路线；首个加入者创建路线并接入指针路由。
   static void join(PointerEvent down, EventDispatcher host) {
@@ -69,85 +62,26 @@ final class _Route extends GestureArenaMember {
         close();
       case PointerCancelEvent() || PointerRemovedEvent():
         _abandonPendingOwnership();
-        _handoffDrags();
+        _drags?.handoff();
         cancel(.pointerCanceled);
         close();
     }
   }
 
+  /// 按拖拽、点击、缩放的顺序建立候选；没有宿主声明的能力不创建对应对象。
   void _begin() {
     final live = hosts.where((host) => host._live && _allowsRaw(host)).toList();
     final input = down;
     final transform = live.where((host) => host._canTransform(input)).toList();
-    drags = transform.where((host) => host._shape.drag || host._shape.has(.dragDown)).toList();
-    if (drags.isNotEmpty) {
-      final downDetails = <EventDispatcher, ElEventDetails>{};
-      final stop = _bubble(drags, .dragDown, (host) => downDetails[host] = host._pointer(.dragDown, input));
-      for (final MapEntry(key: host, value: details) in downDetails.entries) {
-        if (details.dragStartDistance case final distance?) {
-          (_ensureDragConfiguration().startDistances ??= {})[host] = distance;
-        }
-      }
-      if (stop >= 0) drags = drags.sublist(0, stop + 1);
-    }
-    drags.removeWhere((host) => !host._shape.drag);
-    // 拖拽中落下新手指：与 Flutter 一致，由最新的手指继续驱动。
-    for (final host in drags.where((host) => host._drag != null && !host._shape.scale).toList()) {
-      drags.remove(host);
-      host._drag!
-        ..route = this
-        ..position = position;
-      claim();
-    }
+    final dragging = transform.where((host) => host._shape.drag || host._shape.has(.dragDown)).toList();
+    if (dragging.isNotEmpty) _ensureDrags().begin(dragging);
     if (input is PointerDownEvent && EventDispatcher._tapPhases(input.buttons) != null) {
       // 拖拽中的宿主不为新手指重建点击候选。
-      taps = live.where((host) => host._drag == null && host._shape.wantsTap(input.buttons)).toList();
-      // 非主键点击只交给最内层。
-      if (!_primary && taps.isNotEmpty) taps = [taps.first];
-      final stop = _bubble(taps, _phases.$1, (host) => host._pointer(_phases.$1, input));
-      if (stop >= 0) taps = taps.sublist(0, stop + 1);
-      pressed = List.of(taps);
-      if (_primary) {
-        for (final host in taps) {
-          host._countTap(input);
-        }
-        for (final (count, phase) in [(2, ElEventPhase.doubleTapDown), (3, ElEventPhase.tripleTapDown)]) {
-          final hosts = taps.where((host) => host._tapCount == count).toList();
-          _bubble(hosts, phase, (host) => host._pointer(phase, input, count: count));
-        }
-        for (final host in taps) {
-          if (host._e.onLongPress != null) (_longPressTargets ??= {}).add(host);
-        }
-        final owner = _longPressTargets?.firstOrNull;
-        if (owner != null) {
-          owner._e.longPressDelay == Duration.zero
-              ? _fireLongPress()
-              : _longPress = Timer(owner._e.longPressDelay, _fireLongPress);
-        }
-      }
+      final tapping = live.where((host) => host._drag == null && host._shape.wantsTap(input.buttons)).toList();
+      if (tapping.isNotEmpty) (_taps ??= _RouteTaps(this)).begin(tapping, input);
     }
-    scales = transform.where((host) => host._shape.scale).toList();
-    for (final host in scales.toList()) {
-      if (!scales.contains(host)) continue;
-      host._ensureScale().points[pointer] = position;
-      host._rebase();
-      if (host._drag != null && (host._scaleState?.points.length ?? 0) > 1) host._startScale(input);
-      if (host._scaling) claim();
-      final points = host._scaleState?.points;
-      if (points != null && points.length > 1) {
-        // 双指先保留仍有效的触点，避免慢捏合被外层滚动抢走；越过缩放阈值才发 Start、取消点击。
-        final routes = points.keys.map((pointer) => EventDispatcher._routes[pointer]).toList();
-        if (routes.any(
-          (route) => route == null || route._rejected || route._closed || route._ended || !route.scales.contains(host),
-        )) {
-          continue;
-        }
-        for (final route in routes) {
-          if (!host._live || !route!.scales.contains(host)) break;
-          route.claim();
-        }
-      }
-    }
+    final scaling = transform.where((host) => host._shape.scale).toList();
+    if (scaling.isNotEmpty) (_scales ??= _RouteScales(this)).begin(scaling);
     _track(down);
     _begun = true;
     _tryOwnedScaleUpgrades();
@@ -159,18 +93,14 @@ final class _Route extends GestureArenaMember {
       for (final host in hosts.toList()) {
         _flushRawFor(host, event);
       }
-      final releases = List.of(pressed);
+      final releases = List.of(_taps?.pressed ?? const <EventDispatcher>[]);
       cancel(.tapRejected);
-      pressed = releases;
+      _taps?.pressed = releases;
       return;
     }
     final slop = computeHitSlop(down.kind, null);
     final distance = moved.distance;
-    if (distance > kTouchSlop) {
-      _longPress?.cancel();
-      // 只声明长按的候选随长按一起退出。
-      taps.removeWhere((host) => host._shape.longPressOnly);
-    }
+    if (distance > kTouchSlop) _taps?.exceedTouchSlop();
     final delta = position - _lastPosition;
     final original = event.original ?? event;
     ElEventDetails? previous;
@@ -184,152 +114,54 @@ final class _Route extends GestureArenaMember {
       if (!host._live || !hosts.contains(host)) continue;
       final active = _allowsRaw(host);
       if (active) {
-        if (taps.contains(host)) _moveTap(host, event, distance);
+        _taps?.move(host, event, distance);
         if (_closed || !identical(last.original ?? last, original)) return;
         if (!_allowsRaw(host) || !host._live || !hosts.contains(host)) continue;
-        if (host._pressed == pointer && !taps.contains(host) && distance > slop) host._release();
-        final pending = _dragConfiguration?.deferredStarts?.remove(host);
-        if (pending != null) host._startDrag(this, pending.$2, event);
-        if (!dragStopped && host._drag?.route == this && identical(host._lastInput, original)) {
-          previous = host._updateDrag(event, delta, previous);
-          dragStopped = previous.propagationStopped;
+        if (host._pressed == pointer && !(_taps?.eligible.contains(host) ?? false) && distance > slop) host._release();
+        final drags = _drags;
+        if (drags != null) {
+          drags.startDeferred(host, event);
+          if (!dragStopped && drags.drives(host) && identical(host._lastInput, original)) {
+            previous = host._updateDrag(event, delta, previous);
+            dragStopped = previous.propagationStopped;
+          }
         }
       }
-      if (scales.contains(host) && (active || (_ownership?.scaleAllowed.contains(host) ?? false))) {
-        final points = host._scaleState?.points;
-        if (points != null) {
-          points[pointer] = position;
-          scaleStopped = host._moveScale(event, scaleStopped) || scaleStopped;
-        }
+      final scales = _scales;
+      if (scales != null &&
+          scales.members.contains(host) &&
+          (active || (_ownership?.scaleAllowed.contains(host) ?? false))) {
+        scaleStopped = scales.move(host, event, scaleStopped);
       }
-      if (_allowsRaw(host) && host._live && hosts.contains(host)) _startDragFor(host, event, distance, slop);
+      if (_allowsRaw(host) && host._live && hosts.contains(host)) _drags?.tryStart(host, event, distance, slop);
     }
-    if (pressed.isEmpty && drags.isEmpty && scales.isEmpty && _dragging.isEmpty) _resolve(.rejected);
-  }
-
-  void _moveTap(EventDispatcher host, PointerEvent event, double distance) {
-    final limit = host._e.tapCancelDistance ?? (_primary ? null : 10.0);
-    if (limit != null) {
-      if (distance > limit) _cancelTap(host, .tapRejected);
-      return;
-    }
-    final inside = host._contains(position);
-    if (inside != (_outside?.contains(host) ?? false)) return;
-    if (inside) {
-      _outside?.remove(host);
-    } else {
-      (_outside ??= {}).add(host);
-    }
-    if (host._pressed == pointer) host._show(inside);
-    if (_primary) host._invoke(host._pointer(inside ? .tapDown : .tapCancel, event, reason: .tapRejected));
-  }
-
-  /// 越过起拖距离的候选开始拖拽。轴向候选等主方向落在自己的轴上，首个开始者锁定轴向，
-  /// 同轴其余候选随即开始；同时声明两轴时横向需越过更长的 pan slop，避免误触横滚。
-  void _startDragFor(EventDispatcher host, PointerEvent event, double distance, double slop) {
-    final dominant = moved.dx.abs() >= moved.dy.abs() ? Axis.horizontal : Axis.vertical;
-    drags.removeWhere((host) => !host._live || !_allowsRaw(host) || host._scaling || host._drag != null);
-    if (!drags.contains(host)) return;
-    Axis? axisFor(EventShape shape) => shape.pan ? null : _axis ?? dominant;
-    bool ready(EventDispatcher host) {
-      final shape = host._shape;
-      final axis = axisFor(shape);
-      final both = shape.acceptsDrag(.horizontal) && shape.acceptsDrag(.vertical);
-      final pan = axis == null || both && axis == .horizontal;
-      final start =
-          host._e.dragStartDistance ??
-          _dragConfiguration?.startDistances?[host] ??
-          (pan ? computePanSlop(down.kind, null) : slop);
-      return (axis == null || shape.acceptsDrag(axis)) && (distance > start || axis != null && _axis != null);
-    }
-
-    final candidates = drags.toList();
-    final proposal = candidates.indexWhere(ready);
-    if (proposal < 0) return;
-    // 外层先达到阈值时，先让兼容的内层响应，内层停止传播后外层不能抢先起拖。
-    final index = candidates.indexOf(host);
-    final axis = axisFor(host._shape);
-    if (axis != null && !host._shape.acceptsDrag(axis)) return;
-    if (index > proposal && !ready(host)) return;
-    drags.remove(host);
-    _axis ??= axis;
-    _longPress?.cancel();
-    claim();
-    if (!_allowsRaw(host) || !host._live || !hosts.contains(host)) return;
-    if (identical(_dragConfiguration?.deferMoves?.remove(host), event.original ?? event)) {
-      (_ensureDragConfiguration().deferredStarts ??= {})[host] = (event, axis);
-      taps.remove(host);
-      if (host._pressed == pointer) host._release();
-      return;
-    }
-    host._startDrag(this, axis, event);
+    if (_taps?.engaged != true && _drags?.engaged != true && _scales?.engaged != true) _resolve(.rejected);
   }
 
   void _end(PointerEvent event) {
-    _longPress?.cancel();
-    _dragConfiguration?.deferredStarts?.clear();
+    _taps?.longPress?.cancel();
+    _drags?.deferredStarts?.clear();
     final velocity = _velocity(sparse: true);
-    _handoffDrags();
-    for (final host in _dragging.toList()) {
-      host._endDrag(event, velocity);
-    }
+    _drags
+      ?..handoff()
+      ..finish(event, velocity);
     for (final host in hosts.toList()) {
       // 点击候选与纯样式宿主原地松手时保留触摸反馈，被取消的点击已在取消时结束反馈。
       final tapped =
           event is PointerUpEvent &&
-          !(_outside?.contains(host) ?? false) &&
-          (pressed.contains(host) || !host._shape.gesture);
+          !(_taps?.outside?.contains(host) ?? false) &&
+          ((_taps?.pressed.contains(host) ?? false) || !host._shape.gesture);
       if (host._pressed == pointer) host._release(tapped: tapped);
     }
-    final flung = event is PointerUpEvent && _flung(event, velocity);
-    if (event is PointerUpEvent && pressed.isNotEmpty) {
-      // tapUp 对应真实松手；tap 还要求点击资格仍在。
-      final stop = _bubble(pressed, _phases.$2, (host) => host._pointer(_phases.$2, event, buttons: down.buttons));
-      if (stop >= 0) taps.removeWhere((host) => pressed.indexOf(host) > stop);
-      if (_outside case final outside?) taps.removeWhere(outside.contains);
-      if (!flung && taps.isNotEmpty) {
-        _entry == null || _accepted ? _fireTap(event) : _pendingUp = event;
-      }
+    if (event is PointerUpEvent) {
+      final flung = _drags?.fling(event, velocity) ?? false;
+      _taps?.end(event, flung: flung);
     }
-    for (final host in scales.toList()) {
-      final points = host._scaleState?.points;
-      if (points?.remove(pointer) == null) continue;
-      points!.isEmpty ? host._endScale(event, _velocity()) : host._rebase();
-      host._pruneScale();
-    }
-    scales = [];
-  }
-
-  /// 驱动指针离开时沿用已有拖拽，将坐标基线移到最近仍接受输入的触点。
-  void _handoffDrags() {
-    for (final host in _dragging.toList()) {
-      final next = EventDispatcher._routes.values
-          .where(
-            (route) =>
-                route != this &&
-                !route._ended &&
-                !route._closed &&
-                !route._rejected &&
-                route._accepted &&
-                route.hosts.contains(host) &&
-                host._canTransform(route.down),
-          )
-          .lastOrNull;
-      if (next != null && !host._shape.scale) {
-        host._drag!
-          ..route = next
-          ..position = next.position;
-        next.drags.remove(host);
-      }
-    }
+    _scales?.end(event);
   }
 
   /// 只有拖拽与缩放需要速度，纯点击路线不采样。
-  bool get _tracking =>
-      drags.isNotEmpty ||
-      (_dragConfiguration?.deferredStarts?.isNotEmpty ?? false) ||
-      scales.isNotEmpty ||
-      _dragging.isNotEmpty;
+  bool get _tracking => _drags?.tracking == true || _scales?.engaged == true;
 
   void _track(PointerEvent event) {
     if (!_tracking || event.synthesized) return;
@@ -368,120 +200,32 @@ final class _Route extends GestureArenaMember {
     return Velocity(pixelsPerSecond: speed).clampMagnitude(0, kMaxFlingVelocity).pixelsPerSecond;
   }
 
-  /// 未越过起拖距离就快速抬手时，移动超过点击取消距离一半的候选按速度补发一次完整拖拽。
-  bool _flung(PointerEvent event, Offset velocity) {
-    final offset = moved;
-    if (velocity == Offset.zero || drags.isEmpty) return false;
-    final axis = offset.dx.abs() >= offset.dy.abs() ? Axis.horizontal : Axis.vertical;
-    final candidates = drags
-        .where((host) => host._live && host._drag == null && host._shape.acceptsDrag(axis))
-        .where((host) => offset.distance > (host._e.tapCancelDistance ?? 10) / 2)
-        .toList();
-    if (candidates.isEmpty) return false;
-    _cancelTaps(.otherGestureAccepted);
-    for (final host in candidates) {
-      if (!drags.remove(host)) continue;
-      host._startDrag(this, host._shape.pan ? null : axis, event);
-      final drag = host._drag;
-      if (drag == null) continue;
-      drag.position = EventDispatcher._pointerPosition(down);
-      host._updateDrag(event, offset, null);
-      host._endDrag(event, velocity);
-    }
-    return true;
-  }
+  void _cancelTap(EventDispatcher host, ElEventCancelReason reason) => _taps?.cancel(host, reason);
 
-  void _fireTap(PointerUpEvent up) {
-    final hosts = taps.where((host) => host._live).toList();
-    taps = [];
-    if (!_primary) {
-      _bubble(hosts, _phases.$3, (host) => host._pointer(_phases.$3, up, buttons: down.buttons));
-      return;
-    }
-    final counts = {for (final host in hosts) host: host._tapCount};
-    void tap() => _bubble(hosts, .tap, (host) => host._pointer(.tap, up, buttons: down.buttons, count: counts[host]!));
-    // 任一节点声明 deferTap 时，整条路线的单击等连击窗口结束再派发，连击发生则放弃。
-    final deferrer = hosts.where((host) => host._e.deferTap && host._shape.maxTaps > 1).firstOrNull;
-    for (final host in hosts) {
-      host._confirmTap(up);
-    }
-    if (deferrer == null) {
-      tap();
-    } else if (counts[deferrer] == 1) {
-      deferrer._deferred = tap;
-    }
-    for (final (count, phase) in [(2, ElEventPhase.doubleTap), (3, ElEventPhase.tripleTap)]) {
-      final hosts = counts.keys.where((host) => counts[host] == count).toList();
-      _bubble(hosts, phase, (host) => host._pointer(phase, down, buttons: down.buttons, count: count));
-    }
-  }
-
-  void _fireLongPress() {
-    _longPress = null;
-    final owners = taps
-        .where(
-          (host) => host._live && (_longPressTargets?.contains(host) ?? false) && !(_outside?.contains(host) ?? false),
-        )
-        .toList();
-    if (owners.isEmpty || _rejected) return;
-    final details = <ElEventDetails>[];
-    final stop = _bubble(owners, .longPress, (host) => (details..add(host._pointer(.longPress, down))).last);
-    // 业务拒绝默认动作时不认领指针，点击资格保留。
-    if (details.any((details) => details.defaultPrevented)) return;
-    claim();
-    _cancelTaps(.selfGestureAccepted);
-    if (stop >= 0) exclusive(owners[stop]);
-  }
-
-  void _cancelTap(EventDispatcher host, ElEventCancelReason reason) {
-    if (!taps.remove(host)) return;
-    host._resetTaps();
-    if (host._pressed == pointer) host._release();
-    if (_primary && !(_outside?.contains(host) ?? false)) {
-      host._invoke(host._pointer(.tapCancel, last, reason: reason));
-    }
-  }
-
-  void _cancelTaps(ElEventCancelReason reason, {EventDispatcher? owner}) {
-    _longPress?.cancel();
-    for (final host in taps.toList()) {
-      _cancelTap(host, owner != null && host != owner ? .otherGestureAccepted : reason);
-    }
-  }
+  void _cancelTaps(ElEventCancelReason reason, {EventDispatcher? owner}) => _taps?.cancelAll(reason, owner: owner);
 
   /// 节点在起拖、缩放或长按时停止了传播：独占本路线，其余节点退出，自身点击取消但保留 tapUp。
   void exclusive(EventDispatcher owner) {
     claim();
     _cancelTaps(.selfGestureAccepted, owner: owner);
     final outside = hosts.skip(hosts.indexOf(owner) + 1).toList();
-    drags.removeWhere(outside.contains);
+    _drags?.candidates.removeWhere(outside.contains);
     for (final host in outside) {
-      _dragConfiguration?.deferredStarts?.remove(host);
-      pressed.remove(host);
-      if (host._drag?.route == this) host._endDrag(last, null);
-      if (scales.remove(host) && host._scaleState?.points.remove(pointer) != null) {
-        host._endScale(last, null);
-        host._pruneScale();
-      }
+      _drags?.deferredStarts?.remove(host);
+      _taps?.pressed.remove(host);
+      _drags?.cancelDriven(host);
+      _scales?.release(host);
     }
   }
 
   /// 取消本路线的全部派生手势，宿主仍接收原始事件。
   void cancel(ElEventCancelReason reason) {
-    _pendingUp = null;
-    _dragConfiguration?.deferredStarts?.clear();
-    _dragConfiguration?.deferMoves?.clear();
-    drags.clear();
-    for (final host in hosts.toList()) {
-      if (host._drag?.route == this) host._endDrag(last, null);
-    }
-    for (final host in scales.toList()) {
-      if (host._scaleState?.points.remove(pointer) != null) host._endScale(last, null);
-      host._pruneScale();
-    }
-    scales = [];
-    _cancelTaps(reason);
-    pressed = [];
+    _taps?.pendingUp = null;
+    _drags?.cancel();
+    _scales?.cancel();
+    _taps
+      ?..cancelAll(reason)
+      ..pressed = [];
     for (final host in hosts.toList()) {
       if (host._pressed == pointer) host._release();
     }
@@ -493,28 +237,11 @@ final class _Route extends GestureArenaMember {
     if (notify) {
       _cancelTap(host, .external);
     } else {
-      taps.remove(host);
+      _taps?.eligible.remove(host);
     }
-    pressed.remove(host);
-    drags.remove(host);
-    _dragConfiguration?.startDistances?.remove(host);
-    _dragConfiguration?.deferredStarts?.remove(host);
-    _dragConfiguration?.deferMoves?.remove(host);
-    if (host._drag?.route == this) {
-      if (notify && revision == host._revision) {
-        host._endDrag(last, null);
-      } else {
-        host._drag = null;
-      }
-    }
-    if (scales.remove(host) && host._scaleState?.points.remove(pointer) != null) {
-      if (notify && revision == host._revision) {
-        host._endScale(last, null);
-      } else {
-        host._scaleState?.active = false;
-      }
-      host._pruneScale();
-    }
+    _taps?.pressed.remove(host);
+    _drags?.drop(host, notify: notify && revision == host._revision);
+    _scales?.release(host, notify: notify && revision == host._revision);
     if (host._pressed == pointer) host._release();
   }
 
@@ -533,25 +260,16 @@ final class _Route extends GestureArenaMember {
       }
       return;
     }
-    List<EventDispatcher> sync(List<EventDispatcher> list, bool wanted) =>
-        hosts.where((item) => item == host ? wanted : list.contains(item)).toList();
-    _dragConfiguration?.deferredStarts?.remove(host);
-    _dragConfiguration?.deferMoves?.remove(host);
-    drags = sync(drags, host._drag == null && host._canTransform(input) && host._shape.drag);
-    if (drags.contains(host)) {
-      if (host._activeCallback case final callback? when callback.phase == ElEventPhase.pointerMove) {
-        final move = callback.originalEvent! as PointerEvent;
-        (_ensureDragConfiguration().deferMoves ??= {})[host] = move.original ?? move;
-      }
-    }
+    final draggable = host._drag == null && host._canTransform(input) && host._shape.drag;
+    if (draggable || _drags != null) _ensureDrags().reseed(host, draggable);
     if (_rejected || EventDispatcher._tapPhases(input.buttons) == null) return;
-    final tap = host._shape.wantsTap(input.buttons);
-    if (!tap) taps.remove(host);
-    if (tap && !pressed.contains(host)) {
-      taps = sync(taps, true);
-      pressed = sync(pressed, true);
-    }
+    final tappable = host._shape.wantsTap(input.buttons);
+    if (tappable || _taps != null) (_taps ??= _RouteTaps(this)).reseed(host, tappable);
   }
+
+  /// 按路线的由内向外顺序重排候选，[host] 按 [wanted] 加入或退出。
+  List<EventDispatcher> _resync(List<EventDispatcher> list, EventDispatcher host, bool wanted) =>
+      hosts.where((item) => item == host ? wanted : list.contains(item)).toList();
 
   /// 宿主中途退出（卸载、禁用）。
   void leave(EventDispatcher host, {bool notify = true}) {
@@ -587,7 +305,7 @@ final class _Route extends GestureArenaMember {
   }
 
   void close() {
-    _longPress?.cancel();
+    _taps?.longPress?.cancel();
     if (_closed) return;
     _closed = true;
     hosts.forEach(_forgetInput);
@@ -600,9 +318,7 @@ final class _Route extends GestureArenaMember {
     _accepted = true;
     _commitPendingOwnership();
     if (_begun) _tryOwnedScaleUpgrades();
-    final up = _pendingUp;
-    _pendingUp = null;
-    if (up != null) _fireTap(up);
+    _taps?.firePendingUp();
   }
 
   @override
@@ -630,11 +346,4 @@ final class _Route extends GestureArenaMember {
     }
     return -1;
   }
-}
-
-/// 仅设备阈值覆盖或回调重接时需要的拖拽配置，不占用普通点击路线。
-final class _RouteDragConfiguration {
-  Map<EventDispatcher, double>? startDistances;
-  Map<EventDispatcher, (PointerEvent, Axis?)>? deferredStarts;
-  Map<EventDispatcher, PointerEvent>? deferMoves;
 }

@@ -23,6 +23,7 @@ part 'ownership.dart';
 ///
 /// 一次按下命中的宿主由内向外组成一条 [_Route]。点击、连击、长按、拖拽和缩放都沿路线默认冒泡，
 /// 回调调用 stopPropagation 即可截断外层；在按下阶段截断时，外层不再参与本次手势。
+/// 路线只协调成员、原始输入与认领，三类手势分别由 [_RouteTaps]、[_RouteDrags]、[_RouteScales] 承担，按声明创建。
 /// 路线以一个竞技场成员与 Flutter 手势协作：双指缩放预留触点，其余手势开始时认领指针，官方手势胜出时取消本路线。
 class EventDispatcher {
   /// 为宿主注册事件入口。
@@ -160,7 +161,7 @@ class EventDispatcher {
     if (old != null && value != null && !(_sameTapSettings(old, value) && was.sameDiscrete(next))) {
       _resetTaps();
       for (final route in routes) {
-        route._longPressTargets?.remove(this);
+        route._taps?.longPressTargets?.remove(this);
       }
     }
     if (value?.disabled == true && old?.disabled != true) {
@@ -176,10 +177,11 @@ class EventDispatcher {
     if (reshaped) {
       for (final route in routes) {
         if (route._ended) {
-          route.taps.remove(this);
-          route.pressed.remove(this);
+          route._taps
+            ?..eligible.remove(this)
+            ..pressed.remove(this);
         }
-        if (!was.sameScale(next) && route.scales.remove(this)) {
+        if (!was.sameScale(next) && (route._scales?.members.remove(this) ?? false)) {
           _scaleState?.points.remove(route.pointer);
           _endScale(route.last, null);
         }

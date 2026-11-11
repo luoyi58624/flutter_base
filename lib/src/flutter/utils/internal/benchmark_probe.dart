@@ -251,6 +251,11 @@ class BenchmarkProbe {
   /// 指针路线速度采样缓冲的实际分配次数。
   static int eventVelocityBufferInstantiateCount = 0;
 
+  /// 指针路线上点击、拖拽、缩放参与对象的实际分配次数；路线上有宿主声明对应能力才创建。
+  static int eventRouteTapsInstantiateCount = 0;
+  static int eventRouteDragsInstantiateCount = 0;
+  static int eventRouteScalesInstantiateCount = 0;
+
   /// 子树事件结清实际访问的渲染节点数；没有活动输入时为零。
   static int eventTerminateVisitCount = 0;
 
@@ -317,6 +322,9 @@ class BenchmarkProbe {
     eventKeyboardStateInstantiateCount = 0;
     eventScaleStateInstantiateCount = 0;
     eventVelocityBufferInstantiateCount = 0;
+    eventRouteTapsInstantiateCount = 0;
+    eventRouteDragsInstantiateCount = 0;
+    eventRouteScalesInstantiateCount = 0;
     eventTerminateVisitCount = 0;
     transformRecognizerInstantiateCount = 0;
     selectionOverlayLayoutCount = 0;
@@ -350,6 +358,9 @@ class BenchmarkProbe {
       'eventKeyboardStateInstantiateCount': eventKeyboardStateInstantiateCount,
       'eventScaleStateInstantiateCount': eventScaleStateInstantiateCount,
       'eventVelocityBufferInstantiateCount': eventVelocityBufferInstantiateCount,
+      'eventRouteTapsInstantiateCount': eventRouteTapsInstantiateCount,
+      'eventRouteDragsInstantiateCount': eventRouteDragsInstantiateCount,
+      'eventRouteScalesInstantiateCount': eventRouteScalesInstantiateCount,
       'eventTerminateVisitCount': eventTerminateVisitCount,
       'transformRecognizerInstantiateCount': transformRecognizerInstantiateCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,

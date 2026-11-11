@@ -66,17 +66,14 @@ bool _resolveAncestorDragConsumer(ElEventDetails details) {
     return false;
   }
   final index = route.hosts.indexOf(owner);
-  if (index < 0) return false;
+  final drags = route._drags;
+  if (index < 0 || drags == null) return false;
   final axis = details.dragAxis;
   for (var i = index + 1; i < route.hosts.length; i++) {
     final host = route.hosts[i];
     if (!host._live || !route._allowsRaw(host) || host._scaling) continue;
     if (axis == null ? !host._shape.drag : !host._shape.acceptsDrag(axis)) continue;
-    if (route.drags.contains(host) ||
-        route._dragConfiguration?.deferredStarts?.containsKey(host) == true ||
-        host._drag?.route == route) {
-      return true;
-    }
+    if (drags.engages(host) || drags.deferredStarts?.containsKey(host) == true) return true;
   }
   return false;
 }
@@ -126,15 +123,13 @@ extension _RouteOwnership on _Route {
       return true;
     }
     if (phase != .pointerMove && phase != .pointerPanZoomUpdate) return false;
+    // 没有拖拽或缩放参与者的路线不需要为内层手势暂缓外层移动。
+    final drags = _drags;
+    if (drags == null && _scales == null) return false;
     final index = hosts.indexOf(host);
     final innerGesture =
         index > 0 &&
-        hosts
-            .take(index)
-            .any(
-              (inner) =>
-                  _allowsRaw(inner) && (drags.contains(inner) || scales.contains(inner) || inner._drag?.route == this),
-            );
+        hosts.take(index).any((inner) => _allowsRaw(inner) && ((drags?.engages(inner) ?? false) || _inScale(inner)));
     if (!innerGesture) return false;
     (_pendingRaw ??= []).add((host, phase, input));
     return true;
@@ -237,11 +232,7 @@ extension _RouteOwnership on _Route {
       state.retired.add(host);
       if (allowScaleUpgrade && host._shape.scale && host._canTransform(down)) {
         state.scaleAllowed.add(host);
-        if (!scales.contains(host)) {
-          scales.add(host);
-          host._ensureScale().points[pointer] = position;
-          host._rebase();
-        }
+        (_scales ??= _RouteScales(this)).admit(host);
       }
     }
     _pendingRaw?.removeWhere((entry) => state.retired.contains(entry.$1));
@@ -269,32 +260,20 @@ extension _RouteOwnership on _Route {
     if (host._revision == revision) {
       _cancelTap(host, .otherGestureAccepted);
     } else {
-      taps.remove(host);
+      _taps?.eligible.remove(host);
     }
-    pressed.remove(host);
-    drags.remove(host);
-    _dragConfiguration?.deferredStarts?.remove(host);
-    _dragConfiguration?.deferMoves?.remove(host);
-    if (host._drag?.route == this) host._endDrag(last, null);
-    if (!preserveScale && scales.remove(host) && host._scaleState?.points.remove(pointer) != null) {
-      host._endScale(last, null);
-      host._pruneScale();
-    }
+    _taps?.pressed.remove(host);
+    _drags
+      ?..withdraw(host)
+      ..cancelDriven(host);
+    if (!preserveScale) _scales?.release(host);
     if (host._pressed == pointer) host._release();
   }
 
-  void stopDragPropagation(EventDispatcher owner, ElEventPhase phase) {
-    if (phase != .dragStart) return;
-    final outside = hosts.skip(hosts.indexOf(owner) + 1).toList();
-    drags.removeWhere(outside.contains);
-    for (final host in outside) {
-      _dragConfiguration?.deferredStarts?.remove(host);
-      if (host._drag?.route == this) host._endDrag(last, null);
-    }
-  }
-
   void _tryOwnedScaleUpgrades() {
-    for (final host in scales.toList()) {
+    final scales = _scales;
+    if (scales == null) return;
+    for (final host in scales.members.toList()) {
       final points = host._scaleState?.points;
       if (!host._live || host._scaling || points == null || points.length < 2) continue;
       final upgrading = points.keys.any(
