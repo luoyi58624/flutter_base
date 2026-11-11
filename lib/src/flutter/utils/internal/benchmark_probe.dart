@@ -233,8 +233,23 @@ class BenchmarkProbe {
   /// 亮环或迁桶时查询 Flutter View 的次数。
   static int focusViewIdResolveCount = 0;
 
-  /// 事件分发器（连同手势团队与按压识别器）的实际分配次数。
+  /// 事件分发器的实际分配次数。
   static int eventDispatcherInstantiateCount = 0;
+
+  /// 事件按压反馈状态的实际分配次数。
+  static int eventPressStateInstantiateCount = 0;
+
+  /// 事件连击与延后点击状态的实际分配次数。
+  static int eventTapSequenceInstantiateCount = 0;
+
+  /// 事件键盘会话状态的实际分配次数。
+  static int eventKeyboardStateInstantiateCount = 0;
+
+  /// 事件缩放与旋转会话状态的实际分配次数。
+  static int eventScaleStateInstantiateCount = 0;
+
+  /// 指针路线速度采样缓冲的实际分配次数。
+  static int eventVelocityBufferInstantiateCount = 0;
 
   /// 变换识别器的实际分配次数；只在声明拖拽、缩放或作为变换链祖先时创建。
   static int transformRecognizerInstantiateCount = 0;
@@ -294,6 +309,11 @@ class BenchmarkProbe {
     focusHighlightListenerRemoveCount = 0;
     focusViewIdResolveCount = 0;
     eventDispatcherInstantiateCount = 0;
+    eventPressStateInstantiateCount = 0;
+    eventTapSequenceInstantiateCount = 0;
+    eventKeyboardStateInstantiateCount = 0;
+    eventScaleStateInstantiateCount = 0;
+    eventVelocityBufferInstantiateCount = 0;
     transformRecognizerInstantiateCount = 0;
     selectionOverlayLayoutCount = 0;
     textContentParseCount = 0;
@@ -321,6 +341,11 @@ class BenchmarkProbe {
       'focusHighlightListenerRemoveCount': focusHighlightListenerRemoveCount,
       'focusViewIdResolveCount': focusViewIdResolveCount,
       'eventDispatcherInstantiateCount': eventDispatcherInstantiateCount,
+      'eventPressStateInstantiateCount': eventPressStateInstantiateCount,
+      'eventTapSequenceInstantiateCount': eventTapSequenceInstantiateCount,
+      'eventKeyboardStateInstantiateCount': eventKeyboardStateInstantiateCount,
+      'eventScaleStateInstantiateCount': eventScaleStateInstantiateCount,
+      'eventVelocityBufferInstantiateCount': eventVelocityBufferInstantiateCount,
       'transformRecognizerInstantiateCount': transformRecognizerInstantiateCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,
       'textContentParseCount': textContentParseCount,
