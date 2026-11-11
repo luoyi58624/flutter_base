@@ -306,14 +306,34 @@ void main() {
           .every((card) => card.style?.backgroundColor == null),
       isTrue,
     );
-    await tester.tap(_photo('横图 空格'));
+    final preview = find.byType(ElPreviewView);
+    Future<void> openPhoto(String title) async {
+      await tester.tap(_photo(title));
+      await tester.pump();
+      final decoded = find.descendant(
+        of: preview,
+        matching: find.byWidgetPredicate((widget) => widget is RawImage && widget.image != null),
+      );
+      await _wait(tester, () => decoded.evaluate().isNotEmpty);
+    }
+
+    await openPhoto('横图 空格');
+    expect(preview, findsOneWidget);
+    expect(tester.getSize(preview).width, 390);
+    final image = tester.widget<Image>(find.descendant(of: preview, matching: find.byType(Image)));
+    final provider = (image.image as ResizeImage).imageProvider as FileImage;
+    expect(path.basename(provider.file.path), '横图 空格.png');
+    expect(played, isNull);
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
-    expect(find.byKey(ValueKey('media-photo-preview')), findsOneWidget);
-    expect(find.byType(InteractiveViewer), findsOneWidget);
-    final previewHero = find.descendant(of: find.byKey(ValueKey('media-photo-preview')), matching: find.byType(Hero));
-    expect(tester.getSize(previewHero).width, 390);
-    await tester.tap(find.byType(CloseButton));
+    expect(preview, findsNothing);
+    await _mode(tester, 'official');
+    await openPhoto('竖图 中文');
+    expect(preview, findsOneWidget);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
+    expect(preview, findsNothing);
+    expect(find.byType(RecyclerGalleryPage), findsOneWidget);
     await tester.tap(_video('本机 视频'));
     await _wait(tester, () => find.text('播放本地视频').evaluate().isNotEmpty);
     expect(find.byKey(ValueKey('media-video-preview')), findsOneWidget);

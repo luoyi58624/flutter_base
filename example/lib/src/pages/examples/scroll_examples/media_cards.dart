@@ -198,7 +198,7 @@ class _MediaTile extends HookWidget {
               event: ElEvent(
                 onTap: (_) {
                   final entry = model.value;
-                  if (entry != null) onOpen(entry);
+                  if (entry != null && (kind != .album || entry.isVideo)) onOpen(entry);
                 },
               ),
               child: contents,
@@ -218,13 +218,24 @@ class _MediaTile extends HookWidget {
     return ValueListenableBuilder<_MediaEntry?>(
       valueListenable: model,
       child: body,
-      builder: (_, entry, child) => Semantics(
-        label: entry == null ? '' : '${entry.isVideo ? '视频' : '照片'}：${entry.title}',
-        button: true,
-        excludeSemantics: true,
-        onTap: entry == null ? null : () => onOpen(entry),
-        child: child,
-      ),
+      builder: (context, entry, child) {
+        final label = entry == null ? '' : '${entry.isVideo ? '视频' : '照片'}：${entry.title}';
+        if (kind == .album && entry != null && !entry.isVideo) {
+          return ElImagePreview.provider(
+            key: ValueKey(entry.key),
+            image: _previewImageProvider(context, entry),
+            semanticLabel: label,
+            child: child!,
+          );
+        }
+        return Semantics(
+          label: label,
+          button: true,
+          excludeSemantics: true,
+          onTap: entry == null ? null : () => onOpen(entry),
+          child: child,
+        );
+      },
     );
   }
 }

@@ -40,7 +40,7 @@ class RecyclerVideoGridPage extends StatelessWidget {
   Widget build(BuildContext context) => _MediaPage(kind: .feed, directory: directory);
 }
 
-/// 浏览本机照片与视频，点击后分别进入图片预览或视频播放页。
+/// 浏览本机照片与视频，点击后分别打开图片覆盖层或视频播放页。
 class RecyclerGalleryPage extends StatelessWidget {
   /// 创建相册示例；播放器构建器用于替换原生播放界面或进行无头测试。
   // ignore: prefer_const_constructors_in_immutables
@@ -176,15 +176,9 @@ class _MediaPageState extends State<_MediaPage> {
   Object _tag(_MediaEntry entry, bool featured) => (_heroScope, entry.key, featured);
 
   void _open(_MediaEntry entry, bool featured) {
-    final tag = _tag(entry, featured);
-    final Widget page;
-    if (widget.kind != .album) {
-      page = _MediaDetailsPage(entry: entry, tag: tag);
-    } else if (entry.isVideo) {
-      page = _MediaVideoPage(entry: entry, playerBuilder: widget.videoPlayerBuilder);
-    } else {
-      page = _MediaPhotoPage(entry: entry, tag: tag);
-    }
+    final page = widget.kind == .album
+        ? _MediaVideoPage(entry: entry, playerBuilder: widget.videoPlayerBuilder)
+        : _MediaDetailsPage(entry: entry, tag: _tag(entry, featured));
     final navigator = Navigator.of(context);
     // 独立示例的组件主题位于来源路由内，详情路由需要继承它。
     final themes = InheritedTheme.capture(from: context, to: navigator.context);

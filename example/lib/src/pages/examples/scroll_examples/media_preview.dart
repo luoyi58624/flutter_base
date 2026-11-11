@@ -9,23 +9,27 @@ Widget _mediaHeroFlight(
   BuildContext to,
 ) => ((direction == .push ? from : to).widget as Hero).child;
 
+ImageProvider _previewImageProvider(BuildContext context, _MediaEntry entry) {
+  final size = MediaQuery.sizeOf(context);
+  final ratio = MediaQuery.devicePixelRatioOf(context);
+  final width = (size.width * ratio).ceil().clamp(320, 4096);
+  final height = (size.height * ratio).ceil().clamp(320, 4096);
+  return ResizeImage(entry.original, width: width, height: height, policy: .fit, allowUpscaling: false);
+}
+
 class _FullMediaImage extends StatelessWidget {
   // ignore: prefer_const_constructors_in_immutables
   _FullMediaImage(this.entry, {this.fit = BoxFit.contain});
   final _MediaEntry entry;
   final BoxFit fit;
   @override
-  Widget build(BuildContext context) {
-    final width = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(320, 4096);
-    final height = (MediaQuery.sizeOf(context).height * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(320, 4096);
-    return Image(
-      image: ResizeImage(entry.original, width: width, height: height, policy: .fit, allowUpscaling: false),
-      fit: fit,
-      excludeFromSemantics: true,
-      frameBuilder: exampleImageFrame,
-      errorBuilder: exampleImageError,
-    );
-  }
+  Widget build(BuildContext context) => Image(
+    image: _previewImageProvider(context, entry),
+    fit: fit,
+    excludeFromSemantics: true,
+    frameBuilder: exampleImageFrame,
+    errorBuilder: exampleImageError,
+  );
 }
 
 class _MediaDetailsPage extends StatelessWidget {
@@ -81,33 +85,6 @@ class _MediaDetailsPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    ),
-  );
-}
-
-class _MediaPhotoPage extends StatelessWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _MediaPhotoPage({required this.entry, required this.tag});
-  final _MediaEntry entry;
-  final Object tag;
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    key: ValueKey('media-photo-preview'),
-    backgroundColor: Colors.black,
-    appBar: AppBar(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      title: Text(entry.title, maxLines: 1, overflow: .ellipsis),
-      leading: CloseButton(),
-    ),
-    body: SizedBox.expand(
-      child: InteractiveViewer(
-        minScale: 1,
-        maxScale: 6,
-        child: SizedBox.expand(
-          child: Hero(tag: tag, flightShuttleBuilder: _mediaHeroFlight, child: _FullMediaImage(entry)),
-        ),
       ),
     ),
   );
