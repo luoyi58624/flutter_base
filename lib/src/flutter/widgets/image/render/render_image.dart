@@ -8,10 +8,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../selection/common/selection_core.dart';
-import '../../view/event/dispatcher.dart';
-import '../../view/event/event.dart';
-import '../../view/style/style.dart';
+import '../../../views/selection/common/selection_core.dart';
+import '../../../views/view/event/dispatcher.dart';
+import '../../../views/view/event/event.dart';
+import '../../../views/view/style/style.dart';
 import '../sized_image.dart';
 
 const double _imageSelectionOverlayMaxAlpha = 0.28;
@@ -25,13 +25,13 @@ enum ImageLoadPhase { loading, ready, error }
 /// 相位回调：外壳据此切占位/错误覆盖层。
 typedef ImageLoadPhaseCallback = void Function(ImageLoadPhase phase, {int? width, int? height, Object? error});
 
-/// Render object for ElImageView。
+/// Render object for ElImage。
 ///
 /// 加载完全交给官方 [ImageProvider] 与 [ImageCache]：布局确定后按布局框换算物理像素，
 /// 经 [SizedImage] 让引擎直接解码到够用的尺寸；布局变大才重新解析，变小或抖动不重复解码。
-class RenderImageView extends RenderImage implements SelectionParticipantHost {
+class ElRenderImage extends RenderImage implements SelectionParticipantHost {
   /// 创建。
-  RenderImageView({
+  ElRenderImage({
     required ImageProvider imageProvider,
     required ImageConfiguration imageConfiguration,
     ImageLoadPhaseCallback? onLoadPhase,

@@ -12,7 +12,7 @@
 
 ## 文档选区
 
-1. `ElSelectionView` 建立自己的官方 `SelectionRegistrar`，登记当前实际挂载的文本和图片。`ElView`、Flutter `Text`、接入 registrar 的 `RichText` 和 `ElImageView` 使用同一套选择事件。
+1. `ElSelectionView` 建立自己的官方 `SelectionRegistrar`，登记当前实际挂载的文本和图片。`ElView`、Flutter `Text`、接入 registrar 的 `RichText` 和 `ElImage` 使用同一套选择事件。
 2. 鼠标拖动、连击、触摸长按和句柄移动统一转换成官方选择事件。起止端点及各内容的选中范围由这些参与者持有，不再维护第二套跨节点范围。
 3. 内容自行绘制高亮；句柄、放大镜和工具条由本组件的内部附属层承载。拖动期间隐藏句柄只改变绘制与命中，不卸载在途交互节点。
 4. 控制器和 `onSelectionChanged` 只提供 `String?`。`null` 表示没有选区；图片参与范围与高亮，复制时优先使用替代文本，其次使用源地址，二者均为空时返回空字符串但仍有选区。

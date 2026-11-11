@@ -2,11 +2,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/views/image/render/render_image_view.dart';
+import 'package:flutter_base/src/flutter/widgets/image/render/render_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// ElImageView P2：占位层 / 错误态 / onLoad / onError。
+/// ElImage P2：占位层 / 错误态 / onLoad / onError。
 /// widget 测试里图片解码在 fake-async 下不推进，须 tester.runAsync 驱动。
 final Uint8List _validPng = Uint8List.fromList(<int>[
   0x89,
@@ -104,7 +104,7 @@ Future<void> _settleImage(WidgetTester tester) async {
 void main() {
   testWidgets('placeholder 在解码完成前显示，完成后替换为图片并回调 onLoad', (tester) async {
     ImageLoadInfo? loaded;
-    final view = ElImageView.memory(
+    final view = ElImage.memory(
       _validPng,
       width: 40,
       height: 40,
@@ -124,7 +124,7 @@ void main() {
 
   testWidgets('解码失败显示 error 并回调 onError', (tester) async {
     Object? failure;
-    final view = ElImageView.memory(
+    final view = ElImage.memory(
       _garbageBytes,
       width: 40,
       height: 40,
@@ -141,7 +141,7 @@ void main() {
     final loads = <ImageLoadInfo>[];
     Widget build(Uint8List bytes) => Directionality(
       textDirection: TextDirection.ltr,
-      child: ElImageView.memory(
+      child: ElImage.memory(
         bytes,
         width: 40,
         height: 40,
@@ -164,9 +164,9 @@ void main() {
 
   testWidgets('无占位/回调配置走零开销直挂路径（不额外订阅相位）', (tester) async {
     await tester.pumpWidget(
-      Directionality(textDirection: TextDirection.ltr, child: ElImageView.memory(_validPng, width: 40, height: 40)),
+      Directionality(textDirection: TextDirection.ltr, child: ElImage.memory(_validPng, width: 40, height: 40)),
     );
-    expect(find.byType(ElImageView), findsOneWidget);
+    expect(find.byType(ElImage), findsOneWidget);
     await _settleImage(tester);
     expect(tester.takeException(), isNull);
   });
@@ -176,10 +176,10 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: .ltr,
-        child: ElImageView.memory(_validPng, width: 80, height: 80, event: ElEvent(onTap: (_) => taps++)),
+        child: ElImage.memory(_validPng, width: 80, height: 80, event: ElEvent(onTap: (_) => taps++)),
       ),
     );
-    await tester.tap(find.byType(ElImageView));
+    await tester.tap(find.byType(ElImage));
     expect(taps, 1);
   });
   testWidgets('解码尺寸随布局约束与 cover 比例自适应，只升不降', (tester) async {
@@ -192,11 +192,11 @@ void main() {
       textDirection: TextDirection.ltr,
       child: ElView(
         style: ElStyle(alignment: .center),
-        child: ElImageView.memory(bytes!, width: extent, height: extent, fit: .cover),
+        child: ElImage.memory(bytes!, width: extent, height: extent, fit: .cover),
       ),
     );
 
-    RenderImageView render() => tester.renderObject<RenderImageView>(find.byType(ElImageView));
+    ElRenderImage render() => tester.renderObject<ElRenderImage>(find.byType(ElImage));
 
     await tester.pumpWidget(build(50));
     await _settleImage(tester);
@@ -224,7 +224,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: ElView(
           style: ElStyle(alignment: .center),
-          child: ElImageView.memory(bytes!, width: 50, height: 50, fit: .cover, onLoad: (info) => loaded = info),
+          child: ElImage.memory(bytes!, width: 50, height: 50, fit: .cover, onLoad: (info) => loaded = info),
         ),
       ),
     );
@@ -238,11 +238,11 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
-        child: UnconstrainedBox(child: ElImageView.memory(bytes!)),
+        child: UnconstrainedBox(child: ElImage.memory(bytes!)),
       ),
     );
     await _settleImage(tester);
-    final render = tester.renderObject<RenderImageView>(find.byType(ElImageView));
+    final render = tester.renderObject<ElRenderImage>(find.byType(ElImage));
     expect(render.debugBox, (w: 0, h: 0));
     expect(render.image!.width, 300);
   });

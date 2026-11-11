@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
-import '../widgets/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
+import '../scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
 import 'physics/bouncing_scroll_physics.dart';
 import 'physics/clamping_scroll_physics.dart';
 

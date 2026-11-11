@@ -9,12 +9,12 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
-import '../../scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+import '../scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
+import '../scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
 import 'refresher/android.dart' show ElAndroidRefresher;
 import 'refresher/ios.dart' show ElIosRefresher;
-import '../../scroll/scroll_position.dart' show ScrollHostPosition;
+import '../scroll/scroll_position.dart' show ScrollHostPosition;
 
 /// Sliver 形式的下拉刷新，放在 ElScroll.sliver 的 slivers 里，通常是第一个。
 ///

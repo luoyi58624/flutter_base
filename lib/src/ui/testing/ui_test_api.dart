@@ -10,7 +10,7 @@ export '../../flutter/views/editable/render/editable_render_scope.dart'
 export '../../flutter/views/view/event/dispatcher.dart';
 export '../../flutter/views/view/event/drag_pointer_lock.dart';
 export '../../flutter/views/view/event/details.dart' show EventDetailsAccess;
-export '../../flutter/views/image/render/render_image_view.dart';
+export '../../flutter/widgets/image/render/render_image.dart';
 export '../../flutter/widgets/popup/context_menu.dart';
 export '../../flutter/views/selection/common/selection_core.dart';
 export '../../flutter/views/selection/docs/selection_view.dart';

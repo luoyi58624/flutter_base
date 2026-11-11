@@ -39,7 +39,7 @@ void main() {
         lifecycleHost(
           ReparentHarness(
             key: move,
-            child: ElImageView.memory(
+            child: ElImage.memory(
               bytes,
               key: imageKey,
               width: 80,
@@ -75,7 +75,7 @@ void main() {
     final bytes = (await tester.runAsync(png))!;
     var callbacks = 0;
     await tester.pumpWidget(
-      lifecycleHost(ElImageView.memory(bytes, onLoad: (_) => callbacks++, onError: (_) => callbacks++)),
+      lifecycleHost(ElImage.memory(bytes, onLoad: (_) => callbacks++, onError: (_) => callbacks++)),
     );
     await tester.pumpWidget(ElView());
     await imageFrames(tester);

@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter/scroll/dual_axis_scroll.dart';
-import 'package:flutter_base/src/flutter/scroll/viewport.dart';
+import 'package:flutter_base/src/flutter/widgets/scroll/dual_axis_scroll.dart';
+import 'package:flutter_base/src/flutter/widgets/scroll/viewport.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../ui/support/scrollbar_thumb.dart';

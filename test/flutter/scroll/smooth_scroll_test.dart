@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter/scroll/scroll_position.dart' show ScrollHostPosition;
+import 'package:flutter_base/src/flutter/widgets/scroll/scroll_position.dart' show ScrollHostPosition;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _app(ScrollController controller, {Object? smoothScroll}) => Directionality(

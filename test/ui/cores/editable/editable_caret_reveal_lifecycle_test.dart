@@ -1,6 +1,6 @@
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 
-import 'package:flutter_base/src/flutter/scroll/viewport.dart' show ScrollViewport;
+import 'package:flutter_base/src/flutter/widgets/scroll/viewport.dart' show ScrollViewport;
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show MatrixUtils, RenderAbstractViewport, RenderBox;

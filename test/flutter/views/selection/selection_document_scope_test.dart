@@ -52,7 +52,7 @@ void main() {
                   selectionColor: Colors.blue,
                 ),
               ),
-              ElImageView.memory(
+              ElImage.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),
@@ -303,7 +303,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: controller,
-          child: ElImageView.memory(
+          child: ElImage.memory(
             base64Decode(
               'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
             ),

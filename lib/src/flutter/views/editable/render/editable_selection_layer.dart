@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../utils/internal/pixel_grid.dart';
-import '../../../scroll/viewport.dart' show ScrollViewport;
+import '../../../widgets/scroll/viewport.dart' show ScrollViewport;
 import '../composer.dart';
 import 'editable_line_view.dart';
 import 'editable_render_scope.dart';

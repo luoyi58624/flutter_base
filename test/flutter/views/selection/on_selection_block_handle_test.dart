@@ -33,7 +33,7 @@ void main() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ElView(key: textKey, child: 'lead text'),
-              ElImageView.memory(
+              ElImage.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),
@@ -58,7 +58,7 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    final block = tester.renderObject<RenderImageView>(find.byKey(blockKey));
+    final block = tester.renderObject<ElRenderImage>(find.byKey(blockKey));
     expect(block.currentSelectionRange, isNotNull);
     expect(selectionParticipantOf(block)!.effectiveSelectionBgColor, const Color(0x33FF8800));
   });

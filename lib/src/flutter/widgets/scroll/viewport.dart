@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../views/selection/common/selection_boundary.dart' show SelectionGeometryObserver, SelectionItemVisibility;
+import '../../views/selection/common/selection_boundary.dart' show SelectionGeometryObserver, SelectionItemVisibility;
 import 'scroll_position.dart' show ScrollHostPosition;
 
 /// 跨 [ScrollPosition] 换绑存活的滚动偏移监听通道。

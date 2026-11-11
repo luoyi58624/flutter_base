@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../views/image/image_view.dart' show ImageLoadInfo;
+import '../../widgets/image/index.dart' show ImageLoadInfo;
 import '../../views/view/style/style.dart' show ElStyle;
 import '../index.dart' show ElComponentProvider;
 

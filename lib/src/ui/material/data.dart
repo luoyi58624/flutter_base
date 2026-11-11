@@ -41,7 +41,7 @@ Widget _avatar(ElAvatar c) {
   final fallback = _content(c.child ?? (c.alt.isEmpty ? Icons.person : c.alt));
   final image = c.src == null
       ? fallback
-      : ElImageView(
+      : ElImage(
           c.src!,
           alt: c.alt,
           width: c.size,

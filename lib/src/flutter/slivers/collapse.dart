@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show FloatingHeaderSnapConfiguration;
 
-import '../scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
-import '../scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
-import '../scroll/scroll_position.dart' show ScrollHostPosition;
+import '../widgets/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
+import '../widgets/scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+import '../widgets/scroll/scroll_position.dart' show ScrollHostPosition;
 
 /// 根据滚动进度构建折叠头。0 为展开，1 为收起。
 typedef ElSliverCollapseBuilder = Widget Function(BuildContext context, double progress);

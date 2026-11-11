@@ -8,8 +8,8 @@ import 'package:flutter/widgets.dart';
 
 import '../view/event/event.dart';
 import '../view/event/dispatcher.dart';
-import '../../scroll/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
-import '../../scroll/scroll_behavior.dart' show elScrollPhysicsFor;
+import '../../widgets/scroll/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
+import '../../widgets/scroll/scroll_behavior.dart' show elScrollPhysicsFor;
 import '../view/render/hit_bounds.dart';
 import 'tab_controller.dart';
 

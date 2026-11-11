@@ -118,7 +118,7 @@ class _Card extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return ElImageView(
+                return ElImage(
                   data['image']!,
                   width: constraints.maxWidth,
                   height: constraints.maxHeight,

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/views/image/render/render_image_view.dart';
+import 'package:flutter_base/src/flutter/widgets/image/render/render_image.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter/gestures.dart';
@@ -93,7 +93,7 @@ void main() {
         ElSelectionView(
           controller: controller,
           onSelectionChanged: changes.add,
-          child: ElImageView.memory(_imageBytes, width: 24, height: 24, alt: 'before'),
+          child: ElImage.memory(_imageBytes, width: 24, height: 24, alt: 'before'),
         ),
       ),
     );
@@ -103,7 +103,7 @@ void main() {
     expect(changes.last, 'before');
     notifications = 0;
 
-    final image = tester.allRenderObjects.whereType<RenderImageView>().toSet().single;
+    final image = tester.allRenderObjects.whereType<ElRenderImage>().toSet().single;
     final size = image.size;
     image.alt = 'after';
     await tester.pump();
@@ -127,14 +127,14 @@ void main() {
         ElSelectionView(
           controller: controller,
           onSelectionChanged: changes.add,
-          child: ElImageView.memory(_imageBytes, width: 24, height: 24, src: 'before.png'),
+          child: ElImage.memory(_imageBytes, width: 24, height: 24, src: 'before.png'),
         ),
       ),
     );
     await tester.pumpAndSettle();
     controller.selectAll();
     await tester.pump();
-    final image = tester.allRenderObjects.whereType<RenderImageView>().toSet().single;
+    final image = tester.allRenderObjects.whereType<ElRenderImage>().toSet().single;
     expect(changes.last, 'before.png');
     image.src = 'after.png';
     await tester.pump();

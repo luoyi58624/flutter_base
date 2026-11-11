@@ -104,7 +104,7 @@ void main() {
             children: [
               ElView(child: 'own'),
               Text('native'),
-              ElImageView.memory(
+              ElImage.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),

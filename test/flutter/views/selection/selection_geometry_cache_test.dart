@@ -1,6 +1,6 @@
 import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
-import 'package:flutter_base/src/flutter/scroll/scroll.dart';
+import 'package:flutter_base/src/flutter/widgets/scroll/scroll.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;

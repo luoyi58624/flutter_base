@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/flutter/views/image/sized_image.dart';
+import 'package:flutter_base/src/flutter/widgets/image/sized_image.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 SizedImage _sized({int w = 0, int h = 0, BoxFit fit = BoxFit.cover}) =>
