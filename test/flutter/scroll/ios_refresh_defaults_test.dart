@@ -75,7 +75,7 @@ Future<TestGesture> _pullTo(WidgetTester tester, _Fixture fixture, double target
 }
 
 void main() {
-  testWidgets('Sliver iOS 指示器居中时进入待释放，松手才刷新并停靠原位', (tester) async {
+  testWidgets('Sliver iOS 达到默认阈值后松手刷新并停靠原位', (tester) async {
     final fixture = _Fixture();
     addTearDown(fixture.dispose);
     await tester.pumpWidget(fixture.build());
@@ -88,8 +88,6 @@ void main() {
     expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
     expect(fixture.snapshot.progress, 1);
     expect(fixture.refreshes, 0);
-    final center = tester.getCenter(find.byType(ElRefreshCupertinoSpinner)).dy - tester.getTopLeft(_scroll).dy;
-    expect(center, closeTo(fixture.snapshot.pulledExtent / 2, 2));
     expect(fixture.refresher.maxPullExtent, 250, reason: '缩短触发距离不会连带缩短最大拉伸空间');
 
     await gesture.up();

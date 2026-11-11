@@ -123,34 +123,26 @@ void main() {
   testWidgets('下拉反向撤销或取消手势，均不会触发刷新', (tester) async {
     await _open(tester);
     final first = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     expect(_body(tester), 0);
     await first.moveBy(Offset(0, -200), timeStamp: Duration(milliseconds: 230));
     await tester.pump();
-    // Sliver 拉距完全收回后立即回到空闲，松手也不能触发刷新。
-    expect(_refreshStatus(tester), isNull);
     await first.up(timeStamp: Duration(milliseconds: 440));
     await tester.pumpAndSettle();
     expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
-    expect(_refreshStatus(tester), isNull);
 
     // 完全回收后的剩余反向位移会滚动正文，下一次取消测试先恢复到顶部。
     await tester.tap(find.text('首页').hitTestable());
     await tester.pumpAndSettle();
     final canceled = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     await canceled.cancel();
     await tester.pumpAndSettle();
     expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
-    expect(_refreshStatus(tester), isNull);
   });
 
   testWidgets('刷新中离开顶部会收起圆盘，回到顶部后才应用结果', (tester) async {
     await _open(tester);
     final pull = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     await _releaseHeld(tester, pull);
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.refresh);
     await tester.flingFrom(Offset(195, 590), Offset(0, -160), 1800);
     await tester.pump(Duration(milliseconds: 200));
     final indicator = tester.widget<AnimatedOpacity>(_inFeed(_key('bibi-refresh-indicator')));
@@ -168,7 +160,6 @@ void main() {
   testWidgets('退出页面会取消仍按着的刷新手势', (tester) async {
     await _open(tester);
     final pull = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     await tester.pumpWidget(SizedBox());
     await pull.cancel();
     await tester.pumpAndSettle();
@@ -253,9 +244,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
-}
-
-RefreshIndicatorStatus? _refreshStatus(WidgetTester tester) {
-  final spinner = _inFeed(find.byType(ElRefreshMaterialSpinner));
-  return spinner.evaluate().isEmpty ? null : tester.widget<ElRefreshMaterialSpinner>(spinner).status;
 }

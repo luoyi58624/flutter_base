@@ -1,7 +1,7 @@
 export 'package:flutter/material.dart' show RefreshIndicatorStatus;
 
-export 'android_refresher.dart' show ElAndroidRefresher, ElRefreshMaterialSpinner;
-export 'refresher.dart'
+export 'refresher/android.dart' show ElAndroidRefresher;
+export 'refresher/index.dart'
     show
         ElCustomRefresher,
         ElNoRefresher,
@@ -10,4 +10,4 @@ export 'refresher.dart'
         ElRefreshSnapshot,
         ElRefresher,
         elWebKitRubberBandSpring;
-export 'ios_refresher.dart' show ElIosRefresher, ElRefreshCupertinoSpinner;
+export 'refresher/ios.dart' show ElIosRefresher;

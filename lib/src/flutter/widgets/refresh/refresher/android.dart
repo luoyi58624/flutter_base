@@ -5,9 +5,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
 import 'package:flutter/widgets.dart';
 
-import '../../views/view/view.dart';
-import '../../views/view/style/style.dart';
-import 'refresher.dart';
+import '../../../views/view/view.dart';
+import '../../../views/view/style/style.dart';
+import 'index.dart';
 
 // ---- 官方 androidx SwipeRefreshLayout 常量 ----
 
@@ -181,7 +181,7 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
             opacity: snapshot.status == RefreshIndicatorStatus.drag || canceling ? 0.3 : 1.0,
             transition: const [.all(Duration(milliseconds: 300))],
           ),
-          child: ElRefreshMaterialSpinner(
+          child: _RefreshMaterialSpinner(
             status: snapshot.status,
             color: widget.color,
             endTrim: endTrim,
@@ -201,17 +201,15 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
 /// 整档，**箭头在收拢段前 1/4 快速淡出**，读感是"箭头变成加载器"），
 /// 再进入 1332ms/圈的不定动画——弧长在 0.01↔0.8 圈间按 fastOutSlowIn
 /// 涨缩、ring 每圈附加 0.19 圈旋转、外加 216°/圈的组旋转。
-class ElRefreshMaterialSpinner extends StatefulWidget {
+class _RefreshMaterialSpinner extends StatefulWidget {
   /// 创建 Material 刷新进度指示器。
-  const ElRefreshMaterialSpinner({
-    super.key,
+  const _RefreshMaterialSpinner({
     required this.status,
     required this.color,
     this.endTrim = 0.0,
     this.rotation = 0.0,
     this.arrowScale = 0.0,
-    this.size = 40.0,
-  });
+  }) : size = 40.0;
 
   /// 当前刷新阶段。
   final RefreshIndicatorStatus? status;
@@ -233,10 +231,10 @@ class ElRefreshMaterialSpinner extends StatefulWidget {
 
   /// 创建进度指示器状态。
   @override
-  State<ElRefreshMaterialSpinner> createState() => _RefreshMaterialSpinnerState();
+  State<_RefreshMaterialSpinner> createState() => _RefreshMaterialSpinnerState();
 }
 
-class _RefreshMaterialSpinnerState extends State<ElRefreshMaterialSpinner> with SingleTickerProviderStateMixin {
+class _RefreshMaterialSpinnerState extends State<_RefreshMaterialSpinner> with SingleTickerProviderStateMixin {
   // 官方 CircularProgressDrawable 常量。
   static const double _minArc = 0.01; // MIN_PROGRESS_ARC
   static const double _maxArc = 0.8; // MAX_PROGRESS_ARC
@@ -280,7 +278,7 @@ class _RefreshMaterialSpinnerState extends State<ElRefreshMaterialSpinner> with 
   }
 
   @override
-  void didUpdateWidget(covariant ElRefreshMaterialSpinner oldWidget) {
+  void didUpdateWidget(covariant _RefreshMaterialSpinner oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncSpin();
   }
@@ -466,7 +464,9 @@ class _RenderMaterialRing extends RenderBox {
        _arrowScale = arrowScale;
 
   double _diameter;
+
   double get diameter => _diameter;
+
   set diameter(double value) {
     if (_diameter == value) return;
     _diameter = value;
@@ -474,7 +474,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   Color _color;
+
   Color get color => _color;
+
   set color(Color value) {
     if (_color == value) return;
     _color = value;
@@ -482,7 +484,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   double _startTrim;
+
   double get startTrim => _startTrim;
+
   set startTrim(double value) {
     if (_startTrim == value) return;
     _startTrim = value;
@@ -490,7 +494,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   double _endTrim;
+
   double get endTrim => _endTrim;
+
   set endTrim(double value) {
     if (_endTrim == value) return;
     _endTrim = value;
@@ -498,7 +504,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   double _rotation;
+
   double get rotation => _rotation;
+
   set rotation(double value) {
     if (_rotation == value) return;
     _rotation = value;
@@ -506,7 +514,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   double _groupRotation;
+
   double get groupRotation => _groupRotation;
+
   set groupRotation(double value) {
     if (_groupRotation == value) return;
     _groupRotation = value;
@@ -514,7 +524,9 @@ class _RenderMaterialRing extends RenderBox {
   }
 
   double _arrowScale;
+
   double get arrowScale => _arrowScale;
+
   set arrowScale(double value) {
     if (_arrowScale == value) return;
     _arrowScale = value;

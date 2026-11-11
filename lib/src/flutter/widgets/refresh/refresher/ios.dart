@@ -5,9 +5,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
 import 'package:flutter/widgets.dart';
 
-import '../../views/view/view.dart';
-import '../../views/view/style/style.dart';
-import 'refresher.dart';
+import '../../../views/view/view.dart';
+import '../../../views/view/style/style.dart';
+import 'index.dart';
 
 // ---- 官方 CupertinoSliverRefreshControl / CupertinoActivityIndicator 常量 ----
 
@@ -143,7 +143,7 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
               : const .only(bottom: _kIosIndicatorMargin),
           transform: scale == 1.0 ? null : .scale(scale, scale),
         ),
-        child: ElRefreshCupertinoSpinner(snapshot: snapshot, color: widget.color),
+        child: _RefreshCupertinoSpinner(snapshot: snapshot, color: widget.color),
       ),
     );
   }
@@ -152,9 +152,9 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
 /// iOS 放射状 spinner：官方 CupertinoActivityIndicator 复刻——8 根圆头刻度
 /// （tick 径向跨 r/3..r、宽 0.2r），拉出期按进度逐根点亮（统一 alpha 147），
 /// armed 起即步进旋转（1s/圈）、亮度尾迹用 iOS 13.2 提取的 alpha 序列。
-class ElRefreshCupertinoSpinner extends StatefulWidget {
+class _RefreshCupertinoSpinner extends StatefulWidget {
   /// 创建 Cupertino 刷新进度指示器。
-  const ElRefreshCupertinoSpinner({super.key, required this.snapshot, required this.color});
+  const _RefreshCupertinoSpinner({required this.snapshot, required this.color});
 
   /// 当前刷新快照。
   final ElRefreshSnapshot snapshot;
@@ -164,10 +164,10 @@ class ElRefreshCupertinoSpinner extends StatefulWidget {
 
   /// 创建进度指示器状态。
   @override
-  State<ElRefreshCupertinoSpinner> createState() => _RefreshCupertinoSpinnerState();
+  State<_RefreshCupertinoSpinner> createState() => _RefreshCupertinoSpinnerState();
 }
 
-class _RefreshCupertinoSpinnerState extends State<ElRefreshCupertinoSpinner> with SingleTickerProviderStateMixin {
+class _RefreshCupertinoSpinnerState extends State<_RefreshCupertinoSpinner> with SingleTickerProviderStateMixin {
   /// 官方 CupertinoActivityIndicator 周期：1s / 圈。
   late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 1))
     ..addListener(_handleSpinTick);
@@ -195,7 +195,7 @@ class _RefreshCupertinoSpinnerState extends State<ElRefreshCupertinoSpinner> wit
   }
 
   @override
-  void didUpdateWidget(covariant ElRefreshCupertinoSpinner oldWidget) {
+  void didUpdateWidget(covariant _RefreshCupertinoSpinner oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncSpin();
   }
@@ -260,7 +260,9 @@ class _RenderCupertinoSpinner extends RenderBox {
        _phase = phase;
 
   Color _color;
+
   Color get color => _color;
+
   set color(Color value) {
     if (_color == value) return;
     _color = value;
@@ -268,7 +270,9 @@ class _RenderCupertinoSpinner extends RenderBox {
   }
 
   double _progress;
+
   double get progress => _progress;
+
   set progress(double value) {
     if (_progress == value) return;
     _progress = value;
@@ -276,7 +280,9 @@ class _RenderCupertinoSpinner extends RenderBox {
   }
 
   bool _spinning;
+
   bool get spinning => _spinning;
+
   set spinning(bool value) {
     if (_spinning == value) return;
     _spinning = value;
@@ -284,7 +290,9 @@ class _RenderCupertinoSpinner extends RenderBox {
   }
 
   double _phase;
+
   double get phase => _phase;
+
   set phase(double value) {
     if (_phase == value) return;
     _phase = value;
