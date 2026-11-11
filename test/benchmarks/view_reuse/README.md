@@ -4,6 +4,8 @@
 
 当前结果见 [BASELINE.md](BASELINE.md)，完整采样摘要见 [baseline-2026-11-12.jsonl](baseline-2026-11-12.jsonl)。JSONL 包含生产版本、源文件 SHA256、每轮原始微秒样本和累计工作量，缺失的计数字段按零理解。
 
+另有 [11 个真实 example 页面补充基线](BUSINESS_BASELINE.md)，测试入口为 `example/test/sliver_business_performance_test.dart`。它比较页面现有写法的 SliverList 与 ElSliverRecyclerList，独立记录滚动中的节点保留、配置变化和可见数据更新，不改示例实现。
+
 ## 运行
 
 在仓库根目录执行，默认只跑短样本正确性与工作量检查：
