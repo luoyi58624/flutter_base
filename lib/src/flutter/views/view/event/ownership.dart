@@ -71,7 +71,7 @@ bool _resolveAncestorDragConsumer(ElEventDetails details) {
   for (var i = index + 1; i < route.hosts.length; i++) {
     final host = route.hosts[i];
     if (!host._live || !route._allowsRaw(host) || host._scaling) continue;
-    if (axis == null ? !host._e.hasDragCallback : !host._e.acceptsDrag(axis)) continue;
+    if (axis == null ? !host._shape.drag : !host._shape.acceptsDrag(axis)) continue;
     if (route.drags.contains(host) ||
         route._dragConfiguration?.deferredStarts?.containsKey(host) == true ||
         host._drag?.route == route) {
@@ -235,7 +235,7 @@ extension _RouteOwnership on _Route {
     // 多指认领先提交全部资格，再调用任意业务取消，避免取消回调观察到半提交状态。
     for (final host in losers) {
       state.retired.add(host);
-      if (allowScaleUpgrade && host._e.hasScaleCallback && host._canTransform(down)) {
+      if (allowScaleUpgrade && host._shape.scale && host._canTransform(down)) {
         state.scaleAllowed.add(host);
         if (!scales.contains(host)) {
           scales.add(host);

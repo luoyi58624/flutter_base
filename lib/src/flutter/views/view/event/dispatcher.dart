@@ -10,6 +10,7 @@ import '../../../utils/internal/benchmark_probe.dart';
 import 'details.dart' show EventDetailsAccess;
 import 'drag_pointer_lock.dart';
 import 'event.dart';
+import 'shape.dart';
 
 part 'tap.dart';
 part 'drag.dart';
@@ -42,6 +43,9 @@ class EventDispatcher {
 
   final RenderBox _render;
   ElEvent? _event;
+
+  // 当前声明的回调位图，与 [_event] 同步更新；候选筛选和换形比较都读它。
+  EventShape _shape = EventShape.none;
   bool _disposed = false;
   bool _disposing = false;
   int _revision = 0;
@@ -149,9 +153,11 @@ class EventDispatcher {
     final old = _event;
     if (_disposed || _disposing || identical(old, value)) return;
     final revision = ++_revision;
-    final reshaped = old != null && value != null && !old.sameShape(value);
+    final was = _shape;
+    final next = value?.shape ?? EventShape.none;
+    final reshaped = old != null && value != null && was != next;
     final routes = _myRoutes;
-    if (old != null && value != null && !_sameDiscrete(old, value)) {
+    if (old != null && value != null && !(_sameTapSettings(old, value) && was.sameDiscrete(next))) {
       _resetTaps();
       for (final route in routes) {
         route._longPressTargets?.remove(this);
@@ -163,7 +169,7 @@ class EventDispatcher {
       cancelAllPendingAtLastPosition();
     } else if (_drag case final drag? when reshaped) {
       // 回调结构变化：新声明接得住的拖拽继续；接不住或指针已在结束时，由旧回调取消。
-      final accepted = drag.axis == null ? value.hasPanCallback : value.acceptsDrag(drag.axis!);
+      final accepted = drag.axis == null ? next.pan : next.acceptsDrag(drag.axis!);
       if (!accepted || drag.route._ended) _endDrag(drag.route.last, null);
     }
     if (revision != _revision || _disposed) return;
@@ -173,7 +179,7 @@ class EventDispatcher {
           route.taps.remove(this);
           route.pressed.remove(this);
         }
-        if (!_sameHandlers(old, value, ElEventPhase.scalePhases) && route.scales.remove(this)) {
+        if (!was.sameScale(next) && route.scales.remove(this)) {
           _scaleState?.points.remove(route.pointer);
           _endScale(route.last, null);
         }
@@ -188,6 +194,7 @@ class EventDispatcher {
       }
     }
     _event = value;
+    _shape = next;
     if (reshaped) {
       for (final route in _myRoutes) {
         route.reseed(this);
@@ -203,22 +210,12 @@ class EventDispatcher {
     }
   }
 
-  static bool _sameHandlers(ElEvent a, ElEvent b, Iterable<ElEventPhase> phases) =>
-      phases.every((phase) => (a.handlerFor(phase) == null) == (b.handlerFor(phase) == null));
-
   // 拖拽订阅独立更新，不清除点击历史；点击识别条件改变才让旧连击和延迟回调失效。
-  static bool _sameDiscrete(ElEvent a, ElEvent b) =>
+  static bool _sameTapSettings(ElEvent a, ElEvent b) =>
       a.doubleTapInterval == b.doubleTapInterval &&
       a.deferTap == b.deferTap &&
       a.longPressDelay == b.longPressDelay &&
-      a.tapCancelDistance == b.tapCancelDistance &&
-      _sameHandlers(
-        a,
-        b,
-        ElEventPhase.values.where(
-          (phase) => phase.index < ElEventPhase.dragDown.index || phase.index > ElEventPhase.dragCancel.index,
-        ),
-      );
+      a.tapCancelDistance == b.tapCancelDistance;
 
   /// 当前是否禁用。
   bool get disabled => _event?.disabled == true;
@@ -249,7 +246,7 @@ class EventDispatcher {
   }
 
   /// 是否具有自身命中回调。
-  bool hitTestSelf(Offset position) => _event?.hasAnyCallback == true;
+  bool hitTestSelf(Offset position) => _shape.isNotEmpty;
 
   /// 按 Flutter 命中顺序接收原始输入。
   void handleEvent(PointerEvent input, HitTestEntry entry) {
@@ -309,7 +306,7 @@ class EventDispatcher {
     if (input is PointerDownEvent &&
         _live &&
         _routes[input.pointer]?.hosts.contains(this) == true &&
-        (onTapChanged != null || _wantsTap(input.buttons))) {
+        (onTapChanged != null || _shape.wantsTap(input.buttons))) {
       _press(input);
     }
     if (input is PointerSignalEvent &&
@@ -440,6 +437,7 @@ class EventDispatcher {
     if (identical(_hosts[_render], this)) _hosts[_render] = null;
     _retaining.remove(this);
     _event = null;
+    _shape = EventShape.none;
     _lastInput = null;
     onTapChanged = null;
   }

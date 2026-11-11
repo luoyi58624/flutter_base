@@ -1,46 +1,13 @@
 part of 'dispatcher.dart';
 
 extension _TapEvents on EventDispatcher {
-  bool _wantsTap(int buttons) {
-    final event = _e;
-    final phases = EventDispatcher._tapPhases(buttons);
-    if (phases == null) return false;
-    if (buttons == kPrimaryButton && (event.hasTapLikeCallback || event.onTapCancel != null)) return true;
-    return [phases.$1, phases.$2, phases.$3].any((phase) => event.handlerFor(phase) != null);
-  }
-
-  bool get _longPressOnly =>
-      _e.onLongPress != null &&
-      const <ElEventPhase>[
-        .tapDown,
-        .tapUp,
-        .tap,
-        .tapCancel,
-        .doubleTapDown,
-        .doubleTap,
-        .tripleTapDown,
-        .tripleTap,
-      ].every((phase) => _e.handlerFor(phase) == null);
-
-  bool get _wantsGesture =>
-      _e.hasDragCallback ||
-      ElEventPhase.values
-          .getRange(ElEventPhase.tapDown.index, ElEventPhase.rotationUpdate.index + 1)
-          .any((phase) => _e.handlerFor(phase) != null);
-
   bool _canTransform(PointerEvent down) =>
       (_e.dragDevices?.contains(down.kind) ?? true) &&
       (down is PointerPanZoomStartEvent || down.buttons == kPrimaryButton);
 
-  int get _maxTaps => _event?.onTripleTap != null || _event?.onTripleTapDown != null
-      ? 3
-      : _event?.onDoubleTap != null || _event?.onDoubleTapDown != null
-      ? 2
-      : 1;
-
   /// 只有连击监听才记录历史，单击不分配窗口状态。
   void _countTap(PointerDownEvent down) {
-    if (_maxTaps == 1) return;
+    if (_shape.maxTaps == 1) return;
     final state = _tapSequence ??= _TapSequence();
     EventDispatcher._retaining.add(this);
     final close =
@@ -52,7 +19,7 @@ extension _TapEvents on EventDispatcher {
     state.deferred = null;
     if (!close) pending?.call();
     if (!identical(_tapSequence, state)) return;
-    state.count = close && state.count < _maxTaps ? state.count + 1 : 1;
+    state.count = close && state.count < _shape.maxTaps ? state.count + 1 : 1;
   }
 
   /// 确认点击后打开连击窗口，窗口结束时派发延后的单击并释放历史。
@@ -61,7 +28,8 @@ extension _TapEvents on EventDispatcher {
     if (state == null) return;
     state.position = up.position;
     state.time = up.timeStamp;
-    if (_maxTaps == 1 || state.count >= _maxTaps) return _resetTaps();
+    final maxTaps = _shape.maxTaps;
+    if (maxTaps == 1 || state.count >= maxTaps) return _resetTaps();
     state.window = Timer(_e.doubleTapInterval, () {
       if (!identical(_tapSequence, state)) return;
       _tapSequence = null;

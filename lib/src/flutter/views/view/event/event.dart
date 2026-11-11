@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../../dart.dart';
 import 'details.dart';
+import 'shape.dart';
 
 export 'details.dart' show ElEventPhase, ElEventDetails, ElEventCancelReason, ElFocusReason;
 
@@ -246,10 +247,10 @@ class const ElEvent({
   bool get hasKeyboardCallback => onKeyDown != null || onKeyRepeat != null || onKeyUp != null;
 
   /// 是否声明了业务回调。
-  bool get hasAnyCallback => _handlers.any((handler) => handler != null);
+  bool get hasAnyCallback => shape.isNotEmpty;
 
   /// 是否声明了拖拽回调。
-  bool get hasDragCallback => _drag(null) || _drag(.horizontal) || _drag(.vertical);
+  bool get hasDragCallback => shape.drag;
 
   /// 是否声明了缩放回调。
   bool get hasScaleCallback =>
@@ -259,22 +260,9 @@ class const ElEvent({
       onScaleCancel != null ||
       onRotationUpdate != null;
 
-  bool _drag(Axis? axis) => ElEventPhase.dragPhases.any((phase) => handlerFor(phase, axis) != null);
-
-  /// 是否声明了自由拖拽回调。
+  /// 已声明回调的位图；每次读取现算，分发器在设置声明时读取一次并自行保存。
   @internal
-  bool get hasPanCallback => _drag(null);
-
-  /// 声明了对应拖拽组的轴向；同时声明横纵时由起拖方向决定。
-  @internal
-  bool acceptsDrag(Axis axis) => _drag(null) || _drag(axis);
-
-  static final _handlerCache = Expando<List<ElEventHandler?>>('ElEvent handlers');
-
-  List<ElEventHandler?> get _handlers => _handlerCache[this] ??= [
-    for (final phase in ElEventPhase.values) handlerFor(phase),
-    for (final phase in ElEventPhase.dragPhases) ...[handlerFor(phase, .horizontal), handlerFor(phase, .vertical)],
-  ];
+  EventShape get shape => EventShape.compile(handlerFor);
 
   /// 查找当前阶段声明的回调，[axis] 选择拖拽阶段的轴向组。
   @internal
@@ -361,25 +349,13 @@ class const ElEvent({
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
+    // 只换闭包不改变相等性，回调只比较声明了哪些。
     return other is ElEvent &&
         listEquals(_settings, other._settings) &&
         setEquals(dragDevices, other.dragDevices) &&
-        sameShape(other);
-  }
-
-  /// 两者声明的回调集合相同；只换闭包或配置不影响进行中的手势。
-  @internal
-  bool sameShape(ElEvent other) {
-    for (var i = 0; i < _handlers.length; i++) {
-      if ((_handlers[i] == null) != (other._handlers[i] == null)) return false;
-    }
-    return true;
+        shape == other.shape;
   }
 
   @override
-  int get hashCode => Object.hash(
-    Object.hashAll(_settings),
-    Object.hashAllUnordered(dragDevices ?? const {}),
-    Object.hashAll(_handlers.map((handler) => handler != null)),
-  );
+  int get hashCode => Object.hash(Object.hashAll(_settings), Object.hashAllUnordered(dragDevices ?? const {}), shape);
 }

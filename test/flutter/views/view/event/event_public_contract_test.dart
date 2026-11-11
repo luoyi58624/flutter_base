@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/views/view/event/shape.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show MaterialApp, Scaffold;
@@ -33,7 +34,6 @@ void main() {
       expect(ElEvent(onDragStart: (_) {}).hasTapLikeCallback, isFalse);
       expect(ElEvent(onFocus: (_) {}).hasTapLikeCallback, isFalse);
     });
-
   });
 
   testWidgets('只更新 cursor 不打断已按下的鼠标侧键', (tester) async {
@@ -51,6 +51,112 @@ void main() {
     host.leafDispatcher.event = host.leafDispatcher.event!.copyWith(cursor: SystemMouseCursors.text);
     host.dispatch(PointerUpEvent(pointer: 61, kind: .mouse, position: Offset(20, 20)));
     expect(phases, [ElEventPhase.secondaryTapDown, ElEventPhase.secondaryTapUp, ElEventPhase.secondaryTap]);
+  });
+
+  group('声明位图', () {
+    test('每个阶段与轴向拖拽组各占一位', () {
+      final slots = <(ElEventPhase, Axis?)>[
+        for (final phase in ElEventPhase.values) (phase, null),
+        for (final axis in Axis.values)
+          for (final phase in ElEventPhase.dragPhases) (phase, axis),
+      ];
+      final seen = <EventShape>{};
+      for (final (phase, axis) in slots) {
+        final shape = EventShape.compile((p, [a]) => p == phase && a == axis ? true : null);
+        expect(shape.isNotEmpty, isTrue);
+        expect(seen.add(shape), isTrue, reason: '$phase / $axis 与其他回调共用了位');
+        for (final (otherPhase, otherAxis) in slots) {
+          expect(shape.has(otherPhase, otherAxis), otherPhase == phase && otherAxis == axis);
+        }
+      }
+      expect(seen, hasLength(55));
+      expect(EventShape.compile((_, [_]) => null), EventShape.none);
+    });
+
+    test('ElEvent 的相等性只看声明了哪些回调，不看闭包', () {
+      expect(ElEvent(onTap: (_) {}), ElEvent(onTap: (_) {}));
+      expect(ElEvent(onTap: (_) {}).hashCode, ElEvent(onTap: (_) {}).hashCode);
+      expect(ElEvent(onTap: (_) {}), isNot(ElEvent(onTapDown: (_) {})));
+      expect(ElEvent(onDragStart: (_) {}), isNot(ElEvent(onHorizontalDragStart: (_) {})));
+      expect(ElEvent(onHorizontalDragStart: (_) {}), isNot(ElEvent(onVerticalDragStart: (_) {})));
+      expect(ElEvent(onTap: (_) {}), isNot(ElEvent(disabled: true, onTap: (_) {})));
+    });
+
+    test('点击候选按按键分组，长按与连击从位图派生', () {
+      final empty = ElEvent().shape;
+      expect(empty.isNotEmpty, isFalse);
+      expect(empty.gesture, isFalse);
+      expect(empty.maxTaps, 1);
+      expect(empty.wantsTap(kPrimaryButton), isFalse);
+
+      final tap = ElEvent(onTap: (_) {}).shape;
+      expect(tap.wantsTap(kPrimaryButton), isTrue);
+      expect(tap.wantsTap(kSecondaryButton), isFalse);
+      expect(tap.gesture, isTrue);
+      expect(tap.longPressOnly, isFalse);
+      expect(ElEvent(onTapCancel: (_) {}).shape.wantsTap(kPrimaryButton), isTrue);
+
+      final longPress = ElEvent(onLongPress: (_) {}).shape;
+      expect(longPress.wantsTap(kPrimaryButton), isTrue);
+      expect(longPress.longPressOnly, isTrue);
+      expect(ElEvent(onLongPress: (_) {}, onTapCancel: (_) {}).shape.longPressOnly, isFalse);
+
+      final secondary = ElEvent(onSecondaryTapDown: (_) {}).shape;
+      expect(secondary.wantsTap(kSecondaryButton), isTrue);
+      expect(secondary.wantsTap(kPrimaryButton), isFalse);
+      expect(secondary.gesture, isTrue);
+      expect(ElEvent(onTertiaryTap: (_) {}).shape.wantsTap(kTertiaryButton), isTrue);
+      expect(ElEvent(onForwardTapUp: (_) {}).shape.wantsTap(kForwardMouseButton), isTrue);
+      expect(ElEvent(onBackTap: (_) {}).shape.wantsTap(kBackMouseButton), isTrue);
+      expect(tap.wantsTap(kPrimaryButton | kSecondaryButton), isFalse);
+
+      expect(ElEvent(onDoubleTapDown: (_) {}).shape.maxTaps, 2);
+      expect(ElEvent(onDoubleTap: (_) {}, onTripleTap: (_) {}).shape.maxTaps, 3);
+
+      // 原始指针、键盘与焦点回调不参加手势竞技场。
+      for (final event in [ElEvent(onPointerDown: (_) {}), ElEvent(onKeyDown: (_) {}), ElEvent(onFocus: (_) {})]) {
+        expect(event.shape.isNotEmpty, isTrue);
+        expect(event.shape.gesture, isFalse);
+      }
+    });
+
+    test('拖拽按组承接轴向，缩放与换形比较从位图派生', () {
+      final down = ElEvent(onDragDown: (_) {}).shape;
+      expect(down.has(ElEventPhase.dragDown), isTrue);
+      expect(down.drag, isFalse);
+      expect(down.gesture, isTrue);
+
+      final pan = ElEvent(onDragUpdate: (_) {}).shape;
+      expect(pan.pan, isTrue);
+      expect(pan.drag, isTrue);
+      expect(pan.acceptsDrag(Axis.horizontal), isTrue);
+      expect(pan.acceptsDrag(Axis.vertical), isTrue);
+
+      final horizontal = ElEvent(onHorizontalDragEnd: (_) {}).shape;
+      expect(horizontal.pan, isFalse);
+      expect(horizontal.drag, isTrue);
+      expect(horizontal.gesture, isTrue);
+      expect(horizontal.acceptsDrag(Axis.horizontal), isTrue);
+      expect(horizontal.acceptsDrag(Axis.vertical), isFalse);
+      expect(horizontal.has(ElEventPhase.dragEnd), isFalse);
+      expect(horizontal.has(ElEventPhase.dragEnd, Axis.horizontal), isTrue);
+      expect(ElEvent(onHorizontalDragEnd: (_) {}).hasDragCallback, isTrue);
+      expect(ElEvent(onDragDown: (_) {}).hasDragCallback, isFalse);
+
+      final scale = ElEvent(onRotationUpdate: (_) {}).shape;
+      expect(scale.scale, isTrue);
+      expect(scale.gesture, isTrue);
+      expect(pan.scale, isFalse);
+
+      // 增减拖拽不算点击识别条件变化，增减连击才算。
+      final tap = ElEvent(onTap: (_) {}).shape;
+      expect(tap.sameDiscrete(ElEvent(onTap: (_) {}, onDragStart: (_) {}).shape), isTrue);
+      expect(tap.sameDiscrete(ElEvent(onTap: (_) {}, onVerticalDragStart: (_) {}).shape), isTrue);
+      expect(tap.sameDiscrete(ElEvent(onTap: (_) {}, onDoubleTap: (_) {}).shape), isFalse);
+      expect(tap.sameDiscrete(ElEvent(onTap: (_) {}, onKeyDown: (_) {}).shape), isFalse);
+      expect(scale.sameScale(ElEvent(onRotationUpdate: (_) {}, onTap: (_) {}).shape), isTrue);
+      expect(scale.sameScale(tap), isFalse);
+    });
   });
 
   group('preventDefault', () {
@@ -341,22 +447,10 @@ void main() {
               alignment: Alignment.topLeft,
               child: Row(
                 children: <Widget>[
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: first,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: skipped,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: second,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: third,
-                  ),
+                  ElView(style: eventTestDefaultStyle, focusNode: first),
+                  ElView(style: eventTestDefaultStyle, focusNode: skipped),
+                  ElView(style: eventTestDefaultStyle, focusNode: second),
+                  ElView(style: eventTestDefaultStyle, focusNode: third),
                 ],
               ),
             ),

@@ -49,7 +49,7 @@ final class _Route extends GestureArenaMember {
     }
     route.hosts.add(host);
     // 在命中阶段报名，内层 ElEvent 与官方手势按命中顺序竞争。
-    if (host._wantsGesture) route._entry ??= GestureBinding.instance.gestureArena.add(down.pointer, route);
+    if (host._shape.gesture) route._entry ??= GestureBinding.instance.gestureArena.add(down.pointer, route);
   }
 
   /// 指针路由在所有宿主收到原始事件之后调用，处理派生手势。
@@ -79,7 +79,7 @@ final class _Route extends GestureArenaMember {
     final live = hosts.where((host) => host._live && _allowsRaw(host)).toList();
     final input = down;
     final transform = live.where((host) => host._canTransform(input)).toList();
-    drags = transform.where((host) => host._e.hasDragCallback || host._e.onDragDown != null).toList();
+    drags = transform.where((host) => host._shape.drag || host._shape.has(.dragDown)).toList();
     if (drags.isNotEmpty) {
       final downDetails = <EventDispatcher, ElEventDetails>{};
       final stop = _bubble(drags, .dragDown, (host) => downDetails[host] = host._pointer(.dragDown, input));
@@ -90,9 +90,9 @@ final class _Route extends GestureArenaMember {
       }
       if (stop >= 0) drags = drags.sublist(0, stop + 1);
     }
-    drags.removeWhere((host) => !host._e.hasDragCallback);
+    drags.removeWhere((host) => !host._shape.drag);
     // 拖拽中落下新手指：与 Flutter 一致，由最新的手指继续驱动。
-    for (final host in drags.where((host) => host._drag != null && !host._e.hasScaleCallback).toList()) {
+    for (final host in drags.where((host) => host._drag != null && !host._shape.scale).toList()) {
       drags.remove(host);
       host._drag!
         ..route = this
@@ -101,7 +101,7 @@ final class _Route extends GestureArenaMember {
     }
     if (input is PointerDownEvent && EventDispatcher._tapPhases(input.buttons) != null) {
       // 拖拽中的宿主不为新手指重建点击候选。
-      taps = live.where((host) => host._drag == null && host._wantsTap(input.buttons)).toList();
+      taps = live.where((host) => host._drag == null && host._shape.wantsTap(input.buttons)).toList();
       // 非主键点击只交给最内层。
       if (!_primary && taps.isNotEmpty) taps = [taps.first];
       final stop = _bubble(taps, _phases.$1, (host) => host._pointer(_phases.$1, input));
@@ -126,7 +126,7 @@ final class _Route extends GestureArenaMember {
         }
       }
     }
-    scales = transform.where((host) => host._e.hasScaleCallback).toList();
+    scales = transform.where((host) => host._shape.scale).toList();
     for (final host in scales.toList()) {
       if (!scales.contains(host)) continue;
       host._ensureScale().points[pointer] = position;
@@ -169,7 +169,7 @@ final class _Route extends GestureArenaMember {
     if (distance > kTouchSlop) {
       _longPress?.cancel();
       // 只声明长按的候选随长按一起退出。
-      taps.removeWhere((host) => host._longPressOnly);
+      taps.removeWhere((host) => host._shape.longPressOnly);
     }
     final delta = position - _lastPosition;
     final original = event.original ?? event;
@@ -230,17 +230,17 @@ final class _Route extends GestureArenaMember {
     final dominant = moved.dx.abs() >= moved.dy.abs() ? Axis.horizontal : Axis.vertical;
     drags.removeWhere((host) => !host._live || !_allowsRaw(host) || host._scaling || host._drag != null);
     if (!drags.contains(host)) return;
-    Axis? axisFor(ElEvent e) => e.hasPanCallback ? null : _axis ?? dominant;
+    Axis? axisFor(EventShape shape) => shape.pan ? null : _axis ?? dominant;
     bool ready(EventDispatcher host) {
-      final e = host._e;
-      final axis = axisFor(e);
-      final both = e.acceptsDrag(.horizontal) && e.acceptsDrag(.vertical);
+      final shape = host._shape;
+      final axis = axisFor(shape);
+      final both = shape.acceptsDrag(.horizontal) && shape.acceptsDrag(.vertical);
       final pan = axis == null || both && axis == .horizontal;
       final start =
-          e.dragStartDistance ??
+          host._e.dragStartDistance ??
           _dragConfiguration?.startDistances?[host] ??
           (pan ? computePanSlop(down.kind, null) : slop);
-      return (axis == null || e.acceptsDrag(axis)) && (distance > start || axis != null && _axis != null);
+      return (axis == null || shape.acceptsDrag(axis)) && (distance > start || axis != null && _axis != null);
     }
 
     final candidates = drags.toList();
@@ -248,9 +248,8 @@ final class _Route extends GestureArenaMember {
     if (proposal < 0) return;
     // 外层先达到阈值时，先让兼容的内层响应，内层停止传播后外层不能抢先起拖。
     final index = candidates.indexOf(host);
-    final e = host._e;
-    final axis = axisFor(e);
-    if (axis != null && !e.acceptsDrag(axis)) return;
+    final axis = axisFor(host._shape);
+    if (axis != null && !host._shape.acceptsDrag(axis)) return;
     if (index > proposal && !ready(host)) return;
     drags.remove(host);
     _axis ??= axis;
@@ -279,7 +278,7 @@ final class _Route extends GestureArenaMember {
       final tapped =
           event is PointerUpEvent &&
           !(_outside?.contains(host) ?? false) &&
-          (pressed.contains(host) || !host._wantsGesture);
+          (pressed.contains(host) || !host._shape.gesture);
       if (host._pressed == pointer) host._release(tapped: tapped);
     }
     final flung = event is PointerUpEvent && _flung(event, velocity);
@@ -316,7 +315,7 @@ final class _Route extends GestureArenaMember {
                 host._canTransform(route.down),
           )
           .lastOrNull;
-      if (next != null && !host._e.hasScaleCallback) {
+      if (next != null && !host._shape.scale) {
         host._drag!
           ..route = next
           ..position = next.position;
@@ -375,14 +374,14 @@ final class _Route extends GestureArenaMember {
     if (velocity == Offset.zero || drags.isEmpty) return false;
     final axis = offset.dx.abs() >= offset.dy.abs() ? Axis.horizontal : Axis.vertical;
     final candidates = drags
-        .where((host) => host._live && host._drag == null && host._e.acceptsDrag(axis))
+        .where((host) => host._live && host._drag == null && host._shape.acceptsDrag(axis))
         .where((host) => offset.distance > (host._e.tapCancelDistance ?? 10) / 2)
         .toList();
     if (candidates.isEmpty) return false;
     _cancelTaps(.otherGestureAccepted);
     for (final host in candidates) {
       if (!drags.remove(host)) continue;
-      host._startDrag(this, host._e.hasPanCallback ? null : axis, event);
+      host._startDrag(this, host._shape.pan ? null : axis, event);
       final drag = host._drag;
       if (drag == null) continue;
       drag.position = EventDispatcher._pointerPosition(down);
@@ -402,7 +401,7 @@ final class _Route extends GestureArenaMember {
     final counts = {for (final host in hosts) host: host._tapCount};
     void tap() => _bubble(hosts, .tap, (host) => host._pointer(.tap, up, buttons: down.buttons, count: counts[host]!));
     // 任一节点声明 deferTap 时，整条路线的单击等连击窗口结束再派发，连击发生则放弃。
-    final deferrer = hosts.where((host) => host._e.deferTap && host._maxTaps > 1).firstOrNull;
+    final deferrer = hosts.where((host) => host._e.deferTap && host._shape.maxTaps > 1).firstOrNull;
     for (final host in hosts) {
       host._confirmTap(up);
     }
@@ -538,7 +537,7 @@ final class _Route extends GestureArenaMember {
         hosts.where((item) => item == host ? wanted : list.contains(item)).toList();
     _dragConfiguration?.deferredStarts?.remove(host);
     _dragConfiguration?.deferMoves?.remove(host);
-    drags = sync(drags, host._drag == null && host._canTransform(input) && host._e.hasDragCallback);
+    drags = sync(drags, host._drag == null && host._canTransform(input) && host._shape.drag);
     if (drags.contains(host)) {
       if (host._activeCallback case final callback? when callback.phase == ElEventPhase.pointerMove) {
         final move = callback.originalEvent! as PointerEvent;
@@ -546,7 +545,7 @@ final class _Route extends GestureArenaMember {
       }
     }
     if (_rejected || EventDispatcher._tapPhases(input.buttons) == null) return;
-    final tap = host._wantsTap(input.buttons);
+    final tap = host._shape.wantsTap(input.buttons);
     if (!tap) taps.remove(host);
     if (tap && !pressed.contains(host)) {
       taps = sync(taps, true);
@@ -619,7 +618,7 @@ final class _Route extends GestureArenaMember {
     ElEventDetails? previous;
     for (var i = 0; i < hosts.length; i++) {
       final host = hosts[i];
-      if (!host._live || host._e.handlerFor(phase) == null) continue;
+      if (!host._live || !host._shape.has(phase)) continue;
       final details = make(host);
       final pointer = details.pointerEvent?.pointer;
       if (pointer != null && EventDispatcher._routes[pointer]?._allowsRaw(host) == false) continue;

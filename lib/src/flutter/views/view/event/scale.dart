@@ -9,7 +9,7 @@ extension _ScaleEvents on EventDispatcher {
   }
 
   /// 触点的焦点、平均半径与前两指连线角度。
-  (Offset, double, double) _shape() {
+  (Offset, double, double) _touchGeometry() {
     final state = _scaleState!;
     final points = state.points.values.toList();
     final focal = points.fold(Offset.zero, (sum, point) => sum + point) / points.length.toDouble();
@@ -20,7 +20,7 @@ extension _ScaleEvents on EventDispatcher {
   /// 触点增减时重定基线，缩放与旋转从当前累计值续算。
   void _rebase() {
     final state = _scaleState!;
-    final (focal, span, angle) = _shape();
+    final (focal, span, angle) = _touchGeometry();
     state.focal = state.focal0 = focal;
     state.span0 = span;
     state.angle0 = angle;
@@ -32,7 +32,7 @@ extension _ScaleEvents on EventDispatcher {
   void _startScale(PointerEvent input) {
     final state = _scaleState;
     if (state == null) return;
-    final declaration = _e;
+    final declaration = _shape;
     if (!_canStartOwnedScale() || !_commitOwnedScale()) return;
     if (!_canStartScale(declaration, state)) return;
     _endDrag(input, null);
@@ -63,9 +63,9 @@ extension _ScaleEvents on EventDispatcher {
     }
   }
 
-  bool _canStartScale(ElEvent declaration, _ScaleState state) {
+  bool _canStartScale(EventShape declaration, _ScaleState state) {
     if (!identical(_scaleState, state)) return false;
-    if (_live && declaration.sameShape(_e) && state.points.isNotEmpty) return true;
+    if (_live && declaration == _shape && state.points.isNotEmpty) return true;
     for (final route in _myRoutes) {
       route.scales.remove(this);
     }
@@ -78,7 +78,7 @@ extension _ScaleEvents on EventDispatcher {
   bool _moveScale(PointerEvent input, bool silent) {
     final state = _scaleState;
     if (state == null || state.points.isEmpty) return false;
-    final (focal, span, angle) = _shape();
+    final (focal, span, angle) = _touchGeometry();
     if (!state.active) {
       final kind = input.kind;
       final moved = (focal - state.focal0).distance;
