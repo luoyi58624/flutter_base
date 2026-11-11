@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/desktop.dart';
 
-import '../../../../../widgets/doc_scroll_view.dart';
+import '../../../../../widgets/docs_page/scroll_view.dart';
 
 /// 目录和正文共享小节下标的示例。
 class AnchorExample extends HookWidget {

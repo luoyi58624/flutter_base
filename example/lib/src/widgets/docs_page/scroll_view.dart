@@ -5,8 +5,8 @@ import 'package:flutter/rendering.dart' show RenderAbstractViewport, ScrollDirec
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../state/index.dart';
-import 'example_scrollbar.dart';
+import '../../state/index.dart';
+import '../example_scrollbar.dart';
 
 /// 将文档目录定位交给当前选择的滚动实现。
 class DocScrollController {

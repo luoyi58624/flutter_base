@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../doc_page.dart';
+import '../../../../widgets/docs_page/index.dart';
 import '../../../../layout/example_page.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
@@ -14,21 +14,21 @@ class AvatarPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ElComponentProvider.of(context).avatar == null) return ExamplePage(title: 'Avatar 头像');
-    return ComponentDocPage(
+    return DocsPage(
       title: 'Avatar 头像',
       description: '已有头像接口支持圆形、方形和自定义内容。',
       sections: [
-        ComponentDocSection(
+        DocsSection(
           title: '尺寸与形状',
           description: '按 size 和 shape 展示文字头像。',
-          example: Example1(),
           source: 'lib/src/pages/components/data/avatar/examples/example1.dart',
+          child: Example1(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '自定义内容',
           description: '内容可为图标或原始 Widget，semanticLabel 提供辅助名称。',
-          example: Example2(),
           source: 'lib/src/pages/components/data/avatar/examples/example2.dart',
+          child: Example2(),
         ),
       ],
     );

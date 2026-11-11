@@ -1,6 +1,6 @@
 import 'package:example/src/pages/components/index.dart';
-import 'package:example/src/pages/components/doc_page.dart';
 import 'package:example/src/widgets/code_preview/index.dart';
+import 'package:example/src/widgets/docs_page/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_base/desktop.dart';
@@ -40,6 +40,55 @@ final _pages = <(String, String, int)>[
 ];
 
 void main() {
+  testWidgets('普通正文和源码示例共用文档目录', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = Size(1100, 720);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final source = 'lib/src/pages/components/basic/button/examples/example1.dart';
+    await tester.pumpWidget(
+      ElComponentProvider(
+        components: el.desktopComponents,
+        child: MaterialApp(
+          home: DocsPage(
+            title: '使用指南',
+            navTitle: '指南',
+            sections: [
+              DocsSection(
+                title: '说明',
+                child: SizedBox(height: 900, child: Text('说明正文')),
+              ),
+              DocsSection(title: '示例', source: source, child: Text('示例正文')),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '指南'), findsOneWidget);
+    final anchor = find.byType(ElAnchor);
+    expect(tester.widget<ElAnchor>(anchor).links, ['说明', '示例']);
+    expect(
+      find.descendant(of: find.widgetWithText(DocsSection, '说明正文'), matching: find.byType(ElCodeExample)),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: anchor,
+        matching: find.byWidgetPredicate((widget) => widget is ElButtonView && widget.child == '示例'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('示例正文').hitTestable(), findsOneWidget);
+    final card = find.byType(ElCodeExample);
+    final bundle = DefaultAssetBundle.of(tester.element(card));
+    final code = await tester.runAsync(() => bundle.loadString(source));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElCodeExample>(card).code, code);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final mobile in [true, false]) {
     for (final (key, directory, count) in _pages) {
       testWidgets('${mobile ? '移动' : '桌面'} $key 文档、源码与窄屏逐节布局', (tester) async {
@@ -64,10 +113,10 @@ void main() {
             ? ['input-number', 'input-otp', 'input-tag', 'mention'].contains(key)
             : key == 'skeleton';
         if (missing) {
-          expect(find.byType(ComponentDocPage), findsNothing);
+          expect(find.byType(DocsPage), findsNothing);
           expect(find.widgetWithText(AppBar, page.title), findsOneWidget);
         } else {
-          expect(find.byType(ComponentDocPage), findsOneWidget);
+          expect(find.byType(DocsPage), findsOneWidget);
           for (var i = 0; i < count; i++) {
             await Scrollable.ensureVisible(tester.element(find.byKey(ValueKey(sources[i]))));
             await tester.pump();

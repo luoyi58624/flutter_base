@@ -1,6 +1,6 @@
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/state/index.dart';
-import 'package:example/src/widgets/doc_scroll_view.dart';
+import 'package:example/src/widgets/docs_page/scroll_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_base/desktop.dart';

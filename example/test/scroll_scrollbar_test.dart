@@ -3,7 +3,7 @@ import 'package:example/src/pages/examples/scroll_examples/cards.dart';
 import 'package:example/src/widgets/example_scrollbar.dart';
 import 'package:example/src/pages/examples/scroll_examples/selection.dart';
 import 'package:example/src/state/index.dart';
-import 'package:example/src/widgets/doc_scroll_view.dart';
+import 'package:example/src/widgets/docs_page/scroll_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';

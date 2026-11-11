@@ -6,14 +6,14 @@ Button 是首个样板，参数以本仓库的公共接口为准；其余组件�
 
 ## 页面与示例
 
-- 一组件一目录。`index.dart` 用 `ComponentDocPage` 装配页面标题、一句概述和有序小节。在组件标签入口 `index.dart` 的 `componentCatalog` 登记一次，桌面与移动目录共用页面。
+- 一组件一目录。`index.dart` 用 `widgets/docs_page` 中的 `DocsPage` 声明标题、简介和有序小节。在组件标签入口 `index.dart` 的目录分组登记页面。
 - 一个场景放一个 `examples/` 下的 Dart 文件。迁移已有文档时保留场景顺序、变体对照和交互。相近的变体用 `Wrap` 集中展示，小节说明只补充行为和使用边界。
 - 演示只使用 Flutter 与 `flutter_base` 的公共入口。组件实现和 token 由外层的 `ElComponentProvider` 提供。交互状态放在示例内部，有状态示例用 `HookWidget`。
 
 ## 排版与源码
 
-- `ComponentDocPage` 统一标题层级、正文滚动、宽屏本页目录和源码展开。窄屏使用单列。独立示例舞台由共享的 `ElCard` 承载。
-- 小节的 `source` 指向实际运行的 Dart 文件。新增页面时，把它的 `examples/` 目录登记到 `example/pubspec.yaml` 的 `flutter.assets`，源码查看和复制直接使用该文件。
+- `DocsPage` 统一标题层级、正文滚动和宽屏目录，窄屏使用单列。
+- `DocsSection.child` 接收正文或演示组件。提供 `source` 时由示例卡展示并读取 Dart 源码。把对应的 `examples/` 目录登记到 `example/pubspec.yaml` 的 `flutter.assets`。
 - 演示本身用原生布局处理可用宽度。代码较长时在代码区横向滚动，纵向滚动统一由文档正文承载。
 
 ## 验证

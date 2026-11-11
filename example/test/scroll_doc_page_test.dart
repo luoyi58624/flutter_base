@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:example/src/pages/components/basic/button/index.dart';
 import 'package:example/src/pages/components/data/steps/index.dart';
-import 'package:example/src/pages/components/doc_page.dart';
+import 'package:example/src/widgets/docs_page/index.dart';
 import 'package:example/src/pages/components/list/list_tile/index.dart';
 import 'package:example/src/pages/components/start/shadow/index.dart';
 import 'package:example/src/state/index.dart';
 import 'package:example/src/widgets/code_preview/index.dart';
-import 'package:example/src/widgets/doc_scroll_view.dart';
+import 'package:example/src/widgets/docs_page/scroll_view.dart';
 import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,9 +70,9 @@ void _expectRealExample(WidgetTester tester, ElSliverList list, int position, {S
   final item = find.byWidget(list.children[position]);
   expect(item, findsOneWidget);
   expect(find.descendant(of: item, matching: find.byType(ElCodeExample)), findsOneWidget);
-  final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+  final page = tester.widget<DocsPage>(find.byType(DocsPage));
   expect(
-    find.descendant(of: item, matching: find.byWidget(page.sections[(position - 1) % page.sections.length].example)),
+    find.descendant(of: item, matching: find.byWidget(page.sections[(position - 1) % page.sections.length].child)),
     findsOneWidget,
   );
   final viewport = tester.getRect(find.byType(DocScrollView));
@@ -80,7 +80,7 @@ void _expectRealExample(WidgetTester tester, ElSliverList list, int position, {S
 }
 
 void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
-  final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+  final page = tester.widget<DocsPage>(find.byType(DocsPage));
   if (sections != null) expect(page.sections, hasLength(sections));
   final repeat = GlobalState.docRepeatCount.value;
   final itemCount = page.sections.length * repeat + 1;
@@ -162,7 +162,7 @@ void main() {
       await _openButtonRoute(tester, '/components/button');
       expect(find.byType(ButtonPage), findsOneWidget);
       _expectDocMode(tester, mode, sections: 11);
-      final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+      final page = tester.widget<DocsPage>(find.byType(DocsPage));
       expect(page.sections.first.title, '基础使用');
       expect(page.sections.last.title, '通用点击');
       await tester.pumpWidget(SizedBox());
@@ -172,7 +172,7 @@ void main() {
   testWidgets('ElSliverList 能定位真实按钮模板并回滑', (tester) async {
     GlobalState.docScrollMode.value = DocScrollMode.sliverList;
     await _openButtonRoute(tester, '/components/button');
-    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+    final page = tester.widget<DocsPage>(find.byType(DocsPage));
     final recyclerView = tester.widget<ElSliverList>(find.byType(ElSliverList));
     expect(recyclerView.children.length, page.sections.length + 1);
 
@@ -326,7 +326,7 @@ void main() {
 
   testWidgets('宽屏目录在四种滚动模式都能定位最后一个真实小节', (tester) async {
     await _openButtonRoute(tester, '/components/list-tile', width: 1200);
-    final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+    final page = tester.widget<DocsPage>(find.byType(DocsPage));
     final lastTitle = page.sections.last.title;
     expect(page.sections, hasLength(8));
     for (final mode in DocScrollMode.values) {

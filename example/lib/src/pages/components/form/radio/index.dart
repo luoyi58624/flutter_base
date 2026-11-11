@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../doc_page.dart';
+import '../../../../widgets/docs_page/index.dart';
 import '../../../../layout/example_page.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
@@ -14,21 +14,21 @@ class RadioPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ElComponentProvider.of(context).radio == null) return ExamplePage(title: 'Radio 单选框');
-    return ComponentDocPage(
+    return DocsPage(
       title: 'Radio 单选框',
       description: '组负责单值模型和选择规则，子项可自由布局。',
       sections: [
-        ComponentDocSection(
+        DocsSection(
           title: '单选分组',
           description: 'required: false 时可再次点击选中项取消选择。',
-          example: Example1(),
           source: 'lib/src/pages/components/form/radio/examples/example1.dart',
+          child: Example1(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '独立切换与禁用',
           description: 'toggle 构造使用布尔模型，不需要分组。',
-          example: Example2(),
           source: 'lib/src/pages/components/form/radio/examples/example2.dart',
+          child: Example2(),
         ),
       ],
     );

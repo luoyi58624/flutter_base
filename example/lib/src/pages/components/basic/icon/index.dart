@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../doc_page.dart';
+import '../../../../widgets/docs_page/index.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
 import 'examples/example3.dart';
@@ -12,27 +12,27 @@ class IconPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ComponentDocPage(
+    return DocsPage(
       title: 'Icon 图标',
       description: '展示桌面字体图标和移动 SVG 图标，支持尺寸、颜色与样式继承。',
       sections: [
-        ComponentDocSection(
+        DocsSection(
           title: '尺寸与颜色',
           description: 'size 和 color 可直接指定图标外观。',
-          example: Example1(),
           source: 'lib/src/pages/components/basic/icon/examples/example1.dart',
+          child: Example1(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '样式继承',
           description: '父级样式统一设置图标通道，局部图标可单独覆写。',
-          example: Example2(),
           source: 'lib/src/pages/components/basic/icon/examples/example2.dart',
+          child: Example2(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '全部图标',
           description: '按钮组切换两端完整图标库，首次显示按当前布局初始化；移动 SVG 继承祖先字重。',
-          example: Example3(),
           source: 'lib/src/pages/components/basic/icon/examples/example3.dart',
+          child: Example3(),
         ),
       ],
     );

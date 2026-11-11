@@ -1,7 +1,7 @@
 import 'package:example/main.dart';
-import 'package:example/src/pages/components/doc_page.dart';
 import 'package:example/src/pages/components/index.dart';
 import 'package:example/src/router/index.dart';
+import 'package:example/src/widgets/docs_page/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +22,7 @@ void main() {
     await tester.pumpWidget(App());
     await tester.pumpAndSettle();
 
-    Future<ComponentDocPage> openPage(String key, String title) async {
+    Future<DocsPage> openPage(String key, String title) async {
       final catalog = find.byKey(PageStorageKey('component-catalog'));
       final scrollable = find.descendant(of: catalog, matching: find.byType(Scrollable));
       final position = tester.state<ScrollableState>(scrollable.first).position;
@@ -31,14 +31,14 @@ void main() {
       await tester.tap(find.byKey(ValueKey('component-$key')));
       await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/components/$key');
-      final page = tester.widget<ComponentDocPage>(find.byType(ComponentDocPage));
+      final page = tester.widget<DocsPage>(find.byType(DocsPage));
       expect(page.title, title);
-      expect(find.text('本页目录'), findsNothing);
+      expect(find.text('目录'), findsNothing);
       return page;
     }
 
-    Future<String> loadSource(ComponentDocSection section) async {
-      final source = (await tester.runAsync(() => rootBundle.loadString(section.source)))!;
+    Future<String> loadSource(DocsSection section) async {
+      final source = (await tester.runAsync(() => rootBundle.loadString(section.source!)))!;
       expect(source, contains('ElEvent('), reason: section.source);
       return source;
     }

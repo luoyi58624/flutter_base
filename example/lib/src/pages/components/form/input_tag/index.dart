@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../doc_page.dart';
+import '../../../../widgets/docs_page/index.dart';
 import '../../../../layout/example_page.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
@@ -14,21 +14,21 @@ class InputTagPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ElComponentProvider.of(context).inputTag == null) return ExamplePage(title: 'InputTag 标签输入');
-    return ComponentDocPage(
+    return DocsPage(
       title: 'InputTag 标签输入',
       description: '通过已有标签输入接口维护字符串列表。',
       sections: [
-        ComponentDocSection(
+        DocsSection(
           title: '新增与移除',
           description: '输入内容后按 Enter 或逗号提交，通过关闭按钮删除条目。',
-          example: Example1(),
           source: 'lib/src/pages/components/form/input_tag/examples/example1.dart',
+          child: Example1(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '折叠与数量限制',
           description: '设置标签上限并折叠较多条目，开关控制禁用。',
-          example: Example2(),
           source: 'lib/src/pages/components/form/input_tag/examples/example2.dart',
+          child: Example2(),
         ),
       ],
     );

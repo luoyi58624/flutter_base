@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../doc_page.dart';
+import '../../../../widgets/docs_page/index.dart';
 import '../../../../layout/example_page.dart';
 import 'examples/example1.dart';
 import 'examples/example2.dart';
@@ -14,21 +14,21 @@ class InputPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (ElComponentProvider.of(context).input == null) return ExamplePage(title: 'Input 输入框');
-    return ComponentDocPage(
+    return DocsPage(
       title: 'Input 输入框',
       description: '演示现有输入接口的值绑定、清空、密码、多行和禁用状态。',
       sections: [
-        ComponentDocSection(
+        DocsSection(
           title: '值绑定与清空',
           description: '输入内容同步到外部模型，clearable 显示清空入口。',
-          example: Example1(),
           source: 'lib/src/pages/components/form/input/examples/example1.dart',
+          child: Example1(),
         ),
-        ComponentDocSection(
+        DocsSection(
           title: '密码、多行与状态',
           description: '比较密码输入、多行文本、只读和禁用状态。',
-          example: Example2(),
           source: 'lib/src/pages/components/form/input/examples/example2.dart',
+          child: Example2(),
         ),
       ],
     );

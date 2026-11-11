@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 
 import '../../../../layout/example_page.dart';
-import '../../../../widgets/doc_scroll_view.dart';
+import '../../../../widgets/docs_page/scroll_view.dart';
 import '../../../../widgets/panel.dart';
 
 /// 对照五级阴影，并通过导航栏切换视觉风格。
