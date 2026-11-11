@@ -25,6 +25,7 @@ import 'album_thumbnails.dart';
 part 'media_source.dart';
 part 'media_cards.dart';
 part 'media_preview.dart';
+part 'media_video.dart';
 part 'media_grid.dart';
 
 /// 用本机照片作为封面，展示网格卡片、Hero 转场和图文详情。

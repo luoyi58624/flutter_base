@@ -104,6 +104,21 @@ Future<void> _mode(WidgetTester tester, String mode) async {
 ScrollController _controller(WidgetTester tester) =>
     tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!;
 
+Finder _selectedGalleryHero(Finder preview) => find.descendant(
+  of: find.descendant(of: preview, matching: find.byWidgetPredicate((widget) => widget is HeroMode && widget.enabled)),
+  matching: find.byType(Hero),
+);
+
+Future<TestGesture> _dragGallery(WidgetTester tester, Finder view, Offset step, int count) async {
+  final gesture = await tester.startGesture(tester.getCenter(view));
+  for (var i = 0; i < count; i++) {
+    await gesture.moveBy(step, timeStamp: Duration(milliseconds: i * 16));
+  }
+  await gesture.moveBy(Offset.zero, timeStamp: Duration(milliseconds: 600));
+  await tester.pump();
+  return gesture;
+}
+
 void main() {
   test('视频 Grid、相册 Grid、瀑布流追加为三个独立入口', () {
     expect(scrollBusinessExamples.skip(6).take(3).map((entry) => entry.key), [
@@ -309,28 +324,53 @@ void main() {
     final preview = find.byType(ElPreviewView);
     Future<void> openPhoto(String title) async {
       await tester.tap(_photo(title));
-      await tester.pump();
+      await tester.pumpAndSettle();
+      final hero = _selectedGalleryHero(preview);
+      final images = find.descendant(of: hero, matching: find.byType(Image));
       final decoded = find.descendant(
-        of: preview,
+        of: hero,
         matching: find.byWidgetPredicate((widget) => widget is RawImage && widget.image != null),
       );
-      await _wait(tester, () => decoded.evaluate().isNotEmpty);
+      await _wait(tester, () => images.evaluate().length == 1 && decoded.evaluate().isNotEmpty);
     }
 
     await openPhoto('横图 空格');
     expect(preview, findsOneWidget);
     expect(tester.getSize(preview).width, 390);
-    final activeHero = find.descendant(of: preview, matching: find.byType(Hero));
+    final activeHero = _selectedGalleryHero(preview);
     final image = tester.widget<Image>(find.descendant(of: activeHero, matching: find.byType(Image)));
     final provider = (image.image as ResizeImage).imageProvider as FileImage;
     expect(path.basename(provider.file.path), '横图 空格.png');
     expect(played, isNull);
-    await tester.tap(find.byTooltip('上一项'));
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: 340));
+    final controller = tester.widget<ElPreviewView>(preview).controller!;
+    final photoIndex = controller.index;
+    final toVideo = await _dragGallery(tester, preview, Offset(20, 0), 15);
+    expect(controller.page.value, inExclusiveRange(photoIndex - 1, photoIndex));
+    expect(played, isNull);
+    await toVideo.up(timeStamp: Duration(milliseconds: 616));
+    await tester.pumpAndSettle();
     await _wait(tester, () => find.text('播放本地视频').evaluate().isNotEmpty);
     expect(path.basename(path.fromUri(played!)), '本机 视频.mp4');
-    await tester.tap(find.byType(CloseButton));
+    final videoThumb = find.byKey(ValueKey(('media-gallery-thumb', photoIndex - 1)));
+    expect(tester.widget<ElButtonView>(videoThumb).semantics?.properties.selected, isTrue);
+    final toPhoto = await _dragGallery(tester, preview, Offset(-20, 0), 15);
+    expect(controller.page.value, inExclusiveRange(photoIndex - 1, photoIndex));
+    expect(find.text('播放本地视频'), findsOneWidget);
+    await toPhoto.up(timeStamp: Duration(milliseconds: 616));
+    await tester.pumpAndSettle();
+    expect(controller.index, photoIndex);
+    expect(find.byKey(ValueKey('media-video-preview')), findsNothing);
+    final center = tester.getCenter(preview);
+    final shortPull = await _dragGallery(tester, preview, Offset(0, 20), 3);
+    expect(tester.getCenter(preview).dy, greaterThan(center.dy));
+    await shortPull.up(timeStamp: Duration(milliseconds: 616));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(preview), center);
+    await tester.tap(videoThumb);
+    await tester.pumpAndSettle();
+    await _wait(tester, () => find.text('播放本地视频').evaluate().isNotEmpty);
+    expect(controller.index, photoIndex - 1);
+    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
     expect(preview, findsNothing);
     await _mode(tester, 'official');
@@ -383,16 +423,18 @@ void main() {
       expect(preview.itemCount, 95);
       selected.jumpToPage(preview.itemCount - 1);
       await tester.pumpAndSettle();
-      final current = tester.widget<AppBar>(find.widgetWithText(AppBar, '竖图 中文'));
-      expect((current.title as Text).data, '竖图 中文');
+      final current = tester.widget<Text>(find.byKey(ValueKey('media-gallery-title')));
+      expect(current.data, '竖图 中文');
       expect(_controller(tester).offset, greaterThan(0));
       final destination = find.descendant(of: _photo('竖图 中文'), matching: find.byType(Hero));
-      final currentHero = find.descendant(of: view, matching: find.byType(Hero));
+      final currentHero = _selectedGalleryHero(view);
       final thumbnailHero = tester.widget<Hero>(destination);
       expect(tester.widget<Hero>(currentHero).tag, thumbnailHero.tag);
       expect(viewport.contains(tester.getCenter(destination)), isTrue);
 
-      await tester.tap(find.byType(CloseButton));
+      final pull = await _dragGallery(tester, view, Offset(0, 20), 10);
+      expect(view, findsOneWidget);
+      await pull.up(timeStamp: Duration(milliseconds: 616));
       await tester.pump();
       await tester.pump();
       await tester.pump(Duration(milliseconds: 80));
