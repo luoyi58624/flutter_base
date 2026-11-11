@@ -45,6 +45,6 @@ ValueListenableBuilder<bool>(
 );
 ```
 
-Enter 在 keydown 激活，重复按键默认最多每 100ms 激活一次；Space 在 keyup 激活。通过 `event: ElEvent(config: ElEventConfig(keyRepeatInterval: Duration.zero))` 可关闭重复限流，也可指定其他间隔。自定义 onKeyDown / onKeyRepeat / onKeyUp 任一回调时，整组内建键盘激活让位，需调用方完整接管。
+Enter 在按下和 Flutter 报告重复时激活，Space 在匹配的释放事件激活。声明 `onKeyDown`、`onKeyRepeat` 或 `onKeyUp` 时，由调用方接管整组键盘激活。
 
-Enter、空格的按压态及释放配对由 ElView 内部维护，直接声明 `style.onTap` 即可；重建不会丢失按压会话，Esc、失焦、禁用或卸载会取消。上层皮肤可通过现有 onTapDown / onTapUp / onTapCancel 响应键盘按压生命周期，不需要额外控制器。普通按钮不依赖 ElComponentProvider；现成反馈可选 [Tap](../../widgets/tap/README.md)。
+Enter、空格的按压态及释放配对由 ElView 内部维护，直接声明 `style.onTap` 即可。Esc、失焦、禁用或卸载会清理按压态。上层皮肤可用 `onTapDown`、`onTapUp`、`onTapCancel` 响应主焦点的激活键。现成反馈可选 [Tap](../../widgets/tap/README.md)。

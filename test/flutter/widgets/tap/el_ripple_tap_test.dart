@@ -247,7 +247,7 @@ void main() {
 
   for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.touch]) {
     for (final outsideDelay in [Duration.zero, Duration(milliseconds: 100)]) {
-      testWidgets('同次按压移回直接恢复最终态：$kind，离开 $outsideDelay', (tester) async {
+      testWidgets('同次按压超出容差后移回仍取消波纹：$kind，离开 $outsideDelay', (tester) async {
         var taps = 0;
         await tester.pumpWidget(build(onPressed: () => taps++));
         final center = tester.getCenter(find.byType(ElRippleTap));
@@ -257,24 +257,16 @@ void main() {
         final finalRadius = Offset(120, 60).distance / 2 + 5;
         expect(_circleOf(button(tester)).radius, lessThan(finalRadius));
 
-        for (var i = 0; i < 2; i++) {
-          await gesture.moveTo(center + Offset(150, 0));
-          await tester.pump();
-          await tester.pump(outsideDelay);
-          if (outsideDelay > Duration.zero) expect(button(tester), paintsExactlyCountTimes(#drawCircle, 0));
-          await gesture.moveTo(center + Offset(20, 0));
-          await tester.pump();
-          expect(button(tester), paintsExactlyCountTimes(#drawCircle, 1));
-          expect(button(tester), paints..circle(x: 60, y: 30, radius: finalRadius, color: Color(0x1a204080)));
-          await tester.pump(Duration(milliseconds: 200));
-          expect(button(tester), paints..circle(x: 60, y: 30, radius: finalRadius, color: Color(0x1a204080)));
-          expect(tester.binding.transientCallbackCount, 0);
-          expect(taps, 0);
-        }
+        await gesture.moveTo(center + Offset(150, 0));
+        await tester.pump();
+        await tester.pump(outsideDelay);
+        await gesture.moveTo(center + Offset(20, 0));
+        await tester.pumpAndSettle();
+        expect(button(tester), paintsExactlyCountTimes(#drawCircle, 0));
 
         await gesture.up();
         await tester.pumpAndSettle();
-        expect(taps, 1);
+        expect(taps, 0);
         expect(button(tester), paintsExactlyCountTimes(#drawCircle, 0));
         final next = await tester.startGesture(center, kind: kind);
         await tester.pump();

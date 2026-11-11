@@ -35,13 +35,6 @@ class _Ripple {
   late final AnimationController _fadeIn;
   late final AnimationController _fadeOut;
 
-  /// 移回元素时恢复扩散完成的按压态，同时停止离开时的淡出。
-  void showPressed() {
-    _fadeOut.value = 0;
-    _fadeIn.value = 1;
-    _radiusController.value = 1;
-  }
-
   void confirm() {
     _radiusController
       ..duration = const Duration(milliseconds: 225)

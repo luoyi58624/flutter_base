@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../views/button/button_view.dart' show ElButtonView;
-import '../../views/view/event/event.dart' show ElEvent;
-import '../../views/view/event/press.dart' show ElEventDetails;
+import '../../views/view/event/event.dart' show ElEvent, ElEventDetails;
 import '../../views/view/render/render_view.dart' show ElRenderView;
 import '../../views/view/style/style.dart' show ElStyle;
 import '../../views/view/view.dart' show ElView;

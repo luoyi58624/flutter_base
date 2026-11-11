@@ -16,8 +16,7 @@ import '../../../../flutter/components/list_tile/index.dart' show ElListGroup, E
 import '../../../../flutter/utils/model_value/index.dart' show ElModelValueType;
 import '../../../../flutter/utils/util.dart' show ElFlutterUtil;
 import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
-import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventExt;
-import '../../../../flutter/views/view/event/press.dart' show ElEventDetails;
+import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventDetails, ElEventExt;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart'
     show ElBorder, ElStyle, ElTransform, ElTransition, ElTransitionField;

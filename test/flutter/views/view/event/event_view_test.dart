@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show kPressTimeout;
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/services.dart';
@@ -39,34 +40,6 @@ void main() {
     dispatcher.event = dispatcher.event!.copyWith(cursor: null);
     await tester.pump();
     expect(tester.binding.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.basic);
-  });
-
-  testWidgets('禁用外层也清除后代已经抬起的延迟 Tap', (tester) async {
-    var taps = 0;
-    final child = ElView(
-      event: ElEvent(
-        config: ElEventConfig(deferTap: true, doubleTapInterval: Duration(milliseconds: 40)),
-        onTap: (_) => taps++,
-        onDoubleTap: (_) {},
-      ),
-      child: _box(),
-    );
-    Widget tree(bool disabled) => _shell(
-      ElView(
-        event: ElEvent(disabled: disabled),
-        child: child,
-      ),
-    );
-    await tester.pumpWidget(tree(false));
-    await tester.tapAt(Offset(20, 20));
-    expect(taps, 0);
-    await tester.pumpWidget(tree(true));
-    await tester.pump(Duration(milliseconds: 80));
-    expect(taps, 0);
-    await tester.pumpWidget(tree(false));
-    await tester.tapAt(Offset(20, 20));
-    await tester.pump(Duration(milliseconds: 80));
-    expect(taps, 1);
   });
 
   testWidgets('直接宿主保留子组件尺寸且不创建焦点节点', (tester) async {
@@ -365,10 +338,11 @@ void main() {
     );
     await tester.pumpWidget(tree(false));
     final gesture = await tester.startGesture(Offset(20, 20));
+    await tester.pump(kPressTimeout);
     await tester.pumpWidget(tree(true));
     await gesture.up();
     await tester.pump();
-    expect(calls, [ElEventPhase.pointerDown, ElEventPhase.tapDown, ElEventPhase.pointerCancel, ElEventPhase.tapCancel]);
+    expect(calls, [ElEventPhase.pointerDown, ElEventPhase.tapDown, ElEventPhase.tapCancel, ElEventPhase.pointerCancel]);
     await tester.tapAt(Offset(20, 20));
     expect(calls, hasLength(4));
     expect(behindDowns, 0);
@@ -377,7 +351,7 @@ void main() {
     expect(calls.where((phase) => phase == ElEventPhase.tap), hasLength(2));
   });
 
-  testWidgets('变换后的边界仍允许移出取消、移回复燃', (tester) async {
+  testWidgets('变换节点超出点击容差后，移回也不会重新识别', (tester) async {
     final phases = <ElEventPhase>[];
     void record(ElEventDetails e) => phases.add(e.phase);
     await tester.pumpWidget(
@@ -397,13 +371,7 @@ void main() {
     await gesture.moveTo(Offset(150, 20));
     await gesture.up();
     await tester.pump();
-    expect(phases, [
-      ElEventPhase.tapDown,
-      ElEventPhase.tapCancel,
-      ElEventPhase.tapDown,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ]);
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapCancel]);
   });
 
   testWidgets('GlobalKey 重挂保留分发器与当前按压序列', (tester) async {

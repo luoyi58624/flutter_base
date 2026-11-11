@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 ElStyle get eventTestDefaultStyle => const ElStyle(width: 100, height: 100, backgroundColor: Color(0xFF00FF00));
 
 /// 把 [view] 挂到最小可命中布局，供真实 ElView wiring 合同复用。
-Future<void> pumpEventView(WidgetTester tester, ElView view) async {
+Future<void> pumpEventView(WidgetTester tester, Widget view) async {
   await tester.pumpWidget(
     Directionality(
       textDirection: TextDirection.ltr,

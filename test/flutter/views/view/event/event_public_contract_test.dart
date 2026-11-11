@@ -82,7 +82,7 @@ void main() {
       expect(changed, isNot(event));
       expect(changed, event.copyWith(behavior: HitTestBehavior.translucent));
       expect(changed.hashCode, event.copyWith(behavior: HitTestBehavior.translucent).hashCode);
-      expect(changed.hasSameNonDragShape(event), isTrue);
+      expect(changed.hasSameGestureShape(event), isTrue);
     });
 
     test('hasAnyCallback is false on empty event, true with any handler', () {
@@ -281,68 +281,6 @@ void main() {
       expect(captured, 1);
     });
 
-    testWidgets('onDoubleTap reports tapCount 2', (tester) async {
-      int? captured;
-      await pumpEventView(
-        tester,
-        ElView(
-          style: eventTestDefaultStyle,
-          event: .new(onDoubleTap: (event) => captured = event.tapCount),
-        ),
-      );
-      await tester.tapAt(const Offset(30, 30));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tapAt(const Offset(30, 30));
-      await tester.pumpAndSettle();
-      expect(captured, 2);
-    });
-
-    testWidgets('onDoubleTap preserves second-down metadata', (tester) async {
-      Object? originalEvent;
-      int? buttons;
-      int? tapCount;
-      await pumpEventView(
-        tester,
-        ElView(
-          style: eventTestDefaultStyle,
-          event: .new(
-            onDoubleTap: (event) {
-              originalEvent = event.originalEvent;
-              buttons = event.buttons;
-              tapCount = event.tapCount;
-            },
-          ),
-        ),
-      );
-
-      await tester.tapAt(const Offset(30, 30), pointer: 31, buttons: kPrimaryButton);
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tapAt(const Offset(30, 30), pointer: 32, buttons: kPrimaryButton);
-      await tester.pumpAndSettle();
-
-      expect(originalEvent, isA<PointerDownEvent>());
-      expect((originalEvent! as PointerDownEvent).pointer, 32);
-      expect(buttons, kPrimaryButton);
-      expect(tapCount, 2);
-    });
-
-    test('onTripleTap reports tapCount 3', () {
-      int? captured;
-      final host = DispatcherTestHost.chain();
-      addTearDown(host.dispose);
-      host.leafDispatcher.event = ElEvent(onTripleTap: (event) => captured = event.tapCount);
-
-      void sendTap(Duration at) {
-        host.dispatch(PointerDownEvent(position: const Offset(3, 4), timeStamp: at));
-        host.dispatch(PointerUpEvent(position: const Offset(3, 4), timeStamp: at));
-      }
-
-      sendTap(Duration.zero);
-      sendTap(const Duration(milliseconds: 50));
-      sendTap(const Duration(milliseconds: 100));
-      expect(captured, 3);
-    });
-
     testWidgets('TapDown and TapUp always report tapCount 0', (tester) async {
       final downCounts = <int>[];
       final upCounts = <int>[];
@@ -461,22 +399,10 @@ void main() {
               alignment: Alignment.topLeft,
               child: Row(
                 children: <Widget>[
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: first,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: skipped,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: second,
-                  ),
-                  ElView(
-                    style: eventTestDefaultStyle,
-                    focusNode: third,
-                  ),
+                  ElView(style: eventTestDefaultStyle, focusNode: first),
+                  ElView(style: eventTestDefaultStyle, focusNode: skipped),
+                  ElView(style: eventTestDefaultStyle, focusNode: second),
+                  ElView(style: eventTestDefaultStyle, focusNode: third),
                 ],
               ),
             ),

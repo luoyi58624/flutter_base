@@ -9,8 +9,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../flutter/widgets/icon/content.dart';
 import '../../../flutter/views/view/event/event.dart'
-    show ElEvent, ElEventConfig, ElEventConfigExt, ElEventExt, ElEventHandler;
-import '../../../flutter/views/view/event/press.dart' show ElEventDetails, ElEventPhase;
+    show ElEvent, ElEventConfig, ElEventConfigExt, ElEventDetails, ElEventExt, ElEventHandler, ElEventPhase;
 import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;

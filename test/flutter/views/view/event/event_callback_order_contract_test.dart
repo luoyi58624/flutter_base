@@ -39,6 +39,7 @@ void main() {
         timeStamp: Duration.zero,
       ),
     );
+    await tester.pump(kPressTimeout);
     expect(phases, <ElEventPhase>[ElEventPhase.pointerDown, ElEventPhase.dragDown, ElEventPhase.tapDown]);
 
     host.dispatch(
@@ -124,6 +125,7 @@ void main() {
         timeStamp: Duration.zero,
       ),
     );
+    await tester.pump(kPressTimeout);
     host.dispatch(
       const PointerCancelEvent(
         pointer: 2,

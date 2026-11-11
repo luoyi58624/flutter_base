@@ -926,7 +926,6 @@ class ElRenderView extends RenderBox
     final d = EventDispatcher(this);
     d.onTapChanged = setTap;
     d.localPositionResolver = _resolveEventLocalPosition;
-    d.hitBoundsContainsGlobal = _tapBoundsContainsGlobal;
     _eventDispatcher = d;
     _markPaintForDispatcherPresenceChange();
     return d;
@@ -938,30 +937,6 @@ class ElRenderView extends RenderBox
   /// 本身不影响 layer 结构，不做合成位失效。
   void _markPaintForDispatcherPresenceChange() {
     markNeedsPaint();
-  }
-
-  /// 边界口径 tap 判定用：全局坐标是否落在本节点的视觉盒内。
-  bool _tapBoundsContainsGlobal(Offset globalPosition) {
-    if (!hasSize) return true;
-    // globalToLocal 只走到**父寻址空间**（祖先链的 applyPaintTransform 不含本
-    // 节点自身的 transform）。未变换口径直接用它比 _boxRect；变换后口径要补
-    // 一次自身反变换，与 hitTest 里 addWithPaintTransform 的落点对齐。
-    final parentSpace = globalToLocal(globalPosition);
-    if (_tapBoundsContainsLocal(parentSpace)) return true;
-    final transform = _effectivePaintTransform();
-    if (transform == null) return false;
-    final inverted = Matrix4.tryInvert(transform);
-    // 矩阵退化（scale 0 等）：画不出来也无从判定，按"在范围内"放行，
-    // 宁可不熄按压态也不误杀点击。
-    if (inverted == null) return true;
-    return _tapBoundsContainsLocal(MatrixUtils.transformPoint(inverted, parentSpace));
-  }
-
-  bool _tapBoundsContainsLocal(Offset local) {
-    if (!_boxRect.contains(local)) return false;
-    final clipper = _committedResolved.box.clipPath;
-    if (clipper != null) return clipper.getClip(_boxSize).contains(local - _boxOrigin);
-    return _containsClipRRectForHitTest(local);
   }
 
   Offset _resolveEventLocalPosition(RenderBox target, Offset globalPosition, ElEventDetails? callback) {
@@ -1027,7 +1002,7 @@ class ElRenderView extends RenderBox
         return;
       }
     }
-    _ensureEventDispatcher().syncRecognizersForStateVariants();
+    _ensureEventDispatcher();
   }
 
   /// 需要 dispatcher 的状态：tap 来自按压反馈，focus 系列沿 dispatcher 父链通知。
@@ -1854,7 +1829,7 @@ class ElRenderView extends RenderBox
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
     // 拖拽指针锁：整树吞命中 + 锁光标（见 [DragPointerLock] 类注）；进行
     // 中的拖拽走 down 捕获路由投递，不经过本分支。
-    if (DragPointerLock.blocksHitTesting) {
+    if (DragPointerLock.isActive) {
       result.add(HitTestEntry(dragPointerLockBarrier));
       return true;
     }
@@ -1992,13 +1967,10 @@ class ElRenderView extends RenderBox
   void handleEvent(PointerEvent event, covariant BoxHitTestEntry entry) {
     super.handleEvent(event, entry);
     if (disabled) return;
-    if (event is PointerDownEvent) {
-      _eventDispatcher?.rememberPointerPosition(event, entry);
-      _eventDispatcher?.handleEvent(event, entry);
-      requestFocusForEvent?.call(event, _focusLocalPositionForPointer());
-      return;
-    }
     _eventDispatcher?.handleEvent(event, entry);
+    if (event is PointerDownEvent && !EventDispatcher.preservesFocus(event)) {
+      requestFocusForEvent?.call(event, _focusLocalPositionForPointer());
+    }
   }
 
   // --- MouseTrackerAnnotation 接口 -----------------------------------------

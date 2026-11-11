@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../view/event/event.dart';
-import '../view/event/press.dart' show EventDetailsAccess;
+import '../view/event/details.dart' show EventDetailsAccess;
 import '../view/semantics/semantics.dart';
 import '../view/style/style.dart';
 import '../view/view.dart';

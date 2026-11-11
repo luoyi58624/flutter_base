@@ -6,26 +6,16 @@ import 'package:flutter/gestures.dart' show PointerDeviceKind, kMaxFlingVelocity
 import 'package:flutter/widgets.dart';
 
 import '../../../../../dart.dart';
-import 'press.dart';
+import 'details.dart';
 
-export 'press.dart' show ElEventPhase, ElEventDetails, ElEventCancelReason, ElFocusReason;
+export 'details.dart' show ElEventPhase, ElEventDetails, ElEventCancelReason, ElFocusReason;
 
 part 'event.g.dart';
 
 /// 事件回调签名。
 typedef ElEventHandler = void Function(ElEventDetails event);
 
-/// 点击、按压反馈和 Flutter 拖拽的局部配置。
-///
-/// 挂到 `ElEvent.config`。所有字段可空，`null` 表示**未设置**：
-///
-/// - **节点直参 + 内部默认**：配置只对声明它的那个节点生效；未设置的字段在
-///   读取时落 getter 内部默认值（各 getter 内注明），**不读任何全局状态**。
-/// - 读取端（getter）总是返回生效值——`null` 只存在于存储层，
-///   [ElEventConfig] 实例对外表现为一份完整配置。
-///
-/// 配置不沿 render 树向子组件注入，也不存在任何全局入口：祖先的 config 不会
-/// 影响后代，组件需要特殊手感时在自己的 `ElEvent.config` 中声明。
+/// 当前宿主的点击、反馈和拖拽配置。
 @ElModelGenerator.copy()
 final class ElEventConfig with Equatable {
   /// 创建事件配置。传 `null`（缺省）的字段回落 getter 内部默认/自适应值。
@@ -55,30 +45,14 @@ final class ElEventConfig with Equatable {
          'dragHorizontalAngle 是水平捕获锥的半角（弧度），必须落在 (0, π/2) 开区间。',
        );
 
-  /// Tap、连击与长按参数是否和 [other] 使用相同的局部覆盖，仅供事件状态迁移。
-  /// 不比较视觉与键盘参数，避免调节反馈或重复间隔时打断指针手势。
-  @internal
-  bool hasSameTapConfiguration(ElEventConfig? other) =>
-      _doubleTapInterval == other?._doubleTapInterval &&
-      _tripleTapInterval == other?._tripleTapInterval &&
-      _longPressDelay == other?._longPressDelay &&
-      longPressCancelDistance == other?.longPressCancelDistance &&
-      _tapCancelDistance == other?._tapCancelDistance &&
-      _tapCancelByDistance == other?._tapCancelByDistance &&
-      _deferTap == other?._deferTap;
-
-  // --- 点击家族 --------------------------------------------------------------
-
   final Duration? _doubleTapInterval;
 
-  /// 双击识别间隔，同时也是 [deferTap] 为 true 时 onTap 的延迟时长。
-  /// 默认 300ms。
+  /// 旧版双击间隔配置，连击采用 Flutter 的识别窗口。
   Duration get doubleTapInterval => _doubleTapInterval ?? const Duration(milliseconds: 300);
 
   final Duration? _tripleTapInterval;
 
-  /// 三击识别间隔。第三次 PointerUp 与第二次的间隔 ≤ 此值且距离 ≤
-  /// [tapCancelDistance] 时识别为三击。默认 300ms。
+  /// 旧版三击间隔配置，连击采用 Flutter 的识别窗口。
   Duration get tripleTapInterval => _tripleTapInterval ?? const Duration(milliseconds: 300);
 
   final Duration? _longPressDelay;
@@ -86,74 +60,40 @@ final class ElEventConfig with Equatable {
   /// 长按识别等待时间。默认 500ms。
   Duration get longPressDelay => _longPressDelay ?? const Duration(milliseconds: 500);
 
-  /// 长按等待期间允许的最大移动距离；null 表示按指针设备采用系统 hit slop。
+  /// 旧版长按移动容差，Flutter 按设备计算长按容差。
   final double? longPressCancelDistance;
 
   final double? _tapCancelDistance;
 
-  /// 指针按下后移动超过该距离，最终 tap 激活资格取消（含侧键 `*Tap`）。
-  /// 默认 10.0。
-  ///
-  /// 仅在 [tapCancelByDistance] 为 true 时参与主键 tap 判定；侧键 `*Tap` 与连击
-  /// 窗口的位置判定恒使用该距离。
+  /// 普通 Tap 的自定义移动容差。
   double get tapCancelDistance => _tapCancelDistance ?? 10.0;
 
   final bool? _tapCancelByDistance;
 
-  /// 主键 tap 是否按**移动距离**取消。
-  ///
-  /// - `false`（默认）：按**元素边界**判定，对齐 iOS UIControl 的
-  ///   `touchDragExit` / `touchDragEnter` 语义。指针拖出宿主命中范围时
-  ///   fire `onTapCancel` 并复位按压态（`onTap` 变体随之熄灭），但候选**不销毁**；
-  ///   指针拖回范围内会重新 fire `onTapDown`、按压态重新点亮，此时抬手照常
-  ///   fire `onTapUp` / `onTap`。抬手位置在范围外才最终不触发点击。
-  /// - `true`：移动超过 [tapCancelDistance] 即**永久**取消最终 `onTap`
-  ///   （移回也不恢复），但物理抬起仍兑现 `onTapUp`。
-  ///
-  /// `onTapUp` 是按压释放通知，不表示 tap 激活成功；只有 PointerCancel、节点
-  /// 失去该 pointer 归属或被移除时不触发。
+  /// 普通 Tap 是否覆盖 Flutter 默认移动容差。
   bool get tapCancelByDistance => _tapCancelByDistance ?? false;
 
   final Duration? _delayTouchDown;
 
-  /// 触摸按下后等待多久激活 `ElStyle.onTap`，默认立即激活；鼠标与笔不延迟。
+  /// 旧版触摸反馈延迟配置，ElView 随输入直接更新样式。
   Duration get delayTouchDown => _delayTouchDown ?? Duration.zero;
 
   final Duration? _delayTouchUp;
 
-  /// 从触摸按下起算的最短反馈时间，默认 100ms；正常抬手只补剩余时间，不延迟点击。
-  ///
-  /// 尚未激活的样式不补播，取消、拖拽接管、禁用与卸载立即清理；零值关闭保留。
+  /// 旧版触摸反馈保留时间，ElView 随释放和取消直接更新样式。
   Duration get delayTouchUp => _delayTouchUp ?? const Duration(milliseconds: 100);
 
   final Duration? _keyRepeatInterval;
 
-  /// 同一物理按键的重复回调最小间隔，默认 100ms，零值关闭限流。
-  ///
-  /// 首次按下和释放立即派发；过密的 KeyRepeat 直接跳过，不排队，也不影响按压样式。
+  /// 旧版键盘重复间隔配置，ElView 按 Flutter 的节奏转发。
   Duration get keyRepeatInterval => _keyRepeatInterval ?? const Duration(milliseconds: 100);
 
   final bool? _deferTap;
 
-  /// 同时声明 onTap 和 onDoubleTap 时，是否延迟 onTap 等待双击判定。
-  ///
-  /// - `false`（默认）：双击不影响单击执行。单击立即在 PointerUp 时 fire
-  ///   onTap；双击场景里 onTap 仍 fire（来自第二次 PointerUp），同时
-  ///   再 fire 一次 onDoubleTap。
-  /// - `true`：跟 Flutter 官方 `GestureDetector` 同时配置 onTap / onDoubleTap
-  ///   的行为一致。PointerUp 后用 Timer 延迟 [doubleTapInterval] 才 fire
-  ///   onTap；其间若识别为双击，pending 的 onTap 被取消，只 fire onDoubleTap。
-  ///
-  /// 该开关**只影响 onTap 的触发时机**，不影响 onTapDown / onTapUp /
-  /// onTapCancel 等任何其他回调——它们仍按原本时序触发。
+  /// 旧版延期点击配置，Flutter 连击按每次成功点击派发。
   bool get deferTap => _deferTap ?? false;
 
-  // --- 拖拽 ------------------------------------------------------------------
-
-  /// 自定义 Flutter 拖拽的触摸容差，省略时使用宿主的设备设置。
-  ///
-  /// 横拖和纵拖使用此值作为 hit slop，Pan 使用此值作为 pan slop。
-  /// 精准指针沿用 Flutter 的设备容差。
+  /// Flutter 拖拽的触摸起手容差。
   final double? dragStartDistance;
 
   /// 允许参与拖拽和缩放的设备，null 表示允许所有设备。
@@ -161,16 +101,10 @@ final class ElEventConfig with Equatable {
 
   final double? _dragHorizontalAngle;
 
-  /// 自由拖拽的起手方向分类使用的水平半角，默认 π/4。
-  ///
-  /// 用于填写 [ElEventDetails.dragDirection]。轴向手势的归属由 Flutter 竞技场决定。
+  /// 自由拖拽的方向分类使用的水平半角。
   double get dragHorizontalAngle => _dragHorizontalAngle ?? math.pi / 4;
 
-  /// 拖拽结束判定为 fling 的最小拖动距离。
-  ///
-  /// 轴向拖拽按主轴位移比较；自由拖拽按二维位移比较。`null`（默认）表示
-  /// 设备自适应（hit slop），与官方 DragGestureRecognizer 的
-  /// `minFlingDistance ?? computeHitSlop(...)` 语义一致。
+  /// Flutter 判定甩动的最小距离。
   final double? dragMinFlingDistance;
 
   final double? _dragMinFlingVelocity;
@@ -189,9 +123,6 @@ final class ElEventConfig with Equatable {
   @override
   List<Object?> get props => _props;
 }
-
-bool _sameTapConfiguration(ElEventConfig? left, ElEventConfig? right) =>
-    left?.hasSameTapConfiguration(right) ?? right?.hasSameTapConfiguration(null) ?? true;
 
 /// 旧版预览等组件使用的拖拽代理声明。
 ///
@@ -236,313 +167,206 @@ final class ElDragProxy {
   }
 }
 
-/// 事件配置。
-///
-/// 声明式回调集合与手势识别配置，由 dispatcher 接入任意 RenderObject。
-/// 识别器只处理通用输入，几何、焦点和组件反馈由宿主适配。
-///
-/// ## 等值语义（shape equality）
-///
-/// `==` 比较**配置字段的值 + 回调字段的空性**，不比较回调闭包本身：
-/// `ElEvent(onTap: a) == ElEvent(onTap: b)` 为 true。这是刻意的——widget
-/// rebuild 时内联闭包每次都是新实例，若按闭包身份比较，任何 rebuild 都会被
-/// dispatcher 视为配置替换，从而重置进行中的双击窗口/长按识别。shape 相等的
-/// 替换会被 dispatcher 视为同构配置，仅热替换回调引用、完整保留手势状态。
+/// ElView 声明的事件回调，等值比较使用回调空性。
 @ElModelGenerator.copy(generateProps: false)
-class ElEvent {
-  /// 创建事件配置。
-  const ElEvent({
-    this.config,
-    this.dragProxy,
-    this.behavior = HitTestBehavior.opaque,
-    this.cursor,
-    this.disabled = false,
-    this.rotationStartEnabled = false,
-    this.onPointerEnter,
-    this.onPointerHover,
-    this.onPointerExit,
-    this.onPointerDown,
-    this.onPointerMove,
-    this.onPointerUp,
-    this.onPointerCancel,
-    this.onPointerPanZoomStart,
-    this.onPointerPanZoomUpdate,
-    this.onPointerPanZoomEnd,
-    this.onPointerSignal,
-    this.onTapDown,
-    this.onTapUp,
-    this.onTap,
-    this.onDoubleTap,
-    this.onDoubleTapDown,
-    this.onTripleTap,
-    this.onTripleTapDown,
-    this.onSecondaryTapDown,
-    this.onSecondaryTapUp,
-    this.onSecondaryTap,
-    this.onTertiaryTapDown,
-    this.onTertiaryTapUp,
-    this.onTertiaryTap,
-    this.onForwardTapDown,
-    this.onForwardTapUp,
-    this.onForwardTap,
-    this.onBackTapDown,
-    this.onBackTapUp,
-    this.onBackTap,
-    this.onLongPress,
-    this.onTapCancel,
-    this.onDragDown,
-    this.onDragStart,
-    this.onDragUpdate,
-    this.onDragEnd,
-    this.onDragCancel,
-    this.onVerticalDragStart,
-    this.onVerticalDragUpdate,
-    this.onVerticalDragEnd,
-    this.onVerticalDragCancel,
-    this.onHorizontalDragStart,
-    this.onHorizontalDragUpdate,
-    this.onHorizontalDragEnd,
-    this.onHorizontalDragCancel,
-    this.onScaleStart,
-    this.onScaleUpdate,
-    this.onScaleEnd,
-    this.onScaleCancel,
-    this.onRotationUpdate,
-    this.onKeyDown,
-    this.onKeyRepeat,
-    this.onKeyUp,
-    this.onFocus,
-    this.onBlur,
-  }) : assert(
-         (onDragStart == null && onDragUpdate == null && onDragEnd == null && onDragCancel == null) ||
-             (onVerticalDragStart == null &&
-                 onVerticalDragUpdate == null &&
-                 onVerticalDragEnd == null &&
-                 onVerticalDragCancel == null &&
-                 onHorizontalDragStart == null &&
-                 onHorizontalDragUpdate == null &&
-                 onHorizontalDragEnd == null &&
-                 onHorizontalDragCancel == null),
-         '自由拖拽（onDrag*）与轴向拖拽（onVerticalDrag* / onHorizontalDrag*）互斥，'
-         '不能同时声明——与官方 GestureDetector 的 pan 与 directional drag 约束一致。',
-       );
-
-  /// 事件识别参数配置（点击家族 + 拖拽）。
-  ///
-  /// `null` 表示不声明局部覆盖，所有字段回落 [ElEventConfig] 的内部默认值。
-  /// 非空时按**字段级**覆盖：只设置了的字段生效，未设置的字段同样回落内部
-  /// 默认值。配置**只对声明它的那个节点生效**，不沿 render 树向子组件注入。
-  /// 详见 [ElEventConfig]。
-  final ElEventConfig? config;
+class const ElEvent({
+  /// 当前节点的手势配置。
+  final ElEventConfig? config,
 
   /// 为现有组件保留的拖拽代理声明。
-  final ElDragProxy? dragProxy;
+  final ElDragProxy? dragProxy,
 
   /// 事件宿主的命中行为，默认覆盖布局盒。
-  final HitTestBehavior behavior;
+  final HitTestBehavior behavior = HitTestBehavior.opaque,
 
   /// 基础光标；null 表示未声明，ElView 生效的样式光标优先。
-  final MouseCursor? cursor;
+  final MouseCursor? cursor,
 
   /// 是否禁用事件宿主的交互。
-  final bool disabled;
+  final bool disabled = false,
 
   /// 为现有缩放组件保留的旋转起手配置。
-  @internal
-  final bool rotationStartEnabled;
+  @internal final bool rotationStartEnabled = false,
 
   /// 指针进入回调。
-  final ElEventHandler? onPointerEnter;
+  final ElEventHandler? onPointerEnter,
 
   /// 指针悬停回调。
-  final ElEventHandler? onPointerHover;
+  final ElEventHandler? onPointerHover,
 
   /// 指针离开回调。
-  final ElEventHandler? onPointerExit;
+  final ElEventHandler? onPointerExit,
 
   /// 指针按下回调。
-  final ElEventHandler? onPointerDown;
+  final ElEventHandler? onPointerDown,
 
   /// 指针移动回调。
-  final ElEventHandler? onPointerMove;
+  final ElEventHandler? onPointerMove,
 
   /// 指针抬起回调。
-  final ElEventHandler? onPointerUp;
+  final ElEventHandler? onPointerUp,
 
   /// 指针取消回调。
-  ///
-  /// 平台 `PointerCancelEvent` 与 [ElEventDetails.eagerGesture] 淘汰当前节点时
-  /// 都会触发；后者的 [ElEventDetails.originalEvent] 是合成
-  /// `PointerCancelEvent`，原因见 [ElEventDetails.cancelReason]。
-  final ElEventHandler? onPointerCancel;
+  final ElEventHandler? onPointerCancel,
 
   /// 触控板平移缩放开始回调。
-  final ElEventHandler? onPointerPanZoomStart;
+  final ElEventHandler? onPointerPanZoomStart,
 
   /// 触控板平移缩放更新回调。
-  final ElEventHandler? onPointerPanZoomUpdate;
+  final ElEventHandler? onPointerPanZoomUpdate,
 
   /// 触控板平移缩放结束回调。
-  final ElEventHandler? onPointerPanZoomEnd;
+  final ElEventHandler? onPointerPanZoomEnd,
 
   /// 鼠标滚轮或其他指针信号回调。
-  final ElEventHandler? onPointerSignal;
+  final ElEventHandler? onPointerSignal,
 
-  /// 主指针或主焦点节点的键盘激活键按下回调。
-  final ElEventHandler? onTapDown;
+  /// 主键点击候选或主焦点的激活键按下回调。
+  final ElEventHandler? onTapDown,
 
-  /// 主指针或已配对的键盘激活键释放回调。
-  final ElEventHandler? onTapUp;
+  /// Flutter 确认主键点击或配对激活键释放时的回调。
+  final ElEventHandler? onTapUp,
 
   /// 点击回调。
-  final ElEventHandler? onTap;
+  final ElEventHandler? onTap,
 
-  /// 双击回调；未声明三击家族时每两次点击独立结组，连续四击会触发两次。
-  final ElEventHandler? onDoubleTap;
+  /// 连击计数达到二时回调。
+  final ElEventHandler? onDoubleTap,
 
-  /// 双击按下回调。第二次 PointerDown 与上次 tap 位置接近且在
-  /// [ElEventConfig.doubleTapInterval] 内时立即触发。
-  /// 未声明三击家族时连续按下第 2、4 次触发；声明三击后第 3 次归入
-  /// 三击并结组，下一次双击从第 4 次重新计数、在第 5 次按下触发。
-  final ElEventHandler? onDoubleTapDown;
+  /// 连击第二次按下时回调。
+  final ElEventHandler? onDoubleTapDown,
 
-  /// 三击回调。第三次 PointerUp 与第二次的间隔在 [ElEventConfig.tripleTapInterval] 内且
-  /// 位置接近时触发。与 [onTap] / [onDoubleTap] 共存：第二次 PointerUp fire
-  /// `onDoubleTap`，第三次 PointerUp fire `onTripleTap`，随后从下一次点击重新结组。
-  final ElEventHandler? onTripleTap;
+  /// 连击计数达到三时回调。
+  final ElEventHandler? onTripleTap,
 
-  /// 三击按下回调。第三次 PointerDown 与第二次 tap 位置接近且在
-  /// [ElEventConfig.tripleTapInterval] 内时立即触发。
-  final ElEventHandler? onTripleTapDown;
+  /// 连击第三次按下时回调。
+  final ElEventHandler? onTripleTapDown,
 
   /// 第二按钮按下回调，通常对应鼠标右键。
-  final ElEventHandler? onSecondaryTapDown;
+  final ElEventHandler? onSecondaryTapDown,
 
   /// 第二按钮抬起回调。
-  final ElEventHandler? onSecondaryTapUp;
+  final ElEventHandler? onSecondaryTapUp,
 
   /// 第二按钮点击回调。
-  final ElEventHandler? onSecondaryTap;
+  final ElEventHandler? onSecondaryTap,
 
   /// 第三按钮按下回调，通常对应鼠标中键。
-  final ElEventHandler? onTertiaryTapDown;
+  final ElEventHandler? onTertiaryTapDown,
 
   /// 第三按钮抬起回调。
-  final ElEventHandler? onTertiaryTapUp;
+  final ElEventHandler? onTertiaryTapUp,
 
   /// 第三按钮点击回调。
-  final ElEventHandler? onTertiaryTap;
+  final ElEventHandler? onTertiaryTap,
 
   /// 前进按钮按下回调。
-  final ElEventHandler? onForwardTapDown;
+  final ElEventHandler? onForwardTapDown,
 
   /// 前进按钮抬起回调。
-  final ElEventHandler? onForwardTapUp;
+  final ElEventHandler? onForwardTapUp,
 
   /// 前进按钮点击回调。
-  final ElEventHandler? onForwardTap;
+  final ElEventHandler? onForwardTap,
 
   /// 后退按钮按下回调。
-  final ElEventHandler? onBackTapDown;
+  final ElEventHandler? onBackTapDown,
 
   /// 后退按钮抬起回调。
-  final ElEventHandler? onBackTapUp;
+  final ElEventHandler? onBackTapUp,
 
   /// 后退按钮点击回调。
-  final ElEventHandler? onBackTap;
+  final ElEventHandler? onBackTap,
 
-  /// 长按成立回调。
-  ///
-  /// 回调链执行完成后，事件层默认认领当前 pointer 手势，并取消
-  /// 本节点的后续 Tap 激活；普通使用无需再手动调用
-  /// [ElEventDetails.eagerGesture]。如果长按成立后组件判定当前位置
-  /// 不可处理，可在任意一层回调中调用 [ElEventDetails.preventDefault]
-  /// 拒绝这项默认认领；此时 pointer 归属与 Tap 资格均保持不变。
-  ///
-  /// [ElEventDetails.stopPropagation] 只停止向祖先传播，不会取消默认认领。
-  final ElEventHandler? onLongPress;
+  /// Flutter 确认长按后回调。
+  final ElEventHandler? onLongPress,
 
-  /// Tap 候选取消回调；Tap 拒绝、手势让位与生命周期终止原因见
-  /// [ElEventDetails.cancelReason]。
-  final ElEventHandler? onTapCancel;
+  /// 主键点击候选或激活键取消时的回调。
+  final ElEventHandler? onTapCancel,
 
-  /// 主指针成为拖拽候选时的按下回调，在轴向判定与拖拽接受之前触发。
-  ///
-  /// 此阶段调用 `stopPropagation()` 可截断外层 ElEvent 的拖拽报名。
-  /// 单独声明此回调只观察按下。
-  final ElEventHandler? onDragDown;
+  /// 拖拽候选按下时回调，可截断外层拖拽报名。
+  final ElEventHandler? onDragDown,
 
-  /// 自由拖拽开始回调（任意方向，对应官方 `onPanStart`）。
-  ///
-  /// 与轴向拖拽组（[onVerticalDragStart] / [onHorizontalDragStart] 等）互斥，
-  /// 不能同时声明。
-  final ElEventHandler? onDragStart;
+  /// 自由拖拽开始回调。
+  final ElEventHandler? onDragStart,
 
   /// 自由拖拽更新回调。
-  final ElEventHandler? onDragUpdate;
+  final ElEventHandler? onDragUpdate,
 
   /// 自由拖拽结束回调。
-  final ElEventHandler? onDragEnd;
+  final ElEventHandler? onDragEnd,
 
   /// 已开始的自由拖拽取消时回调。
-  final ElEventHandler? onDragCancel;
+  final ElEventHandler? onDragCancel,
 
-  /// 垂直拖拽开始回调（对应官方 `onVerticalDragStart`）。
-  ///
-  /// 与水平拖拽同时声明时，由 Flutter 竞技场决定胜出轴。
-  /// [ElEventDetails.dragAxis] 携带胜出轴。
-  final ElEventHandler? onVerticalDragStart;
+  /// 垂直拖拽开始回调。
+  final ElEventHandler? onVerticalDragStart,
 
   /// 垂直拖拽更新回调。
-  final ElEventHandler? onVerticalDragUpdate;
+  final ElEventHandler? onVerticalDragUpdate,
 
   /// 垂直拖拽结束回调。
-  final ElEventHandler? onVerticalDragEnd;
+  final ElEventHandler? onVerticalDragEnd,
 
   /// 垂直拖拽取消回调。
-  final ElEventHandler? onVerticalDragCancel;
+  final ElEventHandler? onVerticalDragCancel,
 
   /// 水平拖拽开始回调（对应官方 `onHorizontalDragStart`）。
-  final ElEventHandler? onHorizontalDragStart;
+  final ElEventHandler? onHorizontalDragStart,
 
   /// 水平拖拽更新回调。
-  final ElEventHandler? onHorizontalDragUpdate;
+  final ElEventHandler? onHorizontalDragUpdate,
 
   /// 水平拖拽结束回调。
-  final ElEventHandler? onHorizontalDragEnd;
+  final ElEventHandler? onHorizontalDragEnd,
 
   /// 水平拖拽取消回调。
-  final ElEventHandler? onHorizontalDragCancel;
+  final ElEventHandler? onHorizontalDragCancel,
 
   /// Flutter 缩放开始回调，包含识别器接受的单指平移。
-  final ElEventHandler? onScaleStart;
+  final ElEventHandler? onScaleStart,
 
   /// 缩放更新回调。
-  final ElEventHandler? onScaleUpdate;
+  final ElEventHandler? onScaleUpdate,
 
   /// Flutter 结清当前缩放段时回调，增减触点也会结清当前段。
-  final ElEventHandler? onScaleEnd;
+  final ElEventHandler? onScaleEnd,
 
   /// 缩放取消回调。
-  final ElEventHandler? onScaleCancel;
+  final ElEventHandler? onScaleCancel,
 
   /// 旋转更新回调。
-  final ElEventHandler? onRotationUpdate;
+  final ElEventHandler? onRotationUpdate,
 
   /// 键盘按下回调。
-  final ElEventHandler? onKeyDown;
+  final ElEventHandler? onKeyDown,
 
   /// 键盘重复按下回调。
-  final ElEventHandler? onKeyRepeat;
+  final ElEventHandler? onKeyRepeat,
 
   /// 键盘抬起回调。
-  final ElEventHandler? onKeyUp;
+  final ElEventHandler? onKeyUp,
 
   /// 获得焦点回调。
-  final ElEventHandler? onFocus;
+  final ElEventHandler? onFocus,
 
   /// 失去焦点回调。
-  final ElEventHandler? onBlur;
+  final ElEventHandler? onBlur,
+}) {
+  this
+    : assert(
+        (onDragStart == null && onDragUpdate == null && onDragEnd == null && onDragCancel == null) ||
+            (onVerticalDragStart == null &&
+                onVerticalDragUpdate == null &&
+                onVerticalDragEnd == null &&
+                onVerticalDragCancel == null &&
+                onHorizontalDragStart == null &&
+                onHorizontalDragUpdate == null &&
+                onHorizontalDragEnd == null &&
+                onHorizontalDragCancel == null),
+        '自由拖拽（onDrag*）与轴向拖拽（onVerticalDrag* / onHorizontalDrag*）互斥，'
+        '不能同时声明——与官方 GestureDetector 的 pan 与 directional drag 约束一致。',
+      );
 
   /// 是否包含点击语义相关回调。
   bool get hasTapLikeCallback =>
@@ -558,125 +382,109 @@ class ElEvent {
   /// 是否包含键盘回调。
   bool get hasKeyboardCallback => onKeyDown != null || onKeyRepeat != null || onKeyUp != null;
 
-  /// 是否包含任意事件回调。
-  bool get hasAnyCallback => _handlerShapeMaskLo != 0 || _handlerShapeMaskHi != 0;
+  /// 是否声明了业务回调。
+  bool get hasAnyCallback => _handlers.any((handler) => handler != null);
 
-  /// 回调字段空性位掩码低 32 位（bit i = 第 i 个 handler 非空），供 shape
-  /// 等值使用。
-  ///
-  /// 直线位或表达式（[ElDragProxy._handlerShapeMask] 同款）而非闭包逐项累加：
-  /// `==` / [hashCode] 落在 rebuild 热路径（updateRenderObject 的热替换判定），
-  /// 每次比较双方各算一遍，55 次闭包调用是纯税；const 构造无处挂缓存字段，
-  /// 用无分配的直算把单次成本压到底。
-  ///
-  /// **拆 lo/hi 双 int**（2026-07-30）：回调共 55 个，单 int 掩码在 Web JS
-  /// 后端 `1 << 32` 起全部归 0——drag / 键盘 / 焦点回调的增删曾在 `==` 里
-  /// 不可见（热替换判定漏更新）。两半各自 shift < 32，原生位运算安全。
-  int get _handlerShapeMaskLo =>
-      (onPointerEnter != null ? 1 << 0 : 0) |
-      (onPointerHover != null ? 1 << 1 : 0) |
-      (onPointerExit != null ? 1 << 2 : 0) |
-      (onPointerDown != null ? 1 << 3 : 0) |
-      (onPointerMove != null ? 1 << 4 : 0) |
-      (onPointerUp != null ? 1 << 5 : 0) |
-      (onPointerCancel != null ? 1 << 6 : 0) |
-      (onPointerPanZoomStart != null ? 1 << 7 : 0) |
-      (onPointerPanZoomUpdate != null ? 1 << 8 : 0) |
-      (onPointerPanZoomEnd != null ? 1 << 9 : 0) |
-      (onPointerSignal != null ? 1 << 10 : 0) |
-      (onTapDown != null ? 1 << 11 : 0) |
-      (onTapUp != null ? 1 << 12 : 0) |
-      (onTap != null ? 1 << 13 : 0) |
-      (onDoubleTap != null ? 1 << 14 : 0) |
-      (onDoubleTapDown != null ? 1 << 15 : 0) |
-      (onTripleTap != null ? 1 << 16 : 0) |
-      (onTripleTapDown != null ? 1 << 17 : 0) |
-      (onSecondaryTapDown != null ? 1 << 18 : 0) |
-      (onSecondaryTapUp != null ? 1 << 19 : 0) |
-      (onSecondaryTap != null ? 1 << 20 : 0) |
-      (onTertiaryTapDown != null ? 1 << 21 : 0) |
-      (onTertiaryTapUp != null ? 1 << 22 : 0) |
-      (onTertiaryTap != null ? 1 << 23 : 0) |
-      (onForwardTapDown != null ? 1 << 24 : 0) |
-      (onForwardTapUp != null ? 1 << 25 : 0) |
-      (onForwardTap != null ? 1 << 26 : 0) |
-      (onBackTapDown != null ? 1 << 27 : 0) |
-      (onBackTapUp != null ? 1 << 28 : 0) |
-      (onBackTap != null ? 1 << 29 : 0) |
-      (onLongPress != null ? 1 << 30 : 0) |
-      (onTapCancel != null ? 1 << 31 : 0);
+  static final _handlerCache = Expando<List<ElEventHandler?>>('ElEvent handlers');
 
-  /// 回调字段空性位掩码高位段（drag / scale / rotation / 键盘 / 焦点，
-  /// bit 0 = onDragStart .. bit 21 = onBlur，bit 22 = onDragDown）。拆分理由见
-  /// [_handlerShapeMaskLo]。
-  int get _handlerShapeMaskHi =>
-      (onDragStart != null ? 1 << 0 : 0) |
-      (onDragUpdate != null ? 1 << 1 : 0) |
-      (onDragEnd != null ? 1 << 2 : 0) |
-      (onDragCancel != null ? 1 << 3 : 0) |
-      (onVerticalDragStart != null ? 1 << 4 : 0) |
-      (onVerticalDragUpdate != null ? 1 << 5 : 0) |
-      (onVerticalDragEnd != null ? 1 << 6 : 0) |
-      (onVerticalDragCancel != null ? 1 << 7 : 0) |
-      (onHorizontalDragStart != null ? 1 << 8 : 0) |
-      (onHorizontalDragUpdate != null ? 1 << 9 : 0) |
-      (onHorizontalDragEnd != null ? 1 << 10 : 0) |
-      (onHorizontalDragCancel != null ? 1 << 11 : 0) |
-      (onScaleStart != null ? 1 << 12 : 0) |
-      (onScaleUpdate != null ? 1 << 13 : 0) |
-      (onScaleEnd != null ? 1 << 14 : 0) |
-      (onScaleCancel != null ? 1 << 15 : 0) |
-      (onRotationUpdate != null ? 1 << 16 : 0) |
-      (onKeyDown != null ? 1 << 17 : 0) |
-      (onKeyRepeat != null ? 1 << 18 : 0) |
-      (onKeyUp != null ? 1 << 19 : 0) |
-      (onFocus != null ? 1 << 20 : 0) |
-      (onBlur != null ? 1 << 21 : 0) |
-      (onDragDown != null ? 1 << 22 : 0);
+  // 按 ElEventPhase 的顺序排列，轴向拖拽组接在末尾。
+  List<ElEventHandler?> get _handlers => _handlerCache[this] ??= [
+    onPointerEnter,
+    onPointerHover,
+    onPointerExit,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+    onPointerPanZoomStart,
+    onPointerPanZoomUpdate,
+    onPointerPanZoomEnd,
+    onPointerSignal,
+    onTapDown,
+    onTapUp,
+    onTap,
+    onDoubleTap,
+    onDoubleTapDown,
+    onTripleTap,
+    onTripleTapDown,
+    onSecondaryTapDown,
+    onSecondaryTapUp,
+    onSecondaryTap,
+    onTertiaryTapDown,
+    onTertiaryTapUp,
+    onTertiaryTap,
+    onForwardTapDown,
+    onForwardTapUp,
+    onForwardTap,
+    onBackTapDown,
+    onBackTapUp,
+    onBackTap,
+    onLongPress,
+    onTapCancel,
+    onDragDown,
+    onDragStart,
+    onDragUpdate,
+    onDragEnd,
+    onDragCancel,
+    onScaleStart,
+    onScaleUpdate,
+    onScaleEnd,
+    onScaleCancel,
+    onRotationUpdate,
+    onKeyDown,
+    onKeyRepeat,
+    onKeyUp,
+    onFocus,
+    onBlur,
+    onHorizontalDragStart,
+    onHorizontalDragUpdate,
+    onHorizontalDragEnd,
+    onHorizontalDragCancel,
+    onVerticalDragStart,
+    onVerticalDragUpdate,
+    onVerticalDragEnd,
+    onVerticalDragCancel,
+  ];
 
-  /// 除 Drag 家族外的声明结构是否完全一致。
-  ///
-  /// 仅供事件分发器判定动态挂卸 Drag 时能否保留 Tap / LongPress
-  /// 的离散状态。Drag 家族包含 `onDragDown`、自由拖拽与轴向
-  /// 拖拽；配置仅比较 Tap / 连击 / 长按字段，纯 Drag 参数变化可保留连击窗口。
+  /// 查找当前阶段声明的回调。
   @internal
-  bool hasSameNonDragShape(ElEvent other) =>
-      _sameTapConfiguration(other.config, config) && _hasSameHandlerShape(other, maskHi: 0x3ff000);
+  ElEventHandler? handlerFor(ElEventPhase phase, [Axis? axis]) {
+    if (axis != null && phase.index >= ElEventPhase.dragStart.index && phase.index <= ElEventPhase.dragCancel.index) {
+      final start = ElEventPhase.values.length + (axis == .horizontal ? 0 : 4);
+      return _handlers[start + phase.index - ElEventPhase.dragStart.index];
+    }
+    return _handlers[phase.index];
+  }
 
-  /// 识别配置与回调结构相等时，光标、命中行为变化只热更新声明。
+  /// 识别配置和回调结构相同的重建可沿用已报名的识别器。
   @internal
-  bool hasSameGestureShape(ElEvent other) => other.config == config && _hasSameHandlerShape(other);
-
-  bool _hasSameHandlerShape(ElEvent other, {int maskHi = 0x7fffff}) =>
-      other.dragProxy == dragProxy &&
-      other.rotationStartEnabled == rotationStartEnabled &&
-      other._handlerShapeMaskLo == _handlerShapeMaskLo &&
-      ((_handlerShapeMaskHi ^ other._handlerShapeMaskHi) & maskHi) == 0;
-
-  /// 比较 Flutter 拖拽与缩放回调的结构，等同结构的重建可替换闭包。
-  @internal
-  bool hasSameNativeGestureCallbacks(ElEvent other) =>
-      ((_handlerShapeMaskHi ^ other._handlerShapeMaskHi) & 0x41ffff) == 0;
-
-  @override
-  bool operator ==(Object other) {
+  bool hasSameGestureShape(ElEvent other) {
     if (identical(this, other)) return true;
-    return other is ElEvent &&
-        other.behavior == behavior &&
-        other.cursor == cursor &&
-        other.disabled == disabled &&
-        hasSameGestureShape(other);
+    if (config != other.config) return false;
+    for (var i = 0; i < _handlers.length; i++) {
+      if ((_handlers[i] == null) != (other._handlers[i] == null)) return false;
+    }
+    return true;
   }
 
   @override
+  bool operator ==(Object other) =>
+      other is ElEvent &&
+      behavior == other.behavior &&
+      cursor == other.cursor &&
+      disabled == other.disabled &&
+      dragProxy == other.dragProxy &&
+      rotationStartEnabled == other.rotationStartEnabled &&
+      hasSameGestureShape(other);
+
+  @override
   int get hashCode => Object.hash(
-    config,
-    dragProxy,
     behavior,
     cursor,
     disabled,
+    config,
+    dragProxy,
     rotationStartEnabled,
-    _handlerShapeMaskLo,
-    _handlerShapeMaskHi,
+    Object.hashAll(_handlers.map((handler) => handler != null)),
   );
 }

@@ -15,7 +15,7 @@ ElRippleTap(
 
 | 用法 | 反馈 |
 | --- | --- |
-| withTapFade(0.2) | 按下或重新移入立即变为 0.2，退出按压态后用 250ms 的 easeInOutQuad 恢复原透明度 |
+| withTapFade(0.2) | 按下立即变为 0.2，退出按压态后用 250ms 的 easeInOutQuad 恢复原透明度 |
 | withTapScale(0.95) | 按下缩小至 0.95 倍，进入和恢复均默认使用 100ms 的 easeOut |
 | ElRippleTap | 悬停高亮，按压从落点扩散涟漪，支持键盘反馈 |
 
@@ -31,6 +31,6 @@ ElButtonView(
 
 两个扩展保留其他按压属性，以及常态和按压态中已覆盖相应字段的过渡。淡化的常态过渡控制恢复，`onTap.transition` 控制进入；没有独立的按压过渡表时，会继承常态表的其他字段过渡，再将透明度设为立即变化。常态未设置 opacity 时，恢复到默认的不透明状态。
 
-反馈保持时间继续由 `ElEventConfig` 管理：触摸默认至少保留 100ms，点击仍在抬手时触发；需要松手立即开始恢复时，在按钮的 `event.config` 中设置 `delayTouchUp: Duration.zero`。取消、拖拽接管和禁用沿用事件机制清理按压态，不再区分首次按下与重新移入的淡化时长。
+按下时进入反馈，释放、取消、拖拽获胜或禁用时恢复。淡化时长由样式过渡配置，点击在 Flutter 确认识别时触发。
 
 按钮参数和键盘、辅助激活沿用 [ElButtonView](../../views/button/README.md)。`disabled` 同时关闭反馈与激活；`ElRippleTap` 仍提供 onPressed（可 null）、child、disabled、semanticLabel、style 和 focusNode，外部焦点节点由调用方 dispose。

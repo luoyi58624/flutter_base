@@ -40,17 +40,15 @@ void main() {
 
     expect(childPhases, <ElEventPhase>[
       ElEventPhase.pointerDown,
-      ElEventPhase.tapDown,
       ElEventPhase.pointerUp,
+      ElEventPhase.tapDown,
       ElEventPhase.tapUp,
       ElEventPhase.tap,
     ]);
     expect(parentPhases, isEmpty, reason: 'PointerDown stop 后祖先失去整个 pointer 序列及其派生交互');
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
   });
 
-  testWidgets('ROUTE-3A: TapDown stop blocks the ancestor Tap continuation', (tester) async {
+  testWidgets('ROUTE-3A: TapDown stop is local to the candidate phase', (tester) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final childPhases = <ElEventPhase>[];
@@ -75,66 +73,7 @@ void main() {
     host.tap(pointer: 12, downTime: Duration.zero, upTime: const Duration(milliseconds: 16));
 
     expect(childPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
-    expect(parentPhases, <ElEventPhase>[
-      ElEventPhase.pointerDown,
-      ElEventPhase.pointerUp,
-    ], reason: 'TapDown stop 只截断祖先 Tap 家族，raw Pointer 仍正常投递');
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('ROUTE-3A-LONG: TapDown stop also blocks ancestor LongPress and Cancel', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final parentPhases = <ElEventPhase>[];
-    host.rootDispatcher.event = ElEvent(
-      config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
-      onLongPress: (event) => parentPhases.add(event.phase),
-      onTapCancel: (event) => parentPhases.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(onTapDown: (event) => event.stopPropagation());
-
-    host.dispatch(const PointerDownEvent(pointer: 13, position: Offset.zero, buttons: kPrimaryButton));
-    await tester.pump(const Duration(milliseconds: 30));
-    host.dispatch(const PointerUpEvent(pointer: 13, position: Offset.zero));
-
-    expect(parentPhases, isEmpty, reason: 'TapDown 截断后祖先不得再进入 LongPress，也不得收到 Tap 取消通知');
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('ROUTE-3B: TapUp stop blocks the ancestor TapUp and later Tap', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final childPhases = <ElEventPhase>[];
-    final parentPhases = <ElEventPhase>[];
-
-    host.rootDispatcher.event = ElEvent(
-      onPointerDown: (event) => parentPhases.add(event.phase),
-      onTapDown: (event) => parentPhases.add(event.phase),
-      onPointerUp: (event) => parentPhases.add(event.phase),
-      onTapUp: (event) => parentPhases.add(event.phase),
-      onTap: (event) => parentPhases.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(
-      onTapDown: (event) => childPhases.add(event.phase),
-      onTapUp: (event) {
-        childPhases.add(event.phase);
-        event.stopPropagation();
-      },
-      onTap: (event) => childPhases.add(event.phase),
-    );
-
-    host.tap(pointer: 13, downTime: Duration.zero, upTime: const Duration(milliseconds: 16));
-
-    expect(childPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
-    expect(parentPhases, <ElEventPhase>[
-      ElEventPhase.pointerDown,
-      ElEventPhase.tapDown,
-      ElEventPhase.pointerUp,
-    ], reason: 'TapUp stop 后祖先不能继续收到同一 Tap 家族的 Tap');
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
+    expect(parentPhases, <ElEventPhase>[ElEventPhase.pointerDown, ElEventPhase.pointerUp, ElEventPhase.tap]);
   });
 
   testWidgets('ROUTE-3C: DragDown stop blocks only the ancestor Drag family', (tester) async {
@@ -168,8 +107,8 @@ void main() {
     host.dispatch(
       const PointerMoveEvent(
         pointer: 14,
-        position: Offset(10, 0),
-        delta: Offset(10, 0),
+        position: Offset(4, 0),
+        delta: Offset(4, 0),
         buttons: kPrimaryButton,
         timeStamp: Duration(milliseconds: 16),
       ),
@@ -177,53 +116,21 @@ void main() {
     host.dispatch(
       const PointerMoveEvent(
         pointer: 14,
-        position: Offset(20, 0),
-        delta: Offset(10, 0),
+        position: Offset(8, 0),
+        delta: Offset(4, 0),
         buttons: kPrimaryButton,
         timeStamp: Duration(milliseconds: 32),
       ),
     );
-    host.dispatch(const PointerUpEvent(pointer: 14, position: Offset(20, 0), timeStamp: Duration(milliseconds: 48)));
+    host.dispatch(const PointerUpEvent(pointer: 14, position: Offset(8, 0), timeStamp: Duration(milliseconds: 48)));
 
-    expect(parentPhases, <ElEventPhase>[
-      ElEventPhase.pointerDown,
-      ElEventPhase.tapDown,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ]);
+    expect(parentPhases, <ElEventPhase>[ElEventPhase.pointerDown, ElEventPhase.tap]);
     expect(childPhases, <ElEventPhase>[
       ElEventPhase.dragDown,
       ElEventPhase.tapDown,
       ElEventPhase.tapUp,
       ElEventPhase.tap,
     ]);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('ROUTE-3D: stop 后 eager 只补 raw PointerCancel，不补已截断 TapCancel', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    var parentPointerCancels = 0;
-    var parentTapCancels = 0;
-    host.rootDispatcher.event = ElEvent(
-      onPointerDown: (_) {},
-      onPointerCancel: (_) => parentPointerCancels++,
-      onTapDown: (_) {},
-      onTapCancel: (_) => parentTapCancels++,
-    );
-    host.leafDispatcher.event = ElEvent(
-      onTapDown: (event) {
-        event.stopPropagation();
-        event.eagerGesture(cancelSelfTap: true);
-      },
-    );
-
-    host.tap(pointer: 15, downTime: Duration.zero, upTime: const Duration(milliseconds: 16));
-
-    expect(parentPointerCancels, 1, reason: '祖先已收到 raw PointerDown，eager 必须补 PointerCancel 清理副作用');
-    expect(parentTapCancels, 0, reason: 'TapDown stop 已截断祖先 Tap 候选，不得补造 TapCancel');
-    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('ROUTE-COORD-1: localPosition matches the tapped offset inside the target', (tester) async {
@@ -671,44 +578,6 @@ void main() {
       host.directRoot(parentHover);
 
       expect(parentHovers, 1);
-    });
-
-    testWidgets('descendant tap stopPropagation does not affect parent tapUp', (tester) async {
-      final host = DispatcherTestHost.chain(depth: 2);
-      addTearDown(host.dispose);
-      final parentPhases = <ElEventPhase>[];
-      final childPhases = <ElEventPhase>[];
-      host.rootDispatcher.event = .new(
-        onPointerDown: (event) => parentPhases.add(event.phase),
-        onTapDown: (event) => parentPhases.add(event.phase),
-        onPointerUp: (event) => parentPhases.add(event.phase),
-        onTapUp: (event) => parentPhases.add(event.phase),
-        onTap: (event) => parentPhases.add(event.phase),
-      );
-      host.leafDispatcher.event = .new(
-        onTapDown: (event) => childPhases.add(event.phase),
-        onTapUp: (event) => childPhases.add(event.phase),
-        onTap: (event) {
-          childPhases.add(event.phase);
-          event.stopPropagation();
-        },
-      );
-
-      const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero);
-      const up = PointerUpEvent(pointer: 1, position: Offset.zero, timeStamp: Duration(milliseconds: 16));
-
-      host.dispatch(down);
-      host.dispatch(up);
-
-      expect(childPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
-      expect(parentPhases, <ElEventPhase>[
-        ElEventPhase.pointerDown,
-        ElEventPhase.tapDown,
-        ElEventPhase.pointerUp,
-        ElEventPhase.tapUp,
-      ], reason: 'tap.stopPropagation is too late to affect ancestor tapUp');
-      // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-      await tester.pump(Duration(milliseconds: 100));
     });
 
     testWidgets('pointerMove reaches each hit target and Flutter drag updates reach the winner', (tester) async {

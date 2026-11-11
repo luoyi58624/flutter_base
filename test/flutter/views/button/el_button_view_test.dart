@@ -275,7 +275,7 @@ void main() {
       expect(presses, 1);
     });
 
-    testWidgets('普通按钮 mouse 在盒内大幅多帧移动仍保持按压事件与样式并点击', (tester) async {
+    testWidgets('普通按钮在盒内超过 Flutter 容差后取消点击', (tester) async {
       const hostKey = ValueKey<String>('btn-mouse-move-inside');
       var presses = 0;
       var rawMoves = 0;
@@ -318,8 +318,8 @@ void main() {
       for (final position in const <Offset>[Offset(30, 30), Offset(270, 30), Offset(270, 90), Offset(30, 90)]) {
         await mouse.moveTo(position);
         await tester.pump();
-        expect(render.internalStateHas(ViewState.tap), isTrue);
-        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
+        expect(render.internalStateHas(ViewState.tap), isFalse);
+        expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
         expect(DragPointerLock.isActive, isFalse, reason: '普通按钮没有 Drag，不得因移动取得全局指针锁。');
       }
 
@@ -327,14 +327,14 @@ void main() {
       await tester.pump();
 
       expect(rawMoves, 4);
-      expect(tapPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
-      expect(presses, 1);
+      expect(tapPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
+      expect(presses, 0);
       expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isTrue);
       expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
     });
 
-    testWidgets('普通按钮 mouse 移出再回来会完整恢复 Tap、Hover、样式与点击事件链', (tester) async {
+    testWidgets('普通按钮移出后重新进入会恢复悬停', (tester) async {
       const hostKey = ValueKey<String>('btn-mouse-exit-reenter');
       const outside = Offset(300, 50);
       const inside = Offset(50, 50);
@@ -390,26 +390,20 @@ void main() {
       await mouse.moveTo(inside);
       await tester.pump();
       expect(DragPointerLock.isActive, isFalse, reason: '普通按钮移出再进入期间不应建立 Drag 指针锁。');
-      expect(render.internalStateHas(ViewState.tap), isTrue);
+      expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isTrue);
-      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff333333));
+      expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
 
       await mouse.up();
       await tester.pump();
 
-      expect(tapPhases, <ElEventPhase>[
-        ElEventPhase.tapDown,
-        ElEventPhase.tapCancel,
-        ElEventPhase.tapDown,
-        ElEventPhase.tapUp,
-        ElEventPhase.tap,
-      ]);
+      expect(tapPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
       expect(hoverPhases, <ElEventPhase>[
         ElEventPhase.pointerEnter,
         ElEventPhase.pointerExit,
         ElEventPhase.pointerEnter,
       ]);
-      expect(presses, 1);
+      expect(presses, 0);
       expect(render.internalStateHas(ViewState.tap), isFalse);
       expect(render.internalStateHas(ViewState.hover), isTrue);
       expect(render.committedResolvedStyle.box.backgroundColor, const Color(0xff222222));
@@ -467,14 +461,7 @@ void main() {
       addTearDown(node.dispose);
 
       await tester.pumpWidget(
-        shell(
-          ElButtonView(
-            key: hostKey,
-            onPressed: () => presses++,
-            focusNode: node,
-            child: 'Go',
-          ),
-        ),
+        shell(ElButtonView(key: hostKey, onPressed: () => presses++, focusNode: node, child: 'Go')),
       );
 
       node.requestFocus();
@@ -564,30 +551,13 @@ void main() {
       const hostKey = ValueKey<String>('btn-disabled-explicit-focus');
       final node = FocusNode(debugLabel: 'disabled explicit button');
 
-      await tester.pumpWidget(
-        shell(
-          ElButtonView(
-            key: hostKey,
-            onPressed: () {},
-            focusNode: node,
-            child: 'Enabled',
-          ),
-        ),
-      );
+      await tester.pumpWidget(shell(ElButtonView(key: hostKey, onPressed: () {}, focusNode: node, child: 'Enabled')));
       node.requestFocus();
       await tester.pump();
       expect(node.hasPrimaryFocus, isTrue);
 
       await tester.pumpWidget(
-        shell(
-          ElButtonView(
-            key: hostKey,
-            onPressed: () {},
-            focusNode: node,
-            disabled: true,
-            child: 'Disabled',
-          ),
-        ),
+        shell(ElButtonView(key: hostKey, onPressed: () {}, focusNode: node, disabled: true, child: 'Disabled')),
       );
       expect(node.context, isNotNull);
       expect(node.canRequestFocus, isFalse);
@@ -699,18 +669,8 @@ void main() {
         shell(
           Column(
             children: [
-              ElButtonView(
-                key: firstKey,
-                onPressed: () => firstPresses++,
-                focusNode: firstNode,
-                child: 'A',
-              ),
-              ElButtonView(
-                key: secondKey,
-                onPressed: () => secondPresses++,
-                focusNode: secondNode,
-                child: 'B',
-              ),
+              ElButtonView(key: firstKey, onPressed: () => firstPresses++, focusNode: firstNode, child: 'A'),
+              ElButtonView(key: secondKey, onPressed: () => secondPresses++, focusNode: secondNode, child: 'B'),
             ],
           ),
         ),
@@ -740,14 +700,7 @@ void main() {
       addTearDown(node.dispose);
 
       await tester.pumpWidget(
-        shell(
-          ElButtonView(
-            key: hostKey,
-            onPressed: () => presses++,
-            focusNode: node,
-            child: 'Go',
-          ),
-        ),
+        shell(ElButtonView(key: hostKey, onPressed: () => presses++, focusNode: node, child: 'Go')),
       );
 
       node.requestFocus();
@@ -770,16 +723,7 @@ void main() {
       final node = FocusNode();
       addTearDown(node.dispose);
 
-      await tester.pumpWidget(
-        shell(
-          ElButtonView(
-            key: hostKey,
-            onPressed: () {},
-            focusNode: node,
-            child: 'Go',
-          ),
-        ),
-      );
+      await tester.pumpWidget(shell(ElButtonView(key: hostKey, onPressed: () {}, focusNode: node, child: 'Go')));
 
       node.requestFocus();
       await tester.pump();
@@ -801,12 +745,7 @@ void main() {
         shell(
           Column(
             children: [
-              ElButtonView(
-                key: enabledKey,
-                onPressed: () {},
-                focusNode: node,
-                child: 'A',
-              ),
+              ElButtonView(key: enabledKey, onPressed: () {}, focusNode: node, child: 'A'),
               ElButtonView(key: disabledKey, disabled: true, child: 'B'),
             ],
           ),

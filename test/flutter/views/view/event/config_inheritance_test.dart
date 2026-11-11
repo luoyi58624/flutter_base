@@ -189,7 +189,7 @@ void main() {
     expect(() => ElEventConfig(delayTouchDown: Duration(milliseconds: -1)), throwsAssertionError);
   });
 
-  test('delayTouchUp 默认轻触保留，显式零值关闭并参与合并、拷贝与相等', () {
+  test('旧版触摸反馈配置保留默认值、合并、拷贝与相等语义', () {
     expect(ElEventConfig().delayTouchDown, Duration.zero);
     expect(ElEventConfig().delayTouchUp, Duration(milliseconds: 100));
     final base = ElEventConfig(delayTouchDown: Duration(milliseconds: 20), delayTouchUp: Duration(milliseconds: 160));
@@ -203,10 +203,6 @@ void main() {
     expect(base.copyWith(tapCancelDistance: 8).delayTouchUp, Duration(milliseconds: 160));
     expect(base, isNot(base.copyWith(delayTouchUp: Duration.zero)));
     expect(base.hashCode, base.copyWith().hashCode);
-    expect(
-      base.hasSameTapConfiguration(base.copyWith(delayTouchDown: Duration.zero, delayTouchUp: Duration.zero)),
-      isTrue,
-    );
     expect(() => ElEventConfig(delayTouchUp: Duration(milliseconds: -1)), throwsAssertionError);
   });
 }

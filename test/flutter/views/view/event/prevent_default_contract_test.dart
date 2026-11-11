@@ -44,6 +44,39 @@ void main() {
       expect(observations, <String>['child:false', 'ancestor:true']);
     });
 
+    testWidgets('preserveFocus 保留当前焦点并传递到按下路径的祖先', (tester) async {
+      final current = FocusNode();
+      final parent = FocusNode();
+      final child = FocusNode();
+      addTearDown(current.dispose);
+      addTearDown(parent.dispose);
+      addTearDown(child.dispose);
+      final key = ValueKey('preserve-focus');
+      await pumpEventView(
+        tester,
+        Column(
+          children: [
+            ElView(focusNode: current, style: eventTestDefaultStyle),
+            ElView(
+              focusNode: parent,
+              child: ElView(
+                key: key,
+                focusNode: child,
+                style: eventTestDefaultStyle,
+                event: ElEvent(onPointerDown: (event) => event.preserveFocus()),
+              ),
+            ),
+          ],
+        ),
+      );
+      current.requestFocus();
+      await tester.pump();
+      expect(current.hasPrimaryFocus, isTrue);
+      await tester.tap(find.byKey(key));
+      await tester.pump();
+      expect(current.hasPrimaryFocus, isTrue);
+    });
+
     testWidgets('PointerDown prevention does not cross into Tap phases', (tester) async {
       final phases = <ElEventPhase, bool>{};
       await pumpEventView(
@@ -153,7 +186,7 @@ void main() {
     expect(platformDefaultAllowed, isTrue);
   });
 
-  testWidgets('ancestor LongPress prevention rejects automatic ownership', (tester) async {
+  testWidgets('ancestor LongPress prevention preserves raw pointer delivery', (tester) async {
     var childLongPresses = 0;
     var ancestorLongPresses = 0;
     var childTaps = 0;
@@ -187,7 +220,7 @@ void main() {
 
     expect(childLongPresses, 1);
     expect(ancestorLongPresses, 1);
-    expect(childTaps, 1, reason: '祖先拒绝长按默认认领后，发起节点仍保留 Tap 资格');
+    expect(childTaps, 0);
     expect(ancestorPointerUps, 1, reason: 'preventDefault 不收缩原始 pointer 事件链');
   });
 }

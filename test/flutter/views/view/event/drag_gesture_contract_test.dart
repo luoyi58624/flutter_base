@@ -499,7 +499,6 @@ void main() {
           dragStartDistance: 100,
           dragMinFlingDistance: 1,
           dragMinFlingVelocity: 10,
-          delayTouchUp: Duration.zero,
         ),
         onPointerDown: record,
         onTapDown: record,
@@ -507,10 +506,7 @@ void main() {
         onTapUp: record,
         onTap: record,
         onTapCancel: record,
-        onDragStart: (event) {
-          record(event);
-          event.eagerGesture(cancelSelfTap: true);
-        },
+        onDragStart: record,
         onDragEnd: record,
       );
 
@@ -527,8 +523,8 @@ void main() {
 
       expect(phases, <ElEventPhase>[
         ElEventPhase.pointerDown,
-        ElEventPhase.tapDown,
         ElEventPhase.pointerUp,
+        ElEventPhase.tapDown,
         ElEventPhase.tapUp,
         ElEventPhase.tap,
       ]);

@@ -108,9 +108,7 @@ ElView(
 
 启用焦点后，拥有主焦点的 ElView 会在 Enter、小键盘 Enter 或空格按下时自动进入 onTap，按键释放后退出；Esc、失焦、禁用和卸载会清理键盘反馈。键盘与指针共用按压态，单个输入释放不会清掉另一输入仍保持的反馈。样式变化由视图内部处理，不需要控制器或重建内容；是否点击及何时激活仍由现有键盘回调决定，普通 ElView 不会因此合成 event.onTap。
 
-键盘按压同时向当前主焦点节点发送 onTapDown / onTapUp / onTapCancel，`originalEvent` 保留 KeyEvent；这些生命周期不替祖先合成按压，原始键盘回调仍按原规则冒泡。自动重复按键只继续派发键盘回调，不重复发送 onTapDown；ElButtonView 的 Enter 默认继续激活，空格只在有效会话释放时激活一次。
-
-`ElEventConfig.keyRepeatInterval` 控制同一物理按键的重复回调最小间隔，默认 100ms，设为 `Duration.zero` 可关闭限流。首次按下和释放立即处理，间隔内的重复事件直接丢弃，不排队补发；`onKeyRepeat` 及其向 `onKeyDown` 的回退均遵循该配置。每个节点独立计时，配置不沿祖先继承，释放、Esc、失焦、禁用或卸载会清理窗口；按压样式仍实时响应并保持到释放。被跳过的重复事件保留上一阶段的消费与停止冒泡结果。
+键盘回调沿当前渲染祖先链冒泡，`originalEvent` 保留 Flutter `KeyEvent`。重复按键按 Flutter 的节奏派发，未声明 `onKeyRepeat` 时回退到 `onKeyDown`。主焦点节点的激活键仍可通过 `onTapDown`、`onTapUp` 和 `onTapCancel` 驱动反馈。
 
 `themeMode` 控制 onDark，`locale` 提供文字语言提示；二者与样式环境沿视图链传递。
 
@@ -194,7 +192,9 @@ ElView(
 | 变换 | onScaleStart / Update / End |
 | 键盘与焦点 | onKeyDown / Repeat / Up、onFocus / onBlur |
 
-ElEventDetails 提供事件上下文与 stopPropagation / preventDefault；前者停止传播，后者阻止默认动作。ElEventConfig 配置点击、双击和拖动识别参数；高级拖动协作使用 ElDragProxy。
+原始指针按 Flutter 命中顺序派发。确认的主键点击、连击和长按从获胜节点沿命中的祖先冒泡，拖拽和缩放由 Flutter 竞技场选出的节点接收。`stopPropagation` 停止当前事件传播，按下时停止传播也会截断后续祖先登记。`preventDefault` 阻止组件的默认动作。
+
+指针的 `onTapUp` 表示点击已被识别，物理释放使用 `onPointerUp`。点击取消和连击窗口按 Flutter 识别器处理。`ElEventConfig` 可以调整普通点击的移动容差、长按等待时间和拖动参数。
 
 focusNode 传入后由调用方持有并 dispose；未传时，焦点样式或键盘回调可触发内部节点创建。需要标准按钮键盘行为优先用 [ElButtonView](../button/README.md)。ElSemantics 声明 label、role、状态和动作；`ElSemantics(container: true, explicitChildNodes: true)` 可建立保留后代节点的区域容器。
 

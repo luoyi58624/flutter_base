@@ -4,7 +4,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   final _surfaceKey = GlobalKey();
   final _ripples = <_Ripple>[];
   _Ripple? _pointerRipple;
-  _Ripple? _returnRipple;
   _Ripple? _keyboardRipple;
   bool _hovered = false;
   bool _disableAnimations = false;
@@ -52,7 +51,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
   void _remove(_Ripple ripple) {
     _ripples.remove(ripple);
     if (identical(_pointerRipple, ripple)) _pointerRipple = null;
-    if (identical(_returnRipple, ripple)) _returnRipple = null;
     if (identical(_keyboardRipple, ripple)) _keyboardRipple = null;
     ripple.dispose();
     _repaint();
@@ -63,7 +61,7 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
       ripple.dispose();
     }
     _ripples.clear();
-    _pointerRipple = _returnRipple = _keyboardRipple = null;
+    _pointerRipple = _keyboardRipple = null;
     _repaint();
   }
 
@@ -83,12 +81,8 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
       _keyboardRipple = _start();
       return;
     }
-    // 移回时的 TapDown 来自 PointerMove，同一次按压只恢复最终态。
-    final returning = event.originalEvent is PointerMoveEvent;
     _pointerRipple?.cancel();
-    _pointerRipple = returning ? _returnRipple ?? _start(event.globalPosition) : _start(event.globalPosition);
-    _returnRipple = null;
-    if (returning) _pointerRipple?.showPressed();
+    _pointerRipple = _start(event.globalPosition);
   }
 
   void _tapUp(ElEventDetails event) {
@@ -96,7 +90,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
       _releaseKeyboardRipple();
       return;
     }
-    _returnRipple = null;
     _pointerRipple?.confirm();
     _pointerRipple = null;
   }
@@ -109,7 +102,6 @@ class _RippleTapState extends State<ElRippleTap> with TickerProviderStateMixin {
     }
     final ripple = _pointerRipple;
     _pointerRipple = null;
-    _returnRipple = event.originalEvent is PointerMoveEvent ? ripple : null;
     ripple?.cancel();
   }
 

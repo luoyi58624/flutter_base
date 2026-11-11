@@ -1,6 +1,6 @@
 # ElEvent 测试
 
-事件代码在 `lib/src/flutter/views/view/event/`。`event.dart` 声明业务回调和配置，`press.dart` 维护按压、长按、连击和原始输入路线。`dispatcher.dart` 接入 RenderBox，`gestures.dart` 将 Flutter 的横拖、纵拖、Pan 和 Scale 回调转成 `ElEventDetails`。
+事件代码在 `lib/src/flutter/views/view/event/`。`dispatcher.dart` 接入 RenderBox 和冒泡，`gestures.dart` 转发 Flutter 识别器的点击、连击、长按、拖拽与缩放。`event.dart` 和 `details.dart` 声明回调、配置与事件详情。
 
 ## 拖拽与缩放
 
@@ -14,13 +14,13 @@
 
 | 文件 | 覆盖内容 |
 | --- | --- |
-| `drag_gesture_contract_test.dart`、`drag_velocity_test.dart` | 候选按下、拖拽容差、轴向、速度和累计位移 |
+| `drag_gesture_contract_test.dart`、`drag_interaction_test.dart` | 候选按下、拖拽容差、轴向、速度和累计位移 |
 | `scale_gesture_contract_test.dart`、`scale_two_finger_test.dart` | 原始触控板输入、缩放竞争、双指旋转和触点变化 |
 | `event_lifecycle_contract_test.dart`、`drag_replacement_tap_test.dart`、`event_dispatch_reentrancy_test.dart` | 启停、重建、回调重入和单次终态 |
-| `event_propagation_contract_test.dart`、`pointer_ownership_contract_test.dart` | 原始输入路线、传播截断和主动认领 |
+| `event_propagation_contract_test.dart`、`prevent_default_contract_test.dart` | 命中路线、传播截断和业务默认动作 |
 | `event_metadata_test.dart`、`event_callback_order_contract_test.dart` | 指针元数据、坐标和阶段顺序 |
 | `event_view_test.dart` | 真实 ElView 接线、官方 ListView 竞争、禁用和卸载 |
-| `recognizers/` | Press 识别和输入路线 |
+| `tap_gesture_contract_test.dart` | Flutter 连击计数、长按竞争与纯样式按压 |
 
 协议测试共用 `support/dispatcher_test_host.dart`，按命中顺序登记宿主后由 Flutter 路由输入。Widget 测试使用默认 `TestWidgetsFlutterBinding`。
 
