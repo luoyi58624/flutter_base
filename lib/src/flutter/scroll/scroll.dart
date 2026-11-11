@@ -5,8 +5,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../dart/gen/index.dart' show $absent;
 import '../slivers/list/sliver_list.dart' show ElSliverList;
 import 'smooth/smooth_scroll.dart' show ElSmoothScroll, resolveDefaultSmoothScroll;
-import 'refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
-import 'refresh/refresh.dart' show ElRefreshScope;
+import '../widgets/refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
+import '../widgets/refresh/refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTransparentSelectionRegistrar;
 
