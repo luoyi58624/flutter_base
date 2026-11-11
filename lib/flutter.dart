@@ -92,6 +92,7 @@ export 'src/flutter/views/editable/style.dart' show ElEditableStyle;
 export 'src/flutter/views/editable/controller.dart' show ElEditableController;
 
 // 标签页、表格与栅格行列
+export 'src/flutter/views/page_view/index.dart' show ElPageView;
 export 'src/flutter/views/tab/tab_view.dart' show ElTabView;
 export 'src/flutter/views/tab/tab_controller.dart' show ElTabController;
 export 'src/flutter/views/table/table_column.dart';
