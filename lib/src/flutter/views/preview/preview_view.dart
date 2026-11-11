@@ -54,6 +54,18 @@ class ElPreviewController extends ChangeNotifier {
   /// 还原当前项的缩放、旋转与平移。
   void resetTransform({bool animate = true}) => _engine?.resetTransform(animate: animate);
 
+  /// 围绕视口中心缩放当前项，倍数限制在视图允许的范围内。
+  void zoomTo(double scale, {bool animate = true}) {
+    assert(scale.isFinite && scale > 0);
+    _engine?.transformTo(scale: scale, animate: animate);
+  }
+
+  /// 将当前项旋转指定弧度，默认顺时针旋转九十度。
+  void rotateBy([double radians = math.pi / 2]) {
+    assert(radians.isFinite);
+    _engine?.transformTo(rotation: rotation + radians, animate: true);
+  }
+
   void _setIndex(int value) {
     if (_index == value) return;
     _index = value;
@@ -985,6 +997,19 @@ final class _PreviewEngine {
       return false;
     });
     return completer.future;
+  }
+
+  void transformTo({double? scale, double? rotation, required bool animate}) {
+    final item = _active;
+    final targetScale = (scale ?? item.scale).clamp(1.0, widget.maxScale);
+    final targetRotation = rotation ?? item.rotation;
+    final offset = _clampOffset(item.offset * (targetScale / item.scale), targetScale, targetRotation);
+    if (animate) {
+      _animateTransform(targetScale, targetRotation, offset);
+    } else {
+      _stopMotion();
+      _setTransform(targetScale, targetRotation, offset);
+    }
   }
 
   void resetTransform({required bool animate}) {

@@ -109,6 +109,7 @@ export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterV
 // 缩放与预览
 export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, ElPreviewView;
 export 'src/flutter/widgets/image/index.dart' show ElImage, ImageLoadInfo;
+export 'src/flutter/widgets/image_preview/index.dart' show ElImagePreview;
 
 // 点击反馈
 export 'src/flutter/widgets/tap/index.dart' show ElRippleTap;

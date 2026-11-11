@@ -46,3 +46,5 @@ controller.resetTransform();
 | scale / rotation / translation | 读取当前项的缩放、旋转和中心偏移 |
 | jumpToPage / animateToPage | 立即或动画切换项目 |
 | resetTransform | 还原当前项变换，可传 animate: false |
+| zoomTo | 围绕视口中心缩放，限制在 1 到 maxScale，可传 animate: false |
+| rotateBy | 旋转指定弧度，默认顺时针九十度 |

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../layout/example_page.dart';
-import 'gallery.dart';
 
 /// 画廊演示图片，与列表示例共用打包资源。
 final previewImages = [
@@ -14,7 +13,7 @@ final previewImages = [
   'assets/recycler_cards/owl.jpg',
 ];
 
-/// ElPreviewView 示例：缩略图入口打开上层包装的图片画廊。
+/// 图片预览示例：单张图片与地址列表画廊，共用无路由的进退场动画。
 class PreviewPage extends StatelessWidget {
   /// 创建 Preview 示例页。
   const PreviewPage({super.key});
@@ -30,7 +29,7 @@ class PreviewPage extends StatelessWidget {
           ElCard(
             style: ElStyle(padding: .all(16)),
             child: Text(
-              'ElPreviewView 负责手势、变换与左右切换，内容可以是任意 Widget；画廊的计数栏、单击切换外观和下拉关闭在上层包装里实现。',
+              '点击图片打开预览。手机支持双指缩放、旋转、横滑翻页和下拉关闭；桌面支持滚轮缩放、拖动图片，以及切换、旋转和还原按钮。按返回或 Esc 关闭预览。',
               style: TextStyle(fontSize: 13, height: 1.6),
             ),
           ),
@@ -42,15 +41,27 @@ class PreviewPage extends StatelessWidget {
             physics: NeverScrollableScrollPhysics(),
             children: [
               for (var i = 0; i < previewImages.length; i++)
-                GestureDetector(
+                ElImagePreview(
                   key: ValueKey('preview-thumb-$i'),
-                  onTap: () => ImageGallery.open(context, previewImages, i),
-                  child: ClipRRect(
-                    borderRadius: .circular(8),
-                    child: Image.asset(previewImages[i], fit: .cover),
-                  ),
+                  images: previewImages,
+                  initialIndex: i,
+                  child: ElImage(previewImages[i], fit: .cover),
                 ),
             ],
+          ),
+          ElCard(
+            style: ElStyle(padding: .all(16)),
+            child: Column(
+              crossAxisAlignment: .start,
+              children: [
+                Text('单张预览 · 不传 images'),
+                SizedBox(height: 12),
+                ElImagePreview(
+                  key: ValueKey('preview-single'),
+                  child: ElImage(previewImages.first, width: 180, height: 120, fit: .cover),
+                ),
+              ],
+            ),
           ),
         ],
       ),
