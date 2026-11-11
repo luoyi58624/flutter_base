@@ -8,6 +8,7 @@ import 'package:flutter_base/flutter_base.dart'
         ElContextMenu,
         ElContextMenuItem,
         ElEvent,
+        ElListenableBuilder,
         ElStyle,
         ElStyleTapExt,
         ElTabController,
@@ -263,11 +264,30 @@ class _BannerDots extends CustomPainter {
   bool shouldRepaint(covariant _BannerDots oldDelegate) => !identical(controller, oldDelegate.controller);
 }
 
-class _AtlasCover extends StatelessWidget {
+class _AtlasCover extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
   _AtlasCover(this.tile);
 
   final int tile;
+
+  @override
+  State<_AtlasCover> createState() => _AtlasCoverState();
+}
+
+class _AtlasCoverState extends State<_AtlasCover> {
+  // 换封面只改变图集裁切，不重新配置图片及固定遮罩。
+  final _image = Image.asset(_atlas, fit: .fill, excludeFromSemantics: true);
+  final _background = ColoredBox(color: Color(0xff383845));
+  final _shade = DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: .topCenter,
+        end: .bottomCenter,
+        stops: [.52, 1],
+        colors: [Colors.transparent, Color(0xc4000000)],
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -275,8 +295,8 @@ class _AtlasCover extends StatelessWidget {
       // 一张图走同一个 ImageCache。按原生图集的边界裁切，缩放时避开相邻封面。
       const width = 1536.0;
       const height = 1024.0;
-      final column = tile % 3;
-      final row = tile ~/ 3;
+      final column = widget.tile % 3;
+      final row = widget.tile ~/ 3;
       final sourceLeft = column * 512 + 1;
       final sourceTop = row * 1024 ~/ 3 + 1;
       final sourceHeight = (row + 1) * 1024 ~/ 3 - 1 - sourceTop;
@@ -284,24 +304,15 @@ class _AtlasCover extends StatelessWidget {
       return Stack(
         fit: .expand,
         children: [
-          ColoredBox(color: Color(0xff383845)),
+          _background,
           Positioned(
             left: (constraints.maxWidth - 510 * scale) / 2 - sourceLeft * scale,
             top: (constraints.maxHeight - sourceHeight * scale) / 2 - sourceTop * scale,
             width: width * scale,
             height: height * scale,
-            child: Image.asset(_atlas, fit: .fill, excludeFromSemantics: true),
+            child: _image,
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: .topCenter,
-                end: .bottomCenter,
-                stops: [.52, 1],
-                colors: [Colors.transparent, Color(0xc4000000)],
-              ),
-            ),
-          ),
+          _shade,
         ],
       );
     },
@@ -317,13 +328,33 @@ final _videoCardStyle = ElStyle(
 final _videoMoreStyle = ElStyle(width: 22, height: 22, alignment: .center);
 final _videoMenu = _BibiVideoMenu();
 
-class _VideoCard extends StatelessWidget {
+class _VideoCard extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
   _VideoCard(this.video);
 
   final _Video video;
 
-  Future<void> _copyTitle(BuildContext context) async {
+  @override
+  State<_VideoCard> createState() => _VideoCardState();
+}
+
+class _VideoCardState extends State<_VideoCard> {
+  late final _video = ValueNotifier(widget.video);
+  late final _card = _buildCard();
+
+  @override
+  void didUpdateWidget(_VideoCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _video.value = widget.video;
+  }
+
+  @override
+  void dispose() {
+    _video.dispose();
+    super.dispose();
+  }
+
+  Future<void> _copyTitle(BuildContext context, _Video video) async {
     await Clipboard.setData(ClipboardData(text: video.title));
     if (context.mounted) ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('已复制标题')));
   }
@@ -331,6 +362,8 @@ class _VideoCard extends StatelessWidget {
   void _openMenu(BuildContext context) {
     final anchor = context.findRenderObject();
     if (anchor is! RenderBox || !anchor.hasSize) return;
+    // 菜单操作属于打开时的记录，槽位随后换绑不能改变菜单的目标。
+    final video = _video.value;
     _videoMenu.open(
       context,
       position: anchor.localToGlobal(anchor.size.bottomLeft(Offset.zero)),
@@ -341,19 +374,35 @@ class _VideoCard extends StatelessWidget {
             if (context.mounted) _showDetails(context, video.title, video.summary);
           },
         ),
-        ElContextMenuItem(label: '复制标题', onSelect: () => _copyTitle(context)),
+        ElContextMenuItem(label: '复制标题', onSelect: () => _copyTitle(context, video)),
       ],
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    void openDetails() => _showDetails(context, video.title, video.summary);
+  Widget build(BuildContext context) => _card;
+
+  void _openDetails() {
+    final video = _video.value;
+    _showDetails(context, video.title, video.summary);
+  }
+
+  Widget _buildCard() {
+    final title = ElListenableBuilder(
+      listenable: _video,
+      select: (value) => value.value.title,
+      builder: (context, child) => Text(
+        _video.value.title,
+        maxLines: 2,
+        overflow: .ellipsis,
+        style: TextStyle(color: _ink, fontSize: 14, height: 1.4, fontWeight: .w600),
+      ),
+    );
     return Semantics(
-      onTap: openDetails,
+      onTap: _openDetails,
       child: ExamplePanel(
         style: _videoCardStyle,
-        event: ElEvent(tapCancelDistance: 10, onTap: (_) => openDetails()),
+        event: ElEvent(tapCancelDistance: 10, onTap: (_) => _openDetails()),
         child: Column(
           crossAxisAlignment: .stretch,
           mainAxisSize: .min,
@@ -363,7 +412,11 @@ class _VideoCard extends StatelessWidget {
               child: Stack(
                 fit: .expand,
                 children: [
-                  _AtlasCover(video.tile),
+                  ElListenableBuilder(
+                    listenable: _video,
+                    select: (value) => value.value.tile,
+                    builder: (context, child) => _AtlasCover(_video.value.tile),
+                  ),
                   Positioned(
                     left: 6,
                     right: 6,
@@ -372,8 +425,18 @@ class _VideoCard extends StatelessWidget {
                       spacing: 3,
                       children: [
                         Icon(Icons.play_arrow_rounded, size: 13, color: Colors.white),
-                        Expanded(child: _coverText(video.plays)),
-                        _coverText(video.duration),
+                        Expanded(
+                          child: ElListenableBuilder(
+                            listenable: _video,
+                            select: (value) => value.value.plays,
+                            builder: (context, child) => _coverText(_video.value.plays),
+                          ),
+                        ),
+                        ElListenableBuilder(
+                          listenable: _video,
+                          select: (value) => value.value.duration,
+                          builder: (context, child) => _coverText(_video.value.duration),
+                        ),
                       ],
                     ),
                   ),
@@ -386,77 +449,86 @@ class _VideoCard extends StatelessWidget {
                 crossAxisAlignment: .stretch,
                 spacing: 4,
                 children: [
-                  SizedBox(
-                    height: MediaQuery.textScalerOf(context).scale(14) * 2.8,
-                    child: Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: .ellipsis,
-                      style: TextStyle(color: _ink, fontSize: 14, height: 1.4, fontWeight: .w600),
-                    ),
+                  Builder(
+                    // 高度在实际消费点订阅文字缩放，固定卡片仍能响应环境变化。
+                    builder: (context) =>
+                        SizedBox(height: MediaQuery.textScalerOf(context).scale(14) * 2.8, child: title),
                   ),
-                  Row(
-                    spacing: 4,
-                    children: [
-                      Container(
-                        width: 17,
-                        height: 12,
-                        alignment: .center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Color(0xffa9adb4)),
-                          borderRadius: .circular(2),
-                        ),
-                        child: FittedBox(
-                          child: Text(
-                            'UP',
-                            style: TextStyle(color: _muted, fontSize: 8, fontWeight: .w700),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          video.creator,
-                          maxLines: 1,
-                          overflow: .ellipsis,
-                          style: TextStyle(color: _muted, fontSize: 11),
-                        ),
-                      ),
-                      if (video.badge case final badge?)
-                        Flexible(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(color: Color(0xffffedf4), borderRadius: .circular(2)),
-                            child: Padding(
-                              padding: .symmetric(horizontal: 4, vertical: 2),
-                              child: Text(
-                                badge,
-                                maxLines: 1,
-                                overflow: .ellipsis,
-                                style: TextStyle(color: _pink, fontSize: 9),
-                              ),
-                            ),
-                          ),
-                        ),
-                      Builder(
-                        builder: (context) => ElButtonView(
-                          semanticLabel: '更多选项',
-                          style: _videoMoreStyle,
-                          event: ElEvent(
-                            tapCancelDistance: 10,
-                            onTapDown: (event) => event.stopPropagation(),
-                            onTap: (event) => event.stopPropagation(),
-                          ),
-                          onPressed: () => _openMenu(context),
-                          child: Icon(Icons.more_vert, color: _muted, size: 16),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildCreatorRow(),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCreatorRow() {
+    final up = Container(
+      width: 17,
+      height: 12,
+      alignment: .center,
+      decoration: BoxDecoration(
+        border: Border.all(color: Color(0xffa9adb4)),
+        borderRadius: .circular(2),
+      ),
+      child: FittedBox(
+        child: Text(
+          'UP',
+          style: TextStyle(color: _muted, fontSize: 8, fontWeight: .w700),
+        ),
+      ),
+    );
+    final creator = Expanded(
+      child: ElListenableBuilder(
+        listenable: _video,
+        select: (value) => value.value.creator,
+        builder: (context, child) => Text(
+          _video.value.creator,
+          maxLines: 1,
+          overflow: .ellipsis,
+          style: TextStyle(color: _muted, fontSize: 11),
+        ),
+      ),
+    );
+    final badge = Flexible(
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: Color(0xffffedf4), borderRadius: .circular(2)),
+        child: Padding(
+          padding: .symmetric(horizontal: 4, vertical: 2),
+          child: ElListenableBuilder(
+            listenable: _video,
+            select: (value) => value.value.badge,
+            builder: (context, child) => Text(
+              _video.value.badge ?? '',
+              maxLines: 1,
+              overflow: .ellipsis,
+              style: TextStyle(color: _pink, fontSize: 9),
+            ),
+          ),
+        ),
+      ),
+    );
+    final more = Builder(
+      builder: (context) => ElButtonView(
+        semanticLabel: '更多选项',
+        style: _videoMoreStyle,
+        event: ElEvent(
+          tapCancelDistance: 10,
+          onTapDown: (event) => event.stopPropagation(),
+          onTap: (event) => event.stopPropagation(),
+        ),
+        onPressed: () => _openMenu(context),
+        child: Icon(Icons.more_vert, color: _muted, size: 16),
+      ),
+    );
+    // 有无徽标会改变 Row 的间隔数量，只在这项结构变化时重组小行。
+    return ElListenableBuilder(
+      listenable: _video,
+      select: (value) => value.value.badge != null,
+      builder: (context, child) =>
+          Row(spacing: 4, children: [up, creator, if (_video.value.badge != null) badge, more]),
     );
   }
 
