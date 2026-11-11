@@ -1,169 +1,110 @@
-import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/widgets.dart';
 
-import '../../views/layout/stack/stack_view.dart' show ElStackView;
-import 'mac_scroll_bar.dart' show ElMacScrollBar;
-import 'scrollbar_base.dart' show ElScrollbar;
-import 'scrollbar_controller.dart' show ScrollbarController;
-import 'window_scroll_bar.dart' show ElWindowScrollBar;
-
-/// 在官方 Scrollable 外安装桌面滚动条的交互与平台外观。
+/// 复用官方 [RawScrollbar] 的桌面滚动条，Windows 占位，macOS/Linux 悬浮。
 ///
-/// 轨道按下即跳转到对应位置并可继续拖动，滑块按下立即接管滚动；
-/// Windows 使用常驻轨道、步进按钮和布局占位，macOS 使用悬浮、自动隐藏条带。
-/// 滚动位置来自官方 ScrollController。
+/// 与子树共享 [ScrollController]；不传时使用 [PrimaryScrollController]。
+/// 滑块拖动、轨道翻页、指标监听和绘制均由官方滚动条处理。
 class ElDesktopScrollbar extends StatelessWidget {
-  /// 创建 Windows 风格的桌面滚动条。
+  /// 创建预留 15 像素轨道空间的 Windows 滚动条。
   const ElDesktopScrollbar.windows({
     super.key,
-    required this.controller,
-    required this.direction,
+    this.controller,
+    this.direction = AxisDirection.down,
     this.notificationDepth = 0,
     required this.child,
-  }) : _style = _ScrollbarStyle.windows;
+  }) : _occupiesSpace = true;
 
-  /// 创建 macOS 风格的桌面滚动条。
+  /// 创建不占正文空间的 macOS/Linux 悬浮滚动条。
   const ElDesktopScrollbar.mac({
     super.key,
-    required this.controller,
-    required this.direction,
+    this.controller,
+    this.direction = AxisDirection.down,
     this.notificationDepth = 0,
     required this.child,
-  }) : _style = _ScrollbarStyle.mac;
+  }) : _occupiesSpace = false;
 
-  /// 关联当前 Scrollable 的真实滚动位置。
-  final ScrollController controller;
+  /// 与被包装滚动视图共享的官方控制器，缺省使用最近的 PrimaryScrollController。
+  final ScrollController? controller;
 
-  /// 当前滚动轴方向。
+  /// 滚动轴方向，横向条位于底部，纵向条位于右侧。
   final AxisDirection direction;
 
-  /// 所跟随 Scrollable 相对 [child] 的嵌套层数；滚动条钉在外层视口边缘时大于 0。
+  /// 被监听的滚动视图相对 [child] 的嵌套深度。
   final int notificationDepth;
 
-  /// 被滚动条包裹的 Scrollable。
+  /// 被滚动条包装的内容。
   final Widget child;
 
-  final _ScrollbarStyle _style;
-
-  @override
-  Widget build(BuildContext context) => _DesktopScrollbarHost(
-    controller: controller,
-    axisDirection: direction,
-    notificationDepth: notificationDepth,
-    scrollbar: switch (_style) {
-      _ScrollbarStyle.windows => const ElWindowScrollBar(),
-      _ScrollbarStyle.mac => const ElMacScrollBar(),
-    },
-    child: child,
-  );
-}
-
-enum _ScrollbarStyle { windows, mac }
-
-/// 轨道、滑块、步进按钮与手势由同目录的滚动条模块提供，只依赖标准 ScrollPosition。
-class _DesktopScrollbarHost extends StatefulWidget {
-  const _DesktopScrollbarHost({
-    required this.controller,
-    required this.axisDirection,
-    required this.notificationDepth,
-    required this.scrollbar,
-    required this.child,
-  });
-
-  final ScrollController controller;
-  final AxisDirection axisDirection;
-  final int notificationDepth;
-  final ElScrollbar scrollbar;
-  final Widget child;
-
-  @override
-  State<_DesktopScrollbarHost> createState() => _DesktopScrollbarHostState();
-}
-
-class _DesktopScrollbarHostState extends State<_DesktopScrollbarHost> {
-  late final ScrollbarController _details;
-
-  ScrollPosition? get _position {
-    if (!widget.controller.hasClients) return null;
-    for (final position in widget.controller.positions) {
-      if (position.axis == axisDirectionToAxis(widget.axisDirection)) return position;
-    }
-    return null;
-  }
-
-  void _bindPosition() {
-    final position = _position;
-    _details.updatePositions(
-      verticalPosition: position?.axis == Axis.vertical ? position : null,
-      horizontalPosition: position?.axis == Axis.horizontal ? position : null,
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _details = ScrollbarController(
-      verticalPosition: null,
-      horizontalPosition: null,
-      dispatchPointerSignal: _dispatchPointerSignal,
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _bindPosition();
-  }
-
-  @override
-  void didUpdateWidget(_DesktopScrollbarHost oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _bindPosition();
-  }
-
-  bool _dispatchPointerSignal(PointerSignalEvent event) {
-    if (event is! PointerScrollEvent) return false;
-    final position = _position;
-    if (position == null || !position.hasContentDimensions) return false;
-    final delta = position.axis == Axis.vertical ? event.scrollDelta.dy : event.scrollDelta.dx;
-    if (delta == 0.0) return false;
-    position.pointerScroll(axisDirectionIsReversed(position.axisDirection) ? -delta : delta);
-    event.respond(allowPlatformDefault: false);
-    return true;
-  }
-
-  @override
-  void dispose() {
-    _details.dispose();
-    super.dispose();
-  }
+  final bool _occupiesSpace;
 
   @override
   Widget build(BuildContext context) {
-    final position = _position;
-    if (position != null && _details[position.axis] == null) {
-      // 首帧 Scrollable 可能在 parent.didChangeDependencies 之后才挂 position。
-      // 这里仅同步 controller 的监听关系，metrics 的推迟通知由 _details 自己负责。
-      _bindPosition();
+    final vertical = axisDirectionToAxis(direction) == Axis.vertical;
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final trackColor = dark ? const Color(0xFF2C2C2C) : const Color(0xFFFCFCFC);
+    Widget content = child;
+    if (_occupiesSpace) {
+      // 占位放在官方绘制层内部，让条带仍画在整个包装区域的最外缘。
+      final border = BorderSide(color: trackColor, width: 15);
+      content = DecoratedBox(
+        decoration: BoxDecoration(
+          border: vertical ? Border(right: border) : Border(bottom: border),
+        ),
+        child: Padding(
+          padding: vertical ? const EdgeInsets.only(right: 15) : const EdgeInsets.only(bottom: 15),
+          child: child,
+        ),
+      );
     }
-    final axis = axisDirectionToAxis(widget.axisDirection);
-    final inset = widget.scrollbar.resolveInsetExtent(context, axis);
-    final orientation = widget.scrollbar.resolveOrientation(context, axis);
-    final leading = orientation == ScrollbarOrientation.left || orientation == ScrollbarOrientation.top;
-    final padding = axis == Axis.vertical
-        ? (leading ? EdgeInsets.only(left: inset) : EdgeInsets.only(right: inset))
-        : (leading ? EdgeInsets.only(top: inset) : EdgeInsets.only(bottom: inset));
-    return NotificationListener<ScrollMetricsNotification>(
-      onNotification: (notification) {
-        if (notification.depth == widget.notificationDepth) _details.refresh();
-        return false;
-      },
-      child: ListenableBuilder(
-        listenable: _details,
-        child: Padding(padding: padding, child: widget.child),
-        builder: (context, child) =>
-            ElStackView(fit: StackFit.expand, children: [child!, ...widget.scrollbar.buildChildren(context, _details)]),
-      ),
+    return RawScrollbar(
+      controller: controller,
+      notificationPredicate: (notification) =>
+          notification.depth == notificationDepth && notification.metrics.axis == axisDirectionToAxis(direction),
+      scrollbarOrientation: vertical ? ScrollbarOrientation.right : ScrollbarOrientation.bottom,
+      thumbVisibility: _occupiesSpace,
+      trackVisibility: _occupiesSpace,
+      interactive: true,
+      // 命中宽度覆盖整条轨道，shape 只收窄绘制，避免细边界被官方识别成轨道点击。
+      thickness: _occupiesSpace ? 15 : 10,
+      shape: _ThumbShape(axis: axisDirectionToAxis(direction), inset: _occupiesSpace ? 3 : 2),
+      minThumbLength: 36,
+      padding: EdgeInsets.zero,
+      thumbColor: dark ? const Color(0x8BFFFFFF) : const Color(0x72000000),
+      trackColor: trackColor,
+      trackBorderColor: const Color(0x00000000),
+      child: content,
     );
   }
+}
+
+// 官方 Painter 用完整 thumbRect 命中；仅通过形状缩小视觉宽度，不缩小拖动区域。
+class _ThumbShape extends OutlinedBorder {
+  const _ThumbShape({required this.axis, required this.inset, this.radius = 3});
+
+  final Axis axis;
+  final double inset;
+  final double radius;
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final visual = axis == Axis.vertical
+        ? Rect.fromLTRB(rect.left + inset, rect.top, rect.right - inset, rect.bottom)
+        : Rect.fromLTRB(rect.left, rect.top + inset, rect.right, rect.bottom - inset);
+    return Path()..addRRect(RRect.fromRectAndRadius(visual, Radius.circular(radius)));
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  _ThumbShape copyWith({BorderSide? side}) => this;
+
+  @override
+  _ThumbShape scale(double t) => _ThumbShape(axis: axis, inset: inset * t, radius: radius * t);
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
 }

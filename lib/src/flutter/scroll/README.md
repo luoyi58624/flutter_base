@@ -12,9 +12,9 @@
 | `nested/` | `ElNestedScroll`、协作协议与输入来源 |
 | `physics/` | Bouncing / Clamping 物理 |
 | `smooth/` | 平滑滚轮算法及其在标准位置上的编排 |
-| `scrollbar/` | `ElDesktopScrollbar` 及 Windows / macOS 桌面条带 |
+| `scrollbar/` | `ElDesktopScrollbar` 包装官方 RawScrollbar，Windows 预留 15 像素，macOS/Linux 悬浮 |
 
-Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar`，两者不迁移旧自绘实现。桌面条带仅向标准 `ScrollPosition` 发送命令，不包含旧虚拟行的分数映射和位置引擎分支。
+Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar`，两者不迁移旧自绘实现。桌面滚动条复用官方 RawScrollbar 的指标、绘制与交互，不另设滚动条控制器。
 
 旧 `ElScrollView` 体系已移除。滚动统一建立在官方 Scrollable / Viewport / Sliver 之上，`ElScroll` 通过标准 `ScrollController` 适配器共享真实位置；虚拟列表与网格使用 `slivers/` 下的 Sliver，双轴内容使用纵向 Sliver 加外层横向 `ElScroll`。
 

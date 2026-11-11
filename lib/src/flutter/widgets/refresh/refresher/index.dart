@@ -90,7 +90,7 @@ abstract class ElRefreshDetails {
   void requestRefresh();
 }
 
-/// 一份完整、不可变的下拉刷新配置（对齐 [ElScrollbar] 形态）。
+/// 一份完整、不可变的下拉刷新配置。
 ///
 /// 对象可复用（类似 ScrollPhysics）；每个挂载的刷新宿主自建可变 details
 /// 与视觉子树；Sliver 负责布局和绘制，平台子类覆写 [buildIndicator] 与策略 getter。

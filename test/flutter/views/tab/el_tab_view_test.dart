@@ -637,7 +637,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final thumb = elThumbRect(tester, scroll.position);
     expect(thumb, isNotNull);

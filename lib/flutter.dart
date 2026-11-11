@@ -49,9 +49,6 @@ export 'src/flutter/slivers/recycler/sliver_recycler.dart'
 export 'src/flutter/slivers/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
 export 'src/flutter/slivers/large_title.dart' show ElSliverLargeTitle;
 export 'src/flutter/widgets/refresh/sliver_refresh.dart' show ElSliverRefresh;
-export 'src/flutter/scroll/scrollbar/scrollbar_base.dart' show ElScrollbar, ElScrollbarAxisDetails, ElScrollbarDetails;
-export 'src/flutter/scroll/scrollbar/mac_scroll_bar.dart' show ElMacScrollBar;
-export 'src/flutter/scroll/scrollbar/window_scroll_bar.dart' show ElWindowScrollBar;
 export 'src/flutter/scroll/smooth/smooth_scroll.dart'
     show ElChromiumSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
 export 'src/flutter/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
