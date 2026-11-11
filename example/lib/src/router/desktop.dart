@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../layout/desktop/index.dart';
+import '../pages/components/index.dart' show mobileComponentGroup;
 import '../utils/router.dart';
 
 /// 桌面路由把现有页面放入共同侧栏布局。
@@ -22,6 +23,8 @@ RoutingConfig get desktopRoute => RoutingConfig(
           path: RouterUtil.component,
           redirect: (context, state) => '${RouterUtil.component}/${RouterUtil.pages.first.key}',
         ),
+        for (final page in mobileComponentGroup.children)
+          GoRoute(path: '${RouterUtil.component}/${page.key}', redirect: (context, state) => RouterUtil.component),
         ...RouterUtil.pageToRoute(
           RouterUtil.desktopPages,
           pageBuilder: (context, state, page) =>

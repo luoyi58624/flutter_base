@@ -1,4 +1,6 @@
 import 'package:example/src/pages/components/basic/button/index.dart';
+import 'package:example/src/state/index.dart';
+import 'package:example/src/widgets/doc_scroll_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_base/desktop.dart';
@@ -24,8 +26,13 @@ String _examplePath(int number) => 'lib/src/pages/components/basic/button/exampl
 Finder _example(int number) => find.byKey(ValueKey(_examplePath(number)));
 
 Finder _buttons(int number, Object child) => find.descendant(
-  of: _example(number),
+  of: _example(number).first,
   matching: find.byWidgetPredicate((widget) => widget is ElButton && widget.child == child),
+);
+
+Finder _anchorItem(String title) => find.descendant(
+  of: find.byType(ElAnchor),
+  matching: find.byWidgetPredicate((widget) => widget is ElButtonView && widget.child == title),
 );
 
 void main() {
@@ -36,7 +43,7 @@ void main() {
 
     await _openPage(tester, width: 320, components: el.mobileComponents);
     expect(find.text('Button 按钮'), findsOneWidget);
-    expect(find.text('本页目录'), findsNothing);
+    expect(find.byType(ElAnchor), findsNothing);
     expect(find.text(source), findsNothing);
     final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
     final offset = tester.getCenter(toggle).dy - 500;
@@ -62,21 +69,15 @@ void main() {
 
   testWidgets('宽屏目录按原示例顺序定位，禁用、加载和共享切换可操作', (tester) async {
     await _openPage(tester, width: 1100, components: el.desktopComponents);
-    expect(find.text('本页目录'), findsOneWidget);
+    expect(find.text('目录'), findsOneWidget);
 
     Future<void> openSection(String title) async {
-      // 目录位于右侧独立滚动区，正文示例中同名的按钮不参与匹配。
-      final contents = find.byType(SingleChildScrollView);
-      await tester.tap(find.descendant(of: contents, matching: find.widgetWithText(TextButton, title)));
+      await tester.tap(_anchorItem(title).first);
       await tester.pumpAndSettle();
     }
 
     expect(
-      tester
-          .widgetList<TextButton>(find.byType(TextButton))
-          .map((widget) => widget.child)
-          .whereType<Text>()
-          .map((text) => text.data),
+      tester.widget<ElAnchor>(find.byType(ElAnchor)).links,
       containsAllInOrder(['基础使用', '自定义颜色', '禁用按钮', '链接按钮', '图标按钮', '圆形图标按钮', '加载状态', '块级按钮', 'Toggle 切换']),
     );
 
@@ -113,4 +114,34 @@ void main() {
     expect(_buttons(9, 'true'), findsNWidgets(6));
     expect(tester.takeException(), isNull);
   });
+
+  for (final mode in DocScrollMode.values) {
+    testWidgets('目录和正文在 ${mode.label} 模式下双向更新', (tester) async {
+      final previous = GlobalState.docScrollMode.value;
+      GlobalState.docScrollMode.value = mode;
+      addTearDown(() => GlobalState.docScrollMode.value = previous);
+      await _openPage(tester, width: 1100, components: el.desktopComponents);
+      final model = tester.widget<ElAnchor>(find.byType(ElAnchor)).modelValue!;
+      expect(model.value, 0);
+
+      // 两个目录标题相同，用后一项验证模型保存的是下标。
+      await tester.tap(_anchorItem('Toggle 切换').last);
+      await tester.pumpAndSettle();
+      expect(model.value, 9);
+      expect(tester.widget<ElButtonView>(_anchorItem('Toggle 切换').last).semantics?.properties.selected, isTrue);
+      expect(_example(9).hitTestable(), findsWidgets);
+
+      final body = find.byType(DocScrollView);
+      final position = tester
+          .state<ScrollableState>(find.descendant(of: body, matching: find.byType(Scrollable)).first)
+          .position;
+      position.jumpTo(position.minScrollExtent + 16);
+      await tester.pumpAndSettle();
+      expect(model.value, 0);
+      expect(position.pixels, 16);
+      expect(tester.widget<ElButtonView>(_anchorItem('基础使用')).semantics?.properties.selected, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(SizedBox());
+    });
+  }
 }

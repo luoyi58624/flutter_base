@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/desktop.dart';
 
 import '../../widgets/code_preview/index.dart';
 import '../../widgets/doc_scroll_view.dart';
@@ -40,6 +40,7 @@ class ComponentDocPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final scroll = useMemoized(DocScrollController.new);
+    useEffect(() => scroll.dispose, [scroll]);
     return ExamplePage(
       title: '组件文档',
       child: Align(
@@ -48,14 +49,14 @@ class ComponentDocPage extends HookWidget {
           constraints: .new(maxWidth: 1080),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final showContents = constraints.maxWidth >= 880;
+              final showContents = constraints.maxWidth >= 880 && sections.isNotEmpty;
               final padding = showContents ? 32.0 : 16.0;
               return Row(
                 crossAxisAlignment: .start,
                 children: [
                   Expanded(
                     child: DocScrollView(
-                      controller: scroll,
+                      controller: showContents ? scroll : null,
                       padding: .fromLTRB(padding, 24, padding, 32),
                       gap: 32,
                       headerCount: 1,
@@ -77,14 +78,12 @@ class ComponentDocPage extends HookWidget {
                           children: [
                             Padding(
                               padding: .only(left: 12, bottom: 6),
-                              child: Text('本页目录', style: Theme.of(context).textTheme.labelLarge),
+                              child: Text('目录', style: Theme.of(context).textTheme.labelLarge),
                             ),
-                            for (final (index, section) in sections.indexed)
-                              TextButton(
-                                style: TextButton.styleFrom(alignment: .centerLeft),
-                                onPressed: () => scroll.scrollToIndex(index + 1),
-                                child: Text(section.title),
-                              ),
+                            ElAnchor(
+                              links: [for (final section in sections) section.title],
+                              modelValue: scroll.activeSection,
+                            ),
                           ],
                         ),
                       ),

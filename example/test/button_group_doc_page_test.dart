@@ -35,7 +35,11 @@ Future<void> _open(WidgetTester tester, {double width = 1100, ElComponents? comp
 }
 
 Future<void> _selectSection(WidgetTester tester, String title) async {
-  await tester.tap(find.widgetWithText(TextButton, title));
+  final row = find.descendant(
+    of: find.byType(ElAnchor),
+    matching: find.byWidgetPredicate((widget) => widget is ElButtonView && widget.child == title),
+  );
+  await tester.tap(row);
   await tester.pumpAndSettle();
 }
 
@@ -66,7 +70,7 @@ void main() {
   testWidgets('目录定位后可操作普通、单选、多选、必选、禁用与图标示例', (tester) async {
     await _open(tester);
     expect(find.text('ButtonGroup 按钮组'), findsOneWidget);
-    expect(find.text('本页目录'), findsOneWidget);
+    expect(find.text('目录'), findsOneWidget);
     await tester.tap(_item(1, '下一页'));
     await tester.pumpAndSettle();
     expect(_item(1, '最近操作：下一页'), findsOneWidget);
@@ -132,7 +136,7 @@ void main() {
   testWidgets('窄屏逐节排版且实际源码可展开，通栏份额与纵向高度生效', (tester) async {
     final source = (await tester.runAsync(() => rootBundle.loadString(_source(1))))!;
     await _open(tester, width: 320);
-    expect(find.text('本页目录'), findsNothing);
+    expect(find.byType(ElAnchor), findsNothing);
     final scroll = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
     for (var number = 1; number <= 8; number++) {
       await Scrollable.ensureVisible(tester.element(_section(number)));

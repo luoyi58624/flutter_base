@@ -28,8 +28,8 @@ abstract final class RouterUtil {
   /// 设置页地址。
   static const setting = '/settings';
 
-  /// 组件目录中的叶子，分组只承担展示。
-  static final pages = [for (final menu in componentCatalog) ..._leaves(menu)];
+  /// 移动组件目录中的叶子，分组只承担展示。
+  static final pages = [for (final menu in componentCatalogFor(mobile: true)) ..._leaves(menu)];
 
   /// 侧栏使用完整路径，菜单内容沿用原来的定义。
   static final desktopMenus = navigationPages.toFullPath(parentPath: '');

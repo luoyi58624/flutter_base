@@ -2,6 +2,7 @@ import 'package:flutter_base/mobile.dart';
 import 'package:go_router/go_router.dart';
 
 import '../layout/mobile/index.dart';
+import '../pages/components/index.dart' show desktopComponentGroup;
 import '../utils/router.dart';
 
 /// 移动路由为现有的四个底栏分别保留导航栈。
@@ -28,6 +29,8 @@ RoutingConfig get mobileRoute => RoutingConfig(
               path: RouterUtil.component,
               builder: (context, state) => RouterUtil.buildRootPage(context, RouterUtil.component),
               routes: [
+                for (final page in desktopComponentGroup.children)
+                  GoRoute(path: page.key, redirect: (context, state) => RouterUtil.component),
                 ...RouterUtil.pageToRoute(
                   RouterUtil.pages,
                   parentNavigatorKey: RouterUtil.rootNavigatorKey,

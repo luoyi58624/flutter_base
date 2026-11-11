@@ -25,6 +25,26 @@ Future<void> _openCatalog(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('移动组件分组在目录末尾并能打开底部导航栏示例', (tester) async {
+    await _openCatalog(tester);
+    final catalog = find.byKey(PageStorageKey('component-catalog'));
+    final groups = tester.widgetList<ElListGroup>(find.descendant(of: catalog, matching: find.byType(ElListGroup)));
+    expect(groups.last.title, 'Mobile 组件');
+    expect(groups.any((group) => group.title == 'Desktop 组件'), isFalse);
+    final position = _scrollable(tester, catalog).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('component-bottom-tabbar')));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/bottom-tabbar');
+    final tabbar = find.byType(ElBottomTabbar);
+    expect(tester.widget<ElBottomTabbar>(tabbar).selectedIndex, 0);
+    await tester.tap(find.descendant(of: tabbar, matching: find.bySemanticsLabel('发现')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ElBottomTabbar>(tabbar).selectedIndex, 1);
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('移动目录通过路由打开占位页和阴影页面，返回后仍能再次进入', (tester) async {
     await _openCatalog(tester);
     for (final (key, title) in [('quick-start', '快速开始'), ('theme-design', '主题设计'), ('quick-start', '快速开始')]) {

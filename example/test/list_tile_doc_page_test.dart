@@ -45,7 +45,11 @@ Future<void> _reveal(WidgetTester tester, Finder target) async {
 }
 
 Future<void> _openSection(WidgetTester tester, String title) async {
-  await tester.tap(find.widgetWithText(TextButton, title));
+  final row = find.descendant(
+    of: find.byType(ElAnchor),
+    matching: find.byWidgetPredicate((widget) => widget is ElButtonView && widget.child == title),
+  );
+  await tester.tap(row);
   await tester.pumpAndSettle();
 }
 
@@ -53,7 +57,7 @@ void main() {
   testWidgets('窄屏八个场景正常排版，展开和收起实际示例源码', (tester) async {
     await _openPage(tester, width: 320, components: el.mobileComponents);
     expect(find.text('ListTile 列表行'), findsOneWidget);
-    expect(find.text('本页目录'), findsNothing);
+    expect(find.byType(ElAnchor), findsNothing);
     final source = (await tester.runAsync(() => rootBundle.loadString(_examplePath(1))))!;
     final toggle = find.descendant(of: _example(1), matching: find.byKey(ValueKey('el-code-example-toggle')));
     expect(find.text(source), findsNothing);
@@ -77,13 +81,9 @@ void main() {
 
   testWidgets('桌面目录使用移动列表预览，普通点击计数在章节切换后保留', (tester) async {
     await _openPage(tester, width: 1100, components: el.desktopComponents);
-    expect(find.text('本页目录'), findsOneWidget);
+    expect(find.text('目录'), findsOneWidget);
     expect(
-      tester
-          .widgetList<TextButton>(find.byType(TextButton))
-          .map((widget) => widget.child)
-          .whereType<Text>()
-          .map((text) => text.data),
+      tester.widget<ElAnchor>(find.byType(ElAnchor)).links,
       containsAllInOrder(['基础使用', '图标与副标题', '右侧内容与后缀', '禁用状态', '开关列表行', '弹出单选菜单', '多级菜单', '自定义样式']),
     );
 

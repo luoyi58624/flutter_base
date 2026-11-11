@@ -11,6 +11,7 @@ import 'package:example/src/widgets/doc_scroll_view.dart';
 import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_base/desktop.dart' show ElAnchor;
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -331,7 +332,10 @@ void main() {
     for (final mode in DocScrollMode.values) {
       GlobalState.docScrollMode.value = mode;
       await tester.pumpAndSettle();
-      final directoryEntry = find.widgetWithText(TextButton, lastTitle);
+      final directoryEntry = find.descendant(
+        of: find.byType(ElAnchor),
+        matching: find.byWidgetPredicate((widget) => widget is ElButtonView && widget.child == lastTitle),
+      );
       expect(directoryEntry.hitTestable(), findsOneWidget);
       await tester.tap(directoryEntry);
       await tester.pumpAndSettle();

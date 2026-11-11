@@ -50,15 +50,37 @@ Future<void> _select(WidgetTester tester, String label) async {
 
 void main() {
   test('共同菜单生成所有叶子路由，分组只参与展示', () {
-    expect(RouterUtil.pages.length, componentCatalog.fold<int>(0, (count, group) => count + group.children.length));
+    final mobileCatalog = componentCatalogFor(mobile: true);
+    expect(RouterUtil.pages.length, mobileCatalog.fold<int>(0, (count, group) => count + group.children.length));
     expect(RouterUtil.pages.every((page) => !page.group && page.children.isEmpty), isTrue);
     final paths = RouterUtil.desktopPages.map((page) => page.key);
     expect(paths.toSet().length, paths.length);
     expect(paths, containsAll(['/components/button', '/components/shadow-design', '/examples']));
+    expect(paths, containsAll(['/components/anchor', '/components/nav-menu']));
+    expect(paths, isNot(contains('/components/bottom-tabbar')));
     expect(paths, isNot(contains('/examples/gestures')));
     expect(paths, isNot(contains('/components/基础组件')));
     expect(RouterUtil.desktopMenus.map((menu) => menu.title), ['首页', '组件', '示例', '设置']);
+    expect(RouterUtil.desktopMenus[1].children.last.title, 'Desktop 组件');
+    expect(mobileCatalog.last.title, 'Mobile 组件');
     expect(RouterUtil.titleOf(Uri.parse('/components/button?source=test#example')), 'Button 按钮');
+  });
+
+  testWidgets('桌面目录末尾打开锚点，切到移动宽度后回到移动组件目录', (tester) async {
+    await _host(tester);
+    expect(_navLabel('Desktop 组件'), findsOneWidget);
+    expect(_navLabel('Mobile 组件'), findsNothing);
+    await _select(tester, 'Anchor 锚点');
+    expect(router.routeInformationProvider.value.uri.path, '/components/anchor');
+    expect(find.byType(ElAnchor), findsWidgets);
+
+    tester.view.physicalSize = Size(390, 844);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components');
+    expect(find.byKey(ValueKey('component-bottom-tabbar')), findsOneWidget);
+    expect(find.byKey(ValueKey('component-anchor')), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
   });
 
   testWidgets('桌面公共头覆盖整行，标识和标题不跳转，主题入口仅在首页', (tester) async {

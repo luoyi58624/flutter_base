@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 import '../../utils/router.dart';
 import '../../layout/example_page.dart';
@@ -42,8 +40,11 @@ import 'feedback/alert/index.dart';
 import 'feedback/loading/index.dart';
 import 'list/list_tile/index.dart';
 import 'start/shadow/index.dart';
+import 'desktop/anchor/index.dart';
+import 'desktop/nav_menu/index.dart';
+import 'mobile/bottom_tabbar/index.dart';
 
-/// 移动导航下的组件目录，叶子与桌面侧栏共用页面声明。
+/// 移动导航下的组件目录，共用组件与移动专属分组按顺序展示。
 class ComponentPage extends StatelessWidget {
   /// 创建组件目录页。
   const ComponentPage({super.key});
@@ -59,7 +60,7 @@ class ComponentPage extends StatelessWidget {
           Column(
             spacing: 16,
             children: [
-              for (final group in componentCatalog)
+              for (final group in componentCatalogFor(mobile: true))
                 ElListGroup(
                   title: group.title,
                   children: [
@@ -168,6 +169,29 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
       _page('event-drag', '拖拽交互', builder: (_) => ElEventDragPage()),
     ],
   ),
+];
+
+/// 追加在桌面组件目录末尾的专属分组。
+final desktopComponentGroup = ElMenuModel<WidgetBuilder>(
+  group: true,
+  title: 'Desktop 组件',
+  children: [
+    _page('anchor', 'Anchor 锚点', builder: (_) => AnchorPage()),
+    _page('nav-menu', 'NavMenu 导航菜单', builder: (_) => NavMenuPage()),
+  ],
+);
+
+/// 追加在移动组件目录末尾的专属分组。
+final mobileComponentGroup = ElMenuModel<WidgetBuilder>(
+  group: true,
+  title: 'Mobile 组件',
+  children: [_page('bottom-tabbar', 'BottomTabbar 底部导航栏', builder: (_) => BottomTabbarPage())],
+);
+
+/// 保持共用分组的顺序，并在末尾追加当前端的分组。
+List<ElMenuModel<WidgetBuilder>> componentCatalogFor({required bool mobile}) => [
+  ...componentCatalog,
+  mobile ? mobileComponentGroup : desktopComponentGroup,
 ];
 
 ElMenuModel<WidgetBuilder> _page(String key, String title, {WidgetBuilder? builder}) => ElMenuModel(
