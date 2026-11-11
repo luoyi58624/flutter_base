@@ -631,7 +631,9 @@ void main() {
                 focusKey,
                 const ElStyle(
                   backgroundColor: Colors.white,
-                  onFocus: ElStyle(outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3)),
+                  onFocus: ElStyle(
+                    outline: ElOutline(outlineColor: Color(0xFF3B82F6), outlineWidth: 2.5, outlineOffset: 3),
+                  ),
                 ),
               ),
               _box(
@@ -864,7 +866,7 @@ void main() {
       final hostKey = GlobalKey();
       var taps = 0;
       Widget build({bool transparent = false}) => shell(
-        ElStackView(
+        ElStack(
           children: [
             ElView(
               style: ElStyle(width: 120, height: 120, cursor: SystemMouseCursors.click),
@@ -919,7 +921,10 @@ void main() {
       );
       for (final selected in [false, true, false]) {
         await tester.pumpWidget(build(selected));
-        expect(renderOf(tester).committedResolvedStyle.box.backgroundColor, selected ? Color(0xFF22FF22) : Color(0xFF111111));
+        expect(
+          renderOf(tester).committedResolvedStyle.box.backgroundColor,
+          selected ? Color(0xFF22FF22) : Color(0xFF111111),
+        );
       }
     });
 
@@ -1680,7 +1685,10 @@ void main() {
                 width: 100,
                 height: 40,
                 backgroundColor: Color(0xffff0000),
-                onHover: .new(backgroundColor: Color(0xff0000ff), transition: [ElTransition.all(Duration(milliseconds: 200))]),
+                onHover: .new(
+                  backgroundColor: Color(0xff0000ff),
+                  transition: [ElTransition.all(Duration(milliseconds: 200))],
+                ),
               ),
             ),
           ),

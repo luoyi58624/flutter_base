@@ -54,7 +54,7 @@ class _ZFixtureState extends State<_ZFixture> {
 
   @override
   Widget build(BuildContext context) {
-    return ElStackView(
+    return ElStack(
       children: [
         ElStackItem(
           zIndex: relativeZ,
@@ -75,13 +75,13 @@ void main() {
   testWidgets('relative item 保留自然槽位，offset 只改变最终几何', (tester) async {
     await tester.pumpWidget(
       _app(
-        const ElStackView(
+        const ElStack(
           children: [ElStackItem(offset: Offset(50, 12), child: SizedBox(width: 30, height: 20))],
         ),
       ),
     );
 
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final child = tester.renderObject<RenderBox>(find.byType(SizedBox));
     expect(stack.size, const Size(30, 20), reason: 'relative offset 不得扩大自然槽位或改变 Stack 定尺');
     expect((child.parentData! as ElStackParentData).offset, const Offset(50, 12));
@@ -92,7 +92,7 @@ void main() {
       final log = <String>[];
       await tester.pumpWidget(
         _app(
-          ElStackView(
+          ElStack(
             clipBehavior: clipBehavior,
             children: [ElStackItem(offset: const Offset(30, 0), child: _target('relative', log))],
           ),
@@ -125,10 +125,10 @@ void main() {
     final log = <String>[];
     await tester.pumpWidget(
       _app(
-        ElStackView(
+        ElStack(
           children: [
             ElStackItem(
-              child: ElStackView(children: [ElStackItem(zIndex: 1000, child: _target('inner-high', log))]),
+              child: ElStack(children: [ElStackItem(zIndex: 1000, child: _target('inner-high', log))]),
             ),
             ElStackItem(zIndex: 1, child: _target('outer-top', log)),
           ],
@@ -144,7 +144,7 @@ void main() {
     final log = <String>[];
     await tester.pumpWidget(
       _app(
-        ElStackView(
+        ElStack(
           children: [
             ElStackItem(zIndex: 3, child: _target('relative', log)),
             _target('plain', log),

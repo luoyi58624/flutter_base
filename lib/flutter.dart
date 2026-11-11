@@ -70,10 +70,9 @@ export 'src/flutter/widgets/refresh/index.dart'
         elWebKitRubberBandSpring;
 
 // 布局
-export 'src/flutter/views/layout/stack/stack_view.dart'
-    show ElStackView, ElStackItem, ElPositioned, ElStackParentData, RenderStackView;
-export 'src/flutter/views/layout/grid/grid_view.dart' show ElGridView, ElGridParentData, ElRenderGridView;
-export 'src/flutter/views/layout/list/list_view.dart' show ElListView, ElListParentData, ElRenderListView;
+export 'src/flutter/widgets/stack/index.dart'
+    show ElStack, ElStackItem, ElPositioned, ElStackParentData, RenderStackView;
+export 'src/flutter/widgets/grid/index.dart' show ElGrid;
 
 // 弹层、锚点与上下文菜单
 export 'src/flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;

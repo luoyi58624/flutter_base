@@ -1,9 +1,9 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../selection/common/selection_core.dart' show SelectionPaintOrderChildren;
-import '../../view/render/hit_bounds.dart';
-import '../../view/style/dimension.dart';
+import '../../views/selection/common/selection_core.dart' show SelectionPaintOrderChildren;
+import '../../views/view/render/hit_bounds.dart';
+import '../../views/view/style/dimension.dart';
 
 part 'layer_order.dart';
 part 'stacking_box.dart';
@@ -22,13 +22,13 @@ part 'stacking_box.dart';
 /// `Positioned.fill` / `PositionedDirectional`——[ElStackParentData] 继承
 /// `StackParentData`，官方 `ParentDataWidget` 的类型校验（`parentData is T`）
 /// 天然通过。想要 zIndex 才需要换成 [ElPositioned]，两者可在同一个
-/// [ElStackView] 里混用。
+/// [ElStack] 里混用。
 ///
 /// 反向不成立：[ElPositioned] 放进官方 `Stack` 会断言失败（`StackParentData`
 /// 不是 [ElStackParentData]），这是刻意的——那里的 zIndex 不会被消费。
-class ElStackView extends MultiChildRenderObjectWidget {
+class ElStack extends MultiChildRenderObjectWidget {
   /// 创建层叠布局。
-  const ElStackView({
+  const ElStack({
     super.key,
     this.alignment = AlignmentDirectional.topStart,
     this.textDirection,
@@ -72,9 +72,9 @@ class ElStackView extends MultiChildRenderObjectWidget {
   }
 }
 
-/// [ElStackView] 中保留自然槽位的 relative layer item。
+/// [ElStack] 中保留自然槽位的 relative layer item。
 ///
-/// child 仍按普通非定位子参与 Stack 定尺和 [ElStackView.alignment]，最后再把
+/// child 仍按普通非定位子参与 Stack 定尺和 [ElStack.alignment]，最后再把
 /// [offset] 加到 paint/hit/semantics 共用几何上；因此偏移不会改变兄弟布局。
 /// 只需要 zIndex 而不需要偏移时也应使用本类。
 class ElStackItem extends ParentDataWidget<ElStackParentData> {
@@ -113,7 +113,7 @@ class ElStackItem extends ParentDataWidget<ElStackParentData> {
   }
 
   @override
-  Type get debugTypicalAncestorWidgetClass => ElStackView;
+  Type get debugTypicalAncestorWidgetClass => ElStack;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -123,9 +123,9 @@ class ElStackItem extends ParentDataWidget<ElStackParentData> {
   }
 }
 
-/// [ElStackView] 与滚动视口的原生定位成员，支持百分比尺寸和 [zIndex]。
+/// [ElStack] 与滚动视口的原生定位成员，支持百分比尺寸和 [zIndex]。
 ///
-/// 六个定位参数全部可选：只写 [zIndex] 也合法（子按 [ElStackView.alignment]
+/// 六个定位参数全部可选：只写 [zIndex] 也合法（子按 [ElStack.alignment]
 /// 摆放，仅调层级），省得为"只想调层级"再造第二个 widget。
 ///
 /// 定位值走 [ElDimension]，接 `num` / 百分比字符串：
@@ -189,7 +189,7 @@ class ElPositioned extends ParentDataWidget<ElStackParentData> {
   /// 层级。大者后绘制（盖在上面），命中按绘制逆序优先；负值保留布局与
   /// Element/RenderObject identity，但不绘制、不命中、不进入语义。
   ///
-  /// 同值子保持 [ElStackView.children] 的数组顺序（排序按 `(zIndex, 下标)`
+  /// 同值子保持 [ElStack.children] 的数组顺序（排序按 `(zIndex, 下标)`
   /// 二元组，全序，与 `List.sort` 是否稳定无关）。
   final int zIndex;
 
@@ -256,7 +256,7 @@ class ElPositioned extends ParentDataWidget<ElStackParentData> {
   }
 
   @override
-  Type get debugTypicalAncestorWidgetClass => ElStackView;
+  Type get debugTypicalAncestorWidgetClass => ElStack;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -271,7 +271,7 @@ class ElPositioned extends ParentDataWidget<ElStackParentData> {
   }
 }
 
-/// [ElStackView] 的子 parentData。
+/// [ElStack] 的子 parentData。
 ///
 /// **继承 `StackParentData` 是兼容官方 `Positioned` 的全部机制**：
 /// `ParentDataWidget.debugIsValidRenderObject` 只做 `parentData is T` 判定，
@@ -380,7 +380,7 @@ class ElStackParentData extends StackParentData {
   String toString() => zIndex == 0 ? super.toString() : 'zIndex=$zIndex; ${super.toString()}';
 }
 
-/// [ElStackView] 的 render。
+/// [ElStack] 的 render。
 ///
 /// 布局算法与官方 `RenderStack` 一致（复用 `RenderStack.layoutPositionedChild`
 /// 与 `StackParentData.positionedChildConstraints`），差异只在三处：

@@ -122,7 +122,7 @@ class _MentionPanel<T> extends StatelessWidget {
     final arrowLeft = (arrowTarget.dx - 4).clamp(0, math.max(0, width - 8)).toDouble();
     final arrowTop = actualSide == AxisDirection.up ? null : -4.0;
     final arrowBottom = actualSide == AxisDirection.up ? -4.0 : null;
-    return ElStackView(
+    return ElStack(
       clipBehavior: Clip.none,
       children: [
         panel,

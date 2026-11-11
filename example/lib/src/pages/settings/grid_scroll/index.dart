@@ -78,7 +78,7 @@ class _GridScrollPageState extends State<GridScrollPage> {
               child: ObsBuilder(
                 builder: (context) {
                   return RepaintBoundary(
-                    child: ElGridView(
+                    child: ElGrid(
                       itemWidth: 150,
                       rowGap: 6,
                       columnGap: 6,

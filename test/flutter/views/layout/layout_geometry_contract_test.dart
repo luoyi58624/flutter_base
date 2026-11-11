@@ -1,5 +1,5 @@
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/views/layout/geometry/grid_geometry.dart';
+import 'package:flutter_base/src/flutter/widgets/grid/grid_geometry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -61,10 +61,10 @@ void main() {
 
   test('itemWidth 拒绝非法值和冲突的轨道尺寸声明', () {
     for (final width in [0.0, -1.0, double.infinity, double.nan]) {
-      expect(() => ElGridView(itemWidth: width), throwsAssertionError);
+      expect(() => ElGrid(itemWidth: width), throwsAssertionError);
       expect(() => GridLayoutGeometry(itemWidth: width), throwsAssertionError);
     }
-    expect(() => ElGridView(itemWidth: 100, minCrossAxisExtent: 80), throwsAssertionError);
+    expect(() => ElGrid(itemWidth: 100, minCrossAxisExtent: 80), throwsAssertionError);
     expect(() => GridLayoutGeometry(itemWidth: 100, maxCrossAxisExtent: 120), throwsAssertionError);
   });
 
@@ -73,7 +73,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(
       _host(
-        ElGridView(
+        ElGrid(
           key: key,
           itemWidth: 150,
           aspectRatio: 2,
@@ -92,28 +92,12 @@ void main() {
     expect(measured, isEmpty);
   });
 
-  testWidgets('独立固定列表只 dry 测量首项，真实条目仍全量布局', (tester) async {
-    final measured = <int>[];
-    final key = GlobalKey();
-    await tester.pumpWidget(
-      _host(
-        ElListView(key: key, fixedSize: true, gap: 4, children: List.generate(20, (index) => _Probe(index, measured))),
-      ),
-    );
-    final render = key.currentContext!.findRenderObject()! as RenderBox;
-    expect(render.size, Size(300, 20 * 16 + 19 * 4));
-    measured.clear();
-    final dry = render.getDryLayout(BoxConstraints(maxWidth: 200));
-    expect(dry, Size(200, 20 * 16 + 19 * 4));
-    expect(measured, [0]);
-  });
-
   testWidgets('独立网格从共享几何得出 dry 尺寸，不探测任意格子', (tester) async {
     final measured = <int>[];
     final key = GlobalKey();
     await tester.pumpWidget(
       _host(
-        ElGridView(
+        ElGrid(
           key: key,
           crossAxisCount: 3,
           aspectRatio: 2,
@@ -157,8 +141,8 @@ void main() {
     expect(horizontal.cellSize, Size(100, 50));
     expect(horizontal.size, Size(200, 104));
     expect(GridLayoutGeometry().resolve(axis: .vertical, crossExtent: double.infinity, itemCount: 0).size, Size.zero);
-    expect(() => ElGridView(crossAxisCount: 3, minCrossAxisExtent: 80), throwsAssertionError);
-    expect(() => ElGridView(gap: 4, rowGap: 4), throwsAssertionError);
+    expect(() => ElGrid(crossAxisCount: 3, minCrossAxisExtent: 80), throwsAssertionError);
+    expect(() => ElGrid(gap: 4, rowGap: 4), throwsAssertionError);
   });
 }
 

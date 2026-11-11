@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../layout/geometry/pixel_grid.dart';
+import '../../../utils/internal/pixel_grid.dart';
 import '../../../scroll/viewport.dart' show ScrollViewport;
 import '../composer.dart';
 import 'editable_line_view.dart';

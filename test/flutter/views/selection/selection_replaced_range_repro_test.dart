@@ -19,7 +19,7 @@ void main() {
           controller: controller,
           child: ValueListenableBuilder<int>(
             valueListenable: layer,
-            builder: (context, zIndex, _) => ElStackView(
+            builder: (context, zIndex, _) => ElStack(
               children: [
                 ElPositioned(
                   top: 0,
@@ -140,7 +140,7 @@ class _BoundaryHarness extends StatelessWidget {
 
   final bool nativeStack;
 
-  Widget _stack(List<Widget> children) => nativeStack ? Stack(children: children) : ElStackView(children: children);
+  Widget _stack(List<Widget> children) => nativeStack ? Stack(children: children) : ElStack(children: children);
 
   @override
   Widget build(BuildContext context) => MaterialApp(

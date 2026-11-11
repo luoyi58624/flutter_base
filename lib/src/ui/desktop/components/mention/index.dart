@@ -18,7 +18,7 @@ import '../../../../flutter/components/mention/index.dart'
         resolveElMentionWholeContext;
 import '../../../../flutter/views/editable/controller.dart' show ElEditableController;
 import '../../../../flutter/views/editable/view.dart' show ElEditableView;
-import '../../../../flutter/views/layout/stack/stack_view.dart' show ElPositioned, ElStackView;
+import '../../../../flutter/widgets/stack/index.dart' show ElPositioned, ElStack;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform;
@@ -843,7 +843,7 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
       key: _triggerKey,
       style: ElStyle(width: config.width ?? 240),
       event: config.disabled ? ElEvent(disabled: true) : null,
-      child: ElStackView(
+      child: ElStack(
         clipBehavior: Clip.none,
         children: [
           _MentionField(

@@ -83,7 +83,7 @@ class _TransformFixtureState extends State<_TransformFixture> {
 
   @override
   Widget build(BuildContext context) {
-    return ElStackView(children: [_officialOverflowBranch(_target('target', widget.log), offset: offset)]);
+    return ElStack(children: [_officialOverflowBranch(_target('target', widget.log), offset: offset)]);
   }
 }
 
@@ -104,7 +104,7 @@ class _ReorderFixtureState extends State<_ReorderFixture> {
   @override
   Widget build(BuildContext context) {
     final tags = reversed ? const <String>['top', 'bottom'] : const <String>['bottom', 'top'];
-    return ElStackView(
+    return ElStack(
       children: <Widget>[
         Stack(
           clipBehavior: Clip.none,
@@ -127,7 +127,7 @@ void main() {
       final log = <String>[];
       await tester.pumpWidget(
         _app(
-          ElStackView(
+          ElStack(
             children: [
               _officialOverflowBranch(
                 _target('target', log),
@@ -148,7 +148,7 @@ void main() {
     final log = <String>[];
     await tester.pumpWidget(
       _app(
-        ElStackView(
+        ElStack(
           children: [
             _officialOverflowBranch(
               Transform.rotate(
@@ -168,9 +168,9 @@ void main() {
 
   testWidgets('纯 El 直连且无溢出时不注册代理', (tester) async {
     await tester.pumpWidget(
-      _app(ElStackView(children: [ElPositioned(left: 10, top: 10, child: _target('normal', <String>[]))])),
+      _app(ElStack(children: [ElPositioned(left: 10, top: 10, child: _target('normal', <String>[]))])),
     );
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     expect(stack.debugOverflowHitProxyCount, 0);
   });
 
@@ -178,7 +178,7 @@ void main() {
     final key = GlobalKey<_TransformFixtureState>();
     final log = <String>[];
     await tester.pumpWidget(_app(_TransformFixture(key: key, log: log)));
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final geometryVersion = stack.debugOverflowHitGeometryVersion;
 
     await tester.tapAt(const Offset(110, 110));
@@ -220,7 +220,7 @@ void main() {
         SizedBox(
           width: 140,
           height: 140,
-          child: ElStackView(
+          child: ElStack(
             children: [
               ElPositioned.fill(child: _target('underlay', log)),
               ElPositioned(
@@ -249,7 +249,7 @@ void main() {
           SizedBox(
             width: 100,
             height: 100,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned.fill(child: _target('underlay', log)),
                 ElPositioned.fill(
@@ -285,7 +285,7 @@ void main() {
         SizedBox(
           width: 140,
           height: 140,
-          child: ElStackView(
+          child: ElStack(
             children: [
               ElPositioned.fill(child: _target('underlay', log)),
               ElPositioned(left: 0, top: 0, zIndex: 5, child: _officialOverflowBranch(_target('top', log))),
@@ -306,7 +306,7 @@ void main() {
         SizedBox(
           width: 140,
           height: 140,
-          child: ElStackView(
+          child: ElStack(
             children: [
               ElPositioned.fill(child: _target('underlay', log)),
               ElPositioned(
@@ -332,7 +332,7 @@ void main() {
         SizedBox(
           width: 140,
           height: 140,
-          child: ElStackView(
+          child: ElStack(
             children: [
               ElPositioned.fill(child: _target('underlay', log)),
               ElPositioned(

@@ -24,7 +24,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/focus.dart';
 import '../../widgets/popup/context_menu.dart' show ElContextMenuHandle;
-import '../layout/geometry/pixel_grid.dart';
+import '../../utils/internal/pixel_grid.dart';
 import '../../scroll/dual_axis_scroll.dart' show DualAxisScroll;
 import '../../scroll/scroll.dart' show ElScroll;
 import '../../scroll/viewport.dart' show ScrollViewport;

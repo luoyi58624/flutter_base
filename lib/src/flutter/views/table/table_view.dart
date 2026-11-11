@@ -1290,7 +1290,7 @@ class _TableViewState extends State<ElTable> {
           _dataCell(style, row, key, rowIndex, plans[visual[visualIndex]], visualIndex),
     );
     if (controller.rowResizable) {
-      gridRow = ElStackView(
+      gridRow = ElStack(
         fit: StackFit.passthrough,
         children: [
           gridRow,
@@ -1474,7 +1474,7 @@ class _TableViewState extends State<ElTable> {
             ),
           );
     if (!(plan.resizable ?? style.columnResizable)) return cell;
-    cell = ElStackView(
+    cell = ElStack(
       fit: StackFit.passthrough,
       children: [
         cell,
@@ -1508,7 +1508,7 @@ class _TableViewState extends State<ElTable> {
     final sortWidth = style.sort.width;
     final leftInset = (sortWidth is num ? sortWidth.toDouble() : 20.0) + 6;
     final leftAligned = align != TextAlign.center && align != TextAlign.right && align != TextAlign.end;
-    return ElStackView(
+    return ElStack(
       fit: StackFit.expand,
       children: [
         ElView(

@@ -522,7 +522,7 @@ class _ElInputOtpBodyState extends State<_ElInputOtpBody> {
             )
           : null,
       style: const ElStyle().merge(config.style),
-      child: ElStackView(
+      child: ElStack(
         children: [
           Row(
             mainAxisSize: .min,

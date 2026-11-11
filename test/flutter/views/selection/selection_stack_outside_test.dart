@@ -33,7 +33,7 @@ void main() {
           textDirection: .ltr,
           child: ElSelectionView(
             controller: controller,
-            child: nativeStack ? Stack(children: children) : ElStackView(children: children),
+            child: nativeStack ? Stack(children: children) : ElStack(children: children),
           ),
         ),
       );

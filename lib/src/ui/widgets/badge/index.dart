@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../flutter/views/layout/stack/stack_view.dart' show ElPositioned, ElStackView;
+import '../../../flutter/widgets/stack/index.dart' show ElPositioned, ElStack;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../flutter/views/view/style/style.dart' show ElStyle;
 import '../../../flutter/views/view/view.dart' show ElView;
@@ -72,7 +72,7 @@ class ElBadge extends StatelessWidget {
 
     return ElView(
       style: style,
-      child: ElStackView(
+      child: ElStack(
         // 徽章要溢出宿主右上角
         clipBehavior: .none,
         children: [

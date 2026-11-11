@@ -10,7 +10,7 @@ void main() {
         alignment: .topLeft,
         child: SizedBox(
           width: width,
-          child: ElGridView(
+          child: ElGrid(
             key: ValueKey('grid'),
             itemWidth: 150,
             aspectRatio: 2,
@@ -40,7 +40,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ElGridView lays out fixed-count cells with spacing', (tester) async {
+  testWidgets('ElGrid lays out fixed-count cells with spacing', (tester) async {
     final keys = [for (var i = 0; i < 3; i++) ValueKey('cell-$i')];
 
     await tester.pumpWidget(
@@ -50,7 +50,7 @@ void main() {
           alignment: Alignment.topLeft,
           child: SizedBox(
             width: 100,
-            child: ElGridView(
+            child: ElGrid(
               crossAxisCount: 2,
               mainAxisExtent: 10,
               gap: 4,

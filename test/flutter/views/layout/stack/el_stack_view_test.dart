@@ -28,12 +28,12 @@ Widget _app(Widget child) {
 }
 
 void main() {
-  group('ElStackView 布局', () {
+  group('ElStack 布局', () {
     testWidgets('非定位子决定尺寸，按 alignment 落位', (tester) async {
       await tester.pumpWidget(
-        _app(const ElStackView(children: [SizedBox(width: 100, height: 50), SizedBox(width: 60, height: 80)])),
+        _app(const ElStack(children: [SizedBox(width: 100, height: 50), SizedBox(width: 60, height: 80)])),
       );
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.size, const Size(100, 80));
     });
 
@@ -43,7 +43,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 120,
-            child: ElStackView(fit: StackFit.expand, children: [SizedBox(width: 10, height: 10)]),
+            child: ElStack(fit: StackFit.expand, children: [SizedBox(width: 10, height: 10)]),
           ),
         ),
       );
@@ -57,11 +57,11 @@ void main() {
           const SizedBox(
             width: 200,
             height: 120,
-            child: ElStackView(children: [ElPositioned(left: 10, top: 10, width: 20, height: 20, child: SizedBox())]),
+            child: ElStack(children: [ElPositioned(left: 10, top: 10, width: 20, height: 20, child: SizedBox())]),
           ),
         ),
       );
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.size, const Size(200, 120));
     });
 
@@ -71,7 +71,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 100,
-            child: ElStackView(children: [ElPositioned(left: 20, right: 30, top: 0, child: SizedBox(height: 10))]),
+            child: ElStack(children: [ElPositioned(left: 20, right: 30, top: 0, child: SizedBox(height: 10))]),
           ),
         ),
       );
@@ -87,7 +87,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 80,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(left: 0, top: '100%', child: SizedBox(width: 50, height: 30))],
             ),
           ),
@@ -104,7 +104,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 100,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(left: '50%', top: '50%', child: SizedBox(width: 10, height: 10))],
             ),
           ),
@@ -121,7 +121,7 @@ void main() {
           const SizedBox(
             width: 300,
             height: 100,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(left: 0, top: 0, width: '50%', height: '25%', child: SizedBox())],
             ),
           ),
@@ -137,7 +137,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(right: '10%', bottom: '10%', child: SizedBox(width: 40, height: 40))],
             ),
           ),
@@ -155,7 +155,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 100,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(left: 25, top: '50%', child: SizedBox(width: 10, height: 10))],
             ),
           ),
@@ -171,7 +171,7 @@ void main() {
       // 定尺"。直接挂在 Align 下拿 loose 约束。
       await tester.pumpWidget(
         _app(
-          const ElStackView(
+          const ElStack(
             children: [
               SizedBox(width: 30, height: 20),
               ElPositioned(left: '50%', child: SizedBox(width: 500, height: 500)),
@@ -179,7 +179,7 @@ void main() {
           ),
         ),
       );
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       // 尺寸只由非定位子 30x20 决定；500x500 的定位子不参与。
       expect(render.size, const Size(30, 20));
       // 且百分比是对折算后的宿主尺寸取的：50% × 30 = 15。
@@ -193,7 +193,7 @@ void main() {
           SizedBox(
             width: hostWidth,
             height: 100,
-            child: const ElStackView(
+            child: const ElStack(
               children: [ElPositioned(left: '50%', top: 0, child: SizedBox(width: 10, height: 10))],
             ),
           ),
@@ -211,13 +211,13 @@ void main() {
   });
 
   group('官方 Positioned 兼容', () {
-    testWidgets('官方 Positioned 在 ElStackView 里正常定位', (tester) async {
+    testWidgets('官方 Positioned 在 ElStack 里正常定位', (tester) async {
       await tester.pumpWidget(
         _app(
           const SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(children: [Positioned(left: 30, top: 40, width: 50, height: 60, child: SizedBox())]),
+            child: ElStack(children: [Positioned(left: 30, top: 40, width: 50, height: 60, child: SizedBox())]),
           ),
         ),
       );
@@ -235,7 +235,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 150,
-            child: ElStackView(children: [Positioned.fill(child: SizedBox())]),
+            child: ElStack(children: [Positioned.fill(child: SizedBox())]),
           ),
         ),
       );
@@ -250,7 +250,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 // 官方 Positioned：zIndex 恒 0，但数组在后 → 默认压在上面。
                 Positioned(
@@ -283,7 +283,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(
                   left: 0,
@@ -312,7 +312,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 for (var i = 0; i < 12; i++)
                   ElPositioned(
@@ -336,7 +336,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(left: 0, top: 0, zIndex: z, child: const SizedBox(width: 40, height: 40)),
                 const ElPositioned(left: 0, top: 0, child: SizedBox(width: 40, height: 40)),
@@ -347,7 +347,7 @@ void main() {
       }
 
       await tester.pumpWidget(build(0));
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.debugNeedsLayout, isFalse);
 
       await tester.pumpWidget(build(3));
@@ -362,7 +362,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(
                   left: 0,
@@ -396,7 +396,7 @@ void main() {
           const SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 // 树序最前、zIndex 最高：绘制在最上的贴顶浮动条
                 ElPositioned(
@@ -437,7 +437,7 @@ void main() {
           SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(
                   left: 0,
@@ -486,7 +486,7 @@ void main() {
           // 是溢出命中协议的链断点，会在事件到达 stack 之前就掐掉。
           ElView(
             style: const ElStyle(width: 100, height: 100),
-            child: ElStackView(
+            child: ElStack(
               children: [
                 // 子右下角溢出父盒 40px。
                 ElPositioned(
@@ -513,7 +513,7 @@ void main() {
           // 测不出"封口"究竟是 stack 做的还是父级做的。
           ElView(
             style: const ElStyle(width: 100, height: 100),
-            child: ElStackView(
+            child: ElStack(
               clipBehavior: Clip.hardEdge,
               children: [
                 ElPositioned(
@@ -540,7 +540,7 @@ void main() {
           // 外层 ElView 比内层 stack 小，靠协议聚合拿到溢出边界。
           ElView(
             style: const ElStyle(width: 60, height: 60),
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(
                   left: 50,
@@ -552,7 +552,7 @@ void main() {
           ),
         ),
       );
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.hasHitBoundsOverflow, isTrue);
       expect(render.hitTestBounds.right, greaterThan(60));
 
@@ -566,11 +566,11 @@ void main() {
           const SizedBox(
             width: 200,
             height: 200,
-            child: ElStackView(children: [ElPositioned(left: 10, top: 10, width: 20, height: 20, child: SizedBox())]),
+            child: ElStack(children: [ElPositioned(left: 10, top: 10, width: 20, height: 20, child: SizedBox())]),
           ),
         ),
       );
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.hasHitBoundsOverflow, isFalse);
     });
 
@@ -580,7 +580,7 @@ void main() {
         _app(
           ElView(
             style: const ElStyle(width: 100, height: 100),
-            child: ElStackView(
+            child: ElStack(
               children: [
                 ElPositioned(
                   left: 80,
@@ -608,7 +608,7 @@ void main() {
           SizedBox(
             width: 100,
             height: 100,
-            child: ElStackView(
+            child: ElStack(
               children: [ElPositioned(left: left, top: 10, child: const SizedBox(width: 40, height: 40))],
             ),
           ),
@@ -616,7 +616,7 @@ void main() {
       }
 
       await tester.pumpWidget(build(10));
-      final render = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final render = tester.renderObject<RenderStackView>(find.byType(ElStack));
       expect(render.hasHitBoundsOverflow, isFalse);
 
       await tester.pumpWidget(build(90));

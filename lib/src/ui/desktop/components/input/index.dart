@@ -336,7 +336,7 @@ class Input extends ElInputModelValue<String> {
             iconColor: _resolveInputColorSlot(c, resolved?.color) ?? c.elTheme.textRegular,
           ).merge(resolved?.onSelection == null ? null : ElStyle(onSelection: resolved!.onSelection));
         })(context),
-        child: ElStackView(
+        child: ElStack(
           fit: .expand,
           children: [
             if (empty && component.placeholder != null)

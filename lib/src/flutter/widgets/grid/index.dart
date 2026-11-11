@@ -1,12 +1,17 @@
+import 'dart:math' as math;
+
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../geometry/grid_geometry.dart';
-import '../layout_view.dart';
+import 'grid_geometry.dart';
+import 'axis_geometry.dart';
+
+part 'render.dart';
 
 /// Grid 排列布局；全量挂载，虚拟网格使用 ElScroll 中的 Sliver。
-class ElGridView extends LayoutView {
+class ElGrid extends MultiChildRenderObjectWidget {
   /// 创建全量布局，方向跟随所属滚动容器，独立使用时默认垂直。
-  const ElGridView({
+  const ElGrid({
     super.key,
     this.crossAxisCount,
     this.itemWidth,
@@ -73,8 +78,7 @@ class ElGridView extends LayoutView {
   /// 行列间距相同时返回共同值。
   double? get gap => rowGap == columnGap ? rowGap : null;
 
-  @override
-  GridLayoutGeometry get gridGeometry => GridLayoutGeometry(
+  GridLayoutGeometry get _gridGeometry => GridLayoutGeometry(
     crossAxisCount: crossAxisCount,
     itemWidth: itemWidth,
     minCrossAxisExtent: minCrossAxisExtent,
@@ -84,19 +88,23 @@ class ElGridView extends LayoutView {
     rowGap: rowGap,
     columnGap: columnGap,
   );
+  void _configure(BuildContext context, _RenderGrid render) {
+    final direction = Scrollable.maybeOf(context)?.axisDirection;
+    render.configure(
+      direction == null ? Axis.vertical : axisDirectionToAxis(direction),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+      _gridGeometry,
+    );
+  }
+
   @override
-  ElRenderGridView createRenderObject(BuildContext context) {
-    final render = ElRenderGridView();
-    configureRenderObject(context, render);
+  RenderBox createRenderObject(BuildContext context) {
+    final render = _RenderGrid();
+    _configure(context, render);
     return render;
   }
-}
 
-/// Grid 条目的布局偏移。
-class ElGridParentData extends LayoutParentData {}
-
-/// 使用共享 Grid 算法的渲染宿主。
-class ElRenderGridView extends RenderLayoutView {
   @override
-  LayoutParentData createParentData() => ElGridParentData();
+  void updateRenderObject(BuildContext context, covariant RenderBox renderObject) =>
+      _configure(context, renderObject as _RenderGrid);
 }

@@ -80,7 +80,7 @@ class _OrderFixtureState extends State<_OrderFixture> {
 
   @override
   Widget build(BuildContext context) {
-    return ElStackView(
+    return ElStack(
       children: [
         ElPositioned(
           key: const ValueKey('first-positioned'),
@@ -115,7 +115,7 @@ void main() {
       final paints = <String>[];
       await tester.pumpWidget(
         _app(
-          ElStackView(
+          ElStack(
             children: [
               _LayerProbe('first', paints, key: const ValueKey('first')),
               _LayerProbe('last', paints, key: const ValueKey('last')),
@@ -123,7 +123,7 @@ void main() {
           ),
         ),
       );
-      final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+      final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
       final first = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('first')));
       final last = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('last')));
       final element = tester.element(find.byKey(const ValueKey('first')));
@@ -147,10 +147,8 @@ void main() {
 
   testWidgets('强制层序刷新隐藏 child 后真实命中不穿过负层', (tester) async {
     final paints = <String>[];
-    await tester.pumpWidget(
-      _app(ElStackView(children: [_LayerProbe('single', paints, key: const ValueKey('single'))])),
-    );
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    await tester.pumpWidget(_app(ElStack(children: [_LayerProbe('single', paints, key: const ValueKey('single'))])));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final child = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('single')));
     final layouts = child.layoutCount;
     (child.parentData! as ElStackParentData).zIndex = -1;
@@ -168,7 +166,7 @@ void main() {
     await tester.pumpWidget(_app(_OrderFixture(key: key, paintLog: paints)));
     key.currentState!.setFirstZ(5);
     await tester.pump();
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final first = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('first')));
     final element = tester.element(find.byKey(const ValueKey('first')));
     final order = stack.explicitStackPaintOrder;
@@ -191,7 +189,7 @@ void main() {
     final paintLog = <String>[];
     await tester.pumpWidget(_app(_OrderFixture(key: fixtureKey, paintLog: paintLog)));
 
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final first = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('first')));
     final element = tester.element(find.byKey(const ValueKey('first')));
     final layoutCount = first.layoutCount;
@@ -213,7 +211,7 @@ void main() {
     final fixtureKey = GlobalKey<_OrderFixtureState>();
     final paintLog = <String>[];
     await tester.pumpWidget(_app(_OrderFixture(key: fixtureKey, paintLog: paintLog)));
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final before = stack.debugLayerOrderRebuildCount;
 
     fixtureKey.currentState!
@@ -234,7 +232,7 @@ void main() {
     final fixtureKey = GlobalKey<_OrderFixtureState>();
     final paintLog = <String>[];
     await tester.pumpWidget(_app(_OrderFixture(key: fixtureKey, paintLog: paintLog)));
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     var before = stack.debugLayerOrderRebuildCount;
 
     fixtureKey.currentState!.setShowMiddle(false);
@@ -257,7 +255,7 @@ void main() {
     final fixtureKey = GlobalKey<_OrderFixtureState>();
     final paintLog = <String>[];
     await tester.pumpWidget(_app(_OrderFixture(key: fixtureKey, paintLog: paintLog)));
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     expect(stack.debugUsesDefaultLayerOrder, isFalse, reason: 'middle 的 zIndex=2 会启用显式排序');
 
     fixtureKey.currentState!
@@ -273,7 +271,7 @@ void main() {
     final handle = tester.ensureSemantics();
     final paintLog = <String>[];
     await tester.pumpWidget(_app(_OrderFixture(paintLog: paintLog)));
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
 
     expect(paintLog, ['first', 'last', 'middle']);
     final semanticOrder = <String>[];
@@ -288,7 +286,7 @@ void main() {
     final paintLog = <String>[];
     await tester.pumpWidget(
       _app(
-        ElStackView(
+        ElStack(
           children: [
             ElPositioned(
               left: 0,
@@ -301,7 +299,7 @@ void main() {
       ),
     );
 
-    final stack = tester.renderObject<RenderStackView>(find.byType(ElStackView));
+    final stack = tester.renderObject<RenderStackView>(find.byType(ElStack));
     final hidden = tester.renderObject<_RenderLayerProbe>(find.byKey(const ValueKey('hidden')));
     expect(hidden.layoutCount, 1, reason: '负层只隐藏呈现，不销毁或跳过布局');
     expect(paintLog, isEmpty);

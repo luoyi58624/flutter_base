@@ -67,8 +67,8 @@ final class GridLayoutGeometry {
     if (!cross.isFinite && itemCount == 0) cross = 0;
     if (!cross.isFinite) {
       final canResolve = targetCross != null || tracks != null && mainAxisExtent != null;
-      assert(canResolve, 'ElGridView 交叉轴无界时必须指定 itemWidth，或同时指定 crossAxisCount 与 mainAxisExtent。');
-      if (!canResolve) throw StateError('ElGridView 缺少有限交叉轴尺寸。');
+      assert(canResolve, 'ElGrid 交叉轴无界时必须指定 itemWidth，或同时指定 crossAxisCount 与 mainAxisExtent。');
+      if (!canResolve) throw StateError('ElGrid 缺少有限交叉轴尺寸。');
       // 无界时按预估尺寸定轨道，未指定数量则排成一带，无需探测子项。
       tracks ??= math.max(1, itemCount);
       final cell =

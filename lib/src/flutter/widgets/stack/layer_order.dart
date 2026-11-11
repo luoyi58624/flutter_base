@@ -1,4 +1,4 @@
-part of 'stack_view.dart';
+part of 'index.dart';
 
 /// 按 zIndex、激活顺序、挂载顺序依次比较两个层序节点。
 int _compareLayerOrderNodes(ElStackParentData a, ElStackParentData b) {

@@ -1,4 +1,4 @@
-part of 'stack_view.dart';
+part of 'index.dart';
 
 /// Stack、滚动视口与弹层共用的 child 层序及溢出命中基座，不规定布局算法。
 ///

@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter/painting.dart';
 
-import '../layout/geometry/pixel_grid.dart';
+import '../../utils/internal/pixel_grid.dart';
 
 /// 可编辑文本视觉行的纵向度量策略。
 enum EditableLineHeightMode {
