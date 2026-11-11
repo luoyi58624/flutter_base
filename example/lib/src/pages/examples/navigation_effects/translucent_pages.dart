@@ -91,16 +91,14 @@ class _TranslucentEffectPageState extends State<TranslucentEffectPage> {
                       SliverToBoxAdapter(child: SizedBox(height: safe.bottom + 24)),
                     ],
                   )
-                : ElRefresh(
-                    onRefresh: effectRefresh,
-                    child: ElScroll.sliver(
-                      key: PageStorageKey('effects-landscape-original'),
-                      controller: scrollController,
-                      slivers: [
-                        ...slivers,
-                        SliverToBoxAdapter(child: SizedBox(height: safe.bottom + 24)),
-                      ],
-                    ),
+                : ElScroll.sliver(
+                    key: PageStorageKey('effects-landscape-original'),
+                    controller: scrollController,
+                    slivers: [
+                      ElSliverRefresh(onRefresh: effectRefresh),
+                      ...slivers,
+                      SliverToBoxAdapter(child: SizedBox(height: safe.bottom + 24)),
+                    ],
                   ),
             if (!widget.officialSliver)
               Positioned(

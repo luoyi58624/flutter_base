@@ -26,30 +26,28 @@ class _RevealParallaxEffectPageState extends State<RevealParallaxEffectPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: effectWhite,
     appBar: AppBar(title: Text('原野'), backgroundColor: effectWhite),
-    body: ElRefresh(
-      onRefresh: effectRefresh,
-      child: ElScroll.sliver(
-        controller: controller,
-        slivers: [
-          SliverToBoxAdapter(child: effectDescription('风景，正在发生', '把日常的片刻，收进一幅画里。')),
-          SliverList.builder(
-            itemCount: 24,
-            itemBuilder: (context, index) => _MotionCard(index: index, scroll: controller),
-          ),
-          SliverToBoxAdapter(
-            child: effectContent(
-              Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  '愿你也有一片自己的原野。',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: effectMuted),
-                ),
+    body: ElScroll.sliver(
+      controller: controller,
+      slivers: [
+        ElSliverRefresh(onRefresh: effectRefresh),
+        SliverToBoxAdapter(child: effectDescription('风景，正在发生', '把日常的片刻，收进一幅画里。')),
+        SliverList.builder(
+          itemCount: 24,
+          itemBuilder: (context, index) => _MotionCard(index: index, scroll: controller),
+        ),
+        SliverToBoxAdapter(
+          child: effectContent(
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                '愿你也有一片自己的原野。',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: effectMuted),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 }
@@ -278,80 +276,78 @@ class _ReadingProgressEffectPageState extends State<ReadingProgressEffectPage> {
     backgroundColor: effectWhite,
     body: Stack(
       children: [
-        ElRefresh(
-          onRefresh: effectRefresh,
-          child: ElScroll.sliver(
-            controller: scroll,
-            slivers: [
-              SliverToBoxAdapter(
-                child: effectContent(
+        ElScroll.sliver(
+          controller: scroll,
+          slivers: [
+            ElSliverRefresh(onRefresh: effectRefresh),
+            SliverToBoxAdapter(
+              child: effectContent(
+                Padding(
+                  padding: EdgeInsets.only(top: 32, bottom: 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('生活方式 / 慢读', style: TextStyle(fontSize: 12, letterSpacing: 2, color: Color(0xff6f8778))),
+                      SizedBox(height: 14),
+                      Text('把周末，\n还给自己', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, height: 1.25)),
+                      SizedBox(height: 18),
+                      Text('不把休息变成另一张待办清单。\n从一件小事开始，重新感受生活。', style: TextStyle(color: effectMuted, height: 1.6)),
+                      SizedBox(height: 24),
+                      Row(
+                        children: [
+                          effectAvatar('林', Color(0xff587666), size: 30),
+                          SizedBox(width: 10),
+                          Text('林间编辑部  ·  约 6 分钟', style: TextStyle(color: effectMuted, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(child: effectContent(effectLandscape(0, height: 210))),
+            SliverToBoxAdapter(
+              child: effectContent(
+                Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Text('插画 / 给日常留一点温柔的颜色', style: TextStyle(fontSize: 11, color: effectMuted)),
+                ),
+              ),
+            ),
+            SliverList.builder(
+              itemCount: sections.length,
+              itemBuilder: (context, index) {
+                final (title, paragraphs) = sections[index];
+                return effectContent(
                   Padding(
-                    padding: EdgeInsets.only(top: 32, bottom: 28),
+                    padding: EdgeInsets.only(top: 30),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('生活方式 / 慢读', style: TextStyle(fontSize: 12, letterSpacing: 2, color: Color(0xff6f8778))),
-                        SizedBox(height: 14),
-                        Text('把周末，\n还给自己', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, height: 1.25)),
-                        SizedBox(height: 18),
-                        Text('不把休息变成另一张待办清单。\n从一件小事开始，重新感受生活。', style: TextStyle(color: effectMuted, height: 1.6)),
-                        SizedBox(height: 24),
-                        Row(
-                          children: [
-                            effectAvatar('林', Color(0xff587666), size: 30),
-                            SizedBox(width: 10),
-                            Text('林间编辑部  ·  约 6 分钟', style: TextStyle(color: effectMuted, fontSize: 12)),
-                          ],
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 18),
+                          child: Text(title, style: TextStyle(fontSize: 23, fontWeight: FontWeight.w600)),
                         ),
+                        for (final paragraph in paragraphs) effectParagraph(paragraph),
                       ],
                     ),
                   ),
-                ),
-              ),
-              SliverToBoxAdapter(child: effectContent(effectLandscape(0, height: 210))),
-              SliverToBoxAdapter(
-                child: effectContent(
-                  Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Text('插画 / 给日常留一点温柔的颜色', style: TextStyle(fontSize: 11, color: effectMuted)),
+                );
+              },
+            ),
+            SliverToBoxAdapter(
+              child: effectContent(
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 28),
+                  child: Text(
+                    '全文完 · 愿你有一个属于自己的周末',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: effectMuted),
                   ),
                 ),
               ),
-              SliverList.builder(
-                itemCount: sections.length,
-                itemBuilder: (context, index) {
-                  final (title, paragraphs) = sections[index];
-                  return effectContent(
-                    Padding(
-                      padding: EdgeInsets.only(top: 30),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 18),
-                            child: Text(title, style: TextStyle(fontSize: 23, fontWeight: FontWeight.w600)),
-                          ),
-                          for (final paragraph in paragraphs) effectParagraph(paragraph),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              SliverToBoxAdapter(
-                child: effectContent(
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 28),
-                    child: Text(
-                      '全文完 · 愿你有一个属于自己的周末',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: effectMuted),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
         Positioned(
           top: 0,

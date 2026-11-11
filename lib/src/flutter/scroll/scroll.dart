@@ -5,8 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../dart/gen/index.dart' show $absent;
 import '../slivers/list/sliver_list.dart' show ElSliverList;
 import 'smooth/smooth_scroll.dart' show ElSmoothScroll, resolveDefaultSmoothScroll;
-import '../widgets/refresh/refresh_host.dart' show RefreshDockPhysics, RefreshScrollLink;
-import '../widgets/refresh/refresh.dart' show ElRefreshScope;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTransparentSelectionRegistrar;
 
@@ -20,7 +18,7 @@ import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTranspar
 /// 释放后的惯性同样留在本层。整条链都贴边时由最外层按自身物理处理。
 /// 鼠标滚轮连续输入时保留接收者，停顿满 500ms 才重新命中；移出接收区域立即交接。
 /// 需要折叠头这类先于正文消费位移的效果时，用 ElNestedScroll 包住本组件。
-/// 下拉刷新有两个入口：ElRefresh 包住本组件，或把 ElSliverRefresh 放进 [ElScroll.sliver]。
+/// 下拉刷新通过放进 [ElScroll.sliver] 的 ElSliverRefresh 接入。
 class ElScroll extends HookWidget {
   /// 创建直接排列 [children] 的滚动容器。
   const ElScroll({
@@ -98,14 +96,11 @@ class ElScroll extends HookWidget {
     final host = useMemoized(_HostController.new);
     final pointers = useMemoized(_RawPointers.new);
     final activeController = host;
-    final refreshLink = ElRefreshScope.maybeOf(context);
     final configuredSmooth = identical(smoothScroll, $absent)
         ? resolveDefaultSmoothScroll()
         : smoothScroll as ElSmoothScroll?;
     useEffect(() {
-      host
-        ..bind(controller)
-        ..bindRefresh(refreshLink);
+      host.bind(controller);
       return host.dispose;
     }, const []);
     useValueChanged<ScrollController?, void>(controller, (_, _) {
@@ -113,7 +108,6 @@ class ElScroll extends HookWidget {
       // 若旧清理执行 bind(null)，会把刚换上的 controller 再摘掉。
       host.bind(controller);
     });
-    useValueChanged<RefreshScrollLink?, void>(refreshLink, (_, _) => host.bindRefresh(refreshLink));
 
     final direction = getAxisDirectionFromAxisReverseAndDirectionality(context, axis, reverse);
     final slivers =
@@ -124,18 +118,13 @@ class ElScroll extends HookWidget {
             sliver: ElSliverList(spacing: gap, stretch: true, children: children!),
           ),
         ];
-    final effectivePhysics = refreshLink == null ? physics : AlwaysScrollableScrollPhysics(parent: physics);
     final selection = switch (SelectionContainer.maybeOf(context)) {
       final ScrollTransparentSelectionRegistrar registrar => registrar,
       _ => null,
     };
     Widget scrollable = Scrollable(
       controller: activeController,
-      physics: ScrollHostPhysics(
-        parent: refreshLink?.movesContent == true
-            ? RefreshDockPhysics(getLink: () => refreshLink, parent: effectivePhysics)
-            : effectivePhysics,
-      ),
+      physics: ScrollHostPhysics(parent: physics),
       axisDirection: direction,
       clipBehavior: clipBehavior,
       viewportBuilder: (context, offset) {
@@ -143,10 +132,6 @@ class ElScroll extends HookWidget {
         final position = activeController.position;
         if (position is ScrollHostPosition) {
           position.configureSmooth(configuredSmooth);
-          if (refreshLink != null) {
-            refreshLink.position = () => position;
-            refreshLink.directDragActive = () => position.isDirectDrag;
-          }
         }
         final viewport = shrinkWrap
             ? ElShrinkWrappingViewport(
@@ -178,10 +163,7 @@ class ElScroll extends HookWidget {
       onPointerDown: (event) => pointers.down(event.pointer, activeController),
       onPointerUp: (event) => pointers.up(event.pointer),
       onPointerCancel: (event) => pointers.cancel(event.pointer, activeController),
-      child: ElRefreshScope(
-        link: null, // 内层 ElScroll 不能误占用外层绑定的刷新器。
-        child: scrollable,
-      ),
+      child: scrollable,
     );
   }
 }
@@ -213,8 +195,6 @@ final class _RawPointers {
 /// 将外部 ScrollController 连接到官方 Scrollable 的同一个真实位置。
 final class _HostController extends ScrollController {
   ScrollController? _user;
-  RefreshScrollLink? _refreshLink;
-  ScrollPosition? _refreshPosition;
 
   /// 把已创建的位置同步挂到调用方控制器，更换控制器不重建位置。
   void bind(ScrollController? next) {
@@ -225,29 +205,6 @@ final class _HostController extends ScrollController {
       previous?.detach(position);
       next?.attach(position);
     }
-  }
-
-  /// 将实际滚动位置提供给刷新状态机；只保留当前活动的宿主位置。
-  void bindRefresh(RefreshScrollLink? next) {
-    if (identical(_refreshLink, next)) return;
-    final previous = _refreshLink;
-    if (previous != null) {
-      previous.position = null;
-      previous.directDragActive = null;
-    }
-    _refreshLink = next;
-    if (next == null) return;
-    for (final position in positions) {
-      _bindRefreshPosition(position);
-    }
-  }
-
-  void _bindRefreshPosition(ScrollPosition? position) {
-    _refreshPosition = position;
-    final link = _refreshLink;
-    if (link == null) return;
-    link.position = position == null ? null : () => position;
-    link.directDragActive = position is ScrollHostPosition ? () => position.isDirectDrag : null;
   }
 
   @override
@@ -267,19 +224,11 @@ final class _HostController extends ScrollController {
   void attach(ScrollPosition position) {
     super.attach(position);
     _user?.attach(position);
-    _bindRefreshPosition(position);
   }
 
   @override
   void detach(ScrollPosition position) {
-    if (identical(_refreshPosition, position)) _bindRefreshPosition(null);
     _user?.detach(position);
     super.detach(position);
-  }
-
-  @override
-  void dispose() {
-    bindRefresh(null);
-    super.dispose();
   }
 }

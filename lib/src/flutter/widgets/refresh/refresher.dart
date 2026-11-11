@@ -1,8 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 /// WebKit 原生橡皮筋回弹弹簧（Apple 开源实现的换算）：
@@ -74,7 +71,7 @@ class ElRefreshSnapshot {
   int get hashCode => Object.hash(status, pulledExtent, triggerExtent, edge, axisDirection);
 }
 
-/// 传给 [ElRefresher.build] 的只读上下文（对齐 [ElScrollbarDetails] 形态）。
+/// 传给 [ElRefresher.buildIndicator] 的只读刷新上下文。
 abstract class ElRefreshDetails {
   /// 当前刷新状态快照。
   ValueListenable<ElRefreshSnapshot> get snapshot;
@@ -88,12 +85,6 @@ abstract class ElRefreshDetails {
   /// 滚动内容真实让出的间隙；无法读取宿主指标时为 null。
   double? get contentGap;
 
-  /// 固定头部下方的实际正文区域；null 保留整视口布局。
-  Rect? get contentViewportRect => null;
-
-  /// 正文可用区域即将重新布局的信号，与普通刷新重绘分开。
-  Listenable? get contentLayoutChanges => null;
-
   /// 程序化触发一次完整刷新（指示器可用于"点击刷新"类交互）。
   /// 非 idle 状态下调用是 no-op。
   void requestRefresh();
@@ -102,8 +93,7 @@ abstract class ElRefreshDetails {
 /// 一份完整、不可变的下拉刷新配置（对齐 [ElScrollbar] 形态）。
 ///
 /// 对象可复用（类似 ScrollPhysics）；每个挂载的刷新宿主自建可变 details
-/// 与视觉子树。本类和 [ElScrollbar] 一样拥有完整构建边界：[build] 负责
-/// 内容与刷新层的组合，平台子类只覆写 [buildIndicator] 与策略 getter。
+/// 与视觉子树；Sliver 负责布局和绘制，平台子类覆写 [buildIndicator] 与策略 getter。
 abstract class ElRefresher {
   const ElRefresher({this.movesContent = true});
 
@@ -176,129 +166,6 @@ abstract class ElRefresher {
   ///
   /// 返回节点覆盖整个视口，无交互区域必须保持命中透明，避免挡住滚动手势。
   Widget buildIndicator(BuildContext context, ElRefreshDetails details);
-
-  /// 构建滚动内容和刷新指示器的完整层级。
-  ///
-  /// bouncing 风格默认把指示器放在内容下方并裁剪到真实间隙；clamping
-  /// 风格放在内容上方。自定义刷新器可覆写本方法接管完整组合。
-  Widget build(BuildContext context, ElRefreshDetails details, Widget child) {
-    final behind = behindContent(details);
-    Widget indicator = buildIndicator(context, details);
-    if (behind) {
-      indicator = RefreshGapClip(
-        snapshot: details.snapshot,
-        repaint: details.repaint,
-        contentGapOf: () => details.contentGap,
-        child: indicator,
-      );
-    }
-    return _RefreshComposition(details: details, behind: behind, children: [child, indicator]);
-  }
-}
-
-class _RefreshComposition extends MultiChildRenderObjectWidget {
-  const _RefreshComposition({required this.details, required this.behind, required super.children});
-  final ElRefreshDetails details;
-  final bool behind;
-  @override
-  _RenderRefreshComposition createRenderObject(BuildContext context) => _RenderRefreshComposition(details, behind);
-  @override
-  void updateRenderObject(BuildContext context, _RenderRefreshComposition renderObject) =>
-      renderObject.update(details, behind);
-}
-
-class _RefreshParentData extends ContainerBoxParentData<RenderBox> {}
-
-class _RenderRefreshComposition extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, _RefreshParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _RefreshParentData> {
-  _RenderRefreshComposition(this._details, this._behind);
-  ElRefreshDetails _details;
-  bool _behind;
-  Rect _region = Rect.zero;
-
-  void update(ElRefreshDetails details, bool behind) {
-    if (attached) _details.contentLayoutChanges?.removeListener(markNeedsLayout);
-    _details = details;
-    _behind = behind;
-    if (attached) _details.contentLayoutChanges?.addListener(markNeedsLayout);
-    markNeedsLayout();
-    markNeedsSemanticsUpdate();
-  }
-
-  @override
-  void setupParentData(RenderBox child) {
-    if (child.parentData is! _RefreshParentData) child.parentData = _RefreshParentData();
-  }
-
-  @override
-  void performLayout() {
-    // 先布局真实正文，随后读取其最新头部边界；指示器没有一帧旧高度。
-    firstChild!.layout(constraints, parentUsesSize: true);
-    size = constraints.constrain(firstChild!.size);
-    _region = (_details.contentViewportRect ?? Offset.zero & size).intersect(Offset.zero & size);
-    if (_region.isEmpty) _region = Rect.fromLTWH(0, size.height, 0, 0);
-    lastChild!.layout(BoxConstraints.tight(_region.size), parentUsesSize: true);
-    (lastChild!.parentData! as _RefreshParentData).offset = _region.topLeft;
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    void paintIndicator() {
-      if (_region.isEmpty) return;
-      if (_details.contentViewportRect == null) {
-        context.paintChild(lastChild!, offset);
-      } else {
-        context.pushClipRect(
-          needsCompositing,
-          offset,
-          _region,
-          (inner, origin) => inner.paintChild(lastChild!, origin + _region.topLeft),
-        );
-      }
-    }
-
-    if (_behind) paintIndicator();
-    context.paintChild(firstChild!, offset);
-    if (!_behind) paintIndicator();
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    bool indicator() =>
-        _region.contains(position) &&
-        result.addWithPaintOffset(
-          offset: _region.topLeft,
-          position: position,
-          hitTest: (result, point) => lastChild!.hitTest(result, position: point),
-        );
-    return _behind
-        ? firstChild!.hitTest(result, position: position) || indicator()
-        : indicator() || firstChild!.hitTest(result, position: position);
-  }
-
-  @override
-  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
-    visitor(_behind ? lastChild! : firstChild!);
-    visitor(_behind ? firstChild! : lastChild!);
-  }
-
-  @override
-  Rect? describeApproximatePaintClip(RenderObject child) =>
-      identical(child, lastChild) && _details.contentViewportRect != null ? _region : null;
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _details.contentLayoutChanges?.addListener(markNeedsLayout);
-  }
-
-  @override
-  void detach() {
-    _details.contentLayoutChanges?.removeListener(markNeedsLayout);
-    super.detach();
-  }
 }
 
 /// 显式关闭下拉刷新。
@@ -314,11 +181,6 @@ class ElNoRefresher extends ElRefresher {
   @override
   Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
     return const SizedBox.shrink();
-  }
-
-  @override
-  Widget build(BuildContext context, ElRefreshDetails details, Widget child) {
-    return child;
   }
 }
 
@@ -350,112 +212,4 @@ final class ElCustomRefresher extends ElRefresher {
 
   @override
   Widget buildIndicator(BuildContext context, ElRefreshDetails details) => builder(context, details);
-}
-
-/// 把内容之下的刷新指示器裁剪到滚动内容真实让出的间隙。
-///
-/// 仅供刷新器核心和白盒测试使用，不属于 `package:flutter_base/ui.dart`
-/// 的公开 API。
-class RefreshGapClip extends SingleChildRenderObjectWidget {
-  const RefreshGapClip({super.key, required this.snapshot, this.repaint, this.contentGapOf, super.child});
-
-  final ValueListenable<ElRefreshSnapshot> snapshot;
-
-  /// 快照之外的重绘信号（内容位移但快照不变的帧）。
-  final Listenable? repaint;
-
-  /// 内容位移让出的真实间隙；null 时退化为快照拉出距离。
-  final double? Function()? contentGapOf;
-
-  @override
-  RenderRefreshGapClip createRenderObject(BuildContext context) {
-    return RenderRefreshGapClip(snapshot, repaint: repaint, contentGapOf: contentGapOf);
-  }
-
-  @override
-  void updateRenderObject(BuildContext context, RenderRefreshGapClip renderObject) {
-    renderObject
-      ..snapshot = snapshot
-      ..repaint = repaint
-      ..contentGapOf = contentGapOf;
-  }
-}
-
-/// [RefreshGapClip] 的绘制裁剪实现。
-///
-/// 仅供刷新器核心和白盒测试使用，不属于公开 API。
-class RenderRefreshGapClip extends RenderProxyBox {
-  // ignore: prefer_initializing_formals
-  RenderRefreshGapClip(this._snapshot, {Listenable? repaint, this.contentGapOf}) : _repaint = repaint;
-
-  final LayerHandle<ClipRectLayer> _clipHandle = LayerHandle<ClipRectLayer>();
-
-  double? Function()? contentGapOf;
-
-  ValueListenable<ElRefreshSnapshot> _snapshot;
-  set snapshot(ValueListenable<ElRefreshSnapshot> value) {
-    if (identical(value, _snapshot)) return;
-    if (attached) _snapshot.removeListener(markNeedsPaint);
-    _snapshot = value;
-    if (attached) _snapshot.addListener(markNeedsPaint);
-    markNeedsPaint();
-  }
-
-  Listenable? _repaint;
-  set repaint(Listenable? value) {
-    if (identical(value, _repaint)) return;
-    if (attached) _repaint?.removeListener(markNeedsPaint);
-    _repaint = value;
-    if (attached) _repaint?.addListener(markNeedsPaint);
-    markNeedsPaint();
-  }
-
-  @override
-  bool get isRepaintBoundary => true;
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _snapshot.addListener(markNeedsPaint);
-    _repaint?.addListener(markNeedsPaint);
-  }
-
-  @override
-  void detach() {
-    _snapshot.removeListener(markNeedsPaint);
-    _repaint?.removeListener(markNeedsPaint);
-    super.detach();
-  }
-
-  @override
-  void dispose() {
-    _clipHandle.layer = null;
-    super.dispose();
-  }
-
-  /// 当前露出间隙在本盒坐标系中的裁剪条带。
-  Rect get clipRect {
-    final snap = _snapshot.value;
-    var gap = snap.pulledExtent;
-    final content = contentGapOf?.call();
-    if (content != null) gap = math.min(gap, content);
-    gap = math.max(0.0, gap);
-    return switch ((axisDirectionToAxis(snap.axisDirection), snap.anchoredAtViewportStart)) {
-      (Axis.vertical, true) => Rect.fromLTWH(0, 0, size.width, gap),
-      (Axis.vertical, false) => Rect.fromLTWH(0, size.height - gap, size.width, gap),
-      (Axis.horizontal, true) => Rect.fromLTWH(0, 0, gap, size.height),
-      (Axis.horizontal, false) => Rect.fromLTWH(size.width - gap, 0, gap, size.height),
-    };
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (child == null) return;
-    final rect = clipRect;
-    if (rect.isEmpty) {
-      _clipHandle.layer = null;
-      return;
-    }
-    _clipHandle.layer = context.pushClipRect(needsCompositing, offset, rect, super.paint, oldLayer: _clipHandle.layer);
-  }
 }

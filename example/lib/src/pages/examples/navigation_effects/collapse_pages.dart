@@ -122,44 +122,42 @@ class _HideEffectPageState extends State<HideEffectPage> with SingleTickerProvid
       body: SafeArea(
         child: Stack(
           children: [
-            ElRefresh(
-              onRefresh: effectRefresh,
-              child: ElScroll.sliver(
-                controller: controller,
-                slivers: [
-                  SliverToBoxAdapter(child: SizedBox(height: 56)),
-                  SliverToBoxAdapter(child: effectDescription('慢慢看，慢慢想。', '周日 · 给生活一点空白')),
-                  SliverList.builder(
-                    itemCount: stories.length * 2,
-                    itemBuilder: (context, i) {
-                      final (category, title, summary) = stories[i % stories.length];
-                      return effectContent(
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 30),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              effectLandscape(i % 4, height: 200, radius: BorderRadius.circular(14)),
-                              SizedBox(height: 16),
-                              Text(
-                                category,
-                                style: TextStyle(color: Color(0xff567c70), fontSize: 12, fontWeight: FontWeight.w600),
-                              ),
-                              SizedBox(height: 6),
-                              Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 23)),
-                              SizedBox(height: 8),
-                              Text(summary, style: TextStyle(color: effectMuted, height: 1.6)),
-                              SizedBox(height: 14),
-                              Text('林间编辑部 · 6 分钟', style: TextStyle(color: effectMuted, fontSize: 12)),
-                              effectHairline(),
-                            ],
-                          ),
+            ElScroll.sliver(
+              controller: controller,
+              slivers: [
+                ElSliverRefresh(onRefresh: effectRefresh),
+                SliverToBoxAdapter(child: SizedBox(height: 56)),
+                SliverToBoxAdapter(child: effectDescription('慢慢看，慢慢想。', '周日 · 给生活一点空白')),
+                SliverList.builder(
+                  itemCount: stories.length * 2,
+                  itemBuilder: (context, i) {
+                    final (category, title, summary) = stories[i % stories.length];
+                    return effectContent(
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 30),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            effectLandscape(i % 4, height: 200, radius: BorderRadius.circular(14)),
+                            SizedBox(height: 16),
+                            Text(
+                              category,
+                              style: TextStyle(color: Color(0xff567c70), fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 6),
+                            Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 23)),
+                            SizedBox(height: 8),
+                            Text(summary, style: TextStyle(color: effectMuted, height: 1.6)),
+                            SizedBox(height: 14),
+                            Text('林间编辑部 · 6 分钟', style: TextStyle(color: effectMuted, fontSize: 12)),
+                            effectHairline(),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
             AnimatedBuilder(
               animation: header,
@@ -251,83 +249,81 @@ class _FoldEffectPageState extends State<FoldEffectPage> {
         ),
       ],
     ),
-    body: ElRefresh(
-      onRefresh: effectRefresh,
-      child: ElScroll.sliver(
-        controller: controller,
-        slivers: [
-          SliverToBoxAdapter(
-            child: effectContent(
-              Padding(
-                key: coverKey,
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(width: 196, height: 196, child: LandscapeArtwork()),
-                    ),
-                    SizedBox(height: 22),
-                    Text('午后慢调', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-                    SizedBox(height: 8),
-                    Text('林间编辑部精选', style: TextStyle(color: Color(0xff587666))),
-                    SizedBox(height: 12),
-                    Text('把时间调慢一点。\n钢琴、木吉他，与窗外的风。', textAlign: TextAlign.center),
-                  ],
-                ),
+    body: ElScroll.sliver(
+      controller: controller,
+      slivers: [
+        ElSliverRefresh(onRefresh: effectRefresh),
+        SliverToBoxAdapter(
+          child: effectContent(
+            Padding(
+              key: coverKey,
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(width: 196, height: 196, child: LandscapeArtwork()),
+                  ),
+                  SizedBox(height: 22),
+                  Text('午后慢调', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+                  SizedBox(height: 8),
+                  Text('林间编辑部精选', style: TextStyle(color: Color(0xff587666))),
+                  SizedBox(height: 12),
+                  Text('把时间调慢一点。\n钢琴、木吉他，与窗外的风。', textAlign: TextAlign.center),
+                ],
               ),
             ),
           ),
-          SliverToBoxAdapter(child: effectSectionLabel('曲目', trailing: '64 首 · 约 4 小时')),
-          SliverList.builder(
-            itemCount: 64,
-            itemBuilder: (context, i) {
-              final names = [
-                '晨光',
-                '一杯温水',
-                '风经过窗台',
-                '慢慢醒来',
-                '半页诗',
-                '树影',
-                '午后两点',
-                '没有安排的一天',
-                '走到河边',
-                '云的形状',
-                '玻璃上的雨',
-                '日落之前',
-              ];
-              final artists = ['南山 · Piano Sketches', '白川 · 日常', '木和 · Room Sessions', '青木 · 清晨集', '陈默 · 未完成'];
-              return effectContent(
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 32,
-                        child: Text('${i + 1}', style: TextStyle(color: effectMuted)),
+        ),
+        SliverToBoxAdapter(child: effectSectionLabel('曲目', trailing: '64 首 · 约 4 小时')),
+        SliverList.builder(
+          itemCount: 64,
+          itemBuilder: (context, i) {
+            final names = [
+              '晨光',
+              '一杯温水',
+              '风经过窗台',
+              '慢慢醒来',
+              '半页诗',
+              '树影',
+              '午后两点',
+              '没有安排的一天',
+              '走到河边',
+              '云的形状',
+              '玻璃上的雨',
+              '日落之前',
+            ];
+            final artists = ['南山 · Piano Sketches', '白川 · 日常', '木和 · Room Sessions', '青木 · 清晨集', '陈默 · 未完成'];
+            return effectContent(
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 32,
+                      child: Text('${i + 1}', style: TextStyle(color: effectMuted)),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(names[i % names.length], style: TextStyle(fontSize: 17)),
+                          SizedBox(height: 4),
+                          Text(artists[i % artists.length], style: TextStyle(color: effectMuted, fontSize: 12)),
+                        ],
                       ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(names[i % names.length], style: TextStyle(fontSize: 17)),
-                            SizedBox(height: 4),
-                            Text(artists[i % artists.length], style: TextStyle(color: effectMuted, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        '0${3 + i % 2}:${((i * 17 + 13) % 60).toString().padLeft(2, '0')}',
-                        style: TextStyle(color: effectMuted),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Text(
+                      '0${3 + i % 2}:${((i * 17 + 13) % 60).toString().padLeft(2, '0')}',
+                      style: TextStyle(color: effectMuted),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        ),
+      ],
     ),
   );
 }

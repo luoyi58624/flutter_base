@@ -127,12 +127,16 @@ void main() {
     expect(_body(tester), 0);
     await first.moveBy(Offset(0, -200), timeStamp: Duration(milliseconds: 230));
     await tester.pump();
-    expect(_refreshStatus(tester), RefreshIndicatorStatus.drag);
+    // Sliver 拉距完全收回后立即回到空闲，松手也不能触发刷新。
+    expect(_refreshStatus(tester), isNull);
     await first.up(timeStamp: Duration(milliseconds: 440));
     await tester.pumpAndSettle();
     expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
     expect(_refreshStatus(tester), isNull);
 
+    // 完全回收后的剩余反向位移会滚动正文，下一次取消测试先恢复到顶部。
+    await tester.tap(find.text('首页').hitTestable());
+    await tester.pumpAndSettle();
     final canceled = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
     expect(_refreshStatus(tester), RefreshIndicatorStatus.armed);
     await canceled.cancel();

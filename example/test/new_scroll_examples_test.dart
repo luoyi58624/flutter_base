@@ -60,18 +60,16 @@ void main() {
     expect(find.text('纵横轴嵌套矩阵'), findsOneWidget);
     expect(find.text('外层纵向 / 内层纵向', skipOffstage: false), findsOneWidget);
     expect(find.text('外层横向 / 内层纵向', skipOffstage: false), findsOneWidget);
-    expect(find.byType(ShrinkWrappingViewport, skipOffstage: false), findsWidgets);
+    expect(
+      find.byWidgetPredicate((widget) => widget is ElScroll && widget.shrinkWrap, skipOffstage: false),
+      findsWidgets,
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('新版滚动：Widget 与 Sliver 刷新入口可以切换', (tester) async {
+  testWidgets('新版滚动：Sliver 刷新支持切换外观和反向列表', (tester) async {
     await tester.pumpWidget(_app(NewScrollRefreshPage()));
     await tester.pumpAndSettle();
-    expect(find.byType(ElRefresh), findsOneWidget);
-
-    await tester.tap(find.text('Sliver · ElSliverRefresh'));
-    await tester.pumpAndSettle();
-    expect(find.byType(ElRefresh), findsNothing);
     expect(find.byType(ElSliverRefresh, skipOffstage: false), findsOneWidget);
 
     await tester.tap(find.text('iOS · 内容让位'));

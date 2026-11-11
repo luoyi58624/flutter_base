@@ -1,8 +1,8 @@
 # 滚动宿主与共用策略
 
-`ElScroll` 基于官方 `Scrollable` 和 `Viewport`；普通内容使用默认构造，Sliver 组合使用 `ElScroll.sliver`。刷新入口为外层 `ElRefresh` 或起点处的 `ElSliverRefresh`，桌面滚动条使用 `ElDesktopScrollbar`。
+`ElScroll` 基于官方 `Scrollable` 和 `Viewport`；普通内容使用默认构造，Sliver 组合使用 `ElScroll.sliver`。刷新入口为列表中的 `ElSliverRefresh`，桌面滚动条使用 `ElDesktopScrollbar`。
 
-本目录只放滚动机制；能放进 `ElScroll.sliver` 的 Sliver（文档列表、回收列表、折叠头、大标题、`ElSliverRefresh`）位于 `slivers/`。
+本目录只放滚动机制；能放进 `ElScroll.sliver` 的 Sliver（文档列表、回收列表、折叠头、大标题）位于 `slivers/`；刷新组件位于 `widgets/refresh/`。
 
 | 路径 | 职责 |
 | --- | --- |
@@ -12,7 +12,6 @@
 | `nested/` | `ElNestedScroll`、协作协议与输入来源 |
 | `physics/` | Bouncing / Clamping 物理 |
 | `smooth/` | 平滑滚轮算法及其在标准位置上的编排 |
-| `refresh/` | `ElRefresh`、刷新配置、状态快照、刷新宿主及 Android / iOS 指示器 |
 | `scrollbar/` | `ElDesktopScrollbar` 及 Windows / macOS 桌面条带 |
 
 Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar`，两者不迁移旧自绘实现。桌面条带仅向标准 `ScrollPosition` 发送命令，不包含旧虚拟行的分数映射和位置引擎分支。

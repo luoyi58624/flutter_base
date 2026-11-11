@@ -350,15 +350,16 @@ class _BibiPlainFeedState extends State<_BibiPlainFeed> {
     }
     return widget.header.bindPage(
       widget.index,
-      child: ElRefresh(
-        refresher: _refresher,
-        onRefresh: widget.onRefresh,
-        child: ElScroll(
-          controller: widget.controller,
-          physics: _physics,
-          padding: EdgeInsets.only(bottom: 4),
-          children: [buildBibiBanner(context, widget.generation), ...chunks],
-        ),
+      child: ElScroll.sliver(
+        controller: widget.controller,
+        physics: _physics,
+        slivers: [
+          ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
+          SliverPadding(
+            padding: EdgeInsets.only(bottom: 4),
+            sliver: ElSliverList(stretch: true, children: [buildBibiBanner(context, widget.generation), ...chunks]),
+          ),
+        ],
       ),
     );
   }

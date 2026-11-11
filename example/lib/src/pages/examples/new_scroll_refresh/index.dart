@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// Widget 与 Sliver 两种下拉刷新入口的交互审核页面。
+/// Sliver 下拉刷新的交互审核页面。
 class NewScrollRefreshPage extends StatefulWidget {
   /// 创建新版刷新示例。
   const NewScrollRefreshPage({super.key});
@@ -11,7 +11,6 @@ class NewScrollRefreshPage extends StatefulWidget {
 }
 
 class _RefreshPageState extends State<NewScrollRefreshPage> {
-  bool _useSliver = false;
   bool _reverse = false;
   bool _ios = false;
   int _refreshes = 0;
@@ -27,7 +26,7 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
     final colors = Theme.of(context).colorScheme;
     final refresher = _ios ? ElIosRefresher() : ElAndroidRefresher();
     final slivers = <Widget>[
-      if (_useSliver) ElSliverRefresh(onRefresh: _refresh, refresher: refresher),
+      ElSliverRefresh(onRefresh: _refresh, refresher: refresher),
       SliverPadding(
         padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         sliver: SliverList.builder(
@@ -44,19 +43,7 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
         ),
       ),
     ];
-    final scroll = ElScroll.sliver(
-      key: ValueKey('refresh-scroll-$_useSliver-$_reverse'),
-      reverse: _reverse,
-      slivers: slivers,
-    );
-    final content = _useSliver
-        ? scroll
-        : ElRefresh(
-            onRefresh: _refresh,
-            refresher: refresher,
-            axisDirection: _reverse ? AxisDirection.up : AxisDirection.down,
-            child: scroll,
-          );
+    final scroll = ElScroll.sliver(key: ValueKey('refresh-scroll-$_reverse'), reverse: _reverse, slivers: slivers);
 
     return Scaffold(
       appBar: AppBar(title: Text('新版滚动 · 下拉刷新（$_refreshes）')),
@@ -67,25 +54,6 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('刷新入口', style: Theme.of(context).textTheme.titleSmall),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    ChoiceChip(
-                      label: Text('Widget · ElRefresh'),
-                      selected: !_useSliver,
-                      onSelected: (_) => setState(() => _useSliver = false),
-                    ),
-                    ChoiceChip(
-                      label: Text('Sliver · ElSliverRefresh'),
-                      selected: _useSliver,
-                      onSelected: (_) => setState(() => _useSliver = true),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
                 Text('刷新器外观', style: Theme.of(context).textTheme.titleSmall),
                 Wrap(
                   spacing: 8,
@@ -108,16 +76,14 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
                   ],
                 ),
                 Text(
-                  _useSliver
-                      ? 'Sliver 放在正文之前，iOS 形态用真实布局占位，Android 形态悬浮。'
-                      : 'Widget 包裹整个 ElScroll；支持 leading / trailing 两侧刷新。',
+                  'Sliver 放在正文之前，iOS 形态用真实布局占位，Android 形态悬浮。',
                   style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           Divider(height: 1),
-          Expanded(child: content),
+          Expanded(child: scroll),
         ],
       ),
     );

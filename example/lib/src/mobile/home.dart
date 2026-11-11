@@ -47,69 +47,63 @@ class _Home extends HookWidget {
     return ExamplePanel(
       key: ValueKey('page-推荐'),
       style: ElStyle(backgroundColor: _background),
-      child: ElRefresh(
-        onRefresh: () => load(refresh: true),
-        refresher: ElAndroidRefresher(color: _primary),
-        child: ElScroll.sliver(
-          key: PageStorageKey('home-list'),
-          controller: scroll,
-          physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
-          slivers: [
-            if (desktop) ...[
-              SliverLayoutBuilder(
-                key: ValueKey('home-grid'),
-                builder: (context, constraints) => SliverGrid.builder(
-                  itemCount: count.value,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    // 每列至少 360 宽，列数随视口宽度增加。
-                    crossAxisCount: math.max(1, (constraints.crossAxisExtent + 16) ~/ (360 + 16)),
-                    mainAxisExtent: 216 * MediaQuery.textScalerOf(context).scale(14) / 14,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                  ),
-                  itemBuilder: (context, index) =>
-                      _ArticleCard(_articles[index], typography, index: index, desktop: true),
+      child: ElScroll.sliver(
+        key: PageStorageKey('home-list'),
+        controller: scroll,
+        physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+        slivers: [
+          ElSliverRefresh(
+            onRefresh: () => load(refresh: true),
+            refresher: ElAndroidRefresher(color: _primary),
+          ),
+          if (desktop) ...[
+            SliverLayoutBuilder(
+              key: ValueKey('home-grid'),
+              builder: (context, constraints) => SliverGrid.builder(
+                itemCount: count.value,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  // 每列至少 360 宽，列数随视口宽度增加。
+                  crossAxisCount: math.max(1, (constraints.crossAxisExtent + 16) ~/ (360 + 16)),
+                  mainAxisExtent: 216 * MediaQuery.textScalerOf(context).scale(14) / 14,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                ),
+                itemBuilder: (context, index) =>
+                    _ArticleCard(_articles[index], typography, index: index, desktop: true),
+              ),
+            ),
+            if (ended.value || busy.value)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: _Label(ended.value ? '没有更多了' : '加载中…', typography, size: 12, color: _tertiary, align: .center),
                 ),
               ),
-              if (ended.value || busy.value)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: _Label(
-                      ended.value ? '没有更多了' : '加载中…',
-                      typography,
-                      size: 12,
-                      color: _tertiary,
-                      align: .center,
-                    ),
-                  ),
-                ),
-            ] else
-              SliverPadding(
-                padding: EdgeInsets.all(12),
-                sliver: SliverList.builder(
-                  itemCount: count.value + 1,
-                  itemBuilder: (context, index) => index < count.value
-                      ? Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: _ArticleCard(_articles[index], typography, index: index),
-                        )
-                      : (!ended.value && !(busy.value && count.value > 0))
-                      ? SizedBox.shrink()
-                      : Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          child: _Label(
-                            ended.value ? '没有更多了' : '加载中…',
-                            typography,
-                            size: 12,
-                            color: _tertiary,
-                            align: .center,
-                          ),
+          ] else
+            SliverPadding(
+              padding: EdgeInsets.all(12),
+              sliver: SliverList.builder(
+                itemCount: count.value + 1,
+                itemBuilder: (context, index) => index < count.value
+                    ? Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: _ArticleCard(_articles[index], typography, index: index),
+                      )
+                    : (!ended.value && !(busy.value && count.value > 0))
+                    ? SizedBox.shrink()
+                    : Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: _Label(
+                          ended.value ? '没有更多了' : '加载中…',
+                          typography,
+                          size: 12,
+                          color: _tertiary,
+                          align: .center,
                         ),
-                ),
+                      ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

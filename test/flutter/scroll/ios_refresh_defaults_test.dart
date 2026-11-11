@@ -24,10 +24,9 @@ class _LongPullIos extends _IosProbe {
 final _scroll = find.byKey(ValueKey('ios-scroll'));
 
 class _Fixture {
-  _Fixture({required this.sliver, double? triggerExtent, _IosProbe? refresher})
+  _Fixture({double? triggerExtent, _IosProbe? refresher})
     : refresher = refresher ?? _IosProbe(triggerExtent: triggerExtent);
 
-  final bool sliver;
   final _IosProbe refresher;
   final controller = ScrollController();
   final completion = Completer<void>();
@@ -46,11 +45,10 @@ class _Fixture {
       controller: controller,
       physics: ClampingScrollPhysics(),
       slivers: [
-        if (sliver) ElSliverRefresh(refresher: refresher, onRefresh: _refresh),
+        ElSliverRefresh(refresher: refresher, onRefresh: _refresh),
         SliverToBoxAdapter(child: SizedBox(height: 1200)),
       ],
     );
-    if (!sliver) child = ElRefresh(refresher: refresher, onRefresh: _refresh, child: child);
     return Directionality(
       textDirection: TextDirection.ltr,
       child: ScrollConfiguration(
@@ -77,80 +75,76 @@ Future<TestGesture> _pullTo(WidgetTester tester, _Fixture fixture, double target
 }
 
 void main() {
-  for (final sliver in [false, true]) {
-    final entry = sliver ? 'Sliver' : 'Widget';
+  testWidgets('Sliver iOS 指示器居中时进入待释放，松手才刷新并停靠原位', (tester) async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    await tester.pumpWidget(fixture.build());
 
-    testWidgets('$entry iOS 指示器居中时进入待释放，松手才刷新并停靠原位', (tester) async {
-      final fixture = _Fixture(sliver: sliver);
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.build());
+    final gesture = await _pullTo(tester, fixture, 56);
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
+    expect(fixture.snapshot.progress, lessThan(1));
+    await _pullTo(tester, fixture, 60, gesture);
+    expect(fixture.snapshot.pulledExtent, lessThan(64));
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
+    expect(fixture.snapshot.progress, 1);
+    expect(fixture.refreshes, 0);
+    final center = tester.getCenter(find.byType(ElRefreshCupertinoSpinner)).dy - tester.getTopLeft(_scroll).dy;
+    expect(center, closeTo(fixture.snapshot.pulledExtent / 2, 2));
+    expect(fixture.refresher.maxPullExtent, 250, reason: '缩短触发距离不会连带缩短最大拉伸空间');
 
-      final gesture = await _pullTo(tester, fixture, 56);
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
-      expect(fixture.snapshot.progress, lessThan(1));
-      await _pullTo(tester, fixture, 60, gesture);
-      expect(fixture.snapshot.pulledExtent, lessThan(64));
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
-      expect(fixture.snapshot.progress, 1);
-      expect(fixture.refreshes, 0);
-      final center = tester.getCenter(find.byType(ElRefreshCupertinoSpinner)).dy - tester.getTopLeft(_scroll).dy;
-      expect(center, closeTo(fixture.snapshot.pulledExtent / 2, 2));
-      expect(fixture.refresher.maxPullExtent, 250, reason: '缩短触发距离不会连带缩短最大拉伸空间');
+    await gesture.up();
+    await tester.pump(Duration(milliseconds: 16));
+    expect(fixture.refreshes, 1);
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.refresh);
+    await tester.pump(Duration(seconds: 1));
+    await tester.pump();
+    expect(fixture.snapshot.pulledExtent, closeTo(60, 1));
 
-      await gesture.up();
-      await tester.pump(Duration(milliseconds: 16));
-      expect(fixture.refreshes, 1);
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.refresh);
-      await tester.pump(Duration(seconds: 1));
-      await tester.pump();
-      expect(fixture.snapshot.pulledExtent, closeTo(60, 1));
+    fixture.completion.complete();
+    await tester.pumpAndSettle();
+    expect(fixture.snapshot.status, isNull);
+  });
 
-      fixture.completion.complete();
-      await tester.pumpAndSettle();
-      expect(fixture.snapshot.status, isNull);
-    });
+  testWidgets('Sliver iOS 达标后回拉撤销，松手不刷新', (tester) async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    await tester.pumpWidget(fixture.build());
+    final gesture = await _pullTo(tester, fixture, 60);
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
+    await gesture.moveBy(Offset(0, -20));
+    await tester.pump();
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
+    expect(fixture.snapshot.progress, lessThan(1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(fixture.refreshes, 0);
+    expect(fixture.snapshot.status, isNull);
+  });
 
-    testWidgets('$entry iOS 达标后回拉撤销，松手不刷新', (tester) async {
-      final fixture = _Fixture(sliver: sliver);
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.build());
-      final gesture = await _pullTo(tester, fixture, 60);
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
-      await gesture.moveBy(Offset(0, -20));
-      await tester.pump();
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
-      expect(fixture.snapshot.progress, lessThan(1));
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(fixture.refreshes, 0);
-      expect(fixture.snapshot.status, isNull);
-    });
+  testWidgets('Sliver iOS 显式触发距离不受默认值调整影响', (tester) async {
+    final fixture = _Fixture(triggerExtent: 100);
+    addTearDown(fixture.dispose);
+    await tester.pumpWidget(fixture.build());
+    final gesture = await _pullTo(tester, fixture, 60);
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
+    expect(fixture.snapshot.progress, lessThan(1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(fixture.refreshes, 0);
+  });
 
-    testWidgets('$entry iOS 显式触发距离不受默认值调整影响', (tester) async {
-      final fixture = _Fixture(sliver: sliver, triggerExtent: 100);
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.build());
-      final gesture = await _pullTo(tester, fixture, 60);
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.drag);
-      expect(fixture.snapshot.progress, lessThan(1));
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(fixture.refreshes, 0);
-    });
-
-    testWidgets('$entry 继承 iOS 刷新器调大阈值后仍可拉到待释放状态', (tester) async {
-      final fixture = _Fixture(sliver: sliver, refresher: _LongPullIos());
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.build());
-      final gesture = await _pullTo(tester, fixture, 260);
-      expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
-      expect(fixture.refreshes, 0);
-      await gesture.up();
-      await tester.pump(Duration(milliseconds: 16));
-      expect(fixture.refreshes, 1);
-      fixture.completion.complete();
-      await tester.pumpAndSettle();
-      expect(fixture.snapshot.status, isNull);
-    });
-  }
+  testWidgets('Sliver 继承 iOS 刷新器调大阈值后仍可拉到待释放状态', (tester) async {
+    final fixture = _Fixture(refresher: _LongPullIos());
+    addTearDown(fixture.dispose);
+    await tester.pumpWidget(fixture.build());
+    final gesture = await _pullTo(tester, fixture, 260);
+    expect(fixture.snapshot.status, RefreshIndicatorStatus.armed);
+    expect(fixture.refreshes, 0);
+    await gesture.up();
+    await tester.pump(Duration(milliseconds: 16));
+    expect(fixture.refreshes, 1);
+    fixture.completion.complete();
+    await tester.pumpAndSettle();
+    expect(fixture.snapshot.status, isNull);
+  });
 }

@@ -95,51 +95,46 @@ class _LargeTitleEffectPageState extends State<LargeTitleEffectPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: effectCanvas,
-      body: ElRefresh(
-        onRefresh: effectRefresh,
-        child: ElScroll.sliver(
-          slivers: [
-            ElSliverLargeTitle(
-              title: title,
-              fade: kind == LargeTitleEffectKind.fade,
-              centerTitle: kind == LargeTitleEffectKind.fade,
-              snap: kind != LargeTitleEffectKind.search,
-              backgroundColor: colors.surface,
-              leading: IconButton(
-                tooltip: '返回',
-                icon: Icon(CupertinoIcons.chevron_back),
-                onPressed: () => Navigator.maybePop(context),
-              ),
-              actions: [
-                if (kind == LargeTitleEffectKind.search)
-                  IconButton(tooltip: '关闭书库', icon: Icon(Icons.close), onPressed: () => Navigator.maybePop(context)),
-              ],
-              bottom: kind != LargeTitleEffectKind.search
-                  ? null
-                  : TextField(
-                      key: ValueKey('effects-large-search'),
-                      controller: query,
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search),
-                        hintText: '搜索书名或作者',
-                        filled: true,
-                        fillColor: Color(0xfff4f4f7),
-                        isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
+      body: ElScroll.sliver(
+        slivers: [
+          ElSliverLargeTitle(
+            title: title,
+            fade: kind == LargeTitleEffectKind.fade,
+            centerTitle: kind == LargeTitleEffectKind.fade,
+            snap: kind != LargeTitleEffectKind.search,
+            backgroundColor: colors.surface,
+            leading: IconButton(
+              tooltip: '返回',
+              icon: Icon(CupertinoIcons.chevron_back),
+              onPressed: () => Navigator.maybePop(context),
             ),
-            switch (kind) {
-              LargeTitleEffectKind.scale => _favorites(),
-              LargeTitleEffectKind.fade => _reminders(),
-              LargeTitleEffectKind.search => _library(),
-            },
-            SliverToBoxAdapter(child: SizedBox(height: 36)),
-          ],
-        ),
+            actions: [
+              if (kind == LargeTitleEffectKind.search)
+                IconButton(tooltip: '关闭书库', icon: Icon(Icons.close), onPressed: () => Navigator.maybePop(context)),
+            ],
+            bottom: kind != LargeTitleEffectKind.search
+                ? null
+                : TextField(
+                    key: ValueKey('effects-large-search'),
+                    controller: query,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: '搜索书名或作者',
+                      filled: true,
+                      fillColor: Color(0xfff4f4f7),
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+          ),
+          ElSliverRefresh(onRefresh: effectRefresh),
+          switch (kind) {
+            LargeTitleEffectKind.scale => _favorites(),
+            LargeTitleEffectKind.fade => _reminders(),
+            LargeTitleEffectKind.search => _library(),
+          },
+          SliverToBoxAdapter(child: SizedBox(height: 36)),
+        ],
       ),
     );
   }

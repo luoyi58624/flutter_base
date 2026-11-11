@@ -22,7 +22,8 @@ void main() {
     await tester.drag(home, Offset(0, -1800));
     await tester.pumpAndSettle();
     expect(count(), greaterThan(initial));
-    tester.widget<ElRefresh>(find.ancestor(of: home, matching: find.byType(ElRefresh)).first).onRefresh();
+    // 刷新 Sliver 离开缓存区后可能卸载，通过列表配置触发同一个刷新回调。
+    tester.widget<ElScroll>(home).slivers!.whereType<ElSliverRefresh>().single.onRefresh();
     await tester.pump(Duration(milliseconds: 1));
     await tester.pumpAndSettle();
     expect(count(), initial);

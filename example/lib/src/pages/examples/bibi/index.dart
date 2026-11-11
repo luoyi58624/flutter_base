@@ -313,26 +313,23 @@ class _BibiFeedState extends State<_BibiFeed> {
   @override
   Widget build(BuildContext context) => widget.header.bindPage(
     widget.index,
-    child: ElRefresh(
-      refresher: _refresher,
-      onRefresh: widget.onRefresh,
-      child: ElScroll.sliver(
-        controller: widget.controller,
-        physics: _physics,
-        slivers: [
-          SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
-          SliverPadding(
-            padding: EdgeInsets.only(bottom: 4),
-            sliver: SliverList.builder(
-              key: ValueKey('bibi-rows-${widget.generation}'),
-              itemCount: bibiVideoRowCount,
-              // 每行自带重绘边界，不再叠加官方列表的默认边界。
-              addRepaintBoundaries: false,
-              itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
-            ),
+    child: ElScroll.sliver(
+      controller: widget.controller,
+      physics: _physics,
+      slivers: [
+        ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
+        SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: 4),
+          sliver: SliverList.builder(
+            key: ValueKey('bibi-rows-${widget.generation}'),
+            itemCount: bibiVideoRowCount,
+            // 每行自带重绘边界，不再叠加官方列表的默认边界。
+            addRepaintBoundaries: false,
+            itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
           ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 }

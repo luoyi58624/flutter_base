@@ -17,13 +17,12 @@ import '../../scroll/scroll_position.dart' show ScrollHostPosition;
 
 /// Sliver 形式的下拉刷新，放在 ElScroll.sliver 的 slivers 里，通常是第一个。
 ///
-/// 刷新绑定在滚动起点一侧（普通列表的顶部，reverse 列表的底部）；终点一侧的刷新使用 ElRefresh。
+/// 刷新绑定在滚动起点一侧（普通列表的顶部，reverse 列表的底部）。
 /// 内容让位式刷新器（[ElRefresher.movesContent]）由本 Sliver 占出真实间隙，把后面的 Sliver 推开，
 /// 滚动位置本身不越界；悬浮式刷新器不占位，指示器盖在视口上。
 /// 只有手指拖动能拉出刷新，松手时仍在触发距离之外才执行 [onRefresh]。
 ///
-/// 这里只使用刷新器的 buildIndicator 与策略参数；指示器铺满视口且不参与命中，
-/// 覆写 [ElRefresher.build] 接管整体层级的刷新器请使用 ElRefresh。
+/// 刷新器通过 buildIndicator 与策略参数定制外观；指示器铺满视口且不参与命中。
 class ElSliverRefresh extends HookWidget {
   /// 创建挂在所在 ElScroll 起点边缘的刷新 Sliver。
   const ElSliverRefresh({super.key, required this.onRefresh, this.refresher});
@@ -230,12 +229,6 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
 
   @override
   double? get contentGap => visibleGap;
-
-  @override
-  Rect? get contentViewportRect => null;
-
-  @override
-  Listenable? get contentLayoutChanges => null;
 
   @override
   void requestRefresh() {

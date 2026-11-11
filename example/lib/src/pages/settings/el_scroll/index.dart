@@ -8,11 +8,18 @@ class ElScrollPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('ElScroll 测试')),
-      body: ElRefresh(
-        onRefresh: () async {
-          // await 200.ms.delay();
-        },
-        child: ElScroll(children: [...List.generate(100, (index) => ElView(child: 'Item - ${index + 1}'))]),
+      body: ElScroll.sliver(
+        slivers: [
+          ElSliverRefresh(
+            onRefresh: () async {
+              // await 200.ms.delay();
+            },
+          ),
+          ElSliverList(
+            stretch: true,
+            children: [...List.generate(100, (index) => ElView(child: 'Item - ${index + 1}'))],
+          ),
+        ],
       ),
     );
   }
