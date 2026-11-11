@@ -41,49 +41,43 @@ class ElSliverListExamplePage extends HookWidget {
           constraints: .new(maxWidth: 840),
           child: FractionallySizedBox(
             widthFactor: narrow.value ? .72 : 1,
-            child: SelectionArea(
-              child: CustomScrollView(
+            child: ElSelectionView(
+              child: ElScroll(
                 key: ValueKey('document-scroll'),
                 controller: controller,
-                slivers: [
-                  SliverPadding(
-                    padding: .fromLTRB(20, 20, 20, 32),
-                    sliver: ElSliverList(
-                      spacing: 24,
+                gap: 24,
+                padding: .fromLTRB(20, 20, 20, 32),
+                children: [
+                  ExamplePanel(
+                    style: ElStyle(
+                      padding: .all(20),
+                      backgroundColor: colors.surfaceContainerLow,
+                      borderRadius: .circular(16),
+                    ),
+                    child: Column(
+                      mainAxisSize: .min,
+                      crossAxisAlignment: .start,
                       children: [
-                        ExamplePanel(
-                          style: ElStyle(
-                            padding: .all(20),
-                            backgroundColor: colors.surfaceContainerLow,
-                            borderRadius: .circular(16),
-                          ),
-                          child: Column(
-                            mainAxisSize: .min,
-                            crossAxisAlignment: .start,
-                            children: [
-                              Text('一页连续的阅读笔记', style: theme.textTheme.headlineSmall),
-                              SizedBox(height: 12),
-                              Text(
-                                '80 段内容一次挂载并保留。长按或拖动文字，可以跨段落连续选择。',
-                                style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '右上角可切换阅读宽度，或展开第一段，观察文字自然换行后的排版。',
-                                style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
-                              ),
-                            ],
-                          ),
+                        Text('一页连续的阅读笔记', style: theme.textTheme.headlineSmall),
+                        SizedBox(height: 12),
+                        Text(
+                          '80 段内容一次挂载并保留。长按或拖动文字，可以跨段落连续选择。',
+                          style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
                         ),
-                        for (var index = 0; index < 80; index++)
-                          _DocumentParagraph(
-                            key: ValueKey('document-paragraph-$index'),
-                            index: index,
-                            expanded: index == 0 && expanded.value,
-                          ),
+                        SizedBox(height: 8),
+                        Text(
+                          '右上角可切换阅读宽度，或展开第一段，观察文字自然换行后的排版。',
+                          style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
+                        ),
                       ],
                     ),
                   ),
+                  for (var index = 0; index < 80; index++)
+                    _DocumentParagraph(
+                      key: ValueKey('document-paragraph-$index'),
+                      index: index,
+                      expanded: index == 0 && expanded.value,
+                    ),
                 ],
               ),
             ),
