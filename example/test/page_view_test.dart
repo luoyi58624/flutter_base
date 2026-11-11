@@ -15,7 +15,7 @@ void main() {
     expect(group.children.any((page) => page.key == 'view-page-view' && page.data != null), isTrue);
   });
 
-  for (final width in [390.0, 1100.0]) {
+  for (final width in [390.0, 980.0, 1100.0]) {
     testWidgets('分页示例标签切换、卡片选中与页面保活 width=$width', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(width, 844);
@@ -24,7 +24,13 @@ void main() {
       await tester.pumpWidget(
         ElComponentProvider(
           components: el.mobileComponents,
-          child: MaterialApp(home: PageViewPage()),
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(width == 980 ? 1.3 : 1)),
+              child: child!,
+            ),
+            home: PageViewPage(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -47,7 +53,7 @@ void main() {
     });
   }
 
-  testWidgets('示例横向卡片带在原手势中交给分页并同步标签', (tester) async {
+  testWidgets('示例横向卡片带途中不交接，松手后新手势才切页并同步标签', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetPhysicalSize);
@@ -69,8 +75,17 @@ void main() {
     await gesture.moveBy(Offset(-280, 0));
     await tester.pump();
     final pages = tester.widget<ElPageView>(find.byType(ElPageView)).controller!;
-    expect(pages.page, greaterThan(.5));
+    expect(pages.page, 0);
     await gesture.up();
+    await tester.pumpAndSettle();
+    expect(pages.page, 0);
+    final next = await tester.startGesture(tester.getCenter(strip));
+    await next.moveBy(Offset(-30, 0));
+    await tester.pump();
+    await next.moveBy(Offset(-280, 0));
+    await tester.pump();
+    expect(pages.page, greaterThan(.5));
+    await next.up();
     await tester.pumpAndSettle();
     expect(pages.page, closeTo(1, .001));
     expect(tester.widget<TabBar>(find.byType(TabBar)).controller!.index, 1);

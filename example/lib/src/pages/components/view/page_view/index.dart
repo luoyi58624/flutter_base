@@ -94,14 +94,22 @@ class _TabPaneState extends State<_TabPane> with AutomaticKeepAliveClientMixin {
           SliverToBoxAdapter(
             child: Padding(
               padding: .only(bottom: 12),
-              child: SizedBox(
-                height: 112,
-                child: ElScroll(
-                  key: PageStorageKey('page-strip-${tab.title}'),
-                  axis: .horizontal,
-                  padding: .symmetric(horizontal: 12),
-                  gap: 8,
+              child: ElChildSizeBuilder(
+                constraints: BoxConstraints(),
+                child: Row(
+                  mainAxisSize: .min,
+                  crossAxisAlignment: .start,
+                  spacing: 8,
                   children: List.generate(12, (index) => _StripCard(tab: tab, index: index)),
+                ),
+                builder: (size, child) => SizedBox(
+                  height: size.height,
+                  child: ElScroll(
+                    key: PageStorageKey('page-strip-${tab.title}'),
+                    axis: .horizontal,
+                    padding: .symmetric(horizontal: 12),
+                    children: [child],
+                  ),
                 ),
               ),
             ),
@@ -142,14 +150,14 @@ class _StripCard extends StatelessWidget {
           '${tab.title} 精选 ${index + 1}',
           style: TextStyle(fontSize: 13, fontWeight: .w700, color: Color(0xff0f172a)),
         ),
-        Text('滚到边缘继续拉 → 切页', style: TextStyle(fontSize: 11, color: Color(0xff94a3b8))),
+        Text('到边缘松手，再拖动切页', style: TextStyle(fontSize: 11, color: Color(0xff94a3b8))),
       ],
     ),
   );
 }
 
 final _tabs = [
-  _TabData('消息', '900', 900, Color(0xff2563eb), '横向拖动切换页面；顶部横向滚动带到边缘后继续拉动，即可切页。'),
+  _TabData('消息', '900', 900, Color(0xff2563eb), '横向拖动切换页面；卡片带滚到边缘后松手，再向外拖动切页，同一次拖动不换层。'),
   _TabData('订单', '1.2k', 1200, Color(0xff059669), '长列表按需构建，切换页面后保留滚动位置和已选中的卡片。'),
   _TabData('日志', '2k', 2000, Color(0xffdc2626), '上下滚动查看日志；左右拖动切页，横向卡片带优先响应。'),
 ];

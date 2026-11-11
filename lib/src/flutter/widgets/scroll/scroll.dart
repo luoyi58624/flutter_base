@@ -16,7 +16,6 @@ import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTranspar
 /// 同轴嵌套时自动接力：一次拖动只属于一层，起手时本层在拖动方向已经贴边，
 /// 就交给最近的可滚动同轴祖先；本层一旦开始消费，途中撞到边界也不换层，
 /// 释放后的惯性同样留在本层。整条链都贴边时由最外层按自身物理处理。
-/// 同轴祖先为官方 PageView 时例外：途中到边缘的余量交给分页，之后直到松手都由分页响应。
 /// 鼠标滚轮连续输入时保留接收者，停顿满 500ms 才重新命中；移出接收区域立即交接。
 /// 需要折叠头这类先于正文消费位移的效果时，用 ElNestedScroll 包住本组件。
 /// 下拉刷新通过放进 [ElScroll.sliver] 的 ElSliverRefresh 接入。
@@ -161,9 +160,11 @@ class ElScroll extends HookWidget {
     // 自管选区的注册器不需要官方 Scrollable 的选区处理层，视口内容直接登记到它。
     if (selection != null) scrollable = SelectionContainer.disabled(child: scrollable);
     return Listener(
-      onPointerDown: (event) => pointers.down(event.pointer, activeController),
-      onPointerUp: (event) => pointers.up(event.pointer),
+      onPointerDown: (event) => pointers.down(event.pointer, event.position, activeController),
+      onPointerUp: (event) => pointers.up(event.pointer, activeController),
       onPointerCancel: (event) => pointers.cancel(event.pointer, activeController),
+      onPointerPanZoomStart: (event) => pointers.down(event.pointer, event.position, activeController),
+      onPointerPanZoomEnd: (event) => pointers.up(event.pointer, activeController),
       child: scrollable,
     );
   }
@@ -173,19 +174,28 @@ class ElScroll extends HookWidget {
 final class _RawPointers {
   final _pointers = <int>{};
 
-  void down(int pointer, ScrollController controller) {
+  void down(int pointer, Offset position, ScrollController controller) {
     if (_pointers.isEmpty) {
-      for (final position in controller.positions) {
-        if (position is ScrollHostPosition) position.resetRawPointerCancellation();
+      for (final host in controller.positions) {
+        if (host is ScrollHostPosition) {
+          host.resetRawPointerCancellation();
+          host.setRawPointerOrigin(position);
+        }
       }
     }
     _pointers.add(pointer);
   }
 
-  void up(int pointer) => _pointers.remove(pointer);
+  void up(int pointer, ScrollController controller) {
+    _pointers.remove(pointer);
+    if (_pointers.isNotEmpty) return;
+    for (final host in controller.positions) {
+      if (host is ScrollHostPosition) host.setRawPointerOrigin(null);
+    }
+  }
 
   void cancel(int pointer, ScrollController controller) {
-    _pointers.remove(pointer);
+    up(pointer, controller);
     if (_pointers.isNotEmpty) return;
     for (final position in controller.positions) {
       if (position is ScrollHostPosition) position.markRawPointerCanceled();

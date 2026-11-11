@@ -33,10 +33,10 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
 
   /// 当前拖动及其惯性使用的协作链；没有协作方时为 null，全部走官方路径。
   NestedScrollChain? _chain;
-  _RelayDrag? _relay;
   bool _disposed = false;
   bool _endingByRelease = false;
   bool _rawPointerCanceled = false;
+  Offset? _pointerOrigin;
 
   SmoothPointerScrollController? _smooth;
   PointerScrollEvent? _wheelEvent;
@@ -157,6 +157,9 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
     _smooth?.reset();
   }
 
+  /// 记录原始按下点，官方 dragStart 到来时据此确定已识别的起手方向。
+  void setRawPointerOrigin(Offset? position) => _pointerOrigin = position;
+
   /// 原始 PointerCancel 会先于官方识别器合成的零速 onEnd 到达。
   void markRawPointerCanceled() {
     _rawPointerCanceled = true;
@@ -200,28 +203,31 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
 
   // ───────────────────────── 拖动归属 ─────────────────────────
 
-  // 官方 drag 入口没有方向信息，先返回代理，等第一段位移再决定由谁真正开始拖动。
+  // 用官方识别位置与按下点之差选层，避免第一笔 update 已反向时选错接收者。
   @override
   Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
     // 官方 RawScrollbar 在 drag() 返回前要求已释放 ThumbPress 时取得的 hold。
     // 内容拖动仍待第一段 delta 判定接力归属，但不能让 HoldScrollActivity 一直占着位置。
     if (activity is HoldScrollActivity) goIdle();
-    return _RelayDrag(this, details, dragCancelCallback);
+    final relay = _RelayDrag(this, details, dragCancelCallback);
+    final moved = _pointerOrigin == null ? Offset.zero : details.globalPosition - _pointerOrigin!;
+    _pointerOrigin = null;
+    final delta = axis == Axis.horizontal ? moved.dx : moved.dy;
+    if (delta != 0) relay._target = _startDrag(delta, details, relay._close);
+    return relay;
   }
 
-  Drag _startDrag(DragUpdateDetails first, DragStartDetails start, _RelayDrag relay) {
-    final delta = first.primaryDelta ?? 0;
+  Drag _startDrag(double delta, DragStartDetails start, VoidCallback onCancelled) {
     final forward = axisDirectionIsReversed(axisDirection) ? delta > 0 : delta < 0;
     if (!_canScroll(forward)) {
       final ancestor = _ancestor();
       if (ancestor != null) {
         _releaseHold();
         // 祖先若也是本类型，会用同一段位移继续向外判定。
-        return ancestor.drag(start, relay._targetCanceled);
+        return ancestor.drag(start, onCancelled);
       }
     }
-    final drag = super.drag(start, relay._targetCanceled);
-    _relay = relay;
+    final drag = super.drag(start, onCancelled);
     _chain = _buildChain();
     _chain?.start(axis, .touchDrag);
     return drag;
@@ -268,22 +274,7 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
   @override
   void applyUserOffset(double delta) {
     final rest = _split(delta, .touchDrag);
-    if (rest == 0) return;
-    final relay = _relay;
-    final room = math.max(0.0, rest > 0 ? pixels - minScrollExtent : maxScrollExtent - pixels);
-    final ancestor = relay == null || outOfRange || rest.abs() <= room ? null : _ancestor();
-    // 普通嵌套仍保持原接收者；只有分页祖先接收本次拖动的边界余量。
-    if (ancestor is PageMetrics && ancestor != null) {
-      final raw = axisDirectionIsReversed(axisDirection) ? -rest : rest;
-      final forward = axisDirectionIsReversed(ancestor.axisDirection) ? raw > 0 : raw < 0;
-      final canPage = forward ? ancestor.pixels < ancestor.maxScrollExtent : ancestor.pixels > ancestor.minScrollExtent;
-      if (canPage) {
-        if (room > 0) super.applyUserOffset(rest.sign * room);
-        relay!.handoff(ancestor, rest - rest.sign * room);
-        return;
-      }
-    }
-    super.applyUserOffset(rest);
+    if (rest != 0) super.applyUserOffset(rest);
   }
 
   // ───────────────────────── 松手与惯性 ─────────────────────────
@@ -326,7 +317,6 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
     final wasDragging = activity is DragScrollActivity;
     super.beginActivity(newActivity);
     if (newActivity == null) return;
-    if (newActivity is! DragScrollActivity) _relay = null;
     // 松手、取消、被新命令接管都算拖动结束；链只在随后的惯性里继续使用。
     if (wasDragging) _chain?.end();
     if (newActivity is! DragScrollActivity && newActivity is! _ChainBallisticActivity) _chain = null;
@@ -452,7 +442,7 @@ final class _ChainBallisticActivity extends BallisticScrollActivity {
   }
 }
 
-/// 交给 [Scrollable] 的拖动代理，首段位移确定归属后原样转发。
+/// 官方拖动代理，起手选定接收位置后整个手势保持归属。
 final class _RelayDrag implements Drag {
   _RelayDrag(this._origin, this._start, this._onCancelled);
 
@@ -461,44 +451,6 @@ final class _RelayDrag implements Drag {
   final VoidCallback _onCancelled;
   Drag? _target;
   bool _closed = false;
-  bool _transferring = false;
-  DragUpdateDetails? _update;
-
-  void _targetCanceled() {
-    if (!_transferring) _close();
-  }
-
-  // 只换官方 Drag 的接收位置，识别器仍持有原来的指针序列。
-  void handoff(ScrollPosition position, double remaining) {
-    final details = _update!;
-    final raw = axisDirectionIsReversed(_origin.axisDirection) ? -remaining : remaining;
-    final delta = _origin.axis == Axis.horizontal ? Offset(raw, 0) : Offset(0, raw);
-    _transferring = true;
-    try {
-      _origin._chain?.cancel();
-      _target?.cancel();
-      _target = position.drag(
-        DragStartDetails(
-          sourceTimeStamp: details.sourceTimeStamp,
-          globalPosition: details.globalPosition - delta,
-          localPosition: details.localPosition - delta,
-          kind: _start.kind,
-        ),
-        _targetCanceled,
-      );
-    } finally {
-      _transferring = false;
-    }
-    _target?.update(
-      DragUpdateDetails(
-        sourceTimeStamp: details.sourceTimeStamp,
-        delta: delta,
-        primaryDelta: raw,
-        globalPosition: details.globalPosition,
-        localPosition: details.localPosition,
-      ),
-    );
-  }
 
   // Scrollable 要求 end / cancel 返回前已收到取消回调，这里保证只通知一次。
   void _close() {
@@ -518,14 +470,9 @@ final class _RelayDrag implements Drag {
         return;
       }
       if ((details.primaryDelta ?? 0) == 0) return;
-      target = _target = _origin._startDrag(details, _start, this);
+      target = _target = _origin._startDrag(details.primaryDelta!, _start, _close);
     }
-    _update = details;
-    try {
-      target.update(details);
-    } finally {
-      _update = null;
-    }
+    target.update(details);
   }
 
   @override
