@@ -42,6 +42,7 @@ extension _TapEvents on EventDispatcher {
   void _countTap(PointerDownEvent down) {
     if (_maxTaps == 1) return;
     final state = _tapSequence ??= _TapSequence();
+    EventDispatcher._retaining.add(this);
     final close =
         state.window?.isActive == true &&
         down.timeStamp - state.time <= _e.doubleTapInterval &&
@@ -64,6 +65,7 @@ extension _TapEvents on EventDispatcher {
     state.window = Timer(_e.doubleTapInterval, () {
       if (!identical(_tapSequence, state)) return;
       _tapSequence = null;
+      _settle();
       final pending = state.deferred;
       state.deferred = null;
       pending?.call();
@@ -72,9 +74,11 @@ extension _TapEvents on EventDispatcher {
 
   void _resetTaps() {
     final state = _tapSequence;
+    if (state == null) return;
     _tapSequence = null;
-    state?.window?.cancel();
-    state?.deferred = null;
+    _settle();
+    state.window?.cancel();
+    state.deferred = null;
   }
 
   bool _contains(Offset global) {
@@ -86,6 +90,7 @@ extension _TapEvents on EventDispatcher {
   void _press(PointerDownEvent down) {
     if (_pressed != null || down.buttons != kPrimaryButton) return;
     final state = _pressState ??= _PressState();
+    EventDispatcher._retaining.add(this);
     state.pointer = down.pointer;
     final touch = down.kind == PointerDeviceKind.touch;
     state.pressTimer?.cancel();
@@ -118,6 +123,7 @@ extension _TapEvents on EventDispatcher {
       state.pressTimer?.cancel();
       state.holdTimer?.cancel();
       _pressState = null;
+      _settle();
     }
     if (changed) onTapChanged?.call(isTapPressed);
   }

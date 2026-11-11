@@ -251,6 +251,9 @@ class BenchmarkProbe {
   /// 指针路线速度采样缓冲的实际分配次数。
   static int eventVelocityBufferInstantiateCount = 0;
 
+  /// 子树事件结清实际访问的渲染节点数；没有活动输入时为零。
+  static int eventTerminateVisitCount = 0;
+
   /// 变换识别器的实际分配次数；只在声明拖拽、缩放或作为变换链祖先时创建。
   static int transformRecognizerInstantiateCount = 0;
 
@@ -314,6 +317,7 @@ class BenchmarkProbe {
     eventKeyboardStateInstantiateCount = 0;
     eventScaleStateInstantiateCount = 0;
     eventVelocityBufferInstantiateCount = 0;
+    eventTerminateVisitCount = 0;
     transformRecognizerInstantiateCount = 0;
     selectionOverlayLayoutCount = 0;
     textContentParseCount = 0;
@@ -346,6 +350,7 @@ class BenchmarkProbe {
       'eventKeyboardStateInstantiateCount': eventKeyboardStateInstantiateCount,
       'eventScaleStateInstantiateCount': eventScaleStateInstantiateCount,
       'eventVelocityBufferInstantiateCount': eventVelocityBufferInstantiateCount,
+      'eventTerminateVisitCount': eventTerminateVisitCount,
       'transformRecognizerInstantiateCount': transformRecognizerInstantiateCount,
       'selectionOverlayLayoutCount': selectionOverlayLayoutCount,
       'textContentParseCount': textContentParseCount,

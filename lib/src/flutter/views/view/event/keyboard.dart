@@ -1,13 +1,17 @@
 part of 'dispatcher.dart';
 
 extension _KeyboardEvents on EventDispatcher {
-  _KeyboardState _ensureKeyboard() => _keyboard ??= _KeyboardState();
+  _KeyboardState _ensureKeyboard() {
+    EventDispatcher._retaining.add(this);
+    return _keyboard ??= _KeyboardState();
+  }
 
   void _pruneKeyboard() {
     final state = _keyboard;
     if (state == null || (state.held?.isNotEmpty ?? false) || (state.repeats?.isNotEmpty ?? false)) return;
     state.clock?.stop();
     _keyboard = null;
+    _settle();
   }
 
   /// 重复限流只为实际订阅的键盘输入建立记录，释放或失焦后回收。
@@ -123,6 +127,7 @@ extension _KeyboardEvents on EventDispatcher {
     if (state == null) return;
     final held = state.held?.values.toList();
     _keyboard = null;
+    _settle();
     state.clock?.stop();
     if (held == null || held.isEmpty) return;
     onTapChanged?.call(isTapPressed);

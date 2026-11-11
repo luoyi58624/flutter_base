@@ -37,6 +37,9 @@ class EventDispatcher {
   static final _raw = Expando<ElEventDetails>('ElEvent input');
   static final _routes = <int, _Route>{};
 
+  // 路线之外仍持有按压、连击或键盘状态的宿主；子树结清只需查它们和在途路线。
+  static final _retaining = Set<EventDispatcher>.identity();
+
   final RenderBox _render;
   ElEvent? _event;
   bool _disposed = false;
@@ -83,9 +86,49 @@ class EventDispatcher {
   static EventDispatcher? of(RenderObject render) => _hosts[render];
 
   /// 结清关闭或禁用的子树里的事件。
+  ///
+  /// 空闲宿主的结清没有任何效果，这里只下钻到持有活动输入的分支，仍按子先于父的顺序结清。
   static void terminateActivePointerSequencesIn(RenderObject root) {
-    root.visitChildren(terminateActivePointerSequencesIn);
-    of(root)?.cancelAllPendingAtLastPosition();
+    final branch = Set<RenderObject>.identity();
+    bool mark(RenderObject? node) {
+      if (node == null) return false;
+      if (identical(node, root) || branch.contains(node)) return true;
+      if (!mark(node.parent)) return false;
+      branch.add(node);
+      return true;
+    }
+
+    var active = false;
+    for (final host in _retaining) {
+      active = mark(host._render) || active;
+    }
+    for (final route in _routes.values) {
+      for (final host in route.hosts) {
+        active = mark(host._render) || active;
+      }
+    }
+    if (!active) return;
+    void visit(RenderObject node) {
+      assert(() {
+        BenchmarkProbe.eventTerminateVisitCount++;
+        return true;
+      }());
+      node.visitChildren((child) {
+        if (branch.contains(child)) visit(child);
+      });
+      of(node)?.cancelAllPendingAtLastPosition();
+    }
+
+    visit(root);
+  }
+
+  /// 路线之外仍持有交互状态的宿主数量，仅用于检查登记与释放成对。
+  @visibleForTesting
+  static int get debugRetainingHostCount => _retaining.length;
+
+  /// 状态全部释放后退出登记；分配处直接加入 [_retaining]。
+  void _settle() {
+    if (_pressState == null && _tapSequence == null && _keyboard == null) _retaining.remove(this);
   }
 
   /// 读取按下路径上对焦点默认动作的保留标记。
@@ -395,6 +438,7 @@ class EventDispatcher {
     cancelAllPendingAtLastPosition();
     _disposed = true;
     if (identical(_hosts[_render], this)) _hosts[_render] = null;
+    _retaining.remove(this);
     _event = null;
     _lastInput = null;
     onTapChanged = null;

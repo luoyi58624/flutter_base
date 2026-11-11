@@ -88,6 +88,64 @@ void main() {
     expect(host.rootDispatcher.debugRetainedStates, isEmpty);
   });
 
+  testWidgets('禁用容器时只结清持有活动输入的分支', (tester) async {
+    var cancels = 0;
+    var taps = 0;
+    var doubles = 0;
+    Widget tree({required bool disabled}) => Directionality(
+      textDirection: TextDirection.ltr,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: ElView(
+          event: ElEvent(disabled: disabled),
+          child: Column(
+            children: [
+              for (var index = 0; index < 50; index++)
+                ElView(
+                  style: ElStyle(width: 100, height: 10, backgroundColor: Color(0xFF00FF00)),
+                  event: index == 0
+                      ? ElEvent(deferTap: true, onTap: (_) => taps++, onDoubleTap: (_) => doubles++)
+                      : ElEvent(onTap: (_) => taps++, onTapCancel: (_) => cancels++),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(tree(disabled: false));
+    expect(EventDispatcher.debugRetainingHostCount, 0);
+
+    // 没有活动输入：五十个带事件的子节点一个都不访问。
+    await tester.pumpWidget(tree(disabled: true));
+    expect(BenchmarkProbe.eventTerminateVisitCount, 0);
+    await tester.pumpWidget(tree(disabled: false));
+
+    // 在途指针：只沿容器、布局、按下的子节点这一条分支结清。
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.down(Offset(30, 35));
+    await tester.pumpWidget(tree(disabled: true));
+    expect(cancels, 1);
+    expect(BenchmarkProbe.eventTerminateVisitCount, 3);
+    await gesture.up();
+    await tester.pumpWidget(tree(disabled: false));
+    expect(taps, 0);
+    expect(EventDispatcher.debugRetainingHostCount, 0);
+
+    // 路线已结束、仍在连击窗口内等待的延后单击同样被结清。
+    await gesture.down(Offset(30, 5));
+    await gesture.up();
+    expect(EventDispatcher.debugRetainingHostCount, 1);
+    BenchmarkProbe.reset();
+    await tester.pumpWidget(tree(disabled: true));
+    expect(BenchmarkProbe.eventTerminateVisitCount, 3);
+    expect(EventDispatcher.debugRetainingHostCount, 0);
+    await tester.pump(Duration(milliseconds: 400));
+    expect(taps, 0);
+    expect(doubles, 0);
+  });
+
   testWidgets('按钮键盘激活按需分配状态，切回普通点击后释放', (tester) async {
     final node = FocusNode();
     addTearDown(node.dispose);
