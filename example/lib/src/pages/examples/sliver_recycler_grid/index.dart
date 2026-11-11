@@ -27,6 +27,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
     final columns = useState(2);
     final official = useState(false);
     final controller = useScrollController();
+    final officialExtent = useMemoized(_OfficialCardExtentCache.new);
     final colors = Theme.of(context).colorScheme;
     final title = masonry ? '瀑布流示例' : '网格示例';
 
@@ -93,9 +94,10 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
                           crossAxisCount: columns.value,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          mainAxisExtent: _officialCardExtent(
+                          mainAxisExtent: officialExtent.measure(
                             context,
                             (constraints.crossAxisExtent - 12 * (columns.value - 1)) / columns.value,
+                            columns.value,
                           ),
                         ),
                         itemCount: _itemCount,
@@ -128,6 +130,37 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
         ),
       ),
     );
+  }
+}
+
+class _OfficialCardExtentCache {
+  Object? _environment;
+  double _extent = 0;
+
+  double measure(BuildContext context, double width, int columns) {
+    final defaults = DefaultTextStyle.of(context);
+    final environment = (
+      width,
+      columns,
+      Theme.of(context).textTheme,
+      defaults.style,
+      defaults.textAlign,
+      defaults.softWrap,
+      defaults.overflow,
+      defaults.maxLines,
+      defaults.textWidthBasis,
+      defaults.textHeightBehavior,
+      MediaQuery.textScalerOf(context),
+      MediaQuery.boldTextOf(context),
+      Localizations.maybeLocaleOf(context),
+      Directionality.of(context),
+    );
+    // 滚动约束会不断触发布局，只在宽度或实际文字排版环境改变时重新测量。
+    if (_environment != environment) {
+      _extent = _officialCardExtent(context, width);
+      _environment = environment;
+    }
+    return _extent;
   }
 }
 
@@ -164,11 +197,22 @@ double _officialCardExtent(BuildContext context, double width) {
           .reduce(math.max);
 }
 
-// 卡片外壳跟随槽位保留，换绑时由官方 Builder 读取最新记录。
+// 卡片结构跟随槽位保留，换绑时只更新变化的内容叶子。
 class _RecordCard extends StatelessWidget {
   const _RecordCard(this.index);
 
   final ValueListenable<int> index;
+
+  Widget _field<T>(
+    BuildContext context, {
+    required T Function(ValueListenable<int>) select,
+    required TransitionBuilder builder,
+    Widget? child,
+  }) {
+    // 官方创建的行不会换绑，不增加无效监听节点。
+    if (index is AlwaysStoppedAnimation<int>) return builder(context, child);
+    return ElListenableBuilder(listenable: index, select: select, builder: builder, child: child);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,42 +225,61 @@ class _RecordCard extends StatelessWidget {
         border: .all(borderColor: colors.outlineVariant),
         clipBehavior: .antiAlias,
       ),
-      child: ValueListenableBuilder<int>(
-        valueListenable: index,
-        builder: (context, position, child) {
-          final sample = _records[position % _records.length];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ColoredBox(
-                color: sample.color,
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Icon(sample.icon, size: 32, color: Color(0xff334155)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _field(
+            context,
+            select: (source) => _records[source.value % _records.length].color,
+            builder: (context, child) => ColoredBox(color: _records[index.value % _records.length].color, child: child),
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _field(
+                  context,
+                  select: (source) => _records[source.value % _records.length].icon,
+                  builder: (context, child) =>
+                      Icon(_records[index.value % _records.length].icon, size: 32, color: Color(0xff334155)),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _field(
+                  context,
+                  select: (source) => source.value,
+                  builder: (context, child) => Text(
+                    '${_records[index.value % _records.length].title} #${index.value + 1}',
+                    style: typography.titleSmall,
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${sample.title} #${position + 1}', style: typography.titleSmall),
-                    SizedBox(height: 8),
-                    Text(sample.description, style: typography.bodyMedium?.copyWith(height: 1.5)),
-                    SizedBox(height: 12),
-                    Text(
-                      '观察记录 ${position + 1}',
-                      style: typography.labelSmall?.copyWith(color: colors.onSurfaceVariant),
-                    ),
-                  ],
+                SizedBox(height: 8),
+                _field(
+                  context,
+                  select: (source) => _records[source.value % _records.length].description,
+                  builder: (context, child) => Text(
+                    _records[index.value % _records.length].description,
+                    style: typography.bodyMedium?.copyWith(height: 1.5),
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+                SizedBox(height: 12),
+                _field(
+                  context,
+                  select: (source) => source.value,
+                  builder: (context, child) => Text(
+                    '观察记录 ${index.value + 1}',
+                    style: typography.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

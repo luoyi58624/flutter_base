@@ -167,6 +167,46 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final cache in [0.0, 80.0]) {
+    testWidgets('Grid 缓存前缘位于行间距时停止调度，间距不扩大命中范围（cache=$cache）', (tester) async {
+      final controller = _setup(tester);
+      final tapped = <int>[];
+      await tester.pumpWidget(
+        _app(
+          controller,
+          _matrix(false, count: 40, mainSpacing: 20, builder: _cells((_) => 100, onTap: tapped.add)),
+          cache: cache,
+        ),
+      );
+      await _settle(tester);
+
+      final pixels = 110 + cache;
+      controller.jumpTo(pixels);
+      await _settle(tester);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      expect(controller.offset, pixels);
+      expect(controller.position.maxScrollExtent, 20 * 100 + 19 * 20 - 240);
+      expect(_rect(tester, 0).bottom, 100 - pixels);
+      expect(_rect(tester, 2).top, 120 - pixels);
+      for (var frame = 0; frame < 4; frame++) {
+        await tester.pump(Duration(milliseconds: 16));
+        expect(tester.binding.hasScheduledFrame, isFalse);
+        expect(controller.offset, pixels);
+        expect(_rect(tester, 2).top, 120 - pixels);
+      }
+
+      // 无缓存时点首行下方空隙，有缓存时点下一行下方的可见空隙。
+      await tester.tapAt(Offset(40, cache == 0 ? 5 : 40));
+      await _settle(tester);
+      expect(tapped, isEmpty);
+      final visibleCell = cache == 0 ? 2 : 4;
+      await tester.tap(find.byKey(ValueKey('cell $visibleCell')));
+      await _settle(tester);
+      expect(tapped, [visibleCell]);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Masonry 根据实测自然高度依次填入最短列', (tester) async {
     final controller = _setup(tester, size: const Size(320, 160));
     final heights = <double>[100, 40, 30, 80, 20, 50];

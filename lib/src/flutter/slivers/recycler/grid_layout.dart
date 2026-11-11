@@ -108,10 +108,13 @@ extension _RecyclerGridLayout on ElRenderSliverRecycler {
           includeRow(next++);
         }
         wanted.removeWhere((index) {
+          final row = rows.rowFor(index);
           final start = rows.startAt(index);
-          final extent = measuredRows[rows.rowFor(index)]!;
+          final extent = measuredRows[row]!;
+          // rowAt 将间距归给前一行，缓存淘汰也用下一行起点，避免边界槽位反复激活和停放。
+          final end = row + 1 < rows.rowCount ? rows.rowStart(row + 1) : start + extent;
           return start >= cacheEnd() - precisionErrorTolerance ||
-              (extent > 0 ? start + extent <= cacheStart() + precisionErrorTolerance : start < cacheStart());
+              (end > start ? end <= cacheStart() : start < cacheStart());
         });
       } else {
         // 各列独立查询；尺寸改变时重新取候选集合，过期估值不能积累成离屏挂载。
