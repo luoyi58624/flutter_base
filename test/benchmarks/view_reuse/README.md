@@ -1,8 +1,10 @@
 # ElView 与回收列表的重建基准
 
-本目录只提供测试与分析，不修改组件实现。重点区分创建、配置更新、业务 builder、自身 Element 重建和真实布局；不能仅凭 RenderObject 保留或 builder 没执行，就认为整个更新过程没有工作。
+本目录记录创建、配置更新、业务 builder、自身 Element 重建和真实布局的性能基准；不能仅凭 RenderObject 保留或 builder 没执行，就认为整个更新过程没有工作。
 
 当前结果见 [BASELINE.md](BASELINE.md)，完整采样摘要见 [baseline-2026-11-12.jsonl](baseline-2026-11-12.jsonl)。JSONL 包含生产版本、源文件 SHA256、每轮原始微秒样本和累计工作量，缺失的计数字段按零理解。
+
+底层实现优化后的工作量、时间与语义验证见 [CORE_OPTIMIZATION.md](CORE_OPTIMIZATION.md)，原基线作为历史对照保留。
 
 另有 [11 个真实 example 页面补充基线](BUSINESS_BASELINE.md)，测试入口为 `example/test/sliver_business_performance_test.dart`。它比较页面现有写法的 SliverList 与 ElSliverRecyclerList，独立记录滚动中的节点保留、配置变化和可见数据更新，不改示例实现。
 
