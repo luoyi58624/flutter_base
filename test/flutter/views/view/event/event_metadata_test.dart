@@ -268,21 +268,15 @@ void main() {
     expect(trace, <String>['pointerDown:1', 'pointerDown:2', 'pointerMove:2', 'pointerUp:1', 'pointerUp:0']);
   });
 
-  testWidgets('pipeline pre 回调保留到微任务后 pointerCount 仍为非负快照', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
+  testWidgets('拖拽详情在抬手后保留更新时的 pointerCount 快照', (tester) async {
+    final host = DispatcherTestHost.chain();
     addTearDown(host.dispose);
     final deferredCounts = <int>[];
 
-    host.rootDispatcher.event = ElEvent(
-      dragProxy: ElDragProxy(
-        axis: Axis.horizontal,
-        onDragPreUpdate: (event) {
-          event.consumeAllDelta();
-          scheduleMicrotask(() => deferredCounts.add(event.pointerCount));
-        },
-      ),
+    host.leafDispatcher.event = ElEvent(
+      config: const ElEventConfig(dragStartDistance: 3),
+      onHorizontalDragUpdate: (event) => scheduleMicrotask(() => deferredCounts.add(event.pointerCount)),
     );
-    host.leafDispatcher.event = ElEvent(config: const ElEventConfig(dragStartDistance: 3), onHorizontalDragEnd: (_) {});
 
     host.dispatch(const PointerDownEvent(pointer: 43, kind: PointerDeviceKind.mouse, position: Offset(10, 20)));
     host.dispatch(
@@ -303,9 +297,6 @@ void main() {
         timeStamp: Duration(milliseconds: 32),
       ),
     );
-    await tester.pump();
-
-    expect(deferredCounts, <int>[1]);
     host.dispatch(
       const PointerUpEvent(
         pointer: 43,
@@ -314,6 +305,8 @@ void main() {
         timeStamp: Duration(milliseconds: 48),
       ),
     );
+    await tester.pump();
+    expect(deferredCounts, <int>[1]);
   });
 
   testWidgets('owner 在 raw pointerUp 内移除后祖先同次终态 pointerCount 为零', (_) async {
@@ -370,13 +363,11 @@ void main() {
     ]);
   });
 
-  testWidgets('state-only pointer removed clears active route and long press state silently', (tester) async {
+  testWidgets('state-only pointer removed clears active route and feedback', (tester) async {
     final box = _attachedBox();
 
     final activeChanges = <bool>[];
-    final dispatcher = EventDispatcher(box)
-      ..onTapChanged = activeChanges.add
-      ..enableLongPressedState = true;
+    final dispatcher = EventDispatcher(box)..onTapChanged = activeChanges.add;
     addTearDown(dispatcher.dispose);
     dispatcher.syncRecognizersForStateVariants();
     final entry = BoxHitTestEntry(box, Offset.zero);
@@ -397,7 +388,7 @@ void main() {
     expect(dispatcher.debugRoutedPointerCount, 0);
   });
 
-  testWidgets('active scale pointer removed clears active sequence silently', (tester) async {
+  testWidgets('active scale pointer removed emits one cancellation and clears the route', (tester) async {
     final box = _attachedBox();
 
     final phases = <ElEventPhase>[];
@@ -422,7 +413,7 @@ void main() {
 
     expect(dispatcher.hasActivePointerSequence, isFalse);
     expect(dispatcher.debugRoutedPointerCount, 0);
-    expect(phases, <ElEventPhase>[ElEventPhase.scaleStart]);
+    expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleCancel]);
   });
 
   testWidgets('accepted drag pointer removed emits the matching dragCancel terminal', (tester) async {
@@ -468,6 +459,7 @@ void main() {
     final phases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
+        config: const ElEventConfig(dragDevices: {PointerDeviceKind.touch}),
         onScaleStart: (event) => phases.add(event.phase),
         onScaleEnd: (event) => phases.add(event.phase),
         onPointerPanZoomStart: (_) {},

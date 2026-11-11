@@ -580,7 +580,7 @@ void main() {
     expect(taps, 0);
   });
 
-  testWidgets('TAP-B17: 拖出已 cancel 后同节点 eager 不重复取消，释放仍有 tapUp', (tester) async {
+  testWidgets('TAP-B17: 越界已取消点击，Flutter 拖拽胜出时只结清一次', (tester) async {
     var tapUps = 0;
     var taps = 0;
     var cancels = 0;
@@ -607,7 +607,7 @@ void main() {
     await tester.pump();
 
     expect(cancels, 1);
-    expect(tapUps, 1);
+    expect(tapUps, 0);
     expect(taps, 0);
   });
 }

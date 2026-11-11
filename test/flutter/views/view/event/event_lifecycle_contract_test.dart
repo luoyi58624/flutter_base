@@ -588,7 +588,7 @@ void main() {
       expect(phases, <String>['old:longPress']);
     });
 
-    testWidgets('长按回调动态挂载 Drag 后当前指针继续完成拖拽生命周期', (tester) async {
+    testWidgets('长按后挂载的拖拽从下一次 PointerDown 开始识别', (tester) async {
       final host = DispatcherTestHost.chain();
       addTearDown(host.dispose);
       final phases = <ElEventPhase>[];
@@ -647,116 +647,13 @@ void main() {
         ),
       );
 
-      expect(phases, <ElEventPhase>[
-        ElEventPhase.longPress,
-        ElEventPhase.dragStart,
-        ElEventPhase.dragUpdate,
-        ElEventPhase.dragEnd,
-      ]);
-    });
-
-    testWidgets('长按未认领时取消激活且下一次仍可动态挂载 Drag', (tester) async {
-      final host = DispatcherTestHost.chain();
-      addTearDown(host.dispose);
-      final phases = <ElEventPhase>[];
-      final dispatcher = host.leafDispatcher;
-      var canActivate = false;
-      dispatcher.event = ElEvent(
-        config: const ElEventConfig(longPressDelay: Duration(milliseconds: 20)),
-        onLongPress: (event) {
-          phases.add(event.phase);
-          if (!canActivate) {
-            event.preventDefault();
-            return;
-          }
-          dispatcher.event = ElEvent(
-            config: const ElEventConfig(dragStartDistance: 4),
-            onDragStart: (event) => phases.add(event.phase),
-            onDragUpdate: (event) => phases.add(event.phase),
-            onDragEnd: (event) => phases.add(event.phase),
-            onDragCancel: (event) => phases.add(event.phase),
-          );
-        },
-      );
-
-      host.dispatch(
-        const PointerDownEvent(
-          pointer: 1,
-          kind: PointerDeviceKind.touch,
-          position: Offset.zero,
-          timeStamp: Duration.zero,
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 21));
-
       expect(phases, <ElEventPhase>[ElEventPhase.longPress]);
-      expect(dispatcher.event?.onDragStart, isNull, reason: '未命中文本时不认领长按，也不挂载 Drag');
 
-      host.dispatch(
-        const PointerMoveEvent(
-          pointer: 1,
-          kind: PointerDeviceKind.touch,
-          position: Offset(0, 24),
-          delta: Offset(0, 24),
-          timeStamp: Duration(milliseconds: 30),
-        ),
-      );
-      host.dispatch(
-        const PointerUpEvent(
-          pointer: 1,
-          kind: PointerDeviceKind.touch,
-          position: Offset(0, 24),
-          timeStamp: Duration(milliseconds: 40),
-        ),
-      );
-      await tester.pump();
-
-      expect(phases, <ElEventPhase>[ElEventPhase.longPress], reason: '拒绝长按后移动不得产生任何 Drag 生命周期');
-
-      canActivate = true;
-      host.dispatch(
-        const PointerDownEvent(
-          pointer: 2,
-          kind: PointerDeviceKind.touch,
-          position: Offset.zero,
-          timeStamp: Duration(milliseconds: 100),
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 21));
-      host.dispatch(
-        const PointerMoveEvent(
-          pointer: 2,
-          kind: PointerDeviceKind.touch,
-          position: Offset(0, 12),
-          delta: Offset(0, 12),
-          timeStamp: Duration(milliseconds: 130),
-        ),
-      );
-      host.dispatch(
-        const PointerMoveEvent(
-          pointer: 2,
-          kind: PointerDeviceKind.touch,
-          position: Offset(0, 24),
-          delta: Offset(0, 12),
-          timeStamp: Duration(milliseconds: 140),
-        ),
-      );
-      host.dispatch(
-        const PointerUpEvent(
-          pointer: 2,
-          kind: PointerDeviceKind.touch,
-          position: Offset(0, 24),
-          timeStamp: Duration(milliseconds: 150),
-        ),
-      );
-
-      expect(phases, <ElEventPhase>[
-        ElEventPhase.longPress,
-        ElEventPhase.longPress,
-        ElEventPhase.dragStart,
-        ElEventPhase.dragUpdate,
-        ElEventPhase.dragEnd,
-      ]);
+      final next = TestPointer(2);
+      host.dispatch(next.down(Offset.zero));
+      host.dispatch(next.move(Offset(0, 20)));
+      host.dispatch(next.up());
+      expect(phases, <ElEventPhase>[ElEventPhase.longPress, ElEventPhase.dragStart, ElEventPhase.dragEnd]);
     });
 
     testWidgets('removing event cancels pending deferred tap', (tester) async {
@@ -876,7 +773,7 @@ void main() {
       scale.moveTo(const Offset(12, 16));
       scale.end();
 
-      expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleCancel]);
+      expect(phases, <ElEventPhase>[ElEventPhase.scaleStart, ElEventPhase.scaleUpdate, ElEventPhase.scaleCancel]);
     });
 
     testWidgets('replacing active scale with non scale event preserves scaleCancel reentrant replacement', (_) async {
@@ -1232,17 +1129,7 @@ void main() {
       await tester.pump(Duration(milliseconds: 200));
     });
 
-    testWidgets('声明拖拽时创建变换识别器，祖先随变换链补建', (tester) async {
-      await pumpEventView(
-        tester,
-        ElView(
-          style: eventTestDefaultStyle,
-          event: ElEvent(onDragStart: (_) {}),
-        ),
-      );
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 1);
-
-      BenchmarkProbe.reset();
+    testWidgets('拖拽识别器只为参与输入的宿主按需创建', (tester) async {
       final phases = <String>[];
       await pumpEventView(
         tester,
@@ -1256,11 +1143,13 @@ void main() {
           ),
         ),
       );
-      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 2, reason: '后代持有变换识别器时祖先一并创建，竞技场分组和拖拽合作沿该链判断');
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 0);
 
-      await tester.dragFrom(Offset(50, 50), Offset(0, 40));
-      await tester.pump();
-      expect(phases, contains('inner.dragStart'));
+      final gesture = await tester.startGesture(Offset(50, 50));
+      expect(BenchmarkProbe.transformRecognizerInstantiateCount, 1);
+      await gesture.moveBy(Offset(0, 40));
+      await gesture.up();
+      expect(phases, ['inner.dragStart']);
       await tester.pump(Duration(milliseconds: 200));
     });
   });

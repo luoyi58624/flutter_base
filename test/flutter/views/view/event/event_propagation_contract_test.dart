@@ -1,9 +1,7 @@
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show DragPointerLock;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show MaterialApp, Scaffold;
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
@@ -13,130 +11,6 @@ import 'support/event_widget_test_host.dart';
 
 void main() {
   setUp(EventDispatcher.debugResetEagerGestureOwners);
-
-  testWidgets('ROUTE-4/TAP-8: child DragStart proposal stops zero-threshold ancestor', (tester) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final buttonPhases = <ElEventPhase>[];
-    final ancestorDragPhases = <ElEventPhase>[];
-    final ancestorTapPhases = <ElEventPhase>[];
-
-    host.rootDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 0),
-      onDragStart: (event) => ancestorDragPhases.add(event.phase),
-      onDragUpdate: (event) => ancestorDragPhases.add(event.phase),
-      onDragEnd: (event) => ancestorDragPhases.add(event.phase),
-      onDragCancel: (event) => ancestorDragPhases.add(event.phase),
-      onTapUp: (event) => ancestorTapPhases.add(event.phase),
-      onTap: (event) => ancestorTapPhases.add(event.phase),
-    );
-    host.leafDispatcher.hitBoundsContainsGlobal = (position) => position.dx >= 0 && position.dx < 200;
-    host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(),
-      onTapDown: (event) => buttonPhases.add(event.phase),
-      onTapUp: (event) => buttonPhases.add(event.phase),
-      onTap: (event) => buttonPhases.add(event.phase),
-      onTapCancel: (event) => buttonPhases.add(event.phase),
-      onDragStart: (event) {
-        buttonPhases.add(event.phase);
-        event.stopPropagation();
-      },
-    );
-
-    host.dispatch(_down(pointer: 1));
-    // 祖先先达到阈值时必须从 target 提出 Start；子节点真实 stop 后立即建立
-    // 边界，不依赖子节点自己的默认拖拽阈值。
-    host.dispatch(_move(pointer: 1, x: 1, deltaX: 1, millis: 16));
-    expect(buttonPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.dragStart]);
-    expect(ancestorDragPhases, isEmpty);
-    host.dispatch(_move(pointer: 1, x: 120, deltaX: 119, millis: 32));
-    host.dispatch(_up(pointer: 1, x: 120, millis: 48));
-
-    expect(ancestorDragPhases, isEmpty, reason: 'ancestor Drag 的 Start/Update/End/Cancel 全流必须为零');
-    expect(ancestorTapPhases, <ElEventPhase>[
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ], reason: 'Drag route stop 不得清理祖先 Tap 状态');
-    expect(buttonPhases, <ElEventPhase>[
-      ElEventPhase.tapDown,
-      ElEventPhase.dragStart,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ]);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('ROUTE-4B: child DragStart.stop prevents ancestor DragProxy, lock and Tap cancellation', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    addTearDown(DragPointerLock.debugReset);
-    DragPointerLock.debugReset();
-    var proxyPreUpdates = 0;
-    var proxyOverflows = 0;
-    final parentDragPhases = <ElEventPhase>[];
-    final parentTapPhases = <ElEventPhase>[];
-    final childPhases = <ElEventPhase>[];
-
-    host.rootDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3),
-      dragProxy: ElDragProxy(onDragPreUpdate: (_) => proxyPreUpdates++, onDragOverflow: (_) => proxyOverflows++),
-      onDragStart: (event) => parentDragPhases.add(event.phase),
-      onDragUpdate: (event) => parentDragPhases.add(event.phase),
-      onDragEnd: (event) => parentDragPhases.add(event.phase),
-      onTapUp: (event) => parentTapPhases.add(event.phase),
-      onTap: (event) => parentTapPhases.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3),
-      onTapDown: (event) => childPhases.add(event.phase),
-      onTapUp: (event) => childPhases.add(event.phase),
-      onTap: (event) => childPhases.add(event.phase),
-      onTapCancel: (event) => childPhases.add(event.phase),
-      onDragStart: (event) {
-        childPhases.add(event.phase);
-        event.stopPropagation();
-      },
-      onDragUpdate: (event) => childPhases.add(event.phase),
-      onDragEnd: (event) => childPhases.add(event.phase),
-    );
-
-    host.dispatch(
-      const PointerDownEvent(pointer: 2, position: Offset.zero, kind: PointerDeviceKind.mouse, buttons: kPrimaryButton),
-    );
-    host.dispatch(
-      const PointerMoveEvent(
-        pointer: 2,
-        position: Offset(20, 0),
-        delta: Offset(20, 0),
-        kind: PointerDeviceKind.mouse,
-        buttons: kPrimaryButton,
-      ),
-    );
-    host.dispatch(
-      const PointerMoveEvent(
-        pointer: 2,
-        position: Offset(30, 0),
-        delta: Offset(10, 0),
-        kind: PointerDeviceKind.mouse,
-        buttons: kPrimaryButton,
-      ),
-    );
-    host.dispatch(const PointerUpEvent(pointer: 2, position: Offset(30, 0), kind: PointerDeviceKind.mouse));
-
-    expect(parentDragPhases, isEmpty);
-    expect((proxyPreUpdates, proxyOverflows), (0, 0));
-    expect(DragPointerLock.isActive, isFalse, reason: 'stop-only Drag 不得被提前组成复合管线。');
-    expect(parentTapPhases, <ElEventPhase>[ElEventPhase.tapUp, ElEventPhase.tap]);
-    expect(childPhases, <ElEventPhase>[
-      ElEventPhase.tapDown,
-      ElEventPhase.dragStart,
-      ElEventPhase.dragUpdate,
-      ElEventPhase.dragEnd,
-      ElEventPhase.tapUp,
-      ElEventPhase.tap,
-    ]);
-  });
 
   testWidgets('ROUTE-2: raw down stop blocks the whole ancestor pointer interaction', (tester) async {
     final host = DispatcherTestHost.chain(depth: 2);
@@ -281,7 +155,6 @@ void main() {
       onDragEnd: (event) => parentPhases.add(event.phase),
     );
     host.leafDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 3),
       onTapDown: (event) => childPhases.add(event.phase),
       onTapUp: (event) => childPhases.add(event.phase),
       onTap: (event) => childPhases.add(event.phase),
@@ -289,9 +162,6 @@ void main() {
         childPhases.add(event.phase);
         event.stopPropagation();
       },
-      onDragStart: (event) => childPhases.add(event.phase),
-      onDragUpdate: (event) => childPhases.add(event.phase),
-      onDragEnd: (event) => childPhases.add(event.phase),
     );
 
     host.dispatch(const PointerDownEvent(pointer: 14, position: Offset.zero, buttons: kPrimaryButton));
@@ -321,18 +191,12 @@ void main() {
       ElEventPhase.tapUp,
       ElEventPhase.tap,
     ]);
-    expect(
-      childPhases,
-      containsAllInOrder(<ElEventPhase>[
-        ElEventPhase.dragDown,
-        ElEventPhase.tapDown,
-        ElEventPhase.dragStart,
-        ElEventPhase.dragUpdate,
-        ElEventPhase.dragEnd,
-        ElEventPhase.tapUp,
-        ElEventPhase.tap,
-      ]),
-    );
+    expect(childPhases, <ElEventPhase>[
+      ElEventPhase.dragDown,
+      ElEventPhase.tapDown,
+      ElEventPhase.tapUp,
+      ElEventPhase.tap,
+    ]);
     // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
     await tester.pump(Duration(milliseconds: 100));
   });
@@ -847,7 +711,7 @@ void main() {
       await tester.pump(Duration(milliseconds: 100));
     });
 
-    testWidgets('pointerMove and dragUpdate skip bubbling but keep direct hit-test delivery', (tester) async {
+    testWidgets('pointerMove reaches each hit target and Flutter drag updates reach the winner', (tester) async {
       final host = DispatcherTestHost.chain(depth: 2);
       addTearDown(host.dispose);
       var parentPointerMoves = 0;
@@ -885,7 +749,7 @@ void main() {
       expect(childPointerMoves, 1);
       expect(parentPointerMoves, 1, reason: '祖先自己的命中输入独立于冒泡');
       expect(childDragStarts, 1);
-      expect(parentDragStarts, 1, reason: '同一物理输入的冒泡和直接命中不能重复Start');
+      expect(parentDragStarts, 0);
       expect(childDragUpdates, 0, reason: 'the first accepted move fires dragStart only');
       expect(parentDragUpdates, 0);
 
@@ -902,7 +766,8 @@ void main() {
       expect(childPointerMoves, 2);
       expect(parentPointerMoves, 2);
       expect(childDragUpdates, 1);
-      expect(parentDragUpdates, 1, reason: '祖先通过自己的真实命中路径接收更新');
+      expect(parentDragUpdates, 0);
+      host.dispatch(const PointerUpEvent(pointer: 1, position: Offset(28, 0)));
       host.dispose();
     });
 
@@ -931,56 +796,6 @@ void main() {
 
       expect(childPointerMoves, 1);
       expect(parentPointerMoves, 0, reason: 'explicit stopPropagation still owns this high-frequency frame');
-    });
-
-    testWidgets('dragStart still bubbles so ancestors can intercept a gesture sequence', (tester) async {
-      final host = DispatcherTestHost.chain(depth: 2);
-      addTearDown(host.dispose);
-      var parentDragStarts = 0;
-      var parentDragUpdates = 0;
-      var childDragStarts = 0;
-      var childDragUpdates = 0;
-      host.rootDispatcher.event = .new(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) {
-          parentDragStarts++;
-          event.stopPropagation();
-        },
-        onDragUpdate: (_) => parentDragUpdates++,
-      );
-      host.leafDispatcher.event = .new(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (_) => childDragStarts++,
-        onDragUpdate: (_) => childDragUpdates++,
-      );
-
-      host.dispatch(const PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero));
-      host.leafDispatcher.dispatchTestPointer(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(20, 0),
-          delta: Offset(20, 0),
-          timeStamp: Duration(milliseconds: 16),
-        ),
-        BoxHitTestEntry(host.nodes.last, Offset.zero),
-        includeAncestors: false,
-      );
-      host.leafDispatcher.dispatchTestPointer(
-        const PointerMoveEvent(
-          pointer: 1,
-          position: Offset(28, 0),
-          delta: Offset(8, 0),
-          timeStamp: Duration(milliseconds: 32),
-        ),
-        BoxHitTestEntry(host.nodes.last, Offset.zero),
-        includeAncestors: false,
-      );
-
-      expect(childDragStarts, 1);
-      expect(parentDragStarts, 1, reason: 'ancestor interception belongs on dragStart, not every dragUpdate');
-      expect(childDragUpdates, 1);
-      expect(parentDragUpdates, 0, reason: 'dragUpdate remains non-bubbling even after dragStart interception');
-      host.dispose();
     });
 
     test('3 层冒泡：child fire → parent + grandparent 各一次', () {
@@ -1106,21 +921,12 @@ void main() {
                       focusNode: outer,
                       child: Row(
                         children: <Widget>[
-                          ElView(
-                            style: eventTestDefaultStyle,
-                            focusNode: inner1,
-                          ),
-                          ElView(
-                            style: eventTestDefaultStyle,
-                            focusNode: inner2,
-                          ),
+                          ElView(style: eventTestDefaultStyle, focusNode: inner1),
+                          ElView(style: eventTestDefaultStyle, focusNode: inner2),
                         ],
                       ),
                     ),
-                    ElView(
-                      style: eventTestDefaultStyle,
-                      focusNode: next,
-                    ),
+                    ElView(style: eventTestDefaultStyle, focusNode: next),
                   ],
                 ),
               ),
@@ -1146,32 +952,4 @@ void main() {
       expect(next.hasPrimaryFocus, isTrue);
     });
   });
-}
-
-PointerDownEvent _down({required int pointer}) {
-  return PointerDownEvent(
-    pointer: pointer,
-    position: Offset.zero,
-    kind: PointerDeviceKind.touch,
-    timeStamp: Duration.zero,
-  );
-}
-
-PointerMoveEvent _move({required int pointer, required double x, required double deltaX, required int millis}) {
-  return PointerMoveEvent(
-    pointer: pointer,
-    position: Offset(x, 0),
-    delta: Offset(deltaX, 0),
-    kind: PointerDeviceKind.touch,
-    timeStamp: Duration(milliseconds: millis),
-  );
-}
-
-PointerUpEvent _up({required int pointer, required double x, required int millis}) {
-  return PointerUpEvent(
-    pointer: pointer,
-    position: Offset(x, 0),
-    kind: PointerDeviceKind.touch,
-    timeStamp: Duration(milliseconds: millis),
-  );
 }

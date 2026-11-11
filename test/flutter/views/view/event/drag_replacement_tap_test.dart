@@ -81,89 +81,7 @@ void main() {
     await tester.pump(Duration(milliseconds: 100));
   });
 
-  testWidgets('replacing equivalent pending drag still keeps drag tracking alive', (tester) async {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
-    final phases = <String>[];
-
-    final dispatcher = EventDispatcher(box)..event = _dragEvent('old', phases);
-    addTearDown(dispatcher.dispose);
-
-    _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-
-    dispatcher.event = _dragEvent('new', phases);
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        delta: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 16),
-      ),
-    );
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerUpEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 32),
-      ),
-    );
-
-    expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-    expect(dispatcher.isTapPressed, isTrue);
-    await tester.pump(Duration(milliseconds: 100));
-    expect(dispatcher.isTapPressed, isFalse);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('replacing non-equivalent drag config keeps active pointer tracking alive', (tester) async {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
-    final phases = <String>[];
-
-    final dispatcher = EventDispatcher(box)..event = _dragEvent('old', phases, dragStartDistance: 30);
-    addTearDown(dispatcher.dispose);
-
-    _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-
-    dispatcher.event = _dragEvent('new', phases, dragStartDistance: 12);
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        delta: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 16),
-      ),
-    );
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerUpEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 32),
-      ),
-    );
-
-    expect(phases, <String>['new:dragStart', 'new:dragEnd']);
-    expect(dispatcher.isTapPressed, isTrue);
-    await tester.pump(Duration(milliseconds: 100));
-    expect(dispatcher.isTapPressed, isFalse);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('replacing non-drag event with drag event seeds active pointer tracking', (tester) async {
+  testWidgets('adding drag handlers after down leaves the existing press route in charge', (tester) async {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
@@ -196,7 +114,7 @@ void main() {
       ),
     );
 
-    expect(phases, <String>['new:dragStart', 'new:dragEnd']);
+    expect(phases, isEmpty);
     expect(dispatcher.isTapPressed, isTrue);
     await tester.pump(Duration(milliseconds: 100));
     expect(dispatcher.isTapPressed, isFalse);
@@ -215,7 +133,7 @@ void main() {
         'old',
         phases,
         onPointerMove: (_) {
-          dispatcher.event = _dragEvent('new', phases);
+          dispatcher.event = _dragEvent('new', phases, onPointerMove: (_) {});
         },
       );
     addTearDown(dispatcher.dispose);
@@ -258,7 +176,7 @@ void main() {
     expect(dispatcher.isTapPressed, isFalse);
   });
 
-  testWidgets('deferred dragStart replacement does not fire update into replacement', (tester) async {
+  testWidgets('同构声明在 DragStart 内更新时，后续移动交给新回调', (tester) async {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
     final phases = <String>[];
@@ -268,15 +186,9 @@ void main() {
       ..event = _dragEvent(
         'old',
         phases,
-        onPointerMove: (_) {
-          dispatcher.event = _dragEvent(
-            'new',
-            phases,
-            onDragStart: (_) {
-              phases.add('new:dragStart');
-              dispatcher.event = _dragEvent('replacement', phases);
-            },
-          );
+        onDragStart: (_) {
+          phases.add('old:dragStart');
+          dispatcher.event = _dragEvent('replacement', phases);
         },
       );
     addTearDown(dispatcher.dispose);
@@ -326,118 +238,13 @@ void main() {
       ),
     );
 
-    // 'new' -> 'replacement' 是 shape 相等的热替换：已入队的 dragUpdate 改为
-    // 实时解析 handler（新闭包即刻生效），不再像旧闭包身份等值时代那样整体
-    // 丢弃——move2 的 update 不丢失，fire 到 replacement 闭包。
     expect(phases, <String>[
-      'new:dragStart',
+      'old:dragStart',
       'replacement:dragUpdate',
       'replacement:dragUpdate',
       'replacement:dragEnd',
     ]);
     expect(dispatcher.isTapPressed, isFalse);
-  });
-
-  testWidgets('deferred dragStart replacement followed by pointerUp does not retarget replacement', (tester) async {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
-    final phases = <String>[];
-    late EventDispatcher dispatcher;
-
-    dispatcher = EventDispatcher(box)
-      ..event = _dragEvent(
-        'old',
-        phases,
-        onPointerMove: (_) {
-          dispatcher.event = _dragEvent('new', phases);
-        },
-      );
-    addTearDown(dispatcher.dispose);
-
-    _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        delta: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 16),
-      ),
-    );
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerUpEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 32),
-      ),
-    );
-
-    expect(phases, isEmpty);
-    expect(dispatcher.isTapPressed, isFalse);
-  });
-
-  testWidgets('dragStart replacement cancels old drag and preserves the pending tap candidate', (tester) async {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
-    final phases = <String>[];
-    late EventDispatcher dispatcher;
-
-    dispatcher = EventDispatcher(box)
-      ..event = _dragEvent(
-        'old',
-        phases,
-        onDragStart: (_) {
-          phases.add('old:dragStart');
-          dispatcher.event = ElEvent(onTap: (event) => phases.add('replacement:${event.phase.name}'));
-        },
-      );
-    addTearDown(dispatcher.dispose);
-
-    _dispatch(dispatcher, entry, _touchDown(pointer: 1));
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(0, -16),
-        delta: Offset(0, -16),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 16),
-      ),
-    );
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(0, -28),
-        delta: Offset(0, -12),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 32),
-      ),
-    );
-    _dispatch(
-      dispatcher,
-      entry,
-      const PointerUpEvent(
-        pointer: 1,
-        position: Offset(0, -28),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 48),
-      ),
-    );
-
-    expect(phases, <String>['old:dragStart', 'old:dragCancel', 'replacement:tap']);
-    expect(dispatcher.isTapPressed, isTrue);
-    await tester.pump(Duration(milliseconds: 100));
-    expect(dispatcher.isTapPressed, isFalse);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('dragStart replacement with null event cancels old tracking without leaking callbacks', (tester) async {
@@ -575,11 +382,7 @@ void main() {
       'replacement:dragStart',
       'replacement:dragEnd',
     ]);
-    expect(dispatcher.isTapPressed, isTrue);
-    await tester.pump(Duration(milliseconds: 100));
     expect(dispatcher.isTapPressed, isFalse);
-    // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
-    await tester.pump(Duration(milliseconds: 100));
   });
 
   testWidgets('pointerCancel replacement terminates only the old drag', (tester) async {

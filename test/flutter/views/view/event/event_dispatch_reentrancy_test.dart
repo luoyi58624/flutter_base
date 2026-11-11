@@ -171,7 +171,7 @@ void main() {
     expect(dispatcher.event, isNotNull);
   });
 
-  testWidgets('passive drag acceptance does not invoke tap cancel replacement', (tester) async {
+  testWidgets('tapCancel replacement during drag acceptance does not start the new callback', (tester) async {
     final box = _attachedBox();
     final entry = BoxHitTestEntry(box, Offset.zero);
 
@@ -202,7 +202,7 @@ void main() {
       entry,
     );
 
-    expect(phases, <String>['old:dragStart']);
+    expect(phases, <String>['old:tapCancel']);
     dispatcher.dispatchTestPointer(PointerUpEvent(pointer: 1, position: Offset(4, 0)), entry);
     // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
     await tester.pump(Duration(milliseconds: 100));
@@ -232,45 +232,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
 
     expect(phases, <String>['old:pointerDown']);
-  });
-
-  testWidgets('drag cancel replacing event during scale takeover does not emit scaleStart', (tester) async {
-    final box = _attachedBox();
-    final entry = BoxHitTestEntry(box, Offset.zero);
-
-    late final EventDispatcher dispatcher;
-    final phases = <String>[];
-    dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) => phases.add('old:${event.phase.name}'),
-        onDragCancel: (event) {
-          phases.add('old:${event.phase.name}');
-          dispatcher.event = ElEvent(onScaleStart: (event) => phases.add('new:${event.phase.name}'));
-        },
-        onScaleStart: (event) => phases.add('old:${event.phase.name}'),
-      );
-    addTearDown(dispatcher.dispose);
-
-    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 1, position: Offset.zero), entry);
-    dispatcher.dispatchTestPointer(
-      const PointerMoveEvent(
-        pointer: 1,
-        position: Offset(4, 0),
-        delta: Offset(4, 0),
-        timeStamp: Duration(milliseconds: 16),
-      ),
-      entry,
-    );
-
-    dispatcher.dispatchTestPointer(const PointerDownEvent(pointer: 2, position: Offset(100, 0)), entry);
-    await tester.pump();
-    dispatcher.dispatchTestPointer(
-      const PointerMoveEvent(pointer: 2, position: Offset(160, 0), delta: Offset(60, 0)),
-      entry,
-    );
-
-    expect(phases, <String>['old:dragStart', 'old:dragCancel']);
   });
 
   testWidgets('forward tapUp replacing event does not fire forwardTap into replacement', (tester) async {

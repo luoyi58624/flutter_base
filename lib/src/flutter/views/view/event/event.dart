@@ -15,8 +15,7 @@ part 'event.g.dart';
 /// 事件回调签名。
 typedef ElEventHandler = void Function(ElEventDetails event);
 
-/// 事件识别参数配置：点击家族（单击 / 连击 / 长按 / 侧键 tap）与拖拽
-/// （起手阈 / 判轴锥角 / fling 阈值）。
+/// 点击、按压反馈和 Flutter 拖拽的局部配置。
 ///
 /// 挂到 `ElEvent.config`。所有字段可空，`null` 表示**未设置**：
 ///
@@ -151,37 +150,20 @@ final class ElEventConfig with Equatable {
 
   // --- 拖拽 ------------------------------------------------------------------
 
-  /// 累计移动超过该距离后触发拖拽开始。
+  /// 自定义 Flutter 拖拽的触摸容差，省略时使用宿主的设备设置。
   ///
-  /// `null`（默认）表示设备自适应：轴向拖拽取设备 hit slop（Android 真机
-  /// ≈8-9 逻辑px，测试环境 18）；**双轴组竞争中胜出的水平轴**取 pan slop
-  /// （hit slop × 2）——水平比垂直更易被起手噪声误判，加长确认距离给纵向
-  /// 意图留翻盘窗口（未激活期间判轴方向仍是活的）；自由拖拽取 pan slop
-  /// ——与官方对应 recognizer 的启动阈一致。显式设置则按值生效（不分轴、
-  /// 不放大），不再有 `kTouchSlop` 哨兵语义。
+  /// 横拖和纵拖使用此值作为 hit slop，Pan 使用此值作为 pan slop。
+  /// 精准指针沿用 Flutter 的设备容差。
   final double? dragStartDistance;
 
-  /// 可参与拖拽识别的设备；null 表示不限制。
+  /// 允许参与拖拽和缩放的设备，null 表示允许所有设备。
   final Set<PointerDeviceKind>? dragDevices;
 
   final double? _dragHorizontalAngle;
 
-  /// 拖拽起手方向判轴的水平捕获锥半角（弧度），默认 π/4（45°）：
-  /// `|dx| >= |dy|` 判横向，`|dy| > |dx|` 判垂直，两个方向各占一半。
+  /// 自由拖拽的起手方向分类使用的水平半角，默认 π/4。
   ///
-  /// 双轴竞争的水平轴仍使用 pan slop 启动阈，垂直轴使用 hit slop；角度只
-  /// 负责判定用户意图方向，不改变各轴的设备启动距离。
-  ///
-  /// 起手方向与水平轴的夹角在 ±[dragHorizontalAngle] 内判为水平，否则判为
-  /// 垂直；默认 45° 时两个方向等分。作用于：
-  ///
-  /// - **双轴组同挂**（onVerticalDrag* + onHorizontalDrag* 组）：起手锁轴
-  ///   按此锥裁决，2D 位移越过胜出轴的 [dragStartDistance] 即激活；
-  /// - 自由拖拽（onDrag*）的 dragDirection 方向分类；
-  /// - 轻扫救援（未过起手阈直接抬手）按速度向量方向同款判轴。
-  ///
-  /// 只挂单一轴向组时也参与判定：累计方向不在该轴捕获锥内就继续等待，
-  /// 允许后续轨迹转向后再激活，避免浅角横滑误启动垂直行为。
+  /// 用于填写 [ElEventDetails.dragDirection]。轴向手势的归属由 Flutter 竞技场决定。
   double get dragHorizontalAngle => _dragHorizontalAngle ?? math.pi / 4;
 
   /// 拖拽结束判定为 fling 的最小拖动距离。
@@ -211,61 +193,24 @@ final class ElEventConfig with Equatable {
 bool _sameTapConfiguration(ElEventConfig? left, ElEventConfig? right) =>
     left?.hasSameTapConfiguration(right) ?? right?.hasSameTapConfiguration(null) ?? true;
 
-/// 拖拽代理配置：声明本节点参与后代拖拽序列的 delta 分账管线。
+/// 旧版预览等组件使用的拖拽代理声明。
 ///
-/// 挂到 [ElEvent.dragProxy] 上。当后代 dispatcher 接受一次拖拽（driver）时，
-/// 事件层沿 driver 的祖先链收集所有声明了兼容 proxy 的成员组成 roster：
-///
-/// - **pre 阶段**：driver 每帧应用 delta **之前**由 roster 外→内依次调用
-///   [onDragPreUpdate]，通过 [ElEventDetails.consumeDelta] /
-///   [ElEventDetails.consumePrimaryDelta] 记账剩余量。
-/// - **主段**：driver 按现状逻辑消费剩余 delta（滚动组件的边界 clamp、
-///   ScrollPhysics 等）。
-/// - **overflow 阶段**：driver 消费后由 roster 内→外依次调用 [onDragOverflow]，
-///   接收 driver 未吃掉的余量。
-///
-/// 三段共用同一个 [ElEventDetails]，管线通过 [ElEventDetails.remainingDelta]
-/// 台账协作。任何阶段把余量按 [axis] 投影为 0 → 短路后续阶段。
-///
-/// ## 语义约束
-///
-/// - roster 成员由祖先链快照收集，**不依赖自身 hit-test**；纯 proxy 节点无需
-///   声明 [ElEvent.onDragStart] 等回调。但含 dragProxy 的 [ElEvent] 非 null 时
-///   宿主仍会分配 dispatcher，链收集才能可见。
-/// - roster 成员的 [onDragPreUpdate] / [onDragOverflow] 内**禁用**
-///   [ElEventDetails.stopPropagation] 与 [ElEventDetails.eagerGesture]：调用
-///   被静默忽略并复位。用户代码应通过 `consumeDelta` 表达"这一段我吃了"。
-/// - roster 成员的 [ElEvent.onDragStart] / [ElEvent.onDragEnd] /
-///   [ElEvent.onDragCancel] 仍会收到 driver 冒泡的生命周期事件，作为手势
-///   起止信号（例如面板 snap 依赖 `onDragEnd.primaryVelocity`）。
-///
-/// ## shape 等值
-///
-/// 与 [ElEvent] 一致：`==` 比 [axis] 值 + 回调空性掩码。widget rebuild 传入
-/// 新闭包但结构相同时属于同构替换，dispatcher 热替换回调引用、管线不断。
+/// Flutter 拖拽的更新直接送给获胜宿主。跨组件的位移分配需要由组件接入。
 @ElModelGenerator.copy(generateProps: false)
 final class ElDragProxy {
   /// 创建拖拽代理配置。
   const ElDragProxy({this.axis, this.onDragPreUpdate, this.onDragOverflow, this.boundaryHandoff = const {}});
 
-  /// 兼容轴向。null 表示任意轴。
-  ///
-  /// driver 接受拖拽时以**胜出轴**为准（声明 `onVerticalDrag*` 组胜出为
-  /// vertical、`onHorizontalDrag*` 组胜出为 horizontal、自由拖拽 `onDrag*`
-  /// 为 null）：driver 胜出轴非 null 时，`axis == null` 或 `axis == 胜出轴`
-  /// 才入 roster；driver 为自由拖拽时仅 `axis == null` 入 roster。
+  /// 代理声明可接收的轴向，null 表示任意轴。
   final Axis? axis;
 
-  /// 先扣阶段回调（roster 外→内）。
+  /// 主消费者应用位移前的回调。
   final ElEventHandler? onDragPreUpdate;
 
-  /// 溢出阶段回调（roster 内→外）。
+  /// 主消费者用完位移后的余量回调。
   final ElEventHandler? onDragOverflow;
 
-  /// 指定需要接管滚动边界余量的指针移动方向，默认保留后代的弹性滚动物理。
-  ///
-  /// 这些方向抵达边界后不再继续弹性越界，余量交给 [onDragOverflow]；
-  /// 只声明本代理负责消费的方向，未声明方向仍使用原有物理。
+  /// 声明代理需要接管滚动边界余量的方向。
   final Set<AxisDirection> boundaryHandoff;
 
   /// 是否包含任意 proxy handler。
@@ -390,9 +335,7 @@ class ElEvent {
   /// 详见 [ElEventConfig]。
   final ElEventConfig? config;
 
-  /// 拖拽分账代理。声明本节点参与后代拖拽序列的 pre/overflow 阶段管线。
-  ///
-  /// 详见 [ElDragProxy] 类文档。
+  /// 为现有组件保留的拖拽代理声明。
   final ElDragProxy? dragProxy;
 
   /// 事件宿主的命中行为，默认覆盖布局盒。
@@ -404,7 +347,7 @@ class ElEvent {
   /// 是否禁用事件宿主的交互。
   final bool disabled;
 
-  /// 是否允许纯角向移动启动 Scale 状态机，仅供变换组件开启。
+  /// 为现有缩放组件保留的旋转起手配置。
   @internal
   final bool rotationStartEnabled;
 
@@ -525,8 +468,8 @@ class ElEvent {
 
   /// 主指针成为拖拽候选时的按下回调，在轴向判定与拖拽接受之前触发。
   ///
-  /// 此阶段调用 `stopPropagation()` 只截断祖先 Drag 家族，不影响 raw
-  /// Pointer 与 Tap 家族；没有后续 [onDragStart] 时不要求终态配对。
+  /// 此阶段调用 `stopPropagation()` 可截断外层 ElEvent 的拖拽报名。
+  /// 单独声明此回调只观察按下。
   final ElEventHandler? onDragDown;
 
   /// 自由拖拽开始回调（任意方向，对应官方 `onPanStart`）。
@@ -541,13 +484,12 @@ class ElEvent {
   /// 自由拖拽结束回调。
   final ElEventHandler? onDragEnd;
 
-  /// 自由拖拽取消回调。
+  /// 已开始的自由拖拽取消时回调。
   final ElEventHandler? onDragCancel;
 
   /// 垂直拖拽开始回调（对应官方 `onVerticalDragStart`）。
   ///
-  /// 与 [onHorizontalDragStart] 组同时声明时，一次手势按起手方向竞争锁轴：
-  /// 先越过自身 slop 的轴胜出，整个手势只派发胜出组的回调，
+  /// 与水平拖拽同时声明时，由 Flutter 竞技场决定胜出轴。
   /// [ElEventDetails.dragAxis] 携带胜出轴。
   final ElEventHandler? onVerticalDragStart;
 
@@ -572,13 +514,13 @@ class ElEvent {
   /// 水平拖拽取消回调。
   final ElEventHandler? onHorizontalDragCancel;
 
-  /// 缩放开始回调。
+  /// Flutter 缩放开始回调，包含识别器接受的单指平移。
   final ElEventHandler? onScaleStart;
 
   /// 缩放更新回调。
   final ElEventHandler? onScaleUpdate;
 
-  /// 缩放结束回调。
+  /// Flutter 结清当前缩放段时回调，增减触点也会结清当前段。
   final ElEventHandler? onScaleEnd;
 
   /// 缩放取消回调。
@@ -711,22 +653,10 @@ class ElEvent {
       other._handlerShapeMaskLo == _handlerShapeMaskLo &&
       ((_handlerShapeMaskHi ^ other._handlerShapeMaskHi) & maskHi) == 0;
 
-  /// 仅比较缩放与旋转声明，供分发器决定是否结清已有 Scale。
+  /// 比较 Flutter 拖拽与缩放回调的结构，等同结构的重建可替换闭包。
   @internal
-  bool hasSameScaleShape(ElEvent other) =>
-      rotationStartEnabled == other.rotationStartEnabled &&
-      ((_handlerShapeMaskHi ^ other._handlerShapeMaskHi) & 0x1f000) == 0;
-
-  int get _transformCallbackShape {
-    final mask = _handlerShapeMaskHi;
-    final freeDrag = mask & 0xf;
-    // 轴向回调沿用自由拖拽回落，保持分发器按轴查找的空性语义。
-    return (mask | (freeDrag << 4) | (freeDrag << 8)) & 0x41ffff;
-  }
-
-  /// 仅比较变换回调空性，不替代参数比较或活动 Drag 续接判断。
-  @internal
-  bool hasSameTransformCallbacks(ElEvent other) => _transformCallbackShape == other._transformCallbackShape;
+  bool hasSameNativeGestureCallbacks(ElEvent other) =>
+      ((_handlerShapeMaskHi ^ other._handlerShapeMaskHi) & 0x41ffff) == 0;
 
   @override
   bool operator ==(Object other) {

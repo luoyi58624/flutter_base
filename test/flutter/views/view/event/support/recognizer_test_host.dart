@@ -31,25 +31,6 @@ PressRecognizer recordingPress(List<String> events, String name, {PressRecognize
   return recognizer;
 }
 
-/// 记录水平拖拽生命周期，供真实命中场景复用。
-TransformRecognizer recordingDrag(
-  List<String> events,
-  String name, {
-  TransformRecognizer? parent,
-  double distance = 6,
-}) {
-  final recognizer = TransformRecognizer()
-    ..startDistance = distance
-    ..parent = parent
-    ..axis = Axis.horizontal;
-  recognizer.callbacks[.dragDown] = (_) => events.add('$name.down');
-  recognizer.callbacks[.dragStart] = (_) => events.add('$name.start');
-  recognizer.callbacks[.dragUpdate] = (_) => events.add('$name.update');
-  recognizer.callbacks[.dragEnd] = (_) => events.add('$name.end');
-  recognizer.callbacks[.dragCancel] = (_) => events.add('$name.cancel');
-  return recognizer;
-}
-
 /// 构造同一指针同时命中两个透明分支的真实场景。
 Widget overlapHost({
   required GestureRecognizer parent,

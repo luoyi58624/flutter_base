@@ -1,7 +1,6 @@
 import 'package:flutter_base/src/flutter/views/view/event/dispatcher.dart' show EventDispatcher;
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart' hide EventDispatcher;
 
 import 'support/dispatcher_test_host.dart';
@@ -9,7 +8,7 @@ import 'support/dispatcher_test_host.dart';
 void main() {
   setUp(EventDispatcher.debugResetEagerGestureOwners);
 
-  testWidgets('OWN-1: descendant eager drag cancels ancestor chain and preserves winner tap', (tester) async {
+  testWidgets('OWN-1: descendant eager drag ends the competing press and ancestor input', (tester) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     var parentPointerMoves = 0;
@@ -44,6 +43,7 @@ void main() {
       onTapDown: (event) => childTapPhases.add(event.phase),
       onTapUp: (event) => childTapPhases.add(event.phase),
       onTap: (event) => childTapPhases.add(event.phase),
+      onTapCancel: (event) => childTapPhases.add(event.phase),
       onDragStart: (event) {
         childDragStarts++;
         event.eagerGesture();
@@ -65,13 +65,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 80));
 
     expect(childDragStarts, 1);
-    expect(childTapPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+    expect(childTapPhases, <ElEventPhase>[ElEventPhase.tapDown, ElEventPhase.tapCancel]);
     expect(parentTapDowns, 1);
     expect(parentPointerCancels, 1, reason: 'eager loser 必须先收到合成 PointerCancel 以清理 raw 副作用');
     expect(parentPointerCancelReason, ElEventCancelReason.otherGestureAccepted);
     expect(parentTapCancels, 1, reason: 'active loser 必须在失权时恰好收到一次自身 cancel');
     expect(parentCancelReason, ElEventCancelReason.otherGestureAccepted);
-    expect(parentPointerMoves, 0, reason: 'eagerGesture 淘汰 loser 的整条事件链，ancestor 不再收到当前或后续 raw pointerMove');
+    expect(parentPointerMoves, 1, reason: '起拖的原始移动先于 Flutter 的获胜回调');
     expect(parentDragStarts, 0, reason: 'the ancestor primary gesture chain was canceled by the child drag');
     expect(parentLongPresses, 0, reason: 'a child drag winner must cancel the ancestor pending long press');
     // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
@@ -93,19 +93,23 @@ void main() {
     expect(trace.toSet(), <String>{'child:tapDown', 'child:tapCancel', 'ancestor:dragStart', 'ancestor:dragEnd'});
   });
 
-  testWidgets('OWN-3: cancelSelfTap settles every active tap once but preserves winner terminal', (_) async {
+  testWidgets('OWN-3: cancelSelfTap settles each active press once and preserves the winner release', (tester) async {
     final host = DispatcherTestHost.chain(depth: 3);
     addTearDown(host.dispose);
     final trace = <String>[];
     host.dispatchers[0].event = _tapEvent('ancestor', trace);
-    host.dispatchers[1].event = _tapAndDragEvent('winner', trace, cancelSelfTapOnDragStart: true);
+    host.dispatchers[1].event = _tapEvent(
+      'winner',
+      trace,
+    ).copyWith(onPointerMove: (ElEventDetails event) => event.eagerGesture(cancelSelfTap: true));
     host.dispatchers[2].event = _tapEvent('descendant', trace);
 
     host.dispatch(_down(pointer: 3));
+    await tester.pump();
     host.dispatch(_move(pointer: 3, x: 4, deltaX: 4, millis: 16));
     host.dispatch(_up(pointer: 3, x: 4, millis: 32));
 
-    expect(trace, hasLength(9));
+    expect(trace, hasLength(7));
     expect(trace.toSet(), <String>{
       'descendant:tapDown',
       'winner:tapDown',
@@ -113,48 +117,11 @@ void main() {
       'descendant:tapCancel',
       'winner:tapCancel',
       'ancestor:tapCancel',
-      'winner:dragStart',
-      'winner:dragEnd',
       'winner:tapUp',
     });
   });
 
-  testWidgets('OWN-3A: DragProxy driver/roster 区分自身与他手势取消，roster 仍收到终态', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    ElEventCancelReason? driverReason;
-    ElEventCancelReason? rosterReason;
-    final driverDragPhases = <ElEventPhase>[];
-    final rosterDragPhases = <ElEventPhase>[];
-
-    host.rootDispatcher.event = ElEvent(
-      config: _dragConfig,
-      dragProxy: ElDragProxy(onDragPreUpdate: (_) {}, onDragOverflow: (_) {}),
-      onTapDown: (_) {},
-      onTapCancel: (event) => rosterReason = event.cancelReason,
-      onDragStart: (event) => rosterDragPhases.add(event.phase),
-      onDragEnd: (event) => rosterDragPhases.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(
-      config: _dragConfig,
-      onTapDown: (_) {},
-      onTapCancel: (event) => driverReason = event.cancelReason,
-      onDragStart: (event) => driverDragPhases.add(event.phase),
-      onDragUpdate: (_) {},
-      onDragEnd: (event) => driverDragPhases.add(event.phase),
-    );
-
-    host.dispatch(_down(pointer: 31));
-    host.dispatch(_move(pointer: 31, x: 4, deltaX: 4, millis: 16));
-    host.dispatch(_up(pointer: 31, x: 4, millis: 32));
-
-    expect(driverReason, ElEventCancelReason.selfGestureAccepted);
-    expect(rosterReason, ElEventCancelReason.otherGestureAccepted);
-    expect(driverDragPhases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragEnd]);
-    expect(rosterDragPhases, <ElEventPhase>[ElEventPhase.dragStart, ElEventPhase.dragEnd]);
-  });
-
-  testWidgets('OWN-4: pointerDown eager keeps winner raw, tapUp and drag but drops the loser chain', (_) async {
+  testWidgets('OWN-4: pointerDown eager keeps the winner raw route and tapUp', (_) async {
     final host = DispatcherTestHost.chain(depth: 2);
     addTearDown(host.dispose);
     final winnerPhases = <ElEventPhase>[];
@@ -200,11 +167,8 @@ void main() {
       ElEventPhase.pointerDown,
       ElEventPhase.tapDown,
       ElEventPhase.pointerMove,
-      ElEventPhase.dragStart,
       ElEventPhase.pointerMove,
-      ElEventPhase.dragUpdate,
       ElEventPhase.pointerUp,
-      ElEventPhase.dragEnd,
       ElEventPhase.tapUp,
     ]);
     expect(loserPhases, isEmpty, reason: 'pointerDown 中失去 id 后，loser 后续 raw 与语义链都必须停止');
@@ -234,28 +198,6 @@ void main() {
     expect(loserPhases, isEmpty, reason: '同轮已入队回调执行前也必须重查 pointer membership');
     // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
     await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('OWN-6: ancestor up-stage fling rescue cancels descendant tap', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final trace = <String>[];
-    host.rootDispatcher.event = ElEvent(
-      config: const ElEventConfig(dragStartDistance: 100, dragMinFlingDistance: 1, dragMinFlingVelocity: 10),
-      onDragStart: (event) {
-        trace.add('ancestor:${event.phase.name}');
-        event.eagerGesture(cancelSelfTap: true);
-      },
-      onDragEnd: (event) => trace.add('ancestor:${event.phase.name}'),
-    );
-    host.leafDispatcher.event = _tapEvent('child', trace);
-
-    host.dispatch(_down(pointer: 6));
-    host.dispatch(_move(pointer: 6, x: 20, deltaX: 20, millis: 4));
-    host.dispatch(_up(pointer: 6, x: 20, millis: 8));
-
-    expect(trace, hasLength(4));
-    expect(trace.toSet(), <String>{'child:tapDown', 'child:tapCancel', 'ancestor:dragStart', 'ancestor:dragEnd'});
   });
 
   testWidgets('OWN-13: eagerGesture 返回前同步结清 loser terminal', (_) async {
@@ -329,60 +271,6 @@ void main() {
     expect(orphanTapCancels, 0, reason: '尚未收到 TapDown 的 raw loser 不得产生孤立 TapCancel');
     // 正常抬手可能保留视觉反馈，推进到反馈结束再退出用例。
     await tester.pump(Duration(milliseconds: 100));
-  });
-
-  testWidgets('OWN-15: eager settles active Drag with PointerCancel then DragCancel', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final parentTerminals = <ElEventPhase>[];
-    var shouldClaim = false;
-    host.rootDispatcher.event = ElEvent(
-      config: _dragConfig,
-      onPointerCancel: (event) => parentTerminals.add(event.phase),
-      onDragStart: (_) {},
-      onDragUpdate: (_) {},
-      onDragCancel: (event) => parentTerminals.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(
-      onPointerMove: (event) {
-        if (shouldClaim) event.eagerGesture();
-      },
-    );
-
-    host.dispatch(_down(pointer: 15));
-    host.dispatch(_move(pointer: 15, x: 20, deltaX: 20, millis: 16));
-    shouldClaim = true;
-    host.dispatch(_move(pointer: 15, x: 30, deltaX: 10, millis: 32));
-
-    expect(parentTerminals, <ElEventPhase>[ElEventPhase.pointerCancel, ElEventPhase.dragCancel]);
-  });
-
-  testWidgets('OWN-16: eager settles active Scale with PointerCancel then ScaleCancel', (_) async {
-    final host = DispatcherTestHost.chain(depth: 2);
-    addTearDown(host.dispose);
-    final parentTerminals = <ElEventPhase>[];
-    var shouldClaim = false;
-    host.rootDispatcher.event = ElEvent(
-      onPointerCancel: (event) => parentTerminals.add(event.phase),
-      onScaleStart: (_) {},
-      onScaleCancel: (event) => parentTerminals.add(event.phase),
-    );
-    host.leafDispatcher.event = ElEvent(
-      onPointerMove: (event) {
-        if (shouldClaim) event.eagerGesture();
-      },
-    );
-
-    host.dispatch(_down(pointer: 16));
-    DispatcherScaleGesture.start(
-      host.rootDispatcher,
-      BoxHitTestEntry(host.nodes.first, Offset.zero),
-      existingDown: _down(pointer: 16),
-    );
-    shouldClaim = true;
-    host.dispatch(_move(pointer: 16, x: 20, deltaX: 20, millis: 16));
-
-    expect(parentTerminals, <ElEventPhase>[ElEventPhase.pointerCancel, ElEventPhase.scaleCancel]);
   });
 
   testWidgets('OWN-17: eager clears an active side-button tracker after PointerCancel', (_) async {
@@ -482,22 +370,6 @@ ElEvent _dragEvent(String owner, List<String> trace, {bool eager = false}) {
     onDragStart: (event) {
       record(event);
       if (eager) event.eagerGesture();
-    },
-    onDragEnd: record,
-  );
-}
-
-ElEvent _tapAndDragEvent(String owner, List<String> trace, {bool cancelSelfTapOnDragStart = false}) {
-  void record(ElEventDetails event) => trace.add('$owner:${event.phase.name}');
-  return ElEvent(
-    config: _dragConfig,
-    onTapDown: record,
-    onTapUp: record,
-    onTap: record,
-    onTapCancel: record,
-    onDragStart: (event) {
-      record(event);
-      if (cancelSelfTapOnDragStart) event.eagerGesture(cancelSelfTap: true);
     },
     onDragEnd: record,
   );

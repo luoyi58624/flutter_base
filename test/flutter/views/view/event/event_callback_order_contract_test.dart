@@ -12,6 +12,7 @@ void main() {
     final host = DispatcherTestHost.chain();
     addTearDown(host.dispose);
     final phases = <ElEventPhase>[];
+    ElEventDetails? cancellation;
     void record(ElEventDetails event) => phases.add(event.phase);
 
     host.leafDispatcher.event = ElEvent(
@@ -24,7 +25,10 @@ void main() {
       onDragStart: record,
       onDragUpdate: record,
       onPointerCancel: record,
-      onDragCancel: record,
+      onDragCancel: (event) {
+        cancellation = event;
+        record(event);
+      },
     );
 
     host.dispatch(
@@ -51,6 +55,7 @@ void main() {
       ElEventPhase.dragDown,
       ElEventPhase.tapDown,
       ElEventPhase.pointerMove,
+      ElEventPhase.tapCancel,
       ElEventPhase.dragStart,
     ]);
 
@@ -68,31 +73,33 @@ void main() {
       ElEventPhase.dragDown,
       ElEventPhase.tapDown,
       ElEventPhase.pointerMove,
+      ElEventPhase.tapCancel,
       ElEventPhase.dragStart,
       ElEventPhase.pointerMove,
       ElEventPhase.dragUpdate,
     ]);
 
-    host.dispatch(
-      const PointerCancelEvent(
-        pointer: 1,
-        position: Offset(8, 0),
-        kind: PointerDeviceKind.touch,
-        timeStamp: Duration(milliseconds: 48),
-      ),
+    final cancel = PointerCancelEvent(
+      pointer: 1,
+      position: Offset(8, 0),
+      kind: PointerDeviceKind.touch,
+      timeStamp: Duration(milliseconds: 48),
     );
+    host.dispatch(cancel);
     expect(phases, <ElEventPhase>[
       ElEventPhase.pointerDown,
       ElEventPhase.dragDown,
       ElEventPhase.tapDown,
       ElEventPhase.pointerMove,
+      ElEventPhase.tapCancel,
       ElEventPhase.dragStart,
       ElEventPhase.pointerMove,
       ElEventPhase.dragUpdate,
       ElEventPhase.pointerCancel,
       ElEventPhase.dragCancel,
-      ElEventPhase.tapCancel,
     ]);
+    expect(cancellation!.cancelReason, ElEventCancelReason.pointerCanceled);
+    expect(cancellation!.originalEvent, same(cancel));
   });
 
   testWidgets('ORDER-2: 未接受 drag 时 pointer cancel 先发 raw 再终止 tap', (tester) async {

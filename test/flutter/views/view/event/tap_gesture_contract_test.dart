@@ -815,7 +815,7 @@ void main() {
       expect(tapUps, 1);
     });
 
-    testWidgets('LONG-2: longPress owns ancestors while preserving winner tapUp and drag terminal', (tester) async {
+    testWidgets('LONG-2: longPress wins the arena and retains the press release', (tester) async {
       var childLongPresses = 0;
       var childCancels = 0;
       var childTapUps = 0;
@@ -869,9 +869,9 @@ void main() {
       expect(childCancels, 1);
       expect(childTapUps, 1);
       expect(childTaps, 0);
-      expect(childDragStarts, 1);
-      expect(childDragUpdates, 1);
-      expect(childDragEnds, 1);
+      expect(childDragStarts, 0);
+      expect(childDragUpdates, 0);
+      expect(childDragEnds, 0);
       expect(parentLongPresses, 0, reason: 'long press does not bubble and the child wins this primary chain');
       expect(parentTapUps, 0);
       expect(parentTaps, 0);
@@ -1100,10 +1100,9 @@ void main() {
       ElEventPhase.tapDown,
       ElEventPhase.tapCancel,
       ElEventPhase.tapDown,
-      ElEventPhase.dragStart,
       ElEventPhase.tapCancel,
+      ElEventPhase.dragStart,
       ElEventPhase.dragEnd,
-      ElEventPhase.tapUp,
     ]);
   });
 

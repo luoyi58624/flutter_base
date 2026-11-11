@@ -1027,10 +1027,7 @@ class ElRenderView extends RenderBox
         return;
       }
     }
-    final dispatcher = _ensureEventDispatcher();
-    dispatcher.enableLongPressedState = false;
-    dispatcher.enableDraggedState = false;
-    dispatcher.syncRecognizersForStateVariants();
+    _ensureEventDispatcher().syncRecognizersForStateVariants();
   }
 
   /// 需要 dispatcher 的状态：tap 来自按压反馈，focus 系列沿 dispatcher 父链通知。

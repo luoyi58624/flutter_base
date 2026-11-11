@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -10,7 +10,9 @@ import '../../../utils/internal/benchmark_probe.dart';
 import 'event.dart';
 import 'press.dart';
 
-/// 为任意 Render 接入 ElEvent，复用独立识别器处理反馈、回调和拖拽代理。
+part 'gestures.dart';
+
+/// 为任意 Render 接入 ElEvent，转接原始输入、按压反馈和 Flutter 手势。
 ///
 /// 宿主转接命中、指针、MouseTracker 与 attach/dispose；普通几何无需额外配置。
 class EventDispatcher {
@@ -24,8 +26,11 @@ class EventDispatcher {
     if (register) _registry[_render] = this;
     _hosts[_team] = this;
     _team.onPointerEvent = _handlePointer;
-    _team.onPointerRemoved = (event) => onRoutedPointerRemoved?.call(event);
-    _configureRecognizers();
+    _team.onPointerRemoved = (event) {
+      onRoutedPointerRemoved?.call(event);
+      _cancelGesturePointer(event, .pointerCanceled);
+    };
+    _configurePress();
   }
 
   final RenderBox _render;
@@ -35,18 +40,13 @@ class EventDispatcher {
   static final _hosts = Expando<EventDispatcher>('ElEvent host');
   final _releaseLocalPositions = Expando<Offset>('ElEvent release geometry');
   final _moveCallbacks = Expando<ElEventDetails>('ElEvent target move');
-  final _team = GestureTeam()
-    ..matchParentGestures = true
-    ..transformOnDemand = true
-    ..deferPointerMoves = true
-    ..deferPointerReleases = true;
+  final _team = GestureTeam()..matchParentGestures = true;
   late final _press = PressRecognizer(debugOwner: this)..team = _team;
   Map<PhysicalKeyboardKey, KeyEvent>? _keyboardTapKeys;
   Map<PhysicalKeyboardKey, _KeyRepeatDispatch>? _keyRepeatDispatches;
   Stopwatch? _keyRepeatClock;
   bool _reportedTapPressed = false;
-  // 只在声明拖拽、缩放或作为后代变换链的祖先时创建，点击类节点不分配。
-  TransformRecognizer? _transform;
+  _NativeGestures? _gestures;
   final _hoverDevices = <int>{};
   ElEvent? _event;
   bool _disposed = false;
@@ -65,12 +65,6 @@ class EventDispatcher {
     ElEventPhase.backTapUp => true,
     _ => false,
   };
-
-  /// 启用没有业务回调的长按状态观察。
-  bool enableLongPressedState = false;
-
-  /// 启用没有业务回调的拖拽状态观察。
-  bool enableDraggedState = false;
 
   /// 设备直接移除后的消费组件清理通知。
   void Function(PointerRemovedEvent event)? onRoutedPointerRemoved;
@@ -115,16 +109,6 @@ class EventDispatcher {
   /// 活动普通指针数量的测试入口。
   int get debugRoutedPointerCount => _team.pointerCount;
 
-  /// 当前显示刷新率的测试入口。
-  double? debugDisplayRefreshRateForTest() => _displayRefreshRate();
-
-  double? _displayRefreshRate() {
-    final root = _render.owner?.rootNode;
-    if (root is RenderView) return root.flutterView.display.refreshRate;
-    final views = ui.PlatformDispatcher.instance.views;
-    return views.isEmpty ? null : views.first.display.refreshRate;
-  }
-
   /// 指针与键盘共用的按压反馈变化通知；未设置时仍维护 [isTapPressed]。
   ValueChanged<bool>? onTapChanged;
 
@@ -145,7 +129,7 @@ class EventDispatcher {
     if (_disposed || _disposing || _gestureSettings == value) return;
     _gestureSettings = value;
     _press.gestureSettings = value;
-    _transform?.gestureSettings = value;
+    _gestures?.configure();
   }
 
   /// 当前元素的局部配置声明。
@@ -196,13 +180,14 @@ class EventDispatcher {
   bool get isHovered => _hoverDevices.isNotEmpty;
 
   /// 直接读取识别器的拖拽状态。
-  bool get isDragged => _transform?.isDragging ?? false;
+  bool get isDragged => _gestures?.isDragging ?? false;
 
   /// 当前仍接收原始输入的指针数。
   int get activePointerCount => _team.ordinaryPointerCount;
 
   /// 当前是否仍有真实识别会话，取消后立即归零。
-  bool get hasActivePointerSequence => _team.hasActiveInput || _team.pointerCount > _team.ordinaryPointerCount;
+  bool get hasActivePointerSequence =>
+      _team.hasActiveInput || _team.pointerCount > _team.ordinaryPointerCount || _gestures?.hasActiveInput == true;
 
   /// 当前元素是否已销毁。
   bool get isDisposed => _disposed;
@@ -227,27 +212,28 @@ class EventDispatcher {
     final sameGestureShape = old != null && value != null && old.hasSameGestureShape(value);
     if (sameGestureShape && old.disabled == value.disabled) {
       _event = value;
-      _configureRecognizers();
+      _configurePress();
       if (mouseChanged) _refreshMouseTracker();
       return;
     }
     final terminal = _team.isDispatchingTerminal || _isDispatchingPressRelease;
-    final input = _team.currentPointerDetails?.originalEvent;
-    final changedDuringRaw = _team.isDispatching && old != null && value != null && !sameGestureShape;
+    final replacesActiveGestures = _team.isDispatching && _gestures?.hasActiveInput == true;
     if (old != null) {
       _press.cancelSideButtons();
       if (_disposed || revision != _configurationRevision) return;
-      if (value == null || value.disabled || terminal) {
+      if (value == null || value.disabled || terminal || replacesActiveGestures) {
         _press.cancelMember();
       } else if (!old.hasSameNonDragShape(value)) {
         _press.invalidateDiscretePending();
       }
       if (_disposed || revision != _configurationRevision) return;
-      final ending = value == null || value.disabled || terminal;
-      final cancelDrag = ending || !_declaresDrag(value) || isDragged && !_canPreserveActiveDrag(old, value);
-      final cancelScale = ending || _declaresScale(old) && !old.hasSameScaleShape(value);
-      if (cancelDrag || cancelScale) {
-        _transform?.cancelMember(null, cancelDrag: cancelDrag, cancelScale: cancelScale);
+      if (value == null ||
+          value.disabled ||
+          replacesActiveGestures ||
+          terminal ||
+          _activeCallback?.phase == .tapCancel ||
+          !_sameNativeGestureShape(old, value)) {
+        _cancelGestures();
       }
       if (_disposed || revision != _configurationRevision) return;
       if (_declaresPanZoom(old) && !_declaresPanZoom(value)) {
@@ -262,11 +248,9 @@ class EventDispatcher {
     }
     if (_disposed || revision != _configurationRevision) return;
     _event = value;
-    _configureRecognizers(deferStartFor: changedDuringRaw && input is PointerMoveEvent ? input : null);
+    _configurePress();
     if (mouseChanged) _refreshMouseTracker();
   }
-
-  EventDispatcher? _parent;
 
   /// 宿主挂载或在已挂载的宿主上新增分发器后调用，重挂保留在途手势。
   void attach() {
@@ -299,10 +283,8 @@ class EventDispatcher {
   }
 
   void _connectParent(EventDispatcher? parent) {
-    _parent = parent;
-    _press.parent = _parent?._press;
-    _transform?.parent = _parent?._ensureTransform();
-    _team.parent = _parent?._team;
+    _press.parent = parent?._press;
+    _team.parent = parent?._team;
   }
 
   void _cancelDescendantEvents() {
@@ -351,14 +333,6 @@ class EventDispatcher {
     }
   }
 
-  Iterable<EventDispatcher> get _ancestors sync* {
-    var node = _parent;
-    while (node != null) {
-      if (!node._disposed) yield node;
-      node = node._parent;
-    }
-  }
-
   Offset? _ancestorOrigin() {
     if (!_render.attached) return null;
     try {
@@ -386,13 +360,13 @@ class EventDispatcher {
     if (start && disabled) return;
     if (start) {
       _syncParent();
-      _configureRecognizers();
+      _configurePress();
+    } else {
+      _gestures?.observe(event);
     }
     if (!_team.observePointer(event) || disabled) return;
+    if (start && _sameNativeGestureShape(before, _event)) _addGesturePointer(event);
     if (event is PointerDownEvent) {
-      if (_sameTransformShape(before, _event) && (_hasDrag || _hasScale)) {
-        _ensureTransform().addPointer(event);
-      }
       if (before == null && _event == null || before != null && _event != null && before.hasSameNonDragShape(_event!)) {
         _press.addPointer(event);
       }
@@ -400,7 +374,10 @@ class EventDispatcher {
   }
 
   bool _handlePointer(PointerEvent input, PressCancelReason? reason) {
-    if (input is PointerPanZoomEndEvent && GestureTeam.isDeviceRemoval(input)) return true;
+    if (input is PointerPanZoomEndEvent && GestureTeam.isDeviceRemoval(input)) {
+      _cancelGesturePointer(input, .pointerCanceled);
+      return true;
+    }
     final phase = switch (input) {
       PointerDownEvent() => ElEventPhase.pointerDown,
       PointerMoveEvent() => ElEventPhase.pointerMove,
@@ -422,6 +399,10 @@ class EventDispatcher {
     )..pointerCount = activePointerCount;
     if (input is PointerPanZoomEndEvent && reason != null) callback.preventDefault();
     _invoke(handler, callback);
+    if (reason != null && (phase == .pointerCancel || phase == .pointerPanZoomEnd)) {
+      // 物理终态由识别器结算；失权和设备移除的合成终态只经过事件层。
+      _cancelGesturePointer(input, _cancelReason(reason));
+    }
     if (input is PointerSignalEvent &&
         (callback.defaultPrevented || callback.remainingDelta == Offset.zero && callback.delta != Offset.zero)) {
       GestureBinding.instance.pointerSignalResolver.register(
@@ -460,39 +441,6 @@ class EventDispatcher {
     // 长按默认独占必须在整条回调链完成后由通用识别器触发，不能逐宿主抢跑。
   }
 
-  void _handleTransform(TransformGestureDetails details) {
-    final phase = details.phase;
-    if (_disposed) return;
-    if (phase == ElEventPhase.scaleCancel && GestureTeam.isDeviceRemoval(details.originalEvent)) return;
-    if (phase == ElEventPhase.dragCancel && !details.started && _event?.onDragDown == null) {
-      return;
-    }
-    if (phase == ElEventPhase.dragUpdate) {
-      _dispatchDragUpdate(details);
-      return;
-    }
-    if (phase == ElEventPhase.dragEnd || phase == ElEventPhase.dragCancel) {
-      DragPointerLock.release(_render);
-    }
-    final callback = _gestureCallback(details);
-    callback.hasAncestorDragConsumer = _hasAncestorDragConsumer(details.pointer, details.dragAxis);
-    callback.dragPipelineActive = _proxyMembers(details.pointer).isNotEmpty;
-
-    _invoke(_handlerFor(callback.phase, axis: _dragCallbackAxis(details)), callback);
-    if (phase == ElEventPhase.dragStart &&
-        details.isPrimaryTarget &&
-        details.isActive &&
-        !callback.propagationStopped &&
-        callback.dragPipelineActive) {
-      _press.rejectTap(details.pointer, reason: PressCancelReason.longPressAccepted);
-      _team.rejectDescendantPress(details.pointer);
-      for (final proxy in _proxyMembers(details.pointer)) {
-        proxy._team.cancelPress(details.pointer, reason: PressCancelReason.arenaRejected);
-      }
-      if (details.originalEvent.kind == PointerDeviceKind.mouse) DragPointerLock.claim(_render);
-    }
-  }
-
   Offset _localDelta(Offset position, Offset delta) {
     final previous = _localPosition(position - delta);
     return _localPosition(position) - previous;
@@ -519,16 +467,16 @@ class EventDispatcher {
   }
 
   /// 结清当前元素，原始输入和手势终态由团队与识别器负责。
-  void cancelAllPending(PointerEvent event) {
+  void cancelAllPending([PointerEvent? event]) {
     if (_disposed) return;
-    _lastPointerPosition = event.position;
+    if (event != null) _lastPointerPosition = event.position;
     final revision = _configurationRevision;
     try {
       _cancelKeyboardTap();
       if (_disposed || revision != _configurationRevision) return;
       _press.cancelMember();
       if (_disposed || revision != _configurationRevision) return;
-      _transform?.cancelMember(null, event: event);
+      _cancelGestures(input: event);
       if (_disposed || revision != _configurationRevision) return;
       _team.cancel();
     } finally {
@@ -537,13 +485,13 @@ class EventDispatcher {
   }
 
   /// 使用最后可信位置结清当前输入。
-  void cancelAllPendingAtLastPosition() => cancelAllPending(PointerCancelEvent(position: _lastPointerPosition));
+  void cancelAllPendingAtLastPosition() => cancelAllPending();
 
   /// 当前声明是否提供自身命中入口。
   bool hitTestSelf(Offset position) => _event?.hasAnyCallback ?? false;
 
   /// 样式状态订阅改变后刷新通用识别器的观察配置。
-  void syncRecognizersForStateVariants() => _configureRecognizers();
+  void syncRecognizersForStateVariants() => _configurePress();
 
   /// 临时离树保留会话，最终离树则释放声明和注册。
   void detach({bool preserveEvent = false}) {
@@ -552,7 +500,7 @@ class EventDispatcher {
     _event = null;
     onRoutedPointerRemoved = null;
     if (_registered && identical(_registry[_render], this)) _registry[_render] = null;
-    _configureRecognizers();
+    _configurePress();
   }
 
   /// 在指针焦点请求前保留本次物理落点。
@@ -690,7 +638,6 @@ class EventDispatcher {
     _disposed = true;
     _team.dispose();
     _press.dispose();
-    _transform?.dispose();
     _keyRepeatClock?.stop();
     _hoverDevices.clear();
     onTapChanged = null;
@@ -721,39 +668,15 @@ extension _EventBinding on EventDispatcher {
       _event?.onTripleTap != null ||
       _event?.onTripleTapDown != null;
 
-  bool get _hasFreeDrag => _hasDragHandlers(_event, null, fallback: false);
+  bool get _hasFreeDrag => _hasDragHandlers(_event, null);
 
-  bool get _hasVertical => _hasDragHandlers(_event, Axis.vertical, fallback: false);
+  bool get _hasVertical => _hasDragHandlers(_event, Axis.vertical);
 
-  bool get _hasHorizontal => _hasDragHandlers(_event, Axis.horizontal, fallback: false);
+  bool get _hasHorizontal => _hasDragHandlers(_event, Axis.horizontal);
 
-  bool get _hasDrag =>
-      enableDraggedState || _hasFreeDrag || _hasVertical || _hasHorizontal || _event?.onDragDown != null;
-
-  bool get _hasScale => _declaresScale(_event);
-
-  Axis? get _axis => _hasFreeDrag || _hasHorizontal && _hasVertical
-      ? null
-      : _hasVertical
-      ? Axis.vertical
-      : _hasHorizontal
-      ? Axis.horizontal
-      : null;
-
-  void _configureRecognizers({PointerEvent? deferStartFor}) {
-    final proxyOnly =
-        _event?.dragProxy?.hasAnyHandler == true &&
-        _event?.hasAnyCallback == false &&
-        onTapChanged == null &&
-        !enableLongPressedState &&
-        !enableDraggedState;
-    _team.onPointerEvent = proxyOnly ? null : _handlePointer;
+  void _configurePress() {
     final press = _press;
-    final observePress =
-        onTapChanged != null ||
-        enableLongPressedState ||
-        _event?.hasTapLikeCallback == true ||
-        _event?.onTapCancel != null;
+    final observePress = onTapChanged != null || _event?.hasTapLikeCallback == true || _event?.onTapCancel != null;
     press
       ..onFeedbackChanged = onTapChanged == null && !(_event?.hasTapLikeCallback ?? false)
           ? null
@@ -763,11 +686,6 @@ extension _EventBinding on EventDispatcher {
       ..ancestorOriginResolver = _ancestorOrigin
       ..bubbleSideButtons = false
       ..bubbleReleaseAfterStop = false
-      ..allowMultiplePointers = _hasScale
-      // 动态启用 Drag 时可能仍在等待归属，接受后再补接同一指针。
-      ..onAccepted = (_) {
-        if (_hasDrag || _hasScale) _ensureTransform().resumeFromTeam();
-      }
       ..gestureSettings = gestureSettings
       ..doubleTapInterval = config.doubleTapInterval
       ..tripleTapInterval = config.tripleTapInterval
@@ -778,7 +696,7 @@ extension _EventBinding on EventDispatcher {
       ..consecutiveTapDistance = config.tapCancelDistance
       ..deferTap = config.deferTap
       ..cancelTapOnLongPress = false
-      ..onLongPressDefault = _event?.onLongPress == null && !enableLongPressedState
+      ..onLongPressDefault = _event?.onLongPress == null
           ? null
           : (details) {
               if (!details.isActive) return;
@@ -793,134 +711,39 @@ extension _EventBinding on EventDispatcher {
       ..callbacks = {
         for (final phase in PressRecognizer.callbackPhases)
           if (_handlerFor(phase) != null ||
-              observePress && const <ElEventPhase>[.tapDown, .tapUp, .tapCancel].contains(phase) ||
-              enableLongPressedState && phase == .longPress)
+              observePress && const <ElEventPhase>[.tapDown, .tapUp, .tapCancel].contains(phase))
             phase: _handlePress,
       };
     press.refreshActiveSubscription();
 
-    final needsTransform = _hasDrag || _hasScale;
-    if (_transform case final transform?) {
-      _configureTransform(transform);
-    } else if (needsTransform) {
-      _ensureTransform();
-    }
     _team.acceptsPanZoom = _event?.onPointerPanZoomUpdate != null;
-    if (needsTransform) {
-      final transform = _transform!;
-      transform.resumeFromTeam();
-      transform.refreshPendingConfiguration(deferStartFor: deferStartFor);
-    }
   }
 
-  /// 变换链须连续：竞技场分组和拖拽合作都沿祖先识别器判断，后代创建时祖先一并补齐。
-  TransformRecognizer _ensureTransform() {
-    final existing = _transform;
-    if (existing != null) return existing;
-    assert(() {
-      BenchmarkProbe.transformRecognizerInstantiateCount++;
-      return true;
-    }());
-    final transform = _transform = TransformRecognizer(debugOwner: this)..team = _team;
-    _configureTransform(transform);
-    final parent = _parent;
-    if (parent != null && !parent._disposed && !parent._disposing) transform.parent = parent._ensureTransform();
-    return transform;
-  }
-
-  void _configureTransform(TransformRecognizer transform) {
-    transform
-      ..gestureSettings = gestureSettings
-      ..supportedDevices = config.dragDevices ?? dragDevices
-      ..multitouchDragStrategy = multitouchDragStrategy
-      ..velocityTrackerBuilder = velocityTrackerBuilder
-      ..displayRefreshRate = _displayRefreshRate
-      ..rotationStartEnabled = _event?.rotationStartEnabled ?? false
-      ..startDistance = config.dragStartDistance
-      ..horizontalAngle = config.dragHorizontalAngle
-      ..minFlingDistance = config.dragMinFlingDistance
-      ..preAcceptFlingDistance = config.tapCancelDistance / 2
-      ..minFlingVelocity = config.dragMinFlingVelocity
-      ..maxFlingVelocity = config.dragMaxFlingVelocity
-      ..axis = _axis
-      ..lockAxis = _hasHorizontal && _hasVertical
-      ..dragCooperation = _collectDragProxies
-      ..cancelDragOnScale = true
-      ..startScaleOnPointerDown = false
-      ..canStartScale = _team.canClaimPointers
-      ..onDeferredDragAccepted = (event) {
-        _press.rejectTap(event.pointer, notify: false);
-      }
-      ..beforeScaleStart = (pointers) {
-        final revision = _configurationRevision;
-        for (final pointer in pointers) {
-          _press.rejectTap(pointer, reason: PressCancelReason.longPressAccepted);
-          if (_disposed || revision != _configurationRevision) return;
-        }
-      }
-      ..onScaleStartDefault = (details) {
-        if (!details.isActive || details.pointerCount < 2) return;
-
-        _team.claimPointers(details.pointerIds, cancelTap: true);
-      }
-      ..callbacks = {
-        if (_hasDrag)
-          for (final phase in TransformRecognizer.dragPhases) phase: _handleTransform,
-        for (final phase in _scalePhases)
-          if (phase == .rotationUpdate ? _event?.onRotationUpdate != null : _hasScale) phase: _handleTransform,
-      };
-  }
-
-  ElEventDetails _gestureCallback(GestureDetails details) {
-    final phase = details.phase;
-    final transform = details is TransformGestureDetails ? details : null;
-    final press = details is PressGestureDetails ? details : null;
-    final up = details.originalEvent;
-    final endCorrection = phase == ElEventPhase.dragEnd && up is PointerUpEvent
-        ? up.position - details.globalPosition
-        : Offset.zero;
-    final position = details.globalPosition + endCorrection;
-    final callback = EventDispatcher._callbacks[details.dispatchIdentity] ??= (ElEventDetails(
+  ElEventDetails _gestureCallback(PressGestureDetails press) {
+    final phase = press.phase;
+    final input = press.originalEvent;
+    final position = press.globalPosition;
+    final callback = EventDispatcher._callbacks[press.dispatchIdentity] ??= (ElEventDetails(
       phase: phase,
       globalPosition: position,
-      localPosition: details.localPosition,
-      delta: transform?.delta ?? Offset.zero,
-      localDelta: transform?.localDelta ?? Offset.zero,
-      dragOffset: (transform?.dragOffset ?? Offset.zero) + endCorrection,
-      dragAxis: transform?.dragAxis,
-      dragDirection: transform?.dragDirection,
-      velocity: transform?.velocity ?? Velocity.zero,
-      primaryVelocity: transform?.primaryVelocity,
-      buttons: press != null && press.downEvent.buttons != kPrimaryButton && phase != ElEventPhase.tapCancel
+      localPosition: press.localPosition,
+      buttons: press.downEvent.buttons != kPrimaryButton && phase != ElEventPhase.tapCancel
           ? press.buttons
-          : details.originalEvent.buttons,
+          : input.buttons,
       tapCount: _tapCountFor(phase),
-      pointerCount: transform?.pointerCount ?? 0,
-      scale: transform?.scale ?? 1,
-      rotation: transform?.rotation ?? 0,
-      logScaleVelocity: transform?.logScaleVelocity ?? 0,
-      originalEvent: details.originalEvent,
-      cancelReason: phase == ElEventPhase.tapCancel ? EventDispatcher._cancelReason(press?.cancelReason) : null,
-    )..shareControl(details));
-    final currentDown = press == null ? null : _team.downEventFor(press.pointer);
+      originalEvent: input,
+      cancelReason: phase == ElEventPhase.tapCancel ? EventDispatcher._cancelReason(press.cancelReason) : null,
+    )..shareControl(press));
+    final currentDown = _team.downEventFor(press.pointer);
     final deferredRelease =
         phase == ElEventPhase.tap &&
-            up is PointerUpEvent &&
-            press != null &&
+            input is PointerUpEvent &&
             !identical(currentDown?.original ?? currentDown, press.downEvent.original ?? press.downEvent)
-        ? _releaseLocalPositions[up.original ?? up]
+        ? _releaseLocalPositions[input.original ?? input]
         : null;
     callback.localPosition =
-        deferredRelease ??
-        (localPositionResolver == null && endCorrection == Offset.zero
-            ? details.localPosition
-            : _localPosition(position, callback));
-    callback.localDelta = localPositionResolver == null
-        ? transform?.localDelta ?? Offset.zero
-        : _localDelta(position, transform?.delta ?? Offset.zero);
-    callback.pointerCount = _dragPhases.contains(phase) ? activePointerCount : transform?.pointerCount ?? 0;
-    callback.updateLocalDeltaResolver((delta) => _localDelta(details.globalPosition, delta));
-    _bindEagerGesture(callback, details.pointer, details);
+        deferredRelease ?? (localPositionResolver == null ? press.localPosition : _localPosition(position, callback));
+    _bindEagerGesture(callback, press.pointer, press: press);
     return callback;
   }
 
@@ -957,122 +780,48 @@ extension _EventBinding on EventDispatcher {
     return callback;
   }
 
-  void _bindEagerGesture(ElEventDetails callback, int pointer, [GestureDetails? details]) {
+  void _bindEagerGesture(ElEventDetails callback, int pointer, {PressGestureDetails? press, bool accepted = false}) {
     final down = _team.downEventFor(pointer);
-    callback.updateEagerGestureHandler((callback, cancelTap, allowScale) {
-      if (details?.isActive == false) return;
-      final transform = details is TransformGestureDetails ? details : null;
-      if (transform != null &&
-          transform.pointerIds.length >= 2 &&
-          (callback.phase == ElEventPhase.scaleStart ||
-              callback.phase == ElEventPhase.scaleUpdate ||
-              callback.phase == ElEventPhase.rotationUpdate)) {
-        _team.claimPointers(transform.pointerIds, cancelTap: cancelTap, allowScaleUpgrade: allowScale);
-        return;
-      }
-      if (down == null) return;
-
-      _team.claimPointer(pointer, downEvent: down, cancelTap: cancelTap, allowScaleUpgrade: allowScale);
+    callback.updateEagerGestureHandler((cancelTap) {
+      if (down == null || press?.isActive == false || accepted && !identical(_activeCallback, callback)) return;
+      _team.claimPointer(pointer, downEvent: down, cancelTap: cancelTap, alreadyAccepted: accepted);
     });
   }
 
-  Iterable<EventDispatcher> _proxyMembers(int pointer) =>
-      (_transform?.dragCooperationMembers(pointer) ?? const <TransformRecognizer>[])
-          .map((member) => member.team == null ? null : EventDispatcher._hosts[member.team!])
-          .whereType<EventDispatcher>();
-
-  DragCooperation _collectDragProxies(int pointer, Axis? axis) {
-    final proxies = <TransformRecognizer>[];
-    GestureTeam? cutoff;
-    for (final member in _ancestors) {
-      if (member.disabled || member._disposed) continue;
-      final registered = member._team.downEventFor(pointer) != null;
-      final proxy = member.event?.dragProxy;
-      if (proxy != null &&
-          proxy.hasAnyHandler &&
-          (proxy.axis == null || proxy.axis == axis) &&
-          (registered || member._team.onPointerEvent == null)) {
-        proxies.add(member._ensureTransform());
-      } else if (registered &&
-          (member._hasPrimaryTap ||
-              member._hasDragForAxis(axis) && member._transform?.canReceiveDrag(pointer, axis) == true)) {
-        cutoff = member._team;
-        break;
+  void _addGesturePointer(PointerEvent event) {
+    if (_disposed || _disposing) return;
+    final devices = config.dragDevices ?? dragDevices;
+    if (devices != null && !devices.contains(event.kind) ||
+        event is PointerDownEvent && event.buttons != kPrimaryButton) {
+      return;
+    }
+    final allowDrag = _team.allowsDrag(event.pointer);
+    final onDragDown = allowDrag ? _event?.onDragDown : null;
+    if (onDragDown != null) {
+      final callback = _rawCallback(.dragDown, event);
+      final before = _event;
+      _invoke(onDragDown, callback);
+      if (callback.propagationStopped) _team.stopDragPropagation(event.pointer);
+      if (_disposed || disabled || !_sameNativeGestureShape(before, _event) || !_team.isInputActive(event.pointer)) {
+        return;
       }
     }
-    return DragCooperation(proxies, cutoff: cutoff);
+    final drag = allowDrag && (_hasFreeDrag || _hasHorizontal || _hasVertical);
+    final scale = _scalePhases.any((phase) => _handlerFor(phase) != null);
+    if (!drag && !scale) return;
+    (_gestures ??= _NativeGestures(this)).addPointer(event, drag: drag, scale: scale);
   }
 
-  void _dispatchDragUpdate(TransformGestureDetails details) {
-    final pipeline = _proxyMembers(details.pointer).toList();
-    bool isActive() => details.isActive;
-    final callback = _gestureCallback(details)
-      ..dragPipelineActive = pipeline.isNotEmpty
-      ..hasAncestorDragConsumer = _hasAncestorDragConsumer(details.pointer, details.dragAxis);
-    bool exhausted() => details.dragAxis == null
-        ? callback.remainingDelta == Offset.zero
-        : callback.remainingPrimaryDelta(details.dragAxis!) == 0;
-    try {
-      for (final member in pipeline.reversed) {
-        if (!isActive()) return;
-        if (exhausted()) break;
-        _invokeDragProxy(member, member.event?.dragProxy?.onDragPreUpdate, callback, pre: true);
-      }
-      if (!isActive()) return;
-      // 主段承担生命周期，即使预处理耗尽余量也必须投递。
-      if (pipeline.isNotEmpty) _gestureCallback(details);
-      _invoke(_handlerFor(callback.phase, axis: _dragCallbackAxis(details)), callback);
-      for (final member in pipeline) {
-        if (!isActive() || exhausted()) break;
-        _invokeDragProxy(member, member.event?.dragProxy?.onDragOverflow, callback, pre: false);
-      }
-    } finally {
-      callback.dragPipelineActive = false;
-      callback.dragBoundaryHandoff = false;
-    }
+  void _cancelGesturePointer(PointerEvent input, ElEventCancelReason reason) {
+    if (_gestures?.observesPointer(input.pointer) == true) _cancelGestures(input: input, reason: reason);
   }
 
-  void _invokeDragProxy(EventDispatcher member, ElEventHandler? handler, ElEventDetails callback, {required bool pre}) {
-    if (member._disposed || member.disabled) return;
-    final proxy = member._event?.dragProxy;
-    final axis = callback.dragAxis;
-    if (pre && proxy?.onDragOverflow != null && proxy!.boundaryHandoff.isNotEmpty && axis != null) {
-      final delta = callback.remainingPrimaryDelta(axis);
-      final direction = axis == Axis.vertical
-          ? delta > 0
-                ? AxisDirection.down
-                : AxisDirection.up
-          : delta > 0
-          ? AxisDirection.right
-          : AxisDirection.left;
-      if (delta != 0 && proxy.boundaryHandoff.contains(direction)) callback.dragBoundaryHandoff = true;
-    }
-    if (handler == null) return;
-    callback.localPosition = member._localPosition(callback.globalPosition);
-    callback.localDelta = member._localDelta(callback.globalPosition, callback.delta);
-    callback.updateLocalDeltaResolver((delta) => member._localDelta(callback.globalPosition, delta));
-    callback.updateEagerGestureHandler(null);
-    member._invoke(handler, callback);
-    callback.resetPropagation();
+  void _cancelGestures({PointerEvent? input, ElEventCancelReason reason = .external}) {
+    final gestures = _gestures;
+    if (gestures == null) return;
+    _gestures = null;
+    gestures.cancel(_event, input: input, reason: reason);
   }
-
-  bool _hasAncestorDragConsumer(int pointer, Axis? axis) => _ancestors.any(
-    (member) =>
-        !member.disabled && member._transform?.canReceiveDrag(pointer, axis) == true && member._hasDragForAxis(axis),
-  );
-
-  bool _hasDragForAxis(Axis? axis) =>
-      _hasFreeDrag ||
-      switch (axis) {
-        Axis.horizontal => _hasHorizontal,
-        Axis.vertical => _hasVertical,
-        null => _hasHorizontal || _hasVertical,
-      };
-
-  /// 自由拖拽的合作祖先按起手方向分派轴向回调，保留自由拖拽本身的二维语义。
-  Axis? _dragCallbackAxis(TransformGestureDetails details) =>
-      details.dragAxis ??
-      (!_hasFreeDrag && details.dragDirection != null ? axisDirectionToAxis(details.dragDirection!) : null);
 
   ElEventHandler? _dragHandler(
     Axis? axis,
@@ -1080,15 +829,14 @@ extension _EventBinding on EventDispatcher {
     ElEventHandler? horizontal,
     ElEventHandler? vertical,
   ) => switch (axis) {
-    Axis.horizontal => horizontal ?? free,
-    Axis.vertical => vertical ?? free,
+    Axis.horizontal => horizontal,
+    Axis.vertical => vertical,
     null => free,
   };
 
-  ElEventHandler? _handlerFor(ElEventPhase phase, {ElEvent? configuration, Axis? axis, bool fallback = true}) {
+  ElEventHandler? _handlerFor(ElEventPhase phase, {ElEvent? configuration, Axis? axis}) {
     final value = configuration ?? _event;
     if (value == null) return null;
-    final free = fallback || axis == null ? value : null;
     return switch (phase) {
       .pointerEnter => value.onPointerEnter,
       .pointerHover => value.onPointerHover,
@@ -1123,10 +871,10 @@ extension _EventBinding on EventDispatcher {
       .longPress => value.onLongPress,
       .tapCancel => value.onTapCancel,
       .dragDown => value.onDragDown,
-      .dragStart => _dragHandler(axis, free?.onDragStart, value.onHorizontalDragStart, value.onVerticalDragStart),
-      .dragUpdate => _dragHandler(axis, free?.onDragUpdate, value.onHorizontalDragUpdate, value.onVerticalDragUpdate),
-      .dragEnd => _dragHandler(axis, free?.onDragEnd, value.onHorizontalDragEnd, value.onVerticalDragEnd),
-      .dragCancel => _dragHandler(axis, free?.onDragCancel, value.onHorizontalDragCancel, value.onVerticalDragCancel),
+      .dragStart => _dragHandler(axis, value.onDragStart, value.onHorizontalDragStart, value.onVerticalDragStart),
+      .dragUpdate => _dragHandler(axis, value.onDragUpdate, value.onHorizontalDragUpdate, value.onVerticalDragUpdate),
+      .dragEnd => _dragHandler(axis, value.onDragEnd, value.onHorizontalDragEnd, value.onVerticalDragEnd),
+      .dragCancel => _dragHandler(axis, value.onDragCancel, value.onHorizontalDragCancel, value.onVerticalDragCancel),
       .scaleStart => value.onScaleStart,
       .scaleUpdate => value.onScaleUpdate,
       .scaleEnd => value.onScaleEnd,
@@ -1142,46 +890,17 @@ extension _EventBinding on EventDispatcher {
     };
   }
 
-  bool _hasDragHandlers(ElEvent? value, Axis? axis, {bool fallback = true}) =>
-      value != null &&
-      _dragPhases.any((phase) => _handlerFor(phase, configuration: value, axis: axis, fallback: fallback) != null);
-
-  bool _declaresDrag(ElEvent? value) =>
-      enableDraggedState ||
-      value != null &&
-          (value.onDragDown != null ||
-              const <Axis?>[null, Axis.horizontal, Axis.vertical].any((axis) => _hasDragHandlers(value, axis)));
-
-  bool _canPreserveActiveDrag(ElEvent a, ElEvent b) {
-    if (a.disabled != b.disabled || a.dragProxy != b.dragProxy) return false;
-    // 已公开 Start 的同轴路线冻结本轮参数，换处理器后仍须能结清两种终态。
-    for (final axis in const <Axis?>[null, Axis.horizontal, Axis.vertical]) {
-      final before = _hasDragHandlers(a, axis);
-      if (before != _hasDragHandlers(b, axis) ||
-          before &&
-              (_handlerFor(.dragEnd, configuration: b, axis: axis) == null ||
-                  _handlerFor(.dragCancel, configuration: b, axis: axis) == null)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _declaresScale(ElEvent? value) =>
-      value != null && _scalePhases.any((phase) => _handlerFor(phase, configuration: value) != null);
+  bool _hasDragHandlers(ElEvent? value, Axis? axis) =>
+      value != null && _dragPhases.any((phase) => _handlerFor(phase, configuration: value, axis: axis) != null);
 
   bool _declaresPanZoom(ElEvent? value) =>
       value?.onPointerPanZoomStart != null ||
       value?.onPointerPanZoomUpdate != null ||
       value?.onPointerPanZoomEnd != null;
 
-  bool _sameTransformShape(ElEvent? a, ElEvent? b) {
+  bool _sameNativeGestureShape(ElEvent? a, ElEvent? b) {
     if (identical(a, b)) return true;
-    if (a == null ||
-        b == null ||
-        a.disabled != b.disabled ||
-        a.dragProxy != b.dragProxy ||
-        a.rotationStartEnabled != b.rotationStartEnabled) {
+    if (a == null || b == null || a.disabled != b.disabled || !a.hasSameNativeGestureCallbacks(b)) {
       return false;
     }
     final left = a.config ?? const ElEventConfig();
@@ -1194,7 +913,7 @@ extension _EventBinding on EventDispatcher {
         left.dragMaxFlingVelocity != right.dragMaxFlingVelocity) {
       return false;
     }
-    return a.hasSameTransformCallbacks(b);
+    return true;
   }
 
   static int _tapCountFor(ElEventPhase phase) => switch (phase) {

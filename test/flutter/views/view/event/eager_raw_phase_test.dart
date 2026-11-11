@@ -1,9 +1,4 @@
-// 覆盖 eager claim 对 loser 整条事件链的淘汰、chainCutoff 对 raw 的严格拦截、
-// 长按 timeout 对 eager 独占的检查、以及 ElEventDetails.hasAncestorDragConsumer
-// 的快照语义。
-//
-// 宿主基准：官方 RenderBox + EventDispatcher 手工 dispatch（见
-// [[event-scroll-test-hosting]]）。
+// 验证主动认领后原始事件链与长按计时的清理。
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart';
@@ -40,18 +35,6 @@ class _DummyParent extends RenderBox with RenderObjectWithChildMixin<RenderBox> 
   pipelineOwner.rootNode = parent;
   parent.layout(BoxConstraints.tight(const Size(1000, 1000)));
   return (parent: parent, child: child);
-}
-
-({_DummyParent grandparent, _DummyParent parent, _DummyBox child}) _attachedTriple() {
-  final pipelineOwner = PipelineOwner();
-  final grandparent = _DummyParent();
-  final parent = _DummyParent();
-  final child = _DummyBox();
-  parent.child = child;
-  grandparent.child = parent;
-  pipelineOwner.rootNode = grandparent;
-  grandparent.layout(BoxConstraints.tight(const Size(1000, 1000)));
-  return (grandparent: grandparent, parent: parent, child: child);
 }
 
 _DummyBox _attachedBox() {
@@ -121,13 +104,13 @@ void main() {
       parentDispatcher.dispatchTestPointer(firstMove, BoxHitTestEntry(pair.parent, const Offset(20, 0)));
 
       expect(childDragStarts, 1);
-      expect(parentPointerMoves, 0, reason: 'loser 在 eager 后必须立刻失去当前 pointerMove 与全部后续 raw phase');
+      expect(parentPointerMoves, 1, reason: '起拖的原始移动先于 Flutter 的获胜回调');
       expect(parentDragStarts, 0, reason: 'the semantic drag layer is suppressed by eager');
 
       childDispatcher.dispatchTestPointer(secondMove, BoxHitTestEntry(pair.child, const Offset(28, 0)));
       parentDispatcher.dispatchTestPointer(secondMove, BoxHitTestEntry(pair.parent, const Offset(28, 0)));
 
-      expect(parentPointerMoves, 0, reason: 'subsequent raw pointerMove must stay suppressed');
+      expect(parentPointerMoves, 1, reason: '认领后的移动不再投递给祖先');
 
       childDispatcher.dispatchTestPointer(up, BoxHitTestEntry(pair.child, const Offset(28, 0)));
       parentDispatcher.dispatchTestPointer(up, BoxHitTestEntry(pair.parent, const Offset(28, 0)));
@@ -257,114 +240,6 @@ void main() {
       expect(longPresses, 1);
 
       dispatcher.dispose();
-    });
-  });
-
-  group('ElEventDetails.hasAncestorDragConsumer snapshot', () {
-    testWidgets('true when firer has a drag-capable ancestor within primaryGestureCutoff', (tester) async {
-      final pair = _attachedPair();
-      final parentDispatcher = EventDispatcher(pair.parent);
-      final childDispatcher = EventDispatcher(pair.child);
-      final childDragStartFlags = <bool>[];
-      final childDragUpdateFlags = <bool>[];
-
-      parentDispatcher.event = .new(config: const ElEventConfig(dragStartDistance: 3), onDragStart: (_) {});
-      childDispatcher.event = .new(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) => childDragStartFlags.add(event.hasAncestorDragConsumer),
-        onDragUpdate: (event) => childDragUpdateFlags.add(event.hasAncestorDragConsumer),
-      );
-
-      const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero);
-      const firstMove = PointerMoveEvent(
-        pointer: 1,
-        position: Offset(20, 0),
-        delta: Offset(20, 0),
-        timeStamp: Duration(milliseconds: 16),
-      );
-      const secondMove = PointerMoveEvent(
-        pointer: 1,
-        position: Offset(28, 0),
-        delta: Offset(8, 0),
-        timeStamp: Duration(milliseconds: 32),
-      );
-
-      childDispatcher.dispatchTestPointer(down, BoxHitTestEntry(pair.child, Offset.zero));
-      parentDispatcher.dispatchTestPointer(down, BoxHitTestEntry(pair.parent, Offset.zero));
-      childDispatcher.dispatchTestPointer(firstMove, BoxHitTestEntry(pair.child, const Offset(20, 0)));
-      childDispatcher.dispatchTestPointer(secondMove, BoxHitTestEntry(pair.child, const Offset(28, 0)));
-
-      expect(childDragStartFlags, [true]);
-      expect(childDragUpdateFlags, [true]);
-
-      parentDispatcher.dispose();
-      childDispatcher.dispose();
-    });
-
-    testWidgets('false for a single-member chain (no ancestor exists)', (tester) async {
-      final box = _attachedBox();
-      final flags = <bool>[];
-      final dispatcher = EventDispatcher(box)
-        ..event = .new(
-          config: const ElEventConfig(dragStartDistance: 3),
-          onDragStart: (event) => flags.add(event.hasAncestorDragConsumer),
-        );
-
-      const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero);
-      const move = PointerMoveEvent(
-        pointer: 1,
-        position: Offset(20, 0),
-        delta: Offset(20, 0),
-        timeStamp: Duration(milliseconds: 16),
-      );
-      dispatcher.dispatchTestPointer(down, BoxHitTestEntry(box, Offset.zero));
-      dispatcher.dispatchTestPointer(move, BoxHitTestEntry(box, const Offset(20, 0)));
-
-      expect(flags, [false]);
-
-      dispatcher.dispose();
-    });
-
-    testWidgets('false when the ancestor is outside the DragStart route', (tester) async {
-      final triple = _attachedTriple();
-      final grandDispatcher = EventDispatcher(triple.grandparent);
-      final parentDispatcher = EventDispatcher(triple.parent);
-      final childDispatcher = EventDispatcher(triple.child);
-      final childDragUpdateFlags = <bool>[];
-
-      grandDispatcher.event = .new(config: const ElEventConfig(dragStartDistance: 3), onDragStart: (_) {});
-      parentDispatcher.event = .new(config: const ElEventConfig(dragStartDistance: 3), onDragStart: (_) {});
-      childDispatcher.event = .new(
-        config: const ElEventConfig(dragStartDistance: 3),
-        onDragStart: (event) => event.stopPropagation(),
-        onDragUpdate: (event) => childDragUpdateFlags.add(event.hasAncestorDragConsumer),
-      );
-
-      const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero);
-      const firstMove = PointerMoveEvent(
-        pointer: 1,
-        position: Offset(20, 0),
-        delta: Offset(20, 0),
-        timeStamp: Duration(milliseconds: 16),
-      );
-      const secondMove = PointerMoveEvent(
-        pointer: 1,
-        position: Offset(28, 0),
-        delta: Offset(8, 0),
-        timeStamp: Duration(milliseconds: 32),
-      );
-
-      // 单一 owner 认领：只从最内层（child）发起 handleEvent。
-      childDispatcher.dispatchTestPointer(down, BoxHitTestEntry(triple.child, Offset.zero));
-      childDispatcher.dispatchTestPointer(firstMove, BoxHitTestEntry(triple.child, const Offset(20, 0)));
-      // 此刻 child.onDragStart 内 stopPropagation → Drag route 截断在 child。
-      childDispatcher.dispatchTestPointer(secondMove, BoxHitTestEntry(triple.child, const Offset(28, 0)));
-
-      expect(childDragUpdateFlags, [false], reason: 'Drag route 外的祖先不再算可接手的拖拽消费者');
-
-      grandDispatcher.dispose();
-      parentDispatcher.dispose();
-      childDispatcher.dispose();
     });
   });
 }

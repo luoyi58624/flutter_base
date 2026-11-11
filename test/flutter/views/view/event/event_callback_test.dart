@@ -1,5 +1,6 @@
 import 'package:flutter_base/src/flutter/views/view/event/event.dart';
-import 'package:flutter_base/src/flutter/views/view/event/press.dart' show GestureControl, GestureControlAccess, EventDetailsAccess;
+import 'package:flutter_base/src/flutter/views/view/event/press.dart'
+    show GestureControl, GestureControlAccess, EventDetailsAccess;
 import 'package:flutter/gestures.dart' show Velocity;
 import 'package:flutter/rendering.dart' show Axis;
 import 'package:flutter/services.dart';
@@ -176,20 +177,16 @@ void main() {
     expect(event.remainingLocalDelta, Offset.zero);
   });
 
-  test('业务焦点、独占和管线状态由原处理器执行并保留回调对象', () {
+  test('业务焦点、独占和管线状态由原处理器执行', () {
     final event = ElEventDetails(
       phase: ElEventPhase.pointerDown,
       globalPosition: Offset.zero,
       localPosition: Offset.zero,
       focusReason: ElFocusReason.pointer,
     );
-    ElEventDetails? eagerSource;
-    (bool, bool)? options;
+    final eagerOptions = <bool>[];
     var preserved = 0;
-    event.updateEagerGestureHandler((source, cancelTap, allowScale) {
-      eagerSource = source;
-      options = (cancelTap, allowScale);
-    });
+    event.updateEagerGestureHandler(eagerOptions.add);
     event.updatePreserveFocusHandler(() => preserved++);
     event.eagerGesture(cancelSelfTap: true, allowScaleUpgrade: true);
     event.preserveFocus();
@@ -197,8 +194,7 @@ void main() {
     event.dragPipelineActive = true;
     event.dragBoundaryHandoff = true;
     event.hasAncestorDragConsumer = true;
-    expect(eagerSource, same(event));
-    expect(options, (true, true));
+    expect(eagerOptions, [true]);
     expect(preserved, 1);
     expect(event.callbackInvoked, isTrue);
     expect(event.focusReason, ElFocusReason.pointer);
@@ -207,7 +203,7 @@ void main() {
     event.updatePreserveFocusHandler(null);
     event.eagerGesture();
     event.preserveFocus();
-    expect(options, (true, true));
+    expect(eagerOptions, [true]);
     expect(preserved, 1);
   });
 }

@@ -220,37 +220,4 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('LOCK-4: mouse 复合 DragProxy 管线提交时上锁并在终态释放', (tester) async {
-    const key = ValueKey('pipeline-drag');
-    await tester.pumpWidget(
-      shell(
-        ElView(
-          style: const ElStyle(width: 200, height: 200),
-          event: ElEvent(dragProxy: ElDragProxy(onDragPreUpdate: (_) {})),
-          child: ElView(
-            key: key,
-            style: const ElStyle(width: 200, height: 200),
-            event: ElEvent(
-              config: const ElEventConfig(dragStartDistance: 6.0),
-              onDragStart: (_) {},
-              onDragUpdate: (_) {},
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: Offset.zero);
-    addTearDown(mouse.removePointer);
-    await mouse.down(const Offset(100, 100));
-    await mouse.moveBy(const Offset(0, 20));
-    await tester.pump();
-    expect(DragPointerLock.isActive, isTrue, reason: 'DragProxy roster 成形后是一个复合 winner。');
-
-    await mouse.up();
-    await tester.pump();
-    expect(DragPointerLock.isActive, isFalse);
-  });
 }

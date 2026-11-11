@@ -226,15 +226,10 @@ void main() {
   });
 
   test('识别器只导入 Dart 和 Flutter，不依赖宿主配置或事件模块', () {
-    final files = <File>[
-      File('lib/src/flutter/views/view/event/press.dart'),
-      File('lib/src/flutter/views/view/event/transform.dart'),
-    ];
+    final file = File('lib/src/flutter/views/view/event/press.dart');
     final imports = RegExp("import\\s+['\"]([^'\"]+)['\"]");
-    for (final file in files) {
-      for (final directive in imports.allMatches(file.readAsStringSync())) {
-        expect(directive.group(1), anyOf(startsWith('dart:'), startsWith('package:flutter/')), reason: file.path);
-      }
+    for (final directive in imports.allMatches(file.readAsStringSync())) {
+      expect(directive.group(1), anyOf(startsWith('dart:'), startsWith('package:flutter/')), reason: file.path);
     }
   });
 

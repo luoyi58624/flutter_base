@@ -4,11 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show VoidCallback, internal;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart' show Axis, AxisDirection, Matrix4;
-import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
 import 'package:flutter/services.dart' show LogicalKeyboardKey, PhysicalKeyboardKey;
 import 'package:flutter/widgets.dart' show FocusNode;
-
-part 'transform.dart';
 
 /// 按落点换算增量，供原始输入、手势与余量共用相同的坐标投影。
 @internal
@@ -116,10 +113,10 @@ enum ElEventPhase {
   pointerSignal,
 
   /// 主指针或键盘激活键按下。
-  tapDown(.press, .candidate),
+  tapDown(.candidate),
 
   /// 主指针或键盘激活键释放。
-  tapUp(.press, .release),
+  tapUp(.release),
 
   /// 点击。
   tap,
@@ -137,37 +134,37 @@ enum ElEventPhase {
   tripleTapDown,
 
   /// 第二按钮按下，通常对应鼠标右键。
-  secondaryTapDown(.press, .candidate),
+  secondaryTapDown(.candidate),
 
   /// 第二按钮抬起。
-  secondaryTapUp(.press, .release),
+  secondaryTapUp(.release),
 
   /// 第二按钮点击。
   secondaryTap,
 
   /// 第三按钮按下，通常对应鼠标中键。
-  tertiaryTapDown(.press, .candidate),
+  tertiaryTapDown(.candidate),
 
   /// 第三按钮抬起。
-  tertiaryTapUp(.press, .release),
+  tertiaryTapUp(.release),
 
   /// 第三按钮点击。
   tertiaryTap,
 
   /// 前进按钮按下。
-  forwardTapDown(.press, .candidate),
+  forwardTapDown(.candidate),
 
   /// 前进按钮抬起。
-  forwardTapUp(.press, .release),
+  forwardTapUp(.release),
 
   /// 前进按钮点击。
   forwardTap,
 
   /// 后退按钮按下。
-  backTapDown(.press, .candidate),
+  backTapDown(.candidate),
 
   /// 后退按钮抬起。
-  backTapUp(.press, .release),
+  backTapUp(.release),
 
   /// 后退按钮点击。
   backTap,
@@ -176,37 +173,37 @@ enum ElEventPhase {
   longPress,
 
   /// Tap 候选被取消。
-  tapCancel(.press, .terminal),
+  tapCancel(.terminal),
 
   /// 拖拽候选按下。
-  dragDown(.drag, .candidate),
+  dragDown,
 
   /// 拖拽开始。
-  dragStart(.drag),
+  dragStart,
 
   /// 拖拽更新。
-  dragUpdate(.drag, .update),
+  dragUpdate,
 
   /// 拖拽结束。
-  dragEnd(.drag, .terminal),
+  dragEnd,
 
   /// 拖拽取消。
-  dragCancel(.drag, .terminal),
+  dragCancel,
 
   /// 缩放开始。
-  scaleStart(.scale, .candidate),
+  scaleStart,
 
   /// 缩放更新。
-  scaleUpdate(.scale, .update),
+  scaleUpdate,
 
   /// 缩放结束。
-  scaleEnd(.scale, .terminal),
+  scaleEnd,
 
   /// 缩放取消。
-  scaleCancel(.scale, .terminal),
+  scaleCancel,
 
   /// 旋转更新。
-  rotationUpdate(.scale, .update),
+  rotationUpdate,
 
   /// 键盘按下。
   keyDown,
@@ -232,14 +229,13 @@ enum ElEventPhase {
   /// 缩放与旋转共享的变换阶段。
   static const scalePhases = <ElEventPhase>[...zoomPhases, rotationUpdate];
 
-  const ElEventPhase([this._family = .press, this._stage = .other]);
+  const ElEventPhase([this._stage = .other]);
 
-  final _GestureFamily _family;
   final _GestureStage _stage;
 
   bool get _terminal => _stage == .terminal || _stage == .release;
   bool get _candidate => _stage == .candidate;
-  bool get _establishesBoundary => _stage != .terminal && _stage != .update;
+  bool get _establishesBoundary => _stage != .terminal;
 }
 
 /// 按压候选终止的原因，仅描述识别器自身的生命周期。
@@ -265,9 +261,6 @@ enum PressCancelReason {
 
 /// 按压识别回调，所有阶段都可以通过详情停止冒泡。
 typedef PressGestureCallback = void Function(PressGestureDetails details);
-
-/// 拖拽与变换回调，所有阶段都可以通过详情停止冒泡。
-typedef TransformGestureCallback = void Function(TransformGestureDetails details);
 
 typedef _GestureCallback = void Function(GestureDetails details);
 
@@ -403,7 +396,6 @@ abstract class _MotionData<E> extends _InputData<E> {
   Offset _remainingLocalDelta;
   int _pointerCount;
   Offset Function(Offset)? _localDeltaResolver;
-  Matrix4? _localTransform;
 
   /// 当前目标的本地移动增量。
   Offset get localDelta => _localDelta;
@@ -479,9 +471,7 @@ abstract class _MotionData<E> extends _InputData<E> {
   /// 读取指定轴上尚未消费的位移。
   double remainingPrimaryDelta(Axis axis) => axis == Axis.vertical ? _remainingDelta.dy : _remainingDelta.dx;
 
-  Offset _resolveLocalDelta(Offset value) => _localDeltaResolver?.call(value) ?? _transformDelta(value);
-
-  Offset _transformDelta(Offset value) => transformGestureDelta(_localTransform, globalPosition, value);
+  Offset _resolveLocalDelta(Offset value) => _localDeltaResolver?.call(value) ?? value;
 
   static double _consumable(double remaining, double requested) =>
       remaining == 0 || requested == 0 || remaining.sign != requested.sign
@@ -489,14 +479,6 @@ abstract class _MotionData<E> extends _InputData<E> {
       : requested.abs() >= remaining.abs()
       ? remaining
       : requested;
-
-  @override
-  void _updateTransform(Matrix4? transform) {
-    super._updateTransform(transform);
-    _localTransform = transform;
-    _localDelta = _transformDelta(delta);
-    _remainingLocalDelta = _remainingDelta == delta ? _localDelta : _resolveLocalDelta(_remainingDelta);
-  }
 }
 
 /// 焦点变化来源。
@@ -526,9 +508,7 @@ enum ElEventCancelReason {
   /// 当前节点的 Drag、Scale 或 eager 已接受，只取消本节点 Tap 激活资格。
   selfGestureAccepted,
 
-  /// 其他节点或复合手势 driver 已接受，当前节点只取消 Tap/主手势资格。
-  ///
-  /// DragProxy 等旁路生命周期仍可继续投递，本值不表示整个 pointer 链已终止。
+  /// 当前候选因其他手势胜出而取消。
   otherGestureAccepted,
 
   /// 平台发出 PointerCancel，当前 pointer 序列已物理终止。
@@ -568,11 +548,17 @@ class ElEventDetails extends _MotionData<Object?> {
     super.originalEvent,
     super.sampleTimeStamp,
   }) : assert(
-         phase == ElEventPhase.tapCancel || phase == ElEventPhase.pointerCancel || cancelReason == null,
-         'cancelReason 只能用于 ElEventPhase.tapCancel 或 ElEventPhase.pointerCancel。',
+         phase == ElEventPhase.tapCancel ||
+             phase == ElEventPhase.pointerCancel ||
+             phase == ElEventPhase.dragCancel ||
+             phase == ElEventPhase.scaleCancel ||
+             cancelReason == null,
+         'cancelReason 只能用于取消阶段。',
        ),
        cancelReason = switch (phase) {
-         ElEventPhase.tapCancel => cancelReason ?? ElEventCancelReason.external,
+         ElEventPhase.tapCancel ||
+         ElEventPhase.dragCancel ||
+         ElEventPhase.scaleCancel => cancelReason ?? ElEventCancelReason.external,
          ElEventPhase.pointerCancel => cancelReason ?? ElEventCancelReason.pointerCanceled,
          _ => null,
        },
@@ -597,7 +583,7 @@ class ElEventDetails extends _MotionData<Object?> {
   /// 焦点变化来源，仅 focus 与 blur 有值。
   final ElFocusReason? focusReason;
 
-  /// 业务取消原因，仅 tapCancel 与 pointerCancel 有值。
+  /// 指针、按压、拖拽或缩放的取消原因。
   final ElEventCancelReason? cancelReason;
 
   /// 冒泡时由适配层更新当前目标的本地位置。
@@ -615,31 +601,29 @@ class ElEventDetails extends _MotionData<Object?> {
   /// 终止通知按当前目标重写结算后的指针数量。
   set pointerCount(int value) => updateLocalMotion(pointerCount: value);
 
-  void Function(ElEventDetails callback, bool cancelSelfTap, bool allowScaleUpgrade)? _eagerGestureHandler;
+  void Function(bool cancelSelfTap)? _eagerGestureHandler;
   VoidCallback? _preserveFocusHandler;
   bool _callbackInvoked = false;
   bool _keyboardTapMatched = false;
 
-  /// 是否处于预处理、主消费者、溢出处理共用余量的拖拽管线。
+  /// 旧版拖拽管线的状态，官方识别器产生的事件初始为 false。
   bool dragPipelineActive = false;
 
-  /// 是否将本次方向的滚动边界弹性位移留给祖先。
+  /// 旧版滚动边界交接状态，官方识别器产生的事件初始为 false。
   bool dragBoundaryHandoff = false;
 
-  /// 是否仍有未失权、位于传播边界内且订阅同轴拖拽的祖先消费者。
+  /// 旧版祖先拖拽协作状态，官方识别器产生的事件初始为 false。
   bool hasAncestorDragConsumer = false;
 
   /// 本阶段是否已执行过至少一个业务处理器。
   bool get callbackInvoked => _callbackInvoked;
 
-  /// 请求独占当前指针；多指 Scale 整组认领，不改变真实悬停或全局输入锁。
+  /// 请求独占当前指针的 ElEvent 路线。
   ///
-  /// 失权成员先收到 PointerCancel，再按已公开阶段收到 Tap/Drag/Scale Cancel；
-  /// 已有官方归属时同步清理；Down 的未决请求等官方裁决后提交，不隐式停止传播。
-  /// [cancelSelfTap] 仅取消自己的最终点击，保留释放和拖拽；[allowScaleUpgrade]
-  /// 允许同链多指缩放后来接管，默认关闭且不能恢复官方已判负的识别器。
+  /// 已有官方归属时同步清理失权成员，按下时的请求等竞技场裁决后提交。
+  /// [cancelSelfTap] 取消本节点的点击资格。[allowScaleUpgrade] 为组件迁移保留。
   void eagerGesture({bool cancelSelfTap = false, bool allowScaleUpgrade = false}) {
-    _eagerGestureHandler?.call(this, cancelSelfTap, allowScaleUpgrade);
+    _eagerGestureHandler?.call(cancelSelfTap);
   }
 
   /// 仅在 PointerDown 保留现有焦点，不阻断传播或其他默认动作。
@@ -648,8 +632,7 @@ class ElEventDetails extends _MotionData<Object?> {
   /// 按当前阶段截断祖先交互，不认领指针或阻断 Flutter 的物理投递。
   ///
   /// PointerDown 阻断整条指针链；TapDown、TapUp 分别截断后续点击家族，Tap 只截当前点击；
-  /// DragDown/Start、ScaleStart、PanZoomStart 分别建立自己的路线边界。
-  /// 高频 Move/DragUpdate 不做通用冒泡；需要持续独占时在胜出起点调用 eagerGesture。
+  /// DragDown 截断后续宿主的拖拽报名。拖拽和缩放的正式阶段由 Flutter 竞技场选择宿主。
   @override
   void stopPropagation() => super.stopPropagation();
 
@@ -675,10 +658,8 @@ extension EventDetailsAccess on ElEventDetails {
   /// 标记本阶段已执行业务处理器。
   void markCallbackInvoked() => _callbackInvoked = true;
 
-  /// 更新当前目标的独占请求处理器，代理阶段可暂时清空。
-  void updateEagerGestureHandler(
-    void Function(ElEventDetails callback, bool cancelSelfTap, bool allowScaleUpgrade)? handler,
-  ) => _eagerGestureHandler = handler;
+  /// 更新当前目标的独占请求处理器。
+  void updateEagerGestureHandler(void Function(bool cancelSelfTap)? handler) => _eagerGestureHandler = handler;
 
   /// 更新 PointerDown 的焦点保持处理器。
   void updatePreserveFocusHandler(VoidCallback? handler) => _preserveFocusHandler = handler;
@@ -712,54 +693,6 @@ final class PressGestureDetails extends GestureDetails {
   final PressCancelReason? cancelReason;
 }
 
-/// 拖拽、缩放与旋转详情，共用变换数据但按目标坐标推导主轴速度。
-final class TransformGestureDetails extends _MotionData<PointerEvent> implements GestureDetails {
-  /// 创建变换详情。
-  TransformGestureDetails({
-    required super.phase,
-    required super.originalEvent,
-    required super.globalPosition,
-    super.delta,
-    super.dragOffset,
-    super.dragAxis,
-    super.dragDirection,
-    super.velocity,
-    super.pointerCount,
-    super.scale,
-    super.rotation,
-    super.logScaleVelocity,
-    this.started = false,
-    this.pointerIds = const [],
-    super.sampleTimeStamp,
-  }) : _localVelocity = velocity.pixelsPerSecond,
-       super(localDelta: delta);
-
-  /// 当前家族是否已进入 Start，候选取消时为 false。
-  final bool started;
-
-  /// 是否为正式接受前向后代发出的起拖拦截提案。
-  bool isProposal = false;
-
-  /// 当前变换中已接受的真实指针标识。
-  final List<int> pointerIds;
-
-  Offset _localVelocity;
-
-  /// 当前目标本地主轴上的释放速度，自由拖拽为空。
-  @override
-  double? get primaryVelocity => switch (dragAxis) {
-    Axis.horizontal => _localVelocity.dx,
-    Axis.vertical => _localVelocity.dy,
-    null => null,
-  };
-
-  @override
-  void _updateTransform(Matrix4? transform) {
-    super._updateTransform(transform);
-    _localVelocity = _transformDelta(velocity.pixelsPerSecond);
-  }
-}
-
 /// 将同一 El 路线的订阅者与参加官方竞技场的所有者分开。
 abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
   _GestureRecognizer({super.debugOwner, super.supportedDevices, super.allowedButtonsFilter});
@@ -781,11 +714,7 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
   bool _participates(int pointer) => _cooperation?._participates(pointer) ?? true;
 
   bool _registeredFor(_GestureRoute route, int pointer) =>
-      (_cooperation?._primaryAllowed(pointer) ?? true) &&
-      (_cooperation?.onPointerEvent == null || route.subscription(this).downs.containsKey(pointer));
-
-  /// 官方竞技场确认本路线获胜时通知成员，不代表拖拽或长按已经达到阈值。
-  void Function(int pointer)? onAccepted;
+      _cooperation?.onPointerEvent == null || route.subscription(this).downs.containsKey(pointer);
 
   _GestureRecognizer? get _bubbleParent;
 
@@ -797,10 +726,7 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
 
   void _stopOtherRoutes(_GestureRoute route, GestureDetails details) {}
 
-  void _handleRoutedEvent(PointerEvent event, {bool staged = false, _GestureInput? input}) {
-    final source = input?.source?.team ?? _cooperation;
-    if (staged || source?._routeOwnMove(event, routedInput: input) != true) handleEvent(event);
-  }
+  void _handleRoutedEvent(PointerEvent event) => handleEvent(event);
 
   /// 请求接受指定指针的官方竞技场归属；不会覆盖已经确认的其他赢家。
   void acceptPointer(int pointer) {
@@ -808,16 +734,6 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
     final route = _routes[pointer];
     if (route != null && route.active && !route.owner._disposed) {
       route.owner._requestAccept(route, pointer);
-    }
-  }
-
-  void _notifyAccepted(_GestureRoute route, int pointer) {
-    for (final member in route.members.toList()) {
-      if (!route.active || member._disposed) continue;
-      final callback = member.onAccepted;
-      if (callback != null) {
-        member.invokeCallback<void>('accepted', () => callback(pointer));
-      }
     }
   }
 
@@ -957,20 +873,6 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
 
   bool _hasHandlerInChain(ElEventPhase phase) => _snapshotChain().any((member) => member._handlerFor(phase) != null);
 
-  bool _routeHasHandler(_GestureRoute route, ElEventPhase phase) {
-    if (!route.active) return false;
-    final end = route.cutoffs[phase._family] ?? route.members.length - 1;
-    for (var index = 0; index <= end; index++) {
-      final member = route.members[index];
-      if (!member._disposed &&
-          !route.subscription(member).phase(phase._family).excluded &&
-          member._handlerFor(phase) != null) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   void _endRoute(_GestureRoute route) {
     if (!route.active) return;
     // Cancel 回调可重入销毁所有者，坐标快照须等已公开的终态全部投递后再释放。
@@ -999,100 +901,58 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
   void _dispatchGesture(
     _GestureRoute route,
     GestureDetails callback, {
-    int? routingPointer,
     Object? sequenceIdentity,
     int firstMember = 0,
     int? lastMember,
-    bool skipCancelingMembers = false,
     bool isolatedMember = false,
     GestureDetails? Function(_GestureRecognizer member)? prepare,
   }) {
-    final pointer = routingPointer ?? callback.pointer;
+    final pointer = callback.pointer;
 
     final terminal = callback.phase._terminal;
     if (!route.active || route.owner._disposed && !terminal) return;
     if (terminal) route.terminalDispatchDepth++;
     try {
-      final family = callback.phase._family;
-      final revision = (route.revisions[family] ?? 0) + (isolatedMember ? 0 : 1);
-      route.revisions[family] = revision;
+      final revision = route.revision + (isolatedMember ? 0 : 1);
+      route.revision = revision;
       final candidate = callback.phase._candidate;
-      final admitsDragMembers =
-          callback.phase == ElEventPhase.dragStart &&
-          route.owner is TransformRecognizer &&
-          (route.owner as TransformRecognizer)._session?.cooperation != null;
-      if (candidate && !isolatedMember) route.observedEnds[family] = -1;
-      var end = lastMember ?? route.cutoffs[family] ?? route.members.length - 1;
-      if (!candidate && !admitsDragMembers && lastMember == null) {
-        end = math.min(end, route.observedEnds[family] ?? end);
+      if (candidate && !isolatedMember) route.observedEnd = -1;
+      var end = lastMember ?? route.cutoff ?? route.members.length - 1;
+      if (!candidate && lastMember == null) {
+        end = math.min(end, route.observedEnd ?? end);
       }
       var firstTarget = true;
       for (var index = firstMember; index <= end; index++) {
         // 同家族重入可能已取消当前阶段，不能再把旧 Down/Start 送给后续祖先。
-        if (!route.active || !terminal && (route.owner._disposed || route.revisions[family] != revision)) {
+        if (!route.active || !terminal && (route.owner._disposed || route.revision != revision)) {
           break;
         }
         final member = route.members[index];
         final subscription = route.subscription(member);
-        final state = subscription.phase(family);
 
         if (member._disposed ||
-            callback.phase == ElEventPhase.dragUpdate &&
-                member is TransformRecognizer &&
-                !member.receivesDragUpdates(pointer) ||
-            skipCancelingMembers && state.canceling ||
             (callback.phase == ElEventPhase.tapCancel
                 ? !subscription.downs.containsKey(pointer)
                 : !member._registeredFor(route, pointer)) ||
-            candidate &&
-                !member._participates(pointer) &&
-                !(family == _GestureFamily.scale && member._cooperation?.canClaimPointers([pointer]) == true) ||
-            state.excluded) {
+            candidate && !member._participates(pointer) ||
+            subscription.excluded) {
           continue;
         }
-        if (candidate || admitsDragMembers) {
-          route.observedEnds[family] = math.max(route.observedEnds[family] ?? -1, index);
-        }
+        if (candidate) route.observedEnd = math.max(route.observedEnd ?? -1, index);
         final handler = member._handlerFor(callback.phase);
         if (handler == null) continue;
-        if (callback.phase._stage == .update) {
-          final version = state.revision;
-          if (member._cooperation?._deferUpdate(callback.originalEvent, () {
-                if (!route.active ||
-                    member._disposed ||
-                    callback.propagationStopped ||
-                    state.revision != version ||
-                    state.excluded) {
-                  return;
-                }
-                _dispatchGesture(
-                  route,
-                  callback,
-                  routingPointer: pointer,
-                  sequenceIdentity: sequenceIdentity,
-                  firstMember: index,
-                  lastMember: index,
-                  isolatedMember: true,
-                  prepare: prepare,
-                );
-              }) ==
-              true) {
-            continue;
-          }
-        }
         final details = prepare == null ? callback : prepare(member);
         if (details == null) continue;
-        if (callback.phase == ElEventPhase.dragStart && !route.dragStartRecipients.add(member)) continue;
         if (!identical(details, callback)) details._controlSource = callback;
         details._sequenceIdentity = sequenceIdentity ?? route;
         details._isPrimaryTarget = firstTarget;
-        final memberRevision = state.revision;
+        final memberRevision = subscription.revision;
         details._isActive = () =>
             route.active &&
             !member._disposed &&
-            !state.excluded &&
-            route.revisions[family] == revision &&
-            state.revision == memberRevision;
+            !subscription.excluded &&
+            route.revision == revision &&
+            subscription.revision == memberRevision;
         firstTarget = false;
         member.invokeCallback<void>(callback.phase.name, () {
           final down = subscription.downs[pointer];
@@ -1110,10 +970,9 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
           // Up 之后的业务点击仍遵守最早截断点，已经公开的释放通知继续结清。
           if (terminal) {
             if (callback.phase._establishesBoundary) {
-              route.cutoffs[family] = math.min(route.cutoffs[family] ?? index, index);
+              route.cutoff = math.min(route.cutoff ?? index, index);
             }
-            if (family == _GestureFamily.press &&
-                callback.phase != ElEventPhase.tapCancel &&
+            if (callback.phase != ElEventPhase.tapCancel &&
                 member is PressRecognizer &&
                 !member.bubbleReleaseAfterStop) {
               break;
@@ -1121,16 +980,15 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
             continue;
           }
           if (callback.phase._establishesBoundary) {
-            route.cutoffs[family] = index;
+            route.cutoff = index;
             final cancellation = _boundaryCancellation(callback);
-            if (cancellation != null && route.active && route.revisions[family] == revision) {
-              final observed = route.observedEnds[family] ?? index;
-              route.observedEnds[family] = index;
+            if (cancellation != null && route.active && route.revision == revision) {
+              final observed = route.observedEnd ?? index;
+              route.observedEnd = index;
               if (observed > index) {
                 _dispatchGesture(
                   route,
                   cancellation,
-                  routingPointer: pointer,
                   sequenceIdentity: sequenceIdentity,
                   firstMember: index + 1,
                   lastMember: observed,
@@ -1152,17 +1010,6 @@ abstract class _GestureRecognizer extends OneSequenceGestureRecognizer {
   }
 
   static GestureDetails? _boundaryCancellation(GestureDetails details) {
-    if (details is TransformGestureDetails && details.phase == ElEventPhase.dragStart) {
-      return TransformGestureDetails(
-        phase: ElEventPhase.dragCancel,
-        globalPosition: details.globalPosition,
-        dragOffset: details.dragOffset,
-        dragAxis: details.dragAxis,
-        dragDirection: details.dragDirection,
-        pointerCount: details.pointerCount,
-        originalEvent: details.originalEvent,
-      );
-    }
     if (details is PressGestureDetails &&
         (details.phase == ElEventPhase.doubleTapDown ||
             details.phase == ElEventPhase.tripleTapDown ||
@@ -1209,7 +1056,7 @@ final class _GestureInput extends GestureArenaMember {
 
   void _handleEvent(PointerEvent event) {
     if (tracking && !owner._disposed && identical(owner._inputs[pointer], this)) {
-      owner._handleRoutedEvent(event, input: this);
+      owner._handleRoutedEvent(event);
     }
   }
 
@@ -1241,9 +1088,7 @@ final class _GestureInput extends GestureArenaMember {
   void rejectGesture(int pointer) => _complete(false);
 }
 
-enum _GestureFamily { press, drag, scale }
-
-enum _GestureStage { other, candidate, update, terminal, release }
+enum _GestureStage { other, candidate, terminal, release }
 
 class _GestureRoute {
   _GestureRoute(this.owner, this.members);
@@ -1252,11 +1097,10 @@ class _GestureRoute {
   final List<_GestureRecognizer> members;
   // 实际登记前已加入首指针，生命周期内只追加，不另存一份初始编号。
   final Set<int> pointers = <int>{};
-  final Set<_GestureRecognizer> dragStartRecipients = {};
   final Map<_GestureRecognizer, _GestureSubscription> _subscriptions = {};
-  final Map<_GestureFamily, int> cutoffs = <_GestureFamily, int>{};
-  final Map<_GestureFamily, int> revisions = <_GestureFamily, int>{};
-  final Map<_GestureFamily, int> observedEnds = <_GestureFamily, int>{};
+  int? cutoff;
+  int revision = 0;
+  int? observedEnd;
   int terminalDispatchDepth = 0;
   bool closeRequested = false;
   bool active = true;
@@ -1264,22 +1108,13 @@ class _GestureRoute {
   _GestureSubscription subscription(_GestureRecognizer member) =>
       _subscriptions.putIfAbsent(member, _GestureSubscription.new);
 
-  void invalidate(_GestureRecognizer member, _GestureFamily family) => subscription(member).phase(family).revision++;
+  void invalidate(_GestureRecognizer member) => subscription(member).revision++;
 }
 
-// 每个成员独立保存坐标和家族资格；临时长按路线只共享坐标，不共享取消状态。
-class _GestureSubscription extends _GestureMemberPhase {
+class _GestureSubscription {
   Map<int, PointerEvent> downs = {};
-  _GestureMemberPhase? _scale;
-
-  // 路线只包含同类识别器，Press 和 Drag 各自使用主状态，Scale 另存一份。
-  _GestureMemberPhase phase(_GestureFamily family) => family == .scale ? (_scale ??= _GestureMemberPhase()) : this;
-}
-
-class _GestureMemberPhase {
   int revision = 0;
   bool excluded = false;
-  bool canceling = false;
 }
 
 /// 通过官方竞技场协调同次输入的识别器，不保存重复的手势阶段状态。
@@ -1304,24 +1139,14 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
   /// 原始触控板消费者可预先保留席位，后续接受仍须服从官方结果。
   bool acceptsPanZoom = false;
 
-  /// 根据点击意图、拖拽轴与阈值筛选自动挂接的父级，手工冒泡链默认不筛选。
+  /// 根据点击意图筛选共享官方席位的父级。
   bool matchParentGestures = false;
-
-  /// 宿主只在声明拖拽或缩放时创建变换识别器；缺少变换成员按不订阅拖拽筛选父级。
-  bool transformOnDemand = false;
-
-  /// 将移动观察延后到本团队的原生路由位置，允许内层起拖先决定祖先资格。
-  bool deferPointerMoves = false;
-
-  /// 等本次原生路由全部完成后再提交点击，让祖先释放阶段的拖拽救援先结算。
-  bool deferPointerReleases = false;
 
   final Map<int, _CooperativePointer> _pointers = {};
   final Set<_GestureRecognizer> _members = {};
   final Map<int, _PointerObservation> _observations = {};
   static final _dispatches = Expando<_PointerDispatch>('El raw input');
   static final _rawDetails = Expando<PointerGestureDetails>('El pointer control');
-  PointerEvent? _currentEvent;
   _PointerObservation? _currentObservation;
   PointerGestureDetails? _currentPointerDetails;
   bool _disposed = false;
@@ -1360,8 +1185,8 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
             ElEventPhase.values.any(
               (phase) =>
                   member._handlerFor(phase) != null &&
-                  index <= (route.cutoffs[phase._family] ?? route.members.length - 1) &&
-                  !route.subscription(member).phase(phase._family).excluded,
+                  index <= (route.cutoff ?? route.members.length - 1) &&
+                  !route.subscription(member).excluded,
             );
       });
     }).toList();
@@ -1419,50 +1244,20 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
           .whereType<_PointerObservation>()
           .firstOrNull;
 
-  /// 全部指针已取得官方归属且仍有资格时才允许多指接管，不改变任何成员。
-  bool canClaimPointers(Iterable<int> pointers) {
-    final ids = pointers.toSet();
-    return !_disposed &&
-        ids.isNotEmpty &&
-        ids.every((pointer) {
-          final input = _observationFor(pointer);
-          return input != null &&
-              (input.active || input.scaleAllowed) &&
-              !input.dispatch.members.any(
-                (other) => !identical(other.team, this) && other.isCurrent && other.request?.allowScale == false,
-              ) &&
-              input.dispatch.arenas.any((arena) => arena._pointers[pointer]?.result == GestureDisposition.accepted);
-        });
-  }
+  /// 当前指针是否仍属于本宿主。
+  bool isInputActive(int pointer) => _observations[pointer]?.active == true;
 
-  /// 先验证全部输入、再同步提交所有成员资格，最后统一通知取消。
-  bool claimPointers(Iterable<int> pointers, {bool cancelTap = false, bool allowScaleUpgrade = false}) {
-    final ids = pointers.toSet();
-    if (!canClaimPointers(ids)) return false;
-    final notifications = <void Function()>[];
-    for (final pointer in ids) {
-      final input = _observationFor(pointer)!;
-      _commitRequest(pointer, input, (cancelTap: cancelTap, allowScale: allowScaleUpgrade), notifications);
-    }
-    for (final notify in notifications) {
-      notify();
-    }
-    return true;
-  }
+  /// 本次按下是否允许宿主参加拖拽竞技场。
+  bool allowsDrag(int pointer) => _observations[pointer]?.dispatch.dragStopped == false;
+
+  /// 截断后续命中宿主的拖拽报名，保留原始输入与按压路线。
+  void stopDragPropagation(int pointer) => _observations[pointer]?.dispatch.dragStopped = true;
 
   bool _sharesArenaWith(GestureTeam other) {
     if (!matchParentGestures || !other.matchParentGestures) return true;
     final press = _members.whereType<PressRecognizer>().firstOrNull;
     final otherPress = other._members.whereType<PressRecognizer>().firstOrNull;
-    if (press != null && otherPress != null && press.competeForTap != otherPress.competeForTap) {
-      return false;
-    }
-    final transform = _members.whereType<TransformRecognizer>().firstOrNull;
-    final otherTransform = other._members.whereType<TransformRecognizer>().firstOrNull;
-    if (transform != null && otherTransform != null) return transform._compatibleWith(otherTransform);
-    // 手工组装的团队缺少变换成员时不按拖拽筛选；按需创建的团队缺少成员等同于不订阅拖拽。
-    if (transform == null && !transformOnDemand || otherTransform == null && !other.transformOnDemand) return true;
-    return !(transform?._hasOwnDrag ?? false) && !(otherTransform?._hasOwnDrag ?? false);
+    return press == null || otherPress == null || press.competeForTap == otherPress.competeForTap;
   }
 
   GestureTeam get _arenaRoot {
@@ -1564,87 +1359,12 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
     final input = _observations[event.pointer];
     if (input == null) return false;
     input.event = event;
-    if (deferPointerMoves && event is PointerMoveEvent) {
-      input.pendingMove = event.original ?? event;
-      input.routedMove = null;
-      input.afterMove.clear();
-      return input.active;
-    }
     if (_terminal(event)) {
       scheduleMicrotask(() => _releaseObservation(event.pointer, input));
     }
-    if (!input.active) return false;
+    if (!input.active || event is PointerMoveEvent && _hasPendingOther(input)) return false;
     final proceed = _deliver(event, event is PointerCancelEvent ? PressCancelReason.pointerCanceled : null);
     return input.active && proceed;
-  }
-
-  bool _routeOwnMove(PointerEvent event, {_GestureInput? routedInput}) {
-    if (!deferPointerMoves || event is! PointerMoveEvent) return false;
-    final input = routedInput?.source ?? _observations[event.pointer];
-    final key = event.original ?? event;
-    final registered = _observations[event.pointer];
-    if (input == null || registered != null && !identical(registered, input)) return true;
-    if (registered == null) input.event = event;
-    if (!identical(input.event.original ?? input.event, key) || identical(input.routedMove, key)) {
-      return true;
-    }
-    input.routedMove = key;
-    // 只推进当前原生席位已有的成员，不提前外层席位或回调中新挂载的识别器。
-    final entries = input.inputs.toList();
-    _flushMove(event);
-    for (final entry in entries) {
-      if (!identical(_observations[event.pointer], registered) ||
-          !identical(input.event.original ?? input.event, key)) {
-        break;
-      }
-      final member = entry.owner;
-      final observation = member._cooperation?._observations[event.pointer] ?? input;
-      if (identical(observation.dispatch, input.dispatch) &&
-          (observation.active ||
-              member is TransformRecognizer &&
-                  (observation.scaleAllowed || member._hasActiveReceiver(event.pointer))) &&
-          entry.tracking &&
-          !member._disposed &&
-          identical(member._inputs[event.pointer], entry)) {
-        member._handleRoutedEvent(key.transformed(entry.transform), staged: true);
-      }
-    }
-    return true;
-  }
-
-  void _flushMove(PointerEvent event) {
-    final input = _observations[event.pointer];
-    final key = event.original ?? event;
-    if (input == null || !identical(input.pendingMove, key)) return;
-    input.pendingMove = null;
-    if (input.active && !_hasPendingOther(input)) _deliver(input.event, null);
-    final pending = input.afterMove.toList();
-    input.afterMove.clear();
-    for (final callback in pending) {
-      if (identical(_observations[event.pointer], input) && identical(input.event.original ?? input.event, key)) {
-        callback();
-      }
-    }
-  }
-
-  bool _deferUpdate(PointerEvent event, void Function() callback) {
-    if (!deferPointerMoves || event is! PointerMoveEvent) return false;
-    final input = _observationFor(event.pointer);
-    final key = event.original ?? event;
-    if (input == null || !identical(input.event.original ?? input.event, key)) return true;
-    if (identical(input.pendingMove, key)) {
-      input.afterMove.add(callback);
-      return true;
-    }
-    return false;
-  }
-
-  bool _deferRelease(PointerUpEvent event, Object key, void Function() callback) {
-    if (!deferPointerReleases) return false;
-    final input = _observationFor(event.pointer);
-    if (input == null || identical(input.routedRelease, event.original ?? event)) return false;
-    input.afterRelease[key] = callback;
-    return true;
   }
 
   bool _deliver(PointerEvent event, PressCancelReason? reason) {
@@ -1663,16 +1383,13 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
   }
 
   void _during(PointerEvent event, void Function() callback, {PointerGestureDetails? pointerDetails}) {
-    final previousEvent = _currentEvent;
     final previousInput = _currentObservation;
     final previousDetails = _currentPointerDetails;
-    _currentEvent = event;
     _currentObservation = _observations[event.pointer];
     _currentPointerDetails = pointerDetails ?? previousDetails;
     try {
       callback();
     } finally {
-      _currentEvent = previousEvent;
       _currentObservation = previousInput;
       _currentPointerDetails = previousDetails;
     }
@@ -1684,27 +1401,20 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
   bool _participates(int pointer) {
     if (onPointerEvent == null) return true;
     final input = _observationFor(pointer);
-    return input != null && _primaryAllowed(pointer) && !_hasPendingOther(input);
-  }
-
-  bool _primaryAllowed(int pointer) {
-    final dispatch = _observations[pointer]?.dispatch;
-    final cutoff = dispatch?.primaryCutoff;
-    if (dispatch == null || cutoff == null || dispatch.primaryExempt.contains(this)) return true;
-    final boundary = dispatch.indexOfTeam(cutoff);
-    return boundary < 0 || dispatch.indexOfTeam(this) < boundary;
+    return input != null && input.active && !_hasPendingOther(input);
   }
 
   /// 请求当前元素独占输入，成员失权直接通过识别器取消，不复制其阶段状态。
   ///
-  /// 延后调用时传入 [downEvent]，避免指针编号复用后请求作用于下一次输入。
-  void claimPointer(int pointer, {PointerEvent? downEvent, bool cancelTap = false, bool allowScaleUpgrade = false}) {
+  /// 延后调用时用 [downEvent] 校验输入身份，官方胜出回调用 [alreadyAccepted] 提供归属。
+  void claimPointer(int pointer, {PointerEvent? downEvent, bool cancelTap = false, bool alreadyAccepted = false}) {
     final input = _observationFor(pointer);
     if (input == null ||
         downEvent != null && !identical(input.down, downEvent) ||
         !input.active ||
         _disposed ||
-        input.arena._pointers[pointer]?.result == GestureDisposition.rejected &&
+        !alreadyAccepted &&
+            input.arena._pointers[pointer]?.result == GestureDisposition.rejected &&
             !input.dispatch.arenas.any((arena) => arena._pointers[pointer]?.result == GestureDisposition.accepted) ||
         _currentObservation != null &&
             _currentObservation!.down.pointer == pointer &&
@@ -1714,22 +1424,19 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
     final accepted = input.dispatch.arenas.any(
       (arena) => arena._pointers[pointer]?.result == GestureDisposition.accepted,
     );
-    if (accepted && !identical(input.team, this)) {
-      if (!canClaimPointers([pointer])) return;
+    if (alreadyAccepted || accepted && !identical(input.team, this)) {
       final notifications = <void Function()>[];
-      _commitRequest(pointer, input, (cancelTap: cancelTap, allowScale: allowScaleUpgrade), notifications);
+      _commitRequest(pointer, input, cancelTap, notifications);
       for (final notify in notifications) {
         notify();
       }
       return;
     }
-    final canEnroll =
-        (_currentEvent is PointerDownEvent || _currentEvent is PointerPanZoomStartEvent) &&
-        input.arena._pointers[pointer]?.result == null;
+    final canEnroll = !input.dispatch.registrationClosed && input.arena._pointers[pointer]?.result == null;
     if (!accepted && input.arena._pointers[pointer] == null && !canEnroll) {
       return;
     }
-    input.request = (cancelTap: cancelTap || (input.request?.cancelTap ?? false), allowScale: allowScaleUpgrade);
+    input.request = cancelTap || input.request == true;
     if (!accepted && input.entry == null && canEnroll) {
       input.entry = add(pointer, input);
     }
@@ -1757,22 +1464,13 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
     }
   }
 
-  void _commitRequest(
-    int pointer,
-    _PointerObservation input,
-    ({bool cancelTap, bool allowScale}) request,
-    List<void Function()> notifications,
-  ) {
+  void _commitRequest(int pointer, _PointerObservation input, bool cancelTap, List<void Function()> notifications) {
     input.request = null;
-    if (identical(input.team, this) && input.scaleAllowed) {
-      input.active = true;
-      input.scaleAllowed = false;
-    }
     for (final other in input.dispatch.members.toList()) {
       if (!other.isCurrent || !other.active) continue;
       final target = other.team;
       if (identical(target, this)) {
-        if (request.cancelTap) {
+        if (cancelTap) {
           notifications.add(() {
             for (final press in target._members.whereType<PressRecognizer>().toList()) {
               press.rejectTap(pointer, reason: PressCancelReason.longPressAccepted);
@@ -1781,7 +1479,6 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
         }
       } else {
         other.active = false;
-        other.scaleAllowed = request.allowScale;
         notifications.add(() {
           if (other.notified) {
             target._deliver(_cancelEvent(other, rejected: true), PressCancelReason.arenaRejected);
@@ -1790,42 +1487,8 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
           for (final member in members) {
             if (identical(member._cooperation, this)) continue;
             if (member is PressRecognizer) member._cancelMember(pointer, PressCancelReason.arenaRejected);
-            if (member is TransformRecognizer) member.cancelMember(pointer, cancelScale: !request.allowScale);
           }
         });
-      }
-    }
-  }
-
-  void _cancelDragForScale(Iterable<int> pointers, {PointerEvent? event}) {
-    final transforms = <TransformRecognizer>{};
-    for (final pointer in pointers) {
-      for (final team in _observationFor(pointer)?.dispatch.members.map((input) => input.team) ?? [this]) {
-        transforms.addAll(team._members.whereType<TransformRecognizer>());
-      }
-    }
-    for (final member in transforms) {
-      if (member.cancelDragOnScale) {
-        member.cancelMember(null, cancelScale: false, event: event);
-      }
-    }
-  }
-
-  /// 结清当前团队成员的按压订阅，并明确取消原因。
-  void cancelPress(int pointer, {PressCancelReason reason = PressCancelReason.canceled}) {
-    for (final member in _members.whereType<PressRecognizer>().toList()) {
-      member._cancelMember(pointer, reason);
-    }
-  }
-
-  /// 取消同一输入路线中更内层的点击资格，保留其物理释放通知。
-  void rejectDescendantPress(int pointer) {
-    final dispatch = _observationFor(pointer)?.dispatch;
-    if (dispatch == null) return;
-    final end = dispatch.indexOfTeam(this);
-    for (final input in dispatch.members.take(end < 0 ? 0 : end)) {
-      for (final press in input.team._members.whereType<PressRecognizer>()) {
-        press.rejectTap(pointer, reason: PressCancelReason.arenaRejected);
       }
     }
   }
@@ -1834,12 +1497,8 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
   void cancel({bool Function(PointerEvent down)? where}) {
     for (final input in _observations.values.toList()) {
       if (where != null && !where(input.down)) continue;
-      if (!input.active) {
-        _revokeScaleGrants(input);
-        continue;
-      }
+      if (!input.active) continue;
       input.active = false;
-      _revokeScaleGrants(input);
       if (!_terminal(input.event) && input.notified) {
         _deliver(_cancelEvent(input), PressCancelReason.canceled);
       }
@@ -1847,27 +1506,12 @@ final class GestureTeam extends GestureArenaTeam implements GestureArenaMember {
       if (where != null) {
         for (final member in _members.toList()) {
           if (member is PressRecognizer) member.cancelMember(input.down.pointer);
-          if (member is TransformRecognizer) member.cancelMember(input.down.pointer);
         }
       }
     }
     if (where != null) return;
     for (final member in _members.toList()) {
       if (member is PressRecognizer) member.cancelMember();
-      if (member is TransformRecognizer) member.cancelMember(null);
-    }
-  }
-
-  void _revokeScaleGrants(_PointerObservation input) {
-    final pointer = input.down.pointer;
-    final dispatch = input.dispatch;
-    if (dispatch.members.any((other) => other.isCurrent && other.active)) return;
-    for (final other in dispatch.members.toList()) {
-      if (!other.isCurrent || !other.scaleAllowed) continue;
-      other.scaleAllowed = false;
-      for (final member in other.team._members.whereType<TransformRecognizer>().toList()) {
-        member.cancelPointer(pointer);
-      }
     }
   }
 
@@ -1952,27 +1596,6 @@ abstract final class _GestureInputRegistry {
   }
 
   static void _handleRemoved(PointerEvent event) {
-    if (event is PointerUpEvent) {
-      final ending = teams.map((team) => team._observations[event.pointer]).whereType<_PointerObservation>().toList();
-      for (final input in ending) {
-        input.routedRelease = event.original ?? event;
-      }
-      for (final input in ending) {
-        final callbacks = input.afterRelease.values.toList();
-        input.afterRelease.clear();
-        for (final callback in callbacks) {
-          callback();
-        }
-      }
-      return;
-    }
-    if (event is PointerMoveEvent) {
-      for (final team in teams.toList()) {
-        if (team.deferPointerMoves) team._flushMove(event);
-      }
-      return;
-    }
-
     if (event is PointerDownEvent || event is PointerPanZoomStartEvent) {
       final key = event.original ?? event;
       final dispatch = GestureTeam._dispatches[key];
@@ -2065,8 +1688,7 @@ final class _PointerDispatch {
   final arenas = <GestureTeam>{};
   bool stopped = false;
   bool registrationClosed = false;
-  GestureTeam? primaryCutoff;
-  final primaryExempt = <GestureTeam>{};
+  bool dragStopped = false;
 
   int indexOfTeam(GestureTeam team) => members.indexWhere((input) => identical(input.team, team));
 
@@ -2092,16 +1714,11 @@ final class _PointerObservation extends GestureArenaMember {
   final PointerEvent down;
   final GestureTeam arena;
   PointerEvent event;
-  PointerEvent? pendingMove, routedMove;
-  final List<void Function()> afterMove = [];
-  PointerEvent? routedRelease;
-  final Map<Object, void Function()> afterRelease = {};
   final List<_GestureInput> inputs = [];
   bool active = true;
-  bool scaleAllowed = false;
   bool notified = false;
   GestureArenaEntry? entry;
-  ({bool cancelTap, bool allowScale})? request;
+  bool? request;
 
   bool get isCurrent => identical(team._observations[down.pointer], this);
 
@@ -2500,7 +2117,7 @@ class PressRecognizer extends _GestureRecognizer {
   static bool _allows(_PressSequence sequence) {
     final route = sequence.group.route;
     final index = route.members.indexOf(sequence.node);
-    return index >= 0 && index <= (route.cutoffs[_GestureFamily.press] ?? route.members.length - 1);
+    return index >= 0 && index <= (route.cutoff ?? route.members.length - 1);
   }
 
   void _updatePosition(_PressSequence sequence, PointerEvent event) {
@@ -2647,7 +2264,6 @@ class PressRecognizer extends _GestureRecognizer {
     }
     group.accepted = true;
     resolvePointer(pointer, GestureDisposition.accepted);
-    _notifyAccepted(group.route, pointer);
     for (final sequence in group.sequences.values.toList()) {
       if (sequence.longPressRequested) _deliverLongPress(sequence);
     }
@@ -2770,16 +2386,9 @@ class PressRecognizer extends _GestureRecognizer {
     }
   }
 
-  void _completeAccepted(_PressGroup group, {bool releaseOnly = false, bool afterRouting = false}) {
+  void _completeAccepted(_PressGroup group, {bool releaseOnly = false}) {
     final up = group.up;
     if (up == null || group.completing || !group.route.active) return;
-    if (!afterRouting &&
-        group.owner._cooperation?._deferRelease(up, group, () {
-              group.owner._completeAccepted(group, releaseOnly: releaseOnly, afterRouting: true);
-            }) ==
-            true) {
-      return;
-    }
     group.completing = true;
     _unregisterGroup(group);
     _releaseRoutePointers(group.route);
@@ -2917,7 +2526,7 @@ class PressRecognizer extends _GestureRecognizer {
       preserveMinimum: reason == PressCancelReason.ineligible,
     );
     final index = sequence.group.route.members.indexOf(sequence.node);
-    if (!sequence.downVisible || index > (sequence.group.route.observedEnds[_GestureFamily.press] ?? -1)) {
+    if (!sequence.downVisible || index > (sequence.group.route.observedEnd ?? -1)) {
       sequence.downVisible = false;
       return;
     }
@@ -2931,7 +2540,7 @@ class PressRecognizer extends _GestureRecognizer {
     PointerEvent event, {
     bool resetHistory = true,
   }) {
-    sequence.group.route.invalidate(this, _GestureFamily.press);
+    sequence.group.route.invalidate(this);
     if (sequence.canceled || sequence.released || sequence.canceling) return;
     sequence.canceling = true;
     sequence.longPressTimer?.cancel();
@@ -2940,7 +2549,7 @@ class PressRecognizer extends _GestureRecognizer {
     sequence.group.owner._notifyCancel(sequence, reason, event);
     sequence.canceled = true;
     // 边界传播可能重入取消；已结算的成员不得再次接收合成 TapCancel。
-    sequence.group.route.subscription(this).phase(_GestureFamily.press).excluded = true;
+    sequence.group.route.subscription(this).excluded = true;
     _releaseSequence(sequence);
   }
 
