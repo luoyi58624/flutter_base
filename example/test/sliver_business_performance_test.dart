@@ -1,25 +1,33 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:example/src/pages/examples/scroll_examples/cards.dart';
 import 'package:example/src/pages/examples/scroll_examples/chat.dart';
+import 'package:example/src/pages/examples/scroll_examples/media.dart';
 import 'package:example/src/pages/examples/scroll_examples/orders.dart';
+import 'package:example/src/pages/examples/scroll_examples/product_waterfall.dart';
 import 'package:example/src/pages/examples/scroll_examples/selection.dart';
 import 'package:example/src/pages/examples/scroll_examples/social_feed.dart';
 import 'package:example/src/pages/examples/sliver_recycler/index.dart';
+import 'package:example/src/pages/examples/sliver_recycler_grid/index.dart';
 import 'package:example/src/pages/examples/sliver_takeaway/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as path;
 
 const _timing = bool.fromEnvironment('BUSINESS_PERF');
+const _onlyMode = String.fromEnvironment('BUSINESS_PERF_MODE');
 const _samples = int.fromEnvironment('BUSINESS_PERF_SAMPLES', defaultValue: _timing ? 8 : 3);
 const _passes = _timing ? 2 : 1;
 const _warmupSteps = 6;
 const _step = 192.0;
 const _frame = Duration(milliseconds: 16);
+const _mediaFileCount = 96;
 
 enum _Mode { official, recycler }
 
@@ -34,9 +42,40 @@ enum _Scene {
   text,
   videoCards,
   complex,
+  grid,
+  masonry,
+  mediaVideo,
+  mediaAlbum,
+  mediaWaterfall,
+  mediaLocalWaterfall,
+  productWaterfall,
   takeaway;
 
-  Widget createPage() => switch (this) {
+  bool get isGrid => switch (this) {
+    .grid ||
+    .masonry ||
+    .mediaVideo ||
+    .mediaAlbum ||
+    .mediaWaterfall ||
+    .mediaLocalWaterfall ||
+    .productWaterfall => true,
+    _ => false,
+  };
+
+  bool get hasMediaFiles => this == .mediaVideo || this == .mediaAlbum || this == .mediaLocalWaterfall;
+
+  bool get isMedia => hasMediaFiles || this == .mediaWaterfall;
+
+  // 相册的 5 列小格用较短步长，96 张真实图片仍能覆盖完整的双向采样。
+  double get step => this == .mediaAlbum ? 48 : _step;
+
+  int get expectedItemCount => switch (this) {
+    .grid || .masonry || .productWaterfall => 1000,
+    .mediaVideo || .mediaAlbum || .mediaLocalWaterfall => _mediaFileCount,
+    _ => 10000,
+  };
+
+  Widget createPage({String? directory}) => switch (this) {
     .cards => RecyclerCardsPage(),
     .orders => RecyclerOrdersPage(),
     .socialFeed => RecyclerSocialFeedPage(),
@@ -47,6 +86,13 @@ enum _Scene {
     .text => ElSliverRecyclerExamplePage(initialContent: .text),
     .videoCards => ElSliverRecyclerExamplePage(initialContent: .videoCards),
     .complex => ElSliverRecyclerExamplePage(initialContent: .complex),
+    .grid => ElSliverRecyclerGridExamplePage(),
+    .masonry => ElSliverRecyclerGridExamplePage.masonry(),
+    .mediaVideo => RecyclerVideoGridPage(directory: directory!),
+    .mediaAlbum => RecyclerGalleryPage(directory: directory!),
+    .mediaWaterfall => RecyclerWaterfallPage(),
+    .mediaLocalWaterfall => RecyclerWaterfallPage(directory: directory!),
+    .productWaterfall => RecyclerProductWaterfallPage(),
     .takeaway => TakeawaySliverPage(networkPhotos: false),
   };
 
@@ -55,6 +101,9 @@ enum _Scene {
     .orders || .socialFeed => 'comparison-mode-menu',
     .chat || .liveChat => 'chat-menu',
     .selection => 'selection-menu',
+    .grid || .masonry => 'grid-mode-menu',
+    .mediaVideo || .mediaAlbum || .mediaWaterfall || .mediaLocalWaterfall => 'media-scroll-menu',
+    .productWaterfall => 'product-waterfall-mode',
     .takeaway => 'takeaway-sliver-menu',
     _ => null,
   };
@@ -64,6 +113,8 @@ enum _Scene {
     .orders || .socialFeed => 'comparison-mode-${mode.name}',
     .chat || .liveChat => 'chat-mode-${mode.name}',
     .selection => 'selection-mode-${mode.name}',
+    .mediaVideo || .mediaAlbum || .mediaWaterfall || .mediaLocalWaterfall => 'media-mode-${mode.name}',
+    .productWaterfall => 'product-waterfall-mode-${mode == .official ? 'sliverGrid' : 'recycler'}',
     .takeaway => 'takeaway-mode-${mode.name}',
     _ => null,
   };
@@ -78,126 +129,369 @@ enum _Scene {
       ResizeImage.resizeIfNeeded(360, null, AssetImage('assets/recycler_cards/owl-2.jpg')),
     ],
     .videoCards => [AssetImage('assets/recycler_cards/bili_home.webp')],
+    .mediaWaterfall => [
+      ResizeImage(AssetImage('assets/recycler_cards/owl.jpg'), width: 320, height: 320, policy: .fit),
+      ResizeImage(AssetImage('assets/recycler_cards/owl-2.jpg'), width: 320, height: 320, policy: .fit),
+    ],
+    .productWaterfall => [
+      ResizeImage.resizeIfNeeded(195, null, AssetImage('assets/recycler_cards/owl.jpg')),
+      ResizeImage.resizeIfNeeded(195, null, AssetImage('assets/recycler_cards/owl-2.jpg')),
+    ],
     .takeaway => [AssetImage('assets/recycler_cards/takeaway-food.webp')],
     _ => [],
   };
+
+  Map<String, Object?> geometryMetadata(_Mode mode) {
+    final official = mode == .official;
+    return switch (this) {
+      .grid || .masonry => {
+        'geometry': official
+            ? 'fixed-height grid'
+            : this == .masonry
+            ? 'natural-height masonry'
+            : 'natural-height rows',
+        'geometry_note': 'official reserved uniform extent differs from recycler natural card heights',
+      },
+      .mediaVideo => {
+        'geometry': official ? 'fixed-height 2-column SliverGrid' : 'natural-height 2-column recycler rows',
+        'geometry_note': 'both retain the real page 4:3 covers, caption slots and full-width featured header',
+      },
+      .mediaAlbum => {
+        'geometry': official ? 'fixed square 5-column SliverGrid' : 'natural square 5-column recycler rows',
+        'geometry_note': 'both use 78px square cells at the 390px viewport; 48px scroll step',
+        'thumbnail_queue':
+            'real page queue active; providers predecoded; normal per-frame notifications and fades retained',
+      },
+      .mediaWaterfall => {
+        'geometry': official ? 'business-precomputed masonry SliverGrid' : 'natural-height recycler masonry',
+        'geometry_note': 'both use the complete 10000 records, explicit demo cover ratios and shared caption slots',
+      },
+      .mediaLocalWaterfall => {
+        'geometry': official
+            ? 'business-precomputed square-cover masonry SliverGrid'
+            : 'decoded-image natural-height recycler masonry',
+        'geometry_note': 'local file metadata has no dimensions: official uses ratio 1 and a fixed footer slot; recycler uses decoded ratios clamped to 0.6..1.8 and natural caption height; geometry differs',
+      },
+      .productWaterfall => {
+        'geometry': official ? 'business-precomputed masonry SliverGrid' : 'natural-height recycler masonry',
+        'geometry_note': 'both use the same initial per-product image metadata and caption slots',
+        'cache_equivalent': false,
+        'cache_note': 'real page retains official cache=0px and recycler default cache',
+        'size_reveal': 'not requested; 450ms reveal timer never started; revealed count asserted zero throughout',
+      },
+      _ => {},
+    };
+  }
 }
 
 void main() {
   for (final scene in _Scene.values) {
     testWidgets('业务页面基准 ${scene.name}', (tester) async {
       expect(_samples, greaterThan(0));
+      expect(_onlyMode.isEmpty || _Mode.values.any((mode) => mode.name == _onlyMode), isTrue);
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(390, 800);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       final work = _BuildWork()..observe();
-      await _precache(tester, scene.assets);
+      try {
+        final mediaFiles = scene.hasMediaFiles ? await _MediaFiles.create(tester) : null;
+        await _precache(tester, [...scene.assets, ...?mediaFiles?.providers]);
 
-      debugPrintSynchronously(
-        'BUSINESS_PERF_CONFIG ${jsonEncode({
-          'scene': scene.name,
-          'timing': _timing,
-          'viewport': [390, 800],
-          'device_pixel_ratio': 1,
-          'platform': 'android',
-          'scope': 'real page; instrumented flutter_tester debug action+pump wall time; not device frame time',
-          'identity_scope': 'main vertical scroll host including cached and pooled descendants',
-          'snapshots_timed': false,
-          'warmup_steps': _warmupSteps,
-          'step_px': _step,
-          'samples_per_direction': _samples,
-          'passes': _passes,
-          'simulated_pump_interval_us': _frame.inMicroseconds,
-          'images': 'real local assets warmed before measurement; network photos disabled',
-        })}',
-      );
+        debugPrintSynchronously(
+          'BUSINESS_PERF_CONFIG ${jsonEncode({
+            'scene': scene.name,
+            'timing': _timing,
+            'viewport': [390, 800],
+            'device_pixel_ratio': 1,
+            'platform': 'android',
+            'scope': 'real page; instrumented flutter_tester debug action+pump wall time; not device frame time',
+            'identity_scope': 'main vertical scroll host including cached and pooled descendants',
+            'snapshots_timed': false,
+            'warmup_steps': _warmupSteps,
+            'step_px': scene.step,
+            'samples_per_direction': _samples,
+            'passes': _passes,
+            'modes': [for (final mode in _Mode.values)
+              if (_onlyMode.isEmpty || mode.name == _onlyMode) mode.name],
+            'simulated_pump_interval_us': _frame.inMicroseconds,
+            'images': mediaFiles == null ? 'real local assets warmed before measurement; network photos disabled' : '96 real local PNG files from 3 small generated images; all thumbnail providers predecoded before measurement',
+            if (mediaFiles != null) 'fixture': mediaFiles.metadata,
+          })}',
+        );
 
-      for (var pass = 0; pass < _passes; pass++) {
-        final modes = pass.isEven ? _Mode.values : _Mode.values.reversed;
-        for (final mode in modes) {
-          await tester.pumpWidget(SizedBox.shrink());
-          await tester.pumpWidget(_app(scene.createPage()));
-          await tester.pumpAndSettle();
-          _menuAction(
-            tester,
-            menuKey: scene.menuKey,
-            optionKey: scene.modeKey(mode),
-            label: mode == .official ? 'SliverList' : 'ElSliverRecyclerList',
-          )();
-          await tester.pumpAndSettle();
-
-          final root = tester.element(_mainScroll());
-          final (controller, reverse, cache) = switch (root.widget) {
-            CustomScrollView scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
-            ElScroll scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
-            _ => throw StateError('找不到页面滚动宿主。'),
-          };
-          final primarySliver = _primarySliver(root);
-          expect(primarySliver, mode == .official ? isA<SliverList>() : isA<ElSliverRecyclerList>());
-          final itemCount = switch (primarySliver) {
-            SliverList list => list.delegate.estimatedChildCount,
-            ElSliverRecyclerList list => list.itemCount,
-            _ => null,
-          };
-          expect(itemCount, 10000, reason: '使用真实页面完整数据集，不用基准替身缩减负载。');
-          expect(controller.position.viewportDimension, greaterThan(0));
-          _assertOffline(_TreeSnapshot(root));
-
-          for (var i = 1; i <= _warmupSteps; i++) {
-            controller.jumpTo(i * _step);
-            await tester.pump(_frame);
-          }
-          await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
-          final metadata = {
-            'item_count': itemCount,
-            'viewport_dimension': controller.position.viewportDimension,
-            'reverse': reverse,
-            'cache': cache.toString(),
-            'scroll_host': root.widget.runtimeType.toString(),
-          };
-
-          for (final forward in [true, false]) {
-            final frames = <Map<String, Object?>>[];
-            for (var i = 0; i < _samples; i++) {
-              final target = (_warmupSteps + (forward ? i + 1 : _samples - i - 1)) * _step;
-              expect(target, lessThan(controller.position.maxScrollExtent));
-              frames.add(
-                await _sample(
-                  tester,
-                  work,
-                  root,
-                  controller,
-                  requestedOffset: target,
-                  action: () => controller.jumpTo(target),
-                ),
-              );
-            }
-            _report(scene, mode, pass, forward ? 'forward' : 'backward', frames, metadata);
-          }
-
-          if (scene == .cards || scene == .orders) {
-            final update = scene == .cards
-                ? _menuAction(tester, menuKey: 'cards-menu', optionKey: 'cards-refresh-visible')
-                : tester.widget<TextButton>(find.byKey(ValueKey('orders-update'))).onPressed!;
-            update();
+        for (var pass = 0; pass < _passes; pass++) {
+          final modes = pass.isEven ? _Mode.values : _Mode.values.reversed;
+          for (final mode in modes) {
+            if (_onlyMode.isNotEmpty && mode.name != _onlyMode) continue;
+            await tester.pumpWidget(SizedBox.shrink());
+            await tester.pumpWidget(_app(scene.createPage(directory: mediaFiles?.directory.path)));
+            // 先放行真实目录 IO，再等待动画结束；加载中的转圈不会自行 settle。
+            if (mediaFiles != null) await _waitForMediaFiles(tester, mediaFiles.files.length);
             await tester.pumpAndSettle();
-            final frames = <Map<String, Object?>>[];
-            for (var i = 0; i < _samples; i++) {
-              final before = _updateFingerprint(scene, _TreeSnapshot(root));
-              frames.add(await _sample(tester, work, root, controller, action: update));
-              expect(_updateFingerprint(scene, _TreeSnapshot(root)), isNot(before), reason: '更新阶段必须实际改变页面数据。');
+            _menuAction(
+              tester,
+              menuKey: scene.menuKey,
+              optionKey: scene.modeKey(mode),
+              label: scene.isGrid
+                  ? (mode == .official ? 'SliverGrid' : 'ElSliverRecyclerGrid')
+                  : (mode == .official ? 'SliverList' : 'ElSliverRecyclerList'),
+            )();
+            await tester.pumpAndSettle();
+
+            final root = tester.element(_mainScroll());
+            final (controller, reverse, cache) = switch (root.widget) {
+              CustomScrollView scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
+              ElScroll scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
+              _ => throw StateError('找不到页面滚动宿主。'),
+            };
+            final primarySliver = _primarySliver(root);
+            expect(
+              primarySliver,
+              scene.isGrid
+                  ? (mode == .official ? isA<SliverGrid>() : isA<ElSliverRecyclerGrid>())
+                  : (mode == .official ? isA<SliverList>() : isA<ElSliverRecyclerList>()),
+            );
+            final itemCount = switch (primarySliver) {
+              SliverList list => list.delegate.estimatedChildCount,
+              ElSliverRecyclerList list => list.itemCount,
+              SliverGrid grid => grid.delegate.estimatedChildCount,
+              ElSliverRecyclerGrid grid => grid.itemCount,
+              _ => null,
+            };
+            expect(
+              itemCount,
+              mediaFiles?.files.length ?? scene.expectedItemCount,
+              reason: '使用真实页面完整数据集；本地媒体完整读取明确注入的测试目录。',
+            );
+            expect(controller.position.viewportDimension, greaterThan(0));
+            _assertOffline(_TreeSnapshot(root));
+
+            for (var i = 1; i <= _warmupSteps; i++) {
+              controller.jumpTo(i * scene.step);
+              await tester.pump(_frame);
             }
-            _report(scene, mode, pass, 'visibleUpdate', frames, {...metadata, 'update_warmup': 1});
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+            if (scene.isMedia) _assertVisibleMediaImages(tester);
+            if (scene == .productWaterfall) _assertUnrevealedProducts(tester);
+            final metadata = {
+              'item_count': itemCount,
+              'viewport_dimension': controller.position.viewportDimension,
+              'reverse': reverse,
+              'cache': cache.toString(),
+              'scroll_host': root.widget.runtimeType.toString(),
+              'content_sliver': primarySliver.runtimeType.toString(),
+              'step_px': scene.step,
+              ...scene.geometryMetadata(mode),
+              if (mediaFiles != null) 'fixture': mediaFiles.metadata,
+            };
+
+            for (final forward in [true, false]) {
+              final frames = <Map<String, Object?>>[];
+              for (var i = 0; i < _samples; i++) {
+                final target = (_warmupSteps + (forward ? i + 1 : _samples - i - 1)) * scene.step;
+                expect(target, lessThan(controller.position.maxScrollExtent));
+                frames.add(
+                  await _sample(
+                    tester,
+                    work,
+                    root,
+                    controller,
+                    requestedOffset: target,
+                    action: () => controller.jumpTo(target),
+                  ),
+                );
+                if (scene == .productWaterfall) _assertUnrevealedProducts(tester);
+              }
+              _report(scene, mode, pass, forward ? 'forward' : 'backward', frames, metadata);
+            }
+
+            if (scene == .cards || scene == .orders) {
+              final update = scene == .cards
+                  ? _menuAction(tester, menuKey: 'cards-menu', optionKey: 'cards-refresh-visible')
+                  : tester.widget<TextButton>(find.byKey(ValueKey('orders-update'))).onPressed!;
+              update();
+              await tester.pumpAndSettle();
+              final frames = <Map<String, Object?>>[];
+              for (var i = 0; i < _samples; i++) {
+                final before = _updateFingerprint(scene, _TreeSnapshot(root));
+                frames.add(await _sample(tester, work, root, controller, action: update));
+                expect(_updateFingerprint(scene, _TreeSnapshot(root)), isNot(before), reason: '更新阶段必须实际改变页面数据。');
+              }
+              _report(scene, mode, pass, 'visibleUpdate', frames, {...metadata, 'update_warmup': 1});
+            }
+            if (scene == .selection) {
+              final frames = <Map<String, Object?>>[];
+              for (var i = 0; i < _samples; i++) {
+                final before = tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data;
+                frames.add(
+                  await _sample(
+                    tester,
+                    work,
+                    root,
+                    controller,
+                    action: () {
+                      final checkbox = tester.widget<ElCheckbox>(find.byType(ElCheckbox).hitTestable().first);
+                      final value = checkbox.modelValue!;
+                      // 与页面行点击相同的模型入口，包含实际 onChanged 及计数更新。
+                      value.value = value.value != true;
+                    },
+                  ),
+                );
+                expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, isNot(before));
+              }
+              _report(scene, mode, pass, 'selectionToggle', frames, metadata);
+            }
+            if (scene == .liveChat) {
+              void step() => tester.widget<TextButton>(find.byKey(ValueKey('chat-live-step'))).onPressed!();
+              String streamText() => tester
+                  .widgetList<Text>(find.byType(Text))
+                  .map((text) => text.data ?? '')
+                  .singleWhere((text) => text.startsWith('小林的滚动记录正在整理。'));
+              final frames = <Map<String, Object?>>[];
+              for (var i = 0; i < _samples; i++) {
+                // 结构步骤在计时外执行，只测 1、3、6、7 四个纯正文增长步骤。
+                if (i % 4 == 0) {
+                  tester.widget<TextButton>(find.byKey(ValueKey('chat-live-reset'))).onPressed!();
+                  await tester.pumpAndSettle();
+                }
+                final preparationSteps = switch (i % 4) {
+                  0 || 1 => 1,
+                  2 => 2,
+                  _ => 0,
+                };
+                for (var j = 0; j < preparationSteps; j++) {
+                  step();
+                  await tester.pumpAndSettle();
+                }
+                final count = tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data;
+                final before = streamText();
+                frames.add(await _sample(tester, work, root, controller, action: step));
+                expect(tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data, count);
+                expect(streamText().length, greaterThan(before.length), reason: '纯内容样本必须显示新增正文。');
+              }
+              _report(scene, mode, pass, 'streamContent', frames, {
+                ...metadata,
+                'script_steps': [1, 3, 6, 7],
+              });
+            }
+            await tester.pumpWidget(SizedBox.shrink());
+            await tester.pump();
+            expect(tester.takeException(), isNull);
           }
-          await tester.pumpWidget(SizedBox.shrink());
-          await tester.pump();
-          expect(tester.takeException(), isNull);
         }
+      } finally {
+        // 失败也必须释放页面、Ticker、焦点与全局导航键，再进入下一项测试。
+        work.recording = false;
+        await tester.pumpWidget(SizedBox.shrink());
+        await tester.pump();
       }
     }, variant: TargetPlatformVariant({TargetPlatform.android}));
   }
+}
+
+class _MediaFiles {
+  _MediaFiles(this.directory);
+
+  final Directory directory;
+  final files = <File>[];
+
+  List<ImageProvider<Object>> get providers => [
+    for (final file in files) ResizeImage(FileImage(file), width: 320, height: 320, policy: .fit),
+  ];
+
+  Map<String, Object> get metadata => {
+    'file_count': files.length,
+    'unique_png_contents': 3,
+    'dimensions': [
+      [32, 64],
+      [64, 32],
+      [40, 40],
+    ],
+    'directory_scope': 'one explicitly created temporary directory; no children, user files, plugins or network',
+    'decode':
+        'all ResizeImage(FileImage, width=320, height=320, fit) providers warmed before mounting the measured page',
+  };
+
+  static Future<_MediaFiles> create(WidgetTester tester) async {
+    final directory = await tester.runAsync(() => Directory.systemTemp.createTemp('flutter-business-media-'));
+    final fixture = _MediaFiles(directory!);
+    addTearDown(() async {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      await tester.runAsync(() async {
+        // 只清理本次明确创建的文件和空目录，不枚举目录，也不递归删除。
+        for (final file in fixture.files) {
+          if (path.dirname(file.absolute.path) != fixture.directory.absolute.path) {
+            throw StateError('拒绝清理测试临时目录外的图片：${file.path}');
+          }
+          if (await file.exists()) await file.delete();
+        }
+        if (await fixture.directory.exists()) await fixture.directory.delete();
+      });
+    });
+    await tester.runAsync(() async {
+      final images = <List<int>>[];
+      for (final (width, height, color) in [
+        (32, 64, Colors.indigo),
+        (64, 32, Colors.teal),
+        (40, 40, Colors.deepOrange),
+      ]) {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.drawRect(Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), Paint()..color = color);
+        canvas.drawCircle(Offset(width / 3, height / 3), 7, Paint()..color = Colors.white);
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(width, height);
+        try {
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          images.add(bytes!.buffer.asUint8List());
+        } finally {
+          image.dispose();
+          picture.dispose();
+        }
+      }
+      for (var index = 0; index < _mediaFileCount; index++) {
+        final file = File(path.join(fixture.directory.path, '影像 ${index.toString().padLeft(3, '0')}.png'));
+        fixture.files.add(file);
+        await file.writeAsBytes(images[index % images.length]);
+      }
+    });
+    return fixture;
+  }
+}
+
+Future<void> _waitForMediaFiles(WidgetTester tester, int itemCount) async {
+  // 页面仍经公开 directory 参数加载完整目录，等待和解码都在计时段外。
+  for (var attempt = 0; attempt < 100; attempt++) {
+    final grids = tester.widgetList<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    if (grids.length == 1 && grids.single.itemCount == itemCount) {
+      return;
+    }
+    await tester.runAsync(() => Future<void>.delayed(Duration(milliseconds: 10)));
+    await tester.pump();
+  }
+  fail('本地测试图片未在有界等待内完整加载。');
+}
+
+void _assertVisibleMediaImages(WidgetTester tester) {
+  final cards = find.byKey(ValueKey('media-card')).hitTestable();
+  expect(cards, findsWidgets);
+  for (final card in cards.evaluate()) {
+    final images = tester.widgetList<RawImage>(
+      find.descendant(
+        of: find.byElementPredicate((element) => identical(element, card)),
+        matching: find.byType(RawImage),
+      ),
+    );
+    expect(images, isNotEmpty, reason: '媒体样本开始前，可见卡片必须已显示真实解码图片。');
+    expect(images.every((image) => image.image != null), isTrue);
+  }
+}
+
+void _assertUnrevealedProducts(WidgetTester tester) {
+  expect(tester.widget<Text>(find.byKey(ValueKey('product-waterfall-revealed'))).data, '已揭晓 0 张');
 }
 
 Widget _app(Widget page) => ElComponentProvider(
@@ -218,15 +512,23 @@ Finder _mainScroll() => find.byWidgetPredicate(
 Future<void> _precache(WidgetTester tester, List<ImageProvider<Object>> images) async {
   if (images.isEmpty) return;
   final key = GlobalKey();
-  await tester.pumpWidget(_app(SizedBox(key: key)));
-  final errors = <Object>[];
-  await tester.runAsync(() async {
-    await Future.wait([
-      for (final image in images) precacheImage(image, key.currentContext!, onError: (error, _) => errors.add(error)),
-    ]).timeout(Duration(seconds: 15));
-  });
-  expect(errors, isEmpty, reason: '真实素材加载失败时不能把空图片负载当成成功基准。');
-  await tester.pumpAndSettle();
+  try {
+    // 图片预热无需业务全局 Navigator，独立宿主避免复用失败页面的导航状态。
+    await tester.pumpWidget(MaterialApp(home: SizedBox(key: key)));
+    final context = key.currentContext;
+    if (context == null) throw StateError('图片预热宿主未能挂载。');
+    final errors = <Object>[];
+    await tester.runAsync(() async {
+      await Future.wait([
+        for (final image in images) precacheImage(image, context, onError: (error, _) => errors.add(error)),
+      ]).timeout(Duration(seconds: 15));
+    });
+    expect(errors, isEmpty, reason: '真实素材加载失败时不能把空图片负载当成成功基准。');
+    await tester.pumpAndSettle();
+  } finally {
+    await tester.pumpWidget(SizedBox.shrink());
+    await tester.pump();
+  }
 }
 
 // 只读取页面已有公开 Widget 配置，不打开菜单，也不调用私有 State 方法。
@@ -252,7 +554,10 @@ Widget _primarySliver(Element root) {
   Widget? found;
   void visit(Element element) {
     if (found != null) return;
-    if (element.widget is SliverList || element.widget is ElSliverRecyclerList) {
+    if (element.widget is SliverList ||
+        element.widget is ElSliverRecyclerList ||
+        element.widget is SliverGrid ||
+        element.widget is ElSliverRecyclerGrid) {
       found = element.widget;
       return;
     }

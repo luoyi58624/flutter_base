@@ -2,11 +2,13 @@
 
 本目录记录创建、配置更新、业务 builder、自身 Element 重建和真实布局的性能基准；不能仅凭 RenderObject 保留或 builder 没执行，就认为整个更新过程没有工作。
 
-当前结果见 [BASELINE.md](BASELINE.md)，完整采样摘要见 [baseline-2026-11-12.jsonl](baseline-2026-11-12.jsonl)。JSONL 包含生产版本、源文件 SHA256、每轮原始微秒样本和累计工作量，缺失的计数字段按零理解。
+最新测试分析见 [ANALYSIS.md](ANALYSIS.md)，重点区分条目内筛选、列表外层筛选与滚动换绑时的“零重建”边界。
+
+初始结果见 [BASELINE.md](BASELINE.md)，完整采样摘要见 [baseline-2026-11-12.jsonl](baseline-2026-11-12.jsonl)。历史结果保留当时版本，不与后续实现混称现状。JSONL 包含生产版本、源文件 SHA256、每轮原始微秒样本和累计工作量，缺失的计数字段按零理解。
 
 底层实现优化后的工作量、时间与语义验证见 [CORE_OPTIMIZATION.md](CORE_OPTIMIZATION.md)，原基线作为历史对照保留。
 
-另有 [11 个真实 example 页面补充基线](BUSINESS_BASELINE.md)，测试入口为 `example/test/sliver_business_performance_test.dart`。它比较页面现有写法的 SliverList 与 ElSliverRecyclerList，独立记录滚动中的节点保留、配置变化和可见数据更新，不改示例实现。
+真实 example 测试入口为 `example/test/sliver_business_performance_test.dart`，现有 18 个场景。保留 [11 页初始基线](BUSINESS_BASELINE.md)；[业务补充测量](BUSINESS_SUPPLEMENT.md) 记录后来新增的网格、媒体、商品与局部更新，以及真实几何、缓存和预览功能的比较边界。本阶段只补测试与分析，等待用户确定后续优化目标。
 
 ## 运行
 
@@ -35,7 +37,7 @@ flutter test test/benchmarks/view_reuse --no-pub --concurrency=1 --timeout 30s -
 | `view_benchmark_test.dart` | 24 个节点，ElView 对应原生 SizedBox、ColoredBox、RichText、DecoratedBox、Padding 和 GestureDetector 组合 | 空盒、纯色、文字、带圆角/内边距/点击的文字；卸载再创建、相同参数新 Widget、等值新样式与字符串、文字变化、背景变化、稳定 Widget child、通知直达文字 |
 | `listenable_benchmark_test.dart` | 24 个叶子，ValueListenableBuilder、ElListenableBuilder 无 select、标量、record、新 List 身份比较、List 自定义值比较 | 等值通知、选中字段变化、无关字段变化、同帧往返通知；稳定 child 与重建静态内容对照 |
 | `sliver_benchmark_test.dart` | 同一个 CustomScrollView，500 条记录，自然高度，360×360 视口、144 像素缓存 | 等值通知、等值新列表、离屏记录变化、可见记录变化、前后滚动；所有记录文字相同与记录不同两种数据 |
-| 同上，`sliver_parent` 组 | 列表外的普通监听器与带值比较的 ElListenableBuilder；内部统一用文本直达 | 同一列表通知、等值新列表、可见记录变化，分开测父配置刷新成本 |
+| 同上，`sliver_parent` 组 | 列表外的普通监听器、默认 List 身份筛选与自定义 List 值比较；内部统一用文本直达 | 同一列表通知、等值新列表、可见记录变化，分开测父配置刷新成本 |
 
 列表内部五种接法：
 
@@ -49,7 +51,7 @@ flutter test test/benchmarks/view_reuse --no-pub --concurrency=1 --timeout 30s -
 
 `sliver_parent` 中的 `sliverList` 也使用直达文字，避免把条目接法差异算到外层监听器头上。父刷新时保持标题 Key 和可复用通知源稳定；同一来源不会为了计数而重建绑定器。SliverList 中重新产生的固定索引来源按正常生命周期转接。
 
-外层 select 对 500 个字符串做 ListEquality；同一列表可以快速返回，等值新列表要逐项比较。这是有成本的策略，不表示任意大数据集合都适合深比较。不同业务索引可以有相同展示文字，本组按展示值比较，不按索引身份比较。
+外层 `selectIdentity` 使用默认 List 身份比较；`select` 显式对 500 个字符串做 ListEquality。同一列表可快速返回，等值新列表需要逐项比较。这是有成本的策略，不表示任意大数据集合都适合深比较；原地修改同一 List 也不适合只按身份筛选。不同业务索引可以有相同展示文字，条目筛选组按展示值比较，不按索引身份比较。
 
 ## 计数口径
 
@@ -78,4 +80,4 @@ flutter test test/benchmarks/view_reuse --no-pub --concurrency=1 --timeout 30s -
 - 正反顺序只能帮助识别顺序差异，不能消除 JIT、GC 与系统调度。每轮只有 12 个样本，p95 接近最大值；先看确定性的工作次数，再看两轮时间是否一致。
 - `view` 组的普通重建使用 pumpWidget；通知组使用 pump。二者动作范围不同，直接相除不是 ElView 内核的加速倍数。
 - 本轮未测图片解码、网络、富文本混排、GPU、内存峰值或长期 GC；列表业务数据为内存字符串。
-- 父配置和 Inherited 变化的语义观察独立报告 `semantic_gap`。它们不把当前旧内容当成正确结果，更不能作为性能收益。本轮只记录问题，等待明确目标后处理实现。
+- 父配置和 Inherited 变化的语义观察独立报告 `semantic_gap`，不把旧内容当成正确结果或性能收益。初始基线发现的缺口与此前修正后的结果分别保存在历史报告及 CORE_OPTIMIZATION.md 中。

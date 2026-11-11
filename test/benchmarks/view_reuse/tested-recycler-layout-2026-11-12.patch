@@ -1,0 +1,33 @@
+diff --git a/lib/src/flutter/slivers/recycler/grid_layout.dart b/lib/src/flutter/slivers/recycler/grid_layout.dart
+index 11f08cb..e712a35 100644
+--- a/lib/src/flutter/slivers/recycler/grid_layout.dart
++++ b/lib/src/flutter/slivers/recycler/grid_layout.dart
+@@ -145 +145 @@ extension _RecyclerGridLayout on ElRenderSliverRecycler {
+-    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
++    _finishLayout(wanted);
+diff --git a/lib/src/flutter/slivers/recycler/sliver_recycler.dart b/lib/src/flutter/slivers/recycler/sliver_recycler.dart
+index ab77a25..145df1c 100644
+--- a/lib/src/flutter/slivers/recycler/sliver_recycler.dart
++++ b/lib/src/flutter/slivers/recycler/sliver_recycler.dart
+@@ -615 +615 @@ class ElRenderSliverRecycler extends RenderSliver
+-      _element.owner!.buildScope(_element, () => _element._finishLayout({}));
++      _finishLayout({});
+@@ -672 +672 @@ class ElRenderSliverRecycler extends RenderSliver
+-        _element.owner!.buildScope(_element, () => _element._finishLayout({index}));
++        _finishLayout({index});
+@@ -710 +710 @@ class ElRenderSliverRecycler extends RenderSliver
+-    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
++    _finishLayout(wanted);
+@@ -719,0 +720,12 @@ class ElRenderSliverRecycler extends RenderSliver
++  void _finishLayout(Set<int> wanted) {
++    _element.owner!.buildScope(_element, () => _element._finishLayout(wanted));
++    // 留池子树仍挂载：独立布局边界让嵌套 LayoutBuilder 的补建不经过已完成布局的 Sliver。
++    // 先刷新停用 TickerMode 产生的构建，再清理脏布局链；复用时 _layoutItem 恢复尺寸依赖。
++    for (final candidates in _element._pool.values) {
++      for (final slot in candidates) {
++        final box = slot.box;
++        if (box != null && box.hasSize) box.layout(box.constraints, parentUsesSize: false);
++      }
++    }
++  }
++

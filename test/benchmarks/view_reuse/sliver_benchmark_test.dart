@@ -10,7 +10,7 @@ import 'support.dart';
 
 enum _Mode { sliverList, recycler, recyclerSelect, recyclerLocalSelect, recyclerDirect }
 
-enum _Parent { stable, rebuild, select }
+enum _Parent { stable, rebuild, selectIdentity, select }
 
 const _rowCount = 500;
 const _step = 72.0;
@@ -85,8 +85,9 @@ void main() {
       }
     }
 
-    // 与稳定容器分开测：外层监听器阻止父配置刷新，条目自身仍使用相同文本直达通道。
-    for (final parent in pass.isEven ? [_Parent.rebuild, _Parent.select] : [_Parent.select, _Parent.rebuild]) {
+    // 默认 List 身份比较与显式内容比较分开报告，条目自身使用相同文本直达通道。
+    final parents = [_Parent.rebuild, _Parent.selectIdentity, _Parent.select];
+    for (final parent in pass.isEven ? parents : parents.reversed) {
       for (final mode in [_Mode.sliverList, _Mode.recyclerDirect]) {
         testWidgets('sliver parent ${mode.name}/${parent.name} pass $pass', (tester) async {
           final fixture = _Fixture(tester, mode, equalRows: false, parent: parent, directList: true);
@@ -124,6 +125,18 @@ void main() {
         });
       }
     }
+  }
+
+  // 末项跳转独立验证，避免自然高度估算和回收池状态改变原来的滚动计时轨迹。
+  for (final mode in _Mode.values) {
+    testWidgets('sliver offscreen ${mode.name} 末项进入视口后展示最新数据', (tester) async {
+      final fixture = _Fixture(tester, mode, equalRows: false);
+      await fixture.mount();
+      expect(fixture.traces.any((trace) => !trace.disposed && trace.index.value == _rowCount - 1), isFalse);
+      await fixture.replace(_rowCount - 1, '离屏更新后的最新记录');
+      await fixture.verifyLastRecordVisible();
+      await fixture.dispose();
+    });
   }
 }
 
@@ -179,6 +192,7 @@ class _Fixture {
         sliver = _sliver();
       case .rebuild:
         sliver = ValueListenableBuilder<List<String>>(valueListenable: records, builder: (_, _, _) => _sliver());
+      case .selectIdentity:
       case .select:
         sliver = ElListenableBuilder<BenchValue<List<String>>, List<String>>(
           listenable: records,
@@ -186,10 +200,12 @@ class _Fixture {
             counts.add('outer_select');
             return source.value;
           },
-          shouldRebuild: (next, previous) {
-            counts.add('outer_compare');
-            return !ListEquality<String>().equals(next, previous);
-          },
+          shouldRebuild: parent == .select
+              ? (next, previous) {
+                  counts.add('outer_compare');
+                  return !ListEquality<String>().equals(next, previous);
+                }
+              : null,
           builder: (_, _) => _sliver(),
         );
     }
@@ -219,6 +235,37 @@ class _Fixture {
     final rows = List.of(records.value);
     rows[index] = text;
     return emit(rows);
+  }
+
+  Future<void> verifyLastRecordVisible() async {
+    final index = records.value.length - 1;
+    final expected = records.value[index];
+    final originalOffset = controller.offset;
+    try {
+      // 自然高度列表的末端估计会在布局后修正，按最新范围有限次逼近。
+      for (var attempt = 0; attempt < 8; attempt++) {
+        controller.jumpTo(controller.position.maxScrollExtent);
+        await tester.pump();
+        for (final trace in traces.where((trace) => !trace.disposed && trace.index.value == index)) {
+          final finder = find.byKey(trace.titleKey);
+          if (finder.evaluate().isEmpty) continue;
+          final render = tester.renderObject<ElRenderView>(finder);
+          final text = render.content as TextEngine;
+          final bounds = text.selectionHitTestBounds;
+          if (bounds == null || bounds.isEmpty) continue;
+          // 标题拉满整行宽度，盒子中心可能是空白，改在真实文字内检查视口裁剪后的命中。
+          final hits = tester.hitTestOnBinding(render.localToGlobal(bounds.center));
+          if (!hits.path.any((entry) => identical(entry.target, render))) continue;
+          expect(text.payload, expected, reason: '离屏修改的末项进入视口后必须展示最新数据。');
+          verifyText();
+          return;
+        }
+      }
+      fail('无法将已修改的末项 $index 滚入视口。');
+    } finally {
+      controller.jumpTo(originalOffset);
+      await tester.pump();
+    }
   }
 
   void verifyText() {
