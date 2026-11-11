@@ -149,9 +149,7 @@ void main() {
     final controller = _tallSlotController(rows: 8);
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
-      shell(ElTable(controller: controller, style: const _AutoHeightTableStyle(), height: 240)),
-    );
+    await tester.pumpWidget(shell(ElTable(controller: controller, style: const _AutoHeightTableStyle(), height: 240)));
 
     expect(tester.takeException(), isNull);
     expect(

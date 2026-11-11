@@ -848,9 +848,13 @@ void main() {
     expect(controller.cellContentOf(buildContext, controller.data.single, 0, controller.columns[1], 1), 10);
 
     controller.expand(controller.data.single);
-    final expand =
-        controller.cellContentOf(buildContext, controller.data.single, 0, controller.columns[2], 2)
-            as ElTableExpansionControl;
+    final expand = controller.cellContentOf(
+      buildContext,
+      controller.data.single,
+      0,
+      controller.columns[2],
+      2,
+    ) as ElTableExpansionControl;
     expect(expand.expanded, isTrue);
     expect(expand.rowKey, 1);
     expect(controller.columnResizableOf(controller.columns[2]), isFalse);
@@ -1063,7 +1067,8 @@ void main() {
   test('Controller 集中管理表头、空态、固定行、汇总、行样式和排序模式', () {
     Object? summary(BuildContext context, ElTableSummaryCell cell) => cell.columnIndex;
     Object? empty(BuildContext context, ElTableController controller) => 'empty';
-    ElStyle? rowStyle(ElTableRowContext row) => row.rowIndex.isEven ? const ElStyle(backgroundColor: Color(0xffeeeeee)) : null;
+    ElStyle? rowStyle(ElTableRowContext row) =>
+        row.rowIndex.isEven ? const ElStyle(backgroundColor: Color(0xffeeeeee)) : null;
     final controller = ElTableController(
       showHeader: false,
       emptyBuilder: empty,

@@ -188,7 +188,9 @@ void main() {
         .group(1)!;
     expect(columnExport.trim(), isEmpty, reason: 'table_column.dart 按整文件导出，不再逐个 show / hide 列名字。');
 
-    final shown = RegExp(r"export 'src/flutter/views/table/table\.dart'\s+show\s+([^;]*);").firstMatch(source)!.group(1)!;
+    final shown = RegExp(r"export 'src/flutter/views/table/table\.dart'\s+show\s+([^;]*);")
+        .firstMatch(source)!
+        .group(1)!;
     final visible = <String>{
       ..._publicDeclarationsIn('lib/src/flutter/views/table/table_column.dart'),
       ...RegExp(r'[A-Za-z_][A-Za-z0-9_]*').allMatches(shown).map((match) => match.group(0)!),

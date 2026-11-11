@@ -123,6 +123,7 @@ class _RenderContentWidth extends RenderProxyBox {
   _RenderContentWidth(this._viewportWidth, this._contentWidth, this._listenable);
 
   double _viewportWidth;
+
   set viewportWidth(double value) {
     if (value == _viewportWidth) return;
     _viewportWidth = value;
@@ -130,6 +131,7 @@ class _RenderContentWidth extends RenderProxyBox {
   }
 
   double Function(double viewportWidth) _contentWidth;
+
   set contentWidth(double Function(double viewportWidth) value) {
     if (identical(value, _contentWidth)) return;
     _contentWidth = value;
@@ -137,6 +139,7 @@ class _RenderContentWidth extends RenderProxyBox {
   }
 
   Listenable? _listenable;
+
   set listenable(Listenable? value) {
     if (identical(value, _listenable)) return;
     if (attached) _listenable?.removeListener(_widthChanged);

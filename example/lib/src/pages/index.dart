@@ -4,7 +4,6 @@ import 'package:flutter_base/flutter_base.dart';
 import '../state/index.dart';
 import '../widgets/icons/settings_icons.dart';
 import 'components/basic/button/index.dart';
-import 'custom_gestures.dart';
 import 'view.dart';
 import 'view/base.dart';
 
@@ -12,7 +11,6 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   ElListTile _tile(BuildContext context, ElSettingIcons icon, [Widget? page]) => ElListTile(
-    key: page is CustomGesturesPage ? ValueKey('demo-gestures') : null,
     title: icon.label,
     onTap: () {
       if (page != null) {
@@ -37,7 +35,7 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: ElScrollView(
+      body: ElScroll(
         children: [
           Padding(
             padding: .all(16),
@@ -47,7 +45,6 @@ class HomePage extends StatelessWidget {
                 ElListGroup(
                   children: [
                     _tile(context, .airplane, ElViewPage()),
-                    _tile(context, .wifi, CustomGesturesPage()),
                     _tile(context, .bluetooth, ViewBasePage()),
                     _tile(context, .mobile),
                     _tile(context, .connect),
