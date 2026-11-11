@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/widgets.dart';
 
-import 'scrollbar/desktop_scrollbar.dart' show ElDesktopScrollbar;
+import '../widgets/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
 import 'physics/bouncing_scroll_physics.dart';
 import 'physics/clamping_scroll_physics.dart';
 
@@ -88,13 +88,13 @@ Widget buildElScrollbar(
     TargetPlatform.iOS => CupertinoScrollbar(controller: controller, notificationPredicate: atDepth, child: child),
     TargetPlatform.android ||
     TargetPlatform.fuchsia => Scrollbar(controller: controller, notificationPredicate: atDepth, child: child),
-    TargetPlatform.windows => ElDesktopScrollbar.windows(
+    TargetPlatform.windows => ElWindowsScrollbar(
       controller: controller,
       direction: details.direction,
       notificationDepth: depth,
       child: child,
     ),
-    TargetPlatform.macOS || TargetPlatform.linux => ElDesktopScrollbar.mac(
+    TargetPlatform.macOS || TargetPlatform.linux => ElMacScrollbar(
       controller: controller,
       direction: details.direction,
       notificationDepth: depth,

@@ -45,13 +45,109 @@ Widget _app(
 }
 
 void main() {
+  for (final windows in [true, false]) {
+    for (final axis in Axis.values) {
+      testWidgets('自定义外观 windows=$windows $axis 保持布局、命中和状态颜色', (tester) async {
+        final controller = ScrollController();
+        addTearDown(controller.dispose);
+        final child = ListView(
+          controller: controller,
+          scrollDirection: axis,
+          children: [SizedBox(width: 3000, height: 3000)],
+        );
+        final direction = axis == Axis.vertical ? AxisDirection.down : AxisDirection.right;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ScrollConfiguration(
+              behavior: ScrollBehavior().copyWith(scrollbars: false),
+              child: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 400,
+                  child: windows
+                      ? ElWindowsScrollbar(
+                          controller: controller,
+                          direction: direction,
+                          extent: 24,
+                          thickness: 8,
+                          radius: 2,
+                          minThumbLength: 50,
+                          arrowExtent: 28,
+                          arrowSize: 12,
+                          thumbColor: Colors.red,
+                          thumbHoverColor: Colors.green,
+                          thumbActiveColor: Colors.blue,
+                          trackColor: Colors.yellow,
+                          child: child,
+                        )
+                      : ElMacScrollbar(
+                          controller: controller,
+                          direction: direction,
+                          extent: 24,
+                          thickness: 8,
+                          radius: 2,
+                          minThumbLength: 50,
+                          thumbColor: Colors.red,
+                          thumbHoverColor: Colors.green,
+                          thumbActiveColor: Colors.blue,
+                          child: child,
+                        ),
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(
+          tester.getSize(find.byType(ListView)),
+          windows ? (axis == Axis.vertical ? Size(276, 400) : Size(300, 376)) : Size(300, 400),
+        );
+        controller.jumpTo(200);
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 300));
+        final raw = tester.widget<RawScrollbar>(find.byWidgetPredicate((widget) => widget is RawScrollbar));
+        final shape = raw.shape!.getOuterPath(Rect.fromLTWH(0, 0, 24, 24));
+        expect(shape.getBounds(), axis == Axis.vertical ? Rect.fromLTWH(8, 0, 8, 24) : Rect.fromLTWH(0, 8, 24, 8));
+        expect(shape.contains(axis == Axis.vertical ? Offset(8.1, .1) : Offset(.1, 8.1)), isFalse);
+        ScrollbarPainter painter() => tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((widget) => widget.foregroundPainter)
+            .whereType<ScrollbarPainter>()
+            .single;
+        expect(painter().color, Colors.red);
+        final thumb = elThumbRect(tester, controller.position)!;
+        final point = axis == Axis.vertical
+            ? Offset(thumb.left + .5, thumb.center.dy)
+            : Offset(thumb.center.dx, thumb.top + .5);
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await mouse.addPointer(location: Offset.zero);
+        await mouse.moveTo(point);
+        await tester.pump();
+        expect(painter().color, Colors.green);
+        await mouse.down(point);
+        await tester.pump(Duration(milliseconds: 150));
+        expect(controller.offset, 200, reason: '自定义宽度后细边界也不能变成轨道');
+        await mouse.moveBy(axis == Axis.vertical ? Offset(0, 40) : Offset(40, 0));
+        await tester.pump();
+        expect(controller.offset, greaterThan(200));
+        expect(painter().color, Colors.blue);
+        await mouse.up();
+        await mouse.removePointer();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     testWidgets('$platform 保留官方移动滚动条并共享滚动位置', (tester) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(_app(controller, platform));
       expect(find.byType(platform == TargetPlatform.iOS ? CupertinoScrollbar : Scrollbar), findsOneWidget);
-      expect(find.byType(ElDesktopScrollbar), findsNothing);
+      expect(
+        find.byWidgetPredicate((widget) => widget is ElWindowsScrollbar || widget is ElMacScrollbar),
+        findsNothing,
+      );
       controller.jumpTo(300);
       await tester.pumpAndSettle();
       expect(controller.offset, 300);
@@ -113,7 +209,9 @@ void main() {
         addTearDown(controller.dispose);
         await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, reverse: reverse));
         await tester.pumpAndSettle();
-        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final rect = tester.getRect(
+          find.byWidgetPredicate((widget) => widget is ElWindowsScrollbar || widget is ElMacScrollbar),
+        );
         final point = axis == Axis.vertical
             ? Offset(rect.right - 7.5, rect.top + 260)
             : Offset(rect.left + 200, rect.bottom - 7.5);
@@ -141,7 +239,9 @@ void main() {
         addTearDown(controller.dispose);
         await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, reverse: reverse));
         await tester.pumpAndSettle();
-        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final rect = tester.getRect(
+          find.byWidgetPredicate((widget) => widget is ElWindowsScrollbar || widget is ElMacScrollbar),
+        );
         final origin = axis == Axis.vertical
             ? Offset(rect.right - 7.5, rect.top + 260)
             : Offset(rect.left + 200, rect.bottom - 7.5);
@@ -170,7 +270,9 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(_app(controller, TargetPlatform.windows));
     await tester.pumpAndSettle();
-    final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+    final rect = tester.getRect(
+      find.byWidgetPredicate((widget) => widget is ElWindowsScrollbar || widget is ElMacScrollbar),
+    );
     final pointer = await tester.startGesture(Offset(rect.right - 7.5, rect.top + 260), kind: PointerDeviceKind.mouse);
     await pointer.moveBy(Offset(0, -40));
     await tester.pump();
@@ -232,7 +334,9 @@ void main() {
         addTearDown(controller.dispose);
         await tester.pumpWidget(_app(controller, TargetPlatform.windows, axis: axis, smooth: true));
         await tester.pumpAndSettle();
-        final rect = tester.getRect(find.byType(ElDesktopScrollbar));
+        final rect = tester.getRect(
+          find.byWidgetPredicate((widget) => widget is ElWindowsScrollbar || widget is ElMacScrollbar),
+        );
         final point = switch (region) {
           'thumb' => elThumbRect(tester, controller.position)!.center,
           'arrow' =>
@@ -327,7 +431,7 @@ void main() {
           controller: controller,
           child: ScrollConfiguration(
             behavior: ScrollBehavior().copyWith(scrollbars: false),
-            child: ElDesktopScrollbar.windows(child: ListView(primary: true, children: [SizedBox(height: 3000)])),
+            child: ElWindowsScrollbar(child: ListView(primary: true, children: [SizedBox(height: 3000)])),
           ),
         ),
       ),

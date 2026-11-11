@@ -42,7 +42,7 @@ export 'src/flutter/views/view/event/event.dart';
 // 滚动、虚拟化、滚动条与刷新
 export 'src/flutter/scroll/scroll.dart' show ElScroll;
 export 'src/flutter/scroll/nested/nested_scroll.dart' show ElNestedScroll;
-export 'src/flutter/scroll/scrollbar/desktop_scrollbar.dart' show ElDesktopScrollbar;
+export 'src/flutter/widgets/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
 export 'src/flutter/slivers/list/sliver_list.dart' show ElSliverList;
 export 'src/flutter/slivers/recycler/sliver_recycler.dart'
     show ElSliverRecyclerController, ElSliverRecyclerGrid, ElSliverRecyclerList;
