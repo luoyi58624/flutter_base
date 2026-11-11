@@ -137,6 +137,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('onDragCancel'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await backToCatalog();
+
+    final advanced = await openPage('event-advanced', '高级示例');
+    expect(advanced.description, isNull);
+    expect(advanced.sections.take(4).map((section) => section.title), ['文本选择与外层点击', '鼠标框选与卡片点击', '编辑选区与按压', '卡片拖放与点击']);
+    for (final section in advanced.sections) {
+      expect(section.description, isNull);
+      await loadSource(section);
+    }
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
 }
