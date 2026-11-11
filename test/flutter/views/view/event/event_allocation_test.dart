@@ -53,6 +53,41 @@ void main() {
     });
   }
 
+  testWidgets('悬停、滚轮与结束的指针路线不滞留输入事件', (tester) async {
+    final host = DispatcherTestHost.chain(depth: 2);
+    addTearDown(host.dispose);
+    final phases = <ElEventPhase>[];
+    void record(ElEventDetails event) => phases.add(event.phase);
+    host.rootDispatcher.event = ElEvent(onPointerHover: record, onPointerSignal: record, onPointerMove: record);
+    host.leafDispatcher.event = ElEvent(onTap: record, onPointerHover: record);
+
+    host.dispatch(PointerHoverEvent(position: Offset(30, 30), kind: PointerDeviceKind.mouse));
+    host.dispatch(PointerScrollEvent(position: Offset(30, 30), scrollDelta: Offset(0, 20)));
+    expect(phases, [ElEventPhase.pointerHover, ElEventPhase.pointerHover, ElEventPhase.pointerSignal]);
+    for (final dispatcher in host.dispatchers) {
+      expect(dispatcher.debugRetainedStates, isEmpty);
+    }
+
+    host.dispatch(PointerDownEvent(pointer: 1, position: Offset(30, 30)));
+    host.dispatch(PointerMoveEvent(pointer: 1, position: Offset(32, 30), delta: Offset(2, 0)));
+    expect(host.rootDispatcher.debugRetainedStates, contains('input'));
+    host.dispatch(PointerUpEvent(pointer: 1, position: Offset(32, 30)));
+    await tester.pump(Duration(milliseconds: 200));
+    expect(phases.last, ElEventPhase.tap);
+    for (final dispatcher in host.dispatchers) {
+      expect(dispatcher.debugRetainedStates, isEmpty);
+    }
+
+    // 成员中途离开路线时同样释放，不等指针抬起。
+    host.dispatch(PointerDownEvent(pointer: 2, position: Offset(30, 30)));
+    expect(host.leafDispatcher.debugRetainedStates, contains('input'));
+    host.leafDispatcher.event = null;
+    expect(host.leafDispatcher.debugRetainedStates, isEmpty);
+    host.dispatch(PointerUpEvent(pointer: 2, position: Offset(30, 30)));
+    await tester.pump(Duration(milliseconds: 200));
+    expect(host.rootDispatcher.debugRetainedStates, isEmpty);
+  });
+
   testWidgets('按钮键盘激活按需分配状态，切回普通点击后释放', (tester) async {
     final node = FocusNode();
     addTearDown(node.dispose);

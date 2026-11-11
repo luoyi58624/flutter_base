@@ -527,6 +527,7 @@ final class _Route extends GestureArenaMember {
       // 按下途中换结构：本次按下不再交给新声明。
       drop(host);
       hosts.remove(host);
+      _forgetInput(host);
       if (hosts.isEmpty) {
         _resolve(.rejected);
         close();
@@ -556,6 +557,7 @@ final class _Route extends GestureArenaMember {
   /// 宿主中途退出（卸载、禁用）。
   void leave(EventDispatcher host, {bool notify = true}) {
     if (!hosts.remove(host)) return;
+    _forgetInput(host);
     final revision = host._revision;
     final notifyRaw = notify && !_ended && (_ownership?.rawInactive.add(host) ?? true);
     if (notifyRaw && down is PointerPanZoomStartEvent) {
@@ -573,6 +575,11 @@ final class _Route extends GestureArenaMember {
     }
   }
 
+  /// 输入身份只在路线存续期间用于比对，成员离开或路线结束后不再保留本指针的事件对象。
+  void _forgetInput(EventDispatcher host) {
+    if (host._lastInput?.pointer == pointer) host._lastInput = null;
+  }
+
   /// 认领指针，官方手势随之失败。
   void claim() => _resolve(.accepted);
 
@@ -584,6 +591,7 @@ final class _Route extends GestureArenaMember {
     _longPress?.cancel();
     if (_closed) return;
     _closed = true;
+    hosts.forEach(_forgetInput);
     GestureBinding.instance.pointerRouter.removeRoute(pointer, handle);
     if (identical(EventDispatcher._routes[pointer], this)) EventDispatcher._routes.remove(pointer);
   }

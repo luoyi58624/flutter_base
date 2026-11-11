@@ -67,6 +67,7 @@ class EventDispatcher {
     if (_keyboard != null) 'keyboard',
     if (_drag != null) 'drag',
     if (_scaleState != null) 'scale',
+    if (_lastInput != null) 'input',
   };
 
   /// 向宿主同步按压样式。
@@ -243,7 +244,8 @@ class EventDispatcher {
     final original = input.original ?? input;
     final previous = _raw[original];
     if (previous?.propagationStopped == true) return;
-    _lastInput = original;
+    // 只有路线内的输入需要身份比对，随路线结束清空；悬停与指针信号不保留事件对象。
+    if (input is! PointerHoverEvent && input is! PointerSignalEvent) _lastInput = original;
     _position = _pointerPosition(input);
     var details = previous;
     // 没有原始事件监听时只更新输入位置，点击节点不为每次 Move 构建无用详情与坐标闭包。
@@ -394,6 +396,7 @@ class EventDispatcher {
     _disposed = true;
     if (identical(_hosts[_render], this)) _hosts[_render] = null;
     _event = null;
+    _lastInput = null;
     onTapChanged = null;
   }
 }
