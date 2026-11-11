@@ -20,17 +20,17 @@ class ElEventBasicPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ComponentDocPage(
     title: '基础使用',
-    description: '在 ElView 的 event 参数中绑定 ElEvent，操作色块后可在调试控制台查看对应的回调和数据。',
+    description: '在 ElView 的 event 参数中绑定 ElEvent，操作色块后，中间会显示最近触发的回调名称。',
     sections: [
       ComponentDocSection(
         title: '指针与悬停',
-        description: '按下并移动可查看原始指针坐标与位移。用鼠标移入、移动或移出色块可触发悬停事件。',
+        description: '在第一个色块按下、移动或松开指针。将鼠标移入、移出第二个色块可观察悬停回调。',
         example: ElPointerEventExample(),
         source: '$_examples/pointer.dart',
       ),
       ComponentDocSection(
         title: '点击、连击与长按',
-        description: '轻点、连续点两次或三次，或按住约半秒。按住后移出色块再松开可观察点击取消。启用 deferTap 后，单击会等连击窗口结束。',
+        description: '在第一个色块轻点或连击，按下后移出再松开可观察点击取消。启用 deferTap 后，单击会等连击窗口结束。按住第二个色块约半秒可触发长按。',
         example: ElTapEventExample(),
         source: '$_examples/tap.dart',
       ),
@@ -48,7 +48,7 @@ class ElEventBasicPage extends StatelessWidget {
       ),
       ComponentDocSection(
         title: '缩放与旋转',
-        description: '在色块上用双指捏合、张开或旋转。控制台会打印缩放比例和以弧度为单位的旋转角度。',
+        description: '在色块上用双指捏合、张开或旋转，观察缩放与旋转回调。',
         example: ElScaleEventExample(),
         source: '$_examples/scale.dart',
       ),

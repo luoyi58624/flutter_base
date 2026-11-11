@@ -12,6 +12,7 @@ class ElEventDragExample extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final position = useState(Offset(16, 16));
+    final currentEvent = useState('等待拖动');
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
       width: double.infinity,
@@ -29,6 +30,17 @@ class ElEventDragExample extends HookWidget {
             key: ValueKey('event-drag-area'),
             children: [
               Positioned.fill(child: ColoredBox(color: colors.secondaryContainer)),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Text(
+                      currentEvent.value,
+                      textAlign: .center,
+                      style: TextStyle(color: colors.onSecondaryContainer),
+                    ),
+                  ),
+                ),
+              ),
               Positioned(
                 left: current.dx,
                 top: current.dy,
@@ -43,9 +55,14 @@ class ElEventDragExample extends HookWidget {
                     dragStartDistance: 3,
                     // 按下时截断向外层 ElView 的拖拽传播。
                     onDragDown: (event) => event.stopPropagation(),
-                    // 使用全局位移，避免色块移动后局部坐标系跟着变化。
-                    onDragUpdate: (event) =>
-                        position.value = clampPosition(clampPosition(position.value) + event.delta),
+                    onDragStart: (_) => currentEvent.value = 'onDragStart',
+                    onDragUpdate: (event) {
+                      // 使用全局位移，避免色块移动后局部坐标系跟着变化。
+                      position.value = clampPosition(clampPosition(position.value) + event.delta);
+                      currentEvent.value = 'onDragUpdate';
+                    },
+                    onDragEnd: (_) => currentEvent.value = 'onDragEnd',
+                    onDragCancel: (_) => currentEvent.value = 'onDragCancel',
                   ),
                   child: '拖动我',
                 ),

@@ -4,7 +4,6 @@ import 'package:example/src/pages/components/index.dart';
 import 'package:example/src/router/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -54,27 +53,45 @@ void main() {
     for (final section in basic.sections) {
       await loadSource(section);
     }
+    final tapExample = find.byKey(ValueKey('event-basic-tap'));
+    await tester.ensureVisible(tapExample);
+    await tester.pumpAndSettle();
+    expect(tapExample.hitTestable(), findsOneWidget);
+    expect(find.descendant(of: tapExample, matching: find.text('点击或连击')), findsOneWidget);
+    final tap = await tester.startGesture(tester.getCenter(tapExample));
+    await tester.pump();
+    expect(find.descendant(of: tapExample, matching: find.text('onTapDown')), findsOneWidget);
+    await tap.up();
+    await tester.pump(Duration(milliseconds: 350));
+    expect(find.descendant(of: tapExample, matching: find.text('onTap')), findsOneWidget);
+
+    final longPressExample = find.byKey(ValueKey('event-basic-long-press'));
+    await tester.ensureVisible(longPressExample);
+    await tester.pumpAndSettle();
+    final longPress = await tester.startGesture(tester.getCenter(longPressExample));
+    await tester.pump(Duration(milliseconds: 550));
+    expect(find.descendant(of: longPressExample, matching: find.text('onLongPress')), findsOneWidget);
+    await longPress.up();
     await backToCatalog();
 
     final propagation = await openPage('event-propagation', '阻止冒泡');
     final source = await loadSource(propagation.sections.single);
-    Finder blockWithLabel(String label) =>
-        find.byWidgetPredicate((widget) => widget is ElView && widget.child == label);
+    Finder inner(bool stop) => find.byKey(ValueKey(('event-propagation-inner', stop)));
+    Finder outer(bool stop) => find.byKey(ValueKey(('event-propagation-outer', stop)));
 
-    final output = <String>[];
-    final originalPrint = debugPrint;
-    debugPrint = (message, {wrapWidth}) {
-      if (message != null && message.endsWith('收到点击')) output.add(message);
-    };
-    try {
-      await tester.tap(blockWithLabel('点击内层，继续冒泡'));
-      expect(output, ['内层收到点击', '外层收到点击']);
-      output.clear();
-      await tester.tap(blockWithLabel('点击内层，截断传播'));
-      expect(output, ['内层收到点击']);
-    } finally {
-      debugPrint = originalPrint;
-    }
+    await tester.tap(inner(false));
+    await tester.pump();
+    expect(find.descendant(of: inner(false), matching: find.text('1. 内层 onTap')), findsOneWidget);
+    expect(tester.widget<Text>(outer(false)).data, '2. 外层 onTap');
+    await tester.tap(inner(true));
+    await tester.pump();
+    expect(find.descendant(of: inner(true), matching: find.text('1. 内层 onTap')), findsOneWidget);
+    expect(tester.widget<Text>(outer(true)).data, '外层等待点击');
+    expect(tester.widget<Text>(outer(false)).data, '2. 外层 onTap');
+    await tester.tap(outer(false));
+    await tester.pump();
+    expect(find.descendant(of: inner(false), matching: find.text('点击内层')), findsOneWidget);
+    expect(tester.widget<Text>(outer(false)).data, '1. 外层 onTap');
 
     await tester.tap(find.byKey(ValueKey('el-code-example-toggle')));
     await tester.pumpAndSettle();
@@ -93,12 +110,14 @@ void main() {
     expect(scrollPosition.maxScrollExtent, greaterThan(0));
     final initialArea = tester.getTopLeft(area);
     final initial = tester.getTopLeft(block);
+    expect(find.text('等待拖动'), findsOneWidget);
     final gesture = await tester.startGesture(tester.getCenter(block));
     await gesture.moveBy(Offset(0, 8));
     await gesture.moveBy(Offset(0, 32));
     await tester.pump();
     expect(tester.getTopLeft(block).dy, greaterThan(initial.dy));
     expect(tester.getTopLeft(area), initialArea);
+    expect(find.text('onDragUpdate'), findsOneWidget);
 
     await gesture.moveBy(Offset(600, 600));
     await tester.pump();
@@ -107,6 +126,12 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(block), tester.getTopLeft(area));
+    expect(find.text('onDragEnd'), findsOneWidget);
+    final canceledDrag = await tester.startGesture(tester.getCenter(block));
+    await canceledDrag.moveBy(Offset(0, 20));
+    await canceledDrag.cancel();
+    await tester.pumpAndSettle();
+    expect(find.text('onDragCancel'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });

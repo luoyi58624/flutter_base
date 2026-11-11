@@ -16,7 +16,7 @@ class ElEventPropagationPage extends StatelessWidget {
     sections: [
       ComponentDocSection(
         title: '对照点击顺序',
-        description: '点击上方内层，控制台先打印「内层收到点击」，再打印「外层收到点击」。点击下方内层只会打印内层。',
+        description: '点击上方内层可看到内层、外层的回调顺序。点击下方内层时，外层保持等待状态。',
         example: ElEventPropagationExample(),
         source: 'lib/src/pages/components/event/propagation/examples/propagation.dart',
       ),

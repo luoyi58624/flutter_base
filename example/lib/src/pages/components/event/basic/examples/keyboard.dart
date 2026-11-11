@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../log.dart';
-
 /// 演示键盘与焦点的事件回调。
 class ElKeyboardEventExample extends HookWidget {
   /// 创建键盘与焦点示例。
@@ -11,26 +9,30 @@ class ElKeyboardEventExample extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentEvent = useState('聚焦后按键');
     final colors = Theme.of(context).colorScheme;
     final focusNode = useFocusNode();
     return ElView(
       style: .new(
         backgroundColor: colors.primaryContainer,
-        color: colors.onPrimaryContainer,
         alignment: .center,
         padding: .all(12),
         height: 72,
-        onFocus: .new(backgroundColor: colors.primary, color: colors.onPrimary),
+        onFocus: .new(backgroundColor: colors.secondaryContainer),
       ),
       focusNode: focusNode,
       event: ElEvent(
-        onFocus: (event) => printEvent('onFocus', event.focusReason),
-        onBlur: (event) => printEvent('onBlur', event.focusReason),
-        onKeyDown: (event) => printEvent('onKeyDown', event.logicalKey?.keyLabel),
-        onKeyRepeat: (event) => printEvent('onKeyRepeat', event.logicalKey?.keyLabel),
-        onKeyUp: (event) => printEvent('onKeyUp', event.logicalKey?.keyLabel),
+        onFocus: (_) => currentEvent.value = 'onFocus',
+        onBlur: (_) => currentEvent.value = 'onBlur',
+        onKeyDown: (_) => currentEvent.value = 'onKeyDown',
+        onKeyRepeat: (_) => currentEvent.value = 'onKeyRepeat',
+        onKeyUp: (_) => currentEvent.value = 'onKeyUp',
       ),
-      child: '聚焦后按键',
+      child: Text(
+        currentEvent.value,
+        textAlign: .center,
+        style: TextStyle(color: colors.onPrimaryContainer),
+      ),
     );
   }
 }

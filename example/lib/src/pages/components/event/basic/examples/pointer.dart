@@ -1,51 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../../log.dart';
-
 /// 演示指针与悬停的事件回调。
-class ElPointerEventExample extends StatelessWidget {
+class ElPointerEventExample extends HookWidget {
   /// 创建指针与悬停示例。
   // ignore: prefer_const_constructors_in_immutables
   ElPointerEventExample({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final pointerEvent = useState('按下并移动');
+    final hoverEvent = useState('移入、悬停、移出');
     final colors = Theme.of(context).colorScheme;
     return Column(
       spacing: 8,
       crossAxisAlignment: .stretch,
       children: [
         ElView(
-          style: .new(
-            backgroundColor: colors.primaryContainer,
-            color: colors.onPrimaryContainer,
-            alignment: .center,
-            padding: .all(12),
-            height: 72,
-          ),
+          style: .new(backgroundColor: colors.primaryContainer, alignment: .center, padding: .all(12), height: 72),
           event: ElEvent(
-            onPointerDown: (event) => printEvent('onPointerDown', event.localPosition),
-            onPointerMove: (event) => printEvent('onPointerMove', event.localDelta),
-            onPointerUp: (event) => printEvent('onPointerUp', event.localPosition),
-            onPointerCancel: (event) => printEvent('onPointerCancel', event.cancelReason),
+            onPointerDown: (_) => pointerEvent.value = 'onPointerDown',
+            onPointerMove: (_) => pointerEvent.value = 'onPointerMove',
+            onPointerUp: (_) => pointerEvent.value = 'onPointerUp',
+            onPointerCancel: (_) => pointerEvent.value = 'onPointerCancel',
           ),
-          child: '按下并移动',
+          child: Text(
+            pointerEvent.value,
+            textAlign: .center,
+            style: TextStyle(color: colors.onPrimaryContainer),
+          ),
         ),
         ElView(
-          style: .new(
-            backgroundColor: colors.tertiaryContainer,
-            color: colors.onTertiaryContainer,
-            alignment: .center,
-            padding: .all(12),
-            height: 72,
-          ),
+          style: .new(backgroundColor: colors.tertiaryContainer, alignment: .center, padding: .all(12), height: 72),
           event: ElEvent(
-            onPointerEnter: (_) => printEvent('onPointerEnter'),
-            onPointerHover: (event) => printEvent('onPointerHover', event.localPosition),
-            onPointerExit: (_) => printEvent('onPointerExit'),
+            onPointerEnter: (_) => hoverEvent.value = 'onPointerEnter',
+            onPointerHover: (_) => hoverEvent.value = 'onPointerHover',
+            onPointerExit: (_) => hoverEvent.value = 'onPointerExit',
           ),
-          child: '移入、悬停、移出',
+          child: Text(
+            hoverEvent.value,
+            textAlign: .center,
+            style: TextStyle(color: colors.onTertiaryContainer),
+          ),
         ),
       ],
     );

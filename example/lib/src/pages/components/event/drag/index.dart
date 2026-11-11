@@ -16,7 +16,7 @@ class ElEventDragPage extends StatelessWidget {
     sections: [
       ComponentDocSection(
         title: '移动色块',
-        description: '按住深色色块在区域内拖动。色块到达边缘时停在边界内，松手后留在当前位置。',
+        description: '按住深色色块在区域内拖动，中央会显示当前拖拽回调。松手后，色块留在当前位置。',
         example: ElEventDragExample(),
         source: 'lib/src/pages/components/event/drag/examples/drag.dart',
       ),
