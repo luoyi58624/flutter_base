@@ -14,10 +14,10 @@ class ElDragEventExample extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final axis = useState<Axis?>(null);
-    final position = useState(Offset.zero);
-    final origin = useRef(Offset.zero);
-    final currentEvent = useState('—');
-    final dragging = useState(false);
+    final position = useValueNotifier(Offset.zero);
+    final lastOffset = useRef(Offset.zero);
+    final currentEvent = useValueNotifier('—');
+    final dragging = useValueNotifier(false);
     final colors = Theme.of(context).colorScheme;
     final prefix = switch (axis.value) {
       null => 'onDrag',
@@ -26,7 +26,7 @@ class ElDragEventExample extends HookWidget {
     };
 
     void reset() {
-      position.value = origin.value = Offset.zero;
+      position.value = Offset.zero;
       currentEvent.value = '—';
       dragging.value = false;
     }
@@ -58,12 +58,15 @@ class ElDragEventExample extends HookWidget {
           ],
         ),
         ElEventDemoSurface(
-          footer: Row(
-            spacing: 12,
-            children: [
-              Expanded(child: Text(currentEvent.value, maxLines: 1, overflow: .ellipsis)),
-              Text('X ${position.value.dx.round()} · Y ${position.value.dy.round()}'),
-            ],
+          footer: ListenableBuilder(
+            listenable: Listenable.merge([position, currentEvent]),
+            builder: (context, child) => Row(
+              spacing: 12,
+              children: [
+                Expanded(child: Text(currentEvent.value, maxLines: 1, overflow: .ellipsis)),
+                Text('X ${position.value.dx.round()} · Y ${position.value.dy.round()}'),
+              ],
+            ),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -71,21 +74,27 @@ class ElDragEventExample extends HookWidget {
               final center = Offset((constraints.maxWidth - size) / 2, (constraints.maxHeight - size) / 2);
               Offset clampPosition(Offset value) =>
                   Offset(value.dx.clamp(-center.dx, center.dx), value.dy.clamp(-center.dy, center.dy));
-              final current = clampPosition(position.value);
+
+              void move(ElEventDetails event) {
+                // 丢弃越界余量，回拖立即跟手；松手时也补上最后一段位移。
+                final delta = event.dragOffset - lastOffset.value;
+                lastOffset.value = event.dragOffset;
+                position.value = clampPosition(clampPosition(position.value) + delta);
+              }
 
               void start(ElEventDetails event) {
-                origin.value = current;
+                lastOffset.value = event.dragOffset;
                 dragging.value = true;
                 currentEvent.value = '${prefix}Start';
               }
 
               void update(ElEventDetails event) {
-                position.value = clampPosition(origin.value + event.dragOffset);
+                move(event);
                 currentEvent.value = '${prefix}Update';
               }
 
               void end(ElEventDetails event) {
-                position.value = clampPosition(origin.value + event.dragOffset);
+                move(event);
                 dragging.value = false;
                 currentEvent.value = '${prefix}End';
               }
@@ -98,46 +107,56 @@ class ElDragEventExample extends HookWidget {
               return Stack(
                 key: ValueKey('event-basic-drag'),
                 children: [
-                  Positioned(
-                    left: center.dx + current.dx,
-                    top: center.dy + current.dy,
-                    width: size,
-                    height: size,
-                    child: ElView(
-                      key: ValueKey('event-basic-drag-block'),
-                      style: .new(
-                        alignment: .center,
-                        borderRadius: BorderRadius.circular(20),
-                        backgroundColor: dragging.value ? colors.tertiary : colors.primary,
-                      ),
-                      event: ElEvent(
-                        cursor: SystemMouseCursors.move,
-                        dragStartDistance: 3,
-                        onDragDown: (event) {
-                          event.stopPropagation();
-                          currentEvent.value = 'onDragDown';
-                        },
-                        onDragStart: axis.value == null ? start : null,
-                        onDragUpdate: axis.value == null ? update : null,
-                        onDragEnd: axis.value == null ? end : null,
-                        onDragCancel: axis.value == null ? cancel : null,
-                        onHorizontalDragStart: axis.value == .horizontal ? start : null,
-                        onHorizontalDragUpdate: axis.value == .horizontal ? update : null,
-                        onHorizontalDragEnd: axis.value == .horizontal ? end : null,
-                        onHorizontalDragCancel: axis.value == .horizontal ? cancel : null,
-                        onVerticalDragStart: axis.value == .vertical ? start : null,
-                        onVerticalDragUpdate: axis.value == .vertical ? update : null,
-                        onVerticalDragEnd: axis.value == .vertical ? end : null,
-                        onVerticalDragCancel: axis.value == .vertical ? cancel : null,
-                      ),
-                      child: Icon(
-                        switch (axis.value) {
-                          null => Icons.open_with_rounded,
-                          .horizontal => Icons.swap_horiz_rounded,
-                          .vertical => Icons.swap_vert_rounded,
-                        },
-                        size: 32,
-                        color: dragging.value ? colors.onTertiary : colors.onPrimary,
+                  ValueListenableBuilder<Offset>(
+                    valueListenable: position,
+                    builder: (context, value, child) {
+                      final current = clampPosition(value);
+                      return Positioned(
+                        left: center.dx + current.dx,
+                        top: center.dy + current.dy,
+                        width: size,
+                        height: size,
+                        child: child!,
+                      );
+                    },
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: dragging,
+                      builder: (context, active, child) => ElView(
+                        key: ValueKey('event-basic-drag-block'),
+                        style: .new(
+                          alignment: .center,
+                          borderRadius: BorderRadius.circular(20),
+                          backgroundColor: active ? colors.tertiary : colors.primary,
+                        ),
+                        event: ElEvent(
+                          cursor: SystemMouseCursors.move,
+                          dragStartDistance: 3,
+                          onDragDown: (event) {
+                            event.stopPropagation();
+                            currentEvent.value = 'onDragDown';
+                          },
+                          onDragStart: axis.value == null ? start : null,
+                          onDragUpdate: axis.value == null ? update : null,
+                          onDragEnd: axis.value == null ? end : null,
+                          onDragCancel: axis.value == null ? cancel : null,
+                          onHorizontalDragStart: axis.value == .horizontal ? start : null,
+                          onHorizontalDragUpdate: axis.value == .horizontal ? update : null,
+                          onHorizontalDragEnd: axis.value == .horizontal ? end : null,
+                          onHorizontalDragCancel: axis.value == .horizontal ? cancel : null,
+                          onVerticalDragStart: axis.value == .vertical ? start : null,
+                          onVerticalDragUpdate: axis.value == .vertical ? update : null,
+                          onVerticalDragEnd: axis.value == .vertical ? end : null,
+                          onVerticalDragCancel: axis.value == .vertical ? cancel : null,
+                        ),
+                        child: Icon(
+                          switch (axis.value) {
+                            null => Icons.open_with_rounded,
+                            .horizontal => Icons.swap_horiz_rounded,
+                            .vertical => Icons.swap_vert_rounded,
+                          },
+                          size: 32,
+                          color: active ? colors.onTertiary : colors.onPrimary,
+                        ),
                       ),
                     ),
                   ),

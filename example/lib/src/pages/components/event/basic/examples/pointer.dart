@@ -28,6 +28,10 @@ class ElPointerEventExample extends HookWidget {
       child: ElView(
         key: ValueKey('event-basic-pointer'),
         event: ElEvent(
+          behavior: .opaque,
+          // 先于外层滚动识别拖拽，舞台仍只展示原始指针事件。
+          dragStartDistance: 3,
+          onDragStart: (event) => event.stopPropagation(),
           onPointerDown: (event) => track(event, 'onPointerDown', pressed: true),
           onPointerMove: (event) => track(event, 'onPointerMove', pressed: true),
           onPointerUp: (event) => track(event, 'onPointerUp', pressed: false),

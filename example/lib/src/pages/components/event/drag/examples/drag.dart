@@ -13,19 +13,22 @@ class ElEventDragExample extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final position = useState(Offset.zero);
-    final origin = useRef(Offset.zero);
-    final currentEvent = useState('—');
-    final dragging = useState(false);
+    final position = useValueNotifier(Offset.zero);
+    final lastOffset = useRef(Offset.zero);
+    final currentEvent = useValueNotifier('—');
+    final dragging = useValueNotifier(false);
     final colors = Theme.of(context).colorScheme;
     return ElEventDemoSurface(
       height: 280,
-      footer: Row(
-        spacing: 12,
-        children: [
-          Expanded(child: Text(currentEvent.value, maxLines: 1, overflow: .ellipsis)),
-          Text('X ${position.value.dx.round()} · Y ${position.value.dy.round()}'),
-        ],
+      footer: ListenableBuilder(
+        listenable: Listenable.merge([position, currentEvent]),
+        builder: (context, child) => Row(
+          spacing: 12,
+          children: [
+            Expanded(child: Text(currentEvent.value, maxLines: 1, overflow: .ellipsis)),
+            Text('X ${position.value.dx.round()} · Y ${position.value.dy.round()}'),
+          ],
+        ),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -33,53 +36,69 @@ class ElEventDragExample extends HookWidget {
           final center = Offset((constraints.maxWidth - size) / 2, (constraints.maxHeight - size) / 2);
           Offset clampPosition(Offset value) =>
               Offset(value.dx.clamp(-center.dx, center.dx), value.dy.clamp(-center.dy, center.dy));
-          final current = clampPosition(position.value);
+
+          void move(ElEventDetails event) {
+            // 丢弃越界余量，回拖立即跟手；松手时也补上最后一段位移。
+            final delta = event.dragOffset - lastOffset.value;
+            lastOffset.value = event.dragOffset;
+            position.value = clampPosition(clampPosition(position.value) + delta);
+          }
+
           return Stack(
             key: ValueKey('event-drag-area'),
             children: [
-              Positioned(
-                left: center.dx + current.dx,
-                top: center.dy + current.dy,
-                width: size,
-                height: size,
-                child: ElView(
-                  key: ValueKey('event-drag-block'),
-                  style: .new(
-                    alignment: .center,
-                    borderRadius: BorderRadius.circular(20),
-                    backgroundColor: dragging.value ? colors.tertiary : colors.primary,
-                  ),
-                  event: ElEvent(
-                    cursor: SystemMouseCursors.move,
-                    dragStartDistance: 3,
-                    onDragDown: (event) {
-                      event.stopPropagation();
-                      currentEvent.value = 'onDragDown';
-                    },
-                    onDragStart: (_) {
-                      origin.value = current;
-                      dragging.value = true;
-                      currentEvent.value = 'onDragStart';
-                    },
-                    onDragUpdate: (event) {
-                      // 累计全局位移不受卡片自身移动影响，越界时只夹持显示位置。
-                      position.value = clampPosition(origin.value + event.dragOffset);
-                      currentEvent.value = 'onDragUpdate';
-                    },
-                    onDragEnd: (event) {
-                      position.value = clampPosition(origin.value + event.dragOffset);
-                      dragging.value = false;
-                      currentEvent.value = 'onDragEnd';
-                    },
-                    onDragCancel: (_) {
-                      dragging.value = false;
-                      currentEvent.value = 'onDragCancel';
-                    },
-                  ),
-                  child: Icon(
-                    Icons.open_with_rounded,
-                    size: 32,
-                    color: dragging.value ? colors.onTertiary : colors.onPrimary,
+              ValueListenableBuilder<Offset>(
+                valueListenable: position,
+                builder: (context, value, child) {
+                  final current = clampPosition(value);
+                  return Positioned(
+                    left: center.dx + current.dx,
+                    top: center.dy + current.dy,
+                    width: size,
+                    height: size,
+                    child: child!,
+                  );
+                },
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: dragging,
+                  builder: (context, active, child) => ElView(
+                    key: ValueKey('event-drag-block'),
+                    style: .new(
+                      alignment: .center,
+                      borderRadius: BorderRadius.circular(20),
+                      backgroundColor: active ? colors.tertiary : colors.primary,
+                    ),
+                    event: ElEvent(
+                      cursor: SystemMouseCursors.move,
+                      dragStartDistance: 3,
+                      onDragDown: (event) {
+                        event.stopPropagation();
+                        currentEvent.value = 'onDragDown';
+                      },
+                      onDragStart: (event) {
+                        lastOffset.value = event.dragOffset;
+                        dragging.value = true;
+                        currentEvent.value = 'onDragStart';
+                      },
+                      onDragUpdate: (event) {
+                        move(event);
+                        currentEvent.value = 'onDragUpdate';
+                      },
+                      onDragEnd: (event) {
+                        move(event);
+                        dragging.value = false;
+                        currentEvent.value = 'onDragEnd';
+                      },
+                      onDragCancel: (_) {
+                        dragging.value = false;
+                        currentEvent.value = 'onDragCancel';
+                      },
+                    ),
+                    child: Icon(
+                      Icons.open_with_rounded,
+                      size: 32,
+                      color: active ? colors.onTertiary : colors.onPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -91,7 +110,7 @@ class ElEventDragExample extends HookWidget {
                   semanticLabel: '重置拖拽',
                   variant: .text,
                   onPressed: () {
-                    position.value = origin.value = Offset.zero;
+                    position.value = Offset.zero;
                     currentEvent.value = '—';
                     dragging.value = false;
                   },

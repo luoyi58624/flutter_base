@@ -28,39 +28,41 @@ class ElRotationEventExample extends HookWidget {
       child: Stack(
         fit: .expand,
         children: [
-          ElView(
-            key: ValueKey('event-basic-rotation'),
-            style: .new(alignment: .center),
-            event: ElEvent(
-              onScaleStart: (_) {
-                origin.value = rotation.value;
-                currentEvent.value = 'onScaleStart';
-              },
-              onRotationUpdate: (event) {
-                rotation.value = origin.value + event.rotation;
-                currentEvent.value = 'onRotationUpdate';
-              },
-              onScaleEnd: (_) {
-                origin.value = rotation.value;
-                currentEvent.value = 'onScaleEnd';
-              },
-              onScaleCancel: (_) {
-                origin.value = rotation.value;
-                currentEvent.value = 'onScaleCancel';
-              },
-            ),
-            child: Transform.rotate(
-              angle: rotation.value,
-              child: ElView(
-                key: ValueKey('event-basic-rotation-block'),
-                style: .new(
-                  width: 96,
-                  height: 112,
-                  alignment: .center,
-                  borderRadius: BorderRadius.circular(24),
-                  backgroundColor: colors.primary,
+          Positioned.fill(
+            child: ElView(
+              key: ValueKey('event-basic-rotation'),
+              style: .new(alignment: .center),
+              event: ElEvent(
+                onScaleStart: (_) {
+                  origin.value = rotation.value;
+                  currentEvent.value = 'onScaleStart';
+                },
+                onRotationUpdate: (event) {
+                  rotation.value = origin.value + event.rotation;
+                  currentEvent.value = 'onRotationUpdate';
+                },
+                onScaleEnd: (_) {
+                  origin.value = rotation.value;
+                  currentEvent.value = 'onScaleEnd';
+                },
+                onScaleCancel: (_) {
+                  origin.value = rotation.value;
+                  currentEvent.value = 'onScaleCancel';
+                },
+              ),
+              child: Transform.rotate(
+                angle: rotation.value,
+                child: ElView(
+                  key: ValueKey('event-basic-rotation-block'),
+                  style: .new(
+                    width: 96,
+                    height: 112,
+                    alignment: .center,
+                    borderRadius: BorderRadius.circular(24),
+                    backgroundColor: colors.primary,
+                  ),
+                  child: Icon(Icons.navigation_rounded, size: 48, color: colors.onPrimary),
                 ),
-                child: Icon(Icons.navigation_rounded, size: 48, color: colors.onPrimary),
               ),
             ),
           ),

@@ -70,7 +70,7 @@ void main() {
     for (var count = 1; count <= 3; count++) {
       await tester.tap(_key('event-basic-tap'));
       await tester.pump(Duration(milliseconds: 60));
-      if (count > 1) expect(find.text('$count 连击'), findsOneWidget);
+      if (count > 1) expect(find.text(count == 2 ? '双击' : '三击'), findsOneWidget);
     }
     expect(find.text('onTripleTap'), findsOneWidget);
     await tester.pumpAndSettle();

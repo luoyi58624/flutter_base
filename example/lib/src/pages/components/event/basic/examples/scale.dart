@@ -26,40 +26,42 @@ class ElScaleEventExample extends HookWidget {
       child: Stack(
         fit: .expand,
         children: [
-          ElView(
-            key: ValueKey('event-basic-scale'),
-            style: .new(alignment: .center),
-            event: ElEvent(
-              onScaleStart: (_) {
-                origin.value = scale.value;
-                currentEvent.value = 'onScaleStart';
-              },
-              onScaleUpdate: (event) {
-                // 每次手势都以已有比例为基线，连续多次捏合不会跳回初始大小。
-                scale.value = (origin.value * event.scale).clamp(0.55, 1.8);
-                currentEvent.value = 'onScaleUpdate';
-              },
-              onScaleEnd: (_) {
-                origin.value = scale.value;
-                currentEvent.value = 'onScaleEnd';
-              },
-              onScaleCancel: (_) {
-                origin.value = scale.value;
-                currentEvent.value = 'onScaleCancel';
-              },
-            ),
-            child: Transform.scale(
-              scale: scale.value,
-              child: ElView(
-                key: ValueKey('event-basic-scale-block'),
-                style: .new(
-                  width: 96,
-                  height: 96,
-                  alignment: .center,
-                  borderRadius: BorderRadius.circular(24),
-                  backgroundColor: colors.primary,
+          Positioned.fill(
+            child: ElView(
+              key: ValueKey('event-basic-scale'),
+              style: .new(alignment: .center),
+              event: ElEvent(
+                onScaleStart: (_) {
+                  origin.value = scale.value;
+                  currentEvent.value = 'onScaleStart';
+                },
+                onScaleUpdate: (event) {
+                  // 每次手势都以已有比例为基线，连续多次捏合不会跳回初始大小。
+                  scale.value = (origin.value * event.scale).clamp(0.55, 1.8);
+                  currentEvent.value = 'onScaleUpdate';
+                },
+                onScaleEnd: (_) {
+                  origin.value = scale.value;
+                  currentEvent.value = 'onScaleEnd';
+                },
+                onScaleCancel: (_) {
+                  origin.value = scale.value;
+                  currentEvent.value = 'onScaleCancel';
+                },
+              ),
+              child: Transform.scale(
+                scale: scale.value,
+                child: ElView(
+                  key: ValueKey('event-basic-scale-block'),
+                  style: .new(
+                    width: 96,
+                    height: 96,
+                    alignment: .center,
+                    borderRadius: BorderRadius.circular(24),
+                    backgroundColor: colors.primary,
+                  ),
+                  child: Icon(Icons.open_in_full_rounded, size: 36, color: colors.onPrimary),
                 ),
-                child: Icon(Icons.open_in_full_rounded, size: 36, color: colors.onPrimary),
               ),
             ),
           ),

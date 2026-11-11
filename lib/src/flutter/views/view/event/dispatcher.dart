@@ -15,7 +15,7 @@ import 'event.dart';
 ///
 /// 一次按下命中的宿主由内向外组成一条 [_Route]。点击、连击、长按、拖拽和缩放都沿路线默认冒泡，
 /// 回调调用 stopPropagation 即可截断外层；在按下阶段截断时，外层不再参与本次手势。
-/// 路线以一个竞技场成员与 Flutter 手势协作：拖拽、缩放或长按开始时认领指针，官方手势胜出时取消本路线。
+/// 路线以一个竞技场成员与 Flutter 手势协作：双指缩放预留触点，其余手势开始时认领指针，官方手势胜出时取消本路线。
 class EventDispatcher {
   /// 为宿主注册事件入口。
   EventDispatcher(this._render) {
@@ -504,7 +504,7 @@ class EventDispatcher {
   }
 
   /// 触点移动：未开始时跨度或焦点越过阈值才起步；silent 时只更新状态。返回是否停止传播。
-  bool _moveScale(PointerEvent input, bool silent, double slop) {
+  bool _moveScale(PointerEvent input, bool silent) {
     final (focal, span, angle) = _shape();
     if (!_scaling) {
       final kind = input.kind;
@@ -513,7 +513,7 @@ class EventDispatcher {
       final turned = ((angle - _angle0 + math.pi) % (2 * math.pi) - math.pi).abs() * span;
       if (input is PointerPanZoomUpdateEvent ||
           (_points.length == 1
-              ? _drag == null && moved > (_e.hasDragCallback ? computePanSlop(kind, null) : slop)
+              ? _drag == null && moved > computePanSlop(kind, null)
               : (span - _span0).abs() > computeScaleSlop(kind) ||
                     turned > computeScaleSlop(kind) ||
                     moved > computePanSlop(kind, null))) {
@@ -915,6 +915,19 @@ final class _Route extends GestureArenaMember {
       host._rebase();
       if (host._drag != null && host._points.length > 1) host._startScale(input);
       if (host._scaling) claim();
+      if (host._points.length > 1) {
+        // 双指先保留仍有效的触点，避免慢捏合被外层滚动抢走；越过缩放阈值才发 Start、取消点击。
+        final routes = host._points.keys.map((pointer) => EventDispatcher._routes[pointer]).toList();
+        if (routes.any(
+          (route) => route == null || route._rejected || route._closed || route._ended || !route.scales.contains(host),
+        )) {
+          continue;
+        }
+        for (final route in routes) {
+          if (!host._live || !route!.scales.contains(host)) break;
+          route.claim();
+        }
+      }
     }
     _track(down);
     _begun = true;
@@ -971,7 +984,7 @@ final class _Route extends GestureArenaMember {
     for (final host in scales.toList()) {
       if (!scales.contains(host) || !host._live) continue;
       host._points[pointer] = position;
-      stopped = host._moveScale(event, stopped, slop) || stopped;
+      stopped = host._moveScale(event, stopped) || stopped;
     }
 
     _startDrags(event, distance, slop);
