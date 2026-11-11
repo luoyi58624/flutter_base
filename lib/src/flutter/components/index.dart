@@ -24,6 +24,9 @@ import 'input_tag/index.dart';
 import 'list_tile/index.dart';
 import 'loading_indicator/index.dart';
 import 'mention/index.dart';
+import 'picker/index.dart';
+import 'popup/index.dart';
+import 'upload/index.dart';
 import 'progress/index.dart';
 import 'radio/index.dart';
 import 'segmented/index.dart';
@@ -62,6 +65,9 @@ export 'empty/index.dart';
 export 'segmented/index.dart';
 export 'tabs/index.dart';
 export 'alert/index.dart';
+export 'picker/index.dart';
+export 'popup/index.dart';
+export 'upload/index.dart';
 
 part 'index.g.dart';
 
@@ -105,6 +111,14 @@ class ElComponents with Equatable {
     this.tabs,
     this.tabBar,
     this.alert,
+    this.picker,
+    this.datePicker,
+    this.timePicker,
+    this.upload,
+    this.popup,
+    this.dialog,
+    this.drawer,
+    this.toast,
   });
 
   /// 与组件预设绑定的样式和变量。
@@ -208,6 +222,30 @@ class ElComponents with Equatable {
 
   /// 根据 ElAlert 声明构建品牌组件。
   final Widget Function(BuildContext context, ElAlert component)? alert;
+
+  /// 根据 ElPicker 声明构建滚轮选择器。
+  final Widget Function<T>(BuildContext context, ElPicker<T> component, Obs<List<T>> model)? picker;
+
+  /// 根据 ElDatePicker 声明构建日期选择器。
+  final Widget Function(BuildContext context, ElDatePicker component, Obs<DateTime> model)? datePicker;
+
+  /// 根据 ElTimePicker 声明构建时间选择器。
+  final Widget Function(BuildContext context, ElTimePicker component, Obs<Duration> model)? timePicker;
+
+  /// 根据 ElUpload 声明构建文件列表和选择入口。
+  final Widget Function(BuildContext context, ElUpload component)? upload;
+
+  /// 根据 ElPopup 声明构建弹层内容。
+  final Widget Function(BuildContext context, ElPopup component)? popup;
+
+  /// 根据 ElDialog 声明构建对话框内容。
+  final Widget Function(BuildContext context, ElDialog component)? dialog;
+
+  /// 根据 ElDrawer 声明构建抽屉内容。
+  final Widget Function(BuildContext context, ElDrawer component)? drawer;
+
+  /// 根据 ElToast 声明构建短提示内容。
+  final Widget Function(BuildContext context, ElToast component)? toast;
 
   /// 相等性与 hashCode 依据全部注入点。
   @override

@@ -15,6 +15,21 @@ import 'skeleton/index.dart';
 import 'slider/index.dart';
 import 'switch/index.dart';
 import 'tag/index.dart';
+import 'input/index.dart';
+import 'select/index.dart';
+import 'autocomplete/index.dart';
+import 'input_number/index.dart';
+import 'segmented/index.dart';
+import 'avatar/index.dart';
+import 'calendar/index.dart';
+import 'collapse/index.dart';
+import 'empty/index.dart';
+import 'steps/index.dart';
+import 'tabs/index.dart';
+import 'alert/index.dart';
+import 'picker/index.dart';
+import 'upload/index.dart';
+import 'popup/index.dart';
 
 part 'tokens.dart';
 
@@ -43,5 +58,29 @@ final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
     progress: progressBuilder,
     skeleton: skeletonBuilder,
     slider: sliderBuilder,
+    input: inputBuilder,
+    select: selectBuilder,
+    autocomplete: autocompleteBuilder,
+    inputNumber: inputNumberBuilder,
+    formItem: formItemBuilder,
+    segmented: segmentedBuilder,
+    avatar: avatarBuilder,
+    calendar: calendarBuilder,
+    collapse: collapseBuilder,
+    collapseItem: collapseItemBuilder,
+    empty: emptyBuilder,
+    steps: stepsBuilder,
+    step: stepBuilder,
+    tabs: tabsBuilder,
+    tabBar: tabBarBuilder,
+    alert: alertBuilder,
+    picker: pickerBuilder,
+    datePicker: datePickerBuilder,
+    timePicker: timePickerBuilder,
+    upload: uploadBuilder,
+    popup: popupBuilder,
+    dialog: dialogBuilder,
+    drawer: drawerBuilder,
+    toast: toastBuilder,
   ),
 );

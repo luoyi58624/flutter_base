@@ -35,7 +35,7 @@ part 'panel.dart';
 ///
 /// 桌面预设使用的 Element 选择器实现。
 class Select<T> extends ElInputModelValue<T> {
-  Select(this.component, {super.key})
+  Select(this.component, {super.key, this.themeStyle})
     : super(
         value: component.value ?? (component.modelValue == null ? component.initialSelection : null),
         modelValue: component.modelValue,
@@ -43,6 +43,9 @@ class Select<T> extends ElInputModelValue<T> {
       );
 
   final ElSelect<T> component;
+
+  /// 复用选择机制时由品牌注入的默认外观。
+  final ElStyle? themeStyle;
 
   List<ElLabelModel<T>> get children => component.children;
   bool get enabled => component.enabled && !component.disabled;
@@ -70,7 +73,7 @@ class Select<T> extends ElInputModelValue<T> {
   List<TextInputFormatter>? get inputFormatters => component.inputFormatters;
   DropdownMenuCloseBehavior get closeBehavior => component.closeBehavior;
   TextInputAction? get textInputAction => component.textInputAction;
-  ElStyle? get style => component.style;
+  ElStyle? get style => themeStyle == null ? component.style : themeStyle!.merge(component.style);
   ElStyle? get optionStyle => component.optionStyle;
   String? get semanticLabel => component.semanticLabel;
 

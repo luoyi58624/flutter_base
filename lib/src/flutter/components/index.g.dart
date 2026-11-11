@@ -42,6 +42,14 @@ extension ElComponentsExt on ElComponents {
     Object? tabs = $absent,
     Object? tabBar = $absent,
     Object? alert = $absent,
+    Object? picker = $absent,
+    Object? datePicker = $absent,
+    Object? timePicker = $absent,
+    Object? upload = $absent,
+    Object? popup = $absent,
+    Object? dialog = $absent,
+    Object? drawer = $absent,
+    Object? toast = $absent,
   }) {
     return ElComponents(
       style: identical(style, $absent)
@@ -155,6 +163,33 @@ extension ElComponentsExt on ElComponents {
       alert: identical(alert, $absent)
           ? this.alert
           : alert as Widget Function(BuildContext, ElAlert)?,
+      picker: identical(picker, $absent)
+          ? this.picker
+          : picker
+                as Widget Function<T>(BuildContext, ElPicker<T>, Obs<List<T>>)?,
+      datePicker: identical(datePicker, $absent)
+          ? this.datePicker
+          : datePicker
+                as Widget Function(BuildContext, ElDatePicker, Obs<DateTime>)?,
+      timePicker: identical(timePicker, $absent)
+          ? this.timePicker
+          : timePicker
+                as Widget Function(BuildContext, ElTimePicker, Obs<Duration>)?,
+      upload: identical(upload, $absent)
+          ? this.upload
+          : upload as Widget Function(BuildContext, ElUpload)?,
+      popup: identical(popup, $absent)
+          ? this.popup
+          : popup as Widget Function(BuildContext, ElPopup)?,
+      dialog: identical(dialog, $absent)
+          ? this.dialog
+          : dialog as Widget Function(BuildContext, ElDialog)?,
+      drawer: identical(drawer, $absent)
+          ? this.drawer
+          : drawer as Widget Function(BuildContext, ElDrawer)?,
+      toast: identical(toast, $absent)
+          ? this.toast
+          : toast as Widget Function(BuildContext, ElToast)?,
     );
   }
 
@@ -195,6 +230,14 @@ extension ElComponentsExt on ElComponents {
       tabs: other.tabs ?? tabs,
       tabBar: other.tabBar ?? tabBar,
       alert: other.alert ?? alert,
+      picker: other.picker ?? picker,
+      datePicker: other.datePicker ?? datePicker,
+      timePicker: other.timePicker ?? timePicker,
+      upload: other.upload ?? upload,
+      popup: other.popup ?? popup,
+      dialog: other.dialog ?? dialog,
+      drawer: other.drawer ?? drawer,
+      toast: other.toast ?? toast,
     );
   }
 
@@ -233,5 +276,13 @@ extension ElComponentsExt on ElComponents {
     tabs,
     tabBar,
     alert,
+    picker,
+    datePicker,
+    timePicker,
+    upload,
+    popup,
+    dialog,
+    drawer,
+    toast,
   ];
 }

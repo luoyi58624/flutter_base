@@ -17,13 +17,10 @@ void main() {
   test('移动默认表只缺已知项', () {
     final builders = el.mobileComponents;
     final gaps = {
-      'inputNumber': builders.inputNumber,
       'mention': builders.mention,
       'inputTag': builders.inputTag,
       'inputOtp': builders.inputOtp,
-      'formItem': builders.formItem,
       'tableStyle': builders.tableStyle,
-      'empty': builders.empty,
     };
     expect(gaps.values, everyElement(isNull), reason: '已补齐的缺口请从清单移除');
     expect(_missingBuilders(builders), gaps.length);

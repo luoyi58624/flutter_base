@@ -49,7 +49,7 @@ void main() {
     expect(builders.buttonGroup, isNotNull);
     expect(builders.mention, isNull);
     expect(builders.inputTag, isNull);
-    expect(builders.empty, isNull);
+    expect(builders.empty, isNotNull);
   });
 
   testWidgets('通用卡片加载期间保留正文实例并阻止整卡激活', (tester) async {

@@ -31,7 +31,7 @@ part 'panel.dart';
 ///
 /// 桌面预设使用的 Element 自动补全实现。
 class Autocomplete<T> extends ElInputModelValue<String> {
-  Autocomplete(this.component, {super.key})
+  Autocomplete(this.component, {super.key, this.themeStyle})
     : super(
         value: component.value ?? (component.modelValue == null ? '' : null),
         modelValue: component.modelValue,
@@ -39,6 +39,9 @@ class Autocomplete<T> extends ElInputModelValue<String> {
       );
 
   final ElAutocomplete<T> component;
+
+  /// 复用补全机制时由品牌注入的默认外观。
+  final ElStyle? themeStyle;
 
   FutureOr<Iterable<ElLabelModel<T>>> Function(String query) get fetchSuggestions => component.fetchSuggestions;
   ValueChanged<ElLabelModel<T>>? get onSelected => component.onSelected;
@@ -76,7 +79,7 @@ class Autocomplete<T> extends ElInputModelValue<String> {
   ScrollController? get scrollController => component.scrollController;
   ElOverlayAnchor get anchor => component.anchor;
   int get zIndex => component.zIndex;
-  ElStyle? get style => component.style;
+  ElStyle? get style => themeStyle == null ? component.style : themeStyle!.merge(component.style);
   ElStyle? get panelStyle => component.panelStyle;
   ElStyle? get optionStyle => component.optionStyle;
   String? get semanticLabel => component.semanticLabel;

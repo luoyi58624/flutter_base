@@ -9,6 +9,7 @@ import '../../../ui.dart';
 part 'forms.dart';
 part 'data.dart';
 part 'layout.dart';
+part 'pickers.dart';
 
 /// 为尚无品牌实现的已有接口提供基础 Material 替代，不覆盖品牌已有实现。
 ElComponents materialComponents({bool mobile = false}) {
@@ -50,6 +51,42 @@ ElComponents materialComponents({bool mobile = false}) {
     tabs: <T>(context, c) => control(_MaterialTabs<T>(c)),
     tabBar: (context, c) => control(_MaterialTabBar(c)),
     alert: (context, c) => control(_alert(c)),
+    picker: <T>(context, c, model) => _picker(c, model),
+    datePicker: (context, c, model) => _frame(
+      c.style,
+      c.semanticLabel,
+      CalendarDatePicker(
+        initialDate: model.value,
+        firstDate: c.min ?? DateTime(1900),
+        lastDate: c.max ?? DateTime(2100, 12, 31),
+        onDateChanged: (value) {
+          if (!c.disabled) model.value = value;
+        },
+      ),
+    ),
+    timePicker: (context, c, model) => _timePicker(c, model),
+    upload: (context, c) => _upload(c),
+    popup: (context, c) => _popup(c),
+    dialog: (context, c) => _popup(c),
+    drawer: (context, c) => _popup(c),
+    toast: (context, c) => _frame(
+      c.style,
+      c.semanticLabel,
+      Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisSize: .min,
+            children: [
+              if (c.icon != null) _content(c.icon),
+              Flexible(child: _content(c.child)),
+            ],
+          ),
+        ),
+      ),
+    ),
   );
 }
 
