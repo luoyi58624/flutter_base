@@ -43,6 +43,7 @@ import 'start/shadow/index.dart';
 import 'desktop/anchor/index.dart';
 import 'desktop/nav_menu/index.dart';
 import 'mobile/bottom_tabbar/index.dart';
+import 'view/selection/index.dart';
 
 /// 移动导航下的组件目录，共用组件与移动专属分组按顺序展示。
 class ComponentPage extends StatelessWidget {
@@ -159,6 +160,11 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
       _page('alert', 'Alert 提示', builder: (_) => AlertPage()),
       _page('loading', 'LoadingIndicator 加载指示', builder: (_) => LoadingPage()),
     ],
+  ),
+  ElMenuModel(
+    group: true,
+    title: 'View 视图',
+    children: [_page('view-selection', '文本选择', builder: (_) => ElSelectionPage())],
   ),
   ElMenuModel(
     group: true,
