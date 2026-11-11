@@ -1,1401 +1,1069 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show listEquals, precisionErrorTolerance;
-import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../view/event/event.dart';
-import '../view/semantics/semantics.dart';
-import '../view/style/animation/driver.dart' show elDisableAnimations;
-import '../view/view.dart';
-import '../zoom/zoom_view.dart';
+/// 读取与驱动 [ElPreviewView] 的当前项、连续翻页位置和当前项变换。
+class ElPreviewController extends ChangeNotifier {
+  /// 创建控制器，[initialIndex] 为首次挂载时的当前项。
+  ElPreviewController({int initialIndex = 0}) : _index = initialIndex, _page = ValueNotifier(initialIndex.toDouble());
 
-/// 为 builder 数据集提供稳定的页面逻辑身份。
-typedef PreviewItemIdBuilder = Object Function(int index);
+  int _index;
+  final ValueNotifier<double> _page;
+  _PreviewEngine? _engine;
 
-/// 控制一个 live [ElPreviewView] 的页索引与当前页变换。
-final class ElPreviewController extends ChangeNotifier {
-  /// 创建控制器；未挂载时 [initialIndex] 作为后续宿主的请求索引。
-  ElPreviewController({int initialIndex = 0})
-    : assert(initialIndex >= 0),
-      _requestedIndex = initialIndex,
-      _index = initialIndex;
+  /// 当前项：手势越过整页、第二指落下切换操作项或松手吸附完成时更新，并通知监听者。
+  int get index => _index;
 
-  int _requestedIndex;
-  int? _index;
-  ElZoomTransform _transform = const ElZoomTransform();
-  _PreviewViewState? _host;
-  bool _disposed = false;
+  /// 连续翻页位置，整数表示停在对应项；可用于指示器等上层外观。
+  ValueListenable<double> get page => _page;
 
-  /// 当前页索引；挂载到空数据集时为 null。
-  int? get index => _index;
+  /// 当前项的缩放倍数。
+  double get scale => _engine?._active.scale ?? 1;
 
-  /// 当前页的实际变换。
-  ElZoomTransform get currentTransform => _transform;
+  /// 当前项的旋转弧度。
+  double get rotation => _engine?._active.rotation ?? 0;
 
-  /// 当前分页是否完全归位，可供外层手势避免与切页过渡叠加。
-  bool get isPageSettled => _host?._isPageSettled ?? true;
+  /// 当前项中心相对视口中心的平移。
+  Offset get translation => _engine?._active.offset ?? Offset.zero;
 
-  /// 切到下一页。
-  Future<void> next({bool animate = true}) {
-    final host = _host;
-    return host == null ? _goTo((_index ?? _requestedIndex) + 1, animate: animate) : host._goBy(1, animate: animate);
+  /// 立即切换到 [index] 并还原变换。
+  void jumpToPage(int index) {
+    final engine = _engine;
+    if (engine != null) return engine.jumpToPage(index);
+    _setIndex(index);
+    _page.value = index.toDouble();
   }
 
-  /// 切到上一页。
-  Future<void> previous({bool animate = true}) {
-    final host = _host;
-    return host == null
-        ? _goTo(math.max(0, (_index ?? _requestedIndex) - 1), animate: animate)
-        : host._goBy(-1, animate: animate);
+  /// 以动画切换到 [index]。
+  Future<void> animateToPage(
+    int index, {
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeOutCubic,
+  }) {
+    final engine = _engine;
+    if (engine != null) return engine.animateToPage(index, duration, curve);
+    jumpToPage(index);
+    return Future.value();
   }
 
-  /// 动画切换到 [index]；未挂载时立即保存请求并完成。
-  Future<void> animateToIndex(int index) => _goTo(index, animate: true);
+  /// 还原当前项的缩放、旋转与平移。
+  void resetTransform({bool animate = true}) => _engine?.resetTransform(animate: animate);
 
-  /// 立即切换到 [index]；宿主会按数据集范围钳制。
-  void jumpToIndex(int index) {
-    _requestedIndex = math.max(0, index);
-    final host = _host;
-    if (host == null) {
-      _sync(_requestedIndex, _transform);
-    } else {
-      host._jumpToIndex(_requestedIndex);
-    }
-  }
-
-  /// 动画设置当前页变换；未挂载时立即保存并完成。
-  Future<void> animateTransform(ElZoomTransform transform) {
-    _validateTransform(transform);
-    final host = _host;
-    if (host == null) {
-      _sync(_index, transform);
-      return Future<void>.value();
-    }
-    return host._animateCurrentTransform(transform);
-  }
-
-  /// 立即设置当前页变换。
-  void jumpToTransform(ElZoomTransform transform) {
-    _validateTransform(transform);
-    final host = _host;
-    if (host == null) {
-      _sync(_index, transform);
-    } else {
-      host._jumpCurrentTransform(transform);
-    }
-  }
-
-  /// 重置当前页变换。
-  Future<void> resetCurrent({bool animate = true}) {
-    if (animate) return animateTransform(const ElZoomTransform());
-    jumpToTransform(const ElZoomTransform());
-    return Future<void>.value();
-  }
-
-  Future<void> _goTo(int index, {required bool animate}) {
-    _requestedIndex = math.max(0, index);
-    final host = _host;
-    if (host == null) {
-      _sync(_requestedIndex, _transform);
-      return Future<void>.value();
-    }
-    if (animate) return host._animateToIndex(_requestedIndex);
-    host._jumpToIndex(_requestedIndex);
-    return Future<void>.value();
-  }
-
-  void _attach(_PreviewViewState host) {
-    if (_disposed) throw FlutterError('已 dispose 的 ElPreviewController 不能再次绑定。');
-    final current = _host;
-    if (current != null && !identical(current, host)) {
-      throw FlutterError('一个 ElPreviewController 同一时刻只能绑定一个 live ElPreviewView。');
-    }
-    _host = host;
-  }
-
-  void _detach(_PreviewViewState host) {
-    if (identical(_host, host)) _host = null;
-  }
-
-  void _sync(int? index, ElZoomTransform transform) {
-    if (_disposed) return;
-    final changed = _index != index || _transform != transform;
-    _index = index;
-    if (index != null) _requestedIndex = index;
-    _transform = transform;
-    if (changed) notifyListeners();
-  }
-
-  static void _validateTransform(ElZoomTransform value) {
-    if (!value.scale.isFinite ||
-        value.scale <= 0 ||
-        !value.rotation.isFinite ||
-        !value.offset.dx.isFinite ||
-        !value.offset.dy.isFinite) {
-      throw ArgumentError.value(value, 'transform', '全部分量必须 finite 且 scale > 0');
-    }
+  void _setIndex(int value) {
+    if (_index == value) return;
+    _index = value;
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    _disposed = true;
-    _host = null;
+    _page.dispose();
     super.dispose();
   }
 }
 
-/// 任意 Widget 的 headless 缩放分页预览容器。
+/// 预览视图：任意内容的多指缩放、旋转与平移，平移到边缘继续移动即进入相邻项，支持双击缩放与鼠标滚轮缩放。
 ///
-/// 稳态只挂载 current ± [preloadCount]，非当前页只绘制且不参与
-/// 命中、焦点与语义。页位移只更新 render paint transform，不逐帧
-/// rebuild/layout 页面。
+/// 组件自己管理相邻项与横向切换，上层只提供每一项的内容。手势由组件独占：竞技场里只登记一个成员
+/// 用来声明归属，其余按原始指针计算，所以捏合、旋转、平移和翻页之间切换不会中断。
+/// 两指里先越过角度阈值的进入旋转模式（同时可缩放），先越过间距阈值的进入缩放模式（锁定旋转），
+/// 模式保持到手指少于两根；松手后旋转沿最短方向吸附到最近的直角，缩放保留。
 class ElPreviewView extends StatefulWidget {
-  /// 用固定 children 创建预览器。
+  /// 创建预览视图。
   const ElPreviewView({
     super.key,
-    required this.children,
-    this.initialIndex = 0,
-    this.controller,
-    this.minScale = 1,
-    this.maxScale = 6,
-    this.doubleTapScale = 2,
-    this.scaleSensitivity = 1.25,
-    this.enableRotation = true,
-    this.panInertia = true,
-    this.scaleInertia = false,
-    this.mouseWheelZoom = true,
-    this.mouseDragPan = true,
-    this.strictPageDragIntent = false,
-    this.wheelScaleSensitivity = 0.002,
-    this.loop = false,
-    this.preloadCount = 1,
-    this.preserveItemTransform = false,
-    this.transformCacheCapacity = 32,
-    this.constrained = true,
-    this.alignment = Alignment.center,
-    this.clipBehavior = Clip.hardEdge,
-    this.onIndexChanged,
-  }) : _builderItemCount = null,
-       itemBuilder = null,
-       itemIdBuilder = null,
-       assert(initialIndex >= 0),
-       assert(preloadCount >= 0),
-       assert(transformCacheCapacity >= 0),
-       assert(minScale > 0 && minScale <= maxScale),
-       assert(scaleSensitivity > 0 && scaleSensitivity < double.infinity),
-       assert(wheelScaleSensitivity > 0 && wheelScaleSensitivity < double.infinity);
-
-  /// 用惰性 builder 数据集创建预览器。
-  const ElPreviewView.builder({
-    super.key,
-    required int itemCount,
+    required this.itemCount,
     required this.itemBuilder,
-    this.itemIdBuilder,
-    this.initialIndex = 0,
     this.controller,
-    this.minScale = 1,
-    this.maxScale = 6,
-    this.doubleTapScale = 2,
-    this.scaleSensitivity = 1.25,
+    this.pageSpacing = 16,
+    this.maxScale = 4,
+    this.doubleTapScale = 2.5,
     this.enableRotation = true,
-    this.panInertia = true,
-    this.scaleInertia = false,
-    this.mouseWheelZoom = true,
-    this.mouseDragPan = true,
-    this.strictPageDragIntent = false,
-    this.wheelScaleSensitivity = 0.002,
-    this.loop = false,
-    this.preloadCount = 1,
-    this.preserveItemTransform = false,
-    this.transformCacheCapacity = 32,
-    this.constrained = true,
-    this.alignment = Alignment.center,
-    this.clipBehavior = Clip.hardEdge,
+    this.enableDoubleTap = true,
+    this.enableWheelZoom = true,
+    this.wheelZoomSensitivity = 0.002,
+    this.onTap,
     this.onIndexChanged,
-  }) : children = null,
-       _builderItemCount = itemCount,
-       assert(itemCount >= 0),
-       assert(initialIndex >= 0),
-       assert(preloadCount >= 0),
-       assert(transformCacheCapacity >= 0),
-       assert(minScale > 0 && minScale <= maxScale),
-       assert(scaleSensitivity > 0 && scaleSensitivity < double.infinity),
-       assert(wheelScaleSensitivity > 0 && wheelScaleSensitivity < double.infinity);
+    this.onVerticalDragStart,
+    this.onVerticalDragUpdate,
+    this.onVerticalDragEnd,
+    this.clipBehavior = Clip.hardEdge,
+  }) : assert(maxScale >= 1),
+       assert(doubleTapScale >= 1),
+       assert(pageSpacing >= 0);
 
-  /// children 构造的页面列表；builder 构造时为 null。
-  final List<Widget>? children;
-  final int? _builderItemCount;
+  /// 预览项数量。
+  final int itemCount;
 
-  /// builder 构造的页面数量。
-  int get itemCount => children?.length ?? _builderItemCount!;
+  /// 构建第 index 项的内容，任意 Widget，按视口尺寸布局。
+  final IndexedWidgetBuilder itemBuilder;
 
-  /// builder 构造的页面生成器。
-  final IndexedWidgetBuilder? itemBuilder;
-
-  /// builder 数据集的稳定身份生成器；未提供时使用 index。
-  final PreviewItemIdBuilder? itemIdBuilder;
-
-  /// 未绑定 [controller] 时的首次页索引。
-  final int initialIndex;
-
-  /// 外部页索引与当前变换控制器。
+  /// 外部控制器；缺省时组件内部创建。
   final ElPreviewController? controller;
 
-  /// 每页最小缩放倍数。
-  final double minScale;
+  /// 相邻项之间的横向间隔。
+  final double pageSpacing;
 
-  /// 每页最大缩放倍数。
+  /// 最大缩放倍数，捏合越界时带阻尼，松手回弹。
   final double maxScale;
 
-  /// 双击缩放目标倍数。
+  /// 双击放大的目标倍数；已缩放或旋转时双击还原。
   final double doubleTapScale;
 
-  /// 双指捏合的对数缩放增益；默认比原始指距比例更积极。
-  final double scaleSensitivity;
-
-  /// 是否允许触摸旋转；缩放意图会锁住旋转，旋转意图可同步缩放，松手后吸附最近直角。
+  /// 是否允许双指旋转。
   final bool enableRotation;
 
-  /// 是否允许变换平移惯性。
-  final bool panInertia;
+  /// 是否启用双击缩放；启用后单击回调延迟到双击判定窗口结束。
+  final bool enableDoubleTap;
 
-  /// 是否允许双指近同时释放后的对数缩放惯性。
-  final bool scaleInertia;
+  /// 是否响应鼠标滚轮缩放。
+  final bool enableWheelZoom;
 
-  /// 是否让物理鼠标滚轮围绕光标缩放。
-  final bool mouseWheelZoom;
+  /// 滚轮每逻辑像素对应的缩放指数。
+  final double wheelZoomSensitivity;
 
-  /// 是否允许鼠标主键平移内容与翻页。
-  final bool mouseDragPan;
+  /// 单击回调，常用于切换上层外观。
+  final VoidCallback? onTap;
 
-  /// 是否让横向翻页先经过双轴方向裁决。
-  ///
-  /// 开启后，明显纵向的斜拖不会触发横向翻页，适合外层还有下滑关闭等
-  /// 纵向手势的图片预览场景。
-  final bool strictPageDragIntent;
-
-  /// 鼠标滚轮每个逻辑像素对应的对数缩放量。
-  final double wheelScaleSensitivity;
-
-  /// 是否让两项及以上的数据集在手势、相邻命令和语义动作中首尾循环；绝对索引仍按范围钳制。
-  final bool loop;
-
-  /// 当前页两侧预挂载的页数。
-  ///
-  /// 预加载 child 保持 mounted，因此其自有 ticker/lifecycle 仍由 child 管理；
-  /// Preview 只关闭自己的 Zoom 交互，并隔离命中、焦点与语义。严格按需挂载时设为 0。
-  final int preloadCount;
-
-  /// 离窗后是否保留页变换。
-  final bool preserveItemTransform;
-
-  /// 离窗变换的 LRU 容量，不计当前挂载页。
-  final int transformCacheCapacity;
-
-  /// true 时每页 child 紧约束到视口。
-  final bool constrained;
-
-  /// 小内容在视口中的基位。
-  final Alignment alignment;
-
-  /// 预览视口的裁剪方式。
-  final Clip clipBehavior;
-
-  /// 页面 commit 后的索引变化回调。
+  /// 当前项变化回调。
   final ValueChanged<int>? onIndexChanged;
 
+  /// 未缩放时纵向拖动开始；声明任一纵向回调后组件才接管纵向手势，否则留给祖先。
+  final GestureDragStartCallback? onVerticalDragStart;
+
+  /// 未缩放时纵向拖动更新。
+  final GestureDragUpdateCallback? onVerticalDragUpdate;
+
+  /// 纵向拖动结束；第二指落下转为捏合时也以零速度结束。
+  final GestureDragEndCallback? onVerticalDragEnd;
+
+  /// 视口裁剪行为。
+  final Clip clipBehavior;
+
   @override
-  State<ElPreviewView> createState() => _PreviewViewState();
+  State<ElPreviewView> createState() => _PreviewState();
 }
 
-class _PreviewViewState extends State<ElPreviewView> with SingleTickerProviderStateMixin {
-  static const double _snapThreshold = 0.35;
-  static const double _minFlingVelocity = 400;
-  static final SpringDescription _pageSpring = SpringDescription.withDampingRatio(mass: 0.5, stiffness: 120, ratio: 1);
-  static const Tolerance _pageSpringTolerance = Tolerance(distance: 1, velocity: 30);
-  static const Set<PointerDeviceKind> _nonMouseDragDevices = {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.stylus,
-    PointerDeviceKind.invertedStylus,
-    PointerDeviceKind.trackpad,
-    PointerDeviceKind.unknown,
-  };
+// 引擎自己持有 Ticker，用 State 管理生命周期，保证停止与释放顺序可控。
+class _PreviewState extends State<ElPreviewView> with SingleTickerProviderStateMixin {
+  late final _PreviewEngine _engine = _PreviewEngine(this, widget);
+  ElPreviewController? _fallback;
 
-  late final AnimationController _pageAnimation;
-  late List<Object> _ids;
-  int _index = 0;
-  Object? _currentId;
-  double _pageOffset = 0;
-  int? _pageTargetIndex;
-  int _pageDirection = 0;
-  bool _directPageDrag = false;
-  bool _proxyPageDrag = false;
-  bool _panZoomPageDrag = false;
-  bool _handoffActive = false;
-  int _pointerCount = 0;
-
-  double _animationTo = 0;
-  Completer<void>? _pageCommandCompleter;
-  bool _viewportResetScheduled = false;
-  int? _deferredPreloadFirst;
-  int? _deferredPreloadLast;
-  bool _preloadRestoreScheduled = false;
-
-  _RenderPreviewViewport? _render;
-  final Map<Object, ElZoomController> _zoomControllers = <Object, ElZoomController>{};
-
-  /// 非活动页的焦点阻断节点；每个页面一个（同一 FocusNode 不能挂到多个视图）。
-  final Map<Object, FocusNode> _blockerNodes = <Object, FocusNode>{};
-  final LinkedHashMap<Object, ElZoomTransform> _transformCache = LinkedHashMap<Object, ElZoomTransform>();
+  ElPreviewController get _controller => widget.controller ?? (_fallback ??= ElPreviewController());
 
   @override
   void initState() {
     super.initState();
-    _ids = _resolveIds();
-    final requested = widget.controller?._requestedIndex ?? widget.initialIndex;
-    _index = _normalizeIndex(requested) ?? 0;
-    _currentId = _ids.isEmpty ? null : _ids[_index];
-    if (_currentId != null && widget.controller != null) {
-      _transformCache[_currentId!] = widget.controller!._transform;
-    }
-    _pageAnimation = AnimationController.unbounded(vsync: this)
-      ..addListener(_handlePageAnimationTick)
-      ..addStatusListener(_handlePageAnimationStatus);
-    widget.controller?._attach(this);
-    _syncExternalController();
+    _engine
+      ..attach(_controller)
+      ..structure.addListener(_rebuild);
   }
 
   @override
-  void didUpdateWidget(covariant ElPreviewView oldWidget) {
+  void didUpdateWidget(ElPreviewView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final controllerChanged = !identical(oldWidget.controller, widget.controller);
-    final previousIds = _ids;
-    final nextIds = _resolveIds();
-    final datasetChanged = !listEquals(previousIds, nextIds);
-    if (controllerChanged || datasetChanged || widget.loop != oldWidget.loop) {
-      _stopCurrentZoomAnimation();
-      _interruptPageAnimation();
-      _setPageOffset(0);
-      _pageTargetIndex = null;
-      _pageDirection = 0;
-      _handoffActive = false;
-      _directPageDrag = false;
-      _proxyPageDrag = false;
-      _panZoomPageDrag = false;
-    }
-    if (controllerChanged) oldWidget.controller?._detach(this);
-    final previousId = _currentId;
-    final previousIndex = _index;
-    _ids = nextIds;
-    final followedIndex = previousId == null ? null : _ids.indexOf(previousId);
-    final requested = widget.controller?._requestedIndex ?? widget.initialIndex;
-    _index = (controllerChanged || previousIds.isEmpty) && requested >= 0
-        ? (_normalizeIndex(requested) ?? 0)
-        : followedIndex != null && followedIndex >= 0
-        ? followedIndex
-        : (_normalizeIndex(_index) ?? 0);
-    _currentId = _ids.isEmpty ? null : _ids[_index];
-    if (!widget.preserveItemTransform && previousId != null && previousId != _currentId) {
-      _zoomControllers[previousId]?.jumpTo(const ElZoomTransform());
-    }
-    _removeDeletedTransforms();
-    if (!widget.preserveItemTransform && oldWidget.preserveItemTransform) _transformCache.clear();
-    _trimTransformCache();
-    if (controllerChanged) {
-      final controller = widget.controller;
-      controller?._attach(this);
-      final id = _currentId;
-      if (controller != null && id != null) {
-        final zoomController = _zoomControllers[id];
-        if (zoomController == null) {
-          _transformCache[id] = controller._transform;
-        } else {
-          zoomController.jumpTo(controller._transform);
-        }
-      }
-    }
-    if (previousIndex != _index) _scheduleIndexReport();
-    _syncExternalController();
+    _engine
+      ..widget = widget
+      ..attach(_controller);
   }
 
   @override
   void dispose() {
-    widget.controller?._detach(this);
-    _completePageCommand();
-    _pageAnimation.dispose();
-    for (final controller in _zoomControllers.values) {
-      controller.dispose();
-    }
-    for (final node in _blockerNodes.values) {
-      node.dispose();
-    }
+    _engine.dispose();
+    _fallback?.dispose();
     super.dispose();
   }
 
-  List<Object> _resolveIds() {
-    final ids = <Object>[];
-    final seen = <Object>{};
-    for (var i = 0; i < widget.itemCount; i++) {
-      final id = widget.itemIdBuilder?.call(i) ?? widget.children?[i].key ?? i;
-      if (!seen.add(id)) throw FlutterError('ElPreviewView 的 itemId 必须唯一，重复值：$id');
-      ids.add(id);
-    }
-    return ids;
+  void _rebuild() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _engine.size = constraints.biggest;
+        return Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: _engine.recognizer.addPointer,
+          onPointerPanZoomStart: _engine.recognizer.addPointerPanZoom,
+          onPointerSignal: _engine.pointerSignal,
+          child: ClipRect(
+            clipBehavior: widget.clipBehavior,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                for (final index in _engine.mounted)
+                  KeyedSubtree(
+                    key: ValueKey(index),
+                    child: _ItemTransform(engine: _engine, index: index, child: widget.itemBuilder(context, index)),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
+}
 
-  int? _normalizeIndex(int value) => _ids.isEmpty ? null : math.min(math.max(0, value), _ids.length - 1);
+// 翻页位移与该项自身变换合成一个矩阵，每帧只重建变换节点，内容子树保持原实例。
+class _ItemTransform extends StatelessWidget {
+  const _ItemTransform({required this.engine, required this.index, required this.child});
 
-  int? _adjacentIndex(int direction) {
-    if (_ids.length < 2) return null;
-    final target = _index + direction;
-    if (target >= 0 && target < _ids.length) return target;
-    if (!widget.loop) return null;
-    return target < 0 ? _ids.length - 1 : 0;
-  }
+  final _PreviewEngine engine;
+  final int index;
+  final Widget child;
 
-  Widget _itemAt(BuildContext context, int index) => widget.children?[index] ?? widget.itemBuilder!(context, index);
-
-  List<int> _mountedIndices() {
-    if (_ids.isEmpty) return const <int>[];
-    if (widget.loop && _ids.length > 1) {
-      if (_deferredPreloadFirst != null) return <int>[_index];
-      final mountedCount = math.min(_ids.length, 1 + widget.preloadCount * 2);
-      final first = (_index - widget.preloadCount) % _ids.length;
-      final mounted = <int>[for (var offset = 0; offset < mountedCount; offset++) (first + offset) % _ids.length];
-      final target = _pageTargetIndex;
-      if (target != null && !mounted.contains(target)) mounted.add(target);
-      return mounted;
-    }
-    final first = math.max(0, _index - widget.preloadCount);
-    final last = math.min(_ids.length - 1, _index + widget.preloadCount);
-    final retainedFirst = _deferredPreloadFirst;
-    final retainedLast = _deferredPreloadLast;
-    if (retainedFirst != null && retainedLast != null) {
-      return <int>[
-        for (var i = first; i <= last; i++)
-          if (i == _index || (i >= retainedFirst && i <= retainedLast)) i,
-      ];
-    }
-    final mounted = <int>[for (var i = first; i <= last; i++) i];
-    final target = _pageTargetIndex;
-    if (target != null && target < first) {
-      mounted.insert(0, target);
-    } else if (target != null && target > last) {
-      mounted.add(target);
-    }
-    return mounted;
-  }
-
-  ElZoomController _zoomControllerFor(Object id) {
-    return _zoomControllers.putIfAbsent(id, () {
-      final initial = _transformCache.remove(id) ?? const ElZoomTransform();
-      return ElZoomController(initialValue: initial);
-    });
-  }
-
-  /// 非活动页的焦点阻断节点：挡住整棵后代的焦点、遍历与语义。
-  FocusNode _blockerNodeFor(Object id) => _blockerNodes.putIfAbsent(
-    id,
-    () => FocusNode(
-      debugLabel: 'ElPreviewInactivePage($id)',
-      canRequestFocus: false,
-      descendantsAreFocusable: false,
-      descendantsAreTraversable: false,
-    ),
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: engine.changed,
+    builder: (context, child) => Transform(transform: engine.matrixFor(index), child: child),
+    child: child,
   );
+}
 
-  void _retainOnly(Set<Object> mountedIds) {
-    final removed = _zoomControllers.keys.where((id) => !mountedIds.contains(id)).toList(growable: false);
-    for (final id in removed) {
-      final controller = _zoomControllers.remove(id)!;
-      if (widget.preserveItemTransform) _cacheTransform(id, controller.value);
-      controller.dispose();
+final class _Signal extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+/// 单项的缩放、旋转与平移；平移为该项中心相对视口中心的偏移。
+final class _ItemState {
+  double scale = 1;
+  double rotation = 0;
+  Offset offset = Offset.zero;
+}
+
+enum _Mode { idle, ignored, pan, vertical }
+
+/// 预览手势与变换状态机：多指跟踪、模式锁定、位移分配（当前项 → 翻页）、松手惯性与吸附。
+final class _PreviewEngine {
+  _PreviewEngine(TickerProvider vsync, this.widget) {
+    _ticker = vsync.createTicker(_tick);
+  }
+
+  late final Ticker _ticker;
+  late final recognizer = _PreviewRecognizer(this);
+  ElPreviewView widget;
+  ElPreviewController? _controller;
+  Size size = Size.zero;
+
+  /// 挂载项集合变化时通知组件重建。
+  final structure = _Signal();
+
+  /// 翻页位置或任一项变换变化时通知变换节点。
+  final changed = _Signal();
+
+  // 当前操作项；每项各自保存变换，离开视口或吸附到其他项后复位。
+  int _anchor = 0;
+  final _items = <int, _ItemState>{};
+  List<int> _mountedKey = const [];
+
+  // 指针会话。
+  final _points = <int, Offset>{};
+  final _downs = <int, Offset>{};
+  PointerDeviceKind _kind = PointerDeviceKind.touch;
+  bool _claimed = false;
+  _Mode _mode = _Mode.idle;
+  bool? _rotating;
+  Offset _lastFocal = Offset.zero;
+  VelocityTracker? _tracker;
+
+  // 多指基准：每次手指数量变化或模式判定时重设，保证跟手不跳变；焦点均换算到当前项坐标。
+  Offset _f0 = Offset.zero;
+  double _span0 = 0;
+  // 手指连线相对基准累计转过的角度，逐次累加增量，超过半圈也保持连续。
+  double _lastAngle = 0;
+  double _turn = 0;
+  double _rawScale0 = 1;
+  double _s0 = 1;
+  double _r0 = 0;
+  Offset _o0 = Offset.zero;
+
+  // 点击与双击。
+  int? _tapPointer;
+  bool _tapValid = false;
+  int? _pendingTapPointer;
+  Offset _pendingTapPosition = Offset.zero;
+  final _accepted = <int>{};
+  Timer? _doubleTapTimer;
+  Offset _firstTap = Offset.zero;
+
+  // 触控板平移缩放。
+  double _panZoomScale = 1;
+
+  // 动画：一个 Ticker 承载吸附、惯性、双击与翻页动画，返回 false 表示结束。
+  bool Function(double seconds)? _frame;
+  Completer<void>? _pageAnimation;
+
+  double get _page => _controller!._page.value;
+  int get _count => widget.itemCount;
+  Offset get _center => size.center(Offset.zero);
+  double get _slop => computeHitSlop(_kind, null);
+  double get _stride => size.width + widget.pageSpacing;
+  _ItemState get _active => _items.putIfAbsent(_anchor, _ItemState.new);
+
+  void attach(ElPreviewController controller) {
+    if (identical(_controller, controller)) return;
+    _controller?._engine = null;
+    _controller = controller.._engine = this;
+    _anchor = controller._index;
+    _items.clear();
+  }
+
+  void dispose() {
+    _stopMotion();
+    _doubleTapTimer?.cancel();
+    _ticker.dispose();
+    recognizer.dispose();
+    if (_controller?._engine == this) _controller!._engine = null;
+    structure.dispose();
+    changed.dispose();
+  }
+
+  // ───────────────────────── 挂载与翻页 ─────────────────────────
+
+  /// 需要挂载的项：当前项及其两侧，再加翻页位置跨越的两项。
+  List<int> get mounted {
+    if (_count <= 0) return const [];
+    final page = _page;
+    final indices = {_anchor - 1, _anchor, _anchor + 1, page.floor(), page.ceil()}.toList()..sort();
+    return [
+      for (final index in indices)
+        if (index >= 0 && index < _count) index,
+    ];
+  }
+
+  void _setPage(double value) {
+    _controller!._page.value = value;
+    changed.notify();
+    _syncStructure();
+  }
+
+  void _syncStructure() {
+    final next = mounted;
+    if (listEquals(next, _mountedKey)) return;
+    _mountedKey = next;
+    _items.removeWhere((index, _) => !next.contains(index));
+    structure.notify();
+  }
+
+  void _setAnchor(int index) {
+    if (index == _anchor) return;
+    _anchor = index;
+    _controller!._setIndex(index);
+    widget.onIndexChanged?.call(index);
+    _syncStructure();
+  }
+
+  // 停到某一项后，其余项的变换复位。
+  void _settleAt(int index) {
+    _setAnchor(index);
+    _setPage(index.toDouble());
+    _items.removeWhere((key, _) => key != index);
+    changed.notify();
+  }
+
+  double _shiftOf(int index) => (index - _page) * _stride;
+
+  /// 视口坐标换算到当前项坐标：当前项未归位时扣除它的翻页位移。
+  Offset _toActive(Offset position) => position - Offset(_shiftOf(_anchor), 0);
+
+  // ───────────────────────── 变换几何 ─────────────────────────
+
+  Matrix4 matrixFor(int index) {
+    final shift = _shiftOf(index);
+    final item = _items[index];
+    if (item == null) return Matrix4.translationValues(shift, 0, 0);
+    final c = _center;
+    return Matrix4.translationValues(shift + c.dx + item.offset.dx, c.dy + item.offset.dy, 0)
+      ..multiply(Matrix4.rotationZ(item.rotation))
+      ..multiply(Matrix4.diagonal3Values(item.scale, item.scale, 1))
+      ..multiply(Matrix4.translationValues(-c.dx, -c.dy, 0));
+  }
+
+  void _setTransform(double scale, double rotation, Offset offset) {
+    _active
+      ..scale = scale
+      ..rotation = rotation
+      ..offset = offset;
+    changed.notify();
+  }
+
+  /// 旋转缩放后的内容外接框超出视口的一半，即各轴可平移的范围。
+  Offset _range(double scale, double rotation) {
+    final cos = math.cos(rotation).abs();
+    final sin = math.sin(rotation).abs();
+    final width = size.width * scale * cos + size.height * scale * sin;
+    final height = size.width * scale * sin + size.height * scale * cos;
+    return Offset(math.max(0, (width - size.width) / 2), math.max(0, (height - size.height) / 2));
+  }
+
+  Offset _clampOffset(Offset offset, double scale, double rotation) {
+    final range = _range(scale, rotation);
+    return Offset(offset.dx.clamp(-range.dx, range.dx), offset.dy.clamp(-range.dy, range.dy));
+  }
+
+  bool get _canPan {
+    final range = _range(_active.scale, _active.rotation);
+    return range.dx > 0.5 || range.dy > 0.5;
+  }
+
+  bool get _isTransformed {
+    final item = _active;
+    return (item.scale - 1).abs() > 1e-3 || item.rotation.abs() > 1e-3 || item.offset.distance > 0.5;
+  }
+
+  static Offset _rotate(Offset v, double angle) {
+    final cos = math.cos(angle);
+    final sin = math.sin(angle);
+    return Offset(v.dx * cos - v.dy * sin, v.dx * sin + v.dy * cos);
+  }
+
+  /// 松手时旋转吸附到最近的直角，落在 (-π, π]。
+  static double _snapRotation(double rotation) {
+    const quarter = math.pi / 2;
+    final snapped = (rotation / quarter).round() * quarter;
+    return math.atan2(math.sin(snapped), math.cos(snapped));
+  }
+
+  static double _angleDelta(double to, double from) {
+    var delta = to - from;
+    while (delta > math.pi) {
+      delta -= 2 * math.pi;
     }
-    _blockerNodes.removeWhere((id, node) {
-      if (mountedIds.contains(id)) return false;
-      node.dispose();
+    while (delta < -math.pi) {
+      delta += 2 * math.pi;
+    }
+    return delta;
+  }
+
+  // 捏合越界阻尼：边界处连续，越界越远越难拉。
+  double _resist(double raw) {
+    final max = widget.maxScale;
+    if (raw < 1) return math.pow(raw, 0.4).toDouble();
+    if (raw > max) return max * math.pow(raw / max, 0.4);
+    return raw;
+  }
+
+  double _unresist(double scale) {
+    final max = widget.maxScale;
+    if (scale < 1) return math.pow(scale, 1 / 0.4).toDouble();
+    if (scale > max) return max * math.pow(scale / max, 1 / 0.4);
+    return scale;
+  }
+
+  void _scaleAround(Offset focal, double scale) {
+    final item = _active;
+    if (item.scale <= 0) return;
+    final c = _center;
+    final local = _toActive(focal);
+    final next = (local - c) - (local - c - item.offset) * (scale / item.scale);
+    _setTransform(scale, item.rotation, _clampOffset(next, scale, item.rotation));
+  }
+
+  // ───────────────────────── 指针输入 ─────────────────────────
+
+  Offset get _focal {
+    var sum = Offset.zero;
+    for (final point in _points.values) {
+      sum += point;
+    }
+    return sum / _points.length.toDouble();
+  }
+
+  double get _span {
+    final focal = _focal;
+    var sum = 0.0;
+    for (final point in _points.values) {
+      sum += (point - focal).distance;
+    }
+    return sum / _points.length;
+  }
+
+  double get _angle {
+    final points = _points.values.take(2).toList();
+    final v = points[1] - points[0];
+    return math.atan2(v.dy, v.dx);
+  }
+
+  void down(PointerDownEvent event) {
+    if (_points.isEmpty) {
+      _stopMotion();
+      _claimed = false;
+      _mode = _Mode.idle;
+      _rotating = null;
+      _kind = event.kind;
+      _accepted.clear();
+      _tapPointer = event.pointer;
+      _tapValid = true;
+    } else {
+      _tapValid = false;
+    }
+    _points[event.pointer] = event.localPosition;
+    _downs[event.pointer] = event.localPosition;
+    if (_points.length >= 2) {
+      if (_mode == _Mode.vertical) _endVertical(Velocity.zero);
+      if (_points.length == 2) {
+        _rotating = null;
+        _focusNearest();
+      }
+      _mode = _Mode.pan;
+      _claim();
+    } else if (_claimed) {
+      recognizer.claim();
+    }
+    _rebase();
+  }
+
+  // 翻页未归位时开始捏合：操作项切到更靠近中间的一项，翻页同时吸附过去。
+  void _focusNearest() {
+    final displacement = _page - _anchor;
+    if (displacement.abs() <= 1e-4 || _count <= 0) return;
+    final target = _page.round().clamp(0, _count - 1);
+    _setAnchor(target);
+    final simulation = SpringSimulation(
+      _spring,
+      _page,
+      target.toDouble(),
+      0,
+      tolerance: Tolerance(distance: 1e-3, velocity: 1e-2),
+    );
+    _startMotion((t) {
+      if (simulation.isDone(t)) {
+        _settleAt(target);
+        // 手指已全部抬起时，接着执行松手复位（旋转吸附直角、缩放与平移收回范围）。
+        if (_points.isEmpty) _settle(Offset.zero);
+        return false;
+      }
+      _setPage(simulation.x(t));
       return true;
     });
   }
 
-  void _cacheTransform(Object id, ElZoomTransform value) {
-    if (!widget.preserveItemTransform || widget.transformCacheCapacity == 0) return;
-    _transformCache.remove(id);
-    _transformCache[id] = value;
-    _trimTransformCache();
-  }
-
-  void _trimTransformCache() {
-    while (_transformCache.length > widget.transformCacheCapacity) {
-      _transformCache.remove(_transformCache.keys.first);
+  void handle(PointerEvent event) {
+    switch (event) {
+      case PointerMoveEvent():
+        _move(event);
+      case PointerUpEvent():
+        _up(event);
+      case PointerCancelEvent():
+        _removePointer(event.pointer, canceled: true);
+      case PointerPanZoomUpdateEvent():
+        _panZoomUpdate(event);
+      case PointerPanZoomEndEvent():
+        _panZoomEnd();
+      default:
+        break;
     }
   }
 
-  void _removeDeletedTransforms() {
-    final live = _ids.toSet();
-    final removed = _zoomControllers.keys.where((id) => !live.contains(id)).toList(growable: false);
-    for (final id in removed) {
-      _zoomControllers.remove(id)?.dispose();
+  void accept(int pointer) {
+    _accepted.add(pointer);
+    if (_pendingTapPointer == pointer) {
+      _pendingTapPointer = null;
+      _commitTap(_pendingTapPosition);
     }
-    _transformCache.removeWhere((id, _) => !live.contains(id));
   }
 
-  ElZoomTransform get _currentTransform {
-    final id = _currentId;
-    if (id == null) return const ElZoomTransform();
-    return _zoomControllers[id]?.value ?? _transformCache[id] ?? const ElZoomTransform();
+  void reject(int pointer) {
+    if (_pendingTapPointer == pointer) _pendingTapPointer = null;
+    _removePointer(pointer, canceled: true);
   }
 
-  bool get _isPageSettled =>
-      !_pageAnimation.isAnimating &&
-      _pageOffset.abs() <= precisionErrorTolerance &&
-      _pageTargetIndex == null &&
-      !_handoffActive &&
-      !_directPageDrag &&
-      !_proxyPageDrag &&
-      !_panZoomPageDrag;
-
-  void _syncExternalController() => widget.controller?._sync(_ids.isEmpty ? null : _index, _currentTransform);
-
-  void _scheduleIndexReport() {
-    final expected = _index;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _index == expected) widget.onIndexChanged?.call(expected);
-    });
+  void _claim() {
+    _claimed = true;
+    recognizer.claim();
   }
 
-  void _reportIndexChanged() {
-    _syncExternalController();
-    widget.onIndexChanged?.call(_index);
+  void _rebase() {
+    _tracker = VelocityTracker.withKind(_kind);
+    if (_points.isEmpty) return;
+    _lastFocal = _focal;
+    if (_points.length >= 2) _rebaseMulti(_focal, _span, _angle);
   }
 
-  Future<void> _animateToIndex(int requested, {int? direction}) {
-    final target = _normalizeIndex(requested);
-    if (target == null || target == _index) {
-      if (target != null) _jumpToIndex(target);
-      return Future<void>.value();
+  void _rebaseMulti(Offset focal, double span, double angle) {
+    final item = _active;
+    _f0 = _toActive(focal);
+    _span0 = span;
+    _lastAngle = angle;
+    _turn = 0;
+    _rawScale0 = _unresist(item.scale);
+    _s0 = item.scale;
+    _r0 = item.rotation;
+    _o0 = item.offset;
+  }
+
+  void _move(PointerMoveEvent event) {
+    if (!_points.containsKey(event.pointer)) return;
+    _points[event.pointer] = event.localPosition;
+    if (_tapValid && event.pointer == _tapPointer) {
+      if ((event.localPosition - _downs[event.pointer]!).distance > _slop) _tapValid = false;
     }
-    _panZoomPageDrag = false;
-    _stopCurrentZoomAnimation();
-    _interruptPageAnimation();
-    final pageDirection = direction ?? (target > _index ? 1 : -1);
-    _setPageTarget(target, pageDirection);
-    final extent = _render?.size.width ?? 0;
-    if (extent <= precisionErrorTolerance || elDisableAnimations) {
-      _commitPage(target);
-      return Future<void>.value();
-    }
-    final completer = Completer<void>();
-    _pageCommandCompleter = completer;
-    _startPageAnimation(-pageDirection * extent);
-    return completer.future;
-  }
-
-  Future<void> _goBy(int direction, {required bool animate}) {
-    final target = _adjacentIndex(direction);
-    if (target == null) return Future<void>.value();
-    if (animate) return _animateToIndex(target, direction: direction);
-    _jumpToIndex(target, direction: direction);
-    return Future<void>.value();
-  }
-
-  void _jumpToIndex(int requested, {int? direction}) {
-    final target = _normalizeIndex(requested);
-    _interruptPageAnimation();
-    _pageDirection = direction ?? 0;
-    _panZoomPageDrag = false;
-    if (target == null) {
-      _syncExternalController();
+    if (!_claimed && !_tryClaim(event)) return;
+    _tracker?.addPosition(event.timeStamp, _focal);
+    if (_points.length >= 2) {
+      _updateMulti();
       return;
     }
-    if (target == _index) {
-      final needsRebuild =
-          _pageOffset != 0 || _pageTargetIndex != null || _handoffActive || _directPageDrag || _proxyPageDrag;
-      _stopCurrentZoomAnimation();
-      _setPageOffset(0);
-      _pageTargetIndex = null;
-      _pageDirection = 0;
-      _handoffActive = false;
-      _directPageDrag = false;
-      _proxyPageDrag = false;
-      if (needsRebuild) setState(() {});
-      _syncExternalController();
-      return;
-    }
-    _commitPage(target);
-  }
-
-  Future<void> _animateCurrentTransform(ElZoomTransform transform) {
-    _interruptPageAnimation();
-    _setPageOffset(0);
-    _clearPageTarget();
-    _handoffActive = false;
-    _directPageDrag = false;
-    _proxyPageDrag = false;
-    _panZoomPageDrag = false;
-    final controller = _currentId == null ? null : _zoomControllerFor(_currentId!);
-    if (controller == null) return Future<void>.value();
-    if (elDisableAnimations) {
-      controller.jumpTo(transform);
-      return Future<void>.value();
-    }
-    return controller.animateTo(transform);
-  }
-
-  void _jumpCurrentTransform(ElZoomTransform transform) {
-    _interruptPageAnimation();
-    _setPageOffset(0);
-    _clearPageTarget();
-    _handoffActive = false;
-    _directPageDrag = false;
-    _proxyPageDrag = false;
-    _panZoomPageDrag = false;
-    final id = _currentId;
-    if (id == null) {
-      _syncExternalController();
-      return;
-    }
-    _zoomControllerFor(id).jumpTo(transform);
-  }
-
-  void _stopCurrentZoomAnimation({bool settlePendingTransform = true}) {
-    final id = _currentId;
-    final controller = id == null ? null : _zoomControllers[id];
-    controller?.stopAnimation(settlePendingTransform: settlePendingTransform);
-  }
-
-  void _handleItemTransform(Object id, ElZoomTransform value) {
-    if (id != _currentId) return;
-    // gap 保留在 transient 通道直到手势结清，不能用 jumpTo 打断正在执行的 Scale。
-    widget.controller?._sync(_index, value);
-  }
-
-  void _handlePointerDown(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_pointerCount == 1) {
-      _stopCurrentZoomAnimation(settlePendingTransform: false);
-    } else if (_pageOffset.abs() > precisionErrorTolerance) {
-      _beginHandoff();
+    final focal = _focal;
+    final delta = focal - _lastFocal;
+    _lastFocal = focal;
+    if (_mode == _Mode.vertical) {
+      widget.onVerticalDragUpdate?.call(
+        DragUpdateDetails(
+          globalPosition: event.position,
+          localPosition: event.localPosition,
+          sourceTimeStamp: event.timeStamp,
+          delta: Offset(0, delta.dy),
+          primaryDelta: delta.dy,
+        ),
+      );
+    } else {
+      _panBy(delta);
     }
   }
 
-  void _handleSinglePointerDown(ElEventDetails event) => _stopCurrentZoomAnimation(settlePendingTransform: false);
+  bool get _hasVertical =>
+      widget.onVerticalDragStart != null || widget.onVerticalDragUpdate != null || widget.onVerticalDragEnd != null;
 
-  void _handlePointerTerminal(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_pointerCount != 0 || _directPageDrag) return;
-    if (_handoffActive) {
-      scheduleMicrotask(_finishHandoff);
-    }
-  }
-
-  void _handlePointerCancel(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_pointerCount != 0 || _directPageDrag) return;
-    if (_handoffActive) {
-      scheduleMicrotask(_finishHandoff);
-    }
-  }
-
-  void _handleZoomPointerCountChanged(int pointerCount) {
-    _pointerCount = pointerCount;
-    if (_pointerCount != 0 || _directPageDrag) return;
-    if (_handoffActive) scheduleMicrotask(_finishHandoff);
-  }
-
-  void _handlePageDragStart(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_ids.length < 2 || _pointerCount > 1) return;
-    event.stopPropagation();
-    _takeOverPageAnimation();
-    if (_handoffActive) return;
-    _directPageDrag = true;
-  }
-
-  void _handlePageDragUpdate(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (!_directPageDrag || _handoffActive) return;
-    final consumed = _applyPageDelta(event.remainingLocalDelta.dx);
-    if (consumed != 0) _consumeLocalHorizontal(event, consumed);
-  }
-
-  void _handlePageDragEnd(ElEventDetails event) {
-    if (!_directPageDrag) {
-      _handleProxyDragEnd(event.velocity);
-      return;
-    }
-    _directPageDrag = false;
-    _settlePage(event.velocity.pixelsPerSecond.dx);
-  }
-
-  void _handlePageDragCancel(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-    if (_handoffActive) {
-      _directPageDrag = false;
-      if (_pointerCount == 0) scheduleMicrotask(_finishHandoff);
-      return;
-    }
-    if (!_directPageDrag) {
-      _handleProxyDragCancel();
-      return;
-    }
-    _directPageDrag = false;
-    _animatePageBack();
-  }
-
-  void _handleCrossAxisDragStart(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-  }
-
-  void _handleCrossAxisDragUpdate(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-  }
-
-  void _handleCrossAxisDragEnd(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-  }
-
-  void _handleCrossAxisDragCancel(ElEventDetails event) {
-    _pointerCount = event.pointerCount;
-  }
-
-  void _handlePagePanZoomStart(ElEventDetails event) {
-    _panZoomPageDrag = false;
-  }
-
-  void _handlePagePanZoomUpdate(ElEventDetails event) {
-    if (_ids.length < 2) return;
-    final delta = event.remainingLocalDelta.dx;
-    if (delta == 0) return;
-    _takeOverPageAnimation();
-    if (_handoffActive) return;
-    final consumed = _applyPageDelta(delta);
-    if (consumed == 0) return;
-    _panZoomPageDrag = true;
-    _consumeLocalHorizontal(event, consumed);
-  }
-
-  void _handlePagePanZoomEnd(ElEventDetails event) {
-    if (_handoffActive) {
-      _finishHandoff();
-      return;
-    }
-    if (!_panZoomPageDrag) return;
-    _panZoomPageDrag = false;
-    _settlePage(0);
-  }
-
-  bool _handleProxyDragEnd(Velocity velocity) {
-    if (!_proxyPageDrag) return false;
-    _proxyPageDrag = false;
-    _settlePage(velocity.pixelsPerSecond.dx);
-    return false;
-  }
-
-  void _handleProxyDragCancel() {
-    if (!_proxyPageDrag) return;
-    _proxyPageDrag = false;
-    _animatePageBack();
-  }
-
-  void _handleZoomPanCancel() {
-    _handleProxyDragCancel();
-    if (!_panZoomPageDrag) return;
-    _panZoomPageDrag = false;
-    _beginHandoff();
-  }
-
-  double _applyPageDelta(double delta, {bool allowRollover = true}) {
-    final extent = _render?.size.width ?? 0;
-    if (delta == 0 || extent <= precisionErrorTolerance) return 0;
-    var remaining = delta;
-    var consumed = 0.0;
-    while (remaining.abs() > precisionErrorTolerance) {
-      if (_pageOffset != 0 && remaining.sign != _pageOffset.sign) {
-        if (remaining.abs() < _pageOffset.abs()) {
-          _setPageOffset(_pageOffset + remaining);
-          return consumed + remaining;
-        }
-        final closingDelta = -_pageOffset;
-        consumed += closingDelta;
-        remaining -= closingDelta;
-        _setPageOffset(0);
-        _clearPageTarget();
-        continue;
+  // 单指越过阈值时决定归属：已缩放或翻页未归位时自由平移；未缩放时按起手方向分为翻页与纵向扩展。
+  bool _tryClaim(PointerMoveEvent event) {
+    if (_mode == _Mode.ignored || _points.length != 1) return false;
+    final down = _downs[event.pointer]!;
+    final delta = event.localPosition - down;
+    if (delta.distance <= _slop) return false;
+    if (_canPan || (_page - _anchor).abs() > 1e-6) {
+      _mode = _Mode.pan;
+    } else if (delta.dx.abs() >= delta.dy.abs()) {
+      if (_count < 2) {
+        _mode = _Mode.ignored;
+        return false;
       }
-
-      final direction = remaining < 0 ? 1 : -1;
-      final target = _adjacentIndex(direction);
-      if (target == null) {
-        final fraction = (_pageOffset.abs() / extent).clamp(0.0, 1.0).toDouble();
-        final factor = 0.52 * math.pow(1 - fraction, 2).toDouble();
-        final applied = remaining * factor;
-        final before = _pageOffset;
-        _setPageOffset((_pageOffset + applied).clamp(-extent * 0.5, extent * 0.5).toDouble());
-        return consumed + _pageOffset - before;
+      _mode = _Mode.pan;
+    } else {
+      if (!_hasVertical) {
+        _mode = _Mode.ignored;
+        return false;
       }
-
-      _setPageTarget(target, direction);
-      final boundary = -direction * extent;
-      final boundaryDelta = boundary - _pageOffset;
-      if (remaining.abs() < boundaryDelta.abs()) {
-        _setPageOffset(_pageOffset + remaining);
-        return consumed + remaining;
-      }
-
-      _setPageOffset(boundary);
-      consumed += boundaryDelta;
-      remaining -= boundaryDelta;
-      // Zoom proxy 的 driver 绑定旧页，跨页时不能安全转移；直接翻页与 trackpad
-      // 则在几何完全重合的端点提交，并把同帧余量继续交给下一张。
-      if (!allowRollover) return consumed;
-      _commitPage(target, preserveInteraction: true);
-    }
-    return consumed;
-  }
-
-  void _setPageTarget(int target, int direction) {
-    if (_pageTargetIndex == target && _pageDirection == direction) return;
-    final wasMounted = _mountedIndices().contains(target);
-    _pageTargetIndex = target;
-    _pageDirection = direction;
-    if (!wasMounted) {
-      setState(() {});
-    } else {
-      _render?.notePageOffsetChanged();
-    }
-  }
-
-  void _clearPageTarget() {
-    final target = _pageTargetIndex;
-    if (target == null) return;
-    _pageTargetIndex = null;
-    _pageDirection = 0;
-    if (!_mountedIndices().contains(target)) {
-      setState(() {});
-    } else {
-      _render?.notePageOffsetChanged();
-    }
-  }
-
-  void _consumeLocalHorizontal(ElEventDetails event, double localDelta) {
-    final render = _render;
-    if (render == null) {
-      event.consumePrimaryDelta(Axis.horizontal, localDelta);
-      return;
-    }
-    final start = render.localToGlobal(event.localPosition);
-    final end = render.localToGlobal(event.localPosition + Offset(localDelta, 0));
-    event.consumePrimaryDelta(Axis.horizontal, end.dx - start.dx);
-  }
-
-  void _beginHandoff() {
-    if (_handoffActive) {
-      if (_pageAnimation.isAnimating) _interruptPageAnimation();
-      return;
-    }
-    if (_pageOffset.abs() <= precisionErrorTolerance) return;
-    _interruptPageAnimation();
-    _handoffActive = true;
-    _directPageDrag = false;
-    _proxyPageDrag = false;
-    _panZoomPageDrag = false;
-    final id = _currentId;
-    if (id != null) _zoomControllers[id]?.setTransientTranslation(_pageOffset, 0);
-    _render?.notePageOffsetChanged();
-    setState(() {});
-  }
-
-  void _finishHandoff() {
-    if (!mounted || !_handoffActive || _pointerCount != 0 || _pageAnimation.isAnimating) return;
-    _stopCurrentZoomAnimation();
-    if (_pageOffset.abs() <= precisionErrorTolerance || elDisableAnimations) {
-      _setPageOffset(0);
-      _handoffActive = false;
-      _clearPageTarget();
-      setState(() {});
-      return;
-    }
-    _startPageAnimation(0);
-  }
-
-  void _settlePage(double velocity) {
-    _stopCurrentZoomAnimation();
-    if (_pageOffset.abs() <= precisionErrorTolerance) {
-      _setPageOffset(0);
-      _clearPageTarget();
-      return;
-    }
-    final extent = _render?.size.width ?? 0;
-    final target = _pageTargetIndex;
-    final hasFling = velocity.abs() > _minFlingVelocity;
-    final commitsByVelocity = target != null && hasFling && velocity.sign == _pageOffset.sign;
-    final commitsByDistance = target != null && extent > 0 && _pageOffset.abs() / extent >= _snapThreshold;
-    if (target != null && (commitsByVelocity || (!hasFling && commitsByDistance))) {
-      if (elDisableAnimations) {
-        _commitPage(target);
-      } else {
-        _startPageAnimation(-_pageDirection * extent, velocity: velocity);
-      }
-    } else {
-      _animatePageBack(velocity);
-    }
-  }
-
-  void _animatePageBack([double velocity = 0]) {
-    _stopCurrentZoomAnimation();
-    if (_pageOffset == 0) {
-      _clearPageTarget();
-    } else if (elDisableAnimations) {
-      _setPageOffset(0);
-      _clearPageTarget();
-    } else {
-      _startPageAnimation(0, velocity: velocity);
-    }
-  }
-
-  void _startPageAnimation(double target, {double velocity = 0}) {
-    _interruptPageAnimation(completeCommand: false);
-    _animationTo = target;
-    final displacement = _pageOffset - target;
-    final crossingVelocity = -math.sqrt(_pageSpring.stiffness / _pageSpring.mass) * displacement;
-    final springVelocity = displacement.abs() <= precisionErrorTolerance
-        ? 0.0
-        : displacement > 0
-        ? math.max(velocity, crossingVelocity)
-        : math.min(velocity, crossingVelocity);
-    _pageAnimation.animateWith(
-      SpringSimulation(
-        _pageSpring,
-        _pageOffset,
-        target,
-        springVelocity,
-        snapToEnd: true,
-        tolerance: _pageSpringTolerance,
-      ),
-    );
-  }
-
-  /// 在真实拖动成立时接管分页动画，并把 handoff 的内部平移无跳变地还原到页壳。
-  bool _takeOverPageAnimation() {
-    if (!_pageAnimation.isAnimating) return false;
-    _interruptPageAnimation();
-    if (_handoffActive) {
-      final id = _currentId;
-      if (id != null) _zoomControllers[id]?.setTransientTranslation(0, 0);
-      _handoffActive = false;
-      _render?.notePageOffsetChanged();
-      setState(() {});
-    }
-    return true;
-  }
-
-  void _handlePageAnimationTick() => _setPageOffset(_pageAnimation.value);
-
-  void _handlePageAnimationStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed) return;
-    _setPageOffset(_animationTo);
-    final target = _pageTargetIndex;
-    if (_animationTo != 0 && target != null) {
-      _commitPage(target);
-    } else {
-      _setPageOffset(0);
-      _clearPageTarget();
-      if (_handoffActive) {
-        _handoffActive = false;
-        setState(() {});
-      }
-    }
-    _completePageCommand();
-  }
-
-  void _interruptPageAnimation({bool completeCommand = true}) {
-    _pageAnimation.stop();
-    if (completeCommand) _completePageCommand();
-  }
-
-  void _completePageCommand() {
-    final completer = _pageCommandCompleter;
-    _pageCommandCompleter = null;
-    if (completer != null && !completer.isCompleted) completer.complete();
-  }
-
-  void _handleViewportWidthChanged() {
-    if (_viewportResetScheduled ||
-        (_pageOffset == 0 && _pageTargetIndex == null && !_handoffActive && !_pageAnimation.isAnimating)) {
-      return;
-    }
-    _viewportResetScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _viewportResetScheduled = false;
-      if (!mounted) return;
-      _interruptPageAnimation();
-      _setPageOffset(0);
-      _pageTargetIndex = null;
-      _pageDirection = 0;
-      _handoffActive = false;
-      _directPageDrag = false;
-      _proxyPageDrag = false;
-      _panZoomPageDrag = false;
-      setState(() {});
-    });
-  }
-
-  void _setPageOffset(double value) {
-    if (_pageOffset == value) return;
-    _pageOffset = value.abs() <= precisionErrorTolerance ? 0 : value;
-    final id = _currentId;
-    if (_handoffActive && id != null) _zoomControllers[id]?.setTransientTranslation(_pageOffset, 0);
-    _render?.notePageOffsetChanged();
-  }
-
-  void _commitPage(int target, {bool preserveInteraction = false}) {
-    final normalized = _normalizeIndex(target);
-    if (normalized == null) return;
-    _stopCurrentZoomAnimation();
-    final oldIndex = _index;
-    final adjacent =
-        (normalized - oldIndex).abs() == 1 ||
-        (widget.loop && _pageDirection != 0 && _adjacentIndex(_pageDirection) == normalized);
-    if (!adjacent) {
-      _deferredPreloadFirst = math.max(0, oldIndex - widget.preloadCount);
-      _deferredPreloadLast = math.min(_ids.length - 1, oldIndex + widget.preloadCount);
-    } else {
-      _deferredPreloadFirst = null;
-      _deferredPreloadLast = null;
-    }
-    final oldId = _currentId;
-    if (oldId != null) _zoomControllers[oldId]?.setTransientTranslation(0, 0);
-    _index = normalized;
-    _currentId = _ids[_index];
-    _setPageOffset(0);
-    _pageTargetIndex = null;
-    _pageDirection = 0;
-    _handoffActive = false;
-    if (!preserveInteraction) {
-      _directPageDrag = false;
-      _proxyPageDrag = false;
-      _panZoomPageDrag = false;
-    }
-    if (!widget.preserveItemTransform && oldId != null && oldId != _currentId) {
-      _zoomControllers[oldId]?.jumpTo(const ElZoomTransform());
-    }
-    setState(() {});
-    if (oldIndex == _index) {
-      _syncExternalController();
-    } else {
-      _reportIndexChanged();
-    }
-  }
-
-  ElSemantics get _semantics {
-    final next = _adjacentIndex(1);
-    final previous = _adjacentIndex(-1);
-    return ElSemantics(
-      container: true,
-      explicitChildNodes: true,
-      properties: SemanticsProperties(
-        value: _ids.isEmpty ? null : '${_index + 1} / ${_ids.length}',
-        increasedValue: next == null ? null : '${next + 1} / ${_ids.length}',
-        decreasedValue: previous == null ? null : '${previous + 1} / ${_ids.length}',
-        onIncrease: next == null ? null : () => unawaited(_goBy(1, animate: true)),
-        onDecrease: previous == null ? null : () => unawaited(_goBy(-1, animate: true)),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final indices = _mountedIndices();
-    if (_deferredPreloadFirst != null && !_preloadRestoreScheduled) {
-      _preloadRestoreScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _preloadRestoreScheduled = false;
-        if (!mounted) return;
-        _deferredPreloadFirst = null;
-        _deferredPreloadLast = null;
-        setState(() {});
-      });
-    }
-    final mountedIds = <Object>{for (final index in indices) _ids[index]};
-    _retainOnly(mountedIds);
-    final pages = <Widget>[];
-    for (final index in indices) {
-      final id = _ids[index];
-      final active = index == _index;
-      final controller = _zoomControllerFor(id);
-      pages.add(
-        _PreviewPage(
-          key: ValueKey<Object>(id),
-          child: ElView(
-            focusNode: active ? null : _blockerNodeFor(id),
-            semantics: active ? null : ElSemantics(exclude: true, blockUserActions: true),
-            child: IgnorePointer(
-              ignoring: !active,
-              child: ElZoomView(
-                controller: controller,
-                minScale: widget.minScale,
-                maxScale: widget.maxScale,
-                doubleTapScale: widget.doubleTapScale,
-                scaleSensitivity: widget.scaleSensitivity,
-                enableRotation: widget.enableRotation,
-                panInertia: widget.panInertia,
-                scaleInertia: widget.scaleInertia,
-                mouseWheelZoom: widget.mouseWheelZoom,
-                mouseDragPan: widget.mouseDragPan,
-                wheelScaleSensitivity: widget.wheelScaleSensitivity,
-                elasticScaleBounds: true,
-                lockScaleRotationIntent: true,
-                constrained: widget.constrained,
-                alignment: widget.alignment,
-                clipBehavior: widget.clipBehavior,
-                interactionEnabled: active,
-                onPanEnd: active ? _handleProxyDragEnd : null,
-                onPanCancel: active ? _handleZoomPanCancel : null,
-                onPointerCountChanged: active ? _handleZoomPointerCountChanged : null,
-                onTransformChanged: active && (widget.controller != null || _handoffActive)
-                    ? (value) => _handleItemTransform(id, value)
-                    : null,
-                child: _itemAt(context, index),
-              ),
-            ),
-          ),
+      _mode = _Mode.vertical;
+      widget.onVerticalDragStart?.call(
+        DragStartDetails(
+          globalPosition: event.position - delta,
+          localPosition: down,
+          sourceTimeStamp: event.timeStamp,
+          kind: event.kind,
         ),
       );
     }
-    final previewEvent = switch (_ids.length) {
-      0 => null,
-      1 => ElEvent(onPointerDown: _handleSinglePointerDown),
-      _ => ElEvent(
-        dragDevices: widget.mouseDragPan ? null : _nonMouseDragDevices,
-        onPointerDown: _handlePointerDown,
-        onPointerUp: _handlePointerTerminal,
-        onPointerCancel: _handlePointerCancel,
-        onHorizontalDragStart: _handlePageDragStart,
-        onHorizontalDragUpdate: _handlePageDragUpdate,
-        onHorizontalDragEnd: _handlePageDragEnd,
-        onHorizontalDragCancel: _handlePageDragCancel,
-        onVerticalDragStart: widget.strictPageDragIntent ? _handleCrossAxisDragStart : null,
-        onVerticalDragUpdate: widget.strictPageDragIntent ? _handleCrossAxisDragUpdate : null,
-        onVerticalDragEnd: widget.strictPageDragIntent ? _handleCrossAxisDragEnd : null,
-        onVerticalDragCancel: widget.strictPageDragIntent ? _handleCrossAxisDragCancel : null,
-        onPointerPanZoomStart: _handlePagePanZoomStart,
-        onPointerPanZoomUpdate: _handlePagePanZoomUpdate,
-        onPointerPanZoomEnd: _handlePagePanZoomEnd,
-      ),
-    };
-    return ElView(
-      event: previewEvent,
-      semantics: _semantics,
-      child: _PreviewViewport(state: this, indices: indices, clipBehavior: widget.clipBehavior, children: pages),
-    );
-  }
-}
-
-class _PreviewViewport extends MultiChildRenderObjectWidget {
-  const _PreviewViewport({
-    required this.state,
-    required this.indices,
-    required this.clipBehavior,
-    required super.children,
-  });
-
-  final _PreviewViewState state;
-  final List<int> indices;
-  final Clip clipBehavior;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) => _RenderPreviewViewport(state, indices, clipBehavior);
-
-  @override
-  void updateRenderObject(BuildContext context, _RenderPreviewViewport renderObject) {
-    renderObject
-      ..indices = indices
-      ..clipBehavior = clipBehavior;
-  }
-}
-
-class _PreviewParentData extends ContainerBoxParentData<RenderBox> {}
-
-class _RenderPreviewViewport extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, _PreviewParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _PreviewParentData> {
-  _RenderPreviewViewport(this._state, this._indices, this._clipBehavior) {
-    _state._render = this;
+    _claim();
+    return true;
   }
 
-  final _PreviewViewState _state;
-  List<int> _indices;
-  Clip _clipBehavior;
-  final LayerHandle<ClipRectLayer> _clipLayer = LayerHandle<ClipRectLayer>();
-  late final PaintingContextCallback _paintPagesCallback = _paintPages;
-  Rect _viewportRect = Rect.zero;
-
-  set indices(List<int> value) {
-    if (listEquals(_indices, value)) return;
-    _indices = value;
-    markNeedsLayout();
-  }
-
-  set clipBehavior(Clip value) {
-    if (_clipBehavior == value) return;
-    _clipBehavior = value;
-    markNeedsPaint();
-    markNeedsSemanticsUpdate();
-  }
-
-  @override
-  bool get isRepaintBoundary => true;
-
-  void notePageOffsetChanged() {
-    markNeedsPaint();
-    markNeedsSemanticsUpdate();
-  }
-
-  @override
-  void setupParentData(RenderBox child) {
-    if (child.parentData is! _PreviewParentData) child.parentData = _PreviewParentData();
-  }
-
-  @override
-  Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
-
-  @override
-  void performLayout() {
-    if (!constraints.hasBoundedWidth || !constraints.hasBoundedHeight) {
-      throw FlutterError('ElPreviewView 的视口必须同时具有有限宽高。');
-    }
-    final previousWidth = hasSize ? size.width : 0.0;
-    size = constraints.biggest;
-    _viewportRect = Offset.zero & size;
-    final childConstraints = BoxConstraints.tight(size);
-    var child = firstChild;
-    while (child != null) {
-      child.layout(childConstraints);
-      child = (child.parentData! as _PreviewParentData).nextSibling;
-    }
-    if (previousWidth > precisionErrorTolerance && previousWidth != size.width) {
-      _state._handleViewportWidthChanged();
-    }
-  }
-
-  double _originFor(int index) {
-    if (index == _state._index) return _state._handoffActive ? 0 : _state._pageOffset;
-    if (index == _state._pageTargetIndex) {
-      return _state._pageDirection * size.width + _state._pageOffset;
-    }
-    var delta = index - _state._index;
-    if (_state.widget.loop && _state._ids.length > 1) {
-      final forward = delta % _state._ids.length;
-      final backward = forward - _state._ids.length;
-      delta = backward.abs() < forward.abs() ? backward : forward;
-    }
-    return delta * size.width + _state._pageOffset;
-  }
-
-  RenderBox? get _currentChild {
-    var slot = 0;
-    var child = firstChild;
-    while (child != null) {
-      if (_indices[slot] == _state._index) return child;
-      child = (child.parentData! as _PreviewParentData).nextSibling;
-      slot++;
-    }
-    return null;
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    final child = _currentChild;
-    if (child == null) return false;
-    final offset = Offset(_originFor(_state._index), 0);
-    return result.addWithPaintOffset(
-      offset: offset,
-      position: position,
-      hitTest: (result, transformed) => child.hitTest(result, position: transformed),
-    );
-  }
-
-  @override
-  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
-    final child = _currentChild;
-    if (child != null) visitor(child);
-  }
-
-  @override
-  void applyPaintTransform(RenderBox child, Matrix4 transform) {
-    var slot = 0;
-    var current = firstChild;
-    while (current != null && !identical(current, child)) {
-      current = (current.parentData! as _PreviewParentData).nextSibling;
-      slot++;
-    }
-    if (current != null) transform.translateByDouble(_originFor(_indices[slot]), 0, 0, 1);
-  }
-
-  @override
-  Rect? describeApproximatePaintClip(RenderObject child) => _clipBehavior == Clip.none ? null : _viewportRect;
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (childCount == 0 || size.isEmpty) {
-      _clipLayer.layer = null;
+  void _updateMulti() {
+    final span = _span;
+    final angle = _angle;
+    if (_span0 <= 1) {
+      _rebaseMulti(_focal, span, angle);
       return;
     }
-    if (_clipBehavior == Clip.none) {
-      _clipLayer.layer = null;
-      _paintPages(context, offset);
-      return;
-    }
-    _clipLayer.layer = context.pushClipRect(
-      needsCompositing,
-      offset,
-      _viewportRect,
-      _paintPagesCallback,
-      clipBehavior: _clipBehavior,
-      oldLayer: _clipLayer.layer,
-    );
-  }
-
-  void _paintPages(PaintingContext context, Offset offset) {
-    var slot = 0;
-    var child = firstChild;
-    while (child != null) {
-      final index = _indices[slot++];
-      final target = _state._pageTargetIndex;
-      if ((!_state._handoffActive || index == _state._index || index == target) &&
-          (target == null || index == _state._index || index == target)) {
-        final dx = _originFor(index);
-        if (dx < size.width && dx + size.width > 0) {
-          context.paintChild(child, Offset(offset.dx + dx, offset.dy));
-        }
+    _turn += _angleDelta(angle, _lastAngle);
+    _lastAngle = angle;
+    if (_rotating == null) {
+      if (!widget.enableRotation) {
+        _rotating = false;
+      } else if (_turn.abs() * _span0 > _slop) {
+        // 旋转从判定这一刻开始，不补回阈值内的角度，避免跳变。
+        _rotating = true;
+        _rebaseMulti(_focal, span, angle);
+      } else if ((span - _span0).abs() > _slop) {
+        _rotating = false;
       }
-      child = (child.parentData! as _PreviewParentData).nextSibling;
+    }
+    final scale = _resist(_rawScale0 * span / _span0);
+    final rotation = _rotating == true ? _r0 + _turn : _r0;
+    final c = _center;
+    final local = _rotate(_f0 - c - _o0, -_r0) / _s0;
+    _setTransform(scale, rotation, _toActive(_focal) - c - _rotate(local, rotation) * scale);
+  }
+
+  // 单指位移分配：翻页偏离时先收回，其次平移当前项，到边缘后的余量进入翻页。
+  // 一旦翻页偏离当前项就只做横向移动，纵向位移不再平移图片，收回到当前项后才恢复自由平移。
+  void _panBy(Offset delta) {
+    final stride = _stride;
+    if (stride <= 0) return;
+    final item = _active;
+    final range = _range(item.scale, item.rotation);
+    final displacedBefore = (_page - _anchor).abs() > 1e-6;
+    var rest = delta.dx;
+    var x = item.offset.dx;
+    final displacement = (_page - _anchor) * stride;
+    if (displacement.abs() > 1e-6 && rest != 0 && (rest > 0) == (displacement > 0)) {
+      final closing = rest.sign * math.min(rest.abs(), displacement.abs());
+      final next = _page - closing / stride;
+      _setPage(((next - _anchor) * stride).abs() < 0.01 ? _anchor.toDouble() : next);
+      rest -= closing;
+    }
+    if (rest != 0 && (_page - _anchor).abs() <= 1e-6) {
+      final (next, overflow) = _axisPan(x, rest, range.dx);
+      x = next;
+      rest = overflow;
+    }
+    final paging = displacedBefore || rest.abs() > 1e-6;
+    final y = paging ? item.offset.dy : _axisPan(item.offset.dy, delta.dy, range.dy).$1;
+    if (x != item.offset.dx || y != item.offset.dy) _setTransform(item.scale, item.rotation, Offset(x, y));
+    if (rest.abs() > 1e-6) _movePage(-rest / stride);
+  }
+
+  static (double, double) _axisPan(double value, double delta, double range) {
+    if (delta > 0) {
+      if (value >= range) return (value, delta);
+      final room = range - value;
+      return delta <= room ? (value + delta, 0) : (range, delta - room);
+    }
+    if (delta < 0) {
+      if (value <= -range) return (value, delta);
+      final room = -range - value;
+      return delta >= room ? (value + delta, 0) : (-range, delta - room);
+    }
+    return (value, 0);
+  }
+
+  void _movePage(double delta) {
+    final last = (_count - 1).toDouble();
+    final page = _page;
+    var next = page + delta;
+    if (delta < 0 && next < 0) {
+      final rest = delta + math.max(0.0, page);
+      final current = math.min(page, 0.0);
+      next = math.max(-0.5, current + rest * _edgeFactor(-current));
+    } else if (delta > 0 && next > last) {
+      final rest = delta - math.max(0.0, last - page);
+      final current = math.max(page, last);
+      next = math.min(last + 0.5, current + rest * _edgeFactor(current - last));
+    }
+    _setPage(next);
+    while (_page - _anchor >= 1 - 1e-9 && _anchor < _count - 1) {
+      _setAnchor(_anchor + 1);
+    }
+    while (_page - _anchor <= -1 + 1e-9 && _anchor > 0) {
+      _setAnchor(_anchor - 1);
     }
   }
 
-  @override
-  void dispose() {
-    if (identical(_state._render, this)) _state._render = null;
-    _clipLayer.layer = null;
-    super.dispose();
+  static double _edgeFactor(double overscroll) => 0.52 * math.pow(1 - (overscroll / 0.5).clamp(0.0, 1.0), 2);
+
+  void _up(PointerUpEvent event) {
+    if (!_points.containsKey(event.pointer)) return;
+    final tap = _tapValid && event.pointer == _tapPointer && !_claimed && _points.length == 1;
+    if (tap) {
+      _tapValid = false;
+      if (_accepted.contains(event.pointer)) {
+        _commitTap(event.localPosition);
+      } else {
+        _pendingTapPointer = event.pointer;
+        _pendingTapPosition = event.localPosition;
+      }
+    }
+    _removePointer(event.pointer, canceled: false);
+  }
+
+  void _removePointer(int pointer, {required bool canceled}) {
+    if (_points.remove(pointer) == null) return;
+    _downs.remove(pointer);
+    if (pointer == _tapPointer) _tapValid = _tapValid && !canceled;
+    if (_points.isEmpty) {
+      _finish(canceled: canceled);
+      return;
+    }
+    if (_points.length == 1) _rotating = null;
+    _rebase();
+  }
+
+  void _finish({required bool canceled}) {
+    final claimed = _claimed;
+    var velocity = Velocity.zero;
+    if (claimed && !canceled) velocity = _tracker?.getVelocity() ?? Velocity.zero;
+    velocity = velocity.clampMagnitude(0, kMaxFlingVelocity);
+    if (_mode == _Mode.vertical) _endVertical(velocity);
+    _claimed = false;
+    _mode = _Mode.idle;
+    _rotating = null;
+    _tracker = null;
+    // 捏合时启动的翻页吸附仍在进行，让它自然完成。
+    if (_frame != null) return;
+    _settle(claimed ? velocity.pixelsPerSecond : Offset.zero);
+  }
+
+  void _endVertical(Velocity velocity) {
+    _mode = _Mode.pan;
+    final dy = velocity.pixelsPerSecond.dy;
+    widget.onVerticalDragEnd?.call(
+      DragEndDetails(
+        velocity: Velocity(pixelsPerSecond: Offset(0, dy)),
+        primaryVelocity: dy,
+      ),
+    );
+  }
+
+  // ───────────────────────── 点击、滚轮与触控板 ─────────────────────────
+
+  void _commitTap(Offset position) {
+    if (!widget.enableDoubleTap) {
+      widget.onTap?.call();
+      return;
+    }
+    final timer = _doubleTapTimer;
+    if (timer != null && timer.isActive && (position - _firstTap).distance <= kDoubleTapSlop) {
+      timer.cancel();
+      _doubleTapTimer = null;
+      _toggleZoom(position);
+      return;
+    }
+    if (timer != null && timer.isActive) {
+      timer.cancel();
+      widget.onTap?.call();
+    }
+    _firstTap = position;
+    _doubleTapTimer = Timer(kDoubleTapTimeout, () {
+      _doubleTapTimer = null;
+      widget.onTap?.call();
+    });
+  }
+
+  void _toggleZoom(Offset position) {
+    if (_isTransformed) {
+      _animateTransform(1, 0, Offset.zero);
+      return;
+    }
+    final scale = widget.doubleTapScale.clamp(1.0, widget.maxScale);
+    _animateTransform(scale, 0, _clampOffset((_toActive(position) - _center) * (1 - scale), scale, 0));
+  }
+
+  void pointerSignal(PointerSignalEvent event) {
+    if (!widget.enableWheelZoom || event is! PointerScrollEvent) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (resolved) {
+      final scroll = resolved as PointerScrollEvent;
+      final factor = math.exp(-scroll.scrollDelta.dy * widget.wheelZoomSensitivity);
+      _stopMotion();
+      _scaleAround(scroll.localPosition, (_active.scale * factor).clamp(1.0, widget.maxScale));
+    });
+  }
+
+  void panZoomStart(PointerPanZoomStartEvent event) {
+    _stopMotion();
+    _kind = event.kind;
+    _claimed = true;
+    _mode = _Mode.pan;
+    _panZoomScale = 1;
+    _tracker = VelocityTracker.withKind(event.kind);
+  }
+
+  void _panZoomUpdate(PointerPanZoomUpdateEvent event) {
+    final ratio = event.scale / _panZoomScale;
+    _panZoomScale = event.scale;
+    if ((ratio - 1).abs() > 1e-6) {
+      _scaleAround(event.localPosition, (_active.scale * ratio).clamp(1.0, widget.maxScale));
+    }
+    if (event.localPanDelta != Offset.zero) _panBy(event.localPanDelta);
+    _tracker?.addPosition(event.timeStamp, event.localPan);
+  }
+
+  void _panZoomEnd() {
+    final velocity = (_tracker?.getVelocity() ?? Velocity.zero).clampMagnitude(0, kMaxFlingVelocity);
+    _claimed = false;
+    _mode = _Mode.idle;
+    _tracker = null;
+    _settle(velocity.pixelsPerSecond);
+  }
+
+  // ───────────────────────── 松手与动画 ─────────────────────────
+
+  static final _spring = SpringDescription.withDampingRatio(mass: 1, stiffness: 400, ratio: 1);
+  static const _pageFlingVelocity = 300.0;
+  static const _transformSeconds = 0.22;
+
+  // 松手：旋转吸附到最近直角、缩放与平移收回范围；翻页未归位时按速度或过半决定目标并弹簧吸附；否则按速度做惯性平移。
+  void _settle(Offset velocity) {
+    if (size.isEmpty || _count <= 0) return;
+    final item = _active;
+    final targetScale = item.scale.clamp(1.0, widget.maxScale);
+    final targetRotation = _snapRotation(item.rotation);
+    final targetOffset = _clampOffset(item.offset * (targetScale / item.scale), targetScale, targetRotation);
+    final needTransform =
+        (targetScale - item.scale).abs() > 1e-4 ||
+        _angleDelta(targetRotation, item.rotation).abs() > 1e-4 ||
+        (targetOffset - item.offset).distance > 0.5;
+    final displacement = _page - _anchor;
+    if (displacement.abs() > 1e-4) {
+      final pageVelocity = -velocity.dx / _stride;
+      var target = _anchor;
+      if (velocity.dx.abs() > _pageFlingVelocity && (pageVelocity > 0) == (displacement > 0)) {
+        target += pageVelocity > 0 ? 1 : -1;
+      } else if (displacement.abs() >= 0.5) {
+        target += displacement > 0 ? 1 : -1;
+      }
+      target = target.clamp(0, _count - 1);
+      final simulation = SpringSimulation(
+        _spring,
+        _page,
+        target.toDouble(),
+        pageVelocity,
+        tolerance: Tolerance(distance: 1e-3, velocity: 1e-2),
+      );
+      final transform = needTransform && target == _anchor
+          ? _transformFrame(targetScale, targetRotation, targetOffset)
+          : null;
+      _startMotion((t) {
+        final pageDone = simulation.isDone(t);
+        if (!pageDone) _setPage(simulation.x(t));
+        final transformRunning = transform?.call(t) ?? false;
+        if (pageDone && !transformRunning) {
+          _settleAt(target);
+          return false;
+        }
+        return true;
+      });
+      return;
+    }
+    if (needTransform) {
+      _animateTransform(targetScale, targetRotation, targetOffset);
+      return;
+    }
+    if (_canPan && velocity.distance > kMinFlingVelocity) {
+      final x = FrictionSimulation(0.135, item.offset.dx, velocity.dx);
+      final y = FrictionSimulation(0.135, item.offset.dy, velocity.dy);
+      _startMotion((t) {
+        _setTransform(item.scale, item.rotation, _clampOffset(Offset(x.x(t), y.x(t)), item.scale, item.rotation));
+        return !(x.isDone(t) && y.isDone(t));
+      });
+    }
+  }
+
+  bool Function(double seconds) _transformFrame(double scale, double rotation, Offset offset) {
+    final item = _active;
+    final fromScale = item.scale;
+    final fromRotation = item.rotation;
+    final fromOffset = item.offset;
+    final turn = _angleDelta(rotation, fromRotation);
+    return (t) {
+      final k = Curves.easeOutCubic.transform((t / _transformSeconds).clamp(0.0, 1.0));
+      _setTransform(fromScale + (scale - fromScale) * k, fromRotation + turn * k, Offset.lerp(fromOffset, offset, k)!);
+      return k < 1;
+    };
+  }
+
+  void _animateTransform(double scale, double rotation, Offset offset) =>
+      _startMotion(_transformFrame(scale, rotation, offset));
+
+  void jumpToPage(int index) {
+    if (_count <= 0) return;
+    _stopMotion();
+    _settleAt(index.clamp(0, _count - 1));
+    _items.clear();
+    changed.notify();
+  }
+
+  Future<void> animateToPage(int index, Duration duration, Curve curve) {
+    if (_count <= 0) return Future.value();
+    _stopMotion();
+    final target = index.clamp(0, _count - 1);
+    final from = _page;
+    final seconds = duration.inMicroseconds / Duration.microsecondsPerSecond;
+    final completer = _pageAnimation = Completer<void>();
+    _startMotion((t) {
+      final k = seconds <= 0 ? 1.0 : curve.transform((t / seconds).clamp(0.0, 1.0));
+      if (k < 1) {
+        _setPage(from + (target - from) * k);
+        return true;
+      }
+      _settleAt(target);
+      return false;
+    });
+    return completer.future;
+  }
+
+  void resetTransform({required bool animate}) {
+    if (animate) {
+      _animateTransform(1, 0, Offset.zero);
+    } else {
+      _stopMotion();
+      _setTransform(1, 0, Offset.zero);
+    }
+  }
+
+  void _startMotion(bool Function(double seconds) frame) {
+    _stopMotion();
+    _frame = frame;
+    _ticker.start();
+  }
+
+  void _stopMotion() {
+    _frame = null;
+    if (_ticker.isActive) _ticker.stop();
+    final completer = _pageAnimation;
+    _pageAnimation = null;
+    if (completer != null && !completer.isCompleted) completer.complete();
+  }
+
+  void _tick(Duration elapsed) {
+    final frame = _frame;
+    if (frame == null) return;
+    // 帧回调里可能触发 onIndexChanged，上层若借机启动新动画，不能被这里误停。
+    if (!frame(elapsed.inMicroseconds / Duration.microsecondsPerSecond) && identical(_frame, frame)) _stopMotion();
   }
 }
 
-class _PreviewPage extends SingleChildRenderObjectWidget {
-  const _PreviewPage({super.key, required super.child});
+/// 竞技场里的唯一成员：只负责声明手势归属，原始指针交给引擎处理。
+final class _PreviewRecognizer extends OneSequenceGestureRecognizer {
+  _PreviewRecognizer(this._engine);
+
+  final _PreviewEngine _engine;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderPreviewPage();
-}
+  bool isPointerAllowed(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.mouse && event.buttons != kPrimaryButton) return false;
+    return super.isPointerAllowed(event);
+  }
 
-class _RenderPreviewPage extends RenderProxyBox {
   @override
-  bool get isRepaintBoundary => true;
+  void addAllowedPointer(PointerDownEvent event) {
+    startTrackingPointer(event.pointer, event.transform);
+    _engine.down(event);
+  }
+
+  @override
+  void addAllowedPointerPanZoom(PointerPanZoomStartEvent event) {
+    startTrackingPointer(event.pointer, event.transform);
+    resolvePointer(event.pointer, GestureDisposition.accepted);
+    _engine.panZoomStart(event);
+  }
+
+  /// 接受当前跟踪的全部指针。
+  void claim() => resolve(GestureDisposition.accepted);
+
+  @override
+  void handleEvent(PointerEvent event) {
+    _engine.handle(event);
+    stopTrackingIfPointerNoLongerDown(event);
+  }
+
+  @override
+  void acceptGesture(int pointer) => _engine.accept(pointer);
+
+  @override
+  void rejectGesture(int pointer) {
+    stopTrackingPointer(pointer);
+    _engine.reject(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+
+  @override
+  String get debugDescription => 'ElPreviewView';
 }

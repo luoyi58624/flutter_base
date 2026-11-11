@@ -6,7 +6,7 @@ import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Harness {
-  final controller = ElPreview2Controller();
+  final controller = ElPreviewController();
   final indexLog = <int>[];
   final events = <String>[];
   double verticalDistance = 0;
@@ -18,7 +18,7 @@ class _Harness {
       child: SizedBox(
         width: 400,
         height: 400,
-        child: ElPreview2View(
+        child: ElPreviewView(
           itemCount: count,
           controller: controller,
           pageSpacing: spacing,
@@ -42,7 +42,7 @@ Future<_Harness> _pump(WidgetTester tester, {int count = 3, bool vertical = fals
   return harness;
 }
 
-Offset _center(WidgetTester tester) => tester.getCenter(find.byType(ElPreview2View));
+Offset _center(WidgetTester tester) => tester.getCenter(find.byType(ElPreviewView));
 
 Future<void> _doubleTap(WidgetTester tester, Offset position) async {
   await tester.tapAt(position);
@@ -135,7 +135,7 @@ void main() {
 
   testWidgets('组件自己排布相邻项：按翻页位置横向平移并保留间隔', (tester) async {
     final h = await _pump(tester, spacing: 16);
-    final left = tester.getTopLeft(find.byType(ElPreview2View)).dx;
+    final left = tester.getTopLeft(find.byType(ElPreviewView)).dx;
     final gesture = await tester.startGesture(_center(tester));
     // 步长为 400 + 16，拖动 208 正好半页。
     await gesture.moveBy(Offset(-20, 0));

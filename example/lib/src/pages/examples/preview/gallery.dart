@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 基于 ElPreview2View 二次包装的图片画廊：接收图片数组，自定义计数栏、单击切换外观与下拉关闭。
+/// 基于 ElPreviewView 二次包装的图片画廊：接收图片数组，自定义计数栏、单击切换外观与下拉关闭。
 class ImageGallery extends HookWidget {
   /// 创建画廊，[initialIndex] 为打开时显示的图片。
   const ImageGallery({super.key, required this.images, this.initialIndex = 0});
@@ -26,7 +26,7 @@ class ImageGallery extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = useMemoized(() => ElPreview2Controller(initialIndex: initialIndex));
+    final controller = useMemoized(() => ElPreviewController(initialIndex: initialIndex));
     useEffect(() => controller.dispose, [controller]);
     final index = useListenableSelector(controller, () => controller.index);
     final chrome = useState(true);
@@ -42,7 +42,7 @@ class ImageGallery extends HookWidget {
 
     void close() => Navigator.of(context).maybePop();
 
-    final preview = ElPreview2View(
+    final preview = ElPreviewView(
       controller: controller,
       itemCount: images.length,
       itemBuilder: (context, index) => Image.asset(images[index], fit: .contain),

@@ -120,43 +120,59 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('Zoom 重挂保留变换，动画和点击命中继续使用相同 RenderObject', (tester) async {
+  testWidgets('Preview 重挂保留缩放与平移，还原动画和点击命中继续使用相同 RenderObject', (tester) async {
     final move = GlobalKey<ReparentHarnessState>();
     final content = GlobalKey();
-    final controller = ElZoomController();
+    final controller = ElPreviewController();
     var taps = 0;
     await tester.pumpWidget(
       lifecycleHost(
         ReparentHarness(
           key: move,
-          child: ElZoomView(
+          child: ElPreviewView(
             controller: controller,
-            child: ElView(
-              key: content,
-              event: ElEvent(onTap: (_) => taps++),
-              child: 'zoom',
-            ),
+            itemCount: 1,
+            doubleTapScale: 2,
+            onTap: () => taps++,
+            itemBuilder: (_, _) => ElView(key: content, child: 'preview'),
           ),
         ),
       ),
     );
-    await tester.pumpAndSettle();
-    controller.jumpTo(ElZoomTransform(scale: 2));
-    await tester.pumpAndSettle();
+
+    Future<void> zoomAndPan() async {
+      final center = tester.getCenter(find.byType(ElPreviewView));
+      await tester.tapAt(center);
+      await tester.pump(Duration(milliseconds: 50));
+      await tester.tapAt(center);
+      await tester.pumpAndSettle();
+      expect(controller.scale, 2);
+      final gesture = await tester.startGesture(center);
+      await gesture.moveBy(Offset(40, 20), timeStamp: Duration(milliseconds: 16));
+      await gesture.moveBy(Offset(20, 20), timeStamp: Duration(milliseconds: 32));
+      await gesture.moveBy(Offset.zero, timeStamp: Duration(milliseconds: 400));
+      await gesture.up(timeStamp: Duration(milliseconds: 416));
+      await tester.pumpAndSettle();
+      expect(controller.translation, isNot(Offset.zero));
+    }
+
+    await zoomAndPan();
     final render = tester.renderObject<RenderBox>(find.byKey(content));
     for (var i = 0; i < 3; i++) {
+      final translation = controller.translation;
       await reparent(tester, move);
-      expect(controller.value.scale, 2);
+      expect(controller.scale, 2);
+      expect(controller.translation, translation);
       expect(tester.renderObject(find.byKey(content)), same(render));
       await tester.tapAt(Offset(400, 300));
+      await tester.pump(Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(taps, i + 1);
-      final future = controller.animateTo(ElZoomTransform(scale: 3));
+      controller.resetTransform();
       await tester.pumpAndSettle();
-      await future;
-      expect(controller.value.scale, closeTo(3, .001));
-      controller.jumpTo(ElZoomTransform(scale: 2));
-      await tester.pumpAndSettle();
+      expect(controller.scale, 1);
+      expect(controller.translation, Offset.zero);
+      await zoomAndPan();
     }
     await tester.pumpWidget(ElView());
     controller.dispose();

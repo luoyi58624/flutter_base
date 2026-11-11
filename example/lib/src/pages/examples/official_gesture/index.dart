@@ -42,7 +42,11 @@ class OfficialZoomPagerPage extends HookWidget {
         children: [
           Positioned.fill(
             child: useCurrent.value
-                ? ElPreviewView(key: ValueKey('current-preview'), children: images)
+                ? ElPreviewView(
+                    key: ValueKey('current-preview'),
+                    itemCount: images.length,
+                    itemBuilder: (_, index) => images[index],
+                  )
                 : PageView(
                     key: ValueKey('official-pager'),
                     controller: controller,
@@ -57,7 +61,7 @@ class OfficialZoomPagerPage extends HookWidget {
               child: Text(
                 [
                   if (!useCurrent.value) '${page + 1} / ${images.length}',
-                  useCurrent.value ? '当前实现：ElView 事件层台账分账' : '官方识别器 + ScrollPosition.drag 交接',
+                  useCurrent.value ? '当前实现：缩放、平移与翻页连续交接' : '官方识别器 + ScrollPosition.drag 交接',
                   '双击或双指放大，放大后拖到边缘继续翻页，不松手反向可收回',
                 ].join('\n'),
                 textAlign: .center,

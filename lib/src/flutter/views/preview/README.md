@@ -1,64 +1,48 @@
 # Preview
 
-多页内容预览，每页包含缩放、平移和旋转。导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
+任意内容的多指缩放、旋转、平移与横向翻页。放大后的内容移动到边缘，继续拖动即可进入相邻项；外层提供有限视口，计数栏、关闭按钮等外观由上层组合。
 
-## 固定页面与翻页
+导入 `package:flutter/material.dart` 和 `package:flutter_base/flutter_base.dart`。
 
 ```dart
 final controller = ElPreviewController(initialIndex: 0);
+final items = ['第一项', '第二项'];
+
 SizedBox(
-  width: 320, height: 240,
+  width: 320,
+  height: 240,
   child: ElPreviewView(
     controller: controller,
-    loop: true,
-    children: [FlutterLogo(size: 100), Text('第二页')],
-    onIndexChanged: (index) => debugPrint('当前页：$index'),
+    itemCount: items.length,
+    itemBuilder: (_, index) => Center(child: Text(items[index])),
   ),
 );
-ElButtonView(onPressed: () => controller.next(), child: '下一页');
-ElButtonView(onPressed: () => controller.resetCurrent(), child: '还原当前页');
+
+controller.animateToPage(1);
+controller.resetTransform();
 ```
 
-外部 controller 在生命周期内持有并 dispose；省略时用 initialIndex 初始化内部状态。外层提供有限视口。
-
-## 大数据、预加载与页面状态
-
-```dart
-final ids = ['image-a', 'image-b', 'image-c'];
-SizedBox(
-  width: 320, height: 240,
-  child: ElPreviewView.builder(
-    itemCount: ids.length,
-    itemIdBuilder: (index) => ids[index],
-    itemBuilder: (_, index) => Text(ids[index]),
-    preloadCount: 1,
-    preserveItemTransform: true,
-    transformCacheCapacity: 32,
-  ),
-);
-```
+外部控制器在组件生命周期内持有并 `dispose`；省略控制器时由预览组件自行创建和释放。
 
 | 参数 | 说明 |
 | --- | --- |
-| itemIdBuilder | 重排、插入或删除时提供唯一稳定身份，避免按旧索引套用缩放状态 |
-| preloadCount | 当前页两侧预挂载页数，默认 1 |
-| preserveItemTransform | 默认 false；开启后切页保留各页变换 |
-| transformCacheCapacity | 卸载页变换缓存数量上限，默认 32 |
-| loop | 默认 false；开启首尾循环 |
-| constrained / alignment / clipBehavior | 内容尺寸、基位与裁剪，语义同 Zoom |
-| strictPageDragIntent | 收紧分页拖动意图判定，用于减少误翻页 |
+| itemCount / itemBuilder | 项目数量与内容构建，内容按视口尺寸布局 |
+| pageSpacing | 相邻项间距，默认 16 |
+| maxScale / doubleTapScale | 最大缩放与双击目标，默认 4 / 2.5 |
+| enableRotation | 是否允许双指旋转，默认 true |
+| enableDoubleTap | 是否启用双击放大或还原，默认 true |
+| enableWheelZoom / wheelZoomSensitivity | 鼠标滚轮缩放，默认启用，敏感度 0.002 |
+| onTap | 单击回调；启用双击后等待双击判定窗口结束 |
+| onIndexChanged | 当前项切换回调 |
+| onVerticalDragStart / Update / End | 未缩放时的纵向拖动，可用于上层下拉关闭；未声明时留给祖先处理 |
+| clipBehavior | 视口裁剪，默认 Clip.hardEdge |
 
-## 缩放与控制器
-
-minScale / maxScale / doubleTapScale 默认 1 / 6 / 2，enableRotation 默认 true，mouseWheelZoom 默认 true；scaleSensitivity、wheelScaleSensitivity 调整增益，panInertia / scaleInertia、mouseDragPan 控制惯性及鼠标拖动。与单内容 [Zoom](../zoom/README.md) 的部分默认值不同。
+两指先越过旋转阈值时允许旋转并缩放，先越过缩放阈值时锁定旋转；松手后旋转吸附到最近直角。
 
 | ElPreviewController API | 用途 |
 | --- | --- |
-| index / currentTransform / isPageSettled | 当前页、当前变换、分页是否落定；空数据时 index 可为 null |
-| next / previous | 翻页，可传 animate: false |
-| animateToIndex / jumpToIndex | 动画或立即定位 |
-| animateTransform / jumpToTransform | 控制当前页 ElZoomTransform |
-| resetCurrent | 还原当前页，可关闭动画 |
-| addListener | 监听页码或变换变化，解绑时移除监听 |
-
-未缩放时单指横向拖动翻页；缩放后优先平移内容，边界余量再交给分页宿主。自定义内容不限于图片。
+| index | 当前项索引，变化时通知控制器监听者 |
+| page | 连续翻页位置的 ValueListenable，整数表示停在对应项 |
+| scale / rotation / translation | 读取当前项的缩放、旋转和中心偏移 |
+| jumpToPage / animateToPage | 立即或动画切换项目 |
+| resetTransform | 还原当前项变换，可传 animate: false |
