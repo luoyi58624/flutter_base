@@ -30,7 +30,7 @@ class Preview2Page extends StatelessWidget {
           ElCard(
             style: ElStyle(padding: .all(16)),
             child: Text(
-              'ElPreview2View 只负责手势、变换与连续翻页位置；画廊的滑动过渡、计数栏、单击切换外观和下拉关闭都在上层包装里实现。',
+              'ElPreview2View 负责手势、变换与左右切换，内容可以是任意 Widget；画廊的计数栏、单击切换外观和下拉关闭在上层包装里实现。',
               style: TextStyle(fontSize: 13, height: 1.6),
             ),
           ),

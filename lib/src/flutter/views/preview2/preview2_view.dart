@@ -7,17 +7,6 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-/// 构建预览项在多项切换中的呈现。
-///
-/// [position] 是该项相对当前停留位置的连续偏移：0 居中，-1 完全移到前一侧，1 完全移到后一侧；
-/// [child] 已包含缩放、旋转与平移。滑动、淡入、层叠等过渡由上层决定，组件本身不内置。
-typedef ElPreview2TransitionBuilder = Widget Function(
-  BuildContext context,
-  int index,
-  ValueListenable<double> position,
-  Widget child,
-);
-
 /// 读取与驱动 [ElPreview2View] 的当前项、连续翻页位置和当前项变换。
 class ElPreview2Controller extends ChangeNotifier {
   /// 创建控制器，[initialIndex] 为首次挂载时的当前项。
@@ -27,20 +16,20 @@ class ElPreview2Controller extends ChangeNotifier {
   final ValueNotifier<double> _page;
   _PreviewEngine? _engine;
 
-  /// 当前项：手势越过整页或松手吸附完成时更新，并通知监听者。
+  /// 当前项：手势越过整页、第二指落下切换操作项或松手吸附完成时更新，并通知监听者。
   int get index => _index;
 
-  /// 连续翻页位置，整数表示停在对应项；供上层实现切换过渡与指示器。
+  /// 连续翻页位置，整数表示停在对应项；可用于指示器等上层外观。
   ValueListenable<double> get page => _page;
 
   /// 当前项的缩放倍数。
-  double get scale => _engine?._scale ?? 1;
+  double get scale => _engine?._active.scale ?? 1;
 
   /// 当前项的旋转弧度。
-  double get rotation => _engine?._rotation ?? 0;
+  double get rotation => _engine?._active.rotation ?? 0;
 
   /// 当前项中心相对视口中心的平移。
-  Offset get translation => _engine?._offset ?? Offset.zero;
+  Offset get translation => _engine?._active.offset ?? Offset.zero;
 
   /// 立即切换到 [index] 并还原变换。
   void jumpToPage(int index) {
@@ -50,7 +39,7 @@ class ElPreview2Controller extends ChangeNotifier {
     _page.value = index.toDouble();
   }
 
-  /// 以动画切换到 [index]；动画只驱动 [page]，视觉过渡由转场构建器决定。
+  /// 以动画切换到 [index]。
   Future<void> animateToPage(
     int index, {
     Duration duration = const Duration(milliseconds: 300),
@@ -78,20 +67,20 @@ class ElPreview2Controller extends ChangeNotifier {
   }
 }
 
-/// 预览视图：多指缩放、旋转与平移，平移到边缘继续移动即进入相邻项，支持双击缩放与鼠标滚轮缩放。
+/// 预览视图：任意内容的多指缩放、旋转与平移，平移到边缘继续移动即进入相邻项，支持双击缩放与鼠标滚轮缩放。
 ///
-/// 手势由组件独占：竞技场里只登记一个成员用来声明归属，其余按原始指针计算，
-/// 所以捏合、旋转、平移和翻页之间切换不会中断。两指里先越过角度阈值的进入旋转模式（同时可缩放），
-/// 先越过间距阈值的进入缩放模式（锁定旋转），模式保持到手指少于两根。
-/// 多项之间的切换过渡交给 [transitionBuilder]，画廊外观、关闭手势等由上层二次包装。
+/// 组件自己管理相邻项与横向切换，上层只提供每一项的内容。手势由组件独占：竞技场里只登记一个成员
+/// 用来声明归属，其余按原始指针计算，所以捏合、旋转、平移和翻页之间切换不会中断。
+/// 两指里先越过角度阈值的进入旋转模式（同时可缩放），先越过间距阈值的进入缩放模式（锁定旋转），
+/// 模式保持到手指少于两根；松手后旋转复位，缩放保留。
 class ElPreview2View extends StatefulWidget {
   /// 创建预览视图。
   const ElPreview2View({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
-    required this.transitionBuilder,
     this.controller,
+    this.pageSpacing = 16,
     this.maxScale = 4,
     this.doubleTapScale = 2.5,
     this.enableRotation = true,
@@ -105,19 +94,20 @@ class ElPreview2View extends StatefulWidget {
     this.onVerticalDragEnd,
     this.clipBehavior = Clip.hardEdge,
   }) : assert(maxScale >= 1),
-       assert(doubleTapScale >= 1);
+       assert(doubleTapScale >= 1),
+       assert(pageSpacing >= 0);
 
   /// 预览项数量。
   final int itemCount;
 
-  /// 构建第 index 项的内容，内容按视口尺寸布局。
+  /// 构建第 index 项的内容，任意 Widget，按视口尺寸布局。
   final IndexedWidgetBuilder itemBuilder;
-
-  /// 决定各项在切换中的呈现，组件只提供连续位置。
-  final ElPreview2TransitionBuilder transitionBuilder;
 
   /// 外部控制器；缺省时组件内部创建。
   final ElPreview2Controller? controller;
+
+  /// 相邻项之间的横向间隔。
+  final double pageSpacing;
 
   /// 最大缩放倍数，捏合越界时带阻尼，松手回弹。
   final double maxScale;
@@ -209,12 +199,7 @@ class _PreviewState extends State<ElPreview2View> with SingleTickerProviderState
                 for (final index in _engine.mounted)
                   KeyedSubtree(
                     key: ValueKey(index),
-                    child: widget.transitionBuilder(
-                      context,
-                      index,
-                      _engine.positionOf(index),
-                      _ItemTransform(engine: _engine, index: index, child: widget.itemBuilder(context, index)),
-                    ),
+                    child: _ItemTransform(engine: _engine, index: index, child: widget.itemBuilder(context, index)),
                   ),
               ],
             ),
@@ -225,7 +210,7 @@ class _PreviewState extends State<ElPreview2View> with SingleTickerProviderState
   }
 }
 
-// 每帧只重建变换节点，内容子树保持原实例。
+// 翻页位移与该项自身变换合成一个矩阵，每帧只重建变换节点，内容子树保持原实例。
 class _ItemTransform extends StatelessWidget {
   const _ItemTransform({required this.engine, required this.index, required this.child});
 
@@ -235,7 +220,7 @@ class _ItemTransform extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: engine.transformChanged,
+    listenable: engine.changed,
     builder: (context, child) => Transform(transform: engine.matrixFor(index), child: child),
     child: child,
   );
@@ -245,9 +230,16 @@ final class _Signal extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
+/// 单项的缩放、旋转与平移；平移为该项中心相对视口中心的偏移。
+final class _ItemState {
+  double scale = 1;
+  double rotation = 0;
+  Offset offset = Offset.zero;
+}
+
 enum _Mode { idle, ignored, pan, vertical }
 
-/// 预览手势与变换状态机：多指跟踪、模式锁定、位移分配（图片 → 翻页）、松手惯性与吸附。
+/// 预览手势与变换状态机：多指跟踪、模式锁定、位移分配（当前项 → 翻页）、松手惯性与吸附。
 final class _PreviewEngine {
   _PreviewEngine(TickerProvider vsync, this.widget) {
     _ticker = vsync.createTicker(_tick);
@@ -262,14 +254,12 @@ final class _PreviewEngine {
   /// 挂载项集合变化时通知组件重建。
   final structure = _Signal();
 
-  /// 当前项变换变化时通知变换节点。
-  final transformChanged = _Signal();
+  /// 翻页位置或任一项变换变化时通知变换节点。
+  final changed = _Signal();
 
+  // 当前操作项；每项各自保存变换，离开视口或吸附到其他项后复位。
   int _anchor = 0;
-  double _scale = 1;
-  double _rotation = 0;
-  Offset _offset = Offset.zero;
-  final _positions = <int, ValueNotifier<double>>{};
+  final _items = <int, _ItemState>{};
   List<int> _mountedKey = const [];
 
   // 指针会话。
@@ -282,7 +272,7 @@ final class _PreviewEngine {
   Offset _lastFocal = Offset.zero;
   VelocityTracker? _tracker;
 
-  // 多指基准：每次手指数量变化或模式判定时重设，保证跟手不跳变。
+  // 多指基准：每次手指数量变化或模式判定时重设，保证跟手不跳变；焦点均换算到当前项坐标。
   Offset _f0 = Offset.zero;
   double _span0 = 0;
   double _angle0 = 0;
@@ -311,15 +301,15 @@ final class _PreviewEngine {
   int get _count => widget.itemCount;
   Offset get _center => size.center(Offset.zero);
   double get _slop => computeHitSlop(_kind, null);
+  double get _stride => size.width + widget.pageSpacing;
+  _ItemState get _active => _items.putIfAbsent(_anchor, _ItemState.new);
 
   void attach(ElPreview2Controller controller) {
     if (identical(_controller, controller)) return;
     _controller?._engine = null;
     _controller = controller.._engine = this;
     _anchor = controller._index;
-    _scale = 1;
-    _rotation = 0;
-    _offset = Offset.zero;
+    _items.clear();
   }
 
   void dispose() {
@@ -328,14 +318,11 @@ final class _PreviewEngine {
     _ticker.dispose();
     recognizer.dispose();
     if (_controller?._engine == this) _controller!._engine = null;
-    for (final position in _positions.values) {
-      position.dispose();
-    }
     structure.dispose();
-    transformChanged.dispose();
+    changed.dispose();
   }
 
-  // ───────────────────────── 挂载与位置 ─────────────────────────
+  // ───────────────────────── 挂载与翻页 ─────────────────────────
 
   /// 需要挂载的项：当前项及其两侧，再加翻页位置跨越的两项。
   List<int> get mounted {
@@ -348,17 +335,9 @@ final class _PreviewEngine {
     ];
   }
 
-  ValueListenable<double> positionOf(int index) {
-    final position = _positions.putIfAbsent(index, () => ValueNotifier(0));
-    position.value = index - _page;
-    return position;
-  }
-
   void _setPage(double value) {
     _controller!._page.value = value;
-    for (final entry in _positions.entries) {
-      entry.value.value = entry.key - value;
-    }
+    changed.notify();
     _syncStructure();
   }
 
@@ -366,50 +345,50 @@ final class _PreviewEngine {
     final next = mounted;
     if (listEquals(next, _mountedKey)) return;
     _mountedKey = next;
-    final stale = [
-      for (final index in _positions.keys)
-        if (!next.contains(index)) index,
-    ];
-    if (stale.isNotEmpty) {
-      final removed = [for (final index in stale) _positions.remove(index)!];
-      // 旧项的监听在下一帧卸载时移除，之后再释放。
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        for (final position in removed) {
-          position.dispose();
-        }
-      });
-    }
+    _items.removeWhere((index, _) => !next.contains(index));
     structure.notify();
   }
 
   void _setAnchor(int index) {
     if (index == _anchor) return;
     _anchor = index;
-    _scale = 1;
-    _rotation = 0;
-    _offset = Offset.zero;
-    transformChanged.notify();
     _controller!._setIndex(index);
     widget.onIndexChanged?.call(index);
     _syncStructure();
   }
 
+  // 停到某一项后，其余项的变换复位。
+  void _settleAt(int index) {
+    _setAnchor(index);
+    _setPage(index.toDouble());
+    _items.removeWhere((key, _) => key != index);
+    changed.notify();
+  }
+
+  double _shiftOf(int index) => (index - _page) * _stride;
+
+  /// 视口坐标换算到当前项坐标：当前项未归位时扣除它的翻页位移。
+  Offset _toActive(Offset position) => position - Offset(_shiftOf(_anchor), 0);
+
   // ───────────────────────── 变换几何 ─────────────────────────
 
   Matrix4 matrixFor(int index) {
-    if (index != _anchor) return Matrix4.identity();
+    final shift = _shiftOf(index);
+    final item = _items[index];
+    if (item == null) return Matrix4.translationValues(shift, 0, 0);
     final c = _center;
-    return Matrix4.translationValues(c.dx + _offset.dx, c.dy + _offset.dy, 0)
-      ..multiply(Matrix4.rotationZ(_rotation))
-      ..multiply(Matrix4.diagonal3Values(_scale, _scale, 1))
+    return Matrix4.translationValues(shift + c.dx + item.offset.dx, c.dy + item.offset.dy, 0)
+      ..multiply(Matrix4.rotationZ(item.rotation))
+      ..multiply(Matrix4.diagonal3Values(item.scale, item.scale, 1))
       ..multiply(Matrix4.translationValues(-c.dx, -c.dy, 0));
   }
 
   void _setTransform(double scale, double rotation, Offset offset) {
-    _scale = scale;
-    _rotation = rotation;
-    _offset = offset;
-    transformChanged.notify();
+    _active
+      ..scale = scale
+      ..rotation = rotation
+      ..offset = offset;
+    changed.notify();
   }
 
   /// 旋转缩放后的内容外接框超出视口的一半，即各轴可平移的范围。
@@ -427,11 +406,14 @@ final class _PreviewEngine {
   }
 
   bool get _canPan {
-    final range = _range(_scale, _rotation);
+    final range = _range(_active.scale, _active.rotation);
     return range.dx > 0.5 || range.dy > 0.5;
   }
 
-  bool get _isTransformed => (_scale - 1).abs() > 1e-3 || _rotation.abs() > 1e-3 || _offset.distance > 0.5;
+  bool get _isTransformed {
+    final item = _active;
+    return (item.scale - 1).abs() > 1e-3 || item.rotation.abs() > 1e-3 || item.offset.distance > 0.5;
+  }
 
   static Offset _rotate(Offset v, double angle) {
     final cos = math.cos(angle);
@@ -466,10 +448,12 @@ final class _PreviewEngine {
   }
 
   void _scaleAround(Offset focal, double scale) {
-    if (_scale <= 0) return;
+    final item = _active;
+    if (item.scale <= 0) return;
     final c = _center;
-    final next = (focal - c) - (focal - c - _offset) * (scale / _scale);
-    _setTransform(scale, _rotation, _clampOffset(next, scale, _rotation));
+    final local = _toActive(focal);
+    final next = (local - c) - (local - c - item.offset) * (scale / item.scale);
+    _setTransform(scale, item.rotation, _clampOffset(next, scale, item.rotation));
   }
 
   // ───────────────────────── 指针输入 ─────────────────────────
@@ -514,13 +498,41 @@ final class _PreviewEngine {
     _downs[event.pointer] = event.localPosition;
     if (_points.length >= 2) {
       if (_mode == _Mode.vertical) _endVertical(Velocity.zero);
-      if (_points.length == 2) _rotating = null;
+      if (_points.length == 2) {
+        _rotating = null;
+        _focusNearest();
+      }
       _mode = _Mode.pan;
       _claim();
     } else if (_claimed) {
       recognizer.claim();
     }
     _rebase();
+  }
+
+  // 翻页未归位时开始捏合：操作项切到更靠近中间的一项，翻页同时吸附过去。
+  void _focusNearest() {
+    final displacement = _page - _anchor;
+    if (displacement.abs() <= 1e-4 || _count <= 0) return;
+    final target = _page.round().clamp(0, _count - 1);
+    _setAnchor(target);
+    final simulation = SpringSimulation(
+      _spring,
+      _page,
+      target.toDouble(),
+      0,
+      tolerance: Tolerance(distance: 1e-3, velocity: 1e-2),
+    );
+    _startMotion((t) {
+      if (simulation.isDone(t)) {
+        _settleAt(target);
+        // 手指已全部抬起时，接着执行松手复位（旋转归零、缩放与平移收回范围）。
+        if (_points.isEmpty) _settle(Offset.zero);
+        return false;
+      }
+      _setPage(simulation.x(t));
+      return true;
+    });
   }
 
   void handle(PointerEvent event) {
@@ -566,13 +578,14 @@ final class _PreviewEngine {
   }
 
   void _rebaseMulti(Offset focal, double span, double angle) {
-    _f0 = focal;
+    final item = _active;
+    _f0 = _toActive(focal);
     _span0 = span;
     _angle0 = angle;
-    _rawScale0 = _unresist(_scale);
-    _s0 = _scale;
-    _r0 = _rotation;
-    _o0 = _offset;
+    _rawScale0 = _unresist(item.scale);
+    _s0 = item.scale;
+    _r0 = item.rotation;
+    _o0 = item.offset;
   }
 
   void _move(PointerMoveEvent event) {
@@ -642,11 +655,10 @@ final class _PreviewEngine {
   }
 
   void _updateMulti() {
-    final focal = _focal;
     final span = _span;
     final angle = _angle;
     if (_span0 <= 1) {
-      _rebaseMulti(focal, span, angle);
+      _rebaseMulti(_focal, span, angle);
       return;
     }
     if (_rotating == null) {
@@ -655,7 +667,7 @@ final class _PreviewEngine {
       } else if (_angleDelta(angle, _angle0).abs() * _span0 > _slop) {
         // 旋转从判定这一刻开始，不补回阈值内的角度，避免跳变。
         _rotating = true;
-        _rebaseMulti(focal, span, angle);
+        _rebaseMulti(_focal, span, angle);
       } else if ((span - _span0).abs() > _slop) {
         _rotating = false;
       }
@@ -664,22 +676,23 @@ final class _PreviewEngine {
     final rotation = _rotating == true ? _r0 + _angleDelta(angle, _angle0) : _r0;
     final c = _center;
     final local = _rotate(_f0 - c - _o0, -_r0) / _s0;
-    _setTransform(scale, rotation, focal - c - _rotate(local, rotation) * scale);
+    _setTransform(scale, rotation, _toActive(_focal) - c - _rotate(local, rotation) * scale);
   }
 
-  // 单指位移分配：翻页偏离时先收回，其次平移图片，图片到边缘后的余量进入翻页。
+  // 单指位移分配：翻页偏离时先收回，其次平移当前项，到边缘后的余量进入翻页。
   void _panBy(Offset delta) {
-    final width = size.width;
-    if (width <= 0) return;
-    final range = _range(_scale, _rotation);
-    final y = _axisPan(_offset.dy, delta.dy, range.dy).$1;
+    final stride = _stride;
+    if (stride <= 0) return;
+    final item = _active;
+    final range = _range(item.scale, item.rotation);
+    final y = _axisPan(item.offset.dy, delta.dy, range.dy).$1;
     var rest = delta.dx;
-    var x = _offset.dx;
-    final displacement = (_page - _anchor) * width;
+    var x = item.offset.dx;
+    final displacement = (_page - _anchor) * stride;
     if (displacement.abs() > 1e-6 && rest != 0 && (rest > 0) == (displacement > 0)) {
       final closing = rest.sign * math.min(rest.abs(), displacement.abs());
-      final next = _page - closing / width;
-      _setPage(((next - _anchor) * width).abs() < 0.01 ? _anchor.toDouble() : next);
+      final next = _page - closing / stride;
+      _setPage(((next - _anchor) * stride).abs() < 0.01 ? _anchor.toDouble() : next);
       rest -= closing;
     }
     if (rest != 0 && (_page - _anchor).abs() <= 1e-6) {
@@ -687,8 +700,8 @@ final class _PreviewEngine {
       x = next;
       rest = overflow;
     }
-    if (x != _offset.dx || y != _offset.dy) _setTransform(_scale, _rotation, Offset(x, y));
-    if (rest.abs() > 1e-6) _movePage(-rest / width);
+    if (x != item.offset.dx || y != item.offset.dy) _setTransform(item.scale, item.rotation, Offset(x, y));
+    if (rest.abs() > 1e-6) _movePage(-rest / stride);
   }
 
   static (double, double) _axisPan(double value, double delta, double range) {
@@ -766,6 +779,8 @@ final class _PreviewEngine {
     _mode = _Mode.idle;
     _rotating = null;
     _tracker = null;
+    // 捏合时启动的翻页吸附仍在进行，让它自然完成。
+    if (_frame != null) return;
     _settle(claimed ? velocity.pixelsPerSecond : Offset.zero);
   }
 
@@ -811,7 +826,7 @@ final class _PreviewEngine {
       return;
     }
     final scale = widget.doubleTapScale.clamp(1.0, widget.maxScale);
-    _animateTransform(scale, 0, _clampOffset((position - _center) * (1 - scale), scale, 0));
+    _animateTransform(scale, 0, _clampOffset((_toActive(position) - _center) * (1 - scale), scale, 0));
   }
 
   void pointerSignal(PointerSignalEvent event) {
@@ -820,7 +835,7 @@ final class _PreviewEngine {
       final scroll = resolved as PointerScrollEvent;
       final factor = math.exp(-scroll.scrollDelta.dy * widget.wheelZoomSensitivity);
       _stopMotion();
-      _scaleAround(scroll.localPosition, (_scale * factor).clamp(1.0, widget.maxScale));
+      _scaleAround(scroll.localPosition, (_active.scale * factor).clamp(1.0, widget.maxScale));
     });
   }
 
@@ -836,7 +851,9 @@ final class _PreviewEngine {
   void _panZoomUpdate(PointerPanZoomUpdateEvent event) {
     final ratio = event.scale / _panZoomScale;
     _panZoomScale = event.scale;
-    if ((ratio - 1).abs() > 1e-6) _scaleAround(event.localPosition, (_scale * ratio).clamp(1.0, widget.maxScale));
+    if ((ratio - 1).abs() > 1e-6) {
+      _scaleAround(event.localPosition, (_active.scale * ratio).clamp(1.0, widget.maxScale));
+    }
     if (event.localPanDelta != Offset.zero) _panBy(event.localPanDelta);
     _tracker?.addPosition(event.timeStamp, event.localPan);
   }
@@ -855,15 +872,19 @@ final class _PreviewEngine {
   static const _pageFlingVelocity = 300.0;
   static const _transformSeconds = 0.22;
 
-  // 松手：翻页未归位时按速度或过半决定目标并弹簧吸附；否则回弹越界变换，或按速度做图片惯性。
+  // 松手：旋转复位、缩放与平移收回范围；翻页未归位时按速度或过半决定目标并弹簧吸附；否则按速度做惯性平移。
   void _settle(Offset velocity) {
     if (size.isEmpty || _count <= 0) return;
-    final targetScale = _scale.clamp(1.0, widget.maxScale);
-    final targetOffset = _clampOffset(_offset * (targetScale / _scale), targetScale, _rotation);
-    final needTransform = (targetScale - _scale).abs() > 1e-4 || (targetOffset - _offset).distance > 0.5;
+    final item = _active;
+    final targetScale = item.scale.clamp(1.0, widget.maxScale);
+    final targetOffset = _clampOffset(item.offset * (targetScale / item.scale), targetScale, 0);
+    final needTransform =
+        (targetScale - item.scale).abs() > 1e-4 ||
+        item.rotation.abs() > 1e-4 ||
+        (targetOffset - item.offset).distance > 0.5;
     final displacement = _page - _anchor;
     if (displacement.abs() > 1e-4) {
-      final pageVelocity = -velocity.dx / size.width;
+      final pageVelocity = -velocity.dx / _stride;
       var target = _anchor;
       if (velocity.dx.abs() > _pageFlingVelocity && (pageVelocity > 0) == (displacement > 0)) {
         target += pageVelocity > 0 ? 1 : -1;
@@ -878,15 +899,13 @@ final class _PreviewEngine {
         pageVelocity,
         tolerance: Tolerance(distance: 1e-3, velocity: 1e-2),
       );
-      final transform = needTransform && target == _anchor
-          ? _transformFrame(targetScale, _rotation, targetOffset)
-          : null;
+      final transform = needTransform && target == _anchor ? _transformFrame(targetScale, 0, targetOffset) : null;
       _startMotion((t) {
         final pageDone = simulation.isDone(t);
-        _setPage(pageDone ? target.toDouble() : simulation.x(t));
+        if (!pageDone) _setPage(simulation.x(t));
         final transformRunning = transform?.call(t) ?? false;
         if (pageDone && !transformRunning) {
-          _setAnchor(target);
+          _settleAt(target);
           return false;
         }
         return true;
@@ -894,23 +913,24 @@ final class _PreviewEngine {
       return;
     }
     if (needTransform) {
-      _animateTransform(targetScale, _rotation, targetOffset);
+      _animateTransform(targetScale, 0, targetOffset);
       return;
     }
     if (_canPan && velocity.distance > kMinFlingVelocity) {
-      final x = FrictionSimulation(0.135, _offset.dx, velocity.dx);
-      final y = FrictionSimulation(0.135, _offset.dy, velocity.dy);
+      final x = FrictionSimulation(0.135, item.offset.dx, velocity.dx);
+      final y = FrictionSimulation(0.135, item.offset.dy, velocity.dy);
       _startMotion((t) {
-        _setTransform(_scale, _rotation, _clampOffset(Offset(x.x(t), y.x(t)), _scale, _rotation));
+        _setTransform(item.scale, item.rotation, _clampOffset(Offset(x.x(t), y.x(t)), item.scale, item.rotation));
         return !(x.isDone(t) && y.isDone(t));
       });
     }
   }
 
   bool Function(double seconds) _transformFrame(double scale, double rotation, Offset offset) {
-    final fromScale = _scale;
-    final fromRotation = _rotation;
-    final fromOffset = _offset;
+    final item = _active;
+    final fromScale = item.scale;
+    final fromRotation = item.rotation;
+    final fromOffset = item.offset;
     final turn = _angleDelta(rotation, fromRotation);
     return (t) {
       final k = Curves.easeOutCubic.transform((t / _transformSeconds).clamp(0.0, 1.0));
@@ -925,13 +945,9 @@ final class _PreviewEngine {
   void jumpToPage(int index) {
     if (_count <= 0) return;
     _stopMotion();
-    final target = index.clamp(0, _count - 1);
-    if (target == _anchor) {
-      _setTransform(1, 0, Offset.zero);
-    } else {
-      _setAnchor(target);
-    }
-    _setPage(target.toDouble());
+    _settleAt(index.clamp(0, _count - 1));
+    _items.clear();
+    changed.notify();
   }
 
   Future<void> animateToPage(int index, Duration duration, Curve curve) {
@@ -943,10 +959,11 @@ final class _PreviewEngine {
     final completer = _pageAnimation = Completer<void>();
     _startMotion((t) {
       final k = seconds <= 0 ? 1.0 : curve.transform((t / seconds).clamp(0.0, 1.0));
-      _setPage(from + (target - from) * k);
-      if (k < 1) return true;
-      _setAnchor(target);
-      _setPage(target.toDouble());
+      if (k < 1) {
+        _setPage(from + (target - from) * k);
+        return true;
+      }
+      _settleAt(target);
       return false;
     });
     return completer.future;

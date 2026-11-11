@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 基于 ElPreview2View 二次包装的图片画廊：接收图片数组，自定义滑动过渡、计数栏、单击切换外观与下拉关闭。
+/// 基于 ElPreview2View 二次包装的图片画廊：接收图片数组，自定义计数栏、单击切换外观与下拉关闭。
 class ImageGallery extends HookWidget {
   /// 创建画廊，[initialIndex] 为打开时显示的图片。
   const ImageGallery({super.key, required this.images, this.initialIndex = 0});
@@ -46,12 +46,6 @@ class ImageGallery extends HookWidget {
       controller: controller,
       itemCount: images.length,
       itemBuilder: (context, index) => Image.asset(images[index], fit: .contain),
-      // 上层决定切换过渡：横向滑动并在相邻图片之间留出 4% 间隔。
-      transitionBuilder: (context, index, position, child) => ValueListenableBuilder(
-        valueListenable: position,
-        builder: (context, value, child) => FractionalTranslation(translation: Offset(value * 1.04, 0), child: child),
-        child: child,
-      ),
       onTap: () => chrome.value = !chrome.value,
       onVerticalDragStart: (_) => back.stop(),
       onVerticalDragUpdate: (details) => dismiss.value += details.primaryDelta!,

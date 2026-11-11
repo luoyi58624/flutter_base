@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
@@ -6,13 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _Harness {
   final controller = ElPreview2Controller();
-  final positions = <int, ValueListenable<double>>{};
   final indexLog = <int>[];
   final events = <String>[];
   double verticalDistance = 0;
   int taps = 0;
 
-  Widget build({int count = 3, bool vertical = false}) => Directionality(
+  Widget build({int count = 3, bool vertical = false, double spacing = 0}) => Directionality(
     textDirection: TextDirection.ltr,
     child: Center(
       child: SizedBox(
@@ -21,30 +19,24 @@ class _Harness {
         child: ElPreview2View(
           itemCount: count,
           controller: controller,
+          pageSpacing: spacing,
           onTap: () => taps++,
           onIndexChanged: indexLog.add,
           onVerticalDragStart: vertical ? (_) => events.add('start') : null,
           onVerticalDragUpdate: vertical ? (details) => verticalDistance += details.primaryDelta! : null,
           onVerticalDragEnd: vertical ? (_) => events.add('end') : null,
-          itemBuilder: (context, index) => ColoredBox(color: Color(0xFF000000 + index * 0x303030)),
-          transitionBuilder: (context, index, position, child) {
-            positions[index] = position;
-            return ValueListenableBuilder(
-              valueListenable: position,
-              builder: (context, value, child) => FractionalTranslation(translation: Offset(value, 0), child: child),
-              child: child,
-            );
-          },
+          itemBuilder: (context, index) =>
+              ColoredBox(key: ValueKey('item-$index'), color: Color(0xFF000000 + index * 0x303030)),
         ),
       ),
     ),
   );
 }
 
-Future<_Harness> _pump(WidgetTester tester, {int count = 3, bool vertical = false}) async {
+Future<_Harness> _pump(WidgetTester tester, {int count = 3, bool vertical = false, double spacing = 0}) async {
   final harness = _Harness();
   addTearDown(harness.controller.dispose);
-  await tester.pumpWidget(harness.build(count: count, vertical: vertical));
+  await tester.pumpWidget(harness.build(count: count, vertical: vertical, spacing: spacing));
   return harness;
 }
 
@@ -101,16 +93,56 @@ void main() {
     expect(h.controller.index, 1);
   });
 
-  testWidgets('转场构建器收到各项相对当前位置的连续偏移', (tester) async {
-    final h = await _pump(tester);
+  testWidgets('组件自己排布相邻项：按翻页位置横向平移并保留间隔', (tester) async {
+    final h = await _pump(tester, spacing: 16);
+    final left = tester.getTopLeft(find.byType(ElPreview2View)).dx;
     final gesture = await tester.startGesture(_center(tester));
+    // 步长为 400 + 16，拖动 208 正好半页。
     await gesture.moveBy(Offset(-20, 0));
-    await gesture.moveBy(Offset(-180, 0));
+    await gesture.moveBy(Offset(-188, 0));
     await tester.pump();
-    expect(h.positions[0]!.value, moreOrLessEquals(-0.5));
-    expect(h.positions[1]!.value, moreOrLessEquals(0.5));
+    expect(h.controller.page.value, moreOrLessEquals(0.5));
+    expect(tester.getTopLeft(find.byKey(ValueKey('item-0'))).dx, moreOrLessEquals(left - 208));
+    expect(tester.getTopLeft(find.byKey(ValueKey('item-1'))).dx, moreOrLessEquals(left + 208));
     await gesture.up();
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('翻页拖过半时第二指落下：操作项切到下一项并吸附，捏合缩放的是下一项', (tester) async {
+    final h = await _pump(tester);
+    final c = _center(tester);
+    final a = await tester.startGesture(c, pointer: 1);
+    for (var i = 0; i < 12; i++) {
+      await a.moveBy(Offset(-20, 0));
+    }
+    expect(h.controller.page.value, moreOrLessEquals(0.6));
+    final b = await tester.startGesture(c + Offset(60, 0), pointer: 2);
+    expect(h.controller.index, 1, reason: '更靠近中间的是下一项');
+    for (var i = 0; i < 4; i++) {
+      await a.moveBy(Offset(-15, 0));
+      await b.moveBy(Offset(15, 0));
+      await tester.pump(Duration(milliseconds: 16));
+    }
+    expect(h.controller.scale, greaterThan(1.3));
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+    expect(h.controller.page.value, 1);
+    expect(h.controller.index, 1);
+    expect(h.controller.scale, greaterThan(1.3), reason: '缩放保留在下一项上');
+  });
+
+  testWidgets('离开某一项并吸附到其他项后，它的缩放复位', (tester) async {
+    final h = await _pump(tester);
+    final c = _center(tester);
+    await _doubleTap(tester, c);
+    expect(h.controller.scale, 2.5);
+    await tester.pump(Duration(milliseconds: 500));
+    h.controller.animateToPage(1);
+    await tester.pumpAndSettle();
+    h.controller.animateToPage(0);
+    await tester.pumpAndSettle();
+    expect(h.controller.scale, 1);
   });
 
   testWidgets('两指先后落下：第一指少量横移后第二指落下仍进入捏合，翻页不动', (tester) async {
@@ -171,9 +203,12 @@ void main() {
     await tester.pump();
     expect(h.controller.scale, greaterThan(1.1));
     expect(h.controller.rotation, isNot(0));
+    final scale = h.controller.scale;
     await a.up();
     await b.up();
     await tester.pumpAndSettle();
+    expect(h.controller.rotation, 0, reason: '松手后旋转复位');
+    expect(h.controller.scale, moreOrLessEquals(scale), reason: '缩放保留');
   });
 
   testWidgets('捏合后松开一指，剩下的手指继续平移且不跳变', (tester) async {

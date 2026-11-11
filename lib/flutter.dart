@@ -116,8 +116,7 @@ export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterV
 // 缩放与预览
 export 'src/flutter/views/zoom/zoom_view.dart' show ElZoomController, ElZoomTransform, ElZoomView;
 export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, PreviewItemIdBuilder, ElPreviewView;
-export 'src/flutter/views/preview2/preview2_view.dart'
-    show ElPreview2Controller, ElPreview2TransitionBuilder, ElPreview2View;
+export 'src/flutter/views/preview2/preview2_view.dart' show ElPreview2Controller, ElPreview2View;
 export 'src/flutter/views/image/image_view.dart' show ElImageView, ImageLoadInfo;
 
 // 点击反馈
