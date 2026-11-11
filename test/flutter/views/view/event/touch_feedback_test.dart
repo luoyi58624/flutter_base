@@ -158,7 +158,7 @@ void main() {
     testWidgets('拖拽在 $waitBeforeDrag ms 接管时立即取消等待或已激活样式', (tester) async {
       final phases = <ElEventPhase>[];
       final host = hostWithDrag(
-        parent: ElEvent(dragStartDistance: 3, onVerticalDragStart: (e) => e.stopPropagation()),
+        parent: ElEvent(dragStartDistance: 3, onVerticalDragStart: (e) => e.eagerGesture(cancelSelfTap: true)),
         leaf: ElEvent(onTapCancel: (e) => phases.add(e.phase), onTap: (e) => phases.add(e.phase)),
       );
       host.dispatch(PointerDownEvent(pointer: 1));

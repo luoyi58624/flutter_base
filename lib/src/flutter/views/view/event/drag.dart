@@ -10,7 +10,7 @@ extension _DragEvents on EventDispatcher {
     _drag = _Drag(route, axis, direction, route.position);
     final details = _dragDetails(.dragStart, input);
     _invoke(details);
-    if (details.propagationStopped) route.exclusive(this);
+    if (details.propagationStopped) route.stopDragPropagation(this, details.phase);
   }
 
   ElEventDetails _updateDrag(PointerEvent input, Offset delta, ElEventDetails? previous) {
@@ -19,7 +19,7 @@ extension _DragEvents on EventDispatcher {
     drag.offset += drag.project(delta);
     final details = _dragDetails(.dragUpdate, input, delta: delta, remaining: previous?.remainingDelta ?? delta);
     _invoke(details);
-    if (details.propagationStopped) drag.route.exclusive(this);
+    if (details.propagationStopped) drag.route.stopDragPropagation(this, details.phase);
     return details;
   }
 

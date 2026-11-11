@@ -158,6 +158,39 @@ void main() {
     expect(controller.selection, TextSelection(baseOffset: 6, extentOffset: 16));
   });
 
+  testWidgets('鼠标只移动4px起拖，自身点击取消不能丢弃拖选候选', (tester) async {
+    final controller = await _mount(tester);
+    final origin = tester.getTopLeft(find.byType(EditableView));
+    final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(pointer.removePointer);
+    await pointer.down(origin + Offset(4, 5));
+    await tester.pump(Duration(milliseconds: 16));
+    await _move(tester, pointer, origin + Offset(8, 5));
+    expect(controller.selection, TextSelection(baseOffset: 0, extentOffset: 1));
+    await pointer.up();
+    await tester.pump();
+    expect(controller.selection, TextSelection(baseOffset: 0, extentOffset: 1));
+  });
+
+  testWidgets('双击后只移动4px起拖，自身点击取消仍保留整词选择粒度', (tester) async {
+    final controller = await _mount(tester);
+    final origin = tester.getTopLeft(find.byType(EditableView));
+    final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(pointer.removePointer);
+    await pointer.down(origin + Offset(68, 5));
+    await tester.pump(Duration(milliseconds: 16));
+    await pointer.up();
+    await tester.pump(Duration(milliseconds: 60));
+    await pointer.down(origin + Offset(68, 5));
+    await tester.pump(Duration(milliseconds: 16));
+    expect(controller.selection, TextSelection(baseOffset: 6, extentOffset: 10));
+    await _move(tester, pointer, origin + Offset(72, 5));
+    expect(controller.selection, TextSelection(baseOffset: 6, extentOffset: 10));
+    await pointer.up();
+    await tester.pump();
+    expect(controller.selection, TextSelection(baseOffset: 6, extentOffset: 10));
+  });
+
   testWidgets('鼠标按键组合变化属于真正取消，后续主键移动不沿用原锚点', (tester) async {
     final controller = await _mount(tester);
     final origin = tester.getTopLeft(find.byType(EditableView));

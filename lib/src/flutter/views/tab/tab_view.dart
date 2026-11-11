@@ -628,16 +628,15 @@ class _TabViewState extends State<ElTabView> with SingleTickerProviderStateMixin
       // 贴边继续外拉：位移全被边界物理吃掉。三态裁决照 scroll_drag_controller：
       // 有外层拖拽消费者且本手势尚未接管 → 让渡（嵌套 tab / 外层横滑接管）；
       // 自己是顶层 → 接管手势（停动画、屏蔽页内命中、按帧记账）并报越界。
-      // 本手势尚未消费过位移：不截断，余量交给外层横滑（嵌套 tab）；已接管才报越界。
-      if (event != null && !_dragConsumedInGesture) return 0.0;
-      event?.stopPropagation();
+      if (event != null && event.hasAncestorDragConsumer && !_dragConsumedInGesture) return 0.0;
+      event?.eagerGesture(cancelSelfTap: true);
       _takeOverDrag();
       _ensureScrollStart();
       _dispatchOverscroll(overscroll, event: event);
       return 0.0;
     }
     // 先接管（停动画 + 以当刻位置为基准），再写入本次位移。
-    event?.stopPropagation();
+    event?.eagerGesture(cancelSelfTap: true);
     _takeOverDrag();
     _ensureScrollStart();
     final adjusted = newPixels / extent;

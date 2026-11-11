@@ -424,7 +424,7 @@ class RenderSelectionView extends RenderProxyBox
       callback.preventDefault();
       return;
     }
-    callback.stopPropagation();
+    callback.eagerGesture(cancelSelfTap: true);
     callback.stopPropagation();
     _mobileChrome.value = true;
     _dispatch(
@@ -445,7 +445,7 @@ class RenderSelectionView extends RenderProxyBox
   void _dragStart(ElEventDetails callback) {
     final down = _down;
     if (!attached || !_enabled || _pointer == null || _mobileGesture || down == null) return;
-    callback.stopPropagation();
+    callback.eagerGesture(cancelSelfTap: true);
     callback.stopPropagation();
     _dragging = true;
     _mobileChrome.value = false;

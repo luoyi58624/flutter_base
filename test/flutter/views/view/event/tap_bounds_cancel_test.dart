@@ -541,7 +541,7 @@ void main() {
             onTap: (_) => taps++,
             onLongPress: (event) {
               longPresses++;
-              event.stopPropagation();
+              event.eagerGesture(cancelSelfTap: true);
             },
           ),
         ),
@@ -593,7 +593,7 @@ void main() {
             onTapUp: (_) => tapUps++,
             onTap: (_) => taps++,
             onTapCancel: (_) => cancels++,
-            onDragStart: (event) => event.stopPropagation(),
+            onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
           ),
         ),
       ),

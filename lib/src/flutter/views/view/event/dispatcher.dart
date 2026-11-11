@@ -16,6 +16,7 @@ part 'drag.dart';
 part 'scale.dart';
 part 'keyboard.dart';
 part 'pointer_route.dart';
+part 'ownership.dart';
 
 /// 基于原始指针实现 ElEvent。
 ///
@@ -183,7 +184,10 @@ class EventDispatcher {
 
   /// 当前按在本节点上的指针数量。
   int get activePointerCount => _routes.values
-      .where((route) => route.down is PointerDownEvent && !route._ended && route.hosts.contains(this))
+      .where(
+        (route) =>
+            route.down is PointerDownEvent && !route._ended && route.hosts.contains(this) && route._allowsRaw(this),
+      )
       .length;
 
   bool get _live => !_disposed && !disabled;
@@ -220,28 +224,42 @@ class EventDispatcher {
     };
     if (phase == null) return;
     final original = input.original ?? input;
-    final previous = _raw[original];
-    if (previous?.propagationStopped == true) return;
+    if (_raw[original]?.propagationStopped == true) return;
     if (input is PointerDownEvent || input is PointerPanZoomStartEvent) {
       _Route.join(original, this);
+      if (_routes[input.pointer]?.interceptRaw(this, phase, input) == true) return;
     } else if (input is! PointerHoverEvent && input is! PointerSignalEvent) {
       final route = _routes[input.pointer];
       if (route == null || !route.hosts.contains(this)) return;
       route.last = input;
+      if (route.interceptRaw(this, phase, input)) return;
     }
+    _dispatchRaw(phase, input);
+  }
+
+  /// 交付一次真实命中输入；认领期间暂缓的祖先输入仍从这里结算。
+  void _dispatchRaw(ElEventPhase phase, PointerEvent input) {
+    if (!_live) return;
+    final original = input.original ?? input;
+    final previous = _raw[original];
+    if (previous?.propagationStopped == true) return;
     _lastInput = original;
     _position = _pointerPosition(input);
-    final details = _pointer(phase, input, position: _position);
-    if (previous != null) {
-      if (previous.defaultPrevented) details.preventDefault();
-      if (previous.focusPreserved) details.preserveFocus();
-      if (input is! PointerMoveEvent) {
-        details.remainingDelta = previous.remainingDelta;
-        details.remainingLocalDelta = _localDelta(_position, previous.remainingDelta);
+    var details = previous;
+    // 没有原始事件监听时只更新输入位置，点击节点不为每次 Move 构建无用详情与坐标闭包。
+    if (_handler(phase) != null) {
+      details = _pointer(phase, input, position: _position);
+      if (previous != null) {
+        if (previous.defaultPrevented) details.preventDefault();
+        if (previous.focusPreserved) details.preserveFocus();
+        if (input is! PointerMoveEvent) {
+          details.remainingDelta = previous.remainingDelta;
+          details.remainingLocalDelta = _localDelta(_position, previous.remainingDelta);
+        }
       }
+      _raw[original] = details;
+      _invoke(details);
     }
-    _raw[original] = details;
-    _invoke(details);
     // 原始回调可能已移除或替换事件，仍在路线上才点亮按压反馈。
     if (input is PointerDownEvent &&
         _live &&
@@ -250,6 +268,7 @@ class EventDispatcher {
       _press(input);
     }
     if (input is PointerSignalEvent &&
+        details != null &&
         (details.defaultPrevented || details.delta != Offset.zero && details.remainingDelta == Offset.zero)) {
       GestureBinding.instance.pointerSignalResolver.register(
         input,
@@ -323,6 +342,7 @@ class EventDispatcher {
     final axis = ElEventPhase.dragPhases.contains(phase) ? (drag ?? _drag)?.axis : null;
     final handler = _handler(phase, axis);
     if (handler == null) return;
+    _bindOwnership(details);
     final previous = _activeCallback;
     _activeCallback = details;
     try {

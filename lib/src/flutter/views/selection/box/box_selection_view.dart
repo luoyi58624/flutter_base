@@ -237,7 +237,7 @@ class _BoxSelectionState extends State<ElBoxSelectionView>
 
   void _dragStart(ElEventDetails event) {
     if (!_owns(event) || _dragging || !widget.enabled) return;
-    event.stopPropagation();
+    event.eagerGesture(cancelSelfTap: true);
     _base = _toggle || _additive ? _controller.selectedValues.toSet() : const {};
     _lastHits = <Object>{};
     _dragging = true;

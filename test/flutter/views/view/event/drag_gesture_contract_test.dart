@@ -691,7 +691,7 @@ void main() {
         onTapCancel: record,
         onDragStart: (event) {
           record(event);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragEnd: record,
       );

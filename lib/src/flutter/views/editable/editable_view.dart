@@ -3234,6 +3234,12 @@ class _EditableViewState extends State<EditableView>
     if (_dragSelecting || _longPressPointer != null) return;
     final original = e.originalEvent;
     final candidate = _pointerSelectionCandidate;
+    // 自身手势认领只取消最终点击；dragStart 仍需用原候选复核文档和选词粒度。
+    if (e.cancelReason == ElEventCancelReason.selfGestureAccepted &&
+        original is PointerEvent &&
+        candidate?.pointer == original.pointer) {
+      return;
+    }
     if (e.cancelReason == ElEventCancelReason.tapRejected &&
         original is PointerMoveEvent &&
         _selectableKind(e) &&
@@ -3390,7 +3396,7 @@ class _EditableViewState extends State<EditableView>
     }
     // 触摸长按建立选区后直接走 pointer route：同一根指头后续
     // move/up 不再依赖祖先滚动的 Drag recognizer 是否还在场。
-    e.stopPropagation();
+    e.eagerGesture(cancelSelfTap: true);
     e.stopPropagation();
     final hadFocus = _focusNode.hasFocus;
     _focusNode.requestFocus();
@@ -3588,7 +3594,7 @@ class _EditableViewState extends State<EditableView>
       _resetDragSelectionGranularity();
       return;
     }
-    e.stopPropagation();
+    e.eagerGesture(cancelSelfTap: true);
     e.stopPropagation();
     // eager 会同步结清祖先手势，祖先回调可能改写文档或选区；认领后必须
     // 再验一次，绝不能把 down 时的词、行或列选锚点套到外部新状态上。

@@ -891,7 +891,7 @@ class _ScrollbarAxisState extends State<_ScrollbarAxis> {
     if (geometry == null) return;
     final onThumb = _onThumbMainSpan(localPosition, geometry);
     if (!onThumb && !widget.scrollbar.resolveTrackTapJumps(context, widget.axis)) return;
-    callback.stopPropagation();
+    callback.eagerGesture(cancelSelfTap: true);
 
     final pressDuration = widget.scrollbar.resolvePressDuration(context, widget.axis);
     if (pressDuration <= Duration.zero) {
@@ -1270,7 +1270,7 @@ class _ScrollbarButtonState extends State<_ScrollbarButton> with SingleTickerPro
   void _handleDown(ElEventDetails callback) {
     callback.stopPropagation();
     if (!_enabled || _pressed) return;
-    callback.stopPropagation();
+    callback.eagerGesture(cancelSelfTap: true);
     setState(() => _pressed = true);
     if (!_canScroll) return;
     _reportedPress = true;

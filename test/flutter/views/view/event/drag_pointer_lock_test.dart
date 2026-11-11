@@ -86,7 +86,7 @@ void main() {
               style: const ElStyle(width: 200, height: 200),
               event: ElEvent(
                 dragStartDistance: 6.0,
-                onDragStart: (event) => event.stopPropagation(),
+                onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
                 onDragUpdate: (_) {},
               ),
             ),
@@ -164,7 +164,7 @@ void main() {
           style: const ElStyle(width: 200, height: 200),
           event: ElEvent(
             dragStartDistance: 6.0,
-            onDragStart: (event) => event.stopPropagation(),
+            onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
             onDragUpdate: (_) {},
           ),
         ),
@@ -189,7 +189,7 @@ void main() {
           style: const ElStyle(width: 200, height: 200),
           event: ElEvent(
             dragStartDistance: 6.0,
-            onDragStart: (event) => event.stopPropagation(),
+            onDragStart: (event) => event.eagerGesture(cancelSelfTap: true),
             onDragUpdate: (_) {},
             onDragCancel: (_) {},
           ),
@@ -220,5 +220,4 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
-
 }

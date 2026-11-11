@@ -14,6 +14,8 @@ final class _Route extends GestureArenaMember {
   var taps = <EventDispatcher>[];
   var drags = <EventDispatcher>[];
   _RouteDragConfiguration? _dragConfiguration;
+  _PointerOwnership? _ownership;
+  List<(EventDispatcher, ElEventPhase, PointerEvent)>? _pendingRaw;
   var scales = <EventDispatcher>[];
   Set<EventDispatcher>? _outside;
   Set<EventDispatcher>? _longPressTargets;
@@ -66,6 +68,7 @@ final class _Route extends GestureArenaMember {
         _end(event);
         close();
       case PointerCancelEvent() || PointerRemovedEvent():
+        _abandonPendingOwnership();
         _handoffDrags();
         cancel(.pointerCanceled);
         close();
@@ -73,7 +76,7 @@ final class _Route extends GestureArenaMember {
   }
 
   void _begin() {
-    final live = hosts.where((host) => host._live).toList();
+    final live = hosts.where((host) => host._live && _allowsRaw(host)).toList();
     final input = down;
     final transform = live.where((host) => host._canTransform(input)).toList();
     drags = transform.where((host) => host._e.hasDragCallback || host._e.onDragDown != null).toList();
@@ -147,11 +150,15 @@ final class _Route extends GestureArenaMember {
     }
     _track(down);
     _begun = true;
+    _tryOwnedScaleUpgrades();
   }
 
   void _move(PointerEvent event) {
     // 鼠标按键组合变化时结束本次点击与拖拽。
     if (down is PointerDownEvent && event.buttons != down.buttons) {
+      for (final host in hosts.toList()) {
+        _flushRawFor(host, event);
+      }
       final releases = List.of(pressed);
       cancel(.tapRejected);
       pressed = releases;
@@ -164,60 +171,65 @@ final class _Route extends GestureArenaMember {
       // 只声明长按的候选随长按一起退出。
       taps.removeWhere((host) => host._longPressOnly);
     }
-    for (final host in taps.toList()) {
-      // 侧键没有按压反馈，始终按距离取消（默认 10）。
-      final limit = host._e.tapCancelDistance ?? (_primary ? null : 10.0);
-      if (limit != null) {
-        if (distance > limit) _cancelTap(host, .tapRejected);
-        continue;
-      }
-      // 未设置取消距离时按点击边界判定：移出发 tapCancel，移回重新 tapDown。
-      final inside = host._contains(position);
-      if (inside != (_outside?.contains(host) ?? false)) continue;
-      if (inside) {
-        _outside?.remove(host);
-      } else {
-        (_outside ??= {}).add(host);
-      }
-      if (host._pressed == pointer) host._show(inside);
-      if (_primary) host._invoke(host._pointer(inside ? .tapDown : .tapCancel, event, reason: .tapRejected));
-    }
-    // 没有点击候选的纯反馈宿主在越过 hit slop 后结束反馈。
-    for (final host in hosts.toList()) {
-      if (host._pressed == pointer && !taps.contains(host) && distance > slop) host._release();
-    }
-
-    // 已开始的拖拽先收到本次位移，内层消费后余量传给外层。
     final delta = position - _lastPosition;
+    final original = event.original ?? event;
     ElEventDetails? previous;
-    for (final host in _dragConfiguration?.deferredStarts?.keys.toList() ?? const <EventDispatcher>[]) {
-      final pending = _dragConfiguration?.deferredStarts?.remove(host);
-      if (pending != null && host._live && hosts.contains(host)) host._startDrag(this, pending.$2, event);
+    var dragStopped = false;
+    var scaleStopped = false;
+    // 每个实际命中成员先交付自身 raw，再推进手势；内层认领可使尚未执行的祖先 raw 失效。
+    for (final host in hosts.toList()) {
+      if (_closed || !identical(last.original ?? last, original)) return;
+      _flushRawFor(host, event);
+      if (_closed || !identical(last.original ?? last, original)) return;
+      if (!host._live || !hosts.contains(host)) continue;
+      final active = _allowsRaw(host);
+      if (active) {
+        if (taps.contains(host)) _moveTap(host, event, distance);
+        if (_closed || !identical(last.original ?? last, original)) return;
+        if (!_allowsRaw(host) || !host._live || !hosts.contains(host)) continue;
+        if (host._pressed == pointer && !taps.contains(host) && distance > slop) host._release();
+        final pending = _dragConfiguration?.deferredStarts?.remove(host);
+        if (pending != null) host._startDrag(this, pending.$2, event);
+        if (!dragStopped && host._drag?.route == this && identical(host._lastInput, original)) {
+          previous = host._updateDrag(event, delta, previous);
+          dragStopped = previous.propagationStopped;
+        }
+      }
+      if (scales.contains(host) && (active || (_ownership?.scaleAllowed.contains(host) ?? false))) {
+        final points = host._scaleState?.points;
+        if (points != null) {
+          points[pointer] = position;
+          scaleStopped = host._moveScale(event, scaleStopped) || scaleStopped;
+        }
+      }
+      if (_allowsRaw(host) && host._live && hosts.contains(host)) _startDragFor(host, event, distance, slop);
     }
-    for (final host in _dragging.toList()) {
-      if (host._drag?.route != this || !identical(host._lastInput, event.original ?? event)) continue;
-      previous = host._updateDrag(event, delta, previous);
-      if (previous.propagationStopped) break;
-    }
-
-    var stopped = false;
-    for (final host in scales.toList()) {
-      if (!scales.contains(host) || !host._live) continue;
-      final points = host._scaleState?.points;
-      if (points == null) continue;
-      points[pointer] = position;
-      stopped = host._moveScale(event, stopped) || stopped;
-    }
-
-    _startDrags(event, distance, slop);
     if (pressed.isEmpty && drags.isEmpty && scales.isEmpty && _dragging.isEmpty) _resolve(.rejected);
+  }
+
+  void _moveTap(EventDispatcher host, PointerEvent event, double distance) {
+    final limit = host._e.tapCancelDistance ?? (_primary ? null : 10.0);
+    if (limit != null) {
+      if (distance > limit) _cancelTap(host, .tapRejected);
+      return;
+    }
+    final inside = host._contains(position);
+    if (inside != (_outside?.contains(host) ?? false)) return;
+    if (inside) {
+      _outside?.remove(host);
+    } else {
+      (_outside ??= {}).add(host);
+    }
+    if (host._pressed == pointer) host._show(inside);
+    if (_primary) host._invoke(host._pointer(inside ? .tapDown : .tapCancel, event, reason: .tapRejected));
   }
 
   /// 越过起拖距离的候选开始拖拽。轴向候选等主方向落在自己的轴上，首个开始者锁定轴向，
   /// 同轴其余候选随即开始；同时声明两轴时横向需越过更长的 pan slop，避免误触横滚。
-  void _startDrags(PointerEvent event, double distance, double slop) {
+  void _startDragFor(EventDispatcher host, PointerEvent event, double distance, double slop) {
     final dominant = moved.dx.abs() >= moved.dy.abs() ? Axis.horizontal : Axis.vertical;
-    drags.removeWhere((host) => !host._live || host._scaling || host._drag != null);
+    drags.removeWhere((host) => !host._live || !_allowsRaw(host) || host._scaling || host._drag != null);
+    if (!drags.contains(host)) return;
     Axis? axisFor(ElEvent e) => e.hasPanCallback ? null : _axis ?? dominant;
     bool ready(EventDispatcher host) {
       final e = host._e;
@@ -235,28 +247,23 @@ final class _Route extends GestureArenaMember {
     final proposal = candidates.indexWhere(ready);
     if (proposal < 0) return;
     // 外层先达到阈值时，先让兼容的内层响应，内层停止传播后外层不能抢先起拖。
-    for (final (index, host) in candidates.indexed) {
-      if (!drags.contains(host)) continue;
-      if (!host._live || host._scaling || host._drag != null) {
-        drags.remove(host);
-        continue;
-      }
-      final e = host._e;
-      final axis = axisFor(e);
-      if (axis != null && !e.acceptsDrag(axis)) continue;
-      if (index > proposal && !ready(host)) continue;
-      drags.remove(host);
-      _axis ??= axis;
-      _longPress?.cancel();
-      claim();
-      if (identical(_dragConfiguration?.deferMoves?.remove(host), event.original ?? event)) {
-        (_ensureDragConfiguration().deferredStarts ??= {})[host] = (event, axis);
-        taps.remove(host);
-        if (host._pressed == pointer) host._release();
-        continue;
-      }
-      host._startDrag(this, axis, event);
+    final index = candidates.indexOf(host);
+    final e = host._e;
+    final axis = axisFor(e);
+    if (axis != null && !e.acceptsDrag(axis)) return;
+    if (index > proposal && !ready(host)) return;
+    drags.remove(host);
+    _axis ??= axis;
+    _longPress?.cancel();
+    claim();
+    if (!_allowsRaw(host) || !host._live || !hosts.contains(host)) return;
+    if (identical(_dragConfiguration?.deferMoves?.remove(host), event.original ?? event)) {
+      (_ensureDragConfiguration().deferredStarts ??= {})[host] = (event, axis);
+      taps.remove(host);
+      if (host._pressed == pointer) host._release();
+      return;
     }
+    host._startDrag(this, axis, event);
   }
 
   void _end(PointerEvent event) {
@@ -550,14 +557,16 @@ final class _Route extends GestureArenaMember {
   void leave(EventDispatcher host, {bool notify = true}) {
     if (!hosts.remove(host)) return;
     final revision = host._revision;
-    if (notify && !_ended && down is PointerPanZoomStartEvent) {
+    final notifyRaw = notify && !_ended && (_ownership?.rawInactive.add(host) ?? true);
+    if (notifyRaw && down is PointerPanZoomStartEvent) {
       final end = PointerPanZoomEndEvent(pointer: pointer, device: down.device, position: position);
       host._invoke(host._pointer(.pointerPanZoomEnd, end));
-    } else if (notify && !_ended) {
+    } else if (notifyRaw) {
       final cancel = PointerCancelEvent(pointer: pointer, kind: down.kind, device: down.device, position: position);
       host._invoke(host._pointer(.pointerCancel, cancel, reason: .external));
     }
     drop(host, notify: notify && revision == host._revision);
+    if (_ownership?.pendingOwner == host) _abandonPendingOwnership();
     if (hosts.isEmpty) {
       _resolve(.rejected);
       close();
@@ -582,6 +591,8 @@ final class _Route extends GestureArenaMember {
   @override
   void acceptGesture(int pointer) {
     _accepted = true;
+    _commitPendingOwnership();
+    if (_begun) _tryOwnedScaleUpgrades();
     final up = _pendingUp;
     _pendingUp = null;
     if (up != null) _fireTap(up);
@@ -591,6 +602,7 @@ final class _Route extends GestureArenaMember {
   void rejectGesture(int pointer) {
     if (_rejected) return;
     _rejected = true;
+    _abandonPendingOwnership();
     cancel(.otherGestureAccepted);
   }
 
@@ -601,6 +613,8 @@ final class _Route extends GestureArenaMember {
       final host = hosts[i];
       if (!host._live || host._e.handlerFor(phase) == null) continue;
       final details = make(host);
+      final pointer = details.pointerEvent?.pointer;
+      if (pointer != null && EventDispatcher._routes[pointer]?._allowsRaw(host) == false) continue;
       if (previous?.defaultPrevented == true) details.preventDefault();
       if (previous?.focusPreserved == true) details.preserveFocus();
       host._invoke(details);

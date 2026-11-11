@@ -33,6 +33,8 @@ extension _ScaleEvents on EventDispatcher {
     final state = _scaleState;
     if (state == null) return;
     final declaration = _e;
+    if (!_canStartOwnedScale() || !_commitOwnedScale()) return;
+    if (!_canStartScale(declaration, state)) return;
     _endDrag(input, null);
     if (!_canStartScale(declaration, state)) return;
     _release();

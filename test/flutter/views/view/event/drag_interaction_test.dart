@@ -18,12 +18,13 @@ void main() {
     final phases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        tapCancelDistance: 30, dragStartDistance: 3,
+        tapCancelDistance: 30,
+        dragStartDistance: 3,
         onTap: (_) => taps++,
         onLongPress: (_) => longPresses++,
         onDragStart: (event) {
           phases.add(event.phase);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragUpdate: (event) => phases.add(event.phase),
         onDragEnd: (event) => phases.add(event.phase),
@@ -60,12 +61,13 @@ void main() {
     final dispatcher = EventDispatcher(box)
       ..onTapChanged = activeStates.add
       ..event = ElEvent(
-        tapCancelDistance: 80, dragStartDistance: 3,
+        tapCancelDistance: 80,
+        dragStartDistance: 3,
         onTapDown: (event) => phases.add(event.phase),
         onTapCancel: (event) => phases.add(event.phase),
         onDragStart: (event) {
           phases.add(event.phase);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragEnd: (event) => phases.add(event.phase),
       );
@@ -131,14 +133,16 @@ void main() {
     final phases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        tapCancelDistance: 30, longPressDelay: Duration(milliseconds: 20), dragStartDistance: 3,
+        tapCancelDistance: 30,
+        longPressDelay: Duration(milliseconds: 20),
+        dragStartDistance: 3,
         onTapDown: (_) => tapDowns++,
         onTapUp: (_) => tapUps++,
         onTap: (_) => taps++,
         onLongPress: (_) => longPresses++,
         onDragStart: (event) {
           phases.add(event.phase);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragUpdate: (event) => phases.add(event.phase),
         onDragEnd: (event) => phases.add(event.phase),
@@ -386,10 +390,11 @@ void main() {
     final newPhases = <ElEventPhase>[];
     final dispatcher = EventDispatcher(box)
       ..event = ElEvent(
-        tapCancelDistance: 30, dragStartDistance: 3,
+        tapCancelDistance: 30,
+        dragStartDistance: 3,
         onDragStart: (event) {
           oldPhases.add(event.phase);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragUpdate: (event) => oldPhases.add(event.phase),
         onDragCancel: (event) => oldPhases.add(event.phase),
@@ -1441,18 +1446,12 @@ void main() {
     var oldLongPresses = 0;
     var newLongPresses = 0;
     final dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
-        longPressDelay: Duration(milliseconds: 20),
-        onLongPress: (_) => oldLongPresses++,
-      );
+      ..event = ElEvent(longPressDelay: Duration(milliseconds: 20), onLongPress: (_) => oldLongPresses++);
     addTearDown(dispatcher.dispose);
 
     final entry = BoxHitTestEntry(box, Offset.zero);
     dispatcher.dispatchTestPointer(const PointerDownEvent(position: Offset.zero, timeStamp: Duration.zero), entry);
-    dispatcher.event = ElEvent(
-      longPressDelay: Duration(milliseconds: 20),
-      onLongPress: (_) => newLongPresses++,
-    );
+    dispatcher.event = ElEvent(longPressDelay: Duration(milliseconds: 20), onLongPress: (_) => newLongPresses++);
 
     await tester.pump(const Duration(milliseconds: 40));
 
@@ -1471,17 +1470,11 @@ void main() {
 
     var longPresses = 0;
     final dispatcher = EventDispatcher(box)
-      ..event = ElEvent(
-        longPressDelay: Duration(milliseconds: 200),
-        onLongPress: (_) => longPresses++,
-      );
+      ..event = ElEvent(longPressDelay: Duration(milliseconds: 200), onLongPress: (_) => longPresses++);
     addTearDown(dispatcher.dispose);
     final entry = BoxHitTestEntry(box, Offset.zero);
 
-    dispatcher.event = ElEvent(
-      longPressDelay: Duration(milliseconds: 20),
-      onLongPress: (_) => longPresses++,
-    );
+    dispatcher.event = ElEvent(longPressDelay: Duration(milliseconds: 20), onLongPress: (_) => longPresses++);
     const down = PointerDownEvent(pointer: 1, position: Offset.zero, timeStamp: Duration.zero, buttons: kPrimaryButton);
     dispatcher.dispatchTestPointer(down, entry);
     GestureBinding.instance.pointerRouter.route(down);
@@ -1490,7 +1483,6 @@ void main() {
 
     expect(longPresses, 1);
   });
-
 }
 
 final class _EventTestBox extends RenderBox {

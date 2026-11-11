@@ -198,6 +198,10 @@ class ElEventDetails({
   bool _stopped = false, _prevented = false, _focusPreserved = false, _keyboardTapMatched = false;
   Offset Function(Offset)? _toLocalDelta;
   double? _dragStartDistance;
+  static void Function(ElEventDetails, bool, bool)? _eagerResolver;
+  static bool Function(ElEventDetails)? _ancestorDragResolver;
+  Object? _eagerOwner;
+  PointerEvent? _eagerDown;
 
   /// 当前阶段是否已停止传播。
   bool get propagationStopped => _stopped;
@@ -205,8 +209,17 @@ class ElEventDetails({
   /// 当前阶段是否已拒绝默认动作。
   bool get defaultPrevented => _prevented;
 
+  /// 本次指针是否仍有兼容当前拖拽轴向、可以接手位移的外层拖拽消费者。
+  bool get hasAncestorDragConsumer => _ancestorDragResolver?.call(this) ?? false;
+
   /// 停止向外层节点传播；在按下阶段调用时，外层不再参与本次点击或拖拽。
   void stopPropagation() => _stopped = true;
+
+  /// 认领本次指针，已胜出时同步取消其他成员；按下阶段的未决请求等待竞技场裁决。
+  ///
+  /// [cancelSelfTap] 取消自身最终点击但保留释放和拖拽，[allowScaleUpgrade] 允许同链缩放后来接管。
+  void eagerGesture({bool cancelSelfTap = false, bool allowScaleUpgrade = false}) =>
+      _eagerResolver?.call(this, cancelSelfTap, allowScaleUpgrade);
 
   /// 拒绝当前阶段的组件默认动作。
   void preventDefault() => _prevented = true;
@@ -238,6 +251,22 @@ class ElEventDetails({
 
 /// 供包内宿主读取焦点保留、键盘按压和局部位移换算。
 extension EventDetailsAccess on ElEventDetails {
+  /// 共用静态认领入口，事件详情只保存宿主与按下身份，不逐次创建回调闭包。
+  static void installEagerResolver(void Function(ElEventDetails, bool, bool) resolver) =>
+      ElEventDetails._eagerResolver ??= resolver;
+
+  /// 共用当前路线的祖先拖拽查询，不为事件详情额外绑定闭包。
+  static void installAncestorDragResolver(bool Function(ElEventDetails) resolver) =>
+      ElEventDetails._ancestorDragResolver ??= resolver;
+
+  Object? get eagerOwner => _eagerOwner;
+  PointerEvent? get eagerDown => _eagerDown;
+
+  void bindEagerSource(Object owner, PointerEvent down) {
+    _eagerOwner = owner;
+    _eagerDown = down;
+  }
+
   bool get focusPreserved => _focusPreserved;
   bool get keyboardTapMatched => _keyboardTapMatched;
   set keyboardTapMatched(bool value) => _keyboardTapMatched = value;

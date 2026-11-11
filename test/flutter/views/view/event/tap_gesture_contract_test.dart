@@ -80,10 +80,7 @@ void main() {
       for (ordinal = 1; ordinal <= 3; ordinal++) {
         sendPrimaryTap(host, ordinal);
       }
-      host.leafDispatcher.event = ElEvent(
-        dragStartDistance: 8,
-        onDoubleTapDown: onDoubleTapDown,
-      );
+      host.leafDispatcher.event = ElEvent(dragStartDistance: 8, onDoubleTapDown: onDoubleTapDown);
       ordinal = 4;
       sendPrimaryTap(host, ordinal);
 
@@ -272,11 +269,7 @@ void main() {
         tester,
         ElView(
           style: eventTestDefaultStyle,
-          event: .new(
-            longPressDelay: Duration(milliseconds: 20),
-            onLongPress: (_) => presses++,
-            onTap: (_) => taps++,
-          ),
+          event: .new(longPressDelay: Duration(milliseconds: 20), onLongPress: (_) => presses++, onTap: (_) => taps++),
         ),
       );
 
@@ -548,10 +541,7 @@ void main() {
         tester,
         ElView(
           style: eventTestDefaultStyle,
-          event: .new(
-            delayTouchUp: Duration.zero,
-            onTap: (_) {},
-          ),
+          event: .new(delayTouchUp: Duration.zero, onTap: (_) {}),
         ),
       );
       final box = tester.renderObject<RenderBox>(find.byType(ElView));
@@ -617,10 +607,7 @@ void main() {
         tester,
         ElView(
           style: eventTestDefaultStyle,
-          event: .new(
-            delayTouchUp: Duration.zero,
-            onTap: (_) {},
-          ),
+          event: .new(delayTouchUp: Duration.zero, onTap: (_) {}),
         ),
       );
       final box = tester.renderObject<RenderBox>(find.byType(ElView));
@@ -782,7 +769,7 @@ void main() {
             onTap: (_) => taps++,
             onLongPress: (event) {
               presses++;
-              event.stopPropagation();
+              event.eagerGesture(cancelSelfTap: true);
             },
           ),
         ),
@@ -804,7 +791,7 @@ void main() {
             onTapUp: (_) => tapUps++,
             onLongPress: (event) {
               presses++;
-              event.stopPropagation();
+              event.eagerGesture(cancelSelfTap: true);
             },
           ),
         ),
@@ -833,7 +820,8 @@ void main() {
         ElView(
           style: const ElStyle(width: 100, height: 100),
           event: .new(
-            longPressDelay: Duration(milliseconds: 20), dragStartDistance: 3,
+            longPressDelay: Duration(milliseconds: 20),
+            dragStartDistance: 3,
             onLongPress: (_) => parentLongPresses++,
             onTapUp: (_) => parentTapUps++,
             onTap: (_) => parentTaps++,
@@ -842,10 +830,11 @@ void main() {
           child: ElView(
             style: const ElStyle(width: 40, height: 40),
             event: .new(
-              longPressDelay: Duration(milliseconds: 20), dragStartDistance: 3,
+              longPressDelay: Duration(milliseconds: 20),
+              dragStartDistance: 3,
               onLongPress: (event) {
                 childLongPresses++;
-                event.stopPropagation();
+                event.eagerGesture(cancelSelfTap: true);
               },
               onTapCancel: (_) => childCancels++,
               onTapUp: (_) => childTapUps++,
@@ -886,11 +875,12 @@ void main() {
         ElView(
           style: eventTestDefaultStyle,
           event: .new(
-            longPressDelay: Duration(milliseconds: 60), dragStartDistance: 3,
+            longPressDelay: Duration(milliseconds: 60),
+            dragStartDistance: 3,
             onLongPress: (_) => longPresses++,
             onDragStart: (event) {
               dragStarts++;
-              event.stopPropagation();
+              event.eagerGesture(cancelSelfTap: true);
             },
           ),
         ),
@@ -920,7 +910,7 @@ void main() {
             onDoubleTap: (_) {},
             onLongPress: (event) {
               presses++;
-              event.stopPropagation();
+              event.eagerGesture(cancelSelfTap: true);
             },
           ),
         ),
@@ -1014,11 +1004,7 @@ void main() {
         event: .new(onTap: (_) => outerTaps++, onDoubleTap: (_) => outerDoubleTaps++),
         child: ElView(
           style: const ElStyle(width: 60, height: 60, backgroundColor: Color(0xFF0000FF)),
-          event: .new(
-            deferTap: true,
-            onTap: (_) => innerTaps++,
-            onDoubleTap: (_) => innerDoubleTaps++,
-          ),
+          event: .new(deferTap: true, onTap: (_) => innerTaps++, onDoubleTap: (_) => innerDoubleTaps++),
         ),
       ),
     );
@@ -1086,7 +1072,7 @@ void main() {
         onTapCancel: (event) => trace.add(event.phase.name),
         onDragStart: (event) {
           trace.add(event.phase.name);
-          event.stopPropagation();
+          event.eagerGesture(cancelSelfTap: true);
         },
         onDragEnd: (event) => trace.add(event.phase.name),
       );
