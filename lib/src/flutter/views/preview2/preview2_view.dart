@@ -72,7 +72,7 @@ class ElPreview2Controller extends ChangeNotifier {
 /// 组件自己管理相邻项与横向切换，上层只提供每一项的内容。手势由组件独占：竞技场里只登记一个成员
 /// 用来声明归属，其余按原始指针计算，所以捏合、旋转、平移和翻页之间切换不会中断。
 /// 两指里先越过角度阈值的进入旋转模式（同时可缩放），先越过间距阈值的进入缩放模式（锁定旋转），
-/// 模式保持到手指少于两根；松手后旋转复位，缩放保留。
+/// 模式保持到手指少于两根；松手后旋转沿最短方向吸附到最近的直角，缩放保留。
 class ElPreview2View extends StatefulWidget {
   /// 创建预览视图。
   const ElPreview2View({
@@ -275,7 +275,9 @@ final class _PreviewEngine {
   // 多指基准：每次手指数量变化或模式判定时重设，保证跟手不跳变；焦点均换算到当前项坐标。
   Offset _f0 = Offset.zero;
   double _span0 = 0;
-  double _angle0 = 0;
+  // 手指连线相对基准累计转过的角度，逐次累加增量，超过半圈也保持连续。
+  double _lastAngle = 0;
+  double _turn = 0;
   double _rawScale0 = 1;
   double _s0 = 1;
   double _r0 = 0;
@@ -421,6 +423,13 @@ final class _PreviewEngine {
     return Offset(v.dx * cos - v.dy * sin, v.dx * sin + v.dy * cos);
   }
 
+  /// 松手时旋转吸附到最近的直角，落在 (-π, π]。
+  static double _snapRotation(double rotation) {
+    const quarter = math.pi / 2;
+    final snapped = (rotation / quarter).round() * quarter;
+    return math.atan2(math.sin(snapped), math.cos(snapped));
+  }
+
   static double _angleDelta(double to, double from) {
     var delta = to - from;
     while (delta > math.pi) {
@@ -526,7 +535,7 @@ final class _PreviewEngine {
     _startMotion((t) {
       if (simulation.isDone(t)) {
         _settleAt(target);
-        // 手指已全部抬起时，接着执行松手复位（旋转归零、缩放与平移收回范围）。
+        // 手指已全部抬起时，接着执行松手复位（旋转吸附直角、缩放与平移收回范围）。
         if (_points.isEmpty) _settle(Offset.zero);
         return false;
       }
@@ -581,7 +590,8 @@ final class _PreviewEngine {
     final item = _active;
     _f0 = _toActive(focal);
     _span0 = span;
-    _angle0 = angle;
+    _lastAngle = angle;
+    _turn = 0;
     _rawScale0 = _unresist(item.scale);
     _s0 = item.scale;
     _r0 = item.rotation;
@@ -661,10 +671,12 @@ final class _PreviewEngine {
       _rebaseMulti(_focal, span, angle);
       return;
     }
+    _turn += _angleDelta(angle, _lastAngle);
+    _lastAngle = angle;
     if (_rotating == null) {
       if (!widget.enableRotation) {
         _rotating = false;
-      } else if (_angleDelta(angle, _angle0).abs() * _span0 > _slop) {
+      } else if (_turn.abs() * _span0 > _slop) {
         // 旋转从判定这一刻开始，不补回阈值内的角度，避免跳变。
         _rotating = true;
         _rebaseMulti(_focal, span, angle);
@@ -673,19 +685,20 @@ final class _PreviewEngine {
       }
     }
     final scale = _resist(_rawScale0 * span / _span0);
-    final rotation = _rotating == true ? _r0 + _angleDelta(angle, _angle0) : _r0;
+    final rotation = _rotating == true ? _r0 + _turn : _r0;
     final c = _center;
     final local = _rotate(_f0 - c - _o0, -_r0) / _s0;
     _setTransform(scale, rotation, _toActive(_focal) - c - _rotate(local, rotation) * scale);
   }
 
   // 单指位移分配：翻页偏离时先收回，其次平移当前项，到边缘后的余量进入翻页。
+  // 一旦翻页偏离当前项就只做横向移动，纵向位移不再平移图片，收回到当前项后才恢复自由平移。
   void _panBy(Offset delta) {
     final stride = _stride;
     if (stride <= 0) return;
     final item = _active;
     final range = _range(item.scale, item.rotation);
-    final y = _axisPan(item.offset.dy, delta.dy, range.dy).$1;
+    final displacedBefore = (_page - _anchor).abs() > 1e-6;
     var rest = delta.dx;
     var x = item.offset.dx;
     final displacement = (_page - _anchor) * stride;
@@ -700,6 +713,8 @@ final class _PreviewEngine {
       x = next;
       rest = overflow;
     }
+    final paging = displacedBefore || rest.abs() > 1e-6;
+    final y = paging ? item.offset.dy : _axisPan(item.offset.dy, delta.dy, range.dy).$1;
     if (x != item.offset.dx || y != item.offset.dy) _setTransform(item.scale, item.rotation, Offset(x, y));
     if (rest.abs() > 1e-6) _movePage(-rest / stride);
   }
@@ -872,15 +887,16 @@ final class _PreviewEngine {
   static const _pageFlingVelocity = 300.0;
   static const _transformSeconds = 0.22;
 
-  // 松手：旋转复位、缩放与平移收回范围；翻页未归位时按速度或过半决定目标并弹簧吸附；否则按速度做惯性平移。
+  // 松手：旋转吸附到最近直角、缩放与平移收回范围；翻页未归位时按速度或过半决定目标并弹簧吸附；否则按速度做惯性平移。
   void _settle(Offset velocity) {
     if (size.isEmpty || _count <= 0) return;
     final item = _active;
     final targetScale = item.scale.clamp(1.0, widget.maxScale);
-    final targetOffset = _clampOffset(item.offset * (targetScale / item.scale), targetScale, 0);
+    final targetRotation = _snapRotation(item.rotation);
+    final targetOffset = _clampOffset(item.offset * (targetScale / item.scale), targetScale, targetRotation);
     final needTransform =
         (targetScale - item.scale).abs() > 1e-4 ||
-        item.rotation.abs() > 1e-4 ||
+        _angleDelta(targetRotation, item.rotation).abs() > 1e-4 ||
         (targetOffset - item.offset).distance > 0.5;
     final displacement = _page - _anchor;
     if (displacement.abs() > 1e-4) {
@@ -899,7 +915,9 @@ final class _PreviewEngine {
         pageVelocity,
         tolerance: Tolerance(distance: 1e-3, velocity: 1e-2),
       );
-      final transform = needTransform && target == _anchor ? _transformFrame(targetScale, 0, targetOffset) : null;
+      final transform = needTransform && target == _anchor
+          ? _transformFrame(targetScale, targetRotation, targetOffset)
+          : null;
       _startMotion((t) {
         final pageDone = simulation.isDone(t);
         if (!pageDone) _setPage(simulation.x(t));
@@ -913,7 +931,7 @@ final class _PreviewEngine {
       return;
     }
     if (needTransform) {
-      _animateTransform(targetScale, 0, targetOffset);
+      _animateTransform(targetScale, targetRotation, targetOffset);
       return;
     }
     if (_canPan && velocity.distance > kMinFlingVelocity) {

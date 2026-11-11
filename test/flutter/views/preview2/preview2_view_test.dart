@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
@@ -54,6 +56,44 @@ Future<void> _holdAndUp(WidgetTester tester, TestGesture gesture, int t) async {
   await gesture.moveBy(Offset.zero, timeStamp: Duration(milliseconds: t + 300));
   await gesture.up(timeStamp: Duration(milliseconds: t + 316));
   await tester.pumpAndSettle();
+}
+
+/// 两指以 [center] 为中心、半径 50 对称落下，按 3° 步进转动，直到当前项旋转越过 [target]。
+Future<(TestGesture, TestGesture, double)> _rotateUntil(WidgetTester tester, _Harness h, double target) async {
+  final c = _center(tester);
+  Offset arm(double angle) => Offset(math.cos(angle), math.sin(angle)) * 50;
+  final a = await tester.startGesture(c - arm(0), pointer: 1);
+  final b = await tester.startGesture(c + arm(0), pointer: 2);
+  final step = target.sign * math.pi / 60;
+  var angle = 0.0;
+  for (var i = 0; i < 200; i++) {
+    final reached = target > 0 ? h.controller.rotation >= target : h.controller.rotation <= target;
+    if (reached) break;
+    angle += step;
+    await a.moveTo(c - arm(angle));
+    await b.moveTo(c + arm(angle));
+  }
+  await tester.pump();
+  return (a, b, angle);
+}
+
+Future<double> _releaseAndTrack(WidgetTester tester, _Harness h, (TestGesture, TestGesture, double) fingers) async {
+  final start = h.controller.rotation;
+  await fingers.$1.up();
+  await fingers.$2.up();
+  await tester.pump();
+  await tester.pump(Duration(milliseconds: 60));
+  final middle = h.controller.rotation;
+  await tester.pumpAndSettle();
+  expect(middle, isNot(moreOrLessEquals(start)), reason: '松手后应以动画转到吸附角度');
+  return middle;
+}
+
+/// 双击中心放大到 2.5 倍，横纵可平移范围均为 300。
+Future<void> _zoomAtCenter(WidgetTester tester, _Harness h) async {
+  await _doubleTap(tester, _center(tester));
+  expect(h.controller.scale, 2.5);
+  expect(h.controller.translation, Offset.zero);
 }
 
 void main() {
@@ -317,5 +357,145 @@ void main() {
     await tester.pump();
     expect(h.controller.index, 0);
     expect(h.indexLog, [2, 0]);
+  });
+
+  group('松手旋转按最近直角、沿最短方向吸附', () {
+    testWidgets('不足 45° 时往回转到 0°，过程中单调减小', (tester) async {
+      final h = await _pump(tester);
+      final fingers = await _rotateUntil(tester, h, 0.4);
+      final start = h.controller.rotation;
+      expect(start, inInclusiveRange(0.4, math.pi / 4));
+      final middle = await _releaseAndTrack(tester, h, fingers);
+      expect(middle, inExclusiveRange(0, start));
+      expect(h.controller.rotation, moreOrLessEquals(0));
+    });
+
+    testWidgets('超过 45° 时沿当前方向补到 90°，不往回转', (tester) async {
+      final h = await _pump(tester);
+      final fingers = await _rotateUntil(tester, h, 1.0);
+      final start = h.controller.rotation;
+      expect(start, inInclusiveRange(1.0, 3 * math.pi / 4));
+      final middle = await _releaseAndTrack(tester, h, fingers);
+      expect(middle, inExclusiveRange(start, math.pi / 2));
+      expect(h.controller.rotation, moreOrLessEquals(math.pi / 2));
+    });
+
+    testWidgets('逆时针超过 45° 时补到 -90°', (tester) async {
+      final h = await _pump(tester);
+      final fingers = await _rotateUntil(tester, h, -1.0);
+      final start = h.controller.rotation;
+      final middle = await _releaseAndTrack(tester, h, fingers);
+      expect(middle, inExclusiveRange(-math.pi / 2, start));
+      expect(h.controller.rotation, moreOrLessEquals(-math.pi / 2));
+    });
+
+    testWidgets('超过 135° 时补到 180°，旋转越过半圈仍保持连续', (tester) async {
+      final h = await _pump(tester);
+      final fingers = await _rotateUntil(tester, h, 2.5);
+      final start = h.controller.rotation;
+      expect(start, inInclusiveRange(2.5, math.pi), reason: '累计角度不应在越过 180° 时翻到负值');
+      await _releaseAndTrack(tester, h, fingers);
+      expect(math.cos(h.controller.rotation), moreOrLessEquals(-1));
+    });
+
+    testWidgets('吸附保留缩放倍数；吸附到 90° 后双击回到 0° 与原始大小', (tester) async {
+      final h = await _pump(tester);
+      final fingers = await _rotateUntil(tester, h, 1.0);
+      // 沿手指连线方向向外拉开，只改变间距不改变角度。
+      final outward = Offset(math.cos(fingers.$3), math.sin(fingers.$3)) * 12;
+      for (var i = 0; i < 3; i++) {
+        await fingers.$1.moveBy(-outward);
+        await fingers.$2.moveBy(outward);
+      }
+      final scale = h.controller.scale;
+      expect(scale, greaterThan(1.2));
+      await _releaseAndTrack(tester, h, fingers);
+      expect(h.controller.rotation, moreOrLessEquals(math.pi / 2));
+      expect(h.controller.scale, moreOrLessEquals(scale));
+      await tester.pump(Duration(milliseconds: 500));
+      await _doubleTap(tester, _center(tester));
+      expect(h.controller.rotation, moreOrLessEquals(0));
+      expect(h.controller.scale, 1);
+    });
+  });
+
+  group('放大后贴边进入翻页：只做横向移动', () {
+    testWidgets('贴边后斜向拖动，余量只推动翻页，图片纵向不动', (tester) async {
+      final h = await _pump(tester);
+      await _zoomAtCenter(tester, h);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(Offset(-20, 0));
+      await gesture.moveBy(Offset(-280, 0));
+      expect(h.controller.translation, Offset(-300, 0));
+      expect(h.controller.page.value, 0);
+
+      await gesture.moveBy(Offset(-40, -30));
+      expect(h.controller.page.value, moreOrLessEquals(0.1));
+      expect(h.controller.translation, Offset(-300, 0), reason: '进入翻页的这一下纵向也不平移图片');
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('翻页偏离期间纯纵向拖动，既不平移图片也不改变翻页', (tester) async {
+      final h = await _pump(tester);
+      await _zoomAtCenter(tester, h);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(Offset(-20, 0));
+      await gesture.moveBy(Offset(-320, 0));
+      final page = h.controller.page.value;
+      expect(page, moreOrLessEquals(0.1));
+      for (var i = 0; i < 4; i++) {
+        await gesture.moveBy(Offset(0, 25));
+      }
+      expect(h.controller.page.value, page);
+      expect(h.controller.translation, Offset(-300, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('反向收回到当前项的那一下仍只做横向，之后恢复图片双轴平移', (tester) async {
+      final h = await _pump(tester);
+      await _zoomAtCenter(tester, h);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(Offset(-20, 0));
+      await gesture.moveBy(Offset(-320, 0));
+      expect(h.controller.page.value, moreOrLessEquals(0.1));
+
+      await gesture.moveBy(Offset(60, 30));
+      expect(h.controller.page.value, 0);
+      expect(h.controller.translation, Offset(-280, 0));
+
+      await gesture.moveBy(Offset(10, 30));
+      expect(h.controller.translation, Offset(-270, 30));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('未贴边时斜向拖动正常平移图片两轴，翻页不动', (tester) async {
+      final h = await _pump(tester);
+      await _zoomAtCenter(tester, h);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(Offset(-20, -20));
+      await gesture.moveBy(Offset(-30, 40));
+      expect(h.controller.translation, Offset(-50, 20));
+      expect(h.controller.page.value, 0);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('跨入下一项后继续拖动仍是横向翻页', (tester) async {
+      final h = await _pump(tester);
+      await _zoomAtCenter(tester, h);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(Offset(-20, 0));
+      await gesture.moveBy(Offset(-280, 0));
+      await gesture.moveBy(Offset(-400, -60));
+      expect(h.controller.index, 1);
+      await gesture.moveBy(Offset(-40, 50));
+      expect(h.controller.page.value, moreOrLessEquals(1.1));
+      expect(h.controller.translation, Offset.zero);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
   });
 }
