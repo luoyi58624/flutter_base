@@ -56,7 +56,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       shell(
-        body: ElScroll.sliver(
+        body: ElScrollView.sliver(
           controller: controller,
           slivers: [
             _listItems(<Widget>[
@@ -95,7 +95,7 @@ void main() {
         body: StatefulBuilder(
           builder: (context, setState) {
             rebuild = setState;
-            return ElScroll(
+            return ElScrollView(
               controller: controller,
               children: [
                 for (var i = 0; i < 30; i++) ElView(style: const ElStyle(height: 40), child: '第$i行文本'),

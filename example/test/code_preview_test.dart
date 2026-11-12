@@ -152,8 +152,8 @@ void main() {
           .widgetList<Scrollable>(find.byType(Scrollable))
           .where((widget) => widget.axisDirection == AxisDirection.right)
           .single;
-      final scrolls = tester.widgetList<ElScroll>(
-        find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ElScroll)),
+      final scrolls = tester.widgetList<ElScrollView>(
+        find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ElScrollView)),
       );
       expect(scrolls.map((widget) => widget.axis), [Axis.vertical, Axis.horizontal]);
       expect(scrolls.every((widget) => widget.controller == null), isTrue);

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show FloatingHeaderSnapConfiguration;
 
-import '../widgets/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
-import '../widgets/scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
-import '../widgets/scroll/scroll_position.dart' show ScrollHostPosition;
+import '../views/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
+import '../views/scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+import '../views/scroll/scroll_position.dart' show ScrollHostPosition;
 
 /// 根据滚动进度构建折叠头。0 为展开，1 为收起。
 typedef ElSliverCollapseBuilder = Widget Function(BuildContext context, double progress);
@@ -37,7 +37,7 @@ abstract class ElSliverCollapse extends StatelessWidget {
   /// Bibi 型：白底导航固定，内容淡出，页头优先消费拖拽，松手或按住时以 50% 吸附。
   ///
   /// [compactExtent] 和 [contentExtent] 分别对应固定导航与可折叠内容的自然占位；
-  /// 不要求正文为固定高度。此形态放入 ElScroll.sliver，不能挂入任意 CustomScrollView。
+  /// 不要求正文为固定高度。此形态放入 ElScrollView.sliver，不能挂入任意 CustomScrollView。
   const factory ElSliverCollapse.bibi({
     Key? key,
     required Widget compact,
@@ -180,7 +180,7 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
   void didChangeDependencies() {
     super.didChangeDependencies();
     final position = Scrollable.maybeOf(context)?.position;
-    assert(position is ScrollHostPosition, 'ElSliverCollapse.bibi 必须放在 ElScroll.sliver 中');
+    assert(position is ScrollHostPosition, 'ElSliverCollapse.bibi 必须放在 ElScrollView.sliver 中');
     if (identical(position, _position)) return;
     _position?.removeEdgeParticipant(_motion);
     _position?.isScrollingNotifier.removeListener(_motion.onScrollingChanged);

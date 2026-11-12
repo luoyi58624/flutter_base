@@ -36,8 +36,8 @@ void main() {
     expect(_item(99), findsOneWidget);
     expect(_item(100), findsNothing);
 
-    final scroll = tester.widget<ElScroll>(
-      find.descendant(of: find.byKey(ValueKey('text-plain-list')), matching: find.byType(ElScroll)),
+    final scroll = tester.widget<ElScrollView>(
+      find.descendant(of: find.byKey(ValueKey('text-plain-list')), matching: find.byType(ElScrollView)),
     );
     scroll.controller!.jumpTo(scroll.controller!.position.maxScrollExtent - 100);
     await tester.pump();

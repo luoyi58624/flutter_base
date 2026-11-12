@@ -24,8 +24,8 @@ Future<void> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-ElScroll _feed(WidgetTester tester, {int index = 1}) =>
-    tester.widget<ElScroll>(_inFeed(find.byType(ElScroll), index: index));
+ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
+    tester.widget<ElScrollView>(_inFeed(find.byType(ElScrollView), index: index));
 
 Key? _rowsKey(WidgetTester tester) => tester.widget<SliverList>(_inFeed(find.byType(SliverList))).key;
 
@@ -189,7 +189,7 @@ void main() {
 
   testWidgets('卡片区跟手横移并在换频道后保持纵向位置', (tester) async {
     await _open(tester);
-    final host = _inFeed(find.byType(ElScroll));
+    final host = _inFeed(find.byType(ElScrollView));
     final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ExamplePanel));
     expect(cards, findsNWidgets(2));
     final boundaries = find.descendant(

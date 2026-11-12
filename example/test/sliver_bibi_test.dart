@@ -1,7 +1,7 @@
 import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/pages/examples/sliver_bibi/index.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart' show ElScroll, ElTabController, ElTabView;
+import 'package:flutter_base/flutter_base.dart' show ElScrollView, ElTabController, ElTabView;
 import 'package:flutter_test/flutter_test.dart';
 
 Finder _key(String value) => find.byKey(ValueKey(value));
@@ -50,12 +50,12 @@ Future<void> _collapseHeader(WidgetTester tester, SliverBibiPageState state) asy
 }
 
 void main() {
-  testWidgets('入口是官方 CustomScrollView + SliverList，没有 ElScroll', (tester) async {
+  testWidgets('入口是官方 CustomScrollView + SliverList，没有 ElScrollView', (tester) async {
     final entry = advancedExamples.singleWhere((page) => page.key == 'sliver-bibi');
     expect(entry.title, 'Bibi Sliver 对照');
     final state = await _open(tester);
     expect(state.debugScrollPixels, 0);
-    expect(find.byType(ElScroll), findsNothing);
+    expect(find.byType(ElScrollView), findsNothing);
     expect(_inFeed(1, find.byType(CustomScrollView)), findsOneWidget);
     expect(_inFeed(1, find.byType(SliverList)), findsOneWidget);
     expect(_inFeed(1, find.byType(SliverToBoxAdapter)), findsOneWidget);

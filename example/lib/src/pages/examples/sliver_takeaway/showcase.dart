@@ -353,7 +353,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
             ? Center(
                 child: ElEmpty(title: '没找到相关商家', description: '试试其他关键词或分类'),
               )
-            : ElScroll.sliver(
+            : ElScrollView.sliver(
                 key: ValueKey('home-takeaway-list'),
                 controller: _controller,
                 scrollCacheExtent: ScrollCacheExtent.pixels(0),

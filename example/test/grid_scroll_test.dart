@@ -22,9 +22,9 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ElGrid), findsOneWidget);
-    expect(find.byType(ElImage), findsWidgets);
+    expect(find.byType(ElImageView), findsWidgets);
     expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == '酱油神小子'), findsWidgets);
-    final image = find.byType(ElImage).first;
+    final image = find.byType(ElImageView).first;
     final card = find.ancestor(of: image, matching: find.byType(ElView)).first;
     final imageSize = tester.getSize(image);
     expect(imageSize.width, tester.getSize(card).width);

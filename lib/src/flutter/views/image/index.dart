@@ -3,15 +3,15 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 
-import '../../views/view/event/event.dart';
-import '../../views/view/style/style.dart';
+import '../view/event/event.dart';
+import '../view/style/style.dart';
 import 'image_provider_resolver_stub.dart'
     if (dart.library.io) 'image_provider_resolver_io.dart'
     as image_provider_resolver;
 import 'render/render_image.dart';
 import 'sized_image.dart';
 
-/// 图片加载完成信息（[ElImage.onLoad] 入参）。
+/// 图片加载完成信息（[ElImageView.onLoad] 入参）。
 @immutable
 class ImageLoadInfo {
   const ImageLoadInfo({required this.width, required this.height});
@@ -35,14 +35,14 @@ class ImageLoadInfo {
 /// - `asset://xxx` 或 `assets/` 前缀 → 包内资源；
 /// - `file://` URI 或裸文件路径（含 Windows 盘符）→ 本地文件。
 ///
-/// 内存字节用 [ElImage.memory]。
+/// 内存字节用 [ElImageView.memory]。
 ///
 /// 占位与错误：[placeholder] 在加载完成前显示，[error] 在加载失败后显示；
 /// 两者与 [onLoad] / [onError] 均未配置时组件走零开销直挂路径（不额外监听
 /// 图片流，行为与配置前完全一致）。
-class ElImage extends StatefulWidget {
+class ElImageView extends StatefulWidget {
   /// 创建图片组件；[src] 按上述规则自动识别来源。
-  ElImage(
+  ElImageView(
     String this.src, {
     super.key,
     this.alt,
@@ -70,7 +70,7 @@ class ElImage extends StatefulWidget {
        scale = scale;
 
   /// 内存图片。
-  ElImage.memory(
+  ElImageView.memory(
     Uint8List bytes, {
     super.key,
     this.src,
@@ -197,12 +197,12 @@ class ElImage extends StatefulWidget {
   final void Function(Object error)? onError;
 
   @override
-  State<ElImage> createState() => _ImageState();
+  State<ElImageView> createState() => _ImageState();
 }
 
 enum _ImagePhase { loading, ready, error }
 
-class _ImageState extends State<ElImage> {
+class _ImageState extends State<ElImageView> {
   _ImagePhase _phase = _ImagePhase.loading;
 
   bool get _tracksReady => widget.placeholder != null || widget.onLoad != null;
@@ -213,7 +213,7 @@ class _ImageState extends State<ElImage> {
   bool get _tracksPhase => _tracksReady || _tracksError;
 
   @override
-  void didUpdateWidget(ElImage oldWidget) {
+  void didUpdateWidget(ElImageView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.image != widget.image) _phase = _ImagePhase.loading;
   }
@@ -268,11 +268,11 @@ class _ImageState extends State<ElImage> {
   }
 }
 
-/// 裸图片 render 挂载层：承接 ElImage 的全部绘制参数。
+/// 裸图片 render 挂载层：承接 ElImageView 的全部绘制参数。
 class _RawImageView extends LeafRenderObjectWidget {
   const _RawImageView({required this.view, required this.reportReady, required this.reportError, this.onLoadPhase});
 
-  final ElImage view;
+  final ElImageView view;
   final ImageLoadPhaseCallback? onLoadPhase;
   final bool reportReady;
   final bool reportError;

@@ -383,7 +383,7 @@ void main() {
           child: SizedBox(
             width: 200,
             height: 400,
-            child: ElScroll(
+            child: ElScrollView(
               controller: controller,
               children: [
                 for (var i = 0; i < 60; i++)
@@ -465,7 +465,7 @@ void main() {
           child: SizedBox(
             width: 200,
             height: 300,
-            child: ElScroll(
+            child: ElScrollView(
               controller: controller,
               children: List<Widget>.generate(
                 40,
@@ -508,7 +508,7 @@ void main() {
           child: SizedBox(
             width: 200,
             height: 300,
-            child: ElScroll(
+            child: ElScrollView(
               controller: controller,
               children: List<Widget>.generate(
                 40,

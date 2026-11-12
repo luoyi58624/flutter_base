@@ -2,7 +2,7 @@
 // 页面滚动到底部后展开示例卡代码区（ElCodeExample 的 ElCollapseAnimation 口径）：
 // 默认（pinToEnd: false）与 web/CSS 一致——保留 scrollTop，可见内容原地不动，
 // 展开发生在视口下方、可继续下滚；页面中段展开同口径（位置保留、下方内容被推下去）。
-// 贴底跟随（钉回新 max）是 ElScroll.pinToEnd 显式 opt-in（2026-08-09 用户裁决，
+// 贴底跟随（钉回新 max）是 ElScrollView.pinToEnd 显式 opt-in（2026-08-09 用户裁决，
 // 引擎回归见 el_ui/test/scroll/el_scroll_pin_to_end_test.dart）。
 import 'package:flutter_base/ui.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
@@ -57,11 +57,10 @@ class _CodeExampleCardState extends State<_CodeExampleCard> {
 Widget _host(ScrollController controller) {
   return Directionality(
     textDirection: TextDirection.ltr,
-    child: ElScroll(
+    child: ElScrollView(
       controller: controller,
       children: [
-        for (var i = 0; i < 10; i++)
-          ElView(key: ValueKey('row-$i'), style: const ElStyle(height: 100), child: '行 $i'),
+        for (var i = 0; i < 10; i++) ElView(key: ValueKey('row-$i'), style: const ElStyle(height: 100), child: '行 $i'),
         const _CodeExampleCard(),
         ElView(key: const ValueKey('footer'), style: const ElStyle(height: 100), child: '页脚'),
       ],
@@ -94,26 +93,30 @@ void main() {
 
     await tester.pumpAndSettle();
     // web 语义：scrollTop 保留，可见内容原地不动，展开量全部落在视口下方。
-    expect(controller.position.maxScrollExtent, moreOrLessEquals(maxBefore + _codeHeight, epsilon: 0.01),
-        reason: '内容总高 +200');
-    expect(controller.position.pixels, moreOrLessEquals(pixelsBefore, epsilon: 0.01),
-        reason: '展开不驱动滚动，位置保留（贴底跟随需显式 pinToEnd）');
-    expect(controller.position.pixels, lessThan(controller.position.maxScrollExtent),
-        reason: '下方还有展开量可滚');
-    expect(tester.getRect(find.byKey(const ValueKey('demo'))), demoBefore,
-        reason: '演示区（可见内容）原地不动');
-    expect(tester.getRect(find.byKey(const ValueKey('code'))).bottom, greaterThan(600.0),
-        reason: '代码区在视口外向下展开');
-    expect(tester.getRect(find.byKey(const ValueKey('footer'))).top, footerTopBefore + _codeHeight,
-        reason: '页脚被展开量推下去');
+    expect(
+      controller.position.maxScrollExtent,
+      moreOrLessEquals(maxBefore + _codeHeight, epsilon: 0.01),
+      reason: '内容总高 +200',
+    );
+    expect(
+      controller.position.pixels,
+      moreOrLessEquals(pixelsBefore, epsilon: 0.01),
+      reason: '展开不驱动滚动，位置保留（贴底跟随需显式 pinToEnd）',
+    );
+    expect(controller.position.pixels, lessThan(controller.position.maxScrollExtent), reason: '下方还有展开量可滚');
+    expect(tester.getRect(find.byKey(const ValueKey('demo'))), demoBefore, reason: '演示区（可见内容）原地不动');
+    expect(tester.getRect(find.byKey(const ValueKey('code'))).bottom, greaterThan(600.0), reason: '代码区在视口外向下展开');
+    expect(
+      tester.getRect(find.byKey(const ValueKey('footer'))).top,
+      footerTopBefore + _codeHeight,
+      reason: '页脚被展开量推下去',
+    );
 
     // 收起：位置仍保留（收起后恰好回到贴底）。
     await tester.tap(find.byKey(const ValueKey('bar')), kind: PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
-    expect(controller.position.pixels, moreOrLessEquals(pixelsBefore, epsilon: 0.01),
-        reason: '收起后位置保留');
-    expect(controller.position.maxScrollExtent, moreOrLessEquals(maxBefore, epsilon: 0.01),
-        reason: '收起后滚动范围复原');
+    expect(controller.position.pixels, moreOrLessEquals(pixelsBefore, epsilon: 0.01), reason: '收起后位置保留');
+    expect(controller.position.maxScrollExtent, moreOrLessEquals(maxBefore, epsilon: 0.01), reason: '收起后滚动范围复原');
     expect(find.byKey(const ValueKey('code')), findsNothing, reason: 'keepState: false 折叠即销毁');
   });
 
@@ -137,7 +140,10 @@ void main() {
 
     expect(controller.position.pixels, pixelsBefore, reason: '非贴底：展开不驱动滚动，位置保留');
     expect(tester.getRect(find.byKey(const ValueKey('demo'))), demoBefore, reason: '卡上方内容不动');
-    expect(tester.getRect(find.byKey(const ValueKey('footer'))).top, footerTopBefore + _codeHeight,
-        reason: '展开把卡下方内容推下去 _codeHeight（与 web 一致）');
+    expect(
+      tester.getRect(find.byKey(const ValueKey('footer'))).top,
+      footerTopBefore + _codeHeight,
+      reason: '展开把卡下方内容推下去 _codeHeight（与 web 一致）',
+    );
   });
 }

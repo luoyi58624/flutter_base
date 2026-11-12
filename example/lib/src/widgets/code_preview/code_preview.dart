@@ -138,11 +138,11 @@ class _CodeArea extends HookWidget {
       return height;
     }, [span, scaler, direction, strut]);
     final text = Text.rich(span, style: codeTextStyle, softWrap: false, strutStyle: strut);
-    // 横向 ElScroll 需要有限的交叉轴高度，按原有源码行高测量。
+    // 横向 ElScrollView 需要有限的交叉轴高度，按原有源码行高测量。
     final content = LayoutBuilder(
       builder: (context, constraints) => SizedBox(
         height: textHeight + 40,
-        child: ElScroll(
+        child: ElScrollView(
           axis: .horizontal,
           children: [
             ConstrainedBox(
@@ -158,7 +158,7 @@ class _CodeArea extends HookWidget {
         ? content
         : SizedBox(
             height: maxHeight,
-            child: ElScroll(children: [content]),
+            child: ElScrollView(children: [content]),
           );
     return SelectionArea(child: area);
   }

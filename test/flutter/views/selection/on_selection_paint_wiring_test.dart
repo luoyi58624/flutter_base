@@ -5,12 +5,12 @@ import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dar
 // - 文本宿主：声明节点用自己的色，未声明邻段回退 root 平台默认 → 混排双色
 // - vars 通道：onSelection.backgroundColor 引用 '--key' 经宿主 vars 表折算
 // - 状态流入：onHover 嵌套 onSelection 随真实 hover 激活/退场
-// - 图片宿主：ElImage.style.onSelection.backgroundColor 生效
+// - 图片宿主：ElImageView.style.onSelection.backgroundColor 生效
 
 import 'dart:typed_data';
 
-import 'package:flutter_base/src/flutter/widgets/image/index.dart';
-import 'package:flutter_base/src/flutter/widgets/image/render/render_image.dart';
+import 'package:flutter_base/src/flutter/views/image/index.dart';
+import 'package:flutter_base/src/flutter/views/image/render/render_image.dart';
 
 import 'package:flutter_base/src/flutter/views/view/view.dart';
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
@@ -174,7 +174,7 @@ void main() {
     );
   });
 
-  testWidgets('ElImage.style.onSelection.backgroundColor 生效', (tester) async {
+  testWidgets('ElImageView.style.onSelection.backgroundColor 生效', (tester) async {
     final controller = ElSelectionController();
     const imageKey = Key('sel-image');
     await tester.pumpWidget(
@@ -186,7 +186,7 @@ void main() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const ElView(key: _plainKey, child: 'before image'),
-              ElImage.memory(
+              ElImageView.memory(
                 _transparentPng,
                 key: imageKey,
                 src: 'https://example.test/image.png',

@@ -35,7 +35,7 @@ class ElBouncingScrollPhysics extends BouncingScrollPhysics {
   /// 把 physics 链头部的**官方精确类型** [BouncingScrollPhysics] 替换为
   /// [ElBouncingScrollPhysics]（保留 decelerationRate 与 parent 链）。
   ///
-  /// 用在 ElScroll 的 physics 合成收口处：平台
+  /// 用在 ElScrollView 的 physics 合成收口处：平台
   /// 默认（iOS/macOS ScrollBehavior）与调用方显式传入的官方 bouncing 都被
   /// 升级；[BouncingScrollPhysics] 的自定义子类视为调用方有意定制，不动。
   static ScrollPhysics upgrade(ScrollPhysics physics) {

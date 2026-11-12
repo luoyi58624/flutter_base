@@ -47,7 +47,7 @@ class _Home extends HookWidget {
     return ExamplePanel(
       key: ValueKey('page-推荐'),
       style: ElStyle(backgroundColor: _background),
-      child: ElScroll.sliver(
+      child: ElScrollView.sliver(
         key: PageStorageKey('home-list'),
         controller: scroll,
         physics: AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),

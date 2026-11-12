@@ -41,7 +41,7 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ElScroll.sliver(
+                        child: ElScrollView.sliver(
                           slivers: [
                             SliverList.builder(
                               itemCount: 1000,
@@ -93,7 +93,7 @@ class ElViewPage extends StatelessWidget {
                         child: _radiusContent,
                       ),
                       Expanded(
-                        child: ElScroll.sliver(
+                        child: ElScrollView.sliver(
                           slivers: [
                             SliverList.builder(
                               itemCount: 1000,

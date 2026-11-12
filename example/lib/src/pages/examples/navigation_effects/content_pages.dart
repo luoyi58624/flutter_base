@@ -26,7 +26,7 @@ class _RevealParallaxEffectPageState extends State<RevealParallaxEffectPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: effectWhite,
     appBar: AppBar(title: Text('原野'), backgroundColor: effectWhite),
-    body: ElScroll.sliver(
+    body: ElScrollView.sliver(
       controller: controller,
       slivers: [
         ElSliverRefresh(onRefresh: effectRefresh),
@@ -276,7 +276,7 @@ class _ReadingProgressEffectPageState extends State<ReadingProgressEffectPage> {
     backgroundColor: effectWhite,
     body: Stack(
       children: [
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: scroll,
           slivers: [
             ElSliverRefresh(onRefresh: effectRefresh),

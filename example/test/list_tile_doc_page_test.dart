@@ -38,7 +38,7 @@ Future<void> _openPage(WidgetTester tester, {required double width, required ElC
 }
 
 Future<void> _reveal(WidgetTester tester, Finder target) async {
-  final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+  final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
   final offset = controller.offset + tester.getCenter(target).dy - 420;
   controller.jumpTo(offset.clamp(controller.position.minScrollExtent, controller.position.maxScrollExtent).toDouble());
   await tester.pumpAndSettle();

@@ -33,7 +33,7 @@ void main() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ElView(key: textKey, child: 'lead text'),
-              ElImage.memory(
+              ElImageView.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),

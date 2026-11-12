@@ -51,7 +51,7 @@ class _Fixture {
   double get pulled => details!.snapshot.value.pulledExtent;
 
   Widget build({ElNestedScrollParent? parent}) {
-    Widget scroll = ElScroll.sliver(
+    Widget scroll = ElScrollView.sliver(
       key: ValueKey('scroll'),
       controller: controller,
       reverse: reverse,

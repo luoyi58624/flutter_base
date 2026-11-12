@@ -40,7 +40,7 @@ class _BottomNavigationEffectPageState extends State<BottomNavigationEffectPage>
       index: selected,
       children: [
         for (var tab = 0; tab < 3; tab++)
-          ElScroll.sliver(
+          ElScrollView.sliver(
             key: PageStorageKey('effects-bottom-tab-$tab'),
             controller: controllers[tab],
             slivers: [
@@ -128,7 +128,7 @@ class _DrawerEffectPageState extends State<DrawerEffectPage> {
   @override
   Widget build(BuildContext context) {
     final sidebar = MediaQuery.sizeOf(context).width >= 768 && !forceDrawer;
-    final body = ElScroll.sliver(
+    final body = ElScrollView.sliver(
       slivers: [
         effectSliverItems([
           effectDescription(sections[selected], '桌面侧栏与移动抽屉共享同一份导航。\n用下面的开关试试不同布局。'),
@@ -339,7 +339,7 @@ class _StickyEffectPageState extends State<StickyEffectPage> {
     backgroundColor: Colors.white,
     body: Stack(
       children: [
-        ElScroll.sliver(
+        ElScrollView.sliver(
           slivers: [
             SliverToBoxAdapter(
               child: Column(

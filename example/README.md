@@ -109,7 +109,7 @@ adb -s "设备ID" shell am start -W -a android.intent.action.VIEW -d "flutter-ba
 
 组件目录中的 Button 页是文档样板。新页面按[组件文档页规范](lib/src/pages/components/README.md)组织。
 
-页面滚动统一采用 ElScrollView，长列表组合 ElListView.builder。保留推荐刷新与追加、分类联动、消息已读、聊天发送和模拟回复。帮助、关于使用 Flutter 内容页，不依赖源工程的 Android 专用通道。
+页面滚动采用 ElScrollView，长列表组合 ElScrollView.sliver 和 SliverList.builder。保留推荐刷新与追加、分类联动、消息已读、聊天发送和模拟回复。帮助、关于使用 Flutter 内容页，不依赖源工程的 Android 专用通道。
 
 源码与迁移边界见 [布局说明](lib/src/mobile/README.md)。
 

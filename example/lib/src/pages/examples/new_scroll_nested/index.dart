@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 对照新版 ElScroll 在纵横轴嵌套、尺寸约束与 shrinkWrap 下的行为。
+/// 对照新版 ElScrollView 在纵横轴嵌套、尺寸约束与 shrinkWrap 下的行为。
 class NewScrollNestedPage extends StatelessWidget {
   /// 创建嵌套滚动审核页面。
   const NewScrollNestedPage({super.key});
@@ -11,7 +11,7 @@ class NewScrollNestedPage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: Text('新版滚动 · 嵌套与尺寸')),
-      body: ElScroll(
+      body: ElScrollView(
         padding: EdgeInsets.all(16),
         gap: 16,
         children: [
@@ -23,7 +23,7 @@ class NewScrollNestedPage extends StatelessWidget {
             padding: EdgeInsets.only(bottom: 24),
             child: Text(
               '这里使用的是官方一维 Sliver：同轴拖动按边界接力，异轴分别滚动。'
-              '双轴滚动不属于当前 ElScroll 的支持范围。',
+              '双轴滚动不属于当前 ElScrollView 的支持范围。',
               style: TextStyle(color: colors.onSurfaceVariant),
             ),
           ),
@@ -70,7 +70,7 @@ class NewScrollNestedPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               clipBehavior: Clip.hardEdge,
-              child: ElScroll(
+              child: ElScrollView(
                 axis: outer,
                 padding: EdgeInsets.all(10),
                 gap: 10,
@@ -107,7 +107,7 @@ class NewScrollNestedPage extends StatelessWidget {
       ),
       child: Padding(
         padding: EdgeInsets.all(8),
-        child: ElScroll(
+        child: ElScrollView(
           axis: axis,
           shrinkWrap: true,
           gap: 6,
@@ -144,7 +144,7 @@ class NewScrollNestedPage extends StatelessWidget {
                 border: Border.all(color: colors.outline),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: ElScroll(
+              child: ElScrollView(
                 shrinkWrap: true,
                 gap: 6,
                 padding: EdgeInsets.all(8),

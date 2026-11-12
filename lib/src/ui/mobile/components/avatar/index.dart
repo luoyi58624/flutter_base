@@ -24,7 +24,7 @@ Widget avatarBuilder(BuildContext context, ElAvatar c) {
     ).merge(c.style),
     child: c.src == null || c.src!.isEmpty
         ? content
-        : ElImage(
+        : ElImageView(
             c.src!,
             fit: .cover,
             width: c.size,

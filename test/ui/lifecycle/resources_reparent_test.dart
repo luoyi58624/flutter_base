@@ -1,4 +1,5 @@
 import '../support/overlay.dart';
+
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -39,7 +40,7 @@ void main() {
         lifecycleHost(
           ReparentHarness(
             key: move,
-            child: ElImage.memory(
+            child: ElImageView.memory(
               bytes,
               key: imageKey,
               width: 80,
@@ -75,7 +76,7 @@ void main() {
     final bytes = (await tester.runAsync(png))!;
     var callbacks = 0;
     await tester.pumpWidget(
-      lifecycleHost(ElImage.memory(bytes, onLoad: (_) => callbacks++, onError: (_) => callbacks++)),
+      lifecycleHost(ElImageView.memory(bytes, onLoad: (_) => callbacks++, onError: (_) => callbacks++)),
     );
     await tester.pumpWidget(ElView());
     await imageFrames(tester);

@@ -1047,7 +1047,7 @@ class _TableViewState extends State<ElTable> {
               scrollCacheExtent: const .pixels(0),
               slivers: [list],
             )
-          : ElScroll.sliver(controller: _verticalController, scrollCacheExtent: const .pixels(0), slivers: [list]),
+          : ElScrollView.sliver(controller: _verticalController, scrollCacheExtent: const .pixels(0), slivers: [list]),
     );
   }
 

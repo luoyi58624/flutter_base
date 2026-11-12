@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 哪些设备能拖着翻页。
 ///
-/// 口径 = 与 ElScroll 单源：默认跟随环境
+/// 口径 = 与 ElScrollView 单源：默认跟随环境
 /// `ScrollConfiguration.dragDevices`（官方 touch-like，**不含 mouse**），
 /// widget 的 [ElTabView.dragDevices] 作覆写。曾经默认是 null=不过滤，鼠标能拖
 /// 是漏出来的行为，且与滚动容器口径正好相反。
@@ -80,7 +80,7 @@ void main() {
       expect(settled, 1.0);
     });
 
-    testWidgets('鼠标拖不动——与 ElScroll 同口径', (tester) async {
+    testWidgets('鼠标拖不动——与 ElScrollView 同口径', (tester) async {
       final controller = await pumpTabs(tester);
       final (held, settled) = await dragWith(tester, controller, PointerDeviceKind.mouse);
 

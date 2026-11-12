@@ -404,7 +404,7 @@ void main() {
           onDragEnded: ended.add,
           onDrop: (_, _) => throw StateError('drop boom'),
           ghostBuilder: (_) => const ElView(key: ghostKey, style: ElStyle(width: 40, height: 40)),
-          targetChild: ElScroll(
+          targetChild: ElScrollView(
             children: [for (var i = 0; i < 40; i++) ElView(style: const ElStyle(width: 100, height: 40), child: 'row')],
           ),
         ),

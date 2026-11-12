@@ -8,7 +8,7 @@ class _DetailPage extends StatelessWidget {
   Widget build(BuildContext context) => _Page(
     '详情',
     typography,
-    ElScroll(
+    ElScrollView(
       padding: EdgeInsets.all(16),
       children: [
         Column(
@@ -51,7 +51,7 @@ class _FavoritePage extends StatelessWidget {
   Widget build(BuildContext context) => _Page(
     '我的收藏',
     typography,
-    ElScroll(
+    ElScrollView(
       padding: EdgeInsets.all(12),
       gap: 8,
       children: [for (var index = 0; index < 5; index++) _ArticleCard(_articles[index], typography, index: index)],
@@ -106,7 +106,7 @@ class _ChatPage extends HookWidget {
       Column(
         children: [
           Expanded(
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               key: ValueKey('chat-list'),
               controller: scroll,
               reverse: true,
@@ -245,13 +245,13 @@ class _WebPage extends StatelessWidget {
     title,
     typography,
     builder?.call(asset) ??
-        ElScroll(
+        ElScrollView(
           padding: EdgeInsets.all(16),
           children: [
             ElCard(
               child: Text(
                 asset == 'about.html'
-                    ? 'Flutter Base 移动端示例\n使用移动端主题、统一组件与 ElScroll 构建。'
+                    ? 'Flutter Base 移动端示例\n使用移动端主题、统一组件与 ElScrollView 构建。'
                     : '在推荐页浏览内容，在分类页选择条目，在消息页体验聊天。组件示例入口位于“我的”页面。',
               ),
             ),

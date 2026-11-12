@@ -83,7 +83,7 @@ class _TranslucentEffectPageState extends State<TranslucentEffectPage> {
         body: Stack(
           children: [
             widget.officialSliver
-                ? ElScroll.sliver(
+                ? ElScrollView.sliver(
                     key: PageStorageKey('effects-landscape-official'),
                     controller: scrollController,
                     slivers: [
@@ -91,7 +91,7 @@ class _TranslucentEffectPageState extends State<TranslucentEffectPage> {
                       SliverToBoxAdapter(child: SizedBox(height: safe.bottom + 24)),
                     ],
                   )
-                : ElScroll.sliver(
+                : ElScrollView.sliver(
                     key: PageStorageKey('effects-landscape-original'),
                     controller: scrollController,
                     slivers: [

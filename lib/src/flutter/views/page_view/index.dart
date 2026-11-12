@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart' show SemanticsAction;
 
 /// 使用官方手势、控制器和分页物理的分页视图。
 ///
-/// 同轴 ElScroll 仅在起手已贴边时让本视图接管，途中撞边界不换层。
+/// 同轴 ElScrollView 仅在起手已贴边时让本视图接管，途中撞边界不换层。
 /// 页面状态保留沿用官方 AutomaticKeepAliveClientMixin 与 PageStorage。
 /// 翻页过程中不屏蔽页面内容的指针输入，允许直接操作页内滚动。
 class ElPageView extends PageView {

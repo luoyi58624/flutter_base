@@ -40,7 +40,7 @@ class _Fixture {
   }
 
   Widget build() {
-    Widget child = ElScroll.sliver(
+    Widget child = ElScrollView.sliver(
       key: ValueKey('ios-scroll'),
       controller: controller,
       physics: ClampingScrollPhysics(),

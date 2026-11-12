@@ -42,7 +42,7 @@ class ExamplesPage extends StatelessWidget {
             alignment: .topCenter,
             child: ConstrainedBox(
               constraints: .new(maxWidth: 880),
-              child: ElScroll(
+              child: ElScrollView(
                 key: PageStorageKey('advanced-examples'),
                 padding: .all(24),
                 gap: 24,

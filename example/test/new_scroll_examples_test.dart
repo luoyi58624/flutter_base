@@ -21,7 +21,7 @@ void main() {
     expect(find.text('发现好看的视频', skipOffstage: false), findsOneWidget);
     expect(find.text('推荐', skipOffstage: false), findsOneWidget);
     expect(find.text('热门', skipOffstage: false), findsOneWidget);
-    expect(tester.getSize(find.byType(ElScroll)).height, greaterThan(400), reason: 'Bibi 底栏只能占 56px，不能吃掉正文的整个视口');
+    expect(tester.getSize(find.byType(ElScrollView)).height, greaterThan(400), reason: 'Bibi 底栏只能占 56px，不能吃掉正文的整个视口');
     await tester.tap(find.text('热门'));
     await tester.pump(Duration(milliseconds: 80));
     expect(find.byWidgetPredicate((widget) => widget is ElSliverCollapse, skipOffstage: false), findsOneWidget);
@@ -61,7 +61,7 @@ void main() {
     expect(find.text('外层纵向 / 内层纵向', skipOffstage: false), findsOneWidget);
     expect(find.text('外层横向 / 内层纵向', skipOffstage: false), findsOneWidget);
     expect(
-      find.byWidgetPredicate((widget) => widget is ElScroll && widget.shrinkWrap, skipOffstage: false),
+      find.byWidgetPredicate((widget) => widget is ElScrollView && widget.shrinkWrap, skipOffstage: false),
       findsWidgets,
     );
     expect(tester.takeException(), isNull);

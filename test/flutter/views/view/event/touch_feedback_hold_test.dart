@@ -37,7 +37,8 @@ void main() {
   testWidgets('按下等待与最短反馈共用最初按下时刻，没有拖拽也遵循配置', (tester) async {
     var taps = 0;
     final target = host(
-      delayTouchDown: Duration(milliseconds: 40), delayTouchUp: Duration(milliseconds: 100),
+      delayTouchDown: Duration(milliseconds: 40),
+      delayTouchUp: Duration(milliseconds: 100),
       onTap: (_) => taps++,
     );
     target.dispatch(PointerDownEvent(pointer: 1));
@@ -56,10 +57,7 @@ void main() {
 
   testWidgets('未达到按下延迟的轻触不在抬手后补播', (tester) async {
     var taps = 0;
-    final target = host(
-      delayTouchDown: Duration(milliseconds: 40),
-      onTap: (_) => taps++,
-    );
+    final target = host(delayTouchDown: Duration(milliseconds: 40), onTap: (_) => taps++);
     final changes = <bool>[];
     target.leafDispatcher.onTapChanged = changes.add;
     target.dispatch(PointerDownEvent(pointer: 1));
@@ -91,9 +89,7 @@ void main() {
 
   for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.stylus, PointerDeviceKind.invertedStylus]) {
     testWidgets('$kind 不使用触摸的进入延迟或抬手保留', (tester) async {
-      final target = host(
-        delayTouchDown: Duration(milliseconds: 50), delayTouchUp: Duration(milliseconds: 200),
-      );
+      final target = host(delayTouchDown: Duration(milliseconds: 50), delayTouchUp: Duration(milliseconds: 200));
       target.dispatch(PointerDownEvent(pointer: 1, kind: kind));
       expect(target.leafDispatcher.isTapPressed, isTrue);
       target.dispatch(PointerUpEvent(pointer: 1, kind: kind));
@@ -152,7 +148,7 @@ void main() {
       tester,
       ElView(
         style: ElStyle(width: 200, height: 200),
-        child: ElScroll(
+        child: ElScrollView(
           children: [
             ElView(
               key: key,

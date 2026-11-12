@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// indicator，Android 拉伸完全不触发；iOS 弹跳依赖环境 bouncing 物理，
 /// 需要真实 MaterialApp 环境（而非测试自造 behavior）验证仍然成立。
 ///
-/// 修复口径与 ElScroll 单源一致：环境 `buildOverscrollIndicator` 收口
+/// 修复口径与 ElScrollView 单源一致：环境 `buildOverscrollIndicator` 收口
 /// 视效 + 官方 `setPixels → didOverscrollBy` 同构的通知流（Start/End 整个
 /// 手势各一次，越界期间纯 Overscroll 序列）。
 void main() {

@@ -1,6 +1,6 @@
 // P3 — 长按激活拖选后，在长按自动滚动位移门禁内页面不得滚动。
 //
-// 机制：真实 ElEvent.onLongPress 回调完成校验后同步 eager，内层 ElScroll
+// 机制：真实 ElEvent.onLongPress 回调完成校验后同步 eager，内层 ElScrollView
 // 随即失去该 pointer 的后续事件资格；Selection winner 保留自身 move/up，达到
 // 长按自动滚动位移门禁后只允许选区的边缘自动滚动，抬手自动释放。反向案例
 // （滚动先胜出 → 长按取消）已由
@@ -48,7 +48,7 @@ Future<void> _pumpHost(
         height: 240,
         child: ElSelectionView(
           controller: host.selection,
-          child: ElScroll(controller: host.scroll, physics: ClampingScrollPhysics(), children: rows),
+          child: ElScrollView(controller: host.scroll, physics: ClampingScrollPhysics(), children: rows),
         ),
       ),
     ),

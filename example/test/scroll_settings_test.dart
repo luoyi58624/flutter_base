@@ -84,13 +84,13 @@ void main() {
     await _openSettings(tester);
     expect(_modeRow(), findsOneWidget);
     expect(tester.widget<ElListTile<DocScrollMode>>(_modeRow()).title, '文档滚动');
-    expect(find.descendant(of: _modeRow(), matching: _text('ElScroll')), findsOneWidget);
+    expect(find.descendant(of: _modeRow(), matching: _text('ElScrollView')), findsOneWidget);
 
     final options = <DocScrollMode, String>{
       DocScrollMode.official: '官方普通滚动',
       DocScrollMode.officialVirtual: '官方虚拟列表',
       DocScrollMode.sliverList: 'ElSliverList',
-      DocScrollMode.elScroll: 'ElScroll',
+      DocScrollMode.elScroll: 'ElScrollView',
     };
     for (final entry in options.entries) {
       await tester.tap(_modeRow());

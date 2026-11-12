@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter_base/src/flutter/widgets/image/index.dart';
+import 'package:flutter_base/src/flutter/views/image/index.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/flutter/views/view/render/render_view.dart';
@@ -32,7 +32,7 @@ void main() {
       _app(delegate, [
         ElView(child: 'el text'),
         Text('native text'),
-        ElImage.memory(
+        ElImageView.memory(
           base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg=='),
           alt: 'picture',
           width: 24,

@@ -14,11 +14,11 @@ void main() {
   const textKey = ValueKey<String>('reparent-demo-selectable-text');
 
   /// 演示区外壳。`ElApp / ElScaffold / ElAppBar` 在上层组件包里、el_ui 拿不到，
-  /// 已实测换成 MaterialApp + 裸 ElScroll 后契约照旧成立（关掉修复仍会红），
+  /// 已实测换成 MaterialApp + 裸 ElScrollView 后契约照旧成立（关掉修复仍会红），
   /// 故此处用等价物；其余结构与 demo 一字不差。
   Widget demoApp({required int generation, required GlobalKey stage, required ElSelectionController selection}) {
     return MaterialApp(
-      home: ElScroll(
+      home: ElScrollView(
         children: [
           ElView(
             style: const ElStyle(padding: .all(12)),

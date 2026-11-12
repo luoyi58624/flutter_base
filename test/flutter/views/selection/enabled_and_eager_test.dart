@@ -1,7 +1,7 @@
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 // ElSelectionView.enabled 开关 + eager 淘汰后的选区会话清理集成验证。
 
-import 'package:flutter_base/src/flutter/widgets/scroll/scroll.dart';
+import 'package:flutter_base/src/flutter/views/scroll/scroll.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/flutter/views/view/view.dart';
@@ -145,7 +145,7 @@ void main() {
             child: SelectionView(
               controller: controller,
               controls: const DesktopSelectionControls(longPressHaptics: true),
-              child: ElScroll(controller: scrollController, physics: ClampingScrollPhysics(), children: rows),
+              child: ElScrollView(controller: scrollController, physics: ClampingScrollPhysics(), children: rows),
             ),
           ),
         ),

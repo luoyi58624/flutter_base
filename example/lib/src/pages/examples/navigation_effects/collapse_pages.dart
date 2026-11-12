@@ -122,7 +122,7 @@ class _HideEffectPageState extends State<HideEffectPage> with SingleTickerProvid
       body: SafeArea(
         child: Stack(
           children: [
-            ElScroll.sliver(
+            ElScrollView.sliver(
               controller: controller,
               slivers: [
                 ElSliverRefresh(onRefresh: effectRefresh),
@@ -249,7 +249,7 @@ class _FoldEffectPageState extends State<FoldEffectPage> {
         ),
       ],
     ),
-    body: ElScroll.sliver(
+    body: ElScrollView.sliver(
       controller: controller,
       slivers: [
         ElSliverRefresh(onRefresh: effectRefresh),

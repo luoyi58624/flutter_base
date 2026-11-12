@@ -30,7 +30,7 @@ final class SmoothPointerScrollController {
     required ScrollPositionGetter position,
     required ScrollTargetOffsetForDelta targetOffsetForDelta,
     this.algorithm,
-    String debugLabel = 'ElScroll pointer scroll',
+    String debugLabel = 'ElScrollView pointer scroll',
   }) : _position = position,
        _targetOffsetForDelta = targetOffsetForDelta,
        _debugLabel = debugLabel;

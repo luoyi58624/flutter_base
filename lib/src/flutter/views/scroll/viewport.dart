@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../views/selection/common/selection_boundary.dart' show SelectionGeometryObserver, SelectionItemVisibility;
+import '../selection/common/selection_boundary.dart' show SelectionGeometryObserver, SelectionItemVisibility;
 import 'scroll_position.dart' show ScrollHostPosition;
 
 /// 跨 [ScrollPosition] 换绑存活的滚动偏移监听通道。
@@ -18,10 +18,10 @@ class ScrollOffsetRelay extends ChangeNotifier {
 /// 自己驱动滚动中选择的选区注册器，例如 ElSelectionView 的文档。
 ///
 /// 官方 Scrollable 遇到选区注册器会再套一层自带的选区容器：文本按无分隔符拼接，并自行驱动拖选滚动。
-/// 实现本接口的注册器已承担这些职责，ElScroll 让视口内容直接登记到它，与普通内容共享文档序。
+/// 实现本接口的注册器已承担这些职责，ElScrollView 让视口内容直接登记到它，与普通内容共享文档序。
 abstract interface class ScrollTransparentSelectionRegistrar implements SelectionRegistrar {}
 
-/// 选区、编辑器与拖放共用的滚动视口能力，由 ElScroll 的官方视口子类实现。
+/// 选区、编辑器与拖放共用的滚动视口能力，由 ElScrollView 的官方视口子类实现。
 abstract interface class ScrollViewport implements RenderBox {
   /// 当前滚动位置。
   ScrollPosition get position;
@@ -163,7 +163,7 @@ mixin _ScrollViewportMixin<P extends ContainerParentDataMixin<RenderSliver>> on 
     super.dispose();
   }
 
-  // 官方视口不进命中路径；ElScroll 外层已有不透明 Listener 认领整块区域，
+  // 官方视口不进命中路径；ElScrollView 外层已有不透明 Listener 认领整块区域，
   // 自身入路径不改变事件归属，只让框选、拖放能从命中点沿父链找到本视口。
   @override
   bool hitTestSelf(Offset position) => true;
@@ -191,7 +191,7 @@ mixin _ScrollViewportMixin<P extends ContainerParentDataMixin<RenderSliver>> on 
   }
 }
 
-/// ElScroll 使用的官方视口，附带选区与拖放需要的滚动能力。
+/// ElScrollView 使用的官方视口，附带选区与拖放需要的滚动能力。
 class ElRenderViewport extends RenderViewport with _ScrollViewportMixin<SliverPhysicalContainerParentData> {
   /// 创建视口。
   ElRenderViewport({

@@ -53,7 +53,7 @@ Widget _fileReadPage({int rowCount = 32}) {
 
 Widget _fileReadContent({required int rowCount}) {
   return ElSelectionView(
-    child: ElScroll.sliver(
+    child: ElScrollView.sliver(
       slivers: [
         SliverPadding(
           padding: .symmetric(vertical: 8),

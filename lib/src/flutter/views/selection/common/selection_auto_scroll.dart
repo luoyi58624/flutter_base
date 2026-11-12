@@ -5,7 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../widgets/scroll/viewport.dart' show ScrollViewport;
+import '../../scroll/viewport.dart' show ScrollViewport;
 
 /// 文本选区、编辑器和对象框选共用的边缘滚动参数。
 @immutable

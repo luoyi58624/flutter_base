@@ -11,17 +11,17 @@ import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTranspar
 /// 基于官方 [Scrollable] 与 [Viewport] 的滚动容器。
 ///
 /// 默认构造直接接收 children，全部挂载并按自然尺寸排列，只绘制可见部分；
-/// [ElScroll.sliver] 接收 Sliver，用于回收列表、固定头部等组合。
+/// [ElScrollView.sliver] 接收 Sliver，用于回收列表、固定头部等组合。
 ///
 /// 同轴嵌套时自动接力：一次拖动只属于一层，起手时本层在拖动方向已经贴边，
 /// 就交给最近的可滚动同轴祖先；本层一旦开始消费，途中撞到边界也不换层，
 /// 释放后的惯性同样留在本层。整条链都贴边时由最外层按自身物理处理。
 /// 鼠标滚轮连续输入时保留接收者，停顿满 500ms 才重新命中；移出接收区域立即交接。
 /// 需要折叠头这类先于正文消费位移的效果时，用 ElNestedScroll 包住本组件。
-/// 下拉刷新通过放进 [ElScroll.sliver] 的 ElSliverRefresh 接入。
-class ElScroll extends HookWidget {
+/// 下拉刷新通过放进 [ElScrollView.sliver] 的 ElSliverRefresh 接入。
+class ElScrollView extends HookWidget {
   /// 创建直接排列 [children] 的滚动容器。
-  const ElScroll({
+  const ElScrollView({
     super.key,
     required List<Widget> this.children,
     this.controller,
@@ -38,7 +38,7 @@ class ElScroll extends HookWidget {
        assert(gap >= 0);
 
   /// 创建承载 [slivers] 的滚动容器，内边距与间距由各 Sliver 自己声明。
-  const ElScroll.sliver({
+  const ElScrollView.sliver({
     super.key,
     required List<Widget> this.slivers,
     this.controller,

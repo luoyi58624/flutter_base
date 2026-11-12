@@ -38,8 +38,8 @@ void main() {
 
   testWidgets('底部导航切页后保持每个 Tab 的滚动位置', (tester) async {
     await tester.pumpWidget(_testApp(BottomNavigationEffectPage()));
-    final scrollable = find.byType(ElScroll).first;
-    final controller = tester.widget<ElScroll>(scrollable).controller!;
+    final scrollable = find.byType(ElScrollView).first;
+    final controller = tester.widget<ElScrollView>(scrollable).controller!;
     controller.jumpTo(350);
     await tester.pump();
     await tester.tap(find.text('收藏').last);
@@ -83,9 +83,9 @@ void main() {
     expect(find.byKey(ValueKey('effects-hide-navigation')), findsOneWidget);
     await tester.tap(find.byKey(ValueKey('effects-hide-follow-switch')));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ElScroll), Offset(0, -200));
+    await tester.drag(find.byType(ElScrollView), Offset(0, -200));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ElScroll), Offset(0, 80));
+    await tester.drag(find.byType(ElScrollView), Offset(0, 80));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
@@ -197,7 +197,7 @@ void main() {
   testWidgets('阅读进度条位置固定，随真实 ScrollPosition 变化', (tester) async {
     await tester.pumpWidget(_testApp(ReadingProgressEffectPage()));
     expect(find.byKey(ValueKey('effects-reading-progress')), findsOneWidget);
-    final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     controller.jumpTo(controller.position.maxScrollExtent / 2);
     await tester.pump();
     final bar = tester.getSize(find.byKey(ValueKey('effects-reading-progress')));

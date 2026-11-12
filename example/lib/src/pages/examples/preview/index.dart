@@ -22,7 +22,7 @@ class PreviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExamplePage(
       title: 'Preview · 图片画廊',
-      child: ElScroll(
+      child: ElScrollView(
         padding: .all(16),
         gap: 16,
         children: [
@@ -45,7 +45,7 @@ class PreviewPage extends StatelessWidget {
                   key: ValueKey('preview-thumb-$i'),
                   images: previewImages,
                   initialIndex: i,
-                  child: ElImage(previewImages[i], fit: .cover),
+                  child: ElImageView(previewImages[i], fit: .cover),
                 ),
             ],
           ),
@@ -58,7 +58,7 @@ class PreviewPage extends StatelessWidget {
                 SizedBox(height: 12),
                 ElImagePreview(
                   key: ValueKey('preview-single'),
-                  child: ElImage(previewImages.first, width: 180, height: 120, fit: .cover),
+                  child: ElImageView(previewImages.first, width: 180, height: 120, fit: .cover),
                 ),
               ],
             ),

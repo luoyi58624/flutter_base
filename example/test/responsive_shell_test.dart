@@ -99,7 +99,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('article-0')));
     await tester.pumpAndSettle();
     final title = find.byKey(ValueKey('detail-title'));
-    final scroll = find.ancestor(of: title, matching: find.byType(ElScroll)).first;
+    final scroll = find.ancestor(of: title, matching: find.byType(ElScrollView)).first;
     expect(tester.getSize(scroll).width, lessThanOrEqualTo(960));
     await _resize(tester, Size(390, 844));
     expect(title, findsOneWidget);

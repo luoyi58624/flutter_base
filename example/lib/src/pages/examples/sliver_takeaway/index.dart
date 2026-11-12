@@ -118,7 +118,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
           );
     return RecyclerExampleScrollbar(
       controller: _controller,
-      child: ElScroll.sliver(
+      child: ElScrollView.sliver(
         key: ValueKey('takeaway-sliver'),
         controller: _controller,
         // 与旧外卖示例关闭同步预取一致，滚动帧先只处理当前视口的复杂卡片。

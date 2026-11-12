@@ -10,7 +10,7 @@ class _ProfilePage extends HookWidget {
     return ExamplePanel(
       key: ValueKey('page-我的'),
       style: ElStyle(backgroundColor: _background),
-      child: ElScroll(
+      child: ElScrollView(
         key: PageStorageKey('profile-list'),
         padding: EdgeInsets.only(bottom: 12),
         children: [
@@ -180,7 +180,7 @@ class _AccountPage extends HookWidget {
     return _Page(
       '账号与安全',
       typography,
-      ElScroll(
+      ElScrollView(
         padding: EdgeInsets.only(bottom: 12),
         children: [
           _Section('登录与安全', typography),

@@ -239,7 +239,7 @@ class _MediaGalleryPageState extends State<_MediaGalleryPage> with SingleTickerP
             if (mounted) _syncFilmstrip();
           });
         }
-        return ElScroll.sliver(
+        return ElScrollView.sliver(
           key: ValueKey('media-gallery-filmstrip'),
           axis: .horizontal,
           controller: _filmstrip,

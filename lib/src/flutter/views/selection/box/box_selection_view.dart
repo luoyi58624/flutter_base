@@ -11,7 +11,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../widgets/scroll/viewport.dart' show ScrollViewport;
+import '../../scroll/viewport.dart' show ScrollViewport;
 import '../../view/event/event.dart';
 import '../../view/render/render_view.dart';
 import '../../view/style/style.dart';

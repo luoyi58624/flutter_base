@@ -35,14 +35,14 @@ class _StorePhoto extends StatelessWidget {
             ? ElListenableBuilder<ValueListenable<_Store?>, String>(
                 listenable: store,
                 select: (source) => _source(source.value),
-                builder: (_, _) => ElImage(_source(store.value), width: size, height: size, fit: .cover),
+                builder: (_, _) => ElImageView(_source(store.value), width: size, height: size, fit: .cover),
               )
             : local!,
         child: ElListenableBuilder<ValueListenable<_Store?>, int>(
           listenable: store,
           select: (source) => _tile(source.value),
-          // 图集由 ElImage 加载；普通布局裁切图块，换店时保留图片实例。
-          child: ElImage(
+          // 图集由 ElImageView 加载；普通布局裁切图块，换店时保留图片实例。
+          child: ElImageView(
             'assets/recycler_cards/takeaway-food.webp',
             width: size * 4,
             height: size * 3,

@@ -5,10 +5,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import 'scroll.dart' show ElScroll;
+import 'scroll.dart' show ElScrollView;
 import 'scroll_behavior.dart' show buildElScrollbar;
 
-/// 双轴滚动：外层横向 ElScroll 承载按内容宽度展开的纵向 Sliver，两条滚动条都钉在视口边缘。
+/// 双轴滚动：外层横向 ElScrollView 承载按内容宽度展开的纵向 Sliver，两条滚动条都钉在视口边缘。
 ///
 /// 纵向内容位于横向滚动内部，它自己的滚动条会落在内容最右端；所以内部关闭自动滚动条，
 /// 由本组件在外层视口统一安装，纵向条监听第 1 层的滚动通知。
@@ -48,7 +48,7 @@ class DualAxisScroll extends StatelessWidget {
   /// 两个方向共用的滚动物理，缺省读取环境 ScrollConfiguration。
   final ScrollPhysics? physics;
 
-  /// 两个方向视口的预布局范围，含义同 [ElScroll.scrollCacheExtent]。
+  /// 两个方向视口的预布局范围，含义同 [ElScrollView.scrollCacheExtent]。
   final ScrollCacheExtent? scrollCacheExtent;
 
   /// 是否在视口边缘安装两条平台滚动条。
@@ -61,7 +61,7 @@ class DualAxisScroll extends StatelessWidget {
     final scroll = ScrollConfiguration(
       behavior: behavior.copyWith(scrollbars: false),
       child: LayoutBuilder(
-        builder: (context, constraints) => ElScroll(
+        builder: (context, constraints) => ElScrollView(
           axis: .horizontal,
           controller: horizontalController,
           physics: physics,
@@ -71,7 +71,7 @@ class DualAxisScroll extends StatelessWidget {
               viewportWidth: constraints.maxWidth,
               contentWidth: contentWidth,
               listenable: widthListenable,
-              child: ElScroll.sliver(
+              child: ElScrollView.sliver(
                 controller: verticalController,
                 physics: physics,
                 scrollCacheExtent: scrollCacheExtent,

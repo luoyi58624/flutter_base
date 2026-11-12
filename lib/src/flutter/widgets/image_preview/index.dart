@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import '../../views/preview/preview_view.dart';
 import '../../views/view/event/event.dart';
 import '../../views/view/view.dart';
-import '../image/index.dart';
+import '../../views/image/index.dart';
 
 part 'preview.dart';
 
@@ -20,7 +20,7 @@ class ElImagePreview extends StatelessWidget {
       assert(initialIndex == null || images != null && initialIndex < images.length);
 
   /// 缩略图片，保留它原有的加载、样式和事件配置。
-  final ElImage child;
+  final ElImageView child;
 
   /// 画廊图片地址；null 或空列表表示单张预览。
   final List<String>? images;
@@ -130,7 +130,7 @@ class _ImagePreviewState extends State<_ImagePreviewEntry> {
         ? [widget.image]
         : [
             for (var i = 0; i < addresses.length; i++)
-              if (i == initial && addresses[i] == widget.source) widget.image else ElImage(addresses[i]).image,
+              if (i == initial && addresses[i] == widget.source) widget.image else ElImageView(addresses[i]).image,
           ];
     final origin = _rect(overlay);
     final imageSize = _imageSize;

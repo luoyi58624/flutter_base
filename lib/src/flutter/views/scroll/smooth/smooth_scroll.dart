@@ -84,7 +84,7 @@ ElSmoothScroll? resolveDefaultSmoothScroll() {
 /// ### 调手感速查
 ///
 /// ```dart
-/// ElScroll(
+/// ElScrollView(
 ///   smoothScroll: const ElWindowsSmoothScroll(
 ///     duration: Duration(milliseconds: 200),
 ///     accelerationPerTick: 0.5,

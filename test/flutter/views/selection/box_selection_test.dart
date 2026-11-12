@@ -139,7 +139,7 @@ void main() {
         _host(
           ElBoxSelectionView(
             controller: selection,
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               controller: scroll,
               axis: .horizontal,
               reverse: reverse,
@@ -180,7 +180,7 @@ void main() {
       _host(
         ElBoxSelectionView(
           controller: controller,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             controller: scroll,
             scrollCacheExtent: .pixels(800),
             slivers: [
@@ -222,7 +222,7 @@ void main() {
       _host(
         ElBoxSelectionView(
           controller: controller,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             controller: scroll,
             scrollCacheExtent: .pixels(0),
             slivers: [

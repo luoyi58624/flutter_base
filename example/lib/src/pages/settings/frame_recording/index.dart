@@ -94,7 +94,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
         builder: (context, _) {
           final active = recorder.isActive;
           final report = recorder.report;
-          return ElScroll(
+          return ElScrollView(
             padding: .all(20),
             gap: 20,
             children: [
@@ -131,7 +131,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
                   ], disabled: active),
                   _popup<String>('frame-recording-container', '容器', _container, [
                     'ListView',
-                    'ElScroll',
+                    'ElScrollView',
                     'RecyclerView',
                     '官方 SliverGrid',
                     '官方普通滚动',

@@ -55,7 +55,7 @@ void main() {
     );
     final body = find.byType(DocScrollView);
     expect(tester.getRect(body).right, 1440);
-    final scroll = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     final row = _anchorItem('基础使用');
     final top = tester.getTopLeft(row).dy;
     await tester.sendEventToBinding(
@@ -75,7 +75,7 @@ void main() {
     expect(find.text('Button 按钮'), findsOneWidget);
     expect(find.byType(ElAnchor), findsNothing);
     expect(find.text(source), findsNothing);
-    final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     final offset = tester.getCenter(toggle).dy - 500;
     if (offset > 0) {
       controller.jumpTo(controller.offset + offset);

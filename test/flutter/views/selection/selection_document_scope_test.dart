@@ -52,7 +52,7 @@ void main() {
                   selectionColor: Colors.blue,
                 ),
               ),
-              ElImage.memory(
+              ElImageView.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),
@@ -303,7 +303,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: controller,
-          child: ElImage.memory(
+          child: ElImageView.memory(
             base64Decode(
               'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
             ),
@@ -361,7 +361,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: controller,
-          child: ElScroll(
+          child: ElScrollView(
             controller: scroll,
             children: [for (var i = 0; i < 40; i++) _line('row $i', key: i == 0 ? first : null)],
           ),

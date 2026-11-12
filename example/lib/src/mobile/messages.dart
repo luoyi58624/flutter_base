@@ -9,7 +9,7 @@ class _MessagesPage extends StatelessWidget {
   Widget build(BuildContext context) => ExamplePanel(
     key: ValueKey('page-消息'),
     style: ElStyle(backgroundColor: _surface),
-    child: ElScroll(
+    child: ElScrollView(
       key: PageStorageKey('messages-list'),
       children: [
         for (var i = 0; i < _messages.length; i++) ...[

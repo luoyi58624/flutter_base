@@ -33,7 +33,7 @@ Future<void> _pumpPage(WidgetTester tester, {bool desktop = false, NavigatorObse
   await tester.runAsync(() async {
     final context = tester.element(find.byType(PreviewPage));
     for (final src in previewImages.toSet()) {
-      await precacheImage(ElImage(src).image, context);
+      await precacheImage(ElImageView(src).image, context);
     }
   });
 }
@@ -53,7 +53,7 @@ void main() {
             child: show
                 ? ElImagePreview(
                     key: ValueKey('entry'),
-                    child: ElImage(
+                    child: ElImageView(
                       previewImages.first,
                       width: 120,
                       height: 80,

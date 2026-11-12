@@ -1,22 +1,22 @@
 # 滚动宿主与共用策略
 
-`ElScroll` 基于官方 `Scrollable` 和 `Viewport`；普通内容使用默认构造，Sliver 组合使用 `ElScroll.sliver`。刷新入口为列表中的 `ElSliverRefresh`，桌面滚动条使用 `ElWindowsScrollbar` / `ElMacScrollbar`。
+`ElScrollView` 基于官方 `Scrollable` 和 `Viewport`；普通内容使用默认构造，Sliver 组合使用 `ElScrollView.sliver`。刷新入口为列表中的 `ElSliverRefresh`，桌面滚动条使用 `ElWindowsScrollbar` / `ElMacScrollbar`。
 
-本目录只放滚动机制；能放进 `ElScroll.sliver` 的 Sliver（文档列表、回收列表、折叠头、大标题）位于 `slivers/`；刷新组件位于 `widgets/refresh/`。
+本目录包含滚动宿主和相关机制。文档列表、回收列表、折叠头和大标题等 Sliver 位于 [`../../slivers/`](../../slivers/)，下拉刷新位于 [`refresh/`](refresh/)。
 
 | 路径 | 职责 |
 | --- | --- |
-| `scroll.dart` | `ElScroll` 宿主与外部控制器适配 |
+| `scroll.dart` | `ElScrollView` 宿主与外部控制器适配 |
 | `scroll_position.dart` | 拖动接力、协作链位移分配、滚轮接收者锁 |
 | `scroll_behavior.dart` | `ElScrollBehavior`：平台物理、滚动条与越界效果 |
 | `nested/` | `ElNestedScroll`、协作协议与输入来源 |
 | `physics/` | Bouncing / Clamping 物理 |
 | `smooth/` | 平滑滚轮算法及其在标准位置上的编排 |
-| `../widgets/scrollbar/` | `ElWindowsScrollbar` / `ElMacScrollbar` 包装官方 RawScrollbar，Windows 预留 15 像素，macOS/Linux 悬浮 |
+| `scrollbar/` | `ElWindowsScrollbar` / `ElMacScrollbar` 包装官方 RawScrollbar，Windows 预留 15 像素，macOS/Linux 悬浮 |
 
 Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar`，两者不迁移旧自绘实现。桌面滚动条复用官方 RawScrollbar 的指标、绘制和滑块拖动，轨道按下直接定位；Windows 保留两端箭头步进和长按连续滚动，不另设滚动条控制器。
 
-旧 `ElScrollView` 体系已移除。滚动统一建立在官方 Scrollable / Viewport / Sliver 之上，`ElScroll` 通过标准 `ScrollController` 适配器共享真实位置；虚拟列表与网格使用 `slivers/` 下的 Sliver，双轴内容使用纵向 Sliver 加外层横向 `ElScroll`。
+`ElScrollView` 通过标准 `ScrollController` 适配器共享真实滚动位置。虚拟列表与网格使用 `slivers/` 下的 Sliver，双轴内容使用纵向 Sliver 加外层横向 `ElScrollView`。
 
 ## 刷新距离
 

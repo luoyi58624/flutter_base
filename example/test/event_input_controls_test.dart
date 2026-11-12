@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   for (final useElScroll in [true, false]) {
-    testWidgets('指针区域内跟踪触摸，区域外可以滚动（${useElScroll ? 'ElScroll' : 'Flutter'}）', (tester) async {
+    testWidgets('指针区域内跟踪触摸，区域外可以滚动（${useElScroll ? 'ElScrollView' : 'Flutter'}）', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(320, 500);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -19,7 +19,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: useElScroll
-                ? ElScroll(controller: controller, children: children)
+                ? ElScrollView(controller: controller, children: children)
                 : SingleChildScrollView(
                     controller: controller,
                     child: Column(crossAxisAlignment: .stretch, children: children),

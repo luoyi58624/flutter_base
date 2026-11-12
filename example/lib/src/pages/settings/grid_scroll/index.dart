@@ -69,7 +69,7 @@ class _GridScrollPageState extends State<GridScrollPage> {
     return Scaffold(
       backgroundColor: dark ? Colors.grey.shade900 : Colors.grey.shade200,
       appBar: AppBar(title: Text('网格滚动')),
-      body: ElScroll(
+      body: ElScrollView(
         controller: _controller,
         padding: .all(6),
         children: [
@@ -118,7 +118,7 @@ class _Card extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return ElImage(
+                return ElImageView(
                   data['image']!,
                   width: constraints.maxWidth,
                   height: constraints.maxHeight,

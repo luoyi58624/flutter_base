@@ -201,7 +201,7 @@ class _ExamplePlainScrollState extends State<ExamplePlainScroll> {
       );
       offset += count;
     }
-    return ElScroll(
+    return ElScrollView(
       controller: _controller,
       reverse: widget.reverse,
       physics: widget.physics,

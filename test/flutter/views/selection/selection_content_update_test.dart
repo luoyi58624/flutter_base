@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/widgets/image/render/render_image.dart';
+import 'package:flutter_base/src/flutter/views/image/render/render_image.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
 import 'package:flutter/gestures.dart';
@@ -93,7 +93,7 @@ void main() {
         ElSelectionView(
           controller: controller,
           onSelectionChanged: changes.add,
-          child: ElImage.memory(_imageBytes, width: 24, height: 24, alt: 'before'),
+          child: ElImageView.memory(_imageBytes, width: 24, height: 24, alt: 'before'),
         ),
       ),
     );
@@ -127,7 +127,7 @@ void main() {
         ElSelectionView(
           controller: controller,
           onSelectionChanged: changes.add,
-          child: ElImage.memory(_imageBytes, width: 24, height: 24, src: 'before.png'),
+          child: ElImageView.memory(_imageBytes, width: 24, height: 24, src: 'before.png'),
         ),
       ),
     );

@@ -8,7 +8,7 @@ import 'axis_geometry.dart';
 
 part 'render.dart';
 
-/// Grid 排列布局；全量挂载，虚拟网格使用 ElScroll 中的 Sliver。
+/// Grid 排列布局；全量挂载，虚拟网格使用 ElScrollView 中的 Sliver。
 class ElGrid extends MultiChildRenderObjectWidget {
   /// 创建全量布局，方向跟随所属滚动容器，独立使用时默认垂直。
   const ElGrid({

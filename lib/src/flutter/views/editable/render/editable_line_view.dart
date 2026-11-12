@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../widgets/scroll/viewport.dart' show ScrollViewport;
+import '../../scroll/viewport.dart' show ScrollViewport;
 import '../../selection/common/selection_core.dart';
 import '../../view/text/text_style_adapter.dart';
 import '../composer.dart';
@@ -183,7 +183,7 @@ final class _EditableLineSelectionParticipant extends SelectionParticipant {
 ///
 /// **外层选区参与者**（选区岛的"外可进岛"半边）：行同时实现
 /// [SelectionParticipant]，外层 [ElSelectionView] 从岛外扫进来时按行高亮、
-/// 复制按参与者 join('\n') 天然逐行正确；虚拟化身份复用 ElScroll
+/// 复制按参与者 join('\n') 天然逐行正确；虚拟化身份复用 ElScrollView
 /// 的 identity scope。岛内起手的手势由 SelectionIsland 让外层弃权，
 /// 两者互不冲突。
 class RenderEditableLine extends RenderBox
@@ -375,7 +375,7 @@ class RenderEditableLine extends RenderBox
 
   /// 每条虚拟行独立保留显示列表：caret 闪烁、选区拖动与单行编辑只重绘
   /// 命中的行，不把祖先 sliver 的整段可见窗口一并重新 paint。挂载行数由
-  /// ElScroll 的 viewport + cacheExtent 严格约束，因此 layer 数不会随全文增长。
+  /// ElScrollView 的 viewport + cacheExtent 严格约束，因此 layer 数不会随全文增长。
   @override
   bool get isRepaintBoundary => true;
 

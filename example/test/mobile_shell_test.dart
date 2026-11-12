@@ -23,7 +23,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(count(), greaterThan(initial));
     // 刷新 Sliver 离开缓存区后可能卸载，通过列表配置触发同一个刷新回调。
-    tester.widget<ElScroll>(home).slivers!.whereType<ElSliverRefresh>().single.onRefresh();
+    tester.widget<ElScrollView>(home).slivers!.whereType<ElSliverRefresh>().single.onRefresh();
     await tester.pump(Duration(milliseconds: 1));
     await tester.pumpAndSettle();
     expect(count(), initial);
@@ -33,7 +33,7 @@ void main() {
   testWidgets('四栏使用移动主题并在我的保留旧示例入口', (tester) async {
     await _open(tester);
     expect(find.byType(ElComponentProvider), findsOneWidget);
-    expect(find.byType(ElScroll), findsWidgets);
+    expect(find.byType(ElScrollView), findsWidgets);
     for (final tab in ['分类', '消息', '我的']) {
       await tester.tap(find.byKey(ValueKey('tab-$tab')));
       await tester.pumpAndSettle();
@@ -80,7 +80,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('send-message')));
     await tester.pumpAndSettle();
     expect(input.controller!.text, isEmpty);
-    expect(tester.widget<ElScroll>(chat).reverse, isTrue);
+    expect(tester.widget<ElScrollView>(chat).reverse, isTrue);
     expect(_itemCount(tester, chat), count + 2);
     expect(_scrollable(tester, chat).position.pixels, closeTo(0, 0.1));
     expect(tester.takeException(), isNull);

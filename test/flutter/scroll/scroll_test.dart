@@ -36,14 +36,14 @@ Widget _nested(
   ScrollPhysics? outerPhysics,
   bool innerReverse = false,
 }) => _app(
-  ElScroll.sliver(
+  ElScrollView.sliver(
     controller: outer,
     physics: outerPhysics ?? ClampingScrollPhysics(),
     slivers: [
       _box(200),
       _box(
         300,
-        child: ElScroll.sliver(
+        child: ElScrollView.sliver(
           key: _innerKey,
           controller: inner,
           reverse: innerReverse,
@@ -112,7 +112,7 @@ class _Header extends ElNestedScrollParent {
 Widget _withHeader(_Header header, ScrollController controller) => _app(
   ElNestedScroll(
     parent: header,
-    child: ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]),
+    child: ElScrollView.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]),
   ),
 );
 
@@ -120,7 +120,9 @@ void main() {
   group('官方滚动基线', () {
     testWidgets('官方 CustomScrollView 对同一组拖拽事件的起始位移', (tester) async {
       final controller = _controller();
-      await tester.pumpWidget(_app(CustomScrollView(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])));
+      await tester.pumpWidget(
+        _app(CustomScrollView(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])),
+      );
       final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(CustomScrollView));
       expect(controller.offset, closeTo(70, 0.01));
       await _release(tester, gesture);
@@ -134,7 +136,7 @@ void main() {
       final second = ValueKey('second');
       await tester.pumpWidget(
         _app(
-          ElScroll(
+          ElScrollView(
             controller: controller,
             physics: ClampingScrollPhysics(),
             padding: EdgeInsets.all(10),
@@ -153,7 +155,7 @@ void main() {
       // 内容总长 10 + 300 + 20 + 300 + 20 + 300 + 10，视口 400。
       expect(controller.position.maxScrollExtent, 560);
 
-      final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(ElScroll));
+      final gesture = await _drag(tester, [-30, -20, -20], on: find.byType(ElScrollView));
       expect(controller.offset, closeTo(70, 0.01));
       await _release(tester, gesture);
     });
@@ -165,7 +167,7 @@ void main() {
       final controller = _controller();
       await tester.pumpWidget(_withHeader(header, controller));
 
-      final gesture = await _drag(tester, [-30, -20, -20, -20], on: find.byType(ElScroll));
+      final gesture = await _drag(tester, [-30, -20, -20, -20], on: find.byType(ElScrollView));
       expect(header.collapsed, 50);
       expect(controller.offset, closeTo(40, 0.01));
       await _release(tester, gesture);
@@ -178,7 +180,7 @@ void main() {
       controller.jumpTo(30);
       await tester.pump();
 
-      final gesture = await _drag(tester, [30, 20, 20, 20], on: find.byType(ElScroll));
+      final gesture = await _drag(tester, [30, 20, 20, 20], on: find.byType(ElScrollView));
       expect(controller.offset, 0);
       expect(header.collapsed, closeTo(0, 0.01));
       await _release(tester, gesture);
@@ -189,7 +191,7 @@ void main() {
       final controller = _controller();
       await tester.pumpWidget(_withHeader(header, controller));
 
-      final gesture = await _drag(tester, [-30, -20], on: find.byType(ElScroll));
+      final gesture = await _drag(tester, [-30, -20], on: find.byType(ElScrollView));
       expect(header.log, ['start']);
       await _release(tester, gesture);
       expect(header.log, ['start', 'fling', 'end']);
@@ -202,7 +204,7 @@ void main() {
       await tester.pumpWidget(_withHeader(header, controller));
 
       // 真实采样的短甩：前段小于 50px，必须由释放后继续运行的惯性补足。
-      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScrollView)));
       for (var i = 1; i <= 6; i++) {
         await drag.moveBy(Offset(0, -7), timeStamp: Duration(milliseconds: i * 6));
         await tester.pump(Duration(milliseconds: 6));
@@ -223,7 +225,7 @@ void main() {
       final header = _Header()..collapsed = 50;
       final controller = _controller();
       await tester.pumpWidget(_withHeader(header, controller));
-      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScrollView)));
       for (var i = 1; i <= 6; i++) {
         await drag.moveBy(Offset(0, 7), timeStamp: Duration(milliseconds: i * 6));
         await tester.pump(Duration(milliseconds: 6));
@@ -241,7 +243,7 @@ void main() {
       final header = _Header();
       final controller = _controller();
       await tester.pumpWidget(_withHeader(header, controller));
-      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScroll)));
+      final drag = await tester.startGesture(tester.getCenter(find.byType(ElScrollView)));
       for (var i = 1; i <= 6; i++) {
         await drag.moveBy(Offset(0, -7), timeStamp: Duration(milliseconds: i * 6));
         await tester.pump(Duration(milliseconds: 6));
@@ -260,7 +262,7 @@ void main() {
       final inner = _controller();
       await tester.pumpWidget(
         _app(
-          ElScroll.sliver(
+          ElScrollView.sliver(
             controller: outer,
             physics: ClampingScrollPhysics(),
             slivers: [
@@ -269,7 +271,7 @@ void main() {
                 300,
                 child: ElNestedScroll(
                   parent: header,
-                  child: ElScroll.sliver(
+                  child: ElScrollView.sliver(
                     key: _innerKey,
                     controller: inner,
                     physics: ClampingScrollPhysics(),
@@ -447,7 +449,7 @@ void main() {
       final inner = _controller();
       await tester.pumpWidget(
         _app(
-          ElScroll.sliver(
+          ElScrollView.sliver(
             controller: outer,
             axis: Axis.horizontal,
             physics: ClampingScrollPhysics(),
@@ -455,7 +457,7 @@ void main() {
               _box(
                 300,
                 axis: Axis.horizontal,
-                child: ElScroll.sliver(
+                child: ElScrollView.sliver(
                   key: _innerKey,
                   controller: inner,
                   physics: ClampingScrollPhysics(),
@@ -479,21 +481,21 @@ void main() {
 
     // 中层视口 350、可滚 550，内层排在中层末尾；外层可滚 1250。
     Widget threeLevels(ScrollController outer, ScrollController middle, ScrollController inner) => _app(
-      ElScroll.sliver(
+      ElScrollView.sliver(
         controller: outer,
         physics: ClampingScrollPhysics(),
         slivers: [
           _box(100),
           _box(
             350,
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               controller: middle,
               physics: ClampingScrollPhysics(),
               slivers: [
                 _box(600),
                 _box(
                   300,
-                  child: ElScroll.sliver(
+                  child: ElScrollView.sliver(
                     key: _innerKey,
                     controller: inner,
                     physics: ClampingScrollPhysics(),
@@ -548,7 +550,7 @@ void main() {
       final first = _controller();
       final second = _controller();
       Widget page(ScrollController controller) =>
-          _app(ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]));
+          _app(ElScrollView.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)]));
 
       await tester.pumpWidget(page(first));
       first.jumpTo(80);
@@ -563,7 +565,7 @@ void main() {
       final controller = ScrollController(initialScrollOffset: 150);
       addTearDown(controller.dispose);
       await tester.pumpWidget(
-        _app(ElScroll.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])),
+        _app(ElScrollView.sliver(controller: controller, physics: ClampingScrollPhysics(), slivers: [_box(1200)])),
       );
       expect(controller.offset, 150);
     });

@@ -36,7 +36,7 @@ class DemoListPage extends StatelessWidget {
           ),
         ],
       ),
-      body: ElScroll(
+      body: ElScrollView(
         children: [
           Padding(
             padding: .all(16),

@@ -13,7 +13,7 @@ import 'smooth/smooth_pointer_scroll.dart' show SmoothPointerScrollController;
 import 'smooth/smooth_scroll.dart' show ElSmoothScroll;
 import 'nested/nested_scroll.dart' show nestedScrollNodeOf;
 
-/// ElScroll 的滚动位置：只在官方的拖动、松手、惯性三个入口上加逻辑，其余沿用官方实现。
+/// ElScrollView 的滚动位置：只在官方的拖动、松手、惯性三个入口上加逻辑，其余沿用官方实现。
 ///
 /// - 拖动开始时决定这次手势归谁（同轴嵌套接力）。
 /// - 拖动和惯性的每段位移按「协作方 pre → 正文 → 协作方 post」分配。
@@ -21,7 +21,7 @@ import 'nested/nested_scroll.dart' show nestedScrollNodeOf;
 ///
 /// 协作链统一使用手指方向的位移，正值表示内容向起点方向回退，与像素增长方向相反。
 final class ScrollHostPosition extends ScrollPositionWithSingleContext {
-  /// 创建由 ElScroll 内部控制器使用的滚动位置。
+  /// 创建由 ElScrollView 内部控制器使用的滚动位置。
   ScrollHostPosition({
     required super.physics,
     required super.context,
@@ -396,7 +396,7 @@ final class _WheelScrollClaim {
   Timer? timer;
 }
 
-/// ElScroll 固定叠在调用方物理之上的一层：有边界协作方时，内容不足一屏也接受拖动。
+/// ElScrollView 固定叠在调用方物理之上的一层：有边界协作方时，内容不足一屏也接受拖动。
 ///
 /// 官方物理在内容不足一屏时会关闭拖动识别，刷新就无法从短列表拉出；
 /// 调用方显式禁止用户滚动（NeverScrollableScrollPhysics）时仍然尊重。

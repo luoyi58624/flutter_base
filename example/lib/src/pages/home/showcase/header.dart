@@ -49,7 +49,7 @@ class ShowcaseHeader extends HookWidget implements PreferredSizeWidget {
             mainAxisSize: .min,
             spacing: 9,
             children: [
-              ElImage('assets/showcase/logo.png', width: 28, height: 28),
+              ElImageView('assets/showcase/logo.png', width: 28, height: 28),
               Text(
                 'my-ui',
                 style: TextStyle(fontSize: 17, fontWeight: .w700, letterSpacing: -.7, color: t.textColor),

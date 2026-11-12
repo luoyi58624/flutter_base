@@ -15,7 +15,7 @@ void main() {
   testWidgets('首页滚动只重绘视口附近的展示内容', (tester) async {
     await fixture.host(tester);
     final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
-    final scroll = tester.widget<ElScroll>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
+    final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
     final previous = debugOnProfilePaint;
     var paints = 0, outside = 0;
     debugOnProfilePaint = (object) {
@@ -97,7 +97,7 @@ void main() {
     );
     bool running() => TickerMode.valuesOf(tester.element(indefinite)).enabled;
     expect(running(), isFalse);
-    final scroll = tester.widget<ElScroll>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
+    final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
     Future<void> showPanel(String title) async {
       final panel = find.byWidgetPredicate(
         (widget) => widget is ShowcasePanel && widget.title == title,

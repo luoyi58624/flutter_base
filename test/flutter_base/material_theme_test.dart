@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   for (final brightness in Brightness.values) {
-    testWidgets('AppBar 在 ElScroll 滚动后显示阴影，回到顶部恢复：$brightness', (tester) async {
+    testWidgets('AppBar 在 ElScrollView 滚动后显示阴影，回到顶部恢复：$brightness', (tester) async {
       final controller = ScrollController();
       await tester.pumpWidget(
         ElView(
@@ -18,7 +18,7 @@ void main() {
                 theme: context.elMaterialThemeData,
                 home: Scaffold(
                   appBar: AppBar(title: Text('标题')),
-                  body: ElScroll(controller: controller, children: [SizedBox(height: 2000)]),
+                  body: ElScrollView(controller: controller, children: [SizedBox(height: 2000)]),
                 ),
               ),
             ),

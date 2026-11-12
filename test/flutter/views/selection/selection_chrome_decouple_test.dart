@@ -61,7 +61,7 @@ void main() {
                     SizedBox(
                       key: scrollKey,
                       height: 16,
-                      child: ElScroll(
+                      child: ElScrollView(
                         controller: controller,
                         children: [
                           SelectionView(
@@ -109,7 +109,7 @@ void main() {
       reason: 'chrome 必须挂在页面 slot 层',
     );
     expect(
-      find.ancestor(of: handle, matching: find.byType(ElScroll)),
+      find.ancestor(of: handle, matching: find.byType(ElScrollView)),
       findsNothing,
       reason: 'chrome 不得落在滚动容器内部（会被裁剪）',
     );

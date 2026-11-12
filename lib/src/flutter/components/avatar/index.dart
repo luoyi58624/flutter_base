@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../widgets/image/index.dart' show ImageLoadInfo;
+import '../../views/image/index.dart' show ImageLoadInfo;
 import '../../views/view/style/style.dart' show ElStyle;
 import '../index.dart' show ElComponentProvider;
 
@@ -57,6 +57,5 @@ class ElAvatar extends StatelessWidget {
   final Object? child;
 
   @override
-  Widget build(BuildContext context) =>
-      ElComponentProvider.builderOf(context, this, (b) => b.avatar)(context, this);
+  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.avatar)(context, this);
 }

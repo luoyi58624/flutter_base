@@ -139,7 +139,7 @@ class _Cards extends StatelessWidget {
               builder: (context, constraints) => SizedBox(
                 height: (constraints.maxWidth * 7 / 16).clamp(0, 300),
                 width: double.infinity,
-                child: ElImage(showcaseLake, fit: .cover, alt: '平静的湖面与远山'),
+                child: ElImageView(showcaseLake, fit: .cover, alt: '平静的湖面与远山'),
               ),
             ),
             Padding(
@@ -364,7 +364,7 @@ class _Images extends HookWidget {
           description: 'cover、contain 与 fill 决定图片如何放入内容区域。',
           child: demoColumn([
             stage(
-              ElImage(
+              ElImageView(
                 showcaseLake,
                 fit: switch (fit.value) {
                   'contain' => BoxFit.contain,
@@ -389,7 +389,7 @@ class _Images extends HookWidget {
           child: demoColumn([
             stage(
               loaded.value
-                  ? ElImage(showcaseLake, fit: .cover, placeholder: placeholder(ElMobileIcons.image, '正在加载图片'))
+                  ? ElImageView(showcaseLake, fit: .cover, placeholder: placeholder(ElMobileIcons.image, '正在加载图片'))
                   : placeholder(ElMobileIcons.image, '等待加载图片'),
               3 / 2,
             ),
@@ -405,7 +405,7 @@ class _Images extends HookWidget {
           description: '图片不可用时展示明确反馈，并提供重新加载入口。',
           child: demoColumn([
             stage(
-              ElImage(
+              ElImageView(
                 recovered.value ? showcaseLake : 'assets/showcase/missing.png',
                 fit: .cover,
                 error: placeholder(ElMobileIcons.alertCircle, '图片暂时无法显示'),
@@ -462,7 +462,7 @@ class _AppBar extends HookWidget {
                     actions: [action('搜索收藏', ElMobileIcons.search), action('收藏操作', ElMobileIcons.grid)],
                   ),
                   Expanded(
-                    child: ElScroll(
+                    child: ElScrollView(
                       padding: .all(24),
                       gap: 14,
                       children: [

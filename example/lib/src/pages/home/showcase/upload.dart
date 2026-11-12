@@ -26,7 +26,7 @@ class _Upload extends HookWidget {
           name: '旅行封面.svg',
           size: 1840,
           status: .success,
-          thumbnail: ElImage(showcaseLake, fit: .cover),
+          thumbnail: ElImageView(showcaseLake, fit: .cover),
         ),
     ]);
     final timers = useMemoized(() => <String, Timer>{});

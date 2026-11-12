@@ -3,11 +3,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'nested_scroll_chain.dart' show ElNestedScrollParent, NestedScrollNode;
 
-/// 让 [parent] 参与子树内 ElScroll 的拖动与惯性分配，用于折叠头、联动页头等效果。
+/// 让 [parent] 参与子树内 ElScrollView 的拖动与惯性分配，用于折叠头、联动页头等效果。
 ///
 /// 每段位移先交给 [ElNestedScrollParent.onNestedPreScroll]，正文走不完的余量再交给
 /// onNestedPostScroll，松手速度交给 onNestedPreFling。多层嵌套时 pre 由外到内、post 由内到外。
-/// 只有真正持有本次拖动的 ElScroll 会驱动它上方的协作方；内层贴边把手势交给外层后，
+/// 只有真正持有本次拖动的 ElScrollView 会驱动它上方的协作方；内层贴边把手势交给外层后，
 /// 包在内外层之间的协作方不参与。
 class ElNestedScroll extends HookWidget {
   /// 为 [child] 子树注册一个协作方。
@@ -16,7 +16,7 @@ class ElNestedScroll extends HookWidget {
   /// 接收位移与速度的协作方，可在重建时更换。
   final ElNestedScrollParent parent;
 
-  /// 包含 ElScroll 的子树。
+  /// 包含 ElScrollView 的子树。
   final Widget child;
 
   @override

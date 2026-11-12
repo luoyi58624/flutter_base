@@ -275,7 +275,7 @@ ElPortalController _showVirtualPopover(
       height: 120,
       child: ElSelectionView(
         controller: popoverController,
-        child: ElScroll.sliver(
+        child: ElScrollView.sliver(
           controller: scrollController,
           scrollCacheExtent: .pixels(0),
           physics: ClampingScrollPhysics(),

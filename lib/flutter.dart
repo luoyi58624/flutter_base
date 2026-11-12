@@ -40,34 +40,22 @@ export 'src/flutter/views/view/semantics/semantics.dart';
 export 'src/flutter/views/view/event/event.dart';
 
 // 滚动、虚拟化、滚动条与刷新
-export 'src/flutter/widgets/scroll/scroll.dart' show ElScroll;
-export 'src/flutter/widgets/scroll/nested/nested_scroll.dart' show ElNestedScroll;
-export 'src/flutter/widgets/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
+export 'src/flutter/views/scroll/scroll.dart' show ElScrollView;
+export 'src/flutter/views/scroll/nested/nested_scroll.dart' show ElNestedScroll;
+export 'src/flutter/views/scroll/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
 export 'src/flutter/slivers/list/sliver_list.dart' show ElSliverList;
 export 'src/flutter/slivers/recycler/sliver_recycler.dart'
     show ElSliverRecyclerController, ElSliverRecyclerGrid, ElSliverRecyclerList;
 export 'src/flutter/slivers/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
 export 'src/flutter/slivers/large_title.dart' show ElSliverLargeTitle;
-export 'src/flutter/widgets/refresh/sliver_refresh.dart' show ElSliverRefresh;
-export 'src/flutter/widgets/scroll/smooth/smooth_scroll.dart'
+export 'src/flutter/views/scroll/smooth/smooth_scroll.dart'
     show ElChromiumSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
-export 'src/flutter/widgets/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
-export 'src/flutter/widgets/scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
-export 'src/flutter/widgets/scroll/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
-export 'src/flutter/widgets/scroll/physics/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
-export 'src/flutter/widgets/scroll/scroll_behavior.dart' show ElScrollBehavior, elScrollPhysicsFor;
-export 'src/flutter/widgets/refresh/index.dart'
-    show
-        ElAndroidRefresher,
-        ElCustomRefresher,
-        ElIosRefresher,
-        ElNoRefresher,
-        ElRefreshDetails,
-        ElRefreshEdge,
-        ElRefreshSnapshot,
-        ElRefresher,
-        RefreshIndicatorStatus,
-        elWebKitRubberBandSpring;
+export 'src/flutter/views/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
+export 'src/flutter/views/scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+export 'src/flutter/views/scroll/physics/bouncing_scroll_physics.dart' show ElBouncingScrollPhysics;
+export 'src/flutter/views/scroll/physics/clamping_scroll_physics.dart' show ElClampingScrollPhysics;
+export 'src/flutter/views/scroll/scroll_behavior.dart' show ElScrollBehavior, elScrollPhysicsFor;
+export 'src/flutter/views/scroll/refresh/index.dart';
 
 // 布局
 export 'src/flutter/widgets/stack/index.dart'
@@ -110,7 +98,7 @@ export 'src/flutter/views/splitter/index.dart' show ElSplitterPanel, ElSplitterV
 
 // 缩放与预览
 export 'src/flutter/views/preview/preview_view.dart' show ElPreviewController, ElPreviewView;
-export 'src/flutter/widgets/image/index.dart' show ElImage, ImageLoadInfo;
+export 'src/flutter/views/image/index.dart' show ElImageView, ImageLoadInfo;
 export 'src/flutter/widgets/image_preview/index.dart' show ElImagePreview;
 
 // 点击反馈

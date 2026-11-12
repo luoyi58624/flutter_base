@@ -11,7 +11,7 @@ import 'package:flutter/widgets.dart';
 /// ElInfiniteScroll(
 ///   controller: controller,
 ///   onLoad: () async => loadNextPage(),
-///   child: ElScroll(controller: controller, child: Column(children: rows)),
+///   child: ElScrollView(controller: controller, child: Column(children: rows)),
 /// )
 /// ```
 class ElInfiniteScroll extends StatefulWidget {

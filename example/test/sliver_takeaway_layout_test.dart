@@ -66,7 +66,7 @@ void _expectMenuGeometry(WidgetTester tester, double scale) {
     expect(tester.widget<ElView>(title).style!.textOverflow, TextOverflow.ellipsis);
     expect(tester.widget<ElView>(title).style!.fontSize, 14);
     expect(tester.getSize(title).height, lessThanOrEqualTo(14 * scale * 1.4 + 2));
-    final image = find.descendant(of: card, matching: find.byType(ElImage));
+    final image = find.descendant(of: card, matching: find.byType(ElImageView));
     expect(image, findsOneWidget);
     final viewport = find.ancestor(of: image, matching: find.byType(ClipRRect)).first;
     expect(tester.getSize(viewport), Size.square(96));
@@ -85,7 +85,12 @@ Future<void> _capture(WidgetTester tester) async {
   if (_capturePath.isEmpty) return;
   await tester.runAsync(() async {
     for (final size in [Size(288, 216), Size(384, 288)]) {
-      await ElImage.preload('assets/recycler_cards/takeaway-food.webp', size: size, devicePixelRatio: 1, fit: .fill);
+      await ElImageView.preload(
+        'assets/recycler_cards/takeaway-food.webp',
+        size: size,
+        devicePixelRatio: 1,
+        fit: .fill,
+      );
     }
   });
   await tester.pumpAndSettle();
@@ -116,11 +121,11 @@ void main() {
     }
   });
   for (final (width, scale, dark) in [(390.0, 1.0, false), (320.0, 1.6, false), (390.0, 1.6, true)]) {
-    testWidgets('外卖普通布局 $width 宽 $scale 字号下商品单行等高且图片使用 ElImage', (tester) async {
+    testWidgets('外卖普通布局 $width 宽 $scale 字号下商品单行等高且图片使用 ElImageView', (tester) async {
       await _open(tester, width: width, scale: scale, dark: dark);
       _expectMenuGeometry(tester, scale);
       if (scale == 1) await _capture(tester);
-      final controller = tester.widget<ElScroll>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+      final controller = tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
       controller.jumpTo(20000);
       await tester.pumpAndSettle();
       _expectMenuGeometry(tester, scale);
@@ -131,14 +136,14 @@ void main() {
 
   testWidgets('官方列表与网格共用普通卡片，大字下保留统一商品高度和控制器', (tester) async {
     await _open(tester, width: 320, scale: 1.6);
-    final controller = tester.widget<ElScroll>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+    final controller = tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
     await _choose(tester, 'takeaway-mode-official');
     expect(find.byType(SliverList), findsOneWidget);
     expect(find.byType(ElSliverRecyclerList), findsNothing);
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-sliver-grid');
     expect(find.byType(SliverGrid), findsOneWidget);
-    expect(tester.widget<ElScroll>(find.byKey(ValueKey('takeaway-sliver'))).controller, same(controller));
+    expect(tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller, same(controller));
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-mode-recycler');
     expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);

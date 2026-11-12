@@ -152,7 +152,7 @@ class _BoundaryHarness extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 80),
             child: ElSelectionView(
-              child: ElScroll(
+              child: ElScrollView(
                 scrollCacheExtent: .pixels(0),
                 children: [
                   for (var index = 0; index < 12; index++)

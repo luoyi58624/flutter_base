@@ -29,7 +29,7 @@ Future<(PageController, ScrollController)> _pump(WidgetTester tester, Axis axis,
               physics: disabled ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
               children: [
                 ColoredBox(color: Colors.blue),
-                ElScroll(
+                ElScrollView(
                   key: ValueKey('inner'),
                   controller: inner,
                   axis: axis,

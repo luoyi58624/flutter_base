@@ -75,7 +75,7 @@ class _NavigationState extends State<NewScrollNavigationPage> {
               }, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
             ),
           Expanded(
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               key: ValueKey('navigation-${_mode.name}'),
               physics: ClampingScrollPhysics(),
               slivers: [

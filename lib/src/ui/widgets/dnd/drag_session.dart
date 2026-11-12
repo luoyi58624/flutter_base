@@ -225,7 +225,7 @@ class DndSession {
   /// 命中目标所在的纵向滚动视口；横向自动滚暂无真实场景。
   ///
   /// 官方视口自身不参与命中，指针落在内容上时沿父链查找；落在空白处时最深命中是
-  /// 直接包住视口的代理节点（如 ElScroll 的指针监听层），需要检查它的子节点。
+  /// 直接包住视口的代理节点（如 ElScrollView 的指针监听层），需要检查它的子节点。
   static RenderViewportBase? _scrollViewportOf(RenderObject target) {
     RenderObject? node = target is RenderProxyBox ? target.child : null;
     if (node is! RenderViewportBase) node = target;

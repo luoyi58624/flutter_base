@@ -8,7 +8,7 @@ Grid 与 Stack 的组件入口分别位于 `widgets/grid/index.dart` 和 `widget
 | --- | --- |
 | ElGrid | 固定列数或按格尺寸自适应排列 |
 
-ElGrid 全量挂载，方向跟随最近的 Scrollable，独立使用默认纵向。大量条目的虚拟列表与网格使用 `ElScroll.sliver` 配合 `ElSliverList`、`ElSliverRecyclerList`、`ElSliverRecyclerGrid` 或官方 Sliver。
+ElGrid 全量挂载，方向跟随最近的 Scrollable，独立使用默认纵向。大量条目的虚拟列表与网格使用 `ElScrollView.sliver` 配合 `ElSliverList`、`ElSliverRecyclerList`、`ElSliverRecyclerGrid` 或官方 Sliver。
 
 ## Grid：列数与自适应尺寸
 

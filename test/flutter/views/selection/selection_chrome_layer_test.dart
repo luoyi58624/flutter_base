@@ -516,7 +516,7 @@ void main() {
           height: 120,
           child: SelectionView(
             controls: const _ChromeControls(),
-            child: ElScroll(
+            child: ElScrollView(
               controller: scrollController,
               children: const [
                 ElView(

@@ -10,11 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// vp_layout.dart 的 [ElSelectionView] 包住整站（含 AppBar/NavBar + 内容区），
 /// ScrollPage 内结构：
-///   ElSelectionView(全局根) → Scaffold(appBar: ElView('ScrollPage'), body: ElScroll(...))
+///   ElSelectionView(全局根) → Scaffold(appBar: ElView('ScrollPage'), body: ElScrollView(...))
 ///
 /// ## Bug 表现（三张截图）
 ///
-/// 1. 图 1：用户在 ElScroll 内容区拖选，rows 1-15 高亮。
+/// 1. 图 1：用户在 ElScrollView 内容区拖选，rows 1-15 高亮。
 /// 2. 图 2：鼠标向上移出内容区、进入 AppBar → 只剩 AppBar "ScrollPage" 高亮，
 ///    内容行全部丢失（虚拟滚动已把可见窗口滚到 row~619，anchor 已卸载）。
 /// 3. 图 3：鼠标回到顶部 → 只有 row1 开头 "黄金" 两字被选（是 span 的另一端）。
@@ -72,7 +72,7 @@ void main() {
 
   // ── 公共 Widget 构建 ──────────────────────────────────────────────────────
 
-  /// 与 ScrollPage 同构：ElSelectionView 包整页（AppBar + body ElScroll）。
+  /// 与 ScrollPage 同构：ElSelectionView 包整页（AppBar + body ElScrollView）。
   /// [appBarUserSelectNone]：true = 修复版（AppBar 标题加 userSelect none）。
   Widget buildScrollPage({
     required int rowCount,
@@ -95,7 +95,7 @@ void main() {
           body: SizedBox(
             width: 400,
             height: viewportHeight,
-            child: ElScroll(
+            child: ElScrollView(
               controller: scrollController,
               physics: ClampingScrollPhysics(),
               scrollCacheExtent: .pixels(0), // 关掉预加载：精确控制挂载窗口

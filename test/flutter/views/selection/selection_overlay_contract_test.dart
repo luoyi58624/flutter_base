@@ -39,7 +39,7 @@ void main() {
               width: 800,
               height: 600,
               child: ElSelectionView(
-                child: ElScroll(
+                child: ElScrollView(
                   controller: controller,
                   children: [ElView(style: const ElStyle(fontSize: 14, lineHeight: 1.5), child: paragraph * 100)],
                 ),

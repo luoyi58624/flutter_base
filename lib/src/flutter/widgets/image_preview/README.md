@@ -1,18 +1,18 @@
 # 图片预览
 
-`ElImagePreview` 包裹一个 `ElImage`，点击后在根 Overlay 展示预览，不 push 路由。
+`ElImagePreview` 包裹一个 `ElImageView`，点击后在根 Overlay 展示预览，不 push 路由。
 
 ```dart
-ElImagePreview(child: ElImage('assets/photo.jpg', width: 160, height: 100, fit: .cover));
+ElImagePreview(child: ElImageView('assets/photo.jpg', width: 160, height: 100, fit: .cover));
 
 ElImagePreview(
   images: ['assets/a.jpg', 'assets/b.jpg'],
   initialIndex: 1,
-  child: ElImage('assets/b.jpg', width: 160, height: 100, fit: .cover),
+  child: ElImageView('assets/b.jpg', width: 160, height: 100, fit: .cover),
 );
 ```
 
-- 不传 `images` 或传空列表：预览子图片，也支持 `ElImage.memory`。
+- 不传 `images` 或传空列表：预览子图片，也支持 `ElImageView.memory`。
 - 传图片地址列表：按列表顺序翻页；省略 `initialIndex` 时匹配 `child.src`，没有匹配则从第一张开始。重复地址用 `initialIndex` 区分。
 - 原有图片实例、样式和回调保留。图片的点击事件可通过 `preventDefault()` 阻止打开。
 - 进退场自行插值缩略图与全屏图片的矩形，完成共享元素动画，不依赖 Navigator Hero。当前图片有同页同列表的缩略图时飞回对应入口；入口不存在时淡出。

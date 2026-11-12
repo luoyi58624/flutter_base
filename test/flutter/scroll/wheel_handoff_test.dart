@@ -33,7 +33,7 @@ class _Fixture {
             child: SizedBox(
               width: 320,
               height: 400,
-              child: ElScroll.sliver(
+              child: ElScrollView.sliver(
                 key: ValueKey('outer'),
                 controller: outer,
                 axis: axis,
@@ -46,7 +46,7 @@ class _Fixture {
                     child: SizedBox(
                       width: axis == .horizontal ? 200 : null,
                       height: axis == .vertical ? 200 : null,
-                      child: ElScroll.sliver(
+                      child: ElScrollView.sliver(
                         key: ValueKey('inner'),
                         controller: inner,
                         axis: axis,

@@ -199,9 +199,9 @@ void main() {
         await _precache(tester, [...scene.assets, ...?mediaFiles?.providers]);
         if (scene == .takeaway) {
           await tester.runAsync(() async {
-            // ElImage 按布局尺寸解码，分别预热店标和商品使用的完整图集尺寸。
+            // ElImageView 按布局尺寸解码，分别预热店标和商品使用的完整图集尺寸。
             for (final size in [Size(288, 216), Size(384, 288)]) {
-              await ElImage.preload(
+              await ElImageView.preload(
                 'assets/recycler_cards/takeaway-food.webp',
                 size: size,
                 devicePixelRatio: 1,
@@ -255,7 +255,7 @@ void main() {
             final root = tester.element(_mainScroll());
             final (controller, reverse, cache) = switch (root.widget) {
               CustomScrollView scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
-              ElScroll scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
+              ElScrollView scroll => (scroll.controller!, scroll.reverse, scroll.scrollCacheExtent),
               _ => throw StateError('找不到页面滚动宿主。'),
             };
             final primarySliver = _primarySliver(root);
@@ -290,7 +290,7 @@ void main() {
             if (scene == .takeaway) {
               final images = _TreeSnapshot(root).renders.whereType<RenderImage>().toList();
               expect(images, isNotEmpty);
-              expect(images.every((image) => image.image != null), isTrue, reason: '外卖 ElImage 必须已显示真实图集。');
+              expect(images.every((image) => image.image != null), isTrue, reason: '外卖 ElImageView 必须已显示真实图集。');
             }
             if (scene == .productWaterfall) _assertUnrevealedProducts(tester);
             final metadata = {
@@ -524,7 +524,7 @@ Widget _app(Widget page) => ElComponentProvider(
 Finder _mainScroll() => find.byWidgetPredicate(
   (widget) =>
       widget is CustomScrollView && widget.scrollDirection == Axis.vertical ||
-      widget is ElScroll && widget.axis == Axis.vertical,
+      widget is ElScrollView && widget.axis == Axis.vertical,
 );
 
 Future<void> _precache(WidgetTester tester, List<ImageProvider<Object>> images) async {
@@ -742,12 +742,12 @@ void _assertOffline(_TreeSnapshot tree) {
     reason: '业务滚动基准只用真实本地资源，不发网络图片请求。',
   );
   expect(
-    tree.elements.values.whereType<ElImage>().any((widget) {
+    tree.elements.values.whereType<ElImageView>().any((widget) {
       final uri = Uri.tryParse(widget.src ?? '');
       return uri?.scheme == 'http' || uri?.scheme == 'https';
     }),
     isFalse,
-    reason: 'ElImage 同样只能使用本地图片，不能遗漏新的图片入口。',
+    reason: 'ElImageView 同样只能使用本地图片，不能遗漏新的图片入口。',
   );
 }
 

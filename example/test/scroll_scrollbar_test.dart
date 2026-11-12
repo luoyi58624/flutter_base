@@ -138,7 +138,7 @@ void main() {
       );
       expect(find.byType(CupertinoScrollbar), findsNothing);
       final bar = tester.widget<Scrollbar>(find.byType(Scrollbar));
-      final scroll = tester.widget<ElScroll>(find.byType(ElScroll));
+      final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView));
       expect(bar.controller!.position, same(scroll.controller!.position));
       expect(tester.takeException(), isNull);
     });

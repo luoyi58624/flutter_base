@@ -9,8 +9,8 @@ enum DocScrollMode {
   /// 使用 SliverList.builder 按需创建文档条目。
   officialVirtual('官方虚拟列表'),
 
-  /// 使用 ElScroll 常驻挂载全部文档条目。
-  elScroll('ElScroll'),
+  /// 使用 ElScrollView 常驻挂载全部文档条目。
+  elScroll('ElScrollView'),
 
   /// 使用常驻自然尺寸的 ElSliverList 文档。
   sliverList('ElSliverList');

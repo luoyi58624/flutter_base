@@ -82,7 +82,7 @@ class _TabPaneState extends State<_TabPane> with AutomaticKeepAliveClientMixin {
     final tab = widget.tab;
     return ColoredBox(
       color: Color(0xfff8fafc),
-      child: ElScroll.sliver(
+      child: ElScrollView.sliver(
         key: PageStorageKey('page-list-${tab.title}'),
         slivers: [
           SliverToBoxAdapter(
@@ -104,7 +104,7 @@ class _TabPaneState extends State<_TabPane> with AutomaticKeepAliveClientMixin {
                 ),
                 builder: (size, child) => SizedBox(
                   height: size.height,
-                  child: ElScroll(
+                  child: ElScrollView(
                     key: PageStorageKey('page-strip-${tab.title}'),
                     axis: .horizontal,
                     padding: .symmetric(horizontal: 12),

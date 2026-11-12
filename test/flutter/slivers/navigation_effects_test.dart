@@ -20,7 +20,7 @@ void main() {
     double progress = -1;
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -50,7 +50,7 @@ void main() {
   testWidgets('方向浮现直接复用官方 SliverFloatingHeader', (tester) async {
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           slivers: [
             ElSliverCollapse.floating(child: SizedBox(height: 56, child: Text('方向浮现'))),
             SliverToBoxAdapter(child: SizedBox(height: 1500)),
@@ -67,7 +67,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -106,7 +106,7 @@ void main() {
     final progress = <double>[];
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -156,7 +156,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -205,7 +205,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -233,7 +233,7 @@ void main() {
     var calls = 0;
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
@@ -281,7 +281,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           slivers: [
             ElSliverLargeTitle(
@@ -310,7 +310,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           slivers: [
             ElSliverLargeTitle(title: '收藏', leading: Icon(Icons.arrow_back)),
@@ -340,7 +340,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       _app(
-        ElScroll.sliver(
+        ElScrollView.sliver(
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [

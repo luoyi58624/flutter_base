@@ -41,7 +41,7 @@ class _Navigation extends StatelessWidget {
           ),
           _line(),
           Expanded(
-            child: ElScroll(
+            child: ElScrollView(
               padding: EdgeInsets.all(12),
               children: [Column(spacing: 8, children: items)],
             ),

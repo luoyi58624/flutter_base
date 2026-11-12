@@ -110,7 +110,7 @@ void main() {
       final input = tester.getSemantics(find.bySemanticsLabel('提及输入'));
       expect(input.getSemanticsData().flagsCollection.isTextField, isTrue);
 
-      final list = _listNode(tester, find.descendant(of: _panel, matching: find.byType(ElScroll)));
+      final list = _listNode(tester, find.descendant(of: _panel, matching: find.byType(ElScrollView)));
       expect(list.getSemanticsData().role, SemanticsRole.list);
       final first = tester.getSemantics(_option(0)).getSemanticsData();
       expect(first.label, 'Alice');

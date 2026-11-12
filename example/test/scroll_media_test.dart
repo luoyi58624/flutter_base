@@ -280,7 +280,7 @@ void main() {
       await tester.drag(host, Offset(0, -420));
       await tester.pumpAndSettle();
       expect(controller.offset, greaterThan(before + 250));
-      if (scroll is ElScroll) {
+      if (scroll is ElScrollView) {
         expect(tester.widget(host), same(scroll), reason: '滚动中新挂载卡片不应触发重新测高和重建容器');
       }
       expect(first, findsNothing);

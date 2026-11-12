@@ -104,7 +104,7 @@ void main() {
             children: [
               ElView(child: 'own'),
               Text('native'),
-              ElImage.memory(
+              ElImageView.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),
@@ -246,7 +246,7 @@ void main() {
       _host(
         SelectionView(
           controller: controller,
-          child: ElScroll(
+          child: ElScrollView(
             controller: scroll,
             children: List.generate(
               20,

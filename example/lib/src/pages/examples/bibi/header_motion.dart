@@ -25,7 +25,7 @@ final class BibiHeaderMotion {
   /// 展开为零，收起为 [extent]。
   ValueListenable<double> get offset => _offset.view;
 
-  /// 让频道 [index] 内的 ElScroll 先把位移交给页头，并在滚动停稳后吸附。
+  /// 让频道 [index] 内的 ElScrollView 先把位移交给页头，并在滚动停稳后吸附。
   Widget bindPage(int index, {required Widget child}) => ElNestedScroll(
     parent: _interceptors.putIfAbsent(index, () => _BibiPageInterceptor(this, index)),
     child: NotificationListener<ScrollEndNotification>(

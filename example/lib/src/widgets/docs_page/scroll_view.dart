@@ -347,13 +347,13 @@ class _DocViewportState extends State<_DocViewport> {
       },
     );
     final outline = widget.outline;
-    return ElScroll.sliver(
+    return ElScrollView.sliver(
       controller: _official,
       slivers: [
         if (outline == null)
           body
         else
-          // 目录与正文共用视口，目录上的滚轮也走同一个 ElScroll。
+          // 目录与正文共用视口，目录上的滚轮也走同一个 ElScrollView。
           SliverCrossAxisGroup(
             slivers: [
               SliverCrossAxisExpanded(flex: 1, sliver: body),

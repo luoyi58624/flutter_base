@@ -42,7 +42,7 @@ class ElSliverListExamplePage extends HookWidget {
           child: FractionallySizedBox(
             widthFactor: narrow.value ? .72 : 1,
             child: ElSelectionView(
-              child: ElScroll(
+              child: ElScrollView(
                 key: ValueKey('document-scroll'),
                 controller: controller,
                 gap: 24,

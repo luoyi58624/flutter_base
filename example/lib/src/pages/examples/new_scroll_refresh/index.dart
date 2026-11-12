@@ -43,7 +43,7 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
         ),
       ),
     ];
-    final scroll = ElScroll.sliver(key: ValueKey('refresh-scroll-$_reverse'), reverse: _reverse, slivers: slivers);
+    final scroll = ElScrollView.sliver(key: ValueKey('refresh-scroll-$_reverse'), reverse: _reverse, slivers: slivers);
 
     return Scaffold(
       appBar: AppBar(title: Text('新版滚动 · 下拉刷新（$_refreshes）')),

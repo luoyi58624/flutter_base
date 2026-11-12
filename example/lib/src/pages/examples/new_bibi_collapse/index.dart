@@ -172,7 +172,7 @@ class _NewBibiCollapsePageState extends State<NewBibiCollapsePage> {
         ),
         body: SafeArea(
           bottom: false,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             key: ValueKey('new-bibi-channel-$selected'),
             controller: scrollControllers[selected],
             physics: ClampingScrollPhysics(),

@@ -14,14 +14,14 @@
 | 商品瀑布流 | product_waterfall.dart；延迟揭晓图片尺寸、远拖、详情返回与自然补测 |
 | 富文本文档 | rich_document.dart；ElSliverList 常驻文档对照官方 SliverList，目录定位不变，展开与勾选只通知当前节 |
 | 单帧尖峰工具 | spike.dart；控制栏保留列表配置，回收行只更新编号；注入、取消、拖动与惯性窗口不变，测试替换工作函数 |
-| 外卖 | 复用上级 sliver_takeaway/，普通卡片布局与 ElImage，店名/商品名单行、商品等高，保留分类、店内菜单、图集、加购和辅助操作 |
+| 外卖 | 复用上级 sliver_takeaway/，普通卡片布局与 ElImageView，店名/商品名单行、商品等高，保留分类、店内菜单、图集、加购和辅助操作 |
 
 媒体布局与卡片来源分别切换，Bibi 卡片来源不构成第三种滚动实现。官方网格按自身协议提供格子几何，回收网格和瀑布流继续自然测量。selection、cards、orders 的定向定位只沿用各页已有的业务等高几何，没有增加组件 itemExtent 参数。
 
 官方网格示例在几何不变时保留 SliverGrid 与 delegate，滚动不重新配置已挂载卡片；宽度、列数、字号和方向变化仍正常更新。记录懒创建减少初始分配，缓存随访问增长；官方自然高度 SliverList 的远距离定位仍可能布局中间条目，这与 recycler 的定位成本不同。
 
-文档设置中的旧 recyclerView 存储值定向迁移为 sliverList，使用 CustomScrollView + ElSliverList；原有官方普通、官方虚拟文档模式保留，旧 ElScrollView 模式改为 ElScroll 常驻文档，旧存储值 elScrollView 定向迁移为 elScroll。常驻文档通过已挂载小节进行 ensureVisible，不能将该能力用于尚未挂载的回收项。
+文档设置中的旧 recyclerView 存储值定向迁移为 sliverList，使用 CustomScrollView + ElSliverList。官方普通、官方虚拟文档模式保留；ElScrollView 模式常驻挂载文档，沿用 elScroll 存储值，旧值 elScrollView 迁移到该值。常驻文档通过已挂载小节进行 ensureVisible，回收项需要先挂载才能定位。
 
 旧公共入口 lib/recycler_view.dart、lib/flutter.dart 中的旧导出、旧内核、旧例页副本及专属诊断报告已移除。仍有效的业务回归迁到 example/test/scroll_*.dart，新 Sliver 的换绑过渡回归位于 test/flutter/slivers/sliver_recycler_rebind_transition_test.dart；旧 Adapter/Holder 成本诊断下线。
 
-共享 example_image、example_scrollbar、plain_scroll、Bibi、外卖与 recycler_cards 资产保留。ElScrollable 实现和 ElScrollView 内核迁移留待后续；本轮只使用局部无头测试，不将其耗时视为设备帧耗时。
+共享 example_image、example_scrollbar、plain_scroll、Bibi、外卖与 recycler_cards 资产保留。

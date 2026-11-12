@@ -138,7 +138,7 @@ class ElStackItem extends ParentDataWidget<ElStackParentData> {
 /// 百分比参考轴同 CSS：[left]/[right]/[width] 对宿主宽度，
 /// [top]/[bottom]/[height] 对宿主高度。折算发生在宿主尺寸定下来之后，
 /// 故百分比恒有有限参考值。
-/// 在 `ElScroll` 中参考的是整个视口盒，定位不贡献正文行高；只写
+/// 在 `ElScrollView` 中参考的是整个视口盒，定位不贡献正文行高；只写
 /// [zIndex] 则仍在滚动流内。滚动条与业务成员共享层序，默认层级为 10。
 class ElPositioned extends ParentDataWidget<ElStackParentData> {
   /// 创建定位子。水平三值（[left]/[right]/[width]）与垂直三值

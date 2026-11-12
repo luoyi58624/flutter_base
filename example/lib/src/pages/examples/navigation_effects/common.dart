@@ -38,13 +38,13 @@ Widget effectPage(
   body: SafeArea(
     top: false,
     child: refresh
-        ? ElScroll.sliver(
+        ? ElScrollView.sliver(
             slivers: [
               ElSliverRefresh(onRefresh: effectRefresh),
               ...slivers,
             ],
           )
-        : ElScroll.sliver(slivers: slivers),
+        : ElScrollView.sliver(slivers: slivers),
   ),
 );
 

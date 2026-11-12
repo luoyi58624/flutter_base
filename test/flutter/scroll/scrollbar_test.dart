@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter/widgets/scroll/dual_axis_scroll.dart';
-import 'package:flutter_base/src/flutter/widgets/scroll/viewport.dart';
+import 'package:flutter_base/src/flutter/views/scroll/dual_axis_scroll.dart';
+import 'package:flutter_base/src/flutter/views/scroll/viewport.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../ui/support/scrollbar_thumb.dart';
@@ -30,7 +30,7 @@ Widget _app(
         child: SizedBox(
           width: 300,
           height: 400,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             controller: controller,
             smoothScroll: smooth ? ElWindowsSmoothScroll() : null,
             axis: axis,

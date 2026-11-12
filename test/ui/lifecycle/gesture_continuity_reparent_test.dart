@@ -24,7 +24,7 @@ void main() {
           key: move,
           child: ScrollConfiguration(
             behavior: ElScrollBehavior(),
-            child: ElScroll(
+            child: ElScrollView(
               controller: controller,
               physics: ElClampingScrollPhysics(),
               children: [for (var i = 0; i < 60; i++) _row(i)],
@@ -56,7 +56,7 @@ void main() {
   testWidgets('手势进行中整体卸载宿主，无悬挂状态且重新挂载后滚动正常', (tester) async {
     final controller = ScrollController();
     Widget build() => lifecycleHost(
-      ElScroll(
+      ElScrollView(
         controller: controller,
         physics: ElClampingScrollPhysics(),
         children: [for (var i = 0; i < 60; i++) _row(i)],

@@ -313,7 +313,7 @@ class _BibiFeedState extends State<_BibiFeed> {
   @override
   Widget build(BuildContext context) => widget.header.bindPage(
     widget.index,
-    child: ElScroll.sliver(
+    child: ElScrollView.sliver(
       controller: widget.controller,
       physics: _physics,
       slivers: [

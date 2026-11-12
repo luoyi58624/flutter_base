@@ -51,7 +51,7 @@ ElInfiniteScroll(
   onLoad: () async {
     // 请求下一页并更新业务数据。
   },
-  child: SizedBox(height: 240, child: ElScroll(
+  child: SizedBox(height: 240, child: ElScrollView(
     controller: controller,
     child: SizedBox(height: 800, child: Text('正文')),
   )),

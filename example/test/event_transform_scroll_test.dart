@@ -22,7 +22,7 @@ Future<ScrollController> _show(WidgetTester tester, Widget example, bool useElSc
               width: 320,
               height: 540,
               child: useElScroll
-                  ? ElScroll(controller: controller, children: children)
+                  ? ElScrollView(controller: controller, children: children)
                   : SingleChildScrollView(
                       controller: controller,
                       child: Column(crossAxisAlignment: .stretch, children: children),
@@ -40,7 +40,7 @@ Future<ScrollController> _show(WidgetTester tester, Widget example, bool useElSc
 
 void main() {
   for (final useElScroll in [true, false]) {
-    final scrollName = useElScroll ? 'ElScroll' : 'Flutter';
+    final scrollName = useElScroll ? 'ElScrollView' : 'Flutter';
     testWidgets('$scrollName 内从缩放舞台空白处缓慢捏合，整区响应且不滚动', (tester) async {
       final scroll = await _show(tester, ElScaleEventExample(), useElScroll);
       final area = _key('event-basic-scale');

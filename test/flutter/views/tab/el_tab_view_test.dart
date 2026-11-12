@@ -502,7 +502,7 @@ void main() {
             controller: tabController,
             children: [
               const Text('page-0'),
-              ElScroll(
+              ElScrollView(
                 controller: verticalController,
                 children: List<Widget>.generate(
                   18,
@@ -524,7 +524,10 @@ void main() {
 
     // 动画中落指到目标页当前视觉位置（applyPaintTransform 反映实时位移），
     // 纵向拖拽：内层滚动立即响应。
-    final gesture = await tester.startGesture(tester.getCenter(find.byType(ElScroll)), kind: PointerDeviceKind.touch);
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(ElScrollView)),
+      kind: PointerDeviceKind.touch,
+    );
     await gesture.moveBy(const Offset(0, -80));
     await tester.pump();
     await gesture.moveBy(const Offset(0, -80));
@@ -619,7 +622,7 @@ void main() {
               child: ElTabView(
                 controller: controller,
                 children: [
-                  ElScroll(
+                  ElScrollView(
                     key: const ValueKey('scrollbar-child-scroll'),
                     controller: scroll,
                     children: List<Widget>.generate(24, (index) {
@@ -671,13 +674,13 @@ void main() {
           child: ElTabView(
             controller: tabController,
             children: [
-              ElScroll(
+              ElScrollView(
                 controller: verticalController,
                 children: [
                   SizedBox(
                     width: 300,
                     height: 80,
-                    child: ElScroll(
+                    child: ElScrollView(
                       controller: horizontalController,
                       axis: Axis.horizontal,
                       children: List<Widget>.generate(
@@ -733,7 +736,7 @@ void main() {
           child: ElTabView(
             controller: tabController,
             children: [
-              ElScroll(
+              ElScrollView(
                 controller: verticalController,
                 children: List<Widget>.generate(
                   18,
@@ -780,7 +783,7 @@ void main() {
             child: ElTabView(
               controller: tabController,
               children: [
-                ElScroll(
+                ElScrollView(
                   controller: verticalController,
                   children: List<Widget>.generate(
                     12,
@@ -824,7 +827,7 @@ void main() {
   // 边缘让渡：内层横向滚动在边界方向 0 消费 → defer 给祖先，ElTabView 自机
   // 接管拖拽。旧版单次 moveBy 手势已过时（dragStart 种子归零契约下整段位移
   // 被 slop 吞掉），改用真实多步手势。
-  // 暂跳过：ElScroll 已改用官方 Scrollable 手势，不再作为 ElView 拖拽台账的 driver；
+  // 暂跳过：ElScrollView 已改用官方 Scrollable 手势，不再作为 ElView 拖拽台账的 driver；
   // 待 ElView 拖拽识别器迁移到官方实现后，按新的手势归属重写本用例。
   testWidgets('horizontal child at boundary lets the tab claim the drag start', (tester) async {
     final tabController = ElTabController(length: 2, initialIndex: 1);
@@ -844,7 +847,7 @@ void main() {
               controller: tabController,
               children: [
                 const Text('page-0'),
-                ElScroll(
+                ElScrollView(
                   controller: horizontalController,
                   axis: Axis.horizontal,
                   children: List<Widget>.generate(

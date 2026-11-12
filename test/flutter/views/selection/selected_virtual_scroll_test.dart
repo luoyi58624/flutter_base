@@ -18,7 +18,7 @@ void main() {
               children: [
                 if (mixed) ElView(key: ValueKey('outside'), child: 'outside'),
                 Expanded(
-                  child: ElScroll.sliver(
+                  child: ElScrollView.sliver(
                     controller: scroll,
                     slivers: [
                       SliverList.builder(

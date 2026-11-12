@@ -35,7 +35,7 @@ void main() {
                   child: ElView(
                     key: scrollKey,
                     style: const ElStyle(width: 200, height: 200, backgroundColor: Color(0xFF222222)),
-                    child: ElScroll(
+                    child: ElScrollView(
                       children: [
                         for (var i = 0; i < 40; i++) ElView(style: const ElStyle(width: 180, height: 40), child: 'row'),
                       ],

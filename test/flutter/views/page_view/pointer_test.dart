@@ -18,7 +18,7 @@ Future<void> _pump(
           physics: ClampingScrollPhysics(),
           onPageChanged: onChanged,
           children: [
-            ElScroll(
+            ElScrollView(
               key: ValueKey('inner'),
               controller: inner,
               physics: ClampingScrollPhysics(),

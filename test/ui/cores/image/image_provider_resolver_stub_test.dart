@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_base/ui.dart';
-import 'package:flutter_base/src/flutter/widgets/image/image_provider_resolver_stub.dart' as stub;
+import 'package:flutter_base/src/flutter/views/image/image_provider_resolver_stub.dart' as stub;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,7 +27,7 @@ void main() {
 
     test('内存图片使用内存 provider', () {
       final bytes = Uint8List.fromList(<int>[1, 2, 3]);
-      final view = ElImage.memory(bytes);
+      final view = ElImageView.memory(bytes);
 
       expect(view.image, isA<MemoryImage>());
     });

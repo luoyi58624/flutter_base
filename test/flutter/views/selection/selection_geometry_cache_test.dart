@@ -1,6 +1,6 @@
 import 'package:flutter_base/src/flutter/views/view/text/text_engine.dart' show TextEngine;
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
-import 'package:flutter_base/src/flutter/widgets/scroll/scroll.dart';
+import 'package:flutter_base/src/flutter/views/scroll/scroll.dart';
 import 'package:flutter_base/src/flutter/views/selection/common/selection_core.dart';
 
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart' show ElRenderView;
@@ -113,7 +113,7 @@ void main() {
             height: 200,
             child: ElSelectionView(
               controller: controller,
-              child: ElScroll(
+              child: ElScrollView(
                 controller: scrollController,
                 children: const [
                   ElView(child: 'row 0 selectable text content'),
@@ -167,7 +167,7 @@ void main() {
             width: 400,
             height: 240,
             child: ElSelectionView(
-              child: ElScroll(
+              child: ElScrollView(
                 controller: controller,
                 children: [
                   for (var row = 0; row < 40; row++)
@@ -211,7 +211,7 @@ void main() {
             width: 800,
             height: 600,
             child: ElSelectionView(
-              child: ElScroll(
+              child: ElScrollView(
                 controller: controller,
                 children: const [
                   ElView(

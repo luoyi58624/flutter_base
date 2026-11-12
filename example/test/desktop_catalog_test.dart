@@ -37,7 +37,7 @@ Future<void> _select(WidgetTester tester, String label) async {
         matching: find.byWidgetPredicate((widget) => widget is ElView && widget.event?.onTap != null),
       )
       .first;
-  final scrollFinder = find.ancestor(of: row, matching: find.byType(ElScroll)).first;
+  final scrollFinder = find.ancestor(of: row, matching: find.byType(ElScrollView)).first;
   final scroll = _scrollable(tester, scrollFinder);
   final delta = tester.getCenter(row).dy - tester.getCenter(scrollFinder).dy;
   scroll.position.jumpTo(

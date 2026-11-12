@@ -71,7 +71,7 @@ class _CategoryPage extends HookWidget {
         children: [
           ExamplePanel(
             style: ElStyle(width: desktop ? 144 : 92, backgroundColor: Color(0xfff7f8fa)),
-            child: ElScroll(
+            child: ElScrollView(
               controller: left,
               children: [
                 for (var i = 0; i < _categories.length; i++)
@@ -112,7 +112,7 @@ class _CategoryPage extends HookWidget {
                 if (event.dragDetails != null) locked.value = false;
                 return false;
               },
-              child: ElScroll(
+              child: ElScrollView(
                 key: ValueKey('category-list'),
                 controller: right,
                 padding: EdgeInsets.all(8),

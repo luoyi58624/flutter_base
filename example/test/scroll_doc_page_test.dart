@@ -85,7 +85,7 @@ void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
   final repeat = GlobalState.docRepeatCount.value;
   final itemCount = page.sections.length * repeat + 1;
   expect(find.text(page.title), findsOneWidget);
-  expect(find.byType(ElScroll), findsOneWidget);
+  expect(find.byType(ElScrollView), findsOneWidget);
   expect(find.byType(CustomScrollView), findsNothing);
   expect(find.byType(SingleChildScrollView), findsNothing);
   expect(find.byType(ListView), findsNothing);
@@ -207,7 +207,7 @@ void main() {
     await tester.pumpAndSettle();
     final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
     final viewport = tester.state<ScrollableState>(find.byType(Scrollable).first);
-    final controller = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     controller.jumpTo(4000);
     await tester.pumpAndSettle();
     final pixels = controller.position.pixels;

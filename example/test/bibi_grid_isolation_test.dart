@@ -146,7 +146,7 @@ Future<Map<String, Object?>> _measure(
 
   Widget viewport(double extent) {
     final rowGap = rowExtent - extent;
-    return ElScroll.sliver(
+    return ElScrollView.sliver(
       controller: controller,
       scrollCacheExtent: ScrollCacheExtent.pixels(250),
       physics: ClampingScrollPhysics(),

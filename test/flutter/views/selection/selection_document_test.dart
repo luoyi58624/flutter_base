@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/views/selection/docs/selection_view.dart';
+
 import 'dart:convert';
 
 import 'package:flutter_base/ui.dart';
@@ -27,7 +28,7 @@ void main() {
             children: [
               ElView(child: 'own'),
               Text('native'),
-              ElImage.memory(
+              ElImageView.memory(
                 base64Decode(
                   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABDQottAAAAABJRU5ErkJggg==',
                 ),

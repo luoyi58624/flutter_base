@@ -18,7 +18,7 @@ class SettingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExamplePage(
       title: '设置',
-      child: ElScroll(
+      child: ElScrollView(
         padding: .all(20),
         gap: 20,
         children: [
@@ -81,7 +81,7 @@ class SettingPage extends StatelessWidget {
                 onTap: () {
                   el.router.pushPage(ElScrollPage());
                 },
-                title: 'ElScroll 测试',
+                title: 'ElScrollView 测试',
               ),
               ElListTile(
                 onTap: () {

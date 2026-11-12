@@ -110,11 +110,11 @@ List<_ShopSnapshot> _shops(WidgetTester tester) => [
 ];
 
 ScrollController _vertical(WidgetTester tester) =>
-    tester.widget<ElScroll>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+    tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
 
 Set<String> _photoUrls(WidgetTester tester, _ShopSnapshot shop) => {
-  for (final image in tester.widgetList<ElImage>(
-    find.descendant(of: _scope(shop.card), matching: find.byType(ElImage)),
+  for (final image in tester.widgetList<ElImageView>(
+    find.descendant(of: _scope(shop.card), matching: find.byType(ElImageView)),
   ))
     if (image.src case final source? when source.startsWith('https://')) source,
 };

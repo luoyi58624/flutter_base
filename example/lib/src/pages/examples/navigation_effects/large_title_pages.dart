@@ -95,7 +95,7 @@ class _LargeTitleEffectPageState extends State<LargeTitleEffectPage> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: effectCanvas,
-      body: ElScroll.sliver(
+      body: ElScrollView.sliver(
         slivers: [
           ElSliverLargeTitle(
             title: title,

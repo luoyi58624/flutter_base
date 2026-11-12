@@ -63,7 +63,7 @@ void main() {
           height: 400,
           child: ElSelectionView(
             controller: selectionController,
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               controller: scrollController,
               physics: ClampingScrollPhysics(),
               slivers: [_listItems(rows)],

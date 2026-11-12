@@ -30,7 +30,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScroll(
+          child: ElScrollView(
             children: List.generate(20, (index) => ElView(style: ElStyle(height: 40), child: 'row-$index')),
           ),
         ),
@@ -52,7 +52,7 @@ void main() {
         _host(
           ElSelectionView(
             controller: selection,
-            child: ElScroll.sliver(
+            child: ElScrollView.sliver(
               controller: scroll,
               scrollCacheExtent: .pixels(cache),
               slivers: [
@@ -110,7 +110,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             controller: scroll,
             scrollCacheExtent: .pixels(0),
             slivers: [
@@ -150,7 +150,7 @@ void main() {
       _host(
         ElSelectionView(
           controller: selection,
-          child: ElScroll.sliver(
+          child: ElScrollView.sliver(
             controller: scroll,
             scrollCacheExtent: .pixels(0),
             slivers: [

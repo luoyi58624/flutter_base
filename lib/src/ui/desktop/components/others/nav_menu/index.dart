@@ -117,7 +117,7 @@ class ElNavMenu<T> extends ElModelValue<String> {
 
         return ElView(
           style: ElStyle(backgroundColor: background),
-          child: ElScroll(
+          child: ElScrollView(
             padding: const .symmetric(horizontal: 12),
             children: _items(context, children, 0, activeKeys, itemStyle, select),
           ),

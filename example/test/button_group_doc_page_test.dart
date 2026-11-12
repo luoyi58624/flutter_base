@@ -137,7 +137,7 @@ void main() {
     final source = (await tester.runAsync(() => rootBundle.loadString(_source(1))))!;
     await _open(tester, width: 320);
     expect(find.byType(ElAnchor), findsNothing);
-    final scroll = tester.widget<ElScroll>(find.byType(ElScroll)).controller!;
+    final scroll = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     for (var number = 1; number <= 8; number++) {
       await Scrollable.ensureVisible(tester.element(_section(number)));
       await tester.pumpAndSettle();

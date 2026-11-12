@@ -28,8 +28,8 @@ void main() {
     expect(_row(9), findsOneWidget);
     expect(_row(10), findsNothing);
 
-    final feed = find.descendant(of: _key('bibi-feed-1'), matching: find.byType(ElScroll));
-    final controller = tester.widget<ElScroll>(feed).controller!;
+    final feed = find.descendant(of: _key('bibi-feed-1'), matching: find.byType(ElScrollView));
+    final controller = tester.widget<ElScrollView>(feed).controller!;
     controller.jumpTo(controller.position.maxScrollExtent - 100);
     await tester.pump();
     expect(_row(10), findsNothing);

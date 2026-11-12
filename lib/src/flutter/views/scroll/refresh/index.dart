@@ -9,14 +9,28 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
-import '../scroll/nested/scroll_delta_source.dart' show ElScrollDeltaSource;
-import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
+import '../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
+import '../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+import '../scroll_position.dart' show ScrollHostPosition;
 import 'refresher/android.dart' show ElAndroidRefresher;
+import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
 import 'refresher/ios.dart' show ElIosRefresher;
-import '../scroll/scroll_position.dart' show ScrollHostPosition;
 
-/// Sliver 形式的下拉刷新，放在 ElScroll.sliver 的 slivers 里，通常是第一个。
+export 'package:flutter/material.dart' show RefreshIndicatorStatus;
+
+export 'refresher/android.dart' show ElAndroidRefresher;
+export 'refresher/index.dart'
+    show
+        ElCustomRefresher,
+        ElNoRefresher,
+        ElRefreshDetails,
+        ElRefreshEdge,
+        ElRefreshSnapshot,
+        ElRefresher,
+        elWebKitRubberBandSpring;
+export 'refresher/ios.dart' show ElIosRefresher;
+
+/// Sliver 形式的下拉刷新，放在 ElScrollView.sliver 的 slivers 里，通常是第一个。
 ///
 /// 刷新绑定在滚动起点一侧（普通列表的顶部，reverse 列表的底部）。
 /// 内容让位式刷新器（[ElRefresher.movesContent]）由本 Sliver 占出真实间隙，把后面的 Sliver 推开，
@@ -25,7 +39,7 @@ import '../scroll/scroll_position.dart' show ScrollHostPosition;
 ///
 /// 刷新器通过 buildIndicator 与策略参数定制外观；指示器铺满视口且不参与命中。
 class ElSliverRefresh extends HookWidget {
-  /// 创建挂在所在 ElScroll 起点边缘的刷新 Sliver。
+  /// 创建挂在所在 ElScrollView 起点边缘的刷新 Sliver。
   const ElSliverRefresh({super.key, required this.onRefresh, this.refresher});
 
   /// 刷新回调，返回的 Future 完成后指示器收起。
@@ -47,7 +61,7 @@ class ElSliverRefresh extends HookWidget {
   Widget build(BuildContext context) {
     final scrollable = Scrollable.of(context);
     final position = scrollable.position;
-    assert(position is ScrollHostPosition, 'ElSliverRefresh 需要放在 ElScroll.sliver 的 slivers 中');
+    assert(position is ScrollHostPosition, 'ElSliverRefresh 需要放在 ElScrollView.sliver 的 slivers 中');
     final refresher = this.refresher ?? _resolveDefaultRefresher();
 
     final vsync = useSingleTickerProvider();
