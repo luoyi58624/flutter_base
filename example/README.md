@@ -8,6 +8,41 @@ Android 系统字重由 example 自己管理：`main()` 在绑定初始化后调
 
 `/components/icon` 的「全部图标」展示 280 个桌面字体图标和 35 个移动 SVG。按钮组切换图标库，首次显示按当前布局初始化，手动切换后调整窗口宽度仍保留当前选择；每个图标都显示名称，移动 SVG 的线宽沿用祖先注入的字重。
 
+## Android 打包与体积
+
+在 `example/` 目录构建供 ARM64 真机使用的 Profile APK：
+
+```powershell
+flutter build apk --profile --target-platform android-arm64
+```
+
+产物为 `build/app/outputs/flutter-apk/app-profile.apk`。原生插件的 ABI 过滤跟随 `--target-platform`，例如此命令只打包 `arm64-v8a`；没有指定目标架构时，保留 Flutter 默认的多架构行为。需要分别分发各架构时使用 Flutter 的拆包配置：
+
+```powershell
+flutter build apk --profile --split-per-abi
+```
+
+拆包时不额外设置 `ndk.abiFilters`，避免与 Flutter 的 ABI splits 冲突。具体机制见 [Flutter 的 ABI 过滤说明](https://docs.flutter.dev/release/breaking-changes/default-abi-filters-android)。
+
+2026-11-12 对现有 ARM64 Profile 包的实测如下，体积按 MiB（1024 × 1024 字节）计算：
+
+| 项目 | 优化前 | 优化后 |
+| --- | ---: | ---: |
+| APK 文件 | 93.80 MiB | 48.14 MiB |
+| 多余的 ARM32、x86_64 原生库 | 27.06 MiB | 0 |
+| 增量打包留下的 ZIP 空位 | 17.88 MiB | 0 |
+| 图片、字体和示例源码等 Flutter assets | 2.07 MiB | 1.40 MiB |
+
+ARM64 的播放器、Flutter 引擎和 Profile VM 服务均保留；资源减少来自构建命令默认开启的图标字体裁剪。构建后已检查 ZIP 完整性、APK 签名和 16 KB ZIP 对齐；其他架构验证了 Gradle 配置，未分别编译或安装到设备。
+
+频繁增量构建仍可能积累 ZIP 空位，这是 [Android Zipflinger 的增量更新机制](https://android.googlesource.com/platform/tools/base/+/51ca010d6bdf93fd29226aa0ecf161af25fc13bc/zipflinger/README.md)。需要重新压紧默认入口的 ARM64 Profile 包时，在 `example/` 目录执行：
+
+```powershell
+.\android\gradlew.bat -p android :app:packageProfile --rerun :app:assembleProfile -Ptarget-platform=android-arm64 -Ptree-shake-icons=true --max-workers=2
+```
+
+这里仅强制重跑打包任务，上游编译仍可复用缓存；使用自定义入口或 Dart defines 时，需向 Gradle 传入对应的构建参数。`--rerun` 的行为见 [Gradle 命令行说明](https://docs.gradle.org/current/userguide/command_line_interface.html#sec:rerun_tasks)。
+
 ## Android 深度链接
 
 安装此 example 后，可以通过 `flutter-base://example` 加页面路径直接启动 App 并进入目标页。App 已经运行时，收到链接也会切换到目标页。Android 的入口配置位于 `android/app/src/main/AndroidManifest.xml`，页面路径由同一套 GoRouter 解析。

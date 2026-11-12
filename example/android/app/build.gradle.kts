@@ -27,6 +27,24 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 原生插件跟随 Flutter 的目标架构，避免单架构 APK 混入其他架构的解码库。
+        // 拆分 APK 时交给 Flutter 的 splits 配置，避免与 ndk 过滤冲突。
+        if (providers.gradleProperty("split-per-abi").orNull != "true") {
+            providers.gradleProperty("target-platform").orNull?.let { platforms ->
+                ndk {
+                    abiFilters.clear()
+                    abiFilters.addAll(platforms.split(",").map { platform ->
+                        when (platform) {
+                            "android-arm" -> "armeabi-v7a"
+                            "android-arm64" -> "arm64-v8a"
+                            "android-x64" -> "x86_64"
+                            else -> error("不支持的 Flutter Android 目标架构：$platform")
+                        }
+                    })
+                }
+            }
+        }
     }
 
     buildTypes {
