@@ -1,18 +1,22 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:faker/faker.dart' as fake;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter_base/mobile.dart';
 
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
+import '../../../utils/frame_timing_recorder.dart';
 
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';
 part 'takeaway_photo.dart';
+part 'showcase.dart';
+part 'showcase_card.dart';
 
 enum _SliverKind {
   list('列表布局'),

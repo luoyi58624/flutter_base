@@ -35,7 +35,7 @@ part 'panel.dart';
 ///
 /// 桌面预设使用的 Element 选择器实现。
 class Select<T> extends ElInputModelValue<T> {
-  Select(this.component, {super.key, this.themeStyle})
+  Select(this.component, {super.key, this.themeStyle, this.defaultTrailingIcon})
     : super(
         value: component.value ?? (component.modelValue == null ? component.initialSelection : null),
         modelValue: component.modelValue,
@@ -47,6 +47,9 @@ class Select<T> extends ElInputModelValue<T> {
   /// 复用选择机制时由品牌注入的默认外观。
   final ElStyle? themeStyle;
 
+  /// 品牌提供的默认展开图标，显式传入的图标优先。
+  final Widget? defaultTrailingIcon;
+
   List<ElLabelModel<T>> get children => component.children;
   bool get enabled => component.enabled && !component.disabled;
   double? get width => component.width;
@@ -56,8 +59,8 @@ class Select<T> extends ElInputModelValue<T> {
   int get zIndex => component.zIndex;
   FocusNode? get focusNode => component.focusNode;
   Widget? get leadingIcon => component.leadingIcon;
-  Widget? get trailingIcon => component.trailingIcon;
-  Widget? get selectedTrailingIcon => component.selectedTrailingIcon;
+  Widget? get trailingIcon => component.trailingIcon ?? defaultTrailingIcon;
+  Widget? get selectedTrailingIcon => component.selectedTrailingIcon ?? defaultTrailingIcon;
   bool get showTrailingIcon => component.showTrailingIcon;
   String? get hintText => component.hintText;
   bool get enableFilter => component.enableFilter;

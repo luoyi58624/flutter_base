@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../../flutter.dart';
 import '../../../desktop/components/input/index.dart' as core;
+import '../../commons/icons.dart';
 
 /// 移动输入只换外观，IME、选区、清除、密码与表单继续使用现有编辑内核。
 Widget inputBuilder(BuildContext context, ElInput c) {
@@ -10,22 +11,26 @@ Widget inputBuilder(BuildContext context, ElInput c) {
     c,
     ElStyle(
       width: '100%',
-      height: c.textarea ? null : 46,
+      height: c.textarea ? null : 44,
       padding: .symmetric(horizontal: 14, vertical: c.textarea ? 12 : 1),
-      borderRadius: .circular(13),
+      borderRadius: .circular(12),
       backgroundColor: t.fill,
       color: c.disabled ? t.textDisabled : t.textColor,
       iconColor: t.textSecondary,
       fontSize: 14,
       lineHeight: 1.5,
       boxShadow: const [],
-      border: .all(borderColor: t.borderColor),
+      border: .only(),
       onHover: const ElStyle(boxShadow: []),
       onFocusWithin: ElStyle(
         boxShadow: [BoxShadow(color: t.primary.withValues(alpha: .12), spreadRadius: 3)],
         border: .all(borderColor: t.primary),
       ),
     ),
+    affixGap: 8,
+    clearIcon: ElMobileIcons.x,
+    passwordIcon: ElMobileIcons.eyeOff,
+    passwordVisibleIcon: ElMobileIcons.eye,
   );
 }
 

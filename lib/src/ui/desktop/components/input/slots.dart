@@ -29,6 +29,9 @@ class _InputPlaceholder extends StatelessWidget {
         padding: _inputProjectionPadding(textarea),
         textAlign: textAlign,
         direction: textDirection,
+        softWrap: textarea,
+        maxLines: textarea ? null : 1,
+        textOverflow: textarea ? null : TextOverflow.ellipsis,
         userSelect: ElUserSelect.none,
         iconColor: _placeholderColor(c),
       ).merge(_resolveInputStyle(c, style)))(context),
@@ -105,7 +108,7 @@ class _InputActionIcon extends StatelessWidget {
     this.style,
   });
 
-  final IconData icon;
+  final Object icon;
   final double size;
   final double extent;
   final VoidCallback onTap;
@@ -135,7 +138,7 @@ class _InputActionIcon extends StatelessWidget {
           onTap();
         },
       ),
-      child: ElIcon(icon, size: size),
+      child: icon is Widget ? icon as Widget : ElIcon(icon as IconData, size: size),
     );
   }
 }

@@ -33,7 +33,8 @@ Widget cardBuilder(BuildContext context, ElCard component) {
           enabled: !component.loading,
           child: Offstage(
             offstage: component.loading,
-            child: Column(mainAxisSize: .min, crossAxisAlignment: .stretch, children: [?component.child]),
+            // 卡片不额外建立纵向 Flex，保留传给内嵌滚动区域的有限高度。
+            child: SizedBox(width: double.infinity, child: component.child),
           ),
         ),
       ),

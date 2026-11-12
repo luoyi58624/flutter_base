@@ -66,6 +66,32 @@ ElComponents materialComponents({bool mobile = false}) {
     ),
     timePicker: (context, c, model) => _timePicker(c, model),
     upload: (context, c) => _upload(c),
+    appBar: (context, c) => ElView(
+      style: c.style,
+      event: c.event,
+      child: AppBar(
+        title: _content(c.title),
+        centerTitle: c.centerTitle,
+        leading: c.leading ?? (c.back ? BackButton(onPressed: c.onBack) : null),
+        automaticallyImplyLeading: c.back,
+        actions: c.actions,
+      ),
+    ),
+    tooltip: (context, c) => TooltipVisibility(
+      visible: !c.disabled,
+      child: ElView(
+        event: c.event,
+        child: Tooltip(
+          message: c.content is String ? c.content as String : null,
+          richMessage: c.content is String ? null : WidgetSpan(child: _content(c.content)),
+          waitDuration: c.waitDuration,
+          showDuration: c.showDuration,
+          enableTapToDismiss: true,
+          ignorePointer: false,
+          child: c.child,
+        ),
+      ),
+    ),
     popup: (context, c) => _popup(c),
     dialog: (context, c) => _popup(c),
     drawer: (context, c) => _popup(c),

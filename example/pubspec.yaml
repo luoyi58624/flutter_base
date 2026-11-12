@@ -37,6 +37,7 @@ flutter:
       fonts:
         - asset: assets/fonts/Consolas-Regular.ttf
   assets:
+    - assets/showcase/
     - assets/recycler_cards/
     - lib/src/pages/components/basic/button/examples/
     - lib/src/pages/components/basic/button_group/examples/

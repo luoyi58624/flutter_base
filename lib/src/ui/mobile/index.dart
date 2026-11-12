@@ -3,5 +3,6 @@
 library;
 
 export 'commons/icons.dart' show ElMobileIcons;
+export 'commons/context_menu.dart' show ElMobileContextMenu;
 export 'components/index.dart' show ElMobileExt;
 export 'components/others/bottom_tabbar/index.dart' show ElBottomTabbar;

@@ -173,12 +173,12 @@ class _Wheel<T> extends HookWidget {
                     builder: (context, i) => Center(
                       child: ElView(
                         style: ElStyle(
-                          fontSize: 15,
-                          fontWeight: i == index ? .w600 : .w400,
+                          fontSize: 16,
+                          fontWeight: i == index ? .w700 : .w400,
                           color: disabled || options[i].disabled
                               ? t.textDisabled
                               : i == index
-                              ? t.textColor
+                              ? t.primary
                               : t.textSecondary,
                         ),
                         child: buildContent(options[i].label),
@@ -209,6 +209,7 @@ Widget datePickerBuilder(BuildContext context, ElDatePicker c, Obs<DateTime> mod
   ];
   return ElPicker<int>(
     value: [date.year, date.month, date.day],
+    columnLabels: const ['年', '月', '日'],
     disabled: c.disabled,
     style: c.style,
     event: c.event,

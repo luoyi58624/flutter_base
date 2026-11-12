@@ -74,17 +74,27 @@ extension ElFeedbackExt on El {
     final complete = Completer<void>();
     late OverlayEntry entry;
     entry = OverlayEntry(
-      builder: (_) => Positioned.fill(
-        child: IgnorePointer(
-          child: SafeArea(
-            child: Align(
-              alignment: const Alignment(0, .65),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: themes.wrap(
-                  Semantics(
-                    liveRegion: true,
-                    child: ElToast(child: message, icon: icon, style: style),
+      builder: (_) => _ToastLifetime(
+        duration: duration,
+        onElapsed: () {
+          entry.remove();
+          entry.dispose();
+        },
+        onDisposed: () {
+          if (!complete.isCompleted) complete.complete();
+        },
+        child: Positioned.fill(
+          child: IgnorePointer(
+            child: SafeArea(
+              child: Align(
+                alignment: const Alignment(0, .65),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: themes.wrap(
+                    Semantics(
+                      liveRegion: true,
+                      child: ElToast(child: message, icon: icon, style: style),
+                    ),
                   ),
                 ),
               ),
@@ -94,13 +104,41 @@ extension ElFeedbackExt on El {
       ),
     );
     overlay.insert(entry);
-    Timer(duration, () {
-      entry.remove();
-      entry.dispose();
-      complete.complete();
-    });
     return complete.future;
   }
+}
+
+class _ToastLifetime extends StatefulWidget {
+  const _ToastLifetime({
+    required this.duration,
+    required this.onElapsed,
+    required this.onDisposed,
+    required this.child,
+  });
+  final Duration duration;
+  final VoidCallback onElapsed, onDisposed;
+  final Widget child;
+  @override
+  State<_ToastLifetime> createState() => _ToastLifetimeState();
+}
+
+class _ToastLifetimeState extends State<_ToastLifetime> {
+  late final Timer _timer = Timer(widget.duration, widget.onElapsed);
+  @override
+  void initState() {
+    super.initState();
+    _timer;
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    widget.onDisposed();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 Future<T?> _show<T>(BuildContext context, ElPopup content, ElPopupPlacement placement, bool dismissible, bool drag) {
@@ -150,14 +188,33 @@ Future<T?> _show<T>(BuildContext context, ElPopup content, ElPopupPlacement plac
                 maxWidth: content is ElDrawer ? 380 : 440,
                 maxHeight: MediaQuery.sizeOf(context).height - 64 - MediaQuery.viewInsetsOf(context).bottom,
               ),
-              child: content,
+              child: drag && content is ElDrawer
+                  ? Dismissible(
+                      key: const ValueKey('drawer-dismiss'),
+                      direction: switch (placement) {
+                        .left =>
+                          Directionality.of(context) == TextDirection.ltr
+                              ? DismissDirection.endToStart
+                              : DismissDirection.startToEnd,
+                        .right =>
+                          Directionality.of(context) == TextDirection.ltr
+                              ? DismissDirection.startToEnd
+                              : DismissDirection.endToStart,
+                        .top => DismissDirection.up,
+                        _ => DismissDirection.down,
+                      },
+                      resizeDuration: null,
+                      onDismissed: (_) => Navigator.of(context).pop(),
+                      child: content,
+                    )
+                  : content,
             ),
           ),
         ),
       ),
     ),
     transitionBuilder: (context, animation, secondary, child) {
-      final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      final curve = animation.drive(CurveTween(curve: Curves.easeOutCubic));
       return placement == .center
           ? FadeTransition(opacity: curve, child: child)
           : SlideTransition(

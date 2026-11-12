@@ -16,6 +16,43 @@ Finder copy(String value) => find.byWidgetPredicate(
 );
 
 void main() {
+  testWidgets('大字体单行提示保持一行，多行输入仍可换行', (tester) async {
+    await tester.pumpWidget(
+      host(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.5)),
+            child: Align(
+              child: SizedBox(
+                width: 180,
+                child: Column(
+                  mainAxisSize: .min,
+                  children: [
+                    ElInput(key: ValueKey('single'), value: '', placeholder: '搜索商家或想吃的菜，探索附近好店'),
+                    ElInput(
+                      key: ValueKey('multiple'),
+                      value: '',
+                      textarea: true,
+                      minLine: 3,
+                      placeholder: '搜索商家或想吃的菜，探索附近好店',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final placeholder = find.byKey(ValueKey('el-input-placeholder'));
+    final single = find.descendant(of: find.byKey(ValueKey('single')), matching: placeholder);
+    final multiple = find.descendant(of: find.byKey(ValueKey('multiple')), matching: placeholder);
+    final singleHeight = tester.getSize(single).height;
+    expect(singleHeight, lessThanOrEqualTo(34));
+    expect(tester.getSize(multiple).height, greaterThan(singleHeight * 1.5));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('日期换月自动收敛到月末，外部模型同步滚轮', (tester) async {
     final model = ValueNotifier(DateTime(2024, 1, 31));
     addTearDown(model.dispose);

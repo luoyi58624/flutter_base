@@ -50,6 +50,8 @@ extension ElComponentsExt on ElComponents {
     Object? dialog = $absent,
     Object? drawer = $absent,
     Object? toast = $absent,
+    Object? appBar = $absent,
+    Object? tooltip = $absent,
   }) {
     return ElComponents(
       style: identical(style, $absent)
@@ -190,6 +192,12 @@ extension ElComponentsExt on ElComponents {
       toast: identical(toast, $absent)
           ? this.toast
           : toast as Widget Function(BuildContext, ElToast)?,
+      appBar: identical(appBar, $absent)
+          ? this.appBar
+          : appBar as Widget Function(BuildContext, ElAppBar)?,
+      tooltip: identical(tooltip, $absent)
+          ? this.tooltip
+          : tooltip as Widget Function(BuildContext, ElTooltip)?,
     );
   }
 
@@ -238,6 +246,8 @@ extension ElComponentsExt on ElComponents {
       dialog: other.dialog ?? dialog,
       drawer: other.drawer ?? drawer,
       toast: other.toast ?? toast,
+      appBar: other.appBar ?? appBar,
+      tooltip: other.tooltip ?? tooltip,
     );
   }
 
@@ -284,5 +294,7 @@ extension ElComponentsExt on ElComponents {
     dialog,
     drawer,
     toast,
+    appBar,
+    tooltip,
   ];
 }

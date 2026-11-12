@@ -38,14 +38,14 @@ class _Store {
     // 每家店独立使用固定种子，惰性生成的先后顺序不会改变图片或文案。
     final random = fake.RandomGenerator(seed: 20261106 + id);
     final cuisine = id % _cuisines.length;
-    final brand = random.element(['饭点到了', '小巷食堂', '阿婆小灶', '一碗好饭', '街角厨房', '食里香', '四季鲜食', '大口吃饭']);
+    final summary = _StoreSummary.generate(id, random);
     final ingredients = ['每日清晨采购新鲜食材', '坚持现点现做，拒绝隔夜复热', '米饭选用东北当季大米', '荤素搭配，分量扎实', '独立封签，打包整洁安心'];
     return _Store(
       id: id,
-      name: '$brand · ${_cuisines[cuisine]}（${random.element(['科技园', '南山', '大学城', '万象城', '花园路'])}${id + 1}店）',
-      rating: (4.5 + random.integer(5) / 10).toStringAsFixed(1),
-      sales: random.integer(9800, min: 300),
-      minutes: random.integer(40, min: 15),
+      name: summary.name,
+      rating: summary.rating,
+      sales: summary.sales,
+      minutes: summary.minutes,
       distance: (random.integer(35, min: 3) / 10).toStringAsFixed(1),
       minimum: random.element([0, 10, 15, 20]),
       coupon: random.integer(16, min: 6),
@@ -81,6 +81,29 @@ class _Store {
   final List<String> tags;
   final List<_Dish> dishes;
   double menuOffset = 0;
+}
+
+// 搜索和排序只建立轻量索引，菜品、图片与评价仍在进入视口时惰性生成。
+class _StoreSummary {
+  _StoreSummary(this.id, this.name, this.rating, this.sales, this.minutes);
+  factory _StoreSummary.generate(int id, [fake.RandomGenerator? source]) {
+    final random = source ?? fake.RandomGenerator(seed: 20261106 + id);
+    final brand = random.element(['饭点到了', '小巷食堂', '阿婆小灶', '一碗好饭', '街角厨房', '食里香', '四季鲜食', '大口吃饭']);
+    final name =
+        '$brand · ${_cuisines[id % _cuisines.length]}（${random.element(['科技园', '南山', '大学城', '万象城', '花园路'])}${id + 1}店）';
+    return _StoreSummary(
+      id,
+      name,
+      (4.5 + random.integer(5) / 10).toStringAsFixed(1),
+      random.integer(9800, min: 300),
+      random.integer(40, min: 15),
+    );
+  }
+  final int id;
+  final String name;
+  final String rating;
+  final int sales;
+  final int minutes;
 }
 
 class _Dish {

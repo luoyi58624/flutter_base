@@ -30,6 +30,8 @@ import 'alert/index.dart';
 import 'picker/index.dart';
 import 'upload/index.dart';
 import 'popup/index.dart';
+import 'app_bar/index.dart';
+import 'tooltip/index.dart';
 
 part 'tokens.dart';
 
@@ -82,5 +84,7 @@ final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
     dialog: dialogBuilder,
     drawer: drawerBuilder,
     toast: toastBuilder,
+    appBar: appBarBuilder,
+    tooltip: tooltipBuilder,
   ),
 );

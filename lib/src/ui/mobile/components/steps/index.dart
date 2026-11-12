@@ -63,22 +63,57 @@ Widget stepsBuilder(BuildContext context, ElSteps c) {
           ),
       ],
     );
+    Widget line(bool completed) =>
+        ElView(style: ElStyle(height: 1.5, backgroundColor: completed ? t.primary : t.borderColor));
     final content = c.vertical
-        ? Row(
-            crossAxisAlignment: .start,
+        ? Stack(
             children: [
-              marker,
-              const SizedBox(width: 14),
-              Expanded(child: copy),
+              if (i < c.children.length - 1)
+                Positioned(
+                  left: 14,
+                  top: 30,
+                  bottom: 0,
+                  child: ElView(style: ElStyle(width: 1.5, backgroundColor: done ? t.primary : t.borderColor)),
+                ),
+              Padding(
+                padding: const .only(bottom: 24),
+                child: Row(
+                  crossAxisAlignment: .start,
+                  children: [
+                    marker,
+                    const SizedBox(width: 14),
+                    Expanded(child: copy),
+                  ],
+                ),
+              ),
             ],
           )
-        : Column(mainAxisSize: .min, spacing: 10, children: [marker, copy]);
+        : Column(
+            mainAxisSize: .min,
+            spacing: 10,
+            children: [
+              Stack(
+                alignment: .center,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: i == 0 ? const SizedBox() : line(i <= current)),
+                      const SizedBox(width: 38),
+                      Expanded(child: i == c.children.length - 1 ? const SizedBox() : line(done)),
+                    ],
+                  ),
+                  marker,
+                ],
+              ),
+              copy,
+            ],
+          );
     return ActionView(
       disabled: !c.interactive || c.disabled || step.disabled,
       selected: active,
       label: step.title is String ? step.title as String : null,
       onActivate: (_) => c.currentValue = i,
-      style: ElStyle(padding: c.vertical ? const .only(bottom: 24) : const .symmetric(horizontal: 4)).merge(step.style),
+      style: step.style ?? const ElStyle(),
       child: content,
     );
   }

@@ -85,11 +85,30 @@ final _controlBridgeKey = UniqueKey();
 
 /// 桌面预设使用的 Element 输入框实现。
 class Input extends ElInputModelValue<String> {
-  Input(this.component, this.themeStyle, {super.key})
-    : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
+  Input(
+    this.component,
+    this.themeStyle, {
+    super.key,
+    this.affixGap = 0,
+    this.clearIcon,
+    this.passwordIcon,
+    this.passwordVisibleIcon,
+  }) : super(value: component.value, modelValue: component.modelValue, onChanged: component.onChanged);
 
   final ElInput component;
   final ElStyle? themeStyle;
+
+  /// 品牌可调整前后缀留白，编辑和值绑定保持一致。
+  final double affixGap;
+
+  /// 品牌提供的清空图标。
+  final Widget? clearIcon;
+
+  /// 品牌提供的密码隐藏图标。
+  final Widget? passwordIcon;
+
+  /// 品牌提供的密码明文图标。
+  final Widget? passwordVisibleIcon;
   ElStyle? get _style => (themeStyle ?? const ElStyle()).merge(component.style);
 
   @override
@@ -442,7 +461,7 @@ class Input extends ElInputModelValue<String> {
                   child: showClear
                       ? _InputActionIcon(
                           style: component.actionStyle,
-                          icon: ElDesktopIcons.circleClose,
+                          icon: clearIcon ?? ElDesktopIcons.circleClose,
                           size: iconSize,
                           extent: slotExtent,
                           onTap: () {
@@ -474,6 +493,7 @@ class Input extends ElInputModelValue<String> {
               iconSize: iconSize,
               extent: slotExtent,
             ),
+          if (component.prefix != null && affixGap > 0) SizedBox(width: affixGap),
           Expanded(child: editArea),
           if (component.clearable)
             _InputActionSlot(
@@ -482,7 +502,7 @@ class Input extends ElInputModelValue<String> {
               child: showClear
                   ? _InputActionIcon(
                       style: component.actionStyle,
-                      icon: ElDesktopIcons.circleClose,
+                      icon: clearIcon ?? ElDesktopIcons.circleClose,
                       size: iconSize,
                       extent: slotExtent,
                       onTap: () {
@@ -493,6 +513,7 @@ class Input extends ElInputModelValue<String> {
                     )
                   : null,
             ),
+          if (component.suffix != null && affixGap > 0) SizedBox(width: affixGap),
           if (component.suffix != null)
             _InputAffix(
               component.suffix,
@@ -508,7 +529,7 @@ class Input extends ElInputModelValue<String> {
               child: showPwd
                   ? _InputActionIcon(
                       style: component.actionStyle,
-                      icon: ElDesktopIcons.view,
+                      icon: (pwdVisible.value ? passwordVisibleIcon : passwordIcon) ?? ElDesktopIcons.view,
                       size: iconSize,
                       extent: slotExtent,
                       active: pwdVisible.value,

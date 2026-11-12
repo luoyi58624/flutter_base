@@ -1,86 +1,199 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
+import 'package:flutter_base/mobile.dart';
 
-import '../../utils/router.dart';
 import '../../layout/example_page.dart';
-import '../examples/index.dart';
+import '../../layout/page_scope.dart';
+import 'showcase/header.dart';
 import 'showcase/buttons.dart';
+import 'showcase/controls.dart';
+import 'showcase/feedback.dart';
 import 'showcase/hero.dart';
-import '../../widgets/panel.dart';
+import 'showcase/panel.dart';
+import 'showcase/scenarios.dart';
+import 'showcase/surfaces.dart';
 
-/// 组件综合展示首页，提供滚动示例入口、响应式布局与按钮交互。
+final _chapters = {'actions': '基础组件', 'controls': '交互控制', 'surfaces': '内容容器', 'feedback': '状态反馈', 'scenarios': '完整示例'};
+
+/// 对照 Vue 完整展示页，章节定位与应用导航分别保留各自职责。
 class HomePage extends HookWidget {
-  /// 创建综合展示页。
+  /// 创建移动组件综合展示首页。
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final buttons = useMemoized(GlobalKey.new);
-    return ExamplePage(
-      title: '首页',
-      showThemeToggle: true,
-      child: LayoutBuilder(
-        builder: (context, constraints) => Align(
-          alignment: .topCenter,
-          child: ConstrainedBox(
-            constraints: .new(maxWidth: 1200),
-            child: ElScroll(
+    final controller = useScrollController();
+    final current = useMemoized(() => ValueNotifier(''));
+    final anchors = useMemoized(
+      () => {
+        for (final id in [
+          ..._chapters.keys,
+          'control-fields',
+          'control-pickers',
+          'control-dates',
+          'control-upload',
+          'surface-cards',
+          'surface-images',
+          'surface-navigation',
+          'feedback-state',
+          'feedback-prompts',
+          'feedback-progress',
+          'feedback-overlays',
+          'scenario-form',
+          'scenario-feed',
+          'scenario-tabs',
+          'scenario-inputs',
+          'takeaway',
+        ])
+          id: GlobalKey(debugLabel: id),
+      },
+    );
+    useEffect(() => current.dispose, []);
+    void navigate(String id) {
+      if (!controller.hasClients) return;
+      final render = anchors[id]?.currentContext?.findRenderObject();
+      final target = id == 'top'
+          ? 0.0
+          : render == null
+          ? null
+          : RenderAbstractViewport.of(render).getOffsetToReveal(render, 0).offset - 20;
+      if (target == null) return;
+      controller.animateTo(
+        target.clamp(0, controller.position.maxScrollExtent),
+        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : Duration(milliseconds: 340),
+        curve: Curves.easeOutCubic,
+      );
+    }
+
+    useEffect(() {
+      void sync() {
+        if (!controller.hasClients) return;
+        var selected = '';
+        for (final id in _chapters.keys) {
+          final render = anchors[id]?.currentContext?.findRenderObject();
+          if (render != null &&
+              render.attached &&
+              RenderAbstractViewport.of(render).getOffsetToReveal(render, 0).offset <= controller.offset + 48) {
+            selected = id;
+          }
+        }
+        current.value = selected;
+      }
+
+      controller.addListener(sync);
+      return () => controller.removeListener(sync);
+    }, [controller]);
+    return ElComponentProvider(
+      components: el.mobileComponents,
+      style: _pageStyle(),
+      child: Builder(
+        builder: (context) => LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final mobile = width <= 760;
+            final contentWidth = (width - (width * .07).clamp(32, 96)).clamp(0.0, 1200.0);
+            final inset = (width - contentWidth) / 2;
+            final ownNavbar =
+                MediaQuery.sizeOf(context).width <= ElBreakpoint.defaultSm || !DesktopPageScope.exists(context);
+            final header = ShowcaseHeader(
+              chapters: _chapters,
+              width: width,
+              inset: inset,
+              current: current,
+              onNavigate: navigate,
+            );
+            final scroll = ElScroll(
               key: PageStorageKey('showcase-scroll'),
-              padding: .all(constraints.maxWidth < 600 ? 16 : 32),
-              gap: 36,
+              controller: controller,
+              padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
               children: [
-                _ScrollEntries(),
-                ShowcaseHero(
-                  onExplore: () => Scrollable.ensureVisible(
-                    buttons.currentContext!,
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
+                ShowcaseHero(onExplore: () => navigate('actions'), onTakeaway: () => navigate('takeaway')),
+                SizedBox(height: mobile ? 28 : 46),
+                for (final entry in <String, Widget>{
+                  'actions': ButtonShowcase(),
+                  'controls': ControlsShowcase(),
+                  'surfaces': SurfacesShowcase(),
+                  'feedback': FeedbackShowcase(),
+                  'scenarios': ScenariosShowcase(),
+                }.entries) ...[
+                  // 屏外的无限进度动画暂停，页面状态与组件实例仍然保留。
+                  ValueListenableBuilder(
+                    valueListenable: current,
+                    child: entry.value,
+                    builder: (_, selected, child) => TickerMode(enabled: selected == entry.key, child: child!),
+                  ),
+                  if (entry.key != 'scenarios') SizedBox(height: (width * .07).clamp(52, 90)),
+                ],
+                SizedBox(height: mobile ? 36 : 56),
+                ElView(
+                  style: ElStyle(
+                    padding: .only(top: 14, bottom: 22),
+                    border: ElBorder.only(borderTop: ElBorderSide(borderColor: context.elTheme.borderColor)),
+                  ),
+                  child: Wrap(
+                    alignment: .spaceBetween,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      demoHint(context, 'my-ui · 简洁、自然的移动组件'),
+                      ElButton(variant: .link, child: '回到顶部 ↑', onPressed: () => navigate('top')),
+                    ],
                   ),
                 ),
-                ButtonShowcase(key: buttons),
               ],
-            ),
-          ),
+            );
+            return ShowcaseScope(
+              width: width,
+              anchors: anchors,
+              onNavigate: navigate,
+              child: DefaultTextStyle(
+                style: TextStyle(fontSize: 14, height: 1.5, color: context.elTheme.textColor),
+                child: ExamplePage(
+                  title: '首页',
+                  navigationBar: header,
+                  backgroundColor: context.elTheme.bgColor,
+                  child: ownNavbar
+                      ? scroll
+                      : Column(
+                          children: [
+                            header,
+                            Expanded(child: scroll),
+                          ],
+                        ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _ScrollEntries extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ExamplePanel(
-      style: ElStyle(
-        backgroundColor:
-            theme.cardTheme.color ?? (theme.useMaterial3 ? theme.colorScheme.surfaceContainerLow : theme.cardColor),
-        borderRadius: .circular(theme.useMaterial3 ? 12 : 4),
-        clipBehavior: .antiAlias,
-      ),
-      // ListTile 的墨水效果绘制在卡片内，避免被外层背景遮住。
-      child: Material(
-        type: .transparency,
-        child: Column(
-          children: [
-            for (final page in advancedExamples.where(
-              (page) => {
-                'sliver-recycler',
-                'sliver-recycler-grid',
-                'sliver-recycler-masonry',
-                'sliver-list',
-              }.contains(page.key),
-            ))
-              ListTile(
-                key: ValueKey('home-${page.key}'),
-                leading: page.icon,
-                title: Text(page.title),
-                trailing: Icon(Icons.chevron_right),
-                onTap: () => RouterUtil.push(page.data!),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+ElStyle _pageStyle() => ElStyle(
+  fontFamily: 'Roboto',
+  vars: {
+    ElTokens.$bgColor: Color(0xfff2f3f5),
+    ElTokens.$primary: Color(0xff2454c6),
+    ElTokens.$info: Color(0xff2454c6),
+    ElTokens.$success: Color(0xff176b3c),
+    ElTokens.$warning: Color(0xff805500),
+    ElTokens.$error: Color(0xffb5283c),
+    ElTokens.$shadowXs: [BoxShadow(color: Color(0x1a121925), offset: Offset(0, 1), blurRadius: 2)],
+    ElTokens.$shadowSm: [BoxShadow(color: Color(0x0c121925), offset: Offset(0, 1), blurRadius: 3)],
+    ElTokens.$shadowMd: [
+      BoxShadow(color: Color(0x0c121925), offset: Offset(0, 1), blurRadius: 3),
+      BoxShadow(color: Color(0x06121925), offset: Offset(0, 4), blurRadius: 12),
+    ],
+    ElTokens.$shadowLg: [
+      BoxShadow(color: Color(0x12121925), spreadRadius: 1),
+      BoxShadow(color: Color(0x1f121925), offset: Offset(0, 4), blurRadius: 12),
+      BoxShadow(color: Color(0x3d121925), offset: Offset(0, 18), blurRadius: 44, spreadRadius: -8),
+    ],
+    ElTokens.$shadowXl: [
+      BoxShadow(color: Color(0x14121925), spreadRadius: 1),
+      BoxShadow(color: Color(0x24121925), offset: Offset(0, 8), blurRadius: 24),
+      BoxShadow(color: Color(0x4d121925), offset: Offset(0, 32), blurRadius: 80, spreadRadius: -12),
+    ],
+  },
+);

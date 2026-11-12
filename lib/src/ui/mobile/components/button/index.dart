@@ -292,6 +292,8 @@ class _CommonButton {
 Widget _commonContent(_CommonButton common, Object? child, {bool loading = false}) {
   final indicator = ExcludeSemantics(child: Loading(size: LoadingSize.small));
   if (child is IconData) return loading ? indicator : buildContent(child);
+  // 不需要前导图标时保留内容约束，显式整行按钮可以组合 Expanded 等布局。
+  if (!loading && common.icon == null) return buildContent(child);
   return Row(
     mainAxisSize: .min,
     spacing: 7,
@@ -325,7 +327,7 @@ ElStyle _commonStyle(
   final background = flat
       ? const Color(0x00000000)
       : outlined
-      ? Color.lerp(theme.cardColor, accent, .1)!
+      ? Color.lerp(theme.cardColor, accent, .04)!
       : tinted
       ? Color.lerp(theme.cardColor, accent, .12)!
       : accent;
@@ -354,7 +356,7 @@ ElStyle _commonStyle(
       borderColor: disabled
           ? theme.borderColor
           : outlined
-          ? accent
+          ? Color.lerp(theme.borderColor, accent, .36)
           : background,
     ),
     onTap: disabled || loading

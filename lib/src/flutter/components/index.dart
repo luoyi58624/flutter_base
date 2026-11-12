@@ -8,6 +8,8 @@ import '../views/view/style/style.dart' show ElStyle;
 import '../views/view/view.dart' show ElView;
 import '../widgets/form/index.dart';
 import 'alert/index.dart';
+import 'app_bar/index.dart';
+import 'tooltip/index.dart';
 import 'autocomplete/index.dart';
 import 'avatar/index.dart';
 import 'button/index.dart';
@@ -65,6 +67,8 @@ export 'empty/index.dart';
 export 'segmented/index.dart';
 export 'tabs/index.dart';
 export 'alert/index.dart';
+export 'app_bar/index.dart';
+export 'tooltip/index.dart';
 export 'picker/index.dart';
 export 'popup/index.dart';
 export 'upload/index.dart';
@@ -119,6 +123,8 @@ class ElComponents with Equatable {
     this.dialog,
     this.drawer,
     this.toast,
+    this.appBar,
+    this.tooltip,
   });
 
   /// 与组件预设绑定的样式和变量。
@@ -246,6 +252,12 @@ class ElComponents with Equatable {
 
   /// 根据 ElToast 声明构建短提示内容。
   final Widget Function(BuildContext context, ElToast component)? toast;
+
+  /// 根据 ElAppBar 声明构建标题栏。
+  final Widget Function(BuildContext context, ElAppBar component)? appBar;
+
+  /// 根据 ElTooltip 声明构建锚定提示。
+  final Widget Function(BuildContext context, ElTooltip component)? tooltip;
 
   /// 相等性与 hashCode 依据全部注入点。
   @override

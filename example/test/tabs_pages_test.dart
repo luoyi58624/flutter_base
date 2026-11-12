@@ -23,86 +23,23 @@ Future<void> _host(WidgetTester tester, {double width = 1280, String path = '/ho
   await tester.pumpAndSettle();
 }
 
-Future<void> _reveal(WidgetTester tester, String key) async {
-  final host = find.byKey(PageStorageKey('showcase-scroll'));
-  final target = find.byKey(ValueKey(key));
-  final position = _scrollable(tester, host).position;
-  final delta = tester.getCenter(target).dy - tester.getCenter(host).dy;
-  position.jumpTo((position.pixels + delta).clamp(position.minScrollExtent, position.maxScrollExtent).toDouble());
-  await tester.pumpAndSettle();
-}
-
 void main() {
-  testWidgets('综合展示按正文宽度排列首屏和独立按钮卡片', (tester) async {
-    await _host(tester);
-    for (final width in [1280.0, 820.0, 390.0, 320.0]) {
-      tester.view.physicalSize = Size(width, 900);
-      await tester.pumpAndSettle();
-      final hero = tester.getRect(find.byKey(ValueKey('showcase-hero')));
-      final copy = tester.getRect(find.byKey(ValueKey('showcase-hero-copy')));
-      final scene = tester.getRect(find.byKey(ValueKey('showcase-hero-scene')));
-      expect(hero.width, lessThanOrEqualTo(width));
-      if (width == 1280) {
-        expect(scene.left, greaterThan(copy.right));
-      } else {
-        expect(scene.top, greaterThan(copy.bottom));
-      }
-      await tester.tap(find.byKey(ValueKey('showcase-explore')));
-      await tester.pumpAndSettle();
-      final first = tester.getRect(find.byKey(ValueKey('showcase-basic-panel')));
-      final second = tester.getRect(find.byKey(ValueKey('showcase-state-panel')));
-      if (width == 1280) {
-        expect(second.top, closeTo(first.top, .1));
-        expect(second.left, greaterThan(first.right));
-      } else {
-        expect(second.top, greaterThan(first.bottom));
-      }
-      expect(find.byType(AppBar), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      final scroll = _scrollable(tester, find.byKey(PageStorageKey('showcase-scroll'))).position;
-      scroll.jumpTo(0);
-      await tester.pumpAndSettle();
-    }
-    await tester.pumpWidget(SizedBox());
-  });
-
-  testWidgets('首页按钮有真实操作反馈、收藏切换和提交状态', (tester) async {
+  testWidgets('homepage keeps application navigation and installs mobile components', (tester) async {
     await _host(tester, width: 390);
-    await tester.tap(find.byKey(ValueKey('showcase-explore')));
-    await tester.pumpAndSettle();
-    await _reveal(tester, 'showcase-primary');
-    await tester.tap(find.byKey(ValueKey('showcase-primary')));
-    await tester.pumpAndSettle();
-    expect(find.text('主要操作已完成'), findsOneWidget);
-    await _reveal(tester, 'showcase-favorite');
-    await tester.tap(find.byKey(ValueKey('showcase-favorite')));
-    await tester.pumpAndSettle();
-    expect(find.text('已收藏 · 已添加 0 项'), findsOneWidget);
-    await _reveal(tester, 'showcase-submit');
-    await tester.tap(find.byKey(ValueKey('showcase-submit')));
-    await tester.pump();
-    expect(tester.widget<ElButton>(find.byKey(ValueKey('showcase-submit'))).loading, isTrue);
-    await tester.pump(Duration(seconds: 1));
-    await tester.pumpAndSettle();
-    expect(tester.widget<ElButton>(find.byKey(ValueKey('showcase-submit'))).loading, isFalse);
-    expect(tester.widget<ElButton>(find.byKey(ValueKey('showcase-submit'))).child, '已提交');
+    expect(find.byKey(ValueKey('showcase-hero')), findsOneWidget);
+    expect(find.byKey(ValueKey('showcase-chapters')), findsOneWidget);
+    final home = tester.element(find.byKey(ValueKey('showcase-explore')));
+    expect(ElComponentProvider.of(home).button, same(el.mobileComponents.button));
+    expect(find.byType(ElBottomTabbar), findsWidgets);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
 
-  testWidgets('窄屏放大文字后，综合展示仍能滚动访问两个按钮区域', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    await _host(tester, width: 320);
-    // 放大文字后入口按钮落在首屏底栏下方，先移入视口再点击。
-    await tester.ensureVisible(find.byKey(ValueKey('showcase-explore')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('showcase-explore')));
-    await tester.pumpAndSettle();
-    await _reveal(tester, 'showcase-favorite');
-    await tester.tap(find.byKey(ValueKey('showcase-favorite')));
-    await tester.pumpAndSettle();
-    expect(find.text('已收藏 · 已添加 0 项'), findsOneWidget);
+  testWidgets('homepage uses mobile components inside the desktop application shell', (tester) async {
+    await _host(tester);
+    final home = tester.element(find.byKey(ValueKey('showcase-explore')));
+    expect(ElComponentProvider.of(home).input, same(el.mobileComponents.input));
+    expect(find.byType(ElNavMenu<WidgetBuilder>), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -166,7 +103,3 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 }
-
-/// 读取 [host] 内最近的官方滚动状态。
-ScrollableState _scrollable(WidgetTester tester, Finder host) =>
-    tester.state<ScrollableState>(find.descendant(of: host, matching: find.byType(Scrollable)).first);
