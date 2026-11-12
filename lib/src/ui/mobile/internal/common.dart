@@ -20,7 +20,7 @@ import '../../../flutter/views/view/view.dart' show ElView;
 Widget buildContent(Object? child) => buildIconContent(child);
 
 /// 当前平台是否要求减少动态效果。
-bool reducedMotion(BuildContext context) => MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+bool reducedMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
 /// CSS px 的断点基于整个 viewport，而非组件局部可用宽度。
 double viewport(BuildContext context) => MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;

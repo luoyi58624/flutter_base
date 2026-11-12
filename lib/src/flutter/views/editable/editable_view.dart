@@ -25,9 +25,9 @@ import 'package:flutter/widgets.dart';
 import '../../utils/internal/focus.dart';
 import '../../widgets/popup/context_menu.dart' show ElContextMenuHandle;
 import '../../utils/internal/pixel_grid.dart';
-import '../../widgets/scroll/dual_axis_scroll.dart' show DualAxisScroll;
-import '../../widgets/scroll/scroll.dart' show ElScroll;
-import '../../widgets/scroll/viewport.dart' show ScrollViewport;
+import '../scroll/dual_axis_scroll.dart' show DualAxisScroll;
+import '../scroll/scroll.dart' show ElScrollView;
+import '../scroll/viewport.dart' show ScrollViewport;
 import '../../slivers/recycler/sliver_recycler.dart' show ElSliverRecyclerController, ElSliverRecyclerList;
 import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
@@ -106,7 +106,7 @@ bool _editableImeConfigChanged(EditableConfiguration current, EditableConfigurat
 /// - **viewModel**：渲染协调器承担坐标转换（doc offset ↔ 视觉几何，wrap 投影
 ///   经 TextPainter），mounted 行注册表做指针命中；
 /// - **cursor / commands**：编辑操作层把键盘 / 指针意图翻译成编辑原语；
-/// - **view**：一行一个 [RenderEditableLine]，行列表由 [ElScroll] 中的回收列表
+/// - **view**：一行一个 [RenderEditableLine]，行列表由 [ElScrollView] 中的回收列表
 ///   （ElSliverRecyclerList）虚拟化，文档规模不影响帧成本；
 /// - **tokens / decorations**：[EditableComposer] 行装配器——上层凭它做语法
 ///   高亮与富文本呈现，内核只认纯文本坐标。
@@ -1004,7 +1004,8 @@ class _EditableViewState extends State<EditableView>
     }
     final tickerModeEnabled = TickerMode.valuesOf(context).enabled;
     final viewActive = _caretBlinkViewActive;
-    final animationsEnabled = tickerModeEnabled && !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
+    // 键盘高度不影响光标动画配置，避免所有常驻编辑器随 viewInsets 重建。
+    final animationsEnabled = tickerModeEnabled && !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     if (animationsEnabled != _caretAnimationsEnabled) {
       _caretAnimationsEnabled = animationsEnabled;
       if (!animationsEnabled) _cancelCaretMotion(resetAnchor: true);
@@ -5955,7 +5956,7 @@ class _EditableViewState extends State<EditableView>
         slivers: [lines],
       );
     } else {
-      scroll = ElScroll.sliver(
+      scroll = ElScrollView.sliver(
         controller: _scrollController,
         physics: widget.style.scrollPhysics,
         scrollCacheExtent: cache,

@@ -24,6 +24,16 @@ class HomePage extends HookWidget {
   Widget build(BuildContext context) {
     final controller = useScrollController();
     final current = useMemoized(() => ValueNotifier(''));
+    // 键盘会改变外层导航壳的高度；章节由自身状态和宽度环境更新，不随高度重建。
+    final sections = useMemoized(
+      () => <String, Widget>{
+        'actions': ButtonShowcase(),
+        'controls': ControlsShowcase(),
+        'surfaces': SurfacesShowcase(),
+        'feedback': FeedbackShowcase(),
+        'scenarios': ScenariosShowcase(),
+      },
+    );
     final anchors = useMemoized(
       () => {
         for (final id in [
@@ -65,6 +75,9 @@ class HomePage extends HookWidget {
       );
     }
 
+    final hero = useMemoized(
+      () => ShowcaseHero(onExplore: () => navigate('actions'), onTakeaway: () => navigate('takeaway')),
+    );
     useEffect(() {
       void sync() {
         if (!controller.hasClients) return;
@@ -102,7 +115,7 @@ class HomePage extends HookWidget {
               current: current,
               onNavigate: navigate,
             );
-            final scroll = ElScroll.sliver(
+            final scroll = ElScrollView.sliver(
               key: PageStorageKey('showcase-scroll'),
               controller: controller,
               slivers: [
@@ -110,17 +123,9 @@ class HomePage extends HookWidget {
                   padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
                   sliver: SliverMainAxisGroup(
                     slivers: [
-                      showcaseSliver(
-                        ShowcaseHero(onExplore: () => navigate('actions'), onTakeaway: () => navigate('takeaway')),
-                      ),
+                      showcaseSliver(hero),
                       showcaseSliver(SizedBox(height: mobile ? 28 : 46)),
-                      for (final entry in <String, Widget>{
-                        'actions': ButtonShowcase(),
-                        'controls': ControlsShowcase(),
-                        'surfaces': SurfacesShowcase(),
-                        'feedback': FeedbackShowcase(),
-                        'scenarios': ScenariosShowcase(),
-                      }.entries) ...[
+                      for (final entry in sections.entries) ...[
                         entry.value,
                         if (entry.key != 'scenarios') showcaseSliver(SizedBox(height: (width * .07).clamp(52, 90))),
                       ],
