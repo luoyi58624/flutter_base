@@ -8,13 +8,39 @@ import 'package:flutter_test/flutter_test.dart';
 final _scroll = find.byKey(ValueKey('scroll'));
 final _content = find.byKey(ValueKey('content'));
 final _indicator = find.byKey(ValueKey('indicator'));
+final _androidDiskColor = Color(0xffeaf6ff);
+final _androidDisk = find.byWidgetPredicate(
+  (widget) => widget is ElView && widget.style?.backgroundColor == _androidDiskColor,
+);
+// ElView 的绘制变换体现在后代的全局坐标上。
+final _androidDiskContent = find.descendant(of: _androidDisk, matching: find.byType(ElView)).first;
+
+class _AndroidRefresher extends ElAndroidRefresher {
+  _AndroidRefresher(this.capture) : super(bgColor: _androidDiskColor);
+
+  final ValueChanged<ElRefreshDetails> capture;
+
+  @override
+  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
+    capture(details);
+    return super.buildIndicator(context, details);
+  }
+}
 
 class _Fixture {
-  _Fixture({this.movesContent = false, this.contentHeight = 1200, this.reverse = false});
+  _Fixture({
+    this.movesContent = false,
+    this.contentHeight = 1200,
+    this.reverse = false,
+    this.android = false,
+    this.refreshImmediately = false,
+  });
 
   final bool movesContent;
   final double contentHeight;
   final bool reverse;
+  final bool android;
+  final bool refreshImmediately;
 
   final controller = ScrollController();
   final completer = Completer<void>();
@@ -32,17 +58,19 @@ class _Fixture {
       physics: ClampingScrollPhysics(),
       slivers: [
         ElSliverRefresh(
-          refresher: ElCustomRefresher(
-            triggerExtent: 60,
-            movesContent: movesContent,
-            builder: (context, value) {
-              details = value;
-              return SizedBox.expand(key: ValueKey('indicator'));
-            },
-          ),
+          refresher: android
+              ? _AndroidRefresher((value) => details = value)
+              : ElCustomRefresher(
+                  triggerExtent: 60,
+                  movesContent: movesContent,
+                  builder: (context, value) {
+                    details = value;
+                    return SizedBox.expand(key: ValueKey('indicator'));
+                  },
+                ),
           onRefresh: () {
             refreshCount++;
-            return completer.future;
+            return refreshImmediately ? Future.value() : completer.future;
           },
         ),
         SliverToBoxAdapter(
@@ -94,6 +122,74 @@ double _contentShift(WidgetTester tester, {bool reverse = false}) => reverse
     : tester.getTopLeft(_content).dy - tester.getTopLeft(_scroll).dy;
 
 void main() {
+  group('安卓圆盘', () {
+    testWidgets('回调立即完成仍先滑到停靠位，再原地缩小', (tester) async {
+      final fixture = _Fixture(android: true, refreshImmediately: true);
+      addTearDown(fixture.dispose);
+      await tester.pumpWidget(fixture.build());
+      final gesture = await _drag(tester, [35, 240]);
+      final releasedCenter = tester.getCenter(_androidDiskContent).dy;
+      final releasedExtent = fixture.pulled;
+      await gesture.up();
+      await tester.pump();
+
+      expect(fixture.refreshCount, 1);
+      expect(fixture.status, RefreshIndicatorStatus.refresh);
+      expect(tester.getCenter(_androidDiskContent).dy, closeTo(releasedCenter, 0.01));
+
+      await tester.pump(Duration(milliseconds: 100));
+      expect(fixture.status, RefreshIndicatorStatus.refresh);
+      expect(fixture.pulled, inExclusiveRange(fixture.details!.snapshot.value.triggerExtent, releasedExtent));
+      expect(tester.getCenter(_androidDiskContent).dy, lessThan(releasedCenter));
+      expect(tester.getRect(_androidDiskContent).width, 40);
+
+      await tester.pump(Duration(milliseconds: 101));
+      await tester.pump(Duration.zero);
+      expect(fixture.status, RefreshIndicatorStatus.done);
+      expect(fixture.pulled, fixture.details!.snapshot.value.triggerExtent);
+      final dockedCenter = tester.getCenter(_androidDiskContent).dy;
+
+      await tester.pump(Duration(milliseconds: 75));
+      expect(fixture.status, RefreshIndicatorStatus.done);
+      expect(tester.getCenter(_androidDiskContent).dy, closeTo(dockedCenter, 0.01));
+      expect(tester.getRect(_androidDiskContent).width, inExclusiveRange(0, 40));
+
+      await tester.pumpAndSettle();
+      expect(fixture.status, isNull);
+      expect(_androidDisk, findsNothing);
+    });
+
+    testWidgets('停靠完成后继续等回调，回调完成才收起', (tester) async {
+      final fixture = _Fixture(android: true);
+      addTearDown(fixture.dispose);
+      await tester.pumpWidget(fixture.build());
+      final gesture = await _drag(tester, [35, 240]);
+      await gesture.up();
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: 250));
+
+      expect(fixture.status, RefreshIndicatorStatus.refresh);
+      expect(fixture.pulled, fixture.details!.snapshot.value.triggerExtent);
+      fixture.completer.complete();
+      await tester.pump();
+      expect(fixture.status, RefreshIndicatorStatus.done);
+      await tester.pumpAndSettle();
+      expect(fixture.status, isNull);
+    });
+
+    testWidgets('立即完成后在停靠途中卸载会取消动画', (tester) async {
+      final fixture = _Fixture(android: true, refreshImmediately: true);
+      addTearDown(fixture.dispose);
+      await tester.pumpWidget(fixture.build());
+      final gesture = await _drag(tester, [35, 240]);
+      await gesture.up();
+      await tester.pump();
+      await tester.pumpWidget(SizedBox.shrink());
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('悬浮式', () {
     testWidgets('未达阈值、拉回阈值内、取消都不触发刷新，正文位置不动', (tester) async {
       final fixture = _Fixture();

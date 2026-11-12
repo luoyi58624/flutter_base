@@ -178,8 +178,17 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
   void _startRefresh({required bool byGesture}) {
     if (byGesture && refresher.hapticOnTrigger) HapticFeedback.mediumImpact();
     _status = .refresh;
-    _settleTo(refresher.refreshingExtent);
-    Future<void>.sync(onRefresh).whenComplete(() {
+    final waitForDocking = !refresher.movesContent;
+    final docking = _settleTo(refresher.refreshingExtent);
+    Future<void>.sync(onRefresh).whenComplete(() async {
+      // 悬浮指示器进入完成态会直接画在停靠位，因此快速刷新也要先播完停靠动画。
+      if (waitForDocking) {
+        try {
+          await docking.orCancel;
+        } on TickerCanceled {
+          return;
+        }
+      }
       if (_status != .refresh) return;
       _status = .done;
       _publish();
@@ -189,7 +198,7 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
   }
 
   /// 把拉距送到 [target]；回到 0 后回到未激活。
-  void _settleTo(double target, {bool finishing = false}) {
+  TickerFuture _settleTo(double target, {bool finishing = false}) {
     _settle.value = _pulled;
     final spring = refresher.movesContent ? refresher.settleSpring : null;
     final run = spring != null
@@ -205,6 +214,7 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
       if (target == 0) _status = null;
       _publish();
     });
+    return run;
   }
 
   ElRefreshSnapshot _compose() => ElRefreshSnapshot(
