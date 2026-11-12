@@ -53,7 +53,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
   final _messageRows = <int, _OfficialChatRowState>{};
   late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
-  SliverExampleMode _mode = .recycler;
+  SliverExampleMode _mode = .official;
   bool _nearBottom = true;
   // 历史消息使用负业务 ID，与已存在的消息区分。
   int _oldestId = -1;

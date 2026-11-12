@@ -125,7 +125,7 @@ void main() {
       await _open(tester, width: width, scale: scale, dark: dark);
       _expectMenuGeometry(tester, scale);
       if (scale == 1) await _capture(tester);
-      final controller = tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+      final controller = tester.widget<CustomScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
       controller.jumpTo(20000);
       await tester.pumpAndSettle();
       _expectMenuGeometry(tester, scale);
@@ -136,14 +136,14 @@ void main() {
 
   testWidgets('官方列表与网格共用普通卡片，大字下保留统一商品高度和控制器', (tester) async {
     await _open(tester, width: 320, scale: 1.6);
-    final controller = tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+    final controller = tester.widget<CustomScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
     await _choose(tester, 'takeaway-mode-official');
     expect(find.byType(SliverList), findsOneWidget);
     expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-sliver-grid');
     expect(find.byType(SliverGrid), findsOneWidget);
-    expect(tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller, same(controller));
+    expect(tester.widget<CustomScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller, same(controller));
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-mode-recycler');
     expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);

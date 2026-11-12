@@ -25,7 +25,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final columns = useState(2);
-    final mode = useState(SliverExampleMode.recycler);
+    final mode = useState(SliverExampleMode.official);
     final controller = useScrollController();
     final officialExtent = useMemoized(_OfficialCardExtentCache.new);
     final colors = Theme.of(context).colorScheme;
@@ -46,13 +46,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
               CheckedPopupMenuItem(
                 value: option,
                 checked: mode.value == option,
-                child: Text(
-                  option == .official
-                      ? 'SliverGrid'
-                      : option == .recycler
-                      ? (masonry ? 'ElSliverMasonry.recycler' : 'ElSliverGrid.recycler')
-                      : option.label,
-                ),
+                child: Text(option.gridLabel(masonry: masonry)),
               ),
           ],
         ),

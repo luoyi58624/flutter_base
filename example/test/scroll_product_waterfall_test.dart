@@ -21,6 +21,10 @@ Future<void> _open(WidgetTester tester) async {
   addTearDown(tester.view.resetPhysicalSize);
   await tester.pumpWidget(_app());
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('product-waterfall-mode')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('product-waterfall-mode-recycler')));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _chooseFlutter(WidgetTester tester) async {

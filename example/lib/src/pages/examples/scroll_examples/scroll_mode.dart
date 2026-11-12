@@ -2,33 +2,32 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-/// 示例同时对照官方宿主与 ElScrollView 的三种子项生命周期。
+/// 在同一个 CustomScrollView 中对照官方与 ElSliver 三种子项生命周期。
 enum SliverExampleMode {
   /// 使用官方按需挂载的列表。
   official('SliverList'),
 
-  /// 使用按类型复用结构的回收列表。
-  recycler('ElSliverList.recycler'),
+  /// 全量挂载子项，仅绘制可见部分。
+  children('ElSliverList'),
 
-  /// ElScrollView 全量挂载子项，仅绘制可见部分。
-  children('ElScrollView · children'),
+  /// 按缓存窗口构建与销毁子项。
+  builder('ElSliverList.builder'),
 
-  /// ElScrollView 按缓存窗口构建与销毁子项。
-  builder('ElScrollView · builder'),
-
-  /// ElScrollView 按类型复用子树。
-  elRecycler('ElScrollView · recycler');
+  /// 按类型复用子树。
+  recycler('ElSliverList.recycler');
 
   const SliverExampleMode(this.label);
 
   /// 下拉菜单中显示的容器名称。
   final String label;
 
-  /// 是否使用 ElScrollView 宿主。
-  bool get usesElScrollView => this == children || this == builder || this == elRecycler;
+  /// 网格或瀑布流下拉显示实际使用的 Sliver 名称。
+  String gridLabel({bool masonry = false}) => this == official
+      ? 'SliverGrid'
+      : label.replaceFirst('ElSliverList', masonry ? 'ElSliverMasonry' : 'ElSliverGrid');
 
-  /// 在完全相同的滚动配置下切换宿主。
-  Widget scrollView({
+  /// 各模式共用官方宿主与完全相同的滚动配置。
+  CustomScrollView scrollView({
     Key? key,
     required ScrollController controller,
     required List<Widget> slivers,
@@ -36,25 +35,15 @@ enum SliverExampleMode {
     int? semanticChildCount,
     ScrollPhysics? physics,
     ScrollCacheExtent scrollCacheExtent = const ScrollCacheExtent.pixels(250),
-  }) => usesElScrollView
-      ? ElScrollView.sliver(
-          key: key,
-          controller: controller,
-          reverse: reverse,
-          physics: physics,
-          semanticChildCount: semanticChildCount,
-          scrollCacheExtent: scrollCacheExtent,
-          slivers: slivers,
-        )
-      : CustomScrollView(
-          key: key,
-          controller: controller,
-          reverse: reverse,
-          physics: physics,
-          semanticChildCount: semanticChildCount,
-          scrollCacheExtent: scrollCacheExtent,
-          slivers: slivers,
-        );
+  }) => CustomScrollView(
+    key: key,
+    controller: controller,
+    reverse: reverse,
+    physics: physics,
+    semanticChildCount: semanticChildCount,
+    scrollCacheExtent: scrollCacheExtent,
+    slivers: slivers,
+  );
 
   /// 使用同一业务工厂切换列表生命周期。
   Widget list(

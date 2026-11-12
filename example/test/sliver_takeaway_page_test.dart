@@ -1,4 +1,5 @@
 import 'package:example/src/pages/examples/index.dart';
+import 'package:example/src/pages/examples/scroll_examples/scroll_mode.dart';
 import 'package:example/src/pages/examples/sliver_takeaway/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
@@ -18,6 +19,12 @@ Future<void> _open(WidgetTester tester, Widget page) async {
       child: MaterialApp(navigatorKey: el.navigatorKey, home: page),
     ),
   );
+  await tester.pumpAndSettle();
+  if (page is TakeawaySliverPage) {
+    tester.widget<PopupMenuButton<Object>>(find.byKey(ValueKey('takeaway-sliver-menu'))).onSelected!(
+      SliverExampleMode.recycler,
+    );
+  }
   await tester.pumpAndSettle();
 }
 
@@ -140,7 +147,7 @@ Future<String> _addVisibleDish(WidgetTester tester, _ShopSnapshot shop) async {
 }
 
 void main() {
-  testWidgets('Sliver 外卖页 Windows 鼠标渐进滚动只消费一次，横向菜单独立且卸载停止动画', (tester) async {
+  testWidgets('Sliver 外卖页 Windows 官方滚轮只消费一次，横向菜单独立且卸载无残留', (tester) async {
     final previousPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
@@ -156,12 +163,7 @@ void main() {
           scrollDelta: Offset(0, 120),
         ),
       );
-      expect(vertical.offset, 0, reason: '滚轮应交给现有平滑器，不能同时由官方 Scrollable 立即直跳。');
-      // Ticker 首帧建立 elapsed=0，再验证下一帧真实推进而未直接抵达终点。
-      await tester.pump();
-      await tester.pump(Duration(milliseconds: 16));
-      expect(vertical.offset, greaterThan(0));
-      expect(vertical.offset, lessThan(120));
+      expect(vertical.offset, 120, reason: '所有对照统一使用 CustomScrollView 的官方滚轮行为。');
       await tester.pumpAndSettle();
       expect(vertical.offset, closeTo(120, .01), reason: '同一个 wheel 事件只能消费一次 120 像素。');
 
@@ -194,13 +196,12 @@ void main() {
       );
       await tester.pump();
       await tester.pump(Duration(milliseconds: 16));
-      expect(vertical.offset, greaterThan(120));
-      expect(vertical.offset, lessThan(240));
-      expect(vertical.position.isScrollingNotifier.value, isTrue);
+      expect(vertical.offset, 240);
+      expect(vertical.position.isScrollingNotifier.value, isFalse);
 
       await tester.pumpWidget(SizedBox.shrink());
       await tester.pump(Duration(milliseconds: 500));
-      expect(tester.binding.transientCallbackCount, 0, reason: '退出页面必须释放仍在活动的平滑滚动 ticker。');
+      expect(tester.binding.transientCallbackCount, 0, reason: '退出页面不得遗留活动动画。');
     } finally {
       debugDefaultTargetPlatformOverride = previousPlatform;
     }
@@ -351,14 +352,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TakeawaySliverPage), findsOneWidget);
-    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
+    expect(find.byType(SliverList), findsOneWidget);
     expect(RouterUtil.exampleRoutes().map((route) => route.path), contains('sliver-takeaway'));
 
     await tester.tap(find.byKey(ValueKey('takeaway-sliver-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('takeaway-sliver-grid')));
     await tester.pumpAndSettle();
-    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
+    expect(find.byType(SliverGrid), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

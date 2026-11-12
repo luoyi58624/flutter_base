@@ -24,11 +24,11 @@ int _recordCount(WidgetTester tester, String scene) {
   return records.length as int;
 }
 
-VoidCallback _official(WidgetTester tester, String scene) {
+VoidCallback _recycler(WidgetTester tester, String scene) {
   final finder = find.byKey(ValueKey('$scene-menu'));
   final dynamic menu = tester.widget(finder);
   final Iterable entries = menu.itemBuilder(tester.element(finder));
-  final dynamic option = entries.singleWhere((dynamic entry) => entry.key == ValueKey('$scene-mode-official'));
+  final dynamic option = entries.singleWhere((dynamic entry) => entry.key == ValueKey('$scene-mode-recycler'));
   return () => menu.onSelected(option.value);
 }
 
@@ -68,7 +68,7 @@ void _report(String scene, String mode, String phase, List<int> times, List<int>
       'device_pixel_ratio': 1,
       'scope': 'instrumented flutter_tester debug action+pump wall time; not device frame time',
       'count_scope': 'records retained by the actual page, including viewport and cache; not widget count',
-      'mode_note': 'page defaults to recycler; official measures a subsequent container switch with the same records',
+      'mode_note': 'page defaults to official; recycler measures a subsequent container switch with the same records',
       'images': scene == 'cards' ? 'real local images predecoded before timed mounts' : 'no images',
     })}',
   );
@@ -76,7 +76,7 @@ void _report(String scene, String mode, String phase, List<int> times, List<int>
 
 void main() {
   for (final scene in ['cards', 'selection']) {
-    testWidgets('记录创建 $scene 首次页面及官方容器切换', (tester) async {
+    testWidgets('记录创建 $scene 首次官方页面及复用容器切换', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(390, 800);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -100,7 +100,7 @@ void main() {
           watch.stop();
           final initialCount = _recordCount(tester, scene);
           expect(initialCount, inInclusiveRange(1, 1000));
-          expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
+          expect(find.byType(SliverList), findsOneWidget);
           if (sample >= 0) {
             initialTimes.add(watch.elapsedMicroseconds);
             initialCounts.add(initialCount);
@@ -111,7 +111,7 @@ void main() {
               expect((image.renderObject! as RenderImage).image, isNotNull);
             }
           }
-          final switchMode = _official(tester, scene);
+          final switchMode = _recycler(tester, scene);
           watch
             ..reset()
             ..start();
@@ -120,7 +120,7 @@ void main() {
           watch.stop();
           final switchCount = _recordCount(tester, scene);
           expect(switchCount, inInclusiveRange(initialCount, 1000));
-          expect(find.byType(SliverList), findsOneWidget);
+          expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
           if (sample >= 0) {
             switchTimes.add(watch.elapsedMicroseconds);
             switchCounts.add(switchCount);
@@ -128,8 +128,8 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
         }
-        _report(scene, 'recycler', 'initialPage', initialTimes, initialCounts);
-        _report(scene, 'official', 'containerSwitch', switchTimes, switchCounts);
+        _report(scene, 'official', 'initialPage', initialTimes, initialCounts);
+        _report(scene, 'recycler', 'containerSwitch', switchTimes, switchCounts);
       } finally {
         await tester.pumpWidget(SizedBox.shrink());
         await tester.pump();

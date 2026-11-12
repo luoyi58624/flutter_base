@@ -48,7 +48,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
   var _indices = List<int>.generate(1000, (index) => index);
   var _category = -1;
   var _kind = _SliverKind.list;
-  var _mode = SliverExampleMode.recycler;
+  var _mode = SliverExampleMode.official;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -116,7 +116,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
           );
     return RecyclerExampleScrollbar(
       controller: _controller,
-      child: ElScrollView.sliver(
+      child: CustomScrollView(
         key: ValueKey('takeaway-sliver'),
         controller: _controller,
         // 所有对照模式使用相同的预布局范围。
@@ -149,13 +149,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
                 key: ValueKey('takeaway-mode-${mode.name}'),
                 checked: _mode == mode,
                 value: mode,
-                child: Text(
-                  mode == .official
-                      ? (_kind == .list ? 'SliverList' : 'SliverGrid')
-                      : mode == .recycler
-                      ? (_kind == .list ? 'ElSliverList.recycler' : 'ElSliverGrid.recycler')
-                      : mode.label,
-                ),
+                child: Text(_kind == .list ? mode.label : mode.gridLabel()),
               ),
             PopupMenuDivider(),
             for (final kind in _SliverKind.values)

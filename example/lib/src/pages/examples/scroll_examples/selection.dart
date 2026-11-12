@@ -22,7 +22,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _selectedCount = ValueNotifier<int>(0);
   final _indexInput = TextEditingController(text: '500');
   final _official = ScrollController(keepScrollOffset: false);
-  SliverExampleMode _mode = .recycler;
+  SliverExampleMode _mode = .official;
   ScrollController get _currentController => _official;
   late final _adapter = _SelectionRecords(_selectionChanged);
 

@@ -68,7 +68,7 @@ void main() {
   for (final mode in ['recycler', 'official']) {
     testWidgets('安卓复杂卡片 $mode 可拖动 iOS 滑块跳转大量独立记录', (tester) async {
       await _open(tester, RecyclerCardsPage());
-      if (mode == 'official') await _choose(tester, 'cards', mode);
+      await _choose(tester, 'cards', mode);
       expect(await _dragCupertinoThumb(tester), greaterThan(10000));
       expect(find.textContaining('观测 #00001').hitTestable(), findsNothing);
       expect(tester.takeException(), isNull);
@@ -76,7 +76,7 @@ void main() {
 
     testWidgets('安卓复选列表 $mode 常显 iOS 滚动条，触摸拖动关联真实列表', (tester) async {
       await _open(tester, RecyclerSelectionPage());
-      if (mode == 'official') await _choose(tester, 'selection', mode);
+      await _choose(tester, 'selection', mode);
       expect(find.byType(CupertinoScrollbar), findsOneWidget);
       expect(find.byType(Scrollbar), findsNothing);
       expect(await _dragCupertinoThumb(tester), greaterThan(10000), reason: '拖动轨道应按比例跳过大量条目');
@@ -86,7 +86,7 @@ void main() {
 
     testWidgets('安卓聊天 $mode 从底部向上拖滚动条，输入栏不进入拖拽区域', (tester) async {
       await _open(tester, RecyclerChatPage());
-      if (mode == 'official') await _choose(tester, 'chat', mode);
+      await _choose(tester, 'chat', mode);
       final position = _position(tester);
       expect(position.pixels - position.minScrollExtent, lessThan(1));
       expect(
@@ -102,7 +102,7 @@ void main() {
   testWidgets('两种容器反复切换时滚动条始终只连接当前滚动位置', (tester) async {
     await _open(tester, RecyclerSelectionPage());
     final controller = tester.widget<CupertinoScrollbar>(find.byType(CupertinoScrollbar)).controller!;
-    for (final mode in ['official', 'recycler', 'official', 'recycler']) {
+    for (final mode in ['recycler', 'official', 'recycler', 'official']) {
       final previous = _position(tester);
       await _choose(tester, 'selection', mode);
       final next = _position(tester);

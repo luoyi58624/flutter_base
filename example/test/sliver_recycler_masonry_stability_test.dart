@@ -1,5 +1,6 @@
 import 'package:example/src/pages/examples/sliver_recycler_grid/index.dart';
-import 'package:example/src/pages/home/index.dart';
+import 'package:example/src/pages/examples/scroll_examples/scroll_mode.dart';
+import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:example/src/widgets/example_scrollbar.dart';
 import 'package:flutter/cupertino.dart';
@@ -161,6 +162,11 @@ Future<void> _predictiveBack(WidgetTester tester, String method, [double progres
   await tester.pump(Duration(milliseconds: 16));
 }
 
+Future<void> _recycler(WidgetTester tester) async {
+  tester.widget<PopupMenuButton<SliverExampleMode>>(find.byKey(ValueKey('grid-mode-menu'))).onSelected!(.recycler);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   for (final masonry in [false, true]) {
     testWidgets('${masonry ? '瀑布流' : '网格'}标准滑块反向拖动、停住和松手不改变卡片位置', (tester) async {
@@ -169,6 +175,7 @@ void main() {
         _app(masonry ? ElSliverRecyclerGridExamplePage.masonry() : ElSliverRecyclerGridExamplePage()),
       );
       await tester.pumpAndSettle();
+      await _recycler(tester);
       final scene = _scene(tester, masonry: masonry);
       final start = _thumbStart(tester, scene);
       final travel = scene.position.maxScrollExtent / scene.painter.getTrackToScroll(1);
@@ -212,6 +219,7 @@ void main() {
     _viewport(tester);
     await tester.pumpWidget(_app(ElSliverRecyclerGridExamplePage.masonry()));
     await tester.pumpAndSettle();
+    await _recycler(tester);
     final scene = _scene(tester, masonry: true);
     final start = _thumbStart(tester, scene);
     final travel = scene.position.maxScrollExtent / scene.painter.getTrackToScroll(1);
@@ -275,12 +283,16 @@ void main() {
     await tester.pumpWidget(SizedBox.shrink());
   }, variant: TargetPlatformVariant({TargetPlatform.android}));
 
-  testWidgets('首页瀑布流预测返回取消和提交期间保持阅读几何', (tester) async {
+  testWidgets('示例目录瀑布流预测返回取消和提交期间保持阅读几何', (tester) async {
     _viewport(tester);
-    await tester.pumpWidget(_app(HomePage()));
+    await tester.pumpWidget(_app(ExamplesPage()));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('home-sliver-recycler-masonry')));
+    final entry = find.byKey(ValueKey('advanced-sliver-recycler-masonry'));
+    await tester.ensureVisible(entry);
     await tester.pumpAndSettle();
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    await _recycler(tester);
     final scene = _scene(tester, masonry: true);
     scene.position.jumpTo(4000);
     await tester.pumpAndSettle();
@@ -310,7 +322,7 @@ void main() {
     _expectStationary(_readFrame(tester, scene), baseline, '提交预测返回前');
     await _predictiveBack(tester, 'commitBackGesture');
     await tester.pumpAndSettle();
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(ExamplesPage), findsOneWidget);
     expect(find.byType(ElSliverRecyclerGridExamplePage), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox.shrink());

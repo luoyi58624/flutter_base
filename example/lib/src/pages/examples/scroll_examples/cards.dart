@@ -24,7 +24,7 @@ enum _CardsAction { refreshVisible, first, last, clear }
 class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   final _activeCount = ValueNotifier<int>(0);
-  SliverExampleMode _mode = .recycler;
+  SliverExampleMode _mode = .official;
   late final _adapter = _ObservationRecords((count) => _activeCount.value = count);
 
   ScrollController get _currentController => _controller;

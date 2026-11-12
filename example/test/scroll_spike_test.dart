@@ -28,7 +28,7 @@ Future<List<_Injection>> _open(WidgetTester tester, [SliverExampleMode mode = .r
     ),
   );
   await tester.pumpAndSettle();
-  if (mode != .recycler) {
+  if (mode != .official) {
     await tester.tap(find.byKey(ValueKey('comparison-mode-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('comparison-mode-${mode.name}')));

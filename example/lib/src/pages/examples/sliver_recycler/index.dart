@@ -74,7 +74,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = useState(SliverExampleMode.recycler);
+    final mode = useState(SliverExampleMode.official);
     final content = useState(initialContent);
     final controller = useScrollController(keepScrollOffset: false);
     final workload = content.value;

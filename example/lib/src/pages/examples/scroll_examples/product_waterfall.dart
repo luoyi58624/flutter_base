@@ -12,7 +12,7 @@ import '../../../widgets/panel.dart';
 import 'scroll_mode.dart';
 
 /// 在相同的商品卡片上比较两列瀑布流与延迟的图片尺寸更新。
-/// 两种内容 Sliver 都由 CustomScrollView 承载，图片尺寸在业务层延迟揭晓。
+/// 官方网格与 ElSliverMasonry 三种生命周期共用 CustomScrollView，图片尺寸在业务层延迟揭晓。
 class RecyclerProductWaterfallPage extends StatefulWidget {
   /// 创建使用本地图片的瀑布流对照示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -22,7 +22,7 @@ class RecyclerProductWaterfallPage extends StatefulWidget {
   State<RecyclerProductWaterfallPage> createState() => _RecyclerProductWaterfallPageState();
 }
 
-enum _WaterfallMode { recycler, sliverGrid, children, builder, elRecycler }
+enum _WaterfallMode { sliverGrid, children, builder, recycler }
 
 typedef _ProductAnchor = ({int index, double top});
 
@@ -33,12 +33,11 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
   final _flutterController = ScrollController(keepScrollOffset: false);
   final _viewport = GlobalKey();
   final _productContexts = <int, BuildContext>{};
-  var _mode = _WaterfallMode.recycler;
+  var _mode = _WaterfallMode.sliverGrid;
   SliverExampleMode get _comparison => switch (_mode) {
     .sliverGrid => .official,
     .children => .children,
     .builder => .builder,
-    .elRecycler => .elRecycler,
     _ => .recycler,
   };
 
@@ -184,24 +183,17 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
         tooltip: '切换滚动容器',
         onSelected: _switchMode,
         itemBuilder: (_) => [
-          CheckedPopupMenuItem(
-            key: ValueKey('product-waterfall-mode-recycler'),
-            value: .recycler,
-            checked: _mode == .recycler,
-            child: Text('ElSliverGrid'),
-          ),
-          CheckedPopupMenuItem(
-            key: ValueKey('product-waterfall-mode-sliverGrid'),
-            value: .sliverGrid,
-            checked: _mode == .sliverGrid,
-            child: Text('Flutter SliverGrid'),
-          ),
-          for (final mode in [_WaterfallMode.children, _WaterfallMode.builder, _WaterfallMode.elRecycler])
+          for (final mode in _WaterfallMode.values)
             CheckedPopupMenuItem(
               key: ValueKey('product-waterfall-mode-${mode.name}'),
               value: mode,
               checked: _mode == mode,
-              child: Text('ElScrollView · ${mode == .elRecycler ? 'recycler' : mode.name}'),
+              child: Text(switch (mode) {
+                .sliverGrid => 'SliverGrid',
+                .children => 'ElSliverMasonry',
+                .builder => 'ElSliverMasonry.builder',
+                .recycler => 'ElSliverMasonry.recycler',
+              }),
             ),
         ],
       ),

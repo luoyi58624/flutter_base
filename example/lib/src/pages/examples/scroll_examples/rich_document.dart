@@ -35,7 +35,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
   );
   final _expanded = <int>{};
   final _checked = <int>{};
-  var _mode = SliverExampleMode.recycler;
+  var _mode = SliverExampleMode.official;
   var _locateGeneration = 0;
 
   _Section _section(int index) =>
@@ -132,7 +132,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
               key: ValueKey('comparison-mode-${mode.name}'),
               value: mode,
               checked: _mode == mode,
-              child: Text(mode == .recycler ? 'ElSliverList · children' : mode.label),
+              child: Text(mode.label),
             ),
         ],
       ),
@@ -151,12 +151,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
               controller: _official,
               child: _mode.scrollView(
                 controller: _official,
-                slivers: [
-                  if (_mode == .recycler)
-                    ElSliverList(children: [for (var i = 0; i < _sectionCount; i++) _sectionItem(context, i)])
-                  else
-                    _mode.list(context, itemCount: _sectionCount, itemBuilder: _sectionItem),
-                ],
+                slivers: [_mode.list(context, itemCount: _sectionCount, itemBuilder: _sectionItem)],
               ),
             ),
           ),

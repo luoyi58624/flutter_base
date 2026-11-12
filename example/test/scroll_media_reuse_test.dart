@@ -93,6 +93,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     final page = RecyclerWaterfallPage();
     await _mount(tester, page);
+    _mode(tester, 'recycler');
+    await tester.pumpAndSettle();
     final sources = find.byWidgetPredicate((widget) => widget is ElView && widget.child == '自然影像集');
     final records = <Element, Object?>{};
     for (final element in sources.evaluate()) {

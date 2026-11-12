@@ -25,6 +25,11 @@ Future<void> _open(WidgetTester tester, Widget page, {double width = 390, double
     ),
   );
   await tester.pumpAndSettle();
+  // 复用用例显式选择 recycler，页面默认模式另行验证。
+  tester.widget<PopupMenuButton<SliverExampleMode>>(find.byKey(ValueKey('comparison-mode-menu'))).onSelected!(
+    .recycler,
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {

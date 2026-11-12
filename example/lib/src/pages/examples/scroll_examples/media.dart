@@ -77,10 +77,9 @@ enum _MediaKind { feed, album, waterfall }
 
 enum _MediaGridMode {
   official('SliverGrid'),
+  children('ElSliverGrid'),
+  builder('ElSliverGrid.builder'),
   recycler('ElSliverGrid.recycler'),
-  children('ElScrollView · children'),
-  builder('ElScrollView · builder'),
-  elRecycler('ElScrollView · recycler'),
   localCards('本机卡片'),
   bibiCards('Bibi 卡片');
 
@@ -106,12 +105,11 @@ class _MediaPageState extends State<_MediaPage> {
   _MediaMasonryDelegate? _masonryDelegate;
   late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
-  _MediaGridMode _mode = .recycler;
+  _MediaGridMode _mode = .official;
   SliverExampleMode get _comparison => switch (_mode) {
     .official => .official,
     .children => .children,
     .builder => .builder,
-    .elRecycler => .elRecycler,
     _ => .recycler,
   };
   bool _bibiCards = false;
@@ -549,12 +547,14 @@ class _MediaPageState extends State<_MediaPage> {
         tooltip: '网格容器',
         onSelected: _chooseMode,
         itemBuilder: (_) => [
-          for (final mode in <_MediaGridMode>[.official, .recycler, .children, .builder, .elRecycler])
+          for (final mode in <_MediaGridMode>[.official, .children, .builder, .recycler])
             CheckedPopupMenuItem(
               key: ValueKey('media-mode-${mode.name}'),
               value: mode,
               checked: _mode == mode,
-              child: Text(mode.label),
+              child: Text(
+                widget.kind == .waterfall ? mode.label.replaceFirst('ElSliverGrid', 'ElSliverMasonry') : mode.label,
+              ),
             ),
           if (widget.kind == .feed) ...[
             PopupMenuDivider(),

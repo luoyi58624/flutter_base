@@ -52,8 +52,8 @@ void main() {
       router.go('/examples/${entry.key}');
       await tester.pumpAndSettle();
       expect(find.byType(entry.type), findsOneWidget);
-      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
-      expect(find.byType(ElScrollView), entry.key == 'recycler-takeaway' ? findsOneWidget : findsNothing);
+      expect(find.byType(SliverList), findsOneWidget);
+      expect(find.byType(ElScrollView), findsNothing);
       if (entry.key == 'recycler-text') {
         expect(
           tester.widget<ElSliverRecyclerExamplePage>(find.byType(ElSliverRecyclerExamplePage)).initialContent,

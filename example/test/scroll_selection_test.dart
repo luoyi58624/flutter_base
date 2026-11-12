@@ -44,9 +44,9 @@ void main() {
     final access = mode == 'recycler' ? '远跳只生成目标窗口' : '近跳和回访保留记录';
     testWidgets('$mode 离屏选择独立于记录创建，$access', (tester) async {
       await _open(tester);
-      if (mode == 'official') {
+      if (mode != 'official') {
         await _tap(tester, 'selection-menu');
-        await _tap(tester, 'selection-mode-official');
+        await _tap(tester, 'selection-mode-$mode');
       }
       final listFinder = find.byType(SliverComparisonList);
       final list = tester.widget<SliverComparisonList>(listFinder);
@@ -97,7 +97,7 @@ void main() {
     testWidgets('$mode 换绑和布局切换保留业务选择，清空同时移除离屏选择', (tester) async {
       await _open(tester);
       await _tap(tester, 'selection-menu');
-      expect(find.byType(CheckedPopupMenuItem<Object>), findsNWidgets(5));
+      expect(find.byType(CheckedPopupMenuItem<Object>), findsNWidgets(4));
       await _tap(tester, 'selection-mode-$mode');
       await _locate(tester, '500');
       final target = find.text('条目 00500').hitTestable();

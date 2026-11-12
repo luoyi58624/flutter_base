@@ -36,7 +36,7 @@ void main() {
     final access = mode == 'recycler' ? '远跳只生成目标窗口' : '近跳和回访保留记录';
     testWidgets('$mode 首屏按需创建，类型查询不分配，$access', (tester) async {
       await _open(tester);
-      if (mode == 'official') await _choose(tester, 'mode-official');
+      await _choose(tester, 'mode-$mode');
       final listFinder = find.byType(SliverComparisonList);
       final list = tester.widget<SliverComparisonList>(listFinder);
       final frame = list.itemBuilder(tester.element(listFinder), 0) as RepaintBoundary;
@@ -86,7 +86,7 @@ void main() {
 
     testWidgets('$mode 卡片保留按压、统计叶子更新、滚动和跨模式选择状态', (tester) async {
       await _open(tester);
-      if (mode == 'official') await _choose(tester, 'mode-official');
+      await _choose(tester, 'mode-$mode');
       final first = _card();
       final title = _text(tester, first, 'cards-title');
       final visits = _text(tester, first, 'cards-visits');
@@ -130,6 +130,7 @@ void main() {
 
   testWidgets('卡片换绑保留固定图片与结构，点击读取新记录且旧记录选择不丢失', (tester) async {
     await _open(tester);
+    await _choose(tester, 'mode-recycler');
     await tester.tap(_card());
     await tester.pumpAndSettle();
     final originals = <Element, Widget>{

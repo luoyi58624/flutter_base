@@ -72,6 +72,11 @@ Future<void> _settleJump(WidgetTester tester, ScrollController controller, Strin
   fail(reason);
 }
 
+Future<void> _recycler(WidgetTester tester) async {
+  tester.widget<PopupMenuButton<SliverExampleMode>>(find.byKey(ValueKey('grid-mode-menu'))).onSelected!(.recycler);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('网格与瀑布流跨记录换绑保留卡片排版结构', (tester) async {
     _viewport(tester);
@@ -80,6 +85,7 @@ void main() {
         _app(masonry ? ElSliverRecyclerGridExamplePage.masonry() : ElSliverRecyclerGridExamplePage()),
       );
       await tester.pumpAndSettle();
+      await _recycler(tester);
       final card = find.ancestor(of: find.text('观察记录 1'), matching: find.byType(ExamplePanel));
       final element = tester.element(card);
       final panel = element.widget;
@@ -108,6 +114,7 @@ void main() {
     _viewport(tester);
     await tester.pumpWidget(_app(ElSliverRecyclerGridExamplePage()));
     await tester.pumpAndSettle();
+    await _recycler(tester);
     final factory = (tester.widget<ElSliverGrid>(
       find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
     ) as dynamic).itemBuilder;
@@ -241,7 +248,7 @@ void main() {
     final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller;
     await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
     await tester.pumpAndSettle();
-    expect(find.byType(CheckedPopupMenuItem<SliverExampleMode>), findsNWidgets(5));
+    expect(find.byType(CheckedPopupMenuItem<SliverExampleMode>), findsNWidgets(4));
     await tester.tap(find.widgetWithText(CheckedPopupMenuItem<SliverExampleMode>, 'SliverGrid'));
     await tester.pumpAndSettle();
     expect(find.byType(SliverGrid), findsOneWidget);
@@ -285,9 +292,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(entry.title), findsOneWidget);
       if (entry.key == 'sliver-recycler') {
-        expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
+        expect(find.byType(SliverList), findsOneWidget);
       } else {
-        expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
+        expect(find.byType(SliverGrid), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
       await tester.pageBack();
@@ -306,6 +313,7 @@ void main() {
         _app(masonry ? ElSliverRecyclerGridExamplePage.masonry() : ElSliverRecyclerGridExamplePage()),
       );
       await tester.pumpAndSettle();
+      await _recycler(tester);
       final grid = find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry);
       final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
       expect(tester.widget<ElSliverGrid>(grid).crossAxisCount, 2);

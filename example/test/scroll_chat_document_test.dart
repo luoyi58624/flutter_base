@@ -20,6 +20,11 @@ Future<void> _open(WidgetTester tester, Widget page, {double width = 390}) async
     ),
   );
   await tester.pumpAndSettle();
+  // 复用用例显式选择 recycler，页面默认模式另行验证。
+  if (page is! RecyclerRichDocumentPage) {
+    tester.widget<PopupMenuButton<Object>>(find.byKey(ValueKey('chat-menu'))).onSelected!(SliverExampleMode.recycler);
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _tap(WidgetTester tester, String key) async {
@@ -235,7 +240,7 @@ void main() {
     final last = find.byKey(ValueKey('rich-document-title-999'));
     final code = find.byKey(ValueKey('rich-document-code-999'));
     var primed = false;
-    for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler].reversed) {
+    for (final mode in SliverExampleMode.values.reversed) {
       {
         await _tap(tester, 'comparison-mode-menu');
         await _tap(tester, 'comparison-mode-${mode.name}');

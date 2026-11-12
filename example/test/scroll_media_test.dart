@@ -92,6 +92,7 @@ Future<void> _open(WidgetTester tester, Widget page, {double width = 390, double
     ),
   );
   await _wait(tester, () => find.byKey(ValueKey('media-card')).evaluate().isNotEmpty);
+  await _mode(tester, 'recycler');
   expect(tester.takeException(), isNull);
 }
 
@@ -237,11 +238,13 @@ void main() {
     for (final (mode, key) in [('official', 'media-bibi-official'), ('recycler', 'media-bibi-recycler')]) {
       if (mode != 'official') await _mode(tester, mode);
       final host = find.byKey(ValueKey(key));
+      final hostElement = tester.element(host);
       final scroll = tester.widget(host);
       final controller = switch (scroll) {
         CustomScrollView(:final controller) => controller!,
         _ => throw StateError('未知网格容器 $key'),
       };
+      final position = controller.position;
       final first = find.descendant(of: host, matching: find.text(firstTitle)).hitTestable();
       final second = find.descendant(of: host, matching: find.text('你是否也记得，夏天结束前的那场风')).hitTestable();
       expect(tester.getTopLeft(first).dy, closeTo(tester.getTopLeft(second).dy, .01));
@@ -292,9 +295,8 @@ void main() {
       await tester.drag(host, Offset(0, -420));
       await tester.pumpAndSettle();
       expect(controller.offset, greaterThan(before + 250));
-      if (scroll is ElScrollView) {
-        expect(tester.widget(host), same(scroll), reason: '滚动中新挂载卡片不应触发重新测高和重建容器');
-      }
+      expect(tester.element(host), same(hostElement), reason: '滚动时保留同一个 CustomScrollView 宿主');
+      expect(controller.position, same(position));
       expect(first, findsNothing);
       controller.jumpTo(before);
       await tester.pumpAndSettle();

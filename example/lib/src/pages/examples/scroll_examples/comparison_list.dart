@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
 
-/// 使用相同业务内容对照滚动宿主与三种生命周期。
+/// 使用相同业务内容在同一滚动宿主中对照三种生命周期。
 class SliverComparisonList extends StatelessWidget {
   /// 创建内容、方向和位置控制一致的 Sliver 对照。
   // ignore: prefer_const_constructors_in_immutables
@@ -66,7 +66,7 @@ class SliverComparisonList extends StatelessWidget {
   );
 }
 
-/// 在导航栏中选择滚动宿主与内容生命周期。
+/// 在导航栏中选择内容 Sliver 的生命周期。
 class SliverComparisonModeMenu extends StatelessWidget {
   /// 创建内容布局菜单。
   // ignore: prefer_const_constructors_in_immutables
