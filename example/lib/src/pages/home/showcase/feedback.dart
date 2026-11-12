@@ -459,8 +459,13 @@ class _Menus extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final selected = useState('日常灵感'), sync = useState(['文档']);
-    void menu(ElEventDetails event, List<ElContextMenuItem> items) =>
-        el.showContextMenu(context, position: event.globalPosition, items: items, menu: ElMobileContextMenu());
+    void menu(ElEventDetails event, List<ElContextMenuItem> items) => el.showContextMenu(
+      context,
+      position: event.globalPosition,
+      items: items,
+      menu: ElMobileContextMenu(),
+      triggerEvent: event,
+    );
     List<ElContextMenuItem> commands() => [
       ElContextMenuItem(
         label: '复制链接',

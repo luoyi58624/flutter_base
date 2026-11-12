@@ -7,6 +7,10 @@ import 'icons.dart';
 class ElMobileContextMenu extends ElContextMenu {
   /// 创建可供 el.showContextMenu 使用的菜单外观。
   const ElMobileContextMenu();
+
+  @override
+  bool get touchSelection => true;
+
   @override
   Widget buildPanel(BuildContext context, List<Widget> children) => ElCard(
     style: ElStyle(

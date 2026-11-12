@@ -55,7 +55,8 @@ Widget dialogBuilder(BuildContext context, ElDialog c) {
           child: SingleChildScrollView(padding: const .symmetric(horizontal: 32), child: c.child),
         ),
         SizedBox(height: c.footer == null ? 32 : 24),
-        if (c.footer != null) buildContent(c.footer),
+        // 确认、取消等操作按钮启用按压跟踪与触感，正文和关闭按钮保持普通行为。
+        if (c.footer != null) TouchActionScope(child: buildContent(c.footer)),
       ],
     ),
   );

@@ -2,13 +2,21 @@ import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform;
 import 'package:flutter/widgets.dart' show TargetPlatform, BuildContext, Offset, VoidCallback;
 
 import '../../../dart.dart' show El;
+import '../utils/internal/haptics.dart';
+import '../views/view/event/event.dart' show ElEventDetails;
 import '../widgets/popup/context_menu.dart';
 
 /// el_ui 仍保留的进程级门面配置。
 ///
-/// 这里仅保留目前没有 el_ui 内置兜底的上下文菜单注册表。
+/// 上下文菜单注册与移动控件触感开关。
 extension ElViewExt on El {
   static Map<TargetPlatform, ElContextMenu> _contextMenus = const {};
+
+  /// 移动按钮和菜单是否启用系统触感，默认开启。
+  bool get hapticFeedbackEnabled => TouchHaptics.enabled;
+
+  /// 统一开关移动控件触感，不覆盖设备的系统设置。
+  set hapticFeedbackEnabled(bool value) => TouchHaptics.enabled = value;
 
   /// 全局上下文菜单默认配置。本包不带任何菜单形制：未配置的平台
   /// [showContextMenu] 不弹（debug 告警）；element_plus 的 ElApp 启动时注册平台默认，
@@ -30,12 +38,14 @@ extension ElViewExt on El {
   /// [initialFocus] 决定主面板首次聚焦首项或末项；[restoreFocus] 控制整链
   /// 关闭后是否主动归还打开前焦点。[onNavigatePrevious] / [onNavigateNext]
   /// 是水平菜单栏在主面板边界切换相邻顶级菜单的可选接缝。
+  /// [triggerEvent] 传入打开菜单的长按事件，以继续同一根手指的滑动选择。
   /// 返回菜单句柄；缺少 Flutter Overlay 时不弹。
   ElContextMenuHandle? showContextMenu(
     BuildContext context, {
     required Offset position,
     required List<ElContextMenuItem> items,
     ElContextMenu? menu,
+    ElEventDetails? triggerEvent,
     bool rootOverlay = false,
     ContextMenuInitialFocus initialFocus = ContextMenuInitialFocus.first,
     bool restoreFocus = true,
@@ -52,21 +62,23 @@ extension ElViewExt on El {
       }());
       return null;
     }
-    if (initialFocus == ContextMenuInitialFocus.first &&
-        restoreFocus &&
-        onNavigatePrevious == null &&
-        onNavigateNext == null) {
-      return resolved.open(context, position: position, items: items, rootOverlay: rootOverlay);
-    }
-    return resolved.openWithOptions(
-      context,
-      position: position,
-      items: items,
-      rootOverlay: rootOverlay,
-      initialFocus: initialFocus,
-      restoreFocus: restoreFocus,
-      onNavigatePrevious: onNavigatePrevious,
-      onNavigateNext: onNavigateNext,
-    );
+    final handle =
+        initialFocus == ContextMenuInitialFocus.first &&
+            restoreFocus &&
+            onNavigatePrevious == null &&
+            onNavigateNext == null
+        ? resolved.open(context, position: position, items: items, rootOverlay: rootOverlay)
+        : resolved.openWithOptions(
+            context,
+            position: position,
+            items: items,
+            rootOverlay: rootOverlay,
+            initialFocus: initialFocus,
+            restoreFocus: restoreFocus,
+            onNavigatePrevious: onNavigatePrevious,
+            onNavigateNext: onNavigateNext,
+          );
+    if (triggerEvent != null) handle?.trackTouch(triggerEvent);
+    return handle;
   }
 }

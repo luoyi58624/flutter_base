@@ -247,9 +247,13 @@ class Button extends StatelessWidget {
               if (child != null) buildContent(child),
             ],
           );
+    // 按压跟踪与触感只在确认框操作区等短按场景生效，结构外不改变按钮行为。
+    final touchAction = TouchActionScope.enabled(context);
     final result = ActionView(
       style: buttonStyle,
       quickTouchFeedback: true,
+      trackTouchPress: touchAction,
+      hapticFeedback: touchAction,
       label: label,
       focusNode: focusNode,
       event: event,

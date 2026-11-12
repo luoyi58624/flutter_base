@@ -77,6 +77,19 @@ class ElContextMenuHandle extends ChangeNotifier {
   /// 菜单退场并完全摘除后完成。
   Future<void> get closed => _closed.future;
 
+  /// 接续打开菜单的触屏长按，滑到目标项后松手执行；普通点击与鼠标事件不接续。
+  void trackTouch(ElEventDetails event) {
+    final original = event.originalEvent;
+    if (!_open ||
+        event.defaultPrevented ||
+        event.phase != ElEventPhase.longPress ||
+        original is! PointerDownEvent ||
+        original.viewId != _viewId) {
+      return;
+    }
+    if (_chain._touch?.begin(original) == true) TouchHaptics.activate(original);
+  }
+
   void _mount() {
     if (!_open) return;
     _entry = OverlayEntry(builder: (_) => _MenuOverlayLayer(handle: this));
@@ -107,7 +120,9 @@ class ElContextMenuHandle extends ChangeNotifier {
   }
 
   void _handlePointer(PointerEvent event) {
-    if (!_open || event is! PointerDownEvent || event.viewId != _viewId) return;
+    if (!_open || event.viewId != _viewId) return;
+    if (_level == 0) _chain._touch?.handlePointer(event);
+    if (!_open || event is! PointerDownEvent || _chain._touch?.isTracking == true) return;
     if (_chain._entries.any((entry) => entry._contains(event.position))) return;
     // 只关闭菜单，不认领指针，外部控件继续接收同一次点击。
     // 外点关闭不归还焦点：焦点该跟着被点的控件走，菜单不能再抢回来盖掉它。

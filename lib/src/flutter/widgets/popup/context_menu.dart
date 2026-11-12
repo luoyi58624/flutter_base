@@ -8,13 +8,16 @@ import 'package:flutter/widgets.dart';
 
 import '../icon/content.dart';
 import '../../utils/internal/focus.dart';
+import '../../utils/internal/haptics.dart';
 import '../../views/selection/common/selection_chrome_host.dart' show SelectionChromeMountHost, SelectionChromeSlot;
 import '../../views/view/event/event.dart';
+import '../../views/view/render/render_view.dart';
 import '../../views/view/semantics/semantics.dart';
 import '../../views/view/style/style.dart';
 import '../../views/view/view.dart';
 
 part 'menu_overlay.dart';
+part 'menu_touch.dart';
 
 /// 白盒测试识别主菜单面板的稳定 key（[ElContextMenu.open] 包在面板外；
 /// 子菜单面板见 [contextMenuSubmenuPanelKey]）。
@@ -135,6 +138,9 @@ abstract class ElContextMenu {
   /// （点击该行则立即展开）。
   Duration get submenuOpenDelay => const Duration(milliseconds: 150);
 
+  /// 是否启用触屏滑选与系统触感，由移动品牌开启。
+  bool get touchSelection => false;
+
   /// 在 [position]（全局坐标）弹出菜单。
   ///
   /// [context] 是级联捕获点：菜单内延续此处的 vars / 明暗 / 断点环境。
@@ -173,6 +179,7 @@ abstract class ElContextMenu {
       chain: _MenuChain(
         rootOverlay,
         restoreFocus,
+        touchSelection: touchSelection,
         onNavigatePrevious: onNavigatePrevious,
         onNavigateNext: onNavigateNext,
       ),
@@ -314,7 +321,17 @@ abstract class ElContextMenu {
 enum _MenuFocusBoundary { first, last }
 
 class _MenuChain {
-  _MenuChain(this.rootOverlay, this.restoreFocus, {this.onNavigatePrevious, this.onNavigateNext});
+  _MenuChain(
+    this.rootOverlay,
+    this.restoreFocus, {
+    required bool touchSelection,
+    this.onNavigatePrevious,
+    this.onNavigateNext,
+  }) {
+    if (touchSelection) _touch = _MenuTouchSelection(this);
+  }
+
+  _MenuTouchSelection? _touch;
 
   /// 主菜单与所有子菜单共用的弹层选择器。
   final bool rootOverlay;
@@ -370,6 +387,7 @@ class _MenuChain {
   }
 
   void unregisterItem(_MenuItemHostState item) {
+    _touch?.removeItem(item);
     final items = _items[item.widget.level];
     items?.remove(item);
     if (items?.isEmpty ?? false) _items.remove(item.widget.level);
@@ -446,6 +464,7 @@ class _MenuChain {
 
   /// 关闭并摘除 ≥ [level] 的全部面板（深层先关）。
   void closeFrom(int level) {
+    _touch?.closeFrom(level);
     while (_entries.length > level) {
       final opener = _openers.removeLast();
       opener?._setExpanded(false);
@@ -506,6 +525,7 @@ class _MenuItemHost extends StatefulWidget {
 
 class _MenuItemHostState extends State<_MenuItemHost> {
   Timer? _hoverTimer;
+  final _surfaceKey = GlobalKey();
   late final FocusNode _focusNode;
   bool _expanded = false;
 
@@ -550,13 +570,13 @@ class _MenuItemHostState extends State<_MenuItemHost> {
 
   void _requestFocus(ElFocusReason reason) => widget.chain.focusItem(this, reason);
 
-  void _handleEnter() {
+  void _handleEnter({bool requestFocus = true}) {
     final chain = widget.chain;
     // 本行已开的子面板保持（从子面板移回父行不闪断）。
     if (identical(chain.openerAt(_submenuLevel), this)) return;
     // 移到其他行：收起兄弟行开的子面板（及更深层）。
     chain.closeFrom(_submenuLevel);
-    _requestFocus(ElFocusReason.pointer);
+    if (requestFocus) _requestFocus(ElFocusReason.pointer);
     if (!widget.item.hasChildren || !widget.item.enabled) return;
     _hoverTimer?.cancel();
     _hoverTimer = Timer(widget.menu.submenuOpenDelay, () => _openSubmenu());
@@ -565,6 +585,35 @@ class _MenuItemHostState extends State<_MenuItemHost> {
   void _handleExit() {
     _hoverTimer?.cancel();
     _hoverTimer = null;
+  }
+
+  void _setTouchHighlighted(bool value) {
+    final render = _surfaceKey.currentContext?.findRenderObject();
+    if (render is ElRenderView && render.attached) render.setTap(value);
+  }
+
+  /// 可滚动菜单优先响应滚动，不进入滑选；尺寸未知时同样按可滚动处理。
+  bool get _scrollableMenu {
+    final position = Scrollable.maybeOf(context)?.position;
+    return position != null && (!position.hasContentDimensions || position.maxScrollExtent > position.minScrollExtent);
+  }
+
+  bool _allowsTouchPan() =>
+      mounted && widget.item.enabled && widget.chain._touch?.isTracking != true && !_scrollableMenu;
+
+  void _handleTap(ElEventDetails event) {
+    if (widget.chain._touch?.suppresses(event.originalEvent) == true) return;
+    if (widget.chain._touch != null) TouchHaptics.activate(event.originalEvent);
+    _activate();
+  }
+
+  void _handleLongPress(ElEventDetails event) {
+    final original = event.originalEvent;
+    if (original is! PointerDownEvent || !TouchHaptics.accepts(original) || _scrollableMenu) {
+      event.preventDefault();
+      return;
+    }
+    if (widget.chain._touch?.begin(original, armed: true) == true) TouchHaptics.activate(original);
   }
 
   /// 在行右侧展开子面板：rightStart 贴行（行全局矩形右上角），越界翻转后置。
@@ -667,13 +716,16 @@ class _MenuItemHostState extends State<_MenuItemHost> {
 
   @override
   Widget build(BuildContext context) {
-    return ElView(
-      style: const ElStyle(minWidth: '100%', userSelect: .none),
-      event: ElEvent(onPointerEnter: (_) => _handleEnter(), onPointerExit: (_) => _handleExit()),
+    Widget surface = KeyedSubtree(
+      key: _surfaceKey,
       child: ElView(
         key: contextMenuItemSurfaceKey(widget.index, level: widget.level),
         style: widget.menu.buildItemStyle(context, widget.item),
-        event: ElEvent(onTap: widget.item.enabled ? (_) => _activate() : null, onKeyDown: _handleKeyDown),
+        event: ElEvent(
+          onTap: widget.item.enabled ? _handleTap : null,
+          onLongPress: widget.item.enabled && widget.chain._touch != null ? _handleLongPress : null,
+          onKeyDown: _handleKeyDown,
+        ),
         focusNode: _focusNode,
         semantics: ElSemantics(
           container: true,
@@ -687,6 +739,31 @@ class _MenuItemHostState extends State<_MenuItemHost> {
         ),
         child: ElView(semantics: ElSemantics(exclude: true), child: widget.menu.buildItemContent(context, widget.item)),
       ),
+    );
+    if (widget.chain._touch != null) {
+      surface = MetaData(
+        metaData: this,
+        behavior: HitTestBehavior.translucent,
+        child: RawGestureDetector(
+          gestures: {
+            _MenuPanRecognizer: GestureRecognizerFactoryWithHandlers<_MenuPanRecognizer>(
+              () => _MenuPanRecognizer(),
+              (recognizer) => recognizer
+                ..allows = _allowsTouchPan
+                ..onStart = (details) {
+                  final down = recognizer.down;
+                  if (down != null) widget.chain._touch?.begin(down, position: details.globalPosition, armed: true);
+                },
+            ),
+          },
+          child: surface,
+        ),
+      );
+    }
+    return ElView(
+      style: const ElStyle(minWidth: '100%', userSelect: .none),
+      event: ElEvent(onPointerEnter: (_) => _handleEnter(), onPointerExit: (_) => _handleExit()),
+      child: surface,
     );
   }
 }

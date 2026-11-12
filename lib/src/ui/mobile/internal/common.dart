@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import '../../../flutter/utils/internal/haptics.dart';
 import '../../../flutter/widgets/icon/content.dart';
 import '../../../flutter/views/view/event/event.dart'
     show ElEvent, ElEventDetails, ElEventExt, ElEventHandler, ElEventPhase;
@@ -66,6 +67,18 @@ bool _hitsNestedControl(BuildContext context, ElEventDetails event) {
 
 final _activatedControl = Expando<bool>();
 
+/// 只给确认框操作区等短按场景启用按压跟踪与触感，普通按钮保持原行为。
+class TouchActionScope extends InheritedWidget {
+  /// 子树内的移动按钮启用按压跟踪与触感。
+  const TouchActionScope({super.key, required super.child});
+
+  /// 当前按钮是否位于启用范围内。
+  static bool enabled(BuildContext context) => context.getInheritedWidgetOfExactType<TouchActionScope>() != null;
+
+  @override
+  bool updateShouldNotify(TouchActionScope oldWidget) => false;
+}
+
 /// 内部统一操作宿主，默认只处理指针与语义，显式焦点配置才启用键盘操作。
 class ActionView extends HookWidget {
   /// blocked 保留焦点而禁止激活，用于 loading。
@@ -84,6 +97,8 @@ class ActionView extends HookWidget {
     this.event,
     this.repeatEnter = true,
     this.quickTouchFeedback = false,
+    this.trackTouchPress = false,
+    this.hapticFeedback = false,
     this.activateOnEnter = true,
     this.keyboardBuilder,
     this.excludeChildSemantics = true,
@@ -130,6 +145,12 @@ class ActionView extends HookWidget {
 
   /// 按钮触屏落下立即变色，缩放60ms，其余输入沿用默认过渡。
   final bool quickTouchFeedback;
+
+  /// 按钮显式启用边界按压反馈，移出取消、移回恢复；其他控件保持原行为。
+  final bool trackTouchPress;
+
+  /// 有效触摸激活时发送轻触感。
+  final bool hapticFeedback;
 
   /// 是否接管 Enter。
   final bool activateOnEnter;
@@ -178,6 +199,7 @@ class ActionView extends HookWidget {
       }
       base.onTap?.call(e);
       if (!e.defaultPrevented) onActivate?.call(e);
+      if (!e.defaultPrevented && hapticFeedback) TouchHaptics.activate(e.originalEvent);
       _activatedControl[e.originalEvent ?? e] = true;
     }
 
@@ -212,24 +234,29 @@ class ActionView extends HookWidget {
         final original = e.originalEvent;
         if (original is PointerEvent) {
           directInput.value = original.kind == PointerDeviceKind.touch || original.kind == PointerDeviceKind.stylus;
-          feedbackCancelled.value = false;
-          downPosition.value = e.globalPosition;
-          final render = context.findRenderObject();
-          downBounds.value = render is RenderBox && render.hasSize
-              ? render.localToGlobal(Offset.zero) & render.size
-              : null;
+          if (!trackTouchPress) {
+            feedbackCancelled.value = false;
+            downPosition.value = e.globalPosition;
+            final render = context.findRenderObject();
+            downBounds.value = render is RenderBox && render.hasSize
+                ? render.localToGlobal(Offset.zero) & render.size
+                : null;
+          }
         }
         base.onPointerDown?.call(e);
       },
-      onPointerMove: (e) {
-        final origin = downPosition.value;
-        if (directInput.value &&
-            origin != null &&
-            ((e.globalPosition - origin).distance > 10 || downBounds.value?.contains(e.globalPosition) == false)) {
-          feedbackCancelled.value = true;
-        }
-        base.onPointerMove?.call(e);
-      },
+      onPointerMove: trackTouchPress
+          ? base.onPointerMove
+          : (e) {
+              final origin = downPosition.value;
+              if (directInput.value &&
+                  origin != null &&
+                  ((e.globalPosition - origin).distance > 10 ||
+                      downBounds.value?.contains(e.globalPosition) == false)) {
+                feedbackCancelled.value = true;
+              }
+              base.onPointerMove?.call(e);
+            },
       onTap: activate,
       onKeyDown: ownsKeys ? (e) => keyDown(e) : base.onKeyDown,
       onKeyRepeat: ownsKeys ? (e) => keyDown(e, repeat: true) : base.onKeyRepeat,
@@ -251,7 +278,7 @@ class ActionView extends HookWidget {
       },
     );
     final reduced = reducedMotion(context);
-    final inputStyle = feedbackCancelled.value ? style.copyWith(onTap: const ElStyle()) : style;
+    final inputStyle = !trackTouchPress && feedbackCancelled.value ? style.copyWith(onTap: const ElStyle()) : style;
     final pointerStyle = quickTouchFeedback && directInput.value
         ? inputStyle.copyWith(
             onTap: inputStyle.onTap?.copyWith(
