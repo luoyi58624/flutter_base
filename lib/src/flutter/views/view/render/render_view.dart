@@ -1249,6 +1249,23 @@ class ElRenderView extends RenderBox
     if (setLayoutReference(width, height) && notify) markSubtreeNeedsLayoutForReference();
   }
 
+  @override
+  bool get dependsOnAncestorReferenceWidth {
+    if (!hasSize || constraints.hasBoundedWidth) return false;
+    final box = _committedResolved.box;
+    return _usesRelativeLength(box.width) || _usesRelativeLength(box.minWidth) || _usesRelativeLength(box.maxWidth);
+  }
+
+  @override
+  bool get dependsOnAncestorReferenceHeight {
+    if (!hasSize || constraints.hasBoundedHeight) return false;
+    final box = _committedResolved.box;
+    return _usesRelativeLength(box.height) || _usesRelativeLength(box.minHeight) || _usesRelativeLength(box.maxHeight);
+  }
+
+  static bool _usesRelativeLength(ElDimension? value) =>
+      value?.kind == ElLengthKind.percent || value?.kind == ElLengthKind.calc;
+
   /// auto 终点必须测量真实子树；临时参照和富文本上下文在测量后恢复。
   Size _layoutBoxSizeForResolved(ResolvedStyle resolved, _BoxLayout committed) {
     final metrics = _prepareLayout(resolved, constraints);

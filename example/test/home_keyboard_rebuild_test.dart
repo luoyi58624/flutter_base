@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,13 +43,30 @@ void main() {
     final reports = <Map<String, Object>>[];
     Future<void> sample(String phase, FutureOr<void> Function() action) async {
       builds.clear();
+      final before = {
+        for (final render in tester.renderObjectList<ElRenderView>(find.byType(ElView, skipOffstage: false)))
+          render: render.debugLayoutCount,
+      };
       await action();
       await tester.pump();
+      var layouts = 0, offscreenLayouts = 0;
+      final viewport = Rect.fromLTWH(0, 57, 390, scroll.position.viewportDimension);
+      for (final entry in before.entries) {
+        final render = entry.key;
+        final count = render.debugLayoutCount - entry.value;
+        layouts += count;
+        if (count > 0 && render.attached && render.hasSize) {
+          final rect = MatrixUtils.transformRect(render.getTransformTo(null), render.paintBounds);
+          if (!rect.overlaps(viewport)) offscreenLayouts += count;
+        }
+      }
       final sorted = builds.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
       reports.add({
         'phase': phase,
         'builds': builds.values.fold<int>(0, (sum, count) => sum + count),
         'byType': Map.fromEntries(sorted),
+        'layouts': layouts,
+        'offscreenLayouts': offscreenLayouts,
       });
       expect(tester.takeException(), isNull, reason: phase);
     }
@@ -74,7 +92,9 @@ void main() {
     }
     final json = JsonEncoder.withIndent('  ').convert(reports);
     for (final report in reports) {
-      debugPrint('${report['phase']}: ${report['builds']} 次构建');
+      debugPrint(
+        '${report['phase']}: ${report['builds']} 次构建，${report['layouts']} 次布局，屏外 ${report['offscreenLayouts']}',
+      );
     }
     final report = Platform.environment['HOME_KEYBOARD_REPORT'];
     if (report != null) File(report).writeAsStringSync(json);
@@ -86,6 +106,8 @@ void main() {
       expect(types['ShowcaseHero'] ?? 0, 0, reason: '${report['phase']} 不重建屏外首屏');
       expect(types['EditableView'] ?? 0, 0, reason: '${report['phase']} 不唤醒常驻编辑器');
       expect(report['builds'], lessThan(1000), reason: '${report['phase']} 只更新导航与视口');
+      expect(report['layouts'], lessThan(50), reason: '${report['phase']} 不能把整棵 ElView 子树标记为需要布局');
+      expect(report['offscreenLayouts'], lessThan(10), reason: '${report['phase']} 不重排屏外展示内容');
     }
   });
 }

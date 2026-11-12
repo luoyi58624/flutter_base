@@ -1,15 +1,7 @@
 import 'package:flutter/foundation.dart' show protected;
 import 'package:flutter/rendering.dart';
 
-/// 布局参照系统 v1：让"尺寸进场即知"（tight 约束 / sizedByParent / 显式声明）
-/// 的 render 节点在布局 children 之前把自己的 content box 尺寸写进实例字段，
-/// 后代遇到无界约束时沿 parent 链爬到最近提供者读参照——CSS containing block
-/// 链在 Flutter 硬约束系统里的等价物。
-///
-/// **v1 严格边界**：只服务于显式百分比（width/height/minWidth/maxWidth/
-/// minHeight/maxHeight 的 percent/calc 解析）与嵌套滚动视口（`_viewportSizeFor`
-/// 的无界轴兜底）。**不服务**文本换行、auto 宽 fill——那是 v2，需要区分
-/// 生长轴/参照轴。
+/// 在布局子节点前提供内容区尺寸，供无界轴上的百分比长度读取最近祖先参照。
 ///
 /// **契约**：
 /// - 值语义 = content box 尺寸（已减 padding），双轴独立；该轴尺寸不可知
@@ -18,50 +10,55 @@ import 'package:flutter/rendering.dart';
 ///   遍历读到的是**上一真实布局帧**的值，不做登记，不影响正确性（percent
 ///   在 intrinsic 通道本就退化为 undefined）。
 mixin LayoutReferenceBox on RenderBox {
+  static const _widthAxis = 1;
+  static const _heightAxis = 2;
+
   double? _referenceWidth;
   double? _referenceHeight;
+  int _changedReferenceAxes = 0;
 
-  /// 参照登记入口。**只写值不唤醒**：返回 bool 表示两轴合并是否变化，
-  /// 唤醒责任移交给调用方按具体场景判断（约束等价性可能已经天然触发重排，
-  /// 唤醒往往冗余，见下）。
-  ///
-  /// **为什么把唤醒踢给调用方**：参照变化 ⇔ 是否需要唤醒后代 之间没有 1:1
-  /// 关系——
-  /// - ElRenderView：提供者资格 = tight 约束或显式尺寸；Flex 等夹层仍可能
-  ///   给后代传入不变的无界约束，因此参照变化需要唤醒后代；首次布局没有
-  ///   历史几何时可跳过这次遍历；
-  /// - 无界约束的夹层：child 约束不随参照变化，参照变化**必须**唤醒
-  ///   （Flutter `layout()` 的 `!_needsLayout && constraints == _constraints`
-  ///   短路会冻结子树）。
-  ///
-  /// 精确判据为「参照变化 && childConstraints 与上次一致」；
-  /// 消费者登记式唤醒留作 v2 优化。
+  /// 当前布局是否使用祖先宽度参照。
+  @protected
+  bool get dependsOnAncestorReferenceWidth;
+
+  /// 当前布局是否使用祖先高度参照。
+  @protected
+  bool get dependsOnAncestorReferenceHeight;
+
+  /// 更新参照并返回是否变化，调用方可在首次布局时跳过后代通知。
   @protected
   bool setLayoutReference(double? width, double? height) {
-    if (_referenceWidth == width && _referenceHeight == height) return false;
+    _changedReferenceAxes =
+        (_referenceWidth == width ? 0 : _widthAxis) | (_referenceHeight == height ? 0 : _heightAxis);
     _referenceWidth = width;
     _referenceHeight = height;
-    return true;
+    return _changedReferenceAxes != 0;
   }
 
-  /// 递归对整棵子树 `markNeedsLayout`——调用方在判定参照变化需要唤醒时用。
-  ///
-  /// **必须走 [invokeLayoutCallback]**：Flutter 在 performLayout 期间对
-  /// `markNeedsLayout` 做 `_debugCanPerformMutations` 检查，非
-  /// `_doingThisLayoutWithCallback` 上下文里 mutate 子树会 assert 失败。
-  /// invokeLayoutCallback 把标志位置起来，允许我们在 layout 阶段合法 mark
-  /// 后代——child 尚未 layout，mark 只是置位，冒泡到 relayoutBoundary 后
-  /// 进入 owner 列表，Flutter 会在本次 flushLayout 内继续处理。
+  /// 只唤醒依赖变化轴的后代，遇到该轴的近层参照时停止向下传播。
   @protected
   void markSubtreeNeedsLayoutForReference() {
-    invokeLayoutCallback<Constraints>((_) {
-      visitChildren(_markSubtreeNeedsLayout);
-    });
-  }
+    var axes = _changedReferenceAxes;
+    if (axes == 0) return;
+    void visit(RenderObject node) {
+      final inheritedAxes = axes;
+      if (node is LayoutReferenceBox) {
+        if ((axes & _widthAxis != 0 && node.dependsOnAncestorReferenceWidth) ||
+            (axes & _heightAxis != 0 && node.dependsOnAncestorReferenceHeight)) {
+          node.markNeedsLayout();
+        }
+        // 近层提供者若也依赖祖先，会在自己的布局中继续发布参照变化。
+        if (node._referenceWidth != null) axes &= ~_widthAxis;
+        if (node._referenceHeight != null) axes &= ~_heightAxis;
+      }
+      if (axes != 0) node.visitChildren(visit);
+      axes = inheritedAxes;
+    }
 
-  static void _markSubtreeNeedsLayout(RenderObject node) {
-    node.markNeedsLayout();
-    node.visitChildren(_markSubtreeNeedsLayout);
+    // Flex 等夹层可能维持相同约束；只标记实际消费者，让 Flutter 沿父链安排必要布局。
+    invokeLayoutCallback<Constraints>((_) {
+      visitChildren(visit);
+    });
   }
 
   /// 沿 parent 链爬到最近提供**宽度参照**的祖先——按轴独立（width 与 height
