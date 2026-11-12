@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/desktop.dart';
 
 class ElScrollPage extends StatelessWidget {
@@ -9,16 +9,12 @@ class ElScrollPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('ElScroll 测试')),
-      body: ElScroll.sliver(
+      body: CustomScrollView(
+        scrollCacheExtent: ScrollCacheExtent.viewport(2.0),
         slivers: [
-          ElSliverRefresh(
-            onRefresh: () async {
-              // await 200.ms.delay();
-            },
-          ),
           SliverPadding(
             padding: .all(8),
-            sliver: ElSliverRecyclerList(itemCount: 1000, itemBuilder: (context, index) => _ShopCard(index)),
+            sliver: SliverList.builder(itemCount: 1000, itemBuilder: (context, index) => _ShopCard(index)),
           ),
         ],
       ),
@@ -26,44 +22,21 @@ class ElScrollPage extends StatelessWidget {
   }
 }
 
-class _ShopCard extends HookWidget {
+class _ShopCard extends StatelessWidget {
   const _ShopCard(this.index);
 
-  final ValueListenable<int> index;
+  final int index;
 
-  static String _shopTitle(int index) => 'Title - ${index + 1}';
+  Widget _text(String label, TextStyle style) => ElText(label, style: style, maxLines: 1, overflow: .ellipsis);
 
-  Widget _text(String Function(int) label, TextStyle style) => ValueListenableBuilder<int>(
-    valueListenable: index,
-    builder: (context, index, _) => ElText(label(index), style: style, maxLines: 1, overflow: .ellipsis),
-  );
-
-  Widget _photo({int? productIndex}) => ValueListenableBuilder<int>(
-    valueListenable: index,
-    builder: (context, index, _) {
-      final seed = productIndex == null ? 'shop-$index' : 'shop-$index-product-$productIndex';
-      return ElImage('https://picsum.photos/seed/el-scroll-$seed/160/160', fit: .cover);
-    },
-  );
+  Widget _photo({int? productIndex}) {
+    final seed = productIndex == null ? 'shop-$index' : 'shop-$index-product-$productIndex';
+    return ElImage('https://picsum.photos/seed/el-scroll-$seed/160/160', fit: .cover);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = useScrollController(keepScrollOffset: false);
-    useEffect(() {
-      var boundIndex = index.value;
-      void resetOffset() {
-        if (boundIndex == index.value) return;
-        boundIndex = index.value;
-        // 保留横向滚动容器，换绑时结束上一条目的滚动并从起点展示。
-        if (!controller.hasClients) return;
-        final position = controller.position;
-        if (position.pixels != 0 || position.isScrollingNotifier.value) position.jumpTo(0);
-      }
-
-      index.addListener(resetOffset);
-      return () => index.removeListener(resetOffset);
-    }, [index, controller]);
-
+    final title = 'Title - ${index + 1}';
     return ElView(
       style: ElStyle(
         backgroundColor: Colors.white,
@@ -86,14 +59,14 @@ class _ShopCard extends HookWidget {
                 child: Column(
                   crossAxisAlignment: .start,
                   children: [
-                    _text(_shopTitle, TextStyle(fontWeight: .w500, fontSize: 13)),
+                    _text(title, TextStyle(fontWeight: .w500, fontSize: 13)),
                     Row(
                       children: [
-                        Flexible(child: _text((index) => '${_shopTitle(index)} ' * 3, TextStyle(fontSize: 12))),
+                        Flexible(child: _text('$title ' * 3, TextStyle(fontSize: 12))),
                         ElText('最快30分钟送达', style: TextStyle(fontSize: 12)),
                       ],
                     ),
-                    _text(_shopTitle, TextStyle(fontSize: 12)),
+                    _text(title, TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
@@ -113,7 +86,6 @@ class _ShopCard extends HookWidget {
                     behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
                     child: ElScroll.sliver(
                       axis: .horizontal,
-                      controller: controller,
                       slivers: [
                         SliverList.builder(
                           itemCount: 10,
@@ -125,10 +97,7 @@ class _ShopCard extends HookWidget {
                                 crossAxisAlignment: .stretch,
                                 children: [
                                   Expanded(child: _photo(productIndex: productIndex)),
-                                  _text(
-                                    (index) => '${_shopTitle(index)} · ${productIndex + 1}',
-                                    TextStyle(fontSize: 12),
-                                  ),
+                                  _text('$title · ${productIndex + 1}', TextStyle(fontSize: 12)),
                                   ElText('¥${productIndex + 1}', style: TextStyle(fontSize: 12, color: Colors.red)),
                                 ],
                               ),
