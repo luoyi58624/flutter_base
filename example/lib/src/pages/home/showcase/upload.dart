@@ -11,7 +11,7 @@ class UploadShowcase extends StatelessWidget {
   /// 创建自动和手动上传两个示例。
   const UploadShowcase({super.key});
   @override
-  Widget build(BuildContext context) => ShowcaseGrid(children: [_Upload(auto: true), _Upload(auto: false)]);
+  Widget build(BuildContext context) => ShowcaseGrid.sliver(children: [_Upload(auto: true), _Upload(auto: false)]);
 }
 
 class _Upload extends HookWidget {

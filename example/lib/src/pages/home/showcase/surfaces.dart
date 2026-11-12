@@ -15,13 +15,13 @@ class SurfacesShowcase extends StatelessWidget {
     title: '卡片与导航',
     description: '柔和的层次和留白，突出内容本身。',
     links: {'surface-cards': '卡片与阴影', 'surface-images': '头像与图片', 'surface-navigation': '导航与列表'},
-    child: demoColumn([
+    child: ShowcaseSlivers([
       demoAnchor(context, 'surface-cards', _Cards()),
-      _Shadows(),
+      showcaseSliver(_Shadows()),
       demoAnchor(context, 'surface-images', _Identity()),
       _Images(),
-      demoAnchor(context, 'surface-navigation', _AppBar()),
-      _Navigation(),
+      demoAnchor(context, 'surface-navigation', showcaseSliver(_AppBar())),
+      showcaseSliver(_Navigation()),
       _Lists(),
     ], gap: 22),
   );
@@ -38,7 +38,7 @@ class _Cards extends StatelessWidget {
       ),
       demoHint(context, description, size: 13),
     ], gap: 8);
-    return demoColumn([
+    return showcaseSliverList([
       heading('快捷卡片', 'onTap 开启整张卡片的按压反馈，统一处理触摸与显式启用的键盘激活。'),
       ShowcaseGrid(
         columns: 4,
@@ -263,7 +263,7 @@ class _Identity extends HookWidget {
       ),
       label,
     );
-    return demoColumn([
+    return showcaseSliverList([
       ShowcasePanel(
         title: '头像与身份',
         description: '用头像、名称和状态快速建立身份感。',
@@ -357,7 +357,7 @@ class _Images extends HookWidget {
         ],
       ),
     );
-    return ShowcaseGrid(
+    return ShowcaseGrid.sliver(
       children: [
         ShowcasePanel(
           title: '图片填充',
@@ -548,7 +548,7 @@ class _Lists extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final appearance = useState('跟随系统'), sync = useState(['文档', '图片']), auto = useState(true), sort = useState('最近更新');
-    return ShowcaseGrid(
+    return ShowcaseGrid.sliver(
       children: [
         ShowcasePanel(
           title: '选择列表',

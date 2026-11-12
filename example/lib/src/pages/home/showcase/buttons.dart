@@ -74,12 +74,14 @@ class ButtonShowcase extends HookWidget {
       category: '基础组件',
       title: '按钮与标签',
       description: '清晰的操作层级，自然的按压反馈。',
-      child: demoColumn([
-        Text(
-          '按钮',
-          style: TextStyle(fontSize: 17, fontWeight: .w600, color: t.textColor),
+      child: ShowcaseSlivers([
+        showcaseSliver(
+          Text(
+            '按钮',
+            style: TextStyle(fontSize: 17, fontWeight: .w600, color: t.textColor),
+          ),
         ),
-        ShowcaseGrid(
+        ShowcaseGrid.sliver(
           columns: scope.width >= 1060 ? 3 : 2,
           gap: scope.mobile ? 20 : 24,
           children: [
@@ -159,12 +161,14 @@ class ButtonShowcase extends HookWidget {
             ),
           ],
         ),
-        SizedBox(height: (scope.width * .04).clamp(28, 44) - 12),
-        Text(
-          '标签',
-          style: TextStyle(fontSize: 17, fontWeight: .w600, color: t.textColor),
+        showcaseSliver(SizedBox(height: (scope.width * .04).clamp(28, 44) - 12)),
+        showcaseSliver(
+          Text(
+            '标签',
+            style: TextStyle(fontSize: 17, fontWeight: .w600, color: t.textColor),
+          ),
         ),
-        ShowcaseGrid(
+        ShowcaseGrid.sliver(
           children: [
             ShowcasePanel(
               title: '状态标签',

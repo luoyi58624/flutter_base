@@ -136,6 +136,16 @@ class ShowcaseHeader extends HookWidget implements PreferredSizeWidget {
           padding: .symmetric(horizontal: inset),
           borderRadius: .zero,
           backgroundColor: t.cardColor,
+          // 断点切换时结构和留白必须同步，避免旧宽屏内边距挤压手机导航。
+          transition: MediaQuery.disableAnimationsOf(context)
+              ? []
+              : [
+                  ElTransition.fields(
+                    {ElTransitionField.backgroundColor, ElTransitionField.border, ElTransitionField.boxShadow},
+                    Duration(milliseconds: 150),
+                    Curves.easeOut,
+                  ),
+                ],
           boxShadow: selected.isEmpty
               ? []
               : [BoxShadow(color: Colors.black.withValues(alpha: .06), offset: Offset(0, 8), blurRadius: 20)],

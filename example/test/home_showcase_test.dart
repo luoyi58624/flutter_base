@@ -66,16 +66,19 @@ Future<void> screenshot(WidgetTester tester, String name) async {
   });
 }
 
+/// 截图与跨断点验证共用同一套文字和图标字形。
+Future<void> loadShowcaseFonts() async {
+  final icons = FontLoader('MaterialIcons')..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+  await icons.load();
+  final font = File('C:/Windows/Fonts/msyh.ttc');
+  if (font.existsSync()) {
+    final loader = FontLoader('Roboto')..addFont(Future.value(ByteData.sublistView(await font.readAsBytes())));
+    await loader.load();
+  }
+}
+
 void main() {
-  setUpAll(() async {
-    final icons = FontLoader('MaterialIcons')..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
-    await icons.load();
-    final font = File('C:/Windows/Fonts/msyh.ttc');
-    if (font.existsSync()) {
-      final loader = FontLoader('Roboto')..addFont(Future.value(ByteData.sublistView(await font.readAsBytes())));
-      await loader.load();
-    }
-  });
+  setUpAll(loadShowcaseFonts);
   testWidgets('完整首页手机、宽屏、暗色与大字无布局异常', (tester) async {
     debugDisableShadows = false;
     try {
@@ -92,7 +95,7 @@ void main() {
       ]) {
         debugPrint('布局检查：${config.$4}');
         await host(tester, width: config.$1, dark: config.$2, scale: config.$3);
-        expect(find.byType(ShowcaseSection), findsNWidgets(5));
+        expect(find.byType(ShowcaseSection, skipOffstage: false), findsNWidgets(5));
         expect(tester.takeException(), isNull);
         await screenshot(tester, '${config.$4}-hero');
         for (final id in [

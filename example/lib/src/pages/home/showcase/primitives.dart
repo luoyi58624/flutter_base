@@ -11,13 +11,13 @@ class PrimitivesShowcase extends StatelessWidget {
   /// 创建基础反馈示例。
   const PrimitivesShowcase({super.key});
   @override
-  Widget build(BuildContext context) => demoColumn([
-    ShowcaseGrid(children: [_Tooltips(), _Dividers()]),
-    _Progress(),
-    _Playback(),
+  Widget build(BuildContext context) => ShowcaseSlivers([
+    ShowcaseGrid.sliver(children: [_Tooltips(), _Dividers()]),
+    showcaseSliver(ShowcaseMotion(child: _Progress())),
+    showcaseSliver(ShowcaseMotion(child: _Playback())),
     _Sliders(),
-    _Notices(),
-    _Steps(),
+    showcaseSliver(_Notices()),
+    showcaseSliver(_Steps()),
   ], gap: 22);
 }
 
@@ -227,7 +227,9 @@ class _Progress extends HookWidget {
             ], gap: 24),
           ],
         ),
-        ElProgress(showText: false, semanticLabel: '等待服务器响应'),
+        ShowcaseMotion(
+          child: RepaintBoundary(child: ElProgress(showText: false, semanticLabel: '等待服务器响应')),
+        ),
         demoHint(context, '无法预估完成时间时，用不确定进度表达正在处理。'),
       ], gap: 22),
     );
@@ -322,8 +324,8 @@ class _Sliders extends HookWidget {
         temperature = useState(20.0),
         range = useState([20.0, 70.0]),
         volume = useState(36.0);
-    return demoColumn([
-      ShowcaseGrid(
+    return ShowcaseSlivers([
+      ShowcaseGrid.sliver(
         gap: 32,
         children: [
           ShowcasePanel(
@@ -372,31 +374,33 @@ class _Sliders extends HookWidget {
           ),
         ],
       ),
-      ShowcasePanel(
-        title: '提示箭头',
-        description: '默认箭头指向目标，也可以使用不带箭头的简洁面板。',
-        child: demoActions([
-          ElButton(
-            variant: .text,
-            child: '重置示例',
-            onPressed: () {
-              stepped.value = 50;
-              temperature.value = 20;
-              range.value = [20, 70];
-              volume.value = 36;
-            },
-          ),
-          ElTooltip(
-            arrow: false,
-            content: '圆角面板，简洁的文字提示',
-            child: ElButton(variant: .outline, child: '无箭头提示'),
-          ),
-          ElTooltip(
-            placement: .bottom,
-            content: '提示会随目标位置自动调整',
-            child: ElButton(variant: .outline, child: '默认箭头'),
-          ),
-        ], gap: 12),
+      showcaseSliver(
+        ShowcasePanel(
+          title: '提示箭头',
+          description: '默认箭头指向目标，也可以使用不带箭头的简洁面板。',
+          child: demoActions([
+            ElButton(
+              variant: .text,
+              child: '重置示例',
+              onPressed: () {
+                stepped.value = 50;
+                temperature.value = 20;
+                range.value = [20, 70];
+                volume.value = 36;
+              },
+            ),
+            ElTooltip(
+              arrow: false,
+              content: '圆角面板，简洁的文字提示',
+              child: ElButton(variant: .outline, child: '无箭头提示'),
+            ),
+            ElTooltip(
+              placement: .bottom,
+              content: '提示会随目标位置自动调整',
+              child: ElButton(variant: .outline, child: '默认箭头'),
+            ),
+          ], gap: 12),
+        ),
       ),
     ], gap: 22);
   }

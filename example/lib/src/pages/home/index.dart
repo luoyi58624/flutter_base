@@ -102,41 +102,46 @@ class HomePage extends HookWidget {
               current: current,
               onNavigate: navigate,
             );
-            final scroll = ElScroll(
+            final scroll = ElScroll.sliver(
               key: PageStorageKey('showcase-scroll'),
               controller: controller,
-              padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
-              children: [
-                ShowcaseHero(onExplore: () => navigate('actions'), onTakeaway: () => navigate('takeaway')),
-                SizedBox(height: mobile ? 28 : 46),
-                for (final entry in <String, Widget>{
-                  'actions': ButtonShowcase(),
-                  'controls': ControlsShowcase(),
-                  'surfaces': SurfacesShowcase(),
-                  'feedback': FeedbackShowcase(),
-                  'scenarios': ScenariosShowcase(),
-                }.entries) ...[
-                  // 屏外的无限进度动画暂停，页面状态与组件实例仍然保留。
-                  ValueListenableBuilder(
-                    valueListenable: current,
-                    child: entry.value,
-                    builder: (_, selected, child) => TickerMode(enabled: selected == entry.key, child: child!),
-                  ),
-                  if (entry.key != 'scenarios') SizedBox(height: (width * .07).clamp(52, 90)),
-                ],
-                SizedBox(height: mobile ? 36 : 56),
-                ElView(
-                  style: ElStyle(
-                    padding: .only(top: 14, bottom: 22),
-                    border: ElBorder.only(borderTop: ElBorderSide(borderColor: context.elTheme.borderColor)),
-                  ),
-                  child: Wrap(
-                    alignment: .spaceBetween,
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      demoHint(context, 'my-ui · 简洁、自然的移动组件'),
-                      ElButton(variant: .link, child: '回到顶部 ↑', onPressed: () => navigate('top')),
+              slivers: [
+                SliverPadding(
+                  padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      showcaseSliver(
+                        ShowcaseHero(onExplore: () => navigate('actions'), onTakeaway: () => navigate('takeaway')),
+                      ),
+                      showcaseSliver(SizedBox(height: mobile ? 28 : 46)),
+                      for (final entry in <String, Widget>{
+                        'actions': ButtonShowcase(),
+                        'controls': ControlsShowcase(),
+                        'surfaces': SurfacesShowcase(),
+                        'feedback': FeedbackShowcase(),
+                        'scenarios': ScenariosShowcase(),
+                      }.entries) ...[
+                        entry.value,
+                        if (entry.key != 'scenarios') showcaseSliver(SizedBox(height: (width * .07).clamp(52, 90))),
+                      ],
+                      showcaseSliver(SizedBox(height: mobile ? 36 : 56)),
+                      showcaseSliver(
+                        ElView(
+                          style: ElStyle(
+                            padding: .only(top: 14, bottom: 22),
+                            border: ElBorder.only(borderTop: ElBorderSide(borderColor: context.elTheme.borderColor)),
+                          ),
+                          child: Wrap(
+                            alignment: .spaceBetween,
+                            spacing: 12,
+                            runSpacing: 8,
+                            children: [
+                              demoHint(context, 'my-ui · 简洁、自然的移动组件'),
+                              ElButton(variant: .link, child: '回到顶部 ↑', onPressed: () => navigate('top')),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -146,6 +151,7 @@ class HomePage extends HookWidget {
               width: width,
               anchors: anchors,
               onNavigate: navigate,
+              scrollController: controller,
               child: DefaultTextStyle(
                 style: TextStyle(fontSize: 14, height: 1.5, color: context.elTheme.textColor),
                 child: ExamplePage(

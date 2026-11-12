@@ -24,15 +24,17 @@ class ScenariosShowcase extends StatelessWidget {
       'scenario-inputs': '输入状态',
       'takeaway': '外卖虚拟列表',
     },
-    child: demoColumn([
-      _Profile(),
-      ShowcaseGrid(children: [_Feed(), _Tabs()]),
-      _Inputs(),
-      ShowcasePanel(
-        anchor: 'takeaway',
-        title: '外卖虚拟列表',
-        description: '一万家模拟商家，支持分类、搜索、排序和购物车。',
-        child: TakeawayShowcase(),
+    child: ShowcaseSlivers([
+      showcaseSliver(_Profile()),
+      ShowcaseGrid.sliver(children: [_Feed(), _Tabs()]),
+      showcaseSliver(_Inputs()),
+      showcaseSliver(
+        ShowcasePanel(
+          anchor: 'takeaway',
+          title: '外卖虚拟列表',
+          description: '一万家模拟商家，支持分类、搜索、排序和购物车。',
+          child: TakeawayShowcase(),
+        ),
       ),
     ], gap: 22),
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import 'package:flutter_base/mobile.dart';
 
 /// 展示页共享的锚点和可用宽度，布局按页面而非单张卡片判断断点。
@@ -9,6 +10,7 @@ class ShowcaseScope extends InheritedWidget {
     required this.width,
     required this.anchors,
     required this.onNavigate,
+    this.scrollController,
     required super.child,
   });
 
@@ -21,13 +23,17 @@ class ShowcaseScope extends InheritedWidget {
   /// 滚动到指定小节。
   final ValueChanged<String> onNavigate;
 
+  /// 首页真实滚动位置，用于暂停离屏的演示动画。
+  final ScrollController? scrollController;
+
   /// 读取当前展示环境。
   static ShowcaseScope of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ShowcaseScope>()!;
 
   /// 手机采用单列。
   bool get mobile => width <= 760;
   @override
-  bool updateShouldNotify(ShowcaseScope oldWidget) => width != oldWidget.width;
+  bool updateShouldNotify(ShowcaseScope oldWidget) =>
+      width != oldWidget.width || scrollController != oldWidget.scrollController;
 }
 
 /// 原稿中的独立演示卡片。
@@ -88,9 +94,16 @@ class ShowcasePanel extends StatelessWidget {
 }
 
 /// 按原稿断点排列演示卡片，窄屏保留完整内容自然高度。
-class ShowcaseGrid extends StatelessWidget {
+class ShowcaseGrid extends HookWidget {
   /// columns 指定宽屏列数，手机默认单列。
-  const ShowcaseGrid({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap});
+  const ShowcaseGrid({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap})
+    : _sliver = false;
+
+  /// 顶层卡片按行交给文档 Sliver 裁剪，保留所有卡片的交互状态。
+  const ShowcaseGrid.sliver({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap})
+    : _sliver = true;
+
+  final bool _sliver;
 
   /// 演示卡片。
   final List<Widget> children;
@@ -104,21 +117,125 @@ class ShowcaseGrid extends StatelessWidget {
   /// 覆盖卡片间距。
   final double? gap;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final mobile = ShowcaseScope.of(context).mobile;
-      final count = mobile ? mobileColumns : columns;
-      final space = gap ?? (mobile ? 16 : 18);
-      return Wrap(
-        spacing: space,
-        runSpacing: space,
-        children: [
-          for (final child in children)
-            SizedBox(width: (constraints.maxWidth - space * (count - 1)) / count, child: child),
-        ],
-      );
-    },
+  Widget build(BuildContext context) {
+    final mobile = ShowcaseScope.of(context).mobile;
+    final count = mobile ? mobileColumns : columns;
+    final space = gap ?? (mobile ? 16 : 18);
+    // 跨断点换行时，卡片中的局部状态仍留在原实例。
+    final keys = useMemoized(() => _sliver ? List.generate(children.length, (_) => GlobalKey()) : <GlobalKey>[], [
+      _sliver,
+      children.length,
+    ]);
+    if (_sliver) {
+      return showcaseSliverList([
+        for (var start = 0; start < children.length; start += count)
+          LayoutBuilder(
+            builder: (context, constraints) => Row(
+              crossAxisAlignment: .start,
+              spacing: space,
+              children: [
+                for (var index = start; index < start + count && index < children.length; index++)
+                  SizedBox(
+                    width: (constraints.maxWidth - space * (count - 1)) / count,
+                    child: KeyedSubtree(key: keys[index], child: children[index]),
+                  ),
+              ],
+            ),
+          ),
+      ], gap: space);
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Wrap(
+          spacing: space,
+          runSpacing: space,
+          children: [
+            for (final child in children)
+              SizedBox(width: (constraints.maxWidth - space * (count - 1)) / count, child: child),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 按原有间距串起文档 Sliver，裁剪粒度落在每张卡片或每行卡片。
+class ShowcaseSlivers extends StatelessWidget {
+  /// 子项均为 Sliver，普通内容可通过 showcaseSliver 转接。
+  const ShowcaseSlivers(this.children, {super.key, this.gap = 22});
+
+  /// 按展示顺序排列的分组。
+  final List<Widget> children;
+
+  /// 相邻分组的间距。
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) => SliverMainAxisGroup(
+    slivers: [
+      for (var index = 0; index < children.length; index++) ...[
+        if (index > 0) SliverToBoxAdapter(child: SizedBox(height: gap)),
+        children[index],
+      ],
+    ],
   );
+}
+
+/// 常驻内容交给已有文档 Sliver 排版；静态行随滚动复用绘制结果。
+Widget showcaseSliverList(List<Widget> children, {double gap = 16}) => ElSliverList(
+  stretch: true,
+  spacing: gap,
+  children: [for (final child in children) RepaintBoundary(child: child)],
+);
+
+/// 将单个普通展示块接入文档滚动。
+Widget showcaseSliver(Widget child) => showcaseSliverList([child]);
+
+/// 无限进度和播放示例仅在真正进入视口时运行动画与演示计时器。
+class ShowcaseMotion extends HookWidget {
+  /// 保留子树状态，只切换 TickerMode。
+  const ShowcaseMotion({super.key, required this.child});
+
+  /// 含动画或演示计时器的内容。
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = ShowcaseScope.of(context), scroll = scope.scrollController;
+    final key = useMemoized(GlobalKey.new);
+    final visible = useState(scroll == null), queued = useRef(false);
+    void schedule() {
+      if (queued.value) return;
+      queued.value = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        queued.value = false;
+        if (!context.mounted || scroll == null || !scroll.hasClients) return;
+        final box = key.currentContext?.findRenderObject();
+        if (box is! RenderBox || !box.attached || !box.hasSize) return;
+        final start = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
+        visible.value =
+            start < scroll.offset + scroll.position.viewportDimension && start + box.size.height > scroll.offset;
+      });
+    }
+
+    useEffect(() {
+      scroll?.addListener(schedule);
+      schedule();
+      return () => scroll?.removeListener(schedule);
+    }, [scroll, scope.width, MediaQuery.textScalerOf(context)]);
+    return NotificationListener<SizeChangedLayoutNotification>(
+      onNotification: (_) {
+        schedule();
+        return false;
+      },
+      child: SizeChangedLayoutNotifier(
+        child: TickerMode(
+          enabled: visible.value,
+          child: KeyedSubtree(key: key, child: child),
+        ),
+      ),
+    );
+  }
 }
 
 /// 分区标题与定位链接。
@@ -153,12 +270,12 @@ class ShowcaseSection extends StatelessWidget {
   /// 子节链接，键为定位身份。
   final Map<String, String> links;
 
-  /// 分区内容。
+  /// 按卡片行划分的分区 Sliver。
   final Widget child;
   @override
   Widget build(BuildContext context) {
     final scope = ShowcaseScope.of(context), t = context.elTheme;
-    return Column(
+    final heading = Column(
       key: scope.anchors[id],
       crossAxisAlignment: .stretch,
       mainAxisSize: .min,
@@ -203,9 +320,9 @@ class ShowcaseSection extends StatelessWidget {
           ),
           SizedBox(height: 20),
         ],
-        child,
       ],
     );
+    return SliverMainAxisGroup(slivers: [showcaseSliver(heading), child]);
   }
 }
 
