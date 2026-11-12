@@ -1,5 +1,7 @@
 # 全量常驻的文档 Sliver
 
+本文说明 `ElSliverList(children: ...)`。同一个公开组件还提供 `.builder`、`.recycler`、`.separated`，三种生命周期的区别和包装开关见 [上级说明](../README.md)。
+
 `ElSliverList` 将所有子项一次挂载并自然排版，缓存每项的起止位置；普通滚动使用缓存更新坐标，通过二分查找处理可见内容。思路参考旧示例的 `MyScrollView`，现在接入官方 Sliver 协议，可以与标题、页脚、Recycler 列表和网格放在同一个 `CustomScrollView` 中。
 
 ## 使用

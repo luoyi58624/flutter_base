@@ -139,14 +139,14 @@ void main() {
     final controller = tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
     await _choose(tester, 'takeaway-mode-official');
     expect(find.byType(SliverList), findsOneWidget);
-    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-sliver-grid');
     expect(find.byType(SliverGrid), findsOneWidget);
     expect(tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller, same(controller));
     _expectMenuGeometry(tester, 1.6);
     await _choose(tester, 'takeaway-mode-recycler');
-    expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
     _expectMenuGeometry(tester, 1.6);
     await tester.tap(find.byKey(ValueKey('takeaway-sliver-menu')));
     await tester.pumpAndSettle();

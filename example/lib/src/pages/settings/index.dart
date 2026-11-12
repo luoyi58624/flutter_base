@@ -20,7 +20,7 @@ class SettingPage extends StatelessWidget {
       title: '设置',
       child: ElScrollView(
         padding: .all(20),
-        gap: 20,
+        spacing: 20,
         children: [
           ElListGroup(
             title: '主题设置',

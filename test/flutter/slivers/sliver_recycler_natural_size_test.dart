@@ -106,7 +106,7 @@ class _Fixture {
       scrollCacheExtent: ScrollCacheExtent.pixels(0),
       slivers: [
         ...?before,
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: count ?? extents.value.length,
           itemType: typeFor,
           maxRecycledItems: 4,
@@ -383,7 +383,7 @@ void main() {
         physics: ClampingScrollPhysics(),
         scrollCacheExtent: ScrollCacheExtent.pixels(0),
         slivers: [
-          ElSliverRecyclerList(
+          ElSliverList.recycler(
             itemCount: data.rawValue.length,
             itemType: typeFor,
             maxRecycledItems: 4,
@@ -455,21 +455,21 @@ void main() {
           scrollCacheExtent: ScrollCacheExtent.pixels(0),
           slivers: [
             switch (layout) {
-              'Grid' => ElSliverRecyclerGrid(
+              'Grid' => ElSliverGrid.recycler(
                 itemCount: data.rawValue.length,
                 itemType: typeFor,
                 maxRecycledItems: 4,
                 itemBuilder: builder,
                 crossAxisCount: 2,
               ),
-              'Masonry' => ElSliverRecyclerGrid.masonry(
+              'Masonry' => ElSliverMasonry.recycler(
                 itemCount: data.rawValue.length,
                 itemType: typeFor,
                 maxRecycledItems: 4,
                 itemBuilder: builder,
                 crossAxisCount: 2,
               ),
-              _ => ElSliverRecyclerList(
+              _ => ElSliverList.recycler(
                 itemCount: data.rawValue.length,
                 itemType: typeFor,
                 maxRecycledItems: 4,
@@ -562,7 +562,7 @@ void main() {
           physics: ClampingScrollPhysics(),
           scrollCacheExtent: ScrollCacheExtent.pixels(500),
           slivers: [
-            ElSliverRecyclerList(
+            ElSliverList.recycler(
               itemCount: sizes.length,
               itemType: (index) => index == 0 ? 'A' : 'B',
               itemBuilder: (_, index) => ValueListenableBuilder<int>(
@@ -609,7 +609,7 @@ void main() {
           controller: controller,
           scrollCacheExtent: ScrollCacheExtent.pixels(0),
           slivers: [
-            ElSliverRecyclerList(
+            ElSliverList.recycler(
               itemCount: texts.length,
               itemBuilder: (_, index) => ValueListenableBuilder<int>(
                 valueListenable: index,

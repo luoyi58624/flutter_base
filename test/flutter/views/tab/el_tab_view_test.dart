@@ -682,7 +682,7 @@ void main() {
                     height: 80,
                     child: ElScrollView(
                       controller: horizontalController,
-                      axis: Axis.horizontal,
+                      scrollDirection: Axis.horizontal,
                       children: List<Widget>.generate(
                         12,
                         (index) => SizedBox(
@@ -849,7 +849,7 @@ void main() {
                 const Text('page-0'),
                 ElScrollView(
                   controller: horizontalController,
-                  axis: Axis.horizontal,
+                  scrollDirection: Axis.horizontal,
                   children: List<Widget>.generate(
                     12,
                     (index) => SizedBox(

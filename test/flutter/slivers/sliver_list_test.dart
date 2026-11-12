@@ -221,7 +221,7 @@ void main() {
               _ProbeItem(key: ValueKey('混排常驻 $index'), id: index, record: records[index], height: heights[index]),
           ],
         ),
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 30,
           maxRecycledItems: 2,
           itemBuilder: (_, index) {
@@ -509,7 +509,7 @@ void main() {
 
     height.value = 90;
     await _settle(tester);
-    expect(tester.widget<ElSliverList>(find.byType(ElSliverList)), same(resident));
+    expect(tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)), same(resident));
     expect(tester.getSize(find.byKey(ValueKey('动态高度'))), Size(120, 90));
     expect(tester.getRect(find.byKey(ValueKey('固定尺寸'))).top, 98);
     expect(tester.getRect(find.byKey(ValueKey('自然换行'))).top, 156);

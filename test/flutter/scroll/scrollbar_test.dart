@@ -33,7 +33,7 @@ Widget _app(
           child: ElScrollView.sliver(
             controller: controller,
             smoothScroll: smooth ? ElWindowsSmoothScroll() : null,
-            axis: axis,
+            scrollDirection: axis,
             reverse: reverse,
             physics: ClampingScrollPhysics(),
             slivers: [SliverToBoxAdapter(child: SizedBox(width: 1800, height: 1800))],

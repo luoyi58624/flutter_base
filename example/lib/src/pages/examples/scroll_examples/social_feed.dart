@@ -52,7 +52,7 @@ class _RecyclerSocialFeedPageState extends State<RecyclerSocialFeedPage> {
             children: [
               Padding(
                 padding: .fromLTRB(16, 8, 16, 10),
-                child: Text('城市观察 · 万条动态\n长文、九宫格、转发和投票交替出现', style: Theme.of(context).textTheme.bodySmall),
+                child: Text('城市观察 · 千条动态\n长文、九宫格、转发和投票交替出现', style: Theme.of(context).textTheme.bodySmall),
               ),
               Expanded(
                 child: SliverComparisonList(
@@ -128,7 +128,7 @@ class _SocialRecords {
     }
   }
 
-  int getItemCount() => 10000;
+  int getItemCount() => 1000;
 }
 
 Widget _postField<T>(

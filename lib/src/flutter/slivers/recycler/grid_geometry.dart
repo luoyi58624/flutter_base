@@ -1,4 +1,4 @@
-part of 'sliver_recycler.dart';
+part of '../sliver.dart';
 
 // 行高与间距分别累计，零高行不会把同类型的未知行估成仅剩间距。
 class _RecyclerGridRows {
@@ -32,19 +32,9 @@ class _RecyclerGridRows {
   double startAt(int index) => index >= count ? total : rowStart(rowFor(index));
 
   int rowAt(double pixels) {
-    if (rowCount == 0) return 0;
-    var low = 0, high = rowCount;
-    while (low < high) {
-      final middle = (low + high) ~/ 2;
-      if (rowStart(middle) < pixels) {
-        low = middle + 1;
-      } else {
-        high = middle;
-      }
-    }
     // 同一起点优先保留最早的零高行，使局部通知仍能让该行展开。
-    if (low < rowCount && rowStart(low) == pixels) return low;
-    return math.max(0, low - 1);
+    if (pixels <= 0) return 0;
+    return _rows.indexAt(pixels, spacing: mainAxisSpacing, preferFirst: true);
   }
 
   bool measureRow(int row, double extent) => _rows.measure(row, extent);

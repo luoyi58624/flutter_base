@@ -45,7 +45,7 @@ class ElSliverListExamplePage extends HookWidget {
               child: ElScrollView(
                 key: ValueKey('document-scroll'),
                 controller: controller,
-                gap: 24,
+                spacing: 24,
                 padding: .fromLTRB(20, 20, 20, 32),
                 children: [
                   ExamplePanel(

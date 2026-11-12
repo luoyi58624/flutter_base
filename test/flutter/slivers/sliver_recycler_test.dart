@@ -217,7 +217,7 @@ void main() {
     var creations = 0;
     await tester.pumpWidget(
       _app(controller, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 10000,
           itemType: (index) => index % 2,
           itemBuilder: (_, index) {
@@ -259,7 +259,7 @@ void main() {
     await tester.pumpWidget(
       _app(controller, cache: 80, [
         SliverToBoxAdapter(child: SizedBox(height: 60, child: Text('列表上方'))),
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 20,
           itemBuilder: (_, index) => ValueListenableBuilder<int>(
             valueListenable: index,
@@ -295,7 +295,7 @@ void main() {
     final taps = <int>[];
     await tester.pumpWidget(
       _app(controller, axis: Axis.horizontal, reverse: true, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 200,
           itemBuilder: (_, index) => ValueListenableBuilder<int>(
             valueListenable: index,
@@ -323,7 +323,7 @@ void main() {
   testWidgets('替换构建器及改变尺寸、数量后更新条目和总范围', (tester) async {
     final controller = _setup(tester);
     Widget page(int count, double extent, String prefix) => _app(controller, [
-      ElSliverRecyclerList(
+      ElSliverList.recycler(
         itemCount: count,
         itemBuilder: (_, index) => SizedBox(
           height: extent,
@@ -351,7 +351,7 @@ void main() {
     final log = _ReuseLog();
     await tester.pumpWidget(
       _app(controller, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 10000,
           itemBuilder: (_, index) => _StatefulItem(index: index, log: log),
         ),
@@ -391,7 +391,7 @@ void main() {
     final log = _ReuseLog();
     await tester.pumpWidget(
       _app(controller, cache: 80, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 10000,
           maxRecycledItems: 0,
           itemBuilder: (_, index) => _StatefulItem(index: index, log: log),
@@ -424,7 +424,7 @@ void main() {
     int typeFor(int index) => index ~/ 20;
     await tester.pumpWidget(
       _app(controller, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 1000,
           maxRecycledItems: 4,
           itemType: typeFor,
@@ -459,7 +459,7 @@ void main() {
     Widget builder(BuildContext context, ValueListenable<int> index) =>
         _StatefulItem(index: index, log: log, type: typeFor(index.value));
     Widget page() => _app(controller, [
-      ElSliverRecyclerList(itemCount: 100, maxRecycledItems: 4, itemType: typeFor, itemBuilder: builder),
+      ElSliverList.recycler(itemCount: 100, maxRecycledItems: 4, itemType: typeFor, itemBuilder: builder),
     ]);
 
     await tester.pumpWidget(page());
@@ -482,7 +482,7 @@ void main() {
     final controller = _setup(tester);
     final log = _ReuseLog();
     Widget builder(BuildContext context, ValueListenable<int> index) => _StatefulItem(index: index, log: log);
-    Widget page(int count) => _app(controller, [ElSliverRecyclerList(itemCount: count, itemBuilder: builder)]);
+    Widget page(int count) => _app(controller, [ElSliverList.recycler(itemCount: count, itemBuilder: builder)]);
 
     await tester.pumpWidget(page(0));
     expect(controller.position.maxScrollExtent, 0);
@@ -528,7 +528,7 @@ void main() {
     Widget newBuilder(BuildContext context, ValueListenable<int> index) =>
         _StatefulItem(index: index, log: log, prefix: '新');
     Widget page(Widget Function(BuildContext, ValueListenable<int>) builder) =>
-        _app(controller, [ElSliverRecyclerList(itemCount: 100, itemBuilder: builder)]);
+        _app(controller, [ElSliverList.recycler(itemCount: 100, itemBuilder: builder)]);
 
     await tester.pumpWidget(page(oldBuilder));
     controller.jumpTo(800);
@@ -557,7 +557,7 @@ void main() {
     var factoryCalls = 0;
     await tester.pumpWidget(
       _app(controller, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 1,
           itemBuilder: (_, _) {
             factoryCalls++;
@@ -597,7 +597,7 @@ void main() {
     try {
       await tester.pumpWidget(
         _app(controller, [
-          ElSliverRecyclerList(
+          ElSliverList.recycler(
             itemCount: 20,
             maxRecycledItems: 2,
             itemType: (index) => index ~/ 2,
@@ -648,7 +648,7 @@ void main() {
     final log = _LifecycleLog();
     await tester.pumpWidget(
       _app(controller, [
-        ElSliverRecyclerList(
+        ElSliverList.recycler(
           itemCount: 20,
           maxRecycledItems: 2,
           itemType: (index) => index % 2,

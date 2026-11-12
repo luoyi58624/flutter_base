@@ -76,7 +76,9 @@ _TileSnapshot _snapshot(WidgetTester tester, Element element) {
 void main() {
   testWidgets('真实回收瀑布流与 Flutter SliverGrid 在初始元数据下共享两列几何', (tester) async {
     await _open(tester);
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(list.itemCount, 1000);
     final names = ['夜色观察 #0001', '夜色观察 #0002', '林间来客 #0003', '林间来客 #0004'];
     final expected = names.map((title) => tester.getRect(_card(title))).toList();
@@ -87,7 +89,7 @@ void main() {
     expect(expected[2].top, closeTo(expected[1].bottom + 10, .01));
 
     await _chooseFlutter(tester);
-    expect(find.byType(ElSliverRecyclerGrid), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsNothing);
     expect(find.byType(SliverGrid), findsOneWidget);
     for (final (index, title) in names.indexed) {
       final actual = tester.getRect(_card(title));

@@ -5,12 +5,12 @@ import 'package:faker/faker.dart' as fake;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/mobile.dart';
 
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
 import '../../../utils/frame_timing_recorder.dart';
+import '../scroll_examples/scroll_mode.dart';
 
 part 'takeaway_data.dart';
 part 'takeaway_card.dart';
@@ -29,7 +29,7 @@ enum _SliverKind {
 
 /// 用 ElSliver 回收列表和网格滚动同一批外卖商家卡片。
 class TakeawaySliverPage extends StatefulWidget {
-  /// 创建一万家商家的 Sliver 外卖示例，可指定初始使用网络图片。
+  /// 创建一千家商家的 Sliver 外卖示例，可指定初始使用网络图片。
   // ignore: prefer_const_constructors_in_immutables
   TakeawaySliverPage({super.key, this.networkPhotos = false});
 
@@ -45,10 +45,10 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
   final _cart = ValueNotifier<(int, int)>((0, 0));
   final _stores = <int, _Store>{};
   late final _photos = ValueNotifier(widget.networkPhotos);
-  var _indices = List<int>.generate(10000, (index) => index);
+  var _indices = List<int>.generate(1000, (index) => index);
   var _category = -1;
   var _kind = _SliverKind.list;
-  var _official = false;
+  var _mode = SliverExampleMode.recycler;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -59,7 +59,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
     setState(() {
       _category = category;
       _indices = [
-        for (var id = 0; id < 10000; id++)
+        for (var id = 0; id < 1000; id++)
           if (category < 0 || id % _cuisines.length == category) id,
       ];
     });
@@ -78,8 +78,8 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
 
   void _selectOption(Object option) {
     switch (option) {
-      case String mode when mode == 'official' || mode == 'recycler':
-        setState(() => _official = mode == 'official');
+      case final SliverExampleMode mode:
+        setState(() => _mode = mode);
         _resetScroll();
       case _SliverKind kind:
         _choose(kind);
@@ -93,36 +93,34 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
 
   Widget _content() {
     Widget officialItem(BuildContext context, int index) => _sliverItem(context, AlwaysStoppedAnimation(index));
-    final sliver = _official
-        ? (_kind == .list
-              ? SliverList.builder(itemCount: _indices.length, itemBuilder: officialItem)
-              : SliverGrid.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    // 窄格的店铺资料纵向排列，商品仍使用统一的一行名称和等高槽位。
-                    mainAxisExtent: 360 + math.max(0.0, MediaQuery.textScalerOf(context).scale(16) - 16) * 10,
-                  ),
-                  itemCount: _indices.length,
-                  itemBuilder: officialItem,
-                ))
-        : _kind == .list
-        ? ElSliverRecyclerList(itemCount: _indices.length, itemBuilder: _sliverItem)
-        : ElSliverRecyclerGrid(
+    final sliver = _kind == .list
+        ? _mode.list(context, itemCount: _indices.length, itemBuilder: officialItem, recycledItemBuilder: _sliverItem)
+        : _mode.grid(
+            context,
+            itemCount: _indices.length,
+            itemBuilder: officialItem,
+            recycledItemBuilder: _sliverItem,
             crossAxisCount: 2,
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
-            itemCount: _indices.length,
-            itemBuilder: _sliverItem,
+            officialSliver: SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                mainAxisExtent: 360 + math.max(0.0, MediaQuery.textScalerOf(context).scale(16) - 16) * 10,
+              ),
+              itemCount: _indices.length,
+              itemBuilder: officialItem,
+            ),
           );
     return RecyclerExampleScrollbar(
       controller: _controller,
       child: ElScrollView.sliver(
         key: ValueKey('takeaway-sliver'),
         controller: _controller,
-        // 与旧外卖示例关闭同步预取一致，滚动帧先只处理当前视口的复杂卡片。
-        scrollCacheExtent: ScrollCacheExtent.pixels(0),
+        // 所有对照模式使用相同的预布局范围。
+        scrollCacheExtent: ScrollCacheExtent.pixels(250),
         slivers: [SliverPadding(padding: .all(_kind == .grid ? 8 : 0), sliver: sliver)],
       ),
     );
@@ -146,18 +144,19 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
           tooltip: '列表选项',
           onSelected: _selectOption,
           itemBuilder: (context) => [
-            CheckedPopupMenuItem<Object>(
-              key: ValueKey('takeaway-mode-recycler'),
-              checked: !_official,
-              value: 'recycler',
-              child: Text(_kind == .list ? 'ElSliverRecyclerList' : 'ElSliverRecyclerGrid'),
-            ),
-            CheckedPopupMenuItem<Object>(
-              key: ValueKey('takeaway-mode-official'),
-              checked: _official,
-              value: 'official',
-              child: Text(_kind == .list ? 'SliverList' : 'SliverGrid'),
-            ),
+            for (final mode in SliverExampleMode.values)
+              CheckedPopupMenuItem<Object>(
+                key: ValueKey('takeaway-mode-${mode.name}'),
+                checked: _mode == mode,
+                value: mode,
+                child: Text(
+                  mode == .official
+                      ? (_kind == .list ? 'SliverList' : 'SliverGrid')
+                      : mode == .recycler
+                      ? (_kind == .list ? 'ElSliverList.recycler' : 'ElSliverGrid.recycler')
+                      : mode.label,
+                ),
+              ),
             PopupMenuDivider(),
             for (final kind in _SliverKind.values)
               CheckedPopupMenuItem<Object>(

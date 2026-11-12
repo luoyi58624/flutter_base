@@ -24,7 +24,7 @@ class PreviewPage extends StatelessWidget {
       title: 'Preview · 图片画廊',
       child: ElScrollView(
         padding: .all(16),
-        gap: 16,
+        spacing: 16,
         children: [
           ElCard(
             style: ElStyle(padding: .all(16)),

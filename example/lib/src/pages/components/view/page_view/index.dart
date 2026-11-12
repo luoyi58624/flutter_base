@@ -106,7 +106,7 @@ class _TabPaneState extends State<_TabPane> with AutomaticKeepAliveClientMixin {
                   height: size.height,
                   child: ElScrollView(
                     key: PageStorageKey('page-strip-${tab.title}'),
-                    axis: .horizontal,
+                    scrollDirection: .horizontal,
                     padding: .symmetric(horizontal: 12),
                     children: [child],
                   ),

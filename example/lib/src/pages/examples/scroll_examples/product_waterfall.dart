@@ -9,6 +9,7 @@ import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
 import '../../../widgets/panel.dart';
+import 'scroll_mode.dart';
 
 /// 在相同的商品卡片上比较两列瀑布流与延迟的图片尺寸更新。
 /// 两种内容 Sliver 都由 CustomScrollView 承载，图片尺寸在业务层延迟揭晓。
@@ -21,7 +22,7 @@ class RecyclerProductWaterfallPage extends StatefulWidget {
   State<RecyclerProductWaterfallPage> createState() => _RecyclerProductWaterfallPageState();
 }
 
-enum _WaterfallMode { recycler, sliverGrid }
+enum _WaterfallMode { recycler, sliverGrid, children, builder, elRecycler }
 
 typedef _ProductAnchor = ({int index, double top});
 
@@ -33,6 +34,16 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
   final _viewport = GlobalKey();
   final _productContexts = <int, BuildContext>{};
   var _mode = _WaterfallMode.recycler;
+  SliverExampleMode get _comparison => switch (_mode) {
+    .sliverGrid => .official,
+    .children => .children,
+    .builder => .builder,
+    .elRecycler => .elRecycler,
+    _ => .recycler,
+  };
+
+  Widget _tile(int index) =>
+      _ProductTile(product: _products[index], geometry: _geometryFor(index), onOpen: _open, contexts: _productContexts);
   Timer? _pendingSizes;
   _ProductGridLayout? _grid;
   (double, double, bool)? _gridInputs;
@@ -79,12 +90,12 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
 
   void _switchMode(_WaterfallMode mode) {
     if (mode == _mode) return;
-    final previous = _mode == .recycler ? _recyclerController : _flutterController;
+    final previous = _mode != .sliverGrid ? _recyclerController : _flutterController;
     final pixels = previous.hasClients ? previous.offset : 0.0;
     setState(() => _mode = mode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _mode != mode) return;
-      final next = mode == .recycler ? _recyclerController : _flutterController;
+      final next = mode != .sliverGrid ? _recyclerController : _flutterController;
       if (next.hasClients) next.jumpTo(pixels.clamp(0.0, next.position.maxScrollExtent));
     });
   }
@@ -177,7 +188,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
             key: ValueKey('product-waterfall-mode-recycler'),
             value: .recycler,
             checked: _mode == .recycler,
-            child: Text('ElSliverRecyclerGrid'),
+            child: Text('ElSliverGrid'),
           ),
           CheckedPopupMenuItem(
             key: ValueKey('product-waterfall-mode-sliverGrid'),
@@ -185,6 +196,13 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
             checked: _mode == .sliverGrid,
             child: Text('Flutter SliverGrid'),
           ),
+          for (final mode in [_WaterfallMode.children, _WaterfallMode.builder, _WaterfallMode.elRecycler])
+            CheckedPopupMenuItem(
+              key: ValueKey('product-waterfall-mode-${mode.name}'),
+              value: mode,
+              checked: _mode == mode,
+              child: Text('ElScrollView · ${mode == .elRecycler ? 'recycler' : mode.name}'),
+            ),
         ],
       ),
     ],
@@ -219,25 +237,24 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
               Expanded(
                 child: SizedBox.expand(
                   key: _viewport,
-                  child: _mode == .recycler
+                  child: _mode != .sliverGrid
                       ? RecyclerExampleScrollbar(
                           controller: _recyclerController,
-                          child: CustomScrollView(
+                          child: _comparison.scrollView(
                             key: ValueKey('product-recycler-waterfall'),
                             controller: _recyclerController,
                             slivers: [
-                              ElSliverRecyclerGrid.masonry(
+                              _comparison.grid(
+                                context,
                                 crossAxisCount: 2,
+                                masonry: true,
                                 itemCount: _products.length,
-                                itemBuilder: (context, index) => ValueListenableBuilder<int>(
+                                itemBuilder: (_, index) => _tile(index),
+                                recycledItemBuilder: (_, index) => ValueListenableBuilder<int>(
                                   valueListenable: index,
-                                  builder: (context, value, _) => _ProductTile(
-                                    product: _products[value],
-                                    geometry: _geometryFor(value),
-                                    onOpen: _open,
-                                    contexts: _productContexts,
-                                  ),
+                                  builder: (_, value, _) => _tile(value),
                                 ),
+                                officialSliver: SliverToBoxAdapter(),
                               ),
                             ],
                           ),
@@ -254,7 +271,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
                               child: CustomScrollView(
                                 key: ValueKey('product-official-waterfall'),
                                 controller: _flutterController,
-                                scrollCacheExtent: ScrollCacheExtent.pixels(0),
+                                scrollCacheExtent: ScrollCacheExtent.pixels(250),
                                 slivers: [
                                   SliverGrid(
                                     gridDelegate: _ProductGridDelegate(grid),

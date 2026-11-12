@@ -13,7 +13,7 @@ class NewScrollNestedPage extends StatelessWidget {
       appBar: AppBar(title: Text('新版滚动 · 嵌套与尺寸')),
       body: ElScrollView(
         padding: EdgeInsets.all(16),
-        gap: 16,
+        spacing: 16,
         children: [
           _info(colors),
           for (final outer in [Axis.vertical, Axis.horizontal])
@@ -71,9 +71,9 @@ class NewScrollNestedPage extends StatelessWidget {
               ),
               clipBehavior: Clip.hardEdge,
               child: ElScrollView(
-                axis: outer,
+                scrollDirection: outer,
                 padding: EdgeInsets.all(10),
-                gap: 10,
+                spacing: 10,
                 children: [
                   _outerBlock(colors, vertical: vertical, label: '外层开始'),
                   _inner(colors, axis: inner),
@@ -108,9 +108,9 @@ class NewScrollNestedPage extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(8),
         child: ElScrollView(
-          axis: axis,
+          scrollDirection: axis,
           shrinkWrap: true,
-          gap: 6,
+          spacing: 6,
           children: [
             for (var i = 0; i < 12; i++)
               Container(
@@ -146,7 +146,7 @@ class NewScrollNestedPage extends StatelessWidget {
               ),
               child: ElScrollView(
                 shrinkWrap: true,
-                gap: 6,
+                spacing: 6,
                 padding: EdgeInsets.all(8),
                 children: [
                   for (var i = 0; i < 2; i++)

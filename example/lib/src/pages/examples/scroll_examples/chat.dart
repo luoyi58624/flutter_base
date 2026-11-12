@@ -8,7 +8,7 @@ import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../widgets/panel.dart';
 
-/// 用一万条变高消息演示历史插入、底部跟随与未读消息提示。
+/// 用一千条变高消息演示历史插入、底部跟随与未读消息提示。
 class RecyclerChatPage extends StatefulWidget {
   /// 创建聊天长列表示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -45,9 +45,9 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   ];
 
   final _composer = TextEditingController();
-  final _count = ValueNotifier<int>(10000);
+  final _count = ValueNotifier<int>(1000);
   final _unread = ValueNotifier<int>(0);
-  final _messages = List.generate(10000, _ChatMessage.generated);
+  final _messages = List.generate(1000, _ChatMessage.generated);
   final _official = ScrollController(keepScrollOffset: false);
   final _officialListKey = GlobalKey();
   // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
@@ -57,7 +57,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   bool _nearBottom = true;
   // 历史消息使用负业务 ID，与已存在的消息区分。
   int _oldestId = -1;
-  int _nextId = 10000;
+  int _nextId = 1000;
   int? _streamId;
   Timer? _liveTimer;
 
@@ -206,10 +206,10 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _liveTimer = null;
     _streamId = null;
     _oldestId = -1;
-    _nextId = 10000;
+    _nextId = 1000;
     _messages
       ..clear()
-      ..addAll(List.generate(10000, _ChatMessage.generated));
+      ..addAll(List.generate(1000, _ChatMessage.generated));
     _count.value = _messages.length;
     _liveProgress.value = (0, false);
     setState(() {});
@@ -273,30 +273,23 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     onNotification: _onScroll,
     child: RecyclerExampleScrollbar(
       controller: _official,
-      child: CustomScrollView(
+      child: _mode.scrollView(
         key: _officialListKey,
         controller: _official,
         reverse: true,
         semanticChildCount: _messages.length,
         slivers: [
-          if (_mode == .official)
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _messageRow(_messages.length - 1 - index),
-                childCount: _messages.length,
-                findChildIndexCallback: _messageIndexForKey,
-                addAutomaticKeepAlives: false,
-              ),
-            )
-          else
-            ElSliverRecyclerList(
-              itemCount: _messages.length,
-              itemType: (index) => _messages[_messages.length - 1 - index].mine,
-              itemBuilder: (context, index) => ValueListenableBuilder<int>(
-                valueListenable: index,
-                builder: (context, value, _) => _messageRow(_messages.length - 1 - value, trackedKey: false),
-              ),
+          _mode.list(
+            context,
+            itemCount: _messages.length,
+            itemBuilder: (_, index) => _messageRow(_messages.length - 1 - index),
+            findChildIndexCallback: _messageIndexForKey,
+            itemType: (index) => _messages[_messages.length - 1 - index].mine,
+            recycledItemBuilder: (_, index) => ValueListenableBuilder<int>(
+              valueListenable: index,
+              builder: (_, value, _) => _messageRow(_messages.length - 1 - value, trackedKey: false),
             ),
+          ),
         ],
       ),
     ),

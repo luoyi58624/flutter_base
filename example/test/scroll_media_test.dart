@@ -44,6 +44,12 @@ class _Files {
       return fixture;
     });
     addTearDown(() async {
+      await tester.pumpWidget(SizedBox.shrink());
+      // 清缓存前让未完成的解码回调离开测试的 fake-async 队列，否则 Windows 文件映射仍被持有。
+      for (var attempt = 0; attempt < 40 && PaintingBinding.instance.imageCache.pendingImageCount > 0; attempt++) {
+        await tester.runAsync(() => Future<void>.delayed(Duration(milliseconds: 10)));
+        await tester.pump();
+      }
       PaintingBinding.instance.imageCache.clear();
       PaintingBinding.instance.imageCache.clearLiveImages();
       await tester.runAsync(() async {
@@ -139,7 +145,9 @@ void main() {
       }
     });
     await _open(tester, RecyclerGalleryPage(directory: files.directory.path));
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(list.itemCount, 133);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);
@@ -171,7 +179,9 @@ void main() {
     final landscape = card('横图 空格');
     expect(portrait.width, closeTo(landscape.width, .01));
     expect(portrait.height, greaterThan(landscape.height + 100));
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(list.itemCount, 4);
     expect(find.byKey(ValueKey('media-scroll-menu')), findsOneWidget);
     await tester.tap(_photo('横图 空格').hitTestable().first);
@@ -181,7 +191,7 @@ void main() {
     expect(find.byType(ElCard), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -189,7 +199,9 @@ void main() {
   testWidgets('本机视频流递归读取子目录图片，跨列头图与双列卡片可 Hero 跳转', (tester) async {
     final files = await _Files.create(tester);
     await _open(tester, RecyclerVideoGridPage(directory: files.directory.path));
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(list.itemCount, 4, reason: '网格只包含四张图片，整宽横幅独立于网格索引');
     expect(_photo('子目录影像'), findsWidgets);
     final header = tester.getRect(find.byKey(ValueKey('media-featured')));
@@ -205,7 +217,7 @@ void main() {
     expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == '从细节看见故事'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
   });
@@ -310,7 +322,9 @@ void main() {
         },
       ),
     );
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(list.itemCount, 5);
     expect(list.crossAxisCount, 5);
     expect(_video('本机 视频'), findsOneWidget);
@@ -467,21 +481,23 @@ void main() {
       await checkAlbumCover();
       await _mode(tester, 'official');
       expect(find.byType(SliverGrid), findsOneWidget);
-      expect(find.byType(ElSliverRecyclerGrid), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsNothing);
       expect(_photo('竖图 中文'), findsWidgets);
       await checkAlbumCover();
       await _mode(tester, 'recycler');
-      expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
       await checkAlbumCover();
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     });
   }
 
-  testWidgets('瀑布流万条数据按需挂载，远跳后回收复用且可以切换官方布局', (tester) async {
+  testWidgets('瀑布流千条数据按需挂载，远跳后回收复用且可以切换官方布局', (tester) async {
     await _open(tester, RecyclerWaterfallPage());
-    final list = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
-    expect(list.itemCount, 10000);
+    final list = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
+    expect(list.itemCount, 1000);
     expect(find.byKey(ValueKey('media-scroll-menu')), findsOneWidget);
     expect(find.byKey(ValueKey('media-card')).evaluate().length, lessThan(40));
     final cards = tester.getRect(find.byKey(ValueKey('media-card')).first);
@@ -502,7 +518,9 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
     await _open(tester, RecyclerGalleryPage(directory: files.directory.path), width: 1280, dark: true);
-    final grid = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final grid = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     expect(grid.crossAxisCount, greaterThan(5));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());

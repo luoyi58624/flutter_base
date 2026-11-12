@@ -44,15 +44,15 @@ void main() {
       final dynamic row = frame.child;
       final dynamic adapter = row.adapter;
       final Map records = adapter.records;
-      expect(list.itemCount, 10000);
+      expect(list.itemCount, 1000);
       expect(records.length, inInclusiveRange(1, 40));
       final firstRecord = records[0];
       final firstCount = records.length;
-      expect(list.itemType!(9998), 0);
-      expect(list.itemType!(9999), 1);
+      expect(list.itemType!(998), 0);
+      expect(list.itemType!(999), 1);
       expect(records.length, firstCount, reason: '判断复用类型不应创建离屏业务记录。');
 
-      final targetIndex = mode == 'recycler' ? 4000 : 10;
+      final targetIndex = mode == 'recycler' ? 400 : 10;
       adapter.refreshRange(targetIndex, targetIndex);
       final dynamic distantRecord = records[targetIndex];
       expect(distantRecord.visits, 1200 + targetIndex * 13 + 7 + targetIndex % 5);
@@ -67,7 +67,7 @@ void main() {
       expect(_text(tester, distantCard, 'cards-visits'), '${distantRecord.visits}');
       expect(records[targetIndex], same(distantRecord));
       expect(records.length, lessThan(80));
-      if (mode == 'recycler') expect(records.containsKey(2000), isFalse);
+      if (mode == 'recycler') expect(records.containsKey(200), isFalse);
       await _choose(tester, 'first');
       expect(records[0], same(firstRecord));
       list.controller.jumpTo(targetIndex * 540.0);
@@ -75,10 +75,10 @@ void main() {
       expect(records[targetIndex], same(distantRecord));
       expect(_text(tester, distantCard, 'cards-visits'), '${distantRecord.visits}');
       final countBeforeRemoteUpdate = records.length;
-      adapter.refreshRange(9000, 9000);
+      adapter.refreshRange(900, 900);
       expect(records.length, countBeforeRemoteUpdate + 1);
-      expect((records[9000] as dynamic).revision, 1);
-      expect(records.containsKey(8000), isFalse, reason: '直接更新未访问记录不应生成到该编号之间的全部记录。');
+      expect((records[900] as dynamic).revision, 1);
+      expect(records.containsKey(800), isFalse, reason: '直接更新未访问记录不应生成到该编号之间的全部记录。');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox.shrink());
       expect(records, isEmpty);
@@ -110,7 +110,7 @@ void main() {
       expect(tester.widget(imageFinder), same(image));
       if (mode == 'recycler') {
         await _choose(tester, 'last');
-        expect(find.textContaining('观测 #10000').hitTestable(), findsOneWidget);
+        expect(find.textContaining('观测 #01000').hitTestable(), findsOneWidget);
       } else {
         final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!;
         controller.jumpTo(5400);
@@ -137,7 +137,7 @@ void main() {
         element: tester.widget(_within(find.byElementPredicate((e) => identical(e, element)), find.byType(Image))),
     };
     final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!;
-    controller.jumpTo(8000 * 540);
+    controller.jumpTo(800 * 540);
     await tester.pumpAndSettle();
     final reused = _key('cards-activate').evaluate().where(originals.containsKey).toList();
     expect(reused, isNotEmpty);
@@ -149,11 +149,11 @@ void main() {
     final title = _text(tester, _card(), 'cards-title');
     await tester.tap(_card());
     await tester.pumpAndSettle();
-    expect(tester.widget<Text>(_key('cards-active-count')).data, '2 / 10000');
+    expect(tester.widget<Text>(_key('cards-active-count')).data, '2 / 1000');
     controller.jumpTo(0);
     await tester.pumpAndSettle();
     expect(tester.widget<Semantics>(_card()).properties.selected, isTrue);
-    controller.jumpTo(8000 * 540);
+    controller.jumpTo(800 * 540);
     await tester.pumpAndSettle();
     expect(_text(tester, _card(), 'cards-title'), title);
     expect(tester.widget<Semantics>(_card()).properties.selected, isTrue);

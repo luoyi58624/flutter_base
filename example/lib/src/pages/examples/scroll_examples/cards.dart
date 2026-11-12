@@ -9,7 +9,7 @@ import 'scroll_mode.dart';
 import 'comparison_list.dart';
 import '../../../widgets/panel.dart';
 
-/// 用一万张生态观察卡片对比复杂内容的回收复用与局部更新。
+/// 用一千张生态观察卡片对比复杂内容的回收复用与局部更新。
 class RecyclerCardsPage extends StatefulWidget {
   /// 创建包含离线照片、阴影和按压反馈的信息卡片示例。
   // ignore: prefer_const_constructors_in_immutables
@@ -108,7 +108,7 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
       ValueListenableBuilder<int>(
         valueListenable: _activeCount,
         builder: (context, count, child) =>
-            Text('$count / 10000', key: ValueKey('cards-active-count'), style: TextStyle(fontSize: 12)),
+            Text('$count / 1000', key: ValueKey('cards-active-count'), style: TextStyle(fontSize: 12)),
       ),
       PopupMenuButton<Object>(
         key: ValueKey('cards-menu'),
@@ -232,7 +232,7 @@ class _ObservationRecords {
     records.clear();
   }
 
-  int getItemCount() => 10000;
+  int getItemCount() => 1000;
 
   void toggleActive(int id) {
     final selected = activeIds.add(id);

@@ -49,7 +49,7 @@ void main() {
     final work = await _open(tester);
     final rows = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_SpikeRow');
     final original = {for (final element in rows.evaluate()) element: element.widget};
-    final originalList = tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList));
+    final originalList = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
     var builds = 0;
     final previous = debugOnRebuildDirtyWidget;
     debugOnRebuildDirtyWidget = (element, builtOnce) {
@@ -64,13 +64,18 @@ void main() {
       );
       if (!_baseline) {
         expect(builds, 0);
-        expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)), same(originalList));
+        expect(
+          tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)),
+          same(originalList),
+        );
         for (final entry in original.entries) {
           expect(entry.key.widget, same(entry.value));
         }
       }
       expect(work, isEmpty, reason: '调整参数不能触发真实尖峰工作。');
-      final factory = tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemBuilder;
+      final factory = (tester.widget<ElSliverList>(
+        find.byWidgetPredicate((widget) => widget is ElSliverList),
+      ) as dynamic).itemBuilder;
       final index = ValueNotifier(0);
       try {
         await tester.pumpWidget(
@@ -107,7 +112,7 @@ void main() {
     }
   });
 
-  for (final mode in SliverExampleMode.values) {
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
     testWidgets('${mode.label} 脚本跨越相同距离并在 transient 阶段只执行一次 12ms 任务', (tester) async {
       final work = await _open(tester, mode);
       await tester.tap(find.byKey(ValueKey('spike-budget-12')));
@@ -156,7 +161,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final mode in SliverExampleMode.values) {
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
     testWidgets('${mode.label} 惯性模式等待手指抬起后的实际滚动，再安排一次 8ms 任务', (tester) async {
       final work = await _open(tester, mode);
       await tester.tap(find.byKey(ValueKey('spike-phase')));

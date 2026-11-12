@@ -35,7 +35,7 @@ Map<Element, Widget> _stateWrappers(Element item) {
   final result = <Element, Widget>{};
   item.visitAncestorElements((element) {
     final widget = element.widget;
-    if (widget is ElSliverRecyclerList) return false;
+    if (widget is ElSliverList) return false;
     if (widget is TickerMode || widget is HeroMode || widget is Focus || widget is ReuseAnimationScope) {
       result[element] = widget;
     }
@@ -70,7 +70,7 @@ void main() {
         MaterialApp(
           home: _scroll(
             controller,
-            ElSliverRecyclerList(
+            ElSliverList.recycler(
               itemCount: 20,
               maxRecycledItems: 0,
               itemBuilder: (_, index) {
@@ -137,7 +137,7 @@ void main() {
     addTearDown(label.dispose);
     var factoryCalls = 0;
     final itemKey = UniqueKey();
-    final sliver = ElSliverRecyclerList(
+    final sliver = ElSliverList.recycler(
       itemCount: 20,
       itemBuilder: (context, _) {
         factoryCalls++;
@@ -163,7 +163,7 @@ void main() {
     label.value = '新环境';
     await tester.pump();
     expect(tester.widget(find.byType(CustomScrollView)), same(scroll));
-    expect(tester.widget(find.byType(ElSliverRecyclerList)), same(sliver));
+    expect(tester.widget(find.byWidgetPredicate((widget) => widget is ElSliverList)), same(sliver));
     expect(factoryCalls, 2);
     expect(find.text('旧环境'), findsNothing);
     expect(find.text('新环境'), findsOneWidget);

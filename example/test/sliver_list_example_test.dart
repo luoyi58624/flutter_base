@@ -1,5 +1,5 @@
 import 'package:example/src/pages/examples/sliver_list/index.dart';
-import 'package:example/src/pages/home/index.dart';
+import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
@@ -18,26 +18,28 @@ Widget _app(Widget page) => ElComponentProvider(
 );
 
 void main() {
-  testWidgets('首页入口打开全量常驻文档，末段已挂载并可返回', (tester) async {
+  testWidgets('示例目录打开全量常驻文档，末段已挂载并可返回', (tester) async {
     _viewport(tester);
-    await tester.pumpWidget(_app(HomePage()));
+    await tester.pumpWidget(_app(ExamplesPage()));
     await tester.pumpAndSettle();
 
-    final tile = find.byKey(ValueKey('home-sliver-list'));
-    expect(tester.widget(tile), isA<ListTile>());
+    final tile = find.byKey(ValueKey('advanced-sliver-list'));
+    expect(tester.widget(tile), isA<ElListTile>());
+    await Scrollable.ensureVisible(tester.element(tile), alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(tile);
     await tester.pumpAndSettle();
 
     expect(find.text('文档滚动（全量常驻）'), findsOneWidget);
-    expect(find.byType(ElSliverList), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
     final scroll = find.byKey(ValueKey('document-scroll'));
-    expect(find.ancestor(of: scroll, matching: find.byType(SelectionArea)), findsOneWidget);
+    expect(find.ancestor(of: scroll, matching: find.byType(ElSelectionView)), findsOneWidget);
     expect(find.byKey(ValueKey('document-paragraph-79'), skipOffstage: false), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(ExamplesPage), findsOneWidget);
     await tester.pumpWidget(SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });

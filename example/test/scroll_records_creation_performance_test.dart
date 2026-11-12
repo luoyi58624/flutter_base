@@ -17,7 +17,7 @@ const _samples = _timing ? 3 : 1;
 int _recordCount(WidgetTester tester, String scene) {
   final finder = find.byType(SliverComparisonList);
   final list = tester.widget<SliverComparisonList>(finder);
-  expect(list.itemCount, 10000);
+  expect(list.itemCount, 1000);
   final frame = list.itemBuilder(tester.element(finder), 0) as RepaintBoundary;
   final dynamic row = frame.child;
   final dynamic records = scene == 'cards' ? row.adapter.records : row.records.items;
@@ -99,8 +99,8 @@ void main() {
           );
           watch.stop();
           final initialCount = _recordCount(tester, scene);
-          expect(initialCount, inInclusiveRange(1, 10000));
-          expect(find.byType(ElSliverRecyclerList), findsOneWidget);
+          expect(initialCount, inInclusiveRange(1, 1000));
+          expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
           if (sample >= 0) {
             initialTimes.add(watch.elapsedMicroseconds);
             initialCounts.add(initialCount);
@@ -119,7 +119,7 @@ void main() {
           await tester.pump();
           watch.stop();
           final switchCount = _recordCount(tester, scene);
-          expect(switchCount, inInclusiveRange(initialCount, 10000));
+          expect(switchCount, inInclusiveRange(initialCount, 1000));
           expect(find.byType(SliverList), findsOneWidget);
           if (sample >= 0) {
             switchTimes.add(watch.elapsedMicroseconds);

@@ -141,7 +141,7 @@ void main() {
             controller: selection,
             child: ElScrollView.sliver(
               controller: scroll,
-              axis: .horizontal,
+              scrollDirection: .horizontal,
               reverse: reverse,
               scrollCacheExtent: .pixels(0),
               slivers: [

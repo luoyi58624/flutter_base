@@ -54,7 +54,10 @@ _Scene _scene(WidgetTester tester, {required bool masonry}) {
 }
 
 _Frame _readFrame(WidgetTester tester, _Scene scene) {
-  final grid = find.descendant(of: scene.scroll, matching: find.byType(ElSliverRecyclerGrid));
+  final grid = find.descendant(
+    of: scene.scroll,
+    matching: find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+  );
   final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
   final bounds = Offset.zero & scene.viewport.size;
   final visible = <int, Rect>{};
@@ -284,7 +287,7 @@ void main() {
     final baseline = _readFrame(tester, scene);
     expect(baseline.pixels, greaterThan(1000));
     _expectColumns(baseline, masonry: true, phase: '开始预测返回前');
-    final sliver = find.byType(ElSliverRecyclerGrid);
+    final sliver = find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry);
     final sliverElement = tester.element(sliver);
     final sliverRender = tester.renderObject(sliver);
 

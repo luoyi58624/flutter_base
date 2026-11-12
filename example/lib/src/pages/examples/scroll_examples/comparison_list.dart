@@ -1,11 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_base/flutter_base.dart';
 
 import '../../../widgets/example_scrollbar.dart';
 import 'scroll_mode.dart';
 
-/// 共用官方视口，对照按需创建与自然尺寸回收的列表。
+/// 使用相同业务内容对照滚动宿主与三种生命周期。
 class SliverComparisonList extends StatelessWidget {
   /// 创建内容、方向和位置控制一致的 Sliver 对照。
   // ignore: prefer_const_constructors_in_immutables
@@ -24,7 +23,7 @@ class SliverComparisonList extends StatelessWidget {
   /// 当前内容布局。
   final SliverExampleMode mode;
 
-  /// 两种布局使用的唯一位置控制器。
+  /// 各模式使用的唯一位置控制器。
   final ScrollController controller;
 
   /// 业务记录数量。
@@ -48,38 +47,26 @@ class SliverComparisonList extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RecyclerExampleScrollbar(
     controller: controller,
-    child: CustomScrollView(
+    child: mode.scrollView(
       key: ValueKey('comparison-${mode.name}-list'),
       controller: controller,
       reverse: reverse,
       semanticChildCount: itemCount,
       slivers: [
-        if (mode == .recycler)
-          ElSliverRecyclerList(
-            itemCount: itemCount,
-            itemType: itemType,
-            itemBuilder:
-                recycledItemBuilder ??
-                (context, index) => ValueListenableBuilder<int>(
-                  valueListenable: index,
-                  builder: (context, value, _) => itemBuilder(context, value),
-                ),
-          )
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              itemBuilder,
-              childCount: itemCount,
-              findChildIndexCallback: findChildIndexCallback,
-              addAutomaticKeepAlives: false,
-            ),
-          ),
+        mode.list(
+          context,
+          itemCount: itemCount,
+          itemBuilder: itemBuilder,
+          recycledItemBuilder: recycledItemBuilder,
+          itemType: itemType,
+          findChildIndexCallback: findChildIndexCallback,
+        ),
       ],
     ),
   );
 }
 
-/// 在导航栏中选择两种内容 Sliver。
+/// 在导航栏中选择滚动宿主与内容生命周期。
 class SliverComparisonModeMenu extends StatelessWidget {
   /// 创建内容布局菜单。
   // ignore: prefer_const_constructors_in_immutables

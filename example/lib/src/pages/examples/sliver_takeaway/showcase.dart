@@ -15,19 +15,20 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
   final _cart = ValueNotifier(<_Dish, int>{});
   final _recorder = FrameTimingRecorder();
   List<_StoreSummary>? _summaries;
-  var _indices = List<int>.generate(10000, (i) => i);
+  var _indices = List<int>.generate(1000, (i) => i);
   var _category = -1, _sort = '综合排序', _query = '';
   Timer? _debounce;
+  var _mode = SliverExampleMode.elRecycler;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
   void _filter() {
     final query = _query.trim().toLowerCase();
     if (query.isNotEmpty || _sort != '综合排序') {
-      _summaries ??= List.generate(10000, _StoreSummary.generate);
+      _summaries ??= List.generate(1000, _StoreSummary.generate);
     }
     final indices = [
-      for (var id = 0; id < 10000; id++)
+      for (var id = 0; id < 1000; id++)
         if ((_category < 0 || id % _cuisines.length == _category) &&
             (query.isEmpty ||
                 _summaries![id].name.toLowerCase().contains(query) ||
@@ -316,13 +317,26 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
                 children: [
                   _foodText('附近好店', size: compact ? 21 : 25, bold: true),
                   _foodText(
-                    '${_indices.length == 10000 ? '10,000' : _indices.length} 家',
+                    '${_indices.length == 1000 ? '1,000' : _indices.length} 家',
                     key: ValueKey('home-takeaway-count'),
                     size: 10,
                     color: _foodMuted,
                   ),
                 ],
               ),
+            ),
+            PopupMenuButton<SliverExampleMode>(
+              key: ValueKey('home-takeaway-mode'),
+              tooltip: '滚动模式',
+              onSelected: (value) {
+                setState(() => _mode = value);
+                if (_controller.hasClients) _controller.jumpTo(0);
+              },
+              itemBuilder: (_) => [
+                for (final mode in SliverExampleMode.values)
+                  CheckedPopupMenuItem(value: mode, checked: mode == _mode, child: Text(mode.label)),
+              ],
+              icon: Icon(Icons.view_agenda_outlined, size: 20),
             ),
             SizedBox(
               width: 96,
@@ -353,14 +367,21 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
             ? Center(
                 child: ElEmpty(title: '没找到相关商家', description: '试试其他关键词或分类'),
               )
-            : ElScrollView.sliver(
+            : _mode.scrollView(
                 key: ValueKey('home-takeaway-list'),
                 controller: _controller,
-                scrollCacheExtent: ScrollCacheExtent.pixels(0),
+                scrollCacheExtent: ScrollCacheExtent.pixels(250),
                 slivers: [
-                  ElSliverRecyclerList(
+                  _mode.list(
+                    context,
                     itemCount: _indices.length,
                     itemBuilder: (context, index) => _ShowcaseStoreHost(
+                      index: AlwaysStoppedAnimation(index),
+                      storeAt: _storeAt,
+                      photos: _photos,
+                      onAdd: (dish) => _changeQuantity(dish, (_cart.value[dish] ?? 0) + 1),
+                    ),
+                    recycledItemBuilder: (context, index) => _ShowcaseStoreHost(
                       index: index,
                       storeAt: _storeAt,
                       photos: _photos,

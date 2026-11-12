@@ -40,7 +40,7 @@ void main() {
       addTearDown(() => debugOnRebuildDirtyWidget = previous);
 
       void selected(bool value) {
-        expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, value ? '1 / 10000' : '0 / 10000');
+        expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, value ? '1 / 1000' : '0 / 1000');
         expect(tester.widget<ElCheckbox>(checkbox).modelValue!.value, value);
         expect(tester.widget(scroll), same(scrollWidget), reason: '选中变化只更新目标行和计数，不替换列表配置。');
         expect(tester.widget(title), same(titleWidget));
@@ -74,7 +74,7 @@ void main() {
       selected(false);
       await tester.timedDrag(scroll, Offset(0, -140), Duration(milliseconds: 600));
       await tester.pumpAndSettle();
-      expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, '0 / 10000');
+      expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, '0 / 1000');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     });

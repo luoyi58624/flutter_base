@@ -121,7 +121,7 @@ Future<List<_Frame>> _measure(WidgetTester tester, ElSliverRecyclerExampleConten
           scrollCacheExtent: ScrollCacheExtent.pixels(_cacheExtent),
           slivers: [
             switch (sliver) {
-              .recycler => ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: buildItem),
+              .recycler => ElSliverList.recycler(itemCount: _itemCount, itemBuilder: buildItem),
               .list => SliverList(delegate: delegate),
             },
           ],

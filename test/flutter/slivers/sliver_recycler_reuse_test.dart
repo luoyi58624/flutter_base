@@ -257,7 +257,7 @@ class _Fixture {
             physics: ClampingScrollPhysics(),
             scrollCacheExtent: ScrollCacheExtent.pixels(0),
             slivers: [
-              ElSliverRecyclerList(
+              ElSliverList.recycler(
                 itemCount: data.rawValue.length,
                 maxRecycledItems: 0,
                 itemBuilder: (_, index) {

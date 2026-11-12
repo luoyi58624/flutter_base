@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/desktop.dart';
 
-/// 用同一列 ElView 对照 ElSliverRecyclerList 与官方 SliverList。
+/// 用同一列 ElView 对照 ElSliverList 与官方 SliverList。
 class ScrollTestPage extends HookWidget {
   /// 创建可切换官方列表的纵向滚动页。
   ScrollTestPage({super.key});
@@ -50,7 +50,7 @@ class ScrollTestPage extends HookWidget {
                     addAutomaticKeepAlives: false,
                     itemBuilder: (context, index) => _Child(index),
                   )
-                : ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: (context, index) => _Child(index)),
+                : ElSliverList.recycler(itemCount: _itemCount, itemBuilder: (context, index) => _Child(index)),
           ),
         ],
       ),

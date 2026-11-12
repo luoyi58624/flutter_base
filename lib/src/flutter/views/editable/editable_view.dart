@@ -28,7 +28,7 @@ import '../../utils/internal/pixel_grid.dart';
 import '../scroll/dual_axis_scroll.dart' show DualAxisScroll;
 import '../scroll/scroll.dart' show ElScrollView;
 import '../scroll/viewport.dart' show ScrollViewport;
-import '../../slivers/recycler/sliver_recycler.dart' show ElSliverRecyclerController, ElSliverRecyclerList;
+import '../../slivers/sliver.dart' show ElSliverRecyclerController, ElSliverList;
 import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
 import '../view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
@@ -107,7 +107,7 @@ bool _editableImeConfigChanged(EditableConfiguration current, EditableConfigurat
 ///   经 TextPainter），mounted 行注册表做指针命中；
 /// - **cursor / commands**：编辑操作层把键盘 / 指针意图翻译成编辑原语；
 /// - **view**：一行一个 [RenderEditableLine]，行列表由 [ElScrollView] 中的回收列表
-///   （ElSliverRecyclerList）虚拟化，文档规模不影响帧成本；
+///   （ElSliverList）虚拟化，文档规模不影响帧成本；
 /// - **tokens / decorations**：[EditableComposer] 行装配器——上层凭它做语法
 ///   高亮与富文本呈现，内核只认纯文本坐标。
 ///
@@ -5797,7 +5797,7 @@ class _EditableViewState extends State<EditableView>
     _fixedLogicalLineExtent = fixedLineHeight;
     final lines = SliverPadding(
       padding: widget.style.contentPadding,
-      sliver: ElSliverRecyclerList(
+      sliver: ElSliverList.recycler(
         controller: _rowJump,
         itemCount: _visibleLineCount,
         itemBuilder: (context, row) {

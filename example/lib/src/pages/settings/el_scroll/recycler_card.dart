@@ -86,7 +86,7 @@ class _RecyclerShopCard extends HookWidget {
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
                     child: ElScrollView.sliver(
-                      axis: .horizontal,
+                      scrollDirection: .horizontal,
                       controller: controller,
                       slivers: [
                         SliverList.builder(

@@ -1,5 +1,6 @@
+import 'package:example/src/pages/examples/scroll_examples/scroll_mode.dart';
 import 'package:example/src/pages/examples/sliver_recycler_grid/index.dart';
-import 'package:example/src/pages/home/index.dart';
+import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/utils/router.dart';
 import 'package:example/src/widgets/example_scrollbar.dart';
 import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
@@ -23,7 +24,7 @@ Widget _app(Widget page) => ElComponentProvider(
 Future<void> _official(WidgetTester tester) async {
   await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(CheckedPopupMenuItem<bool>, 'SliverGrid'));
+  await tester.tap(find.widgetWithText(CheckedPopupMenuItem<SliverExampleMode>, 'SliverGrid'));
   await tester.pumpAndSettle();
 }
 
@@ -107,7 +108,9 @@ void main() {
     _viewport(tester);
     await tester.pumpWidget(_app(ElSliverRecyclerGridExamplePage()));
     await tester.pumpAndSettle();
-    final factory = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid)).itemBuilder;
+    final factory = (tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    ) as dynamic).itemBuilder;
     final index = ValueNotifier(0);
     addTearDown(index.dispose);
     await tester.pumpWidget(_app(SingleChildScrollView(child: Builder(builder: (context) => factory(context, index)))));
@@ -238,11 +241,11 @@ void main() {
     final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller;
     await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
     await tester.pumpAndSettle();
-    expect(find.byType(CheckedPopupMenuItem<bool>), findsNWidgets(2));
-    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<bool>, 'SliverGrid'));
+    expect(find.byType(CheckedPopupMenuItem<SliverExampleMode>), findsNWidgets(5));
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<SliverExampleMode>, 'SliverGrid'));
     await tester.pumpAndSettle();
     expect(find.byType(SliverGrid), findsOneWidget);
-    expect(find.byType(ElSliverRecyclerGrid), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsNothing);
     final twoColumnExtent = _officialExtent(tester);
     await tester.tap(find.byTooltip('选择列数'));
     await tester.pumpAndSettle();
@@ -253,15 +256,20 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.byKey(ValueKey('grid-mode-menu')));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<bool>, 'ElSliverRecyclerGrid'));
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<SliverExampleMode>, 'ElSliverGrid.recycler'));
     await tester.pumpAndSettle();
-    expect(tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid)).crossAxisCount, 4);
+    expect(
+      tester
+          .widget<ElSliverGrid>(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry))
+          .crossAxisCount,
+      4,
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('首页 ListTile 能打开列表、网格和瀑布流并返回', (tester) async {
+  testWidgets('示例目录能打开列表、网格和瀑布流并返回', (tester) async {
     _viewport(tester);
-    await tester.pumpWidget(_app(HomePage()));
+    await tester.pumpWidget(_app(ExamplesPage()));
     await tester.pumpAndSettle();
 
     for (final entry in [
@@ -269,20 +277,22 @@ void main() {
       (key: 'sliver-recycler-grid', title: '网格示例'),
       (key: 'sliver-recycler-masonry', title: '瀑布流示例'),
     ]) {
-      final tile = find.byKey(ValueKey('home-${entry.key}'));
-      expect(tester.widget(tile), isA<ListTile>());
+      final tile = find.byKey(ValueKey('advanced-${entry.key}'));
+      expect(tester.widget(tile), isA<ElListTile>());
+      await Scrollable.ensureVisible(tester.element(tile), alignment: .5);
+      await tester.pumpAndSettle();
       await tester.tap(tile);
       await tester.pumpAndSettle();
       expect(find.text(entry.title), findsOneWidget);
       if (entry.key == 'sliver-recycler') {
-        expect(find.byType(ElSliverRecyclerList), findsOneWidget);
+        expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
       } else {
-        expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+        expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
       await tester.pageBack();
       await tester.pumpAndSettle();
-      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.byType(ExamplesPage), findsOneWidget);
     }
 
     await tester.pumpWidget(SizedBox.shrink());
@@ -296,9 +306,9 @@ void main() {
         _app(masonry ? ElSliverRecyclerGridExamplePage.masonry() : ElSliverRecyclerGridExamplePage()),
       );
       await tester.pumpAndSettle();
-      final grid = find.byType(ElSliverRecyclerGrid);
+      final grid = find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry);
       final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
-      expect(tester.widget<ElSliverRecyclerGrid>(grid).crossAxisCount, 2);
+      expect(tester.widget<ElSliverGrid>(grid).crossAxisCount, 2);
       final first = find.ancestor(of: find.text('观察记录 1'), matching: cards);
       final second = find.ancestor(of: find.text('观察记录 2'), matching: cards);
       expect(tester.getSize(second).height, greaterThan(tester.getSize(first).height));
@@ -307,7 +317,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byWidgetPredicate((widget) => widget is CheckedPopupMenuItem<int> && widget.value == 3));
       await tester.pumpAndSettle();
-      expect(tester.widget<ElSliverRecyclerGrid>(grid).crossAxisCount, 3);
+      expect(tester.widget<ElSliverGrid>(grid).crossAxisCount, 3);
       expect(find.text('1000 条记录 · 3 列'), findsOneWidget);
 
       final scroll = find.byKey(ValueKey(masonry ? 'sliver-masonry-scroll' : 'sliver-grid-scroll'));

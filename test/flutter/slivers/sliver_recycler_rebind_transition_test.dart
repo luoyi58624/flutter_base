@@ -31,7 +31,7 @@ Future<ScrollController> _open(
               controller: controller,
               scrollCacheExtent: ScrollCacheExtent.pixels(0),
               slivers: [
-                ElSliverRecyclerList(
+                ElSliverList.recycler(
                   itemCount: 100,
                   itemBuilder: (context, index) => HookBuilder(
                     builder: (context) {

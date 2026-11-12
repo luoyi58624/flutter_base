@@ -178,7 +178,7 @@ class _Fixture {
               addAutomaticKeepAlives: false,
             ),
           )
-        : ElSliverRecyclerList(itemCount: records.value.length, itemBuilder: _item, maxRecycledItems: 8);
+        : ElSliverList.recycler(itemCount: records.value.length, itemBuilder: _item, maxRecycledItems: 8);
   }
 
   Future<void> mount() async {

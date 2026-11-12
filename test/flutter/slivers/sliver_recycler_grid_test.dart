@@ -48,7 +48,7 @@ Widget _matrix(
   Object? Function(int)? type,
   int poolSize = 32,
 }) => masonry
-    ? ElSliverRecyclerGrid.masonry(
+    ? ElSliverMasonry.recycler(
         itemCount: count,
         itemBuilder: builder,
         crossAxisCount: columns,
@@ -57,7 +57,7 @@ Widget _matrix(
         itemType: type,
         maxRecycledItems: poolSize,
       )
-    : ElSliverRecyclerGrid(
+    : ElSliverGrid.recycler(
         itemCount: count,
         itemBuilder: builder,
         crossAxisCount: columns,
@@ -313,7 +313,12 @@ void main() {
     expect(_rect(tester, 2).top, 60);
     expect(_rect(tester, 3).top, 60);
     expect(tester.getTopLeft(find.byKey(const ValueKey('after-leading-zero'))).dy, 100);
-    expect(tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid)), same(grid));
+    expect(
+      tester.widget<ElSliverGrid>(
+        find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+      ),
+      same(grid),
+    );
     expect(factories, initialFactories);
     expect(tester.takeException(), isNull);
   });
@@ -592,7 +597,15 @@ void main() {
         if (height > 0) {
           expect(find.byKey(const ValueKey('cell 3')).hitTestable(), findsOneWidget);
         }
-        expect(tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid, skipOffstage: false)), same(grid));
+        expect(
+          tester.widget<ElSliverGrid>(
+            find.byWidgetPredicate(
+              (widget) => widget is ElSliverGrid || widget is ElSliverMasonry,
+              skipOffstage: false,
+            ),
+          ),
+          same(grid),
+        );
         expect(factories, initialFactories);
         expect(controller.position.maxScrollExtent, 0);
         expect(tester.takeException(), isNull);

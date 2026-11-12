@@ -19,7 +19,7 @@ class RecyclerRichDocumentPage extends StatefulWidget {
   State<RecyclerRichDocumentPage> createState() => _RecyclerRichDocumentPageState();
 }
 
-const _sectionCount = 240;
+const _sectionCount = 1000;
 const _titles = ['更新策略', '兼容性表格', '现场图解', '验收清单'];
 
 String _title(int index) => '${(index + 1).toString().padLeft(3, '0')} · ${_titles[index % _titles.length]}';
@@ -132,7 +132,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
               key: ValueKey('comparison-mode-${mode.name}'),
               value: mode,
               checked: _mode == mode,
-              child: Text(mode == .official ? 'SliverList' : 'ElSliverList'),
+              child: Text(mode == .recycler ? 'ElSliverList · children' : mode.label),
             ),
         ],
       ),
@@ -149,13 +149,13 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
             },
             child: RecyclerExampleScrollbar(
               controller: _official,
-              child: CustomScrollView(
+              child: _mode.scrollView(
                 controller: _official,
                 slivers: [
                   if (_mode == .recycler)
                     ElSliverList(children: [for (var i = 0; i < _sectionCount; i++) _sectionItem(context, i)])
                   else
-                    SliverList.builder(itemCount: _sectionCount, itemBuilder: _sectionItem),
+                    _mode.list(context, itemCount: _sectionCount, itemBuilder: _sectionItem),
                 ],
               ),
             ),

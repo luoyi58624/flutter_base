@@ -1017,7 +1017,7 @@ class _TableViewState extends State<ElTable> {
   ) {
     final mode = horizontalShell ? _TableGridRowMode.shell : _TableGridRowMode.plain;
     // 行虚拟化恒开：数据行按窗口回收复用，换绑时整行按新序号重建。
-    final list = ElSliverRecyclerList(
+    final list = ElSliverList.recycler(
       controller: _rowJump,
       itemCount: rows.length,
       itemBuilder: (context, index) => ValueListenableBuilder<int>(

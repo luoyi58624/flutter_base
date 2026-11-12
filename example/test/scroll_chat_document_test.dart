@@ -68,7 +68,9 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   final playSelector = selectorFor(play);
   final advanceSelector = selectorFor(advance);
   final viewportWidget = tester.widget(find.byType(CustomScrollView));
-  final sliver = mode == .official ? find.byType(SliverList) : find.byType(ElSliverRecyclerList);
+  final sliver = mode == .official
+      ? find.byType(SliverList)
+      : find.byWidgetPredicate((widget) => widget is ElSliverList);
   final sliverWidget = tester.widget(sliver);
   final rowWidget = tester.widget(row);
   final bodyElement = tester.element(body);
@@ -132,7 +134,7 @@ Future<void> _locate(WidgetTester tester, int section) async {
 }
 
 void main() {
-  for (final mode in SliverExampleMode.values) {
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
     testWidgets('实时群聊 ${mode.label} 保留阅读锚点，并在末尾跟随同一条流式消息', (tester) async {
       await _open(tester, RecyclerLiveChatPage());
       if (mode != .recycler) {
@@ -150,10 +152,10 @@ void main() {
       final y = tester.getTopLeft(find.text(text)).dy;
 
       await _tap(tester, 'chat-live-step');
-      expect(_chatCount(tester), '10051 条');
+      expect(_chatCount(tester), '1051 条');
       expect(tester.getTopLeft(find.text(text)).dy, closeTo(y, .5));
       await _tap(tester, 'chat-live-step');
-      expect(_chatCount(tester), '10051 条');
+      expect(_chatCount(tester), '1051 条');
       expect(tester.getTopLeft(find.text(text)).dy, closeTo(y, .5));
       expect(tester.widget<Text>(find.byKey(ValueKey('chat-unread-count'))).data, '1');
 
@@ -161,14 +163,14 @@ void main() {
       await _tap(tester, 'chat-latest');
       expect(find.textContaining('第 1 段：').hitTestable(), findsOneWidget);
       await _tap(tester, 'chat-live-step');
-      expect(_chatCount(tester), '10052 条');
+      expect(_chatCount(tester), '1052 条');
       expect(find.textContaining('第 2 段：').hitTestable(), findsOneWidget);
       expect(find.text('我在这边也看到最新进度了。').hitTestable(), findsOneWidget);
       expect(position.extentBefore, closeTo(0, .5));
       await _tap(tester, 'chat-live-reset');
-      expect(_chatCount(tester), '10000 条');
+      expect(_chatCount(tester), '1000 条');
       expect(find.text('并发脚本 0 / 8'), findsOneWidget);
-      expect(find.textContaining('消息 #10000：').hitTestable(), findsOneWidget);
+      expect(find.textContaining('消息 #1000：').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -185,7 +187,7 @@ void main() {
           await _tap(tester, 'chat-live-step');
         }
       }
-      expect(_chatCount(tester), '10103 条');
+      expect(_chatCount(tester), '1103 条');
       await _tap(tester, 'chat-live-reset');
       await _tap(tester, 'chat-live-step');
       await _expectStreamContentUpdate(tester, mode, 1);
@@ -215,7 +217,7 @@ void main() {
       await tester.pump();
     }
     expect(find.text('并发脚本 8 / 8'), findsOneWidget);
-    expect(_chatCount(tester), '10103 条');
+    expect(_chatCount(tester), '1103 条');
     expect(tester.widget<IconButton>(playback).onPressed, isNull);
     expect(tester.widget<TextButton>(find.byKey(ValueKey('chat-live-step'))).onPressed, isNull);
     await _tap(tester, 'chat-live-reset');
@@ -228,27 +230,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('富文本文档三种容器均能找到未挂载的小节并保持各节交互状态', (tester) async {
+  testWidgets('富文本文档常驻和惰性容器均能找到未挂载的小节并保持各节交互状态', (tester) async {
     await _open(tester, RecyclerRichDocumentPage());
-    final last = find.byKey(ValueKey('rich-document-title-239'));
-    final code = find.byKey(ValueKey('rich-document-code-239'));
+    final last = find.byKey(ValueKey('rich-document-title-999'));
+    final code = find.byKey(ValueKey('rich-document-code-999'));
     var primed = false;
-    for (final mode in SliverExampleMode.values.reversed) {
+    for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler].reversed) {
       {
         await _tap(tester, 'comparison-mode-menu');
         await _tap(tester, 'comparison-mode-${mode.name}');
       }
       expect(last.hitTestable(), findsNothing);
-      await _locate(tester, 240);
+      await _locate(tester, 1000);
       expect(last.hitTestable(), findsOneWidget);
       if (!primed) {
-        await _tap(tester, 'rich-document-code-toggle-239');
+        await _tap(tester, 'rich-document-code-toggle-999');
         expect(code, findsOneWidget);
-        await _tap(tester, 'rich-document-check-239');
+        await _tap(tester, 'rich-document-check-999');
         primed = true;
       }
       expect(code, findsOneWidget);
-      expect(tester.widget<Switch>(find.byKey(ValueKey('rich-document-check-239'))).value, isTrue);
+      expect(tester.widget<Switch>(find.byKey(ValueKey('rich-document-check-999'))).value, isTrue);
       await _locate(tester, 1);
       expect(find.byKey(ValueKey('rich-document-title-0')).hitTestable(), findsOneWidget);
       expect(find.byKey(ValueKey('rich-document-code-0')), findsNothing);

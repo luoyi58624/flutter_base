@@ -146,14 +146,14 @@ class _Fixture {
     }
 
     final sliver = switch (layout) {
-      .list => ElSliverRecyclerList(itemCount: records.value.length, itemBuilder: builder, maxRecycledItems: 0),
-      .grid => ElSliverRecyclerGrid(
+      .list => ElSliverList.recycler(itemCount: records.value.length, itemBuilder: builder, maxRecycledItems: 0),
+      .grid => ElSliverGrid.recycler(
         itemCount: records.value.length,
         itemBuilder: builder,
         crossAxisCount: 2,
         maxRecycledItems: 0,
       ),
-      .masonry => ElSliverRecyclerGrid.masonry(
+      .masonry => ElSliverMasonry.recycler(
         itemCount: records.value.length,
         itemBuilder: builder,
         crossAxisCount: 2,

@@ -36,7 +36,7 @@ enum _SpikePhase {
 
 typedef _SpikeResult = ({SliverExampleMode mode, _SpikePhase phase, int targetMs, int actualUs});
 
-const _itemCount = 10000;
+const _itemCount = 1000;
 
 double _rowExtent(BuildContext context) => 68 + math.max(0.0, MediaQuery.textScalerOf(context).scale(14) - 14) * 3;
 

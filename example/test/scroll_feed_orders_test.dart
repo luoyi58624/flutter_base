@@ -97,11 +97,11 @@ Future<int> _rebindCard(WidgetTester tester, Element element, int previous, {boo
 }
 
 void main() {
-  for (final mode in SliverExampleMode.values) {
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
     testWidgets('订单 ${mode.label} 进度更新复用行节点与同阶段文字，边界仍切换状态', (tester) async {
       await _open(tester, RecyclerOrdersPage());
       if (mode != .recycler) await _mode(tester, mode);
-      final card = _orderCard(10000);
+      final card = _orderCard(1000);
       final indicator = _within(card, find.byType(LinearProgressIndicator));
       final progress = _sourceOf<int>(tester, indicator);
       final row = find.ancestor(of: indicator, matching: find.byType(Row)).first;
@@ -152,7 +152,7 @@ void main() {
 
   testWidgets('订单跨记录保留卡片结构，旧回调读取当前订单并切换状态来源', (tester) async {
     await _open(tester, RecyclerOrdersPage());
-    final original = _orderCard(10000);
+    final original = _orderCard(1000);
     final element = tester.element(original);
     final panel = element.widget;
     final checkbox = _within(original, _key('orders-select'));
@@ -161,7 +161,7 @@ void main() {
     final oldProgress = _sourceOf<int>(tester, _within(original, find.byType(LinearProgressIndicator)));
     final originalProgress = oldProgress.value;
 
-    final currentId = await _rebindCard(tester, element, 10000);
+    final currentId = await _rebindCard(tester, element, 1000);
     final current = _element(element);
     expect(element.widget, same(panel));
     final currentProgress = _within(current, find.byType(LinearProgressIndicator));
@@ -175,7 +175,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(currentSelected.value, isTrue);
     expect(oldSelected.value, isFalse);
-    expect(_summary(tester), '共 10000 单 · 已选 1 单 · 已更新 0 批');
+    expect(_summary(tester), '共 1000 单 · 已选 1 单 · 已更新 0 批');
 
     final currentCheckboxWidget = tester.widget<Checkbox>(_within(current, _key('orders-select')));
     final currentProgressWidget = tester.widget<LinearProgressIndicator>(currentProgress);
@@ -189,8 +189,8 @@ void main() {
 
     _controller(tester).jumpTo(0);
     await tester.pumpAndSettle();
-    expect(tester.widget<Checkbox>(_within(_orderCard(10000), _key('orders-select'))).value, isFalse);
-    _controller(tester).jumpTo((10000 - currentId) * 128.0);
+    expect(tester.widget<Checkbox>(_within(_orderCard(1000), _key('orders-select'))).value, isFalse);
+    _controller(tester).jumpTo((1000 - currentId) * 128.0);
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(_within(_orderCard(currentId), _key('orders-select'))).value, isTrue);
     expect(tester.takeException(), isNull);
@@ -281,7 +281,7 @@ void main() {
   testWidgets('动态流在真实变高、九宫格和投票之间复用，两种模式共享记录状态', (tester) async {
     await _open(tester, RecyclerSocialFeedPage());
     final controller = _controller(tester);
-    expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemCount, 10000);
+    expect(tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)).itemCount, 1000);
     final article = _socialCard(0);
     final height = tester.getSize(article).height;
     await _tap(tester, _within(article, _key('social-expand')));
@@ -303,7 +303,7 @@ void main() {
 
     for (final mode in [SliverExampleMode.official]) {
       await _mode(tester, mode);
-      expect(find.byType(ElSliverRecyclerList), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
       expect(_key('comparison-official-list'), findsOneWidget);
       expect(_within(article, find.text('收起长文')), findsOneWidget);
       expect(_within(article, find.byIcon(Icons.favorite_rounded)), findsOneWidget);
@@ -313,20 +313,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('万条订单的定向更新保留卡片，三种真实容器头部增删后保留阅读行', (tester) async {
+  testWidgets('千条订单的定向更新保留卡片，两种原有容器头部增删后保留阅读行', (tester) async {
     await _open(tester, RecyclerOrdersPage());
-    final first = _orderCard(10000);
+    final first = _orderCard(1000);
     final firstElement = tester.element(first);
     final progress = _within(first, find.byType(LinearProgressIndicator));
     final initialProgress = tester.widget<LinearProgressIndicator>(progress).value!;
     await _tap(tester, _within(first, _key('orders-select')));
     await _tap(tester, _key('orders-update'));
-    expect(_summary(tester), '共 10000 单 · 已选 1 单 · 已更新 1 批');
+    expect(_summary(tester), '共 1000 单 · 已选 1 单 · 已更新 1 批');
     expect(tester.widget<LinearProgressIndicator>(progress).value, closeTo(initialProgress + .11, .001));
     expect(tester.element(first), same(firstElement));
 
     var current = SliverExampleMode.recycler;
-    for (final mode in SliverExampleMode.values.reversed) {
+    for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler].reversed) {
       if (mode != current) {
         await _mode(tester, mode);
         current = mode;
@@ -336,19 +336,19 @@ void main() {
       final controller = _controller(tester);
       controller.jumpTo(64 * 128 + 24.0);
       await tester.pumpAndSettle();
-      final anchor = _orderCard(9936);
+      final anchor = _orderCard(936);
       final top = tester.getTopLeft(anchor).dy;
       await _tap(tester, _key('orders-insert'));
-      expect(_summary(tester), '共 10024 单 · 已选 1 单 · 已更新 1 批');
+      expect(_summary(tester), '共 1024 单 · 已选 1 单 · 已更新 1 批');
       expect(tester.getTopLeft(anchor).dy, closeTo(top, .5));
       await _tap(tester, _key('orders-remove'));
-      expect(_summary(tester), '共 10000 单 · 已选 1 单 · 已更新 1 批');
+      expect(_summary(tester), '共 1000 单 · 已选 1 单 · 已更新 1 批');
       expect(tester.getTopLeft(anchor).dy, closeTo(top, .5));
     }
 
     await _mode(tester, .recycler);
     await _tap(tester, _key('orders-remove'));
-    expect(_summary(tester), '共 9976 单 · 已选 0 单 · 已更新 1 批');
+    expect(_summary(tester), '共 976 单 · 已选 0 单 · 已更新 1 批');
     expect(tester.takeException(), isNull);
   });
 
@@ -357,20 +357,20 @@ void main() {
     final list = _controller(tester);
     list.jumpTo(400 * 128);
     await tester.pumpAndSettle();
-    final row = _orderCard(9600);
+    final row = _orderCard(600);
     final progress = _within(row, find.byType(LinearProgressIndicator));
     final previous = tester.widget<LinearProgressIndicator>(progress).value!;
     await tester.tap(_key('orders-live'));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 250));
     expect(tester.widget<LinearProgressIndicator>(progress).value, isNot(previous));
-    expect(_summary(tester), '共 10000 单 · 已选 0 单 · 已更新 1 批');
+    expect(_summary(tester), '共 1000 单 · 已选 0 单 · 已更新 1 批');
     await tester.pump(Duration(milliseconds: 7750));
     await tester.pumpAndSettle();
     expect(find.text('实时更新 8 秒'), findsOneWidget);
-    expect(_summary(tester), '共 10000 单 · 已选 0 单 · 已更新 32 批');
+    expect(_summary(tester), '共 1000 单 · 已选 0 单 · 已更新 32 批');
     await tester.pump(Duration(seconds: 1));
-    expect(_summary(tester), '共 10000 单 · 已选 0 单 · 已更新 32 批');
+    expect(_summary(tester), '共 1000 单 · 已选 0 单 · 已更新 32 批');
     expect(tester.takeException(), isNull);
   });
 
@@ -381,9 +381,9 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await _open(tester, RecyclerOrdersPage(), width: 320, textScale: 1.6);
-    expect(_within(_orderCard(10000), _key('orders-select')).hitTestable(), findsOneWidget);
+    expect(_within(_orderCard(1000), _key('orders-select')).hitTestable(), findsOneWidget);
     await _tap(tester, _key('orders-update'));
-    expect(_summary(tester), '共 10000 单 · 已选 0 单 · 已更新 1 批');
+    expect(_summary(tester), '共 1000 单 · 已选 0 单 · 已更新 1 批');
     expect(tester.takeException(), isNull);
   });
 }

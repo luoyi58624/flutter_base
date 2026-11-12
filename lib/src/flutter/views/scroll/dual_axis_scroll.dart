@@ -62,7 +62,7 @@ class DualAxisScroll extends StatelessWidget {
       behavior: behavior.copyWith(scrollbars: false),
       child: LayoutBuilder(
         builder: (context, constraints) => ElScrollView(
-          axis: .horizontal,
+          scrollDirection: .horizontal,
           controller: horizontalController,
           physics: physics,
           scrollCacheExtent: scrollCacheExtent,

@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
 import '../../../widgets/panel.dart';
+import '../scroll_examples/scroll_mode.dart';
 
 /// 用相同的自然高度卡片展示网格与瀑布流。
 class ElSliverRecyclerGridExamplePage extends HookWidget {
@@ -25,7 +25,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final columns = useState(2);
-    final official = useState(false);
+    final mode = useState(SliverExampleMode.recycler);
     final controller = useScrollController();
     final officialExtent = useMemoized(_OfficialCardExtentCache.new);
     final colors = Theme.of(context).colorScheme;
@@ -37,13 +37,23 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
       title: title,
       backgroundColor: colors.surfaceContainerLowest,
       actions: [
-        PopupMenuButton<bool>(
+        PopupMenuButton<SliverExampleMode>(
           key: ValueKey('grid-mode-menu'),
           tooltip: '切换内容 Sliver',
-          onSelected: (value) => official.value = value,
+          onSelected: (value) => mode.value = value,
           itemBuilder: (_) => [
-            CheckedPopupMenuItem(value: false, checked: !official.value, child: Text('ElSliverRecyclerGrid')),
-            CheckedPopupMenuItem(value: true, checked: official.value, child: Text('SliverGrid')),
+            for (final option in SliverExampleMode.values)
+              CheckedPopupMenuItem(
+                value: option,
+                checked: mode.value == option,
+                child: Text(
+                  option == .official
+                      ? 'SliverGrid'
+                      : option == .recycler
+                      ? (masonry ? 'ElSliverMasonry.recycler' : 'ElSliverGrid.recycler')
+                      : option.label,
+                ),
+              ),
           ],
         ),
         PopupMenuButton<int>(
@@ -58,11 +68,11 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
       ],
       child: RecyclerExampleScrollbar(
         controller: controller,
-        child: CustomScrollView(
+        child: mode.value.scrollView(
           key: ValueKey(masonry ? 'sliver-masonry-scroll' : 'sliver-grid-scroll'),
           controller: controller,
           semanticChildCount: _itemCount,
-          scrollCacheExtent: ScrollCacheExtent.pixels(240),
+          scrollCacheExtent: ScrollCacheExtent.pixels(250),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -87,26 +97,20 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
             ),
             SliverPadding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              sliver: official.value
-                  ? SliverLayoutBuilder(
-                      builder: (context, constraints) =>
-                          officialExtent.build(context, constraints.crossAxisExtent, columns.value),
-                    )
-                  : masonry
-                  ? ElSliverRecyclerGrid.masonry(
-                      crossAxisCount: columns.value,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      itemCount: _itemCount,
-                      itemBuilder: buildItem,
-                    )
-                  : ElSliverRecyclerGrid(
-                      crossAxisCount: columns.value,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      itemCount: _itemCount,
-                      itemBuilder: buildItem,
-                    ),
+              sliver: mode.value.grid(
+                context,
+                itemCount: _itemCount,
+                crossAxisCount: columns.value,
+                masonry: masonry,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                itemBuilder: (context, index) => buildItem(context, AlwaysStoppedAnimation(index)),
+                recycledItemBuilder: buildItem,
+                officialSliver: SliverLayoutBuilder(
+                  builder: (context, constraints) =>
+                      officialExtent.build(context, constraints.crossAxisExtent, columns.value),
+                ),
+              ),
             ),
             SliverToBoxAdapter(
               child: Padding(

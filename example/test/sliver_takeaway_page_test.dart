@@ -28,7 +28,7 @@ Element _slotOf(Element card) {
   var slot = card;
   var found = false;
   card.visitAncestorElements((ancestor) {
-    if (ancestor.widget is ElSliverRecyclerList || ancestor.widget is ElSliverRecyclerGrid) {
+    if (ancestor.widget is ElSliverList || ancestor.widget is ElSliverGrid) {
       found = true;
       return false;
     }
@@ -110,7 +110,7 @@ List<_ShopSnapshot> _shops(WidgetTester tester) => [
 ];
 
 ScrollController _vertical(WidgetTester tester) =>
-    tester.widget<ElScrollView>(find.byKey(ValueKey('takeaway-sliver'))).controller!;
+    (tester.widget(find.byKey(ValueKey('takeaway-sliver'))) as dynamic).controller as ScrollController;
 
 Set<String> _photoUrls(WidgetTester tester, _ShopSnapshot shop) => {
   for (final image in tester.widgetList<ElImageView>(
@@ -238,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
     final filtered = _shops(tester).singleWhere((shop) => shop.id == 1);
     expect(_vertical(tester).offset, 0);
-    expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemCount, 1250);
+    expect(tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)).itemCount, 125);
     expect(filtered.slot, same(zero.slot), reason: '筛选发生在同一个位置 0，不能只靠序号数值变化刷新数据。');
     expect(filtered.title, same(zero.title));
     expect(filtered.titleText, contains('粉面'));
@@ -251,7 +251,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('takeaway-category--1')));
     await tester.pumpAndSettle();
     final restored = _shops(tester).singleWhere((shop) => shop.id == 0);
-    expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemCount, 10000);
+    expect(tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)).itemCount, 1000);
     expect(restored.titleText, initial.titleText);
     expect(_photoUrls(tester, restored), initialUrls);
     await tester.tap(find.byKey(ValueKey('takeaway-cart-clear')));
@@ -351,14 +351,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TakeawaySliverPage), findsOneWidget);
-    expect(find.byType(ElSliverRecyclerList), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
     expect(RouterUtil.exampleRoutes().map((route) => route.path), contains('sliver-takeaway'));
 
     await tester.tap(find.byKey(ValueKey('takeaway-sliver-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('takeaway-sliver-grid')));
     await tester.pumpAndSettle();
-    expect(find.byType(ElSliverRecyclerGrid), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

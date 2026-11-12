@@ -29,7 +29,7 @@ void main() {
 
     expect(find.byType(CustomScrollView), findsWidgets);
     expect(find.byType(ElScrollView), findsNothing);
-    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     expect(find.byType(ElSliverRefresh), findsNothing);
     expect(find.text('Title - 1 · 1'), findsOneWidget);
     expect(find.text('Title - 1 · 2'), findsOneWidget);
@@ -68,7 +68,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CustomScrollView), findsNothing);
-    expect(find.byType(ElSliverRecyclerList), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
     expect(refresh, findsOneWidget);
     expect(find.text('Title - 1 · 1'), findsOneWidget);
 
@@ -108,7 +108,7 @@ void main() {
 
     await tester.tap(modeSwitch);
     await tester.pumpAndSettle();
-    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     expect(refresh, findsNothing);
     expect(find.text('Title - 1 · 1'), findsOneWidget);
     expect(tester.takeException(), isNull);

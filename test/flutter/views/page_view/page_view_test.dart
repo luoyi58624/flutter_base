@@ -32,7 +32,7 @@ Future<(PageController, ScrollController)> _pump(WidgetTester tester, Axis axis,
                 ElScrollView(
                   key: ValueKey('inner'),
                   controller: inner,
-                  axis: axis,
+                  scrollDirection: axis,
                   physics: ClampingScrollPhysics(),
                   children: [SizedBox(width: 900, height: 900)],
                 ),

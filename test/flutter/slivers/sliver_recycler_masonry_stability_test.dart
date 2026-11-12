@@ -30,7 +30,7 @@ class _Fixture {
   final builtIndices = <int>{};
   final taps = <int>[];
 
-  Widget _sliver() => ElSliverRecyclerGrid.masonry(
+  Widget _sliver() => ElSliverMasonry.recycler(
     itemCount: count,
     crossAxisCount: 2,
     mainAxisSpacing: spacing,
@@ -142,7 +142,9 @@ void main() {
     );
     // 保持原 Sliver Widget，只扩大主轴可视范围，排除父级重建导致的缓存清理。
     await fixture.mount();
-    final originalSliver = tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final originalSliver = tester.widget<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     await fixture.jump(4000);
     expect(fixture.builtIndices.any(lateType), isFalse);
     final before = fixture.visibleRects();
@@ -155,7 +157,12 @@ void main() {
     // 新露出的第100项给出250高的首次样本；前方10..18仍只拥有已推算的位置。
     tester.view.physicalSize = Size(320, 1400);
     await fixture.settle();
-    expect(tester.widget<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid)), same(originalSliver));
+    expect(
+      tester.widget<ElSliverGrid>(
+        find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+      ),
+      same(originalSliver),
+    );
     expect(fixture.builtIndices.contains(100), isTrue);
     expect(fixture.controller.offset, closeTo(beforeOffset, .01), reason: '新类型的估值只能影响后续推算，不能回溯移动已经显示的卡片。');
     fixture.expectSamePositions(before);

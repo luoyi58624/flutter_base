@@ -10,7 +10,7 @@ Finder _item(int index) => find.byWidgetPredicate((widget) {
 });
 
 void main() {
-  testWidgets('滚动测试使用 ElSliverRecyclerList 并在滚动后换绑序号', (tester) async {
+  testWidgets('滚动测试使用 ElSliverList 并在滚动后换绑序号', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -24,7 +24,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final list = tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList));
+    final list = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
     expect(list.itemCount, 1000);
     expect(_item(0), findsOneWidget);
     expect(find.byType(ElView).evaluate().length, lessThan(30));
@@ -39,7 +39,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('scroll-test-official-switch')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     expect(find.byType(SliverList), findsOneWidget);
     expect(find.byWidgetPredicate((widget) => widget is ElView && widget.child == 0), findsOneWidget);
     expect(tester.takeException(), isNull);

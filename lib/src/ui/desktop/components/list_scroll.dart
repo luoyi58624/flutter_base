@@ -2,7 +2,7 @@ import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter/widgets.dart';
 
 import '../../../flutter/views/scroll/scroll.dart' show ElScrollView;
-import '../../../flutter/slivers/list/sliver_list.dart' show ElSliverList;
+import '../../../flutter/slivers/sliver.dart' show ElSliverList;
 
 /// 弹层候选列表的滚动区：按内容收缩，并在视口内部提供 list 语义。
 ///

@@ -49,7 +49,7 @@ class ElScrollPage extends HookWidget {
                 ElSliverRefresh(onRefresh: () async {}),
                 SliverPadding(
                   padding: .all(8),
-                  sliver: ElSliverRecyclerList(
+                  sliver: ElSliverList.recycler(
                     itemCount: _itemCount,
                     itemBuilder: (context, index) => _RecyclerShopCard(index),
                   ),

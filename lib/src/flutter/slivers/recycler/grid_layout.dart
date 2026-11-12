@@ -1,9 +1,9 @@
-part of 'sliver_recycler.dart';
+part of '../sliver.dart';
 
 extension _RecyclerGridLayout on ElRenderSliverRecycler {
-  void _layoutGrid(ElSliverRecyclerGrid widget, _RecyclerAnchor? anchor) {
+  void _layoutGrid(_LazySliver widget, _RecyclerAnchor? anchor) {
     final extents = _extents!;
-    final count = widget.itemCount;
+    final count = widget._childCount;
     final rows = _gridRows;
     final masonry = _masonry;
     final crossExtent = math.max(

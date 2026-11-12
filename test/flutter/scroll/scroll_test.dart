@@ -140,7 +140,7 @@ void main() {
             controller: controller,
             physics: ClampingScrollPhysics(),
             padding: EdgeInsets.all(10),
-            gap: 20,
+            spacing: 20,
             children: [
               SizedBox(key: first, height: 300),
               SizedBox(key: second, height: 300),
@@ -451,7 +451,7 @@ void main() {
         _app(
           ElScrollView.sliver(
             controller: outer,
-            axis: Axis.horizontal,
+            scrollDirection: Axis.horizontal,
             physics: ClampingScrollPhysics(),
             slivers: [
               _box(

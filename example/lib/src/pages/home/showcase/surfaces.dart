@@ -226,13 +226,13 @@ class _Shadows extends StatelessWidget {
           ElButton(
             variant: .text,
             child: '体验模态',
-            onPressed: () => el.dialog(
+            onPressed: () => demoDialog(
               context,
               title: '重要的确认',
-              child: Text('适度强调，让注意力停留在此刻。'),
-              footer: Builder(
-                builder: (context) => ElButton(child: '知道了', onPressed: () => Navigator.of(context).pop()),
-              ),
+              message: '适度强调，让注意力停留在此刻。',
+              confirm: '知道了',
+              single: true,
+              placement: .center,
             ),
           ),
         ]),
@@ -464,7 +464,7 @@ class _AppBar extends HookWidget {
                   Expanded(
                     child: ElScrollView(
                       padding: .all(24),
-                      gap: 14,
+                      spacing: 14,
                       children: [
                         Align(
                           alignment: .centerLeft,

@@ -45,7 +45,7 @@ class ExamplesPage extends StatelessWidget {
               child: ElScrollView(
                 key: PageStorageKey('advanced-examples'),
                 padding: .all(24),
-                gap: 24,
+                spacing: 24,
                 children: [
                   Column(
                     crossAxisAlignment: .start,

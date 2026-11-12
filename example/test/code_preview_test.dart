@@ -155,7 +155,7 @@ void main() {
       final scrolls = tester.widgetList<ElScrollView>(
         find.descendant(of: find.byType(ElCodePreview), matching: find.byType(ElScrollView)),
       );
-      expect(scrolls.map((widget) => widget.axis), [Axis.vertical, Axis.horizontal]);
+      expect(scrolls.map((widget) => widget.scrollDirection), [Axis.vertical, Axis.horizontal]);
       expect(scrolls.every((widget) => widget.controller == null), isTrue);
       final horizontal = find.byWidget(scroll);
       await tester.dragFrom(tester.getTopLeft(find.byType(ElCodePreview)) + Offset(160, 60), Offset(-120, 0));

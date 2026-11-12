@@ -129,7 +129,7 @@ void main() {
               scrollCacheExtent: ScrollCacheExtent.pixels(0),
               slivers: [
                 if (masonry)
-                  ElSliverRecyclerGrid.masonry(
+                  ElSliverMasonry.recycler(
                     crossAxisCount: 1,
                     itemCount: value,
                     itemType: (index) => index % 2,
@@ -137,7 +137,7 @@ void main() {
                     itemBuilder: row,
                   )
                 else
-                  ElSliverRecyclerList(
+                  ElSliverList.recycler(
                     itemCount: value,
                     itemType: (index) => index % 2,
                     maxRecycledItems: 2,
@@ -164,7 +164,7 @@ void main() {
       expect(original.tickerEnabled, isFalse);
       expect(find.text('record 1').hitTestable(), findsOneWidget);
       final render = tester.renderObject<RenderSliver>(
-        find.byType(masonry ? ElSliverRecyclerGrid : ElSliverRecyclerList),
+        find.byWidgetPredicate((widget) => masonry ? widget is ElSliverMasonry : widget is ElSliverList),
       );
       final beforeParkedUpdate = render.geometry!;
       final visible = log.live.singleWhere((state) => state.widget.index.value == 1);

@@ -53,7 +53,7 @@ class _FavoritePage extends StatelessWidget {
     typography,
     ElScrollView(
       padding: EdgeInsets.all(12),
-      gap: 8,
+      spacing: 8,
       children: [for (var index = 0; index < 5; index++) _ArticleCard(_articles[index], typography, index: index)],
     ),
   );

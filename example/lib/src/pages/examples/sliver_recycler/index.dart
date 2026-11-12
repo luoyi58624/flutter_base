@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../layout/example_page.dart';
 import '../bibi/feed.dart';
+import '../scroll_examples/scroll_mode.dart';
 import '../../../widgets/panel.dart';
 
 /// Sliver 对照与性能测试共用的自然尺寸负载。
@@ -61,38 +61,23 @@ enum ElSliverRecyclerExampleContent {
   };
 }
 
-enum _SliverMode {
-  recycler('ElSliverRecyclerList'),
-  list('SliverList');
-
-  const _SliverMode(this.label);
-
-  final String label;
-}
-
 /// 用同一组自然尺寸子项对照复用列表与原生 Sliver 列表。
 class ElSliverRecyclerExamplePage extends HookWidget {
-  /// 创建可切换容器与负载的万条列表。
+  /// 创建可切换容器与负载的千条列表。
   // ignore: prefer_const_constructors_in_immutables
   ElSliverRecyclerExamplePage({super.key, this.initialContent = .rectangles});
 
   /// 初次进入时显示的负载。
   final ElSliverRecyclerExampleContent initialContent;
 
-  static const _itemCount = 10000;
+  static const _itemCount = 1000;
 
   @override
   Widget build(BuildContext context) {
-    final mode = useState(_SliverMode.recycler);
+    final mode = useState(SliverExampleMode.recycler);
     final content = useState(initialContent);
     final controller = useScrollController(keepScrollOffset: false);
     final workload = content.value;
-
-    final delegate = SliverChildBuilderDelegate(
-      (context, index) => workload.buildItem(context, AlwaysStoppedAnimation(index)),
-      childCount: _itemCount,
-      addAutomaticKeepAlives: false,
-    );
 
     return ExamplePage(
       title: 'SliverRecycler 滚动对照',
@@ -104,14 +89,14 @@ class ElSliverRecyclerExamplePage extends HookWidget {
             final active = controller;
             if (active.hasClients) active.jumpTo(0);
             switch (selection) {
-              case final _SliverMode value:
+              case final SliverExampleMode value:
                 mode.value = value;
               case final ElSliverRecyclerExampleContent value:
                 content.value = value;
             }
           },
           itemBuilder: (_) => [
-            for (final option in _SliverMode.values)
+            for (final option in SliverExampleMode.values)
               CheckedPopupMenuItem(value: option, checked: option == mode.value, child: Text(option.label)),
             PopupMenuDivider(),
             for (final option in ElSliverRecyclerExampleContent.values)
@@ -119,7 +104,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
           ],
         ),
       ],
-      child: CustomScrollView(
+      child: mode.value.scrollView(
         controller: controller,
         physics: ClampingScrollPhysics(),
         semanticChildCount: _itemCount,
@@ -127,10 +112,12 @@ class ElSliverRecyclerExamplePage extends HookWidget {
         slivers: [
           KeyedSubtree(
             key: ValueKey(workload),
-            child: switch (mode.value) {
-              .recycler => ElSliverRecyclerList(itemCount: _itemCount, itemBuilder: workload.buildItem),
-              .list => SliverList(delegate: delegate),
-            },
+            child: mode.value.list(
+              context,
+              itemCount: _itemCount,
+              itemBuilder: (context, index) => workload.buildItem(context, AlwaysStoppedAnimation(index)),
+              recycledItemBuilder: workload.buildItem,
+            ),
           ),
         ],
       ),

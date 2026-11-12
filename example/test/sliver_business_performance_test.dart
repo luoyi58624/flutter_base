@@ -247,8 +247,8 @@ void main() {
               menuKey: scene.menuKey,
               optionKey: scene.modeKey(mode),
               label: scene.isGrid
-                  ? (mode == .official ? 'SliverGrid' : 'ElSliverRecyclerGrid')
-                  : (mode == .official ? 'SliverList' : 'ElSliverRecyclerList'),
+                  ? (mode == .official ? 'SliverGrid' : 'ElSliverGrid')
+                  : (mode == .official ? 'SliverList' : 'ElSliverList'),
             )();
             await tester.pumpAndSettle();
 
@@ -262,14 +262,14 @@ void main() {
             expect(
               primarySliver,
               scene.isGrid
-                  ? (mode == .official ? isA<SliverGrid>() : isA<ElSliverRecyclerGrid>())
-                  : (mode == .official ? isA<SliverList>() : isA<ElSliverRecyclerList>()),
+                  ? (mode == .official ? isA<SliverGrid>() : isA<ElSliverGrid>())
+                  : (mode == .official ? isA<SliverList>() : isA<ElSliverList>()),
             );
             final itemCount = switch (primarySliver) {
               SliverList list => list.delegate.estimatedChildCount,
-              ElSliverRecyclerList list => list.itemCount,
+              ElSliverList list => list.itemCount,
               SliverGrid grid => grid.delegate.estimatedChildCount,
-              ElSliverRecyclerGrid grid => grid.itemCount,
+              ElSliverGrid grid => grid.itemCount,
               _ => null,
             };
             expect(
@@ -483,7 +483,9 @@ class _MediaFiles {
 Future<void> _waitForMediaFiles(WidgetTester tester, int itemCount) async {
   // 页面仍经公开 directory 参数加载完整目录，等待和解码都在计时段外。
   for (var attempt = 0; attempt < 100; attempt++) {
-    final grids = tester.widgetList<ElSliverRecyclerGrid>(find.byType(ElSliverRecyclerGrid));
+    final grids = tester.widgetList<ElSliverGrid>(
+      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
+    );
     if (grids.length == 1 && grids.single.itemCount == itemCount) {
       return;
     }
@@ -524,7 +526,7 @@ Widget _app(Widget page) => ElComponentProvider(
 Finder _mainScroll() => find.byWidgetPredicate(
   (widget) =>
       widget is CustomScrollView && widget.scrollDirection == Axis.vertical ||
-      widget is ElScrollView && widget.axis == Axis.vertical,
+      widget is ElScrollView && widget.scrollDirection == Axis.vertical,
 );
 
 Future<void> _precache(WidgetTester tester, List<ImageProvider<Object>> images) async {
@@ -573,9 +575,9 @@ Widget _primarySliver(Element root) {
   void visit(Element element) {
     if (found != null) return;
     if (element.widget is SliverList ||
-        element.widget is ElSliverRecyclerList ||
+        element.widget is ElSliverList ||
         element.widget is SliverGrid ||
-        element.widget is ElSliverRecyclerGrid) {
+        element.widget is ElSliverGrid) {
       found = element.widget;
       return;
     }

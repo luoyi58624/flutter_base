@@ -143,7 +143,7 @@ class _CodeArea extends HookWidget {
       builder: (context, constraints) => SizedBox(
         height: textHeight + 40,
         child: ElScrollView(
-          axis: .horizontal,
+          scrollDirection: .horizontal,
           children: [
             ConstrainedBox(
               constraints: BoxConstraints(minWidth: constraints.maxWidth),

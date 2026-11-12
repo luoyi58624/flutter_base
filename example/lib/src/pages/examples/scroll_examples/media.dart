@@ -1,3 +1,5 @@
+import 'scroll_mode.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -60,7 +62,7 @@ class RecyclerGalleryPage extends StatelessWidget {
 
 /// 对照官方网格与自然尺寸回收瀑布流。
 class RecyclerWaterfallPage extends StatelessWidget {
-  /// 创建万条离线瀑布流，也可指定目录改用本机照片。
+  /// 创建千条离线瀑布流，也可指定目录改用本机照片。
   // ignore: prefer_const_constructors_in_immutables
   RecyclerWaterfallPage({super.key, this.directory});
 
@@ -75,7 +77,10 @@ enum _MediaKind { feed, album, waterfall }
 
 enum _MediaGridMode {
   official('SliverGrid'),
-  recycler('ElSliverRecyclerGrid'),
+  recycler('ElSliverGrid.recycler'),
+  children('ElScrollView · children'),
+  builder('ElScrollView · builder'),
+  elRecycler('ElScrollView · recycler'),
   localCards('本机卡片'),
   bibiCards('Bibi 卡片');
 
@@ -102,6 +107,13 @@ class _MediaPageState extends State<_MediaPage> {
   late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
   _MediaGridMode _mode = .recycler;
+  SliverExampleMode get _comparison => switch (_mode) {
+    .official => .official,
+    .children => .children,
+    .builder => .builder,
+    .elRecycler => .elRecycler,
+    _ => .recycler,
+  };
   bool _bibiCards = false;
   late final _albumThumbnails = AlbumThumbnailQueue();
   int _albumColumns = 0;
@@ -112,7 +124,7 @@ class _MediaPageState extends State<_MediaPage> {
   bool _thumbnailUpdateScheduled = false;
 
   bool get _featured => widget.kind == .feed && _library.items.isNotEmpty;
-  int get _itemCount => _demo ? 10000 : _library.items.length;
+  int get _itemCount => _demo ? 1000 : _library.items.length;
   String get _title => switch (widget.kind) {
     .feed => '视频流卡片',
     .album => '本机相册',
@@ -364,25 +376,16 @@ class _MediaPageState extends State<_MediaPage> {
       );
     }
 
-    final Widget content;
-    if (_mode == .recycler) {
-      content = masonry
-          ? ElSliverRecyclerGrid.masonry(
-              crossAxisCount: columns,
-              mainAxisSpacing: rowGap,
-              crossAxisSpacing: columnGap,
-              itemCount: count,
-              itemBuilder: recycled,
-            )
-          : ElSliverRecyclerGrid(
-              crossAxisCount: columns,
-              mainAxisSpacing: rowGap,
-              crossAxisSpacing: columnGap,
-              itemCount: count,
-              itemBuilder: recycled,
-            );
-    } else {
-      content = SliverGrid.builder(
+    final content = _comparison.grid(
+      context,
+      itemCount: count,
+      itemBuilder: itemBuilder,
+      recycledItemBuilder: recycled,
+      crossAxisCount: columns,
+      masonry: masonry,
+      mainAxisSpacing: rowGap,
+      crossAxisSpacing: columnGap,
+      officialSliver: SliverGrid.builder(
         gridDelegate: masonry
             ? _masonryFor(
                 columns,
@@ -400,9 +403,9 @@ class _MediaPageState extends State<_MediaPage> {
         itemCount: count,
         addAutomaticKeepAlives: false,
         itemBuilder: itemBuilder,
-      );
-    }
-    final scroll = CustomScrollView(
+      ),
+    );
+    final scroll = _comparison.scrollView(
       key: ValueKey(
         _bibiCards
             ? 'media-bibi-${_mode.name}'
@@ -502,7 +505,7 @@ class _MediaPageState extends State<_MediaPage> {
                       ),
               ),
               Text(
-                '${_demo ? 10000 : _library.total} 项',
+                '${_demo ? 1000 : _library.total} 项',
                 style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               if (_library.limited)
@@ -546,7 +549,7 @@ class _MediaPageState extends State<_MediaPage> {
         tooltip: '网格容器',
         onSelected: _chooseMode,
         itemBuilder: (_) => [
-          for (final mode in <_MediaGridMode>[.official, .recycler])
+          for (final mode in <_MediaGridMode>[.official, .recycler, .children, .builder, .elRecycler])
             CheckedPopupMenuItem(
               key: ValueKey('media-mode-${mode.name}'),
               value: mode,

@@ -50,14 +50,14 @@ void main() {
   testWidgets('Sliver 对照只提供官方列表与回收列表两种模式', (tester) async {
     await tester.pumpWidget(MaterialApp(home: ElSliverRecyclerExamplePage(initialContent: .text)));
     await tester.pumpAndSettle();
-    expect(tester.widget<ElSliverRecyclerList>(find.byType(ElSliverRecyclerList)).itemCount, 10000);
+    expect(tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList)).itemCount, 10000);
     await tester.tap(find.byType(PopupMenuButton<Enum>));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(CheckedPopupMenuItem<Enum>, '普通滚动'), findsNothing);
     await tester.tap(find.widgetWithText(CheckedPopupMenuItem<Enum>, 'SliverList'));
     await tester.pumpAndSettle();
     expect(find.byType(SliverList), findsOneWidget);
-    expect(find.byType(ElSliverRecyclerList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
     expect(find.text('Item - 1'), findsOneWidget);
   });
 }

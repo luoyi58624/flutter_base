@@ -96,7 +96,7 @@ class _FrameRecordingPageState extends State<FrameRecordingPage> {
           final report = recorder.report;
           return ElScrollView(
             padding: .all(20),
-            gap: 20,
+            spacing: 20,
             children: [
               ExamplePanel(
                 style: ElStyle(padding: .all(16)),

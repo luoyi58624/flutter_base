@@ -6,9 +6,9 @@ import 'scroll_mode.dart';
 import 'comparison_list.dart';
 import '../../../widgets/panel.dart';
 
-/// 用一万条独立记录演示回收复用与数据驱动的复选状态。
+/// 用一千条独立记录演示回收复用与数据驱动的复选状态。
 class RecyclerSelectionPage extends StatefulWidget {
-  /// 创建万条复选列表示例。
+  /// 创建千条复选列表示例。
   // ignore: prefer_const_constructors_in_immutables
   RecyclerSelectionPage({super.key});
 
@@ -20,7 +20,7 @@ enum _SelectionAction { first, last, locate, clear }
 
 class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _selectedCount = ValueNotifier<int>(0);
-  final _indexInput = TextEditingController(text: '5000');
+  final _indexInput = TextEditingController(text: '500');
   final _official = ScrollController(keepScrollOffset: false);
   SliverExampleMode _mode = .recycler;
   ScrollController get _currentController => _official;
@@ -52,7 +52,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
             controller: _indexInput,
             autofocus: true,
             keyboardType: .number,
-            decoration: InputDecoration(labelText: '第几项（1–10000）', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: '第几项（1–1000）', border: OutlineInputBorder()),
             onSubmitted: (_) => submit(),
           ),
           actions: [
@@ -127,13 +127,13 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
 
   @override
   Widget build(BuildContext context) => ExamplePage(
-    title: '万条复选列表',
+    title: '千条复选列表',
     actions: [
       ValueListenableBuilder<int>(
         valueListenable: _selectedCount,
         builder: (context, count, child) => Padding(
           padding: .symmetric(horizontal: 4),
-          child: Text('$count / 10000', key: ValueKey('selection-count'), style: TextStyle(fontSize: 12)),
+          child: Text('$count / 1000', key: ValueKey('selection-count'), style: TextStyle(fontSize: 12)),
         ),
       ),
       PopupMenuButton<Object>(
@@ -184,7 +184,7 @@ class _SelectionRecords {
   // 只登记已绑定的行，兼容容器切换时同一业务记录短暂对应多个模型。
   final _models = <int, Set<_SelectionModel>>{};
 
-  int getItemCount() => 10000;
+  int getItemCount() => 1000;
 
   _SelectionItem itemAt(int index) => items.putIfAbsent(index, () => _SelectionItem(index));
 

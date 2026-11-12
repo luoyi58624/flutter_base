@@ -241,7 +241,7 @@ class _MediaGalleryPageState extends State<_MediaGalleryPage> with SingleTickerP
         }
         return ElScrollView.sliver(
           key: ValueKey('media-gallery-filmstrip'),
-          axis: .horizontal,
+          scrollDirection: .horizontal,
           controller: _filmstrip,
           slivers: [
             SliverFixedExtentList.builder(

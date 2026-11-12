@@ -62,7 +62,7 @@ Future<void> _predictiveBack(WidgetTester tester, String method, [double progres
 }
 
 Future<void> _showDocItem(WidgetTester tester, int index) async {
-  final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
+  final list = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
   await Scrollable.ensureVisible(tester.element(find.byWidget(list.children[index])));
 }
 
@@ -92,17 +92,17 @@ void _expectDocMode(WidgetTester tester, DocScrollMode mode, {int? sections}) {
   switch (mode) {
     case DocScrollMode.official:
       expect(find.byType(SliverToBoxAdapter), findsOneWidget);
-      expect(find.byType(ElSliverList), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
       expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
     case DocScrollMode.officialVirtual:
-      expect(find.byType(ElSliverList), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
       final list = tester.widget<SliverList>(find.byType(SliverList));
       final delegate = list.delegate as SliverChildBuilderDelegate;
       expect(delegate.estimatedChildCount, itemCount);
       expect(delegate.addAutomaticKeepAlives, isFalse);
       expect(find.byType(ElCodeExample), findsWidgets);
     case DocScrollMode.elScroll || DocScrollMode.sliverList:
-      final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
+      final list = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
       expect(list.children.length, itemCount);
       expect(find.byType(ElCodeExample), findsNWidgets(page.sections.length * repeat));
   }
@@ -164,7 +164,7 @@ void main() {
     GlobalState.docScrollMode.value = DocScrollMode.sliverList;
     await _openButtonRoute(tester, '/components/button');
     final page = tester.widget<DocsPage>(find.byType(DocsPage));
-    final recyclerView = tester.widget<ElSliverList>(find.byType(ElSliverList));
+    final recyclerView = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
     expect(recyclerView.children.length, page.sections.length + 1);
 
     for (final (attempt, position) in [page.sections.length, 1, 5, page.sections.length, 1].indexed) {
@@ -181,15 +181,15 @@ void main() {
     GlobalState.docScrollMode.value = DocScrollMode.sliverList;
     final router = await _openButtonRoute(tester, '/components/button');
     for (var attempt = 0; attempt < 2; attempt++) {
-      final previous = tester.widget<ElSliverList>(find.byType(ElSliverList));
+      final previous = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
       router.go('/empty');
       await tester.pumpAndSettle();
-      expect(find.byType(ElSliverList), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
       expect(tester.takeException(), isNull);
 
       router.go('/components/button');
       await tester.pumpAndSettle();
-      final current = tester.widget<ElSliverList>(find.byType(ElSliverList));
+      final current = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
       expect(identical(current, previous), isFalse);
       await _showDocItem(tester, 1);
       await tester.pumpAndSettle();
@@ -205,7 +205,7 @@ void main() {
     final router = await _openButtonRoute(tester, '/empty');
     unawaited(router.push<void>('/components/steps'));
     await tester.pumpAndSettle();
-    final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
+    final list = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
     final viewport = tester.state<ScrollableState>(find.byType(Scrollable).first);
     final controller = tester.widget<ElScrollView>(find.byType(ElScrollView)).controller!;
     controller.jumpTo(4000);
@@ -390,7 +390,7 @@ void main() {
       await tester.pumpAndSettle();
       _expectDocMode(tester, mode, sections: 11);
       if (mode == DocScrollMode.sliverList) {
-        final list = tester.widget<ElSliverList>(find.byType(ElSliverList));
+        final list = tester.widget<ElSliverList>(find.byWidgetPredicate((widget) => widget is ElSliverList));
         expect(list.children.length, 23);
         await _showDocItem(tester, 12);
         await tester.pumpAndSettle();

@@ -36,7 +36,7 @@ class _Fixture {
               child: ElScrollView.sliver(
                 key: ValueKey('outer'),
                 controller: outer,
-                axis: axis,
+                scrollDirection: axis,
                 reverse: reverse,
                 smoothScroll: smoothScroll,
                 physics: ClampingScrollPhysics(),
@@ -49,7 +49,7 @@ class _Fixture {
                       child: ElScrollView.sliver(
                         key: ValueKey('inner'),
                         controller: inner,
-                        axis: axis,
+                        scrollDirection: axis,
                         reverse: reverse,
                         smoothScroll: smoothScroll,
                         physics: ClampingScrollPhysics(),

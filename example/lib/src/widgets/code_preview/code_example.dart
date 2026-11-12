@@ -254,7 +254,7 @@ class _CodeFileBar extends StatelessWidget {
         border: .only(borderBottom: ElBorderSide(borderColor: Color(0x1fabb2bf))),
       ),
       child: ElScrollView(
-        axis: .horizontal,
+        scrollDirection: .horizontal,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,

@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _baseline = bool.fromEnvironment('SPECIAL_REUSE_BASELINE');
 
 void main() {
-  for (final mode in SliverExampleMode.values) {
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
     testWidgets('${mode.name} 文档局部展开保留其余小节，回收源码后高度恢复', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(390, 800);
@@ -29,7 +29,7 @@ void main() {
       }
       final cards = find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_SectionCard');
       final before = {for (final element in cards.evaluate()) element: element.widget};
-      expect(before.length, mode == .recycler ? 240 : lessThan(20));
+      expect(before.length, mode == .recycler ? 1000 : lessThan(20));
       final title = find.byKey(ValueKey('rich-document-title-0'));
       final first = find.ancestor(of: title, matching: cards);
       final height = tester.getSize(first).height;

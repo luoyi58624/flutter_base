@@ -163,10 +163,11 @@ mixin _ScrollViewportMixin<P extends ContainerParentDataMixin<RenderSliver>> on 
     super.dispose();
   }
 
-  // 官方视口不进命中路径；ElScrollView 外层已有不透明 Listener 认领整块区域，
-  // 自身入路径不改变事件归属，只让框选、拖放能从命中点沿父链找到本视口。
+  // 仅不透明宿主认领空白区域，同时让框选、拖放能从命中点沿父链找到视口。
   @override
-  bool hitTestSelf(Offset position) => true;
+  bool hitTestSelf(Offset position) => acceptsEmptyHit;
+
+  bool acceptsEmptyHit = true;
 
   @override
   bool dispatchSelectionPointerSignal(PointerSignalEvent event) {
@@ -195,11 +196,13 @@ mixin _ScrollViewportMixin<P extends ContainerParentDataMixin<RenderSliver>> on 
 class ElRenderViewport extends RenderViewport with _ScrollViewportMixin<SliverPhysicalContainerParentData> {
   /// 创建视口。
   ElRenderViewport({
+    super.anchor,
     super.axisDirection,
     required super.crossAxisDirection,
     required super.offset,
     super.scrollCacheExtent,
     super.clipBehavior,
+    super.paintOrder,
   });
 }
 
@@ -213,6 +216,7 @@ class ElRenderShrinkWrappingViewport extends RenderShrinkWrappingViewport
     required super.offset,
     super.scrollCacheExtent,
     super.clipBehavior,
+    super.paintOrder,
   });
 }
 
@@ -220,27 +224,45 @@ class ElRenderShrinkWrappingViewport extends RenderShrinkWrappingViewport
 class ElViewport extends Viewport {
   /// 创建视口。
   ElViewport({
+    super.center,
+    super.anchor,
+    this.dragDevices,
+    this.hitTestBehavior = HitTestBehavior.opaque,
     super.key,
     super.axisDirection,
     required super.offset,
     super.scrollCacheExtent,
     super.clipBehavior,
+    super.paintOrder,
     super.slivers,
   });
 
+  /// 可发起拖动的设备，缺省读取环境滚动配置。
+  final Set<PointerDeviceKind>? dragDevices;
+
+  /// 空白视口的命中行为。
+  final HitTestBehavior hitTestBehavior;
+
   @override
-  RenderViewport createRenderObject(BuildContext context) => ElRenderViewport(
-    axisDirection: axisDirection,
-    crossAxisDirection: crossAxisDirection ?? Viewport.getDefaultCrossAxisDirection(context, axisDirection),
-    offset: offset,
-    scrollCacheExtent: scrollCacheExtent,
-    clipBehavior: clipBehavior,
-  )..dragDevices = ScrollConfiguration.of(context).dragDevices;
+  RenderViewport createRenderObject(BuildContext context) =>
+      ElRenderViewport(
+          anchor: anchor,
+          axisDirection: axisDirection,
+          crossAxisDirection: crossAxisDirection ?? Viewport.getDefaultCrossAxisDirection(context, axisDirection),
+          offset: offset,
+          scrollCacheExtent: scrollCacheExtent,
+          clipBehavior: clipBehavior,
+          paintOrder: paintOrder,
+        )
+        ..dragDevices = dragDevices ?? ScrollConfiguration.of(context).dragDevices
+        ..acceptsEmptyHit = hitTestBehavior == HitTestBehavior.opaque;
 
   @override
   void updateRenderObject(BuildContext context, RenderViewport renderObject) {
     super.updateRenderObject(context, renderObject);
-    (renderObject as ElRenderViewport).dragDevices = ScrollConfiguration.of(context).dragDevices;
+    (renderObject as ElRenderViewport)
+      ..dragDevices = dragDevices ?? ScrollConfiguration.of(context).dragDevices
+      ..acceptsEmptyHit = hitTestBehavior == HitTestBehavior.opaque;
   }
 }
 
@@ -248,26 +270,41 @@ class ElViewport extends Viewport {
 class ElShrinkWrappingViewport extends ShrinkWrappingViewport {
   /// 创建视口。
   const ElShrinkWrappingViewport({
+    this.dragDevices,
+    this.hitTestBehavior = HitTestBehavior.opaque,
     super.key,
     super.axisDirection,
     required super.offset,
     super.scrollCacheExtent,
     super.clipBehavior,
+    super.paintOrder,
     super.slivers,
   });
 
+  /// 可发起拖动的设备，缺省读取环境滚动配置。
+  final Set<PointerDeviceKind>? dragDevices;
+
+  /// 空白视口的命中行为。
+  final HitTestBehavior hitTestBehavior;
+
   @override
-  RenderShrinkWrappingViewport createRenderObject(BuildContext context) => ElRenderShrinkWrappingViewport(
-    axisDirection: axisDirection,
-    crossAxisDirection: crossAxisDirection ?? Viewport.getDefaultCrossAxisDirection(context, axisDirection),
-    offset: offset,
-    scrollCacheExtent: scrollCacheExtent,
-    clipBehavior: clipBehavior,
-  )..dragDevices = ScrollConfiguration.of(context).dragDevices;
+  RenderShrinkWrappingViewport createRenderObject(BuildContext context) =>
+      ElRenderShrinkWrappingViewport(
+          axisDirection: axisDirection,
+          crossAxisDirection: crossAxisDirection ?? Viewport.getDefaultCrossAxisDirection(context, axisDirection),
+          offset: offset,
+          scrollCacheExtent: scrollCacheExtent,
+          clipBehavior: clipBehavior,
+          paintOrder: paintOrder,
+        )
+        ..dragDevices = dragDevices ?? ScrollConfiguration.of(context).dragDevices
+        ..acceptsEmptyHit = hitTestBehavior == HitTestBehavior.opaque;
 
   @override
   void updateRenderObject(BuildContext context, RenderShrinkWrappingViewport renderObject) {
     super.updateRenderObject(context, renderObject);
-    (renderObject as ElRenderShrinkWrappingViewport).dragDevices = ScrollConfiguration.of(context).dragDevices;
+    (renderObject as ElRenderShrinkWrappingViewport)
+      ..dragDevices = dragDevices ?? ScrollConfiguration.of(context).dragDevices
+      ..acceptsEmptyHit = hitTestBehavior == HitTestBehavior.opaque;
   }
 }

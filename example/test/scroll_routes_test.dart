@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 void main() {
-  testWidgets('业务目录保留十五个深链，重复负载入口复用现有 Sliver 页面', (tester) async {
+  testWidgets('业务目录保留现有深链，重复负载入口复用现有 Sliver 页面', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -29,6 +29,7 @@ void main() {
       'recycler-orders',
       'recycler-product-waterfall',
       'recycler-rich-document',
+      'nest-scroll',
       'recycler-spike',
     ]);
     final routes = RouterUtil.exampleRoutes();
@@ -51,8 +52,8 @@ void main() {
       router.go('/examples/${entry.key}');
       await tester.pumpAndSettle();
       expect(find.byType(entry.type), findsOneWidget);
-      expect(find.byType(ElSliverRecyclerList), findsOneWidget);
-      expect(find.byType(ElScrollView), findsNothing);
+      expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
+      expect(find.byType(ElScrollView), entry.key == 'recycler-takeaway' ? findsOneWidget : findsNothing);
       if (entry.key == 'recycler-text') {
         expect(
           tester.widget<ElSliverRecyclerExamplePage>(find.byType(ElSliverRecyclerExamplePage)).initialContent,

@@ -10,7 +10,7 @@ import 'comparison_list.dart';
 import 'scroll_mode.dart';
 import '../../../widgets/panel.dart';
 
-/// 用万条订单对比滚动中的批量状态更新、结构变动和多选状态。
+/// 用千条订单对比滚动中的批量状态更新、结构变动和多选状态。
 class RecyclerOrdersPage extends StatefulWidget {
   /// 创建订单管理台对照页。
   // ignore: prefer_const_constructors_in_immutables
@@ -214,10 +214,10 @@ double _orderExtent(BuildContext context) => 128 + math.max(0.0, MediaQuery.text
 String _orderStatus(int progress) => progress == 100 ? '已完成' : (progress == 0 ? '待处理' : '处理中');
 
 class _OrderRecords {
-  final _ids = List.generate(10000, (index) => 10000 - index);
+  final _ids = List.generate(1000, (index) => 1000 - index);
   final _records = <int, _OrderRecord>{};
   final selectedCount = ValueNotifier<int>(0);
-  int _latestId = 10000;
+  int _latestId = 1000;
 
   int getItemCount() => _ids.length;
 

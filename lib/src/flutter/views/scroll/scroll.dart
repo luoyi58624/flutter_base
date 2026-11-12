@@ -1,9 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent, SliverPaintOrder, ViewportOffset;
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
-import '../../slivers/list/sliver_list.dart' show ElSliverList;
+import '../../slivers/sliver.dart' show ElSliverList;
 import 'smooth/smooth_scroll.dart' show ElSmoothScroll, resolveDefaultSmoothScroll;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTransparentSelectionRegistrar;
@@ -27,31 +28,62 @@ class ElScrollView extends HookWidget {
     this.controller,
     this.physics,
     this.smoothScroll = $absent,
-    this.axis = .vertical,
+    this.scrollDirection = .vertical,
     this.reverse = false,
     this.padding = .zero,
-    this.gap = 0,
+    this.spacing = 0,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
     this.shrinkWrap = false,
-    this.scrollCacheExtent,
+    this.scrollCacheExtent = const ScrollCacheExtent.pixels(250),
     this.clipBehavior = .hardEdge,
+    this.primary,
+    this.scrollBehavior,
+    this.dragStartBehavior = .start,
+    this.keyboardDismissBehavior,
+    this.restorationId,
+    this.semanticChildCount,
+    this.hitTestBehavior = .opaque,
+    this.anchor = 0,
+    this.paintOrder = .firstIsTop,
   }) : slivers = null,
-       assert(gap >= 0);
+       center = null,
+       assert(controller == null || primary != true),
+       assert(anchor >= 0 && anchor <= 1),
+       assert(semanticChildCount == null || semanticChildCount >= 0),
+       assert(spacing >= 0 && spacing < double.infinity);
 
   /// 创建承载 [slivers] 的滚动容器，内边距与间距由各 Sliver 自己声明。
   const ElScrollView.sliver({
     super.key,
     required List<Widget> this.slivers,
+    this.center,
     this.controller,
     this.physics,
     this.smoothScroll = $absent,
-    this.axis = .vertical,
+    this.scrollDirection = .vertical,
     this.reverse = false,
     this.shrinkWrap = false,
-    this.scrollCacheExtent,
+    this.scrollCacheExtent = const ScrollCacheExtent.pixels(250),
     this.clipBehavior = .hardEdge,
+    this.primary,
+    this.scrollBehavior,
+    this.dragStartBehavior = .start,
+    this.keyboardDismissBehavior,
+    this.restorationId,
+    this.semanticChildCount,
+    this.hitTestBehavior = .opaque,
+    this.anchor = 0,
+    this.paintOrder = .firstIsTop,
   }) : children = null,
        padding = .zero,
-       gap = 0;
+       spacing = 0,
+       addRepaintBoundaries = true,
+       addSemanticIndexes = true,
+       assert(controller == null || primary != true),
+       assert(!shrinkWrap || center == null),
+       assert(anchor >= 0 && anchor <= 1),
+       assert(semanticChildCount == null || semanticChildCount >= 0);
 
   /// 按顺序排列的普通子项，在交叉轴上撑满视口；状态常驻，适合数量有限的内容。
   final List<Widget>? children;
@@ -71,92 +103,129 @@ class ElScrollView extends HookWidget {
   final Object? smoothScroll;
 
   /// 滚动主轴。
-  final Axis axis;
+  final Axis scrollDirection;
 
   /// 是否反转滚动方向。
   final bool reverse;
 
   /// [children] 四周的内边距。
-  final EdgeInsets padding;
+  final EdgeInsetsGeometry padding;
 
   /// 相邻 [children] 之间的主轴间距。
-  final double gap;
+  final double spacing;
+
+  /// 是否为每个 children 子项隔离重绘，默认 true；sliver 构造由各 Sliver 自己声明。
+  final bool addRepaintBoundaries;
+
+  /// 是否为 children 添加业务语义索引，默认 true；sliver 构造由各 Sliver 自己声明。
+  final bool addSemanticIndexes;
 
   /// 是否按内容尺寸收缩主轴；适用于父布局在滚动方向没有给出有限尺寸的嵌套场景。
   final bool shrinkWrap;
 
-  /// 视口前后预先布局的范围，缺省沿用官方 Viewport 的默认值；`ScrollCacheExtent.pixels(0)` 只挂载可见内容。
+  /// 视口前后预先布局的范围，默认各 250 逻辑像素；仅影响按需构建与复用的缓存窗口。
   final ScrollCacheExtent? scrollCacheExtent;
 
   /// 视口裁剪行为。
   final Clip clipBehavior;
+
+  /// 是否继承 PrimaryScrollController，缺省遵循官方平台与方向规则。
+  final bool? primary;
+
+  /// 当前滚动容器的输入设备、物理与越界表现配置。
+  final ScrollBehavior? scrollBehavior;
+
+  /// 拖动起点的取值方式。
+  final DragStartBehavior dragStartBehavior;
+
+  /// 拖动时是否收起软键盘，缺省读取滚动配置。
+  final ScrollViewKeyboardDismissBehavior? keyboardDismissBehavior;
+
+  /// 用于恢复滚动位置的标识。
+  final String? restorationId;
+
+  /// 参与滚动语义的业务子项数量。
+  final int? semanticChildCount;
+
+  /// 空白区域的命中行为。
+  final HitTestBehavior hitTestBehavior;
+
+  /// 零滚动偏移在视口主轴上的相对位置。
+  final double anchor;
+
+  /// Sliver 之间的绘制与命中顺序。
+  final SliverPaintOrder paintOrder;
+
+  /// 零滚动偏移对应的 Sliver Key，仅 sliver 构造提供。
+  final Key? center;
 
   @override
   Widget build(BuildContext context) {
     final host = useMemoized(_HostController.new);
     final pointers = useMemoized(_RawPointers.new);
     final activeController = host;
+    final effectivePrimary =
+        primary ?? (controller == null && PrimaryScrollController.shouldInherit(context, scrollDirection));
+    final userController = effectivePrimary ? PrimaryScrollController.maybeOf(context) : controller;
     final configuredSmooth = identical(smoothScroll, $absent)
         ? resolveDefaultSmoothScroll()
         : smoothScroll as ElSmoothScroll?;
     useEffect(() {
-      host.bind(controller);
+      host.bind(userController);
       return host.dispose;
     }, const []);
-    useValueChanged<ScrollController?, void>(controller, (_, _) {
+    useValueChanged<ScrollController?, void>(userController, (_, _) {
       // useEffect(keys) 会在新 effect 挂载之后才 dispose 旧 effect，
       // 若旧清理执行 bind(null)，会把刚换上的 controller 再摘掉。
-      host.bind(controller);
+      host.bind(userController);
     });
 
-    final direction = getAxisDirectionFromAxisReverseAndDirectionality(context, axis, reverse);
     final slivers =
         this.slivers ??
         [
           SliverPadding(
             padding: padding,
-            sliver: ElSliverList(spacing: gap, stretch: true, children: children!),
+            sliver: ElSliverList(
+              spacing: spacing,
+              stretch: true,
+              addRepaintBoundaries: addRepaintBoundaries,
+              addSemanticIndexes: addSemanticIndexes,
+              children: children!,
+            ),
           ),
         ];
     final selection = switch (SelectionContainer.maybeOf(context)) {
       final ScrollTransparentSelectionRegistrar registrar => registrar,
       _ => null,
     };
-    Widget scrollable = Scrollable(
+    Widget scrollable = _HostScrollView(
       controller: activeController,
-      physics: ScrollHostPhysics(parent: physics),
-      axisDirection: direction,
+      physics: ScrollHostPhysics(
+        parent:
+            physics ??
+            ((primary ?? false) || (primary == null && controller == null && scrollDirection == Axis.vertical)
+                ? const AlwaysScrollableScrollPhysics()
+                : null),
+      ),
+      scrollDirection: scrollDirection,
+      reverse: reverse,
+      shrinkWrap: shrinkWrap,
+      scrollCacheExtent: scrollCacheExtent,
       clipBehavior: clipBehavior,
-      viewportBuilder: (context, offset) {
-        // viewportBuilder 的 context 就是 Scrollable 自身，不能用 Scrollable.of 向祖先查找。
-        final position = activeController.position;
-        if (position is ScrollHostPosition) {
-          position.configureSmooth(configuredSmooth);
-        }
-        final viewport = shrinkWrap
-            ? ElShrinkWrappingViewport(
-                axisDirection: direction,
-                offset: offset,
-                clipBehavior: clipBehavior,
-                slivers: slivers,
-              )
-            : ElViewport(
-                axisDirection: direction,
-                offset: offset,
-                scrollCacheExtent: scrollCacheExtent,
-                clipBehavior: clipBehavior,
-                slivers: slivers,
-              );
-        final content = Listener(
-          behavior: HitTestBehavior.opaque,
-          onPointerSignal: (event) {
-            if (position is ScrollHostPosition) position.handlePointerSignal(event);
-          },
-          child: viewport,
-        );
-        return selection == null ? content : SelectionRegistrarScope(registrar: selection, child: content);
-      },
+      scrollBehavior: scrollBehavior,
+      dragStartBehavior: dragStartBehavior,
+      keyboardDismissBehavior: keyboardDismissBehavior,
+      restorationId: restorationId,
+      semanticChildCount: semanticChildCount ?? children?.length,
+      hitTestBehavior: hitTestBehavior,
+      anchor: anchor,
+      center: center,
+      paintOrder: paintOrder,
+      slivers: slivers,
+      smooth: configuredSmooth,
+      selection: selection,
     );
+    if (effectivePrimary && userController != null) scrollable = PrimaryScrollController.none(child: scrollable);
     // 自管选区的注册器不需要官方 Scrollable 的选区处理层，视口内容直接登记到它。
     if (selection != null) scrollable = SelectionContainer.disabled(child: scrollable);
     return Listener(
@@ -167,6 +236,65 @@ class ElScrollView extends HookWidget {
       onPointerPanZoomEnd: (event) => pointers.up(event.pointer, activeController),
       child: scrollable,
     );
+  }
+}
+
+// 让官方 ScrollView 负责键盘、恢复、语义和滚动配置，只替换视口与位置接入。
+class _HostScrollView extends CustomScrollView {
+  const _HostScrollView({
+    required super.controller,
+    required super.physics,
+    required super.scrollDirection,
+    required super.reverse,
+    required super.shrinkWrap,
+    required super.scrollCacheExtent,
+    required super.clipBehavior,
+    required super.scrollBehavior,
+    required super.dragStartBehavior,
+    required super.keyboardDismissBehavior,
+    required super.restorationId,
+    required super.semanticChildCount,
+    required super.hitTestBehavior,
+    required super.anchor,
+    required super.center,
+    required super.paintOrder,
+    required super.slivers,
+    required this.smooth,
+    required this.selection,
+  }) : super(primary: false);
+  final ElSmoothScroll? smooth;
+  final ScrollTransparentSelectionRegistrar? selection;
+
+  @override
+  Widget buildViewport(BuildContext context, ViewportOffset offset, AxisDirection axisDirection, List<Widget> slivers) {
+    final position = offset as ScrollHostPosition;
+    position.configureSmooth(smooth);
+    final devices = (scrollBehavior ?? ScrollConfiguration.of(context)).dragDevices;
+    final viewport = shrinkWrap
+        ? ElShrinkWrappingViewport(
+            axisDirection: axisDirection,
+            offset: offset,
+            slivers: slivers,
+            scrollCacheExtent: scrollCacheExtent,
+            clipBehavior: clipBehavior,
+            paintOrder: paintOrder,
+            dragDevices: devices,
+            hitTestBehavior: hitTestBehavior,
+          )
+        : ElViewport(
+            axisDirection: axisDirection,
+            offset: offset,
+            slivers: slivers,
+            scrollCacheExtent: scrollCacheExtent,
+            clipBehavior: clipBehavior,
+            center: center,
+            anchor: anchor,
+            paintOrder: paintOrder,
+            dragDevices: devices,
+            hitTestBehavior: hitTestBehavior,
+          );
+    final content = Listener(behavior: hitTestBehavior, onPointerSignal: position.handlePointerSignal, child: viewport);
+    return selection == null ? content : SelectionRegistrarScope(registrar: selection!, child: content);
   }
 }
 

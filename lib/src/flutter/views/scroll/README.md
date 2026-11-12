@@ -18,6 +18,12 @@ Android 滚动条使用官方 `Scrollbar`，iOS 使用官方 `CupertinoScrollbar
 
 `ElScrollView` 通过标准 `ScrollController` 适配器共享真实滚动位置。虚拟列表与网格使用 `slivers/` 下的 Sliver，双轴内容使用纵向 Sliver 加外层横向 `ElScrollView`。
 
+默认构造的 `spacing` 交给内部 `ElSliverList`，不再使用 `gap`；默认子项全量常驻，`addRepaintBoundaries`、`addSemanticIndexes` 默认开启。`.sliver` 不提供间距或子项包装参数，由各 Sliver 自己声明。
+
+`scrollCacheExtent` 与官方一致使用 `ScrollCacheExtent`，默认 `ScrollCacheExtent.pixels(250)`，也支持视口倍数；普通和 shrinkWrap 视口均生效。该参数决定 builder/recycler 的预布局窗口，不改变 children 全量常驻的生命周期。
+
+`scrollDirection`、`reverse`、`primary`、`scrollBehavior`、`dragStartBehavior`、`keyboardDismissBehavior`、`restorationId`、`semanticChildCount`、`hitTestBehavior`、`anchor`、`paintOrder` 与官方滚动参数对齐；`.sliver` 额外提供 `center`。内部沿用 `CustomScrollView` 的键盘、恢复和语义处理，同时保留现有滚轮平滑与嵌套滚动接力。
+
 ## 刷新距离
 
 每种 `ElRefresher` 独立声明触发距离 `triggerExtent`、刷新停靠距离 `refreshingExtent` 和最大拉距 `maxPullExtent`，宿主不根据指示器 Widget 的尺寸推断阈值。第三方指示器通过 `ElCustomRefresher` 或继承 `ElRefresher` 接入，并以 `snapshot.progress` 和 `snapshot.status` 驱动视觉。
