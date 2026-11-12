@@ -24,7 +24,7 @@ abstract final class MountTrace {
   /// ViewElement._rebuildChildrenAndPayload。
   static int payloadUs = 0;
 
-  /// ViewElement._syncFocusNode + syncGlobalHandlers。
+  /// ViewElement 挂载时的焦点同步。
   static int focusUs = 0;
 
   /// ViewElement.mount 次数。
@@ -221,7 +221,7 @@ class BenchmarkProbe {
   /// 无盒装饰的裸行稳态该值应恒为 0。
   static int paintControllerInstantiateCount = 0;
 
-  /// 旧焦点状态对象的分配占位计数；当前状态由 ViewElement 持有，恒为零。
+  /// 视图焦点对象的实际分配次数；没有焦点来源的节点不分配。
   static int focusStateInstantiateCount = 0;
 
   /// 焦点环全局高亮模式监听的登记次数。

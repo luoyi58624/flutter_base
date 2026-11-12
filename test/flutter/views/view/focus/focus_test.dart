@@ -1,3 +1,4 @@
+import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
@@ -28,7 +29,9 @@ void main() {
   Future<void> pumpApp(WidgetTester tester, Widget child) {
     return tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+        home: Scaffold(
+          body: Align(alignment: Alignment.topLeft, child: child),
+        ),
       ),
     );
   }
@@ -126,7 +129,12 @@ void main() {
         tester,
         ElView(
           key: key,
-          style: const ElStyle(width: 80, height: 36, backgroundColor: base, onFocusWithin: ElStyle(backgroundColor: withinBg)),
+          style: const ElStyle(
+            width: 80,
+            height: 36,
+            backgroundColor: base,
+            onFocusWithin: ElStyle(backgroundColor: withinBg),
+          ),
         ),
       );
 
@@ -212,10 +220,18 @@ void main() {
         tester,
         Row(
           children: [
-            const ElView(key: plainKey, style: ElStyle(width: 80, height: 36, backgroundColor: base)),
+            const ElView(
+              key: plainKey,
+              style: ElStyle(width: 80, height: 36, backgroundColor: base),
+            ),
             const ElView(
               key: focusKey,
-              style: ElStyle(width: 80, height: 36, backgroundColor: base, onFocus: ElStyle(backgroundColor: focusBg)),
+              style: ElStyle(
+                width: 80,
+                height: 36,
+                backgroundColor: base,
+                onFocus: ElStyle(backgroundColor: focusBg),
+              ),
             ),
           ],
         ),
@@ -440,6 +456,78 @@ void main() {
       await tester.pump();
 
       expect(log, <String>['child', 'parent']);
+    });
+  });
+
+  group('按需创建', () {
+    testWidgets('焦点对象随来源创建，更新不重建，换节点才更换，撤掉来源即释放', (tester) async {
+      final key = ValueKey('lazy');
+      final node = FocusNode(debugLabel: 'lazy');
+      addTearDown(node.dispose);
+      ElRenderView render() => tester.renderObject<ElRenderView>(find.byKey(key));
+      ElStyle plain() => ElStyle(width: 80, height: 36, backgroundColor: base);
+      ElStyle focusable() => plain().copyWith(onFocus: ElStyle(backgroundColor: focusBg));
+      BenchmarkProbe.reset();
+
+      // 只有点击、没有键盘回调的视图不是焦点来源。
+      await pump(
+        tester,
+        ElView(
+          key: key,
+          style: plain(),
+          event: ElEvent(onTap: (_) {}),
+        ),
+      );
+      expect(BenchmarkProbe.focusStateInstantiateCount, 0);
+      expect(render().requestFocusForEvent, isNull);
+
+      await pump(tester, ElView(key: key, style: focusable()));
+      expect(BenchmarkProbe.focusStateInstantiateCount, 1);
+      expect(render().requestFocusForEvent, isNotNull);
+
+      await pump(tester, ElView(key: key, style: focusable()));
+      expect(BenchmarkProbe.focusStateInstantiateCount, 1, reason: '来源不变时更新只同步');
+
+      await pump(tester, ElView(key: key, style: focusable(), focusNode: node));
+      expect(BenchmarkProbe.focusStateInstantiateCount, 2, reason: '内部节点换成外部节点');
+      expect(node.parent, isNotNull);
+
+      await pump(tester, ElView(key: key, style: plain()));
+      expect(BenchmarkProbe.focusStateInstantiateCount, 2);
+      expect(node.parent, isNull, reason: '来源撤掉后摘下外部节点');
+      expect(render().requestFocusForEvent, isNull);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('外部节点摘下再挂回：上层包过的按键链不会回环', (tester) async {
+      final key = ValueKey('rebind');
+      final node = FocusNode(debugLabel: 'rebind');
+      final log = <String>[];
+      addTearDown(node.dispose);
+      ElView bound() => focusBox(
+        node,
+        key: key,
+        event: ElEvent(onKeyDown: (_) => log.add('view')),
+      );
+
+      await pump(tester, bound());
+      // 组件在视图安装的转发之上再包一层，并链回视图的转发。
+      final inner = node.onKeyEvent!;
+      node.onKeyEvent = (node, event) {
+        log.add('outer');
+        return inner(node, event);
+      };
+
+      await pump(tester, ElView(key: key, style: ElStyle(width: 80, height: 36)));
+      await pump(tester, bound());
+      node.requestFocus();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+
+      expect(tester.takeException(), isNull);
+      // 按下、抬起各经过一次外层；旧挂接留在链里的转发已失效，只有当前挂接派发回调。
+      expect(log, <String>['outer', 'view', 'outer']);
     });
   });
 
