@@ -7,8 +7,59 @@ import '../../internal/common.dart';
 /// 移动弹层提供内容框架，路由生命周期由公共层持有。
 Widget popupBuilder(BuildContext context, ElPopup c) => _panel(context, c);
 
-/// 移动确认框沿用同一内容结构并收紧宽度。
-Widget dialogBuilder(BuildContext context, ElDialog c) => _panel(context, c);
+/// 移动确认框为正文保留内边距，页脚通栏贴合底部圆角。
+Widget dialogBuilder(BuildContext context, ElDialog c) {
+  final t = context.elTheme;
+  return ElView(
+    event: c.event,
+    semantics: ElSemantics(container: true, label: c.semanticLabel),
+    style: ElStyle(
+      width: '100%',
+      maxWidth: 420,
+      borderRadius: .circular(28),
+      clipBehavior: .antiAlias,
+      backgroundColor: t.cardColor,
+      color: t.textColor,
+      textAlign: .center,
+      boxShadow: t.shadowXl,
+    ).merge(c.style),
+    child: Column(
+      mainAxisSize: .min,
+      crossAxisAlignment: .stretch,
+      children: [
+        const SizedBox(height: 32),
+        if (c.title != null || c.showClose)
+          Padding(
+            padding: const .fromLTRB(32, 0, 32, 10),
+            child: Row(
+              children: [
+                if (c.showClose) const SizedBox(width: 32),
+                Expanded(
+                  child: ElView(
+                    style: ElStyle(fontSize: 22, fontWeight: textWeight(t.fontWeightSubtitle)),
+                    child: c.title,
+                  ),
+                ),
+                if (c.showClose)
+                  ElButton(
+                    semanticLabel: '关闭弹层',
+                    variant: .text,
+                    style: const ElStyle(width: 32, height: 32, padding: .zero),
+                    child: ElMobileIcons.x,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+              ],
+            ),
+          ),
+        Flexible(
+          child: SingleChildScrollView(padding: const .symmetric(horizontal: 32), child: c.child),
+        ),
+        SizedBox(height: c.footer == null ? 32 : 24),
+        if (c.footer != null) buildContent(c.footer),
+      ],
+    ),
+  );
+}
 
 /// 抽屉保留业务子树和页脚，内容超长时独立滚动。
 Widget drawerBuilder(BuildContext context, ElDrawer c) => _panel(context, c);

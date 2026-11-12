@@ -359,6 +359,66 @@ Widget demoAnchor(BuildContext context, String id, Widget child) =>
 /// 显示演示结果。
 void demoNotify(BuildContext context, String message) => el.toast(context, message, icon: ElMobileIcons.check);
 
+/// 首页确认与提醒共用 Web 的通栏操作区，仍通过现有弹层 API 返回选择结果。
+Future<bool?> demoDialog(
+  BuildContext context, {
+  String title = '确认保存更改？',
+  String message = '保存后将同步更新你的设置。你也可以稍后再进行调整。',
+  String confirm = '确认保存',
+  bool danger = false,
+  bool single = false,
+  ElPopupPlacement placement = .bottom,
+}) => el.dialog<bool>(
+  context,
+  title: title,
+  placement: placement,
+  child: Text(
+    message,
+    textAlign: placement == .center ? .center : .left,
+    style: TextStyle(fontSize: 15, height: 1.9, color: context.elTheme.textSecondary),
+  ),
+  footer: Builder(
+    builder: (context) {
+      final t = context.elTheme;
+      Widget action(String label, bool accepted) => Expanded(
+        child: ElButton(
+          variant: .text,
+          style: ElStyle(
+            width: '100%',
+            minHeight: 66,
+            padding: .fromLTRB(16, 18, 16, 24),
+            borderRadius: .zero,
+            fontSize: 16,
+            lineHeight: 1.5,
+            color: accepted && danger ? t.error : t.primary,
+            transition: [ElTransition.field(.backgroundColor, Duration(milliseconds: 140))],
+            onTap: ElStyle(backgroundColor: t.press, transition: []),
+          ),
+          child: label,
+          onPressed: () => Navigator.of(context).pop(accepted),
+        ),
+      );
+      return Stack(
+        children: [
+          Row(children: [if (!single) action('取消', false), action(confirm, true)]),
+          if (!single)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(
+                  alignment: .topCenter,
+                  child: Padding(
+                    padding: .only(top: 20),
+                    child: ElView(style: ElStyle(width: 1, height: 20, backgroundColor: t.borderColor)),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  ),
+);
+
 /// 使用原稿图片资源。
 const showcaseLake = 'assets/showcase/lake.png';
 

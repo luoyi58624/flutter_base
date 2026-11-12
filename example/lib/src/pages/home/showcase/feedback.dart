@@ -102,39 +102,6 @@ class _SharedState extends StatelessWidget {
   );
 }
 
-Future<bool?> _confirm(
-  BuildContext context, {
-  String title = '确认保存更改？',
-  String message = '保存后将同步更新你的设置。你也可以稍后再进行调整。',
-  String confirm = '确认保存',
-  bool danger = false,
-  bool single = false,
-  ElPopupPlacement placement = .center,
-}) => el.dialog<bool>(
-  context,
-  title: title,
-  placement: placement,
-  child: demoHint(context, message, size: 14),
-  footer: Builder(
-    builder: (context) => Row(
-      spacing: 12,
-      children: [
-        if (!single)
-          Expanded(
-            child: ElButton(variant: .outline, child: '取消', onPressed: () => Navigator.of(context).pop(false)),
-          ),
-        Expanded(
-          child: ElButton(
-            type: danger ? .error : .primary,
-            child: confirm,
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ),
-      ],
-    ),
-  ),
-);
-
 class _Prompts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -200,7 +167,7 @@ class _Prompts extends StatelessWidget {
               ),
             ),
             action('打开确认弹窗', () async {
-              if (await _confirm(context) == true && context.mounted) demoNotify(context, '设置已保存');
+              if (await demoDialog(context) == true && context.mounted) demoNotify(context, '设置已保存');
             }),
           ]),
         ),
@@ -375,7 +342,7 @@ class _Popups extends HookWidget {
               ElButton(
                 variant: .outline,
                 child: '单按钮提醒',
-                onPressed: () => _confirm(
+                onPressed: () => demoDialog(
                   context,
                   title: '内容已经同步',
                   message: '你可以在其他设备上继续查看。',
@@ -389,7 +356,7 @@ class _Popups extends HookWidget {
                 type: .error,
                 child: '危险操作确认',
                 onPressed: () async {
-                  if (await _confirm(
+                  if (await demoDialog(
                             context,
                             title: '删除这条收藏？',
                             message: '删除后将从当前列表中移除。',
