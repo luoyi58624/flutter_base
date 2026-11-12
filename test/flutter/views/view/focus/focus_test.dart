@@ -1,4 +1,5 @@
 import 'package:flutter_base/src/flutter/utils/internal/benchmark_probe.dart';
+import 'package:flutter_base/src/flutter/views/view/render/element_host.dart';
 import 'package:flutter_base/src/ui/testing/ui_test_api.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
@@ -464,7 +465,7 @@ void main() {
       final key = ValueKey('lazy');
       final node = FocusNode(debugLabel: 'lazy');
       addTearDown(node.dispose);
-      ElRenderView render() => tester.renderObject<ElRenderView>(find.byKey(key));
+      bool acceptsPointerFocus() => (tester.element(find.byKey(key)) as RenderElementHost).acceptsPointerFocus;
       ElStyle plain() => ElStyle(width: 80, height: 36, backgroundColor: base);
       ElStyle focusable() => plain().copyWith(onFocus: ElStyle(backgroundColor: focusBg));
       BenchmarkProbe.reset();
@@ -479,11 +480,11 @@ void main() {
         ),
       );
       expect(BenchmarkProbe.focusStateInstantiateCount, 0);
-      expect(render().requestFocusForEvent, isNull);
+      expect(acceptsPointerFocus(), isFalse);
 
       await pump(tester, ElView(key: key, style: focusable()));
       expect(BenchmarkProbe.focusStateInstantiateCount, 1);
-      expect(render().requestFocusForEvent, isNotNull);
+      expect(acceptsPointerFocus(), isTrue);
 
       await pump(tester, ElView(key: key, style: focusable()));
       expect(BenchmarkProbe.focusStateInstantiateCount, 1, reason: '来源不变时更新只同步');
@@ -495,7 +496,7 @@ void main() {
       await pump(tester, ElView(key: key, style: plain()));
       expect(BenchmarkProbe.focusStateInstantiateCount, 2);
       expect(node.parent, isNull, reason: '来源撤掉后摘下外部节点');
-      expect(render().requestFocusForEvent, isNull);
+      expect(acceptsPointerFocus(), isFalse);
       expect(tester.takeException(), isNull);
     });
 

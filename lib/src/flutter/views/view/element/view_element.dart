@@ -5,8 +5,10 @@ import 'package:flutter/widgets.dart';
 
 import '../../../utils/internal/benchmark_probe.dart' show BenchmarkProbe, MountTrace, elMountTraceEnabled;
 import '../../../utils/internal/focus.dart';
+import '../../../utils/internal/reuse_animation.dart';
 import '../content.dart';
 import '../event/event.dart';
+import '../render/element_host.dart';
 import '../render/render_view.dart';
 import '../semantics/semantics_frame.dart';
 import '../style/cascade/style_spec.dart';
@@ -23,7 +25,7 @@ part 'focus_indicator.dart';
 /// 焦点只做三件事：把节点挂到最近的 Flutter [Focus]（无则根 scope）、把
 /// 三态（focus / focusWithin / focusVisible）同步给渲染层、转发指针聚焦与
 /// 键盘回调。Tab/方向键遍历、焦点恢复、区域归属一律交给 Flutter。
-class ViewElement extends RenderObjectElement implements ContentElementHost {
+class ViewElement extends RenderObjectElement implements ContentElementHost, RenderElementHost {
   ViewElement(ElView super.widget);
 
   Element? _child;
@@ -56,8 +58,24 @@ class ViewElement extends RenderObjectElement implements ContentElementHost {
   List<Element> updateContentChildren(List<Element> children, List<Widget> widgets, Set<Element>? forgottenChildren) =>
       updateChildren(children, widgets, forgottenChildren: forgottenChildren);
 
-  // 渲染层按需回读主焦点；读元素当前的焦点对象，换节点后不会留下指向旧节点的闭包。
-  bool _focusSemanticsGetter() => _focus?.node.hasPrimaryFocus ?? false;
+  // --- RenderElementHost ---------------------------------------------------
+
+  @override
+  ValueListenable<TickerModeData> get tickerModeNotifier => TickerMode.getValuesNotifier(this);
+
+  // 祖先失活时的按压反馈复位会读到这里，此时不可能处于换绑，直接返回 false。
+  @override
+  bool get skipsReuseTransitions => isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(this);
+
+  @override
+  bool get acceptsPointerFocus => _focus?.acceptsPointer ?? false;
+
+  @override
+  void requestPointerFocus(PointerDownEvent event, Offset localPosition) =>
+      _focus?.requestFromPointer(event, localPosition);
+
+  @override
+  bool? get hasPrimaryFocus => _focus?.node.hasPrimaryFocus;
 
   // --- Element lifecycle -------------------------------------------------
 
@@ -69,7 +87,6 @@ class ViewElement extends RenderObjectElement implements ContentElementHost {
       MountTrace.superMountUs += trace.elapsedMicroseconds;
       trace.reset();
     }
-    _renderView.bindElementWidget(_view);
     // 焦点宿主先于子树建立：子节点 reparent 时才能找到本节点作为父。
     _syncFocus();
     if (trace != null) {
@@ -87,7 +104,6 @@ class ViewElement extends RenderObjectElement implements ContentElementHost {
   void update(covariant ElView newWidget) {
     _childNeedsUpdate = false;
     super.update(newWidget);
-    _renderView.bindElementWidget(newWidget);
     _syncFocus();
     _updateContent(_syncChildListenable(newWidget.child));
   }

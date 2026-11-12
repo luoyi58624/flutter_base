@@ -42,8 +42,8 @@ import '../style/state/vars_dependents.dart';
 import '../style/state/view_state.dart';
 import '../style/style.dart';
 import '../content.dart';
-import '../view.dart';
 import 'box_painter.dart';
+import 'element_host.dart';
 import 'hit_bounds.dart';
 import 'scroll_cursor_freeze.dart';
 
@@ -151,10 +151,6 @@ class ElRenderView extends RenderBox
   /// 构造 + attach 期间 false（CSS：首次出现不过渡）；attach 末置 true，detach 置回 false。
   bool _transitionsEnabled = false;
 
-  /// 消费该节点所在条目的局部换绑状态，只跳过状态过渡，持续关键帧照常运行。
-  @internal
-  bool Function()? skipReuseTransitions;
-
   /// dark 切换进行中的强制过渡参数载体。
   ElThemeMode? _pendingDarkTransition;
 
@@ -211,16 +207,18 @@ class ElRenderView extends RenderBox
   ViewStateSource? _stateSource;
   VarsBuildDependents? _varsBuildDeps;
   VarsBuildDependents? _themeBuildDeps;
-  ElView? _ownerWidget;
+
+  /// 所属 Element；声明、时钟环境、换绑状态与焦点都经它按需回读，独立使用的渲染对象为空。
+  RenderElementHost? _host;
+
+  /// 绑定所属 Element，创建渲染对象时调用一次。
+  @internal
+  void bindElementHost(RenderElementHost host) => _host = host;
 
   StyleAnimationDriver? _animDriver;
-  ValueListenable<TickerModeData> Function()? _tickerModeSource;
+  // 仅动画节点懒订阅时钟环境，普通盒子不增加继承依赖。
   ValueListenable<TickerModeData>? _tickerModeNotifier;
   bool _tickerModeActive = true;
-
-  /// 绑定 Element 的环境入口，仅动画节点懒订阅，普通盒子不增加继承依赖。
-  @internal
-  void bindTickerModeSource(ValueListenable<TickerModeData> Function() source) => _tickerModeSource = source;
 
   /// 换父后重新寻找环境，摘树期间立即静音现有时钟。
   @internal
@@ -235,7 +233,7 @@ class ElRenderView extends RenderBox
       : const TickerModeData(enabled: false, forceFrames: false);
 
   TickerModeData _subscribeTickerMode() {
-    final source = _tickerModeSource?.call();
+    final source = _host?.tickerModeNotifier;
     if (!identical(source, _tickerModeNotifier)) {
       _tickerModeNotifier?.removeListener(_updateTickerMode);
       _tickerModeNotifier = source;
@@ -330,7 +328,7 @@ class ElRenderView extends RenderBox
   ViewContent? get content => _content;
 
   /// 当前 Element 声明，供内容和事件模块关联来源节点。
-  Object? get ownerNode => _ownerWidget;
+  Object? get ownerNode => _host?.widget;
 
   /// 更新独立内容载荷，结构切换前由 Element 撤下旧子树。
   void updateContent(Object? payload) {
@@ -449,13 +447,9 @@ class ElRenderView extends RenderBox
   EventDispatcher? _eventDispatcher;
   Rect? _hoverEntryBounds;
 
-  /// Element 层注入的点击聚焦入口。RenderObject 不持有 FocusNode。
-  void Function(PointerDownEvent event, Offset localPosition)? requestFocusForEvent;
-
   bool _includeFocusSemantics = false;
   bool _focusableForSemantics = false;
   bool _focusedForSemantics = false;
-  bool Function()? _focusedGetterForSemantics;
   ElSemantics? _semantics;
 
   int _debugLayoutCount = 0;
@@ -506,10 +500,6 @@ class ElRenderView extends RenderBox
   /// 是否有任何字段动画在跑（测试）。颜色过渡与其他字段同走 driver 通道
   /// （4b paint-lerp 已拆），本钩子对一切字段过渡有效。
   bool get hasActiveAnimationsForTest => _hasActiveAnimations;
-
-  /// 将当前 Element 声明关联到渲染宿主。
-  @internal
-  void bindElementWidget(ElView widget) => _ownerWidget = widget;
 
   ui.FlutterView? _findAttachedFlutterView() => _findAncestor<RenderView>()?.flutterView;
 
@@ -816,24 +806,16 @@ class ElRenderView extends RenderBox
   }
 
   /// 同步焦点语义配置。
-  void setFocusSemantics({
-    required bool includeSemantics,
-    required bool focusable,
-    bool focused = false,
-    bool Function()? focusedGetter,
-  }) {
+  void setFocusSemantics({required bool includeSemantics, required bool focusable, bool focused = false}) {
     final focusedForSemantics = focusable && focused;
-    final focusedGetterChanged = (_focusedGetterForSemantics == null) != (focusedGetter == null);
     if (_includeFocusSemantics == includeSemantics &&
         _focusableForSemantics == focusable &&
-        _focusedForSemantics == focusedForSemantics &&
-        !focusedGetterChanged) {
+        _focusedForSemantics == focusedForSemantics) {
       return;
     }
     _includeFocusSemantics = includeSemantics;
     _focusableForSemantics = focusable;
     _focusedForSemantics = focusedForSemantics;
-    _focusedGetterForSemantics = focusedGetter;
     markNeedsSemanticsUpdate();
   }
 
@@ -1004,7 +986,7 @@ class ElRenderView extends RenderBox
     if (_isDisposing) return;
     final trace = elMountTraceEnabled ? (Stopwatch()..start()) : null;
     // 系统禁用或本条目换绑时只直写状态过渡目标，持续关键帧仍走独立通道。
-    final skipTransitions = elDisableAnimations || (skipReuseTransitions?.call() ?? false);
+    final skipTransitions = elDisableAnimations || (_host?.skipsReuseTransitions ?? false);
     if (skipTransitions && _hasActiveAnimations) _animDriver!.cancelAll();
     // driver 只在「闸门已开 且（声明了 transitions / dark 强制过渡 / 已有活跃
     // 动画）」时 ensure —— 裸行与无过渡声明的节点永不分配。
@@ -1654,7 +1636,7 @@ class ElRenderView extends RenderBox
     // 纯悬停宿主不创建 dispatcher，命中口径与其他交互样式保持一致。
     if (_hasHoverVariant || _hasHoverStateListener) return true;
     // 有焦点入口时，即使没有事件或视觉内容，也应允许点击聚焦。
-    if (requestFocusForEvent != null) return true;
+    if (_host?.acceptsPointerFocus ?? false) return true;
     // 有视觉内容：bgColor 参与命中
     if (_committedResolved.box.backgroundColor != null) return true;
     return false;
@@ -1713,7 +1695,8 @@ class ElRenderView extends RenderBox
     if (disabled) return;
     _eventDispatcher?.handleEvent(event, entry);
     if (event is PointerDownEvent && !EventDispatcher.preservesFocus(event)) {
-      requestFocusForEvent?.call(event, _focusLocalPositionForPointer());
+      final host = _host;
+      if (host != null && host.acceptsPointerFocus) host.requestPointerFocus(event, _focusLocalPositionForPointer());
     }
   }
 
@@ -1783,7 +1766,8 @@ class ElRenderView extends RenderBox
       textDirection: _committedResolved.inheritedBox.direction,
       includeFocusSemantics: _includeFocusSemantics,
       focusableForSemantics: _focusableForSemantics,
-      focusedForSemantics: _focusedGetterForSemantics?.call() ?? _focusedForSemantics,
+      // 语义可能晚于焦点变化生成，持有焦点集成时直接回读节点的当前值。
+      focusedForSemantics: _host?.hasPrimaryFocus ?? _focusedForSemantics,
     );
   }
 
@@ -1862,7 +1846,7 @@ class ElRenderView extends RenderBox
   /// 字段生效；reduced-motion 下整体跳过；保留节点重挂不重播。
   void _maybeStartEnterTransitions() {
     final starting = _style?.starting;
-    if (starting == null || elDisableAnimations || (skipReuseTransitions?.call() ?? false)) return;
+    if (starting == null || elDisableAnimations || (_host?.skipsReuseTransitions ?? false)) return;
     final startingValues = specOf(starting).values;
     if (startingValues.isEmpty) return;
 
@@ -1953,15 +1937,13 @@ class ElRenderView extends RenderBox
     _themeBuildDeps = null;
     _tickerModeNotifier?.removeListener(_updateTickerMode);
     _tickerModeNotifier = null;
-    _tickerModeSource = null;
-    skipReuseTransitions = null;
+    _host = null;
     _animDriver?.dispose();
     _animDriver = null;
     _keyframeRunner?.dispose();
     _keyframeRunner = null;
     _eventDispatcher?.dispose();
     _eventDispatcher = null;
-    requestFocusForEvent = null;
     _cascadeBridgeChanges?.dispose();
     _cascadeBridgeChanges = null;
     _listenToClipper(null);

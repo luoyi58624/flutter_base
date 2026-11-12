@@ -125,6 +125,9 @@ final class _ViewFocus {
   bool _disabledByView = false;
   bool _canRequestFocusBeforeDisable = false;
 
+  /// 当前是否接受指针聚焦：可聚焦且未禁用，随声明同步。
+  bool acceptsPointer = false;
+
   /// 指针聚焦时的落点，供 focus 事件回调读取 localPosition。
   Offset? _pendingGlobalPosition;
   Offset? _pendingLocalPosition;
@@ -146,12 +149,11 @@ final class _ViewFocus {
       FocusUtil.markReason(node, ElFocusReason.lifecycle);
       node.unfocus();
     }
-    _render.requestFocusForEvent = interactive && !disabled ? _requestFocusFromPointer : null;
+    acceptsPointer = interactive && !disabled;
     _render.setFocusSemantics(
       includeSemantics: interactive,
       focusable: interactive && node.canRequestFocus && !disabled,
       focused: node.hasPrimaryFocus,
-      focusedGetter: element._focusSemanticsGetter,
     );
     _syncKeyEventHandler();
     // reparent 是 O(祖先深度) 的走查：仅在节点身份变化时主动挂一次；祖先
@@ -237,8 +239,9 @@ final class _ViewFocus {
 
   // --- 指针聚焦 ---------------------------------------------------------
 
-  void _requestFocusFromPointer(PointerDownEvent event, Offset localPosition) {
-    if (_render.disabled) return;
+  /// 指针按下时认领焦点：同一次按下里最深的可聚焦视图先认领，外壳让位。
+  void requestFromPointer(PointerDownEvent event, Offset localPosition) {
+    if (!acceptsPointer || _render.disabled) return;
     // 每次命中项拿到的是按自身坐标变换后的新事件对象，不能用身份做 down
     // 标识；pointer + timeStamp 在同一次 down 的所有命中项间稳定。
     if (_pointerDownPointer != event.pointer || _pointerDownTime != event.timeStamp) {
@@ -342,7 +345,6 @@ final class _ViewFocus {
       includeSemantics: interactive,
       focusable: interactive && node.canRequestFocus && !_render.disabled,
       focused: primary,
-      focusedGetter: element._focusSemanticsGetter,
     );
     final primaryChanged = primary != _hadPrimaryFocus;
     if (force || primaryChanged) {
@@ -395,7 +397,7 @@ final class _ViewFocus {
       // 卸载后焦点只能停在 scope 上，无法自然回落。
       node.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
     }
-    _render.requestFocusForEvent = null;
+    acceptsPointer = false;
     _render.releaseEventDispatcherIfUnused();
     // 环位与全局登记与「当前能否同步渲染状态」无关，必须无条件清掉。
     _setRing(false);

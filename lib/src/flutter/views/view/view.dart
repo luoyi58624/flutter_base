@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
 
 import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTraceEnabled;
-import '../../utils/internal/reuse_animation.dart';
 import 'element/view_element.dart';
 import 'event/event.dart';
 import 'render/render_view.dart';
@@ -87,9 +86,7 @@ class ElView extends RenderObjectWidget {
       themeMode: themeMode,
       breakpoint: breakpoint,
     );
-    render.bindTickerModeSource(() => TickerMode.getValuesNotifier(context));
-    // 祖先失活时的按压反馈复位会回调这里，此时不可能处于换绑，直接返回 false。
-    render.skipReuseTransitions = () => element.isActiveInTree && ReuseAnimationScope.skippingTransitionsOf(element);
+    render.bindElementHost(element);
     render.setStyleParent(StyleDependencyScope.maybeHostOf(context));
     if (trace != null) MountTrace.createRenderObjectUs += trace.elapsedMicroseconds;
     return render;

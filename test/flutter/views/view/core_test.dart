@@ -1732,6 +1732,31 @@ void main() {
         expect(snap['intrinsicsCacheInstantiateCount'], 0);
       });
     });
+
+    group('所属 Element 回读', () {
+      testWidgets('渲染对象经所属 Element 读取当前声明，更新后即新声明', (tester) async {
+        final key = ValueKey('host-widget');
+        final first = ElView(key: key, style: .new(width: 40, height: 40));
+        final second = ElView(key: key, style: .new(width: 60, height: 40));
+
+        await tester.pumpWidget(shell(first));
+        final render = tester.renderObject<ElRenderView>(find.byKey(key));
+        expect(render.ownerNode, same(first));
+
+        await tester.pumpWidget(shell(second));
+        expect(tester.renderObject<ElRenderView>(find.byKey(key)), same(render));
+        expect(render.ownerNode, same(second));
+
+        await tester.pumpWidget(shell(SizedBox()));
+        expect(render.ownerNode, isNull, reason: '释放后不再持有所属 Element');
+      });
+
+      test('独立使用的渲染对象没有来源节点', () {
+        final render = ElRenderView(style: ElStyle(width: 10, height: 10));
+        addTearDown(render.dispose);
+        expect(render.ownerNode, isNull);
+      });
+    });
   });
 }
 
