@@ -6,8 +6,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   fc_native_video_thumbnail
   file_selector_linux
   media_kit_libs_linux
-  media_kit_video
   url_launcher_linux
+  media_kit_video
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
