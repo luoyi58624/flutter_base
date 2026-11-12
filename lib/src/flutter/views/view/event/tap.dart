@@ -175,6 +175,17 @@ final class _RouteTaps {
     if (_primary) host._invoke(host._pointer(inside ? .tapDown : .tapCancel, event, reason: .tapRejected));
   }
 
+  /// 松手前按最终位置再核对一次候选。
+  ///
+  /// 按住期间视图可能被重挂或重排到别处，指针并没有移动，移动时的核对覆盖不到；
+  /// 重挂保留按压序列，但已不在指针下的视图不应完成点击。
+  void settle(PointerUpEvent event) {
+    final distance = route.moved.distance;
+    for (final host in eligible.toList()) {
+      if (host._live) move(host, event, distance);
+    }
+  }
+
   /// 松手：派发抬起，仍有资格的候选在竞技场裁决后触发点击。
   void end(PointerUpEvent event, {required bool flung}) {
     if (pressed.isEmpty) return;

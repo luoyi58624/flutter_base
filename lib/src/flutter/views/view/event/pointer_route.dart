@@ -145,6 +145,7 @@ final class _Route extends GestureArenaMember {
     _drags
       ?..handoff()
       ..finish(event, velocity);
+    if (event is PointerUpEvent) _taps?.settle(event);
     for (final host in hosts.toList()) {
       // 点击候选与纯样式宿主原地松手时保留触摸反馈，被取消的点击已在取消时结束反馈。
       final tapped =

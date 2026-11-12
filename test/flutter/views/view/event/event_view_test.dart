@@ -45,7 +45,8 @@ void main() {
     var taps = 0;
     final child = ElView(
       event: ElEvent(
-        deferTap: true, doubleTapInterval: Duration(milliseconds: 40),
+        deferTap: true,
+        doubleTapInterval: Duration(milliseconds: 40),
         onTap: (_) => taps++,
         onDoubleTap: (_) {},
       ),
@@ -435,18 +436,50 @@ void main() {
     expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
   });
 
+  testWidgets('GlobalKey 重挂到指针之外：保留按压序列，松手只收到取消与抬起', (tester) async {
+    final key = GlobalKey();
+    final phases = <ElEventPhase>[];
+    void record(ElEventDetails e) => phases.add(e.phase);
+    final event = ElEvent(onTapDown: record, onTapCancel: record, onTapUp: record, onTap: record);
+    Widget tree(bool left) {
+      final view = ElView(key: key, event: event, child: _box());
+      return _shell(
+        Row(
+          mainAxisSize: .min,
+          children: [
+            KeyedSubtree(key: ValueKey('left'), child: left ? view : _box()),
+            KeyedSubtree(key: ValueKey('right'), child: left ? _box() : view),
+          ],
+        ),
+      );
+    }
+
+    await tester.pumpWidget(tree(true));
+    final render = tester.renderObject<RenderBox>(find.byKey(key));
+    final dispatcher = EventDispatcher.of(render)!;
+    final gesture = await tester.startGesture(Offset(20, 20));
+    await tester.pumpWidget(tree(false));
+    expect(tester.renderObject(find.byKey(key)), same(render));
+    expect(EventDispatcher.of(render), same(dispatcher));
+    expect(phases, [ElEventPhase.tapDown], reason: '重挂本身不结束按压');
+    await gesture.up();
+    await tester.pump();
+    // 指针没有移动，视图却已不在指针下：松手时按最终位置核对，过期的点击不完成。
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapCancel, ElEventPhase.tapUp]);
+
+    phases.clear();
+    await tester.tap(find.byKey(key));
+    await tester.pump();
+    expect(phases, [ElEventPhase.tapDown, ElEventPhase.tapUp, ElEventPhase.tap]);
+  });
+
   testWidgets('卸载已开始的拖拽只发一次 Cancel 并释放注册', (tester) async {
     final phases = <ElEventPhase>[];
     void record(ElEventDetails e) => phases.add(e.phase);
     await tester.pumpWidget(
       _shell(
         ElView(
-          event: ElEvent(
-            dragStartDistance: 0,
-            onDragStart: record,
-            onDragEnd: record,
-            onDragCancel: record,
-          ),
+          event: ElEvent(dragStartDistance: 0, onDragStart: record, onDragEnd: record, onDragCancel: record),
           child: _box(),
         ),
       ),

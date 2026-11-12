@@ -1077,7 +1077,7 @@ void main() {
         expect(taps, 1, reason: 'cleared pending state must not poison the next enabled tap');
       });
 
-      testWidgets('GlobalKey reparent cancels held pointer sequence without losing event config', (tester) async {
+      testWidgets('GlobalKey 重挂到别处的视图不完成按住中的点击，事件配置仍然有效', (tester) async {
         final key = GlobalKey();
         var taps = 0;
 
@@ -1126,11 +1126,11 @@ void main() {
         await gesture.up();
         await tester.pump();
 
-        expect(taps, 0, reason: 'reparent detach must cancel the old held pointer instead of completing a stale tap');
+        expect(taps, 0, reason: '重挂保留按压序列，但视图已不在指针下，松手不能完成过期的点击');
 
         await tester.tap(find.byKey(key));
         await tester.pump();
-        expect(taps, 1, reason: 'preserved event config must keep working after reattach');
+        expect(taps, 1, reason: '重挂后保留的事件配置必须继续生效');
       });
     });
 
