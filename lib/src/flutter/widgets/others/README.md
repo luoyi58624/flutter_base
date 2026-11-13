@@ -39,26 +39,9 @@ ElListenableBuilder<ValueNotifier<int>, int>(
 | ElChildIndex(index:, start:, end:, length:) | 向后代传递索引，of/maybeOf 读取，isStart/isEnd 辅助首尾判断 |
 | ElEmptyWidget.instance | 可渲染的空占位；ElNullWidget / ElNullElement 是内部哨兵，不用于界面 |
 
-## 触底加载
+## 分页滚动
 
-```dart
-final controller = ScrollController();
-ElInfiniteScroll(
-  controller: controller,
-  distance: 100,
-  delay: Duration(milliseconds: 200),
-  disabled: false,
-  onLoad: () async {
-    // 请求下一页并更新业务数据。
-  },
-  child: SizedBox(height: 240, child: ElScrollView(
-    controller: controller,
-    child: SizedBox(height: 800, child: Text('正文')),
-  )),
-);
-```
-
-controller 必须与内容宿主相同。distance 是距 max 边的触发距离；delay 为防抖；onLoad 返回 Future 时等待完成再接受下一次加载；无更多数据时设 disabled=true。immediate 默认 true，挂载时只检查一次内容不足一屏，不会自动循环补满视口。
+下拉刷新、触底分页和自定义列表布局使用 [ElInfiniteScroll](../infinite_scroll/README.md)。
 
 ## 加载动画与帧率
 

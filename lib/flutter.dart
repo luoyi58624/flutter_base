@@ -11,7 +11,7 @@ export 'src/flutter/widgets/icon/index.dart' show ElIcon;
 export 'src/flutter/widgets/text/index.dart' show ElText;
 export 'src/flutter/widgets/others/base.dart';
 export 'src/flutter/widgets/others/child_size_builder.dart';
-export 'src/flutter/widgets/others/infinite_scroll.dart';
+export 'src/flutter/widgets/infinite_scroll/index.dart' show ElInfiniteScroll, ElInfiniteScrollPage;
 export 'src/flutter/widgets/others/loading.dart';
 export 'src/flutter/widgets/others/fps.dart';
 

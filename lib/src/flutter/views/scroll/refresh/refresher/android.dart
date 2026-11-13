@@ -32,6 +32,11 @@ const double _kMaterialArrowWidth = 10.0;
 /// Material 箭头高度。
 const double _kMaterialArrowHeight = 5.0;
 
+const Color _kAndroidSpinnerColor = Color(0xff409eff);
+
+/// 构建直接进入旋转状态的 Android 指示器。
+Widget buildAndroidRefreshSpinner() => const _RefreshMaterialSpinner(status: .refresh, color: _kAndroidSpinnerColor);
+
 /// 安卓原生风格下拉刷新，逐式对齐官方 androidx SwipeRefreshLayout：
 /// 圆形卡片从视口外滑入，手指行程经 DRAG_RATE=0.5 阻尼；到达触发距离前
 /// 线性推进（箭头弧在 40% 行程后展开、整体 30% 透明度），达到后转全不
@@ -88,7 +93,7 @@ class ElAndroidRefresher extends ElRefresher {
     return _AndroidRefreshIndicator(
       details: details,
       distanceToTrigger: distanceToTrigger,
-      color: color ?? const Color(0xff409eff),
+      color: color ?? _kAndroidSpinnerColor,
       bgColor: bgColor ?? const Color(0xfffafafa),
     );
   }

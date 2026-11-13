@@ -13,9 +13,8 @@ import '../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import '../scroll.dart' show ElScrollView;
 import '../scroll_position.dart' show ScrollHostPosition;
-import 'refresher/android.dart' show ElAndroidRefresher;
 import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
-import 'refresher/ios.dart' show ElIosRefresher;
+import 'refresher/platform.dart' show platformRefresher;
 
 export 'package:flutter/material.dart' show RefreshIndicatorStatus;
 
@@ -49,15 +48,6 @@ class ElSliverRefresh extends HookWidget {
   /// 刷新器的外观与策略；null 使用平台默认实现。
   final ElRefresher? refresher;
 
-  // 按平台选择内置刷新器。
-  ElRefresher _resolveDefaultRefresher() => switch (defaultTargetPlatform) {
-    TargetPlatform.android || TargetPlatform.fuchsia => const ElAndroidRefresher(),
-    TargetPlatform.iOS ||
-    TargetPlatform.macOS ||
-    TargetPlatform.windows ||
-    TargetPlatform.linux => const ElIosRefresher(),
-  };
-
   @override
   Widget build(BuildContext context) {
     final scrollable = Scrollable.of(context);
@@ -67,7 +57,7 @@ class ElSliverRefresh extends HookWidget {
       context.findAncestorWidgetOfExactType<ElScrollView>()?.reverse != true,
       'ElSliverRefresh 不支持反向滚动，请勿在 reverse: true 的滚动视图中使用下拉刷新。',
     );
-    final refresher = this.refresher ?? _resolveDefaultRefresher();
+    final refresher = this.refresher ?? platformRefresher;
 
     final vsync = useSingleTickerProvider();
     final motion = useMemoized(() => _RefreshMotion(vsync));

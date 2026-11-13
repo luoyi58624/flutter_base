@@ -33,6 +33,9 @@ const int _kIosPartialAlpha = 147;
 /// iOS 13.2 提取的 tick 亮色（暗色为 0xFFEBEBF5，经调用方传入）。
 const Color _kIosTickColor = Color(0xFF3C3C44);
 
+/// 构建直接进入旋转状态的 iOS 指示器。
+Widget buildIosRefreshSpinner() => const _RefreshCupertinoSpinner(progress: 1, spinning: true, color: _kIosTickColor);
+
 /// iOS 原生（Cupertino）风格下拉刷新，视觉逐项对齐官方
 /// CupertinoSliverRefreshControl：内容跟手下移（bouncing），指示器钉在露出
 /// 间隙顶部 16px 处；拉出期 8 根刻度逐根点亮（统一 alpha 147）且整体透明度按
@@ -143,7 +146,15 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
               : const .only(bottom: _kIosIndicatorMargin),
           transform: scale == 1.0 ? null : .scale(scale, scale),
         ),
-        child: _RefreshCupertinoSpinner(snapshot: snapshot, color: widget.color),
+        child: _RefreshCupertinoSpinner(
+          progress: snapshot.progress,
+          // 达到触发距离时开始旋转，收起期间继续旋转。
+          spinning: switch (snapshot.status) {
+            RefreshIndicatorStatus.armed || RefreshIndicatorStatus.refresh || RefreshIndicatorStatus.done => true,
+            _ => false,
+          },
+          color: widget.color,
+        ),
       ),
     );
   }
@@ -153,16 +164,12 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
 /// （tick 径向跨 r/3..r、宽 0.2r），拉出期按进度逐根点亮（统一 alpha 147），
 /// armed 起即步进旋转（1s/圈）、亮度尾迹用 iOS 13.2 提取的 alpha 序列。
 class _RefreshCupertinoSpinner extends StatefulWidget {
-  /// 创建 Cupertino 刷新进度指示器。
-  const _RefreshCupertinoSpinner({required this.snapshot, required this.color});
+  const _RefreshCupertinoSpinner({required this.progress, required this.spinning, required this.color});
 
-  /// 当前刷新快照。
-  final ElRefreshSnapshot snapshot;
-
-  /// 刻度颜色。
+  final double progress;
+  final bool spinning;
   final Color color;
 
-  /// 创建进度指示器状态。
   @override
   State<_RefreshCupertinoSpinner> createState() => _RefreshCupertinoSpinnerState();
 }
@@ -172,16 +179,9 @@ class _RefreshCupertinoSpinnerState extends State<_RefreshCupertinoSpinner> with
   late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 1))
     ..addListener(_handleSpinTick);
 
-  /// 官方起转时机 = armed（RefreshIndicatorMode.armed || refresh 都画
-  /// 动画 spinner），不等松手；finishing（done）期间旋转不停。
-  bool get _spinning => switch (widget.snapshot.status) {
-    RefreshIndicatorStatus.armed || RefreshIndicatorStatus.refresh || RefreshIndicatorStatus.done => true,
-    _ => false,
-  };
-
   void _syncSpin() {
-    if (_spinning && !_spin.isAnimating) _spin.repeat();
-    if (!_spinning && _spin.isAnimating) _spin.stop();
+    if (widget.spinning && !_spin.isAnimating) _spin.repeat();
+    if (!widget.spinning && _spin.isAnimating) _spin.stop();
   }
 
   void _handleSpinTick() {
@@ -210,8 +210,8 @@ class _RefreshCupertinoSpinnerState extends State<_RefreshCupertinoSpinner> with
   Widget build(BuildContext context) {
     return _CupertinoSpinnerPaint(
       color: widget.color,
-      progress: widget.snapshot.progress,
-      spinning: _spinning,
+      progress: widget.progress,
+      spinning: widget.spinning,
       phase: _spin.value,
     );
   }
