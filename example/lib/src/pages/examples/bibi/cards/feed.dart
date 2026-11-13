@@ -40,10 +40,21 @@ const _creators = ['像素工作室', '阿洛赛事手记', '未完待续动画�
 const _badges = ['必看', '精彩集锦', '人气投稿', '旅行记录', '烟火日常', '影视拆解'];
 
 /// 构建首页轮播。刷新后由新一批推荐的首张封面开始。
-Widget buildBibiBanner(BuildContext context, int generation, {Key? key}) => Padding(
+Widget buildBibiBanner(
+  BuildContext context,
+  int generation, {
+  Key? key,
+  double aspectRatio = 16 / 9,
+  double maxHeight = 212,
+}) => Padding(
   key: key ?? ValueKey('bibi-banner'),
   padding: .fromLTRB(8, 4, 8, 6),
-  child: _BibiBanner(key: ValueKey(generation), initialIndex: generation % _bannerTitles.length),
+  child: _BibiBanner(
+    key: ValueKey(generation),
+    initialIndex: generation % _bannerTitles.length,
+    aspectRatio: aspectRatio,
+    maxHeight: maxHeight,
+  ),
 );
 
 /// 按行构建两个视频卡片，频道共用相同的本地数据。
@@ -61,7 +72,8 @@ Widget buildBibiVideoRow(BuildContext context, int rowIndex, int generation) => 
 );
 
 /// 构建首页与 Grid 对照共用的视频卡片。
-Widget buildBibiVideoCard(int index, int generation) => _VideoCard(_videoAt(index, generation));
+Widget buildBibiVideoCard(int index, int generation, {double aspectRatio = 16 / 9}) =>
+    _VideoCard(_videoAt(index, generation), aspectRatio: aspectRatio);
 
 /// 从当前一批本地推荐按标题或 UP 主搜索。
 Future<void> showBibiSearch(BuildContext context, int generation) async {
@@ -172,9 +184,11 @@ _Video _videoAt(int index, int generation) {
 
 class _BibiBanner extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _BibiBanner({super.key, required this.initialIndex});
+  _BibiBanner({super.key, required this.initialIndex, required this.aspectRatio, required this.maxHeight});
 
   final int initialIndex;
+  final double aspectRatio;
+  final double maxHeight;
 
   @override
   State<_BibiBanner> createState() => _BibiBannerState();
@@ -192,7 +206,7 @@ class _BibiBannerState extends State<_BibiBanner> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => SizedBox(
-      height: math.min(212.0, constraints.maxWidth * 9 / 16),
+      height: math.min(widget.maxHeight, constraints.maxWidth / widget.aspectRatio),
       child: ClipRRect(
         borderRadius: .circular(8),
         child: Stack(
@@ -330,9 +344,10 @@ final _videoMenu = _BibiVideoMenu();
 
 class _VideoCard extends StatefulWidget {
   // ignore: prefer_const_constructors_in_immutables
-  _VideoCard(this.video);
+  _VideoCard(this.video, {required this.aspectRatio});
 
   final _Video video;
+  final double aspectRatio;
 
   @override
   State<_VideoCard> createState() => _VideoCardState();
@@ -340,12 +355,13 @@ class _VideoCard extends StatefulWidget {
 
 class _VideoCardState extends State<_VideoCard> {
   late final _video = ValueNotifier(widget.video);
-  late final _card = _buildCard();
+  late var _card = _buildCard();
 
   @override
   void didUpdateWidget(_VideoCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     _video.value = widget.video;
+    if (oldWidget.aspectRatio != widget.aspectRatio) _card = _buildCard();
   }
 
   @override
@@ -408,7 +424,7 @@ class _VideoCardState extends State<_VideoCard> {
           mainAxisSize: .min,
           children: [
             AspectRatio(
-              aspectRatio: 16 / 9,
+              aspectRatio: widget.aspectRatio,
               child: Stack(
                 fit: .expand,
                 children: [

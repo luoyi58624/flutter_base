@@ -103,8 +103,8 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
       _queueRefreshApply();
       return Future.value();
     }
-    _pages.cancelLoad();
     final request = _refreshRequest = Completer<void>();
+    _pages.cancelLoad();
     _refreshTimer = Timer(Duration(milliseconds: 500), () {
       _refreshTimer = null;
       _refreshRequest = null;
@@ -371,6 +371,22 @@ class _BibiFeedState extends State<_BibiFeed> {
         SliverPadding(
           padding: EdgeInsets.only(bottom: 4),
           sliver: BibiCards(pages: widget.pages, generation: widget.generation),
+        ),
+        SliverToBoxAdapter(
+          child: ListenableBuilder(
+            listenable: widget.pages,
+            builder: (context, _) => SizedBox(
+              height: 44,
+              child: widget.pages.isLoading
+                  ? Center(
+                      child: SizedBox.square(
+                        dimension: 24,
+                        child: CircularProgressIndicator(color: _pink, strokeWidth: 2.5, semanticsLabel: '加载更多'),
+                      ),
+                    )
+                  : null,
+            ),
+          ),
         ),
       ],
     ),

@@ -222,18 +222,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('触底按整批追加大卡片和六张小卡片，下拉刷新回到首批', (tester) async {
+  testWidgets('触底显示圆形进度并追加一批卡片，下拉刷新恢复两批', (tester) async {
     await _open(tester);
     int slots() => tester.widget<ElSliverList>(_cards()).itemCount;
     final controller = _feed(tester).controller!;
-    expect(slots(), 2);
+    expect(slots(), 4);
     expect(tester.widget<ElSliverList>(_cards()).itemType, isNotNull);
 
     controller.jumpTo(controller.position.maxScrollExtent);
     await tester.pump();
-    expect(slots(), 2);
-    await tester.pump(Duration(milliseconds: 100));
     expect(slots(), 4);
+    final spinner = _inFeed(find.byType(CircularProgressIndicator));
+    expect(spinner, findsOneWidget);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(slots(), 6);
+    expect(spinner, findsNothing);
     final appendedOffset = controller.offset;
     await tester.pumpAndSettle();
     expect(controller.offset, closeTo(appendedOffset, .01));
@@ -249,15 +252,15 @@ void main() {
     await tester.pump();
     await pull.up();
     await tester.pump(Duration(milliseconds: 100));
-    expect(slots(), 4, reason: '刷新开始后，正在等待的追加不得写回');
+    expect(slots(), 6, reason: '刷新开始后，正在等待的追加不得写回');
     await tester.pumpAndSettle();
     expect(_cardsKey(tester), ValueKey('bibi-cards-1'));
-    expect(slots(), 2);
+    expect(slots(), 4);
     expect(controller.offset, 0);
     controller.jumpTo(controller.position.maxScrollExtent);
     await tester.pump();
     await tester.pump(Duration(milliseconds: 100));
-    expect(slots(), 4);
+    expect(slots(), 6);
     expect(tester.takeException(), isNull);
   });
 
@@ -297,6 +300,9 @@ void main() {
     final grid = _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverGrid));
     final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
     expect(cards, findsNWidgets(6));
+    final cover = find.descendant(of: cards.first, matching: find.byType(AspectRatio));
+    final coverSize = tester.getSize(cover);
+    expect(coverSize.aspectRatio, closeTo(5 / 4, .001));
     final boundaries = find.descendant(
       of: host,
       matching: find.byWidgetPredicate((widget) => widget is RepaintBoundary),
