@@ -13,8 +13,8 @@ SpringDescription get elWebKitRubberBandSpring =>
 
 /// 下拉刷新挂载的滚动边缘。
 ///
-/// [leading] = 滚动 min 边（普通列表的视觉顶部；`reverse: true` 时视觉底部）；
-/// [trailing] = 滚动 max 边（聊天页 reverse 列表"顶部加载更早消息"用它）。
+/// [leading] = 滚动 min 边；[trailing] = 滚动 max 边。
+/// ElSliverRefresh 使用 leading，且不支持反向滚动。
 enum ElRefreshEdge { leading, trailing }
 
 /// 每帧提供给指示器视觉树的不可变快照。

@@ -31,14 +31,12 @@ class _Fixture {
   _Fixture({
     this.movesContent = false,
     this.contentHeight = 1200,
-    this.reverse = false,
     this.android = false,
     this.refreshImmediately = false,
   });
 
   final bool movesContent;
   final double contentHeight;
-  final bool reverse;
   final bool android;
   final bool refreshImmediately;
 
@@ -54,7 +52,6 @@ class _Fixture {
     Widget scroll = ElScrollView.sliver(
       key: ValueKey('scroll'),
       controller: controller,
-      reverse: reverse,
       physics: ClampingScrollPhysics(),
       slivers: [
         ElSliverRefresh(
@@ -117,9 +114,7 @@ Future<TestGesture> _drag(WidgetTester tester, List<double> motions) async {
 }
 
 /// 正文起点相对视口起点的主轴距离，正值表示被推开。
-double _contentShift(WidgetTester tester, {bool reverse = false}) => reverse
-    ? tester.getBottomLeft(_scroll).dy - tester.getBottomLeft(_content).dy
-    : tester.getTopLeft(_content).dy - tester.getTopLeft(_scroll).dy;
+double _contentShift(WidgetTester tester) => tester.getTopLeft(_content).dy - tester.getTopLeft(_scroll).dy;
 
 void main() {
   group('安卓圆盘', () {
@@ -375,27 +370,6 @@ void main() {
       expect(fixture.status, isNull);
       expect(_contentShift(tester), closeTo(-100, 0.01));
       expect(fixture.controller.offset, closeTo(100, 0.01));
-    });
-
-    testWidgets('反向列表在底部向上拉出，间隙与指示器都落在滚动起点一侧', (tester) async {
-      final fixture = _Fixture(movesContent: true, reverse: true);
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.build());
-
-      final gesture = await _drag(tester, [-100, -100]);
-      final snapshot = fixture.details!.snapshot.value;
-      expect(snapshot.status, RefreshIndicatorStatus.armed);
-      expect(snapshot.axisDirection, AxisDirection.up);
-      expect(snapshot.anchoredAtViewportStart, isFalse);
-      expect(fixture.controller.offset, 0);
-      expect(_contentShift(tester, reverse: true), closeTo(fixture.pulled, 0.01));
-      expect(tester.getRect(_indicator), tester.getRect(_scroll));
-
-      await gesture.cancel();
-      await tester.pumpAndSettle();
-      expect(fixture.status, isNull);
-      expect(_contentShift(tester, reverse: true), 0);
-      expect(fixture.refreshCount, 0);
     });
   });
 }

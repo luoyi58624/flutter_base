@@ -11,6 +11,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
+import '../scroll.dart' show ElScrollView;
 import '../scroll_position.dart' show ScrollHostPosition;
 import 'refresher/android.dart' show ElAndroidRefresher;
 import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
@@ -32,7 +33,7 @@ export 'refresher/ios.dart' show ElIosRefresher;
 
 /// Sliver 形式的下拉刷新，放在 ElScrollView.sliver 的 slivers 里，通常是第一个。
 ///
-/// 刷新绑定在滚动起点一侧（普通列表的顶部，reverse 列表的底部）。
+/// 刷新绑定在滚动起点，不支持 reverse: true 的反向滚动视图。
 /// 内容让位式刷新器（[ElRefresher.movesContent]）由本 Sliver 占出真实间隙，把后面的 Sliver 推开，
 /// 滚动位置本身不越界；悬浮式刷新器不占位，指示器盖在视口上。
 /// 只有手指拖动能拉出刷新，松手时仍在触发距离之外才执行 [onRefresh]。
@@ -62,6 +63,10 @@ class ElSliverRefresh extends HookWidget {
     final scrollable = Scrollable.of(context);
     final position = scrollable.position;
     assert(position is ScrollHostPosition, 'ElSliverRefresh 需要放在 ElScrollView.sliver 的 slivers 中');
+    assert(
+      context.findAncestorWidgetOfExactType<ElScrollView>()?.reverse != true,
+      'ElSliverRefresh 不支持反向滚动，请勿在 reverse: true 的滚动视图中使用下拉刷新。',
+    );
     final refresher = this.refresher ?? _resolveDefaultRefresher();
 
     final vsync = useSingleTickerProvider();

@@ -11,7 +11,6 @@ class NewScrollRefreshPage extends StatefulWidget {
 }
 
 class _RefreshPageState extends State<NewScrollRefreshPage> {
-  bool _reverse = false;
   bool _ios = false;
   int _refreshes = 0;
 
@@ -43,7 +42,7 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
         ),
       ),
     ];
-    final scroll = ElScrollView.sliver(key: ValueKey('refresh-scroll-$_reverse'), reverse: _reverse, slivers: slivers);
+    final scroll = ElScrollView.sliver(slivers: slivers);
 
     return Scaffold(
       appBar: AppBar(title: Text('新版滚动 · 下拉刷新（$_refreshes）')),
@@ -67,11 +66,6 @@ class _RefreshPageState extends State<NewScrollRefreshPage> {
                       label: Text('iOS · 内容让位'),
                       selected: _ios,
                       onSelected: (_) => setState(() => _ios = true),
-                    ),
-                    FilterChip(
-                      label: Text('反向列表'),
-                      selected: _reverse,
-                      onSelected: (value) => setState(() => _reverse = value),
                     ),
                   ],
                 ),
