@@ -22,20 +22,19 @@ void main() {
       placement: .bottomEnd,
       offset: 4,
       crossOffset: 3,
-    ).resolve(Rect.fromLTWH(200, 180, 60, 20), Size(100, 70), Size(300, 220));
+    ).resolve(Rect.fromLTWH(200, 180, 60, 20), Size(100, 70), Offset.zero & Size(300, 220));
     expect(result.placement, ElPlacement.topEnd);
     expect(result.overlayRect, Rect.fromLTWH(163, 106, 100, 70));
   });
 
-  test('左右翻转与双轴 clamp；两侧均不足仍停在安全区', () {
-    final result = ElOverlayAnchor(
-      placement: .rightStart,
-    ).resolve(Rect.fromLTWH(260, 190, 20, 20), Size(100, 100), Size(300, 220));
-    expect(result.placement, ElPlacement.leftStart);
-    expect(result.overlayRect, Rect.fromLTWH(160, 112, 100, 100));
-    final clamped = ElOverlayAnchor(
-      placement: .bottomStart,
-    ).resolve(Rect.fromLTWH(-20, 70, 20, 20), Size(284, 204), Size(300, 220));
+  test('左右翻转后交叉轴起止对调；两侧均不足仍停在安全区', () {
+    final result = ElOverlayAnchor(placement: .rightStart)
+        .resolve(Rect.fromLTWH(260, 190, 20, 20), Size(100, 100), Offset.zero & Size(300, 220));
+    // 上缘对齐会越过下边界，改为下缘对齐后放得下。
+    expect(result.placement, ElPlacement.leftEnd);
+    expect(result.overlayRect, Rect.fromLTWH(160, 110, 100, 100));
+    final clamped = ElOverlayAnchor(placement: .bottomStart)
+        .resolve(Rect.fromLTWH(-20, 70, 20, 20), Size(284, 204), Offset.zero & Size(300, 220));
     expect(clamped.overlayRect, Rect.fromLTWH(8, 8, 284, 204));
   });
 
@@ -44,7 +43,7 @@ void main() {
       placement: .bottomStart,
       flip: false,
       shift: false,
-    ).resolve(Rect.fromLTWH(-10, 200, 20, 20), Size(100, 100), Size(300, 220));
+    ).resolve(Rect.fromLTWH(-10, 200, 20, 20), Size(100, 100), Offset.zero & Size(300, 220));
     expect(result.placement, ElPlacement.bottomStart);
     expect(result.overlayRect.topLeft, Offset(-10, 220));
   });
@@ -70,7 +69,7 @@ void main() {
         placement: placement,
         offset: 4,
         crossOffset: 3,
-      ).resolve(Rect.fromLTWH(100, 100, 20, 20), Size(80, 60), Size(300, 300));
+      ).resolve(Rect.fromLTWH(100, 100, 20, 20), Size(80, 60), Offset.zero & Size(300, 300));
       expect(geometry.placement, placement);
       expect(geometry.overlayRect.topLeft, positions[placement]);
       expect(geometry.arrowTarget.dx, inInclusiveRange(0, 80));

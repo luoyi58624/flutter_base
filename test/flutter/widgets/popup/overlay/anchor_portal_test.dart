@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 不变量（测试视口 800×600）：
 /// 1. bottomStart 基础定位：弹层左上 = 锚左下 + offset。
 /// 2. flip：锚贴近底边时 bottom 翻 top（弹层底 = 锚顶 - offset）。
-/// 3. shift：锚贴右缘时交叉轴钳进视口安全边。
+/// 3. 锚贴右缘时交叉轴起止对调，右缘对齐锚。
 /// 4. matchWidth：弹层宽 = 锚宽。
 /// 5. 跟随：锚移动后弹层帧级跟随。
 /// 6. ElPortal：open/close/toggle/isOpen、退场保活、触发器卸载自动收。
@@ -99,7 +99,7 @@ void main() {
       expect(tester.getBottomLeft(find.byKey(popupKey)), Offset(100, 534));
       expect(geometry?.placement, ElPlacement.topStart);
     });
-    testWidgets('shift：锚贴右缘 → 交叉轴钳进安全边', (tester) async {
+    testWidgets('锚贴右缘 → 左对齐越界时改为右对齐锚', (tester) async {
       final controller = ElPortalController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(
@@ -113,7 +113,7 @@ void main() {
       );
       controller.open();
       await tester.pumpAndSettle();
-      expect(tester.getTopRight(find.byKey(popupKey)).dx, 792);
+      expect(tester.getTopRight(find.byKey(popupKey)).dx, 790);
     });
     testWidgets('matchWidth：弹层宽 = 锚宽', (tester) async {
       final controller = ElPortalController();

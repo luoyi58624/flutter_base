@@ -74,12 +74,13 @@ class _ViewportAnchor extends ElOverlayAnchor {
   final Offset offsetInViewport;
 
   @override
-  ElOverlayAnchorGeometry resolve(Rect anchorRect, Size childSize, Size viewport) => (
+  ElOverlayAnchorGeometry resolve(Rect anchorRect, Size childSize, Rect viewport) => (
     placement: ElPlacement.bottomStart,
     arrowTarget: Offset.zero,
     anchorRect: anchorRect,
     overlayRect:
-        (align.alongOffset(Offset(viewport.width - childSize.width, viewport.height - childSize.height)) +
+        (viewport.topLeft +
+            align.alongOffset(Offset(viewport.width - childSize.width, viewport.height - childSize.height)) +
             offsetInViewport) &
         childSize,
   );

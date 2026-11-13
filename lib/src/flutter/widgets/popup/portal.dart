@@ -747,7 +747,7 @@ class _PopupLayout extends SingleChildLayoutDelegate {
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    final geometry = frozen ?? config.resolve(rect, childSize, size);
+    final geometry = frozen ?? config.resolve(rect, childSize, Offset.zero & size);
     onGeometry(geometry);
     return geometry.overlayRect.topLeft;
   }

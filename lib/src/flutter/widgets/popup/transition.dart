@@ -48,6 +48,13 @@ final class OverlayTransitions {
     return remaining > longest ? remaining : longest;
   });
 
+  /// 退场中途再次打开时从当前进度重新进场。
+  void forward() {
+    for (final controller in _controllers) {
+      controller.forward();
+    }
+  }
+
   /// 播放全部退场；动画所在组件先被卸载时直接结束。
   Future<void> reverse() => Future.wait([
     for (final controller in _controllers.toList()) controller.reverse().orCancel.onError<TickerCanceled>((_, _) {}),
