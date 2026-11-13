@@ -35,7 +35,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
   );
   final _expanded = <int>{};
   final _checked = <int>{};
-  var _mode = SliverExampleMode.official;
+  var _mode = SliverExampleMode.initial;
   var _locateGeneration = 0;
 
   _Section _section(int index) =>
@@ -126,15 +126,7 @@ class _RecyclerRichDocumentPageState extends State<RecyclerRichDocumentPage> {
       PopupMenuButton<SliverExampleMode>(
         key: ValueKey('comparison-mode-menu'),
         onSelected: _changeMode,
-        itemBuilder: (_) => [
-          for (final mode in SliverExampleMode.values)
-            CheckedPopupMenuItem(
-              key: ValueKey('comparison-mode-${mode.name}'),
-              value: mode,
-              checked: _mode == mode,
-              child: Text(mode.label),
-            ),
-        ],
+        itemBuilder: (_) => [..._mode.menuItems(keyPrefix: 'comparison-mode')],
       ),
     ],
     child: SafeArea(

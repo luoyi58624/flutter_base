@@ -24,7 +24,7 @@ enum _CardsAction { refreshVisible, first, last, clear }
 class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
   final _controller = ScrollController(keepScrollOffset: false);
   final _activeCount = ValueNotifier<int>(0);
-  SliverExampleMode _mode = .official;
+  var _mode = SliverExampleMode.initial;
   late final _adapter = _ObservationRecords((count) => _activeCount.value = count);
 
   ScrollController get _currentController => _controller;
@@ -116,13 +116,7 @@ class _RecyclerCardsPageState extends State<RecyclerCardsPage> {
         icon: Icon(Icons.more_vert),
         onSelected: _choose,
         itemBuilder: (context) => [
-          for (final mode in SliverExampleMode.values)
-            CheckedPopupMenuItem(
-              key: ValueKey('cards-mode-${mode.name}'),
-              value: mode,
-              checked: _mode == mode,
-              child: Text(mode.label),
-            ),
+          ..._mode.menuItems(keyPrefix: 'cards-mode'),
           PopupMenuDivider(),
           PopupMenuItem(
             key: ValueKey('cards-refresh-visible'),

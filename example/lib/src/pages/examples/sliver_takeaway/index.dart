@@ -48,7 +48,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
   var _indices = List<int>.generate(1000, (index) => index);
   var _category = -1;
   var _kind = _SliverKind.list;
-  var _mode = SliverExampleMode.official;
+  var _mode = SliverExampleMode.initial;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -144,13 +144,7 @@ class _TakeawaySliverPageState extends State<TakeawaySliverPage> {
           tooltip: '列表选项',
           onSelected: _selectOption,
           itemBuilder: (context) => [
-            for (final mode in SliverExampleMode.values)
-              CheckedPopupMenuItem<Object>(
-                key: ValueKey('takeaway-mode-${mode.name}'),
-                checked: _mode == mode,
-                value: mode,
-                child: Text(_kind == .list ? mode.label : mode.gridLabel()),
-              ),
+            ..._mode.menuItems(keyPrefix: 'takeaway-mode', grid: _kind != .list),
             PopupMenuDivider(),
             for (final kind in _SliverKind.values)
               CheckedPopupMenuItem<Object>(

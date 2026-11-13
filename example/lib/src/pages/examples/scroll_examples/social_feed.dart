@@ -22,7 +22,7 @@ class _RecyclerSocialFeedPageState extends State<RecyclerSocialFeedPage> {
   final _controller = ScrollController(keepScrollOffset: false);
 
   final _adapter = _SocialRecords();
-  SliverExampleMode _mode = .official;
+  var _mode = SliverExampleMode.initial;
 
   void _changeMode(SliverExampleMode mode) {
     if (_mode == mode) return;

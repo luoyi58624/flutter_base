@@ -25,7 +25,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final columns = useState(2);
-    final mode = useState(SliverExampleMode.official);
+    final mode = useState(SliverExampleMode.initial);
     final controller = useScrollController();
     final officialExtent = useMemoized(_OfficialCardExtentCache.new);
     final colors = Theme.of(context).colorScheme;
@@ -41,14 +41,7 @@ class ElSliverRecyclerGridExamplePage extends HookWidget {
           key: ValueKey('grid-mode-menu'),
           tooltip: '切换内容 Sliver',
           onSelected: (value) => mode.value = value,
-          itemBuilder: (_) => [
-            for (final option in SliverExampleMode.values)
-              CheckedPopupMenuItem(
-                value: option,
-                checked: mode.value == option,
-                child: Text(option.gridLabel(masonry: masonry)),
-              ),
-          ],
+          itemBuilder: (_) => [...mode.value.menuItems(grid: true, masonry: masonry)],
         ),
         PopupMenuButton<int>(
           tooltip: '选择列数',

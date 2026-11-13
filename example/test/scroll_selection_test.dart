@@ -1,3 +1,4 @@
+import 'package:example/src/pages/examples/scroll_examples/scroll_mode.dart';
 import 'package:example/src/pages/examples/scroll_examples/selection.dart';
 import 'package:example/src/pages/examples/scroll_examples/comparison_list.dart';
 import 'package:flutter/material.dart';
@@ -97,7 +98,7 @@ void main() {
     testWidgets('$mode 换绑和布局切换保留业务选择，清空同时移除离屏选择', (tester) async {
       await _open(tester);
       await _tap(tester, 'selection-menu');
-      expect(find.byType(CheckedPopupMenuItem<Object>), findsNWidgets(4));
+      expect(find.byType(CheckedPopupMenuItem<SliverExampleMode>), findsNWidgets(4));
       await _tap(tester, 'selection-mode-$mode');
       await _locate(tester, '500');
       final target = find.text('条目 00500').hitTestable();

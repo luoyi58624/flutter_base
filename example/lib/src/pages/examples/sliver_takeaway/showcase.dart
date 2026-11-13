@@ -18,7 +18,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
   var _indices = List<int>.generate(1000, (i) => i);
   var _category = -1, _sort = '综合排序', _query = '';
   Timer? _debounce;
-  var _mode = SliverExampleMode.recycler;
+  var _mode = SliverExampleMode.initial;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 
@@ -332,10 +332,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
                 setState(() => _mode = value);
                 if (_controller.hasClients) _controller.jumpTo(0);
               },
-              itemBuilder: (_) => [
-                for (final mode in SliverExampleMode.values)
-                  CheckedPopupMenuItem(value: mode, checked: mode == _mode, child: Text(mode.label)),
-              ],
+              itemBuilder: (_) => [..._mode.menuItems()],
               icon: Icon(Icons.view_agenda_outlined, size: 20),
             ),
             SizedBox(

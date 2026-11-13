@@ -42,7 +42,7 @@ double _rowExtent(BuildContext context) => 68 + math.max(0.0, MediaQuery.textSca
 
 class _RecyclerSpikePageState extends State<RecyclerSpikePage> {
   final _controller = ScrollController(keepScrollOffset: false);
-  var _mode = SliverExampleMode.official;
+  var _mode = SliverExampleMode.initial;
   var _phase = _SpikePhase.drag;
   var _budget = 8;
   _SpikePhase? _armed;

@@ -180,9 +180,7 @@ void main() {
     final landscape = card('横图 空格');
     expect(portrait.width, closeTo(landscape.width, .01));
     expect(portrait.height, greaterThan(landscape.height + 100));
-    final list = tester.widget<ElSliverGrid>(
-      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
-    );
+    final list = tester.widget<ElSliverMasonry>(find.byWidgetPredicate((widget) => widget is ElSliverMasonry));
     expect(list.itemCount, 4);
     expect(find.byKey(ValueKey('media-scroll-menu')), findsOneWidget);
     await tester.tap(_photo('横图 空格').hitTestable().first);
@@ -496,9 +494,7 @@ void main() {
 
   testWidgets('瀑布流千条数据按需挂载，远跳后回收复用且可以切换官方布局', (tester) async {
     await _open(tester, RecyclerWaterfallPage());
-    final list = tester.widget<ElSliverGrid>(
-      find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
-    );
+    final list = tester.widget<ElSliverMasonry>(find.byWidgetPredicate((widget) => widget is ElSliverMasonry));
     expect(list.itemCount, 1000);
     expect(find.byKey(ValueKey('media-scroll-menu')), findsOneWidget);
     expect(find.byKey(ValueKey('media-card')).evaluate().length, lessThan(40));

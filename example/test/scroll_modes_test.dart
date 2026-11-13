@@ -5,7 +5,31 @@ import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('默认官方，四种 Sliver 共用 CustomScrollView 且切换不丢业务选择', (tester) async {
+  test('列表、网格与瀑布流共用四种模式和默认勾选', () {
+    for (final kind in ['list', 'grid', 'masonry']) {
+      final entries = SliverExampleMode.initial.menuItems(grid: kind == 'grid', masonry: kind == 'masonry');
+      final container = switch (kind) {
+        'grid' => 'ElSliverGrid',
+        'masonry' => 'ElSliverMasonry',
+        _ => 'ElSliverList',
+      };
+      expect(entries.map((entry) => entry.value), [
+        SliverExampleMode.recycler,
+        SliverExampleMode.builder,
+        SliverExampleMode.children,
+        SliverExampleMode.official,
+      ]);
+      expect(entries.map((entry) => (entry.child as Text).data), [
+        '$container.recycler',
+        '$container.builder',
+        container,
+        kind == 'list' ? 'SliverList' : 'SliverGrid',
+      ]);
+      expect(entries.map((entry) => entry.checked), [true, false, false, false]);
+    }
+  });
+
+  testWidgets('默认复用且菜单优先展示，四种 Sliver 切换不丢业务选择', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = Size(390, 844);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -17,21 +41,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(SliverList), findsOneWidget);
-    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsNothing);
+    expect(find.byType(SliverList), findsNothing);
+    expect(find.byWidgetPredicate((widget) => widget is ElSliverList), findsOneWidget);
     final controller = tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller;
     await tester.tap(find.text('条目 00001'));
     await tester.pumpAndSettle();
     for (final mode in [SliverExampleMode.children, SliverExampleMode.builder, SliverExampleMode.recycler]) {
       await tester.tap(find.byKey(ValueKey('selection-menu')));
       await tester.pumpAndSettle();
-      final entries = tester.widgetList<CheckedPopupMenuItem<Object>>(find.byType(CheckedPopupMenuItem<Object>));
+      final entries = tester.widgetList<CheckedPopupMenuItem<SliverExampleMode>>(
+        find.byType(CheckedPopupMenuItem<SliverExampleMode>),
+      );
       expect(entries.map((entry) => entry.value), SliverExampleMode.values);
       expect(entries.map((entry) => (entry.child as Text).data), [
-        'SliverList',
-        'ElSliverList',
-        'ElSliverList.builder',
         'ElSliverList.recycler',
+        'ElSliverList.builder',
+        'ElSliverList',
+        'SliverList',
       ]);
       await tester.tap(find.byKey(ValueKey('selection-mode-${mode.name}')));
       await tester.pumpAndSettle();
@@ -53,5 +79,11 @@ void main() {
       expect(find.text('条目 00001').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
+    await tester.tap(find.byKey(ValueKey('selection-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('selection-mode-official')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SliverList), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(ValueKey('selection-count'))).data, '1 / 1000');
   });
 }

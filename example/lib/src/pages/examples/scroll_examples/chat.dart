@@ -53,7 +53,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
   final _messageRows = <int, _OfficialChatRowState>{};
   late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
-  SliverExampleMode _mode = .official;
+  var _mode = SliverExampleMode.initial;
   bool _nearBottom = true;
   // 历史消息使用负业务 ID，与已存在的消息区分。
   int _oldestId = -1;
@@ -327,13 +327,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
           ),
           onSelected: _choose,
           itemBuilder: (context) => [
-            for (final mode in SliverExampleMode.values)
-              CheckedPopupMenuItem(
-                key: ValueKey('chat-mode-${mode.name}'),
-                value: mode,
-                checked: _mode == mode,
-                child: Text(mode.label),
-              ),
+            ..._mode.menuItems(keyPrefix: 'chat-mode'),
             PopupMenuDivider(),
             PopupMenuItem(key: ValueKey('chat-load-earlier'), value: _ChatAction.earlier, child: Text('更早 50 条')),
             PopupMenuItem(key: ValueKey('chat-receive'), value: _ChatAction.receive, child: Text('模拟收到')),

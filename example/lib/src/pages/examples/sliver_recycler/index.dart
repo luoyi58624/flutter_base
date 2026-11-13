@@ -74,7 +74,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = useState(SliverExampleMode.official);
+    final mode = useState(SliverExampleMode.initial);
     final content = useState(initialContent);
     final controller = useScrollController(keepScrollOffset: false);
     final workload = content.value;
@@ -96,8 +96,7 @@ class ElSliverRecyclerExamplePage extends HookWidget {
             }
           },
           itemBuilder: (_) => [
-            for (final option in SliverExampleMode.values)
-              CheckedPopupMenuItem(value: option, checked: option == mode.value, child: Text(option.label)),
+            ...mode.value.menuItems(),
             PopupMenuDivider(),
             for (final option in ElSliverRecyclerExampleContent.values)
               CheckedPopupMenuItem(value: option, checked: option == workload, child: Text(option.label)),

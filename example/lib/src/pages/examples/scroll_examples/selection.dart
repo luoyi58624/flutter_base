@@ -22,7 +22,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
   final _selectedCount = ValueNotifier<int>(0);
   final _indexInput = TextEditingController(text: '500');
   final _official = ScrollController(keepScrollOffset: false);
-  SliverExampleMode _mode = .official;
+  var _mode = SliverExampleMode.initial;
   ScrollController get _currentController => _official;
   late final _adapter = _SelectionRecords(_selectionChanged);
 
@@ -142,13 +142,7 @@ class _RecyclerSelectionPageState extends State<RecyclerSelectionPage> {
         icon: Icon(Icons.more_vert),
         onSelected: _choose,
         itemBuilder: (context) => [
-          for (final mode in SliverExampleMode.values)
-            CheckedPopupMenuItem(
-              key: ValueKey('selection-mode-${mode.name}'),
-              value: mode,
-              checked: _mode == mode,
-              child: Text(mode.label),
-            ),
+          ..._mode.menuItems(keyPrefix: 'selection-mode'),
           PopupMenuDivider(),
           PopupMenuItem(key: ValueKey('selection-first'), value: _SelectionAction.first, child: Text('首项')),
           PopupMenuItem(key: ValueKey('selection-last'), value: _SelectionAction.last, child: Text('末项')),

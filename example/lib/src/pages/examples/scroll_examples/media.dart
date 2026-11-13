@@ -75,15 +75,11 @@ class RecyclerWaterfallPage extends StatelessWidget {
 
 enum _MediaKind { feed, album, waterfall }
 
-enum _MediaGridMode {
-  official('SliverGrid'),
-  children('ElSliverGrid'),
-  builder('ElSliverGrid.builder'),
-  recycler('ElSliverGrid.recycler'),
+enum _MediaCardSource {
   localCards('本机卡片'),
   bibiCards('Bibi 卡片');
 
-  const _MediaGridMode(this.label);
+  const _MediaCardSource(this.label);
   final String label;
 }
 
@@ -105,13 +101,7 @@ class _MediaPageState extends State<_MediaPage> {
   _MediaMasonryDelegate? _masonryDelegate;
   late final _library = _MediaLibrary(imagesOnly: widget.kind != .album);
   late bool _demo = widget.kind == .waterfall && widget.directory == null;
-  _MediaGridMode _mode = .official;
-  SliverExampleMode get _comparison => switch (_mode) {
-    .official => .official,
-    .children => .children,
-    .builder => .builder,
-    _ => .recycler,
-  };
+  var _mode = SliverExampleMode.initial;
   bool _bibiCards = false;
   late final _albumThumbnails = AlbumThumbnailQueue();
   int _albumColumns = 0;
@@ -254,12 +244,14 @@ class _MediaPageState extends State<_MediaPage> {
     }
   }
 
-  void _chooseMode(_MediaGridMode mode) {
-    if (mode case .localCards || .bibiCards) {
-      final bibiCards = mode == .bibiCards;
+  void _chooseMode(Object option) {
+    if (option case final _MediaCardSource source) {
+      final bibiCards = source == .bibiCards;
       if (_bibiCards != bibiCards) setState(() => _bibiCards = bibiCards);
       return;
     }
+    if (option is! SliverExampleMode) return;
+    final mode = option;
     if (_mode == mode) return;
     _thumbnailWindow = null;
     setState(() => _mode = mode);
@@ -374,7 +366,7 @@ class _MediaPageState extends State<_MediaPage> {
       );
     }
 
-    final content = _comparison.grid(
+    final content = _mode.grid(
       context,
       itemCount: count,
       itemBuilder: itemBuilder,
@@ -403,7 +395,7 @@ class _MediaPageState extends State<_MediaPage> {
         itemBuilder: itemBuilder,
       ),
     );
-    final scroll = _comparison.scrollView(
+    final scroll = _mode.scrollView(
       key: ValueKey(
         _bibiCards
             ? 'media-bibi-${_mode.name}'
@@ -542,23 +534,15 @@ class _MediaPageState extends State<_MediaPage> {
           onPressed: _library.busy ? null : () => _library.open(directory: _library.directory),
           icon: Icon(Icons.refresh),
         ),
-      PopupMenuButton<_MediaGridMode>(
+      PopupMenuButton<Object>(
         key: ValueKey('media-scroll-menu'),
         tooltip: '网格容器',
         onSelected: _chooseMode,
         itemBuilder: (_) => [
-          for (final mode in <_MediaGridMode>[.official, .children, .builder, .recycler])
-            CheckedPopupMenuItem(
-              key: ValueKey('media-mode-${mode.name}'),
-              value: mode,
-              checked: _mode == mode,
-              child: Text(
-                widget.kind == .waterfall ? mode.label.replaceFirst('ElSliverGrid', 'ElSliverMasonry') : mode.label,
-              ),
-            ),
+          ..._mode.menuItems(keyPrefix: 'media-mode', grid: true, masonry: widget.kind == .waterfall),
           if (widget.kind == .feed) ...[
             PopupMenuDivider(),
-            for (final source in <_MediaGridMode>[.localCards, .bibiCards])
+            for (final source in _MediaCardSource.values)
               CheckedPopupMenuItem(
                 key: ValueKey('media-mode-${source.name}'),
                 value: source,

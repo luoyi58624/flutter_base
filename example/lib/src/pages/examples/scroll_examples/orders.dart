@@ -25,7 +25,7 @@ class _RecyclerOrdersPageState extends State<RecyclerOrdersPage> {
 
   final _adapter = _OrderRecords();
   final _rounds = ValueNotifier<int>(0);
-  SliverExampleMode _mode = .official;
+  var _mode = SliverExampleMode.initial;
   Timer? _updates;
   int _anchorGeneration = 0;
   double _extent = 128;

@@ -1,25 +1,43 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 /// 在同一个 CustomScrollView 中对照官方与 ElSliver 三种子项生命周期。
 enum SliverExampleMode {
-  /// 使用官方按需挂载的列表。
-  official('SliverList'),
-
-  /// 全量挂载子项，仅绘制可见部分。
-  children('ElSliverList'),
+  /// 按类型复用子树，示例默认优先展示。
+  recycler('ElSliverList.recycler'),
 
   /// 按缓存窗口构建与销毁子项。
   builder('ElSliverList.builder'),
 
-  /// 按类型复用子树。
-  recycler('ElSliverList.recycler');
+  /// 全量挂载子项，仅绘制可见部分。
+  children('ElSliverList'),
+
+  /// 使用官方按需挂载的列表。
+  official('SliverList');
 
   const SliverExampleMode(this.label);
 
+  /// 所有滚动对照示例共用的初始模式。
+  static const initial = recycler;
+
   /// 下拉菜单中显示的容器名称。
   final String label;
+
+  /// 统一生成四种滚动模式，业务操作可追加到这组菜单项之后。
+  List<CheckedPopupMenuItem<SliverExampleMode>> menuItems({
+    String? keyPrefix,
+    bool grid = false,
+    bool masonry = false,
+  }) => [
+    for (final mode in values)
+      CheckedPopupMenuItem<SliverExampleMode>(
+        key: keyPrefix == null ? null : ValueKey('$keyPrefix-${mode.name}'),
+        value: mode,
+        checked: this == mode,
+        child: Text(grid || masonry ? mode.gridLabel(masonry: masonry) : mode.label),
+      ),
+  ];
 
   /// 网格或瀑布流下拉显示实际使用的 Sliver 名称。
   String gridLabel({bool masonry = false}) => this == official

@@ -1,6 +1,8 @@
 # Sliver 业务示例
 
-这些页面沿用原有路由 key，统一由 CustomScrollView 承载，滚动条绑定页面的 ScrollController。下拉仅保留官方、children、builder、recycler 四种 Sliver，默认官方 SliverList 或 SliverGrid；其余选项按实际构造命名为 ElSliverList / ElSliverGrid / ElSliverMasonry 及其 .builder、.recycler。各模式共用业务工厂、数据和 250 逻辑像素缓存窗口，外卖也使用官方宿主与滚轮行为。合成列表、网格与长文使用 1000 条，本机媒体及 Bibi 卡片来源按实际数量显示。
+四种模式的定义、默认值、顺序和菜单项统一由 scroll_mode.dart 的 SliverExampleMode 管理，各页面只保留模式切换与业务操作。
+
+这些页面沿用原有路由 key，统一由 CustomScrollView 承载，滚动条绑定页面的 ScrollController。下拉按 recycler、builder、children、官方排列，默认展示 ElSliverList.recycler / ElSliverGrid.recycler / ElSliverMasonry.recycler；其余选项按实际构造命名，官方 SliverList 或 SliverGrid 保留为手动对照。各模式共用业务工厂、数据和 250 逻辑像素缓存窗口，外卖也使用官方宿主与滚轮行为。合成列表、网格与长文使用 1000 条，本机媒体及 Bibi 卡片来源按实际数量显示。
 
 | 场景 | 当前入口与保留行为 |
 | --- | --- |
@@ -12,7 +14,7 @@
 | 订单 | orders.dart；选择、进度、批次更新、头部增删后按订单 ID 补偿位置 |
 | 视频流、相册、瀑布流 | media.dart 及 part；授权、本机文件、缩略图队列、预览、播放和过期结果处理；整宽头图单独作为 Sliver |
 | 商品瀑布流 | product_waterfall.dart；延迟揭晓图片尺寸、远拖、详情返回与自然补测 |
-| 富文本文档 | rich_document.dart；默认官方 SliverList，可切换 ElSliverList 三种生命周期，目录定位不变，展开与勾选只通知当前节 |
+| 富文本文档 | rich_document.dart；默认 ElSliverList.recycler，可切换其他生命周期与官方 SliverList，目录定位不变，展开与勾选只通知当前节 |
 | 单帧尖峰工具 | spike.dart；控制栏保留列表配置，回收行只更新编号；注入、取消、拖动与惯性窗口不变，测试替换工作函数 |
 | 外卖 | 复用上级 sliver_takeaway/，普通卡片布局与 ElImageView，店名/商品名单行、商品等高，保留分类、店内菜单、图集、加购和辅助操作 |
 

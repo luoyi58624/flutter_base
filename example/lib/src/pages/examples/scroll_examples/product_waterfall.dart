@@ -22,8 +22,6 @@ class RecyclerProductWaterfallPage extends StatefulWidget {
   State<RecyclerProductWaterfallPage> createState() => _RecyclerProductWaterfallPageState();
 }
 
-enum _WaterfallMode { sliverGrid, children, builder, recycler }
-
 typedef _ProductAnchor = ({int index, double top});
 
 class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallPage> {
@@ -33,13 +31,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
   final _flutterController = ScrollController(keepScrollOffset: false);
   final _viewport = GlobalKey();
   final _productContexts = <int, BuildContext>{};
-  var _mode = _WaterfallMode.sliverGrid;
-  SliverExampleMode get _comparison => switch (_mode) {
-    .sliverGrid => .official,
-    .children => .children,
-    .builder => .builder,
-    _ => .recycler,
-  };
+  var _mode = SliverExampleMode.initial;
 
   Widget _tile(int index) =>
       _ProductTile(product: _products[index], geometry: _geometryFor(index), onOpen: _open, contexts: _productContexts);
@@ -59,7 +51,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
   }
 
   _ProductAnchor? _anchor() {
-    if (_mode == .sliverGrid) {
+    if (_mode == .official) {
       final grid = _grid;
       if (grid == null || !_flutterController.hasClients) return null;
       final pixels = _flutterController.offset;
@@ -87,14 +79,14 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
     return anchor;
   }
 
-  void _switchMode(_WaterfallMode mode) {
+  void _switchMode(SliverExampleMode mode) {
     if (mode == _mode) return;
-    final previous = _mode != .sliverGrid ? _recyclerController : _flutterController;
+    final previous = _mode != .official ? _recyclerController : _flutterController;
     final pixels = previous.hasClients ? previous.offset : 0.0;
     setState(() => _mode = mode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _mode != mode) return;
-      final next = mode != .sliverGrid ? _recyclerController : _flutterController;
+      final next = mode != .official ? _recyclerController : _flutterController;
       if (next.hasClients) next.jumpTo(pixels.clamp(0.0, next.position.maxScrollExtent));
     });
   }
@@ -120,7 +112,7 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
       _knownSizes.addAll(indices);
       _grid = null;
     });
-    if (_gridInputs case (final width, final caption, final rtl) when _mode == .sliverGrid && anchor != null) {
+    if (_gridInputs case (final width, final caption, final rtl) when _mode == .official && anchor != null) {
       final grid = _gridFor(width, caption, rtl);
       final position = _flutterController.position;
       final max = math.max(0.0, grid.extent - position.viewportDimension);
@@ -178,24 +170,11 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
   Widget build(BuildContext context) => ExamplePage(
     title: '商品瀑布流',
     actions: [
-      PopupMenuButton<_WaterfallMode>(
+      PopupMenuButton<SliverExampleMode>(
         key: ValueKey('product-waterfall-mode'),
         tooltip: '切换滚动容器',
         onSelected: _switchMode,
-        itemBuilder: (_) => [
-          for (final mode in _WaterfallMode.values)
-            CheckedPopupMenuItem(
-              key: ValueKey('product-waterfall-mode-${mode.name}'),
-              value: mode,
-              checked: _mode == mode,
-              child: Text(switch (mode) {
-                .sliverGrid => 'SliverGrid',
-                .children => 'ElSliverMasonry',
-                .builder => 'ElSliverMasonry.builder',
-                .recycler => 'ElSliverMasonry.recycler',
-              }),
-            ),
-        ],
+        itemBuilder: (_) => [..._mode.menuItems(keyPrefix: 'product-waterfall-mode', masonry: true)],
       ),
     ],
     child: SafeArea(
@@ -229,14 +208,14 @@ class _RecyclerProductWaterfallPageState extends State<RecyclerProductWaterfallP
               Expanded(
                 child: SizedBox.expand(
                   key: _viewport,
-                  child: _mode != .sliverGrid
+                  child: _mode != .official
                       ? RecyclerExampleScrollbar(
                           controller: _recyclerController,
-                          child: _comparison.scrollView(
+                          child: _mode.scrollView(
                             key: ValueKey('product-recycler-waterfall'),
                             controller: _recyclerController,
                             slivers: [
-                              _comparison.grid(
+                              _mode.grid(
                                 context,
                                 crossAxisCount: 2,
                                 masonry: true,

@@ -30,7 +30,7 @@ Future<void> _open(WidgetTester tester) async {
 Future<void> _chooseFlutter(WidgetTester tester) async {
   await tester.tap(find.byKey(ValueKey('product-waterfall-mode')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(ValueKey('product-waterfall-mode-sliverGrid')));
+  await tester.tap(find.byKey(ValueKey('product-waterfall-mode-official')));
   await tester.pumpAndSettle();
 }
 

@@ -83,14 +83,6 @@ class SliverComparisonModeMenu extends StatelessWidget {
     key: ValueKey('comparison-mode-menu'),
     tooltip: '切换内容 Sliver',
     onSelected: onChanged,
-    itemBuilder: (_) => [
-      for (final option in SliverExampleMode.values)
-        CheckedPopupMenuItem(
-          key: ValueKey('comparison-mode-${option.name}'),
-          checked: mode == option,
-          value: option,
-          child: Text(option.label),
-        ),
-    ],
+    itemBuilder: (_) => [...mode.menuItems(keyPrefix: 'comparison-mode')],
   );
 }
