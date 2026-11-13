@@ -26,6 +26,8 @@
 
 `popupAnchor` 省略时，移动端从实际按压点展开，键盘和辅助技术激活则跟随触发行；显式传入 `ElOverlayAnchor` 可指定元素锚的方位、间距、宽度匹配及边界避让。默认宽 236、圆角 17、视口边距 8，菜单优先整体移动以利用可用高度，确实放不下才滚动。`closeOnSelect` 默认 true，关闭交互并归还焦点后再通知模型；不把普通动作、多选或右键触发塞入列表行接口。
 
+弹层接口草案沿用此构造和选值模型。打开时使用列表行挂载处的 context，在所属窗口的 Overlay 中展示。接入系统返回后逐级收起子菜单，根层返回关闭。
+
 ```dart
 ElListTile<bool>.switcher(title: '通知', modelValue: notifications);
 ElListTile<String>.popup(

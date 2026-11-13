@@ -32,3 +32,5 @@ ElMention<int>(
 | inputPrefix / inputSuffix / style / panelStyle / optionStyle | 输入槽和分层样式 |
 
 焦点、键盘、输入连接、只读与禁用等配置沿用 [Input](../input/README.md) 的声明方式。`resolveElMentionContext` 从编辑文档和折叠选区解析匹配范围；`resolveElMentionWholeContext` 结合候选值或 checkIsWhole 判定完整提及。二者返回上下文数据，不负责写入文档；实现见 [index.dart](index.dart)。
+
+弹层接口草案沿用此构造和候选回调。候选层从编辑器挂载处的 context 取得窗口和局部 Overlay，并按该视图内的光标位置定位。焦点及输入法会话由原编辑器维持。

@@ -1,13 +1,38 @@
 # ElTooltip
 
-提示通过现有 ElPortal 定位，支持悬停、点击和长按。目标滚动、移出可见区域或点击面板外部时关闭；提示内可以放入复制按钮等交互内容。
+> 接口评审草案。构造沿用现有声明，以下交互约定由两端共用。
+
+## 构造
+
+| 参数 | 类型与默认值 | 用途 |
+| --- | --- | --- |
+| `key` | `Key?` | Widget 标识 |
+| `content` | `Object`，必填 | 提示内容，可放文字或包含操作的 Widget |
+| `child` | `Widget`，必填 | 触发目标 |
+| `placement` | `ElPlacement = .top` | 首选锚定方向 |
+| `waitDuration` | `Duration = Duration(milliseconds: 400)` | 悬停触发的等待时长 |
+| `showDuration` | `Duration = Duration(seconds: 3)` | 点击或长按后的显示时长 |
+| `disabled` | `bool = false` | 禁止显示提示 |
+| `arrow` | `bool = true` | 显示指向实际锚点的箭头 |
+| `style` | `ElStyle?` | 提示面板样式 |
+| `event` | `ElEvent?` | 追加到触发目标的事件 |
+
+两端共用 `ElComponents.tooltip`，签名为 `Widget Function(BuildContext context, ElTooltip component)`。
+
+## 调用
 
 ```dart
 ElTooltip(
   content: '收藏后可以稍后查看',
-  placement: ElPlacement.top,
+  placement: .top,
   child: ElButton(variant: .text, child: '收藏'),
-)
+);
 ```
 
-`waitDuration` 控制悬停等待，`showDuration` 控制触摸后的显示时长；移入提示内容时保留面板。`arrow: false` 隐藏移动品牌箭头，空间不足时箭头跟随 Portal 实际翻转方向。`style` 作用于提示面板，`event` 作用于触发目标，事件的 `preventDefault` 可阻止默认显示。`disabled` 禁止提示。Material 兜底沿用框架 Tooltip 的定位和外观。
+显示由悬停、点击或长按触发，使用触发目标挂载处的 context 和最近的 Overlay。移动到提示内容上时保留提示。目标卸载、滚出可见区或点击面板外部时关闭。空间不足时按实际翻转方向定位箭头。触发事件的 `preventDefault()` 可以阻止默认显示。
+
+打开提示时保留当前焦点，物理返回放行。
+
+## 当前实现
+
+移动端通过 ElPortal 锚定提示。Material 实现使用 Flutter Tooltip。 [当前组件声明](index.dart) · [Material 实现](../../../ui/material/index.dart)

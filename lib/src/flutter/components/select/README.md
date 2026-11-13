@@ -30,4 +30,6 @@ ElSelect<String>(
 
 普通 ElLabelModel 的 label 要求非空白且 value 可解析；ElSelectOption 可使用 Widget 内容，并通过 semanticLabel 提供文字名称。组件提供 `toTextEditing` 和 `toModelValue` 做选项文字与值的转换。
 
+弹层接口草案沿用此构造与值绑定。候选层从实际触发器或输入框的挂载 context 取当前窗口和局部 Overlay，沿用已有锚点和输入焦点规则。 [共用动作菜单接口](../dropdown_menu/README.md)
+
 保留的 controller、textStyle、menuStyle、inputDecorationTheme 等兼容字段已经标记弃用，新增用法应遵循 [index.dart](index.dart) 中的替代说明。Select 的标签、帮助和错误信息可组合 [Form](../../widgets/form/README.md)，不通过旧字段增加新的依赖。
