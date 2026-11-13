@@ -36,7 +36,6 @@ Future<void> host(WidgetTester tester, {double width = 390, bool dark = false, d
   );
   await tester.runAsync(() async {
     for (final asset in [
-      'assets/showcase/logo.png',
       'assets/showcase/lake.png',
       'assets/showcase/avatar-lan.png',
       'assets/recycler_cards/takeaway-food.webp',
@@ -186,6 +185,16 @@ void main() {
     expect(Obs.localStorage.getItem<bool>('showcase.liked'), isTrue);
     await tester.pump(Duration(seconds: 3));
     await tester.pump();
+    await reveal(tester, 'feedback-state');
+    final openShared = find.byWidgetPredicate((widget) => widget is ElButton && widget.child == '打开另一页');
+    await tester.ensureVisible(openShared);
+    await tester.pump();
+    await tester.tap(openShared);
+    await tester.pumpAndSettle();
+    final sharedBar = find.widgetWithText(AppBar, '跨页共享状态');
+    expect(sharedBar, findsOneWidget);
+    await tester.tap(find.descendant(of: sharedBar, matching: find.byType(BackButton)));
+    await tester.pumpAndSettle();
     await reveal(tester, 'scenario-form');
     await tester.ensureVisible(find.byKey(ValueKey('profile-save')));
     await tester.pump();

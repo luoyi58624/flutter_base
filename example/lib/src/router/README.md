@@ -14,6 +14,6 @@ Android 接收 `flutter-base://example/<path>`，由 Flutter 内建深度链接�
 
 两端壳使用同一个根页面标识，切换断点时保留其上命令式推入的示例。独立示例复用 `ExamplePage`，自动提供本页的导航头和返回入口。
 
-桌面壳统一绘制 `layout/desktop/navbar.dart`，导航头横跨整个窗口，左侧 logo 与标题不响应点击，右侧使用公共 `NavbarMenu`；侧栏和正文位于头部下方。移动端由 `ExamplePage` 提供标题、返回按钮和同一组公共菜单，详情仍通过根导航器覆盖底栏。
+两端顶部使用 Flutter `AppBar`。桌面公共头横跨整个窗口，侧栏和正文位于头部下方。移动端由 `ExamplePage` 提供标题、返回按钮和首页的主题切换，详情通过根导航器覆盖底栏。首页章节使用 `PopupMenuButton` 定位正文。
 
 页面专用操作传给 `ExamplePage.actions`：移动端放进页面导航头，桌面端显示在正文工具区。不要另建导航头，也不要在正文里重复创建全局菜单。

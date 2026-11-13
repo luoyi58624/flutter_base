@@ -15,7 +15,6 @@ class ExamplePage extends StatelessWidget {
     this.actions = const [],
     this.backgroundColor,
     this.showThemeToggle = false,
-    this.navigationBar,
   });
 
   /// 导航栏标题。
@@ -33,9 +32,6 @@ class ExamplePage extends StatelessWidget {
   /// 首页显式开启的主题切换，其它页面默认不显示。
   final bool showThemeToggle;
 
-  /// 独立导航头的局部替换，桌面公共壳仍由外层管理。
-  final PreferredSizeWidget? navigationBar;
-
   @override
   Widget build(BuildContext context) {
     // 按应用视口切换导航；桌面侧栏压窄正文时仍沿用桌面公共头。
@@ -43,9 +39,7 @@ class ExamplePage extends StatelessWidget {
     final ownNavbar = mobile || !DesktopPageScope.exists(context);
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: ownNavbar && navigationBar != null
-          ? navigationBar
-          : mobile
+      appBar: mobile
           ? AppBar(title: Text(title), actions: [...actions, if (showThemeToggle) NavbarMenu()])
           : ownNavbar
           ? DesktopNavbar(

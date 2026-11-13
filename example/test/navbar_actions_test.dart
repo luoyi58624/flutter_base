@@ -50,6 +50,11 @@ void main() {
 
   testWidgets('移动首页保留可用主题切换且没有导航设置按钮', (tester) async {
     await _openRoute(tester, width: 390, path: '/home');
+    final bar = find.widgetWithText(AppBar, '首页');
+    expect(bar, findsOneWidget);
+    final chapters = find.byKey(ValueKey('showcase-chapters'));
+    expect(tester.widget(chapters), isA<PopupMenuButton<String>>());
+    expect(find.ancestor(of: chapters, matching: bar), findsOneWidget);
     expect(find.byKey(ValueKey('navbar-menu')), findsOneWidget);
     expect(find.byTooltip('切换到暗黑模式'), findsOneWidget);
     expect(find.byTooltip('全局设置'), findsNothing);
@@ -85,6 +90,7 @@ void main() {
     await _openRoute(tester, width: 1280, path: '/home');
     expect(find.byKey(ValueKey('navbar-menu')), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byKey(ValueKey('showcase-chapters')), findsOneWidget);
     expect(find.byTooltip('全局设置'), findsNothing);
     await tester.tap(find.byTooltip('切换到暗黑模式'));
     await tester.pumpAndSettle();

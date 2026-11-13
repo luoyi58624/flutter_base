@@ -52,12 +52,13 @@ class _Cards extends StatelessWidget {
             ('应用管理', '查看全部应用', ElMobileIcons.grid),
           ])
             ElCard(
+              shadowLevel: .md,
               onTap: () => demoNotify(context, '${item.$1}（交互示例）'),
               style: ElStyle(
                 minHeight: 138,
                 padding: .symmetric(horizontal: 16, vertical: 17),
                 borderRadius: .circular(22),
-              ).withShadow(level: ElLevelType.md.shadow(context)),
+              ),
               child: Column(
                 crossAxisAlignment: .start,
                 mainAxisSize: .min,
@@ -78,13 +79,9 @@ class _Cards extends StatelessWidget {
       SizedBox(height: 8),
       heading('图文内容卡片', '使用内容插槽组织图标、状态、图片与正文，以整张卡片作为操作入口。'),
       ElCard(
+        shadowLevel: .md,
         onTap: () => demoNotify(context, '已打开云端同步示例'),
-        style: ElStyle(
-          minHeight: 270,
-          padding: .all(24),
-          borderRadius: .circular(24),
-          backgroundColor: t.cardColor,
-        ).withShadow(level: ElLevelType.md.shadow(context)),
+        style: ElStyle(minHeight: 270, padding: .all(24), borderRadius: .circular(24), backgroundColor: t.cardColor),
         child: demoColumn([
           Row(
             mainAxisAlignment: .spaceBetween,
@@ -128,12 +125,9 @@ class _Cards extends StatelessWidget {
         ], gap: 12),
       ),
       ElCard(
+        shadowLevel: .md,
         onTap: () => demoNotify(context, '已打开周末旅行示例'),
-        style: ElStyle(
-          padding: .zero,
-          borderRadius: .circular(24),
-          clipBehavior: .antiAlias,
-        ).withShadow(level: ElLevelType.md.shadow(context)),
+        style: ElStyle(padding: .zero, borderRadius: .circular(24), clipBehavior: .antiAlias),
         child: Column(
           mainAxisSize: .min,
           children: [
@@ -173,12 +167,12 @@ class _Shadows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.elTheme, scope = ShowcaseScope.of(context);
-    final levels = <(String, String, int)>[
-      ('无阴影', '内容自然融入', 0),
-      ('轻阴影', '轻微抬起', ElLevelType.xs.shadow(context)),
-      ('卡片阴影', '日常内容分组', ElLevelType.md.shadow(context)),
-      ('浮层阴影', '菜单与下拉面板', ElLevelType.lg.shadow(context)),
-      ('模态阴影', '重要的确认', ElLevelType.xl.shadow(context)),
+    final levels = <(String, String, ElLevelType?)>[
+      ('无阴影', '内容自然融入', null),
+      ('轻阴影', '轻微抬起', .xs),
+      ('卡片阴影', '日常内容分组', .md),
+      ('浮层阴影', '菜单与下拉面板', .lg),
+      ('模态阴影', '重要的确认', .xl),
     ];
     return ShowcasePanel(
       title: '阴影层级',
@@ -200,13 +194,14 @@ class _Shadows extends StatelessWidget {
                     backgroundColor: t.fill,
                   ),
                   child: ElCard(
+                    shadowLevel: item.$3,
                     style: ElStyle(
                       width: 94,
                       height: 76,
                       padding: .zero,
                       alignment: .center,
                       borderRadius: .circular(18),
-                    ).withShadow(level: item.$3),
+                    ),
                     child: demoIcon(ElMobileIcons.layer, color: t.primary),
                   ),
                 ),
@@ -222,7 +217,11 @@ class _Shadows extends StatelessWidget {
           ElButton(
             variant: .outline,
             child: '体验浮层',
-            onPressed: () => el.popup(context, title: '浮起的内容', child: Text('柔和的阴影，让内容层次更清楚。')),
+            onPressed: () => el.popup(
+              context,
+              title: '浮起的内容',
+              child: Padding(padding: .fromLTRB(24, 0, 24, 24), child: Text('柔和的阴影，让内容层次更清楚。')),
+            ),
           ),
           ElButton(
             variant: .text,

@@ -123,7 +123,7 @@ class _Scene extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.elTheme;
     Widget chip(String title, String note, bool success) => ElView(
-      style: ElStyle(borderRadius: .circular(17)).withShadow(level: ElLevelType.lg.shadow(context)),
+      style: ElStyle(borderRadius: .circular(17)).withShadow(type: .floating, level: ElLevelType.lg.shadow(context)),
       child: ElCard(
         style: ElStyle(
           width: success ? 140 : 146,
@@ -205,7 +205,8 @@ class _Scene extends StatelessWidget {
                 child: Transform.rotate(
                   angle: -5 * math.pi / 180,
                   child: ElView(
-                    style: ElStyle(borderRadius: .circular(30)).withShadow(level: ElLevelType.md.shadow(context)),
+                    style: ElStyle(borderRadius: .circular(30))
+                        .withShadow(type: .floating, level: ElLevelType.md.shadow(context)),
                     child: ElCard(
                       style: ElStyle(
                         width: 320,

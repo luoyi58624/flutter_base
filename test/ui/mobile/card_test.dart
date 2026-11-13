@@ -31,7 +31,7 @@ void main() {
       var previousBlur = 0.0;
       var previousOffset = 0.0;
       for (final key in keys) {
-        final shadows = ElStyle().withShadow(level: tokens[key] as int).boxShadow!;
+        final shadows = ElStyle().withShadow(type: .floating, level: tokens[key] as int).boxShadow!;
         expect(shadows, isNotEmpty);
         for (final shadow in shadows) {
           expect(shadow.blurRadius, greaterThan(0), reason: '零模糊轮廓会产生描边感');
@@ -111,7 +111,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow,
-          ElStyle().withShadow(level: tokens[entry.value] as int).boxShadow,
+          ElStyle().withShadow(type: .floating, level: tokens[entry.value] as int).boxShadow,
         );
       }
     }
@@ -126,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow,
-      ElStyle().withShadow(level: 37).boxShadow,
+      ElStyle().withShadow(type: .floating, level: 37).boxShadow,
     );
     await tester.pumpWidget(_host(ElCard()));
     await tester.pumpAndSettle();

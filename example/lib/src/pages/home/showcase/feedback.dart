@@ -4,7 +4,6 @@ import 'package:flutter_base/mobile.dart';
 
 import 'panel.dart';
 import 'primitives.dart';
-import 'state.dart';
 
 /// 共享状态、轻提示、确认、抽屉与菜单展示。
 class FeedbackShowcase extends StatelessWidget {
@@ -69,7 +68,7 @@ class _SharedState extends StatelessWidget {
                     anchors: {},
                     onNavigate: (_) {},
                     child: Scaffold(
-                      appBar: ElAppBar(title: '跨页共享状态', back: true),
+                      appBar: AppBar(title: Text('跨页共享状态')),
                       body: SingleChildScrollView(padding: .all(16), child: _SharedState(secondary: true)),
                     ),
                   ),
@@ -203,27 +202,7 @@ class _Prompts extends StatelessWidget {
                 ),
               ], gap: 0),
             ),
-            action('展开操作面板', () async {
-              final result = await el.popup<String>(
-                context,
-                title: '分享这份灵感',
-                child: Builder(
-                  builder: (context) => demoColumn([
-                    for (final item in [
-                      ('复制链接', ElMobileIcons.copy),
-                      ('收藏到本地', ElMobileIcons.heart),
-                      ('稍后查看', ElMobileIcons.clock),
-                    ])
-                      ElListTile(title: item.$1, leading: item.$2, onTap: () => Navigator.of(context).pop(item.$1)),
-                  ], gap: 0),
-                ),
-              );
-              if (!context.mounted || result == null) return;
-              if (result == '复制链接') await Clipboard.setData(ClipboardData(text: 'flutter-base://home'));
-              if (result == '收藏到本地') showcaseLiked.value = true;
-              if (result == '稍后查看') showcaseLater.value = true;
-              if (context.mounted) demoNotify(context, result == '复制链接' ? '链接已复制' : '已$result');
-            }),
+            action('展开操作面板', () => demoShare(context)),
           ]),
         ),
       ],
@@ -234,37 +213,38 @@ class _Prompts extends StatelessWidget {
 class _Popups extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final direction = useState('右侧'), trailing = useState(false), center = useState(false);
-    final single = useState('同时显示'), multi = useState(['文档', '图片']);
+    final direction = useState('右侧'), trailing = useState(true), center = useState(false);
+    final single = useState('锁屏与时钟桌面插件'), multi = useState(['同步文档', '同步图片']);
     Future<void> selections(bool multiple) async {
-      await el.popup(
+      final markLeading = !trailing.value;
+      final selected = await el.popup<String>(
         context,
-        title: multiple ? '同步内容' : '显示位置',
+        title: multiple ? '选择需要同步的内容' : '在以下位置显示双时钟',
+        showClose: false,
         child: Builder(
           builder: (context) => multiple
               ? ElListGroup.multi(
                   modelValue: multi,
-                  leading: !trailing.value,
+                  leading: markLeading,
                   children: [
-                    for (final name in ['文档', '图片', '收藏']) ElListTile(value: name, title: name),
+                    for (final (name, subtitle) in [('同步文档', '多设备持续更新'), ('同步图片', '保留珍贵的视觉记录'), ('同步收藏', '随时找回喜欢的内容')])
+                      ElListTile(value: name, title: name, subtitle: subtitle),
                   ],
                 )
               : ElListGroup.single(
                   modelValue: single,
-                  leading: !trailing.value,
+                  leading: markLeading,
                   children: [
-                    for (final name in ['锁屏显示', '桌面组件', '同时显示']) ElListTile(value: name, title: name),
+                    for (final name in ['锁屏', '时钟桌面插件', '锁屏与时钟桌面插件'])
+                      ElListTile(value: name, title: name, onTap: () => Navigator.of(context).pop(name)),
                   ],
                 ),
         ),
-        footer: Builder(
-          builder: (context) => ElButton(
-            child: '完成',
-            style: ElStyle(width: '100%'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+        footer: multiple ? demoPopupActions(confirm: '完成', onConfirm: () => '完成') : demoPopupActions(),
       );
+      if (selected != null && context.mounted) {
+        demoNotify(context, multiple ? '已选择 ${multi.value.length} 项同步内容' : '已选择：$selected');
+      }
     }
 
     return ShowcaseGrid(
@@ -283,29 +263,20 @@ class _Popups extends HookWidget {
             ElButton(
               variant: .outline,
               child: '打开抽屉',
-              onPressed: () => el.drawer(
-                context,
-                title: '整理我的空间',
-                placement: switch (direction.value) {
-                  '左侧' => ElPopupPlacement.left,
-                  '顶部' => ElPopupPlacement.top,
-                  '底部' => ElPopupPlacement.bottom,
-                  _ => ElPopupPlacement.right,
-                },
-                child: demoColumn([
-                  demoLabel(context, '空间名称'),
-                  ElInput(value: '我的灵感空间', clearable: true),
-                  ElListTile<bool>.switcher(title: '自动同步', value: true),
-                  demoHint(context, '内容会在当前抽屉打开期间保留。'),
-                ]),
-                footer: Builder(
-                  builder: (context) => ElButton(
-                    child: '保存设置',
-                    style: ElStyle(width: '100%'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ),
+              onPressed: () async {
+                final result = await el.drawer<String>(
+                  context,
+                  title: '编辑个人资料',
+                  placement: switch (direction.value) {
+                    '左侧' => .left,
+                    '顶部' => .top,
+                    '底部' => .bottom,
+                    _ => .right,
+                  },
+                  child: _DrawerProfile(),
+                );
+                if (result != null && context.mounted) demoNotify(context, '资料已保存：$result');
+              },
             ),
           ]),
         ),
@@ -324,7 +295,7 @@ class _Popups extends HookWidget {
               ElButton(variant: .outline, child: '打开单选面板', onPressed: () => selections(false)),
               ElButton(variant: .outline, child: '打开多选面板', onPressed: () => selections(true)),
             ]),
-            demoHint(context, '${single.value} · ${multi.value.join('、')}'),
+            demoHint(context, '双时钟：${single.value}\n同步内容：已选 ${multi.value.length} 项'),
           ]),
         ),
         ShowcasePanel(
@@ -378,6 +349,60 @@ class _Popups extends HookWidget {
   }
 }
 
+class _DrawerProfile extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final name = useState('小蓝同学');
+    final notes = useState('让每个界面都简单一点。');
+    final reminders = useState(true);
+    return demoColumn([
+      Padding(padding: .only(bottom: 8), child: demoHint(context, '在抽屉里编辑，返回时仍停留在当前页面。', size: 14, height: 1.7)),
+      demoColumn([
+        demoLabel(context, '显示名称'),
+        ElInput(value: name.value, onChanged: (value) => name.value = value, clearable: true, semanticLabel: '显示名称'),
+      ], gap: 8),
+      demoColumn([
+        demoLabel(context, '个人简介'),
+        ElInput(
+          value: notes.value,
+          onChanged: (value) => notes.value = value,
+          textarea: true,
+          minLine: 4,
+          maxLine: 4,
+          maxLength: 120,
+          semanticLabel: '个人简介',
+        ),
+      ], gap: 8),
+      demoColumn([
+        demoLabel(context, '消息提醒'),
+        Row(
+          spacing: 8,
+          children: [
+            ElSwitch(modelValue: reminders),
+            Expanded(child: demoLabel(context, '接收消息提醒')),
+          ],
+        ),
+      ], gap: 8),
+      demoActions([
+        ElButton(
+          child: '保存资料',
+          onPressed: () async {
+            final accepted = await demoDialog(
+              context,
+              title: '保存这份资料？',
+              message: '确认后关闭抽屉，并保留本次填写的显示名称。',
+              confirm: '保存',
+              placement: .center,
+            );
+            if (accepted == true && context.mounted) Navigator.of(context).pop(name.value);
+          },
+        ),
+        ElButton(variant: .text, child: '取消编辑', onPressed: () => Navigator.of(context).pop()),
+      ]),
+    ]);
+  }
+}
+
 class _Touch extends HookWidget {
   @override
   Widget build(BuildContext context) {
@@ -389,18 +414,31 @@ class _Touch extends HookWidget {
     ];
     Widget panel() => Builder(
       builder: (context) => demoColumn([
-        demoHint(context, '正文可以正常滚动，底部面板支持下拉关闭。', size: 14),
-        for (var i = 1; i <= 14; i++)
-          ElListTile(
-            title: '灵感记录 ${'$i'.padLeft(2, '0')}',
-            subtitle: '保留值得回看的日常片段',
-            onTap: () => Navigator.of(context).pop('灵感记录 $i'),
-          ),
+        Padding(
+          padding: .fromLTRB(24, 0, 24, 18),
+          child: demoHint(context, '从标题区域拖动关闭。正文可以正常滚动，到达边缘后再向外拖动。', size: 14, height: 1.8),
+        ),
+        ElListGroup(
+          children: [
+            for (var i = 1; i <= 14; i++)
+              ElListTile(
+                title: '灵感记录 ${'$i'.padLeft(2, '0')}',
+                subtitle: '保留值得回看的日常片段',
+                onTap: () => Navigator.of(context).pop('灵感记录 $i'),
+              ),
+          ],
+        ),
       ], gap: 0),
     );
     Future<void> open(bool bottom) async {
       final result = bottom
-          ? await el.popup<String>(context, title: '最近的灵感', child: panel())
+          ? await el.popup<String>(
+              context,
+              title: '最近的灵感',
+              showClose: false,
+              child: panel(),
+              footer: demoPopupActions(cancel: '关闭'),
+            )
           : await el.drawer<String>(context, title: '我的工作空间', child: panel());
       if (context.mounted && result != null) demoNotify(context, '已打开：$result');
     }

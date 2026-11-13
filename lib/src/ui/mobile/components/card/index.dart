@@ -24,7 +24,9 @@ Widget cardBuilder(BuildContext context, ElCard component) {
         ? ElStyle(backgroundColor: theme.cardPressColor, transform: ElTransform.scale(theme.cardPressScale))
         : null,
   );
-  final style = (level == null ? baseStyle : baseStyle.withShadow(level: level)).merge(component.style);
+  final style = (level == null ? baseStyle : baseStyle.withShadow(type: .floating, level: level)).merge(
+    component.style,
+  );
   final content = Stack(
     alignment: .center,
     children: [
