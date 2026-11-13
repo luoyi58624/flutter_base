@@ -1,8 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show FloatingHeaderSnapConfiguration;
+import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
+import '../../../../commons/theme/index.dart';
 import '../../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import '../../scroll_position.dart' show ScrollHostPosition;
@@ -14,7 +16,7 @@ typedef ElSliverCollapseBuilder = Widget Function(BuildContext context, double p
 ///
 /// [ElSliverCollapse.scroll] 将折叠距离交给官方 PersistentHeader；
 /// [ElSliverCollapse.floating] 直接使用官方 FloatingHeader；
-/// [ElSliverCollapse.bibi] 则在任意正文位置先消费拖拽位移，再由官方 Header 布局。
+/// [ElSliverCollapse.priority] 则在任意正文位置先消费拖拽位移，再由官方 Header 布局。
 abstract class ElSliverCollapse extends StatelessWidget {
   /// 仅作为三个独立实现的公共 Sliver 类型。
   const ElSliverCollapse({super.key});
@@ -34,21 +36,22 @@ abstract class ElSliverCollapse extends StatelessWidget {
   const factory ElSliverCollapse.floating({Key? key, required Widget child, FloatingHeaderSnapMode snapMode}) =
       _FloatingCollapse;
 
-  /// Bibi 型：白底导航固定，内容淡出，页头优先消费拖拽，松手或按住时以 50% 吸附。
+  /// 优先折叠：页头先于正文消费滚动位移，在正文任意位置都能收起或展开。
   ///
-  /// [compactExtent] 和 [contentExtent] 分别对应固定导航与可折叠内容的自然占位；
-  /// 不要求正文为固定高度。此形态放入 ElScrollView.sliver，不能挂入任意 CustomScrollView。
-  const factory ElSliverCollapse.bibi({
+  /// [compact] 固定吸顶，[content] 位于其上方并在折叠时淡出离场；松手或按住不动时以 50% 为界吸附。
+  /// [compactExtent] 和 [contentExtent] 是两个区域的占位高度，正文不要求固定高度。
+  /// [backgroundColor] 缺省读取主题背景色。此形态放入 ElScrollView.sliver，不能挂入任意 CustomScrollView。
+  const factory ElSliverCollapse.priority({
     Key? key,
     required Widget compact,
     required Widget content,
     double compactExtent,
     double contentExtent,
-    Color backgroundColor,
+    Color? backgroundColor,
     Duration holdSnapDelay,
     Duration snapDuration,
     ValueChanged<double>? onProgressChanged,
-  }) = _BibiCollapse;
+  }) = _PriorityCollapse;
 }
 
 class _ScrollCollapse extends ElSliverCollapse {
@@ -71,26 +74,48 @@ class _ScrollCollapse extends ElSliverCollapse {
   final bool snap;
 
   @override
-  Widget build(BuildContext context) => SliverPersistentHeader(
-    pinned: pinned,
-    floating: floating,
-    delegate: _ProgressHeader(minExtent, maxExtent, builder, snap && floating),
-  );
+  Widget build(BuildContext context) => _ScrollHeader(this);
+}
+
+// 官方 floating snap 的吸附动画需要 vsync，由这一层提供；不吸附时不会创建 Ticker。
+class _ScrollHeader extends HookWidget {
+  const _ScrollHeader(this.config);
+
+  final _ScrollCollapse config;
+
+  @override
+  Widget build(BuildContext context) {
+    final vsync = useSingleTickerProvider();
+    return SliverPersistentHeader(
+      pinned: config.pinned,
+      floating: config.floating,
+      delegate: _ProgressHeader(
+        config.minExtent,
+        config.maxExtent,
+        config.builder,
+        config.snap && config.floating ? vsync : null,
+      ),
+    );
+  }
 }
 
 class _ProgressHeader extends SliverPersistentHeaderDelegate {
-  _ProgressHeader(this.minExtent, this.maxExtent, this.builder, this.snap);
+  _ProgressHeader(this.minExtent, this.maxExtent, this.builder, this.vsync);
 
   @override
   final double minExtent;
   @override
   final double maxExtent;
   final ElSliverCollapseBuilder builder;
-  final bool snap;
+
+  /// 非空表示启用吸附。
+  @override
+  final TickerProvider? vsync;
 
   @override
-  FloatingHeaderSnapConfiguration? get snapConfiguration =>
-      snap ? FloatingHeaderSnapConfiguration(duration: Duration(milliseconds: 200), curve: Curves.easeOutCubic) : null;
+  late final FloatingHeaderSnapConfiguration? snapConfiguration = vsync == null
+      ? null
+      : FloatingHeaderSnapConfiguration(duration: Duration(milliseconds: 200), curve: Curves.easeOutCubic);
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -102,7 +127,7 @@ class _ProgressHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _ProgressHeader old) =>
-      minExtent != old.minExtent || maxExtent != old.maxExtent || builder != old.builder || snap != old.snap;
+      minExtent != old.minExtent || maxExtent != old.maxExtent || builder != old.builder || vsync != old.vsync;
 }
 
 class _FloatingCollapse extends ElSliverCollapse {
@@ -115,14 +140,14 @@ class _FloatingCollapse extends ElSliverCollapse {
   Widget build(BuildContext context) => SliverFloatingHeader(snapMode: snapMode, child: child);
 }
 
-class _BibiCollapse extends ElSliverCollapse {
-  const _BibiCollapse({
+class _PriorityCollapse extends ElSliverCollapse {
+  const _PriorityCollapse({
     super.key,
     required this.compact,
     required this.content,
     this.compactExtent = 56,
     this.contentExtent = 58,
-    this.backgroundColor = Colors.white,
+    this.backgroundColor,
     this.holdSnapDelay = const Duration(milliseconds: 160),
     this.snapDuration = const Duration(milliseconds: 180),
     this.onProgressChanged,
@@ -133,7 +158,7 @@ class _BibiCollapse extends ElSliverCollapse {
   final Widget content;
   final double compactExtent;
   final double contentExtent;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final Duration holdSnapDelay;
   final Duration snapDuration;
   final ValueChanged<double>? onProgressChanged;
@@ -145,7 +170,7 @@ class _BibiCollapse extends ElSliverCollapse {
 class _ActiveCollapseHeader extends StatefulWidget {
   const _ActiveCollapseHeader({required this.config});
 
-  final _BibiCollapse config;
+  final _PriorityCollapse config;
 
   @override
   State<_ActiveCollapseHeader> createState() => _ActiveCollapseHeaderState();
@@ -180,7 +205,7 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
   void didChangeDependencies() {
     super.didChangeDependencies();
     final position = Scrollable.maybeOf(context)?.position;
-    assert(position is ScrollHostPosition, 'ElSliverCollapse.bibi 必须放在 ElScrollView.sliver 中');
+    assert(position is ScrollHostPosition, 'ElSliverCollapse.priority 必须放在 ElScrollView.sliver 中');
     if (identical(position, _position)) return;
     _position?.removeEdgeParticipant(_motion);
     _position?.isScrollingNotifier.removeListener(_motion.onScrollingChanged);
@@ -224,7 +249,8 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
         contentExtent: config.contentExtent,
         compact: config.compact,
         content: config.content,
-        backgroundColor: config.backgroundColor,
+        // 背景决定头部自身的绘制，在消费点按键读取；未安装主题时退回白色。
+        backgroundColor: config.backgroundColor ?? context.elVarOr<Color>(ElTokens.$bgColor, const Color(0xFFFFFFFF)),
         progress: value,
       ),
     );
@@ -351,7 +377,7 @@ class _ActiveHeader extends SliverPersistentHeaderDelegate {
       fit: StackFit.expand,
       clipBehavior: Clip.hardEdge,
       children: [
-        // Bibi 的搜索区在频道栏上方：折叠时搜索区向上离场，频道栏同步上移并吸顶。
+        // 可折叠内容在固定栏上方：折叠时内容向上离场，固定栏同步上移并吸顶。
         Positioned(
           top: -contentExtent * progress,
           left: 0,

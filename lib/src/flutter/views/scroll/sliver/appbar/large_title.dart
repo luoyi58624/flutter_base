@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
+
+import '../../../../commons/theme/index.dart';
+import '../../../view/view.dart';
 
 /// 自然尺寸的大标题导航，使用官方 SliverResizingHeader 进行缩放与吸顶。
 ///
@@ -54,13 +57,13 @@ class ElSliverLargeTitle extends StatefulWidget {
   /// 底部区域的自然留白。
   final EdgeInsets bottomPadding;
 
-  /// 导航背景。
+  /// 导航背景，缺省读取主题背景色。
   final Color? backgroundColor;
 
-  /// 展开文字样式。
+  /// 展开文字样式，缺省为 34 号粗体并读取主题文字色。
   final TextStyle? largeTitleStyle;
 
-  /// 收起后文字样式。
+  /// 收起后文字样式，缺省为 18 号半粗并读取主题文字色。
   final TextStyle? compactTitleStyle;
 
   @override
@@ -92,12 +95,17 @@ class _LargeTitleState extends State<ElSliverLargeTitle> {
     final min = MediaQuery.paddingOf(context).top + widget.toolbarExtent;
     final range = max - min;
     if (range <= 0) return;
-    final current = position.pixels - position.minScrollExtent;
+    // 折叠进度按本头部自己的滚动偏移计算：前面还有刷新头等 Sliver 时，要扣掉它们占用的滚动距离。
+    final start = switch (context.findRenderObject()) {
+      final RenderSliver sliver => sliver.constraints.precedingScrollExtent,
+      _ => position.minScrollExtent,
+    };
+    final current = position.pixels - start;
     if (current <= 0 || current >= range) return;
     final target = current >= range / 2 ? range : 0.0;
     _snapping = true;
     position
-        .animateTo(position.minScrollExtent + target, duration: Duration(milliseconds: 180), curve: Curves.easeOutCubic)
+        .animateTo(start + target, duration: Duration(milliseconds: 180), curve: Curves.easeOutCubic)
         .whenComplete(() => _snapping = false);
   }
 
@@ -119,15 +127,15 @@ class _LargeTitleState extends State<ElSliverLargeTitle> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // 颜色决定头部自身的绘制，在消费点按键读取；未安装主题时背景退回白色，文字沿用环境样式。
+    final view = ElView.maybeOf(context);
+    final textColor = view?.getVar<Color>(ElTokens.$textColor);
     final top = MediaQuery.paddingOf(context).top;
     final compactExtent = top + widget.toolbarExtent;
-    final largeStyle =
-        widget.largeTitleStyle ??
-        theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w700) ??
-        TextStyle(fontSize: 34, fontWeight: FontWeight.w700);
-    final compactStyle = widget.compactTitleStyle ?? theme.textTheme.titleMedium ?? TextStyle(fontSize: 18);
-    final background = widget.backgroundColor ?? theme.colorScheme.surface;
+    final largeStyle = widget.largeTitleStyle ?? TextStyle(fontSize: 34, fontWeight: FontWeight.w700, color: textColor);
+    final compactStyle =
+        widget.compactTitleStyle ?? TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor);
+    final background = widget.backgroundColor ?? view?.getVar<Color>(ElTokens.$bgColor) ?? const Color(0xFFFFFFFF);
 
     // 官方 SliverResizingHeader 从两个原型获取主轴端点高度，业务不输入固定展开高度。
     return SliverResizingHeader(

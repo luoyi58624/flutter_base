@@ -141,7 +141,7 @@ class _NavigationState extends State<NewScrollNavigationPage> {
                       ),
                     ),
                   ),
-                  _Mode.bibi => ElSliverCollapse.bibi(
+                  _Mode.bibi => ElSliverCollapse.priority(
                     compactExtent: 48,
                     contentExtent: 58,
                     backgroundColor: Colors.white,

@@ -62,7 +62,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Bibi 搜索区始终在频道栏上方，折叠时频道栏向上移动并吸顶', (tester) async {
+  testWidgets('优先折叠：搜索区始终在频道栏上方，折叠时频道栏向上移动并吸顶', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     await tester.pumpWidget(
@@ -71,7 +71,7 @@ void main() {
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
-            ElSliverCollapse.bibi(
+            ElSliverCollapse.priority(
               compact: Text('固定频道'),
               content: Text('搜索内容'),
               compactExtent: 43,
@@ -100,7 +100,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Bibi 在正文中段优先吸收拖拽，按住停止移动后按 50% 自动吸附', (tester) async {
+  testWidgets('优先折叠：在正文中段优先吸收拖拽，按住停止移动后按 50% 自动吸附', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     final progress = <double>[];
@@ -110,7 +110,7 @@ void main() {
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
-            ElSliverCollapse.bibi(
+            ElSliverCollapse.priority(
               compact: Text('固定频道'),
               content: Text('搜索内容'),
               compactExtent: 56,
@@ -151,7 +151,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Bibi 在正文中段和滚动起点都先消费滚轮，随后按阈值吸附', (tester) async {
+  testWidgets('优先折叠：在正文中段和滚动起点都先消费滚轮，随后按阈值吸附', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     await tester.pumpWidget(
@@ -160,7 +160,7 @@ void main() {
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
-            ElSliverCollapse.bibi(
+            ElSliverCollapse.priority(
               compact: Text('频道导航'),
               content: Text('搜索内容'),
               compactExtent: 56,
@@ -200,7 +200,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Bibi 折叠额度耗尽后，同一次拖拽剩余量进入正文', (tester) async {
+  testWidgets('优先折叠：折叠额度耗尽后，同一次拖拽剩余量进入正文', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     await tester.pumpWidget(
@@ -209,7 +209,12 @@ void main() {
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
-            ElSliverCollapse.bibi(compact: Text('标签栏'), content: Text('搜索区域'), compactExtent: 56, contentExtent: 58),
+            ElSliverCollapse.priority(
+              compact: Text('标签栏'),
+              content: Text('搜索区域'),
+              compactExtent: 56,
+              contentExtent: 58,
+            ),
             SliverToBoxAdapter(child: SizedBox(height: 2000)),
           ],
         ),
@@ -226,7 +231,7 @@ void main() {
     await gesture.up();
   });
 
-  testWidgets('Bibi 页头展开后，拉距剩余部分交给 SliverRefresh', (tester) async {
+  testWidgets('优先折叠：页头展开后，拉距剩余部分交给 SliverRefresh', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     ElRefreshDetails? refreshDetails;
@@ -237,7 +242,7 @@ void main() {
           controller: controller,
           physics: ClampingScrollPhysics(),
           slivers: [
-            ElSliverCollapse.bibi(compact: Text('导航'), content: Text('搜索内容'), compactExtent: 56, contentExtent: 58),
+            ElSliverCollapse.priority(compact: Text('导航'), content: Text('搜索内容'), compactExtent: 56, contentExtent: 58),
             ElSliverRefresh(
               refresher: ElCustomRefresher(
                 triggerExtent: 60,
@@ -361,5 +366,56 @@ void main() {
     final compact = tester.widgetList<Opacity>(find.byType(Opacity)).map((opacity) => opacity.opacity);
     expect(compact.any((opacity) => opacity > .999), isTrue);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('浮动折叠开启吸附后，反向滚动停下时用官方动画吸附到端点', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        ElScrollView.sliver(
+          physics: ClampingScrollPhysics(),
+          slivers: [
+            ElSliverCollapse.scroll(
+              minExtent: 0,
+              maxExtent: 100,
+              pinned: false,
+              floating: true,
+              snap: true,
+              builder: (context, value) => ColoredBox(color: Colors.white, child: Text('浮动吸附')),
+            ),
+            SliverToBoxAdapter(child: SizedBox(height: 2000)),
+          ],
+        ),
+      ),
+    );
+    await tester.drag(find.byType(ElScrollView), Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ElScrollView), Offset(0, 50));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final header = tester.renderObject(find.byType(SliverPersistentHeader)) as RenderSliver;
+    expect(header.geometry!.paintExtent, 100, reason: '露出一部分后停下，应吸附到完全展开。');
+  });
+
+  testWidgets('大标题前面还有其他 Sliver 时，吸附按自身的折叠进度取端点', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      _app(
+        ElScrollView.sliver(
+          controller: controller,
+          physics: ClampingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ElSliverLargeTitle(title: '收藏', snap: true),
+            SliverToBoxAdapter(child: SizedBox(height: 2000)),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 滚过前置内容后只折叠了一小段，应回到大标题完全展开的位置，而不是停在半折叠。
+    await tester.drag(find.byType(ElScrollView), Offset(0, -130));
+    await tester.pumpAndSettle();
+    expect(controller.offset, 100);
   });
 }

@@ -102,7 +102,7 @@ final class ScrollHostPosition extends ScrollPositionWithSingleContext {
 
   bool _canConsumePointerScroll(double delta) {
     if (_disposed || !hasPixels || !hasContentDimensions || !physics.shouldAcceptUserOffset(this)) return false;
-    // 某些页头（Bibi）在正文边界仍有独立的折叠行程，必须先于正文认领滚轮。
+    // 优先折叠的页头在正文边界仍有独立的折叠行程，必须先于正文认领滚轮。
     if (_buildChain()?.canPreScroll(delta, .pointerScroll) ?? false) return true;
     return _smooth?.canConsumeDelta(delta) ??
         ((pixels + delta).clamp(minScrollExtent, maxScrollExtent) - pixels).abs() > precisionErrorTolerance;

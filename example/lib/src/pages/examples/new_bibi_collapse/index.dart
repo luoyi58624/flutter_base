@@ -5,7 +5,7 @@ import 'package:flutter_base/flutter_base.dart';
 import '../bibi/chrome.dart';
 import '../bibi/feed.dart';
 
-/// 用 ElSliverCollapse.bibi 直接承载原 Bibi 的搜索、频道与双列视频流。
+/// 用 ElSliverCollapse.priority 直接承载原 Bibi 的搜索、频道与双列视频流。
 ///
 /// 原版 SliverBibiPage 保留作为对照；此页用现有官方 Scrollable + Sliver 实现，
 /// 不再为页面额外定义 ScrollPhysics 或 ScrollPosition。
@@ -177,7 +177,7 @@ class _NewBibiCollapsePageState extends State<NewBibiCollapsePage> {
             controller: scrollControllers[selected],
             physics: ClampingScrollPhysics(),
             slivers: [
-              ElSliverCollapse.bibi(
+              ElSliverCollapse.priority(
                 compactExtent: 43,
                 contentExtent: 58,
                 compact: _tabs(context),

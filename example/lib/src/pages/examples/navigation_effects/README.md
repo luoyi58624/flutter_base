@@ -26,7 +26,7 @@
 
 两版「山海之间」复用相同 13 幅离线风景画与正文；与旧版一致使用 24px 起始 / 160px 渐显距离。联系人保留旧分组生成规则和索引。
 
-**Bibi 新版真实业务对照**：`NewBibiCollapsePage` 使用已有视频轮播、双列视频流和底栏，导航用 `ElSliverCollapse.bibi`，刷新用 `ElSliverRefresh`。旧 `SliverBibiPage` 不删除，可以直接比较手感。
+**Bibi 新版真实业务对照**：`NewBibiCollapsePage` 使用已有视频轮播、双列视频流和底栏，导航用 `ElSliverCollapse.priority`，刷新用 `ElSliverRefresh`。旧 `SliverBibiPage` 不删除，可以直接比较手感。
 
 验收：
 
