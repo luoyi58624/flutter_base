@@ -36,7 +36,7 @@
 
 - lib/src/flutter/ 承担通用组件声明、视图、事件、焦点、滚动、布局等机制；lib/src/ui/desktop/ 与 lib/src/ui/mobile/ 承担各端具体外观
 - 用户通过 flutter_base.dart、desktop.dart、mobile.dart 等公共入口使用接口；具体组件、Builder 和辅助函数留在 src 内部，生产示例不依赖具体实现
-- flutter/commons/theme 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；桌面、移动预设在 ElComponents 中绑定组件实现和 token。ElComponentProvider 内部用 ElView 级联基础变量与暗色差量，完整预设按品牌整体替换，普通局部覆写继承其余实现。原生主题和文字排版由应用管理
+- flutter/components/tokens.dart 统一声明 ElTokens 和 context.elTheme，同名 getter 与 token 一一对应、仅按键读取，不内置品牌值或混色；桌面、移动预设在 ElComponents 中绑定组件实现和 token。ElComponentProvider 内部用 ElView 级联基础变量与暗色差量，完整预设按品牌整体替换，普通局部覆写继承其余实现。原生主题和文字排版由应用管理
 - 变量键不限制 String 或 -- 前缀，使用能区分身份的 Object 键；暗色等变体由 ElStyle 级联覆写
 - 桌面组件只处理桌面默认样式，尺寸使用 compact 布尔模式；移动组件只处理移动默认样式，不默认附带鼠标悬停、键盘焦点环或桌面尺寸，调用方显式提供的样式变体仍生效
 - 移动端除输入框外，所有组件默认不创建交互焦点、不抢焦点、不参与键盘导航；用户显式提供 focusNode 或 onFocus 等焦点变体时，才沿用 ElView 的焦点入口与相应键盘操作

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/views/table/table.dart' show ElTableStyle;
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElBorderSide, ElStyle;
 import '../../extensions/color.dart';

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../../flutter/commons/models.dart' show ElLabelModel;
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/autocomplete/index.dart' show ElAutocomplete;
 import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
 import '../../../../flutter/views/editable/controller.dart' show ElEditableController;

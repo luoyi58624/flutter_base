@@ -1,3 +1,4 @@
+import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/painting.dart' show Color, BoxShadow, Offset;
 
 import '../../../../flutter.dart';

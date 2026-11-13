@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../flutter/commons/theme/tokens.dart' show ElTokens;
+import '../flutter/components/tokens.dart' show ElTokens;
 import '../flutter/extensions/index.dart' show ElColorExt;
 import '../flutter/utils/platform/index.dart' show ElPlatform;
 import '../flutter/views/view/render/render_view.dart' show ElRenderView, ViewStateRenderAccess;

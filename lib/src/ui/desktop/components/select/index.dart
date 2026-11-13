@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../../flutter/commons/models.dart' show ElLabelModel;
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
 import '../../../../flutter/components/select/index.dart' show ElSelect, ElSelectOption;
 import '../../../../flutter/views/editable/controller.dart' show ElEditableController;

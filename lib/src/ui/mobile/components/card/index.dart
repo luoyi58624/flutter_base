@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElLevelTypeExt, ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElLevelTypeExt, ElThemeContextExt;
 import '../../../../flutter/components/card/index.dart' show ElCard;
-import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform, ElTransition;
+import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../internal/common.dart';
 import '../loading/index.dart';
@@ -15,14 +15,14 @@ Widget cardBuilder(BuildContext context, ElCard component) {
   final style = ElStyle(
     width: '100%',
     backgroundColor: theme.cardColor,
-    borderRadius: .circular(26),
+    borderRadius: .circular(20),
     boxShadow: component.shadowLevel?.shadow(context),
-    padding: const .fromLTRB(23, 25, 23, 26),
+    padding: const .all(16),
     userSelect: interactive ? .none : null,
-    transition: reducedMotion(context)
-        ? const []
-        : const [ElTransition.all(Duration(milliseconds: 150), Curves.easeOut)],
-    onTap: enabled ? ElStyle(backgroundColor: theme.cardPressColor, transform: ElTransform.scale(.96)) : null,
+    transition: enabled ? pressTransitions(theme) : null,
+    onTap: enabled
+        ? ElStyle(backgroundColor: theme.cardPressColor, transform: ElTransform.scale(theme.cardPressScale))
+        : null,
   ).merge(component.style);
   final content = Stack(
     alignment: .center,
@@ -49,6 +49,7 @@ Widget cardBuilder(BuildContext context, ElCard component) {
           excludeChildSemantics: false,
           ignoreDescendantAction: true,
           repeatEnter: false,
+          trackTouchPress: true,
           delayTouchDown: component.event?.delayTouchDown ?? Duration.zero,
           delayTouchUp: component.event?.delayTouchUp ?? const Duration(milliseconds: 100),
           onActivate: (_) => component.onTap?.call(),

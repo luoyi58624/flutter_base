@@ -7,7 +7,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/progress/index.dart' show ElProgress, ElProgressValue;
 import '../../../../flutter/utils/internal/reuse_animation.dart';
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;

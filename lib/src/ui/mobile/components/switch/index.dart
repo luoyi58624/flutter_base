@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/switch/index.dart' show ElSwitch;
 import '../../../../flutter/utils/obs/index.dart' show Obs;
 import '../../../../flutter/utils/internal/reuse_animation.dart';

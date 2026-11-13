@@ -72,6 +72,7 @@ export 'tooltip/index.dart';
 export 'picker/index.dart';
 export 'popup/index.dart';
 export 'upload/index.dart';
+export 'tokens.dart';
 
 part 'index.g.dart';
 

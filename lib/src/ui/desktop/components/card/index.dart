@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElLevelTypeExt;
+import '../../../../flutter/components/tokens.dart' show ElLevelTypeExt;
 import '../../../../flutter/components/card/index.dart' show ElCard;
 import '../../../../flutter/components/loading_indicator/index.dart' show ElLoadingIndicator;
 import '../../../../flutter/views/button/button_view.dart' show ElButtonView;

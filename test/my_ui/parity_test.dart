@@ -28,6 +28,7 @@ Widget shell(
     data: MediaQueryData(size: Size(viewport, 900), disableAnimations: reduced, platformBrightness: brightness),
     child: ElComponentProvider(
       components: el.mobileComponents,
+      themeMode: ElThemeMode(brightness: brightness, duration: Duration.zero),
       child: ElView(
         style: theme,
         child: Align(
@@ -75,7 +76,7 @@ void main() {
     expect(() => lightShadow.add(BoxShadow()), throwsUnsupportedError);
   });
 
-  testWidgets('系统暗色与局部主题同步到ElView', (tester) async {
+  testWidgets('品牌暗色与局部主题同步到ElView', (tester) async {
     Brightness? seenBrightness;
     Color? seenPrimary;
     await tester.pumpWidget(
@@ -188,7 +189,11 @@ void main() {
   for (final entry in <String, Widget Function(FocusNode)>{
     'Button': (focus) => skin.Button(focusNode: focus, child: '手机按钮'),
     'Tag': (focus) => skin.Tag(value: false, focusNode: focus, child: '手机标签'),
-    'Card': (_) => ElCard(onTap: () {}, child: SizedBox(height: 60)),
+    'Card': (_) => ElCard(
+      onTap: () {},
+      style: ElStyle(onFocus: ElStyle()),
+      child: SizedBox(height: 60),
+    ),
     'Switch': (focus) => skin.Switch(value: false, focusNode: focus, label: '手机开关'),
   }.entries) {
     testWidgets('${entry.key} 默认悬停和键盘聚焦保持手机外观', (tester) async {
@@ -239,9 +244,7 @@ void main() {
       final action = find
           .descendant(
             of: target,
-            matching: find.byWidgetPredicate(
-              (widget) => widget is ElView && widget.focusNode != null && widget.event?.onTap != null,
-            ),
+            matching: find.byWidgetPredicate((widget) => widget is ElView && widget.event?.onTap != null),
           )
           .first;
       List<Object> appearance() => tester
@@ -482,10 +485,10 @@ void main() {
         ),
       );
       final rootView = views(find.byType(ElCard), (v) => v.style?.width == '100%').first;
-      expect(tester.widget<ElView>(rootView).style!.padding, EdgeInsets.fromLTRB(23, 25, 23, 26));
+      expect(tester.widget<ElView>(rootView).style!.padding, EdgeInsets.all(16));
       expect(tester.getSize(rootView).width, 320);
-      expect(tester.getTopLeft(find.byKey(childKey)).dx - tester.getTopLeft(rootView).dx, 23);
-      expect(tester.widget<ElView>(rootView).style!.borderRadius, BorderRadius.circular(26));
+      expect(tester.getTopLeft(find.byKey(childKey)).dx - tester.getTopLeft(rootView).dx, 16);
+      expect(tester.widget<ElView>(rootView).style!.borderRadius, BorderRadius.circular(20));
       expect(tester.takeException(), null);
     });
   }
@@ -680,7 +683,11 @@ void main() {
       shell(
         Column(
           children: [
-            ElCard(onTap: () => calls++, child: SizedBox(height: 30)),
+            ElCard(
+              onTap: () => calls++,
+              style: ElStyle(onFocus: ElStyle()),
+              child: SizedBox(height: 30),
+            ),
             Focus(focusNode: other, child: SizedBox(height: 20)),
           ],
         ),

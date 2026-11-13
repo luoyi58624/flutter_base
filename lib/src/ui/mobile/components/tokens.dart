@@ -44,6 +44,10 @@ final Map<Object, Object> _lightVars = Map.unmodifiable({
   ElTokens.$gray: Color(0xffbac2ce),
   ElTokens.$hover: Color(0xffe9ecf0),
   ElTokens.$press: Color(0xffe0e4ea),
+  ElTokens.$buttonPressScale: .9,
+  ElTokens.$cardPressScale: .96,
+  ElTokens.$pressDuration: Duration(milliseconds: 100),
+  ElTokens.$pressCurve: Curves.easeOut,
   ElTokens.$selectedBackground: Color(0xffffffff),
   // 五个语义色取自设计图（light）：主色 #1076FD、成功 #56B329、警告 #F9A907、危险 #FC4646。
   // 信息色与主色同蓝：设计图把信息动作画成「浅蓝底 + 蓝字」，浅底交给使用方按主色混合，不另设第四种蓝。

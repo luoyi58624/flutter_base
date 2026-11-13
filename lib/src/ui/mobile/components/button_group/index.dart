@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../flutter/commons/models.dart' show ElThemeType;
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/button_group/index.dart';
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/view.dart' show ElView;

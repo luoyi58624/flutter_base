@@ -4,7 +4,7 @@ import 'package:flutter/rendering.dart' show FloatingHeaderSnapConfiguration;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
-import '../../../../commons/theme/index.dart';
+import '../../../../components/tokens.dart';
 import '../../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import '../../scroll_position.dart' show ScrollHostPosition;

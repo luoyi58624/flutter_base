@@ -7,13 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import '../../../flutter/components/tokens.dart' show ElThemeExt;
 import '../../../flutter/utils/internal/haptics.dart';
 import '../../../flutter/widgets/icon/content.dart';
 import '../../../flutter/views/view/event/event.dart'
     show ElEvent, ElEventDetails, ElEventExt, ElEventHandler, ElEventPhase;
 import '../../../flutter/views/view/render/render_view.dart' show ElRenderView;
 import '../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
-import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition, ElTransitionField;
+import '../../../flutter/views/view/style/style.dart' show ElStyle, ElStyleExt, ElTransition;
 import '../../../flutter/views/view/style/cascade/style_spec.dart' show hasFocusableVariantOf;
 import '../../../flutter/views/view/view.dart' show ElView;
 
@@ -22,6 +23,11 @@ Widget buildContent(Object? child) => buildIconContent(child);
 
 /// 当前平台是否要求减少动态效果。
 bool reducedMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+/// 按压和回弹共用的颜色与缩放过渡。
+List<ElTransition> pressTransitions(ElThemeExt theme) => [
+  ElTransition.fields(const {.backgroundColor, .transform}, theme.pressDuration, theme.pressCurve),
+];
 
 /// CSS px 的断点基于整个 viewport，而非组件局部可用宽度。
 double viewport(BuildContext context) => MediaQuery.maybeSizeOf(context)?.width ?? double.infinity;
@@ -67,9 +73,9 @@ bool _hitsNestedControl(BuildContext context, ElEventDetails event) {
 
 final _activatedControl = Expando<bool>();
 
-/// 只给确认框操作区等短按场景启用按压跟踪与触感，普通按钮保持原行为。
+/// 为确认框操作区等短按场景启用触感。
 class TouchActionScope extends InheritedWidget {
-  /// 子树内的移动按钮启用按压跟踪与触感。
+  /// 子树内的移动按钮启用触感。
   const TouchActionScope({super.key, required super.child});
 
   /// 当前按钮是否位于启用范围内。
@@ -96,7 +102,6 @@ class ActionView extends HookWidget {
     this.focusNode,
     this.event,
     this.repeatEnter = true,
-    this.quickTouchFeedback = false,
     this.trackTouchPress = false,
     this.hapticFeedback = false,
     this.activateOnEnter = true,
@@ -143,10 +148,7 @@ class ActionView extends HookWidget {
   /// Enter 长按是否重复。
   final bool repeatEnter;
 
-  /// 按钮触屏落下立即变色，缩放60ms，其余输入沿用默认过渡。
-  final bool quickTouchFeedback;
-
-  /// 按钮显式启用边界按压反馈，移出取消、移回恢复；其他控件保持原行为。
+  /// 交给 ElView 跟踪按压边界，移出取消、移回恢复。
   final bool trackTouchPress;
 
   /// 有效触摸激活时发送轻触感。
@@ -180,7 +182,7 @@ class ActionView extends HookWidget {
     useEffect(() => internalFocus?.dispose, [internalFocus]);
     final node = focusNode ?? internalFocus;
     final space = useState(false);
-    final directInput = useState(false);
+    final directInput = useRef(false);
     final feedbackCancelled = useState(false);
     final downPosition = useRef<Offset?>(null);
     final downBounds = useRef<Rect?>(null);
@@ -230,21 +232,22 @@ class ActionView extends HookWidget {
       disabled: disabled || base.disabled,
       delayTouchDown: delayTouchDown,
       delayTouchUp: delayTouchUp,
-      onPointerDown: (e) {
-        final original = e.originalEvent;
-        if (original is PointerEvent) {
-          directInput.value = original.kind == PointerDeviceKind.touch || original.kind == PointerDeviceKind.stylus;
-          if (!trackTouchPress) {
-            feedbackCancelled.value = false;
-            downPosition.value = e.globalPosition;
-            final render = context.findRenderObject();
-            downBounds.value = render is RenderBox && render.hasSize
-                ? render.localToGlobal(Offset.zero) & render.size
-                : null;
-          }
-        }
-        base.onPointerDown?.call(e);
-      },
+      onPointerDown: trackTouchPress
+          ? base.onPointerDown
+          : (e) {
+              final original = e.originalEvent;
+              if (original is PointerEvent) {
+                directInput.value =
+                    original.kind == PointerDeviceKind.touch || original.kind == PointerDeviceKind.stylus;
+                feedbackCancelled.value = false;
+                downPosition.value = e.globalPosition;
+                final render = context.findRenderObject();
+                downBounds.value = render is RenderBox && render.hasSize
+                    ? render.localToGlobal(Offset.zero) & render.size
+                    : null;
+              }
+              base.onPointerDown?.call(e);
+            },
       onPointerMove: trackTouchPress
           ? base.onPointerMove
           : (e) {
@@ -279,17 +282,7 @@ class ActionView extends HookWidget {
     );
     final reduced = reducedMotion(context);
     final inputStyle = !trackTouchPress && feedbackCancelled.value ? style.copyWith(onTap: const ElStyle()) : style;
-    final pointerStyle = quickTouchFeedback && directInput.value
-        ? inputStyle.copyWith(
-            onTap: inputStyle.onTap?.copyWith(
-              transition: const [
-                ElTransition.all(Duration.zero),
-                ElTransition.field(ElTransitionField.transform, Duration(milliseconds: 60), Cubic(.2, .7, .2, 1)),
-              ],
-            ),
-          )
-        : inputStyle;
-    var resolved = space.value && !disabled && !blocked ? pointerStyle.merge(pointerStyle.onTap) : pointerStyle;
+    var resolved = space.value && !disabled && !blocked ? inputStyle.merge(inputStyle.onTap) : inputStyle;
     if (reduced) {
       resolved = resolved.copyWith(
         transition: const <ElTransition>[],

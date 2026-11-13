@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../../commons/theme/index.dart';
+import '../../../../components/tokens.dart';
 import '../../../view/view.dart';
 
 /// 自然尺寸的大标题导航，使用官方 SliverResizingHeader 进行缩放与吸顶。

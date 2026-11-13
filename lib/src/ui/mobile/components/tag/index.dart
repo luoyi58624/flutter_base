@@ -4,7 +4,7 @@ library;
 import 'package:flutter/widgets.dart';
 
 import '../../../../flutter/commons/models.dart' show ElThemeType;
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/tag/index.dart' show ElTag, ElTagEffect;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent, ElEventHandler;
 import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform, ElTransition;

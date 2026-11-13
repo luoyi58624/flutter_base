@@ -40,6 +40,18 @@ ElComponentProvider(
 - 组件读取到 null 时抛出带组件名的错误，例如「ElSwitch 未登记实现」。
 - Builder 以顶层函数或静态方法登记；不要在 build 中创建闭包，否则每次重建都会通知全部组件。
 
+## 通用主题规范
+
+`tokens.dart` 集中声明 `ElTokens` 和 `context.elTheme` 的类型化读取。例如 `ElTokens.$cardPressColor` 对应 `context.elTheme.cardPressColor`。这些声明从 `package:flutter_base/flutter.dart` 导出，各品牌入口复用同一套声明。
+
+移动端和桌面端分别在自己的 `tokens.dart` 中定义默认值，通过 ElView 的变量表注入。每个 getter 直接读取对应键，边框色阶、禁用色和选区颜色都可独立覆写。普通 ElView 可以通过 `ElStyle.vars` 局部注入 token。
+
+只有读取具体变量才登记依赖。变量缺失或类型不符时，类型化 getter 抛出 `StateError`。调用方可通过 `elVarOr` 或 `elVarOrElse` 提供兜底。
+
+新增主题字段时同步更新 `ElTokens`、`ElThemeExt` 和两端默认表。暗色表只声明有变化的变量，以保留调用方设置的字体和度量。
+
+移动端按钮和卡片分别读取 `buttonPressScale` 和 `cardPressScale`。按压与回弹共用 `pressDuration` 和 `pressCurve`，这些值可通过 `ElStyle.vars` 局部覆盖。
+
 ## 声明结构
 
 | 组件类型 | 基类 | Builder 签名 |

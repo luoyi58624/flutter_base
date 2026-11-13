@@ -10,7 +10,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../../../../dart.dart' show $absent;
 import '../../../../dart/gen/index.dart' show $absent;
 import '../../../../flutter/commons/models.dart' show ElLabelModel;
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/components/list_tile/index.dart' show ElListGroup, ElListTile, ElMenuOption;
 import '../../../../flutter/utils/model_value/index.dart' show ElModelValueType;

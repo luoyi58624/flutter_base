@@ -4,7 +4,7 @@ library;
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/skeleton/index.dart' show ElSkeleton;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
 import '../../../../flutter/views/view/style/style.dart' show ElAnimation, ElStyle;

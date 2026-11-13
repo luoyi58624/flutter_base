@@ -6,7 +6,7 @@ import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
 import '../../../../flutter/components/mention/index.dart'
     show

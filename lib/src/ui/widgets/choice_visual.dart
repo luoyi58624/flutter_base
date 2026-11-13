@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' show internal;
 import 'package:flutter/widgets.dart';
 
-import '../../flutter/commons/theme/index.dart' show ElThemeContextExt;
+import '../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../flutter/views/view/style/style.dart';
 import '../../flutter/views/view/view.dart';
 
