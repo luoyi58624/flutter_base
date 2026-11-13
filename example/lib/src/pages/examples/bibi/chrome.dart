@@ -208,6 +208,8 @@ class BibiChannelBar extends StatefulWidget {
 class _ChannelRailState extends State<BibiChannelBar> {
   final _scroll = ScrollController(keepScrollOffset: false);
   late int _selected;
+  late double _page;
+  ({double page, double offset})? _centerStart;
   double? _outerWidth;
   bool _centeringScheduled = false;
 
@@ -215,6 +217,7 @@ class _ChannelRailState extends State<BibiChannelBar> {
   void initState() {
     super.initState();
     _selected = widget.pager.index;
+    _page = _pagePosition;
     widget.pager.addListener(_handlePage);
   }
 
@@ -224,6 +227,8 @@ class _ChannelRailState extends State<BibiChannelBar> {
     if (oldWidget.pager != widget.pager) {
       oldWidget.pager.removeListener(_handlePage);
       _selected = widget.pager.index;
+      _page = _pagePosition;
+      _centerStart = null;
       widget.pager.addListener(_handlePage);
       _scheduleCenter();
     }
@@ -239,11 +244,37 @@ class _ChannelRailState extends State<BibiChannelBar> {
   double _tabWidth(double outerWidth) =>
       widget.channels.isEmpty ? 50 : math.max(50, (outerWidth - _menuWidth - _endInset) / widget.channels.length);
 
+  double get _pagePosition => widget.pager.position.clamp(0.0, math.max(0, widget.channels.length - 1)).toDouble();
+
   void _handlePage() {
     final pager = widget.pager;
-    if (_selected == pager.index || pager.isDragging || (pager.position - pager.index).abs() > .001) return;
-    setState(() => _selected = pager.index);
-    _scheduleCenter();
+    final page = _pagePosition;
+    if (page != _page) {
+      _followPage(page);
+      _page = page;
+    }
+    if (pager.isDragging || pager.isAnimating || page != pager.index) return;
+    _centerStart = null;
+    if (_selected != pager.index) setState(() => _selected = pager.index);
+  }
+
+  double _centerOffset(ScrollPosition position, double page, double tabWidth) =>
+      ((page + .5) * tabWidth - (position.viewportDimension - _fadeWidth) / 2)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+
+  void _followPage(double page) {
+    final outerWidth = _outerWidth;
+    if (!_scroll.hasClients || outerWidth == null) return;
+    final position = _scroll.position;
+    if (!position.hasContentDimensions) return;
+    final tabWidth = _tabWidth(outerWidth);
+    final start = _centerStart ??= (page: _page, offset: position.pixels);
+    // 频道栏手动滚过后，从当前画面接续，并在移动一页内回到居中位置。
+    final correction = start.offset - _centerOffset(position, start.page, tabWidth);
+    final target = (_centerOffset(position, page, tabWidth) + correction * math.max(0.0, 1 - (page - start.page).abs()))
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (target != position.pixels) position.jumpTo(target);
   }
 
   void _select(int index) {
@@ -260,10 +291,7 @@ class _ChannelRailState extends State<BibiChannelBar> {
       if (!mounted || !_scroll.hasClients || outerWidth == null) return;
       final position = _scroll.position;
       if (!position.hasContentDimensions) return;
-      final width = position.viewportDimension;
-      final target = ((_selected + .5) * _tabWidth(outerWidth) - (width - _fadeWidth) / 2)
-          .clamp(position.minScrollExtent, position.maxScrollExtent)
-          .toDouble();
+      final target = _centerOffset(position, _page, _tabWidth(outerWidth));
       if ((target - position.pixels).abs() < .5) return;
       unawaited(position.animateTo(target, duration: Duration(milliseconds: 200), curve: Curves.easeOutCubic));
     });
@@ -298,7 +326,7 @@ class _ChannelRailState extends State<BibiChannelBar> {
                 child: ListenableBuilder(
                   listenable: widget.pager,
                   builder: (context, _) {
-                    final page = widget.pager.position.clamp(0.0, math.max(0, widget.channels.length - 1)).toDouble();
+                    final page = _page;
                     return Stack(
                       children: [
                         Row(

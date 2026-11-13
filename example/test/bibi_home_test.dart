@@ -287,26 +287,33 @@ void main() {
     expect(_tabsY(tester), expanded - 58);
   });
 
-  testWidgets('频道滑块和文字颜色逐帧跟随拖动、回弹与点选', (tester) async {
+  testWidgets('频道标签栏居中、滑块和文字颜色逐帧跟随拖动、回弹与点选', (tester) async {
     await _open(tester);
     final pager = _pager(tester);
+    final tabs = _key('bibi-tabs');
     final indicator = _key('bibi-channel-indicator');
     final first = _key('bibi-channel-0');
     final next = _key('bibi-channel-1');
+    await tester.tap(_key('bibi-channel-3'));
+    await tester.pumpAndSettle();
     Color colorAt(int index) => tester
         .widget<Text>(find.descendant(of: _key('bibi-channel-$index'), matching: find.byType(Text)))
         .style!
         .color!;
-    final selected = colorAt(1);
-    final unselected = colorAt(2);
+    final selected = colorAt(3);
+    final unselected = colorAt(4);
+    final firstCenterBeforeDrag = tester.getCenter(first).dx;
     var fractionalFrames = 0;
 
     void expectFrame() {
       final page = pager.position;
       final firstCenter = tester.getCenter(first).dx;
       final step = tester.getCenter(next).dx - firstCenter;
-      expect(tester.getCenter(indicator).dx, closeTo(firstCenter + page * step, 0.01));
-      for (var index = 0; index <= 3; index++) {
+      final viewport = tester.getRect(tabs);
+      final indicatorCenter = tester.getCenter(indicator).dx;
+      expect(indicatorCenter, closeTo(firstCenter + page * step, 0.01));
+      expect(indicatorCenter, closeTo(viewport.center.dx - 19 / 2, 0.01));
+      for (var index = 2; index <= 5; index++) {
         expect(colorAt(index), Color.lerp(selected, unselected, (page - index).abs().clamp(0.0, 1.0)));
       }
       if ((page - page.round()).abs() > .01) fractionalFrames++;
@@ -319,8 +326,9 @@ void main() {
       await tester.pump(Duration(milliseconds: 16));
       expectFrame();
     }
-    expect(pager.position, inExclusiveRange(1, 1.5));
+    expect(pager.position, inExclusiveRange(3, 3.5));
     expect(fractionalFrames, 4);
+    expect(tester.getCenter(first).dx, lessThan(firstCenterBeforeDrag));
     await tester.pump(Duration(milliseconds: 200));
     await gesture.up(timeStamp: Duration(milliseconds: 300));
     for (var frame = 0; frame < 18; frame++) {
@@ -328,17 +336,18 @@ void main() {
       expectFrame();
     }
     await tester.pumpAndSettle();
-    expect(pager.index, 1);
+    expect(pager.index, 3);
+    expect(tester.getCenter(first).dx, closeTo(firstCenterBeforeDrag, 0.01));
     expect(fractionalFrames, greaterThan(4));
 
     fractionalFrames = 0;
-    await tester.tap(_key('bibi-channel-2'));
+    await tester.tap(_key('bibi-channel-4'));
     for (var frame = 0; frame < 18; frame++) {
       await tester.pump(Duration(milliseconds: 16));
       expectFrame();
     }
     await tester.pumpAndSettle();
-    expect(pager.index, 2);
+    expect(pager.index, 4);
     expect(fractionalFrames, greaterThan(1));
     expectFrame();
   });
