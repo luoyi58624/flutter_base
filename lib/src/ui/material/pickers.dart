@@ -105,33 +105,3 @@ Widget _upload(ElUpload c) => ElView(
     ],
   ),
 );
-
-Widget _popup(ElPopup c) => ElView(
-  style: c.style,
-  event: c.event,
-  child: Material(
-    borderRadius: BorderRadius.circular(16),
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: .min,
-        crossAxisAlignment: .stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: _content(c.title)),
-              if (c.showClose)
-                Builder(
-                  builder: (context) =>
-                      IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Flexible(child: SingleChildScrollView(child: c.child)),
-          if (c.footer != null) ...[const SizedBox(height: 24), _content(c.footer)],
-        ],
-      ),
-    ),
-  ),
-);

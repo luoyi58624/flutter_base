@@ -92,8 +92,9 @@ List<ShowcaseItem> pickerShowcaseItems(bool mobile) => [
             child: '选择配送地区',
             onPressed: () async {
               final draft = ValueNotifier([...region.value]);
-              final result = await el.popup<List<String>>(
+              final result = await el.dialog.show<List<String>>(
                 context,
+                placement: .bottom,
                 title: '选择配送地区',
                 showClose: false,
                 child: HookBuilder(
@@ -146,8 +147,9 @@ List<ShowcaseItem> dateShowcaseItems() => [
             child: '修改出发日期',
             onPressed: () async {
               final draft = ValueNotifier(date.value);
-              final result = await el.popup<DateTime>(
+              final result = await el.dialog.show<DateTime>(
                 context,
+                placement: .bottom,
                 title: '选择出发日期',
                 showClose: false,
                 child: HookBuilder(

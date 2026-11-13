@@ -39,6 +39,8 @@ final _pages = <(String, String, int)>[
   ('loading', 'feedback/loading', 2),
   ('toast', 'feedback/toast', 2),
   ('message', 'feedback/message', 2),
+  ('dialog', 'feedback/dialog', 4),
+  ('drawer', 'feedback/drawer', 2),
 ];
 
 void main() {

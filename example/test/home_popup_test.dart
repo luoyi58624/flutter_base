@@ -41,7 +41,7 @@ void main() {
     tester.widget<ShowcaseScope>(find.byType(ShowcaseScope)).onNavigate('actions-buttons');
     await tester.pumpAndSettle();
 
-    final popup = find.byType(ElPopup);
+    final popup = find.descendant(of: find.byType(ElDialog), matching: find.byType(ElView)).first;
     final share = find.byWidgetPredicate((w) => w is ElButton && w.semanticLabel == '分享').first;
     await tester.ensureVisible(share);
     await tester.pumpAndSettle();
@@ -78,7 +78,7 @@ void main() {
     // 点在底栏上的遮罩区，只关闭弹层，导航仍停留在首页。
     await tester.tapAt(Offset(195, 838));
     await tester.pumpAndSettle();
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(navigation.routeInformationProvider.value.uri.path, RouterUtil.home);
   });
 
@@ -93,19 +93,19 @@ void main() {
       await _finishTransition(tester);
     }
 
-    final popup = find.byType(ElPopup);
+    final popup = find.descendant(of: find.byType(ElDialog), matching: find.byType(ElView)).first;
     await open('feedback-share', fixture.copy('展开操作面板').first);
     expect(tester.getRect(popup), Rect.fromLTWH(16, 524, 358, 304));
     await tester.tap(fixture.copy('收藏到本地').last);
     await _finishTransition(tester);
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(fixture.copy('已收藏到本地'), findsWidgets);
     expect(Obs.localStorage.getItem<bool>('showcase.liked'), isTrue);
 
     await open('feedback-selection', _button('打开单选面板'));
     await tester.tap(fixture.copy('锁屏').last);
     await _finishTransition(tester);
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(fixture.copy('已选择：锁屏'), findsWidgets);
 
     await open('feedback-selection', _button('打开多选面板'));
@@ -120,16 +120,16 @@ void main() {
     expect(tester.widget<ElView>(choices.last).semantics!.properties.checked, isFalse);
     await tester.tap(choices.last);
     await tester.pump();
-    expect(popup, findsOneWidget);
+    expect(find.byType(ElDialog), findsOneWidget);
     expect(tester.widget<ElView>(choices.last).semantics!.properties.checked, isTrue);
     expect(tester.getSize(_button('完成')), Size(179, 66));
     await tester.tap(_button('完成'));
     await _finishTransition(tester);
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(fixture.copy('已选择 3 项同步内容'), findsWidgets);
 
     await open('feedback-overlays', fixture.copy('打开抽屉').first);
-    final drawer = find.byType(ElDrawer);
+    final drawer = find.descendant(of: find.byType(ElDrawer), matching: find.byType(ElView)).first;
     expect(tester.getRect(drawer), Rect.fromLTWH(30, 0, 360, 844));
     final name = find.descendant(of: drawer, matching: find.byType(ElEditableView)).first;
     await tester.tap(name);
@@ -141,7 +141,7 @@ void main() {
     expect(find.byType(ElDialog), findsOneWidget);
     await tester.tap(_button('保存'));
     await _finishTransition(tester);
-    expect(drawer, findsNothing);
+    expect(find.byType(ElDrawer), findsNothing);
     expect(find.byType(ElDialog), findsNothing);
     expect(fixture.copy('资料已保存：新的显示名称'), findsWidgets);
     expect(tester.takeException(), isNull);

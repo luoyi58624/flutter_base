@@ -27,7 +27,8 @@ import 'list_tile/index.dart';
 import 'loading_indicator/index.dart';
 import 'mention/index.dart';
 import 'picker/index.dart';
-import 'popup/index.dart';
+import 'dialog/index.dart';
+import 'drawer/index.dart';
 import 'upload/index.dart';
 import 'progress/index.dart';
 import 'radio/index.dart';
@@ -74,7 +75,8 @@ export 'alert/index.dart';
 export 'app_bar/index.dart';
 export 'tooltip/index.dart';
 export 'picker/index.dart';
-export 'popup/index.dart';
+export 'dialog/index.dart';
+export 'drawer/index.dart';
 export 'upload/index.dart';
 export 'tokens.dart';
 
@@ -124,7 +126,6 @@ class ElComponents with Equatable {
     this.datePicker,
     this.timePicker,
     this.upload,
-    this.popup,
     this.dialog,
     this.drawer,
     this.toast,
@@ -248,13 +249,10 @@ class ElComponents with Equatable {
   /// 根据 ElUpload 声明构建文件列表和选择入口。
   final Widget Function(BuildContext context, ElUpload component)? upload;
 
-  /// 根据 ElPopup 声明构建弹层内容。
-  final Widget Function(BuildContext context, ElPopup component)? popup;
-
-  /// 根据 ElDialog 声明构建对话框内容。
+  /// 根据 ElDialog 声明构建对话框、确认框与底部面板，含遮罩与进退场。
   final Widget Function(BuildContext context, ElDialog component)? dialog;
 
-  /// 根据 ElDrawer 声明构建抽屉内容。
+  /// 根据 ElDrawer 声明构建抽屉，含遮罩与进退场。
   final Widget Function(BuildContext context, ElDrawer component)? drawer;
 
   /// 根据 ElToast 声明构建短提示内容。

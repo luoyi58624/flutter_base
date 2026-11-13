@@ -60,8 +60,10 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
     _cart.value = next;
   }
 
-  void _openCart(BuildContext context) => el.popup<void>(
+  void _openCart(BuildContext context) => el.dialog.show<void>(
     context,
+    placement: .bottom,
+    showClose: true,
     title: '已选商品',
     style: ElStyle(padding: .fromLTRB(24, 0, 24, 24)),
     child: ValueListenableBuilder(
@@ -124,8 +126,10 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
     super.dispose();
   }
 
-  void _metrics(BuildContext context) => el.popup(
+  void _metrics(BuildContext context) => el.dialog.show(
     context,
+    placement: .bottom,
+    showClose: true,
     title: '滚动诊断',
     style: ElStyle(padding: .fromLTRB(24, 0, 24, 24)),
     child: ListenableBuilder(

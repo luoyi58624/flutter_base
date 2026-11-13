@@ -13,7 +13,7 @@ part 'pickers.dart';
 
 /// 为尚无品牌实现的已有接口提供基础 Material 替代，不覆盖品牌已有实现。
 ElComponents materialComponents({bool mobile = false}) {
-  Widget control(Widget child) => mobile ? ExcludeFocus(child: child) : child;
+  Widget control(Widget child) => _MaterialHost(mobile ? ExcludeFocus(child: child) : child);
   return ElComponents(
     checkbox: (context, c, state) => _checkbox(c, state),
     radio: <T>(context, c, state) => _radio(c, state),
@@ -92,9 +92,6 @@ ElComponents materialComponents({bool mobile = false}) {
         ),
       ),
     ),
-    popup: (context, c) => _popup(c),
-    dialog: (context, c) => _popup(c),
-    drawer: (context, c) => _popup(c),
     toast: (context, c) => ElOverlayTransition(
       duration: const Duration(milliseconds: 200),
       builder: (context, animation) => FadeTransition(
@@ -136,3 +133,14 @@ const _toastStyle = ElStyle(
     iconColor: Color(0xff1d2129),
   ),
 );
+
+/// 弹层等位置没有 Material 祖先时补一层透明 Material，替代组件依赖它绘制水波纹。
+class _MaterialHost extends StatelessWidget {
+  const _MaterialHost(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Material.maybeOf(context) == null ? Material(type: .transparency, child: child) : child;
+}

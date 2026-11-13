@@ -480,8 +480,10 @@ class _Shadows extends StatelessWidget {
           ElButton(
             variant: .outline,
             child: '体验浮层',
-            onPressed: () => el.popup(
+            onPressed: () => el.dialog.show(
               context,
+              placement: .bottom,
+              showClose: true,
               title: '浮起的内容',
               child: Padding(padding: .fromLTRB(24, 0, 24, 24), child: Text('柔和的阴影，让内容层次更清楚。')),
             ),

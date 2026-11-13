@@ -353,8 +353,9 @@ void demoNotify(BuildContext context, String message) => el.toast.show(message, 
 
 /// 打开首页两处入口共用的分享面板。
 Future<String?> demoShare(BuildContext context) async {
-  final action = await el.popup<String>(
+  final action = await el.dialog.show<String>(
     context,
+    placement: .bottom,
     title: '分享这份灵感',
     showClose: false,
     child: Builder(
@@ -393,7 +394,7 @@ Future<bool?> demoDialog(
   bool danger = false,
   bool single = false,
   ElPopupPlacement placement = .bottom,
-}) => el.dialog<bool>(
+}) => el.dialog.show<bool>(
   context,
   title: title,
   placement: placement,

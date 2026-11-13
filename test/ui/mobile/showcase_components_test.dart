@@ -206,7 +206,7 @@ void main() {
               ElButton(
                 child: '打开弹层',
                 onPressed: () async {
-                  result = await el.dialog<String>(
+                  result = await el.dialog.show<String>(
                     context,
                     title: '确认',
                     child: Text('内容'),

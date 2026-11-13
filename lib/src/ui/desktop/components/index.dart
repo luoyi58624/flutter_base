@@ -11,6 +11,7 @@ import 'button/index.dart';
 import 'button_group/index.dart';
 import 'card/index.dart';
 import 'checkbox/index.dart';
+import 'dialog/index.dart';
 import 'input/index.dart';
 import 'input_number/index.dart';
 import 'input_otp/index.dart';
@@ -55,6 +56,8 @@ final _components = ElComponentsExt(materialComponents()).merge(
     inputTag: (context, component) => InputTag(component),
     inputOtp: (context, component) => InputOtp(component),
     message: messageBuilder,
+    dialog: dialogBuilder,
+    drawer: drawerBuilder,
     messageStack: messageStackBuilder,
     formItem: (context, component) => ElFormItemView(
       component: component,

@@ -84,7 +84,7 @@ List<ShowcaseItem> feedbackShowcaseItems(bool mobile) => [
       final t = context.elTheme;
       return ShowcasePanel(
         title: '底部操作面板',
-        description: 'el.popup 接收自定义内容，关闭后取得用户选择。',
+        description: 'el.dialog.show 停靠底部即为面板，接收自定义内容，关闭后取得用户选择。',
         child: demoColumn([
           ElCard(
             style: ElStyle(
@@ -137,7 +137,7 @@ List<ShowcaseItem> feedbackShowcaseItems(bool mobile) => [
             variant: .outline,
             child: '打开抽屉',
             onPressed: () async {
-              final result = await el.drawer<String>(
+              final result = await el.drawer.show<String>(
                 context,
                 title: '编辑个人资料',
                 placement: switch (direction.value) {
@@ -159,8 +159,9 @@ List<ShowcaseItem> feedbackShowcaseItems(bool mobile) => [
       final single = useState('锁屏与时钟桌面插件'), multi = useState(['同步文档', '同步图片']);
       Future<void> selections(bool multiple) async {
         final markLeading = !trailing.value;
-        final selected = await el.popup<String>(
+        final selected = await el.dialog.show<String>(
           context,
+          placement: .bottom,
           title: multiple ? '选择需要同步的内容' : '在以下位置显示双时钟',
           showClose: false,
           child: Builder(
@@ -530,14 +531,15 @@ class _Touch extends HookWidget {
     );
     Future<void> open(bool bottom) async {
       final result = bottom
-          ? await el.popup<String>(
+          ? await el.dialog.show<String>(
               context,
+              placement: .bottom,
               title: '最近的灵感',
               showClose: false,
               child: panel(),
               footer: demoPopupActions(cancel: '关闭'),
             )
-          : await el.drawer<String>(
+          : await el.drawer.show<String>(
               context,
               title: '我的工作空间',
               style: ElStyle(

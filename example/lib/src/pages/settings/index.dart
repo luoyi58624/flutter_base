@@ -126,7 +126,7 @@ class SettingPage extends StatelessWidget {
             children: [
               ElListTile(
                 onTap: () {
-                  // el.popup
+                  // el.dialog.show
                 },
                 title: '无线调试',
               ),

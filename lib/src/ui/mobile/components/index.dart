@@ -82,7 +82,6 @@ final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
     datePicker: datePickerBuilder,
     timePicker: timePickerBuilder,
     upload: uploadBuilder,
-    popup: popupBuilder,
     dialog: dialogBuilder,
     drawer: drawerBuilder,
     toast: toastBuilder,

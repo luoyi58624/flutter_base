@@ -46,7 +46,6 @@ extension ElComponentsExt on ElComponents {
     Object? datePicker = $absent,
     Object? timePicker = $absent,
     Object? upload = $absent,
-    Object? popup = $absent,
     Object? dialog = $absent,
     Object? drawer = $absent,
     Object? toast = $absent,
@@ -182,9 +181,6 @@ extension ElComponentsExt on ElComponents {
       upload: identical(upload, $absent)
           ? this.upload
           : upload as Widget Function(BuildContext, ElUpload)?,
-      popup: identical(popup, $absent)
-          ? this.popup
-          : popup as Widget Function(BuildContext, ElPopup)?,
       dialog: identical(dialog, $absent)
           ? this.dialog
           : dialog as Widget Function(BuildContext, ElDialog)?,
@@ -250,7 +246,6 @@ extension ElComponentsExt on ElComponents {
       datePicker: other.datePicker ?? datePicker,
       timePicker: other.timePicker ?? timePicker,
       upload: other.upload ?? upload,
-      popup: other.popup ?? popup,
       dialog: other.dialog ?? dialog,
       drawer: other.drawer ?? drawer,
       toast: other.toast ?? toast,
@@ -300,7 +295,6 @@ extension ElComponentsExt on ElComponents {
     datePicker,
     timePicker,
     upload,
-    popup,
     dialog,
     drawer,
     toast,

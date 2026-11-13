@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
+import 'package:flutter_base/src/flutter/widgets/popup/modal_layer.dart' show ModalLayer;
 import 'package:flutter_test/flutter_test.dart';
 
 Widget host(Widget child) => MaterialApp(
@@ -10,6 +11,9 @@ Widget host(Widget child) => MaterialApp(
     child: Scaffold(body: Center(child: child)),
   ),
 );
+
+/// 模态打开时声明组件铺满视口，测量取遮罩之上的面板。
+Finder panel(Type type) => find.descendant(of: find.byType(type), matching: find.byType(ElView)).first;
 Finder copy(String text) =>
     find.byWidgetPredicate((w) => w is Text && w.data == text || w is ElView && w.child == text);
 
@@ -120,7 +124,7 @@ void main() {
             builder: (context) => ElButton(
               key: ValueKey('open'),
               child: '打开',
-              onPressed: () => result = el.drawer<String>(
+              onPressed: () => result = el.drawer.show<String>(
                 context,
                 placement: placement,
                 title: '抽屉',
@@ -133,7 +137,7 @@ void main() {
       );
       await tester.tap(find.byKey(ValueKey('open')));
       await tester.pumpAndSettle();
-      final drawer = find.byType(ElDrawer);
+      final drawer = panel(ElDrawer);
       final frame = tester.getRect(drawer);
       expect(frame, switch (placement) {
         .left => Rect.fromLTWH(0, 0, 360, viewport.height),
@@ -179,13 +183,18 @@ void main() {
             builder: (context) => ElButton(
               key: ValueKey('open'),
               child: '打开',
-              onPressed: () => closed = el.popup<void>(context, showClose: false, child: SizedBox(height: 240)),
+              onPressed: () => closed = el.dialog.show<void>(
+                context,
+                placement: .bottom,
+                showClose: false,
+                child: SizedBox(height: 240),
+              ),
             ),
           ),
         ),
       ),
     );
-    final popup = find.byType(ElPopup);
+    final popup = panel(ElDialog);
     final backdrop = find.byType(BackdropFilter);
     final shade = find.descendant(of: backdrop, matching: find.byType(ColoredBox));
     void expectBackdrop(double visible) {
@@ -196,10 +205,11 @@ void main() {
 
     await tester.tap(opener);
     await tester.pump();
-    final route = ModalRoute.of(tester.element(popup))!;
+    final animation = tester.widget<ModalLayer>(find.byType(ModalLayer)).animation;
     for (final time in [Duration(milliseconds: 50), Duration(milliseconds: 75)]) {
       await tester.pump(time);
-      expectBackdrop(Cubic(.174, 0, .185, 1).transform(route.animation!.value));
+      expect(animation.value, inExclusiveRange(0, 1));
+      expectBackdrop(Cubic(.174, 0, .185, 1).transform(animation.value));
     }
     await tester.pumpAndSettle();
     final frame = tester.getRect(popup);
@@ -223,14 +233,14 @@ void main() {
 
     await tester.dragFrom(opposite, Offset(0, 110));
     await tester.pumpAndSettle();
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     await closed;
 
     await tester.tap(opener);
     await tester.pumpAndSettle();
     await tester.tapAt(side);
     await tester.pumpAndSettle();
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -242,8 +252,10 @@ void main() {
           builder: (context) => ElButton(
             key: ValueKey('open'),
             child: '打开',
-            onPressed: () => closed = el.popup<void>(
+            onPressed: () => closed = el.dialog.show<void>(
               context,
+              placement: .bottom,
+              showClose: true,
               title: '长内容',
               child: Column(children: [for (var i = 0; i < 30; i++) SizedBox(height: 40, child: Text('内容 $i'))]),
             ),
@@ -253,7 +265,7 @@ void main() {
     );
     await tester.tap(find.byKey(ValueKey('open')));
     await tester.pumpAndSettle();
-    final popup = find.byType(ElPopup);
+    final popup = panel(ElDialog);
     final frame = tester.getRect(popup);
     final scroll = find.descendant(of: popup, matching: find.byType(Scrollable));
     final position = tester.state<ScrollableState>(scroll).position;
@@ -286,7 +298,7 @@ void main() {
     await dismiss.up();
     await tester.pumpAndSettle();
     await closed;
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(ValueKey('open')));
@@ -298,7 +310,7 @@ void main() {
     await tester.pump();
     await tester.pump(Duration(milliseconds: 230));
     await tester.pump();
-    expect(popup, findsNothing);
+    expect(find.byType(ElDialog), findsNothing);
     await closed;
   });
 
@@ -316,10 +328,11 @@ void main() {
             builder: (context) => ElButton(
               key: ValueKey('open'),
               child: '打开',
-              onPressed: () => result = el.popup<String>(
+              onPressed: () => result = el.dialog.show<String>(
                 context,
+                placement: .bottom,
+                showClose: true,
                 title: '内容',
-                draggable: false,
                 dismissible: false,
                 child: Builder(
                   builder: (context) => ElButton(child: '保存', onPressed: () => Navigator.of(context).pop('已保存')),
@@ -332,7 +345,7 @@ void main() {
     );
     await tester.tap(find.byKey(ValueKey('open')));
     await tester.pumpAndSettle();
-    final popup = find.byType(ElPopup);
+    final popup = panel(ElDialog);
     final frame = tester.getRect(popup);
     expect(frame.width, 400);
     expect(frame.center.dx, viewport.width / 2);

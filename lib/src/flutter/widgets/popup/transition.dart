@@ -13,8 +13,8 @@ class ElOverlayTransition extends HookWidget {
   /// 退场时长，省略时与进场相同。
   final Duration? reverseDuration;
 
-  /// 按 0 到 1 的进度构建外观。
-  final Widget Function(BuildContext context, Animation<double> animation) builder;
+  /// 按 0 到 1 的进度构建外观；拿到的是控制器本身，跟手拖动等交互可直接改写进度。
+  final Widget Function(BuildContext context, AnimationController animation) builder;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +41,12 @@ final class OverlayTransitions {
 
   /// 让内容中的 ElOverlayTransition 登记到这里。
   Widget wrap(Widget child) => _Scope(transitions: this, child: child);
+
+  /// 从当前进度退场到底还需的最长时长，拖动关闭等已归零的动画不再占用时间。
+  Duration get remaining => _controllers.fold(Duration.zero, (longest, controller) {
+    final remaining = (controller.reverseDuration ?? controller.duration ?? Duration.zero) * controller.value;
+    return remaining > longest ? remaining : longest;
+  });
 
   /// 播放全部退场；动画所在组件先被卸载时直接结束。
   Future<void> reverse() => Future.wait([
