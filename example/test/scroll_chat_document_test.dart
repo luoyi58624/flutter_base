@@ -34,8 +34,20 @@ Future<void> _tap(WidgetTester tester, String key) async {
 
 String _chatCount(WidgetTester tester) => tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data!;
 
-ScrollPosition _chatPosition(WidgetTester tester, SliverExampleMode mode) =>
+ScrollPosition _chatPosition(WidgetTester tester) =>
     tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!.position;
+
+Finder _visibleMessage(WidgetTester tester) {
+  final viewport = tester.getRect(find.byType(CustomScrollView));
+  final messages = find.byWidgetPredicate((widget) => widget is Text && (widget.data?.startsWith('消息 #') ?? false));
+  // 拖动活动会忽略列表子项的命中，用实际坐标判断消息是否在视口内。
+  final visible = messages.evaluate().firstWhere((element) {
+    final text = find.byWidget(element.widget);
+    final center = tester.getCenter(text);
+    return center.isFinite && viewport.contains(center);
+  });
+  return find.text((visible.widget as Text).data!);
+}
 
 Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode mode, int step) async {
   final body = find
@@ -127,7 +139,7 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
     expect(advanceBuilds, 0);
   }
   expect(_chatCount(tester), count);
-  expect(_chatPosition(tester, mode).extentBefore, closeTo(0, .5));
+  expect(_chatPosition(tester).extentBefore, closeTo(0, .5));
   expect(tester.takeException(), isNull);
 }
 
@@ -139,29 +151,101 @@ Future<void> _locate(WidgetTester tester, int section) async {
 }
 
 void main() {
-  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler]) {
+  for (final mode in SliverExampleMode.values) {
+    testWidgets('实时群聊 ${mode.label} 插入第一批消息后仍可用同一指针拖动', (tester) async {
+      await _open(tester, RecyclerLiveChatPage());
+      tester.widget<PopupMenuButton<Object>>(find.byKey(ValueKey('chat-menu'))).onSelected!(mode);
+      await tester.pumpAndSettle();
+      final position = _chatPosition(tester);
+      position.jumpTo(4800);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('chat-live-play')));
+      await tester.pump();
+
+      final list = find.byType(CustomScrollView);
+      final drag = await tester.startGesture(tester.getCenter(list));
+      await drag.moveBy(Offset(0, 120));
+      await tester.pump(Duration(milliseconds: 200));
+      await drag.moveBy(Offset(0, 180));
+      await tester.pump(Duration(milliseconds: 230));
+      expect(position.activity, isA<DragScrollActivity>());
+      final message = _visibleMessage(tester);
+      final y = tester.getTopLeft(message).dy;
+
+      await drag.moveBy(Offset(0, 24));
+      await tester.pump(Duration(milliseconds: 20));
+      expect(_chatCount(tester), '1051 条');
+      expect(message, findsOneWidget);
+      expect(tester.getTopLeft(message).dy, closeTo(y + 24, .5));
+      expect(position.activity, isA<DragScrollActivity>());
+
+      await drag.moveBy(Offset(0, 48));
+      await tester.pump();
+      expect(tester.getTopLeft(message).dy, closeTo(y + 72, .5));
+      await drag.up();
+      await _tap(tester, 'chat-live-play');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('实时群聊 ${mode.label} 插入第一批消息时保留惯性位移', (tester) async {
+      await _open(tester, RecyclerLiveChatPage());
+      tester.widget<PopupMenuButton<Object>>(find.byKey(ValueKey('chat-menu'))).onSelected!(mode);
+      await tester.pumpAndSettle();
+      final position = _chatPosition(tester) as ScrollPositionWithSingleContext;
+      position.jumpTo(4800);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('chat-live-play')));
+      position.goBallistic(1800);
+      await tester.pump();
+      for (var i = 0; i < 29; i++) {
+        await tester.pump(Duration(milliseconds: 15));
+      }
+
+      final message = _visibleMessage(tester);
+      final y = tester.getTopLeft(message).dy;
+      final pixels = position.pixels;
+      double? movement;
+      void recordMovement() => movement ??= position.pixels - pixels;
+      position.addListener(recordMovement);
+      try {
+        await tester.pump(Duration(milliseconds: 15));
+      } finally {
+        position.removeListener(recordMovement);
+      }
+      expect(_chatCount(tester), '1051 条');
+      expect(message.hitTestable(), findsOneWidget);
+      expect(movement, greaterThan(0));
+      expect(tester.getTopLeft(message).dy, closeTo(y + movement!, .5));
+      expect(position.activity, isA<BallisticScrollActivity>());
+      expect(position.activity!.velocity, greaterThan(0));
+
+      final nextY = tester.getTopLeft(message).dy;
+      await tester.pump(Duration(milliseconds: 30));
+      expect(tester.getTopLeft(message).dy, greaterThan(nextY));
+      await _tap(tester, 'chat-live-play');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final mode in [SliverExampleMode.official, SliverExampleMode.recycler, SliverExampleMode.builder]) {
     testWidgets('实时群聊 ${mode.label} 保留阅读锚点，并在末尾跟随同一条流式消息', (tester) async {
       await _open(tester, RecyclerLiveChatPage());
       if (mode != .recycler) {
         await _tap(tester, 'chat-menu');
         await _tap(tester, 'chat-mode-${mode.name}');
       }
-      final position = _chatPosition(tester, mode);
+      final position = _chatPosition(tester);
       position.jumpTo(760);
       await tester.pumpAndSettle();
-      final reader = find
-          .byWidgetPredicate((widget) => widget is Text && (widget.data?.startsWith('消息 #') ?? false))
-          .hitTestable()
-          .first;
-      final text = tester.widget<Text>(reader).data!;
-      final y = tester.getTopLeft(find.text(text)).dy;
+      final message = _visibleMessage(tester);
+      final y = tester.getTopLeft(message).dy;
 
       await _tap(tester, 'chat-live-step');
       expect(_chatCount(tester), '1051 条');
-      expect(tester.getTopLeft(find.text(text)).dy, closeTo(y, .5));
+      expect(tester.getTopLeft(message).dy, closeTo(y, .5));
       await _tap(tester, 'chat-live-step');
       expect(_chatCount(tester), '1051 条');
-      expect(tester.getTopLeft(find.text(text)).dy, closeTo(y, .5));
+      expect(tester.getTopLeft(message).dy, closeTo(y, .5));
       expect(tester.widget<Text>(find.byKey(ValueKey('chat-unread-count'))).data, '1');
 
       await _tap(tester, 'chat-menu');
@@ -202,6 +286,34 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('实时群聊靠近末尾时保留拖动，停稳后才跟随新消息', (tester) async {
+    await _open(tester, RecyclerLiveChatPage());
+    final position = _chatPosition(tester);
+    position.jumpTo(32);
+    await tester.pumpAndSettle();
+    await _tap(tester, 'chat-live-step');
+    expect(position.pixels, closeTo(0, .5));
+    expect(find.text('小林的滚动记录正在整理。').hitTestable(), findsOneWidget);
+
+    await _tap(tester, 'chat-live-reset');
+    final drag = await tester.startGesture(tester.getCenter(find.byType(CustomScrollView)));
+    await drag.moveBy(Offset(0, 22));
+    await drag.moveBy(Offset(0, 24));
+    await tester.pump();
+    expect(position.pixels, inExclusiveRange(0, 48));
+    final message = _visibleMessage(tester);
+    final y = tester.getTopLeft(message).dy;
+
+    tester.widget<TextButton>(find.byKey(ValueKey('chat-live-step'))).onPressed!();
+    await tester.pump();
+    expect(_chatCount(tester), '1051 条');
+    expect(tester.getTopLeft(message).dy, closeTo(y, .5));
+    expect(position.activity, isA<DragScrollActivity>());
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('实时群聊可以暂停并自动结束，离开页面会清除尚未触发的事件', (tester) async {
     await _open(tester, RecyclerLiveChatPage());

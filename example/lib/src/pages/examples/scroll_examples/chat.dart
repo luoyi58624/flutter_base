@@ -1,12 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../layout/example_page.dart';
-import 'scroll_mode.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../widgets/panel.dart';
+import 'scroll_mode.dart';
 
 /// 用一千条变高消息演示历史插入、底部跟随与未读消息提示。
 class RecyclerChatPage extends StatefulWidget {
@@ -30,7 +32,7 @@ class RecyclerLiveChatPage extends RecyclerChatPage {
 
 enum _ChatAction { earlier, receive, latest }
 
-typedef _ChatAnchor = ({int id, double top});
+typedef _ChatAnchor = ({int id, double offset});
 
 class _RecyclerChatPageState extends State<RecyclerChatPage> {
   static final _liveParts = [
@@ -48,20 +50,19 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   final _count = ValueNotifier<int>(1000);
   final _unread = ValueNotifier<int>(0);
   final _messages = List.generate(1000, _ChatMessage.generated);
-  final _official = ScrollController(keepScrollOffset: false);
-  final _officialListKey = GlobalKey();
+  final _messageController = ScrollController(keepScrollOffset: false);
+  final _messageSliverKey = GlobalKey();
   // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
   final _messageRows = <int, _OfficialChatRowState>{};
   late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
   var _mode = SliverExampleMode.initial;
-  bool _nearBottom = true;
   // 历史消息使用负业务 ID，与已存在的消息区分。
   int _oldestId = -1;
   int _nextId = 1000;
   int? _streamId;
   Timer? _liveTimer;
 
-  ScrollController get _messageController => _official;
+  _RenderChatSliver? get _messageSliver => _messageSliverKey.currentContext?.findRenderObject() as _RenderChatSliver?;
 
   int _indexOf(int id) {
     var low = 0;
@@ -79,52 +80,11 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     return -1;
   }
 
-  _ChatAnchor? _captureMessageAnchor() {
-    final viewport = _officialListKey.currentContext?.findRenderObject();
-    if (viewport is! RenderBox || !viewport.hasSize) return null;
-    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
-    final viewportBottom = viewportTop + viewport.size.height;
-    _ChatAnchor? anchor;
-    for (final entry in _messageRows.entries) {
-      final box = _messageBox(entry.key);
-      if (box == null) continue;
-      final top = box.localToGlobal(Offset.zero).dy;
-      if (top + box.size.height <= viewportTop || top >= viewportBottom) continue;
-      if (anchor == null || top < anchor.top) anchor = (id: entry.key, top: top);
-    }
-    return anchor;
-  }
-
-  RenderBox? _messageBox(int id) {
-    final row = _messageRows[id];
-    if (row == null || !row.mounted) return null;
-    final box = row.context.findRenderObject();
-    return box is RenderBox && box.attached && box.hasSize ? box : null;
-  }
-
-  void _restoreMessageAnchor(_ChatAnchor? anchor) {
-    if (anchor == null) return;
-    final mode = _mode;
-    final controller = _messageController;
-    void correct() {
-      if (!mounted || _mode != mode || !controller.hasClients) return;
-      final box = _messageBox(anchor.id);
-      if (box == null) return;
-      // 反向容器的像素增大时内容向下平移，只补容器还没保住的几何差。
-      final correction = anchor.top - box.localToGlobal(Offset.zero).dy;
-      if (correction.abs() <= .01) return;
-      controller.jumpTo((controller.offset + correction).clamp(0, controller.position.maxScrollExtent));
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => correct());
-  }
-
   void _loadEarlier() {
-    final anchor = _captureMessageAnchor();
+    _messageSliver?.captureAnchors();
     _insertEarlier();
     _count.value = _messages.length;
     setState(() {});
-    _restoreMessageAnchor(anchor);
   }
 
   void _insertEarlier() {
@@ -132,38 +92,41 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _messages.insertAll(0, List.generate(50, (index) => _ChatMessage.generated(_oldestId + index)));
   }
 
-  bool _shouldFollow() => _nearBottom && _official.hasClients && _official.offset <= 48;
+  bool _prepareIncoming() {
+    if (!_messageController.hasClients) return false;
+    final position = _messageController.position;
+    final follow = position.extentBefore <= 48 && !position.isScrollingNotifier.value;
+    if (!follow) _messageSliver?.captureAnchors();
+    return follow;
+  }
 
   void _append({required bool mine, String? text}) {
-    final follow = _shouldFollow();
-    final anchor = !follow ? _captureMessageAnchor() : null;
+    final follow = _prepareIncoming();
     _insertMessage(mine: mine, text: text);
-    _finishIncoming(follow, anchor, 1);
+    _finishIncoming(follow, 1);
   }
 
   void _insertMessage({required bool mine, String? text}) {
     _messages.add(_ChatMessage.generated(_nextId++, mine: mine, text: text));
   }
 
-  void _finishIncoming(bool follow, _ChatAnchor? anchor, int arrivals) {
+  void _finishIncoming(bool follow, int arrivals) {
     if (_count.value != _messages.length) {
       _count.value = _messages.length;
       setState(() {});
     }
     if (follow) {
-      _showLatest();
+      _showLatest(onlyWhenIdle: true);
     } else {
       _unread.value += arrivals;
-      _restoreMessageAnchor(anchor);
     }
   }
 
   void _liveStep() {
     final (step, _) = _liveProgress.value;
     if (step == _liveParts.length) return;
-    final follow = _shouldFollow();
-    final anchor = !follow ? _captureMessageAnchor() : null;
-    // 同一拍的前插、增长和新消息共用一次阅读锚点，避免分次恢复位置。
+    // 同一拍的前插、增长和新消息共用一次阅读锚点。
+    final follow = _prepareIncoming();
     if (step == 0 || step == 4) _insertEarlier();
     final text = _liveParts.take(step + 1).join('\n');
     var arrivals = 0;
@@ -181,7 +144,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
       _insertMessage(mine: false, text: step == 2 ? '我在这边也看到最新进度了。' : '等记录发完我们再一起核对。');
       arrivals++;
     }
-    _finishIncoming(follow, anchor, arrivals);
+    _finishIncoming(follow, arrivals);
     if (step + 1 == _liveParts.length) {
       _liveTimer?.cancel();
       _liveTimer = null;
@@ -223,12 +186,15 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _append(mine: true, text: text);
   }
 
-  void _showLatest() {
+  void _showLatest({bool onlyWhenIdle = false}) {
     _unread.value = 0;
-    _nearBottom = true;
+    _messageSliver?.clearAnchors();
     final mode = _mode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _mode == mode && _official.hasClients) _official.jumpTo(0);
+      if (!mounted || _mode != mode || !_messageController.hasClients) return;
+      final position = _messageController.position;
+      if (onlyWhenIdle && (position.isScrollingNotifier.value || position.pixels == 0)) return;
+      position.jumpTo(0);
     });
   }
 
@@ -252,8 +218,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
 
   bool _onScroll(ScrollNotification notification) {
     if (notification.depth != 0) return false;
-    _nearBottom = notification.metrics.extentBefore <= 48;
-    if (_nearBottom && _unread.value != 0) _unread.value = 0;
+    if (notification.metrics.extentBefore <= 48 && _unread.value != 0) _unread.value = 0;
     return false;
   }
 
@@ -272,22 +237,25 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   Widget _messagesViewport() => NotificationListener<ScrollNotification>(
     onNotification: _onScroll,
     child: RecyclerExampleScrollbar(
-      controller: _official,
+      controller: _messageController,
       child: _mode.scrollView(
-        key: _officialListKey,
-        controller: _official,
+        controller: _messageController,
         reverse: true,
         semanticChildCount: _messages.length,
         slivers: [
-          _mode.list(
-            context,
-            itemCount: _messages.length,
-            itemBuilder: (_, index) => _messageRow(_messages.length - 1 - index),
-            findChildIndexCallback: _messageIndexForKey,
-            itemType: (index) => _messages[_messages.length - 1 - index].mine,
-            recycledItemBuilder: (_, index) => ValueListenableBuilder<int>(
-              valueListenable: index,
-              builder: (_, value, _) => _messageRow(_messages.length - 1 - value, trackedKey: false),
+          _ChatSliver(
+            key: _messageSliverKey,
+            rows: _messageRows,
+            child: _mode.list(
+              context,
+              itemCount: _messages.length,
+              itemBuilder: (_, index) => _messageRow(_messages.length - 1 - index),
+              findChildIndexCallback: _messageIndexForKey,
+              itemType: (index) => _messages[_messages.length - 1 - index].mine,
+              recycledItemBuilder: (_, index) => ValueListenableBuilder<int>(
+                valueListenable: index,
+                builder: (_, value, _) => _messageRow(_messages.length - 1 - value, trackedKey: false),
+              ),
             ),
           ),
         ],
@@ -302,7 +270,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     _composer.dispose();
     _count.dispose();
     _unread.dispose();
-    _official.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
@@ -416,6 +384,79 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   );
 }
 
+class _ChatSliver extends SingleChildRenderObjectWidget {
+  // ignore: prefer_const_constructors_in_immutables
+  _ChatSliver({super.key, required this.rows, required super.child});
+
+  final Map<int, _OfficialChatRowState> rows;
+
+  @override
+  _RenderChatSliver createRenderObject(BuildContext context) => _RenderChatSliver(rows);
+}
+
+class _RenderChatSliver extends RenderProxySliver {
+  _RenderChatSliver(this._rows);
+
+  final Map<int, _OfficialChatRowState> _rows;
+  final _anchors = <_ChatAnchor>[];
+  double? _initialScrollOffset;
+
+  RenderBox? _sliverChildFor(int id) {
+    final object = _rows[id]?.context.findRenderObject();
+    if (object is! RenderBox || !object.attached) return null;
+    RenderBox box = object;
+    while (box.parent is RenderBox) {
+      box = box.parent! as RenderBox;
+    }
+    return identical(box.parent, child) ? box : null;
+  }
+
+  void captureAnchors() {
+    final sliver = child;
+    if (_anchors.isNotEmpty || sliver == null || sliver.geometry?.visible != true) return;
+    final start = sliver.constraints.scrollOffset;
+    final end = start + sliver.geometry!.paintExtent;
+    for (final id in _rows.keys) {
+      final box = _sliverChildFor(id);
+      if (box == null || !box.hasSize) continue;
+      // 停放的复用行没有布局偏移，只有与视口相交的消息可以作为锚点。
+      final offset = sliver.childScrollOffset(box);
+      if (offset == null || !offset.isFinite || offset >= end || offset + box.size.height <= start) continue;
+      _anchors.add((id: id, offset: offset));
+    }
+    if (_anchors.isEmpty) return;
+    // 反向列表优先保留靠上方的消息，布局窗口移动时用仍在窗口内的消息补位。
+    _anchors.sort((a, b) => b.offset.compareTo(a.offset));
+    markNeedsLayout();
+  }
+
+  void clearAnchors() {
+    _anchors.clear();
+    _initialScrollOffset = null;
+  }
+
+  @override
+  void performLayout() {
+    if (_anchors.isNotEmpty) _initialScrollOffset ??= constraints.scrollOffset;
+    super.performLayout();
+    if (_anchors.isEmpty || geometry!.scrollOffsetCorrection != null) return;
+
+    // 扣除子 Sliver 已完成的修正，只补偿数据引起的布局位移。
+    final applied = constraints.scrollOffset - _initialScrollOffset!;
+    for (final anchor in _anchors) {
+      final box = _sliverChildFor(anchor.id);
+      final offset = box == null ? null : child!.childScrollOffset(box);
+      if (offset == null || !offset.isFinite) continue;
+      final correction = offset - anchor.offset - applied;
+      if (correction.abs() > precisionErrorTolerance) {
+        geometry = SliverGeometry(scrollOffsetCorrection: correction);
+      }
+      break;
+    }
+    clearAnchors();
+  }
+}
+
 class _ChatMessage {
   _ChatMessage.generated(this.id, {bool? mine, String? text}) : mine = mine ?? id % 3 == 0, _suppliedText = text;
   static final _samples = [
@@ -454,6 +495,18 @@ class _OfficialChatRowState extends State<_OfficialChatRow> {
   }
 
   @override
+  void activate() {
+    super.activate();
+    widget.rows[widget.message.id] = this;
+  }
+
+  @override
+  void deactivate() {
+    if (identical(widget.rows[widget.message.id], this)) widget.rows.remove(widget.message.id);
+    super.deactivate();
+  }
+
+  @override
   void didUpdateWidget(_OfficialChatRow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if ((oldWidget.message.id != widget.message.id || !identical(oldWidget.rows, widget.rows)) &&
@@ -471,7 +524,6 @@ class _OfficialChatRowState extends State<_OfficialChatRow> {
 
   @override
   void dispose() {
-    if (identical(widget.rows[widget.message.id], this)) widget.rows.remove(widget.message.id);
     _message.dispose();
     super.dispose();
   }
