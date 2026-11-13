@@ -27,13 +27,13 @@ final class ElMessageService {
         : Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return Future.value();
     final themes = context == null ? null : InheritedTheme.capture(from: context, to: overlay.context);
-    final stack = _stacks[overlay] ??= _MessageStack(overlay, themes, () => _stacks.remove(overlay));
+    final stack = _stacks[overlay] ??= _MessageStack(overlay, () => _stacks.remove(overlay));
     return stack.add(message, type, duration, themes);
   }
 }
 
 final class _MessageStack {
-  _MessageStack(OverlayState overlay, this.themes, this.onEmpty) {
+  _MessageStack(OverlayState overlay, this.onEmpty) {
     entry = OverlayEntry(
       builder: (context) {
         final children = [for (final message in messages) message.widget];
@@ -54,8 +54,8 @@ final class _MessageStack {
 
   late final OverlayEntry entry;
 
-  /// 首条消息调用处的主题，整层沿用，避免排布容器随后续调用处变化而重建子树。
-  final CapturedThemes? themes;
+  /// 最近一次调用处的主题，排布容器跟随当前品牌，例如从桌面布局切到移动布局。
+  CapturedThemes? themes;
   final VoidCallback onEmpty;
   final messages = <_Message>[];
 
@@ -67,6 +67,7 @@ final class _MessageStack {
 
   Future<void> add(Object content, ElThemeType type, Duration duration, CapturedThemes? themes) {
     final message = _Message(this, content, type, duration, themes);
+    if (themes != null) this.themes = themes;
     messages.add(message);
     entry.markNeedsBuild();
     return message.removed;
@@ -85,9 +86,12 @@ final class _MessageStack {
 final class _Message {
   _Message(this.stack, Object content, ElThemeType type, this.duration, CapturedThemes? themes) {
     final child = transitions.wrap(ElMessage(type: type, onClose: close, child: content));
+    // 全局键：排布容器随调用处的品牌换层时，消息连同动画状态迁移过去，不重新进场。
     widget = KeyedSubtree(
-      key: ObjectKey(this),
+      key: GlobalObjectKey(this),
       child: MouseRegion(
+        // 只在消息自身被命中时生效，品牌布局留出的空白不拦截事件。
+        hitTestBehavior: .deferToChild,
         onEnter: (_) => timer?.cancel(),
         onExit: (_) => _countdown(),
         child: Semantics(liveRegion: true, child: themes?.wrap(child) ?? child),

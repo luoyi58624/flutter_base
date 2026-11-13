@@ -12,6 +12,7 @@ Widget messageBuilder(BuildContext context, ElMessage c) => ElOverlayTransition(
     animation: animation,
     builder: (context, child) => Align(
       alignment: .topCenter,
+      widthFactor: 1,
       heightFactor: animation.status == .reverse ? animation.value : 1,
       child: Opacity(
         opacity: animation.value,

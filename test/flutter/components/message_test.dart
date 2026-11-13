@@ -198,4 +198,51 @@ void main() {
     expect(_copy('旧消息'), findsOneWidget);
     await _dispose(tester);
   });
+
+  testWidgets('桌面消息两侧的空白不拦截点击', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      _app(
+        GestureDetector(key: ValueKey('page'), behavior: .opaque, onTap: () => taps++, child: SizedBox.expand()),
+        el.desktopComponents,
+      ),
+    );
+    final page = tester.element(find.byKey(ValueKey('page')));
+    el.message.show('保存成功', context: page, type: .success, duration: Duration.zero);
+    await tester.pumpAndSettle();
+    await tester.tapAt(Offset(10, tester.getCenter(_copy('保存成功')).dy));
+    expect(taps, 1);
+    await _dispose(tester);
+  });
+
+  testWidgets('从桌面切到移动后排布跟随当前品牌，已显示的消息不重新进场', (tester) async {
+    final mobile = ValueNotifier(false);
+    addTearDown(mobile.dispose);
+    late BuildContext source;
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: el.navigatorKey,
+        home: ValueListenableBuilder(
+          valueListenable: mobile,
+          builder: (context, value, _) => ElComponentProvider(
+            components: value ? el.mobileComponents : el.desktopComponents,
+            child: Scaffold(body: _source((c) => source = c)),
+          ),
+        ),
+      ),
+    );
+    el.message.show('桌面', context: source, duration: Duration.zero);
+    await tester.pumpAndSettle();
+
+    mobile.value = true;
+    await tester.pump();
+    el.message.show('移动', context: source, duration: Duration.zero);
+    await tester.pump();
+    expect(tester.widget<Opacity>(find.ancestor(of: _copy('桌面'), matching: find.byType(Opacity)).first).opacity, 1);
+    await tester.pumpAndSettle();
+    final bar = tester.getRect(find.ancestor(of: _copy('移动'), matching: find.byType(SlideTransition)).first);
+    expect(bar.top, 0);
+    expect(bar.width, tester.getSize(find.byType(Scaffold)).width);
+    await _dispose(tester);
+  });
 }
