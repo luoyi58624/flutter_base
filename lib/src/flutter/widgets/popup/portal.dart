@@ -9,7 +9,10 @@ import 'package:flutter/widgets.dart';
 import '../../views/view/event/dispatcher.dart' show EventDispatcher;
 import 'anchor.dart';
 import 'hover_intent.dart';
+import 'host.dart';
 import 'popup_stack.dart';
+import 'scope.dart';
+import 'session.dart';
 
 /// 锚定弹层的进退场阶段，供面板构建时选择对应样式。
 enum ElPortalPhase {
@@ -164,18 +167,37 @@ class _PortalState extends State<ElPortal> {
   Completer<void>? _closed;
   Timer? _exit;
   LocalHistoryEntry? _back;
+  PopupStack? _stack;
+  PopupStack? _inputStack;
+  OverlayState? _overlay;
+  int? _viewId;
+  PopupHostState? _host;
+  PopupSession<Object?>? _owner;
   HoverIntentMachine? _hover;
   ElOverlayAnchorGeometry? _geometry;
   ElOverlayAnchorGeometry? _layoutGeometry, _exitGeometry;
   ElPortalPhase _phase = ElPortalPhase.entering;
   bool _open = false, _queued = false, _root = false, _lost = false;
-  bool get _top => _open && ElPopupStack.isTopmost(this);
+  bool get _canInteract => _host?.frontPanel == _owner;
+  bool get _top => _open && _canInteract && (_inputStack?.isTopmost(_closed!) ?? false);
 
   @override
   void initState() {
     super.initState();
     _syncHover();
     FocusManager.instance.addEarlyKeyEventHandler(_key);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final viewId = popupViewId(context);
+    final overlay = _closed == null ? null : Overlay.maybeOf(context, rootOverlay: _root);
+    if (_closed != null && (_viewId != viewId || !identical(overlay, _overlay))) {
+      if (_open) _hide();
+      _exit?.cancel();
+      if (_content != null) _finishExit();
+    }
     if (widget.controller == null && widget.panel != null) _show();
   }
 
@@ -208,7 +230,7 @@ class _PortalState extends State<ElPortal> {
     if (_open && oldWidget.captureFocus != widget.captureFocus) {
       _focus.skipTraversal = !widget.captureFocus;
       if (widget.captureFocus) {
-        _restore = FocusManager.instance.primaryFocus;
+        _rememberFocus();
         _requestFocus();
       } else {
         _releaseFocus();
@@ -240,12 +262,37 @@ class _PortalState extends State<ElPortal> {
   }
 
   void _syncStack() {
-    if (_open && (widget.consumeOutsideTap || widget.controller != null || widget.onDismiss != null)) {
-      ElPopupStack.register(this, onChanged: _syncGates);
+    final session = _closed;
+    if (session == null) return;
+    if (_open &&
+        (widget.consumeOutsideTap || widget.controller != null || widget.onDismiss != null || widget.closeOnBack)) {
+      _inputStack?.register(session, onChanged: _syncGates);
+      if (!identical(_stack, _inputStack)) _stack?.register(session);
     } else {
-      ElPopupStack.unregister(this);
+      _unregisterStack(session);
     }
+    _syncBackRegistration();
     _syncGates();
+  }
+
+  void _unregisterStack(Object session) {
+    _inputStack?.unregister(session);
+    if (!identical(_stack, _inputStack)) _stack?.unregister(session);
+  }
+
+  void _syncBackRegistration() {
+    final overlay = _overlay;
+    final session = _closed;
+    if (overlay == null || session == null) return;
+    _host?.registerBack(overlay, session, _open && _canInteract && widget.closeOnBack ? _onHostBack : null);
+  }
+
+  bool _onHostBack(BuildContext source) {
+    if (!_open || !_canInteract || popupViewId(source) != _viewId || !identical(popupHostOf(source), _host)) {
+      return false;
+    }
+    (widget.onBack ?? widget.onDismiss ?? _hide)();
+    return true;
   }
 
   void _syncGates() {
@@ -291,7 +338,12 @@ class _PortalState extends State<ElPortal> {
   void _scrollChanged() => _afterBuild(_dismiss);
 
   void _pointerScroll(PointerEvent event) {
-    if (event is! PointerScrollEvent || !_top || !ElPopupStack.isTopmostForEvent(this, event)) return;
+    if (event is! PointerScrollEvent ||
+        event.viewId != _viewId ||
+        !_top ||
+        !_inputStack!.isTopmostForEvent(_closed!, event)) {
+      return;
+    }
     final render = _panelKey.currentContext?.findRenderObject();
     if (render is RenderBox && render.attached && render.hasSize) {
       final rect = MatrixUtils.transformRect(render.getTransformTo(null), Offset.zero & render.size);
@@ -321,16 +373,30 @@ class _PortalState extends State<ElPortal> {
   }
 
   void _show() {
-    if (_open) return;
+    if (!mounted || _open) return;
     if (_closed != null) {
       _queued = true;
       return;
     }
+    final target = popupOverlayOf(context, rootOverlay: widget.rootOverlay);
+    if (target == null) return;
+    final root = Overlay.maybeOf(context, rootOverlay: true) ?? target.overlay;
+    final host = popupHostOf(context);
+    final owner = popupLayerOf(context);
+    if (!identical(host?.frontPanel, owner)) return;
+    _host = host;
+    _owner = owner;
+    _host?.layerChanges.addListener(_hostChanged);
+    _overlay = target.overlay;
+    _stack = PopupStack.forOverlay(target.overlay);
+    // 同一根 Overlay 下的局部 TapRegion 可能同时收到外点，统一选择本次接收者。
+    _inputStack = PopupStack.forOverlay(root);
+    _viewId = target.viewId;
     _closed = Completer<void>();
     _layoutGeometry = null;
     _exitGeometry = null;
     _root = widget.rootOverlay;
-    _restore = FocusManager.instance.primaryFocus;
+    _rememberFocus();
     _content = widget.panel ?? Builder(builder: widget.overlayBuilder!);
     _focus
       ..canRequestFocus = true
@@ -358,11 +424,13 @@ class _PortalState extends State<ElPortal> {
   void _hide() {
     _queued = false;
     if (!_open) return;
+    _outsideDown = null;
     if (_panelKey.currentContext?.findRenderObject() case final RenderObject panel) {
       EventDispatcher.terminateActivePointerSequencesIn(panel);
     }
     _exitGeometry = _layoutGeometry;
     _detachBack();
+    _host?.layerChanges.removeListener(_hostChanged);
     _releaseFocus();
     _focus
       ..canRequestFocus = false
@@ -387,8 +455,15 @@ class _PortalState extends State<ElPortal> {
     setState(() => _content = null);
     _afterBuild(_portal.hide);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       if (!(_closed?.isCompleted ?? true)) _closed!.complete();
       _closed = null;
+      _stack = null;
+      _inputStack = null;
+      _overlay = null;
+      _viewId = null;
+      _host = null;
+      _owner = null;
       scheduleMicrotask(() {
         if (mounted && _queued) {
           _queued = false;
@@ -400,6 +475,17 @@ class _PortalState extends State<ElPortal> {
 
   void _dismiss() {
     if (_top) (widget.onDismiss ?? _hide)();
+  }
+
+  void _hostChanged() {
+    _syncBackRegistration();
+    _syncGates();
+    if (_open && !_canInteract) {
+      _afterBuild(() {
+        if (!_open || _canInteract) return;
+        (widget.onDismiss ?? _hide)();
+      });
+    }
   }
 
   void _afterBuild(VoidCallback callback) {
@@ -416,9 +502,19 @@ class _PortalState extends State<ElPortal> {
     if (widget.captureFocus && _focus.context != null) _focus.requestFocus();
   }
 
+  void _rememberFocus() {
+    final focused = FocusManager.instance.primaryFocus;
+    final focusContext = focused?.context;
+    _restore = focusContext != null && popupViewId(focusContext) == _viewId ? focused : null;
+  }
+
   void _releaseFocus() {
     if (!_focus.hasFocus) return;
-    if (widget.restoreFocus && (_restore?.context?.mounted ?? false) && _restore!.canRequestFocus) {
+    final restoreContext = _restore?.context;
+    if (widget.restoreFocus &&
+        restoreContext != null &&
+        popupViewId(restoreContext) == _viewId &&
+        _restore!.canRequestFocus) {
       _restore!.requestFocus();
     } else {
       _focus.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
@@ -426,9 +522,9 @@ class _PortalState extends State<ElPortal> {
   }
 
   void _attachBack() {
-    if (!_open || !widget.closeOnBack || _back != null) return;
+    if (!_open || !widget.closeOnBack || _back != null || _host != null) return;
     _afterBuild(() {
-      if (!_open || _back != null) return;
+      if (!_open || !widget.closeOnBack || _back != null || _host != null) return;
       final route = ModalRoute.of(context);
       if (route == null) return;
       late final LocalHistoryEntry entry;
@@ -454,16 +550,30 @@ class _PortalState extends State<ElPortal> {
   }
 
   KeyEventResult _key(KeyEvent event, {bool fromScope = false}) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.escape &&
-        widget.closeOnEscape &&
-        _top &&
-        (fromScope || FocusManager.instance.primaryFocus?.context?.findAncestorStateOfType<_PortalState>() != this) &&
-        ElPopupStack.isTopmostForEvent(this, event)) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape ||
+        !widget.closeOnEscape ||
+        !_top ||
+        !_isKeyboardInScope()) {
+      return KeyEventResult.ignored;
+    }
+    final focus = FocusManager.instance.primaryFocus?.context;
+    if ((fromScope || focus?.findAncestorStateOfType<_PortalState>() != this) &&
+        _inputStack!.isTopmostForEvent(_closed!, event)) {
       _dismiss();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  bool _isKeyboardInScope() {
+    final focus = FocusManager.instance.primaryFocus?.context;
+    if (focus == null) {
+      return WidgetsBinding.instance.platformDispatcher.views.length == 1;
+    }
+    if (popupViewId(focus) != _viewId) return false;
+    final root = Overlay.maybeOf(focus, rootOverlay: true);
+    return root != null && identical(PopupStack.maybeOf(root), _inputStack);
   }
 
   Widget _region(Widget child) => _hover == null
@@ -493,7 +603,9 @@ class _PortalState extends State<ElPortal> {
         });
       }
       final targetRect = MatrixUtils.transformRect(targetTransform, Offset.zero & targetSize);
-      final overlay = Overlay.of(context, rootOverlay: _root).context.findRenderObject()! as RenderBox;
+      final hostOverlay = _overlay;
+      if (hostOverlay == null || !hostOverlay.mounted) return const SizedBox.shrink();
+      final overlay = hostOverlay.context.findRenderObject()! as RenderBox;
       final rect = widget.anchorPosition == null
           ? targetRect
           : overlay.globalToLocal(widget.anchorPosition!) & Size.zero;
@@ -520,7 +632,7 @@ class _PortalState extends State<ElPortal> {
               behavior: _top ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
               consumeOutsideTaps: _top && widget.consumeOutsideTap,
               onTapOutside: (event) {
-                if (_top && ElPopupStack.isTopmostForEvent(this, event)) {
+                if (event.viewId == _viewId && _top && _inputStack!.isTopmostForEvent(_closed!, event)) {
                   _outsideDown = (event.pointer, event.position);
                   if (widget.closeOnOutsideTap && widget.closeOnOutsidePointerDown) {
                     _outsideDown = null;
@@ -532,11 +644,12 @@ class _PortalState extends State<ElPortal> {
                 final down = _outsideDown;
                 _outsideDown = null;
                 if (down != null &&
+                    event.viewId == _viewId &&
                     down.$1 == event.pointer &&
                     (event.position - down.$2).distance <= kTouchSlop &&
                     widget.closeOnOutsideTap &&
                     _top &&
-                    ElPopupStack.isTopmostForEvent(this, event)) {
+                    _inputStack!.isTopmostForEvent(_closed!, event)) {
                   scheduleMicrotask(_dismiss);
                 }
               },
@@ -570,7 +683,9 @@ class _PortalState extends State<ElPortal> {
         overlayChildBuilder: (context) => LayoutBuilder(
           builder: (context, constraints) {
             final target = _targetKey.currentContext!.findRenderObject()! as RenderBox;
-            final overlay = Overlay.of(context, rootOverlay: _root).context.findRenderObject();
+            final hostOverlay = _overlay;
+            if (hostOverlay == null || !hostOverlay.mounted) return const SizedBox.shrink();
+            final overlay = hostOverlay.context.findRenderObject();
             return buildOverlay(context, target.getTransformTo(overlay), target.size, constraints.biggest);
           },
         ),
@@ -589,13 +704,15 @@ class _PortalState extends State<ElPortal> {
   void dispose() {
     _exit?.cancel();
     _hover?.dispose();
+    _host?.layerChanges.removeListener(_hostChanged);
     _open = false;
     _syncScrollObservers();
     _detachBack();
     _releaseFocus();
     _focus.dispose();
     FocusManager.instance.removeEarlyKeyEventHandler(_key);
-    ElPopupStack.unregister(this);
+    if (_closed case final session?) _unregisterStack(session);
+    _syncBackRegistration();
     if (!(_closed?.isCompleted ?? true)) _closed!.complete();
     if (identical(widget.controller?._state, this)) widget.controller?._state = null;
     super.dispose();

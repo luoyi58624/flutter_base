@@ -3,38 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('LIFO 注册、移除中间层和重复移除', () {
+    final stack = PopupStack();
     final a = Object();
     final b = Object();
     final c = Object();
     addTearDown(() {
       for (final handle in [a, b, c]) {
-        ElPopupStack.unregister(handle);
+        stack.unregister(handle);
       }
     });
-    expect(ElPopupStack.isTopmost(a), isFalse);
-    ElPopupStack.register(a);
-    ElPopupStack.register(b);
-    ElPopupStack.register(c);
-    expect(ElPopupStack.isTopmost(c), isTrue);
-    ElPopupStack.unregister(b);
-    expect(ElPopupStack.isTopmost(c), isTrue);
-    ElPopupStack.unregister(c);
-    expect(ElPopupStack.isTopmost(a), isTrue);
-    ElPopupStack.unregister(a);
-    ElPopupStack.unregister(a);
-    expect(ElPopupStack.isTopmost(a), isFalse);
+    expect(stack.isTopmost(a), isFalse);
+    stack.register(a);
+    stack.register(b);
+    stack.register(c);
+    expect(stack.isTopmost(c), isTrue);
+    stack.unregister(b);
+    expect(stack.isTopmost(c), isTrue);
+    stack.unregister(c);
+    expect(stack.isTopmost(a), isTrue);
+    stack.unregister(a);
+    stack.unregister(a);
+    expect(stack.isTopmost(a), isFalse);
   });
 
   test('重复注册不复制或提升句柄', () {
+    final stack = PopupStack();
     final a = Object();
     final b = Object();
-    ElPopupStack.register(a);
-    ElPopupStack.register(b);
-    ElPopupStack.register(a);
-    expect(ElPopupStack.isTopmost(b), isTrue);
-    ElPopupStack.unregister(b);
-    expect(ElPopupStack.isTopmost(a), isTrue);
-    ElPopupStack.unregister(a);
-    expect(ElPopupStack.isTopmost(a), isFalse);
+    stack.register(a);
+    stack.register(b);
+    stack.register(a);
+    expect(stack.isTopmost(b), isTrue);
+    stack.unregister(b);
+    expect(stack.isTopmost(a), isTrue);
+    stack.unregister(a);
+    expect(stack.isTopmost(a), isFalse);
   });
 }

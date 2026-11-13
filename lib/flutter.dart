@@ -60,6 +60,8 @@ export 'src/flutter/widgets/stack/index.dart'
     show ElStack, ElStackItem, ElPositioned, ElStackParentData, RenderStackView;
 
 // 弹层、锚点与上下文菜单
+export 'src/flutter/widgets/popup/back.dart' show ElPopupBackObserver, ElPopupBackScope;
+export 'src/flutter/widgets/popup/host.dart' show ElPopupHost;
 export 'src/flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 export 'src/flutter/widgets/popup/modal.dart' show ElFeedbackExt;
 export 'src/flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry, ElPlacement;

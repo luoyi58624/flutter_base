@@ -1,5 +1,15 @@
 # Popup / Portal
 
+## 窗口弹层宿主
+
+`ElPopupHost` 可以安装在 `MaterialApp.builder`，每个 FlutterView 各有自己的 Overlay。独立面板的 State 和关闭结果随宿主存活。应用在窗口的宿主子树内取 context，调用 `ElPopupHost.handleBack(context)` 可处理一次返回。
+
+接物理返回时，应用在创建 `WidgetsApp` 或 `Router` 前登记 `ElPopupBackObserver`，按视图 ID 提供仍挂载的宿主子树 context。需要处理 Android 预测性返回时，在参与回退的页面内安装 `ElPopupBackScope`，并通过观察者合并应用的 `onNavigationNotification` 和弹层状态。窗口卸载时用 `detachView` 清理，应用卸载时注销并释放观察者。
+
+`el.toast(context, ...)` 默认挂在当前窗口由该 context 找到的根 Overlay。轻提示保持指针穿透，也放行物理返回。
+
+## 锚定弹层
+
 锚定弹层，祖先需有官方 Overlay（通常由 MaterialApp / Navigator 提供）。导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
 
 ## 控制器开闭
@@ -59,7 +69,7 @@ ElPortal.geometryOf(context) 在面板子树读最终 placement、anchorRect、o
 | --- | --- |
 | rootOverlay | 默认 false，选择最近 Overlay；true 使用根 Overlay |
 | closeOnOutsideTap / consumeOutsideTap | 默认 true / false，外部点击可关闭但默认不吞掉该点击 |
-| closeOnEscape / closeOnBack | 默认 true / false |
+| closeOnEscape / closeOnBack | 默认 true / false。安装宿主后由应用返回桥处理，独立使用时沿用页面局部历史 |
 | hideWhenUnlinked / closeWhenUnlinked | 锚点失联时隐藏呈现或关闭状态，默认均 false |
 | captureFocus / restoreFocus | 默认均 false；需要面板捕获并恢复焦点时显式开启 |
 | exitDuration | 默认零；声明退场保活时长，需与视觉退场时长匹配 |

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
@@ -11,6 +10,7 @@ import '../../components/popup/index.dart';
 import '../../components/tokens.dart';
 import '../../views/view/render/render_view.dart' show ElRenderView;
 import '../../views/view/style/style.dart';
+import 'notice.dart';
 
 part 'modal_drag.dart';
 
@@ -68,84 +68,29 @@ extension ElFeedbackExt on El {
     true,
   );
 
-  /// 显示不阻断触摸的短提示，移除后完成 Future。
+  /// 在调用窗口的根 Overlay 显示短提示，移除后完成 Future。
   Future<void> toast(
     BuildContext context,
     Object message, {
     Object? icon,
     Duration duration = const Duration(milliseconds: 2200),
     ElStyle? style,
-  }) {
-    final overlay = Overlay.of(context);
-    final themes = InheritedTheme.capture(from: context, to: overlay.context);
-    final complete = Completer<void>();
-    late OverlayEntry entry;
-    entry = OverlayEntry(
-      builder: (_) => _ToastLifetime(
-        duration: duration,
-        onElapsed: () {
-          entry.remove();
-          entry.dispose();
-        },
-        onDisposed: () {
-          if (!complete.isCompleted) complete.complete();
-        },
-        child: Positioned.fill(
-          child: IgnorePointer(
-            child: SafeArea(
-              child: Align(
-                alignment: const Alignment(0, .65),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: themes.wrap(
-                    Semantics(
-                      liveRegion: true,
-                      child: ElToast(child: message, icon: icon, style: style),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+  }) => showPopupNotice(
+    context,
+    duration: duration,
+    child: SafeArea(
+      child: Align(
+        alignment: const Alignment(0, .65),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Semantics(
+            liveRegion: true,
+            child: ElToast(child: message, icon: icon, style: style),
           ),
         ),
       ),
-    );
-    overlay.insert(entry);
-    return complete.future;
-  }
-}
-
-class _ToastLifetime extends StatefulWidget {
-  const _ToastLifetime({
-    required this.duration,
-    required this.onElapsed,
-    required this.onDisposed,
-    required this.child,
-  });
-  final Duration duration;
-  final VoidCallback onElapsed, onDisposed;
-  final Widget child;
-  @override
-  State<_ToastLifetime> createState() => _ToastLifetimeState();
-}
-
-class _ToastLifetimeState extends State<_ToastLifetime> {
-  late final Timer _timer = Timer(widget.duration, widget.onElapsed);
-  @override
-  void initState() {
-    super.initState();
-    _timer;
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    widget.onDisposed();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
+    ),
+  );
 }
 
 const _modalDuration = Duration(milliseconds: 250);
