@@ -41,6 +41,9 @@ final _pages = <(String, String, int)>[
   ('message', 'feedback/message', 2),
   ('dialog', 'feedback/dialog', 4),
   ('drawer', 'feedback/drawer', 2),
+  ('tooltip', 'feedback/tooltip', 2),
+  ('popover', 'feedback/popover', 3),
+  ('popup-menu', 'feedback/popup_menu', 4),
 ];
 
 void main() {

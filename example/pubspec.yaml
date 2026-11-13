@@ -77,6 +77,9 @@ flutter:
     - lib/src/pages/components/feedback/message/examples/
     - lib/src/pages/components/feedback/dialog/examples/
     - lib/src/pages/components/feedback/drawer/examples/
+    - lib/src/pages/components/feedback/tooltip/examples/
+    - lib/src/pages/components/feedback/popover/examples/
+    - lib/src/pages/components/feedback/popup_menu/examples/
     - lib/src/pages/components/view/selection/examples/
     - lib/src/pages/components/event/basic/examples/
     - lib/src/pages/components/event/propagation/examples/

@@ -43,6 +43,9 @@ import 'feedback/loading/index.dart';
 import 'feedback/toast/index.dart';
 import 'feedback/message/index.dart';
 import 'feedback/dialog/index.dart';
+import 'feedback/popover/index.dart';
+import 'feedback/popup_menu/index.dart';
+import 'feedback/tooltip/index.dart';
 import 'feedback/drawer/index.dart';
 import 'list/list_tile/index.dart';
 import 'start/quick_start/index.dart';
@@ -171,6 +174,9 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
       _page('message', 'Message 消息', builder: (_) => MessagePage()),
       _page('dialog', 'Dialog 对话框', builder: (_) => DialogPage()),
       _page('drawer', 'Drawer 抽屉', builder: (_) => DrawerPage()),
+      _page('tooltip', 'Tooltip 文字提示', builder: (_) => TooltipPage()),
+      _page('popover', 'Popover 弹出框', builder: (_) => PopoverPage()),
+      _page('popup-menu', 'PopupMenu 弹出菜单', builder: (_) => PopupMenuPage()),
     ],
   ),
   ElMenuModel(

@@ -53,6 +53,8 @@ extension ElComponentsExt on ElComponents {
     Object? messageStack = $absent,
     Object? appBar = $absent,
     Object? tooltip = $absent,
+    Object? popover = $absent,
+    Object? popupMenu = $absent,
   }) {
     return ElComponents(
       style: identical(style, $absent)
@@ -202,6 +204,12 @@ extension ElComponentsExt on ElComponents {
       tooltip: identical(tooltip, $absent)
           ? this.tooltip
           : tooltip as Widget Function(BuildContext, ElTooltip)?,
+      popover: identical(popover, $absent)
+          ? this.popover
+          : popover as Widget Function(BuildContext, ElPopover)?,
+      popupMenu: identical(popupMenu, $absent)
+          ? this.popupMenu
+          : popupMenu as Widget Function(BuildContext, ElPopupMenu)?,
     );
   }
 
@@ -253,6 +261,8 @@ extension ElComponentsExt on ElComponents {
       messageStack: other.messageStack ?? messageStack,
       appBar: other.appBar ?? appBar,
       tooltip: other.tooltip ?? tooltip,
+      popover: other.popover ?? popover,
+      popupMenu: other.popupMenu ?? popupMenu,
     );
   }
 
@@ -302,5 +312,7 @@ extension ElComponentsExt on ElComponents {
     messageStack,
     appBar,
     tooltip,
+    popover,
+    popupMenu,
   ];
 }

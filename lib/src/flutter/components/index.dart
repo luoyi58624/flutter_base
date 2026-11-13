@@ -10,6 +10,8 @@ import '../widgets/form/index.dart';
 import 'alert/index.dart';
 import 'app_bar/index.dart';
 import 'tooltip/index.dart';
+import 'popover/index.dart';
+import 'popup_menu/index.dart';
 import 'autocomplete/index.dart';
 import 'avatar/index.dart';
 import 'button/index.dart';
@@ -74,6 +76,8 @@ export 'tabs/index.dart';
 export 'alert/index.dart';
 export 'app_bar/index.dart';
 export 'tooltip/index.dart';
+export 'popover/index.dart';
+export 'popup_menu/index.dart';
 export 'picker/index.dart';
 export 'dialog/index.dart';
 export 'drawer/index.dart';
@@ -133,6 +137,8 @@ class ElComponents with Equatable {
     this.messageStack,
     this.appBar,
     this.tooltip,
+    this.popover,
+    this.popupMenu,
   });
 
   /// 与组件预设绑定的样式和变量。
@@ -269,6 +275,12 @@ class ElComponents with Equatable {
 
   /// 根据 ElTooltip 声明构建锚定提示。
   final Widget Function(BuildContext context, ElTooltip component)? tooltip;
+
+  /// 根据 ElPopover 声明构建锚定卡片，含触发、箭头与进退场。
+  final Widget Function(BuildContext context, ElPopover component)? popover;
+
+  /// 根据 ElPopupMenu 声明构建锚定菜单与多级子菜单。
+  final Widget Function(BuildContext context, ElPopupMenu component)? popupMenu;
 
   /// 相等性与 hashCode 依据全部注入点。
   @override

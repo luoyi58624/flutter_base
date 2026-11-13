@@ -1,7 +1,5 @@
 # ElTooltip
 
-> 接口评审草案。构造沿用现有声明，以下交互约定由两端共用。
-
 ## 构造
 
 | 参数 | 类型与默认值 | 用途 |
@@ -29,10 +27,10 @@ ElTooltip(
 );
 ```
 
-显示由悬停、点击或长按触发，使用触发目标挂载处的 context 和最近的 Overlay。移动到提示内容上时保留提示。目标卸载、滚出可见区或点击面板外部时关闭。空间不足时按实际翻转方向定位箭头。触发事件的 `preventDefault()` 可以阻止默认显示。
+桌面端悬停 `waitDuration` 后淡入，指针移到提示上保持打开，离开目标与提示 100 毫秒后淡出；触摸点击切换。移动端点击切换、长按打开，打开后 `showDuration` 自动关闭，目标所在列表滚动时关闭，不响应鼠标悬停。
 
-打开提示时保留当前焦点，物理返回放行。
+定位由 [ElPopup](../../widgets/popup/popup.dart) 承担：滚动和窗口变化时同帧跟随目标，首选侧放不下时翻到对侧，交叉轴越界时起止对调，最后钳进视口安全区；箭头按实际方位指向目标中心。目标滚出可见区时暂时隐藏，点击外部关闭。触发事件的 `preventDefault()` 可以阻止默认显示。字符串内容同时写入目标的 tooltip 语义。
 
 ## 当前实现
 
-移动端通过 ElPortal 锚定提示。Material 实现使用 Flutter Tooltip。 [当前组件声明](index.dart) · [Material 实现](../../../ui/material/index.dart)
+[桌面](../../../ui/desktop/components/tooltip/index.dart) · [移动](../../../ui/mobile/components/tooltip/index.dart) · [Material](../../../ui/material/index.dart)

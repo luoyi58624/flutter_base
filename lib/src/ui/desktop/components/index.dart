@@ -18,11 +18,14 @@ import 'input_otp/index.dart';
 import 'input_tag/index.dart';
 import 'mention/index.dart';
 import 'message/index.dart';
+import 'popover/index.dart';
+import 'popup_menu/index.dart';
 import 'radio/index.dart';
 import 'select/index.dart';
 import 'switch/index.dart';
 import 'table/index.dart';
 import 'tag/index.dart';
+import 'tooltip/index.dart';
 
 part 'tokens.dart';
 
@@ -59,6 +62,9 @@ final _components = ElComponentsExt(materialComponents()).merge(
     dialog: dialogBuilder,
     drawer: drawerBuilder,
     messageStack: messageStackBuilder,
+    tooltip: tooltipBuilder,
+    popover: popoverBuilder,
+    popupMenu: popupMenuBuilder,
     formItem: (context, component) => ElFormItemView(
       component: component,
       labelStyle: ElStyle(color: context.elTheme.textRegular, iconColor: context.elTheme.textRegular),

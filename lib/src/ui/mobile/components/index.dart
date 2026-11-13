@@ -34,6 +34,8 @@ import 'popup/index.dart';
 import 'message/index.dart';
 import 'app_bar/index.dart';
 import 'tooltip/index.dart';
+import 'popover/index.dart';
+import 'popup_menu/index.dart';
 
 part 'tokens.dart';
 
@@ -89,5 +91,7 @@ final _components = ElComponentsExt(materialComponents(mobile: true)).merge(
     messageStack: messageStackBuilder,
     appBar: appBarBuilder,
     tooltip: tooltipBuilder,
+    popover: popoverBuilder,
+    popupMenu: popupMenuBuilder,
   ),
 );

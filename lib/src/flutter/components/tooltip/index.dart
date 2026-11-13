@@ -7,7 +7,7 @@ import '../index.dart';
 
 /// 悬停、点击或长按触发的锚定提示，内容可包含可交互 Widget。
 class ElTooltip extends StatelessWidget {
-  /// 提示复用 ElPortal 的定位、外点关闭和主题作用域。
+  /// 定位、翻转与外部点击关闭由 ElPopup 承担，触发方式与外观由品牌决定。
   const ElTooltip({
     super.key,
     required this.content,

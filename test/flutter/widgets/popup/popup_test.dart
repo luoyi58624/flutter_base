@@ -597,5 +597,33 @@ void main() {
       await tester.pump();
       expect(find.byKey(ValueKey('item-a')), findsNothing);
     });
+
+    testWidgets('关闭的弹层不截住 Esc：焦点在其目标内时 Esc 交给外层', (tester) async {
+      final inner = FocusNode();
+      addTearDown(inner.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: .topLeft,
+              child: ElPopup(
+                builder: (context) => ElPopup(
+                  builder: (context) => _box('tip', Size(60, 30)),
+                  child: Focus(focusNode: inner, child: _box('inner', Size(100, 30))),
+                ),
+                child: _box('trigger', Size(80, 30)),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(_trigger);
+      await tester.pump();
+      inner.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(find.byKey(ValueKey('inner')), findsNothing);
+    });
   });
 }

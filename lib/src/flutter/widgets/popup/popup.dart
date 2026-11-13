@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
@@ -297,6 +296,10 @@ class _ElPopupState extends State<ElPopup> {
     return !visible.overlaps(anchor.inflate(.5));
   }
 
+  // 快捷键只取最近一层 DismissIntent 动作，未启用也会截住 Esc；关闭时不登记，让 Esc 继续交给外层弹层或路由。
+  Map<Type, Action<Intent>> get _dismiss =>
+      _open && widget.closeOnEscape ? {DismissIntent: _DismissAction(this)} : const {};
+
   Widget _buildOverlay(BuildContext context, OverlayChildLayoutInfo info) {
     final transform = info.childPaintTransform;
     final anchorRect = MatrixUtils.transformRect(transform, Offset.zero & info.childSize);
@@ -324,7 +327,7 @@ class _ElPopupState extends State<ElPopup> {
         child: _PopupScope(
           state: this,
           child: Actions(
-            actions: {DismissIntent: _DismissAction(this)},
+            actions: _dismiss,
             child: TapRegion(
               groupId: _group,
               consumeOutsideTaps: widget.consumeOutsideTap,
@@ -390,7 +393,7 @@ class _ElPopupState extends State<ElPopup> {
       overlayLocation: widget.rootOverlay ? .rootOverlay : .nearestOverlay,
       overlayChildBuilder: _buildOverlay,
       child: Actions(
-        actions: {DismissIntent: _DismissAction(this)},
+        actions: _dismiss,
         child: TapRegion(groupId: _group, child: trigger),
       ),
     );
