@@ -14,6 +14,7 @@ const _menuWidth = 42.0;
 const _compactSearchWidth = 40.0;
 const _fadeWidth = 19.0;
 const _endInset = 4.0;
+const _indicatorWidth = 22.0;
 
 /// 仿 B 站首页的搜索栏、状态栏背景和频道栏。
 class BibiHeader extends StatelessWidget {
@@ -278,7 +279,6 @@ class _ChannelRailState extends State<BibiChannelBar> {
       final progress = widget.progress;
       final actionWidth = _menuWidth + _compactSearchWidth * progress;
       final tabWidth = _tabWidth(constraints.maxWidth);
-      final direction = Directionality.of(context);
       return Material(
         color: Colors.white,
         child: Stack(
@@ -295,47 +295,58 @@ class _ChannelRailState extends State<BibiChannelBar> {
                 scrollDirection: Axis.horizontal,
                 controller: _scroll,
                 physics: ClampingScrollPhysics(),
-                child: Stack(
-                  children: [
-                    Row(
+                child: ListenableBuilder(
+                  listenable: widget.pager,
+                  builder: (context, _) {
+                    final page = widget.pager.position.clamp(0.0, math.max(0, widget.channels.length - 1)).toDouble();
+                    return Stack(
                       children: [
-                        for (var index = 0; index < widget.channels.length; index++)
-                          SizedBox(
-                            key: ValueKey('bibi-channel-$index'),
-                            width: tabWidth,
-                            height: _channelHeight,
-                            child: Semantics(
-                              button: true,
-                              selected: _selected == index,
-                              child: InkWell(
-                                onTap: () => _select(index),
-                                child: Center(
-                                  child: Text(
-                                    widget.channels[index],
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: _selected == index ? _pink : _ink,
+                        Row(
+                          children: [
+                            for (var index = 0; index < widget.channels.length; index++)
+                              SizedBox(
+                                key: ValueKey('bibi-channel-$index'),
+                                width: tabWidth,
+                                height: _channelHeight,
+                                child: Semantics(
+                                  button: true,
+                                  selected: _selected == index,
+                                  child: InkWell(
+                                    onTap: () => _select(index),
+                                    child: Center(
+                                      child: Text(
+                                        widget.channels[index],
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color.lerp(_pink, _ink, (page - index).abs().clamp(0.0, 1.0)),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
+                            SizedBox(width: _endInset),
+                          ],
+                        ),
+                        if (widget.channels.isNotEmpty)
+                          PositionedDirectional(
+                            start: (page + .5) * tabWidth - _indicatorWidth / 2,
+                            bottom: 3,
+                            width: _indicatorWidth,
+                            height: 3,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                key: ValueKey('bibi-channel-indicator'),
+                                decoration: BoxDecoration(color: _pink, borderRadius: BorderRadius.circular(2)),
+                              ),
                             ),
                           ),
-                        SizedBox(width: _endInset),
                       ],
-                    ),
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: CustomPaint(
-                          key: ValueKey('bibi-channel-indicator'),
-                          painter: _ChannelIndicator(widget.pager, tabWidth, direction),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -420,27 +431,6 @@ class _ChannelRailState extends State<BibiChannelBar> {
       );
     },
   );
-}
-
-class _ChannelIndicator extends CustomPainter {
-  _ChannelIndicator(this.pager, this.tabWidth, this.direction) : super(repaint: pager);
-
-  final ElTabController pager;
-  final double tabWidth;
-  final TextDirection direction;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (pager.length == 0) return;
-    final leading = (pager.position.clamp(0.0, pager.length - 1.0) + .5) * tabWidth;
-    final center = direction == TextDirection.ltr ? leading : size.width - leading;
-    final rect = Rect.fromCenter(center: Offset(center, size.height - 4.5), width: 22, height: 3);
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(2)), Paint()..color = _pink);
-  }
-
-  @override
-  bool shouldRepaint(_ChannelIndicator oldDelegate) =>
-      oldDelegate.pager != pager || oldDelegate.tabWidth != tabWidth || oldDelegate.direction != direction;
 }
 
 /// 首页固定在底部的五个入口。

@@ -287,6 +287,62 @@ void main() {
     expect(_tabsY(tester), expanded - 58);
   });
 
+  testWidgets('频道滑块和文字颜色逐帧跟随拖动、回弹与点选', (tester) async {
+    await _open(tester);
+    final pager = _pager(tester);
+    final indicator = _key('bibi-channel-indicator');
+    final first = _key('bibi-channel-0');
+    final next = _key('bibi-channel-1');
+    Color colorAt(int index) => tester
+        .widget<Text>(find.descendant(of: _key('bibi-channel-$index'), matching: find.byType(Text)))
+        .style!
+        .color!;
+    final selected = colorAt(1);
+    final unselected = colorAt(2);
+    var fractionalFrames = 0;
+
+    void expectFrame() {
+      final page = pager.position;
+      final firstCenter = tester.getCenter(first).dx;
+      final step = tester.getCenter(next).dx - firstCenter;
+      expect(tester.getCenter(indicator).dx, closeTo(firstCenter + page * step, 0.01));
+      for (var index = 0; index <= 3; index++) {
+        expect(colorAt(index), Color.lerp(selected, unselected, (page - index).abs().clamp(0.0, 1.0)));
+      }
+      if ((page - page.round()).abs() > .01) fractionalFrames++;
+    }
+
+    final gesture = await tester.startGesture(Offset(300, 540));
+    await gesture.moveBy(Offset(-24, 0));
+    for (var frame = 0; frame < 4; frame++) {
+      await gesture.moveBy(Offset(-18, 0));
+      await tester.pump(Duration(milliseconds: 16));
+      expectFrame();
+    }
+    expect(pager.position, inExclusiveRange(1, 1.5));
+    expect(fractionalFrames, 4);
+    await tester.pump(Duration(milliseconds: 200));
+    await gesture.up(timeStamp: Duration(milliseconds: 300));
+    for (var frame = 0; frame < 18; frame++) {
+      await tester.pump(Duration(milliseconds: 16));
+      expectFrame();
+    }
+    await tester.pumpAndSettle();
+    expect(pager.index, 1);
+    expect(fractionalFrames, greaterThan(4));
+
+    fractionalFrames = 0;
+    await tester.tap(_key('bibi-channel-2'));
+    for (var frame = 0; frame < 18; frame++) {
+      await tester.pump(Duration(milliseconds: 16));
+      expectFrame();
+    }
+    await tester.pumpAndSettle();
+    expect(pager.index, 2);
+    expect(fractionalFrames, greaterThan(1));
+    expectFrame();
+  });
+
   testWidgets('末尾频道仅因频道栏横拖而移动，展开时随菜单边界回位', (tester) async {
     await _open(tester);
     await tester.tap(_key('bibi-menu'));
