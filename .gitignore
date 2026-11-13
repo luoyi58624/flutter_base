@@ -55,6 +55,8 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+# 使用全局 Flutter SDK，不固定项目局部版本。
+.fvmrc
 .tool/
 
 coverage

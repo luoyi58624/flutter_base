@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -25,7 +26,7 @@ abstract class ElSliverMasonry extends Widget {
     double? itemWidth,
     double? minCrossAxisExtent,
     double? maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     bool addRepaintBoundaries,
@@ -41,7 +42,7 @@ abstract class ElSliverMasonry extends Widget {
     double? itemWidth,
     double? minCrossAxisExtent,
     double? maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     ChildIndexGetter? findChildIndexCallback,
@@ -59,7 +60,7 @@ abstract class ElSliverMasonry extends Widget {
     double? itemWidth,
     double? minCrossAxisExtent,
     double? maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     Object? Function(int)? itemType,
@@ -92,10 +93,10 @@ abstract class ElSliverMasonry extends Widget {
   /// 自适应列数时单格交叉轴尺寸的上限：在不超过它的前提下排尽量少的列。
   double? get maxCrossAxisExtent;
 
-  /// 主轴上相邻条目的间距，未指定时取构造参数 gap，再缺省为零。
+  /// 主轴上相邻条目的间距，未指定时取构造参数 spacing，再缺省为零。
   double get mainAxisSpacing;
 
-  /// 相邻列的间距，未指定时取构造参数 gap，再缺省为零。
+  /// 相邻列的间距，未指定时取构造参数 spacing，再缺省为零。
   double get crossAxisSpacing;
 }
 
@@ -128,13 +129,13 @@ class _EagerMasonry extends EagerSliver with _MasonryConfig implements ElSliverM
     this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     super.addRepaintBoundaries,
     super.addSemanticIndexes,
-  }) : mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0;
+  }) : mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0;
 
   @override
   final int? crossAxisCount;
@@ -159,7 +160,7 @@ class _BuilderMasonry extends BuilderSliver with _MasonryConfig implements ElSli
     this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     ChildIndexGetter? findChildIndexCallback,
@@ -167,8 +168,8 @@ class _BuilderMasonry extends BuilderSliver with _MasonryConfig implements ElSli
     this.addRepaintBoundaries = true,
     this.addSemanticIndexes = true,
   }) : assert(itemCount >= 0),
-       mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0,
+       mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0,
        super(
          childCount: itemCount,
          delegate: SliverChildBuilderDelegate(
@@ -210,15 +211,15 @@ class _RecyclerMasonry extends RecyclerSliver with _MasonryConfig implements ElS
     this.itemWidth,
     this.minCrossAxisExtent,
     this.maxCrossAxisExtent,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     super.itemType,
     super.maxRecycledItems,
     super.addRepaintBoundaries,
     super.addSemanticIndexes,
-  }) : mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0;
+  }) : mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0;
 
   @override
   final int? crossAxisCount;

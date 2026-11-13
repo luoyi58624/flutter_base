@@ -47,6 +47,9 @@ abstract class SliverLayout {
   /// 位置是否依赖实测；固定格尺寸的布局无需先测量再定窗口。
   bool get usesEstimates => true;
 
+  /// 单元按索引连续排列，实测只改变后续位置而不会重排单元，可用游标推进窗口。
+  bool get orderedPositions => false;
+
   BoxConstraints childConstraints(SliverConstraints constraints);
 
   double get total;
@@ -68,7 +71,10 @@ abstract class SliverLayout {
   /// 没有真实可见条目时按估值推算锚点；返回 null 表示保持输入像素。
   int? anchorAt(double pixels) => null;
 
-  /// 本轮实际绘制的条目，瀑布流据此固定它们所在的列。
+  /// 开始记录本轮可见条目，布局可据此保存下一轮补测的逐列参考位置。
+  void beginRetain() {}
+
+  /// 本轮实际绘制的条目，布局据此记录下轮补测的参考位置。
   void retain(int index) {}
 }
 

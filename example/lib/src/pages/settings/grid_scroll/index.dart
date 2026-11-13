@@ -76,7 +76,7 @@ class _GridScrollPageState extends State<GridScrollPage> {
             sliver: ElSliverGrid.builder(
               itemCount: _items.length,
               itemWidth: 150,
-              gap: 6,
+              spacing: 6,
               // 格高为宽的 1.2 倍；aspectRatio 是宽/高。固定格尺寸让追加分页不需要测量已有卡片。
               aspectRatio: 1 / 1.2,
               itemBuilder: (context, index) => _Card(data: _items[index]),

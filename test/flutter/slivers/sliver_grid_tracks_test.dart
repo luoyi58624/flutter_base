@@ -1,4 +1,3 @@
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +34,8 @@ class _ProbeState extends State<_Probe> {
   Widget build(BuildContext context) => SizedBox(key: ValueKey(widget.index), height: widget.height);
 }
 
+Widget _spacingItem(int index) => SizedBox(key: ValueKey(index), height: 10);
+
 void main() {
   testWidgets('itemWidth 按可用宽度向下取列数，间距在列数确定后扣除，至少保留一列', (tester) async {
     Widget build(double width) => _host(
@@ -63,14 +64,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('crossAxisCount 与 mainAxisExtent 给出固定格尺寸，gap 同时作用于两个方向', (tester) async {
+  testWidgets('crossAxisCount 与 mainAxisExtent 给出固定格尺寸，spacing 同时作用于两个方向', (tester) async {
     await tester.pumpWidget(
       _host(
         100,
         ElSliverGrid(
           crossAxisCount: 2,
           mainAxisExtent: 10,
-          gap: 4,
+          spacing: 4,
           children: [for (var i = 0; i < 3; i++) SizedBox(key: ValueKey(i))],
         ),
       ),
@@ -79,6 +80,70 @@ void main() {
     expect(tester.getTopLeft(find.byKey(ValueKey(1))), Offset(52, 0));
     expect(tester.getTopLeft(find.byKey(ValueKey(2))), Offset(0, 14));
   });
+
+  final spacingBuilders = <String, Widget Function(double?, double?)>{
+    'Grid.children': (main, cross) => ElSliverGrid(
+      crossAxisCount: 2,
+      mainAxisExtent: 10,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      children: [for (var i = 0; i < 3; i++) _spacingItem(i)],
+    ),
+    'Grid.builder': (main, cross) => ElSliverGrid.builder(
+      itemCount: 3,
+      crossAxisCount: 2,
+      mainAxisExtent: 10,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      itemBuilder: (context, index) => _spacingItem(index),
+    ),
+    'Grid.recycler': (main, cross) => ElSliverGrid.recycler(
+      itemCount: 3,
+      crossAxisCount: 2,
+      mainAxisExtent: 10,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      itemBuilder: (context, index) => _spacingItem(index.value),
+    ),
+    'Masonry.children': (main, cross) => ElSliverMasonry(
+      crossAxisCount: 2,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      children: [for (var i = 0; i < 3; i++) _spacingItem(i)],
+    ),
+    'Masonry.builder': (main, cross) => ElSliverMasonry.builder(
+      itemCount: 3,
+      crossAxisCount: 2,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      itemBuilder: (context, index) => _spacingItem(index),
+    ),
+    'Masonry.recycler': (main, cross) => ElSliverMasonry.recycler(
+      itemCount: 3,
+      crossAxisCount: 2,
+      spacing: 4,
+      mainAxisSpacing: main,
+      crossAxisSpacing: cross,
+      itemBuilder: (context, index) => _spacingItem(index.value),
+    ),
+  };
+  for (final entry in spacingBuilders.entries) {
+    testWidgets('${entry.key} 的 spacing 作用于双轴，显式方向间距优先', (tester) async {
+      for (final (main, cross) in <(double?, double?)>[(null, null), (0, null), (null, 0), (6, 8)]) {
+        await tester.pumpWidget(_host(100, entry.value(main, cross)));
+        final width = (100 - (cross ?? 4)) / 2;
+        expect(tester.getSize(find.byKey(ValueKey(0))), Size(width, 10));
+        expect(tester.getTopLeft(find.byKey(ValueKey(1))), Offset(width + (cross ?? 4), 0));
+        expect(tester.getTopLeft(find.byKey(ValueKey(2))), Offset(0, 10 + (main ?? 4)));
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
 
   testWidgets('minCrossAxisExtent 取尽量多的列，maxCrossAxisExtent 取尽量少的列', (tester) async {
     Widget build({double? min, double? max}) => _host(
@@ -163,7 +228,7 @@ void main() {
         ElSliverGrid.builder(
           itemCount: 6,
           itemWidth: 100,
-          gap: 0,
+          spacing: 0,
           itemBuilder: (context, index) => _Probe(index, built, height: 20.0 + index * 10),
         ),
       ),
@@ -178,7 +243,7 @@ void main() {
         310,
         ElSliverMasonry(
           itemWidth: 150,
-          gap: 10,
+          spacing: 10,
           children: [for (var i = 0; i < 3; i++) SizedBox(key: ValueKey(i), height: 40.0 + i * 20)],
         ),
       ),

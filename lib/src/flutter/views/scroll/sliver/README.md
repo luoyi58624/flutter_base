@@ -55,23 +55,25 @@ ElScrollView.sliver(
 | `mainAxisExtent` | 固定主轴尺寸：纵向为格高，横向为格宽 |
 | `aspectRatio` | 物理宽/高；未指定 `mainAxisExtent` 时由格宽推导格高 |
 
-指定 `mainAxisExtent` 或 `aspectRatio` 后位置是纯算术：不测量条目、不保存逐项数据，远跳和追加分页都不产生滚动范围修正，能确定格尺寸时优先使用。横向滚动的 `itemWidth` 先按 `aspectRatio` 换算成格高，再按可用高度取行数。
+指定 `mainAxisExtent` 或 `aspectRatio` 后位置是纯算术：无需探测前置条目或保存逐项尺寸索引，可见子项仍在固定约束下正常布局。远跳和追加分页不需要通过补测修正几何；提供 `itemType` 时仍会记录类型序列。横向滚动的 `itemWidth` 先按 `aspectRatio` 换算成格高，再按可用高度取行数。
 
-间距使用 `mainAxisSpacing`、`crossAxisSpacing`；`gap` 同时设置两者，单独指定的方向优先。
+`spacing` 同时设置主轴和交叉轴间距，默认 0；`mainAxisSpacing`、`crossAxisSpacing` 单独指定时优先，包括显式传入 0。
 
 ```dart
 ElSliverGrid.builder(
   itemCount: photos.length,
   itemWidth: 150,
   aspectRatio: 1,
-  gap: 6,
+  spacing: 6,
   itemBuilder: (context, index) => Photo(photos[index]),
 );
 ```
 
 ### 瀑布流
 
-列数与间距参数同网格（没有固定格尺寸）。条目放入当前最短列；已显示的条目固定在原来的列，上方内容补测或变化时不左右跳动。远跳只推算前置列的几何，不创建前面的 Widget。
+列数与间距参数同网格（没有固定格尺寸）。向下把新条目放入当前最短列，向上补测时沿各列已有内容向前排布，保持当前可见卡片的列与相对位置。未知区域远跳按尺寸索引定位目标区段，只建立附近的几何和 Widget，不要求业务提供条目高度。
+
+缓存区提前触及顶部不会重排可见内容；实际到达内容起点时，按已测尺寸归齐列头。已测条目自身尺寸变化仍会推移同列后继，宽度或列数变化则重新测量。
 
 ## 自然尺寸与锚点
 

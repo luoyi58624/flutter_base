@@ -34,6 +34,9 @@ abstract class _GridLayout extends SliverLayout {
   int _columns = 1;
   double _cell = 0;
 
+  @override
+  bool get orderedPositions => true;
+
   int get rowCount => (count + _columns - 1) ~/ _columns;
 
   double rowStart(int row);

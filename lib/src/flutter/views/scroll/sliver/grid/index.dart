@@ -27,7 +27,7 @@ abstract class ElSliverGrid extends Widget {
     double? maxCrossAxisExtent,
     double? mainAxisExtent,
     double? aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     bool addRepaintBoundaries,
@@ -45,7 +45,7 @@ abstract class ElSliverGrid extends Widget {
     double? maxCrossAxisExtent,
     double? mainAxisExtent,
     double? aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     ChildIndexGetter? findChildIndexCallback,
@@ -65,7 +65,7 @@ abstract class ElSliverGrid extends Widget {
     double? maxCrossAxisExtent,
     double? mainAxisExtent,
     double? aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     Object? Function(int)? itemType,
@@ -104,10 +104,10 @@ abstract class ElSliverGrid extends Widget {
   /// 格子的物理宽高比，仅未指定 [mainAxisExtent] 时用于推导主轴尺寸；两者都省略时按内容自然测量。
   double? get aspectRatio;
 
-  /// 主轴上相邻行的间距，未指定时取构造参数 gap，再缺省为零。
+  /// 主轴上相邻行的间距，未指定时取构造参数 spacing，再缺省为零。
   double get mainAxisSpacing;
 
-  /// 相邻列的间距，未指定时取构造参数 gap，再缺省为零。
+  /// 相邻列的间距，未指定时取构造参数 spacing，再缺省为零。
   double get crossAxisSpacing;
 }
 
@@ -146,13 +146,13 @@ class _EagerGrid extends EagerSliver with _GridConfig implements ElSliverGrid {
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
     this.aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     super.addRepaintBoundaries,
     super.addSemanticIndexes,
-  }) : mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0;
+  }) : mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0;
 
   @override
   final int? crossAxisCount;
@@ -183,7 +183,7 @@ class _BuilderGrid extends BuilderSliver with _GridConfig implements ElSliverGri
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
     this.aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     ChildIndexGetter? findChildIndexCallback,
@@ -191,8 +191,8 @@ class _BuilderGrid extends BuilderSliver with _GridConfig implements ElSliverGri
     this.addRepaintBoundaries = true,
     this.addSemanticIndexes = true,
   }) : assert(itemCount >= 0),
-       mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0,
+       mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0,
        super(
          childCount: itemCount,
          delegate: SliverChildBuilderDelegate(
@@ -240,15 +240,15 @@ class _RecyclerGrid extends RecyclerSliver with _GridConfig implements ElSliverG
     this.maxCrossAxisExtent,
     this.mainAxisExtent,
     this.aspectRatio,
-    double? gap,
+    double? spacing,
     double? mainAxisSpacing,
     double? crossAxisSpacing,
     super.itemType,
     super.maxRecycledItems,
     super.addRepaintBoundaries,
     super.addSemanticIndexes,
-  }) : mainAxisSpacing = mainAxisSpacing ?? gap ?? 0,
-       crossAxisSpacing = crossAxisSpacing ?? gap ?? 0;
+  }) : mainAxisSpacing = mainAxisSpacing ?? spacing ?? 0,
+       crossAxisSpacing = crossAxisSpacing ?? spacing ?? 0;
 
   @override
   final int? crossAxisCount;

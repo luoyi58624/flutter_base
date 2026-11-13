@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,6 +10,7 @@ class _Fixture {
     this.typeAt,
     this.spacing = 0,
     this.crossSpacing = 0,
+    this.cacheExtent = 0,
     Size? size,
   }) {
     tester.view.devicePixelRatio = 1;
@@ -26,6 +26,7 @@ class _Fixture {
   final Object? Function(int)? typeAt;
   final double spacing;
   final double crossSpacing;
+  final double cacheExtent;
   final controller = ScrollController();
   final builtIndices = <int>{};
   final taps = <int>[];
@@ -57,7 +58,7 @@ class _Fixture {
     key: ValueKey('masonry-stability'),
     controller: controller,
     physics: ClampingScrollPhysics(),
-    scrollCacheExtent: ScrollCacheExtent.pixels(0),
+    scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
     slivers: [sliver],
   );
 
@@ -132,6 +133,92 @@ class _Fixture {
 }
 
 void main() {
+  testWidgets('Masonry 远跳后反向补测上方卡片，两列持续可见内容只按输入位移移动', (tester) async {
+    final heights = [100.0, 160.0, 80.0, 240.0, 120.0, 60.0, 180.0];
+    final fixture = _Fixture(tester, count: 2000, heightAt: (index) => heights[index % heights.length]);
+    await fixture.mount();
+    final initiallyBuilt = fixture.builtIndices.toSet();
+    await fixture.jump(18000);
+    expect(fixture.builtIndices.difference(initiallyBuilt).length, lessThanOrEqualTo(40));
+    fixture.expectFilledViewport();
+
+    var compared = 0;
+    for (var step = 0; step < 24; step++) {
+      final before = fixture.visibleRects();
+      final builtBefore = fixture.builtIndices.toSet();
+      final delta = step.isEven ? -12.0 : -24.0;
+      await fixture.jump(fixture.controller.offset + delta);
+      expect(fixture.builtIndices.difference(builtBefore).length, lessThanOrEqualTo(8));
+      final after = fixture.visibleRects();
+      for (final entry in before.entries) {
+        final expected = entry.value.shift(Offset(0, -delta));
+        if (!expected.overlaps(Offset.zero & fixture.viewport.size)) continue;
+        expect(after, contains(entry.key), reason: '反向第 $step 步，仍在视口内的卡片 ${entry.key} 不能因补测消失。');
+        final actual = after[entry.key]!;
+        expect(actual.left, closeTo(expected.left, .01), reason: '反向第 $step 步，卡片 ${entry.key} 不能换列。');
+        expect(actual.top, closeTo(expected.top, .01), reason: '反向第 $step 步，补测上方卡片不能额外移动另一列的 ${entry.key}。');
+        expect(actual.size, expected.size);
+        compared++;
+      }
+      fixture.expectFilledViewport();
+    }
+    expect(compared, greaterThan(24), reason: '必须比较两列持续可见卡片，不能只检查新进入的条目。');
+    await fixture.unmount();
+  });
+
+  for (final cacheExtent in [0.0, 250.0]) {
+    testWidgets('Masonry cache=$cacheExtent 连续回到起点，缓存先触顶不能让可见列提前错位', (tester) async {
+      // 首个样本偏高，远跳后向上实测会在正滚动坐标处接到真实前缀，覆盖列头收敛分支。
+      final heights = [240.0, 64.0, 96.0, 128.0, 88.0, 56.0, 112.0];
+      final fixture = _Fixture(
+        tester,
+        count: 200,
+        cacheExtent: cacheExtent,
+        heightAt: (index) => heights[index % heights.length],
+      );
+      await fixture.mount();
+      final initiallyBuilt = fixture.builtIndices.toSet();
+      await fixture.jump(1200);
+      expect(fixture.builtIndices.difference(initiallyBuilt).length, lessThanOrEqualTo(40));
+      fixture.expectFilledViewport();
+
+      var comparedAwayFromHead = 0;
+      for (var step = 0; step < 72 && fixture.controller.offset > .01; step++) {
+        final before = fixture.visibleRects();
+        final builtBefore = fixture.builtIndices.toSet();
+        await fixture.jump((fixture.controller.offset - 32).clamp(0.0, double.infinity));
+        expect(fixture.builtIndices.difference(builtBefore).length, lessThanOrEqualTo(16));
+        final after = fixture.visibleRects();
+        // 到真实列头允许一次共同坐标收敛；仅缓存触头时仍必须保住可见片段。
+        if (before.keys.every((index) => index >= 2) && after.keys.every((index) => index >= 2)) {
+          final common = before.keys.where(after.containsKey).toList();
+          expect(common, isNotEmpty);
+          final reference = common.first;
+          for (final index in common) {
+            expect(after[index]!.left, closeTo(before[index]!.left, .01), reason: '缓存触顶不能让可见卡片 $index 换列。');
+            expect(
+              after[index]!.top - after[reference]!.top,
+              closeTo(before[index]!.top - before[reference]!.top, .01),
+              reason: '仍在真实列头之外时，可见卡片 $index 不能相对另一列额外位移。',
+            );
+            comparedAwayFromHead++;
+          }
+        }
+        fixture.expectFilledViewport();
+        expect(fixture.controller.position.maxScrollExtent.isFinite, isTrue);
+        expect(fixture.controller.position.maxScrollExtent, greaterThanOrEqualTo(0));
+      }
+      expect(comparedAwayFromHead, greaterThan(4));
+      expect(fixture.controller.offset, closeTo(0, .01), reason: '自然尺寸列头必须在有限次连续滚动内可达。');
+      final first = fixture.visibleRects();
+      expect(first.keys, containsAll([0, 1]));
+      expect(first[0]!.top, closeTo(0, .01));
+      expect(first[1]!.top, closeTo(0, .01));
+      fixture.expectFilledViewport();
+      await fixture.unmount();
+    });
+  }
+
   testWidgets('Masonry 同一视口扩展首次测得新类型时保持两列已显示卡片的位置', (tester) async {
     bool lateType(int index) => (index >= 10 && index <= 18) || (index >= 100 && index <= 108);
     final fixture = _Fixture(
@@ -158,9 +245,7 @@ void main() {
     tester.view.physicalSize = Size(320, 1400);
     await fixture.settle();
     expect(
-      tester.widget<Widget>(
-        find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
-      ),
+      tester.widget<Widget>(find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry)),
       same(originalSliver),
     );
     expect(fixture.builtIndices.contains(100), isTrue);

@@ -38,6 +38,7 @@ class RenderNaturalSliver extends RenderSliver
   List<int> _window = const [];
   bool _contentDirty = true;
   bool _unmeasured = true;
+  AxisDirection? _mountedCrossAxisDirection;
   int _typesGeneration = -1;
   int _semanticsGeneration = -1;
   SliverIndexChannel? _channel;
@@ -196,7 +197,14 @@ class RenderNaturalSliver extends RenderSliver
       }
       _contentDirty = false;
       _unmeasured = false;
+    } else if (_mountedCrossAxisDirection != constraints.crossAxisDirection) {
+      // 方向不改变尺寸；常驻离屏项也要更新物理坐标，供 ensureVisible 与语义变换使用。
+      for (var index = 0; index < source.childCount; index++) {
+        final child = source.childAt(index)!;
+        (child.parentData! as NaturalSliverParentData).crossAxisOffset = layout.crossOf(index, child.size, constraints);
+      }
     }
+    _mountedCrossAxisDirection = constraints.crossAxisDirection;
     final start = math.max(0.0, constraints.scrollOffset + constraints.cacheOrigin);
     _setWindow(
       constraints.remainingCacheExtent > 0
@@ -273,24 +281,52 @@ class RenderNaturalSliver extends RenderSliver
 
     var window = const <int>[];
     if (constraints.remainingCacheExtent > 0) {
-      // 每轮按最新几何重取候选；任一实测改变位置就重新取窗口，
-      // 过期估值不会积累成窗口外的构建。
-      while (true) {
-        final start = math.max(0.0, pixels + constraints.cacheOrigin);
-        if (start >= layout.total && layout.total > 0) break;
-        final candidates = layout.indicesIn(start, start + constraints.remainingCacheExtent);
-        source.prepareWindow(candidates);
-        var changed = false;
-        for (final index in candidates) {
-          if (visited.contains(index) && source.childAt(index) != null) continue;
-          if (measureUnit(index)) {
-            changed = true;
-            break;
+      double cacheStart() => math.max(0.0, pixels + constraints.cacheOrigin);
+      double cacheEnd() => cacheStart() + constraints.remainingCacheExtent;
+
+      if (layout.orderedPositions) {
+        final start = cacheStart();
+        if (start < layout.total || layout.total == 0) {
+          final candidates = layout.indicesIn(start, cacheEnd());
+          source.prepareWindow(candidates);
+          if (candidates.isNotEmpty) {
+            var first = layout.unitOf(candidates.first).$1;
+            var next = first;
+            // 连续单元只推进一次；尺寸变化时检查新边界，不重新分配和扫描已测前缀。
+            while (true) {
+              if (first > 0 && layout.startOf(first) > cacheStart() + precisionErrorTolerance) {
+                first = layout.unitOf(first - 1).$1;
+                measureUnit(first);
+                continue;
+              }
+              if (next >= count || (next > first && layout.startOf(next) >= cacheEnd() - precisionErrorTolerance)) {
+                break;
+              }
+              if (!visited.contains(next) || source.childAt(next) == null) measureUnit(next);
+              next = layout.unitOf(next).$2;
+            }
+            window = layout.indicesIn(cacheStart(), cacheEnd());
           }
         }
-        if (!changed) {
-          window = candidates;
-          break;
+      } else {
+        // 瀑布流的候选不连续，实测后必须重新按各列查询，避免构建已被推到窗口外的条目。
+        while (true) {
+          final start = cacheStart();
+          if (start >= layout.total && layout.total > 0) break;
+          final candidates = layout.indicesIn(start, cacheEnd());
+          source.prepareWindow(candidates);
+          var changed = false;
+          for (final index in candidates) {
+            if (visited.contains(index) && source.childAt(index) != null) continue;
+            if (measureUnit(index)) {
+              changed = true;
+              break;
+            }
+          }
+          if (!changed) {
+            window = candidates;
+            break;
+          }
         }
       }
     }
@@ -339,6 +375,7 @@ class RenderNaturalSliver extends RenderSliver
       maxPaintExtent: total,
       hasVisualOverflow: constraints.scrollOffset > 0 || total > constraints.remainingPaintExtent,
     );
+    _layout.beginRetain();
     for (final index in _window) {
       final child = source.childAt(index)!;
       final painted = paintsChild(child);

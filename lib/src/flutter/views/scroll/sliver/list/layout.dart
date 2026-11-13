@@ -26,6 +26,9 @@ class _ListLayout extends SliverLayout {
   late ExtentIndex _extents;
 
   @override
+  bool get orderedPositions => true;
+
+  @override
   void rebuild(int count, List<Object?> types, SliverConstraints constraints) =>
       _extents = ExtentIndex(extentGroups(count, types));
 

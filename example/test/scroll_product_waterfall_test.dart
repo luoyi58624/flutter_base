@@ -1,5 +1,6 @@
 import 'package:example/src/pages/examples/scroll_examples/product_waterfall.dart';
 import 'package:flutter/cupertino.dart' show CupertinoScrollbar;
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,6 +48,32 @@ Future<void> _dragThumb(WidgetTester tester) async {
   await tester.pump(Duration(milliseconds: 16));
   await gesture.up();
   await tester.pump(Duration(milliseconds: 16));
+}
+
+Map<String, Rect> _visibleCards(WidgetTester tester) {
+  final viewport = tester.getRect(find.byType(CupertinoScrollbar));
+  final cards = <String, Rect>{};
+  for (final element in find.textContaining(RegExp(r' #\d{4}$')).evaluate()) {
+    final panel = find.ancestor(
+      of: find.byElementPredicate((candidate) => identical(candidate, element)),
+      matching: find.byType(ExamplePanel),
+    );
+    if (panel.evaluate().isEmpty) continue;
+    final rect = tester.getRect(panel);
+    if (rect.overlaps(viewport)) cards[(element.widget as Text).data!] = rect;
+  }
+  return cards;
+}
+
+void _expectCardSpacing(Map<String, Rect> cards) {
+  final lanes = cards.values.map((rect) => rect.left).toSet();
+  expect(lanes.length, 2);
+  for (final left in lanes) {
+    final lane = cards.values.where((rect) => rect.left == left).toList()..sort((a, b) => a.top.compareTo(b.top));
+    for (var index = 1; index < lane.length; index++) {
+      expect(lane[index].top, closeTo(lane[index - 1].bottom + 10, .01), reason: '同列卡片之间保持业务定义的 10 像素间距。');
+    }
+  }
 }
 
 Finder _tile(Element element) =>
@@ -159,7 +186,39 @@ void main() {
   });
 
   for (final flutter in [false, true]) {
-    final mode = flutter ? 'Flutter SliverGrid' : 'RecyclerView';
+    final mode = flutter ? 'Flutter SliverGrid' : 'ElSliverMasonry.recycler';
+
+    testWidgets('$mode 拖动滚动条后继续反向滚轮，两列卡片不跳动或错位', (tester) async {
+      await _open(tester);
+      if (flutter) await _chooseFlutter(tester);
+      await _dragThumb(tester);
+      await tester.pumpAndSettle();
+      expect(_position(tester).pixels, greaterThan(2000));
+      final viewport = tester.getRect(find.byType(CupertinoScrollbar));
+      var compared = 0;
+      // 反向移动超过缓存区，触发远跳前尚未实测的卡片进入窗口。
+      for (var step = 0; step < 24; step++) {
+        final before = _visibleCards(tester);
+        _expectCardSpacing(before);
+        final delta = -60.0;
+        await tester.sendEventToBinding(PointerScrollEvent(position: viewport.center, scrollDelta: Offset(0, delta)));
+        await tester.pump();
+        final after = _visibleCards(tester);
+        for (final entry in before.entries) {
+          final expected = entry.value.shift(Offset(0, -delta));
+          if (!expected.overlaps(viewport)) continue;
+          expect(after, contains(entry.key), reason: '第 $step 步仍然可见的商品不能消失。');
+          final actual = after[entry.key]!;
+          expect(actual.left, closeTo(expected.left, .01), reason: '第 $step 步 ${entry.key} 不能换列。');
+          expect(actual.top, closeTo(expected.top, .01), reason: '第 $step 步 ${entry.key} 只能跟随滚轮位移。');
+          expect(actual.size, expected.size);
+          compared++;
+        }
+        _expectCardSpacing(after);
+        expect(tester.takeException(), isNull);
+      }
+      expect(compared, greaterThan(24));
+    });
 
     testWidgets('$mode 在 450ms 后揭晓本地图片实际比例', (tester) async {
       await _open(tester);
