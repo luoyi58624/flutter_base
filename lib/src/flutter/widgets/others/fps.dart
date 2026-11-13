@@ -5,7 +5,6 @@ import 'dart:ui' show FramePhase, FrameTiming;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../utils/util.dart';
 import 'base.dart';
 
 /// 显示当前帧率的小部件。
@@ -14,9 +13,10 @@ import 'base.dart';
 /// 内容，显示位置完全由使用方决定——放进 [Stack] 后用 [Positioned] 自行
 /// 定位即可。
 ///
-/// 基于 [SchedulerBinding.addTimingsCallback] 统计引擎真实产出（build+raster
-/// 完成）的帧数：页面没有动画时不产生帧，帧率显示 0；数值只在变化时刷新，
-/// 监控本身不会像 Ticker 方案那样每个 vsync 请求新帧、把静止页面顶到满帧。
+/// 显示期间使用 [Ticker] 持续请求帧，按实际帧间隔计算每秒 UI 帧率；
+/// 不按显示器上报的刷新率封顶，也不等待引擎批量投递耗时数据。
+/// 数字约每秒更新一次；隐藏、停用 TickerMode 或进入后台时停止采样。
+/// 这里测量 Flutter UI 帧回调频率，不代表 GPU 完成或屏幕实际呈现次数。
 ///
 /// 只做实时仪表盘；要**录制一段时间**并结算掉帧/卡顿报告用 [ElFpsRecorder]。
 class ElFps extends StatelessWidget {
@@ -30,9 +30,7 @@ class ElFps extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: show ? _FpsText(color: color) : ElEmptyWidget.instance,
-    );
+    return IgnorePointer(child: show ? _FpsText(color: color) : ElEmptyWidget.instance);
   }
 }
 
@@ -50,8 +48,7 @@ class ElFpsPainter extends CustomPainter {
   final Color color;
 
   /// 帧率文本样式（字号 20、加粗）
-  TextStyle get textStyle =>
-      TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold);
+  TextStyle get textStyle => TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold);
 
   /// 按当前帧率文本测量的绘制尺寸
   Size get textSize {
@@ -72,8 +69,7 @@ class ElFpsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ElFpsPainter oldDelegate) =>
-      oldDelegate.fps != fps || oldDelegate.color != color;
+  bool shouldRepaint(ElFpsPainter oldDelegate) => oldDelegate.fps != fps || oldDelegate.color != color;
 }
 
 class _FpsText extends StatefulWidget {
@@ -151,89 +147,87 @@ class ElFpsCounter {
   }
 }
 
-class _FpsTextState extends State<_FpsText> {
-  /// 停帧判定：超过该时长无任何帧上报 → 归 0。须大于引擎 FrameTiming
-  /// 攒批投递周期（约 100ms）与断流阈值（300ms），否则会误判闪烁。
-  static const Duration _zeroTimeout = Duration(milliseconds: 700);
+class _FpsTextState extends State<_FpsText> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final Ticker _ticker;
+  int _fps = 0;
+  int? _windowStartUs;
+  int? _lastTimestampUs;
+  int _frameCount = 0;
+  bool _tickerModeEnabled = true;
 
-  final _counter = ElFpsCounter();
-
-  /// 帧率显示值
-  int fps = 0;
-
-  /// 待扣除的「显示自刷新」帧数。刷新帧率文本的 setState 在静止页面上会
-  /// 自己产出一帧，该帧随批次回流进计数器后与流内上一帧间隔小于断流
-  /// 阈值，会被当作真实动画帧 → 算出略低的值 → 又 setState → 又产帧——
-  /// 自激反馈环，表现为静止时数字从高位慢慢衰减。判据：setState 前
-  /// hasScheduledFrame 为 false ⇒ 即将产出的帧纯因本次刷新，标记后在
-  /// 下一批到达时扣除；动画期间恒有帧在调度，setState 只是搭车，不标记。
-  int _pendingSelfFrames = 0;
-
-  Timer? _zeroTimer;
-
-  late final TimingsCallback _onTimings;
-
-  void _setFps(int value) {
-    if (value == fps || !mounted) return;
-    final selfInduced = !SchedulerBinding.instance.hasScheduledFrame;
-    setState(() => fps = value);
-    if (selfInduced) _pendingSelfFrames++;
+  void _onTick(Duration _) {
+    // 使用未经过 timeDilation 缩放的引擎时间；首帧只锚定，不凭平台猜测减一。
+    final timestamp = SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
+    if (_lastTimestampUs != null && timestamp <= _lastTimestampUs!) return;
+    _lastTimestampUs = timestamp;
+    final start = _windowStartUs;
+    if (start == null) {
+      _windowStartUs = timestamp;
+      return;
+    }
+    _frameCount++;
+    final elapsed = timestamp - start;
+    if (elapsed < 1000000) return;
+    // 卡顿可能让窗口超过一秒，必须按实际时长归一化，不能直接把帧数当帧率。
+    final value = (_frameCount * 1000000 / elapsed).round();
+    _windowStartUs = timestamp;
+    _frameCount = 0;
+    if (value != _fps) setState(() => _fps = value);
   }
 
-  void _handleBatch(List<FrameTiming> timings) {
-    final timestamps = <int>[];
-    for (final timing in timings) {
-      if (_pendingSelfFrames > 0) {
-        _pendingSelfFrames--;
-        continue;
-      }
-      timestamps.add(timing.timestampInMicroseconds(FramePhase.vsyncStart));
+  void _syncTicker() {
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    final active = _tickerModeEnabled && (lifecycle == null || lifecycle == AppLifecycleState.resumed);
+    if (active == _ticker.isActive) return;
+    _windowStartUs = null;
+    _lastTimestampUs = null;
+    _frameCount = 0;
+    if (_fps != 0) setState(() => _fps = 0);
+    if (active) {
+      _ticker.start();
+    } else {
+      _ticker.stop();
     }
-    if (timestamps.isEmpty) return;
-    // 真实帧到达即续期归零计时；结算值每跨过整秒边界产出一次
-    _zeroTimer?.cancel();
-    _zeroTimer = Timer(_zeroTimeout, _snapToZero);
-    final rate = _counter.addBatch(timestamps);
-    if (rate == null) return;
-    var value = rate;
-    // 边界帧落位抖动可能让计数略超显示器刷新率，用其封顶。
-    final refreshRate = mounted ? ElFlutterUtil.getFps(context) : null;
-    if (refreshRate != null && refreshRate > 0) {
-      value = min(value, refreshRate.round());
-    }
-    _setFps(value);
-  }
-
-  void _snapToZero() {
-    _counter.reset();
-    _setFps(0);
   }
 
   @override
   void initState() {
     super.initState();
-    _onTimings = _handleBatch;
-    SchedulerBinding.instance.addTimingsCallback(_onTimings);
+    _ticker = createTicker(_onTick);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerModeEnabled = TickerMode.of(context);
+    _syncTicker();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => _syncTicker();
+
+  @override
   void dispose() {
-    SchedulerBinding.instance.removeTimingsCallback(_onTimings);
-    _zeroTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _ticker.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final painter = ElFpsPainter(fps: fps, color: widget.color);
-    return CustomPaint(size: painter.textSize, painter: painter);
+    final painter = ElFpsPainter(fps: _fps, color: widget.color);
+    return RepaintBoundary(
+      child: CustomPaint(size: painter.textSize, painter: painter),
+    );
   }
 }
 
 /// 帧率录制器 —— [ElFps] 家族的「录一段时间、出一份报告」能力。
 ///
 /// [ElFps] 只实时显示当前秒帧率，排查间歇性掉帧需要的是一段时间的完整帧
-/// 流水。本类与 [ElFpsCounter] 同源消费 vsync 时间戳：录制期只追加时间戳
+/// 流水。本类被动订阅引擎 [FrameTiming]，与 [ElFps] 的主动 UI 采样不同；
+/// 使用 [ElFpsCounter] 结算 vsync 时间戳：录制期只追加时间戳
 /// （零聚合成本，不干扰被测帧），[report] 时一次性结算出每秒帧率序列、
 /// 平均帧率、掉帧/卡顿次数与最坏帧间隔。
 ///
@@ -285,25 +279,15 @@ class ElFpsRecorder {
   void reset() => _timestampsUs.clear();
 
   /// 结算当前已录数据的报告；不清空数据，可续录后再出新报告。
-  ElFpsReport report() => ElFpsReport.fromTimestamps(
-    _timestampsUs,
-    expectedRefreshRate: expectedRefreshRate,
-  );
+  ElFpsReport report() => ElFpsReport.fromTimestamps(_timestampsUs, expectedRefreshRate: expectedRefreshRate);
 
   void _onTimings(List<FrameTiming> timings) {
-    addFrames([
-      for (final timing in timings)
-        timing.timestampInMicroseconds(FramePhase.vsyncStart),
-    ]);
+    addFrames([for (final timing in timings) timing.timestampInMicroseconds(FramePhase.vsyncStart)]);
   }
 
   /// 录制 [duration] 时长并直接返回报告（真机一步到位用法）。
-  static Future<ElFpsReport> record(
-    Duration duration, {
-    double? expectedRefreshRate,
-  }) async {
-    final recorder = ElFpsRecorder(expectedRefreshRate: expectedRefreshRate)
-      ..attach();
+  static Future<ElFpsReport> record(Duration duration, {double? expectedRefreshRate}) async {
+    final recorder = ElFpsRecorder(expectedRefreshRate: expectedRefreshRate)..attach();
     await Future<void>.delayed(duration);
     recorder.detach();
     return recorder.report();
@@ -330,10 +314,7 @@ final class ElFpsReport {
   });
 
   /// 从 vsync 时间戳序列（µs，需单调递增）结算报告。
-  factory ElFpsReport.fromTimestamps(
-    List<int> timestampsUs, {
-    double? expectedRefreshRate,
-  }) {
+  factory ElFpsReport.fromTimestamps(List<int> timestampsUs, {double? expectedRefreshRate}) {
     if (timestampsUs.length < 2) {
       return ElFpsReport(
         frameCount: timestampsUs.length,
@@ -346,15 +327,11 @@ final class ElFpsReport {
         worstInterval: Duration.zero,
       );
     }
-    final intervals = <int>[
-      for (var i = 1; i < timestampsUs.length; i++)
-        timestampsUs[i] - timestampsUs[i - 1],
-    ];
+    final intervals = <int>[for (var i = 1; i < timestampsUs.length; i++) timestampsUs[i] - timestampsUs[i - 1]];
     final elapsedUs = timestampsUs.last - timestampsUs.first;
     final sorted = [...intervals]..sort();
     final medianUs = sorted[sorted.length ~/ 2];
-    final refreshRate =
-        expectedRefreshRate ?? (medianUs <= 0 ? 0 : 1e6 / medianUs);
+    final refreshRate = expectedRefreshRate ?? (medianUs <= 0 ? 0 : 1e6 / medianUs);
     final expectedUs = refreshRate <= 0 ? 0.0 : 1e6 / refreshRate;
     var dropped = 0;
     var jank = 0;
