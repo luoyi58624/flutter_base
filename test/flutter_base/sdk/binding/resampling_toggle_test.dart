@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/src/flutter_base/sdk/binding/binding.dart';
+import 'package:flutter_base/src/ui/advanced/sdk/binding/binding.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,6 +1,8 @@
-# 官方主题桥
+# 进阶能力
 
-`material_theme.dart` 沿用旧 el 的 `ElMaterialThemeExt`，将通用主题变量转换为 Flutter Material 的 `ThemeData`，从 `package:flutter_base/flutter_base.dart` 导出，desktop.dart / mobile.dart 也可直接使用。
+## 官方主题桥
+
+[`ElMaterialThemeExt`](utils/material/material_theme.dart) 沿用旧 el 的同名扩展，将通用主题变量转换为 Flutter Material 的 `ThemeData`，从 `package:flutter_base/flutter_base.dart` 导出，desktop.dart / mobile.dart 也可直接使用。
 
 从安装组件预设的 `ElComponentProvider` 或局部 `ElView` 的后代读取。
 
@@ -23,7 +25,7 @@ Builder(
 
 旧字段按当前公共变量对应：textColorXs/Sm/Md/Lg 分别使用 textColor/textRegular/textSecondary/textPlaceholder，borderWidths 的默认档使用 borderWidth，appbarColor 使用 cardColor。特定官方组件需要额外覆写时，可直接对结果调用官方 copyWith。
 
-`material_theme_vars.dart` 复用现有样式解析器、级联通知及 Element 退订机制，处理显式反向明暗的变量和字体读取；不修改正常 getVar 的订阅口径。扩展不自动改变应用的 Theme，example 在 MaterialApp 外通过 ElComponentProvider 安装移动预设，并通过 `theme: context.elMaterialThemeData` 使用。
+[`material_theme_vars.dart`](utils/material/material_theme_vars.dart) 复用现有样式解析器、级联通知及 Element 退订机制，处理显式反向明暗的变量和字体读取；不修改正常 getVar 的订阅口径。扩展不自动改变应用的 Theme，example 在 MaterialApp 外通过 ElComponentProvider 安装移动预设，并通过 `theme: context.elMaterialThemeData` 使用。
 
 ## 命令式路由
 
@@ -36,3 +38,7 @@ context.elRouter.pop('saved');
 ```
 
 `el.router` 操作根导航器，`context.elRouter` 操作最近的导航器。页面便捷方法默认使用应用的 Material 页面过渡。可替换 `ElRouterServiceExt.instance`，传入 `ElRouterService(pageTransitionsBuilder: builder)` 来设置自定义过渡。
+
+## 应用绑定
+
+[`ElWidgetsFlutterBinding`](sdk/binding/binding.dart) 通过 `package:flutter_base/flutter_base.dart` 导出。应用可在插件初始化和 `runApp` 之前调用 `ElWidgetsFlutterBinding.ensureInitialized()`，启用 Android 触摸重采样。

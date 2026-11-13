@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../dart.dart' show El, el;
-import '../../flutter/extensions/index.dart' show ElNavigatorExt;
+import '../../../../dart.dart' show El, el;
+import '../../../flutter/extensions/index.dart' show ElNavigatorExt;
 
 /// 为全局 [El] 实例提供根路由服务。
 extension ElRouterServiceExt on El {

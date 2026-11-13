@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
-import 'package:flutter_base/src/flutter_base/sdk/binding/binding.dart';
-import 'package:flutter_base/src/flutter_base/sdk/binding/resampling.dart';
+import 'package:flutter_base/src/ui/advanced/sdk/binding/binding.dart';
+import 'package:flutter_base/src/ui/advanced/sdk/binding/resampling.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -617,31 +617,24 @@ Widget _shell(Widget child) => Directionality(
 Duration _ms(int milliseconds) => Duration(milliseconds: milliseconds);
 void _architectureTests() {
   test('可选输入模块仅依赖 Flutter SDK 和自身目录', () {
-    final root = Directory('lib/src/flutter_base/sdk/binding').absolute.uri;
+    const bindingDir = 'lib/src/ui/advanced/sdk/binding';
+    final root = Directory(bindingDir).absolute.uri;
     final imports = RegExp(r'''(?:import|export)\s+['"]([^'"]+)['"]''');
-    for (final path in [
-      'lib/src/flutter_base/sdk/binding/binding.dart',
-      'lib/src/flutter_base/sdk/binding/resampling.dart',
-    ]) {
+    for (final path in ['$bindingDir/binding.dart', '$bindingDir/resampling.dart']) {
       final file = File(path);
       for (final match in imports.allMatches(file.readAsStringSync())) {
         final target = match.group(1)!;
-        if (target.startsWith('dart:') ||
-            target.startsWith('package:flutter/')) {
+        if (target.startsWith('dart:') || target.startsWith('package:flutter/')) {
           continue;
         }
-        expect(
-          file.absolute.uri.resolve(target).toString(),
-          startsWith(root.toString()),
-          reason: file.path,
-        );
+        expect(file.absolute.uri.resolve(target).toString(), startsWith(root.toString()), reason: file.path);
       }
     }
   });
 
   test('主入口只导出可选绑定，事件模块不引用输入模块', () {
     final entry = File('lib/flutter_base.dart').readAsStringSync();
-    expect(entry, contains("export 'src/flutter_base/sdk/binding/binding.dart'"));
+    expect(entry, contains("export 'src/ui/advanced/sdk/binding/binding.dart'"));
     expect(entry, isNot(contains('ensureInitialized()')));
     for (final path in ['lib/flutter.dart', 'lib/ui.dart']) {
       expect(File(path).readAsStringSync(), isNot(contains('binding.dart')));
@@ -651,11 +644,7 @@ void _architectureTests() {
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'));
     for (final file in eventFiles) {
-      expect(
-        file.readAsStringSync(),
-        isNot(contains('flutter_base/sdk')),
-        reason: file.path,
-      );
+      expect(file.readAsStringSync(), isNot(contains('ui/advanced/sdk')), reason: file.path);
     }
   });
 }
