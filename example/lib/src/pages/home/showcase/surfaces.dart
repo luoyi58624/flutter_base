@@ -57,8 +57,7 @@ class _Cards extends StatelessWidget {
                 minHeight: 138,
                 padding: .symmetric(horizontal: 16, vertical: 17),
                 borderRadius: .circular(22),
-                boxShadow: t.shadowMd,
-              ),
+              ).withShadow(level: ElLevelType.md.shadow(context)),
               child: Column(
                 crossAxisAlignment: .start,
                 mainAxisSize: .min,
@@ -84,9 +83,8 @@ class _Cards extends StatelessWidget {
           minHeight: 270,
           padding: .all(24),
           borderRadius: .circular(24),
-          boxShadow: t.shadowMd,
           backgroundColor: t.cardColor,
-        ),
+        ).withShadow(level: ElLevelType.md.shadow(context)),
         child: demoColumn([
           Row(
             mainAxisAlignment: .spaceBetween,
@@ -131,7 +129,11 @@ class _Cards extends StatelessWidget {
       ),
       ElCard(
         onTap: () => demoNotify(context, '已打开周末旅行示例'),
-        style: ElStyle(padding: .zero, borderRadius: .circular(24), boxShadow: t.shadowMd, clipBehavior: .antiAlias),
+        style: ElStyle(
+          padding: .zero,
+          borderRadius: .circular(24),
+          clipBehavior: .antiAlias,
+        ).withShadow(level: ElLevelType.md.shadow(context)),
         child: Column(
           mainAxisSize: .min,
           children: [
@@ -171,12 +173,12 @@ class _Shadows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.elTheme, scope = ShowcaseScope.of(context);
-    final levels = <(String, String, List<BoxShadow>)>[
-      ('无阴影', '内容自然融入', []),
-      ('轻阴影', '轻微抬起', t.shadowXs),
-      ('卡片阴影', '日常内容分组', t.shadowMd),
-      ('浮层阴影', '菜单与下拉面板', t.shadowLg),
-      ('模态阴影', '重要的确认', t.shadowXl),
+    final levels = <(String, String, int)>[
+      ('无阴影', '内容自然融入', 0),
+      ('轻阴影', '轻微抬起', ElLevelType.xs.shadow(context)),
+      ('卡片阴影', '日常内容分组', ElLevelType.md.shadow(context)),
+      ('浮层阴影', '菜单与下拉面板', ElLevelType.lg.shadow(context)),
+      ('模态阴影', '重要的确认', ElLevelType.xl.shadow(context)),
     ];
     return ShowcasePanel(
       title: '阴影层级',
@@ -204,8 +206,7 @@ class _Shadows extends StatelessWidget {
                       padding: .zero,
                       alignment: .center,
                       borderRadius: .circular(18),
-                      boxShadow: item.$3,
-                    ),
+                    ).withShadow(level: item.$3),
                     child: demoIcon(ElMobileIcons.layer, color: t.primary),
                   ),
                 ),

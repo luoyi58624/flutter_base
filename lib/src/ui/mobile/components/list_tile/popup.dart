@@ -469,8 +469,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
         backgroundColor: theme.cardColor,
         borderRadius: .circular(17),
         clipBehavior: .hardEdge,
-        boxShadow: theme.shadowLg,
-      ).merge(widget.component.popupStyle),
+      ).withShadow(level: ElLevelType.lg.shadow(context)).merge(widget.component.popupStyle),
       semantics: ElSemantics(container: true, label: level.parent?.label ?? widget.component.popupLabel),
       child: Column(
         mainAxisSize: .min,

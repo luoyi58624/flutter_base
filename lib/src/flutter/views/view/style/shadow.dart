@@ -1,6 +1,6 @@
 part of 'style.dart';
 
-/// 盒阴影的视觉风格，各风格共用五级层次与自定义参数。
+/// 盒阴影的视觉风格，各风格共用整数级别与自定义参数。
 enum ElShadowType {
   /// 底部明显、四周较淡的 Material 投影。
   material,
@@ -21,20 +21,25 @@ enum ElShadowType {
   inset,
 }
 
+const _shadowLayers = [
+  (offset: .65, blur: 1.5, spread: -1.0, alpha: .13),
+  (offset: 1.5, blur: 2.8, spread: -.25, alpha: .10),
+  (offset: .85, blur: 5.5, spread: 0.0, alpha: .08),
+];
+
 /// 为视图样式添加分层阴影，圆角与自适应颜色在绘制时跟随最终样式。
 extension ElShadowStyleExt on ElStyle {
   /// 替换当前盒阴影，保留其他属性、状态变体和过渡。
   ///
-  /// [color] 未传时根据当前背景配色，显式 null 使用黑色，Color 使用指定颜色；
-  /// 没有背景时自适应回退黑色。[strength] 是非负透明度倍率。
+  /// [level] 越大，阴影越广、越浓，`0` 清除阴影，正整数没有预设上限。
+  /// [color] 未传时根据当前背景配色，显式 `null` 或没有背景时使用黑色。
   /// [blurRadius] 覆盖最宽层的模糊半径，其余层按比例调整，0 表示无模糊。
-  /// [offset] 和 [spreadRadius] 在风格预设上追加整体偏移与扩散。
-  /// 数值必须有限，强度与模糊不能为负；非法参数抛出 [ArgumentError]。
+  /// [offset] 和 [spreadRadius] 在计算结果上追加整体偏移与扩散。
+  /// 数值必须有限，级别和模糊半径必须非负，非法参数抛出 [ArgumentError]。
   ElStyle withShadow({
     ElShadowType type = .material,
-    ElLevelType level = .xs,
+    int level = 1,
     Object? color = $absent,
-    double strength = 1,
     double? blurRadius,
     Offset offset = Offset.zero,
     double spreadRadius = 0,
@@ -42,23 +47,14 @@ extension ElShadowStyleExt on ElStyle {
     if (!identical(color, $absent) && color != null && color is! Color) {
       throw ArgumentError.value(color, 'color', 'Must be a Color, null, or the absent sentinel.');
     }
-    if (!strength.isFinite || strength < 0) throw ArgumentError.value(strength, 'strength');
+    if (level < 0) throw ArgumentError.value(level, 'level');
     if (blurRadius != null && (!blurRadius.isFinite || blurRadius < 0)) {
       throw ArgumentError.value(blurRadius, 'blurRadius');
     }
     if (!offset.dx.isFinite || !offset.dy.isFinite) throw ArgumentError.value(offset, 'offset');
     if (!spreadRadius.isFinite) throw ArgumentError.value(spreadRadius, 'spreadRadius');
-    if (strength == 0 || (color is Color && color.a == 0)) return copyWith(boxShadow: const <BoxShadow>[]);
+    if (level == 0 || (color is Color && color.a == 0)) return copyWith(boxShadow: const <BoxShadow>[]);
 
-    final elevation = switch (level) {
-      .xs => 1,
-      .sm => 2,
-      .md => 4,
-      .lg => 8,
-      .xl => 16,
-    };
-    // 只复用官方数据，不依赖 MaterialApp、Theme 或任何品牌 token。
-    final base = kElevationToShadow[elevation]!;
     final (offsetScale, blurScale, spreadScale, alphaScale) = switch (type) {
       .material => (1.0, 1.0, 1.0, 1.0),
       .uniform => (0.0, 1.0, 1.0, .75),
@@ -67,26 +63,28 @@ extension ElShadowStyleExt on ElStyle {
       .glow => (0.0, 1.5, 1.0, .75),
       .inset => (.5, .5, 0.0, .8),
     };
-    final maxBlur = base.fold(0.0, (value, shadow) => math.max(value, shadow.blurRadius)) * blurScale;
-    final blurFactor = blurRadius == null ? blurScale : blurRadius / maxBlur * blurScale;
+    // 范围随级别放缓增长，高级别的阴影仍有变化，同时避免模糊范围暴涨。
+    final scale = math.log(1.0 + level) / math.ln2;
+    final density = level / (level + 5.0) * alphaScale;
+    final widestLayer = _shadowLayers.last.blur;
+    final maxBlur = blurRadius ?? widestLayer * scale * blurScale;
     final adaptive = identical(color, $absent);
     final literal = color is Color ? color : const Color(0xff000000);
     return copyWith(
-      boxShadow: List<BoxShadow>.unmodifiable([
-        for (final shadow in base)
-          _PresetBoxShadow(
-            fixedColor: adaptive
-                ? const Color(0x00000000)
-                : literal.withValues(alpha: (shadow.color.a * alphaScale * strength * literal.a).clamp(0.0, 1.0)),
-            adaptiveAlpha: adaptive ? (shadow.color.a * alphaScale * strength).clamp(0.0, 1.0) : 0,
-            offset: shadow.offset * offsetScale + offset,
-            blurRadius: shadow.blurRadius * blurFactor,
-            spreadRadius:
-                (type == .glow ? shadow.spreadRadius.abs() * .5 + elevation * .25 : shadow.spreadRadius * spreadScale) +
-                spreadRadius,
+      boxShadow: List<BoxShadow>.unmodifiable(
+        _shadowLayers.map((layer) {
+          final alpha = layer.alpha * density;
+          final spread = type == .glow ? layer.spread.abs() * .5 + .35 : layer.spread * spreadScale;
+          return _PresetBoxShadow(
+            fixedColor: adaptive ? const Color(0x00000000) : literal.withValues(alpha: (alpha * literal.a).clamp(0, 1)),
+            adaptiveAlpha: adaptive ? alpha : 0,
+            offset: Offset(0, layer.offset * scale * offsetScale) + offset,
+            blurRadius: layer.blur / widestLayer * maxBlur,
+            spreadRadius: spread * scale + spreadRadius,
             inset: type == .inset,
-          ),
-      ]),
+          );
+        }),
+      ),
     );
   }
 }

@@ -60,7 +60,7 @@ class ProbeState extends State<StateProbe> {
 }
 
 void main() {
-  test('明暗默认变量保留原配色、阴影精度与只读集合', () {
+  test('明暗默认变量保留原配色、整数阴影级别与只读集合', () {
     final light = el.mobileComponents.style!.vars!, dark = el.mobileComponents.style!.onDark!.vars!;
     // 移动端语义色以设计稿为准（#1076FD）；Web 原型 --primary 仍是 #2454c6，两者不再逐值对齐。
     expect(light[ElTokens.$primary], Color(0xff1076fd));
@@ -69,11 +69,9 @@ void main() {
     expect(dark[ElTokens.$primary], Color(0xffaac8ff));
     expect(dark[ElTokens.$primaryText], Color(0xff000000));
     expect(dark[ElTokens.$borderColor], Color(0xff596576));
-    final lightShadow = light[ElTokens.$shadowMd] as List<BoxShadow>;
-    final darkShadow = dark[ElTokens.$shadowMd] as List<BoxShadow>;
-    expect(lightShadow.first.color.a, closeTo(.065, .000001));
-    expect(darkShadow.first.color.a, closeTo(.24, .000001));
-    expect(() => lightShadow.add(BoxShadow()), throwsUnsupportedError);
+    expect(light[ElTokens.$shadowMd], 4);
+    expect(dark[ElTokens.$shadowMd], 6);
+    expect(() => (light[ElTokens.$selectedShadow] as List<BoxShadow>).add(BoxShadow()), throwsUnsupportedError);
   });
 
   testWidgets('品牌暗色与局部主题同步到ElView', (tester) async {

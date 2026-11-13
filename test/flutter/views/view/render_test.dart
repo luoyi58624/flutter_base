@@ -3400,19 +3400,24 @@ void _shadowExtensionTests() {
       expect(style.withShadow(type: .inset).boxShadow!.every((s) => s is ElBoxShadow && s.inset), isTrue);
     });
 
-    test('Material 五级使用官方参数，其余风格保持范围和方向差异', () {
-      final maxBlurs = <double>[];
-      for (final (index, level) in ElLevelType.values.indexed) {
-        final values = ElStyle().withShadow(level: level, color: null).boxShadow!;
-        final official = kElevationToShadow[[1, 2, 4, 8, 16][index]]!;
-        expect(values.map((v) => v.offset), official.map((v) => v.offset));
-        expect(values.map((v) => v.blurRadius), official.map((v) => v.blurRadius));
-        expect(values.map((v) => v.spreadRadius), official.map((v) => v.spreadRadius));
-        maxBlurs.add(values.map((v) => v.blurRadius).reduce(math.max));
-      }
-      expect(maxBlurs, orderedEquals([...maxBlurs]..sort()));
+    test('各风格随整数级别渐进变化，保留范围和方向差异', () {
       for (final type in ElShadowType.values) {
-        expect(shadows(type: type), hasLength(3));
+        final style = ElStyle();
+        final levels = [1, 2, 3, 4, 16, 17, 24, 25, 100, 10000, 1 << 30];
+        var previous = style.withShadow(type: type, color: null).boxShadow!;
+        expect(previous, hasLength(3));
+        expect(previous, style.withShadow(type: type, level: levels.first, color: null).boxShadow);
+        for (final level in levels.skip(1)) {
+          final current = style.withShadow(type: type, level: level, color: null).boxShadow!;
+          expect(current, hasLength(previous.length));
+          for (final (i, shadow) in current.indexed) {
+            expect(shadow.blurRadius, greaterThan(previous[i].blurRadius));
+            expect(shadow.offset.dy, greaterThanOrEqualTo(previous[i].offset.dy));
+            expect(shadow.color.a, greaterThan(previous[i].color.a));
+            expect(shadow.color.a, lessThanOrEqualTo(1));
+          }
+          previous = current;
+        }
       }
       expect(shadows(type: .uniform).every((s) => s.offset == Offset.zero), isTrue);
       expect(shadows(type: .glow).every((s) => s.offset == Offset.zero && s.spreadRadius > 0), isTrue);
@@ -3433,14 +3438,15 @@ void _shadowExtensionTests() {
         expect(custom[i].spreadRadius, base[i].spreadRadius - 2);
       }
       expect(ElStyle().withShadow(blurRadius: 0).boxShadow!.every((s) => s.blurRadius == 0), isTrue);
-      expect(ElStyle().withShadow(strength: 0).boxShadow, isEmpty);
+      final cleared = ElStyle(boxShadow: base).withShadow(level: 0).boxShadow!;
+      expect(cleared, isEmpty);
       expect(ElStyle().withShadow(color: Colors.transparent).boxShadow, isEmpty);
-      expect(record(ElStyle().withShadow(strength: 0).boxShadow!).invocations, isEmpty);
+      expect(record(cleared).invocations, isEmpty);
     });
 
     test('非法输入立即拒绝，有限的负偏移和负扩散允许使用', () {
+      expect(() => ElStyle().withShadow(level: -1), throwsArgumentError);
       for (final invalid in [double.nan, double.infinity, -double.infinity, -1.0]) {
-        expect(() => ElStyle().withShadow(strength: invalid), throwsArgumentError);
         expect(() => ElStyle().withShadow(blurRadius: invalid), throwsArgumentError);
       }
       for (final invalid in [double.nan, double.infinity, -double.infinity]) {
@@ -3450,7 +3456,7 @@ void _shadowExtensionTests() {
       }
       expect(() => ElStyle().withShadow(color: 'red'), throwsArgumentError);
       expect(() => ElStyle().withShadow(offset: Offset(-4, -8), spreadRadius: -3), returnsNormally);
-      expect(colors(ElStyle().withShadow(strength: 100).boxShadow!, Colors.black).every((c) => c.a <= 1), isTrue);
+      expect(colors(ElStyle().withShadow(level: 100).boxShadow!, Colors.black).every((c) => c.a <= 1), isTrue);
     });
 
     test('占位符自适应，null 固定黑色，指定颜色保留色值和透明度', () {
@@ -3506,7 +3512,7 @@ void _shadowExtensionTests() {
           ViewBoxPainter.paintShadows(
             canvas,
             outerRRect: BorderRadius.circular(12).toRRect(Rect.fromLTWH(80, 80, 80, 80)),
-            shadows: ElStyle().withShadow(type: type, level: .lg, color: null).boxShadow!,
+            shadows: ElStyle().withShadow(type: type, level: 8, color: null).boxShadow!,
             inset: type == .inset,
           );
         } finally {

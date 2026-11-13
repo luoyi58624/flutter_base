@@ -4,11 +4,9 @@ import 'dart:ui';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/animation.dart' show Curve, Curves;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show kElevationToShadow;
 import 'package:flutter/rendering.dart';
 
 import '../../../../../dart.dart';
-import '../../../commons/models.dart';
 
 part 'style.g.dart';
 part 'shadow.dart';

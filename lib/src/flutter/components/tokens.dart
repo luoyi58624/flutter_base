@@ -92,19 +92,19 @@ abstract final class ElTokens {
   /// 深色背景上的对比文字。
   static const $textOnDark = '--el-text-on-dark';
 
-  /// 最小层级阴影。
+  /// 最小阴影级别，值为非负整数。
   static const $shadowXs = '--el-shadow-xs';
 
-  /// 小阴影。
+  /// 小阴影级别，值为非负整数。
   static const $shadowSm = '--el-shadow-sm';
 
-  /// 标准阴影。
+  /// 标准阴影级别，值为非负整数。
   static const $shadowMd = '--el-shadow-md';
 
-  /// 弹层阴影。
+  /// 弹层阴影级别，值为非负整数。
   static const $shadowLg = '--el-shadow-lg';
 
-  /// 模态阴影。
+  /// 模态阴影级别，值为非负整数。
   static const $shadowXl = '--el-shadow-xl';
 
   /// 选中状态阴影。
@@ -304,20 +304,20 @@ extension type const ElThemeExt(BuildContext _context) {
   /// 深色背景上的文字。
   Color get textOnDark => _read(ElTokens.$textOnDark);
 
-  /// 最小阴影。
-  List<BoxShadow> get shadowXs => _read(ElTokens.$shadowXs);
+  /// 最小阴影级别。
+  int get shadowXs => _read(ElTokens.$shadowXs);
 
-  /// 小阴影。
-  List<BoxShadow> get shadowSm => _read(ElTokens.$shadowSm);
+  /// 小阴影级别。
+  int get shadowSm => _read(ElTokens.$shadowSm);
 
-  /// 标准阴影。
-  List<BoxShadow> get shadowMd => _read(ElTokens.$shadowMd);
+  /// 标准阴影级别。
+  int get shadowMd => _read(ElTokens.$shadowMd);
 
-  /// 弹层阴影。
-  List<BoxShadow> get shadowLg => _read(ElTokens.$shadowLg);
+  /// 弹层阴影级别。
+  int get shadowLg => _read(ElTokens.$shadowLg);
 
-  /// 模态阴影。
-  List<BoxShadow> get shadowXl => _read(ElTokens.$shadowXl);
+  /// 模态阴影级别。
+  int get shadowXl => _read(ElTokens.$shadowXl);
 
   /// 选中状态阴影。
   List<BoxShadow> get selectedShadow => _read(ElTokens.$selectedShadow);
@@ -451,8 +451,8 @@ extension ElLevelTypeExt on ElLevelType {
     };
   }
 
-  /// 当前档位的阴影。
-  List<BoxShadow> shadow(BuildContext context) {
+  /// 当前档位在主题中配置的阴影级别。
+  int shadow(BuildContext context) {
     final t = context.elTheme;
     return switch (this) {
       .xs => t.shadowXs,

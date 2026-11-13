@@ -52,6 +52,23 @@ ElComponentProvider(
 
 移动端按钮和卡片分别读取 `buttonPressScale` 和 `cardPressScale`。按压与回弹共用 `pressDuration` 和 `pressCurve`，这些值可通过 `ElStyle.vars` 局部覆盖。
 
+五个阴影 token `shadowXs`、`shadowSm`、`shadowMd`、`shadowLg`、`shadowXl` 保存非负整数级别。`ElLevelType.md.shadow(context)` 读取当前子树的标准阴影级别，`withShadow` 根据该级别生成投影。
+
+```dart
+ElView(
+  style: ElStyle(vars: {ElTokens.$shadowMd: 12}),
+  child: Builder(
+    builder: (context) => ElView(
+      style: ElStyle(
+        width: 120,
+        height: 80,
+        backgroundColor: Colors.white,
+      ).withShadow(level: ElLevelType.md.shadow(context)),
+    ),
+  ),
+);
+```
+
 ## 声明结构
 
 | 组件类型 | 基类 | Builder 签名 |

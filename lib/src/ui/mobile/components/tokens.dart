@@ -1,9 +1,6 @@
 part of 'index.dart';
 
 // 基础值与暗色差量分别声明，变量级联由 ElView 处理。
-const _lightShadow = Color(0xff314669);
-const _darkShadow = Color(0xff000000);
-
 final Map<Object, Object> _lightVars = Map.unmodifiable({
   ElTokens.$black: Color(0xff000000),
   ElTokens.$white: Color(0xffffffff),
@@ -71,11 +68,11 @@ final Map<Object, Object> _lightVars = Map.unmodifiable({
       spreadRadius: 1,
     ),
   ]),
-  ElTokens.$shadowXs: _shadow(_lightShadow, const [(1, 3, 0, .055)]),
-  ElTokens.$shadowSm: _shadow(_lightShadow, const [(1, 4, 0, .055), (2, 7, -1, .04)]),
-  ElTokens.$shadowMd: _shadow(_lightShadow, const [(1, 5, 0, .065), (4, 14, -1, .065)]),
-  ElTokens.$shadowLg: _shadow(_lightShadow, const [(2, 7, 0, .075), (8, 22, -2, .095)]),
-  ElTokens.$shadowXl: _shadow(_lightShadow, const [(3, 9, 0, .085), (14, 34, -4, .12)]),
+  ElTokens.$shadowXs: 1,
+  ElTokens.$shadowSm: 2,
+  ElTokens.$shadowMd: 4,
+  ElTokens.$shadowLg: 8,
+  ElTokens.$shadowXl: 16,
   ElTokens.$overlayColor: const Color(0xff0c121c).withValues(alpha: .34),
   ElTokens.$overlayBackdropBlur: 4,
   ElTokens.$fontWeight: 400,
@@ -110,6 +107,11 @@ final Map<Object, Object> _darkVars = Map.unmodifiable({
   ElTokens.$hover: Color(0xff3c4350),
   ElTokens.$press: Color(0xff464e5b),
   ElTokens.$selectedBackground: Color(0xff414956),
+  ElTokens.$shadowXs: 2,
+  ElTokens.$shadowSm: 3,
+  ElTokens.$shadowMd: 6,
+  ElTokens.$shadowLg: 12,
+  ElTokens.$shadowXl: 24,
   ElTokens.$info: Color(0xff8fb8ff),
   ElTokens.$success: Color(0xffa4dfb4),
   ElTokens.$warning: Color(0xfff3db82),
@@ -130,21 +132,5 @@ final Map<Object, Object> _darkVars = Map.unmodifiable({
       spreadRadius: 1,
     ),
   ]),
-  ElTokens.$shadowXs: _shadow(_darkShadow, const [(1, 3, 0, .18)]),
-  ElTokens.$shadowSm: _shadow(_darkShadow, const [(1, 4, 0, .20), (2, 7, -1, .16)]),
-  ElTokens.$shadowMd: _shadow(_darkShadow, const [(1, 5, 0, .24), (4, 14, -1, .22)]),
-  ElTokens.$shadowLg: _shadow(_darkShadow, const [(2, 7, 0, .28), (8, 22, -2, .30)]),
-  ElTokens.$shadowXl: _shadow(_darkShadow, const [(3, 9, 0, .32), (14, 34, -4, .38)]),
   ElTokens.$overlayColor: const Color(0xff000000).withValues(alpha: .62),
 });
-
-// 各层依次为向下偏移、模糊、扩张和不透明度。
-List<BoxShadow> _shadow(Color color, List<(double, double, double, double)> layers) => List<BoxShadow>.unmodifiable([
-  for (final (offset, blur, spread, alpha) in layers)
-    BoxShadow(
-      color: color.withValues(alpha: alpha),
-      offset: Offset(0, offset),
-      blurRadius: blur,
-      spreadRadius: spread,
-    ),
-]);

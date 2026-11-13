@@ -182,21 +182,10 @@ ElStyle _pageStyle() => ElStyle(
     ElTokens.$success: Color(0xff176b3c),
     ElTokens.$warning: Color(0xff805500),
     ElTokens.$error: Color(0xffb5283c),
-    ElTokens.$shadowXs: [BoxShadow(color: Color(0x1a121925), offset: Offset(0, 1), blurRadius: 2)],
-    ElTokens.$shadowSm: [BoxShadow(color: Color(0x0c121925), offset: Offset(0, 1), blurRadius: 3)],
-    ElTokens.$shadowMd: [
-      BoxShadow(color: Color(0x0c121925), offset: Offset(0, 1), blurRadius: 3),
-      BoxShadow(color: Color(0x06121925), offset: Offset(0, 4), blurRadius: 12),
-    ],
-    ElTokens.$shadowLg: [
-      BoxShadow(color: Color(0x12121925), spreadRadius: 1),
-      BoxShadow(color: Color(0x1f121925), offset: Offset(0, 4), blurRadius: 12),
-      BoxShadow(color: Color(0x3d121925), offset: Offset(0, 18), blurRadius: 44, spreadRadius: -8),
-    ],
-    ElTokens.$shadowXl: [
-      BoxShadow(color: Color(0x14121925), spreadRadius: 1),
-      BoxShadow(color: Color(0x24121925), offset: Offset(0, 8), blurRadius: 24),
-      BoxShadow(color: Color(0x4d121925), offset: Offset(0, 32), blurRadius: 80, spreadRadius: -12),
-    ],
+    ElTokens.$shadowXs: 1,
+    ElTokens.$shadowSm: 2,
+    ElTokens.$shadowMd: 3,
+    ElTokens.$shadowLg: 12,
+    ElTokens.$shadowXl: 24,
   },
 );

@@ -89,8 +89,7 @@ class ShowcaseHeader extends HookWidget implements PreferredSizeWidget {
           padding: .all(8),
           borderRadius: .circular(16),
           border: .all(borderColor: t.borderColor),
-          boxShadow: t.shadowLg,
-        ),
+        ).withShadow(level: ElLevelType.lg.shadow(context)),
         child: Column(
           mainAxisSize: .min,
           crossAxisAlignment: .stretch,

@@ -6,7 +6,8 @@ import 'package:flutter/semantics.dart' show SemanticsRole;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
+import '../../../../flutter/commons/models.dart' show ElLevelType;
+import '../../../../flutter/components/tokens.dart' show ElLevelTypeExt, ElThemeContextExt;
 import '../../../../flutter/components/input/index.dart' show ElInput, ElInputController;
 import '../../../../flutter/components/mention/index.dart'
     show
@@ -21,7 +22,7 @@ import '../../../../flutter/views/editable/view.dart' show ElEditableView;
 import '../../../../flutter/widgets/stack/index.dart' show ElPositioned, ElStack;
 import '../../../../flutter/views/view/event/event.dart' show ElEvent;
 import '../../../../flutter/views/view/semantics/semantics.dart' show ElSemantics;
-import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElStyle, ElTransform;
+import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElShadowStyleExt, ElStyle, ElTransform;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/form/index.dart' show ElInputModelValue;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;

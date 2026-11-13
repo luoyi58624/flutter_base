@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart' as desktop;
 import 'package:flutter_base/mobile.dart' as mobile;
-import 'package:flutter_base/ui.dart' show ElTokens, ElThemeContextExt;
+import 'package:flutter_base/ui.dart' show ElLevelType, ElLevelTypeExt, ElThemeContextExt, ElTokens;
 import 'package:flutter_test/flutter_test.dart';
 
 Finder _action(String label) =>
@@ -43,13 +43,13 @@ void main() {
 
   testWidgets('两端读取同一组主题键和同一个 context.elTheme 扩展', (tester) async {
     final primary = Color(0xff123456);
-    final shadow = [BoxShadow(color: Color(0x22000000), blurRadius: 3)];
-    final seen = <(Color, List<BoxShadow>)>[];
+    final shadow = 37;
+    final seen = <(Color, int, int)>[];
     Widget reader() => desktop.ElView(
       style: desktop.ElStyle(vars: {ElTokens.$primary: primary, ElTokens.$shadowSm: shadow}),
       child: Builder(
         builder: (context) {
-          seen.add((context.elTheme.primary, context.elTheme.shadowSm));
+          seen.add((context.elTheme.primary, context.elTheme.shadowSm, ElLevelType.sm.shadow(context)));
           return SizedBox();
         },
       ),
@@ -67,7 +67,7 @@ void main() {
         ),
       ),
     );
-    expect(seen, [(primary, shadow), (primary, shadow)]);
+    expect(seen, [(primary, shadow, shadow), (primary, shadow, shadow)]);
     expect(tester.takeException(), isNull);
   });
 

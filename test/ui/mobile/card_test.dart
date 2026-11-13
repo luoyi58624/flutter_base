@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(ElCard card, {Brightness brightness = Brightness.light}) => MaterialApp(
+Widget _host(Widget card, {Brightness brightness = Brightness.light}) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
     child: ElView(
@@ -31,20 +31,18 @@ void main() {
       var previousBlur = 0.0;
       var previousOffset = 0.0;
       for (final key in keys) {
-        final shadows = tokens[key] as List<BoxShadow>;
+        final shadows = ElStyle().withShadow(level: tokens[key] as int).boxShadow!;
         expect(shadows, isNotEmpty);
         for (final shadow in shadows) {
           expect(shadow.blurRadius, greaterThan(0), reason: '零模糊轮廓会产生描边感');
           expect(shadow.spreadRadius, lessThanOrEqualTo(0));
           expect(shadow.offset.dx, 0);
-          expect(shadow.color.toARGB32() & 0xffffff, dark ? 0 : 0x314669);
         }
         expect(shadows.last.blurRadius, greaterThan(previousBlur));
         expect(shadows.last.offset.dy, greaterThanOrEqualTo(previousOffset));
         previousBlur = shadows.last.blurRadius;
         previousOffset = shadows.last.offset.dy;
       }
-      expect((tokens[ElTokens.$shadowXs] as List<BoxShadow>).length, 1);
     }
   });
 
@@ -111,9 +109,25 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, tokens[entry.value]);
+        expect(
+          tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow,
+          ElStyle().withShadow(level: tokens[entry.value] as int).boxShadow,
+        );
       }
     }
+    await tester.pumpWidget(
+      _host(
+        ElView(
+          style: ElStyle(vars: {ElTokens.$shadowMd: 37}),
+          child: ElCard(shadowLevel: .md, child: SizedBox(height: 30)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow,
+      ElStyle().withShadow(level: 37).boxShadow,
+    );
     await tester.pumpWidget(_host(ElCard()));
     await tester.pumpAndSettle();
     expect(tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow, isNull);

@@ -19,8 +19,7 @@ class ElMobileContextMenu extends ElContextMenu {
       padding: const .all(6),
       borderRadius: .circular(18),
       border: .all(borderColor: context.elTheme.borderColor),
-      boxShadow: context.elTheme.shadowLg,
-    ),
+    ).withShadow(level: ElLevelType.lg.shadow(context)),
     child: SingleChildScrollView(
       child: Column(mainAxisSize: .min, crossAxisAlignment: .stretch, children: children),
     ),

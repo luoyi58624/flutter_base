@@ -98,19 +98,19 @@ ElView(
 ElStyle(
   backgroundColor: Colors.white,
   borderRadius: BorderRadius.circular(16),
-).withShadow(type: .uniform, level: .md, strength: 0.8);
+).withShadow(type: .uniform, level: 4);
 ```
 
-`ElShadowType` 提供 material、uniform、floating、contact、glow、inset 六种风格，
-使用 xs、sm、md、lg、xl 五级参数。Material 以 Flutter 官方三层投影为基础，其他风格调整
-方向、范围和浓度；不依赖 MaterialApp、应用主题或品牌 token。
+`ElShadowType` 提供 material、uniform、floating、contact、glow、inset 六种风格。
+`level` 默认为 `1`，`0` 清除阴影。正整数级别越大，阴影越广、越浓。阴影范围放缓增长，
+透明度逐渐趋近上限。也可通过 `ElLevelType.md.shadow(context)` 读取当前主题定义的级别。
 
 不传 color 时按当前最终生效的 backgroundColor 自适应配色；没有背景或背景完全透明时
-使用黑色。显式传 `color: null` 固定为传统黑色，传入 Color 则保留指定色值，颜色透明度
-与预设浓度、strength 相乘。自适应只读取当前纯色背景，不查询祖先或分析图片、渐变。
+使用黑色。显式传 `color: null` 固定为传统黑色。传入 `Color` 时保留指定色值，并将其透明度
+与计算出的阴影浓度相乘。自适应读取当前生效的纯色背景。
 
 blurRadius 覆盖最宽阴影层的模糊半径，其余层按比例缩放；offset 与 spreadRadius
-追加整体偏移和扩散。strength、blurRadius 允许为零，强度与模糊不能为负，所有数值必须有限。
+追加整体偏移和扩散。`level` 和 `blurRadius` 必须非负，所有数值必须有限。
 扩展只替换当前 boxShadow，保留其余属性和变体，可继续声明 boxShadow 过渡。
 
 阴影绘制跟随实际尺寸和最终圆角，扩散采用 W3C 的小圆角连续修正规则；内阴影裁剪在盒内。

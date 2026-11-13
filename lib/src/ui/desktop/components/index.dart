@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../../../dart/commons/index.dart' show El;
 import '../../material/index.dart' show materialComponents;
-import '../../../flutter/commons/models.dart' show ElLevelType;
 import '../../../flutter/components/tokens.dart' show ElThemeContextExt, ElTokens;
 import '../../../flutter/components/index.dart' show ElComponents, ElComponentsExt;
 import '../../../flutter/views/view/style/style.dart' show ElStyle;
@@ -24,7 +23,6 @@ import 'table/index.dart';
 import 'tag/index.dart';
 
 part 'tokens.dart';
-part 'shadow.dart';
 
 /// 桌面品牌的组件和 token 预设。
 extension ElDesktopExt on El {

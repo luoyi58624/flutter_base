@@ -58,11 +58,10 @@ class _Tooltip extends HookWidget {
             borderRadius: .circular(12),
             backgroundColor: context.elTheme.cardColor,
             color: context.elTheme.textColor,
-            boxShadow: context.elTheme.shadowLg,
             border: .all(borderColor: context.elTheme.borderColor),
             fontSize: 12,
             lineHeight: 1.6,
-          ).merge(c.style),
+          ).withShadow(level: ElLevelType.lg.shadow(context)).merge(c.style),
           child: c.content,
         );
         if (!c.arrow || geometry == null) return panel;

@@ -560,7 +560,7 @@ class _ObservationRowState extends State<_ObservationRow> {
                     ),
                     onTap: ElStyle(transform: .scale(.98)),
                     transition: [ElTransition.field(.transform, Duration(milliseconds: 100), Curves.easeOut)],
-                  ).withShadow(type: .floating, level: .md, strength: .5),
+                  ).withShadow(type: .floating, level: ElLevelType.md.shadow(context)),
                   child: child,
                 ),
               ),

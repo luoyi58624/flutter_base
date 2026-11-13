@@ -10,13 +10,12 @@ ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
   color: context.elTheme.textRegular,
   border: .all(borderColor: null),
   borderRadius: .circular(context.elTheme.radiusSm),
-  boxShadow: context.elTheme.shadowSm,
   opacity: 1,
   transform: .translateY(0),
   starting: ElStyle(opacity: 0, transform: .translateY(-4)),
   transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
   iconColor: context.elTheme.textRegular,
-);
+).withShadow(level: ElLevelType.sm.shadow(context));
 
 ElStyle _selectOptionBaseStyle(BuildContext context, bool isSelected) =>
     ElStyle(

@@ -1,5 +1,5 @@
 /// 参照：D:/project/html/my-ui/packages/core/my-ui.css:10-68、82-149。
-/// 颜色以 Web 为基线，页面使用中性灰，五档阴影以同色背景校准并按卡片和弹窗用途分档。
+/// 颜色以 Web 为基线，页面使用中性灰，五档阴影按卡片和弹窗用途配置整数级别。
 /// 语义色例外：移动端语义色以设计稿为准（#1076FD / #56B329 / #F9A907 / #FC4646），
 /// Web 原型 `--primary` 仍是 #2454c6，两者不再逐值对齐。
 library;
@@ -57,25 +57,26 @@ void main() {
       for (final entry in colors.entries) {
         expect(entry.value.toARGB32(), expected[mode][entry.key], reason: entry.key);
       }
-      final shadows = <String, List<BoxShadow>>{
+      final shadowLevels = <String, int>{
         'extra-small-shadow': t.shadowXs,
-        'selected-shadow': t.selectedShadow,
         'small-shadow': t.shadowSm,
         'shadow': t.shadowMd,
         'popup-shadow': t.shadowLg,
         'modal-shadow': t.shadowXl,
       };
-      for (final entry in shadows.entries) {
-        final values = expected[mode][entry.key] as List;
-        expect(entry.value.length, values.length, reason: entry.key);
-        for (var i = 0; i < values.length; i++) {
-          final shadow = entry.value[i], value = values[i] as List;
-          expect(shadow.offset, Offset((value[0] as num).toDouble(), (value[1] as num).toDouble()));
-          expect(shadow.blurRadius, value[2]);
-          expect(shadow.spreadRadius, value[3]);
-          expect(shadow.color.toARGB32() & 0xffffff, value[4]);
-          expect(shadow.color.a, closeTo(value[5] as num, .000001));
-        }
+      for (final entry in shadowLevels.entries) {
+        expect(entry.value, expected[mode][entry.key], reason: entry.key);
+      }
+      final selectedShadows = t.selectedShadow;
+      final selectedValues = expected[mode]['selected-shadow'] as List;
+      expect(selectedShadows.length, selectedValues.length);
+      for (var i = 0; i < selectedValues.length; i++) {
+        final shadow = selectedShadows[i], value = selectedValues[i] as List;
+        expect(shadow.offset, Offset((value[0] as num).toDouble(), (value[1] as num).toDouble()));
+        expect(shadow.blurRadius, value[2]);
+        expect(shadow.spreadRadius, value[3]);
+        expect(shadow.color.toARGB32() & 0xffffff, value[4]);
+        expect(shadow.color.a, closeTo(value[5] as num, .000001));
       }
       expect(t.overlayBackdropBlur, 4);
       expect(t.overlayColor.a, closeTo(mode == 'dark' ? .62 : .34, .000001));
@@ -279,4 +280,4 @@ void main() {
 }
 
 final _themeSnapshot =
-    r'''{"light":{"background":4294112245,"card-background":4294967295,"fill":4294046452,"border":4292731109,"text":4279703838,"text-secondary":4284639348,"gray":4290429646,"hover":4293520624,"press":4292928746,"selected-background":4294967295,"selected-shadow":[[0,1,4,0,1186085,0.1],[0,0,0,1,1186085,0.05]],"small-shadow":[[0,1,4,0,3229289,0.055],[0,2,7,-1,3229289,0.04]],"shadow":[[0,1,5,0,3229289,0.065],[0,4,14,-1,3229289,0.065]],"popup-shadow":[[0,2,7,0,3229289,0.075],[0,8,22,-2,3229289,0.095]],"modal-shadow":[[0,3,9,0,3229289,0.085],[0,14,34,-4,3229289,0.12]],"success":4283872041,"warning":4294551815,"danger":4294723142,"primary":4279269117,"primary-text":4294967295,"extra-small-shadow":[[0,1,3,0,3229289,0.055]]},"dark":{"background":4279374873,"card-background":4280625457,"fill":4281547076,"border":4284048758,"text":4294244090,"text-secondary":4291087318,"gray":4286351772,"hover":4282139472,"press":4282797659,"selected-background":4282468694,"selected-shadow":[[0,1,5,0,0,0.28],[0,0,0,1,6846348,1]],"small-shadow":[[0,1,4,0,0,0.2],[0,2,7,-1,0,0.16]],"shadow":[[0,1,5,0,0,0.24],[0,4,14,-1,0,0.22]],"popup-shadow":[[0,2,7,0,0,0.28],[0,8,22,-2,0,0.3]],"modal-shadow":[[0,3,9,0,0,0.32],[0,14,34,-4,0,0.38]],"success":4288995252,"warning":4294171522,"danger":4294945966,"primary":4289382655,"primary-text":4278190080,"extra-small-shadow":[[0,1,3,0,0,0.18]]}}''';
+    r'''{"light":{"background":4294112245,"card-background":4294967295,"fill":4294046452,"border":4292731109,"text":4279703838,"text-secondary":4284639348,"gray":4290429646,"hover":4293520624,"press":4292928746,"selected-background":4294967295,"selected-shadow":[[0,1,4,0,1186085,0.1],[0,0,0,1,1186085,0.05]],"extra-small-shadow":1,"small-shadow":2,"shadow":4,"popup-shadow":8,"modal-shadow":16,"success":4283872041,"warning":4294551815,"danger":4294723142,"primary":4279269117,"primary-text":4294967295},"dark":{"background":4279374873,"card-background":4280625457,"fill":4281547076,"border":4284048758,"text":4294244090,"text-secondary":4291087318,"gray":4286351772,"hover":4282139472,"press":4282797659,"selected-background":4282468694,"selected-shadow":[[0,1,5,0,0,0.28],[0,0,0,1,6846348,1]],"extra-small-shadow":2,"small-shadow":3,"shadow":6,"popup-shadow":12,"modal-shadow":24,"success":4288995252,"warning":4294171522,"danger":4294945966,"primary":4289382655,"primary-text":4278190080}}''';

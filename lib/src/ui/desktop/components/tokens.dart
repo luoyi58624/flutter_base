@@ -27,11 +27,11 @@ const _lightValues = <Object, Object>{
   ElTokens.$primaryText: Color(0xffffffff),
   ElTokens.$textOnLight: Color(0xff303133),
   ElTokens.$textOnDark: Color(0xffffffff),
-  ElTokens.$shadowXs: <BoxShadow>[],
-  ElTokens.$shadowSm: <BoxShadow>[],
-  ElTokens.$shadowMd: <BoxShadow>[],
-  ElTokens.$shadowLg: <BoxShadow>[],
-  ElTokens.$shadowXl: <BoxShadow>[],
+  ElTokens.$shadowXs: 0,
+  ElTokens.$shadowSm: 1,
+  ElTokens.$shadowMd: 2,
+  ElTokens.$shadowLg: 4,
+  ElTokens.$shadowXl: 8,
   ElTokens.$selectedShadow: <BoxShadow>[],
   ElTokens.$overlayColor: Color(0xcc000000),
   ElTokens.$overlayColorLight: Color(0xb3000000),
@@ -65,7 +65,7 @@ const _lightValues = <Object, Object>{
   ElTokens.$selectionColor: Color(0xffc6e2ff),
 };
 
-const _darkValues = <Object, Object>{
+const _darkVars = <Object, Object>{
   ElTokens.$bgColor: Color.fromRGBO(30, 30, 30, 1),
   ElTokens.$cardColor: Color.fromRGBO(43, 43, 43, 1),
   ElTokens.$cardPressColor: Color(0xff464e5b),
@@ -81,6 +81,10 @@ const _darkValues = <Object, Object>{
   ElTokens.$hover: Color(0xff3c4350),
   ElTokens.$press: Color(0xff464e5b),
   ElTokens.$selectedBackground: Color(0xff414956),
+  ElTokens.$shadowSm: 2,
+  ElTokens.$shadowMd: 4,
+  ElTokens.$shadowLg: 8,
+  ElTokens.$shadowXl: 16,
   ElTokens.$borderColorHover: Color(0xff707172),
   ElTokens.$borderColorLight: Color(0xff414143),
   ElTokens.$borderColorLighter: Color(0xff393a3b),
@@ -93,31 +97,4 @@ const _darkValues = <Object, Object>{
   ElTokens.$selectionColor: Color(0xff2d5074),
 };
 
-final Map<Object, Object> _lightVars = Map.unmodifiable({
-  ..._lightValues,
-  ElDesktopExt.$compact: false,
-  for (final entry in _shadowLevelsLight.entries)
-    switch (entry.key) {
-      ElLevelType.xs => ElTokens.$shadowXs,
-      ElLevelType.sm => ElTokens.$shadowSm,
-      ElLevelType.md => ElTokens.$shadowMd,
-      ElLevelType.lg => ElTokens.$shadowLg,
-      ElLevelType.xl => ElTokens.$shadowXl,
-    }: List<BoxShadow>.unmodifiable(
-      entry.value,
-    ),
-});
-
-final Map<Object, Object> _darkVars = Map.unmodifiable({
-  ..._darkValues,
-  for (final entry in _shadowLevelsDark.entries)
-    switch (entry.key) {
-      ElLevelType.xs => ElTokens.$shadowXs,
-      ElLevelType.sm => ElTokens.$shadowSm,
-      ElLevelType.md => ElTokens.$shadowMd,
-      ElLevelType.lg => ElTokens.$shadowLg,
-      ElLevelType.xl => ElTokens.$shadowXl,
-    }: List<BoxShadow>.unmodifiable(
-      entry.value,
-    ),
-});
+final Map<Object, Object> _lightVars = Map.unmodifiable({..._lightValues, ElDesktopExt.$compact: false});

@@ -21,8 +21,7 @@ Widget dialogBuilder(BuildContext context, ElDialog c) {
       backgroundColor: t.cardColor,
       color: t.textColor,
       textAlign: .center,
-      boxShadow: t.shadowXl,
-    ).merge(c.style),
+    ).withShadow(level: ElLevelType.xl.shadow(context)).merge(c.style),
     child: Column(
       mainAxisSize: .min,
       crossAxisAlignment: .stretch,
@@ -76,8 +75,7 @@ Widget _panel(BuildContext context, ElPopup c) {
       borderRadius: .circular(26),
       backgroundColor: t.cardColor,
       color: t.textColor,
-      boxShadow: t.shadowXl,
-    ).merge(c.style),
+    ).withShadow(level: ElLevelType.xl.shadow(context)).merge(c.style),
     child: Column(
       mainAxisSize: .min,
       crossAxisAlignment: .stretch,
@@ -128,14 +126,13 @@ Widget toastBuilder(BuildContext context, ElToast c) {
       padding: const .symmetric(horizontal: 20, vertical: 15),
       backgroundColor: t.cardColor,
       borderRadius: .circular(18),
-      boxShadow: t.shadowLg,
       border: .all(borderColor: t.borderColor),
       fontSize: 14,
       lineHeight: 1.6,
       color: t.textColor,
       iconColor: t.primary,
       iconSize: 20,
-    ).merge(c.style),
+    ).withShadow(level: ElLevelType.lg.shadow(context)).merge(c.style),
     child: Row(
       mainAxisSize: .min,
       children: [

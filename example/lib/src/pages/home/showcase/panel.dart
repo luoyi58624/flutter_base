@@ -73,8 +73,7 @@ class ShowcasePanel extends StatelessWidget {
         padding: padding ?? (mobile ? .fromLTRB(22, 24, 22, 25) : .fromLTRB(29, 28, 29, 29)),
         borderRadius: .circular(mobile ? 26 : 30),
         border: .all(borderColor: t.borderColor.withValues(alpha: .65)),
-        boxShadow: t.shadowMd,
-      ),
+      ).withShadow(level: ElLevelType.md.shadow(context)),
       child: Column(
         mainAxisSize: .min,
         crossAxisAlignment: .stretch,

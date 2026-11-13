@@ -50,7 +50,7 @@ class ShadowPage extends HookWidget {
                   height: 120,
                   backgroundColor: surface,
                   borderRadius: .circular(16),
-                ).withShadow(type: type.value, level: level),
+                ).withShadow(type: type.value, level: level.shadow(context)),
                 child: Center(child: Text(level.name)),
               ),
           ],
