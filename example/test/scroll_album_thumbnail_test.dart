@@ -3,14 +3,15 @@ import 'dart:ui' as ui;
 
 import 'package:example/src/pages/examples/scroll_examples/album_thumbnails.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _ImageRequests {
   final started = <int>[];
   final _pending = <int, Completer<ImageInfo>>{};
 
-  AlbumThumbnail thumbnail(int id) => AlbumThumbnail(_ImageProvider(id, this));
+  ImageProvider provider(int id) => _ImageProvider(id, this);
+  AlbumThumbnail thumbnail(int id) => AlbumThumbnail(provider(id));
 
   Future<ImageInfo> start(int id) {
     started.add(id);
@@ -57,6 +58,98 @@ void main() {
   tearDown(() {
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
+  });
+
+  testWidgets('默认滚动物理推迟 Image 取图时，相册队列仍能取图并显示', (tester) async {
+    final controller = ScrollController();
+    final requests = _ImageRequests();
+    final queue = AlbumThumbnailQueue();
+    final thumbnail = requests.thumbnail(2);
+    final control = ValueKey('control-image');
+    final album = ValueKey('album-image');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: GridView.builder(
+              controller: controller,
+              itemCount: 100,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 1, mainAxisExtent: 100),
+              itemBuilder: (_, index) => index == 9
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Image(key: control, image: requests.provider(1)),
+                        ),
+                        Expanded(
+                          child: ValueListenableBuilder<ImageInfo?>(
+                            valueListenable: thumbnail,
+                            builder: (_, info, _) => RawImage(key: album, image: info?.image),
+                          ),
+                        ),
+                      ],
+                    )
+                  : SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(control), findsNothing);
+    unawaited(controller.animateTo(6000, duration: Duration(seconds: 1), curve: Curves.linear));
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 150));
+
+    expect(Scrollable.recommendDeferredLoadingForContext(tester.element(find.byKey(control))), isTrue);
+    expect(requests.started, isEmpty);
+    queue.update([thumbnail], []);
+    expect(requests.started, [2]);
+    requests.finish(2);
+    await tester.pump(Duration(milliseconds: 8));
+    expect(Scrollable.recommendDeferredLoadingForContext(tester.element(find.byKey(control))), isTrue);
+    expect(tester.widget<RawImage>(find.byKey(album)).image, isNotNull);
+    expect(requests.started, [2]);
+
+    controller.jumpTo(controller.offset);
+    await tester.pump();
+    expect(Scrollable.recommendDeferredLoadingForContext(tester.element(find.byKey(control))), isFalse);
+    expect(requests.started, [2, 1]);
+    requests.finishPending();
+    await tester.pumpWidget(SizedBox.shrink());
+    controller.dispose();
+    queue.dispose();
+  });
+
+  testWidgets('跳转时缓存图先显示，未缓存的图等待名额', (tester) async {
+    final requests = _ImageRequests();
+    final queue = AlbumThumbnailQueue();
+    final cached = requests.thumbnail(100);
+    queue.update([cached], []);
+    requests.finish(100);
+    await tester.pump();
+    expect(cached.value, isNotNull);
+
+    queue.update(List.generate(4, requests.thumbnail), []);
+    final status = await cached.provider.obtainCacheStatus(configuration: ImageConfiguration.empty);
+    expect(status?.keepAlive, isTrue);
+    expect(cached.value, isNull);
+
+    final cold = requests.thumbnail(101);
+    queue.update([cold, cached], []);
+    await tester.pump();
+    expect(cached.value?.image.width, 101);
+    expect(cold.value, isNull);
+    expect(requests.started, [100, 0, 1, 2, 3]);
+    expect(requests._pending.keys, [0, 1, 2, 3]);
+
+    requests.finish(0);
+    await tester.pump();
+    expect(requests.started, [100, 0, 1, 2, 3, 101]);
+    queue.dispose();
+    requests.finishPending();
+    await tester.pump();
   });
 
   testWidgets('跳转后释放出的名额交给新视口，旧视口排队项与过期结果都被丢弃', (tester) async {

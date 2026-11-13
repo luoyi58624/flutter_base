@@ -51,20 +51,41 @@ class AlbumThumbnailQueue {
       return true;
     });
     _pump();
+    if (_inFlight.length < _concurrency) return;
+    for (final thumbnail in _visible) {
+      if (_pending(thumbnail)) _showCached(thumbnail);
+    }
   }
 
   bool _wanted(AlbumThumbnail thumbnail) => _visible.contains(thumbnail) || _ahead.contains(thumbnail);
 
   bool _pending(AlbumThumbnail thumbnail) => !_inFlight.contains(thumbnail) && !_settled.contains(thumbnail);
 
+  void _showCached(AlbumThumbnail thumbnail) {
+    try {
+      final key = thumbnail.provider.obtainKey(ImageConfiguration.empty);
+      // 只复用已解码的图；同步解析保证检查后能立即从同一缓存取图。
+      unawaited(
+        key.then<void>((cacheKey) {
+          if (key is SynchronousFuture<Object> &&
+              PaintingBinding.instance.imageCache.statusForKey(cacheKey).keepAlive) {
+            _start(thumbnail);
+          }
+        }, onError: (Object _, StackTrace _) {}),
+      );
+    } catch (_) {
+      // 交给常规加载路径处理读取失败。
+    }
+  }
+
   void _pump() {
     if (_disposed) return;
     for (final thumbnail in _visible) {
-      if (_inFlight.length == _concurrency) return;
+      if (_inFlight.length >= _concurrency) return;
       if (_pending(thumbnail)) _start(thumbnail);
     }
     // 前探只占一个槽，用户换方向时其余槽还能立刻处理新视口。
-    if (_speculative != null || _inFlight.length == _concurrency) return;
+    if (_speculative != null || _inFlight.length >= _concurrency) return;
     for (final thumbnail in _ahead) {
       if (!_pending(thumbnail)) continue;
       _speculative = thumbnail;
