@@ -7,6 +7,7 @@ import '../pages/components/index.dart';
 import '../layout/example_page.dart';
 import '../pages/examples/index.dart';
 import '../router/pages.dart';
+import '../state/index.dart';
 
 /// 从现有菜单生成路由路径与页面。
 abstract final class RouterUtil {
@@ -84,7 +85,11 @@ abstract final class RouterUtil {
     Widget child = page.data?.call(context) ?? ExamplePage(title: page.title);
     // 这两个现有页面使用移动端专有实现，按路由安装完整预设。
     if (key == 'shadow-design' || key == 'settings') {
-      child = ElComponentProvider(components: el.mobileComponents, child: child);
+      final content = child;
+      child = ObsBuilder(
+        builder: (context) =>
+            ElComponentProvider(components: el.mobileComponents, style: GlobalState.appearanceStyle, child: content),
+      );
     }
     return KeyedSubtree(key: ValueKey('example-page-$key'), child: child);
   }
@@ -96,9 +101,14 @@ class _IndependentExample extends StatelessWidget {
   final WidgetBuilder builder;
 
   @override
-  Widget build(BuildContext context) => ElComponentProvider(
-    components: MediaQuery.sizeOf(context).width <= ElBreakpoint.defaultSm ? el.mobileComponents : el.desktopComponents,
-    child: Builder(builder: builder),
+  Widget build(BuildContext context) => ObsBuilder(
+    builder: (context) => ElComponentProvider(
+      components: MediaQuery.sizeOf(context).width <= ElBreakpoint.defaultSm
+          ? el.mobileComponents
+          : el.desktopComponents,
+      style: GlobalState.appearanceStyle,
+      child: Builder(builder: builder),
+    ),
   );
 }
 

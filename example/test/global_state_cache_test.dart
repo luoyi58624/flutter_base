@@ -1,5 +1,6 @@
 import 'package:example/src/state/index.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,12 +19,30 @@ void main() {
       'example.settings.docScrollMode': 'recyclerView',
       'example.settings.docRepeatCount': 20,
       'example.settings.resamplingEnabled': false,
+      'example.settings.primaryColor': ElColorSerialize().serialize(Color(0xff16a34a))!,
+      'example.settings.darkPrimaryColor': ElColorSerialize().serialize(Color(0xffea580c))!,
+      'example.settings.locale': ElLocaleSerialize().serialize(Locale('en', 'US'))!,
+      'example.settings.globalFontWeight': 600,
+      'example.settings.globalScale': 1.2,
+      'example.settings.compact': true,
+      'example.settings.rtl': true,
+      'example.settings.closeAnimation': true,
+      'example.settings.showFps': true,
     };
     for (final entry in cached.entries) {
       storage.setItem(entry.key, entry.value);
     }
 
     GlobalState.restoreSettings();
+    expect(GlobalState.primaryColor.value, Color(0xff16a34a));
+    expect(GlobalState.darkPrimaryColor.value, Color(0xffea580c));
+    expect(GlobalState.locale.value, Locale('en', 'US'));
+    expect(GlobalState.globalFontWeight.value, 600);
+    expect(GlobalState.globalScale.value, 1.2);
+    expect(GlobalState.compact.value, isTrue);
+    expect(GlobalState.rtl.value, isTrue);
+    expect(GlobalState.closeAnimation.value, isTrue);
+    expect(GlobalState.showFps.value, isTrue);
     expect(GlobalState.isDark.value, isTrue);
     expect(GlobalState.showPerformanceOverlay.value, isTrue);
     expect(GlobalState.debugShowCheckedModeBanner.value, isFalse);
@@ -44,6 +63,7 @@ void main() {
     expect(binding.resamplingEnabled, isTrue);
 
     final expected = <String, Object>{
+      ...cached,
       'example.settings.isDark': false,
       'example.settings.showPerformanceOverlay': false,
       'example.settings.debugShowCheckedModeBanner': true,

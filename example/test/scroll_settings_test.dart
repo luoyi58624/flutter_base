@@ -93,6 +93,8 @@ void main() {
       DocScrollMode.elScroll: 'ElScrollView',
     };
     for (final entry in options.entries) {
+      await tester.ensureVisible(_modeRow());
+      await tester.pumpAndSettle();
       await tester.tap(_modeRow());
       await tester.pumpAndSettle();
       for (final label in options.values) {
@@ -114,11 +116,15 @@ void main() {
     expect(_semanticsRow(), findsOneWidget);
     expect(tester.widget<ElListTile<bool>>(_semanticsRow()).currentValue, isFalse);
 
+    await tester.ensureVisible(_semanticsRow());
+    await tester.pumpAndSettle();
     await tester.tap(_semanticsRow());
     await tester.pumpAndSettle();
     expect(GlobalState.excludeSemantics.value, isTrue);
     expect(tester.widget<ElListTile<bool>>(_semanticsRow()).currentValue, isTrue);
 
+    await tester.ensureVisible(_semanticsRow());
+    await tester.pumpAndSettle();
     await tester.tap(_semanticsRow());
     await tester.pumpAndSettle();
     expect(GlobalState.excludeSemantics.value, isFalse);
@@ -132,6 +138,8 @@ void main() {
     expect(tester.widget<ElListTile<int>>(_pressureRow()).title, '性能压力');
     expect(find.descendant(of: _pressureRow(), matching: _text('1 倍')), findsOneWidget);
     for (final count in [2, 5, 10, 20, 1]) {
+      await tester.ensureVisible(_pressureRow());
+      await tester.pumpAndSettle();
       await tester.tap(_pressureRow());
       await tester.pumpAndSettle();
       for (final option in [1, 2, 5, 10, 20]) {
@@ -176,7 +184,9 @@ void main() {
       app_router.router.go('/settings');
       await tester.pumpWidget(application.App());
       await tester.pumpAndSettle();
-      final label = RegExp('文档滚动');
+      await tester.ensureVisible(_semanticsRow());
+      await tester.pumpAndSettle();
+      final label = RegExp('屏蔽语义');
       expect(_hasSemanticsLabel(tester, label), isTrue);
       expect(_semanticsRow().hitTestable(), findsOneWidget);
 
@@ -185,6 +195,8 @@ void main() {
       expect(_hasSemanticsLabel(tester, label), isFalse);
       expect(_semanticsRow().hitTestable(), findsOneWidget);
 
+      await tester.ensureVisible(_semanticsRow());
+      await tester.pumpAndSettle();
       await tester.tap(_semanticsRow());
       await tester.pumpAndSettle();
       expect(GlobalState.excludeSemantics.value, isFalse);

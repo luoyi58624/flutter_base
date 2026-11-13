@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../layout/mobile/index.dart';
 import '../pages/components/index.dart' show desktopComponentGroup;
 import '../utils/router.dart';
+import '../state/index.dart';
 
 /// 移动路由为现有的四个底栏分别保留导航栈。
 RoutingConfig get mobileRoute => RoutingConfig(
@@ -34,8 +35,13 @@ RoutingConfig get mobileRoute => RoutingConfig(
                 ...RouterUtil.pageToRoute(
                   RouterUtil.pages,
                   parentNavigatorKey: RouterUtil.rootNavigatorKey,
-                  builder: (context, state, page) =>
-                      ElComponentProvider(components: el.mobileComponents, child: RouterUtil.buildPage(context, page)),
+                  builder: (context, state, page) => ObsBuilder(
+                    builder: (context) => ElComponentProvider(
+                      components: el.mobileComponents,
+                      style: GlobalState.appearanceStyle,
+                      child: RouterUtil.buildPage(context, page),
+                    ),
+                  ),
                 ),
               ],
             ),

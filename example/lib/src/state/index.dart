@@ -1,4 +1,7 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart' show debugRepaintRainbowEnabled;
+import 'package:flutter/scheduler.dart' show timeDilation;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 /// 通用文档页使用的正文布局。
@@ -26,8 +29,74 @@ enum DocScrollMode {
 class GlobalState {
   const GlobalState._();
 
+  // 主题与外观
+
   /// 是否使用暗色主题。
   static final isDark = Obs(false, cacheKey: 'example.settings.isDark');
+
+  /// 浅色主题主色，空值沿用当前品牌预设。
+  static final primaryColor = Obs<Color?>(
+    null,
+    cacheKey: 'example.settings.primaryColor',
+    serialize: ElColorSerialize(),
+  );
+
+  /// 暗色主题主色，空值沿用当前品牌预设。
+  static final darkPrimaryColor = Obs<Color?>(
+    null,
+    cacheKey: 'example.settings.darkPrimaryColor',
+    serialize: ElColorSerialize(),
+  );
+
+  /// 紧凑模式预留状态，目前仅在设置中保存和展示。
+  static final compact = Obs(false, cacheKey: 'example.settings.compact');
+
+  /// 用户主色覆盖，局部示例显式声明的主题仍由示例自身决定。
+  static ElStyle get appearanceStyle {
+    final color = isDark.value ? darkPrimaryColor.value : primaryColor.value;
+    return ElStyle(
+      vars: {ElTokens.$primary: ?color},
+      onDark: ElStyle(vars: {ElTokens.$primary: ?color}),
+    );
+  }
+
+  // 文字与缩放
+
+  /// 正文字重，空值沿用系统及主题默认值。
+  static final globalFontWeight = Obs<int?>(null, cacheKey: 'example.settings.globalFontWeight');
+
+  /// 文字缩放倍率，1 表示沿用系统文字缩放。
+  static final globalScale = Obs(1.0, cacheKey: 'example.settings.globalScale');
+
+  // 语言与方向
+
+  /// 系统控件支持的语言；示例正文保留原有文案。
+  static final supportedLocales = {'English': Locale('en', 'US'), '简体中文': Locale('zh', 'CN')};
+
+  /// 系统控件首选语言，空值跟随系统。
+  static final locale = Obs<Locale?>(null, cacheKey: 'example.settings.locale', serialize: ElLocaleSerialize());
+
+  /// 是否强制从右向左排版。
+  static final rtl = Obs(false, cacheKey: 'example.settings.rtl');
+
+  // 动画
+
+  /// 请求减少动画并关闭主题过渡，不暂停无限进度等状态展示。
+  static final closeAnimation = Obs(false, cacheKey: 'example.settings.closeAnimation');
+
+  /// 临时以两倍时长播放动画，不持久化调试状态。
+  static final slowAnimation = Obs(false, onChanged: (value) => timeDilation = value ? 2.0 : 1.0);
+
+  // 性能与调试
+
+  /// 是否显示实时 Flutter 帧率。
+  static final showFps = Obs(false, cacheKey: 'example.settings.showFps');
+
+  /// 临时显示重绘彩虹，仅 Debug 模式有效。
+  static final enabledRepaintRainbow = Obs(false, onChanged: (value) => debugRepaintRainbowEnabled = value);
+
+  /// 临时显示语义调试器。
+  static final showSemanticsDebugger = Obs(false);
 
   /// 是否显示 Flutter 性能图层。
   static final showPerformanceOverlay = Obs(false, cacheKey: 'example.settings.showPerformanceOverlay');
@@ -37,6 +106,8 @@ class GlobalState {
 
   /// 是否屏蔽整个示例应用的辅助技术语义。
   static final excludeSemantics = Obs(false, cacheKey: 'example.settings.excludeSemantics');
+
+  // 文档与滚动
 
   /// 所有通用文档页使用的滚动实现。
   static final docScrollMode = _createDocScrollSetting();
@@ -51,6 +122,18 @@ class GlobalState {
   static void restoreSettings() {
     for (final setting in [
       isDark,
+      primaryColor,
+      darkPrimaryColor,
+      compact,
+      globalFontWeight,
+      globalScale,
+      locale,
+      rtl,
+      closeAnimation,
+      slowAnimation,
+      showFps,
+      enabledRepaintRainbow,
+      showSemanticsDebugger,
       showPerformanceOverlay,
       debugShowCheckedModeBanner,
       excludeSemantics,

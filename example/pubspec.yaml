@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   android_system_font_weight: ^0.4.0
   faker: ^2.2.0
   flutter_base:
