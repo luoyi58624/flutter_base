@@ -314,7 +314,7 @@ void main() {
     expect(_rect(tester, 3).top, 60);
     expect(tester.getTopLeft(find.byKey(const ValueKey('after-leading-zero'))).dy, 100);
     expect(
-      tester.widget<ElSliverGrid>(
+      tester.widget<Widget>(
         find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
       ),
       same(grid),
@@ -598,7 +598,7 @@ void main() {
           expect(find.byKey(const ValueKey('cell 3')).hitTestable(), findsOneWidget);
         }
         expect(
-          tester.widget<ElSliverGrid>(
+          tester.widget<Widget>(
             find.byWidgetPredicate(
               (widget) => widget is ElSliverGrid || widget is ElSliverMasonry,
               skipOffstage: false,

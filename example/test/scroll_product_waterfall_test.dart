@@ -80,7 +80,7 @@ _TileSnapshot _snapshot(WidgetTester tester, Element element) {
 void main() {
   testWidgets('真实回收瀑布流与 Flutter SliverGrid 在初始元数据下共享两列几何', (tester) async {
     await _open(tester);
-    final list = tester.widget<ElSliverGrid>(
+    final list = tester.widget<ElSliverMasonry>(
       find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
     );
     expect(list.itemCount, 1000);

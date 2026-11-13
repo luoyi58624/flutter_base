@@ -43,9 +43,11 @@ export 'src/flutter/views/view/event/event.dart';
 export 'src/flutter/views/scroll/scroll.dart' show ElScrollView;
 export 'src/flutter/views/scroll/nested/nested_scroll.dart' show ElNestedScroll;
 export 'src/flutter/views/scroll/scrollbar/index.dart' show ElWindowsScrollbar, ElMacScrollbar;
-export 'src/flutter/slivers/sliver.dart' show ElSliverList, ElSliverGrid, ElSliverMasonry, ElSliverRecyclerController;
-export 'src/flutter/slivers/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
-export 'src/flutter/slivers/large_title.dart' show ElSliverLargeTitle;
+export 'src/flutter/views/scroll/sliver/list/index.dart' show ElSliverList, ElSliverRecyclerController;
+export 'src/flutter/views/scroll/sliver/grid/index.dart' show ElSliverGrid;
+export 'src/flutter/views/scroll/sliver/masonry/index.dart' show ElSliverMasonry;
+export 'src/flutter/views/scroll/sliver/appbar/collapse.dart' show ElSliverCollapse, ElSliverCollapseBuilder;
+export 'src/flutter/views/scroll/sliver/appbar/large_title.dart' show ElSliverLargeTitle;
 export 'src/flutter/views/scroll/smooth/smooth_scroll.dart'
     show ElChromiumSmoothScroll, ElSmoothScroll, ElWindowsSmoothScroll;
 export 'src/flutter/views/scroll/nested/nested_scroll_chain.dart' show ElNestedScrollParent;
@@ -58,7 +60,6 @@ export 'src/flutter/views/scroll/refresh/index.dart';
 // 布局
 export 'src/flutter/widgets/stack/index.dart'
     show ElStack, ElStackItem, ElPositioned, ElStackParentData, RenderStackView;
-export 'src/flutter/widgets/grid/index.dart' show ElGrid;
 
 // 弹层、锚点与上下文菜单
 export 'src/flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;

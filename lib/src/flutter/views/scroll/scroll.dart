@@ -4,7 +4,7 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent, SliverPaintOrder
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../../../dart/gen/index.dart' show $absent;
-import '../../slivers/sliver.dart' show ElSliverList;
+import 'sliver/list/index.dart' show ElSliverList;
 import 'smooth/smooth_scroll.dart' show ElSmoothScroll, resolveDefaultSmoothScroll;
 import 'scroll_position.dart' show ScrollHostPhysics, ScrollHostPosition;
 import 'viewport.dart' show ElShrinkWrappingViewport, ElViewport, ScrollTransparentSelectionRegistrar;

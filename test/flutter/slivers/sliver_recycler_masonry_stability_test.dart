@@ -142,7 +142,7 @@ void main() {
     );
     // 保持原 Sliver Widget，只扩大主轴可视范围，排除父级重建导致的缓存清理。
     await fixture.mount();
-    final originalSliver = tester.widget<ElSliverGrid>(
+    final originalSliver = tester.widget<Widget>(
       find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
     );
     await fixture.jump(4000);
@@ -158,7 +158,7 @@ void main() {
     tester.view.physicalSize = Size(320, 1400);
     await fixture.settle();
     expect(
-      tester.widget<ElSliverGrid>(
+      tester.widget<Widget>(
         find.byWidgetPredicate((widget) => widget is ElSliverGrid || widget is ElSliverMasonry),
       ),
       same(originalSliver),

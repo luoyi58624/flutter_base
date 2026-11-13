@@ -16,7 +16,7 @@ import '../../utils/internal/benchmark_probe.dart' show MountTrace, elMountTrace
 import '../../utils/internal/gutter.dart' show OrdinalGutterHost, RenderOrdinalGutter;
 import '../scroll/dual_axis_scroll.dart' show DualAxisScroll;
 import '../scroll/scroll.dart' show ElScrollView;
-import '../../slivers/sliver.dart' show ElSliverRecyclerController, ElSliverList;
+import '../scroll/sliver/list/index.dart' show ElSliverRecyclerController, ElSliverList;
 import '../button/button_view.dart';
 import '../../widgets/stack/index.dart';
 import '../view/event/event.dart';

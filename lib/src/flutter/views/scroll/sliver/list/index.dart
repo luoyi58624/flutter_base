@@ -1,4 +1,18 @@
-part of '../sliver.dart';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
+
+import '../internal/builder.dart';
+import '../internal/eager.dart';
+import '../internal/extent_index.dart';
+import '../internal/index_controller.dart';
+import '../internal/layout.dart';
+import '../internal/recycler.dart';
+
+part 'controller.dart';
+part 'layout.dart';
 
 /// 自然尺寸列表，支持全量常驻、按需构建、复用以及按需分隔符。
 abstract class ElSliverList extends Widget {
@@ -72,45 +86,53 @@ abstract class ElSliverList extends Widget {
   /// 相邻条目的主轴间距，分隔符构造为零。
   double get spacing;
 
-  /// 是否沿交叉轴居中。
+  /// 是否沿交叉轴居中；子项只受交叉轴最大尺寸约束，可以比内容区更窄。
   bool get center;
 
-  /// 是否撑满交叉轴。
+  /// 是否撑满交叉轴；开启后交叉轴没有余量，[center] 不再产生效果。
   bool get stretch;
 }
 
-class _RecyclerList extends _LazySliver implements ElSliverList {
-  const _RecyclerList({
+class _EagerList extends EagerSliver implements ElSliverList {
+  const _EagerList({
     super.key,
-    required super.itemCount,
-    required super.itemBuilder,
-    double spacing = 0,
-    super.center,
-    super.stretch,
-    super.itemType,
-    super.maxRecycledItems,
-    super.controller,
+    required super.children,
+    this.spacing = 0,
+    this.center = false,
+    this.stretch = false,
     super.addRepaintBoundaries,
     super.addSemanticIndexes,
-  }) : assert(spacing >= 0 && spacing < double.infinity),
-       super(mainAxisSpacing: spacing);
+  });
+
+  @override
+  final double spacing;
+  @override
+  final bool center;
+  @override
+  final bool stretch;
+
+  @override
+  Object? Function(int)? get itemType => null;
+
+  @override
+  SliverLayoutSpec get spec => _ListSpec(spacing, center, stretch);
 }
 
-class _BuilderList extends _LazySliver implements ElSliverList {
+class _BuilderList extends BuilderSliver implements ElSliverList {
   _BuilderList({
     super.key,
-    required super.itemCount,
+    required this.itemCount,
     required IndexedWidgetBuilder itemBuilder,
-    double spacing = 0,
-    super.center,
-    super.stretch,
+    this.spacing = 0,
+    this.center = false,
+    this.stretch = true,
     ChildIndexGetter? findChildIndexCallback,
-    super.addAutomaticKeepAlives,
-    super.addRepaintBoundaries,
-    super.addSemanticIndexes,
-  }) : assert(spacing >= 0 && spacing < double.infinity),
+    bool addAutomaticKeepAlives = true,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
+  }) : assert(itemCount >= 0),
        super(
-         mainAxisSpacing: spacing,
+         childCount: itemCount,
          delegate: SliverChildBuilderDelegate(
            itemBuilder,
            childCount: itemCount,
@@ -120,27 +142,42 @@ class _BuilderList extends _LazySliver implements ElSliverList {
            addSemanticIndexes: addSemanticIndexes,
          ),
        );
+
+  @override
+  final int itemCount;
+  @override
+  final double spacing;
+  @override
+  final bool center;
+  @override
+  final bool stretch;
+  @override
+  final bool addRepaintBoundaries;
+  @override
+  final bool addSemanticIndexes;
+
+  @override
+  List<Widget> get children => const [];
+
+  @override
+  SliverLayoutSpec get spec => _ListSpec(spacing, center, stretch);
 }
 
-class _SeparatedList extends _LazySliver implements ElSliverList {
-  final int _itemCount;
-  @override
-  int get itemCount => _itemCount;
-
+class _SeparatedList extends BuilderSliver implements ElSliverList {
   _SeparatedList({
     super.key,
-    required int itemCount,
+    required this.itemCount,
     required IndexedWidgetBuilder itemBuilder,
     required IndexedWidgetBuilder separatorBuilder,
     ChildIndexGetter? findItemIndexCallback,
-    super.addAutomaticKeepAlives,
-    super.addRepaintBoundaries,
-    super.addSemanticIndexes,
-  }) : _itemCount = itemCount,
-       assert(itemCount >= 0),
+    bool addAutomaticKeepAlives = true,
+    this.addRepaintBoundaries = true,
+    this.addSemanticIndexes = true,
+  }) : assert(itemCount >= 0),
        super(
-         itemCount: math.max(0, itemCount * 2 - 1),
-         itemType: (index) => index.isEven,
+         childCount: math.max(0, itemCount * 2 - 1),
+         // 条目与分隔符分开估算尺寸。
+         itemType: _isItem,
          delegate: SliverChildBuilderDelegate(
            (context, index) => index.isEven ? itemBuilder(context, index ~/ 2) : separatorBuilder(context, index ~/ 2),
            childCount: math.max(0, itemCount * 2 - 1),
@@ -156,4 +193,58 @@ class _SeparatedList extends _LazySliver implements ElSliverList {
            semanticIndexCallback: (_, index) => index.isEven ? index ~/ 2 : null,
          ),
        );
+
+  static Object? _isItem(int index) => index.isEven;
+
+  @override
+  final int itemCount;
+  @override
+  final bool addRepaintBoundaries;
+  @override
+  final bool addSemanticIndexes;
+
+  @override
+  List<Widget> get children => const [];
+  @override
+  double get spacing => 0;
+  @override
+  bool get center => false;
+  @override
+  bool get stretch => true;
+
+  @override
+  SliverLayoutSpec get spec => const _ListSpec(0, false, true);
+}
+
+class _RecyclerList extends RecyclerSliver implements ElSliverList {
+  const _RecyclerList({
+    super.key,
+    required super.itemCount,
+    required super.itemBuilder,
+    this.spacing = 0,
+    this.center = false,
+    this.stretch = true,
+    super.itemType,
+    super.maxRecycledItems,
+    this.controller,
+    super.addRepaintBoundaries,
+    super.addSemanticIndexes,
+  });
+
+  @override
+  final double spacing;
+  @override
+  final bool center;
+  @override
+  final bool stretch;
+  final ElSliverRecyclerController? controller;
+
+  @override
+  List<Widget> get children => const [];
+
+  @override
+  SliverIndexChannel? get channel => controller?._channel;
+
+  @override
+  SliverLayoutSpec get spec => _ListSpec(spacing, center, stretch);
 }

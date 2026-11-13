@@ -4,7 +4,7 @@ import 'package:faker/faker.dart' as fake;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/desktop.dart';
 
-/// 按页追加网格卡片。旧页用 [ElRebuildWidget] 冻住，滚动只绘制视口内的页。
+/// 按页追加网格卡片：固定格尺寸的 [ElSliverGrid.builder] 只构建缓存窗口内的卡片。
 class GridScrollPage extends StatefulWidget {
   /// 创建网格滚动示例。
   const GridScrollPage({super.key});
@@ -14,7 +14,7 @@ class GridScrollPage extends StatefulWidget {
 }
 
 class _GridScrollPageState extends State<GridScrollPage> {
-  /// 每一页的格子数。追加时只构建这一页。
+  /// 每一页追加的格子数。
   static const _pageSize = 100;
 
   final ScrollController _controller = ScrollController();
@@ -65,31 +65,23 @@ class _GridScrollPageState extends State<GridScrollPage> {
   @override
   Widget build(BuildContext context) {
     final dark = context.elTheme.brightness == Brightness.dark;
-    final pages = _items.length ~/ _pageSize;
     return Scaffold(
       backgroundColor: dark ? Colors.grey.shade900 : Colors.grey.shade200,
       appBar: AppBar(title: Text('网格滚动')),
-      body: ElScrollView(
+      body: ElScrollView.sliver(
         controller: _controller,
-        padding: .all(6),
-        children: [
-          for (var page = 0; page < pages; page++)
-            ElRebuildWidget(
-              child: ObsBuilder(
-                builder: (context) {
-                  return RepaintBoundary(
-                    child: ElGrid(
-                      itemWidth: 150,
-                      rowGap: 6,
-                      columnGap: 6,
-                      // 旧 ElGrid 用宽乘 1.2 得到高度；这里的 aspectRatio 是宽/高。
-                      aspectRatio: 1 / 1.2,
-                      children: List.generate(_pageSize, (index) => _Card(data: _items[page * _pageSize + index])),
-                    ),
-                  );
-                },
-              ),
+        slivers: [
+          SliverPadding(
+            padding: .all(6),
+            sliver: ElSliverGrid.builder(
+              itemCount: _items.length,
+              itemWidth: 150,
+              gap: 6,
+              // 格高为宽的 1.2 倍；aspectRatio 是宽/高。固定格尺寸让追加分页不需要测量已有卡片。
+              aspectRatio: 1 / 1.2,
+              itemBuilder: (context, index) => _Card(data: _items[index]),
             ),
+          ),
         ],
       ),
     );

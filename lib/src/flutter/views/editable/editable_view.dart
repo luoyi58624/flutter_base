@@ -28,7 +28,7 @@ import '../../utils/internal/pixel_grid.dart';
 import '../scroll/dual_axis_scroll.dart' show DualAxisScroll;
 import '../scroll/scroll.dart' show ElScrollView;
 import '../scroll/viewport.dart' show ScrollViewport;
-import '../../slivers/sliver.dart' show ElSliverRecyclerController, ElSliverList;
+import '../scroll/sliver/list/index.dart' show ElSliverRecyclerController, ElSliverList;
 import '../selection/common/selection_core.dart';
 import '../view/event/event.dart';
 import '../view/render/render_view.dart' show ElRenderView, CascadeBridgeChanges, ViewStateRenderAccess;
