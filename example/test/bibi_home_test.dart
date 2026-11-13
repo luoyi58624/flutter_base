@@ -1,5 +1,6 @@
 import 'package:example/src/pages/examples/bibi/index.dart';
 import 'package:example/src/pages/examples/index.dart';
+import 'package:example/src/pages/examples/new_bibi_collapse/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,16 +12,11 @@ Finder _inFeed(Finder matching, {int index = 1}) => find.descendant(of: _key('bi
 Future<void> _open(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(390, 844);
+  tester.view.viewPadding = FakeViewPadding(top: 24, bottom: 16);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
-  await tester.pumpWidget(
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(size: Size(390, 844), viewPadding: EdgeInsets.only(top: 24, bottom: 16)),
-        child: BibiPage(),
-      ),
-    ),
-  );
+  addTearDown(tester.view.resetViewPadding);
+  await tester.pumpWidget(MaterialApp(home: BibiPage()));
   await tester.pumpAndSettle();
 }
 
@@ -50,6 +46,43 @@ Future<void> _releaseHeld(WidgetTester tester, TestGesture gesture) async {
 }
 
 void main() {
+  for (final (name, page, tabs) in [
+    ('Bibi 首页', BibiPage(), _inFeed(_key('bibi-tabs'))),
+    ('新版折叠 Bibi', NewBibiCollapsePage(), _key('bibi-collapse-channels')),
+  ]) {
+    testWidgets('$name 使用当前视图的状态栏安全区和白底', (tester) async {
+      tester.view.devicePixelRatio = 2;
+      tester.view.physicalSize = Size(780, 1688);
+      tester.view.viewPadding = FakeViewPadding(top: 64);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetViewPadding);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => MediaQuery.removeViewPadding(context: context, removeTop: true, child: page),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(tabs).dy, 32 + 58);
+      final statusBar = _key('bibi-status-bar');
+      expect(tester.getRect(statusBar), Rect.fromLTWH(0, 0, 390, 32));
+      expect(tester.widget<ColoredBox>(statusBar).color, Colors.white);
+
+      await tester.dragFrom(Offset(195, 580), Offset(0, -70));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(tabs).dy, 32);
+
+      tester.view.viewPadding = FakeViewPadding(top: 80);
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(tabs).dy, 40);
+      expect(tester.getRect(statusBar), Rect.fromLTWH(0, 0, 390, 40));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('示例目录生成可单独打开并返回的 Bibi 首页', (tester) async {
     final entry = advancedExamples.singleWhere((example) => example.key == 'bibi-home');
     await tester.pumpWidget(

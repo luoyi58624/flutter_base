@@ -173,11 +173,7 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
           ),
           child: Column(
             children: [
-              SizedBox(
-                height: insets.top,
-                width: double.infinity,
-                child: ColoredBox(color: Colors.white),
-              ),
+              BibiStatusBar(),
               Expanded(
                 child: ElTabView(
                   key: ValueKey('bibi-pager'),

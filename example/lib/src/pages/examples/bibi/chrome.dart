@@ -15,6 +15,25 @@ const _compactSearchWidth = 40.0;
 const _fadeWidth = 19.0;
 const _endInset = 4.0;
 
+/// 为全屏 Bibi 页面绘制白色状态栏背景，并在滚动视口外保留真实安全区高度。
+class BibiStatusBar extends StatelessWidget {
+  /// 创建跟随当前窗口状态栏高度的占位。
+  const BibiStatusBar();
+
+  // 独立页面以窗口的实际留白为准，即使上层已经裁掉了 MediaQuery 的顶部数据。
+  @override
+  Widget build(BuildContext context) => MediaQuery.fromView(
+    view: View.of(context),
+    child: Builder(
+      builder: (context) => SizedBox(
+        height: MediaQuery.viewPaddingOf(context).top,
+        width: double.infinity,
+        child: ColoredBox(key: ValueKey('bibi-status-bar'), color: Colors.white),
+      ),
+    ),
+  );
+}
+
 /// 仿 B 站首页的搜索栏、状态栏背景和频道栏。
 class BibiHeader extends StatelessWidget {
   /// 页头位移由正文的滚动协调器提供。
