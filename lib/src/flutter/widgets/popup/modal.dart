@@ -16,7 +16,7 @@ part 'modal_drag.dart';
 
 /// 从调用位置继承主题与品牌，打开模态反馈并返回业务值。
 extension ElFeedbackExt on El {
-  /// 在根导航器打开底部内容弹层，支持拖动关闭和业务值返回。
+  /// 在根导航器打开底部内容弹层，支持从面板和遮罩拖动关闭并返回业务值。
   Future<T?> popup<T>(
     BuildContext context, {
     required Widget child,
@@ -51,7 +51,7 @@ extension ElFeedbackExt on El {
     false,
   );
 
-  /// 从指定屏幕边缘打开抽屉。
+  /// 从指定屏幕边缘打开抽屉，面板和遮罩都可沿退场方向拖动关闭。
   Future<T?> drawer<T>(
     BuildContext context, {
     required Widget child,
@@ -189,59 +189,60 @@ Future<T?> _show<T>(BuildContext context, ElPopup content, ElPopupPlacement plac
       final viewportHeight = MediaQuery.sizeOf(context).height;
       final progress = route.progress;
       final surface = label == null ? content : Semantics(namesRoute: true, label: label, child: content);
-      final movable = drag && placement != .center
-          ? _ModalDrag(
-              axis: horizontal ? .horizontal : .vertical,
-              sign: alignment.x + alignment.y,
-              motion: motion,
-              reduced: reduced,
-              animation: animation,
-              child: surface,
-            )
-          : surface;
-      return themes.wrap(
-        Padding(
-          padding: frame,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final height = constraints.maxHeight;
-              final box = drawer && placement != .center
-                  ? BoxConstraints.tightFor(
-                      width: horizontal ? math.min(360, constraints.maxWidth) : constraints.maxWidth,
-                      height: horizontal ? height : math.min(420, height),
-                    )
-                  : BoxConstraints(
-                      maxWidth: sheet ? 400 : 420,
-                      maxHeight: sheet ? math.min(height, viewportHeight * .85) : height,
-                    );
-              return Align(
-                alignment: alignment,
-                child: AnimatedBuilder(
-                  animation: progress,
-                  child: ConstrainedBox(constraints: box, child: movable),
-                  builder: (context, child) {
-                    final remaining = 1 - progress.value;
-                    return Opacity(
-                      opacity: progress.value,
-                      child: placement == .center
-                          ? Transform.translate(
-                              offset: Offset(0, remaining * 16),
-                              child: Transform.scale(scale: 1 - remaining * .02, child: child),
-                            )
-                          : FractionalTranslation(
-                              translation: Offset(alignment.x, alignment.y) * remaining,
-                              child: Transform.translate(
-                                offset: Offset(alignment.x * margin, alignment.y * margin) * remaining,
-                                child: child,
-                              ),
+      Widget layout(Widget panel) => Padding(
+        padding: frame,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final height = constraints.maxHeight;
+            final box = drawer && placement != .center
+                ? BoxConstraints.tightFor(
+                    width: horizontal ? math.min(360, constraints.maxWidth) : constraints.maxWidth,
+                    height: horizontal ? height : math.min(420, height),
+                  )
+                : BoxConstraints(
+                    maxWidth: sheet ? 400 : 420,
+                    maxHeight: sheet ? math.min(height, viewportHeight * .85) : height,
+                  );
+            return Align(
+              alignment: alignment,
+              child: AnimatedBuilder(
+                animation: progress,
+                child: ConstrainedBox(constraints: box, child: panel),
+                builder: (context, child) {
+                  final remaining = 1 - progress.value;
+                  return Opacity(
+                    opacity: progress.value,
+                    child: placement == .center
+                        ? Transform.translate(
+                            offset: Offset(0, remaining * 16),
+                            child: Transform.scale(scale: 1 - remaining * .02, child: child),
+                          )
+                        : FractionalTranslation(
+                            translation: Offset(alignment.x, alignment.y) * remaining,
+                            child: Transform.translate(
+                              offset: Offset(alignment.x * margin, alignment.y * margin) * remaining,
+                              child: child,
                             ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
+                          ),
+                  );
+                },
+              ),
+            );
+          },
         ),
+      );
+      return themes.wrap(
+        drag && placement != .center
+            ? _ModalDrag(
+                axis: horizontal ? .horizontal : .vertical,
+                sign: alignment.x + alignment.y,
+                motion: motion,
+                reduced: reduced,
+                animation: animation,
+                layout: layout,
+                child: surface,
+              )
+            : layout(surface),
       );
     },
   );
@@ -283,7 +284,7 @@ class _ModalRoute<T> extends RawDialogRoute<T> {
   @override
   bool didPop(T? result) {
     // 跟手关闭已完成退场，只需结束路由并恢复下层焦点。
-    if (motion.fade == 1 && !willHandlePopInternally) controller!.reverseDuration = Duration.zero;
+    if (motion.dismissed && !willHandlePopInternally) controller!.reverseDuration = Duration.zero;
     return super.didPop(result);
   }
 
@@ -298,7 +299,7 @@ class _ModalRoute<T> extends RawDialogRoute<T> {
 class _ModalBackdrop extends StatelessWidget {
   const _ModalBackdrop({required this.progress, required this.motion, required this.sheet, required this.child});
 
-  final CurvedAnimation progress;
+  final Animation<double> progress;
   final _ModalDragMotion motion;
   final bool sheet;
   final Widget child;
@@ -311,17 +312,11 @@ class _ModalBackdrop extends StatelessWidget {
       animation: Listenable.merge([progress, motion]),
       child: child,
       builder: (context, child) {
-        final raw = progress.parent;
-        final phase = progress.value;
-        final openingSheet = sheet && raw.status == .forward;
-        final fade = openingSheet ? _modalCurve.transform((raw.value / .36).clamp(0, 1).toDouble()) : phase;
-        final extra = openingSheet ? _modalCurve.transform(((raw.value - .36) / .64).clamp(0, 1).toDouble()) : phase;
-        final visible = 1 - motion.fade;
-        final drawerShade = 1 - .65 * motion.distance;
-        final sigma = blur * visible * (sheet ? 1.25 * fade + .5 * extra * (1 - motion.distance) : phase * drawerShade);
-        final opacity = fade * visible * (sheet ? 1 : drawerShade);
+        // 面板位移、遮罩和模糊使用同一进度，拖动与回弹不再分段。
+        final visible = progress.value * (1 - motion.distance);
+        final sigma = blur * (sheet ? 1.75 : 1) * visible;
         final shade = ColoredBox(
-          color: color.withValues(alpha: color.a * opacity),
+          color: color.withValues(alpha: color.a * visible),
           child: child,
         );
         return BackdropFilter(

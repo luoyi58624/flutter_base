@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -103,7 +105,7 @@ void main() {
     await tester.pump(Duration(seconds: 4));
   });
 
-  testWidgets('四向抽屉贴合对应边缘，向外拖动关闭并保留取消返回值', (tester) async {
+  testWidgets('四向抽屉贴合对应边缘，从遮罩起手也能跟手回弹', (tester) async {
     final viewport = tester.view.physicalSize / tester.view.devicePixelRatio;
     for (final (placement, delta) in [
       (ElPopupPlacement.left, Offset(-500, 0)),
@@ -132,14 +134,30 @@ void main() {
       await tester.tap(find.byKey(ValueKey('open')));
       await tester.pumpAndSettle();
       final drawer = find.byType(ElDrawer);
-      expect(tester.getRect(drawer), switch (placement) {
+      final frame = tester.getRect(drawer);
+      expect(frame, switch (placement) {
         .left => Rect.fromLTWH(0, 0, 360, viewport.height),
         .right => Rect.fromLTWH(viewport.width - 360, 0, 360, viewport.height),
         .top => Rect.fromLTWH(0, 0, viewport.width, 420),
         .bottom => Rect.fromLTWH(0, viewport.height - 420, viewport.width, 420),
         .center => throw StateError('仅测试四个方向'),
       });
-      expect(tester.getRect(find.byKey(ValueKey('footer'))).bottom, tester.getRect(drawer).bottom - 20);
+      expect(tester.getRect(find.byKey(ValueKey('footer'))).bottom, frame.bottom - 20);
+      final outside = switch (placement) {
+        .left => Offset(viewport.width - 8, frame.center.dy),
+        .right => Offset(8, frame.center.dy),
+        .top => Offset(frame.center.dx, viewport.height - 8),
+        .bottom => Offset(frame.center.dx, 8),
+        .center => throw StateError('仅测试四个方向'),
+      };
+      final shift = delta * .048;
+      final shortDrag = await tester.startGesture(outside);
+      await shortDrag.moveBy(shift);
+      await tester.pump();
+      expect(tester.getRect(drawer), frame.shift(shift));
+      await shortDrag.up();
+      await tester.pumpAndSettle();
+      expect(tester.getRect(drawer), frame);
       await tester.drag(drawer, delta);
       await tester.pumpAndSettle();
       expect(await result, isNull);
@@ -147,6 +165,73 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(SizedBox());
     }
+  });
+
+  testWidgets('底部面板可从两侧遮罩拖动，遮罩和模糊与位移逐帧同步', (tester) async {
+    final tint = Color(0x80223658);
+    final opener = find.byKey(ValueKey('open'));
+    Future<void>? closed;
+    await tester.pumpWidget(
+      host(
+        ElView(
+          style: ElStyle(vars: {ElTokens.$overlayColor: tint, ElTokens.$overlayBackdropBlur: 4}),
+          child: Builder(
+            builder: (context) => ElButton(
+              key: ValueKey('open'),
+              child: '打开',
+              onPressed: () => closed = el.popup<void>(context, showClose: false, child: SizedBox(height: 240)),
+            ),
+          ),
+        ),
+      ),
+    );
+    final popup = find.byType(ElPopup);
+    final backdrop = find.byType(BackdropFilter);
+    final shade = find.descendant(of: backdrop, matching: find.byType(ColoredBox));
+    void expectBackdrop(double visible) {
+      final sigma = 7 * visible;
+      expect(tester.widget<BackdropFilter>(backdrop).filter, ImageFilter.blur(sigmaX: sigma, sigmaY: sigma));
+      expect(tester.widget<ColoredBox>(shade).color.a, closeTo(tint.a * visible, 1e-9));
+    }
+
+    await tester.tap(opener);
+    await tester.pump();
+    final route = ModalRoute.of(tester.element(popup))!;
+    for (final time in [Duration(milliseconds: 50), Duration(milliseconds: 75)]) {
+      await tester.pump(time);
+      expectBackdrop(Cubic(.174, 0, .185, 1).transform(route.animation!.value));
+    }
+    await tester.pumpAndSettle();
+    final frame = tester.getRect(popup);
+    expectBackdrop(1);
+
+    final side = Offset(frame.left / 2, frame.center.dy);
+    final shortDrag = await tester.startGesture(side);
+    await shortDrag.moveBy(Offset(0, 30));
+    await tester.pump();
+    expect(tester.getRect(popup), frame.shift(Offset(0, 30)));
+    expectBackdrop(.875);
+    await shortDrag.up();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(popup), frame);
+    expectBackdrop(1);
+
+    final opposite = Offset(frame.right + 8, frame.center.dy);
+    await tester.dragFrom(opposite, Offset(0, -110));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(popup), frame);
+
+    await tester.dragFrom(opposite, Offset(0, 110));
+    await tester.pumpAndSettle();
+    expect(popup, findsNothing);
+    await closed;
+
+    await tester.tap(opener);
+    await tester.pumpAndSettle();
+    await tester.tapAt(side);
+    await tester.pumpAndSettle();
+    expect(popup, findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('面板从正文顶部向外滑动时跟手，正文有滚动空间时优先滚动', (tester) async {
@@ -261,6 +346,9 @@ void main() {
     await tester.tapAt(Offset(8, 8));
     await tester.pumpAndSettle();
     expect(popup, findsOneWidget);
+    await tester.dragFrom(Offset(8, 8), Offset(0, 120));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(popup), frame);
     await tester.tap(copy('保存'));
     await tester.pumpAndSettle();
     expect(await result, '已保存');

@@ -3,12 +3,12 @@ part of 'modal.dart';
 class _ModalDragMotion extends ChangeNotifier {
   double offset = 0;
   double distance = 0;
-  double fade = 0;
+  bool dismissed = false;
 
-  void update(double offset, double distance, {double fade = 0}) {
+  void update(double offset, double distance, {bool dismissed = false}) {
     this.offset = offset;
     this.distance = distance.clamp(0.0, 1.0);
-    this.fade = fade;
+    this.dismissed = dismissed;
     notifyListeners();
   }
 }
@@ -20,6 +20,7 @@ class _ModalDrag extends StatefulWidget {
     required this.motion,
     required this.reduced,
     required this.animation,
+    required this.layout,
     required this.child,
   });
 
@@ -28,6 +29,7 @@ class _ModalDrag extends StatefulWidget {
   final _ModalDragMotion motion;
   final bool reduced;
   final Animation<double> animation;
+  final Widget Function(Widget panel) layout;
   final Widget child;
 
   @override
@@ -35,21 +37,26 @@ class _ModalDrag extends StatefulWidget {
 }
 
 class _ModalDragState extends State<_ModalDrag> with SingleTickerProviderStateMixin {
+  final _panelKey = GlobalKey();
   final _scrollables = <ScrollableState>{};
   late final _settle = AnimationController(vsync: this);
   late final _ModalSwipeRecognizer _swipe;
 
-  double get _extent {
-    final size = context.size!;
-    return widget.axis == .horizontal ? size.width : size.height;
-  }
+  RenderBox? get _panel => _panelKey.currentContext?.findRenderObject() as RenderBox?;
+
+  double get _extent => switch (_panel?.size) {
+    Size(:final width, :final height) => widget.axis == .horizontal ? width : height,
+    null => 0,
+  };
 
   bool _canStart(PointerDownEvent event) {
-    if (!widget.animation.isCompleted || _settle.isAnimating) return false;
-    // 输入控件本身需要横向拖动或文字选择，面板手势在这一触点让位。
-    final panel = context.findRenderObject()! as RenderBox;
+    final panel = _panel;
+    if (!widget.animation.isCompleted || _settle.isAnimating || panel == null || !panel.hasSize) return false;
+    // 遮罩区直接登记手势，面板内起手才检查输入和滚动控件。
+    final position = panel.globalToLocal(event.position);
+    if (!(Offset.zero & panel.size).contains(position)) return true;
     final result = BoxHitTestResult();
-    panel.hitTest(result, position: panel.globalToLocal(event.position));
+    panel.hitTest(result, position: position);
     final targets = <HitTestTarget>{};
     for (final entry in result.path) {
       final target = entry.target;
@@ -87,28 +94,31 @@ class _ModalDragState extends State<_ModalDrag> with SingleTickerProviderStateMi
     return false;
   }
 
-  void _move(double distance) => widget.motion.update(distance, distance / _extent);
+  void _move(double distance) {
+    final extent = _extent;
+    if (extent > 0) widget.motion.update(distance, distance / extent);
+  }
 
   Future<void> _end(double velocity, {bool cancelled = false}) async {
     final route = ModalRoute.of(context);
     final from = widget.motion.offset;
     final extent = _extent;
+    if (extent <= 0) {
+      widget.motion.update(0, 0);
+      return;
+    }
     final dismiss =
-        !cancelled &&
-        extent > 0 &&
-        from >= 12 &&
-        velocity >= -300 &&
-        (from >= math.min(88, extent * .28) || velocity >= 550);
-    final to = dismiss ? extent + 32 : 0.0;
-    if (to == from) return;
+        !cancelled && from >= 12 && velocity >= -300 && (from >= math.min(88, extent * .28) || velocity >= 550);
+    final to = dismiss ? math.max(from, extent + 32) : 0.0;
+    if (to == from && !dismiss) return;
     // 松手的速度决定回弹曲线起点，收尾沿用 Web 面板的阻尼曲线。
-    final slope = (.174 * velocity * .22 / (to - from)).clamp(-.35, .9).toDouble();
+    final slope = to == from ? 0.0 : (.174 * velocity * .22 / (to - from)).clamp(-.35, .9).toDouble();
     final curve = Cubic(.174, slope, .185, 1);
     void tick() {
       if (route?.isCurrent != true) return;
       final progress = curve.transform(_settle.value);
       final distance = math.max(0.0, from + (to - from) * progress);
-      widget.motion.update(distance, distance / extent, fade: dismiss ? progress.clamp(0.0, 1.0) : 0);
+      widget.motion.update(distance, distance / extent, dismissed: dismiss && _settle.isCompleted);
     }
 
     _settle.addListener(tick);
@@ -149,19 +159,23 @@ class _ModalDragState extends State<_ModalDrag> with SingleTickerProviderStateMi
 
   @override
   Widget build(BuildContext context) => Stack(
+    fit: .expand,
     children: [
-      AnimatedBuilder(
-        animation: widget.motion,
-        child: NotificationListener<ScrollMetricsNotification>(onNotification: _trackScroll, child: widget.child),
-        builder: (context, child) {
-          final offset = widget.sign * widget.motion.offset;
-          return Transform.translate(
-            offset: widget.axis == .horizontal ? Offset(offset, 0) : Offset(0, offset),
-            child: child,
-          );
-        },
+      widget.layout(
+        AnimatedBuilder(
+          animation: widget.motion,
+          child: NotificationListener<ScrollMetricsNotification>(onNotification: _trackScroll, child: widget.child),
+          builder: (context, child) {
+            final offset = widget.sign * widget.motion.offset;
+            return Transform.translate(
+              key: _panelKey,
+              offset: widget.axis == .horizontal ? Offset(offset, 0) : Offset(0, offset),
+              child: child,
+            );
+          },
+        ),
       ),
-      // 在正文滚动器之前登记手势，同时保留子内容的命中路径。
+      // 先于正文滚动器登记手势，遮罩空白仍由下层 ModalBarrier 接收点击。
       Positioned.fill(
         child: Listener(behavior: .translucent, onPointerDown: _swipe.addPointer),
       ),
