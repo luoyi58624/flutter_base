@@ -122,6 +122,12 @@ abstract final class ElTokens {
   /// 遮罩模糊半径。
   static const $overlayBackdropBlur = '--el-overlay-backdrop-blur';
 
+  /// 弹层传给列表行的基准内边距，EdgeInsets.zero 恢复普通列表布局。
+  static const $popupListPadding = '--el-popup-list-padding';
+
+  /// 抽屉正文的内边距。
+  static const $drawerBodyPadding = '--el-drawer-body-padding';
+
   /// 默认边框宽度。
   static const $borderWidth = '--el-border-width';
 
@@ -333,6 +339,12 @@ extension type const ElThemeExt(BuildContext _context) {
 
   /// 遮罩模糊半径。
   double get overlayBackdropBlur => _number(ElTokens.$overlayBackdropBlur);
+
+  /// 弹层传给列表行的基准内边距。
+  EdgeInsets? get popupListPadding => ElView.maybeOf(_context)?.getVar(ElTokens.$popupListPadding);
+
+  /// 抽屉正文的内边距。
+  EdgeInsetsGeometry? get drawerBodyPadding => ElView.maybeOf(_context)?.getVar(ElTokens.$drawerBodyPadding);
 
   /// 默认边框宽度，控件密度不改变描边粗细。
   double get borderWidth => _number(ElTokens.$borderWidth);

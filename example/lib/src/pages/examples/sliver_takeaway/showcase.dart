@@ -63,6 +63,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
   void _openCart(BuildContext context) => el.popup<void>(
     context,
     title: '已选商品',
+    style: ElStyle(padding: .fromLTRB(24, 0, 24, 24)),
     child: ValueListenableBuilder(
       valueListenable: _cart,
       builder: (context, items, _) => items.isEmpty
@@ -126,6 +127,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
   void _metrics(BuildContext context) => el.popup(
     context,
     title: '滚动诊断',
+    style: ElStyle(padding: .fromLTRB(24, 0, 24, 24)),
     child: ListenableBuilder(
       listenable: _recorder,
       builder: (context, _) {

@@ -25,6 +25,7 @@ import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/others/base.dart' show ElChildIndex;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry;
 import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
+import '../../commons/icons.dart' show ElMobileIcons;
 import '../../internal/common.dart';
 import '../loading/index.dart';
 
@@ -55,6 +56,9 @@ class _ListTile<T> extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.elTheme;
+    final popupPadding = theme.popupListPadding;
+    final inset = popupPadding == EdgeInsets.zero ? null : popupPadding;
+    final index = ElChildIndex.maybeOf(context);
     final focusEnabled = component.focusNode != null || hasFocusableVariantOf(component.style);
     final ownFocus = useMemoized(() => focusEnabled && component.focusNode == null ? FocusNode() : null, [
       focusEnabled,
@@ -144,15 +148,17 @@ class _ListTile<T> extends HookWidget {
     Object? trailing = component.trailing;
     final defaultTrailing = identical(trailing, $absent);
     if (choosing) {
-      final mark = _selectionMark(context, selected, selectionMode!);
+      final mark = _selectionMark(context, selected, selectionMode!, inPopup: inset != null);
       if (selectionLeading) leading ??= mark;
       if (defaultTrailing) trailing = selectionLeading ? null : mark;
     } else if (switcher) {
       trailing = _switchVisual(context, component.currentValue as bool, component.loading, component.switchStyle);
     } else if (defaultTrailing) {
       trailing = ElView(
-        style: ElStyle(iconSize: 20, iconColor: theme.textSecondary),
-        child: popup
+        style: ElStyle(iconSize: inset == null ? 20 : 18, iconColor: theme.textSecondary),
+        child: inset != null
+            ? (popup ? ElMobileIcons.chevronsUpDown : ElMobileIcons.chevronRight)
+            : popup
             ? (_cupertino(context) ? CupertinoIcons.chevron_up_chevron_down : Icons.unfold_more)
             : (_cupertino(context) ? CupertinoIcons.chevron_forward : Icons.chevron_right),
       );
@@ -181,25 +187,51 @@ class _ListTile<T> extends HookWidget {
     final style = ElStyle(
       width: '100%',
       heightFactor: 1,
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding:
+          inset?.copyWith(
+            top: inset.top + (index?.isStart == true ? 2 : 0),
+            bottom: inset.bottom + (index?.isEnd == true ? 2 : 0),
+          ) ??
+          const EdgeInsets.symmetric(vertical: 16),
       fontSize: 15,
-      fontWeight: .w500,
+      fontWeight: inset == null ? .w500 : textWeight(theme.fontWeightAction),
+      lineHeight: inset == null ? null : 22 / 15,
       color: selected ? theme.primary : theme.textColor,
       iconColor: selected ? theme.primary : theme.textColor,
-      opacity: disabled ? .5 : 1,
+      opacity: disabled ? (inset == null ? .5 : .6) : 1,
       userSelect: .none,
-      onTap: disabled ? null : ElStyle(backgroundColor: theme.cardPressColor),
+      onTap: disabled
+          ? null
+          : ElStyle(
+              backgroundColor: inset == null ? theme.cardPressColor : theme.press,
+              transition: inset == null ? null : const [],
+            ),
       transition: reducedMotion(context)
           ? const []
-          : const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))],
+          : inset == null
+          ? const [ElTransition.field(ElTransitionField.backgroundColor, Duration(milliseconds: 150))]
+          : const [
+              ElTransition.field(
+                ElTransitionField.backgroundColor,
+                Duration(milliseconds: 160),
+                Cubic(.215, .61, .355, 1),
+              ),
+            ],
     ).merge(component.style);
     final contents = LayoutBuilder(
       builder: (context, constraints) => Row(
         children: [
-          if (leading == null)
-            const SizedBox(width: 16)
-          else
-            SizedBox(width: 56, child: Center(child: _content(leading, 24))),
+          if (inset == null)
+            leading == null
+                ? const SizedBox(width: 16)
+                : SizedBox(width: 56, child: Center(child: _content(leading, 24)))
+          else if (leading != null) ...[
+            SizedBox(
+              width: choosing ? 22 : 20,
+              child: Center(child: _content(leading, 18, inheritIcon: true)),
+            ),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               mainAxisSize: .min,
@@ -211,6 +243,7 @@ class _ListTile<T> extends HookWidget {
                     style: ElStyle(
                       fontSize: 14,
                       fontWeight: .w400,
+                      lineHeight: inset == null ? null : 20 / 14,
                       color: theme.textSecondary,
                       padding: const .only(top: 4),
                     ),
@@ -233,8 +266,9 @@ class _ListTile<T> extends HookWidget {
                 child: trailingText,
               ),
             ),
-          if (trailing != null) Padding(padding: const .only(left: 12), child: _content(trailing, 20)),
-          const SizedBox(width: 16),
+          if (trailing != null)
+            Padding(padding: const .only(left: 12), child: _content(trailing, inset == null ? 20 : 18)),
+          if (inset == null) const SizedBox(width: 16),
         ],
       ),
     );
@@ -257,16 +291,20 @@ class _ListTile<T> extends HookWidget {
       ),
       child: component.semanticLabel == null ? contents : ExcludeSemantics(child: contents),
     );
-    final index = ElChildIndex.maybeOf(context);
-    if (index != null && !index.isEnd) {
+    if (index != null && (inset == null ? !index.isEnd : !index.isStart)) {
       row = Stack(
         children: [
           row,
           Positioned(
-            left: leading == null ? 16 : 56,
-            right: 16,
-            bottom: 0,
-            child: ElView(style: ElStyle(height: .5, backgroundColor: theme.dividerColor)),
+            left: inset?.left ?? (leading == null ? 16 : 56),
+            right: inset?.right ?? 16,
+            top: inset == null ? null : 0,
+            bottom: inset == null ? 0 : null,
+            child: IgnorePointer(
+              child: ElView(
+                style: ElStyle(height: inset == null ? .5 : 1, backgroundColor: theme.dividerColor),
+              ),
+            ),
           ),
         ],
       );
@@ -320,9 +358,9 @@ class _ListRadioClient with RadioClient<Object?> {
   bool get tristate => false;
 }
 
-Widget _content(Object? value, double size) => IgnorePointer(
+Widget _content(Object? value, double size, {bool inheritIcon = false}) => IgnorePointer(
   child: ExcludeFocus(
-    child: value is IconData || value is Icon
+    child: inheritIcon || value is IconData || value is Icon
         ? ElView(
             style: ElStyle(iconSize: size),
             child: buildContent(value),
@@ -337,7 +375,7 @@ bool _cupertino(BuildContext context) {
   return cupertino != null && (material == null || cupertino.depth > material.depth);
 }
 
-Widget _selectionMark(BuildContext context, bool selected, ElModelValueType mode) {
+Widget _selectionMark(BuildContext context, bool selected, ElModelValueType mode, {required bool inPopup}) {
   final theme = context.elTheme;
   final radio = mode == .single;
   return ExcludeSemantics(
@@ -352,8 +390,12 @@ Widget _selectionMark(BuildContext context, bool selected, ElModelValueType mode
           borderColor: selected ? theme.primary : theme.textSecondary,
         ),
         backgroundColor: selected && !radio ? theme.primary : null,
+        iconSize: inPopup ? 16 : null,
+        iconColor: inPopup ? theme.primaryText : null,
       ),
-      child: selected && !radio ? ElIcon(CupertinoIcons.check_mark, size: 16, color: theme.primaryText) : null,
+      child: selected && !radio
+          ? (inPopup ? ElMobileIcons.check : ElIcon(CupertinoIcons.check_mark, size: 16, color: theme.primaryText))
+          : null,
     ),
   );
 }

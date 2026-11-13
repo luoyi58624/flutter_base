@@ -5,24 +5,61 @@ import '../../commons/icons.dart';
 import '../../internal/common.dart';
 
 /// 移动弹层提供内容框架，路由生命周期由公共层持有。
-Widget popupBuilder(BuildContext context, ElPopup c) => _panel(context, c);
+Widget popupBuilder(BuildContext context, ElPopup c) {
+  final t = context.elTheme;
+  return _surface(
+    context,
+    c,
+    ElStyle(
+      borderRadius: .circular(28),
+      vars: {
+        ElTokens.$popupListPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ElTokens.$dividerColor: Color.lerp(t.borderColor, t.cardColor, .5)!,
+      },
+    ),
+    Column(
+      mainAxisSize: .min,
+      crossAxisAlignment: .stretch,
+      children: [
+        if (c.title != null || c.showClose)
+          Stack(
+            alignment: .center,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(c.showClose ? 52 : 24, 28, c.showClose ? 52 : 24, 16),
+                child: ElView(
+                  style: ElStyle(
+                    fontSize: 20,
+                    lineHeight: 1.4,
+                    fontWeight: textWeight(t.fontWeightSubtitle),
+                    textAlign: .center,
+                  ),
+                  child: c.title,
+                ),
+              ),
+              if (c.showClose) PositionedDirectional(end: 12, child: _closeButton(context, 40)),
+            ],
+          ),
+        Flexible(child: _scrollBody(c.child)),
+        if (c.footer != null) TouchActionScope(child: buildContent(c.footer)),
+      ],
+    ),
+  );
+}
 
 /// 移动确认框为正文保留内边距，页脚通栏贴合底部圆角。
 Widget dialogBuilder(BuildContext context, ElDialog c) {
   final t = context.elTheme;
-  return ElView(
-    event: c.event,
-    semantics: ElSemantics(container: true, label: c.semanticLabel),
-    style: ElStyle(
-      width: '100%',
+  return _surface(
+    context,
+    c,
+    const ElStyle(
       maxWidth: 420,
-      borderRadius: .circular(28),
-      clipBehavior: .antiAlias,
-      backgroundColor: t.cardColor,
-      color: t.textColor,
+      borderRadius: .all(.circular(28)),
       textAlign: .center,
-    ).withShadow(level: ElLevelType.xl.shadow(context)).merge(c.style),
-    child: Column(
+      vars: {ElTokens.$popupListPadding: EdgeInsets.zero},
+    ),
+    Column(
       mainAxisSize: .min,
       crossAxisAlignment: .stretch,
       children: [
@@ -32,28 +69,18 @@ Widget dialogBuilder(BuildContext context, ElDialog c) {
             padding: const .fromLTRB(32, 0, 32, 10),
             child: Row(
               children: [
-                if (c.showClose) const SizedBox(width: 32),
+                if (c.showClose) const SizedBox(width: 40),
                 Expanded(
                   child: ElView(
-                    style: ElStyle(fontSize: 22, fontWeight: textWeight(t.fontWeightSubtitle)),
+                    style: ElStyle(fontSize: 22, lineHeight: 1.45, fontWeight: textWeight(t.fontWeightSubtitle)),
                     child: c.title,
                   ),
                 ),
-                if (c.showClose)
-                  ElButton(
-                    semanticLabel: '关闭弹层',
-                    variant: .text,
-                    style: const ElStyle(width: 32, height: 32, padding: .zero),
-                    child: ElMobileIcons.x,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+                if (c.showClose) _closeButton(context, 40),
               ],
             ),
           ),
-        Flexible(
-          child: SingleChildScrollView(padding: const .symmetric(horizontal: 32), child: c.child),
-        ),
-        SizedBox(height: c.footer == null ? 32 : 24),
+        Flexible(child: _scrollBody(c.child, padding: EdgeInsets.fromLTRB(32, 0, 32, c.footer == null ? 32 : 24))),
         // 确认、取消等页脚操作额外提供触感。
         if (c.footer != null) TouchActionScope(child: buildContent(c.footer)),
       ],
@@ -62,59 +89,95 @@ Widget dialogBuilder(BuildContext context, ElDialog c) {
 }
 
 /// 抽屉保留业务子树和页脚，内容超长时独立滚动。
-Widget drawerBuilder(BuildContext context, ElDrawer c) => _panel(context, c);
-
-Widget _panel(BuildContext context, ElPopup c) {
+Widget drawerBuilder(BuildContext context, ElDrawer c) {
   final t = context.elTheme;
-  return ElView(
-    event: c.event,
-    semantics: ElSemantics(container: true, label: c.semanticLabel),
-    style: ElStyle(
-      width: '100%',
-      padding: const .all(24),
-      borderRadius: .circular(26),
-      backgroundColor: t.cardColor,
-      color: t.textColor,
-    ).withShadow(level: ElLevelType.xl.shadow(context)).merge(c.style),
-    child: Column(
-      mainAxisSize: .min,
-      crossAxisAlignment: .stretch,
-      children: [
-        if (c is! ElDialog) ...[
-          Center(
-            child: ElView(
-              style: ElStyle(width: 34, height: 4, borderRadius: .circular(2), backgroundColor: t.borderColor),
-            ),
-          ),
-          const SizedBox(height: 18),
-        ],
-        if (c.title != null || c.showClose) ...[
-          Row(
-            children: [
-              Expanded(
-                child: ElView(
-                  style: const ElStyle(fontSize: 20, fontWeight: .w600),
-                  child: c.title,
-                ),
+  return _surface(
+    context,
+    c,
+    const ElStyle(vars: {ElTokens.$popupListPadding: EdgeInsets.zero}),
+    LayoutBuilder(
+      builder: (context, constraints) => Column(
+        mainAxisSize: .min,
+        crossAxisAlignment: .stretch,
+        children: [
+          if (c.title != null || c.showClose)
+            ElView(
+              style: ElStyle(
+                minHeight: 73,
+                padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 16, 15),
+                border: ElBorder.only(borderBottom: ElBorderSide(borderColor: t.borderColor)),
               ),
-              if (c.showClose)
-                ElButton(
-                  semanticLabel: '关闭弹层',
-                  variant: .text,
-                  style: const ElStyle(width: 32, height: 32, padding: .zero),
-                  child: ElMobileIcons.x,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-            ],
+              child: Row(
+                spacing: 12,
+                children: [
+                  Expanded(
+                    child: ElView(
+                      style: ElStyle(fontSize: 20, lineHeight: 1.4, fontWeight: textWeight(t.fontWeightSubtitle)),
+                      child: c.title,
+                    ),
+                  ),
+                  if (c.showClose) _closeButton(context, 44),
+                ],
+              ),
+            ),
+          // 有限高度内让正文占满余量，短内容时页脚也贴着底边。
+          Flexible(
+            fit: constraints.hasBoundedHeight ? .tight : .loose,
+            child: _scrollBody(c.child, padding: context.elTheme.drawerBodyPadding ?? const .all(24)),
           ),
-          const SizedBox(height: 18),
+          if (c.footer != null)
+            ElView(
+              style: ElStyle(
+                padding: const .fromLTRB(24, 17, 24, 20),
+                border: ElBorder.only(borderTop: ElBorderSide(borderColor: t.borderColor)),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+                child: buildContent(c.footer),
+              ),
+            ),
         ],
-        Flexible(child: SingleChildScrollView(child: c.child)),
-        if (c.footer != null) ...[const SizedBox(height: 24), buildContent(c.footer)],
-      ],
+      ),
     ),
   );
 }
+
+Widget _surface(BuildContext context, ElPopup component, ElStyle style, Widget child) {
+  final theme = context.elTheme;
+  return ElView(
+    event: component.event,
+    semantics: ElSemantics(container: true, label: component.semanticLabel),
+    style: ElStyle(
+      width: '100%',
+      clipBehavior: .antiAlias,
+      backgroundColor: theme.cardColor,
+      color: theme.textColor,
+    ).merge(style).withShadow(type: .floating, level: theme.shadowXl).merge(component.style),
+    child: child,
+  );
+}
+
+Widget _scrollBody(Widget child, {EdgeInsetsGeometry? padding}) =>
+    SingleChildScrollView(primary: false, padding: padding, physics: const ClampingScrollPhysics(), child: child);
+
+Widget _closeButton(BuildContext context, double size) => ElButton(
+  semanticLabel: '关闭弹层',
+  variant: .text,
+  style: ElStyle(
+    width: size,
+    height: size,
+    padding: .zero,
+    borderRadius: .circular(12),
+    iconSize: 18,
+    iconColor: context.elTheme.textSecondary,
+    transition: reducedMotion(context)
+        ? const []
+        : const [ElTransition.field(.backgroundColor, Duration(milliseconds: 140))],
+    onTap: ElStyle(backgroundColor: context.elTheme.press, transform: ElTransform.scale(1), transition: const []),
+  ),
+  child: ElMobileIcons.x,
+  onPressed: () => Navigator.of(context).pop(),
+);
 
 /// 轻提示使用品牌阴影和文字色，不创建可交互焦点。
 Widget toastBuilder(BuildContext context, ElToast c) {

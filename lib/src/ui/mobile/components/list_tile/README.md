@@ -8,6 +8,8 @@
 - 内容：标题、说明、trailingText 由现有文本引擎或调用方 Widget 绘制，窄宽时自然换行。
 - 图标：普通后缀按最近的 MaterialApp / CupertinoApp 选择右箭头，复用 ElFlutterUtil 的祖先查询；null 不保留尾部图标和间隔。
 
+底部操作面板通过 `ElTokens.$popupListPadding` 为列表提供 24 水平与 16 垂直内边距。`ElListGroup` 首尾分别额外加 2，行间分隔线与行内边距对齐。前置图标盒宽 20、图标 18，标题与图标盒间距 12。局部可覆写该变量，`EdgeInsets.zero` 恢复普通列表布局。
+
 公共 ElModelValue 持有模型，Builder 读取和写入 currentValue。选择组直接使用子项 value，与组的单值或 List 模型比较，不给每行再绑定一份选择状态。默认指针选择不创建焦点；用户显式配置焦点后，单选通过 SDK RadioClient 接入 RadioGroup 导航。多选复制原 List 后更新，子项自身的事件、禁用、样式继续生效。
 
 选择标记默认前置，组的 leading 为 false 时后置；选择行不显示导航箭头。开关末端是纯视觉轨道，由整行统一响应指针与辅助技术激活；显式启用焦点后支持 Space。

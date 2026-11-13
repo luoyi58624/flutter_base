@@ -2,6 +2,8 @@ part of 'index.dart';
 
 /// 沿用原圆角容器与索引分隔线，直接组合列表子项。
 Widget listTileGroupBuilder<D>(BuildContext context, ElListGroup<D> component) {
+  final popupPadding = context.elTheme.popupListPadding;
+  final inPopup = popupPadding != null && popupPadding != EdgeInsets.zero;
   void select(ElListTile child) {
     if (child.disabled || child.event?.disabled == true) return;
     if (component.mode == .single) {
@@ -16,7 +18,9 @@ Widget listTileGroupBuilder<D>(BuildContext context, ElListGroup<D> component) {
 
   Widget body = RepaintBoundary(
     child: ElView(
-      style: ElStyle(backgroundColor: context.elTheme.cardColor, borderRadius: .circular(16), clipBehavior: .hardEdge),
+      style: inPopup
+          ? null
+          : ElStyle(backgroundColor: context.elTheme.cardColor, borderRadius: .circular(16), clipBehavior: .hardEdge),
       child: Column(
         mainAxisSize: .min,
         children: [
@@ -24,6 +28,7 @@ Widget listTileGroupBuilder<D>(BuildContext context, ElListGroup<D> component) {
             ElChildIndex(
               key: component.children[i].key == null ? null : ValueKey(component.children[i].key),
               index: i,
+              start: 0,
               end: component.children.length - 1,
               child: component.mode == null
                   ? component.children[i]
