@@ -74,6 +74,7 @@ flutter:
     - lib/src/pages/components/feedback/alert/examples/
     - lib/src/pages/components/feedback/loading/examples/
     - lib/src/pages/components/feedback/toast/examples/
+    - lib/src/pages/components/feedback/message/examples/
     - lib/src/pages/components/view/selection/examples/
     - lib/src/pages/components/event/basic/examples/
     - lib/src/pages/components/event/propagation/examples/

@@ -16,6 +16,7 @@ import 'input_number/index.dart';
 import 'input_otp/index.dart';
 import 'input_tag/index.dart';
 import 'mention/index.dart';
+import 'message/index.dart';
 import 'radio/index.dart';
 import 'select/index.dart';
 import 'switch/index.dart';
@@ -53,6 +54,8 @@ final _components = ElComponentsExt(materialComponents()).merge(
     mention: <T>(context, component) => Mention<T>(component),
     inputTag: (context, component) => InputTag(component),
     inputOtp: (context, component) => InputOtp(component),
+    message: messageBuilder,
+    messageStack: messageStackBuilder,
     formItem: (context, component) => ElFormItemView(
       component: component,
       labelStyle: ElStyle(color: context.elTheme.textRegular, iconColor: context.elTheme.textRegular),

@@ -50,6 +50,8 @@ extension ElComponentsExt on ElComponents {
     Object? dialog = $absent,
     Object? drawer = $absent,
     Object? toast = $absent,
+    Object? message = $absent,
+    Object? messageStack = $absent,
     Object? appBar = $absent,
     Object? tooltip = $absent,
   }) {
@@ -192,6 +194,12 @@ extension ElComponentsExt on ElComponents {
       toast: identical(toast, $absent)
           ? this.toast
           : toast as Widget Function(BuildContext, ElToast)?,
+      message: identical(message, $absent)
+          ? this.message
+          : message as Widget Function(BuildContext, ElMessage)?,
+      messageStack: identical(messageStack, $absent)
+          ? this.messageStack
+          : messageStack as Widget Function(BuildContext, List<Widget>)?,
       appBar: identical(appBar, $absent)
           ? this.appBar
           : appBar as Widget Function(BuildContext, ElAppBar)?,
@@ -246,6 +254,8 @@ extension ElComponentsExt on ElComponents {
       dialog: other.dialog ?? dialog,
       drawer: other.drawer ?? drawer,
       toast: other.toast ?? toast,
+      message: other.message ?? message,
+      messageStack: other.messageStack ?? messageStack,
       appBar: other.appBar ?? appBar,
       tooltip: other.tooltip ?? tooltip,
     );
@@ -294,6 +304,8 @@ extension ElComponentsExt on ElComponents {
     dialog,
     drawer,
     toast,
+    message,
+    messageStack,
     appBar,
     tooltip,
   ];

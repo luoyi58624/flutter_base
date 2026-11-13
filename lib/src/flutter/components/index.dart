@@ -40,9 +40,11 @@ import 'switch/index.dart';
 import 'tabs/index.dart';
 import 'tag/index.dart';
 import 'toast/index.dart';
+import 'message/index.dart';
 
 export 'button/index.dart';
 export 'toast/index.dart';
+export 'message/index.dart';
 export 'tag/index.dart';
 export 'button_group/index.dart';
 export 'switch/index.dart';
@@ -126,6 +128,8 @@ class ElComponents with Equatable {
     this.dialog,
     this.drawer,
     this.toast,
+    this.message,
+    this.messageStack,
     this.appBar,
     this.tooltip,
   });
@@ -255,6 +259,12 @@ class ElComponents with Equatable {
 
   /// 根据 ElToast 声明构建短提示内容。
   final Widget Function(BuildContext context, ElToast component)? toast;
+
+  /// 根据 ElMessage 声明构建单条消息及其进退场动画。
+  final Widget Function(BuildContext context, ElMessage component)? message;
+
+  /// 排布同一窗口内 el.message 显示的全部消息，children 按显示先后排列。
+  final Widget Function(BuildContext context, List<Widget> children)? messageStack;
 
   /// 根据 ElAppBar 声明构建标题栏。
   final Widget Function(BuildContext context, ElAppBar component)? appBar;

@@ -38,6 +38,7 @@ final _pages = <(String, String, int)>[
   ('alert', 'feedback/alert', 2),
   ('loading', 'feedback/loading', 2),
   ('toast', 'feedback/toast', 2),
+  ('message', 'feedback/message', 2),
 ];
 
 void main() {
