@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderAbstractViewport;
+import 'package:flutter/rendering.dart' show RenderAbstractViewport, RenderSliver;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_base/mobile.dart';
+
+import 'state.dart';
 
 /// 展示页共享的锚点和可用宽度，布局按页面而非单张卡片判断断点。
 class ShowcaseScope extends InheritedWidget {
@@ -68,12 +71,13 @@ class ShowcasePanel extends StatelessWidget {
     final t = context.elTheme;
     return ElCard(
       key: anchor == null ? null : ShowcaseScope.of(context).anchors[anchor],
+      shadowLevel: .md,
       style: ElStyle(
         width: '100%',
         padding: padding ?? (mobile ? .fromLTRB(22, 24, 22, 25) : .fromLTRB(29, 28, 29, 29)),
         borderRadius: .circular(mobile ? 26 : 30),
         border: .all(borderColor: t.borderColor.withValues(alpha: .65)),
-      ).withShadow(level: ElLevelType.md.shadow(context)),
+      ),
       child: Column(
         mainAxisSize: .min,
         crossAxisAlignment: .stretch,
@@ -140,6 +144,16 @@ Widget showcaseColumn(List<Widget> children, {double gap = 16}) => Column(
   children: [for (final child in children) RepaintBoundary(child: child)],
 );
 
+/// 停放章节保留状态但不参与布局，不能用旧坐标判断可见性或定位锚点。
+bool showcaseIsLaidOut(RenderObject render) {
+  if (!render.attached) return false;
+  for (RenderObject child = render; child.parent != null; child = child.parent!) {
+    final parent = child.parent!;
+    if (parent is RenderSliver && parent.childScrollOffset(child) == null) return false;
+  }
+  return true;
+}
+
 /// 无限进度和播放示例仅在真正进入视口时运行动画与演示计时器。
 class ShowcaseMotion extends HookWidget {
   /// 保留子树状态，只切换 TickerMode。
@@ -160,7 +174,10 @@ class ShowcaseMotion extends HookWidget {
         queued.value = false;
         if (!context.mounted || scroll == null || !scroll.hasClients) return;
         final box = key.currentContext?.findRenderObject();
-        if (box is! RenderBox || !box.attached || !box.hasSize) return;
+        if (box is! RenderBox || !box.hasSize || !showcaseIsLaidOut(box)) {
+          visible.value = false;
+          return;
+        }
         final start = RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
         visible.value =
             start < scroll.offset + scroll.position.viewportDimension && start + box.size.height > scroll.offset;
@@ -315,6 +332,38 @@ Widget demoAnchor(BuildContext context, String id, Widget child) =>
 /// 显示演示结果。
 void demoNotify(BuildContext context, String message) => el.toast(context, message, icon: ElMobileIcons.check);
 
+/// 打开首页两处入口共用的分享面板。
+Future<void> demoShare(BuildContext context) async {
+  final action = await el.popup<String>(
+    context,
+    title: '分享这份灵感',
+    showClose: false,
+    child: Builder(
+      builder: (context) => ElListGroup(
+        children: [
+          for (final (label, value, icon) in [
+            ('复制链接', 'copy', ElMobileIcons.copy),
+            ('收藏到本地', 'favorite', ElMobileIcons.heart),
+            ('稍后查看', 'later', ElMobileIcons.clock),
+          ])
+            ElListTile(title: label, leading: icon, onTap: () => Navigator.of(context).pop(value)),
+        ],
+      ),
+    ),
+    footer: demoPopupActions(),
+  );
+  if (!context.mounted || action == null) return;
+  if (action == 'copy') await Clipboard.setData(ClipboardData(text: 'flutter-base://home'));
+  if (action == 'favorite') showcaseLiked.value = true;
+  if (action == 'later') showcaseLater.value = true;
+  if (!context.mounted) return;
+  demoNotify(context, switch (action) {
+    'copy' => '链接已复制',
+    'favorite' => '已收藏到本地',
+    _ => '已加入稍后查看',
+  });
+}
+
 /// 首页确认与提醒共用 Web 的通栏操作区，仍通过现有弹层 API 返回选择结果。
 Future<bool?> demoDialog(
   BuildContext context, {
@@ -333,46 +382,62 @@ Future<bool?> demoDialog(
     textAlign: placement == .center ? .center : .left,
     style: TextStyle(fontSize: 15, height: 1.9, color: context.elTheme.textSecondary),
   ),
-  footer: Builder(
-    builder: (context) {
-      final t = context.elTheme;
-      Widget action(String label, bool accepted) => Expanded(
-        child: ElButton(
-          variant: .text,
-          style: ElStyle(
-            width: '100%',
-            minHeight: 66,
-            padding: .fromLTRB(16, 18, 16, 24),
-            borderRadius: .zero,
-            fontSize: 16,
-            lineHeight: 1.5,
-            color: accepted && danger ? t.error : t.primary,
-            transition: [ElTransition.field(.backgroundColor, Duration(milliseconds: 140))],
-            onTap: ElStyle(backgroundColor: t.press, transition: []),
-          ),
-          child: label,
-          onPressed: () => Navigator.of(context).pop(accepted),
+  footer: demoPopupActions<bool>(
+    cancel: single ? null : '取消',
+    confirm: confirm,
+    onConfirm: () => true,
+    cancelResult: false,
+    danger: danger,
+  ),
+);
+
+/// 创建贴合面板底部的通栏动作，并通过当前路由返回结果。
+Widget demoPopupActions<T extends Object?>({
+  String? cancel = '取消',
+  String? confirm,
+  T? cancelResult,
+  T? Function()? onConfirm,
+  bool danger = false,
+}) => Builder(
+  builder: (context) {
+    final t = context.elTheme;
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    Widget action(String label, bool accepted) => Expanded(
+      child: ElButton(
+        variant: .text,
+        style: ElStyle(
+          width: '100%',
+          minHeight: 66,
+          padding: .fromLTRB(16, 18, 16, 24 + safeBottom),
+          borderRadius: .zero,
+          fontSize: 16,
+          lineHeight: 1.5,
+          color: accepted && danger ? t.error : t.primary,
+          transition: [ElTransition.field(.backgroundColor, Duration(milliseconds: 140))],
+          onTap: ElStyle(backgroundColor: t.press, transform: ElTransform.scale(1), transition: []),
         ),
-      );
-      return Stack(
-        children: [
-          Row(children: [if (!single) action('取消', false), action(confirm, true)]),
-          if (!single)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Align(
-                  alignment: .topCenter,
-                  child: Padding(
-                    padding: .only(top: 20),
-                    child: ElView(style: ElStyle(width: 1, height: 20, backgroundColor: t.borderColor)),
-                  ),
+        child: label,
+        onPressed: () => Navigator.of(context).pop(accepted ? onConfirm?.call() : cancelResult),
+      ),
+    );
+    return Stack(
+      children: [
+        Row(children: [if (cancel != null) action(cancel, false), if (confirm != null) action(confirm, true)]),
+        if (cancel != null && confirm != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Align(
+                alignment: .topCenter,
+                child: Padding(
+                  padding: .only(top: 20),
+                  child: ElView(style: ElStyle(width: 1, height: 20, backgroundColor: t.borderColor)),
                 ),
               ),
             ),
-        ],
-      );
-    },
-  ),
+          ),
+      ],
+    );
+  },
 );
 
 /// 使用原稿图片资源。

@@ -13,6 +13,8 @@ import '../lib/src/pages/home/showcase/panel.dart';
 
 Finder copy(String value) =>
     find.byWidgetPredicate((w) => w is Text && w.data == value || w is ElView && w.child == value);
+Finder section(String id) =>
+    find.byWidgetPredicate((widget) => widget is ShowcaseSection && widget.id == id, skipOffstage: false);
 final capture = Platform.environment['HOME_SCREENSHOTS'] == '1';
 final boundary = GlobalKey();
 
@@ -49,6 +51,8 @@ Future<void> host(WidgetTester tester, {double width = 390, bool dark = false, d
 Future<void> reveal(WidgetTester tester, String id) async {
   final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
   scope.onNavigate(id);
+  await tester.pump();
+  // 首帧挂载目标章节，下一帧才为章节内部的精确定位动画建立起点。
   await tester.pump();
   await tester.pump(Duration(milliseconds: 400));
   await tester.pump();
@@ -95,7 +99,9 @@ void main() {
       ]) {
         debugPrint('布局检查：${config.$4}');
         await host(tester, width: config.$1, dark: config.$2, scale: config.$3);
-        expect(find.byType(ShowcaseSection, skipOffstage: false), findsNWidgets(5));
+        final initialSections = tester.widgetList<ShowcaseSection>(find.byType(ShowcaseSection, skipOffstage: false));
+        expect(initialSections.every((section) => section.id == 'actions'), isTrue, reason: '首屏只挂载视口和缓存所需章节');
+        expect(section('scenarios'), findsNothing);
         expect(tester.takeException(), isNull);
         await screenshot(tester, '${config.$4}-hero');
         for (final id in [
@@ -119,13 +125,60 @@ void main() {
     }
   });
 
+  for (final width in [390.0, 1440.0]) {
+    testWidgets('首次导航即可定位未挂载完整示例和外卖，宽度 $width', (tester) async {
+      for (final id in ['scenarios', 'takeaway']) {
+        await host(tester, width: width);
+        final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
+        expect(scope.anchors[id]!.currentContext, isNull);
+        expect(section('controls'), findsNothing);
+        expect(section('surfaces'), findsNothing);
+
+        if (id == 'scenarios') {
+          await tester.tap(find.byKey(ValueKey('showcase-chapters')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.widgetWithText(PopupMenuItem<String>, '完整示例'));
+          await tester.pump();
+          await tester.pump(Duration(milliseconds: 350));
+        } else {
+          final button = find.byWidgetPredicate((widget) => widget is ElButton && widget.child == '外卖示例');
+          await tester.ensureVisible(button);
+          await tester.pump();
+          await tester.tap(button);
+        }
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: 400));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        final target = find.byKey(scope.anchors[id]!);
+        expect(target, findsOneWidget);
+        final scroll = find.byKey(PageStorageKey('showcase-scroll'));
+        final position = tester.widget<ElScrollView>(scroll).controller!.position;
+        final rect = tester.getRect(target);
+        final location = '$id: offset=${position.pixels}, max=${position.maxScrollExtent}, target=$rect';
+        expect(rect.overlaps(tester.getRect(scroll)), isTrue, reason: location);
+        if (id == 'scenarios') {
+          expect(rect.top, closeTo(tester.getRect(scroll).top + 20, 2), reason: location);
+        } else {
+          expect(find.byKey(ValueKey('home-takeaway-cart')).hitTestable(), findsOneWidget, reason: location);
+        }
+        expect(section('controls'), findsNothing, reason: '远跳不先构建经过的交互章节');
+        expect(section('surfaces'), findsNothing, reason: '远跳不先构建经过的内容章节');
+        await tester.pumpWidget(SizedBox());
+        await tester.pump(Duration(seconds: 4));
+      }
+    });
+  }
+
   testWidgets('章节定位、收藏、资料校验和外卖分类使用真实状态', (tester) async {
     await host(tester);
     await tester.tap(find.byKey(ValueKey('showcase-explore')));
     await tester.pump();
     await tester.pump(Duration(milliseconds: 400));
     final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
-    expect(tester.getTopLeft(find.byKey(scope.anchors['actions']!)).dy, closeTo(77, 2));
+    final scroll = find.byKey(PageStorageKey('showcase-scroll'));
+    expect(tester.getTopLeft(find.byKey(scope.anchors['actions']!)).dy, closeTo(tester.getRect(scroll).top + 20, 2));
     await tester.ensureVisible(find.byKey(ValueKey('showcase-favorite')));
     await tester.pump();
     await tester.tap(find.byKey(ValueKey('showcase-favorite')));
@@ -156,6 +209,17 @@ void main() {
     await tester.pump(Duration(seconds: 3));
     await tester.pump();
     await reveal(tester, 'takeaway');
+    final takeawayPosition = tester
+        .widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll')))
+        .controller!
+        .position;
+    expect(
+      find.byKey(ValueKey('home-takeaway-category-0')).hitTestable(),
+      findsOneWidget,
+      reason:
+          'takeaway: offset=${takeawayPosition.pixels}, max=${takeawayPosition.maxScrollExtent}, '
+          'category=${tester.getRect(find.byKey(ValueKey('home-takeaway-category-0')))}',
+    );
     await tester.tap(find.byKey(ValueKey('home-takeaway-category-0')));
     await tester.pump();
     expect(copy('125 家'), findsOneWidget);

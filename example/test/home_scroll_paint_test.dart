@@ -12,14 +12,11 @@ import 'home_showcase_test.dart' as fixture;
 import '../lib/src/pages/home/showcase/panel.dart';
 
 void main() {
-  testWidgets('首页按章节裁剪，稳态滚动复用静态内容', (tester) async {
+  testWidgets('首页按需挂载章节，稳态滚动复用静态内容', (tester) async {
     await fixture.host(tester);
-    final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
     final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
-    final chapters = {
-      for (final element in find.byType(ShowcaseSection, skipOffstage: false).evaluate())
-        element.renderObject!: (element.widget as ShowcaseSection).id,
-    };
+    final viewport = tester.getRect(find.byKey(PageStorageKey('showcase-scroll')));
+    final chapters = <RenderObject, String>{};
     final paintedChapters = <RenderBox>{};
     final previous = debugOnProfilePaint;
     var paints = 0, outside = 0;
@@ -28,7 +25,7 @@ void main() {
       if (object is RenderBox && chapters.containsKey(object)) paintedChapters.add(object);
       if (object is RenderBox && object.hasSize && object.attached) {
         final rect = MatrixUtils.transformRect(object.getTransformTo(null), object.paintBounds);
-        if (!rect.overlaps(Rect.fromLTWH(0, 57, 390, 843))) outside++;
+        if (!rect.overlaps(viewport)) outside++;
       }
       previous?.call(object);
     };
@@ -37,21 +34,28 @@ void main() {
       for (final id in ['control-fields', 'control-dates', 'surface-cards', 'feedback-prompts', 'feedback-progress']) {
         paints = outside = 0;
         paintedChapters.clear();
-        final target = scope.anchors[id]!.currentContext!.findRenderObject()!;
-        scroll.jumpTo(RenderAbstractViewport.of(target).getOffsetToReveal(target, 0).offset - 20);
-        await tester.pump();
-        // children 以章节裁剪：允许绘制可见章节的内部内容，整章离屏时必须跳过。
-        for (final chapter in paintedChapters) {
-          final rect = MatrixUtils.transformRect(chapter.getTransformTo(null), chapter.paintBounds);
-          expect(rect.overlaps(Rect.fromLTWH(0, 57, 390, 843)), isTrue, reason: '${chapters[chapter]} 应在视口内');
-        }
+        await fixture.reveal(tester, id);
         final entryPaints = paints, entryOutside = outside;
+        chapters
+          ..clear()
+          ..addEntries(
+            find
+                .byType(ShowcaseSection, skipOffstage: false)
+                .evaluate()
+                .map((element) => MapEntry(element.renderObject!, (element.widget as ShowcaseSection).id)),
+          );
         await tester.pump(Duration(milliseconds: 500));
         var maxPaints = 0, maxOutside = 0;
         for (var frame = 0; frame < 6; frame++) {
           paints = outside = 0;
+          paintedChapters.clear();
           scroll.jumpTo(scroll.offset + 12);
           await tester.pump(Duration(milliseconds: 16));
+          // 只检查本帧实际绘制的已挂载章节，不要求未访问章节提前创建。
+          for (final chapter in paintedChapters) {
+            final rect = MatrixUtils.transformRect(chapter.getTransformTo(null), chapter.paintBounds);
+            expect(rect.overlaps(viewport), isTrue, reason: '${chapters[chapter]} 应在视口内');
+          }
           maxPaints = math.max(maxPaints, paints);
           maxOutside = math.max(maxOutside, outside);
         }
@@ -83,6 +87,7 @@ void main() {
     await tester.runAsync(fixture.loadShowcaseFonts);
     await fixture.host(tester);
     expect(tester.takeException(), isNull, reason: '首次挂载');
+    await fixture.reveal(tester, 'control-fields');
     final nickname = find.byWidgetPredicate(
       (widget) => widget is ElInput && widget.semanticLabel == '昵称',
       skipOffstage: false,
@@ -102,6 +107,7 @@ void main() {
     await tester.pump(Duration(milliseconds: 500));
     expect(tester.takeException(), isNull, reason: '切回手机');
     expect(tester.element(nickname), same(element));
+    await fixture.reveal(tester, 'feedback-state');
     final indefinite = find.byWidgetPredicate(
       (widget) => widget is ElProgress && widget.semanticLabel == '等待服务器响应',
       skipOffstage: false,
@@ -131,6 +137,7 @@ void main() {
     expect(running(), isFalse);
     expect(tester.binding.transientCallbackCount, 0);
     await fixture.reveal(tester, 'control-fields');
+    expect(tester.element(nickname), same(element), reason: '章节进入回收池再返回仍保留输入实例');
     expect(tester.widget<ElInput>(nickname).modelValue!.value, '保留的昵称');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
