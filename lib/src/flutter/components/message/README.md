@@ -15,6 +15,7 @@ el.message.show('同步中…', context: context, duration: Duration.zero);
 
 - 传入 `context` 时挂到它所在窗口的根 Overlay，并沿用该处的主题与 `ElComponentProvider` 注入的 Builder；省略时使用 `el.navigatorKey` 所在导航器的 Overlay。
 - 同一 Overlay 的消息共用一层，导航后该层回到路由之上，不会被之后打开的页面或对话框盖住。
+- 新消息的 `messageStack` 与当前层不同时（例如窗口在桌面与移动布局间切换），当前层的消息按原排布退场，新消息另起一层。
 - 指针悬停在消息上时暂停计时，移开后重新计时。
 - 承载的 Overlay 被卸载时，消息随之结清。
 

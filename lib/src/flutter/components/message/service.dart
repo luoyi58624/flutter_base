@@ -26,48 +26,53 @@ final class ElMessageService {
         ? el.navigatorKey.currentState?.overlay
         : Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return Future.value();
+    final layout = ElComponentProvider.maybeOf(context ?? overlay.context)?.messageStack;
+    if (layout == null) throw FlutterError('ElMessage 的 messageStack 未在 ElComponentProvider 中登记实现。');
     final themes = context == null ? null : InheritedTheme.capture(from: context, to: overlay.context);
-    final stack = _stacks[overlay] ??= _MessageStack(overlay, () => _stacks.remove(overlay));
+    var stack = _stacks[overlay];
+    // 排布换了品牌（例如窗口在桌面与移动布局间切换），旧层按原排布退场，新消息另起一层，两种排布不混在一起。
+    if (stack != null && stack.layout != layout) {
+      stack.closeAll();
+      stack = null;
+    }
+    stack ??= _stacks[overlay] = _MessageStack(overlay, layout, themes, (empty) {
+      if (identical(_stacks[overlay], empty)) _stacks.remove(overlay);
+    });
     return stack.add(message, type, duration, themes);
   }
 }
 
 final class _MessageStack {
-  _MessageStack(OverlayState overlay, this.onEmpty) {
+  _MessageStack(OverlayState overlay, this.layout, CapturedThemes? themes, this.onEmpty) {
     entry = OverlayEntry(
       builder: (context) {
         final children = [for (final message in messages) message.widget];
-        final layout = Builder(builder: (context) => _layoutOf(context)(context, children));
-        return Positioned.fill(child: themes?.wrap(layout) ?? layout);
+        final stack = Builder(builder: (context) => layout(context, children));
+        return Positioned.fill(child: themes?.wrap(stack) ?? stack);
       },
     );
     // 承载的 Overlay 卸载时一并结清。
     entry.addListener(() {
-      if (!entry.mounted) {
-        for (final message in messages.toList()) {
-          message.close();
-        }
-      }
+      if (!entry.mounted) closeAll();
     });
     overlay.insert(entry);
   }
 
   late final OverlayEntry entry;
 
-  /// 最近一次调用处的主题，排布容器跟随当前品牌，例如从桌面布局切到移动布局。
-  CapturedThemes? themes;
-  final VoidCallback onEmpty;
+  /// 本层排布，取自首条消息调用处的品牌，整层沿用。
+  final Widget Function(BuildContext context, List<Widget> children) layout;
+  final void Function(_MessageStack stack) onEmpty;
   final messages = <_Message>[];
 
-  static Widget Function(BuildContext, List<Widget>) _layoutOf(BuildContext context) {
-    final layout = ElComponentProvider.of(context).messageStack;
-    if (layout == null) throw FlutterError('ElMessage 的 messageStack 未在 ElComponentProvider 中登记实现。');
-    return layout;
+  void closeAll() {
+    for (final message in messages.toList()) {
+      message.close();
+    }
   }
 
   Future<void> add(Object content, ElThemeType type, Duration duration, CapturedThemes? themes) {
     final message = _Message(this, content, type, duration, themes);
-    if (themes != null) this.themes = themes;
     messages.add(message);
     entry.markNeedsBuild();
     return message.removed;
@@ -79,16 +84,15 @@ final class _MessageStack {
     entry
       ..remove()
       ..dispose();
-    onEmpty();
+    onEmpty(this);
   }
 }
 
 final class _Message {
   _Message(this.stack, Object content, ElThemeType type, this.duration, CapturedThemes? themes) {
     final child = transitions.wrap(ElMessage(type: type, onClose: close, child: content));
-    // 全局键：排布容器随调用处的品牌换层时，消息连同动画状态迁移过去，不重新进场。
     widget = KeyedSubtree(
-      key: GlobalObjectKey(this),
+      key: ObjectKey(this),
       child: MouseRegion(
         // 只在消息自身被命中时生效，品牌布局留出的空白不拦截事件。
         hitTestBehavior: .deferToChild,

@@ -215,7 +215,7 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('从桌面切到移动后排布跟随当前品牌，已显示的消息不重新进场', (tester) async {
+  testWidgets('桌面与移动布局互相切换后，旧品牌的消息按原排布退场，新消息按当前品牌排布', (tester) async {
     final mobile = ValueNotifier(false);
     addTearDown(mobile.dispose);
     late BuildContext source;
@@ -231,18 +231,31 @@ void main() {
         ),
       ),
     );
+    final width = tester.getSize(find.byType(Scaffold)).width;
+    Rect bar(String text) =>
+        tester.getRect(find.ancestor(of: _copy(text), matching: find.byType(SlideTransition)).first);
+
     el.message.show('桌面', context: source, duration: Duration.zero);
     await tester.pumpAndSettle();
-
     mobile.value = true;
     await tester.pump();
-    el.message.show('移动', context: source, duration: Duration.zero);
-    await tester.pump();
-    expect(tester.widget<Opacity>(find.ancestor(of: _copy('桌面'), matching: find.byType(Opacity)).first).opacity, 1);
+    el.message.show('移动一', context: source, duration: Duration.zero);
+    el.message.show('移动二', context: source, duration: Duration.zero);
     await tester.pumpAndSettle();
-    final bar = tester.getRect(find.ancestor(of: _copy('移动'), matching: find.byType(SlideTransition)).first);
-    expect(bar.top, 0);
-    expect(bar.width, tester.getSize(find.byType(Scaffold)).width);
+    expect(_copy('桌面'), findsNothing);
+    expect(bar('移动一').top, 0);
+    expect(bar('移动二').top, 0);
+    expect(bar('移动二').width, width);
+
+    mobile.value = false;
+    await tester.pump();
+    el.message.show('桌面二', context: source, duration: Duration.zero);
+    await tester.pumpAndSettle();
+    expect(_copy('移动一'), findsNothing);
+    expect(_copy('移动二'), findsNothing);
+    final desktop = tester.getRect(find.ancestor(of: _copy('桌面二'), matching: find.byType(Opacity)).first);
+    expect(desktop.width, lessThan(width));
+    expect(desktop.center.dx, moreOrLessEquals(width / 2));
     await _dispose(tester);
   });
 }
