@@ -93,23 +93,3 @@ class ElDrawer extends ElPopup {
   @override
   Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.drawer)(context, this);
 }
-
-/// 非阻塞的短提示内容，持续时间由 el.toast 管理。
-class ElToast extends StatelessWidget {
-  /// 提示可单独嵌入页面，或交给 el.toast 显示在浮层。
-  const ElToast({super.key, required this.child, this.icon, this.style, this.semanticLabel});
-
-  /// 提示内容。
-  final Object child;
-
-  /// 可选前置图标。
-  final Object? icon;
-
-  /// 在品牌默认样式后合并。
-  final ElStyle? style;
-
-  /// 辅助名称，文字内容默认可被读出。
-  final String? semanticLabel;
-  @override
-  Widget build(BuildContext context) => ElComponentProvider.builderOf(context, this, (b) => b.toast)(context, this);
-}

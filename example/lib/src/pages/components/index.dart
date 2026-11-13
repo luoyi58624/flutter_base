@@ -40,6 +40,7 @@ import 'event/drag/index.dart';
 import 'event/propagation/index.dart';
 import 'feedback/alert/index.dart';
 import 'feedback/loading/index.dart';
+import 'feedback/toast/index.dart';
 import 'list/list_tile/index.dart';
 import 'start/quick_start/index.dart';
 import 'start/shadow/index.dart';
@@ -163,6 +164,7 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
     children: [
       _page('alert', 'Alert 提示', builder: (_) => AlertPage()),
       _page('loading', 'LoadingIndicator 加载指示', builder: (_) => LoadingPage()),
+      _page('toast', 'Toast 轻提示', builder: (_) => ToastPage()),
     ],
   ),
   ElMenuModel(

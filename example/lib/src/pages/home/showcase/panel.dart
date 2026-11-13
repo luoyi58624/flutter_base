@@ -349,7 +349,7 @@ class ShowcaseItem {
 }
 
 /// 显示演示结果。
-void demoNotify(BuildContext context, String message) => el.toast(context, message, icon: ElMobileIcons.check);
+void demoNotify(BuildContext context, String message) => el.toast.show(message, context: context);
 
 /// 打开首页两处入口共用的分享面板。
 Future<String?> demoShare(BuildContext context) async {

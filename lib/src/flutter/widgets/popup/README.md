@@ -6,7 +6,9 @@
 
 接物理返回时，应用在创建 `WidgetsApp` 或 `Router` 前登记 `ElPopupBackObserver`，按视图 ID 提供仍挂载的宿主子树 context。需要处理 Android 预测性返回时，在参与回退的页面内安装 `ElPopupBackScope`，并通过观察者合并应用的 `onNavigationNotification` 和弹层状态。窗口卸载时用 `detachView` 清理，应用卸载时注销并释放观察者。
 
-`el.toast(context, ...)` 默认挂在当前窗口由该 context 找到的根 Overlay。轻提示保持指针穿透，也放行物理返回。
+## 进退场动画
+
+`ElOverlayTransition` 让品牌 Builder 自己决定弹层的进退场时长和曲线：挂载后进场，所在弹层关闭时先退场再移除；直接放在页面里时显示终态。用法见 [ElToast](../../components/toast/README.md)。
 
 ## 锚定弹层
 

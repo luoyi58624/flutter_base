@@ -179,29 +179,28 @@ Widget _closeButton(BuildContext context, double size) => ElButton(
   onPressed: () => Navigator.of(context).pop(),
 );
 
-/// 轻提示使用品牌阴影和文字色，不创建可交互焦点。
-Widget toastBuilder(BuildContext context, ElToast c) {
-  final t = context.elTheme;
-  return ElView(
-    semantics: ElSemantics(label: c.semanticLabel),
-    style: ElStyle(
-      maxWidth: 400,
-      padding: const .symmetric(horizontal: 20, vertical: 15),
-      backgroundColor: t.cardColor,
-      borderRadius: .circular(18),
-      border: .all(borderColor: t.borderColor),
-      fontSize: 14,
-      lineHeight: 1.6,
-      color: t.textColor,
-      iconColor: t.primary,
-      iconSize: 20,
-    ).withShadow(level: ElLevelType.lg.shadow(context)).merge(c.style),
-    child: Row(
-      mainAxisSize: .min,
-      children: [
-        if (c.icon != null) ...[buildContent(c.icon), const SizedBox(width: 12)],
-        Flexible(child: buildContent(c.child)),
-      ],
-    ),
-  );
-}
+/// 轻提示为半透明黑底浅色文字，暗色模式换成浅底深色文字，淡入淡出。
+Widget toastBuilder(BuildContext context, ElToast c) => ElOverlayTransition(
+  duration: const Duration(milliseconds: 200),
+  builder: (context, animation) => FadeTransition(
+    opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
+    child: ElView(style: _toastStyle.merge(c.style), child: buildContent(c.child)),
+  ),
+);
+
+const _toastStyle = ElStyle(
+  maxWidth: '80%',
+  padding: .symmetric(horizontal: 16, vertical: 10),
+  backgroundColor: Color.fromRGBO(0, 0, 0, .65),
+  color: Color(0xffffffff),
+  iconColor: Color(0xffffffff),
+  fontSize: 13,
+  lineHeight: 1.35,
+  textAlign: .center,
+  borderRadius: .all(.circular(8)),
+  onDark: ElStyle(
+    backgroundColor: Color.fromRGBO(229, 234, 243, .85),
+    color: Color(0xff1d2129),
+    iconColor: Color(0xff1d2129),
+  ),
+);

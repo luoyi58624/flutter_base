@@ -10,7 +10,6 @@ import '../../components/popup/index.dart';
 import '../../components/tokens.dart';
 import '../../views/view/render/render_view.dart' show ElRenderView;
 import '../../views/view/style/style.dart';
-import 'notice.dart';
 
 part 'modal_drag.dart';
 
@@ -66,30 +65,6 @@ extension ElFeedbackExt on El {
     placement,
     dismissible,
     true,
-  );
-
-  /// 在调用窗口的根 Overlay 显示短提示，移除后完成 Future。
-  Future<void> toast(
-    BuildContext context,
-    Object message, {
-    Object? icon,
-    Duration duration = const Duration(milliseconds: 2200),
-    ElStyle? style,
-  }) => showPopupNotice(
-    context,
-    duration: duration,
-    child: SafeArea(
-      child: Align(
-        alignment: const Alignment(0, .65),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Semantics(
-            liveRegion: true,
-            child: ElToast(child: message, icon: icon, style: style),
-          ),
-        ),
-      ),
-    ),
   );
 }
 

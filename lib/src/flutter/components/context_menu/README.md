@@ -50,7 +50,7 @@ void openNoteMenu(BuildContext context, ElEventDetails event) {
     items: [
       ElContextMenuItem(
         label: '收藏',
-        onSelect: () => el.toast(context, '已收藏'),
+        onSelect: () => el.toast.show('已收藏', context: context),
       ),
     ],
   );

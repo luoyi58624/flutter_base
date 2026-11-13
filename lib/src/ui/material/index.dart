@@ -95,22 +95,11 @@ ElComponents materialComponents({bool mobile = false}) {
     popup: (context, c) => _popup(c),
     dialog: (context, c) => _popup(c),
     drawer: (context, c) => _popup(c),
-    toast: (context, c) => _frame(
-      c.style,
-      c.semanticLabel,
-      Material(
-        elevation: 6,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisSize: .min,
-            children: [
-              if (c.icon != null) _content(c.icon),
-              Flexible(child: _content(c.child)),
-            ],
-          ),
-        ),
+    toast: (context, c) => ElOverlayTransition(
+      duration: const Duration(milliseconds: 200),
+      builder: (context, animation) => FadeTransition(
+        opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
+        child: ElView(style: _toastStyle.merge(c.style), child: c.child),
       ),
     ),
   );
@@ -128,4 +117,22 @@ Widget _frame(ElStyle? style, String? label, Widget child) => ElView(
   style: style,
   semantics: label == null ? null : ElSemantics(container: true, label: label),
   child: child,
+);
+
+/// 轻提示为半透明黑底浅色文字，暗色模式换成浅底深色文字。
+const _toastStyle = ElStyle(
+  maxWidth: '80%',
+  padding: .symmetric(horizontal: 16, vertical: 10),
+  backgroundColor: Color.fromRGBO(0, 0, 0, .65),
+  color: Color(0xffffffff),
+  iconColor: Color(0xffffffff),
+  fontSize: 13,
+  lineHeight: 1.35,
+  textAlign: .center,
+  borderRadius: .all(.circular(8)),
+  onDark: ElStyle(
+    backgroundColor: Color.fromRGBO(229, 234, 243, .85),
+    color: Color(0xff1d2129),
+    iconColor: Color(0xff1d2129),
+  ),
 );

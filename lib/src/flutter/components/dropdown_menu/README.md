@@ -27,7 +27,7 @@ Builder(
     items: [
       ElContextMenuItem(
         label: '收藏',
-        onSelect: () => el.toast(context, '已收藏'),
+        onSelect: () => el.toast.show('已收藏', context: context),
       ),
       ElContextMenuItem.divider(),
       ElContextMenuItem(
@@ -35,7 +35,7 @@ Builder(
         children: [
           ElContextMenuItem(
             label: '工作',
-            onSelect: () => el.toast(context, '已移到工作'),
+            onSelect: () => el.toast.show('已移到工作', context: context),
           ),
         ],
       ),

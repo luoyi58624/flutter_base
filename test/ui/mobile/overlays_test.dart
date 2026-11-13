@@ -22,7 +22,7 @@ void main() {
           builder: (context) => ElButton(
             key: ValueKey('toast'),
             child: '提示',
-            onPressed: () => closed = el.toast(context, '保存成功', duration: Duration(seconds: 30)),
+            onPressed: () => closed = el.toast.show('保存成功', context: context, duration: Duration(seconds: 30)),
           ),
         ),
       ),

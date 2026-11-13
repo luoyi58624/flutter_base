@@ -64,6 +64,7 @@ export 'src/flutter/widgets/popup/back.dart' show ElPopupBackObserver, ElPopupBa
 export 'src/flutter/widgets/popup/host.dart' show ElPopupHost;
 export 'src/flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
 export 'src/flutter/widgets/popup/modal.dart' show ElFeedbackExt;
+export 'src/flutter/widgets/popup/transition.dart' show ElOverlayTransition;
 export 'src/flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry, ElPlacement;
 export 'src/flutter/widgets/popup/hover_intent.dart' show ElHoverIntent;
 export 'src/flutter/widgets/popup/context_menu.dart'

@@ -33,7 +33,6 @@ List<ShowcaseItem> feedbackShowcaseItems(bool mobile) => [
         description: '通过 el.toast 展示简短反馈，不中断当前操作。',
         child: demoColumn([
           ElToast(
-            icon: ElMobileIcons.check,
             style: ElStyle(backgroundColor: t.fill, boxShadow: [], iconColor: t.success),
             child: demoColumn([
               Text(

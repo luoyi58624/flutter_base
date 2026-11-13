@@ -39,8 +39,10 @@ import 'steps/index.dart';
 import 'switch/index.dart';
 import 'tabs/index.dart';
 import 'tag/index.dart';
+import 'toast/index.dart';
 
 export 'button/index.dart';
+export 'toast/index.dart';
 export 'tag/index.dart';
 export 'button_group/index.dart';
 export 'switch/index.dart';
