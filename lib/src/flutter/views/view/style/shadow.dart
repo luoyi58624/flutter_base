@@ -21,11 +21,11 @@ enum ElShadowType {
   inset,
 }
 
-const _shadowLayers = [
-  (offset: .65, blur: 1.5, spread: -1.0, alpha: .13),
-  (offset: 1.5, blur: 2.8, spread: -.25, alpha: .10),
-  (offset: .85, blur: 5.5, spread: 0.0, alpha: .08),
-];
+typedef _ShadowLayer = ({double y, double blur, double spread, double alpha});
+
+double _shadowScale(int level) => math.log(1.0 + level) / math.ln2;
+
+double _shadowDensity(int level) => level / (level + 5.0);
 
 /// 为视图样式添加分层阴影，圆角与自适应颜色在绘制时跟随最终样式。
 extension ElShadowStyleExt on ElStyle {
@@ -55,36 +55,31 @@ extension ElShadowStyleExt on ElStyle {
     if (!spreadRadius.isFinite) throw ArgumentError.value(spreadRadius, 'spreadRadius');
     if (level == 0 || (color is Color && color.a == 0)) return copyWith(boxShadow: const <BoxShadow>[]);
 
-    final (offsetScale, blurScale, spreadScale, alphaScale) = switch (type) {
-      .material => (1.0, 1.0, 1.0, 1.0),
-      .uniform => (0.0, 1.0, 1.0, .75),
-      .floating => (1.5, 1.6, 1.0, .75),
-      .contact => (.25, .35, .25, 1.0),
-      .glow => (0.0, 1.5, 1.0, .75),
-      .inset => (.5, .5, 0.0, .8),
+    final layers = switch (type) {
+      .material => _materialShadow(level),
+      .uniform => _uniformShadow(level),
+      .floating => _floatingShadow(level),
+      .contact => _contactShadow(level),
+      .glow => _glowShadow(level),
+      .inset => _insetShadow(level),
     };
-    // 范围随级别放缓增长，高级别的阴影仍有变化，同时避免模糊范围暴涨。
-    final scale = math.log(1.0 + level) / math.ln2;
-    final density = level / (level + 5.0) * alphaScale;
-    final widestLayer = _shadowLayers.last.blur;
-    final maxBlur = blurRadius ?? widestLayer * scale * blurScale;
+    final maxBlur = layers.fold(0.0, (value, layer) => math.max(value, layer.blur));
     final adaptive = identical(color, $absent);
     final literal = color is Color ? color : const Color(0xff000000);
     return copyWith(
-      boxShadow: List<BoxShadow>.unmodifiable(
-        _shadowLayers.map((layer) {
-          final alpha = layer.alpha * density;
-          final spread = type == .glow ? layer.spread.abs() * .5 + .35 : layer.spread * spreadScale;
-          return _PresetBoxShadow(
-            fixedColor: adaptive ? const Color(0x00000000) : literal.withValues(alpha: (alpha * literal.a).clamp(0, 1)),
-            adaptiveAlpha: adaptive ? alpha : 0,
-            offset: Offset(0, layer.offset * scale * offsetScale) + offset,
-            blurRadius: layer.blur / widestLayer * maxBlur,
-            spreadRadius: spread * scale + spreadRadius,
+      boxShadow: List<BoxShadow>.unmodifiable([
+        for (final layer in layers)
+          _PresetBoxShadow(
+            fixedColor: adaptive
+                ? const Color(0x00000000)
+                : literal.withValues(alpha: (layer.alpha * literal.a).clamp(0.0, 1.0)),
+            adaptiveAlpha: adaptive ? layer.alpha : 0,
+            offset: offset.translate(0, layer.y),
+            blurRadius: blurRadius == null ? layer.blur : layer.blur / maxBlur * blurRadius,
+            spreadRadius: layer.spread + spreadRadius,
             inset: type == .inset,
-          );
-        }),
-      ),
+          ),
+      ]),
     );
   }
 }

@@ -3530,7 +3530,11 @@ void _shadowExtensionTests() {
 
       int alpha(ByteData pixels, int x, int y) => pixels.getUint8((y * 240 + x) * 4 + 3);
       final material = await raster(.material);
-      expect(alpha(material, 120, 165), greaterThan(alpha(material, 120, 74)));
+      final materialBottom = alpha(material, 120, 165);
+      expect(materialBottom, greaterThanOrEqualTo(35));
+      expect(materialBottom, greaterThan(2 * alpha(material, 120, 74)));
+      expect(materialBottom, greaterThan(2 * alpha(material, 165, 120)));
+      expect(alpha(material, 120, 173), greaterThanOrEqualTo(10));
       final uniform = await raster(.uniform);
       final edges = [
         alpha(uniform, 120, 74),

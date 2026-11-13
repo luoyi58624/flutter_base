@@ -102,6 +102,7 @@ ElStyle(
 ```
 
 `ElShadowType` 提供 material、uniform、floating、contact、glow、inset 六种风格。
+Material 由底边附近的本影、明显向下的半影和向四周散开的环境阴影组成。
 `level` 默认为 `1`，`0` 清除阴影。正整数级别越大，阴影越广、越浓。阴影范围放缓增长，
 透明度逐渐趋近上限。也可通过 `ElLevelType.md.shadow(context)` 读取当前主题定义的级别。
 

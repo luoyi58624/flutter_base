@@ -10,6 +10,12 @@ import '../../../../../dart.dart';
 
 part 'style.g.dart';
 part 'shadow.dart';
+part 'shadow/contact.dart';
+part 'shadow/floating.dart';
+part 'shadow/glow.dart';
+part 'shadow/inset.dart';
+part 'shadow/material.dart';
+part 'shadow/uniform.dart';
 part '../text/text_options.dart';
 
 /// ElView 的声明式样式。

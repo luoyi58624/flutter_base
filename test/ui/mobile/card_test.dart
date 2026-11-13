@@ -35,7 +35,7 @@ void main() {
         expect(shadows, isNotEmpty);
         for (final shadow in shadows) {
           expect(shadow.blurRadius, greaterThan(0), reason: '零模糊轮廓会产生描边感');
-          expect(shadow.spreadRadius, lessThanOrEqualTo(0));
+          expect(shadow.spreadRadius, lessThan(shadow.blurRadius), reason: '扩散边缘应被模糊覆盖');
           expect(shadow.offset.dx, 0);
         }
         expect(shadows.last.blurRadius, greaterThan(previousBlur));
