@@ -6,20 +6,18 @@ import 'package:flutter_base/mobile.dart';
 
 import 'panel.dart';
 
-/// 提示、分隔线、进度、通知与步骤的完整展示。
-class PrimitivesShowcase extends StatelessWidget {
-  /// 创建基础反馈示例。
-  const PrimitivesShowcase({super.key});
-  @override
-  Widget build(BuildContext context) => showcaseColumn([
-    ShowcaseGrid(children: [_Tooltips(), _Dividers()]),
-    ShowcaseMotion(child: _Progress()),
-    ShowcaseMotion(child: _Playback()),
-    _Sliders(),
-    _Notices(),
-    _Steps(),
-  ], gap: 22);
-}
+/// 各类基础反馈独立构建，进度和播放的计时器随对应项释放。
+List<ShowcaseItem> primitiveShowcaseItems(bool mobile) => [
+  ...ShowcaseItem.rows([
+    ShowcaseItem((context) => _Tooltips(), anchor: 'feedback-tooltip'),
+    ShowcaseItem((context) => _Dividers()),
+  ], columns: mobile ? 1 : 2),
+  ShowcaseItem((context) => ShowcaseMotion(child: _Progress()), anchor: 'feedback-progress'),
+  ShowcaseItem((context) => ShowcaseMotion(child: _Playback()), anchor: 'feedback-playback'),
+  ShowcaseItem((context) => _Sliders(), anchor: 'feedback-sliders'),
+  ShowcaseItem((context) => _Notices()),
+  ShowcaseItem((context) => _Steps()),
+];
 
 class _Tooltips extends StatelessWidget {
   @override

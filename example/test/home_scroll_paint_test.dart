@@ -14,8 +14,8 @@ import '../lib/src/pages/home/showcase/panel.dart';
 void main() {
   testWidgets('首页按需挂载章节，稳态滚动复用静态内容', (tester) async {
     await fixture.host(tester);
-    final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
-    final viewport = tester.getRect(find.byKey(PageStorageKey('showcase-scroll')));
+    final scroll = tester.widget<ElScrollView>(find.byKey(ValueKey('showcase-scroll'))).controller!;
+    final viewport = tester.getRect(find.byKey(ValueKey('showcase-scroll')));
     final chapters = <RenderObject, String>{};
     final paintedChapters = <RenderBox>{};
     final previous = debugOnProfilePaint;
@@ -83,62 +83,36 @@ void main() {
     }
   });
 
-  testWidgets('跨断点保留输入实例，离屏反馈示例暂停动画', (tester) async {
+  testWidgets('逐卡挂载，离屏卸载后恢复初始值', (tester) async {
     await tester.runAsync(fixture.loadShowcaseFonts);
     await fixture.host(tester);
-    expect(tester.takeException(), isNull, reason: '首次挂载');
-    await fixture.reveal(tester, 'control-fields');
     final nickname = find.byWidgetPredicate(
       (widget) => widget is ElInput && widget.semanticLabel == '昵称',
       skipOffstage: false,
     );
-    final element = tester.element(nickname);
-    final model = tester.widget<ElInput>(nickname).modelValue!;
-    model.value = '保留的昵称';
-    await tester.pump();
-    tester.view.physicalSize = Size(1440, 900);
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: 500));
-    expect(tester.takeException(), isNull, reason: '切换宽屏');
-    expect(tester.element(nickname), same(element));
-    expect(tester.widget<ElInput>(nickname).modelValue!.value, '保留的昵称');
-    tester.view.physicalSize = Size(390, 900);
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: 500));
-    expect(tester.takeException(), isNull, reason: '切回手机');
-    expect(tester.element(nickname), same(element));
-    await fixture.reveal(tester, 'feedback-state');
-    final indefinite = find.byWidgetPredicate(
-      (widget) => widget is ElProgress && widget.semanticLabel == '等待服务器响应',
+    final upload = find.byWidgetPredicate(
+      (widget) => widget is ShowcasePanel && widget.title.contains('上传'),
       skipOffstage: false,
     );
-    bool running() => TickerMode.valuesOf(tester.element(indefinite)).enabled;
-    expect(running(), isFalse);
-    final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
-    Future<void> showPanel(String title) async {
-      final panel = find.byWidgetPredicate(
-        (widget) => widget is ShowcasePanel && widget.title == title,
-        skipOffstage: false,
-      );
-      final target = tester.renderObject(panel);
-      scroll.jumpTo(RenderAbstractViewport.of(target).getOffsetToReveal(target, 0).offset - 20);
-      await tester.pump();
-      await tester.pump(Duration(milliseconds: 500));
-      await tester.pump();
-    }
+    await fixture.reveal(tester, 'control-nickname');
+    expect(upload, findsNothing, reason: '同章远处的上传示例不参与构建');
+    final element = tester.element(nickname);
+    tester.widget<ElInput>(nickname).modelValue!.value = '临时昵称';
+    await tester.pump();
 
-    final progress = tester.renderObject(indefinite);
-    scroll.jumpTo(RenderAbstractViewport.of(progress).getOffsetToReveal(progress, 0).offset - 20);
-    await tester.pump();
-    await tester.pump(Duration(milliseconds: 500));
-    await tester.pump();
-    expect(running(), isTrue);
-    await showPanel('提示箭头');
-    expect(running(), isFalse);
-    expect(tester.binding.transientCallbackCount, 0);
-    await fixture.reveal(tester, 'control-fields');
-    expect(tester.element(nickname), same(element), reason: '章节进入回收池再返回仍保留输入实例');
-    expect(tester.widget<ElInput>(nickname).modelValue!.value, '保留的昵称');
+    await fixture.reveal(tester, 'feedback-progress');
+    expect(element.mounted, isFalse);
+    expect(nickname, findsNothing);
+    final progress = find.byWidgetPredicate(
+      (widget) => widget is ShowcasePanel && widget.title == '任务进度',
+      skipOffstage: false,
+    );
+    final progressElement = tester.element(progress);
+    await fixture.reveal(tester, 'control-nickname');
+    expect(progressElement.mounted, isFalse);
+    expect(progress, findsNothing);
+    expect(tester.element(nickname), isNot(same(element)));
+    expect(tester.widget<ElInput>(nickname).modelValue!.value, '小蓝同学');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(SizedBox());
     await tester.pump(Duration(seconds: 4));

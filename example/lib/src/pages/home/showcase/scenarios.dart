@@ -6,37 +6,37 @@ import 'package:flutter_base/mobile.dart';
 import 'panel.dart';
 import '../../examples/sliver_takeaway/index.dart';
 
-/// 表单、内容加载、标签页、输入状态和外卖的组合场景。
-class ScenariosShowcase extends StatelessWidget {
-  /// 创建完整场景分区。
-  const ScenariosShowcase({super.key});
-  @override
-  Widget build(BuildContext context) => ShowcaseSection(
-    id: 'scenarios',
-    number: '05',
-    category: '完整示例',
-    title: '组件如何配合',
-    description: '从资料编辑到内容加载，体验多个组件一起工作。',
-    links: {
-      'scenario-form': '资料编辑',
-      'scenario-feed': '内容加载',
-      'scenario-tabs': '标签页',
-      'scenario-inputs': '输入状态',
-      'takeaway': '外卖虚拟列表',
-    },
-    child: showcaseColumn([
-      _Profile(),
-      ShowcaseGrid(children: [_Feed(), _Tabs()]),
-      _Inputs(),
-      ShowcasePanel(
-        anchor: 'takeaway',
-        title: '外卖虚拟列表',
-        description: '一千家模拟商家，支持分类、搜索、排序和购物车。',
-        child: TakeawayShowcase(),
-      ),
-    ], gap: 22),
-  );
-}
+/// 完整场景各自拥有交互状态，随滚动项挂载和卸载。
+List<ShowcaseItem> scenarioShowcaseItems(bool mobile) => [
+  ShowcaseItem(
+    (context) => ShowcaseSection(
+      id: 'scenarios',
+      number: '05',
+      category: '完整示例',
+      title: '组件如何配合',
+      description: '从资料编辑到内容加载，体验多个组件一起工作。',
+      links: {
+        'scenario-form': '资料编辑',
+        'scenario-feed': '内容加载',
+        'scenario-tabs': '标签页',
+        'scenario-inputs': '输入状态',
+        'takeaway': '外卖虚拟列表',
+      },
+    ),
+    anchor: 'scenarios',
+    gap: 0,
+  ),
+  ShowcaseItem((context) => _Profile(), anchor: 'scenario-form'),
+  ...ShowcaseItem.rows([
+    ShowcaseItem((context) => _Feed(), anchor: 'scenario-feed'),
+    ShowcaseItem((context) => _Tabs(), anchor: 'scenario-tabs'),
+  ], columns: mobile ? 1 : 2),
+  ShowcaseItem((context) => _Inputs(), anchor: 'scenario-inputs'),
+  ShowcaseItem(
+    (context) => ShowcasePanel(title: '外卖虚拟列表', description: '一千家模拟商家，支持分类、搜索、排序和购物车。', child: TakeawayShowcase()),
+    anchor: 'takeaway',
+  ),
+];
 
 Map<String, dynamic> _initialProfile() => {
   'name': '小蓝同学',
@@ -67,7 +67,6 @@ class _Profile extends HookWidget {
       [],
     );
     return ShowcasePanel(
-      anchor: 'scenario-form',
       title: '资料编辑与校验',
       description: '切换表单布局，体验校验、错误定位、异步提交与重置。',
       child: demoColumn([
@@ -307,7 +306,6 @@ class _Feed extends HookWidget {
     }
 
     return ShowcasePanel(
-      anchor: 'scenario-feed',
       title: '内容加载与失败重试',
       description: '组合 Loading、Skeleton 与 Empty，覆盖加载、正常内容与失败状态。',
       child: demoColumn([
@@ -348,7 +346,6 @@ class _Tabs extends HookWidget {
   Widget build(BuildContext context) {
     final tab = useState('最近'), favorite = useState(false), updates = useState(true), compact = useState(false);
     return ShowcasePanel(
-      anchor: 'scenario-tabs',
       title: '标签页与内容分组',
       description: '使用 Tabs 切换内容，ListGroup 组织列表与设置项。',
       child: ElTabs<String>(
@@ -404,7 +401,6 @@ class _Tabs extends HookWidget {
 class _Inputs extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ShowcasePanel(
-    anchor: 'scenario-inputs',
     title: '更多输入状态',
     description: '只读、密码、禁用与自定义外观，覆盖真实表单里的常见状态。',
     child: ShowcaseGrid(

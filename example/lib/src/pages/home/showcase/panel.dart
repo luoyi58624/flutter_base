@@ -3,8 +3,6 @@ import 'package:flutter/rendering.dart' show RenderAbstractViewport, RenderSlive
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_base/mobile.dart';
 
-import 'state.dart';
-
 /// 展示页共享的锚点和可用宽度，布局按页面而非单张卡片判断断点。
 class ShowcaseScope extends InheritedWidget {
   /// 创建本页展示环境。
@@ -71,13 +69,12 @@ class ShowcasePanel extends StatelessWidget {
     final t = context.elTheme;
     return ElCard(
       key: anchor == null ? null : ShowcaseScope.of(context).anchors[anchor],
-      shadowLevel: .md,
       style: ElStyle(
         width: '100%',
         padding: padding ?? (mobile ? .fromLTRB(22, 24, 22, 25) : .fromLTRB(29, 28, 29, 29)),
         borderRadius: .circular(mobile ? 26 : 30),
         border: .all(borderColor: t.borderColor.withValues(alpha: .65)),
-      ),
+      ).withShadow(type: .floating, level: ElLevelType.md.shadow(context)),
       child: Column(
         mainAxisSize: .min,
         crossAxisAlignment: .stretch,
@@ -144,7 +141,7 @@ Widget showcaseColumn(List<Widget> children, {double gap = 16}) => Column(
   children: [for (final child in children) RepaintBoundary(child: child)],
 );
 
-/// 停放章节保留状态但不参与布局，不能用旧坐标判断可见性或定位锚点。
+/// 读取布局坐标前确认条目仍在视口的布局范围内。
 bool showcaseIsLaidOut(RenderObject render) {
   if (!render.attached) return false;
   for (RenderObject child = render; child.parent != null; child = child.parent!) {
@@ -214,7 +211,6 @@ class ShowcaseSection extends StatelessWidget {
     required this.category,
     required this.title,
     required this.description,
-    required this.child,
     this.links = const {},
   });
 
@@ -236,13 +232,10 @@ class ShowcaseSection extends StatelessWidget {
   /// 子节链接，键为定位身份。
   final Map<String, String> links;
 
-  /// 按自然高度排列的分区内容。
-  final Widget child;
   @override
   Widget build(BuildContext context) {
     final scope = ShowcaseScope.of(context), t = context.elTheme;
-    final heading = Column(
-      key: scope.anchors[id],
+    return Column(
       crossAxisAlignment: .stretch,
       mainAxisSize: .min,
       children: [
@@ -288,14 +281,6 @@ class ShowcaseSection extends StatelessWidget {
         ],
       ],
     );
-    return Column(
-      mainAxisSize: .min,
-      crossAxisAlignment: .stretch,
-      children: [
-        RepaintBoundary(child: heading),
-        child,
-      ],
-    );
   }
 }
 
@@ -325,15 +310,49 @@ Widget demoIcon(Widget icon, {double size = 20, Color? color}) => ElView(
   child: icon,
 );
 
-/// 在章节内登记锚点。
-Widget demoAnchor(BuildContext context, String id, Widget child) =>
-    KeyedSubtree(key: ShowcaseScope.of(context).anchors[id], child: child);
+/// 首页的一张演示卡或一行卡片，只持有构建方法。
+class ShowcaseItem {
+  /// 创建按需构建的演示项，局部 Hook 随该项卸载。
+  ShowcaseItem(this._builder, {String? anchor, this.gap = 22})
+    : _anchor = anchor,
+      anchors = [if (anchor != null) anchor];
+
+  ShowcaseItem._row(this._builder, this.anchors, this.gap) : _anchor = null;
+
+  final WidgetBuilder _builder;
+  final String? _anchor;
+
+  /// 此项可定位的锚点。
+  final List<String> anchors;
+
+  /// 此项与下一项之间的间距。
+  final double gap;
+
+  /// 构建本项，锚点随对应卡片一起挂载。
+  Widget build(BuildContext context) => HookBuilder(key: ShowcaseScope.of(context).anchors[_anchor], builder: _builder);
+
+  /// 手机逐卡构建，宽屏把同一行的卡片放在一个滚动项内。
+  static Iterable<ShowcaseItem> rows(List<ShowcaseItem> cards, {required int columns, double? gap}) sync* {
+    if (columns == 1) {
+      yield* cards;
+      return;
+    }
+    for (var start = 0; start < cards.length; start += columns) {
+      final row = cards.skip(start).take(columns).toList();
+      yield ShowcaseItem._row(
+        (context) => ShowcaseGrid(columns: columns, gap: gap, children: [for (final card in row) card.build(context)]),
+        [for (final card in row) ...card.anchors],
+        gap ?? 18,
+      );
+    }
+  }
+}
 
 /// 显示演示结果。
 void demoNotify(BuildContext context, String message) => el.toast(context, message, icon: ElMobileIcons.check);
 
 /// 打开首页两处入口共用的分享面板。
-Future<void> demoShare(BuildContext context) async {
+Future<String?> demoShare(BuildContext context) async {
   final action = await el.popup<String>(
     context,
     title: '分享这份灵感',
@@ -352,16 +371,17 @@ Future<void> demoShare(BuildContext context) async {
     ),
     footer: demoPopupActions(),
   );
-  if (!context.mounted || action == null) return;
+  if (!context.mounted || action == null) return null;
   if (action == 'copy') await Clipboard.setData(ClipboardData(text: 'flutter-base://home'));
-  if (action == 'favorite') showcaseLiked.value = true;
-  if (action == 'later') showcaseLater.value = true;
-  if (!context.mounted) return;
+  if (action == 'favorite') Obs.localStorage.setItem('showcase.liked', true);
+  if (action == 'later') Obs.localStorage.setItem('showcase.later', true);
+  if (!context.mounted) return null;
   demoNotify(context, switch (action) {
     'copy' => '链接已复制',
     'favorite' => '已收藏到本地',
     _ => '已加入稍后查看',
   });
+  return action;
 }
 
 /// 首页确认与提醒共用 Web 的通栏操作区，仍通过现有弹层 API 返回选择结果。

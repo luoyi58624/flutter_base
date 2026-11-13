@@ -18,9 +18,15 @@ Finder section(String id) =>
 final capture = Platform.environment['HOME_SCREENSHOTS'] == '1';
 final boundary = GlobalKey();
 
-Future<void> host(WidgetTester tester, {double width = 390, bool dark = false, double scale = 1}) async {
+Future<void> host(
+  WidgetTester tester, {
+  double width = 390,
+  double height = 900,
+  bool dark = false,
+  double scale = 1,
+}) async {
   tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, height);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
   tester.platformDispatcher.textScaleFactorTestValue = scale;
@@ -51,7 +57,7 @@ Future<void> reveal(WidgetTester tester, String id) async {
   final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
   scope.onNavigate(id);
   await tester.pump();
-  // 首帧挂载目标章节，下一帧才为章节内部的精确定位动画建立起点。
+  // 定位布局完成后，下一帧为滚动动画建立起点。
   await tester.pump();
   await tester.pump(Duration(milliseconds: 400));
   await tester.pump();
@@ -152,7 +158,7 @@ void main() {
         expect(tester.takeException(), isNull);
         final target = find.byKey(scope.anchors[id]!);
         expect(target, findsOneWidget);
-        final scroll = find.byKey(PageStorageKey('showcase-scroll'));
+        final scroll = find.byKey(ValueKey('showcase-scroll'));
         final position = tester.widget<ElScrollView>(scroll).controller!.position;
         final rect = tester.getRect(target);
         final location = '$id: offset=${position.pixels}, max=${position.maxScrollExtent}, target=$rect';
@@ -176,13 +182,12 @@ void main() {
     await tester.pump();
     await tester.pump(Duration(milliseconds: 400));
     final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
-    final scroll = find.byKey(PageStorageKey('showcase-scroll'));
+    final scroll = find.byKey(ValueKey('showcase-scroll'));
     expect(tester.getTopLeft(find.byKey(scope.anchors['actions']!)).dy, closeTo(tester.getRect(scroll).top + 20, 2));
-    await tester.ensureVisible(find.byKey(ValueKey('showcase-favorite')));
-    await tester.pump();
+    await reveal(tester, 'actions-buttons');
     await tester.tap(find.byKey(ValueKey('showcase-favorite')));
     await tester.pump();
-    expect(Obs.localStorage.getItem<bool>('showcase.liked'), isTrue);
+    expect(copy('已加入收藏'), findsWidgets);
     await tester.pump(Duration(seconds: 3));
     await tester.pump();
     await reveal(tester, 'feedback-state');
@@ -218,10 +223,7 @@ void main() {
     await tester.pump(Duration(seconds: 3));
     await tester.pump();
     await reveal(tester, 'takeaway');
-    final takeawayPosition = tester
-        .widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll')))
-        .controller!
-        .position;
+    final takeawayPosition = tester.widget<ElScrollView>(find.byKey(ValueKey('showcase-scroll'))).controller!.position;
     expect(
       find.byKey(ValueKey('home-takeaway-category-0')).hitTestable(),
       findsOneWidget,

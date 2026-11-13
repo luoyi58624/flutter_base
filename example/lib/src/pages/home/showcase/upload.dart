@@ -6,13 +6,11 @@ import 'package:flutter_base/mobile.dart';
 
 import 'panel.dart';
 
-/// 文件选择与可取消的本地上传模拟，不向服务端发送文件。
-class UploadShowcase extends StatelessWidget {
-  /// 创建自动和手动上传两个示例。
-  const UploadShowcase({super.key});
-  @override
-  Widget build(BuildContext context) => ShowcaseGrid(children: [_Upload(auto: true), _Upload(auto: false)]);
-}
+/// 自动与手动上传在手机上独立挂载。
+Iterable<ShowcaseItem> uploadShowcaseItems(bool mobile) => ShowcaseItem.rows([
+  ShowcaseItem((context) => _Upload(auto: true), anchor: 'control-upload'),
+  ShowcaseItem((context) => _Upload(auto: false)),
+], columns: mobile ? 1 : 2);
 
 class _Upload extends HookWidget {
   const _Upload({required this.auto});

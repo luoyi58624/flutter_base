@@ -5,56 +5,410 @@ import 'package:flutter_base/mobile.dart';
 import 'panel.dart';
 import 'primitives.dart';
 
-/// 共享状态、轻提示、确认、抽屉与菜单展示。
-class FeedbackShowcase extends StatelessWidget {
-  /// 创建反馈分区。
-  const FeedbackShowcase({super.key});
-  @override
-  Widget build(BuildContext context) => ShowcaseSection(
-    id: 'feedback',
-    number: '04',
-    category: '状态反馈',
-    title: '提示与弹层',
-    description: '提示、确认对话框和移动端操作面板。',
-    links: {
-      'feedback-state': '共享状态',
-      'feedback-prompts': '提示与确认',
-      'feedback-progress': '进度与通知',
-      'feedback-overlays': '抽屉与菜单',
-    },
-    child: showcaseColumn([
-      demoAnchor(context, 'feedback-state', _SharedState()),
-      demoAnchor(context, 'feedback-prompts', _Prompts()),
-      demoAnchor(context, 'feedback-progress', PrimitivesShowcase()),
-      demoAnchor(context, 'feedback-overlays', _Popups()),
-      _Touch(),
-      _Menus(),
-    ], gap: 22),
+/// 反馈、弹层与菜单按卡片或可见行构建。
+List<ShowcaseItem> feedbackShowcaseItems(bool mobile) => [
+  ShowcaseItem(
+    (context) => ShowcaseSection(
+      id: 'feedback',
+      number: '04',
+      category: '状态反馈',
+      title: '提示与弹层',
+      description: '提示、确认对话框和移动端操作面板。',
+      links: {
+        'feedback-state': '共享状态',
+        'feedback-prompts': '提示与确认',
+        'feedback-progress': '进度与通知',
+        'feedback-overlays': '抽屉与菜单',
+      },
+    ),
+    anchor: 'feedback',
+    gap: 0,
+  ),
+  ShowcaseItem((context) => _SharedState(), anchor: 'feedback-state'),
+  ...ShowcaseItem.rows([
+    ShowcaseItem((context) {
+      final t = context.elTheme;
+      return ShowcasePanel(
+        title: '轻提示',
+        description: '通过 el.toast 展示简短反馈，不中断当前操作。',
+        child: demoColumn([
+          ElToast(
+            icon: ElMobileIcons.check,
+            style: ElStyle(backgroundColor: t.fill, boxShadow: [], iconColor: t.success),
+            child: demoColumn([
+              Text(
+                '保存成功',
+                style: TextStyle(fontSize: 14, fontWeight: .w600, color: t.success),
+              ),
+              demoHint(context, '你的更改已经同步', size: 13),
+            ], gap: 4),
+          ),
+          _promptAction(context, '体验轻提示', () => demoNotify(context, '你的更改已经同步')),
+        ]),
+      );
+    }, anchor: 'feedback-prompts'),
+    ShowcaseItem((context) {
+      final t = context.elTheme;
+      Widget preview(Widget child) => SizedBox(height: 116, child: Center(child: child));
+      return ShowcasePanel(
+        title: '确认弹窗',
+        description: '等待 el.dialog 的返回值，确认后再执行后续操作。',
+        child: demoColumn([
+          preview(
+            Column(
+              mainAxisSize: .min,
+              spacing: 14,
+              children: [
+                ElView(
+                  style: ElStyle(
+                    width: 66,
+                    height: 66,
+                    alignment: .center,
+                    borderRadius: .circular(22),
+                    backgroundColor: t.fill,
+                    iconColor: t.textSecondary,
+                    iconSize: 30,
+                  ),
+                  child: ElMobileIcons.shield,
+                ),
+                demoHint(context, '每个决定，都值得确认'),
+              ],
+            ),
+          ),
+          _promptAction(context, '打开确认弹窗', () async {
+            if (await demoDialog(context) == true && context.mounted) demoNotify(context, '设置已保存');
+          }),
+        ]),
+      );
+    }),
+    ShowcaseItem((context) {
+      final t = context.elTheme;
+      return ShowcasePanel(
+        title: '底部操作面板',
+        description: 'el.popup 接收自定义内容，关闭后取得用户选择。',
+        child: demoColumn([
+          ElCard(
+            style: ElStyle(
+              padding: .fromLTRB(18, 14, 18, 19),
+              borderRadius: .vertical(top: .circular(19), bottom: .circular(13)),
+              backgroundColor: t.fill,
+              border: .all(borderColor: t.borderColor),
+              boxShadow: [],
+            ),
+            child: demoColumn([
+              Center(
+                child: ElView(
+                  style: ElStyle(width: 32, height: 4, borderRadius: .circular(2), backgroundColor: t.gray),
+                ),
+              ),
+              SizedBox(height: 14),
+              ElView(
+                style: ElStyle(height: 11, borderRadius: .circular(10), backgroundColor: t.borderColor),
+              ),
+              SizedBox(height: 10),
+              FractionallySizedBox(
+                widthFactor: .66,
+                alignment: .centerLeft,
+                child: ElView(
+                  style: ElStyle(height: 11, borderRadius: .circular(10), backgroundColor: t.borderColor),
+                ),
+              ),
+            ], gap: 0),
+          ),
+          _promptAction(context, '展开操作面板', () => demoShare(context)),
+        ]),
+      );
+    }, anchor: 'feedback-share'),
+  ], columns: mobile ? 1 : 3),
+  ...primitiveShowcaseItems(mobile),
+  ...ShowcaseItem.rows([
+    ShowcaseItem((context) {
+      final direction = useState('右侧');
+      return ShowcasePanel(
+        title: '抽屉',
+        description: '从不同方向打开内容，输入和操作都保留在当前面板。',
+        child: demoColumn([
+          ElSegmented<String>(
+            modelValue: direction,
+            options: [
+              for (final label in ['左侧', '右侧', '顶部', '底部']) ElSegmentedOption(value: label, label: label),
+            ],
+          ),
+          ElButton(
+            variant: .outline,
+            child: '打开抽屉',
+            onPressed: () async {
+              final result = await el.drawer<String>(
+                context,
+                title: '编辑个人资料',
+                placement: switch (direction.value) {
+                  '左侧' => .left,
+                  '顶部' => .top,
+                  '底部' => .bottom,
+                  _ => .right,
+                },
+                child: _DrawerProfile(),
+              );
+              if (result != null && context.mounted) demoNotify(context, '资料已保存：$result');
+            },
+          ),
+        ]),
+      );
+    }, anchor: 'feedback-overlays'),
+    ShowcaseItem((context) {
+      final trailing = useState(true);
+      final single = useState('锁屏与时钟桌面插件'), multi = useState(['同步文档', '同步图片']);
+      Future<void> selections(bool multiple) async {
+        final markLeading = !trailing.value;
+        final selected = await el.popup<String>(
+          context,
+          title: multiple ? '选择需要同步的内容' : '在以下位置显示双时钟',
+          showClose: false,
+          child: Builder(
+            builder: (context) => multiple
+                ? ElListGroup.multi(
+                    modelValue: multi,
+                    leading: markLeading,
+                    children: [
+                      for (final (name, subtitle) in [
+                        ('同步文档', '多设备持续更新'),
+                        ('同步图片', '保留珍贵的视觉记录'),
+                        ('同步收藏', '随时找回喜欢的内容'),
+                      ])
+                        ElListTile(value: name, title: name, subtitle: subtitle),
+                    ],
+                  )
+                : ElListGroup.single(
+                    modelValue: single,
+                    leading: markLeading,
+                    children: [
+                      for (final name in ['锁屏', '时钟桌面插件', '锁屏与时钟桌面插件'])
+                        ElListTile(value: name, title: name, onTap: () => Navigator.of(context).pop(name)),
+                    ],
+                  ),
+          ),
+          footer: multiple ? demoPopupActions(confirm: '完成', onConfirm: () => '完成') : demoPopupActions(),
+        );
+        if (selected != null && context.mounted) {
+          demoNotify(context, multiple ? '已选择 ${multi.value.length} 项同步内容' : '已选择：$selected');
+        }
+      }
+
+      return ShowcasePanel(
+        title: '选择面板',
+        description: '单选与多选放入底部面板，保持清楚的选中反馈。',
+        child: demoColumn([
+          ElSegmented<bool>(
+            modelValue: trailing,
+            options: [
+              ElSegmentedOption(value: false, label: '标记在前'),
+              ElSegmentedOption(value: true, label: '标记在后'),
+            ],
+          ),
+          demoActions([
+            ElButton(variant: .outline, child: '打开单选面板', onPressed: () => selections(false)),
+            ElButton(variant: .outline, child: '打开多选面板', onPressed: () => selections(true)),
+          ]),
+          demoHint(context, '双时钟：${single.value}\n同步内容：已选 ${multi.value.length} 项'),
+        ]),
+      );
+    }, anchor: 'feedback-selection'),
+    ShowcaseItem((context) {
+      final center = useState(false);
+      return ShowcasePanel(
+        title: '确认与提醒',
+        description: '单按钮提醒与危险操作确认，支持底部或居中展示。',
+        child: demoColumn([
+          ElSegmented<bool>(
+            modelValue: center,
+            options: [
+              ElSegmentedOption(value: false, label: '底部'),
+              ElSegmentedOption(value: true, label: '居中'),
+            ],
+          ),
+          demoActions([
+            ElButton(
+              variant: .outline,
+              child: '单按钮提醒',
+              onPressed: () => demoDialog(
+                context,
+                title: '同步已完成',
+                message: '你的文档和图片都已同步，可以安心继续浏览。',
+                confirm: '知道了',
+                single: true,
+                placement: center.value ? .center : .bottom,
+              ),
+            ),
+            ElButton(
+              variant: .text,
+              type: .error,
+              child: '危险操作确认',
+              onPressed: () async {
+                if (await demoDialog(
+                          context,
+                          title: '移除本地缓存？',
+                          message: '这是一项交互示例。确认后只展示操作结果，你的个人数据不会受影响。',
+                          confirm: '移除',
+                          danger: true,
+                          placement: center.value ? .center : .bottom,
+                        ) ==
+                        true &&
+                    context.mounted) {
+                  demoNotify(context, '已确认移除（示例）');
+                }
+              },
+            ),
+          ]),
+        ]),
+      );
+    }, anchor: 'feedback-confirm'),
+  ], columns: mobile ? 1 : 3),
+  ShowcaseItem((context) => _Touch()),
+  ...ShowcaseItem.rows([
+    ShowcaseItem(
+      (context) =>
+          ShowcasePanel(title: '基础菜单', description: '点击目标打开操作列表，在当前位置完成常用动作。', child: _menuTarget(context, '周末灵感.txt')),
+    ),
+    ShowcaseItem(
+      (context) => ShowcasePanel(
+        title: '上下文菜单',
+        description: '右键或长按内容，显示与当前项目有关的操作。',
+        child: demoColumn([
+          _menuTarget(context, '设计灵感', contextOnly: true),
+          _menuTarget(context, '旅行计划', contextOnly: true),
+        ], gap: 12),
+      ),
+    ),
+    ShowcaseItem((context) {
+      final selected = useState('日常灵感'), sync = useState(['文档']);
+      return ShowcasePanel(
+        title: '选择菜单',
+        description: '菜单中展示单选和多选状态，选择后更新当前内容。',
+        child: demoColumn([
+          ElListTile<String>.popup(
+            title: '内容分类',
+            modelValue: selected,
+            options: [
+              for (final label in ['日常灵感', '设计收藏', '旅行计划']) ElMenuOption(label, label),
+            ],
+          ),
+          _menuTarget(
+            context,
+            '同步内容：${sync.value.join('、')}',
+            options: [
+              for (final label in ['文档', '图片', '收藏'])
+                ElContextMenuItem(
+                  label: label,
+                  checked: sync.value.contains(label),
+                  onSelect: () => sync.value = sync.value.contains(label)
+                      ? sync.value.where((v) => v != label).toList()
+                      : [...sync.value, label],
+                ),
+            ],
+          ),
+        ], gap: 12),
+      );
+    }),
+    ShowcaseItem(
+      (context) => ShowcasePanel(
+        title: '级联菜单',
+        description: '层级选项复用已有菜单机制，子选项保留业务值。',
+        child: ElListTile<String?>.popup(
+          title: '移动到收藏夹',
+          value: null,
+          options: [
+            ElMenuOption('工作', 'work', children: [ElMenuOption('设计规范', 'design'), ElMenuOption('产品资料', 'product')]),
+            ElMenuOption('生活', 'life', children: [ElMenuOption('旅行计划', 'travel'), ElMenuOption('日常灵感', 'daily')]),
+            ElMenuOption('暂不可用', 'disabled', disabled: true),
+          ],
+          onChanged: (value) {
+            if (value != null) demoNotify(context, '已移动到：$value');
+          },
+        ),
+      ),
+    ),
+  ], columns: mobile ? 1 : 2),
+];
+
+Widget _promptAction(BuildContext context, String label, VoidCallback onPressed) => ElButton(
+  variant: .link,
+  style: ElStyle(margin: .only(top: 8), padding: .symmetric(horizontal: 14)),
+  onPressed: onPressed,
+  child: Row(
+    mainAxisSize: .min,
+    spacing: 6,
+    children: [
+      ElView(child: label),
+      demoIcon(ElMobileIcons.arrowRight, size: 16),
+    ],
+  ),
+);
+
+Widget _menuTarget(BuildContext context, String text, {bool contextOnly = false, List<ElContextMenuItem>? options}) {
+  void menu(ElEventDetails event, List<ElContextMenuItem> items) => el.showContextMenu(
+    context,
+    position: event.globalPosition,
+    items: items,
+    menu: ElMobileContextMenu(),
+    triggerEvent: event,
+  );
+  List<ElContextMenuItem> commands() => [
+    ElContextMenuItem(
+      label: '复制链接',
+      icon: ElMobileIcons.copy,
+      onSelect: () {
+        Clipboard.setData(ClipboardData(text: 'flutter-base://home'));
+        demoNotify(context, '链接已复制');
+      },
+    ),
+    ElContextMenuItem(label: '加入收藏', icon: ElMobileIcons.heart, onSelect: () => demoNotify(context, '已加入收藏')),
+    ElContextMenuItem.divider(),
+    ElContextMenuItem(label: '删除', icon: ElMobileIcons.trash, onSelect: () => demoNotify(context, '已删除示例项目')),
+  ];
+  return ElCard(
+    event: ElEvent(
+      onTap: contextOnly ? null : (event) => menu(event, options ?? commands()),
+      onSecondaryTap: (event) => menu(event, options ?? commands()),
+      onLongPress: (event) => menu(event, options ?? commands()),
+    ),
+    style: ElStyle(padding: .all(20), borderRadius: .circular(16), backgroundColor: context.elTheme.fill),
+    child: Row(
+      spacing: 12,
+      children: [
+        demoIcon(ElMobileIcons.file, color: context.elTheme.primary),
+        Expanded(child: Text(text)),
+        demoIcon(ElMobileIcons.grid, size: 18),
+      ],
+    ),
   );
 }
 
-class _SharedStore {
-  static final note = Obs('记录一点今天的灵感', cacheKey: 'showcase.shared.note');
-  static final count = Obs(0, cacheKey: 'showcase.shared.count');
+class _SharedState extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final note = useState('记录一点今天的灵感'), count = useState(0);
+    return _SharedPanel(note: note, count: count);
+  }
 }
 
-class _SharedState extends StatelessWidget {
-  const _SharedState({this.secondary = false});
+class _SharedPanel extends StatelessWidget {
+  const _SharedPanel({required this.note, required this.count, this.secondary = false});
+
+  final ValueNotifier<String> note;
+  final ValueNotifier<int> count;
   final bool secondary;
+
   @override
-  Widget build(BuildContext context) => ObsBuilder(
-    builder: (context) => ShowcasePanel(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([note, count]),
+    builder: (context, _) => ShowcasePanel(
       title: '跨页共享状态',
-      description: '两页共用备注和计数，重新打开也能恢复。',
+      description: '两页共用当前示例的备注和计数。',
       child: demoColumn([
         demoLabel(context, '共享备注'),
-        ElInput(modelValue: _SharedStore.note, clearable: true, semanticLabel: '共享备注'),
+        ElInput(modelValue: note, clearable: true, semanticLabel: '共享备注'),
         demoActions([
-          ElButton(
-            variant: .outline,
-            child: '共享计数 ${_SharedStore.count.value}',
-            onPressed: () => _SharedStore.count.value++,
-          ),
+          ElButton(variant: .outline, child: '共享计数 ${count.value}', onPressed: () => count.value++),
           if (!secondary)
             ElButton(
               child: '打开另一页',
@@ -69,7 +423,10 @@ class _SharedState extends StatelessWidget {
                     onNavigate: (_) {},
                     child: Scaffold(
                       appBar: AppBar(title: Text('跨页共享状态')),
-                      body: SingleChildScrollView(padding: .all(16), child: _SharedState(secondary: true)),
+                      body: SingleChildScrollView(
+                        padding: .all(16),
+                        child: _SharedPanel(note: note, count: count, secondary: true),
+                      ),
                     ),
                   ),
                 );
@@ -78,20 +435,10 @@ class _SharedState extends StatelessWidget {
             ),
           ElButton(
             variant: .text,
-            child: '从本地更新',
-            onPressed: () {
-              _SharedStore.note.value =
-                  _SharedStore.note.storage.getItem<String>(_SharedStore.note.cacheKey!) ?? '记录一点今天的灵感';
-              _SharedStore.count.value = _SharedStore.count.storage.getItem<int>(_SharedStore.count.cacheKey!) ?? 0;
-              demoNotify(context, '已从本地更新共享数据');
-            },
-          ),
-          ElButton(
-            variant: .text,
             child: '重置数据',
             onPressed: () {
-              _SharedStore.note.value = '记录一点今天的灵感';
-              _SharedStore.count.value = 0;
+              note.value = '记录一点今天的灵感';
+              count.value = 0;
             },
           ),
         ], gap: 12),
@@ -99,254 +446,6 @@ class _SharedState extends StatelessWidget {
       ], gap: 16),
     ),
   );
-}
-
-class _Prompts extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final t = context.elTheme;
-    Widget preview(Widget child) => SizedBox(height: 116, child: Center(child: child));
-    Widget action(String label, VoidCallback onPressed) => ElButton(
-      variant: .link,
-      style: ElStyle(margin: .only(top: 8), padding: .symmetric(horizontal: 14)),
-      onPressed: onPressed,
-      child: Row(
-        mainAxisSize: .min,
-        spacing: 6,
-        children: [
-          ElView(child: label),
-          demoIcon(ElMobileIcons.arrowRight, size: 16),
-        ],
-      ),
-    );
-    return ShowcaseGrid(
-      columns: 3,
-      children: [
-        ShowcasePanel(
-          title: '轻提示',
-          description: '通过 el.toast 展示简短反馈，不中断当前操作。',
-          child: demoColumn([
-            ElToast(
-              icon: ElMobileIcons.check,
-              style: ElStyle(backgroundColor: t.fill, boxShadow: [], iconColor: t.success),
-              child: demoColumn([
-                Text(
-                  '保存成功',
-                  style: TextStyle(fontSize: 14, fontWeight: .w600, color: t.success),
-                ),
-                demoHint(context, '你的更改已经同步', size: 13),
-              ], gap: 4),
-            ),
-            action('体验轻提示', () => demoNotify(context, '你的更改已经同步')),
-          ]),
-        ),
-        ShowcasePanel(
-          title: '确认弹窗',
-          description: '等待 el.dialog 的返回值，确认后再执行后续操作。',
-          child: demoColumn([
-            preview(
-              Column(
-                mainAxisSize: .min,
-                spacing: 14,
-                children: [
-                  ElView(
-                    style: ElStyle(
-                      width: 66,
-                      height: 66,
-                      alignment: .center,
-                      borderRadius: .circular(22),
-                      backgroundColor: t.fill,
-                      iconColor: t.textSecondary,
-                      iconSize: 30,
-                    ),
-                    child: ElMobileIcons.shield,
-                  ),
-                  demoHint(context, '每个决定，都值得确认'),
-                ],
-              ),
-            ),
-            action('打开确认弹窗', () async {
-              if (await demoDialog(context) == true && context.mounted) demoNotify(context, '设置已保存');
-            }),
-          ]),
-        ),
-        ShowcasePanel(
-          title: '底部操作面板',
-          description: 'el.popup 接收自定义内容，关闭后取得用户选择。',
-          child: demoColumn([
-            ElCard(
-              style: ElStyle(
-                padding: .fromLTRB(18, 14, 18, 19),
-                borderRadius: .vertical(top: .circular(19), bottom: .circular(13)),
-                backgroundColor: t.fill,
-                border: .all(borderColor: t.borderColor),
-                boxShadow: [],
-              ),
-              child: demoColumn([
-                Center(
-                  child: ElView(
-                    style: ElStyle(width: 32, height: 4, borderRadius: .circular(2), backgroundColor: t.gray),
-                  ),
-                ),
-                SizedBox(height: 14),
-                ElView(
-                  style: ElStyle(height: 11, borderRadius: .circular(10), backgroundColor: t.borderColor),
-                ),
-                SizedBox(height: 10),
-                FractionallySizedBox(
-                  widthFactor: .66,
-                  alignment: .centerLeft,
-                  child: ElView(
-                    style: ElStyle(height: 11, borderRadius: .circular(10), backgroundColor: t.borderColor),
-                  ),
-                ),
-              ], gap: 0),
-            ),
-            action('展开操作面板', () => demoShare(context)),
-          ]),
-        ),
-      ],
-    );
-  }
-}
-
-class _Popups extends HookWidget {
-  @override
-  Widget build(BuildContext context) {
-    final direction = useState('右侧'), trailing = useState(true), center = useState(false);
-    final single = useState('锁屏与时钟桌面插件'), multi = useState(['同步文档', '同步图片']);
-    Future<void> selections(bool multiple) async {
-      final markLeading = !trailing.value;
-      final selected = await el.popup<String>(
-        context,
-        title: multiple ? '选择需要同步的内容' : '在以下位置显示双时钟',
-        showClose: false,
-        child: Builder(
-          builder: (context) => multiple
-              ? ElListGroup.multi(
-                  modelValue: multi,
-                  leading: markLeading,
-                  children: [
-                    for (final (name, subtitle) in [('同步文档', '多设备持续更新'), ('同步图片', '保留珍贵的视觉记录'), ('同步收藏', '随时找回喜欢的内容')])
-                      ElListTile(value: name, title: name, subtitle: subtitle),
-                  ],
-                )
-              : ElListGroup.single(
-                  modelValue: single,
-                  leading: markLeading,
-                  children: [
-                    for (final name in ['锁屏', '时钟桌面插件', '锁屏与时钟桌面插件'])
-                      ElListTile(value: name, title: name, onTap: () => Navigator.of(context).pop(name)),
-                  ],
-                ),
-        ),
-        footer: multiple ? demoPopupActions(confirm: '完成', onConfirm: () => '完成') : demoPopupActions(),
-      );
-      if (selected != null && context.mounted) {
-        demoNotify(context, multiple ? '已选择 ${multi.value.length} 项同步内容' : '已选择：$selected');
-      }
-    }
-
-    return ShowcaseGrid(
-      columns: 3,
-      children: [
-        ShowcasePanel(
-          title: '抽屉',
-          description: '从不同方向打开内容，输入和操作都保留在当前面板。',
-          child: demoColumn([
-            ElSegmented<String>(
-              modelValue: direction,
-              options: [
-                for (final label in ['左侧', '右侧', '顶部', '底部']) ElSegmentedOption(value: label, label: label),
-              ],
-            ),
-            ElButton(
-              variant: .outline,
-              child: '打开抽屉',
-              onPressed: () async {
-                final result = await el.drawer<String>(
-                  context,
-                  title: '编辑个人资料',
-                  placement: switch (direction.value) {
-                    '左侧' => .left,
-                    '顶部' => .top,
-                    '底部' => .bottom,
-                    _ => .right,
-                  },
-                  child: _DrawerProfile(),
-                );
-                if (result != null && context.mounted) demoNotify(context, '资料已保存：$result');
-              },
-            ),
-          ]),
-        ),
-        ShowcasePanel(
-          title: '选择面板',
-          description: '单选与多选放入底部面板，保持清楚的选中反馈。',
-          child: demoColumn([
-            ElSegmented<bool>(
-              modelValue: trailing,
-              options: [
-                ElSegmentedOption(value: false, label: '标记在前'),
-                ElSegmentedOption(value: true, label: '标记在后'),
-              ],
-            ),
-            demoActions([
-              ElButton(variant: .outline, child: '打开单选面板', onPressed: () => selections(false)),
-              ElButton(variant: .outline, child: '打开多选面板', onPressed: () => selections(true)),
-            ]),
-            demoHint(context, '双时钟：${single.value}\n同步内容：已选 ${multi.value.length} 项'),
-          ]),
-        ),
-        ShowcasePanel(
-          title: '确认与提醒',
-          description: '单按钮提醒与危险操作确认，支持底部或居中展示。',
-          child: demoColumn([
-            ElSegmented<bool>(
-              modelValue: center,
-              options: [
-                ElSegmentedOption(value: false, label: '底部'),
-                ElSegmentedOption(value: true, label: '居中'),
-              ],
-            ),
-            demoActions([
-              ElButton(
-                variant: .outline,
-                child: '单按钮提醒',
-                onPressed: () => demoDialog(
-                  context,
-                  title: '内容已经同步',
-                  message: '你可以在其他设备上继续查看。',
-                  confirm: '知道了',
-                  single: true,
-                  placement: center.value ? .center : .bottom,
-                ),
-              ),
-              ElButton(
-                variant: .text,
-                type: .error,
-                child: '危险操作确认',
-                onPressed: () async {
-                  if (await demoDialog(
-                            context,
-                            title: '删除这条收藏？',
-                            message: '删除后将从当前列表中移除。',
-                            confirm: '确认删除',
-                            danger: true,
-                            placement: center.value ? .center : .bottom,
-                          ) ==
-                          true &&
-                      context.mounted) {
-                    demoNotify(context, '收藏已删除');
-                  }
-                },
-              ),
-            ]),
-          ]),
-        ),
-      ],
-    );
-  }
 }
 
 class _DrawerProfile extends HookWidget {
@@ -439,7 +538,17 @@ class _Touch extends HookWidget {
               child: panel(),
               footer: demoPopupActions(cancel: '关闭'),
             )
-          : await el.drawer<String>(context, title: '我的工作空间', child: panel());
+          : await el.drawer<String>(
+              context,
+              title: '我的工作空间',
+              style: ElStyle(
+                vars: {
+                  ElTokens.$drawerBodyPadding: EdgeInsets.symmetric(vertical: 16),
+                  ElTokens.$popupListPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                },
+              ),
+              child: panel(),
+            );
       if (context.mounted && result != null) demoNotify(context, '已打开：$result');
     }
 
@@ -489,101 +598,6 @@ class _Touch extends HookWidget {
           demoHint(context, '使用单指触摸体验'),
         ], gap: 12),
       ], gap: 22),
-    );
-  }
-}
-
-class _Menus extends HookWidget {
-  @override
-  Widget build(BuildContext context) {
-    final selected = useState('日常灵感'), sync = useState(['文档']);
-    void menu(ElEventDetails event, List<ElContextMenuItem> items) => el.showContextMenu(
-      context,
-      position: event.globalPosition,
-      items: items,
-      menu: ElMobileContextMenu(),
-      triggerEvent: event,
-    );
-    List<ElContextMenuItem> commands() => [
-      ElContextMenuItem(
-        label: '复制链接',
-        icon: ElMobileIcons.copy,
-        onSelect: () {
-          Clipboard.setData(ClipboardData(text: 'flutter-base://home'));
-          demoNotify(context, '链接已复制');
-        },
-      ),
-      ElContextMenuItem(label: '加入收藏', icon: ElMobileIcons.heart, onSelect: () => demoNotify(context, '已加入收藏')),
-      ElContextMenuItem.divider(),
-      ElContextMenuItem(label: '删除', icon: ElMobileIcons.trash, onSelect: () => demoNotify(context, '已删除示例项目')),
-    ];
-    Widget target(String text, {bool contextOnly = false, List<ElContextMenuItem>? options}) => ElCard(
-      event: ElEvent(
-        onTap: contextOnly ? null : (event) => menu(event, options ?? commands()),
-        onSecondaryTap: (event) => menu(event, options ?? commands()),
-        onLongPress: (event) => menu(event, options ?? commands()),
-      ),
-      style: ElStyle(padding: .all(20), borderRadius: .circular(16), backgroundColor: context.elTheme.fill),
-      child: Row(
-        spacing: 12,
-        children: [
-          demoIcon(ElMobileIcons.file, color: context.elTheme.primary),
-          Expanded(child: Text(text)),
-          demoIcon(ElMobileIcons.grid, size: 18),
-        ],
-      ),
-    );
-    return ShowcaseGrid(
-      children: [
-        ShowcasePanel(title: '基础菜单', description: '点击目标打开操作列表，在当前位置完成常用动作。', child: target('周末灵感.txt')),
-        ShowcasePanel(
-          title: '上下文菜单',
-          description: '右键或长按内容，显示与当前项目有关的操作。',
-          child: demoColumn([target('设计灵感', contextOnly: true), target('旅行计划', contextOnly: true)], gap: 12),
-        ),
-        ShowcasePanel(
-          title: '选择菜单',
-          description: '菜单中展示单选和多选状态，选择后更新当前内容。',
-          child: demoColumn([
-            ElListTile<String>.popup(
-              title: '内容分类',
-              modelValue: selected,
-              options: [
-                for (final label in ['日常灵感', '设计收藏', '旅行计划']) ElMenuOption(label, label),
-              ],
-            ),
-            target(
-              '同步内容：${sync.value.join('、')}',
-              options: [
-                for (final label in ['文档', '图片', '收藏'])
-                  ElContextMenuItem(
-                    label: label,
-                    checked: sync.value.contains(label),
-                    onSelect: () => sync.value = sync.value.contains(label)
-                        ? sync.value.where((v) => v != label).toList()
-                        : [...sync.value, label],
-                  ),
-              ],
-            ),
-          ], gap: 12),
-        ),
-        ShowcasePanel(
-          title: '级联菜单',
-          description: '层级选项复用已有菜单机制，子选项保留业务值。',
-          child: ElListTile<String?>.popup(
-            title: '移动到收藏夹',
-            value: null,
-            options: [
-              ElMenuOption('工作', 'work', children: [ElMenuOption('设计规范', 'design'), ElMenuOption('产品资料', 'product')]),
-              ElMenuOption('生活', 'life', children: [ElMenuOption('旅行计划', 'travel'), ElMenuOption('日常灵感', 'daily')]),
-              ElMenuOption('暂不可用', 'disabled', disabled: true),
-            ],
-            onChanged: (value) {
-              if (value != null) demoNotify(context, '已移动到：$value');
-            },
-          ),
-        ),
-      ],
     );
   }
 }

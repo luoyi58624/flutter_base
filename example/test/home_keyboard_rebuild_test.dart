@@ -30,7 +30,7 @@ void main() {
     await tester.ensureVisible(input);
     await tester.pumpAndSettle();
     final focus = tester.widget<ElInput>(input).focusNode!;
-    final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
+    final scroll = tester.widget<ElScrollView>(find.byKey(ValueKey('showcase-scroll'))).controller!;
     final initialViewport = scroll.position.viewportDimension;
     final previous = debugOnRebuildDirtyWidget;
     final builds = <String, int>{};
