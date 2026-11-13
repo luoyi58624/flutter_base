@@ -13,22 +13,38 @@ import '../nested/nested_scroll_chain.dart' show ElNestedScrollParent;
 import '../nested/scroll_delta_source.dart' show ElScrollDeltaSource;
 import '../scroll.dart' show ElScrollView;
 import '../scroll_position.dart' show ScrollHostPosition;
-import 'refresher/index.dart' show ElRefreshDetails, ElRefreshSnapshot, ElRefresher;
+import 'refresher/index.dart' show ElRefreshSnapshot, ElRefresher;
 import 'refresher/platform.dart' show platformRefresher;
 
 export 'package:flutter/material.dart' show RefreshIndicatorStatus;
 
 export 'refresher/android.dart' show ElAndroidRefresher;
 export 'refresher/index.dart'
-    show
-        ElCustomRefresher,
-        ElNoRefresher,
-        ElRefreshDetails,
-        ElRefreshEdge,
-        ElRefreshSnapshot,
-        ElRefresher,
-        elWebKitRubberBandSpring;
+    show ElCustomRefresher, ElNoRefresher, ElRefreshEdge, ElRefreshSnapshot, ElRefresher, elWebKitRubberBandSpring;
 export 'refresher/ios.dart' show ElIosRefresher;
+
+/// 程序化控制一个已挂载的刷新器。
+class ElRefreshController {
+  /// 创建可绑定到一个刷新器的控制器。
+  ElRefreshController();
+
+  _RefreshMotion? _motion;
+
+  /// 显示指示器并触发刷新回调，未挂载、已禁用或正在刷新时忽略。
+  void show() => _motion?.show();
+
+  /// 提前收起指示器，已开始的请求继续由调用方管理。
+  void close() => _motion?.close();
+
+  void _attach(_RefreshMotion motion) {
+    assert(_motion == null || identical(_motion, motion), '一个 ElRefreshController 只能绑定一个刷新器');
+    _motion = motion;
+  }
+
+  void _detach(_RefreshMotion motion) {
+    if (identical(_motion, motion)) _motion = null;
+  }
+}
 
 /// Sliver 形式的下拉刷新，放在 ElScrollView.sliver 的 slivers 里，通常是第一个。
 ///
@@ -40,13 +56,16 @@ export 'refresher/ios.dart' show ElIosRefresher;
 /// 刷新器通过 buildIndicator 与策略参数定制外观；指示器铺满视口且不参与命中。
 class ElSliverRefresh extends HookWidget {
   /// 创建挂在所在 ElScrollView 起点边缘的刷新 Sliver。
-  const ElSliverRefresh({super.key, required this.onRefresh, this.refresher});
+  const ElSliverRefresh({super.key, required this.onRefresh, this.refresher, this.controller});
 
   /// 刷新回调，返回的 Future 完成后指示器收起。
   final Future<void> Function() onRefresh;
 
   /// 刷新器的外观与策略；null 使用平台默认实现。
   final ElRefresher? refresher;
+
+  /// 用于程序化显示或关闭当前刷新器。
+  final ElRefreshController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +86,12 @@ class ElSliverRefresh extends HookWidget {
       ..axisDirection = scrollable.axisDirection
       ..position = position;
     useEffect(() => motion.dispose, const []);
+    useEffect(() {
+      final controller = this.controller;
+      if (controller == null) return null;
+      controller._attach(motion);
+      return () => controller._detach(motion);
+    }, [controller]);
     // Scrollable 更换物理或控制器时会重建位置，协作方要跟着重新登记。
     useEffect(() {
       if (position is! ScrollHostPosition) return null;
@@ -76,8 +101,8 @@ class ElSliverRefresh extends HookWidget {
 
     return _SliverRefresh(
       motion: motion,
-      behind: refresher.behindContent(motion),
-      child: refresher.buildIndicator(context, motion),
+      behind: refresher.behindContent,
+      child: refresher.buildIndicator(context, motion.snapshot),
     );
   }
 }
@@ -85,7 +110,7 @@ class ElSliverRefresh extends HookWidget {
 /// 刷新状态：作为滚动协作方接收越界位移，维护拉出距离与官方刷新状态。
 ///
 /// 位移使用协作链的手指方向：正值朝滚动起点外侧拉出，负值收回。
-final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDetails {
+final class _RefreshMotion extends ElNestedScrollParent {
   _RefreshMotion(TickerProvider vsync) : _settle = AnimationController.unbounded(vsync: vsync) {
     _settle.addListener(() {
       _pulled = math.max(0.0, _settle.value);
@@ -98,11 +123,9 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
   late AxisDirection axisDirection;
   late ScrollPosition position;
 
-  /// 正文实际让出的可见间隙，由渲染对象在布局时写入。
-  double visibleGap = 0;
-
   final AnimationController _settle;
   Timer? _finishHold;
+  Object? _request;
   RefreshIndicatorStatus? _status;
   double _pulled = 0;
 
@@ -187,9 +210,11 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
   void _startRefresh({required bool byGesture}) {
     if (byGesture && refresher.hapticOnTrigger) HapticFeedback.mediumImpact();
     _status = .refresh;
+    final request = _request = Object();
     final waitForDocking = !refresher.movesContent;
     final docking = _settleTo(refresher.refreshingExtent);
     Future<void>.sync(onRefresh).whenComplete(() async {
+      if (!identical(_request, request)) return;
       // 悬浮指示器进入完成态会直接画在停靠位，因此快速刷新也要先播完停靠动画。
       if (waitForDocking) {
         try {
@@ -198,7 +223,8 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
           return;
         }
       }
-      if (_status != .refresh) return;
+      if (!identical(_request, request)) return;
+      _request = null;
       _status = .done;
       _publish();
       // 完成视觉先停留 finishDelay，再收起。
@@ -239,29 +265,24 @@ final class _RefreshMotion extends ElNestedScrollParent implements ElRefreshDeta
   void dispose() {
     // 置空状态让仍在进行的 onRefresh 完成后不再回写。
     _status = null;
+    _request = null;
     _finishHold?.cancel();
     _settle.dispose();
     _snapshot.dispose();
   }
 
-  // ───────────────────────── ElRefreshDetails ─────────────────────────
-
-  @override
   ValueListenable<ElRefreshSnapshot> get snapshot => _snapshot;
 
-  // 刷新停靠期间滚动正文会改变可见间隙而快照不变，所以把滚动位置一并作为重绘信号。
-  @override
-  Listenable get repaint => Listenable.merge([_snapshot, position]);
-
-  @override
-  ScrollPhysics get physics => position.physics;
-
-  @override
-  double? get contentGap => visibleGap;
-
-  @override
-  void requestRefresh() {
+  void show() {
     if (_status == null && refresher.triggerExtent > 0) _startRefresh(byGesture: false);
+  }
+
+  void close() {
+    if (_status == null || _status == .canceled) return;
+    _request = null;
+    _finishHold?.cancel();
+    _status = .canceled;
+    _settleTo(0, finishing: true);
   }
 }
 
@@ -295,6 +316,7 @@ class _RenderSliverRefresh extends RenderSliverSingleBoxAdapter {
 
   // 上一次布局用到的状态；指示器自己监听快照重绘，本对象只关心影响几何的这两项。
   double _gap = 0;
+  double _visibleGap = 0;
   bool _active = false;
   AxisDirection _direction = .down;
 
@@ -342,7 +364,7 @@ class _RenderSliverRefresh extends RenderSliverSingleBoxAdapter {
     final child = this.child!..layout(constraints.asBoxConstraints(minExtent: viewport, maxExtent: viewport));
     final visible = math.max(0.0, math.min(gap - constraints.scrollOffset, constraints.remainingPaintExtent));
     // overlap 为负表示正文按物理越界，这段距离同样是露出的间隙。
-    _motion.visibleGap = visible - math.min(0.0, constraints.overlap);
+    _visibleGap = visible - math.min(0.0, constraints.overlap);
     geometry = SliverGeometry(
       scrollExtent: gap,
       // 越界时本 Sliver 被整体推离视口起点，前面有固定头时又会被盖住，按 overlap 钉回可见起点。
@@ -367,7 +389,7 @@ class _RenderSliverRefresh extends RenderSliverSingleBoxAdapter {
   @override
   void paint(PaintingContext context, Offset offset) {
     final child = this.child;
-    final gap = _motion.visibleGap;
+    final gap = _visibleGap;
     if (child == null || !geometry!.visible || (_behind && gap <= 0)) {
       _clip.layer = null;
       return;

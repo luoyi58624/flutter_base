@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,10 +19,10 @@ final _androidDiskContent = find.descendant(of: _androidDisk, matching: find.byT
 class _AndroidRefresher extends ElAndroidRefresher {
   _AndroidRefresher(this.capture) : super(bgColor: _androidDiskColor);
 
-  final ValueChanged<ElRefreshDetails> capture;
+  final ValueChanged<ValueListenable<ElRefreshSnapshot>> capture;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> details) {
     capture(details);
     return super.buildIndicator(context, details);
   }
@@ -41,20 +42,22 @@ class _Fixture {
   final bool refreshImmediately;
 
   final controller = ScrollController();
+  final refreshController = ElRefreshController();
   final completer = Completer<void>();
   var refreshCount = 0;
-  ElRefreshDetails? details;
+  ValueListenable<ElRefreshSnapshot>? details;
 
-  RefreshIndicatorStatus? get status => details!.snapshot.value.status;
-  double get pulled => details!.snapshot.value.pulledExtent;
+  RefreshIndicatorStatus? get status => details!.value.status;
+  double get pulled => details!.value.pulledExtent;
 
-  Widget build({ElNestedScrollParent? parent}) {
+  Widget build({ElNestedScrollParent? parent, Future<void> Function()? reload}) {
     Widget scroll = ElScrollView.sliver(
       key: ValueKey('scroll'),
       controller: controller,
       physics: ClampingScrollPhysics(),
       slivers: [
         ElSliverRefresh(
+          controller: refreshController,
           refresher: android
               ? _AndroidRefresher((value) => details = value)
               : ElCustomRefresher(
@@ -67,6 +70,7 @@ class _Fixture {
                 ),
           onRefresh: () {
             refreshCount++;
+            if (refreshCount > 1 && reload != null) return reload();
             return refreshImmediately ? Future.value() : completer.future;
           },
         ),
@@ -134,14 +138,14 @@ void main() {
 
       await tester.pump(Duration(milliseconds: 100));
       expect(fixture.status, RefreshIndicatorStatus.refresh);
-      expect(fixture.pulled, inExclusiveRange(fixture.details!.snapshot.value.triggerExtent, releasedExtent));
+      expect(fixture.pulled, inExclusiveRange(fixture.details!.value.triggerExtent, releasedExtent));
       expect(tester.getCenter(_androidDiskContent).dy, lessThan(releasedCenter));
       expect(tester.getRect(_androidDiskContent).width, 40);
 
       await tester.pump(Duration(milliseconds: 101));
       await tester.pump(Duration.zero);
       expect(fixture.status, RefreshIndicatorStatus.done);
-      expect(fixture.pulled, fixture.details!.snapshot.value.triggerExtent);
+      expect(fixture.pulled, fixture.details!.value.triggerExtent);
       final dockedCenter = tester.getCenter(_androidDiskContent).dy;
 
       await tester.pump(Duration(milliseconds: 75));
@@ -164,7 +168,7 @@ void main() {
       await tester.pump(Duration(milliseconds: 250));
 
       expect(fixture.status, RefreshIndicatorStatus.refresh);
-      expect(fixture.pulled, fixture.details!.snapshot.value.triggerExtent);
+      expect(fixture.pulled, fixture.details!.value.triggerExtent);
       fixture.completer.complete();
       await tester.pump();
       expect(fixture.status, RefreshIndicatorStatus.done);
@@ -261,7 +265,7 @@ void main() {
       fixture.controller.jumpTo(300);
       await tester.pump();
       final seen = <RefreshIndicatorStatus?>[];
-      fixture.details!.snapshot.addListener(() => seen.add(fixture.status));
+      fixture.details!.addListener(() => seen.add(fixture.status));
 
       await tester.fling(_scroll, Offset(0, 200), 2000);
       await tester.pumpAndSettle();
@@ -283,13 +287,13 @@ void main() {
       expect(fixture.status, isNull);
     });
 
-    testWidgets('requestRefresh 程序触发一次完整刷新', (tester) async {
+    testWidgets('控制器显示并程序触发一次完整刷新', (tester) async {
       final fixture = _Fixture();
       addTearDown(fixture.dispose);
       await tester.pumpWidget(fixture.build());
 
-      fixture.details!.requestRefresh();
-      fixture.details!.requestRefresh();
+      fixture.refreshController.show();
+      fixture.refreshController.show();
       expect(fixture.refreshCount, 1);
       await tester.pumpAndSettle();
       expect(fixture.status, RefreshIndicatorStatus.refresh);
@@ -298,6 +302,33 @@ void main() {
       fixture.completer.complete();
       await tester.pumpAndSettle();
       expect(fixture.status, isNull);
+    });
+
+    testWidgets('关闭后旧请求完成不会收起新一轮刷新', (tester) async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      final second = Completer<void>();
+      await tester.pumpWidget(fixture.build(reload: () => second.future));
+
+      fixture.refreshController.show();
+      await tester.pumpAndSettle();
+      fixture.refreshController.close();
+      await tester.pumpAndSettle();
+      expect(fixture.status, isNull);
+
+      fixture.refreshController.show();
+      fixture.completer.complete();
+      await tester.pumpAndSettle();
+      expect(fixture.refreshCount, 2);
+      expect(fixture.status, RefreshIndicatorStatus.refresh);
+
+      second.complete();
+      await tester.pumpAndSettle();
+      expect(fixture.status, isNull);
+      await tester.pumpWidget(SizedBox.shrink());
+      fixture.refreshController.show();
+      fixture.refreshController.close();
+      expect(fixture.refreshCount, 2);
     });
 
     testWidgets('外层折叠头：拉出排在它之后，收回排在它之前', (tester) async {
@@ -335,7 +366,6 @@ void main() {
       expect(fixture.pulled, inExclusiveRange(60, 150), reason: '带阻尼，且不超过 maxPullExtent');
       expect(fixture.controller.offset, 0);
       expect(_contentShift(tester), closeTo(fixture.pulled, 0.01));
-      expect(fixture.details!.contentGap, closeTo(fixture.pulled, 0.01));
       expect(tester.getRect(_indicator), tester.getRect(_scroll));
 
       await gesture.up();
@@ -363,7 +393,6 @@ void main() {
       fixture.controller.jumpTo(160);
       await tester.pump();
       expect(_contentShift(tester), closeTo(-100, 0.01));
-      expect(fixture.details!.contentGap, 0);
 
       fixture.completer.complete();
       await tester.pumpAndSettle();

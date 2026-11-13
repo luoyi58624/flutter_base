@@ -71,29 +71,9 @@ class ElRefreshSnapshot {
   int get hashCode => Object.hash(status, pulledExtent, triggerExtent, edge, axisDirection);
 }
 
-/// 传给 [ElRefresher.buildIndicator] 的只读刷新上下文。
-abstract class ElRefreshDetails {
-  /// 当前刷新状态快照。
-  ValueListenable<ElRefreshSnapshot> get snapshot;
-
-  /// 指示器重绘信号；内容间隙变化但快照不变时也会通知。
-  Listenable get repaint;
-
-  /// 当前平台最终生效的滚动物理。
-  ScrollPhysics get physics;
-
-  /// 滚动内容真实让出的间隙；无法读取宿主指标时为 null。
-  double? get contentGap;
-
-  /// 程序化触发一次完整刷新（指示器可用于"点击刷新"类交互）。
-  /// 非 idle 状态下调用是 no-op。
-  void requestRefresh();
-}
-
 /// 一份完整、不可变的下拉刷新配置。
 ///
-/// 对象可复用（类似 ScrollPhysics）；每个挂载的刷新宿主自建可变 details
-/// 与视觉子树；Sliver 负责布局和绘制，平台子类覆写 [buildIndicator] 与策略 getter。
+/// 配置可以复用，各刷新宿主持有自己的快照与视觉子树。
 abstract class ElRefresher {
   const ElRefresher({this.movesContent = true});
 
@@ -126,8 +106,8 @@ abstract class ElRefresher {
   /// （安卓圆盘悬浮于列表）。默认跟随 [movesContent]。
   ///
   /// 注意：内容之下的指示器不可交互（视口在其上层接管命中）；需要"点击
-  /// 刷新"类交互的自定义刷新器可覆写本方法。
-  bool behindContent(ElRefreshDetails details) => movesContent;
+  /// 刷新"类交互的自定义刷新器可覆写此属性。
+  bool get behindContent => movesContent;
 
   /// 松手激活刷新的那一刻给一次 mediumImpact 触觉（确认"刷新已触发"）。
   /// **刷新恒在松手时触发**：官方 CupertinoSliverRefreshControl 的
@@ -165,7 +145,7 @@ abstract class ElRefresher {
   /// 构建刷新指示器外观。
   ///
   /// 返回节点覆盖整个视口，无交互区域必须保持命中透明，避免挡住滚动手势。
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details);
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot);
 }
 
 /// 显式关闭下拉刷新。
@@ -179,7 +159,7 @@ class ElNoRefresher extends ElRefresher {
   double get refreshingExtent => 0.0;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) {
     return const SizedBox.shrink();
   }
 }
@@ -190,7 +170,7 @@ class ElNoRefresher extends ElRefresher {
 /// ElCustomRefresher(
 ///   triggerExtent: 72,
 ///   movesContent: true,
-///   builder: (context, details) => MyIndicator(snapshot: details.snapshot),
+///   builder: (context, snapshot) => MyIndicator(snapshot: snapshot),
 /// )
 /// ```
 final class ElCustomRefresher extends ElRefresher {
@@ -208,8 +188,9 @@ final class ElCustomRefresher extends ElRefresher {
   final double refreshingExtent;
 
   /// 构建自定义刷新指示器。
-  final Widget Function(BuildContext context, ElRefreshDetails details) builder;
+  final Widget Function(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) builder;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) => builder(context, details);
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) =>
+      builder(context, snapshot);
 }

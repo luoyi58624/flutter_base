@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 // ignore_for_file: prefer_initializing_formals — 命名参数映射私有字段。
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
 import 'package:flutter/widgets.dart';
 
@@ -75,15 +76,15 @@ class ElIosRefresher extends ElRefresher {
   final Color? color;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
-    return _IosRefreshIndicator(details: details, refreshingExtent: refreshingExtent, color: color ?? _kIosTickColor);
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) {
+    return _IosRefreshIndicator(snapshot: snapshot, refreshingExtent: refreshingExtent, color: color ?? _kIosTickColor);
   }
 }
 
 class _IosRefreshIndicator extends StatefulWidget {
-  const _IosRefreshIndicator({required this.details, required this.refreshingExtent, required this.color});
+  const _IosRefreshIndicator({required this.snapshot, required this.refreshingExtent, required this.color});
 
-  final ElRefreshDetails details;
+  final ValueListenable<ElRefreshSnapshot> snapshot;
   final double refreshingExtent;
   final Color color;
 
@@ -95,15 +96,15 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
   @override
   void initState() {
     super.initState();
-    widget.details.snapshot.addListener(_handleSnapshotChanged);
+    widget.snapshot.addListener(_handleSnapshotChanged);
   }
 
   @override
   void didUpdateWidget(covariant _IosRefreshIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.details.snapshot == widget.details.snapshot) return;
-    oldWidget.details.snapshot.removeListener(_handleSnapshotChanged);
-    widget.details.snapshot.addListener(_handleSnapshotChanged);
+    if (oldWidget.snapshot == widget.snapshot) return;
+    oldWidget.snapshot.removeListener(_handleSnapshotChanged);
+    widget.snapshot.addListener(_handleSnapshotChanged);
   }
 
   void _handleSnapshotChanged() {
@@ -112,13 +113,13 @@ class _IosRefreshIndicatorState extends State<_IosRefreshIndicator> {
 
   @override
   void dispose() {
-    widget.details.snapshot.removeListener(_handleSnapshotChanged);
+    widget.snapshot.removeListener(_handleSnapshotChanged);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final snapshot = widget.details.snapshot.value;
+    final snapshot = widget.snapshot.value;
     if (snapshot.status == null) {
       return const ElView(style: ElStyle(width: 0, height: 0));
     }

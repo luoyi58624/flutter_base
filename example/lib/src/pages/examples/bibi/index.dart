@@ -10,6 +10,7 @@ import 'cards/feed.dart';
 import 'cards/index.dart';
 import 'navigation_header/index.dart';
 import 'navigation_header/motion.dart';
+import 'state/index.dart';
 import 'tab_bar/index.dart';
 
 part 'plain.dart';
@@ -24,145 +25,18 @@ const _recommended = 1;
 const _physics = ClampingScrollPhysics();
 
 /// 独立的 Bibi 首页，复现原生样板的折叠、翻页和刷新交互。
-class BibiPage extends StatefulWidget {
+class BibiPage extends HookWidget {
   /// 创建首页示例。
   const BibiPage({super.key});
 
   @override
-  State<BibiPage> createState() => _BibiPageState();
-}
-
-class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin {
-  final _pager = ElTabController(length: _channels.length, initialIndex: _recommended);
-  final _pages = BibiCardPages();
-  late final _collapse = AnimationController(vsync: this);
-  late final _headerOffset = _collapse.drive(Tween<double>(begin: 0, end: _searchHeight));
-  late final List<_FeedController> _feeds;
-  int _active = _recommended;
-  int _generation = 0;
-  Timer? _refreshTimer;
-  Completer<void>? _refreshRequest;
-  bool _refreshReady = false;
-  bool _applyQueued = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _feeds = List.generate(_channels.length, (_) {
-      return _FeedController(onAttach: _attachPosition, onDetach: _detachPosition)..addListener(_queueRefreshApply);
-    });
-    _collapse.addListener(_queueRefreshApply);
-    _pager.addListener(_queueRefreshApply);
-  }
-
-  void _attachPosition(ScrollPosition position) => position.isScrollingNotifier.addListener(_queueRefreshApply);
-  void _detachPosition(ScrollPosition position) => position.isScrollingNotifier.removeListener(_queueRefreshApply);
-
-  void _moveFeedsTo(double offset) {
-    for (final controller in _feeds) {
-      controller.restoreOffset = offset;
-      if (!controller.hasClients || !controller.position.hasContentDimensions) continue;
-      final position = controller.position;
-      final target = offset.clamp(position.minScrollExtent, position.maxScrollExtent);
-      if (position.pixels != target || position.isScrollingNotifier.value) controller.jumpTo(target);
-    }
-  }
-
-  void _syncFeeds() {
-    final current = _feeds[_active];
-    _moveFeedsTo(current.hasClients ? current.offset : current.restoreOffset);
-  }
-
-  void _selectChannel(int index) {
-    if (index == _active && !_pager.isAnimating && !_pager.isDragging) return;
-    _syncFeeds();
-    if ((index - _active).abs() > 1) {
-      _pager.jumpTo(index);
-      _pageChanged(index);
-    } else {
-      unawaited(_pager.animateTo(index));
-    }
-  }
-
-  void _pageChanged(int index) {
-    if (_active == index) return;
-    _active = index;
-    _queueRefreshApply();
-  }
-
-  void _returnToTop() {
-    _moveFeedsTo(0);
-    _collapse.value = 0;
-    _queueRefreshApply();
-  }
-
-  Future<void> _refresh() {
-    final running = _refreshRequest;
-    if (running != null) return running.future;
-    if (_refreshReady) {
-      _queueRefreshApply();
-      return Future.value();
-    }
-    final request = _refreshRequest = Completer<void>();
-    _pages.cancelLoad();
-    _refreshTimer = Timer(Duration(milliseconds: 500), () {
-      _refreshTimer = null;
-      _refreshRequest = null;
-      _refreshReady = true;
-      _queueRefreshApply();
-      request.complete();
-    });
-    return request.future;
-  }
-
-  bool get _canReplaceFeed {
-    final feed = _feeds[_active];
-    if (_collapse.value != 0 || _pager.isAnimating || _pager.isDragging || !feed.hasClients) return false;
-    final position = feed.position;
-    return position.hasContentDimensions &&
-        position.pixels <= position.minScrollExtent &&
-        !position.isScrollingNotifier.value;
-  }
-
-  void _queueRefreshApply() {
-    if (!mounted || !_refreshReady || _applyQueued || !_canReplaceFeed) return;
-    _applyQueued = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _applyQueued = false;
-      if (!mounted || !_refreshReady || !_canReplaceFeed) return;
-      // 等用户回到顶部并停稳才更新推荐，保住正在浏览的卡片位置。
-      _refreshReady = false;
-      _moveFeedsTo(0);
-      _pages.reset();
-      setState(() => _generation++);
-    });
-    WidgetsBinding.instance.ensureVisualUpdate();
-  }
-
-  void _loadMore() {
-    if (_refreshRequest == null && !_refreshReady) _pages.loadMore();
-  }
-
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    _refreshRequest?.complete();
-    _collapse.removeListener(_queueRefreshApply);
-    _collapse.dispose();
-    _pager.dispose();
-    _pages.dispose();
-    for (final feed in _feeds) {
-      feed.removeListener(_queueRefreshApply);
-      for (final position in feed.positions) {
-        _detachPosition(position);
-      }
-      feed.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final collapse = useAnimationController();
+    final state = useHookState(
+      () => BibiState(channelCount: _channels.length, initialIndex: _recommended, collapse: collapse),
+      ignoreListener: true,
+    );
+    final headerOffset = useMemoized(() => collapse.drive(Tween<double>(begin: 0, end: _searchHeight)), [collapse]);
     final insets = MediaQuery.viewPaddingOf(context);
     final navigator = Navigator.of(context);
     final behavior = ScrollConfiguration.of(context);
@@ -190,34 +64,30 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                   child: Builder(
                     builder: (context) {
                       final statusInset = MediaQuery.viewPaddingOf(context).top;
-                      void search() => showBibiSearch(context, _generation);
+                      void search() => showBibiSearch(
+                        context,
+                        _channelSeed(state.active, state.channel(state.active).data.generation),
+                      );
 
                       return Stack(
                         fit: StackFit.expand,
                         children: [
                           ElTabView(
                             key: ValueKey('bibi-pager'),
-                            controller: _pager,
+                            controller: state.pager,
                             physics: _physics,
                             lazy: true,
                             maxCacheCount: 3,
                             onDragStateChanged: (dragging) {
-                              if (dragging) _syncFeeds();
+                              if (dragging) state.stopScrolling();
                             },
-                            onIndexChanged: _pageChanged,
                             children: [
                               for (var index = 0; index < _channels.length; index++)
                                 _BibiFeed(
                                   key: ValueKey('bibi-feed-$index'),
                                   index: index,
-                                  generation: _generation,
-                                  controller: _feeds[index],
-                                  collapse: _collapse,
+                                  state: state,
                                   statusInset: statusInset,
-                                  pager: _pager,
-                                  pages: _pages,
-                                  onRefresh: _refresh,
-                                  onLoadMore: _loadMore,
                                 ),
                             ],
                           ),
@@ -228,13 +98,13 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                             right: 0,
                             height: statusInset + _searchHeight + _tabsHeight,
                             child: BibiHeader(
-                              offset: _headerOffset,
+                              offset: headerOffset,
                               statusInset: statusInset,
                               channelBarBuilder: (progress) => BibiChannelBar(
                                 progress: progress,
-                                pager: _pager,
+                                pager: state.pager,
                                 channels: _channels,
-                                onSelect: _selectChannel,
+                                onSelect: state.selectChannel,
                                 onSearch: search,
                               ),
                               onSearch: search,
@@ -251,8 +121,8 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                 height: insets.bottom + _bottomHeight,
                 child: BibiBottomBar(
                   bottomInset: insets.bottom,
-                  onHome: _returnToTop,
-                  onFollowing: () => _selectChannel(2),
+                  onHome: state.returnToTop,
+                  onFollowing: () => state.selectChannel(2),
                   onBack: navigator.maybePop,
                 ),
               ),
@@ -264,6 +134,9 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
   }
 }
 
+int _channelSeed(int index, int generation) =>
+    generation * _channels.length + (index - _recommended) % _channels.length;
+
 class _FeedController extends ScrollController {
   _FeedController({super.onAttach, super.onDetach}) : super(keepScrollOffset: false);
 
@@ -273,124 +146,123 @@ class _FeedController extends ScrollController {
   double get initialScrollOffset => restoreOffset;
 }
 
-class _BibiFeed extends StatefulWidget {
-  const _BibiFeed({
-    super.key,
-    required this.index,
-    required this.generation,
-    required this.controller,
-    required this.collapse,
-    required this.statusInset,
-    required this.pager,
-    required this.pages,
-    required this.onRefresh,
-    required this.onLoadMore,
-  });
+class _BibiFeed extends HookWidget {
+  const _BibiFeed({super.key, required this.index, required this.state, required this.statusInset});
 
   final int index;
-  final int generation;
-  final ScrollController controller;
-  final AnimationController collapse;
+  final BibiState state;
   final double statusInset;
-  final ElTabController pager;
-  final BibiCardPages pages;
-  final Future<void> Function() onRefresh;
-  final VoidCallback onLoadMore;
 
   @override
-  State<_BibiFeed> createState() => _BibiFeedState();
-}
+  Widget build(BuildContext context) {
+    final channel = useMemoized(() => state.channel(index), [state, index]);
+    final active = useListenableSelector(state, () => state.active == index);
+    final atTop = useMemoized(() => ValueNotifier(false));
+    final refresher = useMemoized(() => _BibiRefresher(atTop));
+    final refreshController = useMemoized(ElRefreshController.new);
+    useDispose(atTop.dispose);
 
-class _BibiFeedState extends State<_BibiFeed> {
-  final _showRefresh = ValueNotifier(true);
-  late final _refresher = _BibiRefresher(_showRefresh);
+    void updateRefreshVisibility() {
+      final controller = channel.controller;
+      final pager = state.pager;
+      atTop.value =
+          state.active == index &&
+          !pager.isDragging &&
+          !pager.isAnimating &&
+          (channel.data.count == 0 || state.collapse.value == 0) &&
+          (!controller.hasClients ||
+              !controller.position.hasContentDimensions ||
+              controller.position.extentBefore == 0);
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_updateRefreshVisibility);
-    widget.collapse.addListener(_updateRefreshVisibility);
-    widget.pager.addListener(_updateRefreshVisibility);
-    _updateRefreshVisibility();
-  }
+    useEffect(() {
+      state.pager.addListener(updateRefreshVisibility);
+      channel.controller.addListener(updateRefreshVisibility);
+      state.collapse.addListener(updateRefreshVisibility);
+      return () {
+        state.pager.removeListener(updateRefreshVisibility);
+        channel.controller.removeListener(updateRefreshVisibility);
+        state.collapse.removeListener(updateRefreshVisibility);
+      };
+    }, [state, channel]);
 
-  void _updateRefreshVisibility() {
-    final controller = widget.controller;
-    _showRefresh.value =
-        widget.pager.index == widget.index &&
-        !widget.pager.isDragging &&
-        !widget.pager.isAnimating &&
-        widget.collapse.value == 0 &&
-        (!controller.hasClients ||
-            !controller.position.hasContentDimensions ||
-            controller.offset <= controller.position.minScrollExtent);
-  }
+    useEffect(() {
+      nextTick(() {
+        if (!context.mounted) return;
+        updateRefreshVisibility();
+        if (state.active == index) {
+          channel.applyPendingRefresh();
+          if (channel.data.count == 0) refreshController.show();
+        }
+      });
+      return null;
+    }, [active, channel]);
 
-  @override
-  void dispose() {
-    widget.controller.removeListener(_updateRefreshVisibility);
-    widget.collapse.removeListener(_updateRefreshVisibility);
-    widget.pager.removeListener(_updateRefreshVisibility);
-    _showRefresh.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
-    onNotification: (notification) {
-      if (notification.depth == 0 &&
-          notification.metrics.axis == .vertical &&
-          (switch (notification) {
-            ScrollUpdateNotification(:final scrollDelta) => (scrollDelta ?? 0) > 0,
-            OverscrollNotification(:final overscroll) => overscroll > 0,
-            _ => false,
-          }) &&
-          notification.metrics.extentAfter == 0 &&
-          widget.pager.index == widget.index &&
-          !widget.pager.isDragging &&
-          !widget.pager.isAnimating) {
-        widget.onLoadMore();
-      }
-      return false;
-    },
-    child: ElScrollView.sliver(
-      controller: widget.controller,
-      physics: _physics,
-      slivers: [
-        // Sliver 消费纵向位移并为共享页头保留与折叠进度一致的空间。
-        ElSliverCollapse.priority(
-          controller: widget.collapse,
-          compactExtent: _tabsHeight,
-          contentExtent: _searchHeight,
-          topInset: widget.statusInset,
-          backgroundColor: Colors.white,
-          content: SizedBox.shrink(),
-          compact: SizedBox.shrink(),
-        ),
-        ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
-        SliverPadding(
-          padding: EdgeInsets.only(bottom: 4),
-          sliver: BibiCards(pages: widget.pages, generation: widget.generation),
-        ),
-        SliverToBoxAdapter(
-          child: ListenableBuilder(
-            listenable: widget.pages,
-            builder: (context, _) => SizedBox(
-              height: 44,
-              child: widget.pages.isLoading
-                  ? Center(
-                      child: SizedBox.square(
-                        dimension: 24,
-                        child: CircularProgressIndicator(color: _pink, strokeWidth: 2.5, semanticsLabel: '加载更多'),
-                      ),
-                    )
-                  : null,
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.depth == 0 &&
+            notification.metrics.axis == .vertical &&
+            (switch (notification) {
+              ScrollUpdateNotification(:final scrollDelta) => (scrollDelta ?? 0) > 0,
+              OverscrollNotification(:final overscroll) => overscroll > 0,
+              _ => false,
+            }) &&
+            notification.metrics.extentAfter == 0 &&
+            state.active == index &&
+            !state.pager.isDragging &&
+            !state.pager.isAnimating) {
+          channel.loadMore();
+        }
+        return false;
+      },
+      child: ElScrollView.sliver(
+        key: PageStorageKey(index),
+        controller: channel.controller,
+        physics: _physics,
+        slivers: [
+          // Sliver 消费纵向位移并为共享页头保留与折叠进度一致的空间。
+          ElSliverCollapse.priority(
+            controller: state.collapse,
+            compactExtent: _tabsHeight,
+            contentExtent: _searchHeight,
+            topInset: statusInset,
+            backgroundColor: Colors.white,
+            content: SizedBox.shrink(),
+            compact: SizedBox.shrink(),
+          ),
+          ElSliverRefresh(controller: refreshController, refresher: refresher, onRefresh: channel.refresh),
+          ElListenableBuilder(
+            listenable: channel,
+            select: (state) => state.data,
+            builder: (context, _) {
+              final (:count, :generation) = channel.data;
+              return SliverPadding(
+                padding: EdgeInsets.only(bottom: 4),
+                sliver: BibiCards(count: count, generation: generation, seed: _channelSeed(index, generation)),
+              );
+            },
+          ),
+          SliverToBoxAdapter(
+            child: ElListenableBuilder(
+              listenable: channel,
+              select: (state) => state.isLoading,
+              builder: (context, _) => SizedBox(
+                height: 44,
+                child: channel.isLoading
+                    ? Center(
+                        child: SizedBox.square(
+                          dimension: 24,
+                          child: CircularProgressIndicator(color: _pink, strokeWidth: 2.5, semanticsLabel: '加载更多'),
+                        ),
+                      )
+                    : null,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _BibiRefresher extends ElAndroidRefresher {
@@ -399,8 +271,9 @@ class _BibiRefresher extends ElAndroidRefresher {
   final ValueListenable<bool> atTop;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) =>
-      _BibiRefreshIndicator(atTop: atTop, snapshot: details.snapshot, child: super.buildIndicator(context, details));
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) {
+    return _BibiRefreshIndicator(atTop: atTop, snapshot: snapshot, child: super.buildIndicator(context, snapshot));
+  }
 }
 
 class _BibiRefreshIndicator extends StatefulWidget {

@@ -12,7 +12,7 @@ import 'package:example/src/widgets/panel.dart';
 Finder _key(String key) => find.byKey(ValueKey(key));
 Finder _inFeed(Finder matching, {int index = 1}) => find.descendant(of: _key('bibi-feed-$index'), matching: matching);
 
-Future<void> _open(WidgetTester tester) async {
+Future<void> _open(WidgetTester tester, {bool waitForData = true}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(390, 844);
   tester.view.viewPadding = FakeViewPadding(top: 24, bottom: 16);
@@ -20,13 +20,18 @@ Future<void> _open(WidgetTester tester) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetViewPadding);
   await tester.pumpWidget(MaterialApp(home: BibiPage()));
+  if (waitForData) await _finishInitialLoad(tester);
+}
+
+Future<void> _finishInitialLoad(WidgetTester tester) async {
+  await tester.pump(Duration(milliseconds: 500));
   await tester.pumpAndSettle();
 }
 
 ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
     tester.widget<ElScrollView>(_inFeed(find.byType(ElScrollView), index: index));
 
-Finder _cards() => _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverList));
+Finder _cards({int index = 1}) => _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverList), index: index);
 Key? _cardsKey(WidgetTester tester) => tester.widget(_cards()).key;
 
 double _body(WidgetTester tester, {int index = 1}) => _feed(tester, index: index).controller!.offset;
@@ -73,7 +78,7 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await _finishInitialLoad(tester);
 
       Future<int> statusBarPixel() async => (await tester.runAsync(() async {
         final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -264,6 +269,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('首次选中才显示刷新器并加载，各频道分页互相独立', (tester) async {
+    await _open(tester, waitForData: false);
+    int slots(int index) => tester.widget<ElSliverList>(_cards(index: index)).itemCount;
+    expect(slots(1), 0);
+    final indicator = _inFeed(_key('bibi-refresh-indicator'));
+    await tester.pump(Duration(milliseconds: 220));
+    expect(tester.widget<AnimatedOpacity>(indicator).opacity, 1);
+    expect(slots(1), 0);
+    await _finishInitialLoad(tester);
+    expect(slots(1), 4);
+    expect(slots(2), 0);
+
+    final recommendationTitle = find.text('职业选手的极限反打，第一视角复盘');
+    expect(find.descendant(of: _cards(), matching: recommendationTitle), findsOneWidget);
+    final recommendation = _feed(tester).controller!;
+    recommendation.jumpTo(recommendation.position.maxScrollExtent);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(slots(1), 6);
+
+    await tester.tap(_key('bibi-channel-2'));
+    final pager = _pager(tester);
+    for (var frame = 0; frame < 60 && pager.position != 2; frame++) {
+      await tester.pump(Duration(milliseconds: 16));
+    }
+    expect(pager.position, 2);
+    await tester.pump();
+    expect(slots(2), 0);
+    await _finishInitialLoad(tester);
+    expect(slots(2), 4);
+    expect(slots(1), 6);
+    expect(find.descendant(of: _cards(index: 2), matching: recommendationTitle), findsNothing);
+  });
+
   testWidgets('退出页面会取消仍按着的刷新手势', (tester) async {
     await _open(tester);
     final pull = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
@@ -294,7 +332,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('卡片区跟手横移，页头保持固定且切页后保留纵向位置', (tester) async {
+  testWidgets('卡片区跟手横移，页头保持固定且各频道保留自己的滚动位置', (tester) async {
     await _open(tester);
     final host = _inFeed(find.byType(ElScrollView));
     final grid = _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverGrid));
@@ -325,13 +363,28 @@ void main() {
     expect(_pager(tester).position, inInclusiveRange(1.01, 1.99));
     expect(tabs, findsOneWidget);
     expect(tester.getRect(tabs), headerRect);
+    expect(tester.widget<ElSliverList>(_cards(index: 2)).itemCount, 0);
     await _releaseHeld(tester, gesture);
     await tester.pumpAndSettle();
     expect(_pager(tester).index, 2);
     expect(tester.element(tabs), same(header));
     expect(tester.getRect(tabs), headerRect);
-    expect(_body(tester, index: 2), closeTo(offset, 0.01));
+    expect(_body(tester, index: 2), 0);
+    await tester.tap(_key('bibi-channel-1'));
+    await tester.pumpAndSettle();
+    expect(_body(tester), closeTo(offset, .01));
     expect(_tabsY(tester), expanded - 58);
+
+    final pager = _pager(tester);
+    for (final index in [5, 6, 7]) {
+      pager.jumpTo(index);
+      await tester.pumpAndSettle();
+    }
+    expect(_key('bibi-feed-1'), findsNothing);
+    pager.jumpTo(1);
+    await tester.pump();
+    expect(_body(tester), closeTo(offset, .01));
+    expect(tester.widget<ElSliverList>(_cards()).itemCount, 4);
   });
 
   testWidgets('频道标签栏居中、滑块和文字颜色逐帧跟随拖动、回弹与点选', (tester) async {
@@ -405,6 +458,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('生活').hitTestable().last);
     await tester.pumpAndSettle();
+    await _finishInitialLoad(tester);
     expect(_pager(tester).index, 9);
     final tab = _key('bibi-channel-5');
     final menu = _key('bibi-menu');

@@ -233,26 +233,3 @@ final class _SliverPullMotion {
     snapshot.dispose();
   }
 }
-
-final class _SliverRefreshDetails extends ElRefreshDetails {
-  _SliverRefreshDetails(this.motion, this.physics);
-
-  final _SliverPullMotion motion;
-
-  @override
-  final ScrollPhysics physics;
-
-  @override
-  ValueListenable<ElRefreshSnapshot> get snapshot => motion.snapshot;
-
-  @override
-  Listenable get repaint => motion.snapshot;
-
-  @override
-  double? get contentGap => 0;
-
-  @override
-  void requestRefresh() {
-    // 本对照版只响应真实手势松开，不提供绕过阈值的程序触发。
-  }
-}

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_base/src/flutter/views/scroll/refresh/refresher/android.dart' show buildAndroidRefreshSpinner;
 import 'package:flutter_base/src/flutter/views/scroll/refresh/refresher/ios.dart' show buildIosRefreshSpinner;
@@ -263,7 +264,7 @@ void main() {
     final pendingRefresh = Completer<ElInfiniteScrollPage<int, int>>();
     final requests = <int>[];
     late List<int> snapshot;
-    ElRefreshDetails? refreshDetails;
+    ValueListenable<ElRefreshSnapshot>? refreshSnapshot;
 
     await tester.pumpWidget(
       _host(
@@ -284,7 +285,7 @@ void main() {
             triggerExtent: 40,
             movesContent: false,
             builder: (context, details) {
-              refreshDetails = details;
+              refreshSnapshot = details;
               return SizedBox.shrink();
             },
           ),
@@ -304,7 +305,7 @@ void main() {
     await tester.pump();
     await _pullToRefresh(tester);
     expect(requests, [1, 2, 1]);
-    expect(refreshDetails!.snapshot.value.status, RefreshIndicatorStatus.refresh);
+    expect(refreshSnapshot!.value.status, RefreshIndicatorStatus.refresh);
 
     pendingAppend.complete(ElInfiniteScrollPage(items: [900], nextPageKey: 3));
     pendingRefresh.completeError(StateError('刷新失败'));

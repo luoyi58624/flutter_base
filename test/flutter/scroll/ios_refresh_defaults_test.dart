@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,10 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 class _IosProbe extends ElIosRefresher {
   _IosProbe({super.triggerExtent});
 
-  late ElRefreshDetails details;
+  late ValueListenable<ElRefreshSnapshot> details;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> details) {
     this.details = details;
     return super.buildIndicator(context, details);
   }
@@ -32,7 +33,7 @@ class _Fixture {
   final completion = Completer<void>();
   var refreshes = 0;
 
-  ElRefreshSnapshot get snapshot => refresher.details.snapshot.value;
+  ElRefreshSnapshot get snapshot => refresher.details.value;
 
   Future<void> _refresh() {
     refreshes++;

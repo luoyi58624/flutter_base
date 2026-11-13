@@ -2,6 +2,7 @@
 
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart' show RefreshIndicatorStatus;
 import 'package:flutter/widgets.dart';
 
@@ -89,9 +90,9 @@ class ElAndroidRefresher extends ElRefresher {
   final Color? bgColor;
 
   @override
-  Widget buildIndicator(BuildContext context, ElRefreshDetails details) {
+  Widget buildIndicator(BuildContext context, ValueListenable<ElRefreshSnapshot> snapshot) {
     return _AndroidRefreshIndicator(
-      details: details,
+      snapshot: snapshot,
       distanceToTrigger: distanceToTrigger,
       color: color ?? _kAndroidSpinnerColor,
       bgColor: bgColor ?? const Color(0xfffafafa),
@@ -101,13 +102,13 @@ class ElAndroidRefresher extends ElRefresher {
 
 class _AndroidRefreshIndicator extends StatefulWidget {
   const _AndroidRefreshIndicator({
-    required this.details,
+    required this.snapshot,
     required this.distanceToTrigger,
     required this.color,
     required this.bgColor,
   });
 
-  final ElRefreshDetails details;
+  final ValueListenable<ElRefreshSnapshot> snapshot;
   final double distanceToTrigger;
   final Color color;
   final Color bgColor;
@@ -120,15 +121,15 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
   @override
   void initState() {
     super.initState();
-    widget.details.snapshot.addListener(_handleSnapshotChanged);
+    widget.snapshot.addListener(_handleSnapshotChanged);
   }
 
   @override
   void didUpdateWidget(covariant _AndroidRefreshIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.details.snapshot == widget.details.snapshot) return;
-    oldWidget.details.snapshot.removeListener(_handleSnapshotChanged);
-    widget.details.snapshot.addListener(_handleSnapshotChanged);
+    if (oldWidget.snapshot == widget.snapshot) return;
+    oldWidget.snapshot.removeListener(_handleSnapshotChanged);
+    widget.snapshot.addListener(_handleSnapshotChanged);
   }
 
   void _handleSnapshotChanged() {
@@ -137,13 +138,13 @@ class _AndroidRefreshIndicatorState extends State<_AndroidRefreshIndicator> {
 
   @override
   void dispose() {
-    widget.details.snapshot.removeListener(_handleSnapshotChanged);
+    widget.snapshot.removeListener(_handleSnapshotChanged);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final snapshot = widget.details.snapshot.value;
+    final snapshot = widget.snapshot.value;
     if (snapshot.status == null) {
       return const ElView(style: ElStyle(width: 0, height: 0));
     }

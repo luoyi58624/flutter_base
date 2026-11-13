@@ -489,7 +489,6 @@ class _SliverBibiFeedState extends State<_SliverBibiFeed> with SingleTickerProvi
     onRefresh: () => widget.onRefresh(),
   );
   late final _physics = _SliverPullPhysics(_motion);
-  late final _refreshDetails = _SliverRefreshDetails(_motion, _physics);
   final _indicatorVisible = ValueNotifier<bool>(false);
   final _refresher = ElAndroidRefresher(color: _pink, bgColor: Colors.white);
 
@@ -582,7 +581,7 @@ class _SliverBibiFeedState extends State<_SliverBibiFeed> with SingleTickerProvi
             key: ValueKey('sliver-bibi-refresh-indicator'),
             duration: Duration(milliseconds: 150),
             opacity: visible ? 1 : 0,
-            child: IgnorePointer(child: _refresher.buildIndicator(context, _refreshDetails)),
+            child: IgnorePointer(child: _refresher.buildIndicator(context, _motion.snapshot)),
           ),
         ),
       ),

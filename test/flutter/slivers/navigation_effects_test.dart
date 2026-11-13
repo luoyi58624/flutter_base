@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart' show PointerDeviceKind, PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderSliver;
@@ -234,7 +235,7 @@ void main() {
   testWidgets('优先折叠：页头展开后，拉距剩余部分交给 SliverRefresh', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
-    ElRefreshDetails? refreshDetails;
+    ValueListenable<ElRefreshSnapshot>? refreshSnapshot;
     var calls = 0;
     await tester.pumpWidget(
       _app(
@@ -248,7 +249,7 @@ void main() {
                 triggerExtent: 60,
                 movesContent: false,
                 builder: (context, details) {
-                  refreshDetails = details;
+                  refreshSnapshot = details;
                   return SizedBox.expand();
                 },
               ),
@@ -272,7 +273,7 @@ void main() {
     await pull.moveBy(Offset(0, 150));
     await tester.pump();
     expect(controller.offset, closeTo(0, .01));
-    expect(refreshDetails!.snapshot.value.status, RefreshIndicatorStatus.armed);
+    expect(refreshSnapshot!.value.status, RefreshIndicatorStatus.armed);
     await pull.up();
     await tester.pump(Duration(milliseconds: 1));
     expect(calls, 1, reason: '搜索栏用掉自己的展开行程后，下拉余量应该触发刷新');
