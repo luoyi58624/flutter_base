@@ -29,7 +29,7 @@ ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
 Key? _rowsKey(WidgetTester tester) => tester.widget<SliverList>(_inFeed(find.byType(SliverList))).key;
 
 double _body(WidgetTester tester, {int index = 1}) => _feed(tester, index: index).controller!.offset;
-double _tabsY(WidgetTester tester) => tester.getTopLeft(_inFeed(_key('bibi-tabs'), index: _pager(tester).index)).dy;
+double _tabsY(WidgetTester tester) => tester.getTopLeft(_key('bibi-tabs')).dy;
 
 ElTabController _pager(WidgetTester tester) => tester.widget<ElTabView>(_key('bibi-pager')).controller!;
 
@@ -50,7 +50,7 @@ Future<void> _releaseHeld(WidgetTester tester, TestGesture gesture) async {
 
 void main() {
   for (final (name, page, tabs) in [
-    ('Bibi 首页', BibiPage(), _inFeed(_key('bibi-tabs'))),
+    ('Bibi 首页', BibiPage(), _key('bibi-tabs')),
     ('新版折叠 Bibi', NewBibiCollapsePage(), _key('bibi-collapse-channels')),
   ]) {
     testWidgets('$name 搜索栏可滑进状态栏区域，频道栏停在安全线下方', (tester) async {
@@ -251,7 +251,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('卡片区跟手横移并在换频道后保持纵向位置', (tester) async {
+  testWidgets('卡片区跟手横移，页头保持固定且切页后保留纵向位置', (tester) async {
     await _open(tester);
     final host = _inFeed(find.byType(ElScrollView));
     final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ExamplePanel));
@@ -271,31 +271,37 @@ void main() {
     await tester.pumpAndSettle();
     final offset = _body(tester);
     expect(offset, greaterThan(0));
+    final tabs = _key('bibi-tabs');
+    final header = tester.element(tabs);
+    final headerRect = tester.getRect(tabs);
     final gesture = await _holdDrag(tester, Offset(300, 540), Offset(-55, 0), Offset(-180, 0));
     expect(_pager(tester).position, inInclusiveRange(1.01, 1.99));
-    expect(_tabsY(tester), expanded - 58);
+    expect(tabs, findsOneWidget);
+    expect(tester.getRect(tabs), headerRect);
     await _releaseHeld(tester, gesture);
     await tester.pumpAndSettle();
     expect(_pager(tester).index, 2);
+    expect(tester.element(tabs), same(header));
+    expect(tester.getRect(tabs), headerRect);
     expect(_body(tester, index: 2), closeTo(offset, 0.01));
     expect(_tabsY(tester), expanded - 58);
   });
 
   testWidgets('末尾频道仅因频道栏横拖而移动，展开时随菜单边界回位', (tester) async {
     await _open(tester);
-    await tester.tap(_inFeed(_key('bibi-menu')));
+    await tester.tap(_key('bibi-menu'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('生活').hitTestable().last);
     await tester.pumpAndSettle();
     expect(_pager(tester).index, 9);
-    final tab = _inFeed(_key('bibi-channel-5'), index: 9);
-    final menu = _inFeed(_key('bibi-menu'), index: 9);
+    final tab = _key('bibi-channel-5');
+    final menu = _key('bibi-menu');
     final initial = tester.getTopLeft(tab).dx;
     await tester.flingFrom(Offset(195, 600), Offset(0, -180), 900);
     await tester.pumpAndSettle();
     expect(_body(tester, index: 9), greaterThan(0));
     expect(tester.getTopLeft(tab).dx, closeTo(initial, 0.01));
-    final tabs = tester.getRect(_inFeed(_key('bibi-tabs'), index: 9));
+    final tabs = tester.getRect(_key('bibi-tabs'));
     await tester.flingFrom(Offset(260, tabs.center.dy), Offset(-160, 0), 850);
     await tester.pumpAndSettle();
     final revealed = tester.getTopLeft(tab).dx;

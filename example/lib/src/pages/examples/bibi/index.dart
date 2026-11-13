@@ -33,6 +33,7 @@ class BibiPage extends StatefulWidget {
 class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin {
   final _pager = ElTabController(length: _channels.length, initialIndex: _recommended);
   late final _collapse = AnimationController(vsync: this);
+  late final _headerOffset = _collapse.drive(Tween<double>(begin: 0, end: _searchHeight));
   late final List<_FeedController> _feeds;
   int _active = _recommended;
   int _generation = 0;
@@ -174,30 +175,58 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
           child: Column(
             children: [
               Expanded(
-                child: ElTabView(
-                  key: ValueKey('bibi-pager'),
-                  controller: _pager,
-                  physics: _physics,
-                  lazy: true,
-                  maxCacheCount: 3,
-                  onDragStateChanged: (dragging) {
-                    if (dragging) _syncFeeds();
-                  },
-                  onIndexChanged: _pageChanged,
-                  children: [
-                    for (var index = 0; index < _channels.length; index++)
-                      _BibiFeed(
-                        key: ValueKey('bibi-feed-$index'),
-                        index: index,
-                        generation: _generation,
-                        controller: _feeds[index],
-                        collapse: _collapse,
-                        pager: _pager,
-                        onRefresh: _refresh,
-                        onSelect: _selectChannel,
-                        onBack: navigator.maybePop,
-                      ),
-                  ],
+                child: MediaQuery.fromView(
+                  view: View.of(context),
+                  child: Builder(
+                    builder: (context) {
+                      final statusInset = MediaQuery.viewPaddingOf(context).top;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ElTabView(
+                            key: ValueKey('bibi-pager'),
+                            controller: _pager,
+                            physics: _physics,
+                            lazy: true,
+                            maxCacheCount: 3,
+                            onDragStateChanged: (dragging) {
+                              if (dragging) _syncFeeds();
+                            },
+                            onIndexChanged: _pageChanged,
+                            children: [
+                              for (var index = 0; index < _channels.length; index++)
+                                _BibiFeed(
+                                  key: ValueKey('bibi-feed-$index'),
+                                  index: index,
+                                  generation: _generation,
+                                  controller: _feeds[index],
+                                  collapse: _collapse,
+                                  statusInset: statusInset,
+                                  pager: _pager,
+                                  onRefresh: _refresh,
+                                ),
+                            ],
+                          ),
+                          // 页头独立于横向视口，只有频道内容随手势横移。
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: statusInset + _searchHeight + _tabsHeight,
+                            child: BibiHeader(
+                              offset: _headerOffset,
+                              statusInset: statusInset,
+                              pager: _pager,
+                              channels: _channels,
+                              onSelect: _selectChannel,
+                              onSearch: () => showBibiSearch(context, _generation),
+                              onBack: navigator.maybePop,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
               SizedBox(
@@ -233,20 +262,18 @@ class _BibiFeed extends StatefulWidget {
     required this.generation,
     required this.controller,
     required this.collapse,
+    required this.statusInset,
     required this.pager,
     required this.onRefresh,
-    required this.onSelect,
-    required this.onBack,
   });
 
   final int index;
   final int generation;
   final ScrollController controller;
   final AnimationController collapse;
+  final double statusInset;
   final ElTabController pager;
   final Future<void> Function() onRefresh;
-  final ValueChanged<int> onSelect;
-  final VoidCallback onBack;
 
   @override
   State<_BibiFeed> createState() => _BibiFeedState();
@@ -287,55 +314,34 @@ class _BibiFeedState extends State<_BibiFeed> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    void search() => showBibiSearch(context, widget.generation);
-
-    return ElScrollView.sliver(
-      controller: widget.controller,
-      physics: _physics,
-      slivers: [
-        MediaQuery.fromView(
-          view: View.of(context),
-          child: Builder(
-            builder: (context) => ElSliverCollapse.priority(
-              controller: widget.collapse,
-              compactExtent: _tabsHeight,
-              contentExtent: _searchHeight,
-              topInset: MediaQuery.viewPaddingOf(context).top,
-              backgroundColor: Colors.white,
-              content: Material(
-                key: ValueKey('bibi-search-row'),
-                color: Colors.white,
-                child: BibiSearchBar(onSearch: search, onBack: widget.onBack),
-              ),
-              compact: ValueListenableBuilder<double>(
-                valueListenable: widget.collapse,
-                builder: (context, progress, _) => BibiChannelBar(
-                  progress: progress,
-                  pager: widget.pager,
-                  channels: _channels,
-                  onSelect: widget.onSelect,
-                  onSearch: search,
-                ),
-              ),
-            ),
-          ),
+  Widget build(BuildContext context) => ElScrollView.sliver(
+    controller: widget.controller,
+    physics: _physics,
+    slivers: [
+      // Sliver 消费纵向位移并为共享页头保留与折叠进度一致的空间。
+      ElSliverCollapse.priority(
+        controller: widget.collapse,
+        compactExtent: _tabsHeight,
+        contentExtent: _searchHeight,
+        topInset: widget.statusInset,
+        backgroundColor: Colors.white,
+        content: SizedBox.shrink(),
+        compact: SizedBox.shrink(),
+      ),
+      ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
+      SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
+      SliverPadding(
+        padding: EdgeInsets.only(bottom: 4),
+        sliver: SliverList.builder(
+          key: ValueKey('bibi-rows-${widget.generation}'),
+          itemCount: bibiVideoRowCount,
+          // 每行自带重绘边界，不再叠加官方列表的默认边界。
+          addRepaintBoundaries: false,
+          itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
         ),
-        ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
-        SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
-        SliverPadding(
-          padding: EdgeInsets.only(bottom: 4),
-          sliver: SliverList.builder(
-            key: ValueKey('bibi-rows-${widget.generation}'),
-            itemCount: bibiVideoRowCount,
-            // 每行自带重绘边界，不再叠加官方列表的默认边界。
-            addRepaintBoundaries: false,
-            itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 }
 
 class _BibiRefresher extends ElAndroidRefresher {

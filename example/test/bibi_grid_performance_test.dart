@@ -113,7 +113,7 @@ Future<(Finder, ScrollController)> _open(WidgetTester tester, _Scenario scenario
     await tester.pumpWidget(_app(BibiPage()));
     await tester.pumpAndSettle();
     host = find.descendant(of: find.byKey(ValueKey('bibi-feed-1')), matching: find.byType(ElScrollView));
-    final tabs = find.descendant(of: host, matching: find.byKey(ValueKey('bibi-tabs')));
+    final tabs = find.byKey(ValueKey('bibi-tabs'));
     final expanded = tester.getTopLeft(tabs).dy;
     final drag = await tester.startGesture(tester.getCenter(host));
     await drag.moveBy(Offset(0, -23), timeStamp: Duration(milliseconds: 70));
