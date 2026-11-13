@@ -40,6 +40,7 @@ abstract class ElSliverCollapse extends StatelessWidget {
   ///
   /// [compact] 固定吸顶，[content] 位于其上方并在折叠时淡出离场；松手或按住不动时以 50% 为界吸附。
   /// [compactExtent] 和 [contentExtent] 是两个区域的占位高度，正文不要求固定高度。
+  /// [controller] 可在多个页头间共享 0（展开）到 1（收起）的进度，由调用方持有和释放。
   /// [backgroundColor] 缺省读取主题背景色。此形态放入 ElScrollView.sliver，不能挂入任意 CustomScrollView。
   const factory ElSliverCollapse.priority({
     Key? key,
@@ -47,6 +48,7 @@ abstract class ElSliverCollapse extends StatelessWidget {
     required Widget content,
     double compactExtent,
     double contentExtent,
+    AnimationController? controller,
     Color? backgroundColor,
     Duration holdSnapDelay,
     Duration snapDuration,
@@ -147,6 +149,7 @@ class _PriorityCollapse extends ElSliverCollapse {
     required this.content,
     this.compactExtent = 56,
     this.contentExtent = 58,
+    this.controller,
     this.backgroundColor,
     this.holdSnapDelay = const Duration(milliseconds: 160),
     this.snapDuration = const Duration(milliseconds: 180),
@@ -158,6 +161,7 @@ class _PriorityCollapse extends ElSliverCollapse {
   final Widget content;
   final double compactExtent;
   final double contentExtent;
+  final AnimationController? controller;
   final Color? backgroundColor;
   final Duration holdSnapDelay;
   final Duration snapDuration;
@@ -177,9 +181,12 @@ class _ActiveCollapseHeader extends StatefulWidget {
 }
 
 class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with SingleTickerProviderStateMixin {
-  late final AnimationController _progress = AnimationController.unbounded(vsync: this);
+  AnimationController? _ownedProgress;
   late final _CollapseMotion _motion = _CollapseMotion(_progress);
   ScrollHostPosition? _position;
+
+  AnimationController get _progress =>
+      widget.config.controller ?? (_ownedProgress ??= AnimationController.unbounded(vsync: this));
 
   @override
   void initState() {
@@ -197,6 +204,8 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
 
   void _changed() {
     if (!mounted) return;
+    // 其他频道推进共享进度后，本页等待的吸附已经过期。
+    _motion.cancelPendingSnap();
     widget.config.onProgressChanged?.call(_progress.value.clamp(0.0, 1.0).toDouble());
     setState(() {});
   }
@@ -218,6 +227,12 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
   @override
   void didUpdateWidget(covariant _ActiveCollapseHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.config.controller, widget.config.controller)) {
+      _motion.cancelPendingSnap();
+      _motion.controller.removeListener(_changed);
+      _ownedProgress?.stop();
+      _motion.controller = _progress..addListener(_changed);
+    }
     if (oldWidget.config.contentExtent != widget.config.contentExtent) {
       // 尺寸变化保留折叠比例，不保留过期的像素距离。
       _motion.cancelPendingSnap();
@@ -230,9 +245,8 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
     _position?.removeEdgeParticipant(_motion);
     _position?.isScrollingNotifier.removeListener(_motion.onScrollingChanged);
     _motion.dispose();
-    _progress
-      ..removeListener(_changed)
-      ..dispose();
+    _progress.removeListener(_changed);
+    _ownedProgress?.dispose();
     super.dispose();
   }
 
@@ -260,7 +274,7 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
 class _CollapseMotion extends ElNestedScrollParent {
   _CollapseMotion(this.controller);
 
-  final AnimationController controller;
+  AnimationController controller;
   ScrollHostPosition? position;
   double contentExtent = 58;
   Duration holdSnapDelay = Duration(milliseconds: 160);
@@ -291,12 +305,11 @@ class _CollapseMotion extends ElNestedScrollParent {
     // touchDrag/fling 使用手指方向：上推为负（收起），下拉为正（展开）。
     final signed = source == ElScrollDeltaSource.pointerScroll ? -delta : delta;
     final current = controller.value.clamp(0.0, 1.0).toDouble();
-    final next = (current - signed / contentExtent).clamp(0.0, 1.0).toDouble();
-    final consumed = (current - next) * contentExtent;
+    final consumed = signed.clamp((current - 1) * contentExtent, current * contentExtent).toDouble();
     if (consumed == 0) return 0;
     cancelPendingSnap();
     controller.stop();
-    controller.value = next;
+    controller.value = (current - consumed / contentExtent).clamp(0.0, 1.0).toDouble();
     if (source == ElScrollDeltaSource.touchDrag || source == ElScrollDeltaSource.pointerScroll) {
       // 手指不离屏或滚轮停止输入，超过该间隔也自动吸附。
       _scheduleSnap(holdSnapDelay);

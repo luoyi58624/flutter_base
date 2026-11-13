@@ -30,9 +30,9 @@ class BibiPage extends StatefulWidget {
   State<BibiPage> createState() => _BibiPageState();
 }
 
-class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
+class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin {
   final _pager = ElTabController(length: _channels.length, initialIndex: _recommended);
-  late final _header = BibiHeaderMotion(this, extent: _searchHeight);
+  late final _collapse = AnimationController(vsync: this);
   late final List<_FeedController> _feeds;
   int _active = _recommended;
   int _generation = 0;
@@ -47,8 +47,7 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
     _feeds = List.generate(_channels.length, (_) {
       return _FeedController(onAttach: _attachPosition, onDetach: _detachPosition)..addListener(_queueRefreshApply);
     });
-    _header.setActivePage(_active);
-    _header.offset.addListener(_queueRefreshApply);
+    _collapse.addListener(_queueRefreshApply);
     _pager.addListener(_queueRefreshApply);
   }
 
@@ -84,13 +83,12 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
   void _pageChanged(int index) {
     if (_active == index) return;
     _active = index;
-    _header.setActivePage(index);
     _queueRefreshApply();
   }
 
   void _returnToTop() {
     _moveFeedsTo(0);
-    _header.reset();
+    _collapse.value = 0;
     _queueRefreshApply();
   }
 
@@ -114,7 +112,7 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
 
   bool get _canReplaceFeed {
     final feed = _feeds[_active];
-    if (_header.offset.value != 0 || _pager.isAnimating || _pager.isDragging || !feed.hasClients) return false;
+    if (_collapse.value != 0 || _pager.isAnimating || _pager.isDragging || !feed.hasClients) return false;
     final position = feed.position;
     return position.hasContentDimensions &&
         position.pixels <= position.minScrollExtent &&
@@ -139,8 +137,8 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
   void dispose() {
     _refreshTimer?.cancel();
     _refreshRequest?.complete();
-    _header.offset.removeListener(_queueRefreshApply);
-    _header.dispose();
+    _collapse.removeListener(_queueRefreshApply);
+    _collapse.dispose();
     _pager.dispose();
     for (final feed in _feeds) {
       feed.removeListener(_queueRefreshApply);
@@ -173,62 +171,41 @@ class _BibiPageState extends State<BibiPage> with TickerProviderStateMixin {
             scrollbars: false,
             dragDevices: {...behavior.dragDevices, PointerDeviceKind.mouse},
           ),
-          child: Stack(
+          child: Column(
             children: [
-              Positioned.fill(
-                top: insets.top + _tabsHeight,
-                bottom: insets.bottom + _bottomHeight,
-                child: ClipRect(
-                  child: ValueListenableBuilder<double>(
-                    valueListenable: _header.offset,
-                    // 只平移正文视口，页头跟手时保持列表的布局尺寸与惯性活动。
-                    builder: (context, offset, child) =>
-                        Transform.translate(offset: Offset(0, _searchHeight - offset), child: child),
-                    child: ElTabView(
-                      key: ValueKey('bibi-pager'),
-                      controller: _pager,
-                      physics: _physics,
-                      lazy: true,
-                      maxCacheCount: 3,
-                      onDragStateChanged: (dragging) {
-                        if (dragging) _syncFeeds();
-                      },
-                      onIndexChanged: _pageChanged,
-                      children: [
-                        for (var index = 0; index < _channels.length; index++)
-                          _BibiFeed(
-                            key: ValueKey('bibi-feed-$index'),
-                            index: index,
-                            generation: _generation,
-                            controller: _feeds[index],
-                            header: _header,
-                            pager: _pager,
-                            onRefresh: _refresh,
-                          ),
-                      ],
-                    ),
-                  ),
+              SizedBox(
+                height: insets.top,
+                width: double.infinity,
+                child: ColoredBox(color: Colors.white),
+              ),
+              Expanded(
+                child: ElTabView(
+                  key: ValueKey('bibi-pager'),
+                  controller: _pager,
+                  physics: _physics,
+                  lazy: true,
+                  maxCacheCount: 3,
+                  onDragStateChanged: (dragging) {
+                    if (dragging) _syncFeeds();
+                  },
+                  onIndexChanged: _pageChanged,
+                  children: [
+                    for (var index = 0; index < _channels.length; index++)
+                      _BibiFeed(
+                        key: ValueKey('bibi-feed-$index'),
+                        index: index,
+                        generation: _generation,
+                        controller: _feeds[index],
+                        collapse: _collapse,
+                        pager: _pager,
+                        onRefresh: _refresh,
+                        onSelect: _selectChannel,
+                        onBack: navigator.maybePop,
+                      ),
+                  ],
                 ),
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: insets.top + _searchHeight + _tabsHeight,
-                child: BibiHeader(
-                  offset: _header.offset,
-                  statusInset: insets.top,
-                  pager: _pager,
-                  channels: _channels,
-                  onSelect: _selectChannel,
-                  onSearch: () => showBibiSearch(context, _generation),
-                  onBack: navigator.maybePop,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
+              SizedBox(
                 height: insets.bottom + _bottomHeight,
                 child: BibiBottomBar(
                   bottomInset: insets.bottom,
@@ -260,17 +237,21 @@ class _BibiFeed extends StatefulWidget {
     required this.index,
     required this.generation,
     required this.controller,
-    required this.header,
+    required this.collapse,
     required this.pager,
     required this.onRefresh,
+    required this.onSelect,
+    required this.onBack,
   });
 
   final int index;
   final int generation;
   final ScrollController controller;
-  final BibiHeaderMotion header;
+  final AnimationController collapse;
   final ElTabController pager;
   final Future<void> Function() onRefresh;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onBack;
 
   @override
   State<_BibiFeed> createState() => _BibiFeedState();
@@ -284,7 +265,7 @@ class _BibiFeedState extends State<_BibiFeed> {
   void initState() {
     super.initState();
     widget.controller.addListener(_updateRefreshVisibility);
-    widget.header.offset.addListener(_updateRefreshVisibility);
+    widget.collapse.addListener(_updateRefreshVisibility);
     widget.pager.addListener(_updateRefreshVisibility);
     _updateRefreshVisibility();
   }
@@ -295,7 +276,7 @@ class _BibiFeedState extends State<_BibiFeed> {
         widget.pager.index == widget.index &&
         !widget.pager.isDragging &&
         !widget.pager.isAnimating &&
-        widget.header.offset.value == 0 &&
+        widget.collapse.value == 0 &&
         (!controller.hasClients ||
             !controller.position.hasContentDimensions ||
             controller.offset <= controller.position.minScrollExtent);
@@ -304,19 +285,41 @@ class _BibiFeedState extends State<_BibiFeed> {
   @override
   void dispose() {
     widget.controller.removeListener(_updateRefreshVisibility);
-    widget.header.offset.removeListener(_updateRefreshVisibility);
+    widget.collapse.removeListener(_updateRefreshVisibility);
     widget.pager.removeListener(_updateRefreshVisibility);
     _showRefresh.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.header.bindPage(
-    widget.index,
-    child: ElScrollView.sliver(
+  Widget build(BuildContext context) {
+    void search() => showBibiSearch(context, widget.generation);
+
+    return ElScrollView.sliver(
       controller: widget.controller,
       physics: _physics,
       slivers: [
+        ElSliverCollapse.priority(
+          controller: widget.collapse,
+          compactExtent: _tabsHeight,
+          contentExtent: _searchHeight,
+          backgroundColor: Colors.white,
+          content: Material(
+            key: ValueKey('bibi-search-row'),
+            color: Colors.white,
+            child: BibiSearchBar(onSearch: search, onBack: widget.onBack),
+          ),
+          compact: ValueListenableBuilder<double>(
+            valueListenable: widget.collapse,
+            builder: (context, progress, _) => BibiChannelBar(
+              progress: progress,
+              pager: widget.pager,
+              channels: _channels,
+              onSelect: widget.onSelect,
+              onSearch: search,
+            ),
+          ),
+        ),
         ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
         SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
         SliverPadding(
@@ -330,8 +333,8 @@ class _BibiFeedState extends State<_BibiFeed> {
           ),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 class _BibiRefresher extends ElAndroidRefresher {

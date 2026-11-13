@@ -58,7 +58,7 @@ void main() {
         expect(find.byType(ElBottomTabbar), findsNothing);
         if (page.key == 'bibi-home' || page.key == 'bibi-plain') {
           expect(find.byType(page.key == 'bibi-home' ? BibiPage : BibiPlainPage), findsOneWidget);
-          expect(find.byKey(ValueKey('bibi-search-row')), findsOneWidget);
+          expect(find.byKey(ValueKey('bibi-search-row')).hitTestable(), findsOneWidget);
           await tester.tap(find.text('我的').hitTestable());
         } else {
           expect(find.widgetWithText(AppBar, page.title), findsOneWidget);

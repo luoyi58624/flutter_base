@@ -30,7 +30,7 @@ ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
 Key? _rowsKey(WidgetTester tester) => tester.widget<SliverList>(_inFeed(find.byType(SliverList))).key;
 
 double _body(WidgetTester tester, {int index = 1}) => _feed(tester, index: index).controller!.offset;
-double _tabsY(WidgetTester tester) => tester.getTopLeft(_key('bibi-tabs')).dy;
+double _tabsY(WidgetTester tester) => tester.getTopLeft(_inFeed(_key('bibi-tabs'), index: _pager(tester).index)).dy;
 
 ElTabController _pager(WidgetTester tester) => tester.widget<ElTabView>(_key('bibi-pager')).controller!;
 
@@ -66,20 +66,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BibiPage), findsOneWidget);
     expect(_pager(tester).length, 10);
+    expect(_inFeed(find.byType(SliverPersistentHeader)), findsOneWidget);
     await tester.tap(find.text('我的').hitTestable());
     await tester.pumpAndSettle();
     expect(find.byType(BibiPage), findsNothing);
   });
 
-  testWidgets('慢拖只移动页头，50% 吸附且轻点不会取消吸附', (tester) async {
+  testWidgets('慢拖只移动页头，按住不动时按 50% 吸附', (tester) async {
     await _open(tester);
     final expanded = _tabsY(tester);
     final short = await _holdDrag(tester, Offset(195, 580), Offset(0, -19), Offset(0, -8));
     expect(expanded - _tabsY(tester), inInclusiveRange(0.1, 28.99));
     expect(_body(tester), 0);
-    await _releaseHeld(tester, short);
+    await tester.pump(Duration(milliseconds: 160));
     await tester.pumpAndSettle();
     expect(_tabsY(tester), expanded);
+    await short.up(timeStamp: Duration(milliseconds: 350));
+    await tester.pump();
 
     final long = await _holdDrag(tester, Offset(195, 580), Offset(0, -23), Offset(0, -32));
     expect(expanded - _tabsY(tester), inInclusiveRange(29, 57.99));
@@ -214,32 +217,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(_pager(tester).index, 2);
     expect(_body(tester, index: 2), closeTo(offset, 0.01));
+    expect(_tabsY(tester), expanded - 58);
   });
 
   testWidgets('末尾频道仅因频道栏横拖而移动，展开时随菜单边界回位', (tester) async {
     await _open(tester);
-    await tester.tap(_key('bibi-menu'));
+    await tester.tap(_inFeed(_key('bibi-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('生活').hitTestable().last);
     await tester.pumpAndSettle();
     expect(_pager(tester).index, 9);
-    final tab = _key('bibi-channel-5');
+    final tab = _inFeed(_key('bibi-channel-5'), index: 9);
+    final menu = _inFeed(_key('bibi-menu'), index: 9);
     final initial = tester.getTopLeft(tab).dx;
     await tester.flingFrom(Offset(195, 600), Offset(0, -180), 900);
     await tester.pumpAndSettle();
     expect(_body(tester, index: 9), greaterThan(0));
     expect(tester.getTopLeft(tab).dx, closeTo(initial, 0.01));
-    final tabs = tester.getRect(_key('bibi-tabs'));
+    final tabs = tester.getRect(_inFeed(_key('bibi-tabs'), index: 9));
     await tester.flingFrom(Offset(260, tabs.center.dy), Offset(-160, 0), 850);
     await tester.pumpAndSettle();
     final revealed = tester.getTopLeft(tab).dx;
     expect(revealed, closeTo(initial - 40, 1));
-    final menuX = tester.getTopLeft(_key('bibi-menu')).dx;
+    final menuX = tester.getTopLeft(menu).dx;
     final reverse = await _holdDrag(tester, Offset(195, 540), Offset(0, 19), Offset(0, 7));
     final tabMove = tester.getTopLeft(tab).dx - revealed;
     expect(tabMove, greaterThan(0));
     expect(tabMove, lessThan(40));
-    expect(tabMove, closeTo(tester.getTopLeft(_key('bibi-menu')).dx - menuX, 1));
+    expect(tabMove, closeTo(tester.getTopLeft(menu).dx - menuX, 1));
     await _releaseHeld(tester, reverse);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

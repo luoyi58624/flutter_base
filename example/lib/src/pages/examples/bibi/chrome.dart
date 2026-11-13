@@ -40,7 +40,7 @@ class BibiHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<double>(
     valueListenable: offset,
-    child: _SearchContents(onSearch: onSearch, onBack: onBack),
+    child: BibiSearchBar(onSearch: onSearch, onBack: onBack),
     builder: (context, value, search) {
       final collapse = value.clamp(0.0, _searchHeight);
       final progress = collapse / _searchHeight;
@@ -73,7 +73,7 @@ class BibiHeader extends StatelessWidget {
             left: 0,
             right: 0,
             height: _channelHeight,
-            child: _ChannelRail(
+            child: BibiChannelBar(
               progress: progress,
               pager: pager,
               channels: channels,
@@ -87,8 +87,10 @@ class BibiHeader extends StatelessWidget {
   );
 }
 
-class _SearchContents extends StatelessWidget {
-  const _SearchContents({required this.onSearch, required this.onBack});
+/// Bibi 首页的搜索栏和两侧入口。
+class BibiSearchBar extends StatelessWidget {
+  /// 创建由页头布局控制位置的搜索栏。
+  const BibiSearchBar({required this.onSearch, required this.onBack});
 
   final VoidCallback onSearch;
   final VoidCallback onBack;
@@ -181,8 +183,10 @@ class _SearchContents extends StatelessWidget {
   );
 }
 
-class _ChannelRail extends StatefulWidget {
-  const _ChannelRail({
+/// Bibi 的频道标签、选中指示器和随折叠进度出现的搜索入口。
+class BibiChannelBar extends StatefulWidget {
+  /// 用 [progress] 驱动右侧搜索按钮，并跟随 [pager] 绘制选中状态。
+  const BibiChannelBar({
     required this.progress,
     required this.pager,
     required this.channels,
@@ -197,10 +201,10 @@ class _ChannelRail extends StatefulWidget {
   final VoidCallback onSearch;
 
   @override
-  State<_ChannelRail> createState() => _ChannelRailState();
+  State<BibiChannelBar> createState() => _ChannelRailState();
 }
 
-class _ChannelRailState extends State<_ChannelRail> {
+class _ChannelRailState extends State<BibiChannelBar> {
   final _scroll = ScrollController(keepScrollOffset: false);
   late int _selected;
   double? _outerWidth;
@@ -214,7 +218,7 @@ class _ChannelRailState extends State<_ChannelRail> {
   }
 
   @override
-  void didUpdateWidget(covariant _ChannelRail oldWidget) {
+  void didUpdateWidget(covariant BibiChannelBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pager != widget.pager) {
       oldWidget.pager.removeListener(_handlePage);
