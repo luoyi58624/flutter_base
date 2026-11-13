@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/mobile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _host(Widget card, {Brightness brightness = Brightness.light}) => MaterialApp(
+Widget _host(Widget card) => MaterialApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: true),
     child: ElView(
-      themeMode: ElThemeMode(brightness: brightness),
+      themeMode: ElThemeMode(brightness: .light),
       child: ElComponentProvider(
         components: el.mobileComponents,
         child: Align(
@@ -88,38 +88,17 @@ void main() {
     }
   });
 
-  testWidgets('shadowLevel 读取品牌五档明暗阴影，style 可以覆盖和移除', (tester) async {
-    for (final brightness in Brightness.values) {
-      final tokens = {
-        ...el.mobileComponents.style!.vars!,
-        if (brightness == Brightness.dark) ...el.mobileComponents.style!.onDark!.vars!,
-      };
-      final levels = {
-        ElLevelType.xs: ElTokens.$shadowXs,
-        ElLevelType.sm: ElTokens.$shadowSm,
-        ElLevelType.md: ElTokens.$shadowMd,
-        ElLevelType.lg: ElTokens.$shadowLg,
-        ElLevelType.xl: ElTokens.$shadowXl,
-      };
-      for (final entry in levels.entries) {
-        await tester.pumpWidget(
-          _host(
-            ElCard(shadowLevel: entry.key, child: SizedBox(height: 30)),
-            brightness: brightness,
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          tester.renderObject<ElRenderView>(_surface()).committedResolvedStyle.box.boxShadow,
-          ElStyle().withShadow(type: .floating, level: tokens[entry.value] as int).boxShadow,
-        );
-      }
-    }
+  testWidgets('卡片默认无阴影，style 可使用局部主题级别或自定义投影', (tester) async {
     await tester.pumpWidget(
       _host(
         ElView(
           style: ElStyle(vars: {ElTokens.$shadowMd: 37}),
-          child: ElCard(shadowLevel: .md, child: SizedBox(height: 30)),
+          child: Builder(
+            builder: (context) => ElCard(
+              style: ElStyle().withShadow(type: .floating, level: ElLevelType.md.shadow(context)),
+              child: SizedBox(height: 30),
+            ),
+          ),
         ),
       ),
     );
@@ -139,7 +118,6 @@ void main() {
       await tester.pumpWidget(
         _host(
           ElCard(
-            shadowLevel: .md,
             style: ElStyle(
               boxShadow: shadows,
               border: ElBorder.all(borderColor: Colors.blue),

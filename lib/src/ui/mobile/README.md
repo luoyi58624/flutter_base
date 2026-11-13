@@ -53,4 +53,4 @@ ElComponentProvider(
 
 背景颜色按用途独立：`bgColor` 为页面背景（浅色 `#EEEEEE`），`cardColor` 为卡片与列表组背景（浅色白色），`cardPressColor` 为卡片、列表行和菜单项的按压背景（浅色 `#E0E0E0`），`dividerColor` 为分隔线（浅色 `#E0E0E0`）。`borderColor` 仅控制控件边框；`press` 继续用于其他控件。各 token 均可独立级联覆写，暗色表分别声明默认值。
 
-五档阴影 `shadowXs / Sm / Md / Lg / Xl` 在浅色模式下为 `1 / 2 / 4 / 8 / 16`，在暗色模式下为 `2 / 3 / 6 / 12 / 24`。`withShadow` 根据整数级别和当前背景生成投影。`md` 对应卡片，`lg` 用于菜单和小弹窗，`xl` 用于模态窗口。ElCard 默认无边框、无阴影，通过 `shadowLevel: .md` 使用卡片档位，可通过 `style.boxShadow` 覆写。
+五档阴影 `shadowXs / Sm / Md / Lg / Xl` 在浅色模式下为 `1 / 2 / 4 / 8 / 16`，在暗色模式下为 `2 / 3 / 6 / 12 / 24`。`withShadow` 根据整数级别和当前背景生成投影。`md` 对应卡片，`lg` 用于菜单和小弹窗，`xl` 用于模态窗口。`ElCard` 默认无边框、无阴影，调用方可在 `style` 中指定投影。

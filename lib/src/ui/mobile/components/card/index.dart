@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../flutter/components/tokens.dart' show ElLevelTypeExt, ElThemeContextExt;
+import '../../../../flutter/components/tokens.dart' show ElThemeContextExt;
 import '../../../../flutter/components/card/index.dart' show ElCard;
-import '../../../../flutter/views/view/style/style.dart' show ElShadowStyleExt, ElStyle, ElTransform;
+import '../../../../flutter/views/view/style/style.dart' show ElStyle, ElTransform;
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../internal/common.dart';
 import '../loading/index.dart';
@@ -12,8 +12,7 @@ Widget cardBuilder(BuildContext context, ElCard component) {
   final theme = context.elTheme;
   final interactive = component.onTap != null || component.event?.onTap != null;
   final enabled = interactive && !component.loading && component.event?.disabled != true;
-  final level = component.shadowLevel?.shadow(context);
-  final baseStyle = ElStyle(
+  final style = ElStyle(
     width: '100%',
     backgroundColor: theme.cardColor,
     borderRadius: .circular(20),
@@ -23,10 +22,7 @@ Widget cardBuilder(BuildContext context, ElCard component) {
     onTap: enabled
         ? ElStyle(backgroundColor: theme.cardPressColor, transform: ElTransform.scale(theme.cardPressScale))
         : null,
-  );
-  final style = (level == null ? baseStyle : baseStyle.withShadow(type: .floating, level: level)).merge(
-    component.style,
-  );
+  ).merge(component.style);
   final content = Stack(
     alignment: .center,
     children: [
