@@ -9,7 +9,7 @@
 | 色块、纯文本 | 复用 ../sliver_recycler/index.dart 的千条负载，纯文本入口指定初始内容 |
 | 复杂卡片 | cards.dart；按需创建记录、固定卡片与图片、按压反馈、统计叶子更新、按业务 ID 选择 |
 | 复选列表 | selection.dart；按需创建文案，行点击与复选不重复消费，选择持久化，业务等高条目定位 |
-| 聊天、实时群聊 | chat.dart；反向列表、历史前插、流式增长、未读、末端跟随，按消息 ID 恢复位置；正文步骤只更新相关进度文字 |
+| 聊天、实时群聊 | chat.dart；使用 ElChatScroll 和 ElChatComposer，演示自定义 Sliver、按 ID 定位、历史前插、图片、文件和流式正文 |
 | 动态流 | social_feed.dart；长文展开、九宫格、转发和投票 |
 | 订单 | orders.dart；选择、进度、批次更新、头部增删后按订单 ID 补偿位置 |
 | 视频流、相册、瀑布流 | media.dart 及 part；授权、本机文件、缩略图队列、预览、播放和过期结果处理；整宽头图单独作为 Sliver |

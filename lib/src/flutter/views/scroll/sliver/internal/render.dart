@@ -132,11 +132,10 @@ class RenderNaturalSliver extends RenderSliver
   double _mainOf(RenderBox child) => constraints.axis == Axis.vertical ? child.size.height : child.size.width;
 
   /// 上一轮已定位、仍与视口相交的首个条目：(序号, 相对视口起点的位置)。
-  (int, double)? _visibleAnchor() {
+  (int, double)? _visibleAnchor(int count) {
     if (constraints.remainingPaintExtent <= 0) return null;
     final start = constraints.scrollOffset;
     final end = start + constraints.remainingPaintExtent;
-    final count = source.childCount;
     (int, double)? result;
     for (var child = firstChild; child != null; child = childAfter(child)) {
       final data = child.parentData! as NaturalSliverParentData;
@@ -153,12 +152,16 @@ class RenderNaturalSliver extends RenderSliver
 
   @override
   void layoutCallback() {
+    // 插入后旧序号处可能换了类型，先记下 recycler 的可见条目再让来源回收槽位。
+    final beforeShift = _shifts.isEmpty ? null : _visibleAnchor(_layout.count);
     final reordered = source.beginLayout();
     final count = source.childCount;
     final layout = _layout;
-    var anchor = source.mountsAll ? null : _visibleAnchor();
+    var anchor = source.mountsAll ? null : _visibleAnchor(count);
     if (_shifts.isNotEmpty) {
-      if (anchor != null) anchor = (_shifted(anchor.$1), anchor.$2);
+      if (beforeShift != null && count > 0) {
+        anchor = (_shifted(beforeShift.$1).clamp(0, count - 1), beforeShift.$2);
+      }
       _shifts.clear();
     }
     List<Object?>? types;
@@ -180,7 +183,7 @@ class RenderNaturalSliver extends RenderSliver
     if (source.mountsAll) {
       _layoutMounted(reset);
     } else {
-      _layoutWindow(anchor);
+      _layoutWindow(anchor, anchorShifted: beforeShift != null);
     }
   }
 
@@ -214,7 +217,7 @@ class RenderNaturalSliver extends RenderSliver
     _finish(constraints.scrollOffset);
   }
 
-  void _layoutWindow((int, double)? anchor) {
+  void _layoutWindow((int, double)? anchor, {required bool anchorShifted}) {
     final layout = _layout;
     final count = source.childCount;
     final childConstraints = layout.childConstraints(constraints);
@@ -246,6 +249,9 @@ class RenderNaturalSliver extends RenderSliver
         measureUnit(anchor?.$1 ?? 0);
         keepAnchor();
       }
+    } else if (anchorShifted) {
+      // 同帧增删可保持总数量和类型序列不变，先按新序号定位窗口。
+      keepAnchor();
     }
 
     if (_reveal case final reveal?) {

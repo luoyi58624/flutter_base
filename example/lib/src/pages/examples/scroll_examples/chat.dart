@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../layout/example_page.dart';
 import '../../../widgets/example_scrollbar.dart';
-import '../../../widgets/panel.dart';
 import 'scroll_mode.dart';
 
 /// 用一千条变高消息演示历史插入、底部跟随与未读消息提示。
@@ -30,9 +27,7 @@ class RecyclerLiveChatPage extends RecyclerChatPage {
   RecyclerLiveChatPage({super.key}) : super._realtime();
 }
 
-enum _ChatAction { earlier, receive, latest }
-
-typedef _ChatAnchor = ({int id, double offset});
+enum _ChatAction { earlier, receive, latest, locate }
 
 class _RecyclerChatPageState extends State<RecyclerChatPage> {
   static final _liveParts = [
@@ -46,105 +41,62 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     '记录结束。',
   ];
 
-  final _composer = TextEditingController();
-  final _count = ValueNotifier<int>(1000);
+  final _chat = ElChatScrollController();
   final _unread = ValueNotifier<int>(0);
-  final _messages = List.generate(1000, _ChatMessage.generated);
   final _messageController = ScrollController(keepScrollOffset: false);
-  final _messageSliverKey = GlobalKey();
-  // 仅登记已绑定槽位，正文通知与阅读锚点共用这些行，不为历史数据预建通知器。
-  final _messageRows = <int, _OfficialChatRowState>{};
+  var _messages = _initialMessages();
   late final _liveProgress = ValueNotifier<(int, bool)>((0, false));
   var _mode = SliverExampleMode.initial;
   // 历史消息使用负业务 ID，与已存在的消息区分。
   int _oldestId = -1;
   int _nextId = 1000;
-  int? _streamId;
+  _StreamingMessage? _stream;
   Timer? _liveTimer;
 
-  _RenderChatSliver? get _messageSliver => _messageSliverKey.currentContext?.findRenderObject() as _RenderChatSliver?;
-
-  int _indexOf(int id) {
-    var low = 0;
-    var high = _messages.length - 1;
-    while (low <= high) {
-      final middle = (low + high) ~/ 2;
-      final value = _messages[middle].id;
-      if (value == id) return middle;
-      if (value < id) {
-        low = middle + 1;
-      } else {
-        high = middle - 1;
-      }
-    }
-    return -1;
+  @override
+  void initState() {
+    super.initState();
+    _chat.atLatest.addListener(_clearReadMessages);
   }
 
-  void _loadEarlier() {
-    _messageSliver?.captureAnchors();
-    _insertEarlier();
-    _count.value = _messages.length;
-    setState(() {});
+  void _clearReadMessages() {
+    if (_chat.atLatest.value) _unread.value = 0;
   }
 
-  void _insertEarlier() {
+  List<ElChatMessage> _earlierMessages() {
     _oldestId -= 50;
-    _messages.insertAll(0, List.generate(50, (index) => _ChatMessage.generated(_oldestId + index)));
+    return List.generate(50, (index) => _message(_oldestId + index));
   }
 
-  bool _prepareIncoming() {
-    if (!_messageController.hasClients) return false;
-    final position = _messageController.position;
-    final follow = position.extentBefore <= 48 && !position.isScrollingNotifier.value;
-    if (!follow) _messageSliver?.captureAnchors();
-    return follow;
+  Future<void> _loadEarlier() async {
+    setState(() => _messages = [..._earlierMessages(), ..._messages]);
   }
 
-  void _append({required bool mine, String? text}) {
-    final follow = _prepareIncoming();
-    _insertMessage(mine: mine, text: text);
-    _finishIncoming(follow, 1);
-  }
-
-  void _insertMessage({required bool mine, String? text}) {
-    _messages.add(_ChatMessage.generated(_nextId++, mine: mine, text: text));
-  }
-
-  void _finishIncoming(bool follow, int arrivals) {
-    if (_count.value != _messages.length) {
-      _count.value = _messages.length;
-      setState(() {});
-    }
-    if (follow) {
-      _showLatest(onlyWhenIdle: true);
-    } else {
-      _unread.value += arrivals;
-    }
+  void _append(ElChatMessage message) {
+    if (!message.isMine && !_chat.atLatest.value) _unread.value++;
+    setState(() => _messages = [..._messages, message]);
   }
 
   void _liveStep() {
     final (step, _) = _liveProgress.value;
     if (step == _liveParts.length) return;
-    // 同一拍的前插、增长和新消息共用一次阅读锚点。
-    final follow = _prepareIncoming();
-    if (step == 0 || step == 4) _insertEarlier();
+    final earlier = step == 0 || step == 4 ? _earlierMessages() : const <ElChatMessage>[];
     final text = _liveParts.take(step + 1).join('\n');
-    var arrivals = 0;
-    if (_streamId case final id?) {
-      final index = _indexOf(id);
-      final message = _ChatMessage.generated(id, mine: false, text: text);
-      _messages[index] = message;
-      _messageRows[id]?._updateMessage(message);
+    final arrivals = <ElChatMessage>[];
+    if (_stream case final stream?) {
+      stream.text.value = text;
     } else {
-      _streamId = _nextId;
-      _insertMessage(mine: false, text: text);
-      arrivals++;
+      final stream = _StreamingMessage(_nextId++, text);
+      _stream = stream;
+      arrivals.add(stream);
     }
     if (step == 2 || step == 5) {
-      _insertMessage(mine: false, text: step == 2 ? '我在这边也看到最新进度了。' : '等记录发完我们再一起核对。');
-      arrivals++;
+      arrivals.add(_message(_nextId++, mine: false, text: step == 2 ? '我在这边也看到最新进度了。' : '等记录发完我们再一起核对。'));
     }
-    _finishIncoming(follow, arrivals);
+    if (earlier.isNotEmpty || arrivals.isNotEmpty) {
+      setState(() => _messages = [...earlier, ..._messages, ...arrivals]);
+      if (!_chat.atLatest.value) _unread.value += arrivals.length;
+    }
     if (step + 1 == _liveParts.length) {
       _liveTimer?.cancel();
       _liveTimer = null;
@@ -167,35 +119,29 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   void _resetLive() {
     _liveTimer?.cancel();
     _liveTimer = null;
-    _streamId = null;
+    _releaseStream();
     _oldestId = -1;
     _nextId = 1000;
-    _messages
-      ..clear()
-      ..addAll(List.generate(1000, _ChatMessage.generated));
-    _count.value = _messages.length;
     _liveProgress.value = (0, false);
-    setState(() {});
+    setState(() => _messages = _initialMessages());
     _showLatest();
   }
 
-  void _send() {
-    final text = _composer.text.trim();
-    if (text.isEmpty) return;
-    _composer.clear();
-    _append(mine: true, text: text);
+  void _releaseStream() {
+    final stream = _stream;
+    if (stream == null) return;
+    _stream = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) => stream.text.dispose());
   }
 
-  void _showLatest({bool onlyWhenIdle = false}) {
+  bool _send(String text) {
+    _append(_message(_nextId++, mine: true, text: text));
+    return true;
+  }
+
+  void _showLatest() {
     _unread.value = 0;
-    _messageSliver?.clearAnchors();
-    final mode = _mode;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _mode != mode || !_messageController.hasClients) return;
-      final position = _messageController.position;
-      if (onlyWhenIdle && (position.isScrollingNotifier.value || position.pixels == 0)) return;
-      position.jumpTo(0);
-    });
+    unawaited(_chat.jumpToLatest());
   }
 
   void _choose(Object option) {
@@ -208,58 +154,30 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
     }
     switch (option as _ChatAction) {
       case .earlier:
-        _loadEarlier();
+        unawaited(_loadEarlier());
       case .receive:
-        _append(mine: false);
+        _append(_message(_nextId++, mine: false));
       case .latest:
         _showLatest();
+      case .locate:
+        unawaited(_chat.jumpToMessage(949));
     }
   }
 
-  bool _onScroll(ScrollNotification notification) {
-    if (notification.depth != 0) return false;
-    if (notification.metrics.extentBefore <= 48 && _unread.value != 0) _unread.value = 0;
-    return false;
-  }
-
-  int? _messageIndexForKey(Key key) {
-    if (key is! ValueKey<int>) return null;
-    final index = _indexOf(key.value);
-    return index < 0 ? null : _messages.length - 1 - index;
-  }
-
-  Widget _messageRow(int index, {bool trackedKey = true}) => _OfficialChatRow(
-    key: trackedKey ? ValueKey(_messages[index].id) : null,
-    message: _messages[index],
-    rows: _messageRows,
-  );
-
-  Widget _messagesViewport() => NotificationListener<ScrollNotification>(
-    onNotification: _onScroll,
-    child: RecyclerExampleScrollbar(
-      controller: _messageController,
-      child: _mode.scrollView(
-        controller: _messageController,
-        reverse: true,
-        semanticChildCount: _messages.length,
-        slivers: [
-          _ChatSliver(
-            key: _messageSliverKey,
-            rows: _messageRows,
-            child: _mode.list(
-              context,
-              itemCount: _messages.length,
-              itemBuilder: (_, index) => _messageRow(_messages.length - 1 - index),
-              findChildIndexCallback: _messageIndexForKey,
-              itemType: (index) => _messages[_messages.length - 1 - index].mine,
-              recycledItemBuilder: (_, index) => ValueListenableBuilder<int>(
-                valueListenable: index,
-                builder: (_, value, _) => _messageRow(_messages.length - 1 - value, trackedKey: false),
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget _messagesViewport() => RecyclerExampleScrollbar(
+    controller: _messageController,
+    child: ElChatScroll(
+      messages: _messages,
+      controller: _chat,
+      scrollController: _messageController,
+      sliverBuilder: switch (_mode) {
+        .recycler => null,
+        .official => _officialSliver,
+        .builder => _builderSliver,
+        .children => _childrenSliver,
+      },
+      messageBuilder: _messageContent,
+      onOpenFile: (file) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(file.name))),
     ),
   );
 
@@ -267,8 +185,9 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   void dispose() {
     _liveTimer?.cancel();
     if (widget._live) _liveProgress.dispose();
-    _composer.dispose();
-    _count.dispose();
+    _releaseStream();
+    _chat.atLatest.removeListener(_clearReadMessages);
+    _chat.dispose();
     _unread.dispose();
     _messageController.dispose();
     super.dispose();
@@ -278,11 +197,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   Widget build(BuildContext context) => ExamplePage(
     title: widget._live ? '实时群聊' : '聊天长列表',
     actions: [
-      ValueListenableBuilder<int>(
-        valueListenable: _count,
-        builder: (context, count, child) =>
-            Text('$count 条', key: ValueKey('chat-count'), style: TextStyle(fontSize: 12)),
-      ),
+      Text('${_messages.length} 条', key: ValueKey('chat-count'), style: TextStyle(fontSize: 12)),
       ValueListenableBuilder<int>(
         valueListenable: _unread,
         builder: (context, count, child) => PopupMenuButton<Object>(
@@ -299,6 +214,7 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
             PopupMenuDivider(),
             PopupMenuItem(key: ValueKey('chat-load-earlier'), value: _ChatAction.earlier, child: Text('更早 50 条')),
             PopupMenuItem(key: ValueKey('chat-receive'), value: _ChatAction.receive, child: Text('模拟收到')),
+            PopupMenuItem(key: ValueKey('chat-locate'), value: _ChatAction.locate, child: Text('定位消息 #950')),
             PopupMenuItem(
               key: ValueKey('chat-latest'),
               value: _ChatAction.latest,
@@ -358,25 +274,21 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
               ),
             ),
           Expanded(child: _messagesViewport()),
-          ExamplePanel(
-            style: ElStyle(padding: .all(12)),
-            child: Row(
-              crossAxisAlignment: .end,
-              spacing: 12,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: ValueKey('chat-composer'),
-                    controller: _composer,
-                    minLines: 1,
-                    maxLines: 3,
-                    decoration: InputDecoration(hintText: '输入消息', isDense: true, border: OutlineInputBorder()),
-                    onSubmitted: (_) => _send(),
-                  ),
-                ),
-                ElButton(key: ValueKey('chat-send'), onPressed: _send, child: '发送'),
-              ],
-            ),
+          ElChatComposer(
+            key: ValueKey('chat-composer'),
+            onSend: _send,
+            actions: [
+              ElButton(
+                child: Icons.image_outlined,
+                semanticLabel: '发送示例图片',
+                onPressed: () => _append(_sampleImage(_nextId++, mine: true)),
+              ),
+              ElButton(
+                child: Icons.attach_file,
+                semanticLabel: '发送示例文件',
+                onPressed: () => _append(_sampleFile(_nextId++, mine: true)),
+              ),
+            ],
           ),
         ],
       ),
@@ -384,201 +296,81 @@ class _RecyclerChatPageState extends State<RecyclerChatPage> {
   );
 }
 
-class _ChatSliver extends SingleChildRenderObjectWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _ChatSliver({super.key, required this.rows, required super.child});
+Widget _officialSliver(BuildContext context, SliverChildBuilderDelegate delegate) => SliverList(delegate: delegate);
 
-  final Map<int, _OfficialChatRowState> rows;
+Widget _builderSliver(BuildContext context, SliverChildBuilderDelegate delegate) => ElSliverList.builder(
+  itemCount: delegate.childCount!,
+  itemBuilder: (context, index) => delegate.builder(context, index)!,
+  findChildIndexCallback: delegate.findChildIndexCallback,
+  addAutomaticKeepAlives: false,
+);
 
-  @override
-  _RenderChatSliver createRenderObject(BuildContext context) => _RenderChatSliver(rows);
+Widget _childrenSliver(BuildContext context, SliverChildBuilderDelegate delegate) => ElSliverList(
+  stretch: true,
+  children: List.generate(delegate.childCount!, (index) => delegate.builder(context, index)!),
+);
+
+Widget? _messageContent(BuildContext context, ElChatMessage message) => switch (message) {
+  _StreamingMessage(:final text) => ValueListenableBuilder<String>(
+    valueListenable: text,
+    builder: (_, value, _) => Text(value, style: TextStyle(height: 1.5)),
+  ),
+  ElChatTextMessage(:final text) => Text(text, style: TextStyle(height: 1.5)),
+  _ => null,
+};
+
+final _samples = [
+  '收到，稍后见。',
+  '今天的列表已经接好，试试快速滑动，再回来看看消息的位置。',
+  '这里是一条稍长的消息。气泡会根据实际宽度换行，高度由内容决定。\n加载更早的记录时，正在阅读的消息应该留在原来的位置。',
+  '这条消息包含三行：\n一、结构按方向复用。\n二、内容与时间按消息 ID 重新绑定。',
+  '好！',
+];
+
+DateTime _sentAt(int id) => DateTime(2026, 1, 1, 9).add(Duration(minutes: id));
+String _sender(bool mine) => mine ? '我' : '小林';
+
+List<ElChatMessage> _initialMessages() => List.generate(1000, (id) {
+  if (id == 990) return _sampleImage(id, mine: false);
+  if (id == 991) return _sampleFile(id, mine: true);
+  return _message(id);
+});
+
+ElChatTextMessage _message(int id, {bool? mine, String? text}) {
+  final isMine = mine ?? id % 3 == 0;
+  final label = id >= 0 ? '消息 #${id + 1}' : '历史消息 ${-id}';
+  return ElChatTextMessage(
+    id: id,
+    isMine: isMine,
+    senderName: _sender(isMine),
+    sentAt: _sentAt(id),
+    text: text ?? '$label：${_samples[id.abs() % _samples.length]}',
+  );
 }
 
-class _RenderChatSliver extends RenderProxySliver {
-  _RenderChatSliver(this._rows);
+ElChatImageMessage _sampleImage(int id, {required bool mine}) => ElChatImageMessage(
+  id: id,
+  isMine: mine,
+  senderName: _sender(mine),
+  sentAt: _sentAt(id),
+  src: 'assets/showcase/lake.png',
+  aspectRatio: 1.7,
+  alt: '湖边照片',
+);
 
-  final Map<int, _OfficialChatRowState> _rows;
-  final _anchors = <_ChatAnchor>[];
-  double? _initialScrollOffset;
+ElChatFileMessage _sampleFile(int id, {required bool mine}) => ElChatFileMessage(
+  id: id,
+  isMine: mine,
+  senderName: _sender(mine),
+  sentAt: _sentAt(id),
+  name: '群聊记录.txt',
+  size: 2560,
+);
 
-  RenderBox? _sliverChildFor(int id) {
-    final object = _rows[id]?.context.findRenderObject();
-    if (object is! RenderBox || !object.attached) return null;
-    RenderBox box = object;
-    while (box.parent is RenderBox) {
-      box = box.parent! as RenderBox;
-    }
-    return identical(box.parent, child) ? box : null;
-  }
+class _StreamingMessage extends ElChatMessage {
+  _StreamingMessage(int id, String text)
+    : text = ValueNotifier(text),
+      super(id: id, isMine: false, senderName: _sender(false), sentAt: _sentAt(id));
 
-  void captureAnchors() {
-    final sliver = child;
-    if (_anchors.isNotEmpty || sliver == null || sliver.geometry?.visible != true) return;
-    final start = sliver.constraints.scrollOffset;
-    final end = start + sliver.geometry!.paintExtent;
-    for (final id in _rows.keys) {
-      final box = _sliverChildFor(id);
-      if (box == null || !box.hasSize) continue;
-      // 停放的复用行没有布局偏移，只有与视口相交的消息可以作为锚点。
-      final offset = sliver.childScrollOffset(box);
-      if (offset == null || !offset.isFinite || offset >= end || offset + box.size.height <= start) continue;
-      _anchors.add((id: id, offset: offset));
-    }
-    if (_anchors.isEmpty) return;
-    // 反向列表优先保留靠上方的消息，布局窗口移动时用仍在窗口内的消息补位。
-    _anchors.sort((a, b) => b.offset.compareTo(a.offset));
-    markNeedsLayout();
-  }
-
-  void clearAnchors() {
-    _anchors.clear();
-    _initialScrollOffset = null;
-  }
-
-  @override
-  void performLayout() {
-    if (_anchors.isNotEmpty) _initialScrollOffset ??= constraints.scrollOffset;
-    super.performLayout();
-    if (_anchors.isEmpty || geometry!.scrollOffsetCorrection != null) return;
-
-    // 扣除子 Sliver 已完成的修正，只补偿数据引起的布局位移。
-    final applied = constraints.scrollOffset - _initialScrollOffset!;
-    for (final anchor in _anchors) {
-      final box = _sliverChildFor(anchor.id);
-      final offset = box == null ? null : child!.childScrollOffset(box);
-      if (offset == null || !offset.isFinite) continue;
-      final correction = offset - anchor.offset - applied;
-      if (correction.abs() > precisionErrorTolerance) {
-        geometry = SliverGeometry(scrollOffsetCorrection: correction);
-      }
-      break;
-    }
-    clearAnchors();
-  }
-}
-
-class _ChatMessage {
-  _ChatMessage.generated(this.id, {bool? mine, String? text}) : mine = mine ?? id % 3 == 0, _suppliedText = text;
-  static final _samples = [
-    '收到，稍后见。',
-    '今天的列表已经接好，试试快速滑动，再回来看看消息的位置。',
-    '这里是一条稍长的消息。气泡会根据实际宽度换行，高度由内容决定。\n加载更早的记录时，正在阅读的消息应该留在原来的位置。',
-    '这条消息包含三行：\n一、结构按方向复用。\n二、内容与时间按消息 ID 重新绑定。',
-    '好！',
-  ];
-  final int id;
-  final bool mine;
-  final String? _suppliedText;
-  // 索引只需要 ID 和方向，昂贵的正文与本地时间计算留到真正显示该消息时。
-  late final String text =
-      _suppliedText ?? '${id >= 0 ? '消息 #${id + 1}' : '历史消息 ${-id}'}：${_samples[id.abs() % _samples.length]}';
-  late final DateTime time = DateTime(2026, 1, 1, 9).add(Duration(minutes: id));
-  late final String timeLabel = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-}
-
-class _OfficialChatRow extends StatefulWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _OfficialChatRow({super.key, required this.message, required this.rows});
-  final _ChatMessage message;
-  final Map<int, _OfficialChatRowState> rows;
-  @override
-  State<_OfficialChatRow> createState() => _OfficialChatRowState();
-}
-
-class _OfficialChatRowState extends State<_OfficialChatRow> {
-  late final _message = ValueNotifier<_ChatMessage?>(widget.message);
-  late final _row = _ChatRow(_message, widget.message.mine);
-  @override
-  void initState() {
-    super.initState();
-    widget.rows[widget.message.id] = this;
-  }
-
-  @override
-  void activate() {
-    super.activate();
-    widget.rows[widget.message.id] = this;
-  }
-
-  @override
-  void deactivate() {
-    if (identical(widget.rows[widget.message.id], this)) widget.rows.remove(widget.message.id);
-    super.deactivate();
-  }
-
-  @override
-  void didUpdateWidget(_OfficialChatRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if ((oldWidget.message.id != widget.message.id || !identical(oldWidget.rows, widget.rows)) &&
-        identical(oldWidget.rows[oldWidget.message.id], this)) {
-      oldWidget.rows.remove(oldWidget.message.id);
-    }
-    widget.rows[widget.message.id] = this;
-    _message.value = widget.message;
-  }
-
-  void _updateMessage(_ChatMessage message) {
-    if (!mounted || widget.message.id != message.id) return;
-    _message.value = message;
-  }
-
-  @override
-  void dispose() {
-    _message.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => RepaintBoundary(child: _row);
-}
-
-class _ChatRow extends StatelessWidget {
-  // ignore: prefer_const_constructors_in_immutables
-  _ChatRow(this.message, this.mine);
-  final ValueNotifier<_ChatMessage?> message;
-  final bool mine;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    // 气泡的方向、布局与样式由类型固定，绑定只更新正文和时间两个叶子。
-    final bubble = ExamplePanel(
-      style: ElStyle(
-        padding: .all(12),
-        borderRadius: .circular(16),
-        backgroundColor: mine ? colors.primary.withValues(alpha: .12) : colors.surfaceContainerHighest,
-      ),
-      child: Column(
-        crossAxisAlignment: .start,
-        mainAxisSize: .min,
-        spacing: 5,
-        children: [
-          Text(mine ? '我' : '小林', style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant)),
-          ElListenableBuilder<ValueNotifier<_ChatMessage?>, String>(
-            listenable: message,
-            select: (value) => value.value?.text ?? '',
-            builder: (context, child) => Text(message.value?.text ?? '', style: TextStyle(height: 1.5)),
-          ),
-          ElListenableBuilder<ValueNotifier<_ChatMessage?>, String>(
-            listenable: message,
-            select: (value) => value.value?.timeLabel ?? '',
-            builder: (context, child) =>
-                Text(message.value?.timeLabel ?? '', style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant)),
-          ),
-        ],
-      ),
-    );
-    return Padding(
-      padding: .symmetric(horizontal: 16, vertical: 6),
-      child: LayoutBuilder(
-        builder: (context, constraints) => Align(
-          alignment: mine ? .centerRight : .centerLeft,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: constraints.maxWidth * .8),
-            child: bubble,
-          ),
-        ),
-      ),
-    );
-  }
+  final ValueNotifier<String> text;
 }

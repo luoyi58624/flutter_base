@@ -34,19 +34,30 @@ Future<void> _tap(WidgetTester tester, String key) async {
 
 String _chatCount(WidgetTester tester) => tester.widget<Text>(find.byKey(ValueKey('chat-count'))).data!;
 
+Finder _chatViewport() => find.descendant(
+  of: find.byType(ElChatScroll),
+  matching: find.byWidgetPredicate((widget) => widget is CustomScrollView && widget.reverse),
+);
+
 ScrollPosition _chatPosition(WidgetTester tester) =>
-    tester.widget<CustomScrollView>(find.byType(CustomScrollView)).controller!.position;
+    tester.widget<CustomScrollView>(_chatViewport()).controller!.position;
 
 Finder _visibleMessage(WidgetTester tester) {
-  final viewport = tester.getRect(find.byType(CustomScrollView));
+  final viewport = tester.getRect(_chatViewport());
   final messages = find.byWidgetPredicate((widget) => widget is Text && (widget.data?.startsWith('消息 #') ?? false));
   // 拖动活动会忽略列表子项的命中，用实际坐标判断消息是否在视口内。
-  final visible = messages.evaluate().firstWhere((element) {
+  Element? visible;
+  var distance = double.infinity;
+  for (final element in messages.evaluate()) {
     final text = find.byWidget(element.widget);
     final center = tester.getCenter(text);
-    return center.isFinite && viewport.contains(center);
-  });
-  return find.text((visible.widget as Text).data!);
+    final distanceToCenter = (center.dy - viewport.center.dy).abs();
+    if (center.isFinite && viewport.contains(center) && distanceToCenter < distance) {
+      visible = element;
+      distance = distanceToCenter;
+    }
+  }
+  return find.text((visible!.widget as Text).data!);
 }
 
 Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode mode, int step) async {
@@ -55,7 +66,7 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
       .hitTestable();
   final row = find.ancestor(
     of: body,
-    matching: find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_OfficialChatRow'),
+    matching: find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_ChatMessageRow'),
   );
   final time = find.descendant(
     of: row,
@@ -74,8 +85,6 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   }
 
   final rowElement = tester.element(row);
-  final bodySelector = selectorFor(body);
-  final timeSelector = selectorFor(time);
   final play = find.byKey(ValueKey('chat-live-play'));
   final advance = find.byKey(ValueKey('chat-live-step'));
   final reset = find.byKey(ValueKey('chat-live-reset'));
@@ -84,10 +93,10 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   final resetWidget = tester.widget(reset);
   final playSelector = selectorFor(play);
   final advanceSelector = selectorFor(advance);
-  final viewportWidget = tester.widget(find.byType(CustomScrollView));
+  final viewportWidget = tester.widget(_chatViewport());
   final sliver = mode == .official
       ? find.byType(SliverList)
-      : find.byWidgetPredicate((widget) => widget is ElSliverList);
+      : find.descendant(of: _chatViewport(), matching: find.byWidgetPredicate((widget) => widget is ElSliverList));
   final sliverWidget = tester.widget(sliver);
   final rowWidget = tester.widget(row);
   final bodyElement = tester.element(body);
@@ -96,16 +105,12 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   final timeElement = tester.element(time);
   final count = _chatCount(tester);
   var rowBuilds = 0;
-  var bodyBuilds = 0;
-  var timeBuilds = 0;
   var playBuilds = 0;
   var advanceBuilds = 0;
   final previous = debugOnRebuildDirtyWidget;
   debugOnRebuildDirtyWidget = (element, builtOnce) {
     previous?.call(element, builtOnce);
     if (identical(element, rowElement)) rowBuilds++;
-    if (identical(element, bodySelector)) bodyBuilds++;
-    if (identical(element, timeSelector)) timeBuilds++;
     if (identical(element, playSelector)) playBuilds++;
     if (identical(element, advanceSelector)) advanceBuilds++;
   };
@@ -114,7 +119,7 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   } finally {
     debugOnRebuildDirtyWidget = previous;
   }
-  expect(tester.widget(find.byType(CustomScrollView)), same(viewportWidget));
+  expect(tester.widget(_chatViewport()), same(viewportWidget));
   expect(tester.widget(sliver), same(sliverWidget));
   expect(tester.widget(row), same(rowWidget));
   expect(tester.element(row), same(rowElement));
@@ -124,8 +129,6 @@ Future<void> _expectStreamContentUpdate(WidgetTester tester, SliverExampleMode m
   expect(tester.widget(time), same(timeWidget));
   expect(tester.element(time), same(timeElement));
   expect(rowBuilds, 0, reason: '纯正文变化不重新构建已绑定消息行。');
-  expect(bodyBuilds, greaterThan(0));
-  expect(timeBuilds, 0, reason: '消息时间未变，不应调度时间选择器。');
   expect(tester.widget(reset), same(resetWidget), reason: '正文增长不改变复位动作。');
   if (step == 7) {
     expect(playBuilds, 1);
@@ -162,7 +165,7 @@ void main() {
       await tester.tap(find.byKey(ValueKey('chat-live-play')));
       await tester.pump();
 
-      final list = find.byType(CustomScrollView);
+      final list = _chatViewport();
       final drag = await tester.startGesture(tester.getCenter(list));
       await drag.moveBy(Offset(0, 120));
       await tester.pump(Duration(milliseconds: 200));
@@ -297,7 +300,7 @@ void main() {
     expect(find.text('小林的滚动记录正在整理。').hitTestable(), findsOneWidget);
 
     await _tap(tester, 'chat-live-reset');
-    final drag = await tester.startGesture(tester.getCenter(find.byType(CustomScrollView)));
+    final drag = await tester.startGesture(tester.getCenter(_chatViewport()));
     await drag.moveBy(Offset(0, 22));
     await drag.moveBy(Offset(0, 24));
     await tester.pump();
@@ -344,6 +347,27 @@ void main() {
     await tester.pump();
     await tester.pumpWidget(SizedBox());
     await tester.pump(Duration(seconds: 2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('聊天长列表通过新组件定位消息并发送文字', (tester) async {
+    await _open(tester, RecyclerChatPage());
+    expect(find.byType(ElChatScroll), findsOneWidget);
+    expect(find.byType(ElChatComposer), findsOneWidget);
+    await _tap(tester, 'chat-menu');
+    await _tap(tester, 'chat-locate');
+    expect(find.textContaining('消息 #950：').hitTestable(), findsOneWidget);
+    await _tap(tester, 'chat-menu');
+    await _tap(tester, 'chat-latest');
+
+    await tester.tap(find.byType(ElEditableView));
+    await tester.pumpAndSettle();
+    tester.testTextInput.enterText('一条测试消息');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byWidgetPredicate((widget) => widget is ElButton && widget.semanticLabel == '发送'));
+    await tester.pumpAndSettle();
+    expect(_chatCount(tester), '1001 条');
+    expect(find.text('一条测试消息').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

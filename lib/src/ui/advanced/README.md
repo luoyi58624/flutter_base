@@ -1,5 +1,9 @@
 # 进阶能力
 
+## 聊天
+
+[`ElChatScroll` 和 `ElChatComposer`](widgets/chat/README.md) 提供消息列表、按 ID 定位、可自定义的消息 Sliver 和底部输入面板。
+
 ## 高级组件
 
 [`ElInfiniteScroll`](widgets/infinite_scroll/README.md) 提供下拉刷新、触底分页和自定义内容布局，经 `package:flutter_base/ui.dart` 和聚合入口导出。

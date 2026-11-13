@@ -71,7 +71,7 @@ enum _Scene {
   double get step => this == .mediaAlbum ? 48 : _step;
 
   int get expectedItemCount => switch (this) {
-    .grid || .masonry || .productWaterfall => 1000,
+    .grid || .masonry || .productWaterfall || .chat || .liveChat => 1000,
     .mediaVideo || .mediaAlbum || .mediaLocalWaterfall => _mediaFileCount,
     _ => 10000,
   };
@@ -523,11 +523,15 @@ Widget _app(Widget page) => ElComponentProvider(
   ),
 );
 
-Finder _mainScroll() => find.byWidgetPredicate(
-  (widget) =>
-      widget is CustomScrollView && widget.scrollDirection == Axis.vertical ||
-      widget is ElScrollView && widget.scrollDirection == Axis.vertical,
-);
+Finder _mainScroll() {
+  final chat = find.byType(ElChatScroll);
+  if (chat.evaluate().isNotEmpty) return find.descendant(of: chat, matching: find.byType(ElScrollView));
+  return find.byWidgetPredicate(
+    (widget) =>
+        widget is CustomScrollView && widget.scrollDirection == Axis.vertical ||
+        widget is ElScrollView && widget.scrollDirection == Axis.vertical,
+  );
+}
 
 Future<void> _precache(WidgetTester tester, List<ImageProvider<Object>> images) async {
   if (images.isEmpty) return;
