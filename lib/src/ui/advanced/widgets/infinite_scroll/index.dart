@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import '../../views/button/button_view.dart' show ElButtonView;
-import '../../views/scroll/refresh/index.dart' show ElRefresher, ElSliverRefresh;
-import '../../views/scroll/refresh/refresher/platform.dart' show buildPlatformRefreshSpinner;
-import '../../views/scroll/scroll.dart' show ElScrollView;
+import '../../../../flutter/views/button/button_view.dart' show ElButtonView;
+import '../../../../flutter/views/scroll/refresh/index.dart' show ElRefresher, ElSliverRefresh;
+import '../../../../flutter/views/scroll/refresh/refresher/platform.dart' show buildPlatformRefreshSpinner;
+import '../../../../flutter/views/scroll/scroll.dart' show ElScrollView;
 
 /// 一页分页结果，条目类型与分页键类型由调用方指定。
 class ElInfiniteScrollPage<T, K extends Object> {

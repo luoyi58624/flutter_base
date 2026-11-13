@@ -1,5 +1,9 @@
 # 进阶能力
 
+## 高级组件
+
+[`ElInfiniteScroll`](widgets/infinite_scroll/README.md) 提供下拉刷新、触底分页和自定义内容布局，经 `package:flutter_base/ui.dart` 和聚合入口导出。
+
 ## 官方主题桥
 
 [`ElMaterialThemeExt`](utils/material/material_theme.dart) 沿用旧 el 的同名扩展，将通用主题变量转换为 Flutter Material 的 `ThemeData`，从 `package:flutter_base/flutter_base.dart` 导出，desktop.dart / mobile.dart 也可直接使用。

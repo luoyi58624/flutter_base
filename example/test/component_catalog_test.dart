@@ -25,6 +25,26 @@ Future<void> _openCatalog(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('移动目录从高级组件分组打开无限滚动', (tester) async {
+    await _openCatalog(tester);
+    final catalog = find.byKey(PageStorageKey('component-catalog'));
+    final groups = tester.widgetList<ElListGroup>(find.descendant(of: catalog, matching: find.byType(ElListGroup)));
+    final group = groups.singleWhere((group) => group.title == 'Advanced 高级组件');
+    expect(group.children.map((child) => child.key), contains(ValueKey('component-infinite-scroll')));
+
+    final tile = find.byKey(ValueKey('component-infinite-scroll'));
+    await tester.ensureVisible(tile);
+    await tester.pumpAndSettle();
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/infinite-scroll');
+    await tester.pump(Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.text('商品 1 · 陶瓷马克杯'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('移动组件分组在目录末尾并能打开底部导航栏示例', (tester) async {
     await _openCatalog(tester);
     final catalog = find.byKey(PageStorageKey('component-catalog'));

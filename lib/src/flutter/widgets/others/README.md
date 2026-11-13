@@ -41,7 +41,7 @@ ElListenableBuilder<ValueNotifier<int>, int>(
 
 ## 分页滚动
 
-下拉刷新、触底分页和自定义列表布局使用 [ElInfiniteScroll](../infinite_scroll/README.md)。
+下拉刷新、触底分页和自定义列表布局使用 [ElInfiniteScroll](../../../ui/advanced/widgets/infinite_scroll/README.md)。
 
 ## 加载动画与帧率
 

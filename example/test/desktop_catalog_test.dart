@@ -83,6 +83,25 @@ void main() {
     await tester.pumpWidget(SizedBox());
   });
 
+  testWidgets('桌面高级组件分组打开无限滚动，窄屏保留组件路由', (tester) async {
+    await _host(tester);
+    expect(_navLabel('Advanced 高级组件'), findsOneWidget);
+    await _select(tester, 'InfiniteScroll 无限滚动');
+    expect(router.routeInformationProvider.value.uri.path, '/components/infinite-scroll');
+    await tester.pump(Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.text('商品 1 · 陶瓷马克杯'), findsOneWidget);
+
+    tester.view.physicalSize = Size(320, 680);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/components/infinite-scroll');
+    await tester.pump(Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.text('商品 1 · 陶瓷马克杯'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(SizedBox());
+  });
+
   testWidgets('桌面公共头覆盖整行，标识和标题不跳转，主题入口仅在首页', (tester) async {
     GlobalState.isDark.value = false;
     addTearDown(() => GlobalState.isDark.value = false);

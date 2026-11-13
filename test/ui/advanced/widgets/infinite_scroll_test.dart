@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_base/src/flutter/views/scroll/refresh/refresher/android.dart' show buildAndroidRefreshSpinner;
 import 'package:flutter_base/src/flutter/views/scroll/refresh/refresher/ios.dart' show buildIosRefreshSpinner;
+import 'package:flutter_base/ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Product {

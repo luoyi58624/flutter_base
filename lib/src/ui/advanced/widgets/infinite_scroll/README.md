@@ -1,5 +1,7 @@
 # ElInfiniteScroll
 
+示例应用在「组件 → Advanced 高级组件 → InfiniteScroll 无限滚动」提供可交互演示。
+
 在 `Expanded`、`SizedBox` 等提供有限高度的布局中放入 `ElInfiniteScroll`。组件管理分页数据，`sliverBuilder` 决定内容布局。
 
 ```dart

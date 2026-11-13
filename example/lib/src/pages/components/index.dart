@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../utils/router.dart';
 import '../../layout/example_page.dart';
+import 'advanced/infinite_scroll/index.dart';
 import 'basic/button/index.dart';
 import 'basic/button_group/index.dart';
 import 'basic/icon/index.dart';
@@ -163,6 +164,11 @@ final componentCatalog = <ElMenuModel<WidgetBuilder>>[
       _page('alert', 'Alert 提示', builder: (_) => AlertPage()),
       _page('loading', 'LoadingIndicator 加载指示', builder: (_) => LoadingPage()),
     ],
+  ),
+  ElMenuModel(
+    group: true,
+    title: 'Advanced 高级组件',
+    children: [_page('infinite-scroll', 'InfiniteScroll 无限滚动', builder: (_) => InfiniteScrollPage())],
   ),
   ElMenuModel(
     group: true,

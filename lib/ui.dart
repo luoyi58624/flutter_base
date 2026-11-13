@@ -3,6 +3,7 @@ library;
 
 export 'flutter.dart';
 
+export 'src/ui/advanced/widgets/infinite_scroll/index.dart' show ElInfiniteScroll, ElInfiniteScrollPage;
 export 'src/ui/widgets/badge/index.dart' show ElBadge;
 export 'src/ui/widgets/menu_bar/index.dart' show ElMenuBar, ElMenuBarItem, ElMenuBarShortcutPriority;
 export 'src/ui/widgets/dnd/draggable.dart' show ElDraggable;
