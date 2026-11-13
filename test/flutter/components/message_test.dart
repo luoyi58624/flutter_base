@@ -215,6 +215,18 @@ void main() {
     await _dispose(tester);
   });
 
+  testWidgets('桌面消息多到超出窗口高度时向下延伸，不报溢出', (tester) async {
+    late BuildContext source;
+    await tester.pumpWidget(_app(_source((c) => source = c), el.desktopComponents));
+    for (var i = 0; i < 30; i++) {
+      el.message.show('第 $i 条', context: source, duration: Duration.zero);
+    }
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getTopLeft(_copy('第 29 条')).dy, greaterThan(tester.getSize(find.byType(Scaffold)).height));
+    await _dispose(tester);
+  });
+
   testWidgets('桌面与移动布局互相切换后，旧品牌的消息按原排布退场，新消息按当前品牌排布', (tester) async {
     final mobile = ValueNotifier(false);
     addTearDown(mobile.dispose);

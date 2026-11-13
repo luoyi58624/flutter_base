@@ -28,8 +28,12 @@ Widget messageBuilder(BuildContext context, ElMessage c) => ElOverlayTransition(
 Widget messageStackBuilder(BuildContext context, List<Widget> children) => SafeArea(
   child: Padding(
     padding: const .only(top: 20),
-    child: Align(
+    // 消息多到超出窗口时向下延伸到窗口外，不按溢出报错。
+    child: OverflowBox(
       alignment: .topCenter,
+      minWidth: 0,
+      minHeight: 0,
+      maxHeight: double.infinity,
       child: Column(mainAxisSize: .min, children: children),
     ),
   ),
