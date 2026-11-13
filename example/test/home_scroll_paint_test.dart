@@ -12,14 +12,20 @@ import 'home_showcase_test.dart' as fixture;
 import '../lib/src/pages/home/showcase/panel.dart';
 
 void main() {
-  testWidgets('首页滚动只重绘视口附近的展示内容', (tester) async {
+  testWidgets('首页按章节裁剪，稳态滚动复用静态内容', (tester) async {
     await fixture.host(tester);
     final scope = tester.widget<ShowcaseScope>(find.byType(ShowcaseScope).first);
     final scroll = tester.widget<ElScrollView>(find.byKey(PageStorageKey('showcase-scroll'))).controller!;
+    final chapters = {
+      for (final element in find.byType(ShowcaseSection, skipOffstage: false).evaluate())
+        element.renderObject!: (element.widget as ShowcaseSection).id,
+    };
+    final paintedChapters = <RenderBox>{};
     final previous = debugOnProfilePaint;
     var paints = 0, outside = 0;
     debugOnProfilePaint = (object) {
       paints++;
+      if (object is RenderBox && chapters.containsKey(object)) paintedChapters.add(object);
       if (object is RenderBox && object.hasSize && object.attached) {
         final rect = MatrixUtils.transformRect(object.getTransformTo(null), object.paintBounds);
         if (!rect.overlaps(Rect.fromLTWH(0, 57, 390, 843))) outside++;
@@ -30,9 +36,15 @@ void main() {
     try {
       for (final id in ['control-fields', 'control-dates', 'surface-cards', 'feedback-prompts', 'feedback-progress']) {
         paints = outside = 0;
+        paintedChapters.clear();
         final target = scope.anchors[id]!.currentContext!.findRenderObject()!;
         scroll.jumpTo(RenderAbstractViewport.of(target).getOffsetToReveal(target, 0).offset - 20);
         await tester.pump();
+        // children 以章节裁剪：允许绘制可见章节的内部内容，整章离屏时必须跳过。
+        for (final chapter in paintedChapters) {
+          final rect = MatrixUtils.transformRect(chapter.getTransformTo(null), chapter.paintBounds);
+          expect(rect.overlaps(Rect.fromLTWH(0, 57, 390, 843)), isTrue, reason: '${chapters[chapter]} 应在视口内');
+        }
         final entryPaints = paints, entryOutside = outside;
         await tester.pump(Duration(milliseconds: 500));
         var maxPaints = 0, maxOutside = 0;
@@ -62,8 +74,7 @@ void main() {
     await tester.pumpWidget(SizedBox());
     await tester.pump(Duration(seconds: 4));
     for (final result in results) {
-      expect(result['entryPaints'], lessThan(600), reason: '${result['section']} 首次进入也只绘制视口附近');
-      expect(result['maxPaints'], lessThan(400), reason: '${result['section']} 稳态滚动复用静态行');
+      expect(result['maxPaints'], lessThan(400), reason: '${result['section']} 稳态滚动复用静态内容');
       expect(result['maxOutside'], lessThan(200), reason: '${result['section']} 不应重复绘制整段屏外内容');
     }
   });

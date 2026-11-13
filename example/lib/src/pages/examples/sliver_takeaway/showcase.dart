@@ -18,7 +18,7 @@ class _TakeawayShowcaseState extends State<TakeawayShowcase> {
   var _indices = List<int>.generate(1000, (i) => i);
   var _category = -1, _sort = '综合排序', _query = '';
   Timer? _debounce;
-  var _mode = SliverExampleMode.official;
+  var _mode = SliverExampleMode.recycler;
 
   _Store _storeAt(int position) => _stores.putIfAbsent(_indices[position], () => _Store.generate(_indices[position]));
 

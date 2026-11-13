@@ -23,12 +23,12 @@ class FeedbackShowcase extends StatelessWidget {
       'feedback-progress': '进度与通知',
       'feedback-overlays': '抽屉与菜单',
     },
-    child: ShowcaseSlivers([
-      demoAnchor(context, 'feedback-state', showcaseSliver(_SharedState())),
+    child: showcaseColumn([
+      demoAnchor(context, 'feedback-state', _SharedState()),
       demoAnchor(context, 'feedback-prompts', _Prompts()),
       demoAnchor(context, 'feedback-progress', PrimitivesShowcase()),
       demoAnchor(context, 'feedback-overlays', _Popups()),
-      showcaseSliver(_Touch()),
+      _Touch(),
       _Menus(),
     ], gap: 22),
   );
@@ -120,7 +120,7 @@ class _Prompts extends StatelessWidget {
         ],
       ),
     );
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       columns: 3,
       children: [
         ShowcasePanel(
@@ -267,7 +267,7 @@ class _Popups extends HookWidget {
       );
     }
 
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       columns: 3,
       children: [
         ShowcasePanel(
@@ -495,7 +495,7 @@ class _Menus extends HookWidget {
         ],
       ),
     );
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       children: [
         ShowcasePanel(title: '基础菜单', description: '点击目标打开操作列表，在当前位置完成常用动作。', child: target('周末灵感.txt')),
         ShowcasePanel(

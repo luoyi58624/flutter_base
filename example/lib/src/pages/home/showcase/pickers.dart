@@ -35,8 +35,8 @@ class PickerShowcase extends HookWidget {
         ],
       ),
     ];
-    return ShowcaseSlivers([
-      ShowcaseGrid.sliver(
+    return showcaseColumn([
+      ShowcaseGrid(
         children: [
           ShowcasePanel(
             title: '单列选择',
@@ -77,49 +77,47 @@ class PickerShowcase extends HookWidget {
           ),
         ],
       ),
-      showcaseSliver(
-        ShowcasePanel(
-          title: '级联选择',
-          description: '父级选项决定下一列内容，切换后自动保留有效选择。',
-          child: demoColumn([
-            Row(
-              children: [
-                Expanded(child: demoLabel(context, '配送地区')),
-                demoHint(context, region.value.join(' / ')),
-              ],
+      ShowcasePanel(
+        title: '级联选择',
+        description: '父级选项决定下一列内容，切换后自动保留有效选择。',
+        child: demoColumn([
+          Row(
+            children: [
+              Expanded(child: demoLabel(context, '配送地区')),
+              demoHint(context, region.value.join(' / ')),
+            ],
+          ),
+          ElPicker<String>(modelValue: region, options: regions, columnLabels: ['省份', '城市', '区县']),
+          demoActions([
+            demoHint(context, '也可以在底部面板中选择，确认后保存。'),
+            ElButton(
+              variant: .outline,
+              child: '选择配送地区',
+              onPressed: () async {
+                final draft = ValueNotifier([...region.value]);
+                final result = await el.popup<List<String>>(
+                  context,
+                  title: '选择配送地区',
+                  child: HookBuilder(
+                    builder: (context) {
+                      useEffect(() => draft.dispose, []);
+                      return ElPicker<String>(modelValue: draft, options: regions, columnLabels: ['省份', '城市', '区县']);
+                    },
+                  ),
+                  footer: Builder(
+                    builder: (context) => ElButton(
+                      style: ElStyle(width: '100%'),
+                      child: '确定',
+                      onPressed: () => Navigator.of(context).pop([...draft.value]),
+                    ),
+                  ),
+                );
+                // 路由退场仍会短暂保留编辑内容，模型在转场结束后释放。
+                if (context.mounted && result != null) region.value = result;
+              },
             ),
-            ElPicker<String>(modelValue: region, options: regions, columnLabels: ['省份', '城市', '区县']),
-            demoActions([
-              demoHint(context, '也可以在底部面板中选择，确认后保存。'),
-              ElButton(
-                variant: .outline,
-                child: '选择配送地区',
-                onPressed: () async {
-                  final draft = ValueNotifier([...region.value]);
-                  final result = await el.popup<List<String>>(
-                    context,
-                    title: '选择配送地区',
-                    child: HookBuilder(
-                      builder: (context) {
-                        useEffect(() => draft.dispose, []);
-                        return ElPicker<String>(modelValue: draft, options: regions, columnLabels: ['省份', '城市', '区县']);
-                      },
-                    ),
-                    footer: Builder(
-                      builder: (context) => ElButton(
-                        style: ElStyle(width: '100%'),
-                        child: '确定',
-                        onPressed: () => Navigator.of(context).pop([...draft.value]),
-                      ),
-                    ),
-                  );
-                  // 路由退场仍会短暂保留编辑内容，模型在转场结束后释放。
-                  if (context.mounted && result != null) region.value = result;
-                },
-              ),
-            ]),
           ]),
-        ),
+        ]),
       ),
     ], gap: 22);
   }
@@ -143,7 +141,7 @@ class DateTimeShowcase extends HookWidget {
       value.inMinutes % 60,
       if (seconds) value.inSeconds % 60,
     ].map((part) => '$part'.padLeft(2, '0')).join(':');
-    return showcaseSliverList([
+    return showcaseColumn([
       ShowcasePanel(
         title: '日期选择',
         description: 'min 与 max 限制范围，年月变化后自动保留有效日期，也可放入底部面板确认。',

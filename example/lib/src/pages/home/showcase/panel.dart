@@ -94,16 +94,9 @@ class ShowcasePanel extends StatelessWidget {
 }
 
 /// 按原稿断点排列演示卡片，窄屏保留完整内容自然高度。
-class ShowcaseGrid extends HookWidget {
+class ShowcaseGrid extends StatelessWidget {
   /// columns 指定宽屏列数，手机默认单列。
-  const ShowcaseGrid({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap})
-    : _sliver = false;
-
-  /// 顶层卡片按行交给文档 Sliver 裁剪，保留所有卡片的交互状态。
-  const ShowcaseGrid.sliver({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap})
-    : _sliver = true;
-
-  final bool _sliver;
+  const ShowcaseGrid({super.key, required this.children, this.columns = 2, this.mobileColumns = 1, this.gap});
 
   /// 演示卡片。
   final List<Widget> children;
@@ -121,29 +114,7 @@ class ShowcaseGrid extends HookWidget {
     final mobile = ShowcaseScope.of(context).mobile;
     final count = mobile ? mobileColumns : columns;
     final space = gap ?? (mobile ? 16 : 18);
-    // 跨断点换行时，卡片中的局部状态仍留在原实例。
-    final keys = useMemoized(() => _sliver ? List.generate(children.length, (_) => GlobalKey()) : <GlobalKey>[], [
-      _sliver,
-      children.length,
-    ]);
-    if (_sliver) {
-      return showcaseSliverList([
-        for (var start = 0; start < children.length; start += count)
-          LayoutBuilder(
-            builder: (context, constraints) => Row(
-              crossAxisAlignment: .start,
-              spacing: space,
-              children: [
-                for (var index = start; index < start + count && index < children.length; index++)
-                  SizedBox(
-                    width: (constraints.maxWidth - space * (count - 1)) / count,
-                    child: KeyedSubtree(key: keys[index], child: children[index]),
-                  ),
-              ],
-            ),
-          ),
-      ], gap: space);
-    }
+    // Wrap 只改变换行位置，卡片在元素树中的父级与顺序保持不变。
     return LayoutBuilder(
       builder: (context, constraints) {
         return Wrap(
@@ -151,7 +122,10 @@ class ShowcaseGrid extends HookWidget {
           runSpacing: space,
           children: [
             for (final child in children)
-              SizedBox(width: (constraints.maxWidth - space * (count - 1)) / count, child: child),
+              SizedBox(
+                width: (constraints.maxWidth - space * (count - 1)) / count,
+                child: RepaintBoundary(child: child),
+              ),
           ],
         );
       },
@@ -159,37 +133,13 @@ class ShowcaseGrid extends HookWidget {
   }
 }
 
-/// 按原有间距串起文档 Sliver，裁剪粒度落在每张卡片或每行卡片。
-class ShowcaseSlivers extends StatelessWidget {
-  /// 子项均为 Sliver，普通内容可通过 showcaseSliver 转接。
-  const ShowcaseSlivers(this.children, {super.key, this.gap = 22});
-
-  /// 按展示顺序排列的分组。
-  final List<Widget> children;
-
-  /// 相邻分组的间距。
-  final double gap;
-
-  @override
-  Widget build(BuildContext context) => SliverMainAxisGroup(
-    slivers: [
-      for (var index = 0; index < children.length; index++) ...[
-        if (index > 0) SliverToBoxAdapter(child: SizedBox(height: gap)),
-        children[index],
-      ],
-    ],
-  );
-}
-
-/// 常驻内容交给已有文档 Sliver 排版；静态行随滚动复用绘制结果。
-Widget showcaseSliverList(List<Widget> children, {double gap = 16}) => ElSliverList(
-  stretch: true,
+/// 按自然高度排列展示分组，隔离各组重绘以复用静态内容。
+Widget showcaseColumn(List<Widget> children, {double gap = 16}) => Column(
+  mainAxisSize: .min,
+  crossAxisAlignment: .stretch,
   spacing: gap,
   children: [for (final child in children) RepaintBoundary(child: child)],
 );
-
-/// 将单个普通展示块接入文档滚动。
-Widget showcaseSliver(Widget child) => showcaseSliverList([child]);
 
 /// 无限进度和播放示例仅在真正进入视口时运行动画与演示计时器。
 class ShowcaseMotion extends HookWidget {
@@ -270,7 +220,7 @@ class ShowcaseSection extends StatelessWidget {
   /// 子节链接，键为定位身份。
   final Map<String, String> links;
 
-  /// 按卡片行划分的分区 Sliver。
+  /// 按自然高度排列的分区内容。
   final Widget child;
   @override
   Widget build(BuildContext context) {
@@ -322,7 +272,14 @@ class ShowcaseSection extends StatelessWidget {
         ],
       ],
     );
-    return SliverMainAxisGroup(slivers: [showcaseSliver(heading), child]);
+    return Column(
+      mainAxisSize: .min,
+      crossAxisAlignment: .stretch,
+      children: [
+        RepaintBoundary(child: heading),
+        child,
+      ],
+    );
   }
 }
 

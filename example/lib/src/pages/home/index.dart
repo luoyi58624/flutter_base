@@ -115,38 +115,30 @@ class HomePage extends HookWidget {
               current: current,
               onNavigate: navigate,
             );
-            final scroll = ElScrollView.sliver(
+            final scroll = ElScrollView(
               key: PageStorageKey('showcase-scroll'),
               controller: controller,
-              slivers: [
-                SliverPadding(
-                  padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
-                  sliver: SliverMainAxisGroup(
-                    slivers: [
-                      showcaseSliver(hero),
-                      showcaseSliver(SizedBox(height: mobile ? 28 : 46)),
-                      for (final entry in sections.entries) ...[
-                        entry.value,
-                        if (entry.key != 'scenarios') showcaseSliver(SizedBox(height: (width * .07).clamp(52, 90))),
-                      ],
-                      showcaseSliver(SizedBox(height: mobile ? 36 : 56)),
-                      showcaseSliver(
-                        ElView(
-                          style: ElStyle(
-                            padding: .only(top: 14, bottom: 22),
-                            border: ElBorder.only(borderTop: ElBorderSide(borderColor: context.elTheme.borderColor)),
-                          ),
-                          child: Wrap(
-                            alignment: .spaceBetween,
-                            spacing: 12,
-                            runSpacing: 8,
-                            children: [
-                              demoHint(context, 'my-ui · 简洁、自然的移动组件'),
-                              ElButton(variant: .link, child: '回到顶部 ↑', onPressed: () => navigate('top')),
-                            ],
-                          ),
-                        ),
-                      ),
+              padding: .fromLTRB(inset, mobile ? 16 : 24, inset, 0),
+              children: [
+                hero,
+                SizedBox(height: mobile ? 28 : 46),
+                for (final entry in sections.entries) ...[
+                  entry.value,
+                  if (entry.key != 'scenarios') SizedBox(height: (width * .07).clamp(52, 90)),
+                ],
+                SizedBox(height: mobile ? 36 : 56),
+                ElView(
+                  style: ElStyle(
+                    padding: .only(top: 14, bottom: 22),
+                    border: ElBorder.only(borderTop: ElBorderSide(borderColor: context.elTheme.borderColor)),
+                  ),
+                  child: Wrap(
+                    alignment: .spaceBetween,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      demoHint(context, 'my-ui · 简洁、自然的移动组件'),
+                      ElButton(variant: .link, child: '回到顶部 ↑', onPressed: () => navigate('top')),
                     ],
                   ),
                 ),

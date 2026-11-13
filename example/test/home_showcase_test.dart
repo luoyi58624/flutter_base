@@ -158,7 +158,7 @@ void main() {
     await reveal(tester, 'takeaway');
     await tester.tap(find.byKey(ValueKey('home-takeaway-category-0')));
     await tester.pump();
-    expect(copy('1250 家'), findsOneWidget);
+    expect(copy('125 家'), findsOneWidget);
     await tester.tap(find.byKey(ValueKey('home-dish-0-0')));
     await tester.pump();
     final total = tester.widget<Text>(find.byKey(ValueKey('home-takeaway-total'))).data;

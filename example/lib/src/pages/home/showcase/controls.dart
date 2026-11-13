@@ -17,11 +17,11 @@ class ControlsShowcase extends StatelessWidget {
     title: '输入与选择',
     description: '为手指设计的控件尺寸，状态变化一目了然。',
     links: {'control-fields': '输入与选项', 'control-pickers': '搜索与选择', 'control-dates': '日期与时间', 'control-upload': '文件上传'},
-    child: ShowcaseSlivers([
+    child: showcaseColumn([
       demoAnchor(context, 'control-fields', _Fields()),
       _Selections(),
       _MoreSelections(),
-      showcaseSliver(_Collapses()),
+      _Collapses(),
       demoAnchor(context, 'control-pickers', _Comboboxes()),
       PickerShowcase(),
       demoAnchor(context, 'control-dates', DateTimeShowcase()),
@@ -35,7 +35,7 @@ class _Fields extends HookWidget {
   Widget build(BuildContext context) {
     final search = useState(''), nickname = useState('小蓝同学'), category = useState('视觉灵感');
     final notification = useState(true), silent = useState(false), privacy = useState(true);
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       children: [
         ShowcasePanel(
           title: '搜索输入',
@@ -115,7 +115,7 @@ class _Selections extends HookWidget {
     final mode = useState('舒适'), strength = useState(68.0), custom = useState(36.0);
     final plan = useState<String?>('标准体验'), features = useState(['云端同步']);
     final number = useState<num?>(1);
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       children: [
         demoColumn([
           ShowcasePanel(
@@ -216,7 +216,7 @@ class _MoreSelections extends HookWidget {
       trailing: null,
       onTap: () => model.value = !model.value,
     );
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       children: [
         ShowcasePanel(
           title: '独立单选框',
@@ -377,7 +377,7 @@ class _Comboboxes extends HookWidget {
     final city = useState('杭州'), member = useState('小蓝'), project = useState('');
     final cities = ['杭州', '上海', '成都', '深圳', '厦门', '北京'];
     final members = ['小蓝', '小青', '云间'];
-    return ShowcaseGrid.sliver(
+    return ShowcaseGrid(
       children: [
         ShowcasePanel(
           title: '本地搜索',
