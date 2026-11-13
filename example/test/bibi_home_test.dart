@@ -26,7 +26,8 @@ Future<void> _open(WidgetTester tester) async {
 ElScrollView _feed(WidgetTester tester, {int index = 1}) =>
     tester.widget<ElScrollView>(_inFeed(find.byType(ElScrollView), index: index));
 
-Key? _rowsKey(WidgetTester tester) => tester.widget<SliverList>(_inFeed(find.byType(SliverList))).key;
+Finder _cards() => _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverList));
+Key? _cardsKey(WidgetTester tester) => tester.widget(_cards()).key;
 
 double _body(WidgetTester tester, {int index = 1}) => _feed(tester, index: index).controller!.offset;
 double _tabsY(WidgetTester tester) => tester.getTopLeft(_key('bibi-tabs')).dy;
@@ -192,7 +193,7 @@ void main() {
     await tester.pump();
     await first.up(timeStamp: Duration(milliseconds: 440));
     await tester.pumpAndSettle();
-    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
+    expect(_cardsKey(tester), ValueKey('bibi-cards-0'));
 
     // 完全回收后的剩余反向位移会滚动正文，下一次取消测试先恢复到顶部。
     await tester.tap(find.text('首页').hitTestable());
@@ -200,7 +201,7 @@ void main() {
     final canceled = await _holdDrag(tester, Offset(195, 420), Offset(0, 90), Offset(0, 150));
     await canceled.cancel();
     await tester.pumpAndSettle();
-    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
+    expect(_cardsKey(tester), ValueKey('bibi-cards-0'));
   });
 
   testWidgets('刷新中离开顶部会收起圆盘，回到顶部后才应用结果', (tester) async {
@@ -213,11 +214,50 @@ void main() {
     expect(indicator.opacity, 0);
     await tester.pumpAndSettle();
     expect(_body(tester), greaterThan(0));
-    expect(_rowsKey(tester), ValueKey('bibi-rows-0'));
+    expect(_cardsKey(tester), ValueKey('bibi-cards-0'));
     await tester.tap(find.text('首页').hitTestable());
     await tester.pumpAndSettle();
     expect(_body(tester), 0);
-    expect(_rowsKey(tester), ValueKey('bibi-rows-1'));
+    expect(_cardsKey(tester), ValueKey('bibi-cards-1'));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('触底按整批追加大卡片和六张小卡片，下拉刷新回到首批', (tester) async {
+    await _open(tester);
+    int slots() => tester.widget<ElSliverList>(_cards()).itemCount;
+    final controller = _feed(tester).controller!;
+    expect(slots(), 2);
+    expect(tester.widget<ElSliverList>(_cards()).itemType, isNotNull);
+
+    controller.jumpTo(controller.position.maxScrollExtent);
+    await tester.pump();
+    expect(slots(), 2);
+    await tester.pump(Duration(milliseconds: 100));
+    expect(slots(), 4);
+    final appendedOffset = controller.offset;
+    await tester.pumpAndSettle();
+    expect(controller.offset, closeTo(appendedOffset, .01));
+    expect(controller.position.extentAfter, greaterThan(0));
+
+    controller.jumpTo(controller.position.maxScrollExtent);
+    await tester.pump();
+    await tester.tap(find.text('首页').hitTestable());
+    await tester.pump();
+    final pull = await tester.startGesture(Offset(195, 420));
+    await pull.moveBy(Offset(0, 100));
+    await pull.moveBy(Offset(0, 180));
+    await tester.pump();
+    await pull.up();
+    await tester.pump(Duration(milliseconds: 100));
+    expect(slots(), 4, reason: '刷新开始后，正在等待的追加不得写回');
+    await tester.pumpAndSettle();
+    expect(_cardsKey(tester), ValueKey('bibi-cards-1'));
+    expect(slots(), 2);
+    expect(controller.offset, 0);
+    controller.jumpTo(controller.position.maxScrollExtent);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 100));
+    expect(slots(), 4);
     expect(tester.takeException(), isNull);
   });
 
@@ -232,7 +272,7 @@ void main() {
 
   testWidgets('轮播先消费横滑，从轮播首端向外滑才交给频道分页', (tester) async {
     await _open(tester);
-    final banner = _inFeed(_key('bibi-banner'));
+    final banner = _inFeed(_key('bibi-banner-0'));
     final center = tester.getCenter(banner);
     await tester.flingFrom(center, Offset(-140, 0), 900);
     await tester.pumpAndSettle();
@@ -254,8 +294,9 @@ void main() {
   testWidgets('卡片区跟手横移，页头保持固定且切页后保留纵向位置', (tester) async {
     await _open(tester);
     final host = _inFeed(find.byType(ElScrollView));
-    final cards = find.descendant(of: _inFeed(_key('bibi-row-0')), matching: find.byType(ExamplePanel));
-    expect(cards, findsNWidgets(2));
+    final grid = _inFeed(find.byWidgetPredicate((widget) => widget is ElSliverGrid));
+    final cards = find.descendant(of: grid, matching: find.byType(ExamplePanel));
+    expect(cards, findsNWidgets(6));
     final boundaries = find.descendant(
       of: host,
       matching: find.byWidgetPredicate((widget) => widget is RepaintBoundary),

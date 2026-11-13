@@ -200,9 +200,13 @@ class _BibiPlainPageState extends State<BibiPlainPage> with TickerProviderStateM
                 child: BibiHeader(
                   offset: _header.offset,
                   statusInset: insets.top,
-                  pager: _pager,
-                  channels: _channels,
-                  onSelect: _selectChannel,
+                  channelBarBuilder: (progress) => BibiChannelBar(
+                    progress: progress,
+                    pager: _pager,
+                    channels: _channels,
+                    onSelect: _selectChannel,
+                    onSearch: () => showBibiSearch(context, _generation),
+                  ),
                   onSearch: () => showBibiSearch(context, _generation),
                   onBack: navigator.maybePop,
                 ),

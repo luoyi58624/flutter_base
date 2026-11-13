@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../bibi/chrome.dart';
-import '../bibi/feed.dart';
+import '../bibi/navigation_header/index.dart';
+import '../bibi/cards/feed.dart';
 
 /// 用 ElSliverCollapse.priority 直接承载原 Bibi 的搜索、频道与双列视频流。
 ///

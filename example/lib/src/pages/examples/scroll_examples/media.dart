@@ -21,7 +21,7 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../../../widgets/example_image.dart';
 import '../../../widgets/example_scrollbar.dart';
 import '../../../layout/example_page.dart';
-import '../bibi/feed.dart' show bibiVideoCount, buildBibiVideoCard;
+import '../bibi/cards/feed.dart' show bibiVideoCount, buildBibiVideoCard;
 import 'album_thumbnails.dart';
 
 part 'media_source.dart';

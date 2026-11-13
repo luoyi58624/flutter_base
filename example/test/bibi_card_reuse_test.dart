@@ -1,4 +1,4 @@
-import 'package:example/src/pages/examples/bibi/feed.dart';
+import 'package:example/src/pages/examples/bibi/cards/feed.dart';
 import 'package:example/src/widgets/panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

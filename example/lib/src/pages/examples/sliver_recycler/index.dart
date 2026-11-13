@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_base/flutter_base.dart';
 
 import '../../../layout/example_page.dart';
-import '../bibi/feed.dart';
+import '../bibi/cards/feed.dart';
 import '../scroll_examples/scroll_mode.dart';
 import '../../../widgets/panel.dart';
 

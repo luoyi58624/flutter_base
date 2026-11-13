@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import '../bibi/chrome.dart';
-import '../bibi/feed.dart';
+import '../bibi/navigation_header/index.dart';
+import '../bibi/cards/feed.dart';
+import '../bibi/tab_bar/index.dart';
 
 part 'refresh.dart';
 
@@ -346,9 +347,13 @@ class SliverBibiPageState extends State<SliverBibiPage> with SingleTickerProvide
                 child: BibiHeader(
                   offset: _headerOffset,
                   statusInset: insets.top,
-                  pager: _pager,
-                  channels: _channels,
-                  onSelect: _selectChannel,
+                  channelBarBuilder: (progress) => BibiChannelBar(
+                    progress: progress,
+                    pager: _pager,
+                    channels: _channels,
+                    onSelect: _selectChannel,
+                    onSearch: () => showBibiSearch(context, _generation),
+                  ),
                   onSearch: () => showBibiSearch(context, _generation),
                   onBack: navigator.maybePop,
                 ),

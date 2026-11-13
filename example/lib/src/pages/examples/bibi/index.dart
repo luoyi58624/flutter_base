@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_base/flutter_base.dart';
 
-import 'chrome.dart';
-import 'feed.dart';
-import 'header_motion.dart';
+import 'cards/feed.dart';
+import 'cards/index.dart';
+import 'navigation_header/index.dart';
+import 'navigation_header/motion.dart';
+import 'tab_bar/index.dart';
 
 part 'plain.dart';
 
@@ -32,6 +34,7 @@ class BibiPage extends StatefulWidget {
 
 class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin {
   final _pager = ElTabController(length: _channels.length, initialIndex: _recommended);
+  final _pages = BibiCardPages();
   late final _collapse = AnimationController(vsync: this);
   late final _headerOffset = _collapse.drive(Tween<double>(begin: 0, end: _searchHeight));
   late final List<_FeedController> _feeds;
@@ -100,6 +103,7 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
       _queueRefreshApply();
       return Future.value();
     }
+    _pages.cancelLoad();
     final request = _refreshRequest = Completer<void>();
     _refreshTimer = Timer(Duration(milliseconds: 500), () {
       _refreshTimer = null;
@@ -129,9 +133,14 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
       // 等用户回到顶部并停稳才更新推荐，保住正在浏览的卡片位置。
       _refreshReady = false;
       _moveFeedsTo(0);
+      _pages.reset();
       setState(() => _generation++);
     });
     WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _loadMore() {
+    if (_refreshRequest == null && !_refreshReady) _pages.loadMore();
   }
 
   @override
@@ -141,6 +150,7 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
     _collapse.removeListener(_queueRefreshApply);
     _collapse.dispose();
     _pager.dispose();
+    _pages.dispose();
     for (final feed in _feeds) {
       feed.removeListener(_queueRefreshApply);
       for (final position in feed.positions) {
@@ -180,6 +190,8 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                   child: Builder(
                     builder: (context) {
                       final statusInset = MediaQuery.viewPaddingOf(context).top;
+                      void search() => showBibiSearch(context, _generation);
+
                       return Stack(
                         fit: StackFit.expand,
                         children: [
@@ -203,7 +215,9 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                                   collapse: _collapse,
                                   statusInset: statusInset,
                                   pager: _pager,
+                                  pages: _pages,
                                   onRefresh: _refresh,
+                                  onLoadMore: _loadMore,
                                 ),
                             ],
                           ),
@@ -216,10 +230,14 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
                             child: BibiHeader(
                               offset: _headerOffset,
                               statusInset: statusInset,
-                              pager: _pager,
-                              channels: _channels,
-                              onSelect: _selectChannel,
-                              onSearch: () => showBibiSearch(context, _generation),
+                              channelBarBuilder: (progress) => BibiChannelBar(
+                                progress: progress,
+                                pager: _pager,
+                                channels: _channels,
+                                onSelect: _selectChannel,
+                                onSearch: search,
+                              ),
+                              onSearch: search,
                               onBack: navigator.maybePop,
                             ),
                           ),
@@ -264,7 +282,9 @@ class _BibiFeed extends StatefulWidget {
     required this.collapse,
     required this.statusInset,
     required this.pager,
+    required this.pages,
     required this.onRefresh,
+    required this.onLoadMore,
   });
 
   final int index;
@@ -273,7 +293,9 @@ class _BibiFeed extends StatefulWidget {
   final AnimationController collapse;
   final double statusInset;
   final ElTabController pager;
+  final BibiCardPages pages;
   final Future<void> Function() onRefresh;
+  final VoidCallback onLoadMore;
 
   @override
   State<_BibiFeed> createState() => _BibiFeedState();
@@ -314,33 +336,44 @@ class _BibiFeedState extends State<_BibiFeed> {
   }
 
   @override
-  Widget build(BuildContext context) => ElScrollView.sliver(
-    controller: widget.controller,
-    physics: _physics,
-    slivers: [
-      // Sliver 消费纵向位移并为共享页头保留与折叠进度一致的空间。
-      ElSliverCollapse.priority(
-        controller: widget.collapse,
-        compactExtent: _tabsHeight,
-        contentExtent: _searchHeight,
-        topInset: widget.statusInset,
-        backgroundColor: Colors.white,
-        content: SizedBox.shrink(),
-        compact: SizedBox.shrink(),
-      ),
-      ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
-      SliverToBoxAdapter(child: buildBibiBanner(context, widget.generation)),
-      SliverPadding(
-        padding: EdgeInsets.only(bottom: 4),
-        sliver: SliverList.builder(
-          key: ValueKey('bibi-rows-${widget.generation}'),
-          itemCount: bibiVideoRowCount,
-          // 每行自带重绘边界，不再叠加官方列表的默认边界。
-          addRepaintBoundaries: false,
-          itemBuilder: (context, index) => buildBibiVideoRow(context, index, widget.generation),
+  Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
+    onNotification: (notification) {
+      if (notification.depth == 0 &&
+          notification.metrics.axis == .vertical &&
+          (switch (notification) {
+            ScrollUpdateNotification(:final scrollDelta) => (scrollDelta ?? 0) > 0,
+            OverscrollNotification(:final overscroll) => overscroll > 0,
+            _ => false,
+          }) &&
+          notification.metrics.extentAfter == 0 &&
+          widget.pager.index == widget.index &&
+          !widget.pager.isDragging &&
+          !widget.pager.isAnimating) {
+        widget.onLoadMore();
+      }
+      return false;
+    },
+    child: ElScrollView.sliver(
+      controller: widget.controller,
+      physics: _physics,
+      slivers: [
+        // Sliver 消费纵向位移并为共享页头保留与折叠进度一致的空间。
+        ElSliverCollapse.priority(
+          controller: widget.collapse,
+          compactExtent: _tabsHeight,
+          contentExtent: _searchHeight,
+          topInset: widget.statusInset,
+          backgroundColor: Colors.white,
+          content: SizedBox.shrink(),
+          compact: SizedBox.shrink(),
         ),
-      ),
-    ],
+        ElSliverRefresh(refresher: _refresher, onRefresh: widget.onRefresh),
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: 4),
+          sliver: BibiCards(pages: widget.pages, generation: widget.generation),
+        ),
+      ],
+    ),
   );
 }
 

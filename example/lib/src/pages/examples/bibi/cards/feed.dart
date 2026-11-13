@@ -15,7 +15,7 @@ import 'package:flutter_base/flutter_base.dart'
         ElTabView,
         ElView;
 
-import '../../../widgets/panel.dart';
+import '../../../../widgets/panel.dart';
 
 /// 原生示例同款离线推荐流，每行两张卡片。
 const int bibiVideoRowCount = 180;
@@ -40,8 +40,8 @@ const _creators = ['像素工作室', '阿洛赛事手记', '未完待续动画�
 const _badges = ['必看', '精彩集锦', '人气投稿', '旅行记录', '烟火日常', '影视拆解'];
 
 /// 构建首页轮播。刷新后由新一批推荐的首张封面开始。
-Widget buildBibiBanner(BuildContext context, int generation) => Padding(
-  key: ValueKey('bibi-banner'),
+Widget buildBibiBanner(BuildContext context, int generation, {Key? key}) => Padding(
+  key: key ?? ValueKey('bibi-banner'),
   padding: .fromLTRB(8, 4, 8, 6),
   child: _BibiBanner(key: ValueKey(generation), initialIndex: generation % _bannerTitles.length),
 );

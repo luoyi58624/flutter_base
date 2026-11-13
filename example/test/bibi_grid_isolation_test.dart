@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:example/src/pages/examples/bibi/feed.dart';
+import 'package:example/src/pages/examples/bibi/cards/feed.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
