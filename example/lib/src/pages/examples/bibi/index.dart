@@ -173,7 +173,6 @@ class _BibiPageState extends State<BibiPage> with SingleTickerProviderStateMixin
           ),
           child: Column(
             children: [
-              BibiStatusBar(),
               Expanded(
                 child: ElTabView(
                   key: ValueKey('bibi-pager'),
@@ -295,24 +294,30 @@ class _BibiFeedState extends State<_BibiFeed> {
       controller: widget.controller,
       physics: _physics,
       slivers: [
-        ElSliverCollapse.priority(
-          controller: widget.collapse,
-          compactExtent: _tabsHeight,
-          contentExtent: _searchHeight,
-          backgroundColor: Colors.white,
-          content: Material(
-            key: ValueKey('bibi-search-row'),
-            color: Colors.white,
-            child: BibiSearchBar(onSearch: search, onBack: widget.onBack),
-          ),
-          compact: ValueListenableBuilder<double>(
-            valueListenable: widget.collapse,
-            builder: (context, progress, _) => BibiChannelBar(
-              progress: progress,
-              pager: widget.pager,
-              channels: _channels,
-              onSelect: widget.onSelect,
-              onSearch: search,
+        MediaQuery.fromView(
+          view: View.of(context),
+          child: Builder(
+            builder: (context) => ElSliverCollapse.priority(
+              controller: widget.collapse,
+              compactExtent: _tabsHeight,
+              contentExtent: _searchHeight,
+              topInset: MediaQuery.viewPaddingOf(context).top,
+              backgroundColor: Colors.white,
+              content: Material(
+                key: ValueKey('bibi-search-row'),
+                color: Colors.white,
+                child: BibiSearchBar(onSearch: search, onBack: widget.onBack),
+              ),
+              compact: ValueListenableBuilder<double>(
+                valueListenable: widget.collapse,
+                builder: (context, progress, _) => BibiChannelBar(
+                  progress: progress,
+                  pager: widget.pager,
+                  channels: _channels,
+                  onSelect: widget.onSelect,
+                  onSearch: search,
+                ),
+              ),
             ),
           ),
         ),

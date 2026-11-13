@@ -1,7 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:example/src/pages/examples/bibi/index.dart';
 import 'package:example/src/pages/examples/index.dart';
 import 'package:example/src/pages/examples/new_bibi_collapse/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter_base/flutter_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:example/src/widgets/panel.dart';
@@ -50,35 +53,60 @@ void main() {
     ('Bibi 首页', BibiPage(), _inFeed(_key('bibi-tabs'))),
     ('新版折叠 Bibi', NewBibiCollapsePage(), _key('bibi-collapse-channels')),
   ]) {
-    testWidgets('$name 使用当前视图的状态栏安全区和白底', (tester) async {
+    testWidgets('$name 搜索栏可滑进状态栏区域，频道栏停在安全线下方', (tester) async {
       tester.view.devicePixelRatio = 2;
       tester.view.physicalSize = Size(780, 1688);
       tester.view.viewPadding = FakeViewPadding(top: 64);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetViewPadding);
+      final boundaryKey = GlobalKey();
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
-            builder: (context) => MediaQuery.removeViewPadding(context: context, removeTop: true, child: page),
+            builder: (context) => MediaQuery.removeViewPadding(
+              context: context,
+              removeTop: true,
+              child: RepaintBoundary(key: boundaryKey, child: page),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(tester.getTopLeft(tabs).dy, 32 + 58);
-      final statusBar = _key('bibi-status-bar');
-      expect(tester.getRect(statusBar), Rect.fromLTWH(0, 0, 390, 32));
-      expect(tester.widget<ColoredBox>(statusBar).color, Colors.white);
+      Future<int> statusBarPixel() async => (await tester.runAsync(() async {
+        final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage();
+        try {
+          final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+          // 搜索栏左侧按钮在半折叠时经过这个点。
+          return bytes.getUint8((24 * image.width + 32) * 4);
+        } finally {
+          image.dispose();
+        }
+      }))!;
 
-      await tester.dragFrom(Offset(195, 580), Offset(0, -70));
+      expect(tester.getTopLeft(tabs).dy, 32 + 58);
+      expect(await statusBarPixel(), 255);
+
+      final gesture = await tester.startGesture(Offset(195, 580));
+      // 先越过拖动识别阈值，再让搜索栏移动到状态栏区域。
+      await gesture.moveBy(Offset(0, -19));
+      await tester.pump();
+      await gesture.moveBy(Offset(0, -32));
+      await tester.pump();
+      expect(tester.getTopLeft(tabs).dy, inExclusiveRange(32, 60));
+      expect(await statusBarPixel(), lessThan(255), reason: '折叠中的按钮应实际画到状态栏区域');
+
+      await gesture.moveBy(Offset(0, -38));
+      await gesture.up();
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(tabs).dy, 32);
+      expect(await statusBarPixel(), 255);
 
       tester.view.viewPadding = FakeViewPadding(top: 80);
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(tabs).dy, 40);
-      expect(tester.getRect(statusBar), Rect.fromLTWH(0, 0, 390, 40));
       expect(tester.takeException(), isNull);
     });
   }

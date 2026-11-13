@@ -171,43 +171,42 @@ class _NewBibiCollapsePageState extends State<NewBibiCollapsePage> {
             onBack: () => Navigator.maybePop(context),
           ),
         ),
-        body: Column(
-          children: [
-            BibiStatusBar(),
-            Expanded(
-              child: SafeArea(
-                top: false,
-                bottom: false,
-                child: ElScrollView.sliver(
-                  key: ValueKey('new-bibi-channel-$selected'),
-                  controller: scrollControllers[selected],
-                  physics: ClampingScrollPhysics(),
-                  slivers: [
-                    ElSliverCollapse.priority(
-                      compactExtent: 43,
-                      contentExtent: 58,
-                      compact: _tabs(context),
-                      content: _search(context),
-                      backgroundColor: Colors.white,
-                      onProgressChanged: (v) {
-                        if ((progress.value - v).abs() > .001) progress.value = v;
-                      },
-                    ),
-                    ElSliverRefresh(
-                      onRefresh: _refresh,
-                      refresher: ElAndroidRefresher(color: Color(0xfffb7299), bgColor: Colors.white),
-                    ),
-                    SliverToBoxAdapter(child: buildBibiBanner(context, generation)),
-                    SliverList.builder(
-                      key: ValueKey('new-bibi-rows-$selected-$generation'),
-                      itemCount: bibiVideoRowCount,
-                      itemBuilder: (context, row) => buildBibiVideoRow(context, row, generation),
-                    ),
-                  ],
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: ElScrollView.sliver(
+            key: ValueKey('new-bibi-channel-$selected'),
+            controller: scrollControllers[selected],
+            physics: ClampingScrollPhysics(),
+            slivers: [
+              MediaQuery.fromView(
+                view: View.of(context),
+                child: Builder(
+                  builder: (context) => ElSliverCollapse.priority(
+                    compactExtent: 43,
+                    contentExtent: 58,
+                    topInset: MediaQuery.viewPaddingOf(context).top,
+                    compact: _tabs(context),
+                    content: _search(context),
+                    backgroundColor: Colors.white,
+                    onProgressChanged: (v) {
+                      if ((progress.value - v).abs() > .001) progress.value = v;
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
+              ElSliverRefresh(
+                onRefresh: _refresh,
+                refresher: ElAndroidRefresher(color: Color(0xfffb7299), bgColor: Colors.white),
+              ),
+              SliverToBoxAdapter(child: buildBibiBanner(context, generation)),
+              SliverList.builder(
+                key: ValueKey('new-bibi-rows-$selected-$generation'),
+                itemCount: bibiVideoRowCount,
+                itemBuilder: (context, row) => buildBibiVideoRow(context, row, generation),
+              ),
+            ],
+          ),
         ),
       ),
     );

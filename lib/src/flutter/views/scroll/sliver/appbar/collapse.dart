@@ -40,6 +40,7 @@ abstract class ElSliverCollapse extends StatelessWidget {
   ///
   /// [compact] 固定吸顶，[content] 位于其上方并在折叠时淡出离场；松手或按住不动时以 50% 为界吸附。
   /// [compactExtent] 和 [contentExtent] 是两个区域的占位高度，正文不要求固定高度。
+  /// [topInset] 是固定栏上方的安全区高度，折叠内容可在这一区域内继续上移淡出。
   /// [controller] 可在多个页头间共享 0（展开）到 1（收起）的进度，由调用方持有和释放。
   /// [backgroundColor] 缺省读取主题背景色。此形态放入 ElScrollView.sliver，不能挂入任意 CustomScrollView。
   const factory ElSliverCollapse.priority({
@@ -48,6 +49,7 @@ abstract class ElSliverCollapse extends StatelessWidget {
     required Widget content,
     double compactExtent,
     double contentExtent,
+    double topInset,
     AnimationController? controller,
     Color? backgroundColor,
     Duration holdSnapDelay,
@@ -149,18 +151,21 @@ class _PriorityCollapse extends ElSliverCollapse {
     required this.content,
     this.compactExtent = 56,
     this.contentExtent = 58,
+    this.topInset = 0,
     this.controller,
     this.backgroundColor,
     this.holdSnapDelay = const Duration(milliseconds: 160),
     this.snapDuration = const Duration(milliseconds: 180),
     this.onProgressChanged,
   }) : assert(compactExtent > 0),
-       assert(contentExtent > 0);
+       assert(contentExtent > 0),
+       assert(topInset >= 0 && topInset < double.infinity);
 
   final Widget compact;
   final Widget content;
   final double compactExtent;
   final double contentExtent;
+  final double topInset;
   final AnimationController? controller;
   final Color? backgroundColor;
   final Duration holdSnapDelay;
@@ -254,11 +259,10 @@ class _ActiveCollapseHeaderState extends State<_ActiveCollapseHeader> with Singl
   Widget build(BuildContext context) {
     final config = widget.config;
     final value = _progress.value.clamp(0.0, 1.0).toDouble();
-    final visible = config.contentExtent * (1 - value);
     return SliverPersistentHeader(
       pinned: true,
       delegate: _ActiveHeader(
-        extent: config.compactExtent + visible,
+        topInset: config.topInset,
         compactExtent: config.compactExtent,
         contentExtent: config.contentExtent,
         compact: config.compact,
@@ -361,7 +365,7 @@ class _CollapseMotion extends ElNestedScrollParent {
 /// 在任意正文位置都固定到起点；真实布局范围与可见内容一起收缩。
 class _ActiveHeader extends SliverPersistentHeaderDelegate {
   _ActiveHeader({
-    required this.extent,
+    required this.topInset,
     required this.compactExtent,
     required this.contentExtent,
     required this.compact,
@@ -370,7 +374,7 @@ class _ActiveHeader extends SliverPersistentHeaderDelegate {
     required this.progress,
   });
 
-  final double extent;
+  final double topInset;
   final double compactExtent;
   final double contentExtent;
   final Widget compact;
@@ -378,10 +382,12 @@ class _ActiveHeader extends SliverPersistentHeaderDelegate {
   final Color backgroundColor;
   final double progress;
 
+  double get _compactTop => topInset + contentExtent * (1 - progress);
+
   @override
-  double get minExtent => extent;
+  double get minExtent => _compactTop + compactExtent;
   @override
-  double get maxExtent => extent;
+  double get maxExtent => minExtent;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => ColoredBox(
@@ -392,20 +398,23 @@ class _ActiveHeader extends SliverPersistentHeaderDelegate {
       children: [
         // 可折叠内容在固定栏上方：折叠时内容向上离场，固定栏同步上移并吸顶。
         Positioned(
-          top: -contentExtent * progress,
+          top: _compactTop - contentExtent,
           left: 0,
           right: 0,
           height: contentExtent,
-          child: Opacity(opacity: 1 - progress, child: content),
+          child: IgnorePointer(
+            ignoring: progress == 1,
+            child: Opacity(opacity: 1 - progress, child: content),
+          ),
         ),
-        Positioned(top: contentExtent * (1 - progress), left: 0, right: 0, height: compactExtent, child: compact),
+        Positioned(top: _compactTop, left: 0, right: 0, height: compactExtent, child: compact),
       ],
     ),
   );
 
   @override
   bool shouldRebuild(covariant _ActiveHeader old) =>
-      extent != old.extent ||
+      topInset != old.topInset ||
       compactExtent != old.compactExtent ||
       contentExtent != old.contentExtent ||
       compact != old.compact ||
