@@ -24,3 +24,15 @@ plugins {
 }
 
 include(":app")
+
+// photo_manager 3.12.0 的旧 Kotlin 兼容分支会触发 Flutter 的静态检查，
+// 仅替换该插件的构建脚本，原生源码继续使用 Pub 锁定版本。
+findProject(":photo_manager")?.let { plugin ->
+    val sourceDir = plugin.projectDir
+    plugin.projectDir = file("gradle/photo_manager")
+    gradle.beforeProject {
+        if (path == ":photo_manager") {
+            extensions.extraProperties.set("photoManagerSourceDir", sourceDir)
+        }
+    }
+}
