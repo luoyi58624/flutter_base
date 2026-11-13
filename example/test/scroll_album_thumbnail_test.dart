@@ -131,13 +131,14 @@ void main() {
     await tester.pump();
     expect(cached.value, isNotNull);
 
-    queue.update(List.generate(4, requests.thumbnail), []);
+    final old = List.generate(4, requests.thumbnail);
+    queue.update(old, []);
     final status = await cached.provider.obtainCacheStatus(configuration: ImageConfiguration.empty);
     expect(status?.keepAlive, isTrue);
     expect(cached.value, isNull);
 
     final cold = requests.thumbnail(101);
-    queue.update([cold, cached], []);
+    queue.update([cold, cached, old.last], []);
     await tester.pump();
     expect(cached.value?.image.width, 101);
     expect(cold.value, isNull);
@@ -152,7 +153,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('跳转后释放出的名额交给新视口，旧视口排队项与过期结果都被丢弃', (tester) async {
+  testWidgets('视口部分重叠时复用在途请求，丢弃屏外排队项和过期结果', (tester) async {
     final requests = _ImageRequests();
     final queue = AlbumThumbnailQueue();
     final old = List.generate(8, requests.thumbnail);
@@ -162,7 +163,7 @@ void main() {
     await tester.pump();
     expect(requests.started, [0, 1, 2, 3]);
 
-    queue.update(next, [requests.thumbnail(44)]);
+    queue.update([...next, old[3]], [requests.thumbnail(44)]);
     await tester.pump();
     expect(requests.started, [0, 1, 2, 3]);
     requests.finish(0);
@@ -182,6 +183,41 @@ void main() {
     await tester.pump();
     expect(next[1].value, isNull);
     expect(requests.started, [0, 1, 2, 3, 40, 41]);
+  });
+
+  testWidgets('连续远跳时，冷图首张可先于旧屏任务完成，额外只提交一个请求', (tester) async {
+    final requests = _ImageRequests();
+    final queue = AlbumThumbnailQueue();
+    final old = List.generate(8, requests.thumbnail);
+    final next = List.generate(4, (index) => requests.thumbnail(40 + index));
+    final last = List.generate(4, (index) => requests.thumbnail(80 + index));
+
+    queue.update(old, []);
+    queue.update(next, []);
+    await tester.pump();
+    expect(requests._pending.keys, [0, 1, 2, 3, 40]);
+
+    requests.finish(40);
+    await tester.pump();
+    expect(next.first.value?.image.width, 41);
+    expect(requests._pending.keys, [0, 1, 2, 3, 41]);
+
+    queue.update(last, []);
+    await tester.pump();
+    expect(requests._pending.keys, [0, 1, 2, 3, 41]);
+    requests.finish(41);
+    await tester.pump();
+    expect(next[1].value, isNull);
+    expect(requests._pending.keys, [0, 1, 2, 3, 80]);
+
+    requests.finish(80);
+    await tester.pump();
+    expect(last.first.value?.image.width, 81);
+    expect(requests._pending.keys, [0, 1, 2, 3, 81]);
+
+    queue.dispose();
+    requests.finishPending();
+    await tester.pump();
   });
 
   testWidgets('仅一个预取可同时执行，重复项合并且新可见项先于下一个预取', (tester) async {

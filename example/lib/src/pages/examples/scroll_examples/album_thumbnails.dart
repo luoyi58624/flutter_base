@@ -80,8 +80,12 @@ class AlbumThumbnailQueue {
 
   void _pump() {
     if (_disposed) return;
+    // 远跳后若所有名额都被屏外请求占用，额外给新视口一个名额。
+    final visibleLimit = _inFlight.length >= _concurrency && !_visible.any(_inFlight.contains)
+        ? _concurrency + 1
+        : _concurrency;
     for (final thumbnail in _visible) {
-      if (_inFlight.length >= _concurrency) return;
+      if (_inFlight.length >= visibleLimit) return;
       if (_pending(thumbnail)) _start(thumbnail);
     }
     // 前探只占一个槽，用户换方向时其余槽还能立刻处理新视口。
