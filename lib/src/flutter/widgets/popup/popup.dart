@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/rendering.dart' show RenderIgnorePointer;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../views/view/event/dispatcher.dart' show EventDispatcher;
 import '../../views/view/event/event.dart';
 import '../../views/view/view.dart' show ElView;
 import 'anchor.dart';
@@ -129,6 +131,7 @@ class _ElPopupState extends State<ElPopup> {
   final _transitions = OverlayTransitions();
   final _geometry = ValueNotifier<ElOverlayAnchorGeometry?>(null);
   final _panelKey = GlobalKey();
+  final _ignoreKey = GlobalKey();
   final _panelFocus = FocusNode(debugLabel: 'ElPopup panel', canRequestFocus: false, skipTraversal: true);
   final _triggerFocus = FocusNode(debugLabel: 'ElPopup trigger', canRequestFocus: false, skipTraversal: true);
   ElPopupController? _ownController;
@@ -241,6 +244,11 @@ class _ElPopupState extends State<ElPopup> {
     final generation = ++_generation;
     _openChild?._hide();
     if (_parent?._openChild == this) _parent!._openChild = null;
+    // 关闭当下就停止面板交互：结束面板内进行中的指针序列，不等下一帧重建再忽略指针。
+    if (_panelKey.currentContext?.findRenderObject() case final RenderObject panel) {
+      EventDispatcher.terminateActivePointerSequencesIn(panel);
+    }
+    if (_ignoreKey.currentContext?.findRenderObject() case final RenderIgnorePointer ignore) ignore.ignoring = true;
     // 焦点在面板内时交还给打开前的位置，避免随面板一起消失。
     if (_panelFocus.hasFocus && (_restore?.context?.mounted ?? false)) _restore!.requestFocus();
     _restore = null;
@@ -340,6 +348,7 @@ class _ElPopupState extends State<ElPopup> {
                   focusNode: _panelFocus,
                   includeSemantics: false,
                   child: IgnorePointer(
+                    key: _ignoreKey,
                     // 退场期间不再响应操作。
                     ignoring: !_open,
                     child: _transitions.wrap(

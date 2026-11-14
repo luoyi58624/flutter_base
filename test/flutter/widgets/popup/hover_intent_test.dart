@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 悬停意图机器：凸包几何（触发器与弹层之间的桥接走廊）。
 ///
 /// 原来的 `AnchoredShell` 宿主已删除，这里只保留机器本体的几何契约；
-/// 宿主层面的悬停开合由 `ElPortal` 的 `hoverIntent` 承担。
+/// 宿主层面的悬停开合由 `ElPopup` 的 `hoverIntent` 承担。
 void main() {
   group('凸包几何', () {
     test('两矩形凸包包含桥接区点、排除外点', () {

@@ -4,7 +4,7 @@ import 'dart:ui' show Offset, Rect;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 
-/// hover 触发弹层的开闭去抖配置（`ElPortal.hoverIntent`；tooltip / hover 菜单）。
+/// hover 触发弹层的开闭去抖配置（`ElPopup.hoverIntent`；tooltip / hover 菜单）。
 @immutable
 class ElHoverIntent {
   /// 创建配置。
@@ -35,7 +35,7 @@ class ElHoverIntent {
   int get hashCode => Object.hash(openDelay, closeDelay, safePolygon);
 }
 
-/// hover intent 状态机（portal state 持有）。
+/// hover intent 状态机（ElPopup 持有）。
 ///
 /// 输入：触发器 / 弹层的 enter、exit；关闭倒计时窗口内经全局 hover 路由做
 /// 安全多边形判定。输出：`requestOpen` / `requestClose` 回调。
@@ -125,7 +125,7 @@ class HoverIntentMachine {
     return pointInConvexPolygon(p, hull);
   }
 
-  /// 释放（portal dispose）。
+  /// 释放（ElPopup 卸载时）。
   void dispose() {
     _disposed = true;
     _openTimer?.cancel();

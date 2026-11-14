@@ -44,7 +44,7 @@ Widget _app(ElSelectionController pageController) {
   );
 }
 
-ElPortalController _showDialog(WidgetTester tester) {
+ElPopupController _showDialog(WidgetTester tester) {
   final context = tester.element(find.byKey(_pageTopKey));
   return ElTestPortal.of(context).show(
     align: Alignment.topLeft,
@@ -64,7 +64,7 @@ ElPortalController _showDialog(WidgetTester tester) {
   );
 }
 
-ElPortalController _showPopover(WidgetTester tester) {
+ElPopupController _showPopover(WidgetTester tester) {
   final context = tester.element(find.byKey(_dialogTextKey));
   return ElTestPortal.of(context).show(
     align: Alignment.topLeft,
@@ -87,7 +87,7 @@ ElPortalController _showPopover(WidgetTester tester) {
   );
 }
 
-ElPortalController _showDynamicPopover(
+ElPopupController _showDynamicPopover(
   WidgetTester tester, {
   required GlobalKey<_DynamicPopoverContentState> key,
   required ElSelectionController popoverController,
@@ -148,7 +148,7 @@ class _DynamicPopoverContentState extends State<_DynamicPopoverContent> {
   }
 }
 
-ElPortalController _showMutablePopover(
+ElPopupController _showMutablePopover(
   WidgetTester tester, {
   required GlobalKey<_MutablePopoverContentState> key,
   required ElSelectionController controller,
@@ -194,7 +194,7 @@ class _MutablePopoverContentState extends State<_MutablePopoverContent> {
   }
 }
 
-ElPortalController _showRichPopover(WidgetTester tester, ElSelectionController controller) {
+ElPopupController _showRichPopover(WidgetTester tester, ElSelectionController controller) {
   final context = tester.element(find.byKey(_dialogTextKey));
   return ElTestPortal.of(context).show(
     align: Alignment.topLeft,
@@ -227,7 +227,7 @@ ElPortalController _showRichPopover(WidgetTester tester, ElSelectionController c
   );
 }
 
-ElPortalController _showEditablePopover(
+ElPopupController _showEditablePopover(
   WidgetTester tester, {
   required ElSelectionController popoverController,
   required EditableController editableController,
@@ -261,7 +261,7 @@ ElPortalController _showEditablePopover(
   );
 }
 
-ElPortalController _showVirtualPopover(
+ElPopupController _showVirtualPopover(
   WidgetTester tester, {
   required ElSelectionController popoverController,
   required ScrollController scrollController,

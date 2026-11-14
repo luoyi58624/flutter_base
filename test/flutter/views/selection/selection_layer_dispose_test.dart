@@ -62,7 +62,7 @@ RenderSelectionView _selectionRootOf(WidgetTester tester, Key key) {
   return participant.selectionAppearance! as RenderSelectionView;
 }
 
-ElPortalController _insertOverlay(WidgetTester tester) {
+ElPopupController _insertOverlay(WidgetTester tester) {
   final source = tester.element(find.byKey(_sourceKey));
   return ElTestPortal.of(source).show(
     builder: (_) => SelectionView(

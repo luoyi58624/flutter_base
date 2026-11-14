@@ -41,7 +41,7 @@ SelectionParticipant _participant(WidgetTester tester, Key key) =>
 RenderSelectionView _rootOf(WidgetTester tester, Key key) =>
     _participant(tester, key).selectionAppearance! as RenderSelectionView;
 
-ElPortalController _insert(
+ElPopupController _insert(
   WidgetTester tester,
   BuildContext source, {
   required Key key,
@@ -302,6 +302,8 @@ void main() {
     await gesture.up();
     await gesture.removePointer();
     await tester.pump(const Duration(milliseconds: 100));
+    // 退场动画从关闭后的首帧起算，结束后的下一帧移除面板。
+    await tester.pumpAndSettle();
     expect(root.attached, isFalse);
     expect(root.selectionInfo, isNull);
     expect(pageController.text, isNull, reason: '关闭后的残余 move/up 不得转交页面');

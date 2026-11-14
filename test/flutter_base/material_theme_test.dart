@@ -325,7 +325,7 @@ void main() {
   });
 
   testWidgets('局部当前明暗使用已提交变量，Overlay 中仍可读取相反轴', (tester) async {
-    final portal = ElPortalController();
+    final portal = ElPopupController();
     addTearDown(portal.dispose);
     late ThemeData current, opposite;
     await tester.pumpWidget(
@@ -339,9 +339,9 @@ void main() {
               child: ElView(
                 themeMode: ElThemeMode(brightness: .dark),
                 style: ElStyle(onDark: ElStyle(vars: {ElTokens.$cardColor: Colors.pink})),
-                child: ElPortal(
+                child: ElPopup(
                   controller: portal,
-                  overlayBuilder: (context) => ElView(
+                  builder: (context) => ElView(
                     child: Builder(
                       builder: (context) {
                         current = context.elMaterialThemeData;

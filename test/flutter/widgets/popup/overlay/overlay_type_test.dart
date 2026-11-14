@@ -42,65 +42,6 @@ class _TestContextMenu extends ElContextMenu {
 }
 
 void main() {
-  testWidgets('ElPortal 开启期 rootOverlay 变化不迁移 entry，下次打开使用新选择', (tester) async {
-    final rootOverlayKey = GlobalKey();
-    final innerOverlayKey = GlobalKey();
-    final controller = ElPortalController();
-    final flag = ValueNotifier<bool>(true);
-    addTearDown(flag.dispose);
-    addTearDown(controller.dispose);
-
-    Widget portal() => ValueListenableBuilder<bool>(
-      valueListenable: flag,
-      builder: (_, rootOverlay, _) => ElPortal(
-        controller: controller,
-        rootOverlay: rootOverlay,
-        overlayBuilder: (_) => const SizedBox(key: ValueKey('portal-panel'), width: 40, height: 30),
-        child: const SizedBox(key: ValueKey('portal-source'), width: 20, height: 20),
-      ),
-    );
-
-    await tester.pumpWidget(
-      Directionality(
-        textDirection: TextDirection.ltr,
-        child: Overlay(
-          key: rootOverlayKey,
-          initialEntries: [
-            OverlayEntry(
-              builder: (_) => Overlay(
-                key: innerOverlayKey,
-                initialEntries: [OverlayEntry(builder: (_) => portal())],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    controller.open();
-    await tester.pump();
-    await tester.pump();
-    final panel = find.byKey(const ValueKey('portal-panel'));
-    final host = _nearestOverlayOf(tester.element(panel));
-    expect(host, isNotNull);
-
-    // 开启期改选择不迁移：面板 element 与宿主都不变。
-    flag.value = false;
-    await tester.pump();
-    await tester.pump();
-    expect(tester.element(panel), same(tester.element(panel)));
-    expect(_nearestOverlayOf(tester.element(panel)), same(host));
-
-    controller.close();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1));
-    controller.open();
-    await tester.pump();
-    await tester.pump();
-    expect(panel, findsOneWidget);
-    expect(_nearestOverlayOf(tester.element(panel)), isNotNull);
-  });
-
   testWidgets('context menu 主面板与子面板共用 rootOverlay', (tester) async {
     final rootOverlayKey = GlobalKey();
     final innerOverlayKey = GlobalKey();

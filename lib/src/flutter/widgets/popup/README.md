@@ -1,80 +1,62 @@
-# Popup / Portal
+# Popup
 
-## 窗口弹层宿主
+弹出层分两类，各自只用一套机制：
 
-`ElPopupHost` 可以安装在 `MaterialApp.builder`，每个 FlutterView 各有自己的 Overlay。独立面板的 State 和关闭结果随宿主存活。应用在窗口的宿主子树内取 context，调用 `ElPopupHost.handleBack(context)` 可处理一次返回。
+| 类型 | 入口 | 机制 |
+| --- | --- | --- |
+| 与元素无关的命令式弹层 | `el.dialog`（对话框、确认、提示、输入、底部面板）、`el.drawer`、`el.message`、`el.toast` | 对话框与抽屉推入根导航器的 `PopupRoute`（[modal.dart](modal.dart)），返回键、Esc、遮罩与 Future 结果沿用官方路由；消息与轻提示挂在根 Overlay |
+| 锚定在目标周围的组件 | `ElTooltip`、`ElPopover`、`ElPopupMenu`，以及 select / autocomplete / mention 等输入的下拉面板 | [ElPopup](popup.dart) 包裹目标，用官方 `OverlayPortal` 在布局阶段按目标实时位置解算 |
 
-接物理返回时，应用在创建 `WidgetsApp` 或 `Router` 前登记 `ElPopupBackObserver`，按视图 ID 提供仍挂载的宿主子树 context。需要处理 Android 预测性返回时，在参与回退的页面内安装 `ElPopupBackScope`，并通过观察者合并应用的 `onNavigationNotification` 和弹层状态。窗口卸载时用 `detachView` 清理，应用卸载时注销并释放观察者。
+两类弹层的进退场都由品牌用 [ElOverlayTransition](transition.dart) 声明：关闭时先等登记的动画退场，再移除内容；路由弹层的退场时长与路由同帧结束。
 
-## 进退场动画
-
-`ElOverlayTransition` 让品牌 Builder 自己决定弹层的进退场时长和曲线：挂载后进场，所在弹层关闭时先退场再移除；直接放在页面里时显示终态。用法见 [ElToast](../../components/toast/README.md)。
-
-## 锚定弹层
-
-锚定弹层，祖先需有官方 Overlay（通常由 MaterialApp / Navigator 提供）。导入 `package:flutter/material.dart`、`package:flutter_base/flutter_base.dart`。
-
-## 控制器开闭
+## ElPopup
 
 ```dart
-final controller = ElPortalController();
-ElPortal(
+final controller = ElPopupController();
+
+ElPopup(
   controller: controller,
-  anchor: ElOverlayAnchor(
-    placement: ElPlacement.bottomStart,
-    offset: 8,
-    matchMinWidth: true,
+  trigger: {.click, .hover},
+  anchor: ElOverlayAnchor(placement: .bottomStart, offset: 4),
+  builder: (context) => ElOverlayTransition(
+    duration: Duration(milliseconds: 150),
+    builder: (context, animation) => FadeTransition(opacity: animation, child: panel),
   ),
-  captureFocus: true,
-  restoreFocus: true,
-  overlayBuilder: (_) => Container(
-    width: 180, padding: EdgeInsets.all(12), color: Colors.white,
-    child: ElButtonView(onPressed: controller.close, child: '关闭面板'),
-  ),
-  child: ElButtonView(onPressed: controller.toggle, child: '打开'),
+  child: ElButton(child: '更多'),
 );
 ```
-
-controller 在 State / Hook 生命周期内持有并 dispose。open / close / toggle 操作开闭，isOpen 读取状态；`await controller.closed` 等待退场并摘除内容，isOpen=false 时内容可能还在退场。
-
-## 声明式面板
-
-```dart
-final open = ValueNotifier(false);
-ValueListenableBuilder<bool>(
-  valueListenable: open,
-  builder: (_, value, _) => ElPortal(
-    panel: value ? Container(color: Colors.white, padding: EdgeInsets.all(12), child: Text('面板')) : null,
-    onDismiss: () => open.value = false,
-    child: ElButtonView(onPressed: () => open.value = !open.value, child: '切换'),
-  ),
-);
-```
-
-不传 controller 时，panel 非空表示展开。panel 与 overlayBuilder 二选一；外部 notifier 持有至卸载后 dispose。onDismiss 同步用户关闭产生的外部状态变化。
-
-## 定位配置 ElOverlayAnchor
-
-| 参数 | 默认与说明 |
-| --- | --- |
-| placement | 默认 bottom；支持 top/bottom/left/right 及其 Start/End 变体 |
-| offset / crossOffset | 主轴间距、交叉轴偏移，默认均为 0 |
-| flip / shift | 空间不足时翻面、沿边调整，默认均为 true |
-| viewportPadding | 与视口边缘的保留距离，默认 8 |
-| matchWidth / matchMinWidth | 面板宽度或最小宽度跟随锚点，默认均 false；同时开启时 matchWidth 优先 |
-
-ElPortal.geometryOf(context) 在面板子树读最终 placement、anchorRect、overlayRect、arrowTarget，可用于箭头定位；phaseOf(context) 读 ElPortalPhase，供入退场外观使用。
-
-## 关闭、焦点与悬停
 
 | 参数 | 行为 |
 | --- | --- |
-| rootOverlay | 默认 false，选择最近 Overlay；true 使用根 Overlay |
-| closeOnOutsideTap / consumeOutsideTap | 默认 true / false，外部点击可关闭但默认不吞掉该点击 |
-| closeOnEscape / closeOnBack | 默认 true / false。安装宿主后由应用返回桥处理，独立使用时沿用页面局部历史 |
-| hideWhenUnlinked / closeWhenUnlinked | 锚点失联时隐藏呈现或关闭状态，默认均 false |
-| captureFocus / restoreFocus | 默认均 false；需要面板捕获并恢复焦点时显式开启 |
-| exitDuration | 默认零；声明退场保活时长，需与视觉退场时长匹配 |
-| hoverIntent | ElHoverIntent(openDelay:, closeDelay:, safePolygon:) 控制悬停开闭和跨越空隙的安全区域 |
+| `trigger` | `click` 切换；`hover` 按 `hoverIntent` 延迟开闭，触摸设备点击切换；`focus` 焦点进入目标打开、离开目标与面板后关闭；`contextMenu` 在右键或长按位置打开。为空时只由控制器开闭 |
+| `anchor` | 方位、间距、翻转、钳制、宽度跟随与 `cover` 覆盖目标，见下文 |
+| `hoverIntent` | `openDelay` / `closeDelay` / `safePolygon`：快速掠过不打开，斜向移向面板途中不关闭 |
+| `closeOnOutsideTap` / `consumeOutsideTap` | 默认外部按下即关闭且不吞掉该点击；目标与整条嵌套链都不算外部 |
+| `closeOnScroll` | 默认滚动时跟随目标重新定位；为真时目标所在滚动区域开始滚动即关闭 |
+| `closeOnEscape` | 焦点在目标或面板内时 Esc 关闭；关闭的弹层不登记 Esc 动作，不会截住外层弹层或路由 |
+| `rootOverlay` | 挂到根 Overlay，避免被局部 Overlay 裁剪 |
+| `event` | 目标事件先于触发动作执行，`preventDefault()` 阻止打开或关闭 |
 
-嵌套面板的外部点击与 Escape 由最上层弹层协调。面板需要文档选择时，内部另包 ElSelectionView。
+- 面板每帧按目标位置布局：滚动、窗口尺寸与键盘变化时同帧跟随并重新选择方位；目标滚出所在滚动区域时暂时隐藏，滚回后恢复。
+- 嵌套在面板内的 `ElPopup` 组成一条链：打开子层关闭同级子层，关闭父层关闭子层，悬停在子层上父层保持打开，Esc 从最内层逐级关闭。
+- 面板不主动抢焦点，由菜单等上层组件决定；关闭时焦点若在面板内，交还打开前的位置。
+- `ElPopup.maybeOf(context)` 在面板内取控制器关闭自身；`ElPopup.geometryOf(context)` 读实际方位、目标矩形、面板矩形与箭头落点，布局后下一帧更新。
+- 返回键不由 `ElPopup` 拦截；需要返回键先关闭弹层时，在目标外层用 `PopScope(canPop: !controller.isOpen)`。
+
+## ElOverlayAnchor
+
+| 参数 | 行为 |
+| --- | --- |
+| `placement` | 默认 `bottom`；四边 × 起止对齐共十二种 |
+| `offset` / `crossOffset` | 主轴间距、交叉轴偏移 |
+| `flip` | 首选侧放不下且对侧更宽裕时翻到对侧；交叉轴起止对齐越界而对调后放得下时一并对调 |
+| `shift` | 翻转后仍越界时钳进视口安全区，必要时与目标重叠 |
+| `viewportPadding` | 安全区内边距，默认 8；视口另外扣除系统边距与键盘 |
+| `matchWidth` / `matchMinWidth` | 面板宽度或最小宽度跟随目标 |
+| `cover` | 面板从目标所在位置展开并覆盖目标，例如安卓溢出菜单 |
+
+主轴约束取可翻转两侧中较宽裕的一侧，超出部分由面板内部滚动。
+
+## 菜单基座
+
+[context_menu.dart](context_menu.dart) 是文本选择、编辑器、菜单栏与全局右键菜单共用的上下文菜单基座，`ElContextMenuItem` 同时是 `ElPopupMenu` 的条目模型。

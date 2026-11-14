@@ -88,17 +88,17 @@ void main() {
     final move = GlobalKey<ReparentHarnessState>();
     final leaf = GlobalKey();
     var hits = 0;
-    final portal = ElPortalController();
+    final portal = ElPopupController();
     addTearDown(portal.dispose);
     await tester.pumpWidget(
       lifecycleHost(
         ReparentHarness(
           key: move,
           wrap: (_, child) => ElTestOverlay(child: child),
-          child: ElPortal(
+          child: ElPopup(
             controller: portal,
             anchor: ElOverlayAnchor(placement: .bottomStart, offset: -80, viewportPadding: 0),
-            overlayBuilder: (_) => ElView(
+            builder: (_) => ElView(
               key: leaf,
               style: ElStyle(width: 120, height: 80),
               event: ElEvent(onTap: (_) => hits++),

@@ -46,7 +46,7 @@ void main() {
   }
 
   /// 覆盖底层文本的免锚面板（topLeft 全盖两行文本区域）。
-  ElPortalController showPanel(WidgetTester tester, {Widget? content, bool captureFocus = true}) {
+  ElPopupController showPanel(WidgetTester tester, {Widget? content, bool captureFocus = true}) {
     final ctx = tester.element(find.byKey(pageTextKey));
     return ElTestPortal.of(ctx).show(
       align: Alignment.topLeft,

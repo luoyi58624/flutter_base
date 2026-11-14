@@ -332,9 +332,10 @@ class _ListTile<T> extends HookWidget {
         onOpenChanged: (open) {
           open ? menuKey.value = GlobalKey() : opening.value = false;
         },
-        // 面板自带进退场动画，这里只让弹层在退场期间保持挂载。
+        // 面板自带进退场动画，这里只让弹层在面板退场的 200 毫秒内保持挂载；进场途中关闭也保活满时长。
         builder: (_) => ElOverlayTransition(
-          duration: reducedMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
+          duration: Duration.zero,
+          reverseDuration: reducedMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
           builder: (_, _) => _PopupPanel<T>(
             key: menuKey.value,
             component: component,

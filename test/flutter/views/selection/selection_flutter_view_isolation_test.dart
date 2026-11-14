@@ -74,7 +74,7 @@ RenderSelectionView _rootOf(WidgetTester tester, Key key) {
   return participant.selectionAppearance! as RenderSelectionView;
 }
 
-ElPortalController _insert(WidgetTester tester, Key sourceKey, Key overlayKey, String text) {
+ElPopupController _insert(WidgetTester tester, Key sourceKey, Key overlayKey, String text) {
   final source = tester.element(find.byKey(sourceKey));
   return ElTestPortal.of(source).show(
     builder: (_) => ElSelectionView(
