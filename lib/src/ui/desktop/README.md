@@ -71,7 +71,7 @@ ElComponentProvider(
 - Radio、Checkbox：State 已声明可空 isLast，但当前宿主尚未提供实际末项信息；两个品牌 Builder 继续保持 null，不用默认布尔值伪造布局状态。
 - 两端通用组件的准入、注入与参数规范见[组件接口规范](../../flutter/components/README.md)；桌面专属组件留在本目录。消息、提示、对话框等服务 API 另行处理。
 
-迁移只调整包与文件引用、字体归属和 Portal 阶段枚举名称（ElPresencePhase → ElPortalPhase）；不依赖旧 element_plus、el_ui、el_flutter 或 el_dart 包。源许可见 [LICENSE](LICENSE)。
+迁移只调整包与文件引用和字体归属；不依赖旧 element_plus、el_ui、el_flutter 或 el_dart 包。源许可见 [LICENSE](LICENSE)。
 
 ## 验证范围
 
