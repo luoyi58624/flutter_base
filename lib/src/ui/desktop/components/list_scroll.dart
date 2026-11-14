@@ -8,6 +8,8 @@ import '../../../flutter/views/scroll/sliver/list/index.dart' show ElSliverList;
 ///
 /// listItem 语义要求直接父节点是 list，而 Scrollable 自身会插入滚动语义节点，
 /// 所以 list 角色必须落在 Sliver 层，不能包在滚动容器外面。
+/// list 要求子项各自成节点，IndexedSemantics 在此会变成夹在 list 与 listItem 之间的空节点，
+/// 因此关闭语义索引，让候选行直接挂在 list 下。
 Widget buildListScroll({required ScrollController controller, required List<Widget> children}) => ElScrollView.sliver(
   controller: controller,
   shrinkWrap: true,
@@ -15,7 +17,7 @@ Widget buildListScroll({required ScrollController controller, required List<Widg
     SliverSemantics(
       role: SemanticsRole.list,
       explicitChildNodes: true,
-      sliver: ElSliverList(stretch: true, children: children),
+      sliver: ElSliverList(stretch: true, addSemanticIndexes: false, children: children),
     ),
   ],
 );
