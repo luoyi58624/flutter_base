@@ -77,8 +77,17 @@ class _MenuLevel<T> {
 }
 
 class _PopupPanel<T> extends StatefulWidget {
-  const _PopupPanel({super.key, required this.component, required this.close, required this.onChoose});
+  const _PopupPanel({
+    super.key,
+    required this.component,
+    required this.exiting,
+    required this.close,
+    required this.onChoose,
+  });
   final ElListTile<T> component;
+
+  /// 弹层已关闭、正在退场。
+  final bool exiting;
   final VoidCallback close;
   final ValueChanged<ElLabelModel<T>> onChoose;
   @override
@@ -114,6 +123,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
   @override
   void didUpdateWidget(_PopupPanel<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncExit();
     if (_closing) return;
     _levels.first.update(widget.component.options);
     for (var i = 1; i < _levels.length; i++) {
@@ -155,12 +165,17 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
         _enter.forward();
       }
     }
-    if (ElPortal.phaseOf(context) == .exiting && !_closing) {
+    _syncExit();
+  }
+
+  void _syncExit() {
+    final reduced = reducedMotion(context);
+    if (widget.exiting && !_closing) {
       _closing = true;
       _enter.stop();
       _frozenScale = _curve(_enter.value);
       _frozenOpacity = Curves.ease.transform((_enter.value * 260 / 190).clamp(0, 1));
-      _frozenOrigin = _originFor(ElPortal.geometryOf(context));
+      _frozenOrigin = _originFor(ElPopup.geometryOf(context));
       for (final level in [..._levels, ..._retiring]) {
         level.enter.stop();
         level.cover.stop();
@@ -551,7 +566,7 @@ class _PopupPanelState<T> extends State<_PopupPanel<T>> with TickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final geometry = ElPortal.geometryOf(context);
+    final geometry = ElPopup.geometryOf(context);
     final origin = _closing ? _frozenOrigin : _originFor(geometry);
     if (_focusPending && !_closing) {
       _focusPending = false;

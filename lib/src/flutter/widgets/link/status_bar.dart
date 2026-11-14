@@ -6,8 +6,6 @@ import 'package:flutter/widgets.dart';
 import '../../views/view/render/render_view.dart' show ElRenderView;
 import '../../views/view/style/style.dart' show ElBorderSide, ElStyle, ElThemeMode, ElTransitionField;
 import '../../views/view/view.dart' show ElView;
-import '../popup/anchor.dart' as popup;
-import '../popup/portal.dart' show ElPortal;
 import 'index.dart' show ElLink;
 
 /// 白盒测试识别链接状态栏面板的稳定 key。
@@ -246,16 +244,9 @@ class _StatusPortalState extends State<_StatusPortal> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.handle,
-    builder: (_, _) => ElPortal(
-      captureFocus: false,
-      restoreFocus: false,
-      rootOverlay: true,
-      closeOnEscape: false,
-      anchor: const popup.ElOverlayAnchor(placement: .topStart, viewportPadding: 0),
-      panel: IgnorePointer(
-        child: _LinkStatusBarView(exiting: !widget.handle.isOpen, themeMode: widget.source?.effectiveThemeMode),
-      ),
-      child: const SizedBox.shrink(),
+    // 浮层条目已贴在根 Overlay 左下角，状态条直接在这里展示，退场条始终指针透明。
+    builder: (_, _) => IgnorePointer(
+      child: _LinkStatusBarView(exiting: !widget.handle.isOpen, themeMode: widget.source?.effectiveThemeMode),
     ),
   );
 }

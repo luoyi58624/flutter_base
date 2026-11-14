@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../../../flutter.dart';
 import '../../../desktop/components/autocomplete/index.dart' as core;
 
-/// 移动补全沿用异步防抖、过期结果丢弃与现有 ElPortal 候选层。
+/// 移动补全复用桌面补全核心的异步防抖、过期结果丢弃与 ElPopup 候选层，只替换移动外观。
 Widget autocompleteBuilder<T>(BuildContext context, ElAutocomplete<T> c) => core.Autocomplete<T>(
   c,
   themeStyle: ElStyle(

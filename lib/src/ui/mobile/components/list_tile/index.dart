@@ -24,7 +24,8 @@ import '../../../../flutter/views/view/style/cascade/style_spec.dart' show hasFo
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/others/base.dart' show ElChildIndex;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor, ElOverlayAnchorGeometry;
-import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
+import '../../../../flutter/widgets/popup/popup.dart' show ElPopup, ElPopupController;
+import '../../../../flutter/widgets/popup/transition.dart' show ElOverlayTransition;
 import '../../commons/icons.dart' show ElMobileIcons;
 import '../../internal/common.dart';
 import '../loading/index.dart';
@@ -66,7 +67,7 @@ class _ListTile<T> extends HookWidget {
     ]);
     useEffect(() => ownFocus?.dispose, [ownFocus]);
     final focus = component.focusNode ?? ownFocus;
-    final portal = useMemoized(ElPortalController.new);
+    final portal = useMemoized(ElPopupController.new);
     useEffect(() => portal.dispose, [portal]);
     final opening = useRef(false);
     final closePopup = useMemoized(
@@ -76,7 +77,8 @@ class _ListTile<T> extends HookWidget {
       },
       [portal],
     );
-    final menuKey = useMemoized(GlobalKey<_PopupPanelState<T>>.new);
+    // 每次打开换一把面板 key，退场途中再次打开时从头进场，不复用正在退场的面板状态。
+    final menuKey = useRef(GlobalKey<_PopupPanelState<T>>());
     final pointer = useRef<Offset?>(null);
     final anchorPosition = useState<Offset?>(null);
     useListenable(portal);
@@ -135,7 +137,10 @@ class _ListTile<T> extends HookWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted && opening.value && !disabled) {
               opening.value = false;
-              portal.open();
+              // 指针锚点是全局坐标，换算到行内坐标交给弹层。
+              final box = context.findRenderObject();
+              final position = anchorPosition.value;
+              portal.open(position: position != null && box is RenderBox ? box.globalToLocal(position) : null);
             }
           });
         }
@@ -310,36 +315,42 @@ class _ListTile<T> extends HookWidget {
       );
     }
     if (!popup || Overlay.maybeOf(context) == null) return row;
-    return ElPortal(
-      controller: portal,
-      anchor: component.popupAnchor ?? const ElOverlayAnchor(placement: .bottomStart, offset: 4),
-      anchorPosition: anchorPosition.value,
-      captureFocus: _menuHasFocus(component),
-      restoreFocus: _menuHasFocus(component),
-      closeOnBack: true,
-      onBack: () {
-        final menu = menuKey.currentState;
+    return PopScope(
+      // 打开期间返回键先逐级退出子菜单，最后关闭菜单。
+      canPop: !portal.isOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final menu = menuKey.value.currentState;
         menu == null ? closePopup() : menu._back();
       },
-      closeOnEscape: false,
-      closeOnOutsidePointerDown: true,
-      closeOnScroll: anchorPosition.value != null,
-      closeWhenUnlinked: true,
-      exitDuration: reducedMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
-      onDismiss: closePopup,
-      panel: _PopupPanel<T>(
-        key: menuKey,
-        component: component,
-        close: closePopup,
-        onChoose: (option) {
-          if (component.closeOnSelect) portal.close();
-          // 先让既有 Portal 终止交互并归还焦点，通知可安全地再次打开菜单。
-          scheduleMicrotask(() {
-            if (context.mounted && !disabled) component.currentValue = option.value as T;
-          });
+      child: ElPopup(
+        controller: portal,
+        trigger: const {},
+        anchor: component.popupAnchor ?? const ElOverlayAnchor(placement: .bottomStart, offset: 4),
+        closeOnEscape: false,
+        closeOnScroll: anchorPosition.value != null,
+        onOpenChanged: (open) {
+          open ? menuKey.value = GlobalKey() : opening.value = false;
         },
+        // 面板自带进退场动画，这里只让弹层在退场期间保持挂载。
+        builder: (_) => ElOverlayTransition(
+          duration: reducedMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
+          builder: (_, _) => _PopupPanel<T>(
+            key: menuKey.value,
+            component: component,
+            exiting: !portal.isOpen,
+            close: closePopup,
+            onChoose: (option) {
+              if (component.closeOnSelect) portal.close();
+              // 先让弹层终止交互并归还焦点，通知可安全地再次打开菜单。
+              scheduleMicrotask(() {
+                if (context.mounted && !disabled) component.currentValue = option.value as T;
+              });
+            },
+          ),
+        ),
+        child: row,
       ),
-      child: row,
     );
   }
 }

@@ -47,12 +47,12 @@ void main() {
     final point = tester.getRect(find.byType(ElListTile<int>)).center;
     await tester.tapAt(point);
     await tester.pumpAndSettle();
-    final portal = tester.widget<ElPortal>(find.byType(ElPortal));
-    expect(portal.anchorPosition, point);
+    // 默认以按压点为锚。
+    expect(ElPopup.geometryOf(tester.element(_panel(color)))!.anchorRect, point & Size.zero);
     expect(tester.getRect(_panel(color)).width, 236);
     expect(tester.getRect(_panel(color)).top, closeTo(point.dy + 4, .01));
-    expect(portal.closeOnOutsidePointerDown, isTrue);
-    expect(portal.closeOnScroll, isTrue);
+    // 以按压点为锚时，所在列表滚动即关闭。
+    expect(tester.widget<ElPopup>(find.byType(ElPopup)).closeOnScroll, isTrue);
   });
 
   testWidgets('菜单Tab逐项循环、跳过禁用项并支持Home End与字符查找', (tester) async {
@@ -79,7 +79,9 @@ void main() {
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(tester.widget<ElPortal>(find.byType(ElPortal)).anchorPosition, isNull);
+    // 键盘打开没有按压点，以整行为锚。
+    final item = tester.element(find.descendant(of: _focused(), matching: _text('Alpha')));
+    expect(ElPopup.geometryOf(item)!.anchorRect.size, isNot(Size.zero));
     expect(find.descendant(of: _focused(), matching: _text('Alpha')), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();
@@ -205,7 +207,7 @@ void main() {
               focusNode: focus,
               options: [ElLabelModel('旧一', 1), ElLabelModel('旧二', 2)],
               onChanged: (_) {
-                final portals = tester.widgetList<ElPortal>(find.byType(ElPortal));
+                final portals = tester.widgetList<ElPopup>(find.byType(ElPopup));
                 closedBeforeChange = !portals.first.controller!.isOpen && focus.hasPrimaryFocus;
               },
             ),
@@ -226,7 +228,7 @@ void main() {
     await _tap(tester, find.text('第二个'));
     expect(_text('旧一'), findsNothing);
     expect(_text('新四'), findsOneWidget);
-    final portals = tester.widgetList<ElPortal>(find.byType(ElPortal)).toList();
+    final portals = tester.widgetList<ElPopup>(find.byType(ElPopup)).toList();
     expect(portals.first.controller!.isOpen, isFalse);
     expect(portals.last.controller!.isOpen, isTrue);
   });
@@ -305,7 +307,7 @@ void main() {
       ),
     );
     await _tap(tester, find.text('重开菜单'));
-    final portal = tester.widget<ElPortal>(find.byType(ElPortal)).controller!;
+    final portal = tester.widget<ElPopup>(find.byType(ElPopup)).controller!;
     portal.close();
     await tester.pump(Duration(milliseconds: 40));
     portal.open();
@@ -459,7 +461,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     await tester.pump(Duration(milliseconds: 80));
-    final geometry = ElPortal.geometryOf(tester.element(_panel(color)))!;
+    final geometry = ElPopup.geometryOf(tester.element(_panel(color)))!;
     final transform = tester.widget<Transform>(
       find.byWidgetPredicate((widget) => widget is Transform && widget.origin != null),
     );
@@ -467,7 +469,7 @@ void main() {
     expect(transform.origin!.dy, closeTo(point.dy - geometry.overlayRect.top, .01));
     expect(transform.origin!.dy, greaterThan(20));
     expect(transform.origin!.dy, lessThan(geometry.overlayRect.height - 10));
-    tester.widget<ElPortal>(find.byType(ElPortal)).controller!.close();
+    tester.widget<ElPopup>(find.byType(ElPopup)).controller!.close();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

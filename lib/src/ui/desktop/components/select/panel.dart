@@ -1,7 +1,5 @@
 part of 'index.dart';
 
-Duration get _selectMenuExitDuration => const Duration(milliseconds: 90);
-
 double _selectOptionHeight(bool compact) => elInputControlHeight(compact);
 
 ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
@@ -10,10 +8,6 @@ ElStyle _selectMenuBaseStyle(BuildContext context) => ElStyle(
   color: context.elTheme.textRegular,
   border: .all(borderColor: null),
   borderRadius: .circular(context.elTheme.radiusSm),
-  opacity: 1,
-  transform: .translateY(0),
-  starting: ElStyle(opacity: 0, transform: .translateY(-4)),
-  transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
   iconColor: context.elTheme.textRegular,
 ).withShadow(level: ElLevelType.sm.shadow(context));
 
@@ -69,10 +63,8 @@ class _ElSelectPanel<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final phase = ElPortal.phaseOf(context);
-    final exiting = phase == ElPortalPhase.exiting;
     var style = _selectMenuBaseStyle(context)
-        .merge(ElStyle(maxHeight: menuHeight, opacity: exiting ? 0 : 1, transform: .translateY(exiting ? -4 : 0)));
+        .merge(ElStyle(maxHeight: menuHeight));
     if (menuStyle != null) style = style.merge(menuStyle);
     final optionHeight = _selectOptionHeight(compact);
 

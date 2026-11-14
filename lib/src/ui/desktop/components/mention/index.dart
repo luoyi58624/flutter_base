@@ -26,9 +26,10 @@ import '../../../../flutter/views/view/style/style.dart' show ElBorder, ElShadow
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/form/index.dart' show ElInputModelValue;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
-import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
+import '../../../../flutter/widgets/popup/popup.dart' show ElPopup, ElPopupController;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
+import '../dropdown_transition.dart';
 import '../list_scroll.dart' show buildListScroll;
 
 part 'panel.dart';
@@ -55,7 +56,7 @@ List<_ResolvedMentionOption<T>> _resolveMentionOptions<T>(Iterable<ElMentionOpti
   return result;
 }
 
-/// 基于 [ElInput] 与 [ElPortal] 的 Mention 输入框。
+/// 基于 [ElInput] 与 [ElPopup] 的 Mention 输入框。
 ///
 /// 文本、IME、选区、Autofill 与输入拦截全部由内部唯一 [ElInput] 的
 /// [ElEditableView] 承接；本组件只读取 editable 光标上下文，在光标处锚定候选
@@ -205,7 +206,8 @@ class _MentionBody<T> extends StatefulWidget {
 }
 
 class _MentionBodyState<T> extends State<_MentionBody<T>> {
-  final ElPortalController _portal = ElPortalController();
+  final ElPopupController _portal = ElPopupController();
+  bool _closing = false;
   // Portal 冻结会话入口，候选内容通过独立值通道跟随输入和键盘状态。
   final _panel = ValueNotifier<Widget>(const SizedBox.shrink());
   final ElInputController _inputControl = ElInputController();
@@ -540,7 +542,9 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
 
   void _closePanel({required bool clear}) {
     _reopenRequested = false;
+    _closing = true;
     _portal.close();
+    _closing = false;
     _lastSearchKey = null;
     if (!clear) return;
     if (_context == null && _suggestions.isEmpty && _activeIndex == null) {
@@ -902,17 +906,18 @@ class _MentionBodyState<T> extends State<_MentionBody<T>> {
               top: marker.dy,
               width: 0,
               height: 0,
-              child: ElPortal(
-                // 候选面板由正文输入节点导航，不切断正在进行的编辑会话。
-                captureFocus: false,
-                restoreFocus: false,
+              child: ElPopup(
+                // 候选面板由正文输入节点导航，不抢焦点，不切断正在进行的编辑会话。
                 controller: _portal,
+                trigger: const {},
                 anchor: _portalAnchor,
-                exitDuration: _mentionPanelExitDuration,
-                overlayBuilder: (_) =>
-                    ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
-                hideWhenUnlinked: true,
-                onDismiss: () => _closePanel(clear: true),
+                builder: (_) => dropdownTransition(
+                  ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
+                ),
+                // 外部点击或 Esc 关闭时一并清空候选；自身关闭由 _closePanel 决定是否清空。
+                onOpenChanged: (open) {
+                  if (!open && !_closing) _closePanel(clear: true);
+                },
                 child: const ElView(
                   style: ElStyle(width: 0, height: 0, pointerEvents: .none, userSelect: .none),
                 ),

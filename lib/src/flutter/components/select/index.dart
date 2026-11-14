@@ -172,7 +172,7 @@ class ElSelect<T> extends StatelessWidget {
   @Deprecated('请使用 panelStyle。')
   final MenuStyle? menuStyle;
 
-  /// ElPortal 菜单面板样式覆盖。
+  /// 下拉菜单面板样式覆盖。
   final ElStyle? panelStyle;
 
   /// 旧 Material 初始选中值；仅在 value/modelValue 都未提供时作为初值。

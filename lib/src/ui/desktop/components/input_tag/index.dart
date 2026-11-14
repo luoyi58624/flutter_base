@@ -23,7 +23,7 @@ import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElFormMode
 import '../../../../flutter/widgets/icon/index.dart' show ElIcon;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
 import '../../../../flutter/widgets/popup/hover_intent.dart' show ElHoverIntent;
-import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController;
+import '../../../../flutter/widgets/popup/popup.dart' show ElPopup, ElPopupController, ElPopupTrigger;
 import '../../../widgets/dnd/draggable.dart' show ElDraggable;
 import '../../../widgets/dnd/drop_target.dart' show ElDropTarget;
 import '../../commons/icons.dart' show ElDesktopIcons;
@@ -173,7 +173,7 @@ class _InputTagBody extends StatefulWidget {
 class _InputTagBodyState extends State<_InputTagBody> {
   final GlobalKey _fieldKey = GlobalKey(debugLabel: 'ElInputTag field');
   final ElInputController _fieldControl = ElInputController();
-  final ElPortalController _collapsePortal = ElPortalController();
+  final ElPopupController _collapsePortal = ElPopupController();
   final ValueNotifier<int> _collapseTooltipRevision = ValueNotifier<int>(0);
   late final FocusNode _ownFocusNode;
   String _draft = '';
@@ -182,7 +182,6 @@ class _InputTagBodyState extends State<_InputTagBody> {
   bool _preservePointerFocus = false;
   bool _preserveSelectionForNextTags = false;
   bool _collapseTooltipInvalidationScheduled = false;
-  bool _retainCollapsePortalAnchor = false;
   int _tagsEpoch = 0;
   int _focusBindingGeneration = 0;
 
@@ -220,7 +219,7 @@ class _InputTagBodyState extends State<_InputTagBody> {
       _preserveSelectionForNextTags = false;
     }
     if (_shouldCloseCollapsePortal(oldWidget, tagsChanged: tagsChanged)) {
-      _closeCollapsePortal(retainAnchor: _collapsePortal.isOpen && !_willRenderCollapseTag());
+      _closeCollapsePortal();
     }
     if (!identical(oldFocusNode, nextFocusNode)) {
       _preservePointerFocus = false;
@@ -405,14 +404,8 @@ class _InputTagBodyState extends State<_InputTagBody> {
         previous.maxCollapseTags != current.maxCollapseTags;
   }
 
-  void _closeCollapsePortal({bool retainAnchor = false}) {
-    if (retainAnchor && !_retainCollapsePortalAnchor) {
-      _retainCollapsePortalAnchor = true;
-      _collapsePortal.closed.whenComplete(() {
-        if (!mounted || !_retainCollapsePortalAnchor) return;
-        setState(() => _retainCollapsePortalAnchor = false);
-      });
-    }
+  // 折叠标签消失时提示随之卸载，不再保留锚点等它退场。
+  void _closeCollapsePortal() {
     _invalidateCollapseTooltip();
     _collapsePortal.close();
   }
@@ -791,30 +784,13 @@ class _InputTagBodyState extends State<_InputTagBody> {
     );
     if (Overlay.maybeOf(context) == null) return trigger;
     final tooltipEnabled = widget.config.collapseTagsTooltip && !widget.config.disabled;
-    return ElPortal(
+    return ElPopup(
       controller: _collapsePortal,
+      trigger: tooltipEnabled ? const {ElPopupTrigger.hover} : const {},
+      hoverIntent: const ElHoverIntent(openDelay: Duration(milliseconds: 120), closeDelay: Duration(milliseconds: 80)),
       anchor: const ElOverlayAnchor(placement: .top, offset: 6),
-      hoverIntent: tooltipEnabled
-          ? const ElHoverIntent(openDelay: Duration(milliseconds: 120), closeDelay: Duration(milliseconds: 80))
-          : null,
-      overlayBuilder: _buildCollapseTooltipOverlay,
-      captureFocus: false,
-      restoreFocus: false,
-      hideWhenUnlinked: true,
+      builder: _buildCollapseTooltipOverlay,
       child: trigger,
-    );
-  }
-
-  Widget _buildCollapsePortalAnchor() {
-    if (Overlay.maybeOf(context) == null) return const SizedBox.shrink();
-    return ElPortal(
-      controller: _collapsePortal,
-      anchor: const ElOverlayAnchor(placement: .top, offset: 6),
-      overlayBuilder: _buildCollapseTooltipOverlay,
-      captureFocus: false,
-      restoreFocus: false,
-      hideWhenUnlinked: true,
-      child: const ElView(style: ElStyle(width: 0, height: 0)),
     );
   }
 
@@ -824,8 +800,6 @@ class _InputTagBodyState extends State<_InputTagBody> {
         ? config.maxCollapseTags
         : widget.tags.length;
   }
-
-  bool _willRenderCollapseTag() => widget.config.collapseTags && widget.tags.length > widget.config.maxCollapseTags;
 
   List<String> _hiddenCollapseTags() {
     final visibleCount = _visibleCollapseCount();
@@ -918,7 +892,6 @@ class _InputTagBodyState extends State<_InputTagBody> {
             ),
           for (var index = 0; index < visibleCount; index++) _buildTag(context, index, compact, inlineExtent),
           if (hiddenTags.isNotEmpty) _buildCollapseTag(context, hiddenTags, compact, inlineExtent),
-          if (hiddenTags.isEmpty && _retainCollapsePortalAnchor) _buildCollapsePortalAnchor(),
           _inputTagInline(input, key: const ValueKey<String>('el-input-tag-draft-inline'), height: inlineExtent),
           if (config.suffix != null)
             _InputTagAffix(

@@ -103,7 +103,6 @@ void main() {
     await tester.tap(find.text('打开菜单'));
     await tester.pumpAndSettle();
     expect(focus.hasPrimaryFocus, isTrue);
-    expect(tester.widget<ElPortal>(find.byType(ElPortal)).captureFocus, isFalse);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();
     expect(FocusManager.instance.primaryFocus, same(focus));

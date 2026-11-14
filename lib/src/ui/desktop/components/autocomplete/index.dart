@@ -16,14 +16,15 @@ import '../../../../flutter/views/view/style/style.dart' show ElShadowStyleExt, 
 import '../../../../flutter/views/view/view.dart' show ElView;
 import '../../../../flutter/widgets/form/index.dart' show ElFormItem, ElInputModelValue;
 import '../../../../flutter/widgets/popup/anchor.dart' show ElOverlayAnchor;
-import '../../../../flutter/widgets/popup/portal.dart' show ElPortal, ElPortalController, ElPortalPhase;
+import '../../../../flutter/widgets/popup/popup.dart' show ElPopup, ElPopupController;
 import '../../extensions/el.dart';
 import '../input/metrics.dart';
+import '../dropdown_transition.dart';
 import '../list_scroll.dart' show buildListScroll;
 
 part 'panel.dart';
 
-/// 基于 [ElInput] 与 [ElPortal] 的自动补全输入框。
+/// 基于 [ElInput] 与 [ElPopup] 的自动补全输入框。
 ///
 /// 文本、IME、选区与 Autofill 只由内部 [ElInput] 的 [ElEditableView] 处理；
 /// 本组件只负责任务防抖、候选请求、弹层和键盘 active 状态。值通道支持受控
@@ -184,7 +185,7 @@ class _AutocompleteBody<T> extends StatefulWidget {
 }
 
 class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
-  final ElPortalController _portal = ElPortalController();
+  final ElPopupController _portal = ElPopupController();
   // Portal 冻结会话入口，候选内容通过独立值通道跟随输入和键盘状态。
   final _panel = ValueNotifier<Widget>(const SizedBox.shrink());
   final ElInputController _inputControl = ElInputController();
@@ -689,16 +690,15 @@ class _AutocompleteBodyState<T> extends State<_AutocompleteBody<T>> {
 
     // 裸组件没有官方 Overlay 时保留输入，不挂载候选面板。
     if (Overlay.maybeOf(context) == null) return trigger;
-    return ElPortal(
-      // 建议列表由输入框处理键盘与 IME，保持输入宿主的主焦点。
-      captureFocus: false,
-      restoreFocus: false,
+    // 建议列表由输入框处理键盘与 IME，面板不抢焦点，保持输入宿主的主焦点。
+    return ElPopup(
       controller: _portal,
+      trigger: const {},
       anchor: config.anchor,
-      exitDuration: _autocompletePanelExitDuration,
-      overlayBuilder: (_) => ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
       closeOnEscape: !_imeComposing,
-      hideWhenUnlinked: true,
+      builder: (_) => dropdownTransition(
+        ValueListenableBuilder<Widget>(valueListenable: _panel, builder: (_, panel, _) => panel),
+      ),
       child: trigger,
     );
   }

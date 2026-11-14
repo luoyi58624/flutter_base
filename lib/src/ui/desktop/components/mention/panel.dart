@@ -1,7 +1,5 @@
 part of 'index.dart';
 
-Duration get _mentionPanelExitDuration => const Duration(milliseconds: 90);
-
 double _mentionOptionHeight(bool compact) => elInputControlHeight(compact);
 
 ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
@@ -9,10 +7,6 @@ ElStyle _mentionPanelBaseStyle(BuildContext context) => ElStyle(
   color: context.elTheme.textRegular,
   border: .all(borderColor: null),
   borderRadius: .circular(context.elTheme.radiusSm),
-  opacity: 1,
-  transform: .translateY(0),
-  starting: ElStyle(opacity: 0, transform: .translateY(-4)),
-  transition: [.all(Duration(milliseconds: 90), Curves.easeOutCubic)],
   iconColor: context.elTheme.textRegular,
 ).withShadow(level: ElLevelType.sm.shadow(context));
 
@@ -86,12 +80,8 @@ class _MentionPanel<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final phase = ElPortal.phaseOf(context);
-    final geometry = ElPortal.geometryOf(context);
-    final exiting = phase == ElPortalPhase.exiting;
-    var style = _mentionPanelBaseStyle(context).merge(
-      ElStyle(width: width, maxHeight: maxHeight, opacity: exiting ? 0 : 1, transform: .translateY(exiting ? -4 : 0)),
-    );
+    final geometry = ElPopup.geometryOf(context);
+    var style = _mentionPanelBaseStyle(context).merge(ElStyle(width: width, maxHeight: maxHeight));
     if (panelStyle != null) style = style.merge(panelStyle);
     final optionHeight = _mentionOptionHeight(compact);
 
