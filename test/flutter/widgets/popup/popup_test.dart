@@ -626,4 +626,81 @@ void main() {
       expect(find.byKey(ValueKey('inner')), findsNothing);
     });
   });
+
+  group('跟随层', () {
+    // 目标挂在 CompositedTransformFollower 内，实际位置由合成阶段的 LeaderLayer 决定，例如文本选择工具条。
+    Widget follower(LayerLink link, Offset leader, ElPopupController controller) => MaterialApp(
+      home: Scaffold(
+        body: Stack(
+          children: [
+            Positioned(
+              left: leader.dx,
+              top: leader.dy,
+              child: CompositedTransformTarget(link: link, child: SizedBox(width: 10, height: 10)),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              child: CompositedTransformFollower(
+                link: link,
+                showWhenUnlinked: false,
+                offset: Offset(0, 20),
+                child: ElPopup(
+                  controller: controller,
+                  trigger: {},
+                  anchor: ElOverlayAnchor(offset: 4),
+                  builder: (context) => _box('panel', Size(100, 50)),
+                  child: _box('trigger', Size(80, 30)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    testWidgets('按合成后的实际位置定位，跟随层移动后下一帧跟上并重选方位', (tester) async {
+      final link = LayerLink();
+      final controller = ElPopupController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(follower(link, Offset(100, 100), controller));
+      controller.open();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(_trigger), Rect.fromLTWH(100, 120, 80, 30));
+      expect(tester.getRect(_panel), Rect.fromLTWH(90, 154, 100, 50));
+
+      await tester.pumpWidget(follower(link, Offset(300, 520), controller));
+      await tester.pump();
+      final anchor = tester.getRect(_trigger);
+      final panel = tester.getRect(_panel);
+      expect(anchor.topLeft, Offset(300, 540));
+      // 下方放不下，翻到目标上方。
+      expect(panel.bottom, anchor.top - 4);
+      expect(panel.center.dx, anchor.center.dx);
+    });
+
+    testWidgets('面板内点击保持打开，外部点击关闭并移除面板', (tester) async {
+      final link = LayerLink();
+      final controller = ElPopupController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(follower(link, Offset(100, 100), controller));
+      controller.open();
+      await tester.pump();
+      await tester.tapAt(tester.getCenter(_panel));
+      await tester.pump();
+      expect(controller.isOpen, isTrue);
+
+      await tester.tapAt(Offset(700, 50));
+      await tester.pump();
+      await tester.pump();
+      expect(controller.isOpen, isFalse);
+      expect(_panel, findsNothing);
+      // 关闭后跟随层继续移动不影响已移除的面板。
+      await tester.pumpWidget(follower(link, Offset(200, 200), controller));
+      await tester.pump();
+      expect(_panel, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

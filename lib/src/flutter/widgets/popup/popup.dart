@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
-import 'package:flutter/rendering.dart' show RenderIgnorePointer;
+import 'package:flutter/rendering.dart' show RenderFollowerLayer, RenderIgnorePointer;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
@@ -47,10 +47,14 @@ class ElPopupController extends ChangeNotifier {
   void toggle() => isOpen ? close() : open();
 }
 
+/// 目标尺寸、目标到 Overlay 的绘制变换与 Overlay 尺寸，面板据此解算位置。
+typedef _Placement = (Size target, Matrix4 transform, Size overlay);
+
 /// 包裹目标并在其周围显示面板。
 ///
 /// 面板在布局阶段按目标的实时位置解算：滚动、窗口尺寸与键盘变化时跟随目标并重新选择最佳方位，
-/// 目标滚出所在滚动区域时暂时隐藏。嵌套在面板内的 ElPopup 组成一条链：打开子层会关闭同级子层，
+/// 目标滚出所在滚动区域时暂时隐藏。目标位于 CompositedTransformFollower 等跟随层内时，
+/// 其位置要到合成阶段才确定，面板改为每帧合成后读取目标实际位置，变化时下一帧跟随。嵌套在面板内的 ElPopup 组成一条链：打开子层会关闭同级子层，
 /// 关闭父层会关闭子层，链上任一面板与目标都不算外部点击，悬停在子层面板上时父层保持打开，Esc 从最内层逐级关闭。
 class ElPopup extends StatefulWidget {
   /// 创建锚定弹层，builder 在打开时构建面板。
@@ -130,6 +134,7 @@ class _ElPopupState extends State<ElPopup> {
   final _portal = OverlayPortalController();
   final _transitions = OverlayTransitions();
   final _geometry = ValueNotifier<ElOverlayAnchorGeometry?>(null);
+  final _followed = ValueNotifier<_Placement?>(null);
   final _panelKey = GlobalKey();
   final _ignoreKey = GlobalKey();
   final _panelFocus = FocusNode(debugLabel: 'ElPopup panel', canRequestFocus: false, skipTraversal: true);
@@ -143,6 +148,8 @@ class _ElPopupState extends State<ElPopup> {
   FocusNode? _restore;
   Offset? _position;
   bool _open = false;
+  bool _follower = false;
+  bool _tracking = false;
   int _generation = 0;
 
   ElPopupController get _controller => widget.controller ?? (_ownController ??= ElPopupController());
@@ -185,6 +192,7 @@ class _ElPopupState extends State<ElPopup> {
     _hover?.dispose();
     _scrollWatch?.isScrollingNotifier.removeListener(_handleScroll);
     _geometry.dispose();
+    _followed.dispose();
     _panelFocus.dispose();
     _triggerFocus.dispose();
     super.dispose();
@@ -228,6 +236,11 @@ class _ElPopupState extends State<ElPopup> {
     _open = true;
     _parent?._childOpened(this);
     _restore = FocusManager.instance.primaryFocus;
+    _follower = _inFollower();
+    if (_follower) {
+      _followed.value = _measure();
+      _track();
+    }
     if (_portal.isShowing) {
       // 退场中途再次打开，从当前进度重新进场。
       _transitions.forward();
@@ -295,6 +308,37 @@ class _ElPopupState extends State<ElPopup> {
     });
   }
 
+  RenderObject? get _overlayBox =>
+      Overlay.maybeOf(context, rootOverlay: widget.rootOverlay)?.context.findRenderObject();
+
+  // 目标与所挂 Overlay 之间有跟随层时，其变换要到合成阶段才确定，官方布局阶段定位会断言失败。
+  bool _inFollower() {
+    final overlay = _overlayBox;
+    for (var node = context.findRenderObject(); node != null && node != overlay; node = node.parent) {
+      if (node is RenderFollowerLayer) return true;
+    }
+    return false;
+  }
+
+  _Placement? _measure() {
+    final target = context.findRenderObject();
+    final overlay = _overlayBox;
+    if (target is! RenderBox || overlay is! RenderBox || !target.hasSize || !overlay.hasSize) return null;
+    return (target.size, target.getTransformTo(overlay), overlay.size);
+  }
+
+  // 跟随层在合成时才更新变换：每帧结束后重读目标位置，变化时触发下一帧重新定位，面板移除后停止。
+  void _track() {
+    if (_tracking) return;
+    _tracking = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _tracking = false;
+      if (!mounted || !_follower || !_portal.isShowing) return;
+      if (_measure() case final placement?) _followed.value = placement;
+      _track();
+    });
+  }
+
   // 目标所在滚动区域的可见范围，用于判断目标是否已滚出视野。
   bool _outOfView(Rect anchorRect, RenderBox overlay) {
     final box = _scrollable?.context.findRenderObject();
@@ -308,9 +352,9 @@ class _ElPopupState extends State<ElPopup> {
   Map<Type, Action<Intent>> get _dismiss =>
       _open && widget.closeOnEscape ? {DismissIntent: _DismissAction(this)} : const {};
 
-  Widget _buildOverlay(BuildContext context, OverlayChildLayoutInfo info) {
-    final transform = info.childPaintTransform;
-    final anchorRect = MatrixUtils.transformRect(transform, Offset.zero & info.childSize);
+  Widget _buildOverlay(BuildContext context, _Placement placement) {
+    final (size, transform, overlaySize) = placement;
+    final anchorRect = MatrixUtils.transformRect(transform, Offset.zero & size);
     final target = switch (_position) {
       final position? => MatrixUtils.transformPoint(transform, position) & Size.zero,
       null => anchorRect,
@@ -320,8 +364,8 @@ class _ElPopupState extends State<ElPopup> {
     final viewport = Rect.fromLTRB(
       padding.left,
       padding.top,
-      info.overlaySize.width - padding.right,
-      info.overlaySize.height - math.max(padding.bottom, keyboard),
+      overlaySize.width - padding.right,
+      overlaySize.height - math.max(padding.bottom, keyboard),
     );
     final overlay = Overlay.maybeOf(context, rootOverlay: widget.rootOverlay)?.context.findRenderObject();
     final hidden = overlay is RenderBox && _outOfView(anchorRect, overlay);
@@ -397,14 +441,29 @@ class _ElPopupState extends State<ElPopup> {
     if (triggers.contains(ElPopupTrigger.focus)) {
       trigger = Focus(focusNode: _triggerFocus, includeSemantics: false, onFocusChange: _focusChanged, child: trigger);
     }
+    final OverlayChildLocation location = widget.rootOverlay ? .rootOverlay : .nearestOverlay;
+    final child = Actions(
+      actions: _dismiss,
+      child: TapRegion(groupId: _group, child: trigger),
+    );
+    if (_follower) {
+      return OverlayPortal(
+        controller: _portal,
+        overlayLocation: location,
+        overlayChildBuilder: (_) => ValueListenableBuilder(
+          valueListenable: _followed,
+          builder: (context, placement, _) =>
+              placement == null ? const SizedBox.shrink() : _buildOverlay(context, placement),
+        ),
+        child: child,
+      );
+    }
     return OverlayPortal.overlayChildLayoutBuilder(
       controller: _portal,
-      overlayLocation: widget.rootOverlay ? .rootOverlay : .nearestOverlay,
-      overlayChildBuilder: _buildOverlay,
-      child: Actions(
-        actions: _dismiss,
-        child: TapRegion(groupId: _group, child: trigger),
-      ),
+      overlayLocation: location,
+      overlayChildBuilder: (context, info) =>
+          _buildOverlay(context, (info.childSize, info.childPaintTransform, info.overlaySize)),
+      child: child,
     );
   }
 }

@@ -281,9 +281,8 @@ void main() {
     expect(_handleIsHit(tester), isTrue, reason: '层序变化后句柄继续随 dialog 内容命中');
   });
 
-  // 工具条由 FollowerLayer 跟随定位，官方 OverlayPortal 在布局阶段无法算出其中目标的绘制变换，
-  // ElPopup 暂不支持锚在跟随层内的目标；补上绘制阶段定位后恢复本用例。
-  testWidgets('独立工具条保留 dialog 上下文，dialog 关闭时子弹层一并摘除', skip: true, (tester) async {
+  // 工具条由 FollowerLayer 跟随定位，其中的 ElPopup 改为合成后读取目标位置。
+  testWidgets('独立工具条保留 dialog 上下文，dialog 关闭时子弹层一并摘除', (tester) async {
     await tester.pumpWidget(_app(child: const ElView(child: 'page')));
     final host = _host(tester);
     final dialog = host.show(
